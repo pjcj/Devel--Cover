@@ -10,10 +10,10 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.37";
+our $VERSION = "0.38";
 
-use Devel::Cover::DB::File  0.37;
-use Devel::Cover::Criterion 0.37;
+use Devel::Cover::DB::File  0.38;
+use Devel::Cover::Criterion 0.38;
 
 use Carp;
 use File::Path;
@@ -365,7 +365,7 @@ sub print_summary
     {
         my ($part, $criterion) = @_;
         $options{$criterion} && exists $part->{$criterion}
-            ? sprintf "%5.2f", $part->{$criterion}{percentage}
+            ? sprintf "%4.1f", $part->{$criterion}{percentage}
             : "n/a"
     };
 
@@ -641,7 +641,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.37 - 10th March 2004
+Version 0.38 - 12th March 2004
 
 =head1 LICENCE
 

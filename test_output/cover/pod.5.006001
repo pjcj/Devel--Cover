@@ -1,12 +1,12 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3409/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3702/cover_db
 
 
 --------------------------------------------------------------- ------ ------
 File                                                               pod  total
 --------------------------------------------------------------- ------ ------
-tests/Module1.pm                                                 50.00  50.00
+tests/Module1.pm                                                  50.0   50.0
 tests/pod                                                          n/a    n/a
-Total                                                            50.00  50.00
+Total                                                             50.0   50.0
 --------------------------------------------------------------- ------ ------
 
 

@@ -1,11 +1,11 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3409/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3702/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/t0                                    90.91  62.50  66.67    n/a  77.27
-Total                                       90.91  62.50  66.67    n/a  77.27
+tests/t0                                     90.9   62.5   66.7    n/a   77.3
+Total                                        90.9   62.5   66.7    n/a   77.3
 ------------------------------------------ ------ ------ ------ ------ ------
 
 

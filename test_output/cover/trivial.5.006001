@@ -1,11 +1,11 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3409/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3702/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/trivial                              100.00    n/a    n/a    n/a 100.00
-Total                                      100.00    n/a    n/a    n/a 100.00
+tests/trivial                               100.0    n/a    n/a    n/a  100.0
+Total                                       100.0    n/a    n/a    n/a  100.0
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -14,7 +14,7 @@ tests/trivial
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       

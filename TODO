@@ -2,7 +2,6 @@
 - Collect data for path coverage.
 - Tests.
   - Functional tests.
-  - md5 tests.
 - Documentation.
 - Profiling and speedups.
 - BEGIN and END blocks.
@@ -24,4 +23,3 @@
 - Threads support.
 - Test analysis.
 - Move HTML version and platform info to main page and allow for multiples.
-- Handle "my $x = shift || []" nicely.

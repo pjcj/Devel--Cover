@@ -12,9 +12,9 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.37";
+our $VERSION = "0.38";
 
-use Devel::Cover::DB 0.37;
+use Devel::Cover::DB 0.38;
 
 use Getopt::Long;
 use Pod::Usage;
@@ -22,7 +22,6 @@ use Pod::Usage;
 my $Options =
 {
     db     => "cover_db",
-    indent => 0,
     merge  => 1,
 };
 
@@ -33,7 +32,6 @@ sub get_options
                qw(
                    db=s
                    help|h!
-                   indent=i
                    info|i!
                    merge!
                    version|v!
@@ -78,7 +76,6 @@ sub main
     eval { $existing = Devel::Cover::DB->new(db => $Options->{db})
                if $Options->{merge} };
     $db->merge($existing) if $existing;
-    $db->indent($Options->{indent});
     $db->write($Options->{db});
 }
 
@@ -92,7 +89,7 @@ gcov2perl - convert gcov files to Devel::Cover databases
 
 =head1 SYNOPSIS
 
- gcov2perl -h -i -v -db database -merge -indent gcov_files
+ gcov2perl -h -i -v -db database -merge gcov_files
 
 =head1 DESCRIPTION
 
@@ -104,7 +101,6 @@ The following command line options are supported:
 
  -db database    - specify the database to use
  -merge          - merge results with the current database
- -indent         - Data::Dumper indent level to use
 
  -h -help        - show help
  -i -info        - show documentation
@@ -114,13 +110,12 @@ The following command line options are supported:
 
 The following exit values are returned:
 
-0   All files converted successfully
-
->0  An error occurred.
+ 0   All files converted successfully
+ >0  An error occurred.
 
 =head1 SEE ALSO
 
- Dvel::Cover
+ Devel::Cover
 
 =head1 BUGS
 
@@ -128,7 +123,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.37 - 10th March 2004
+Version 0.38 - 12th March 2004
 
 =head1 LICENCE
 

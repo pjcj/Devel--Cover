@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.37";
+our $VERSION = "0.38";
 
 use DynaLoader ();
 our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.37;
-use Devel::Cover::Inc 0.37;
+use Devel::Cover::DB  0.38;
+use Devel::Cover::Inc 0.38;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -112,6 +112,8 @@ EOM
           "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
         unless $Silent;
 
+    $Meta{OS}    = $^O;
+    $Meta{perl}  = join ".", map ord, split //, $^V;
     $Meta{run}   = $0;
     $Meta{start} = get_elapsed();
 }
@@ -536,7 +538,8 @@ sub add_condition_cover
 
     if ($type eq "or")
     {
-        if ($op->first->sibling->name eq "const")
+        my $name = $op->first->sibling->name;
+        if ($name eq "const" || $name eq "srefgen")
         {
             $c = [ $c->[3], $c->[1] + $c->[2] ];
             $count = 2;
@@ -984,7 +987,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.37 - 10th March 2004
+Version 0.38 - 12th March 2004
 
 =head1 LICENCE
 

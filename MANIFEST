@@ -43,6 +43,7 @@ tests/cond_and
 tests/cond_branch
 tests/cond_or
 tests/cond_xor
+tests/default_param
 tests/destroy
 tests/dynamic_subs
 tests/eval1
@@ -76,6 +77,8 @@ test_output/cover/cond_or.5.006001
 test_output/cover/cond_or.5.008001
 test_output/cover/cond_xor.5.006001
 test_output/cover/cond_xor.5.008001
+test_output/cover/default_param.5.006001
+test_output/cover/default_param.5.008001
 test_output/cover/destroy.5.006001
 test_output/cover/dynamic_subs.5.006001
 test_output/cover/dynamic_subs.5.008001
