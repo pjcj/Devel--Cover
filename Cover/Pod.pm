@@ -12,9 +12,9 @@ use warnings;
 
 use base "Devel::Cover::Criterion";
 
-use Pod::Coverage;
+BEGIN { eval "use Pod::Coverage 0.06" }     # We'll use this if it is available.
 
-our $VERSION = "0.12";
+our $VERSION = "0.13";
 
 sub covered    { $_[0]->[0] ? 1 : 0 }
 sub total      { 1 }
@@ -78,7 +78,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.12 - 14th October 2001
+Version 0.13 - 14th October 2001
 
 =head1 LICENCE
 

@@ -10,8 +10,8 @@
 use strict;
 use warnings;
 
-use Devel::Cover::DB 0.12;
-use Devel::Cover 0.12 qw( -db t2 +inc blib -indent 1 -merge 0 );
+use Devel::Cover::DB 0.13;
+use Devel::Cover 0.13 qw( -db t2 +inc blib -indent 1 -merge 0 );
 
 use Test;
 

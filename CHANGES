@@ -58,3 +58,6 @@ Release 0.12 - 14th October 2001
      Devel::Cover::DB::File.pm
      Devel::Cover::Time.pm
  - Abstract summary and percentage calculations to appropriate classes.
+
+Release 0.13 - 14th October 2001
+ - Forgot to allow for lack of Pod::Coverage in Devel::Cover::Pod.pm.

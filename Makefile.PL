@@ -16,7 +16,7 @@ use ExtUtils::MakeMaker;
 
 $| = 1;
 
-my $Version = "0.12";
+my $Version = "0.13";
 my $Date    = "14th October 2001";
 my $Author  = 'pjcj@cpan.org';
 

@@ -10,18 +10,18 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-use Devel::Cover::DB::File  0.12;
-use Devel::Cover::Criterion 0.12;
-use Devel::Cover::Statement 0.12;
-use Devel::Cover::Condition 0.12;
-use Devel::Cover::Pod       0.12;
-use Devel::Cover::Time      0.12;
+use Devel::Cover::DB::File  0.13;
+use Devel::Cover::Criterion 0.13;
+use Devel::Cover::Statement 0.13;
+use Devel::Cover::Condition 0.13;
+use Devel::Cover::Pod       0.13;
+use Devel::Cover::Time      0.13;
 
 use Carp;
 use Data::Dumper;
 use File::Path;
 
-our $VERSION = "0.12";
+our $VERSION = "0.13";
 
 my $DB = "cover.2";  # Version 2 of the database.
 
@@ -478,7 +478,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.12 - 14th October 2001
+Version 0.13 - 14th October 2001
 
 =head1 LICENCE
 
