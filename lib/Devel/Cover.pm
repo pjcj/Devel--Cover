@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.33";
+our $VERSION = "0.34";
 
 use DynaLoader ();
 our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.33;
-use Devel::Cover::Inc 0.33;
+use Devel::Cover::DB  0.34;
+use Devel::Cover::Inc 0.34;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -615,7 +615,7 @@ sub B::Deparse::deparse
         }
         elsif ($Seen{$$op}++)
         {
-            return  # Only report on each op once.
+            return ""  # Only report on each op once.
         }
         elsif ($name eq "cond_expr")
         {
@@ -722,8 +722,9 @@ sub get_cover
 
     my $cv = $deparse->{curcv} = shift;
     my $gv = $cv->GV;
-    my $sub_name = $cv->GV->SAFENAME unless ($gv->isa("B::SPECIAL"));
-    $sub_name =~ s/(__ANON__)\[.+:\d+\]/$1/;
+    my $sub_name = "";
+    $sub_name = $cv->GV->SAFENAME unless ($gv->isa("B::SPECIAL"));
+    $sub_name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $sub_name;
 
     # printf STDERR "getting cover for $sub_name, %x\n", $$cv;
     # use Carp "cluck"; cluck "here: ";
@@ -755,12 +756,14 @@ sub get_cover
         }
     }
 
-    return $deparse->deparse(shift, 0) if @_;
+    my $root = $cv->ROOT;
+    if ($root->can("first"))
+    {
+        my $lineseq = $root->first;
+        add_subroutine_cover($lineseq->first, $sub_name) if $lineseq->can("first");
+    }
 
-    my $lineseq = $cv->ROOT->first;
-    my $op = $lineseq->first;
-    add_subroutine_cover($op, $sub_name);
-    $deparse->deparse_sub($cv, 0)
+    @_ && ref $_[0] ? $deparse->deparse($_[0], 0) : $deparse->deparse_sub($cv, 0);
 }
 
 sub get_cover_x
@@ -896,7 +899,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.33 - 13th January 2004
+Version 0.34 - 14th January 2004
 
 =head1 LICENCE
 

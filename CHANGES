@@ -204,3 +204,7 @@ Release 0.33 - 13th January 2004
  - Add dynamic_subs test.
  - Fix and document Devel::Cover::Op.
  - Redo subroutine coverage so anon subs are covered correctly in 5.6.x.
+
+Release 0.34 - 14th January 2004
+ - Fix various warnings and errors that had crept in whilst working on
+   dynamic subs.

@@ -10,10 +10,10 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.33";
+our $VERSION = "0.34";
 
-use Devel::Cover::DB::File  0.33;
-use Devel::Cover::Criterion 0.33;
+use Devel::Cover::DB::File  0.34;
+use Devel::Cover::Criterion 0.34;
 
 use Carp;
 use File::Path;
@@ -122,7 +122,7 @@ sub merge_runs
     # shouldn't be a problem unless a file is altered and the coverage run
     # created in less than a second.  I think we're OK for now.
 
-    for my $run (sort {$a <=> $b} @runs)
+    for my $run (sort @runs)
     {
         print STDERR "Devel::Cover: merging run $run\n"
             unless $Devel::Cover::Silent;
@@ -615,7 +615,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.33 - 13th January 2004
+Version 0.34 - 14th January 2004
 
 =head1 LICENCE
 

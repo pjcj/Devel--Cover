@@ -25,3 +25,16 @@ my $s = gen(3)->(4);
 my $t = gen(5)->(6);
 
 print "$p, $q, $r, $s, $t\n";
+
+for my $func (qw(f1 f2))
+{
+    no strict "refs";
+    *$func = sub
+    {
+        my $self = shift;
+        print "$func\n"
+    }
+}
+
+f1();
+f2();

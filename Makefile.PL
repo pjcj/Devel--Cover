@@ -19,8 +19,8 @@ use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version      = "0.33";
-my $Date         = "13th January 2004";
+my $Version      = "0.34";
+my $Date         = "14th January 2004";
 my $Author       = 'pjcj@cpan.org';
 
 my @perlbug      = ("perlbug", "-a", $Author,

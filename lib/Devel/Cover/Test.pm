@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.33";
+our $VERSION = "0.34";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.33;
+use Devel::Cover::Inc 0.34;
 
 sub new
 {

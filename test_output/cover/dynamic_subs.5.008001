@@ -4,8 +4,8 @@ Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3209/cover_db
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/dynamic_subs                         100.00  50.00    n/a 100.00  93.33
-Total                                      100.00  50.00    n/a 100.00  93.33
+tests/dynamic_subs                         100.00  50.00    n/a 100.00  95.83
+Total                                      100.00  50.00    n/a 100.00  95.83
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -39,6 +39,21 @@ line  err   stmt branch   cond    sub   code
 25             1                        my $t = gen(5)->(6);
 26                                      
 27             1                        print "$p, $q, $r, $s, $t\n";
+28                                      
+29             1                        for my $func (qw(f1 f2))
+30                                      {
+31                                          no strict "refs";
+32                                          *$func = sub
+33                                          {
+34             2                  100           my $self = shift;
+                                  100   
+                                  100   
+35             2                                print "$func\n"
+36                                          }
+37             2                        }
+38                                      
+39             1                        f1();
+40             1                        f2();
 
 
 Branches
@@ -55,6 +70,9 @@ Covered Subroutines
 Subroutine Location             
 ---------- ---------------------
 __ANON__   tests/dynamic_subs:15
+__ANON__   tests/dynamic_subs:34
+__ANON__   tests/dynamic_subs:34
+__ANON__   tests/dynamic_subs:34
 gen        tests/dynamic_subs:12
 
 
