@@ -45,14 +45,14 @@ static unsigned Covering = None;
 
 #define collecting(criteria) (Covering & (criteria))
 
-#define COND_WAITING 0x8000
-
 static HV *Cover_hv,
           *Statements,
           *Branches,
           *Conditions,
           *Times,
           *Pending_conditionals;
+
+static int Got_condition = 0;
 
 typedef int seq_t;
 #define ch_sz (sizeof(void *) + sizeof(seq_t))
@@ -66,7 +66,7 @@ struct unique    /* Well, we'll be fairly unlucky if it's not */
 union sequence   /* Hack, hack, hackety hack. */
 {
     struct unique op;
-    char ch[ch_sz + 1];
+    char   ch[ch_sz + 1];
 };
 
 #ifdef HAS_GETTIMEOFDAY
@@ -88,9 +88,9 @@ extern "C" {
 static int elapsed()
 {
     static struct timeval time;
-    static int sec  = 0,
-               usec = 0;
-    int e;
+    static int            sec  = 0,
+                          usec = 0;
+    int                   e;
 
     gettimeofday(&time, NULL);
     e    = (time.tv_sec - sec) * 1e6 + time.tv_usec - usec;
@@ -117,9 +117,9 @@ static int elapsed()
 static int cpu()
 {
     static struct tms time;
-    static int utime = 0,
-               stime = 0;
-    int e;
+    static int        utime = 0,
+                      stime = 0;
+    int               e;
 
 #ifndef VMS
     (void)PerlProc_times(&time);
@@ -140,60 +140,11 @@ static int cpu()
 
 #define CAN_PROFILE defined HAS_GETTIMEOFDAY || defined HAS_TIMES
 
-/* The following comment has been superceded.  There aren't enough hooks
- * in the core to allow me to get at the seqence numbers of the ops
- * before they get used in runops_cover.  Well, I probably could do it
- * somehow, but for now the sequence number is just used, not changed.
- */
-
-/* Completely abuse the sequence number.  It's not used for anything now
- * anyway.  In fact, I'm not sure it ever needs to be anything other
- * than 0, -1 or something else, and the -1 is only for the benefit of
- * the compiler.  I suppose B::Concise and similar modules can use it
- * for display purposes.
- *
- * Anyway, I use the MSB to store whether or not this op needs to store
- * some condition coverage, and the rest to store my own sequence number
- * which, when combined with the address of the op will hopefully be
- * unique over the lifetime of the program.
- *
- * The MSB should be reset by the time we get to op_free, but if it's
- * not we'll get a leak for 0x7fff.  In that respect we're no different
- * from perl itself.
- */
-
-static void walk_reset_op_seq(OP *o)
-{
-    if (!o) return;
-    NDEB(D(L, "%p : %d\n", o, o->op_seq));
-    o->op_seq = 0;
-    if (o->op_flags & OPf_KIDS)
-    {
-        OP *kid;
-        for (kid = cUNOPo->op_first; kid; kid = kid->op_sibling)
-            walk_reset_op_seq(kid);
-    }
-}
-
-U16 get_seq(OP *o)
-{
-    static U16 max_seq = 0;
-
-    if (!o->op_seq)
-    {
-        if (max_seq++ & COND_WAITING)
-            max_seq = 1;
-        o->op_seq = max_seq;
-    }
-    return o->op_seq;
-}
-
 static char *get_key(OP *o)
 {
     static union sequence uniq;
 
     uniq.op.addr = o;
-    /* uniq.op.seq  = get_seq(o); */
     uniq.op.seq  = o->op_seq;
     uniq.ch[ch_sz] = 0;
     return uniq.ch;
@@ -201,12 +152,13 @@ static char *get_key(OP *o)
 
 static void add_branch(OP *op, int br)
 {
-    AV *branches;
+    AV  *branches;
     SV **count;
-    int c;
+    int  c;
     SV **tmp = hv_fetch(Branches, get_key(op), ch_sz, 1);
+
     if (SvROK(*tmp))
-        branches = (AV *)SvRV(*tmp);
+        branches = (AV *) SvRV(*tmp);
     else
     {
         *tmp = newRV_inc((SV*) (branches = newAV()));
@@ -216,32 +168,37 @@ static void add_branch(OP *op, int br)
     count = av_fetch(branches, br, 1);
     c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
     sv_setiv(*count, c);
-    NDEB(D(L, "Adding %d conditional making %d at %p\n", cond, c, op));
+    NDEB(D(L, "Adding branch making %d at %p\n", c, op));
 }
 
-
-#define condition_waiting(o)       (get_seq(o) &   COND_WAITING)
-#define condition_waiting_clear(o) (o->op_seq  &= ~COND_WAITING)
-
-static void condition_waiting_set(OP *o)
+static AV *get_conditional_array(OP *op)
 {
-    get_seq(o);
-    o->op_seq |= COND_WAITING;
+    AV  *conds;
+    SV **tmp = hv_fetch(Conditions, get_key(op), ch_sz, 1);
+
+    if (SvROK(*tmp))
+        conds = (AV *) SvRV(*tmp);
+    else
+        *tmp = newRV_inc((SV*) (conds = newAV()));
+
+    return conds;
+}
+
+static void set_conditional(OP *op, int cond, int value)
+{
+    SV **count;
+    AV  *conds = get_conditional_array(op);
+
+    count = av_fetch(conds, cond, 1);
+    sv_setiv(*count, value);
+    NDEB(D(L, "Setitng %d conditional to %d at %p\n", cond, value, op));
 }
 
 static void add_conditional(OP *op, int cond)
 {
-    AV *conds;
     SV **count;
-    int c;
-    SV **tmp = hv_fetch(Conditions, get_key(op), ch_sz, 1);
-    if (SvROK(*tmp))
-        conds = (AV *)SvRV(*tmp);
-    else
-    {
-        *tmp = newRV_inc((SV*) (conds = newAV()));
-        av_unshift(conds, 3);
-    }
+    int  c;
+    AV  *conds = get_conditional_array(op);
 
     count = av_fetch(conds, cond, 1);
     c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
@@ -249,17 +206,82 @@ static void add_conditional(OP *op, int cond)
     NDEB(D(L, "Adding %d conditional making %d at %p\n", cond, c, op));
 }
 
+static OP *get_condition(pTHX)
+{
+    char *ch;
+    AV   *conds;
+    SV  **sv;
+    OP   *op;
+    OP *(*f)(pTHX_);
+    I32   i;
+
+    NDEB(D(L, "In get_condition\n"));
+
+    ch = get_key(PL_op);
+    sv = hv_fetch(Pending_conditionals, ch, ch_sz, 0);
+
+    if (sv && SvROK(*sv))
+    {
+        conds = (AV *) SvRV(*sv);
+        NDEB(D(L, "Looking through %d conditionals\n", av_len(conds)));
+
+        sv = av_fetch(conds, 0, 0);
+        f  = (OP *(*)(pTHX_)) SvIV(*sv);
+
+        for (i = 1; i <= av_len(conds); i++)
+        {
+            sv = av_fetch(conds, i, 0);
+            op = (OP *) SvIV(*sv);
+
+            {
+                dSP;
+                SV **count;
+                int  type;
+                AV  *conds = get_conditional_array(op);
+                int value = SvTRUE(TOPs) ? 2 : 1;
+
+                count = av_fetch(conds, 0, 1);
+                type  = SvTRUE(*count) ? SvIV(*count) : 0;
+                sv_setiv(*count, 0);
+
+                /* Check if we have come from an xor with a true right op */
+                if (type == 1)
+                    value += 2;
+
+                NDEB(D(L, "%3d: Found %p\n", i, PL_op));
+                add_conditional(op, value);
+            }
+        }
+
+        av_clear(conds);
+
+        NDEB(D(L, "f is %p\n", f));
+
+        PL_op->op_ppaddr = f;
+    }
+    else
+    {
+        Perl_croak(aTHX_
+                   "All is lost, I know not where to go from %p, %d: %p\n",
+                   PL_op, PL_op->op_seq, sv);
+    }
+
+    Got_condition = 1;
+
+    return PL_op;
+}
+
 static int runops_cover(pTHX)
 {
-    SV **count;
-    IV c;
-    HV *Files;
-    int collecting_here = 1;
-    char *lastfile = 0;
+    SV        **count;
+    IV          c;
+    HV         *Files;
+    int         collecting_here = 1;
+    char       *lastfile = 0;
 
 #if CAN_PROFILE
     static COP *cop = 0;
-    int lapsed;
+    int         lapsed;
     elapsed();
 #endif
 
@@ -296,8 +318,16 @@ static int runops_cover(pTHX)
 
     for (;;)
     {
+        NDEB(D(L, "running func %p\n", PL_op->op_ppaddr));
+
         if (!(PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
             break;
+
+        if (Got_condition)
+        {
+            Got_condition = 0;
+            continue;
+        }
 
         PERL_ASYNC_CHECK();
 
@@ -324,56 +354,6 @@ static int runops_cover(pTHX)
 
         if (!collecting_here)
             continue;
-
-        /* if (collecting(Condition) && condition_waiting(PL_op)) */
-        if (collecting(Condition))
-        {
-            char *ch;
-            AV *conds;
-            SV **sv;
-            I32 i;
-
-            /* condition_waiting_clear(PL_op); */
-            ch = get_key(PL_op);
-            sv = hv_fetch(Pending_conditionals, ch, ch_sz, 0);
-
-            if (sv && SvROK(*sv))
-            {
-                conds = (AV *)SvRV(*sv);
-                NDEB(D(L, "Looking through %d conditionals\n",av_len(conds)+1));
-                for (i = 0; i <= av_len(conds); i++)
-                {
-                    SV **sv = av_fetch(conds, i, 0);
-                    OP *op  = (OP *) SvIV(*sv);
-
-                    dSP;
-                    NDEB(D(L, "%3d: Found %p\n", i, PL_op));
-                    add_conditional(op, SvTRUE(TOPs) ? 2 : 1);
-                }
-
-                av_clear(conds);
-            }
-            else
-            {
-                /* We might get here in an eval for example, where there
-                 * hasn't been a chance to hack the op_seq numbers
-                 * first.  We've wasted a bit of effort, but it's no
-                 * problem.
-                 */
-#if 0
-                int i;
-
-                svdump(Pending_conditionals);
-                for (i = 0; i < ch_sz; i++)
-                {
-                    printf("%o:", ch[i] & 0xff);
-                }
-                op_dump(PL_op);
-                Perl_croak(aTHX_ "No pending conditional found at %p, %d: %p\n",
-                           PL_op, PL_op->op_seq, sv);
-#endif
-            }
-        }
 
         switch (PL_op->op_type)
         {
@@ -431,6 +411,9 @@ static int runops_cover(pTHX)
 
             case OP_AND:
             case OP_OR:
+            case OP_ANDASSIGN:
+            case OP_ORASSIGN:
+            case OP_XOR:
             {
                 /*
                  * For OP_AND, if the first operand is false, we have
@@ -448,14 +431,21 @@ static int runops_cover(pTHX)
                  * stack and store the coverage information indexed to
                  * this op.
                  *
-                 * The information about the next op is stored in the
-                 * Pending_conditionals array which we have to iterate
-                 * through later.  collect_conditional tells how many
-                 * conditionals are in the array.  When we find one we
-                 * leave it in the array but change the data so we don't
-                 * match again.  Then, when collect_conditional is zero
-                 * Pending_conditionals is emptied.  This might not be
-                 * the speed win I had hoped for.
+                 * This scheme also works for OP_XOR with a small
+                 * modification because it doesn't short circuit.  See
+                 * the comment below.
+                 *
+                 * To find out when we get to the next op we change the
+                 * op_ppaddr to point to get_condition(), which will do
+                 * the necessary work and then reset and run the
+                 * original op_ppaddr.  We also store information in the
+                 * Pending_conditionals hash.  This is keyed on the op
+                 * and the value is an array, the first element of which
+                 * is the op_ppaddr we overwrote, and the subsequent
+                 * elements are the ops about which we are collecting
+                 * the condition coverage information.  Note that an op
+                 * may be collecting condition coverage information
+                 * about a number of conditions.
                  */
 
                 if (!collecting(Condition))
@@ -463,43 +453,73 @@ static int runops_cover(pTHX)
 
                 if (cLOGOP->op_first->op_type == OP_ITER)
                 {
-                    /* loop - ignore it */
+                    /* loop - ignore it for now*/
                 }
                 else
                 {
                     dSP;
-                    int first_val = SvTRUE(TOPs);
-                    if (PL_op->op_type == OP_AND && first_val ||
-                        PL_op->op_type == OP_OR && !first_val)
+                    int left_val = SvTRUE(TOPs);
+                    if (PL_op->op_type == OP_AND       &&  left_val ||
+                        PL_op->op_type == OP_ANDASSIGN &&  left_val ||
+                        PL_op->op_type == OP_OR        && !left_val ||
+                        PL_op->op_type == OP_ORASSIGN  && !left_val ||
+                        PL_op->op_type == OP_XOR)
                     {
                         char *ch;
                         AV *conds;
                         SV **tmp,
-                           *cond;
+                           *cond,
+                           *ppaddr;
+                        OP *next;
 
-                        ch = get_key(PL_op->op_next);
-                        tmp = hv_fetch(Pending_conditionals, ch, ch_sz, 1);
+                        if (PL_op->op_type == OP_XOR && left_val)
+                        {
+                            /*
+                             * This is an xor.  It does not short
+                             * circuit.  We have just executed the right
+                             * op, rather than the left op as with and
+                             * and or.  When we get to next we will have
+                             * already done the xor, so we can work out
+                             * what the value of the laft op was.
+                             *
+                             * We set a flag in the first element of the
+                             * array to say that we had a true value
+                             * from the right op.
+                             */
+
+                            set_conditional(PL_op, 0, 1);
+                        }
+
+                        next = PL_op->op_next;
+                        ch   = get_key(next);
+                        tmp  = hv_fetch(Pending_conditionals, ch, ch_sz, 1);
+
                         if (SvROK(*tmp))
                             conds = (AV *)SvRV(*tmp);
                         else
                             *tmp = newRV_inc((SV*) (conds = newAV()));
 
-                        cond = newSViv((IV)PL_op);
+                        if (av_len(conds) < 0)
+                        {
+                            NDEB(D(L, "setting f to %p\n", next->op_ppaddr));
+                            ppaddr = newSViv((IV) next->op_ppaddr);
+                            av_push(conds, ppaddr);
+                        }
+
+                        cond = newSViv((IV) PL_op);
                         av_push(conds, cond);
 
-                        /* condition_waiting_set(PL_op->op_next); */
-
                         NDEB(D(L, "Adding conditional %p to %d, making %d\n",
-                                  PL_op->op_next, PL_op->op_next->op_seq,
-                                  av_len(conds) + 1));
+                                  next, next->op_seq, av_len(conds)));
                         NDEB(svdump(Pending_conditionals));
                         NDEB(op_dump(PL_op));
-                        NDEB(op_dump(PL_op->op_next));
+                        NDEB(op_dump(next));
 
+                        next->op_ppaddr = get_condition;
                     }
                     else
                     {
-                        add_conditional(PL_op, 0);
+                        add_conditional(PL_op, 3);
                     }
                 }
                 break;
@@ -620,12 +640,6 @@ coverage()
                sv_setsv(ST(0), newRV_inc((SV*) Cover_hv));
           else
                ST(0) = &PL_sv_undef;
-
-void
-reset_op_seq(op)
-        void *op
-    PPCODE:
-        walk_reset_op_seq((OP *) op);
 
 BOOT:
     PL_runops = runops_orig;

@@ -63,7 +63,7 @@ line  err   stmt branch   cond   code
 Branches
 --------
 
-line  err      %      1      2   branch
+line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 19    ***     50      0     11   if $y
 22           100      1     10   if $y and $x[0]++
@@ -74,7 +74,7 @@ line  err      %      1      2   branch
 Conditions
 ----------
 
-and conditions
+and 3 conditions
 
 line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----

@@ -98,7 +98,7 @@ line  err   stmt branch   cond   code
 Branches
 --------
 
-line  err      %      1      2   branch
+line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 27    ***     50     11      0   if (time) { }
 

@@ -11,12 +11,12 @@ use strict;
 use warnings;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.17";
+our $VERSION = "0.18";
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.17;
-use Devel::Cover::Inc 0.17;
+use Devel::Cover::DB  0.18;
+use Devel::Cover::Inc 0.18;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -263,6 +263,11 @@ sub report
     get_cover(main_cv, main_root);
     get_cover($_) for @Cvs;
 
+    for my $file (keys %$Cover)
+    {
+        delete $Cover->{$file} unless use_file($file);
+    }
+
     my $cover = Devel::Cover::DB->new
     (
         cover     => $Cover,
@@ -295,30 +300,6 @@ sub add_statement_cover
         if exists $Coverage->{time} && exists $Coverage->{time}{$key};
 }
 
-sub add_condition_cover
-{
-    return unless $Collect;
-
-    my ($op, $strop, $left, $right) = @_;
-
-    my $key = pack("I*", $$op) . pack("I*", $op->seq);
-    # print STDERR "Condition cover from $File:$Line\n";
-
-    $Coverage->{condition}{$key} = [0, 0, 0]
-        unless exists $Coverage->{condition}{$key} &&
-                      @{$Coverage->{condition}{$key}};
-    push @{$Cover->{$File}{condition}{$Line}},
-         [
-             [ map($_ || 0, @{$Coverage->{condition}{$key}}) ],
-             {
-                 type  => $op->name,
-                 op    => $strop,
-                 left  => $left,
-                 right => $right,
-             },
-         ];
-}
-
 sub add_branch_cover
 {
     return unless $Collect;
@@ -331,16 +312,16 @@ sub add_branch_cover
     my $key = pack("I*", $$op) . pack("I*", $op->seq);
     # print STDERR "Branch cover from $file:$line\n";
 
-    my $c;
+    my $c = $Coverage->{condition}{$key};
     if ($type eq "and")
     {
-        $c = $Coverage->{condition}{$key};
-        $c = [ ($c->[0] || 0), ($c->[1] || 0) + ($c->[2] || 0) ];
+        shift @$c;
+        $c = [ ($c->[2] || 0), ($c->[0] || 0) + ($c->[1] || 0) ];
     }
     elsif ($type eq "or")
     {
-        $c = $Coverage->{condition}{$key};
-        $c = [ ($c->[0] || 0) + ($c->[1] || 0), ($c->[2] || 0) ];
+        shift @$c;
+        $c = [ ($c->[2] || 0) + ($c->[0] || 0), ($c->[1] || 0) ];
     }
     else
     {
@@ -352,6 +333,64 @@ sub add_branch_cover
              [ map($_ || 0, @$c) ],
              {
                  text  => $text,
+             },
+         ];
+}
+
+sub add_condition_cover
+{
+    return unless $Collect;
+
+    my ($op, $strop, $left, $right) = @_;
+
+    my $key = pack("I*", $$op) . pack("I*", $op->seq);
+    # print STDERR "Condition cover from $File:$Line\n";
+
+    my $type = $op->name;
+    $type =~ s/assign$//;
+
+    my $c = $Coverage->{condition}{$key};
+    shift @$c;
+
+    my $count;
+
+    if ($type eq "or")
+    {
+        if ($op->first->sibling->name eq "const")
+        {
+            $c = [ ($c->[2] || 0), ($c->[0] || 0) + ($c->[1] || 0) ];
+            $count = 2;
+        }
+        else
+        {
+            @$c = @{$c}[2, 1, 0];
+            $count = 3;
+        }
+    }
+    elsif ($type eq "and")
+    {
+        @$c = @{$c}[2, 0, 1];
+        $count = 3;
+    }
+    elsif ($type eq "xor")
+    {
+        # !l&&!r  l&&!r  l&&r  !l&&r
+        @$c = @{$c}[2, 1, 3, 0];
+        $count = 4;
+    }
+    else
+    {
+        die qq(Unknown type "$type" for conditional);
+    }
+
+    push @{$Cover->{$File}{condition}{$Line}},
+         [
+             $c,
+             {
+                 type  => "${type}_${count}",
+                 op    => $strop,
+                 left  => $left,
+                 right => $right,
              },
          ];
 }
@@ -464,7 +503,7 @@ sub B::Deparse::logop
         # $a && $b
         $left  = $self->deparse_binop_left($op, $left, $highprec);
         $right = $self->deparse_binop_right($op, $right, $highprec);
-        add_condition_cover($op, $highop, $left, $right, $file, $line);
+        add_condition_cover($op, $highop, $left, $right);
         return $self->maybe_parens("$left $highop $right", $cx, $highprec)
     }
     else
@@ -472,9 +511,20 @@ sub B::Deparse::logop
         # $a and $b
         $left  = $self->deparse_binop_left($op, $left, $lowprec);
         $right = $self->deparse_binop_right($op, $right, $lowprec);
-        add_condition_cover($op, $lowop, $left, $right, $file, $line);
+        add_condition_cover($op, $lowop, $left, $right);
         return $self->maybe_parens("$left $lowop $right", $cx, $lowprec)
     }
+}
+
+sub B::Deparse::logassignop {
+    my $self = shift;
+    my ($op, $cx, $opname) = @_;
+    my $left = $op->first;
+    my $right = $op->first->sibling->first; # skip sassign
+    $left = $self->deparse($left, 7);
+    $right = $self->deparse($right, 7);
+    add_condition_cover($op, $opname, $left, $right);
+    return $self->maybe_parens("$left $opname $right", $cx, 7);
 }
 
 }
@@ -520,12 +570,11 @@ The B<cover> program can be used to generate coverage reports.
 
 Statement, branch, condition, pod and time coverage information is
 reported.  Statement coverage data should be reasonable, although there
-may be some statements which are not reported.  Branch coverage data
-should be mostly accurate too.  Condition coverage data are only
-available for && and || ops.  These data should be mostly accurate,
-although not always what one might initially expect.  Pod coverage comes
-from Pod::Coverage.  Coverage data for path coverage are not yet
-collected.
+may be some statements which are not reported.  Branch and condition
+coverage data should be mostly accurate too.  These data should be
+mostly accurate, although not always what one might initially expect.
+Pod coverage comes from Pod::Coverage.  Coverage data for path coverage
+are not yet collected.
 
 The B<gcov2perl> program can be used to convert gcov files to
 Devel::Cover databases.
@@ -578,7 +627,7 @@ Did I mention that this is alpha code?
 
 =head1 VERSION
 
-Version 0.17 - 15th September 2002
+Version 0.18 - 28th September 2002
 
 =head1 LICENCE
 

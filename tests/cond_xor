@@ -1,0 +1,27 @@
+#!/usr/local/bin/perl
+
+# Copyright 2002, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+use strict;
+use warnings;
+
+my $i = 1;
+my $j = 0;
+
+for my $y (0, 1, 1, 1)
+{
+    for my $z (0, 0, 1)
+    {
+        my $x = $y ^ $z;
+        $x = ($y xor $z);
+
+        my $p = ($i xor $y);
+        $p = ($j xor $y);
+        $p ^= $y;
+    }
+}

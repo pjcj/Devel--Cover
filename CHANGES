@@ -94,3 +94,15 @@ Release 0.16 - 9th September 2002
 Release 0.17 - 15th September 2002
  - Call check_files() in report() to ensure we pick up anything added
    to the symbol table while the program was running.
+
+Release 0.18 - 28th September 2002
+ - Redo the way condition coverage is gathered - abuse op_ppaddr.
+ - Put or conditions the right way round.
+ - Allow for subclasses of coverage types.
+ - Add:
+     Devel::Cover::Condition_or_2.pm
+     Devel::Cover::Condition_or_3.pm
+     Devel::Cover::Condition_and_3.pm
+     Devel::Cover::Condition_xor_4.pm
+ - "use" all conditions in Criterion.pm, and nowhere else.
+ - Add support for xor, ||= and &&=.

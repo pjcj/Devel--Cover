@@ -10,7 +10,7 @@ package Devel::Cover::Condition;
 use strict;
 use warnings;
 
-our $VERSION = "0.17";
+our $VERSION = "0.18";
 
 use base "Devel::Cover::Criterion";
 
@@ -24,7 +24,10 @@ sub percentage
 sub error      { scalar grep !$_, @{$_[0][0]} }
 sub text       { "$_[0][1]{left} $_[0][1]{op} $_[0][1]{right}" }
 sub type       { $_[0][1]{type} }
-sub values     { @{$_[0][0]} }
+sub pad        { $_[0][0][$_] ||= 0 for 0 .. $_[0]->count - 1 }
+sub values     { $_[0]->pad; @{$_[0][0]} }
+sub count      { require Carp; Carp::confess "count() must be overridden" }
+sub headers    { require Carp; Carp::confess "headers() must be overridden" }
 
 sub calculate_summary
 {
@@ -33,7 +36,7 @@ sub calculate_summary
 
     my $s = $db->{summary};
 
-    $self->[0] = [0, 0, 0] unless @{$self->[0]};
+    $self->pad;
 
     my $t = $self->total;
     my $c = $self->covered;
@@ -77,7 +80,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.17 - 15th September 2002
+Version 0.18 - 28th September 2002
 
 =head1 LICENCE
 

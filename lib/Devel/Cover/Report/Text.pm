@@ -10,14 +10,9 @@ package Devel::Cover::Report::Text;
 use strict;
 use warnings;
 
-our $VERSION = "0.17";
+our $VERSION = "0.18";
 
-use Devel::Cover::DB        0.17;
-use Devel::Cover::Statement 0.17;
-use Devel::Cover::Branch    0.17;
-use Devel::Cover::Condition 0.17;
-use Devel::Cover::Pod       0.17;
-use Devel::Cover::Time      0.17;
+use Devel::Cover::DB 0.18;
 
 sub print_file
 {
@@ -104,9 +99,7 @@ sub print_branches
 {
     my ($db, $file, $options) = @_;
 
-    my $cover    = $db->cover;
-    my $f        = $cover->file($file);
-    my $branches = $f->branch;
+    my $branches = $db->cover->file($file)->branch;
 
     return unless $branches;
 
@@ -114,7 +107,7 @@ sub print_branches
     print "--------\n\n";
 
     my $tpl = "%-5s %3s %6s %6s %6s   %s\n";
-    printf $tpl, "line", "err", "%", "1", "2", "branch";
+    printf $tpl, "line", "err", "%", "true", "false", "branch";
     printf $tpl, "-----", "---", ("------") x 3, "------";
 
     for my $location (sort { $a <=> $b } $branches->items)
@@ -136,44 +129,45 @@ sub print_conditions
 {
     my ($db, $file, $options) = @_;
 
-    my $cover      = $db->cover;
-    my $f          = $cover->file($file);
-    my $conditions = $f->condition;
+    my $conditions = $db->cover->file($file)->condition;
 
     return unless $conditions;
 
-    my $tpl = "%-5s %3s %6s %6s %6s %6s   %s\n";
+    my $template = sub { "%-5s %3s %6s " . ( "%6s " x shift ) . "  %s\n" };
 
     my %r;
     for my $location (sort { $a <=> $b } $conditions->items)
     {
-        my $first = 1;
+        my %seen;
         for my $c (@{$conditions->location($location)})
         {
-            push @{$r{$c->type}}, sprintf $tpl,
-                                          $first ? $location : "",
-                                          $c->error ? "***" : "",
-                                          $c->percentage, $c->values, $c->text;
-            $first = 0;
+            push @{$r{$c->type}}, [ $c, $seen{$c->type}++ ? "" : $location ];
         }
     }
-
-    my %tt =
-    (
-        and => [ "!l", "l&&!r", "l&&r"   ],
-        or  => [ "l",  "!l&&r", "!l&&!r" ],
-    );
 
     print "Conditions\n";
     print "----------\n\n";
 
+    my %seen;
     for my $type (sort keys %r)
     {
-        my $tts = $tt{$type} || [ 1, 2, 3 ];
-        print "$type conditions\n\n";
-        printf $tpl, "line", "err", "%", @$tts, "expr";
-        printf $tpl, "-----", "---", ("------") x 4, "----";
-        print for @{$r{$type}};
+        my $tpl;
+        for (@{$r{$type}})
+        {
+            my ($c, $location) = @$_;
+            unless ($seen{$type}++)
+            {
+                my $headers = $c->headers;
+                my $nh = @$headers;
+                $tpl = $template->($nh);
+                (my $t = $type) =~ s/_/ /g;
+                print "$t conditions\n\n";
+                printf $tpl, "line",  "err", "%",         @$headers, "expr";
+                printf $tpl, "-----", "---", ("------") x ($nh + 1), "----";
+            }
+            printf $tpl, $location, $c->error ? "***" : "",
+                         $c->percentage, $c->values, $c->text;
+        }
         print "\n";
     }
 
@@ -222,7 +216,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.17 - 15th September 2002
+Version 0.18 - 28th September 2002
 
 =head1 LICENCE
 

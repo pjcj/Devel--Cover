@@ -15,12 +15,11 @@ DESCRIPTION
 
     Statement, branch, condition, pod and time coverage information is
     reported. Statement coverage data should be reasonable, although there
-    may be some statements which are not reported. Branch coverage data
-    should be mostly accurate too. Condition coverage data are only
-    available for && and || ops. These data should be mostly accurate,
-    although not always what one might initially expect. Pod coverage comes
-    from Pod::Coverage. Coverage data for path coverage are not yet
-    collected.
+    may be some statements which are not reported. Branch and condition
+    coverage data should be mostly accurate too. These data should be mostly
+    accurate, although not always what one might initially expect. Pod
+    coverage comes from Pod::Coverage. Coverage data for path coverage are
+    not yet collected.
 
     The gcov2perl program can be used to convert gcov files to Devel::Cover
     databases.

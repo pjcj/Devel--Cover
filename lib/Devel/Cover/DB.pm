@@ -10,15 +10,10 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.17";
+our $VERSION = "0.18";
 
-use Devel::Cover::DB::File  0.17;
-use Devel::Cover::Criterion 0.17;
-use Devel::Cover::Statement 0.17;
-use Devel::Cover::Branch    0.17;
-use Devel::Cover::Condition 0.17;
-use Devel::Cover::Pod       0.17;
-use Devel::Cover::Time      0.17;
+use Devel::Cover::DB::File  0.18;
+use Devel::Cover::Criterion 0.18;
 
 use Carp;
 use Data::Dumper;
@@ -312,22 +307,26 @@ sub cover
 {
     my $self = shift;
 
+    return $self->{cover} if $self->{cover_valid};
+
     unless (UNIVERSAL::isa($self->{cover}, "Devel::Cover::DB::Cover"))
     {
         bless $self->{cover}, "Devel::Cover::DB::Cover";
         for my $file (values %{$self->{cover}})
         {
             bless $file, "Devel::Cover::DB::File";
-            while (my ($crit, $criterion) = each %{$file})
+            while (my ($crit, $criterion) = each %$file)
             {
-                my $c = ucfirst lc $crit;
+                my $class = "Devel::Cover::" . ucfirst lc $crit;
                 bless $criterion, "Devel::Cover::DB::Criterion";
                 for my $line (values %$criterion)
                 {
-                    for (@$line)
+                    for my $o (@$line)
                     {
-                        die "<$crit:$_>" unless ref $_;
-                        bless $_, "Devel::Cover::$c";
+                        die "<$crit:$o>" unless ref $o;
+                        bless $o, $class;
+                        bless $o, $class . "_" . $o->type if $o->can("type");
+                        # print "blessed $crit, $o\n";
                     }
                 }
             }
@@ -392,6 +391,9 @@ sub cover
             };
         }
     }
+
+    $self->{cover_valid} = 1;
+
     $self->{cover}
 }
 
@@ -537,7 +539,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.17 - 15th September 2002
+Version 0.18 - 28th September 2002
 
 =head1 LICENCE
 

@@ -94,7 +94,7 @@ line  err   stmt branch   cond   code
 Branches
 --------
 
-line  err      %      1      2   branch
+line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 19    ***     50      0      4   if ($y and $z) { }
 27           100      2      2   if ($y or $z) { }
@@ -118,7 +118,7 @@ line  err      %      1      2   branch
 Conditions
 ----------
 
-and conditions
+and 3 conditions
 
 line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
@@ -127,7 +127,7 @@ line  err      %     !l  l&&!r   l&&r   expr
 68    ***     33      4      0      0   $y and $z
       ***     33      4      0      0   $y and $z
 
-or conditions
+or 3 conditions
 
 line  err      %      l  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------   ----

@@ -1,6 +1,5 @@
-- Condition coverage of xor, ||=, &&=
 - Indicate how to increase coverage?
-- Make the HTML output nicer
+- Make the HTML output nicer.
 - Collect data for path coverage.
 - Tests.
 - Documentation.
