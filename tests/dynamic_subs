@@ -8,6 +8,7 @@
 # http://www.pjcj.net
 
 sub unused { 0 }
+sub empty  {   }
 
 sub gen
 {

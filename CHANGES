@@ -312,3 +312,7 @@ Release 0.46 - 23rd June 2004
  - Rename -file and -exclude options in cover to -select and -ignore.
  - Fully cover conditions and branches when the condition calls a sub in
    an ignored file.
+
+Release 0.47 - 27th June 2004
+ - Provide subroutine coverage for empty subs - sub empty { }.
+ - Only override B::Deparse subs whilst using them and add deparse test.

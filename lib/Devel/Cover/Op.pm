@@ -12,7 +12,7 @@ require 5.8.0;  # My patches to B::Concise didn't get released till 5.8.0.
 use strict;
 use warnings;
 
-our $VERSION = "0.46";
+our $VERSION = "0.47";
 
 use Devel::Cover qw( -ignore blib -ignore \\wB\\w );
 use B::Concise   qw( set_style add_callback );
@@ -112,7 +112,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.46 - 23rd June 2004
+Version 0.47 - 27th June 2004
 
 =head1 LICENCE
 

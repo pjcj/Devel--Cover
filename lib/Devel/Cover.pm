@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.46";
+our $VERSION = "0.47";
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB  0.46;
-use Devel::Cover::Inc 0.46;
+use Devel::Cover::DB  0.47;
+use Devel::Cover::Inc 0.47;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -26,6 +26,8 @@ use Cwd "abs_path";
 use File::Spec;
 
 BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
+
+# use Carp; $SIG{__DIE__} = \&Carp::confess;
 
 my $Initialised;                         # import() has been called.
 
@@ -148,8 +150,8 @@ sub last_end
     report() if $Initialised
 }
 
-INIT  {}  # dummy sub to mak sure PL_endav  is set up and populated
-END   {}  # dummy sub to mak sure PL_initav is set up and populated
+INIT  {}  # dummy sub to make sure PL_endav  is set up and populated
+END   {}  # dummy sub to make sure PL_initav is set up and populated
 CHECK { set_first_init_and_end() }  # we really want to be first
 
 sub CLONE
@@ -428,7 +430,16 @@ sub sub_info
     if ($root->can("first"))
     {
         my $lineseq = $root->first;
-        $start = $lineseq->first if $lineseq->can("first");
+        if ($lineseq->can("first"))
+        {
+            # normal case
+            $start = $lineseq->first;
+        }
+        elsif ($lineseq->name eq "nextstate")
+        {
+            # completely empty sub - sub empty { }
+            $start = $lineseq;
+        }
     }
     ($name, $start)
 }
@@ -703,20 +714,18 @@ sub add_condition_cover
     }
 }
 
-sub is_scope       { &B::Deparse::is_scope }
-sub is_state       { &B::Deparse::is_state }
-sub is_ifelse_cont { &B::Deparse::is_ifelse_cont }
+*is_scope       = \&B::Deparse::is_scope;
+*is_state       = \&B::Deparse::is_state;
+*is_ifelse_cont = \&B::Deparse::is_ifelse_cont;
 
 {
-
-no warnings "redefine";
 
 my $original_deparse;
 BEGIN { $original_deparse = \&B::Deparse::deparse }
 
 my %Seen;
 
-sub B::Deparse::deparse
+sub deparse
 {
     my $self = shift;
     my ($op, $cx) = @_;
@@ -795,7 +804,7 @@ sub B::Deparse::deparse
     $@ ? "Deparse error: $@" : $d
 }
 
-sub B::Deparse::logop
+sub logop
 {
     my $self = shift;
     my ($op, $cx, $lowop, $lowprec, $highop, $highprec, $blockname) = @_;
@@ -836,7 +845,7 @@ sub B::Deparse::logop
     }
 }
 
-sub B::Deparse::logassignop
+sub logassignop
 {
     my $self = shift;
     my ($op, $cx, $opname) = @_;
@@ -863,7 +872,7 @@ sub get_cover
 
     get_location($start) if $start;
 
-    # printf STDERR "getting cover for $sub_name, %x\n", $$cv;
+    # printf STDERR "getting cover for $sub_name ($start), %x\n", $$cv;
 
     my $redo = 0;
     if ($start)
@@ -919,6 +928,12 @@ sub get_cover
             }
         }
     }
+
+    no warnings "redefine";
+
+    local *B::Deparse::deparse     = \&deparse;
+    local *B::Deparse::logop       = \&logop;
+    local *B::Deparse::logassignop = \&logassignop;
 
     my $de = @_ && ref $_[0]
                  ? $deparse->deparse($_[0], 0)
@@ -990,12 +1005,14 @@ now defunct.  See L<http://lists.perl.org/showlist.cgi?name=perl-qa>.
 
 =over
 
-=item * Perl 5.6.1 or greater
+=item * Perl 5.6.1 or greater.  Perl 5.8.2 or greater is recommended.
 
-Perl 5.7.0 is unsupported.  Perl 5.8.1 or greater is recommended.
+Perl 5.7.0 is unsupported.  Perl 5.8.2 or greater is recommended.
 Whilst Perl 5.6 should mostly work you will probably miss out on
 coverage information which would be available using a more modern
-version and will likely run into bugs in perl.
+version and will likely run into bugs in perl.  Perl 5.8.0 and 5.8.1
+will give slightly different results to more recent versions due to
+changes in the op tree.
 
 =item * The ability to compile XS extensions.
 
@@ -1152,7 +1169,7 @@ See the BUGS file.  And the TODO file.
 
 =head1 VERSION
 
-Version 0.46 - 23rd June 2004
+Version 0.47 - 27th June 2004
 
 =head1 LICENCE
 

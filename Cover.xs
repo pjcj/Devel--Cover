@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+#define PERL_NO_GET_CONTEXT
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -25,6 +26,24 @@ extern "C" {
 #else
 #define CALLOP *PL_op
 #endif
+
+#if PERL_VERSION < 8
+/* No threads in 5.6 */
+#define START_MY_CXT    static my_cxt_t my_cxt;
+#define dMY_CXT_SV      dNOOP
+#define dMY_CXT         dNOOP
+#define MY_CXT_INIT     NOOP
+#define MY_CXT          my_cxt
+
+#define pMY_CXT         void
+#define pMY_CXT_
+#define _pMY_CXT
+#define aMY_CXT
+#define aMY_CXT_
+#define _aMY_CXT
+#endif
+
+#define MY_CXT_KEY "Devel::Cover::_guts" XS_VERSION
 
 #define PDEB(a) a
 #define NDEB(a) ;
@@ -42,9 +61,14 @@ extern "C" {
 #define Time       0x00000040
 #define All        0xffffffff
 
-static unsigned Covering = All;   /* Until we find out what we really want */
+typedef struct
+{
+    unsigned covering;
+} my_cxt_t;
 
-#define collecting(criteria) (Covering & (criteria))
+START_MY_CXT
+
+#define collecting(criterion) (MY_CXT.covering & (criterion))
 
 static HV *Cover,
           *Statements,
@@ -90,6 +114,9 @@ extern "C" {
 
 static double get_elapsed()
 {
+#ifdef WIN32
+    dTHX;
+#endif
     struct timeval time;
     double   e;
 
@@ -125,6 +152,9 @@ static double elapsed()
 
 static int cpu()
 {
+#ifdef WIN32
+    dTHX;
+#endif
     static struct tms time;
     static int        utime = 0,
                       stime = 0;
@@ -172,7 +202,7 @@ static char *get_key(OP *o)
     return uniq.ch;
 }
 
-static void set_firsts_if_neeed()
+static void set_firsts_if_neeed(pTHX)
 {
     SV *init = (SV *)get_cv("Devel::Cover::first_init", 0);
     SV *end  = (SV *)get_cv("Devel::Cover::first_end",  0);
@@ -197,7 +227,7 @@ static void set_firsts_if_neeed()
     }
 }
 
-static void add_branch(OP *op, int br)
+static void add_branch(pTHX_ OP *op, int br)
 {
     AV  *branches;
     SV **count;
@@ -218,7 +248,7 @@ static void add_branch(OP *op, int br)
     NDEB(D(L, "Adding branch making %d at %p\n", c, op));
 }
 
-static AV *get_conditional_array(OP *op)
+static AV *get_conditional_array(pTHX_ OP *op)
 {
     AV  *conds;
     SV **cref = hv_fetch(Conditions, get_key(op), CH_SZ, 1);
@@ -231,7 +261,7 @@ static AV *get_conditional_array(OP *op)
     return conds;
 }
 
-static void set_conditional(OP *op, int cond, int value)
+static void set_conditional(pTHX_ OP *op, int cond, int value)
 {
     /*
      * The conditional array comprises five elements:
@@ -243,20 +273,20 @@ static void set_conditional(OP *op, int cond, int value)
      * 4 - for xor second operand is true
      */
 
-    SV **count = av_fetch(get_conditional_array(op), cond, 1);
+    SV **count = av_fetch(get_conditional_array(aTHX_ op), cond, 1);
     sv_setiv(*count, value);
     NDEB(D(L, "Setting %d conditional to %d at %p\n", cond, value, op));
 }
 
-static void add_conditional(OP *op, int cond)
+static void add_conditional(pTHX_ OP *op, int cond)
 {
-    SV **count = av_fetch(get_conditional_array(op), cond, 1);
+    SV **count = av_fetch(get_conditional_array(aTHX_ op), cond, 1);
     int  c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
     sv_setiv(*count, c);
     NDEB(D(L, "Adding %d conditional making %d at %p\n", cond, c, op));
 }
 
-static void add_condition(SV *cond_ref, int value)
+static void add_condition(pTHX_ SV *cond_ref, int value)
 {
     int   final       = !value;
     AV   *conds       = (AV *)          SvRV(cond_ref);
@@ -268,7 +298,7 @@ static void add_condition(SV *cond_ref, int value)
     for (i = 2; i <= av_len(conds); i++)
     {
         OP  *op    = (OP *) SvIV(*av_fetch(conds, i, 0));
-        SV **count = av_fetch(get_conditional_array(op), 0, 1);
+        SV **count = av_fetch(get_conditional_array(aTHX_ op), 0, 1);
         int  type  = SvTRUE(*count) ? SvIV(*count) : 0;
         sv_setiv(*count, 0);
 
@@ -277,7 +307,7 @@ static void add_condition(SV *cond_ref, int value)
         if (type == 1) value += 2;
 
         NDEB(D(L, "Found %p: %d, %d\n", op, type, value));
-        add_conditional(op, value);
+        add_conditional(aTHX_ op, value);
     }
 
     while (av_len(conds) > 1) av_pop(conds);
@@ -295,7 +325,7 @@ static OP *get_condition(pTHX)
     if (pc && SvROK(*pc))
     {
         dSP;
-        add_condition(*pc, SvTRUE(TOPs) ? 2 : 1);
+        add_condition(aTHX_ *pc, SvTRUE(TOPs) ? 2 : 1);
     }
     else
     {
@@ -308,7 +338,7 @@ static OP *get_condition(pTHX)
     return PL_op;
 }
 
-static void finalise_conditions()
+static void finalise_conditions(pTHX)
 {
     /*
      * Our algorithm for conditions relies on ending up at a particular
@@ -326,21 +356,22 @@ static void finalise_conditions()
     while (e = hv_iternext(Pending_conditionals))
     {
         NDEB(D(L, "finalise_conditions\n"));
-        add_condition(hv_iterval(Pending_conditionals, e), 0);
+        add_condition(aTHX_ hv_iterval(Pending_conditionals, e), 0);
     }
 }
 
-static void cover_cond()
+static void cover_cond(pTHX)
 {
+    dMY_CXT;
     if (collecting(Branch))
     {
         dSP;
         int val = SvTRUE(TOPs);
-        add_branch(PL_op, !val);
+        add_branch(aTHX_ PL_op, !val);
     }
 }
 
-static void cover_logop() {
+static void cover_logop(pTHX) {
     /*
      * For OP_AND, if the first operand is false, we have short
      * circuited the second, otherwise the value of the and op is the
@@ -371,6 +402,7 @@ static void cover_logop() {
      * about a number of conditions.
      */
 
+    dMY_CXT;
 
     if (!collecting(Condition))
         return;
@@ -406,7 +438,7 @@ static void cover_logop() {
                  * We're just glad to be here, so we chalk up success.
                  */
 
-                add_conditional(PL_op, 2);
+                add_conditional(aTHX_ PL_op, 2);
             }
             else
             {
@@ -429,7 +461,7 @@ static void cover_logop() {
                      * op.
                      */
 
-                    set_conditional(PL_op, 0, 1);
+                    set_conditional(aTHX_ PL_op, 0, 1);
                 }
 
                 NDEB(op_dump(PL_op));
@@ -464,17 +496,19 @@ static void cover_logop() {
         else
         {
             /* short circuit */
-            add_conditional(PL_op, 3);
+            add_conditional(aTHX_ PL_op, 3);
         }
     }
 }
 
 #if CAN_PROFILE
 
-static void cover_time()
+static void cover_time(pTHX)
 {
     SV   **count;
     NV     c;
+
+    dMY_CXT;
 
     if (collecting(Time))
     {
@@ -517,6 +551,8 @@ static int runops_cover(pTHX)
 
     static SV *module;
 
+    dMY_CXT;
+
     NDEB(D(L, "runops_cover\n"));
 
     if (!Cover)
@@ -551,6 +587,8 @@ static int runops_cover(pTHX)
 
         Pending_conditionals = newHV();
         *Profiling_key = 0;
+
+        MY_CXT.covering = All;
     }
 
     if (!module)
@@ -566,7 +604,7 @@ static int runops_cover(pTHX)
     {
         NDEB(D(L, "running func %p\n", PL_op->op_ppaddr));
 
-        if (!Covering)
+        if (!MY_CXT.covering)
             goto call_fptr;
 
         /* Nothing to collect when we've hijacked the ppaddr */
@@ -615,7 +653,7 @@ static int runops_cover(pTHX)
                     }
                 }
                 sv_setpv(module, "");
-                set_firsts_if_neeed();
+                set_firsts_if_neeed(aTHX);
             }
 #endif
         }
@@ -623,7 +661,7 @@ static int runops_cover(pTHX)
         if (!collecting_here)
         {
 #if CAN_PROFILE
-            cover_time();
+            cover_time(aTHX);
             *Profiling_key = 0;
 #endif
             if (PL_op->op_type == OP_LEAVESUB)
@@ -645,7 +683,7 @@ static int runops_cover(pTHX)
             case OP_DBSTATE:
             {
 #if CAN_PROFILE
-                cover_time();
+                cover_time(aTHX);
 #endif
                 if (collecting(Statement))
                 {
@@ -660,7 +698,7 @@ static int runops_cover(pTHX)
 
             case OP_COND_EXPR:
             {
-                cover_cond();
+                cover_cond(aTHX);
                 break;
             }
 
@@ -670,7 +708,7 @@ static int runops_cover(pTHX)
             case OP_ORASSIGN:
             case OP_XOR:
             {
-                cover_logop();
+                cover_logop(aTHX);
                 break;
             }
 
@@ -690,7 +728,7 @@ static int runops_cover(pTHX)
         if (!(PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
         {
 #if CAN_PROFILE
-            cover_time();
+            cover_time(aTHX);
 #endif
             break;
         }
@@ -739,7 +777,7 @@ static SV *make_sv_object(pTHX_ SV *arg, SV *sv)
 {
     IV    iv;
     char *type;
-    /* dMY_CXT; */
+    dMY_CXT;
 
     iv = PTR2IV(sv);
     type = svclassnames[SvTYPE(sv)];
@@ -759,26 +797,34 @@ PROTOTYPES: ENABLE
 void
 set_criteria(flag)
         unsigned flag
+    PREINIT:
+        dMY_CXT;
     PPCODE:
         /* fprintf(stderr, "Cover set to %d\n", flag); */
-        PL_runops = (Covering = flag) ? runops_cover : runops_orig;
+        PL_runops = (MY_CXT.covering = flag) ? runops_cover : runops_orig;
 
 void
 add_criteria(flag)
         unsigned flag
+    PREINIT:
+        dMY_CXT;
     PPCODE:
-        PL_runops = (Covering |= flag) ? runops_cover : runops_orig;
+        PL_runops = (MY_CXT.covering |= flag) ? runops_cover : runops_orig;
 
 void
 remove_criteria(flag)
         unsigned flag
+    PREINIT:
+        dMY_CXT;
     PPCODE:
-        PL_runops = (Covering &= ~flag) ? runops_cover : runops_orig;
+        PL_runops = (MY_CXT.covering &= ~flag) ? runops_cover : runops_orig;
 
 unsigned
 get_criteria()
+    PREINIT:
+        dMY_CXT;
     CODE:
-        RETVAL = Covering;
+        RETVAL = MY_CXT.covering;
     OUTPUT:
         RETVAL
 
@@ -860,7 +906,7 @@ SV *
 coverage(final)
         unsigned final
     CODE:
-        if (final) finalise_conditions();
+        if (final) finalise_conditions(aTHX);
         ST(0) = sv_newmortal();
         if (Cover)
             sv_setsv(ST(0), newRV_inc((SV*) Cover));
@@ -878,7 +924,7 @@ get_key(o)
 void
 set_first_init_and_end()
     PPCODE:
-        set_firsts_if_neeed();
+        set_firsts_if_neeed(aTHX);
 
 void
 collect_inits()
@@ -919,7 +965,10 @@ get_ends()
 
 
 BOOT:
+    {
+        MY_CXT_INIT;
+    }
     PL_runops    = runops_cover;
-#if (PERL_VERSION > 6)
+#if PERL_VERSION > 6
     PL_savebegin = TRUE;
 #endif

@@ -18,3 +18,5 @@
   Line numbers are reported incorrectly.
 
 - If an END block installs another END block it won't be covered.
+
+- Empty subs will be ignored in Perl 5.8.1.

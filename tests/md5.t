@@ -12,8 +12,8 @@ use warnings;
 
 use File::Copy;
 
-use Devel::Cover::Inc  0.46;
-use Devel::Cover::Test 0.46;
+use Devel::Cover::Inc  0.47;
+use Devel::Cover::Test 0.47;
 
 my $base = $Devel::Cover::Inc::Base;
 
