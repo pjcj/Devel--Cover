@@ -133,7 +133,7 @@ sub merge_runs
         $self->merge($r);
     }
     $self->write($db) if @runs;
-    rmtree($_) for @runs;
+    rmtree(\@runs);
     $self
 }
 

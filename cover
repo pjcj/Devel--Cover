@@ -82,6 +82,7 @@ sub delete_db
         next unless -d $del;
         my $db = Devel::Cover::DB->new(db => $del);
         $db->delete;
+        rmtree($del);
     }
 }
 
