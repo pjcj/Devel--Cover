@@ -1,0 +1,72 @@
+#!/usr/local/bin/perl
+
+# Copyright 2002, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+use strict;
+use warnings;
+
+my @x;
+
+for my $y (0, 0)
+{
+    for my $z (0, 1)
+    {
+        if ($y && $z)
+        {
+            $x[1]++;
+        }
+        else
+        {
+            $x[2]++;
+        }
+        if ($y || $z)
+        {
+            $x[3]++;
+        }
+        else
+        {
+            $x[4]++;
+        }
+
+        $y && $x[5]++;
+        $x[5]++ if $y;
+
+        $z && $x[6]++;
+        $x[6]++ if $z;
+
+        $y || $x[7]++;
+        $x[7]++ unless $y;
+
+        $z || $x[8]++;
+        $x[8]++ unless $z;
+
+        $y ? $x[9]++  : $x[10]++;
+        $z ? $x[11]++ : $x[12]++;
+
+        if ($y)
+        {
+            $x[13]++;
+        }
+        elsif ($y && $z)
+        {
+            $x[14]++;
+        }
+        elsif ($y || $z)
+        {
+            $x[15]++;
+        }
+        else
+        {
+            $x[16]++;
+        }
+
+        $y && $z && $x[17]++; $y && $z && $x[18]++;
+    }
+}
+
+# print join(", ", @x), "\n";

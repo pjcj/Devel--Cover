@@ -12,9 +12,9 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.15";
+our $VERSION = "0.16";
 
-use Devel::Cover::DB 0.15;
+use Devel::Cover::DB 0.16;
 
 use Getopt::Long;
 use Pod::Usage;
@@ -128,7 +128,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.15 - 5th September 2002
+Version 0.16 - 9th September 2002
 
 =head1 LICENCE
 

@@ -18,8 +18,8 @@ use ExtUtils::MakeMaker;
 
 $| = 1;
 
-my $Version = "0.15";
-my $Date    = "5th September 2002";
+my $Version = "0.16";
+my $Date    = "9th September 2002";
 my $Author  = 'pjcj@cpan.org';
 
 my @perlbug = ("perlbug", "-a", $Author,
@@ -204,6 +204,7 @@ sub MY::postamble
 SET_VERSION = \$(PERL) -pi.version \\
     -e 's/(^\\s*(?:our\\s+)\\\$\$VERSION = ")\\d+\\.\\d+(";)/\$\${1}$Version\$\$2/;' \\
     -e 's/(Version )\\d+\\.\\d+( - ).*/\$\${1}$Version\$\${2}$Date/;' \\
+    -e 's/(Devel::Cover Version )\\d+\\.\\d+/\$\${1}$Version/;' \\
     -e 's/(^\\s*use Devel::Cover(?:::\\w+)*\\s+)\\d+\\.\\d+/\$\${1}$Version/;'
 
 tags : @files

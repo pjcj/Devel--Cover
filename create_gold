@@ -12,11 +12,11 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.15";
+our $VERSION = "0.16";
 
 use blib;
 
-use Devel::Cover::Test 0.15;
+use Devel::Cover::Test 0.16;
 
 my @tests = @ARGV;
 

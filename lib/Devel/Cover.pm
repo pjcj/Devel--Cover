@@ -11,12 +11,12 @@ use strict;
 use warnings;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.15";
+our $VERSION = "0.16";
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.15;
-use Devel::Cover::Inc 0.15;
+use Devel::Cover::DB  0.16;
+use Devel::Cover::Inc 0.16;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -25,6 +25,8 @@ use B::Deparse;
 use Cwd ();
 
 BEGIN { eval "use Pod::Coverage 0.06" }     # We'll use this if it is available.
+
+my $Silent  = 0;                            # Output nothing.
 
 my $DB      = "cover_db";                   # DB name.
 my $Indent  = 0;                            # Data::Dumper indent.
@@ -49,6 +51,10 @@ my %Coverage;                               # Coverage criteria to collect.
 
 my $Cwd = Cwd::cwd();                       # Where we start from.
 
+use vars qw($File $Line $Collect);
+
+($File, $Line, $Collect) = ("", 0, 1);
+
 BEGIN { @Inc = @Devel::Cover::Inc::Inc }
 # BEGIN { $^P =  0x02 | 0x04 | 0x100 }
 BEGIN { $^P =  0x04 | 0x100 }
@@ -70,7 +76,8 @@ CHECK
           "$last.\n",
           "Selecting packages matching:", join("\n    ", "", @Select), "\n",
           "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
-          "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n";
+          "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
+        unless $Silent;
 }
 
 END { report() }
@@ -85,6 +92,7 @@ sub import
     while (@_)
     {
         local $_ = shift;
+        /^-silent/   && do { $Silent     = shift; next };
         /^-db/       && do { $DB         = shift; next };
         /^-indent/   && do { $Indent     = shift; next };
         /^-merge/    && do { $Merge      = shift; next };
@@ -161,21 +169,19 @@ sub get_coverage
     return wantarray ? @names : "@names";
 }
 
-my ($F, $L) = ("", 0);
-
 sub get_location
 {
     my ($op) = @_;
 
-    $F = $op->file;
-    $L = $op->line;
+    $File = $op->file;
+    $Line = $op->line;
 
     # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
 
-    ($F, $L) = ($1, $2) if $F =~ /^\(eval \d+\)\[(.*):(\d+)\]/;
+    ($File, $Line) = ($1, $2) if $File =~ /^\(eval \d+\)\[(.*):(\d+)\]/;
 
-    $F =~ s/ \(autosplit into .*\)$//;
-    $F =~ s/^$Cwd\///;
+    $File =~ s/ \(autosplit into .*\)$//;
+    $File =~ s/^$Cwd\///;
 }
 
 sub use_file
@@ -190,7 +196,7 @@ sub use_file
     for (@Inc)    { return $files->{$file} = 0 if $file =~ /^\Q$_\// }
     $files->{$file} = -e $file;
     warn __PACKAGE__ . qq(: Can't find file "$file": ignored.\n)
-        unless $files->{$file} || $file =~ /\(eval \d+\)/;
+        unless $Silent || ($files->{$file} || $file =~ /\(eval \d+\)/);
     $files->{$file}
 }
 
@@ -264,7 +270,7 @@ sub report
     $cover->merge($existing) if $existing;
     $cover->indent($Indent);
     $cover->write($DB);
-    $cover->print_summary if $Summary;
+    $cover->print_summary if $Summary && !$Silent;
 }
 
 sub add_statement_cover
@@ -272,30 +278,33 @@ sub add_statement_cover
     my ($op) = @_;
 
     get_location($op);
-    return unless $F;
+    return unless $File;
 
-    return unless $Devel::Cover::collect;
+    return unless $Collect;
 
     # print "Statement: ", $op->name, "\n";
 
     my $key = pack("I*", $$op) . pack("I*", $op->seq);
-    push @{$Cover->{$F}{statement}{$L}}, [[$Coverage->{statement}{$key} || 0]];
-    push @{$Cover->{$F}{time}{$L}},      [[$Coverage->{time}{$key}]]
+    push @{$Cover->{$File}{statement}{$Line}},
+         [[$Coverage->{statement}{$key} || 0]];
+    push @{$Cover->{$File}{time}{$Line}},
+         [[$Coverage->{time}{$key}]]
         if exists $Coverage->{time} && exists $Coverage->{time}{$key};
 }
 
 sub add_condition_cover
 {
-    return unless $Devel::Cover::collect;
+    return unless $Collect;
 
     my ($op, $strop, $left, $right) = @_;
 
     my $key = pack("I*", $$op) . pack("I*", $op->seq);
-    # print STDERR "Condition cover from $F:$L\n";
+    # print STDERR "Condition cover from $File:$Line\n";
 
     $Coverage->{condition}{$key} = [0, 0, 0]
-        unless @{$Coverage->{condition}{$key}};
-    push @{$Cover->{$F}{condition}{$L}},
+        unless exists $Coverage->{condition}{$key} &&
+                      @{$Coverage->{condition}{$key}};
+    push @{$Cover->{$File}{condition}{$Line}},
          [
              [ map($_ || 0, @{$Coverage->{condition}{$key}}) ],
              {
@@ -309,15 +318,15 @@ sub add_condition_cover
 
 sub add_branch_cover
 {
-    return unless $Devel::Cover::collect;
+    return unless $Collect;
 
-    my ($op, $type, $text) = @_;
+    my ($op, $type, $text, $file, $line) = @_;
 
     $text =~ s/^\s+//;
     $text =~ s/\s+$//;
 
     my $key = pack("I*", $$op) . pack("I*", $op->seq);
-    # print STDERR "Branch cover from $F:$L\n";
+    # print STDERR "Branch cover from $file:$line\n";
 
     my $c;
     if ($type eq "and")
@@ -335,7 +344,7 @@ sub add_branch_cover
         $c = $Coverage->{branch}{$key} || [0, 0];
     }
 
-    push @{$Cover->{$F}{branch}{$L}},
+    push @{$Cover->{$file}{branch}{$line}},
          [
              [ map($_ || 0, @$c) ],
              {
@@ -352,7 +361,8 @@ sub is_ifelse_cont { &B::Deparse::is_ifelse_cont }
 
 no warnings "redefine";
 
-$Devel::Cover::collect = 1;
+my $original_deparse;
+BEGIN { $original_deparse = \&B::Deparse::deparse }
 
 sub B::Deparse::deparse
 {
@@ -366,7 +376,7 @@ sub B::Deparse::deparse
 
     # print "Deparse <$name>\n";
 
-    if ($Devel::Cover::collect)
+    if ($Collect)
     {
         # Get the coverage on this op.
 
@@ -381,12 +391,13 @@ sub B::Deparse::deparse
             # If the current op is null, but it was nextstate, we can still
             # get at the file and line number, but we need to get dirty.
 
-            my $o = $op;
-            bless $o, "B::COP";
-            add_statement_cover($o);
+            bless $op, "B::COP";
+            add_statement_cover($op);
+            bless $op, "B::$class";
         }
         elsif ($name eq "cond_expr")
         {
+            local ($File, $Line) = ($File, $Line);
             my $cond  = $op->first;
             my $true  = $cond->sibling;
             my $false = $true->sibling;
@@ -394,19 +405,15 @@ sub B::Deparse::deparse
                     (is_scope($false) || is_ifelse_cont($false))
                     && $self->{'expand'} < 7))
             {
-                {
-                    local $Devel::Cover::collect = 0;
-                    $cond = $self->deparse($cond, 8);
-                }
-                add_branch_cover($op, "if", "$cond ? :");
+                my ($file, $line) = ($File, $Line);
+                { local $Collect; $cond = $self->deparse($cond, 8) }
+                add_branch_cover($op, "if", "$cond ? :", $file, $line);
             }
             else
             {
-                {
-                    local $Devel::Cover::collect = 0;
-                    $cond = $self->deparse($cond, 1);
-                }
-                add_branch_cover($op, "if", "if ($cond) { }");
+                my ($file, $line) = ($File, $Line);
+                { local $Collect; $cond = $self->deparse($cond, 1) }
+                add_branch_cover($op, "if", "if ($cond) { }", $file, $line);
                 while (class($false) ne "NULL" && is_ifelse_cont($false))
                 {
                     my $newop   = $false->first;
@@ -414,20 +421,16 @@ sub B::Deparse::deparse
                     my $newtrue = $newcond->sibling;
                     # last in chain is OP_AND => no else
                     $false = $newtrue->sibling;
-                    {
-                        local $Devel::Cover::collect = 0;
-                        $newcond = $self->deparse($newcond, 1);
-                    }
-                    add_branch_cover($newop, "elsif", "elsif ($newcond) { }");
+                    my ($file, $line) = ($File, $Line);
+                    { local $Collect; $newcond = $self->deparse($newcond, 1) }
+                    add_branch_cover($newop, "elsif", "elsif ($newcond) { }",
+                                     $file, $line);
                 }
             }
         }
     }
 
-    # Wander down the tree.
-
-    my $meth = "pp_$name";
-    $self->$meth($op, $cx)
+    $original_deparse->($self, @_);
 }
 
 sub B::Deparse::logop
@@ -436,12 +439,13 @@ sub B::Deparse::logop
     my ($op, $cx, $lowop, $lowprec, $highop, $highprec, $blockname) = @_;
     my $left  = $op->first;
     my $right = $op->first->sibling;
+    my ($file, $line) = ($File, $Line);
     if ($cx == 0 && is_scope($right) && $blockname && $self->{expand} < 7)
     {
         # if ($a) {$b}
         $left  = $self->deparse($left, 1);
         $right = $self->deparse($right, 0);
-        add_branch_cover($op, $lowop, "$blockname ($left)");
+        add_branch_cover($op, $lowop, "$blockname ($left)", $file, $line);
         return "$blockname ($left) {\n\t$right\n\b}\cK"
     }
     elsif ($cx == 0 && $blockname && !$self->{parens} && $self->{expand} < 7)
@@ -449,7 +453,7 @@ sub B::Deparse::logop
         # $b if $a
         $right = $self->deparse($right, 1);
         $left  = $self->deparse($left, 1);
-        add_branch_cover($op, $lowop, "$blockname $left");
+        add_branch_cover($op, $lowop, "$blockname $left", $file, $line);
         return "$right $blockname $left"
     }
     elsif ($cx > $lowprec && $highop)
@@ -457,7 +461,7 @@ sub B::Deparse::logop
         # $a && $b
         $left  = $self->deparse_binop_left($op, $left, $highprec);
         $right = $self->deparse_binop_right($op, $right, $highprec);
-        add_condition_cover($op, $highop, $left, $right);
+        add_condition_cover($op, $highop, $left, $right, $file, $line);
         return $self->maybe_parens("$left $highop $right", $cx, $highprec)
     }
     else
@@ -465,7 +469,7 @@ sub B::Deparse::logop
         # $a and $b
         $left  = $self->deparse_binop_left($op, $left, $lowprec);
         $right = $self->deparse_binop_right($op, $right, $lowprec);
-        add_condition_cover($op, $lowop, $left, $right);
+        add_condition_cover($op, $lowop, $left, $right, $file, $line);
         return $self->maybe_parens("$left $lowop $right", $cx, $lowprec)
     }
 }
@@ -571,7 +575,7 @@ Did I mention that this is alpha code?
 
 =head1 VERSION
 
-Version 0.15 - 5th September 2002
+Version 0.16 - 9th September 2002
 
 =head1 LICENCE
 

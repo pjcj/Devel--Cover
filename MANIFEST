@@ -21,12 +21,6 @@ lib/Devel/Cover/Report/Html.pm
 cover
 gcov2perl
 create_gold
-templates/html/colours
-templates/html/file
-templates/html/html
-templates/html/summary
-templates/html/branches
-templates/html/conditions
 tests/t0
 tests/t1
 tests/t2
@@ -35,6 +29,7 @@ tests/module1
 tests/module2
 tests/cond_and
 tests/cond_or
+tests/cond_branch
 tests/Module1.pm
 tests/Module2.pm
 test_output/cover/t0
@@ -45,5 +40,6 @@ test_output/cover/module1
 test_output/cover/module2
 test_output/cover/cond_and
 test_output/cover/cond_or
+test_output/cover/cond_branch
 lib/Devel/Cover/Tutorial.pod
 session.vim

@@ -10,15 +10,15 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.15";
+our $VERSION = "0.16";
 
-use Devel::Cover::DB::File  0.15;
-use Devel::Cover::Criterion 0.15;
-use Devel::Cover::Statement 0.15;
-use Devel::Cover::Branch    0.15;
-use Devel::Cover::Condition 0.15;
-use Devel::Cover::Pod       0.15;
-use Devel::Cover::Time      0.15;
+use Devel::Cover::DB::File  0.16;
+use Devel::Cover::Criterion 0.16;
+use Devel::Cover::Statement 0.16;
+use Devel::Cover::Branch    0.16;
+use Devel::Cover::Condition 0.16;
+use Devel::Cover::Pod       0.16;
+use Devel::Cover::Time      0.16;
 
 use Carp;
 use Data::Dumper;
@@ -201,6 +201,10 @@ sub _merge_array
         if (UNIVERSAL::isa($i, "ARRAY"))
         {
             _merge_array($i, $f || []);
+        }
+        elsif (UNIVERSAL::isa($i, "HASH"))
+        {
+            _merge_hash($i, $f || {});
         }
         else
         {
@@ -533,7 +537,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.15 - 5th September 2002
+Version 0.16 - 9th September 2002
 
 =head1 LICENCE
 

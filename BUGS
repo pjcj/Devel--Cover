@@ -1,2 +1,2 @@
 - Code in BEGIN and END blocks is not reported.
-- Templates aren't put anywhere useful.
+- Doesn't play nicely with Perl's testsuite.

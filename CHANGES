@@ -84,3 +84,9 @@ Release 0.15 - 5th September 2002
  - Add branch coverage.
  - Abstract away cover backends.
  - Use TT for HTML output.
+
+Release 0.16 - 9th September 2002
+ - Get rid of some uninitialised warnings.
+ - Inline the HTML templates.
+ - Rebless the op after blessing it as a COP.
+ - Make branch coverage line numbers more accurate.
