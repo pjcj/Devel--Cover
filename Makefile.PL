@@ -18,8 +18,8 @@ use ExtUtils::MakeMaker;
 
 $| = 1;
 
-my $Version = "0.18";
-my $Date    = "28th September 2002";
+my $Version = "0.19";
+my $Date    = "29th September 2002";
 my $Author  = 'pjcj@cpan.org';
 
 my @perlbug = ("perlbug", "-a", $Author,

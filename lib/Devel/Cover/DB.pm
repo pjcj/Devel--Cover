@@ -10,10 +10,10 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.18";
+our $VERSION = "0.19";
 
-use Devel::Cover::DB::File  0.18;
-use Devel::Cover::Criterion 0.18;
+use Devel::Cover::DB::File  0.19;
+use Devel::Cover::Criterion 0.19;
 
 use Carp;
 use Data::Dumper;
@@ -193,11 +193,13 @@ sub _merge_array
     for my $i (@$into)
     {
         my $f = shift @$from;
-        if (UNIVERSAL::isa($i, "ARRAY"))
+        if (UNIVERSAL::isa($i, "ARRAY") ||
+            !defined $i && UNIVERSAL::isa($f, "ARRAY"))
         {
             _merge_array($i, $f || []);
         }
-        elsif (UNIVERSAL::isa($i, "HASH"))
+        elsif (UNIVERSAL::isa($i, "HASH") ||
+              !defined $i && UNIVERSAL::isa($f, "HASH") )
         {
             _merge_hash($i, $f || {});
         }
@@ -205,6 +207,7 @@ sub _merge_array
         {
             if (defined $f)
             {
+                $i ||= 0;
                 if ($f =~ /^\d+$/ && $i =~ /^\d+$/)
                 {
                     $i += $f;
@@ -539,7 +542,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.18 - 28th September 2002
+Version 0.19 - 29th September 2002
 
 =head1 LICENCE
 

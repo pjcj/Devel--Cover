@@ -106,3 +106,6 @@ Release 0.18 - 28th September 2002
      Devel::Cover::Condition_xor_4.pm
  - "use" all conditions in Criterion.pm, and nowhere else.
  - Add support for xor, ||= and &&=.
+
+Release 0.19 - 29th September 2002
+ - Quieten uninitialised value warnings.
