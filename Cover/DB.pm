@@ -5,14 +5,18 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-package Devel::Cover::Process;
+package Devel::Cover::DB;
 
 use strict;
 use warnings;
 
 use Carp;
+use Data::Dumper;
+use File::Path;
 
-our $VERSION = "0.05";
+our $VERSION = "0.06";
+
+my $DB = "cover.1";  # Version 1 of the database.
 
 sub new
 {
@@ -22,6 +26,8 @@ sub new
     {
         criteria       => [ qw( statement branch path condition ) ],
         criteria_short => [ qw( stmt      branch path cond      ) ],
+        indent         => 1,
+        cover          => {},
         @_
     };
     $self->{all_criteria}       = [ @{$self->{criteria}},       "total" ];
@@ -29,24 +35,26 @@ sub new
 
     bless $self, $class;
 
-    if (defined $self->{file})
+    my $file;
+    if (defined $self->{db})
     {
-        open F, "<$self->{file}" or croak "Unable to open $self->{file}: $!";
+        $self->validate_db;
+        $file = "$self->{db}/$DB";
+        open F, "<$file" or croak "Unable to open $file: $!";
         $self->{filehandle} = *F{IO};
     }
 
     $self->read if defined $self->{filehandle};
 
-    if (defined $self->{file})
+    if (defined $file)
     {
-        close F or croak "Unable to close $self->{file}: $!";
+        close F or croak "Unable to close $file: $!";
     }
 
-    croak "No input file, filehandle or cover" unless defined $self->{cover};
+    croak "No input db, filehandle or cover" unless defined $self->{cover};
 
     $self
 }
-
 
 sub read
 {
@@ -56,14 +64,113 @@ sub read
     my $fh = $self->{filehandle};
     eval <$fh>;
     croak $@ if $@;
-    $self->{cover} = $cover
+    $self->{cover} = $cover;
+    $self
 }
 
+sub write
+{
+    my $self = shift;
+    $self->{db} = shift if @_;
+    croak "No db specified" unless length $self->{db};
+    $self->validate_db;
+    local $Data::Dumper::Indent = $self->indent;
+    my $file = "$self->{db}/$DB";
+    open OUT, ">$file" or croak "Cannot open $file\n";
+    print OUT Data::Dumper->Dump([$self->{cover}], ["cover"]);
+    close OUT or croak "Cannot close $file\n";
+    $self
+}
+
+sub delete
+{
+    my $self = shift;
+    $self->{db} = shift if @_;
+    croak "No db specified" unless length $self->{db};
+    rmtree($self->{db});
+    $self
+}
 
 sub cover
 {
     my $self = shift;
     $self->{cover}
+}
+
+sub validate_db
+{
+    my $self = shift;
+    unless (-d $self->{db})
+    {
+        mkdir $self->{db}, 0777 or croak "Cannot mkdir $self->{db}: $!\n";
+    }
+    $self
+}
+
+sub indent
+{
+    my $self = shift;
+    $self->{indent} = shift if @_;
+    $self->{indent}
+}
+
+sub merge
+{
+    my ($self, $from) = @_;
+    _merge_hash($self->cover, $from->cover);
+    $self
+}
+
+sub _merge_hash
+{
+    my ($into, $from) = @_;
+    for my $fkey (keys %{$from})
+    {
+        my $fval = $from->{$fkey};
+        my $fval_ref = ref $fval;
+
+        if (defined $into->{$fkey} and UNIVERSAL::isa($into->{$fkey}, "ARRAY"))
+        {
+            _merge_array($into->{$fkey}, $fval);
+        }
+        elsif (defined $fval && UNIVERSAL::isa($fval, "HASH"))
+        {
+            if (defined $into->{$fkey} and
+                UNIVERSAL::isa($into->{$fkey}, "HASH"))
+            {
+                _merge_hash($into->{$fkey}, $fval);
+            }
+            else
+            {
+                $into->{$fkey} = $fval;
+            }
+        }
+        else
+        {
+            # A scalar (or a blessed scalar).  We know there is no into
+            # array, or we would just have merged with it.
+
+            $into->{$fkey} = $fval;
+        }
+    }
+}
+
+sub _merge_array
+{
+    my ($into, $from) = @_;
+    for my $i (@$into)
+    {
+        my $f = shift @$from;
+        if (UNIVERSAL::isa($i, "ARRAY"))
+        {
+            _merge_array($i, $f);
+        }
+        else
+        {
+            $i += $f;
+        }
+    }
+    push @$into, @$from;
 }
 
 sub calculate_summary
@@ -113,6 +220,13 @@ sub calculate_summary
     }
 }
 
+sub trimmed_file
+{
+    my ($f, $len) = @_;
+    substr $f, 0, 3 - $len, "..." if length $f > $len;
+    $f
+}
+
 sub print_summary
 {
     my $self = shift;
@@ -138,7 +252,7 @@ sub print_summary
     for my $file (grep($_ ne "Total", sort keys %$s), "Total")
     {
         printf $fmt,
-               $file,
+               trimmed_file($file, 42),
                map { $format->($s->{$file}, $_) } @{$self->{all_criteria}};
 
     }

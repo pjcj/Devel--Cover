@@ -12,42 +12,46 @@ use warnings;
 
 use DynaLoader ();
 
-use Devel::Cover::Process 0.05;
+use Devel::Cover::DB 0.06;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.05";
+our $VERSION = "0.06";
 
 use B qw( class ppname main_root main_start main_cv svref_2object OPf_KIDS );
-use Data::Dumper;
 
 my  $Covering = 1;
 
-my  $Indent   = 0;
-my  $Output   = "default.cov";
-my  $Summary  = 1;
+my  $DB       = "cover_db";
 my  $Details  = 0;
+my  $Merge    = 1;
+my  @Inc;
+my  $Indent   = 0;
+my  $Summary  = 1;
 
 my  %Cover;
 our $Cv;      # gets localised
 my  @Todo;
 my  %Done;
-my  @Inc;
 
 BEGIN { @Inc = @INC }
+# BEGIN { $^P =  0x02 | 0x04 | 0x100 }
+BEGIN { $^P =  0x04 | 0x100 }
 
 END { report() }
 
 sub import
 {
     my $class = shift;
+    @Inc = () if "@_" =~ /-inc /;
     while (@_)
     {
         local $_ = shift;
-        /^-indent/  && do { $Indent  = shift; next };
-        /^-output/  && do { $Output  = shift; next };
-        /^-inc/     && do { push @Inc, shift; next };
-        /^-summary/ && do { $Summary = shift; next };
+        /^-db/      && do { $DB      = shift; next };
         /^-details/ && do { $Details = shift; next };
+        /^-merge/   && do { $Merge   = shift; next };
+        /^-inc/     && do { push @Inc, shift; next };
+        /^-indent/  && do { $Indent  = shift; next };
+        /^-summary/ && do { $Summary = shift; next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
 }
@@ -68,8 +72,8 @@ sub report
     INC:
     while (my ($name, $file) = each %INC)
     {
-        for (@Inc) { next INC if $file =~ /^\Q$_/ }
         # print "$name => $file\n";
+        for (@Inc) { next INC if $file =~ /^\Q$_/ }
         $name =~ s/\.pm$//;
         $name =~ s/\//::/g;
         get_subs($name);
@@ -91,20 +95,30 @@ sub report
         for (@Inc) { delete $Cover{$file}, last if $file =~ /^\Q$_/ }
     }
 
-    {
-        local $Data::Dumper::Indent = $Indent;
-        open OUT, ">$Output" or die "Cannot open $Output\n";
-        print OUT Data::Dumper->Dump([\%Cover], ["cover"]);
-        close OUT or die "Cannot close $Output\n";
-    }
-
-    my $cover = Devel::Cover::Process->new(cover => \%Cover);
+    my $cover = Devel::Cover::DB->new(cover => \%Cover);
+    my $existing;
+    eval { $existing = Devel::Cover::DB->new(db => $DB) if $Merge };
+    $cover->merge($existing) if $existing;
+    $cover->indent($Indent);
+    $cover->write($DB);
     $cover->print_summary if $Summary;
     $cover->print_details if $Details;
 }
 
 my ($F, $L) = ("", 0);
-my $Level = 0;
+# my $Level = 0;
+
+sub get_location
+{
+    my ($op) = @_;
+
+    $F = $op->file;
+    $L = $op->line;
+
+    # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
+
+    ($F, $L) = ($1, $2) if $F =~/^\(eval \d+\)\[(.*):(\d+)\]/;
+}
 
 sub walk_topdown
 {
@@ -112,13 +126,14 @@ sub walk_topdown
     my $class = class($op);
     my $cover = coverage()->{pack "I*", $$op};
 
-    $Level++;
+    # $Level++;
 
     # Statement coverage.
 
     if ($class eq "COP")
     {
-        push @{$Cover{$F = $op->file}{statement}{$L = $op->line}}, $cover || 0
+        get_location($op);
+        push @{$Cover{$F}{statement}{$L}}, $cover || 0;
     }
     elsif (!null($op) &&
            $op->name eq "null"
@@ -130,7 +145,8 @@ sub walk_topdown
         $cover = coverage()->{pack "I*", ${$op->sibling}};
         my $o = $op;
         bless $o, "B::COP";
-        push @{$Cover{$F = $o->file}{statement}{$L = $o->line}}, $cover || 0
+        get_location($o);
+        push @{$Cover{$F}{statement}{$L}}, $cover || 0;
     }
 
     # print " " x ($Level * 2), "$F:$L ", $op->name, ":$class\n";
@@ -153,7 +169,7 @@ sub walk_topdown
         walk_topdown($op->pmreplroot);
     }
 
-    $Level--;
+    # $Level--;
 
     $class eq "LISTOP" ? undef : $cover
 }
@@ -263,7 +279,7 @@ Devel::Cover - Code coverage metrics for Perl
 =head1 SYNOPSIS
 
   perl -MDevel::Cover prog args
-  perl -MDevel::Cover=-output,prog.cov,-indent,1,-details,1 prog args
+  perl -MDevel::Cover=-db,cover_db,-indent,1,-details,1 prog args
 
 =head1 DESCRIPTION
 
@@ -288,11 +304,12 @@ Requirements:
 
 =head1 OPTIONS
 
- -indent indent - Set indentation level to indent. See Data::Dumper for details.
- -output file   - Send output to file (default default.cov).
- -inc path      - Prefix of files to ignore (default @INC).
- -summary val   - Print summary information iff val is true (default on).
+ -db cover_db   - Store results in coverage db (default cover_db).
  -details val   - Print detailed information iff val is true (default off).
+ -inc path      - Prefix of files to ignore (default @INC).
+ -indent indent - Set indentation level to indent. See Data::Dumper for details.
+ -merge val     - Merge databases, for multiple test benches (default on).
+ -summary val   - Print summary information iff val is true (default on).
 
 =head1 TUTORIAL
 
@@ -476,7 +493,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.05 - 9th May 2001
+Version 0.06 - 10th May 2001
 
 =head1 LICENCE
 

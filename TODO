@@ -4,3 +4,5 @@
 - Documentation.
 - Generic output routines/gui, suitable for other languages too.
 - BEGIN and END blocks.
+- Sort out @Inc.
+- Work with memoize.
