@@ -47,6 +47,8 @@ for (0 .. 10)
   my $r = $_ || "qqq";
   my $s = $_ || [];
   my $t = $y | $z;
+  my $u = $y || 0;
+  my $v = $y || undef;
 
   $p     ||= $y;
   $p     ||= $z;

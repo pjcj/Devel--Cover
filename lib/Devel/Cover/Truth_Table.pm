@@ -124,11 +124,12 @@ sub new {
 	my $proto = shift;
 	my $class = ref($proto) || $proto;
 	my @args = @_;
+        # use Data::Dumper; print Dumper \@args;
 	return bless {
-		inputs  => $args[0],
-		result  => $args[1],
-		covered => $args[2],
-		error   => $args[3],  # TODO - pass this in
+		inputs    => $args[0],
+		result    => $args[1],
+		covered   => $args[2],
+		criterion => $args[2],
 	}, $class;
 }
 
@@ -172,7 +173,7 @@ sub covered {
 }
 
 sub error {
-        return 0;
+        return 1;
 	return $_[0]{error}[$_[1]];
 }
 

@@ -26,6 +26,7 @@
   - Look at time coverage again - collecting for too many ops?
   - Sort out time coverage on Windows.
   - Check for core dumps with pod coverage.
+  - Uncovered dereferences as seen in svk.
 - Testing:
   - Be able to run Devel::Cover on itself.
   - More comprehensive.

@@ -758,7 +758,8 @@ sub add_condition_cover
         my $name = $r->name;
         $name = $r->first->name if $name eq "sassign";
         # TODO - exec?  any others?
-        if ($name =~ /^const|s?refgen|gelem|die$/)
+        # print STDERR "Name [$name]\n";
+        if ($name =~ /^const|s?refgen|gelem|die|undef$/)
         {
             $c = [ $c->[3], $c->[1] + $c->[2] ];
             $count = 2;

@@ -1,5 +1,8 @@
 Devel::Cover.pm history
 
+Release 0.51 - 
+ - Handle $y || undef.
+
 Release 0.50 - 25th October 2004
  - Add -test option to cover.
  - Fix missing coverage when calling a sub in an ignored module.

@@ -82,12 +82,14 @@ sub get_showing_headers {
 sub truth_table {
     return if @_ > 16;
     my @lops;
+    my $n = 0;
     foreach my $c (@_) {
         my $op = $c->[1]{type};
         my @hit = map {defined() && $_ > 0 ? 1 : 0} @{$c->[0]};
         @hit = reverse @hit if $op =~ /^or_[23]$/;
         my $t = {
             tt   => Devel::Cover::Truth_Table->new_primitive($op, @hit),
+            # tt   => Devel::Cover::Truth_Table->new_primitive($op, $c, $n++);
             cvg  => $c->[1],
             expr => join(' ', @{$c->[1]}{qw/left op right/}),
         };
@@ -210,6 +212,7 @@ sub _branch_report {
 #-------------------------------------------------------------------------------
 sub _condition_report {
     my $coverage = shift;
+    # use Data::Dumper; print STDERR Dumper $coverage;
 
     my @tables = truth_table(@{$coverage->{condition}});
     return unless @tables;
