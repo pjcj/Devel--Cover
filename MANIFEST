@@ -8,6 +8,10 @@ Cover.pm
 Cover.xs
 Cover/DB.pm
 Cover/Op.pm
+Cover/Criterion.pm
+Cover/Statement.pm
+Cover/Condition.pm
+Cover/Pod.pm
 t/Compare.pm
 t/t1.t
 t/T1.pm

@@ -10,7 +10,7 @@ package Compare;
 use strict;
 use warnings;
 
-our $VERSION = "0.10";
+our $VERSION = "0.11";
 
 sub compare
 {
@@ -26,6 +26,7 @@ sub compare
         my $f1 = $t1->{$file};
         my $f2 = delete $t2->{$file};
         last FILE unless $ok &&= $f2;
+        delete $f2->{pod} unless $INC{"Pod/Coverage.pm"};          # Ignore pod.
         $ok &&= keys %$f1 == keys %$f2;
         for my $criterion (sort keys %$f1)
         {

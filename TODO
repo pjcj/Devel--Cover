@@ -2,9 +2,7 @@
 - Parse for branch and condition coverage.
 - Tests.
 - Documentation.
-- Generic output routines/gui, suitable for other languages too.
 - BEGIN and END blocks.
-- Sort out @Inc.
 - Work with memoize.
 - Code in modules without subs.
 - Use B::Utils?

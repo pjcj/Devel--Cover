@@ -40,3 +40,13 @@ Release 0.09 - 18th August 2001
 
 Release 0.10 - 27th August 2001
  - Add cover program to generate reports.
+
+Release 0.11 - 10th September 2001
+ - Add pod coverage based on Pod::Coverage.pm.
+ - Put a full API on the database.
+ - Add:
+     Devel::Cover::Criterion.pm
+     Devel::Cover::Statement.pm
+     Devel::Cover::Condition.pm
+     Devel::Cover::Pod.pm
+ - Some inprovements to the cover program.

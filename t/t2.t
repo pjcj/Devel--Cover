@@ -10,8 +10,8 @@
 use strict;
 use warnings;
 
-use Devel::Cover::DB 0.10;
-use Devel::Cover 0.10 qw( -db t2 +inc blib -indent 1 -merge 0 );
+use Devel::Cover::DB 0.11;
+use Devel::Cover 0.11 qw( -db t2 +inc blib -indent 1 -merge 0 );
 
 use Test;
 
@@ -41,14 +41,20 @@ $cover = {
   't/t2.t' => {
     'statement' => {
       '22' => [
-        3,
-        1
+        [
+          2,
+          1
+        ]
       ],
       '28' => [
-        1
+        [
+          1
+        ]
       ],
       '30' => [
-        1
+        [
+          1
+        ]
       ]
     }
   }

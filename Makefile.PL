@@ -16,8 +16,8 @@ use ExtUtils::MakeMaker;
 
 $| = 1;
 
-my $Version = "0.10";
-my $Date    = "27th August 2001";
+my $Version = "0.11";
+my $Date    = "10th September 2001";
 my $Author  = 'pjcj@cpan.org';
 
 my @perlbug = ("perlbug", "-a", $Author,
@@ -69,6 +69,27 @@ WriteMakefile
   clean    => { FILES => join " ",  map { "$_.version" } @versions },
   depend   => { distdir => "@files" },
 );
+
+print "\n";
+print "checking for Pod::Coverage.pm........ ";
+
+eval "use Pod::Coverage";
+if (my $m = $INC{"Pod/Coverage.pm"})
+{
+  print "$m\n";
+}
+else
+{
+  print  <<EOM;
+not found
+
+Pod::Coverage.pm is required to do pod coverage.  This will tell you how well
+you have documented your modules.  Pod coverage will be unavailable until you
+install this module, available from CPAN.  In the meantime, you may continue to
+use the rest of Devel::Cover.pm.
+
+EOM
+}
 
 print <<EOM if 0;
 

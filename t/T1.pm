@@ -10,6 +10,11 @@ package T1;
 my $y = 7;
 $y++;
 
+sub yy
+{
+    $y++;
+}
+
 sub zz
 {
     my $x = shift;
@@ -17,3 +22,11 @@ sub zz
 }
 
 1
+
+__END__
+
+=head2 yy
+
+yy
+
+=cut

@@ -12,30 +12,36 @@ use warnings;
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.10;
-use Devel::Cover::Inc 0.10;
+use Devel::Cover::DB  0.11;
+use Devel::Cover::Inc 0.11;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.10";
+our $VERSION = "0.11";
 
 use B qw( class ppname main_root main_start main_cv svref_2object OPf_KIDS );
-# use B::Debug;
+use B::Debug;
+BEGIN { eval "use Pod::Coverage" }          # We'll use this if it is available.
 
-my  $Covering = 1;
+my  $Covering = 1;                          # Coverage on.
 
-my  $DB       = "cover_db";
-my  $Details  = 0;
-my  $Merge    = 1;
-my  @Ignore;
-my  @Inc;
-my  $Indent   = 0;
-my  @Select;
-my  $Summary  = 1;
+my  $DB       = "cover_db";                 # DB name.
+my  $Indent   = 0;                          # Data::Dumper indent.
+my  $Merge    = 1;                          # Merge databases.
 
-my  %Cover;
-our $Cv;      # gets localised
-my  @Todo;
-my  %Done;
+my  %Packages;                              # Packages we are interested in.
+my  @Ignore;                                # Packages to ignore.
+my  @Inc;                                   # Original @INC to ignore.
+my  @Select;                                # Packages to select.
+
+my  $Pod      = $INC{"Pod/Coverage.pm"};    # Do pod coverage.
+
+my  $Summary  = 1;                          # Output coverage summary.
+my  $Details  = 0;                          # Output coverage details.
+
+my  %Cover;                                 # Coverage data.
+our $Cv;                                    # Gets localised.
+my  @Todo;                                  # Subs to look at.
+my  %Done;                                  # Subs that have been seen.
 
 BEGIN { @Inc = @Devel::Cover::Inc::Inc }
 # BEGIN { $^P =  0x02 | 0x04 | 0x100 }
@@ -68,6 +74,26 @@ sub cover
     set_cover($Covering > 0);
 }
 
+my ($F, $L) = ("", 0);
+# my $Level = 0;
+
+sub get_location
+{
+    my ($op) = @_;
+
+    $F = $op->file;
+    $L = $op->line;
+
+    # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
+
+    ($F, $L) = ($1, $2) if $F =~/^\(eval \d+\)\[(.*):(\d+)\]/;
+
+    # print STDERR "<$F> => ";
+    $F =~ s/ \(autosplit into .*\)$//;
+    # print STDERR "<$F>\n";
+
+}
+
 sub report
 {
     return unless $Covering > 0;
@@ -91,6 +117,10 @@ sub report
         # print "use  $name => $file\n";
         $name =~ s/\.pm$//;
         $name =~ s/\//::/g;
+        $Packages{$name} = 1;
+        # print "pod  $name => $file\n";
+        $Packages{$name} = [ Pod::Coverage->new(package => $name)->covered ]
+            if $Pod;
         push @roots, get_subs($name);
     }
     walk_sub($Cv, main_start);
@@ -103,8 +133,22 @@ sub report
 
     for my $sub (@Todo)
     {
-        my $name = $sub->[1]->SAFENAME;
-        # print "$name\n";
+        if (class($sub->[1]->CV->START) eq "COP")
+        {
+            # Determine whether this sub is in a package we are covering.
+            my $package = $sub->[1]->CV->START->stashpv;
+            next unless $Packages{$package};
+
+            if ($Pod)
+            {
+                my $name = $sub->[1]->SAFENAME;
+                # print "$name => $package @{$Packages{$package}}\n";
+                get_location($sub->[1]->CV->START);
+                push @{$Cover{$F}{pod}{$L}[0]},
+                     scalar grep { $_ eq $name } @{$Packages{$package}};
+            }
+        }
+
         local $Cv = $sub->[1]->CV;
         walk_topdown($Cv->ROOT);
     }
@@ -124,26 +168,6 @@ sub report
     $cover->print_details if $Details;
 }
 
-my ($F, $L) = ("", 0);
-# my $Level = 0;
-
-sub get_location
-{
-    my ($op) = @_;
-
-    $F = $op->file;
-    $L = $op->line;
-
-    # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
-
-    ($F, $L) = ($1, $2) if $F =~/^\(eval \d+\)\[(.*):(\d+)\]/;
-
-    # print STDERR "<$F> => ";
-    $F =~ s/ \(autosplit into .*\)$//;
-    # print STDERR "<$F>\n";
-
-}
-
 sub walk_topdown
 {
     my ($op) = @_;
@@ -157,7 +181,7 @@ sub walk_topdown
     if ($class eq "COP")
     {
         get_location($op);
-        push @{$Cover{$F}{statement}{$L}}, $cover || 0;
+        push @{$Cover{$F}{statement}{$L}[0]}, $cover || 0;
     }
     elsif (!null($op) &&
            $op->name eq "null"
@@ -170,7 +194,7 @@ sub walk_topdown
         my $o = $op;
         bless $o, "B::COP";
         get_location($o);
-        push @{$Cover{$F}{statement}{$L}}, $cover || 0;
+        push @{$Cover{$F}{statement}{$L}[0]}, $cover || 0;
     }
 
     # print " " x ($Level * 2), "$F:$L ", $op->name, ":$class\n";
@@ -323,6 +347,8 @@ Devel::Cover - Code coverage metrics for Perl
 =head1 SYNOPSIS
 
  perl -MDevel::Cover prog args
+ cover cover_db
+
  perl -MDevel::Cover=-db,cover_db,-indent,1,-details,1 prog args
 
 =head1 DESCRIPTION
@@ -337,11 +363,11 @@ back to reality using the B compiler modules.
 
 The B<cover> program can be used to generate coverage reports.
 
-At the moment, only statement coverage and condition coverage
-information is reported.  Condition coverage data is not accurate at the
-moment, but statement coverage data should be reasonable.  Coverage data
-for other metrics are collected, but not reported.  Coverage data for
-some metrics are not yet collected.
+At the moment, only statement coverage and pod coverage information is
+reported.  Condition coverage data is available, not accurate at the
+moment, though statement coverage data should be reasonable.  Coverage
+data for other metrics are collected, but not reported.  Coverage data
+for some metrics are not yet collected.
 
 You may find that the results don't match your expectations.  I would
 imagine that at least one of them is wrong.
@@ -349,6 +375,7 @@ imagine that at least one of them is wrong.
 Requirements:
   Perl 5.6.1 or 5.7.1.
   The ability to compile XS extensions.
+  Pod::Coverage if you want pod coverage.
 
 =head1 OPTIONS
 
@@ -375,6 +402,7 @@ Some code and ideas cribbed from:
  Devel::Cover::Tutorial
  Data::Dumper
  B
+ Pod::Coverage
 
 =head1 BUGS
 
@@ -382,7 +410,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.10 - 27th August 2001
+Version 0.11 - 10th September 2001
 
 =head1 LICENCE
 

@@ -12,18 +12,28 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.10";
+our $VERSION = "0.11";
 
-use Devel::Cover::DB 0.10;
+use Devel::Cover::DB        0.11;
+use Devel::Cover::Statement 0.11;
+use Devel::Cover::Condition 0.11;
+use Devel::Cover::Pod       0.11;
 
 use Getopt::Long;
+BEGIN { eval "use Pod::Coverage" }          # We'll use this if it is available.
 
 my $Options =
 {
+    branch      => 0,
+    condition   => 0,
     details     => 0,
     html        => 1,
+    path        => 0,
+    pod         => $INC{"Pod/Coverage.pm"},
     single_file => 0,
+    statement   => 1,
     summary     => 1,
+    total       => 1,
 };
 
 sub pc
@@ -82,7 +92,7 @@ sub print_html
     <tr align="RIGHT" valign="CENTER">
       <th align="LEFT"> File </th>
 EOH
-    print $FH "      <th> $_ </th>\n" for @{$db->{all_criteria_short}};
+    print $FH "      <th> $_ </th>\n" for $db->all_criteria_short;
     print $FH "    </tr>\n";
     for my $file (grep($_ ne "Total", sort keys %{$db->{summary}}), "Total")
     {
@@ -93,13 +103,13 @@ EOH
             $fn .= ".html"
         }
 
-        print $FH <<"EOH";
-    <tr align="RIGHT" valign="CENTER">
-      <td align="LEFT"> <a href="$fn#$file">$file</a> </td>
-EOH
-        for (@{$db->{all_criteria}})
+        print $FH qq(    <tr align="RIGHT" valign="CENTER">\n);
+        print $FH -e $file
+            ? qq(      <td align="LEFT"> <a href="$fn#$file">$file</a> </td>\n)
+            : qq(      <td align="LEFT"> $file </td>\n);
+        for ($db->all_criteria)
         {
-            my $pc = pc($db->{summary}{$file}, $_);
+            my $pc = $Options->{$_} ? pc($db->{summary}{$file}, $_) : "n/a";
             my $bg = "";
             if ($pc ne "n/a")
             {
@@ -114,23 +124,12 @@ EOH
 
     my (@files) = @ARGV;
     my $cover = $db->cover;
-    @files = sort $cover->files unless @files;
 
-    my $line = sub
-    {
-        my ($F, $n, $c, $l) = map { length $_ ? $_ : "&nbsp;" } @_;
-        my $bgn = $c eq "&nbsp;"
-                  ? ""
-                  : $c eq "0" ? ' bgcolor="#ff0000"' : ' bgcolor="#00ff00"';
-        my $bgt = $c eq "0" ? ' bgcolor="#ff0000"' : "";
-        print $F <<"EOH";
-    <tr align="RIGHT" valign="CENTER">
-      <td bgcolor="#ffffc0"> $n </td>
-      <td$bgn> $c </td>
-      <td$bgt align="LEFT" valign="CENTER"> <pre> $l </pre> </td>
-    </tr>
-EOH
-    };
+    # use Data::Dumper;
+    # $Data::Dumper::Indent = 1;
+    # print Dumper $cover;
+
+    @files = sort $cover->files unless @files;
 
     for my $file (@files)
     {
@@ -149,27 +148,71 @@ EOH
 
         print $FF qq(  <h2> <a name="$file"> $file </a></h2>\n);
         my $f = $cover->file($file);
-        my $statement = $f->statement;
 
         open F, $file or warn("Unable to open $file: $!\n"), next;
 
-        print $FF qq(  <table border="0">\n);
-        while (defined(my $l = <F>))
+        print $FF <<"EOH";
+  <table border="0">
+    <tr align="CENTER" valign="CENTER">
+      <th> &nbsp; </th>
+EOH
+        my %cr; @cr{$db->criteria} = $db->criteria_short;
+        for my $c ($db->criteria)
+        {
+            print $FF "      <th> $cr{$c} </th>\n" if $Options->{$c};
+        }
+        print $FF <<"EOH";
+      <th> Text </th>
+    </tr>
+EOH
+        LINE: while (defined(my $l = <F>))
         {
             chomp $l;
+            my $n = $.;
 
-            if (defined (my $location = $statement->location($.)))
+            my %criteria;
+            for my $c ($db->criteria)
             {
-                my @c = @{$location};
-                $line->($FF, $., shift @c, $l);
-                $line->($FF, "", $_, "") for @c;
-            }
-            else
-            {
-                $line->($FF, $., "", $l);
+                next unless $Options->{$c};
+                my $criterion = $f->$c();
+                $criteria{$c} = $criterion->location($n) if $criterion;
             }
 
-            last if $l =~ /^__(END|DATA)__/;
+            my $more = 1;
+            while ($more)
+            {
+                print $FF <<"EOH";
+    <tr align="RIGHT" valign="CENTER">
+      <td bgcolor="#ffffc0"> $n </td>
+EOH
+
+                my $error = 0;
+                $more = 0;
+                for my $c ($db->criteria)
+                {
+                    next unless $Options->{$c};
+                    my $o = shift @{$criteria{$c}};
+                    $more ||= @{$criteria{$c}};
+                    my $value  = $o
+                        ? ($c =~ /statement|pod/) ? $o->covered : $o->percentage
+                        : "&nbsp";
+                    my $bg = $o
+                        ? ' bgcolor="#' . ($o->error ? 'ff0000"' : '00ff00"')
+                        : "";
+                    print $FF "      <td$bg> $value </td>\n";
+                    $error ||= $o->error if $o;
+                }
+
+                my $bg = $error ? ' bgcolor="#ff0000"' : "";
+
+                print $FF <<"EOH";
+      <td$bg align="LEFT" valign="CENTER"> <pre> $l </pre> </td>
+    </tr>
+EOH
+
+                last LINE if $l =~ /^__(END|DATA)__/;
+                $n = $l = "&nbsp;";
+            }
         }
         print $FF qq(  </table>\n);
         close F or die "Unable to close $file: $!";
@@ -193,12 +236,18 @@ sub get_options
     die "Bad option" unless
     GetOptions($Options,                # Store the options in the Options hash.
                qw(
+                   branch!
+                   condition!
                    details!
                    help|h!
                    html!
                    info|i!
+                   path|i!
+                   pod|i!
                    single_file!
+                   statement!
                    summary!
+                   total!
                    version|v!
                  ));
     print "$0 version $VERSION\n" and exit 0 if $Options->{version};
@@ -212,7 +261,7 @@ sub main
 
     my $db = Devel::Cover::DB->new(db => $dbname);
 
-    $db->calculate_summary;
+    $db->calculate_summary(map { $_ => $Options->{$_} } $db->criteria);
 
     print_html($db, $dbname, $Options->{single_file}) if $Options->{html};
 
@@ -275,7 +324,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.10 - 27th August 2001
+Version 0.11 - 10th September 2001
 
 =head1 LICENCE
 
