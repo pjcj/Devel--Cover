@@ -10,9 +10,9 @@ package Devel::Cover::Report::Text;
 use strict;
 use warnings;
 
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
-use Devel::Cover::DB 0.49;
+use Devel::Cover::DB 0.50;
 
 sub print_runs
 {
@@ -108,6 +108,7 @@ sub print_file
                         ? $o->covered
                         : $o->percentage
                     : "";
+                $value = "-" . $value if $o && $o->uncoverable;
                 push @args, $value;
                 $error ||= $o->error if $o;
             }
@@ -144,13 +145,16 @@ sub print_branches
 
     for my $location (sort { $a <=> $b } $branches->items)
     {
-        my $first = 1;
+        my $n = 0;
         for my $b (@{$branches->location($location)})
         {
             printf $tpl,
-                   $first ? $location : "", $b->error ? "***" : "",
-                   $b->percentage, map ($_ || 0, $b->values), $b->text;
-            $first = 0;
+                   $n ? "" : $location, $b->error ? "***" : "",
+                   ($b->uncoverable ? "-" : "") . $b->percentage,
+                   map (($b->uncoverable($_) ? "-" : "") .
+                        ($b->covered($_) || 0), 0 .. $b->total - 1),
+                   $b->text;
+            $n++;
         }
     }
 
@@ -198,7 +202,10 @@ sub print_conditions
                 printf $tpl, "-----", "---", ("------") x ($nh + 1), "----";
             }
             printf $tpl, $location, $c->error ? "***" : "",
-                         $c->percentage, $c->values, $c->text;
+                   ($c->uncoverable ? "-" : "") . $c->percentage,
+                   map (($c->uncoverable($_) ? "-" : "") .
+                        ($c->covered($_) || 0), 0 .. $c->total - 1),
+                   $c->text;
         }
         print "\n";
     }
@@ -216,6 +223,7 @@ sub print_subroutines
 
     my %subs;
     my $maxl = 8;
+    my $maxc = 5;
     my $maxs = 10;
 
     for my $location ($subroutines->items)
@@ -224,25 +232,28 @@ sub print_subroutines
         for my $sub (@$l)
         {
             my $l = "$file:$location";
+            my $c = ($sub->uncoverable ? "-" : "") . $sub->covered;
             my $s = $sub->name;
             $maxl = length $l if length $l > $maxl;
+            $maxc = length $c if length $c > $maxc;
             $maxs = length $s if length $s > $maxs;
-            push @{$subs{$sub->covered ? "covered" : "uncovered"}{$s}}, $l;
+            push @{$subs{$sub->covered ? "covered" : "uncovered"}{$s}}, [$c, $l]
         }
     }
 
-    my $template = "%-${maxs}s %-${maxl}s\n";
+    my $template = "%-${maxs}s %${maxc}s %-${maxl}s\n";
 
     for my $type (sort keys %subs)
     {
         print ucfirst $type, " Subroutines\n";
         print "-" x (12 + length $type), "\n\n";
-        printf $template, "Subroutine", "Location";
-        printf $template, "-" x $maxs, "-" x $maxl;
+        printf $template, "Subroutine", "Count", "Location";
+        printf $template, "-" x $maxs, "-" x $maxc, "-" x $maxl;
 
         for my $s (sort keys %{$subs{$type}})
         {
-            printf $template, $s, $_ for sort @{$subs{$type}{$s}};
+            printf $template, $s, @$_
+                for sort {$a->[1] cmp $b->[1]} @{$subs{$type}{$s}};
         }
         print "\n";
     }
@@ -292,7 +303,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENCE
 

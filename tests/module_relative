@@ -7,8 +7,8 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# __COVER__ skip_test $] < 5.008
-# __COVER__ skip_reason Busted on 5.6
+# __COVER__ skip_test $] < 5.008 || $^O eq "cygwin"
+# __COVER__ skip_reason Busted on 5.6 and cygwin
 
 BEGIN { chdir "tests/random/dir" }
 use lib "../..";

@@ -98,7 +98,8 @@ typedef struct
 static perl_mutex DC_mutex;
 #endif
 
-static HV  *Pending_conditionals;
+static HV  *Pending_conditionals,
+           *Return_ops;
 static int  tid;
 
 START_MY_CXT
@@ -489,6 +490,8 @@ static void cover_logop(pTHX)
     {
         dSP;
         int left_val = SvTRUE(TOPs);
+
+        NDEB(D(L, "cover_logop [%s]\n", get_key(PL_op)));
         if (PL_op->op_type == OP_AND       &&  left_val ||
             PL_op->op_type == OP_ANDASSIGN &&  left_val ||
             PL_op->op_type == OP_OR        && !left_val ||
@@ -500,11 +503,12 @@ static void cover_logop(pTHX)
             OP *right = cLOGOP->op_first->op_sibling;
             NDEB(op_dump(right));
 
-            if (right->op_type == OP_NEXT ||
-                right->op_type == OP_LAST ||
-                right->op_type == OP_REDO ||
-                right->op_type == OP_GOTO ||
-                right->op_type == OP_RETURN)
+            if (right->op_type == OP_NEXT   ||
+                right->op_type == OP_LAST   ||
+                right->op_type == OP_REDO   ||
+                right->op_type == OP_GOTO   ||
+                right->op_type == OP_RETURN ||
+                right->op_type == OP_DIE)
             {
                 /*
                  * If the right side of the op is a branch, we don't
@@ -512,6 +516,11 @@ static void cover_logop(pTHX)
                  * We're just glad to be here, so we chalk up success.
                  */
 
+                if (right->op_type == OP_DIE)
+                {
+                    NDEB(D(L, "Adding conditional [%s]\n", get_key(PL_op)));
+                    NDEB(op_dump(PL_op));
+                }
                 add_conditional(aTHX_ PL_op, 2);
             }
             else
@@ -638,6 +647,11 @@ static int runops_cover(pTHX)
         Pending_conditionals = newHV();
         HvSHAREKEYS_off(Pending_conditionals);
     }
+    if (!Return_ops)
+    {
+        Return_ops = newHV();
+        HvSHAREKEYS_off(Return_ops);
+    }
     MUTEX_UNLOCK(&DC_mutex);
 
     if (!MY_CXT.covering)
@@ -701,6 +715,7 @@ static int runops_cover(pTHX)
     for (;;)
     {
         NDEB(D(L, "running func %p\n", PL_op->op_ppaddr));
+        NDEB(D(L, "op is %s\n", OP_NAME(PL_op)));
 
         if (!MY_CXT.covering)
             goto call_fptr;
@@ -714,6 +729,7 @@ static int runops_cover(pTHX)
         if (PL_op->op_type == OP_NEXTSTATE)
         {
             char *file = CopFILE(cCOP);
+            NDEB(D(L, "File: %s:%ld\n", file, CopLINE(cCOP)));
             if (file && (!lastfile || lastfile && strNE(lastfile, file)))
             {
                 if (!Files)
@@ -755,6 +771,16 @@ static int runops_cover(pTHX)
             }
 #endif
         }
+        else if (collecting_here && PL_op->op_type == OP_ENTERSUB)
+        {
+            /* If we are jumping somewhere we might not be collecting
+             * coverage there, so store where we will be coming back to
+             * so we can turn on coverage straight away.  We need to
+             * store more than one return op because a non collecting
+             * sub may call back to a collecting sub.
+             */
+            hv_fetch(Return_ops, get_key(PL_op->op_next), CH_SZ, 1);
+        }
 
         if (!collecting_here)
         {
@@ -762,11 +788,11 @@ static int runops_cover(pTHX)
             cover_time(aTHX);
             *MY_CXT.profiling_key = 0;
 #endif
-            if (PL_op->op_type == OP_LEAVESUB)
+            NDEB(D(L, "op is %s\n", OP_NAME(PL_op)));
+            if (hv_exists(Return_ops, get_key(PL_op), CH_SZ))
                 collecting_here = 1;
-            /* Match OP_LEAVESUBLV, OP_LEAVE or others? */
-
-            goto call_fptr;
+            else
+                goto call_fptr;
         }
 
         /*

@@ -56,8 +56,8 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Location      
----------- --------------
-is_3digits tests/alias:13
+Subroutine Count Location      
+---------- ----- --------------
+is_3digits     2 tests/alias:13
 
 

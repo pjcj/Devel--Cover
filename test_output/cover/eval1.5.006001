@@ -79,17 +79,17 @@ line  err   stmt branch   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Location      
----------- --------------
-e          tests/eval1:17
-f          tests/eval1:25
-h          tests/eval1:25
+Subroutine Count Location      
+---------- ----- --------------
+e              3 tests/eval1:17
+f              2 tests/eval1:25
+h              3 tests/eval1:25
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Location      
----------- --------------
-g          tests/eval1:25
+Subroutine Count Location      
+---------- ----- --------------
+g              0 tests/eval1:25
 
 

@@ -43,8 +43,8 @@ line  err   stmt branch   cond    sub   code
 Uncovered Subroutines
 ---------------------
 
-Subroutine Location        
----------- ----------------
-__ANON__   tests/deparse:17
+Subroutine Count Location        
+---------- ----- ----------------
+__ANON__       0 tests/deparse:17
 
 

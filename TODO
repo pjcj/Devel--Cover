@@ -10,6 +10,7 @@
   - Indicate how to increase coverage?
   - Move away from Storable?  To?
   - BEGIN and CHECK blocks and code in modules.  Requires callbacks from perl?
+  - Create a base class for Devel::Cover::Branch and Devel::Cover::Condition.
 - Reports:
   - Refactor output routines to use common template data.
   - Improve textual output.
@@ -18,6 +19,7 @@
   - Fix up html_basic and html_subtle for subs.
   - Move HTML version and platform info to main page and allow for multiples.
   - Add -db option to cover.
+  - Add annotations to html reports.
 - Bugs:
   - Work with memoize.  Is this still a problem?
   - See if the XS code leaks, and fix it if it does.
@@ -36,6 +38,7 @@
   - meta.yaml file to control pause indexing.
   - Fix up make text and friends for module_ignore.
   - Check for matching threadedness, 64bits etc. between build and run?
+  - Turn Perl build lines into a script to work on Win32 etc.
 - Documentation:
   - General improvement.
   - Document cpancover options.

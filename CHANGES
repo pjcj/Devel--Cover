@@ -1,213 +1,118 @@
 Devel::Cover.pm history
 
-Release 0.01 - Initial release - 9th April 2001
+Release 0.50 - 25th October 2004
+ - Add -test option to cover.
+ - Fix missing coverage when calling a sub in an ignored module.
+ - Add module_ignore test.
+ - Add uncoverable options to cover.
 
-Release 0.02 - 10th April 2001
- - Add summary output.
- - Add -S option to turn it off.
- - Turn Devel::Cover::Process into a class.
+Release 0.49 - 6th October 2004
+ - Compile on Win32 (and elsewhere) (Steve Hay).
 
-Release 0.03 - 10th April 2001
- - Add detailed output.
- - Add -d option to turn it on.
+Release 0.48 - 5th October 2004
+ - Working towards thread safety.
+ - Test against perl-5.8.5.
+ - Store perl version number in Inc.pm and complain if it doesn't match.
+ - Add annotation API and Random example.
+ - Display run information in text report.
+ - Remove POSIX path bodge which is now properly fixed.
+ - Update test results for new functionality.
+ - Add -select_re and -ignore_re options to cover.
+ - Sort out "ignoring extra subroutine" and friends.
+ - Add eval2 and eval_use tests.
+ - Ignore *.t by default with blib.
+ - Add beginnings of sort report.
+ - Bump up DB version.
+ - Fix problems with references in INC (which can't be handled).
+ - Fixes for mod_perl (Vadim O. Ustiansky).
 
-Release 0.04 - 12th April 2001
- - Include Devel::Cover::Op
- - Add condition coverage (sort of).
+Release 0.47 - 27th June 2004
+ - Provide subroutine coverage for empty subs - sub empty { }.
+ - Only override B::Deparse subs whilst using them and add deparse test.
 
-Release 0.05 - 9th August 2001
- - Make line numbers more accurate when nextstate has been optimised away.
- - Get things working with ithreads.
+Release 0.46 - 23rd June 2004
+ - Don't lose data merging DBs.
+ - Work with Safe.pm, by not covering it.
+ - Swap Profiling_op for Profiling_key to avoid accessing freed memory.
+ - Rename -file and -exclude options in cover to -select and -ignore.
+ - Fully cover conditions and branches when the condition calls a sub in
+   an ignored file.
 
-Release 0.06 - 10th August 2001
- - Rename Devel::Cover::Process to Devel::Cover::DB
- - Make the database a directory.
- - Add fix for eval in filename. (Arthur Bergman <arthur@contiller.se>)
- - Add more tests and abstract away comparison subroutine.
- - Clear @Inc if it is set explicitly.
- - Trim filename length in detailed output.
+Release 0.45 - 27th May 2004
+ - Cope with spaces in build path on Windows (Max Maischein).
+ - Allow Devel::Cover to be used under mod_perl (Philippe M. Chiasson).
+ - Handle $x ||= 1 and friends nicely, including subs and *foo{THING}.
+ - Allow uncoverable code to be specified.  (Unfinished)
 
-Release 0.07 - 17th August 2001
- - Add an API to Devel::Cover::DB.
+Release 0.44 - 18th May 2004
+ - Fix get_elapsed, although its result is not used yet.
+ - Recommend 5.8.1 as a minimum.
+ - Replace run Makefile target with text and html.
+ - Fix up gcov2perl.
+ - Fail gracefully when covering a threaded program.
+ - Add DEVEL_COVER_OPTIONS environment variable.
 
-Release 0.08 - 18th August 2001
- - Provide better handling of files to report on or ignore.
-     Makefile.PL generates Inc.pm containing default @INC.
-     added +inc, -ignore and -select.
+Release 0.43 - 2nd May 2004
+ - Add +ignore and +select options, and change meaning of -ignore and
+   -select options.  This is an interface change.
+ - Ignore coverage on Devel::Cover's files by default.
+ - Cover INIT and END blocks more reliably.
+ - Fix 5.6 on Windows.  Well, sort of.
+ - Add a message in Makefile.PL recommending against using Devel::Cover
+   on 5.6, especially under Windows.
 
-Release 0.09 - 18th August 2001
- - Beef up Devel::Cover::DB.
+Release 0.42 - 30th April 2004
+ - Add SYNOPSIS section to README.
+ - Resolve links for Devel::Cover::Inc (Dave Rolsky).
+ - Get things running on Windows again.
 
-Release 0.10 - 27th August 2001
- - Add cover program to generate reports.
+Release 0.41 - 29th April 2004
+ - Correct time coverage percentages.
+ - Collect data for BEGIN, CHECK, INIT and END blocks in the main
+   program, and INIT and END blocks in modules.
+ - Ensure our END block is always the last run.
+ - Don't clean up Pending_conditionals data.
+ - Untaint @INC after using blib.
+ - Be silent if called via HARNESS_PERL_SWITCHES.
+ - Test against perl-5.8.4.
+ - Store cwd from when each module was required in order to find them again.
+ - Refactor and tidy XS code.
+ - Get cpancover running again with the DB changes.
+ - Normalise filenames.
 
-Release 0.11 - 10th September 2001
- - Add pod coverage based on Pod::Coverage.pm.
- - Put a full API on the database.
- - Add:
-     Devel::Cover::Criterion.pm
-     Devel::Cover::Statement.pm
-     Devel::Cover::Condition.pm
-     Devel::Cover::Pod.pm
- - Some improvements to the cover program.
+Release 0.40 - 24th March 2004
+ - Remove DB structure for unwanted files.
+ - Identify ops based on address and OP contents, except for op_ppaddr,
+   which we modify.
+ - Overhaul of coverage collection.
+ - Additions to tests.
 
-Release 0.12 - 14th October 2001
- - Improve pod coverage by considering private subs.
- - Add time coverage, aka profiling.
- - Add:
-     Devel::Cover::DB::File.pm
-     Devel::Cover::Time.pm
- - Abstract summary and percentage calculations to appropriate classes.
+Release 0.39 - 22nd March 2004
+ - Major database rework to store runs.
+ - Add Devel::Cover::DB::Structure.pm.
+ - Check for Test::Differences in Makefile.PL.
+ - Test with perl5.9.2.
+ - Skip fork test on MSWin32.
 
-Release 0.13 - 14th October 2001
- - Forgot to allow for lack of Pod::Coverage in Devel::Cover::Pod.pm.
+Release 0.38 - 12th March 2004
+ - Allow coverage summary title to be changed (David Wheeler).
+ - More care generating pod golden results.
+ - Small Devel::Cover::Op output fix.
+ - Handle "my $x = shift || []" and friends nicely.
+ - Add default_param test.
+ - Provide summary output to one decimal place.
+ - Update gcov2perl.
 
-Release 0.14 - 28th February 2002
- - Add a workaround for an AUTOLOAD bug in bleadperl.
- - Add gcov2perl program to convert gcov files to Devel::Cover databases.
- - Get rid of // comments in xs file.
+Release 0.37 - 10th March 2004
+ - Fix up pod test golden results.
+ - Add limitation documentation (Michael Carman).
 
-Release 0.15 - 5th September 2002
- - Reinstate coverage of subs in main:: which got lost somewhere (0.11?).
- - Bug fixes for use of uninitialised values.
- - Automatically generate tests.  Well, their infrastructure anyway.
- - Move Cover to lib/Devel/Cover to keep case insensitive filesystems happy.
- - Remove -detail option. (It belongs to cover.)
- - Work on op addresses and sequence numbers instead of just op addresses, to be
-   (almost) unique.
- - Clean up subroutine location code.
- - Fix -select to override anything else.
- - Add condition coverage for && and || ops.
- - Various changes in runops_cover to try to reduce runtime.
- - Don't use runops_cover until CHECK time.
- - Add merge, write and file options to cover.
- - Add branch coverage.
- - Abstract away cover backends.
- - Use TT for HTML output.
-
-Release 0.16 - 9th September 2002
- - Get rid of some uninitialised warnings.
- - Inline the HTML templates.
- - Rebless the op after blessing it as a COP.
- - Make branch coverage line numbers more accurate.
-
-Release 0.17 - 15th September 2002
- - Call check_files() in report() to ensure we pick up anything added to the
-   symbol table while the program was running.
-
-Release 0.18 - 28th September 2002
- - Redo the way condition coverage is gathered - abuse op_ppaddr.
- - Put or conditions the right way round.
- - Allow for subclasses of coverage types.
- - Add:
-     Devel::Cover::Condition_or_2.pm
-     Devel::Cover::Condition_or_3.pm
-     Devel::Cover::Condition_and_3.pm
-     Devel::Cover::Condition_xor_4.pm
- - "use" all conditions in Criterion.pm, and nowhere else.
- - Add support for xor, ||= and &&=.
-
-Release 0.19 - 29th September 2002
- - Quieten uninitialised value warnings.
-
-Release 0.20 - 5th October 2002
- - Add break after default to satisfy IBM's xlC compiler on AIX.
- - Get things working with threads again.
- - make realclean is.
-
-Release 0.21 - 1st September 2003
- - Add cpancover.
- - Handle $x || next and friends.
- - Add html_subtle and text2 backends (Michael Carman).
- - Rename html backend to html_basic.
- - Make html backend a wrapper around preferred style, currently html_subtle.
- - Make time coverage a little more accurate.  OK, a lot more accurate, it's at
-   least on the right line now, but I still wouldn't really trust it.
- - Fix pod coverage which has been broken for a while.
- - Don't collect branch coverage when not asked for.
- - Provide golden results for different Perl versions.
- - Change some B::Deparse logic to mirror changes in 5.8.1/5.10.
-
-Release 0.22 - 2nd September 2003
- - Rewrite runops function.
-     - First line of DESTROY blocks and overload subs not now skipped.
- - Add some more tests.
-
-Release 0.23 - 6th September 2003
- - Report condition coverage for branches on the same line as the branch.
- - Add subroutine coverage.
- - Made "all" coverage value work and made it the default.
-
-Release 0.24 - 10th October 2003
- - Paths in Devel::Cover::Inc in single quotes for Windows platforms.
- - Add -dir option and default it to cwd.
- - Ignore test.pl in cpancover.
- - Display pod coverage in cpancover.
-
-Release 0.25 - 10th October 2003
- - Fix for perl 5.6.1.  Cwd::abs_path($d) gets upset if $d doesn't exist.
- - Start of some changes to cpancover HTML.
-
-Release 0.26 - 12th October 2003
- - Decline to output HTML results for conditions containing > 16 terms.
- - Add titles to HTML output.
-
-Release 0.27 - 9th November 2003
- - Behave sensibly if import() is not called, for example when MakeMaker does a
-   PREREQ_PM check.
- - Use Storable for the database instead of Data::Dumper/eval (Michael Carman).
-
-Release 0.28 - 1st December 2003
- - Remove leading whitespace from HTML templates (Gabor Szabo).
- - Remove obsolete indent option.
- - Add MD5 checksums (Michael Carman).
- - Add Html_minimal.pm (Michael Carman) (Obsoleting Gabor's patch before it was
-   released).
- - Pass unknown cover options to the formatter and remove -option.
- - Specify the output directory for HTML.
- - Search up directory trees for modules.
-
-Release 0.29 - 19th December 2003
- - Merge data from files with identical MD5 checksums (Arthur Bergman).
- - Add do test.
- - Handle $x || return.
- - Keep cover -delete happy when there is no existing database.
- - In cover, make -file a glob and add -exclude.
- - Watch for coverage options being set in cover (PERL5OPT set?).
- - Fix up html_basic and html_subtle.
- - Make 5.6.x builds a bit quieter.
- - Clean up time routines in XS code.
-
-Release 0.30 - 22nd December 2003
- - Get things working under Windows.
-
-Release 0.31 - 22nd December 2003
- - Remove debugging output.  Hmmm.
-
-Release 0.32 - 4th January 2004
- - Actually include do test.
- - Create run concept in database.
- - Belatedly remove check for Template.
- - Add branch_return_sub test.
- - Add finalise_conditions() to collect previously missed coverage.
- - Fix incorrect coverage results associated with "and" conditions.
- - Add all_versions utility script.
- - Put /usr/bin/perl on all shebang lines.
-
-Release 0.33 - 13th January 2004
- - Get things working on paths with spaces in them.
- - Documentation clarifications (Andy Lester).
- - Fix coverage for simple if, elsif and unless conditionals.
- - Add if test.
- - Ensure runs are merged in the order they were created.
- - Don't report multiple data from dynamically created subs.
- - Add alias, alias1 and dynamic_subs tests.
- - Fix and document Devel::Cover::Op.
- - Redo subroutine coverage so anon subs are covered correctly in 5.6.x.
-
-Release 0.34 - 14th January 2004
- - Fix various warnings and errors that had crept in whilst working on
-   dynamic subs.
+Release 0.36 - 9th March 2004
+ - Add fork test.
+ - Remove debugging code from md5 test.
+ - Remove runs after merging - code was commented out for debugging.
+ - Don't merge runs during coverage collection.
+ - Delete database at start if not merging to cope with forking.
 
 Release 0.35 - 8th March 2004
  - Change Text2 to pick up version changes.
@@ -229,110 +134,211 @@ Release 0.35 - 8th March 2004
  - Documentation updates (Andy Lester).
  - Document the mechanism by which files are selected for coverage.
 
-Release 0.36 - 9th March 2004
- - Add fork test.
- - Remove debugging code from md5 test.
- - Remove runs after merging - code was commented out for debugging.
- - Don't merge runs during coverage collection.
- - Delete database at start if not merging to cope with forking.
+Release 0.34 - 14th January 2004
+ - Fix various warnings and errors that had crept in whilst working on
+   dynamic subs.
 
-Release 0.37 - 10th March 2004
- - Fix up pod test golden results.
- - Add limitation documentation (Michael Carman).
+Release 0.33 - 13th January 2004
+ - Get things working on paths with spaces in them.
+ - Documentation clarifications (Andy Lester).
+ - Fix coverage for simple if, elsif and unless conditionals.
+ - Add if test.
+ - Ensure runs are merged in the order they were created.
+ - Don't report multiple data from dynamically created subs.
+ - Add alias, alias1 and dynamic_subs tests.
+ - Fix and document Devel::Cover::Op.
+ - Redo subroutine coverage so anon subs are covered correctly in 5.6.x.
 
-Release 0.38 - 12th March 2004
- - Allow coverage summary title to be changed (David Wheeler).
- - More care generating pod golden results.
- - Small Devel::Cover::Op output fix.
- - Handle "my $x = shift || []" and friends nicely.
- - Add default_param test.
- - Provide summary output to one decimal place.
- - Update gcov2perl.
+Release 0.32 - 4th January 2004
+ - Actually include do test.
+ - Create run concept in database.
+ - Belatedly remove check for Template.
+ - Add branch_return_sub test.
+ - Add finalise_conditions() to collect previously missed coverage.
+ - Fix incorrect coverage results associated with "and" conditions.
+ - Add all_versions utility script.
+ - Put /usr/bin/perl on all shebang lines.
 
-Release 0.39 - 22nd March 2004
- - Major database rework to store runs.
- - Add Devel::Cover::DB::Structure.pm.
- - Check for Test::Differences in Makefile.PL.
- - Test with perl5.9.2.
- - Skip fork test on MSWin32.
+Release 0.31 - 22nd December 2003
+ - Remove debugging output.  Hmmm.
 
-Release 0.40 - 24th March 2004
- - Remove DB structure for unwanted files.
- - Identify ops based on address and OP contents, except for op_ppaddr,
-   which we modify.
- - Overhaul of coverage collection.
- - Additions to tests.
+Release 0.30 - 22nd December 2003
+ - Get things working under Windows.
 
-Release 0.41 - 29th April 2004
- - Correct time coverage percentages.
- - Collect data for BEGIN, CHECK, INIT and END blocks in the main
-   program, and INIT and END blocks in modules.
- - Ensure our END block is always the last run.
- - Don't clean up Pending_conditionals data.
- - Untaint @INC after using blib.
- - Be silent if called via HARNESS_PERL_SWITCHES.
- - Test against perl-5.8.4.
- - Store cwd from when each module was required in order to find them again.
- - Refactor and tidy XS code.
- - Get cpancover running again with the DB changes.
- - Normalise filenames.
+Release 0.29 - 19th December 2003
+ - Merge data from files with identical MD5 checksums (Arthur Bergman).
+ - Add do test.
+ - Handle $x || return.
+ - Keep cover -delete happy when there is no existing database.
+ - In cover, make -file a glob and add -exclude.
+ - Watch for coverage options being set in cover (PERL5OPT set?).
+ - Fix up html_basic and html_subtle.
+ - Make 5.6.x builds a bit quieter.
+ - Clean up time routines in XS code.
 
-Release 0.42 - 30th April 2004
- - Add SYNOPSIS section to README.
- - Resolve links for Devel::Cover::Inc (Dave Rolsky).
- - Get things running on Windows again.
+Release 0.28 - 1st December 2003
+ - Remove leading whitespace from HTML templates (Gabor Szabo).
+ - Remove obsolete indent option.
+ - Add MD5 checksums (Michael Carman).
+ - Add Html_minimal.pm (Michael Carman) (Obsoleting Gabor's patch before it was
+   released).
+ - Pass unknown cover options to the formatter and remove -option.
+ - Specify the output directory for HTML.
+ - Search up directory trees for modules.
 
-Release 0.43 - 2nd May 2004
- - Add +ignore and +select options, and change meaning of -ignore and
-   -select options.  This is an interface change.
- - Ignore coverage on Devel::Cover's files by default.
- - Cover INIT and END blocks more reliably.
- - Fix 5.6 on Windows.  Well, sort of.
- - Add a message in Makefile.PL recommending against using Devel::Cover
-   on 5.6, especially under Windows.
+Release 0.27 - 9th November 2003
+ - Behave sensibly if import() is not called, for example when MakeMaker does a
+   PREREQ_PM check.
+ - Use Storable for the database instead of Data::Dumper/eval (Michael Carman).
 
-Release 0.44 - 18th May 2004
- - Fix get_elapsed, although its result is not used yet.
- - Recommend 5.8.1 as a minimum.
- - Replace run Makefile target with text and html.
- - Fix up gcov2perl.
- - Fail gracefully when covering a threaded program.
- - Add DEVEL_COVER_OPTIONS environment variable.
+Release 0.26 - 12th October 2003
+ - Decline to output HTML results for conditions containing > 16 terms.
+ - Add titles to HTML output.
 
-Release 0.45 - 27th May 2004
- - Cope with spaces in build path on Windows (Max Maischein).
- - Allow Devel::Cover to be used under mod_perl (Philippe M. Chiasson).
- - Handle $x ||= 1 and friends nicely, including subs and *foo{THING}.
- - Allow uncoverable code to be specified.  (Unfinished)
+Release 0.25 - 10th October 2003
+ - Fix for perl 5.6.1.  Cwd::abs_path($d) gets upset if $d doesn't exist.
+ - Start of some changes to cpancover HTML.
 
-Release 0.46 - 23rd June 2004
- - Don't lose data merging DBs.
- - Work with Safe.pm, by not covering it.
- - Swap Profiling_op for Profiling_key to avoid accessing freed memory.
- - Rename -file and -exclude options in cover to -select and -ignore.
- - Fully cover conditions and branches when the condition calls a sub in
-   an ignored file.
+Release 0.24 - 10th October 2003
+ - Paths in Devel::Cover::Inc in single quotes for Windows platforms.
+ - Add -dir option and default it to cwd.
+ - Ignore test.pl in cpancover.
+ - Display pod coverage in cpancover.
 
-Release 0.47 - 27th June 2004
- - Provide subroutine coverage for empty subs - sub empty { }.
- - Only override B::Deparse subs whilst using them and add deparse test.
+Release 0.23 - 6th September 2003
+ - Report condition coverage for branches on the same line as the branch.
+ - Add subroutine coverage.
+ - Made "all" coverage value work and made it the default.
 
-Release 0.48 - 5th October 2004
- - Working towards thread safety.
- - Test against perl-5.8.5.
- - Store perl version number in Inc.pm and complain if it doesn't match.
- - Add annotation API and Random example.
- - Display run information in text report.
- - Remove POSIX path bodge which is now properly fixed.
- - Update test results for new functionality.
- - Add -select_re and -ignore_re options to cover.
- - Sort out "ignoring extra subroutine" and friends.
- - Add eval2 and eval_use tests.
- - Ignore *.t by default with blib.
- - Add beginnings of sort report.
- - Bump up DB version.
- - Fix problems with references in INC (which can't be handled).
- - Fixes for mod_perl (Vadim O. Ustiansky).
+Release 0.22 - 2nd September 2003
+ - Rewrite runops function.
+     - First line of DESTROY blocks and overload subs not now skipped.
+ - Add some more tests.
 
-Release 0.49 - 6th October 2004
- - Compile on Win32 (and elsewhere) (Steve Hay).
+Release 0.21 - 1st September 2003
+ - Add cpancover.
+ - Handle $x || next and friends.
+ - Add html_subtle and text2 backends (Michael Carman).
+ - Rename html backend to html_basic.
+ - Make html backend a wrapper around preferred style, currently html_subtle.
+ - Make time coverage a little more accurate.  OK, a lot more accurate, it's at
+   least on the right line now, but I still wouldn't really trust it.
+ - Fix pod coverage which has been broken for a while.
+ - Don't collect branch coverage when not asked for.
+ - Provide golden results for different Perl versions.
+ - Change some B::Deparse logic to mirror changes in 5.8.1/5.10.
+
+Release 0.20 - 5th October 2002
+ - Add break after default to satisfy IBM's xlC compiler on AIX.
+ - Get things working with threads again.
+ - make realclean is.
+
+Release 0.19 - 29th September 2002
+ - Quieten uninitialised value warnings.
+
+Release 0.18 - 28th September 2002
+ - Redo the way condition coverage is gathered - abuse op_ppaddr.
+ - Put or conditions the right way round.
+ - Allow for subclasses of coverage types.
+ - Add:
+     Devel::Cover::Condition_or_2.pm
+     Devel::Cover::Condition_or_3.pm
+     Devel::Cover::Condition_and_3.pm
+     Devel::Cover::Condition_xor_4.pm
+ - "use" all conditions in Criterion.pm, and nowhere else.
+ - Add support for xor, ||= and &&=.
+
+Release 0.17 - 15th September 2002
+ - Call check_files() in report() to ensure we pick up anything added to the
+   symbol table while the program was running.
+
+Release 0.16 - 9th September 2002
+ - Get rid of some uninitialised warnings.
+ - Inline the HTML templates.
+ - Rebless the op after blessing it as a COP.
+ - Make branch coverage line numbers more accurate.
+
+Release 0.15 - 5th September 2002
+ - Reinstate coverage of subs in main:: which got lost somewhere (0.11?).
+ - Bug fixes for use of uninitialised values.
+ - Automatically generate tests.  Well, their infrastructure anyway.
+ - Move Cover to lib/Devel/Cover to keep case insensitive filesystems happy.
+ - Remove -detail option. (It belongs to cover.)
+ - Work on op addresses and sequence numbers instead of just op addresses, to be
+   (almost) unique.
+ - Clean up subroutine location code.
+ - Fix -select to override anything else.
+ - Add condition coverage for && and || ops.
+ - Various changes in runops_cover to try to reduce runtime.
+ - Don't use runops_cover until CHECK time.
+ - Add merge, write and file options to cover.
+ - Add branch coverage.
+ - Abstract away cover backends.
+ - Use TT for HTML output.
+
+Release 0.14 - 28th February 2002
+ - Add a workaround for an AUTOLOAD bug in bleadperl.
+ - Add gcov2perl program to convert gcov files to Devel::Cover databases.
+ - Get rid of // comments in xs file.
+
+Release 0.13 - 14th October 2001
+ - Forgot to allow for lack of Pod::Coverage in Devel::Cover::Pod.pm.
+
+Release 0.12 - 14th October 2001
+ - Improve pod coverage by considering private subs.
+ - Add time coverage, aka profiling.
+ - Add:
+     Devel::Cover::DB::File.pm
+     Devel::Cover::Time.pm
+ - Abstract summary and percentage calculations to appropriate classes.
+
+Release 0.11 - 10th September 2001
+ - Add pod coverage based on Pod::Coverage.pm.
+ - Put a full API on the database.
+ - Add:
+     Devel::Cover::Criterion.pm
+     Devel::Cover::Statement.pm
+     Devel::Cover::Condition.pm
+     Devel::Cover::Pod.pm
+ - Some improvements to the cover program.
+
+Release 0.10 - 27th August 2001
+ - Add cover program to generate reports.
+
+Release 0.09 - 18th August 2001
+ - Beef up Devel::Cover::DB.
+
+Release 0.08 - 18th August 2001
+ - Provide better handling of files to report on or ignore.
+     Makefile.PL generates Inc.pm containing default @INC.
+     added +inc, -ignore and -select.
+
+Release 0.07 - 17th August 2001
+ - Add an API to Devel::Cover::DB.
+
+Release 0.06 - 10th August 2001
+ - Rename Devel::Cover::Process to Devel::Cover::DB
+ - Make the database a directory.
+ - Add fix for eval in filename. (Arthur Bergman <arthur@contiller.se>)
+ - Add more tests and abstract away comparison subroutine.
+ - Clear @Inc if it is set explicitly.
+ - Trim filename length in detailed output.
+
+Release 0.05 - 9th August 2001
+ - Make line numbers more accurate when nextstate has been optimised away.
+ - Get things working with ithreads.
+
+Release 0.04 - 12th April 2001
+ - Include Devel::Cover::Op
+ - Add condition coverage (sort of).
+
+Release 0.03 - 10th April 2001
+ - Add detailed output.
+ - Add -d option to turn it on.
+
+Release 0.02 - 10th April 2001
+ - Add summary output.
+ - Add -S option to turn it off.
+ - Turn Devel::Cover::Process into a class.
+
+Release 0.01 - Initial release - 9th April 2001

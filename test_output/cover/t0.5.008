@@ -94,9 +94,9 @@ line  err      %     !l  l&&!r   l&&r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Location   
----------- -----------
-BEGIN      tests/t0:10
-BEGIN      tests/t0:11
+Subroutine Count Location   
+---------- ----- -----------
+BEGIN          1 tests/t0:10
+BEGIN          1 tests/t0:11
 
 

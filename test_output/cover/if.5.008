@@ -85,9 +85,9 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Location   
----------- -----------
-BEGIN      tests/if:10
-BEGIN      tests/if:11
+Subroutine Count Location   
+---------- ----- -----------
+BEGIN          1 tests/if:10
+BEGIN          1 tests/if:11
 
 

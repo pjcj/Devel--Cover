@@ -47,9 +47,9 @@ line  err   stmt branch   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Location        
----------- ----------------
-DESTROY    tests/destroy:18
-new        tests/destroy:12
+Subroutine Count Location        
+---------- ----- ----------------
+DESTROY        1 tests/destroy:18
+new            1 tests/destroy:12
 
 

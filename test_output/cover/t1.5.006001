@@ -43,8 +43,8 @@ line  err   stmt branch   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Location   
----------- -----------
-xx         tests/t1:17
+Subroutine Count Location   
+---------- ----- -----------
+xx             1 tests/t1:17
 
 

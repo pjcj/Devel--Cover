@@ -62,10 +62,10 @@ line  err   stmt branch   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Location               
----------- -----------------------
-BEGIN      tests/special_blocks:10
-BEGIN      tests/special_blocks:11
-BEGIN      tests/special_blocks:17
+Subroutine Count Location               
+---------- ----- -----------------------
+BEGIN          1 tests/special_blocks:10
+BEGIN          1 tests/special_blocks:11
+BEGIN          1 tests/special_blocks:17
 
 

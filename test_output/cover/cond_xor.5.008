@@ -68,9 +68,9 @@ line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Location         
----------- -----------------
-BEGIN      tests/cond_xor:10
-BEGIN      tests/cond_xor:11
+Subroutine Count Location         
+---------- ----- -----------------
+BEGIN          1 tests/cond_xor:10
+BEGIN          1 tests/cond_xor:11
 
 

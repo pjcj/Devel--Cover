@@ -479,10 +479,10 @@ line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Location             
----------- ---------------------
-__ANON__   tests/cond_branch:253
-__ANON__   tests/cond_branch:269
-__ANON__   tests/cond_branch:286
+Subroutine Count Location             
+---------- ----- ---------------------
+__ANON__       4 tests/cond_branch:253
+__ANON__       4 tests/cond_branch:269
+__ANON__       4 tests/cond_branch:286
 
 

@@ -5,7 +5,7 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-package Devel::Cover::Condition_and_3;
+package Devel::Cover::Condition_and_2;
 
 use strict;
 use warnings;
@@ -14,8 +14,8 @@ our $VERSION = "0.50";
 
 use base "Devel::Cover::Condition";
 
-sub count   { 3 }
-sub headers { [qw( !l l&&!r l&&r )] }
+sub count   { 2 }
+sub headers { [qw( l !l )] }
 
 1
 
@@ -23,15 +23,15 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Condition_and_3 - Code coverage metrics for Perl
+Devel::Cover::Condition_and_2 - Code coverage metrics for Perl
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Condition_and_3;
+ use Devel::Cover::Condition_and_2;
 
 =head1 DESCRIPTION
 
-Module for storing condition coverage information for or conditions
+Module for storing condition coverage information for and conditions
 where the right value is a constant.
 
 =head1 SEE ALSO

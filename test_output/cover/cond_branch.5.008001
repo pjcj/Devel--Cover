@@ -469,21 +469,21 @@ line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Location             
----------- ---------------------
-BEGIN      tests/cond_branch:10 
-BEGIN      tests/cond_branch:105
-BEGIN      tests/cond_branch:11 
-BEGIN      tests/cond_branch:136
-BEGIN      tests/cond_branch:143
-BEGIN      tests/cond_branch:178
-BEGIN      tests/cond_branch:186
-BEGIN      tests/cond_branch:235
-BEGIN      tests/cond_branch:245
-BEGIN      tests/cond_branch:285
-BEGIN      tests/cond_branch:98 
-__ANON__   tests/cond_branch:253
-__ANON__   tests/cond_branch:269
-__ANON__   tests/cond_branch:286
+Subroutine Count Location             
+---------- ----- ---------------------
+BEGIN          1 tests/cond_branch:10 
+BEGIN          1 tests/cond_branch:105
+BEGIN          1 tests/cond_branch:11 
+BEGIN          1 tests/cond_branch:136
+BEGIN          1 tests/cond_branch:143
+BEGIN          1 tests/cond_branch:178
+BEGIN          1 tests/cond_branch:186
+BEGIN          1 tests/cond_branch:235
+BEGIN          1 tests/cond_branch:245
+BEGIN          1 tests/cond_branch:285
+BEGIN          1 tests/cond_branch:98 
+__ANON__       4 tests/cond_branch:253
+__ANON__       4 tests/cond_branch:269
+__ANON__       4 tests/cond_branch:286
 
 

@@ -39,9 +39,9 @@ line  err   stmt branch   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Location                 
----------- -------------------------
-import     tests/Module_import.pm:12
+Subroutine Count Location                 
+---------- ----- -------------------------
+import         1 tests/Module_import.pm:12
 
 
 tests/module_relative
@@ -56,8 +56,8 @@ line  err   stmt branch   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      # __COVER__ skip_test $] < 5.008
-11                                      # __COVER__ skip_reason Busted on 5.6
+10                                      # __COVER__ skip_test $] < 5.008 || $^O eq "cygwin"
+11                                      # __COVER__ skip_reason Busted on 5.6 and cygwin
 12                                      
 13             1                  100   BEGIN { chdir "tests/random/dir" }
 14             1                  100   use lib "../..";
@@ -75,11 +75,11 @@ line  err   stmt branch   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Location                
----------- ------------------------
-BEGIN      tests/module_relative:13
-BEGIN      tests/module_relative:14
-BEGIN      tests/module_relative:15
-BEGIN      tests/module_relative:16
+Subroutine Count Location                
+---------- ----- ------------------------
+BEGIN          1 tests/module_relative:13
+BEGIN          1 tests/module_relative:14
+BEGIN          1 tests/module_relative:15
+BEGIN          1 tests/module_relative:16
 
 

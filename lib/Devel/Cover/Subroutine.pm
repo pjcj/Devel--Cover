@@ -10,7 +10,7 @@ package Devel::Cover::Subroutine;
 use strict;
 use warnings;
 
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
 use base "Devel::Cover::Criterion";
 
@@ -33,12 +33,28 @@ sub calculate_summary
     $s->{Total}{subroutine}{total}++;
     $s->{Total}{total}{total}++;
 
-    if ($self->[0])
+    if ($self->uncoverable)
+    {
+        $s->{$file}{subroutine}{uncoverable}++;
+        $s->{$file}{total}{uncoverable}++;
+        $s->{Total}{subroutine}{uncoverable}++;
+        $s->{Total}{total}{uncoverable}++;
+    }
+
+    if ($self->covered)
     {
         $s->{$file}{subroutine}{covered}++;
         $s->{$file}{total}{covered}++;
         $s->{Total}{subroutine}{covered}++;
         $s->{Total}{total}{covered}++;
+    }
+
+    if ($self->error)
+    {
+        $s->{$file}{subroutine}{error}++;
+        $s->{$file}{total}{error}++;
+        $s->{Total}{subroutine}{error}++;
+        $s->{Total}{total}{error}++;
     }
 }
 
@@ -70,7 +86,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENCE
 

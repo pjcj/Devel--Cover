@@ -53,8 +53,8 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Location     
----------- -------------
-main       tests/skip:12
+Subroutine Count Location     
+---------- ----- -------------
+main           1 tests/skip:12
 
 

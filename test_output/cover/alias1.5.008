@@ -63,12 +63,12 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Location          
----------- ------------------
-BEGIN      tests/Alias1.pm:10
-BEGIN      tests/Alias1.pm:11
-BEGIN      tests/Alias1.pm:13
-is_3digits tests/Alias1.pm:19
+Subroutine Count Location          
+---------- ----- ------------------
+BEGIN          1 tests/Alias1.pm:10
+BEGIN          1 tests/Alias1.pm:11
+BEGIN          1 tests/Alias1.pm:13
+is_3digits     2 tests/Alias1.pm:19
 
 
 tests/alias1
@@ -106,11 +106,11 @@ line  err   stmt branch   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Location       
----------- ---------------
-BEGIN      tests/alias1:10
-BEGIN      tests/alias1:11
-BEGIN      tests/alias1:12
-BEGIN      tests/alias1:14
+Subroutine Count Location       
+---------- ----- ---------------
+BEGIN          1 tests/alias1:10
+BEGIN          1 tests/alias1:11
+BEGIN          1 tests/alias1:12
+BEGIN          1 tests/alias1:14
 
 

@@ -100,11 +100,11 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Location      
----------- --------------
-BEGIN      tests/eval2:10
-BEGIN      tests/eval2:14
-BEGIN      tests/eval2:16
-BEGIN      tests/eval2:18
+Subroutine Count Location      
+---------- ----- --------------
+BEGIN          4 tests/eval2:10
+BEGIN          2 tests/eval2:14
+BEGIN          2 tests/eval2:16
+BEGIN          3 tests/eval2:18
 
 

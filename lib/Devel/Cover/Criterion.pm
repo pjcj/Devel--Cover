@@ -10,18 +10,19 @@ package Devel::Cover::Criterion;
 use strict;
 use warnings;
 
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
-use Devel::Cover::Statement       0.49;
-use Devel::Cover::Branch          0.49;
-use Devel::Cover::Condition       0.49;
-use Devel::Cover::Condition_or_2  0.49;
-use Devel::Cover::Condition_or_3  0.49;
-use Devel::Cover::Condition_and_3 0.49;
-use Devel::Cover::Condition_xor_4 0.49;
-use Devel::Cover::Subroutine      0.49;
-use Devel::Cover::Time            0.49;
-use Devel::Cover::Pod             0.49;
+use Devel::Cover::Statement       0.50;
+use Devel::Cover::Branch          0.50;
+use Devel::Cover::Condition       0.50;
+use Devel::Cover::Condition_or_2  0.50;
+use Devel::Cover::Condition_or_3  0.50;
+use Devel::Cover::Condition_and_2 0.50;
+use Devel::Cover::Condition_and_3 0.50;
+use Devel::Cover::Condition_xor_4 0.50;
+use Devel::Cover::Subroutine      0.50;
+use Devel::Cover::Time            0.50;
+use Devel::Cover::Pod             0.50;
 
 sub coverage    { $_[0][0] }
 sub information { $_[0][1] }
@@ -37,8 +38,8 @@ sub calculate_percentage
 {
     my $class = shift;
     my ($db, $s) = @_;
-    my $covered = $s->{covered} || 0;
-    $s->{percentage} = $s->{total} ? $covered * 100 / $s->{total} : 100;
+    my $errors = $s->{error} || 0;
+    $s->{percentage} = $s->{total} ? 100 - $errors * 100 / $s->{total} : 100;
 }
 
 1
@@ -71,7 +72,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENCE
 

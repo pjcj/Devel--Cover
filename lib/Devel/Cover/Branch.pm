@@ -10,13 +10,15 @@ package Devel::Cover::Branch;
 use strict;
 use warnings;
 
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
 use base "Devel::Cover::Criterion";
 
-sub uncoverable { $_[0][2][shift] }
-sub covered     { (scalar grep $_, @{$_[0][0]}) }
-sub total       { (scalar          @{$_[0][0]}) }
+sub uncoverable { @_ > 1 ? $_[0][2][$_[1]] : scalar grep $_, @{$_[0][2]} }
+sub covered     { @_ > 1 ? $_[0][0][$_[1]] : scalar grep $_, @{$_[0][0]} }
+sub total       { scalar @{$_[0][0]} }
+sub values      { @{$_[0][0]} }
+sub text        { $_[0][1]{text} }
 sub percentage
 {
     my $t = $_[0]->total;
@@ -24,14 +26,19 @@ sub percentage
 }
 sub error
 {
-    for (0 .. $#{$_[0][0]})
+    my $self = shift;
+    if (@_)
     {
-        return 1 if $_[0][0][$_] xor !$_[0][2][$_]
+        my $c = shift;
+        return !($self->covered($c) xor $self->uncoverable($c));
     }
-    0
+    my $e = 0;
+    for my $c (0 .. $#{$self->[0]})
+    {
+        $e++ if !($self->covered($c) xor $self->uncoverable($c));
+    }
+    $e
 }
-sub text        { $_[0][1]{text} }
-sub values      { @{$_[0][0]} }
 
 sub calculate_summary
 {
@@ -43,17 +50,29 @@ sub calculate_summary
     $self->[0] = [0, 0] unless @{$self->[0]};
 
     my $t = $self->total;
+    my $u = $self->uncoverable;
     my $c = $self->covered;
+    my $e = $self->error;
 
-    $s->{$file}{branch}{total}   += $t;
-    $s->{$file}{total}{total}    += $t;
-    $s->{Total}{branch}{total}   += $t;
-    $s->{Total}{total}{total}    += $t;
+    $s->{$file}{branch}{total}       += $t;
+    $s->{$file}{total}{total}        += $t;
+    $s->{Total}{branch}{total}       += $t;
+    $s->{Total}{total}{total}        += $t;
 
-    $s->{$file}{branch}{covered} += $c;
-    $s->{$file}{total}{covered}  += $c;
-    $s->{Total}{branch}{covered} += $c;
-    $s->{Total}{total}{covered}  += $c;
+    $s->{$file}{branch}{uncoverable} += $u;
+    $s->{$file}{total}{uncoverable}  += $u;
+    $s->{Total}{branch}{uncoverable} += $u;
+    $s->{Total}{total}{uncoverable}  += $u;
+
+    $s->{$file}{branch}{covered}     += $c;
+    $s->{$file}{total}{covered}      += $c;
+    $s->{Total}{branch}{covered}     += $c;
+    $s->{Total}{total}{covered}      += $c;
+
+    $s->{$file}{branch}{error}       += $e;
+    $s->{$file}{total}{error}        += $e;
+    $s->{Total}{branch}{error}       += $e;
+    $s->{Total}{total}{error}        += $e;
 }
 
 1
@@ -84,7 +103,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENCE
 

@@ -39,9 +39,9 @@ line  err   stmt branch   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Location                 
----------- -------------------------
-import     tests/Module_import.pm:12
+Subroutine Count Location                 
+---------- ----- -------------------------
+import         1 tests/Module_import.pm:12
 
 
 tests/module_import
@@ -67,9 +67,9 @@ line  err   stmt branch   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Location              
----------- ----------------------
-BEGIN      tests/module_import:10
-BEGIN      tests/module_import:12
+Subroutine Count Location              
+---------- ----- ----------------------
+BEGIN          1 tests/module_import:10
+BEGIN          1 tests/module_import:12
 
 

@@ -12,33 +12,35 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
-use Devel::Cover::DB 0.49;
+use Devel::Cover::DB 0.50;
 
 use Cwd "abs_path";
 use Data::Dumper;
 use File::Path;
+use FindBin '$Bin';
 use Getopt::Long;
 use Pod::Usage;
 
 my $Options =
 {
-    annotation  => [],
-    coverage    => [],
-    delete      => 0,
-    ignore      => [],
-    ignore_re   => [],
-    select      => [],
-    select_re   => [],
-    report      => "",
-    summary     => 1,
-    uncoverable => [],
+    add_uncoverable_point    => [],
+    delete_uncoverable_point => [],
+    annotation               => [],
+    coverage                 => [],
+    delete                   => 0,
+    ignore                   => [],
+    ignore_re                => [],
+    select                   => [],
+    select_re                => [],
+    report                   => "",
+    summary                  => 1,
+    uncoverable_file         => [".uncoverable", glob("~/.uncoverable")],
 };
 
 sub get_options
 {
-    @ARGV = qw( -report html ) unless @ARGV;
     Getopt::Long::Configure("pass_through");
     die "Bad option" unless
         GetOptions($Options,            # Store the options in the Options hash.
@@ -47,26 +49,41 @@ sub get_options
                        @$Options{qw( write summary )} = ($_[1], 0)
                    },
                    qw(
+                       add_uncoverable_point=s
                        annotation=s
+                       clean_uncoverable_points!
                        coverage=s
                        delete!
+                       delete_uncoverable_point=s
                        dump_db!
-                       ignore=s
-                       ignore_re=s
                        help|h!
-                       select=s
-                       select_re=s
+                       ignore_re=s
+                       ignore=s
                        info|i!
                        outputdir=s
                        report=s
+                       select_re=s
+                       select=s
                        silent!
                        summary!
-                       uncoverable=s
+                       test!
+                       uncoverable_file=s
                        version|v!
                      ));
     Getopt::Long::Configure("nopass_through");
+    $Options->{report} ||= "html" unless exists $Options->{write};
 }
 
+sub delete_db
+{
+    for my $del (@_)
+    {
+        print "Deleting database $del\n" unless $Options->{silent};
+        next unless -d $del;
+        my $db = Devel::Cover::DB->new(db => $del);
+        $db->delete;
+    }
+}
 
 sub main
 {
@@ -130,23 +147,33 @@ sub main
 
     if ($Options->{delete})
     {
-        for my $del ($dbname, @ARGV)
-        {
-            print "Deleting database $del\n" unless $Options->{silent};
-            next unless -d $del;
-            my $db = Devel::Cover::DB->new(db => $del);
-            $db->delete;
-        }
+        delete_db($dbname, @ARGV);
         exit 0
+    }
+
+    if ($Options->{test})
+    {
+        delete_db($dbname, @ARGV);
+        local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
+            "-Mblib=$Bin -MDevel::Cover";
+        system "make test";
+        $Options->{report} ||= "html";
     }
 
     print "Reading database from $dbname\n" unless $Options->{silent};
     my $db = Devel::Cover::DB->new
     (
         db          => $dbname,
-        uncoverable => $Options->{uncoverable},
+        uncoverable => $Options->{uncoverable_file},
     );
     $db = $db->merge_runs;
+
+    $db->add_uncoverable     ($Options->{add_uncoverable_point}   );
+    $db->delete_uncoverable  ($Options->{delete_uncoverable_point});
+    $db->clean_uncoverable if $Options->{clean_uncoverable_points} ;
+    exit 0 if @{$Options->{add_uncoverable_point}}    ||
+              @{$Options->{delete_uncoverable_point}} ||
+              $Options->{clean_uncoverable_points};
 
     for my $merge (@ARGV)
     {
@@ -232,6 +259,9 @@ cover - report coverage statistics
        -write [db] -delete -dump_db
        -silent
        -coverage criterion
+       -test
+       -add_uncoverable_point -delete_uncoverable_point
+       -clean_uncoverable_points -uncoverable_file
        [report specific options]
        coverage_database [coverage_database ...]
 
@@ -270,6 +300,8 @@ The following command line options are supported:
 
  -coverage criterion   - report on criterion  (default all available)
 
+ -test                 - drop database(s) and run make test (default off)
+
  other options specific to the report
 
 =head1 DETAILS
@@ -287,6 +319,9 @@ default.
 Specify -select and -ignore options to report on specific files.
 Specify -coverage options to report on specific criteria.  By default
 all available information on all criteria in all files will be reported.
+
+The -test option will delete the databases and run make test to generate
+new coverage data before reporting on it.
 
 =head1 EXIT STATUS
 
@@ -308,7 +343,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENCE
 

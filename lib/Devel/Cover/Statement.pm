@@ -10,7 +10,7 @@ package Devel::Cover::Statement;
 use strict;
 use warnings;
 
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
 use base "Devel::Cover::Criterion";
 
@@ -33,12 +33,28 @@ sub calculate_summary
     $s->{Total}{statement}{total}++;
     $s->{Total}{total}{total}++;
 
-    if ($self->[0])
+    if ($self->uncoverable)
+    {
+        $s->{$file}{statement}{uncoverable}++;
+        $s->{$file}{total}{uncoverable}++;
+        $s->{Total}{statement}{uncoverable}++;
+        $s->{Total}{total}{uncoverable}++;
+    }
+
+    if ($self->covered)
     {
         $s->{$file}{statement}{covered}++;
         $s->{$file}{total}{covered}++;
         $s->{Total}{statement}{covered}++;
         $s->{Total}{total}{covered}++;
+    }
+
+    if ($self->error)
+    {
+        $s->{$file}{statement}{error}++;
+        $s->{$file}{total}{error}++;
+        $s->{Total}{statement}{error}++;
+        $s->{Total}{total}{error}++;
     }
 }
 
@@ -70,7 +86,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENCE
 

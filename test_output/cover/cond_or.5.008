@@ -140,16 +140,16 @@ line  err      %      l  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Location        
----------- ----------------
-BEGIN      tests/cond_or:10
-BEGIN      tests/cond_or:11
+Subroutine Count Location        
+---------- ----- ----------------
+BEGIN          1 tests/cond_or:10
+BEGIN          1 tests/cond_or:11
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Location        
----------- ----------------
-__ANON__   tests/cond_or:60
+Subroutine Count Location        
+---------- ----- ----------------
+__ANON__       0 tests/cond_or:60
 
 

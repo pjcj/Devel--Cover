@@ -55,10 +55,10 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Location           
----------- -------------------
-new        tests/overloaded:14
-num        tests/overloaded:16
-str        tests/overloaded:17
+Subroutine Count Location           
+---------- ----- -------------------
+new            1 tests/overloaded:14
+num            2 tests/overloaded:16
+str            2 tests/overloaded:17
 
 

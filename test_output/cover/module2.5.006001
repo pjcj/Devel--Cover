@@ -63,18 +63,18 @@ line  err   stmt branch   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Location           
----------- -------------------
-zz         tests/Module2.pm:33
+Subroutine Count Location           
+---------- ----- -------------------
+zz            11 tests/Module2.pm:33
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Location           
----------- -------------------
-_aa        tests/Module2.pm:15
-_xx        tests/Module2.pm:22
-yy         tests/Module2.pm:28
+Subroutine Count Location           
+---------- ----- -------------------
+_aa            0 tests/Module2.pm:15
+_xx            0 tests/Module2.pm:22
+yy             0 tests/Module2.pm:28
 
 
 tests/module2
@@ -131,8 +131,8 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Location        
----------- ----------------
-xx         tests/module2:23
+Subroutine Count Location        
+---------- ----- ----------------
+xx            11 tests/module2:23
 
 

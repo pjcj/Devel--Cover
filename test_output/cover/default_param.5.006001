@@ -57,8 +57,8 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Location              
----------- ----------------------
-p          tests/default_param:15
+Subroutine Count Location              
+---------- ----- ----------------------
+p              2 tests/default_param:15
 
 

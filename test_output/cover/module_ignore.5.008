@@ -71,11 +71,11 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Location              
----------- ----------------------
-BEGIN      tests/module_ignore:12
-BEGIN      tests/module_ignore:13
-BEGIN      tests/module_ignore:15
-BEGIN      tests/module_ignore:17
+Subroutine Count Location              
+---------- ----- ----------------------
+BEGIN          1 tests/module_ignore:12
+BEGIN          1 tests/module_ignore:13
+BEGIN          1 tests/module_ignore:15
+BEGIN          1 tests/module_ignore:17
 
 

@@ -10,7 +10,7 @@ package Devel::Cover::Pod;
 use strict;
 use warnings;
 
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
 use base "Devel::Cover::Criterion";
 
@@ -30,19 +30,25 @@ sub calculate_summary
     return unless $INC{"Pod/Coverage.pm"};
 
     my $s = $db->{summary};
+    my $e = $self->error;
 
     $s->{$file}{pod}{total}++;
     $s->{$file}{total}{total}++;
     $s->{Total}{pod}{total}++;
     $s->{Total}{total}{total}++;
 
-    if ($self->[0])
+    if ($self->covered)
     {
         $s->{$file}{pod}{covered}++;
         $s->{$file}{total}{covered}++;
         $s->{Total}{pod}{covered}++;
         $s->{Total}{total}{covered}++;
     }
+
+    $s->{$file}{pod}{error}   ||= $e;
+    $s->{$file}{total}{error} ||= $e;
+    $s->{Total}{pod}{error}   ||= $e;
+    $s->{Total}{total}{error} ||= $e;
 }
 
 1
@@ -73,7 +79,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENCE
 

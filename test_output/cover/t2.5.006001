@@ -76,8 +76,8 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Location   
----------- -----------
-xx         tests/t2:17
+Subroutine Count Location   
+---------- ----- -----------
+xx            11 tests/t2:17
 
 

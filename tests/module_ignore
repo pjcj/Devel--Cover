@@ -1,0 +1,31 @@
+#!/usr/bin/perl
+
+# Copyright 2004, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# __COVER__ ignore Module1
+
+use strict;
+use warnings;
+
+use lib "tests";
+
+use Module1;
+
+my @x;
+
+for (0 .. 10)
+{
+    if (Module1::zz($_))
+    {
+        $x[0]++;
+    }
+    else
+    {
+        $x[1]++;
+    }
+}

@@ -71,10 +71,10 @@ line  err      %      l  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Location                  
----------- --------------------------
-BEGIN      tests/branch_return_sub:10
-BEGIN      tests/branch_return_sub:11
-my_sqrt    tests/branch_return_sub:15
+Subroutine Count Location                  
+---------- ----- --------------------------
+BEGIN          1 tests/branch_return_sub:10
+BEGIN          1 tests/branch_return_sub:11
+my_sqrt        3 tests/branch_return_sub:15
 
 

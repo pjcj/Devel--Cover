@@ -10,14 +10,15 @@ package Devel::Cover::Time;
 use strict;
 use warnings;
 
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
 use base "Devel::Cover::Criterion";
 
-sub covered    { ${$_[0]} }
-sub total      { 1 }
-sub percentage { ${$_[0]} ? 100 : 0 }
-sub error      { 0 }
+sub uncoverable { 0 }
+sub covered     { ${$_[0]} }
+sub total       { 1 }
+sub percentage  { ${$_[0]} ? 100 : 0 }
+sub error       { 0 }
 
 sub calculate_summary
 {
@@ -70,7 +71,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENCE
 

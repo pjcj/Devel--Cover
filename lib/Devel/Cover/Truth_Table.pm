@@ -128,6 +128,7 @@ sub new {
 		inputs  => $args[0],
 		result  => $args[1],
 		covered => $args[2],
+		error   => $args[3],  # TODO - pass this in
 	}, $class;
 }
 
@@ -170,10 +171,15 @@ sub covered {
 	return $_[0]{covered};
 }
 
+sub error {
+        return 0;
+	return $_[0]{error}[$_[1]];
+}
+
 package Devel::Cover::Truth_Table;
 use warnings;
 use strict;
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
 #-------------------------------------------------------------------------------
 # Subroutine : new()
@@ -197,6 +203,7 @@ sub new_primitive {
 	my ($proto, $type, @coverage) = @_;
 
 	my %table = (
+		and_2 => \&boolean_tt,
 		and_3 => \&and_tt,
 		or_2  => \&boolean_tt,
 		or_3  => \&or_tt,
@@ -214,8 +221,10 @@ sub new_primitive {
 #-------------------------------------------------------------------------------
 sub error {
     my $self = shift;
+    if (@_) { print "[[[", $self->[shift]->error, "]]]\n"; die }
+    return $self->[shift]->error if @_;
 	foreach (@$self) {
-	    return 1 unless $_->covered;
+	    return 1 if $_->error;
 	}
     return;
 }
@@ -326,8 +335,9 @@ sub html {
 	}
 	$html .= "<th>dec</th></tr>";
 
+        my $c = 0;
 	foreach (@$self) {
-		my $class = $class[$_->covered];
+		my $class = $class[!$_->error($c++) || $_->covered];
 		$html .= qq'<tr align="center"><td class="$class">';
 		$html .= join(qq'</td><td class="$class">', $_->inputs, $_->result);
 		$html .= "</td></tr>";
@@ -556,7 +566,7 @@ None that I'm aware of...
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENSE
 

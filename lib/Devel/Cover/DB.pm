@@ -10,11 +10,11 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
-use Devel::Cover::Criterion     0.49;
-use Devel::Cover::DB::File      0.49;
-use Devel::Cover::DB::Structure 0.49;
+use Devel::Cover::Criterion     0.50;
+use Devel::Cover::DB::File      0.50;
+use Devel::Cover::DB::Structure 0.50;
 
 use Carp;
 use File::Path;
@@ -83,7 +83,7 @@ sub write
 
     my $db =
     {
-        runs  => $self->{runs},
+        runs => $self->{runs},
     };
 
     Storable::nstore($db, "$self->{db}/$DB");
@@ -127,10 +127,10 @@ sub merge_runs
     {
         # print STDERR "Devel::Cover: merging run $run <$self->{base}>\n";
         my $r = Devel::Cover::DB->new(base => $self->{base}, db => $run);
-        rmtree($run);
         $self->merge($r);
     }
     $self->write($db) if @runs;
+    rmtree($_) for @runs;
     $self
 }
 
@@ -170,7 +170,7 @@ sub merge
                     $run->{digest}{$file} ne $digest)
                 {
                     # File has changed.  Delete old coverage instead of merging.
-                    print STDERR "Devel::Cover: Deleting old coverage for ",
+                    print STDOUT "Devel::Cover: Deleting old coverage for ",
                                                "changed file $file\n"
                         unless $Devel::Cover::Silent;
                     delete $run->{digest}{$file};
@@ -273,10 +273,10 @@ sub _merge_array
 sub summary
 {
     my $self = shift;
-    my ($file, $criteriion, $part) = @_;
+    my ($file, $criterion, $part) = @_;
     my $f = $self->{summary}{$file};
-    return $f unless $f && defined $criteriion;
-    my $c = $f->{$criteriion};
+    return $f unless $f && defined $criterion;
+    my $c = $f->{$criterion};
     $c && defined $part ? $c->{$part} : $c
 }
 
@@ -285,13 +285,15 @@ sub calculate_summary
     my $self = shift;
     my %options = @_;
 
-    return if exists $self->{summary} > 0 && !$options{force};
+    return if exists $self->{summary} && !$options{force};
     my $s = $self->{summary} = {};
 
     for my $file ($self->cover->items)
     {
         $self->cover->get($file)->calculate_summary($self, $file, \%options);
     }
+
+    # use Data::Dumper; print STDERR Dumper $self;
 
     for my $file ($self->cover->items)
     {
@@ -475,27 +477,120 @@ sub add_subroutine
 *add_condition = \&add_branch;
 *add_pod       = \&add_subroutine;
 
+sub uncoverable_files
+{
+    my $self = shift;
+    my $f = ".uncoverable";
+    (@{$self->{uncoverable}}, $f, glob("~/$f"))
+}
+
 sub uncoverable
 {
     my $self = shift;
 
     my $u = {};
 
-    my $f = ".uncoverable";
-    for my $file ($f, glob("~/$f"), @{$self->{uncoverable}})
+    for my $file ($self->uncoverable_files)
     {
         open F, $file or next;
-        print "Reading uncoverable information from $file\n"
+        print STDOUT "Reading uncoverable information from $file\n"
             unless $Devel::Cover::Silent;
         while (<F>)
         {
             chomp;
-            my ($md5, $crit, $line, $count, $type, $reason) = split " ", $_, 6;
-            push @{$u->{$md5}{$crit}{$line}[$count]}, [$type, $reason];
+            my ($file, $crit, $line, $count, $type, $reason) = split " ", $_, 6;
+            push @{$u->{$file}{$crit}{$line}[$count]}, [$type, $reason];
         }
     }
 
+    # use Data::Dumper; $Data::Dumper::Indent = 1; print Dumper $u;
+
+    for my $file (sort keys %$u)
+    {
+        # print STDERR "Reading $file\n";
+        unless (open F, $file)
+        {
+            warn "Devel::Cover: Can't open file $file: $!\n";
+            next;
+        }
+        my $df = Digest::MD5->new;
+        my %dl;
+        my $ln = 0;
+        while (<F>)
+        {
+            # print STDERR "read [$.][$_]\n";
+            $dl{Digest::MD5->new->add($_)->hexdigest} = ++$ln;
+            $df->add($_);
+        }
+        close F;
+        my $f = $u->{$file};
+        # use Data::Dumper; $Data::Dumper::Indent = 1; print STDERR Dumper $f;
+        for my $crit (keys %$f)
+        {
+            my $c = $f->{$crit};
+            for my $line (keys %$c)
+            {
+                if (exists $dl{$line})
+                {
+                    # print STDERR "Found uncoverable $file:$crit:$line -> $dl{$line}\n";
+                    $c->{$dl{$line}} = delete $c->{$line};
+                }
+                else
+                {
+                    warn "Devel::Cover: Can't find line for uncovered data: " .
+                         "$file $crit $line\n";
+                    delete $c->{$line};
+                }
+            }
+        }
+        $u->{$df->hexdigest} = delete $u->{$file};
+    }
+
     $u
+}
+
+sub add_uncoverable
+{
+    my $self = shift;
+    my ($adds) = @_;
+    for my $add (@$adds)
+    {
+        my ($file, $crit, $line, $count, $type, $reason) = split " ", $add, 6;
+        my ($uncoverable_file) = $self->uncoverable_files;
+        open U, ">>", $uncoverable_file
+            or die "Devel::Cover: Can't open $uncoverable_file: $!\n";
+
+        unless (open F, $file)
+        {
+            warn "Devel::Cover: Can't open $file: $!";
+            next;
+        }
+        while (<F>)
+        {
+            last if $. == $line;
+        }
+        if (defined)
+        {
+            my $dl = Digest::MD5->new->add($_)->hexdigest;
+            print U "$file $crit $dl $count $type $reason\n";
+        }
+        else
+        {
+            warn "Devel::Cover: Can't find line $line in $file.  ",
+                 "Last line is $.\n";
+        }
+        close F or die "Devel::Cover: Can't close $file: $!\n";
+    }
+}
+
+sub delete_uncoverable
+{
+    my $self = shift;
+}
+
+sub clean_uncoverable
+{
+    my $self = shift;
 }
 
 sub cover
@@ -741,7 +836,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENCE
 

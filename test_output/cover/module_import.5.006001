@@ -38,8 +38,8 @@ line  err   stmt branch   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Location                 
----------- -------------------------
-import     tests/Module_import.pm:12
+Subroutine Count Location                 
+---------- ----- -------------------------
+import         1 tests/Module_import.pm:12
 
 

@@ -55,10 +55,10 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Location        
----------- ----------------
-BEGIN      tests/inc_sub:16
-BEGIN      tests/inc_sub:18
-BEGIN      tests/inc_sub:3 
+Subroutine Count Location        
+---------- ----- ----------------
+BEGIN          1 tests/inc_sub:16
+BEGIN          1 tests/inc_sub:18
+BEGIN          1 tests/inc_sub:3 
 
 

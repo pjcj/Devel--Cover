@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB  0.49;
-use Devel::Cover::Inc 0.49;
+use Devel::Cover::DB  0.50;
+use Devel::Cover::Inc 0.50;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -386,7 +386,7 @@ sub normalised_file
     }
     if ($] >= 5.008)
     {
-        if ($^O eq "MSWin32")
+        if ($^O eq "MSWin32" || $^O eq "cygwin")
         {
             # TODO - Windows seems busted here
         }
@@ -691,7 +691,7 @@ sub add_branch_cover
     my $c   = $Coverage->{condition}{$key};
 
     no warnings "uninitialized";
-    # print "*** add_branch_cover [$@]\n";
+    # print STDERR "*** add_branch_cover $File:$Line [$type][$c]\n";
 
     if ($type eq "and" ||
         $type eq "or"  ||
@@ -703,6 +703,7 @@ sub add_branch_cover
         # True path taken if not short circuited.
         # False path taken if short circuited.
         $c = [ $c->[1] + $c->[2], $c->[3] ];
+        # print STDERR "branch $type [@$c]\n";
     }
     else
     {
@@ -751,26 +752,23 @@ sub add_condition_cover
 
     my $count;
 
-    if ($type eq "or")
+    if ($type eq "or" || $type eq "and")
     {
         my $r = $op->first->sibling;
         my $name = $r->name;
         $name = $r->first->name if $name eq "sassign";
-        if ($name =~ /^const|s?refgen|gelem$/)
+        # TODO - exec?  any others?
+        if ($name =~ /^const|s?refgen|gelem|die$/)
         {
             $c = [ $c->[3], $c->[1] + $c->[2] ];
             $count = 2;
         }
         else
         {
-            @$c = @{$c}[3, 2, 1];
+            @$c = @{$c}[$type eq "or" ? (3, 2, 1) : (3, 1, 2)];
             $count = 3;
         }
-    }
-    elsif ($type eq "and")
-    {
-        @$c = @{$c}[3, 1, 2];
-        $count = 3;
+        # print STDERR "$type 3 $name [@$c] $File:$Line\n";
     }
     elsif ($type eq "xor")
     {
@@ -1286,7 +1284,7 @@ See the BUGS file.  And the TODO file.
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENCE
 

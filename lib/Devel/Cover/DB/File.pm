@@ -10,9 +10,9 @@ package Devel::Cover::DB::File;
 use strict;
 use warnings;
 
-our $VERSION = "0.49";
+our $VERSION = "0.50";
 
-use Devel::Cover::Criterion 0.49;
+use Devel::Cover::Criterion 0.50;
 
 sub calculate_summary
 {
@@ -49,6 +49,8 @@ sub calculate_percentage
         $c->calculate_percentage($db, $s->{$criterion});
     }
     Devel::Cover::Criterion->calculate_percentage($db, $s->{total});
+
+    # use Data::Dumper; print STDERR Dumper $s;
 }
 
 1
@@ -77,7 +79,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.49 - 6th October 2004
+Version 0.50 - 25th October 2004
 
 =head1 LICENCE
 

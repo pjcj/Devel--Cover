@@ -80,10 +80,10 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Location   
----------- -----------
-BEGIN      tests/t2:10
-BEGIN      tests/t2:11
-xx         tests/t2:17
+Subroutine Count Location   
+---------- ----- -----------
+BEGIN          1 tests/t2:10
+BEGIN          1 tests/t2:11
+xx            11 tests/t2:17
 
 

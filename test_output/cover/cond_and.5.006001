@@ -110,8 +110,8 @@ line  err      %     !l  l&&!r   l&&r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Location         
----------- -----------------
-pas        tests/cond_and:56
+Subroutine Count Location         
+---------- ----- -----------------
+pas           11 tests/cond_and:56
 
 
