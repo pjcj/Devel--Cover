@@ -16,7 +16,7 @@ use Storable;
 
 use Devel::Cover::DB;
 
-our $VERSION = "0.51";
+our $VERSION = "0.52";
 our $AUTOLOAD;
 
 sub new
@@ -292,7 +292,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.51 - 29th November 2004
+Version 0.52 - 13th December 2004
 
 =head1 LICENCE
 

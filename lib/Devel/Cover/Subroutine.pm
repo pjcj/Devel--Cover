@@ -10,7 +10,7 @@ package Devel::Cover::Subroutine;
 use strict;
 use warnings;
 
-our $VERSION = "0.51";
+our $VERSION = "0.52";
 
 use base "Devel::Cover::Criterion";
 
@@ -86,7 +86,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.51 - 29th November 2004
+Version 0.52 - 13th December 2004
 
 =head1 LICENCE
 

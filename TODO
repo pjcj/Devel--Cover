@@ -42,5 +42,6 @@
   - Turn Perl build lines into a script to work on Win32 etc.
 - Documentation:
   - General improvement.
+  - Examples.
   - Document cpancover options.
   - Pod in private modules.
