@@ -43,6 +43,9 @@ tests/cond_xor
 tests/cond_branch
 tests/special_blocks
 tests/statement
+tests/pod
+tests/destroy
+tests/overloaded
 tests/Module1.pm
 tests/Module2.pm
 tests/Module_import.pm
@@ -60,6 +63,8 @@ test_output/cover/cond_branch.5.006001
 test_output/cover/special_blocks.5.006001
 test_output/cover/statement.5.006001
 test_output/cover/pod.5.006001
+test_output/cover/destroy.5.006001
+test_output/cover/overloaded.5.006001
 test_output/cover/t0.5.008
 test_output/cover/t1.5.008
 test_output/cover/t2.5.008
@@ -74,6 +79,8 @@ test_output/cover/cond_branch.5.008
 test_output/cover/special_blocks.5.008
 test_output/cover/statement.5.008
 test_output/cover/pod.5.008
+test_output/cover/destroy.5.008
+test_output/cover/overloaded.5.008
 test_output/cover/t0.5.008001
 test_output/cover/t1.5.008001
 test_output/cover/t2.5.008001
@@ -88,6 +95,8 @@ test_output/cover/cond_branch.5.008001
 test_output/cover/special_blocks.5.008001
 test_output/cover/statement.5.008001
 test_output/cover/pod.5.008001
+test_output/cover/destroy.5.008001
+test_output/cover/overloaded.5.008001
 lib/Devel/Cover/Tutorial.pod
 session.vim
 META.yml                                Module meta-data (added by MakeMaker)

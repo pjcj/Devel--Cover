@@ -19,25 +19,23 @@ use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version = "0.21";
-my $Date    = "1st September 2003";
-my $Author  = 'pjcj@cpan.org';
+my $Version      = "0.22";
+my $Date         = "2nd September 2003";
+my $Author       = 'pjcj@cpan.org';
 
-my @perlbug = ("perlbug", "-a", $Author,
-                          "-s", "Installation of Devel::Cover $Version");
+my @perlbug      = ("perlbug", "-a", $Author,
+                               "-s", "Installation of Devel::Cover $Version");
+my $Perlbug      = join " ", map { / / ? "'$_'" : $_ } @perlbug;
 
-my $Perlbug = join " ", map { / / ? "'$_'" : $_ } @perlbug;
-
-
-my @files = sort keys %{maniread()}, "lib/Devel/Cover/Inc.pm";
-my @versions = grep { $_ ne "README" && $_ ne "Makefile.PL" } @files;
+my @files        = sort keys %{maniread()}, "lib/Devel/Cover/Inc.pm";
+my @versions     = grep { $_ ne "README" && $_ ne "Makefile.PL" } @files;
 
 my $test_version = $ENV{__COVER_GOLDEN_VERSION} || $];
 
-my $base = getcwd;
+my $base         = getcwd;
 
-my %inc = map { $_ => 1 } @INC;
-my @inc = sort keys %inc;
+my %inc          = map { $_ => 1 } @INC;
+my @inc          = sort keys %inc;
 
 open I, ">lib/Devel/Cover/Inc.pm"
     or die "Cannot open lib/Devel/Cover/Inc.pm: $!";

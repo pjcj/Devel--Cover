@@ -1,0 +1,23 @@
+#!/usr/local/bin/perl
+
+# Copyright 2003, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# Example stolen from overload documentation
+
+package two_face;
+
+sub new { my $p = shift; bless [@_], $p }
+use overload '""' => \&str, '0+' => \&num, fallback => 1;
+sub num {shift->[1]}
+sub str {shift->[0]}
+
+package main;
+
+my $seven = new two_face ("vii", 7);
+printf "seven=$seven, seven=%d, eight=%d\n", $seven, $seven+1;
+print "seven contains `i'\n" if $seven =~ /i/;

@@ -129,3 +129,8 @@ Release 0.21 - 1st September 2003
  - Don't collect branch coverage when not asked for.
  - Provide golden results for different Perl versions.
  - Change some B::Deparse logic to mirror changes in 5.8.1/5.10.
+
+Release 0.22 - 2nd September 2003
+ - Rewrite runops function
+     - First line of DESTROY blocks and overload subs not now skipped
+ - Add some more tests

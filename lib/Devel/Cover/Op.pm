@@ -10,7 +10,7 @@ package Devel::Cover::Op;
 use strict;
 use warnings;
 
-our $VERSION = "0.21";
+our $VERSION = "0.22";
 
 use Devel::Cover qw( -ignore blib -ignore \\wB\\w -indent 1 );
 use B::Concise   qw( set_style add_callback );

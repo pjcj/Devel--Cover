@@ -11,12 +11,12 @@ use strict;
 use warnings;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.21";
+our $VERSION = "0.22";
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.21;
-use Devel::Cover::Inc 0.21;
+use Devel::Cover::DB  0.22;
+use Devel::Cover::Inc 0.22;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -708,7 +708,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.21 - 1st September 2003
+Version 0.22 - 2nd September 2003
 
 =head1 LICENCE
 

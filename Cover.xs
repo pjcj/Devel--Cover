@@ -451,7 +451,7 @@ static int runops_cover(pTHX)
     SV   **count;
     IV     c;
     char  *ch;
-    HV    *Files;
+    HV    *Files           = 0;
     int    collecting_here = 1;
     char  *lastfile        = 0;
 
@@ -494,37 +494,14 @@ static int runops_cover(pTHX)
     {
         NDEB(D(L, "running func %p\n", PL_op->op_ppaddr));
 
-#if CAN_PROFILE
-        /* Profile the first op */
-
-        if (!Profiling_op)
-            switch (PL_op->op_type)
-            {
-                case OP_SETSTATE:
-                case OP_NEXTSTATE:
-                case OP_DBSTATE:
-                    Profiling_op = PL_op;
-            }
-#endif
-
-        if (!(PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
-        {
-#if CAN_PROFILE
-            cover_time();
-#endif
-            break;
-        }
-
         if (Got_condition)
         {
             Got_condition = 0;
-            continue;
+            goto call_fptr;
         }
 
-        PERL_ASYNC_CHECK();
-
         if (!Covering)
-            continue;
+            goto call_fptr;
 
         /* Check to see whether we are interested in this file */
 
@@ -533,7 +510,8 @@ static int runops_cover(pTHX)
             char *file = CopFILE(cCOP);
             if (file && (!lastfile || lastfile && strNE(lastfile, file)))
             {
-                Files = get_hv("Devel::Cover::Files", FALSE);
+                if (!Files)
+                    Files = get_hv("Devel::Cover::Files", FALSE);
                 if (Files)
                 {
                     SV **f = hv_fetch(Files, file, strlen(file), 0);
@@ -550,7 +528,7 @@ static int runops_cover(pTHX)
             cover_time();
             Profiling_op = 0;
 #endif
-            continue;
+            goto call_fptr;
         }
 
         /*
@@ -567,14 +545,12 @@ static int runops_cover(pTHX)
 #if CAN_PROFILE
                 cover_time();
 #endif
-
                 if (collecting(Statement))
                 {
                     ch    = get_key(PL_op);
                     count = hv_fetch(Statements, ch, ch_sz, 1);
                     c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
                     sv_setiv(*count, c);
-
                     NDEB(op_dump(PL_op));
                 }
                 break;
@@ -599,6 +575,17 @@ static int runops_cover(pTHX)
             default:
                 ;  /* IBM's xlC compiler on AIX is very picky */
         }
+
+        call_fptr:
+        if (!(PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
+        {
+#if CAN_PROFILE
+            cover_time();
+#endif
+            break;
+        }
+
+        PERL_ASYNC_CHECK();
     }
 
     TAINT_NOT;
