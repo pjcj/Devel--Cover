@@ -11,12 +11,12 @@ use strict;
 use warnings;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.16";
+our $VERSION = "0.17";
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.16;
-use Devel::Cover::Inc 0.16;
+use Devel::Cover::DB  0.17;
+use Devel::Cover::Inc 0.17;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -182,6 +182,8 @@ sub get_location
 
     $File =~ s/ \(autosplit into .*\)$//;
     $File =~ s/^$Cwd\///;
+
+    # print "File: $File\n";
 }
 
 sub use_file
@@ -200,41 +202,46 @@ sub use_file
     $files->{$file}
 }
 
+sub check_file
+{
+    my ($cv) = @_;
+
+    return unless class($cv) eq "CV";
+
+    my $op = $cv->START;
+    return unless $op->can("file") && class($op) ne "NULL" && is_state($op);
+
+    my $file = $op->file;
+    my $use  = use_file($file);
+    # printf "%6s $file\n", $use ? "use" : "ignore";
+
+    $use
+}
+
 sub B::GV::find_cv
 {
-    return unless ${$_[0]->CV};
-
     my $cv = $_[0]->CV;
-    push @Cvs, $cv;
+    return unless $$cv;
 
-    if ($cv->PADLIST->can("ARRAY") &&
-        $cv->PADLIST->ARRAY &&
-        $cv->PADLIST->ARRAY->can("ARRAY"))
-    {
-        push @Cvs, grep class($_) eq "CV", $cv->PADLIST->ARRAY->ARRAY;
-    }
+    push @Cvs, $cv if check_file($cv);
+    push @Cvs, grep check_file($_), $cv->PADLIST->ARRAY->ARRAY
+        if $cv->PADLIST->can("ARRAY") &&
+           $cv->PADLIST->ARRAY &&
+           $cv->PADLIST->ARRAY->can("ARRAY");
 };
 
 sub check_files
 {
     # print "Checking files\n";
 
-    push @Cvs, grep class($_) eq "CV", B::main_cv->PADLIST->ARRAY->ARRAY;
+    @Cvs = grep check_file($_), B::main_cv->PADLIST->ARRAY->ARRAY;
 
-    walksymtable(\%main::, "find_cv", sub { 1 }, "");
+    my %seen_pkg;
 
-    for my $cv (@Cvs)
-    {
-        my $op = $cv->START;
-        # print "$op\n";
-        next unless $op->can("file") && class($op) ne "NULL" && is_state($op);
-
-        my $file = $op->file;
-        my $use  = use_file($file);
-        # printf "%6s $file\n", $use ? "use" : "ignore";
-    }
+    walksymtable(\%main::, "find_cv", sub { !$seen_pkg{$_[0]}++ });
 
     # use Data::Dumper;
+    # print Dumper \%seen_pkg;
     # print Dumper \%Devel::Cover::Files;
 }
 
@@ -251,14 +258,10 @@ sub report
     # use Data::Dumper;
     # print Dumper $Coverage;
 
+    check_files();
+
     get_cover(main_cv, main_root);
-    for my $cv (@Cvs)
-    {
-        my $start = $cv->START;
-        next unless $start->can("file") && use_file($start->file);
-        # print "File: ", $start->file, "\n";
-        get_cover($cv);
-    }
+    get_cover($_) for @Cvs;
 
     my $cover = Devel::Cover::DB->new
     (
@@ -575,7 +578,7 @@ Did I mention that this is alpha code?
 
 =head1 VERSION
 
-Version 0.16 - 9th September 2002
+Version 0.17 - 15th September 2002
 
 =head1 LICENCE
 

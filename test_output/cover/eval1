@@ -26,13 +26,18 @@ line  err   stmt branch   cond   code
 12                               
 13                               use lib -d "t" ? "t" : "..";
 14                               
-15             1                 eval <<EOS;
-16                               sub e
-17                               {
-18                                   1
-19                               }
-20                               EOS
-21                               
-22             1                 e();
+15             1                 my $x;
+16                               
+17             1                 eval <<'EOS';
+               1                 
+               1                 
+18                               sub e
+19                               {
+20                                   $x++;
+21                                   $x
+22                               }
+23                               EOS
+24                               
+25             1                 e();
 
 

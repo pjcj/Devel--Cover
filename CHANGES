@@ -90,3 +90,7 @@ Release 0.16 - 9th September 2002
  - Inline the HTML templates.
  - Rebless the op after blessing it as a COP.
  - Make branch coverage line numbers more accurate.
+
+Release 0.17 - 15th September 2002
+ - Call check_files() in report() to ensure we pick up anything added
+   to the symbol table while the program was running.

@@ -10,14 +10,14 @@ package Devel::Cover::Report::Text;
 use strict;
 use warnings;
 
-our $VERSION = "0.16";
+our $VERSION = "0.17";
 
-use Devel::Cover::DB        0.16;
-use Devel::Cover::Statement 0.16;
-use Devel::Cover::Branch    0.16;
-use Devel::Cover::Condition 0.16;
-use Devel::Cover::Pod       0.16;
-use Devel::Cover::Time      0.16;
+use Devel::Cover::DB        0.17;
+use Devel::Cover::Statement 0.17;
+use Devel::Cover::Branch    0.17;
+use Devel::Cover::Condition 0.17;
+use Devel::Cover::Pod       0.17;
+use Devel::Cover::Time      0.17;
 
 sub print_file
 {
@@ -222,7 +222,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.16 - 9th September 2002
+Version 0.17 - 15th September 2002
 
 =head1 LICENCE
 

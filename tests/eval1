@@ -12,10 +12,13 @@ use warnings;
 
 use lib -d "t" ? "t" : "..";
 
-eval <<EOS;
+my $x;
+
+eval <<'EOS';
 sub e
 {
-    1
+    $x++;
+    $x
 }
 EOS
 
