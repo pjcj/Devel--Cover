@@ -10,7 +10,7 @@ package Devel::Cover::Report::Html;
 use strict;
 use warnings;
 
-our $VERSION = "0.50";
+our $VERSION = "0.51";
 
 use base "Devel::Cover::Report::Html_minimal";
 
@@ -45,7 +45,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.50 - 25th October 2004
+Version 0.51 - 29th November 2004
 
 =head1 LICENCE
 

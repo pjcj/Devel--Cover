@@ -12,7 +12,7 @@
 use strict;
 use warnings;
 
-use Devel::Cover::Test 0.50;
+use Devel::Cover::Test 0.51;
 
 my $t = "eval2";
 my $g = "eval_use.t";
