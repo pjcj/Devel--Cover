@@ -1,4 +1,4 @@
-Reading database from cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -12,9 +12,9 @@ Total                                       92.31  62.50  66.67    n/a  79.17
 tests/t0
 
 line  err   stmt branch   cond    sub   code
-1                                       #!/usr/local/bin/perl
+1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2002-2003, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
@@ -65,9 +65,9 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-19    ***     50      0     11   if $y
-22           100      1     10   if $y and $x[0]++
-26    ***     50      0     11   if $y
+19    ***     50     11      0   if $y
+22           100     10      1   if $y and $x[0]++
+26    ***     50     11      0   if $y
 34    ***     50     11      0   if ($y) { }
 
 

@@ -1,4 +1,4 @@
-# Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.31";
+our $VERSION = "0.32";
 
 use DynaLoader ();
 our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.31;
-use Devel::Cover::Inc 0.31;
+use Devel::Cover::DB  0.32;
+use Devel::Cover::Inc 0.32;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -403,10 +403,16 @@ sub report
     {
         $existing = Devel::Cover::DB->new(db        => $DB,
                                           collected => [ @collected ])
-            if $Merge
+            if $Merge;
+        $cover->merge($existing);
     };
 
-    $cover->merge($existing) if $existing;
+    Devel::Cover::DB->delete($DB) unless $Merge;
+
+    $DB .= "/runs";
+    mkdir $DB unless -d $DB;
+    $DB .= "/" . time . ".$$." . sprintf "%05d", rand 2 ** 16;
+
     $cover->merge_identical_files;
     print STDOUT __PACKAGE__, ": Writing coverage database to $DB\n"
         unless $Silent;
@@ -451,20 +457,22 @@ sub add_branch_cover
 
     my $key = pack("I*", $$op) . pack("I*", $op->seq);
     # print STDERR "Branch cover from $file:$line $type:$text\n";
+    # use Carp "cluck"; cluck "here: ";
 
     my $c = $Coverage->{condition}{$key};
+    # use Data::Dumper; print "Coverage $type: $text\n", Dumper \@$c;
+
     if ($type eq "and")
     {
-        shift @$c;
-        $c = [ ($c->[2] || 0), ($c->[0] || 0) + ($c->[1] || 0) ];
+        $c = [ ($c->[2] || 0), ($c->[1] || 0) + ($c->[3] || 0) ];
     }
     elsif ($type eq "or")
     {
-        shift @$c;
-        $c = [ ($c->[2] || 0) + ($c->[0] || 0), ($c->[1] || 0) ];
+        $c = [ ($c->[3] || 0) + ($c->[1] || 0), ($c->[2] || 0) ];
     }
     elsif ($type eq "elsif" && !exists $Coverage->{branch}{$key})
     {
+        # TODO - is this right?
         $c = [ ($c->[1] || 0), ($c->[0] || 0) ];
     }
     else
@@ -503,7 +511,8 @@ sub add_condition_cover
     $type =~ s/assign$//;
 
     my $c = $Coverage->{condition}{$key};
-    shift @$c;
+    # use Data::Dumper; print "Condition Coverage $type\n", Dumper \@$c;
+    # shift @$c;
 
     my $count;
 
@@ -511,24 +520,24 @@ sub add_condition_cover
     {
         if ($op->first->sibling->name eq "const")
         {
-            $c = [ ($c->[2] || 0), ($c->[0] || 0) + ($c->[1] || 0) ];
+            $c = [ ($c->[3] || 0), ($c->[1] || 0) + ($c->[2] || 0) ];
             $count = 2;
         }
         else
         {
-            @$c = @{$c}[2, 1, 0];
+            @$c = @{$c}[3, 2, 1];
             $count = 3;
         }
     }
     elsif ($type eq "and")
     {
-        @$c = @{$c}[2, 0, 1];
+        @$c = @{$c}[3, 1, 2];
         $count = 3;
     }
     elsif ($type eq "xor")
     {
         # !l&&!r  l&&!r  l&&r  !l&&r
-        @$c = @{$c}[2, 1, 3, 0];
+        @$c = @{$c}[3, 2, 4, 1];
         $count = 4;
     }
     else
@@ -845,11 +854,11 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.31 - 22nd December 2003
+Version 0.32 - 4th January 2004
 
 =head1 LICENCE
 
-Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 
-# Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -12,9 +12,9 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.31";
+our $VERSION = "0.32";
 
-use Devel::Cover::DB 0.31;
+use Devel::Cover::DB 0.32;
 
 use Cwd "abs_path";
 use Data::Dumper;
@@ -115,11 +115,13 @@ sub main
 
     print "Reading database from $dbname\n";
     my $db = Devel::Cover::DB->new(db => $dbname);
+    $db = $db->merge_runs;
 
     for my $merge (@ARGV)
     {
         print "Merging database from $merge\n";
         my $mdb = Devel::Cover::DB->new(db => $merge);
+        $mdb = $mdb->merge_runs;
         $db->merge($mdb);
     }
 
@@ -250,11 +252,11 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.31 - 22nd December 2003
+Version 0.32 - 4th January 2004
 
 =head1 LICENCE
 
-Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

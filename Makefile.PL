@@ -1,6 +1,6 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 
-# Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -19,8 +19,8 @@ use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version      = "0.31";
-my $Date         = "22nd December 2003";
+my $Version      = "0.32";
+my $Date         = "4th January 2004";
 my $Author       = 'pjcj@cpan.org';
 
 my @perlbug      = ("perlbug", "-a", $Author,
@@ -40,7 +40,7 @@ my @inc          = sort keys %inc;
 open I, ">lib/Devel/Cover/Inc.pm"
     or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
 print I <<"EOI";
-# Copyright 2001-2003, Paul Johnson (pjcj\@cpan.org)
+# Copyright 2001-2004, Paul Johnson (pjcj\@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -80,7 +80,7 @@ for my $t (readdir D)
     print T <<EOT;
 #!$^X
 
-# Copyright 2002-2003, Paul Johnson (pjcj\@cpan.org)
+# Copyright 2002-2004, Paul Johnson (pjcj\@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -148,27 +148,27 @@ else
     print "not found\n\n$e\n";
 }
 
-print "checking for Template.pm      version 2.00 ........ ";
-
-$e = <<EOM;
-
-Template.pm 2.00 is required to run the HTML backend to cover and for
-cpancover.  You will not be able to generate HTML output until you
-install the Template Toolkit, available from CPAN.  In the meantime you
-may continue to use the rest of Devel::Cover.
-
-EOM
-
-eval "use Template";
-if (my $m = $INC{"Template.pm"})
-{
-    my $v = eval { no warnings; $Template::VERSION };
-    print $v < 2.00 ? "$v\n\n$e\n" : "$v $m\n";
-}
-else
-{
-    print "not found\n\n$e\n";
-}
+# print "checking for Template.pm      version 2.00 ........ ";
+# 
+# $e = <<EOM;
+# 
+# Template.pm 2.00 is required to run the HTML backend to cover and for
+# cpancover.  You will not be able to generate HTML output until you
+# install the Template Toolkit, available from CPAN.  In the meantime you
+# may continue to use the rest of Devel::Cover.
+# 
+# EOM
+# 
+# eval "use Template";
+# if (my $m = $INC{"Template.pm"})
+# {
+    # my $v = eval { no warnings; $Template::VERSION };
+    # print $v < 2.00 ? "$v\n\n$e\n" : "$v $m\n";
+# }
+# else
+# {
+    # print "not found\n\n$e\n";
+# }
 
 print "checking for Pod::Coverage.pm version 0.06 ........ ";
 

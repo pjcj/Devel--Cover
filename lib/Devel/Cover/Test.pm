@@ -1,4 +1,4 @@
-# Copyright 2002-2003, Paul Johnson (pjcj@cpan.org)
+# Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.31";
+our $VERSION = "0.32";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.31;
+use Devel::Cover::Inc 0.32;
 
 sub new
 {
@@ -168,6 +168,7 @@ sub run_test
     open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
     while (my $t = <T>)
     {
+        next if $t =~ /^Devel::Cover: merging run/;
         print $t if $debug;
         my $c = shift @cover || "";
         for ($t, $c)
@@ -179,6 +180,7 @@ sub run_test
             # s/.* Devel-Cover - \d+ \. \d+ \/*(\S+)\s*/$1/x;
             s/^ \.\.\. .* - \d+ \. \d+ \/*(\S+)\s*/$1/x;
             s/.* Devel \/ Cover \/*(\S+)\s*/$1/x;
+            s/^(Devel::Cover: merging run).*/$1/;
             s/copyright .*//ix;
         }
         # print STDERR "[$t]\n[$c]\n" if $t ne $c;
@@ -225,6 +227,7 @@ sub create_gold
     open T, "$cover_com|" or die "Cannot run $cover_com: $!";
     while (<T>)
     {
+        next if /^Devel::Cover: merging run/;
         print;
         print G $_;
     }

@@ -1,4 +1,4 @@
-# Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,16 +10,16 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.31";
+our $VERSION = "0.32";
 
-use Devel::Cover::DB::File  0.31;
-use Devel::Cover::Criterion 0.31;
+use Devel::Cover::DB::File  0.32;
+use Devel::Cover::Criterion 0.32;
 
 use Carp;
 use File::Path;
 use Storable;
 
-my $DB = "cover.6";  # Version 6 of the database.
+my $DB = "cover.7";  # Version 7 of the database.
 
 sub new
 {
@@ -47,8 +47,8 @@ sub new
     {
         $self->validate_db;
         $file = "$self->{db}/$DB";
+        $self->read($file) if -e $file;
         return $self unless -e $file;
-        $self->read($file);
     }
 
     croak "No input db, filehandle or cover" unless defined $self->{cover};
@@ -65,10 +65,12 @@ sub read
 {
     my $self = shift;
     my $file = shift;
+    # print "read $file\n";
     my $db   = retrieve($file);
 
     $self->{cover}     = $db->{cover};
     $self->{collected} = $db->{collected};
+
     $self
 }
 
@@ -85,17 +87,39 @@ sub write
         collected => $self->{collected},
     };
 
+    # print "write $self->{db}/$DB\n";
     Storable::nstore($db, "$self->{db}/$DB");
     $self
 }
 
-
 sub delete
 {
     my $self = shift;
-    $self->{db} = shift if @_;
-    croak "No db specified" unless length $self->{db};
-    rmtree($self->{db});
+    my $db = "";
+    $db = $self->{db} if ref $self;
+    $db = shift if @_;
+    $self->{db} = $db if ref $self;
+    croak "No db specified" unless length $db;
+    rmtree([glob "$db/*"]);
+    $self
+}
+
+sub merge_runs
+{
+    my $self = shift;
+    my $db = $self->{db};
+    # print "merge_runs from $db/runs/*\n";
+    return unless length $db;
+    my @runs = glob "$db/runs/*";
+    for my $run (@runs)
+    {
+        print STDERR "Devel::Cover: merging run $run\n"
+            unless $Devel::Cover::Silent;
+        my $r = Devel::Cover::DB->new(db => $run);
+        rmtree($run);
+        $self->merge($r);
+    }
+    $self->write($db) if @runs;
     $self
 }
 
@@ -161,7 +185,8 @@ sub merge
         if ($sd && $fd && $sd ne $fd)
         {
             # File has changed.  Delete old coverage instead of merging.
-            print "Devel::Cover: Deleting old coverage for changed file $file\n"
+            print STDERR "Devel::Cover: ",
+                         "Deleting old coverage for changed file $file\n"
                 unless $Devel::Cover::Silent;
             delete $from->{cover}{$file};
         }
@@ -580,11 +605,11 @@ Huh?
 
 =head1 VERSION
 
-Version 0.31 - 22nd December 2003
+Version 0.32 - 4th January 2004
 
 =head1 LICENCE
 
-Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

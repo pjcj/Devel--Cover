@@ -1,0 +1,78 @@
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/do                                   100.00  50.00    n/a    n/a  76.92
+tests/do.pl                                100.00    n/a    n/a 100.00 100.00
+Total                                      100.00  50.00    n/a 100.00  80.00
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+tests/do
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2003-2004, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      use lib "tests";
+11                                      
+12             1                        $x = 1;
+13             1                        $y = "a";
+14                                      
+15    ***      1     50                 do "do.pl"    or die;
+16             1                        a();
+17                                      
+18    ***      1     50                 do "dodup.pl" or die;
+19             1                        b();
+20                                      
+21    ***      1     50                 die unless $x == 3;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+15    ***     50      1      0   unless do 'do.pl'
+18    ***     50      1      0   unless do 'dodup.pl'
+21    ***     50      1      0   unless $x == 3
+
+
+tests/do.pl
+
+line  err   stmt branch   cond    sub   code
+1                                       # Copyright 2003-2004, Paul Johnson (pjcj@cpan.org)
+2                                       
+3                                       # This software is free.  It is licensed under the same terms as Perl itself.
+4                                       
+5                                       # The latest version of this software should be available from my homepage:
+6                                       # http://www.pjcj.net
+7                                       
+8              2                  100   eval <<"EOE";
+9                                       sub $y
+10                                      {
+11                                          \$x++
+12                                      }
+13                                      EOE
+14                                      
+15                                      $y++;
+16                                      
+17                                      1
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Location     
+---------- -------------
+b          tests/do.pl:8
+
+

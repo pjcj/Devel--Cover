@@ -1,4 +1,4 @@
-# Copyright 2002-2003, Paul Johnson (pjcj@cpan.org)
+# Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 

@@ -1,4 +1,4 @@
-# Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,18 +10,18 @@ package Devel::Cover::Criterion;
 use strict;
 use warnings;
 
-our $VERSION = "0.31";
+our $VERSION = "0.32";
 
-use Devel::Cover::Statement       0.31;
-use Devel::Cover::Branch          0.31;
-use Devel::Cover::Condition       0.31;
-use Devel::Cover::Condition_or_2  0.31;
-use Devel::Cover::Condition_or_3  0.31;
-use Devel::Cover::Condition_and_3 0.31;
-use Devel::Cover::Condition_xor_4 0.31;
-use Devel::Cover::Subroutine      0.31;
-use Devel::Cover::Time            0.31;
-use Devel::Cover::Pod             0.31;
+use Devel::Cover::Statement       0.32;
+use Devel::Cover::Branch          0.32;
+use Devel::Cover::Condition       0.32;
+use Devel::Cover::Condition_or_2  0.32;
+use Devel::Cover::Condition_or_3  0.32;
+use Devel::Cover::Condition_and_3 0.32;
+use Devel::Cover::Condition_xor_4 0.32;
+use Devel::Cover::Subroutine      0.32;
+use Devel::Cover::Time            0.32;
+use Devel::Cover::Pod             0.32;
 
 sub new
 {
@@ -79,11 +79,11 @@ Huh?
 
 =head1 VERSION
 
-Version 0.31 - 22nd December 2003
+Version 0.32 - 4th January 2004
 
 =head1 LICENCE
 
-Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

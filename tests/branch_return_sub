@@ -7,18 +7,20 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-package Destroy;
+use strict;
+use warnings;
 
-sub new { bless {}, shift }
-
-my $x;
-
-sub DESTROY
+sub my_sqrt
 {
-    $x++;
-    $x++;
+    my $n = shift;
+
+    if ( !defined($n) || ($n < 0) ) {
+        return undef;
+    }
+
+    return sqrt($n);
 }
 
-package main;
-
-my $d = Destroy->new;
+my_sqrt(25);
+my_sqrt(-2);
+my_sqrt(undef);

@@ -1,4 +1,4 @@
-Reading database from cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -13,7 +13,7 @@ Total                                       56.25  50.00    n/a  40.00  52.17
 tests/Module2.pm
 
 line  err   stmt branch   cond    sub   code
-1                                       # Copyright 2002-2003, Paul Johnson (pjcj@cpan.org)
+1                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
 2                                       
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
@@ -74,9 +74,9 @@ yy         tests/Module2.pm:28
 tests/module2
 
 line  err   stmt branch   cond    sub   code
-1                                       #!/usr/local/bin/perl
+1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2002-2003, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       

@@ -183,3 +183,13 @@ Release 0.30 - 22nd December 2003
 
 Release 0.31 - 22nd December 2003
  - Remove debugging output.  Hmmm.
+
+Release 0.32 - 4th January 2004
+ - Actually include do test.
+ - Create run concept in database.
+ - Belatedly remove check for Template.
+ - Add branch_return_sub test.
+ - Add finalise_conditions() to collect previously missed coverage.
+ - Fix incorrect coverage results associated with "and" conditions.
+ - Add all_versions utility script.
+ - Put /usr/bin/perl on all shebang lines.

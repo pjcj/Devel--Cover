@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
+ * Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
  *
  * This software is free.  It is licensed under the same terms as Perl itself.
  *
@@ -53,7 +53,6 @@ static HV *Cover_hv,
           *Times,
           *Pending_conditionals;
 
-static int Got_condition = 0;
 static OP *Profiling_op  = 0;
 
 typedef int seq_t;
@@ -197,6 +196,16 @@ static void set_conditional(OP *op, int cond, int value)
     SV **count;
     AV  *conds = get_conditional_array(op);
 
+    /*
+     * The conditional array comprises five elements:
+     *
+     * 0 - 1 iff we are in an xor and the first operand was true
+     * 1 - not short circuited - second operand is false
+     * 2 - not short circuited - second operand is true
+     * 3 - short circuited, or for xor second operand is false
+     * 4 - for xor second operand is true
+     */
+
     count = av_fetch(conds, cond, 1);
     sv_setiv(*count, value);
     NDEB(D(L, "Setting %d conditional to %d at %p\n", cond, value, op));
@@ -214,23 +223,76 @@ static void add_conditional(OP *op, int cond)
     NDEB(D(L, "Adding %d conditional making %d at %p\n", cond, c, op));
 }
 
+static void finalise_conditions()
+{
+    /*
+     * Our algorithm for conditions relies on ending up at a particular
+     * op which we use to call get_condition().  It's possible that we
+     * never get to that op; for example we might return out of a sub.
+     * This causes us to lose coverage information.
+     *
+     * This function is called when the program has been run in order to
+     * collect that lost information.
+     */
+
+    HE *e;
+    I32 i = hv_iterinit(Pending_conditionals);
+
+    while (e = hv_iternext(Pending_conditionals))
+    {
+        SV *sv = hv_iterval(Pending_conditionals, e);
+        AV *conds = (AV *) SvRV(sv);
+
+        NDEB(D(L, "Looking through %d conditionals\n", av_len(conds)));
+
+        for (i = 1; i <= av_len(conds); i++)
+        {
+            SV **sv = av_fetch(conds, i, 0);
+            OP *op = (OP *) SvIV(*sv);
+
+            {
+                dSP;
+                SV **count;
+                int  type;
+                AV  *cond_array = get_conditional_array(op);
+                int  value;
+
+                /*
+                 * Since we are here we know that the condition was not
+                 * short circuited.  We also know that the other operand
+                 * must have made the condition true, otherwise we would
+                 * have reached the op we were expecting to reach.
+                 */
+
+                count = av_fetch(cond_array, 0, 1);
+                type  = SvTRUE(*count) ? SvIV(*count) : 0;
+                sv_setiv(*count, 0);
+
+                /* Check if we have come from an xor with a true first op */
+                value = (type == 1) ? 3 : 2;
+
+                NDEB(D(L, "%3d: Found %p\n", i, PL_op));
+                add_conditional(op, value);
+            }
+        }
+
+        av_clear(conds);
+    }
+}
+
 static OP *get_condition(pTHX)
 {
-    char *ch;
-    AV   *conds;
-    SV  **sv;
-    OP   *op;
-    OP *(*f)(pTHX);
-    I32   i;
+    char *ch = get_key(PL_op);
+    SV  **sv = hv_fetch(Pending_conditionals, ch, ch_sz, 0);
 
     NDEB(D(L, "In get_condition\n"));
 
-    ch = get_key(PL_op);
-    sv = hv_fetch(Pending_conditionals, ch, ch_sz, 0);
-
     if (sv && SvROK(*sv))
     {
-        conds = (AV *) SvRV(*sv);
+        OP *(*f)(pTHX);
+        AV   *conds = (AV *) SvRV(*sv);
+        I32   i;
+
         NDEB(D(L, "Looking through %d conditionals\n", av_len(conds)));
 
         sv = av_fetch(conds, 0, 0);
@@ -238,6 +300,7 @@ static OP *get_condition(pTHX)
 
         for (i = 1; i <= av_len(conds); i++)
         {
+            OP *op;
             sv = av_fetch(conds, i, 0);
             op = (OP *) SvIV(*sv);
 
@@ -245,14 +308,14 @@ static OP *get_condition(pTHX)
                 dSP;
                 SV **count;
                 int  type;
-                AV  *conds = get_conditional_array(op);
+                AV  *cond_array = get_conditional_array(op);
                 int value = SvTRUE(TOPs) ? 2 : 1;
 
-                count = av_fetch(conds, 0, 1);
+                count = av_fetch(cond_array, 0, 1);
                 type  = SvTRUE(*count) ? SvIV(*count) : 0;
                 sv_setiv(*count, 0);
 
-                /* Check if we have come from an xor with a true right op */
+                /* Check if we have come from an xor with a true first op */
                 if (type == 1)
                     value += 2;
 
@@ -273,8 +336,6 @@ static OP *get_condition(pTHX)
                    "All is lost, I know not where to go from %p, %d: %p\n",
                    PL_op, PL_op->op_seq, sv);
     }
-
-    Got_condition = 1;
 
     return PL_op;
 }
@@ -337,15 +398,9 @@ static void cover_logop()
             PL_op->op_type == OP_ORASSIGN  && !left_val ||
             PL_op->op_type == OP_XOR)
         {
-            char *ch;
-            AV *conds;
-            SV **tmp,
-               *cond,
-               *ppaddr;
-            OP *next,
-               *right;
+            /* no short circuit */
 
-            right = cLOGOP->op_first->op_sibling;
+            OP *right = cLOGOP->op_first->op_sibling;
             NDEB(op_dump(right));
 
             if (right->op_type == OP_NEXT ||
@@ -365,17 +420,22 @@ static void cover_logop()
             }
             else
             {
+                char *ch;
+                AV   *conds;
+                SV  **tmp,
+                     *cond;
+                OP   *next;
+
                 if (PL_op->op_type == OP_XOR && left_val)
                 {
                     /*
                      * This is an xor.  It does not short circuit.  We
-                     * have just executed the right op, rather than the
-                     * left op as with and and or.  When we get to next
-                     * we will have already done the xor, so we can work
-                     * out what the value of the left op was.
+                     * have just executed the first op.  When we get to
+                     * next we will have already done the xor, so we can
+                     * work out what the value of the second op was.
                      *
                      * We set a flag in the first element of the array
-                     * to say that we had a true value from the right
+                     * to say that we had a true value from the first
                      * op.
                      */
 
@@ -395,9 +455,9 @@ static void cover_logop()
 
                 if (av_len(conds) < 0)
                 {
-                    NDEB(D(L, "setting f to %p\n", next->op_ppaddr));
-                    ppaddr = newSViv((IV) next->op_ppaddr);
+                    SV *ppaddr = newSViv((IV) next->op_ppaddr);
                     av_push(conds, ppaddr);
+                    NDEB(D(L, "setting f to %p\n", next->op_ppaddr));
                 }
 
                 cond = newSViv((IV) PL_op);
@@ -414,6 +474,8 @@ static void cover_logop()
         }
         else
         {
+            /* short circuit */
+
             add_conditional(PL_op, 3);
         }
     }
@@ -505,13 +567,11 @@ static int runops_cover(pTHX)
     {
         NDEB(D(L, "running func %p\n", PL_op->op_ppaddr));
 
-        if (Got_condition)
-        {
-            Got_condition = 0;
-            goto call_fptr;
-        }
-
         if (!Covering)
+            goto call_fptr;
+
+        /* Nothing to collect when we've hijacked the ppaddr */
+        if (PL_op->op_ppaddr == get_condition)
             goto call_fptr;
 
         /* Check to see whether we are interested in this file */
@@ -747,11 +807,12 @@ coverage_all()
 SV *
 coverage()
     CODE:
-          ST(0) = sv_newmortal();
-          if (Cover_hv)
-               sv_setsv(ST(0), newRV_inc((SV*) Cover_hv));
-          else
-               ST(0) = &PL_sv_undef;
+        finalise_conditions();
+        ST(0) = sv_newmortal();
+        if (Cover_hv)
+            sv_setsv(ST(0), newRV_inc((SV*) Cover_hv));
+        else
+            ST(0) = &PL_sv_undef;
 
 BOOT:
     /* PL_runops        = runops_orig; */
