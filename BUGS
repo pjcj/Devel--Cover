@@ -1,2 +1,2 @@
-- make test TEST_VERBOSE=1 fails.  The coverage is genuinely different, but I
-  have no idea why.
+- Testing with different versions of perl, or using TEST_VERBOSE=1 can fail.
+  The coverage is genuinely different, but I have no idea why.

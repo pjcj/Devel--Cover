@@ -1,7 +1,7 @@
 NAME
     Devel::Cover - a module to provide code coverage for Perl
 
-    Version 0.01 - 9th May 2001
+    Version 0.02 - 10th May 2001
 
 DESCRIPTION
     Copyright 2001, Paul Johnson (pjcj@cpan.org)

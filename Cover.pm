@@ -12,19 +12,24 @@ use warnings;
 
 use DynaLoader ();
 
-our @ISA     = qw( DynaLoader );
-our $VERSION = "0.01";
+use Devel::Cover::Process 0.02;
 
-use B qw(class main_root main_start main_cv svref_2object OPf_KIDS);
+our @ISA     = qw( DynaLoader );
+our $VERSION = "0.02";
+
+use B qw( class main_root main_start main_cv svref_2object OPf_KIDS );
 use Data::Dumper;
 
 my $Covering = 1;
+
+my $Indent   = 0;
+my $Output   = "default.cov";
+my $Summary  = 1;
+
 my %Cover;
 my $Cv;
 my @Todo;
 my %Done;
-my $Output = "default.cov";
-my $Indent = 0;
 my @Inc;
 
 BEGIN { @Inc = @INC }
@@ -37,8 +42,9 @@ sub import
     while (@_)
     {
         local $_ = shift;
-        /^-i/ && do { $Indent = shift; next };
-        /^-o/ && do { $Output = shift; next };
+        /^-i/ && do { $Indent  = shift; next };
+        /^-o/ && do { $Output  = shift; next };
+        /^-S/ && do { $Summary = 0;     next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
 }
@@ -54,7 +60,7 @@ sub report
     return unless $Covering > 0;
     cover(-1);
     # print "Processing cover data\n";
-    stash_subs("main");
+    get_subs("main");
     INC:
     while (my ($name, $file) = each %INC)
     {
@@ -62,7 +68,7 @@ sub report
         for (@Inc) { next INC if $file =~ /^\Q$_/ }
         $name =~ s/\.pm$//;
         $name =~ s/\//::/g;
-        stash_subs($name);
+        get_subs($name);
     }
     $Cv = main_cv;
     walk_sub($Cv, main_start);
@@ -83,27 +89,17 @@ sub report
     }
 
     {
-        # print "Indent => $Indent\n";
         local $Data::Dumper::Indent = $Indent;
         open OUT, ">$Output" or die "Cannot open $Output\n";
         print OUT Data::Dumper->Dump([\%Cover], ["cover"]);
         close OUT or die "Cannot close $Output\n";
     }
 
-    COVER:
-    for my $file (sort keys %Cover)
+    if ($Summary)
     {
-        print "$file\n\n";
-        my $lines = $Cover{$file};
-        for my $line (sort { $a <=> $b } keys %$lines)
-        {
-            my $l = $lines->{$line};
-            printf "%4d: " . ("%6d" x @$l) . "\n", $line, @$l;
-        }
-        print "\n";
+        my $cover = Devel::Cover::Process->new(cover => \%Cover);
+        $cover->print_summary;
     }
-
-    %Cover = ();
 }
 
 sub walk_topdown
@@ -124,7 +120,7 @@ sub walk_topdown
     }
 }
 
-sub stash_subs
+sub get_subs
 {
     my $pack = shift;
     # print "package $pack\n";
@@ -209,7 +205,7 @@ __END__
 
 Devel::Cover - a module to provide code coverage for Perl
 
-Version 0.01 - 9th May 2001
+Version 0.02 - 10th May 2001
 
 =head1 SYNOPSIS
 
@@ -245,6 +241,7 @@ Requirements:
 
  -o file    - Send output to file (default default.cov).
  -i indent  - Set indentation level to indent.  See Data::Dumper for details.
+ -S         - Don't print summary information.
 
 =head1 TUTORIAL
 
@@ -409,9 +406,18 @@ So there's a basic tutorial on code coverage, or at least my version of
 it.  Typing a few of these terms into google will probably provide a
 basis for future research.
 
+=head1 ACKNOWLEDGEMENTS
+
+Some code and ideas cribbed from:
+
+ Devel::OpProf
+ B::Concise
+ B::Deparse
+
 =head1 SEE ALSO
 
  Data::Dumper
+ B
 
 =head1 BUGS
 

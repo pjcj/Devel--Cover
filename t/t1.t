@@ -7,15 +7,15 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-use Devel::Cover::Process 0.01 qw( cover_read );
-use Devel::Cover 0.01 qw( -i 1 -o t1.cov );
+use Devel::Cover::Process 0.02 qw( cover_read );
+use Devel::Cover 0.02 qw( -i 1 -o t1.cov );
 
 use strict;
 use warnings;
 
 use Test;
 
-BEGIN { plan tests => 3 }
+BEGIN { plan tests => 1 }
 
 use lib -d "t" ? "t" : "..";
 
@@ -56,10 +56,8 @@ Devel::Cover::report();
 
 END
 {
-    ok open T1, "t1.cov";
-    my $t1 = cover_read(*T1{IO});
-    my $t2 = cover_read(*DATA{IO});
-    ok close T1;
+    my $t1 = Devel::Cover::Process->new(file       => "t1.cov" )->cover;
+    my $t2 = Devel::Cover::Process->new(filehandle => *DATA{IO})->cover;
     my $error = "keys";
     my $ok = keys %$t1 == keys %$t2;
     FILE:
