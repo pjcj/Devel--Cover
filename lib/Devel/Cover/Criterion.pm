@@ -10,17 +10,17 @@ package Devel::Cover::Criterion;
 use strict;
 use warnings;
 
-our $VERSION = "0.19";
+our $VERSION = "0.20";
 
-use Devel::Cover::Statement       0.19;
-use Devel::Cover::Branch          0.19;
-use Devel::Cover::Condition       0.19;
-use Devel::Cover::Condition_or_2  0.19;
-use Devel::Cover::Condition_or_3  0.19;
-use Devel::Cover::Condition_and_3 0.19;
-use Devel::Cover::Condition_xor_4 0.19;
-use Devel::Cover::Time            0.19;
-use Devel::Cover::Pod             0.19;
+use Devel::Cover::Statement       0.20;
+use Devel::Cover::Branch          0.20;
+use Devel::Cover::Condition       0.20;
+use Devel::Cover::Condition_or_2  0.20;
+use Devel::Cover::Condition_or_3  0.20;
+use Devel::Cover::Condition_and_3 0.20;
+use Devel::Cover::Condition_xor_4 0.20;
+use Devel::Cover::Time            0.20;
+use Devel::Cover::Pod             0.20;
 
 sub new
 {
@@ -78,7 +78,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.19 - 29th September 2002
+Version 0.20 - 5th October 2002
 
 =head1 LICENCE
 

@@ -6,7 +6,7 @@ DESCRIPTION
 
     If you can't guess by the version number this is an alpha release.
 
-    Code coverage data are collected using a plugable runops function which
+    Code coverage data are collected using a pluggable runops function which
     counts how many times each op is executed. These data are then mapped
     back to reality using the B compiler modules. There is also a statement
     profiling facility which needs a better backend to be really useful.

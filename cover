@@ -12,9 +12,9 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.19";
+our $VERSION = "0.20";
 
-use Devel::Cover::DB 0.19;
+use Devel::Cover::DB 0.20;
 
 use Getopt::Long;
 
@@ -23,6 +23,7 @@ use Pod::Usage;
 my $Options =
 {
     coverage         => [],
+    delete           => 0,
     file             => [],
     option           => [],
     report           => "",
@@ -39,6 +40,7 @@ sub get_options
                },
                qw(
                    coverage=s
+                   delete!
                    help|h!
                    file=s
                    info|i!
@@ -70,6 +72,17 @@ sub main
     pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
 
     my $dbname = shift @ARGV || "cover_db";
+
+    if ($Options->{delete})
+    {
+        for my $del ($dbname, @ARGV)
+        {
+            print "Deleting database $dbname\n";
+            my $db = Devel::Cover::DB->new(db => $dbname);
+            $db->delete;
+        }
+        exit 0;
+    }
 
     print "Reading database from $dbname\n";
     my $db = Devel::Cover::DB->new(db => $dbname);
@@ -185,7 +198,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.19 - 29th September 2002
+Version 0.20 - 5th October 2002
 
 =head1 LICENCE
 

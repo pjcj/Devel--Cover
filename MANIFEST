@@ -25,6 +25,7 @@ lib/Devel/Cover/Report/Html.pm
 cover
 gcov2perl
 create_gold
+cpancover
 tests/t0
 tests/t1
 tests/t2

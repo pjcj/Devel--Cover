@@ -18,8 +18,8 @@ use ExtUtils::MakeMaker;
 
 $| = 1;
 
-my $Version = "0.19";
-my $Date    = "29th September 2002";
+my $Version = "0.20";
+my $Date    = "5th October 2002";
 my $Author  = 'pjcj@cpan.org';
 
 my @perlbug = ("perlbug", "-a", $Author,
@@ -164,6 +164,7 @@ WriteMakefile
     EXE_FILES => [ "cover", "gcov2perl" ],
     dist      => { COMPRESS => "gzip --best --force" },
     clean     => { FILES => join " ",  map { "$_.version" } @versions },
+    realclean => { FILES => "lib/Devel/Cover/Inc.pm cover_db t" },
     depend    => { distdir => "@files" },
 );
 

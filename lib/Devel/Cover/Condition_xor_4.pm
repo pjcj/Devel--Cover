@@ -10,7 +10,7 @@ package Devel::Cover::Condition_xor_4;
 use strict;
 use warnings;
 
-our $VERSION = "0.19";
+our $VERSION = "0.20";
 
 use base "Devel::Cover::Condition";
 
@@ -31,8 +31,7 @@ Devel::Cover::Condition_xor_4 - Code coverage metrics for Perl
 
 =head1 DESCRIPTION
 
-Module for storing condition coverage information for or conditions
-where the right value is a constant.
+Module for storing condition coverage information for xor conditions.
 
 =head1 SEE ALSO
 
@@ -46,7 +45,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.19 - 29th September 2002
+Version 0.20 - 5th October 2002
 
 =head1 LICENCE
 

@@ -212,7 +212,7 @@ static OP *get_condition(pTHX)
     AV   *conds;
     SV  **sv;
     OP   *op;
-    OP *(*f)(pTHX_);
+    OP *(*f)(pTHX);
     I32   i;
 
     NDEB(D(L, "In get_condition\n"));
@@ -226,7 +226,7 @@ static OP *get_condition(pTHX)
         NDEB(D(L, "Looking through %d conditionals\n", av_len(conds)));
 
         sv = av_fetch(conds, 0, 0);
-        f  = (OP *(*)(pTHX_)) SvIV(*sv);
+        f  = (OP *(*)(pTHX)) SvIV(*sv);
 
         for (i = 1; i <= av_len(conds); i++)
         {
@@ -526,6 +526,7 @@ static int runops_cover(pTHX)
             }
 
             default:
+                ;  /* IBM's xlC compiler on AIX is very picky */
         }
     }
 

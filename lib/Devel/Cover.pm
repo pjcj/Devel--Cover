@@ -11,12 +11,12 @@ use strict;
 use warnings;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.19";
+our $VERSION = "0.20";
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.19;
-use Devel::Cover::Inc 0.19;
+use Devel::Cover::DB  0.20;
+use Devel::Cover::Inc 0.20;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -169,6 +169,8 @@ sub get_coverage
     return wantarray ? @names : "@names";
 }
 
+my %File_cache;
+
 sub get_location
 {
     my ($op) = @_;
@@ -180,10 +182,22 @@ sub get_location
 
     ($File, $Line) = ($1, $2) if $File =~ /^\(eval \d+\)\[(.*):(\d+)\]/;
 
+    if (exists $File_cache{$File})
+    {
+        $File = $File_cache{$File};
+        return;
+    }
+
+    my $file = $File;
+
     $File =~ s/ \(autosplit into .*\)$//;
     $File =~ s/^$Cwd\///;
+    # $File =~ s/^blib\///;
+    # $File =~ s/^lib\///;
 
-    # print "File: $File\n";
+    $File_cache{$file} = $File;
+
+    # warn "File: $file => $File\n";
 }
 
 sub use_file
@@ -265,7 +279,9 @@ sub report
 
     for my $file (keys %$Cover)
     {
-        delete $Cover->{$file} unless use_file($file);
+        my $use = use_file($file);
+        # warn sprintf "%-4s using $file\n", $use ? "" : "not";
+        delete $Cover->{$file} unless $use;
     }
 
     my $cover = Devel::Cover::DB->new
@@ -561,7 +577,7 @@ This module provides code coverage metrics for Perl.
 
 If you can't guess by the version number this is an alpha release.
 
-Code coverage data are collected using a plugable runops function which
+Code coverage data are collected using a pluggable runops function which
 counts how many times each op is executed.  These data are then mapped
 back to reality using the B compiler modules.  There is also a statement
 profiling facility which needs a better backend to be really useful.
@@ -627,7 +643,7 @@ Did I mention that this is alpha code?
 
 =head1 VERSION
 
-Version 0.19 - 29th September 2002
+Version 0.20 - 5th October 2002
 
 =head1 LICENCE
 

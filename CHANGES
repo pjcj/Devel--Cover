@@ -109,3 +109,8 @@ Release 0.18 - 28th September 2002
 
 Release 0.19 - 29th September 2002
  - Quieten uninitialised value warnings.
+
+Release 0.20 - 5th October 2002
+ - Add break after default to satisfy IBM's xlC compiler on AIX.
+ - Get things working with threads again.
+ - make realclean is.
