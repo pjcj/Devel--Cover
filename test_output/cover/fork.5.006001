@@ -1,11 +1,11 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3805/cover_db
+Reading database from /mnt/b/sda1/home/pjcj/g/perl/svk/dc/trunk/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/fork                                  100.0   75.0    n/a    n/a   90.0
-Total                                       100.0   75.0    n/a    n/a   90.0
+tests/fork                                  100.0   75.0    n/a    n/a   90.9
+Total                                       100.0   75.0    n/a    n/a   90.9
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -31,13 +31,14 @@ line  err   stmt branch   cond    sub   code
 17             2    100                 if ($pid)
 18                                      {
 19             1                            $x = 2;
-20                                      }
-21                                      else
-22                                      {
-23             1                            $x = 3;
-24                                      }
-25                                      
-26             2                        print "$x: $$\n";
+20             1                            waitpid $pid, 0;
+21                                      }
+22                                      else
+23                                      {
+24             1                            $x = 3;
+25                                      }
+26                                      
+27             2                        print "$x: $$\n";
 
 
 Branches

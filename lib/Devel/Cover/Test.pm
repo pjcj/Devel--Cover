@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.45";
+our $VERSION = "0.46";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.45;
+use Devel::Cover::Inc 0.46;
 
 sub new
 {
@@ -37,6 +37,8 @@ sub new
         criteria    => $criteria,
         skip        => "",
         uncoverable => "",
+        select      => "",
+        ignore      => "",
         %params
     };
 
@@ -57,7 +59,8 @@ sub get_params
     }
     close T or die "Cannot close $test: $!";
 
-    $self->{test_parameters}  = "-select $self->{test} -ignore blib Devel/Cover"
+    $self->{test_parameters}  = "-select $self->{test} $self->{select}"
+                              . " -ignore blib Devel/Cover $self->{ignore}"
                               . " -merge 0 -coverage $self->{criteria}";
     $self->{cover_parameters} = join(" ", map "-coverage $_",
                                               split " ", $self->{criteria})
@@ -95,7 +98,7 @@ sub test_command
     my $self = shift;
 
     my $c = $self->perl;
-    unless ($ENV{NOCOVERAGE})
+    unless ($ENV{DEVEL_COVER_NO_COVERAGE})
     {
         $c .= " -MDevel::Cover=" .
               join(",", split ' ', $self->{test_parameters})
@@ -142,7 +145,8 @@ sub cover_gold
 
     die "Can't find golden results for $test" unless $v;
 
-    $v = $ENV{__COVER_GOLDEN_VERSION} if exists $ENV{__COVER_GOLDEN_VERSION};
+    $v = $ENV{DEVEL_COVER_GOLDEN_VERSION}
+        if exists $ENV{DEVEL_COVER_GOLDEN_VERSION};
 
     "$td/$test.$v"
 }
@@ -152,7 +156,7 @@ sub run_command
     my $self = shift;
     my ($command) = @_;
 
-    my $debug = $ENV{__COVER__DEBUG} || 0;
+    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
 
     print "Running test [$command]\n" if $debug;
 
@@ -168,7 +172,7 @@ sub run_test
 {
     my $self = shift;
 
-    my $debug = $ENV{__COVER__DEBUG} || 0;
+    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
 
     my $gold = $self->cover_gold;
     open I, $gold or die "Cannot open $gold: $!";
@@ -236,15 +240,15 @@ sub run_test
         }
         else
         {
-            $ENV{NOCOVERAGE} ? ok 1 : ok $t, $c;
-            last if $ENV{NOCOVERAGE} && !@cover;
+            $ENV{DEVEL_COVER_NO_COVERAGE} ? ok 1 : ok $t, $c;
+            last if $ENV{DEVEL_COVER_NO_COVERAGE} && !@cover;
         }
     }
     if ($differences)
     {
-        $ENV{NOCOVERAGE} ? ok 1 : eq_or_diff(\@at, \@ac);
+        $ENV{DEVEL_COVER_NO_COVERAGE} ? ok 1 : eq_or_diff(\@at, \@ac);
     }
-    elsif ($ENV{NOCOVERAGE})
+    elsif ($ENV{DEVEL_COVER_NO_COVERAGE})
     {
         ok 1 for @cover;
     }
@@ -258,7 +262,7 @@ sub create_gold
     # Pod::Coverage not available on all versions, but it must be there on 5.6.1
     return if $self->{criteria} =~ /\bpod\b/ && $] != 5.006001;
 
-    my $debug = $ENV{__COVER__DEBUG} || 0;
+    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
 
     my $test_com = $self->test_command;
     print "Running test [$test_com]\n" if $debug;

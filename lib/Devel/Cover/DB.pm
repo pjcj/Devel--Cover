@@ -10,11 +10,11 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.45";
+our $VERSION = "0.46";
 
-use Devel::Cover::Criterion     0.45;
-use Devel::Cover::DB::File      0.45;
-use Devel::Cover::DB::Structure 0.45;
+use Devel::Cover::Criterion     0.46;
+use Devel::Cover::DB::File      0.46;
+use Devel::Cover::DB::Structure 0.46;
 
 use Carp;
 use File::Path;
@@ -77,7 +77,7 @@ sub write
     croak "No db specified" unless length $self->{db};
     unless (-d $self->{db})
     {
-        mkdir $self->{db}, 0777 or croak "Cannot mkdir $self->{db}: $!\n";
+        mkdir $self->{db}, 0777 or croak "Can't mkdir $self->{db}: $!\n";
     }
     $self->validate_db;
 
@@ -157,7 +157,8 @@ sub merge
 {
     my ($self, $from) = @_;
 
-    # use Data::Dumper; print "Merging ", Dumper($self), "From ", Dumper($from);
+    # use Data::Dumper; $Data::Dumper::Indent = 1;
+    # print "Merging ", Dumper($self), "From ", Dumper($from);
 
     while (my ($fname, $frun) = each %{$from->{runs}})
     {
@@ -185,6 +186,11 @@ sub merge
 
     _merge_hash($from->{runs},      $self->{runs});
     _merge_hash($from->{collected}, $self->{collected});
+
+    for (keys %$self)
+    {
+        $from->{$_} = $self->{$_} unless $_ eq "runs" || $_ eq "collected";
+    }
 
     $_[0] = $from;
 }
@@ -379,6 +385,8 @@ sub add_statement
         $cc->{$l}[$n][0]  += $fc->[$i];
         $cc->{$l}[$n][1] ||= $uc->{$l}[$n][0][1];
     }
+    # use Data::Dumper; print Dumper $uc;
+    # use Data::Dumper; print Dumper $cc;
 }
 
 sub add_time
@@ -477,8 +485,7 @@ sub uncoverable
     for my $file ($f, glob("~/$f"), @{$self->{uncoverable}})
     {
         open F, $file or next;
-        print STDERR "Devel::Cover: reading uncoverable information ",
-                     "from $file\n"
+        print "Reading uncoverable information from $file\n"
             unless $Devel::Cover::Silent;
         while (<F>)
         {
@@ -712,7 +719,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.45 - 27th May 2004
+Version 0.46 - 23rd June 2004
 
 =head1 LICENCE
 

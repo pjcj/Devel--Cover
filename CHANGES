@@ -304,3 +304,11 @@ Release 0.45 - 27th May 2004
  - Allow Devel::Cover to be used under mod_perl (Philippe M. Chiasson).
  - Handle $x ||= 1 and friends nicely, including subs and *foo{THING}.
  - Allow uncoverable code to be specified.  (Unfinished)
+
+Release 0.46 - 23rd June 2004
+ - Don't lose data merging DBs.
+ - Work with Safe.pm, by not covering it.
+ - Swap Profiling_op for Profiling_key to avoid accessing freed memory.
+ - Rename -file and -exclude options in cover to -select and -ignore.
+ - Fully cover conditions and branches when the condition calls a sub in
+   an ignored file.

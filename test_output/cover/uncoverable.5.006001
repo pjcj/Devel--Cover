@@ -1,4 +1,5 @@
 Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
+Reading uncoverable information from tests/.uncoverable
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -25,14 +26,14 @@ line  err   stmt branch   cond    sub   code
 11                                      
 12             1                        my $x = 1;
 13             1                        my $y = 1;
-14    ***      1     50     33          if ($x && !$y)
+14             1     50     33          if ($x && !$y)
 15                                      {
-16    ***      0                            $x++;
-17    ***      0                            z();
+16             0                            $x++;
+17             0                            z();
 18                                      }
 19                                      sub z
 20                                      {
-21    ***      0                    0       $y++;
+21             0                    0       $y++;
 22                                      }
 
 
@@ -41,7 +42,7 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-14    ***     50      0      1   if ($x and not $y)
+14            50      0      1   if ($x and not $y)
 
 
 Conditions
@@ -51,7 +52,7 @@ and 3 conditions
 
 line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
-14    ***     33      0      1      0   $x and not $y
+14            33      0      1      0   $x and not $y
 
 
 Uncovered Subroutines

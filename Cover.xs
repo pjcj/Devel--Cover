@@ -27,7 +27,7 @@ extern "C" {
 #endif
 
 #define PDEB(a) a
-#define NDEB(a)
+#define NDEB(a) ;
 #define D PerlIO_printf
 #define L Perl_debug_log
 #define svdump(sv) do_sv_dump(0, L, (SV *)sv, 0, 10, 1, 0);
@@ -56,8 +56,6 @@ static HV *Cover,
 
 static AV *Ends;
 
-static OP *Profiling_op = 0;
-
 struct unique    /* Well, we'll be fairly unlucky if it's not */
 {
     OP *addr;
@@ -71,6 +69,8 @@ union sequence   /* Hack, hack, hackety hack. */
     struct unique op;
     char          ch[CH_SZ + 1];
 };
+
+static char Profiling_key[CH_SZ + 1];
 
 #ifdef HAS_GETTIMEOFDAY
 
@@ -163,7 +163,8 @@ static char *get_key(OP *o)
      */
 
     for (i = 0; i < CH_SZ; i++)
-        /* if (uniq.ch[i] < 32 || uniq.ch[i] > 126 ) */ /* for printing */
+        /* for printing */
+        /* if (uniq.ch[i] < 32 || uniq.ch[i] > 126 ) */
         if (!uniq.ch[i])
             uniq.ch[i] = '-';
 
@@ -474,21 +475,19 @@ static void cover_time()
 {
     SV   **count;
     NV     c;
-    char  *ch;
 
     if (collecting(Time))
     {
         /*
-         * Profiling information is stored against Profiling_op, the one
-         * we have just run.
+         * Profiling information is stored against Profiling_key, the
+         * key for the op we have just run.
          */
 
-        NDEB(D(L, "Cop at %p, op at %p, timing %p\n", PL_curcop, PL_op, Profiling_op));
+        NDEB(D(L, "Cop at %p, op at %p\n", PL_curcop, PL_op));
 
-        if (Profiling_op)
+        if (*Profiling_key)
         {
-            ch    = get_key(Profiling_op);
-            count = hv_fetch(Times, ch, CH_SZ, 1);
+            count = hv_fetch(Times, Profiling_key, CH_SZ, 1);
             c     = (SvTRUE(*count) ? SvNV(*count) : 0) +
 #if defined HAS_GETTIMEOFDAY
                     elapsed();
@@ -496,9 +495,12 @@ static void cover_time()
                     cpu();
 #endif
             sv_setnv(*count, c);
-            NDEB(D(L, "Adding time: sum %f at %p\n", c, Profiling_op));
+            NDEB(D(L, "Adding time: sum %f to <%s>\n", c, Profiling_key));
         }
-        Profiling_op = PL_op;
+        if (PL_op)
+            strcpy(Profiling_key, get_key(PL_op));
+        else
+            *Profiling_key = 0;
     }
 }
 
@@ -548,6 +550,7 @@ static int runops_cover(pTHX)
         *tmp       = newRV_inc((SV*) Modules);
 
         Pending_conditionals = newHV();
+        *Profiling_key = 0;
     }
 
     if (!module)
@@ -583,7 +586,8 @@ static int runops_cover(pTHX)
                 {
                     SV **f = hv_fetch(Files, file, strlen(file), 0);
                     collecting_here = f ? SvIV(*f) : 1;
-                    NDEB(D(L, "File: %s [%d]\n", file, collecting_here));
+                    NDEB(D(L, "File: %s:%ld [%d]\n",
+                              file, CopLINE(cCOP), collecting_here));
                 }
                 lastfile = file;
             }
@@ -620,8 +624,12 @@ static int runops_cover(pTHX)
         {
 #if CAN_PROFILE
             cover_time();
-            Profiling_op = 0;
+            *Profiling_key = 0;
 #endif
+            if (PL_op->op_type == OP_LEAVESUB)
+                collecting_here = 1;
+            /* Match OP_LEAVESUBLV, OP_LEAVE or others? */
+
             goto call_fptr;
         }
 
@@ -683,7 +691,6 @@ static int runops_cover(pTHX)
         {
 #if CAN_PROFILE
             cover_time();
-            Profiling_op = 0;
 #endif
             break;
         }

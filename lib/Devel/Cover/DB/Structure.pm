@@ -14,7 +14,7 @@ use Carp;
 use Digest::MD5;
 use Storable;
 
-our $VERSION = "0.45";
+our $VERSION = "0.46";
 our $AUTOLOAD;
 
 sub new
@@ -100,7 +100,7 @@ sub write
     $dir .= "/structure";
     unless (-d $dir)
     {
-        mkdir $dir, 0777 or croak "Cannot mkdir $dir: $!\n";
+        mkdir $dir, 0777 or croak "Can't mkdir $dir: $!\n";
     }
     for my $file (sort keys %$self)
     {
@@ -150,7 +150,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.45 - 27th May 2004
+Version 0.46 - 23rd June 2004
 
 =head1 LICENCE
 

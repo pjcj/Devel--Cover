@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.45";
+our $VERSION = "0.46";
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB  0.45;
-use Devel::Cover::Inc 0.45;
+use Devel::Cover::DB  0.46;
+use Devel::Cover::Inc 0.46;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -72,7 +72,8 @@ BEGIN
     ($File, $Line, $Collect)      = ("", 0, 1);
     @Last{qw(line file sub_name)} = (0, "", "");
     %Current = %Last;
-    $Silent  = ($ENV{HARNESS_PERL_SWITCHES} || "") =~ /Devel::Cover/;
+    $Silent  = ($ENV{HARNESS_PERL_SWITCHES} || "") =~ /Devel::Cover/ ||
+               ($ENV{PERL5OPT}              || "") =~ /Devel::Cover/;
 }
 
 BEGIN { @Inc = @Devel::Cover::Inc::Inc; @Ignore = ("/Devel/Cover[./]") }
@@ -216,7 +217,7 @@ sub import
     {
         eval "use blib";
         for (@INC) { $_ = $1 if /(.*)/ }  # Die tainting.
-        push @Ignore, "^t/";
+        push @Ignore, "^t/", '^test\\.pl$';
     }
 
     my $ci = $^O eq "MSWin32";
@@ -345,7 +346,7 @@ sub get_location
 
     $File = $op->file;
     $Line = $op->line;
-    # warn "$File::$Line\n";
+    # warn "${File}::$Line\n";
 
     # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
     ($File, $Line) = ($1, $2) if $File =~ /^\(eval \d+\)\[(.*):(\d+)\]/;
@@ -416,16 +417,20 @@ sub B::GV::find_cv
 sub sub_info
 {
     my ($cv) = @_;
-    my ($name, $start);
-    $name = $cv->GV->SAFENAME unless ($cv->GV->isa("B::SPECIAL"));
-    $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
-    my $root = $cv->ROOT;
+    my ($name, $start) = ("", 0);
+    if (!$cv->GV->isa("B::SPECIAL"))
+    {
+        return unless $cv->GV->can("SAFENAME");
+        $name = $cv->GV->SAFENAME;
+        $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
+    }
+    my $root  = $cv->ROOT;
     if ($root->can("first"))
     {
         my $lineseq = $root->first;
         $start = $lineseq->first if $lineseq->can("first");
     }
-    ($name || "", $start || 0)
+    ($name, $start)
 }
 
 sub check_files
@@ -564,6 +569,7 @@ sub add_statement_cover
     $Run{count}{$File}{statement}[$n] += $val;
     # my $vec = $Run{vec}{$File}{statement};
     # vec($vec->{vec}, $vec->{size} = $n, 1) = $val ? 1 : 0;
+    no warnings "uninitialized";
     $Run{count}{$File}{time}[$n] += $Coverage->{time}{$key}
         if exists $Coverage->{time} && exists $Coverage->{time}{$key};
 }
@@ -785,6 +791,7 @@ sub B::Deparse::deparse
 
     my $d = eval { $original_deparse->($self, @_) };
     $d =~ s/^\010+//mg if defined $d;
+    # print "Deparse => <$d>\n";
     $@ ? "Deparse error: $@" : $d
 }
 
@@ -850,6 +857,10 @@ sub get_cover
     my $cv = $deparse->{curcv} = shift;
 
     my ($sub_name, $start) = sub_info($cv);
+
+    # print "get_cover: <$sub_name>\n";
+    return unless defined $sub_name;  # Only happens within Safe.pm, AFAIK.
+
     get_location($start) if $start;
 
     # printf STDERR "getting cover for $sub_name, %x\n", $$cv;
@@ -909,9 +920,12 @@ sub get_cover
         }
     }
 
-    @_ && ref $_[0]
-        ? $deparse->deparse($_[0], 0)
-        : $deparse->deparse_sub($cv, 0);
+    my $de = @_ && ref $_[0]
+                 ? $deparse->deparse($_[0], 0)
+                 : $deparse->deparse_sub($cv, 0);
+
+    # print "<$de>\n";
+    $de
 }
 
 bootstrap Devel::Cover $VERSION;
@@ -979,8 +993,9 @@ now defunct.  See L<http://lists.perl.org/showlist.cgi?name=perl-qa>.
 =item * Perl 5.6.1 or greater
 
 Perl 5.7.0 is unsupported.  Perl 5.8.1 or greater is recommended.
-Whilst Perl 5.6 should work you will probably miss out on coverage
-information which would be available using a more modern version.
+Whilst Perl 5.6 should mostly work you will probably miss out on
+coverage information which would be available using a more modern
+version and will likely run into bugs in perl.
 
 =item * The ability to compile XS extensions.
 
@@ -1040,6 +1055,18 @@ ignore.
 The inc directories are initially populated with the contects of the
 @INC array at the time Devel::Cover was built.  You may reset these
 directories using -inc, or add to them using +inc.
+
+=head1 ENVIRONMENT
+
+The -silent option is turned on when Devel::Cover is invoked via
+$HARNESS_PERL_SWITCHES or $PERL5OPT.  Devel::Cover tries to do the right
+thing when $MOD_PERL is set.  $DEVEL_COVER_OPTIONS is appended to any
+options passed into Devel::Cover.
+
+When running Devel::Cover's own test suite, $DEVEL_COVER_DEBUG turns on
+debugging information, $DEVEL_COVER_GOLDEN_VERSION overrides
+Devel::Cover's own idea of which golden results it should test against,
+and $DEVEL_COVER_NO_COVERAGE runs the tests without collecting coverage.
 
 =head1 ACKNOWLEDGEMENTS
 
@@ -1125,7 +1152,7 @@ See the BUGS file.  And the TODO file.
 
 =head1 VERSION
 
-Version 0.45 - 27th May 2004
+Version 0.46 - 23rd June 2004
 
 =head1 LICENCE
 

@@ -1,0 +1,74 @@
+Reading database from /mnt/b/sda1/home/pjcj/g/perl/svk/dc/trunk/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/module_ignore                         100.0  100.0    n/a  100.0  100.0
+Total                                       100.0  100.0    n/a  100.0  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+tests/module_ignore
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      # __COVER__ ignore Module1
+11                                      
+12             1                  100   use strict;
+               1                        
+               1                        
+13             1                  100   use warnings;
+               1                        
+               1                        
+14                                      
+15             1                  100   use lib "tests";
+               1                        
+               1                        
+16                                      
+17             1                  100   use Module1;
+               1                        
+               1                        
+18                                      
+19             1                        my @x;
+20                                      
+21             1                        for (0 .. 10)
+22                                      {
+23            11    100                     if (Module1::zz($_))
+24                                          {
+25            10                                $x[0]++;
+26                                          }
+27                                          else
+28                                          {
+29             1                                $x[1]++;
+30                                          }
+31                                      }
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+23           100     10      1   if (Module1::zz($_)) { }
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Location              
+---------- ----------------------
+BEGIN      tests/module_ignore:12
+BEGIN      tests/module_ignore:13
+BEGIN      tests/module_ignore:15
+BEGIN      tests/module_ignore:17
+
+

@@ -17,6 +17,7 @@ die unless defined ($pid = fork);
 if ($pid)
 {
     $x = 2;
+    waitpid $pid, 0;
 }
 else
 {
