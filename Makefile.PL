@@ -19,8 +19,8 @@ use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version      = "0.23";
-my $Date         = "6th September 2003";
+my $Version      = "0.24";
+my $Date         = "10th October 2003";
 my $Author       = 'pjcj@cpan.org';
 
 my @perlbug      = ("perlbug", "-a", $Author,
@@ -55,8 +55,8 @@ use strict;
 use warnings;
 
 our \$VERSION = "$Version";
-our \$Perl    = "$^X";
-our \$Base    = "$base";
+our \$Perl    = '$^X';
+our \$Base    = '$base';
 our \@Inc     = qw( @inc );
 
 1

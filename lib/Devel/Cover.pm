@@ -11,12 +11,12 @@ use strict;
 use warnings;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.23";
+our $VERSION = "0.24";
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.23;
-use Devel::Cover::Inc 0.23;
+use Devel::Cover::DB  0.24;
+use Devel::Cover::Inc 0.24;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -30,6 +30,7 @@ BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
 
 my $Silent  = undef;                     # Output nothing.
 
+my $Dir;                                 # Directory in cover will be gathered.
 my $DB      = "cover_db";                # DB name.
 my $Indent  = 1;                         # Data::Dumper indent.
 my $Merge   = 1;                         # Merge databases.
@@ -52,8 +53,6 @@ my $Cover;                               # Coverage data.
 
 my %Criteria;                            # Names of coverage criteria.
 my %Coverage;                            # Coverage criteria to collect.
-
-my $Cwd = Cwd::cwd();                    # Where we start from.
 
 use vars '$File',                        # Last filename we saw.  (localised)
          '$Line',                        # Last line number we saw.  (localised)
@@ -119,6 +118,7 @@ sub import
     {
         local $_ = shift;
         /^-silent/   && do { $Silent  = shift; next };
+        /^-dir/      && do { $Dir     = shift; next };
         /^-db/       && do { $DB      = shift; next };
         /^-indent/   && do { $Indent  = shift; next };
         /^-merge/    && do { $Merge   = shift; next };
@@ -134,6 +134,17 @@ sub import
             do { push @Select,   shift while @_ && $_[0] !~ /^[-+]/; next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
+
+    if (defined $Dir)
+    {
+        chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
+    }
+    else
+    {
+        $Dir = Cwd::getcwd()
+    }
+
+    $DB = Cwd::abs_path($DB);
 
     if ($blib)
     {
@@ -226,7 +237,7 @@ sub get_location
     my $file = $File;
 
     $File =~ s/ \(autosplit into .*\)$//;
-    $File =~ s/^$Cwd\///;
+    $File =~ s/^$Dir\///;
     # $File =~ s/^blib\///;
     # $File =~ s/^lib\///;
 
@@ -297,6 +308,8 @@ sub check_files
 
 sub report
 {
+    chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
+
     my @collected = get_coverage();
     # print "Collected @collected\n";
     return unless @collected;
@@ -340,6 +353,7 @@ sub report
     };
     $cover->merge($existing) if $existing;
     $cover->indent($Indent);
+    print __PACKAGE__, ": Writing coverage database to $DB\n" unless $Silent;
     $cover->write($DB);
     $cover->print_summary if $Summary && !$Silent;
 }
@@ -706,7 +720,7 @@ Statement, branch, condition, subroutine, pod and time coverage information is
 reported.  Statement coverage data should be reasonable, although there may be
 some statements which are not reported.  Branch and condition coverage data
 should be mostly accurate too, although not always what one might initially
-expect.  Subroutine coverage should be as accurate as statements coverage.  Pod
+expect.  Subroutine coverage should be as accurate as statement coverage.  Pod
 coverage comes from Pod::Coverage.  Coverage data for path coverage are not yet
 collected.
 
@@ -735,6 +749,8 @@ Requirements:
                        include statement, branch, path, subroutine, pod, time,
                        all and none (default all available).
  -db cover_db        - Store results in coverage db (default ./cover_db).
+ -dir path           - Directory in which coverage will be collected (default
+                       cwd).
  -ignore RE          - Ignore files matching RE.
  -inc path           - Set prefixes of files to ignore (default @INC).
  +inc path           - Append to prefixes of files to ignore.
@@ -767,7 +783,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.23 - 6th September 2003
+Version 0.24 - 10th October 2003
 
 =head1 LICENCE
 

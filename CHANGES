@@ -139,3 +139,9 @@ Release 0.23 - 6th September 2003
  - Report condition coverage for branches on the same line as the branch.
  - Add subroutine coverage.
  - Made "all" coverage value work and made it the default.
+
+Release 0.24 - 10th October 2003
+ - Paths in Devel::Cover::Inc in single quotes for Windows platforms.
+ - Add -dir option and default it to cwd.
+ - Ignore test.pl in cpancover.
+ - Display pod coverage in cpancover.

@@ -18,7 +18,7 @@ DESCRIPTION
     although there may be some statements which are not reported. Branch and
     condition coverage data should be mostly accurate too, although not
     always what one might initially expect. Subroutine coverage should be as
-    accurate as statements coverage. Pod coverage comes from Pod::Coverage.
+    accurate as statement coverage. Pod coverage comes from Pod::Coverage.
     Coverage data for path coverage are not yet collected.
 
     The gcov2perl program can be used to convert gcov files to Devel::Cover
