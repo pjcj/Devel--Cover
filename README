@@ -1,7 +1,7 @@
 NAME
     Devel::Cover - a module to provide code coverage for Perl
 
-    Version 0.03 - 10th May 2001
+    Version 0.04 - 12th May 2001
 
 DESCRIPTION
     Copyright 2001, Paul Johnson (pjcj@cpan.org)
@@ -16,13 +16,16 @@ DESCRIPTION
 
     If you can't guess by the version number this is an alpha release.
 
-    Code coverage data are collected using a plugable runops subroutine
-    which counts how many times each op is executed. These data are then
-    mapped back to reality using the B compiler modules.
+    Code coverage data are collected using a plugable runops function which
+    counts how many times each op is executed. These data are then mapped
+    back to reality using the B compiler modules.
 
-    At the moment, only statement coverage information is reported. Coverage
-    data for other metrics are collected, but not reported. Coverage data
-    for some metrics are not yet collected.
+    At the moment, only statement coverage and condition coverage
+    information is reported. Coverage data for other metrics are collected,
+    but not reported. Coverage data for some metrics are not yet collected.
+
+    You may find that the results don't match your expectations. I would
+    imagine that at least one of them is wrong.
 
     Requirements: Perl 5.6.1 or 5.7.1. The ability to compile XS extensions.
 

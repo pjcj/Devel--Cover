@@ -7,5 +7,6 @@ Makefile.PL
 Cover.pm
 Cover.xs
 Cover/Process.pm
+Cover/Op.pm
 t/t1.t
 t/T1.pm

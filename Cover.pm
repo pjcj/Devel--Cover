@@ -12,10 +12,10 @@ use warnings;
 
 use DynaLoader ();
 
-use Devel::Cover::Process 0.03;
+use Devel::Cover::Process 0.04;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.03";
+our $VERSION = "0.04";
 
 use B qw( class main_root main_start main_cv svref_2object OPf_KIDS );
 use Data::Dumper;
@@ -43,10 +43,11 @@ sub import
     while (@_)
     {
         local $_ = shift;
-        /^-i/ && do { $Indent  = shift; next };
-        /^-o/ && do { $Output  = shift; next };
-        /^-S/ && do { $Summary = 0;     next };
-        /^-d/ && do { $Details = 1;     next };
+        /^-indent/  && do { $Indent  = shift; next };
+        /^-output/  && do { $Output  = shift; next };
+        /^-inc/     && do { push @Inc, shift; next };
+        /^-summary/ && do { $Summary = shift; next };
+        /^-details/ && do { $Details = shift; next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
 }
@@ -61,13 +62,13 @@ sub report
 {
     return unless $Covering > 0;
     cover(-1);
-    # print "Processing cover data\n";
+    # print "Processing cover data\n@Inc\n";
     get_subs("main");
     INC:
     while (my ($name, $file) = each %INC)
     {
-        # print "$name => $file\n";
         for (@Inc) { next INC if $file =~ /^\Q$_/ }
+        # print "$name => $file\n";
         $name =~ s/\.pm$//;
         $name =~ s/\//::/g;
         get_subs($name);
@@ -102,22 +103,50 @@ sub report
     $cover->print_details if $Details;
 }
 
+my ($F, $L);
+
 sub walk_topdown
 {
     my ($op) = @_;
-    push @{$Cover{$op->file}{$op->line}}, coverage()->{pack "I*", $$op} || 0
-        if class($op) eq "COP";
+    my $class = class($op);
+    my $coverage = coverage()->{pack "I*", $$op};
+
+    push @{$Cover{$F = $op->file}{statement}{$L = $op->line}}, $coverage || 0
+        if $class eq "COP";
+
     if ($op->can("flags") && ($op->flags & OPf_KIDS))
     {
+        my $c;
         for (my $kid = $op->first; $$kid; $kid = $kid->sibling)
         {
-            walk_topdown($kid);
+            my $cov = walk_topdown($kid);
+            push @$c, $cov || 0 if $class eq "LOGOP";
         }
+        push @{$Cover{$F}{condition}{$L}}, $c if $c;
     }
-    if (class($op) eq "PMOP" && ${$op->pmreplroot})
+
+    if ($class eq "PMOP" && ${$op->pmreplroot})
     {
         walk_topdown($op->pmreplroot);
     }
+
+    $class eq "LISTOP" ? undef : $coverage
+}
+
+sub find_first
+{
+    my ($op) = @_;
+    my $c = coverage()->{pack "I*", $$op};
+    return $c if defined $c;
+    for (my $kid = $op->first; $$kid; $kid = $kid->sibling)
+    {
+        if ($op->can("flags") && ($op->flags & OPf_KIDS))
+        {
+            my $c = find_first($kid);
+            return $c if defined $c;
+        }
+    }
+    undef
 }
 
 sub get_subs
@@ -205,12 +234,12 @@ __END__
 
 Devel::Cover - a module to provide code coverage for Perl
 
-Version 0.03 - 10th May 2001
+Version 0.04 - 12th May 2001
 
 =head1 SYNOPSIS
 
   perl -MDevel::Cover prog args
-  perl -MDevel::Cover=-o,prog.cov,-i,1 prog args
+  perl -MDevel::Cover=-output,prog.cov,-indent,1,-details,1 prog args
 
 =head1 DESCRIPTION
 
@@ -225,13 +254,16 @@ This module provides code coverage for Perl.
 
 If you can't guess by the version number this is an alpha release.
 
-Code coverage data are collected using a plugable runops subroutine
-which counts how many times each op is executed.  These data are then
-mapped back to reality using the B compiler modules.
+Code coverage data are collected using a plugable runops function which
+counts how many times each op is executed.  These data are then mapped
+back to reality using the B compiler modules.
 
-At the moment, only statement coverage information is reported.
-Coverage data for other metrics are collected, but not reported.
-Coverage data for some metrics are not yet collected.
+At the moment, only statement coverage and condition coverage
+information is reported.  Coverage data for other metrics are collected,
+but not reported.  Coverage data for some metrics are not yet collected.
+
+You may find that the results don't match your expectations.  I would
+imagine that at least one of them is wrong.
 
 Requirements:
   Perl 5.6.1 or 5.7.1.
@@ -239,10 +271,11 @@ Requirements:
 
 =head1 OPTIONS
 
- -o file    - Send output to file (default default.cov).
- -i indent  - Set indentation level to indent.  See Data::Dumper for details.
- -S         - Don't print summary information.
- -d         - Print detailed information.
+ -indent indent - Set indentation level to indent. See Data::Dumper for details.
+ -output file   - Send output to file (default default.cov).
+ -inc path      - Prefix of files to ignore (default @INC).
+ -summary val   - Print summary information iff val is true (default on).
+ -details val   - Print detailed information iff val is true (default off).
 
 =head1 TUTORIAL
 

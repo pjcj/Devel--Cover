@@ -12,7 +12,7 @@ use warnings;
 
 use Carp;
 
-our $VERSION = "0.03";
+our $VERSION = "0.04";
 
 sub new
 {
@@ -74,26 +74,45 @@ sub calculate_summary
     my $self = shift;
     my ($force) = @_;
     return if defined $self->{summary} && !$force;
-    $self->{summary} = {};
-    my $statements = 0;
-    my $statements_covered = 0;
-    for my $file (sort keys %{$self->{cover}})
+    my $s = $self->{summary} = {};
+
+    my $cover = $self->{cover};
+    my ($t, $c, $lines);
+    for my $file (sort keys %$cover)
     {
-        my $lines = $self->{cover}{$file};
+        $t = $c = 0;
+        $lines = $cover->{$file}{statement};
         for my $line (sort { $a <=> $b } keys %$lines)
         {
             my $l = $lines->{$line};
-            $statements         += @$l;
-            $statements_covered += map { $_ || () } @$l;
+            $t += @$l;
+            $c += grep { $_ } @$l;
         }
-        $self->{summary}{$file}{statement}{total}    = $statements;
-        $self->{summary}{$file}{statement}{covered}  = $statements_covered;
-        $self->{summary}{$file}{total}{total}       += $statements;
-        $self->{summary}{$file}{total}{covered}     += $statements_covered;
-        $self->{summary}{Total}{statement}{total}   += $statements;
-        $self->{summary}{Total}{statement}{covered} += $statements_covered;
-        $self->{summary}{Total}{total}{total}       += $statements;
-        $self->{summary}{Total}{total}{covered}     += $statements_covered;
+        $s->{$file}{statement}{total}    = $t;
+        $s->{$file}{statement}{covered}  = $c;
+        $s->{$file}{total}{total}       += $t;
+        $s->{$file}{total}{covered}     += $c;
+        $s->{Total}{statement}{total}   += $t;
+        $s->{Total}{statement}{covered} += $c;
+        $s->{Total}{total}{total}       += $t;
+        $s->{Total}{total}{covered}     += $c;
+
+        $t = $c = 0;
+        $lines = $cover->{$file}{condition};
+        for my $line (sort { $a <=> $b } keys %$lines)
+        {
+            my $l = $lines->{$line};
+            $t += @$l;
+            $c += grep { !grep { !$_ } @$_ } @$l;
+        }
+        $s->{$file}{condition}{total}    = $t;
+        $s->{$file}{condition}{covered}  = $c;
+        $s->{$file}{total}{total}       += $t;
+        $s->{$file}{total}{covered}     += $c;
+        $s->{Total}{condition}{total}   += $t;
+        $s->{Total}{condition}{covered} += $c;
+        $s->{Total}{total}{total}       += $t;
+        $s->{Total}{total}{covered}     += $c;
     }
 }
 
@@ -106,12 +125,11 @@ sub print_summary
     {
         my ($part, $critrion) = @_;
         exists $part->{$critrion}
-            ? $part->{$critrion}{total}
-                  ? sprintf "%6.2f", $part->{$critrion}{covered} * 100 /
-                                     $part->{$critrion}{total}
-                  : "-"
+            ? sprintf "%6.2f", $part->{$critrion}{total}
+                  ? $part->{$critrion}{covered} * 100 /
+                    $part->{$critrion}{total}
+                  : 100
             : "n/a"
-
     };
 
     my $fmt = "%-42s %6s %6s %6s %6s %6s\n";
@@ -140,7 +158,7 @@ sub print_details
     for my $file (@files)
     {
         print "$file\n\n";
-        my $lines = $self->{cover}{$file};
+        my $lines = $self->{cover}{$file}{statement};
         my $fmt = "%-5d: %6s %s\n";
 
         open F, $file or croak "Unable to open $file: $!";
@@ -151,7 +169,7 @@ sub print_details
             {
                 my @c = @{$lines->{$.}};
                 printf "%5d: %6d %s", $., shift @c, $_;
-                printf "     : %6d\n", $., shift @c while @c;
+                printf "     : %6d\n", shift @c while @c;
             }
             else
             {
