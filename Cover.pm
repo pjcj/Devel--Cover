@@ -12,11 +12,11 @@ use warnings;
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.08;
-use Devel::Cover::Inc 0.08;
+use Devel::Cover::DB  0.09;
+use Devel::Cover::Inc 0.09;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.08";
+our $VERSION = "0.09";
 
 use B qw( class ppname main_root main_start main_cv svref_2object OPf_KIDS );
 # use B::Debug;
@@ -535,7 +535,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.08 - 18th May 2001
+Version 0.09 - 18th August 2001
 
 =head1 LICENCE
 

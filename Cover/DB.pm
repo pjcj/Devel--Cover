@@ -14,7 +14,7 @@ use Carp;
 use Data::Dumper;
 use File::Path;
 
-our $VERSION = "0.08";
+our $VERSION = "0.09";
 
 my $DB = "cover.1";  # Version 1 of the database.
 
@@ -272,7 +272,7 @@ sub print_details_hash
         my $lines = $self->{cover}{$file}{statement};
         my $fmt = "%-5d: %6s %s\n";
 
-        open F, $file or croak "Unable to open $file: $!";
+        open F, $file or carp("Unable to open $file: $!"), next;
 
         while (<F>)
         {
@@ -311,7 +311,10 @@ sub cover
                 }
             }
         }
+    }
 
+    unless (exists &Devel::Cover::DB::Base::items)
+    {
         *Devel::Cover::DB::Base::items = sub
         {
             my $self = shift;
@@ -338,8 +341,8 @@ sub cover
             my $c = "Devel::Cover::DB::$class";
             no strict "refs";
             @{"${c}::ISA"} = $base;
-            *{"${c}::$functions->[0]"} = *{"${base}::items"};
-            *{"${c}::$functions->[1]"} = *{"${base}::get"};
+            *{"${c}::$functions->[0]"} = \&{"${base}::items"};
+            *{"${c}::$functions->[1]"} = \&{"${base}::get"};
         }
 
         *Devel::Cover::DB::File::DESTROY = sub {};
@@ -376,7 +379,7 @@ sub print_details
         my $statement = $f->statement;
         my $fmt = "%-5d: %6s %s\n";
 
-        open F, $file or croak "Unable to open $file: $!";
+        open F, $file or carp("Unable to open $file: $!"), next;
 
         while (<F>)
         {
@@ -469,7 +472,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.08 - 18th May 2001
+Version 0.09 - 18th August 2001
 
 =head1 LICENCE
 

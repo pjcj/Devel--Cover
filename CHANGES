@@ -34,3 +34,6 @@ Release 0.08 - 18th August 2001
  - Provide better handling of files to report on or ignore.
      Makefile.PL generates Inc.pm containing default @INC.
      added +inc, -ignore and -select.
+
+Release 0.09 - 18th August 2001
+ - Beef up Devel::Cover::DB.
