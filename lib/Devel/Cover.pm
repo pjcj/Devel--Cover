@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.36";
+our $VERSION = "0.37";
 
 use DynaLoader ();
 our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.36;
-use Devel::Cover::Inc 0.36;
+use Devel::Cover::DB  0.37;
+use Devel::Cover::Inc 0.37;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -910,7 +910,6 @@ to them using +inc.
 
 Otherwise the file is selected.
 
-
 =head1 ACKNOWLEDGEMENTS
 
 Some code and ideas cribbed from:
@@ -925,6 +924,58 @@ Some code and ideas cribbed from:
  B
  Pod::Coverage
 
+=head1 LIMITATIONS
+
+There are things that Devel::Cover can't cover.
+
+=head2 Absence of shared dependencies
+
+Perl keeps track of which modules have been loaded (to avoid reloading
+them).  Because of this, it isn't possible to get coverage for a path
+where a runtime import fails if the module being imported is one that
+Devel::Cover uses internally.  For example, suppose your program has
+this function:
+
+ sub foo {
+     eval { require Storable };
+     if ($@) {
+         carp "Can't find Storable";
+         return;
+     }
+     # ...
+ }
+
+You might write a test for the failure mode as
+
+ BEGIN { @INC = () }
+ foo();
+ # check for error message
+
+Because Devel::Cover uses Storable internally, the import will succeed
+(and the test will fail) under a coverage run.
+
+Modules used by Devel::Cover while gathering coverage:
+
+=over 4
+
+=item * B
+
+=item * B::Debug
+
+=item * B::Deparse
+
+=item * Carp
+
+=item * Cwd
+
+=item * Digest::MD5
+
+=item * File::Path
+
+=item * Storable
+
+=back
+
 =head1 BUGS
 
 Did I mention that this is alpha code?
@@ -933,7 +984,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.36 - 9th March 2004
+Version 0.37 - 10th March 2004
 
 =head1 LICENCE
 

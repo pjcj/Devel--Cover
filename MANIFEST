@@ -93,11 +93,6 @@ test_output/cover/module_import.5.008001
 test_output/cover/module_no_inc.5.006001
 test_output/cover/overloaded.5.006001
 test_output/cover/pod.5.006001
-test_output/cover/pod.5.006002
-test_output/cover/pod.5.008
-test_output/cover/pod.5.008003
-test_output/cover/pod.5.009
-test_output/cover/pod.5.009001
 test_output/cover/skip.5.006001
 test_output/cover/special_blocks.5.006001
 test_output/cover/statement.5.006001

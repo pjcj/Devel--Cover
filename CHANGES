@@ -235,3 +235,7 @@ Release 0.36 - 9th March 2004
  - Remove runs after merging - code was commented out for debugging.
  - Don't merge runs during coverage collection.
  - Delete database at start if not merging to cope with forking.
+
+Release 0.37 - 10th March 2004
+ - Fix up pod test golden results.
+ - Add limitation documentation (Michael Carman).
