@@ -3,6 +3,7 @@ e Makefile.PL
 e Cover.pm
 e Cover/DB.pm
 e Cover/Op.pm
+e Cover.xs
 e cover
 e CHANGES
 e TODO

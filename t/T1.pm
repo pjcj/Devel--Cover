@@ -10,6 +10,11 @@ package T1;
 my $y = 7;
 $y++;
 
+sub _xx
+{
+    $y++;
+}
+
 sub yy
 {
     $y++;

@@ -12,12 +12,37 @@ use warnings;
 
 use base "Devel::Cover::Criterion";
 
-our $VERSION = "0.11";
+use Pod::Coverage;
+
+our $VERSION = "0.12";
 
 sub covered    { $_[0]->[0] ? 1 : 0 }
 sub total      { 1 }
 sub percentage { $_[0]->[0] ? 100 : 0 }
 sub error      { !$_[0]->[0] }
+
+sub calculate_summary
+{
+    my $self = shift;
+    my ($db, $file) = @_;
+
+    return unless $INC{"Pod/Coverage.pm"};
+
+    my $s = $db->{summary};
+
+    $s->{$file}{pod}{total}++;
+    $s->{$file}{total}{total}++;
+    $s->{Total}{pod}{total}++;
+    $s->{Total}{total}{total}++;
+
+    if ($self->[0])
+    {
+        $s->{$file}{pod}{covered}++;
+        $s->{$file}{total}{covered}++;
+        $s->{Total}{pod}{covered}++;
+        $s->{Total}{total}{covered}++;
+    }
+}
 
 1
 
@@ -53,7 +78,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.11 - 10th September 2001
+Version 0.12 - 14th October 2001
 
 =head1 LICENCE
 

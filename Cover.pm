@@ -12,31 +12,33 @@ use warnings;
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.11;
-use Devel::Cover::Inc 0.11;
+use Devel::Cover::DB  0.12;
+use Devel::Cover::Inc 0.12;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.11";
+our $VERSION = "0.12";
 
 use B qw( class ppname main_root main_start main_cv svref_2object OPf_KIDS );
 use B::Debug;
-BEGIN { eval "use Pod::Coverage" }          # We'll use this if it is available.
 
-my  $Covering = 1;                          # Coverage on.
+BEGIN { eval "use Pod::Coverage 0.06" }     # We'll use this if it is available.
 
-my  $DB       = "cover_db";                 # DB name.
-my  $Indent   = 0;                          # Data::Dumper indent.
-my  $Merge    = 1;                          # Merge databases.
+my  $Covering  = 1;                         # Coverage on.
+my  $Profiling = 1;                         # Profiling on.
+
+my  $DB        = "cover_db";                # DB name.
+my  $Indent    = 0;                         # Data::Dumper indent.
+my  $Merge     = 1;                         # Merge databases.
 
 my  %Packages;                              # Packages we are interested in.
 my  @Ignore;                                # Packages to ignore.
 my  @Inc;                                   # Original @INC to ignore.
 my  @Select;                                # Packages to select.
 
-my  $Pod      = $INC{"Pod/Coverage.pm"};    # Do pod coverage.
+my  $Pod       = $INC{"Pod/Coverage.pm"};   # Do pod coverage.
 
-my  $Summary  = 1;                          # Output coverage summary.
-my  $Details  = 0;                          # Output coverage details.
+my  $Summary   = 1;                         # Output coverage summary.
+my  $Details   = 0;                         # Output coverage details.
 
 my  %Cover;                                 # Coverage data.
 our $Cv;                                    # Gets localised.
@@ -56,14 +58,16 @@ sub import
     while (@_)
     {
         local $_ = shift;
-        /^-db/      && do { $DB      = shift; next };
-        /^-details/ && do { $Details = shift; next };
-        /^-merge/   && do { $Merge   = shift; next };
-        /^-indent/  && do { $Indent  = shift; next };
-        /^-summary/ && do { $Summary = shift; next };
-        /^-ignore/  && do { push @Ignore, shift while $_[0] !~ /^-/; next };
-        /^[-+]inc/  && do { push @Inc,    shift while $_[0] !~ /^-/; next };
-        /^-select/  && do { push @Select, shift while $_[0] !~ /^-/; next };
+        /^-coverage/ && do { $Covering   = shift; next };
+        /^-db/       && do { $DB         = shift; next };
+        /^-details/  && do { $Details    = shift; next };
+        /^-indent/   && do { $Indent     = shift; next };
+        /^-merge/    && do { $Merge      = shift; next };
+        /^-profile/  && do { $Profiling  = shift; next };
+        /^-summary/  && do { $Summary    = shift; next };
+        /^-ignore/   && do { push @Ignore, shift while $_[0] !~ /^-/; next };
+        /^[-+]inc/   && do { push @Inc,    shift while $_[0] !~ /^-/; next };
+        /^-select/   && do { push @Select, shift while $_[0] !~ /^-/; next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
 }
@@ -72,6 +76,12 @@ sub cover
 {
     ($Covering) = @_;
     set_cover($Covering > 0);
+}
+
+sub profile
+{
+    ($Profiling) = @_;
+    set_profile($Profiling > 0 ? $Profiling : 0);
 }
 
 my ($F, $L) = ("", 0);
@@ -96,8 +106,10 @@ sub get_location
 
 sub report
 {
-    return unless $Covering > 0;
+    return unless $Covering > 0 || $Profiling > 0;
     cover(-1);
+    profile(-1);
+
     # print "Processing cover data\n@Inc\n";
     $Cv = main_cv;
     get_subs("main");
@@ -119,8 +131,7 @@ sub report
         $name =~ s/\//::/g;
         $Packages{$name} = 1;
         # print "pod  $name => $file\n";
-        $Packages{$name} = [ Pod::Coverage->new(package => $name)->covered ]
-            if $Pod;
+        $Packages{$name} = Pod::Coverage->new(package => $name) if $Pod;
         push @roots, get_subs($name);
     }
     walk_sub($Cv, main_start);
@@ -142,10 +153,20 @@ sub report
             if ($Pod)
             {
                 my $name = $sub->[1]->SAFENAME;
-                # print "$name => $package @{$Packages{$package}}\n";
                 get_location($sub->[1]->CV->START);
-                push @{$Cover{$F}{pod}{$L}[0]},
-                     scalar grep { $_ eq $name } @{$Packages{$package}};
+                my $covered;
+                for ($Packages{$package}->covered)
+                {
+                    $covered = 1, last if $_ eq $name;
+                }
+                unless ($covered)
+                {
+                    for ($Packages{$package}->uncovered)
+                    {
+                        $covered = 0, last if $_ eq $name;
+                    }
+                }
+                push @{$Cover{$F}{pod}{$L}[0]}, $covered if defined $covered;
             }
         }
 
@@ -170,9 +191,10 @@ sub report
 
 sub walk_topdown
 {
-    my ($op) = @_;
+    my ($op)  = @_;
     my $class = class($op);
-    my $cover = coverage()->{pack "I*", $$op};
+    my $key   = pack "I*", $$op;
+    my $cover = coverage()->{$key};
 
     # $Level++;
 
@@ -181,7 +203,9 @@ sub walk_topdown
     if ($class eq "COP")
     {
         get_location($op);
-        push @{$Cover{$F}{statement}{$L}[0]}, $cover || 0;
+        push @{$Cover{$F}{statement}{$L}}, [ $cover || 0 ];
+        my $p = profiles()->{$key};
+        push @{$Cover{$F}{time}{$L}}, [ $p ] if $p;
     }
     elsif (!null($op) &&
            $op->name eq "null"
@@ -190,11 +214,14 @@ sub walk_topdown
         # If the current op is null, but it was nextstate, we can still
         # get at the file and line number, but we need to get dirty.
 
-        $cover = coverage()->{pack "I*", ${$op->sibling}};
+        my $key = pack "I*", ${$op->sibling};
+        $cover = coverage()->{$key};
         my $o = $op;
         bless $o, "B::COP";
         get_location($o);
-        push @{$Cover{$F}{statement}{$L}[0]}, $cover || 0;
+        push @{$Cover{$F}{statement}{$L}}, [ $cover || 0 ];
+        my $p = profiles()->{$key};
+        push @{$Cover{$F}{time}{$L}}, [ $p ] if $p;
     }
 
     # print " " x ($Level * 2), "$F:$L ", $op->name, ":$class\n";
@@ -359,15 +386,17 @@ If you can't guess by the version number this is an alpha release.
 
 Code coverage data are collected using a plugable runops function which
 counts how many times each op is executed.  These data are then mapped
-back to reality using the B compiler modules.
+back to reality using the B compiler modules.  There is also a statement
+profiling facility which needs a better backend to be really useful.
 
 The B<cover> program can be used to generate coverage reports.
 
-At the moment, only statement coverage and pod coverage information is
-reported.  Condition coverage data is available, not accurate at the
-moment, though statement coverage data should be reasonable.  Coverage
-data for other metrics are collected, but not reported.  Coverage data
-for some metrics are not yet collected.
+At the moment, only statement, pod and time coverage information is
+reported.  Condition coverage data is available, though not accurate at
+the moment.  Statement coverage data should be reasonable, although
+there may be some statements which are no reported.  Pod coverage comes
+from Pod::Coverage.  Coverage data for other metrics are collected, but
+not reported.  Coverage data for some metrics are not yet collected.
 
 You may find that the results don't match your expectations.  I would
 imagine that at least one of them is wrong.
@@ -386,6 +415,7 @@ Requirements:
  -ignore RE     - Ignore files matching RE.
  -indent indent - Set indentation level to indent. See Data::Dumper for details.
  -merge val     - Merge databases, for multiple test benches (default on).
+ -profile val   - Turn on profiling iff val is true (default on).
  -select RE     - Only report on files matching RE.
  -summary val   - Print summary information iff val is true (default on).
 
@@ -410,7 +440,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.11 - 10th September 2001
+Version 0.12 - 14th October 2001
 
 =head1 LICENCE
 

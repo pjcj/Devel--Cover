@@ -5,31 +5,34 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-package Devel::Cover::Criterion;
+package Devel::Cover::Time;
 
 use strict;
 use warnings;
 
+use base "Devel::Cover::Criterion";
+
 our $VERSION = "0.12";
 
-sub new
+sub covered    { $_[0]->[0] }
+sub total      { 1 }
+sub percentage { $_[0]->[0] ? 100 : 0 }
+sub error      { !$_[0]->[0] }
+
+sub calculate_summary
 {
-    my $class = shift;
-    my $self  = [];
+    my $self = shift;
+    my ($db, $file) = @_;
 
-    bless $self, $class
+    $db->{summary}{$file}{time}{total} += $self->[0];
+    $db->{summary}{Total}{time}{total} += $self->[0];
 }
-
-sub covered    { "n/a" }
-sub total      { "n/a" }
-sub percentage { "n/a" }
-sub error      { "n/a" }
 
 sub calculate_percentage
 {
     my $class = shift;
     my ($db, $s) = @_;
-    $s->{percentage} = $s->{covered} * 100 / $s->{total};
+    $s->{percentage} = $s->{total} * 100 / $db->{summary}{Total}{time}{total};
 }
 
 1
@@ -38,11 +41,11 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Criterion - Code coverage metrics for Perl
+Devel::Cover::Time - Code coverage metrics for Perl
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Criterion;
+ use Devel::Cover::Time;
 
 =head1 DESCRIPTION
 

@@ -10,8 +10,8 @@
 use strict;
 use warnings;
 
-use Devel::Cover::DB 0.11;
-use Devel::Cover 0.11 qw( -db t2 +inc blib -indent 1 -merge 0 );
+use Devel::Cover::DB 0.12;
+use Devel::Cover 0.12 qw( -db t2 +inc blib -indent 1 -merge 0 );
 
 use Test;
 
@@ -42,7 +42,6 @@ $cover = {
     'statement' => {
       '22' => [
         [
-          2,
           1
         ]
       ],
@@ -54,6 +53,23 @@ $cover = {
       '30' => [
         [
           1
+        ]
+      ]
+    },
+    'time' => {
+      '22' => [
+        [
+          266
+        ]
+      ],
+      '28' => [
+        [
+          32
+        ]
+      ],
+      '30' => [
+        [
+          23
         ]
       ]
     }

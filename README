@@ -8,15 +8,17 @@ DESCRIPTION
 
     Code coverage data are collected using a plugable runops function which
     counts how many times each op is executed. These data are then mapped
-    back to reality using the B compiler modules.
+    back to reality using the B compiler modules. There is also a statement
+    profiling facility which needs a better backend to be really useful.
 
     The cover program can be used to generate coverage reports.
 
-    At the moment, only statement coverage and pod coverage information is
-    reported. Condition coverage data is available, not accurate at the
-    moment, though statement coverage data should be reasonable. Coverage
-    data for other metrics are collected, but not reported. Coverage data
-    for some metrics are not yet collected.
+    At the moment, only statement, pod and time coverage information is
+    reported. Condition coverage data is available, though not accurate at
+    the moment. Statement coverage data should be reasonable, although there
+    may be some statements which are no reported. Pod coverage comes from
+    Pod::Coverage. Coverage data for other metrics are collected, but not
+    reported. Coverage data for some metrics are not yet collected.
 
     You may find that the results don't match your expectations. I would
     imagine that at least one of them is wrong.

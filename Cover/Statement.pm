@@ -12,12 +12,33 @@ use warnings;
 
 use base "Devel::Cover::Criterion";
 
-our $VERSION = "0.11";
+our $VERSION = "0.12";
 
 sub covered    { $_[0]->[0] }
 sub total      { 1 }
 sub percentage { $_[0]->[0] ? 100 : 0 }
 sub error      { !$_[0]->[0] }
+
+sub calculate_summary
+{
+    my $self = shift;
+    my ($db, $file) = @_;
+
+    my $s = $db->{summary};
+
+    $s->{$file}{statement}{total}++;
+    $s->{$file}{total}{total}++;
+    $s->{Total}{statement}{total}++;
+    $s->{Total}{total}{total}++;
+
+    if ($self->[0])
+    {
+        $s->{$file}{statement}{covered}++;
+        $s->{$file}{total}{covered}++;
+        $s->{Total}{statement}{covered}++;
+        $s->{Total}{total}{covered}++;
+    }
+}
 
 1
 
@@ -53,7 +74,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.11 - 10th September 2001
+Version 0.12 - 14th October 2001
 
 =head1 LICENCE
 

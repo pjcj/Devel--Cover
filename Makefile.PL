@@ -16,8 +16,8 @@ use ExtUtils::MakeMaker;
 
 $| = 1;
 
-my $Version = "0.11";
-my $Date    = "10th September 2001";
+my $Version = "0.12";
+my $Date    = "14th October 2001";
 my $Author  = 'pjcj@cpan.org';
 
 my @perlbug = ("perlbug", "-a", $Author,
@@ -71,24 +71,25 @@ WriteMakefile
 );
 
 print "\n";
-print "checking for Pod::Coverage.pm........ ";
+print "checking for Pod::Coverage.pm version 0.06 ........ ";
+
+my $e = <<EOM;
+
+Pod::Coverage.pm 0.06 is required to do pod coverage.  This will tell
+you how well you have documented your modules.  Pod coverage will be
+unavailable until you install this module, available from CPAN.  In the
+meantime, you may continue to use the rest of Devel::Cover.pm.
+EOM
 
 eval "use Pod::Coverage";
 if (my $m = $INC{"Pod/Coverage.pm"})
 {
-  print "$m\n";
+  my $v = eval { no warnings; $Pod::Coverage::VERSION };
+  print $v < 0.06 ? "$v\n\n$e\n" : "$v $m\n";
 }
 else
 {
-  print  <<EOM;
-not found
-
-Pod::Coverage.pm is required to do pod coverage.  This will tell you how well
-you have documented your modules.  Pod coverage will be unavailable until you
-install this module, available from CPAN.  In the meantime, you may continue to
-use the rest of Devel::Cover.pm.
-
-EOM
+  print "not found\n\n$e\n";
 }
 
 print <<EOM if 0;

@@ -12,12 +12,13 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.11";
+our $VERSION = "0.12";
 
-use Devel::Cover::DB        0.11;
-use Devel::Cover::Statement 0.11;
-use Devel::Cover::Condition 0.11;
-use Devel::Cover::Pod       0.11;
+use Devel::Cover::DB        0.12;
+use Devel::Cover::Statement 0.12;
+use Devel::Cover::Condition 0.12;
+use Devel::Cover::Pod       0.12;
+use Devel::Cover::Time      0.12;
 
 use Getopt::Long;
 BEGIN { eval "use Pod::Coverage" }          # We'll use this if it is available.
@@ -33,18 +34,8 @@ my $Options =
     single_file => 0,
     statement   => 1,
     summary     => 1,
+    time        => 1,
     total       => 1,
-};
-
-sub pc
-{
-    my ($part, $critrion) = @_;
-    exists $part->{$critrion}
-        ? sprintf "%6.2f", $part->{$critrion}{total}
-              ? $part->{$critrion}{covered} * 100 /
-                $part->{$critrion}{total}
-              : 100
-        : "n/a"
 };
 
 sub print_html_top
@@ -107,14 +98,25 @@ EOH
         print $FH -e $file
             ? qq(      <td align="LEFT"> <a href="$fn#$file">$file</a> </td>\n)
             : qq(      <td align="LEFT"> $file </td>\n);
-        for ($db->all_criteria)
+
+        my $part = $db->{summary}{$file};
+        for my $criterion ($db->all_criteria)
         {
-            my $pc = $Options->{$_} ? pc($db->{summary}{$file}, $_) : "n/a";
+            my $pc = ($Options->{$criterion} && exists $part->{$criterion})
+                ? sprintf "%6.2f", $part->{$criterion}{percentage}
+                : "n/a";
+
             my $bg = "";
             if ($pc ne "n/a")
             {
-                my $c = $pc * 2.55;
+                my $c;
+                $c = $pc * 2.55;
                 $c = 255 if $c > 255;
+                if ($criterion eq "time")
+                {
+                    $c = 255 - $c;
+                    $c = 255 if $file eq "Total";
+                }
                 $bg = sprintf ' bgcolor="#ff%02x00"', $c;
             }
             print $FH "      <td$bg> $pc </td>\n";
@@ -129,7 +131,7 @@ EOH
     # $Data::Dumper::Indent = 1;
     # print Dumper $cover;
 
-    @files = sort $cover->files unless @files;
+    @files = sort $cover->items unless @files;
 
     for my $file (@files)
     {
@@ -193,8 +195,10 @@ EOH
                     next unless $Options->{$c};
                     my $o = shift @{$criteria{$c}};
                     $more ||= @{$criteria{$c}};
-                    my $value  = $o
-                        ? ($c =~ /statement|pod/) ? $o->covered : $o->percentage
+                    my $value = $o
+                        ? ($c =~ /statement|pod|time/)
+                            ? $o->covered
+                            : $o->percentage
                         : "&nbsp";
                     my $bg = $o
                         ? ' bgcolor="#' . ($o->error ? 'ff0000"' : '00ff00"')
@@ -247,6 +251,7 @@ sub get_options
                    single_file!
                    statement!
                    summary!
+                   time!
                    total!
                    version|v!
                  ));
@@ -279,7 +284,7 @@ cover - report coverage statistics
 
 =head1 SYNOPSIS
 
- rideaudit [-hiv] -summary -details -html coverage_database
+ cover [-hiv] -summary -details -html coverage_database
 
 =head1 DESCRIPTION
 
@@ -324,7 +329,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.11 - 10th September 2001
+Version 0.12 - 14th October 2001
 
 =head1 LICENCE
 

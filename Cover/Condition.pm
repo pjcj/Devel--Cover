@@ -12,7 +12,7 @@ use warnings;
 
 use base "Devel::Cover::Criterion";
 
-our $VERSION = "0.11";
+our $VERSION = "0.12";
 
 sub covered    { scalar grep $_, @{$_[0]} }
 sub total      { scalar @{$_[0]} }
@@ -21,6 +21,27 @@ sub percentage
     sprintf "%5.2f", $_[0]->total ? $_[0]->covered / $_[0]->total * 100 : 100
 }
 sub error      { scalar grep !$_, @{$_[0]} }
+
+sub calculate_summary
+{
+    my $self = shift;
+    my ($db, $file) = @_;
+
+    my $s = $db->{summary};
+
+    my $t = @$self;
+    my $c = grep { $_ } @$self;
+
+    $s->{$file}{condition}{total}   += $t;
+    $s->{$file}{total}{total}       += $t;
+    $s->{Total}{condition}{total}   += $t;
+    $s->{Total}{total}{total}       += $t;
+
+    $s->{$file}{condition}{covered} += $c;
+    $s->{$file}{total}{covered}     += $c;
+    $s->{Total}{condition}{covered} += $c;
+    $s->{Total}{total}{covered}     += $c;
+}
 
 1
 
@@ -56,7 +77,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.11 - 10th September 2001
+Version 0.12 - 14th October 2001
 
 =head1 LICENCE
 

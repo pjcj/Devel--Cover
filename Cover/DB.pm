@@ -10,21 +10,28 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
+use Devel::Cover::DB::File  0.12;
+use Devel::Cover::Criterion 0.12;
+use Devel::Cover::Statement 0.12;
+use Devel::Cover::Condition 0.12;
+use Devel::Cover::Pod       0.12;
+use Devel::Cover::Time      0.12;
+
 use Carp;
 use Data::Dumper;
 use File::Path;
 
-our $VERSION = "0.11";
+our $VERSION = "0.12";
 
-my $DB = "cover.1";  # Version 1 of the database.
+my $DB = "cover.2";  # Version 2 of the database.
 
 sub new
 {
     my $class = shift;
     my $self  =
     {
-        criteria       => [ qw( statement branch path condition pod ) ],
-        criteria_short => [ qw( stmt      branch path cond      pod ) ],
+        criteria       => [ qw( statement branch path condition pod time ) ],
+        criteria_short => [ qw( stmt      branch path cond      pod time ) ],
         indent         => 1,
         cover          => {},
         @_
@@ -156,7 +163,7 @@ sub _merge_hash
         else
         {
             # A scalar (or a blessed scalar).  We know there is no into
-            # array, or we would just have merged with it.
+            # array, or we would have just merged with it.
 
             $into->{$fkey} = $fval;
         }
@@ -185,73 +192,28 @@ sub calculate_summary
 {
     my $self = shift;
     my %options = @_;
+
     return if defined $self->{summary} && !$options{force};
     my $s = $self->{summary} = {};
 
-    my $cover = $self->{cover};
-    my ($t, $c, $lines);
-    for my $file (sort keys %$cover)
+    for my $file ($self->cover->items)
     {
-        if ($options{statement})
-        {
-            $t = $c = 0;
-            $lines = $cover->{$file}{statement};
-            for my $line (sort { $a <=> $b } keys %$lines)
-            {
-                my $l = $lines->{$line};
-                $t += @$l;
-                $c += grep { $_->[0] } @$l;
-            }
-            $s->{$file}{statement}{total}    = $t;
-            $s->{$file}{statement}{covered}  = $c;
-            $s->{$file}{total}{total}       += $t;
-            $s->{$file}{total}{covered}     += $c;
-            $s->{Total}{statement}{total}   += $t;
-            $s->{Total}{statement}{covered} += $c;
-            $s->{Total}{total}{total}       += $t;
-            $s->{Total}{total}{covered}     += $c;
-        }
-
-        if ($options{condition})
-        {
-            $t = $c = 0;
-            $lines = $cover->{$file}{condition};
-            for my $line (sort { $a <=> $b } keys %$lines)
-            {
-                my $l = $lines->{$line};
-                $t += @$l;
-                $c += grep { !grep { !$_ } @$_ } @$l;
-            }
-            $s->{$file}{condition}{total}    = $t;
-            $s->{$file}{condition}{covered}  = $c;
-            $s->{$file}{total}{total}       += $t;
-            $s->{$file}{total}{covered}     += $c;
-            $s->{Total}{condition}{total}   += $t;
-            $s->{Total}{condition}{covered} += $c;
-            $s->{Total}{total}{total}       += $t;
-            $s->{Total}{total}{covered}     += $c;
-        }
-
-        if ($options{pod} && $INC{"Pod/Coverage.pm"})
-        {
-            $t = $c = 0;
-            $lines = $cover->{$file}{pod};
-            for my $line (sort { $a <=> $b } keys %$lines)
-            {
-                my $l = $lines->{$line};
-                $t += @$l;
-                $c += grep { $_->[0] } @$l;
-            }
-            $s->{$file}{pod}{total}          = $t;
-            $s->{$file}{pod}{covered}        = $c;
-            $s->{$file}{total}{total}       += $t;
-            $s->{$file}{total}{covered}     += $c;
-            $s->{Total}{pod}{total}         += $t;
-            $s->{Total}{pod}{covered}       += $c;
-            $s->{Total}{total}{total}       += $t;
-            $s->{Total}{total}{covered}     += $c;
-        }
+        $self->cover->get($file)->calculate_summary($self, $file, \%options);
     }
+
+    for my $file ($self->cover->items)
+    {
+        $self->cover->get($file)->calculate_percentage($self, $s->{$file});
+    }
+
+    my $t = $self->{summary}{Total};
+    for my $criterion ($self->criteria)
+    {
+        next unless exists $t->{$criterion};
+        my $c = "Devel::Cover::\u$criterion";
+        $c->calculate_percentage($self, $t->{$criterion});
+    }
+    Devel::Cover::Criterion->calculate_percentage($self, $t->{total});
 }
 
 sub trimmed_file
@@ -264,68 +226,33 @@ sub trimmed_file
 sub print_summary
 {
     my $self = shift;
-    my %options = (statement => 1, pod => 1, @_);
+    my %options = (statement => 1, condition => 1, pod => 1, time => 1, @_);
     $self->calculate_summary(%options);
 
     my $format = sub
     {
-        my ($part, $critrion) = @_;
-        exists $part->{$critrion}
-            ? sprintf "%6.2f", $part->{$critrion}{total}
-                  ? $part->{$critrion}{covered} * 100 /
-                    $part->{$critrion}{total}
-                  : 100
+        my ($part, $criterion) = @_;
+        exists $part->{$criterion}
+            ? sprintf "%5.2f", $part->{$criterion}{percentage}
             : "n/a"
     };
 
-    my $fmt = "%-35s %6s %6s %6s %6s %6s %6s\n";
-    printf $fmt, "-" x 35, ("------") x 6;
+    my $fmt = "%-28s" . " %6s" x 7 . "\n";
+    printf $fmt, "-" x 28, ("------") x 7;
     printf $fmt, "File", @{$self->{all_criteria_short}};
-    printf $fmt, "-" x 35, ("------") x 6;
+    printf $fmt, "-" x 28, ("------") x 7;
 
     my $s = $self->{summary};
     for my $file (grep($_ ne "Total", sort keys %$s), "Total")
     {
         printf $fmt,
-               trimmed_file($file, 35),
+               trimmed_file($file, 28),
                map { $format->($s->{$file}, $_) } @{$self->{all_criteria}};
 
     }
 
-    printf $fmt, "-" x 35, ("------") x 6;
+    printf $fmt, "-" x 28, ("------") x 7;
     print "\n\n";
-}
-
-sub print_details_hash
-{
-    my $self = shift;
-    my (@files) = @_;
-    @files = sort keys %{$self->{cover}} unless @files;
-    for my $file (@files)
-    {
-        print "$file\n\n";
-        my $lines = $self->{cover}{$file}{statement};
-        my $fmt = "%-5d: %6s %s\n";
-
-        open F, $file or carp("Unable to open $file: $!"), next;
-
-        while (<F>)
-        {
-            if (exists $lines->{$.})
-            {
-                my @c = @{$lines->{$.}};
-                printf "%5d: %6d %s", $., shift(@c)->[0], $_;
-                printf "     : %6d\n", shift(@c)->[0] while @c;
-            }
-            else
-            {
-                printf "%5d:        %s", $., $_;
-            }
-        }
-
-        close F or croak "Unable to close $file: $!";
-        print "\n\n";
-    }
 }
 
 sub cover
@@ -362,6 +289,12 @@ sub cover
             keys %$self
         };
 
+        *Devel::Cover::DB::Base::values = sub
+        {
+            my $self = shift;
+            values %$self
+        };
+
         *Devel::Cover::DB::Base::get = sub
         {
             my $self = shift;
@@ -382,7 +315,7 @@ sub cover
             my $c = "Devel::Cover::DB::$class";
             no strict "refs";
             @{"${c}::ISA"} = $base;
-            *{"${c}::$functions->[0]"} = \&{"${base}::items"};
+            *{"${c}::$functions->[0]"} = \&{"${base}::values"};
             *{"${c}::$functions->[1]"} = \&{"${base}::get"};
         }
 
@@ -407,12 +340,44 @@ sub cover
     $self->{cover}
 }
 
+sub print_details_hash
+{
+    my $self = shift;
+    my (@files) = @_;
+    @files = sort keys %{$self->{cover}} unless @files;
+    for my $file (@files)
+    {
+        print "$file\n\n";
+        my $lines = $self->{cover}{$file}{statement};
+        my $fmt = "%-5d: %6s %s\n";
+
+        open F, $file or carp("Unable to open $file: $!"), next;
+
+        while (<F>)
+        {
+            if (exists $lines->{$.})
+            {
+                my @c = @{$lines->{$.}};
+                printf "%5d: %6d %s", $., shift(@c)->[0], $_;
+                printf "     : %6d\n", shift(@c)->[0] while @c;
+            }
+            else
+            {
+                printf "%5d:        %s", $., $_;
+            }
+        }
+
+        close F or croak "Unable to close $file: $!";
+        print "\n\n";
+    }
+}
+
 sub print_details
 {
     my $self = shift;
     my (@files) = @_;
     my $cover = $self->cover;
-    @files = sort $cover->files unless @files;
+    @files = sort $cover->items unless @files;
     for my $file (@files)
     {
         print "$file\n\n";
@@ -481,15 +446,15 @@ Returns a Devel::Cover::DB::Cover object.  From here all the coverage
 data may be accessed.
 
  my $cover = $db->cover;
- for my $file ($cover->files)
+ for my $file ($cover->items)
  {
      print "$file\n";
      my $f = $cover->file($file);
-     for my $criterion ($f->criteria)
+     for my $criterion ($f->items)
      {
          print "  $criterion\n";
          my $c = $f->criterion($criterion);
-         for my $location ($c->locations)
+         for my $location ($c->items)
          {
              my $l = $c->location($location);
              print "    $location @$l\n";
@@ -501,7 +466,7 @@ Data for different criteria will be in different formats, so that will
 need special handling, but I'll deal with that when we have the data for
 different criteria.
 
-If you don't want to remember all the method names, use items() instead
+If you don't want to remember all the method names, use values() instead
 of files(), criteria() and locations() and get() instead of file(),
 criterion() and location().
 
@@ -513,7 +478,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.11 - 10th September 2001
+Version 0.12 - 14th October 2001
 
 =head1 LICENCE
 

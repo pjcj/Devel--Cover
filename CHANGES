@@ -49,4 +49,12 @@ Release 0.11 - 10th September 2001
      Devel::Cover::Statement.pm
      Devel::Cover::Condition.pm
      Devel::Cover::Pod.pm
- - Some inprovements to the cover program.
+ - Some improvements to the cover program.
+
+Release 0.12 - 14th October 2001
+ - Improve pod coverage by considering private subs.
+ - Add time coverage, aka profiling.
+ - Add:
+     Devel::Cover::DB::File.pm
+     Devel::Cover::Time.pm
+ - Abstract summary and percentage calculations to appropriate classes.

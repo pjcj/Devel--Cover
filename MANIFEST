@@ -12,6 +12,8 @@ Cover/Criterion.pm
 Cover/Statement.pm
 Cover/Condition.pm
 Cover/Pod.pm
+Cover/Time.pm
+Cover/DB/File.pm
 t/Compare.pm
 t/t1.t
 t/T1.pm
