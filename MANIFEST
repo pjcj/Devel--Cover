@@ -1,0 +1,11 @@
+MANIFEST
+README
+CHANGES
+TODO
+BUGS
+Makefile.PL
+Cover.pm
+Cover.xs
+Cover/Process.pm
+t/t1.t
+t/T1.pm

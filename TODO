@@ -1,0 +1,6 @@
+- Collect data for path coverage.
+- Parse for branch and condition coverage.
+- Tests.
+- Documentation.
+- Generic output routines/gui, suitable for other languages too.
+- BEGIN and END blocks.

@@ -1,0 +1,29 @@
+NAME
+    Devel::Cover - a module to provide code coverage for Perl
+
+    Version 0.01 - 9th May 2001
+
+DESCRIPTION
+    Copyright 2001, Paul Johnson (pjcj@cpan.org)
+
+    This software is free. It is licensed under the same terms as Perl
+    itself.
+
+    The latest version of this software should be available from my
+    homepage: http://www.pjcj.net
+
+    This module provides code coverage for Perl.
+
+    If you can't guess by the version number this is an alpha release.
+
+    Code coverage data are collected using a plugable runops subroutine
+    which counts how many times each op is executed. These data are then
+    mapped back to reality using the B compiler modules.
+
+    At the moment, only statement coverage information is reported. Coverage
+    data for other metrics are collected, but not reported. Coverage data
+    for some metrics are not yet collected.
+
+    Requirements: Perl 5.6.1 or bleadperl. The ability to compile XS
+    extensions.
+

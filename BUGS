@@ -1,0 +1,2 @@
+- make test TEST_VERBOSE=1 fails.  The coverage is genuinely different, but I
+  have no idea why.
