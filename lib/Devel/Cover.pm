@@ -10,20 +10,19 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.28";
+our $VERSION = "0.29";
 
 use DynaLoader ();
 our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.28;
-use Devel::Cover::Inc 0.28;
+use Devel::Cover::DB  0.29;
+use Devel::Cover::Inc 0.29;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
 use B::Deparse;
 
 use Cwd ();
-use Data::Dumper;
 use Digest::MD5;
 
 BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
@@ -65,8 +64,9 @@ use vars '$File',                        # Last filename we saw.  (localised)
 ($File, $Line, $Collect) = ("", 0, 1);
 
 BEGIN { @Inc = @Devel::Cover::Inc::Inc }
-# BEGIN { $^P =  0x02 | 0x04 | 0x100 }
-BEGIN { $^P =  0x04 | 0x100 }
+# BEGIN { $^P = 0x004 | 0x010 | 0x100 | 0x200 }
+BEGIN { $^P = 0x004 | 0x100 | 0x200 }
+# BEGIN { $^P = 0x004 | 0x100 }
 
 {
 
@@ -272,6 +272,7 @@ sub use_file
     $file = $1 if $file =~ /^\(eval \d+\)\[(.*):\d+\]/;
     $file =~ s/ \(autosplit into .*\)$//;
     $file =~ s|\.\./\.\./lib/POSIX.pm|$INC{"POSIX.pm"}|e;  # TODO - fix
+    # Possibly fixed by merging on MD5 sums.
 
     my $files = \%Files;
     return $files->{$file} if exists $files->{$file};
@@ -348,7 +349,7 @@ sub report
 
     $Coverage = coverage() || die "No coverage data available.\n";
 
-    # print Dumper $Coverage;
+    # use Data::Dumper; print Dumper $Coverage;
 
     check_files();
 
@@ -365,18 +366,21 @@ sub report
     {
         my $use = use_file($file);
         # warn sprintf "%-4s using $file\n", $use ? "" : "not";
-        if ($use)
+
+        unless ($use)
         {
-            if (open my $fh, '<', $file)
-            {
-                binmode $fh;
-                $Cover->{$file}{digest} =
-                    Digest::MD5->new->addfile($fh)->hexdigest;
-            }
+            delete $Cover->{$file};
+            next;
+        }
+
+        if (open my $fh, "<", $file)
+        {
+            binmode $fh;
+            $Cover->{$file}{meta}{digest} = Digest::MD5->new->addfile($fh)->hexdigest;
         }
         else
         {
-            delete $Cover->{$file};
+            warn __PACKAGE__ . ": Can't open $file for MD5 digest: $!\n";
         }
     }
 
@@ -385,6 +389,7 @@ sub report
         cover     => $Cover,
         collected => [ @collected ],
     );
+
     my $existing;
     eval
     {
@@ -392,8 +397,11 @@ sub report
                                           collected => [ @collected ])
             if $Merge
     };
+
     $cover->merge($existing) if $existing;
-    print STDOUT __PACKAGE__, ": Writing coverage database to $DB\n" unless $Silent;
+    $cover->merge_identical_files;
+    print STDOUT __PACKAGE__, ": Writing coverage database to $DB\n"
+        unless $Silent;
     $cover->write($DB);
     $cover->print_summary if $Summary && !$Silent;
 }
@@ -664,7 +672,7 @@ sub B::Deparse::logassignop
     my $self = shift;
     my ($op, $cx, $opname) = @_;
     my $left = $op->first;
-    my $right = $op->first->sibling->first; # skip sassign
+    my $right = $op->first->sibling->first;  # skip sassign
     $left = $self->deparse($left, 7);
     $right = $self->deparse($right, 7);
     add_condition_cover($op, $opname, $left, $right);
@@ -680,6 +688,8 @@ sub get_cover
     my $cv = $deparse->{curcv} = shift;
     my $gv = $cv->GV;
     $Sub_name = $cv->GV->SAFENAME unless ($gv->isa("B::SPECIAL"));
+
+    # print "getting cover for $Sub_name\n";
 
     if ($Pod && $Coverage{pod})
     {
@@ -816,7 +826,6 @@ Some code and ideas cribbed from:
 =head1 SEE ALSO
 
  Devel::Cover::Tutorial
- Data::Dumper
  B
  Pod::Coverage
 
@@ -828,7 +837,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.28 - 1st December 2003
+Version 0.29 - 19th December 2003
 
 =head1 LICENCE
 

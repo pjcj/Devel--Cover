@@ -10,16 +10,16 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.28";
+our $VERSION = "0.29";
 
-use Devel::Cover::DB::File  0.28;
-use Devel::Cover::Criterion 0.28;
+use Devel::Cover::DB::File  0.29;
+use Devel::Cover::Criterion 0.29;
 
 use Carp;
 use File::Path;
 use Storable;
 
-my $DB = "cover.5";  # Version 5 of the database.
+my $DB = "cover.6";  # Version 6 of the database.
 
 sub new
 {
@@ -122,17 +122,42 @@ sub collected
     @{$self->{collected}}
 }
 
+sub merge_identical_files
+{
+    my $self = shift;
+    # return;
+
+    my $c = $self->{cover};
+    my %digests;
+
+    for my $file (sort keys %$c)
+    {
+        my $d = $c->{$file}{meta}{digest};
+        push @{$digests{$d}}, $file if $d;
+    }
+
+    # use Data::Dumper; print Dumper $c; print Dumper \%digests;
+
+    for my $f (values %digests)
+    {
+        my $t = shift @$f;
+        for my $s (@$f)
+        {
+            print STDERR "Devel::Cover: merging data for $s into $t\n";
+            _merge_hash($c->{$t}, delete $c->{$s});
+            $c->{$t}{meta}{aka}{$s} = 1;
+        }
+    }
+}
+
 sub merge
 {
     my ($self, $from) = @_;
 
-    # When the database gets big, it's quicker to merge into what's
-    # already there.
-
     for my $file (keys %{$from->{cover}})
     {
-        my $sd = $self->{cover}{$file}{digest};
-        my $fd = $from->{cover}{$file}{digest};
+        my $sd = $self->{cover}{$file}{meta}{digest};
+        my $fd = $from->{cover}{$file}{meta}{digest};
         if ($sd && $fd && $sd ne $fd)
         {
             # File has changed.  Delete old coverage instead of merging.
@@ -141,6 +166,9 @@ sub merge
             delete $from->{cover}{$file};
         }
     }
+
+    # When the database gets big, it's quicker to merge into what's
+    # already there.
 
     _merge_hash($from->cover, $self->cover);
     $_[0] = $from;
@@ -329,7 +357,7 @@ sub cover
             bless $file, "Devel::Cover::DB::File";
             while (my ($crit, $criterion) = each %$file)
             {
-                next if $crit eq "digest";  # ignore MD5 checksum
+                next if $crit eq "meta";  # ignore meta data
                 my $class = "Devel::Cover::" . ucfirst lc $crit;
                 bless $criterion, "Devel::Cover::DB::Criterion";
                 for my $line (values %$criterion)
@@ -552,7 +580,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.28 - 1st December 2003
+Version 0.29 - 19th December 2003
 
 =head1 LICENCE
 

@@ -247,6 +247,56 @@ for my $y (1, 0)
     $x[41]++;
 }
 
+my $s;
+$s = sub
+{
+    shift || return;
+    $x[42]++;
+};
+
+for my $y (0, 1)
+{
+    $s->($y)
+}
+
+for my $y (1, 0)
+{
+    $s->($y)
+}
+
+$s = sub
+{
+    shift && return;
+    $x[43]++;
+};
+
+for my $y (0, 1)
+{
+    $s->($y)
+}
+
+for my $y (1, 0)
+{
+    $s->($y)
+}
+
+$s = sub
+{
+    no warnings "void";
+    shift xor return;
+    $x[44]++;
+};
+
+for my $y (0, 1)
+{
+    $s->($y)
+}
+
+for my $y (1, 0)
+{
+    $s->($y)
+}
+
 my ($a, $b) = (0, 1);
 
 if ($a && $b)

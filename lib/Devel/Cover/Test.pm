@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.28";
+our $VERSION = "0.29";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.28;
+use Devel::Cover::Inc 0.29;
 
 sub new
 {
@@ -152,7 +152,7 @@ sub run_test
     my $test_com = $self->test_command;
     print "Running test [$test_com]\n" if $debug;
 
-    open T, "$test_com|" or die "Cannot run $test_com: $!";
+    open T, "$test_com 2>&1 |" or die "Cannot run $test_com: $!";
     while (<T>)
     {
         print if $debug;
@@ -165,7 +165,7 @@ sub run_test
     my @at;
     my @ac;
 
-    open T, "$cover_com|" or die "Cannot run $cover_com: $!";
+    open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
     while (my $t = <T>)
     {
         print $t if $debug;
@@ -173,7 +173,10 @@ sub run_test
         for ($t, $c)
         {
             s/^(Reading database from ).*/$1/;
-            s/.* Devel-Cover - \d+ \. \d+ \/*(\S+)\s*/$1/x;
+            s|(__ANON__\[) .* (/tests/ \w+ : \d+ \])|$1$2|x;
+            s/(Subroutine) +(Location)/$1 $2/;
+            s/-+/-/;
+            # s/.* Devel-Cover - \d+ \. \d+ \/*(\S+)\s*/$1/x;
             s/^ \.\.\. .* - \d+ \. \d+ \/*(\S+)\s*/$1/x;
             s/.* Devel \/ Cover \/*(\S+)\s*/$1/x;
             s/copyright .*//ix;

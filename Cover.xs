@@ -345,7 +345,9 @@ static void cover_logop()
             if (right->op_type == OP_NEXT ||
                 right->op_type == OP_LAST ||
                 right->op_type == OP_REDO ||
-                right->op_type == OP_GOTO)
+                right->op_type == OP_REDO ||
+                right->op_type == OP_GOTO ||
+                right->op_type == OP_RETURN)
             {
                 /*
                  * If the right side of the op is a branch, we don't
@@ -433,10 +435,10 @@ static void cover_time()
             ch    = get_key(Profiling_op);
             count = hv_fetch(Times, ch, ch_sz, 1);
             c     = (SvTRUE(*count) ? SvIV(*count) : 0) +
-#if 0
-                    Profiling == 1 ? cpu() : elapsed();
-#else
+#if defined HAS_GETTIMEOFDAY
                     elapsed();
+#else
+                    cpu();
 #endif
             sv_setiv(*count, c);
             NDEB(D(L, "Adding time: sum %d at %p\n", c, Profiling_op));
@@ -487,8 +489,10 @@ static int runops_cover(pTHX)
         Pending_conditionals = newHV();
     }
 
-#if CAN_PROFILE
+#if defined HAS_GETTIMEOFDAY
     elapsed();
+#elif defined HAS_TIMES
+    cpu();
 #endif
 
     for (;;)
@@ -744,7 +748,7 @@ coverage()
                ST(0) = &PL_sv_undef;
 
 BOOT:
-    PL_runops        = runops_orig;
+    /* PL_runops        = runops_orig; */
     /* PL_savebegin     = TRUE; */
     /* PL_savecheck     = TRUE; */
     /* PL_saveinit      = TRUE; */

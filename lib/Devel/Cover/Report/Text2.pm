@@ -4,7 +4,7 @@ use warnings;
 
 our $VERSION = '0.20';
 
-use Devel::Cover::DB 0.28;
+use Devel::Cover::DB 0.29;
 use Devel::Cover::Truth_Table;
 
 my %format = (
@@ -191,7 +191,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.28 - 1st December 2003
+Version 0.29 - 19th December 2003
 
 =head1 LICENCE
 

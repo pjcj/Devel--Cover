@@ -166,3 +166,13 @@ Release 0.28 - 1st December 2003
  - Pass unknown cover options to the formatter and remove -option.
  - Specify the output directory for HTML.
  - Search up directory trees for modules.
+
+Release 0.29 - 19th December 2003
+ - Merge data from files with identical MD5 checksums (Arthur Bergman).
+ - Add do test.
+ - Handle $x || return.
+ - Keep cover -delete happy when there is no existing database.
+ - In cover, make -file a glob and add -exclude.
+ - Watch for coverage options being set in cover (PERL5OPT set?).
+ - Fix up html_basic and html_subtle.
+ - Make 5.6.x builds a bit quieter.

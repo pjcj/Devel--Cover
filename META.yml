@@ -1,7 +1,7 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         Devel-Cover
-version:      0.28
+version:      0.29
 version_from: 
 installdirs:  site
 requires:
@@ -9,4 +9,4 @@ requires:
     Storable:                      0
 
 distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.21
+generated_by: ExtUtils::MakeMaker version 6.21_01

@@ -19,8 +19,8 @@ use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version      = "0.28";
-my $Date         = "1st December 2003";
+my $Version      = "0.29";
+my $Date         = "19th December 2003";
 my $Author       = 'pjcj@cpan.org';
 
 my @perlbug      = ("perlbug", "-a", $Author,
@@ -74,7 +74,7 @@ opendir D, "tests" or die "Cannot opendir tests: $!";
 for my $t (readdir D)
 {
     next unless -f "tests/$t";
-    next if $t =~ /\.(pm|version|org|bak)$/;
+    next if $t =~ /\.(pm|pl|version|org|bak)$/;
     next if $t =~ /~$/;
     open T, ">t/a$t.t" or die "Cannot open t/a$t.t: $!";
     print T <<EOT;
@@ -292,8 +292,10 @@ run : _run
 \t \$(PERL) -Mblib cover && \\
    gvim -d \$(TEST).out
 
+__COVER_GOLDEN_VERSION ?= $test_version
+
 diff : _run
-\t gvim -d -font 8x13 test_output/cover/\$(TEST).$test_version \$(TEST).out
+\t gvim -d -font 8x13 test_output/cover/\$(TEST).\$(__COVER_GOLDEN_VERSION) \$(TEST).out
 
 gold : pure_all
 \t \$(PERL) create_gold \$(TEST)
