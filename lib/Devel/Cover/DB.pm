@@ -10,16 +10,17 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.26";
+our $VERSION = "0.27";
 
-use Devel::Cover::DB::File  0.26;
-use Devel::Cover::Criterion 0.26;
+use Devel::Cover::DB::File  0.27;
+use Devel::Cover::Criterion 0.27;
 
 use Carp;
 use Data::Dumper;
 use File::Path;
+use Storable;
 
-my $DB = "cover.4";  # Version 4 of the database.
+my $DB = "cover.5";  # Version 5 of the database.
 
 sub new
 {
@@ -49,15 +50,7 @@ sub new
         $self->validate_db;
         $file = "$self->{db}/$DB";
         return $self unless -e $file;
-        open F, "<$file" or croak "Unable to open $file: $!";
-        $self->{filehandle} = *F{IO};
-    }
-
-    $self->read if defined $self->{filehandle};
-
-    if (defined $file)
-    {
-        close F or croak "Unable to close $file: $!";
+        $self->read($file);
     }
 
     croak "No input db, filehandle or cover" unless defined $self->{cover};
@@ -70,41 +63,33 @@ sub     criteria_short { @{$_[0]->{    criteria_short}} }
 sub all_criteria       { @{$_[0]->{all_criteria      }} }
 sub all_criteria_short { @{$_[0]->{all_criteria_short}} }
 
-sub read
-{
+sub read {
     my $self = shift;
-    local $/;
-    my $db;
-    my $fh = $self->{filehandle};
-    eval <$fh>;
-    croak $@ if $@;
+    my $file = shift;
+    my $db   = retrieve($file);
+
     $self->{cover}     = $db->{cover};
     $self->{collected} = $db->{collected};
     $self->{indent}    = $db->{indent};
     $self
 }
 
-sub write
-{
+sub write {
     my $self = shift;
     $self->{db} = shift if @_;
     croak "No db specified" unless length $self->{db};
     $self->validate_db;
-    my $db =
-    {
+
+    my $db = {
         cover     => $self->{cover},
         collected => $self->{collected},
         indent    => $self->{indent},
     };
-    local $Data::Dumper::Indent   = $self->indent;
-    local $Data::Dumper::Sortkeys = 1;
-    local $Data::Dumper::Useperl  = 1;  # TODO - remove this when possible
-    my $file = "$self->{db}/$DB";
-    open OUT, ">$file" or croak "Cannot open $file\n";
-    print OUT Data::Dumper->Dump([$db], ["db"]);
-    close OUT or croak "Cannot close $file\n";
+
+    Storable::nstore($db, "$self->{db}/$DB");
     $self
 }
+
 
 sub delete
 {
@@ -561,7 +546,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.26 - 12th October 2003
+Version 0.27 - 9th November 2003
 
 =head1 LICENCE
 

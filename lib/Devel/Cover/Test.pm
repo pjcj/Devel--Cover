@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.26";
+our $VERSION = "0.27";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.26;
+use Devel::Cover::Inc 0.27;
 
 sub new
 {
@@ -108,8 +108,12 @@ sub cover_gold
 {
     my $self = shift;
 
-    my $latest_tested = 5.008001;
+    my $latest_tested = 5.008002;
     my $v = $] > $latest_tested ? $latest_tested : $];
+
+    # Backwards compatible maintenance releases
+    $v = 5.008001 if $v eq "5.008002";
+    $v = 5.006001 if $v eq "5.006002";
 
     $v = $ENV{__COVER_GOLDEN_VERSION} if exists $ENV{__COVER_GOLDEN_VERSION};
 

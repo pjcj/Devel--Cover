@@ -5,7 +5,7 @@
 - Profiling and speedups.
 - BEGIN and END blocks.
     Code in modules without subs.  Requires callbacks from perl?
-- Move away from Data::Dumper.  To?
+- Move away from Storable?  To?
 - Work with memoize.
 - Fix up Devel::Cover::Op
 - See if the XS code leaks, and fix it if it does.
@@ -14,8 +14,8 @@
 - Improve textual output.
 - Add platform and version info to DB.
 - Refactor output routines to use common template data.
-- Add popups to html output to specify x/y = z% (or some other way)
 - Look at time coverage again - collecting for too many ops?
-- MD5 file and check it hasn't changed.
+- MD5 file and check it hasn't changed (Integrate patch from Michael Carman).
 - Merge data from dynamically created subs.
 - Separate output for pod coverage, like subroutine coverage.
+- Extend cpancover so people can upload databases.

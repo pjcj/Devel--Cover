@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our @ISA     = qw( DynaLoader );
-our $VERSION = "0.26";
+our $VERSION = "0.27";
 
 use DynaLoader ();
+our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.26;
-use Devel::Cover::Inc 0.26;
+use Devel::Cover::DB  0.27;
+use Devel::Cover::Inc 0.27;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -28,6 +28,7 @@ use Data::Dumper;
 
 BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
 
+my $Initialised;                         # import() has been called.
 my $Silent  = undef;                     # Output nothing.
 
 my $Dir;                                 # Directory in cover will be gathered.
@@ -68,8 +69,14 @@ BEGIN { @Inc = @Devel::Cover::Inc::Inc }
 # BEGIN { $^P =  0x02 | 0x04 | 0x100 }
 BEGIN { $^P =  0x04 | 0x100 }
 
+{
+
+no warnings "void";  # Avoid "Too late to run CHECK block" warning.
+
 CHECK
 {
+    return unless $Initialised;
+
     check_files();
 
     # reset_op_seq(main_root);
@@ -104,7 +111,9 @@ EOM
         unless $Silent;
 }
 
-END { report() }
+}
+
+END { report() if $Initialised }
 
 sub import
 {
@@ -162,6 +171,8 @@ sub import
     }
 
     %Coverage = (all => 1) unless keys %Coverage;
+
+    $Initialised = 1;
 }
 
 sub cover_names_to_val
@@ -309,6 +320,10 @@ sub check_files
 
 sub report
 {
+    die "Devel::Cover::import() not run: " .
+        "did you require instead of use Devel::Cover?\n"
+        unless defined $Dir;
+
     chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
 
     my @collected = get_coverage();
@@ -620,7 +635,8 @@ sub B::Deparse::logop
     }
 }
 
-sub B::Deparse::logassignop {
+sub B::Deparse::logassignop
+{
     my $self = shift;
     my ($op, $cx, $opname) = @_;
     my $left = $op->first;
@@ -761,7 +777,6 @@ Requirements:
  +inc path           - Append to prefixes of files to ignore.
  -indent indent      - Set indentation level to indent.  Don't use this.
  -merge val          - Merge databases, for multiple test benches (default on).
- -profile val        - Turn on profiling iff val is true (default on).
  -select RE          - Only report on files matching RE.
  -summary val        - Print summary information iff val is true (default on).
 
@@ -788,7 +803,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.26 - 12th October 2003
+Version 0.27 - 9th November 2003
 
 =head1 LICENCE
 

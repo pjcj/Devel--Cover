@@ -19,8 +19,8 @@ use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version      = "0.26";
-my $Date         = "12th October 2003";
+my $Version      = "0.27";
+my $Date         = "9th November 2003";
 my $Author       = 'pjcj@cpan.org';
 
 my @perlbug      = ("perlbug", "-a", $Author,
@@ -108,6 +108,26 @@ print "done\n\n";
 
 my $e;
 
+print "checking for Storable.pm                   ........ ";
+
+$e = <<EOM;
+
+Storable.pm is required to store the coverage database.  You can
+download Storable from CPAN.
+
+EOM
+
+eval "use Storable";
+if (my $m = $INC{"Storable.pm"})
+{
+    my $v = eval { no warnings; $Storable::VERSION };
+    print "$v $m\n";
+}
+else
+{
+    print "not found\n\n$e\n";
+}
+
 print "checking for Template.pm      version 2.00 ........ ";
 
 $e = <<EOM;
@@ -151,7 +171,7 @@ else
     print "not found\n\n$e\n";
 }
 
-my $latest_tested = 5.008001;
+my $latest_tested = 5.008002;
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
@@ -159,6 +179,8 @@ Testing will take place against expected output from perl $latest_tested.
 You may well find failing tests.
 
 EOM
+
+print "\n" x 3;
 
 $ExtUtils::MakeMaker::Verbose = 0;
 
@@ -170,6 +192,7 @@ WriteMakefile
     ABSTRACT  => "Code coverage metrics for Perl",
     DIR       => [],
     EXE_FILES => [ "cover", "gcov2perl" ],
+    PREREQ_PM => { Storable => 0 },
     dist      => { COMPRESS => "gzip --best --force" },
     clean     => { FILES => join " ",  "t/*", map "$_.version", @versions },
     realclean => { FILES => "lib/Devel/Cover/Inc.pm cover_db t" },
@@ -244,11 +267,10 @@ _run : pure_all
             > \$(TEST).out
 
 run : _run
-\t gvim -d -geom 88x60+104+0 \$(TEST).out
+\t gvim -d \$(TEST).out
 
 diff : _run
-\t gvim -d -geom 185x83+0+0 -font 8x13 \\
-        test_output/cover/\$(TEST).$test_version \$(TEST).out
+\t gvim -d -font 8x13 test_output/cover/\$(TEST).$test_version \$(TEST).out
 
 gold : pure_all
 \t \$(PERL) create_gold \$(TEST)

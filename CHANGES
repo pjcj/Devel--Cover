@@ -73,8 +73,8 @@ Release 0.15 - 5th September 2002
  - Automatically generate tests.  Well, their infrastructure anyway.
  - Move Cover to lib/Devel/Cover to keep case insensitive filesystems happy.
  - Remove -detail option. (It belongs to cover.)
- - Work on op addresses and sequence numbers instead of just op addresses,
-   to be (almost) unique.
+ - Work on op addresses and sequence numbers instead of just op addresses, to be
+   (almost) unique.
  - Clean up subroutine location code.
  - Fix -select to override anything else.
  - Add condition coverage for && and || ops.
@@ -92,8 +92,8 @@ Release 0.16 - 9th September 2002
  - Make branch coverage line numbers more accurate.
 
 Release 0.17 - 15th September 2002
- - Call check_files() in report() to ensure we pick up anything added
-   to the symbol table while the program was running.
+ - Call check_files() in report() to ensure we pick up anything added to the
+   symbol table while the program was running.
 
 Release 0.18 - 28th September 2002
  - Redo the way condition coverage is gathered - abuse op_ppaddr.
@@ -120,11 +120,9 @@ Release 0.21 - 1st September 2003
  - Handle $x || next and friends.
  - Add html_subtle and text2 backends (Michael Carman).
  - Rename html backend to html_basic.
- - Make html backend a wrapper around preferred style, currently
-   html_subtle.
- - Make time coverage a little more accurate.  OK, a lot more accurate,
-   it's at least on the right line now, but I still wouldn't really
-   trust it.
+ - Make html backend a wrapper around preferred style, currently html_subtle.
+ - Make time coverage a little more accurate.  OK, a lot more accurate, it's at
+   least on the right line now, but I still wouldn't really trust it.
  - Fix pod coverage which has been broken for a while.
  - Don't collect branch coverage when not asked for.
  - Provide golden results for different Perl versions.
@@ -153,3 +151,8 @@ Release 0.25 - 10th October 2003
 Release 0.26 - 12th October 2003
  - Decline to output HTML results for conditions containing > 16 terms.
  - Add titles to HTML output.
+
+Release 0.27 - 
+ - Behave sensibly if import() is not called, for example when MakeMaker does a
+   PREREQ_PM check.
+ - Use Storable for the database instead if Data::Dumper/eval (Michael Carman).
