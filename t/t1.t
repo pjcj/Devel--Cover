@@ -7,8 +7,8 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-use Devel::Cover::Process 0.04 qw( cover_read );
-use Devel::Cover 0.04 qw( -indent 1 -output t1.cov );
+use Devel::Cover::Process 0.05 qw( cover_read );
+use Devel::Cover 0.05 qw( -indent 1 -output t1.cov );
 
 use strict;
 use warnings;
@@ -103,46 +103,59 @@ END
 __DATA__
 
 $cover = {
+  't/T1.pm' => {
+    'statement' => {
+      '13' => [
+        1001
+      ],
+      '12' => [
+        1001
+      ]
+    }
+  },
   't/t1.t' => {
     'statement' => {
-      '29' => [
+      '35' => [
         1001
-      ],
-      '45' => [
-        1001
-      ],
-      '37' => [
-        1001
-      ],
-      '55' => [
-        1
-      ],
-      '24' => [
-        1
       ],
       '32' => [
         1,
+        1001
+      ],
+      '28' => [
         1001
       ],
       '40' => [
         1001,
         3003
       ],
-      '42' => [
-        3003
-      ],
-      '35' => [
-        1002
-      ],
       '51' => [
         0
       ],
-      '28' => [
-        1004
+      '47' => [
+        1001
+      ],
+      '42' => [
+        3003
+      ],
+      '24' => [
+        4
+      ],
+      '37' => [
+        1001
+      ],
+      '45' => [
+        1001
+      ],
+      '29' => [
+        1002
+      ],
+      '55' => [
+        1
       ]
     },
     'condition' => {
-      '37' => [
+      '35' => [
         [
           1001,
           1001
@@ -160,28 +173,18 @@ $cover = {
           0
         ]
       ],
+      '37' => [
+        [
+          1001,
+          1001
+        ]
+      ],
       '51' => [
         [
           1001,
           0,
           0
         ]
-      ],
-      '35' => [
-        [
-          1001,
-          1001
-        ]
-      ]
-    }
-  },
-  't/T1.pm' => {
-    'statement' => {
-      '13' => [
-        1001
-      ],
-      '12' => [
-        1001
       ]
     }
   }

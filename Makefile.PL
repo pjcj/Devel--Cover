@@ -16,9 +16,9 @@ use ExtUtils::MakeMaker;
 
 $| = 1;
 
-my $Version = "0.04";
-my $Date    = "12th May 2001";
-my $Author = 'pjcj@cpan.org';
+my $Version = "0.05";
+my $Date    = "9th May 2001";
+my $Author  = 'pjcj@cpan.org';
 
 my @perlbug = ("perlbug", "-a", $Author,
                           "-s", "Installation of Cover $Version");
@@ -26,10 +26,10 @@ my @perlbug = ("perlbug", "-a", $Author,
 my $Perlbug = join " ", map { / / ? "'$_'" : $_ } @perlbug;
 
 
-open(M, "MANIFEST") or die "Cannot open MANIFEST: $!";
+open M, "MANIFEST" or die "Cannot open MANIFEST: $!";
 my @files    = map { split } <M>;
 my @versions = grep { $_ ne "README" && $_ ne "Makefile.PL" } @files;
-close(M) or die "Cannot close MANIFEST: $!";
+close M or die "Cannot close MANIFEST: $!";
 
 $ExtUtils::MakeMaker::Verbose = 0;
 
@@ -38,7 +38,7 @@ WriteMakefile
   NAME     => "Devel::Cover",
   VERSION  => $Version,
   AUTHOR   => 'Paul Johnson (pjcj@cpan.org)',
-  ABSTRACT => "Interface to genealogy GEDCOM files",
+  ABSTRACT => "Code coverage metrics for Perl",
   DIR      => [],
   PM       => { map {($_ => '$(INST_LIBDIR)/' . $_)} grep { /\.pm/ } @files },
   dist     => { COMPRESS => "gzip --best --force" },

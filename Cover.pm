@@ -12,26 +12,26 @@ use warnings;
 
 use DynaLoader ();
 
-use Devel::Cover::Process 0.04;
+use Devel::Cover::Process 0.05;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.04";
+our $VERSION = "0.05";
 
-use B qw( class main_root main_start main_cv svref_2object OPf_KIDS );
+use B qw( class ppname main_root main_start main_cv svref_2object OPf_KIDS );
 use Data::Dumper;
 
-my $Covering = 1;
+my  $Covering = 1;
 
-my $Indent   = 0;
-my $Output   = "default.cov";
-my $Summary  = 1;
-my $Details  = 0;
+my  $Indent   = 0;
+my  $Output   = "default.cov";
+my  $Summary  = 1;
+my  $Details  = 0;
 
-my %Cover;
-my $Cv;
-my @Todo;
-my %Done;
-my @Inc;
+my  %Cover;
+our $Cv;      # gets localised
+my  @Todo;
+my  %Done;
+my  @Inc;
 
 BEGIN { @Inc = @INC }
 
@@ -63,6 +63,7 @@ sub report
     return unless $Covering > 0;
     cover(-1);
     # print "Processing cover data\n@Inc\n";
+    $Cv = main_cv;
     get_subs("main");
     INC:
     while (my ($name, $file) = each %INC)
@@ -73,7 +74,6 @@ sub report
         $name =~ s/\//::/g;
         get_subs($name);
     }
-    $Cv = main_cv;
     walk_sub($Cv, main_start);
     @Todo = sort {$a->[0] <=> $b->[0]} @Todo;
 
@@ -82,7 +82,7 @@ sub report
     {
         my $name = $sub->[1]->SAFENAME;
         # print "$name\n";
-        $Cv = $sub->[1]->CV;
+        local $Cv = $sub->[1]->CV;
         walk_topdown($Cv->ROOT);
     }
 
@@ -103,16 +103,39 @@ sub report
     $cover->print_details if $Details;
 }
 
-my ($F, $L);
+my ($F, $L) = ("", 0);
+my $Level = 0;
 
 sub walk_topdown
 {
     my ($op) = @_;
     my $class = class($op);
-    my $coverage = coverage()->{pack "I*", $$op};
+    my $cover = coverage()->{pack "I*", $$op};
 
-    push @{$Cover{$F = $op->file}{statement}{$L = $op->line}}, $coverage || 0
-        if $class eq "COP";
+    $Level++;
+
+    # Statement coverage.
+
+    if ($class eq "COP")
+    {
+        push @{$Cover{$F = $op->file}{statement}{$L = $op->line}}, $cover || 0
+    }
+    elsif (!null($op) &&
+           $op->name eq "null"
+           && ppname($op->targ) eq "pp_nextstate")
+    {
+        # If the current op is null, but it was nextstate, we can still
+        # get at the file and line number, but we need to get dirty.
+
+        $cover = coverage()->{pack "I*", ${$op->sibling}};
+        my $o = $op;
+        bless $o, "B::COP";
+        push @{$Cover{$F = $o->file}{statement}{$L = $o->line}}, $cover || 0
+    }
+
+    # print " " x ($Level * 2), "$F:$L ", $op->name, ":$class\n";
+
+    # Condition coverage.
 
     if ($op->can("flags") && ($op->flags & OPf_KIDS))
     {
@@ -130,7 +153,9 @@ sub walk_topdown
         walk_topdown($op->pmreplroot);
     }
 
-    $class eq "LISTOP" ? undef : $coverage
+    $Level--;
+
+    $class eq "LISTOP" ? undef : $cover
 }
 
 sub find_first
@@ -192,6 +217,7 @@ sub todo
 sub walk_sub
 {
     my $cv = shift;
+    local $Cv = $cv;
     my $op = $cv->ROOT;
     $op = shift if null($op);
     walk_tree($op) if $op && !null($op);
@@ -232,9 +258,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover - a module to provide code coverage for Perl
-
-Version 0.04 - 12th May 2001
+Devel::Cover - Code coverage metrics for Perl
 
 =head1 SYNOPSIS
 
@@ -243,14 +267,7 @@ Version 0.04 - 12th May 2001
 
 =head1 DESCRIPTION
 
-Copyright 2001, Paul Johnson (pjcj@cpan.org)
-
-This software is free.  It is licensed under the same terms as Perl itself.
-
-The latest version of this software should be available from my homepage:
-http://www.pjcj.net
-
-This module provides code coverage for Perl.
+This module provides code coverage metrics for Perl.
 
 If you can't guess by the version number this is an alpha release.
 
@@ -456,5 +473,18 @@ Some code and ideas cribbed from:
 =head1 BUGS
 
 Huh?
+
+=head1 VERSION
+
+Version 0.05 - 9th May 2001
+
+=head1 LICENCE
+
+Copyright 2001, Paul Johnson (pjcj@cpan.org)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+http://www.pjcj.net
 
 =cut

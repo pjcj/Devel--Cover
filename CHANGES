@@ -14,3 +14,7 @@ Release 0.03 - 10th April 2001
 Release 0.04 - 12th April 2001
  - Include Devel::Cover::Op
  - Add condition coverage (sort of).
+
+Release 0.05 -
+ - Make line numbers more accurate when nextstate has been optimised away.
+ - Get things working with ithreads.

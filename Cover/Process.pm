@@ -12,7 +12,7 @@ use warnings;
 
 use Carp;
 
-our $VERSION = "0.04";
+our $VERSION = "0.05";
 
 sub new
 {
@@ -35,10 +35,7 @@ sub new
         $self->{filehandle} = *F{IO};
     }
 
-    if (defined $self->{filehandle})
-    {
-        $self->read;
-    }
+    $self->read if defined $self->{filehandle};
 
     if (defined $self->{file})
     {

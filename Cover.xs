@@ -23,8 +23,8 @@ HV *hv = 0;
 
 union address   /* Hack, hack, hackety hack. */
 {
-  char ch[sizeof(PL_op) + 1];
-  void *plop;
+    char ch[sizeof(PL_op) + 1];
+    void *plop;
 };
 
 static int
@@ -37,7 +37,8 @@ runops_cover(pTHX)
     if (!hv) hv = newHV();
     addr.ch[sizeof(PL_op)] = '\0';
 
-    while ((PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX))) {
+    while ((PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
+    {
         if (covering)
         {
             addr.plop = PL_op;
