@@ -11,5 +11,13 @@
 - See if the XS code leaks, and fix it if it does.
 - Specify where html output goes.
 - Different criteria for different runs.
-- Subroutine coverage
-- Improve textual output
+- Improve textual output.
+- Add platform and version info to DB.
+- Refactor output routines to use common template data.
+- Add popups to html output to specify x/y = z% (or some other way)
+- Look at time coverage again - collecting for too many ops?
+- MD5 file and check it hasn't changed.
+- Add -blib option defaulting on if blib directory is present.
+- Make path to DB absolute based on cwd.
+- Merge data from dynamically created subs.
+- Separate output for pod coverage, like subroutine coverage.

@@ -1,2 +1,18 @@
 - Code in BEGIN and END blocks is not reported.
+
 - Doesn't play nicely with all of Perl's testsuite.
+
+- elsif and else coverage is reported on the same line as the if
+  statement.  This is because perl doesn't store the line number for the
+  elsif and elses.  For the same reason the following warning is
+  reported on line 1 rather than line 2:
+
+  perl -we 'if ($a) {}
+  elsif ($a + 1) {}'
+  Use of uninitialized value in addition (+) at -e line 1.
+
+- Pod coverage only report data for modules, not top level scripts.
+  This is a limitation in Pod::Coverage.
+
+- Pod coverage does not work well with source filters including Switch.
+  Line numbers are reported incorrectly.

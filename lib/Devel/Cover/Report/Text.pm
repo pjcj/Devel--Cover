@@ -10,9 +10,9 @@ package Devel::Cover::Report::Text;
 use strict;
 use warnings;
 
-our $VERSION = "0.22";
+our $VERSION = "0.23";
 
-use Devel::Cover::DB 0.22;
+use Devel::Cover::DB 0.23;
 
 sub print_file
 {
@@ -174,15 +174,62 @@ sub print_conditions
     print "\n";
 }
 
+sub print_subroutines
+{
+    my ($db, $file, $options) = @_;
+
+    my $subroutines = $db->cover->file($file)->subroutine;
+
+    return unless $subroutines;
+
+    my %subs;
+    my $maxl = 8;
+    my $maxs = 10;
+
+    for my $location ($subroutines->items)
+    {
+        my $l = $subroutines->location($location);
+        for my $sub (@$l)
+        {
+            my $l = "$file:$location";
+            my $s = $sub->name;
+            $maxl = length $l if length $l > $maxl;
+            $maxs = length $s if length $s > $maxs;
+            $subs{$sub->covered ? "covered" : "uncovered"}{$s} =
+                [ $l, $sub->covered ];
+        }
+    }
+
+    my $template = "%-${maxs}s %-${maxl}s\n";
+
+    for my $type (sort keys %subs)
+    {
+        print ucfirst $type, " Subroutines\n";
+        print "-" x (12 + length $type), "\n\n";
+        printf $template, "Subroutine", "Location";
+        printf $template, "-" x $maxs, "-" x $maxl;
+
+        for my $s (sort keys %{$subs{$type}})
+        {
+            my ($l, $c) = @{$subs{$type}{$s}};
+            printf $template, $s, $l;
+        }
+        print "\n";
+    }
+
+    print "\n";
+}
+
 sub report
 {
     my ($pkg, $db, $options) = @_;
 
     for my $file (@{$options->{file}})
     {
-        print_file      ($db, $file, $options);
-        print_branches  ($db, $file, $options) if $options->{show}{branch};
-        print_conditions($db, $file, $options) if $options->{show}{condition};
+        print_file       ($db, $file, $options);
+        print_branches   ($db, $file, $options) if $options->{show}{branch};
+        print_conditions ($db, $file, $options) if $options->{show}{condition};
+        print_subroutines($db, $file, $options) if $options->{show}{subroutine};
     }
 }
 
@@ -216,7 +263,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.22 - 2nd September 2003
+Version 0.23 - 6th September 2003
 
 =head1 LICENCE
 

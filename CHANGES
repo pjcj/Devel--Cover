@@ -131,6 +131,11 @@ Release 0.21 - 1st September 2003
  - Change some B::Deparse logic to mirror changes in 5.8.1/5.10.
 
 Release 0.22 - 2nd September 2003
- - Rewrite runops function
-     - First line of DESTROY blocks and overload subs not now skipped
- - Add some more tests
+ - Rewrite runops function.
+     - First line of DESTROY blocks and overload subs not now skipped.
+ - Add some more tests.
+
+Release 0.23 - 6th September 2003
+ - Report condition coverage for branches on the same line as the branch.
+ - Add subroutine coverage.
+ - Made "all" coverage value work and made it the default.

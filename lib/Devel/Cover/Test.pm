@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.22";
+our $VERSION = "0.23";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.22;
+use Devel::Cover::Inc 0.23;
 
 sub new
 {
@@ -28,7 +28,8 @@ sub new
 
     my %params = @_;
 
-    my $criteria = delete $params{criteria} || "statement branch condition";
+    my $criteria = delete $params{criteria} ||
+                   "statement branch condition subroutine";
 
     my $self  =
     {
@@ -136,7 +137,7 @@ sub run_test
         $skip .= $INC{"Pod/Coverage.pm"} ? "" : "Pod::Coverage unavailable";
     }
 
-    plan tests => $differences || $skip ? 1 : scalar @cover;
+    plan tests => ($differences || $skip) ? 1 : scalar @cover;
 
     if ($skip)
     {

@@ -11,12 +11,12 @@ use strict;
 use warnings;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.22";
+our $VERSION = "0.23";
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.22;
-use Devel::Cover::Inc 0.22;
+use Devel::Cover::DB  0.23;
+use Devel::Cover::Inc 0.23;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -26,35 +26,42 @@ use Cwd ();
 
 use Data::Dumper;
 
-BEGIN { eval "use Pod::Coverage 0.06" }     # We'll use this if it is available.
+BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
 
-my $Silent  = 0;                            # Output nothing.
+my $Silent  = undef;                     # Output nothing.
 
-my $DB      = "cover_db";                   # DB name.
-my $Indent  = 1;                            # Data::Dumper indent.
-my $Merge   = 1;                            # Merge databases.
+my $DB      = "cover_db";                # DB name.
+my $Indent  = 1;                         # Data::Dumper indent.
+my $Merge   = 1;                         # Merge databases.
+my $Summary = 1;                         # Output coverage summary.
 
-my @Ignore;                                 # Packages to ignore.
-my @Inc;                                    # Original @INC to ignore.
-my @Select;                                 # Packages to select.
+my @Ignore;                              # Packages to ignore.
+my @Inc;                                 # Original @INC to ignore.
+my @Select;                              # Packages to select.
 
-my $Pod     = $INC{"Pod/Coverage.pm"};      # Do pod coverage.
-my %Pod;                                    # Pod coverage data.
+my $Pod     = $INC{"Pod/Coverage.pm"};   # Do pod coverage.
+my %Pod;                                 # Pod coverage data.
 
-my $Summary = 1;                            # Output coverage summary.
+my @Cvs;                                 # All the Cvs we want to cover.
+my $Cv;                                  # Cv we are looking in.
+my $Sub_name;                            # Name of the current subroutine.
+                                         # Reset when covered.
 
-my @Cvs;                                    # All the Cvs we want to cover.
-my $Cv;                                     # Cv we are looking in.
+my $Coverage;                            # Raw coverage data.
+my $Cover;                               # Coverage data.
 
-my $Coverage;                               # Raw coverage data.
-my $Cover;                                  # Coverage data.
+my %Criteria;                            # Names of coverage criteria.
+my %Coverage;                            # Coverage criteria to collect.
 
-my %Criteria;                               # Names of coverage criteria.
-my %Coverage;                               # Coverage criteria to collect.
+my $Cwd = Cwd::cwd();                    # Where we start from.
 
-my $Cwd = Cwd::cwd();                       # Where we start from.
-
-use vars qw($File $Line $Collect %Files);
+use vars '$File',                        # Last filename we saw.  (localised)
+         '$Line',                        # Last line number we saw.  (localised)
+         '$Collect',                     # Whether or not we are collecting
+                                         # coverage data.  We make two passes
+                                         # over conditions.  (localised)
+         '%Files';                       # Whether we are interested in files.
+                                         # Used in runops function.
 
 ($File, $Line, $Collect) = ("", 0, 1);
 
@@ -70,13 +77,28 @@ CHECK
     # reset_op_seq($_->ROOT) for @Cvs;
 
     set_coverage(keys %Coverage);
-
     my @coverage = get_coverage();
+    %Coverage = map { $_ => 1 } @coverage;
+
+    delete $Coverage{path};  # not done yet
+    my $nopod = "";
+    if (!$Pod && exists $Coverage{pod})
+    {
+        delete $Coverage{pod};  # Pod::Coverage unavailable
+        $nopod = <<EOM;
+Pod coverage is unvailable.  Please install Pod::Coverage from CPAN.
+EOM
+    }
+
+    set_coverage(keys %Coverage);
+    @coverage = get_coverage();
     my $last = pop @coverage;
+
     print __PACKAGE__, " $VERSION: Collecting coverage data for ",
           join(", ", @coverage),
           @coverage ? " and " : "",
           "$last.\n",
+          $nopod,
           "Selecting packages matching:", join("\n    ", "", @Select), "\n",
           "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
           "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
@@ -91,15 +113,17 @@ sub import
 
     # print __PACKAGE__, ": Parsing options from [@_]\n";
 
+    my $blib = -d "blib";
     @Inc = () if "@_" =~ /-inc /;
     while (@_)
     {
         local $_ = shift;
-        /^-silent/   && do { $Silent     = shift; next };
-        /^-db/       && do { $DB         = shift; next };
-        /^-indent/   && do { $Indent     = shift; next };
-        /^-merge/    && do { $Merge      = shift; next };
-        /^-summary/  && do { $Summary    = shift; next };
+        /^-silent/   && do { $Silent  = shift; next };
+        /^-db/       && do { $DB      = shift; next };
+        /^-indent/   && do { $Indent  = shift; next };
+        /^-merge/    && do { $Merge   = shift; next };
+        /^-summary/  && do { $Summary = shift; next };
+        /^-blib/     && do { $blib    = shift; next };
         /^-coverage/ &&
             do { $Coverage{+shift} = 1 while @_ && $_[0] !~ /^[-+]/; next };
         /^-ignore/   &&
@@ -111,6 +135,13 @@ sub import
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
 
+    if ($blib)
+    {
+        eval "use blib";
+        push @Ignore, "\\bt/";
+        # $Silent = 1 unless defined $Silent;
+    }
+
     for my $c (Devel::Cover::DB->new->criteria)
     {
         my $func = "coverage_$c";
@@ -118,8 +149,7 @@ sub import
         $Criteria{$c} = $func->();
     }
 
-    %Coverage = map { $_ => 1 } qw(statement branch condition time)
-         unless keys %Coverage;
+    %Coverage = (all => 1) unless keys %Coverage;
 }
 
 sub cover_names_to_val
@@ -328,6 +358,13 @@ sub add_statement_cover
     my $key = pack("I*", $$op) . pack("I*", $op->seq);
     push @{$Cover->{$File}{statement}{$Line}},
          [[$Coverage->{statement}{$key} || 0]];
+    if ($Sub_name)
+    {
+        push @{$Cover->{$File}{subroutine}{$Line}},
+             [[$Coverage->{statement}{$key} || 0, $Sub_name]];
+        # print "$File:$Line:$Sub_name:", $Coverage->{statement}{$key} || 0, "\n";
+        $Sub_name = "";
+    }
     push @{$Cover->{$File}{time}{$Line}},
          [[$Coverage->{time}{$key}]]
         if exists $Coverage->{time} && exists $Coverage->{time}{$key};
@@ -346,7 +383,6 @@ sub add_branch_cover
     # print STDERR "Branch cover from $file:$line $type:$text\n";
 
     my $c = $Coverage->{condition}{$key};
-    # print STDERR Dumper $c;
     if ($type eq "and")
     {
         shift @$c;
@@ -356,6 +392,10 @@ sub add_branch_cover
     {
         shift @$c;
         $c = [ ($c->[2] || 0) + ($c->[0] || 0), ($c->[1] || 0) ];
+    }
+    elsif ($type eq "elsif" && !exists $Coverage->{branch}{$key})
+    {
+        $c = [ ($c->[1] || 0), ($c->[0] || 0) ];
     }
     else
     {
@@ -371,14 +411,23 @@ sub add_branch_cover
          ];
 }
 
+my %condition_locations;
+
 sub add_condition_cover
 {
-    return unless $Collect;
-
     my ($op, $strop, $left, $right) = @_;
 
+    unless ($Collect)
+    {
+        $condition_locations{$$op} = [ $File, $Line ];
+        return
+    }
+
+    local ($File, $Line) = @{$condition_locations{$$op}}
+        if exists $condition_locations{$$op};
+
     my $key = pack("I*", $$op) . pack("I*", $op->seq);
-    # print STDERR "Condition cover from $File:$Line\n";
+    # print STDERR "Condition cover $$op from $File:$Line\n";
 
     my $type = $op->name;
     $type =~ s/assign$//;
@@ -497,7 +546,12 @@ sub B::Deparse::deparse
                     my $newtrue = $newcond->sibling;
                     # last in chain is OP_AND => no else
                     $false = $newtrue->sibling;
-                    my ($file, $line) = ($File, $Line);
+                    my ($file, $line);
+                    {
+                        # local ($File, $Line);
+                        # get_location($newcond);
+                        ($file, $line) = ($File, $Line);
+                    }
                     { local $Collect; $newcond = $self->deparse($newcond, 1) }
                     add_branch_cover($newop, "elsif", "elsif ($newcond) { }",
                                      $file, $line);
@@ -569,29 +623,29 @@ sub get_cover
     my $deparse = B::Deparse->new("-l");
 
     my $cv = $deparse->{curcv} = shift;
+    my $gv = $cv->GV;
+    $Sub_name = $cv->GV->SAFENAME unless ($gv->isa("B::SPECIAL"));
 
     if ($Pod && $Coverage{pod})
     {
-        my $gv = $cv->GV;
         unless ($gv->isa("B::SPECIAL"))
         {
             my $stash = $gv->STASH;
-            my $pkg = $stash->NAME;
-            my $file = $cv->FILE;
+            my $pkg   = $stash->NAME;
+            my $file  = $cv->FILE;
             if ($Pod{$file} ||= Pod::Coverage->new(package => $pkg))
             {
-                my $sub_name = $cv->GV->SAFENAME;
                 get_location($cv->START);
                 my $covered;
                 for ($Pod{$file}->covered)
                 {
-                    $covered = 1, last if $_ eq $sub_name;
+                    $covered = 1, last if $_ eq $Sub_name;
                 }
                 unless ($covered)
                 {
                     for ($Pod{$file}->uncovered)
                     {
-                        $covered = 0, last if $_ eq $sub_name;
+                        $covered = 0, last if $_ eq $Sub_name;
                     }
                 }
                 push @{$Cover->{$File}{pod}{$Line}[0]}, $covered if defined $covered;
@@ -631,7 +685,9 @@ Devel::Cover - Code coverage metrics for Perl
 
  To test an uninstalled module:
 
-
+ cover -delete
+ HARNESS_PERL_SWITCHES=-MDevel::Cover make test
+ cover -report html
 
 =head1 DESCRIPTION
 
@@ -646,13 +702,13 @@ profiling facility which needs a better backend to be really useful.
 
 The B<cover> program can be used to generate coverage reports.
 
-Statement, branch, condition, pod and time coverage information is
-reported.  Statement coverage data should be reasonable, although there
-may be some statements which are not reported.  Branch and condition
-coverage data should be mostly accurate too.  These data should be
-mostly accurate, although not always what one might initially expect.
-Pod coverage comes from Pod::Coverage.  Coverage data for path coverage
-are not yet collected.
+Statement, branch, condition, subroutine, pod and time coverage information is
+reported.  Statement coverage data should be reasonable, although there may be
+some statements which are not reported.  Branch and condition coverage data
+should be mostly accurate too, although not always what one might initially
+expect.  Subroutine coverage should be as accurate as statements coverage.  Pod
+coverage comes from Pod::Coverage.  Coverage data for path coverage are not yet
+collected.
 
 The B<gcov2perl> program can be used to convert gcov files to
 Devel::Cover databases.
@@ -673,12 +729,15 @@ Requirements:
 
 =head1 OPTIONS
 
+ -blib               - "use blib" and ignore files matching \bt/ (default true
+                       iff blib directory exists).
  -coverage criterion - Turn on coverage for the specified criterion.  Criteria
-                       include statement, branch, path, pod, time, all and none.
+                       include statement, branch, path, subroutine, pod, time,
+                       all and none (default all available).
  -db cover_db        - Store results in coverage db (default ./cover_db).
+ -ignore RE          - Ignore files matching RE.
  -inc path           - Set prefixes of files to ignore (default @INC).
  +inc path           - Append to prefixes of files to ignore.
- -ignore RE          - Ignore files matching RE.
  -indent indent      - Set indentation level to indent.  Don't use this.
  -merge val          - Merge databases, for multiple test benches (default on).
  -profile val        - Turn on profiling iff val is true (default on).
@@ -708,7 +767,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.22 - 2nd September 2003
+Version 0.23 - 6th September 2003
 
 =head1 LICENCE
 

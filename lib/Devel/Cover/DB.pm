@@ -10,10 +10,10 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.22";
+our $VERSION = "0.23";
 
-use Devel::Cover::DB::File  0.22;
-use Devel::Cover::Criterion 0.22;
+use Devel::Cover::DB::File  0.23;
+use Devel::Cover::Criterion 0.23;
 
 use Carp;
 use Data::Dumper;
@@ -26,8 +26,10 @@ sub new
     my $class = shift;
     my $self  =
     {
-        criteria       => [ qw( statement branch path condition pod time ) ],
-        criteria_short => [ qw( stmt      branch path cond      pod time ) ],
+        criteria       =>
+            [ qw( statement branch path condition subroutine pod time ) ],
+        criteria_short =>
+            [ qw( stmt      branch path cond      sub        pod time ) ],
         collected      => [],
         indent         => 1,
         cover          => {},
@@ -559,7 +561,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.22 - 2nd September 2003
+Version 0.23 - 6th September 2003
 
 =head1 LICENCE
 

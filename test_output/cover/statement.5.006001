@@ -1,29 +1,29 @@
 Reading database from cover_db
 
 
-------------------------------------------------- ------ ------ ------ ------
-File                                                stmt branch   cond  total
-------------------------------------------------- ------ ------ ------ ------
-tests/statement                                   100.00    n/a    n/a 100.00
-Total                                             100.00    n/a    n/a 100.00
-------------------------------------------------- ------ ------ ------ ------
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/statement                            100.00    n/a    n/a    n/a 100.00
+Total                                      100.00    n/a    n/a    n/a 100.00
+------------------------------------------ ------ ------ ------ ------ ------
 
 
 tests/statement
 
-line  err   stmt branch   cond   code
-1                                #!/usr/local/bin/perl
-2                                
-3                                # Copyright 2003, Paul Johnson (pjcj@cpan.org)
-4                                
-5                                # This software is free.  It is licensed under the same terms as Perl itself.
-6                                
-7                                # The latest version of this software should be available from my homepage:
-8                                # http://www.pjcj.net
-9                                
-10             1                 my $pi = 3.14159;
-11             1                 my $r  = 4;
-12             1                 my $c  = 2 * $pi * $r;
-13             1                 my $a  = $pi * $r * $r;
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/local/bin/perl
+2                                       
+3                                       # Copyright 2003, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                        my $pi = 3.14159;
+11             1                        my $r  = 4;
+12             1                        my $c  = 2 * $pi * $r;
+13             1                        my $a  = $pi * $r * $r;
 
 

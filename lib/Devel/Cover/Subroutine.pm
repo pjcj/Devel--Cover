@@ -1,11 +1,11 @@
-# Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
+# Copyright 2003, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-package Devel::Cover::Statement;
+package Devel::Cover::Subroutine;
 
 use strict;
 use warnings;
@@ -18,6 +18,7 @@ sub covered    { $_[0][0][0] }
 sub total      { 1 }
 sub percentage { $_[0][0][0] ? 100 : 0 }
 sub error      { !$_[0][0][0] }
+sub name       { $_[0][0][1] }
 
 sub calculate_summary
 {
@@ -26,16 +27,16 @@ sub calculate_summary
 
     my $s = $db->{summary};
 
-    $s->{$file}{statement}{total}++;
+    $s->{$file}{subroutine}{total}++;
     $s->{$file}{total}{total}++;
-    $s->{Total}{statement}{total}++;
+    $s->{Total}{subroutine}{total}++;
     $s->{Total}{total}{total}++;
 
     if ($self->[0][0])
     {
-        $s->{$file}{statement}{covered}++;
+        $s->{$file}{subroutine}{covered}++;
         $s->{$file}{total}{covered}++;
-        $s->{Total}{statement}{covered}++;
+        $s->{Total}{subroutine}{covered}++;
         $s->{Total}{total}{covered}++;
     }
 }
@@ -54,7 +55,7 @@ Devel::Cover::Statement - Code coverage metrics for Perl
 
 =head1 DESCRIPTION
 
-Module for storing statement coverage information.
+Module for storing subroutine coverage information.
 
 =head1 SEE ALSO
 

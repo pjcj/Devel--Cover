@@ -32,14 +32,15 @@ extern "C" {
 #define L Perl_debug_log
 #define svdump(sv) do_sv_dump(0, L, (SV *)sv, 0, 10, 1, 0);
 
-#define None      0x00000000
-#define Statement 0x00000001
-#define Branch    0x00000002
-#define Condition 0x00000004
-#define Path      0x00000008
-#define Pod       0x00000010
-#define Time      0x00000020
-#define All       0xffffffff
+#define None       0x00000000
+#define Statement  0x00000001
+#define Branch     0x00000002
+#define Condition  0x00000004
+#define Subroutine 0x00000008
+#define Path       0x00000010
+#define Pod        0x00000020
+#define Time       0x00000040
+#define All        0xffffffff
 
 static unsigned Covering = All;   /* Until we find out what we really want */
 
@@ -695,6 +696,13 @@ unsigned
 coverage_condition()
     CODE:
         RETVAL = Condition;
+    OUTPUT:
+        RETVAL
+
+unsigned
+coverage_subroutine()
+    CODE:
+        RETVAL = Subroutine;
     OUTPUT:
         RETVAL
 

@@ -247,4 +247,25 @@ for my $y (1, 0)
     $x[41]++;
 }
 
-# print join(", ", @x), "\n";
+my ($a, $b) = (0, 1);
+
+if ($a && $b)
+{
+    print "path 1\n";
+}
+elsif ($b || 0)
+{
+    print "path 2\n";
+    if (!$a && $b)
+    {
+        print "path 3\n";
+    }
+    elsif ($b || $a)
+    {
+        print "path 4\n";
+    }
+}
+elsif ($b && !$a)
+{
+    print "path 5\n";
+}

@@ -19,8 +19,8 @@ use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version      = "0.22";
-my $Date         = "2nd September 2003";
+my $Version      = "0.23";
+my $Date         = "6th September 2003";
 my $Author       = 'pjcj@cpan.org';
 
 my @perlbug      = ("perlbug", "-a", $Author,
@@ -171,7 +171,7 @@ WriteMakefile
     DIR       => [],
     EXE_FILES => [ "cover", "gcov2perl" ],
     dist      => { COMPRESS => "gzip --best --force" },
-    clean     => { FILES => join " ",  map { "$_.version" } @versions },
+    clean     => { FILES => join " ",  "t/*", map "$_.version", @versions },
     realclean => { FILES => "lib/Devel/Cover/Inc.pm cover_db t" },
     depend    => { distdir => "@files" },
 );
@@ -238,18 +238,16 @@ ppm : ppd pure_all
     -e 's/(CODEBASE HREF=")[^"]*/\$\$1Gedcom.tar.gz/;' \\
     Devel-Cover.ppd
 
-run : pure_all
-\t \$(PERL) -Mblib -MDevel::Cover=-ignore,blib,-merge,0 tests/\$(TEST) && \\
+_run : pure_all
+\t \$(PERL) -Mblib -MDevel::Cover=-ignore,blib,-merge,0,`\$(PERL) -e 'qx|grep __COVER__ \$\$ARGV[0]| =~ /__COVER__\\s+criteria\\s+(.*)/; (\$\$c = \$\$1 || "all") =~ s/\\s+/,/g; print "-coverage,\$\$c"' tests/\$(TEST)` tests/\$(TEST) && \\
    \$(PERL) -Mblib cover -report text \\
-            > \$(TEST).out && \\
-   gvim -d -geom 88x60+104+0 \$(TEST).out
+            > \$(TEST).out
 
-diff : pure_all
-\t \$(PERL) -Mblib -MDevel::Cover=-ignore,blib,-merge,0 tests/\$(TEST) && \\
-   \$(PERL) -Mblib cover -report text \\
-            -coverage statement -coverage branch -coverage condition \\
-            > \$(TEST).out && \\
-   gvim -d -geom 185x83+0+0 -font 8x13 \\
+run : _run
+\t gvim -d -geom 88x60+104+0 \$(TEST).out
+
+diff : _run
+\t gvim -d -geom 185x83+0+0 -font 8x13 \\
         test_output/cover/\$(TEST).$test_version \$(TEST).out
 
 gold : pure_all
