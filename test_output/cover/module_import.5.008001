@@ -1,11 +1,11 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3702/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/Module_import.pm                        0.0    n/a    n/a    0.0    0.0
-Total                                         0.0    n/a    n/a    0.0    0.0
+tests/Module_import.pm                      100.0    n/a    n/a  100.0  100.0
+Total                                       100.0    n/a    n/a  100.0  100.0
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -23,14 +23,14 @@ line  err   stmt branch   cond    sub   code
 9                                       
 10                                      sub import
 11                                      {
-12    ***      0                    0       print "Module_import\n";
+12             1                  100       print "Module_import\n";
 13                                      }
 14                                      
 15                                      1
 
 
-Uncovered Subroutines
----------------------
+Covered Subroutines
+-------------------
 
 Subroutine Location                 
 ---------- -------------------------

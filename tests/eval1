@@ -22,4 +22,29 @@ sub e
 }
 EOS
 
+eval <<'EOS';
+sub f
+{
+    $x++;
+    $x
+}
+
+sub g
+{
+    $x++;
+}
+
+sub h
+{
+    $x++;
+}
+EOS
+
 e();
+e();
+e();
+f();
+f();
+h();
+h();
+h();

@@ -12,9 +12,9 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.39";
+our $VERSION = "0.40";
 
-use Devel::Cover::DB 0.39;
+use Devel::Cover::DB 0.40;
 
 use Cwd "abs_path";
 use Data::Dumper;
@@ -258,7 +258,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.39 - 22nd March 2004
+Version 0.40 - 24th March 2004
 
 =head1 LICENCE
 

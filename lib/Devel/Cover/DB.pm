@@ -10,11 +10,11 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.39";
+our $VERSION = "0.40";
 
-use Devel::Cover::Criterion     0.39;
-use Devel::Cover::DB::File      0.39;
-use Devel::Cover::DB::Structure 0.39;
+use Devel::Cover::Criterion     0.40;
+use Devel::Cover::DB::File      0.40;
+use Devel::Cover::DB::Structure 0.40;
 
 use Carp;
 use File::Path;
@@ -124,8 +124,7 @@ sub merge_runs
 
     for my $run (sort @runs)
     {
-        print STDERR "Devel::Cover: merging run $run <$self->{base}>\n"
-            unless $Devel::Cover::Silent;
+        # print STDERR "Devel::Cover: merging run $run <$self->{base}>\n";
         my $r = Devel::Cover::DB->new(base => $self->{base}, db => $run);
         rmtree($run);
         $self->merge($r);
@@ -364,6 +363,7 @@ sub add_statement
         my $l = $sc->[$i];
         my $n = $line{$l}++;
         $cc->{$l}[$n] ||= do { my $c; \$c };
+        no warnings "uninitialized";
         ${$cc->{$l}[$n]} += $fc->[$i];
     }
 }
@@ -379,6 +379,7 @@ sub add_branch
         my $n = $line{$l}++;
         if (my $a = $cc->{$l}[$n])
         {
+            no warnings "uninitialized";
             $a->[0][0] += $fc->[$i][0];
             $a->[0][1] += $fc->[$i][1];
         }
@@ -400,6 +401,7 @@ sub add_subroutine
         my $n = $line{$l}++;
         if (my $a = $cc->{$l}[$n])
         {
+            no warnings "uninitialized";
             $a->[0] += $fc->[$i];
         }
         else
@@ -539,76 +541,6 @@ sub cover
     $self->{cover}
 }
 
-=for old
-
-sub print_details_hash
-{
-    my $self = shift;
-    my (@files) = @_;
-    @files = sort keys %{$self->{cover}} unless @files;
-    for my $file (@files)
-    {
-        print "$file\n\n";
-        my $lines = $self->{cover}{$file}{statement};
-        my $fmt = "%-5d: %6s %s\n";
-
-        open F, $file or carp("Unable to open $file: $!"), next;
-
-        while (<F>)
-        {
-            if (exists $lines->{$.})
-            {
-                my @c = @{$lines->{$.}};
-                printf "%5d: %6d %s", $., shift(@c)->[0], $_;
-                printf "     : %6d\n", shift(@c)->[0] while @c;
-            }
-            else
-            {
-                printf "%5d:        %s", $., $_;
-            }
-        }
-
-        close F or croak "Unable to close $file: $!";
-        print "\n\n";
-    }
-}
-
-sub print_details
-{
-    my $self = shift;
-    my (@files) = @_;
-    my $cover = $self->cover;
-    @files = sort $cover->items unless @files;
-    for my $file (@files)
-    {
-        print "$file\n\n";
-        my $f = $cover->file($file);
-        my $statement = $f->statement;
-        my $fmt = "%-5d: %6s %s\n";
-
-        open F, $file or carp("Unable to open $file: $!"), next;
-
-        while (<F>)
-        {
-            if (defined (my $location = $statement->location($.)))
-            {
-                my @c = @{$location};
-                printf "%5d: %6d %s", $., shift(@c)->[0], $_;
-                printf "     : %6d\n", shift(@c)->[0] while @c;
-            }
-            else
-            {
-                printf "%5d:        %s", $., $_;
-            }
-        }
-
-        close F or croak "Unable to close $file: $!";
-        print "\n\n";
-    }
-}
-
-=cut
-
 1
 
 __END__
@@ -688,7 +620,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.39 - 22nd March 2004
+Version 0.40 - 24th March 2004
 
 =head1 LICENCE
 

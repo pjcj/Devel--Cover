@@ -7,6 +7,8 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
+sub unused { 0 }
+
 sub gen
 {
     my $x = shift;
@@ -26,16 +28,12 @@ my $t = gen(5)->(6);
 
 print "$p, $q, $r, $s, $t\n";
 
-sub call { caller }
-
 for my $func (qw(f1 f2 f3))
 {
     no strict "refs";
     *$func = sub
     {
-        my $self = shift;
         print "$func\n";
-        # print join " ", call, "\n";
     }
 }
 
@@ -44,9 +42,7 @@ f2();
 
 sub AUTOLOAD
 {
-    my ($self) = @_;                         # don't change @_ because of the goto
     my $func = $AUTOLOAD;
-    # print "autoloading $func\n";
     $func =~ s/^.*:://;
     no strict "refs";
     if ($func eq "add")

@@ -13,7 +13,7 @@ use warnings;
 use Carp;
 use Storable;
 
-our $VERSION = "0.39";
+our $VERSION = "0.40";
 our $AUTOLOAD;
 
 sub new
@@ -68,6 +68,13 @@ sub set_digest
     $self->{$file}{digest} = $digest;
 }
 
+sub delete_file
+{
+    my $self = shift;
+    my ($file) = @_;
+    delete $self->{$file};
+}
+
 sub write
 {
     my $self = shift;
@@ -79,7 +86,14 @@ sub write
     }
     for my $file (sort keys %$self)
     {
-        Storable::nstore($self->{$file}, "$dir/$self->{$file}{digest}");
+        unless ($self->{$file}{digest})
+        {
+            warn "Can't find digest for $file";
+            next;
+        }
+        my $df = "$dir/$self->{$file}{digest}";
+        # my $f = $df; my $n = 1; $df = $f . "." . $n++ while -e $df;
+        Storable::nstore($self->{$file}, $df) unless -e $df;
     }
 }
 
@@ -117,7 +131,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.39 - 22nd March 2004
+Version 0.40 - 24th March 2004
 
 =head1 LICENCE
 

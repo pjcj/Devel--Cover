@@ -10,9 +10,9 @@ package Devel::Cover::Report::Text;
 use strict;
 use warnings;
 
-our $VERSION = "0.39";
+our $VERSION = "0.40";
 
-use Devel::Cover::DB 0.39;
+use Devel::Cover::DB 0.40;
 
 sub print_file
 {
@@ -117,7 +117,7 @@ sub print_branches
         {
             printf $tpl,
                    $first ? $location : "", $b->error ? "***" : "",
-                   $b->percentage, $b->values, $b->text;
+                   $b->percentage, map ($_ || 0, $b->values), $b->text;
             $first = 0;
         }
     }
@@ -261,7 +261,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.39 - 22nd March 2004
+Version 0.40 - 24th March 2004
 
 =head1 LICENCE
 

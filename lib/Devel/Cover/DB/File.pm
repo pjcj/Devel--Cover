@@ -10,9 +10,9 @@ package Devel::Cover::DB::File;
 use strict;
 use warnings;
 
-our $VERSION = "0.39";
+our $VERSION = "0.40";
 
-use Devel::Cover::Criterion 0.39;
+use Devel::Cover::Criterion 0.40;
 
 sub calculate_summary
 {
@@ -77,7 +77,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.39 - 22nd March 2004
+Version 0.40 - 24th March 2004
 
 =head1 LICENCE
 

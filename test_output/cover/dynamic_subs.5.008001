@@ -1,11 +1,11 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3702/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/dynamic_subs                           96.9   75.0    n/a   91.7   93.8
-Total                                        96.9   75.0    n/a   91.7   93.8
+tests/dynamic_subs                           96.7   75.0    n/a   85.7   92.7
+Total                                        96.7   75.0    n/a   85.7   92.7
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -21,75 +21,66 @@ line  err   stmt branch   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      sub gen
-11                                      {
-12             4                  100       my $x = shift;
-13                                          sub
-14                                          {
-15             5                  100           my $y = shift;
-16    ***      5     50                         return $x + $y if $y;
-17                                          }
-18             4                        };
-19                                      
-20             1                        my $o = gen(1);
-21             1                        my $p = $o->(7);
-22             1                        my $q = $o->(8);
-23             1                        my $r = gen(1)->(2);
-24             1                        my $s = gen(3)->(4);
-25             1                        my $t = gen(5)->(6);
-26                                      
-27             1                        print "$p, $q, $r, $s, $t\n";
+10    ***      0                    0   sub unused { 0 }
+11                                      
+12                                      sub gen
+13                                      {
+14             4                  100       my $x = shift;
+15                                          sub
+16                                          {
+17             5                  100           my $y = shift;
+18    ***      5     50                         return $x + $y if $y;
+19                                          }
+20             4                        };
+21                                      
+22             1                        my $o = gen(1);
+23             1                        my $p = $o->(7);
+24             1                        my $q = $o->(8);
+25             1                        my $r = gen(1)->(2);
+26             1                        my $s = gen(3)->(4);
+27             1                        my $t = gen(5)->(6);
 28                                      
-29    ***      0                    0   sub call { caller }
+29             1                        print "$p, $q, $r, $s, $t\n";
 30                                      
 31             1                        for my $func (qw(f1 f2 f3))
 32                                      {
 33                                          no strict "refs";
 34                                          *$func = sub
 35                                          {
-36             2                  100           my $self = shift;
-                                  100   
-                                  100   
-                                  100   
-37             2                                print "$func\n";
-38                                              # print join " ", call, "\n";
-39                                          }
-40             3                        }
-41                                      
-42             1                        f1();
-43             1                        f2();
-44                                      
-45                                      sub AUTOLOAD
-46                                      {
-47             3                  100       my ($self) = @_;                         # don't change @_ because of the goto
-48             3                            my $func = $AUTOLOAD;
-49                                          # print "autoloading $func\n";
-50             3                            $func =~ s/^.*:://;
-51                                          no strict "refs";
-52             3    100                     if ($func eq "add")
-53                                          {
-54                                              *$func = sub
-55                                              {
-56             3                  100               print "Add!\n";
-57             1                                };
-58                                          }
-59                                          else
-60                                          {
-61                                              *$func = sub
-62                                              {
-63             2                  100               print "$func\n";
-                                  100   
-                                  100   
-64             2                                };
-65                                          }
-66             3                            goto &$func
-67                                      }
-68                                      
-69             1                        add();
-70             1                        add();
-71             1                        add();
-72             1                        qaz();
-73             1                        wsx();
+36             2                  100           print "$func\n";
+37                                          }
+38             3                        }
+39                                      
+40             1                        f1();
+41             1                        f2();
+42                                      
+43                                      sub AUTOLOAD
+44                                      {
+45             3                  100       my $func = $AUTOLOAD;
+46             3                            $func =~ s/^.*:://;
+47                                          no strict "refs";
+48             3    100                     if ($func eq "add")
+49                                          {
+50                                              *$func = sub
+51                                              {
+52             3                  100               print "Add!\n";
+53             1                                };
+54                                          }
+55                                          else
+56                                          {
+57                                              *$func = sub
+58                                              {
+59             2                  100               print "$func\n";
+60             2                                };
+61                                          }
+62             3                            goto &$func
+63                                      }
+64                                      
+65             1                        add();
+66             1                        add();
+67             1                        add();
+68             1                        qaz();
+69             1                        wsx();
 
 
 Branches
@@ -97,8 +88,8 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-16    ***     50      5      0   if $y
-52           100      1      2   if ($func eq 'add') { }
+18    ***     50      5      0   if $y
+48           100      1      2   if ($func eq 'add') { }
 
 
 Covered Subroutines
@@ -106,23 +97,18 @@ Covered Subroutines
 
 Subroutine Location             
 ---------- ---------------------
-AUTOLOAD   tests/dynamic_subs:47
-__ANON__   tests/dynamic_subs:15
+AUTOLOAD   tests/dynamic_subs:45
+__ANON__   tests/dynamic_subs:17
 __ANON__   tests/dynamic_subs:36
-__ANON__   tests/dynamic_subs:36
-__ANON__   tests/dynamic_subs:36
-__ANON__   tests/dynamic_subs:36
-__ANON__   tests/dynamic_subs:56
-__ANON__   tests/dynamic_subs:63
-__ANON__   tests/dynamic_subs:63
-__ANON__   tests/dynamic_subs:63
-gen        tests/dynamic_subs:12
+__ANON__   tests/dynamic_subs:52
+__ANON__   tests/dynamic_subs:59
+gen        tests/dynamic_subs:14
 
 Uncovered Subroutines
 ---------------------
 
 Subroutine Location             
 ---------- ---------------------
-call       tests/dynamic_subs:29
+unused     tests/dynamic_subs:10
 
 

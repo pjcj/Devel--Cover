@@ -55,18 +55,18 @@ static HV *Cover_hv,
 
 static OP *Profiling_op  = 0;
 
-#define ch_sz (sizeof(void *) + sizeof(PADOFFSET))
-
 struct unique    /* Well, we'll be fairly unlucky if it's not */
 {
-    void *addr;
-    PADOFFSET pad;
+    OP *addr;
+    OP op;
 };
+
+#define ch_sz (sizeof(struct unique) + 1)
 
 union sequence   /* Hack, hack, hackety hack. */
 {
     struct unique op;
-    char   ch[ch_sz + 1];
+    char          ch[ch_sz + 1];
 };
 
 #ifdef HAS_GETTIMEOFDAY
@@ -92,8 +92,6 @@ static double get_elapsed()
 
     gettimeofday(&time, NULL);
     e = time.tv_sec * 1e6 + time.tv_usec;
-
-    /* fprintf(stderr, "[[[%f]]]\n", e); */
 
     return e;
 }
@@ -139,8 +137,6 @@ static int cpu()
     utime = time.tms_utime;
     stime = time.tms_stime;
 
-    /* fprintf(stderr, "<<<%d>>>\n", utime + stime); */
-
     return e / HZ;
 }
 
@@ -151,13 +147,19 @@ static int cpu()
 static char *get_key(OP *o)
 {
     static union sequence uniq;
+    int i;
 
-    uniq.op.addr = o;
-    uniq.op.pad  = o->op_targ;
-    uniq.ch[ch_sz] = 0;
+    uniq.op.addr          = o;
+    uniq.op.op            = *o;
+    uniq.op.op.op_ppaddr  = 0;  /* we mess with this field */
+    uniq.ch[ch_sz]        = 0;
 
-    NDEB(D(L, "0x%x 0x%x => <%s>\n", o, o->op_targ, uniq.ch));
+    for (i = 0; i < ch_sz; i++)
+        /* if (uniq.ch[i] < 32 || uniq.ch[i] > 126 ) */
+        if (!uniq.ch[i])
+            uniq.ch[i] = 'x';
 
+    NDEB(D(L, "0x%x <%s>\n", o, uniq.ch));
     return uniq.ch;
 }
 
@@ -336,9 +338,12 @@ static OP *get_condition(pTHX)
     }
     else
     {
-        Perl_croak(aTHX_
-                   "All is lost, I know not where to go from %p, %p: %p\n",
-                   PL_op, PL_op->op_targ, sv);
+        NDEB(D(L, "[%s]\n", ch));
+        /* PDEB(svdump(*sv)); */
+        PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p\n",
+                  PL_op, PL_op->op_targ, sv));
+        PDEB(svdump(Pending_conditionals));
+        exit(1);
     }
 
     return PL_op;
@@ -680,40 +685,7 @@ static int runops_orig(pTHX)
     return 0;
 }
 
-#if 0
-static void cv_destroy_cb(pTHX_ CV *cv)
-{
-    SV *sv;
-    IV iv;
-    dSP;
-
-    PDEB(D(L, "cv_destroy_cb %p - %p\n", cv, Covering));
-
-    if (!Covering)
-        return;
-
-    ENTER;
-    SAVETMPS;
-
-    PUSHMARK(SP);
-
-    sv = sv_newmortal();
-    iv = PTR2IV(cv);
-    sv_setiv(newSVrv(sv, "B::CV"), iv);
-
-    XPUSHs(sv);
-    /* XPUSHs(sv_2mortal(newSViv(cv))); */
-
-    PUTBACK;
-
-    call_pv("Devel::Cover::get_cover_x", G_DISCARD);
-
-    FREETMPS;
-    LEAVE;
-
-    NDEB(svdump(cv));
-}
-#endif
+typedef OP *B__OP;
 
 MODULE = Devel::Cover PACKAGE = Devel::Cover
 
@@ -821,10 +793,18 @@ coverage()
         else
             ST(0) = &PL_sv_undef;
 
+char *
+get_key(o)
+        B::OP o
+    CODE:
+        RETVAL = get_key(o);
+    OUTPUT:
+        RETVAL
+
+
 BOOT:
-    /* PL_runops        = runops_orig; */
+    PL_runops        = runops_cover;
     /* PL_savebegin     = TRUE; */
     /* PL_savecheck     = TRUE; */
     /* PL_saveinit      = TRUE; */
     /* PL_saveend       = TRUE; */
-    /* PL_cv_destroy_cb = cv_destroy_cb; */

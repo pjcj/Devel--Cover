@@ -255,3 +255,10 @@ Release 0.39 - 22nd March 2004
  - Check for Test::Differences in Makefile.PL.
  - Test with perl5.9.2.
  - Skip fork test on MSWin32.
+
+Release 0.40 - 22nd March 2004
+ - Reove DB structure for unwanted files.
+ - Identify ops based on address and OP contents, except for op_ppaddr
+   which we modify.
+ - Overhaul of coverage collection.
+ - Additions to tests.
