@@ -180,3 +180,6 @@ Release 0.29 - 19th December 2003
 
 Release 0.30 - 22nd December 2003
  - Get things working under Windows.
+
+Release 0.31 - 22nd December 2003
+ - Remove debugging output.  Hmmm.

@@ -19,7 +19,7 @@ use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version      = "0.30";
+my $Version      = "0.31";
 my $Date         = "22nd December 2003";
 my $Author       = 'pjcj@cpan.org';
 

@@ -447,7 +447,7 @@ static void cover_time()
                     cpu();
 #endif
             sv_setnv(*count, c);
-            PDEB(D(L, "Adding time: sum %f at %p\n", c, Profiling_op));
+            NDEB(D(L, "Adding time: sum %f at %p\n", c, Profiling_op));
         }
         Profiling_op = PL_op;
     }
