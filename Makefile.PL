@@ -16,12 +16,12 @@ use ExtUtils::MakeMaker;
 
 $| = 1;
 
-my $Version = "0.06";
-my $Date    = "10th May 2001";
+my $Version = "0.07";
+my $Date    = "17th May 2001";
 my $Author  = 'pjcj@cpan.org';
 
 my @perlbug = ("perlbug", "-a", $Author,
-                          "-s", "Installation of Cover $Version");
+                          "-s", "Installation of Devel::Cover $Version");
 
 my $Perlbug = join " ", map { / / ? "'$_'" : $_ } @perlbug;
 

@@ -10,7 +10,7 @@ package Devel::Cover::Op;
 use strict;
 use warnings;
 
-our $VERSION = "0.06";
+our $VERSION = "0.07";
 
 use Devel::Cover qw( -inc B -indent 1 -details 1 );
 use B::Concise   qw( set_style add_callback );
@@ -62,4 +62,4 @@ sub import
 
 END { B::Concise::compile(@Options)->() }
 
-1;
+1

@@ -12,12 +12,13 @@ use warnings;
 
 use DynaLoader ();
 
-use Devel::Cover::DB 0.06;
+use Devel::Cover::DB 0.07;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.06";
+our $VERSION = "0.07";
 
 use B qw( class ppname main_root main_start main_cv svref_2object OPf_KIDS );
+# use B::Debug;
 
 my  $Covering = 1;
 
@@ -69,6 +70,12 @@ sub report
     # print "Processing cover data\n@Inc\n";
     $Cv = main_cv;
     get_subs("main");
+
+    # This array should hold the top level of each package, ie all code
+    # which is not part of a subroutine.  main_root gets us the main
+    # root (!), but TODO: something similar for other packages.
+    my @roots = (main_root);
+
     INC:
     while (my ($name, $file) = each %INC)
     {
@@ -76,12 +83,16 @@ sub report
         for (@Inc) { next INC if $file =~ /^\Q$_/ }
         $name =~ s/\.pm$//;
         $name =~ s/\//::/g;
-        get_subs($name);
+        push @roots, get_subs($name);
     }
     walk_sub($Cv, main_start);
     @Todo = sort {$a->[0] <=> $b->[0]} @Todo;
 
-    walk_topdown(main_root) unless null(main_root);
+    for (@roots)
+    {
+        walk_topdown($_) unless null($_);
+    }
+
     for my $sub (@Todo)
     {
         my $name = $sub->[1]->SAFENAME;
@@ -195,19 +206,39 @@ sub get_subs
     my $pack = shift;
     # print "package $pack\n";
 
-    my %stash;
-    { no strict 'refs'; %stash = svref_2object(\%{$pack . "::"})->ARRAY }
-    $pack = ($pack eq "main") ? "" : $pack . "::";
+    my $stash;
+    { no strict 'refs'; $stash = svref_2object(\%{$pack . "::"}) }
+    my %stash = $stash->ARRAY;
+
+    my $cv_outside;
 
     while (my ($key, $val) = each %stash)
     {
         if (class($val) eq "GV" && class($val->CV) ne "SPECIAL")
         {
             next if $Done{$$val}++;
-            todo($val, $val->CV);
-            walk_sub($val->CV);
+
+            my $cv = $val->CV;
+            todo($val, $cv);
+            walk_sub($cv);
+
+            # Trying to find the code in packages which is outside
+            # subroutines.  TODO: make it work.
+            unless ($cv_outside)
+            {
+                do
+                {
+                    $cv = $cv->OUTSIDE
+                } while class($cv) eq "CV";
+                unless (null($cv))
+                {
+                    # $cv_outside = $cv;
+                }
+            }
         }
     }
+
+    $cv_outside || ()
 }
 
 sub null
@@ -268,7 +299,7 @@ sub walk_tree
 
 bootstrap Devel::Cover $VERSION;
 
-1;
+1
 
 __END__
 
@@ -278,8 +309,8 @@ Devel::Cover - Code coverage metrics for Perl
 
 =head1 SYNOPSIS
 
-  perl -MDevel::Cover prog args
-  perl -MDevel::Cover=-db,cover_db,-indent,1,-details,1 prog args
+ perl -MDevel::Cover prog args
+ perl -MDevel::Cover=-db,cover_db,-indent,1,-details,1 prog args
 
 =head1 DESCRIPTION
 
@@ -493,7 +524,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.06 - 10th May 2001
+Version 0.07 - 17th May 2001
 
 =head1 LICENCE
 

@@ -7,11 +7,11 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-use Devel::Cover::DB 0.06 qw( cover_read );
-use Devel::Cover 0.06 qw( -db t1 -indent 1 -merge 0 );
-
 use strict;
 use warnings;
+
+use Devel::Cover::DB 0.07;
+use Devel::Cover 0.07 qw( -db t1 -indent 1 -merge 0 );
 
 use Test;
 
@@ -65,10 +65,10 @@ __DATA__
 $cover = {
   't/T1.pm' => {
     'statement' => {
-      '13' => [
+      '16' => [
         1001
       ],
-      '12' => [
+      '15' => [
         1001
       ]
     }
@@ -83,7 +83,7 @@ $cover = {
         1001
       ],
       '28' => [
-        1001
+        1004
       ],
       '40' => [
         1001,
@@ -99,7 +99,7 @@ $cover = {
         3003
       ],
       '24' => [
-        4
+        2
       ],
       '37' => [
         1001
@@ -108,7 +108,7 @@ $cover = {
         1001
       ],
       '29' => [
-        1002
+        1001
       ],
       '55' => [
         1
@@ -117,7 +117,7 @@ $cover = {
     'condition' => {
       '35' => [
         [
-          1001,
+          1002,
           1001
         ]
       ],

@@ -14,7 +14,7 @@ use Carp;
 use Data::Dumper;
 use File::Path;
 
-our $VERSION = "0.06";
+our $VERSION = "0.07";
 
 my $DB = "cover.1";  # Version 1 of the database.
 
@@ -91,7 +91,7 @@ sub delete
     $self
 }
 
-sub cover
+sub cover_hash
 {
     my $self = shift;
     $self->{cover}
@@ -163,11 +163,11 @@ sub _merge_array
         my $f = shift @$from;
         if (UNIVERSAL::isa($i, "ARRAY"))
         {
-            _merge_array($i, $f);
+            _merge_array($i, $f || []);
         }
         else
         {
-            $i += $f;
+            $i += $f if defined $f;
         }
     }
     push @$into, @$from;
@@ -261,7 +261,7 @@ sub print_summary
     print "\n\n";
 }
 
-sub print_details
+sub print_details_hash
 {
     my $self = shift;
     my (@files) = @_;
@@ -293,4 +293,191 @@ sub print_details
     }
 }
 
+sub cover
+{
+    my $self = shift;
+    unless (UNIVERSAL::isa($self->{cover}, "Devel::Cover::DB::Cover"))
+    {
+        bless $self->{cover}, "Devel::Cover::DB::Cover";
+        for my $file (values %{$self->{cover}})
+        {
+            bless $file, "Devel::Cover::DB::File";
+            for my $criterion (values %{$file})
+            {
+                bless $criterion, "Devel::Cover::DB::Criterion";
+                for my $line (values %{$criterion})
+                {
+                    bless $line, "Devel::Cover::DB::Location";
+                }
+            }
+        }
+
+        *Devel::Cover::DB::Base::items = sub
+        {
+            my $self = shift;
+            keys %$self
+        };
+
+        *Devel::Cover::DB::Base::get = sub
+        {
+            my $self = shift;
+            my ($get) = @_;
+            $self->{$get}
+        };
+
+        my $classes =
+        {
+            Cover     => [ qw( files file ) ],
+            File      => [ qw( criteria criterion ) ],
+            Criterion => [ qw( locations location ) ],
+            Location  => [ qw( data datum ) ],
+        };
+        my $base = "Devel::Cover::DB::Base";
+        while (my ($class, $functions) = each %$classes)
+        {
+            my $c = "Devel::Cover::DB::$class";
+            no strict "refs";
+            @{"${c}::ISA"} = $base;
+            *{"${c}::$functions->[0]"} = *{"${base}::items"};
+            *{"${c}::$functions->[1]"} = *{"${base}::get"};
+        }
+
+        *Devel::Cover::DB::File::DESTROY = sub {};
+        unless (exists &Devel::Cover::DB::File::AUTOLOAD)
+        {
+            *Devel::Cover::DB::File::AUTOLOAD = sub
+            {
+                my $func = $Devel::Cover::DB::AUTOLOAD;
+                # print "autoloading $func\n";
+                (my $f = $func) =~ s/^.*:://;
+                carp "Undefined subroutine $f called"
+                    unless grep { $_ eq $f }
+                                @{$self->{all_criteria}},
+                                @{$self->{all_criteria_short}};
+                no strict "refs";
+                *$func = sub { shift->{$f} };
+                goto &$func
+            };
+        }
+    }
+    $self->{cover}
+}
+
+sub print_details
+{
+    my $self = shift;
+    my (@files) = @_;
+    my $cover = $self->cover;
+    @files = sort $cover->files unless @files;
+    for my $file (@files)
+    {
+        print "$file\n\n";
+        my $f = $cover->file($file);
+        my $statement = $f->statement;
+        my $fmt = "%-5d: %6s %s\n";
+
+        open F, $file or croak "Unable to open $file: $!";
+
+        while (<F>)
+        {
+            if (defined (my $location = $statement->location($.)))
+            {
+                my @c = @{$location};
+                printf "%5d: %6d %s", $., shift @c, $_;
+                printf "     : %6d\n", shift @c while @c;
+            }
+            else
+            {
+                printf "%5d:        %s", $., $_;
+            }
+        }
+
+        close F or croak "Unable to close $file: $!";
+        print "\n\n";
+    }
+}
+
 1
+
+__END__
+
+=head1 NAME
+
+Devel::Cover::DB - Code coverage metrics for Perl
+
+=head1 SYNOPSIS
+
+ use Devel::Cover::DB;
+
+ my $db = Devel::Cover::DB->new(db => "my_coverage_db");
+ $db->print_summary;
+ $db->print_details;
+
+=head1 DESCRIPTION
+
+This module provides access to a database of code coverage information.
+
+=head1 SEE ALSO
+
+ Devel::Cover
+
+=head1 METHODS
+
+=head2 new
+
+ my $db = Devel::Cover::DB->new(db => "my_coverage_db");
+
+Contructs the DB from the specified database.
+
+=head2 cover
+
+ my $cover = $db->cover;
+
+Returns a Devel::Cover::DB::Cover object.  From here all the coverage
+data may be accessed.
+
+ my $cover = $db->cover;
+ for my $file ($cover->files)
+ {
+     print "$file\n";
+     my $f = $cover->file($file);
+     for my $criterion ($f->criteria)
+     {
+         print "  $criterion\n";
+         my $c = $f->criterion($criterion);
+         for my $location ($c->locations)
+         {
+             my $l = $c->location($location);
+             print "    $location @$l\n";
+         }
+     }
+ }
+
+Data for different criteria will be in different formats, so that will
+need special handling, but I'll deal with that when we have the data for
+different criteria.
+
+If you don't want to remember all the method names, use items() instead
+of files(), criteria() and locations() and get() instead of file(),
+criterion() and location().
+
+Instead of calling $file->criterion("x") you can also call $file->x.
+
+=head1 BUGS
+
+Huh?
+
+=head1 VERSION
+
+Version 0.07 - 17th May 2001
+
+=head1 LICENCE
+
+Copyright 2001, Paul Johnson (pjcj@cpan.org)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+http://www.pjcj.net
+
+=cut

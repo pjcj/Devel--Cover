@@ -7,11 +7,11 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-use Devel::Cover::DB 0.06 qw( cover_read );
-use Devel::Cover 0.06 qw( -db t2 -indent 1 -merge 0 );
-
 use strict;
 use warnings;
+
+use Devel::Cover::DB 0.07;
+use Devel::Cover 0.07 qw( -db t2 -indent 1 -merge 0 );
 
 use Test;
 

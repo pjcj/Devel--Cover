@@ -1,0 +1,36 @@
+#!/usr/local/bin/perl
+
+# Copyright 2001, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+require 5.6.1;
+
+use strict;
+use warnings;
+
+use Devel::Cover::DB 0.07;
+
+my $db = Devel::Cover::DB->new(db => shift);
+$db->print_summary;
+$db->print_details;
+
+my $cover = $db->cover;
+for my $file ($cover->files)
+{
+    print "$file\n";
+    my $f = $cover->file($file);
+    for my $criterion ($f->criteria)
+    {
+        print "  $criterion\n";
+        my $c = $f->criterion($criterion);
+        for my $location ($c->locations)
+        {
+            my $l = $c->location($location);
+            print "    $location @$l\n";
+        }
+    }
+}

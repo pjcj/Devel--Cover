@@ -25,3 +25,7 @@ Release 0.06 - 10th August 2001
  - Add fix for eval in filename. (Arthur Bergman <arthur@contiller.se>)
  - Add more tests and abstract away comparison subroutine.
  - Clear @Inc if it is set explicitly.
+ - Trim filename length in detailed output.
+
+Release 0.07 - 17th August 2001
+ - Add an API to Devel::Cover::DB

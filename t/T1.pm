@@ -7,6 +7,9 @@
 
 package T1;
 
+my $y = 7;
+$y++;
+
 sub zz
 {
     my $x = shift;
