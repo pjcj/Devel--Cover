@@ -19,8 +19,8 @@ use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version      = "0.32";
-my $Date         = "4th January 2004";
+my $Version      = "0.33";
+my $Date         = "13th January 2004";
 my $Author       = 'pjcj@cpan.org';
 
 my @perlbug      = ("perlbug", "-a", $Author,
@@ -257,8 +257,6 @@ sub MY::libscan
 
 sub MY::postamble
 {
-    my $orequals = $^O eq "MSWin32" ? "=" : "?=";
-
     qq[
 SET_VERSION = \$(PERL) -pi.version \\
     -e 's/(^\\s*(?:our\\s+)\\\$\$VERSION = ")\\d+\\.\\d+(";)/\$\${1}$Version\$\$2/;' \\
@@ -277,6 +275,7 @@ README : lib/Devel/Cover.pm
     \$(PERL) -n \\
     -e 'print if (/NAME/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
     -e 'print if (/DESCRIPTION/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
+    -e 'print if (/REQUIREMENTS/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
     > README
 
 ppm : ppd pure_all
@@ -296,10 +295,14 @@ run : _run
 \t \$(PERL) -Mblib cover && \\
    gvim -d \$(TEST).out
 
-__COVER_GOLDEN_VERSION $orequals $test_version
+__COVER_GOLDEN_VERSION = $test_version
+
+FONT = 8x13
+FONT = -sun-screen-medium-r-normal-*-*-70-*-*-m-*-sun-fontspecific
+FONT = "Bitstream Vera Sans Mono 8"
 
 diff : _run
-\t gvim -d -font 8x13 test_output/cover/\$(TEST).\$(__COVER_GOLDEN_VERSION) \$(TEST).out
+\t gvim -d -font \$(FONT) test_output/cover/\$(TEST).\$(__COVER_GOLDEN_VERSION) \$(TEST).out
 
 gold : pure_all
 \t \$(PERL) create_gold \$(TEST)

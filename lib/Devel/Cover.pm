@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.32";
+our $VERSION = "0.33";
 
 use DynaLoader ();
 our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.32;
-use Devel::Cover::Inc 0.32;
+use Devel::Cover::DB  0.33;
+use Devel::Cover::Inc 0.33;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -46,8 +46,6 @@ my %Pod;                                 # Pod coverage data.
 
 my @Cvs;                                 # All the Cvs we want to cover.
 my $Cv;                                  # Cv we are looking in.
-my $Sub_name;                            # Name of the current subroutine.
-                                         # Reset when covered.
 
 my $Coverage;                            # Raw coverage data.
 my $Cover;                               # Coverage data.
@@ -319,6 +317,7 @@ sub B::GV::find_cv
     my $cv = $_[0]->CV;
     return unless $$cv;
 
+    # print "find_cv $$cv\n" if check_file($cv);
     push @Cvs, $cv if check_file($cv);
     push @Cvs, grep check_file($_), $cv->PADLIST->ARRAY->ARRAY
         if $cv->PADLIST->can("ARRAY") &&
@@ -335,6 +334,9 @@ sub check_files
     my %seen_pkg;
 
     walksymtable(\%main::, "find_cv", sub { !$seen_pkg{$_[0]}++ });
+
+    my %cvs = map { $$_ => $_ } @Cvs;
+    @Cvs = values %cvs;
 
     # print Dumper \%seen_pkg;
     # print Dumper \%Files;
@@ -420,6 +422,27 @@ sub report
     $cover->print_summary if $Summary && !$Silent;
 }
 
+sub get_key
+{
+    my ($op) = @_;
+    pack("I*", $$op) . pack("I*", $op->seq)
+}
+
+sub add_subroutine_cover
+{
+    my ($op, $sub_name) = @_;
+
+    get_location($op);
+    return unless $File;
+
+    # print "Subroutine $sub_name $Line:$File: ", $op->name, "\n";
+
+    my $key = get_key($op);
+    push @{$Cover->{$File}{subroutine}{$Line}},
+         [[$Coverage->{statement}{$key} || 0, $sub_name]];
+    # print "$File:$Line:$sub_name:", $Coverage->{statement}{$key} || 0, "\n";
+}
+
 sub add_statement_cover
 {
     my ($op) = @_;
@@ -427,20 +450,11 @@ sub add_statement_cover
     get_location($op);
     return unless $File;
 
-    return unless $Collect;
+    # print "Statement $Line:$File: $op $$op ", $op->name, "\n";
 
-    # print "Statement: ", $op->name, "\n";
-
-    my $key = pack("I*", $$op) . pack("I*", $op->seq);
+    my $key = get_key($op);
     push @{$Cover->{$File}{statement}{$Line}},
          [[$Coverage->{statement}{$key} || 0]];
-    if ($Sub_name)
-    {
-        push @{$Cover->{$File}{subroutine}{$Line}},
-             [[$Coverage->{statement}{$key} || 0, $Sub_name]];
-        # print "$File:$Line:$Sub_name:", $Coverage->{statement}{$key} || 0, "\n";
-        $Sub_name = "";
-    }
     push @{$Cover->{$File}{time}{$Line}},
          [[$Coverage->{time}{$key}]]
         if exists $Coverage->{time} && exists $Coverage->{time}{$key};
@@ -455,25 +469,23 @@ sub add_branch_cover
     $text =~ s/^\s+//;
     $text =~ s/\s+$//;
 
-    my $key = pack("I*", $$op) . pack("I*", $op->seq);
+    my $key = get_key($op);
     # print STDERR "Branch cover from $file:$line $type:$text\n";
     # use Carp "cluck"; cluck "here: ";
 
     my $c = $Coverage->{condition}{$key};
     # use Data::Dumper; print "Coverage $type: $text\n", Dumper \@$c;
 
-    if ($type eq "and")
+    if ($type eq "and" ||
+        $type eq "or"  ||
+        ($type eq "elsif" && !exists $Coverage->{branch}{$key}))
     {
-        $c = [ ($c->[2] || 0), ($c->[1] || 0) + ($c->[3] || 0) ];
-    }
-    elsif ($type eq "or")
-    {
-        $c = [ ($c->[3] || 0) + ($c->[1] || 0), ($c->[2] || 0) ];
-    }
-    elsif ($type eq "elsif" && !exists $Coverage->{branch}{$key})
-    {
-        # TODO - is this right?
-        $c = [ ($c->[1] || 0), ($c->[0] || 0) ];
+        # and   => this could also be a plain if with no else or elsif
+        # or    => this could also be an unless
+        # elsif => no subsequent elsifs or elses
+        # True path taken if not short circuited.
+        # False path taken if short circuited.
+        $c = [ ($c->[1] || 0) + ($c->[2] || 0), ($c->[3] || 0) ];
     }
     else
     {
@@ -504,7 +516,7 @@ sub add_condition_cover
     local ($File, $Line) = @{$condition_locations{$$op}}
         if exists $condition_locations{$$op};
 
-    my $key = pack("I*", $$op) . pack("I*", $op->seq);
+    my $key = get_key($op);
     # print STDERR "Condition cover $$op from $File:$Line\n";
 
     my $type = $op->name;
@@ -568,25 +580,27 @@ no warnings "redefine";
 my $original_deparse;
 BEGIN { $original_deparse = \&B::Deparse::deparse }
 
+my %Seen;
+
 sub B::Deparse::deparse
 {
     my $self = shift;
     my ($op, $cx) = @_;
 
-    my $class = class($op);
-    my $null  = $class eq "NULL";
-
-    my $name = $op->can("name") ? $op->name : "Unknown";
-
-    # print "Deparse <$name>\n";
-
     if ($Collect)
     {
+        my $class = class($op);
+        my $null  = $class eq "NULL";
+
+        my $name = $op->can("name") ? $op->name : "Unknown";
+
+        # $Seen{$$op} ||= 0; printf "Deparse $class <$name> $Seen{$$op} %x\n", $$op;
+
         # Get the coverage on this op.
 
         if ($class eq "COP" && $Coverage{statement})
         {
-            add_statement_cover($op);
+            add_statement_cover($op) unless $Seen{$$op}++;
         }
         elsif (!$null && $name eq "null"
                       && ppname($op->targ) eq "pp_nextstate"
@@ -596,8 +610,12 @@ sub B::Deparse::deparse
             # get at the file and line number, but we need to get dirty.
 
             bless $op, "B::COP";
-            add_statement_cover($op);
+            add_statement_cover($op) unless $Seen{$$op}++;
             bless $op, "B::$class";
+        }
+        elsif ($Seen{$$op}++)
+        {
+            return  # Only report on each op once.
         }
         elsif ($name eq "cond_expr")
         {
@@ -704,9 +722,11 @@ sub get_cover
 
     my $cv = $deparse->{curcv} = shift;
     my $gv = $cv->GV;
-    $Sub_name = $cv->GV->SAFENAME unless ($gv->isa("B::SPECIAL"));
+    my $sub_name = $cv->GV->SAFENAME unless ($gv->isa("B::SPECIAL"));
+    $sub_name =~ s/(__ANON__)\[.+:\d+\]/$1/;
 
-    # print "getting cover for $Sub_name\n";
+    # printf STDERR "getting cover for $sub_name, %x\n", $$cv;
+    # use Carp "cluck"; cluck "here: ";
 
     if ($Pod && $Coverage{pod})
     {
@@ -721,13 +741,13 @@ sub get_cover
                 my $covered;
                 for ($Pod{$file}->covered)
                 {
-                    $covered = 1, last if $_ eq $Sub_name;
+                    $covered = 1, last if $_ eq $sub_name;
                 }
                 unless ($covered)
                 {
                     for ($Pod{$file}->uncovered)
                     {
-                        $covered = 0, last if $_ eq $Sub_name;
+                        $covered = 0, last if $_ eq $sub_name;
                     }
                 }
                 push @{$Cover->{$File}{pod}{$Line}[0]}, $covered if defined $covered;
@@ -735,7 +755,12 @@ sub get_cover
         }
     }
 
-    @_ ? $deparse->deparse(shift, 0) : $deparse->deparse_sub($cv, 0)
+    return $deparse->deparse(shift, 0) if @_;
+
+    my $lineseq = $cv->ROOT->first;
+    my $op = $lineseq->first;
+    add_subroutine_cover($op, $sub_name);
+    $deparse->deparse_sub($cv, 0)
 }
 
 sub get_cover_x
@@ -765,13 +790,13 @@ Devel::Cover - Code coverage metrics for Perl
 
  perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
 
- To test an uninstalled module:
+To test an uninstalled module:
 
  cover -delete
  HARNESS_PERL_SWITCHES=-MDevel::Cover make test
  cover
 
- If the module does not use the t/*.t framework:
+If the module does not use the t/*.t framework:
 
  PERL5OPT=-MDevel::Cover make test
 
@@ -793,27 +818,44 @@ reported.  Statement coverage data should be reasonable, although there may be
 some statements which are not reported.  Branch and condition coverage data
 should be mostly accurate too, although not always what one might initially
 expect.  Subroutine coverage should be as accurate as statement coverage.  Pod
-coverage comes from Pod::Coverage.  Coverage data for path coverage are not yet
-collected.
+coverage comes from L<Pod::Coverage>.  Coverage data for path coverage are not
+yet collected.
 
-The B<gcov2perl> program can be used to convert gcov files to
-Devel::Cover databases.
+The F<gcov2perl> program can be used to convert gcov files to
+C<Devel::Cover> databases.
 
 You may find that the results don't match your expectations.  I would
 imagine that at least one of them is wrong.
 
-THe most appropriate mailing list on which to discuss this module would
+The most appropriate mailing list on which to discuss this module would
 be perl-qa.  Discussion has migrated there from perl-qa-metrics which is
-now defunct.  http://lists.perl.org/showlist.cgi?name=perl-qa
+now defunct.  See L<http://lists.perl.org/showlist.cgi?name=perl-qa>.
 
-Requirements:
+=head1 REQUIREMENTS
 
-  Perl 5.6.1 or greater.  (Perl 5.7.0 is also unsupported.)
-  The ability to compile XS extensions.
-  Storable (in the core in Perl 5.8.0 and above).
-  Digest::MD5 (in the core in Perl 5.8.0 and above).
-  Pod::Coverage if you want pod coverage.
-  Template Toolkit 2 if you want HTML output.
+=over
+
+=item * Perl 5.6.1 or greater
+
+(Perl 5.7.0 is unsupported.)
+
+=item * The ability to compile XS extensions.
+
+This means a working compiler and make program at least.
+
+=item * L<Storable> and L<Digest::MD5>
+
+Both are in the core in Perl 5.8.0 and above.
+
+=item * L<Pod::Coverage>
+
+if you want Pod coverage.
+
+=item * Test::Differences
+
+if the tests fail and you would like nice output telling you why.
+
+=back
 
 =head1 OPTIONS
 
@@ -854,7 +896,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.32 - 4th January 2004
+Version 0.33 - 13th January 2004
 
 =head1 LICENCE
 

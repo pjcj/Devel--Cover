@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3209/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -85,7 +85,7 @@ line  err      %   true  false   branch
 27    ***     50      0     11   if $z
 35    ***     50     11      0   if ($y) { }
 41    ***      0      0      0   if $y
-56    ***     50      0     11   if $y
+56    ***     50     11      0   if $y
 
 
 Conditions

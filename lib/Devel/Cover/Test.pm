@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.32";
+our $VERSION = "0.33";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.32;
+use Devel::Cover::Inc 0.33;
 
 sub new
 {
@@ -70,6 +70,9 @@ sub perl
     my $perl = $Devel::Cover::Inc::Perl;
     my $base = $Devel::Cover::Inc::Base;
 
+    $perl =~ s/ /\\ /g;
+    $base =~ s/ /\\ /g;
+
     $perl .= " -I$base/$_" for "", "blib/lib", "blib/arch";
 
     $perl
@@ -85,7 +88,9 @@ sub test_command
         $c .= " -MDevel::Cover=" .
               join(",", split ' ', $self->{test_parameters})
     }
-    $c .= " " . $self->test_file;
+    my $t = $self->test_file;
+    $t =~ s/ /\\ /g;
+    $c .= " $t";
 
     $c
 }
@@ -94,7 +99,9 @@ sub cover_command
 {
     my $self = shift;
 
-    $self->perl . " $Devel::Cover::Inc::Base/cover $self->{cover_parameters}"
+    my $b = $Devel::Cover::Inc::Base;
+    $b =~ s/ /\\ /g;
+    $self->perl . " $b/cover $self->{cover_parameters}"
 }
 
 sub test_file

@@ -1,11 +1,11 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3209/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/overloaded                           100.00  50.00    n/a 100.00  93.75
-Total                                      100.00  50.00    n/a 100.00  93.75
+tests/overloaded                           100.00  50.00    n/a 100.00  91.67
+Total                                      100.00  50.00    n/a 100.00  91.67
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -14,7 +14,7 @@ tests/overloaded
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2003-2004, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
@@ -29,9 +29,7 @@ line  err   stmt branch   cond    sub   code
                1                        
 15                                      use overload '""' => \&str, '0+' => \&num, fallback => 1;
 16             2                  100   sub num {shift->[1]}
-               2                  100   
 17             2                  100   sub str {shift->[0]}
-               2                  100   
 18                                      
 19                                      package main;
 20                                      

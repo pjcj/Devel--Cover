@@ -303,19 +303,19 @@ if ($a && $b)
 {
     print "path 1\n";
 }
-elsif ($b || 0)
+elsif (!$a && !$b)
 {
     print "path 2\n";
-    if (!$a && $b)
-    {
-        print "path 3\n";
-    }
-    elsif ($b || $a)
+}
+elsif ($b || 0)
+{
+    print "path 3\n";
+    if (!$b || $a)
     {
         print "path 4\n";
     }
-}
-elsif ($b && !$a)
-{
-    print "path 5\n";
+    elsif (!$a && $b)
+    {
+        print "path 5\n";
+    }
 }

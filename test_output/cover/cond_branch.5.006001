@@ -1,11 +1,11 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3209/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/cond_branch                           83.78  78.12  15.28 100.00  68.54
-Total                                       83.78  78.12  15.28 100.00  68.54
+tests/cond_branch                           83.80  79.35  19.12 100.00  69.88
+Total                                       83.80  79.35  19.12 100.00  69.88
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -294,9 +294,7 @@ line  err   stmt branch   cond    sub   code
 251                                     $s = sub
 252                                     {
 253            4    100           100       shift || return;
-               4    100                 
 254            2                            $x[42]++;
-               2                        
 255            1                        };
 256                                     
 257            1                        for my $y (0, 1)
@@ -314,9 +312,7 @@ line  err   stmt branch   cond    sub   code
 267                                     $s = sub
 268                                     {
 269            4    100           100       shift && return;
-               4    100                 
 270            2                            $x[43]++;
-               2                        
 271            1                        };
 272                                     
 273            1                        for my $y (0, 1)
@@ -335,9 +331,7 @@ line  err   stmt branch   cond    sub   code
 284                                     {
 285                                         no warnings "void";
 286   ***      4             0    100       shift xor return;
-      ***      4             0          
 287   ***      0                            $x[44]++;
-      ***      0                        
 288            1                        };
 289                                     
 290            1                        for my $y (0, 1)
@@ -355,27 +349,27 @@ line  err   stmt branch   cond    sub   code
 300            1                        my ($a, $b) = (0, 1);
 301                                     
 302   ***      1     50     33          if ($a && $b)
+      ***            50     33          
       ***            50     50          
-      ***             0      0          
 303                                     {
 304   ***      0                            print "path 1\n";
 305                                     }
-306                                     elsif ($b || 0)
+306                                     elsif (!$a && !$b)
 307                                     {
-308            1                            print "path 2\n";
-309   ***      1     50     33              if (!$a && $b)
-      ***             0      0          
-310                                         {
-311            1                                print "path 3\n";
-312                                         }
-313                                         elsif ($b || $a)
+308   ***      0                            print "path 2\n";
+309                                     }
+310                                     elsif ($b || 0)
+311                                     {
+312            1                            print "path 3\n";
+313   ***      1     50     33              if (!$b || $a)
+      ***            50     33          
 314                                         {
 315   ***      0                                print "path 4\n";
 316                                         }
-317                                     }
-318                                     elsif ($b && !$a)
-319                                     {
-320   ***      0                            print "path 5\n";
+317                                         elsif (!$a && $b)
+318                                         {
+319            1                                print "path 5\n";
+320                                         }
 321                                     }
 
 
@@ -390,8 +384,8 @@ line  err      %   true  false   branch
 37    ***     50      0      4   if $y
 39           100      2      2   if $z
 40           100      2      2   if $z
-42    ***     50      0      4   unless $y
-43    ***     50      0      4   unless $y
+42    ***     50      4      0   unless $y
+43    ***     50      4      0   unless $y
 45           100      2      2   unless $z
 46           100      2      2   unless $z
 48    ***     50      0      4   $y ? :
@@ -405,11 +399,11 @@ line  err      %   true  false   branch
 80           100      1      1   unless $y
 86           100      1      1   if $y
 92           100      1      1   if $y
-112   ***     50      0      1   unless $y
+112   ***     50      1      0   unless $y
 118          100      1      1   unless $y
 124          100      1      1   if $y
 130   ***     50      1      0   if $y
-150   ***     50      0      1   unless $y
+150   ***     50      1      0   unless $y
 157          100      1      1   unless $y
 164          100      1      1   if $y
 171   ***     50      1      0   if $y
@@ -424,14 +418,12 @@ line  err      %   true  false   branch
 234          100      1      2   if $z > 1
 244          100      1      2   if $z > 1
 253          100      2      2   unless shift @_
-             100      2      2   unless shift @_
 269          100      2      2   if shift @_
-             100      2      2   if shift @_
 302   ***     50      0      1   if ($a and $b) { }
+      ***     50      0      1   elsif (not $a and not $b) { }
       ***     50      1      0   elsif ($b or 0) { }
-      ***      0      0      0   elsif ($b and not $a) { }
-309   ***     50      1      0   if (not $a and $b) { }
-      ***      0      0      0   elsif ($b or $a) { }
+313   ***     50      0      1   if (not $b or $a) { }
+      ***     50      1      0   elsif (not $a and $b) { }
 
 
 Conditions
@@ -446,8 +438,8 @@ line  err      %     !l  l&&!r   l&&r   expr
 68    ***     33      4      0      0   $y and $z
       ***     33      4      0      0   $y and $z
 302   ***     33      1      0      0   $a and $b
-      ***      0      0      0      0   $b and not $a
-309   ***     33      0      0      1   not $a and $b
+      ***     33      0      1      0   not $a and not $b
+313   ***     33      0      0      1   not $a and $b
 
 or 2 conditions
 
@@ -461,7 +453,7 @@ line  err      %      l  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------   ----
 27    ***     66      0      2      2   $y or $z
 51    ***     66      0      2      2   $y or $z
-309   ***      0      0      0      0   $b or $a
+313   ***     33      0      0      1   not $b or $a
 
 xor 4 conditions
 
@@ -476,16 +468,15 @@ line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
 236   ***      0      0      0      0      0   my $w = $z xor redo
 246   ***      0      0      0      0      0   my $w = !$z xor redo
 286   ***      0      0      0      0      0   shift @_ xor return
-      ***      0      0      0      0      0   shift @_ xor return
 
 
 Covered Subroutines
 -------------------
 
-Subroutine                                                        Location             
------------------------------------------------------------------ ---------------------
-__ANON__[/home/pjcj/g/perl/dev/Devel-Cover/tests/cond_branch:255] tests/cond_branch:253
-__ANON__[/home/pjcj/g/perl/dev/Devel-Cover/tests/cond_branch:271] tests/cond_branch:269
-__ANON__[/home/pjcj/g/perl/dev/Devel-Cover/tests/cond_branch:288] tests/cond_branch:286
+Subroutine Location             
+---------- ---------------------
+__ANON__   tests/cond_branch:253
+__ANON__   tests/cond_branch:269
+__ANON__   tests/cond_branch:286
 
 

@@ -10,10 +10,10 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.32";
+our $VERSION = "0.33";
 
-use Devel::Cover::DB::File  0.32;
-use Devel::Cover::Criterion 0.32;
+use Devel::Cover::DB::File  0.33;
+use Devel::Cover::Criterion 0.33;
 
 use Carp;
 use File::Path;
@@ -100,7 +100,10 @@ sub delete
     $db = shift if @_;
     $self->{db} = $db if ref $self;
     croak "No db specified" unless length $db;
-    rmtree([glob "$db/*"]);
+    opendir DIR, $db or die "Can't opendir $db: $!";
+    my @files = map "$db/$_", grep !/^\.\.?/, readdir DIR;
+    closedir DIR or die "Can't closedir $db/runs: $!";
+    rmtree(\@files);
     $self
 }
 
@@ -110,8 +113,16 @@ sub merge_runs
     my $db = $self->{db};
     # print "merge_runs from $db/runs/*\n";
     return unless length $db;
-    my @runs = glob "$db/runs/*";
-    for my $run (@runs)
+    opendir DIR, "$db/runs" or die "Can't opendir $db/runs: $!";
+    my @runs = map "$db/runs/$_", grep !/^\.\.?/, readdir DIR;
+    closedir DIR or die "Can't closedir $db/runs: $!";
+
+    # The ordering is important here.  The runs need to be merged in the order
+    # they were created.  We're only at a granularity of one second, but that
+    # shouldn't be a problem unless a file is altered and the coverage run
+    # created in less than a second.  I think we're OK for now.
+
+    for my $run (sort {$a <=> $b} @runs)
     {
         print STDERR "Devel::Cover: merging run $run\n"
             unless $Devel::Cover::Silent;
@@ -149,7 +160,6 @@ sub collected
 sub merge_identical_files
 {
     my $self = shift;
-    # return;
 
     my $c = $self->{cover};
     my %digests;
@@ -605,7 +615,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.32 - 4th January 2004
+Version 0.33 - 13th January 2004
 
 =head1 LICENCE
 

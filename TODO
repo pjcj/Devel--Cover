@@ -9,16 +9,15 @@
     Code in modules without subs.  Requires callbacks from perl?
 - Move away from Storable?  To?
 - Work with memoize.
-- Fix up Devel::Cover::Op
 - See if the XS code leaks, and fix it if it does.
 - Different criteria for different runs.
 - Improve textual output.
 - Add platform and version info to DB.
 - Refactor output routines to use common template data.
 - Look at time coverage again - collecting for too many ops?
-- Merge data from dynamically created subs.
 - Separate output for pod coverage, like subroutine coverage.
 - Extend cpancover so people can upload databases.
-- allow thresholds to be customisable in HTML output.
+- Allow thresholds to be customisable in HTML output.
 - Fix up html_basic and html_subtle for subs.
 - Sort out time coverage on Windows.
+- Marking of unreachable code - commandline tool and gui.

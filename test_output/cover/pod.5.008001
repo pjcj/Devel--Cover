@@ -1,10 +1,11 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3209/cover_db
 
 
 --------------------------------------------------------------- ------ ------
 File                                                               pod  total
 --------------------------------------------------------------- ------ ------
 tests/Module1.pm                                                 50.00  50.00
+tests/pod                                                          n/a    n/a
 Total                                                            50.00  50.00
 --------------------------------------------------------------- ------ ------
 
@@ -51,5 +52,47 @@ line  err    pod   code
 37                 1
 38                 
 39                 __END__
+
+
+tests/pod
+
+line  err    pod   code
+1                  #!/usr/bin/perl
+2                  
+3                  # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+4                  
+5                  # This software is free.  It is licensed under the same terms as Perl itself.
+6                  
+7                  # The latest version of this software should be available from my homepage:
+8                  # http://www.pjcj.net
+9                  
+10                 # __COVER__ criteria pod
+11                 
+12                 use strict;
+13                 use warnings;
+14                 
+15                 use lib "tests";
+16                 
+17                 use Module1;
+18                 
+19                 my @x;
+20                 
+21                 sub xx
+22                 {
+23                   $x[shift]++;
+24                   Module1::zz(0);
+25                 }
+26                 
+27                 for (0 .. 10)
+28                 {
+29                   if (time)
+30                   {
+31                     xx(0);
+32                   }
+33                   else
+34                   {
+35                     $x[1]++;
+36                   }
+37                 }
 
 

@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+
+# Copyright 2004, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+sub gen
+{
+    my $x = shift;
+    sub
+    {
+        my $y = shift;
+        return $x + $y if $y;
+    }
+};
+
+my $o = gen(1);
+my $p = $o->(7);
+my $q = $o->(8);
+my $r = gen(1)->(2);
+my $s = gen(3)->(4);
+my $t = gen(5)->(6);
+
+print "$p, $q, $r, $s, $t\n";

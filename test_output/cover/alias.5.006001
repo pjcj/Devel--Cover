@@ -1,0 +1,57 @@
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3209/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/alias                                100.00 100.00    n/a 100.00 100.00
+Total                                      100.00 100.00    n/a 100.00 100.00
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+tests/alias
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      package Foo;
+11                                      
+12                                      sub is_3digits {
+13             2                  100       my $val = shift;
+14             2                            my $retval = undef;
+15             2    100                     $retval=1 if $val =~ /^\d{3}$/;
+16             2                            return $retval;
+17                                      }
+18                                      
+19                                      package main;
+20                                      
+21             1                        *main::is_3digits = *Foo::is_3digits;
+22                                      # delete $Foo::{is_3digits};
+23                                      
+24             1                        is_3digits(1234);
+25             1                        is_3digits(123);
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+15           100      1      1   if $val =~ /^\d{3}$/
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Location      
+---------- --------------
+is_3digits tests/alias:13
+
+

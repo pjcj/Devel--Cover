@@ -154,6 +154,9 @@ static char *get_key(OP *o)
     uniq.op.addr = o;
     uniq.op.seq  = o->op_seq;
     uniq.ch[ch_sz] = 0;
+
+    NDEB(D(L, "0x%x %d => <%s>\n", o, o->op_seq, uniq.ch));
+
     return uniq.ch;
 }
 

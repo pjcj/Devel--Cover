@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3209/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -14,7 +14,7 @@ tests/statement
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       

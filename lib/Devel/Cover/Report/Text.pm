@@ -10,9 +10,9 @@ package Devel::Cover::Report::Text;
 use strict;
 use warnings;
 
-our $VERSION = "0.32";
+our $VERSION = "0.33";
 
-use Devel::Cover::DB 0.32;
+use Devel::Cover::DB 0.33;
 
 sub print_file
 {
@@ -195,8 +195,7 @@ sub print_subroutines
             my $s = $sub->name;
             $maxl = length $l if length $l > $maxl;
             $maxs = length $s if length $s > $maxs;
-            $subs{$sub->covered ? "covered" : "uncovered"}{$s} =
-                [ $l, $sub->covered ];
+            push @{$subs{$sub->covered ? "covered" : "uncovered"}{$s}}, $l;
         }
     }
 
@@ -211,8 +210,7 @@ sub print_subroutines
 
         for my $s (sort keys %{$subs{$type}})
         {
-            my ($l, $c) = @{$subs{$type}{$s}};
-            printf $template, $s, $l;
+            printf $template, $s, $_ for sort @{$subs{$type}{$s}};
         }
         print "\n";
     }
@@ -263,7 +261,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.32 - 4th January 2004
+Version 0.33 - 13th January 2004
 
 =head1 LICENCE
 
