@@ -157,17 +157,43 @@ static char *get_key(OP *o)
     uniq.op.op.op_ppaddr  = 0;  /* we mess with this field */
     uniq.ch[CH_SZ]        = 0;
 
-    /* TODO - this shouldn't be necessary.  It is a hack because things
-     * are breaking with null chars in the key.  Replace them with x
+    /* TODO - this shouldn't be necessary, should it?  It is a hack
+     * because things are breaking with null chars in the key.  Replace
+     * them with x.
      */
 
     for (i = 0; i < CH_SZ; i++)
-        /* if (uniq.ch[i] < 32 || uniq.ch[i] > 126 ) */
+        /* if (uniq.ch[i] < 32 || uniq.ch[i] > 126 ) */ /* for printing */
         if (!uniq.ch[i])
             uniq.ch[i] = '-';
 
     NDEB(D(L, "0x%x <%s>\n", o, uniq.ch));
     return uniq.ch;
+}
+
+static void set_firsts_if_neeed()
+{
+    SV *init = (SV *)get_cv("Devel::Cover::first_init", 0);
+    SV *end  = (SV *)get_cv("Devel::Cover::first_end",  0);
+    NDEB(svdump(end));
+    if (av_len(PL_initav) >= 0)
+    {
+        SV **cv = av_fetch(PL_initav, 0, 0);
+        if (*cv != init)
+        {
+            av_unshift(PL_initav, 1);
+            av_store(PL_initav, 0, init);
+        }
+    }
+    if (av_len(PL_endav) >= 0)
+    {
+        SV **cv = av_fetch(PL_endav, 0, 0);
+        if (*cv != end)
+        {
+            av_unshift(PL_endav, 1);
+            av_store(PL_endav, 0, end);
+        }
+    }
 }
 
 static void add_branch(OP *op, int br)
@@ -586,6 +612,7 @@ static int runops_cover(pTHX)
                     }
                 }
                 sv_setpv(module, "");
+                set_firsts_if_neeed();
             }
 #endif
         }
@@ -814,6 +841,14 @@ coverage_all()
 
 double
 get_elapsed()
+    CODE:
+#ifdef HAS_GETTIMEOFDAY
+        RETVAL = All;
+#else
+        RETVAL = 0;
+#endif
+    OUTPUT:
+        RETVAL
 
 SV *
 coverage(final)
@@ -835,11 +870,16 @@ get_key(o)
         RETVAL
 
 void
-copy_ends()
+set_first_init_and_end()
+    PPCODE:
+        set_firsts_if_neeed();
+
+void
+collect_inits()
     PPCODE:
         int i;
-        OP *op;
-        Ends = newAV();
+        NDEB(svdump(end));
+        if (!Ends) Ends = newAV();
         if (PL_initav)
             for (i = 0; i <= av_len(PL_initav); i++)
             {
@@ -847,6 +887,15 @@ copy_ends()
                 SvREFCNT_inc(*cv);
                 av_push(Ends, *cv);
             }
+
+void
+set_last_end()
+    PPCODE:
+        int i;
+        SV *end = (SV *)get_cv("last_end", 0);
+        av_push(PL_endav, end);
+        NDEB(svdump(end));
+        if (!Ends) Ends = newAV();
         if (PL_endav)
             for (i = 0; i <= av_len(PL_endav); i++)
             {
@@ -862,16 +911,9 @@ get_ends()
     OUTPUT:
         RETVAL
 
-void
-set_end()
-    PPCODE:
-        SV *end = (SV *)get_cv("end", 0);
-        NDEB(svdump(end));
-        av_push(PL_endav, end);
-
 
 BOOT:
-    PL_runops        = runops_cover;
+    PL_runops    = runops_cover;
 #if (PERL_VERSION > 6)
-    PL_savebegin     = TRUE;
+    PL_savebegin = TRUE;
 #endif

@@ -19,8 +19,8 @@ use File::Copy;
 
 $| = 1;
 
-my $Version  = "0.42";
-my $Date     = "30th April 2004";
+my $Version  = "0.43";
+my $Date     = "2nd May 2004";
 my $Author   = 'pjcj@cpan.org';
 
 my @perlbug  = ("perlbug", "-a", $Author,
@@ -153,27 +153,28 @@ else
     print "not found\n\n$e\n";
 }
 
-# print "checking for Template.pm      version 2.00 ........ ";
-# 
-# $e = <<EOM;
-# 
-# Template.pm 2.00 is required to run the HTML backend to cover and for
-# cpancover.  You will not be able to generate HTML output until you
-# install the Template Toolkit, available from CPAN.  In the meantime you
-# may continue to use the rest of Devel::Cover.
-# 
-# EOM
-# 
-# eval "use Template";
-# if (my $m = $INC{"Template.pm"})
-# {
-    # my $v = eval { no warnings; $Template::VERSION };
-    # print $v < 2.00 ? "$v\n\n$e\n" : "$v $m\n";
-# }
-# else
-# {
-    # print "not found\n\n$e\n";
-# }
+print "checking for Template.pm      version 2.00 ........ ";
+
+$e = <<EOM;
+
+Template.pm 2.00 is required to run the old HTML backends to cover and
+for cpancover.  Unless you haev specific requirements this should not be
+a problem, but you will not be able to use these reports until you
+install the Template Toolkit, available from CPAN.  In the meantime you
+may continue to use the rest of Devel::Cover.
+
+EOM
+
+eval "use Template";
+if (my $m = $INC{"Template.pm"})
+{
+    my $v = eval { no warnings; $Template::VERSION };
+    print $v < 2.00 ? "$v\n\n$e\n" : "$v $m\n";
+}
+else
+{
+    print "not found\n\n$e\n";
+}
 
 print "checking for Pod::Coverage.pm version 0.06 ........ ";
 
@@ -226,6 +227,20 @@ print <<EOM if $] > $latest_tested;
 Devel::Cover $Version has not been tested with perl $].
 Testing will take place against expected output from perl $latest_tested.
 You may well find failing tests.
+
+EOM
+
+print <<EOM if $] < 5.008;
+
+Devel::Cover $Version is not fully functional on perl $].  It should
+mostly work, but there are some constructs for which coverage will not
+be collected.  Perl versions 5.8.1 and above should work better.
+
+EOM
+
+print <<EOM if $] < 5.008 && $^O eq "MSWin32";
+And things are even worse under Windows.  You may well find random bugs
+of various severities.
 
 EOM
 

@@ -13,7 +13,7 @@ use warnings;
 use Carp;
 use Storable;
 
-our $VERSION = "0.42";
+our $VERSION = "0.43";
 our $AUTOLOAD;
 
 sub new
@@ -86,13 +86,14 @@ sub write
     }
     for my $file (sort keys %$self)
     {
+        $self->{$file}{file} = $file;  # just for debugging
         unless ($self->{$file}{digest})
         {
             warn "Can't find digest for $file";
             next;
         }
         my $df = "$dir/$self->{$file}{digest}";
-        # my $f = $df; my $n = 1; $df = $f . "." . $n++ while -e $df;
+        my $f = $df; my $n = 1; $df = $f . "." . $n++ while -e $df;
         Storable::nstore($self->{$file}, $df) unless -e $df;
     }
 }
@@ -131,7 +132,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.42 - 30th April 2004
+Version 0.43 - 2nd May 2004
 
 =head1 LICENCE
 

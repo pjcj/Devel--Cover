@@ -10,15 +10,10 @@
 use strict;
 use warnings;
 
-use lib "/var/spool/extra/g/perl/Devel-Cover-0.3407/lib";
-use lib "/var/spool/extra/g/perl/Devel-Cover-0.3407/blib/lib";
-use lib "/var/spool/extra/g/perl/Devel-Cover-0.3407/blib/arch";
-use lib "/var/spool/extra/g/perl/Devel-Cover-0.3407/t";
-
 use File::Copy;
 
-use Devel::Cover::Inc  0.42;
-use Devel::Cover::Test 0.42;
+use Devel::Cover::Inc  0.43;
+use Devel::Cover::Test 0.43;
 
 my $base = $Devel::Cover::Inc::Base;
 
@@ -52,7 +47,9 @@ my $test = Devel::Cover::Test->new
     run_test    => \&run_test,
     changes     => "s/$t/$g    /;  " .
                    "s/$g\\s+\$/$g/;" .
-                   '$t = <T>, redo if /Deleting old coverage for changed file/'
+                   '$t = <T>, redo if /Deleting old coverage for changed file/',
+    skip_test   => '$] < 5.008 && $^O eq "MSWin32"',
+    skip_reason => "Devel::Cover barely works using perl 5.6 on Windows.  For some reason this test doesn't work.",
 );
 
 $test->run_test;

@@ -10,11 +10,11 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.42";
+our $VERSION = "0.43";
 
-use Devel::Cover::Criterion     0.42;
-use Devel::Cover::DB::File      0.42;
-use Devel::Cover::DB::Structure 0.42;
+use Devel::Cover::Criterion     0.43;
+use Devel::Cover::DB::File      0.43;
+use Devel::Cover::DB::Structure 0.43;
 
 use Carp;
 use File::Path;
@@ -419,6 +419,9 @@ sub add_subroutine
         my $l = $sc->[$i][0];
         unless (defined $l)
         {
+            # use Data::Dumper;
+            # print STDERR "sc ", scalar @$sc, ", fc ", scalar @$fc, "\n";
+            # print STDERR "sc ", Dumper($sc), "fc ", Dumper($fc);
             warn "Devel::Cover: ignoring extra subroutine\n";
             return;
         }
@@ -470,6 +473,7 @@ sub cover
                 base   => $self->{base},
                 digest => $digest,
             );
+            # print "Structure from $st->{file}\n";
             # use Data::Dumper; print STDERR "st ", Dumper($st), "f ", Dumper($f);
             while (my ($criterion, $fc) = each %$f)
             {
@@ -651,7 +655,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.42 - 30th April 2004
+Version 0.43 - 2nd May 2004
 
 =head1 LICENCE
 

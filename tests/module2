@@ -7,6 +7,8 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
+# __COVER__ changes s/56.3/56.2/
+
 use strict;
 use warnings;
 

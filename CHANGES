@@ -281,3 +281,11 @@ Release 0.42 - 30th April 2004
  - Add SYNOPSIS section to README.
  - Resolve links for Devel::Cover::Inc (Dave Rolsky).
  - Get things running on Windows again.
+
+Release 0.43 - 2nd May 2004
+ - Ignore coverage on Devel::Cover's files by default.
+ - 
+ - Cover INIT and END blocks more reliably.
+ - Fix 5.6 on Windows.  Well, sort of.
+ - Add a message in Makefile.PL recommending against using Devel::Cover
+   on 5.6, especially under Windows.

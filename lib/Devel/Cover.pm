@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.42";
+our $VERSION = "0.43";
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB  0.42;
-use Devel::Cover::Inc 0.42;
+use Devel::Cover::DB  0.43;
+use Devel::Cover::Inc 0.43;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -75,7 +75,7 @@ BEGIN
     $Silent  = ($ENV{HARNESS_PERL_SWITCHES} || "") =~ /Devel::Cover/;
 }
 
-BEGIN { @Inc = @Devel::Cover::Inc::Inc }
+BEGIN { @Inc = @Devel::Cover::Inc::Inc; @Ignore = ("/Devel/Cover[./]") }
 # BEGIN { $^P = 0x004 | 0x010 | 0x100 | 0x200 }
 BEGIN { $^P = 0x004 | 0x100 | 0x200 }
 # BEGIN { $^P = 0x004 | 0x100 }
@@ -118,8 +118,6 @@ EOM
           "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
         unless $Silent;
 
-    copy_ends();
-
     $Run{OS}    = $^O;
     $Run{perl}  = join ".", map ord, split //, $^V;
     $Run{run}   = $0;
@@ -128,9 +126,31 @@ EOM
 
 }
 
-sub end { report() if $Initialised }
+{
+    my $run_end = 0;
+    sub first_end
+    {
+        # print "**** END 1 - $run_end\n";
+        set_last_end() unless $run_end++
+    }
 
-END { end() }  # we really want our end sub to run last
+    my $run_init = 0;
+    sub first_init
+    {
+        # print "**** INIT 1 - $run_init\n";
+        collect_inits() unless $run_init++
+    }
+}
+
+sub last_end
+{
+    # print "**** END 2\n";
+    report() if $Initialised
+}
+
+INIT  {}  # dummy sub to mak sure PL_endav  is set up and populated
+END   {}  # dummy sub to mak sure PL_initav is set up and populated
+CHECK { set_first_init_and_end() }  # we really want to be first
 
 sub import
 {
@@ -139,23 +159,25 @@ sub import
     # print __PACKAGE__, ": Parsing options from [@_]\n";
 
     my $blib = -d "blib";
-    @Inc = () if "@_" =~ /-inc /;
+    @Inc     = () if "@_" =~ /-inc /;
+    @Ignore  = () if "@_" =~ /-ignore /;
+    @Select  = () if "@_" =~ /-select /;
     while (@_)
     {
         local $_ = shift;
-        /^-silent/   && do { $Silent  = shift; next };
-        /^-dir/      && do { $Dir     = shift; next };
-        /^-db/       && do { $DB      = shift; next };
-        /^-merge/    && do { $Merge   = shift; next };
-        /^-summary/  && do { $Summary = shift; next };
-        /^-blib/     && do { $blib    = shift; next };
-        /^-coverage/ &&
+        /^-silent/    && do { $Silent  = shift; next };
+        /^-dir/       && do { $Dir     = shift; next };
+        /^-db/        && do { $DB      = shift; next };
+        /^-merge/     && do { $Merge   = shift; next };
+        /^-summary/   && do { $Summary = shift; next };
+        /^-blib/      && do { $blib    = shift; next };
+        /^-coverage/  &&
             do { $Coverage{+shift} = 1 while @_ && $_[0] !~ /^[-+]/; next };
-        /^-ignore/   &&
+        /^[-+]ignore/ &&
             do { push @Ignore,   shift while @_ && $_[0] !~ /^[-+]/; next };
-        /^[-+]inc/   &&
+        /^[-+]inc/    &&
             do { push @Inc,      shift while @_ && $_[0] !~ /^[-+]/; next };
-        /^-select/   &&
+        /^[-+]select/ &&
             do { push @Select,   shift while @_ && $_[0] !~ /^[-+]/; next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
@@ -180,7 +202,7 @@ sub import
     {
         eval "use blib";
         for (@INC) { $_ = $1 if /(.*)/ }  # Die tainting.
-        push @Ignore, "\\bt/";
+        push @Ignore, "^t/";
     }
 
     my $ci = $^O eq "MSWin32";
@@ -976,11 +998,13 @@ if the tests fail and you would like nice output telling you why.
  -db cover_db        - Store results in coverage db (default ./cover_db).
  -dir path           - Directory in which coverage will be collected (default
                        cwd).
- -ignore RE          - Ignore files matching RE.
+ -ignore RE          - Set REs of files to ignore (default "/Devel/Cover\b").
+ +ignore RE          - Append to REs of files to ignore.
  -inc path           - Set prefixes of files to ignore (default @INC).
  +inc path           - Append to prefixes of files to ignore.
  -merge val          - Merge databases, for multiple test benches (default on).
- -select RE          - Report on files matching RE.
+ -select RE          - Set REs of files to select (default none).
+ +select RE          - Append to REs of files to select.
  -silent val         - Don't print informational messages (default off)
  -summary val        - Print summary information iff val is true (default on).
 
@@ -993,12 +1017,17 @@ Any file matching a RE given as a select option is selected.
 
 Otherwise, any file matching a RE given as an ignore option is ignored.
 
-Otherwise, any file in one of the inc directories is ignored.  The inc
-directories are initially populated with the contects of the @INC array at the
-time Devel::Cover was built.  You may reset these directories using -inc, or add
-to them using +inc.
+Otherwise, any file in one of the inc directories is ignored.
 
 Otherwise the file is selected.
+
+You may add to the REs to select by using +select, or you may reset the
+selections using -select.  The same principle applies to the REs to
+ignore.
+
+The inc directories are initially populated with the contects of the
+@INC array at the time Devel::Cover was built.  You may reset these
+directories using -inc, or add to them using +inc.
 
 =head1 ACKNOWLEDGEMENTS
 
@@ -1076,7 +1105,7 @@ See the BUGS file.  And the TODO file.
 
 =head1 VERSION
 
-Version 0.42 - 30th April 2004
+Version 0.43 - 2nd May 2004
 
 =head1 LICENCE
 

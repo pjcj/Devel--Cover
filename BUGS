@@ -16,3 +16,5 @@
 
 - Pod coverage does not work well with source filters including Switch.
   Line numbers are reported incorrectly.
+
+- If an END block installs another END block it won't be covered.
