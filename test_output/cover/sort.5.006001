@@ -1,0 +1,71 @@
+Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/sort                                   90.9    n/a    n/a   66.7   85.7
+Total                                        90.9    n/a    n/a   66.7   85.7
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/sort
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl -w
+2                                       
+3                                       use strict;
+4                                       
+5              1                        my %sort = (B => \&backwards,
+6                                               F => \&forwards);
+7                                       
+8                                       sub backwards {
+9              9                  100       return $b cmp $a;
+10                                      }
+11                                      
+12                                      sub forwards {
+13    ***      0                    0       return $a cmp $b;
+14                                      }
+15                                      
+16                                      sub GetAlgorithm {
+17             1                  100       my ($alg) = @_;
+18                                      
+19             1                            return $sort{$alg};
+20                                      }
+21                                      
+22             1                        my @list = qw( a d e c g );
+23                                      
+24                                      # my $alg = GetAlgorithm(('B', 'F')[int(rand(2))]);
+25             1                        my $alg = GetAlgorithm(('B', 'F')[0]);
+26                                      
+27             1                        @list = sort {&{$alg}} @list;
+               9                        
+               9                        
+28                                      
+29                                      use Data::Dumper;
+30                                      
+31             1                        print STDERR Dumper(\@list);
+
+
+Covered Subroutines
+-------------------
+
+Subroutine   Count Location     
+------------ ----- -------------
+GetAlgorithm     1 tests/sort:17
+backwards        9 tests/sort:9 
+
+Uncovered Subroutines
+---------------------
+
+Subroutine   Count Location     
+------------ ----- -------------
+forwards         0 tests/sort:13
+
+

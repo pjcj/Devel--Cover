@@ -783,8 +783,11 @@ static int runops_cover(pTHX)
              * store more than one return op because a non collecting
              * sub may call back to a collecting sub.
              */
-            hv_fetch(Return_ops, get_key(PL_op->op_next), CH_SZ, 1);
-            NDEB(D(L, "adding return op %p\n", PL_op->op_next));
+            if (PL_op->op_next)
+            {
+                hv_fetch(Return_ops, get_key(PL_op->op_next), CH_SZ, 1);
+                NDEB(D(L, "adding return op %p\n", PL_op->op_next));
+            }
         }
 
         if (!collecting_here)

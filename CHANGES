@@ -1,5 +1,10 @@
 Devel::Cover.pm history
 
+Release 0.53 - 
+ - Clean up database directories.
+ - Fix core dump associated with sort subs and add test case supplied by
+   Leif Eriksen.
+
 Release 0.52 - 13th December 2004
  - Fix thread locking bug (Ruslan Zakirov).
  - Make valgrind happy.

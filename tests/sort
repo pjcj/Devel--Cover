@@ -1,0 +1,31 @@
+#!/usr/bin/perl -w
+
+use strict;
+
+my %sort = (B => \&backwards,
+        F => \&forwards);
+
+sub backwards {
+    return $b cmp $a;
+}
+
+sub forwards {
+    return $a cmp $b;
+}
+
+sub GetAlgorithm {
+    my ($alg) = @_;
+
+    return $sort{$alg};
+}
+
+my @list = qw( a d e c g );
+
+# my $alg = GetAlgorithm(('B', 'F')[int(rand(2))]);
+my $alg = GetAlgorithm(('B', 'F')[0]);
+
+@list = sort {&{$alg}} @list;
+
+use Data::Dumper;
+
+print STDERR Dumper(\@list);
