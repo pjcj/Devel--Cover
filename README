@@ -1,6 +1,22 @@
 NAME
     Devel::Cover - Code coverage metrics for Perl
 
+SYNOPSIS
+     perl -MDevel::Cover yourprog args
+     cover
+
+     perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
+
+    To test an uninstalled module:
+
+     cover -delete
+     HARNESS_PERL_SWITCHES=-MDevel::Cover make test
+     cover
+
+    If the module does not use the t/*.t framework:
+
+     PERL5OPT=-MDevel::Cover make test
+
 DESCRIPTION
     This module provides code coverage metrics for Perl.
 

@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.41";
+our $VERSION = "0.42";
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB  0.41;
-use Devel::Cover::Inc 0.41;
+use Devel::Cover::DB  0.42;
+use Devel::Cover::Inc 0.42;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -267,17 +267,29 @@ sub normalised_file
     {
         my $m = coverage(0)->{module}{$file};
         # print STDERR "Loaded <$file> <$m->[0]> from <$m->[1]> ";
-        $file = File::Spec->rel2abs($file, coverage(0)->{module}{$file}[1]);
+        $file = File::Spec->rel2abs($file, $m->[1]);
         # print STDERR "as <$file> ";
     }
     if ($] >= 5.008)
     {
-        my $abs = abs_path($file);
-        # print STDERR "giving <$file> ";
-        $file = $abs if defined $abs;
-        # print STDERR "finally <$file>\n";
+        if ($^O eq "MSWin32")
+        {
+            # TODO - Windows seems busted here
+        }
+        else
+        {
+            # print STDERR "getting abs_path <$file> ";
+            my $abs = abs_path($file);
+            # print STDERR "giving <$file> ";
+            $file = $abs if defined $abs;
+        }
+        # print STDERR "finally <$file> <$Dir>\n";
     }
-    $file =~ s/^$Dir\///;
+    if ($^O eq "MSWin32")
+    {
+        $file =~ s|\\|/|g;
+    }
+    $file =~ s|^$Dir/||;
     $File_cache{$f} = $file;
 
     # warn "File: $file => $File\n";
@@ -1064,7 +1076,7 @@ See the BUGS file.  And the TODO file.
 
 =head1 VERSION
 
-Version 0.41 - 29th April 2004
+Version 0.42 - 30th April 2004
 
 =head1 LICENCE
 

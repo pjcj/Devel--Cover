@@ -19,8 +19,8 @@ use File::Copy;
 
 $| = 1;
 
-my $Version  = "0.41";
-my $Date     = "29th April 2004";
+my $Version  = "0.42";
+my $Date     = "30th April 2004";
 my $Author   = 'pjcj@cpan.org';
 
 my @perlbug  = ("perlbug", "-a", $Author,
@@ -32,7 +32,7 @@ my @versions = grep { $_ ne "README" && $_ ne "Makefile.PL" } @files;
 
 my $base     = getcwd;
 
-my %inc      = map { $_ => 1 } @INC;
+my %inc      = map { ($_ eq "." ? $_ : Cwd::abs_path($_)) => 1 } @INC;
 my @inc      = sort keys %inc;
 
 open I, ">lib/Devel/Cover/Inc.pm"
@@ -302,8 +302,9 @@ tags : @files
 README : lib/Devel/Cover.pm
 \t TERMCAP= COLUMNS=80 pod2text lib/Devel/Cover.pm | \\
     \$(PERL) -n \\
-    -e 'print if (/NAME/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
-    -e 'print if (/DESCRIPTION/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
+    -e 'print if (/NAME/         ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
+    -e 'print if (/SYNOPSIS/     ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
+    -e 'print if (/DESCRIPTION/  ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
     -e 'print if (/REQUIREMENTS/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
     > README
 
@@ -325,6 +326,9 @@ _run : pure_all
 run : _run
 \t \$(PERL) -Mblib cover && \\
    gvim -d \$(TEST).out
+
+wrun : pure_all
+\t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-ignore,blib,-merge,0 tests/\$(TEST)
 
 DB = cover_db
 

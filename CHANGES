@@ -272,7 +272,12 @@ Release 0.41 - 29th April 2004
  - Untaint @INC after using blib.
  - Be silent if called via HARNESS_PERL_SWITCHES.
  - Test against perl-5.8.4.
- - Store cwd of when each modules was required in order to find them again.
+ - Store cwd from when each module was required in order to find them again.
  - Refactor and tidy XS code.
  - Get cpancover running again with the DB changes.
- - Test for coverage collection against normalised filename.
+ - Normalise filenames.
+
+Release 0.42 - 30th April 2004
+ - Add SYNOPSIS section to README.
+ - Resolve links for Devel::Cover::Inc (Dave Rolsky).
+ - Get things running on Windows again.
