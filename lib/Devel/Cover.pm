@@ -11,12 +11,12 @@ use strict;
 use warnings;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.24";
+our $VERSION = "0.25";
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.24;
-use Devel::Cover::Inc 0.24;
+use Devel::Cover::DB  0.25;
+use Devel::Cover::Inc 0.25;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -144,6 +144,7 @@ sub import
         $Dir = Cwd::getcwd()
     }
 
+    mkdir $DB unless -d $DB;  # Nasty hack to keep 5.6.1 happy.
     $DB = Cwd::abs_path($DB);
 
     if ($blib)
@@ -783,7 +784,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.24 - 10th October 2003
+Version 0.25 - 10th October 2003
 
 =head1 LICENCE
 

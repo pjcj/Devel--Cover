@@ -17,6 +17,5 @@
 - Add popups to html output to specify x/y = z% (or some other way)
 - Look at time coverage again - collecting for too many ops?
 - MD5 file and check it hasn't changed.
-- Make path to DB absolute based on cwd.
 - Merge data from dynamically created subs.
 - Separate output for pod coverage, like subroutine coverage.

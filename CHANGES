@@ -145,3 +145,7 @@ Release 0.24 - 10th October 2003
  - Add -dir option and default it to cwd.
  - Ignore test.pl in cpancover.
  - Display pod coverage in cpancover.
+
+Release 0.25 - 10th October 2003
+ - Fix for perl 5.6.1.  Cwd::abs_path($d) gets upset if $d doesn't exist.
+ - Start of some changes to cpancover HTML.

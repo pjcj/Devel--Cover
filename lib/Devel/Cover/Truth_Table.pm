@@ -171,7 +171,7 @@ sub covered {
 package Devel::Cover::Truth_Table;
 use warnings;
 use strict;
-our $VERSION = "0.24";
+our $VERSION = "0.25";
 
 #-------------------------------------------------------------------------------
 # Subroutine : new()
@@ -555,7 +555,7 @@ None that I'm aware of...
 
 =head1 VERSION
 
-Version 0.24 - 10th October 2003
+Version 0.25 - 10th October 2003
 
 =head1 LICENSE
 
