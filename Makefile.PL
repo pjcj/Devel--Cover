@@ -19,8 +19,8 @@ use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version      = "0.27";
-my $Date         = "9th November 2003";
+my $Version      = "0.28";
+my $Date         = "1st December 2003";
 my $Author       = 'pjcj@cpan.org';
 
 my @perlbug      = ("perlbug", "-a", $Author,
@@ -128,6 +128,26 @@ else
     print "not found\n\n$e\n";
 }
 
+print "checking for Digest::MD5.pm                ........ ";
+
+$e = <<EOM;
+
+Digest::MD5.pm is required to check whether covered files have changed.
+You can download Digest::MD5 from CPAN.
+
+EOM
+
+eval "use Digest::MD5";
+if (my $m = $INC{"Digest/MD5.pm"})
+{
+    my $v = eval { no warnings; $Digest::MD5::VERSION };
+    print "$v $m\n";
+}
+else
+{
+    print "not found\n\n$e\n";
+}
+
 print "checking for Template.pm      version 2.00 ........ ";
 
 $e = <<EOM;
@@ -192,7 +212,10 @@ WriteMakefile
     ABSTRACT  => "Code coverage metrics for Perl",
     DIR       => [],
     EXE_FILES => [ "cover", "gcov2perl" ],
-    PREREQ_PM => { Storable => 0 },
+    PREREQ_PM => {
+                     Storable      => 0,
+                     "Digest::MD5" => 0,
+                 },
     dist      => { COMPRESS => "gzip --best --force" },
     clean     => { FILES => join " ",  "t/*", map "$_.version", @versions },
     realclean => { FILES => "lib/Devel/Cover/Inc.pm cover_db t" },
@@ -263,11 +286,11 @@ ppm : ppd pure_all
 
 _run : pure_all
 \t \$(PERL) -Mblib -MDevel::Cover=-ignore,blib,-merge,0,`\$(PERL) -e 'qx|grep __COVER__ \$\$ARGV[0]| =~ /__COVER__\\s+criteria\\s+(.*)/; (\$\$c = \$\$1 || "all") =~ s/\\s+/,/g; print "-coverage,\$\$c"' tests/\$(TEST)` tests/\$(TEST) && \\
-   \$(PERL) -Mblib cover -report text \\
-            > \$(TEST).out
+   \$(PERL) -Mblib cover -report text > \$(TEST).out
 
 run : _run
-\t gvim -d \$(TEST).out
+\t \$(PERL) -Mblib cover && \\
+   gvim -d \$(TEST).out
 
 diff : _run
 \t gvim -d -font 8x13 test_output/cover/\$(TEST).$test_version \$(TEST).out

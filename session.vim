@@ -17,7 +17,7 @@ e lib/Devel/Cover/Pod.pm
 e lib/Devel/Cover/Time.pm
 e lib/Devel/Cover/DB/File.pm
 e lib/Devel/Cover/Report/Text.pm
-e lib/Devel/Cover/Report/Html_subtle.pm
+e lib/Devel/Cover/Report/Html_minimal.pm
 e CHANGES
 e TODO
 e MANIFEST

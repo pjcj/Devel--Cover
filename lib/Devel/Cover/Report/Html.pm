@@ -10,16 +10,9 @@ package Devel::Cover::Report::Html;
 use strict;
 use warnings;
 
-our $VERSION = "0.27";
+our $VERSION = "0.28";
 
-use Devel::Cover::Report::Html_subtle 0.27;
-
-sub report
-{
-    my ($pkg, $db, $options) = @_;
-
-    Devel::Cover::Report::Html_subtle->report($db, $options)
-}
+use base "Devel::Cover::Report::Html_minimal";
 
 1;
 
@@ -39,8 +32,8 @@ statistics
 =head1 DESCRIPTION
 
 This module provides a HTML reporting mechanism for coverage data.  It
-is designed to be called from the C<cover> program.  This is a simple
-wrapper around the default HTML ooutput module.
+is designed to be called from the C<cover> program.  This is an empty
+class derived from the default HTML output module.
 
 =head1 SEE ALSO
 
@@ -52,7 +45,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.27 - 9th November 2003
+Version 0.28 - 1st December 2003
 
 =head1 LICENCE
 

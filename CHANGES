@@ -152,7 +152,17 @@ Release 0.26 - 12th October 2003
  - Decline to output HTML results for conditions containing > 16 terms.
  - Add titles to HTML output.
 
-Release 0.27 - 
+Release 0.27 - 9th November 2003
  - Behave sensibly if import() is not called, for example when MakeMaker does a
    PREREQ_PM check.
- - Use Storable for the database instead if Data::Dumper/eval (Michael Carman).
+ - Use Storable for the database instead of Data::Dumper/eval (Michael Carman).
+
+Release 0.28 - 1st December 2003
+ - Remove leading whitespace from HTML templates (Gabor Szabo).
+ - Remove obsolete indent option.
+ - Add MD5 checksums (Michael Carman).
+ - Add Html_minimal.pm (Michael Carman) (Obsoleting Gabor's patch before it was
+   released).
+ - Pass unknown cover options to the formatter and remove -option.
+ - Specify the output directory for HTML.
+ - Search up directory trees for modules.

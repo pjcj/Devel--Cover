@@ -10,30 +10,28 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.27";
+our $VERSION = "0.28";
 
 use DynaLoader ();
 our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.27;
-use Devel::Cover::Inc 0.27;
+use Devel::Cover::DB  0.28;
+use Devel::Cover::Inc 0.28;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
 use B::Deparse;
 
 use Cwd ();
-
 use Data::Dumper;
+use Digest::MD5;
 
 BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
 
 my $Initialised;                         # import() has been called.
-my $Silent  = undef;                     # Output nothing.
 
 my $Dir;                                 # Directory in cover will be gathered.
 my $DB      = "cover_db";                # DB name.
-my $Indent  = 1;                         # Data::Dumper indent.
 my $Merge   = 1;                         # Merge databases.
 my $Summary = 1;                         # Output coverage summary.
 
@@ -60,8 +58,9 @@ use vars '$File',                        # Last filename we saw.  (localised)
          '$Collect',                     # Whether or not we are collecting
                                          # coverage data.  We make two passes
                                          # over conditions.  (localised)
-         '%Files';                       # Whether we are interested in files.
+         '%Files',                       # Whether we are interested in files.
                                          # Used in runops function.
+         '$Silent';                      # Output nothing. Can be used anywhere.
 
 ($File, $Line, $Collect) = ("", 0, 1);
 
@@ -100,7 +99,7 @@ EOM
     @coverage = get_coverage();
     my $last = pop @coverage;
 
-    print __PACKAGE__, " $VERSION: Collecting coverage data for ",
+    print STDOUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
           join(", ", @coverage),
           @coverage ? " and " : "",
           "$last.\n",
@@ -129,7 +128,6 @@ sub import
         /^-silent/   && do { $Silent  = shift; next };
         /^-dir/      && do { $Dir     = shift; next };
         /^-db/       && do { $DB      = shift; next };
-        /^-indent/   && do { $Indent  = shift; next };
         /^-merge/    && do { $Merge   = shift; next };
         /^-summary/  && do { $Summary = shift; next };
         /^-blib/     && do { $blib    = shift; next };
@@ -160,7 +158,6 @@ sub import
     {
         eval "use blib";
         push @Ignore, "\\bt/";
-        # $Silent = 1 unless defined $Silent;
     }
 
     for my $c (Devel::Cover::DB->new->criteria)
@@ -249,6 +246,16 @@ sub get_location
     my $file = $File;
 
     $File =~ s/ \(autosplit into .*\)$//;
+
+    my $f = $File;
+    until (-f $f)
+    {
+        last unless $f =~ s|^\.\./||;
+    }
+
+    # my $f = Cwd::abs_path($File);
+    $File = $f if defined $f && -f $f;
+
     $File =~ s/^$Dir\///;
     # $File =~ s/^blib\///;
     # $File =~ s/^lib\///;
@@ -261,18 +268,24 @@ sub get_location
 sub use_file
 {
     my ($file) = @_;
+
     $file = $1 if $file =~ /^\(eval \d+\)\[(.*):\d+\]/;
     $file =~ s/ \(autosplit into .*\)$//;
-    $file =~ s|\.\./\.\./lib/POSIX.pm|$INC{"POSIX.pm"}|e;
-    # print "checking <$file>\n";
+    $file =~ s|\.\./\.\./lib/POSIX.pm|$INC{"POSIX.pm"}|e;  # TODO - fix
+
     my $files = \%Files;
     return $files->{$file} if exists $files->{$file};
+
+    # print STDERR "checking <$file>\n";
+
     for (@Select) { return $files->{$file} = 1 if $file =~ /$_/      }
     for (@Ignore) { return $files->{$file} = 0 if $file =~ /$_/      }
     for (@Inc)    { return $files->{$file} = 0 if $file =~ /^\Q$_\// }
+
     $files->{$file} = -e $file;
     warn __PACKAGE__ . qq(: Can't find file "$file": ignored.\n)
-        unless $Silent || ($files->{$file} || $file =~ /\(eval \d+\)/);
+        unless $files->{$file} || $Silent || $file =~ /\(eval \d+\)/;
+
     $files->{$file}
 }
 
@@ -352,7 +365,19 @@ sub report
     {
         my $use = use_file($file);
         # warn sprintf "%-4s using $file\n", $use ? "" : "not";
-        delete $Cover->{$file} unless $use;
+        if ($use)
+        {
+            if (open my $fh, '<', $file)
+            {
+                binmode $fh;
+                $Cover->{$file}{digest} =
+                    Digest::MD5->new->addfile($fh)->hexdigest;
+            }
+        }
+        else
+        {
+            delete $Cover->{$file};
+        }
     }
 
     my $cover = Devel::Cover::DB->new
@@ -368,8 +393,7 @@ sub report
             if $Merge
     };
     $cover->merge($existing) if $existing;
-    $cover->indent($Indent);
-    print __PACKAGE__, ": Writing coverage database to $DB\n" unless $Silent;
+    print STDOUT __PACKAGE__, ": Writing coverage database to $DB\n" unless $Silent;
     $cover->write($DB);
     $cover->print_summary if $Summary && !$Silent;
 }
@@ -759,6 +783,8 @@ Requirements:
 
   Perl 5.6.1 or greater.  (Perl 5.7.0 is also unsupported.)
   The ability to compile XS extensions.
+  Storable (in the core in Perl 5.8.0 and above).
+  Digest::MD5 (in the core in Perl 5.8.0 and above).
   Pod::Coverage if you want pod coverage.
   Template Toolkit 2 if you want HTML output.
 
@@ -775,7 +801,6 @@ Requirements:
  -ignore RE          - Ignore files matching RE.
  -inc path           - Set prefixes of files to ignore (default @INC).
  +inc path           - Append to prefixes of files to ignore.
- -indent indent      - Set indentation level to indent.  Don't use this.
  -merge val          - Merge databases, for multiple test benches (default on).
  -select RE          - Only report on files matching RE.
  -summary val        - Print summary information iff val is true (default on).
@@ -803,7 +828,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.27 - 9th November 2003
+Version 0.28 - 1st December 2003
 
 =head1 LICENCE
 

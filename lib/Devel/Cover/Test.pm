@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.27";
+our $VERSION = "0.28";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.27;
+use Devel::Cover::Inc 0.28;
 
 sub new
 {
@@ -172,6 +172,7 @@ sub run_test
         my $c = shift @cover || "";
         for ($t, $c)
         {
+            s/^(Reading database from ).*/$1/;
             s/.* Devel-Cover - \d+ \. \d+ \/*(\S+)\s*/$1/x;
             s/^ \.\.\. .* - \d+ \. \d+ \/*(\S+)\s*/$1/x;
             s/.* Devel \/ Cover \/*(\S+)\s*/$1/x;

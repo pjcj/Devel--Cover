@@ -12,32 +12,33 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.27";
+our $VERSION = "0.28";
 
-use Devel::Cover::DB 0.27;
+use Devel::Cover::DB 0.28;
 
+use Cwd "abs_path";
+use File::Path;
 use Getopt::Long;
-
 use Pod::Usage;
 
 my $Options =
 {
-    coverage => [],
-    delete   => 0,
-    file     => [],
-    option   => [],
-    report   => "",
-    summary  => 1,
+    coverage   => [],
+    delete     => 0,
+    file       => [],
+    report     => "",
+    summary    => 1,
 };
 
 sub get_options
 {
     @ARGV = qw( -report html ) unless @ARGV;
+    Getopt::Long::Configure("pass_through");
     die "Bad option" unless
         GetOptions($Options,            # Store the options in the Options hash.
                    "write:s" => sub
                    {
-                       @$Options{qw(write summary)} = ($_[1], 0)
+                       @$Options{qw( write summary )} = ($_[1], 0)
                    },
                    qw(
                        coverage=s
@@ -45,11 +46,12 @@ sub get_options
                        help|h!
                        file=s
                        info|i!
-                       option=s
+                       outputdir=s
                        report=s
                        summary!
                        version|v!
                      ));
+    Getopt::Long::Configure("nopass_through");
 }
 
 sub main
@@ -68,11 +70,19 @@ sub main
         }
     }
 
+    $format->get_options($Options) if $format->can("get_options");
+
     print "$0 version $VERSION\n" and exit 0 if $Options->{version};
     pod2usage(-exitval => 0, -verbose => 0)  if $Options->{help};
     pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
 
-    my $dbname = shift @ARGV || "cover_db";
+    my $dbname = Cwd::abs_path(@ARGV ? shift @ARGV : "cover_db");
+    die "Can't open database $dbname\n" unless -d $dbname;
+
+    $Options->{outputdir} = $dbname unless exists $Options->{outputdir};
+    my $od = Cwd::abs_path($Options->{outputdir});
+    $Options->{outputdir} = $od if defined $od;
+    mkpath($Options->{outputdir}) unless -d $Options->{outputdir};
 
     if ($Options->{delete})
     {
@@ -131,10 +141,11 @@ cover - report coverage statistics
 
 =head1 SYNOPSIS
 
- cover -help -info -version -summary
-       -report report_format -option option
-       -file filename -coverage criterion -write [db]
-       -delete
+ cover -help -info -version
+       -summary -report report_format
+       -file filename -write [db] -delete
+       -coverage criterion
+       [report specific options]
        coverage_database [coverage_database ...]
 
 =head1 DESCRIPTION
@@ -153,9 +164,12 @@ The following reports are currently available:
 
 The following command line options are supported:
 
+ -h -help              - show help
+ -i -info              - show documentation
+ -v -version           - show version
+
  -summary              - give summary report          (default on)
- -report report_format - report format required       (default none)
- -option               - options for report
+ -report report_format - report format required       (default html)
 
  -file filename        - only report on the file      (default all)
  -write [db]           - write the merged database    (default off)
@@ -163,9 +177,7 @@ The following command line options are supported:
 
  -coverage criterion   - report on criterion  (default all available)
 
- -h -help              - show help
- -i -info              - show documentation
- -v -version           - show version
+ other options specific to the report
 
 =head1 DETAILS
 
@@ -203,7 +215,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.27 - 9th November 2003
+Version 0.28 - 1st December 2003
 
 =head1 LICENCE
 

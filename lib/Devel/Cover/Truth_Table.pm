@@ -173,7 +173,7 @@ sub covered {
 package Devel::Cover::Truth_Table;
 use warnings;
 use strict;
-our $VERSION = "0.27";
+our $VERSION = "0.28";
 
 #-------------------------------------------------------------------------------
 # Subroutine : new()
@@ -316,20 +316,19 @@ sub text {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub html {
-	my $self = shift;
-	my $html = "<table><tr>";
-	my $h = 'A';
+	my $self  = shift;
+	my @class = (shift || 'uncovered', shift || 'covered');
+	my $html  = "<table><tr>";
+	my $h     = 'A';
 	for ($self->[0]->inputs) {
-		$html .= "<th class='header'>$h</th>";
+		$html .= "<th>$h</th>";
 		$h++;
 	}
-#	$html .= "<th class='header'>expr</th><th>hit</th></tr>";
-	$html .= "<th class='header'>expr</th></tr>";
+	$html .= "<th>dec</th></tr>";
 
 	foreach (@$self) {
-		my $class = $_->covered ? 'covered' : 'uncovered';
+		my $class = $class[$_->covered];
 		$html .= qq'<tr align="center"><td class="$class">';
-#		$html .= join('</td><td>', $_->inputs, $_->result, $_->covered);
 		$html .= join(qq'</td><td class="$class">', $_->inputs, $_->result);
 		$html .= "</td></tr>";
 	}
@@ -557,7 +556,7 @@ None that I'm aware of...
 
 =head1 VERSION
 
-Version 0.27 - 9th November 2003
+Version 0.28 - 1st December 2003
 
 =head1 LICENSE
 

@@ -35,6 +35,8 @@ DESCRIPTION
 
       Perl 5.6.1 or greater.  (Perl 5.7.0 is also unsupported.)
       The ability to compile XS extensions.
+      Storable (in the core in Perl 5.8.0 and above).
+      Digest::MD5 (in the core in Perl 5.8.0 and above).
       Pod::Coverage if you want pod coverage.
       Template Toolkit 2 if you want HTML output.
 

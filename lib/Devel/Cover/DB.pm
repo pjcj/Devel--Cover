@@ -10,13 +10,12 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.27";
+our $VERSION = "0.28";
 
-use Devel::Cover::DB::File  0.27;
-use Devel::Cover::Criterion 0.27;
+use Devel::Cover::DB::File  0.28;
+use Devel::Cover::Criterion 0.28;
 
 use Carp;
-use Data::Dumper;
 use File::Path;
 use Storable;
 
@@ -32,7 +31,6 @@ sub new
         criteria_short =>
             [ qw( stmt      branch path cond      sub        pod time ) ],
         collected      => [],
-        indent         => 1,
         cover          => {},
         @_
     };
@@ -63,27 +61,28 @@ sub     criteria_short { @{$_[0]->{    criteria_short}} }
 sub all_criteria       { @{$_[0]->{all_criteria      }} }
 sub all_criteria_short { @{$_[0]->{all_criteria_short}} }
 
-sub read {
+sub read
+{
     my $self = shift;
     my $file = shift;
     my $db   = retrieve($file);
 
     $self->{cover}     = $db->{cover};
     $self->{collected} = $db->{collected};
-    $self->{indent}    = $db->{indent};
     $self
 }
 
-sub write {
+sub write
+{
     my $self = shift;
     $self->{db} = shift if @_;
     croak "No db specified" unless length $self->{db};
     $self->validate_db;
 
-    my $db = {
+    my $db =
+    {
         cover     => $self->{cover},
         collected => $self->{collected},
-        indent    => $self->{indent},
     };
 
     Storable::nstore($db, "$self->{db}/$DB");
@@ -123,19 +122,25 @@ sub collected
     @{$self->{collected}}
 }
 
-sub indent
-{
-    my $self = shift;
-    $self->{indent} = shift if @_;
-    $self->{indent}
-}
-
 sub merge
 {
     my ($self, $from) = @_;
 
     # When the database gets big, it's quicker to merge into what's
     # already there.
+
+    for my $file (keys %{$from->{cover}})
+    {
+        my $sd = $self->{cover}{$file}{digest};
+        my $fd = $from->{cover}{$file}{digest};
+        if ($sd && $fd && $sd ne $fd)
+        {
+            # File has changed.  Delete old coverage instead of merging.
+            print "Devel::Cover: Deleting old coverage for changed file $file\n"
+                unless $Devel::Cover::Silent;
+            delete $from->{cover}{$file};
+        }
+    }
 
     _merge_hash($from->cover, $self->cover);
     $_[0] = $from;
@@ -324,6 +329,7 @@ sub cover
             bless $file, "Devel::Cover::DB::File";
             while (my ($crit, $criterion) = each %$file)
             {
+                next if $crit eq "digest";  # ignore MD5 checksum
                 my $class = "Devel::Cover::" . ucfirst lc $crit;
                 bless $criterion, "Devel::Cover::DB::Criterion";
                 for my $line (values %$criterion)
@@ -546,7 +552,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.27 - 9th November 2003
+Version 0.28 - 1st December 2003
 
 =head1 LICENCE
 
