@@ -61,3 +61,8 @@ Release 0.12 - 14th October 2001
 
 Release 0.13 - 14th October 2001
  - Forgot to allow for lack of Pod::Coverage in Devel::Cover::Pod.pm.
+
+Release 0.14 - 28th February 2002
+ - Add a workaround for an AUTOLOAD bug in bleadperl.
+ - Add gcov2perl program to convert gcov files to Devel::Cover databases.
+ - Get rid of // comments in xs file.

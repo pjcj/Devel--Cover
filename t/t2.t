@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# Copyright 2001, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,8 +10,8 @@
 use strict;
 use warnings;
 
-use Devel::Cover::DB 0.13;
-use Devel::Cover 0.13 qw( -db t2 +inc blib -indent 1 -merge 0 );
+use Devel::Cover::DB 0.14;
+use Devel::Cover 0.14 qw( -db t2 +inc blib -indent 1 -merge 0 );
 
 use Test;
 

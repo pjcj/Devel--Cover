@@ -1,4 +1,4 @@
-# Copyright 2001, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,7 +10,7 @@ package Devel::Cover::Criterion;
 use strict;
 use warnings;
 
-our $VERSION = "0.13";
+our $VERSION = "0.14";
 
 sub new
 {
@@ -29,7 +29,7 @@ sub calculate_percentage
 {
     my $class = shift;
     my ($db, $s) = @_;
-    $s->{percentage} = $s->{covered} * 100 / $s->{total};
+    $s->{percentage} = $s->{total} ? $s->{covered} * 100 / $s->{total} : 100;
 }
 
 1
@@ -66,11 +66,11 @@ Huh?
 
 =head1 VERSION
 
-Version 0.13 - 14th October 2001
+Version 0.14 - 28th February 2002
 
 =head1 LICENCE
 
-Copyright 2001, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

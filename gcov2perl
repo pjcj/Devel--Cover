@@ -1,0 +1,139 @@
+#!/usr/local/bin/perl
+
+# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+require 5.6.1;
+
+use strict;
+use warnings;
+
+use Devel::Cover::DB 0.14;
+
+our $VERSION = "0.14";
+
+use Getopt::Long;
+
+my $Options =
+{
+    db     => "cover_db",
+    indent => 0,
+    merge  => 1,
+};
+
+sub get_options
+{
+    die "Bad option" unless
+    GetOptions($Options,                # Store the options in the Options hash.
+               qw(
+                   db=s
+                   help|h!
+                   indent=i
+                   info|i!
+                   merge!
+                   version|v!
+                 ));
+    print "$0 version $VERSION\n" and exit 0 if $Options->{version};
+}
+
+sub add_cover
+{
+    my ($cover, $file) = @_;
+
+    my $f = $file;
+    $f =~ s/.gcov$//;
+
+    open F, $file or die "Can't open $file: $!\n";
+    while (<F>)
+    {
+        $_ = substr $_, 0, 16;
+        s/\s+//g;
+        $_ = 0 if $_ eq "######";
+        next if !length || /\D/;
+        $cover->{$f}{statement}{$.} = [[$_]];
+    }
+    close F or die "Can't open $file: $!\n";
+}
+
+sub main
+{
+    get_options;
+
+    my $cover = {};
+
+    for my $file (@ARGV)
+    {
+        add_cover $cover, $file;
+    }
+
+    my $db = Devel::Cover::DB->new(cover => $cover);
+    my $existing;
+    eval { $existing = Devel::Cover::DB->new(db => $Options->{db})
+               if $Options->{merge} };
+    $db->merge($existing) if $existing;
+    $db->indent($Options->{indent});
+    $db->write($Options->{db});
+}
+
+main
+
+__END__
+
+=head1 NAME
+
+gcov2perl - convert gcov files to Devel::Cover databases
+
+=head1 SYNOPSIS
+
+ gcov2perl -h -i -v -db database -merge -indent gcov_files
+
+=head1 DESCRIPTION
+
+Convert gcov files to Devel::Cover databases.
+
+=head1 OPTIONS
+
+The following command line options are supported:
+
+ -db database    - specify the database to use
+ -merge          - merge results with the current database
+ -indent         - Data::Dumper indent level to use
+
+ -h -help        - show help
+ -i -info        - show documentation
+ -v -version     - show version
+
+=head1 EXIT STATUS
+
+The following exit values are returned:
+
+0   All files converted successfully
+
+>0  An error occurred.
+
+=head1 SEE ALSO
+
+ Dvel::Cover
+
+=head1 BUGS
+
+Huh?
+
+=head1 VERSION
+
+Version 0.14 - 28th February 2002
+
+=head1 LICENCE
+
+Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+http://www.pjcj.net
+
+=cut

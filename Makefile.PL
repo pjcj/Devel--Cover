@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# Copyright 2001, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -16,8 +16,8 @@ use ExtUtils::MakeMaker;
 
 $| = 1;
 
-my $Version = "0.13";
-my $Date    = "14th October 2001";
+my $Version = "0.14";
+my $Date    = "28th February 2002";
 my $Author  = 'pjcj@cpan.org';
 
 my @perlbug = ("perlbug", "-a", $Author,
@@ -33,7 +33,7 @@ close M or die "Cannot close MANIFEST: $!";
 
 open I, ">Cover/Inc.pm" or die "Cannot open Cover/Inc.pm: $!";
 print I <<"EOI";
-# Copyright 2001, Paul Johnson (pjcj\@cpan.org)
+# Copyright 2001-2002, Paul Johnson (pjcj\@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 

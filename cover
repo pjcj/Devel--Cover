@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# Copyright 2001, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -12,13 +12,13 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.13";
+our $VERSION = "0.14";
 
-use Devel::Cover::DB        0.13;
-use Devel::Cover::Statement 0.13;
-use Devel::Cover::Condition 0.13;
-use Devel::Cover::Pod       0.13;
-use Devel::Cover::Time      0.13;
+use Devel::Cover::DB        0.14;
+use Devel::Cover::Statement 0.14;
+use Devel::Cover::Condition 0.14;
+use Devel::Cover::Pod       0.14;
+use Devel::Cover::Time      0.14;
 
 use Getopt::Long;
 BEGIN { eval "use Pod::Coverage" }          # We'll use this if it is available.
@@ -284,7 +284,7 @@ cover - report coverage statistics
 
 =head1 SYNOPSIS
 
- cover [-hiv] -summary -details -html coverage_database
+ cover -h -i -v -summary -details -html coverage_database
 
 =head1 DESCRIPTION
 
@@ -329,11 +329,11 @@ Huh?
 
 =head1 VERSION
 
-Version 0.13 - 14th October 2001
+Version 0.14 - 28th February 2002
 
 =head1 LICENCE
 
-Copyright 2001, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

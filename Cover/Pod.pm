@@ -1,4 +1,4 @@
-# Copyright 2001, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -14,7 +14,7 @@ use base "Devel::Cover::Criterion";
 
 BEGIN { eval "use Pod::Coverage 0.06" }     # We'll use this if it is available.
 
-our $VERSION = "0.13";
+our $VERSION = "0.14";
 
 sub covered    { $_[0]->[0] ? 1 : 0 }
 sub total      { 1 }
@@ -78,11 +78,11 @@ Huh?
 
 =head1 VERSION
 
-Version 0.13 - 14th October 2001
+Version 0.14 - 28th February 2002
 
 =head1 LICENCE
 
-Copyright 2001, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

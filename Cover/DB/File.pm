@@ -1,4 +1,4 @@
-# Copyright 2001, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,13 +10,13 @@ package Devel::Cover::DB::File;
 use strict;
 use warnings;
 
-use Devel::Cover::Criterion 0.13;
-use Devel::Cover::Statement 0.13;
-use Devel::Cover::Condition 0.13;
-use Devel::Cover::Pod       0.13;
-use Devel::Cover::Time      0.13;
+use Devel::Cover::Criterion 0.14;
+use Devel::Cover::Statement 0.14;
+use Devel::Cover::Condition 0.14;
+use Devel::Cover::Pod       0.14;
+use Devel::Cover::Time      0.14;
 
-our $VERSION = "0.13";
+our $VERSION = "0.14";
 
 sub calculate_summary
 {
@@ -28,8 +28,6 @@ sub calculate_summary
     for my $criterion ($self->items)
     {
         next unless $options->{$criterion};
-        # use Data::Dumper;
-        # print STDERR $criterion, " ", Dumper $self->$criterion();
         for my $location ($self->$criterion()->locations)
         {
             for my $cover (@$location)
@@ -84,11 +82,11 @@ Huh?
 
 =head1 VERSION
 
-Version 0.13 - 14th October 2001
+Version 0.14 - 28th February 2002
 
 =head1 LICENCE
 
-Copyright 2001, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

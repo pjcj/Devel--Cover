@@ -1,4 +1,4 @@
-# Copyright 2001, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,18 +10,18 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-use Devel::Cover::DB::File  0.13;
-use Devel::Cover::Criterion 0.13;
-use Devel::Cover::Statement 0.13;
-use Devel::Cover::Condition 0.13;
-use Devel::Cover::Pod       0.13;
-use Devel::Cover::Time      0.13;
+use Devel::Cover::DB::File  0.14;
+use Devel::Cover::Criterion 0.14;
+use Devel::Cover::Statement 0.14;
+use Devel::Cover::Condition 0.14;
+use Devel::Cover::Pod       0.14;
+use Devel::Cover::Time      0.14;
 
 use Carp;
 use Data::Dumper;
 use File::Path;
 
-our $VERSION = "0.13";
+our $VERSION = "0.14";
 
 my $DB = "cover.2";  # Version 2 of the database.
 
@@ -273,7 +273,7 @@ sub cover
                 {
                     for (@$line)
                     {
-                        die "<$_>" unless ref $_;
+                        die "<$crit:$_>" unless ref $_;
                         bless $_, "Devel::Cover::$c";
                     }
                 }
@@ -324,8 +324,10 @@ sub cover
         {
             *Devel::Cover::DB::File::AUTOLOAD = sub
             {
-                my $func = $Devel::Cover::DB::AUTOLOAD;
-                # print "autoloading $func\n";
+                # Work around a change in bleadperl from 12251 to 14899.
+                my $func = $Devel::Cover::DB::AUTOLOAD || $::AUTOLOAD;
+
+                # print STDERR "autoloading <$func>\n";
                 (my $f = $func) =~ s/^.*:://;
                 carp "Undefined subroutine $f called"
                     unless grep { $_ eq $f }
@@ -478,11 +480,11 @@ Huh?
 
 =head1 VERSION
 
-Version 0.13 - 14th October 2001
+Version 0.14 - 28th February 2002
 
 =head1 LICENCE
 
-Copyright 2001, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

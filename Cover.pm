@@ -1,4 +1,4 @@
-# Copyright 2001, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -12,11 +12,11 @@ use warnings;
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.13;
-use Devel::Cover::Inc 0.13;
+use Devel::Cover::DB  0.14;
+use Devel::Cover::Inc 0.14;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.13";
+our $VERSION = "0.14";
 
 use B qw( class ppname main_root main_start main_cv svref_2object OPf_KIDS );
 use B::Debug;
@@ -65,9 +65,9 @@ sub import
         /^-merge/    && do { $Merge      = shift; next };
         /^-profile/  && do { $Profiling  = shift; next };
         /^-summary/  && do { $Summary    = shift; next };
-        /^-ignore/   && do { push @Ignore, shift while $_[0] !~ /^-/; next };
-        /^[-+]inc/   && do { push @Inc,    shift while $_[0] !~ /^-/; next };
-        /^-select/   && do { push @Select, shift while $_[0] !~ /^-/; next };
+        /^-ignore/   && do { push @Ignore, shift while $_[0] !~ /^[-+]/; next };
+        /^[-+]inc/   && do { push @Inc,    shift while $_[0] !~ /^[-+]/; next };
+        /^-select/   && do { push @Select, shift while $_[0] !~ /^[-+]/; next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
 }
@@ -398,10 +398,14 @@ there may be some statements which are no reported.  Pod coverage comes
 from Pod::Coverage.  Coverage data for other metrics are collected, but
 not reported.  Coverage data for some metrics are not yet collected.
 
+The B<gcov2perl> program can be used to convert gcov files to
+Devel::Cover databases.
+
 You may find that the results don't match your expectations.  I would
 imagine that at least one of them is wrong.
 
 Requirements:
+
   Perl 5.6.1 or 5.7.1.
   The ability to compile XS extensions.
   Pod::Coverage if you want pod coverage.
@@ -440,11 +444,11 @@ Huh?
 
 =head1 VERSION
 
-Version 0.13 - 14th October 2001
+Version 0.14 - 28th February 2002
 
 =head1 LICENCE
 
-Copyright 2001, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

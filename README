@@ -20,9 +20,15 @@ DESCRIPTION
     Pod::Coverage. Coverage data for other metrics are collected, but not
     reported. Coverage data for some metrics are not yet collected.
 
+    The gcov2perl program can be used to convert gcov files to Devel::Cover
+    databases.
+
     You may find that the results don't match your expectations. I would
     imagine that at least one of them is wrong.
 
-    Requirements: Perl 5.6.1 or 5.7.1. The ability to compile XS extensions.
-    Pod::Coverage if you want pod coverage.
+    Requirements:
+
+      Perl 5.6.1 or 5.7.1.
+      The ability to compile XS extensions.
+      Pod::Coverage if you want pod coverage.
 

@@ -19,5 +19,6 @@ t/t1.t
 t/T1.pm
 t/t2.t
 cover
+gcov2perl
 Cover/Tutorial.pod
 session.vim

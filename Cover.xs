@@ -1,5 +1,5 @@
 /*
- * Copyright 2001, Paul Johnson (pjcj@cpan.org)
+ * Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
  *
  * This software is free.  It is licensed under the same terms as Perl itself.
  *
@@ -126,7 +126,7 @@ runops_cover(pTHX)
     if (!cover_hv) cover_hv = newHV();
     addr.ch[sizeof(PL_op)] = '\0';
 
-    // fprintf(stderr, "runops_cover\n");
+    /* fprintf(stderr, "runops_cover\n"); */
     while ((PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
     {
         if (covering)
@@ -158,7 +158,7 @@ runops_cover(pTHX)
 static int
 runops_orig(pTHX)
 {
-    // fprintf(stderr, "runops_orig\n");
+    /* fprintf(stderr, "runops_orig\n"); */
     while ((PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
     {
         PERL_ASYNC_CHECK();
@@ -176,7 +176,7 @@ void
 set_cover(flag)
         int flag
     PPCODE:
-        // fprintf(stderr, "Cover set to %d\n", flag);
+        /* fprintf(stderr, "Cover set to %d\n", flag); */
         PL_runops = ((covering = flag) || profiling)
             ? runops_cover
             : runops_orig;
@@ -185,7 +185,7 @@ void
 set_profile(flag)
         int flag
     PPCODE:
-        // fprintf(stderr, "Cover set to %d\n", flag);
+        /* fprintf(stderr, "Cover set to %d\n", flag); */
         PL_runops = ((profiling = flag) || covering)
             ? runops_cover
             : runops_orig;
