@@ -12,10 +12,11 @@ use warnings;
 
 use DynaLoader ();
 
-use Devel::Cover::DB 0.07;
+use Devel::Cover::DB  0.08;
+use Devel::Cover::Inc 0.08;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.07";
+our $VERSION = "0.08";
 
 use B qw( class ppname main_root main_start main_cv svref_2object OPf_KIDS );
 # use B::Debug;
@@ -25,8 +26,10 @@ my  $Covering = 1;
 my  $DB       = "cover_db";
 my  $Details  = 0;
 my  $Merge    = 1;
+my  @Ignore;
 my  @Inc;
 my  $Indent   = 0;
+my  @Select;
 my  $Summary  = 1;
 
 my  %Cover;
@@ -34,7 +37,7 @@ our $Cv;      # gets localised
 my  @Todo;
 my  %Done;
 
-BEGIN { @Inc = @INC }
+BEGIN { @Inc = @Devel::Cover::Inc::Inc }
 # BEGIN { $^P =  0x02 | 0x04 | 0x100 }
 BEGIN { $^P =  0x04 | 0x100 }
 
@@ -50,9 +53,11 @@ sub import
         /^-db/      && do { $DB      = shift; next };
         /^-details/ && do { $Details = shift; next };
         /^-merge/   && do { $Merge   = shift; next };
-        /^-inc/     && do { push @Inc, shift; next };
         /^-indent/  && do { $Indent  = shift; next };
         /^-summary/ && do { $Summary = shift; next };
+        /^-ignore/  && do { push @Ignore, shift while $_[0] !~ /^-/; next };
+        /^[-+]inc/  && do { push @Inc,    shift while $_[0] !~ /^-/; next };
+        /^-select/  && do { push @Select, shift while $_[0] !~ /^-/; next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
 }
@@ -79,8 +84,11 @@ sub report
     INC:
     while (my ($name, $file) = each %INC)
     {
-        # print "$name => $file\n";
-        for (@Inc) { next INC if $file =~ /^\Q$_/ }
+        # print "test $name => $file\n";
+        for (@Select) { next INC if $file !~ /$_/    }
+        for (@Ignore) { next INC if $file =~ /$_/    }
+        for (@Inc)    { next INC if $file =~ /^\Q$_/ }
+        # print "use  $name => $file\n";
         $name =~ s/\.pm$//;
         $name =~ s/\//::/g;
         push @roots, get_subs($name);
@@ -337,9 +345,12 @@ Requirements:
 
  -db cover_db   - Store results in coverage db (default cover_db).
  -details val   - Print detailed information iff val is true (default off).
- -inc path      - Prefix of files to ignore (default @INC).
+ -inc path      - Set prefixes of files to ignore (default @INC).
+ +inc path      - Append to prefixes of files to ignore.
+ -ignore RE     - Ignore files matching RE.
  -indent indent - Set indentation level to indent. See Data::Dumper for details.
  -merge val     - Merge databases, for multiple test benches (default on).
+ -select RE     - Only report on files matching RE.
  -summary val   - Print summary information iff val is true (default on).
 
 =head1 TUTORIAL
@@ -524,7 +535,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.07 - 17th May 2001
+Version 0.08 - 18th May 2001
 
 =head1 LICENCE
 
