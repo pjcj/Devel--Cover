@@ -1,0 +1,93 @@
+Reading database from cover_db
+
+
+------------------------------------------------- ------ ------ ------ ------
+File                                                stmt branch   cond  total
+------------------------------------------------- ------ ------ ------ ------
+tests/cond_and                                     93.75  50.00  66.67  74.19
+Total                                              93.75  50.00  66.67  74.19
+------------------------------------------------- ------ ------ ------ ------
+
+
+tests/cond_and
+
+line  err   stmt branch   cond   code
+1                                #!/usr/local/bin/perl
+2                                
+3                                # Copyright 2002, Paul Johnson (pjcj@cpan.org)
+4                                
+5                                # This software is free.  It is licensed under the same terms as Perl itself.
+6                                
+7                                # The latest version of this software should be available from my homepage:
+8                                # http://www.pjcj.net
+9                                
+10                               use strict;
+11                               use warnings;
+12                               
+13             1                 my @x;
+14                               
+15             1                 my $y = 1;
+16             1                 my $z = 0;
+17                               
+18             1                 for (0 .. 10)
+              11                 
+19                               {
+20    ***     11     50            $y &&
+21                                   $x[1]++;
+22                               
+23    ***     11    100     66     $y &&
+24                                   $x[0]++ &&
+25                                   $x[1]++;
+26                               
+27    ***     11     50            $x[2]++
+28                                   if $z;
+29                               
+30            11                   for (0 .. 2)
+              33                 
+31                                 {
+32            33                       $x[3]++;
+33                                 }
+34                               
+35    ***     11     50            if ($y)
+36                                 {
+37            11                     $x[4]++;
+38                                 }
+39                                 else
+40                                 {
+41    ***      0      0              $y && $x[5]++;
+42                                 }
+43                               
+44            11                   pas();
+45                               }
+46                               
+47                               sub pas
+48                               {
+49    ***     11     50              $y && $z
+50                               }
+51                               
+52                               # print join(", ", @x), "\n";
+
+
+Branches
+--------
+
+line  err      %      1      2   branch
+----- --- ------ ------ ------   ------
+20    ***     50      0     11   if $y
+23           100      1     10   if $y and $x[0]++
+27    ***     50     11      0   if $z
+35    ***     50     11      0   if ($y) { }
+41    ***      0      0      0   if $y
+49    ***     50      0     11   if $y
+
+
+Conditions
+----------
+
+and conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+23    ***     66      0      1     10   $y and $x[0]++
+
+

@@ -1,8 +1,13 @@
+- Condition coverage of xor
+- Indicate how to increase coverage?
+- Make the HTML output nicer
 - Collect data for path coverage.
-- Parse for branch and condition coverage.
 - Tests.
 - Documentation.
+- Profiling and speedups.
 - BEGIN and END blocks.
+    Code in modules without subs.  Requires callbacks from perl?
+- Move away from Data::Dumper.  To?
 - Work with memoize.
-- Code in modules without subs.
-- Use B::Utils?
+- Fix up Devel::Cover::Op
+- See if the XS code leaks, and fix it if it does.

@@ -10,13 +10,14 @@ package Devel::Cover::DB::File;
 use strict;
 use warnings;
 
-use Devel::Cover::Criterion 0.14;
-use Devel::Cover::Statement 0.14;
-use Devel::Cover::Condition 0.14;
-use Devel::Cover::Pod       0.14;
-use Devel::Cover::Time      0.14;
+our $VERSION = "0.15";
 
-our $VERSION = "0.14";
+use Devel::Cover::Criterion 0.15;
+use Devel::Cover::Statement 0.15;
+use Devel::Cover::Branch    0.15;
+use Devel::Cover::Condition 0.15;
+use Devel::Cover::Pod       0.15;
+use Devel::Cover::Time      0.15;
 
 sub calculate_summary
 {
@@ -82,7 +83,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.14 - 28th February 2002
+Version 0.15 - 5th September 2002
 
 =head1 LICENCE
 

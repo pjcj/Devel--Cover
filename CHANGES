@@ -66,3 +66,21 @@ Release 0.14 - 28th February 2002
  - Add a workaround for an AUTOLOAD bug in bleadperl.
  - Add gcov2perl program to convert gcov files to Devel::Cover databases.
  - Get rid of // comments in xs file.
+
+Release 0.15 - 5th September 2002
+ - Reinstate coverage of subs in main:: which got lost somewhere (0.11?).
+ - Bug fixes for use of uninitialised values.
+ - Automatically generate tests.  Well, their infrastructure anyway.
+ - Move Cover to lib/Devel/Cover to keep case insensitive filesystems happy.
+ - Remove -detail option. (It belongs to cover.)
+ - Work on op addresses and sequence numbers instead of just op addresses,
+   to be (almost) unique.
+ - Clean up subroutine location code.
+ - Fix -select to override anything else.
+ - Add condition coverage for && and || ops.
+ - Various changes in runops_cover to try to reduce runtime.
+ - Don't use runops_cover until CHECK time.
+ - Add merge, write and file options to cover.
+ - Add branch coverage.
+ - Abstract away cover backends.
+ - Use TT for HTML output.

@@ -10,22 +10,22 @@ package Devel::Cover::Time;
 use strict;
 use warnings;
 
+our $VERSION = "0.15";
+
 use base "Devel::Cover::Criterion";
 
-our $VERSION = "0.14";
-
-sub covered    { $_[0]->[0] }
+sub covered    { $_[0][0][0] }
 sub total      { 1 }
-sub percentage { $_[0]->[0] ? 100 : 0 }
-sub error      { !$_[0]->[0] }
+sub percentage { $_[0][0][0] ? 100 : 0 }
+sub error      { !$_[0][0][0] }
 
 sub calculate_summary
 {
     my $self = shift;
     my ($db, $file) = @_;
 
-    $db->{summary}{$file}{time}{total} += $self->[0];
-    $db->{summary}{Total}{time}{total} += $self->[0];
+    $db->{summary}{$file}{time}{total} += $self->[0][0];
+    $db->{summary}{Total}{time}{total} += $self->[0][0];
 }
 
 sub calculate_percentage
@@ -49,11 +49,11 @@ Devel::Cover::Time - Code coverage metrics for Perl
 
 =head1 DESCRIPTION
 
-This module provides ...
+Module for storing time coverage information.
 
 =head1 SEE ALSO
 
- Devel::Cover
+ Devel::Cover::Criterion
 
 =head1 METHODS
 
@@ -69,7 +69,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.14 - 28th February 2002
+Version 0.15 - 5th September 2002
 
 =head1 LICENCE
 

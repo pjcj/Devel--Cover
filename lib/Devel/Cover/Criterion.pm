@@ -10,7 +10,7 @@ package Devel::Cover::Criterion;
 use strict;
 use warnings;
 
-our $VERSION = "0.14";
+our $VERSION = "0.15";
 
 sub new
 {
@@ -20,16 +20,22 @@ sub new
     bless $self, $class
 }
 
-sub covered    { "n/a" }
-sub total      { "n/a" }
-sub percentage { "n/a" }
-sub error      { "n/a" }
+sub coverage    { $_[0][0] }
+sub information { $_[0][1] }
+
+sub covered     { "n/a" }
+sub total       { "n/a" }
+sub percentage  { "n/a" }
+sub error       { "n/a" }
+sub text        { "n/a" }
+sub values      { [ $_[0]->covered ] }
 
 sub calculate_percentage
 {
     my $class = shift;
     my ($db, $s) = @_;
-    $s->{percentage} = $s->{total} ? $s->{covered} * 100 / $s->{total} : 100;
+    my $covered = $s->{covered} || 0;
+    $s->{percentage} = $s->{total} ? $covered * 100 / $s->{total} : 100;
 }
 
 1
@@ -46,7 +52,7 @@ Devel::Cover::Criterion - Code coverage metrics for Perl
 
 =head1 DESCRIPTION
 
-This module provides ...
+Abstract base class for all the coverage criteria.
 
 =head1 SEE ALSO
 
@@ -56,17 +62,13 @@ This module provides ...
 
 =head2 new
 
- my $db = Devel::Cover::DB->new(db => "my_coverage_db");
-
-Contructs the DB from the specified database.
-
 =head1 BUGS
 
 Huh?
 
 =head1 VERSION
 
-Version 0.14 - 28th February 2002
+Version 0.15 - 5th September 2002
 
 =head1 LICENCE
 

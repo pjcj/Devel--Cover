@@ -1,0 +1,41 @@
+#!/usr/local/bin/perl
+
+# Copyright 2002, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+require 5.6.1;
+
+use strict;
+use warnings;
+
+our $VERSION = "0.15";
+
+use blib;
+
+use Devel::Cover::Test 0.15;
+
+my @tests = @ARGV;
+
+unless (@tests)
+{
+    opendir D, "tests" or die "Cannot opendir tests: $!";
+    for my $t (readdir D)
+    {
+        next unless -f "tests/$t";
+        next if $t =~ /\.(pm|version|org|bak)$/;
+        next if $t =~ /~$/;
+
+        push @tests, $t;
+    }
+    closedir D or die "Cannot closedir tests: $!";
+}
+
+for my $test (@tests)
+{
+    my $t = Devel::Cover::Test->new($test);
+    $t->create_gold;
+}

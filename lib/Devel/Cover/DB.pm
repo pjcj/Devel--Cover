@@ -10,20 +10,21 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-use Devel::Cover::DB::File  0.14;
-use Devel::Cover::Criterion 0.14;
-use Devel::Cover::Statement 0.14;
-use Devel::Cover::Condition 0.14;
-use Devel::Cover::Pod       0.14;
-use Devel::Cover::Time      0.14;
+our $VERSION = "0.15";
+
+use Devel::Cover::DB::File  0.15;
+use Devel::Cover::Criterion 0.15;
+use Devel::Cover::Statement 0.15;
+use Devel::Cover::Branch    0.15;
+use Devel::Cover::Condition 0.15;
+use Devel::Cover::Pod       0.15;
+use Devel::Cover::Time      0.15;
 
 use Carp;
 use Data::Dumper;
 use File::Path;
 
-our $VERSION = "0.14";
-
-my $DB = "cover.2";  # Version 2 of the database.
+my $DB = "cover.4";  # Version 4 of the database.
 
 sub new
 {
@@ -32,12 +33,16 @@ sub new
     {
         criteria       => [ qw( statement branch path condition pod time ) ],
         criteria_short => [ qw( stmt      branch path cond      pod time ) ],
+        collected      => [],
         indent         => 1,
         cover          => {},
         @_
     };
+
     $self->{all_criteria}       = [ @{$self->{criteria}},       "total" ];
     $self->{all_criteria_short} = [ @{$self->{criteria_short}}, "total" ];
+    $self->{collected}          = [ @{$self->{criteria}} ]
+        unless @{$self->{collected}};
 
     bless $self, $class;
 
@@ -71,11 +76,13 @@ sub read
 {
     my $self = shift;
     local $/;
-    my $cover;
+    my $db;
     my $fh = $self->{filehandle};
     eval <$fh>;
     croak $@ if $@;
-    $self->{cover} = $cover;
+    $self->{cover}     = $db->{cover};
+    $self->{collected} = $db->{collected};
+    $self->{indent}    = $db->{indent};
     $self
 }
 
@@ -85,10 +92,18 @@ sub write
     $self->{db} = shift if @_;
     croak "No db specified" unless length $self->{db};
     $self->validate_db;
-    local $Data::Dumper::Indent = $self->indent;
+    my $db =
+    {
+        cover     => $self->{cover},
+        collected => $self->{collected},
+        indent    => $self->{indent},
+    };
+    local $Data::Dumper::Indent   = $self->indent;
+    local $Data::Dumper::Sortkeys = 1;
+    local $Data::Dumper::Useperl  = 1;  # TODO - remove this when possible
     my $file = "$self->{db}/$DB";
     open OUT, ">$file" or croak "Cannot open $file\n";
-    print OUT Data::Dumper->Dump([$self->{cover}], ["cover"]);
+    print OUT Data::Dumper->Dump([$db], ["db"]);
     close OUT or croak "Cannot close $file\n";
     $self
 }
@@ -116,6 +131,13 @@ sub validate_db
         mkdir $self->{db}, 0777 or croak "Cannot mkdir $self->{db}: $!\n";
     }
     $self
+}
+
+sub collected
+{
+    my $self = shift;
+    $self->{collected} = shift if @_;
+    @{$self->{collected}}
 }
 
 sub indent
@@ -182,7 +204,18 @@ sub _merge_array
         }
         else
         {
-            $i += $f if defined $f;
+            if (defined $f)
+            {
+                if ($f =~ /^\d+$/ && $i =~ /^\d+$/)
+                {
+                    $i += $f;
+                }
+                elsif ($i ne $f)
+                {
+                    warn "<$i> does not match <$f> - using later value";
+                    $i = $f;
+                }
+            }
         }
     }
     push @$into, @$from;
@@ -226,33 +259,49 @@ sub trimmed_file
 sub print_summary
 {
     my $self = shift;
-    my %options = (statement => 1, condition => 1, pod => 1, time => 1, @_);
+    my %options = map(($_ => 1), @_ ? @_ : @{$self->{collected}});
+    $options{total} = 1 if keys %options;
+
+    my $n = keys %options;
+
+    my $oldfh = select STDOUT;
+
     $self->calculate_summary(%options);
 
     my $format = sub
     {
         my ($part, $criterion) = @_;
-        exists $part->{$criterion}
+        $options{$criterion} && exists $part->{$criterion}
             ? sprintf "%5.2f", $part->{$criterion}{percentage}
             : "n/a"
     };
 
-    my $fmt = "%-28s" . " %6s" x 7 . "\n";
-    printf $fmt, "-" x 28, ("------") x 7;
-    printf $fmt, "File", @{$self->{all_criteria_short}};
-    printf $fmt, "-" x 28, ("------") x 7;
+    my $fw = 77 - $n * 7;
+    $fw = 28 if $fw < 28;
+
+    my $fmt = "%-${fw}s" . " %6s" x $n . "\n";
+    printf $fmt, "-" x $fw, ("------") x $n;
+    printf $fmt, "File",
+                 map { $self->{all_criteria_short}[$_] }
+                 grep { $options{$self->{all_criteria}[$_]} }
+                 (0 .. $#{$self->{all_criteria}});
+    printf $fmt, "-" x $fw, ("------") x $n;
 
     my $s = $self->{summary};
     for my $file (grep($_ ne "Total", sort keys %$s), "Total")
     {
         printf $fmt,
-               trimmed_file($file, 28),
-               map { $format->($s->{$file}, $_) } @{$self->{all_criteria}};
+               trimmed_file($file, $fw),
+               map { $format->($s->{$file}, $_) }
+               grep { $options{$_} }
+               @{$self->{all_criteria}};
 
     }
 
-    printf $fmt, "-" x 28, ("------") x 7;
+    printf $fmt, "-" x $fw, ("------") x $n;
     print "\n\n";
+
+    select $oldfh;
 }
 
 sub cover
@@ -342,6 +391,8 @@ sub cover
     $self->{cover}
 }
 
+=for old
+
 sub print_details_hash
 {
     my $self = shift;
@@ -407,6 +458,8 @@ sub print_details
         print "\n\n";
     }
 }
+
+=cut
 
 1
 
@@ -480,7 +533,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.14 - 28th February 2002
+Version 0.15 - 5th September 2002
 
 =head1 LICENCE
 

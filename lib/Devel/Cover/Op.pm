@@ -10,9 +10,9 @@ package Devel::Cover::Op;
 use strict;
 use warnings;
 
-our $VERSION = "0.14";
+our $VERSION = "0.15";
 
-use Devel::Cover qw( -inc B -indent 1 -details 1 );
+use Devel::Cover qw( -ignore blib -ignore \\wB\\w -indent 1 );
 use B::Concise   qw( set_style add_callback );
 
 my %style =
@@ -53,8 +53,9 @@ sub import
         sub
         {
             my ($h, $op, $level, $format) = @_;
-            $h->{cover} = Devel::Cover::coverage()->{pack "I*", $$op} ||
-                         ($h->{seq} ? "-" : "");
+            $h->{cover} = $h->{seq}
+                ? Devel::Cover::coverage()->{pack "I*", $h->{seqnum}} || "-"
+                : ""
         }
     );
 
@@ -63,3 +64,5 @@ sub import
 END { B::Concise::compile(@Options)->() }
 
 1
+
+# TODO - fix and document

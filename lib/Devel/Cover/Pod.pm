@@ -10,16 +10,16 @@ package Devel::Cover::Pod;
 use strict;
 use warnings;
 
+our $VERSION = "0.15";
+
 use base "Devel::Cover::Criterion";
 
 BEGIN { eval "use Pod::Coverage 0.06" }     # We'll use this if it is available.
 
-our $VERSION = "0.14";
-
-sub covered    { $_[0]->[0] ? 1 : 0 }
+sub covered    { $_[0][0][0] ? 1 : 0 }
 sub total      { 1 }
-sub percentage { $_[0]->[0] ? 100 : 0 }
-sub error      { !$_[0]->[0] }
+sub percentage { $_[0][0][0] ? 100 : 0 }
+sub error      { !$_[0][0][0] }
 
 sub calculate_summary
 {
@@ -35,7 +35,7 @@ sub calculate_summary
     $s->{Total}{pod}{total}++;
     $s->{Total}{total}{total}++;
 
-    if ($self->[0])
+    if ($self->[0][0])
     {
         $s->{$file}{pod}{covered}++;
         $s->{$file}{total}{covered}++;
@@ -58,19 +58,13 @@ Devel::Cover::Pod - Code coverage metrics for Perl
 
 =head1 DESCRIPTION
 
-This module provides ...
+Module for storing pod coverage information.
 
 =head1 SEE ALSO
 
- Devel::Cover
+ Devel::Cover::Criterion
 
 =head1 METHODS
-
-=head2 new
-
- my $db = Devel::Cover::DB->new(db => "my_coverage_db");
-
-Contructs the DB from the specified database.
 
 =head1 BUGS
 
@@ -78,7 +72,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.14 - 28th February 2002
+Version 0.15 - 5th September 2002
 
 =head1 LICENCE
 

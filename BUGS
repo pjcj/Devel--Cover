@@ -1,3 +1,2 @@
-- Testing with different versions of perl, or using TEST_VERBOSE=1 can fail.
-  The coverage is genuinely different, but I have no idea why.
-- Code in modules which is not in a subroutine is not reported.
+- Code in BEGIN and END blocks is not reported.
+- Templates aren't put anywhere useful.

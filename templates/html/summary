@@ -1,0 +1,34 @@
+[% WRAPPER html/html %]
+
+<h1> [% title %] </h1>
+
+<table border="2">
+
+    <tr align="RIGHT" valign="CENTER">
+        <th align="LEFT"> File </th>
+        [% FOREACH header = headers %]
+            <th> [% header %] </th>
+        [% END %]
+    </tr>
+
+    [% FOREACH file = files %]
+        <tr align="RIGHT" valign="CENTER">
+            <td align="LEFT">
+                [% IF file_exists.$file %]
+                    <a href="[%- filenames.$file -%].html"> [% file %] </a>
+                [% ELSE %]
+                    [% file %]
+                [% END %]
+            </td>
+
+            [% FOREACH criterion = showing %]
+                <td bgcolor="[%- vals.$file.$criterion.bg -%]">
+                    [% vals.$file.$criterion.pc %]
+                </td>
+            [% END %]
+        </tr>
+    [% END %]
+
+</table>
+
+[% END %]

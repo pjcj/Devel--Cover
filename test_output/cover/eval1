@@ -1,0 +1,38 @@
+Reading database from cover_db
+
+
+------------------------------------------------- ------ ------ ------ ------
+File                                                stmt branch   cond  total
+------------------------------------------------- ------ ------ ------ ------
+tests/eval1                                       100.00    n/a    n/a 100.00
+Total                                             100.00    n/a    n/a 100.00
+------------------------------------------------- ------ ------ ------ ------
+
+
+tests/eval1
+
+line  err   stmt branch   cond   code
+1                                #!/usr/local/bin/perl
+2                                
+3                                # Copyright 2002, Paul Johnson (pjcj@cpan.org)
+4                                
+5                                # This software is free.  It is licensed under the same terms as Perl itself.
+6                                
+7                                # The latest version of this software should be available from my homepage:
+8                                # http://www.pjcj.net
+9                                
+10                               use strict;
+11                               use warnings;
+12                               
+13                               use lib -d "t" ? "t" : "..";
+14                               
+15             1                 eval <<EOS;
+16                               sub e
+17                               {
+18                                   1
+19                               }
+20                               EOS
+21                               
+22             1                 e();
+
+

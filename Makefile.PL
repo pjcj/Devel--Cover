@@ -12,12 +12,14 @@ require 5.6.1;
 use strict;
 use warnings;
 
+use Cwd;
+
 use ExtUtils::MakeMaker;
 
 $| = 1;
 
-my $Version = "0.14";
-my $Date    = "28th February 2002";
+my $Version = "0.15";
+my $Date    = "5th September 2002";
 my $Author  = 'pjcj@cpan.org';
 
 my @perlbug = ("perlbug", "-a", $Author,
@@ -27,11 +29,17 @@ my $Perlbug = join " ", map { / / ? "'$_'" : $_ } @perlbug;
 
 
 open M, "MANIFEST" or die "Cannot open MANIFEST: $!";
-my @files    = map { split } <M>, "Cover/Inc.pm";
+my @files    = map { split } <M>, "lib/Devel/Cover/Inc.pm";
 my @versions = grep { $_ ne "README" && $_ ne "Makefile.PL" } @files;
 close M or die "Cannot close MANIFEST: $!";
 
-open I, ">Cover/Inc.pm" or die "Cannot open Cover/Inc.pm: $!";
+my $base = getcwd;
+
+my %inc = map { $_ => 1 } @INC;
+my @inc = sort keys %inc;
+
+open I, ">lib/Devel/Cover/Inc.pm"
+    or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
 print I <<"EOI";
 # Copyright 2001-2002, Paul Johnson (pjcj\@cpan.org)
 
@@ -48,50 +56,118 @@ use strict;
 use warnings;
 
 our \$VERSION = "$Version";
-our \@Inc = qw( @INC );
+our \$Perl = "$^X";
+our \$Base = "$base";
+our \@Inc = qw( @inc );
 
 1
 EOI
-close I or die "Cannot close Cover/Inc.pm: $!";
+close I or die "Cannot close lib/Devel/Cover/Inc.pm: $!";
 
-$ExtUtils::MakeMaker::Verbose = 0;
+print "Writing tests ........ ";
 
-WriteMakefile
-(
-  NAME     => "Devel::Cover",
-  VERSION  => $Version,
-  AUTHOR   => 'Paul Johnson (pjcj@cpan.org)',
-  ABSTRACT => "Code coverage metrics for Perl",
-  DIR      => [],
-  PM       => { map {($_ => '$(INST_LIBDIR)/' . $_)}
-                    grep { /\.p(m|od)/ } @files },
-  dist     => { COMPRESS => "gzip --best --force" },
-  clean    => { FILES => join " ",  map { "$_.version" } @versions },
-  depend   => { distdir => "@files" },
-);
+unless (-d "t")
+{
+    mkdir "t" or die "Cannot mkdir t: $!";
+}
 
-print "\n";
+opendir D, "tests" or die "Cannot opendir tests: $!";
+for my $t (readdir D)
+{
+    next unless -f "tests/$t";
+    next if $t =~ /\.(pm|version|org|bak)$/;
+    next if $t =~ /~$/;
+    open T, ">t/a$t.t" or die "Cannot open t/a$t.t: $!";
+    print T <<EOT;
+#!$^X
+
+# Copyright 2002, Paul Johnson (pjcj\@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+use strict;
+use warnings;
+
+use lib "$base/lib";
+use lib "$base/blib/lib";
+use lib "$base/blib/arch";
+use lib "$base/t";
+
+use Devel::Cover::Test $Version;
+
+my \$test = Devel::Cover::Test->new("$t");
+\$test->run_test
+EOT
+    close T or die "Cannot open t/a$t.t: $!";
+}
+closedir D or die "Cannot closedir tests: $!";
+
+print "done\n\n";
+
+my $e;
+
+print "checking for Template.pm      version 2.00 ........ ";
+
+$e = <<EOM;
+
+Template.pm 2.00 is required to run the HTML backend to cover.  You will
+not be able to generate HTML output until you install the Template
+Toolkit, available from CPAN.  In the meantime you may continue to use
+the rest of Devel::Cover.
+
+EOM
+
+eval "use Template";
+if (my $m = $INC{"Template.pm"})
+{
+    my $v = eval { no warnings; $Template::VERSION };
+    print $v < 2.00 ? "$v\n\n$e\n" : "$v $m\n";
+}
+else
+{
+    print "not found\n\n$e\n";
+}
+
 print "checking for Pod::Coverage.pm version 0.06 ........ ";
 
-my $e = <<EOM;
+$e = <<EOM;
 
 Pod::Coverage.pm 0.06 is required to do pod coverage.  This will tell
 you how well you have documented your modules.  Pod coverage will be
 unavailable until you install this module, available from CPAN.  In the
-meantime, you may continue to use the rest of Devel::Cover.pm.
+meantime, you may continue to use the rest of Devel::Cover.
 EOM
 
 eval "use Pod::Coverage";
 if (my $m = $INC{"Pod/Coverage.pm"})
 {
-  my $v = eval { no warnings; $Pod::Coverage::VERSION };
-  print $v < 0.06 ? "$v\n\n$e\n" : "$v $m\n";
+    my $v = eval { no warnings; $Pod::Coverage::VERSION };
+    print $v < 0.06 ? "$v\n\n$e\n" : "$v $m\n";
 }
 else
 {
-  print "not found\n\n$e\n";
+    print "not found\n\n$e\n";
 }
 
+$ExtUtils::MakeMaker::Verbose = 0;
+
+WriteMakefile
+(
+    NAME      => "Devel::Cover",
+    VERSION   => $Version,
+    AUTHOR    => 'Paul Johnson (pjcj@cpan.org)',
+    ABSTRACT  => "Code coverage metrics for Perl",
+    DIR       => [],
+    EXE_FILES => [ "cover", "gcov2perl" ],
+    dist      => { COMPRESS => "gzip --best --force" },
+    clean     => { FILES => join " ",  map { "$_.version" } @versions },
+    depend    => { distdir => "@files" },
+);
+
+print "\n";
 print <<EOM if 0;
 
 --------------------------------------------------------------------------------
@@ -109,13 +185,26 @@ README file, or send mail to me directly.
 
 EOM
 
+sub MY::libscan
+{
+    my ($self, $path) = @_;
+    (my $p = $path) =~ s/^\$\(INST_LIB\)/lib/;  # 5.6.1
+    # print "$path $p\n";
+    my $wanted;
+    for my $f (@files)
+    {
+        last if $wanted = $p =~ /$f$/;
+    }
+    $wanted && $path;
+}
+
 sub MY::postamble
 {
-  qq[
+    qq[
 SET_VERSION = \$(PERL) -pi.version \\
-  -e 's/(^\\s*(?:our\\s+)\\\$\$VERSION = ")\\d+\\.\\d+(";)/\$\${1}$Version\$\$2/;' \\
-  -e 's/(Version )\\d+\\.\\d+( - ).*/\$\${1}$Version\$\${2}$Date/;' \\
-  -e 's/(^\\s*use Devel::Cover(?:::\\w+)*\\s+)\\d+\\.\\d+/\$\${1}$Version/;'
+    -e 's/(^\\s*(?:our\\s+)\\\$\$VERSION = ")\\d+\\.\\d+(";)/\$\${1}$Version\$\$2/;' \\
+    -e 's/(Version )\\d+\\.\\d+( - ).*/\$\${1}$Version\$\${2}$Date/;' \\
+    -e 's/(^\\s*use Devel::Cover(?:::\\w+)*\\s+)\\d+\\.\\d+/\$\${1}$Version/;'
 
 tags : @files
 \t ptags @files
@@ -123,26 +212,42 @@ tags : @files
 @versions : Makefile.PL
 \t \$(SET_VERSION) @versions
 
-README : Cover.pm
-\t TERMCAP= COLUMNS=80 pod2text Cover.pm | \\
-  \$(PERL) -n \\
-  -e 'print if (/NAME/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
-  -e 'print if (/DESCRIPTION/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
-  > README
+README : lib/Devel/Cover.pm
+\t TERMCAP= COLUMNS=80 pod2text lib/Devel/Cover.pm | \\
+    \$(PERL) -n \\
+    -e 'print if (/NAME/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
+    -e 'print if (/DESCRIPTION/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
+    > README
 
 ppm : ppd pure_all
 \t tar cf Devel-Cover.tar blib
 \t gzip --best --force Devel-Cover.tar
 \t \$(PERL) -pi.bak \\
-  -e 's/(OS NAME=")[^"]*/\$\$1MSWin32/;' \\
-  -e 's/(ARCHITECTURE NAME=")[^"]*/\$\$1MSWin32-x86-multi-thread/;' \\
-  -e 's/(CODEBASE HREF=")[^"]*/\$\$1Gedcom.tar.gz/;' \\
-  Devel-Cover.ppd
+    -e 's/(OS NAME=")[^"]*/\$\$1MSWin32/;' \\
+    -e 's/(ARCHITECTURE NAME=")[^"]*/\$\$1MSWin32-x86-multi-thread/;' \\
+    -e 's/(CODEBASE HREF=")[^"]*/\$\$1Gedcom.tar.gz/;' \\
+    Devel-Cover.ppd
+
+run : pure_all
+\t \$(PERL) -Mblib -MDevel::Cover=-ignore,blib,-merge,0 tests/\$(TEST) && \\
+   \$(PERL) -Mblib cover -report text \\
+            > \$(TEST).out && \\
+   gvim -d -geom 88x60+104+0 \$(TEST).out
+
+diff : pure_all
+\t \$(PERL) -Mblib -MDevel::Cover=-ignore,blib,-merge,0 tests/\$(TEST) && \\
+   \$(PERL) -Mblib cover -report text \\
+            -coverage statement -coverage branch -coverage condition \\
+            > \$(TEST).out && \\
+   gvim -d -geom 185x83+0+0 -font 8x13 test_output/cover/\$(TEST) \$(TEST).out
+
+gold : pure_all
+\t \$(PERL) create_gold \$(TEST)
 
 ok :
 \t \@$Perlbug -okay  || echo "Please send your report manually to $Author"
 
 nok :
 \t \@$Perlbug -nokay || echo "Please send your report manually to $Author"
-  ]
+    ]
 }

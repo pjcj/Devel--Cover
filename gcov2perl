@@ -12,11 +12,12 @@ require 5.6.1;
 use strict;
 use warnings;
 
-use Devel::Cover::DB 0.14;
+our $VERSION = "0.15";
 
-our $VERSION = "0.14";
+use Devel::Cover::DB 0.15;
 
 use Getopt::Long;
+use Pod::Usage;
 
 my $Options =
 {
@@ -38,6 +39,8 @@ sub get_options
                    version|v!
                  ));
     print "$0 version $VERSION\n" and exit 0 if $Options->{version};
+    pod2usage(-exitval => 0, -verbose => 0)  if $Options->{help};
+    pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
 }
 
 sub add_cover
@@ -54,7 +57,7 @@ sub add_cover
         s/\s+//g;
         $_ = 0 if $_ eq "######";
         next if !length || /\D/;
-        $cover->{$f}{statement}{$.} = [[$_]];
+        $cover->{$f}{statement}{$.} = [[[$_]]];
     }
     close F or die "Can't open $file: $!\n";
 }
@@ -125,7 +128,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.14 - 28th February 2002
+Version 0.15 - 5th September 2002
 
 =head1 LICENCE
 

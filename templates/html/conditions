@@ -1,0 +1,42 @@
+[% PROCESS html/colours %]
+
+[% WRAPPER html/html %]
+
+<h1> [% title %] </h1>
+
+[% FOREACH type = types %]
+
+    <h2> [% type.name %] conditions </h2>
+
+    <table>
+
+        <tr align="RIGHT" valign="CENTER">
+            <th> line </th>
+            <th> % </th>
+            [% FOREACH header = type.headers %]
+                <th> [% header %] </th>
+            [% END %]
+            <th align="CENTER"> condition </th>
+        </tr>
+
+        [% FOREACH condition = type.conditions %]
+            <a name="[% condition.ref %]"> </a>
+            <tr align="RIGHT" valign="CENTER">
+                <td [% bg(colour = "number") %]> [% condition.number %] </td>
+                <td [% bg(colour = condition.bg) %]>
+                    [% condition.percentage %]
+                </td>
+                [% FOREACH part = condition.parts %]
+                    <td [% bg(colour = part.bg) %]> [% part.text %] </td>
+                [% END %]
+                <td [% bg(colour = condition.bg) %] align="LEFT">
+                    <pre> [% condition.text %]</pre>
+                </td>
+            </tr>
+        [% END %]
+
+    </table>
+
+[% END %]
+
+[% END %]

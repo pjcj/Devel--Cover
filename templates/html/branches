@@ -1,0 +1,33 @@
+[% PROCESS html/colours %]
+
+[% WRAPPER html/html %]
+
+<h1> [% title %] </h1>
+
+<table>
+
+    <tr align="RIGHT" valign="CENTER">
+        <th> line </th>
+        <th> % </th>
+        <th> 1 </th>
+        <th> 2 </th>
+        <th align="CENTER"> branch </th>
+    </tr>
+
+    [% FOREACH branch = branches %]
+        <a name="[% branch.ref %]"> </a>
+        <tr align="RIGHT" valign="CENTER">
+            <td [% bg(colour = "number") %]> [% branch.number %] </td>
+            <td [% bg(colour = branch.bg) %]> [% branch.percentage %] </td>
+            [% FOREACH part = branch.parts %]
+                <td [% bg(colour = part.bg) %]> [% part.text %] </td>
+            [% END %]
+            <td [% bg(colour = branch.bg) %] align="LEFT">
+                <pre> [% branch.text %]</pre>
+            </td>
+        </tr>
+    [% END %]
+
+</table>
+
+[% END %]

@@ -12,266 +12,99 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.14";
+our $VERSION = "0.15";
 
-use Devel::Cover::DB        0.14;
-use Devel::Cover::Statement 0.14;
-use Devel::Cover::Condition 0.14;
-use Devel::Cover::Pod       0.14;
-use Devel::Cover::Time      0.14;
+use Devel::Cover::DB 0.15;
 
 use Getopt::Long;
-BEGIN { eval "use Pod::Coverage" }          # We'll use this if it is available.
+
+use Pod::Usage;
 
 my $Options =
 {
-    branch      => 0,
-    condition   => 0,
-    details     => 0,
-    html        => 1,
-    path        => 0,
-    pod         => $INC{"Pod/Coverage.pm"},
-    single_file => 0,
-    statement   => 1,
-    summary     => 1,
-    time        => 1,
-    total       => 1,
+    coverage         => [],
+    file             => [],
+    option           => [],
+    report           => "",
+    summary          => 1,
 };
-
-sub print_html_top
-{
-    my ($FH, $title) = @_;
-
-    print $FH <<"EOH";
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE html
-    PUBLIC "-//W3C//DTD XHTML Basic 1.0//EN"
-    "http://www.w3.org/TR/xhtml-basic/xhtml-basic10.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US">
-<body bgcolor="#ffffad" text="#000000">
-  <title> $title </title>
-</head>
-<body>
-EOH
-}
-
-sub print_html_bottom
-{
-    my ($FH) = @_;
-
-    print $FH <<"EOH";
-</body>
-</html>
-EOH
-}
-
-sub print_html
-{
-    my ($db, $dbname, $single_file) = @_;
-
-    print "Writing HTML to $dbname/$dbname.html\n";
-
-    open my $FH, ">$dbname/$dbname.html"
-        or die "Cannot open $dbname/$dbname.html: $!\n";
-
-    print_html_top($FH, $dbname);
-    print $FH <<"EOH";
-  <a name="Total">
-    <h1> Coverage report for $dbname </h1>
-  </a>
-  <table border="2">
-    <tr align="RIGHT" valign="CENTER">
-      <th align="LEFT"> File </th>
-EOH
-    print $FH "      <th> $_ </th>\n" for $db->all_criteria_short;
-    print $FH "    </tr>\n";
-    for my $file (grep($_ ne "Total", sort keys %{$db->{summary}}), "Total")
-    {
-        my $fn = "";
-        unless ($single_file)
-        {
-            ($fn = $file) =~ s/\W/-/g;
-            $fn .= ".html"
-        }
-
-        print $FH qq(    <tr align="RIGHT" valign="CENTER">\n);
-        print $FH -e $file
-            ? qq(      <td align="LEFT"> <a href="$fn#$file">$file</a> </td>\n)
-            : qq(      <td align="LEFT"> $file </td>\n);
-
-        my $part = $db->{summary}{$file};
-        for my $criterion ($db->all_criteria)
-        {
-            my $pc = ($Options->{$criterion} && exists $part->{$criterion})
-                ? sprintf "%6.2f", $part->{$criterion}{percentage}
-                : "n/a";
-
-            my $bg = "";
-            if ($pc ne "n/a")
-            {
-                my $c;
-                $c = $pc * 2.55;
-                $c = 255 if $c > 255;
-                if ($criterion eq "time")
-                {
-                    $c = 255 - $c;
-                    $c = 255 if $file eq "Total";
-                }
-                $bg = sprintf ' bgcolor="#ff%02x00"', $c;
-            }
-            print $FH "      <td$bg> $pc </td>\n";
-        }
-    }
-    print $FH "  </table>\n";
-
-    my (@files) = @ARGV;
-    my $cover = $db->cover;
-
-    # use Data::Dumper;
-    # $Data::Dumper::Indent = 1;
-    # print Dumper $cover;
-
-    @files = sort $cover->items unless @files;
-
-    for my $file (@files)
-    {
-        (my $fn = $file) =~ s/\W/-/g;
-        my $FF;
-        if ($single_file)
-        {
-            $FF = $FH;
-        }
-        else
-        {
-            open $FF, ">$dbname/$fn.html"
-               or die "Cannot open $dbname/$fn.html: $!\n";
-            print_html_top($FF, $file);
-        }
-
-        print $FF qq(  <h2> <a name="$file"> $file </a></h2>\n);
-        my $f = $cover->file($file);
-
-        open F, $file or warn("Unable to open $file: $!\n"), next;
-
-        print $FF <<"EOH";
-  <table border="0">
-    <tr align="CENTER" valign="CENTER">
-      <th> &nbsp; </th>
-EOH
-        my %cr; @cr{$db->criteria} = $db->criteria_short;
-        for my $c ($db->criteria)
-        {
-            print $FF "      <th> $cr{$c} </th>\n" if $Options->{$c};
-        }
-        print $FF <<"EOH";
-      <th> Text </th>
-    </tr>
-EOH
-        LINE: while (defined(my $l = <F>))
-        {
-            chomp $l;
-            my $n = $.;
-
-            my %criteria;
-            for my $c ($db->criteria)
-            {
-                next unless $Options->{$c};
-                my $criterion = $f->$c();
-                $criteria{$c} = $criterion->location($n) if $criterion;
-            }
-
-            my $more = 1;
-            while ($more)
-            {
-                print $FF <<"EOH";
-    <tr align="RIGHT" valign="CENTER">
-      <td bgcolor="#ffffc0"> $n </td>
-EOH
-
-                my $error = 0;
-                $more = 0;
-                for my $c ($db->criteria)
-                {
-                    next unless $Options->{$c};
-                    my $o = shift @{$criteria{$c}};
-                    $more ||= @{$criteria{$c}};
-                    my $value = $o
-                        ? ($c =~ /statement|pod|time/)
-                            ? $o->covered
-                            : $o->percentage
-                        : "&nbsp";
-                    my $bg = $o
-                        ? ' bgcolor="#' . ($o->error ? 'ff0000"' : '00ff00"')
-                        : "";
-                    print $FF "      <td$bg> $value </td>\n";
-                    $error ||= $o->error if $o;
-                }
-
-                my $bg = $error ? ' bgcolor="#ff0000"' : "";
-
-                print $FF <<"EOH";
-      <td$bg align="LEFT" valign="CENTER"> <pre> $l </pre> </td>
-    </tr>
-EOH
-
-                last LINE if $l =~ /^__(END|DATA)__/;
-                $n = $l = "&nbsp;";
-            }
-        }
-        print $FF qq(  </table>\n);
-        close F or die "Unable to close $file: $!";
-        unless ($single_file)
-        {
-            print_html_bottom($FF);
-            close $FF or die "Cannot close $dbname/$fn.html: $!\n";
-        }
-    }
-
-    print_html_bottom($FH);
-
-    close $FH or die "Cannot close $dbname/$dbname.html: $!\n";
-
-    # $db->print_summary;
-    # $db->print_details;
-}
 
 sub get_options
 {
     die "Bad option" unless
     GetOptions($Options,                # Store the options in the Options hash.
+               "write:s" => sub
+               {
+                   @$Options{qw(write summary)} = ($_[1], 0)
+               },
                qw(
-                   branch!
-                   condition!
-                   details!
+                   coverage=s
                    help|h!
-                   html!
+                   file=s
                    info|i!
-                   path|i!
-                   pod|i!
-                   single_file!
-                   statement!
+                   option=s
+                   report=s
                    summary!
-                   time!
-                   total!
                    version|v!
                  ));
-    print "$0 version $VERSION\n" and exit 0 if $Options->{version};
 }
 
 sub main
 {
     get_options;
 
-    my $dbname = shift @ARGV;
+    my $format = "Devel::Cover::Report::\u$Options->{report}";
+    if (length $Options->{report})
+    {
+        eval ("use $format");
+        if ($@)
+        {
+            print "Error: $Options->{report} ",
+                  "is not a recognised output format\n\n$@";
+            exit 1;
+        }
+    }
 
+    print "$0 version $VERSION\n" and exit 0 if $Options->{version};
+    pod2usage(-exitval => 0, -verbose => 0)  if $Options->{help};
+    pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
+
+    my $dbname = shift @ARGV || "cover_db";
+
+    print "Reading database from $dbname\n";
     my $db = Devel::Cover::DB->new(db => $dbname);
 
-    $db->calculate_summary(map { $_ => $Options->{$_} } $db->criteria);
+    for my $merge (@ARGV)
+    {
+        print "Merging database from $merge\n";
+        my $mdb = Devel::Cover::DB->new(db => $merge);
+        $db->merge($mdb);
+    }
 
-    print_html($db, $dbname, $Options->{single_file}) if $Options->{html};
+    if (exists $Options->{write})
+    {
+        $dbname = $Options->{write} if length $Options->{write};
+        print "Writing database to $dbname\n";
+        $db->write($dbname);
+    }
 
-    $db->print_summary if $Options->{summary};
-    $db->print_details if $Options->{details};
+    return unless $Options->{summary} || $Options->{report};
+
+    $Options->{coverage}    = [ $db->collected ] unless @{$Options->{coverage}};
+    $Options->{show}        = { map { $_ => 1 } @{$Options->{coverage}} };
+    $Options->{show}{total} = 1 if keys %{$Options->{show}};
+
+    $db->calculate_summary(map { $_ => 1 } @{$Options->{coverage}});
+
+    print "\n\n";
+
+    $db->print_summary(@{$Options->{coverage}}) if $Options->{summary};
+
+    return unless length $Options->{report};
+
+    @{$Options->{file}} = sort $db->cover->items unless @{$Options->{file}};
+
+    $format->report($db, $Options)
 }
 
 main
@@ -284,44 +117,67 @@ cover - report coverage statistics
 
 =head1 SYNOPSIS
 
- cover -h -i -v -summary -details -html coverage_database
+ cover -help -info -version -summary
+       -report report_format -option option
+       -file filename -coverage criterion -write [db]
+       coverage_database [coverage_database ...]
 
 =head1 DESCRIPTION
 
 Report coverage statistics in a variety of formats.
 
-The following reports are available:
+The summary option produces a short textual summary.  Other reports are
+available by using the report option.
 
- summary        - short textual summary
- details        - detailed textual summary
- html           - detailed HTML reports
+The following reports are currently available:
 
-By default, the summary and HTML reports are generated.
+ text                  - detailed textual summary
+ html                  - detailed HTML reports
 
 =head1 OPTIONS
 
 The following command line options are supported:
 
- -summary        - give summary report
- -details        - give detailed report
- -html           - give HTML reports
- -single_file    - give an HTML in a single file
+ -summary              - give summary report          (default on)
+ -report report_format - report format required       (default none)
+ -option               - options for report
 
- -h -help        - show help
- -i -info        - show documentation
- -v -version     - show version
+ -file filename        - only report on the file      (default all)
+ -write [db]           - write the merged database    (default off)
+
+ -coverage criterion   - report on criterion  (default all available)
+
+ -h -help              - show help
+ -i -info              - show documentation
+ -v -version           - show version
+
+=head1 DETAILS
+
+Any number of coverage databases may be specified on the command line.
+These databases will be merged and the reports will be based on the
+merged information.  If no databases are specified the default database
+(cover_db) will be used.
+
+The -write option will write out the merged database.  If no name is
+given for the new database, the first database read in will be
+overwritten.  When this option is used no reports are generated by
+default.
+
+Specify -file options to report on specific files.  Specify -coverage
+options to report on specific criteria.  By default all available
+information on all criteria in all files will be reported.
 
 =head1 EXIT STATUS
 
 The following exit values are returned:
 
-0   All reports were generated successfully.
+0   All operaions were completed successfully.
 
 >0  An error occurred.
 
 =head1 SEE ALSO
 
- Dvel::Cover
+ Devel::Cover
 
 =head1 BUGS
 
@@ -329,7 +185,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.14 - 28th February 2002
+Version 0.15 - 5th September 2002
 
 =head1 LICENCE
 
