@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.35";
+our $VERSION = "0.36";
 
 use DynaLoader ();
 our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.35;
-use Devel::Cover::Inc 0.35;
+use Devel::Cover::DB  0.36;
+use Devel::Cover::Inc 0.36;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -111,6 +111,7 @@ EOM
           "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
           "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
         unless $Silent;
+
     $Meta{run}   = $0;
     $Meta{start} = get_elapsed();
 }
@@ -161,6 +162,7 @@ sub import
 
     mkdir $DB unless -d $DB;  # Nasty hack to keep 5.6.1 happy.
     $DB = $1 if Cwd::abs_path($DB) =~ /(.*)/;
+    Devel::Cover::DB->delete($DB) unless $Merge;
 
     if ($blib)
     {
@@ -410,15 +412,6 @@ sub report
         cover => $Cover,
         meta  => { $Meta{run} => \%Meta }
     );
-
-    my $existing;
-    eval
-    {
-        $existing = Devel::Cover::DB->new(db => $DB) if $Merge;
-        $cover->merge($existing);
-    };
-
-    Devel::Cover::DB->delete($DB) unless $Merge;
 
     $DB .= "/runs";
     mkdir $DB unless -d $DB;
@@ -940,7 +933,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.35 - 8th March 2004
+Version 0.36 - 9th March 2004
 
 =head1 LICENCE
 

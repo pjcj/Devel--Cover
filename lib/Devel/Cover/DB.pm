@@ -10,10 +10,10 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.35";
+our $VERSION = "0.36";
 
-use Devel::Cover::DB::File  0.35;
-use Devel::Cover::Criterion 0.35;
+use Devel::Cover::DB::File  0.36;
+use Devel::Cover::Criterion 0.36;
 
 use Carp;
 use File::Path;
@@ -132,7 +132,7 @@ sub merge_runs
         print STDERR "Devel::Cover: merging run $run\n"
             unless $Devel::Cover::Silent;
         my $r = Devel::Cover::DB->new(db => $run);
-        # rmtree($run);
+        rmtree($run);
         $self->merge($r);
     }
     $self->write($db) if @runs;
@@ -633,7 +633,7 @@ Instead of calling $file->criterion("x") you can also call $file->x.
  my $valid = $db->is_valid;
 
 Returns true iff the db is valid.  (Actually there is one too many fs there, but
-that's what it shoould do.)
+that's what it should do.)
 
 =head1 BUGS
 
@@ -641,7 +641,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.35 - 8th March 2004
+Version 0.36 - 9th March 2004
 
 =head1 LICENCE
 

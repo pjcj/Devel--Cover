@@ -17,8 +17,8 @@ use lib "/var/spool/extra/g/perl/Devel-Cover-0.3407/t";
 
 use File::Copy;
 
-use Devel::Cover::Inc  0.35;
-use Devel::Cover::Test 0.35;
+use Devel::Cover::Inc  0.36;
+use Devel::Cover::Test 0.36;
 
 my $base = $Devel::Cover::Inc::Base;
 
@@ -34,9 +34,6 @@ sub run_test
     $test->run_command($test->test_command);
 
     copy($fg, $ft) or die "Cannot copy $fg to $ft: $!";
-
-    print "file <$ft>\n";
-    system "cat $ft";
 
     $test->{test_parameters} .= " -merge 1";
     $test->run_command($test->test_command);

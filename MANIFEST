@@ -46,6 +46,7 @@ tests/cond_xor
 tests/destroy
 tests/dynamic_subs
 tests/eval1
+tests/fork
 tests/if
 tests/module1
 tests/module2
@@ -80,6 +81,7 @@ test_output/cover/dynamic_subs.5.006001
 test_output/cover/dynamic_subs.5.008001
 test_output/cover/dynamic_subs.5.009
 test_output/cover/eval1.5.006001
+test_output/cover/fork.5.006001
 test_output/cover/if.5.006001
 test_output/cover/module1.5.006001
 test_output/cover/module1.5.008001

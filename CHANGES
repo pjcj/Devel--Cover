@@ -209,7 +209,7 @@ Release 0.34 - 14th January 2004
  - Fix various warnings and errors that had crept in whilst working on
    dynamic subs.
 
-Release 0.35 - 
+Release 0.35 - 8th March 2004
  - Change Text2 to pick up version changes.
  - Minor documentation updates.
  - Minor changes to Devel::Cover::Op.
@@ -223,3 +223,15 @@ Release 0.35 -
  - Add mani, all_gold and all_test Makefile targets.
  - Make all_versions skip non-existent platforms.
  - Add DB option to make dump target.
+ - Remove dependencies on op_seq.  (I removed it from bleadperl.)  Use
+   op_targ instead.
+ - Collect some metadata.
+ - Documentation updates (Andy Lester).
+ - Document the mechanism by which files are selected for coverage.
+
+Release 0.36 - 9th March 2004
+ - Add fork test.
+ - Remove debugging code from md5 test.
+ - Remove runs after merging - code was commented out for debugging.
+ - Don't merge runs during coverage collection.
+ - Delete database at start if not merging to cope with forking.

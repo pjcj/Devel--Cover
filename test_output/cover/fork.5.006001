@@ -1,0 +1,48 @@
+Reading database from /var/spool/extra/g/perl/Devel-Cover-0.35/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/fork                                 100.00  75.00    n/a    n/a  90.00
+Total                                      100.00  75.00    n/a    n/a  90.00
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+tests/fork
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             2                        $x = 1;
+11                                      
+12    ***      2     50                 die unless defined ($pid = fork);
+13                                      
+14             2    100                 if ($pid)
+15                                      {
+16             1                            $x = 2;
+17                                      }
+18                                      else
+19                                      {
+20             1                            $x = 3;
+21                                      }
+22                                      
+23             2                        print "$x: $$\n";
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+12    ***     50      0      2   unless defined($pid = fork)
+14           100      1      1   if ($pid) { }
+
+
