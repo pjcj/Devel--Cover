@@ -19,8 +19,8 @@ use File::Copy;
 
 $| = 1;
 
-my $Version  = "0.43";
-my $Date     = "2nd May 2004";
+my $Version  = "0.44";
+my $Date     = "18th May 2004";
 my $Author   = 'pjcj@cpan.org';
 
 my @perlbug  = ("perlbug", "-a", $Author,
@@ -158,7 +158,7 @@ print "checking for Template.pm      version 2.00 ........ ";
 $e = <<EOM;
 
 Template.pm 2.00 is required to run the old HTML backends to cover and
-for cpancover.  Unless you haev specific requirements this should not be
+for cpancover.  Unless you have specific requirements this should not be
 a problem, but you will not be able to use these reports until you
 install the Template Toolkit, available from CPAN.  In the meantime you
 may continue to use the rest of Devel::Cover.
@@ -201,12 +201,12 @@ print "checking for Test::Differences.pm          ........ ";
 
 $e = <<EOM;
 
-Test::Differences.pm is to display output from failed tests.  Hopefully
-there won't be any failed tests, but if there are you will get output
-that may not be a model of clarity.  If you do get test failures and you
-fancy helping me by debugging them, then you might like to consider
-installing Test::Differences.  You can download Test::Differences from
-CPAN.
+Test::Differences.pm is used to display output from failed tests.
+Hopefully there won't be any failed tests, but if there are you will get
+output that may not be a model of clarity.  If you do get test failures
+and you fancy helping me by debugging them, then you might like to
+consider installing Test::Differences.  You can download
+Test::Differences from CPAN.
 
 EOM
 
@@ -230,19 +230,35 @@ You may well find failing tests.
 
 EOM
 
-print <<EOM if $] < 5.008;
+if ($] < 5.008)
+{
+    print <<EOM;
 
 Devel::Cover $Version is not fully functional on perl $].  It should
 mostly work, but there are some constructs for which coverage will not
-be collected.  Perl versions 5.8.1 and above should work better.
+be collected, and you may well encounter bugs which have been fixed in
+subsequent versions of perl.  Perl versions 5.8.1 and above should work
+better.
 
 EOM
 
-print <<EOM if $] < 5.008 && $^O eq "MSWin32";
+    print <<EOM if $^O eq "MSWin32";
 And things are even worse under Windows.  You may well find random bugs
 of various severities.
 
 EOM
+}
+elsif ($] < 5.008001)
+{
+    print <<EOM;
+
+Devel::Cover $Version mostly works on perl $], but you may encounter
+strange behaviours (bugs) which have been fixed in subsequent versions
+of perl.  This is particularly true if you are running a threaded perl.
+Perl versions 5.8.1 and above should work better.
+
+EOM
+}
 
 print "\n" x 3;
 
@@ -333,13 +349,16 @@ ppm : ppd pure_all
     Devel-Cover.ppd
 
 TAINT = -T
+COVER_OPTIONS =
 
 _run : pure_all
-\t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-ignore,blib,-merge,0,`\$(PERL) -e 'qx|grep __COVER__ \$\$ARGV[0]| =~ /__COVER__\\s+criteria\\s+(.*)/; (\$\$c = \$\$1 || "all") =~ s/\\s+/,/g; print "-coverage,\$\$c"' tests/\$(TEST)` tests/\$(TEST) && \\
-   \$(PERL) -Mblib cover -report text > \$(TEST).out
+\t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-merge,0,`\$(PERL) -e 'qx|grep __COVER__ \$\$ARGV[0]| =~ /__COVER__\\s+criteria\\s+(.*)/; (\$\$c = \$\$1 || "all") =~ s/\\s+/,/g; print "-coverage,\$\$c"' tests/\$(TEST)`,\$(COVER_OPTIONS) tests/\$(TEST)
 
-run : _run
-\t \$(PERL) -Mblib cover && \\
+html : _run
+\t \$(PERL) -Mblib cover
+
+text : html
+\t \$(PERL) -Mblib cover -report text > \$(TEST).out && \\
    gvim -d \$(TEST).out
 
 wrun : pure_all

@@ -843,7 +843,7 @@ double
 get_elapsed()
     CODE:
 #ifdef HAS_GETTIMEOFDAY
-        RETVAL = All;
+        RETVAL = get_elapsed();
 #else
         RETVAL = 0;
 #endif

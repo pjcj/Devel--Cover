@@ -11,9 +11,10 @@ use strict;
 use warnings;
 
 use Carp;
+use Digest::MD5;
 use Storable;
 
-our $VERSION = "0.43";
+our $VERSION = "0.44";
 our $AUTOLOAD;
 
 sub new
@@ -61,6 +62,23 @@ sub AUTOLOAD
     goto &$func
 }
 
+sub add_digest
+{
+    my $self = shift;
+    my ($file, $run) = @_;
+    if (open my $fh, "<", $file)
+    {
+        binmode $fh;
+        $run->{digest}{$file} = Digest::MD5->new->addfile($fh)->hexdigest;
+        $self->set_digest($file, $run->{digest}{$file});
+    }
+    else
+    {
+        warn "Devel::Cover: Can't open $file for MD5 digest: $!\n";
+        # warn "in ", `pwd`;
+    }
+}
+
 sub set_digest
 {
     my $self = shift;
@@ -93,7 +111,7 @@ sub write
             next;
         }
         my $df = "$dir/$self->{$file}{digest}";
-        my $f = $df; my $n = 1; $df = $f . "." . $n++ while -e $df;
+       # my $f = $df; my $n = 1; $df = $f . "." . $n++ while -e $df;
         Storable::nstore($self->{$file}, $df) unless -e $df;
     }
 }
@@ -132,7 +150,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.43 - 2nd May 2004
+Version 0.44 - 18th May 2004
 
 =head1 LICENCE
 

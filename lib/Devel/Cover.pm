@@ -10,20 +10,19 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.43";
+our $VERSION = "0.44";
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB  0.43;
-use Devel::Cover::Inc 0.43;
+use Devel::Cover::DB  0.44;
+use Devel::Cover::Inc 0.44;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
 use B::Deparse;
 
 use Cwd "abs_path";
-use Digest::MD5;
 use File::Spec;
 
 BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
@@ -82,47 +81,47 @@ BEGIN { $^P = 0x004 | 0x100 | 0x200 }
 
 {
 
-no warnings "void";  # Avoid "Too late to run CHECK block" warning.
+    no warnings "void";  # Avoid "Too late to run CHECK block" warning.
 
-CHECK
-{
-    return unless $Initialised;
-
-    check_files();
-
-    set_coverage(keys %Coverage);
-    my @coverage = get_coverage();
-    %Coverage = map { $_ => 1 } @coverage;
-
-    delete $Coverage{path};  # not done yet
-    my $nopod = "";
-    if (!$Pod && exists $Coverage{pod})
+    CHECK
     {
-        delete $Coverage{pod};  # Pod::Coverage unavailable
-        $nopod = <<EOM;
-Pod coverage is unvailable.  Please install Pod::Coverage from CPAN.
+        return unless $Initialised;
+
+        check_files();
+
+        set_coverage(keys %Coverage);
+        my @coverage = get_coverage();
+        %Coverage = map { $_ => 1 } @coverage;
+
+        delete $Coverage{path};  # not done yet
+        my $nopod = "";
+        if (!$Pod && exists $Coverage{pod})
+        {
+            delete $Coverage{pod};  # Pod::Coverage unavailable
+            $nopod = <<EOM;
+    Pod coverage is unvailable.  Please install Pod::Coverage from CPAN.
 EOM
+        }
+
+        set_coverage(keys %Coverage);
+        @coverage = get_coverage();
+        my $last = pop @coverage;
+
+        print STDOUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
+              join(", ", @coverage),
+              @coverage ? " and " : "",
+              "$last.\n",
+              $nopod,
+              "Selecting packages matching:", join("\n    ", "", @Select), "\n",
+              "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
+              "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
+            unless $Silent;
+
+        $Run{OS}    = $^O;
+        $Run{perl}  = join ".", map ord, split //, $^V;
+        $Run{run}   = $0;
+        $Run{start} = get_elapsed();
     }
-
-    set_coverage(keys %Coverage);
-    @coverage = get_coverage();
-    my $last = pop @coverage;
-
-    print STDOUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
-          join(", ", @coverage),
-          @coverage ? " and " : "",
-          "$last.\n",
-          $nopod,
-          "Selecting packages matching:", join("\n    ", "", @Select), "\n",
-          "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
-          "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
-        unless $Silent;
-
-    $Run{OS}    = $^O;
-    $Run{perl}  = join ".", map ord, split //, $^V;
-    $Run{run}   = $0;
-    $Run{start} = get_elapsed();
-}
 
 }
 
@@ -152,33 +151,48 @@ INIT  {}  # dummy sub to mak sure PL_endav  is set up and populated
 END   {}  # dummy sub to mak sure PL_initav is set up and populated
 CHECK { set_first_init_and_end() }  # we really want to be first
 
+sub CLONE
+{
+    print STDERR <<EOM;
+
+Unfortunately, Devel::Cover does not work with threads.  I think it
+would be possibly to make it thread safe, at a cost of slowing down the
+unthreaded case.  If threads are important to you, and you can make a
+good case, please contact me.
+
+EOM
+    require POSIX;
+    POSIX::_exit(1);
+}
+
 sub import
 {
     my $class = shift;
 
+    my @o = (@_, split ",", $ENV{DEVEL_COVER_OPTIONS} || "");
     # print __PACKAGE__, ": Parsing options from [@_]\n";
 
     my $blib = -d "blib";
-    @Inc     = () if "@_" =~ /-inc /;
-    @Ignore  = () if "@_" =~ /-ignore /;
-    @Select  = () if "@_" =~ /-select /;
-    while (@_)
+    @Inc     = () if "@o" =~ /-inc /;
+    @Ignore  = () if "@o" =~ /-ignore /;
+    @Select  = () if "@o" =~ /-select /;
+    while (@o)
     {
-        local $_ = shift;
-        /^-silent/    && do { $Silent  = shift; next };
-        /^-dir/       && do { $Dir     = shift; next };
-        /^-db/        && do { $DB      = shift; next };
-        /^-merge/     && do { $Merge   = shift; next };
-        /^-summary/   && do { $Summary = shift; next };
-        /^-blib/      && do { $blib    = shift; next };
+        local $_ = shift @o;
+        /^-silent/    && do { $Silent  = shift @o; next };
+        /^-dir/       && do { $Dir     = shift @o; next };
+        /^-db/        && do { $DB      = shift @o; next };
+        /^-merge/     && do { $Merge   = shift @o; next };
+        /^-summary/   && do { $Summary = shift @o; next };
+        /^-blib/      && do { $blib    = shift @o; next };
         /^-coverage/  &&
-            do { $Coverage{+shift} = 1 while @_ && $_[0] !~ /^[-+]/; next };
+            do { $Coverage{+shift @o} = 1 while @o && $o[0] !~ /^[-+]/; next };
         /^[-+]ignore/ &&
-            do { push @Ignore,   shift while @_ && $_[0] !~ /^[-+]/; next };
+            do { push @Ignore,   shift @o while @o && $o[0] !~ /^[-+]/; next };
         /^[-+]inc/    &&
-            do { push @Inc,      shift while @_ && $_[0] !~ /^[-+]/; next };
+            do { push @Inc,      shift @o while @o && $o[0] !~ /^[-+]/; next };
         /^[-+]select/ &&
-            do { push @Select,   shift while @_ && $_[0] !~ /^[-+]/; next };
+            do { push @Select,   shift @o while @o && $o[0] !~ /^[-+]/; next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
 
@@ -387,7 +401,8 @@ sub B::GV::find_cv
     # print "find_cv $$cv\n" if check_file($cv);
     push @Cvs, $cv if check_file($cv);
     push @Cvs, grep check_file($_), $cv->PADLIST->ARRAY->ARRAY
-        if $cv->PADLIST->can("ARRAY") &&
+        if $cv->can("PADLIST") &&
+           $cv->PADLIST->can("ARRAY") &&
            $cv->PADLIST->ARRAY &&
            $cv->PADLIST->ARRAY->can("ARRAY");
 };
@@ -473,9 +488,7 @@ sub report
 
     for my $file (keys %{$Run{count}})
     {
-        my $use = use_file($file);
-
-        unless ($use)
+        unless (use_file($file))
         {
             delete $Run{count}->{$file};
             # delete $Run{vec}  ->{$file};
@@ -483,17 +496,7 @@ sub report
             next;
         }
 
-        if (open my $fh, "<", $file)
-        {
-            binmode $fh;
-            $Run{digest}{$file} = Digest::MD5->new->addfile($fh)->hexdigest;
-            $Structure->set_digest($file, $Run{digest}{$file});
-        }
-        else
-        {
-            warn __PACKAGE__ . ": Can't open $file for MD5 digest: $!\n";
-            # warn "in ", `pwd`;
-        }
+        $Structure->add_digest($file, \%Run);
 
         # for my $run (keys %{$Run{vec}{$file}})
         # {
@@ -1105,7 +1108,7 @@ See the BUGS file.  And the TODO file.
 
 =head1 VERSION
 
-Version 0.43 - 2nd May 2004
+Version 0.44 - 18th May 2004
 
 =head1 LICENCE
 

@@ -283,9 +283,18 @@ Release 0.42 - 30th April 2004
  - Get things running on Windows again.
 
 Release 0.43 - 2nd May 2004
+ - Add +ignore and +select options, and change meaning of -ignore and
+   -select options.  This is an interface change.
  - Ignore coverage on Devel::Cover's files by default.
- - 
  - Cover INIT and END blocks more reliably.
  - Fix 5.6 on Windows.  Well, sort of.
  - Add a message in Makefile.PL recommending against using Devel::Cover
    on 5.6, especially under Windows.
+
+Release 0.44 - 18th May 2004
+ - Fix get_elapsed, although its result is not used yet.
+ - Recommend 5.8.1 as a minimum.
+ - Replace run Makefile target with text and html.
+ - Fix up gcov2perl.
+ - Fail gracefully when covering a threaded program.
+ - Add DEVEL_COVER_OPTIONS environment variable.

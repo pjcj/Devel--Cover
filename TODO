@@ -10,7 +10,6 @@
 - See if the XS code leaks, and fix it if it does.
 - Different criteria for different runs.
 - Improve textual output.
-- Add platform and version info to DB.
 - Refactor output routines to use common template data.
 - Look at time coverage again - collecting for too many ops?
 - Separate output for pod coverage, like subroutine coverage.
@@ -29,3 +28,4 @@
 - Overhaul test system.  Include patt?
 - Tests for INIT and END blocks included in required files when the
   files are used in some runs.
+- Make all environment variables consistent and document them.
