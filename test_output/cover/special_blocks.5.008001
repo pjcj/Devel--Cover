@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
+Reading database from /home/pjcj/g/perl/svk/dc/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -8,6 +8,12 @@ tests/special_blocks                        100.0    n/a    n/a  100.0  100.0
 Total                                       100.0    n/a    n/a  100.0  100.0
 ------------------------------------------ ------ ------ ------ ------ ------
 
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
 
 tests/special_blocks
 

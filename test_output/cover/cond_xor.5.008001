@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
+Reading database from /home/pjcj/g/perl/svk/dc/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -8,6 +8,12 @@ tests/cond_xor                              100.0    n/a   66.7  100.0   86.2
 Total                                       100.0    n/a   66.7  100.0   86.2
 ------------------------------------------ ------ ------ ------ ------ ------
 
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
 
 tests/cond_xor
 

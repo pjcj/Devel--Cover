@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
+Reading database from /home/pjcj/g/perl/svk/dc/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -9,6 +9,12 @@ tests/module1                                87.5   50.0    n/a  100.0   81.8
 Total                                        56.2   50.0    n/a   40.0   52.2
 ------------------------------------------ ------ ------ ------ ------ ------
 
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
 
 tests/Module1.pm
 

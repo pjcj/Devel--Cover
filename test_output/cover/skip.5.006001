@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3805/cover_db
+Reading database from /home/pjcj/g/perl/svk/dc/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -8,6 +8,12 @@ tests/skip                                   83.3   50.0    n/a  100.0   72.7
 Total                                        83.3   50.0    n/a  100.0   72.7
 ------------------------------------------ ------ ------ ------ ------ ------
 
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
 
 tests/skip
 

@@ -2,7 +2,7 @@
 e Makefile.PL
 e lib/Devel/Cover.pm
 e lib/Devel/Cover/DB.pm
-e lib/Devel/Cover/Op.pm
+e lib/Devel/Cover/DB/Structure.pm
 e Cover.xs
 e cover
 e cpancover
@@ -18,6 +18,7 @@ e lib/Devel/Cover/Time.pm
 e lib/Devel/Cover/DB/File.pm
 e lib/Devel/Cover/Report/Text.pm
 e lib/Devel/Cover/Report/Html_minimal.pm
+e lib/Devel/Cover/Op.pm
 e CHANGES
 e TODO
 e MANIFEST

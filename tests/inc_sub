@@ -1,0 +1,20 @@
+#!/bin/perl
+
+use lib ();
+
+BEGIN
+{
+    lib->import
+    (
+        sub
+        {
+            my $fh;
+            open $fh, "tests/IncSub.pm" or die $!;
+            $fh
+        }
+    )
+}
+
+use IncSub;
+
+IncSub::check

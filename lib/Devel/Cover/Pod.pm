@@ -10,7 +10,7 @@ package Devel::Cover::Pod;
 use strict;
 use warnings;
 
-our $VERSION = "0.47";
+our $VERSION = "0.48";
 
 use base "Devel::Cover::Criterion";
 
@@ -73,7 +73,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.47 - 27th June 2004
+Version 0.48 - 5th October 2004
 
 =head1 LICENCE
 

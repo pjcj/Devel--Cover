@@ -1,4 +1,4 @@
-Reading database from /mnt/b/sda1/home/pjcj/g/perl/svk/dc/trunk/cover_db
+Reading database from /home/pjcj/g/perl/svk/dc/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -8,6 +8,12 @@ tests/dynamic_subs                           97.2   75.0    n/a   88.9   93.9
 Total                                        97.2   75.0    n/a   88.9   93.9
 ------------------------------------------ ------ ------ ------ ------ ------
 
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
 
 tests/dynamic_subs
 

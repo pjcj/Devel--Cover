@@ -316,3 +316,19 @@ Release 0.46 - 23rd June 2004
 Release 0.47 - 27th June 2004
  - Provide subroutine coverage for empty subs - sub empty { }.
  - Only override B::Deparse subs whilst using them and add deparse test.
+
+Release 0.48 - 5th October 2004
+ - Working towards thread safety.
+ - Test against perl-5.8.5.
+ - Store perl version number in Inc.pm and complain if it doesn't match.
+ - Add annotation API and Random example.
+ - Display run information in text report.
+ - Remove POSIX path bodge which is now properly fixed.
+ - Update test results for new functionality.
+ - Add -select_re and -ignore_re options to cover.
+ - Sort out "ignoring extra subroutine" and friends.
+ - Add eval2 and eval_use tests.
+ - Ignore *.t by default with blib.
+ - Add beginnings of sort report.
+ - Bump up DB version.
+ - Fix problems with references in INC (which can't be handled).

@@ -12,9 +12,9 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.47";
+our $VERSION = "0.48";
 
-use Devel::Cover::DB 0.47;
+use Devel::Cover::DB 0.48;
 
 use Cwd "abs_path";
 use Data::Dumper;
@@ -24,10 +24,13 @@ use Pod::Usage;
 
 my $Options =
 {
+    annotation  => [],
     coverage    => [],
     delete      => 0,
     ignore      => [],
+    ignore_re   => [],
     select      => [],
+    select_re   => [],
     report      => "",
     summary     => 1,
     uncoverable => [],
@@ -44,12 +47,15 @@ sub get_options
                        @$Options{qw( write summary )} = ($_[1], 0)
                    },
                    qw(
+                       annotation=s
                        coverage=s
                        delete!
                        dump_db!
                        ignore=s
+                       ignore_re=s
                        help|h!
                        select=s
+                       select_re=s
                        info|i!
                        outputdir=s
                        report=s
@@ -93,6 +99,21 @@ sub main
     }
 
     $format->get_options($Options) if $format->can("get_options");
+
+    $Options->{annotations} = [];
+    for my $a (@{$Options->{annotation}})
+    {
+        my $annotation = "Devel::Cover::Annotation::\u$a";
+        eval ("use $annotation");
+        if ($@)
+        {
+            print "Error: $a is not a recognised annotation\n\n$@";
+            exit 1;
+        }
+        my $ann = $annotation->new;
+        $ann->get_options($Options) if $ann->can("get_options");
+        push @{$Options->{annotations}}, $ann;
+    }
 
     print "$0 version $VERSION\n" and exit 0 if $Options->{version};
     pod2usage(-exitval => 0, -verbose => 0)  if $Options->{help};
@@ -167,11 +188,29 @@ sub main
 
     # use Data::Dumper;  $Data::Dumper::Indent = 1; print Dumper $db->cover;
 
+    # TODO - The sense of select and ignore should be reversed to match
+    # collection.
+
     my %f = map { $_ => 1 } (@{$Options->{select}}
                              ? map glob, @{$Options->{select}}
                              : $db->cover->items);
     delete @f{map glob, @{$Options->{ignore}}};
-    @{$Options->{file}} = sort grep exists $db->{summary}{$_}, keys %f;
+
+    my $keep = sub
+    {
+        my ($f) = @_;
+        return 0 unless exists $db->{summary}{$_};
+        for (@{$Options->{ignore_re}})
+        {
+            return 0 if $f =~ /$_/
+        }
+        for (@{$Options->{select_re}})
+        {
+            return 1 if $f =~ /$_/
+        }
+        !@{$Options->{select_re}}
+    };
+    @{$Options->{file}} = sort grep $keep->($_), keys %f;
 
     $format->report($db, $Options)
 }
@@ -188,7 +227,8 @@ cover - report coverage statistics
 
  cover -help -info -version
        -summary -report report_format -outputdir dir
-       -select filename -ignore filname
+       -select filename -ignore filename
+       -select_re RE -ignore_re RE
        -write [db] -delete -dump_db
        -silent
        -coverage criterion
@@ -222,6 +262,8 @@ The following command line options are supported:
 
  -select filename      - only report on the file            (default all)
  -ignore filename      - don't report on the file           (default none)
+ -select_re RE         - append to REs of files to select   (default none)
+ -ignore_re RE         - append to REs of files to ignore   (default none)
  -write [db]           - write the merged database          (default off)
  -delete               - drop database(s)                   (default off)
  -dump_db              - dump database(s) (for debugging)   (default off)
@@ -266,7 +308,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.47 - 27th June 2004
+Version 0.48 - 5th October 2004
 
 =head1 LICENCE
 

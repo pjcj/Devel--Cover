@@ -1,4 +1,4 @@
-#!/usr/local/home/pidjjq/opt/bin/perl5.9.0
+#!/usr/bin/perl
 
 # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
 
@@ -12,8 +12,8 @@ use warnings;
 
 use File::Copy;
 
-use Devel::Cover::Inc  0.47;
-use Devel::Cover::Test 0.47;
+use Devel::Cover::Inc  0.48;
+use Devel::Cover::Test 0.48;
 
 my $base = $Devel::Cover::Inc::Base;
 
@@ -47,9 +47,9 @@ my $test = Devel::Cover::Test->new
     run_test    => \&run_test,
     changes     => "s/$t/$g    /;  " .
                    "s/$g\\s+\$/$g/;" .
-                   '$t = <T>, redo if /Deleting old coverage for changed file/',
-    skip_test   => '$] < 5.008 && $^O eq "MSWin32"',
-    skip_reason => "Devel::Cover barely works using perl 5.6 on Windows.  For some reason this test doesn't work.",
+                   'if (/^Run: /) { $get_line->() for 1 .. 5; redo }' .
+                   "redo if /Deleting old coverage for changed file/",
+    tests       => sub { $_[0] - 6 },
 );
 
 $test->run_test;

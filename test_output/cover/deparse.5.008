@@ -1,4 +1,4 @@
-Reading database from /mnt/b/sda1/home/pjcj/g/perl/svk/dc/trunk/cover_db
+Reading database from /home/pjcj/g/perl/svk/dc/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -8,6 +8,12 @@ tests/deparse                                91.7    n/a    n/a   75.0   87.5
 Total                                        91.7    n/a    n/a   75.0   87.5
 ------------------------------------------ ------ ------ ------ ------ ------
 
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
 
 tests/deparse
 

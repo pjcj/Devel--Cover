@@ -1,32 +1,42 @@
-- Indicate how to increase coverage?
-- Collect data for path coverage.
-- Tests.
+- Enhancements:
+  - Different criteria for different runs.
+  - Marking of unreachable code - commandline tool and gui.
+  - Threads support.
+  - Test analysis.
+  - Extend cpancover so people can upload databases.
+  - Profiling and speedups.
+  - Collect data for path coverage.
+  - Mutation coverage.
+  - Indicate how to increase coverage?
+  - Move away from Storable?  To?
+  - BEGIN and CHECK blocks and code in modules.  Requires callbacks from perl?
+- Reports:
+  - Refactor output routines to use common template data.
+  - Improve textual output.
+  - Separate output for pod coverage, like subroutine coverage.
+  - Allow thresholds to be customisable in HTML output.
+  - Fix up html_basic and html_subtle for subs.
+  - Move HTML version and platform info to main page and allow for multiples.
+  - Add -db option to cover.
+- Bugs:
+  - Work with memoize.  Is this still a problem?
+  - See if the XS code leaks, and fix it if it does.
+  - Look at time coverage again - collecting for too many ops?
+  - Sort out time coverage on Windows.
+  - Check for core dumps with pod coverage.
+- Testing:
+  - Be able to run Devel::Cover on itself.
+  - More comprehensive.
   - Functional tests.
-- Documentation.
-- Profiling and speedups.
-- BEGIN and CHECK blocks and code in modules.  Requires callbacks from perl?
-- Move away from Storable?  To?
-- Work with memoize.
-- See if the XS code leaks, and fix it if it does.
-- Different criteria for different runs.
-- Improve textual output.
-- Refactor output routines to use common template data.
-- Look at time coverage again - collecting for too many ops?
-- Separate output for pod coverage, like subroutine coverage.
-- Extend cpancover so people can upload databases.
-- Document cpancover options.
-- Allow thresholds to be customisable in HTML output.
-- Fix up html_basic and html_subtle for subs.
-- Sort out time coverage on Windows.
-- Marking of unreachable code - commandline tool and gui.
-- Threads support.
-- Test analysis.
-- Move HTML version and platform info to main page and allow for multiples.
-- Fix up shebang line on tests.
-- Be able to run Devel::Cover on itself.
-- meta.yaml file to control pause indexing.
-- Overhaul test system.  Include patt?
-- Tests for INIT and END blocks included in required files when the
-  files are used in some runs.
-- Sort out "ignoring extra subroutine" and friends.
-- Fix up make text and friends for module_ignore.
+  - Fix up shebang line on tests.
+  - Overhaul test system.  Include patt?
+  - Tests for INIT and END blocks included in required files when the
+    files are used in some runs.
+- Build:
+  - meta.yaml file to control pause indexing.
+  - Fix up make text and friends for module_ignore.
+  - Check for matching threadedness, 64bits etc. between build and run?
+- Documentation:
+  - General improvement.
+  - Document cpancover options.
+  - Pod in private modules.

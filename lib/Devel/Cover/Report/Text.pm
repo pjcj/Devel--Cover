@@ -10,9 +10,24 @@ package Devel::Cover::Report::Text;
 use strict;
 use warnings;
 
-our $VERSION = "0.47";
+our $VERSION = "0.48";
 
-use Devel::Cover::DB 0.47;
+use Devel::Cover::DB 0.48;
+
+sub print_runs
+{
+    my ($db, $options) = @_;
+    for my $r (sort {$a->{start} <=> $b->{start}} $db->runs)
+    {
+        print "Run:          ", $r->run,  "\n";
+        print "Perl version: ", $r->perl, "\n";
+        print "OS:           ", $r->OS,   "\n";
+        print "Start:        ", scalar gmtime $r->start  / 1e6, "\n";
+        print "Finish:       ", scalar gmtime $r->finish / 1e6, "\n";
+        print "\n";
+        # use Data::Dumper; print Dumper $r;
+    }
+}
 
 sub print_file
 {
@@ -25,6 +40,14 @@ sub print_file
 
     my $fmt = "%-5s %3s ";
     my @args = ("line", "err");
+    for my $ann (@{$options->{annotations}})
+    {
+        for my $a (0 .. $ann->number_of_annotations - 1)
+        {
+            $fmt .= "%-" . $ann->get_width($a) . "s ";
+            push @args, $ann->get_header($a);
+        }
+    }
     my %cr; @cr{$db->criteria} = $db->criteria_short;
     for my $c ($db->criteria)
     {
@@ -62,9 +85,18 @@ sub print_file
         my $more = 1;
         while ($more)
         {
-            my @args = ($n, "");
-
+            my @args  = ($n, "");
             my $error = 0;
+
+            for my $ann (@{$options->{annotations}})
+            {
+                for my $a (0 .. $ann->number_of_annotations - 1)
+                {
+                    push @args, $ann->get_annotation($n, $a);
+                    $error ||= $ann->error($n, $a);
+                }
+            }
+
             $more = 0;
             for my $c ($db->criteria)
             {
@@ -222,6 +254,7 @@ sub report
 {
     my ($pkg, $db, $options) = @_;
 
+    print_runs($db, $options);
     for my $file (@{$options->{file}})
     {
         print_file       ($db, $file, $options);
@@ -242,9 +275,7 @@ statistics
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Report::Text;
-
- Devel::Cover::Report::Text->report($db, $options);
+ cover -report text
 
 =head1 DESCRIPTION
 
@@ -261,7 +292,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.47 - 27th June 2004
+Version 0.48 - 5th October 2004
 
 =head1 LICENCE
 

@@ -19,8 +19,8 @@ use File::Copy;
 
 $| = 1;
 
-my $Version  = "0.47";
-my $Date     = "27th June 2004";
+my $Version  = "0.48";
+my $Date     = "5th October 2004";
 my $Author   = 'pjcj@cpan.org';
 
 my @perlbug  = ("perlbug", "-a", $Author,
@@ -53,10 +53,30 @@ package Devel::Cover::Inc;
 use strict;
 use warnings;
 
-our \$VERSION = "$Version";
-our \$Perl    = '$^X';
-our \$Base    = '$base';
-our \@Inc     = qw( @inc );
+our \$VERSION      = "$Version";
+our \$Perl         = '$^X';
+our \$Perl_version = '$]';
+our \$Base         = '$base';
+our \@Inc          = qw( @inc );
+
+if (\$Perl_version ne \$])
+{
+    print STDERR <<"EOM";
+
+This version of Devel::Cover was built with Perl version \$Perl_version.
+It is now being run with Perl version \$].
+Attempting to make adjustments, but you may find that some of your modules do
+not have coverage data collected.  You may need to alter the +-inc, +-ignore
+and +-select options.
+
+EOM
+    eval "use Cwd";
+    my \%inc = map { -d \$_ ? ((\$_ eq "." ? \$_ : Cwd::abs_path(\$_)) => 1) : () }
+                   \@INC;
+    \@INC = sort keys \%inc;
+}
+
+# TODO - check for threadedness, 64bits etc. ?
 
 1
 EOI
@@ -222,7 +242,7 @@ else
     print "not found\n\n$e\n";
 }
 
-my $latest_tested = 5.008004;
+my $latest_tested = 5.008005;
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
@@ -346,7 +366,7 @@ ppm : ppd pure_all
 \t \$(PERL) -pi.bak \\
     -e 's/(OS NAME=")[^"]*/\$\$1MSWin32/;' \\
     -e 's/(ARCHITECTURE NAME=")[^"]*/\$\$1MSWin32-x86-multi-thread/;' \\
-    -e 's/(CODEBASE HREF=")[^"]*/\$\$1Gedcom.tar.gz/;' \\
+    -e 's/(CODEBASE HREF=")[^"]*/\$\$1Devel-Cover.tar.gz/;' \\
     Devel-Cover.ppd
 
 TAINT = -T

@@ -1,0 +1,42 @@
+Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/inc_sub                               100.0    n/a    n/a    n/a  100.0
+Total                                       100.0    n/a    n/a    n/a  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/inc_sub
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/bin/perl
+2                                       
+3                                       use lib ();
+4                                       
+5                                       BEGIN
+6                                       {
+7                                           lib->import
+8                                           (
+9                                               sub
+10                                              {
+11                                                  my $fh;
+12                                                  open $fh, "tests/IncSub.pm" or die $!;
+13                                                  $fh
+14                                              }
+15                                          )
+16                                      }
+17                                      
+18                                      use IncSub;
+19                                      
+20             1                        IncSub::check
+
+

@@ -1,0 +1,64 @@
+Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/eval2                                  90.9   50.0   50.0    n/a   73.7
+Total                                        90.9   50.0   50.0    n/a   73.7
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/eval2
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      use lib "tests";
+11                                      
+12    ***      1            50          $x = shift || 0;
+13             1                        print "1 - $x\n";
+14    ***      1     50                 if ($x) { eval 'use E2' }
+      ***      0                        
+15             1                        print "3 - $x\n";
+16    ***      1     50                 if ($x < 4) { eval 'use E3' }
+               1                        
+17             1                        print "4 - $x\n";
+18    ***      1     50                 if ($x < 6) { eval 'use E4' }
+               1                        
+19             1                        print "5 - $x\n";
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+14    ***     50      0      1   if ($x)
+16    ***     50      1      0   if ($x < 4)
+18    ***     50      1      0   if ($x < 6)
+
+
+Conditions
+----------
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+12    ***     50      0      1   shift @ARGV || 0
+
+

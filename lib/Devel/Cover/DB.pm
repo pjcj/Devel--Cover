@@ -10,17 +10,17 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.47";
+our $VERSION = "0.48";
 
-use Devel::Cover::Criterion     0.47;
-use Devel::Cover::DB::File      0.47;
-use Devel::Cover::DB::Structure 0.47;
+use Devel::Cover::Criterion     0.48;
+use Devel::Cover::DB::File      0.48;
+use Devel::Cover::DB::Structure 0.48;
 
 use Carp;
 use File::Path;
 use Storable;
 
-my $DB = "cover.11";  # Version 11 of the database.
+my $DB = "cover.12";  # Version 12 of the database.
 
 sub new
 {
@@ -508,13 +508,16 @@ sub cover
     my %files;
     my $cover = $self->{cover} = {};
     my $uncoverable = $self->uncoverable;
+    my $st = Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
 
     while (my ($run, $r) = each %{$self->{runs}})
     {
         @{$self->{collected}}{@{$r->{collected}}} = ();
+        $st->add_criteria(@{$r->{collected}});
         my $count = $r->{count};
         while (my ($file, $f) = each %$count)
         {
+            # print "Looking at <$file>\n";
             my $digest = $r->{digest}{$file};
             unless ($digest)
             {
@@ -526,11 +529,6 @@ sub cover
                          "into $digests{$digest}\n"
                 if !$files{$file}++ && $digests{$digest};
             my $cf = $cover->{$digests{$digest} ||= $file} ||= {};
-            my $st = Devel::Cover::DB::Structure->new
-            (
-                base   => $self->{base},
-                digest => $digest,
-            );
             # print "Structure from $st->{file}\n";
             # use Data::Dumper;
             # print STDERR "st ", Dumper($st),
@@ -539,9 +537,9 @@ sub cover
             while (my ($criterion, $fc) = each %$f)
             {
                 my $get = "get_$criterion";
-                my $sc = $st->$get;
-                next unless $sc;
-                my $cc = $cf->{$criterion} ||= {};
+                my $sc  = $st->$get($file);
+                next unless $sc;  # TODO - why?
+                my $cc  = $cf->{$criterion} ||= {};
                 my $add = "add_$criterion";
                 $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
                 # $cc - coverage being filled in
@@ -575,6 +573,7 @@ sub cover
                 }
             }
         }
+        bless $_, "Devel::Cover::DB::Run" for values %{$self->{runs}};
     }
 
     unless (exists &Devel::Cover::DB::Base::items)
@@ -624,7 +623,7 @@ sub cover
                 my $func = $Devel::Cover::DB::AUTOLOAD || $::AUTOLOAD;
 
                 # print STDERR "autoloading <$func>\n";
-                (my $f = $func) =~ s/^.*:://;
+                (my $f = $func) =~ s/.*:://;
                 carp "Undefined subroutine $f called"
                     unless grep { $_ eq $f }
                                 @{$self->{all_criteria}},
@@ -638,6 +637,29 @@ sub cover
 
     $self->{cover_valid} = 1;
     $self->{cover}
+}
+
+sub runs
+{
+    my $self = shift;
+    $self->cover unless $self->{cover_valid};
+    values %{$self->{runs}}
+}
+
+package Devel::Cover::DB::Run;
+
+our $AUTOLOAD;
+
+sub DESTROY {}
+
+sub AUTOLOAD
+{
+    my $func = $AUTOLOAD;
+    # print STDERR "autoloading <$func>\n";
+    (my $f = $func) =~ s/.*:://;
+    no strict "refs";
+    *$func = sub { shift->{$f} };
+    goto &$func
 }
 
 1
@@ -719,7 +741,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.47 - 27th June 2004
+Version 0.48 - 5th October 2004
 
 =head1 LICENCE
 

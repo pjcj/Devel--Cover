@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.47";
+our $VERSION = "0.48";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.47;
+use Devel::Cover::Inc 0.48;
 
 sub new
 {
@@ -59,7 +59,8 @@ sub get_params
     }
     close T or die "Cannot close $test: $!";
 
-    $self->{test_parameters}  = "-select $self->{test} $self->{select}"
+    $self->{select}         ||= "-select $self->{test}";
+    $self->{test_parameters}  = "$self->{select}"
                               . " -ignore blib Devel/Cover $self->{ignore}"
                               . " -merge 0 -coverage $self->{criteria}";
     $self->{cover_parameters} = join(" ", map "-coverage $_",
@@ -104,6 +105,7 @@ sub test_command
               join(",", split ' ', $self->{test_parameters})
     }
     $c .= " " . shell_quote $self->test_file;
+    $c .= " " . $self->test_file_parameters;
 
     $c
 }
@@ -113,7 +115,8 @@ sub cover_command
     my $self = shift;
 
     my $b = shell_quote $Devel::Cover::Inc::Base;
-    $self->perl . " $b/cover $self->{cover_parameters}"
+    my $c = $self->perl . " $b/cover $self->{cover_parameters}";
+    $c
 }
 
 sub test_file
@@ -121,6 +124,13 @@ sub test_file
     my $self = shift;
 
     "$Devel::Cover::Inc::Base/tests/$self->{test}"
+}
+
+sub test_file_parameters
+{
+    my $self = shift;
+
+    exists $self->{test_file_parameters} ? $self->{test_file_parameters} : ""
 }
 
 sub cover_gold
@@ -143,7 +153,7 @@ sub cover_gold
         $v = $_;
     }
 
-    die "Can't find golden results for $test" unless $v;
+    # die "Can't find golden results for $test" if $v eq "5.0";
 
     $v = $ENV{DEVEL_COVER_GOLDEN_VERSION}
         if exists $ENV{DEVEL_COVER_GOLDEN_VERSION};
@@ -179,6 +189,8 @@ sub run_test
     my @cover = <I>;
     close I or die "Cannot close $gold: $!";
 
+    print "gold from $gold\n", @cover if $debug;
+
     eval "use Test::Differences";
     my $differences = $INC{"Test/Differences.pm"};
 
@@ -189,7 +201,11 @@ sub run_test
         $skip = $INC{"Pod/Coverage.pm"} ? "" : "Pod::Coverage unavailable";
     }
 
-    plan tests => ($differences || $skip) ? 1 : scalar @cover;
+    plan tests => ($differences || $skip)
+                  ? 1
+                  : exists $self->{tests}
+                    ? $self->{tests}->(scalar @cover)
+                    : scalar @cover;
 
     if ($skip)
     {
@@ -212,14 +228,17 @@ sub run_test
     my @at;
     my @ac;
 
-    open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
-    while (my $t = <T>)
+    my $change_line = sub
     {
-        print $t if $debug;
-        next if $t =~ /^Devel::Cover: merging run/;
-        my $c = shift @cover || "";
-        for ($t, $c)
+        my ($get_line) = @_;
+        local *_;
+        LOOP:
+        while (1)
         {
+            $_ = scalar $get_line->();
+            $_ = "" unless defined $_;
+            print if $debug;
+            redo if /^Devel::Cover: merging run/;
             s/^(Reading database from ).*/$1/;
             s|(__ANON__\[) .* (/tests/ \w+ : \d+ \])|$1$2|x;
             s/(Subroutine) +(Location)/$1 $2/;
@@ -228,11 +247,25 @@ sub run_test
             s/^ \.\.\. .* - \d+ \. \d+ \/*(\S+)\s*/$1/x;
             s/.* Devel \/ Cover \/*(\S+)\s*/$1/x;
             s/^(Devel::Cover: merging run).*/$1/;
+            s/^(Run: ).*/$1/;
+            s/^(OS: ).*/$1/;
+            s/^(Perl version: ).*/$1/;
+            s/^(Start: ).*/$1/;
+            s/^(Finish: ).*/$1/;
             s/copyright .*//ix;
             no warnings "exiting";
             eval $self->{changes} if exists $self->{changes};
+            return $_;
         }
+    };
+
+    open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
+    while (!eof T)
+    {
+        my $t = $change_line->(sub {<T>});
+        my $c = $change_line->(sub {shift @cover});
         # print STDERR "[$t]\n[$c]\n" if $t ne $c;
+        # chomp(my $tn = $t); chomp(my $cn = $c); print "c-[$tn] $.\ng=[$cn]\n";
         if ($differences)
         {
             push @at, $t;
@@ -264,6 +297,17 @@ sub create_gold
 
     my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
 
+    my $gold = $self->cover_gold;
+    my $new_gold = $gold;
+    $new_gold =~ s/(5\.\d+)$/$]/;
+    my $gv = $1;
+    my $ng = "";
+
+    unless (-e $new_gold)
+    {
+        open my $g, ">$new_gold" or die "Can't open $new_gold: $!";
+    }
+
     my $test_com = $self->test_command;
     print "Running test [$test_com]\n" if $debug;
 
@@ -273,21 +317,17 @@ sub create_gold
     my $cover_com = $self->cover_command;
     print "Running cover [$cover_com]\n" if $debug;
 
-    my $gold = $self->cover_gold;
-    my $new_gold = $gold;
-    $new_gold =~ s/(5\.\d+)$/$]/;
-    my $gv = $1;
-    my $ng = "";
-
     open G, ">$new_gold" or die "Cannot open $new_gold: $!";
 
     open T, "$cover_com|" or die "Cannot run $cover_com: $!";
-    while (<T>)
+    while (my $l = <T>)
     {
-        next if /^Devel::Cover: merging run/;
+        next if $l =~ /^Devel::Cover: merging run/;
+        $l =~ s/^($_: ).*$/$1.../
+            for "Run", "Perl version", "OS", "Start", "Finish";
         # print;
-        print G $_;
-        $ng .= $_;
+        print G $l;
+        $ng .= $l;
     }
     close T or die "Cannot close $cover_com: $!";
 
