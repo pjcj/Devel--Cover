@@ -1,0 +1,34 @@
+Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/require                               100.0    n/a    n/a    n/a  100.0
+Total                                       100.0    n/a    n/a    n/a  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/require
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      use lib -d "t" ? "." : "..";
+11                                      use File::Spec;
+12             1                        require File::Spec->catfile("tests", "E2.pm");
+
+

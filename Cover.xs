@@ -846,7 +846,7 @@ static int runops_cover(pTHX)
             case OP_REQUIRE:
             {
                 dSP;
-                sv_setsv(MY_CXT.module, TOPs);
+                SvSetSV_nosteal(MY_CXT.module, TOPs);
                 NDEB(D(L, "require %s\n", SvPV_nolen(MY_CXT.module)));
                 break;
             }
