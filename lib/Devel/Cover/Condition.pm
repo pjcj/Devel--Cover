@@ -10,24 +10,32 @@ package Devel::Cover::Condition;
 use strict;
 use warnings;
 
-our $VERSION = "0.44";
+our $VERSION = "0.45";
 
 use base "Devel::Cover::Criterion";
 
-sub covered    { (scalar grep $_, @{$_[0][0]}) }
-sub total      { (scalar          @{$_[0][0]}) }
+sub uncoverable { $_[0][2][shift] }
+sub covered     { (scalar grep $_, @{$_[0][0]}) }
+sub total       { (scalar          @{$_[0][0]}) }
 sub percentage
 {
     my $t = $_[0]->total;
     sprintf "%3d", $t ? $_[0]->covered / $t * 100 : 0
 }
-sub error      { scalar grep !$_, @{$_[0][0]} }
-sub text       { "$_[0][1]{left} $_[0][1]{op} $_[0][1]{right}" }
-sub type       { $_[0][1]{type} }
-sub pad        { $_[0][0][$_] ||= 0 for 0 .. $_[0]->count - 1 }
-sub values     { $_[0]->pad; @{$_[0][0]} }
-sub count      { require Carp; Carp::confess "count() must be overridden" }
-sub headers    { require Carp; Carp::confess "headers() must be overridden" }
+sub error
+{
+    for (0 .. $#{$_[0][0]})
+    {
+        return 1 if $_[0][0][$_] xor !$_[0][2][$_]
+    }
+    0
+}
+sub text        { "$_[0][1]{left} $_[0][1]{op} $_[0][1]{right}" }
+sub type        { $_[0][1]{type} }
+sub pad         { $_[0][0][$_] ||= 0 for 0 .. $_[0]->count - 1 }
+sub values      { $_[0]->pad; @{$_[0][0]} }
+sub count       { require Carp; Carp::confess "count() must be overridden" }
+sub headers     { require Carp; Carp::confess "headers() must be overridden" }
 
 sub calculate_summary
 {
@@ -80,7 +88,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.44 - 18th May 2004
+Version 0.45 - 27th May 2004
 
 =head1 LICENCE
 

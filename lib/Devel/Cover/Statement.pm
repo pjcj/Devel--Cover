@@ -10,14 +10,16 @@ package Devel::Cover::Statement;
 use strict;
 use warnings;
 
-our $VERSION = "0.44";
+our $VERSION = "0.45";
 
 use base "Devel::Cover::Criterion";
 
-sub covered    { ${$_[0]} }
-sub total      { 1 }
-sub percentage { ${$_[0]} ? 100 : 0 }
-sub error      { !${$_[0]} }
+sub val         { $_[0][0] }
+sub uncoverable { $_[0][1] }
+sub covered     { $_[0][0] }
+sub total       { 1 }
+sub percentage  { $_[0][0] ? 100 : 0 }
+sub error       { $_[0][0] xor !$_[0][1] }
 
 sub calculate_summary
 {
@@ -31,7 +33,7 @@ sub calculate_summary
     $s->{Total}{statement}{total}++;
     $s->{Total}{total}{total}++;
 
-    if ($$self)
+    if ($self->[0])
     {
         $s->{$file}{statement}{covered}++;
         $s->{$file}{total}{covered}++;
@@ -68,7 +70,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.44 - 18th May 2004
+Version 0.45 - 27th May 2004
 
 =head1 LICENCE
 

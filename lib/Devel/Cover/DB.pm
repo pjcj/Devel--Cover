@@ -10,17 +10,17 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.44";
+our $VERSION = "0.45";
 
-use Devel::Cover::Criterion     0.44;
-use Devel::Cover::DB::File      0.44;
-use Devel::Cover::DB::Structure 0.44;
+use Devel::Cover::Criterion     0.45;
+use Devel::Cover::DB::File      0.45;
+use Devel::Cover::DB::Structure 0.45;
 
 use Carp;
 use File::Path;
 use Storable;
 
-my $DB = "cover.10";  # Version 10 of the database.
+my $DB = "cover.11";  # Version 11 of the database.
 
 sub new
 {
@@ -33,6 +33,7 @@ sub new
             [ qw( stmt      branch path cond      sub        pod time ) ],
         runs           => {},
         collected      => {},
+        uncoverable    => [],
         @_
     };
 
@@ -360,6 +361,29 @@ sub print_summary
 sub add_statement
 {
     my $self = shift;
+    my ($cc, $sc, $fc, $uc) = @_;
+    my %line;
+    for my $i (0 .. $#$fc)
+    {
+        my $l = $sc->[$i];
+        unless (defined $l)
+        {
+            # use Data::Dumper;
+            # print STDERR "sc ", scalar @$sc, ", fc ", scalar @$fc, "\n";
+            # print STDERR "sc ", Dumper($sc), "fc ", Dumper($fc);
+            warn "Devel::Cover: ignoring extra statement\n";
+            return;
+        }
+        my $n = $line{$l}++;
+        no warnings "uninitialized";
+        $cc->{$l}[$n][0]  += $fc->[$i];
+        $cc->{$l}[$n][1] ||= $uc->{$l}[$n][0][1];
+    }
+}
+
+sub add_time
+{
+    my $self = shift;
     my ($cc, $sc, $fc) = @_;
     my %line;
     for my $i (0 .. $#$fc)
@@ -383,7 +407,7 @@ sub add_statement
 sub add_branch
 {
     my $self = shift;
-    my ($cc, $sc, $fc) = @_;
+    my ($cc, $sc, $fc, $uc) = @_;
     my %line;
     for my $i (0 .. $#$fc)
     {
@@ -406,13 +430,14 @@ sub add_branch
         {
             $cc->{$l}[$n] = [ $fc->[$i], $sc->[$i][1] ];
         }
+        $cc->{$l}[$n][2][$_->[0]] ||= $_->[1] for @{$uc->{$l}[$n]};
     }
 }
 
 sub add_subroutine
 {
     my $self = shift;
-    my ($cc, $sc, $fc) = @_;
+    my ($cc, $sc, $fc, $uc) = @_;
     my %line;
     for my $i (0 .. $#$fc)
     {
@@ -435,12 +460,36 @@ sub add_subroutine
         {
             $cc->{$l}[$n] = [ $fc->[$i], $sc->[$i][1] ];
         }
+        $cc->{$l}[$n][2] ||= $uc->{$l}[$n][0][1];
     }
 }
 
-*add_condition  = \&add_branch;
-*add_pod        = \&add_subroutine;
-*add_time       = \&add_statement;
+*add_condition = \&add_branch;
+*add_pod       = \&add_subroutine;
+
+sub uncoverable
+{
+    my $self = shift;
+
+    my $u = {};
+
+    my $f = ".uncoverable";
+    for my $file ($f, glob("~/$f"), @{$self->{uncoverable}})
+    {
+        open F, $file or next;
+        print STDERR "Devel::Cover: reading uncoverable information ",
+                     "from $file\n"
+            unless $Devel::Cover::Silent;
+        while (<F>)
+        {
+            chomp;
+            my ($md5, $crit, $line, $count, $type, $reason) = split " ", $_, 6;
+            push @{$u->{$md5}{$crit}{$line}[$count]}, [$type, $reason];
+        }
+    }
+
+    $u
+}
 
 sub cover
 {
@@ -451,6 +500,8 @@ sub cover
     my %digests;
     my %files;
     my $cover = $self->{cover} = {};
+    my $uncoverable = $self->uncoverable;
+
     while (my ($run, $r) = each %{$self->{runs}})
     {
         @{$self->{collected}}{@{$r->{collected}}} = ();
@@ -474,7 +525,10 @@ sub cover
                 digest => $digest,
             );
             # print "Structure from $st->{file}\n";
-            # use Data::Dumper; print STDERR "st ", Dumper($st), "f ", Dumper($f);
+            # use Data::Dumper;
+            # print STDERR "st ", Dumper($st),
+                         # "f  ", Dumper($f),
+                         # "uc ", Dumper($uncoverable->{$digest});
             while (my ($criterion, $fc) = each %$f)
             {
                 my $get = "get_$criterion";
@@ -482,7 +536,11 @@ sub cover
                 next unless $sc;
                 my $cc = $cf->{$criterion} ||= {};
                 my $add = "add_$criterion";
-                $self->$add($cc, $sc, $fc);
+                $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
+                # $cc - coverage being filled in
+                # $sc - structure information
+                # $fc - coverage from this file
+                # $uc - uncoverable information
             }
         }
     }
@@ -572,7 +630,6 @@ sub cover
     }
 
     $self->{cover_valid} = 1;
-
     $self->{cover}
 }
 
@@ -655,7 +712,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.44 - 18th May 2004
+Version 0.45 - 27th May 2004
 
 =head1 LICENCE
 

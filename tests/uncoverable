@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+
+# Copyright 2004, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# __COVER__ uncoverable tests/.uncoverable
+
+my $x = 1;
+my $y = 1;
+if ($x && !$y)
+{
+    $x++;
+    z();
+}
+sub z
+{
+    $y++;
+}

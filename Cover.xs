@@ -176,7 +176,7 @@ static void set_firsts_if_neeed()
     SV *init = (SV *)get_cv("Devel::Cover::first_init", 0);
     SV *end  = (SV *)get_cv("Devel::Cover::first_end",  0);
     NDEB(svdump(end));
-    if (av_len(PL_initav) >= 0)
+    if (PL_initav && av_len(PL_initav) >= 0)
     {
         SV **cv = av_fetch(PL_initav, 0, 0);
         if (*cv != init)
@@ -185,7 +185,7 @@ static void set_firsts_if_neeed()
             av_store(PL_initav, 0, init);
         }
     }
-    if (av_len(PL_endav) >= 0)
+    if (PL_endav && av_len(PL_endav) >= 0)
     {
         SV **cv = av_fetch(PL_endav, 0, 0);
         if (*cv != end)
@@ -395,7 +395,6 @@ static void cover_logop() {
 
             if (right->op_type == OP_NEXT ||
                 right->op_type == OP_LAST ||
-                right->op_type == OP_REDO ||
                 right->op_type == OP_REDO ||
                 right->op_type == OP_GOTO ||
                 right->op_type == OP_RETURN)

@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.44";
+our $VERSION = "0.45";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.44;
+use Devel::Cover::Inc 0.45;
 
 sub new
 {
@@ -31,11 +31,12 @@ sub new
     my $criteria = delete $params{criteria} ||
                    "statement branch condition subroutine";
 
-    my $self  =
+    my $self =
     {
-        test      => $test,
-        criteria  => $criteria,
-        skip      => "",
+        test        => $test,
+        criteria    => $criteria,
+        skip        => "",
+        uncoverable => "",
         %params
     };
 
@@ -58,25 +59,33 @@ sub get_params
 
     $self->{test_parameters}  = "-select $self->{test} -ignore blib Devel/Cover"
                               . " -merge 0 -coverage $self->{criteria}";
-    $self->{cover_parameters} = join(" ", map "-coverage $_", split " ", $self->{criteria})
+    $self->{cover_parameters} = join(" ", map "-coverage $_",
+                                              split " ", $self->{criteria})
                               . " -report text";
+    $self->{cover_parameters} .= " -uncoverable $self->{uncoverable}"
+        if $self->{uncoverable};
     $self->{skip}             = $self->{skip_reason}
         if exists $self->{skip_test} && eval $self->{skip_test};
 
     $self
 }
 
+sub shell_quote
+{
+    my ($item) = @_;
+    # properly quote the item
+    $^O eq "MSWin32" ? (/ / and $_ = qq("$_")) : s/ /\\ /g for $item;
+    $item
+};
+
 sub perl
 {
     my $self = shift;
 
-    my $perl = $Devel::Cover::Inc::Perl;
+    my $perl = shell_quote $Devel::Cover::Inc::Perl;
     my $base = $Devel::Cover::Inc::Base;
 
-    $perl =~ s/ /\\ /g;
-    $base =~ s/ /\\ /g;
-
-    $perl .= " -I$base/$_" for "", "blib/lib", "blib/arch";
+    $perl .= " " . shell_quote "-I$base/$_" for "", "blib/lib", "blib/arch";
 
     $perl
 }
@@ -91,9 +100,7 @@ sub test_command
         $c .= " -MDevel::Cover=" .
               join(",", split ' ', $self->{test_parameters})
     }
-    my $t = $self->test_file;
-    $t =~ s/ /\\ /g;
-    $c .= " $t";
+    $c .= " " . shell_quote $self->test_file;
 
     $c
 }
@@ -102,8 +109,7 @@ sub cover_command
 {
     my $self = shift;
 
-    my $b = $Devel::Cover::Inc::Base;
-    $b =~ s/ /\\ /g;
+    my $b = shell_quote $Devel::Cover::Inc::Base;
     $self->perl . " $b/cover $self->{cover_parameters}"
 }
 

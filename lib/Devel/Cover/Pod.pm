@@ -10,16 +10,17 @@ package Devel::Cover::Pod;
 use strict;
 use warnings;
 
-our $VERSION = "0.44";
+our $VERSION = "0.45";
 
 use base "Devel::Cover::Criterion";
 
 BEGIN { eval "use Pod::Coverage 0.06" }     # We'll use this if it is available.
 
-sub covered    { $_[0][0] ? 1 : 0 }
-sub total      { 1 }
-sub percentage { $_[0][0] ? 100 : 0 }
-sub error      { !$_[0][0] }
+sub uncoverable { $_[0][2] }
+sub covered     { $_[0][0] ? 1 : 0 }
+sub total       { 1 }
+sub percentage  { $_[0][0] ? 100 : 0 }
+sub error       { $_[0][0] xor !$_[0][2] }
 
 sub calculate_summary
 {
@@ -72,7 +73,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.44 - 18th May 2004
+Version 0.45 - 27th May 2004
 
 =head1 LICENCE
 

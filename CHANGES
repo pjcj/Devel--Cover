@@ -298,3 +298,9 @@ Release 0.44 - 18th May 2004
  - Fix up gcov2perl.
  - Fail gracefully when covering a threaded program.
  - Add DEVEL_COVER_OPTIONS environment variable.
+
+Release 0.45 - 27th May 2004
+ - Cope with spaces in build path on Windows (Max Maischein).
+ - Allow Devel::Cover to be used under mod_perl (Philippe M. Chiasson).
+ - Handle $x ||= 1 and friends nicely, including subs and *foo{THING}.
+ - Allow uncoverable code to be specified.  (Unfinished)

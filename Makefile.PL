@@ -19,8 +19,8 @@ use File::Copy;
 
 $| = 1;
 
-my $Version  = "0.44";
-my $Date     = "18th May 2004";
+my $Version  = "0.45";
+my $Date     = "27th May 2004";
 my $Author   = 'pjcj@cpan.org';
 
 my @perlbug  = ("perlbug", "-a", $Author,
@@ -32,7 +32,8 @@ my @versions = grep { $_ ne "README" && $_ ne "Makefile.PL" } @files;
 
 my $base     = getcwd;
 
-my %inc      = map { ($_ eq "." ? $_ : Cwd::abs_path($_)) => 1 } @INC;
+my %inc      = map { -d $_ ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () }
+                   @INC;
 my @inc      = sort keys %inc;
 
 open I, ">lib/Devel/Cover/Inc.pm"
@@ -72,7 +73,7 @@ opendir D, "tests" or die "Cannot opendir tests: $!";
 for my $t (readdir D)
 {
     next unless -f "tests/$t";
-    next if $t =~ /\.(pm|pl|version|org|bak)$/;
+    next if $t =~ /\.(pm|pl|version|org|bak|uncoverable)$/;
     next if $t =~ /~$/;
 
     if ($t =~ /\.t/)
@@ -354,12 +355,16 @@ COVER_OPTIONS =
 _run : pure_all
 \t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-merge,0,`\$(PERL) -e 'qx|grep __COVER__ \$\$ARGV[0]| =~ /__COVER__\\s+criteria\\s+(.*)/; (\$\$c = \$\$1 || "all") =~ s/\\s+/,/g; print "-coverage,\$\$c"' tests/\$(TEST)`,\$(COVER_OPTIONS) tests/\$(TEST)
 
-html : _run
-\t \$(PERL) -Mblib cover
+UNCOVERABLE = \$(PERL) -e 'print "-uncoverable \$\$1 " if qx|grep __COVER__ \$\$ARGV[0]| =~ /__COVER__\\s+uncoverable\\s+(.*)/' tests/\$(TEST)
 
-text : html
-\t \$(PERL) -Mblib cover -report text > \$(TEST).out && \\
-   gvim -d \$(TEST).out
+html : _run
+\t \$(PERL) -Mblib cover `\$(UNCOVERABLE)` -report html
+
+_out : _run
+\t \$(PERL) -Mblib cover `\$(UNCOVERABLE)` -report text > \$(TEST).out
+
+text : _out
+\t gvim -d \$(TEST).out
 
 wrun : pure_all
 \t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-ignore,blib,-merge,0 tests/\$(TEST)
@@ -373,7 +378,7 @@ FONT = 8x13
 FONT = -sun-screen-medium-r-normal-*-*-70-*-*-m-*-sun-fontspecific
 FONT = "Bitstream Vera Sans Mono 8"
 
-diff : _run
+diff : _out
 \t \$(PERL) -i -pe '\$\$t = index \$\$_, "time   code" if !defined \$\$t || \$\$t < 0; substr \$\$_, \$\$t, 7, "" if /^line  err   stmt/ ..  /^Branches/ and length > \$\$t' \$(TEST).out
 \t gvim -d -font \$(FONT) `\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new("\$(TEST)"); print \$\$t->cover_gold'` \$(TEST).out
 

@@ -64,6 +64,8 @@ tests/t0
 tests/t1
 tests/t2
 tests/trivial
+tests/uncoverable
+tests/.uncoverable
 tests/Alias1.pm
 tests/Module1.pm
 tests/Module2.pm
@@ -136,3 +138,4 @@ test_output/cover/t2.5.008
 test_output/cover/t2.5.008001
 test_output/cover/trivial.5.006001
 test_output/cover/trivial.5.008
+test_output/cover/uncoverable.5.006001

@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.44";
+our $VERSION = "0.45";
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB  0.44;
-use Devel::Cover::Inc 0.44;
+use Devel::Cover::DB  0.45;
+use Devel::Cover::Inc 0.45;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -29,7 +29,8 @@ BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
 
 my $Initialised;                         # import() has been called.
 
-my $Dir;                                 # Directory in cover will be gathered.
+my $Dir;                                 # Directory in which coverage will be
+                                         # collected.
 my $DB      = "cover_db";                # DB name.
 my $Merge   = 1;                         # Merge databases.
 my $Summary = 1;                         # Output coverage summary.
@@ -77,13 +78,9 @@ BEGIN
 BEGIN { @Inc = @Devel::Cover::Inc::Inc; @Ignore = ("/Devel/Cover[./]") }
 # BEGIN { $^P = 0x004 | 0x010 | 0x100 | 0x200 }
 BEGIN { $^P = 0x004 | 0x100 | 0x200 }
-# BEGIN { $^P = 0x004 | 0x100 }
 
 {
-
-    no warnings "void";  # Avoid "Too late to run CHECK block" warning.
-
-    CHECK
+    sub check
     {
         return unless $Initialised;
 
@@ -112,6 +109,7 @@ EOM
               @coverage ? " and " : "",
               "$last.\n",
               $nopod,
+              $ENV{MOD_PERL} ? "    Collecting under $ENV{MOD_PERL}\n" : "",
               "Selecting packages matching:", join("\n    ", "", @Select), "\n",
               "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
               "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
@@ -123,6 +121,8 @@ EOM
         $Run{start} = get_elapsed();
     }
 
+    no warnings "void";  # Avoid "Too late to run CHECK block" warning.
+    CHECK { check }
 }
 
 {
@@ -234,6 +234,12 @@ sub import
     %Coverage = (all => 1) unless keys %Coverage;
 
     $Initialised = 1;
+
+    if ($ENV{MOD_PERL})
+    {
+        check();
+        set_first_init_and_end();
+    }
 }
 
 sub cover_names_to_val
@@ -638,8 +644,10 @@ sub add_condition_cover
 
     if ($type eq "or")
     {
-        my $name = $op->first->sibling->name;
-        if ($name eq "const" || $name eq "srefgen")
+        my $r = $op->first->sibling;
+        my $name = $r->name;
+        $name = $r->first->name if $name eq "sassign";
+        if ($name =~ /^const|s?refgen|gelem$/)
         {
             $c = [ $c->[3], $c->[1] + $c->[2] ];
             $count = 2;
@@ -776,6 +784,7 @@ sub B::Deparse::deparse
     }
 
     my $d = eval { $original_deparse->($self, @_) };
+    $d =~ s/^\010+//mg if defined $d;
     $@ ? "Deparse error: $@" : $d
 }
 
@@ -836,7 +845,7 @@ sub B::Deparse::logassignop
 
 sub get_cover
 {
-    my $deparse = B::Deparse->new("-l");
+    my $deparse = B::Deparse->new;
 
     my $cv = $deparse->{curcv} = shift;
 
@@ -1100,6 +1109,14 @@ Modules used by Devel::Cover while gathering coverage:
 
 =back
 
+=head2 mod_perl
+
+By adding C<use Devel::Cover;> to your mod_perl startup script, you
+should be able to collect coverage information when running under
+mod_perl.  You can also add any options you need at this point.  I would
+suggest adding this as early as possible in your startup script in order
+to collect as much coverage information as possible.
+
 =head1 BUGS
 
 Did I mention that this is alpha code?
@@ -1108,7 +1125,7 @@ See the BUGS file.  And the TODO file.
 
 =head1 VERSION
 
-Version 0.44 - 18th May 2004
+Version 0.45 - 27th May 2004
 
 =head1 LICENCE
 
