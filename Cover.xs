@@ -780,6 +780,7 @@ static int runops_cover(pTHX)
              * sub may call back to a collecting sub.
              */
             hv_fetch(Return_ops, get_key(PL_op->op_next), CH_SZ, 1);
+            NDEB(D(L, "adding return op %p\n", PL_op->op_next));
         }
 
         if (!collecting_here)
@@ -788,7 +789,7 @@ static int runops_cover(pTHX)
             cover_time(aTHX);
             *MY_CXT.profiling_key = 0;
 #endif
-            NDEB(D(L, "op is %s\n", OP_NAME(PL_op)));
+            NDEB(D(L, "op %p is %s\n", PL_op, OP_NAME(PL_op)));
             if (hv_exists(Return_ops, get_key(PL_op), CH_SZ))
                 collecting_here = 1;
             else
