@@ -7,8 +7,8 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-use Devel::Cover::Process 0.02 qw( cover_read );
-use Devel::Cover 0.02 qw( -i 1 -o t1.cov );
+use Devel::Cover::Process 0.03 qw( cover_read );
+use Devel::Cover 0.03 qw( -i 1 -o t1.cov );
 
 use strict;
 use warnings;

@@ -12,7 +12,7 @@ use warnings;
 
 use Carp;
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 sub new
 {
@@ -129,21 +129,38 @@ sub print_summary
     }
 
     printf $fmt, "-" x 42, ("------") x 5;
+    print "\n\n";
 }
 
 sub print_details
 {
     my $self = shift;
-    for my $file (sort keys %{$self->{cover}})
+    my (@files) = @_;
+    @files = sort keys %{$self->{cover}} unless @files;
+    for my $file (@files)
     {
         print "$file\n\n";
         my $lines = $self->{cover}{$file};
-        for my $line (sort { $a <=> $b } keys %$lines)
+        my $fmt = "%-5d: %6s %s\n";
+
+        open F, $file or croak "Unable to open $file: $!";
+
+        while (<F>)
         {
-            my $l = $lines->{$line};
-            printf "%4d: " . ("%6d" x @$l) . "\n", $line, @$l;
+            if (exists $lines->{$.})
+            {
+                my @c = @{$lines->{$.}};
+                printf "%5d: %6d %s", $., shift @c, $_;
+                printf "     : %6d\n", $., shift @c while @c;
+            }
+            else
+            {
+                printf "%5d:        %s", $., $_;
+            }
         }
-        print "\n";
+
+        close F or croak "Unable to close $file: $!";
+        print "\n\n";
     }
 }
 

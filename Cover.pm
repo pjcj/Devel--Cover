@@ -12,10 +12,10 @@ use warnings;
 
 use DynaLoader ();
 
-use Devel::Cover::Process 0.02;
+use Devel::Cover::Process 0.03;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 use B qw( class main_root main_start main_cv svref_2object OPf_KIDS );
 use Data::Dumper;
@@ -25,6 +25,7 @@ my $Covering = 1;
 my $Indent   = 0;
 my $Output   = "default.cov";
 my $Summary  = 1;
+my $Details  = 0;
 
 my %Cover;
 my $Cv;
@@ -45,6 +46,7 @@ sub import
         /^-i/ && do { $Indent  = shift; next };
         /^-o/ && do { $Output  = shift; next };
         /^-S/ && do { $Summary = 0;     next };
+        /^-d/ && do { $Details = 1;     next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
 }
@@ -95,11 +97,9 @@ sub report
         close OUT or die "Cannot close $Output\n";
     }
 
-    if ($Summary)
-    {
-        my $cover = Devel::Cover::Process->new(cover => \%Cover);
-        $cover->print_summary;
-    }
+    my $cover = Devel::Cover::Process->new(cover => \%Cover);
+    $cover->print_summary if $Summary;
+    $cover->print_details if $Details;
 }
 
 sub walk_topdown
@@ -205,7 +205,7 @@ __END__
 
 Devel::Cover - a module to provide code coverage for Perl
 
-Version 0.02 - 10th May 2001
+Version 0.03 - 10th May 2001
 
 =head1 SYNOPSIS
 
@@ -234,7 +234,7 @@ Coverage data for other metrics are collected, but not reported.
 Coverage data for some metrics are not yet collected.
 
 Requirements:
-  Perl 5.6.1 or bleadperl.
+  Perl 5.6.1 or 5.7.1.
   The ability to compile XS extensions.
 
 =head1 OPTIONS
@@ -242,6 +242,7 @@ Requirements:
  -o file    - Send output to file (default default.cov).
  -i indent  - Set indentation level to indent.  See Data::Dumper for details.
  -S         - Don't print summary information.
+ -d         - Print detailed information.
 
 =head1 TUTORIAL
 

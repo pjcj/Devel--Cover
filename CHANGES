@@ -1,3 +1,12 @@
 Devel::Cover.pm history
 
 Release 0.01 - Initial release - 9th April 2001
+
+Release 0.02 - 10th April 2001
+ - Add summary output.
+ - Add -S option to turn it off.
+ - Turn Devel::Cover::Process into a class.
+
+Release 0.03 - 10th April 2001
+ - Add detailed output.
+ - Add -d option to turn it on.
