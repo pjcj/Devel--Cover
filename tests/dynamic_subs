@@ -26,15 +26,48 @@ my $t = gen(5)->(6);
 
 print "$p, $q, $r, $s, $t\n";
 
-for my $func (qw(f1 f2))
+sub call { caller }
+
+for my $func (qw(f1 f2 f3))
 {
     no strict "refs";
     *$func = sub
     {
         my $self = shift;
-        print "$func\n"
+        print "$func\n";
+        # print join " ", call, "\n";
     }
 }
 
 f1();
 f2();
+
+sub AUTOLOAD
+{
+    my ($self) = @_;                         # don't change @_ because of the goto
+    my $func = $AUTOLOAD;
+    # print "autoloading $func\n";
+    $func =~ s/^.*:://;
+    no strict "refs";
+    if ($func eq "add")
+    {
+        *$func = sub
+        {
+            print "Add!\n";
+        };
+    }
+    else
+    {
+        *$func = sub
+        {
+            print "$func\n";
+        };
+    }
+    goto &$func
+}
+
+add();
+add();
+add();
+qaz();
+wsx();

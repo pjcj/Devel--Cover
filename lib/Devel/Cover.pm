@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.34";
+our $VERSION = "0.35";
 
 use DynaLoader ();
 our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.34;
-use Devel::Cover::Inc 0.34;
+use Devel::Cover::DB  0.35;
+use Devel::Cover::Inc 0.35;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -52,6 +52,8 @@ my $Cover;                               # Coverage data.
 
 my %Criteria;                            # Names of coverage criteria.
 my %Coverage;                            # Coverage criteria to collect.
+
+my %Meta;                                # Meta data collected from the run.
 
 use vars '$File',                        # Last filename we saw.  (localised)
          '$Line',                        # Last line number we saw.  (localised)
@@ -109,6 +111,8 @@ EOM
           "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
           "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
         unless $Silent;
+    $Meta{run}   = $0;
+    $Meta{start} = get_elapsed();
 }
 
 }
@@ -145,15 +149,18 @@ sub import
 
     if (defined $Dir)
     {
+        # Die tainting.
+        # Anyone using this module can do worse things than messing with tainting.
+        $Dir = $1 if $Dir =~ /(.*)/;
         chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
     }
     else
     {
-        $Dir = Cwd::getcwd()
+        $Dir = $1 if Cwd::getcwd() =~ /(.*)/;
     }
 
     mkdir $DB unless -d $DB;  # Nasty hack to keep 5.6.1 happy.
-    $DB = Cwd::abs_path($DB);
+    $DB = $1 if Cwd::abs_path($DB) =~ /(.*)/;
 
     if ($blib)
     {
@@ -240,7 +247,6 @@ sub get_location
     # warn "$File::$Line\n";
 
     # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
-
     ($File, $Line) = ($1, $2) if $File =~ /^\(eval \d+\)\[(.*):(\d+)\]/;
 
     if (exists $File_cache{$File})
@@ -259,14 +265,13 @@ sub get_location
         last unless $f =~ s|^\.\./||;
     }
 
-    # my $f = Cwd::abs_path($File);
     $File = $f if defined $f && -f $f;
-
     $File =~ s/^$Dir\///;
-    # $File =~ s/^blib\///;
-    # $File =~ s/^lib\///;
 
     $File_cache{$file} = $File;
+    @{$Meta{vec}{$File}{$_}}{"vec", "size"} = ("", 0)
+        for grep $_ ne "time", @{$Meta{collected}};
+    # use Data::Dumper; print Dumper \%Meta;
 
     # warn "File: $file => $File\n";
 }
@@ -278,7 +283,7 @@ sub use_file
     $file = $1 if $file =~ /^\(eval \d+\)\[(.*):\d+\]/;
     $file =~ s/ \(autosplit into .*\)$//;
     $file =~ s|\.\./\.\./lib/POSIX.pm|$INC{"POSIX.pm"}|e;  # TODO - fix
-    # Possibly fixed by merging on MD5 sums.
+    # TODO - check - probably fixed by merging on MD5 sums.
 
     my $files = \%Files;
     return $files->{$file} if exists $files->{$file};
@@ -344,6 +349,8 @@ sub check_files
 
 sub report
 {
+    $Meta{finish} = get_elapsed();
+
     die "Devel::Cover::import() not run: " .
         "did you require instead of use Devel::Cover?\n"
         unless defined $Dir;
@@ -354,6 +361,8 @@ sub report
     # print "Collected @collected\n";
     return unless @collected;
     set_coverage("none");
+
+    $Meta{collected} = \@collected;
 
     # print "Processing cover data\n@Inc\n";
 
@@ -386,7 +395,9 @@ sub report
         if (open my $fh, "<", $file)
         {
             binmode $fh;
-            $Cover->{$file}{meta}{digest} = Digest::MD5->new->addfile($fh)->hexdigest;
+            $Cover->{$file}{meta}{digest} =
+                 Digest::MD5->new->addfile($fh)->hexdigest;
+            # print STDERR "md5sum of <$file> is <$Cover->{$file}{meta}{digest}>\n";
         }
         else
         {
@@ -396,16 +407,14 @@ sub report
 
     my $cover = Devel::Cover::DB->new
     (
-        cover     => $Cover,
-        collected => [ @collected ],
+        cover => $Cover,
+        meta  => { $Meta{run} => \%Meta }
     );
 
     my $existing;
     eval
     {
-        $existing = Devel::Cover::DB->new(db        => $DB,
-                                          collected => [ @collected ])
-            if $Merge;
+        $existing = Devel::Cover::DB->new(db => $DB) if $Merge;
         $cover->merge($existing);
     };
 
@@ -425,7 +434,7 @@ sub report
 sub get_key
 {
     my ($op) = @_;
-    pack("I*", $$op) . pack("I*", $op->seq)
+    pack("I*", $$op) . pack("I*", $op->targ)
 }
 
 sub add_subroutine_cover
@@ -438,9 +447,11 @@ sub add_subroutine_cover
     # print "Subroutine $sub_name $Line:$File: ", $op->name, "\n";
 
     my $key = get_key($op);
-    push @{$Cover->{$File}{subroutine}{$Line}},
-         [[$Coverage->{statement}{$key} || 0, $sub_name]];
-    # print "$File:$Line:$sub_name:", $Coverage->{statement}{$key} || 0, "\n";
+    my $val = $Coverage->{statement}{$key} || 0;
+    push @{$Cover->{$File}{subroutine}{$Line}}, [[$val, $sub_name]];
+    my $vec = $Meta{vec}{$File}{subroutine};
+    vec($vec->{vec}, $vec->{size}++, 1) = $val ? 1 : 0;
+    # print "$File:$Line:$sub_name: $val\n";
 }
 
 sub add_statement_cover
@@ -453,10 +464,11 @@ sub add_statement_cover
     # print "Statement $Line:$File: $op $$op ", $op->name, "\n";
 
     my $key = get_key($op);
-    push @{$Cover->{$File}{statement}{$Line}},
-         [[$Coverage->{statement}{$key} || 0]];
-    push @{$Cover->{$File}{time}{$Line}},
-         [[$Coverage->{time}{$key}]]
+    my $val = $Coverage->{statement}{$key} || 0;
+    push @{$Cover->{$File}{statement}{$Line}}, [[$val]];
+    my $vec = $Meta{vec}{$File}{statement};
+    vec($vec->{vec}, $vec->{size}++, 1) = $val ? 1 : 0;
+    push @{$Cover->{$File}{time}{$Line}}, [[$Coverage->{time}{$key}]]
         if exists $Coverage->{time} && exists $Coverage->{time}{$key};
 }
 
@@ -476,29 +488,28 @@ sub add_branch_cover
     my $c = $Coverage->{condition}{$key};
     # use Data::Dumper; print "Coverage $type: $text\n", Dumper \@$c;
 
+    no warnings "uninitialized";
+
     if ($type eq "and" ||
         $type eq "or"  ||
         ($type eq "elsif" && !exists $Coverage->{branch}{$key}))
     {
         # and   => this could also be a plain if with no else or elsif
-        # or    => this could also be an unless
+        # or    => this could also be an unless with no else or elsif
         # elsif => no subsequent elsifs or elses
         # True path taken if not short circuited.
         # False path taken if short circuited.
-        $c = [ ($c->[1] || 0) + ($c->[2] || 0), ($c->[3] || 0) ];
+        $c = [ $c->[1] + $c->[2], $c->[3] ];
     }
     else
     {
         $c = $Coverage->{branch}{$key} || [0, 0];
     }
 
-    push @{$Cover->{$file}{branch}{$line}},
-         [
-             [ map($_ || 0, @$c) ],
-             {
-                 text  => $text,
-             },
-         ];
+    my $vec = $Meta{vec}{$File}{branch};
+    vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
+
+    push @{$Cover->{$file}{branch}{$line}}, [ $c, { text => $text } ];
 }
 
 my %condition_locations;
@@ -526,13 +537,15 @@ sub add_condition_cover
     # use Data::Dumper; print "Condition Coverage $type\n", Dumper \@$c;
     # shift @$c;
 
+    no warnings "uninitialized";
+
     my $count;
 
     if ($type eq "or")
     {
         if ($op->first->sibling->name eq "const")
         {
-            $c = [ ($c->[3] || 0), ($c->[1] || 0) + ($c->[2] || 0) ];
+            $c = [ $c->[3], $c->[1] + $c->[2] ];
             $count = 2;
         }
         else
@@ -556,6 +569,9 @@ sub add_condition_cover
     {
         die qq(Unknown type "$type" for conditional);
     }
+
+    my $vec = $Meta{vec}{$File}{condition};
+    vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
 
     push @{$Cover->{$File}{condition}{$Line}},
          [
@@ -751,19 +767,26 @@ sub get_cover
                         $covered = 0, last if $_ eq $sub_name;
                     }
                 }
-                push @{$Cover->{$File}{pod}{$Line}[0]}, $covered if defined $covered;
+                $Cover->{$File}{pod} ||= {};
+                push @{$Cover->{$File}{pod}{$Line}[0]}, $covered
+                    if defined $covered;
             }
         }
     }
 
     my $root = $cv->ROOT;
+    # use Devel::Peek;
+    # print Dump B::svref_2object($cv);  print Dump B::svref_2object($root);
     if ($root->can("first"))
     {
         my $lineseq = $root->first;
-        add_subroutine_cover($lineseq->first, $sub_name) if $lineseq->can("first");
+        add_subroutine_cover($lineseq->first, $sub_name)
+            if $lineseq->can("first");
     }
 
-    @_ && ref $_[0] ? $deparse->deparse($_[0], 0) : $deparse->deparse_sub($cv, 0);
+    @_ && ref $_[0]
+        ? $deparse->deparse($_[0], 0)
+        : $deparse->deparse_sub($cv, 0);
 }
 
 sub get_cover_x
@@ -814,7 +837,7 @@ counts how many times each op is executed.  These data are then mapped
 back to reality using the B compiler modules.  There is also a statement
 profiling facility which needs a better backend to be really useful.
 
-The B<cover> program can be used to generate coverage reports.
+The F<cover> program can be used to generate coverage reports.
 
 Statement, branch, condition, subroutine, pod and time coverage information is
 reported.  Statement coverage data should be reasonable, although there may be
@@ -854,7 +877,7 @@ Both are in the core in Perl 5.8.0 and above.
 
 if you want Pod coverage.
 
-=item * Test::Differences
+=item * L<Test::Differences>
 
 if the tests fail and you would like nice output telling you why.
 
@@ -874,8 +897,26 @@ if the tests fail and you would like nice output telling you why.
  -inc path           - Set prefixes of files to ignore (default @INC).
  +inc path           - Append to prefixes of files to ignore.
  -merge val          - Merge databases, for multiple test benches (default on).
- -select RE          - Only report on files matching RE.
+ -select RE          - Report on files matching RE.
+ -silent val         - Don't print informational messages (default off)
  -summary val        - Print summary information iff val is true (default on).
+
+=head1 SELECTING FILES TO COVER
+
+You may select which files you want covered using the select, ignore and inc
+options.  The system works as follows:
+
+Any file matching a RE given as a select option is selected.
+
+Otherwise, any file matching a RE given as an ignore option is ignored.
+
+Otherwise, any file in one of the inc directories is ignored.  The inc
+directories are initially populated with the contects of the @INC array at the
+time Devel::Cover was built.  You may reset these directories using -inc, or add
+to them using +inc.
+
+Otherwise the file is selected.
+
 
 =head1 ACKNOWLEDGEMENTS
 
@@ -899,7 +940,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.34 - 14th January 2004
+Version 0.35 - 8th March 2004
 
 =head1 LICENCE
 

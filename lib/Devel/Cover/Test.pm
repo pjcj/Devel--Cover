@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.34";
+our $VERSION = "0.35";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.34;
+use Devel::Cover::Inc 0.35;
 
 sub new
 {
@@ -115,16 +115,44 @@ sub cover_gold
 {
     my $self = shift;
 
-    my $latest_tested = 5.008002;
-    my $v = $] > $latest_tested ? $latest_tested : $];
+    my $test = $self->{golden_test} || $self->{test};
 
-    # Backwards compatible maintenance releases
-    $v = 5.008001 if $v eq "5.008002";
-    $v = 5.006001 if $v eq "5.006002";
+    my $td = "$Devel::Cover::Inc::Base/test_output/cover";
+    opendir D, $td or die "Can't opendir $td: $!";
+    my @versions = sort    { $a <=> $b }
+                   map     { /^$test\.(5\.\d+)$/ ? $1 : () }
+                   readdir D;
+    closedir D or die "Can't closedir $td: $!";
+
+    my $v = "5.0";
+    for (@versions)
+    {
+        last if $_ > $];
+        $v = $_;
+    }
+
+    die "Can't find golden results for $test" unless $v;
 
     $v = $ENV{__COVER_GOLDEN_VERSION} if exists $ENV{__COVER_GOLDEN_VERSION};
 
-    "$Devel::Cover::Inc::Base/test_output/cover/$self->{test}.$v"
+    "$td/$test.$v"
+}
+
+sub run_command
+{
+    my $self = shift;
+    my ($command) = @_;
+
+    my $debug = $ENV{__COVER__DEBUG} || 0;
+
+    print "Running test [$command]\n" if $debug;
+
+    open T, "$command 2>&1 |" or die "Cannot run $command: $!";
+    while (<T>)
+    {
+        print if $debug;
+    }
+    close T or die "Cannot close $command: $!";
 }
 
 sub run_test
@@ -156,15 +184,14 @@ sub run_test
         return;
     }
 
-    my $test_com = $self->test_command;
-    print "Running test [$test_com]\n" if $debug;
-
-    open T, "$test_com 2>&1 |" or die "Cannot run $test_com: $!";
-    while (<T>)
+    if ($self->{run_test})
     {
-        print if $debug;
+        $self->{run_test}->($self)
     }
-    close T or die "Cannot close $test_com: $!";
+    else
+    {
+        $self->run_command($self->test_command);
+    }
 
     my $cover_com = $self->cover_command;
     print "Running cover [$cover_com]\n" if $debug;
@@ -175,8 +202,8 @@ sub run_test
     open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
     while (my $t = <T>)
     {
-        next if $t =~ /^Devel::Cover: merging run/;
         print $t if $debug;
+        next if $t =~ /^Devel::Cover: merging run/;
         my $c = shift @cover || "";
         for ($t, $c)
         {
@@ -189,6 +216,8 @@ sub run_test
             s/.* Devel \/ Cover \/*(\S+)\s*/$1/x;
             s/^(Devel::Cover: merging run).*/$1/;
             s/copyright .*//ix;
+            no warnings "exiting";
+            eval $self->{changes} if exists $self->{changes};
         }
         # print STDERR "[$t]\n[$c]\n" if $t ne $c;
         if ($differences)
@@ -229,16 +258,34 @@ sub create_gold
     print "Running cover [$cover_com]\n" if $debug;
 
     my $gold = $self->cover_gold;
-    open G, ">$gold" or die "Cannot open $gold: $!";
+    my $new_gold = $gold;
+    $new_gold =~ s/(5\.\d+)$/$]/;
+    my $gv = $1;
+    my $ng = "";
+
+    open G, ">$new_gold" or die "Cannot open $new_gold: $!";
 
     open T, "$cover_com|" or die "Cannot run $cover_com: $!";
     while (<T>)
     {
         next if /^Devel::Cover: merging run/;
-        print;
+        # print;
         print G $_;
+        $ng .= $_;
     }
     close T or die "Cannot close $cover_com: $!";
 
+    close G or die "Cannot close $new_gold: $!";
+
+    return if $gv eq "5.0" || $gv eq $];
+
+    open G, "$gold" or die "Cannot open $gold: $!";
+    my $g = do { local $/; <G> };
     close G or die "Cannot close $gold: $!";
+
+    if ($ng eq $g)
+    {
+        print "Output from $new_gold matches $gold\n";
+        unlink $new_gold;
+    }
 }

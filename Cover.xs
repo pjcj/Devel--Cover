@@ -55,13 +55,12 @@ static HV *Cover_hv,
 
 static OP *Profiling_op  = 0;
 
-typedef int seq_t;
-#define ch_sz (sizeof(void *) + sizeof(seq_t))
+#define ch_sz (sizeof(void *) + sizeof(PADOFFSET))
 
 struct unique    /* Well, we'll be fairly unlucky if it's not */
 {
     void *addr;
-    seq_t seq;
+    PADOFFSET pad;
 };
 
 union sequence   /* Hack, hack, hackety hack. */
@@ -86,25 +85,27 @@ extern "C" {
 }
 #endif
 
-#ifdef WIN32
-typedef double elapsed_type;
-#else
-typedef int    elapsed_type;
-#endif
-
-static elapsed_type elapsed()
+static double get_elapsed()
 {
-    static struct timeval time;
-    static int            sec  = 0,
-                          usec = 0;
-    elapsed_type          e;
+    struct timeval time;
+    double   e;
 
     gettimeofday(&time, NULL);
-    e    = (time.tv_sec - sec) * 1e6 + time.tv_usec - usec;
-    sec  = time.tv_sec;
-    usec = time.tv_usec;
+    e = time.tv_sec * 1e6 + time.tv_usec;
 
-    /* fprintf(stderr, "[[[%d]]]\n", sec * 1e6 + usec); */
+    /* fprintf(stderr, "[[[%f]]]\n", e); */
+
+    return e;
+}
+
+static double elapsed()
+{
+    static double p;
+           double e, t;
+
+    t = get_elapsed();
+    e = t - p;
+    p = t;
 
     return e;
 }
@@ -152,10 +153,10 @@ static char *get_key(OP *o)
     static union sequence uniq;
 
     uniq.op.addr = o;
-    uniq.op.seq  = o->op_seq;
+    uniq.op.pad  = o->op_targ;
     uniq.ch[ch_sz] = 0;
 
-    NDEB(D(L, "0x%x %d => <%s>\n", o, o->op_seq, uniq.ch));
+    NDEB(D(L, "0x%x 0x%x => <%s>\n", o, o->op_targ, uniq.ch));
 
     return uniq.ch;
 }
@@ -336,8 +337,8 @@ static OP *get_condition(pTHX)
     else
     {
         Perl_croak(aTHX_
-                   "All is lost, I know not where to go from %p, %d: %p\n",
-                   PL_op, PL_op->op_seq, sv);
+                   "All is lost, I know not where to go from %p, %p: %p\n",
+                   PL_op, PL_op->op_targ, sv);
     }
 
     return PL_op;
@@ -466,8 +467,8 @@ static void cover_logop()
                 cond = newSViv((IV) PL_op);
                 av_push(conds, cond);
 
-                NDEB(D(L, "Adding conditional %p to %d, making %d\n",
-                       next, next->op_seq, av_len(conds)));
+                NDEB(D(L, "Adding conditional %p to %p, making %d\n",
+                       next, next->op_targ, av_len(conds)));
                 NDEB(svdump(Pending_conditionals));
                 NDEB(op_dump(PL_op));
                 NDEB(op_dump(next));
@@ -806,6 +807,9 @@ coverage_all()
         RETVAL = All;
     OUTPUT:
         RETVAL
+
+double
+get_elapsed()
 
 SV *
 coverage()

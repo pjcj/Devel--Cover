@@ -4,12 +4,12 @@ Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3409/cover_db
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/destroy                              100.00    n/a    n/a 100.00 100.00
-Total                                      100.00    n/a    n/a 100.00 100.00
+tests/skip                                  83.33  50.00    n/a 100.00  72.73
+Total                                       83.33  50.00    n/a 100.00  72.73
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
-tests/destroy
+tests/skip
 
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -21,29 +21,34 @@ line  err   stmt branch   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      package Destroy;
-11                                      
-12             1                  100   sub new { bless {}, shift }
-13                                      
-14             1                        my $x;
-15                                      
-16                                      sub DESTROY
-17                                      {
-18             1                  100       $x++;
-19             1                            $x++;
-20                                      }
-21                                      
-22                                      package main;
-23                                      
-24             1                        my $d = Destroy->new;
+10                                      sub main
+11                                      {
+12             1                  100       my ($debug) = @_;
+13             1                            print "main\n";
+14    ***      1     50                     print "debug1\n" if $debug;
+15    ***      1     50                     if ($debug)
+16                                          {
+17    ***      0                                print "debug2\n";
+18                                          }
+19                                      }
+20                                      
+21             1                        main 0;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+14    ***     50      0      1   if $debug
+15    ***     50      0      1   if ($debug)
 
 
 Covered Subroutines
 -------------------
 
-Subroutine Location        
----------- ----------------
-DESTROY    tests/destroy:18
-new        tests/destroy:12
+Subroutine Location     
+---------- -------------
+main       tests/skip:12
 
 

@@ -208,3 +208,18 @@ Release 0.33 - 13th January 2004
 Release 0.34 - 14th January 2004
  - Fix various warnings and errors that had crept in whilst working on
    dynamic subs.
+
+Release 0.35 - 
+ - Change Text2 to pick up version changes.
+ - Minor documentation updates.
+ - Minor changes to Devel::Cover::Op.
+ - Add outputfile option to HTML output (David Wheeler).
+ - Document -silent option to Devel::Cover.
+ - Add -silent option to cover (David Wheeler).
+ - Make Devel::Cover taint safe, or tolerant at least.
+ - Only add versioned golden results to tests that need them.
+ - Add trivial, md5 and module_no_inc tests.
+ - Increase flexibility of testing system to accomodate md5 test.
+ - Add mani, all_gold and all_test Makefile targets.
+ - Make all_versions skip non-existent platforms.
+ - Add DB option to make dump target.

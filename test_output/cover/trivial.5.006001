@@ -1,15 +1,15 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3209/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3409/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/statement                            100.00    n/a    n/a    n/a 100.00
+tests/trivial                              100.00    n/a    n/a    n/a 100.00
 Total                                      100.00    n/a    n/a    n/a 100.00
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
-tests/statement
+tests/trivial
 
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -21,9 +21,6 @@ line  err   stmt branch   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10             1                        my $pi = 3.14159;
-11             1                        my $r  = 4;
-12             1                        my $c  = 2 * $pi * $r;
-13             1                        my $a  = $pi * $r * $r;
+10             1                        my $x = 1;
 
 

@@ -1,11 +1,11 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3209/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3409/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/dynamic_subs                         100.00  50.00    n/a 100.00  95.83
-Total                                      100.00  50.00    n/a 100.00  95.83
+tests/dynamic_subs                          96.88  75.00    n/a  91.67  93.75
+Total                                       96.88  75.00    n/a  91.67  93.75
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -40,20 +40,56 @@ line  err   stmt branch   cond    sub   code
 26                                      
 27             1                        print "$p, $q, $r, $s, $t\n";
 28                                      
-29             1                        for my $func (qw(f1 f2))
-30                                      {
-31                                          no strict "refs";
-32                                          *$func = sub
-33                                          {
-34             2                  100           my $self = shift;
+29    ***      0                    0   sub call { caller }
+30                                      
+31             1                        for my $func (qw(f1 f2 f3))
+32                                      {
+33                                          no strict "refs";
+34                                          *$func = sub
+35                                          {
+36             2                  100           my $self = shift;
                                   100   
                                   100   
-35             2                                print "$func\n"
-36                                          }
-37             2                        }
-38                                      
-39             1                        f1();
-40             1                        f2();
+                                  100   
+37             2                                print "$func\n";
+38                                              # print join " ", call, "\n";
+39                                          }
+40             3                        }
+41                                      
+42             1                        f1();
+43             1                        f2();
+44                                      
+45                                      sub AUTOLOAD
+46                                      {
+47             3                  100       my ($self) = @_;                         # don't change @_ because of the goto
+48             3                            my $func = $AUTOLOAD;
+49                                          # print "autoloading $func\n";
+50             3                            $func =~ s/^.*:://;
+51                                          no strict "refs";
+52             3    100                     if ($func eq "add")
+53                                          {
+54                                              *$func = sub
+55                                              {
+56             3                  100               print "Add!\n";
+57             1                                };
+58                                          }
+59                                          else
+60                                          {
+61                                              *$func = sub
+62                                              {
+63             2                  100               print "$func\n";
+                                  100   
+                                  100   
+64             2                                };
+65                                          }
+66             3                            goto &$func
+67                                      }
+68                                      
+69             1                        add();
+70             1                        add();
+71             1                        add();
+72             1                        qaz();
+73             1                        wsx();
 
 
 Branches
@@ -62,6 +98,7 @@ Branches
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 16    ***     50      5      0   if $y
+52           100      1      2   if ($func eq 'add') { }
 
 
 Covered Subroutines
@@ -69,10 +106,23 @@ Covered Subroutines
 
 Subroutine Location             
 ---------- ---------------------
+AUTOLOAD   tests/dynamic_subs:47
 __ANON__   tests/dynamic_subs:15
-__ANON__   tests/dynamic_subs:34
-__ANON__   tests/dynamic_subs:34
-__ANON__   tests/dynamic_subs:34
+__ANON__   tests/dynamic_subs:36
+__ANON__   tests/dynamic_subs:36
+__ANON__   tests/dynamic_subs:36
+__ANON__   tests/dynamic_subs:36
+__ANON__   tests/dynamic_subs:56
+__ANON__   tests/dynamic_subs:63
+__ANON__   tests/dynamic_subs:63
+__ANON__   tests/dynamic_subs:63
 gen        tests/dynamic_subs:12
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Location             
+---------- ---------------------
+call       tests/dynamic_subs:29
 
 

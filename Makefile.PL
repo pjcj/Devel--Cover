@@ -13,29 +13,27 @@ use strict;
 use warnings;
 
 use Cwd;
-
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest "maniread";
+use File::Copy;
 
 $| = 1;
 
-my $Version      = "0.34";
-my $Date         = "14th January 2004";
-my $Author       = 'pjcj@cpan.org';
+my $Version  = "0.35";
+my $Date     = "8th March 2004";
+my $Author   = 'pjcj@cpan.org';
 
-my @perlbug      = ("perlbug", "-a", $Author,
-                               "-s", "Installation of Devel::Cover $Version");
-my $Perlbug      = join " ", map { / / ? "'$_'" : $_ } @perlbug;
+my @perlbug  = ("perlbug", "-a", $Author,
+                           "-s", "Installation of Devel::Cover $Version");
+my $Perlbug  = join " ", map { / / ? "'$_'" : $_ } @perlbug;
 
-my @files        = sort keys %{maniread()}, "lib/Devel/Cover/Inc.pm";
-my @versions     = grep { $_ ne "README" && $_ ne "Makefile.PL" } @files;
+my @files    = sort keys %{maniread()}, "lib/Devel/Cover/Inc.pm";
+my @versions = grep { $_ ne "README" && $_ ne "Makefile.PL" } @files;
 
-my $test_version = $ENV{__COVER_GOLDEN_VERSION} || $];
+my $base     = getcwd;
 
-my $base         = getcwd;
-
-my %inc          = map { $_ => 1 } @INC;
-my @inc          = sort keys %inc;
+my %inc      = map { $_ => 1 } @INC;
+my @inc      = sort keys %inc;
 
 open I, ">lib/Devel/Cover/Inc.pm"
     or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
@@ -76,6 +74,13 @@ for my $t (readdir D)
     next unless -f "tests/$t";
     next if $t =~ /\.(pm|pl|version|org|bak)$/;
     next if $t =~ /~$/;
+
+    if ($t =~ /\.t/)
+    {
+        copy("tests/$t", "t/$t") or die "Cannot copy tests/$t to t/$t: $!";
+        next
+    }
+
     open T, ">t/a$t.t" or die "Cannot open t/a$t.t: $!";
     print T <<EOT;
 #!$^X
@@ -191,7 +196,7 @@ else
     print "not found\n\n$e\n";
 }
 
-my $latest_tested = 5.008002;
+my $latest_tested = 5.008003;
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
@@ -287,25 +292,41 @@ ppm : ppd pure_all
     -e 's/(CODEBASE HREF=")[^"]*/\$\$1Gedcom.tar.gz/;' \\
     Devel-Cover.ppd
 
+TAINT = -T
+
 _run : pure_all
-\t \$(PERL) -Mblib -MDevel::Cover=-ignore,blib,-merge,0,`\$(PERL) -e 'qx|grep __COVER__ \$\$ARGV[0]| =~ /__COVER__\\s+criteria\\s+(.*)/; (\$\$c = \$\$1 || "all") =~ s/\\s+/,/g; print "-coverage,\$\$c"' tests/\$(TEST)` tests/\$(TEST) && \\
+\t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-ignore,blib,-merge,0,`\$(PERL) -e 'qx|grep __COVER__ \$\$ARGV[0]| =~ /__COVER__\\s+criteria\\s+(.*)/; (\$\$c = \$\$1 || "all") =~ s/\\s+/,/g; print "-coverage,\$\$c"' tests/\$(TEST)` tests/\$(TEST) && \\
    \$(PERL) -Mblib cover -report text > \$(TEST).out
 
 run : _run
 \t \$(PERL) -Mblib cover && \\
    gvim -d \$(TEST).out
 
-__COVER_GOLDEN_VERSION = $test_version
+DB = cover_db
+
+dump :
+\t \$(PERL) -Mblib cover -dump_db \$(DB)
 
 FONT = 8x13
 FONT = -sun-screen-medium-r-normal-*-*-70-*-*-m-*-sun-fontspecific
 FONT = "Bitstream Vera Sans Mono 8"
 
 diff : _run
-\t gvim -d -font \$(FONT) test_output/cover/\$(TEST).\$(__COVER_GOLDEN_VERSION) \$(TEST).out
+\t \$(PERL) -i -pe '\$\$t = index \$\$_, "time   code" if !defined \$\$t || \$\$t < 0; substr \$\$_, \$\$t, 7, "" if /^line  err   stmt/ ..  /^Branches/ and length > \$\$t' \$(TEST).out
+\t gvim -d -font \$(FONT) `\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new(\$(TEST)); print \$\$t->cover_gold'` \$(TEST).out
 
 gold : pure_all
 \t \$(PERL) create_gold \$(TEST)
+
+all_test :
+\t exec \$(PERL) all_versions make test
+
+all_gold :
+\t rm -rf test_output
+\t exec \$(PERL) all_versions make gold
+
+mani :
+\t \$(PERL) -i.bak -ne '\$\$d = "test_output/cover"; print unless /^\$\$d/; END { open M, ">>MANIFEST"; opendir D, \$\$d; print M "\$\$d/\$\$_\\n" for sort grep -f "\$\$d/\$\$_" && !/\.version\$\$/, readdir D }' MANIFEST
 
 ok :
 \t \@$Perlbug -okay  || echo "Please send your report manually to $Author"

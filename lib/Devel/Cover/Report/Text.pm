@@ -10,9 +10,9 @@ package Devel::Cover::Report::Text;
 use strict;
 use warnings;
 
-our $VERSION = "0.34";
+our $VERSION = "0.35";
 
-use Devel::Cover::DB 0.34;
+use Devel::Cover::DB 0.35;
 
 sub print_file
 {
@@ -261,7 +261,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.34 - 14th January 2004
+Version 0.35 - 8th March 2004
 
 =head1 LICENCE
 

@@ -4,8 +4,8 @@ Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3409/cover_db
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/dynamic_subs                          96.97  75.00    n/a  91.67  93.88
-Total                                       96.97  75.00    n/a  91.67  93.88
+tests/dynamic_subs                          96.88  75.00    n/a  92.31  93.88
+Total                                       96.88  75.00    n/a  92.31  93.88
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -43,7 +43,6 @@ line  err   stmt branch   cond    sub   code
 29    ***      0                    0   sub call { caller }
 30                                      
 31             1                        for my $func (qw(f1 f2 f3))
-               3                        
 32                                      {
 33                                          no strict "refs";
 34                                          *$func = sub
@@ -72,6 +71,7 @@ line  err   stmt branch   cond    sub   code
 54                                              *$func = sub
 55                                              {
 56             3                  100               print "Add!\n";
+                                  100   
 57             1                                };
 58                                          }
 59                                          else
@@ -113,6 +113,7 @@ __ANON__   tests/dynamic_subs:36
 __ANON__   tests/dynamic_subs:36
 __ANON__   tests/dynamic_subs:36
 __ANON__   tests/dynamic_subs:36
+__ANON__   tests/dynamic_subs:56
 __ANON__   tests/dynamic_subs:56
 __ANON__   tests/dynamic_subs:63
 __ANON__   tests/dynamic_subs:63

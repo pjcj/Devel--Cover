@@ -21,3 +21,7 @@
 - Fix up html_basic and html_subtle for subs.
 - Sort out time coverage on Windows.
 - Marking of unreachable code - commandline tool and gui.
+- Threads support.
+- Test analysis.
+- Move HTML version and platform info to main page and allow for multiples.
+- Handle "my $x = shift || []" nicely.

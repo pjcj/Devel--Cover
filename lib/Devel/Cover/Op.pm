@@ -12,7 +12,7 @@ require 5.8.0;  # My patches to B::Concise didn't get released till 5.8.0.
 use strict;
 use warnings;
 
-our $VERSION = "0.34";
+our $VERSION = "0.35";
 
 use Devel::Cover qw( -ignore blib -ignore \\wB\\w );
 use B::Concise   qw( set_style add_callback );
@@ -55,7 +55,7 @@ sub import
     (
         sub
         {
-            my ($h, $op, $level, $format) = @_;
+            my ($h, $op, $format, $level) = @_;
             my $key = Devel::Cover::get_key($op);
             # use Data::Dumper; $Data::Dumper::Indent = 1;
             # print Dumper Devel::Cover::coverage unless $d++;
@@ -68,7 +68,7 @@ sub import
                 $h->{cover} = $s ? "s[$s]"  :
                               $b ? "b[@$b]" :
                               $c ? "b[@$c]" :
-                              "-";
+                              "";
             }
             else
             {
@@ -111,7 +111,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.34 - 14th January 2004
+Version 0.35 - 8th March 2004
 
 =head1 LICENCE
 

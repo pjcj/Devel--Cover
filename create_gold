@@ -12,13 +12,16 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.34";
+our $VERSION = "0.35";
 
 use blib;
 
-use Devel::Cover::Test 0.34;
+use Devel::Cover::Test 0.35;
 
 my @tests = @ARGV;
+
+mkdir "test_output"       unless -d "test_output";
+mkdir "test_output/cover" unless -d "test_output/cover";
 
 unless (@tests)
 {
@@ -26,7 +29,7 @@ unless (@tests)
     for my $t (readdir D)
     {
         next unless -f "tests/$t";
-        next if $t =~ /\.(pm|pl|version|org|bak)$/;
+        next if $t =~ /\.(t|pm|pl|version|org|bak)$/;
         next if $t =~ /~$/;
 
         push @tests, $t;

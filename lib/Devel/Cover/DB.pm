@@ -10,16 +10,16 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.34";
+our $VERSION = "0.35";
 
-use Devel::Cover::DB::File  0.34;
-use Devel::Cover::Criterion 0.34;
+use Devel::Cover::DB::File  0.35;
+use Devel::Cover::Criterion 0.35;
 
 use Carp;
 use File::Path;
 use Storable;
 
-my $DB = "cover.7";  # Version 7 of the database.
+my $DB = "cover.8";  # Version 8 of the database.
 
 sub new
 {
@@ -30,16 +30,17 @@ sub new
             [ qw( statement branch path condition subroutine pod time ) ],
         criteria_short =>
             [ qw( stmt      branch path cond      sub        pod time ) ],
-        collected      => [],
+        meta           => {},
         cover          => {},
         @_
     };
 
     $self->{all_criteria}       = [ @{$self->{criteria}},       "total" ];
     $self->{all_criteria_short} = [ @{$self->{criteria_short}}, "total" ];
-    $self->{collected}          = [ @{$self->{criteria}} ]
-        unless @{$self->{collected}};
-
+    my ($run) = keys %{$self->{meta}};
+    $self->{meta}{collected} = {};
+    @{$self->{meta}{collected}}{@{$self->{meta}{$run}{collected}}} = ()
+        if defined $run;
     bless $self, $class;
 
     my $file;
@@ -68,8 +69,8 @@ sub read
     # print "read $file\n";
     my $db   = retrieve($file);
 
-    $self->{cover}     = $db->{cover};
-    $self->{collected} = $db->{collected};
+    $self->{cover} = $db->{cover};
+    $self->{meta}  = $db->{meta};
 
     $self
 }
@@ -79,12 +80,16 @@ sub write
     my $self = shift;
     $self->{db} = shift if @_;
     croak "No db specified" unless length $self->{db};
+    unless (-d $self->{db})
+    {
+        mkdir $self->{db}, 0777 or croak "Cannot mkdir $self->{db}: $!\n";
+    }
     $self->validate_db;
 
     my $db =
     {
-        cover     => $self->{cover},
-        collected => $self->{collected},
+        cover => $self->{cover},
+        meta  => $self->{meta},
     };
 
     # print "write $self->{db}/$DB\n";
@@ -101,7 +106,7 @@ sub delete
     $self->{db} = $db if ref $self;
     croak "No db specified" unless length $db;
     opendir DIR, $db or die "Can't opendir $db: $!";
-    my @files = map "$db/$_", grep !/^\.\.?/, readdir DIR;
+    my @files = map "$db/$_", map /(.*)/ && $1, grep !/^\.\.?/, readdir DIR;
     closedir DIR or die "Can't closedir $db/runs: $!";
     rmtree(\@files);
     $self
@@ -112,8 +117,8 @@ sub merge_runs
     my $self = shift;
     my $db = $self->{db};
     # print "merge_runs from $db/runs/*\n";
-    return unless length $db;
-    opendir DIR, "$db/runs" or die "Can't opendir $db/runs: $!";
+    return $self unless length $db;
+    opendir DIR, "$db/runs" or return $self;
     my @runs = map "$db/runs/$_", grep !/^\.\.?/, readdir DIR;
     closedir DIR or die "Can't closedir $db/runs: $!";
 
@@ -127,14 +132,14 @@ sub merge_runs
         print STDERR "Devel::Cover: merging run $run\n"
             unless $Devel::Cover::Silent;
         my $r = Devel::Cover::DB->new(db => $run);
-        rmtree($run);
+        # rmtree($run);
         $self->merge($r);
     }
     $self->write($db) if @runs;
     $self
 }
 
-sub cover_hash
+sub cover_files
 {
     my $self = shift;
     $self->{cover}
@@ -143,25 +148,26 @@ sub cover_hash
 sub validate_db
 {
     my $self = shift;
-    unless (-d $self->{db})
-    {
-        mkdir $self->{db}, 0777 or croak "Cannot mkdir $self->{db}: $!\n";
-    }
     $self
+}
+
+sub is_valid
+{
+    my $self = shift;
+    -e "$self->{db}/$DB"
 }
 
 sub collected
 {
     my $self = shift;
-    $self->{collected} = shift if @_;
-    @{$self->{collected}}
+    sort keys %{$self->{meta}{collected}}
 }
 
 sub merge_identical_files
 {
     my $self = shift;
 
-    my $c = $self->{cover};
+    my $c = $self->cover_files;
     my %digests;
 
     for my $file (sort keys %$c)
@@ -188,24 +194,37 @@ sub merge
 {
     my ($self, $from) = @_;
 
-    for my $file (keys %{$from->{cover}})
+    my $sf = $self->cover_files;
+    my $ff = $from->cover_files;
+
+    # use Data::Dumper; print STDERR "Merging\n",Dumper($sf), Dumper($ff);
+
+    for my $file (keys %$ff)
     {
-        my $sd = $self->{cover}{$file}{meta}{digest};
-        my $fd = $from->{cover}{$file}{meta}{digest};
+        my $sd = $sf->{$file}{meta}{digest};
+        my $fd = $ff->{$file}{meta}{digest};
         if ($sd && $fd && $sd ne $fd)
         {
             # File has changed.  Delete old coverage instead of merging.
+            # TODO - Can't do coverage analysis, either.
             print STDERR "Devel::Cover: ",
                          "Deleting old coverage for changed file $file\n"
                 unless $Devel::Cover::Silent;
-            delete $from->{cover}{$file};
+            delete $ff->{$file};
         }
     }
 
     # When the database gets big, it's quicker to merge into what's
     # already there.
 
-    _merge_hash($from->cover, $self->cover);
+    # use Data::Dumper; print STDERR Dumper $self->{meta};
+    # my ($run) = grep $_ ne "collected", keys %{$self->{meta}};
+    # $from->{meta}{runs}{$run} = delete $self->{meta}{$run} if defined $run;
+
+    # use Data::Dumper; print STDERR Dumper $from->{meta};
+    _merge_hash($from->{meta}, $self->{meta});
+    # use Data::Dumper; print STDERR Dumper $from->{meta};
+    _merge_hash($from->cover,  $self->cover);
     $_[0] = $from;
 }
 
@@ -333,7 +352,7 @@ sub trimmed_file
 sub print_summary
 {
     my $self = shift;
-    my %options = map(($_ => 1), @_ ? @_ : @{$self->{collected}});
+    my %options = map(($_ => 1), @_ ? @_ : $self->collected);
     $options{total} = 1 if keys %options;
 
     my $n = keys %options;
@@ -609,13 +628,20 @@ criterion() and location().
 
 Instead of calling $file->criterion("x") you can also call $file->x.
 
+=head2 is_valid
+
+ my $valid = $db->is_valid;
+
+Returns true iff the db is valid.  (Actually there is one too many fs there, but
+that's what it shoould do.)
+
 =head1 BUGS
 
 Huh?
 
 =head1 VERSION
 
-Version 0.34 - 14th January 2004
+Version 0.35 - 8th March 2004
 
 =head1 LICENCE
 
