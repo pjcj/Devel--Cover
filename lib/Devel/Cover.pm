@@ -11,12 +11,12 @@ use strict;
 use warnings;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.25";
+our $VERSION = "0.26";
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.25;
-use Devel::Cover::Inc 0.25;
+use Devel::Cover::DB  0.26;
+use Devel::Cover::Inc 0.26;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -694,7 +694,7 @@ Devel::Cover - Code coverage metrics for Perl
 =head1 SYNOPSIS
 
  perl -MDevel::Cover yourprog args
- cover cover_db -report html
+ cover
 
  perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
 
@@ -702,7 +702,11 @@ Devel::Cover - Code coverage metrics for Perl
 
  cover -delete
  HARNESS_PERL_SWITCHES=-MDevel::Cover make test
- cover -report html
+ cover
+
+ If the module does not use the t/*.t framework:
+
+ PERL5OPT=-MDevel::Cover make test
 
 =head1 DESCRIPTION
 
@@ -784,7 +788,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.25 - 10th October 2003
+Version 0.26 - 12th October 2003
 
 =head1 LICENCE
 

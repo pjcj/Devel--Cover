@@ -48,6 +48,8 @@ sub truth_table {
 	my $line = shift;
 	my $c = $self->get($line);
 
+        return if @$c > 16;  # Too big - can't get any useful info anyway.
+
 	my @lops;
 	foreach my $c (@$c) {
 		my $op = $c->[1]{type};
@@ -171,7 +173,7 @@ sub covered {
 package Devel::Cover::Truth_Table;
 use warnings;
 use strict;
-our $VERSION = "0.25";
+our $VERSION = "0.26";
 
 #-------------------------------------------------------------------------------
 # Subroutine : new()
@@ -555,7 +557,7 @@ None that I'm aware of...
 
 =head1 VERSION
 
-Version 0.25 - 10th October 2003
+Version 0.26 - 12th October 2003
 
 =head1 LICENSE
 
