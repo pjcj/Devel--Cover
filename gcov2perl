@@ -51,6 +51,7 @@ sub add_cover
     my %run;
     $run{collected} = ["statement"];
     my $structure = Devel::Cover::DB::Structure->new;
+    $structure->add_criteria("statement");
     $structure->add_digest($f, \%run);
 
     open F, $file or die "Can't open $file: $!\n";

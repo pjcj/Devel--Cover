@@ -77,7 +77,7 @@ BEGIN
               ($ENV{PERL5OPT}              || "") =~ /Devel::Cover/;
 }
 
-if ($Config{useithreads})
+if (0 && $Config{useithreads})
 {
     eval "use threads";
 
@@ -89,7 +89,8 @@ if ($Config{useithreads})
 
     # $original_join = sub { print "j\n" };
 
-    sub threads::joinx
+    # sub threads::join
+    *threads::join = sub
     {
         # print "threads::join- ", \&threads::join, "\n";
         # print "original_join- $original_join\n";
@@ -98,22 +99,22 @@ if ($Config{useithreads})
         my @ret = $original_join->($self, @_);
         print STDERR "(returning <@ret>)\n";
         @ret
-    }
+    };
 
     my $original_destroy;
     BEGIN { $original_destroy = \&threads::DESTROY }
 
-    sub threads::DESTROYx
+    *threads::DESTROY = sub
     {
         my $self = shift;
         print STDERR "(destroying thread ", $self->tid, ")\n";
         $original_destroy->($self, @_);
-    }
+    };
 
     # print "threads::join: ", \&threads::join, "\n";
 
     my $new = \&threads::new;
-    *threads::new = sub
+    *threads::new = *threads::create = sub
     {
         my $class     = shift;
         my $sub       = shift;
@@ -127,6 +128,7 @@ if ($Config{useithreads})
                    my $ret = [ $sub->(@_) ];
                    print "Ending thread\n";
                    report() if $Initialised;
+                   print "Ended thread\n";
                    $wantarray ? @{$ret} : $ret->[0];
                },
                @_
@@ -203,7 +205,8 @@ EOM
 sub last_end
 {
     # print STDERR "**** END 2 - [$Initialised]\n";
-    report() if $Initialised
+    report() if $Initialised;
+    # print STDERR "**** END 2 - ended\n";
 }
 
 {

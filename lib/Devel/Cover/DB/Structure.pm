@@ -39,7 +39,8 @@ sub AUTOLOAD
     my ($function, $criterion) = $func =~ /^(add|get)_(.*)/;
     croak "Undefined subroutine $func called"
         unless $criterion &&
-               grep $_ eq $criterion, $self->criteria, qw( time sub_name file line );
+               grep $_ eq $criterion, @Devel::Cover::DB::Criteria,
+                                      qw( sub_name file line );
     no strict "refs";
     if ($function eq "get")
     {

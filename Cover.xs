@@ -382,12 +382,13 @@ static void add_condition(pTHX_ SV *cond_ref, int value)
     if (!final) next->op_ppaddr = addr;
 }
 
+/* NOTE: caller must protect get_condition calls by locking DC_mutex */
+
 static OP *get_condition(pTHX)
 {
     dMY_CXT;
 
     SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), CH_SZ, 0);
-    MUTEX_LOCK(&DC_mutex);
 
     if (pc && SvROK(*pc))
     {
@@ -398,12 +399,9 @@ static OP *get_condition(pTHX)
     {
         PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p\n",
                   PL_op, PL_op->op_targ, *pc));
-        /* MUTEX_LOCK(&DC_mutex); */
         PDEB(svdump(Pending_conditionals));
-        /* MUTEX_UNLOCK(&DC_mutex); */
         exit(1);
     }
-    MUTEX_UNLOCK(&DC_mutex);
 
     return PL_op;
 }
@@ -635,7 +633,7 @@ static int runops_cover(pTHX)
     char  *ch;
     HV    *Files           = 0;
     int    collecting_here = 1;
-    char  *lastfile        = 0;
+    SV    *lastfile        = newSVpvn("", 1);
 
     dMY_CXT;
 
@@ -721,8 +719,14 @@ static int runops_cover(pTHX)
             goto call_fptr;
 
         /* Nothing to collect when we've hijacked the ppaddr */
-        if (PL_op->op_ppaddr == get_condition)
-            goto call_fptr;
+        {
+            int hijacked;
+            MUTEX_LOCK(&DC_mutex);
+            hijacked = PL_op->op_ppaddr == get_condition;
+            MUTEX_UNLOCK(&DC_mutex);
+            if (hijacked)
+                goto call_fptr;
+        }
 
         /* Check to see whether we are interested in this file */
 
@@ -730,7 +734,7 @@ static int runops_cover(pTHX)
         {
             char *file = CopFILE(cCOP);
             NDEB(D(L, "File: %s:%ld\n", file, CopLINE(cCOP)));
-            if (file && (!lastfile || lastfile && strNE(lastfile, file)))
+            if (file && strNE(SvPV_nolen(lastfile), file))
             {
                 if (!Files)
                     Files = get_hv("Devel::Cover::Files", FALSE);
@@ -741,7 +745,7 @@ static int runops_cover(pTHX)
                     NDEB(D(L, "File: %s:%ld [%d]\n",
                               file, CopLINE(cCOP), collecting_here));
                 }
-                lastfile = file;
+                sv_setpv(lastfile, file);
             }
 #if (PERL_VERSION > 6)
             if (SvTRUE(MY_CXT.module))

@@ -22,15 +22,18 @@ use Storable;
 
 my $DB = "cover.12";  # Version 12 of the database.
 
+@Devel::Cover::DB::Criteria =
+    (qw( statement branch path condition subroutine pod time ));
+@Devel::Cover::DB::Criteria_short =
+    (qw( stmt      branch path cond      sub        pod time ));
+
 sub new
 {
     my $class = shift;
     my $self  =
     {
-        criteria       =>
-            [ qw( statement branch path condition subroutine pod time ) ],
-        criteria_short =>
-            [ qw( stmt      branch path cond      sub        pod time ) ],
+        criteria       => \@Devel::Cover::DB::Criteria,
+        criteria_short => \@Devel::Cover::DB::Criteria_short,
         runs           => {},
         collected      => {},
         uncoverable    => [],
