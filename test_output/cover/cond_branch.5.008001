@@ -1,11 +1,11 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3702/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/cond_branch                            87.1   79.3   19.1  100.0   70.0
-Total                                        87.1   79.3   19.1  100.0   70.0
+tests/cond_branch                            89.4   79.3   19.1  100.0   73.7
+Total                                        89.4   79.3   19.1  100.0   73.7
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -21,8 +21,12 @@ line  err   stmt branch   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      use strict;
-11                                      use warnings;
+10             1                  100   use strict;
+               1                        
+               1                        
+11             1                  100   use warnings;
+               1                        
+               1                        
 12                                      
 13             1                        my @x;
 14                                      
@@ -112,14 +116,18 @@ line  err   stmt branch   cond    sub   code
 95                                      
 96             1                        for my $y (0, 1)
 97                                      {
-98                                          no warnings "void";
+98             1                  100       no warnings "void";
+               1                        
+               1                        
 99    ***      2             0              my $w = $y xor next;
 100   ***      0                            $x[22]++;
 101                                     }
 102                                     
 103            1                        for my $y (1, 0)
 104                                     {
-105                                         no warnings "void";
+105            1                  100       no warnings "void";
+               1                        
+               1                        
 106   ***      2             0              my $w = $y xor next;
 107   ***      0                            $x[23]++;
 108                                     }
@@ -150,14 +158,18 @@ line  err   stmt branch   cond    sub   code
 133                                     
 134            1                        for my $y (0, 1)
 135                                     {
-136                                         no warnings "void";
+136            1                  100       no warnings "void";
+               1                        
+               1                        
 137   ***      1             0              my $w = $y xor last;
 138   ***      0                            $x[28]++;
 139                                     }
 140                                     
 141            1                        for my $y (1, 0)
 142                                     {
-143                                         no warnings "void";
+143            1                  100       no warnings "void";
+               1                        
+               1                        
 144   ***      1             0              my $w = $y xor last;
 145   ***      0                            $x[29]++;
 146                                     }
@@ -192,7 +204,9 @@ line  err   stmt branch   cond    sub   code
 175                                     
 176            1                        for my $y (0, 1)
 177                                     {
-178                                         no warnings "void";
+178            1                  100       no warnings "void";
+               1                        
+               1                        
 179   ***      1             0              my $w = $y xor goto G5;
 180   ***      0                            $x[34]++;
 181                                     }
@@ -200,7 +214,9 @@ line  err   stmt branch   cond    sub   code
 183                                     
 184            1                        for my $y (1, 0)
 185                                     {
-186                                         no warnings "void";
+186            1                  100       no warnings "void";
+               1                        
+               1                        
 187   ***      1             0              my $w = $y xor goto G6;
 188   ***      0                            $x[35]++;
 189                                     }
@@ -249,7 +265,9 @@ line  err   stmt branch   cond    sub   code
 232                                     {
 233            3                            $z++;
 234            3    100                     last if $z > 1;
-235                                         no warnings "void";
+235            1                  100       no warnings "void";
+               1                        
+               1                        
 236   ***      2             0              my $w = $z xor redo;
 237   ***      0                            $x[40]++;
 238                                     }
@@ -259,7 +277,9 @@ line  err   stmt branch   cond    sub   code
 242                                     {
 243            3                            $z++;
 244            3    100                     last if $z > 1;
-245                                         no warnings "void";
+245            1                  100       no warnings "void";
+               1                        
+               1                        
 246   ***      2             0              my $w = !$z xor redo;
 247   ***      0                            $x[41]++;
 248                                     }
@@ -299,7 +319,9 @@ line  err   stmt branch   cond    sub   code
 282                                     
 283                                     $s = sub
 284                                     {
-285                                         no warnings "void";
+285            1                  100       no warnings "void";
+               1                        
+               1                        
 286   ***      4             0    100       shift xor return;
 287   ***      0                            $x[44]++;
 288            1                        };
@@ -443,6 +465,17 @@ Covered Subroutines
 
 Subroutine Location             
 ---------- ---------------------
+BEGIN      tests/cond_branch:10 
+BEGIN      tests/cond_branch:105
+BEGIN      tests/cond_branch:11 
+BEGIN      tests/cond_branch:136
+BEGIN      tests/cond_branch:143
+BEGIN      tests/cond_branch:178
+BEGIN      tests/cond_branch:186
+BEGIN      tests/cond_branch:235
+BEGIN      tests/cond_branch:245
+BEGIN      tests/cond_branch:285
+BEGIN      tests/cond_branch:98 
 __ANON__   tests/cond_branch:253
 __ANON__   tests/cond_branch:269
 __ANON__   tests/cond_branch:286

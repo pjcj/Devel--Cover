@@ -10,11 +10,11 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.40";
+our $VERSION = "0.41";
 
-use Devel::Cover::Criterion     0.40;
-use Devel::Cover::DB::File      0.40;
-use Devel::Cover::DB::Structure 0.40;
+use Devel::Cover::Criterion     0.41;
+use Devel::Cover::DB::File      0.41;
+use Devel::Cover::DB::Structure 0.41;
 
 use Carp;
 use File::Path;
@@ -284,6 +284,10 @@ sub calculate_summary
     for my $file ($self->cover->items)
     {
         $self->cover->get($file)->calculate_summary($self, $file, \%options);
+    }
+
+    for my $file ($self->cover->items)
+    {
         $self->cover->get($file)->calculate_percentage($self, $s->{$file});
     }
 
@@ -361,6 +365,14 @@ sub add_statement
     for my $i (0 .. $#$fc)
     {
         my $l = $sc->[$i];
+        unless (defined $l)
+        {
+            # use Data::Dumper;
+            # print STDERR "sc ", scalar @$sc, ", fc ", scalar @$fc, "\n";
+            # print STDERR "sc ", Dumper($sc), "fc ", Dumper($fc);
+            warn "Devel::Cover: ignoring extra statement\n";
+            return;
+        }
         my $n = $line{$l}++;
         $cc->{$l}[$n] ||= do { my $c; \$c };
         no warnings "uninitialized";
@@ -376,12 +388,19 @@ sub add_branch
     for my $i (0 .. $#$fc)
     {
         my $l = $sc->[$i][0];
+        unless (defined $l)
+        {
+            warn "Devel::Cover: ignoring extra branch\n";
+            return;
+        }
         my $n = $line{$l}++;
         if (my $a = $cc->{$l}[$n])
         {
             no warnings "uninitialized";
             $a->[0][0] += $fc->[$i][0];
             $a->[0][1] += $fc->[$i][1];
+            $a->[0][2] += $fc->[$i][2] if exists $fc->[$i][2];
+            $a->[0][3] += $fc->[$i][3] if exists $fc->[$i][3];
         }
         else
         {
@@ -398,6 +417,11 @@ sub add_subroutine
     for my $i (0 .. $#$fc)
     {
         my $l = $sc->[$i][0];
+        unless (defined $l)
+        {
+            warn "Devel::Cover: ignoring extra subroutine\n";
+            return;
+        }
         my $n = $line{$l}++;
         if (my $a = $cc->{$l}[$n])
         {
@@ -431,6 +455,12 @@ sub cover
         while (my ($file, $f) = each %$count)
         {
             my $digest = $r->{digest}{$file};
+            unless ($digest)
+            {
+                print STDERR "Devel::Cover: Can't find digest for $file\n";
+                next;
+            }
+            # print STDERR "File: $file\n";
             print STDERR "Devel::Cover: merging data for $file ",
                          "into $digests{$digest}\n"
                 if !$files{$file}++ && $digests{$digest};
@@ -440,6 +470,7 @@ sub cover
                 base   => $self->{base},
                 digest => $digest,
             );
+            # use Data::Dumper; print STDERR "st ", Dumper($st), "f ", Dumper($f);
             while (my ($criterion, $fc) = each %$f)
             {
                 my $get = "get_$criterion";
@@ -620,7 +651,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.40 - 24th March 2004
+Version 0.41 - 29th April 2004
 
 =head1 LICENCE
 

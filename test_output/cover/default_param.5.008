@@ -1,0 +1,64 @@
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/default_param                         100.0    n/a  100.0  100.0  100.0
+Total                                       100.0    n/a  100.0  100.0  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+tests/default_param
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                  100   use strict;
+               1                        
+               1                        
+11             1                  100   use warnings;
+               1                        
+               1                        
+12                                      
+13                                      sub p
+14                                      {
+15             2           100    100       my $x = shift || 11;
+16             2           100              my $y = shift || [];
+17             2           100              my $z = shift || {};
+18                                      }
+19                                      
+20             1                        p $_, $_, $_ for 0, 1;
+               1                        
+               2                        
+
+
+Conditions
+----------
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+15           100      1      1   shift @_ || 11
+16           100      1      1   shift @_ || []
+17           100      1      1   shift @_ || {}
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Location              
+---------- ----------------------
+BEGIN      tests/default_param:10
+BEGIN      tests/default_param:11
+p          tests/default_param:15
+
+

@@ -5,6 +5,7 @@ Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
 tests/Module_import.pm                      100.0    n/a    n/a  100.0  100.0
+tests/module_import                         100.0    n/a    n/a  100.0  100.0
 Total                                       100.0    n/a    n/a  100.0  100.0
 ------------------------------------------ ------ ------ ------ ------ ------
 
@@ -35,5 +36,33 @@ Covered Subroutines
 Subroutine Location                 
 ---------- -------------------------
 import     tests/Module_import.pm:12
+
+
+tests/module_import
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                  100   BEGIN { push @INC, "tests" }
+11                                      
+12             1                  100   use Module_import;
+               1                        
+               1                        
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Location              
+---------- ----------------------
+BEGIN      tests/module_import:10
+BEGIN      tests/module_import:12
 
 

@@ -46,14 +46,17 @@ static unsigned Covering = All;   /* Until we find out what we really want */
 
 #define collecting(criteria) (Covering & (criteria))
 
-static HV *Cover_hv,
+static HV *Cover,
           *Statements,
           *Branches,
           *Conditions,
           *Times,
+          *Modules,
           *Pending_conditionals;
 
-static OP *Profiling_op  = 0;
+static AV *Ends;
+
+static OP *Profiling_op = 0;
 
 struct unique    /* Well, we'll be fairly unlucky if it's not */
 {
@@ -61,12 +64,12 @@ struct unique    /* Well, we'll be fairly unlucky if it's not */
     OP op;
 };
 
-#define ch_sz (sizeof(struct unique) + 1)
+#define CH_SZ (sizeof(struct unique) + 1)
 
 union sequence   /* Hack, hack, hackety hack. */
 {
     struct unique op;
-    char          ch[ch_sz + 1];
+    char          ch[CH_SZ + 1];
 };
 
 #ifdef HAS_GETTIMEOFDAY
@@ -152,12 +155,16 @@ static char *get_key(OP *o)
     uniq.op.addr          = o;
     uniq.op.op            = *o;
     uniq.op.op.op_ppaddr  = 0;  /* we mess with this field */
-    uniq.ch[ch_sz]        = 0;
+    uniq.ch[CH_SZ]        = 0;
 
-    for (i = 0; i < ch_sz; i++)
+    /* TODO - this shouldn't be necessary.  It is a hack because things
+     * are breaking with null chars in the key.  Replace them with x
+     */
+
+    for (i = 0; i < CH_SZ; i++)
         /* if (uniq.ch[i] < 32 || uniq.ch[i] > 126 ) */
         if (!uniq.ch[i])
-            uniq.ch[i] = 'x';
+            uniq.ch[i] = '-';
 
     NDEB(D(L, "0x%x <%s>\n", o, uniq.ch));
     return uniq.ch;
@@ -168,7 +175,7 @@ static void add_branch(OP *op, int br)
     AV  *branches;
     SV **count;
     int  c;
-    SV **tmp = hv_fetch(Branches, get_key(op), ch_sz, 1);
+    SV **tmp = hv_fetch(Branches, get_key(op), CH_SZ, 1);
 
     if (SvROK(*tmp))
         branches = (AV *) SvRV(*tmp);
@@ -187,21 +194,18 @@ static void add_branch(OP *op, int br)
 static AV *get_conditional_array(OP *op)
 {
     AV  *conds;
-    SV **tmp = hv_fetch(Conditions, get_key(op), ch_sz, 1);
+    SV **cref = hv_fetch(Conditions, get_key(op), CH_SZ, 1);
 
-    if (SvROK(*tmp))
-        conds = (AV *) SvRV(*tmp);
+    if (SvROK(*cref))
+        conds = (AV *) SvRV(*cref);
     else
-        *tmp = newRV_inc((SV*) (conds = newAV()));
+        *cref = newRV_inc((SV*) (conds = newAV()));
 
     return conds;
 }
 
 static void set_conditional(OP *op, int cond, int value)
 {
-    SV **count;
-    AV  *conds = get_conditional_array(op);
-
     /*
      * The conditional array comprises five elements:
      *
@@ -212,21 +216,69 @@ static void set_conditional(OP *op, int cond, int value)
      * 4 - for xor second operand is true
      */
 
-    count = av_fetch(conds, cond, 1);
+    SV **count = av_fetch(get_conditional_array(op), cond, 1);
     sv_setiv(*count, value);
     NDEB(D(L, "Setting %d conditional to %d at %p\n", cond, value, op));
 }
 
 static void add_conditional(OP *op, int cond)
 {
-    SV **count;
-    int  c;
-    AV  *conds = get_conditional_array(op);
-
-    count = av_fetch(conds, cond, 1);
-    c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
+    SV **count = av_fetch(get_conditional_array(op), cond, 1);
+    int  c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
     sv_setiv(*count, c);
     NDEB(D(L, "Adding %d conditional making %d at %p\n", cond, c, op));
+}
+
+static void add_condition(SV *cond_ref, int value)
+{
+    int   final       = !value;
+    AV   *conds       = (AV *)          SvRV(cond_ref);
+    OP   *next        = (OP *)          SvIV(*av_fetch(conds, 0, 0));
+    OP *(*addr)(pTHX) = (OP *(*)(pTHX)) SvIV(*av_fetch(conds, 1, 0));
+    I32   i;
+
+    NDEB(D(L, "Looking through %d conditionals\n", av_len(conds) - 1));
+    for (i = 2; i <= av_len(conds); i++)
+    {
+        OP  *op    = (OP *) SvIV(*av_fetch(conds, i, 0));
+        SV **count = av_fetch(get_conditional_array(op), 0, 1);
+        int  type  = SvTRUE(*count) ? SvIV(*count) : 0;
+        sv_setiv(*count, 0);
+
+        /* Check if we have come from an xor with a true first op */
+        if (final)     value =  1;
+        if (type == 1) value += 2;
+
+        NDEB(D(L, "Found %p: %d, %d\n", op, type, value));
+        add_conditional(op, value);
+    }
+
+    while (av_len(conds) > 1) av_pop(conds);
+
+    NDEB(svdump(conds));
+    NDEB(D(L, "addr is %p, next is %p, PL_op is %p, length is %d\n",
+              addr, next, PL_op, av_len(conds)));
+    if (!final) next->op_ppaddr = addr;
+}
+
+static OP *get_condition(pTHX)
+{
+    SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), CH_SZ, 0);
+
+    if (pc && SvROK(*pc))
+    {
+        dSP;
+        add_condition(*pc, SvTRUE(TOPs) ? 2 : 1);
+    }
+    else
+    {
+        PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p\n",
+                  PL_op, PL_op->op_targ, *pc));
+        PDEB(svdump(Pending_conditionals));
+        exit(1);
+    }
+
+    return PL_op;
 }
 
 static void finalise_conditions()
@@ -237,116 +289,18 @@ static void finalise_conditions()
      * never get to that op; for example we might return out of a sub.
      * This causes us to lose coverage information.
      *
-     * This function is called when the program has been run in order to
-     * collect that lost information.
+     * This function is called after the program has been run in order
+     * to collect that lost information.
      */
 
     HE *e;
-    I32 i = hv_iterinit(Pending_conditionals);
+    hv_iterinit(Pending_conditionals);
 
     while (e = hv_iternext(Pending_conditionals))
     {
-        SV *sv = hv_iterval(Pending_conditionals, e);
-        AV *conds = (AV *) SvRV(sv);
-
-        NDEB(D(L, "Looking through %d conditionals\n", av_len(conds)));
-
-        for (i = 1; i <= av_len(conds); i++)
-        {
-            SV **sv = av_fetch(conds, i, 0);
-            OP *op = (OP *) SvIV(*sv);
-
-            {
-                dSP;
-                SV **count;
-                int  type;
-                AV  *cond_array = get_conditional_array(op);
-                int  value;
-
-                /*
-                 * Since we are here we know that the condition was not
-                 * short circuited.  We also know that the other operand
-                 * must have made the condition true, otherwise we would
-                 * have reached the op we were expecting to reach.
-                 */
-
-                count = av_fetch(cond_array, 0, 1);
-                type  = SvTRUE(*count) ? SvIV(*count) : 0;
-                sv_setiv(*count, 0);
-
-                /* Check if we have come from an xor with a true first op */
-                value = (type == 1) ? 3 : 2;
-
-                NDEB(D(L, "%3d: Found %p\n", i, PL_op));
-                add_conditional(op, value);
-            }
-        }
-
-        av_clear(conds);
+        NDEB(D(L, "finalise_conditions\n"));
+        add_condition(hv_iterval(Pending_conditionals, e), 0);
     }
-}
-
-static OP *get_condition(pTHX)
-{
-    char *ch = get_key(PL_op);
-    SV  **sv = hv_fetch(Pending_conditionals, ch, ch_sz, 0);
-
-    NDEB(D(L, "In get_condition\n"));
-
-    if (sv && SvROK(*sv))
-    {
-        OP *(*f)(pTHX);
-        AV   *conds = (AV *) SvRV(*sv);
-        I32   i;
-
-        NDEB(D(L, "Looking through %d conditionals\n", av_len(conds)));
-
-        sv = av_fetch(conds, 0, 0);
-        f  = (OP *(*)(pTHX)) SvIV(*sv);
-
-        for (i = 1; i <= av_len(conds); i++)
-        {
-            OP *op;
-            sv = av_fetch(conds, i, 0);
-            op = (OP *) SvIV(*sv);
-
-            {
-                dSP;
-                SV **count;
-                int  type;
-                AV  *cond_array = get_conditional_array(op);
-                int value = SvTRUE(TOPs) ? 2 : 1;
-
-                count = av_fetch(cond_array, 0, 1);
-                type  = SvTRUE(*count) ? SvIV(*count) : 0;
-                sv_setiv(*count, 0);
-
-                /* Check if we have come from an xor with a true first op */
-                if (type == 1)
-                    value += 2;
-
-                NDEB(D(L, "%3d: Found %p\n", i, PL_op));
-                add_conditional(op, value);
-            }
-        }
-
-        av_clear(conds);
-
-        NDEB(D(L, "f is %p\n", f));
-
-        PL_op->op_ppaddr = f;
-    }
-    else
-    {
-        NDEB(D(L, "[%s]\n", ch));
-        /* PDEB(svdump(*sv)); */
-        PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p\n",
-                  PL_op, PL_op->op_targ, sv));
-        PDEB(svdump(Pending_conditionals));
-        exit(1);
-    }
-
-    return PL_op;
 }
 
 static void cover_cond()
@@ -359,8 +313,7 @@ static void cover_cond()
     }
 }
 
-static void cover_logop()
-{
+static void cover_logop() {
     /*
      * For OP_AND, if the first operand is false, we have short
      * circuited the second, otherwise the value of the and op is the
@@ -384,11 +337,13 @@ static void cover_logop()
      * then reset and run the original op_ppaddr.  We also store
      * information in the Pending_conditionals hash.  This is keyed on
      * the op and the value is an array, the first element of which is
-     * the op_ppaddr we overwrote, and the subsequent elements are the
-     * ops about which we are collecting the condition coverage
-     * information.  Note that an op may be collecting condition
-     * coverage information about a number of conditions.
+     * the op we are messing with, the second element of which is the
+     * op_ppaddr we overwrote, and the subsequent elements are the ops
+     * about which we are collecting the condition coverage information.
+     * Note that an op may be collecting condition coverage information
+     * about a number of conditions.
      */
+
 
     if (!collecting(Condition))
         return;
@@ -431,7 +386,7 @@ static void cover_logop()
             {
                 char *ch;
                 AV   *conds;
-                SV  **tmp,
+                SV  **cref,
                      *cond;
                 OP   *next;
 
@@ -455,25 +410,24 @@ static void cover_logop()
 
                 next = PL_op->op_next;
                 ch   = get_key(next);
-                tmp  = hv_fetch(Pending_conditionals, ch, ch_sz, 1);
+                cref = hv_fetch(Pending_conditionals, ch, CH_SZ, 1);
 
-                if (SvROK(*tmp))
-                    conds = (AV *)SvRV(*tmp);
+                if (SvROK(*cref))
+                    conds = (AV *)SvRV(*cref);
                 else
-                    *tmp = newRV_inc((SV*) (conds = newAV()));
+                    *cref = newRV_inc((SV*) (conds = newAV()));
 
                 if (av_len(conds) < 0)
                 {
-                    SV *ppaddr = newSViv((IV) next->op_ppaddr);
-                    av_push(conds, ppaddr);
-                    NDEB(D(L, "setting f to %p\n", next->op_ppaddr));
+                    av_push(conds, newSViv((IV) next));
+                    av_push(conds, newSViv((IV) next->op_ppaddr));
                 }
 
                 cond = newSViv((IV) PL_op);
                 av_push(conds, cond);
 
                 NDEB(D(L, "Adding conditional %p to %p, making %d\n",
-                       next, next->op_targ, av_len(conds)));
+                       next, next->op_targ, av_len(conds) - 1));
                 NDEB(svdump(Pending_conditionals));
                 NDEB(op_dump(PL_op));
                 NDEB(op_dump(next));
@@ -484,7 +438,6 @@ static void cover_logop()
         else
         {
             /* short circuit */
-
             add_conditional(PL_op, 3);
         }
     }
@@ -510,7 +463,7 @@ static void cover_time()
         if (Profiling_op)
         {
             ch    = get_key(Profiling_op);
-            count = hv_fetch(Times, ch, ch_sz, 1);
+            count = hv_fetch(Times, ch, CH_SZ, 1);
             c     = (SvTRUE(*count) ? SvNV(*count) : 0) +
 #if defined HAS_GETTIMEOFDAY
                     elapsed();
@@ -535,36 +488,45 @@ static int runops_cover(pTHX)
     int    collecting_here = 1;
     char  *lastfile        = 0;
 
+    static SV *module;
+
     NDEB(D(L, "runops_cover\n"));
 
-    if (!Cover_hv)
+    if (!Cover)
     {
         /* TODO - this probably leaks all over the place */
 
         SV **tmp;
 
-        Cover_hv   = newHV();
+        Cover      = newHV();
 
-        tmp        = hv_fetch(Cover_hv, "statement", 9, 1);
+        tmp        = hv_fetch(Cover, "statement", 9, 1);
         Statements = newHV();
         *tmp       = newRV_inc((SV*) Statements);
 
-        tmp        = hv_fetch(Cover_hv, "branch", 6, 1);
+        tmp        = hv_fetch(Cover, "branch",    6, 1);
         Branches   = newHV();
         *tmp       = newRV_inc((SV*) Branches);
 
-        tmp        = hv_fetch(Cover_hv, "condition", 9, 1);
+        tmp        = hv_fetch(Cover, "condition", 9, 1);
         Conditions = newHV();
         *tmp       = newRV_inc((SV*) Conditions);
 
 #if CAN_PROFILE
-        tmp        = hv_fetch(Cover_hv, "time", 4, 1);
+        tmp        = hv_fetch(Cover, "time",      4, 1);
         Times      = newHV();
         *tmp       = newRV_inc((SV*) Times);
 #endif
 
+        tmp        = hv_fetch(Cover, "module",    6, 1);
+        Modules    = newHV();
+        *tmp       = newRV_inc((SV*) Modules);
+
         Pending_conditionals = newHV();
     }
+
+    if (!module)
+        module = newSVpv("", 0);
 
 #if defined HAS_GETTIMEOFDAY
     elapsed();
@@ -600,6 +562,32 @@ static int runops_cover(pTHX)
                 }
                 lastfile = file;
             }
+#if (PERL_VERSION > 6)
+            if (SvTRUE(module))
+            {
+                STRLEN mlen,
+                       flen = strlen(file);
+                char  *m    = SvPV(module, mlen);
+                if (flen >= mlen && strnEQ(m, file + flen - mlen, mlen))
+                {
+                    SV **dir = hv_fetch(Modules, file, strlen(file), 1);
+                    if (!SvROK(*dir))
+                    {
+                        SV *cwd = newSV(0);
+                        AV *d   = newAV();
+                        *dir = newRV_inc((SV*) d);
+                        av_push(d, newSVsv(module));
+                        if (getcwd_sv(cwd))
+                        {
+                            av_push(d, newSVsv(cwd));
+                            NDEB(D(L, "require %s as %s from %s\n",
+                                      m, file, SvPV_nolen(cwd)));
+                        }
+                    }
+                }
+                sv_setpv(module, "");
+            }
+#endif
         }
 
         if (!collecting_here)
@@ -628,7 +616,7 @@ static int runops_cover(pTHX)
                 if (collecting(Statement))
                 {
                     ch    = get_key(PL_op);
-                    count = hv_fetch(Statements, ch, ch_sz, 1);
+                    count = hv_fetch(Statements, ch, CH_SZ, 1);
                     c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
                     sv_setiv(*count, c);
                     NDEB(op_dump(PL_op));
@@ -652,6 +640,14 @@ static int runops_cover(pTHX)
                 break;
             }
 
+            case OP_REQUIRE:
+            {
+                dSP;
+                sv_setsv(module, TOPs);
+                NDEB(D(L, "require %s\n", SvPV_nolen(module)));
+                break;
+            }
+
             default:
                 ;  /* IBM's xlC compiler on AIX is very picky */
         }
@@ -661,6 +657,7 @@ static int runops_cover(pTHX)
         {
 #if CAN_PROFILE
             cover_time();
+            Profiling_op = 0;
 #endif
             break;
         }
@@ -685,7 +682,42 @@ static int runops_orig(pTHX)
     return 0;
 }
 
+static char *svclassnames[] =
+{
+    "B::NULL",
+    "B::IV",
+    "B::NV",
+    "B::RV",
+    "B::PV",
+    "B::PVIV",
+    "B::PVNV",
+    "B::PVMG",
+    "B::BM",
+    "B::GV",
+    "B::PVLV",
+    "B::AV",
+    "B::HV",
+    "B::CV",
+    "B::FM",
+    "B::IO",
+};
+
+static SV *make_sv_object(pTHX_ SV *arg, SV *sv)
+{
+    IV    iv;
+    char *type;
+    /* dMY_CXT; */
+
+    iv = PTR2IV(sv);
+    type = svclassnames[SvTYPE(sv)];
+    sv_setiv(newSVrv(arg, type), iv);
+    return arg;
+}
+
+
 typedef OP *B__OP;
+typedef AV *B__AV;
+
 
 MODULE = Devel::Cover PACKAGE = Devel::Cover
 
@@ -784,12 +816,13 @@ double
 get_elapsed()
 
 SV *
-coverage()
+coverage(final)
+        unsigned final
     CODE:
-        finalise_conditions();
+        if (final) finalise_conditions();
         ST(0) = sv_newmortal();
-        if (Cover_hv)
-            sv_setsv(ST(0), newRV_inc((SV*) Cover_hv));
+        if (Cover)
+            sv_setsv(ST(0), newRV_inc((SV*) Cover));
         else
             ST(0) = &PL_sv_undef;
 
@@ -801,10 +834,44 @@ get_key(o)
     OUTPUT:
         RETVAL
 
+void
+copy_ends()
+    PPCODE:
+        int i;
+        OP *op;
+        Ends = newAV();
+        if (PL_initav)
+            for (i = 0; i <= av_len(PL_initav); i++)
+            {
+                SV **cv = av_fetch(PL_initav, i, 0);
+                SvREFCNT_inc(*cv);
+                av_push(Ends, *cv);
+            }
+        if (PL_endav)
+            for (i = 0; i <= av_len(PL_endav); i++)
+            {
+                SV **cv = av_fetch(PL_endav, i, 0);
+                SvREFCNT_inc(*cv);
+                av_push(Ends, *cv);
+            }
+
+B::AV
+get_ends()
+    CODE:
+        RETVAL = Ends;
+    OUTPUT:
+        RETVAL
+
+void
+set_end()
+    PPCODE:
+        SV *end = (SV *)get_cv("end", 0);
+        NDEB(svdump(end));
+        av_push(PL_endav, end);
+
 
 BOOT:
     PL_runops        = runops_cover;
-    /* PL_savebegin     = TRUE; */
-    /* PL_savecheck     = TRUE; */
-    /* PL_saveinit      = TRUE; */
-    /* PL_saveend       = TRUE; */
+#if (PERL_VERSION > 6)
+    PL_savebegin     = TRUE;
+#endif

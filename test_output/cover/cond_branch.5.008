@@ -1,0 +1,515 @@
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/cond_branch                            86.3   79.3   19.1  100.0   73.3
+Total                                        86.3   79.3   19.1  100.0   73.3
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+tests/cond_branch
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                  100   use strict;
+               1                        
+               1                        
+11             1                  100   use warnings;
+               1                        
+               1                        
+12                                      
+13             1                        my @x;
+14                                      
+15             1                        for my $y (0, 0)
+               2                        
+16                                      {
+17             2                            for my $z (1, 0)
+               4                        
+18                                          {
+19    ***      4     50     33                  if ($y && $z)
+20                                              {
+21    ***      0                                    $x[1]++;
+22                                              }
+23                                              else
+24                                              {
+25             4                                    $x[2]++;
+26                                              }
+27    ***      4    100     66                  if ($y || $z)
+28                                              {
+29             2                                    $x[3]++;
+30                                              }
+31                                              else
+32                                              {
+33             2                                    $x[4]++;
+34                                              }
+35                                      
+36    ***      4     50                         $y && $x[5]++;
+37    ***      4     50                         $x[5]++ if $y;
+38                                      
+39             4    100                         $z && $x[6]++;
+40             4    100                         $x[6]++ if $z;
+41                                      
+42    ***      4     50                         $y || $x[7]++;
+43    ***      4     50                         $x[7]++ unless $y;
+44                                      
+45             4    100                         $z || $x[8]++;
+46             4    100                         $x[8]++ unless $z;
+47                                      
+48    ***      4     50                         $y ? $x[9]++  : $x[10]++;
+49             4    100                         $z ? $x[11]++ : $x[12]++;
+50                                      
+51    ***      4     50     33                  if ($y)
+      ***            50     66          
+                    100                 
+52                                              {
+53    ***      0                                    $x[13]++;
+54                                              }
+55                                              elsif ($y && $z)
+56                                              {
+57    ***      0                                    $x[14]++;
+58                                              }
+59                                              elsif ($y || $z)
+60                                              {
+61             2                                    $x[15]++;
+62                                              }
+63                                              else
+64                                              {
+65             2                                    $x[16]++;
+66                                              }
+67                                      
+68    ***      4     50     33                  $y && $z && $x[17]++; $y && $z && $x[18]++;
+      ***      4     50     33          
+69                                          }
+70                                      }
+71                                      
+72             1                        for my $y (0, 1)
+               2                        
+73                                      {
+74             2    100                     $y || next;
+75             1                            $x[18]++;
+76                                      }
+77                                      
+78             1                        for my $y (1, 0)
+               2                        
+79                                      {
+80             2    100                     $y || next;
+81             1                            $x[19]++;
+82                                      }
+83                                      
+84             1                        for my $y (0, 1)
+               2                        
+85                                      {
+86             2    100                     $y && next;
+87             1                            $x[20]++;
+88                                      }
+89                                      
+90             1                        for my $y (1, 0)
+               2                        
+91                                      {
+92             2    100                     $y && next;
+93             1                            $x[21]++;
+94                                      }
+95                                      
+96             1                        for my $y (0, 1)
+               2                        
+97                                      {
+98             1                  100       no warnings "void";
+               1                        
+               1                        
+99    ***      2             0              my $w = $y xor next;
+100   ***      0                            $x[22]++;
+101                                     }
+102                                     
+103            1                        for my $y (1, 0)
+               2                        
+104                                     {
+105            1                  100       no warnings "void";
+               1                        
+               1                        
+106   ***      2             0              my $w = $y xor next;
+107   ***      0                            $x[23]++;
+108                                     }
+109                                     
+110            1                        for my $y (0, 1)
+      ***      0                        
+111                                     {
+112   ***      1     50                     $y || last;
+113   ***      0                            $x[24]++;
+114                                     }
+115                                     
+116            1                        for my $y (1, 0)
+               1                        
+117                                     {
+118            2    100                     $y || last;
+119            1                            $x[25]++;
+120                                     }
+121                                     
+122            1                        for my $y (0, 1)
+               1                        
+123                                     {
+124            2    100                     $y && last;
+125            1                            $x[26]++;
+126                                     }
+127                                     
+128            1                        for my $y (1, 0)
+      ***      0                        
+129                                     {
+130   ***      1     50                     $y && last;
+131   ***      0                            $x[27]++;
+132                                     }
+133                                     
+134            1                        for my $y (0, 1)
+      ***      0                        
+135                                     {
+136            1                  100       no warnings "void";
+               1                        
+               1                        
+137   ***      1             0              my $w = $y xor last;
+138   ***      0                            $x[28]++;
+139                                     }
+140                                     
+141            1                        for my $y (1, 0)
+      ***      0                        
+142                                     {
+143            1                  100       no warnings "void";
+               1                        
+               1                        
+144   ***      1             0              my $w = $y xor last;
+145   ***      0                            $x[29]++;
+146                                     }
+147                                     
+148            1                        for my $y (0, 1)
+      ***      0                        
+149                                     {
+150   ***      1     50                     $y || goto G1;
+151   ***      0                            $x[30]++;
+152                                     }
+153                                     G1:
+154                                     
+155            1                        for my $y (1, 0)
+               1                        
+156                                     {
+157            2    100                     $y || goto G2;
+158            1                            $x[31]++;
+159                                     }
+160                                     G2:
+161                                     
+162            1                        for my $y (0, 1)
+               1                        
+163                                     {
+164            2    100                     $y && goto G3;
+165            1                            $x[32]++;
+166                                     }
+167                                     G3:
+168                                     
+169            1                        for my $y (1, 0)
+      ***      0                        
+170                                     {
+171   ***      1     50                     $y && goto G4;
+172   ***      0                            $x[33]++;
+173                                     }
+174                                     G4:
+175                                     
+176            1                        for my $y (0, 1)
+      ***      0                        
+177                                     {
+178            1                  100       no warnings "void";
+               1                        
+               1                        
+179   ***      1             0              my $w = $y xor goto G5;
+180   ***      0                            $x[34]++;
+181                                     }
+182                                     G5:
+183                                     
+184            1                        for my $y (1, 0)
+      ***      0                        
+185                                     {
+186            1                  100       no warnings "void";
+               1                        
+               1                        
+187   ***      1             0              my $w = $y xor goto G6;
+188   ***      0                            $x[35]++;
+189                                     }
+190                                     G6:
+191                                     
+192            1                        my $z;
+193                                     
+194            1                        $z = -1;
+195            1                        for my $y (0, 1)
+               1                        
+196                                     {
+197            3                            $z++;
+198            3    100                     last if $z > 1;
+199            2    100                     $z || redo;
+200            1                            $x[36]++;
+201                                     }
+202                                     
+203            1                        $z = -1;
+204            1                        for my $y (1, 0)
+               1                        
+205                                     {
+206            3                            $z++;
+207            3    100                     last if $z > 1;
+208            2    100                     !$z || redo;
+209            1                            $x[37]++;
+210                                     }
+211                                     
+212            1                        $z = -1;
+213            1                        for my $y (0, 1)
+               1                        
+214                                     {
+215            3                            $z++;
+216            3    100                     last if $z > 1;
+217            2    100                     $z && redo;
+218            1                            $x[38]++;
+219                                     }
+220                                     
+221            1                        $z = -1;
+222            1                        for my $y (1, 0)
+               1                        
+223                                     {
+224            3                            $z++;
+225            3    100                     last if $z > 1;
+226            2    100                     !$z && redo;
+227            1                            $x[39]++;
+228                                     }
+229                                     
+230            1                        $z = -1;
+231            1                        for my $y (0, 1)
+      ***      0                        
+232                                     {
+233            3                            $z++;
+234            3    100                     last if $z > 1;
+235            1                  100       no warnings "void";
+               1                        
+               1                        
+236   ***      2             0              my $w = $z xor redo;
+237   ***      0                            $x[40]++;
+238                                     }
+239                                     
+240            1                        $z = -1;
+241            1                        for my $y (1, 0)
+      ***      0                        
+242                                     {
+243            3                            $z++;
+244            3    100                     last if $z > 1;
+245            1                  100       no warnings "void";
+               1                        
+               1                        
+246   ***      2             0              my $w = !$z xor redo;
+247   ***      0                            $x[41]++;
+248                                     }
+249                                     
+250            1                        my $s;
+251                                     $s = sub
+252                                     {
+253            4    100           100       shift || return;
+254            2                            $x[42]++;
+255            1                        };
+256                                     
+257            1                        for my $y (0, 1)
+               2                        
+258                                     {
+259            2                            $s->($y)
+260                                     }
+261                                     
+262            1                        for my $y (1, 0)
+               2                        
+263                                     {
+264            2                            $s->($y)
+265                                     }
+266                                     
+267                                     $s = sub
+268                                     {
+269            4    100           100       shift && return;
+270            2                            $x[43]++;
+271            1                        };
+272                                     
+273            1                        for my $y (0, 1)
+               2                        
+274                                     {
+275            2                            $s->($y)
+276                                     }
+277                                     
+278            1                        for my $y (1, 0)
+               2                        
+279                                     {
+280            2                            $s->($y)
+281                                     }
+282                                     
+283                                     $s = sub
+284                                     {
+285            1                  100       no warnings "void";
+               1                        
+               1                        
+286   ***      4             0    100       shift xor return;
+287   ***      0                            $x[44]++;
+288            1                        };
+289                                     
+290            1                        for my $y (0, 1)
+               2                        
+291                                     {
+292            2                            $s->($y)
+293                                     }
+294                                     
+295            1                        for my $y (1, 0)
+               2                        
+296                                     {
+297            2                            $s->($y)
+298                                     }
+299                                     
+300            1                        my ($a, $b) = (0, 1);
+301                                     
+302   ***      1     50     33          if ($a && $b)
+      ***            50     33          
+      ***            50     50          
+303                                     {
+304   ***      0                            print "path 1\n";
+305                                     }
+306                                     elsif (!$a && !$b)
+307                                     {
+308   ***      0                            print "path 2\n";
+309                                     }
+310                                     elsif ($b || 0)
+311                                     {
+312            1                            print "path 3\n";
+313   ***      1     50     33              if (!$b || $a)
+      ***            50     33          
+314                                         {
+315   ***      0                                print "path 4\n";
+316                                         }
+317                                         elsif (!$a && $b)
+318                                         {
+319            1                                print "path 5\n";
+320                                         }
+321                                     }
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+19    ***     50      0      4   if ($y and $z) { }
+27           100      2      2   if ($y or $z) { }
+36    ***     50      0      4   if $y
+37    ***     50      0      4   if $y
+39           100      2      2   if $z
+40           100      2      2   if $z
+42    ***     50      4      0   unless $y
+43    ***     50      4      0   unless $y
+45           100      2      2   unless $z
+46           100      2      2   unless $z
+48    ***     50      0      4   $y ? :
+49           100      2      2   $z ? :
+51    ***     50      0      4   if ($y) { }
+      ***     50      0      4   elsif ($y and $z) { }
+             100      2      2   elsif ($y or $z) { }
+68    ***     50      0      4   if $y and $z
+      ***     50      0      4   if $y and $z
+74           100      1      1   unless $y
+80           100      1      1   unless $y
+86           100      1      1   if $y
+92           100      1      1   if $y
+112   ***     50      1      0   unless $y
+118          100      1      1   unless $y
+124          100      1      1   if $y
+130   ***     50      1      0   if $y
+150   ***     50      1      0   unless $y
+157          100      1      1   unless $y
+164          100      1      1   if $y
+171   ***     50      1      0   if $y
+198          100      1      2   if $z > 1
+199          100      1      1   unless $z
+207          100      1      2   if $z > 1
+208          100      1      1   unless not $z
+216          100      1      2   if $z > 1
+217          100      1      1   if $z
+225          100      1      2   if $z > 1
+226          100      1      1   if not $z
+234          100      1      2   if $z > 1
+244          100      1      2   if $z > 1
+253          100      2      2   unless shift @_
+269          100      2      2   if shift @_
+302   ***     50      0      1   if ($a and $b) { }
+      ***     50      0      1   elsif (not $a and not $b) { }
+      ***     50      1      0   elsif ($b or 0) { }
+313   ***     50      0      1   if (not $b or $a) { }
+      ***     50      1      0   elsif (not $a and $b) { }
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+19    ***     33      4      0      0   $y and $z
+51    ***     33      4      0      0   $y and $z
+68    ***     33      4      0      0   $y and $z
+      ***     33      4      0      0   $y and $z
+302   ***     33      1      0      0   $a and $b
+      ***     33      0      1      0   not $a and not $b
+313   ***     33      0      0      1   not $a and $b
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+302   ***     50      1      0   $b or 0
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+27    ***     66      0      2      2   $y or $z
+51    ***     66      0      2      2   $y or $z
+313   ***     33      0      0      1   not $b or $a
+
+xor 4 conditions
+
+line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------ ------   ----
+99    ***      0      0      0      0      0   my $w = $y xor next
+106   ***      0      0      0      0      0   my $w = $y xor next
+137   ***      0      0      0      0      0   my $w = $y xor last
+144   ***      0      0      0      0      0   my $w = $y xor last
+179   ***      0      0      0      0      0   my $w = $y xor goto G5
+187   ***      0      0      0      0      0   my $w = $y xor goto G6
+236   ***      0      0      0      0      0   my $w = $z xor redo
+246   ***      0      0      0      0      0   my $w = !$z xor redo
+286   ***      0      0      0      0      0   shift @_ xor return
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Location             
+---------- ---------------------
+BEGIN      tests/cond_branch:10 
+BEGIN      tests/cond_branch:105
+BEGIN      tests/cond_branch:11 
+BEGIN      tests/cond_branch:136
+BEGIN      tests/cond_branch:143
+BEGIN      tests/cond_branch:178
+BEGIN      tests/cond_branch:186
+BEGIN      tests/cond_branch:235
+BEGIN      tests/cond_branch:245
+BEGIN      tests/cond_branch:285
+BEGIN      tests/cond_branch:98 
+__ANON__   tests/cond_branch:253
+__ANON__   tests/cond_branch:269
+__ANON__   tests/cond_branch:286
+
+

@@ -1,4 +1,4 @@
-- Code in BEGIN and END blocks is not reported.
+- BEGIN and CHECK blocks and code in modules is not reported.
 
 - Doesn't play nicely with all of Perl's testsuite.
 
@@ -11,7 +11,7 @@
   elsif ($a + 1) {}'
   Use of uninitialized value in addition (+) at -e line 1.
 
-- Pod coverage only report data for modules, not top level scripts.
+- Pod coverage only reports data for modules, not top level scripts.
   This is a limitation in Pod::Coverage.
 
 - Pod coverage does not work well with source filters including Switch.

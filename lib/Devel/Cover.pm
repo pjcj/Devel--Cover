@@ -10,20 +10,21 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.40";
+our $VERSION = "0.41";
 
 use DynaLoader ();
-our @ISA = qw( DynaLoader );
+our @ISA = "DynaLoader";
 
-use Devel::Cover::DB  0.40;
-use Devel::Cover::Inc 0.40;
+use Devel::Cover::DB  0.41;
+use Devel::Cover::Inc 0.41;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
 use B::Deparse;
 
-use Cwd ();
+use Cwd "abs_path";
 use Digest::MD5;
+use File::Spec;
 
 BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
 
@@ -71,6 +72,7 @@ BEGIN
     ($File, $Line, $Collect)      = ("", 0, 1);
     @Last{qw(line file sub_name)} = (0, "", "");
     %Current = %Last;
+    $Silent  = ($ENV{HARNESS_PERL_SWITCHES} || "") =~ /Devel::Cover/;
 }
 
 BEGIN { @Inc = @Devel::Cover::Inc::Inc }
@@ -116,6 +118,8 @@ EOM
           "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
         unless $Silent;
 
+    copy_ends();
+
     $Run{OS}    = $^O;
     $Run{perl}  = join ".", map ord, split //, $^V;
     $Run{run}   = $0;
@@ -124,7 +128,9 @@ EOM
 
 }
 
-END { report() if $Initialised }
+sub end { report() if $Initialised }
+
+END { end() }  # we really want our end sub to run last
 
 sub import
 {
@@ -173,6 +179,7 @@ sub import
     if ($blib)
     {
         eval "use blib";
+        for (@INC) { $_ = $1 if /(.*)/ }  # Die tainting.
         push @Ignore, "\\bt/";
     }
 
@@ -243,7 +250,40 @@ sub get_coverage
     return wantarray ? @names : "@names";
 }
 
+{
+
 my %File_cache;
+
+sub normalised_file
+{
+    my ($file) = @_;
+
+    return $File_cache{$file} if exists $File_cache{$file};
+
+    my $f = $file;
+    $file =~ s/ \(autosplit into .*\)$//;
+    if (exists coverage(0)->{module}{$file} &&
+        !File::Spec->file_name_is_absolute($file))
+    {
+        my $m = coverage(0)->{module}{$file};
+        # print STDERR "Loaded <$file> <$m->[0]> from <$m->[1]> ";
+        $file = File::Spec->rel2abs($file, coverage(0)->{module}{$file}[1]);
+        # print STDERR "as <$file> ";
+    }
+    if ($] >= 5.008)
+    {
+        my $abs = abs_path($file);
+        # print STDERR "giving <$file> ";
+        $file = $abs if defined $abs;
+        # print STDERR "finally <$file>\n";
+    }
+    $file =~ s/^$Dir\///;
+    $File_cache{$f} = $file;
+
+    # warn "File: $file => $File\n";
+}
+
+}
 
 sub get_location
 {
@@ -251,36 +291,14 @@ sub get_location
 
     $File = $op->file;
     $Line = $op->line;
-
     # warn "$File::$Line\n";
 
     # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
     ($File, $Line) = ($1, $2) if $File =~ /^\(eval \d+\)\[(.*):(\d+)\]/;
+    $File = normalised_file($File);
 
-    if (exists $File_cache{$File})
-    {
-        $File = $File_cache{$File};
-        return;
-    }
-
-    my $file = $File;
-
-    $File =~ s/ \(autosplit into .*\)$//;
-
-    my $f = $File;
-    until (-f $f)
-    {
-        last unless $f =~ s|^\.\./||;
-    }
-
-    $File = $f if defined $f && -f $f;
-    $File =~ s/^$Dir\///;
-
-    $File_cache{$file} = $File;
     # @{$Run{vec}{$File}{$_}}{"vec", "size"} = ("", 0)
         # for grep $_ ne "time", @{$Run{collected}};
-
-    # warn "File: $file => $File\n";
 }
 
 sub use_file
@@ -290,23 +308,25 @@ sub use_file
     $file = $1 if $file =~ /^\(eval \d+\)\[(.*):\d+\]/;
     $file =~ s/ \(autosplit into .*\)$//;
     $file =~ s|\.\./\.\./lib/POSIX.pm|$INC{"POSIX.pm"}|e;
-    # TODO - check - probably fixed by merging on MD5 sums.
+    # TODO - check - probably fixed by now.
 
-    my $files = \%Files;
-    return $files->{$file} if exists $files->{$file};
+    return $Files{$file} if exists $Files{$file};
 
-    # print STDERR "checking <$file> against ",
+    my $f = normalised_file($file);
+
+    # print STDERR "checking <$file> <$f> against ",
                  # "select(@Select_re), ignore(@Ignore_re), inc(@Inc_re)\n";
 
-    for (@Select_re) { return $files->{$file} = 1 if $file =~ $_ }
-    for (@Ignore_re) { return $files->{$file} = 0 if $file =~ $_ }
-    for (@Inc_re)    { return $files->{$file} = 0 if $file =~ $_ }
+    for (@Select_re) { return $Files{$file} = 1 if $f =~ $_ }
+    for (@Ignore_re) { return $Files{$file} = 0 if $f =~ $_ }
+    for (@Inc_re)    { return $Files{$file} = 0 if $f =~ $_ }
 
-    $files->{$file} = -e $file;
+    # system "pwd; ls -l $file";
+    $Files{$file} = -e $file;
     warn __PACKAGE__ . qq(: Can't find file "$file": ignored.\n)
-        unless $files->{$file} || $Silent || $file =~ /\(eval \d+\)/;
+        unless $Files{$file} || $Silent || $file =~ /\(eval \d+\)/;
 
-    $files->{$file}
+    $Files{$file}
 }
 
 sub check_file
@@ -402,19 +422,19 @@ sub report
     $Run{collected} = \@collected;
     $Structure      = Devel::Cover::DB::Structure->new;
 
-    # print "Processing cover data\n@Inc\n";
-
-    $Coverage = coverage() || die "No coverage data available.\n";
-
+    # print STDERR "Processing cover data\n@Inc\n";
+    $Coverage = coverage(1) || die "No coverage data available.\n";
     # use Data::Dumper; print STDERR Dumper $Coverage;
 
     check_files();
 
     get_cover(main_cv, main_root);
-    get_cover($_) for B::begin_av->isa("B::AV") ? B::begin_av->ARRAY : ();
-    get_cover($_) for B::check_av->isa("B::AV") ? B::check_av->ARRAY : ();
-    get_cover($_) for B::init_av ->isa("B::AV") ? B::init_av ->ARRAY : ();
-    get_cover($_) for B::end_av  ->isa("B::AV") ? B::end_av  ->ARRAY : ();
+    get_cover($_) for B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ();
+    if (exists &B::check_av)
+    {
+        get_cover($_) for B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ();
+    }
+    get_cover($_) for get_ends()->isa("B::AV") ? get_ends()->ARRAY : ();
     get_cover($_) for @Cvs;
 
     for my $file (keys %{$Run{count}})
@@ -438,6 +458,7 @@ sub report
         else
         {
             warn __PACKAGE__ . ": Can't open $file for MD5 digest: $!\n";
+            # warn "in ", `pwd`;
         }
 
         # for my $run (keys %{$Run{vec}{$file}})
@@ -514,9 +535,8 @@ sub add_branch_cover
     $text =~ s/\s+$//;
 
     my $key = get_key($op);
-    # print STDERR "Branch cover from $file:$line $type:$text\n";
-
-    my $c = $Coverage->{condition}{$key};
+    my $c   = $Coverage->{condition}{$key};
+    # print "Branch cover from $file:$line $type:$text:", join("-", @$c), "\n";
 
     no warnings "uninitialized";
 
@@ -794,6 +814,7 @@ sub get_cover
         if ($File eq $Last{file} && $Line == $Last{line} &&
             $sub_name eq "__ANON__" && $Last{sub_name} eq "__ANON__")
         {
+            # Merge instances of anonymous subs into one.
             $redo = 1;
             %Current = %Last;
         }
@@ -911,7 +932,9 @@ now defunct.  See L<http://lists.perl.org/showlist.cgi?name=perl-qa>.
 
 =item * Perl 5.6.1 or greater
 
-(Perl 5.7.0 is unsupported.)
+Perl 5.7.0 is unsupported.  Perl 5.8.1 or greater is recommended.
+Whilst Perl 5.6 should work you will probably miss out on coverage
+information which would be available using a more modern version.
 
 =item * The ability to compile XS extensions.
 
@@ -1027,6 +1050,8 @@ Modules used by Devel::Cover while gathering coverage:
 
 =item * File::Path
 
+=item * File::Spec
+
 =item * Storable
 
 =back
@@ -1035,11 +1060,11 @@ Modules used by Devel::Cover while gathering coverage:
 
 Did I mention that this is alpha code?
 
-See the BUGS file.
+See the BUGS file.  And the TODO file.
 
 =head1 VERSION
 
-Version 0.40 - 24th March 2004
+Version 0.41 - 29th April 2004
 
 =head1 LICENCE
 

@@ -1,0 +1,68 @@
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/special_blocks                        100.0    n/a    n/a  100.0  100.0
+Total                                       100.0    n/a    n/a  100.0  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+tests/special_blocks
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                  100   use strict;
+               1                        
+               1                        
+11             1                  100   use warnings;
+               1                        
+               1                        
+12                                      
+13             1                        my $x;
+14                                      
+15                                      BEGIN
+16                                      {
+17             1                  100       $x++
+18                                      }
+19                                      
+20                                      CHECK
+21                                      {
+22             1                  100       $x++
+23                                      }
+24                                      
+25                                      INIT
+26                                      {
+27             1                  100       $x++
+28                                      }
+29                                      
+30                                      END
+31                                      {
+32             1                  100       $x++
+33                                      }
+34                                      
+35             1                        $x++;
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Location               
+---------- -----------------------
+BEGIN      tests/special_blocks:10
+BEGIN      tests/special_blocks:11
+BEGIN      tests/special_blocks:17
+CHECK      tests/special_blocks:22
+END        tests/special_blocks:32
+INIT       tests/special_blocks:27
+
+

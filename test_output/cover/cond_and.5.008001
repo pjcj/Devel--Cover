@@ -1,11 +1,11 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3702/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/cond_and                               94.7   50.0   50.0  100.0   70.5
-Total                                        94.7   50.0   50.0  100.0   70.5
+tests/cond_and                               96.0   50.0   50.0  100.0   75.0
+Total                                        96.0   50.0   50.0  100.0   75.0
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -21,8 +21,12 @@ line  err   stmt branch   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      use strict;
-11                                      use warnings;
+10             1                  100   use strict;
+               1                        
+               1                        
+11             1                  100   use warnings;
+               1                        
+               1                        
 12                                      
 13             1                        my @x;
 14                                      
@@ -104,6 +108,8 @@ Covered Subroutines
 
 Subroutine Location         
 ---------- -----------------
+BEGIN      tests/cond_and:10
+BEGIN      tests/cond_and:11
 pas        tests/cond_and:56
 
 

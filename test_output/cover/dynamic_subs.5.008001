@@ -4,8 +4,8 @@ Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/dynamic_subs                           96.7   75.0    n/a   85.7   92.7
-Total                                        96.7   75.0    n/a   85.7   92.7
+tests/dynamic_subs                           97.2   75.0    n/a   88.9   93.9
+Total                                        97.2   75.0    n/a   88.9   93.9
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -44,7 +44,9 @@ line  err   stmt branch   cond    sub   code
 30                                      
 31             1                        for my $func (qw(f1 f2 f3))
 32                                      {
-33                                          no strict "refs";
+33             1                  100       no strict "refs";
+               1                        
+               1                        
 34                                          *$func = sub
 35                                          {
 36             2                  100           print "$func\n";
@@ -58,7 +60,9 @@ line  err   stmt branch   cond    sub   code
 44                                      {
 45             3                  100       my $func = $AUTOLOAD;
 46             3                            $func =~ s/^.*:://;
-47                                          no strict "refs";
+47             1                  100       no strict "refs";
+               1                        
+               1                        
 48             3    100                     if ($func eq "add")
 49                                          {
 50                                              *$func = sub
@@ -98,6 +102,8 @@ Covered Subroutines
 Subroutine Location             
 ---------- ---------------------
 AUTOLOAD   tests/dynamic_subs:45
+BEGIN      tests/dynamic_subs:33
+BEGIN      tests/dynamic_subs:47
 __ANON__   tests/dynamic_subs:17
 __ANON__   tests/dynamic_subs:36
 __ANON__   tests/dynamic_subs:52

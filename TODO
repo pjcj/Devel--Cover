@@ -4,8 +4,7 @@
   - Functional tests.
 - Documentation.
 - Profiling and speedups.
-- BEGIN and END blocks.
-    Code in modules without subs.  Requires callbacks from perl?
+- BEGIN and CHECK blocks and code in modules.  Requires callbacks from perl?
 - Move away from Storable?  To?
 - Work with memoize.
 - See if the XS code leaks, and fix it if it does.
@@ -16,6 +15,7 @@
 - Look at time coverage again - collecting for too many ops?
 - Separate output for pod coverage, like subroutine coverage.
 - Extend cpancover so people can upload databases.
+- Document cpancover options.
 - Allow thresholds to be customisable in HTML output.
 - Fix up html_basic and html_subtle for subs.
 - Sort out time coverage on Windows.
@@ -24,3 +24,4 @@
 - Test analysis.
 - Move HTML version and platform info to main page and allow for multiples.
 - Fix up shebang line on tests.
+- Be able to run Devel::Cover on itself.

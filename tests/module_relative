@@ -1,0 +1,16 @@
+#!/usr/bin/perl
+
+# Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# __COVER__ skip_test $] < 5.008
+# __COVER__ skip_reason Busted on 5.6
+
+BEGIN { chdir "tests/random/dir" }
+use lib "../..";
+use strict;
+use Module_import;

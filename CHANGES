@@ -256,9 +256,23 @@ Release 0.39 - 22nd March 2004
  - Test with perl5.9.2.
  - Skip fork test on MSWin32.
 
-Release 0.40 - 22nd March 2004
- - Reove DB structure for unwanted files.
- - Identify ops based on address and OP contents, except for op_ppaddr
+Release 0.40 - 24th March 2004
+ - Remove DB structure for unwanted files.
+ - Identify ops based on address and OP contents, except for op_ppaddr,
    which we modify.
  - Overhaul of coverage collection.
  - Additions to tests.
+
+Release 0.41 - 29th April 2004
+ - Correct time coverage percentages.
+ - Collect data for BEGIN, CHECK, INIT and END blocks in the main
+   program, and INIT and END blocks in modules.
+ - Ensure our END block is always the last run.
+ - Don't clean up Pending_conditionals data.
+ - Untaint @INC after using blib.
+ - Be silent if called via HARNESS_PERL_SWITCHES.
+ - Test against perl-5.8.4.
+ - Store cwd of when each modules was required in order to find them again.
+ - Refactor and tidy XS code.
+ - Get cpancover running again with the DB changes.
+ - Test for coverage collection against normalised filename.

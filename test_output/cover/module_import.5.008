@@ -5,7 +5,7 @@ Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
 tests/Module_import.pm                      100.0    n/a    n/a  100.0  100.0
-tests/module_import                         100.0    n/a    n/a    n/a  100.0
+tests/module_import                         100.0    n/a    n/a  100.0  100.0
 Total                                       100.0    n/a    n/a  100.0  100.0
 ------------------------------------------ ------ ------ ------ ------ ------
 
@@ -50,8 +50,20 @@ line  err   stmt branch   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      BEGIN { push @INC, "tests" }
+10             1                  100   BEGIN { push @INC, "tests" }
 11                                      
-12             1                        use Module_import;
+12             1                  100   use Module_import;
+               1                        
+               1                        
+               1                        
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Location              
+---------- ----------------------
+BEGIN      tests/module_import:10
+BEGIN      tests/module_import:12
 
 

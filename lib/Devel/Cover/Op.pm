@@ -12,7 +12,7 @@ require 5.8.0;  # My patches to B::Concise didn't get released till 5.8.0.
 use strict;
 use warnings;
 
-our $VERSION = "0.40";
+our $VERSION = "0.41";
 
 use Devel::Cover qw( -ignore blib -ignore \\wB\\w );
 use B::Concise   qw( set_style add_callback );
@@ -50,7 +50,8 @@ sub import
             ? set_style(@{$style{$1}})
             : push @Options, $_;
     }
-    # my $d = 0;
+
+    my $final = 1;
     add_callback
     (
         sub
@@ -61,8 +62,9 @@ sub import
             # print Dumper Devel::Cover::coverage unless $d++;
             if ($h->{seq})
             {
-                my ($s, $b, $c) = map Devel::Cover::coverage->{$_}{$key},
-                                      qw(statement branch condition);
+                my ($s, $b, $c) =
+                  map Devel::Cover::coverage($final ? $final-- : 0)->{$_}{$key},
+                      qw(statement branch condition);
                 local $" = ",";
                 no warnings "uninitialized";
                 $h->{cover} = $s ? "s[$s]"  :
@@ -76,7 +78,6 @@ sub import
             }
         }
     );
-
 }
 
 END { B::Concise::compile(@Options)->() }
@@ -111,7 +112,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.40 - 24th March 2004
+Version 0.41 - 29th April 2004
 
 =head1 LICENCE
 

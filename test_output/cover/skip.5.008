@@ -1,0 +1,54 @@
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt branch   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/skip                                   83.3   50.0    n/a  100.0   72.7
+Total                                        83.3   50.0    n/a  100.0   72.7
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+tests/skip
+
+line  err   stmt branch   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      sub main
+11                                      {
+12             1                  100       my ($debug) = @_;
+13             1                            print "main\n";
+14    ***      1     50                     print "debug1\n" if $debug;
+15    ***      1     50                     if ($debug)
+16                                          {
+17    ***      0                                print "debug2\n";
+18                                          }
+19                                      }
+20                                      
+21             1                        main 0;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+14    ***     50      0      1   if $debug
+15    ***     50      0      1   if ($debug)
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Location     
+---------- -------------
+main       tests/skip:12
+
+

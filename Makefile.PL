@@ -19,8 +19,8 @@ use File::Copy;
 
 $| = 1;
 
-my $Version  = "0.40";
-my $Date     = "24th March 2004";
+my $Version  = "0.41";
+my $Date     = "29th April 2004";
 my $Author   = 'pjcj@cpan.org';
 
 my @perlbug  = ("perlbug", "-a", $Author,
@@ -220,7 +220,7 @@ else
     print "not found\n\n$e\n";
 }
 
-my $latest_tested = 5.008003;
+my $latest_tested = 5.008004;
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].

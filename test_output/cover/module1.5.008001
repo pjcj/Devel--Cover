@@ -1,12 +1,12 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3702/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3901/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt branch   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
 tests/Module1.pm                             25.0    n/a    n/a   25.0   25.0
-tests/module1                                85.7   50.0    n/a  100.0   80.0
-Total                                        53.3   50.0    n/a   40.0   50.0
+tests/module1                                94.7   50.0    n/a  100.0   92.3
+Total                                        74.1   50.0    n/a   66.7   71.1
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -83,12 +83,20 @@ line  err   stmt branch   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      use strict;
-11                                      use warnings;
+10             1                  100   use strict;
+               1                        
+               1                        
+11             1                  100   use warnings;
+               1                        
+               1                        
 12                                      
-13                                      use lib "tests";
+13             1                  100   use lib "tests";
+               1                        
+               1                        
 14                                      
-15                                      use Module1;
+15             1                  100   use Module1;
+               1                        
+               1                        
 16                                      
 17             1                        my @x;
 18                                      
@@ -124,6 +132,10 @@ Covered Subroutines
 
 Subroutine Location        
 ---------- ----------------
+BEGIN      tests/module1:10
+BEGIN      tests/module1:11
+BEGIN      tests/module1:13
+BEGIN      tests/module1:15
 xx         tests/module1:21
 
 
