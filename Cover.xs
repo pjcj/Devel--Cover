@@ -775,7 +775,9 @@ static int runops_cover(pTHX)
             }
 #endif
         }
-        else if (collecting_here && PL_op->op_type == OP_ENTERSUB)
+        else if (collecting_here &&
+                 PL_op->op_type == OP_ENTERSUB &&
+                 PL_op->op_next)
         {
             /* If we are jumping somewhere we might not be collecting
              * coverage there, so store where we will be coming back to
@@ -783,11 +785,8 @@ static int runops_cover(pTHX)
              * store more than one return op because a non collecting
              * sub may call back to a collecting sub.
              */
-            if (PL_op->op_next)
-            {
-                hv_fetch(Return_ops, get_key(PL_op->op_next), CH_SZ, 1);
-                NDEB(D(L, "adding return op %p\n", PL_op->op_next));
-            }
+            hv_fetch(Return_ops, get_key(PL_op->op_next), CH_SZ, 1);
+            NDEB(D(L, "adding return op %p\n", PL_op->op_next));
         }
 
         if (!collecting_here)
