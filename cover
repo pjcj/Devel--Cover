@@ -12,25 +12,278 @@ require 5.6.1;
 use strict;
 use warnings;
 
-use Devel::Cover::DB 0.09;
+our $VERSION = "0.10";
 
-my $db = Devel::Cover::DB->new(db => shift);
-$db->print_summary;
-$db->print_details;
+use Devel::Cover::DB 0.10;
 
-my $cover = $db->cover;
-for my $file ($cover->files)
+use Getopt::Long;
+
+my $Options =
 {
-    print "$file\n";
-    my $f = $cover->file($file);
-    for my $criterion ($f->criteria)
+    details     => 0,
+    html        => 1,
+    single_file => 0,
+    summary     => 1,
+};
+
+sub pc
+{
+    my ($part, $critrion) = @_;
+    exists $part->{$critrion}
+        ? sprintf "%6.2f", $part->{$critrion}{total}
+              ? $part->{$critrion}{covered} * 100 /
+                $part->{$critrion}{total}
+              : 100
+        : "n/a"
+};
+
+sub print_html_top
+{
+    my ($FH, $title) = @_;
+
+    print $FH <<"EOH";
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML Basic 1.0//EN"
+    "http://www.w3.org/TR/xhtml-basic/xhtml-basic10.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US">
+<body bgcolor="#ffffad" text="#000000">
+  <title> $title </title>
+</head>
+<body>
+EOH
+}
+
+sub print_html_bottom
+{
+    my ($FH) = @_;
+
+    print $FH <<"EOH";
+</body>
+</html>
+EOH
+}
+
+sub print_html
+{
+    my ($db, $dbname, $single_file) = @_;
+
+    print "Writing HTML to $dbname/$dbname.html\n";
+
+    open my $FH, ">$dbname/$dbname.html"
+        or die "Cannot open $dbname/$dbname.html: $!\n";
+
+    print_html_top($FH, $dbname);
+    print $FH <<"EOH";
+  <a name="Total">
+    <h1> Coverage report for $dbname </h1>
+  </a>
+  <table border="2">
+    <tr align="RIGHT" valign="CENTER">
+      <th align="LEFT"> File </th>
+EOH
+    print $FH "      <th> $_ </th>\n" for @{$db->{all_criteria_short}};
+    print $FH "    </tr>\n";
+    for my $file (grep($_ ne "Total", sort keys %{$db->{summary}}), "Total")
     {
-        print "  $criterion\n";
-        my $c = $f->criterion($criterion);
-        for my $location ($c->locations)
+        my $fn = "";
+        unless ($single_file)
         {
-            my $l = $c->location($location);
-            print "    $location @$l\n";
+            ($fn = $file) =~ s/\W/-/g;
+            $fn .= ".html"
+        }
+
+        print $FH <<"EOH";
+    <tr align="RIGHT" valign="CENTER">
+      <td align="LEFT"> <a href="$fn#$file">$file</a> </td>
+EOH
+        for (@{$db->{all_criteria}})
+        {
+            my $pc = pc($db->{summary}{$file}, $_);
+            my $bg = "";
+            if ($pc ne "n/a")
+            {
+                my $c = $pc * 2.55;
+                $c = 255 if $c > 255;
+                $bg = sprintf ' bgcolor="#ff%02x00"', $c;
+            }
+            print $FH "      <td$bg> $pc </td>\n";
         }
     }
+    print $FH "  </table>\n";
+
+    my (@files) = @ARGV;
+    my $cover = $db->cover;
+    @files = sort $cover->files unless @files;
+
+    my $line = sub
+    {
+        my ($F, $n, $c, $l) = map { length $_ ? $_ : "&nbsp;" } @_;
+        my $bgn = $c eq "&nbsp;"
+                  ? ""
+                  : $c eq "0" ? ' bgcolor="#ff0000"' : ' bgcolor="#00ff00"';
+        my $bgt = $c eq "0" ? ' bgcolor="#ff0000"' : "";
+        print $F <<"EOH";
+    <tr align="RIGHT" valign="CENTER">
+      <td bgcolor="#ffffc0"> $n </td>
+      <td$bgn> $c </td>
+      <td$bgt align="LEFT" valign="CENTER"> <pre> $l </pre> </td>
+    </tr>
+EOH
+    };
+
+    for my $file (@files)
+    {
+        (my $fn = $file) =~ s/\W/-/g;
+        my $FF;
+        if ($single_file)
+        {
+            $FF = $FH;
+        }
+        else
+        {
+            open $FF, ">$dbname/$fn.html"
+               or die "Cannot open $dbname/$fn.html: $!\n";
+            print_html_top($FF, $file);
+        }
+
+        print $FF qq(  <h2> <a name="$file"> $file </a></h2>\n);
+        my $f = $cover->file($file);
+        my $statement = $f->statement;
+
+        open F, $file or warn("Unable to open $file: $!\n"), next;
+
+        print $FF qq(  <table border="0">\n);
+        while (defined(my $l = <F>))
+        {
+            chomp $l;
+
+            if (defined (my $location = $statement->location($.)))
+            {
+                my @c = @{$location};
+                $line->($FF, $., shift @c, $l);
+                $line->($FF, "", $_, "") for @c;
+            }
+            else
+            {
+                $line->($FF, $., "", $l);
+            }
+
+            last if $l =~ /^__(END|DATA)__/;
+        }
+        print $FF qq(  </table>\n);
+        close F or die "Unable to close $file: $!";
+        unless ($single_file)
+        {
+            print_html_bottom($FF);
+            close $FF or die "Cannot close $dbname/$fn.html: $!\n";
+        }
+    }
+
+    print_html_bottom($FH);
+
+    close $FH or die "Cannot close $dbname/$dbname.html: $!\n";
+
+    # $db->print_summary;
+    # $db->print_details;
 }
+
+sub get_options
+{
+    die "Bad option" unless
+    GetOptions($Options,                # Store the options in the Options hash.
+               qw(
+                   details!
+                   help|h!
+                   html!
+                   info|i!
+                   single_file!
+                   summary!
+                   version|v!
+                 ));
+    print "$0 version $VERSION\n" and exit 0 if $Options->{version};
+}
+
+sub main
+{
+    get_options;
+
+    my $dbname = shift @ARGV;
+
+    my $db = Devel::Cover::DB->new(db => $dbname);
+
+    $db->calculate_summary;
+
+    print_html($db, $dbname, $Options->{single_file}) if $Options->{html};
+
+    $db->print_summary if $Options->{summary};
+    $db->print_details if $Options->{details};
+}
+
+main
+
+__END__
+
+=head1 NAME
+
+cover - report coverage statistics
+
+=head1 SYNOPSIS
+
+ rideaudit [-hiv] -summary -details -html coverage_database
+
+=head1 DESCRIPTION
+
+Report coverage statistics in a variety of formats.
+
+The following reports are available:
+
+ summary        - short textual summary
+ details        - detailed textual summary
+ html           - detailed HTML reports
+
+By default, the summary and HTML reports are generated.
+
+=head1 OPTIONS
+
+The following command line options are supported:
+
+ -summary        - give summary report
+ -details        - give detailed report
+ -html           - give HTML reports
+ -single_file    - give an HTML in a single file
+
+ -h -help        - show help
+ -i -info        - show documentation
+ -v -version     - show version
+
+=head1 EXIT STATUS
+
+The following exit values are returned:
+
+0   All reports were generated successfully.
+
+>0  An error occurred.
+
+=head1 SEE ALSO
+
+ Dvel::Cover
+
+=head1 BUGS
+
+Huh?
+
+=head1 VERSION
+
+Version 0.10 - 27th August 2001
+
+=head1 LICENCE
+
+Copyright 2001, Paul Johnson (pjcj@cpan.org)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+http://www.pjcj.net
+
+=cut

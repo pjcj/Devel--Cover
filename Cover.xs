@@ -37,6 +37,7 @@ runops_cover(pTHX)
     if (!hv) hv = newHV();
     addr.ch[sizeof(PL_op)] = '\0';
 
+    // fprintf(stderr, "runops_cover\n");
     while ((PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
     {
         if (covering)
@@ -53,6 +54,19 @@ runops_cover(pTHX)
     return 0;
 }
 
+static int
+runops_orig(pTHX)
+{
+    // fprintf(stderr, "runops_orig\n");
+    while ((PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
+    {
+        PERL_ASYNC_CHECK();
+    }
+
+    TAINT_NOT;
+    return 0;
+}
+
 MODULE = Devel::Cover PACKAGE = Devel::Cover
 
 PROTOTYPES: ENABLE
@@ -61,7 +75,8 @@ void
 set_cover(flag)
         int flag
     PPCODE:
-        covering = flag;
+        // fprintf(stderr, "Cover set to %d\n", flag);
+        PL_runops = (covering = flag) ? runops_cover : runops_orig;
 
 SV *
 coverage()

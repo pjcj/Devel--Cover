@@ -16,8 +16,8 @@ use ExtUtils::MakeMaker;
 
 $| = 1;
 
-my $Version = "0.09";
-my $Date    = "18th August 2001";
+my $Version = "0.10";
+my $Date    = "27th August 2001";
 my $Author  = 'pjcj@cpan.org';
 
 my @perlbug = ("perlbug", "-a", $Author,
@@ -32,8 +32,8 @@ my @versions = grep { $_ ne "README" && $_ ne "Makefile.PL" } @files;
 close M or die "Cannot close MANIFEST: $!";
 
 open I, ">Cover/Inc.pm" or die "Cannot open Cover/Inc.pm: $!";
-print I <<'EOI1', <<"EOI2";
-# Copyright 2001, Paul Johnson (pjcj@cpan.org)
+print I <<"EOI";
+# Copyright 2001, Paul Johnson (pjcj\@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -47,12 +47,11 @@ package Devel::Cover::Inc;
 use strict;
 use warnings;
 
-EOI1
 our \$VERSION = "$Version";
 our \@Inc = qw( @INC );
 
 1
-EOI2
+EOI
 close I or die "Cannot close Cover/Inc.pm: $!";
 
 $ExtUtils::MakeMaker::Verbose = 0;
@@ -64,7 +63,8 @@ WriteMakefile
   AUTHOR   => 'Paul Johnson (pjcj@cpan.org)',
   ABSTRACT => "Code coverage metrics for Perl",
   DIR      => [],
-  PM       => { map {($_ => '$(INST_LIBDIR)/' . $_)} grep { /\.pm/ } @files },
+  PM       => { map {($_ => '$(INST_LIBDIR)/' . $_)}
+                    grep { /\.p(m|od)/ } @files },
   dist     => { COMPRESS => "gzip --best --force" },
   clean    => { FILES => join " ",  map { "$_.version" } @versions },
   depend   => { distdir => "@files" },

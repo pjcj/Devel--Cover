@@ -14,7 +14,7 @@ use Carp;
 use Data::Dumper;
 use File::Path;
 
-our $VERSION = "0.09";
+our $VERSION = "0.10";
 
 my $DB = "cover.1";  # Version 1 of the database.
 
@@ -472,7 +472,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.09 - 18th August 2001
+Version 0.10 - 27th August 2001
 
 =head1 LICENCE
 
