@@ -19,8 +19,8 @@ use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version      = "0.29";
-my $Date         = "19th December 2003";
+my $Version      = "0.30";
+my $Date         = "22nd December 2003";
 my $Author       = 'pjcj@cpan.org';
 
 my @perlbug      = ("perlbug", "-a", $Author,
@@ -244,10 +244,12 @@ sub MY::libscan
 {
     my ($self, $path) = @_;
     (my $p = $path) =~ s/^\$\(INST_LIB\)/lib/;  # 5.6.1
+    $p =~ s|\\|/|g if $^O eq "MSWin32";
     # print "$path $p\n";
     my $wanted = -d $p;                         # 5.9.0
     for my $f (@files)
     {
+        # print "$p - $f\n";
         last if $wanted ||= $p =~ /$f$/;
     }
     $wanted && $path;
@@ -255,6 +257,8 @@ sub MY::libscan
 
 sub MY::postamble
 {
+    my $orequals = $^O eq "MSWin32" ? "=" : "?=";
+
     qq[
 SET_VERSION = \$(PERL) -pi.version \\
     -e 's/(^\\s*(?:our\\s+)\\\$\$VERSION = ")\\d+\\.\\d+(";)/\$\${1}$Version\$\$2/;' \\
@@ -292,7 +296,7 @@ run : _run
 \t \$(PERL) -Mblib cover && \\
    gvim -d \$(TEST).out
 
-__COVER_GOLDEN_VERSION ?= $test_version
+__COVER_GOLDEN_VERSION $orequals $test_version
 
 diff : _run
 \t gvim -d -font 8x13 test_output/cover/\$(TEST).\$(__COVER_GOLDEN_VERSION) \$(TEST).out

@@ -87,12 +87,18 @@ extern "C" {
 }
 #endif
 
-static int elapsed()
+#ifdef WIN32
+typedef double elapsed_type;
+#else
+typedef int    elapsed_type;
+#endif
+
+static elapsed_type elapsed()
 {
     static struct timeval time;
     static int            sec  = 0,
                           usec = 0;
-    int                   e;
+    elapsed_type          e;
 
     gettimeofday(&time, NULL);
     e    = (time.tv_sec - sec) * 1e6 + time.tv_usec - usec;
@@ -418,7 +424,7 @@ static void cover_logop()
 static void cover_time()
 {
     SV   **count;
-    IV     c;
+    NV     c;
     char  *ch;
 
     if (collecting(Time))
@@ -434,14 +440,14 @@ static void cover_time()
         {
             ch    = get_key(Profiling_op);
             count = hv_fetch(Times, ch, ch_sz, 1);
-            c     = (SvTRUE(*count) ? SvIV(*count) : 0) +
+            c     = (SvTRUE(*count) ? SvNV(*count) : 0) +
 #if defined HAS_GETTIMEOFDAY
                     elapsed();
 #else
                     cpu();
 #endif
-            sv_setiv(*count, c);
-            NDEB(D(L, "Adding time: sum %d at %p\n", c, Profiling_op));
+            sv_setnv(*count, c);
+            PDEB(D(L, "Adding time: sum %f at %p\n", c, Profiling_op));
         }
         Profiling_op = PL_op;
     }

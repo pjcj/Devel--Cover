@@ -10,7 +10,7 @@ package Devel::Cover::Time;
 use strict;
 use warnings;
 
-our $VERSION = "0.29";
+our $VERSION = "0.30";
 
 use base "Devel::Cover::Criterion";
 
@@ -32,7 +32,8 @@ sub calculate_percentage
 {
     my $class = shift;
     my ($db, $s) = @_;
-    $s->{percentage} = $s->{total} * 100 / $db->{summary}{Total}{time}{total};
+    my $t = $db->{summary}{Total}{time}{total};
+    $s->{percentage} = $t ? $s->{total} * 100 / $t : 100;
 }
 
 1
@@ -69,7 +70,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.29 - 19th December 2003
+Version 0.30 - 22nd December 2003
 
 =head1 LICENCE
 

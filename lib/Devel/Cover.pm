@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.29";
+our $VERSION = "0.30";
 
 use DynaLoader ();
 our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.29;
-use Devel::Cover::Inc 0.29;
+use Devel::Cover::DB  0.30;
+use Devel::Cover::Inc 0.30;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -37,6 +37,9 @@ my $Summary = 1;                         # Output coverage summary.
 my @Ignore;                              # Packages to ignore.
 my @Inc;                                 # Original @INC to ignore.
 my @Select;                              # Packages to select.
+my @Ignore_re;                           # Packages to ignore.
+my @Inc_re;                              # Original @INC to ignore.
+my @Select_re;                           # Packages to select.
 
 my $Pod     = $INC{"Pod/Coverage.pm"};   # Do pod coverage.
 my %Pod;                                 # Pod coverage data.
@@ -160,6 +163,11 @@ sub import
         push @Ignore, "\\bt/";
     }
 
+    my $ci = $^O eq "MSWin32";
+    @Select_re = map qr/$_/,                           @Select;
+    @Ignore_re = map qr/$_/,                           @Ignore;
+    @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
+
     for my $c (Devel::Cover::DB->new->criteria)
     {
         my $func = "coverage_$c";
@@ -279,9 +287,9 @@ sub use_file
 
     # print STDERR "checking <$file>\n";
 
-    for (@Select) { return $files->{$file} = 1 if $file =~ /$_/      }
-    for (@Ignore) { return $files->{$file} = 0 if $file =~ /$_/      }
-    for (@Inc)    { return $files->{$file} = 0 if $file =~ /^\Q$_\// }
+    for (@Select_re) { return $files->{$file} = 1 if $file =~ $_ }
+    for (@Ignore_re) { return $files->{$file} = 0 if $file =~ $_ }
+    for (@Inc_re)    { return $files->{$file} = 0 if $file =~ $_ }
 
     $files->{$file} = -e $file;
     warn __PACKAGE__ . qq(: Can't find file "$file": ignored.\n)
@@ -837,7 +845,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.29 - 19th December 2003
+Version 0.30 - 22nd December 2003
 
 =head1 LICENCE
 

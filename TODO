@@ -21,3 +21,4 @@
 - Extend cpancover so people can upload databases.
 - allow thresholds to be customisable in HTML output.
 - Fix up html_basic and html_subtle for subs.
+- Sort out time coverage on Windows.

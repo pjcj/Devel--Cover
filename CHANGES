@@ -176,3 +176,7 @@ Release 0.29 - 19th December 2003
  - Watch for coverage options being set in cover (PERL5OPT set?).
  - Fix up html_basic and html_subtle.
  - Make 5.6.x builds a bit quieter.
+ - Clean up time routines in XS code.
+
+Release 0.30 - 22nd December 2003
+ - Get things working under Windows.
