@@ -215,7 +215,7 @@ sub last_end
 
 sub CLONE
 {
-    return;
+    # return;
 
     print STDERR <<EOM;
 
