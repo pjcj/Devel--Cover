@@ -242,7 +242,7 @@ else
     print "not found\n\n$e\n";
 }
 
-my $latest_tested = 5.008005;
+my $latest_tested = 5.008006;
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
@@ -269,14 +269,14 @@ of various severities.
 
 EOM
 }
-elsif ($] < 5.008001)
+elsif ($] < 5.008002)
 {
     print <<EOM;
 
 Devel::Cover $Version mostly works on perl $], but you may encounter
 strange behaviours (bugs) which have been fixed in subsequent versions
 of perl.  This is particularly true if you are running a threaded perl.
-Perl versions 5.8.1 and above should work better.
+Perl versions 5.8.2 and above should work better.
 
 EOM
 }

@@ -1,7 +1,11 @@
 Devel::Cover.pm history
 
-Release 0.51 - 
+Release 0.51 - 29th November 2004
  - Handle $y || undef.
+ - Small branch coverage fix.
+ - Improve reporting of uncoverable constructs in html reports.
+ - Test against perl-5.8.6.
+ - Recommend at least perl-5.8.2.
 
 Release 0.50 - 25th October 2004
  - Add -test option to cover.
