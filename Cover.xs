@@ -385,8 +385,8 @@ static OP *get_condition(pTHX)
 {
     dMY_CXT;
 
-    MUTEX_LOCK(&DC_mutex);
     SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), CH_SZ, 0);
+    MUTEX_LOCK(&DC_mutex);
 
     if (pc && SvROK(*pc))
     {

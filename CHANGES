@@ -332,3 +332,7 @@ Release 0.48 - 5th October 2004
  - Add beginnings of sort report.
  - Bump up DB version.
  - Fix problems with references in INC (which can't be handled).
+ - Fixes for mod_perl (Vadim O. Ustiansky).
+
+Release 0.49 - 6th October 2004
+ - Compile on Win32 (and elsewhere) (Steve Hay).

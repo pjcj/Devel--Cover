@@ -10,11 +10,11 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.48";
+our $VERSION = "0.49";
 
-use Devel::Cover::Criterion     0.48;
-use Devel::Cover::DB::File      0.48;
-use Devel::Cover::DB::Structure 0.48;
+use Devel::Cover::Criterion     0.49;
+use Devel::Cover::DB::File      0.49;
+use Devel::Cover::DB::Structure 0.49;
 
 use Carp;
 use File::Path;
@@ -741,7 +741,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.48 - 5th October 2004
+Version 0.49 - 6th October 2004
 
 =head1 LICENCE
 

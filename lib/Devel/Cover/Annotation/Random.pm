@@ -10,7 +10,7 @@ package Devel::Cover::Annotation::Random;
 use strict;
 use warnings;
 
-our $VERSION = "0.48";
+our $VERSION = "0.49";
 
 use Getopt::Long;
 
@@ -92,7 +92,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.48 - 5th October 2004
+Version 0.49 - 6th October 2004
 
 =head1 LICENCE
 
