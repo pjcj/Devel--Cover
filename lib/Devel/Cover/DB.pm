@@ -10,16 +10,17 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.38";
+our $VERSION = "0.39";
 
-use Devel::Cover::DB::File  0.38;
-use Devel::Cover::Criterion 0.38;
+use Devel::Cover::Criterion     0.39;
+use Devel::Cover::DB::File      0.39;
+use Devel::Cover::DB::Structure 0.39;
 
 use Carp;
 use File::Path;
 use Storable;
 
-my $DB = "cover.8";  # Version 8 of the database.
+my $DB = "cover.10";  # Version 10 of the database.
 
 sub new
 {
@@ -30,17 +31,14 @@ sub new
             [ qw( statement branch path condition subroutine pod time ) ],
         criteria_short =>
             [ qw( stmt      branch path cond      sub        pod time ) ],
-        meta           => {},
-        cover          => {},
+        runs           => {},
+        collected      => {},
         @_
     };
 
     $self->{all_criteria}       = [ @{$self->{criteria}},       "total" ];
     $self->{all_criteria_short} = [ @{$self->{criteria_short}}, "total" ];
-    my ($run) = keys %{$self->{meta}};
-    $self->{meta}{collected} = {};
-    @{$self->{meta}{collected}}{@{$self->{meta}{$run}{collected}}} = ()
-        if defined $run;
+    $self->{base} ||= $self->{db};
     bless $self, $class;
 
     my $file;
@@ -52,7 +50,7 @@ sub new
         return $self unless -e $file;
     }
 
-    croak "No input db, filehandle or cover" unless defined $self->{cover};
+    # croak "No input db, filehandle or cover" unless defined $self->{cover};
 
     $self
 }
@@ -66,12 +64,8 @@ sub read
 {
     my $self = shift;
     my $file = shift;
-    # print "read $file\n";
     my $db   = retrieve($file);
-
-    $self->{cover} = $db->{cover};
-    $self->{meta}  = $db->{meta};
-
+    $self->{runs} = $db->{runs};
     $self
 }
 
@@ -88,12 +82,13 @@ sub write
 
     my $db =
     {
-        cover => $self->{cover},
-        meta  => $self->{meta},
+        runs  => $self->{runs},
     };
 
-    # print "write $self->{db}/$DB\n";
     Storable::nstore($db, "$self->{db}/$DB");
+
+    $self->{structure}->write($self->{base}) if $self->{structure};
+
     $self
 }
 
@@ -129,20 +124,14 @@ sub merge_runs
 
     for my $run (sort @runs)
     {
-        print STDERR "Devel::Cover: merging run $run\n"
+        print STDERR "Devel::Cover: merging run $run <$self->{base}>\n"
             unless $Devel::Cover::Silent;
-        my $r = Devel::Cover::DB->new(db => $run);
+        my $r = Devel::Cover::DB->new(base => $self->{base}, db => $run);
         rmtree($run);
         $self->merge($r);
     }
     $self->write($db) if @runs;
     $self
-}
-
-sub cover_files
-{
-    my $self = shift;
-    $self->{cover}
 }
 
 sub validate_db
@@ -160,71 +149,43 @@ sub is_valid
 sub collected
 {
     my $self = shift;
-    sort keys %{$self->{meta}{collected}}
-}
-
-sub merge_identical_files
-{
-    my $self = shift;
-
-    my $c = $self->cover_files;
-    my %digests;
-
-    for my $file (sort keys %$c)
-    {
-        my $d = $c->{$file}{meta}{digest};
-        push @{$digests{$d}}, $file if $d;
-    }
-
-    # use Data::Dumper; print Dumper $c; print Dumper \%digests;
-
-    for my $f (values %digests)
-    {
-        my $t = shift @$f;
-        for my $s (@$f)
-        {
-            print STDERR "Devel::Cover: merging data for $s into $t\n";
-            _merge_hash($c->{$t}, delete $c->{$s});
-            $c->{$t}{meta}{aka}{$s} = 1;
-        }
-    }
+    $self->cover;
+    sort keys %{$self->{collected}}
 }
 
 sub merge
 {
     my ($self, $from) = @_;
 
-    my $sf = $self->cover_files;
-    my $ff = $from->cover_files;
+    # use Data::Dumper; print "Merging ", Dumper($self), "From ", Dumper($from);
 
-    # use Data::Dumper; print STDERR "Merging\n",Dumper($sf), Dumper($ff);
-
-    for my $file (keys %$ff)
+    while (my ($fname, $frun) = each %{$from->{runs}})
     {
-        my $sd = $sf->{$file}{meta}{digest};
-        my $fd = $ff->{$file}{meta}{digest};
-        if ($sd && $fd && $sd ne $fd)
+        while (my ($file, $digest) = each %{$frun->{digest}})
         {
-            # File has changed.  Delete old coverage instead of merging.
-            # TODO - Can't do coverage analysis, either.
-            print STDERR "Devel::Cover: ",
-                         "Deleting old coverage for changed file $file\n"
-                unless $Devel::Cover::Silent;
-            delete $ff->{$file};
+            while (my ($name, $run) = each %{$self->{runs}})
+            {
+                if (exists $run->{digest}{$file} &&
+                    $run->{digest}{$file} ne $digest)
+                {
+                    # File has changed.  Delete old coverage instead of merging.
+                    print STDERR "Devel::Cover: Deleting old coverage for ",
+                                               "changed file $file\n"
+                        unless $Devel::Cover::Silent;
+                    delete $run->{digest}{$file};
+                    delete $run->{count} {$file};
+                    delete $run->{vec}   {$file};
+                }
+            }
         }
     }
 
     # When the database gets big, it's quicker to merge into what's
     # already there.
 
-    # use Data::Dumper; print STDERR Dumper $self->{meta};
-    # my ($run) = grep $_ ne "collected", keys %{$self->{meta}};
-    # $from->{meta}{runs}{$run} = delete $self->{meta}{$run} if defined $run;
+    _merge_hash($from->{runs},      $self->{runs});
+    _merge_hash($from->{collected}, $self->{collected});
 
-    # use Data::Dumper; print STDERR Dumper $from->{meta};
-    _merge_hash($from->{meta}, $self->{meta});
-    # use Data::Dumper; print STDERR Dumper $from->{meta};
-    _merge_hash($from->cover,  $self->cover);
     $_[0] = $from;
 }
 
@@ -278,6 +239,11 @@ sub _merge_array
         {
             _merge_hash($i, $f || {});
         }
+        elsif (UNIVERSAL::isa($i, "SCALAR") ||
+              !defined $i && UNIVERSAL::isa($f, "SCALAR") )
+        {
+            $$i += $$f;
+        }
         else
         {
             if (defined $f)
@@ -298,12 +264,6 @@ sub _merge_array
     push @$into, @$from;
 }
 
-sub files
-{
-    my $self = shift;
-    (grep($_ ne "Total", sort @{$self->{summary}}), "Total")
-}
-
 sub summary
 {
     my $self = shift;
@@ -319,16 +279,12 @@ sub calculate_summary
     my $self = shift;
     my %options = @_;
 
-    return if defined $self->{summary} && !$options{force};
+    return if exists $self->{summary} > 0 && !$options{force};
     my $s = $self->{summary} = {};
 
     for my $file ($self->cover->items)
     {
         $self->cover->get($file)->calculate_summary($self, $file, \%options);
-    }
-
-    for my $file ($self->cover->items)
-    {
         $self->cover->get($file)->calculate_percentage($self, $s->{$file});
     }
 
@@ -352,6 +308,7 @@ sub trimmed_file
 sub print_summary
 {
     my $self = shift;
+
     my %options = map(($_ => 1), @_ ? @_ : $self->collected);
     $options{total} = 1 if keys %options;
 
@@ -397,11 +354,101 @@ sub print_summary
     select $oldfh;
 }
 
+sub add_statement
+{
+    my $self = shift;
+    my ($cc, $sc, $fc) = @_;
+    my %line;
+    for my $i (0 .. $#$fc)
+    {
+        my $l = $sc->[$i];
+        my $n = $line{$l}++;
+        $cc->{$l}[$n] ||= do { my $c; \$c };
+        ${$cc->{$l}[$n]} += $fc->[$i];
+    }
+}
+
+sub add_branch
+{
+    my $self = shift;
+    my ($cc, $sc, $fc) = @_;
+    my %line;
+    for my $i (0 .. $#$fc)
+    {
+        my $l = $sc->[$i][0];
+        my $n = $line{$l}++;
+        if (my $a = $cc->{$l}[$n])
+        {
+            $a->[0][0] += $fc->[$i][0];
+            $a->[0][1] += $fc->[$i][1];
+        }
+        else
+        {
+            $cc->{$l}[$n] = [ $fc->[$i], $sc->[$i][1] ];
+        }
+    }
+}
+
+sub add_subroutine
+{
+    my $self = shift;
+    my ($cc, $sc, $fc) = @_;
+    my %line;
+    for my $i (0 .. $#$fc)
+    {
+        my $l = $sc->[$i][0];
+        my $n = $line{$l}++;
+        if (my $a = $cc->{$l}[$n])
+        {
+            $a->[0] += $fc->[$i];
+        }
+        else
+        {
+            $cc->{$l}[$n] = [ $fc->[$i], $sc->[$i][1] ];
+        }
+    }
+}
+
+*add_condition  = \&add_branch;
+*add_pod        = \&add_subroutine;
+*add_time       = \&add_statement;
+
 sub cover
 {
     my $self = shift;
 
     return $self->{cover} if $self->{cover_valid};
+
+    my %digests;
+    my %files;
+    my $cover = $self->{cover} = {};
+    while (my ($run, $r) = each %{$self->{runs}})
+    {
+        @{$self->{collected}}{@{$r->{collected}}} = ();
+        my $count = $r->{count};
+        while (my ($file, $f) = each %$count)
+        {
+            my $digest = $r->{digest}{$file};
+            print STDERR "Devel::Cover: merging data for $file ",
+                         "into $digests{$digest}\n"
+                if !$files{$file}++ && $digests{$digest};
+            my $cf = $cover->{$digests{$digest} ||= $file} ||= {};
+            my $st = Devel::Cover::DB::Structure->new
+            (
+                base   => $self->{base},
+                digest => $digest,
+            );
+            while (my ($criterion, $fc) = each %$f)
+            {
+                my $get = "get_$criterion";
+                my $sc = $st->$get;
+                next unless $sc;
+                my $cc = $cf->{$criterion} ||= {};
+                my $add = "add_$criterion";
+                $self->$add($cc, $sc, $fc);
+            }
+        }
+    }
 
     unless (UNIVERSAL::isa($self->{cover}, "Devel::Cover::DB::Cover"))
     {
@@ -641,7 +688,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.38 - 12th March 2004
+Version 0.39 - 22nd March 2004
 
 =head1 LICENCE
 

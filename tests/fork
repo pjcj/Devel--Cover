@@ -7,6 +7,9 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
+# __COVER__ skip_test $^O eq "MSWin32"
+# __COVER__ skip_reason Fork unreliable
+
 $x = 1;
 
 die unless defined ($pid = fork);

@@ -20,6 +20,7 @@ lib/Devel/Cover/Subroutine.pm
 lib/Devel/Cover/Pod.pm
 lib/Devel/Cover/Time.pm
 lib/Devel/Cover/DB/File.pm
+lib/Devel/Cover/DB/Structure.pm
 lib/Devel/Cover/Test.pm
 lib/Devel/Cover/Report/Text.pm
 lib/Devel/Cover/Report/Html.pm

@@ -7,7 +7,6 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-my $pi = 3.14159;
-my $r  = 4;
+my $pi = 3.14159; my $r  = 4;
 my $c  = 2 * $pi * $r;
 my $a  = $pi * $r * $r;

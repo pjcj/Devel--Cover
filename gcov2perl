@@ -12,9 +12,9 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.38";
+our $VERSION = "0.39";
 
-use Devel::Cover::DB 0.38;
+use Devel::Cover::DB 0.39;
 
 use Getopt::Long;
 use Pod::Usage;
@@ -55,7 +55,7 @@ sub add_cover
         s/\s+//g;
         $_ = 0 if $_ eq "######";
         next if !length || /\D/;
-        $cover->{$f}{statement}{$.} = [[[$_]]];
+        $cover->{$f}{statement}{$.} = [\$_];
     }
     close F or die "Can't open $file: $!\n";
 }
@@ -123,7 +123,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.38 - 12th March 2004
+Version 0.39 - 22nd March 2004
 
 =head1 LICENCE
 

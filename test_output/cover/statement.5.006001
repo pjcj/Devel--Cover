@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3702/cover_db
+Reading database from /home/pjcj/g/perl/dev/Devel-Cover-0.3805/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -21,9 +21,9 @@ line  err   stmt branch   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10             1                        my $pi = 3.14159;
-11             1                        my $r  = 4;
-12             1                        my $c  = 2 * $pi * $r;
-13             1                        my $a  = $pi * $r * $r;
+10             1                        my $pi = 3.14159; my $r  = 4;
+               1                        
+11             1                        my $c  = 2 * $pi * $r;
+12             1                        my $a  = $pi * $r * $r;
 
 

@@ -19,8 +19,8 @@ use File::Copy;
 
 $| = 1;
 
-my $Version  = "0.38";
-my $Date     = "12th March 2004";
+my $Version  = "0.39";
+my $Date     = "22nd March 2004";
 my $Author   = 'pjcj@cpan.org';
 
 my @perlbug  = ("perlbug", "-a", $Author,
@@ -196,6 +196,30 @@ else
     print "not found\n\n$e\n";
 }
 
+print "checking for Test::Differences.pm          ........ ";
+
+$e = <<EOM;
+
+Test::Differences.pm is to display output from failed tests.  Hopefully
+there won't be any failed tests, but if there are you will get output
+that may not be a model of clarity.  If you do get test failures and you
+fancy helping me by debugging them, then you might like to consider
+installing Test::Differences.  You can download Test::Differences from
+CPAN.
+
+EOM
+
+eval "use Test::Differences";
+if (my $m = $INC{"Test/Differences.pm"})
+{
+    my $v = eval { no warnings; $Test::Differences::VERSION };
+    print "$v $m\n";
+}
+else
+{
+    print "not found\n\n$e\n";
+}
+
 my $latest_tested = 5.008003;
 print <<EOM if $] > $latest_tested;
 
@@ -313,7 +337,7 @@ FONT = "Bitstream Vera Sans Mono 8"
 
 diff : _run
 \t \$(PERL) -i -pe '\$\$t = index \$\$_, "time   code" if !defined \$\$t || \$\$t < 0; substr \$\$_, \$\$t, 7, "" if /^line  err   stmt/ ..  /^Branches/ and length > \$\$t' \$(TEST).out
-\t gvim -d -font \$(FONT) `\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new(\$(TEST)); print \$\$t->cover_gold'` \$(TEST).out
+\t gvim -d -font \$(FONT) `\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new("\$(TEST)"); print \$\$t->cover_gold'` \$(TEST).out
 
 gold : pure_all
 \t \$(PERL) create_gold \$(TEST)

@@ -248,3 +248,10 @@ Release 0.38 - 12th March 2004
  - Add default_param test.
  - Provide summary output to one decimal place.
  - Update gcov2perl.
+
+Release 0.39 - 22nd March 2004
+ - Major database rework to store runs.
+ - Add Devel::Cover::DB::Structure.pm.
+ - Check for Test::Differences in Makefile.PL.
+ - Test with perl5.9.2.
+ - Skip fork test on MSWin32.

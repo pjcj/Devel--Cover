@@ -17,8 +17,8 @@ use lib "/var/spool/extra/g/perl/Devel-Cover-0.3407/t";
 
 use File::Copy;
 
-use Devel::Cover::Inc  0.38;
-use Devel::Cover::Test 0.38;
+use Devel::Cover::Inc  0.39;
+use Devel::Cover::Test 0.39;
 
 my $base = $Devel::Cover::Inc::Base;
 

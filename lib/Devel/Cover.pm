@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.38";
+our $VERSION = "0.39";
 
 use DynaLoader ();
 our @ISA = qw( DynaLoader );
 
-use Devel::Cover::DB  0.38;
-use Devel::Cover::Inc 0.38;
+use Devel::Cover::DB  0.39;
+use Devel::Cover::Inc 0.39;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -48,12 +48,12 @@ my @Cvs;                                 # All the Cvs we want to cover.
 my $Cv;                                  # Cv we are looking in.
 
 my $Coverage;                            # Raw coverage data.
-my $Cover;                               # Coverage data.
+my $Structure;                           # Structure of the files.
 
 my %Criteria;                            # Names of coverage criteria.
 my %Coverage;                            # Coverage criteria to collect.
 
-my %Meta;                                # Meta data collected from the run.
+my %Run;                                 # Data collected from the run.
 
 use vars '$File',                        # Last filename we saw.  (localised)
          '$Line',                        # Last line number we saw.  (localised)
@@ -80,9 +80,6 @@ CHECK
     return unless $Initialised;
 
     check_files();
-
-    # reset_op_seq(main_root);
-    # reset_op_seq($_->ROOT) for @Cvs;
 
     set_coverage(keys %Coverage);
     my @coverage = get_coverage();
@@ -112,10 +109,10 @@ EOM
           "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
         unless $Silent;
 
-    $Meta{OS}    = $^O;
-    $Meta{perl}  = join ".", map ord, split //, $^V;
-    $Meta{run}   = $0;
-    $Meta{start} = get_elapsed();
+    $Run{OS}    = $^O;
+    $Run{perl}  = join ".", map ord, split //, $^V;
+    $Run{run}   = $0;
+    $Run{start} = get_elapsed();
 }
 
 }
@@ -273,9 +270,8 @@ sub get_location
     $File =~ s/^$Dir\///;
 
     $File_cache{$file} = $File;
-    @{$Meta{vec}{$File}{$_}}{"vec", "size"} = ("", 0)
-        for grep $_ ne "time", @{$Meta{collected}};
-    # use Data::Dumper; print Dumper \%Meta;
+    @{$Run{vec}{$File}{$_}}{"vec", "size"} = ("", 0)
+        for grep $_ ne "time", @{$Run{collected}};
 
     # warn "File: $file => $File\n";
 }
@@ -286,7 +282,7 @@ sub use_file
 
     $file = $1 if $file =~ /^\(eval \d+\)\[(.*):\d+\]/;
     $file =~ s/ \(autosplit into .*\)$//;
-    $file =~ s|\.\./\.\./lib/POSIX.pm|$INC{"POSIX.pm"}|e;  # TODO - fix
+    $file =~ s|\.\./\.\./lib/POSIX.pm|$INC{"POSIX.pm"}|e;
     # TODO - check - probably fixed by merging on MD5 sums.
 
     my $files = \%Files;
@@ -346,14 +342,11 @@ sub check_files
 
     my %cvs = map { $$_ => $_ } @Cvs;
     @Cvs = values %cvs;
-
-    # print Dumper \%seen_pkg;
-    # print Dumper \%Files;
 }
 
 sub report
 {
-    $Meta{finish} = get_elapsed();
+    $Run{finish} = get_elapsed();
 
     die "Devel::Cover::import() not run: " .
         "did you require instead of use Devel::Cover?\n"
@@ -362,11 +355,11 @@ sub report
     chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
 
     my @collected = get_coverage();
-    # print "Collected @collected\n";
     return unless @collected;
     set_coverage("none");
 
-    $Meta{collected} = \@collected;
+    $Run{collected} = \@collected;
+    $Structure      = Devel::Cover::DB::Structure->new;
 
     # print "Processing cover data\n@Inc\n";
 
@@ -377,52 +370,58 @@ sub report
     check_files();
 
     get_cover(main_cv, main_root);
-    # print "init, ", Dumper \B::begin_av;
-    # print "init array, ", Dumper B::begin_av->ARRAY;
     get_cover($_) for B::begin_av->isa("B::AV") ? B::begin_av->ARRAY : ();
     get_cover($_) for B::check_av->isa("B::AV") ? B::check_av->ARRAY : ();
     get_cover($_) for B::init_av ->isa("B::AV") ? B::init_av ->ARRAY : ();
     get_cover($_) for B::end_av  ->isa("B::AV") ? B::end_av  ->ARRAY : ();
     get_cover($_) for @Cvs;
 
-    for my $file (keys %$Cover)
+    for my $file (keys %{$Run{count}})
     {
         my $use = use_file($file);
         # warn sprintf "%-4s using $file\n", $use ? "" : "not";
 
         unless ($use)
         {
-            delete $Cover->{$file};
+            delete $Run{count}->{$file};
+            delete $Run{vec}  ->{$file};
             next;
         }
 
         if (open my $fh, "<", $file)
         {
             binmode $fh;
-            $Cover->{$file}{meta}{digest} =
-                 Digest::MD5->new->addfile($fh)->hexdigest;
-            # print STDERR "md5sum of <$file> is <$Cover->{$file}{meta}{digest}>\n";
+            $Run{digest}{$file} = Digest::MD5->new->addfile($fh)->hexdigest;
+            $Structure->set_digest($file, $Run{digest}{$file});
         }
         else
         {
             warn __PACKAGE__ . ": Can't open $file for MD5 digest: $!\n";
         }
+
+        for my $run (keys %{$Run{vec}{$file}})
+        {
+            delete $Run{vec}{$file}{$run} unless $Run{vec}{$file}{$run}{size};
+        }
     }
 
+    my $run = time . ".$$." . sprintf "%05d", rand 2 ** 16;
     my $cover = Devel::Cover::DB->new
     (
-        cover => $Cover,
-        meta  => { $Meta{run} => \%Meta }
+        base      => $DB,
+        runs      => { $run => \%Run },
+        structure => $Structure,
     );
 
     $DB .= "/runs";
     mkdir $DB unless -d $DB;
-    $DB .= "/" . time . ".$$." . sprintf "%05d", rand 2 ** 16;
+    $DB .= "/$run";
 
-    $cover->merge_identical_files;
+    $cover->{db} = $DB;
+
     print STDOUT __PACKAGE__, ": Writing coverage database to $DB\n"
         unless $Silent;
-    $cover->write($DB);
+    $cover->write;
     $cover->print_summary if $Summary && !$Silent;
 }
 
@@ -443,10 +442,10 @@ sub add_subroutine_cover
 
     my $key = get_key($op);
     my $val = $Coverage->{statement}{$key} || 0;
-    push @{$Cover->{$File}{subroutine}{$Line}}, [[$val, $sub_name]];
-    my $vec = $Meta{vec}{$File}{subroutine};
+    $Structure->add_subroutine($File, [ $Line, $sub_name ]);
+    push @{$Run{count}{$File}{subroutine}}, $val;
+    my $vec = $Run{vec}{$File}{subroutine};
     vec($vec->{vec}, $vec->{size}++, 1) = $val ? 1 : 0;
-    # print "$File:$Line:$sub_name: $val\n";
 }
 
 sub add_statement_cover
@@ -460,10 +459,11 @@ sub add_statement_cover
 
     my $key = get_key($op);
     my $val = $Coverage->{statement}{$key} || 0;
-    push @{$Cover->{$File}{statement}{$Line}}, [[$val]];
-    my $vec = $Meta{vec}{$File}{statement};
+    $Structure->add_statement($File, $Line);
+    push @{$Run{count}{$File}{statement}}, $val;
+    my $vec = $Run{vec}{$File}{statement};
     vec($vec->{vec}, $vec->{size}++, 1) = $val ? 1 : 0;
-    push @{$Cover->{$File}{time}{$Line}}, [[$Coverage->{time}{$key}]]
+    push @{$Run{count}{$File}{time}}, $Coverage->{time}{$key}
         if exists $Coverage->{time} && exists $Coverage->{time}{$key};
 }
 
@@ -478,10 +478,8 @@ sub add_branch_cover
 
     my $key = get_key($op);
     # print STDERR "Branch cover from $file:$line $type:$text\n";
-    # use Carp "cluck"; cluck "here: ";
 
     my $c = $Coverage->{condition}{$key};
-    # use Data::Dumper; print "Coverage $type: $text\n", Dumper \@$c;
 
     no warnings "uninitialized";
 
@@ -501,10 +499,12 @@ sub add_branch_cover
         $c = $Coverage->{branch}{$key} || [0, 0];
     }
 
-    my $vec = $Meta{vec}{$File}{branch};
+    my $vec = $Run{vec}{$File}{branch};
     vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
 
-    push @{$Cover->{$file}{branch}{$line}}, [ $c, { text => $text } ];
+    my $structure = { text => $text };
+    $Structure->add_branch($file, [ $line, $structure ]);
+    push @{$Run{count}{$file}{branch}}, $c;
 }
 
 my %condition_locations;
@@ -529,8 +529,6 @@ sub add_condition_cover
     $type =~ s/assign$//;
 
     my $c = $Coverage->{condition}{$key};
-    # use Data::Dumper; print "Condition Coverage $type\n", Dumper \@$c;
-    # shift @$c;
 
     no warnings "uninitialized";
 
@@ -566,19 +564,19 @@ sub add_condition_cover
         die qq(Unknown type "$type" for conditional);
     }
 
-    my $vec = $Meta{vec}{$File}{condition};
+    my $vec = $Run{vec}{$File}{condition};
     vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
 
-    push @{$Cover->{$File}{condition}{$Line}},
-         [
-             $c,
-             {
-                 type  => "${type}_${count}",
-                 op    => $strop,
-                 left  => $left,
-                 right => $right,
-             },
-         ];
+    my $structure =
+    {
+        type  => "${type}_${count}",
+        op    => $strop,
+        left  => $left,
+        right => $right,
+    };
+
+    $Structure->add_condition($File, [ $Line, $structure ]);
+    push @{$Run{count}{$File}{condition}}, $c;
 }
 
 sub is_scope       { &B::Deparse::is_scope }
@@ -739,7 +737,6 @@ sub get_cover
     $sub_name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $sub_name;
 
     # printf STDERR "getting cover for $sub_name, %x\n", $$cv;
-    # use Carp "cluck"; cluck "here: ";
 
     if ($Pod && $Coverage{pod})
     {
@@ -763,9 +760,13 @@ sub get_cover
                         $covered = 0, last if $_ eq $sub_name;
                     }
                 }
-                $Cover->{$File}{pod} ||= {};
-                push @{$Cover->{$File}{pod}{$Line}[0]}, $covered
-                    if defined $covered;
+                if (defined $covered)
+                {
+                    $Structure->add_pod($File, [ $Line, $sub_name ]);
+                    push @{$Run{count}{$File}{pod}}, $covered;
+                    my $vec = $Run{vec}{$File}{pod};
+                    vec($vec->{vec}, $vec->{size}++, 1) = $covered ? 1 : 0;
+                }
             }
         }
     }
@@ -773,7 +774,7 @@ sub get_cover
     my $root = $cv->ROOT;
     # use Devel::Peek;
     # print Dump B::svref_2object($cv);  print Dump B::svref_2object($root);
-    if ($root->can("first"))
+    if ($Coverage{subroutine} && $root->can("first"))
     {
         my $lineseq = $root->first;
         add_subroutine_cover($lineseq->first, $sub_name)
@@ -987,7 +988,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.38 - 12th March 2004
+Version 0.39 - 22nd March 2004
 
 =head1 LICENCE
 

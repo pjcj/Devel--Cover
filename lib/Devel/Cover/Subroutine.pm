@@ -10,15 +10,15 @@ package Devel::Cover::Subroutine;
 use strict;
 use warnings;
 
-our $VERSION = "0.38";
+our $VERSION = "0.39";
 
 use base "Devel::Cover::Criterion";
 
-sub covered    { $_[0][0][0] }
+sub covered    { $_[0][0] }
 sub total      { 1 }
-sub percentage { $_[0][0][0] ? 100 : 0 }
-sub error      { !$_[0][0][0] }
-sub name       { $_[0][0][1] }
+sub percentage { $_[0][0] ? 100 : 0 }
+sub error      { !$_[0][0] }
+sub name       { $_[0][1] }
 
 sub calculate_summary
 {
@@ -32,7 +32,7 @@ sub calculate_summary
     $s->{Total}{subroutine}{total}++;
     $s->{Total}{total}{total}++;
 
-    if ($self->[0][0])
+    if ($self->[0])
     {
         $s->{$file}{subroutine}{covered}++;
         $s->{$file}{total}{covered}++;
@@ -69,7 +69,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.38 - 12th March 2004
+Version 0.39 - 22nd March 2004
 
 =head1 LICENCE
 

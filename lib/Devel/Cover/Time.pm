@@ -10,13 +10,13 @@ package Devel::Cover::Time;
 use strict;
 use warnings;
 
-our $VERSION = "0.38";
+our $VERSION = "0.39";
 
 use base "Devel::Cover::Criterion";
 
-sub covered    { $_[0][0][0] }
+sub covered    { ${$_[0]} }
 sub total      { 1 }
-sub percentage { $_[0][0][0] ? 100 : 0 }
+sub percentage { ${$_[0]} ? 100 : 0 }
 sub error      { 0 }
 
 sub calculate_summary
@@ -24,8 +24,8 @@ sub calculate_summary
     my $self = shift;
     my ($db, $file) = @_;
 
-    $db->{summary}{$file}{time}{total} += $self->[0][0];
-    $db->{summary}{Total}{time}{total} += $self->[0][0];
+    $db->{summary}{$file}{time}{total} += $$self;
+    $db->{summary}{Total}{time}{total} += $$self;
 }
 
 sub calculate_percentage
@@ -70,7 +70,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.38 - 12th March 2004
+Version 0.39 - 22nd March 2004
 
 =head1 LICENCE
 

@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.38";
+our $VERSION = "0.39";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.38;
+use Devel::Cover::Inc 0.39;
 
 sub new
 {
@@ -33,8 +33,9 @@ sub new
 
     my $self  =
     {
-        test     => $test,
-        criteria => $criteria,
+        test      => $test,
+        criteria  => $criteria,
+        skip      => "",
         %params
     };
 
@@ -59,6 +60,8 @@ sub get_params
                               . " -merge 0 -coverage $self->{criteria}";
     $self->{cover_parameters} = join(" ", map "-coverage $_", split " ", $self->{criteria})
                               . " -report text";
+    $self->{skip}             = $self->{skip_reason}
+        if exists $self->{skip_test} && eval $self->{skip_test};
 
     $self
 }
@@ -169,11 +172,11 @@ sub run_test
     eval "use Test::Differences";
     my $differences = $INC{"Test/Differences.pm"};
 
-    my $skip = "";
-    if ($self->{criteria} =~ /\bpod\b/)
+    my $skip = $self->{skip};
+    if (!$skip && $self->{criteria} =~ /\bpod\b/)
     {
         eval "use Pod::Coverage";
-        $skip .= $INC{"Pod/Coverage.pm"} ? "" : "Pod::Coverage unavailable";
+        $skip = $INC{"Pod/Coverage.pm"} ? "" : "Pod::Coverage unavailable";
     }
 
     plan tests => ($differences || $skip) ? 1 : scalar @cover;
