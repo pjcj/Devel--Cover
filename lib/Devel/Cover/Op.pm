@@ -1,4 +1,4 @@
-# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,7 +10,7 @@ package Devel::Cover::Op;
 use strict;
 use warnings;
 
-our $VERSION = "0.20";
+our $VERSION = "0.21";
 
 use Devel::Cover qw( -ignore blib -ignore \\wB\\w -indent 1 );
 use B::Concise   qw( set_style add_callback );

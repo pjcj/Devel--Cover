@@ -114,3 +114,18 @@ Release 0.20 - 5th October 2002
  - Add break after default to satisfy IBM's xlC compiler on AIX.
  - Get things working with threads again.
  - make realclean is.
+
+Release 0.21 - 1st September 2003
+ - Add cpancover.
+ - Handle $x || next and friends.
+ - Add html_subtle and text2 backends (Michael Carman).
+ - Rename html backend to html_basic.
+ - Make html backend a wrapper around preferred style, currently
+   html_subtle.
+ - Make time coverage a little more accurate.  OK, a lot more accurate,
+   it's at least on the right line now, but I still wouldn't really
+   trust it.
+ - Fix pod coverage which has been broken for a while.
+ - Don't collect branch coverage when not asked for.
+ - Provide golden results for different Perl versions.
+ - Change some B::Deparse logic to mirror changes in 5.8.1/5.10.

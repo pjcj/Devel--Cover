@@ -33,7 +33,7 @@ DESCRIPTION
 
     Requirements:
 
-      Perl 5.6.1 or 5.7.1.
+      Perl 5.6.1 or greater.  (Perl 5.7.0 is also unsupported.)
       The ability to compile XS extensions.
       Pod::Coverage if you want pod coverage.
       Template Toolkit 2 if you want HTML output.

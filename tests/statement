@@ -1,0 +1,13 @@
+#!/usr/local/bin/perl
+
+# Copyright 2003, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+my $pi = 3.14159;
+my $r  = 4;
+my $c  = 2 * $pi * $r;
+my $a  = $pi * $r * $r;

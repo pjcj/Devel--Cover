@@ -1,5 +1,5 @@
 - Indicate how to increase coverage?
-- Make the HTML output nicer.
+- Make the cpancover HTML output nicer.
 - Collect data for path coverage.
 - Tests.
 - Documentation.
@@ -10,3 +10,7 @@
 - Work with memoize.
 - Fix up Devel::Cover::Op
 - See if the XS code leaks, and fix it if it does.
+- Specify where html output goes.
+- Different criteria for different runs.
+- Subroutine coverage
+- Improve textual output

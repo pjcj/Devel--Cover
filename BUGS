@@ -1,2 +1,2 @@
 - Code in BEGIN and END blocks is not reported.
-- Doesn't play nicely with Perl's testsuite.
+- Doesn't play nicely with all of Perl's testsuite.

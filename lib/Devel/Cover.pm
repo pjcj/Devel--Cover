@@ -1,4 +1,4 @@
-# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -11,12 +11,12 @@ use strict;
 use warnings;
 
 our @ISA     = qw( DynaLoader );
-our $VERSION = "0.20";
+our $VERSION = "0.21";
 
 use DynaLoader ();
 
-use Devel::Cover::DB  0.20;
-use Devel::Cover::Inc 0.20;
+use Devel::Cover::DB  0.21;
+use Devel::Cover::Inc 0.21;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -24,12 +24,14 @@ use B::Deparse;
 
 use Cwd ();
 
+use Data::Dumper;
+
 BEGIN { eval "use Pod::Coverage 0.06" }     # We'll use this if it is available.
 
 my $Silent  = 0;                            # Output nothing.
 
 my $DB      = "cover_db";                   # DB name.
-my $Indent  = 0;                            # Data::Dumper indent.
+my $Indent  = 1;                            # Data::Dumper indent.
 my $Merge   = 1;                            # Merge databases.
 
 my @Ignore;                                 # Packages to ignore.
@@ -37,6 +39,7 @@ my @Inc;                                    # Original @INC to ignore.
 my @Select;                                 # Packages to select.
 
 my $Pod     = $INC{"Pod/Coverage.pm"};      # Do pod coverage.
+my %Pod;                                    # Pod coverage data.
 
 my $Summary = 1;                            # Output coverage summary.
 
@@ -51,7 +54,7 @@ my %Coverage;                               # Coverage criteria to collect.
 
 my $Cwd = Cwd::cwd();                       # Where we start from.
 
-use vars qw($File $Line $Collect);
+use vars qw($File $Line $Collect %Files);
 
 ($File, $Line, $Collect) = ("", 0, 1);
 
@@ -178,6 +181,8 @@ sub get_location
     $File = $op->file;
     $Line = $op->line;
 
+    # warn "$File::$Line\n";
+
     # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
 
     ($File, $Line) = ($1, $2) if $File =~ /^\(eval \d+\)\[(.*):(\d+)\]/;
@@ -205,7 +210,9 @@ sub use_file
     my ($file) = @_;
     $file = $1 if $file =~ /^\(eval \d+\)\[(.*):\d+\]/;
     $file =~ s/ \(autosplit into .*\)$//;
-    my $files = \%Devel::Cover::Files;
+    $file =~ s|\.\./\.\./lib/POSIX.pm|$INC{"POSIX.pm"}|e;
+    # print "checking <$file>\n";
+    my $files = \%Files;
     return $files->{$file} if exists $files->{$file};
     for (@Select) { return $files->{$file} = 1 if $file =~ /$_/      }
     for (@Ignore) { return $files->{$file} = 0 if $file =~ /$_/      }
@@ -254,14 +261,14 @@ sub check_files
 
     walksymtable(\%main::, "find_cv", sub { !$seen_pkg{$_[0]}++ });
 
-    # use Data::Dumper;
     # print Dumper \%seen_pkg;
-    # print Dumper \%Devel::Cover::Files;
+    # print Dumper \%Files;
 }
 
 sub report
 {
     my @collected = get_coverage();
+    # print "Collected @collected\n";
     return unless @collected;
     set_coverage("none");
 
@@ -269,12 +276,17 @@ sub report
 
     $Coverage = coverage() || die "No coverage data available.\n";
 
-    # use Data::Dumper;
     # print Dumper $Coverage;
 
     check_files();
 
     get_cover(main_cv, main_root);
+    # print "init, ", Dumper \B::begin_av;
+    # print "init array, ", Dumper B::begin_av->ARRAY;
+    get_cover($_) for B::begin_av->isa("B::AV") ? B::begin_av->ARRAY : ();
+    get_cover($_) for B::check_av->isa("B::AV") ? B::check_av->ARRAY : ();
+    get_cover($_) for B::init_av ->isa("B::AV") ? B::init_av ->ARRAY : ();
+    get_cover($_) for B::end_av  ->isa("B::AV") ? B::end_av  ->ARRAY : ();
     get_cover($_) for @Cvs;
 
     for my $file (keys %$Cover)
@@ -290,7 +302,12 @@ sub report
         collected => [ @collected ],
     );
     my $existing;
-    eval { $existing = Devel::Cover::DB->new(db => $DB) if $Merge };
+    eval
+    {
+        $existing = Devel::Cover::DB->new(db        => $DB,
+                                          collected => [ @collected ])
+            if $Merge
+    };
     $cover->merge($existing) if $existing;
     $cover->indent($Indent);
     $cover->write($DB);
@@ -318,7 +335,7 @@ sub add_statement_cover
 
 sub add_branch_cover
 {
-    return unless $Collect;
+    return unless $Collect && $Coverage{branch};
 
     my ($op, $type, $text, $file, $line) = @_;
 
@@ -326,9 +343,10 @@ sub add_branch_cover
     $text =~ s/\s+$//;
 
     my $key = pack("I*", $$op) . pack("I*", $op->seq);
-    # print STDERR "Branch cover from $file:$line\n";
+    # print STDERR "Branch cover from $file:$line $type:$text\n";
 
     my $c = $Coverage->{condition}{$key};
+    # print STDERR Dumper $c;
     if ($type eq "and")
     {
         shift @$c;
@@ -459,7 +477,7 @@ sub B::Deparse::deparse
             my $cond  = $op->first;
             my $true  = $cond->sibling;
             my $false = $true->sibling;
-            if (!($cx == 0 && (is_scope($true) && $true->name ne "null") &&
+            if (!($cx < 1 && (is_scope($true) && $true->name ne "null") &&
                     (is_scope($false) || is_ifelse_cont($false))
                     && $self->{'expand'} < 7))
             {
@@ -488,7 +506,8 @@ sub B::Deparse::deparse
         }
     }
 
-    $original_deparse->($self, @_);
+    my $d = eval { $original_deparse->($self, @_) };
+    $@ ? "Deparse error: $@" : $d
 }
 
 sub B::Deparse::logop
@@ -498,7 +517,7 @@ sub B::Deparse::logop
     my $left  = $op->first;
     my $right = $op->first->sibling;
     my ($file, $line) = ($File, $Line);
-    if ($cx == 0 && is_scope($right) && $blockname && $self->{expand} < 7)
+    if ($cx < 1 && is_scope($right) && $blockname && $self->{expand} < 7)
     {
         # if ($a) {$b}
         $left  = $self->deparse($left, 1);
@@ -506,7 +525,7 @@ sub B::Deparse::logop
         add_branch_cover($op, $lowop, "$blockname ($left)", $file, $line);
         return "$blockname ($left) {\n\t$right\n\b}\cK"
     }
-    elsif ($cx == 0 && $blockname && !$self->{parens} && $self->{expand} < 7)
+    elsif ($cx < 1 && $blockname && !$self->{parens} && $self->{expand} < 7)
     {
         # $b if $a
         $right = $self->deparse($right, 1);
@@ -547,11 +566,50 @@ sub B::Deparse::logassignop {
 
 sub get_cover
 {
-    my $deparse = B::Deparse->new;
+    my $deparse = B::Deparse->new("-l");
 
     my $cv = $deparse->{curcv} = shift;
 
+    if ($Pod && $Coverage{pod})
+    {
+        my $gv = $cv->GV;
+        unless ($gv->isa("B::SPECIAL"))
+        {
+            my $stash = $gv->STASH;
+            my $pkg = $stash->NAME;
+            my $file = $cv->FILE;
+            if ($Pod{$file} ||= Pod::Coverage->new(package => $pkg))
+            {
+                my $sub_name = $cv->GV->SAFENAME;
+                get_location($cv->START);
+                my $covered;
+                for ($Pod{$file}->covered)
+                {
+                    $covered = 1, last if $_ eq $sub_name;
+                }
+                unless ($covered)
+                {
+                    for ($Pod{$file}->uncovered)
+                    {
+                        $covered = 0, last if $_ eq $sub_name;
+                    }
+                }
+                push @{$Cover->{$File}{pod}{$Line}[0]}, $covered if defined $covered;
+            }
+        }
+    }
+
     @_ ? $deparse->deparse(shift, 0) : $deparse->deparse_sub($cv, 0)
+}
+
+sub get_cover_x
+{
+    my $cv = shift;
+    printf "get_cover_x %p\n", $cv;
+    print "cv - $cv - ", Dumper $cv;
+    print ">>>";
+    print get_cover($cv);
+    print "<<<\n";
 }
 
 bootstrap Devel::Cover $VERSION;
@@ -570,6 +628,10 @@ Devel::Cover - Code coverage metrics for Perl
  cover cover_db -report html
 
  perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
+
+ To test an uninstalled module:
+
+
 
 =head1 DESCRIPTION
 
@@ -604,15 +666,16 @@ now defunct.  http://lists.perl.org/showlist.cgi?name=perl-qa
 
 Requirements:
 
-  Perl 5.6.1 or 5.7.1.
+  Perl 5.6.1 or greater.  (Perl 5.7.0 is also unsupported.)
   The ability to compile XS extensions.
   Pod::Coverage if you want pod coverage.
   Template Toolkit 2 if you want HTML output.
 
 =head1 OPTIONS
 
- -coverage criterion - Turn on coverage for the specified criterion.
- -db cover_db        - Store results in coverage db (default cover_db).
+ -coverage criterion - Turn on coverage for the specified criterion.  Criteria
+                       include statement, branch, path, pod, time, all and none.
+ -db cover_db        - Store results in coverage db (default ./cover_db).
  -inc path           - Set prefixes of files to ignore (default @INC).
  +inc path           - Append to prefixes of files to ignore.
  -ignore RE          - Ignore files matching RE.
@@ -641,13 +704,15 @@ Some code and ideas cribbed from:
 
 Did I mention that this is alpha code?
 
+See the BUGS file.
+
 =head1 VERSION
 
-Version 0.20 - 5th October 2002
+Version 0.21 - 1st September 2003
 
 =head1 LICENCE
 
-Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

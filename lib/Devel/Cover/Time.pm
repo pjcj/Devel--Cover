@@ -1,4 +1,4 @@
-# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,14 +10,14 @@ package Devel::Cover::Time;
 use strict;
 use warnings;
 
-our $VERSION = "0.20";
+our $VERSION = "0.21";
 
 use base "Devel::Cover::Criterion";
 
 sub covered    { $_[0][0][0] }
 sub total      { 1 }
 sub percentage { $_[0][0][0] ? 100 : 0 }
-sub error      { !$_[0][0][0] }
+sub error      { 0 }
 
 sub calculate_summary
 {
@@ -69,11 +69,11 @@ Huh?
 
 =head1 VERSION
 
-Version 0.20 - 5th October 2002
+Version 0.21 - 1st September 2003
 
 =head1 LICENCE
 
-Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

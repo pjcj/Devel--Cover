@@ -4,8 +4,8 @@ Reading database from cover_db
 ------------------------------------------------- ------ ------ ------ ------
 File                                                stmt branch   cond  total
 ------------------------------------------------- ------ ------ ------ ------
-tests/cond_xor                                    100.00    n/a  66.67  82.61
-Total                                             100.00    n/a  66.67  82.61
+tests/cond_xor                                    100.00    n/a  66.67  80.95
+Total                                             100.00    n/a  66.67  80.95
 ------------------------------------------------- ------ ------ ------ ------
 
 
@@ -14,7 +14,7 @@ tests/cond_xor
 line  err   stmt branch   cond   code
 1                                #!/usr/local/bin/perl
 2                                
-3                                # Copyright 2002, Paul Johnson (pjcj@cpan.org)
+3                                # Copyright 2002-2003, Paul Johnson (pjcj@cpan.org)
 4                                
 5                                # This software is free.  It is licensed under the same terms as Perl itself.
 6                                
@@ -28,10 +28,8 @@ line  err   stmt branch   cond   code
 14             1                 my $j = 0;
 15                               
 16             1                 for my $y (0, 1, 1, 1)
-               4                 
 17                               {
 18             4                     for my $z (0, 0, 1)
-              12                 
 19                                   {
 20            12                         my $x = $y ^ $z;
 21            12           100           $x = ($y xor $z);

@@ -5,6 +5,7 @@ e lib/Devel/Cover/DB.pm
 e lib/Devel/Cover/Op.pm
 e Cover.xs
 e cover
+e cpancover
 e gcov2perl
 e create_gold
 e lib/Devel/Cover/Test.pm

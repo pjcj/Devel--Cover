@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+ * Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
  *
  * This software is free.  It is licensed under the same terms as Perl itself.
  *
@@ -41,7 +41,7 @@ extern "C" {
 #define Time      0x00000020
 #define All       0xffffffff
 
-static unsigned Covering = None;
+static unsigned Covering = All;   /* Until we find out what we really want */
 
 #define collecting(criteria) (Covering & (criteria))
 
@@ -53,6 +53,7 @@ static HV *Cover_hv,
           *Pending_conditionals;
 
 static int Got_condition = 0;
+static OP *Profiling_op  = 0;
 
 typedef int seq_t;
 #define ch_sz (sizeof(void *) + sizeof(seq_t))
@@ -191,7 +192,7 @@ static void set_conditional(OP *op, int cond, int value)
 
     count = av_fetch(conds, cond, 1);
     sv_setiv(*count, value);
-    NDEB(D(L, "Setitng %d conditional to %d at %p\n", cond, value, op));
+    NDEB(D(L, "Setting %d conditional to %d at %p\n", cond, value, op));
 }
 
 static void add_conditional(OP *op, int cond)
@@ -271,19 +272,188 @@ static OP *get_condition(pTHX)
     return PL_op;
 }
 
-static int runops_cover(pTHX)
+static void cover_cond()
 {
-    SV        **count;
-    IV          c;
-    HV         *Files;
-    int         collecting_here = 1;
-    char       *lastfile = 0;
+    if (collecting(Branch))
+    {
+        dSP;
+        int val = SvTRUE(TOPs);
+        add_branch(PL_op, !val);
+    }
+}
+
+static void cover_logop()
+{
+    /*
+     * For OP_AND, if the first operand is false, we have short
+     * circuited the second, otherwise the value of the and op is the
+     * value of the second operand.
+     *
+     * For OP_OR, if the first operand is true, we have short circuited
+     * the second, otherwise the value of the and op is the value of the
+     * second operand.
+     *
+     * We check the value of the first operand by simply looking on the
+     * stack.  To check the second operand it is necessary to note the
+     * location of the next op after this logop.  When we get there, we
+     * look at the stack and store the coverage information indexed to
+     * this op.
+     *
+     * This scheme also works for OP_XOR with a small modification
+     * because it doesn't short circuit.  See the comment below.
+     *
+     * To find out when we get to the next op we change the op_ppaddr to
+     * point to get_condition(), which will do the necessary work and
+     * then reset and run the original op_ppaddr.  We also store
+     * information in the Pending_conditionals hash.  This is keyed on
+     * the op and the value is an array, the first element of which is
+     * the op_ppaddr we overwrote, and the subsequent elements are the
+     * ops about which we are collecting the condition coverage
+     * information.  Note that an op may be collecting condition
+     * coverage information about a number of conditions.
+     */
+
+    if (!collecting(Condition))
+        return;
+
+    if (cLOGOP->op_first->op_type == OP_ITER)
+    {
+        /* loop - ignore it for now*/
+    }
+    else
+    {
+        dSP;
+        int left_val = SvTRUE(TOPs);
+        if (PL_op->op_type == OP_AND       &&  left_val ||
+            PL_op->op_type == OP_ANDASSIGN &&  left_val ||
+            PL_op->op_type == OP_OR        && !left_val ||
+            PL_op->op_type == OP_ORASSIGN  && !left_val ||
+            PL_op->op_type == OP_XOR)
+        {
+            char *ch;
+            AV *conds;
+            SV **tmp,
+               *cond,
+               *ppaddr;
+            OP *next,
+               *right;
+
+            right = cLOGOP->op_first->op_sibling;
+            NDEB(op_dump(right));
+
+            if (right->op_type == OP_NEXT ||
+                right->op_type == OP_LAST ||
+                right->op_type == OP_REDO ||
+                right->op_type == OP_GOTO)
+            {
+                /*
+                 * If the right side of the op is a branch, we don't
+                 * care what its value is - it won't be returning one.
+                 * We're just glad to be here, so we chalk up success.
+                 */
+
+                add_conditional(PL_op, 2);
+            }
+            else
+            {
+                if (PL_op->op_type == OP_XOR && left_val)
+                {
+                    /*
+                     * This is an xor.  It does not short circuit.  We
+                     * have just executed the right op, rather than the
+                     * left op as with and and or.  When we get to next
+                     * we will have already done the xor, so we can work
+                     * out what the value of the left op was.
+                     *
+                     * We set a flag in the first element of the array
+                     * to say that we had a true value from the right
+                     * op.
+                     */
+
+                    set_conditional(PL_op, 0, 1);
+                }
+
+                NDEB(op_dump(PL_op));
+
+                next = PL_op->op_next;
+                ch   = get_key(next);
+                tmp  = hv_fetch(Pending_conditionals, ch, ch_sz, 1);
+
+                if (SvROK(*tmp))
+                    conds = (AV *)SvRV(*tmp);
+                else
+                    *tmp = newRV_inc((SV*) (conds = newAV()));
+
+                if (av_len(conds) < 0)
+                {
+                    NDEB(D(L, "setting f to %p\n", next->op_ppaddr));
+                    ppaddr = newSViv((IV) next->op_ppaddr);
+                    av_push(conds, ppaddr);
+                }
+
+                cond = newSViv((IV) PL_op);
+                av_push(conds, cond);
+
+                NDEB(D(L, "Adding conditional %p to %d, making %d\n",
+                       next, next->op_seq, av_len(conds)));
+                NDEB(svdump(Pending_conditionals));
+                NDEB(op_dump(PL_op));
+                NDEB(op_dump(next));
+
+                next->op_ppaddr = get_condition;
+            }
+        }
+        else
+        {
+            add_conditional(PL_op, 3);
+        }
+    }
+}
 
 #if CAN_PROFILE
-    static COP *cop = 0;
-    int         lapsed;
-    elapsed();
+
+static void cover_time()
+{
+    SV   **count;
+    IV     c;
+    char  *ch;
+
+    if (collecting(Time))
+    {
+        /*
+         * Profiling information is stored against Profiling_op, the one
+         * we have just run.
+         */
+
+        NDEB(D(L, "Cop at %p, op at %p, timing %p\n", PL_curcop, PL_op, Profiling_op));
+
+        if (Profiling_op)
+        {
+            ch    = get_key(Profiling_op);
+            count = hv_fetch(Times, ch, ch_sz, 1);
+            c     = (SvTRUE(*count) ? SvIV(*count) : 0) +
+#if 0
+                    Profiling == 1 ? cpu() : elapsed();
+#else
+                    elapsed();
 #endif
+            sv_setiv(*count, c);
+            NDEB(D(L, "Adding time: sum %d at %p\n", c, Profiling_op));
+        }
+        Profiling_op = PL_op;
+    }
+}
+
+#endif
+
+static int runops_cover(pTHX)
+{
+    SV   **count;
+    IV     c;
+    char  *ch;
+    HV    *Files;
+    int    collecting_here = 1;
+    char  *lastfile        = 0;
 
     NDEB(D(L, "runops_cover\n"));
 
@@ -316,12 +486,34 @@ static int runops_cover(pTHX)
         Pending_conditionals = newHV();
     }
 
+#if CAN_PROFILE
+    elapsed();
+#endif
+
     for (;;)
     {
         NDEB(D(L, "running func %p\n", PL_op->op_ppaddr));
 
+#if CAN_PROFILE
+        /* Profile the first op */
+
+        if (!Profiling_op)
+            switch (PL_op->op_type)
+            {
+                case OP_SETSTATE:
+                case OP_NEXTSTATE:
+                case OP_DBSTATE:
+                    Profiling_op = PL_op;
+            }
+#endif
+
         if (!(PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
+        {
+#if CAN_PROFILE
+            cover_time();
+#endif
             break;
+        }
 
         if (Got_condition)
         {
@@ -353,7 +545,18 @@ static int runops_cover(pTHX)
         }
 
         if (!collecting_here)
+        {
+#if CAN_PROFILE
+            cover_time();
+            Profiling_op = 0;
+#endif
             continue;
+        }
+
+        /*
+         * We are about the run the op PL_op, so we'll collect
+         * information for it now.
+         */
 
         switch (PL_op->op_type)
         {
@@ -362,50 +565,24 @@ static int runops_cover(pTHX)
             case OP_DBSTATE:
             {
 #if CAN_PROFILE
-                /* lapsed = Profiling && PL_curcop != cop ? elapsed() : -1; */
-                lapsed = collecting(Time) ? elapsed() : -1;
+                cover_time();
 #endif
 
                 if (collecting(Statement))
                 {
-                    char *ch = get_key(PL_op);
+                    ch    = get_key(PL_op);
                     count = hv_fetch(Statements, ch, ch_sz, 1);
                     c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
                     sv_setiv(*count, c);
 
                     NDEB(op_dump(PL_op));
                 }
-
-#if CAN_PROFILE
-                if (lapsed > -1)
-                {
-                    if (cop)
-                    {
-                        char *ch = get_key((OP *)cop);
-                        count    = hv_fetch(Times, ch, ch_sz, 1);
-                        c        = (SvTRUE(*count) ? SvIV(*count) : 0) +
-#if 0
-                                   Profiling == 1 ? cpu() : elapsed();
-#else
-                                   lapsed;
-#endif
-                        sv_setiv(*count, c);
-                    }
-                    elapsed();  /* reset the timer */
-                    cop = PL_curcop;
-                }
-#endif
                 break;
             }
 
             case OP_COND_EXPR:
             {
-                if (collecting(Branch))
-                {
-                    dSP;
-                    int val = SvTRUE(TOPs);
-                    add_branch(PL_op, !val);
-                }
+                cover_cond();
                 break;
             }
 
@@ -415,113 +592,7 @@ static int runops_cover(pTHX)
             case OP_ORASSIGN:
             case OP_XOR:
             {
-                /*
-                 * For OP_AND, if the first operand is false, we have
-                 * short circuited the second, otherwise the value of
-                 * the and op is the value of the second operand.
-                 *
-                 * For OP_OR, if the first operand is true, we have
-                 * short circuited the second, otherwise the value of
-                 * the and op is the value of the second operand.
-                 *
-                 * We check the value of the first operand by simply
-                 * looking on the stack.  To check the second operand it
-                 * is necessary to note the location of the next op
-                 * after this logop.  When we get there, we look at the
-                 * stack and store the coverage information indexed to
-                 * this op.
-                 *
-                 * This scheme also works for OP_XOR with a small
-                 * modification because it doesn't short circuit.  See
-                 * the comment below.
-                 *
-                 * To find out when we get to the next op we change the
-                 * op_ppaddr to point to get_condition(), which will do
-                 * the necessary work and then reset and run the
-                 * original op_ppaddr.  We also store information in the
-                 * Pending_conditionals hash.  This is keyed on the op
-                 * and the value is an array, the first element of which
-                 * is the op_ppaddr we overwrote, and the subsequent
-                 * elements are the ops about which we are collecting
-                 * the condition coverage information.  Note that an op
-                 * may be collecting condition coverage information
-                 * about a number of conditions.
-                 */
-
-                if (!collecting(Condition))
-                    break;
-
-                if (cLOGOP->op_first->op_type == OP_ITER)
-                {
-                    /* loop - ignore it for now*/
-                }
-                else
-                {
-                    dSP;
-                    int left_val = SvTRUE(TOPs);
-                    if (PL_op->op_type == OP_AND       &&  left_val ||
-                        PL_op->op_type == OP_ANDASSIGN &&  left_val ||
-                        PL_op->op_type == OP_OR        && !left_val ||
-                        PL_op->op_type == OP_ORASSIGN  && !left_val ||
-                        PL_op->op_type == OP_XOR)
-                    {
-                        char *ch;
-                        AV *conds;
-                        SV **tmp,
-                           *cond,
-                           *ppaddr;
-                        OP *next;
-
-                        if (PL_op->op_type == OP_XOR && left_val)
-                        {
-                            /*
-                             * This is an xor.  It does not short
-                             * circuit.  We have just executed the right
-                             * op, rather than the left op as with and
-                             * and or.  When we get to next we will have
-                             * already done the xor, so we can work out
-                             * what the value of the laft op was.
-                             *
-                             * We set a flag in the first element of the
-                             * array to say that we had a true value
-                             * from the right op.
-                             */
-
-                            set_conditional(PL_op, 0, 1);
-                        }
-
-                        next = PL_op->op_next;
-                        ch   = get_key(next);
-                        tmp  = hv_fetch(Pending_conditionals, ch, ch_sz, 1);
-
-                        if (SvROK(*tmp))
-                            conds = (AV *)SvRV(*tmp);
-                        else
-                            *tmp = newRV_inc((SV*) (conds = newAV()));
-
-                        if (av_len(conds) < 0)
-                        {
-                            NDEB(D(L, "setting f to %p\n", next->op_ppaddr));
-                            ppaddr = newSViv((IV) next->op_ppaddr);
-                            av_push(conds, ppaddr);
-                        }
-
-                        cond = newSViv((IV) PL_op);
-                        av_push(conds, cond);
-
-                        NDEB(D(L, "Adding conditional %p to %d, making %d\n",
-                                  next, next->op_seq, av_len(conds)));
-                        NDEB(svdump(Pending_conditionals));
-                        NDEB(op_dump(PL_op));
-                        NDEB(op_dump(next));
-
-                        next->op_ppaddr = get_condition;
-                    }
-                    else
-                    {
-                        add_conditional(PL_op, 3);
-                    }
-                }
+                cover_logop();
                 break;
             }
 
@@ -546,6 +617,41 @@ static int runops_orig(pTHX)
     TAINT_NOT;
     return 0;
 }
+
+#if 0
+static void cv_destroy_cb(pTHX_ CV *cv)
+{
+    SV *sv;
+    IV iv;
+    dSP;
+
+    PDEB(D(L, "cv_destroy_cb %p - %p\n", cv, Covering));
+
+    if (!Covering)
+        return;
+
+    ENTER;
+    SAVETMPS;
+
+    PUSHMARK(SP);
+
+    sv = sv_newmortal();
+    iv = PTR2IV(cv);
+    sv_setiv(newSVrv(sv, "B::CV"), iv);
+
+    XPUSHs(sv);
+    /* XPUSHs(sv_2mortal(newSViv(cv))); */
+
+    PUTBACK;
+
+    call_pv("Devel::Cover::get_cover_x", G_DISCARD);
+
+    FREETMPS;
+    LEAVE;
+
+    NDEB(svdump(cv));
+}
+#endif
 
 MODULE = Devel::Cover PACKAGE = Devel::Cover
 
@@ -643,4 +749,9 @@ coverage()
                ST(0) = &PL_sv_undef;
 
 BOOT:
-    PL_runops = runops_orig;
+    PL_runops        = runops_orig;
+    /* PL_savebegin     = TRUE; */
+    /* PL_savecheck     = TRUE; */
+    /* PL_saveinit      = TRUE; */
+    /* PL_saveend       = TRUE; */
+    /* PL_cv_destroy_cb = cv_destroy_cb; */

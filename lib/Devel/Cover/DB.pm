@@ -1,4 +1,4 @@
-# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,10 +10,10 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.20";
+our $VERSION = "0.21";
 
-use Devel::Cover::DB::File  0.20;
-use Devel::Cover::Criterion 0.20;
+use Devel::Cover::DB::File  0.21;
+use Devel::Cover::Criterion 0.21;
 
 use Carp;
 use Data::Dumper;
@@ -46,6 +46,7 @@ sub new
     {
         $self->validate_db;
         $file = "$self->{db}/$DB";
+        return $self unless -e $file;
         open F, "<$file" or croak "Unable to open $file: $!";
         $self->{filehandle} = *F{IO};
     }
@@ -221,6 +222,22 @@ sub _merge_array
         }
     }
     push @$into, @$from;
+}
+
+sub files
+{
+    my $self = shift;
+    (grep($_ ne "Total", sort @{$self->{summary}}), "Total")
+}
+
+sub summary
+{
+    my $self = shift;
+    my ($file, $criteriion, $part) = @_;
+    my $f = $self->{summary}{$file};
+    return $f unless $f && defined $criteriion;
+    my $c = $f->{$criteriion};
+    $c && defined $part ? $c->{$part} : $c
 }
 
 sub calculate_summary
@@ -542,11 +559,11 @@ Huh?
 
 =head1 VERSION
 
-Version 0.20 - 5th October 2002
+Version 0.21 - 1st September 2003
 
 =head1 LICENCE
 
-Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

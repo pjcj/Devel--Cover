@@ -1,4 +1,4 @@
-# Copyright 2002, Paul Johnson (pjcj@cpan.org)
+# Copyright 2002-2003, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.20";
+our $VERSION = "0.21";
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.20;
+use Devel::Cover::Inc 0.21;
 
 sub new
 {
@@ -26,17 +26,15 @@ sub new
 
     croak "No test specified" unless $test;
 
-    my $coverage = "-coverage statement -coverage branch -coverage condition";
+    my %params = @_;
+
+    my $criteria = delete $params{criteria} || "statement branch condition";
 
     my $self  =
     {
-        test   => $test,
-        params =>
-        {
-          test_parameters  => "-select $test -ignore blib Devel/Cover -merge 0",
-          cover_parameters => "$coverage -report text",
-        },
-        @_
+        test     => $test,
+        criteria => $criteria,
+        %params
     };
 
     bless $self, $class;
@@ -52,9 +50,14 @@ sub get_params
     open T, $test or die "Cannot open $test: $!";
     while (<T>)
     {
-        $self->{params}{$1} = $2 if /__COVER__\s+(\w+)\s+(.*)/;
+        $self->{$1} = $2 if /__COVER__\s+(\w+)\s+(.*)/;
     }
     close T or die "Cannot close $test: $!";
+
+    $self->{test_parameters}  = "-select $self->{test} -ignore blib Devel/Cover"
+                              . " -merge 0 -coverage $self->{criteria}";
+    $self->{cover_parameters} = join(" ", map "-coverage $_", split " ", $self->{criteria})
+                              . " -report text";
 
     $self
 }
@@ -79,7 +82,7 @@ sub test_command
     unless ($ENV{NOCOVERAGE})
     {
         $c .= " -MDevel::Cover=" .
-              join(",", split ' ', $self->{params}{test_parameters})
+              join(",", split ' ', $self->{test_parameters})
     }
     $c .= " " . $self->test_file;
 
@@ -90,8 +93,7 @@ sub cover_command
 {
     my $self = shift;
 
-    $self->perl .
-    " $Devel::Cover::Inc::Base/cover $self->{params}{cover_parameters}"
+    $self->perl . " $Devel::Cover::Inc::Base/cover $self->{cover_parameters}"
 }
 
 sub test_file
@@ -105,7 +107,12 @@ sub cover_gold
 {
     my $self = shift;
 
-    "$Devel::Cover::Inc::Base/test_output/cover/$self->{test}"
+    my $latest_tested = 5.008001;
+    my $v = $] > $latest_tested ? $latest_tested : $];
+
+    $v = $ENV{__COVER_GOLDEN_VERSION} if exists $ENV{__COVER_GOLDEN_VERSION};
+
+    "$Devel::Cover::Inc::Base/test_output/cover/$self->{test}.$v"
 }
 
 sub run_test
@@ -119,7 +126,23 @@ sub run_test
     my @cover = <I>;
     close I or die "Cannot close $gold: $!";
 
-    plan tests => scalar @cover;
+    eval "use Test::Differences";
+    my $differences = $INC{"Test/Differences.pm"};
+
+    my $skip = "";
+    if ($self->{criteria} =~ /\bpod\b/)
+    {
+        eval "use Pod::Coverage";
+        $skip .= $INC{"Pod/Coverage.pm"} ? "" : "Pod::Coverage unavailable";
+    }
+
+    plan tests => $differences || $skip ? 1 : scalar @cover;
+
+    if ($skip)
+    {
+        skip($skip, 1);
+        return;
+    }
 
     my $test_com = $self->test_command;
     print "Running test [$test_com]\n" if $debug;
@@ -134,6 +157,9 @@ sub run_test
     my $cover_com = $self->cover_command;
     print "Running cover [$cover_com]\n" if $debug;
 
+    my @at;
+    my @ac;
+
     open T, "$cover_com|" or die "Cannot run $cover_com: $!";
     while (my $t = <T>)
     {
@@ -147,10 +173,22 @@ sub run_test
             s/copyright .*//ix;
         }
         # print STDERR "[$t]\n[$c]\n" if $t ne $c;
-        $ENV{NOCOVERAGE} ? ok 1 : ok $t, $c;
-        last if $ENV{NOCOVERAGE} && !@cover;
+        if ($differences)
+        {
+            push @at, $t;
+            push @ac, $c;
+        }
+        else
+        {
+            $ENV{NOCOVERAGE} ? ok 1 : ok $t, $c;
+            last if $ENV{NOCOVERAGE} && !@cover;
+        }
     }
-    if ($ENV{NOCOVERAGE})
+    if ($differences)
+    {
+        $ENV{NOCOVERAGE} ? ok 1 : eq_or_diff(\@at, \@ac);
+    }
+    elsif ($ENV{NOCOVERAGE})
     {
         ok 1 for @cover;
     }

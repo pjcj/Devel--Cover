@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# Copyright 2002, Paul Johnson (pjcj@cpan.org)
+# Copyright 2002-2003, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -12,19 +12,24 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.20";
+our $VERSION = "0.21";
 
-use Cwd;
+use Devel::Cover::DB 0.21;
+
+use Cwd ();
 use File::Find ();
 use Getopt::Long;
 use Pod::Usage;
+use Template 2.00;
+
+my $Template;
 
 my $Options =
 {
     cover_source => "/home/pjcj/g/perl/dev/Devel/Cover",
-    directory    => getcwd,
+    directory    => Cwd::cwd(),
+    force        => 0,
     module       => [],
-    outputdir    => getcwd,
 };
 
 sub get_options
@@ -34,10 +39,13 @@ sub get_options
                qw(
                    cover_source=s
                    directory=s
+                   force!
                    help|h!
                    info|i!
                    module=s
                    outputdir=s
+                   redo_cpancover_html!
+                   redo_html!
                    version|v!
                  ));
 
@@ -45,8 +53,9 @@ sub get_options
     pod2usage(-exitval => 0, -verbose => 0)  if $Options->{help};
     pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
 
+    $Options->{outputdir} ||= $Options->{directory};
     push @{$Options->{module}}, @ARGV;
-    unless (@{$Options->{module}})
+    if (!$Options->{redo_cpancover_html} && !@{$Options->{module}})
     {
         my $d = $Options->{directory};
         opendir D, $d or die "Can't opendir $d: $!\n";
@@ -91,17 +100,31 @@ sub get_cover
     my $d = "$Options->{directory}/$module";
     chdir $d or die "Can't chdir $d: $!\n";
 
+    my $db = "$d/cover_db";
+
+    if (-d $db)
+    {
+        print "Already analysed\n";
+        # return;
+    }
+
     my $s = $Options->{cover_source};
     my $inc = "-I$s/blib/lib -I$s/blib/arch";
     $ENV{HARNESS_PERL_SWITCHES} =
-        "$inc -MDevel::Cover=+inc,$s,-ignore,\\\\bt/,-silent,1";
+        "$inc -MDevel::Cover=-db,$db,+inc,$s,-ignore,\\\\bt/,-silent,1";
 
-    # sys "$^X $inc $s/cover -delete";
-    # sys "make test";
+    if (! -d $db || $Options->{force})
+    {
+        print "Testing $module\n";
+        sys "$^X $inc $s/cover -delete $db";
+        sys "make test";
+    }
 
     my $func = sub
     {
-        sys "$^X $inc $s/cover -report html" if -d && /^cover_db\z/s;
+        sys "$^X $inc $s/cover -report html"
+            if -d && /^cover_db\z/ &&
+               (!-e "$_/cover_db.html" || $Options->{redo_html});
     };
 
     File::Find::find($func, $d);
@@ -119,19 +142,213 @@ sub get_cover
     close S or die "Can't close $f: $!\n";
 }
 
+sub write_stylesheet
+{
+    my $css = "$Options->{outputdir}/cpancover.css";
+    open CSS, ">", $css or return;
+    print CSS <<EOF;
+/* Stylesheet for Devel::Cover cpancover reports */
+
+/* You may modify this file to alter the appearance of your cpancover
+ * reports. If you do, you should probably flag it read-only to prevent
+ * future runs from overwriting it.
+ */
+
+/* Note: default values use the color-safe web palette. */
+
+body {
+    font-family: sans-serif;
+}
+
+h1 {
+    background-color: #3399ff;
+    border: solid 1px #999999;
+    padding: 0.2em;
+}
+
+a {
+    color: #000000;
+}
+a:visited {
+    color: #333333;
+}
+
+code {
+    white-space: pre;
+}
+
+table {
+/*    border: solid 1px #000000;*/
+}
+td,th {
+    border: solid 1px #cccccc;
+}
+
+/* Classes for color-coding coverage information:
+ *   header    : column/row header
+ *   uncovered : path not covered or coverage < 75%
+ *   covered75 : coverage >= 75%
+ *   covered90 : coverage >= 90%
+ *   covered   : path covered or coverage = 100%
+ */
+.header {
+    background-color: #cccccc;
+    border: solid 1px #333333;
+    padding-left:  0.2em;
+    padding-right: 0.2em;
+}
+.uncovered {
+    background-color: #ff9999;
+    border: solid 1px #cc0000;
+}
+.covered75 {
+    background-color: #ffcc99;
+    border: solid 1px #ff9933;
+}
+.covered90 {
+    background-color: #ffff99;
+    border: solid 1px #cccc66;
+}
+.covered {
+    background-color: #99ff99;
+    border: solid 1px #009900;
+}
+
+EOF
+    close CSS or die "Can't close $css: $!\n";
+}
+
+sub class
+{
+    my ($pc) = @_;
+    $pc eq "n/a" ? "na"        :
+    $pc <    75  ? "uncovered" :
+    $pc <    90  ? "covered75" :
+    $pc <   100  ? "covered90" :
+                   "covered"
+}
+
 sub write_html
 {
+    my $d = $Options->{directory};
+    chdir $d or die "Can't chdir $d: $!\n";
+
     my $results = read_results;
     my $f = "$Options->{outputdir}/cpancover.html";
-    print "Writing results to $f\n";
+    print "\n\nWriting results to $f\n";
 
-    open S, ">", $f or die "Can't open $f: $!\n";
-    print S <<'EOH';
+    my $vars =
+    {
+        title       => "CPAN Coverage report",
+        modules     => [],
+    };
+
+    my %vals;
+
+    my $func = sub
+    {
+        if (/^cover_db\.html\z/s)
+        {
+            my $base = $Options->{directory};
+            my $db = Devel::Cover::DB->new(db => "$base/$File::Find::dir");
+
+            my $criteria = $vars->{headers} ||=
+                           [ grep(!/path|pod|time/, $db->all_criteria) ];
+
+            my %options = map { $_ => 1 } @$criteria;
+            $db->calculate_summary(%options);
+
+            my $module = $File::Find::dir;
+            $module =~ s|/cover_db$||;
+            push @{$vars->{modules}}, $module;
+            $vals{$module}{link} = $File::Find::name;
+
+            for my $criterion (@$criteria)
+            {
+                my $pc = $db->summary("Total", $criterion, "percentage");
+                $pc = defined $pc ? sprintf "%6.2f", $pc : "n/a";
+                $vals{$module}{$criterion}{pc}    = $pc;
+                $vals{$module}{$criterion}{class} = class($pc);
+            }
+        }
+    };
+
+    $vars->{vals} = \%vals;
+
+    for my $mod (sort keys %$results)
+    {
+        File::Find::find($func, $mod);
+    }
+
+    # use Data::Dumper;
+    # print Dumper $vars;
+
+    write_stylesheet;
+    $Template->process("summary", $vars, $f) or die $Template->error();
+
+}
+
+sub main
+{
+    get_options;
+
+    $Template = Template->new
+    ({
+        LOAD_TEMPLATES =>
+        [
+            Devel::Cover::Cpancover::Template::Provider->new({}),
+        ],
+    });
+
+    get_cover($_) for @{$Options->{module}};
+
+    write_html;
+}
+
+package Devel::Cover::Cpancover::Template::Provider;
+
+use strict;
+use warnings;
+
+our $VERSION = "0.21";
+
+use base "Template::Provider";
+
+my %Templates;
+
+sub fetch
+{
+    my $self = shift;
+    my ($name) = @_;
+    # print "Looking for <$name>\n";
+    $self->SUPER::fetch(exists $Templates{$name} ? \$Templates{$name} : $name)
+}
+
+$Templates{colours} = <<'EOT';
+[%
+    colours =
+    {
+        default => "#ffffad",
+        text    => "#000000",
+        number  => "#ffffc0",
+        error   => "#ff0000",
+        ok      => "#00ff00",
+    }
+%]
+
+[% MACRO bg BLOCK -%]
+bgcolor="[% colours.$colour %]"
+[%- END %]
+EOT
+
+$Templates{html} = <<'EOT';
+[% PROCESS colours %]
+
 <!--
 
-This file was generated by Devel::Cover Version 0.20
+This file was generated by Devel::Cover Version 0.21
 
-Devel::Cover is copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+Devel::Cover is copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
 
 Devel::Cover is free.  It is licensed under the same terms as Perl itself.
 
@@ -146,44 +363,53 @@ http://www.pjcj.net
     "http://www.w3.org/TR/xhtml-basic/xhtml-basic10.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en-US">
 <head>
-    <title> Coverage Report </title>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"></meta>
+    <meta http-equiv="Content-Language" content="en-us"></meta>
+    <link rel="stylesheet" type="text/css" href="cpancover.css"></link>
+    <title> [% title %] </title>
 </head>
 <body>
-EOH
-
-    my $func = sub
-    {
-        if (/^cover_db\.html\z/s)
-        {
-            my $d = $File::Find::dir;
-            $d =~ s|/cover_db$||;
-            print S "<a href=$File::Find::name>$d</a><p>\n"
-        }
-    };
-
-    for my $mod (sort keys %$results)
-    {
-        File::Find::find($func, $mod);
-    }
-
-    print S <<EOH;
+    [% content %]
 </body>
 </html>
-EOH
+EOT
 
-    close S or die "Can't close $f: $!\n";
-}
+$Templates{summary} = <<'EOT';
+[% WRAPPER html %]
 
-sub main
-{
-    get_options;
+<h1> [% title %] </h1>
 
-    # get_cover($_) for @{$Options->{module}}
+<table border="2">
 
-    write_html;
-}
+    [% IF modules %]
+        <tr align="RIGHT" valign="CENTER">
+            <th class="header" align="LEFT"> File </th>
+            [% FOREACH header = headers %]
+                <th class="header"> [% header %] </th>
+            [% END %]
+        </tr>
+    [% END %]
 
-main
+    [% FOREACH module = modules %]
+        <tr align="RIGHT" valign="CENTER">
+            <td align="LEFT">
+                <a href="[%- vals.$module.link -%]"> [% module %] </a>
+            </td>
+
+            [% FOREACH criterion = headers %]
+                <td class="[%- vals.$module.$criterion.class -%]">
+                    [% vals.$module.$criterion.pc %]
+                </td>
+            [% END %]
+        </tr>
+    [% END %]
+
+</table>
+
+[% END %]
+EOT
+
+::main
 
 __END__
 
@@ -228,11 +454,11 @@ The following exit values are returned:
 
 =head1 VERSION
 
-Version 0.20 - 5th October 2002
+Version 0.21 - 1st September 2003
 
 =head1 LICENCE
 
-Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+Copyright 2002-2003, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

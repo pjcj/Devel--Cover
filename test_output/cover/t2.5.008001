@@ -1,0 +1,67 @@
+Reading database from cover_db
+
+
+------------------------------------------------- ------ ------ ------ ------
+File                                                stmt branch   cond  total
+------------------------------------------------- ------ ------ ------ ------
+tests/t2                                           90.00  50.00    n/a  75.00
+Total                                              90.00  50.00    n/a  75.00
+------------------------------------------------- ------ ------ ------ ------
+
+
+tests/t2
+
+line  err   stmt branch   cond   code
+1                                #!/usr/local/bin/perl
+2                                
+3                                # Copyright 2002-2003, Paul Johnson (pjcj@cpan.org)
+4                                
+5                                # This software is free.  It is licensed under the same terms as Perl itself.
+6                                
+7                                # The latest version of this software should be available from my homepage:
+8                                # http://www.pjcj.net
+9                                
+10                               use strict;
+11                               use warnings;
+12                               
+13             1                 my @x;
+14                               
+15                               sub xx
+16                               {
+17            11                   $x[shift]++;
+18                               }
+19                               
+20             1                 for (0 .. 10)
+21                               {
+22                                 time &&
+23    ***     11     50              $x[1]++;
+24                               
+25    ***     11     50            $x[2]++
+26                                   if time;
+27                               
+28            11                   for (0 .. 2)
+29                                 {
+30            33                       $x[3]++;
+31                                 }
+32                               
+33    ***     11     50            if (time)
+34                                 {
+35            11                     xx(4);
+36                                 }
+37                                 else
+38                                 {
+39    ***      0                     $x[5]++;
+40                                 }
+41                               }
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+23    ***     50      0     11   if time
+25    ***     50      0     11   if time
+33    ***     50     11      0   if (time) { }
+
+

@@ -1,0 +1,55 @@
+Reading database from cover_db
+
+
+--------------------------------------------------------------- ------ ------
+File                                                               pod  total
+--------------------------------------------------------------- ------ ------
+tests/Module1.pm                                                 50.00  50.00
+Total                                                            50.00  50.00
+--------------------------------------------------------------- ------ ------
+
+
+tests/Module1.pm
+
+line  err    pod   code
+1                  # Copyright 2002-2003, Paul Johnson (pjcj@cpan.org)
+2                  
+3                  # This software is free.  It is licensed under the same terms as Perl itself.
+4                  
+5                  # The latest version of this software should be available from my homepage:
+6                  # http://www.pjcj.net
+7                  
+8                  package Module1;
+9                  
+10                 my $y = 7;
+11                 $y++;
+12                 
+13                 sub _aa
+14                 {
+15                     $y++;
+16                     die;
+17                     die;
+18                 }
+19                 
+20                 sub _xx
+21                 {
+22                     $y++;
+23                     die;
+24                 }
+25                 
+26                 sub yy
+27                 {
+28             1       $y++;
+29                 }
+30                 
+31                 sub zz
+32                 {
+33    ***      0       my $x = shift;
+34                     $x++;
+35                 }
+36                 
+37                 1
+38                 
+39                 __END__
+
+

@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# Copyright 2001-2002, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2003, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -15,11 +15,12 @@ use warnings;
 use Cwd;
 
 use ExtUtils::MakeMaker;
+use ExtUtils::Manifest "maniread";
 
 $| = 1;
 
-my $Version = "0.20";
-my $Date    = "5th October 2002";
+my $Version = "0.21";
+my $Date    = "1st September 2003";
 my $Author  = 'pjcj@cpan.org';
 
 my @perlbug = ("perlbug", "-a", $Author,
@@ -28,10 +29,10 @@ my @perlbug = ("perlbug", "-a", $Author,
 my $Perlbug = join " ", map { / / ? "'$_'" : $_ } @perlbug;
 
 
-open M, "MANIFEST" or die "Cannot open MANIFEST: $!";
-my @files    = map { split } <M>, "lib/Devel/Cover/Inc.pm";
+my @files = sort keys %{maniread()}, "lib/Devel/Cover/Inc.pm";
 my @versions = grep { $_ ne "README" && $_ ne "Makefile.PL" } @files;
-close M or die "Cannot close MANIFEST: $!";
+
+my $test_version = $ENV{__COVER_GOLDEN_VERSION} || $];
 
 my $base = getcwd;
 
@@ -41,7 +42,7 @@ my @inc = sort keys %inc;
 open I, ">lib/Devel/Cover/Inc.pm"
     or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
 print I <<"EOI";
-# Copyright 2001-2002, Paul Johnson (pjcj\@cpan.org)
+# Copyright 2001-2003, Paul Johnson (pjcj\@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -56,9 +57,9 @@ use strict;
 use warnings;
 
 our \$VERSION = "$Version";
-our \$Perl = "$^X";
-our \$Base = "$base";
-our \@Inc = qw( @inc );
+our \$Perl    = "$^X";
+our \$Base    = "$base";
+our \@Inc     = qw( @inc );
 
 1
 EOI
@@ -81,7 +82,7 @@ for my $t (readdir D)
     print T <<EOT;
 #!$^X
 
-# Copyright 2002, Paul Johnson (pjcj\@cpan.org)
+# Copyright 2002-2003, Paul Johnson (pjcj\@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -113,10 +114,10 @@ print "checking for Template.pm      version 2.00 ........ ";
 
 $e = <<EOM;
 
-Template.pm 2.00 is required to run the HTML backend to cover.  You will
-not be able to generate HTML output until you install the Template
-Toolkit, available from CPAN.  In the meantime you may continue to use
-the rest of Devel::Cover.
+Template.pm 2.00 is required to run the HTML backend to cover and for
+cpancover.  You will not be able to generate HTML output until you
+install the Template Toolkit, available from CPAN.  In the meantime you
+may continue to use the rest of Devel::Cover.
 
 EOM
 
@@ -151,6 +152,15 @@ else
 {
     print "not found\n\n$e\n";
 }
+
+my $latest_tested = 5.008001;
+print <<EOM if $] > $latest_tested;
+
+Devel::Cover $Version has not been tested with perl $].
+Testing will take place against expected output from perl $latest_tested.
+You may well find failing tests.
+
+EOM
 
 $ExtUtils::MakeMaker::Verbose = 0;
 
@@ -191,10 +201,10 @@ sub MY::libscan
     my ($self, $path) = @_;
     (my $p = $path) =~ s/^\$\(INST_LIB\)/lib/;  # 5.6.1
     # print "$path $p\n";
-    my $wanted;
+    my $wanted = -d $p;                         # 5.9.0
     for my $f (@files)
     {
-        last if $wanted = $p =~ /$f$/;
+        last if $wanted ||= $p =~ /$f$/;
     }
     $wanted && $path;
 }
@@ -241,7 +251,8 @@ diff : pure_all
    \$(PERL) -Mblib cover -report text \\
             -coverage statement -coverage branch -coverage condition \\
             > \$(TEST).out && \\
-   gvim -d -geom 185x83+0+0 -font 8x13 test_output/cover/\$(TEST) \$(TEST).out
+   gvim -d -geom 185x83+0+0 -font 8x13 \\
+        test_output/cover/\$(TEST).$test_version \$(TEST).out
 
 gold : pure_all
 \t \$(PERL) create_gold \$(TEST)
