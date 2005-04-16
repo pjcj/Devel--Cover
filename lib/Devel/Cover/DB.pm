@@ -1,4 +1,4 @@
-# Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2005, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -344,6 +344,7 @@ sub print_summary
     my $fw = 77 - $n * 7;
     $fw = 28 if $fw < 28;
 
+    no warnings "uninitialized";
     my $fmt = "%-${fw}s" . " %6s" x $n . "\n";
     printf $fmt, "-" x $fw, ("------") x $n;
     printf $fmt, "File",
@@ -843,7 +844,7 @@ Version 0.52 - 13th December 2004
 
 =head1 LICENCE
 
-Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2005, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

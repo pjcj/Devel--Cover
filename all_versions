@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2004, Paul Johnson (pjcj@cpan.org)
+# Copyright 2004-2005, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -32,7 +32,7 @@ sub get_options
         [ map { ($_, "$_-thr") }
               qw( 5.6.1 5.6.2
                   5.8.0 5.8.1 5.8.2 5.8.3 5.8.4 5.8.5 5.8.6
-                  5.9.2 ) ]
+                  5.9.3 ) ]
         unless @{$Options->{version}};
     $Options->{version} =
         [ grep eval { !system "perl$_ -v" }, @{$Options->{version}} ];

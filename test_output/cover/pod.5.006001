@@ -1,11 +1,11 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 --------------------------------------------------------------- ------ ------
 File                                                               pod  total
 --------------------------------------------------------------- ------ ------
-tests/Module1.pm                                                  50.0   50.0
-Total                                                             50.0   50.0
+tests/Module1.pm                                                  66.7   66.7
+Total                                                             66.7   66.7
 --------------------------------------------------------------- ------ ------
 
 
@@ -18,7 +18,7 @@ Finish: ...
 tests/Module1.pm
 
 line  err    pod   code
-1                  # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+1                  # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
 2                  
 3                  # This software is free.  It is licensed under the same terms as Perl itself.
 4                  
@@ -37,9 +37,9 @@ line  err    pod   code
 17                     die;
 18                 }
 19                 
-20                 sub _xx
+20                 sub xx
 21                 {
-22                     $y++;
+22    ***      0       $y++;
 23                     die;
 24                 }
 25                 

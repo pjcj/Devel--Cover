@@ -1,4 +1,4 @@
-# Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2005, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -58,6 +58,7 @@ my $Structure;                           # Structure of the files.
 
 my %Criteria;                            # Names of coverage criteria.
 my %Coverage;                            # Coverage criteria to collect.
+my %Coverage_options;                    # Options for overage criteria.
 
 my %Run;                                 # Data collected from the run.
 
@@ -266,7 +267,8 @@ sub import
     if (defined $Dir)
     {
         # Die tainting.
-        # Anyone using this module can do worse things than messing with tainting.
+        # Anyone using this module can do worse things than messing with
+        # tainting.
         $Dir = $1 if $Dir =~ /(.*)/;
         chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
     }
@@ -304,6 +306,16 @@ sub import
     }
 
     %Coverage = (all => 1) unless keys %Coverage;
+    for (keys %Coverage)
+    {
+        my @c = split /-/, $_;
+        if (@c > 1)
+        {
+            $Coverage{shift @c} = \@c;
+            delete $Coverage{$_};
+        }
+    }
+    %Coverage_options = %Coverage;
 
     $Initialised = 1;
 
@@ -661,7 +673,7 @@ sub add_statement_cover
     get_location($op);
     return unless $File;
 
-    # print STDERR "Statement $File:$Line: <$deparse> $op $$op ", $op->name, "\n";
+    # print STDERR "Stmt $File:$Line: <$deparse> $op $$op ", $op->name, "\n";
 
     $Structure->set_file($File);
     my $key = get_key($op);
@@ -1022,7 +1034,29 @@ sub get_cover
             my $stash = $cv->GV->STASH;
             my $pkg   = $stash->NAME;
             my $file  = $cv->FILE;
-            if ($Pod{$file} ||= Pod::Coverage->new(package => $pkg))
+            my %opts;
+            if (ref $Coverage_options{pod})
+            {
+                my $p;
+                for (@{$Coverage_options{pod}})
+                {
+                    if (/^package|private|also_private|trust_me|pod_from$/)
+                    {
+                        $opts{$p = $_} = [];
+                    }
+                    elsif ($p)
+                    {
+                        push @{$opts{$p}}, $_;
+                    }
+                }
+                for $p (qw( private also_private trust_me ))
+                {
+                    next unless exists $opts{$p};
+                    $_ = qr/$_/ for @{$opts{$p}};
+                }
+            }
+            # use Data::Dumper; print Dumper \%opts;
+            if ($Pod{$file} ||= Pod::Coverage->new(package => $pkg, %opts))
             {
                 my $covered;
                 for ($Pod{$file}->covered)
@@ -1171,6 +1205,15 @@ if the tests fail and you would like nice output telling you why.
  -silent val         - Don't print informational messages (default off)
  -summary val        - Print summary information iff val is true (default on).
 
+=head2 More on Coverage Options
+
+You can specify options to some coverage criteria.  At the moment only pod
+coverage takes any options.  These are the parameters which are passed into the
+Pod::Coverage constructor.  The extra options are separated by dashes, and you
+may specify as many as you wish.  For example, to specify that all subroutines
+containing xx are private, call Devel::Cover with the option
+-coverage,pod-also_private-xx.
+
 =head1 SELECTING FILES TO COVER
 
 You may select which files you want covered using the select, ignore and inc
@@ -1292,7 +1335,7 @@ Version 0.52 - 13th December 2004
 
 =head1 LICENCE
 
-Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2005, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

@@ -1,4 +1,4 @@
-# Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+# Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -56,6 +56,7 @@ sub get_params
     while (<T>)
     {
         $self->{$1} = $2 if /__COVER__\s+(\w+)\s+(.*)/;
+        $self->{$1} =~ s/-.*// if $1;
     }
     close T or die "Cannot close $test: $!";
 
@@ -279,7 +280,9 @@ sub run_test
     }
     if ($differences)
     {
-        $ENV{DEVEL_COVER_NO_COVERAGE} ? ok 1 : eq_or_diff(\@at, \@ac);
+        no warnings "redefine";
+        local *Test::_quote = sub { "@_" };
+        $ENV{DEVEL_COVER_NO_COVERAGE} ? ok 1 : eq_or_diff(\@at, \@ac, "output");
     }
     elsif ($ENV{DEVEL_COVER_NO_COVERAGE})
     {

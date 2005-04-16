@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -38,7 +38,7 @@ line  err   stmt branch   cond    sub   code
 17    ***      0                            die;
 18                                      }
 19                                      
-20                                      sub _xx
+20                                      sub xx
 21                                      {
 22    ***      0                    0       $y++;
 23    ***      0                            die;
@@ -73,7 +73,7 @@ Uncovered Subroutines
 Subroutine Count Location           
 ---------- ----- -------------------
 _aa            0 tests/Module1.pm:15
-_xx            0 tests/Module1.pm:22
+xx             0 tests/Module1.pm:22
 yy             0 tests/Module1.pm:28
 
 
