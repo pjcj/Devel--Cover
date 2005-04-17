@@ -1,6 +1,6 @@
 Devel::Cover.pm history
 
-Release 0.53 - 
+Release 0.53 - 17th April 2005
  - Clean up database directories.
  - Allow require File::Spec->catfile('t', 'common.pl'); (from an example by
    Randy W. Sims).
