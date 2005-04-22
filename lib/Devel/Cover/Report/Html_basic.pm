@@ -40,12 +40,16 @@ sub cvg_class {
                           : "c3";
 }
 
-sub class
+sub oclass
 {
     my ($o, $criterion) = @_;
-    return "" unless $o;
-    my $pc  = $o->percentage;
-    my $err = $o->error;
+    $o ? class($o->percentage, $o->error, $criterion) : ""
+}
+
+sub class
+{
+    my ($pc, $err, $criterion) = @_;
+    return "" if $criterion eq "time";
     !$err ? "c3"
           : $pc <  75 ? "c0"
           : $pc <  90 ? "c1"
@@ -165,7 +169,7 @@ sub print_file
                 my $link = $c !~ /statement|time/;
                 my $pc = $link && $c !~ /subroutine|pod/;
                 my $text = $o ? $pc ? $o->percentage : $o->covered : "";
-                my %criterion = ( text => $text, class => class($o, $c) );
+                my %criterion = ( text => $text, class => oclass($o, $c) );
                 $criterion{link} = "$Filenames{$file}--$c.html#$n-$count"
                     if $link;
                 push @{$line{criteria}}, \%criterion;
@@ -213,10 +217,15 @@ sub print_branches
                 {
                     ref        => "$location-$count",
                     number     => $count == 1 ? $location : "",
-                    bg         => $b->error ? "error" : "ok",
+                    class      => oclass($b, "branch"),
                     percentage => $b->percentage,
-                    parts      => [ map {text => $_, bg => $_ ? "ok" : "error"},
-                                        $b->values ],
+                    parts      =>
+                    [
+                        map { text  => $b->value($_),
+                              class => class($b->value($_), $b->error($_),
+                                             "branch") },
+                            0 .. $b->total - 1
+                    ],
                     text       => $b->text,
                 };
         }
@@ -434,14 +443,12 @@ $Templates{branches} = <<'EOT';
     [% FOREACH branch = branches %]
         <a name="[% branch.ref %]"> </a>
         <tr align="RIGHT" valign="CENTER">
-            <td [% bg(colour = "number") %]> [% branch.number %] </td>
-            <td [% bg(colour = branch.bg) %]> [% branch.percentage %] </td>
+            <td class="h"> [% branch.number %] </td>
+            <td class="[% branch.class %]"> [% branch.percentage %] </td>
             [% FOREACH part = branch.parts %]
-                <td [% bg(colour = part.bg) %]> [% part.text %] </td>
+                <td class="[% part.class %]"> [% part.text %] </td>
             [% END %]
-            <td [% bg(colour = branch.bg) %] align="LEFT">
-                <pre> [% branch.text %]</pre>
-            </td>
+            <td class="s"> [% branch.text %] </td>
         </tr>
     [% END %]
 
