@@ -261,11 +261,15 @@ sub print_conditions
                     ref        => "$location-$count",
                     number     => $count == 1 ? $location : "",
                     condition  => $c,
-                    bg         => $c->error ? "error" : "ok",
+                    class      => oclass($c, "condition"),
                     percentage => $c->percentage,
-                    parts      => [ map {text => $c->value($_),
-                                         bg   => $c->error($_) ? "error" : "ok"},
-                                        0 .. $c->total - 1 ],
+                    parts      =>
+                    [
+                        map { text  => $c->value($_),
+                              class => class($c->value($_), $c->error($_),
+                                             "condition") },
+                            0 .. $c->total - 1
+                    ],
                     text       => $c->text,
                 };
         }
@@ -480,16 +484,14 @@ $Templates{conditions} = <<'EOT';
         [% FOREACH condition = type.conditions %]
             <a name="[% condition.ref %]"> </a>
             <tr align="RIGHT" valign="CENTER">
-                <td [% bg(colour = "number") %]> [% condition.number %] </td>
-                <td [% bg(colour = condition.bg) %]>
+                <td class="h"> [% condition.number %] </td>
+                <td class="[% condition.class %]">
                     [% condition.percentage %]
                 </td>
                 [% FOREACH part = condition.parts %]
-                    <td [% bg(colour = part.bg) %]> [% part.text %] </td>
+                    <td class="[% part.class %]"> [% part.text %] </td>
                 [% END %]
-                <td [% bg(colour = condition.bg) %] align="LEFT">
-                    <pre> [% condition.text %]</pre>
-                </td>
+                <td class="s"> [% condition.text %] </td>
             </tr>
         [% END %]
 
