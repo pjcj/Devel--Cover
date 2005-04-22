@@ -31,6 +31,28 @@ sub print_stylesheet
     close CSS;
 }
 
+sub cvg_class {
+    my ($pc, $err) = @_;
+    defined $err && !$err ? "c3"
+                          : $pc <  75 ? "c0"
+                          : $pc <  90 ? "c1"
+                          : $pc < 100 ? "c2"
+                          : "c3";
+}
+
+sub class
+{
+    my ($o, $criterion) = @_;
+    return "" unless $o;
+    my $pc  = $o->percentage;
+    my $err = $o->error;
+    !$err ? "c3"
+          : $pc <  75 ? "c0"
+          : $pc <  90 ? "c1"
+          : $pc < 100 ? "c2"
+          : "c3"
+}
+
 sub print_summary
 {
     my ($db, $options) = @_;
@@ -140,17 +162,15 @@ sub print_file
             {
                 my $o = shift @{$criteria{$c}};
                 $more ||= @{$criteria{$c}};
-                my $details = $c !~ /statement|pod|time/;
-                my $text = $o ? $details ? $o->percentage : $o->covered : "";
-                my $bg = $o ? $o->error ? "error" : "ok" : "default";
-                my %criterion = ( text => $text, bg => $bg );
+                my $link = $c !~ /statement|time/;
+                my $pc = $link && $c !~ /subroutine|pod/;
+                my $text = $o ? $pc ? $o->percentage : $o->covered : "";
+                my %criterion = ( text => $text, class => class($o, $c) );
                 $criterion{link} = "$Filenames{$file}--$c.html#$n-$count"
-                    if $details;
+                    if $link;
                 push @{$line{criteria}}, \%criterion;
                 $error ||= $o->error if $o;
             }
-
-            $line{bg} = $error ? "error" : "default";
 
             push @lines, \%line;
 
@@ -162,7 +182,7 @@ sub print_file
 
     my $vars =
     {
-        title       => "Coverage report for $file",
+        title       => "File Coverage",
         showing     => \@showing,
         headers     => \@headers,
         filenames   => \%Filenames,
@@ -348,7 +368,7 @@ $Templates{summary} = <<'EOT';
 <h1>[% title %]</h1>
 <table>
     <tr>
-        <td class="header" align="right">Database:</td>
+        <td class="h" align="right">Database:</td>
         <td>[% dbname %]</td>
     </tr>
 </table>
@@ -356,7 +376,7 @@ $Templates{summary} = <<'EOT';
 <table>
 
     <tr>
-    <th align="left" class="header"> File </th>
+    <th class="header"> file </th>
     [% FOREACH header = headers %]
         <th class="header"> [% header %] </th>
     [% END %]
@@ -481,7 +501,7 @@ $Templates{file} = <<'EOT';
 <table>
 
     <tr align="RIGHT" valign="CENTER">
-        <th> </th>
+        <th> line </th>
         [% FOREACH header = headers %]
             <th> [% header %] </th>
         [% END %]
@@ -490,21 +510,19 @@ $Templates{file} = <<'EOT';
 
     [% FOREACH line = lines %]
         <tr align="RIGHT" valign="CENTER">
-            <td [% bg(colour = "number") %]> [% line.number %] </td>
+            <td class="h"> [% line.number %] </td>
             [% FOREACH cr = line.criteria %]
-                <td [% bg(colour = cr.bg) %]>
+                <td [% IF cr.class %] class="[% cr.class %]" [% END %]>
                     [% IF cr.link.defined && cr.text %]
-                    <a href="[% cr.link %]">
+                        <a href="[% cr.link %]">
                     [% END %]
                     [% cr.text %]
                     [% IF cr.link.defined && cr.text %]
-                    </a>
+                        </a>
                     [% END %]
                 </td>
             [% END %]
-            <td [% bg(colour = line.bg) %] align="LEFT">
-                <pre> [% line.text %]</pre>
-            </td>
+            <td class="s"> [% line.text %] </td>
         </tr>
     [% END %]
 
@@ -560,6 +578,7 @@ http://www.pjcj.net
 package Devel::Cover::Report::Html_basic;
 
 __DATA__
+
 /* Stylesheet for Devel::Cover HTML reports */
 
 /* You may modify this file to alter the appearance of your coverage
@@ -577,6 +596,7 @@ h1 {
     background-color: #3399ff;
     border: solid 1px #999999;
     padding: 0.2em;
+    -moz-border-radius: 10px;
 }
 
 a {
@@ -586,44 +606,50 @@ a:visited {
     color: #333333;
 }
 
-code {
-    white-space: pre;
-}
-
 table {
-/*    border: solid 1px #000000;*/
-/*    border-collapse: collapse;*/
+    border-spacing: 1px;
 }
-td,th {
-    border: solid 1px #cccccc;
+tr {
+    text-align : center;
+    vertical-align: top;
 }
-
-/* Classes for color-coding coverage information:
- *   header    : column/row header
- *   uncovered : path not covered or coverage < 75%
- *   covered75 : coverage >= 75%
- *   covered90 : coverage >= 90%
- *   covered   : path covered or coverage = 100%
- */
-.header {
-    background-color:  #cccccc;
+th,.h {
+    background-color: #cccccc;
     border: solid 1px #333333;
     padding-left:  0.2em;
     padding-right: 0.2em;
 }
-.uncovered {
-    background-color:  #ff9999;
+td {
+    border: solid 1px #cccccc;
+}
+
+/* source code */
+pre,.s {
+    text-align: left;
+    font-family: monospace;
+    white-space: pre;
+    padding: 0em 0.5em 0em 0.5em;
+}
+
+/* Classes for color-coding coverage information:
+ *   c0  : path not covered or coverage < 75%
+ *   c1  : coverage >= 75%
+ *   c2  : coverage >= 90%
+ *   c3  : path covered or coverage = 100%
+ */
+.c0 {
+    background-color: #ff9999;
     border: solid 1px #cc0000;
 }
-.covered75 {
-    background-color:  #ffcc99;
+.c1 {
+    background-color: #ffcc99;
     border: solid 1px #ff9933;
 }
-.covered90 {
-    background-color:  #ffff99;
+.c2 {
+    background-color: #ffff99;
     border: solid 1px #cccc66;
 }
-.covered {
-    background-color:  #99ff99;
+.c3 {
+    background-color: #99ff99;
     border: solid 1px #009900;
 }

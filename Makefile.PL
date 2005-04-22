@@ -380,6 +380,9 @@ UNCOVERABLE = \$(PERL) -e 'print "-uncoverable \$\$1 " if qx|grep __COVER__ \$\$
 html : _run
 \t \$(PERL) -Mblib cover `\$(UNCOVERABLE)` -report html
 
+basic : _run
+\t \$(PERL) -Mblib cover `\$(UNCOVERABLE)` -report html_basic
+
 _out : _run
 \t \$(PERL) -Mblib cover `\$(UNCOVERABLE)` -report text > \$(TEST).out
 
