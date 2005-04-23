@@ -12,5 +12,6 @@ e cpancover
 e lib/Devel/Cover/Test.pm
 e lib/Devel/Cover/Report/Text.pm
 e lib/Devel/Cover/Report/Html_minimal.pm
+e lib/Devel/Cover/Report/Html_basic.pm
 e #1
 Tlist

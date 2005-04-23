@@ -31,15 +31,6 @@ sub print_stylesheet
     close CSS;
 }
 
-sub cvg_class {
-    my ($pc, $err) = @_;
-    defined $err && !$err ? "c3"
-                          : $pc <  75 ? "c0"
-                          : $pc <  90 ? "c1"
-                          : $pc < 100 ? "c2"
-                          : "c3";
-}
-
 sub oclass
 {
     my ($o, $criterion) = @_;
@@ -66,7 +57,6 @@ sub print_summary
                   grep { $options->{show}{($db->all_criteria)[$_]} }
                   (0 .. $db->all_criteria - 1);
     my @files   = (grep($db->{summary}{$_}, @{$options->{file}}), "Total");
-
     my %vals;
 
     for my $file (@files)
@@ -75,30 +65,22 @@ sub print_summary
         my $part = $db->{summary}{$file};
         for my $criterion (@showing)
         {
-            my $pc = exists $part->{$criterion}
-                ? sprintf "%4.1f", $part->{$criterion}{percentage}
-                : "n/a";
+            @{$vals{$file}{$criterion}}{"pc", "class"} = ("n/a", "");
 
-            my $bg = "";
-            if ($pc ne "n/a")
-            {
-                if ($criterion ne 'time') {
-                    $vals{$file}{$criterion}{class} = cvg_class($pc);
-                }
-                if (exists $Filenames{$file}) {
-                    if ($criterion eq 'branch') {
-                        $vals{$file}{$criterion}{link} = "$Filenames{$file}--branch.html";
-                    }
-                    elsif ($criterion eq 'condition') {
-                        $vals{$file}{$criterion}{link} = "$Filenames{$file}--condition.html";
-                    }
-                    elsif ($criterion eq 'subroutine') {
-                        $vals{$file}{$criterion}{link} = "$Filenames{$file}--subroutine.html";
-                    }
-                }
-            }
-            $vals{$file}{$criterion}{pc} = $pc;
-            $vals{$file}{$criterion}{bg} = $bg;
+            next unless exists $part->{$criterion};
+            $vals{$file}{$criterion}{class} =
+                class($part->{$criterion}{percentage},
+                      $part->{$criterion}{error},
+                      $criterion);
+
+            next unless defined $part->{$criterion}{percentage};
+            $vals{$file}{$criterion}{pc} =
+                sprintf "%4.1f", $part->{$criterion}{percentage};
+
+            next if $criterion =~ /^statement|time$/ ||
+                    !exists $Filenames{$file};
+            $vals{$file}{$criterion}{link} =
+                "$Filenames{$file}--$criterion.html";
         }
     }
 
@@ -276,11 +258,11 @@ sub print_conditions
     }
 
     my @types = map
-        {
-            name       => do { my $n = $_; $n =~ s/_/ /g; $n },
-            headers    => $r{$_}[0]{condition}->headers,
-            conditions => $r{$_},
-        }, sort keys %r;
+               {
+                   name       => do { my $n = $_; $n =~ s/_/ /g; $n },
+                   headers    => $r{$_}[0]{condition}->headers,
+                   conditions => $r{$_},
+               }, sort keys %r;
 
     my $vars =
     {
@@ -292,8 +274,7 @@ sub print_conditions
     # print Dumper $vars;
 
     my $html = "$options->{outputdir}/$Filenames{$file}--condition.html";
-    $Template->process("conditions", $vars, $html)
-        or die $Template->error();
+    $Template->process("conditions", $vars, $html) or die $Template->error();
 }
 
 sub report
@@ -429,6 +410,44 @@ $Templates{summary} = <<'EOT';
 [% END %]
 EOT
 
+$Templates{file} = <<'EOT';
+[% WRAPPER html %]
+
+<h1> [% title %] </h1>
+
+<table>
+
+    <tr align="RIGHT" valign="CENTER">
+        <th> line </th>
+        [% FOREACH header = headers %]
+            <th> [% header %] </th>
+        [% END %]
+        <th align="CENTER"> code </th>
+    </tr>
+
+    [% FOREACH line = lines %]
+        <tr align="RIGHT" valign="CENTER">
+            <td class="h"> [% line.number %] </td>
+            [% FOREACH cr = line.criteria %]
+                <td [% IF cr.class %] class="[% cr.class %]" [% END %]>
+                    [% IF cr.link.defined && cr.text %]
+                        <a href="[% cr.link %]">
+                    [% END %]
+                    [% cr.text %]
+                    [% IF cr.link.defined && cr.text %]
+                        </a>
+                    [% END %]
+                </td>
+            [% END %]
+            <td class="s"> [% line.text %] </td>
+        </tr>
+    [% END %]
+
+</table>
+
+[% END %]
+EOT
+
 $Templates{branches} = <<'EOT';
 [% WRAPPER html %]
 
@@ -498,44 +517,6 @@ $Templates{conditions} = <<'EOT';
     </table>
 
 [% END %]
-
-[% END %]
-EOT
-
-$Templates{file} = <<'EOT';
-[% WRAPPER html %]
-
-<h1> [% title %] </h1>
-
-<table>
-
-    <tr align="RIGHT" valign="CENTER">
-        <th> line </th>
-        [% FOREACH header = headers %]
-            <th> [% header %] </th>
-        [% END %]
-        <th align="CENTER"> code </th>
-    </tr>
-
-    [% FOREACH line = lines %]
-        <tr align="RIGHT" valign="CENTER">
-            <td class="h"> [% line.number %] </td>
-            [% FOREACH cr = line.criteria %]
-                <td [% IF cr.class %] class="[% cr.class %]" [% END %]>
-                    [% IF cr.link.defined && cr.text %]
-                        <a href="[% cr.link %]">
-                    [% END %]
-                    [% cr.text %]
-                    [% IF cr.link.defined && cr.text %]
-                        </a>
-                    [% END %]
-                </td>
-            [% END %]
-            <td class="s"> [% line.text %] </td>
-        </tr>
-    [% END %]
-
-</table>
 
 [% END %]
 EOT
@@ -627,6 +608,7 @@ th,.h {
     border: solid 1px #333333;
     padding-left:  0.2em;
     padding-right: 0.2em;
+    width: 4em;
 }
 td {
     border: solid 1px #cccccc;
