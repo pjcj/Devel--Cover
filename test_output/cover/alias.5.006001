@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -20,7 +20,7 @@ tests/alias
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2004-2005, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
@@ -30,7 +30,7 @@ line  err   stmt branch   cond    sub   code
 10                                      package Foo;
 11                                      
 12                                      sub is_3digits {
-13             2                  100       my $val = shift;
+13             2                    2       my $val = shift;
 14             2                            my $retval = undef;
 15             2    100                     $retval=1 if $val =~ /^\d{3}$/;
 16             2                            return $retval;

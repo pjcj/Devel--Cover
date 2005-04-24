@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -20,14 +20,14 @@ tests/eval2
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2004-2005, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10             1                  100   use lib "tests";
+10             1                    1   use lib "tests";
                1                        
                1                        
 11                                      
@@ -36,13 +36,13 @@ line  err   stmt branch   cond    sub   code
 14    ***      1     50                 if ($x) { eval 'use E2' }
       ***      0                        
 15             1                        print "3 - $x\n";
-16    ***      1     50           100   if ($x < 4) { eval 'use E3' }
+16    ***      1     50             1   if ($x < 4) { eval 'use E3' }
                1                        
                1                        
                1                        
                1                        
 17             1                        print "4 - $x\n";
-18    ***      1     50           100   if ($x < 6) { eval 'use E4' }
+18    ***      1     50             1   if ($x < 6) { eval 'use E4' }
                1                        
                1                        
                1                        

@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -20,7 +20,7 @@ tests/sort
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl -w
 2                                       
-3              1                  100   use strict;
+3              1                    1   use strict;
                1                        
                1                        
 4                                       
@@ -28,7 +28,7 @@ line  err   stmt branch   cond    sub   code
 6                                               F => \&forwards);
 7                                       
 8                                       sub backwards {
-9              6                  100       return $b cmp $a;
+9              6                    6       return $b cmp $a;
 10                                      }
 11                                      
 12                                      sub forwards {
@@ -36,7 +36,7 @@ line  err   stmt branch   cond    sub   code
 14                                      }
 15                                      
 16                                      sub GetAlgorithm {
-17             1                  100       my ($alg) = @_;
+17             1                    1       my ($alg) = @_;
 18                                      
 19             1                            return $sort{$alg};
 20                                      }
@@ -50,7 +50,7 @@ line  err   stmt branch   cond    sub   code
                6                        
                6                        
 28                                      
-29             1                  100   use Data::Dumper;
+29             1                    1   use Data::Dumper;
                1                        
                1                        
 30                                      

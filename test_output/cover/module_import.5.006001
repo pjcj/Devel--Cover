@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -18,7 +18,7 @@ Finish: ...
 tests/Module_import.pm
 
 line  err   stmt branch   cond    sub   code
-1                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+1                                       # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
 2                                       
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
@@ -29,7 +29,7 @@ line  err   stmt branch   cond    sub   code
 9                                       
 10                                      sub import
 11                                      {
-12             1                  100       print "Module_import\n";
+12             1                    1       print "Module_import\n";
 13                                      }
 14                                      
 15                                      1

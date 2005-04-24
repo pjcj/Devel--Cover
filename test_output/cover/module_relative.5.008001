@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -19,7 +19,7 @@ Finish: ...
 tests/Module_import.pm
 
 line  err   stmt branch   cond    sub   code
-1                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+1                                       # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
 2                                       
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
@@ -30,7 +30,7 @@ line  err   stmt branch   cond    sub   code
 9                                       
 10                                      sub import
 11                                      {
-12             1                  100       print "Module_import\n";
+12             1                    1       print "Module_import\n";
 13                                      }
 14                                      
 15                                      1
@@ -49,7 +49,7 @@ tests/module_relative
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
@@ -59,14 +59,14 @@ line  err   stmt branch   cond    sub   code
 10                                      # __COVER__ skip_test $] < 5.008 || $^O eq "cygwin"
 11                                      # __COVER__ skip_reason Busted on 5.6 and cygwin
 12                                      
-13             1                  100   BEGIN { chdir "tests/random/dir" }
-14             1                  100   use lib "../..";
+13             1                    1   BEGIN { chdir "tests/random/dir" }
+14             1                    1   use lib "../..";
                1                        
                1                        
-15             1                  100   use strict;
+15             1                    1   use strict;
                1                        
                1                        
-16             1                  100   use Module_import;
+16             1                    1   use Module_import;
                1                        
                1                        
 

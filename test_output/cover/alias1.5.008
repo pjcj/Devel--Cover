@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -19,7 +19,7 @@ Finish: ...
 tests/Alias1.pm
 
 line  err   stmt branch   cond    sub   code
-1                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+1                                       # Copyright 2004-2005, Paul Johnson (pjcj@cpan.org)
 2                                       
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
@@ -28,14 +28,14 @@ line  err   stmt branch   cond    sub   code
 7                                       
 8                                       package Alias1;
 9                                       
-10             1                  100   use strict;
+10             1                    1   use strict;
                1                        
                1                        
-11             1                  100   use warnings;
+11             1                    1   use warnings;
                1                        
                1                        
 12                                      
-13             1                  100   use Exporter;
+13             1                    1   use Exporter;
                1                        
                1                        
 14                                      
@@ -43,7 +43,7 @@ line  err   stmt branch   cond    sub   code
 16                                      our @EXPORT = qw(is_3digits);
 17                                      
 18                                      sub is_3digits {
-19             2                  100       my $val = shift;
+19             2                    2       my $val = shift;
 20             2                            my $retval = undef;
 21             2    100                     $retval=1 if $val =~ /^\d{3}$/;
 22             2                            return $retval;
@@ -76,24 +76,24 @@ tests/alias1
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2004-2005, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10             1                  100   use strict;
+10             1                    1   use strict;
                1                        
                1                        
-11             1                  100   use warnings;
+11             1                    1   use warnings;
                1                        
                1                        
-12             1                  100   use lib "tests";
+12             1                    1   use lib "tests";
                1                        
                1                        
 13                                      
-14             1                  100   use Alias1;
+14             1                    1   use Alias1;
                1                        
                1                        
 15                                      

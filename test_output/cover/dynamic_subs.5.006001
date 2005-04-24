@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -20,7 +20,7 @@ tests/dynamic_subs
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2004-2005, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
@@ -32,10 +32,10 @@ line  err   stmt branch   cond    sub   code
 12                                      
 13                                      sub gen
 14                                      {
-15             4                  100       my $x = shift;
+15             4                    4       my $x = shift;
 16                                          sub
 17                                          {
-18             5                  100           my $y = shift;
+18             5                    5           my $y = shift;
 19    ***      5     50                         return $x + $y if $y;
 20                                          }
 21             4                        };
@@ -55,7 +55,7 @@ line  err   stmt branch   cond    sub   code
 34                                          no strict "refs";
 35                                          *$func = sub
 36                                          {
-37             2                  100           print "$func\n";
+37             2                    2           print "$func\n";
 38                                          }
 39             3                        }
 40                                      
@@ -64,21 +64,21 @@ line  err   stmt branch   cond    sub   code
 43                                      
 44                                      sub AUTOLOAD
 45                                      {
-46             3                  100       my $func = $AUTOLOAD;
+46             3                    3       my $func = $AUTOLOAD;
 47             3                            $func =~ s/^.*:://;
 48                                          no strict "refs";
 49             3    100                     if ($func eq "add")
 50                                          {
 51                                              *$func = sub
 52                                              {
-53             3                  100               print "Add!\n";
+53             3                    3               print "Add!\n";
 54             1                                };
 55                                          }
 56                                          else
 57                                          {
 58                                              *$func = sub
 59                                              {
-60             2                  100               print "$func\n";
+60             2                    2               print "$func\n";
 61             2                                };
 62                                          }
 63             3                            goto &$func

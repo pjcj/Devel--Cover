@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -20,7 +20,7 @@ tests/cond_branch
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
@@ -299,7 +299,7 @@ line  err   stmt branch   cond    sub   code
 250            1                        my $s;
 251                                     $s = sub
 252                                     {
-253            4    100           100       shift || return;
+253            4    100             4       shift || return;
 254            2                            $x[42]++;
 255            1                        };
 256                                     
@@ -317,7 +317,7 @@ line  err   stmt branch   cond    sub   code
 266                                     
 267                                     $s = sub
 268                                     {
-269            4    100           100       shift && return;
+269            4    100             4       shift && return;
 270            2                            $x[43]++;
 271            1                        };
 272                                     
@@ -336,7 +336,7 @@ line  err   stmt branch   cond    sub   code
 283                                     $s = sub
 284                                     {
 285                                         no warnings "void";
-286   ***      4             0    100       shift xor return;
+286   ***      4             0      4       shift xor return;
 287   ***      0                            $x[44]++;
 288            1                        };
 289                                     

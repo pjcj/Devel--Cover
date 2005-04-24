@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -20,17 +20,17 @@ tests/t2
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10             1                  100   use strict;
+10             1                    1   use strict;
                1                        
                1                        
-11             1                  100   use warnings;
+11             1                    1   use warnings;
                1                        
                1                        
 12                                      
@@ -38,7 +38,7 @@ line  err   stmt branch   cond    sub   code
 14                                      
 15                                      sub xx
 16                                      {
-17            11                  100     $x[shift]++;
+17            11                   11     $x[shift]++;
 18                                      }
 19                                      
 20             1                        for (0 .. 10)

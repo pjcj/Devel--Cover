@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -20,17 +20,17 @@ tests/require
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2002-2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10    ***      1     50           100   use lib -d "t" ? "." : "..";
+10    ***      1     50             1   use lib -d "t" ? "." : "..";
                1                        
                1                        
-11             1                  100   use File::Spec;
+11             1                    1   use File::Spec;
                1                        
                1                        
 12             1                        require File::Spec->catfile("tests", "E2.pm");

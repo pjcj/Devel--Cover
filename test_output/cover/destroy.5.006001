@@ -1,4 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -20,7 +20,7 @@ tests/destroy
 line  err   stmt branch   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2004, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2004-2005, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
@@ -29,13 +29,13 @@ line  err   stmt branch   cond    sub   code
 9                                       
 10                                      package Destroy;
 11                                      
-12             1                  100   sub new { bless {}, shift }
+12             1                    1   sub new { bless {}, shift }
 13                                      
 14             1                        my $x;
 15                                      
 16                                      sub DESTROY
 17                                      {
-18             1                  100       $x++;
+18             1                    1       $x++;
 19             1                            $x++;
 20                                      }
 21                                      
