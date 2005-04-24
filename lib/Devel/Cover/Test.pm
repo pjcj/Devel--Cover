@@ -19,6 +19,8 @@ use Test;
 
 use Devel::Cover::Inc 0.53;
 
+my $Test;
+
 sub new
 {
     my $class = shift;
@@ -33,16 +35,17 @@ sub new
 
     my $self =
     {
-        test        => $test,
-        criteria    => $criteria,
-        skip        => "",
-        uncoverable => "",
-        select      => "",
-        ignore      => "",
+        test            => $test,
+        criteria        => $criteria,
+        skip            => "",
+        uncoverable     => "",
+        select          => "",
+        ignore          => "",
+        run_test_at_end => 1,
         %params
     };
 
-    bless $self, $class;
+    $Test = bless $self, $class;
 
     $self->get_params
 }
@@ -74,6 +77,8 @@ sub get_params
 
     $self
 }
+
+sub test { $Test }
 
 sub shell_quote
 {
@@ -183,6 +188,8 @@ sub run_test
 {
     my $self = shift;
 
+    $self->{run_test_at_end} = 0;
+
     my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
 
     my $gold = $self->cover_gold;
@@ -214,14 +221,9 @@ sub run_test
         return;
     }
 
-    if ($self->{run_test})
-    {
-        $self->{run_test}->($self)
-    }
-    else
-    {
-        $self->run_command($self->test_command);
-    }
+    $self->{run_test}
+        ? $self->{run_test}->($self)
+        : $self->run_command($self->test_command);
 
     my $cover_com = $self->cover_command;
     print "Running cover [$cover_com]\n" if $debug;
@@ -295,6 +297,8 @@ sub create_gold
 {
     my $self = shift;
 
+    $self->{run_test_at_end} = 0;
+
     # Pod::Coverage not available on all versions, but it must be there on 5.6.1
     return if $self->{criteria} =~ /\bpod\b/ && $] != 5.006001;
 
@@ -311,11 +315,9 @@ sub create_gold
         open my $g, ">$new_gold" or die "Can't open $new_gold: $!";
     }
 
-    my $test_com = $self->test_command;
-    print "Running test [$test_com]\n" if $debug;
-
-    system $test_com;
-    die "Cannot run $test_com: $?" if $?;
+    $self->{run_test}
+        ? $self->{run_test}->($self)
+        : $self->run_command($self->test_command);
 
     my $cover_com = $self->cover_command;
     print "Running cover [$cover_com]\n" if $debug;
@@ -328,7 +330,7 @@ sub create_gold
         next if $l =~ /^Devel::Cover: merging run/;
         $l =~ s/^($_: ).*$/$1.../
             for "Run", "Perl version", "OS", "Start", "Finish";
-        # print;
+        print $l if $debug;
         print G $l;
         $ng .= $l;
     }
@@ -348,3 +350,11 @@ sub create_gold
         unlink $new_gold;
     }
 }
+
+END
+{
+    my $self = $Test;
+    $self->run_test if $self->{run_test_at_end};
+}
+
+1;

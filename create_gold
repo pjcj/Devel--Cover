@@ -29,7 +29,7 @@ unless (@tests)
     for my $t (readdir D)
     {
         next unless -f "tests/$t";
-        next if $t =~ /\.(t|pm|pl|uncoverable|version|org|bak)$/;
+        next if $t =~ /\.(pm|pl|uncoverable|version|org|bak)$/;
         next if $t =~ /~$/;
 
         push @tests, $t;
@@ -39,6 +39,10 @@ unless (@tests)
 
 for my $test (@tests)
 {
-    my $t = Devel::Cover::Test->new($test);
-    $t->create_gold;
+    my $t = -e "t/$test"  ? "t/$test"  :
+            -e "t/a$test" ? "t/a$test" :
+            $test;
+    # print STDERR "requiring [$t]\n";
+    require $t;
+    Devel::Cover::Test::test->create_gold;
 }

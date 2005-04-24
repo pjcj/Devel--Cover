@@ -7,7 +7,9 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# __COVER__ select -select eval2
+# __COVER__x test eval2
+# __COVER__x golden_test eval_use.t
+# __COVER__x select -select eval2
 
 use strict;
 use warnings;
@@ -35,13 +37,11 @@ sub run_test
     $test->run_command($test->test_command);
 }
 
-my $test = Devel::Cover::Test->new
+$Devel::Cover::Test::test = Devel::Cover::Test->new
 (
     $t,
     golden_test => $g,
     run_test    => \&run_test,
     changes     => 'if (/^Run: /) { $get_line->() for 1 .. 5; redo }',
-    tests       => sub { $_[0] - 30 },
+    tests       => sub { $_[0] - 24 },  # number of lines deleted above
 );
-
-$test->run_test

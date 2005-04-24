@@ -123,8 +123,7 @@ use lib "$base/t";
 
 use Devel::Cover::Test $Version;
 
-my \$test = Devel::Cover::Test->new("$t");
-\$test->run_test
+Devel::Cover::Test->new("$t");
 EOT
     close T or die "Cannot open t/a$t.t: $!";
 }
@@ -383,10 +382,10 @@ html : _run
 basic : _run
 \t \$(PERL) -Mblib cover `\$(UNCOVERABLE)` -report html_basic
 
-_out : _run
+out : _run
 \t \$(PERL) -Mblib cover `\$(UNCOVERABLE)` -report text > \$(TEST).out
 
-text : _out
+text : out
 \t gvim -d \$(TEST).out
 
 wrun : pure_all
@@ -401,7 +400,7 @@ FONT = 8x13
 FONT = -sun-screen-medium-r-normal-*-*-70-*-*-m-*-sun-fontspecific
 FONT = "Bitstream Vera Sans Mono 8"
 
-diff : _out
+diff : out
 \t \$(PERL) -i -pe '\$\$t = index \$\$_, "time   code" if !defined \$\$t || \$\$t < 0; substr \$\$_, \$\$t, 7, "" if /^line  err   stmt/ ..  /^Branches/ and length > \$\$t' \$(TEST).out
 \t gvim -d -font \$(FONT) `\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new("\$(TEST)"); print \$\$t->cover_gold'` \$(TEST).out
 
