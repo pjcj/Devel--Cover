@@ -608,7 +608,7 @@ th,.h {
     border: solid 1px #333333;
     padding-left:  0.2em;
     padding-right: 0.2em;
-    width: 4em;
+    width: 3em;
 }
 td {
     border: solid 1px #cccccc;

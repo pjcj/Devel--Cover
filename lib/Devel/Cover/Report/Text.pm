@@ -104,7 +104,7 @@ sub print_file
                 my $o = shift @{$criteria{$c}};
                 $more ||= @{$criteria{$c}};
                 my $value = $o
-                    ? ($c =~ /statement|pod|time/)
+                    ? ($c =~ /statement|sub|pod|time/)
                         ? $o->covered
                         : $o->percentage
                     : "";
