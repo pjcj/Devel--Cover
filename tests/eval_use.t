@@ -7,10 +7,6 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# __COVER__x test eval2
-# __COVER__x golden_test eval_use.t
-# __COVER__x select -select eval2
-
 use strict;
 use warnings;
 

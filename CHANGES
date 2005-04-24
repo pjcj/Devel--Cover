@@ -1,5 +1,8 @@
 Devel::Cover.pm history
 
+Release 0.54 - 
+ - Make html_basic prettier.
+
 Release 0.53 - 17th April 2005
  - Clean up database directories.
  - Allow require File::Spec->catfile('t', 'common.pl'); (from an example by
