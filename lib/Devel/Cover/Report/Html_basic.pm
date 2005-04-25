@@ -169,6 +169,7 @@ sub print_file
     my $vars =
     {
         title       => "File Coverage",
+        file        => $file,
         showing     => \@showing,
         headers     => \@headers,
         filenames   => \%Filenames,
@@ -215,7 +216,7 @@ sub print_branches
 
     my $vars =
     {
-        title    => "Branch coverage report for $file",
+        file     => $file,
         branches => \@branches,
     };
 
@@ -266,8 +267,8 @@ sub print_conditions
 
     my $vars =
     {
-        title  => "Condition coverage report for $file",
-        types  => \@types,
+        file  => $file,
+        types => \@types,
     };
 
     # use Data::Dumper;
@@ -368,7 +369,6 @@ $Templates{summary} = <<'EOT';
 </table>
 <div><br></br></div>
 <table>
-
     <tr>
     <th class="header"> file </th>
     [% FOREACH header = headers %]
@@ -404,7 +404,6 @@ $Templates{summary} = <<'EOT';
             [% END %]
         </tr>
     [% END %]
-
 </table>
 
 [% END %]
@@ -413,16 +412,33 @@ EOT
 $Templates{file} = <<'EOT';
 [% WRAPPER html %]
 
-<h1> [% title %] </h1>
+<h1> File Coverage </h1>
 
 <table>
-
+    <tr>
+        <td class="h" align="right">File:</td>
+        <td>[% file %]</td>
+    </tr>
+    <tr>
+        <td class="h" align="right">Coverage:</td>
+        <td>[% coverage %]</td>
+    </tr>
+</table>
+<div><br></br></div>
+<table>
     <tr align="RIGHT" valign="CENTER">
         <th> line </th>
         [% FOREACH header = headers %]
             <th> [% header %] </th>
         [% END %]
         <th align="CENTER"> code </th>
+    </tr>
+    <tr align="RIGHT" valign="CENTER">
+        <td class ="h"> Total </td>
+        [% FOREACH header = headers %]
+            <td> [% header %] </td>
+        [% END %]
+        <td class="s"> [% file %] </td>
     </tr>
 
     [% FOREACH line = lines %]
@@ -442,7 +458,6 @@ $Templates{file} = <<'EOT';
             <td class="s"> [% line.text %] </td>
         </tr>
     [% END %]
-
 </table>
 
 [% END %]
@@ -451,10 +466,9 @@ EOT
 $Templates{branches} = <<'EOT';
 [% WRAPPER html %]
 
-<h1> [% title %] </h1>
+<h1> Branch Coverage </h1>
 
 <table>
-
     <tr align="RIGHT" valign="CENTER">
         <th> line </th>
         <th> % </th>
@@ -474,7 +488,6 @@ $Templates{branches} = <<'EOT';
             <td class="s"> [% branch.text %] </td>
         </tr>
     [% END %]
-
 </table>
 
 [% END %]
@@ -483,14 +496,12 @@ EOT
 $Templates{conditions} = <<'EOT';
 [% WRAPPER html %]
 
-<h1> [% title %] </h1>
+<h1> Condition Coverage </h1>
 
 [% FOREACH type = types %]
-
     <h2> [% type.name %] conditions </h2>
 
     <table>
-
         <tr align="RIGHT" valign="CENTER">
             <th> line </th>
             <th> % </th>
@@ -513,9 +524,7 @@ $Templates{conditions} = <<'EOT';
                 <td class="s"> [% condition.text %] </td>
             </tr>
         [% END %]
-
     </table>
-
 [% END %]
 
 [% END %]
@@ -608,7 +617,7 @@ th,.h {
     border: solid 1px #333333;
     padding-left:  0.2em;
     padding-right: 0.2em;
-    width: 3em;
+    width: 2.5em;
 }
 td {
     border: solid 1px #cccccc;

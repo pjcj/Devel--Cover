@@ -25,7 +25,7 @@ my $DB = "cover.12";  # Version 12 of the database.
 @Devel::Cover::DB::Criteria =
     (qw( statement branch path condition subroutine pod time ));
 @Devel::Cover::DB::Criteria_short =
-    (qw( stmt      branch path cond      sub        pod time ));
+    (qw( stmt      bran   path cond      sub        pod time ));
 
 sub new
 {
