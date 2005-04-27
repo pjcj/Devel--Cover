@@ -12,10 +12,7 @@ use warnings;
 
 use Devel::Cover::Test 0.53;
 
-my $t = "eval2";
-my $g = "eval_use.t";
-
-sub run_test
+my $run_test = sub
 {
     my $test = shift;
 
@@ -31,13 +28,13 @@ sub run_test
 
     $test->{test_file_parameters} = "0";
     $test->run_command($test->test_command);
-}
+};
 
 $Devel::Cover::Test::test = Devel::Cover::Test->new
 (
-    $t,
-    golden_test => $g,
-    run_test    => \&run_test,
+    "eval2",
+    golden_test => "eval_use.t",
+    run_test    => $run_test,
     changes     => 'if (/^Run: /) { $get_line->() for 1 .. 5; redo }',
     tests       => sub { $_[0] - 24 },  # number of lines deleted above
 );

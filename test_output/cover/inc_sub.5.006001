@@ -2,7 +2,7 @@ Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
-File                                         stmt branch   cond    sub  total
+File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
 tests/inc_sub                               100.0    n/a    n/a    n/a  100.0
 Total                                       100.0    n/a    n/a    n/a  100.0
@@ -17,7 +17,7 @@ Finish: ...
 
 tests/inc_sub
 
-line  err   stmt branch   cond    sub   code
+line  err   stmt   bran   cond    sub   code
 1                                       #!/bin/perl
 2                                       
 3                                       use lib ();

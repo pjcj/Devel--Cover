@@ -2,7 +2,7 @@ Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
-File                                         stmt branch   cond    sub  total
+File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
 tests/cond_branch                            83.8   79.3   19.1  100.0   69.9
 Total                                        83.8   79.3   19.1  100.0   69.9
@@ -17,7 +17,7 @@ Finish: ...
 
 tests/cond_branch
 
-line  err   stmt branch   cond    sub   code
+line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
 3                                       # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)

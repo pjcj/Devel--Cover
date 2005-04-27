@@ -17,14 +17,19 @@ use Devel::Cover::Test 0.53;
 
 my $base = $Devel::Cover::Inc::Base;
 
-my $g  = "trivial";
 my $t  = "trivial_md5";
-my $fg = "$base/tests/$g";
 my $ft = "$base/tests/$t";
+my $fg = "$base/tests/trivial";
 
-sub run_test
+my $run_test = sub
 {
     my $test = shift;
+
+    copy($fg, $ft) or die "Cannot copy $fg to $ft: $!";
+
+    open T, ">>$ft" or die "Cannot open $ft: $!";
+    print T "# blah blah\n";
+    close T  or die "Cannot close $ft: $!";
 
     $test->run_command($test->test_command);
 
@@ -32,26 +37,12 @@ sub run_test
 
     $test->{test_parameters} .= " -merge 1";
     $test->run_command($test->test_command);
-}
-
-copy($fg, $ft) or die "Cannot copy $fg to $ft: $!";
-
-open T, ">>$ft" or die "Cannot open $ft: $!";
-print T "# blah blah\n";
-close T  or die "Cannot close $ft: $!";
+};
 
 my $test = Devel::Cover::Test->new
 (
     $t,
-    golden_test => $g,
-    run_test    => \&run_test,
-    changes     => "s/$t/$g    /;  " .
-                   "s/$g\\s+\$/$g/;" .
-                   'if (/^Run: /) { $get_line->() for 1 .. 5; redo }' .
-                   "redo if /Deleting old coverage for changed file/",
-    tests       => sub { $_[0] - 6 },
+    run_test => $run_test,
 );
 
-$test->run_test;
-
-unlink $ft
+END { unlink $ft }

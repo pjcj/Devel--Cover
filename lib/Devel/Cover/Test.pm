@@ -55,13 +55,15 @@ sub get_params
     my $self = shift;
 
     my $test = $self->test_file;
-    open T, $test or die "Cannot open $test: $!";
-    while (<T>)
+    if (open T, $test)
     {
-        $self->{$1} = $2 if /__COVER__\s+(\w+)\s+(.*)/;
-        $self->{$1} =~ s/-.*// if $1;
+        while (<T>)
+        {
+            $self->{$1} = $2 if /__COVER__\s+(\w+)\s+(.*)/;
+            $self->{$1} =~ s/-.*// if $1;
+        }
+        close T or die "Cannot close $test: $!";
     }
-    close T or die "Cannot close $test: $!";
 
     $self->{select}         ||= "-select $self->{test}";
     $self->{test_parameters}  = "$self->{select}"
@@ -344,6 +346,7 @@ sub create_gold
     my $g = do { local $/; <G> };
     close G or die "Cannot close $gold: $!";
 
+    # print "checking $new_gold against $gold\n";
     if ($ng eq $g)
     {
         print "Output from $new_gold matches $gold\n";

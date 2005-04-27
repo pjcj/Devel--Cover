@@ -16,6 +16,9 @@ our $VERSION = "0.53";
 
 use blib;
 
+use Config;
+exit if $Config{useithreads};
+
 use Devel::Cover::Test 0.53;
 
 my @tests = @ARGV;
@@ -26,7 +29,7 @@ mkdir "test_output/cover" unless -d "test_output/cover";
 unless (@tests)
 {
     opendir D, "tests" or die "Cannot opendir tests: $!";
-    for my $t (readdir D)
+    for my $t (sort readdir D)
     {
         next unless -f "tests/$t";
         next if $t =~ /\.(pm|pl|uncoverable|version|org|bak)$/;
@@ -39,10 +42,10 @@ unless (@tests)
 
 for my $test (@tests)
 {
-    my $t = -e "t/$test"  ? "t/$test"  :
-            -e "t/a$test" ? "t/a$test" :
+    my $t = -e "t/$test"    ? "t/$test"    :
+            -e "t/a$test.t" ? "t/a$test.t" :
             $test;
-    # print STDERR "requiring [$t]\n";
-    require $t;
+    print STDERR "creating golden results for $test\n";
+    require $t or die "Can't require $t: $!";
     Devel::Cover::Test::test->create_gold;
 }

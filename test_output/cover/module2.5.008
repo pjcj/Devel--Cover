@@ -2,7 +2,7 @@ Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
-File                                         stmt branch   cond    sub  total
+File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
 tests/Module2.pm                             25.0    n/a    n/a   25.0   25.0
 tests/module2                                95.0   50.0    n/a  100.0   92.6
@@ -18,7 +18,7 @@ Finish: ...
 
 tests/Module2.pm
 
-line  err   stmt branch   cond    sub   code
+line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
 2                                       
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
@@ -79,7 +79,7 @@ yy             0 tests/Module2.pm:28
 
 tests/module2
 
-line  err   stmt branch   cond    sub   code
+line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
 3                                       # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
