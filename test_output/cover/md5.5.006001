@@ -1,11 +1,11 @@
 Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
-Devel::Cover: Deleting old coverage for changed file tests/trivial_md5
+Devel::Cover: Deleting old coverage for changed file tests/md5
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/trivial_md5                           100.0    n/a    n/a    n/a  100.0
+tests/md5                                   100.0    n/a    n/a    n/a  100.0
 Total                                       100.0    n/a    n/a    n/a  100.0
 ------------------------------------------ ------ ------ ------ ------ ------
 
@@ -22,7 +22,7 @@ OS: ...
 Start: ...
 Finish: ...
 
-tests/trivial_md5
+tests/md5
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

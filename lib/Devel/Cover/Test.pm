@@ -293,6 +293,7 @@ sub run_test
         ok 1 for @cover;
     }
     close T or die "Cannot close $cover_com: $!";
+    $self->{end}->() if $self->{end};
 }
 
 sub create_gold
@@ -325,7 +326,6 @@ sub create_gold
     print "Running cover [$cover_com]\n" if $debug;
 
     open G, ">$new_gold" or die "Cannot open $new_gold: $!";
-
     open T, "$cover_com|" or die "Cannot run $cover_com: $!";
     while (my $l = <T>)
     {
@@ -337,27 +337,29 @@ sub create_gold
         $ng .= $l;
     }
     close T or die "Cannot close $cover_com: $!";
-
     close G or die "Cannot close $new_gold: $!";
 
-    return if $gv eq "5.0" || $gv eq $];
-
-    open G, "$gold" or die "Cannot open $gold: $!";
-    my $g = do { local $/; <G> };
-    close G or die "Cannot close $gold: $!";
-
-    # print "checking $new_gold against $gold\n";
-    if ($ng eq $g)
+    unless ($gv eq "5.0" || $gv eq $])
     {
-        print "Output from $new_gold matches $gold\n";
-        unlink $new_gold;
+        open G, "$gold" or die "Cannot open $gold: $!";
+        my $g = do { local $/; <G> };
+        close G or die "Cannot close $gold: $!";
+
+        # print "checking $new_gold against $gold\n";
+        if ($ng eq $g)
+        {
+            print "Output from $new_gold matches $gold\n";
+            unlink $new_gold;
+        }
     }
+
+    $self->{end}->() if $self->{end};
 }
 
 END
 {
     my $self = $Test;
-    $self->run_test if $self->{run_test_at_end};
+    $self->run_test  if $self->{run_test_at_end};
 }
 
 1;

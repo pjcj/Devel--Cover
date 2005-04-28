@@ -17,7 +17,7 @@ use Devel::Cover::Test 0.53;
 
 my $base = $Devel::Cover::Inc::Base;
 
-my $t  = "trivial_md5";
+my $t  = "md5";
 my $ft = "$base/tests/$t";
 my $fg = "$base/tests/trivial";
 
@@ -43,6 +43,5 @@ my $test = Devel::Cover::Test->new
 (
     $t,
     run_test => $run_test,
+    end      => sub { unlink $ft },
 );
-
-END { unlink $ft }
