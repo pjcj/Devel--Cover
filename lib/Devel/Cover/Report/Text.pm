@@ -92,8 +92,9 @@ sub print_file
             {
                 for my $a (0 .. $ann->count - 1)
                 {
-                    push @args, $ann->text($n, $a);
-                    $error ||= $ann->error($n, $a);
+                    push @args,
+                         substr $ann->text($file, $n, $a), 0, $ann->width($a);
+                    $error ||= $ann->error($file, $n, $a);
                 }
             }
 

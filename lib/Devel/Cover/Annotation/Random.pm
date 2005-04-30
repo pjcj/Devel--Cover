@@ -48,30 +48,32 @@ sub width
 {
     my $self = shift;
     my ($annotation) = @_;
-    length $self->header($self->count)
+    length $self->header($annotation)
 }
 
 sub text
 {
     my $self = shift;
-    my ($line, $annotation) = @_;
-    $self->{annotation}{$line}{$annotation} = int rand 10
-        unless exists $self->{annotation}{$line}{$annotation};
-    $self->{annotation}{$line}{$annotation}
+    my ($file, $line, $annotation) = @_;
+    return "" unless $line;
+    $self->{annotation}{$file}[$line][$annotation] = int rand 10
+        unless defined $self->{annotation}{$file}[$line][$annotation];
+    $self->{annotation}{$file}[$line][$annotation]
 }
 
 sub error
 {
     my $self = shift;
-    my ($line, $annotation) = @_;
-    !$self->text($line, $annotation)
+    my ($file, $line, $annotation) = @_;
+    !$self->text($file, $line, $annotation)
 }
 
 sub class
 {
     my $self = shift;
-    my ($line, $annotation) = @_;
-    "c" . int($self->text($line, $annotation) / 3)
+    my ($file, $line, $annotation) = @_;
+    return "" unless $line;
+    "c" . int($self->text($file, $line, $annotation) / 3)
 }
 
 1

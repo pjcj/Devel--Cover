@@ -123,10 +123,10 @@ sub print_file
                 {
                     push @{$line{criteria}},
                     {
-                        text  => $ann->text ($n, $a),
-                        class => $ann->class($n, $a),
+                        text  => $ann->text ($R{file}, $n, $a),
+                        class => $ann->class($R{file}, $n, $a),
                     };
-                    $error ||= $ann->error($n, $a);
+                    $error ||= $ann->error($R{file}, $n, $a);
                 }
             }
             for my $c (@{$R{showing}})
