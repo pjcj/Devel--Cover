@@ -31,38 +31,47 @@ sub get_options
                      ));
 }
 
-sub number_of_annotations
+sub count
 {
     my $self = shift;
     $self->{count}
 }
 
-sub get_header
+sub header
 {
     my $self = shift;
     my ($annotation) = @_;
-    "rand$annotation"
+    "rnd$annotation"
 }
 
-sub get_width
+sub width
 {
     my $self = shift;
     my ($annotation) = @_;
-    length $self->get_header($self->number_of_annotations)
+    length $self->header($self->count)
 }
 
-sub get_annotation
+sub text
 {
     my $self = shift;
     my ($line, $annotation) = @_;
-    int rand 10
+    $self->{annotation}{$line}{$annotation} = int rand 10
+        unless exists $self->{annotation}{$line}{$annotation};
+    $self->{annotation}{$line}{$annotation}
 }
 
 sub error
 {
     my $self = shift;
     my ($line, $annotation) = @_;
-    rand() < 0.2
+    !$self->text($line, $annotation)
+}
+
+sub class
+{
+    my $self = shift;
+    my ($line, $annotation) = @_;
+    "c" . int($self->text($line, $annotation) / 3)
 }
 
 1

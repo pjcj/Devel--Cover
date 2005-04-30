@@ -42,10 +42,10 @@ sub print_file
     my @args = ("line", "err");
     for my $ann (@{$options->{annotations}})
     {
-        for my $a (0 .. $ann->number_of_annotations - 1)
+        for my $a (0 .. $ann->count - 1)
         {
-            $fmt .= "%-" . $ann->get_width($a) . "s ";
-            push @args, $ann->get_header($a);
+            $fmt .= "%-" . $ann->width($a) . "s ";
+            push @args, $ann->header($a);
         }
     }
     my %cr; @cr{$db->criteria} = $db->criteria_short;
@@ -90,9 +90,9 @@ sub print_file
 
             for my $ann (@{$options->{annotations}})
             {
-                for my $a (0 .. $ann->number_of_annotations - 1)
+                for my $a (0 .. $ann->count - 1)
                 {
-                    push @args, $ann->get_annotation($n, $a);
+                    push @args, $ann->text($n, $a);
                     $error ||= $ann->error($n, $a);
                 }
             }

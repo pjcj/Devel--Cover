@@ -17,13 +17,11 @@ use Devel::Cover::DB 0.53;
 use Template 2.00;
 
 my $Template;
-my %Filenames;
-my %File_exists;
+my %R;
 
 sub print_stylesheet
 {
-    my ($db) = @_;
-    my $file = "$db->{db}/cover.css";
+    my $file = "$R{db}{db}/cover.css";
     open CSS, '>', $file or return;
     my $p = tell DATA;
     print CSS <DATA>;
@@ -48,55 +46,38 @@ sub class
           : "c3"
 }
 
+sub get_summary
+{
+    my ($file, $criterion) = @_;
+
+    my %vals;
+    @vals{"pc", "class"} = ("n/a", "");
+
+    my $part = $R{db}->summary($file);
+    return \%vals unless exists $part->{$criterion};
+    my $c = $part->{$criterion};
+    $vals{class} = class($c->{percentage}, $c->{error}, $criterion);
+
+    return \%vals unless defined $c->{percentage};
+    $vals{pc} = sprintf "%4.1f", $c->{percentage};
+
+    return \%vals
+        if $criterion !~ /^branch|condition|subroutine|pod$/ ||
+           !exists $R{filenames}{$file};
+    $vals{link} = "$R{filenames}{$file}--$criterion.html";
+
+    \%vals
+};
+
 sub print_summary
 {
-    my ($db, $options) = @_;
-
-    my @showing = grep $options->{show}{$_}, $db->all_criteria;
-    my @headers = map { ($db->all_criteria_short)[$_] }
-                  grep { $options->{show}{($db->all_criteria)[$_]} }
-                  (0 .. $db->all_criteria - 1);
-    my @files   = (grep($db->{summary}{$_}, @{$options->{file}}), "Total");
-    my %vals;
-
-    for my $file (@files)
-    {
-        my %pvals;
-        my $part = $db->{summary}{$file};
-        for my $criterion (@showing)
-        {
-            @{$vals{$file}{$criterion}}{"pc", "class"} = ("n/a", "");
-
-            next unless exists $part->{$criterion};
-            $vals{$file}{$criterion}{class} =
-                class($part->{$criterion}{percentage},
-                      $part->{$criterion}{error},
-                      $criterion);
-
-            next unless defined $part->{$criterion}{percentage};
-            $vals{$file}{$criterion}{pc} =
-                sprintf "%4.1f", $part->{$criterion}{percentage};
-
-            next if $criterion =~ /^statement|time$/ ||
-                    !exists $Filenames{$file};
-            $vals{$file}{$criterion}{link} =
-                "$Filenames{$file}--$criterion.html";
-        }
-    }
-
     my $vars =
     {
-        title       => "Coverage Summary",
-        dbname      => $db->{db},
-        showing     => \@showing,
-        headers     => \@headers,
-        files       => \@files,
-        filenames   => \%Filenames,
-        file_exists => \%File_exists,
-        vals        => \%vals,
+        R     => \%R,
+        files => [ grep($R{db}->summary($_), @{$R{options}{file}}), "Total" ],
     };
 
-    my $html = "$options->{outputdir}/coverage.html";
+    my $html = "$R{options}{outputdir}/coverage.html";
     $Template->process("summary", $vars, $html) or die $Template->error();
 
     print "HTML output sent to $html\n";
@@ -104,31 +85,23 @@ sub print_summary
 
 sub print_file
 {
-    my ($db, $file, $options) = @_;
-
     my @lines;
-    my $cover = $db->cover;
-    my @showing = grep $options->{show}{$_}, $db->criteria;
-    my @headers = map { ($db->all_criteria_short)[$_] }
-                  grep { $options->{show}{($db->criteria)[$_]} }
-                  (0 .. $db->criteria - 1);
+    my $f = $R{db}->cover->file($R{file});
 
-    my $f = $cover->file($file);
-
-    open F, $file or warn("Unable to open $file: $!\n"), next;
+    open F, $R{file} or warn("Unable to open $R{file}: $!\n"), next;
     LINE: while (defined(my $l = <F>))
     {
         my $n = $.;
         chomp $l;
 
         my %criteria;
-        for my $c (@showing)
+        for my $c (@{$R{showing}})
         {
             my $criterion = $f->$c();
             if ($criterion)
             {
                 my $l = $criterion->location($n);
-                $criteria{$c} = $l ? [@$l] : $l;
+                $criteria{$c} = $l ? [@$l] : undef;
             }
         }
 
@@ -144,7 +117,19 @@ sub print_file
 
             my $error = 0;
             $more = 0;
-            for my $c (@showing)
+            for my $ann (@{$R{options}{annotations}})
+            {
+                for my $a (0 .. $ann->count - 1)
+                {
+                    push @{$line{criteria}},
+                    {
+                        text  => $ann->text ($n, $a),
+                        class => $ann->class($n, $a),
+                    };
+                    $error ||= $ann->error($n, $a);
+                }
+            }
+            for my $c (@{$R{showing}})
             {
                 my $o = shift @{$criteria{$c}};
                 $more ||= @{$criteria{$c}};
@@ -152,7 +137,8 @@ sub print_file
                 my $pc = $link && $c !~ /subroutine|pod/;
                 my $text = $o ? $pc ? $o->percentage : $o->covered : "";
                 my %criterion = ( text => $text, class => oclass($o, $c) );
-                $criterion{link} = "$Filenames{$file}--$c.html#$n-$count"
+                $criterion{link} =
+                    "$R{filenames}{$R{file}}--$c.html#$n-$count"
                     if $link;
                 push @{$line{criteria}}, \%criterion;
                 $error ||= $o->error if $o;
@@ -164,29 +150,21 @@ sub print_file
             $n = $l = "";
         }
     }
-    close F or die "Unable to close $file: $!";
+    close F or die "Unable to close $R{file}: $!";
 
     my $vars =
     {
-        title       => "File Coverage",
-        file        => $file,
-        showing     => \@showing,
-        headers     => \@headers,
-        filenames   => \%Filenames,
-        file_exists => \%File_exists,
-        lines       => \@lines,
+        R     => \%R,
+        lines => \@lines,
     };
 
-    my $html = "$options->{outputdir}/$Filenames{$file}.html";
+    my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}.html";
     $Template->process("file", $vars, $html) or die $Template->error();
 }
 
 sub print_branches
 {
-    my ($db, $file, $options) = @_;
-
-    my $branches = $db->cover->file($file)->branch;
-
+    my $branches = $R{db}->cover->file($R{file})->branch;
     return unless $branches;
 
     my @branches;
@@ -216,20 +194,17 @@ sub print_branches
 
     my $vars =
     {
-        file     => $file,
+        R        => \%R,
         branches => \@branches,
     };
 
-    my $html = "$options->{outputdir}/$Filenames{$file}--branch.html";
+    my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--branch.html";
     $Template->process("branches", $vars, $html) or die $Template->error();
 }
 
 sub print_conditions
 {
-    my ($db, $file, $options) = @_;
-
-    my $conditions = $db->cover->file($file)->condition;
-
+    my $conditions = $R{db}->cover->file($R{file})->condition;
     return unless $conditions;
 
     my %r;
@@ -267,14 +242,11 @@ sub print_conditions
 
     my $vars =
     {
-        file  => $file,
+        R     => \%R,
         types => \@types,
     };
 
-    # use Data::Dumper;
-    # print Dumper $vars;
-
-    my $html = "$options->{outputdir}/$Filenames{$file}--condition.html";
+    my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--condition.html";
     $Template->process("conditions", $vars, $html) or die $Template->error();
 }
 
@@ -290,18 +262,40 @@ sub report
         ],
     });
 
-    %Filenames   = map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } }
-                       @{$options->{file}};
-    %File_exists = map { $_ => -e } @{$options->{file}};
+    %R =
+    (
+        db      => $db,
+        options => $options,
+        showing => [ grep $options->{show}{$_}, $db->criteria ],
+        headers =>
+        [
+            map { ($db->criteria_short)[$_] }
+                grep { $options->{show}{($db->criteria)[$_]} }
+                     (0 .. $db->criteria - 1)
+        ],
+        annotations =>
+        [
+            map { my $a = $_; map $a->header($_), 0 .. $a->count - 1 }
+                @{$options->{annotations}}
+        ],
+        filenames =>
+        {
+            map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } }
+                @{$options->{file}}
+        },
+        exists      => { map { $_ => -e } @{$options->{file}} },
+        get_summary => \&get_summary,
+    );
 
-    print_stylesheet($db);
-    print_summary($db, $options);
+    print_stylesheet;
+    print_summary;
 
-    for my $file (@{$options->{file}})
+    for (@{$options->{file}})
     {
-        print_file      ($db, $file, $options);
-        print_branches  ($db, $file, $options) if $options->{show}{branch};
-        print_conditions($db, $file, $options) if $options->{show}{condition};
+        $R{file} = $_;
+        print_file;
+        print_branches   if $options->{show}{branch};
+        print_conditions if $options->{show}{condition};
     }
 }
 
@@ -360,18 +354,18 @@ EOT
 $Templates{summary} = <<'EOT';
 [% WRAPPER html %]
 
-<h1>[% title %]</h1>
+<h1> Coverage Summary </h1>
 <table>
     <tr>
         <td class="h" align="right">Database:</td>
-        <td>[% dbname %]</td>
+        <td>[% R.db.db %]</td>
     </tr>
 </table>
 <div><br></br></div>
 <table>
     <tr>
     <th class="header"> file </th>
-    [% FOREACH header = headers %]
+    [% FOREACH header = R.headers.merge("total") %]
         <th class="header"> [% header %] </th>
     [% END %]
     </tr>
@@ -379,26 +373,24 @@ $Templates{summary} = <<'EOT';
     [% FOREACH file = files %]
         <tr align="center" valign="top">
             <td align="left">
-                [% IF file_exists.$file %]
-                   <a href="[%- filenames.$file -%].html"> [% file %] </a>
+                [% IF R.exists.$file %]
+                   <a href="[% R.filenames.$file %].html"> [% file %] </a>
                 [% ELSE %]
                     [% file %]
                 [% END %]
             </td>
 
-            [% FOREACH criterion = showing %]
-                [% IF vals.$file.$criterion.class %]
-                    <td class="[%- vals.$file.$criterion.class -%]"
-                        title="[%- vals.$file.$criterion.details -%]">
+            [% FOREACH criterion = R.showing.merge("total") %]
+                [% vals = R.get_summary(file, criterion) %]
+                [% IF vals.class %]
+                    <td class="[% vals.class %]" title="[% vals.details %]">
                 [% ELSE %]
                     <td>
                 [% END %]
-                [% IF vals.$file.$criterion.link.defined %]
-                    <a href="[% vals.$file.$criterion.link %]">
-                        [% vals.$file.$criterion.pc %]
-                    </a>
+                [% IF vals.link.defined %]
+                    <a href="[% vals.link %]"> [% vals.pc %] </a>
                 [% ELSE %]
-                    [% vals.$file.$criterion.pc %]
+                    [% vals.pc %]
                 [% END %]
                 </td>
             [% END %]
@@ -410,39 +402,48 @@ $Templates{summary} = <<'EOT';
 EOT
 
 $Templates{file} = <<'EOT';
+[% MACRO summary(criterion) BLOCK %]
+    [% vals = R.get_summary(R.file, criterion) %]
+    [% IF vals.class %]
+        <td class="[% vals.class %]" title="[% vals.details %]">
+    [% ELSE %]
+        <td>
+    [% END %]
+    [% IF vals.link.defined %]
+        <a href="[% vals.link %]"> [% vals.pc %] </a>
+    [% ELSE %]
+        [% vals.pc %]
+    [% END %]
+    </td>
+[% END %]
+
 [% WRAPPER html %]
 
 <h1> File Coverage </h1>
 
 <table>
     <tr>
-        <td class="h" align="right">File:</td>
-        <td>[% file %]</td>
-    </tr>
-    <tr>
-        <td class="h" align="right">Coverage:</td>
-        <td>[% coverage %]</td>
-    </tr>
-</table>
-<div><br></br></div>
-<table>
-    <tr align="RIGHT" valign="CENTER">
         <th> line </th>
-        [% FOREACH header = headers %]
+        [% FOREACH header = R.annotations.merge(R.headers) %]
             <th> [% header %] </th>
         [% END %]
-        <th align="CENTER"> code </th>
+        <th> code </th>
     </tr>
-    <tr align="RIGHT" valign="CENTER">
-        <td class ="h"> Total </td>
-        [% FOREACH header = headers %]
-            <td> [% header %] </td>
+    <tr class="hblank"><td class="dblank"></td></tr>
+    <tr>
+        [% summary("total") %]
+        [% FOREACH annotation = R.annotations %]
+            <td> </td>
         [% END %]
-        <td class="s"> [% file %] </td>
+        [% FOREACH criterion = R.showing %]
+            [% summary(criterion) %]
+        [% END %]
+        <td class="h"> [% R.file %] </td>
     </tr>
+    <tr class="hblank"><td class="dblank"></td></tr>
 
     [% FOREACH line = lines %]
-        <tr align="RIGHT" valign="CENTER">
+        <tr>
             <td class="h"> [% line.number %] </td>
             [% FOREACH cr = line.criteria %]
                 <td [% IF cr.class %] class="[% cr.class %]" [% END %]>
@@ -592,7 +593,8 @@ body {
 }
 
 h1 {
-    background-color: #3399ff;
+    text-align : center;
+    background-color: #cc99ff;
     border: solid 1px #999999;
     padding: 0.2em;
     -moz-border-radius: 10px;
@@ -621,6 +623,12 @@ th,.h {
 }
 td {
     border: solid 1px #cccccc;
+}
+.hblank {
+    height: 0.8em;
+}
+.dblank {
+    border: none;
 }
 
 /* source code */
