@@ -250,6 +250,36 @@ sub print_conditions
     $Template->process("conditions", $vars, $html) or die $Template->error();
 }
 
+sub print_subroutines
+{
+    my $subroutines = $R{db}->cover->file($R{file})->subroutine;
+    return unless $subroutines;
+
+    my $subs;
+    for my $line (sort { $a <=> $b } $subroutines->items)
+    {
+        for my $o (@{$subroutines->location($line)})
+        {
+            push @$subs,
+            {
+                line => $line,
+                name => $o->name,
+                class => oclass($o, "subroutine"),
+            };
+        }
+    }
+
+    my $vars =
+    {
+        R    => \%R,
+        subs => $subs,
+    };
+
+    my $html =
+        "$R{options}{outputdir}/$R{filenames}{$R{file}}--subroutine.html";
+    $Template->process("subroutines", $vars, $html) or die $Template->error();
+}
+
 sub report
 {
     my ($pkg, $db, $options) = @_;
@@ -294,8 +324,9 @@ sub report
     {
         $R{file} = $_;
         print_file;
-        print_branches   if $options->{show}{branch};
-        print_conditions if $options->{show}{condition};
+        print_branches    if $options->{show}{branch};
+        print_conditions  if $options->{show}{condition};
+        print_subroutines if $options->{show}{subroutine};
     }
 }
 
@@ -470,17 +501,17 @@ $Templates{branches} = <<'EOT';
 <h1> Branch Coverage </h1>
 
 <table>
-    <tr align="RIGHT" valign="CENTER">
+    <tr>
         <th> line </th>
         <th> % </th>
         <th> true </th>
         <th> false </th>
-        <th align="CENTER"> branch </th>
+        <th> branch </th>
     </tr>
 
     [% FOREACH branch = branches %]
         <a name="[% branch.ref %]"> </a>
-        <tr align="RIGHT" valign="CENTER">
+        <tr>
             <td class="h"> [% branch.number %] </td>
             <td class="[% branch.class %]"> [% branch.percentage %] </td>
             [% FOREACH part = branch.parts %]
@@ -503,18 +534,18 @@ $Templates{conditions} = <<'EOT';
     <h2> [% type.name %] conditions </h2>
 
     <table>
-        <tr align="RIGHT" valign="CENTER">
+        <tr>
             <th> line </th>
             <th> % </th>
             [% FOREACH header = type.headers %]
                 <th> [% header %] </th>
             [% END %]
-            <th align="CENTER"> condition </th>
+            <th> condition </th>
         </tr>
 
         [% FOREACH condition = type.conditions %]
             <a name="[% condition.ref %]"> </a>
-            <tr align="RIGHT" valign="CENTER">
+            <tr>
                 <td class="h"> [% condition.number %] </td>
                 <td class="[% condition.class %]">
                     [% condition.percentage %]
@@ -527,6 +558,27 @@ $Templates{conditions} = <<'EOT';
         [% END %]
     </table>
 [% END %]
+
+[% END %]
+EOT
+
+$Templates{subroutines} = <<'EOT';
+[% WRAPPER html %]
+
+<h1> Subroutine Coverage </h1>
+
+<table>
+    <tr>
+        <th> line </th>
+        <th> subroutine </th>
+    </tr>
+    [% FOREACH sub = subs %]
+        <tr>
+            <td class="h"> [% sub.line %] </td>
+            <td class="[% sub.class %]"> [% sub.name %] </td>
+        </tr>
+    [% END %]
+</table>
 
 [% END %]
 EOT

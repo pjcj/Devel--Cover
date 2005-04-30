@@ -73,7 +73,7 @@ sub class
     my $self = shift;
     my ($file, $line, $annotation) = @_;
     return "" unless $line;
-    "c" . int($self->text($file, $line, $annotation) / 3)
+    "c" . int(($self->text($file, $line, $annotation) + 2) / 3)
 }
 
 1
