@@ -262,8 +262,9 @@ sub print_subroutines
         {
             push @$subs,
             {
-                line => $line,
-                name => $o->name,
+                line  => $line,
+                count => $o->covered,
+                name  => $o->name,
                 class => oclass($o, "subroutine"),
             };
         }
@@ -278,6 +279,36 @@ sub print_subroutines
     my $html =
         "$R{options}{outputdir}/$R{filenames}{$R{file}}--subroutine.html";
     $Template->process("subroutines", $vars, $html) or die $Template->error();
+}
+
+sub print_pods
+{
+    my $pods = $R{db}->cover->file($R{file})->pod;
+    return unless $pods;
+
+    my $ps;
+    for my $line (sort { $a <=> $b } $pods->items)
+    {
+        for my $o (@{$pods->location($line)})
+        {
+            push @$ps,
+            {
+                line => $line,
+                name => $o->name,
+                class => oclass($o, "pod"),
+            };
+        }
+    }
+
+    my $vars =
+    {
+        R    => \%R,
+        pods => $ps,
+    };
+
+    my $html =
+        "$R{options}{outputdir}/$R{filenames}{$R{file}}--pod.html";
+    $Template->process("pod", $vars, $html) or die $Template->error();
 }
 
 sub report
@@ -327,6 +358,7 @@ sub report
         print_branches    if $options->{show}{branch};
         print_conditions  if $options->{show}{condition};
         print_subroutines if $options->{show}{subroutine};
+        # print_pods        if $options->{show}{pod};
     }
 }
 
@@ -475,14 +507,14 @@ $Templates{file} = <<'EOT';
 
     [% FOREACH line = lines %]
         <tr>
-            <td class="h"> [% line.number %] </td>
+            <td [% IF line.number %] class="h" [% END %]>[% line.number %]</td>
             [% FOREACH cr = line.criteria %]
                 <td [% IF cr.class %] class="[% cr.class %]" [% END %]>
-                    [% IF cr.link.defined && cr.text %]
+                    [% IF cr.link.defined && cr.text.length %]
                         <a href="[% cr.link %]">
                     [% END %]
                     [% cr.text %]
-                    [% IF cr.link.defined && cr.text %]
+                    [% IF cr.link.defined && cr.text.length %]
                         </a>
                     [% END %]
                 </td>
@@ -570,12 +602,35 @@ $Templates{subroutines} = <<'EOT';
 <table>
     <tr>
         <th> line </th>
+        <th> count </th>
         <th> subroutine </th>
     </tr>
     [% FOREACH sub = subs %]
         <tr>
             <td class="h"> [% sub.line %] </td>
-            <td class="[% sub.class %]"> [% sub.name %] </td>
+            <td class="[% sub.class %]"> [% sub.count %] </td>
+            <td> [% sub.name %] </td>
+        </tr>
+    [% END %]
+</table>
+
+[% END %]
+EOT
+
+$Templates{pods} = <<'EOT';
+[% WRAPPER html %]
+
+<h1> Pod Coverage </h1>
+
+<table>
+    <tr>
+        <th> line </th>
+        <th> subroutine </th>
+    </tr>
+    [% FOREACH pod = pods %]
+        <tr>
+            <td class="h"> [% pod.line %] </td>
+            <td class="[% pod.class %]"> [% pod.name %] </td>
         </tr>
     [% END %]
 </table>
