@@ -61,10 +61,10 @@ sub get_summary
     return \%vals unless defined $c->{percentage};
     $vals{pc} = sprintf "%4.1f", $c->{percentage};
 
+    my $cr = $criterion eq "pod" ? "subroutine" : $criterion;
     return \%vals
-        if $criterion !~ /^branch|condition|subroutine|pod$/ ||
-           !exists $R{filenames}{$file};
-    $vals{link} = "$R{filenames}{$file}--$criterion.html";
+      if $cr !~ /^branch|condition|subroutine$/ || !exists $R{filenames}{$file};
+    $vals{link} = "$R{filenames}{$file}--$cr.html";
 
     \%vals
 };
@@ -137,8 +137,8 @@ sub print_file
                 my $pc = $link && $c !~ /subroutine|pod/;
                 my $text = $o ? $pc ? $o->percentage : $o->covered : "";
                 my %criterion = ( text => $text, class => oclass($o, $c) );
-                $criterion{link} =
-                    "$R{filenames}{$R{file}}--$c.html#$n-$count"
+                my $cr = $c eq "pod" ? "subroutine" : $c;
+                $criterion{link} = "$R{filenames}{$R{file}}--$cr.html#$n-$count"
                     if $link;
                 push @{$line{criteria}}, \%criterion;
                 $error ||= $o->error if $o;
@@ -254,18 +254,31 @@ sub print_subroutines
 {
     my $subroutines = $R{db}->cover->file($R{file})->subroutine;
     return unless $subroutines;
+    my $s = $R{options}->{show}{subroutines};
+
+    my $pods;
+    $pods = $R{db}->cover->file($R{file})->pod if $R{options}->{show}{pod};
 
     my $subs;
     for my $line (sort { $a <=> $b } $subroutines->items)
     {
+        my @p;
+        if ($pods)
+        {
+            my $l = $pods->location($line);
+            @p = @$l if $l;
+        }
         for my $o (@{$subroutines->location($line)})
         {
+            my $p = shift @p;
             push @$subs,
             {
-                line  => $line,
-                count => $o->covered,
-                name  => $o->name,
-                class => oclass($o, "subroutine"),
+                line   => $line,
+                name   => $o->name,
+                count  => $s ? $o->covered : "",
+                class  => $s ? oclass($o, "subroutine") : "",
+                pod    => $p ? $p->covered ? "Yes" : "No" : "n/a",
+                pclass => $p ? oclass($p, "pod") : "",
             };
         }
     }
@@ -279,36 +292,6 @@ sub print_subroutines
     my $html =
         "$R{options}{outputdir}/$R{filenames}{$R{file}}--subroutine.html";
     $Template->process("subroutines", $vars, $html) or die $Template->error();
-}
-
-sub print_pods
-{
-    my $pods = $R{db}->cover->file($R{file})->pod;
-    return unless $pods;
-
-    my $ps;
-    for my $line (sort { $a <=> $b } $pods->items)
-    {
-        for my $o (@{$pods->location($line)})
-        {
-            push @$ps,
-            {
-                line => $line,
-                name => $o->name,
-                class => oclass($o, "pod"),
-            };
-        }
-    }
-
-    my $vars =
-    {
-        R    => \%R,
-        pods => $ps,
-    };
-
-    my $html =
-        "$R{options}{outputdir}/$R{filenames}{$R{file}}--pod.html";
-    $Template->process("pod", $vars, $html) or die $Template->error();
 }
 
 sub report
@@ -354,11 +337,11 @@ sub report
     for (@{$options->{file}})
     {
         $R{file} = $_;
+        my $show = $options->{show};
         print_file;
-        print_branches    if $options->{show}{branch};
-        print_conditions  if $options->{show}{condition};
-        print_subroutines if $options->{show}{subroutine};
-        # print_pods        if $options->{show}{pod};
+        print_branches    if $show->{branch};
+        print_conditions  if $show->{condition};
+        print_subroutines if $show->{subroutine} || $show->{pod};
     }
 }
 
@@ -602,35 +585,24 @@ $Templates{subroutines} = <<'EOT';
 <table>
     <tr>
         <th> line </th>
-        <th> count </th>
+        [% IF R.options.show.subroutine %]
+            <th> count </th>
+        [% END %]
+        [% IF R.options.show.pod %]
+            <th> pod </th>
+        [% END %]
         <th> subroutine </th>
     </tr>
     [% FOREACH sub = subs %]
         <tr>
             <td class="h"> [% sub.line %] </td>
-            <td class="[% sub.class %]"> [% sub.count %] </td>
+            [% IF R.options.show.subroutine %]
+                <td class="[% sub.class %]"> [% sub.count %] </td>
+            [% END %]
+            [% IF R.options.show.pod %]
+                <td class="[% sub.pclass %]"> [% sub.pod %] </td>
+            [% END %]
             <td> [% sub.name %] </td>
-        </tr>
-    [% END %]
-</table>
-
-[% END %]
-EOT
-
-$Templates{pods} = <<'EOT';
-[% WRAPPER html %]
-
-<h1> Pod Coverage </h1>
-
-<table>
-    <tr>
-        <th> line </th>
-        <th> subroutine </th>
-    </tr>
-    [% FOREACH pod = pods %]
-        <tr>
-            <td class="h"> [% pod.line %] </td>
-            <td class="[% pod.class %]"> [% pod.name %] </td>
         </tr>
     [% END %]
 </table>

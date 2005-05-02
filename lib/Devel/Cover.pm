@@ -438,10 +438,13 @@ sub get_location
     ($File, $Line) = ($1, $2) if $File =~ /^\(eval \d+\)\[(.*):(\d+)\]/;
     $File = normalised_file($File);
 
-    unless (exists $Run{vec}{$File})
+    if (!exists $Run{vec}{$File} && $Run{collected})
     {
-        @{$Run{vec}{$File}{$_}}{"vec", "size"} = ("", 0)
-            for grep $_ ne "time", @{$Run{collected}};
+        my %vec;
+        @vec{@{$Run{collected}}} = ();
+        delete $vec{time};
+        $vec{subroutine}++ if exists $vec{pod};
+        @{$Run{vec}{$File}{$_}}{"vec", "size"} = ("", 0) for keys %vec;
     }
 }
 
@@ -593,7 +596,8 @@ sub report
     get_cover($_) for B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ();
     if (exists &B::check_av)
     {
-        get_cover($_) for B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ();
+        get_cover($_)
+            for B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ();
     }
     get_cover($_) for get_ends()->isa("B::AV") ? get_ends()->ARRAY : ();
     get_cover($_) for @Cvs;
@@ -1023,7 +1027,8 @@ sub get_cover
         else
         {
             $Structure->set_subroutine($Sub_name, $File, $Line);
-            add_subroutine_cover($start) if $Coverage{subroutine};
+            add_subroutine_cover($start)
+                if $Coverage{subroutine} || $Coverage{pod};  # pod requires subs
         }
     }
 

@@ -45,10 +45,10 @@ sub calculate_summary
         $s->{Total}{total}{covered}++;
     }
 
-    $s->{$file}{pod}{error}   ||= $e;
-    $s->{$file}{total}{error} ||= $e;
-    $s->{Total}{pod}{error}   ||= $e;
-    $s->{Total}{total}{error} ||= $e;
+    $s->{$file}{pod}{error}   += $e;
+    $s->{$file}{total}{error} += $e;
+    $s->{Total}{pod}{error}   += $e;
+    $s->{Total}{total}{error} += $e;
 }
 
 1
