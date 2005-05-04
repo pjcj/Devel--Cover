@@ -339,9 +339,9 @@ static AV *get_conds(pTHX_ AV *conds)
 static void add_condition(pTHX_ SV *cond_ref, int value)
 {
     int   final       = !value;
-    AV   *conds       = (AV *)          SvRV(cond_ref);
-    OP   *next        = (OP *)          SvIV(*av_fetch(conds, 0, 0));
-    OP *(*addr)(pTHX) = (OP *(*)(pTHX)) SvIV(*av_fetch(conds, 1, 0));
+    AV   *conds       = (AV *)                 SvRV(cond_ref);
+    OP   *next        = INT2PTR(OP *,          SvIV(*av_fetch(conds, 0, 0)));
+    OP *(*addr)(pTHX) = INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1, 0)));
     I32   i;
 
     if (!final && next != PL_op)
@@ -356,7 +356,7 @@ static void add_condition(pTHX_ SV *cond_ref, int value)
     NDEB(D(L, "Looking through %d conditionals\n", av_len(conds) - 1));
     for (; i <= av_len(conds); i++)
     {
-        OP  *op    = (OP *) SvIV(*av_fetch(conds, i, 0));
+        OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
         SV **count = av_fetch(get_conditional_array(aTHX_ op), 0, 1);
         int  type  = SvTRUE(*count) ? SvIV(*count) : 0;
         sv_setiv(*count, 0);
@@ -559,15 +559,15 @@ static void cover_logop(pTHX)
 
                 if (av_len(conds) < 0)
                 {
-                    av_push(conds, newSViv((IV) next));
-                    av_push(conds, newSViv((IV) next->op_ppaddr));
+                    av_push(conds, newSViv(PTR2IV(next)));
+                    av_push(conds, newSViv(PTR2IV(next->op_ppaddr)));
                 }
 
 #ifdef USE_ITHREADS
                 conds = get_conds(aTHX_ conds);
 #endif
 
-                cond = newSViv((IV) PL_op);
+                cond = newSViv(PTR2IV(PL_op));
                 av_push(conds, cond);
 
                 NDEB(D(L, "Adding conditional %p to %p, making %d at %p\n",
