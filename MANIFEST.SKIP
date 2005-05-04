@@ -1,6 +1,7 @@
 \.org$
 \.bak$
 ~$
+\.orig$
 ^Makefile$
 ^Makefile\.old$
 ^blib
@@ -16,3 +17,5 @@ core$
 .out$
 lib/Devel/Cover/Inc.pm$
 ^Devel-Cover-
+.patch$
+.rej$

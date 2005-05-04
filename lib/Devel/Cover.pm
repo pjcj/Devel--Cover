@@ -27,7 +27,13 @@ use Config;
 use Cwd "abs_path";
 use File::Spec;
 
-BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
+BEGIN
+{
+    # Use Pod::Coverage if it is available.
+    eval "use Pod::Coverage 0.06";
+    # We'll prefer Pod::Coverage::CountParents
+    eval "use Pod::Coverage::CountParents";
+}
 
 # $SIG{__DIE__} = \&Carp::confess;
 
@@ -46,7 +52,9 @@ my @Ignore_re;                           # Packages to ignore.
 my @Inc_re;                              # Original @INC to ignore.
 my @Select_re;                           # Packages to select.
 
-my $Pod     = $INC{"Pod/Coverage.pm"};   # Do pod coverage.
+my $Pod = $INC{"Pod/Coverage/CountParents.pm"} ? "Pod::Coverage::CountParents" :
+          $INC{"Pod/Coverage.pm"}              ? "Pod::Coverage"               :
+          "";                            # Type of pod coverage available.
 my %Pod;                                 # Pod coverage data.
 
 my @Cvs;                                 # All the Cvs we want to cover.
@@ -1061,7 +1069,7 @@ sub get_cover
                 }
             }
             # use Data::Dumper; print Dumper \%opts;
-            if ($Pod{$file} ||= Pod::Coverage->new(package => $pkg, %opts))
+            if ($Pod{$file} ||= $Pod->new(package => $pkg, %opts))
             {
                 my $covered;
                 for ($Pod{$file}->covered)
@@ -1146,8 +1154,9 @@ reported.  Statement coverage data should be reasonable, although there may be
 some statements which are not reported.  Branch and condition coverage data
 should be mostly accurate too, although not always what one might initially
 expect.  Subroutine coverage should be as accurate as statement coverage.  Pod
-coverage comes from L<Pod::Coverage>.  Coverage data for path coverage are not
-yet collected.
+coverage comes from L<Pod::Coverage>.  If L<Pod::Coverage::CountParents> is
+available it will be used instead.  Coverage data for path coverage are not yet
+collected.
 
 The F<gcov2perl> program can be used to convert gcov files to
 C<Devel::Cover> databases.

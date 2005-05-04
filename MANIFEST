@@ -152,6 +152,7 @@ tests/Module_import.pm
 tests/module_relative
 tests/overloaded
 tests/pod
+tests/PodMod.pm
 tests/random/dir/file
 tests/require
 tests/skip
