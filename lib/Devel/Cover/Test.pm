@@ -60,7 +60,6 @@ sub get_params
         while (<T>)
         {
             $self->{$1} = $2 if /__COVER__\s+(\w+)\s+(.*)/;
-            $self->{$1} =~ s/-.*// if $1;
         }
         close T or die "Cannot close $test: $!";
     }
@@ -69,6 +68,7 @@ sub get_params
     $self->{test_parameters}  = "$self->{select}"
                               . " -ignore blib Devel/Cover $self->{ignore}"
                               . " -merge 0 -coverage $self->{criteria}";
+    $self->{criteria} =~ s/-\w+//g;
     $self->{cover_parameters} = join(" ", map "-coverage $_",
                                               split " ", $self->{criteria})
                               . " -report text";

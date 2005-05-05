@@ -1053,7 +1053,7 @@ sub get_cover
                 my $p;
                 for (@{$Coverage_options{pod}})
                 {
-                    if (/^package|private|also_private|trust_me|pod_from$/)
+                    if (/^package|private|also_private|trust_me|pod_from|nocp$/)
                     {
                         $opts{$p = $_} = [];
                     }
@@ -1068,7 +1068,8 @@ sub get_cover
                     $_ = qr/$_/ for @{$opts{$p}};
                 }
             }
-            # use Data::Dumper; print Dumper \%opts;
+            $Pod = "Pod::Coverage" if delete $opts{nocp};
+            # use Data::Dumper; print "$Pod, ", Dumper \%opts;
             if ($Pod{$file} ||= $Pod->new(package => $pkg, %opts))
             {
                 my $covered;

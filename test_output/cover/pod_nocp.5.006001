@@ -5,9 +5,9 @@ Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 File                                                               pod  total
 --------------------------------------------------------------- ------ ------
 tests/Module1.pm                                                  50.0   50.0
-tests/PodMod.pm                                                   66.7   66.7
-tests/pod                                                          n/a    n/a
-Total                                                             60.0   60.0
+tests/PodMod.pm                                                   33.3   33.3
+tests/pod_nocp                                                     n/a    n/a
+Total                                                             40.0   40.0
 --------------------------------------------------------------- ------ ------
 
 
@@ -77,14 +77,14 @@ line  err    pod   code
 11                 
 12             1   sub vv { die }
 13    ***      0   sub ww { die }
-14             1   sub yy { die }
+14    ***      0   sub yy { die }
 15                 
 16                 1
 17                 
 18                 __END__
 
 
-tests/pod
+tests/pod_nocp
 
 line  err    pod   code
 1                  #!/usr/bin/perl
@@ -96,7 +96,7 @@ line  err    pod   code
 7                  # The latest version of this software should be available from my homepage:
 8                  # http://www.pjcj.net
 9                  
-10                 # __COVER__ criteria pod-also_private-xx
+10                 # __COVER__ criteria pod-nocp-also_private-xx
 11                 
 12                 use strict;
 13                 use warnings;

@@ -98,6 +98,7 @@ test_output/cover/module_relative.5.008001
 test_output/cover/overloaded.5.006001
 test_output/cover/overloaded.5.008
 test_output/cover/pod.5.006001
+test_output/cover/pod_nocp.5.006001
 test_output/cover/require.5.006001
 test_output/cover/require.5.008
 test_output/cover/skip.5.006001
@@ -152,6 +153,7 @@ tests/Module_import.pm
 tests/module_relative
 tests/overloaded
 tests/pod
+tests/pod_nocp
 tests/PodMod.pm
 tests/random/dir/file
 tests/require

@@ -1,0 +1,37 @@
+#!/usr/bin/perl
+
+# Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# __COVER__ criteria pod-nocp-also_private-xx
+
+use strict;
+use warnings;
+
+use lib "tests";
+
+use PodMod;
+
+my @x;
+
+sub xx
+{
+  $x[shift]++;
+  Module1::zz(0);
+}
+
+for (0 .. 10)
+{
+  if (time)
+  {
+    xx(0);
+  }
+  else
+  {
+    $x[1]++;
+  }
+}
