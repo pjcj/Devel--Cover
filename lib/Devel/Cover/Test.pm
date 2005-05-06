@@ -75,7 +75,7 @@ sub get_params
     $self->{cover_parameters} .= " -uncoverable $self->{uncoverable}"
         if $self->{uncoverable};
     $self->{skip}             = $self->{skip_reason}
-        if exists $self->{skip_test} && eval $self->{skip_test};
+        if exists $self->{skip_test} && eval "{$self->{skip_test}}";
 
     $self
 }
@@ -204,22 +204,15 @@ sub run_test
     eval "use Test::Differences";
     my $differences = $INC{"Test/Differences.pm"};
 
-    my $skip = $self->{skip};
-    if (!$skip && $self->{criteria} =~ /\bpod\b/)
-    {
-        eval "use Pod::Coverage";
-        $skip = $INC{"Pod/Coverage.pm"} ? "" : "Pod::Coverage unavailable";
-    }
-
-    plan tests => ($differences || $skip)
+    plan tests => ($differences || $self->{skip})
                   ? 1
                   : exists $self->{tests}
                     ? $self->{tests}->(scalar @cover)
                     : scalar @cover;
 
-    if ($skip)
+    if ($self->{skip})
     {
-        skip($skip, 1);
+        skip($self->{skip}, 1);
         return;
     }
 

@@ -8,6 +8,8 @@
 # http://www.pjcj.net
 
 # __COVER__ criteria pod-also_private-xx
+# __COVER__ skip_test eval "use Pod::Coverage:CountParents"; $@
+# __COVER__ skip_reason Pod::Coverage::CountParents unavailable
 
 use strict;
 use warnings;

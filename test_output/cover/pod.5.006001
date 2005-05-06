@@ -97,32 +97,34 @@ line  err    pod   code
 8                  # http://www.pjcj.net
 9                  
 10                 # __COVER__ criteria pod-also_private-xx
-11                 
-12                 use strict;
-13                 use warnings;
-14                 
-15                 use lib "tests";
+11                 # __COVER__ skip_test eval "use Pod::Coverage:CountParents"; $@
+12                 # __COVER__ skip_reason Pod::Coverage:CountParents unavailable
+13                 
+14                 use strict;
+15                 use warnings;
 16                 
-17                 use PodMod;
+17                 use lib "tests";
 18                 
-19                 my @x;
+19                 use PodMod;
 20                 
-21                 sub xx
-22                 {
-23                   $x[shift]++;
-24                   Module1::zz(0);
-25                 }
-26                 
-27                 for (0 .. 10)
-28                 {
-29                   if (time)
-30                   {
-31                     xx(0);
-32                   }
-33                   else
-34                   {
-35                     $x[1]++;
-36                   }
-37                 }
+21                 my @x;
+22                 
+23                 sub xx
+24                 {
+25                   $x[shift]++;
+26                   Module1::zz(0);
+27                 }
+28                 
+29                 for (0 .. 10)
+30                 {
+31                   if (time)
+32                   {
+33                     xx(0);
+34                   }
+35                   else
+36                   {
+37                     $x[1]++;
+38                   }
+39                 }
 
 

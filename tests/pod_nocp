@@ -8,6 +8,8 @@
 # http://www.pjcj.net
 
 # __COVER__ criteria pod-nocp-also_private-xx
+# __COVER__ skip_test eval "use Pod::Coverage"; $@
+# __COVER__ skip_reason Pod::Coverage unavailable
 
 use strict;
 use warnings;
