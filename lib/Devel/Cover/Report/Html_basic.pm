@@ -697,9 +697,11 @@ th,.h {
     padding-left:  0.2em;
     padding-right: 0.2em;
     width: 2.5em;
+    -moz-border-radius: 4px;
 }
 td {
     border: solid 1px #cccccc;
+    -moz-border-radius: 4px;
 }
 .hblank {
     height: 0.8em;
