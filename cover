@@ -139,7 +139,7 @@ sub main
 
     my $dbname = Cwd::abs_path(@ARGV ? shift @ARGV : "cover_db");
     die "Can't open database $dbname\n"
-        if !$Options->{delete} && !-d $dbname;
+        if !$Options->{delete} && !$Options->{test} && !-d $dbname;
 
     $Options->{outputdir} = $dbname unless exists $Options->{outputdir};
     my $od = Cwd::abs_path($Options->{outputdir});

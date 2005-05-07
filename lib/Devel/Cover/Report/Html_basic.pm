@@ -254,10 +254,10 @@ sub print_subroutines
 {
     my $subroutines = $R{db}->cover->file($R{file})->subroutine;
     return unless $subroutines;
-    my $s = $R{options}->{show}{subroutines};
+    my $s = $R{options}{show}{subroutine};
 
     my $pods;
-    $pods = $R{db}->cover->file($R{file})->pod if $R{options}->{show}{pod};
+    $pods = $R{db}->cover->file($R{file})->pod if $R{options}{show}{pod};
 
     my $subs;
     for my $line (sort { $a <=> $b } $subroutines->items)
