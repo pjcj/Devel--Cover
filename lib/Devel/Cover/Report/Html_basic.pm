@@ -114,8 +114,8 @@ sub print_file
             my %line;
 
             $count++;
-            $line{number} = $n;
-            $line{text}   = $l;
+            $line{number} = length $n ? $n : "&nbsp;";
+            $line{text}   = length $l ? $l : "&nbsp;";
 
             my $error = 0;
             $more = 0;
@@ -123,9 +123,11 @@ sub print_file
             {
                 for my $a (0 .. $ann->count - 1)
                 {
+                    my $text = $ann->text ($R{file}, $n, $a);
+                    $text = "&nbsp;" unless length $text;
                     push @{$line{criteria}},
                     {
-                        text  => $ann->text ($R{file}, $n, $a),
+                        text  => $text,
                         class => $ann->class($R{file}, $n, $a),
                     };
                     $error ||= $ann->error($R{file}, $n, $a);
@@ -137,11 +139,11 @@ sub print_file
                 $more ||= @{$criteria{$c}};
                 my $link = $c !~ /statement|time/;
                 my $pc = $link && $c !~ /subroutine|pod/;
-                my $text = $o ? $pc ? $o->percentage : $o->covered : "";
+                my $text = $o ? $pc ? $o->percentage : $o->covered : "&nbsp;";
                 my %criterion = ( text => $text, class => oclass($o, $c) );
                 my $cr = $c eq "pod" ? "subroutine" : $c;
                 $criterion{link} = "$R{filenames}{$R{file}}--$cr.html#$n-$count"
-                    if $link;
+                    if $o && $link;
                 push @{$line{criteria}}, \%criterion;
                 $error ||= $o->error if $o;
             }
@@ -178,10 +180,7 @@ sub print_branches
             $count++;
             push @branches,
                 {
-                    ref        => "$location-$count",
                     number     => $count == 1 ? $location : "",
-                    class      => oclass($b, "branch"),
-                    percentage => $b->percentage,
                     parts      =>
                     [
                         map { text  => $b->value($_),
@@ -218,11 +217,8 @@ sub print_conditions
             $count++;
             push @{$r{$c->type}},
                 {
-                    ref        => "$location-$count",
                     number     => $count == 1 ? $location : "",
                     condition  => $c,
-                    class      => oclass($c, "condition"),
-                    percentage => $c->percentage,
                     parts      =>
                     [
                         map { text  => $c->value($_),
@@ -412,11 +408,11 @@ $Templates{summary} = <<'EOT';
 <div><br></br></div>
 <table>
     <tr>
-    <th class="header"> file </th>
+    <th> file </th>
     [% FOREACH header = R.headers %]
-        <th class="header"> [% header %] </th>
+        <th> [% header %] </th>
     [% END %]
-    <th class="header"> total </th>
+    <th> total </th>
     </tr>
 
     [% FOREACH file = files %]
@@ -526,7 +522,6 @@ $Templates{branches} = <<'EOT';
 <table>
     <tr>
         <th> line </th>
-        <th> % </th>
         <th> true </th>
         <th> false </th>
         <th> branch </th>
@@ -536,7 +531,6 @@ $Templates{branches} = <<'EOT';
         <a name="[% branch.ref %]"> </a>
         <tr>
             <td class="h"> [% branch.number %] </td>
-            <td class="[% branch.class %]"> [% branch.percentage %] </td>
             [% FOREACH part = branch.parts %]
                 <td class="[% part.class %]"> [% part.text %] </td>
             [% END %]
@@ -559,7 +553,6 @@ $Templates{conditions} = <<'EOT';
     <table>
         <tr>
             <th> line </th>
-            <th> % </th>
             [% FOREACH header = type.headers %]
                 <th> [% header %] </th>
             [% END %]
@@ -570,9 +563,6 @@ $Templates{conditions} = <<'EOT';
             <a name="[% condition.ref %]"> </a>
             <tr>
                 <td class="h"> [% condition.number %] </td>
-                <td class="[% condition.class %]">
-                    [% condition.percentage %]
-                </td>
                 [% FOREACH part = condition.parts %]
                     <td class="[% part.class %]"> [% part.text %] </td>
                 [% END %]
