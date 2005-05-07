@@ -59,7 +59,9 @@ sub get_summary
     $vals{class} = class($c->{percentage}, $c->{error}, $criterion);
 
     return \%vals unless defined $c->{percentage};
-    $vals{pc} = sprintf "%4.1f", $c->{percentage};
+    $vals{pc}       = sprintf "%4.1f", $c->{percentage};
+    $c->{covered} ||= 0;
+    $vals{details}  = "$c->{covered} / $c->{total}";
 
     my $cr = $criterion eq "pod" ? "subroutine" : $criterion;
     return \%vals
