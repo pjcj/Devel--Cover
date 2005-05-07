@@ -60,8 +60,9 @@ sub get_summary
 
     return \%vals unless defined $c->{percentage};
     $vals{pc}       = sprintf "%4.1f", $c->{percentage};
-    $c->{covered} ||= 0;
-    $vals{details}  = "$c->{covered} / $c->{total}";
+    $vals{covered}  = $c->{covered} || 0;
+    $vals{total}    = $c->{total};
+    $vals{details}  = "$vals{covered} / $vals{total}";
 
     my $cr = $criterion eq "pod" ? "subroutine" : $criterion;
     return \%vals
@@ -395,6 +396,37 @@ http://www.pjcj.net
 </html>
 EOT
 
+$Templates{header} = <<'EOT';
+<table>
+    <tr>
+        <th colspan=4>[% R.file %]</th>
+    </tr>
+    <tr class="hblank"><td class="dblank"></td></tr>
+    <tr>
+        <th class="hh">Criterion</th>
+        <th class="hh">Covered</th>
+        <th class="hh">Total</th>
+        <th class="hh">%</th>
+    </tr>
+    [% FOREACH criterion = criteria %]
+        [% vals = R.get_summary(R.file, criterion) %]
+        <tr>
+            <td class="h">[% criterion %]</td>
+            <td>[% vals.covered %]</td>
+            <td>[% vals.total %]</td>
+            <td class="[% vals.class %]" title="[% vals.details %]">
+                [% IF vals.link.defined %]
+                    <a href="[% vals.link %]"> [% vals.pc %] </a>
+                [% ELSE %]
+                    [% vals.pc %]
+                [% END %]
+            </td>
+        </tr>
+    [% END %]
+</table>
+<div><br></br></div>
+EOT
+
 $Templates{summary} = <<'EOT';
 [% WRAPPER html %]
 
@@ -452,24 +484,18 @@ $Templates{summary} = <<'EOT';
 EOT
 
 $Templates{file} = <<'EOT';
-[% MACRO summary(criterion) BLOCK %]
-    [% vals = R.get_summary(R.file, criterion) %]
-    [% IF vals.class %]
-        <td class="[% vals.class %]" title="[% vals.details %]">
-    [% ELSE %]
-        <td>
-    [% END %]
-    [% IF vals.link.defined %]
-        <a href="[% vals.link %]"> [% vals.pc %] </a>
-    [% ELSE %]
-        [% vals.pc %]
-    [% END %]
-    </td>
-[% END %]
-
 [% WRAPPER html %]
 
 <h1> File Coverage </h1>
+
+[%
+   crit = [];
+   FOREACH criterion = R.showing;
+       crit.push(criterion) UNLESS criterion == "time";
+   END;
+   crit.push("total");
+   PROCESS header criteria = crit;
+%]
 
 <table>
     <tr>
@@ -479,31 +505,15 @@ $Templates{file} = <<'EOT';
         [% END %]
         <th> code </th>
     </tr>
-    <tr class="hblank"><td class="dblank"></td></tr>
-    <tr>
-        [% summary("total") %]
-        [% FOREACH annotation = R.annotations %]
-            <td> </td>
-        [% END %]
-        [% FOREACH criterion = R.showing %]
-            [% summary(criterion) %]
-        [% END %]
-        <td class="h"> [% R.file %] </td>
-    </tr>
-    <tr class="hblank"><td class="dblank"></td></tr>
 
     [% FOREACH line = lines %]
         <tr>
             <td [% IF line.number %] class="h" [% END %]>[% line.number %]</td>
             [% FOREACH cr = line.criteria %]
                 <td [% IF cr.class %] class="[% cr.class %]" [% END %]>
-                    [% IF cr.link.defined && cr.text.length %]
-                        <a href="[% cr.link %]">
-                    [% END %]
+                    [% IF cr.link.defined %] <a href="[% cr.link %]"> [% END %]
                     [% cr.text %]
-                    [% IF cr.link.defined && cr.text.length %]
-                        </a>
-                    [% END %]
+                    [% IF cr.link.defined %] </a> [% END %]
                 </td>
             [% END %]
             <td class="s"> [% line.text %] </td>
@@ -518,6 +528,8 @@ $Templates{branches} = <<'EOT';
 [% WRAPPER html %]
 
 <h1> Branch Coverage </h1>
+
+[% PROCESS header criteria = [ "branch" ] %]
 
 <table>
     <tr>
@@ -546,6 +558,8 @@ $Templates{conditions} = <<'EOT';
 [% WRAPPER html %]
 
 <h1> Condition Coverage </h1>
+
+[% PROCESS header criteria = [ "condition" ] %]
 
 [% FOREACH type = types %]
     <h2> [% type.name %] conditions </h2>
@@ -579,6 +593,13 @@ $Templates{subroutines} = <<'EOT';
 [% WRAPPER html %]
 
 <h1> Subroutine Coverage </h1>
+
+[%
+   crit = [];
+   crit.push("subroutine") IF R.options.show.subroutine;
+   crit.push("pod")        IF R.options.show.pod;
+   PROCESS header criteria = crit;
+%]
 
 <table>
     <tr>
@@ -691,7 +712,7 @@ tr {
     text-align : center;
     vertical-align: top;
 }
-th,.h {
+th,.h,.hh {
     background-color: #cccccc;
     border: solid 1px #333333;
     padding-left:  0.2em;
@@ -699,12 +720,15 @@ th,.h {
     width: 2.5em;
     -moz-border-radius: 4px;
 }
+.hh {
+    width: 25%;
+}
 td {
     border: solid 1px #cccccc;
     -moz-border-radius: 4px;
 }
 .hblank {
-    height: 0.8em;
+    height: 0.5em;
 }
 .dblank {
     border: none;
@@ -715,7 +739,7 @@ pre,.s {
     text-align: left;
     font-family: monospace;
     white-space: pre;
-    padding: 0em 0.5em 0em 0.5em;
+    padding: 0.2em 0.5em 0em 0.5em;
 }
 
 /* Classes for color-coding coverage information:
