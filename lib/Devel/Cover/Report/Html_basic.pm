@@ -411,9 +411,10 @@ $Templates{summary} = <<'EOT';
 <table>
     <tr>
     <th class="header"> file </th>
-    [% FOREACH header = R.headers.merge("total") %]
+    [% FOREACH header = R.headers %]
         <th class="header"> [% header %] </th>
     [% END %]
+    <th class="header"> total </th>
     </tr>
 
     [% FOREACH file = files %]
@@ -426,7 +427,7 @@ $Templates{summary} = <<'EOT';
                 [% END %]
             </td>
 
-            [% FOREACH criterion = R.showing.merge("total") %]
+            [% FOREACH criterion = R.showing %]
                 [% vals = R.get_summary(file, criterion) %]
                 [% IF vals.class %]
                     <td class="[% vals.class %]" title="[% vals.details %]">
@@ -440,6 +441,11 @@ $Templates{summary} = <<'EOT';
                 [% END %]
                 </td>
             [% END %]
+
+            [% vals = R.get_summary(file, "total") %]
+            <td class="[% vals.class %]" title="[% vals.details %]">
+                [% vals.pc %]
+            </td>
         </tr>
     [% END %]
 </table>
