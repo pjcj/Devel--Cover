@@ -97,7 +97,7 @@ line  err    pod   code
 8                  # http://www.pjcj.net
 9                  
 10                 # __COVER__ criteria pod-also_private-xx
-11                 # __COVER__ skip_test eval "use Pod::Coverage:CountParents"; $@
+11                 # __COVER__ skip_test eval "use Pod::Coverage::CountParents"; $@
 12                 # __COVER__ skip_reason Pod::Coverage::CountParents unavailable
 13                 
 14                 use strict;

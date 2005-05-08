@@ -35,6 +35,7 @@ DESCRIPTION
     condition coverage data should be mostly accurate too, although not
     always what one might initially expect. Subroutine coverage should be as
     accurate as statement coverage. Pod coverage comes from Pod::Coverage.
+    If Pod::Coverage::CountParents is available it will be used instead.
     Coverage data for path coverage are not yet collected.
 
     The gcov2perl program can be used to convert gcov files to
