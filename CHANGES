@@ -5,6 +5,7 @@ Release 0.54 -
  - Fix pod coverage percentages.
  - Fix integer <-> pointer conversion warnings (Robin Barker).
  - Add more tests for sort bug fixed in 0.53 (Rob Kinyon).
+ - Handle || bless {}, "XXX" (reported by Marcel Grünauer).
 
 Release 0.53 - 17th April 2005
  - Clean up database directories.

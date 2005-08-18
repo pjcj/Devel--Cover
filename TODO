@@ -32,6 +32,7 @@
   - Overhaul test system.  Include patt?
   - Tests for INIT and END blocks included in required files when the
     files are used in some runs.
+  - Make sure dor is handled correctly and add more tests to cond_or.
 - Build:
   - meta.yaml file to control pause indexing.
   - Fix up make text and friends for module_ignore.

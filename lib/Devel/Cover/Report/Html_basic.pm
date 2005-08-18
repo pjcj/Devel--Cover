@@ -14,6 +14,7 @@ our $VERSION = "0.53";
 
 use Devel::Cover::DB 0.53;
 
+use Getopt::Long;
 use Template 2.00;
 
 my $Template;
@@ -21,7 +22,7 @@ my %R;
 
 sub print_stylesheet
 {
-    my $file = "$R{db}{db}/cover.css";
+    my $file = "$R{options}{outputdir}/cover.css";
     open CSS, '>', $file or return;
     my $p = tell DATA;
     print CSS <DATA>;
@@ -80,7 +81,7 @@ sub print_summary
         files => [ grep($R{db}->summary($_), @{$R{options}{file}}), "Total" ],
     };
 
-    my $html = "$R{options}{outputdir}/coverage.html";
+    my $html = "$R{options}{outputdir}/$R{options}{option}{outputfile}";
     $Template->process("summary", $vars, $html) or die $Template->error();
 
     print "HTML output sent to $html\n";
@@ -291,6 +292,17 @@ sub print_subroutines
     my $html =
         "$R{options}{outputdir}/$R{filenames}{$R{file}}--subroutine.html";
     $Template->process("subroutines", $vars, $html) or die $Template->error();
+}
+
+sub get_options
+{
+    my ($self, $opt) = @_;
+    $opt->{option}{outputfile} = "coverage.html";
+    die "Bad option" unless
+        GetOptions($opt->{option},
+                   qw(
+                       outputfile=s
+                     ));
 }
 
 sub report

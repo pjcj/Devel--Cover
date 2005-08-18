@@ -134,7 +134,7 @@ sub main
     }
 
     print "$0 version $VERSION\n" and exit 0 if $Options->{version};
-    pod2usage(-exitval => 0, -verbose => 0)  if $Options->{help};
+    pod2usage(-exitval => 0, -verbose => 1)  if $Options->{help};
     pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
 
     my $dbname = Cwd::abs_path(@ARGV ? shift @ARGV : "cover_db");
@@ -156,7 +156,8 @@ sub main
     {
         delete_db($dbname, @ARGV);
         local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
-            "-Mblib=$Bin -MDevel::Cover";
+            # "-Mblib=$Bin -MDevel::Cover";
+            "-MDevel::Cover";
         system "make test";
         $Options->{report} ||= "html";
     }
@@ -190,6 +191,12 @@ sub main
         $d->Indent(1);
         $d->Sortkeys(1) if $] >= 5.008;
         print $d->Dump;
+        my $structure = Devel::Cover::DB::Structure->new(base => $dbname);
+        $structure->read_all;
+        my $s = Data::Dumper->new([$structure], ["structure"]);
+        $s->Indent(1);
+        $s->Sortkeys(1) if $] >= 5.008;
+        print $s->Dump;
         exit 0
     }
 

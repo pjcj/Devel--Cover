@@ -116,6 +116,7 @@ sub merge_runs
     my $self = shift;
     my $db = $self->{db};
     # print "merge_runs from $db/runs/*\n";
+    # system "ls -al $db/runs";
     return $self unless length $db;
     opendir DIR, "$db/runs" or return $self;
     my @runs = map "$db/runs/$_", grep !/^\.\.?/, readdir DIR;
@@ -165,24 +166,30 @@ sub merge
 
     while (my ($fname, $frun) = each %{$from->{runs}})
     {
-        while (my ($file, $digest) = each %{$frun->{digest}})
+        while (my ($file, $digest) = each %{$frun->{digests}})
         {
             while (my ($name, $run) = each %{$self->{runs}})
             {
-                if (exists $run->{digest}{$file} &&
-                    $run->{digest}{$file} ne $digest)
+                # print "digests for $file: $digest, $run->{digests}{$file}\n";
+                if (exists $run->{digests}{$file} &&
+                    $run->{digests}{$file} ne $digest)
                 {
                     # File has changed.  Delete old coverage instead of merging.
                     print STDOUT "Devel::Cover: Deleting old coverage for ",
                                                "changed file $file\n"
                         unless $Devel::Cover::Silent;
-                    delete $run->{digest}{$file};
-                    delete $run->{count} {$file};
-                    delete $run->{vec}   {$file};
+                    delete $run->{digests}{$file};
+                    delete $run->{count}  {$file};
+                    delete $run->{vec}    {$file};
                 }
             }
         }
     }
+
+    _merge_hash($self->{runs},      $from->{runs});
+    _merge_hash($self->{collected}, $from->{collected});
+
+    return $self;
 
     # When the database gets big, it's quicker to merge into what's
     # already there.
@@ -194,6 +201,8 @@ sub merge
     {
         $from->{$_} = $self->{$_} unless $_ eq "runs" || $_ eq "collected";
     }
+
+    # print "Giving ", Dumper($from);
 
     $_[0] = $from;
 }
@@ -377,6 +386,7 @@ sub add_statement
     my %line;
     for my $i (0 .. $#$fc)
     {
+        # print "statement: $i\n";
         my $l = $sc->[$i];
         unless (defined $l)
         {
@@ -392,7 +402,7 @@ sub add_statement
         $cc->{$l}[$n][1] ||= $uc->{$l}[$n][0][1];
     }
     # use Data::Dumper; print Dumper $uc;
-    # use Data::Dumper; print Dumper $cc;
+    # use Data::Dumper; print STDERR "cc: ", Dumper $cc;
 }
 
 sub add_time
@@ -609,15 +619,23 @@ sub cover
     my $uncoverable = $self->uncoverable;
     my $st = Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
 
-    while (my ($run, $r) = each %{$self->{runs}})
+    # use Data::Dumper; print STDERR "runs: ", Dumper $self->{runs};
+    my @runs;
     {
+        no warnings "numeric";
+        # TODO - change sort order
+        @runs = sort { $b <=> $a } keys %{$self->{runs}};
+    }
+    for my $run (@runs)
+    {
+        my $r = $self->{runs}{$run};
         @{$self->{collected}}{@{$r->{collected}}} = ();
         $st->add_criteria(@{$r->{collected}});
         my $count = $r->{count};
+        # use Data::Dumper; print STDERR "run $run, count: ", Dumper $count;
         while (my ($file, $f) = each %$count)
         {
-            # print "Looking at <$file>\n";
-            my $digest = $r->{digest}{$file};
+            my $digest = $r->{digests}{$file};
             unless ($digest)
             {
                 print STDERR "Devel::Cover: Can't find digest for $file\n";
@@ -628,8 +646,6 @@ sub cover
                          "into $digests{$digest}\n"
                 if !$files{$file}++ && $digests{$digest};
             my $cf = $cover->{$digests{$digest} ||= $file} ||= {};
-            # print "Structure from $st->{file}\n";
-            # use Data::Dumper;
             # print STDERR "st ", Dumper($st),
                          # "f  ", Dumper($f),
                          # "uc ", Dumper($uncoverable->{$digest});
@@ -637,16 +653,20 @@ sub cover
             {
                 my $get = "get_$criterion";
                 my $sc  = $st->$get($file);
+                # print STDERR "$criterion: ", Dumper $sc, $fc;
                 next unless $sc;  # TODO - why?
                 my $cc  = $cf->{$criterion} ||= {};
                 my $add = "add_$criterion";
+                # print STDERR "$add():\n", Dumper $cc, $sc, $fc;
                 $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
+                # print STDERR "--> $add():\n", Dumper $cc;
                 # $cc - coverage being filled in
                 # $sc - structure information
                 # $fc - coverage from this file
                 # $uc - uncoverable information
             }
         }
+        # print STDERR "Cover: ", Dumper $cover;
     }
 
     unless (UNIVERSAL::isa($self->{cover}, "Devel::Cover::DB::Cover"))

@@ -1,5 +1,6 @@
 all_versions
 BUGS
+buildperl
 CHANGES
 cover
 Cover.xs
@@ -137,6 +138,8 @@ tests/E3.pm
 tests/E4.pm
 tests/eval1
 tests/eval2
+tests/eval3
+tests/eval_sub.t
 tests/eval_use.t
 tests/fork
 tests/if

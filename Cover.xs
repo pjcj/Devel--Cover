@@ -487,13 +487,20 @@ static void cover_logop(pTHX)
     else
     {
         dSP;
-        int left_val = SvTRUE(TOPs);
+        int left_val     = SvTRUE(TOPs);
+#ifdef KEY_err
+        int left_val_def = SvOK(TOPs);
+#endif
 
         NDEB(D(L, "cover_logop [%s]\n", get_key(PL_op)));
-        if (PL_op->op_type == OP_AND       &&  left_val ||
-            PL_op->op_type == OP_ANDASSIGN &&  left_val ||
-            PL_op->op_type == OP_OR        && !left_val ||
-            PL_op->op_type == OP_ORASSIGN  && !left_val ||
+        if (PL_op->op_type == OP_AND       &&  left_val     ||
+            PL_op->op_type == OP_ANDASSIGN &&  left_val     ||
+            PL_op->op_type == OP_OR        && !left_val     ||
+            PL_op->op_type == OP_ORASSIGN  && !left_val     ||
+#ifdef KEY_err
+            PL_op->op_type == OP_DOR       && !left_val_def ||
+            PL_op->op_type == OP_DORASSIGN && !left_val_def ||
+#endif
             PL_op->op_type == OP_XOR)
         {
             /* no short circuit */
@@ -747,7 +754,7 @@ static int runops_cover(pTHX)
                 }
                 sv_setpv(lastfile, file);
             }
-#if (PERL_VERSION > 6)
+#if PERL_VERSION > 6
             if (SvTRUE(MY_CXT.module))
             {
                 STRLEN mlen,
@@ -834,9 +841,13 @@ static int runops_cover(pTHX)
             }
 
             case OP_AND:
-            case OP_OR:
             case OP_ANDASSIGN:
+            case OP_OR:
             case OP_ORASSIGN:
+#ifdef KEY_err
+            case OP_DOR:
+            case OP_DORASSIGN:
+#endif
             case OP_XOR:
             {
                 cover_logop(aTHX);

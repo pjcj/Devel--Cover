@@ -29,7 +29,7 @@ my $run_test = sub
 
     open T, ">>$ft" or die "Cannot open $ft: $!";
     print T "# blah blah\n";
-    close T  or die "Cannot close $ft: $!";
+    close T or die "Cannot close $ft: $!";
 
     $test->run_command($test->test_command);
 

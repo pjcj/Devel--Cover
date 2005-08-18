@@ -49,6 +49,7 @@ for (0 .. 10)
   my $t = $y | $z;
   my $u = $y || 0;
   my $v = $y || undef;
+  my $w = $z || 0;
 
   $p     ||= $y;
   $p     ||= $z;
@@ -62,6 +63,12 @@ for (0 .. 10)
   $x[13] ||= sub { 1 };
   $x[14] ||= *::foo{SCALAR};
   $x[15] ||= *STDIO{IO};
+  $x[16] ||= bless {}, "XXX";
+      $x[17] //= 0;
+  if ($] >= 5.009)
+  {
+      # eval '$x[17] //= 0';
+  }
 }
 
 # print join(", ", @x), "\n";

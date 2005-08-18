@@ -33,6 +33,7 @@ my $Options =
     directory    => Cwd::cwd(),
     force        => 0,
     module       => [],
+    report       => "html_basic",
 };
 
 sub get_options
@@ -51,6 +52,7 @@ sub get_options
                    outputfile=s
                    redo_cpancover_html!
                    redo_html!
+                   report=s
                    version|v!
                  ));
 
@@ -125,7 +127,8 @@ sub get_cover
 
     my $od = "$Options->{outputdir}/$module";
     my $of = $Options->{outputfile};
-    sys "$^X $inc $s/cover -report html -outputdir $od -outputfile $of"
+    sys "$^X $inc $s/cover -report $Options->{report} " .
+        "-outputdir $od -outputfile $of"
         if !-e "$od/$of" || $Options->{redo_html};
 
     my $results = read_results;
@@ -148,7 +151,7 @@ sub write_stylesheet
     print CSS <<EOF;
 /* Stylesheet for Devel::Cover cpancover reports */
 
-/* You may modify this file to alter the appearance of your cpancover
+/* You may modify this file to alter the appearance of your coverage
  * reports. If you do, you should probably flag it read-only to prevent
  * future runs from overwriting it.
  */
@@ -160,9 +163,11 @@ body {
 }
 
 h1 {
-    background-color: #3399ff;
+    text-align : center;
+    background-color: #cc99ff;
     border: solid 1px #999999;
     padding: 0.2em;
+    -moz-border-radius: 10px;
 }
 
 a {
@@ -172,49 +177,67 @@ a:visited {
     color: #333333;
 }
 
-code {
-    white-space: pre;
-}
-
 table {
-/*    border: solid 1px #000000;*/
-/*    border-collapse: collapse;*/
+    border-spacing: 1px;
 }
-td,th {
-    border: solid 1px #cccccc;
+tr {
+    text-align : center;
+    vertical-align: top;
 }
-
-/* Classes for color-coding coverage information:
- *   header    : column/row header
- *   uncovered : path not covered or coverage < 75%
- *   covered75 : coverage >= 75%
- *   covered90 : coverage >= 90%
- *   covered   : path covered or coverage = 100%
- */
-.header {
+th,.h,.hh {
     background-color: #cccccc;
     border: solid 1px #333333;
     padding-left:  0.2em;
     padding-right: 0.2em;
+    width: 2.5em;
+    -moz-border-radius: 4px;
 }
-.uncovered {
+.hh {
+    width: 25%;
+}
+td {
+    border: solid 1px #cccccc;
+    -moz-border-radius: 4px;
+}
+.hblank {
+    height: 0.5em;
+}
+.dblank {
+    border: none;
+}
+
+/* source code */
+pre,.s {
+    text-align: left;
+    font-family: monospace;
+    white-space: pre;
+    padding: 0.2em 0.5em 0em 0.5em;
+}
+
+/* Classes for color-coding coverage information:
+ *   c0  : path not covered or coverage < 75%
+ *   c1  : coverage >= 75%
+ *   c2  : coverage >= 90%
+ *   c3  : path covered or coverage = 100%
+ */
+.c0 {
     background-color: #ff9999;
     border: solid 1px #cc0000;
 }
-.covered75 {
+.c1 {
     background-color: #ffcc99;
     border: solid 1px #ff9933;
 }
-.covered90 {
+.c2 {
     background-color: #ffff99;
     border: solid 1px #cccc66;
 }
-.covered {
+.c3 {
     background-color: #99ff99;
     border: solid 1px #009900;
 }
-
 EOF
+
     close CSS or die "Can't close $css: $!\n";
 }
 
@@ -222,10 +245,10 @@ sub class
 {
     my ($pc) = @_;
     $pc eq "n/a" ? "na"        :
-    $pc <    75  ? "uncovered" :
-    $pc <    90  ? "covered75" :
-    $pc <   100  ? "covered90" :
-                   "covered"
+    $pc <    75  ? "c0" :
+    $pc <    90  ? "c1" :
+    $pc <   100  ? "c2" :
+                   "c3"
 }
 
 sub write_html
@@ -249,7 +272,8 @@ sub write_html
     {
         my $dbdir = "$Options->{directory}/$module/cover_db";
         next unless -d $dbdir;
-        print "Adding $module\n";
+        chdir "$Options->{directory}/$module";
+        print "Adding $module from $dbdir\n";
 
         my $db = Devel::Cover::DB->new(db => $dbdir);
         # next unless $db->is_valid;

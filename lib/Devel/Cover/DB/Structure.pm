@@ -59,7 +59,9 @@ sub AUTOLOAD
             {
                 my $self = shift;
                 my $file = shift;
-                $file = "" unless defined $file;
+                # print "file: $file, condition: $c\n";
+                # TODO - why no file?
+                return unless defined $file;
                 $self->{f}{$file}{$c}
             }
         };
@@ -70,6 +72,8 @@ sub AUTOLOAD
         {
             my $self = shift;
             my $file = shift;
+            die "Bad file: $func: $file, expecting $self->{file}"
+                unless $file eq $self->{file};
             push @{$self->{f}{$file}{$criterion}}, @_;
         };
     }
@@ -93,6 +97,7 @@ sub set_subroutine
 {
     my $self = shift;
     my ($sub_name, $file, $line) = @{$self}{qw( sub_name file line )} = @_;
+
     $self->{additional} = 0;
     if ($self->reuse($file))
     {
@@ -100,7 +105,7 @@ sub set_subroutine
         if (exists $self->{f}{$file}{start}{$line}{$sub_name})
         {
             # sub already exists - normal case
-            # print STDERR "reuse $file:$line:$sub_name\n";
+            print STDERR "reuse $file:$line:$sub_name\n";
             $self->{count}{$_}{$file} =
                 $self->{f}{$file}{start}{$line}{$sub_name}{$_}
                 for $self->criteria;
@@ -112,7 +117,7 @@ sub set_subroutine
             if (exists $self->{additional_count}{($self->criteria)[0]}{$file})
             {
                 # already had such a sub in module
-                # print STDERR "reuse additional $file:$line:$sub_name\n";
+                print STDERR "reuse additional $file:$line:$sub_name\n";
                 $self->{count}{$_}{$file} =
                     $self->{f}{$file}{start}{$line}{$sub_name}{$_} =
                     ($self->add_count($_))[0]
@@ -121,7 +126,7 @@ sub set_subroutine
             else
             {
                 # first such a sub in module
-                # print STDERR "reuse first $file:$line:$sub_name\n";
+                print STDERR "reuse first $file:$line:$sub_name\n";
                 $self->{count}{$_}{$file} =
                     $self->{additional_count}{$_}{$file} =
                     $self->{f}{$file}{start}{$line}{$sub_name}{$_} =
@@ -133,7 +138,7 @@ sub set_subroutine
     else
     {
         # first time sub seen in new structure
-        # print STDERR "new $file:$line:$sub_name\n";
+        print STDERR "new $file:$line:$sub_name\n";
         $self->{count}{$_}{$file} =
             $self->{f}{$file}{start}{$line}{$sub_name}{$_} =
             $self->get_count($_)
@@ -166,31 +171,44 @@ sub reuse
 sub set_file
 {
     my $self = shift;
-    ($self->{file}) = @_;
+    my ($file) = @_;
+    $self->{file} = $file;
+    $self->digest($file)
 }
 
-sub add_digest
+sub add_digest_xxx
 {
     my $self = shift;
-    my ($file, $run) = @_;
+    my ($file, $digest) = @_;
+    print "Adding $digest for $file\n";
+    $self->{f}{$file}{digest} = $digest;
+    push @{$self->{digests}{$digest}}, $file;
+}
+
+sub digest
+{
+    my $self = shift;
+    my ($file) = @_;
+
+    my $f = $self->{f}{$file};
+    # return $f->{digest} if $f->{digest};
+
+    my $digest;
     if (open my $fh, "<", $file)
     {
         binmode $fh;
-        $run->{digest}{$file} = Digest::MD5->new->addfile($fh)->hexdigest;
-        $self->set_digest($file, $run->{digest}{$file});
+        $digest = Digest::MD5->new->addfile($fh)->hexdigest;
+        # $self->add_digest($file, $digest);
+        # print "Adding $digest for $file\n";
+        $self->{f}{$file}{digest} = $digest;
+        push @{$self->{digests}{$digest}}, $file;
     }
     else
     {
         warn "Devel::Cover: Can't open $file for MD5 digest: $!\n";
         # warn "in ", `pwd`;
     }
-}
-
-sub set_digest
-{
-    my $self = shift;
-    my ($file, $digest) = @_;
-    $self->{f}{$file}{digest} = $digest;
+    $digest
 }
 
 sub get_count
@@ -238,6 +256,7 @@ sub write
         my $df = "$dir/$self->{f}{$file}{digest}";
         # TODO - determine if Structure has changed to save writing it.
         # my $f = $df; my $n = 1; $df = $f . "." . $n++ while -e $df;
+        # print "Writing [$file] to [$df]\n";
         Storable::nstore($self->{f}{$file}, $df); # unless -e $df;
     }
 }
@@ -248,6 +267,7 @@ sub read
     my ($digest) = @_;
     my $file     = "$self->{base}/structure/$digest";
     my $s        = retrieve($file);
+    # print "reading $digest: ", Dumper $s;
     $self->{f}{$s->{file}} = $s;
     $self
 }
@@ -258,7 +278,7 @@ sub read_all
     my $dir = $self->{base};
     $dir .= "/structure";
     opendir D, $dir or return;
-    for my $d (grep $_ !~ /\./, readdir D)
+    for my $d (sort grep $_ !~ /\./, readdir D)
     {
         $self->read($d);
     }

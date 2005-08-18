@@ -592,7 +592,7 @@ sub report
     $Structure      = Devel::Cover::DB::Structure->new(base => $DB);
     $Structure->read_all;
     $Structure->add_criteria(@collected);
-    # use Data::Dumper; print STDERR Dumper $Structure;
+    # use Data::Dumper; print STDERR "Start structure", Dumper $Structure;
 
     # print STDERR "Processing cover data\n@Inc\n";
     $Coverage = coverage(1) || die "No coverage data available.\n";
@@ -612,7 +612,7 @@ sub report
 
     my %files;
     $files{$_}++ for keys %{$Run{count}}, keys %{$Run{vec}};
-    for my $file (keys %files)
+    for my $file (sort keys %files)
     {
         # print "looking at $file\n";
         unless (use_file($file))
@@ -624,7 +624,7 @@ sub report
             next;
         }
 
-        $Structure->add_digest($file, \%Run);
+        # $Structure->add_digest($file, \%Run);
 
         for my $run (keys %{$Run{vec}{$file}})
         {
@@ -633,6 +633,8 @@ sub report
 
         $Structure->store_counts($file);
     }
+
+    # use Data::Dumper; print STDERR "End structure", Dumper $Structure;
 
     my $run = time . ".$$." . sprintf "%05d", rand 2 ** 16;
     my $cover = Devel::Cover::DB->new
@@ -685,9 +687,9 @@ sub add_statement_cover
     get_location($op);
     return unless $File;
 
-    # print STDERR "Stmt $File:$Line: <$deparse> $op $$op ", $op->name, "\n";
+    # print STDERR "Stmt $File:$Line: $op $$op ", $op->name, "\n";
 
-    $Structure->set_file($File);
+    $Run{digests}{$File} ||= $Structure->set_file($File);
     my $key = get_key($op);
     my $val = $Coverage->{statement}{$key} || 0;
     my ($n, $new) = $Structure->add_count("statement");
@@ -772,6 +774,7 @@ sub add_condition_cover
 
     my $type = $op->name;
     $type =~ s/assign$//;
+    $type = "or" if $type eq "dor";
 
     my $c = $Coverage->{condition}{$key};
 
@@ -786,7 +789,7 @@ sub add_condition_cover
         $name = $r->first->name if $name eq "sassign";
         # TODO - exec?  any others?
         # print STDERR "Name [$name]\n";
-        if ($name =~ /^const|s?refgen|gelem|die|undef$/)
+        if ($name =~ /^const|s?refgen|gelem|die|undef|bless$/)
         {
             $c = [ $c->[3], $c->[1] + $c->[2] ];
             $count = 2;
@@ -1048,6 +1051,7 @@ sub get_cover
             my $pkg   = $stash->NAME;
             my $file  = $cv->FILE;
             my %opts;
+            $Run{digests}{$File} ||= $Structure->set_file($File);
             if (ref $Coverage_options{pod})
             {
                 my $p;
@@ -1178,9 +1182,9 @@ now defunct.  See L<http://lists.perl.org/showlist.cgi?name=perl-qa>.
 Perl 5.7.0 is unsupported.  Perl 5.8.2 or greater is recommended.
 Whilst Perl 5.6 should mostly work you will probably miss out on
 coverage information which would be available using a more modern
-version and will likely run into bugs in perl.  Perl 5.8.0 and 5.8.1
-will give slightly different results to more recent versions due to
-changes in the op tree.
+version and will likely run into bugs in perl.  Perl 5.8.0 will give
+slightly different results to more recent versions due to changes in the
+op tree.
 
 =item * The ability to compile XS extensions.
 
