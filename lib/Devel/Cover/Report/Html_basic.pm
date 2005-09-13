@@ -213,13 +213,14 @@ sub print_conditions
     my %r;
     for my $location (sort { $a <=> $b } $conditions->items)
     {
-        my $count = 0;
+        my %count;
         for my $c (@{$conditions->location($location)})
         {
-            $count++;
+            $count{$c->type}++;
+            # print "-- [$count{$c->type}][@{[$c->text]}]}]\n";
             push @{$r{$c->type}},
                 {
-                    number     => $count == 1 ? $location : "",
+                    number     => $count{$c->type} == 1 ? $location : "",
                     condition  => $c,
                     parts      =>
                     [
@@ -245,6 +246,8 @@ sub print_conditions
         R     => \%R,
         types => \@types,
     };
+
+    use Data::Dumper; print Dumper \@types;
 
     my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--condition.html";
     $Template->process("conditions", $vars, $html) or die $Template->error();

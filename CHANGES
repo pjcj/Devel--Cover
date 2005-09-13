@@ -6,6 +6,16 @@ Release 0.54 -
  - Fix integer <-> pointer conversion warnings (Robin Barker).
  - Add more tests for sort bug fixed in 0.53 (Rob Kinyon).
  - Handle || bless {}, "XXX" (reported by Marcel Grünauer).
+ - Add preliminary dor support (unfinished).
+ - Test against perl-5.8.7.
+ - Add check for Pod::Coverage::CountParents.
+ - Fix line number display problem in conditionals in Html_basic.
+ - Add eval_sub and eval3 tests.
+ - Add buildperl script.
+ - Add -report option to cpancover.
+ - Update cpancover CSS.
+ - Partial solution for structure problems including debugging code.
+ - Add outputfile option to Html_basic.
 
 Release 0.53 - 17th April 2005
  - Clean up database directories.

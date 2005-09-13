@@ -1,0 +1,502 @@
+#!/usr/bin/perl -w
+
+# Copyright 2001-2004, Paul Johnson (pjcj@cpan.org)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+use strict;
+
+require 5.004;
+
+use lib <~pjcj/g/tools/perl/local>;
+use lib <~pjcj/wesley/g/tools/perl/local>;
+
+use System "sys:dsys: command, error";
+
+my $Usage =
+    "Usage: $0 /perl/source/code /installation [perl|modules|manual|apache|mod_perl|cpancover]";
+
+my $Perl_src     = shift   || die "$Usage\n";
+my $Installation = shift   || die "$Usage\n";
+my $Options      = "@ARGV" || "perl modules manual cpancover";
+
+my $Src_dir      = <~pjcj/wesley/g/perl>;
+   $Src_dir      = <~pjcj/g/perl> unless -d $Src_dir;
+my $Perl_src_dir = "$Src_dir/src";
+my $Mod_src_dir  = "$Src_dir/modules";
+
+my $Perl_installation;
+my $Perl;
+my $Perl_dir;
+
+my $top = `pwd`;
+chomp $top;
+my $Build = "$top/build";
+
+sub get_src
+{
+    my ($package, $dir) = @_;
+    $dir ||= $Src_dir;
+    my $src = $package;
+    $src = "$package.tar.gz"       unless -f $src;
+    $src = "$package.tar.bz2"      unless -f $src;
+    $src = "$dir/$package"         unless -f $src;
+    $src = "$dir/$package.tar.gz"  unless -f $src;
+    $src = "$dir/$package.tar.bz2" unless -f $src;
+    $src = $package                unless -f $src;
+    # die "Can't find $package in $dir ($Src_dir)\n"    unless -f $src;
+    return $src;
+}
+
+sub building ($)
+{
+    my ($option) = @_;
+    return $Options =~ /\b$option\b/i;
+}
+
+sub uncompress
+{
+    $_[0] =~ /2$/ ? "bzcat" : "zcat"
+}
+
+sub build ($$$)
+{
+    my ($module, $src_dir, $opts) = @_;
+
+    chdir $Build or die "Can't chdir $Build: $!";
+    my $src = get_src($module, $src_dir);
+
+    $opts =
+    {
+        "unpack" => sub { dsys uncompress($src) . " $src | tar xf -" },
+        dir      => sub { $src =~ m|.*/(.*)\.tar\.gz$|; $1 },
+        config   => sub { dsys "$Perl Makefile.PL" },
+        make     => sub { dsys "make" },
+        test     => sub { sys  "make test" }, # some modules fail their tests...
+        install  => sub { dsys "make install" },
+        %$opts
+    };
+
+    print "build $module\n";
+    $opts->{"unpack"}->();
+    my $dir = $opts->{dir}->();
+    chdir $dir or die "Can't chdir $dir: $!";
+    $opts->{config}->();
+    $opts->{make}->();
+    $opts->{test}->();
+    $opts->{install}->();
+    print "built $module\n";
+}
+
+sub feed ($$)
+{
+    my ($command, $input) = @_;
+    open COMMAND, "| $command" or die "Cannot run $command:$!\n";
+    print COMMAND $input;
+    close COMMAND or die "Cannot run $command:$!\n";
+}
+
+sub main ()
+{
+    dsys "rm -rf $Build";
+
+    mkdir $Build, 0750 or die "Can't mkdir $Build: $!";
+
+    $ENV{HOME} = $Perl_installation;
+
+    if (building "perl")
+    {
+        chdir $Build or die "Can't chdir $Build: $!";
+
+        dsys "rm -rf $Perl_installation";
+
+        dsys uncompress($Perl_src) . " $Perl_src | tar xf -";
+
+        chdir $Perl_dir or die "Can't chdir $Perl_dir: $!";
+
+        my @opts =
+        (
+          "-Dperladmin='paul\@pjcj.net'",
+          "-Dcc=gcc",
+          "-Dprefix=$Perl_installation",
+        );
+
+        dsys "sh ./Configure -des @opts";
+
+        dsys "make";
+        sys  "make test";
+        dsys "make install";
+
+        $Options =~ s/\bperl\b//;
+    }
+
+    $ENV{PATH} .= ":$Perl_installation/bin";  # dodgy stuff that just calls perl
+
+    exec "yes '' | $Perl $0 $Perl_src $Installation $Options" if $^X ne $Perl;
+
+    if (building "modules")
+    {
+        my @first =
+        qw(
+          HTML::Tagset
+        );
+
+        my @manual =
+        qw(
+          HTML::Parser
+          Term::ReadKey
+          Term::ReadLine::Perl
+        );
+
+        my @modules =
+        qw(
+          Bundle::LWP
+
+          ExtUtils::ParseXS
+          Archive::Tar
+          URI
+          Module::Build
+          Pod::Coverage
+          Bundle::CPAN
+          Module::Signature
+          Digest::base
+          Digest::MD5
+
+          YAML
+          GD
+          Mail::SpamAssassin
+          Net::DNS
+          AppConfig
+          Template
+
+          Compress::Zlib
+          Mime::Base64
+          LWP
+          Test::Reporter
+          DBI
+          DBD::mysql
+          Mail::Mailer
+          Bit::Vector
+          Date::Calc
+          DBD::Oracle
+          Digest::HMAC
+          Digest::SHA1
+          Net::SSLeay
+          IO::Socket::SSL
+          IO::Stringy
+          MIME::Lite
+          MIME::Tools
+          Net::Telnet
+          Parse::RecDescent
+          Spreadsheet::WriteExcel
+          XML::Parser
+          GD::Text
+          GD::Graph
+          Image::Info
+          Image::Size
+          XML::Parser::PerlSAX
+          XML::DOM
+          XML::XPath
+          XML::Simple
+          Apache::DBI
+          Apache::Session
+          Archive::Zip
+          SOAP::Lite
+          XML::Writer
+          Bundle::BioPerl
+          Bio::Perl
+          Error
+          Cache::Cache
+          HTML::Template
+          CGI::Application
+          CGI::Kwiki
+          CGI::Session
+          List::Util
+          Class::DBI
+          Class::Date
+          Config::IniFiles
+          Convert::ASN1
+          Crypt::Blowfish
+          Crypt::CBC
+          Crypt::DES
+          Crypt::SSLeay
+          Data::ShowTable
+          Date::Manip
+          Text::CSV_XS
+          DBD::CSV
+          DBD::ODBC
+          DBD::Pg
+          DBIx::SearchBuilder
+          IO::Tty
+          Expect
+          Params::Validate
+          HTML::Mason
+          HTML::Tree
+          Inline
+          Apache::Request
+          Mac::Carbon
+          Mac::Glue
+          Mail::Box
+          Mail::Sendmail
+          MD5
+          MP3::Info
+          Msql
+          Net::Daemon
+          Net::SNMP
+          Net::SSH::Perl
+          PAR
+          PDF::API2
+          PDL
+          Net::LDAP
+          Image::Magick
+          Pod::Simple
+          POE
+          Regexp::Common
+          SPOPS
+          Spreadsheet::ParseExcel
+          Text::Iconv
+          Text::Template
+          Time::ParseDate
+          Time::Zone
+          WWW::Mechanize
+          XML::DOM
+          XML::NamespaceSupport
+          XML::SAX
+          XML::LibXML
+
+          Maypole
+
+          Test::Memory::Cycle
+          Test::Pod::Coverage
+          Data/Grove.pm
+          Tie::IxHash
+
+          Bundle::HTML::Mason
+          Bundle::XML
+          Bundle::BricolagePlus
+          Bundle::Perl6
+          Bundle::Slash
+          Bundle::DateTime
+          Bundle::Tk
+          Bundle::SSH
+          Bundle::Test
+        );
+
+        my @not_so_hot =
+        qw(
+          Bundle::Apache
+        );
+
+        my $config =
+        {
+            "Term::ReadLine::Perl" =>
+            {
+                test => sub
+                {
+                    # interactive test - just skip it
+                },
+            },
+            "HTML::Parser" =>
+            {
+                config => sub
+                {
+                    my $input = <<EOF;
+n
+EOF
+                    feed "$Perl Makefile.PL", $input;
+                },
+            },
+
+            "Msql-Mysql-modules-1.2215" =>
+            {
+                config => sub
+                {
+                    dsys "$Perl Makefile.PL" .
+                         " --noprompt" .
+                         " --debug" .
+                         " --verbose" .
+                         " --mysql-install" .
+                         " --nomsql-install" .
+                         " --mysql-incdir=/usr/local/pkg/mysql/include/mysql" .
+                         " --mysql-libdir=/usr/local/pkg/mysql/lib/mysql" .
+                         " --mysql-test-db test" .
+                         " --mysql-test-user root" .
+                         " --mysql-test-pass" .
+                         " --mysql-test-host ride"
+                },
+            },
+        };
+
+        my $f = "$Perl_installation/.cpan";
+        -d $f or mkdir $f, 0750 or die "Can't mkdir $f: $!";
+        $f.= "/CPAN";
+        -d $f or mkdir $f, 0750 or die "Can't mkdir $f: $!";
+        $f.= "/MyConfig.pm";
+        open F, ">", $f         or die "Can't open $f: $!";
+        print F <<EOF;
+\$CPAN::Config = {
+  'build_cache' => q[100000],
+  'build_dir' => q[$Perl_installation/.cpan/build],
+  'cache_metadata' => q[1],
+  'cpan_home' => q[$Perl_installation/.cpan],
+  'dontload_hash' => {  },
+  'ftp' => q[/usr/bin/ftp],
+  'ftp_proxy' => q[],
+  'getcwd' => q[cwd],
+  'gpg' => q[/usr/bin/gpg],
+  'gzip' => q[/bin/gzip],
+  'histfile' => q[$Perl_installation/.cpan/histfile],
+  'histsize' => q[100],
+  'http_proxy' => q[],
+  'inactivity_timeout' => q[0],
+  'index_expire' => q[1],
+  'inhibit_startup_message' => q[0],
+  'keep_source_where' => q[$Perl_installation/.cpan_sources],
+  'lynx' => q[/usr/bin/lynx],
+  'make' => q[/usr/bin/make],
+  'make_arg' => q[],
+  'make_install_arg' => q[],
+  'makepl_arg' => q[],
+  'ncftp' => q[],
+  'ncftpget' => q[],
+  'no_proxy' => q[],
+  'pager' => q[less],
+  'prerequisites_policy' => q[follow],
+  'scan_cache' => q[atstart],
+  'shell' => q[/bin/zsh],
+  'tar' => q[/bin/tar],
+  'term_is_latin' => q[1],
+  'unzip' => q[/usr/bin/unzip],
+  'urllist' => [q[ftp://sunsite.cnlab-switch.ch/mirror/CPAN/], q[ftp://ftp.k-informatik.ch/pub/CPAN/]],
+  'wget' => q[/usr/bin/wget],
+};
+1;
+EOF
+        close F or die "Can't close $f: $!";
+
+        eval "use CPAN";
+
+        my $install = sub
+        {
+            my ($m) = @_;
+            print "Installing $m via CPAN\n";
+            # I wish I knew how to do this properly.  I just want to
+            # force install the thing.
+            my $mod = CPAN::Shell->expandany($m);
+            if ($mod)
+            {
+                return if $mod->uptodate;
+                # $mod->force("install");
+                CPAN::Shell->install($_);
+            }
+            else
+            {
+                CPAN::Shell->install($_);
+            }
+            # CPAN::Shell->expandany($_)->install;
+        };
+
+        $install->($_) for @first;
+
+        for my $mod (@manual)
+        {
+            # my @mods = CPAN::Complete::cpl_any($mod);
+            # print "Mods for $mod are: @mods\n";
+            # next;
+            print "Installing $mod \n";
+            next unless building "manual";
+            my $m = CPAN::Shell->expandany($mod);
+            print "Getting version ", $m->cpan_version, "\n";
+            $m->get;
+            my $b = $m->cpan_file;
+            $b =~ s|.*/||;
+            $b =~ s|\.tar.gz||;
+            $b = "$Perl_installation/.cpan/build/$b";
+            die "Can't find build dir $b" unless -d $b;
+            # use Data::Dumper;  print Dumper $m;
+            print "Building in $b\n";
+            my $c =
+            {
+                %{$config->{$mod} || {}},
+                unpack  => sub {},
+                dir     => sub { $b },
+                # make    => sub {},
+                # test    => sub {},
+                # install => sub { $m->install },
+                # install => sub { $m->install; dsys "make test install" },
+            };
+            build $mod, $b, $c;
+        }
+
+        $install->($_) for @modules;
+    }
+
+    my $apache   = "apache_1.3.31";
+    my $mod_perl = "mod_perl-1.29";
+
+    build $apache,
+          $Perl_src_dir,
+          {
+              config  => sub {},
+              make    => sub {},
+              test    => sub {},
+              install => sub {},
+          }
+        if building "apache";
+
+    build $mod_perl,
+          $Perl_src_dir,
+          {
+              config => sub
+              {
+                  dsys "$Perl Makefile.PL" .
+                       " APACHE_SRC=../$apache/src" .
+                       " DO_HTTPD=1 USE_APACI=1 PREP_HTTPD=1 EVERYTHING=1";
+              },
+          }
+        if building "mod_perl";
+
+    build $apache,
+          $Perl_src_dir,
+          {
+              "unpack" => sub {},
+              config   => sub
+              {
+                  dsys "./configure" .
+                       " --prefix=$Installation/$apache" .
+                       " --enable-module=rewrite" .
+                       " --activate-module=src/modules/perl/libperl.a";
+              },
+          }
+        if building "apache";
+
+    if (building "cpancover")
+    {
+        (my $dc = $0) =~ s|/[^/]+$||;
+        chdir $dc or die "Can't chdir $dc";
+        system "$Perl Makefile.PL";
+        system "make clean";
+        system "$Perl Makefile.PL";
+        system "make test";
+        system "make install";
+        my $od = "$Perl_installation/cpancover." . time;
+        my $c = "$Perl $dc/cpancover -outputdir $od" .
+                " -dir $Perl_installation/.cpan/build -cover_source $dc";
+        print "Running $c\n";
+        exec "yes '' | $c";
+    }
+}
+
+$Perl_src = get_src($Perl_src, $Perl_src_dir);
+
+($Perl_dir) = $Perl_src =~ m!.*/(.*)\.tar\.(gz|bz2)$!;
+print "perl src is $Perl_src\n";
+print "perl dir is $Perl_dir\n";
+
+$Perl_installation .= "$Installation/$Perl_dir";
+$Perl = "$Perl_installation/bin/perl";
+
+main

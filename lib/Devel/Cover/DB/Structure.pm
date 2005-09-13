@@ -105,7 +105,7 @@ sub set_subroutine
         if (exists $self->{f}{$file}{start}{$line}{$sub_name})
         {
             # sub already exists - normal case
-            print STDERR "reuse $file:$line:$sub_name\n";
+            # print STDERR "reuse $file:$line:$sub_name\n";
             $self->{count}{$_}{$file} =
                 $self->{f}{$file}{start}{$line}{$sub_name}{$_}
                 for $self->criteria;
@@ -117,7 +117,7 @@ sub set_subroutine
             if (exists $self->{additional_count}{($self->criteria)[0]}{$file})
             {
                 # already had such a sub in module
-                print STDERR "reuse additional $file:$line:$sub_name\n";
+                # print STDERR "reuse additional $file:$line:$sub_name\n";
                 $self->{count}{$_}{$file} =
                     $self->{f}{$file}{start}{$line}{$sub_name}{$_} =
                     ($self->add_count($_))[0]
@@ -126,7 +126,7 @@ sub set_subroutine
             else
             {
                 # first such a sub in module
-                print STDERR "reuse first $file:$line:$sub_name\n";
+                # print STDERR "reuse first $file:$line:$sub_name\n";
                 $self->{count}{$_}{$file} =
                     $self->{additional_count}{$_}{$file} =
                     $self->{f}{$file}{start}{$line}{$sub_name}{$_} =
@@ -138,7 +138,7 @@ sub set_subroutine
     else
     {
         # first time sub seen in new structure
-        print STDERR "new $file:$line:$sub_name\n";
+        # print STDERR "new $file:$line:$sub_name\n";
         $self->{count}{$_}{$file} =
             $self->{f}{$file}{start}{$line}{$sub_name}{$_} =
             $self->get_count($_)

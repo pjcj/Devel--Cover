@@ -133,7 +133,7 @@ print "done\n\n";
 
 my $e;
 
-print "checking for Storable.pm                   ........ ";
+print "checking for Storable.pm                    ........ ";
 
 $e = <<EOM;
 
@@ -153,7 +153,7 @@ else
     print "not found\n\n$e\n";
 }
 
-print "checking for Digest::MD5.pm                ........ ";
+print "checking for Digest::MD5.pm                 ........ ";
 
 $e = <<EOM;
 
@@ -173,11 +173,11 @@ else
     print "not found\n\n$e\n";
 }
 
-print "checking for Template.pm      version 2.00 ........ ";
+print "checking for Template.pm       version 2.00 ........ ";
 
 $e = <<EOM;
 
-Template.pm 2.00 is required to run the old HTML backends to cover and
+Template.pm 2.00 is required to run the some HTML backends to cover and
 for cpancover.  Unless you have specific requirements this should not be
 a problem, but you will not be able to use these reports until you
 install the Template Toolkit, available from CPAN.  In the meantime you
@@ -196,7 +196,7 @@ else
     print "not found\n\n$e\n";
 }
 
-print "checking for Pod::Coverage.pm version 0.06 ........ ";
+print "checking for Pod::Coverage.pm  version 0.06 ........ ";
 
 $e = <<EOM;
 
@@ -211,13 +211,35 @@ if (my $m = $INC{"Pod/Coverage.pm"})
 {
     my $v = eval { no warnings; $Pod::Coverage::VERSION };
     print $v < 0.06 ? "$v\n\n$e\n" : "$v $m\n";
+
+    print "checking for Pod::Coverage::CountParents.pm ........ ";
+
+    $e = <<EOM;
+
+    Pod::Coverage::CountParents.pm is used for Pod coverage if it is available.
+    We will fall back to using Pod::Coverage.pm.  If you want to use
+    Pod::Coverage::CountParents.pm, just install it from CPAN.
+EOM
+
+    eval "use Pod::Coverage::CountParents";
+    if (my $m = $INC{"Pod/Coverage/CountParents.pm"})
+    {
+        my $v = eval { no warnings; $Pod::Coverage::CountParents::VERSION };
+        $v ||= "    ";
+        print "$v $m\n";
+    }
+    else
+    {
+        print "not found\n\n$e\n";
+    }
+
 }
 else
 {
     print "not found\n\n$e\n";
 }
 
-print "checking for Test::Differences.pm          ........ ";
+print "checking for Test::Differences.pm           ........ ";
 
 $e = <<EOM;
 
@@ -241,7 +263,7 @@ else
     print "not found\n\n$e\n";
 }
 
-my $latest_tested = 5.008006;
+my $latest_tested = 5.008007;
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
