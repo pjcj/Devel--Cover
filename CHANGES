@@ -1,6 +1,6 @@
 Devel::Cover.pm history
 
-Release 0.54 - 
+Release 0.54 - 13th September 2005
  - Make html_basic prettier.
  - Fix pod coverage percentages.
  - Fix integer <-> pointer conversion warnings (Robin Barker).
