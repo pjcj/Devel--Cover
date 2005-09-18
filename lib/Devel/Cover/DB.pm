@@ -462,6 +462,12 @@ sub add_subroutine
 {
     my $self = shift;
     my ($cc, $sc, $fc, $uc) = @_;
+    # use Data::Dumper; print STDERR "add_subroutine():\n", Dumper $cc, $sc, $fc, $uc;
+    # $cc = { line_number => [ [ count, sub_name, uncoverable ], [ ... ] ], .. }
+    # $sc = [ [ line_number, sub_name ], [ ... ] ]
+    # $fc = [ count, ... ]
+    # $cc = { line_number => [ [ ??? ], [ ... ] ], ... }
+    # length @$sc == length @$fc
     my %line;
     for my $i (0 .. $#$fc)
     {
