@@ -56,6 +56,7 @@ sub get_options
                        delete!
                        delete_uncoverable_point=s
                        dump_db!
+                       gcov!
                        help|h!
                        ignore_re=s
                        ignore=s
@@ -156,9 +157,14 @@ sub main
     {
         delete_db($dbname, @ARGV);
         local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
-            # "-Mblib=$Bin -MDevel::Cover";
             "-MDevel::Cover";
-        system "make test";
+        my $test = "make test";
+        if ($Options->{gcov})
+        {
+            my $o = "-fprofile-arcs\\ -ftest-coverage";
+            $test .= " CCFLAGS=-O0\\ $o OTHERLDFLAGS=$o";
+        }
+        system $test;
         $Options->{report} ||= "html";
     }
 
