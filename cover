@@ -12,12 +12,14 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.54";
+our $VERSION = "0.55";
 
-use Devel::Cover::DB 0.54;
+use Devel::Cover::DB 0.55;
 
+use Config;
 use Cwd "abs_path";
 use Data::Dumper;
+use File::Find ();
 use File::Path;
 use FindBin '$Bin';
 use Getopt::Long;
@@ -30,6 +32,7 @@ my $Options =
     annotation               => [],
     coverage                 => [],
     delete                   => 0,
+    gcov                     => $Config{gccversion},
     ignore                   => [],
     ignore_re                => [],
     select                   => [],
@@ -155,16 +158,49 @@ sub main
 
     if ($Options->{test})
     {
+        # TODO - something for Module::Build
+        # TODO - make this a little robust
         delete_db($dbname, @ARGV);
         local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
             "-MDevel::Cover";
         my $test = "make test";
         if ($Options->{gcov})
         {
+            my $c = "make clean";
+            print STDERR "cover: running $c\n";
+            system $c;
+            rename "Makefile.old" => "Makefile";
             my $o = "-fprofile-arcs\\ -ftest-coverage";
             $test .= " CCFLAGS=-O0\\ $o OTHERLDFLAGS=$o";
         }
+        print STDERR "cover: running $test\n";
         system $test;
+        if ($Options->{gcov})
+        {
+            my $gc = sub
+            {
+                return unless /\.xs$/;
+                my $c = "gcov $_";
+                print STDERR "cover: running $c\n";
+                system $c;
+            };
+            File::Find::find($gc, ".");
+            my @gc;
+            my $gp = sub
+            {
+                return unless /\.gcov$/;
+                my $xs = $_;
+                return if $xs =~ s/\.c\.gcov$/.xs.gcov/ && -e $xs;
+                push @gc, $_;
+            };
+            File::Find::find($gp, ".");
+            if (@gc)
+            {
+                my $c = "gcov2perl @gc";
+                print STDERR "cover: running $c\n";
+                system $c;
+            }
+        }
         $Options->{report} ||= "html";
     }
 
@@ -273,7 +309,7 @@ cover - report coverage statistics
        -write [db] -delete -dump_db
        -silent
        -coverage criterion
-       -test
+       -test -gcov
        -add_uncoverable_point -delete_uncoverable_point
        -clean_uncoverable_points -uncoverable_file
        [report specific options]
@@ -315,6 +351,7 @@ The following command line options are supported:
  -coverage criterion   - report on criterion  (default all available)
 
  -test                 - drop database(s) and run make test (default off)
+ -gcov                 - run gcov to cover XS code     (default on if using gcc)
 
  other options specific to the report
 
@@ -335,7 +372,9 @@ Specify -coverage options to report on specific criteria.  By default
 all available information on all criteria in all files will be reported.
 
 The -test option will delete the databases and run make test to generate
-new coverage data before reporting on it.
+new coverage data before reporting on it.  The -gcov option will try to
+run gcov on any XS code.  This requires that you are using gcc of
+course.  If you are this option will be turned on by default.
 
 =head1 EXIT STATUS
 
@@ -357,7 +396,7 @@ See the BUGS file.
 
 =head1 VERSION
 
-Version 0.54 - 13th September 2005
+Version 0.55 - 22nd September 2005
 
 =head1 LICENCE
 

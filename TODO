@@ -17,6 +17,7 @@
   - Allow thresholds to be customisable in HTML output.
   - Move HTML version and platform info to main page and allow for multiples.
   - Add -db option to cover.
+  - Diff functionality.
 - Bugs:
   - Work with memoize.  Is this still a problem?
   - See if the XS code leaks, and fix it if it does.

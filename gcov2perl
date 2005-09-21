@@ -12,9 +12,9 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.54";
+our $VERSION = "0.55";
 
-use Devel::Cover::DB 0.54;
+use Devel::Cover::DB 0.55;
 
 use Getopt::Long;
 use Pod::Usage;
@@ -83,7 +83,7 @@ sub add_cover
 
     $cover->{db} = $db;
 
-    print STDOUT __PACKAGE__, ": Writing coverage database to $db\n";
+    print STDOUT "gcov2perl: Writing coverage database to $db\n";
     $cover->write;
 }
 
@@ -119,6 +119,37 @@ The following command line options are supported:
  -i -info        - show documentation
  -v -version     - show version
 
+=head1 DETAILS
+
+To obtain coverage of XS files they must first be compiled with the appropriare
+options.  In a standard Makefile environment, such as that created by
+ExtUtils::MakeMaker, this can be accomplished with the command:
+
+ HARNESS_PERL_SWITCHES=-MDevel::Cover make test \
+   CCFLAGS=-O0\ -fprofile-arcs\ -ftest-coverage \
+   OTHERLDFLAGS=-fprofile-arcs\ -ftest-coverage
+
+If you have already built your object files it may be necessary to run make
+clean first, or to find some other way to ensure that they get rebuilt with the
+options gcov requires.
+
+Now the code coverage data has been collected C<gcov> needs to be run:
+
+ gcov Mylib.xs
+
+This will create one or more gcov files on which you can run C<gcov2perl>:
+
+ gcov2perl Mylib.xs.gcov
+
+Finally, C<cover> should be run as usual with any options required:
+
+ cover
+
+If you are running everything with standard options, you can do all this with
+one command:
+
+ cover -test
+
 =head1 EXIT STATUS
 
 The following exit values are returned:
@@ -136,7 +167,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.54 - 13th September 2005
+Version 0.55 - 22nd September 2005
 
 =head1 LICENCE
 

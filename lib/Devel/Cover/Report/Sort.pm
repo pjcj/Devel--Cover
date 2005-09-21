@@ -10,9 +10,9 @@ package Devel::Cover::Report::Sort;
 use strict;
 use warnings;
 
-our $VERSION = "0.54";
+our $VERSION = "0.55";
 
-use Devel::Cover::DB 0.54;
+use Devel::Cover::DB 0.55;
 
 sub print_sort
 {
@@ -95,7 +95,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.54 - 13th September 2005
+Version 0.55 - 22nd September 2005
 
 =head1 LICENCE
 
