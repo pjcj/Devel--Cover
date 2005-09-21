@@ -4,6 +4,7 @@ Release 0.54 - 22nd September 2005
  - Add -gcov option to cover and make it default when using gcc.
  - Remolve unused File::Find from cpancover.
  - Document how to get XS coverage in gcov2perl.
+ - Improvements to SVK annotation (Chia-liang Kao).
 
 Release 0.54 - 13th September 2005
  - Make html_basic prettier.

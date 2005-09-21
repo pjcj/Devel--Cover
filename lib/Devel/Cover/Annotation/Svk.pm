@@ -13,17 +13,52 @@ use warnings;
 our $VERSION = "0.55";
 
 use Getopt::Long;
+use Digest::MD5;
+
+sub md5_fh
+{
+    my $fh = shift;
+    my $ctx = Digest::MD5->new;
+    $ctx->addfile($fh);
+    $ctx->hexdigest
+}
 
 sub new
 {
     my $class = shift;
+    my $annotate_arg = $ENV{DEVEL_COVER_SVK_ANNOTATE} || "";
     my $self =
     {
         annotations => [ qw( version author date ) ],
-        command     => "svk annotate [[file]]",
+        command     => "svk annotate $annotate_arg [[file]]",
         @_
     };
-    bless $self, $class
+
+    bless $self, $class;
+
+    open my $c, "-|", "svk info"
+        or warn "cover: Not a svk checkout: $!\n", return;
+    while (<$c>)
+    {
+        chomp;
+        next unless s/^Depot Path: //;
+        $self->{depotbase} = $_;
+        last;
+    }
+
+    open $c, "-|", "svk ls -Rf $self->{depotbase}"
+        or warn "cover: Can't run svk ls: $!\n", return;
+    while (<$c>)
+    {
+        chomp;
+        s{^\Q$self->{depotbase}\E/}{};
+        next unless -f $_;
+
+        open my $f, $_ or warn "cover: Can't open $_: $!\n", next;
+        $self->{md5map}{md5_fh($f)} = $_;
+    }
+
+    $self
 }
 
 sub get_annotations
@@ -34,16 +69,26 @@ sub get_annotations
     return if exists $self->{_annotations}{$file};
     my $a = $self->{_annotations}{$file} = [];
 
+    print "cover: Getting svk annotation information for $file\n";
+
+    open my $fh, $file or warn "cover: Can't open file $file: $!\n", return;
+    my $realfile = $self->{md5map}{md5_fh($fh)}
+        or warn "cover: $file is not under svk control\n", return;
+
     my $command = $self->{command};
-    $command =~ s/\[\[file\]\]/$file/g;
-    open my $c, "-|", $command or warn "Can't run $command: $!\n", return;
+    $command =~ s/\[\[file\]\]/$realfile/g;
+    open my $c, "-|", $command
+        or warn "cover: Can't run $command: $!\n", return;
     <$c>; <$c>;  # ignore first two lines
     while (<$c>)
     {
         my @a = /(\d+)\s*\(\s*(\S+)\s*(.*?)\):/;
+        # hack for linking the revision number
+        $a[0] = qq|<a href="$ENV{SVNWEB_URL}/revision/?rev=$a[0]">$a[0]</a>|
+            if $ENV{SVNWEB_URL};
         push @$a, \@a;
     }
-    close $c or warn "Failed running $command: $!\n"
+    close $c or warn "cover: Failed running $command: $!\n"
 }
 
 sub get_options

@@ -84,7 +84,7 @@ sub print_summary
     my $html = "$R{options}{outputdir}/$R{options}{option}{outputfile}";
     $Template->process("summary", $vars, $html) or die $Template->error();
 
-    print "HTML output sent to $html\n";
+    $html
 }
 
 sub print_file
@@ -126,7 +126,7 @@ sub print_file
                 for my $a (0 .. $ann->count - 1)
                 {
                     my $text = $ann->text ($R{file}, $n, $a);
-                    $text = "&nbsp;" unless length $text;
+                    $text = "&nbsp;" unless $text && length $text;
                     push @{$line{criteria}},
                     {
                         text  => $text,
@@ -346,7 +346,7 @@ sub report
     );
 
     print_stylesheet;
-    print_summary;
+    my $html = print_summary;
 
     for (@{$options->{file}})
     {
@@ -357,6 +357,8 @@ sub report
         print_conditions  if $show->{condition};
         print_subroutines if $show->{subroutine} || $show->{pod};
     }
+
+    print "HTML output sent to $html\n";
 }
 
 1;
