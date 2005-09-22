@@ -16,6 +16,7 @@ our $VERSION = "0.55";
 
 use Devel::Cover::DB 0.55;
 
+use File::Path;
 use Getopt::Long;
 use Pod::Usage;
 
@@ -78,7 +79,7 @@ sub add_cover
     );
 
     $db .= "/runs";
-    mkdir $db unless -d $db;
+    mkpath $db unless -d $db;
     $db .= "/$run";
 
     $cover->{db} = $db;

@@ -658,7 +658,7 @@ sub cover
             while (my ($criterion, $fc) = each %$f)
             {
                 my $get = "get_$criterion";
-                my $sc  = $st->$get($file);
+                my $sc  = $st->$get($digests{$digest});
                 # print STDERR "$criterion: ", Dumper $sc, $fc;
                 next unless $sc;  # TODO - why?
                 my $cc  = $cf->{$criterion} ||= {};

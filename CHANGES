@@ -1,6 +1,11 @@
 Devel::Cover.pm history
 
-Release 0.54 - 22nd September 2005
+Release 0.56 - 
+ - gcov2perl creates db if necessary (Steve Peters) (rt 13536).
+ - Properly merge identical files (Jeff Wren) (rt 12410).
+ - Allow line achors in html_basic (Mark Stosberg) (rt 13615).
+
+Release 0.55 - 22nd September 2005
  - Add -gcov option to cover and make it default when using gcc.
  - Remolve unused File::Find from cpancover.
  - Document how to get XS coverage in gcov2perl.

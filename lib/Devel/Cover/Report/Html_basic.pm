@@ -525,7 +525,9 @@ $Templates{file} = <<'EOT';
 
     [% FOREACH line = lines %]
         <tr>
-            <td [% IF line.number %] class="h" [% END %]>[% line.number %]</td>
+            <td [% IF line.number %] class="h" [% END %]>
+                <a name="[% line.number %]">[% line.number %]</a>
+            </td>
             [% FOREACH cr = line.criteria %]
                 <td [% IF cr.class %] class="[% cr.class %]" [% END %]>
                     [% IF cr.link.defined %] <a href="[% cr.link %]"> [% END %]
