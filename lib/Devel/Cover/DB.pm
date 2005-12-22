@@ -171,7 +171,7 @@ sub merge
             while (my ($name, $run) = each %{$self->{runs}})
             {
                 # print "digests for $file: $digest, $run->{digests}{$file}\n";
-                if (exists $run->{digests}{$file} &&
+                if ($run->{digests}{$file} && $digest &&
                     $run->{digests}{$file} ne $digest)
                 {
                     # File has changed.  Delete old coverage instead of merging.

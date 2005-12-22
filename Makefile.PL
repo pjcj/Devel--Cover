@@ -313,7 +313,7 @@ WriteMakefile
     AUTHOR    => 'Paul Johnson (pjcj@cpan.org)',
     ABSTRACT  => "Code coverage metrics for Perl",
     DIR       => [],
-    EXE_FILES => [ "cover", "gcov2perl" ],
+    EXE_FILES => [ qw( cover gcov2perl cpancover ) ],
     PREREQ_PM => {
                      Storable      => 0,
                      "Digest::MD5" => 0,
@@ -373,7 +373,7 @@ tags : @files
 \t \$(SET_VERSION) @versions
 
 README : lib/Devel/Cover.pm
-\t TERMCAP= COLUMNS=80 pod2text lib/Devel/Cover.pm | \\
+\t TERMCAP= COLUMNS=80 pod2text -s lib/Devel/Cover.pm | \\
     \$(PERL) -n \\
     -e 'print if (/NAME/         ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
     -e 'print if (/SYNOPSIS/     ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\

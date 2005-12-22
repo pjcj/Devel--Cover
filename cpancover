@@ -28,7 +28,6 @@ my $Template;
 my $Options =
 {
     collect      => 1,
-    cover_source => "/home/pjcj/g/perl/dev/Devel-Cover",
     directory    => Cwd::cwd(),
     force        => 0,
     module       => [],
@@ -41,7 +40,6 @@ sub get_options
     GetOptions($Options,                # Store the options in the Options hash.
                qw(
                    collect!
-                   cover_source=s
                    directory=s
                    force!
                    help|h!
@@ -108,27 +106,20 @@ sub get_cover
     chdir $d or die "Can't chdir $d: $!\n";
 
     my $db = "$d/cover_db";
-    print "Already analysed\n" if     -d $db;
+    print "Already analysed\n" if -d $db;
 
-    my $s = $Options->{cover_source};
-    my $inc = "-I$s/blib/lib -I$s/blib/arch";
-
-    if ((! -e "$db/runs" || $Options->{force}))
+    my $test = !-e "$db/runs" || $Options->{force} ? " -test" : "";
+    if ($test)
     {
         print "Testing $module\n";
         sys "$^X Makefile.PL" unless -e "Makefile";
-        sys "$^X $inc $s/cover -delete $db";
-        local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
-            "$inc -MDevel::Cover=-db,$db,+inc,$s,-ignore,\\\\bt/,-silent,1";
-        sys "make";
-        sys "make test";
     }
 
     my $od = "$Options->{outputdir}/$module";
     my $of = $Options->{outputfile};
-    sys "$^X $inc $s/cover -report $Options->{report} " .
+    sys "cover$test -report $Options->{report} " .
         "-outputdir $od -outputfile $of"
-        if !-e "$od/$of" || $Options->{redo_html};
+        if $test || !-e "$od/$of" || $Options->{redo_html};
 
     my $results = read_results;
     my $f = "$Options->{outputdir}/cover.results";

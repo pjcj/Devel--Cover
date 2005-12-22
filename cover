@@ -160,16 +160,16 @@ sub main
     {
         # TODO - something for Module::Build
         # TODO - make this a little robust
+        # system "$^X Makefile.PL" unless -e "Makefile";
         delete_db($dbname, @ARGV);
         local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
             "-MDevel::Cover";
         my $test = "make test";
         if ($Options->{gcov})
         {
-            my $c = "make clean";
-            print STDERR "cover: running $c\n";
-            system $c;
-            rename "Makefile.old" => "Makefile";
+            my $t = $] > 5.7 ? undef : time;
+            my $xs = sub { utime $t, $t, $_ if /\.xs$/ };
+            File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
             my $o = "-fprofile-arcs\\ -ftest-coverage";
             $test .= " CCFLAGS=-O0\\ $o OTHERLDFLAGS=$o";
         }
@@ -184,16 +184,17 @@ sub main
                 print STDERR "cover: running $c\n";
                 system $c;
             };
-            File::Find::find($gc, ".");
+            File::Find::find({ wanted => $gc, no_chdir => 0 }, ".");
             my @gc;
             my $gp = sub
             {
                 return unless /\.gcov$/;
                 my $xs = $_;
                 return if $xs =~ s/\.c\.gcov$/.xs.gcov/ && -e $xs;
+                s/^\.\///;
                 push @gc, $_;
             };
-            File::Find::find($gp, ".");
+            File::Find::find({ wanted => $gp, no_chdir => 1 }, ".");
             if (@gc)
             {
                 my $c = "gcov2perl @gc";

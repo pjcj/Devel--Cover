@@ -101,6 +101,8 @@ sub feed ($$)
 
 sub main ()
 {
+    print "Building $Options\n";
+
     dsys "rm -rf $Build";
 
     mkdir $Build, 0750 or die "Can't mkdir $Build: $!";
@@ -165,12 +167,13 @@ sub main ()
           Digest::base
           Digest::MD5
 
+          AppConfig
+          Template
+
           YAML
           GD
           Mail::SpamAssassin
           Net::DNS
-          AppConfig
-          Template
 
           Compress::Zlib
           Mime::Base64
@@ -284,6 +287,8 @@ sub main ()
           Bundle::SSH
           Bundle::Test
         );
+
+        # @modules = @modules[0 .. 11];
 
         my @not_so_hot =
         qw(
@@ -483,8 +488,8 @@ EOF
         system "make test";
         system "make install";
         my $od = "$Perl_installation/cpancover." . time;
-        my $c = "$Perl $dc/cpancover -outputdir $od" .
-                " -dir $Perl_installation/.cpan/build -cover_source $dc";
+        my $c = "cpancover -outputdir $od" .
+                " -dir $Perl_installation/.cpan/build";
         print "Running $c\n";
         exec "yes '' | $c";
     }
