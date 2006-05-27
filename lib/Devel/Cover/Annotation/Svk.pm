@@ -1,4 +1,4 @@
-# Copyright 2005, Paul Johnson (pjcj@cpan.org)
+# Copyright 2005-2006, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -179,7 +179,7 @@ Version 0.55 - 22nd September 2005
 
 =head1 LICENCE
 
-Copyright 2005, Paul Johnson (pjcj@cpan.org)
+Copyright 2005-2006, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 
