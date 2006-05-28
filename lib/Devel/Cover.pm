@@ -1250,9 +1250,12 @@ You may add to the REs to select by using +select, or you may reset the
 selections using -select.  The same principle applies to the REs to
 ignore.
 
-The inc directories are initially populated with the contects of the
+The inc directories are initially populated with the contents of the
 @INC array at the time Devel::Cover was built.  You may reset these
 directories using -inc, or add to them using +inc.
+
+Although these options take regular expressions, you should not enclose the RE
+within //.
 
 =head1 ENVIRONMENT
 
