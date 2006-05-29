@@ -73,7 +73,7 @@ EOM
     eval "use Cwd";
     my \%inc = map { -d \$_ ? ((\$_ eq "." ? \$_ : Cwd::abs_path(\$_)) => 1) : () }
                    \@INC;
-    \@INC = sort keys \%inc;
+    \@Inc = sort keys \%inc;
 }
 
 # TODO - check for threadedness, 64bits etc. ?
@@ -320,8 +320,13 @@ WriteMakefile
                  },
     dist      => { COMPRESS => "gzip --best --force" },
     clean     => { FILES => join " ",  "t/*", map "$_.version", @versions },
-    realclean => { FILES => "lib/Devel/Cover/Inc.pm cover_db t" },
     depend    => { distdir => "@files" },
+    realclean => $] < 5.008008 ?
+                 {
+                    FILES => "lib/Devel/Cover/Inc.pm",
+                    POSTOP => "\$(RM_RF) cover_db t"
+                 } :
+                 { FILES => "lib/Devel/Cover/Inc.pm cover_db t" },
 );
 
 print "\n";

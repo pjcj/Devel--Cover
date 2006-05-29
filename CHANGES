@@ -4,6 +4,9 @@ Release 0.56 -
  - gcov2perl creates db if necessary (Steve Peters) (rt 13536).
  - Properly merge identical files (Jeff Wren) (rt 12410).
  - Allow line achors in html_basic (Mark Stosberg) (rt 13615).
+ - Right justify numerical tabular html output (Sébastien Aperghis-Tramoni).
+ - Work around ExtUtils::MakeMaker realclean bug (Florian Ragwitz) (rt 17324).
+ - Don't try to delete db if it isn't there.
 
 Release 0.55 - 22nd September 2005
  - Add -gcov option to cover and make it default when using gcc.

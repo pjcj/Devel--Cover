@@ -12,6 +12,7 @@
   - BEGIN and CHECK blocks and code in modules.  Requires callbacks from perl?
   - Create a base class for Devel::Cover::Branch and Devel::Cover::Condition.
   - Handle C< $y || "${p}qqq" >.
+  - Add aliased subroutines to subroutine coverage.
 - Reports:
   - Improve textual output.
   - Allow thresholds to be customisable in HTML output.

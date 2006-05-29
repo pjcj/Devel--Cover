@@ -107,7 +107,7 @@ sub delete
     opendir DIR, $db or die "Can't opendir $db: $!";
     my @files = map "$db/$_", map /(.*)/ && $1, grep !/^\.\.?/, readdir DIR;
     closedir DIR or die "Can't closedir $db/runs: $!";
-    rmtree(\@files);
+    rmtree(\@files) if @files;
     $self
 }
 

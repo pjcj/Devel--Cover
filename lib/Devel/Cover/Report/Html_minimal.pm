@@ -849,6 +849,7 @@ pre,.s {
  *   c2  : coverage >= 90%
  *   c3  : path covered or coverage = 100%
  */
+.c0, .c1, .c2, .c3 { text-align: right; }
 .c0 {
 	background-color: #ff9999;
 	border: solid 1px #cc0000;
