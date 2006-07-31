@@ -99,15 +99,18 @@ sub write
 sub delete
 {
     my $self = shift;
+
     my $db = "";
     $db = $self->{db} if ref $self;
     $db = shift if @_;
     $self->{db} = $db if ref $self;
     croak "No db specified" unless length $db;
+
     opendir DIR, $db or die "Can't opendir $db: $!";
     my @files = map "$db/$_", map /(.*)/ && $1, grep !/^\.\.?/, readdir DIR;
-    closedir DIR or die "Can't closedir $db/runs: $!";
+    closedir DIR or die "Can't closedir $db: $!";
     rmtree(\@files) if @files;
+
     $self
 }
 
@@ -141,6 +144,11 @@ sub merge_runs
 sub validate_db
 {
     my $self = shift;
+
+    # Check validity of the db.  It is valid if the $DB file is there, or if it
+    # is not there but the db directory is empty.
+    # die if the db is invalid.
+
     $self
 }
 
