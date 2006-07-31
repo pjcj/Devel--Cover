@@ -31,8 +31,8 @@ sub get_options
     $Options->{version} =
         [ map { ($_, "$_-thr") }
               qw( 5.6.1 5.6.2
-                  5.8.0 5.8.1 5.8.2 5.8.3 5.8.4 5.8.5 5.8.6 5.8.7
-                  5.9.3 ) ]
+                  5.8.0 5.8.1 5.8.2 5.8.3 5.8.4 5.8.5 5.8.6 5.8.7 5.8.8
+                  5.9.4 ) ]
         unless @{$Options->{version}};
     $Options->{version} =
         [ grep eval { !system "perl$_ -v" }, @{$Options->{version}} ];
@@ -53,7 +53,7 @@ my $command = "@ARGV" or die "Usage: $0 [-v version] command\n";
 for my $v (@{$Options->{version}})
 {
     my $perl = "perl$v";
-    sys "rm -rf t";
+    sys "rm -rf t cover_db";
     sys "$perl Makefile.PL";
     sys "make clean";
     sys "$perl Makefile.PL";
