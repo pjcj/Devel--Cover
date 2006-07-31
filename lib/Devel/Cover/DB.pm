@@ -80,7 +80,7 @@ sub write
     croak "No db specified" unless length $self->{db};
     unless (-d $self->{db})
     {
-        mkdir $self->{db}, 0777 or croak "Can't mkdir $self->{db}: $!\n";
+        mkdir $self->{db}, 0700 or croak "Can't mkdir $self->{db}: $!\n";
     }
     $self->validate_db;
 

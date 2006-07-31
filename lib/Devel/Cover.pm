@@ -288,8 +288,8 @@ sub import
     unless (-d $DB)
     {
         # Nasty hack to keep 5.6.1 happy.
-        mkdir $DB, 0777 or croak "Can't mkdir $DB: $!\n";
-        chmod 0777, $DB or croak "Can't chmod $DB: $!\n";
+        mkdir $DB, 0700 or croak "Can't mkdir $DB: $!\n";
+        chmod 0700, $DB or croak "Can't chmod $DB: $!\n";
     }
     $DB = $1 if Cwd::abs_path($DB) =~ /(.*)/;
     Devel::Cover::DB->delete($DB) unless $Merge;
@@ -647,8 +647,8 @@ sub report
     $DB .= "/runs";
     unless (-d $DB)
     {
-        mkdir $DB, 0777 or croak "Can't mkdir $DB: $!\n";
-        chmod 0777, $DB or croak "Can't chmod $DB: $!\n";
+        mkdir $DB, 0700 or croak "Can't mkdir $DB: $!\n";
+        chmod 0700, $DB or croak "Can't chmod $DB: $!\n";
     }
     $DB .= "/$run";
 

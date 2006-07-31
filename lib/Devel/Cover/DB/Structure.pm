@@ -243,7 +243,7 @@ sub write
     $dir .= "/structure";
     unless (-d $dir)
     {
-        mkdir $dir, 0777 or croak "Can't mkdir $dir: $!\n";
+        mkdir $dir, 0700 or croak "Can't mkdir $dir: $!\n";
     }
     for my $file (sort keys %{$self->{f}})
     {
