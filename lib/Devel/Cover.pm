@@ -1137,6 +1137,10 @@ To test an uninstalled module:
  HARNESS_PERL_SWITCHES=-MDevel::Cover make test
  cover
 
+To test an uninstalled module which uses Module::Build (0.26 or later):
+
+ ./Build testcover
+
 If the module does not use the t/*.t framework:
 
  PERL5OPT=-MDevel::Cover make test
