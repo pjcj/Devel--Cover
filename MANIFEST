@@ -152,6 +152,8 @@ test_output/cover/module_import.5.008001
 test_output/cover/module_relative.5.006001
 test_output/cover/module_relative.5.008
 test_output/cover/module_relative.5.008001
+test_output/cover/overload_bool.5.006001
+test_output/cover/overload_bool.5.008
 test_output/cover/overloaded.5.006001
 test_output/cover/overloaded.5.008
 test_output/cover/pod.5.006001

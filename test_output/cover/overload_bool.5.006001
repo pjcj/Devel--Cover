@@ -1,0 +1,63 @@
+Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/overload_bool                          42.9   50.0    n/a    0.0   33.3
+Total                                        42.9   50.0    n/a    0.0   33.3
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/overload_bool
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2006, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      package Foo;
+11                                      use overload
+12    ***      0                    0      '""' => sub { shift->render},
+13    ***      0                    0      bool => sub { die; 1 };
+      ***      0                        
+14                                      
+15                                      sub render {
+16    ***      0                    0      "foo";
+17                                      }
+18                                      
+19             1                        my $foo = 1;
+20    ***      1     50                 bless {}, 'Foo' if $foo;
+21                                      
+22             1                        1;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+20    ***     50      1      0   if $foo
+
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count Location              
+---------- ----- ----------------------
+__ANON__       0 tests/overload_bool:12
+__ANON__       0 tests/overload_bool:13
+render         0 tests/overload_bool:16
+
+
