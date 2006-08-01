@@ -31,37 +31,37 @@ DESCRIPTION
     If you can't guess by the version number this is an alpha release.
 
     Code coverage data are collected using a pluggable runops function which
-    counts how many times each op is executed. These data are then mapped
-    back to reality using the B compiler modules. There is also a statement
+    counts how many times each op is executed.  These data are then mapped
+    back to reality using the B compiler modules.  There is also a statement
     profiling facility which needs a better backend to be really useful.
 
     The cover program can be used to generate coverage reports.
 
     Statement, branch, condition, subroutine, pod and time coverage
-    information is reported. Statement coverage data should be reasonable,
-    although there may be some statements which are not reported. Branch and
-    condition coverage data should be mostly accurate too, although not
-    always what one might initially expect. Subroutine coverage should be as
-    accurate as statement coverage. Pod coverage comes from Pod::Coverage.
-    If Pod::Coverage::CountParents is available it will be used instead.
-    Coverage data for path coverage are not yet collected.
+    information is reported.  Statement coverage data should be reasonable,
+    although there may be some statements which are not reported.  Branch
+    and condition coverage data should be mostly accurate too, although not
+    always what one might initially expect.  Subroutine coverage should be
+    as accurate as statement coverage.  Pod coverage comes from
+    Pod::Coverage.  If Pod::Coverage::CountParents is available it will be
+    used instead.  Coverage data for path coverage are not yet collected.
 
     The gcov2perl program can be used to convert gcov files to
     "Devel::Cover" databases.
 
-    You may find that the results don't match your expectations. I would
+    You may find that the results don't match your expectations.  I would
     imagine that at least one of them is wrong.
 
     The most appropriate mailing list on which to discuss this module would
-    be perl-qa. Discussion has migrated there from perl-qa-metrics which is
-    now defunct. See <http://lists.perl.org/showlist.cgi?name=perl-qa>.
+    be perl-qa.  Discussion has migrated there from perl-qa-metrics which is
+    now defunct.  See <http://lists.perl.org/showlist.cgi?name=perl-qa>.
 
 REQUIREMENTS
-    * Perl 5.6.1 or greater. Perl 5.8.2 or greater is recommended.
-        Perl 5.7.0 is unsupported. Perl 5.8.2 or greater is recommended.
+    * Perl 5.6.1 or greater.  Perl 5.8.2 or greater is recommended.
+        Perl 5.7.0 is unsupported.  Perl 5.8.2 or greater is recommended. 
         Whilst Perl 5.6 should mostly work you will probably miss out on
         coverage information which would be available using a more modern
-        version and will likely run into bugs in perl. Perl 5.8.0 will give
+        version and will likely run into bugs in perl.  Perl 5.8.0 will give
         slightly different results to more recent versions due to changes in
         the op tree.
 
@@ -76,141 +76,4 @@ REQUIREMENTS
 
     * Test::Differences
         if the tests fail and you would like nice output telling you why.
-
-OPTIONS
-     -blib               - "use blib" and ignore files matching \bt/ (default true
-                           iff blib directory exists).
-     -coverage criterion - Turn on coverage for the specified criterion.  Criteria
-                           include statement, branch, condition, path, subroutine,
-                           pod, time, all and none (default all available).
-     -db cover_db        - Store results in coverage db (default ./cover_db).
-     -dir path           - Directory in which coverage will be collected (default
-                           cwd).
-     -ignore RE          - Set REs of files to ignore (default "/Devel/Cover\b").
-     +ignore RE          - Append to REs of files to ignore.
-     -inc path           - Set prefixes of files to ignore (default @INC).
-     +inc path           - Append to prefixes of files to ignore.
-     -merge val          - Merge databases, for multiple test benches (default on).
-     -select RE          - Set REs of files to select (default none).
-     +select RE          - Append to REs of files to select.
-     -silent val         - Don't print informational messages (default off)
-     -summary val        - Print summary information iff val is true (default on).
-
-  More on Coverage Options
-    You can specify options to some coverage criteria. At the moment only
-    pod coverage takes any options. These are the parameters which are
-    passed into the Pod::Coverage constructor. The extra options are
-    separated by dashes, and you may specify as many as you wish. For
-    example, to specify that all subroutines containing xx are private, call
-    Devel::Cover with the option -coverage,pod-also_private-xx.
-
-SELECTING FILES TO COVER
-    You may select which files you want covered using the select, ignore and
-    inc options. The system works as follows:
-
-    Any file matching a RE given as a select option is selected.
-
-    Otherwise, any file matching a RE given as an ignore option is ignored.
-
-    Otherwise, any file in one of the inc directories is ignored.
-
-    Otherwise the file is selected.
-
-    You may add to the REs to select by using +select, or you may reset the
-    selections using -select. The same principle applies to the REs to
-    ignore.
-
-    The inc directories are initially populated with the contents of the
-    @INC array at the time Devel::Cover was built. You may reset these
-    directories using -inc, or add to them using +inc.
-
-    Although these options take regular expressions, you should not enclose
-    the RE within //.
-
-ENVIRONMENT
-    The -silent option is turned on when Devel::Cover is invoked via
-    $HARNESS_PERL_SWITCHES or $PERL5OPT. Devel::Cover tries to do the right
-    thing when $MOD_PERL is set. $DEVEL_COVER_OPTIONS is appended to any
-    options passed into Devel::Cover.
-
-    When running Devel::Cover's own test suite, $DEVEL_COVER_DEBUG turns on
-    debugging information, $DEVEL_COVER_GOLDEN_VERSION overrides
-    Devel::Cover's own idea of which golden results it should test against,
-    and $DEVEL_COVER_NO_COVERAGE runs the tests without collecting coverage.
-
-ACKNOWLEDGEMENTS
-    Some code and ideas cribbed from:
-
-     Devel::OpProf
-     B::Concise
-     B::Deparse
-
-SEE ALSO
-     Devel::Cover::Tutorial
-     B
-     Pod::Coverage
-
-LIMITATIONS
-    There are things that Devel::Cover can't cover.
-
-  Absence of shared dependencies
-    Perl keeps track of which modules have been loaded (to avoid reloading
-    them). Because of this, it isn't possible to get coverage for a path
-    where a runtime import fails if the module being imported is one that
-    Devel::Cover uses internally. For example, suppose your program has this
-    function:
-
-     sub foo {
-         eval { require Storable };
-         if ($@) {
-             carp "Can't find Storable";
-             return;
-         }
-         # ...
-     }
-
-    You might write a test for the failure mode as
-
-     BEGIN { @INC = () }
-     foo();
-     # check for error message
-
-    Because Devel::Cover uses Storable internally, the import will succeed
-    (and the test will fail) under a coverage run.
-
-    Modules used by Devel::Cover while gathering coverage:
-
-    * B
-    * B::Debug
-    * B::Deparse
-    * Carp
-    * Cwd
-    * Digest::MD5
-    * File::Path
-    * File::Spec
-    * Storable
-
-  mod_perl
-    By adding "use Devel::Cover;" to your mod_perl startup script, you
-    should be able to collect coverage information when running under
-    mod_perl. You can also add any options you need at this point. I would
-    suggest adding this as early as possible in your startup script in order
-    to collect as much coverage information as possible.
-
-BUGS
-    Did I mention that this is alpha code?
-
-    See the BUGS file. And the TODO file.
-
-VERSION
-    Version 0.55 - 22nd September 2005
-
-LICENCE
-    Copyright 2001-2006, Paul Johnson (pjcj@cpan.org)
-
-    This software is free. It is licensed under the same terms as Perl
-    itself.
-
-    The latest version of this software should be available from my
-    homepage: http://www.pjcj.net
 
