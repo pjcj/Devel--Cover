@@ -410,7 +410,7 @@ EOT
 $Templates{header} = <<'EOT';
 <table>
     <tr>
-        <th colspan=4>[% R.file %]</th>
+        <th colspan="4">[% R.file %]</th>
     </tr>
     <tr class="hblank"><td class="dblank"></td></tr>
     <tr>
