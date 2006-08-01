@@ -393,7 +393,7 @@ static OP *get_condition(pTHX)
     if (pc && SvROK(*pc))
     {
         dSP;
-        add_condition(aTHX_ *pc, SvTRUE(TOPs) ? 2 : 1);
+        add_condition(aTHX_ *pc, SvROK(TOPs) || SvTRUE(TOPs) ? 2 : 1);
     }
     else
     {
