@@ -17,6 +17,12 @@ use Devel::Cover::DB 0.55;
 use Getopt::Long;
 use Template 2.00;
 
+my $HAVE_PPI;
+BEGIN {
+    eval "use PPI; use PPI::HTML;";
+    $HAVE_PPI = !$@;
+}
+
 my $Template;
 my %R;
 
@@ -87,15 +93,55 @@ sub print_summary
     $html
 }
 
+sub _highlight {
+    my @all_lines = @_;
+    my $code = join "", @all_lines;
+    my $document = PPI::Document->new(\$code);
+    my $highlight = PPI::HTML->new(line_numbers => 1);
+    my $pretty =  $highlight->html($document);
+
+    my $split = '<span class="line_number">';
+    
+    # turn significant whitespace into &nbsp;
+    @all_lines = map {
+        $_ =~ s{</span>( +)}{"</span>" . ("&nbsp;" x length($1))}e;
+        "$split$_";
+    } split /$split/, $pretty;
+    
+    # remove the line number
+    @all_lines = map {
+        s{<span class="line_number">.*?</span>}{}; $_;
+    } @all_lines;
+    @all_lines = map {
+        s{<span class="line_number">}{}; $_;
+    } @all_lines;
+    
+    # remove the BR
+    @all_lines = map {
+        s{<br>$}{}; $_;
+    } @all_lines;
+    @all_lines = map {
+        s{<br>\n</span>}{</span>}; $_;
+    } @all_lines;
+    
+    shift @all_lines if $all_lines[0] eq "";
+    return @all_lines;
+}
+
 sub print_file
 {
     my @lines;
     my $f = $R{db}->cover->file($R{file});
 
-    open F, $R{file} or warn("Unable to open $R{file}: $!\n"), next;
-    LINE: while (defined(my $l = <F>))
+    open F, $R{file} or warn("Unable to open $R{file}: $!\n"), return;
+    my @all_lines = <F>;
+
+    @all_lines = _highlight(@all_lines) if $HAVE_PPI;
+    
+    my $linen = 1;
+    LINE: while (defined(my $l = shift @all_lines))
     {
-        my $n = $.;
+        my $n  = $linen++;
         chomp $l;
 
         my %criteria;
@@ -180,6 +226,9 @@ sub print_branches
         for my $b (@{$branches->location($location)})
         {
             $count++;
+            my $text = $b->text;
+            ($text) = _highlight($text) if $HAVE_PPI;
+
             push @branches,
                 {
                     number     => $count == 1 ? $location : "",
@@ -190,7 +239,7 @@ sub print_branches
                                              "branch") },
                             0 .. $b->total - 1
                     ],
-                    text       => $b->text,
+                    text       => $text,
                 };
         }
     }
@@ -218,6 +267,9 @@ sub print_conditions
         {
             $count{$c->type}++;
             # print "-- [$count{$c->type}][@{[$c->text]}]}]\n";
+            my $text = $c->text;
+            ($text) = _highlight($text) if $HAVE_PPI;
+
             push @{$r{$c->type}},
                 {
                     number     => $count{$c->type} == 1 ? $location : "",
@@ -229,7 +281,7 @@ sub print_conditions
                                              "condition") },
                             0 .. $c->total - 1
                     ],
-                    text       => $c->text,
+                    text       => $text,
                 };
         }
     }
@@ -661,7 +713,8 @@ statistics
 =head1 DESCRIPTION
 
 This module provides a HTML reporting mechanism for coverage data.  It
-is designed to be called from the C<cover> program.
+is designed to be called from the C<cover> program. It will add syntax
+highlighting if PPI::HTML is installed.
 
 =head1 SEE ALSO
 
@@ -778,3 +831,19 @@ pre,.s {
     background-color: #99ff99;
     border: solid 1px #009900;
 }
+
+/* For syntax highlighting with PPI::HTML */
+.line_number { color: #aaaaaa; }
+.comment  { color: #228B22; }
+.symbol  { color: #00688B; }
+.word { color: #8B008B; font-weight:bold; }
+.pragma { color: #8B008B; font-weight:bold; }
+.structure { color: #000000; }
+.number { color: #B452CD; }
+.single  { color: #CD5555;}
+.double  { color: #CD5555;}
+.match   { color: #CD5555;}
+.substitute { color: #CD5555;}
+.heredoc_content { color: #CD5555;}
+.interpolate { color: #CD5555;}
+.words { color: #CD5555;}

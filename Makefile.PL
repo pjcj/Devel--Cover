@@ -196,6 +196,30 @@ else
     print "not found\n\n$e\n";
 }
 
+print "checking for PPI::HTML         version 1.07 ........ ";
+
+$e = <<EOM;
+
+PPI::HTML 1.07 is required to add syntax highlighting to some HTML
+backends to cover and for cpancover.  Unless you have specific
+requirements this should not be a problem, but you will not be able to
+use syntax highlighting in these reports until you install the
+PPI::HTML, available from the CPAN.  In the meantime you may continue
+to use the rest of Devel::Cover.
+
+EOM
+
+eval "use PPI::HTML";
+if (my $m = $INC{"PPI/HTML.pm"})
+{
+    my $v = eval { no warnings; $PPI::HTML::VERSION };
+    print $v < 1.07 ? "$v\n\n$e\n" : "$v $m\n";
+}
+else
+{
+    print "not found\n\n$e\n";
+}
+
 print "checking for Pod::Coverage.pm  version 0.06 ........ ";
 
 $e = <<EOM;
