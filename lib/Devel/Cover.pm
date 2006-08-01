@@ -1147,7 +1147,11 @@ If the module does not use the t/*.t framework:
 
 =head1 DESCRIPTION
 
-This module provides code coverage metrics for Perl.
+This module provides code coverage metrics for Perl. Code coverage
+metrics describe how throroughly tests exercise code. By using
+Devel::Cover you can find areas of code not exercised by your tests
+and find out which tests to create to increase coverage. Code coverage
+can be considered as an indirect measure of quality.
 
 If you can't guess by the version number this is an alpha release.
 

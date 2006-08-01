@@ -9,6 +9,7 @@ Release 0.56 -
  - Don't try to delete db if it isn't there.
  - No longer create the temporary .version files (Leon Brocard)
  - Document Module::Build's testcover (Leon Brocard)
+ - Add more detail about code coverage in docs (Leon Brocard)
 
 Release 0.55 - 22nd September 2005
  - Add -gcov option to cover and make it default when using gcc.
