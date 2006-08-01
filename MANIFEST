@@ -76,6 +76,7 @@ tests/module_ignore
 tests/module_import
 tests/Module_import.pm
 tests/module_relative
+tests/overload_bool
 tests/overloaded
 tests/pod
 tests/pod_nocp

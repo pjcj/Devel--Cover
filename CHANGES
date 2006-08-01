@@ -1,18 +1,30 @@
 Devel::Cover.pm history
 
-Release 0.56 - 
+Release 0.56 - 1st August 2006
  - gcov2perl creates db if necessary (Steve Peters) (rt 13536).
  - Properly merge identical files (Jeff Wren) (rt 12410).
  - Allow line achors in html_basic (Mark Stosberg) (rt 13615).
  - Right justify numerical tabular html output (Sébastien Aperghis-Tramoni).
  - Work around ExtUtils::MakeMaker realclean bug (Florian Ragwitz) (rt 17324).
  - Don't try to delete db if it isn't there.
- - No longer create the temporary .version files (Leon Brocard)
- - Document Module::Build's testcover (Leon Brocard)
- - Add more detail about code coverage in docs (Leon Brocard)
- - Make the HTML valid by moving comment past the <?xml> (Leon Brocard)
- - Add syntax highlighting to HTML_basic if PPI::HTML is installed (Leon Brocard)
- - Refactored common code for calculate_summary across all Criterion classes (Norman Nunley)
+ - The following changes were made at the Devel::Cover hackathon, sponsored by
+   Best Practical.
+ - No longer create the temporary .version files (Leon Brocard).
+ - Document Module::Build's testcover (Leon Brocard).
+ - Add more detail about code coverage in docs (Leon Brocard).
+ - Make the HTML valid by moving comment past the <?xml> (Leon Brocard).
+ - Add syntax highlighting to HTML_basic if PPI::HTML is installed
+   (Leon Brocard).
+ - Refactored common code for calculate_summary across all Criterion classes
+   (Norman Nunley).
+ - Remove duplicated code paths between Branch and Condition (Norman Nunley).
+ - Don't call overload bool in condition coverage (clkao).
+ - Fix the XML comment for cpancover (Norman Nunley).
+ - Turn conditionals in void context into or2 conditions so that the value of
+   the RHS doesn't matter for coverage purposes.
+ - Add a tool to scan comments about uncoverable code and output .uncoverable
+   format to stdout (clkao).
+ - Add and update overload tests.
 
 Release 0.55 - 22nd September 2005
  - Add -gcov option to cover and make it default when using gcc.
