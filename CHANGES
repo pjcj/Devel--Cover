@@ -12,6 +12,7 @@ Release 0.56 -
  - Add more detail about code coverage in docs (Leon Brocard)
  - Make the HTML valid by moving comment past the <?xml> (Leon Brocard)
  - Add syntax highlighting to HTML_basic if PPI::HTML is installed (Leon Brocard)
+ - Refactored common code for calculate_summary across all Criterion classes (Norman Nunley)
 
 Release 0.55 - 22nd September 2005
  - Add -gcov option to cover and make it default when using gcc.
