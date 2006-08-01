@@ -279,13 +279,14 @@ static AV *get_conditional_array(pTHX_ OP *op)
 static void set_conditional(pTHX_ OP *op, int cond, int value)
 {
     /*
-     * The conditional array comprises five elements:
+     * The conditional array comprises six elements:
      *
      * 0 - 1 iff we are in an xor and the first operand was true
      * 1 - not short circuited - second operand is false
      * 2 - not short circuited - second operand is true
      * 3 - short circuited, or for xor second operand is false
      * 4 - for xor second operand is true
+     * 5 - 1 iff we are in void context
      */
 
     SV **count = av_fetch(get_conditional_array(aTHX_ op), cond, 1);
@@ -521,11 +522,6 @@ static void cover_logop(pTHX)
                  * We're just glad to be here, so we chalk up success.
                  */
 
-                if (right->op_type == OP_DIE)
-                {
-                    NDEB(D(L, "Adding conditional [%s]\n", get_key(PL_op)));
-                    NDEB(op_dump(PL_op));
-                }
                 add_conditional(aTHX_ PL_op, 2);
             }
             else
@@ -592,6 +588,8 @@ static void cover_logop(pTHX)
             /* short circuit */
             add_conditional(aTHX_ PL_op, 3);
         }
+
+        set_conditional(aTHX_ PL_op, 5, GIMME_V == G_VOID);
     }
 }
 

@@ -789,7 +789,7 @@ sub add_condition_cover
         $name = $r->first->name if $name eq "sassign";
         # TODO - exec?  any others?
         # print STDERR "Name [$name]\n";
-        if ($name =~ /^const|s?refgen|gelem|die|undef|bless$/)
+        if ($c->[5] || $name =~ /^const|s?refgen|gelem|die|undef|bless$/)
         {
             $c = [ $c->[3], $c->[1] + $c->[2] ];
             $count = 2;

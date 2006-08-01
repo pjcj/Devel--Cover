@@ -4,8 +4,8 @@ Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/cond_and                               96.0   50.0   50.0  100.0   75.0
-Total                                        96.0   50.0   50.0  100.0   75.0
+tests/cond_and                               96.0   50.0   55.6  100.0   77.6
+Total                                        96.0   50.0   55.6  100.0   77.6
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ tests/cond_and
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2002-2006, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
@@ -67,10 +67,10 @@ line  err   stmt   bran   cond    sub   code
 43                                      
 44            11                          my $p = $y & $z;
 45                                      
-46    ***     11            33            $p &&= $y;
-47    ***     11            33            $p &&= $z;
+46    ***     11            50            $p &&= $y;
+47    ***     11            50            $p &&= $z;
 48            11                          my $q = 1;
-49    ***     11            66            $q &&= $_;
+49    ***     11            50            $q &&= $_;
 50                                      
 51            11                          pas();
 52                                      }
@@ -99,14 +99,19 @@ line  err      %   true  false   branch
 Conditions
 ----------
 
+and 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+46    ***     50     11      0   $p &&= $y
+47    ***     50     11      0   $p &&= $z
+49    ***     50      0     11   $q &&= $_
+
 and 3 conditions
 
 line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
 23    ***     66      0      1     10   $y and $x[0]++
-46    ***     33     11      0      0   $p &&= $y
-47    ***     33     11      0      0   $p &&= $z
-49    ***     66      0      1     10   $q &&= $_
 
 
 Covered Subroutines

@@ -4,8 +4,8 @@ Reading database from /home/pjcj/g/perl/Devel-Cover/cover_db
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/cond_or                                92.3   50.0   65.3    0.0   73.7
-Total                                        92.3   50.0   65.3    0.0   73.7
+tests/cond_or                                92.3   50.0   71.1    0.0   76.8
+Total                                        92.3   50.0   71.1    0.0   76.8
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ tests/cond_or
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2002-2005, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2002-2006, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
@@ -73,10 +73,10 @@ line  err   stmt   bran   cond    sub   code
 51    ***     11            50            my $v = $y || undef;
 52    ***     11            50            my $w = $z || 0;
 53                                      
-54    ***     11            33            $p     ||= $y;
-55    ***     11            33            $p     ||= $z;
-56    ***     11            66            $x[ 6] ||= $y;
-57    ***     11            33            $x[ 7] ||= $z;
+54    ***     11            50            $p     ||= $y;
+55    ***     11            50            $p     ||= $z;
+56            11           100            $x[ 6] ||= $y;
+57    ***     11            50            $x[ 7] ||= $z;
 58            11           100            $x[ 8] ||= 1;
 59            11           100            $x[ 9] ||= {};
 60            11           100            $x[10] ||= \"foo";
@@ -120,6 +120,10 @@ line  err      %      l     !l   expr
 50    ***     50     11      0   $y || 0
 51    ***     50     11      0   $y || undef
 52    ***     50      0     11   $z || 0
+54    ***     50     11      0   $p ||= $y
+55    ***     50     11      0   $p ||= $z
+56           100     10      1   $x[6] ||= $y
+57    ***     50      0     11   $x[7] ||= $z
 58           100     10      1   $x[8] ||= 1
 59           100     10      1   $x[9] ||= {}
 60           100     10      1   $x[10] ||= \('foo')
@@ -140,10 +144,6 @@ line  err      %      l  !l&&r !l&&!r   expr
 24    ***     33     11      0      0   $y or $x[0]++
 45    ***     33     11      0      0   $y || $z
 46    ***     33      0     11      0   $z || $y
-54    ***     33     11      0      0   $p ||= $y
-55    ***     33     11      0      0   $p ||= $z
-56    ***     66     10      1      0   $x[6] ||= $y
-57    ***     33      0      0     11   $x[7] ||= $z
 
 
 Uncovered Subroutines
