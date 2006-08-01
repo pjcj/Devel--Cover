@@ -516,7 +516,13 @@ sub uncoverable
 {
     my $self = shift;
 
-    my $u = {};
+    my $u = {};  # holds all the uncoverable information
+
+    # First populate $u with the uncoverable information directly from the
+    # .uncoverable files.  Then loop through the information converting it to
+    # the format we will use later to manage the uncoverable code.  The
+    # primary changes are converting MD5 digests of lines to line numbers, and
+    # converting filenames to MD5 digests of the files.
 
     for my $file ($self->uncoverable_files)
     {
@@ -532,6 +538,7 @@ sub uncoverable
     }
 
     # use Data::Dumper; $Data::Dumper::Indent = 1; print Dumper $u;
+    # Now change the format of the uncoverable information.
 
     for my $file (sort keys %$u)
     {
@@ -541,9 +548,9 @@ sub uncoverable
             warn "Devel::Cover: Can't open file $file: $!\n";
             next;
         }
-        my $df = Digest::MD5->new;
-        my %dl;
-        my $ln = 0;
+        my $df = Digest::MD5->new;  # MD5 digest of the file
+        my %dl;                     # maps MD5 digests of lines to line numbers
+        my $ln = 0;                 # line number
         while (<F>)
         {
             # print STDERR "read [$.][$_]\n";
@@ -552,7 +559,7 @@ sub uncoverable
         }
         close F;
         my $f = $u->{$file};
-        # use Data::Dumper; $Data::Dumper::Indent = 1; print STDERR Dumper $f;
+        # use Data::Dumper; $Data::Dumper::Indent = 1; print Dumper $f;
         for my $crit (keys %$f)
         {
             my $c = $f->{$crit};
@@ -560,7 +567,10 @@ sub uncoverable
             {
                 if (exists $dl{$line})
                 {
-                    # print STDERR "Found uncoverable $file:$crit:$line -> $dl{$line}\n";
+                    # print STDERR
+                    # "Found uncoverable $file:$crit:$line -> $dl{$line}\n";
+
+                    # Change key from the MD5 digest to the actual line number.
                     $c->{$dl{$line}} = delete $c->{$line};
                 }
                 else
@@ -571,9 +581,11 @@ sub uncoverable
                 }
             }
         }
+        # Change the key from the filename to the MD5 digest of the file.
         $u->{$df->hexdigest} = delete $u->{$file};
     }
 
+    # use Data::Dumper; $Data::Dumper::Indent = 1; print Dumper $u;
     $u
 }
 
