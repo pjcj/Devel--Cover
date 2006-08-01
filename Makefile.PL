@@ -319,7 +319,7 @@ WriteMakefile
                      "Digest::MD5" => 0,
                  },
     dist      => { COMPRESS => "gzip --best --force" },
-    clean     => { FILES => join " ",  "t/*", map "$_.version", @versions },
+    clean     => { FILES => join " ",  "t/*" },
     depend    => { distdir => "@files" },
     realclean => $] < 5.008008 ?
                  {
@@ -365,7 +365,7 @@ sub MY::libscan
 sub MY::postamble
 {
     qq[
-SET_VERSION = \$(PERL) -pi.version \\
+SET_VERSION = \$(PERL) -pi \\
     -e 's/(^\\s*(?:our\\s+)\\\$\$VERSION = ")\\d+\\.\\d+(";)/\$\${1}$Version\$\$2/;' \\
     -e 's/(Version )\\d+\\.\\d+( - ).*/\$\${1}$Version\$\${2}$Date/;' \\
     -e 's/(Devel::Cover Version )\\d+\\.\\d+/\$\${1}$Version/;' \\
@@ -442,7 +442,7 @@ all_gold :
 \t exec \$(PERL) all_versions make gold
 
 mani :
-\t \$(PERL) -i.bak -ne '\$\$d = "test_output/cover"; print unless /^\$\$d/; END { open M, ">>MANIFEST"; opendir D, \$\$d; print M "\$\$d/\$\$_\\n" for sort grep -f "\$\$d/\$\$_" && !/\.version\$\$/, readdir D }' MANIFEST
+\t \$(PERL) -i.bak -ne '\$\$d = "test_output/cover"; print unless /^\$\$d/; END { open M, ">>MANIFEST"; opendir D, \$\$d; print M "\$\$d/\$\$_\\n" for sort grep -f "\$\$d/\$\$_", readdir D }' MANIFEST
 
 ok :
 \t \@$Perlbug -okay  || echo "Please send your report manually to $Author"
