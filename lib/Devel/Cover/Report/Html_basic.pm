@@ -425,7 +425,7 @@ $Templates{header} = <<'EOT';
             <td class="h">[% criterion %]</td>
             <td>[% vals.covered %]</td>
             <td>[% vals.total %]</td>
-            <td class="[% vals.class %]" title="[% vals.details %]">
+            <td [% IF vals.class %]class="[% vals.class %]" [% END %]title="[% vals.details %]">
                 [% IF vals.link.defined %]
                     <a href="[% vals.link %]"> [% vals.pc %] </a>
                 [% ELSE %]
