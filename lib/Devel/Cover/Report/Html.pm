@@ -33,7 +33,8 @@ statistics
 
 This module provides a HTML reporting mechanism for coverage data.  It
 is designed to be called from the C<cover> program.  This is an empty
-class derived from the default HTML output module.
+class derived from the default HTML output module,
+Devel::Cover::Report::Html_minimal.
 
 =head1 SEE ALSO
 
