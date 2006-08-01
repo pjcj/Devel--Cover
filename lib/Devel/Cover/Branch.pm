@@ -14,12 +14,17 @@ our $VERSION = "0.55";
 
 use base "Devel::Cover::Criterion";
 
+sub pad         { my $self = shift; $self->[0] = [0, 0] 
+                  unless $self->[0] && @{$self->[0]}; }
 sub uncoverable { @_ > 1 ? $_[0][2][$_[1]] : scalar grep $_, @{$_[0][2]} }
 sub covered     { @_ > 1 ? $_[0][0][$_[1]] : scalar grep $_, @{$_[0][0]} }
 sub total       { scalar @{$_[0][0]} }
 sub value       { $_[0][0][$_[1]] }
 sub values      { @{$_[0][0]} }
 sub text        { $_[0][1]{text} }
+sub name        { 'branch' }
+
+
 sub percentage
 {
     my $t = $_[0]->total;
@@ -47,33 +52,24 @@ sub calculate_summary
     my ($db, $file) = @_;
 
     my $s = $db->{summary};
+    $self->pad;
 
-    $self->[0] = [0, 0] unless $self->[0] && @{$self->[0]};
+    
+    $self->_aggregate($s, $file, 'total', $self->total);
+    $self->_aggregate($s, $file, 'uncoverable', $self->uncoverable);
+    $self->_aggregate($s, $file, 'covered', $self->covered);
+    $self->_aggregate($s, $file, 'error', $self->error);
+}
 
-    my $t = $self->total;
-    my $u = $self->uncoverable;
-    my $c = $self->covered;
-    my $e = $self->error;
 
-    $s->{$file}{branch}{total}       += $t;
-    $s->{$file}{total}{total}        += $t;
-    $s->{Total}{branch}{total}       += $t;
-    $s->{Total}{total}{total}        += $t;
+sub _aggregate {
+    my ($self, $s, $file, $keyword, $t) = @_;
 
-    $s->{$file}{branch}{uncoverable} += $u;
-    $s->{$file}{total}{uncoverable}  += $u;
-    $s->{Total}{branch}{uncoverable} += $u;
-    $s->{Total}{total}{uncoverable}  += $u;
-
-    $s->{$file}{branch}{covered}     += $c;
-    $s->{$file}{total}{covered}      += $c;
-    $s->{Total}{branch}{covered}     += $c;
-    $s->{Total}{total}{covered}      += $c;
-
-    $s->{$file}{branch}{error}       += $e;
-    $s->{$file}{total}{error}        += $e;
-    $s->{Total}{branch}{error}       += $e;
-    $s->{Total}{total}{error}        += $e;
+    my $name = $self->name;
+    $s->{$file}{$name}{$keyword}       += $t;
+    $s->{$file}{total}{$keyword}       += $t;
+    $s->{Total}{$name}{$keyword}       += $t;
+    $s->{Total}{total}{$keyword}       += $t;
 }
 
 1

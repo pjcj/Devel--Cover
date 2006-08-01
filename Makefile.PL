@@ -413,7 +413,7 @@ out : _run
 \t \$(PERL) -Mblib cover `\$(UNCOVERABLE)` -report text > \$(TEST).out
 
 text : out
-\t gvim -d \$(TEST).out
+\t \$(VISUAL) \$(TEST).out
 
 wrun : pure_all
 \t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-ignore,blib,-merge,0 tests/\$(TEST)
