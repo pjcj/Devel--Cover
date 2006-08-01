@@ -20,6 +20,7 @@ sub covered     { $_[0][0] }
 sub total       { 1 }
 sub percentage  { $_[0][0] ? 100 : 0 }
 sub error       { $_[0][0] xor !$_[0][1] }
+sub criterion   { 'statement' }
 
 sub calculate_summary
 {
@@ -27,35 +28,13 @@ sub calculate_summary
     my ($db, $file) = @_;
 
     my $s = $db->{summary};
-
-    $s->{$file}{statement}{total}++;
-    $s->{$file}{total}{total}++;
-    $s->{Total}{statement}{total}++;
-    $s->{Total}{total}{total}++;
-
-    if ($self->uncoverable)
-    {
-        $s->{$file}{statement}{uncoverable}++;
-        $s->{$file}{total}{uncoverable}++;
-        $s->{Total}{statement}{uncoverable}++;
-        $s->{Total}{total}{uncoverable}++;
-    }
-
-    if ($self->covered)
-    {
-        $s->{$file}{statement}{covered}++;
-        $s->{$file}{total}{covered}++;
-        $s->{Total}{statement}{covered}++;
-        $s->{Total}{total}{covered}++;
-    }
-
-    if ($self->error)
-    {
-        $s->{$file}{statement}{error}++;
-        $s->{$file}{total}{error}++;
-        $s->{Total}{statement}{error}++;
-        $s->{Total}{total}{error}++;
-    }
+    $self->aggregate($s, $file, 'total', $self->total);
+    $self->aggregate($s, $file, 'uncoverable', 1)
+        if $self->uncoverable;
+    $self->aggregate($s, $file, 'covered', 1)
+        if $self->covered;
+    $self->aggregate($s, $file, 'error', 1)
+        if $self->error;
 }
 
 1

@@ -33,6 +33,7 @@ sub percentage  { "n/a" }
 sub error       { "n/a" }
 sub text        { "n/a" }
 sub values      { [ $_[0]->covered ] }
+sub criterion   { require Carp; Carp::confess("criterion() must be overridden") }
 
 sub calculate_percentage
 {
@@ -41,6 +42,19 @@ sub calculate_percentage
     my $errors = $s->{error} || 0;
     $s->{percentage} = $s->{total} ? 100 - $errors * 100 / $s->{total} : 100;
 }
+
+sub aggregate {
+    my ($self, $s, $file, $keyword, $t) = @_;
+
+    my $name = $self->criterion;
+    $t = int($t);
+    $s->{$file}{$name}{$keyword}       += $t;
+    $s->{$file}{total}{$keyword}       += $t;
+    $s->{Total}{$name}{$keyword}       += $t;
+    $s->{Total}{total}{$keyword}       += $t;
+}
+
+
 
 1
 

@@ -22,7 +22,7 @@ sub total       { scalar @{$_[0][0]} }
 sub value       { $_[0][0][$_[1]] }
 sub values      { @{$_[0][0]} }
 sub text        { $_[0][1]{text} }
-sub name        { 'branch' }
+sub criterion   { 'branch' }
 
 
 sub percentage
@@ -54,22 +54,10 @@ sub calculate_summary
     my $s = $db->{summary};
     $self->pad;
 
-    
-    $self->_aggregate($s, $file, 'total', $self->total);
-    $self->_aggregate($s, $file, 'uncoverable', $self->uncoverable);
-    $self->_aggregate($s, $file, 'covered', $self->covered);
-    $self->_aggregate($s, $file, 'error', $self->error);
-}
-
-
-sub _aggregate {
-    my ($self, $s, $file, $keyword, $t) = @_;
-
-    my $name = $self->name;
-    $s->{$file}{$name}{$keyword}       += $t;
-    $s->{$file}{total}{$keyword}       += $t;
-    $s->{Total}{$name}{$keyword}       += $t;
-    $s->{Total}{total}{$keyword}       += $t;
+    $self->aggregate($s, $file, 'total', $self->total);
+    $self->aggregate($s, $file, 'uncoverable', $self->uncoverable);
+    $self->aggregate($s, $file, 'covered', $self->covered);
+    $self->aggregate($s, $file, 'error', $self->error);
 }
 
 1

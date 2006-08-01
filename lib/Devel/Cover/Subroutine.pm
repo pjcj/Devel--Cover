@@ -20,6 +20,7 @@ sub total       { 1 }
 sub percentage  { $_[0][0] ? 100 : 0 }
 sub error       { $_[0][0] xor !$_[0][2] }
 sub name        { $_[0][1] }
+sub criterion   { 'subroutine' }
 
 sub calculate_summary
 {
@@ -28,34 +29,13 @@ sub calculate_summary
 
     my $s = $db->{summary};
 
-    $s->{$file}{subroutine}{total}++;
-    $s->{$file}{total}{total}++;
-    $s->{Total}{subroutine}{total}++;
-    $s->{Total}{total}{total}++;
-
-    if ($self->uncoverable)
-    {
-        $s->{$file}{subroutine}{uncoverable}++;
-        $s->{$file}{total}{uncoverable}++;
-        $s->{Total}{subroutine}{uncoverable}++;
-        $s->{Total}{total}{uncoverable}++;
-    }
-
-    if ($self->covered)
-    {
-        $s->{$file}{subroutine}{covered}++;
-        $s->{$file}{total}{covered}++;
-        $s->{Total}{subroutine}{covered}++;
-        $s->{Total}{total}{covered}++;
-    }
-
-    if ($self->error)
-    {
-        $s->{$file}{subroutine}{error}++;
-        $s->{$file}{total}{error}++;
-        $s->{Total}{subroutine}{error}++;
-        $s->{Total}{total}{error}++;
-    }
+    $self->aggregate($s, $file, 'total', $self->total);
+    $self->aggregate($s, $file, 'uncoverable', 1)
+        if $self->uncoverable;
+    $self->aggregate($s, $file, 'covered', 1)
+        if $self->covered;
+    $self->aggregate($s, $file, 'error', 1)
+        if $self->error;
 }
 
 1
