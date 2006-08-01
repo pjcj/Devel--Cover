@@ -15,7 +15,6 @@ our $VERSION = "0.55";
 use base "Devel::Cover::Branch";
 
 sub pad         { $_[0][0][$_] ||= 0 for 0 .. $_[0]->count - 1 }
-sub values      { $_[0]->pad; @{$_[0][0]} }
 sub text        { "$_[0][1]{left} $_[0][1]{op} $_[0][1]{right}" }
 sub type        { $_[0][1]{type} }
 sub count       { require Carp; Carp::confess("count() must be overridden") }
