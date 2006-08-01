@@ -30,7 +30,6 @@
   - Be able to run Devel::Cover on itself.
   - More comprehensive.
   - Functional tests.
-  - Fix up shebang line on tests.
   - Overhaul test system.  Include patt?
   - Tests for INIT and END blocks included in required files when the
     files are used in some runs.
