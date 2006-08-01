@@ -93,7 +93,7 @@ opendir D, "tests" or die "Cannot opendir tests: $!";
 for my $t (readdir D)
 {
     next unless -f "tests/$t";
-    next if $t =~ /\.(pm|pl|version|org|bak|uncoverable)$/;
+    next if $t =~ /\.(pm|pl|org|bak|uncoverable)$/;
     next if $t =~ /~$/;
 
     if ($t =~ /\.t/)
