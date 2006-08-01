@@ -10,13 +10,13 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.55";
+our $VERSION = "0.56";
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB  0.55;
-use Devel::Cover::Inc 0.55;
+use Devel::Cover::DB  0.56;
+use Devel::Cover::Inc 0.56;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -1361,7 +1361,7 @@ See the BUGS file.  And the TODO file.
 
 =head1 VERSION
 
-Version 0.55 - 22nd September 2005
+Version 0.56 - 1st August 2006
 
 =head1 LICENCE
 
