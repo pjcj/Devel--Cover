@@ -733,7 +733,7 @@ Carman (mjcarman@mchsi.com).
 
 =head1 OPTIONS
 
-Options are specified by adding the appropraite flags to the C<cover> program.
+Options are specified by adding the appropriate flags to the C<cover> program.
 This report format supports the following:
 
 =over 4
