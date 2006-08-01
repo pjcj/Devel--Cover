@@ -392,8 +392,8 @@ The latest version of Devel::Cover should be available from my homepage:
 http://www.pjcj.net
 -->
 <!DOCTYPE html
-    PUBLIC "-//W3C//DTD XHTML Basic 1.0//EN"
-    "http://www.w3.org/TR/xhtml-basic/xhtml-basic10.dtd">
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"></meta>
@@ -520,7 +520,7 @@ $Templates{file} = <<'EOT';
     [% FOREACH line = lines %]
         <tr>
             <td [% IF line.number %] class="h" [% END %]>
-                <a name="[% line.number %]">[% line.number %]</a>
+                <a [% IF line.number != '&nbsp;' %]name="[% line.number %]"[% END %]>[% line.number %]</a>
             </td>
             [% FOREACH cr = line.criteria %]
                 <td [% IF cr.class %] class="[% cr.class %]" [% END %]>
