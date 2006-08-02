@@ -31,8 +31,12 @@ BEGIN
 {
     # Use Pod::Coverage if it is available.
     eval "use Pod::Coverage 0.06";
+    # If there is any error other than a failure to locate, report it.
+    die $@ if $@ && $@ !~ m/Can't locate Pod\/Coverage.+pm in \@INC/;
+
     # We'll prefer Pod::Coverage::CountParents
     eval "use Pod::Coverage::CountParents";
+    die $@ if $@ && $@ !~ m/Can't locate Pod\/Coverage.+pm in \@INC/;
 }
 
 # $SIG{__DIE__} = \&Carp::confess;

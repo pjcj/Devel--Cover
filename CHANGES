@@ -1,5 +1,8 @@
 Devel::Cover.pm history
 
+Release 0.57 - 
+ - Report Pod::Coverage load failure (dom - happygiraffe.net) (rt 14425).
+
 Release 0.56 - 1st August 2006
  - gcov2perl creates db if necessary (Steve Peters) (rt 13536).
  - Properly merge identical files (Jeff Wren) (rt 12410).
