@@ -818,7 +818,7 @@ a:visited {
 }
 
 table {
-	border-spacing: 1px;
+	border-spacing: 0px;
 }
 tr {
 	text-align : center;
@@ -827,11 +827,12 @@ tr {
 th,.h {
 	background-color: #cccccc;
 	border: solid 1px #333333;
-	padding-left:  0.2em;
-	padding-right: 0.2em;
+    padding: 0em 0.2em;
 }
 td {
 	border: solid 1px #cccccc;
+    border-top: none;
+    border-left: none;
 }
 
 /* source code */

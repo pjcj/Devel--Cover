@@ -798,7 +798,7 @@ a:visited {
 }
 
 table {
-    border-spacing: 1px;
+    border-spacing: 0px;
 }
 tr {
     text-align : center;
@@ -807,8 +807,7 @@ tr {
 th,.h,.hh {
     background-color: #cccccc;
     border: solid 1px #333333;
-    padding-left:  0.2em;
-    padding-right: 0.2em;
+    padding: 0em 0.2em;
     width: 2.5em;
     -moz-border-radius: 4px;
 }
@@ -817,6 +816,8 @@ th,.h,.hh {
 }
 td {
     border: solid 1px #cccccc;
+    border-top: none;
+    border-left: none;
     -moz-border-radius: 4px;
 }
 .hblank {
