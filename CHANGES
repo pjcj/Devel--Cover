@@ -7,6 +7,7 @@ Release 0.57 -
  - Lighten the style a little - make table cells only have right and bottom
    borders, using the ones from the surrounding cells to form the grid
    (Sébastien Aperghis-Tramoni).
+ - subs_only option to only show coverage for subs (Nicholas Clark).
 
 Release 0.56 - 1st August 2006
  - gcov2perl creates db if necessary (Steve Peters) (rt 13536).
