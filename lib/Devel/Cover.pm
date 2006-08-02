@@ -45,10 +45,10 @@ my $Initialised;                         # import() has been called.
 
 my $Dir;                                 # Directory in which coverage will be
                                          # collected.
-my $DB      = "cover_db";                # DB name.
-my $Merge   = 1;                         # Merge databases.
-my $Summary = 1;                         # Output coverage summary.
-my $Subs_Only = 0;                       # Coverage only for sub bodies.
+my $DB        = "cover_db";              # DB name.
+my $Merge     = 1;                       # Merge databases.
+my $Summary   = 1;                       # Output coverage summary.
+my $Subs_only = 0;                       # Coverage only for sub bodies.
 
 my @Ignore;                              # Packages to ignore.
 my @Inc;                                 # Original @INC to ignore.
@@ -177,14 +177,15 @@ EOM
 
         set_coverage(keys %Coverage);
         @coverage = get_coverage();
-        my $last = pop @coverage;
+        my $last = pop @coverage || "";
 
         print STDOUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
               join(", ", @coverage),
               @coverage ? " and " : "",
               "$last.\n",
               $nopod,
-              $ENV{MOD_PERL} ? "    Collecting under $ENV{MOD_PERL}\n" : "",
+              $Subs_only     ? "    Collecting for subroutines only.\n" : "",
+              $ENV{MOD_PERL} ? "    Collecting under $ENV{MOD_PERL}\n"  : "",
               "Selecting packages matching:", join("\n    ", "", @Select), "\n",
               "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
               "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
@@ -266,7 +267,7 @@ sub import
         /^-merge/     && do { $Merge     = shift @o; next };
         /^-summary/   && do { $Summary   = shift @o; next };
         /^-blib/      && do { $blib      = shift @o; next };
-        /^-subs_only/ && do { $Subs_Only = shift @o; next };
+        /^-subs_only/ && do { $Subs_only = shift @o; next };
         /^-coverage/  &&
             do { $Coverage{+shift @o} = 1 while @o && $o[0] !~ /^[-+]/; next };
         /^[-+]ignore/ &&
@@ -606,16 +607,19 @@ sub report
 
     check_files();
 
-    get_cover(main_cv, main_root);
-    unless ($Subs_Only) {
+    unless ($Subs_only)
+    {
+        get_cover(main_cv, main_root);
         get_cover($_)
-	for B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ();
-	if (exists &B::check_av)
-	{
-	    get_cover($_)
-	    for B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ();
-	}
-	get_cover($_) for get_ends()->isa("B::AV") ? get_ends()->ARRAY : ();
+            for B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ();
+        if (exists &B::check_av)
+        {
+            get_cover($_)
+                for B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ();
+        }
+        # get_ends includes INIT blocks
+        get_cover($_)
+            for get_ends()->isa("B::AV") ? get_ends()->ARRAY : ();
     }
     get_cover($_) for @Cvs;
 

@@ -447,18 +447,18 @@ TAINT = -T
 COVER_OPTIONS =
 
 _run : pure_all
-\t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-merge,0,`\$(PERL) -e 'qx|grep __COVER__ \$\$ARGV[0]| =~ /__COVER__\\s+criteria\\s+(.*)/; (\$\$c = \$\$1 || "all") =~ s/\\s+/,/g; print "-coverage,\$\$c"' tests/\$(TEST)`,\$(COVER_OPTIONS) tests/\$(TEST)
+\t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-merge,0,`\$(PERL) -e '\$\$l = qx|grep __COVER__ \$\$ARGV[0]|; \$\$l =~ /__COVER__\\s+criteria\\s+(.*)/; (\$\$c = \$\$1 || "all") =~ s/\\s+/,/g; \$\$p = "\$\$1," if \$\$l =~ /__COVER__\\s+test_parameters\\s+(.*)/; print "\$\$p-coverage,\$\$c"' tests/\$(TEST)`,\$(COVER_OPTIONS) tests/\$(TEST)
 
-UNCOVERABLE = \$(PERL) -e 'print "-uncoverable \$\$1 " if qx|grep __COVER__ \$\$ARGV[0]| =~ /__COVER__\\s+uncoverable\\s+(.*)/' tests/\$(TEST)
+COVER_PARAMETERS = \$(PERL) -e '\$\$l = qx|grep __COVER__ \$\$ARGV[0]|; \$\$u = "-uncoverable \$\$1" if \$\$l =~ /__COVER__\\s+uncoverable\\s+(.*)/; (\$\$p) = \$\$l =~ /__COVER__\\s+cover_parameters\\s+(.*)/; print "\$\$u \$\$p"' tests/\$(TEST)
 
 html : _run
-\t \$(PERL) -Mblib cover `\$(UNCOVERABLE)` -report html
+\t \$(PERL) -Mblib cover `\$(COVER_PARAMETERS)` -report html
 
 basic : _run
-\t \$(PERL) -Mblib cover `\$(UNCOVERABLE)` -report html_basic
+\t \$(PERL) -Mblib cover `\$(COVER_PARAMETERS)` -report html_basic
 
 out : _run
-\t \$(PERL) -Mblib cover `\$(UNCOVERABLE)` -report text > \$(TEST).out
+\t \$(PERL) -Mblib cover `\$(COVER_PARAMETERS)` -report text > \$(TEST).out
 
 text : out
 \t \$(VISUAL) \$(TEST).out

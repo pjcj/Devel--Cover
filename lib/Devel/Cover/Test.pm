@@ -67,7 +67,8 @@ sub get_params
     $self->{select}         ||= "-select $self->{test}";
     $self->{test_parameters}  = "$self->{select}"
                               . " -ignore blib Devel/Cover $self->{ignore}"
-                              . " -merge 0 -coverage $self->{criteria}";
+                              . " -merge 0 -coverage $self->{criteria} "
+                              . ($self->{test_parameters} || "");
     $self->{criteria} =~ s/-\w+//g;
     $self->{cover_parameters} = join(" ", map "-coverage $_",
                                               split " ", $self->{criteria})
