@@ -17,10 +17,13 @@ use Devel::Cover::DB 0.56;
 use Getopt::Long;
 use Template 2.00;
 
-my $HAVE_PPI;
+my ($HAVE_HIGHLIGHTER,$HAVE_PPI,$HAVE_PERLTIDY);
 BEGIN {
     eval "use PPI; use PPI::HTML;";
     $HAVE_PPI = !$@;
+    eval "use Perl::Tidy";
+    $HAVE_PERLTIDY = !$@;
+    $HAVE_HIGHLIGHTER = $HAVE_PPI || $HAVE_PERLTIDY;
 }
 
 my $Template;
@@ -93,7 +96,7 @@ sub print_summary
     $html
 }
 
-sub _highlight {
+sub _highlight_ppi {
     my @all_lines = @_;
     my $code = join "", @all_lines;
     my $document = PPI::Document->new(\$code);
@@ -128,6 +131,29 @@ sub _highlight {
     return @all_lines;
 }
 
+sub _highlight_perltidy {
+    my @all_lines = @_;
+    my @coloured = ();
+
+    Perl::Tidy::perltidy(
+        source      => \@all_lines, 
+        destination => \@coloured, 
+        argv        => '-html -pre -nopod2html', 
+        stderr      => '-',
+        errorfile   => '-',
+    );
+
+    # remove the PRE
+    shift @coloured;
+    pop @coloured;
+
+    return @coloured
+}
+
+*_highlight = $HAVE_PPI      ? \&_highlight_ppi
+            : $HAVE_PERLTIDY ? \&_highlight_perltidy
+            : sub {};
+
 sub print_file
 {
     my @lines;
@@ -136,7 +162,7 @@ sub print_file
     open F, $R{file} or warn("Unable to open $R{file}: $!\n"), return;
     my @all_lines = <F>;
 
-    @all_lines = _highlight(@all_lines) if $HAVE_PPI;
+    @all_lines = _highlight(@all_lines) if $HAVE_HIGHLIGHTER;
     
     my $linen = 1;
     LINE: while (defined(my $l = shift @all_lines))
@@ -227,7 +253,7 @@ sub print_branches
         {
             $count++;
             my $text = $b->text;
-            ($text) = _highlight($text) if $HAVE_PPI;
+            ($text) = _highlight($text) if $HAVE_HIGHLIGHTER;
 
             push @branches,
                 {
@@ -268,7 +294,7 @@ sub print_conditions
             $count{$c->type}++;
             # print "-- [$count{$c->type}][@{[$c->text]}]}]\n";
             my $text = $c->text;
-            ($text) = _highlight($text) if $HAVE_PPI;
+            ($text) = _highlight($text) if $HAVE_HIGHLIGHTER;
 
             push @{$r{$c->type}},
                 {
@@ -714,7 +740,7 @@ statistics
 
 This module provides a HTML reporting mechanism for coverage data.  It
 is designed to be called from the C<cover> program. It will add syntax
-highlighting if PPI::HTML is installed.
+highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
 
 =head1 SEE ALSO
 
@@ -847,3 +873,23 @@ pre,.s {
 .heredoc_content { color: #CD5555;}
 .interpolate { color: #CD5555;}
 .words { color: #CD5555;}
+
+/* for syntax highlighting with Perl::Tidy */
+.c  { color: #228B22;                    } /* comment */
+.cm { color: #000000;                    } /* comma */
+.co { color: #000000;                    } /* colon */
+.h  { color: #CD5555; font-weight:bold;  } /* here-doc-target */
+.hh { color: #CD5555; font-style:italic; } /* here-doc-text */
+.i  { color: #00688B;                    } /* identifier */
+.j  { color: #000000; font-weight:bold;  } /* label */
+.k  { color: #8B4513; font-weight:bold;  } /* keyword */
+.m  { color: #FF0000; font-weight:bold;  } /* subroutine */
+.n  { color: #B452CD;                    } /* numeric */
+.p  { color: #000000;                    } /* paren */
+.pd { color: #228B22; font-style:italic; } /* pod-text */
+.pu { color: #000000;                    } /* punctuation */
+.q  { color: #CD5555;                    } /* quote */
+.s  { color: #000000;                    } /* structure */
+.sc { color: #000000;                    } /* semicolon */
+.v  { color: #B452CD;                    } /* v-string */
+.w  { color: #000000;                    } /* bareword */
