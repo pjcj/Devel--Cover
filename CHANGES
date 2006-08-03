@@ -1,6 +1,6 @@
 Devel::Cover.pm history
 
-Release 0.57 - 
+Release 0.57 - 3rd August 2006
  - Report Pod::Coverage load failure (dom - happygiraffe.net) (rt 14425).
  - Use Perl::Tidy as an alternative syntax highlighter
    (Sébastien Aperghis-Tramoni).
