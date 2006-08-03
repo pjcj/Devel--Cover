@@ -12,14 +12,14 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.56";
+our $VERSION = "0.57";
 
 use blib;
 
 use Config;
 exit if $Config{useithreads};
 
-use Devel::Cover::Test 0.56;
+use Devel::Cover::Test 0.57;
 
 my @tests = @ARGV;
 
