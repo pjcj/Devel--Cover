@@ -705,12 +705,9 @@ static int runops_cover(pTHX)
 #endif
 
         *MY_CXT.profiling_key = 0;
-
-        MY_CXT.module = newSVpv("", 0);
-
-        MY_CXT.covering = All;
-
-        MY_CXT.tid = tid++;
+        MY_CXT.module         = newSVpv("", 0);
+        MY_CXT.covering       = All;
+        MY_CXT.tid            = tid++;
     }
 
 #if defined HAS_GETTIMEOFDAY
