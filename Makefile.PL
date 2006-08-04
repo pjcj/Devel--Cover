@@ -146,7 +146,7 @@ eval "use Storable";
 if (my $m = $INC{"Storable.pm"})
 {
     my $v = eval { no warnings; $Storable::VERSION };
-    print "$v $m\n";
+    print "$v     $m\n";
 }
 else
 {
@@ -166,7 +166,7 @@ eval "use Digest::MD5";
 if (my $m = $INC{"Digest/MD5.pm"})
 {
     my $v = eval { no warnings; $Digest::MD5::VERSION };
-    print "$v $m\n";
+    print "$v     $m\n";
 }
 else
 {
@@ -189,7 +189,7 @@ eval "use Template";
 if (my $m = $INC{"Template.pm"})
 {
     my $v = eval { no warnings; $Template::VERSION };
-    print $v < 2.00 ? "$v\n\n$e\n" : "$v $m\n";
+    print $v < 2.00 ? "$v\n\n$e\n" : "$v     $m\n";
 }
 else
 {
@@ -213,7 +213,7 @@ eval "use PPI::HTML";
 if (my $m = $INC{"PPI/HTML.pm"})
 {
     my $v = eval { no warnings; $PPI::HTML::VERSION };
-    print $v < 1.07 ? "$v\n\n$e\n" : "$v $m\n";
+    print $v < 1.07 ? "$v\n\n$e\n" : "$v     $m\n";
 }
 else
 {
@@ -224,11 +224,11 @@ print "checking for Perl::Tidy        version 20060719 .... ";
 
 $e = <<EOM;
 
-One of PPI::HTML 1.07 or Perl::Tidy 20060719 is required to add syntax 
-highlighting to some HTML backends to cover and for cpancover.  Unless 
-you have specific requirements this should not be a problem, but you will 
-not be able to use syntax highlighting in these reports until you install 
-PPI::HTML or Perl::Tidy, available from the CPAN.  In the meantime you 
+One of PPI::HTML 1.07 or Perl::Tidy 20060719 is required to add syntax
+highlighting to some HTML backends to cover and for cpancover.  Unless
+you have specific requirements this should not be a problem, but you will
+not be able to use syntax highlighting in these reports until you install
+PPI::HTML or Perl::Tidy, available from the CPAN.  In the meantime you
 may continue to use the rest of Devel::Cover.
 
 EOM
@@ -258,7 +258,7 @@ eval "use Pod::Coverage";
 if (my $m = $INC{"Pod/Coverage.pm"})
 {
     my $v = eval { no warnings; $Pod::Coverage::VERSION };
-    print $v < 0.06 ? "$v\n\n$e\n" : "$v $m\n";
+    print $v < 0.06 ? "$v\n\n$e\n" : "$v     $m\n";
 
     print "checking for Pod::Coverage::CountParents.pm ........ ";
 
@@ -274,7 +274,7 @@ EOM
     {
         my $v = eval { no warnings; $Pod::Coverage::CountParents::VERSION };
         $v ||= "    ";
-        print "$v $m\n";
+        print "$v     $m\n";
     }
     else
     {
@@ -304,7 +304,7 @@ eval "use Test::Differences";
 if (my $m = $INC{"Test/Differences.pm"})
 {
     my $v = eval { no warnings; $Test::Differences::VERSION };
-    print "$v $m\n";
+    print "$v     $m\n";
 }
 else
 {
