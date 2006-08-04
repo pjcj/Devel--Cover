@@ -394,7 +394,7 @@ static OP *get_condition(pTHX)
     if (pc && SvROK(*pc))
     {
         dSP;
-        add_condition(aTHX_ *pc, SvROK(TOPs) || SvTRUE(TOPs) ? 2 : 1);
+        add_condition(aTHX_ *pc, SvTRUE(TOPs) ? 2 : 1);
     }
     else
     {
@@ -488,10 +488,14 @@ static void cover_logop(pTHX)
     else
     {
         dSP;
+
         int left_val     = SvTRUE(TOPs);
 #ifdef KEY_err
         int left_val_def = SvOK(TOPs);
 #endif
+        int void_context = GIMME_V == G_VOID;
+
+        set_conditional(aTHX_ PL_op, 5, void_context);
 
         NDEB(D(L, "cover_logop [%s]\n", get_key(PL_op)));
         if (PL_op->op_type == OP_AND       &&  left_val     ||
@@ -509,7 +513,8 @@ static void cover_logop(pTHX)
             OP *right = cLOGOP->op_first->op_sibling;
             NDEB(op_dump(right));
 
-            if (right->op_type == OP_NEXT   ||
+            if (void_context                ||
+                right->op_type == OP_NEXT   ||
                 right->op_type == OP_LAST   ||
                 right->op_type == OP_REDO   ||
                 right->op_type == OP_GOTO   ||
@@ -517,9 +522,10 @@ static void cover_logop(pTHX)
                 right->op_type == OP_DIE)
             {
                 /*
-                 * If the right side of the op is a branch, we don't
-                 * care what its value is - it won't be returning one.
-                 * We're just glad to be here, so we chalk up success.
+                 * If we are in void context, or the right side of the op is a
+                 * branch, we don't care what its value is - it won't be
+                 * returning one.  We're just glad to be here, so we chalk up
+                 * success.
                  */
 
                 add_conditional(aTHX_ PL_op, 2);
@@ -588,8 +594,6 @@ static void cover_logop(pTHX)
             /* short circuit */
             add_conditional(aTHX_ PL_op, 3);
         }
-
-        set_conditional(aTHX_ PL_op, 5, GIMME_V == G_VOID);
     }
 }
 
