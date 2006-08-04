@@ -529,9 +529,10 @@ sub sub_info
     {
         return unless $cv->GV->can("SAFENAME");
         $name = $cv->GV->SAFENAME;
+        # print "--[$name]--\n";
         $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
     }
-    my $root  = $cv->ROOT;
+    my $root = $cv->ROOT;
     if ($root->can("first"))
     {
         my $lineseq = $root->first;
@@ -621,6 +622,7 @@ sub report
         get_cover($_)
             for get_ends()->isa("B::AV") ? get_ends()->ARRAY : ();
     }
+    # print "--- @Cvs\n";
     get_cover($_) for @Cvs;
 
     my %files;
@@ -685,7 +687,7 @@ sub add_subroutine_cover
     my $key = get_key($op);
     my $val = $Coverage->{statement}{$key} || 0;
     my ($n, $new) = $Structure->add_count("subroutine");
-    # print STDERR "******* subroutine $n\n";
+    # print STDERR "******* subroutine $n - $new\n";
     $Structure->add_subroutine($File, [ $Line, $Sub_name ]) if $new;
     $Run{count}{$File}{subroutine}[$n] += $val;
     my $vec = $Run{vec}{$File}{subroutine};
@@ -1114,6 +1116,13 @@ sub get_cover
         }
     }
 
+    # my $dd = @_ && ref $_[0]
+                 # ? $deparse->deparse($_[0], 0)
+                 # : $deparse->deparse_sub($cv, 0);
+    # print "get_cover: <$Sub_name>\n";
+    # print "[[$File:$Line]]\n";
+    # print "<$dd>\n";
+
     no warnings "redefine";
     local *B::Deparse::deparse     = \&deparse;
     local *B::Deparse::logop       = \&logop;
@@ -1122,7 +1131,6 @@ sub get_cover
     my $de = @_ && ref $_[0]
                  ? $deparse->deparse($_[0], 0)
                  : $deparse->deparse_sub($cv, 0);
-
     # print "<$de>\n";
     $de
 }
