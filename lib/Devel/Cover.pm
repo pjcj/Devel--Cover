@@ -1223,6 +1223,10 @@ This means a working compiler and make program at least.
 
 Both are in the core in Perl 5.8.0 and above.
 
+=item * L<Template> and L<PPI::HTML> or L<Perl::Tidy>
+
+if you want syntax highlighted HTML reports.
+
 =item * L<Pod::Coverage>
 
 if you want Pod coverage.
@@ -1374,6 +1378,12 @@ should be able to collect coverage information when running under
 mod_perl.  You can also add any options you need at this point.  I would
 suggest adding this as early as possible in your startup script in order
 to collect as much coverage information as possible.
+
+=head2 Redefined subroutines
+
+If you redefine a subroutine you may find that the original subroutine is not
+reported on.  This is because I haven't yet found a way to locate the original
+CV.  Hints, tips or patches to resolve this will be gladly accepted.
 
 =head1 BUGS
 
