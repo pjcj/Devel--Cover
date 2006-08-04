@@ -169,6 +169,7 @@ test_output/cover/special_blocks.5.008
 test_output/cover/special_blocks.5.008001
 test_output/cover/special_blocks.5.009003
 test_output/cover/statement.5.006001
+test_output/cover/subs_only.5.006001
 test_output/cover/t0.5.006001
 test_output/cover/t0.5.008
 test_output/cover/t0.5.008001
