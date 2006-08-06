@@ -1,5 +1,11 @@
 Devel::Cover.pm history
 
+Release 0.58 - 6th August 2006
+ - Be more clever about void context and so avoid SvROK hack.
+ - Document some bugs, limitations and requirements.
+ - HTML alignment fix (Sébastien Aperghis-Tramoni).
+ - CSS improvements for HTML reports (Sébastien Aperghis-Tramoni).
+
 Release 0.57 - 3rd August 2006
  - Report Pod::Coverage load failure (dom - happygiraffe.net) (rt 14425).
  - Use Perl::Tidy as an alternative syntax highlighter
