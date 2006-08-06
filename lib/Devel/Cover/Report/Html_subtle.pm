@@ -776,13 +776,11 @@ code {
 
 table {
 /*    border: solid 1px #000000;*/
-/*    border-collapse: collapse;*/
+    border-collapse: collapse;
     border-spacing: 0px;
 }
 td,th {
     border: solid 1px #cccccc;
-    border-top: none;
-    border-left: none;
 }
 
 /* Classes for color-coding coverage information:

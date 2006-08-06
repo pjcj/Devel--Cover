@@ -818,6 +818,7 @@ a:visited {
 }
 
 table {
+    border-collapse: collapse;
 	border-spacing: 0px;
 }
 tr {
@@ -831,8 +832,6 @@ th,.h {
 }
 td {
 	border: solid 1px #cccccc;
-    border-top: none;
-    border-left: none;
 }
 
 /* source code */
