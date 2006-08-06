@@ -146,6 +146,7 @@ sub _highlight_perltidy {
     # remove the PRE
     shift @coloured;
     pop @coloured;
+    @coloured = grep { !/<a name=/ } @coloured;
 
     return @coloured
 }
