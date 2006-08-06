@@ -71,6 +71,9 @@ REQUIREMENTS
     * Storable and Digest::MD5
         Both are in the core in Perl 5.8.0 and above.
 
+    * Template and PPI::HTML or Perl::Tidy
+        if you want syntax highlighted HTML reports.
+
     * Pod::Coverage
         if you want Pod coverage.
 

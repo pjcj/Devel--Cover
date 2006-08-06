@@ -10,19 +10,19 @@ package Devel::Cover::Criterion;
 use strict;
 use warnings;
 
-our $VERSION = "0.57";
+our $VERSION = "0.58";
 
-use Devel::Cover::Statement       0.57;
-use Devel::Cover::Branch          0.57;
-use Devel::Cover::Condition       0.57;
-use Devel::Cover::Condition_or_2  0.57;
-use Devel::Cover::Condition_or_3  0.57;
-use Devel::Cover::Condition_and_2 0.57;
-use Devel::Cover::Condition_and_3 0.57;
-use Devel::Cover::Condition_xor_4 0.57;
-use Devel::Cover::Subroutine      0.57;
-use Devel::Cover::Time            0.57;
-use Devel::Cover::Pod             0.57;
+use Devel::Cover::Statement       0.58;
+use Devel::Cover::Branch          0.58;
+use Devel::Cover::Condition       0.58;
+use Devel::Cover::Condition_or_2  0.58;
+use Devel::Cover::Condition_or_3  0.58;
+use Devel::Cover::Condition_and_2 0.58;
+use Devel::Cover::Condition_and_3 0.58;
+use Devel::Cover::Condition_xor_4 0.58;
+use Devel::Cover::Subroutine      0.58;
+use Devel::Cover::Time            0.58;
+use Devel::Cover::Pod             0.58;
 
 sub coverage    { $_[0][0] }
 sub information { $_[0][1] }
@@ -100,7 +100,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.57 - 3rd August 2006
+Version 0.58 - 6th August 2006
 
 =head1 LICENCE
 
