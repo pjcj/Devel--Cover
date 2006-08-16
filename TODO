@@ -27,6 +27,9 @@
   - Sort out time coverage on Windows.
   - Check for core dumps with pod coverage.
   - Uncovered dereferences as seen in svk.
+  - Fix "ignored" errors - see IO::Pager.
+  - cpancover on CPAN:
+    - PerlIO-eol-0.13 hangs.
 - Testing:
   - Be able to run Devel::Cover on itself.
   - More comprehensive.
