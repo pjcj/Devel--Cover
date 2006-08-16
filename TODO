@@ -20,6 +20,7 @@
   - Move HTML version and platform info to main page and allow for multiples.
   - Add -db option to cover.
   - Diff functionality.
+  - Merge CSS from basic_html and cpancover.
 - Bugs:
   - Work with memoize.  Is this still a problem?
   - See if the XS code leaks, and fix it if it does.
