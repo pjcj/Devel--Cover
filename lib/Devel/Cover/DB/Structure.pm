@@ -72,8 +72,6 @@ sub AUTOLOAD
         {
             my $self = shift;
             my $file = shift;
-            die "Bad file: $func: $file, expecting $self->{file}"
-                unless $file eq $self->{file};
             push @{$self->{f}{$file}{$criterion}}, @_;
         };
     }
