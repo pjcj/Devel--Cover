@@ -227,8 +227,8 @@ sub last_end
 
 {
     no warnings "void";  # avoid "Too late to run ... block" warning
-    INIT  {}  # dummy sub to make sure PL_endav  is set up and populated
-    END   {}  # dummy sub to make sure PL_initav is set up and populated
+    INIT  {}  # dummy sub to make sure PL_initav is set up and populated
+    END   {}  # dummy sub to make sure PL_endav  is set up and populated
     CHECK { set_first_init_and_end() }  # we really want to be first
 }
 
@@ -572,6 +572,7 @@ sub check_files
             local ($Line, $File);
             get_location($start);
             $line = $Line;
+            # print "$name - $File:$Line\n";
         }
         ($line, $name)
     };
