@@ -63,6 +63,7 @@ my $Pod = $INC{"Pod/Coverage/CountParents.pm"} ? "Pod::Coverage::CountParents" :
 my %Pod;                                 # Pod coverage data.
 
 my @Cvs;                                 # All the Cvs we want to cover.
+my @Subs;                                # All the subs we want to cover.
 my $Cv;                                  # Cv we are looking in.
 my $Sub_name;                            # Name of the sub we are looking in.
 
@@ -580,6 +581,12 @@ sub check_files
            map  [ $_, $l->($_) ],
            grep !$seen_cv{$$_}++,
            @Cvs;
+
+    # Hack to bump up the refcount of the subs.  If we don't do this then the
+    # subs in some modules don't seem to be around when we get to looking at
+    # them.  I'm not sure why this is, and it seems to me that this hack could
+    # affect the order of destruction, but I've not seen any problems.  Yet.
+    @Subs = map $_->object_2svref, @Cvs;
 }
 
 sub report
