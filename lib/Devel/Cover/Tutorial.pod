@@ -163,7 +163,7 @@ basis for future research.
 
 =head1 VERSION
 
-Version 0.58 - 6th August 2006
+Version 0.59 - 23rd August 2006
 
 =head1 LICENCE
 
