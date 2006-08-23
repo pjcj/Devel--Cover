@@ -1,5 +1,12 @@
 Devel::Cover.pm history
 
+Release 0.59 - 23rd August 2006
+ - Tidy up HTML, especially for cpancover.
+ - Allow coverage of subroutine statements in a different file (as with Mason)
+   (clkao).
+ - Bump refcount on subs to ensure they stay around for us to look at them
+   (yes, this is a hack).
+
 Release 0.58 - 6th August 2006
  - Be more clever about void context and so avoid SvROK hack.
  - Document some bugs, limitations and requirements.
