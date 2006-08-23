@@ -587,7 +587,8 @@ sub check_files
     # subs in some modules don't seem to be around when we get to looking at
     # them.  I'm not sure why this is, and it seems to me that this hack could
     # affect the order of destruction, but I've not seen any problems.  Yet.
-    @Subs = map $_->object_2svref, @Cvs;
+    # object_2svref doesn't exist before 5.8.1.
+    @Subs = map $_->object_2svref, @Cvs if $] >= 5.008001;
 }
 
 sub report
