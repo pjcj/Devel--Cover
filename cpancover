@@ -235,7 +235,7 @@ EOF
 sub class
 {
     my ($pc) = @_;
-    $pc eq "n/a" ? "na"        :
+    $pc eq "n/a" ? "na" :
     $pc <    75  ? "c0" :
     $pc <    90  ? "c1" :
     $pc <   100  ? "c2" :
@@ -248,7 +248,7 @@ sub write_html
     chdir $d or die "Can't chdir $d: $!\n";
 
     my $results = read_results;
-    my $f = "$Options->{outputdir}/cpancover.html";
+    my $f = "$Options->{outputdir}/$Options->{outputfile}";
     print "\n\nWriting cpancover output to $f ...\n";
 
     my %vals;
@@ -278,7 +278,7 @@ sub write_html
         $db->calculate_summary(%options);
 
         push @{$vars->{modules}}, $module;
-        $vals{$module}{link} = "$module/coverage.html";
+        $vals{$module}{link} = "$module/$Options->{outputfile}";
 
         for my $criterion (@$criteria)
         {
