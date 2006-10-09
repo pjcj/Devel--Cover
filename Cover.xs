@@ -69,13 +69,7 @@ struct unique    /* Well, we'll be fairly unlucky if it's not */
         op;
 };
 
-#define CH_SZ (sizeof(struct unique) + 1)
-
-union sequence   /* Hack, hack, hackety hack. */
-{
-    struct unique op;
-    char          ch[CH_SZ + 1];
-};
+#define KEY_SZ sizeof(struct unique)
 
 typedef struct
 {
@@ -89,7 +83,8 @@ typedef struct
 #endif
              *modules;
     AV       *ends;
-    char      profiling_key[CH_SZ + 1];
+    char      profiling_key[KEY_SZ];
+    bool      profiling_key_valid;
     SV       *module;
     int       tid;
 } my_cxt_t;
@@ -187,33 +182,13 @@ static int cpu()
 
 static char *get_key(OP *o)
 {
-    static union sequence uniq;
-    int i;
+    static struct unique uniq;
 
-    dTHX;
+    uniq.addr          = o;
+    uniq.op            = *o;
+    uniq.op.op_ppaddr  = 0;  /* we mess with this field */
 
-    uniq.op.addr          = o;
-    uniq.op.op            = *o;
-    uniq.op.op.op_ppaddr  = 0;  /* we mess with this field */
-    uniq.ch[CH_SZ]        = 0;
-
-    /*
-     * TODO - this shouldn't be necessary, should it?  It is a hack
-     * because things are breaking with null chars in the key.  Replace
-     * them with "-".
-     */
-
-    for (i = 0; i < CH_SZ; i++)
-        /* for printing */
-        /* if (uniq.ch[i] < 32 || uniq.ch[i] > 126) */
-        if (!uniq.ch[i])
-        {
-            NDEB(D(L, "%d %d\n", i, uniq.ch[i]));
-            uniq.ch[i] = '-';
-        }
-
-    NDEB(D(L, "0x%x <%s>\n", o, uniq.ch));
-    return uniq.ch;
+    return (char *)&uniq;
 }
 
 static void set_firsts_if_neeed(pTHX)
@@ -247,7 +222,7 @@ static void add_branch(pTHX_ OP *op, int br)
     AV  *branches;
     SV **count;
     int  c;
-    SV **tmp = hv_fetch(MY_CXT.branches, get_key(op), CH_SZ, 1);
+    SV **tmp = hv_fetch(MY_CXT.branches, get_key(op), KEY_SZ, 1);
 
     if (SvROK(*tmp))
         branches = (AV *) SvRV(*tmp);
@@ -267,7 +242,7 @@ static AV *get_conditional_array(pTHX_ OP *op)
 {
     dMY_CXT;
     AV  *conds;
-    SV **cref = hv_fetch(MY_CXT.conditions, get_key(op), CH_SZ, 1);
+    SV **cref = hv_fetch(MY_CXT.conditions, get_key(op), KEY_SZ, 1);
 
     if (SvROK(*cref))
         conds = (AV *) SvRV(*cref);
@@ -390,7 +365,7 @@ static OP *get_condition(pTHX)
 {
     dMY_CXT;
 
-    SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), CH_SZ, 0);
+    SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
 
     if (pc && SvROK(*pc))
     {
@@ -498,7 +473,6 @@ static void cover_logop(pTHX)
 
         set_conditional(aTHX_ PL_op, 5, void_context);
 
-        NDEB(D(L, "cover_logop [%s]\n", get_key(PL_op)));
         if (PL_op->op_type == OP_AND       &&  left_val     ||
             PL_op->op_type == OP_ANDASSIGN &&  left_val     ||
             PL_op->op_type == OP_OR        && !left_val     ||
@@ -560,7 +534,7 @@ static void cover_logop(pTHX)
                 next = PL_op->op_next;
                 ch   = get_key(next);
                 MUTEX_LOCK(&DC_mutex);
-                cref = hv_fetch(Pending_conditionals, ch, CH_SZ, 1);
+                cref = hv_fetch(Pending_conditionals, ch, KEY_SZ, 1);
 
                 if (SvROK(*cref))
                     conds = (AV *)SvRV(*cref);
@@ -615,9 +589,9 @@ static void cover_time(pTHX)
 
         NDEB(D(L, "Cop at %p, op at %p\n", PL_curcop, PL_op));
 
-        if (*MY_CXT.profiling_key)
+        if (MY_CXT.profiling_key_valid)
         {
-            count = hv_fetch(MY_CXT.times, MY_CXT.profiling_key, CH_SZ, 1);
+            count = hv_fetch(MY_CXT.times, MY_CXT.profiling_key, KEY_SZ, 1);
             c     = (SvTRUE(*count) ? SvNV(*count) : 0) +
 #if defined HAS_GETTIMEOFDAY
                     elapsed();
@@ -625,12 +599,14 @@ static void cover_time(pTHX)
                     cpu();
 #endif
             sv_setnv(*count, c);
-            NDEB(D(L, "Adding time: sum %f to <%s>\n", c, MY_CXT.profiling_key));
         }
         if (PL_op)
-            strcpy(MY_CXT.profiling_key, get_key(PL_op));
+        {
+            memcpy(MY_CXT.profiling_key, get_key(PL_op), KEY_SZ);
+            MY_CXT.profiling_key_valid = 1;
+        }
         else
-            *MY_CXT.profiling_key = 0;
+            MY_CXT.profiling_key_valid = 0;
     }
 }
 
@@ -673,27 +649,27 @@ static int runops_cover(pTHX)
         HvSHAREKEYS_off(MY_CXT.cover);
 #endif
 
-        tmp        = hv_fetch(MY_CXT.cover, "statement", 9, 1);
+        tmp               = hv_fetch(MY_CXT.cover, "statement", 9, 1);
         MY_CXT.statements = newHV();
-        *tmp       = newRV_inc((SV*) MY_CXT.statements);
+        *tmp              = newRV_inc((SV*) MY_CXT.statements);
 
-        tmp        = hv_fetch(MY_CXT.cover, "branch",    6, 1);
+        tmp               = hv_fetch(MY_CXT.cover, "branch",    6, 1);
         MY_CXT.branches   = newHV();
-        *tmp       = newRV_inc((SV*) MY_CXT.branches);
+        *tmp              = newRV_inc((SV*) MY_CXT.branches);
 
-        tmp        = hv_fetch(MY_CXT.cover, "condition", 9, 1);
+        tmp               = hv_fetch(MY_CXT.cover, "condition", 9, 1);
         MY_CXT.conditions = newHV();
-        *tmp       = newRV_inc((SV*) MY_CXT.conditions);
+        *tmp              = newRV_inc((SV*) MY_CXT.conditions);
 
 #if CAN_PROFILE
-        tmp        = hv_fetch(MY_CXT.cover, "time",      4, 1);
+        tmp               = hv_fetch(MY_CXT.cover, "time",      4, 1);
         MY_CXT.times      = newHV();
-        *tmp       = newRV_inc((SV*) MY_CXT.times);
+        *tmp              = newRV_inc((SV*) MY_CXT.times);
 #endif
 
-        tmp        = hv_fetch(MY_CXT.cover, "module",    6, 1);
+        tmp               = hv_fetch(MY_CXT.cover, "module",    6, 1);
         MY_CXT.modules    = newHV();
-        *tmp       = newRV_inc((SV*) MY_CXT.modules);
+        *tmp              = newRV_inc((SV*) MY_CXT.modules);
 
 #ifdef USE_ITHREADS
         HvSHAREKEYS_off(MY_CXT.statements);
@@ -705,10 +681,10 @@ static int runops_cover(pTHX)
         HvSHAREKEYS_off(MY_CXT.modules);
 #endif
 
-        *MY_CXT.profiling_key = 0;
-        MY_CXT.module         = newSVpv("", 0);
-        MY_CXT.covering       = All;
-        MY_CXT.tid            = tid++;
+        MY_CXT.profiling_key_valid = 0;
+        MY_CXT.module              = newSVpv("", 0);
+        MY_CXT.covering            = All;
+        MY_CXT.tid                 = tid++;
     }
 
 #if defined HAS_GETTIMEOFDAY
@@ -794,7 +770,7 @@ static int runops_cover(pTHX)
              * sub may call back to a collecting sub.
              */
 
-            hv_fetch(Return_ops, get_key(PL_op->op_next), CH_SZ, 1);
+            hv_fetch(Return_ops, get_key(PL_op->op_next), KEY_SZ, 1);
             NDEB(D(L, "adding return op %p\n", PL_op->op_next));
         }
 
@@ -802,10 +778,10 @@ static int runops_cover(pTHX)
         {
 #if CAN_PROFILE
             cover_time(aTHX);
-            *MY_CXT.profiling_key = 0;
+            MY_CXT.profiling_key_valid = 0;
 #endif
             NDEB(D(L, "op %p is %s\n", PL_op, OP_NAME(PL_op)));
-            if (hv_exists(Return_ops, get_key(PL_op), CH_SZ))
+            if (hv_exists(Return_ops, get_key(PL_op), KEY_SZ))
                 collecting_here = 1;
             else
                 goto call_fptr;
@@ -828,7 +804,7 @@ static int runops_cover(pTHX)
                 if (collecting(Statement))
                 {
                     ch    = get_key(PL_op);
-                    count = hv_fetch(MY_CXT.statements, ch, CH_SZ, 1);
+                    count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
                     c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
                     sv_setiv(*count, c);
                     NDEB(op_dump(PL_op));
@@ -1060,11 +1036,12 @@ coverage(final)
         else
             ST(0) = &PL_sv_undef;
 
-char *
+SV *
 get_key(o)
         B::OP o
     CODE:
-        RETVAL = get_key(o);
+        RETVAL = newSV(KEY_SZ + 1);
+        sv_setpvn(RETVAL, get_key(o), KEY_SZ);
     OUTPUT:
         RETVAL
 

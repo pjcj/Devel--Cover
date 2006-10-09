@@ -1,5 +1,8 @@
 Devel::Cover.pm history
 
+Release 0.60 - 
+ - Simplify get_key function and remove TODO item. (Gisle Aas).
+
 Release 0.59 - 23rd August 2006
  - Tidy up HTML, especially for cpancover.
  - Allow coverage of subroutine statements in a different file (as with Mason)
