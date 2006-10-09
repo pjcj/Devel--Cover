@@ -197,7 +197,8 @@ static char *get_key(OP *o)
     uniq.op.op.op_ppaddr  = 0;  /* we mess with this field */
     uniq.ch[CH_SZ]        = 0;
 
-    /* TODO - this shouldn't be necessary, should it?  It is a hack
+    /*
+     * TODO - this shouldn't be necessary, should it?  It is a hack
      * because things are breaking with null chars in the key.  Replace
      * them with "-".
      */
@@ -785,12 +786,14 @@ static int runops_cover(pTHX)
                  PL_op->op_type == OP_ENTERSUB &&
                  PL_op->op_next)
         {
-            /* If we are jumping somewhere we might not be collecting
+            /*
+             * If we are jumping somewhere we might not be collecting
              * coverage there, so store where we will be coming back to
              * so we can turn on coverage straight away.  We need to
              * store more than one return op because a non collecting
              * sub may call back to a collecting sub.
              */
+
             hv_fetch(Return_ops, get_key(PL_op->op_next), CH_SZ, 1);
             NDEB(D(L, "adding return op %p\n", PL_op->op_next));
         }
