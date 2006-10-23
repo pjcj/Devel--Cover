@@ -476,7 +476,7 @@ FONT = -sun-screen-medium-r-normal-*-*-70-*-*-m-*-sun-fontspecific
 FONT = "Bitstream Vera Sans Mono 8"
 
 diff : out
-\t \$(PERL) -i -pe '\$\$t = index \$\$_, "time   code" if !defined \$\$t || \$\$t < 0; substr \$\$_, \$\$t, 7, "" if /^line  err   stmt/ ..  /^Branches/ and length > \$\$t' \$(TEST).out
+\t \$(PERL) -i -pe '\$\$t = index \$\$_, "time   code" if !defined \$\$t || \$\$t < 0; substr \$\$_, \$\$t, 7, "" if /^line  err   stmt/ ..  /^--------/ and length > \$\$t' \$(TEST).out
 \t gvim -d -font \$(FONT) `\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new("\$(TEST)", run_test_at_end => 0); print \$\$t->cover_gold'` \$(TEST).out
 
 gold : pure_all
