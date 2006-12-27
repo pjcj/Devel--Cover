@@ -375,7 +375,7 @@ static OP *get_condition(pTHX)
     else
     {
         PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p\n",
-                  PL_op, PL_op->op_targ, *pc));
+                  PL_op, PL_op->op_targ, pc));
         PDEB(svdump(Pending_conditionals));
         exit(1);
     }
@@ -554,8 +554,10 @@ static void cover_logop(pTHX)
                 cond = newSViv(PTR2IV(PL_op));
                 av_push(conds, cond);
 
-                NDEB(D(L, "Adding conditional %p to %p, making %d at %p\n",
-                       next, next->op_targ, av_len(conds) - 1, PL_op));
+                NDEB(D(L, "Adding conditional %p to %p, "
+                          "making %d at %p, ppaddr: %p\n",
+                       next, next->op_targ, av_len(conds) - 1, PL_op,
+                       next->op_ppaddr));
                 NDEB(svdump(Pending_conditionals));
                 NDEB(op_dump(PL_op));
                 NDEB(op_dump(next));
