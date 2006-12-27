@@ -629,12 +629,16 @@ static int runops_cover(pTHX)
     if (!Pending_conditionals)
     {
         Pending_conditionals = newHV();
+#ifdef USE_ITHREADS
         HvSHAREKEYS_off(Pending_conditionals);
+#endif
     }
     if (!Return_ops)
     {
         Return_ops = newHV();
+#ifdef USE_ITHREADS
         HvSHAREKEYS_off(Return_ops);
+#endif
     }
     MUTEX_UNLOCK(&DC_mutex);
 
