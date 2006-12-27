@@ -54,10 +54,12 @@ use strict;
 use warnings;
 
 our \$VERSION      = "$Version";
-our \$Perl         = '$^X';
 our \$Perl_version = '$]';
 our \$Base         = '$base';
 our \@Inc          = qw( @inc );
+chomp (our \$Perl  = <<'EOV');  # Careful with \\\\ in the path
+$^X
+EOV
 
 if (\$Perl_version ne \$])
 {

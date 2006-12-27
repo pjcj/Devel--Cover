@@ -1,7 +1,8 @@
 Devel::Cover.pm history
 
 Release 0.60 - 
- - Simplify get_key function and remove TODO item. (Gisle Aas).
+ - Simplify get_key function and remove TODO item (Gisle Aas).
+ - Be careful with UNC paths on Windows (John LoVerso) (rt 24105).
 
 Release 0.59 - 23rd August 2006
  - Tidy up HTML, especially for cpancover.
