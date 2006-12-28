@@ -172,7 +172,7 @@ BEGIN { $^P = 0x004 | 0x100 | 0x200 }
         {
             delete $Coverage{pod};  # Pod::Coverage unavailable
             $nopod = <<EOM;
-    Pod coverage is unvailable.  Please install Pod::Coverage from CPAN.
+    Pod coverage is unavailable.  Please install Pod::Coverage from CPAN.
 EOM
         }
 
