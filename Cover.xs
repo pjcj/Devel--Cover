@@ -187,8 +187,23 @@ static char *get_key(OP *o)
     uniq.addr          = o;
     uniq.op            = *o;
     uniq.op.op_ppaddr  = 0;  /* we mess with this field */
+    uniq.op.op_targ    = 0;  /* might change            */
 
     return (char *)&uniq;
+}
+
+static char *hex_key(char *key)
+{
+    static char hk[KEY_SZ * 2 + 1];
+    int c;
+    for (c = 0; c < KEY_SZ; c++)
+    {
+        NDEB(D(L, "%d of %d, <%02X> at %p\n",
+               c, KEY_SZ, (unsigned char)key[c], hk + c * 2));
+        sprintf(hk + c * 2, "%02X", (unsigned char)key[c]);
+    }
+    hk[c * 2] = 0;
+    return hk;
 }
 
 static void set_firsts_if_neeed(pTHX)
@@ -330,7 +345,8 @@ static void add_condition(pTHX_ SV *cond_ref, int value)
 #else
     i = 2;
 #endif
-    NDEB(D(L, "Looking through %d conditionals\n", av_len(conds) - 1));
+    NDEB(D(L, "Looking through %d conditionals at %p\n",
+           av_len(conds) - 1, PL_op));
     for (; i <= av_len(conds); i++)
     {
         OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
@@ -359,6 +375,48 @@ static void add_condition(pTHX_ SV *cond_ref, int value)
     if (!final) next->op_ppaddr = addr;
 }
 
+static void dump_conditions(pTHX)
+{
+    dMY_CXT;
+    HE *e;
+
+    MUTEX_LOCK(&DC_mutex);
+    hv_iterinit(Pending_conditionals);
+    PDEB(D(L, "Pending_conditionals:\n"));
+
+    while (e = hv_iternext(Pending_conditionals))
+    {
+        I32   len;
+        char *key         = hv_iterkey(e, &len);
+        SV   *cond_ref    = hv_iterval(Pending_conditionals, e);
+        AV   *conds       = (AV *)                 SvRV(cond_ref);
+        OP   *next        = INT2PTR(OP *,          SvIV(*av_fetch(conds, 0,0)));
+        OP *(*addr)(pTHX) = INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1,0)));
+        I32   i;
+
+#ifdef USE_ITHREADS
+        i = 0;  /* TODO - this can't be right */
+        conds = get_conds(aTHX_ conds);
+#else
+        i = 2;
+#endif
+
+        PDEB(D(L, "  %s: op %p, next %p (%d)\n",
+               hex_key(key), next, addr, av_len(conds) - 1));
+
+        for (; i <= av_len(conds); i++)
+        {
+            OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
+            SV **count = av_fetch(get_conditional_array(aTHX_ op), 0, 1);
+            int  type  = SvTRUE(*count) ? SvIV(*count) : 0;
+            sv_setiv(*count, 0);
+
+            PDEB(D(L, "    %2d: %p, %d\n", i - 2, op, type));
+        }
+    }
+    MUTEX_UNLOCK(&DC_mutex);
+}
+
 /* NOTE: caller must protect get_condition calls by locking DC_mutex */
 
 static OP *get_condition(pTHX)
@@ -374,9 +432,11 @@ static OP *get_condition(pTHX)
     }
     else
     {
-        PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p\n",
-                  PL_op, PL_op->op_targ, pc));
-        PDEB(svdump(Pending_conditionals));
+        PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
+                  PL_op, PL_op->op_targ, pc, hex_key(get_key(PL_op))));
+        dump_conditions(aTHX);
+        NDEB(svdump(Pending_conditionals));
+        /* croak("urgh"); */
         exit(1);
     }
 
@@ -554,10 +614,11 @@ static void cover_logop(pTHX)
                 cond = newSViv(PTR2IV(PL_op));
                 av_push(conds, cond);
 
-                NDEB(D(L, "Adding conditional %p to %p, "
-                          "making %d at %p, ppaddr: %p\n",
+                NDEB(D(L, "Adding conditional %p (%p) "
+                          "making %d at %p (%s), ppaddr: %p\n",
                        next, next->op_targ, av_len(conds) - 1, PL_op,
-                       next->op_ppaddr));
+                       hex_key(ch), next->op_ppaddr));
+                /* dump_conditions(aTHX); */
                 NDEB(svdump(Pending_conditionals));
                 NDEB(op_dump(PL_op));
                 NDEB(op_dump(next));
@@ -625,7 +686,7 @@ static int runops_cover(pTHX)
 
     dMY_CXT;
 
-    NDEB(D(L, "runops_cover\n"));
+    NDEB(D(L, "entering runops_cover\n"));
 
     MUTEX_LOCK(&DC_mutex);
     if (!Pending_conditionals)
@@ -701,8 +762,8 @@ static int runops_cover(pTHX)
 
     for (;;)
     {
-        NDEB(D(L, "running func %p\n", PL_op->op_ppaddr));
-        NDEB(D(L, "op is %s\n", OP_NAME(PL_op)));
+        NDEB(D(L, "running func %p from %p (%s)\n",
+               PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
 
         if (!MY_CXT.covering)
             goto call_fptr;
@@ -861,6 +922,8 @@ static int runops_cover(pTHX)
 
         PERL_ASYNC_CHECK();
     }
+
+    NDEB(D(L, "exiting runops_cover\n"));
 
     TAINT_NOT;
     return 0;
