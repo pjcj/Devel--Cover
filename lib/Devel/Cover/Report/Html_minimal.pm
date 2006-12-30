@@ -673,7 +673,7 @@ sub get_options
     $opt->{option}{pod}          = 1;
     $opt->{option}{outputfile}   = "coverage.html";
     $opt->{option}{summarytitle} = "Coverage Summary";
-    die "Bad option" unless
+    die "Invalid command line options" unless
         GetOptions($opt->{option},
                    qw(
                        data!

@@ -380,7 +380,7 @@ sub get_options
 {
     my ($self, $opt) = @_;
     $opt->{option}{outputfile} = "coverage.html";
-    die "Bad option" unless
+    die "Invalid command line options" unless
         GetOptions($opt->{option},
                    qw(
                        outputfile=s

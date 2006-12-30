@@ -338,7 +338,7 @@ The following command line options are supported:
 
  -silent               - don't print informational messages (default off)
  -summary              - give summary report                (default on)
- -report report_format - report format required             (default html)
+ -report report_format - report format                      (default html)
  -outputdir            - directory for output               (default db)
 
  -select filename      - only report on the file            (default all)
