@@ -373,8 +373,8 @@ WriteMakefile
     depend    => { distdir => "@files" },
     realclean => $] < 5.008008 ?
                  {
-                    FILES => "lib/Devel/Cover/Inc.pm",
-                    POSTOP => "\$(RM_RF) cover_db t"
+                     FILES => "lib/Devel/Cover/Inc.pm",
+                     POSTOP => "\$(RM_RF) cover_db t"
                  } :
                  { FILES => "lib/Devel/Cover/Inc.pm cover_db t" },
 );
