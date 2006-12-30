@@ -522,6 +522,7 @@ sub print_file_report {
                         $link = get_link($fin, $c, $.);
                     }
     
+                    no warnings "uninitialized";  # TODO - hack, get rid of this
                     my $text = '<div';
                     $text .= $m->{class} ? qq' class="$m->{class}"' : '';
                     $text .= $m->{title} ? qq' title="$m->{title}"' : '';
