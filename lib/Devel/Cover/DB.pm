@@ -45,16 +45,12 @@ sub new
     $self->{base} ||= $self->{db};
     bless $self, $class;
 
-    my $file;
     if (defined $self->{db})
     {
         $self->validate_db;
-        $file = "$self->{db}/$DB";
+        my $file = "$self->{db}/$DB";
         $self->read($file) if -e $file;
-        return $self unless -e $file;
     }
-
-    # croak "No input db, filehandle or cover" unless defined $self->{cover};
 
     $self
 }
@@ -149,13 +145,27 @@ sub validate_db
     # is not there but the db directory is empty.
     # die if the db is invalid.
 
+    # just warn for now
+    print "Devel::Cover: $self->{db} is an invalid database\n"
+        unless $self->is_valid;
+
     $self
 }
 
 sub is_valid
 {
     my $self = shift;
-    -e "$self->{db}/$DB"
+    return 1 if -e "$self->{db}/$DB";
+    opendir my $fh, $self->{db} or return 0;
+    for my $file (readdir $fh)
+    {
+        next if $file eq "." || $file eq "..";
+        next if ($file eq "runs" || $file eq "structure") &&
+                -e "$self->{db}/$file";
+        # warn "found $file in $self->{db}";
+        return 0;
+    }
+    closedir $fh
 }
 
 sub collected
