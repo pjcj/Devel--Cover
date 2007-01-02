@@ -10,7 +10,7 @@
 use strict;
 use warnings;
 
-use Devel::Cover::Test 0.59;
+use Devel::Cover::Test 0.60;
 
 my $run_test = sub
 {

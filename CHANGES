@@ -1,6 +1,6 @@
 Devel::Cover.pm history
 
-Release 0.60 - 
+Release 0.60 - 2nd January 2007
  - Simplify get_key function and remove TODO item (Gisle Aas).
  - Be careful with UNC paths on Windows (John LoVerso) (rt 24105).
  - Only call HvSHAREKEYS_off if threading is enabled.

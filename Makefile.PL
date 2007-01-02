@@ -19,8 +19,8 @@ use File::Copy;
 
 $| = 1;
 
-my $Version  = "0.59";
-my $Date     = "23rd August 2006";
+my $Version  = "0.60";
+my $Date     = "2nd January 2007";
 my $Author   = 'pjcj@cpan.org';
 
 my @perlbug  = ("perlbug", "-a", $Author,
