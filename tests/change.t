@@ -17,7 +17,7 @@ use Devel::Cover::Test 0.59;
 
 my $base = $Devel::Cover::Inc::Base;
 
-my $t  = "md5";
+my $t  = "change";
 my $ft = "$base/tests/$t";
 my $fg = "$base/tests/trivial";
 
@@ -27,15 +27,22 @@ my $run_test = sub
 
     copy($fg, $ft) or die "Cannot copy $fg to $ft: $!";
 
-    open T, ">>$ft" or die "Cannot open $ft: $!";
-    print T "# blah blah\n";
-    close T or die "Cannot close $ft: $!";
-
     $test->run_command($test->test_command);
 
     sleep 1;
 
     copy($fg, $ft) or die "Cannot copy $fg to $ft: $!";
+
+    open T, ">>$ft" or die "Cannot open $ft: $!";
+    print T <<'EOT';
+sub new_sub
+{
+    my $y = 1;
+}
+
+new_sub;
+EOT
+    close T or die "Cannot close $ft: $!";
 
     $test->{test_parameters} .= " -merge 1";
     $test->run_command($test->test_command);
@@ -46,4 +53,5 @@ my $test = Devel::Cover::Test->new
     $t,
     run_test => $run_test,
     end      => sub { unlink $ft },
+    no_report => 0,
 );

@@ -90,6 +90,7 @@ BEGIN
     ($File, $Line, $Collect) = ("", 0, 1);
     $Silent = ($ENV{HARNESS_PERL_SWITCHES} || "") =~ /Devel::Cover/ ||
               ($ENV{PERL5OPT}              || "") =~ /Devel::Cover/;
+    *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 }
 
 if (0 && $Config{useithreads})
@@ -100,15 +101,15 @@ if (0 && $Config{useithreads})
 
     my $original_join;
     BEGIN { $original_join = \&threads::join }
-    # print "original_join: $original_join\n";
+    # print STDERR "original_join: $original_join\n";
 
-    # $original_join = sub { print "j\n" };
+    # $original_join = sub { print STDERR "j\n" };
 
     # sub threads::join
     *threads::join = sub
     {
-        # print "threads::join- ", \&threads::join, "\n";
-        # print "original_join- $original_join\n";
+        # print STDERR "threads::join- ", \&threads::join, "\n";
+        # print STDERR "original_join- $original_join\n";
         my $self = shift;
         print STDERR "(joining thread ", $self->tid, ")\n";
         my @ret = $original_join->($self, @_);
@@ -126,7 +127,7 @@ if (0 && $Config{useithreads})
         $original_destroy->($self, @_);
     };
 
-    # print "threads::join: ", \&threads::join, "\n";
+    # print STDERR "threads::join: ", \&threads::join, "\n";
 
     my $new = \&threads::new;
     *threads::new = *threads::create = sub
@@ -138,12 +139,12 @@ if (0 && $Config{useithreads})
         $new->($class,
                sub
                {
-                   print "Starting thread\n";
+                   print STDERR "Starting thread\n";
                    set_coverage(keys %Coverage);
                    my $ret = [ $sub->(@_) ];
-                   print "Ending thread\n";
+                   print STDERR "Ending thread\n";
                    report() if $Initialised;
-                   print "Ended thread\n";
+                   print STDERR "Ended thread\n";
                    $wantarray ? @{$ret} : $ret->[0];
                },
                @_
@@ -180,7 +181,7 @@ EOM
         @coverage = get_coverage();
         my $last = pop @coverage || "";
 
-        print STDOUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
+        print OUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
               join(", ", @coverage),
               @coverage ? " and " : "",
               "$last.\n",
@@ -206,14 +207,14 @@ EOM
     my $run_end = 0;
     sub first_end
     {
-        # print "**** END 1 - $run_end\n";
+        # print STDERR "**** END 1 - $run_end\n";
         set_last_end() unless $run_end++
     }
 
     my $run_init = 0;
     sub first_init
     {
-        # print "**** INIT 1 - $run_init\n";
+        # print STDERR "**** INIT 1 - $run_init\n";
         collect_inits() unless $run_init++
     }
 }
@@ -253,7 +254,7 @@ sub import
     my $class = shift;
 
     my @o = (@_, split ",", $ENV{DEVEL_COVER_OPTIONS} || "");
-    # print __PACKAGE__, ": Parsing options from [@_]\n";
+    # print STDERR __PACKAGE__, ": Parsing options from [@_]\n";
 
     my $blib = -d "blib";
     @Inc     = () if "@o" =~ /-inc /;
@@ -405,8 +406,9 @@ sub normalised_file
 
     my $f = $file;
     $file =~ s/ \(autosplit into .*\)$//;
-    # print "file is <$file>\n";
-    # use Data::Dumper; print "file is <$file>\ncoverage is ", Dumper coverage(0);
+    # print STDERR "file is <$file>\n";
+    # use Data::Dumper;
+    # print STDERR "file is <$file>\ncoverage: ", Dumper coverage(0);
     if (exists coverage(0)->{module} && exists coverage(0)->{module}{$file} &&
         !File::Spec->file_name_is_absolute($file))
     {
@@ -484,10 +486,11 @@ sub use_file
     for (@Ignore_re) { return $Files{$file} = 0 if $f =~ $_ }
     for (@Inc_re)    { return $Files{$file} = 0 if $f =~ $_ }
 
-    # system "pwd; ls -l $file";
+    # system "pwd; ls -l '$file'";
     $Files{$file} = -e $file ? 1 : 0;
-    warn __PACKAGE__ . qq(: Can't find file "$file": ignored.\n)
-        unless $Files{$file} || $Silent || $file =~ /\(eval \d+\)/;
+    warn __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
+        unless $Files{$file} || $Silent || $file =~ /\(eval \d+\)/ ||
+               $file eq "../../lib/Storable.pm";
 
     $Files{$file}
 }
@@ -503,7 +506,7 @@ sub check_file
 
     my $file = $op->file;
     my $use  = use_file($file);
-    # printf "%6s $file\n", $use ? "use" : "ignore";
+    # printf STDERR "%6s $file\n", $use ? "use" : "ignore";
 
     $use
 }
@@ -513,7 +516,7 @@ sub B::GV::find_cv
     my $cv = $_[0]->CV;
     return unless $$cv;
 
-    # print "find_cv $$cv\n" if check_file($cv);
+    # print STDERR "find_cv $$cv\n" if check_file($cv);
     push @Cvs, $cv if check_file($cv);
     push @Cvs, grep check_file($_), $cv->PADLIST->ARRAY->ARRAY
         if $cv->can("PADLIST") &&
@@ -530,7 +533,7 @@ sub sub_info
     {
         return unless $cv->GV->can("SAFENAME");
         $name = $cv->GV->SAFENAME;
-        # print "--[$name]--\n";
+        # print STDERR "--[$name]--\n";
         $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
     }
     my $root = $cv->ROOT;
@@ -553,7 +556,7 @@ sub sub_info
 
 sub check_files
 {
-    # print "Checking files\n";
+    # print STDERR "Checking files\n";
 
     @Cvs = grep check_file($_), B::main_cv->PADLIST->ARRAY->ARRAY;
 
@@ -572,7 +575,7 @@ sub check_files
             local ($Line, $File);
             get_location($start);
             $line = $Line;
-            # print "$name - $File:$Line\n";
+            # print STDERR "$name - $File:$Line\n";
         }
         ($line, $name)
     };
@@ -609,7 +612,8 @@ sub report
     $Structure      = Devel::Cover::DB::Structure->new(base => $DB);
     $Structure->read_all;
     $Structure->add_criteria(@collected);
-    # use Data::Dumper; print STDERR "Start structure", Dumper $Structure;
+    # use Data::Dumper; $Data::Dumper::Indent = 1;
+    # use Data::Dumper; print STDERR "Start structure: ", Dumper $Structure;
 
     # print STDERR "Processing cover data\n@Inc\n";
     $Coverage = coverage(1) || die "No coverage data available.\n";
@@ -631,17 +635,17 @@ sub report
         get_cover($_)
             for get_ends()->isa("B::AV") ? get_ends()->ARRAY : ();
     }
-    # print "--- @Cvs\n";
+    # print STDERR "--- @Cvs\n";
     get_cover($_) for @Cvs;
 
     my %files;
     $files{$_}++ for keys %{$Run{count}}, keys %{$Run{vec}};
     for my $file (sort keys %files)
     {
-        # print "looking at $file\n";
+        # print STDERR "looking at $file\n";
         unless (use_file($file))
         {
-            # print "deleting $file\n";
+            # print STDERR "deleting $file\n";
             delete $Run{count}->{$file};
             delete $Run{vec}  ->{$file};
             $Structure->delete_file($file);
@@ -658,7 +662,7 @@ sub report
         $Structure->store_counts($file);
     }
 
-    # use Data::Dumper; print STDERR "End structure", Dumper $Structure;
+    # use Data::Dumper; print STDERR "End structure: ", Dumper $Structure;
 
     my $run = time . ".$$." . sprintf "%05d", rand 2 ** 16;
     my $cover = Devel::Cover::DB->new
@@ -678,7 +682,7 @@ sub report
 
     $cover->{db} = $DB;
 
-    print STDOUT __PACKAGE__, ": Writing coverage database to $DB\n"
+    print OUT __PACKAGE__, ": Writing coverage database to $DB\n"
         unless $Silent;
     $cover->write;
     $cover->print_summary if $Summary && !$Silent;
@@ -691,7 +695,7 @@ sub add_subroutine_cover
     get_location($op);
     return unless $File;
 
-    # print "Subroutine $Sub_name $Line:$File: ", $op->name, "\n";
+    # print STDERR "Subroutine $Sub_name $Line:$File: ", $op->name, "\n";
 
     my $key = get_key($op);
     my $val = $Coverage->{statement}{$key} || 0;
@@ -888,7 +892,7 @@ sub deparse
 
         my $name = $op->can("name") ? $op->name : "Unknown";
 
-        # print "$class:$name at $File:$Line\n";
+        # print STDERR "$class:$name at $File:$Line\n";
 
         {
             # Collect everything under here.
@@ -896,7 +900,7 @@ sub deparse
             $deparse = eval { $Original{deparse}->($self, @_) };
             $deparse =~ s/^\010+//mg if defined $deparse;
             $deparse = "Deparse error: $@" if $@;
-            # print "Collect Deparse $op $$op => <$deparse>\n";
+            # print STDERR "Collect Deparse $op $$op => <$deparse>\n";
         }
 
         # Get the coverage on this op.
@@ -957,7 +961,7 @@ sub deparse
         $deparse = eval { $Original{deparse}->($self, @_) };
         $deparse =~ s/^\010+//mg if defined $deparse;
         $deparse = "Deparse error: $@" if $@;
-        # print "Deparse => <$deparse>\n";
+        # print STDERR "Deparse => <$deparse>\n";
     }
 
     $deparse
@@ -1042,11 +1046,11 @@ sub get_cover
 
     ($Sub_name, my $start) = sub_info($cv);
 
-    # print "get_cover: <$Sub_name>\n";
+    # print STDERR "get_cover: <$Sub_name>\n";
     return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK.
 
     get_location($start) if $start;
-    # print "[[$File:$Line]]\n";
+    # print STDERR "[[$File:$Line]]\n";
     # return unless length $File;
     return if length $File && !use_file($File);
 
@@ -1098,7 +1102,7 @@ sub get_cover
                 }
             }
             $Pod = "Pod::Coverage" if delete $opts{nocp};
-            # use Data::Dumper; print "$Pod, ", Dumper \%opts;
+            # use Data::Dumper; print STDERR "$Pod, ", Dumper \%opts;
             if ($Pod{$file} ||= $Pod->new(package => $pkg, %opts))
             {
                 my $covered;
@@ -1129,9 +1133,9 @@ sub get_cover
     # my $dd = @_ && ref $_[0]
                  # ? $deparse->deparse($_[0], 0)
                  # : $deparse->deparse_sub($cv, 0);
-    # print "get_cover: <$Sub_name>\n";
-    # print "[[$File:$Line]]\n";
-    # print "<$dd>\n";
+    # print STDERR "get_cover: <$Sub_name>\n";
+    # print STDERR "[[$File:$Line]]\n";
+    # print STDERR "<$dd>\n";
 
     no warnings "redefine";
     local *B::Deparse::deparse     = \&deparse;
@@ -1141,7 +1145,7 @@ sub get_cover
     my $de = @_ && ref $_[0]
                  ? $deparse->deparse($_[0], 0)
                  : $deparse->deparse_sub($cv, 0);
-    # print "<$de>\n";
+    # print STDERR "<$de>\n";
     $de
 }
 

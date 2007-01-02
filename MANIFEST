@@ -47,6 +47,7 @@ tests/alias
 tests/alias1
 tests/Alias1.pm
 tests/branch_return_sub
+tests/change.t
 tests/cond_and
 tests/cond_branch
 tests/cond_or
@@ -99,6 +100,7 @@ test_output/cover/alias1.5.006001
 test_output/cover/alias1.5.008
 test_output/cover/branch_return_sub.5.006001
 test_output/cover/branch_return_sub.5.008
+test_output/cover/change.5.006001
 test_output/cover/cond_and.5.006001
 test_output/cover/cond_and.5.008
 test_output/cover/cond_and.5.008001

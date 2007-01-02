@@ -114,12 +114,14 @@ sub merge_runs
 {
     my $self = shift;
     my $db = $self->{db};
-    # print "merge_runs from $db/runs/*\n";
+    # print STDERR "merge_runs from $db/runs/*\n";
     # system "ls -al $db/runs";
     return $self unless length $db;
     opendir DIR, "$db/runs" or return $self;
     my @runs = map "$db/runs/$_", grep !/^\.\.?/, readdir DIR;
     closedir DIR or die "Can't closedir $db/runs: $!";
+
+    $self->{changed_files} = {};
 
     # The ordering is important here.  The runs need to be merged in the order
     # they were created.  We're only at a granularity of one second, but that
@@ -132,8 +134,22 @@ sub merge_runs
         my $r = Devel::Cover::DB->new(base => $self->{base}, db => $run);
         $self->merge($r);
     }
+
     $self->write($db) if @runs;
     rmtree(\@runs);
+
+    if (keys %{$self->{changed_files}})
+    {
+        my $st = Devel::Cover::DB::Structure->new(base => $self->{base});
+        $st->read_all;
+        for my $file (sort keys %{$self->{changed_files}})
+        {
+            # print STDERR "dealing with changed file <$file>\n";
+            $st->delete_file($file);
+        }
+        $st->write($self->{base});
+    }
+
     $self
 }
 
@@ -146,7 +162,7 @@ sub validate_db
     # die if the db is invalid.
 
     # just warn for now
-    print "Devel::Cover: $self->{db} is an invalid database\n"
+    print STDERR "Devel::Cover: $self->{db} is an invalid database\n"
         unless $self->is_valid;
 
     $self
@@ -180,7 +196,7 @@ sub merge
     my ($self, $from) = @_;
 
     # use Data::Dumper; $Data::Dumper::Indent = 1;
-    # print "Merging ", Dumper($self), "From ", Dumper($from);
+    # print STDERR "Merging ", Dumper($self), "From ", Dumper($from);
 
     while (my ($fname, $frun) = each %{$from->{runs}})
     {
@@ -188,7 +204,8 @@ sub merge
         {
             while (my ($name, $run) = each %{$self->{runs}})
             {
-                # print "digests for $file: $digest, $run->{digests}{$file}\n";
+                # print STDERR
+                #     "digests for $file: $digest, $run->{digests}{$file}\n";
                 if ($run->{digests}{$file} && $digest &&
                     $run->{digests}{$file} ne $digest)
                 {
@@ -199,6 +216,7 @@ sub merge
                     delete $run->{digests}{$file};
                     delete $run->{count}  {$file};
                     delete $run->{vec}    {$file};
+                    $self->{changed_files}{$file}++;
                 }
             }
         }
@@ -207,7 +225,7 @@ sub merge
     _merge_hash($self->{runs},      $from->{runs});
     _merge_hash($self->{collected}, $from->{collected});
 
-    return $self;
+    return $self;  # TODO - what's going on here?
 
     # When the database gets big, it's quicker to merge into what's
     # already there.
@@ -220,7 +238,7 @@ sub merge
         $from->{$_} = $self->{$_} unless $_ eq "runs" || $_ eq "collected";
     }
 
-    # print "Giving ", Dumper($from);
+    # print STDERR "Giving ", Dumper($from);
 
     $_[0] = $from;
 }
@@ -404,7 +422,7 @@ sub add_statement
     my %line;
     for my $i (0 .. $#$fc)
     {
-        # print "statement: $i\n";
+        # print STDERR "statement: $i\n";
         my $l = $sc->[$i];
         unless (defined $l)
         {
@@ -419,7 +437,7 @@ sub add_statement
         $cc->{$l}[$n][0]  += $fc->[$i];
         $cc->{$l}[$n][1] ||= $uc->{$l}[$n][0][1];
     }
-    # use Data::Dumper; print Dumper $uc;
+    # use Data::Dumper; print STDERR Dumper $uc;
     # use Data::Dumper; print STDERR "cc: ", Dumper $cc;
 }
 
@@ -480,7 +498,8 @@ sub add_subroutine
 {
     my $self = shift;
     my ($cc, $sc, $fc, $uc) = @_;
-    # use Data::Dumper; print STDERR "add_subroutine():\n", Dumper $cc, $sc, $fc, $uc;
+    # use Data::Dumper;
+    #     print STDERR "add_subroutine():\n", Dumper $cc, $sc, $fc, $uc;
     # $cc = { line_number => [ [ count, sub_name, uncoverable ], [ ... ] ], .. }
     # $sc = [ [ line_number, sub_name ], [ ... ] ]
     # $fc = [ count, ... ]
@@ -547,7 +566,7 @@ sub uncoverable
         }
     }
 
-    # use Data::Dumper; $Data::Dumper::Indent = 1; print Dumper $u;
+    # use Data::Dumper; $Data::Dumper::Indent = 1; print STDERR Dumper $u;
     # Now change the format of the uncoverable information.
 
     for my $file (sort keys %$u)
@@ -569,7 +588,7 @@ sub uncoverable
         }
         close F;
         my $f = $u->{$file};
-        # use Data::Dumper; $Data::Dumper::Indent = 1; print Dumper $f;
+        # use Data::Dumper; $Data::Dumper::Indent = 1; print STDERR Dumper $f;
         for my $crit (keys %$f)
         {
             my $c = $f->{$crit};
@@ -595,7 +614,7 @@ sub uncoverable
         $u->{$df->hexdigest} = delete $u->{$file};
     }
 
-    # use Data::Dumper; $Data::Dumper::Indent = 1; print Dumper $u;
+    # use Data::Dumper; $Data::Dumper::Indent = 1; print STDERR Dumper $u;
     $u
 }
 

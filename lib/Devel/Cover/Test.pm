@@ -177,14 +177,16 @@ sub run_command
 
     my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
 
-    print "Running test [$command]\n" if $debug;
+    print STDERR "Running test [$command]\n" if $debug;
 
     open T, "$command 2>&1 |" or die "Cannot run $command: $!";
     while (<T>)
     {
-        print if $debug;
+        print STDERR if $debug;
     }
     close T or die "Cannot close $command: $!";
+
+    1
 }
 
 sub run_test
@@ -199,8 +201,9 @@ sub run_test
     open I, $gold or die "Cannot open $gold: $!";
     my @cover = <I>;
     close I or die "Cannot close $gold: $!";
+    $self->{cover} = \@cover;
 
-    print "gold from $gold\n", @cover if $debug;
+    # print STDERR "gold from $gold\n", @cover if $debug;
 
     eval "use Test::Differences";
     my $differences = $INC{"Test/Differences.pm"};
@@ -221,8 +224,21 @@ sub run_test
         ? $self->{run_test}->($self)
         : $self->run_command($self->test_command);
 
+    $self->run_cover unless $self->{no_report};
+
+    $self->{end}->() if $self->{end};
+}
+
+sub run_cover
+{
+    my $self = shift;
+
+    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
+    eval "use Test::Differences";
+    my $differences = $INC{"Test/Differences.pm"};
+
     my $cover_com = $self->cover_command;
-    print "Running cover [$cover_com]\n" if $debug;
+    print STDERR "Running cover [$cover_com]\n" if $debug;
 
     my @at;
     my @ac;
@@ -236,7 +252,7 @@ sub run_test
         {
             $_ = scalar $get_line->();
             $_ = "" unless defined $_;
-            print if $debug;
+            print STDERR $_ if $debug;
             redo if /^Devel::Cover: merging run/;
             s/^(Reading database from ).*/$1/;
             s|(__ANON__\[) .* (/tests/ \w+ : \d+ \])|$1$2|x;
@@ -261,10 +277,11 @@ sub run_test
     open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
     while (!eof T)
     {
-        my $t = $change_line->(sub {<T>});
-        my $c = $change_line->(sub {shift @cover});
+        my $t = $change_line->(sub { <T> });
+        my $c = $change_line->(sub { shift @{$self->{cover}} });
         # print STDERR "[$t]\n[$c]\n" if $t ne $c;
-        # chomp(my $tn = $t); chomp(my $cn = $c); print "c-[$tn] $.\ng=[$cn]\n";
+        # chomp(my $tn = $t); chomp(my $cn = $c);
+        # print STDERR "c-[$tn] $.\ng=[$cn]\n";
         if ($differences)
         {
             push @at, $t;
@@ -273,7 +290,7 @@ sub run_test
         else
         {
             $ENV{DEVEL_COVER_NO_COVERAGE} ? ok 1 : ok $t, $c;
-            last if $ENV{DEVEL_COVER_NO_COVERAGE} && !@cover;
+            last if $ENV{DEVEL_COVER_NO_COVERAGE} && !@{$self->{cover}};
         }
     }
     if ($differences)
@@ -284,10 +301,9 @@ sub run_test
     }
     elsif ($ENV{DEVEL_COVER_NO_COVERAGE})
     {
-        ok 1 for @cover;
+        ok 1 for @{$self->{cover}};
     }
     close T or die "Cannot close $cover_com: $!";
-    $self->{end}->() if $self->{end};
 }
 
 sub create_gold
@@ -317,7 +333,7 @@ sub create_gold
         : $self->run_command($self->test_command);
 
     my $cover_com = $self->cover_command;
-    print "Running cover [$cover_com]\n" if $debug;
+    print STDERR "Running cover [$cover_com]\n" if $debug;
 
     open G, ">$new_gold" or die "Cannot open $new_gold: $!";
     open T, "$cover_com|" or die "Cannot run $cover_com: $!";
@@ -326,7 +342,7 @@ sub create_gold
         next if $l =~ /^Devel::Cover: merging run/;
         $l =~ s/^($_: ).*$/$1.../
             for "Run", "Perl version", "OS", "Start", "Finish";
-        print $l if $debug;
+        print STDERR $l if $debug;
         print G $l;
         $ng .= $l;
     }
@@ -339,7 +355,7 @@ sub create_gold
         my $g = do { local $/; <G> };
         close G or die "Cannot close $gold: $!";
 
-        # print "checking $new_gold against $gold\n";
+        # print STDERR "checking $new_gold against $gold\n";
         if ($ng eq $g)
         {
             print "Output from $new_gold matches $gold\n";
@@ -353,7 +369,7 @@ sub create_gold
 END
 {
     my $self = $Test;
-    $self->run_test  if $self->{run_test_at_end};
+    $self->run_test if $self->{run_test_at_end};
 }
 
 1;
