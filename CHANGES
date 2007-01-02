@@ -3,6 +3,15 @@ Devel::Cover.pm history
 Release 0.60 - 
  - Simplify get_key function and remove TODO item (Gisle Aas).
  - Be careful with UNC paths on Windows (John LoVerso) (rt 24105).
+ - Only call HvSHAREKEYS_off if threading is enabled.
+ - s/unvailable/unavailable/ (Jim Cromie).
+ - Don't key on op_targ - it might change (rt 22701).
+ - Tidy up docs and error messages for reports (rt 21098).
+ - Better database validation.
+ - Don't delete invalid datbases (rt 16039).
+ - Tested against 5.9.5.
+ - Allow for new anonlist and anonhash ops (rt 24067).
+ - Use outputfile for both cover and cpancover.
 
 Release 0.59 - 23rd August 2006
  - Tidy up HTML, especially for cpancover.
