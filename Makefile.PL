@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2001-2006, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2007, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -39,7 +39,7 @@ my @inc      = sort keys %inc;
 open I, ">lib/Devel/Cover/Inc.pm"
     or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
 print I <<"EOI";
-# Copyright 2001-2006, Paul Johnson (pjcj\@cpan.org)
+# Copyright 2001-2007, Paul Johnson (pjcj\@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -108,7 +108,7 @@ for my $t (readdir D)
     print T <<EOT;
 #!$^X
 
-# Copyright 2002-2006, Paul Johnson (pjcj\@cpan.org)
+# Copyright 2002-2007, Paul Johnson (pjcj\@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -202,11 +202,11 @@ print "checking for PPI::HTML         version 1.07 ........ ";
 
 $e = <<EOM;
 
-One of PPI::HTML 1.07 or Perl::Tidy 20060719 is required to add syntax 
-highlighting to some HTML backends to cover and for cpancover.  Unless 
-you have specific requirements this should not be a problem, but you will 
-not be able to use syntax highlighting in these reports until you install 
-PPI::HTML or Perl::Tidy, available from the CPAN.  In the meantime you 
+One of PPI::HTML 1.07 or Perl::Tidy 20060719 is required to add syntax
+highlighting to some HTML backends to cover and for cpancover.  Unless
+you have specific requirements this should not be a problem, but you will
+not be able to use syntax highlighting in these reports until you install
+PPI::HTML or Perl::Tidy, available from the CPAN.  In the meantime you
 may continue to use the rest of Devel::Cover.
 
 EOM
