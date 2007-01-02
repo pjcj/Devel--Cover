@@ -29,7 +29,7 @@ sub print_runs
     }
 }
 
-sub print_file
+sub print_statement
 {
     my ($db, $file, $options) = @_;
 
@@ -269,7 +269,7 @@ sub report
     print_runs($db, $options);
     for my $file (@{$options->{file}})
     {
-        print_file       ($db, $file, $options);
+        print_statement  ($db, $file, $options) if $options->{show}{statement};
         print_branches   ($db, $file, $options) if $options->{show}{branch};
         print_conditions ($db, $file, $options) if $options->{show}{condition};
         print_subroutines($db, $file, $options) if $options->{show}{subroutine};

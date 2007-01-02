@@ -23,6 +23,7 @@ lib/Devel/Cover/DB/File.pm
 lib/Devel/Cover/DB/Structure.pm
 lib/Devel/Cover/Op.pm
 lib/Devel/Cover/Pod.pm
+lib/Devel/Cover/Report/Compilation.pm
 lib/Devel/Cover/Report/Html.pm
 lib/Devel/Cover/Report/Html_basic.pm
 lib/Devel/Cover/Report/Html_minimal.pm
