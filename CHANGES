@@ -12,6 +12,7 @@ Release 0.60 -
  - Tested against 5.9.5.
  - Allow for new anonlist and anonhash ops (rt 24067).
  - Use outputfile for both cover and cpancover.
+ - Add compilation report (Denis Howe).
 
 Release 0.59 - 23rd August 2006
  - Tidy up HTML, especially for cpancover.
