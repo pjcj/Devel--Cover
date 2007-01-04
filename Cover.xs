@@ -870,6 +870,8 @@ static int runops_cover(pTHX)
 #endif
                 if (collecting(Statement))
                 {
+                    /* PDEB(D(L, "Statement: %s:%ld\n", */
+                           /* CopFILE(cCOP), CopLINE(cCOP))); */
                     ch    = get_key(PL_op);
                     count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
                     c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;

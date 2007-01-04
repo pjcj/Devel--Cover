@@ -27,6 +27,8 @@ my $DB = "cover.12";  # Version 12 of the database.
 @Devel::Cover::DB::Criteria_short =
     (qw( stmt      bran   path cond      sub        pod time ));
 
+# use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
+
 sub new
 {
     my $class = shift;
@@ -426,7 +428,6 @@ sub add_statement
         my $l = $sc->[$i];
         unless (defined $l)
         {
-            # use Data::Dumper;
             # print STDERR "sc ", scalar @$sc, ", fc ", scalar @$fc, "\n";
             # print STDERR "sc ", Dumper($sc), "fc ", Dumper($fc);
             warn "Devel::Cover: ignoring extra statement\n";

@@ -94,18 +94,29 @@ sub criteria
 sub set_subroutine
 {
     my $self = shift;
-    my ($sub_name, $file, $line) = @{$self}{qw( sub_name file line )} = @_;
+    my ($sub_name, $file, $line, $scount) =
+       @{$self}{qw( sub_name file line scount )} = @_;
 
+    # When new code is added at runtime, via a string eval in some guise, we
+    # need information about where structure information for the subroutine
+    # is.  This information is stored in $self->{f}{$file}{start} keyed on the
+    # filename, line number, subroutine name and the count, the count being
+    # for when there are multiple subroutines of the same name on the same
+    # line (such subroutines generally being called BEGIN).
+
+    # use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
+    # print STDERR "set_subroutine start $file:$line $sub_name($scount) ",
+                 # Dumper $self->{f}{$file}{start};
     $self->{additional} = 0;
     if ($self->reuse($file))
     {
         # reusing a structure
-        if (exists $self->{f}{$file}{start}{$line}{$sub_name})
+        if (exists $self->{f}{$file}{start}{$line}{$sub_name}[$scount])
         {
             # sub already exists - normal case
             # print STDERR "reuse $file:$line:$sub_name\n";
             $self->{count}{$_}{$file} =
-                $self->{f}{$file}{start}{$line}{$sub_name}{$_}
+                $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
                 for $self->criteria;
         }
         else
@@ -117,7 +128,7 @@ sub set_subroutine
                 # already had such a sub in module
                 # print STDERR "reuse additional $file:$line:$sub_name\n";
                 $self->{count}{$_}{$file} =
-                    $self->{f}{$file}{start}{$line}{$sub_name}{$_} =
+                    $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_} =
                     ($self->add_count($_))[0]
                     for $self->criteria;
             }
@@ -127,8 +138,8 @@ sub set_subroutine
                 # print STDERR "reuse first $file:$line:$sub_name\n";
                 $self->{count}{$_}{$file} =
                     $self->{additional_count}{$_}{$file} =
-                    $self->{f}{$file}{start}{$line}{$sub_name}{$_} =
-                    $self->{f}{$file}{start}{-1}{"__COVER__"}{$_}
+                    $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_} =
+                    $self->{f}{$file}{start}{-1}{"__COVER__"}[$scount]{$_}
                     for $self->criteria;
             }
         }
@@ -138,21 +149,20 @@ sub set_subroutine
         # first time sub seen in new structure
         # print STDERR "new $file:$line:$sub_name\n";
         $self->{count}{$_}{$file} =
-            $self->{f}{$file}{start}{$line}{$sub_name}{$_} =
+            $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_} =
             $self->get_count($_)
             for $self->criteria;
     }
-    # use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
-    # print STDERR Dumper $self->{f}{$file}{start};
+    # print STDERR "set_subroutine start $file:$line $sub_name($scount) ",
+                 # Dumper $self->{f}{$file}{start};
 }
 
 sub store_counts
 {
     my $self = shift;
     my ($file) = @_;
-    # $self->set_subroutine("__COVER__", $file, -1);
     $self->{count}{$_}{$file} =
-        $self->{f}{$file}{start}{-1}{__COVER__}{$_} =
+        $self->{f}{$file}{start}{-1}{__COVER__}[0]{$_} =
         $self->get_count($_)
         for $self->criteria;
     # use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
@@ -164,6 +174,7 @@ sub reuse
     my $self = shift;
     my ($file) = @_;
     exists $self->{f}{$file}{start}{-1}{"__COVER__"}
+    # TODO - exists $self->{f}{$file}{start}{-1}
 }
 
 sub set_file
