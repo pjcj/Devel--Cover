@@ -218,43 +218,51 @@ sub print_subroutines
 {
     my ($db, $file, $options) = @_;
 
-    my $subroutines = $db->cover->file($file)->subroutine;
-
-    return unless $subroutines;
-
-    my %subs;
-    my $maxl = 8;
+    my $dfil = $db->cover->file($file);
+    my $subs = $dfil->subroutine or return;
+    my $pods = $options->{show}{pod} && $dfil->pod;
+    my $maxh = 8;
     my $maxc = 5;
+    my $maxp = 3;
     my $maxs = 10;
+    my %subs;
 
-    for my $location ($subroutines->items)
+    for my $location ($subs->items)
     {
-        my $l = $subroutines->location($location);
+        my $l = $subs->location($location);
+        my $d = $pods && $pods->location($location);
         for my $sub (@$l)
         {
-            my $l = "$file:$location";
+            my $h = "$file:$location";
             my $c = ($sub->uncoverable ? "-" : "") . $sub->covered;
+            my $e = $pods && shift @$d;
+            my $p = $e && ($e->uncoverable ? "-" : "") . $e->covered;
             my $s = $sub->name;
-            $maxl = length $l if length $l > $maxl;
+            $maxh = length $h if length $h > $maxh;
             $maxc = length $c if length $c > $maxc;
+            $maxp = length $p if length $p > $maxp;
             $maxs = length $s if length $s > $maxs;
-            push @{$subs{$sub->covered ? "covered" : "uncovered"}{$s}}, [$c, $l]
+            push @{$subs{$sub->covered ? "covered" : "uncovered"}{$s}},
+                 [$c, $pods ? $p : (), $h];
         }
     }
 
-    my $template = "%-${maxs}s %${maxc}s %-${maxl}s\n";
+    my $template = "%-${maxs}s %${maxc}s ";
+    $template .= "%${maxp}s " if $pods;
+    $template .= "%-${maxh}s\n";
 
     for my $type (sort keys %subs)
     {
         print ucfirst $type, " Subroutines\n";
         print "-" x (12 + length $type), "\n\n";
-        printf $template, "Subroutine", "Count", "Location";
-        printf $template, "-" x $maxs, "-" x $maxc, "-" x $maxl;
+        printf $template, "Subroutine", "Count", $pods ? "Pod" : (), "Location";
+        printf $template, "-" x $maxs, "-" x $maxc, $pods ? "-" x $maxp : (),
+                          "-" x $maxh;
 
         for my $s (sort keys %{$subs{$type}})
         {
             printf $template, $s, @$_
-                for sort {$a->[1] cmp $b->[1]} @{$subs{$type}{$s}};
+                for sort {$a->[-1] cmp $b->[-1]} @{$subs{$type}{$s}};
         }
         print "\n";
     }
@@ -272,7 +280,8 @@ sub report
         print_statement  ($db, $file, $options) if $options->{show}{statement};
         print_branches   ($db, $file, $options) if $options->{show}{branch};
         print_conditions ($db, $file, $options) if $options->{show}{condition};
-        print_subroutines($db, $file, $options) if $options->{show}{subroutine};
+        print_subroutines($db, $file, $options)
+            if $options->{show}{subroutine} || $options->{show}{pod};
     }
 }
 
