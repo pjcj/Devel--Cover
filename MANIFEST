@@ -161,7 +161,9 @@ test_output/cover/overload_bool.5.008
 test_output/cover/overloaded.5.006001
 test_output/cover/overloaded.5.008
 test_output/cover/pod.5.006001
+test_output/cover/pod.5.008
 test_output/cover/pod_nocp.5.006001
+test_output/cover/pod_nocp.5.008
 test_output/cover/require.5.006001
 test_output/cover/require.5.008
 test_output/cover/skip.5.006001

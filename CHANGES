@@ -1,5 +1,11 @@
 Devel::Cover.pm history
 
+Release 0.61 - 10th January 2007
+ - Fix some "ignored" errors due to multiple subs of the same name on the same
+   line (rt 14192).
+ - Display pod coverage with subroutine coverage in text report.
+ - Update golden output (tests were failing in 0.60).
+
 Release 0.60 - 2nd January 2007
  - Simplify get_key function and remove TODO item (Gisle Aas).
  - Be careful with UNC paths on Windows (John LoVerso) (rt 24105).
