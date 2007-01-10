@@ -28,6 +28,13 @@ yy             0   1 tests/Module1.pm:28
 zz             0   0 tests/Module1.pm:33
 
 
+Covered Subroutines
+-------------------
+
+Subroutine Count Pod Location          
+---------- ----- --- ------------------
+BEGIN          1     tests/PodMod.pm:10
+
 Uncovered Subroutines
 ---------------------
 
@@ -37,6 +44,16 @@ vv             0   1 tests/PodMod.pm:12
 ww             0   0 tests/PodMod.pm:13
 yy             0   1 tests/PodMod.pm:14
 
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location    
+---------- ----- ------------
+BEGIN          1 tests/pod:14
+BEGIN          1 tests/pod:15
+BEGIN          1 tests/pod:17
+BEGIN          1 tests/pod:19
 
 Uncovered Subroutines
 ---------------------

@@ -5,9 +5,9 @@ Reading database from /home/pjcj/g/perl/svk/dc/cover_db
 File                                                               pod  total
 --------------------------------------------------------------- ------ ------
 tests/Module1.pm                                                  50.0   50.0
-tests/PodMod.pm                                                   66.7   66.7
-tests/pod                                                          n/a    n/a
-Total                                                             60.0   60.0
+tests/PodMod.pm                                                   33.3   33.3
+tests/pod_nocp                                                     n/a    n/a
+Total                                                             40.0   40.0
 --------------------------------------------------------------- ------ ------
 
 
@@ -28,6 +28,13 @@ yy             0   1 tests/Module1.pm:28
 zz             0   0 tests/Module1.pm:33
 
 
+Covered Subroutines
+-------------------
+
+Subroutine Count Pod Location          
+---------- ----- --- ------------------
+BEGIN          1     tests/PodMod.pm:10
+
 Uncovered Subroutines
 ---------------------
 
@@ -35,14 +42,24 @@ Subroutine Count Pod Location
 ---------- ----- --- ------------------
 vv             0   1 tests/PodMod.pm:12
 ww             0   0 tests/PodMod.pm:13
-yy             0   1 tests/PodMod.pm:14
+yy             0   0 tests/PodMod.pm:14
 
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location         
+---------- ----- -----------------
+BEGIN          1 tests/pod_nocp:14
+BEGIN          1 tests/pod_nocp:15
+BEGIN          1 tests/pod_nocp:17
+BEGIN          1 tests/pod_nocp:19
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location    
----------- ----- ------------
-xx             0 tests/pod:25
+Subroutine Count Location         
+---------- ----- -----------------
+xx             0 tests/pod_nocp:25
 
 

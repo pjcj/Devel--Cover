@@ -111,7 +111,7 @@ test_output/cover/cond_branch.5.008001
 test_output/cover/cond_or.5.006001
 test_output/cover/cond_or.5.008
 test_output/cover/cond_or.5.008001
-test_output/cover/cond_or.5.009004
+test_output/cover/cond_or.5.009005
 test_output/cover/cond_xor.5.006001
 test_output/cover/cond_xor.5.008
 test_output/cover/cond_xor.5.008001
@@ -170,7 +170,7 @@ test_output/cover/sort.5.008
 test_output/cover/special_blocks.5.006001
 test_output/cover/special_blocks.5.008
 test_output/cover/special_blocks.5.008001
-test_output/cover/special_blocks.5.009003
+test_output/cover/special_blocks.5.009005
 test_output/cover/statement.5.006001
 test_output/cover/subs_only.5.006001
 test_output/cover/t0.5.006001
