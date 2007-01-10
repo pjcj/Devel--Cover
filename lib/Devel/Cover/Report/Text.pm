@@ -236,12 +236,12 @@ sub print_subroutines
             my $h = "$file:$location";
             my $c = ($sub->uncoverable ? "-" : "") . $sub->covered;
             my $e = $pods && shift @$d;
-            my $p = $e && ($e->uncoverable ? "-" : "") . $e->covered;
+            my $p = $e ? ($e->uncoverable ? "-" : "") . $e->covered : "";
             my $s = $sub->name;
-            $maxh = length $h if length $h > $maxh;
-            $maxc = length $c if length $c > $maxc;
-            $maxp = length $p if length $p > $maxp;
-            $maxs = length $s if length $s > $maxs;
+            $maxh = length $h if       length $h > $maxh;
+            $maxc = length $c if       length $c > $maxc;
+            $maxp = length $p if $p && length $p > $maxp;
+            $maxs = length $s if       length $s > $maxs;
             push @{$subs{$sub->covered ? "covered" : "uncovered"}{$s}},
                  [$c, $pods ? $p : (), $h];
         }
