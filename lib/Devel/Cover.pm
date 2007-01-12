@@ -1306,7 +1306,7 @@ The inc directories are initially populated with the contents of the
 directories using -inc, or add to them using +inc.
 
 Although these options take regular expressions, you should not enclose the RE
-within //.
+within // or any other quoting characters.
 
 =head1 ENVIRONMENT
 
