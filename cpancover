@@ -117,9 +117,24 @@ sub get_cover
 
     my $od = "$Options->{outputdir}/$module";
     my $of = $Options->{outputfile};
-    sys "cover$test -report $Options->{report} " .
-        "-outputdir $od -outputfile $of"
-        if $test || !-e "$od/$of" || $Options->{redo_html};
+    my $timeout = 1800;  # Half an hour should be enough even for SVK
+
+    if ($test || !-e "$od/$of" || $Options->{redo_html})
+    {
+        eval
+        {
+            local $SIG{ALRM} = sub { die "alarm" };
+            alarm $timeout;
+            sys "cover$test -report $Options->{report} " .
+                "-outputdir $od -outputfile $of";
+            alarm 0;
+        };
+        if ($@)
+        {
+            die unless $@ eq "alarm";   # propagate unexpected errors
+            print "Timed out after $timeout seconds!\n";
+        }
+    }
 
     my $results = read_results;
     my $f = "$Options->{outputdir}/cover.results";
