@@ -406,6 +406,12 @@ sub report
     %R =
     (
         db      => $db,
+        date    => do
+        {
+            my ($sec, $min, $hour, $mday, $mon, $year) = localtime;
+            sprintf "%04d-%02d-%02d %02d:%02d:%02d",
+                    $year + 1900, $mon + 1, $mday, $hour, $min, $sec
+        },
         options => $options,
         showing => [ grep $options->{show}{$_}, $db->criteria ],
         headers =>
@@ -483,7 +489,7 @@ tr {
     vertical-align : top;
 }
 
-th,.h,.hh {
+th,.h,.hh,.sh,.sv {
     background-color   : #cccccc;
     border             : solid 1px #333333;
     padding            : 0em 0.2em;
@@ -493,6 +499,17 @@ th,.h,.hh {
 
 .hh {
     width: 25%;
+}
+
+.sh {
+    width       : 0;
+    color       : #CD5555;
+    font-weight : bold;
+    padding     : 0.2em;
+}
+
+.sv {
+    padding     : 0.2em;
 }
 
 td {
@@ -1366,8 +1383,12 @@ $Templates{summary} = <<'EOT';
 <h1> Coverage Summary </h1>
 <table>
     <tr>
-        <td class="h" align="right">Database:</td>
-        <td>[% R.db.db %]</td>
+        <td class="sh" align="right">Database:</td>
+        <td class="sv" align="left">[% R.db.db %]</td>
+    </tr>
+    <tr>
+        <td class="sh" align="right">Report date:</td>
+        <td class="sv" align="left">[% R.date %]</td>
     </tr>
 </table>
 <div><br></br></div>
@@ -1617,132 +1638,3 @@ The latest version of this software should be available from my homepage:
 http://www.pjcj.net
 
 =cut
-
-package Devel::Cover::Report::Html_basic;
-
-__DATA__
-
-/* Stylesheet for Devel::Cover HTML reports */
-
-/* You may modify this file to alter the appearance of your coverage
- * reports. If you do, you should probably flag it read-only to prevent
- * future runs from overwriting it.
- */
-
-/* Note: default values use the color-safe web palette. */
-
-body {
-    font-family: sans-serif;
-}
-
-h1 {
-    text-align         : center;
-    background-color   : #cc99ff;
-    border             : solid 1px #999999;
-    padding            : 0.2em;
-    -moz-border-radius : 10px;
-}
-
-a {
-    color: #000000;
-}
-a:visited {
-    color: #333333;
-}
-
-table {
-    border-spacing: 0px;
-}
-tr {
-    text-align     : center;
-    vertical-align : top;
-}
-th,.h,.hh {
-    background-color   : #cccccc;
-    border             : solid 1px #333333;
-    padding            : 0em 0.2em;
-    width              : 2.5em;
-    -moz-border-radius : 4px;
-}
-.hh {
-    width: 25%;
-}
-td {
-    border             : solid 1px #cccccc;
-    border-top         : none;
-    border-left        : none;
-    -moz-border-radius : 4px;
-}
-.hblank {
-    height: 0.5em;
-}
-.dblank {
-    border: none;
-}
-
-/* source code */
-pre,.s {
-    text-align  : left;
-    font-family : monospace;
-    white-space : pre;
-    padding     : 0.2em 0.5em 0em 0.5em;
-}
-
-/* Classes for color-coding coverage information:
- *   c0  : path not covered or coverage < 75%
- *   c1  : coverage >= 75%
- *   c2  : coverage >= 90%
- *   c3  : path covered or coverage = 100%
- */
-.c0 {
-    background-color : #ff9999;
-    border           : solid 1px #cc0000;
-}
-.c1 {
-    background-color : #ffcc99;
-    border           : solid 1px #ff9933;
-}
-.c2 {
-    background-color : #ffff99;
-    border           : solid 1px #cccc66;
-}
-.c3 {
-    background-color : #99ff99;
-    border           : solid 1px #009900;
-}
-
-/* For syntax highlighting with PPI::HTML */
-.line_number     { color: #aaaaaa;                   }
-.comment         { color: #228B22;                   }
-.symbol          { color: #00688B;                   }
-.word            { color: #8B008B; font-weight:bold; }
-.pragma          { color: #8B008B; font-weight:bold; }
-.structure       { color: #000000;                   }
-.number          { color: #B452CD;                   }
-.single          { color: #CD5555;                   }
-.double          { color: #CD5555;                   }
-.match           { color: #CD5555;                   }
-.substitute      { color: #CD5555;                   }
-.heredoc_content { color: #CD5555;                   }
-.interpolate     { color: #CD5555;                   }
-.words           { color: #CD5555;                   }
-
-/* for syntax highlighting with Perl::Tidy */
-.c  { color: #228B22;                    } /* comment         */
-.cm { color: #000000;                    } /* comma           */
-.co { color: #000000;                    } /* colon           */
-.h  { color: #CD5555; font-weight:bold;  } /* here-doc-target */
-.hh { color: #CD5555; font-style:italic; } /* here-doc-text   */
-.i  { color: #00688B;                    } /* identifier      */
-.j  { color: #000000; font-weight:bold;  } /* label           */
-.k  { color: #8B4513; font-weight:bold;  } /* keyword         */
-.m  { color: #FF0000; font-weight:bold;  } /* subroutine      */
-.n  { color: #B452CD;                    } /* numeric         */
-.p  { color: #000000;                    } /* paren           */
-.pd { color: #228B22; font-style:italic; } /* pod-text        */
-.pu { color: #000000;                    } /* punctuation     */
-.q  { color: #CD5555;                    } /* quote           */
-.s  { color: #000000;                    } /* structure       */
-.sc { color: #000000;                    } /* semicolon       */
-.v  { color: #B452CD;                    } /* v-string        */
-.w  { color: #000000;                    } /* bareword        */
