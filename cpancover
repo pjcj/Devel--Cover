@@ -123,7 +123,7 @@ sub get_cover
     {
         eval
         {
-            local $SIG{ALRM} = sub { die "alarm" };
+            local $SIG{ALRM} = sub { die "alarm\n" };
             alarm $timeout;
             sys "cover$test -report $Options->{report} " .
                 "-outputdir $od -outputfile $of";
@@ -131,8 +131,8 @@ sub get_cover
         };
         if ($@)
         {
-            die unless $@ eq "alarm";   # propagate unexpected errors
-            print "Timed out after $timeout seconds!\n";
+            die unless $@ eq "alarm\n";   # propagate unexpected errors
+            warn "Timed out after $timeout seconds!\n";
         }
     }
 
