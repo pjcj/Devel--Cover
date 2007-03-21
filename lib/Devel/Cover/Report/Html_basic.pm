@@ -1158,7 +1158,8 @@ var standardistaTableSorting = {
         }
         */
 
-        if (itm.match(/^\d?\.?\d+$/) || itm == "n/a") {
+        // alert("sorting on [" + itm + "]");
+        if (itm.match(/\d+\.\d+/) || itm == "n/a") {
             sortfn = this.sortNumeric;
         }
 
