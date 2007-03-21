@@ -1031,7 +1031,6 @@ var standardistaTableSorting = {
 			rowNum++;
 		}
 		var sortfn = that.determineSortFunction(itm);
-
 		// if the last column that was sorted was this one, then all we need to 
 		// do is reverse the sorting on this column
 		if (table.id == that.lastSortedTable && column == that.sortColumnIndex) {
@@ -1040,10 +1039,14 @@ var standardistaTableSorting = {
 		// otherwise, we have to do the full sort
 		} else {
 			that.sortColumnIndex = column;
+
+                        // alert("sorting on " + column);
+
 			var newRows = new Array();
 
 			for (var j = 0; j < table.tBodies[0].rows.length; j++) { 
 				newRows[j] = table.tBodies[0].rows[j]; 
+                                // alert("element " + j + " is " + that.getInnerText(newRows[j].cells[that.sortColumnIndex]));
 			}
 
 			newRows.sort(sortfn);
@@ -1107,12 +1110,15 @@ var standardistaTableSorting = {
 			// 'if' is considerably quicker than a 'switch' statement, 
 			// in Internet Explorer which translates up to a good time 
 			// reduction since this is a very often called recursive function
-			if (1 == cs[i].nodeType) { // ELEMENT NODE
+                        // alert("node " + i + " is [" + cs[i].nodeType + "] [" + cs[i].nodeValue + "] [" + cs[i].childNodes.length + "]");
+                        if (cs[i].childNodes.length)
+                        {
 				str += this.getInnerText(cs[i]);
-				break;
+                        }
+                        else if (1 == cs[i].nodeType) { // ELEMENT NODE
+				str += this.getInnerText(cs[i]);
 			} else if (3 == cs[i].nodeType) { //TEXT_NODE
 				str += cs[i].nodeValue;
-				break;
 			}
 		}
 		
@@ -1221,17 +1227,19 @@ var standardistaTableSorting = {
 
 	sortNumeric : function(a,b) { 
 		var that = standardistaTableSorting.that;
-		if ( that.getInnerText(a.cells[that.sortColumnIndex]) == 'n/a' ) return -1;
-		if ( that.getInnerText(b.cells[that.sortColumnIndex]) == 'n/a' ) return 1;
-		
-		var aa = parseFloat(that.getInnerText(a.cells[that.sortColumnIndex]));
-		if (isNaN(aa)) { 
+
+		var aa = that.getInnerText(a.cells[that.sortColumnIndex]) == 'n/a'
+			? -1
+			: parseFloat(that.getInnerText(a.cells[that.sortColumnIndex]));
+		if (isNaN(aa))
 			aa = 0;
-		}
-		var bb = parseFloat(that.getInnerText(b.cells[that.sortColumnIndex])); 
-		if (isNaN(bb)) { 
+
+		var bb = that.getInnerText(b.cells[that.sortColumnIndex]) == 'n/a'
+			? -1
+			: parseFloat(that.getInnerText(b.cells[that.sortColumnIndex]));
+		if (isNaN(bb))
 			bb = 0;
-		}
+
 		return aa-bb;
 	},
 
