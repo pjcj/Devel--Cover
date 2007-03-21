@@ -1046,7 +1046,7 @@ var standardistaTableSorting = {
 
             for (var j = 0; j < table.tBodies[0].rows.length; j++) {
                 newRows[j] = table.tBodies[0].rows[j];
-                                // alert("element " + j + " is " + that.getInnerText(newRows[j].cells[that.sortColumnIndex]));
+                // alert("element " + j + " is " + that.getInnerText(newRows[j].cells[that.sortColumnIndex]));
             }
 
             newRows.sort(sortfn);
@@ -1158,7 +1158,10 @@ var standardistaTableSorting = {
         }
         */
 
-        sortfn = this.sortNumeric;
+        if (itm.match(/^\d?\.?\d+$/) || itm == "n/a") {
+            sortfn = this.sortNumeric;
+        }
+
         return sortfn;
     },
 
