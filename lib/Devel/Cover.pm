@@ -1171,6 +1171,10 @@ Devel::Cover - Code coverage metrics for Perl
 
 To test an uninstalled module:
 
+ cover -test
+
+or
+
  cover -delete
  HARNESS_PERL_SWITCHES=-MDevel::Cover make test
  cover
