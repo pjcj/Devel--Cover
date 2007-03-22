@@ -109,6 +109,8 @@ sub _highlight_ppi {
 
     my $split = '<span class="line_number">';
 
+    no warnings "uninitialized";
+
     # turn significant whitespace into &nbsp;
     @all_lines = map {
         $_ =~ s{</span>( +)}{"</span>" . ("&nbsp;" x length($1))}e;
