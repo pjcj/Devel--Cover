@@ -817,6 +817,8 @@ var standardistaTableSorting = {
     },
 
     get_val : function(x) {
+        var that = standardistaTableSorting.that;
+
         var val = that.getInnerText(x.cells[that.sortColumnIndex]);
         var v   = val == "n/a" ? -1 : parseFloat(val);
         return isNaN(v) ? 0 : v;
