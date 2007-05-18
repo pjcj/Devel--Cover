@@ -433,14 +433,12 @@ sub normalised_file
         }
         # print STDERR "finally <$file> <$Dir>\n";
     }
-    if ($^O eq "MSWin32")
-    {
-        $file =~ s|\\|/|g;
-    }
+    $file =~ s|\\|/|g if $^O eq "MSWin32";
     $file =~ s|^$Dir/||;
-    $File_cache{$f} = $file;
 
-    # warn "File: $file => $File\n";
+    warn "File: $file => $File\n";
+
+    $File_cache{$f} = $file
 }
 
 }
