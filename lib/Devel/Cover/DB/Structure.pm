@@ -205,8 +205,9 @@ sub digest
     }
     else
     {
-        warn "Devel::Cover: Can't open $file for MD5 digest: $!\n";
-        # warn "in ", `pwd`;
+        warn "Devel::Cover: Can't open $file for MD5 digest: $!\n"
+            unless lc $file eq "-e";
+        # use Carp; print STDERR Carp::longmess("in " . `pwd`);
     }
     $digest
 }
