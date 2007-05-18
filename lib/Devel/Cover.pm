@@ -597,6 +597,8 @@ sub check_files
 
 sub report
 {
+    local @SIG{qw(__DIE__ __WARN__)};
+
     $Run{finish} = get_elapsed();
 
     die "Devel::Cover::import() not run: " .
