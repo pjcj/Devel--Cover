@@ -436,7 +436,7 @@ sub normalised_file
     $file =~ s|\\|/|g if $^O eq "MSWin32";
     $file =~ s|^$Dir/||;
 
-    warn "File: $file => $File\n";
+    # print STDERR "File: $f => $file\n";
 
     $File_cache{$f} = $file
 }
