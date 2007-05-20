@@ -401,7 +401,7 @@ static void dump_conditions(pTHX)
         i = 2;
 #endif
 
-        PDEB(D(L, "  %s: op %p, next %p (%d)\n",
+        NDEB(D(L, "  %s: op %p, next %p (%d)\n",
                hex_key(key), next, addr, av_len(conds) - 1));
 
         for (; i <= av_len(conds); i++)
@@ -411,7 +411,7 @@ static void dump_conditions(pTHX)
             int  type  = SvTRUE(*count) ? SvIV(*count) : 0;
             sv_setiv(*count, 0);
 
-            PDEB(D(L, "    %2d: %p, %d\n", i - 2, op, type));
+            NDEB(D(L, "    %2d: %p, %d\n", i - 2, op, type));
         }
     }
     MUTEX_UNLOCK(&DC_mutex);
