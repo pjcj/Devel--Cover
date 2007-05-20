@@ -9,6 +9,10 @@ SYNOPSIS
 
     To test an uninstalled module:
 
+     cover -test
+
+    or
+
      cover -delete
      HARNESS_PERL_SWITCHES=-MDevel::Cover make test
      cover
@@ -23,12 +27,19 @@ SYNOPSIS
 
 DESCRIPTION
     This module provides code coverage metrics for Perl. Code coverage
-    metrics describe how throroughly tests exercise code. By using
+    metrics describe how thoroughly tests exercise code. By using
     Devel::Cover you can find areas of code not exercised by your tests and
     find out which tests to create to increase coverage. Code coverage can
     be considered as an indirect measure of quality.
 
-    If you can't guess by the version number this is an alpha release.
+    I consider this software to have an alpha status.  By that I mean that I
+    reserve the right to alter the interface in a backwards incompatible
+    manner without incrementing the major version number.  I specifically do
+    not mean that this software is full of bugs or missing key features. 
+    Although I'm making no guarantees on that front either.  In short, if
+    you are looking for code coverage software for Perl, you have probably
+    come to the end of your search.  For more of my opinions on this
+    subject, see http://pjcj.sytes.net/notes/2007/03/14#alpha
 
     Code coverage data are collected using a pluggable runops function which
     counts how many times each op is executed.  These data are then mapped
