@@ -35,6 +35,7 @@
     - CPAN@1432 hangs with bleadperl@29642.
   - cover -delete uses too much memory when cover_db doesn't exist (clkao)
   - Games::Bingo broken.
+  - inc_sub test fails on bleadperl.
 - Testing:
   - Be able to run Devel::Cover on itself.
   - More comprehensive.

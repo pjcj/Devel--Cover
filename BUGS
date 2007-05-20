@@ -21,3 +21,10 @@
   generally, any code run after Devel::Cover's END block won't be covered.
 
 - Empty subs will be ignored in Perl 5.8.1.
+
+- inc_sub test fails under bleadperl:
+
+  panic: Can't use %- because Tie::Hash::NamedCapture is not available at /usr/local/pkg/bleadperl/lib/5.9.5/i686-linux/B.pm line 244.
+  CHECK failed--call queue aborted.
+  panic: Can't use %! because Errno is not available at /usr/local/pkg/bleadperl/lib/5.9.5/i686-linux/B.pm line 244.
+  END failed--call queue aborted.
