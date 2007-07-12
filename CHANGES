@@ -1,5 +1,18 @@
 Devel::Cover.pm history
 
+Release 0.62 - 
+ - Add table sorting to Html_basic report (Nathan Haigh).
+ - Assume heredocs are constants.
+ - Don't add 0x200 to $^P ("file" names for evals) (Fix for Template::Declare).
+ - Add timer and alarm for cpancover.
+ - Add Report Date to basic html report.
+ - Quieten some warnings.
+ - Document cover -test.
+ - Get rid of any __DIE__and __WARN__ signals during the report.
+ - Don't try to get a digest for "-e".
+ - Tidy up filename normalisation.
+ - Be more explicit about what I mean when I call this alpha software.
+
 Release 0.61 - 10th January 2007
  - Fix some "ignored" errors due to multiple subs of the same name on the same
    line (rt 14192).

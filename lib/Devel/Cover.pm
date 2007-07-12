@@ -155,7 +155,8 @@ if (0 && $Config{useithreads})
 
 BEGIN { @Inc = @Devel::Cover::Inc::Inc; @Ignore = ("/Devel/Cover[./]") }
 # BEGIN { $^P = 0x004 | 0x010 | 0x100 | 0x200 }
-BEGIN { $^P = 0x004 | 0x100 | 0x200 }
+# BEGIN { $^P = 0x004 | 0x100 | 0x200 }
+BEGIN { $^P = 0x004 | 0x100 }
 
 {
     sub check
@@ -819,7 +820,7 @@ sub add_condition_cover
         # TODO - exec?  any others?
         # print STDERR "Name [$name]\n";
         if ($c->[5] || $name =~
-            /^const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)$/)
+            /^const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|scalar$/)
         {
             $c = [ $c->[3], $c->[1] + $c->[2] ];
             $count = 2;

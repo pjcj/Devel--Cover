@@ -33,7 +33,7 @@
   - cpancover on CPAN:
     - PerlIO-eol-0.13 hangs.
     - CPAN@1432 hangs with bleadperl@29642.
-  - cover -delete uses too much memory when cover_db doesn't exist (clkao)
+  - cover -delete uses too much memory when cover_db doesn't exist. (clkao)
   - Games::Bingo broken.
   - inc_sub test fails on bleadperl.
 - Testing:

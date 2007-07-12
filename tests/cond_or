@@ -64,9 +64,12 @@ for (0 .. 10)
   $x[14] ||= *::foo{SCALAR};
   $x[15] ||= *STDIO{IO};
   $x[16] ||= bless {}, "XXX";
+  $x[17] ||= <<"EOD";
+blah
+EOD
   if ($] >= 5.009)
   {
-      eval '$x[17] //= 0';
+      eval '$x[18] //= 0';
   }
 }
 
