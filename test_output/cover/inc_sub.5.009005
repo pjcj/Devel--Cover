@@ -4,8 +4,8 @@ Reading database from /home/pjcj/g/perl/svk/dc/cover_db
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/inc_sub                               100.0   50.0    n/a  100.0   89.5
-Total                                       100.0   50.0    n/a  100.0   89.5
+tests/inc_sub                               100.0   75.0    n/a  100.0   94.7
+Total                                       100.0   75.0    n/a  100.0   94.7
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -30,7 +30,7 @@ line  err   stmt   bran   cond    sub   code
 8                                           (
 9                                               sub
 10                                              {
-11    ***      1     50                             return unless $_[1] eq "IncSub.pm";
+11             3    100                             return unless $_[1] eq "IncSub.pm";
 12             1                                    my $fh;
 13    ***      1     50                             open $fh, "tests/IncSub.pm" or die $!;
 14             1                                    $fh
@@ -50,7 +50,7 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-11    ***     50      0      1   unless $_[1] eq 'IncSub.pm'
+11           100      2      1   unless $_[1] eq 'IncSub.pm'
 13    ***     50      0      1   unless open $fh, 'tests/IncSub.pm'
 
 
