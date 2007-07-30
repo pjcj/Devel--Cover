@@ -556,10 +556,10 @@ sub uncoverable
 
     for my $file ($self->uncoverable_files)
     {
-        open F, $file or next;
+        open my $f, "<", $file or next;
         print STDOUT "Reading uncoverable information from $file\n"
             unless $Devel::Cover::Silent;
-        while (<F>)
+        while (<$f>)
         {
             chomp;
             my ($file, $crit, $line, $count, $type, $reason) = split " ", $_, 6;
@@ -573,21 +573,21 @@ sub uncoverable
     for my $file (sort keys %$u)
     {
         # print STDERR "Reading $file\n";
-        unless (open F, $file)
+        open my $fh, "<", $file or do
         {
             warn "Devel::Cover: Can't open file $file: $!\n";
             next;
-        }
+        };
         my $df = Digest::MD5->new;  # MD5 digest of the file
         my %dl;                     # maps MD5 digests of lines to line numbers
         my $ln = 0;                 # line number
-        while (<F>)
+        while (<$fh>)
         {
             # print STDERR "read [$.][$_]\n";
             $dl{Digest::MD5->new->add($_)->hexdigest} = ++$ln;
             $df->add($_);
         }
-        close F;
+        close $fh;
         my $f = $u->{$file};
         # use Data::Dumper; $Data::Dumper::Indent = 1; print STDERR Dumper $f;
         for my $crit (keys %$f)
@@ -627,29 +627,29 @@ sub add_uncoverable
     {
         my ($file, $crit, $line, $count, $type, $reason) = split " ", $add, 6;
         my ($uncoverable_file) = $self->uncoverable_files;
-        open U, ">>", $uncoverable_file
-            or die "Devel::Cover: Can't open $uncoverable_file: $!\n";
 
-        unless (open F, $file)
+        open my $f, "<", $file or do
         {
             warn "Devel::Cover: Can't open $file: $!";
             next;
-        }
-        while (<F>)
+        };
+        while (<$f>)
         {
             last if $. == $line;
         }
         if (defined)
         {
+            open my $u, ">>", $uncoverable_file
+                or die "Devel::Cover: Can't open $uncoverable_file: $!\n";
             my $dl = Digest::MD5->new->add($_)->hexdigest;
-            print U "$file $crit $dl $count $type $reason\n";
+            print $u "$file $crit $dl $count $type $reason\n";
         }
         else
         {
             warn "Devel::Cover: Can't find line $line in $file.  ",
                  "Last line is $.\n";
         }
-        close F or die "Devel::Cover: Can't close $file: $!\n";
+        close $f or die "Devel::Cover: Can't close $file: $!\n";
     }
 }
 
