@@ -562,9 +562,9 @@ sub uncoverable
         while (<$f>)
         {
             chomp;
-            my ($file, $crit, $line, $count, $type, $group, $note) =
+            my ($file, $crit, $line, $count, $type, $class, $note) =
                 split " ", $_, 7;
-            push @{$u->{$file}{$crit}{$line}[$count]}, [$type, $group, $note];
+            push @{$u->{$file}{$crit}{$line}[$count]}, [$type, $class, $note];
         }
     }
 
@@ -626,7 +626,7 @@ sub add_uncoverable
     my ($adds) = @_;
     for my $add (@$adds)
     {
-        my ($file, $crit, $line, $count, $type, $group, $note) =
+        my ($file, $crit, $line, $count, $type, $class, $note) =
             split " ", $_, 7;
         my ($uncoverable_file) = $self->uncoverable_files;
 
@@ -644,7 +644,7 @@ sub add_uncoverable
             open my $u, ">>", $uncoverable_file
                 or die "Devel::Cover: Can't open $uncoverable_file: $!\n";
             my $dl = Digest::MD5->new->add($_)->hexdigest;
-            print $u "$file $crit $dl $count $type $group $note\n";
+            print $u "$file $crit $dl $count $type $class $note\n";
         }
         else
         {
@@ -727,7 +727,7 @@ sub cover
                 if ($2)
                 {
                     my ($code, $criterion, $info)     = ($1, $2, $3);
-                    my ($count, $group, $note, $type) = (1, "default", "");
+                    my ($count, $class, $note, $type) = (1, "default", "");
 
                     if ($criterion eq "branch" || $criterion eq "condition")
                     {
@@ -744,14 +744,14 @@ sub cover
                         }
                     }
                     $count = $1 if $info =~ /count:(\d+)/;
-                    $group = $1 if $info =~ /group:(\w+)/;
+                    $class = $1 if $info =~ /class:(\w+)/;
                     $note  = $1 if $info =~ /note:(.+)/;
 
                     # no warnings "uninitialized";
-                    # warn "pushing $criterion, $count, $type, $group, $note";
+                    # warn "pushing $criterion, $count, $type, $class, $note";
 
                     push @waiting,
-                         [$criterion, $count - 1, $type, $group, $note];
+                         [$criterion, $count - 1, $type, $class, $note];
 
                     next unless $code =~ /\S/;
                 }
@@ -759,9 +759,9 @@ sub cover
                 # found what we are waiting for
                 while (my $w = shift @waiting)
                 {
-                    my ($criterion, $count, $type, $group, $note) = @$w;
+                    my ($criterion, $count, $type, $class, $note) = @$w;
                     push @{$uncoverable{$digest}{$criterion}{$.}[$count]},
-                         [$type, $group, $note];
+                         [$type, $class, $note];
                 }
             }
             close $fh;
