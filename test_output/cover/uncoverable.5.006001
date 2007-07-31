@@ -1,5 +1,4 @@
-Reading database from /home/pjcj/g/perl/svk/dc/cover_db
-Reading uncoverable information from tests/.uncoverable
+Reading database from /home/pjcj/g/perl/dc/cover_db
 
 
 ------------------------------------------ ------ ------ ------ ------ ------
@@ -32,15 +31,36 @@ line  err   stmt   bran   cond    sub   code
 11                                      
 12             1                        my $x = 1;
 13             1                        my $y = 1;
-14             1   - 50   - 33          if ($x && !$y)
-15                                      {
-16            -0                            $x++;
-17            -0                            z();
-18                                      }
-19                                      sub z
-20                                      {
-21            -0                   -0       $y++;
-22                                      }
+14                                      
+15                                      # uncoverable branch true
+16                                      # uncoverable condition left
+17                                      # uncoverable condition false
+18             1   - 50   - 33          if ($x && !$y)
+19                                      {
+20            -0                            $x++;  # uncoverable statement
+21                                          # uncoverable statement
+22            -0                            z();
+23                                      }
+24                                      
+25                                      # uncoverable branch true
+26                                      # uncoverable condition left
+27                                      # uncoverable condition right
+28             1   - 50   - 33          if (!$x || !$y)
+29                                      {
+30                                          # uncoverable statement count:1
+31                                          # uncoverable statement count:2
+32            -0                            b(); b();
+              -0                        
+33                                      }
+34                                      
+35                                      sub z
+36                                      {
+37                                          # uncoverable subroutine
+38            -0                   -0       $y++; # uncoverable statement
+39                                      }
+40                                      
+41                                      # uncoverable statement
+42                                      # uncoverable subroutine
 
 
 Branches
@@ -48,7 +68,8 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-14          - 50     -0      1   if ($x and not $y)
+18          - 50     -0      1   if ($x and not $y)
+28          - 50     -0      1   if (not $x or not $y)
 
 
 Conditions
@@ -58,7 +79,13 @@ and 3 conditions
 
 line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
-14          - 33     -0      1     -0   $x and not $y
+18          - 33     -0      1     -0   $x and not $y
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+28          - 33     -0     -0      1   not $x or not $y
 
 
 Uncovered Subroutines
@@ -66,6 +93,6 @@ Uncovered Subroutines
 
 Subroutine Count Location            
 ---------- ----- --------------------
-z             -0 tests/uncoverable:21
+z             -0 tests/uncoverable:38
 
 
