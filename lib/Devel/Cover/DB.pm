@@ -562,8 +562,9 @@ sub uncoverable
         while (<$f>)
         {
             chomp;
-            my ($file, $crit, $line, $count, $type, $reason) = split " ", $_, 6;
-            push @{$u->{$file}{$crit}{$line}[$count]}, [$type, $reason];
+            my ($file, $crit, $line, $count, $type, $group, $note) =
+                split " ", $_, 7;
+            push @{$u->{$file}{$crit}{$line}[$count]}, [$type, $group, $note];
         }
     }
 
@@ -615,7 +616,7 @@ sub uncoverable
         $u->{$df->hexdigest} = delete $u->{$file};
     }
 
-    # use Data::Dumper; $Data::Dumper::Indent = 1; print STDERR Dumper $u;
+    use Data::Dumper; $Data::Dumper::Indent = 1; print STDERR Dumper $u;
     $u
 }
 
@@ -625,7 +626,8 @@ sub add_uncoverable
     my ($adds) = @_;
     for my $add (@$adds)
     {
-        my ($file, $crit, $line, $count, $type, $reason) = split " ", $add, 6;
+        my ($file, $crit, $line, $count, $type, $group, $note) =
+            split " ", $_, 7;
         my ($uncoverable_file) = $self->uncoverable_files;
 
         open my $f, "<", $file or do
@@ -642,7 +644,7 @@ sub add_uncoverable
             open my $u, ">>", $uncoverable_file
                 or die "Devel::Cover: Can't open $uncoverable_file: $!\n";
             my $dl = Digest::MD5->new->add($_)->hexdigest;
-            print $u "$file $crit $dl $count $type $reason\n";
+            print $u "$file $crit $dl $count $type $group $note\n";
         }
         else
         {
@@ -672,8 +674,15 @@ sub cover
     my %digests;
     my %files;
     my $cover = $self->{cover} = {};
-    my $uncoverable = $self->uncoverable;
     my $st = Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
+    my $cr = join "|", @{$self->{all_criteria}};
+    my $uc = qr/(.*)# uncoverable ($cr)(.*)/;
+    my %uncoverable;
+    my %types =
+    (
+        branch    => { true => 0, false => 1 },
+        condition => { left => 0, right => 1, false => 2 },
+    );
 
     # use Data::Dumper; print STDERR "runs: ", Dumper $self->{runs};
     my @runs;
@@ -702,9 +711,71 @@ sub cover
                          "into $digests{$digest}\n"
                 if !$files{$file}++ && $digests{$digest};
             my $cf = $cover->{$digests{$digest} ||= $file} ||= {};
+
+
+            open my $fh, "<", $file or do
+            {
+                warn "Devel::Cover: Can't open file $file: $!\n";
+                next;
+            };
+            my @waiting;
+            while (<$fh>)
+            {
+                chomp;
+                # print STDERR "read [$.][$_]\n";
+                next unless /$uc/ || @waiting;
+                if ($2)
+                {
+                    my ($code, $criterion, $info)     = ($1, $2, $3);
+                    my ($count, $group, $note, $type) = (1, "default", "");
+
+                    if ($criterion eq "branch" || $criterion eq "condition")
+                    {
+                        if ($info =~ /^\s*(\w+)(?:\s|$)/)
+                        {
+                            my $t = $1;
+                            $type = $types{$criterion}{$t};
+                            unless (defined $type)
+                            {
+                                warn "Unknown type $t found parsing " .
+                                     "uncoverable $criterion at $file:$.\n";
+                                $type = 999;  # partly magic number
+                            }
+                        }
+                    }
+                    $count = $1 if $info =~ /count:(\d+)/;
+                    $group = $1 if $info =~ /group:(\w+)/;
+                    $note  = $1 if $info =~ /note:(.+)/;
+
+                    # no warnings "uninitialized";
+                    # warn "pushing $criterion, $count, $type, $group, $note";
+
+                    push @waiting,
+                         [$criterion, $count - 1, $type, $group, $note];
+
+                    next unless $code =~ /\S/;
+                }
+
+                # found what we are waiting for
+                while (my $w = shift @waiting)
+                {
+                    my ($criterion, $count, $type, $group, $note) = @$w;
+                    push @{$uncoverable{$digest}{$criterion}{$.}[$count]},
+                         [$type, $group, $note];
+                }
+            }
+            close $fh;
+
+            warn scalar @waiting,
+                 " unmatched uncoverable comments not found at end of $file\n"
+                if @waiting;
+
+            # $self->uncoverable;
+            # use Data::Dumper; print Dumper \%uncoverable;
+
             # print STDERR "st ", Dumper($st),
                          # "f  ", Dumper($f),
-                         # "uc ", Dumper($uncoverable->{$digest});
+                         # "uc ", Dumper($uncoverable{$digest});
             while (my ($criterion, $fc) = each %$f)
             {
                 my $get = "get_$criterion";
@@ -714,7 +785,7 @@ sub cover
                 my $cc  = $cf->{$criterion} ||= {};
                 my $add = "add_$criterion";
                 # print STDERR "$add():\n", Dumper $cc, $sc, $fc;
-                $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
+                $self->$add($cc, $sc, $fc, $uncoverable{$digest}{$criterion});
                 # print STDERR "--> $add():\n", Dumper $cc;
                 # $cc - coverage being filled in
                 # $sc - structure information
