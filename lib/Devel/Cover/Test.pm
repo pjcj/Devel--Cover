@@ -339,7 +339,7 @@ sub create_gold
     print STDERR "Running cover [$cover_com]\n" if $debug;
 
     open G, ">$new_gold" or die "Cannot open $new_gold: $!";
-    open T, "$cover_com|" or die "Cannot run $cover_com: $!";
+    open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
     while (my $l = <T>)
     {
         next if $l =~ /^Devel::Cover: merging run/;
