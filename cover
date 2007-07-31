@@ -213,8 +213,8 @@ sub main
     print "Reading database from $dbname\n" unless $Options->{silent};
     my $db = Devel::Cover::DB->new
     (
-        db          => $dbname,
-        uncoverable => $Options->{uncoverable_file},
+        db               => $dbname,
+        uncoverable_file => $Options->{uncoverable_file},
     );
     $db = $db->merge_runs;
 

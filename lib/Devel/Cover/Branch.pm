@@ -54,10 +54,10 @@ sub calculate_summary
     my $s = $db->{summary};
     $self->pad;
 
-    $self->aggregate($s, $file, 'total', $self->total);
-    $self->aggregate($s, $file, 'uncoverable', $self->uncoverable);
-    $self->aggregate($s, $file, 'covered', $self->covered);
-    $self->aggregate($s, $file, 'error', $self->error);
+    $self->aggregate($s, $file, "total",       $self->total      );
+    $self->aggregate($s, $file, "uncoverable", $self->uncoverable);
+    $self->aggregate($s, $file, "covered",     $self->covered    );
+    $self->aggregate($s, $file, "error",       $self->error      );
 }
 
 1

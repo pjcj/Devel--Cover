@@ -35,13 +35,13 @@ sub new
 
     my $self =
     {
-        test            => $test,
-        criteria        => $criteria,
-        skip            => "",
-        uncoverable     => "",
-        select          => "",
-        ignore          => "",
-        run_test_at_end => 1,
+        test             => $test,
+        criteria         => $criteria,
+        skip             => "",
+        uncoverable_file => "",
+        select           => "",
+        ignore           => "",
+        run_test_at_end  => 1,
         %params
     };
 
@@ -73,8 +73,8 @@ sub get_params
     $self->{cover_parameters} = join(" ", map "-coverage $_",
                                               split " ", $self->{criteria})
                               . " -report text";
-    $self->{cover_parameters} .= " -uncoverable $self->{uncoverable}"
-        if $self->{uncoverable};
+    $self->{cover_parameters} .= " -uncoverable_file $self->{uncoverable_file}"
+        if $self->{uncoverable_file};
     $self->{skip}             = $self->{skip_reason}
         if exists $self->{skip_test} && eval "{$self->{skip_test}}";
 

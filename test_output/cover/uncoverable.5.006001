@@ -28,7 +28,7 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      # __COVER__ uncoverable tests/.uncoverable
+10                                      # __COVER__ uncoverable_file tests/.uncoverable
 11                                      
 12             1                        my $x = 1;
 13             1                        my $y = 1;

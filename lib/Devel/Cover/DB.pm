@@ -34,11 +34,11 @@ sub new
     my $class = shift;
     my $self  =
     {
-        criteria       => \@Devel::Cover::DB::Criteria,
-        criteria_short => \@Devel::Cover::DB::Criteria_short,
-        runs           => {},
-        collected      => {},
-        uncoverable    => [],
+        criteria         => \@Devel::Cover::DB::Criteria,
+        criteria_short   => \@Devel::Cover::DB::Criteria_short,
+        runs             => {},
+        collected        => {},
+        uncoverable_file => [],
         @_
     };
 
@@ -539,7 +539,7 @@ sub uncoverable_files
 {
     my $self = shift;
     my $f = ".uncoverable";
-    (@{$self->{uncoverable}}, $f, glob("~/$f"))
+    (@{$self->{uncoverable_file}}, $f, glob("~/$f"))
 }
 
 sub uncoverable
