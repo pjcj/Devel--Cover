@@ -231,6 +231,69 @@ static void set_firsts_if_needed(pTHX)
     }
 }
 
+#if CAN_PROFILE
+
+static void cover_time(pTHX)
+{
+    dMY_CXT;
+    SV **count;
+    NV   c;
+
+    if (collecting(Time))
+    {
+        /*
+         * Profiling information is stored against MY_CXT.profiling_key,
+         * the key for the op we have just run.
+         */
+
+        NDEB(D(L, "Cop at %p, op at %p\n", PL_curcop, PL_op));
+
+        if (MY_CXT.profiling_key_valid)
+        {
+            count = hv_fetch(MY_CXT.times, MY_CXT.profiling_key, KEY_SZ, 1);
+            c     = (SvTRUE(*count) ? SvNV(*count) : 0) +
+#if defined HAS_GETTIMEOFDAY
+                    elapsed();
+#else
+                    cpu();
+#endif
+            sv_setnv(*count, c);
+        }
+        if (PL_op)
+        {
+            memcpy(MY_CXT.profiling_key, get_key(PL_op), KEY_SZ);
+            MY_CXT.profiling_key_valid = 1;
+        }
+        else
+            MY_CXT.profiling_key_valid = 0;
+    }
+}
+
+#endif
+
+static void cover_statement(pTHX)
+{
+    dMY_CXT;
+    char *ch;
+    SV  **count;
+    IV    c;
+
+#if CAN_PROFILE
+    cover_time(aTHX);
+#endif
+
+    if (!collecting(Statement)) return;
+
+    ch    = get_key(PL_op);
+    count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
+    c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
+
+    /* PDEB(D(L, "Statement: %s:%ld\n", */
+           /* CopFILE(cCOP), CopLINE(cCOP))); */
+    sv_setiv(*count, c);
+    NDEB(op_dump(PL_op));
+}
+
 static void add_branch(pTHX_ OP *op, int br)
 {
     dMY_CXT;
@@ -635,46 +698,6 @@ static void cover_logop(pTHX)
     }
 }
 
-#if CAN_PROFILE
-
-static void cover_time(pTHX)
-{
-    dMY_CXT;
-    SV **count;
-    NV   c;
-
-    if (collecting(Time))
-    {
-        /*
-         * Profiling information is stored against MY_CXT.profiling_key,
-         * the key for the op we have just run.
-         */
-
-        NDEB(D(L, "Cop at %p, op at %p\n", PL_curcop, PL_op));
-
-        if (MY_CXT.profiling_key_valid)
-        {
-            count = hv_fetch(MY_CXT.times, MY_CXT.profiling_key, KEY_SZ, 1);
-            c     = (SvTRUE(*count) ? SvNV(*count) : 0) +
-#if defined HAS_GETTIMEOFDAY
-                    elapsed();
-#else
-                    cpu();
-#endif
-            sv_setnv(*count, c);
-        }
-        if (PL_op)
-        {
-            memcpy(MY_CXT.profiling_key, get_key(PL_op), KEY_SZ);
-            MY_CXT.profiling_key_valid = 1;
-        }
-        else
-            MY_CXT.profiling_key_valid = 0;
-    }
-}
-
-#endif
-
 static int runops_cover(pTHX)
 {
     HV    *Files           = 0;
@@ -862,22 +885,7 @@ static int runops_cover(pTHX)
             case OP_NEXTSTATE:
             case OP_DBSTATE:
             {
-#if CAN_PROFILE
-                cover_time(aTHX);
-#endif
-                if (collecting(Statement))
-                {
-                    char  *ch;
-                    SV   **count;
-                    IV     c;
-                    /* PDEB(D(L, "Statement: %s:%ld\n", */
-                           /* CopFILE(cCOP), CopLINE(cCOP))); */
-                    ch    = get_key(PL_op);
-                    count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
-                    c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
-                    sv_setiv(*count, c);
-                    NDEB(op_dump(PL_op));
-                }
+                cover_statement(aTHX);
                 break;
             }
 
