@@ -677,9 +677,6 @@ static void cover_time(pTHX)
 
 static int runops_cover(pTHX)
 {
-    SV   **count;
-    IV     c;
-    char  *ch;
     HV    *Files           = 0;
     int    collecting_here = 1;
     SV    *lastfile        = newSVpvn("", 1);
@@ -870,6 +867,9 @@ static int runops_cover(pTHX)
 #endif
                 if (collecting(Statement))
                 {
+                    char  *ch;
+                    SV   **count;
+                    IV     c;
                     /* PDEB(D(L, "Statement: %s:%ld\n", */
                            /* CopFILE(cCOP), CopLINE(cCOP))); */
                     ch    = get_key(PL_op);
