@@ -236,6 +236,8 @@ static void set_firsts_if_needed(pTHX)
 
 static void initialise(pTHX)
 {
+    dMY_CXT;
+
     MUTEX_LOCK(&DC_mutex);
     if (!Pending_conditionals)
     {
@@ -310,6 +312,8 @@ static void initialise(pTHX)
 
 static void check_if_collecting(pTHX)
 {
+    dMY_CXT;
+
     char *file = CopFILE(cCOP);
     NDEB(D(L, "File: %s:%ld\n", file, CopLINE(cCOP)));
     if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file))
@@ -391,6 +395,24 @@ static void cover_time(pTHX)
 }
 
 #endif
+
+static int collecting_here(pTHX)
+{
+    dMY_CXT;
+
+    if (MY_CXT.collecting_here) return 1;
+
+#if CAN_PROFILE
+    cover_time(aTHX);
+    MY_CXT.profiling_key_valid = 0;
+#endif
+
+    NDEB(D(L, "op %p is %s\n", PL_op, OP_NAME(PL_op)));
+    if (hv_exists(Return_ops, get_key(PL_op), KEY_SZ))
+        return MY_CXT.collecting_here = 1;
+    else
+        return 0;
+}
 
 static void cover_statement(pTHX)
 {
@@ -873,18 +895,7 @@ static int runops_cover(pTHX)
             NDEB(D(L, "adding return op %p\n", PL_op->op_next));
         }
 
-        if (!MY_CXT.collecting_here)
-        {
-#if CAN_PROFILE
-            cover_time(aTHX);
-            MY_CXT.profiling_key_valid = 0;
-#endif
-            NDEB(D(L, "op %p is %s\n", PL_op, OP_NAME(PL_op)));
-            if (hv_exists(Return_ops, get_key(PL_op), KEY_SZ))
-                MY_CXT.collecting_here = 1;
-            else
-                goto call_fptr;
-        }
+        if (!collecting_here()) goto call_fptr;
 
         /*
          * We are about the run the op PL_op, so we'll collect
