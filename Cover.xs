@@ -82,11 +82,13 @@ typedef struct
 #if CAN_PROFILE
              *times,
 #endif
-             *modules;
+             *modules,
+             *files;
     AV       *ends;
     char      profiling_key[KEY_SZ];
     bool      profiling_key_valid;
-    SV       *module;
+    SV       *module,
+             *lastfile;
     int       tid;
 } my_cxt_t;
 
@@ -286,6 +288,8 @@ static void initialise(pTHX)
         MY_CXT.modules    = newHV();
         *tmp              = newRV_inc((SV*) MY_CXT.modules);
 
+        MY_CXT.files      = get_hv("Devel::Cover::Files", FALSE);
+
 #ifdef USE_ITHREADS
         HvSHAREKEYS_off(MY_CXT.statements);
         HvSHAREKEYS_off(MY_CXT.branches);
@@ -298,6 +302,7 @@ static void initialise(pTHX)
 
         MY_CXT.profiling_key_valid = 0;
         MY_CXT.module              = newSVpv("", 0);
+        MY_CXT.lastfile            = newSVpvn("", 1);
         MY_CXT.covering            = All;
         MY_CXT.tid                 = tid++;
     }
@@ -772,9 +777,6 @@ static void cover_logop(pTHX)
 
 static int runops_cover(pTHX)
 {
-    HV    *Files           = 0;
-    SV    *lastfile        = newSVpvn("", 1);
-
     dMY_CXT;
 
     NDEB(D(L, "entering runops_cover\n"));
@@ -811,18 +813,16 @@ static int runops_cover(pTHX)
         {
             char *file = CopFILE(cCOP);
             NDEB(D(L, "File: %s:%ld\n", file, CopLINE(cCOP)));
-            if (file && strNE(SvPV_nolen(lastfile), file))
+            if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file))
             {
-                if (!Files)
-                    Files = get_hv("Devel::Cover::Files", FALSE);
-                if (Files)
+                if (MY_CXT.files)
                 {
-                    SV **f = hv_fetch(Files, file, strlen(file), 0);
+                    SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
                     MY_CXT.collecting_here = f ? SvIV(*f) : 1;
                     NDEB(D(L, "File: %s:%ld [%d]\n",
                               file, CopLINE(cCOP), MY_CXT.collecting_here));
                 }
-                sv_setpv(lastfile, file);
+                sv_setpv(MY_CXT.lastfile, file);
             }
 #if PERL_VERSION > 6
             if (SvTRUE(MY_CXT.module))
