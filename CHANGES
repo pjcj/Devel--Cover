@@ -12,6 +12,7 @@ Release 0.62 -
  - Don't try to get a digest for "-e".
  - Tidy up filename normalisation.
  - Be more explicit about what I mean when I call this alpha software.
+ - Add uncoverable comments.
 
 Release 0.61 - 10th January 2007
  - Fix some "ignored" errors due to multiple subs of the same name on the same
