@@ -231,6 +231,75 @@ static void set_firsts_if_needed(pTHX)
     }
 }
 
+static void initialise(pTHX)
+{
+    MUTEX_LOCK(&DC_mutex);
+    if (!Pending_conditionals)
+    {
+        Pending_conditionals = newHV();
+#ifdef USE_ITHREADS
+        HvSHAREKEYS_off(Pending_conditionals);
+#endif
+    }
+    if (!Return_ops)
+    {
+        Return_ops = newHV();
+#ifdef USE_ITHREADS
+        HvSHAREKEYS_off(Return_ops);
+#endif
+    }
+    MUTEX_UNLOCK(&DC_mutex);
+
+    if (!MY_CXT.covering)
+    {
+        /* TODO - this probably leaks all over the place */
+
+        SV **tmp;
+
+        MY_CXT.cover      = newHV();
+#ifdef USE_ITHREADS
+        HvSHAREKEYS_off(MY_CXT.cover);
+#endif
+
+        tmp               = hv_fetch(MY_CXT.cover, "statement", 9, 1);
+        MY_CXT.statements = newHV();
+        *tmp              = newRV_inc((SV*) MY_CXT.statements);
+
+        tmp               = hv_fetch(MY_CXT.cover, "branch",    6, 1);
+        MY_CXT.branches   = newHV();
+        *tmp              = newRV_inc((SV*) MY_CXT.branches);
+
+        tmp               = hv_fetch(MY_CXT.cover, "condition", 9, 1);
+        MY_CXT.conditions = newHV();
+        *tmp              = newRV_inc((SV*) MY_CXT.conditions);
+
+#if CAN_PROFILE
+        tmp               = hv_fetch(MY_CXT.cover, "time",      4, 1);
+        MY_CXT.times      = newHV();
+        *tmp              = newRV_inc((SV*) MY_CXT.times);
+#endif
+
+        tmp               = hv_fetch(MY_CXT.cover, "module",    6, 1);
+        MY_CXT.modules    = newHV();
+        *tmp              = newRV_inc((SV*) MY_CXT.modules);
+
+#ifdef USE_ITHREADS
+        HvSHAREKEYS_off(MY_CXT.statements);
+        HvSHAREKEYS_off(MY_CXT.branches);
+        HvSHAREKEYS_off(MY_CXT.conditions);
+#if CAN_PROFILE
+        HvSHAREKEYS_off(MY_CXT.times);
+#endif
+        HvSHAREKEYS_off(MY_CXT.modules);
+#endif
+
+        MY_CXT.profiling_key_valid = 0;
+        MY_CXT.module              = newSVpv("", 0);
+        MY_CXT.covering            = All;
+        MY_CXT.tid                 = tid++;
+    }
+}
+
 #if CAN_PROFILE
 
 static void cover_time(pTHX)
@@ -708,71 +777,7 @@ static int runops_cover(pTHX)
 
     NDEB(D(L, "entering runops_cover\n"));
 
-    MUTEX_LOCK(&DC_mutex);
-    if (!Pending_conditionals)
-    {
-        Pending_conditionals = newHV();
-#ifdef USE_ITHREADS
-        HvSHAREKEYS_off(Pending_conditionals);
-#endif
-    }
-    if (!Return_ops)
-    {
-        Return_ops = newHV();
-#ifdef USE_ITHREADS
-        HvSHAREKEYS_off(Return_ops);
-#endif
-    }
-    MUTEX_UNLOCK(&DC_mutex);
-
-    if (!MY_CXT.covering)
-    {
-        /* TODO - this probably leaks all over the place */
-
-        SV **tmp;
-
-        MY_CXT.cover      = newHV();
-#ifdef USE_ITHREADS
-        HvSHAREKEYS_off(MY_CXT.cover);
-#endif
-
-        tmp               = hv_fetch(MY_CXT.cover, "statement", 9, 1);
-        MY_CXT.statements = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.statements);
-
-        tmp               = hv_fetch(MY_CXT.cover, "branch",    6, 1);
-        MY_CXT.branches   = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.branches);
-
-        tmp               = hv_fetch(MY_CXT.cover, "condition", 9, 1);
-        MY_CXT.conditions = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.conditions);
-
-#if CAN_PROFILE
-        tmp               = hv_fetch(MY_CXT.cover, "time",      4, 1);
-        MY_CXT.times      = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.times);
-#endif
-
-        tmp               = hv_fetch(MY_CXT.cover, "module",    6, 1);
-        MY_CXT.modules    = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.modules);
-
-#ifdef USE_ITHREADS
-        HvSHAREKEYS_off(MY_CXT.statements);
-        HvSHAREKEYS_off(MY_CXT.branches);
-        HvSHAREKEYS_off(MY_CXT.conditions);
-#if CAN_PROFILE
-        HvSHAREKEYS_off(MY_CXT.times);
-#endif
-        HvSHAREKEYS_off(MY_CXT.modules);
-#endif
-
-        MY_CXT.profiling_key_valid = 0;
-        MY_CXT.module              = newSVpv("", 0);
-        MY_CXT.covering            = All;
-        MY_CXT.tid                 = tid++;
-    }
+    initialise();
 
 #if defined HAS_GETTIMEOFDAY
     elapsed();
