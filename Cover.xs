@@ -308,6 +308,50 @@ static void initialise(pTHX)
     }
 }
 
+static void check_if_collecting(pTHX)
+{
+    char *file = CopFILE(cCOP);
+    NDEB(D(L, "File: %s:%ld\n", file, CopLINE(cCOP)));
+    if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file))
+    {
+        if (MY_CXT.files)
+        {
+            SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
+            MY_CXT.collecting_here = f ? SvIV(*f) : 1;
+            NDEB(D(L, "File: %s:%ld [%d]\n",
+                      file, CopLINE(cCOP), MY_CXT.collecting_here));
+        }
+        sv_setpv(MY_CXT.lastfile, file);
+    }
+#if PERL_VERSION > 6
+    if (SvTRUE(MY_CXT.module))
+    {
+        STRLEN mlen,
+               flen = strlen(file);
+        char  *m    = SvPV(MY_CXT.module, mlen);
+        if (flen >= mlen && strnEQ(m, file + flen - mlen, mlen))
+        {
+            SV **dir = hv_fetch(MY_CXT.modules, file, strlen(file), 1);
+            if (!SvROK(*dir))
+            {
+                SV *cwd = newSV(0);
+                AV *d   = newAV();
+                *dir = newRV_inc((SV*) d);
+                av_push(d, newSVsv(MY_CXT.module));
+                if (getcwd_sv(cwd))
+                {
+                    av_push(d, newSVsv(cwd));
+                    NDEB(D(L, "require %s as %s from %s\n",
+                              m, file, SvPV_nolen(cwd)));
+                }
+            }
+        }
+        sv_setpv(MY_CXT.module, "");
+        set_firsts_if_needed(aTHX);
+    }
+#endif
+}
+
 #if CAN_PROFILE
 
 static void cover_time(pTHX)
@@ -811,46 +855,7 @@ static int runops_cover(pTHX)
 
         if (PL_op->op_type == OP_NEXTSTATE)
         {
-            char *file = CopFILE(cCOP);
-            NDEB(D(L, "File: %s:%ld\n", file, CopLINE(cCOP)));
-            if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file))
-            {
-                if (MY_CXT.files)
-                {
-                    SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
-                    MY_CXT.collecting_here = f ? SvIV(*f) : 1;
-                    NDEB(D(L, "File: %s:%ld [%d]\n",
-                              file, CopLINE(cCOP), MY_CXT.collecting_here));
-                }
-                sv_setpv(MY_CXT.lastfile, file);
-            }
-#if PERL_VERSION > 6
-            if (SvTRUE(MY_CXT.module))
-            {
-                STRLEN mlen,
-                       flen = strlen(file);
-                char  *m    = SvPV(MY_CXT.module, mlen);
-                if (flen >= mlen && strnEQ(m, file + flen - mlen, mlen))
-                {
-                    SV **dir = hv_fetch(MY_CXT.modules, file, strlen(file), 1);
-                    if (!SvROK(*dir))
-                    {
-                        SV *cwd = newSV(0);
-                        AV *d   = newAV();
-                        *dir = newRV_inc((SV*) d);
-                        av_push(d, newSVsv(MY_CXT.module));
-                        if (getcwd_sv(cwd))
-                        {
-                            av_push(d, newSVsv(cwd));
-                            NDEB(D(L, "require %s as %s from %s\n",
-                                      m, file, SvPV_nolen(cwd)));
-                        }
-                    }
-                }
-                sv_setpv(MY_CXT.module, "");
-                set_firsts_if_needed(aTHX);
-            }
-#endif
+            check_if_collecting();
         }
         else if (MY_CXT.collecting_here &&
                  PL_op->op_type == OP_ENTERSUB &&
