@@ -74,6 +74,7 @@ struct unique    /* Well, we'll be fairly unlucky if it's not */
 typedef struct
 {
     unsigned  covering;
+    int       collecting_here;
     HV       *cover,
              *statements,
              *branches,
@@ -249,6 +250,8 @@ static void initialise(pTHX)
 #endif
     }
     MUTEX_UNLOCK(&DC_mutex);
+
+    MY_CXT.collecting_here = 1;
 
     if (!MY_CXT.covering)
     {
@@ -770,7 +773,6 @@ static void cover_logop(pTHX)
 static int runops_cover(pTHX)
 {
     HV    *Files           = 0;
-    int    collecting_here = 1;
     SV    *lastfile        = newSVpvn("", 1);
 
     dMY_CXT;
@@ -816,9 +818,9 @@ static int runops_cover(pTHX)
                 if (Files)
                 {
                     SV **f = hv_fetch(Files, file, strlen(file), 0);
-                    collecting_here = f ? SvIV(*f) : 1;
+                    MY_CXT.collecting_here = f ? SvIV(*f) : 1;
                     NDEB(D(L, "File: %s:%ld [%d]\n",
-                              file, CopLINE(cCOP), collecting_here));
+                              file, CopLINE(cCOP), MY_CXT.collecting_here));
                 }
                 sv_setpv(lastfile, file);
             }
@@ -850,7 +852,7 @@ static int runops_cover(pTHX)
             }
 #endif
         }
-        else if (collecting_here &&
+        else if (MY_CXT.collecting_here &&
                  PL_op->op_type == OP_ENTERSUB &&
                  PL_op->op_next)
         {
@@ -866,7 +868,7 @@ static int runops_cover(pTHX)
             NDEB(D(L, "adding return op %p\n", PL_op->op_next));
         }
 
-        if (!collecting_here)
+        if (!MY_CXT.collecting_here)
         {
 #if CAN_PROFILE
             cover_time(aTHX);
@@ -874,7 +876,7 @@ static int runops_cover(pTHX)
 #endif
             NDEB(D(L, "op %p is %s\n", PL_op, OP_NAME(PL_op)));
             if (hv_exists(Return_ops, get_key(PL_op), KEY_SZ))
-                collecting_here = 1;
+                MY_CXT.collecting_here = 1;
             else
                 goto call_fptr;
         }
@@ -937,6 +939,8 @@ static int runops_cover(pTHX)
 
         PERL_ASYNC_CHECK();
     }
+
+    MY_CXT.collecting_here = 1;
 
     NDEB(D(L, "exiting runops_cover\n"));
 
