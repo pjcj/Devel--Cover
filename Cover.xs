@@ -206,7 +206,7 @@ static char *hex_key(char *key)
     return hk;
 }
 
-static void set_firsts_if_neeed(pTHX)
+static void set_firsts_if_needed(pTHX)
 {
     SV *init = (SV *)get_cv("Devel::Cover::first_init", 0);
     SV *end  = (SV *)get_cv("Devel::Cover::first_end",  0);
@@ -821,7 +821,7 @@ static int runops_cover(pTHX)
                     }
                 }
                 sv_setpv(MY_CXT.module, "");
-                set_firsts_if_neeed(aTHX);
+                set_firsts_if_needed(aTHX);
             }
 #endif
         }
@@ -1119,7 +1119,7 @@ get_key(o)
 void
 set_first_init_and_end()
     PPCODE:
-        set_firsts_if_neeed(aTHX);
+        set_firsts_if_needed(aTHX);
 
 void
 collect_inits()
