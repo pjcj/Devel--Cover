@@ -432,6 +432,16 @@ static int store_return(pTHX)
         NDEB(D(L, "adding return op %p\n", PL_op->op_next));
     }
 }
+
+static void store_module(pTHX)
+{
+    dMY_CXT;
+    dSP;
+
+    SvSetSV_nosteal(MY_CXT.module, TOPs);
+    NDEB(D(L, "require %s\n", SvPV_nolen(MY_CXT.module)));
+}
+
 static void cover_statement(pTHX)
 {
     dMY_CXT;
@@ -905,7 +915,8 @@ static int runops_cover(pTHX)
             store_return();
         }
 
-        if (!collecting_here()) goto call_fptr;
+        if (!collecting_here())
+            goto call_fptr;
 
         /*
          * We are about the run the op PL_op, so we'll collect
@@ -944,9 +955,7 @@ static int runops_cover(pTHX)
 
             case OP_REQUIRE:
             {
-                dSP;
-                SvSetSV_nosteal(MY_CXT.module, TOPs);
-                NDEB(D(L, "require %s\n", SvPV_nolen(MY_CXT.module)));
+                store_module();
                 break;
             }
 
