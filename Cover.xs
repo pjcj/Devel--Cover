@@ -414,9 +414,23 @@ static int collecting_here(pTHX)
         return 0;
 }
 
+static int store_return(pTHX)
+{
+    /*
+     * If we are jumping somewhere we might not be collecting
+     * coverage there, so store where we will be coming back to
+     * so we can turn on coverage straight away.  We need to
+     * store more than one return op because a non collecting
+     * sub may call back to a collecting sub.
+     */
+
+    hv_fetch(Return_ops, get_key(PL_op->op_next), KEY_SZ, 1);
+    NDEB(D(L, "adding return op %p\n", PL_op->op_next));
+}
 static void cover_statement(pTHX)
 {
     dMY_CXT;
+
     char *ch;
     SV  **count;
     IV    c;
@@ -440,6 +454,7 @@ static void cover_statement(pTHX)
 static void add_branch(pTHX_ OP *op, int br)
 {
     dMY_CXT;
+
     AV  *branches;
     SV **count;
     int  c;
@@ -462,6 +477,7 @@ static void add_branch(pTHX_ OP *op, int br)
 static AV *get_conditional_array(pTHX_ OP *op)
 {
     dMY_CXT;
+
     AV  *conds;
     SV **cref = hv_fetch(MY_CXT.conditions, get_key(op), KEY_SZ, 1);
 
@@ -883,16 +899,7 @@ static int runops_cover(pTHX)
                  PL_op->op_type == OP_ENTERSUB &&
                  PL_op->op_next)
         {
-            /*
-             * If we are jumping somewhere we might not be collecting
-             * coverage there, so store where we will be coming back to
-             * so we can turn on coverage straight away.  We need to
-             * store more than one return op because a non collecting
-             * sub may call back to a collecting sub.
-             */
-
-            hv_fetch(Return_ops, get_key(PL_op->op_next), KEY_SZ, 1);
-            NDEB(D(L, "adding return op %p\n", PL_op->op_next));
+            store_return();
         }
 
         if (!collecting_here()) goto call_fptr;
