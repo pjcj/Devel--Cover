@@ -416,6 +416,8 @@ static int collecting_here(pTHX)
 
 static int store_return(pTHX)
 {
+    dMY_CXT;
+
     /*
      * If we are jumping somewhere we might not be collecting
      * coverage there, so store where we will be coming back to
@@ -424,8 +426,11 @@ static int store_return(pTHX)
      * sub may call back to a collecting sub.
      */
 
-    hv_fetch(Return_ops, get_key(PL_op->op_next), KEY_SZ, 1);
-    NDEB(D(L, "adding return op %p\n", PL_op->op_next));
+    if (MY_CXT.collecting_here && PL_op->op_next)
+    {
+        hv_fetch(Return_ops, get_key(PL_op->op_next), KEY_SZ, 1);
+        NDEB(D(L, "adding return op %p\n", PL_op->op_next));
+    }
 }
 static void cover_statement(pTHX)
 {
@@ -895,9 +900,7 @@ static int runops_cover(pTHX)
         {
             check_if_collecting();
         }
-        else if (MY_CXT.collecting_here &&
-                 PL_op->op_type == OP_ENTERSUB &&
-                 PL_op->op_next)
+        else if (PL_op->op_type == OP_ENTERSUB)
         {
             store_return();
         }
