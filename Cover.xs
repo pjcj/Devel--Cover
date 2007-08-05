@@ -51,6 +51,10 @@ extern "C" {
 #define L Perl_debug_log
 #define svdump(sv) do_sv_dump(0, L, (SV *)sv, 0, 10, 1, 0);
 
+/* TODO - make this dynamic */
+     /* - fix up whatever is broken with Pending_conditionals here */
+#define REPLACE_OPS 0
+
 #define None       0x00000000
 #define Statement  0x00000001
 #define Branch     0x00000002
@@ -310,23 +314,56 @@ static void initialise(pTHX)
     }
 }
 
-static void check_if_collecting(pTHX)
+static int check_if_collecting(pTHX)
 {
     dMY_CXT;
 
     char *file = CopFILE(cCOP);
-    NDEB(D(L, "File: %s:%ld\n", file, CopLINE(cCOP)));
+    NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, CopLINE(cCOP)));
     if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file))
     {
-        if (MY_CXT.files)
+        if (REPLACE_OPS)
+        {
+            dSP;
+            int count;
+            SV *rv;
+
+            ENTER;
+            SAVETMPS;
+
+            PUSHMARK(SP);
+            XPUSHs(sv_2mortal(newSVpv(file, 0)));
+            PUTBACK;
+
+            count = call_pv("Devel::Cover::use_file", G_SCALAR);
+
+            SPAGAIN;
+
+            if (count != 1)
+                croak("use_file returned %d values\n", count);
+
+            rv = POPs;
+            MY_CXT.collecting_here = SvTRUE(rv) ? 1 : 0;
+
+            NDEB(D(L, "-- %s - %d\n", file, MY_CXT.collecting_here));
+
+            PUTBACK;
+            FREETMPS;
+            LEAVE;
+        }
+        else if (MY_CXT.files)
         {
             SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
             MY_CXT.collecting_here = f ? SvIV(*f) : 1;
             NDEB(D(L, "File: %s:%ld [%d]\n",
                       file, CopLINE(cCOP), MY_CXT.collecting_here));
         }
+
         sv_setpv(MY_CXT.lastfile, file);
     }
+    NDEB(D(L, "%s - %d\n",
+              SvPV_nolen(MY_CXT.lastfile), MY_CXT.collecting_here));
+
 #if PERL_VERSION > 6
     if (SvTRUE(MY_CXT.module))
     {
@@ -354,6 +391,8 @@ static void check_if_collecting(pTHX)
         set_firsts_if_needed(aTHX);
     }
 #endif
+
+    return MY_CXT.collecting_here;
 }
 
 #if CAN_PROFILE
@@ -460,8 +499,8 @@ static void cover_statement(pTHX)
     count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
     c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
 
-    /* PDEB(D(L, "Statement: %s:%ld\n", */
-           /* CopFILE(cCOP), CopLINE(cCOP))); */
+    NDEB(D(L, "Statement: %s:%ld\n", CopFILE(cCOP), CopLINE(cCOP)));
+
     sv_setiv(*count, c);
     NDEB(op_dump(PL_op));
 }
@@ -872,6 +911,102 @@ static void cover_logop(pTHX)
     }
 }
 
+OP *dc_nextstate(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering)   check_if_collecting(aTHX);
+    if (collecting_here()) cover_statement(aTHX);
+    return Perl_pp_nextstate();
+}
+
+OP *dc_setstate(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering)   check_if_collecting(aTHX);
+    if (collecting_here()) cover_statement(aTHX);
+    return Perl_pp_setstate();
+}
+
+OP *dc_dbstate(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering)   check_if_collecting(aTHX);
+    if (collecting_here()) cover_statement(aTHX);
+    return Perl_pp_dbstate();
+}
+
+OP *dc_entersub(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering) store_return(aTHX);
+    return Perl_pp_entersub();
+}
+
+OP *dc_cond_expr(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering && collecting_here()) cover_cond(aTHX);
+    return Perl_pp_cond_expr();
+}
+
+OP *dc_and(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
+    return Perl_pp_and();
+}
+
+OP *dc_andassign(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
+    return Perl_pp_andassign();
+}
+
+OP *dc_or(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
+    return Perl_pp_or();
+}
+
+OP *dc_orassign(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
+    return Perl_pp_orassign();
+}
+
+#ifdef KEY_err
+OP *dc_dor(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
+    return Perl_pp_dor();
+}
+
+OP *dc_dorassign(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
+    return Perl_pp_dorassign();
+}
+#endif
+
+OP *dc_xor(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
+    return Perl_pp_xor();
+}
+
+OP *dc_require(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering && collecting_here()) store_module(aTHX);
+    return Perl_pp_require();
+}
+
 static int runops_cover(pTHX)
 {
     dMY_CXT;
@@ -886,7 +1021,14 @@ static int runops_cover(pTHX)
     cpu();
 #endif
 
-    for (;;)
+    if (REPLACE_OPS)
+    {
+        while ((PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
+        {
+            PERL_ASYNC_CHECK();
+        }
+    }
+    else for (;;)
     {
         NDEB(D(L, "running func %p from %p (%s)\n",
                PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
@@ -908,14 +1050,14 @@ static int runops_cover(pTHX)
 
         if (PL_op->op_type == OP_NEXTSTATE)
         {
-            check_if_collecting();
+            check_if_collecting(aTHX);
         }
         else if (PL_op->op_type == OP_ENTERSUB)
         {
-            store_return();
+            store_return(aTHX);
         }
 
-        if (!collecting_here())
+        if (!collecting_here(aTHX))
             goto call_fptr;
 
         /*
@@ -965,15 +1107,14 @@ static int runops_cover(pTHX)
 
         call_fptr:
         if (!(PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
-        {
-#if CAN_PROFILE
-            cover_time(aTHX);
-#endif
             break;
-        }
 
         PERL_ASYNC_CHECK();
     }
+
+#if CAN_PROFILE
+    cover_time(aTHX);
+#endif
 
     MY_CXT.collecting_here = 1;
 
@@ -1216,7 +1357,6 @@ get_ends()
     OUTPUT:
         RETVAL
 
-
 BOOT:
     {
         MY_CXT_INIT;
@@ -1228,3 +1368,21 @@ BOOT:
 #if PERL_VERSION > 6
     PL_savebegin = TRUE;
 #endif
+    if (REPLACE_OPS)
+    {
+        PL_ppaddr[OP_NEXTSTATE] = MEMBER_TO_FPTR(dc_nextstate);
+        PL_ppaddr[OP_SETSTATE]  = MEMBER_TO_FPTR(dc_setstate);
+        PL_ppaddr[OP_DBSTATE]   = MEMBER_TO_FPTR(dc_dbstate);
+        PL_ppaddr[OP_ENTERSUB]  = MEMBER_TO_FPTR(dc_entersub);
+        PL_ppaddr[OP_COND_EXPR] = MEMBER_TO_FPTR(dc_cond_expr);
+        PL_ppaddr[OP_AND]       = MEMBER_TO_FPTR(dc_and);
+        PL_ppaddr[OP_ANDASSIGN] = MEMBER_TO_FPTR(dc_andassign);
+        PL_ppaddr[OP_OR]        = MEMBER_TO_FPTR(dc_or);
+        PL_ppaddr[OP_ORASSIGN]  = MEMBER_TO_FPTR(dc_orassign);
+#ifdef KEY_err
+        PL_ppaddr[OP_DOR]       = MEMBER_TO_FPTR(dc_dor);
+        PL_ppaddr[OP_DORASSIGN] = MEMBER_TO_FPTR(dc_dorassign);
+#endif
+        PL_ppaddr[OP_XOR]       = MEMBER_TO_FPTR(dc_xor);
+        PL_ppaddr[OP_REQUIRE]   = MEMBER_TO_FPTR(dc_require);
+    }

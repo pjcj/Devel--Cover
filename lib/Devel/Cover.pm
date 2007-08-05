@@ -316,6 +316,7 @@ sub import
     @Select_re = map qr/$_/,                           @Select;
     @Ignore_re = map qr/$_/,                           @Ignore;
     @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
+    %Files     = ();  # start gathering file information from scratch
 
     for my $c (Devel::Cover::DB->new->criteria)
     {
@@ -750,7 +751,7 @@ sub add_branch_cover
     my $c   = $Coverage->{condition}{$key};
 
     no warnings "uninitialized";
-    # print STDERR "*** add_branch_cover $File:$Line [$type][$c]\n";
+    # warn "add_branch_cover $File:$Line [$type][@{[join ', ', @$c]}]\n";
 
     if ($type eq "and" ||
         $type eq "or"  ||
@@ -782,6 +783,8 @@ sub add_branch_cover
         my $vec = $Run{vec}{$File}{branch};
         vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
     }
+
+    # warn "branch $type %x [@$c] => [@{$ccount->{branch}[$n]}]\n", $$op;
 }
 
 my %condition_locations;
