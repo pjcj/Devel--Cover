@@ -429,7 +429,8 @@ sub normalised_file
         else
         {
             # print STDERR "getting abs_path <$file> ";
-            my $abs = abs_path($file);
+            my $abs;
+            $abs = abs_path($file) unless -l $file;  # leave symbolic links
             # print STDERR "giving <$file> ";
             $file = $abs if defined $abs;
         }
@@ -491,7 +492,8 @@ sub use_file
     $Files{$file} = -e $file ? 1 : 0;
     warn __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
         unless $Files{$file} || $Silent || $file =~ /\(eval \d+\)/ ||
-               $file eq "../../lib/Storable.pm";
+               $file eq "../../lib/Storable.pm" ||
+               $file eq "../../lib/POSIX.pm";
 
     $Files{$file}
 }

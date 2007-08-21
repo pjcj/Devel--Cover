@@ -13,6 +13,8 @@ Release 0.62 -
  - Tidy up filename normalisation.
  - Be more explicit about what I mean when I call this alpha software.
  - Add uncoverable comments.
+ - Don't complain about POSIX.pm (Erwan Lemonnier).
+ - Don't resolve pathnames of symbolic links (Stefan Becker).
 
 Release 0.61 - 10th January 2007
  - Fix some "ignored" errors due to multiple subs of the same name on the same
