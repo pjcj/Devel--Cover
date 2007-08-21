@@ -915,96 +915,96 @@ OP *dc_nextstate(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering)   check_if_collecting(aTHX);
-    if (collecting_here()) cover_statement(aTHX);
-    return Perl_pp_nextstate();
+    if (collecting_here(aTHX)) cover_statement(aTHX);
+    return Perl_pp_nextstate(aTHX);
 }
 
 OP *dc_setstate(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering)   check_if_collecting(aTHX);
-    if (collecting_here()) cover_statement(aTHX);
-    return Perl_pp_setstate();
+    if (collecting_here(aTHX)) cover_statement(aTHX);
+    return Perl_pp_setstate(aTHX);
 }
 
 OP *dc_dbstate(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering)   check_if_collecting(aTHX);
-    if (collecting_here()) cover_statement(aTHX);
-    return Perl_pp_dbstate();
+    if (collecting_here(aTHX)) cover_statement(aTHX);
+    return Perl_pp_dbstate(aTHX);
 }
 
 OP *dc_entersub(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering) store_return(aTHX);
-    return Perl_pp_entersub();
+    return Perl_pp_entersub(aTHX);
 }
 
 OP *dc_cond_expr(pTHX)
 {
     dMY_CXT;
-    if (MY_CXT.covering && collecting_here()) cover_cond(aTHX);
-    return Perl_pp_cond_expr();
+    if (MY_CXT.covering && collecting_here(aTHX)) cover_cond(aTHX);
+    return Perl_pp_cond_expr(aTHX);
 }
 
 OP *dc_and(pTHX)
 {
     dMY_CXT;
-    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
-    return Perl_pp_and();
+    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+    return Perl_pp_and(aTHX);
 }
 
 OP *dc_andassign(pTHX)
 {
     dMY_CXT;
-    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
-    return Perl_pp_andassign();
+    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+    return Perl_pp_andassign(aTHX);
 }
 
 OP *dc_or(pTHX)
 {
     dMY_CXT;
-    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
-    return Perl_pp_or();
+    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+    return Perl_pp_or(aTHX);
 }
 
 OP *dc_orassign(pTHX)
 {
     dMY_CXT;
-    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
-    return Perl_pp_orassign();
+    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+    return Perl_pp_orassign(aTHX);
 }
 
 #ifdef KEY_err
 OP *dc_dor(pTHX)
 {
     dMY_CXT;
-    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
-    return Perl_pp_dor();
+    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+    return Perl_pp_dor(aTHX);
 }
 
 OP *dc_dorassign(pTHX)
 {
     dMY_CXT;
-    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
-    return Perl_pp_dorassign();
+    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+    return Perl_pp_dorassign(aTHX);
 }
 #endif
 
 OP *dc_xor(pTHX)
 {
     dMY_CXT;
-    if (MY_CXT.covering && collecting_here()) cover_logop(aTHX);
-    return Perl_pp_xor();
+    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+    return Perl_pp_xor(aTHX);
 }
 
 OP *dc_require(pTHX)
 {
     dMY_CXT;
-    if (MY_CXT.covering && collecting_here()) store_module(aTHX);
-    return Perl_pp_require();
+    if (MY_CXT.covering && collecting_here(aTHX)) store_module(aTHX);
+    return Perl_pp_require(aTHX);
 }
 
 static int runops_cover(pTHX)
@@ -1013,7 +1013,7 @@ static int runops_cover(pTHX)
 
     NDEB(D(L, "entering runops_cover\n"));
 
-    initialise();
+    initialise(aTHX);
 
 #if defined HAS_GETTIMEOFDAY
     elapsed();
@@ -1097,7 +1097,7 @@ static int runops_cover(pTHX)
 
             case OP_REQUIRE:
             {
-                store_module();
+                store_module(aTHX);
                 break;
             }
 
