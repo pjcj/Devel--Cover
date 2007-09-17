@@ -254,6 +254,7 @@ sub run_cover
             $_ = "" unless defined $_;
             print STDERR $_ if $debug;
             redo if /^Devel::Cover: merging run/;
+            redo if /^Set up gcc environment/;  # for MinGW
             s/^(Reading database from ).*/$1/;
             s|(__ANON__\[) .* (/tests/ \w+ : \d+ \])|$1$2|x;
             s/(Subroutine) +(Location)/$1 $2/;
