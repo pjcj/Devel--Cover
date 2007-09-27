@@ -386,7 +386,7 @@ course.  If you are this option will be turned on by default.
 
 The following exit values are returned:
 
-0   All operaions were completed successfully.
+0   All operations were completed successfully.
 
 >0  An error occurred.
 

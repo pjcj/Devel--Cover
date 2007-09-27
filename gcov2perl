@@ -122,7 +122,7 @@ The following command line options are supported:
 
 =head1 DETAILS
 
-To obtain coverage of XS files they must first be compiled with the appropriare
+To obtain coverage of XS files they must first be compiled with the appropriate
 options.  In a standard Makefile environment, such as that created by
 ExtUtils::MakeMaker, this can be accomplished with the command:
 
