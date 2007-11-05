@@ -1,6 +1,6 @@
 Devel::Cover.pm history
 
-Release 0.62 - 
+Release 0.62 - 5th November 2007
  - Add table sorting to Html_basic report (Nathan Haigh).
  - Assume heredocs are constants.
  - Don't add 0x200 to $^P ("file" names for evals) (Fix for Template::Declare).
