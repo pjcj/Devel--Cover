@@ -453,7 +453,7 @@ static int collecting_here(pTHX)
         return 0;
 }
 
-static int store_return(pTHX)
+static void store_return(pTHX)
 {
     dMY_CXT;
 
