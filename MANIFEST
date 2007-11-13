@@ -53,6 +53,7 @@ tests/change.t
 tests/cond_and
 tests/cond_branch
 tests/cond_or
+tests/cond_or.pl
 tests/cond_xor
 tests/default_param
 tests/deparse

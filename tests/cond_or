@@ -16,61 +16,72 @@ my $y  = 1;
 my $z  = 0;
 $::foo = 17;
 
+if ($] >= 5.009)
+{
+    $ENV{PATH} = "/bin";
+    system "pwd";
+    use lib "tests";
+    my $file = "cond_or.pl";
+    unless (my $return = do $file)
+    {
+        die "couldn't parse $file: $@" if $@;
+        die "couldn't do $file: $!"    unless defined $return;
+        die "couldn't run $file"       unless $return;
+    }
+}
+
 for (0 .. 10)
 {
-  $y ||
-    $x[1]++;
+    $y ||
+        $x[1]++;
 
-  $y ||
-    $x[0]++ ||
-    $x[1]++;
+    $y ||
+        $x[0]++ ||
+        $x[1]++;
 
-  $x[2]++
-    unless $z;
+    $x[2]++
+        unless $z;
 
-  for (0 .. 2)
-  {
-      $x[3]++;
-  }
+    for (0 .. 2)
+    {
+        $x[3]++;
+    }
 
-  if ($z)
-  {
-    $x[4]++;
-  }
-  else
-  {
-    $x[5]++;
-  }
+    if ($z)
+    {
+        $x[4]++;
+    }
+    else
+    {
+        $x[5]++;
+    }
 
-  my $p = $y || $z;
-  my $q = $z || $y;
-  my $r = $_ || "qqq";
-  my $s = $_ || [];
-  my $t = $y | $z;
-  my $u = $y || 0;
-  my $v = $y || undef;
-  my $w = $z || 0;
+    my $p = $y || $z;
+    my $q = $z || $y;
+    my $r = $_ || "qqq";
+    my $s = $_ || [];
+    my $t = $y | $z;
+    my $u = $y || 0;
+    my $v = $y || undef;
+    my $w = $z || 0;
 
-  $p     ||= $y;
-  $p     ||= $z;
-  $x[ 6] ||= $y;
-  $x[ 7] ||= $z;
-  $x[ 8] ||= 1;
-  $x[ 9] ||= {};
-  $x[10] ||= \"foo";
-  $x[11] ||= \$y;
-  $x[12] ||= \*STDIO;
-  $x[13] ||= sub { 1 };
-  $x[14] ||= *::foo{SCALAR};
-  $x[15] ||= *STDIO{IO};
-  $x[16] ||= bless {}, "XXX";
-  $x[17] ||= <<"EOD";
+    $p     ||= $y;
+    $p     ||= $z;
+    $x[ 6] ||= $y;
+    $x[ 7] ||= $z;
+    $x[ 8] ||= 1;
+    $x[ 9] ||= {};
+    $x[10] ||= \"foo";
+    $x[11] ||= \$y;
+    $x[12] ||= \*STDIO;
+    $x[13] ||= sub { 1 };
+    $x[14] ||= *::foo{SCALAR};
+    $x[15] ||= *STDIO{IO};
+    $x[16] ||= bless {}, "XXX";
+    $x[17] ||= <<"EOD";
 blah
 EOD
-  if ($] >= 5.009)
-  {
-      eval '$x[18] //= 0';
-  }
+    cond_dor(\@x) if exists &cond_dor;
 }
 
 # print join(", ", @x), "\n";

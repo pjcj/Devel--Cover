@@ -802,7 +802,7 @@ static void cover_logop(pTHX)
         dSP;
 
         int left_val     = SvTRUE(TOPs);
-#ifdef KEY_err
+#if PERL_VERSION > 8
         int left_val_def = SvOK(TOPs);
 #endif
         int void_context = GIMME_V == G_VOID;
@@ -813,7 +813,7 @@ static void cover_logop(pTHX)
             PL_op->op_type == OP_ANDASSIGN &&  left_val     ||
             PL_op->op_type == OP_OR        && !left_val     ||
             PL_op->op_type == OP_ORASSIGN  && !left_val     ||
-#ifdef KEY_err
+#if PERL_VERSION > 8
             PL_op->op_type == OP_DOR       && !left_val_def ||
             PL_op->op_type == OP_DORASSIGN && !left_val_def ||
 #endif
@@ -822,6 +822,7 @@ static void cover_logop(pTHX)
             /* no short circuit */
 
             OP *right = cLOGOP->op_first->op_sibling;
+
             NDEB(op_dump(right));
 
             if (void_context                ||
@@ -977,7 +978,7 @@ OP *dc_orassign(pTHX)
     return Perl_pp_orassign(aTHX);
 }
 
-#ifdef KEY_err
+#if PERL_VERSION > 8
 OP *dc_dor(pTHX)
 {
     dMY_CXT;
@@ -1085,7 +1086,7 @@ static int runops_cover(pTHX)
             case OP_ANDASSIGN:
             case OP_OR:
             case OP_ORASSIGN:
-#ifdef KEY_err
+#if PERL_VERSION > 8
             case OP_DOR:
             case OP_DORASSIGN:
 #endif
@@ -1379,7 +1380,7 @@ BOOT:
         PL_ppaddr[OP_ANDASSIGN] = MEMBER_TO_FPTR(dc_andassign);
         PL_ppaddr[OP_OR]        = MEMBER_TO_FPTR(dc_or);
         PL_ppaddr[OP_ORASSIGN]  = MEMBER_TO_FPTR(dc_orassign);
-#ifdef KEY_err
+#if PERL_VERSION > 8
         PL_ppaddr[OP_DOR]       = MEMBER_TO_FPTR(dc_dor);
         PL_ppaddr[OP_DORASSIGN] = MEMBER_TO_FPTR(dc_dorassign);
 #endif

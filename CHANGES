@@ -2,6 +2,7 @@ Devel::Cover.pm history
 
 Release 0.63 - 
  - store_return() should be a void function (H.Merijn Brand).
+ - Finish dor support.
 
 Release 0.62 - 5th November 2007
  - Add table sorting to Html_basic report (Nathan Haigh).

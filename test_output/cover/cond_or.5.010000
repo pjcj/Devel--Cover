@@ -4,8 +4,9 @@ Reading database from /home/pjcj/g/perl/svk/dc/cover_db
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/cond_or                                80.9   30.0   72.3    0.0   67.8
-Total                                        80.9   30.0   72.3    0.0   67.8
+tests/cond_or                                90.7   35.0   72.3   75.0   74.4
+tests/cond_or.pl                            100.0    n/a   62.5  100.0   78.6
+Total                                        93.8   35.0   67.8   85.7   75.9
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -27,8 +28,12 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      use strict;
-11                                      use warnings;
+10             1                    1   use strict;
+               1                        
+               1                        
+11             1                    1   use warnings;
+               1                        
+               1                        
 12                                      
 13             1                        my @x;
 14                                      
@@ -38,11 +43,13 @@ line  err   stmt   bran   cond    sub   code
 18                                      
 19    ***      1     50                 if ($] >= 5.009)
 20                                      {
-21    ***      0                            $ENV{PATH} = "/bin";
-22    ***      0                            system "pwd";
-23                                          use lib "tests";
-24    ***      0                            my $file = "cond_or.pl";
-25    ***      0      0                     unless (my $return = do $file)
+21             1                            $ENV{PATH} = "/bin";
+22             1                            system "pwd";
+23             1                    1       use lib "tests";
+               1                        
+               1                        
+24             1                            my $file = "cond_or.pl";
+25    ***      1     50                     unless (my $return = do $file)
 26                                          {
 27    ***      0      0                         die "couldn't parse $file: $@" if $@;
 28    ***      0      0                         die "couldn't do $file: $!"    unless defined $return;
@@ -51,7 +58,6 @@ line  err   stmt   bran   cond    sub   code
 31                                      }
 32                                      
 33             1                        for (0 .. 10)
-              11                        
 34                                      {
 35    ***     11     50                     $y ||
 36                                              $x[1]++;
@@ -64,7 +70,6 @@ line  err   stmt   bran   cond    sub   code
 43                                              unless $z;
 44                                      
 45            11                            for (0 .. 2)
-              33                        
 46                                          {
 47            33                                $x[3]++;
 48                                          }
@@ -115,8 +120,8 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-19    ***     50      0      1   if ($] >= 5.009)
-25    ***      0      0      0   unless (my $return = do $file)
+19    ***     50      1      0   if ($] >= 5.009)
+25    ***     50      0      1   unless (my $return = do $file)
 27    ***      0      0      0   if $@
 28    ***      0      0      0   unless defined $return
 29    ***      0      0      0   unless $return
@@ -124,8 +129,7 @@ line  err      %   true  false   branch
 38    ***     50      0     11   unless $y or $x[0]++
 42    ***     50     11      0   unless $z
 50    ***     50      0     11   if ($z) { }
-84    ***     50      0     11   if exists ->{Deparse error: Can't locate object method "name" via package "B::NULL" (perhaps you forgot to load "B::NULL"?) at /usr/local/pkg/perl-5.6.1/lib/5.6.1/i686-linux/B/Deparse.pm line 409.
-}
+84    ***     50     11      0   if exists &cond_dor
 
 
 Conditions
@@ -146,7 +150,7 @@ line  err      %      l     !l   expr
 71    ***     50      0     11   $x[7] ||= $z
 72           100     10      1   $x[8] ||= 1
 73           100     10      1   $x[9] ||= {}
-74           100     10      1   $x[10] ||= \('foo')
+74           100     10      1   $x[10] ||= \'foo'
 75           100     10      1   $x[11] ||= \$y
 76           100     10      1   $x[12] ||= \*STDIO
 77           100     10      1   $x[13] ||= sub {
@@ -167,11 +171,110 @@ line  err      %      l  !l&&r !l&&!r   expr
 60    ***     33      0     11      0   $z || $y
 
 
+Covered Subroutines
+-------------------
+
+Subroutine Count Location        
+---------- ----- ----------------
+BEGIN          1 tests/cond_or:10
+BEGIN          1 tests/cond_or:11
+BEGIN          1 tests/cond_or:23
+
 Uncovered Subroutines
 ---------------------
 
 Subroutine Count Location        
 ---------- ----- ----------------
 __ANON__       0 tests/cond_or:77
+
+
+tests/cond_or.pl
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2007, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                    1   use strict;
+               1                        
+               1                        
+11             1                    1   use warnings;
+               1                        
+               1                        
+12                                      
+13                                      sub cond_dor
+14                                      {
+15            11                   11       my ($x) = @_;
+16                                      
+17            11           100              $x->[18] //= undef;
+18            11           100              $x->[18] //= 0;
+19    ***     11            50              $x->[18] //= 0;
+20    ***     11            50              $x->[18] //= 1;
+21    ***     11            50              $x->[18] //= 1;
+22                                      
+23            11           100              $x->[19] //= 1;
+24    ***     11            50              $x->[19] //= 1;
+25    ***     11            50              $x->[19] //= 0;
+26    ***     11            50              $x->[19] //= undef;
+27    ***     11            50              $x->[19] //= 1;
+28                                      
+29    ***     11            50              $x->[20]   = $x->[21] // undef;
+30    ***     11            50              $x->[20]   = $x->[21] // 0;
+31    ***     11            50              $x->[20]   = $x->[21] // 0;
+32    ***     11            50              $x->[20]   = $x->[21] // 1;
+33    ***     11            50              $x->[20]   = $x->[21] // 1;
+34                                      
+35            11           100              $x->[22]   = $x->[22] // undef;
+36            11           100              $x->[22]   = $x->[22] // 0;
+37    ***     11            50              $x->[22]   = $x->[22] // 0;
+38    ***     11            50              $x->[22]   = $x->[22] // 1;
+39    ***     11            50              $x->[22]   = $x->[22] // 1;
+40                                      }
+41                                      
+42                                      1;
+
+
+Conditions
+----------
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+17           100     10      1   $$x[18] //= undef
+18           100     10      1   $$x[18] //= 0
+19    ***     50     11      0   $$x[18] //= 0
+20    ***     50     11      0   $$x[18] //= 1
+21    ***     50     11      0   $$x[18] //= 1
+23           100     10      1   $$x[19] //= 1
+24    ***     50     11      0   $$x[19] //= 1
+25    ***     50     11      0   $$x[19] //= 0
+26    ***     50     11      0   $$x[19] //= undef
+27    ***     50     11      0   $$x[19] //= 1
+29    ***     50      0     11   $$x[21] // undef
+30    ***     50      0     11   $$x[21] // 0
+31    ***     50      0     11   $$x[21] // 0
+32    ***     50      0     11   $$x[21] // 1
+33    ***     50      0     11   $$x[21] // 1
+35           100     10      1   $$x[22] // undef
+36           100     10      1   $$x[22] // 0
+37    ***     50     11      0   $$x[22] // 0
+38    ***     50     11      0   $$x[22] // 1
+39    ***     50     11      0   $$x[22] // 1
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location           
+---------- ----- -------------------
+BEGIN          1 tests/cond_or.pl:10
+BEGIN          1 tests/cond_or.pl:11
+cond_dor      11 tests/cond_or.pl:15
 
 
