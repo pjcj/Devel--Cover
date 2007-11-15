@@ -67,6 +67,7 @@ tests/eval2
 tests/eval3
 tests/eval_sub.t
 tests/eval_use.t
+tests/exec
 tests/fork
 tests/if
 tests/inc_sub
@@ -137,6 +138,7 @@ test_output/cover/eval_sub.t.5.006001
 test_output/cover/eval_sub.t.5.008
 test_output/cover/eval_use.t.5.006001
 test_output/cover/eval_use.t.5.008
+test_output/cover/exec.5.006001
 test_output/cover/fork.5.006001
 test_output/cover/if.5.006001
 test_output/cover/if.5.008

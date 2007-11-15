@@ -4,6 +4,7 @@ Release 0.63 -
  - require 5.006001 might stop CPAN testers trying to test with 5.005.
  - store_return() should be a void function (H.Merijn Brand).
  - Finish dor support.
+ - Add support for exec (Brandon Black).
 
 Release 0.62 - 5th November 2007
  - Add table sorting to Html_basic report (Nathan Haigh).

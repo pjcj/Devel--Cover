@@ -481,6 +481,14 @@ static void store_module(pTHX)
     NDEB(D(L, "require %s\n", SvPV_nolen(MY_CXT.module)));
 }
 
+static void call_report(pTHX)
+{
+    dSP;
+    PUSHMARK(SP);
+    call_pv("Devel::Cover::report", G_VOID|G_DISCARD);
+    SPAGAIN;
+}
+
 static void cover_statement(pTHX)
 {
     dMY_CXT;
@@ -1008,6 +1016,13 @@ OP *dc_require(pTHX)
     return Perl_pp_require(aTHX);
 }
 
+OP *dc_exec(pTHX)
+{
+    dMY_CXT;
+    if (MY_CXT.covering && collecting_here(aTHX)) call_report(aTHX);
+    return Perl_pp_exec(aTHX);
+}
+
 static int runops_cover(pTHX)
 {
     dMY_CXT;
@@ -1099,6 +1114,12 @@ static int runops_cover(pTHX)
             case OP_REQUIRE:
             {
                 store_module(aTHX);
+                break;
+            }
+
+            case OP_EXEC:
+            {
+                call_report(aTHX);
                 break;
             }
 
