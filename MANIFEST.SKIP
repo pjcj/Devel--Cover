@@ -21,3 +21,4 @@ lib/Devel/Cover/Inc.pm$
 .rej$
 .debug$
 ^tmp/
+^bugs/
