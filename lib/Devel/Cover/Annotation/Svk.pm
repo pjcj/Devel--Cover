@@ -10,7 +10,7 @@ package Devel::Cover::Annotation::Svk;
 use strict;
 use warnings;
 
-our $VERSION = "0.62";
+our $VERSION = "0.63";
 
 use Getopt::Long;
 use Digest::MD5;
@@ -175,7 +175,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.62 - 5th November 2007
+Version 0.63 - 16th November 2007
 
 =head1 LICENCE
 
