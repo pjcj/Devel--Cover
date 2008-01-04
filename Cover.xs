@@ -77,23 +77,24 @@ struct unique    /* Well, we'll be fairly unlucky if it's not */
 
 typedef struct
 {
-    unsigned  covering;
-    int       collecting_here;
-    HV       *cover,
-             *statements,
-             *branches,
-             *conditions,
+    unsigned      covering;
+    int           collecting_here;
+    HV           *cover,
+                 *statements,
+                 *branches,
+                 *conditions,
 #if CAN_PROFILE
-             *times,
+                 *times,
 #endif
-             *modules,
-             *files;
-    AV       *ends;
-    char      profiling_key[KEY_SZ];
-    bool      profiling_key_valid;
-    SV       *module,
-             *lastfile;
-    int       tid;
+                 *modules,
+                 *files;
+    AV           *ends;
+    char          profiling_key[KEY_SZ];
+    bool          profiling_key_valid;
+    SV           *module,
+                 *lastfile;
+    int           tid;
+    Perl_ppaddr_t ppaddr[MAXO];
 } my_cxt_t;
 
 #ifdef USE_ITHREADS
@@ -920,85 +921,91 @@ static void cover_logop(pTHX)
     }
 }
 
-OP *dc_nextstate(pTHX)
+static OP *runop(pTHX_ int op)
+{
+    dMY_CXT;
+    return CALL_FPTR(MY_CXT.ppaddr[op])(aTHX);
+}
+
+static OP *dc_nextstate(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering)   check_if_collecting(aTHX);
     if (collecting_here(aTHX)) cover_statement(aTHX);
-    return Perl_pp_nextstate(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_NEXTSTATE])(aTHX);
 }
 
-OP *dc_setstate(pTHX)
+static OP *dc_setstate(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering)   check_if_collecting(aTHX);
     if (collecting_here(aTHX)) cover_statement(aTHX);
-    return Perl_pp_setstate(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_SETSTATE])(aTHX);
 }
 
-OP *dc_dbstate(pTHX)
+static OP *dc_dbstate(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering)   check_if_collecting(aTHX);
     if (collecting_here(aTHX)) cover_statement(aTHX);
-    return Perl_pp_dbstate(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_DBSTATE])(aTHX);
 }
 
-OP *dc_entersub(pTHX)
+static OP *dc_entersub(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering) store_return(aTHX);
-    return Perl_pp_entersub(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_ENTERSUB])(aTHX);
 }
 
-OP *dc_cond_expr(pTHX)
+static OP *dc_cond_expr(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_cond(aTHX);
-    return Perl_pp_cond_expr(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_COND_EXPR])(aTHX);
 }
 
-OP *dc_and(pTHX)
+static OP *dc_and(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return Perl_pp_and(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_AND])(aTHX);
 }
 
-OP *dc_andassign(pTHX)
+static OP *dc_andassign(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return Perl_pp_andassign(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_ANDASSIGN])(aTHX);
 }
 
-OP *dc_or(pTHX)
+static OP *dc_or(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return Perl_pp_or(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_OR])(aTHX);
 }
 
-OP *dc_orassign(pTHX)
+static OP *dc_orassign(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return Perl_pp_orassign(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_ORASSIGN])(aTHX);
 }
 
 #if PERL_VERSION > 8
-OP *dc_dor(pTHX)
+static OP *dc_dor(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return Perl_pp_dor(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_DOR])(aTHX);
 }
 
-OP *dc_dorassign(pTHX)
+static OP *dc_dorassign(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return Perl_pp_dorassign(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_DORASSIGN])(aTHX);
 }
 #endif
 
@@ -1006,21 +1013,21 @@ OP *dc_xor(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return Perl_pp_xor(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_XOR])(aTHX);
 }
 
-OP *dc_require(pTHX)
+static OP *dc_require(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) store_module(aTHX);
-    return Perl_pp_require(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_REQUIRE])(aTHX);
 }
 
-OP *dc_exec(pTHX)
+static OP *dc_exec(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) call_report(aTHX);
-    return Perl_pp_exec(aTHX);
+    return CALL_FPTR(MY_CXT.ppaddr[OP_EXEC])(aTHX);
 }
 
 static int runops_cover(pTHX)
@@ -1392,6 +1399,10 @@ BOOT:
 #endif
     if (REPLACE_OPS)
     {
+        int i;
+        for (i = 0; i < MAXO; i++)
+            MY_CXT.ppaddr[i] = PL_ppaddr[i];
+
         PL_ppaddr[OP_NEXTSTATE] = MEMBER_TO_FPTR(dc_nextstate);
         PL_ppaddr[OP_SETSTATE]  = MEMBER_TO_FPTR(dc_setstate);
         PL_ppaddr[OP_DBSTATE]   = MEMBER_TO_FPTR(dc_dbstate);
@@ -1407,4 +1418,5 @@ BOOT:
 #endif
         PL_ppaddr[OP_XOR]       = MEMBER_TO_FPTR(dc_xor);
         PL_ppaddr[OP_REQUIRE]   = MEMBER_TO_FPTR(dc_require);
+        PL_ppaddr[OP_EXEC]      = MEMBER_TO_FPTR(dc_exec);
     }
