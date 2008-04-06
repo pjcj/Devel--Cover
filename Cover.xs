@@ -1096,10 +1096,10 @@ static int runops_cover(pTHX)
 
         switch (PL_op->op_type)
         {
+            case OP_NEXTSTATE:
 #if PERL_VERSION <= 10
             case OP_SETSTATE:
 #endif
-            case OP_NEXTSTATE:
             case OP_DBSTATE:
             {
                 cover_statement(aTHX);
@@ -1397,36 +1397,36 @@ get_ends()
 BOOT:
     {
         MY_CXT_INIT;
-    }
 #ifdef USE_ITHREADS
-    MUTEX_INIT(&DC_mutex);
+        MUTEX_INIT(&DC_mutex);
 #endif
-    PL_runops    = runops_cover;
+        PL_runops    = runops_cover;
 #if PERL_VERSION > 6
-    PL_savebegin = TRUE;
+        PL_savebegin = TRUE;
 #endif
-    if (REPLACE_OPS)
-    {
-        int i;
-        for (i = 0; i < MAXO; i++)
-            MY_CXT.ppaddr[i] = PL_ppaddr[i];
+        if (REPLACE_OPS)
+        {
+            int i;
+            for (i = 0; i < MAXO; i++)
+                MY_CXT.ppaddr[i] = PL_ppaddr[i];
 
-        PL_ppaddr[OP_NEXTSTATE] = MEMBER_TO_FPTR(dc_nextstate);
+            PL_ppaddr[OP_NEXTSTATE] = MEMBER_TO_FPTR(dc_nextstate);
 #if PERL_VERSION <= 10
-        PL_ppaddr[OP_SETSTATE]  = MEMBER_TO_FPTR(dc_setstate);
+            PL_ppaddr[OP_SETSTATE]  = MEMBER_TO_FPTR(dc_setstate);
 #endif
-        PL_ppaddr[OP_DBSTATE]   = MEMBER_TO_FPTR(dc_dbstate);
-        PL_ppaddr[OP_ENTERSUB]  = MEMBER_TO_FPTR(dc_entersub);
-        PL_ppaddr[OP_COND_EXPR] = MEMBER_TO_FPTR(dc_cond_expr);
-        PL_ppaddr[OP_AND]       = MEMBER_TO_FPTR(dc_and);
-        PL_ppaddr[OP_ANDASSIGN] = MEMBER_TO_FPTR(dc_andassign);
-        PL_ppaddr[OP_OR]        = MEMBER_TO_FPTR(dc_or);
-        PL_ppaddr[OP_ORASSIGN]  = MEMBER_TO_FPTR(dc_orassign);
+            PL_ppaddr[OP_DBSTATE]   = MEMBER_TO_FPTR(dc_dbstate);
+            PL_ppaddr[OP_ENTERSUB]  = MEMBER_TO_FPTR(dc_entersub);
+            PL_ppaddr[OP_COND_EXPR] = MEMBER_TO_FPTR(dc_cond_expr);
+            PL_ppaddr[OP_AND]       = MEMBER_TO_FPTR(dc_and);
+            PL_ppaddr[OP_ANDASSIGN] = MEMBER_TO_FPTR(dc_andassign);
+            PL_ppaddr[OP_OR]        = MEMBER_TO_FPTR(dc_or);
+            PL_ppaddr[OP_ORASSIGN]  = MEMBER_TO_FPTR(dc_orassign);
 #if PERL_VERSION > 8
-        PL_ppaddr[OP_DOR]       = MEMBER_TO_FPTR(dc_dor);
-        PL_ppaddr[OP_DORASSIGN] = MEMBER_TO_FPTR(dc_dorassign);
+            PL_ppaddr[OP_DOR]       = MEMBER_TO_FPTR(dc_dor);
+            PL_ppaddr[OP_DORASSIGN] = MEMBER_TO_FPTR(dc_dorassign);
 #endif
-        PL_ppaddr[OP_XOR]       = MEMBER_TO_FPTR(dc_xor);
-        PL_ppaddr[OP_REQUIRE]   = MEMBER_TO_FPTR(dc_require);
-        PL_ppaddr[OP_EXEC]      = MEMBER_TO_FPTR(dc_exec);
+            PL_ppaddr[OP_XOR]       = MEMBER_TO_FPTR(dc_xor);
+            PL_ppaddr[OP_REQUIRE]   = MEMBER_TO_FPTR(dc_require);
+            PL_ppaddr[OP_EXEC]      = MEMBER_TO_FPTR(dc_exec);
+        }
     }
