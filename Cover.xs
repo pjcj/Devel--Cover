@@ -53,7 +53,7 @@ extern "C" {
 
 /* TODO - make this dynamic */
      /* - fix up whatever is broken with Pending_conditionals here */
-#define REPLACE_OPS 0
+#define REPLACE_OPS 1
 
 #define None       0x00000000
 #define Statement  0x00000001
@@ -94,7 +94,11 @@ typedef struct
     SV           *module,
                  *lastfile;
     int           tid;
+#if PERL_VERSION > 8
     Perl_ppaddr_t ppaddr[MAXO];
+#else
+    OP           *(CPERLscope(*ppaddr[MAXO]))(pTHX);
+#endif
 } my_cxt_t;
 
 #ifdef USE_ITHREADS
@@ -935,6 +939,7 @@ static OP *dc_nextstate(pTHX)
     return CALL_FPTR(MY_CXT.ppaddr[OP_NEXTSTATE])(aTHX);
 }
 
+#if PERL_VERSION <= 10
 static OP *dc_setstate(pTHX)
 {
     dMY_CXT;
@@ -942,6 +947,7 @@ static OP *dc_setstate(pTHX)
     if (collecting_here(aTHX)) cover_statement(aTHX);
     return CALL_FPTR(MY_CXT.ppaddr[OP_SETSTATE])(aTHX);
 }
+#endif
 
 static OP *dc_dbstate(pTHX)
 {
@@ -1090,7 +1096,9 @@ static int runops_cover(pTHX)
 
         switch (PL_op->op_type)
         {
+#if PERL_VERSION <= 10
             case OP_SETSTATE:
+#endif
             case OP_NEXTSTATE:
             case OP_DBSTATE:
             {
@@ -1404,7 +1412,9 @@ BOOT:
             MY_CXT.ppaddr[i] = PL_ppaddr[i];
 
         PL_ppaddr[OP_NEXTSTATE] = MEMBER_TO_FPTR(dc_nextstate);
+#if PERL_VERSION <= 10
         PL_ppaddr[OP_SETSTATE]  = MEMBER_TO_FPTR(dc_setstate);
+#endif
         PL_ppaddr[OP_DBSTATE]   = MEMBER_TO_FPTR(dc_dbstate);
         PL_ppaddr[OP_ENTERSUB]  = MEMBER_TO_FPTR(dc_entersub);
         PL_ppaddr[OP_COND_EXPR] = MEMBER_TO_FPTR(dc_cond_expr);
