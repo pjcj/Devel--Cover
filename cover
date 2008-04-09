@@ -95,6 +95,43 @@ sub delete_db
     }
 }
 
+# Decide whether to run ./Build test or make test
+sub test_command {
+    return -e 'Build.PL' ?
+        mb_test_command() : mm_test_command();
+}
+
+# Compiler arguments necessary to do a coverage run
+sub gcov_args {
+    return "-fprofile-arcs\\ -ftest-coverage";
+}
+
+# Test command for MakeMaker
+sub mm_test_command {
+    my $test = "make test";
+
+    if ($Options->{gcov})
+    {
+        my $o = gcov_args();
+        $test .= " OPTIMIZE=-O0\\ $o OTHERLDFLAGS=$o";
+    }
+    
+    return $test;
+}
+
+# Test command for Module::Build
+sub mb_test_command {
+    my $test = './Build test';
+    
+    if ($Options->{gcov})
+    {
+        my $o = gcov_args();
+        $test .= " --extra_compiler_flags=-O0\\ $o --extra_linker_flags=$o";
+    }
+    
+    return $test;
+}
+
 sub main
 {
     if ($INC{"Devel/Cover.pm"})
@@ -169,14 +206,15 @@ sub main
         delete_db($dbname, @ARGV);
         local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
             "-MDevel::Cover";
-        my $test = "make test";
+
+        my $test = test_command();
+
+        # touch the XS files so they rebuild
         if ($Options->{gcov})
         {
             my $t = $] > 5.7 ? undef : time;
             my $xs = sub { utime $t, $t, $_ if /\.xs$/ };
             File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
-            my $o = "-fprofile-arcs\\ -ftest-coverage";
-            $test .= " CCFLAGS=-O0\\ $o OTHERLDFLAGS=$o";
         }
         print STDERR "cover: running $test\n";
         system $test;
