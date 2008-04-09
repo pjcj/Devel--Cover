@@ -1,4 +1,4 @@
-# Copyright 2001-2007, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2008, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -1170,12 +1170,7 @@ Devel::Cover - Code coverage metrics for Perl
 
 =head1 SYNOPSIS
 
- perl -MDevel::Cover yourprog args
- cover
-
- perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
-
-To test an uninstalled module:
+To get coverage for an uninstalled module:
 
  cover -test
 
@@ -1185,7 +1180,8 @@ or
  HARNESS_PERL_SWITCHES=-MDevel::Cover make test
  cover
 
-To test an uninstalled module which uses Module::Build (0.26 or later):
+To get coverage for an uninstalled module which uses Module::Build (0.26 or
+later):
 
  ./Build testcover
 
@@ -1193,12 +1189,19 @@ If the module does not use the t/*.t framework:
 
  PERL5OPT=-MDevel::Cover make test
 
+If you want to get coverage for a program:
+
+ perl -MDevel::Cover yourprog args
+ cover
+
+ perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
+
 =head1 DESCRIPTION
 
 This module provides code coverage metrics for Perl. Code coverage
 metrics describe how thoroughly tests exercise code. By using
-Devel::Cover you can find areas of code not exercised by your tests
-and find out which tests to create to increase coverage. Code coverage
+Devel::Cover you can discover areas of code not exercised by your tests
+and determine which tests to create to increase coverage. Code coverage
 can be considered as an indirect measure of quality.
 
 I consider this software to have an alpha status.  By that I mean that I
@@ -1214,6 +1217,10 @@ Code coverage data are collected using a pluggable runops function which
 counts how many times each op is executed.  These data are then mapped
 back to reality using the B compiler modules.  There is also a statement
 profiling facility which needs a better backend to be really useful.
+This release also includes an experimental mode which replaces ops
+instead of using a pluggable runops function.  This provides a nice
+speed increase, but needs better testing before it becomes the default.
+You probably don't care about any of this.
 
 The F<cover> program can be used to generate coverage reports.
 
@@ -1421,7 +1428,7 @@ CV.  Hints, tips or patches to resolve this will be gladly accepted.
 
 =head1 BUGS
 
-Did I mention that this is alpha code?
+Almost certainly.
 
 See the BUGS file.  And the TODO file.
 
@@ -1431,7 +1438,7 @@ Version 0.63 - 16th November 2007
 
 =head1 LICENCE
 
-Copyright 2001-2007, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2008, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 
