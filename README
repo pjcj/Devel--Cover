@@ -2,12 +2,7 @@ NAME
     Devel::Cover - Code coverage metrics for Perl
 
 SYNOPSIS
-     perl -MDevel::Cover yourprog args
-     cover
-
-     perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
-
-    To test an uninstalled module:
+    To get coverage for an uninstalled module:
 
      cover -test
 
@@ -17,7 +12,8 @@ SYNOPSIS
      HARNESS_PERL_SWITCHES=-MDevel::Cover make test
      cover
 
-    To test an uninstalled module which uses Module::Build (0.26 or later):
+    To get coverage for an uninstalled module which uses Module::Build (0.26
+    or later):
 
      ./Build testcover
 
@@ -25,12 +21,19 @@ SYNOPSIS
 
      PERL5OPT=-MDevel::Cover make test
 
+    If you want to get coverage for a program:
+
+     perl -MDevel::Cover yourprog args
+     cover
+
+     perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
+
 DESCRIPTION
     This module provides code coverage metrics for Perl. Code coverage
     metrics describe how thoroughly tests exercise code. By using
-    Devel::Cover you can find areas of code not exercised by your tests and
-    find out which tests to create to increase coverage. Code coverage can
-    be considered as an indirect measure of quality.
+    Devel::Cover you can discover areas of code not exercised by your tests
+    and determine which tests to create to increase coverage. Code coverage
+    can be considered as an indirect measure of quality.
 
     I consider this software to have an alpha status.  By that I mean that I
     reserve the right to alter the interface in a backwards incompatible
@@ -44,7 +47,11 @@ DESCRIPTION
     Code coverage data are collected using a pluggable runops function which
     counts how many times each op is executed.  These data are then mapped
     back to reality using the B compiler modules.  There is also a statement
-    profiling facility which needs a better backend to be really useful.
+    profiling facility which needs a better backend to be really useful. 
+    This release also includes an experimental mode which replaces ops
+    instead of using a pluggable runops function.  This provides a nice
+    speed increase, but needs better testing before it becomes the default. 
+    You probably don't care about any of this.
 
     The cover program can be used to generate coverage reports.
 
@@ -68,7 +75,8 @@ DESCRIPTION
     now defunct.  See <http://lists.perl.org/showlist.cgi?name=perl-qa>.
 
 REQUIREMENTS
-    * Perl 5.6.1 or greater.  Perl 5.8.2 or greater is recommended.
+    *   Perl 5.6.1 or greater.  Perl 5.8.2 or greater is recommended.
+
         Perl 5.7.0 is unsupported.  Perl 5.8.2 or greater is recommended. 
         Whilst Perl 5.6 should mostly work you will probably miss out on
         coverage information which would be available using a more modern
@@ -76,18 +84,23 @@ REQUIREMENTS
         slightly different results to more recent versions due to changes in
         the op tree.
 
-    * The ability to compile XS extensions.
+    *   The ability to compile XS extensions.
+
         This means a working compiler and make program at least.
 
-    * Storable and Digest::MD5
+    *   Storable and Digest::MD5
+
         Both are in the core in Perl 5.8.0 and above.
 
-    * Template and PPI::HTML or Perl::Tidy
+    *   Template and PPI::HTML or Perl::Tidy
+
         if you want syntax highlighted HTML reports.
 
-    * Pod::Coverage
+    *   Pod::Coverage
+
         if you want Pod coverage.
 
-    * Test::Differences
+    *   Test::Differences
+
         if the tests fail and you would like nice output telling you why.
 
