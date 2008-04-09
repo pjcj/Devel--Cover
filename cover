@@ -218,6 +218,9 @@ sub main
         }
         print STDERR "cover: running $test\n";
         system $test;
+        $Options->{report} ||= "html";
+    }
+
         if ($Options->{gcov})
         {
             my $gc = sub
@@ -252,8 +255,7 @@ sub main
                 system $c;
             }
         }
-        $Options->{report} ||= "html";
-    }
+
 
     print "Reading database from $dbname\n" unless $Options->{silent};
     my $db = Devel::Cover::DB->new

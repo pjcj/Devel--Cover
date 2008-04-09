@@ -4,6 +4,7 @@ Release 0.64 -
  - Build on Windows.
  - Make "cover -test" work for Module::Build (Michael G Schwern) (rt 34263).
  - Make "cover -test" cover .[ch] files (Michael G Schwern) (rt 34262).
+ - Make "cover -gcov" a valid option (Michael G Schwern) (rt 34261).
 
 Release 0.63 - 16th November 2007
  - require 5.006001 might stop CPAN testers trying to test with 5.005.
