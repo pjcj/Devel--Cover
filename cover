@@ -96,18 +96,14 @@ sub delete_db
 }
 
 # Decide whether to run ./Build test or make test
-sub test_command {
-    return -e 'Build.PL' ?
-        mb_test_command() : mm_test_command();
-}
+sub test_command { -e "Build.PL" ? mb_test_command() : mm_test_command() }
 
 # Compiler arguments necessary to do a coverage run
-sub gcov_args {
-    return "-fprofile-arcs\\ -ftest-coverage";
-}
+sub gcov_args { "-fprofile-arcs\\ -ftest-coverage" }
 
 # Test command for MakeMaker
-sub mm_test_command {
+sub mm_test_command
+{
     my $test = "make test";
 
     if ($Options->{gcov})
@@ -115,21 +111,22 @@ sub mm_test_command {
         my $o = gcov_args();
         $test .= " OPTIMIZE=-O0\\ $o OTHERLDFLAGS=$o";
     }
-    
-    return $test;
+
+    $test
 }
 
 # Test command for Module::Build
-sub mb_test_command {
+sub mb_test_command
+{
     my $test = './Build test';
-    
+
     if ($Options->{gcov})
     {
         my $o = gcov_args();
         $test .= " --extra_compiler_flags=-O0\\ $o --extra_linker_flags=$o";
     }
-    
-    return $test;
+
+    $test
 }
 
 sub main
@@ -200,7 +197,6 @@ sub main
 
     if ($Options->{test})
     {
-        # TODO - something for Module::Build
         # TODO - make this a little robust
         # system "$^X Makefile.PL" unless -e "Makefile";
         delete_db($dbname, @ARGV);
@@ -221,41 +217,40 @@ sub main
         $Options->{report} ||= "html";
     }
 
-        if ($Options->{gcov})
+    if ($Options->{gcov})
+    {
+        my $gc = sub
         {
-            my $gc = sub
-            {
-                return unless /\.(xs|c|h)$/;
+            return unless /\.(xs|c|h)$/;
 
-                # Don't bother running gcov if there's no index files.
-                # Otherwise it's noisy.
-                my $graph_file = $_;
-                $graph_file =~ s{\.\w+$}{.gcno};
-                return unless -e $graph_file;
+            # Don't bother running gcov if there's no index files.
+            # Otherwise it's noisy.
+            my $graph_file = $_;
+            $graph_file =~ s{\.\w+$}{.gcno};
+            return unless -e $graph_file;
 
-                my $c = "gcov $_";
-                print STDERR "cover: running $c\n";
-                system $c;
-            };
-            File::Find::find({ wanted => $gc, no_chdir => 0 }, ".");
-            my @gc;
-            my $gp = sub
-            {
-                return unless /\.gcov$/;
-                my $xs = $_;
-                return if $xs =~ s/\.(c|h)\.gcov$/.xs.gcov/ && -e $xs;
-                s/^\.\///;
-                push @gc, $_;
-            };
-            File::Find::find({ wanted => $gp, no_chdir => 1 }, ".");
-            if (@gc)
-            {
-                my $c = "gcov2perl @gc";
-                print STDERR "cover: running $c\n";
-                system $c;
-            }
+            my $c = "gcov $_";
+            print STDERR "cover: running $c\n";
+            system $c;
+        };
+        File::Find::find({ wanted => $gc, no_chdir => 0 }, ".");
+        my @gc;
+        my $gp = sub
+        {
+            return unless /\.gcov$/;
+            my $xs = $_;
+            return if $xs =~ s/\.(c|h)\.gcov$/.xs.gcov/ && -e $xs;
+            s/^\.\///;
+            push @gc, $_;
+        };
+        File::Find::find({ wanted => $gp, no_chdir => 1 }, ".");
+        if (@gc)
+        {
+            my $c = "gcov2perl @gc";
+            print STDERR "cover: running $c\n";
+            system $c;
         }
-
+    }
 
     print "Reading database from $dbname\n" unless $Options->{silent};
     my $db = Devel::Cover::DB->new
