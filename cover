@@ -209,11 +209,11 @@ sub main
 
         my $test = test_command();
 
-        # touch the XS files so they rebuild
+        # touch the XS, C and H files so they rebuild
         if ($Options->{gcov})
         {
             my $t = $] > 5.7 ? undef : time;
-            my $xs = sub { utime $t, $t, $_ if /\.xs$/ };
+            my $xs = sub { utime $t, $t, $_ if /\.(xs|c|h)$/ };
             File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
         }
         print STDERR "cover: running $test\n";
@@ -222,7 +222,14 @@ sub main
         {
             my $gc = sub
             {
-                return unless /\.xs$/;
+                return unless /\.(xs|c|h)$/;
+
+                # Don't bother running gcov if there's no index files.
+                # Otherwise it's noisy.
+                my $graph_file = $_;
+                $graph_file =~ s{\.\w+$}{.gcno};
+                return unless -e $graph_file;
+
                 my $c = "gcov $_";
                 print STDERR "cover: running $c\n";
                 system $c;
@@ -233,7 +240,7 @@ sub main
             {
                 return unless /\.gcov$/;
                 my $xs = $_;
-                return if $xs =~ s/\.c\.gcov$/.xs.gcov/ && -e $xs;
+                return if $xs =~ s/\.(c|h)\.gcov$/.xs.gcov/ && -e $xs;
                 s/^\.\///;
                 push @gc, $_;
             };
