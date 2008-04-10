@@ -1,6 +1,6 @@
 Devel::Cover.pm history
 
-Release 0.64 - 
+Release 0.64 - 10th April 2008
  - Build on Windows.
  - Make "cover -test" work for Module::Build (Michael G Schwern) (rt 34263).
  - Make "cover -test" cover .[ch] files (Michael G Schwern) (rt 34262).
