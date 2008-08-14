@@ -288,7 +288,7 @@ sub print_summary {
     my $fh       = shift;
     my $title    = shift;
     my $file     = shift;
-    my $percent  = sprintf("%.1f", shift @_);
+    my $percent  = sprintf("%.1f", shift @_ || 0);
     my $error    = shift;
     my $db       = shift;
     my $class    = pclass($percent, $error);
