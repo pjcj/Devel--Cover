@@ -494,7 +494,7 @@ static void call_report(pTHX)
     SPAGAIN;
 }
 
-static void cover_statement(pTHX)
+static void cover_statement(pTHX_ OP *op)
 {
     dMY_CXT;
 
@@ -502,20 +502,27 @@ static void cover_statement(pTHX)
     SV  **count;
     IV    c;
 
+    if (!collecting(Statement)) return;
+
+    ch    = get_key(op);
+    count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
+    c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
+
+    NDEB(D(L, "Statement: %s:%ld\n", CopFILE(cCOPx(op)), CopLINE(cCOPx(op))));
+
+    sv_setiv(*count, c);
+    NDEB(op_dump(op));
+}
+
+static void cover_current_statement(pTHX)
+{
+    dMY_CXT;
+
 #if CAN_PROFILE
     cover_time(aTHX);
 #endif
 
-    if (!collecting(Statement)) return;
-
-    ch    = get_key(PL_op);
-    count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
-    c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
-
-    NDEB(D(L, "Statement: %s:%ld\n", CopFILE(cCOP), CopLINE(cCOP)));
-
-    sv_setiv(*count, c);
-    NDEB(op_dump(PL_op));
+    cover_statement(aTHX_ PL_op);
 }
 
 static void add_branch(pTHX_ OP *op, int br)
@@ -935,7 +942,7 @@ static OP *dc_nextstate(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering)   check_if_collecting(aTHX);
-    if (collecting_here(aTHX)) cover_statement(aTHX);
+    if (collecting_here(aTHX)) cover_current_statement(aTHX);
     return CALL_FPTR(MY_CXT.ppaddr[OP_NEXTSTATE])(aTHX);
 }
 
@@ -944,7 +951,7 @@ static OP *dc_setstate(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering)   check_if_collecting(aTHX);
-    if (collecting_here(aTHX)) cover_statement(aTHX);
+    if (collecting_here(aTHX)) cover_current_statement(aTHX);
     return CALL_FPTR(MY_CXT.ppaddr[OP_SETSTATE])(aTHX);
 }
 #endif
@@ -953,7 +960,7 @@ static OP *dc_dbstate(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering)   check_if_collecting(aTHX);
-    if (collecting_here(aTHX)) cover_statement(aTHX);
+    if (collecting_here(aTHX)) cover_current_statement(aTHX);
     return CALL_FPTR(MY_CXT.ppaddr[OP_DBSTATE])(aTHX);
 }
 
@@ -1102,7 +1109,7 @@ static int runops_cover(pTHX)
 #endif
             case OP_DBSTATE:
             {
-                cover_statement(aTHX);
+                cover_current_statement(aTHX);
                 break;
             }
 
