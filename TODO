@@ -13,6 +13,8 @@
   - BEGIN and CHECK blocks and code in modules.  Requires callbacks from perl?
   - Create a base class for Devel::Cover::Branch and Devel::Cover::Condition.
   - Handle C< $y || "${p}qqq" >.
+    - 22:09 <@nothingmuch> return, redo, next, last, goto should probably all
+                           be treated as short circuiting
   - Add aliased subroutines to subroutine coverage.
   - Accommodate reloading modules at runtime (Mark Glines).
 - Reports:
@@ -36,6 +38,7 @@
     - CPAN@1432 hangs with bleadperl@29642.
   - cover -delete uses too much memory when cover_db doesn't exist. (clkao)
   - Games::Bingo broken.
+  - Class::Unload only giving 50% coverage on return unless ... (losing data?)
 - Testing:
   - Be able to run Devel::Cover on itself.
   - More comprehensive.
