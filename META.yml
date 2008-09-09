@@ -7,6 +7,9 @@ installdirs:  site
 requires:
     Digest::MD5:                   0
     Storable:                      0
+no_index:
+    directory:
+        - tests
 
 distribution_type: module
 generated_by: ExtUtils::MakeMaker version 6.17
