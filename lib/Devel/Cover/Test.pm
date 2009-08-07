@@ -220,6 +220,8 @@ sub run_test
         return;
     }
 
+    local $ENV{PERL5OPT};
+
     $self->{run_test}
         ? $self->{run_test}->($self)
         : $self->run_command($self->test_command);
