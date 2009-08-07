@@ -953,6 +953,12 @@ sub deparse
                     my $newop   = $false->first;
                     my $newcond = $newop->first;
                     my $newtrue = $newcond->sibling;
+                    if ($newcond->name eq "lineseq")
+                    {
+                        # lineseq to ensure correct line numbers in elsif()
+                        # Bug #37302 fixed by change #33710.
+                        $newcond = $newcond->first->sibling;
+                    }
                     # last in chain is OP_AND => no else
                     $false      = $newtrue->sibling;
                     { local $Collect; $newcond = $self->deparse($newcond, 1) }
