@@ -53,7 +53,7 @@ extern "C" {
 
 /* TODO - make this dynamic */
      /* - fix up whatever is broken with module_relative on Windows here */
-#define REPLACE_OPS 1
+#define REPLACE_OPS 0
 
 #define None       0x00000000
 #define Statement  0x00000001
