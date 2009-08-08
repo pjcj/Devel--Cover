@@ -1,5 +1,11 @@
 Devel::Cover.pm history
 
+Release 0.65 - 8th August 2009
+ - Fix uninitialised value warning (reported by Andrew Billeb).
+ - Test against 5.8.9 and 5.10.1 (RC1).
+ - Correct deparsed conditional output in elsif conditions.
+ - Unset PERL5OPT when running tests.
+
 Release 0.64 - 10th April 2008
  - Build on Windows.
  - Make "cover -test" work for Module::Build (Michael G Schwern) (rt 34263).
