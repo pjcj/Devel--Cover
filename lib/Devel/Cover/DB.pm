@@ -104,6 +104,9 @@ sub delete
     $self->{db} = $db if ref $self;
     croak "No db specified" unless length $db;
 
+    return $self unless -d $db;
+
+    # TODO - just delete the directory?
     opendir DIR, $db or die "Can't opendir $db: $!";
     my @files = map "$db/$_", map /(.*)/ && $1, grep !/^\.\.?/, readdir DIR;
     closedir DIR or die "Can't closedir $db: $!";
@@ -169,6 +172,12 @@ sub validate_db
         unless $self->is_valid;
 
     $self
+}
+
+sub exists
+{
+    my $self = shift;
+    -d $self->{db}
 }
 
 sub is_valid

@@ -82,7 +82,6 @@ sub delete_db
 {
     for my $del (@_)
     {
-        print "Deleting database $del\n" unless $Options->{silent};
         my $db = Devel::Cover::DB->new(db => $del);
         unless ($db->is_valid)
         {
@@ -90,6 +89,7 @@ sub delete_db
                 unless $Options->{silent};
             next;
         }
+        print "Deleting database $del\n" if $db->exists && !$Options->{silent};
         $db->delete;
         rmtree($del);
     }
