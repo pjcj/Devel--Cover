@@ -160,7 +160,8 @@ sub validate_db
     my $self = shift;
 
     # Check validity of the db.  It is valid if the $DB file is there, or if it
-    # is not there but the db directory is empty.
+    # is not there but the db directory is empty, or if there is no db
+    # directory.
     # die if the db is invalid.
 
     # just warn for now
@@ -173,6 +174,7 @@ sub validate_db
 sub is_valid
 {
     my $self = shift;
+    return 1 if !-e $self->{db};
     return 1 if -e "$self->{db}/$DB";
     opendir my $fh, $self->{db} or return 0;
     for my $file (readdir $fh)
