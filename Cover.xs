@@ -51,10 +51,6 @@ extern "C" {
 #define L Perl_debug_log
 #define svdump(sv) do_sv_dump(0, L, (SV *)sv, 0, 10, 1, 0);
 
-/* TODO - make this dynamic */
-     /* - fix up whatever is broken with module_relative on Windows here */
-#define REPLACE_OPS 0
-
 #define None       0x00000000
 #define Statement  0x00000001
 #define Branch     0x00000002
@@ -94,6 +90,9 @@ typedef struct
     SV           *module,
                  *lastfile;
     int           tid;
+    int           replace_ops;
+    /* - fix up whatever is broken with module_relative on Windows here */
+
 #if PERL_VERSION > 8
     Perl_ppaddr_t ppaddr[MAXO];
 #else
@@ -243,82 +242,6 @@ static void set_firsts_if_needed(pTHX)
     }
 }
 
-static void initialise(pTHX)
-{
-    dMY_CXT;
-
-    MUTEX_LOCK(&DC_mutex);
-    if (!Pending_conditionals)
-    {
-        Pending_conditionals = newHV();
-#ifdef USE_ITHREADS
-        HvSHAREKEYS_off(Pending_conditionals);
-#endif
-    }
-    if (!Return_ops)
-    {
-        Return_ops = newHV();
-#ifdef USE_ITHREADS
-        HvSHAREKEYS_off(Return_ops);
-#endif
-    }
-    MUTEX_UNLOCK(&DC_mutex);
-
-    MY_CXT.collecting_here = 1;
-
-    if (!MY_CXT.covering)
-    {
-        /* TODO - this probably leaks all over the place */
-
-        SV **tmp;
-
-        MY_CXT.cover      = newHV();
-#ifdef USE_ITHREADS
-        HvSHAREKEYS_off(MY_CXT.cover);
-#endif
-
-        tmp               = hv_fetch(MY_CXT.cover, "statement", 9, 1);
-        MY_CXT.statements = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.statements);
-
-        tmp               = hv_fetch(MY_CXT.cover, "branch",    6, 1);
-        MY_CXT.branches   = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.branches);
-
-        tmp               = hv_fetch(MY_CXT.cover, "condition", 9, 1);
-        MY_CXT.conditions = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.conditions);
-
-#if CAN_PROFILE
-        tmp               = hv_fetch(MY_CXT.cover, "time",      4, 1);
-        MY_CXT.times      = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.times);
-#endif
-
-        tmp               = hv_fetch(MY_CXT.cover, "module",    6, 1);
-        MY_CXT.modules    = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.modules);
-
-        MY_CXT.files      = get_hv("Devel::Cover::Files", FALSE);
-
-#ifdef USE_ITHREADS
-        HvSHAREKEYS_off(MY_CXT.statements);
-        HvSHAREKEYS_off(MY_CXT.branches);
-        HvSHAREKEYS_off(MY_CXT.conditions);
-#if CAN_PROFILE
-        HvSHAREKEYS_off(MY_CXT.times);
-#endif
-        HvSHAREKEYS_off(MY_CXT.modules);
-#endif
-
-        MY_CXT.profiling_key_valid = 0;
-        MY_CXT.module              = newSVpv("", 0);
-        MY_CXT.lastfile            = newSVpvn("", 1);
-        MY_CXT.covering            = All;
-        MY_CXT.tid                 = tid++;
-    }
-}
-
 static int check_if_collecting(pTHX)
 {
     dMY_CXT;
@@ -327,7 +250,7 @@ static int check_if_collecting(pTHX)
     NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, CopLINE(cCOP)));
     if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file))
     {
-        if (REPLACE_OPS)
+        if (MY_CXT.replace_ops)
         {
             dSP;
             int count;
@@ -729,7 +652,7 @@ static OP *get_condition(pTHX)
     else
     {
         PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
-                  PL_op, PL_op->op_targ, pc, hex_key(get_key(PL_op))));
+                  PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
         dump_conditions(aTHX);
         NDEB(svdump(Pending_conditionals));
         /* croak("urgh"); */
@@ -1043,6 +966,113 @@ static OP *dc_exec(pTHX)
     return CALL_FPTR(MY_CXT.ppaddr[OP_EXEC])(aTHX);
 }
 
+static void initialise(pTHX)
+{
+    dMY_CXT;
+
+    NDEB(D(L, "initialising\n"));
+
+    MUTEX_LOCK(&DC_mutex);
+    if (!Pending_conditionals)
+    {
+        Pending_conditionals = newHV();
+#ifdef USE_ITHREADS
+        HvSHAREKEYS_off(Pending_conditionals);
+#endif
+    }
+    if (!Return_ops)
+    {
+        Return_ops = newHV();
+#ifdef USE_ITHREADS
+        HvSHAREKEYS_off(Return_ops);
+#endif
+    }
+    MUTEX_UNLOCK(&DC_mutex);
+
+    MY_CXT.collecting_here = 1;
+
+    if (!MY_CXT.covering)
+    {
+        /* TODO - this probably leaks all over the place */
+
+        SV **tmp;
+
+        MY_CXT.cover      = newHV();
+#ifdef USE_ITHREADS
+        HvSHAREKEYS_off(MY_CXT.cover);
+#endif
+
+        tmp               = hv_fetch(MY_CXT.cover, "statement", 9, 1);
+        MY_CXT.statements = newHV();
+        *tmp              = newRV_inc((SV*) MY_CXT.statements);
+
+        tmp               = hv_fetch(MY_CXT.cover, "branch",    6, 1);
+        MY_CXT.branches   = newHV();
+        *tmp              = newRV_inc((SV*) MY_CXT.branches);
+
+        tmp               = hv_fetch(MY_CXT.cover, "condition", 9, 1);
+        MY_CXT.conditions = newHV();
+        *tmp              = newRV_inc((SV*) MY_CXT.conditions);
+
+#if CAN_PROFILE
+        tmp               = hv_fetch(MY_CXT.cover, "time",      4, 1);
+        MY_CXT.times      = newHV();
+        *tmp              = newRV_inc((SV*) MY_CXT.times);
+#endif
+
+        tmp               = hv_fetch(MY_CXT.cover, "module",    6, 1);
+        MY_CXT.modules    = newHV();
+        *tmp              = newRV_inc((SV*) MY_CXT.modules);
+
+        MY_CXT.files      = get_hv("Devel::Cover::Files", FALSE);
+
+#ifdef USE_ITHREADS
+        HvSHAREKEYS_off(MY_CXT.statements);
+        HvSHAREKEYS_off(MY_CXT.branches);
+        HvSHAREKEYS_off(MY_CXT.conditions);
+#if CAN_PROFILE
+        HvSHAREKEYS_off(MY_CXT.times);
+#endif
+        HvSHAREKEYS_off(MY_CXT.modules);
+#endif
+
+        MY_CXT.profiling_key_valid = 0;
+        MY_CXT.module              = newSVpv("", 0);
+        MY_CXT.lastfile            = newSVpvn("", 1);
+        MY_CXT.covering            = All;
+        MY_CXT.tid                 = tid++;
+
+        MY_CXT.replace_ops = SvTRUE(get_sv("Devel::Cover::Replace_ops", FALSE));
+
+        if (MY_CXT.replace_ops)
+        {
+            int i;
+            NDEB(D(L, "initialising replace_ops\n"));
+            for (i = 0; i < MAXO; i++)
+                MY_CXT.ppaddr[i] = PL_ppaddr[i];
+
+            PL_ppaddr[OP_NEXTSTATE] = MEMBER_TO_FPTR(dc_nextstate);
+#if PERL_VERSION <= 10
+            PL_ppaddr[OP_SETSTATE]  = MEMBER_TO_FPTR(dc_setstate);
+#endif
+            PL_ppaddr[OP_DBSTATE]   = MEMBER_TO_FPTR(dc_dbstate);
+            PL_ppaddr[OP_ENTERSUB]  = MEMBER_TO_FPTR(dc_entersub);
+            PL_ppaddr[OP_COND_EXPR] = MEMBER_TO_FPTR(dc_cond_expr);
+            PL_ppaddr[OP_AND]       = MEMBER_TO_FPTR(dc_and);
+            PL_ppaddr[OP_ANDASSIGN] = MEMBER_TO_FPTR(dc_andassign);
+            PL_ppaddr[OP_OR]        = MEMBER_TO_FPTR(dc_or);
+            PL_ppaddr[OP_ORASSIGN]  = MEMBER_TO_FPTR(dc_orassign);
+#if PERL_VERSION > 8
+            PL_ppaddr[OP_DOR]       = MEMBER_TO_FPTR(dc_dor);
+            PL_ppaddr[OP_DORASSIGN] = MEMBER_TO_FPTR(dc_dorassign);
+#endif
+            PL_ppaddr[OP_XOR]       = MEMBER_TO_FPTR(dc_xor);
+            PL_ppaddr[OP_REQUIRE]   = MEMBER_TO_FPTR(dc_require);
+            PL_ppaddr[OP_EXEC]      = MEMBER_TO_FPTR(dc_exec);
+        }
+    }
+}
+
 static int runops_cover(pTHX)
 {
     dMY_CXT;
@@ -1057,7 +1087,7 @@ static int runops_cover(pTHX)
     cpu();
 #endif
 
-    if (REPLACE_OPS)
+    if (MY_CXT.replace_ops)
     {
         while ((PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
         {
@@ -1411,29 +1441,4 @@ BOOT:
 #if PERL_VERSION > 6
         PL_savebegin = TRUE;
 #endif
-        if (REPLACE_OPS)
-        {
-            int i;
-            for (i = 0; i < MAXO; i++)
-                MY_CXT.ppaddr[i] = PL_ppaddr[i];
-
-            PL_ppaddr[OP_NEXTSTATE] = MEMBER_TO_FPTR(dc_nextstate);
-#if PERL_VERSION <= 10
-            PL_ppaddr[OP_SETSTATE]  = MEMBER_TO_FPTR(dc_setstate);
-#endif
-            PL_ppaddr[OP_DBSTATE]   = MEMBER_TO_FPTR(dc_dbstate);
-            PL_ppaddr[OP_ENTERSUB]  = MEMBER_TO_FPTR(dc_entersub);
-            PL_ppaddr[OP_COND_EXPR] = MEMBER_TO_FPTR(dc_cond_expr);
-            PL_ppaddr[OP_AND]       = MEMBER_TO_FPTR(dc_and);
-            PL_ppaddr[OP_ANDASSIGN] = MEMBER_TO_FPTR(dc_andassign);
-            PL_ppaddr[OP_OR]        = MEMBER_TO_FPTR(dc_or);
-            PL_ppaddr[OP_ORASSIGN]  = MEMBER_TO_FPTR(dc_orassign);
-#if PERL_VERSION > 8
-            PL_ppaddr[OP_DOR]       = MEMBER_TO_FPTR(dc_dor);
-            PL_ppaddr[OP_DORASSIGN] = MEMBER_TO_FPTR(dc_dorassign);
-#endif
-            PL_ppaddr[OP_XOR]       = MEMBER_TO_FPTR(dc_xor);
-            PL_ppaddr[OP_REQUIRE]   = MEMBER_TO_FPTR(dc_require);
-            PL_ppaddr[OP_EXEC]      = MEMBER_TO_FPTR(dc_exec);
-        }
     }

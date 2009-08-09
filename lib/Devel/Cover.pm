@@ -84,6 +84,7 @@ use vars '$File',                        # Last filename we saw.  (localised)
                                          # over conditions.  (localised)
          '%Files',                       # Whether we are interested in files.
                                          # Used in runops function.
+         '$Replace_ops',
          '$Silent';                      # Output nothing. Can be used anywhere.
 
 BEGIN
@@ -256,29 +257,31 @@ sub import
     my $class = shift;
 
     my @o = (@_, split ",", $ENV{DEVEL_COVER_OPTIONS} || "");
-    # print STDERR __PACKAGE__, ": Parsing options from [@_]\n";
+    # print STDERR __PACKAGE__, ": Parsing options from [@o]\n";
 
     my $blib = -d "blib";
     @Inc     = () if "@o" =~ /-inc /;
     @Ignore  = () if "@o" =~ /-ignore /;
     @Select  = () if "@o" =~ /-select /;
+    $Replace_ops = 1;
     while (@o)
     {
         local $_ = shift @o;
-        /^-silent/    && do { $Silent    = shift @o; next };
-        /^-dir/       && do { $Dir       = shift @o; next };
-        /^-db/        && do { $DB        = shift @o; next };
-        /^-merge/     && do { $Merge     = shift @o; next };
-        /^-summary/   && do { $Summary   = shift @o; next };
-        /^-blib/      && do { $blib      = shift @o; next };
-        /^-subs_only/ && do { $Subs_only = shift @o; next };
-        /^-coverage/  &&
+        /^-silent/      && do { $Silent      = shift @o; next };
+        /^-dir/         && do { $Dir         = shift @o; next };
+        /^-db/          && do { $DB          = shift @o; next };
+        /^-merge/       && do { $Merge       = shift @o; next };
+        /^-summary/     && do { $Summary     = shift @o; next };
+        /^-blib/        && do { $blib        = shift @o; next };
+        /^-subs_only/   && do { $Subs_only   = shift @o; next };
+        /^-replace_ops/ && do { $Replace_ops = shift @o; next };
+        /^-coverage/    &&
             do { $Coverage{+shift @o} = 1 while @o && $o[0] !~ /^[-+]/; next };
-        /^[-+]ignore/ &&
+        /^[-+]ignore/   &&
             do { push @Ignore,   shift @o while @o && $o[0] !~ /^[-+]/; next };
-        /^[-+]inc/    &&
+        /^[-+]inc/      &&
             do { push @Inc,      shift @o while @o && $o[0] !~ /^[-+]/; next };
-        /^[-+]select/ &&
+        /^[-+]select/   &&
             do { push @Select,   shift @o while @o && $o[0] !~ /^[-+]/; next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
@@ -1301,8 +1304,9 @@ if the tests fail and you would like nice output telling you why.
  -merge val          - Merge databases, for multiple test benches (default on).
  -select RE          - Set REs of files to select (default none).
  +select RE          - Append to REs of files to select.
- -silent val         - Don't print informational messages (default off)
- -subs_only val      - Only cover code in subroutine bodies (default off)
+ -silent val         - Don't print informational messages (default off).
+ -subs_only val      - Only cover code in subroutine bodies (default off).
+ -replace_ops val    - Use op replacing rather than runops (default on).
  -summary val        - Print summary information iff val is true (default on).
 
 =head2 More on Coverage Options
