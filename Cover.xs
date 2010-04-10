@@ -154,9 +154,7 @@ static double elapsed()
     return e;
 }
 
-#endif /* HAS_GETTIMEOFDAY */
-
-#ifdef HAS_TIMES
+#elif defined HAS_TIMES
 
 #ifndef HZ
 #  ifdef CLK_TCK
@@ -189,7 +187,7 @@ static int cpu()
     return e / HZ;
 }
 
-#endif /* HAS_TIMES */
+#endif /* HAS_GETTIMEOFDAY */
 
 static char *get_key(OP *o)
 {
@@ -206,7 +204,7 @@ static char *get_key(OP *o)
 static char *hex_key(char *key)
 {
     static char hk[KEY_SZ * 2 + 1];
-    int c;
+    unsigned int c;
     for (c = 0; c < KEY_SZ; c++)
     {
         NDEB(D(L, "%d of %d, <%02X> at %p\n",
@@ -395,7 +393,7 @@ static void store_return(pTHX)
 
     if (MY_CXT.collecting_here && PL_op->op_next)
     {
-        hv_fetch(Return_ops, get_key(PL_op->op_next), KEY_SZ, 1);
+        (void)hv_fetch(Return_ops, get_key(PL_op->op_next), KEY_SZ, 1);
         NDEB(D(L, "adding return op %p\n", PL_op->op_next));
     }
 }
@@ -512,6 +510,7 @@ static void add_conditional(pTHX_ OP *op, int cond)
     NDEB(D(L, "Adding %d conditional making %d at %p\n", cond, c, op));
 }
 
+#ifdef USE_ITHREADS
 static AV *get_conds(pTHX_ AV *conds)
 {
     dMY_CXT;
@@ -546,6 +545,7 @@ static AV *get_conds(pTHX_ AV *conds)
 
     return thrconds;
 }
+#endif
 
 static void add_condition(pTHX_ SV *cond_ref, int value)
 {
@@ -603,7 +603,7 @@ static void dump_conditions(pTHX)
     hv_iterinit(Pending_conditionals);
     PDEB(D(L, "Pending_conditionals:\n"));
 
-    while (e = hv_iternext(Pending_conditionals))
+    while ((e = hv_iternext(Pending_conditionals)))
     {
         I32   len;
         char *key         = hv_iterkey(e, &len);
@@ -680,7 +680,7 @@ static void finalise_conditions(pTHX)
     MUTEX_LOCK(&DC_mutex);
     hv_iterinit(Pending_conditionals);
 
-    while (e = hv_iternext(Pending_conditionals))
+    while ((e = hv_iternext(Pending_conditionals)))
     {
         NDEB(D(L, "finalise_conditions\n"));
         add_condition(aTHX_ hv_iterval(Pending_conditionals, e), 0);
@@ -752,15 +752,15 @@ static void cover_logop(pTHX)
 
         set_conditional(aTHX_ PL_op, 5, void_context);
 
-        if (PL_op->op_type == OP_AND       &&  left_val     ||
-            PL_op->op_type == OP_ANDASSIGN &&  left_val     ||
-            PL_op->op_type == OP_OR        && !left_val     ||
-            PL_op->op_type == OP_ORASSIGN  && !left_val     ||
+        if ((PL_op->op_type == OP_AND       &&  left_val)     ||
+            (PL_op->op_type == OP_ANDASSIGN &&  left_val)     ||
+            (PL_op->op_type == OP_OR        && !left_val)     ||
+            (PL_op->op_type == OP_ORASSIGN  && !left_val)     ||
 #if PERL_VERSION > 8
-            PL_op->op_type == OP_DOR       && !left_val_def ||
-            PL_op->op_type == OP_DORASSIGN && !left_val_def ||
+            (PL_op->op_type == OP_DOR       && !left_val_def) ||
+            (PL_op->op_type == OP_DORASSIGN && !left_val_def) ||
 #endif
-            PL_op->op_type == OP_XOR)
+            (PL_op->op_type == OP_XOR))
         {
             /* no short circuit */
 
@@ -853,12 +853,6 @@ static void cover_logop(pTHX)
             add_conditional(aTHX_ PL_op, 3);
         }
     }
-}
-
-static OP *runop(pTHX_ int op)
-{
-    dMY_CXT;
-    return CALL_FPTR(MY_CXT.ppaddr[op])(aTHX);
 }
 
 static OP *dc_nextstate(pTHX)
@@ -1370,11 +1364,12 @@ coverage(final)
     CODE:
         NDEB(D(L, "Getting coverage %d\n", final));
         if (final) finalise_conditions(aTHX);
-        ST(0) = sv_newmortal();
         if (MY_CXT.cover)
-            sv_setsv(ST(0), newRV_inc((SV*) MY_CXT.cover));
+            RETVAL = newRV_inc((SV*) MY_CXT.cover);
         else
-            ST(0) = &PL_sv_undef;
+            RETVAL = &PL_sv_undef;
+    OUTPUT:
+        RETVAL
 
 SV *
 get_key(o)
