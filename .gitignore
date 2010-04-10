@@ -12,3 +12,4 @@ t/
 lib/Devel/Cover/Inc.pm
 pm_to_blib
 *.out
+*.tar.bz2
