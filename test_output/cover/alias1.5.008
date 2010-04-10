@@ -19,7 +19,7 @@ Finish: ...
 tests/Alias1.pm
 
 line  err   stmt   bran   cond    sub   code
-1                                       # Copyright 2004-2009, Paul Johnson (pjcj@cpan.org)
+1                                       # Copyright 2004-2010, Paul Johnson (pjcj@cpan.org)
 2                                       
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
@@ -76,7 +76,7 @@ tests/alias1
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2004-2009, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2004-2010, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
