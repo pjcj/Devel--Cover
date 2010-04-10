@@ -250,9 +250,13 @@ EOM
     POSIX::_exit(1);
 }
 
+$Replace_ops = 1;
+
 sub import
 {
     return if $Initialised;
+    bootstrap Devel::Cover $VERSION;
+
 
     my $class = shift;
 
@@ -263,7 +267,6 @@ sub import
     @Inc     = () if "@o" =~ /-inc /;
     @Ignore  = () if "@o" =~ /-ignore /;
     @Select  = () if "@o" =~ /-select /;
-    $Replace_ops = 1;
     while (@o)
     {
         local $_ = shift @o;
@@ -1166,8 +1169,6 @@ sub get_cover
     # print STDERR "<$de>\n";
     $de
 }
-
-bootstrap Devel::Cover $VERSION;
 
 1
 

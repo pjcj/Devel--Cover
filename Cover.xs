@@ -966,6 +966,32 @@ static OP *dc_exec(pTHX)
     return CALL_FPTR(MY_CXT.ppaddr[OP_EXEC])(aTHX);
 }
 
+static void replace_ops (pTHX) {
+    int i;
+    NDEB(D(L, "initialising replace_ops\n"));
+    for (i = 0; i < MAXO; i++)
+        MY_CXT.ppaddr[i] = PL_ppaddr[i];
+
+    PL_ppaddr[OP_NEXTSTATE] = MEMBER_TO_FPTR(dc_nextstate);
+#if PERL_VERSION <= 10
+    PL_ppaddr[OP_SETSTATE]  = MEMBER_TO_FPTR(dc_setstate);
+#endif
+    PL_ppaddr[OP_DBSTATE]   = MEMBER_TO_FPTR(dc_dbstate);
+    PL_ppaddr[OP_ENTERSUB]  = MEMBER_TO_FPTR(dc_entersub);
+    PL_ppaddr[OP_COND_EXPR] = MEMBER_TO_FPTR(dc_cond_expr);
+    PL_ppaddr[OP_AND]       = MEMBER_TO_FPTR(dc_and);
+    PL_ppaddr[OP_ANDASSIGN] = MEMBER_TO_FPTR(dc_andassign);
+    PL_ppaddr[OP_OR]        = MEMBER_TO_FPTR(dc_or);
+    PL_ppaddr[OP_ORASSIGN]  = MEMBER_TO_FPTR(dc_orassign);
+#if PERL_VERSION > 8
+    PL_ppaddr[OP_DOR]       = MEMBER_TO_FPTR(dc_dor);
+    PL_ppaddr[OP_DORASSIGN] = MEMBER_TO_FPTR(dc_dorassign);
+#endif
+    PL_ppaddr[OP_XOR]       = MEMBER_TO_FPTR(dc_xor);
+    PL_ppaddr[OP_REQUIRE]   = MEMBER_TO_FPTR(dc_require);
+    PL_ppaddr[OP_EXEC]      = MEMBER_TO_FPTR(dc_exec);
+}
+
 static void initialise(pTHX)
 {
     dMY_CXT;
@@ -1043,33 +1069,6 @@ static void initialise(pTHX)
         MY_CXT.tid                 = tid++;
 
         MY_CXT.replace_ops = SvTRUE(get_sv("Devel::Cover::Replace_ops", FALSE));
-
-        if (MY_CXT.replace_ops)
-        {
-            int i;
-            NDEB(D(L, "initialising replace_ops\n"));
-            for (i = 0; i < MAXO; i++)
-                MY_CXT.ppaddr[i] = PL_ppaddr[i];
-
-            PL_ppaddr[OP_NEXTSTATE] = MEMBER_TO_FPTR(dc_nextstate);
-#if PERL_VERSION <= 10
-            PL_ppaddr[OP_SETSTATE]  = MEMBER_TO_FPTR(dc_setstate);
-#endif
-            PL_ppaddr[OP_DBSTATE]   = MEMBER_TO_FPTR(dc_dbstate);
-            PL_ppaddr[OP_ENTERSUB]  = MEMBER_TO_FPTR(dc_entersub);
-            PL_ppaddr[OP_COND_EXPR] = MEMBER_TO_FPTR(dc_cond_expr);
-            PL_ppaddr[OP_AND]       = MEMBER_TO_FPTR(dc_and);
-            PL_ppaddr[OP_ANDASSIGN] = MEMBER_TO_FPTR(dc_andassign);
-            PL_ppaddr[OP_OR]        = MEMBER_TO_FPTR(dc_or);
-            PL_ppaddr[OP_ORASSIGN]  = MEMBER_TO_FPTR(dc_orassign);
-#if PERL_VERSION > 8
-            PL_ppaddr[OP_DOR]       = MEMBER_TO_FPTR(dc_dor);
-            PL_ppaddr[OP_DORASSIGN] = MEMBER_TO_FPTR(dc_dorassign);
-#endif
-            PL_ppaddr[OP_XOR]       = MEMBER_TO_FPTR(dc_xor);
-            PL_ppaddr[OP_REQUIRE]   = MEMBER_TO_FPTR(dc_require);
-            PL_ppaddr[OP_EXEC]      = MEMBER_TO_FPTR(dc_exec);
-        }
     }
 }
 
@@ -1079,22 +1078,13 @@ static int runops_cover(pTHX)
 
     NDEB(D(L, "entering runops_cover\n"));
 
-    initialise(aTHX);
-
 #if defined HAS_GETTIMEOFDAY
     elapsed();
 #elif defined HAS_TIMES
     cpu();
 #endif
 
-    if (MY_CXT.replace_ops)
-    {
-        while ((PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
-        {
-            PERL_ASYNC_CHECK();
-        }
-    }
-    else for (;;)
+    for (;;)
     {
         NDEB(D(L, "running func %p from %p (%s)\n",
                PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
@@ -1258,8 +1248,12 @@ set_criteria(flag)
     PREINIT:
         dMY_CXT;
     PPCODE:
+        MY_CXT.covering = flag;
         /* fprintf(stderr, "Cover set to %d\n", flag); */
-        PL_runops = (MY_CXT.covering = flag) ? runops_cover : runops_orig;
+        if (MY_CXT.replace_ops) {
+            return;
+        }
+        PL_runops = MY_CXT.covering ? runops_cover : runops_orig;
 
 void
 add_criteria(flag)
@@ -1267,7 +1261,11 @@ add_criteria(flag)
     PREINIT:
         dMY_CXT;
     PPCODE:
-        PL_runops = (MY_CXT.covering |= flag) ? runops_cover : runops_orig;
+        MY_CXT.covering |= flag;
+        if (MY_CXT.replace_ops) {
+            return;
+        }
+        PL_runops = MY_CXT.covering ? runops_cover : runops_orig;
 
 void
 remove_criteria(flag)
@@ -1275,7 +1273,11 @@ remove_criteria(flag)
     PREINIT:
         dMY_CXT;
     PPCODE:
-        PL_runops = (MY_CXT.covering &= ~flag) ? runops_cover : runops_orig;
+        MY_CXT.covering &= ~flag;
+        if (MY_CXT.replace_ops) {
+            return;
+        }
+        PL_runops = MY_CXT.covering ? runops_cover : runops_orig;
 
 unsigned
 get_criteria()
@@ -1437,7 +1439,13 @@ BOOT:
 #ifdef USE_ITHREADS
         MUTEX_INIT(&DC_mutex);
 #endif
-        PL_runops    = runops_cover;
+        initialise(aTHX);
+        if (MY_CXT.replace_ops) {
+            replace_ops(aTHX);
+        }
+        else {
+            PL_runops    = runops_cover;
+        }
 #if PERL_VERSION > 6
         PL_savebegin = TRUE;
 #endif
