@@ -22,3 +22,5 @@ lib/Devel/Cover/Inc.pm$
 .debug$
 ^tmp/
 ^bugs/
+.git/
+.tar.bz2$
