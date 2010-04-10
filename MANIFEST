@@ -1,7 +1,6 @@
 .gitignore
 all_versions
 BUGS
-buildperl
 CHANGES
 cover
 Cover.xs
@@ -40,6 +39,7 @@ lib/Devel/Cover/Truth_Table.pm
 lib/Devel/Cover/Tutorial.pod
 lib/Devel/Cover/Web.pm
 Makefile.PL
+makeh
 MANIFEST			This list of files
 MANIFEST.SKIP
 META.yml
@@ -102,6 +102,8 @@ tests/trivial
 tests/uncoverable
 TODO
 typemap
+utils/install/buildperl
+utils/install/System.pm
 test_output/cover/alias.5.006001
 test_output/cover/alias1.5.006001
 test_output/cover/alias1.5.008
@@ -114,6 +116,7 @@ test_output/cover/cond_and.5.008001
 test_output/cover/cond_branch.5.006001
 test_output/cover/cond_branch.5.008
 test_output/cover/cond_branch.5.008001
+test_output/cover/cond_branch.5.012000
 test_output/cover/cond_or.5.006001
 test_output/cover/cond_or.5.006002
 test_output/cover/cond_or.5.008
@@ -195,3 +198,4 @@ test_output/cover/t2.5.008
 test_output/cover/t2.5.008001
 test_output/cover/trivial.5.006001
 test_output/cover/uncoverable.5.006001
+test_output/cover/uncoverable.5.012000
