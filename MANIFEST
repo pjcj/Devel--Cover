@@ -121,7 +121,6 @@ test_output/cover/cond_or.5.006001
 test_output/cover/cond_or.5.006002
 test_output/cover/cond_or.5.008
 test_output/cover/cond_or.5.008001
-test_output/cover/cond_or.5.009005
 test_output/cover/cond_or.5.010000
 test_output/cover/cond_xor.5.006001
 test_output/cover/cond_xor.5.008
@@ -152,7 +151,7 @@ test_output/cover/if.5.006001
 test_output/cover/if.5.008
 test_output/cover/inc_sub.5.006001
 test_output/cover/inc_sub.5.008
-test_output/cover/inc_sub.5.009005
+test_output/cover/inc_sub.5.010000
 test_output/cover/md5.5.006001
 test_output/cover/module1.5.006001
 test_output/cover/module1.5.008
@@ -185,7 +184,7 @@ test_output/cover/sort.5.008
 test_output/cover/special_blocks.5.006001
 test_output/cover/special_blocks.5.008
 test_output/cover/special_blocks.5.008001
-test_output/cover/special_blocks.5.009005
+test_output/cover/special_blocks.5.010000
 test_output/cover/statement.5.006001
 test_output/cover/subs_only.5.006001
 test_output/cover/t0.5.006001
