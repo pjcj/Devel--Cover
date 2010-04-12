@@ -12,7 +12,7 @@ package Devel::Cover::Web;
 use strict;
 use warnings;
 
-our $VERSION = "0.65";
+our $VERSION = "0.66";
 
 use Exporter;
 
@@ -934,7 +934,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.65 - 8th August 2009
+Version 0.66 - 12th April 2010
 
 =head1 LICENCE
 
