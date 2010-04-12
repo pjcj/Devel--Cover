@@ -1064,6 +1064,7 @@ static void initialise(pTHX)
         MY_CXT.tid                 = tid++;
 
         MY_CXT.replace_ops = SvTRUE(get_sv("Devel::Cover::Replace_ops", FALSE));
+        NDEB(D(L, "running with Replace_ops as %d\n", MY_CXT.replace_ops));
     }
 }
 

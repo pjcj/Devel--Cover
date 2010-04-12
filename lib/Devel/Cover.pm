@@ -255,8 +255,6 @@ $Replace_ops = 1;
 sub import
 {
     return if $Initialised;
-    bootstrap Devel::Cover $VERSION;
-
 
     my $class = shift;
 
@@ -288,6 +286,8 @@ sub import
             do { push @Select,   shift @o while @o && $o[0] !~ /^[-+]/; next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
+
+    bootstrap Devel::Cover $VERSION;
 
     if (defined $Dir)
     {
