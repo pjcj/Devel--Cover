@@ -961,6 +961,7 @@ static OP *dc_exec(pTHX)
 }
 
 static void replace_ops (pTHX) {
+    dMY_CXT;
     int i;
     NDEB(D(L, "initialising replace_ops\n"));
     for (i = 0; i < MAXO; i++)
