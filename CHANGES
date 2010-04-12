@@ -1,5 +1,14 @@
 Devel::Cover.pm history
 
+Release 0.66 - 12th April 2010
+ - Move to faster method of collecting data.  Could be up to twice as fast now.
+ - Add -replace_ops options to be able to revert to previous collection method.
+ - Test against 5.12.0 and update tests as necessry.
+ - Work better with non-existent databases.
+ - XS fixes related to overriding ops rather than replacing runops
+   (Florian Ragwitz).
+ - Don't chmod created directories (mkdir should suffice).
+
 Release 0.65 - 8th August 2009
  - Fix uninitialised value warning (reported by Andrew Billeb).
  - Test against 5.8.9 and 5.10.1 (RC1).
