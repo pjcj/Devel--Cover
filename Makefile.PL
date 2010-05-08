@@ -28,7 +28,7 @@ my @perlbug  = ("perlbug", "-a", $Author,
 my $Perlbug  = join " ", map { / / ? "'$_'" : $_ } @perlbug;
 
 my @files    = sort keys %{maniread()}, "lib/Devel/Cover/Inc.pm";
-my @versions = grep { $_ ne "README" && $_ ne "Makefile.PL" } @files;
+my @versions = grep !/^(?:README|Makefile\.PL|\.gitignore)$/, @files;
 
 my $base     = getcwd;
 
