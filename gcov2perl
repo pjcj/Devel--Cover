@@ -58,8 +58,7 @@ sub add_cover
     open F, $file or die "Can't open $file: $!\n";
     while (<F>)
     {
-        next unless my ($count, $line) = /(.{9}):\s*(\d+):/;
-        $count =~ s/\s+//g;
+        next unless my ($count, $line) = /^\s*([-0-9#]+):\s*(\d+):/;
         next if $count eq "-";
         $count = 0 if $count eq "#####";
 

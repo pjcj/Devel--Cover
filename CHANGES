@@ -1,5 +1,8 @@
 Devel::Cover.pm history
 
+Release 0.68 - 
+ - Fix gcov2perl to work with large numbers (Thomas Dorner) (rt 45028).
+
 Release 0.67 - 8th May 2010
  - Fix up the Makefile for dmake on Strawberry Perl (Curtis Jewell) (rt 50774).
 
