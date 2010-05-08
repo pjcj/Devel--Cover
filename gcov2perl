@@ -17,6 +17,7 @@ our $VERSION = "0.67";
 use Devel::Cover::DB 0.67;
 
 use File::Path;
+use File::Spec;
 use Getopt::Long;
 use Pod::Usage;
 
@@ -45,6 +46,8 @@ sub get_options
 sub add_cover
 {
     my ($file) = @_;
+    my ($vol, $dir) = File::Spec->splitpath(File::Spec->rel2abs($file));
+    $dir = File::Spec->catpath($vol, $dir);
 
     my $f = $file;
     $f =~ s/.gcov$//;
@@ -53,11 +56,26 @@ sub add_cover
     $run{collected} = ["statement"];
     my $structure = Devel::Cover::DB::Structure->new;
     $structure->add_criteria("statement");
-    $run{digests}{$f} = $structure->set_file($f);
 
     open F, $file or die "Can't open $file: $!\n";
     while (<F>)
     {
+        if (/^[^:]+:[^:]+:Source:(.*)$/)
+        {
+            $f = $1;
+            $f = File::Spec->abs2rel(File::Spec->catfile($dir, $f))
+                unless File::Spec->file_name_is_absolute($f);
+        }
+        unless (defined $run{digests}{$f})
+        {
+            unless (-f $f)
+            {
+                warn "no source $f found for $file\n";
+                close F or die "Can't close $file: $!\n";
+                return;
+            }
+            $run{digests}{$f} = $structure->set_file($f);
+        }
         next unless my ($count, $line) = /^\s*([-0-9#]+):\s*(\d+):/;
         next if $count eq "-";
         $count = 0 if $count eq "#####";
