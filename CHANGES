@@ -1,5 +1,8 @@
 Devel::Cover.pm history
 
+Release 0.67 - 8th May 2010
+ - Fix up the Makefile for dmake on Strawberry Perl (Curtis Jewell) (rt 50774).
+
 Release 0.66 - 12th April 2010
  - Move to faster method of collecting data.  Could be up to twice as fast now.
  - Add -replace_ops options to be able to revert to previous collection method.
