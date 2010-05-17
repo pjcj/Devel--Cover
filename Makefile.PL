@@ -313,7 +313,7 @@ else
     print "not found\n\n$e\n";
 }
 
-my $latest_tested = "5.012000";
+my $latest_tested = "5.012001";
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
