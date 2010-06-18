@@ -245,10 +245,11 @@ static int check_if_collecting(pTHX)
     dMY_CXT;
 
     char *file = CopFILE(cCOP);
+    int in_re_eval = strnEQ(file, "(reeval ", 8);
     NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, CopLINE(cCOP)));
     if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file))
     {
-        if (MY_CXT.replace_ops)
+        if (MY_CXT.replace_ops && !in_re_eval)
         {
             dSP;
             int count;
