@@ -1,8 +1,10 @@
 Devel::Cover.pm history
 
-Release 0.68 - 
+Release 0.68 - 5th August 2010
  - Fix gcov2perl to work with large numbers (Thomas Dorner) (rt 45028).
  - Fix "gcov -l" include files (Thomas Dorner) (rt 44864).
+ - Test against 5.12.1.
+ - Gross workaround for for regexp evals (Florian Ragwitz).
 
 Release 0.67 - 8th May 2010
  - Fix up the Makefile for dmake on Strawberry Perl (Curtis Jewell) (rt 50774).
@@ -10,7 +12,7 @@ Release 0.67 - 8th May 2010
 Release 0.66 - 12th April 2010
  - Move to faster method of collecting data.  Could be up to twice as fast now.
  - Add -replace_ops options to be able to revert to previous collection method.
- - Test against 5.12.0 and update tests as necessry.
+ - Test against 5.12.0 and update tests as necessary.
  - Work better with non-existent databases.
  - XS fixes related to overriding ops rather than replacing runops
    (Florian Ragwitz).
