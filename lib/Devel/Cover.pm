@@ -80,7 +80,8 @@ my %Run;                                 # Data collected from the run.
 my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
                        scalar)$/x;       # constant ops
 
-my $Noret_right = qr/^(?:return)$/x;     # ops which don't return
+my $Noret_right = qr/^(?:return|last)$/x;
+                                         # ops which don't return
 
 use vars '$File',                        # Last filename we saw.  (localised)
          '$Line',                        # Last line number we saw.  (localised)

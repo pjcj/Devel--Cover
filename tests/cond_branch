@@ -285,6 +285,16 @@ my @s =
         my $x = shift && return;
         $x[46]++;
     },
+
+    sub
+    {
+        my $x = shift;
+        for my $y (1 .. 2)
+        {
+            my $z = $x || last;
+            $x[47]++;
+        }
+    },
 );
 
 for my $s (@s)
