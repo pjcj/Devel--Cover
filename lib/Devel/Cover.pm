@@ -77,6 +77,11 @@ my %Coverage_options;                    # Options for overage criteria.
 
 my %Run;                                 # Data collected from the run.
 
+my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
+                       scalar)$/x;       # constant ops
+
+my $Noret_right = qr/^(?:return)$/x;     # ops which don't return
+
 use vars '$File',                        # Last filename we saw.  (localised)
          '$Line',                        # Last line number we saw.  (localised)
          '$Collect',                     # Whether or not we are collecting
@@ -809,6 +814,8 @@ sub add_condition_cover
 
     my $key = get_key($op);
     # print STDERR "Condition cover $$op from $File:$Line\n";
+    # print STDERR "left:  [$left]\nright: [$right]\n";
+    # use Carp "cluck"; cluck("from here");
 
     my $type = $op->name;
     $type =~ s/assign$//;
@@ -827,11 +834,11 @@ sub add_condition_cover
         $name = $r->first->name if $name eq "sassign";
         # TODO - exec?  any others?
         # print STDERR "Name [$name]\n";
-        if ($c->[5] || $name =~
-            /^const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|scalar$/)
+        if ($c->[5] || $name =~ $Const_right)
         {
             $c = [ $c->[3], $c->[1] + $c->[2] ];
             $count = 2;
+            # print STDERR "Special short circuit\n";
         }
         else
         {
@@ -989,9 +996,12 @@ sub logop
     my ($op, $cx, $lowop, $lowprec, $highop, $highprec, $blockname) = @_;
     my $left  = $op->first;
     my $right = $op->first->sibling;
+    # print STDERR "left [$left], right [$right]\n";
     my ($file, $line) = ($File, $Line);
+
     if ($cx < 1 && is_scope($right) && $blockname && $self->{expand} < 7)
     {
+        # print STDERR 'if ($a) {$b}', "\n";
         # if ($a) {$b}
         {
             # local $Collect;
@@ -1004,6 +1014,7 @@ sub logop
     }
     elsif ($cx < 1 && $blockname && !$self->{parens} && $self->{expand} < 7)
     {
+        # print STDERR '$b if $a', "\n";
         # $b if $a
         {
             # local $Collect;
@@ -1016,18 +1027,29 @@ sub logop
     }
     elsif ($cx > $lowprec && $highop)
     {
+        # print STDERR '$a && $b', "\n";
         # $a && $b
         {
-            # local $Collect;
+            local $Collect;
             $left  = $self->deparse_binop_left ($op, $left,  $highprec);
             $right = $self->deparse_binop_right($op, $right, $highprec);
         }
-        add_condition_cover($op, $highop, $left, $right)
-            unless $Seen{condition}{$$op}++;
+        # print STDERR "left [$left], right [$right]\n";
+        if ($right =~ $Noret_right)
+        {
+            add_branch_cover($op, $lowop, "$blockname ($left)", $file, $line)
+                unless $Seen{branch}{$$op}++;
+        }
+        else
+        {
+            add_condition_cover($op, $highop, $left, $right)
+                unless $Seen{condition}{$$op}++;
+        }
         return $self->maybe_parens("$left $highop $right", $cx, $highprec)
     }
     else
     {
+        # print STDERR '$a and $b', "\n";
         # $a and $b
         {
             # local $Collect;

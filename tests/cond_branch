@@ -273,6 +273,12 @@ my @s =
         shift xor return;
         $x[44]++;
     },
+
+    sub
+    {
+        my $x = shift || return;
+        $x[45]++;
+    },
 );
 
 for my $s (@s)
