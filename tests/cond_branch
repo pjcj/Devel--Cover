@@ -279,6 +279,12 @@ my @s =
         my $x = shift || return;
         $x[45]++;
     },
+
+    sub
+    {
+        my $x = shift && return;
+        $x[46]++;
+    },
 );
 
 for my $s (@s)
