@@ -86,9 +86,12 @@ close I or die "Cannot close lib/Devel/Cover/Inc.pm: $!";
 
 print "Writing tests ........ ";
 
-unless (-d "t")
+for my $d (qw( t t/e2e ))
 {
-    mkdir "t" or die "Cannot mkdir t: $!";
+    unless (-d $d)
+    {
+        mkdir $d or die "Cannot mkdir $: $!";
+    }
 }
 
 opendir D, "tests" or die "Cannot opendir tests: $!";
@@ -100,11 +103,11 @@ for my $t (readdir D)
 
     if ($t =~ /\.t/)
     {
-        copy("tests/$t", "t/$t") or die "Cannot copy tests/$t to t/$t: $!";
+        copy("tests/$t", "t/e2e/$t") or die "Cannot copy tests/$t to t/e2e/$t: $!";
         next
     }
 
-    open T, ">t/a$t.t" or die "Cannot open t/a$t.t: $!";
+    open T, ">t/e2e/a$t.t" or die "Cannot open t/e2e/a$t.t: $!";
     print T <<EOT;
 #!$^X
 
@@ -127,7 +130,7 @@ use Devel::Cover::Test $Version;
 
 Devel::Cover::Test->new("$t");
 EOT
-    close T or die "Cannot open t/a$t.t: $!";
+    close T or die "Cannot close t/e2e/a$t.t: $!";
 }
 closedir D or die "Cannot closedir tests: $!";
 
@@ -369,14 +372,15 @@ WriteMakefile
                      "Digest::MD5" => 0,
                  },
     dist      => { COMPRESS => "gzip --best --force" },
-    clean     => { FILES => join " ",  "t/*" },
-    depend    => { distdir => "@files" },
+    test      => { TESTS    => "t/*/*.t"             },
+    clean     => { FILES    => join " ",  "t/e2e/*"  },
+    depend    => { distdir  => "@files"              },
     realclean => $] < 5.008008 ?
                  {
                      FILES => "lib/Devel/Cover/Inc.pm",
-                     POSTOP => "\$(RM_RF) cover_db t"
+                     POSTOP => "\$(RM_RF) cover_db t/e2e"
                  } :
-                 { FILES => "lib/Devel/Cover/Inc.pm cover_db t" },
+                 { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
 );
 
 print "\n";
