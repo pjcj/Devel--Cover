@@ -4,8 +4,8 @@ Reading database from ...
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/cond_branch                            90.3   82.1   19.1  100.0   76.2
-Total                                        90.3   82.1   19.1  100.0   76.2
+tests/cond_branch                            90.3   79.3   32.9  100.0   76.2
+Total                                        90.3   79.3   32.9  100.0   76.2
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -321,13 +321,13 @@ line  err   stmt   bran   cond    sub   code
 276                                     
 277                                         sub
 278                                         {
-279            4    100             4           my $x = shift || return;
+279            4           100      4           my $x = shift || return;
 280            2                                $x[45]++;
 281                                         },
 282                                     
 283                                         sub
 284                                         {
-285            4    100             4           my $x = shift && return;
+285            4           100      4           my $x = shift && return;
 286            2                                $x[46]++;
 287                                         },
 288                                     
@@ -336,7 +336,7 @@ line  err   stmt   bran   cond    sub   code
 291            4                    4           my $x = shift;
 292            4                                for my $y (1 .. 2)
 293                                             {
-294            6    100                             my $z = $x || last;
+294            6           100                      my $z = $x || last;
 295            4                                    $x[47]++;
 296                                             }
 297                                         },
@@ -346,7 +346,7 @@ line  err   stmt   bran   cond    sub   code
 301            4                    4           my $x = shift;
 302            4                                for my $y (1 .. 2)
 303                                             {
-304            8    100                             my $z = $x || next;
+304            8           100                      my $z = $x || next;
 305            4                                    $x[48]++;
 306                                             }
 307                                         },
@@ -356,7 +356,7 @@ line  err   stmt   bran   cond    sub   code
 311            4                    4           my $x = shift;
 312            4                                for my $y (1 .. 2)
 313                                             {
-314           10    100                             my $z = $x++ || redo;
+314           10           100                      my $z = $x++ || redo;
 315            8                                    $x[49]++;
 316                                             }
 317                                         },
@@ -366,7 +366,7 @@ line  err   stmt   bran   cond    sub   code
 321            4                    4           my $x = shift;
 322            4                                for my $y (1 .. 2)
 323                                             {
-324            6    100                             my $z = $x || goto GR;
+324            6           100                      my $z = $x || goto GR;
 325            4                                    $x[50]++;
 326                                             }
 327                                     GR:
@@ -377,7 +377,7 @@ line  err   stmt   bran   cond    sub   code
 332            4                    4           my $x = shift;
 333            4                                for my $y (1 .. 2)
 334                                             {
-335            8    100                             eval { my $z = $x || die };
+335            8           100                      eval { my $z = $x || die };
                8                        
 336            8                                    $x[51]++;
 337                                             }
@@ -471,13 +471,6 @@ line  err      %   true  false   branch
 249          100      1      2   if $z > 1
 260          100      2      2   unless shift @_
 266          100      2      2   if shift @_
-279          100      2      2   unless (shift @_)
-285          100      2      2   if (shift @_)
-294          100      2      4   unless ($x)
-304          100      4      4   unless ($x)
-314          100      2      8   unless ($x++)
-324          100      2      4   unless ($x)
-335          100      4      4   unless ($x)
 357   ***     50      0      1   if ($a and $b) { }
       ***     50      0      1   elsif (not $a || $b) { }
       ***     50      1      0   elsif ($b or 0) { }
@@ -487,6 +480,12 @@ line  err      %   true  false   branch
 
 Conditions
 ----------
+
+and 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+285          100      2      2   shift @_ && return
 
 and 3 conditions
 
@@ -503,6 +502,12 @@ or 2 conditions
 
 line  err      %      l     !l   expr
 ----- --- ------ ------ ------   ----
+279          100      2      2   shift @_ || return
+294          100      4      2   $x || last
+304          100      4      4   $x || next
+314          100      8      2   $x++ || redo
+324          100      4      2   $x || goto GR
+335          100      4      4   $x || die
 357   ***     50      1      0   $b or 0
 
 or 3 conditions

@@ -78,10 +78,8 @@ my %Coverage_options;                    # Options for overage criteria.
 my %Run;                                 # Data collected from the run.
 
 my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
-                       scalar)$/x;       # constant ops
-
-my $Noret_right = qr/^(?:return|last|next|redo|goto\s+\w+|die)$/x;
-                                         # ops which don't return
+                       scalar|return|last|next|redo|goto)$/x;
+                                         # constant ops
 
 use vars '$File',                        # Last filename we saw.  (localised)
          '$Line',                        # Last line number we saw.  (localised)
@@ -819,8 +817,10 @@ sub add_condition_cover
     # use Carp "cluck"; cluck("from here");
 
     my $type = $op->name;
+    # print STDERR "type:  [$type]\n";
     $type =~ s/assign$//;
     $type = "or" if $type eq "dor";
+    # print STDERR "type:  [$type]\n";
 
     my $c = $Coverage->{condition}{$key};
 
@@ -1036,16 +1036,8 @@ sub logop
             $right = $self->deparse_binop_right($op, $right, $highprec);
         }
         # print STDERR "left [$left], right [$right]\n";
-        if ($right =~ $Noret_right)
-        {
-            add_branch_cover($op, $lowop, "$blockname ($left)", $file, $line)
-                unless $Seen{branch}{$$op}++;
-        }
-        else
-        {
-            add_condition_cover($op, $highop, $left, $right)
-                unless $Seen{condition}{$$op}++;
-        }
+        add_condition_cover($op, $highop, $left, $right)
+            unless $Seen{condition}{$$op}++;
         return $self->maybe_parens("$left $highop $right", $cx, $highprec)
     }
     else
