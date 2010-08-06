@@ -295,6 +295,16 @@ my @s =
             $x[47]++;
         }
     },
+
+    sub
+    {
+        my $x = shift;
+        for my $y (1 .. 2)
+        {
+            my $z = $x || next;
+            $x[47]++;
+        }
+    },
 );
 
 for my $s (@s)

@@ -4,8 +4,8 @@ Reading database from ...
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/cond_branch                            89.3   80.6   19.1  100.0   74.2
-Total                                        89.3   80.6   19.1  100.0   74.2
+tests/cond_branch                            89.6   81.0   19.1  100.0   74.7
+Total                                        89.6   81.0   19.1  100.0   74.7
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -340,47 +340,57 @@ line  err   stmt   bran   cond    sub   code
 295            4                                    $x[47]++;
 296                                             }
 297                                         },
-298            1                        );
-299                                     
-300            1                        for my $s (@s)
-301                                     {
-302            6                            for my $y (0, 1)
-303                                         {
-304           12                                $s->($y)
-305                                         }
-306                                     
-307            6                            for my $y (1, 0)
-308                                         {
-309           12                                $s->($y)
-310                                         }
-311                                     }
-312                                     
-313                                     
-314            1                        my ($a, $b) = (0, 1);
-315                                     
-316   ***      1     50     33          if ($a && $b)
+298                                     
+299                                         sub
+300                                         {
+301            4                    4           my $x = shift;
+302            4                                for my $y (1 .. 2)
+303                                             {
+304            8    100                             my $z = $x || next;
+305            4                                    $x[47]++;
+306                                             }
+307                                         },
+308            1                        );
+309                                     
+310            1                        for my $s (@s)
+311                                     {
+312            7                            for my $y (0, 1)
+313                                         {
+314           14                                $s->($y)
+315                                         }
+316                                     
+317            7                            for my $y (1, 0)
+318                                         {
+319           14                                $s->($y)
+320                                         }
+321                                     }
+322                                     
+323                                     
+324            1                        my ($a, $b) = (0, 1);
+325                                     
+326   ***      1     50     33          if ($a && $b)
       ***            50     33          
       ***            50     50          
-317                                     {
-318   ***      0                            print "path 1\n";
-319                                     }
-320                                     elsif (!$a && !$b)
-321                                     {
-322   ***      0                            print "path 2\n";
-323                                     }
-324                                     elsif ($b || 0)
-325                                     {
-326            1                            print "path 3\n";
-327   ***      1     50     33              if (!$b || $a)
+327                                     {
+328   ***      0                            print "path 1\n";
+329                                     }
+330                                     elsif (!$a && !$b)
+331                                     {
+332   ***      0                            print "path 2\n";
+333                                     }
+334                                     elsif ($b || 0)
+335                                     {
+336            1                            print "path 3\n";
+337   ***      1     50     33              if (!$b || $a)
       ***            50     33          
-328                                         {
-329   ***      0                                print "path 4\n";
-330                                         }
-331                                         elsif (!$a && $b)
-332                                         {
-333            1                                print "path 5\n";
-334                                         }
-335                                     }
+338                                         {
+339   ***      0                                print "path 4\n";
+340                                         }
+341                                         elsif (!$a && $b)
+342                                         {
+343            1                                print "path 5\n";
+344                                         }
+345                                     }
 
 
 Branches
@@ -432,10 +442,11 @@ line  err      %   true  false   branch
 279          100      2      2   unless (shift @_)
 285          100      2      2   if (shift @_)
 294          100      2      4   unless ($x)
-316   ***     50      0      1   if ($a and $b) { }
+304          100      4      4   unless ($x)
+326   ***     50      0      1   if ($a and $b) { }
       ***     50      0      1   elsif (not $a || $b) { }
       ***     50      1      0   elsif ($b or 0) { }
-327   ***     50      0      1   if (not $b or $a) { }
+337   ***     50      0      1   if (not $b or $a) { }
       ***     50      1      0   elsif (not $a and $b) { }
 
 
@@ -450,14 +461,14 @@ line  err      %     !l  l&&!r   l&&r   expr
 51    ***     33      4      0      0   $y and $z
 68    ***     33      4      0      0   $y and $z
       ***     33      4      0      0   $y and $z
-316   ***     33      1      0      0   $a and $b
-327   ***     33      0      0      1   not $a and $b
+326   ***     33      1      0      0   $a and $b
+337   ***     33      0      0      1   not $a and $b
 
 or 2 conditions
 
 line  err      %      l     !l   expr
 ----- --- ------ ------ ------   ----
-316   ***     50      1      0   $b or 0
+326   ***     50      1      0   $b or 0
 
 or 3 conditions
 
@@ -465,8 +476,8 @@ line  err      %      l  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------   ----
 27    ***     66      0      2      2   $y or $z
 51    ***     66      0      2      2   $y or $z
-316   ***     33      0      1      0   $a || $b
-327   ***     33      0      0      1   not $b or $a
+326   ***     33      0      1      0   $a || $b
+337   ***     33      0      0      1   not $b or $a
 
 xor 4 conditions
 
@@ -505,5 +516,6 @@ __ANON__       4 tests/cond_branch:273
 __ANON__       4 tests/cond_branch:279
 __ANON__       4 tests/cond_branch:285
 __ANON__       4 tests/cond_branch:291
+__ANON__       4 tests/cond_branch:301
 
 
