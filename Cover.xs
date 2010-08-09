@@ -438,8 +438,6 @@ static void cover_statement(pTHX_ OP *op)
 
 static void cover_current_statement(pTHX)
 {
-    dMY_CXT;
-
 #if CAN_PROFILE
     cover_time(aTHX);
 #endif
@@ -597,7 +595,6 @@ static void add_condition(pTHX_ SV *cond_ref, int value)
 
 static void dump_conditions(pTHX)
 {
-    dMY_CXT;
     HE *e;
 
     MUTEX_LOCK(&DC_mutex);
@@ -641,8 +638,6 @@ static void dump_conditions(pTHX)
 
 static OP *get_condition(pTHX)
 {
-    dMY_CXT;
-
     SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
 
     if (pc && SvROK(*pc))
@@ -675,7 +670,6 @@ static void finalise_conditions(pTHX)
      * to collect that lost information.
      */
 
-    dMY_CXT;
     HE *e;
 
     MUTEX_LOCK(&DC_mutex);
@@ -1222,7 +1216,6 @@ static SV *make_sv_object(pTHX_ SV *arg, SV *sv)
 {
     IV    iv;
     char *type;
-    dMY_CXT;
 
     iv = PTR2IV(sv);
     type = svclassnames[SvTYPE(sv)];
