@@ -131,7 +131,7 @@ sub mb_test_command
 
 sub main
 {
-    if ($INC{"Devel/Cover.pm"})
+    if (!$ENV{DEVEL_COVER_SELF} && $INC{"Devel/Cover.pm"})
     {
         my $err = "$0 shouldn't be run with coverage turned on.\n";
         eval

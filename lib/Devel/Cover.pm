@@ -70,6 +70,7 @@ my $Sub_count;                           # Count for multiple subs on same line.
 
 my $Coverage;                            # Raw coverage data.
 my $Structure;                           # Structure of the files.
+my $Self_coverage;                       # Coverage of Devel::Cover
 
 my %Criteria;                            # Names of coverage criteria.
 my %Coverage;                            # Coverage criteria to collect.
@@ -161,7 +162,32 @@ if (0 && $Config{useithreads})
 BEGIN { @Inc = @Devel::Cover::Inc::Inc; @Ignore = ("/Devel/Cover[./]") }
 # BEGIN { $^P = 0x004 | 0x010 | 0x100 | 0x200 }
 # BEGIN { $^P = 0x004 | 0x100 | 0x200 }
-BEGIN { $^P = 0x004 | 0x100 }
+BEGIN { $^P |= 0x004 | 0x100 }
+BEGIN
+{
+    if ($ENV{DEVEL_COVER_SELF})
+    {
+        @Ignore = ();
+        $^P = 0x73f;
+        *DB::DB = sub
+        {
+            my (undef, $f, $l) = caller;
+
+            # print STDERR "$f:$l\n" if $f =~ /DB/;
+            return unless $f =~ /Devel\/Cover/;
+            my $nf = normalised_file($f);
+            $Self_coverage->{$nf}{$l}++;
+            return;
+
+            no strict "refs";
+            my $code = \@{"::_<$f"};
+            my $line = defined $code->[$l] ? $code->[$l] : "";
+            chomp $line;
+            print STDERR "$f:$l: $line\n";
+
+        };
+    }
+}
 
 {
     sub check
@@ -732,6 +758,8 @@ sub add_statement_cover
     $Run{digests}{$File} ||= $Structure->set_file($File);
     my $key = get_key($op);
     my $val = $Coverage->{statement}{$key} || 0;
+    $val = $Self_coverage->{$File}{$Line} || 0
+        if $ENV{DEVEL_COVER_SELF} && exists $Self_coverage->{$File};
     my ($n, $new) = $Structure->add_count("statement");
     $Structure->add_statement($File, $Line) if $new;
     $Run{count}{$File}{statement}[$n] += $val;
