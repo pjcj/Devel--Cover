@@ -372,7 +372,7 @@ WriteMakefile
                      "Digest::MD5" => 0,
                  },
     dist      => { COMPRESS => "gzip --best --force" },
-    test      => { TESTS    => "t/*/*.t t/*.t"       },
+    test      => { TESTS    => "t/*/*.t"             },
     clean     => { FILES    => join " ",  "t/e2e/*"  },
     depend    => { distdir  => "@files"              },
     realclean => $] < 5.008008 ?
