@@ -46,6 +46,7 @@ META.yml
 README
 scanuncov
 session.vim
+t/regexp/regexp_eval.t
 tests/.uncoverable
 tests/alias
 tests/alias1
