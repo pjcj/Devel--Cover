@@ -16,8 +16,11 @@ my $Options =
 {
     dry_run        => 0,
     ignore_failure => 0,
+    silent         => 1,
     version        => [],
 };
+
+my $Silent = "";
 
 sub get_options
 {
@@ -26,6 +29,7 @@ sub get_options
                qw(
                    dry_run!
                    ignore_failure!
+                   silent!
                    version=s
                  ));
     $Options->{version} =
@@ -34,15 +38,18 @@ sub get_options
                   5.8.0 5.8.1 5.8.2 5.8.3 5.8.4 5.8.5 5.8.6 5.8.7 5.8.8 5.8.9
                   5.10.0 5.10.1 5.11.0 5.12.0 5.12.1 ) ]
         unless @{$Options->{version}};
+    $Silent = " >/dev/null 2>&1" if $Options->{silent};
     $Options->{version} =
-        [ grep eval { !system "perl$_ -v" }, @{$Options->{version}} ];
+        [ grep eval { !system "perl$_ -v$Silent" }, @{$Options->{version}} ];
+    print "Testing against: @{$Options->{version}}\n";
 }
 
 sub sys
 {
-    my ($command) = @_;
+    my ($command, $user) = @_;
     print "$command\n";
     return if $Options->{dry_run};
+    $command .= $Silent if $Options->{silent} && !$user;
     my $ret = system $command;
     die "command failed: $?" if $ret && !$Options->{ignore_failure};
 }
@@ -53,10 +60,23 @@ my $command = "@ARGV" or die "Usage: $0 [-v version] command\n";
 for my $v (@{$Options->{version}})
 {
     my $perl = "perl$v";
+    (my $c = $command) =~ s/=perl/$perl/g;
+    $c =~ s/=v/$v/g;
     sys "rm -rf t cover_db";
     sys "$perl Makefile.PL";
     sys "make clean";
     sys "$perl Makefile.PL";
     sys "make";
-    sys $command;
+    if ($c eq "test")
+    {
+        my ($dir)   = grep -x "$_/$perl", split /:/, $ENV{PATH};
+        eval
+        {
+            my $l = readlink "$dir/$perl";
+            ($dir) = $l =~ m|(.*)/[^/]+|;
+        };
+        my ($prove) = grep -x, "$dir/prove", "$dir/prove$v";
+        $c = $prove ? "$prove -b -r -j6 t" : "make test";
+    }
+    sys $c, 1;
 }
