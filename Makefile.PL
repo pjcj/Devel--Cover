@@ -491,7 +491,7 @@ gold : pure_all
 \t \$(PERL) create_gold \$(TEST)
 
 all_test :
-\t exec \$(PERL) all_versions make test
+\t exec \$(PERL) all_versions test
 
 all_gold :
 \t rm -rf test_output
