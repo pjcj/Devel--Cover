@@ -76,7 +76,15 @@ for my $v (@{$Options->{version}})
             ($dir) = $l =~ m|(.*)/[^/]+|;
         };
         my ($prove) = grep -x, "$dir/prove", "$dir/prove$v";
-        $c = $prove ? "$prove -b -r -j6 t" : "make test";
+        if ($prove)
+        {
+            my $cpus = 1;
+            eval { chomp ($cpus = `grep -c processor /proc/cpuinfo`); };
+            $c = "$prove -b -r -j$cpus t";
+            eval { sys $c, 1 };
+            next unless $@;
+        }
+        $c = "make test";
     }
     sys $c, 1;
 }
