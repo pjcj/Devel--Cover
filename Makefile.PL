@@ -178,6 +178,26 @@ else
     print "not found\n\n$e\n";
 }
 
+print "checking for Test::More                     ........ ";
+
+$e = <<EOM;
+
+Test::More is required to run the Devel::Cover tests.
+You can download Test::More from CPAN.
+
+EOM
+
+eval "use Test::More";
+if (my $m = $INC{"Test/More.pm"})
+{
+    my $v = eval { no warnings; $Test::More::VERSION };
+    print "$v     $m\n";
+}
+else
+{
+    print "not found\n\n$e\n";
+}
+
 print "checking for Template.pm       version 2.00 ........ ";
 
 $e = <<EOM;
@@ -370,6 +390,7 @@ WriteMakefile
     PREREQ_PM => {
                      Storable      => 0,
                      "Digest::MD5" => 0,
+                     "Test::More"  => 0,
                  },
     dist      => { COMPRESS => "gzip --best --force" },
     test      => { TESTS    => "t/*/*.t"             },
