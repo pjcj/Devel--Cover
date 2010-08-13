@@ -75,7 +75,9 @@ for my $v (@{$Options->{version}})
             my $l = readlink "$dir/$perl";
             ($dir) = $l =~ m|(.*)/[^/]+|;
         };
-        my ($prove) = grep -x, "$dir/prove", "$dir/prove$v";
+        my ($prove) = grep -x,
+                      map "$dir/prove$_",
+                      "", $v, $v =~ /([\d.]+)/ ? $1 : "";
         if ($prove)
         {
             my $cpus = 1;
