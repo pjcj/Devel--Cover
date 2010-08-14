@@ -487,9 +487,7 @@ DB = cover_db
 dump :
 \t \$(PERL) -Mblib cover -dump_db \$(DB)
 
-FONT = 8x13
-FONT = -sun-screen-medium-r-normal-*-*-70-*-*-m-*-sun-fontspecific
-FONT = "Bitstream Vera Sans Mono 8"
+FONT = "Inconsolata 10"
 GEOM = 260x85+0+0
 
 diff : out
