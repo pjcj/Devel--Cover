@@ -138,12 +138,12 @@ print "done\n\n";
 
 my $e;
 
-print "checking for Storable.pm                    ........ ";
+print "checking for Storable                       ........ ";
 
 $e = <<EOM;
 
-Storable.pm is required to store the coverage database.  You can
-download Storable from CPAN.
+Storable is required to store the coverage database.  You can download
+Storable from CPAN.
 
 EOM
 
@@ -158,12 +158,12 @@ else
     print "not found\n\n$e\n";
 }
 
-print "checking for Digest::MD5.pm                 ........ ";
+print "checking for Digest::MD5                    ........ ";
 
 $e = <<EOM;
 
-Digest::MD5.pm is required to check whether covered files have changed.
-You can download Digest::MD5 from CPAN.
+Digest::MD5 is required to check whether covered files have changed.  You can
+download Digest::MD5 from CPAN.
 
 EOM
 
@@ -182,8 +182,8 @@ print "checking for Test::More                     ........ ";
 
 $e = <<EOM;
 
-Test::More is required to run the Devel::Cover tests.
-You can download Test::More from CPAN.
+Test::More is required to run the Devel::Cover tests.  You can download
+Test::More from CPAN.
 
 EOM
 
@@ -198,11 +198,11 @@ else
     print "not found\n\n$e\n";
 }
 
-print "checking for Template.pm       version 2.00 ........ ";
+print "checking for Template          version 2.00 ........ ";
 
 $e = <<EOM;
 
-Template.pm 2.00 is required to run the some HTML backends to cover and
+Template 2.00 is required to run the some HTML backends to cover and
 for cpancover.  Unless you have specific requirements this should not be
 a problem, but you will not be able to use these reports until you
 install the Template Toolkit, available from CPAN.  In the meantime you
@@ -247,17 +247,6 @@ else
 
 print "checking for Perl::Tidy        version 20060719 .... ";
 
-$e = <<EOM;
-
-One of PPI::HTML 1.07 or Perl::Tidy 20060719 is required to add syntax
-highlighting to some HTML backends to cover and for cpancover.  Unless
-you have specific requirements this should not be a problem, but you will
-not be able to use syntax highlighting in these reports until you install
-PPI::HTML or Perl::Tidy, available from the CPAN.  In the meantime you
-may continue to use the rest of Devel::Cover.
-
-EOM
-
 eval "use Perl::Tidy";
 if (my $m = $INC{"Perl/Tidy.pm"})
 {
@@ -269,11 +258,11 @@ else
     print "not found\n\n$e\n";
 }
 
-print "checking for Pod::Coverage.pm  version 0.06 ........ ";
+print "checking for Pod::Coverage     version 0.06 ........ ";
 
 $e = <<EOM;
 
-Pod::Coverage.pm 0.06 is required to do pod coverage.  This will tell
+Pod::Coverage 0.06 is required to do pod coverage.  This will tell
 you how well you have documented your modules.  Pod coverage will be
 unavailable until you install this module, available from CPAN.  In the
 meantime, you may continue to use the rest of Devel::Cover.
@@ -312,11 +301,11 @@ else
     print "not found\n\n$e\n";
 }
 
-print "checking for Test::Differences.pm           ........ ";
+print "checking for Test::Differences              ........ ";
 
 $e = <<EOM;
 
-Test::Differences.pm is used to display output from failed tests.
+Test::Differences is used to display output from failed tests.
 Hopefully there won't be any failed tests, but if there are you will get
 output that may not be a model of clarity.  If you do get test failures
 and you fancy helping me by debugging them, then you might like to
@@ -329,7 +318,7 @@ eval "use Test::Differences";
 if (my $m = $INC{"Test/Differences.pm"})
 {
     my $v = eval { no warnings; $Test::Differences::VERSION };
-    print "$v     $m\n";
+    printf "%-8s $m\n", $v;
 }
 else
 {
