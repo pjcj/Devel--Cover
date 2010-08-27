@@ -1322,6 +1322,10 @@ if you want syntax highlighted HTML reports.
 
 if you want Pod coverage.
 
+=item * L<Test::More>
+
+in order to run the tests
+
 =item * L<Test::Differences>
 
 if the tests fail and you would like nice output telling you why.
