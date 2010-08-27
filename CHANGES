@@ -1,5 +1,14 @@
 Devel::Cover.pm history
 
+Release 0.69 - 28th August 2010
+ - Correctly report on C<my $x = $y || return> and other shortcuts.
+ - Put end to end tests in t/e2e.
+ - Add test for regexp eval fail (Florian Ragwitz).
+ - Fix some warnings from strict compilers (Florian Ragwitz).
+ - Allow tests to run in parallel (Florian Ragwitz).
+ - Test against 5.13.* development releases.
+ - We now require Test::More to run the tests.
+
 Release 0.68 - 5th August 2010
  - Fix gcov2perl to work with large numbers (Thomas Dorner) (rt 45028).
  - Fix "gcov -l" include files (Thomas Dorner) (rt 44864).
