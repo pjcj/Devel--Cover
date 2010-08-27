@@ -83,7 +83,7 @@ for my $v (@{$Options->{version}})
         {
             my $cpus = 1;
             eval { chomp ($cpus = `grep -c processor /proc/cpuinfo`); };
-            $cpus-- if $cpus > 3;
+            $cpus-- if $cpus > 4;
             $c = "$prove -b -r -j$cpus t";
             eval { sys $c, 1 };
             next unless $@;
