@@ -1,11 +1,12 @@
 .gitignore
 all_versions
-BUGS
-CHANGES
 cover
 Cover.xs
 cpancover
 create_gold
+docs/BUGS
+docs/CHANGES
+docs/TODO
 gcov2perl
 lib/Devel/Cover.pm
 lib/Devel/Cover/Annotation/Random.pm
@@ -101,7 +102,6 @@ tests/t1
 tests/t2
 tests/trivial
 tests/uncoverable
-TODO
 typemap
 utils/install/buildperl
 utils/install/System.pm
