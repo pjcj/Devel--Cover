@@ -100,6 +100,10 @@ REQUIREMENTS
 
         if you want Pod coverage.
 
+    *   Test::More
+
+        in order to run the tests
+
     *   Test::Differences
 
         if the tests fail and you would like nice output telling you why.
