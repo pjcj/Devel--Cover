@@ -618,7 +618,7 @@ static void dump_conditions(pTHX)
         i = 2;
 #endif
 
-        NDEB(D(L, "  %s: op %p, next %p (%d)\n",
+        PDEB(D(L, "  %s: op %p, next %p (%d)\n",
                hex_key(key), next, addr, av_len(conds) - 1));
 
         for (; i <= av_len(conds); i++)
@@ -628,7 +628,7 @@ static void dump_conditions(pTHX)
             int  type  = SvTRUE(*count) ? SvIV(*count) : 0;
             sv_setiv(*count, 0);
 
-            NDEB(D(L, "    %2d: %p, %d\n", i - 2, op, type));
+            PDEB(D(L, "    %2d: %p, %d\n", i - 2, op, type));
         }
     }
     MUTEX_UNLOCK(&DC_mutex);
@@ -853,6 +853,7 @@ static void cover_logop(pTHX)
 static OP *dc_nextstate(pTHX)
 {
     dMY_CXT;
+    NDEB(D(L, "dc_nextstate\n"));
     if (MY_CXT.covering)   check_if_collecting(aTHX);
     if (collecting_here(aTHX)) cover_current_statement(aTHX);
     return CALL_FPTR(MY_CXT.ppaddr[OP_NEXTSTATE])(aTHX);
@@ -1435,7 +1436,7 @@ BOOT:
             replace_ops(aTHX);
         }
         else {
-            PL_runops    = runops_cover;
+            PL_runops = runops_cover;
         }
 #if PERL_VERSION > 6
         PL_savebegin = TRUE;
