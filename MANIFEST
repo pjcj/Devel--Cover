@@ -118,6 +118,7 @@ test_output/cover/cond_branch.5.006001
 test_output/cover/cond_branch.5.008
 test_output/cover/cond_branch.5.008001
 test_output/cover/cond_branch.5.012000
+test_output/cover/cond_branch.5.013001
 test_output/cover/cond_or.5.006001
 test_output/cover/cond_or.5.006002
 test_output/cover/cond_or.5.008
@@ -129,6 +130,7 @@ test_output/cover/cond_xor.5.008001
 test_output/cover/default_param.5.006001
 test_output/cover/default_param.5.008
 test_output/cover/default_param.5.008001
+test_output/cover/default_param.5.013001
 test_output/cover/deparse.5.006001
 test_output/cover/deparse.5.008
 test_output/cover/destroy.5.006001
