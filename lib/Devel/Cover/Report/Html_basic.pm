@@ -42,6 +42,7 @@ sub class
 {
     my ($pc, $err, $criterion) = @_;
     return "" if $criterion eq "time";
+    no warnings "uninitialized";
     !$err ? "c3"
           : $pc <  75 ? "c0"
           : $pc <  90 ? "c1"
