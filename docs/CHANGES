@@ -1,5 +1,9 @@
 Devel::Cover.pm history
 
+Release 0.70 - 29th August 2010
+ - Get Devel::Cover working better on itself.
+ - Distribution should now pass on 5.13.* development releases.
+
 Release 0.69 - 28th August 2010
  - Correctly report on C<my $x = $y || return> and other shortcuts.
  - Put end to end tests in t/e2e.
