@@ -45,10 +45,11 @@ my $Initialised;                         # import() has been called.
 
 my $Dir;                                 # Directory in which coverage will be
                                          # collected.
-my $DB        = "cover_db";              # DB name.
-my $Merge     = 1;                       # Merge databases.
-my $Summary   = 1;                       # Output coverage summary.
-my $Subs_only = 0;                       # Coverage only for sub bodies.
+my $DB         = "cover_db";             # DB name.
+my $Merge      = 1;                      # Merge databases.
+my $Summary    = 1;                      # Output coverage summary.
+my $Subs_only  = 0;                      # Coverage only for sub bodies.
+my $Self_cover = $ENV{DEVEL_COVER_SELF}; # Coverage of Devel::Cover.
 
 my @Ignore;                              # Packages to ignore.
 my @Inc;                                 # Original @INC to ignore.
@@ -70,7 +71,6 @@ my $Sub_count;                           # Count for multiple subs on same line.
 
 my $Coverage;                            # Raw coverage data.
 my $Structure;                           # Structure of the files.
-my $Self_coverage;                       # Coverage of Devel::Cover
 
 my %Criteria;                            # Names of coverage criteria.
 my %Coverage;                            # Coverage criteria to collect.
@@ -89,7 +89,7 @@ use vars '$File',                        # Last filename we saw.  (localised)
                                          # over conditions.  (localised)
          '%Files',                       # Whether we are interested in files.
                                          # Used in runops function.
-         '$Replace_ops',
+         '$Replace_ops',                 # Whether we are replacing ops.
          '$Silent';                      # Output nothing. Can be used anywhere.
 
 BEGIN
@@ -98,6 +98,12 @@ BEGIN
     $Silent = ($ENV{HARNESS_PERL_SWITCHES} || "") =~ /Devel::Cover/ ||
               ($ENV{PERL5OPT}              || "") =~ /Devel::Cover/;
     *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
+
+    @Inc = @Devel::Cover::Inc::Inc;
+    @Ignore = ("/Devel/Cover[./]") unless $ENV{DEVEL_COVER_SELF};
+    # $^P = 0x004 | 0x010 | 0x100 | 0x200;
+    # $^P = 0x004 | 0x100 | 0x200;
+    $^P |= 0x004 | 0x100;
 }
 
 if (0 && $Config{useithreads})
@@ -157,36 +163,6 @@ if (0 && $Config{useithreads})
                @_
               );
     };
-}
-
-BEGIN { @Inc = @Devel::Cover::Inc::Inc; @Ignore = ("/Devel/Cover[./]") }
-# BEGIN { $^P = 0x004 | 0x010 | 0x100 | 0x200 }
-# BEGIN { $^P = 0x004 | 0x100 | 0x200 }
-BEGIN { $^P |= 0x004 | 0x100 }
-BEGIN
-{
-    if ($ENV{DEVEL_COVER_SELF})
-    {
-        @Ignore = ();
-        $^P = 0x73f;
-        *DB::DB = sub
-        {
-            my (undef, $f, $l) = caller;
-
-            # print STDERR "$f:$l\n" if $f =~ /DB/;
-            return unless $f =~ /Devel\/Cover/;
-            my $nf = normalised_file($f);
-            $Self_coverage->{$nf}{$l}++;
-            return;
-
-            no strict "refs";
-            my $code = \@{"::_<$f"};
-            my $line = defined $code->[$l] ? $code->[$l] : "";
-            chomp $line;
-            print STDERR "$f:$l: $line\n";
-
-        };
-    }
 }
 
 {
@@ -280,7 +256,7 @@ EOM
     POSIX::_exit(1);
 }
 
-$Replace_ops = 1;
+$Replace_ops = !$Self_cover;
 
 sub import
 {
@@ -631,7 +607,20 @@ sub check_files
     @Subs = map $_->object_2svref, @Cvs if $] >= 5.008001;
 }
 
+my %Seen;
+
 sub report
+{
+    _report();
+    return unless $Self_cover;
+    delete $Run{digests};
+    delete $Run{counts};
+    delete $Run{vec};
+    %Seen = ();
+    _report();
+}
+
+sub _report
 {
     local @SIG{qw(__DIE__ __WARN__)};
 
@@ -645,7 +634,7 @@ sub report
 
     my @collected = get_coverage();
     return unless @collected;
-    set_coverage("none");
+    set_coverage("none") unless $Self_cover;
 
     $Run{collected} = \@collected;
     $Structure      = Devel::Cover::DB::Structure->new(base => $DB);
@@ -711,16 +700,16 @@ sub report
         structure => $Structure,
     );
 
-    $DB .= "/runs";
-    unless (-d $DB)
+    my $dbrun = "$DB/runs";
+    unless (-d $dbrun)
     {
-        mkdir $DB, 0700 or croak "Can't mkdir $DB: $!\n";
+        mkdir $dbrun, 0700 or croak "Can't mkdir $dbrun: $!\n";
     }
-    $DB .= "/$run";
+    $dbrun .= "/$run";
 
-    $cover->{db} = $DB;
+    $cover->{db} = $dbrun;
 
-    print OUT __PACKAGE__, ": Writing coverage database to $DB\n"
+    print OUT __PACKAGE__, ": Writing coverage database to $dbrun\n"
         unless $Silent;
     $cover->write;
     $cover->print_summary if $Summary && !$Silent;
@@ -758,8 +747,6 @@ sub add_statement_cover
     $Run{digests}{$File} ||= $Structure->set_file($File);
     my $key = get_key($op);
     my $val = $Coverage->{statement}{$key} || 0;
-    $val = $Self_coverage->{$File}{$Line} || 0
-        if $ENV{DEVEL_COVER_SELF} && exists $Self_coverage->{$File};
     my ($n, $new) = $Structure->add_count("statement");
     $Structure->add_statement($File, $Line) if $new;
     $Run{count}{$File}{statement}[$n] += $val;
@@ -770,8 +757,6 @@ sub add_statement_cover
     $Run{count}{$File}{time}[$n] += $Coverage->{time}{$key}
         if exists $Coverage->{time} && exists $Coverage->{time}{$key};
 }
-
-my %Seen;
 
 sub add_branch_cover
 {
@@ -1112,6 +1097,10 @@ sub get_cover
     # print STDERR "[[$File:$Line]]\n";
     # return unless length $File;
     return if length $File && !use_file($File);
+
+    return if $Self_cover &&
+              $File =~ /Devel\/Cover\.pm$/ &&
+              $Sub_name eq "import";
 
     # printf STDERR "getting cover for $Sub_name ($start), %x\n", $$cv;
 
