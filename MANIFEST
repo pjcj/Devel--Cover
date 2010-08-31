@@ -1,5 +1,4 @@
 .gitignore
-all_versions
 cover
 Cover.xs
 cpancover
@@ -101,6 +100,7 @@ tests/t2
 tests/trivial
 tests/uncoverable
 typemap
+utils/all_versions
 utils/create_gold
 utils/install/buildperl
 utils/install/System.pm

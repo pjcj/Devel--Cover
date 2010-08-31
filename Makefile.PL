@@ -499,11 +499,11 @@ gold : pure_all
 \t \$(PERL) utils/create_gold \$(TEST)
 
 all_test :
-\t exec \$(PERL) all_versions test
+\t exec \$(PERL) utils/all_versions test
 
 all_gold :
 \t rm -rf test_output
-\t exec \$(PERL) all_versions make gold
+\t exec \$(PERL) utils/all_versions make gold
 
 self_cover : pure_all
 \t rm -rf cover_db
