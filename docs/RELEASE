@@ -1,5 +1,5 @@
 Make sure the MANIFEST is up to date.
-  $ rm MANIFEST && make mani
+  $ make mani
 
 Check for changes and commit if necessary.
   $ git diff
