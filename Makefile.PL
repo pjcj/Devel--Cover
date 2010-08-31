@@ -491,8 +491,8 @@ FONT = "Inconsolata 10"
 GEOM = 260x85+0+0
 
 diff : out
-\t \$(PERL) makeh strip_criterion 'time' \$(TEST).out
-\t \$(PERL) makeh strip_criterion ' pod' \$(TEST).out
+\t \$(PERL) utils/makeh strip_criterion 'time' \$(TEST).out
+\t \$(PERL) utils/makeh strip_criterion ' pod' \$(TEST).out
 \t gvim -geom \$(GEOM) -d -font \$(FONT) `\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new("\$(TEST)", run_test_at_end => 0); print \$\$t->cover_gold'` \$(TEST).out
 
 gold : pure_all
