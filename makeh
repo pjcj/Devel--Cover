@@ -19,7 +19,7 @@ my $Command =
         local ($^I, @ARGV) = (".bak", $file);
         while (<>)
         {
-            $t = index $_, "$criterion   code" if !defined $t || $t < 0;
+            $t = index($_, "$criterion   code") -3 if !defined $t || $t < 0;
             substr $_, $t, 7, ""
                 if /^line  err   stmt/ .. /^--------/ and $t > -1 and length > $t;
             print;
