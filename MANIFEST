@@ -6,6 +6,7 @@ cpancover
 create_gold
 docs/BUGS
 docs/CHANGES
+docs/RELEASE
 docs/TODO
 gcov2perl
 lib/Devel/Cover.pm

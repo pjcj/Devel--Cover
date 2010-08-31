@@ -1,0 +1,34 @@
+Make sure the MANIFEST is up to date.
+  $ rm MANIFEST && make mani
+
+Check for changes and commit if necessary.
+  $ git diff
+  $ git commit -v MANIFEST
+
+Update docs/CHANGES.
+  - Show the release number and date of release.
+  - Add important changes.
+  - Credit the author as appropriate.
+  - Include RT numbers.
+
+Commit the change.
+  $ git commit -m 'Add changes for X.YZ release' docs/CHANGES
+
+Update version number and date in Makefile.PL.
+  - Then propagate the change.
+  $ perl Makefile.PL && make
+
+Run basic tests.
+  $ make test
+
+Test against all version.
+  $ make all_tests
+
+Run dist test.
+  $ make disttest
+
+Commit the change.
+  $ git commit -a -m 'Update to version X.YZ'
+
+Make the distribution.
+  $ make dist
