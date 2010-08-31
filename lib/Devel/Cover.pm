@@ -45,11 +45,12 @@ my $Initialised;                         # import() has been called.
 
 my $Dir;                                 # Directory in which coverage will be
                                          # collected.
-my $DB         = "cover_db";             # DB name.
-my $Merge      = 1;                      # Merge databases.
-my $Summary    = 1;                      # Output coverage summary.
-my $Subs_only  = 0;                      # Coverage only for sub bodies.
-my $Self_cover = $ENV{DEVEL_COVER_SELF}; # Coverage of Devel::Cover.
+my $DB             = "cover_db";         # DB name.
+my $Merge          = 1;                  # Merge databases.
+my $Summary        = 1;                  # Output coverage summary.
+my $Subs_only      = 0;                  # Coverage only for sub bodies.
+my $Self_cover;                          # Coverage of Devel::Cover.
+my $Self_cover_run = 0;                  # Covering Devel::Cover now.
 
 my @Ignore;                              # Packages to ignore.
 my @Inc;                                 # Original @INC to ignore.
@@ -100,7 +101,7 @@ BEGIN
     *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 
     @Inc = @Devel::Cover::Inc::Inc;
-    @Ignore = ("/Devel/Cover[./]") unless $ENV{DEVEL_COVER_SELF};
+    @Ignore = ("/Devel/Cover[./]") unless $Self_cover = $ENV{DEVEL_COVER_SELF};
     # $^P = 0x004 | 0x010 | 0x100 | 0x200;
     # $^P = 0x004 | 0x100 | 0x200;
     $^P |= 0x004 | 0x100;
@@ -613,10 +614,7 @@ sub report
 {
     _report();
     return unless $Self_cover;
-    delete $Run{digests};
-    delete $Run{counts};
-    delete $Run{vec};
-    %Seen = ();
+    $Self_cover_run = 1;
     _report();
 }
 
@@ -707,12 +705,15 @@ sub _report
     }
     $dbrun .= "/$run";
 
-    $cover->{db} = $dbrun;
-
     print OUT __PACKAGE__, ": Writing coverage database to $dbrun\n"
         unless $Silent;
-    $cover->write;
+    $cover->write($dbrun);
     $cover->print_summary if $Summary && !$Silent;
+
+    return if !$Self_cover || $Self_cover_run;
+
+    $cover->delete;
+    delete $Run{vec};
 }
 
 sub add_subroutine_cover
@@ -1098,9 +1099,11 @@ sub get_cover
     # return unless length $File;
     return if length $File && !use_file($File);
 
-    return if $Self_cover &&
-              $File =~ /Devel\/Cover\.pm$/ &&
-              $Sub_name eq "import";
+    return if !$Self_cover_run && $File =~ /Devel\/Cover/;
+    return if  $Self_cover_run && $File !~ /Devel\/Cover/;
+    return if  $Self_cover_run &&
+               $File =~ /Devel\/Cover\.pm$/ &&
+               $Sub_name eq "import";
 
     # printf STDERR "getting cover for $Sub_name ($start), %x\n", $$cv;
 
