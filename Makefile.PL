@@ -512,7 +512,9 @@ self_cover : pure_all
 \t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover t/e2e/cover_db_*
 \t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -report html_basic
 
-mani : manifest
+mani :
+\t -rm MANIFEST
+\t \$(MAKE) manifest
 \t \$(PERL) -i.bak -ne '\$\$d = "test_output/cover"; print unless /^\$\$d/; END { open M, ">>MANIFEST"; opendir D, \$\$d; print M "\$\$d/\$\$_\\n" for sort grep -f "\$\$d/\$\$_", readdir D }' MANIFEST
 
 ok :
