@@ -496,7 +496,7 @@ diff : out
 \t gvim -geom \$(GEOM) -d -font \$(FONT) `\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new("\$(TEST)", run_test_at_end => 0); print \$\$t->cover_gold'` \$(TEST).out
 
 gold : pure_all
-\t \$(PERL) create_gold \$(TEST)
+\t \$(PERL) utils/create_gold \$(TEST)
 
 all_test :
 \t exec \$(PERL) all_versions test

@@ -104,6 +104,7 @@ tests/t2
 tests/trivial
 tests/uncoverable
 typemap
+utils/create_gold
 utils/install/buildperl
 utils/install/System.pm
 utils/makeh
