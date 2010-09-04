@@ -10,7 +10,11 @@
 use strict;
 use warnings;
 
+use lib "utils";
+
 use Getopt::Long;
+
+use Devel::Cover::BuildUtils "prove_command";
 
 my $Options =
 {
@@ -68,27 +72,5 @@ for my $v (@{$Options->{version}})
     sys "make clean";
     sys "$perl Makefile.PL";
     sys "make";
-    if ($c eq "test")
-    {
-        my ($dir)   = grep -x "$_/$perl", split /:/, $ENV{PATH};
-        eval
-        {
-            my $l = readlink "$dir/$perl";
-            ($dir) = $l =~ m|(.*)/[^/]+|;
-        };
-        my ($prove) = grep -x,
-                      map "$dir/prove$_",
-                      "", $v, $v =~ /([\d.]+)/ ? $1 : "";
-        if ($prove)
-        {
-            my $cpus = 1;
-            eval { chomp ($cpus = `grep -c processor /proc/cpuinfo`); };
-            $cpus-- if $cpus > 4;
-            $c = "$prove -b -r -j$cpus t";
-            eval { sys $c, 1 };
-            next unless $@;
-        }
-        $c = "make test";
-    }
-    sys $c, 1;
+    sys "make prove", 1 if $c eq "test";
 }

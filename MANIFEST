@@ -101,6 +101,7 @@ tests/uncoverable
 typemap
 utils/all_versions
 utils/create_gold
+utils/Devel/Cover/BuildUtils.pm
 utils/install/buildperl
 utils/install/System.pm
 utils/makeh
