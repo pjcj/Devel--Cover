@@ -71,5 +71,5 @@ for my $v (@{$Options->{version}})
     sys "make clean";
     sys "$perl Makefile.PL";
     sys "make";
-    sys "make prove", 1 if $c eq "test";
+    sys $c, 1;
 }

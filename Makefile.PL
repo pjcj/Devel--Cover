@@ -505,7 +505,7 @@ gold : pure_all
 \t \$(PERL) utils/create_gold \$(TEST)
 
 all_test :
-\t exec \$(PERL) utils/all_versions test
+\t exec \$(PERL) utils/all_versions make test
 
 all_gold :
 \t rm -rf test_output
