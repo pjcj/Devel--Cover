@@ -223,17 +223,19 @@ sub main
         {
             return unless /\.(xs|c|h)$/;
 
+            my ($name) = /([^\/]+$)/;
+
             # Don't bother running gcov if there's no index files.
             # Otherwise it's noisy.
             my $graph_file = $_;
             $graph_file =~ s{\.\w+$}{.gcno};
             return unless -e $graph_file;
 
-            my $c = "gcov $_";
+            my $c = "gcov $name";
             print STDERR "cover: running $c\n";
             system $c;
         };
-        File::Find::find({ wanted => $gc, no_chdir => 0 }, ".");
+        File::Find::find({ wanted => $gc, no_chdir => 1 }, ".");
         my @gc;
         my $gp = sub
         {

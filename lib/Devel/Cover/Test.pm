@@ -259,6 +259,12 @@ sub run_cover
             print STDERR $_ if $debug;
             redo if /^Devel::Cover: merging run/;
             redo if /^Set up gcc environment/;  # for MinGW
+            if (/Can't opendir\(.+\): No such file or directory/)
+            {
+                # parallel tests
+                scalar $get_line->();
+                redo;
+            }
             s/^(Reading database from ).*/$1/;
             s|(__ANON__\[) .* (/tests/ \w+ : \d+ \])|$1$2|x;
             s/(Subroutine) +(Location)/$1 $2/;
