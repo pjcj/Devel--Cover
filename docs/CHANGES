@@ -1,5 +1,10 @@
 Devel::Cover.pm history
 
+Release 0.71 - 10th September 2010
+ - Improve running of Devel::Cover on itself.
+ - Fix occasional parallel test failures.
+ - Test against 5.12.2.
+
 Release 0.70 - 29th August 2010
  - Get Devel::Cover working better on itself.
  - Distribution should now pass on 5.13.* development releases.
