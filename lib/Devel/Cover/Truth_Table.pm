@@ -180,7 +180,7 @@ sub error {
 package Devel::Cover::Truth_Table;
 use warnings;
 use strict;
-our $VERSION = "0.70";
+our $VERSION = "0.71";
 
 #-------------------------------------------------------------------------------
 # Subroutine : new()
@@ -567,7 +567,7 @@ None that I'm aware of...
 
 =head1 VERSION
 
-Version 0.70 - 29th August 2010
+Version 0.71 - 10th September 2010
 
 =head1 LICENSE
 

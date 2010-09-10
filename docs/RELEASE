@@ -21,14 +21,22 @@ Update version number and date in Makefile.PL.
 Run basic tests.
   $ make test
 
-Test against all version.
-  $ make all_tests
+Test against all versions.
+  $ make all_test
+  - or, if you have multiple cores available:
+  $ HARNESS_OPTIONS=j7:c HARNESS_TIMER=1 make all_test
+
+Return to base perl version.
+  $ perl Makefile.PL && make
 
 Run dist test.
   $ make disttest
 
 Commit the change.
   $ git commit -a -m 'Update to version X.YZ'
+
+Tag the release.
+  $ git tag -a vX.YZ -m 'Release vX.YZ'
 
 Make the distribution.
   $ make dist
