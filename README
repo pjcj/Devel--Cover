@@ -74,6 +74,9 @@ DESCRIPTION
     be perl-qa.  Discussion has migrated there from perl-qa-metrics which is
     now defunct.  See <http://lists.perl.org/showlist.cgi?name=perl-qa>.
 
+    The Devel::Cover repository can be found at
+    <http://github.com/pjcj/Devel--Cover>.
+
 REQUIREMENTS
     *   Perl 5.6.1 or greater.  Perl 5.8.2 or greater is recommended.
 

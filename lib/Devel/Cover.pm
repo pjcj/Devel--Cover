@@ -1285,6 +1285,9 @@ The most appropriate mailing list on which to discuss this module would
 be perl-qa.  Discussion has migrated there from perl-qa-metrics which is
 now defunct.  See L<http://lists.perl.org/showlist.cgi?name=perl-qa>.
 
+The Devel::Cover repository can be found at
+L<http://github.com/pjcj/Devel--Cover>.
+
 =head1 REQUIREMENTS
 
 =over
