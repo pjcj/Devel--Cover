@@ -10,16 +10,17 @@
 use strict;
 use warnings;
 
-require 5.010_001;
+require 5.012;
 
-# use autodie;
+use autodie;
 
 use System "sys:dsys: command, error";
 
 my @opt = qw( perl modules
-              zlib gd openssl nagios
+              postgres
+              zlib openssl
               apache mod_perl fastcgi
-              git subversion postgres
+              git
               coverage all );
 
 my $Usage =
@@ -31,30 +32,11 @@ my $Installation = shift  || die $Usage;
 my $Options      = "@ARGV";
    $Options      = "dry"  if $Options =~ /\bdry\b/;
    $Options      = "@opt" if $Options =~ /\ball\b/;
-   pop @opt for 1 .. 4;
+   pop @opt for 1 .. 8;
    $Options      = "@opt" unless $Options;
 
 my $Sw;
 my $Perl;
-
-my $UBS = -d "/opt/bin";
-if ($UBS)
-{
-    $ENV{PATH}            = "/usr/bin:/usr/sbin:/bin:/sbin:/usr/ucb:" .
-                            "/usr/ccs/bin:/usr/ccs/lib:/usr/openwin/bin";
-    $ENV{ORACLE_HOME}     = `op chile_db oracle_home`;
-    $ENV{ORACLE_HOME}   ||= "/export/opt/p2orstree/10.1.0.4";
-    $ENV{ORACLE_HOME}     = "/app/ora/p2orstree/10.1.0.4"
-        unless -e $ENV{ORACLE_HOME};
-    $ENV{LD_LIBRARY_PATH} = "$ENV{ORACLE_HOME}/lib32:/usr/ucblib";
-}
-else
-{
-    # $ENV{ORACLE_HOME} = "/usr/lib/oracle/xe/app/oracle/product/10.2.0/server";
-    # die "ORACLE_HOME needs to be set!" unless exists $ENV{ORACLE_HOME};
-    # die "ORACLE_HOME is invalid!"      unless -d     $ENV{ORACLE_HOME};
-    # $ENV{LD_LIBRARY_PATH} = "$ENV{LD_LIBRARY_PATH}:$ENV{ORACLE_HOME}/lib";
-}
 
 my $Top   = `pwd`;
 chomp $Top;
@@ -85,7 +67,7 @@ sub building ($)
 
 sub uncompress
 {
-    $_[0] =~ /2$/ ? "bzcat" : $UBS ? "gzcat" : "zcat"
+    $_[0] =~ /2$/ ? "bzcat" : "zcat"
 }
 
 sub build ($$$)
@@ -117,23 +99,15 @@ sub build ($$$)
     print "built $module\n";
 }
 
-sub feed ($$)
-{
-    my ($command, $input) = @_;
-    open my $c, "| $command" or die "Cannot run $command:$!\n";
-    print $c $input;
-    close $c or die "Cannot run $command:$!\n";
-}
-
 sub main ()
 {
     dsys "rm -rf $Build";
-    mkdir $Build, 0750 or die "Can't mkdir $Build: $!";
+    mkdir $Build, 0750;
     $ENV{HOME} = $Sw;
-    my $gmake  = "/app/home/t136103/g/sw/bin/gmake";
-    $gmake     = "make" unless -e $gmake;
+    my $gmake  = "make";
 
-    if (building "perl")
+
+    if (building "perl" && (!-e "$Sw/bin/perl" || building "force"))
     {
         chdir $Build or die "Can't chdir $Build: $!";
         dsys "rm -rf $Sw/*";
@@ -142,7 +116,7 @@ sub main ()
         {
             my $perl_dir = "/usr/local/pkg/bleadperl";
             mkdir $perl_dir;
-            chdir $perl_dir or die "Can't chdir $perl_dir: $!";
+            chdir $perl_dir;
             dsys "rsync -avz --delete " .
                  "rsync://ftp.activestate.com/perl-current/ .";
         }
@@ -150,7 +124,7 @@ sub main ()
         {
             my $perl_dir = "$Installation/tmp/maintperl";
             dsys "mkdir -p $perl_dir";
-            chdir $perl_dir or die "Can't chdir $perl_dir: $!";
+            chdir $perl_dir;
             if (1)
             {
                 dsys "rsync -avz --delete " .
@@ -178,8 +152,7 @@ sub main ()
 
         my @opts =
         (
-          "-Dperladmin=" .
-              ($UBS ? "'paul-za.johnson\@ubs.com'" : "'paul\@pjcj.net'"),
+          "-Dperladmin='paul\@pjcj.net'",
           "-Dprefix=$Sw",
         );
         push @opts, "-Dusedevel" if $Blead;
@@ -190,14 +163,15 @@ sub main ()
             "-Dldflags='-fprofile-arcs -ftest-coverage'",
             "-Doptimize='-g -O0'",
         ) if building "Xcoverage";
+        push @opts, "-A ccflags=-fPIC";
 
         dsys "sh ./Configure -des @opts";
         dsys "make" . (building "Xcoverage" ? " perl.gcov" : "");
-        sys  "make test";
-        dsys "make install";
+        dsys "HARNESS_OPTIONS=j$ENV{TEST_JOBS}:c make -j$ENV{TEST_JOBS} test_harness install";
+        # dsys "make install";
 
         my ($version) = glob "${Perl}5.*";
-        symlink $version, $Perl;
+        symlink $version, $Perl unless -e $Perl;
 
         $Options =~ s/\bperl\b//;
     }
@@ -208,9 +182,10 @@ sub main ()
     print "<$restart [$^X] [$Perl]>\n";
     exec $restart if $^X !~ /$Perl/;
 
+
     if (building "zlib")
     {
-        my $zlib = "zlib-1.2.3";
+        my $zlib = "zlib-1.2.5";
         build $zlib,
               $Src_dir,
               {
@@ -219,61 +194,19 @@ sub main ()
               };
     }
 
-    if (building "gd")
-    {
-        my $jpeg    = "jpegsrc.v6b";
-        my $jpegdir = "jpeg-6b";
-        build $jpeg,
-              $Src_dir,
-              {
-                  dir     => sub { $jpegdir },
-                  config  => sub { dsys "./configure --prefix=$Sw" },
-                  install => sub
-                  {
-                      dsys "make install install-lib install-headers";
-                  },
-              };
-
-        my $png = "libpng-1.2.34";
-        build $png,
-              $Src_dir,
-              {
-                  config  => sub
-                  {
-                      my $ext = $UBS ? "32sunu" : "linux";
-                      dsys "cp scripts/makefile.$ext Makefile";
-                      dsys "perl -pi -e 's|^(prefix=).*|\$1$Sw|' Makefile";
-                      dsys "make" .
-                           " ZLIBLIB=$Sw/lib" .
-                           " ZLIBINC=$Sw/include";
-                  }
-              };
-
-        my $gd = "gd-2.0.35";
-        build $gd,
-              $Src_dir,
-              {
-                  config  => sub
-                  {
-                      dsys "./configure" .
-                           " --prefix=$Sw" .
-                           " --with-jpeg=$Sw" .
-                           " --with-png=$Sw";
-                  }
-              };
-    }
 
     if (building "openssl")
     {
         # my $openssl = "openssl-0.9.8g";  # Crypt::SSLeay fails
-        my $openssl = "openssl-0.9.7" . ($UBS ? "g" : "j");  # Solaris fails
+        my $openssl = "openssl-0.9.7j";
         # my $openssl = "openssl-0.9.8j";
         build $openssl,
               $Src_dir,
               { config => sub { dsys "./config --prefix=$Sw shared" } };
     }
 
-    $ENV{LD_PRELOAD} = "$Sw/lib/libssl.so" if -e "$Sw/lib/libssl.so" && !$UBS;
+    $ENV{LD_PRELOAD} = "$Sw/lib/libssl.so" if -e "$Sw/lib/libssl.so";
+
 
     # my $apache   = "apache_1.3.41";
     my $apache   = "httpd-2.2.11";
@@ -349,6 +282,7 @@ sub main ()
             if building "mod_perl";
     }
 
+
     if (building "fastcgi" && -e "$Sw/bin/httpd")
     {
         my $fastcgi  = "mod_fastcgi-2.4.6";
@@ -372,9 +306,10 @@ sub main ()
               }
       }
 
+
     if (building "git")
     {
-        my $git  = "git-1.6.3.3";
+        my $git = "git-1.6.3.3";
 
         build $git,
               $Src_dir,
@@ -385,126 +320,12 @@ sub main ()
                   test    => sub { dsys "echo $gmake test" },
                   install => sub { dsys "$gmake install" },
               }
-      }
-
-    if (building "subversion")
-    {
-        my $neon = "neon-0.25.5";  # subversion needs this version
-        # build $neon,
-              # $Src_dir,
-              # {
-                  # config => sub
-                  # {
-                      # dsys "./configure" .
-                           # " --prefix=$Sw" .
-                           # ($UBS ? "" : " --enable-shared") .
-                           # " --with-ssl=openssl" .
-                           # " --with-libs=$Sw";
-                  # },
-              # };
-
-        my $swig  = "swig-1.3.29";  # subversion needs a version after 1.3.23
-        build $swig,
-              $Src_dir,
-              {
-                  config  => sub
-                  {
-                      dsys "./configure" .
-                           " --prefix=$Sw" .
-                           " --with-perl5=$Perl"
-                  },
-                  make    => sub { dsys "$gmake" },
-                  test    => sub {},
-                  install => sub { dsys "$gmake install" },
-              };
-
-        die "Can't find swig" unless `which swig`;
-
-        my $subversion = "subversion-1.4.5";
-        build $subversion,
-              $Src_dir,
-              {
-                  config  => sub
-                  {
-                      dsys "./configure" .
-                           " --prefix=$Sw" .
-                           " --without-berkeley-db" .
-                           ($UBS ? " --without-ssl --without-zlib"
-                                 : " --with-ssl    --with-zlib") .
-                           " --enable-shared" .
-                           " --with-apxs=$Sw/bin/apxs" .
-                           " --with-libs=$Sw" .
-                           " PERL=$Perl";
-                  },
-                  make    => sub
-                  {
-                      dsys "make";
-                      dsys "make swig-pl";
-                  },
-                  test    => sub
-                  {
-                      dsys "make check-swig-pl";
-                  },
-                  install => sub
-                  {
-                      dsys "make install";
-                      dsys "make install-swig-pl";
-                  },
-              };
     }
 
-    if (building "nagios")
-    {
-        my $nagios = "nagios-3.0.6";
-        build $nagios,
-              $Src_dir,
-              {
-                  config => sub
-                  {
-                      my $user  = getpwuid($<);
-                      my $group = getgrgid($();
-                      {
-                          local ($^I, @ARGV) = (".bak", "cgi/status.c");
-                          while (<>)
-                          {
-                              s/(int max_grid_width=)8;/${1}135;/;
-                              s/(current_item)\+\+;/${1}+=strlen\(temp_servicestatus->description\)+1;/;
-                              print;
-                          }
-                      }
-                      sys "chdir common && ln -s ../base/snprintf.o .";
-                      dsys "./configure" .
-                           " --prefix=$Sw" .
-                           " --with-htmurl=/chile_monitor" .
-                           " --with-cgiurl=/chile_monitor/cgi-bin" .
-                           " --with-nagios-user=$user" .
-                           " --with-nagios-group=$group" .
-                           " --with-gd-inc=$Sw/include" .
-                           " --with-gd-lib=$Sw/lib";
-                  },
-                  make   => sub
-                  {
-                      sys "make all install";
-                  },
-              };
-
-        my $plugins = "nagios-plugins-1.4.13";
-        build $plugins,
-              $Src_dir,
-              {
-                  config => sub
-                  {
-                      dsys "CFLAGS=-lm ./configure" .
-                           " --prefix=$Sw" .
-                           " --with-cgiurl=/chile_monitor/cgi-bin"
-                  },
-                  test   => sub {},
-              };
-    }
 
     if (building "postgres")
     {
-        my $postgres = "postgresql-8.4.0";
+        my $postgres = "postgresql-8.4.4";
         build $postgres,
               $Src_dir,
               {
@@ -514,12 +335,14 @@ sub main ()
                            " --prefix=$Sw" .
                            " --with-pgport=5433" .
                            " --without-readline" .
+                           " --without-zlib" .
                            " --with-perl";
                   },
                   make    => sub { dsys "$gmake"               },
                   test    => sub { dsys "$gmake check"         },
                   install => sub { dsys "$gmake install-strip" },
-              };
+              }
+        unless -e "$Sw/bin/pg_ctl" && !building "force";
     }
 
 
@@ -527,485 +350,266 @@ sub main ()
     {
         my @modules =
         qw(
-            Bundle::CPAN
-            Bundle::LWP
-            CPAN::Mini
-
-            LWP
-            ExtUtils::ParseXS
-            Module::Build
-            Test::Pod
-            Test::Pod::Coverage
-            Archive::Tar
-            Data::Page
-            Date::Calc
-            Apache::Compress
-            Apache::Filter
-            Apache::Session
-            Apache::Test
-            Data::UUID
-            DateTime
-            Class::Trigger
-            DBIx::ContextualFetch
-            DBIx::Class
             DBIx::Class::InflateColumn::DateTime
-            DBIx::ProcedureCall
-            Image::Size
             Template
-            Number::Format
-            Template::Plugin::Number::Format
-            HTML::Lint
-            JSON
-            Test::JSON
-            HTTP::Response::Encoding
-            WWW::Mechanize
-            Test::WWW::Mechanize
-            PPI::HTML
-            Perl::Tidy
-            Devel::Cover
-            Shell::Source
-            B::Utils
-            Log::Log4perl
-            DBIx::Log4perl
-            Net::Server
-            XXNet::IRC
-            File::Find::Rule
-            Proc::ProcessTable
-            Text::Template
-            Data::Dump::Streamer
-            Spreadsheet::ParseExcel
-            Email::Send
-            Text::Table
-            Text::TabularDisplay
-            C::Scan
-            Cache::FastMmap
-
-            XXCGI::Simple::Cookie
-            XXData::Dump
-            XXModule::Pluggable
-
-            DBD:Pg
+            DBD::Pg
             DBIx::Class::Schema::Loader::DBI::Pg
 
-            MooseX::Declare
-
             Catalyst
-            Catalyst::Controller::FormBuilder
             Catalyst::Devel
-            Catalyst::Engine::Apache
-            Catalyst::Engine::HTTP::POE
+            Catalyst::Engine::PSGI
             Catalyst::Model::DBIC::Schema
             Catalyst::Plugin::Authentication
-            Catalyst::Plugin::Authentication::Store::DBIx::Class
             Catalyst::Plugin::Authorization::Roles
             Catalyst::Plugin::ConfigLoader
-            Catalyst::Plugin::JSONRPC
-            Catalyst::Plugin::Server::XMLRPC
             Catalyst::Plugin::Session::State::Cookie
             Catalyst::Plugin::Session::Store::FastMmap
             Catalyst::Plugin::StackTrace
             Catalyst::Plugin::Static::Simple
-            Catalyst::Plugin::XMLRPC
             Catalyst::View::JSON
             Catalyst::View::TT
 
-            FCGI
-            FCGI::ProcManager
-            SOAP::Lite
-            Sort::Versions
-            Alien::SeleniumRC
-            Test::WWW::Selenium
-            Test::WWW::Mechanize::Catalyst
-            HTML::TagCloud
+            MooseX::Declare
 
-            Test::Exception
-            Test::Warn
+            Starman
 
-            Date::Parse
+            Gitalist
 
-            Net::SSLeay
-        ); my @no = qw(
+            Devel::Cover
+            Parallel::Iterator
+            Test::Pod::Coverage
 
-            DBIx::Class::Schema::Loader::DBI::Oracle
+            ../../Devel--Cover
 
-            XXBundle::Test  XX_seems_to_want_to_reinstall_perl_itself
-            Plagger
-            XXBundle::BioPerl
-            XXBio::Perl
-            S/SE/SENDU/bioperl-1.5.2_102.tar.gz
-            Tk
-            Regexp::Common
-            XXBundle::POE::All
-            XXBundle::Email
-            XXBundle::Phalanx
-            XXBundle::HTML::Mason
-            XXBundle::Slash
-            XXBundle::RT
-            XXBundle::Bricolage
-            XXBundle::BricolagePlus
+            Gedcom
+            Shell::Source
 
-            XXPhalanx
+            XX-Top-Level-Modules-With-Many-Dependencies
+            MojoMojo
+            Jifty
+            Dist::Zilla
+            Bot::BasicBot
+
+            XX-Modules-With-Many-Dependents
+            Exporter
+            Text::Tabs
             Test::Harness
-            Test::Reporter
-            Test::Builder
-            Test::Builder::Tester
-            Sub::Uplevel
-            Test::Exception
-            Test::Tester
-            Test::NoWarnings
-            Test::Tester
             Pod::Escapes
             Pod::Simple
-            Test::Pod
-            YAML
-            Cwd
-            Archive::Tar
+            IO
+            Getopt::Long
+            Pod::Parser
+            ExtUtils::MakeMaker
+            Test::Simple
+            ExtUtils::Manifest
+            constant
+            Test
+            Data::Dumper
+            File::Temp
+            ExtUtils::Install
+            Text::ParseWords
+            ExtUtils::CBuilder
+            ExtUtils::ParseXS
             Module::Build
-            Devel::Symdump
-            Pod::Coverage
-            Test::Pod::Coverage
-            Compress::Zlib
-            IO::Zlib
-            Archive::Zip
-            Archive::Tar
-            Storable
+            File::Path
+            XSLoader
+            MIME::Base64
+            Digest
             Digest::MD5
+            Sub::Uplevel
             URI
+            Test::Exception
             HTML::Tagset
             HTML::Parser
-            LWP
-            IPC::Run
-            CPANPLUS
-            DBI
-            XXDBD::mysql
-            GD
-            MIME::Base64
-            XXNet::SSLeay
-            Net::LDAP
-            XML::Parser
-            Apache::ASP
-            CGI
-            Date::Manip
-            DBD::Oracle
-            XXDBD::Pg
-            Digest::SHA1
-            Digest::HMAC
-            HTML::Tagset
-            HTML::Template
-            Net::Cmd
-            Mail::Mailer
-            MIME::Body
-            Net::DNS
-            Time::HiRes
-            Apache::DBI
-            Apache::Session
-            Apache::Test
-            AppConfig
-            App::Info
-            XXAuthen::PAM
-            Authen::SASL
-            XXBerkeleyDB
-            Bit::Vector
-            Carp::Clan
-            Chart::Bars
-            Class::DBI
-            Compress::Zlib::Perl
-            Config::IniFiles
-            Convert::ASN1
-            Convert::TNEF
-            Convert::UUlib
-            CPAN
-            Crypt::CBC
-            Crypt::DES
-            Crypt::SSLeay
-            Data::Dumper
-            Date::Calc
-            DateTime
-            XXDBD::DB2
-            XXDBD::ODBC
-            XXDBD::SQLite
-            XXDBD::Sybase
-            Device::SerialPort
-            Digest::SHA
-            Encode
-            Event
-            Excel::Template
-            Expect
-            ExtUtils::MakeMaker
-            File::Scan
-            File::Spec
-            File::Tail
-            File::Temp
-            GD::Graph
-            GD::Text
-            Getopt::Long
-            XXHTML::Mason  XX_wants_to_install:mod_perl_1
-            Image::Size
-            IMAP::Admin
-            Parse::RecDescent
-            Inline
-            IO
-            Spiffy
-            IO::All
-            IO::Socket::SSL
-            IO::String
-            IO::Stringy
-            XML::SAX2Perl
-            Mail::Audit
-            XXMail::ClamAV
-            Mail::Sendmail
-            Math::Pari
-            MD5
-            MIME::Lite
-            MP3::Info
-            Net::Daemon
-            Net::FTP::Common
-            Net::Ping
-            Net::Server
-            Net::SNMP
-
-            XX_install_these_four_modules_in_order_before_Net::SSH::Perl
-            XX_Net::SSH::Perl_requires_Crypt_DH
-            XX_which_is_S_L_O_W_without_Math::BigInt::GMP
-            Math::BigInt
-            Math::BigRat
-            bignum
-            Math::BigInt::GMP
-            XXNet::SSH::Perl
-            XX_bah_the_whole_thing_is_broken___
-
-            Net::Telnet
-            OLE::Storage_Lite
-            Params::Validate
-            XXImage::Magick
-            RPC::PlServer
-            Pod::Parser
-            POE
-            XXSNMP
-            SOAP::Lite
-            Spreadsheet::ParseExcel
-            Spreadsheet::WriteExcel
-            Spreadsheet::WriteExcelXML
+            Compress::Raw::Zlib
+            Compress::Raw::Bzip2
             Storable
-            Template
-            Term::ReadKey
-            Term::ReadLine::Perl
-            Text::Iconv
-            Date::Parse
-            Time::Timezone
-            Unicode::String
-            Unix::Syslog
-            XXVerilog::Parser
-            WWW::Mechanize
-            XML::DOM
-            XML::Generator
-            XML::LibXML
+            base
+            List::MoreUtils
+            Params::Util
+            Task::Weaken
+            Sub::Install
+            Data::OptList
+            Sub::Exporter
+            Test::Tester
+            Test::NoWarnings
+            Attribute::Handlers
+            Class::Accessor
+            Algorithm::C3
+            Class::C3
+            Sub::Name
+            MRO::Compat
+            Time::HiRes
+            Params::Validate
+            Try::Tiny
+            Scope::Guard
+            Package::Stash
+            version
+            Tree::DAG_Node
+            Test::Warn
+            Devel::GlobalDestruction
+            Class::MOP
+            Moose
+            Class::Data::Inheritable
+            Test::Deep
+            Carp::Clan
+            Module::Pluggable
+            Variable::Magic
+            B::Hooks::EndOfScope
+            Sub::Identify
+            namespace::clean
+            Time::Local
+            DBI
+            Text::Balanced
+            Class::Inspector
+            Test::Pod
+            Encode
+            Path::Class
+            Digest::SHA1
+            FCGI
+            CGI
+            MooseX::Types
             XML::NamespaceSupport
             XML::SAX
+            Class::Singleton
+            Clone
+            DateTime::TimeZone
+            DateTime::Locale
+            YAML
+            DateTime
+            namespace::autoclean
+            IO::String
+            Algorithm::Diff
+            File::Slurp
+            Devel::StackTrace
+
+            XX-Modules-Which-Should-Not-Fail
+            IO
+            List::MoreUtils
+            Test::Harness
+            ExtUtils::MakeMaker
+            File::Path
+            XML::Parser
+            Test::Simple
+            HTML::Tree
+            Storable
+            Net::IP
+            DB_File
+            XML::LibXML
+            Time::HiRes
+            Exporter
+            Pod::Escapes
+            ExtUtils::ParseXS
+            Module::Build
+            Pod::Parser
+            Data::Dumper
+            ExtUtils::Install
+            IO::Tty
+            XML::SAX
+            Class::ErrorHandler
+            URI
+            HTML::Template
+            Compress::Raw::Zlib
+            Net::DNS
+            Test::Pod::Coverage
+            XSLoader
+            version
+            URI::Fetch
+            Pod::Simple
+            constant
+            Test
+            File::Temp
+            XXTemplate::Toolkit
+            Cache::Cache
+            Feed::Find
+            HTML::Tagset
+            ExtUtils::PkgConfig
+            Devel::GlobalDestruction
+            PadWalker
+            Sub::Name
+            Encode
+            Test::Base
+            Class::DBI::Plugin::Type
+            Sub::Identify
+            Sub::Uplevel
+            Params::Validate
+            POE
+            Class::Singleton
+            Proc::ProcessTable
+            Compress::Raw::Bzip2
+            Class::MOP
+            HTTP::Server::Simple
+            Sub::Exporter
+            Fuse
+            File::HomeDir
+            Bot::BasicBot
+            XXURI::Find::Simple
+            base
+            XXGD
+            WWW::Mechanize
+            Test::Most
+            Sys::Syslog
+            File::Slurp
+            Tree::DAG_Node
+            FCGI
+            Params::Util
+            Devel::Peek
+            DateTime::Format::Mail
+            Spiffy
+            HTML::TableExtract
+            DBD::SQLite
+            Class::Accessor::Chained
+            DBIx::ContextualFetch
+            Test::Tester
+            Variable::Magic
+            AppConfig
+            Class::Accessor
+            Want
             XML::Simple
-            XML::Writer
-        );
-        # push @modules, "Apache::Request" if $apache !~ /apache/;
-        push @modules, "Crypt::SSLeay" if -e "$Sw/bin/openssl";
-        push @modules, "DBD::Oracle",
-                       "DBIx::Class::Schema::Loader::DBI::Oracle",
-            if exists $ENV{ORACLE_HOME} && -d $ENV{ORACLE_HOME};
-        # push @modules, "MQSeries"    if $UBS;
-        push @modules, "H/HB/HBIERSMA/MQSeries-1.28-b.tar.gz" if $UBS;
-        push @modules, "SVN::Simple::Edit", "SVN::Mirror", "FreezeThaw", "SVK",
-                       "Exception::Class", "SVN::Web"
-            if -e "$Sw/bin/svn";
+            IO::All
+            Number::Format
+            Term::ReadKey
+            DBI
+            Test::Exception
+          );
 
-        for (qw( XX/mnt/wesley/pjcj/g/perl/svk/dc
-                 XX/home/pjcj/g/perl/dc
-                 XX/bcy/pidjjq/dc
-                 /home/pjcj/g/work/Devel-Cover
-            ))
+        my $cpanm = "$Sw/bin/cpanm";
+        dsys((-e $cpanm ? $cpanm : "wget -O - http://cpanmin.us | $Perl -") .
+             " --self-upgrade\n");
+        for my $mod (@modules)
         {
-            push @modules, $_ if -e;
-        }
-
-        my $config =
-        {
-
-            LWP                    => { test => sub {} },
-            "Apache::Compress"     => { test => sub {} },
-            "Apache::Filter"       => { test => sub {} },
-            "Apache::Request"      => { test => sub {} },
-            "Apache::TEST"         => { test => sub {} },
-            "Data::Dump::Streamer" =>
-                { config => sub { dsys "$Perl Makefile.PL DDS" } },
-            "Crypt::SSLeay"        =>
-            {
-                config => sub
-                {
-                    # dsys qq($Perl -pi -e 's|(my \\\@POSSIBLE_SSL_DIRS = ).*|).
-                         # qq(\$1"$Sw";|' Makefile.PL);
-                    dsys "$Perl Makefile.PL --lib=$Sw/include"
-                }
-            },
-            "SVN::Web"             =>
-                { config => sub { dsys "yes n | $Perl Makefile.PL" } },
-            $UBS ?
-            (
-            "DBD::Oracle"          =>
-                { config => sub { dsys "$Perl Makefile.PL -m $ENV{ORACLE_HOME}".
-                                       "/rdbms/lib/ins_rdbms.mk" } },
-            ) : ()
-        };
-
-        my $cpandir = "http://cpan.wanadoo.nl/";
-        for my $d (qw(
-                       /app/home/t136103/g/build/src/cpan
-                       /home/pidjjq/g/src/cpan
-                       /usr/local/pkg/cpan
-                       /home/pjcj/g/download/cpan ))
-        {
-            $cpandir = "file://$d/" if -d $d;
-        }
-        my $tar = $UBS ? "/app/home/t136103/g/sw/bin/gnutar" : "/bin/tar";
-        my $f = "$Sw/.cpan";
-        -d $f or mkdir $f, 0750 or die "Can't mkdir $f: $!";
-        $f .= "/CPAN";
-        -d $f or mkdir $f, 0750 or die "Can't mkdir $f: $!";
-        $f .= "/MyConfig.pm";
-        open my $fh, ">", $f         or die "Can't open $f: $!";
-        print $fh <<EOF;
-\$CPAN::Config = {
-  'build_cache' => q[100000],
-  'build_dir' => q[$Sw/.cpan/build],
-  'cache_metadata' => q[1],
-  'cpan_home' => q[$Sw/.cpan],
-  'dontload_hash' => {  },
-  'ftp' => q[/usr/bin/ftp],
-  'ftp_proxy' => q[],
-  'getcwd' => q[cwd],
-  'gpg' => q[/usr/bin/gpg],
-  'gzip' => q[/bin/gzip],
-  'histfile' => q[$Sw/.cpan/histfile],
-  'histsize' => q[100],
-  'http_proxy' => q[],
-  'inactivity_timeout' => q[0],
-  'index_expire' => q[1],
-  'inhibit_startup_message' => q[0],
-  'keep_source_where' => q[$Sw/.cpan_sources],
-  'lynx' => q[/usr/bin/lynx],
-  'make' => q[/usr/bin/make],
-  'make_arg' => q[],
-  'make_install_arg' => q[],
-  'makepl_arg' => q[],
-  'ncftp' => q[],
-  'ncftpget' => q[],
-  'no_proxy' => q[],
-  'pager' => q[less],
-  'prerequisites_policy' => q[follow],
-  'scan_cache' => q[atstart],
-  'shell' => q[/bin/zsh],
-  'tar' => q[$tar],
-  'term_is_latin' => q[1],
-  'unzip' => q[/usr/bin/unzip],
-  'urllist' => [q[$cpandir]],
-  'wget' => q[/usr/bin/wget],
-  'auto_commit' => q[1],
-  'mbuildpl_arg' => q[],
-  'mbuild_arg' => q[],
-  'mbuild_install_build_command' => q[./Build],
-  'mbuild_install_arg' => q[],
-};
-print STDERR "Reading MyConfig!\\n";
-1;
-EOF
-        close $fh or die "Can't close $f: $!";
-
-        $ENV{APXS} = "$Sw/bin/apxs";
-
-        eval "use CPAN";
-
-        # dsys "echo upgrade | $Sw/bin/cpan";
-        CPAN::Shell->upgrade("/./");
-        # my $inst = sub { dsys "$Sw/bin/cpan install @_" };
-        my $inst = sub { CPAN::Shell->install(@_) or
-                         CPAN::Shell->force("install", @_) };
-
-        for my $m (@modules)
-        {
-            if ($m =~ /^\//)
-            {
-                print "Installing $m\n";
-                my $c =
-                {
-                    %{$config->{$m} || {}},
-                    unpack => sub {},
-                    dir    => sub { $m },
-                    test   => sub {},
-                };
-                build $m, $m, $c;
-                print "installed $m via Makefle.PL\n";
-            }
-            else
-            {
-                next if $m =~ /^XX/;  # don't want these right now
-                print "Installing $m\n";
-                # for my $mod (CPAN::Shell->expand("Module", "/./")) { print $mod->id, "\n" }
-                if (my $mod = CPAN::Shell->expandany($m))
-                {
-                    # my $mod = CPAN::Shell->expand("Module", "/$m/") or die "Can't expand [$m]";
-                    print $mod->as_string;
-                    next if $mod->uptodate;
-                    # printf "Module %s is installed as %s and will be updated to %s from CPAN\n",
-                           # $mod->id, $mod->inst_version || "-", $mod->cpan_version;
-
-                    if ($config->{$m})
-                    {
-                        print "Installing $m version ", $mod->cpan_version, "\n";
-                        my $b = $mod->cpan_file;
-                        $b =~ s|.*/||;
-                        $b =~ s|\.tar.gz||;
-                        $b = "$Sw/.cpan/build/$b";
-                        sys "rm -rf $b-*";
-                        $mod->get;
-                        ($b) = glob "$b-*" unless -d $b;
-                        die "Can't find build dir $b" unless -d $b;
-                        print "Building in $b\n";
-                        my $c =
-                        {
-                            %{$config->{$m}},
-                            unpack  => sub {},
-                            dir     => sub { $b },
-                            $Blead ?
-                            (
-                                make    => sub { sys "make" },
-                                install => sub { sys "make install" },
-                            ) : ()
-                        };
-                        build $m, $b, $c;
-                    }
-                    else
-                    {
-                        $inst->($m);
-                    }
-                }
-                else
-                {
-                    warn "Can't expand [$m]";
-                    $inst->($m);
-                }
-                print "installed $m via CPAN\n";
-            }
+            next if $mod =~ /^XX/;
+            dsys "$cpanm -v --force --mirror http://cpan.wanadoo.nl/ $mod\n"
+                if sys "$cpanm $mod\n";
         }
     }
 
+
     if (building "coverage")
     {
+        my $dir = "$Sw/.cpanm/work";
+
+        my $mods = "$Sw/modules";
+        mkdir $mods, 0750 unless -d $mods;
+        for my $d (grep -d, <$dir/*/*>)
+        {
+            print "Linking $d\n";
+            my ($e) = $d =~ m|/([^/]+)$| or die "Can't find module name";
+            my $new = "$mods/$e";
+            unlink $new if -e $new;
+            symlink $d => $new;
+        }
+
         my $c;
-        $c .= "/usr/local/pkg/base/sw/bin/perl $Sw/bin/" if $Blead;
-        $c .= "cpancover -directory $Sw/.cpan/build -outputdir $Sw/cpancover ";
+        $c .= "perl5.12.2 $Sw/bin/" if $Blead;
+        $c .= "cpancover -directory $mods -outputdir $Sw/cpancover ";
         $c .= "-outputfile index.html -report ";
         $c .= $Blead ? "html" : "html_basic";
         # $c .= " -force";
         $c .= " -redo_html";
-        dsys $c;
+        dsys "$c\n";
     }
+
 
     if (building "postgres" || building "dry")
     {
@@ -1019,15 +623,15 @@ Now run the following commands as root:
 
 rm -rf $pg
 mkdir -p $data
-chown -R postgres.postgres $pg
-su - postgres
+# chown -R postgres.postgres $pg
+# su - postgres
 $Sw/bin/initdb -D $data
 $Sw/bin/pg_ctl start -l $log -D $data
 sleep 10
-$Sw/bin/createuser -P -e -s factr
-$Sw/bin/createdb -e -O factr factr
+$Sw/bin/createuser -P -e -s tsg
+$Sw/bin/createdb -e -O tsg tsg
 
-# $Sw/bin/psql factr
+# $Sw/bin/psql tsg
 
 and stop the db with:
 
@@ -1044,6 +648,7 @@ $Perl                   = "$Sw/bin/perl";
 $ENV{PATH}              = "$Sw/bin:$ENV{PATH}";
 $ENV{LD_LIBRARY_PATH}   = "$Sw/lib:$ENV{LD_LIBRARY_PATH}";
 $ENV{AUTOMATED_TESTING} = 1;
+$ENV{TEST_JOBS}         = 7;
 
 print "sw directory    is $Sw\n";
 print "perl            is $Perl\n";
@@ -1057,18 +662,4 @@ main
 
 __END__
 
-# cd /opt/bcy
-# chown -R t136103:ubsadmin sw
-$ cd $root/install
-$ perl ./buildperl ~/g/src perl-5.10.0 /opt/bcy
-# rm -rf sw/.cpan* sw/.subversion sw/bin/perl5.10.0
-# chown -R ubcy1001:gbcy1001 sw
-# chmod -R 755 sw
-$ cd /app/sw/wss/current
-$ mv base/sw sw.old
-$ cp -a /opt/bcy/sw base
-
-
-
-$ perl ./buildperl ~/g/perl/src blead /usr/local/pkg/factr perl modules apache mod_perl zlib openssl subversion
-$ perl ./buildperl ~/g/perl/src perl-5.8.8 /usr/local/pkg/factr-5.8.8 perl modules apache zlib openssl subversion
+$ perl5.12.2 ./buildperl ~/g/perl/src perl-5.12.2 /usr/local/pkg/tsg perl modules postgres
