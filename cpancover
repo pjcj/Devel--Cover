@@ -20,6 +20,7 @@ use Cwd ();
 use Getopt::Long;
 use Pod::Usage;
 use Template 2.00;
+use Parallel::Iterator "iterate_as_array";
 
 # use Carp; $SIG{__DIE__} = \&Carp::confess;
 
@@ -108,11 +109,14 @@ sub get_cover
     my $db = "$d/cover_db";
     print "Already analysed\n" if -d $db;
 
+    my $out = "cover.out";
+    unlink $out;
+
     my $test = !-e "$db/runs" || $Options->{force} ? " -test" : "";
     if ($test)
     {
         print "Testing $module\n";
-        sys "$^X Makefile.PL" unless -e "Makefile";
+        sys "$^X Makefile.PL >> $out 2>&1" unless -e "Makefile";
     }
 
     my $od = "$Options->{outputdir}/$module";
@@ -126,7 +130,8 @@ sub get_cover
             local $SIG{ALRM} = sub { die "alarm\n" };
             alarm $timeout;
             sys "cover$test -report $Options->{report} " .
-                "-outputdir $od -outputfile $of";
+                "-outputdir $od -outputfile $of " .
+                ">> $out 2>&1";
             alarm 0;
         };
         if ($@)
@@ -147,6 +152,8 @@ sub get_cover
         print S "$mod $results->{$mod}\n";
     }
     close S or die "Can't close $f: $!\n";
+
+    sys "cat $out" if -e $out;
 }
 
 sub write_stylesheet
@@ -330,7 +337,15 @@ sub main
 
     if ($Options->{collect})
     {
-        get_cover($_) for @{$Options->{module}};
+        my $workers = $ENV{CPANCOVER_WORKERS} || 0;
+        my @res = iterate_as_array
+        (
+            { workers => $workers },
+            sub { get_cover $_[1] },
+            $Options->{module}
+        );
+        use Data::Dumper;  print Dumper \@res;
+        # get_cover($_) for @{$Options->{module}};
     }
 
     write_html;
