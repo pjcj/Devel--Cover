@@ -17,7 +17,7 @@ our $VERSION = "0.71";
 use Devel::Cover::DB 0.71;
 
 use Config;
-use Cwd "abs_path";
+use File::Spec;
 use Data::Dumper;
 use File::Find ();
 use File::Path;
@@ -180,12 +180,12 @@ sub main
     pod2usage(-exitval => 0, -verbose => 1)  if $Options->{help};
     pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
 
-    my $dbname = Cwd::abs_path(@ARGV ? shift @ARGV : "cover_db");
+    my $dbname = File::Spec->rel2abs(@ARGV ? shift @ARGV : "cover_db");
     die "Can't open database $dbname\n"
         if !$Options->{delete} && !$Options->{test} && !-d $dbname;
 
     $Options->{outputdir} = $dbname unless exists $Options->{outputdir};
-    my $od = Cwd::abs_path($Options->{outputdir});
+    my $od = File::Spec->rel2abs($Options->{outputdir});
     $Options->{outputdir} = $od if defined $od;
     mkpath($Options->{outputdir}) unless -d $Options->{outputdir};
 
