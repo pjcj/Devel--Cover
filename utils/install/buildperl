@@ -379,7 +379,7 @@ sub main ()
             Parallel::Iterator
             Test::Pod::Coverage
 
-            ../../Devel--Cover
+            ../..
 
             Gedcom
             Shell::Source
