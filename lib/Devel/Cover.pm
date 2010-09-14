@@ -513,10 +513,10 @@ sub check_file
 {
     my ($cv) = @_;
 
-    return unless class($cv) eq "CV";
+    return unless ref($cv) eq "B::CV";
 
     my $op = $cv->START;
-    return unless $op->can("file") && class($op) ne "NULL" && is_state($op);
+    return unless ref($op) eq "B::COP";
 
     my $file = $op->file;
     my $use  = use_file($file);
