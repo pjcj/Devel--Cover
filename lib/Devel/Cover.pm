@@ -320,7 +320,7 @@ sub import
     {
         eval "use blib";
         for (@INC) { $_ = $1 if /(.*)/ }  # Die tainting.
-        push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
+        push @Ignore, "^t/", '\\.t$', '^test\\.pl$' unless $Self_cover;
     }
 
     my $ci = $^O eq "MSWin32";
