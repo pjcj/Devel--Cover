@@ -711,6 +711,8 @@ sub cover
 
     for my $run (@runs)
     {
+        last unless $st;
+
         my $r = $self->{runs}{$run};
         @{$self->{collected}}{@{$r->{collected}}} = ();
         $st->add_criteria(@{$r->{collected}});
