@@ -94,12 +94,15 @@ for my $d (qw( t t/e2e ))
     }
 }
 
+my @tests;
 opendir D, "tests" or die "Cannot opendir tests: $!";
 for my $t (readdir D)
 {
     next unless -f "tests/$t";
     next if $t =~ /\.(pm|pl|org|bak|uncoverable)$/;
     next if $t =~ /~$/;
+
+    push @tests, $t;
 
     if ($t =~ /\.t/)
     {
@@ -133,6 +136,9 @@ EOT
     close T or die "Cannot close t/e2e/a$t.t: $!";
 }
 closedir D or die "Cannot closedir tests: $!";
+
+s/^/tests\// for @tests;
+push @tests, grep !/e2e/, <t/*/*.t>;
 
 print "done\n\n";
 
@@ -428,6 +434,9 @@ sub MY::libscan
 
 sub MY::postamble
 {
+    my %tests;
+    @tests{@tests} = map { (my $t = $_) =~ s/\W/_/g; "cover_db_$t" } @tests;
+
     qq[
 SET_VERSION = \$(PERL) -pi \\
     -e 's/(^\\s*(?:our\\s+)\\\$\$VERSION = ")\\d+\\.\\d+(";)/\$\${1}$Version\$\$2/;' \\
@@ -511,12 +520,17 @@ all_gold :
 \t rm -rf test_output
 \t exec \$(PERL) utils/all_versions make gold
 
-self_cover : pure_all
+_delete_db : pure_all
 \t rm -rf cover_db
-\t -DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -delete t/e2e/cover_db_*
-\t -DEVEL_COVER_SELF=1 make test
-\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover t/e2e/cover_db_*
+
+_self_cover : @{[sort values %tests]}
+\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -write cover_db @{[sort values %tests]}
+\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover
+\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -report text > /dev/null
 \t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -report html_basic
+
+self_cover : _self_cover
+\t \$(PERL) -Mblib cover -report html_basic
 
 mani :
 \t -rm MANIFEST
@@ -528,5 +542,11 @@ ok :
 
 nok :
 \t \@$Perlbug -nokay || echo "Please send your report manually to $Author"
-    ]
+    ] . "\n" .
+    join "\n",
+         map "$tests{$_} : _delete_db\n" .
+             "\t \@echo Running $tests{$_}\n" .
+             "\t \@rm -rf $tests{$_}\n" .
+             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover=-db,$tests{$_},-silent,1,-coverage,all,-ignore,tests/,-coverage,pod-also_private-xx $_ > /dev/null 2>&1\n",
+         sort keys %tests;
 }
