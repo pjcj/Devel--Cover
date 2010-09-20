@@ -1,0 +1,145 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/Module2.pm                             25.0    n/a    n/a   25.0   25.0
+tests/module2                                93.3   50.0    n/a  100.0   90.9
+Total                                        69.6   50.0    n/a   66.7   67.6
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/Module2.pm
+
+line  err   stmt   bran   cond    sub   code
+1                                       # Copyright 2002-2010, Paul Johnson (pjcj@cpan.org)
+2                                       
+3                                       # This software is free.  It is licensed under the same terms as Perl itself.
+4                                       
+5                                       # The latest version of this software should be available from my homepage:
+6                                       # http://www.pjcj.net
+7                                       
+8                                       package NotModule2;
+9                                       
+10                                      my $y = 7;
+11                                      $y++;
+12                                      
+13                                      sub _aa
+14                                      {
+15    ***      0                    0       $y++;
+16    ***      0                            die;
+17    ***      0                            die;
+18                                      }
+19                                      
+20                                      sub _xx
+21                                      {
+22    ***      0                    0       $y++;
+23    ***      0                            die;
+24                                      }
+25                                      
+26                                      sub yy
+27                                      {
+28    ***      0                    0       $y++;
+29                                      }
+30                                      
+31                                      sub zz
+32                                      {
+33            11                   11       my $x = shift;
+34            11                            $x++;
+35                                      }
+36                                      
+37                                      1
+38                                      
+39                                      __END__
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location           
+---------- ----- -------------------
+zz            11 tests/Module2.pm:33
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count Location           
+---------- ----- -------------------
+_aa            0 tests/Module2.pm:15
+_xx            0 tests/Module2.pm:22
+yy             0 tests/Module2.pm:28
+
+
+tests/module2
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2010, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      # __COVER__ changes s/56.3/56.2/
+11                                      
+12             1                    1   use strict;
+               1                        
+13             1                    1   use warnings;
+               1                        
+14                                      
+15             1                    1   use lib "tests";
+               1                        
+16                                      
+17             1                    1   use Module2;
+               1                        
+18                                      
+19             1                        my @x;
+20                                      
+21                                      sub xx
+22                                      {
+23            11                   11     $x[shift]++;
+24            11                          NotModule2::zz(0);
+25                                      }
+26                                      
+27             1                        for (0 .. 10)
+28                                      {
+29    ***     11     50                   if (time)
+30                                        {
+31            11                            xx(0);
+32                                        }
+33                                        else
+34                                        {
+35    ***      0                            $x[1]++;
+36                                        }
+37                                      }
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+29    ***     50     11      0   if (time) { }
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location        
+---------- ----- ----------------
+BEGIN          1 tests/module2:12
+BEGIN          1 tests/module2:13
+BEGIN          1 tests/module2:15
+BEGIN          1 tests/module2:17
+xx            11 tests/module2:23
+
+

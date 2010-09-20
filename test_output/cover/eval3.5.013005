@@ -1,0 +1,80 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/eval3                                  88.9   50.0   50.0  100.0   79.3
+Total                                        88.9   50.0   50.0  100.0   79.3
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/eval3
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2004-2010, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                    1   use lib "tests";
+               1                        
+11                                      
+12    ***      1            50          $x = shift || 0;
+13             1                        print "1 - $x\n";
+14    ***      1     50                 if ($x) { eval 'sub s1 { print "s1\n" }'; s1() }
+      ***      0                        
+      ***      0                        
+15             1                        print "3 - $x\n";
+16    ***      1     50             1   if ($x < 4) { eval 'sub s2 { print "s2\n" }'; s2() }
+               1                        
+               1                        
+               1                        
+17             1                        print "4 - $x\n";
+18    ***      1     50             1   if ($x < 6) { eval 'sub s3 { print "s3\n" }'; s3() }
+               1                        
+               1                        
+               1                        
+19             1                        print "5 - $x\n";
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+14    ***     50      0      1   if ($x)
+16    ***     50      1      0   if ($x < 4)
+18    ***     50      1      0   if ($x < 6)
+
+
+Conditions
+----------
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+12    ***     50      0      1   shift @ARGV || 0
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location      
+---------- ----- --------------
+BEGIN          1 tests/eval3:10
+s2             1 tests/eval3:16
+s3             1 tests/eval3:18
+
+
