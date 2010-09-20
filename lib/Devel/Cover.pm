@@ -320,7 +320,7 @@ sub import
     {
         eval "use blib";
         for (@INC) { $_ = $1 if /(.*)/ }  # Die tainting.
-        push @Ignore, "^t/", '\\.t$', '^test\\.pl$' unless $Self_cover;
+        push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
     }
 
     my $ci = $^O eq "MSWin32";
@@ -1093,6 +1093,7 @@ sub get_cover
 
     # print STDERR "get_cover: <$Sub_name>\n";
     return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK.
+    return unless length  $Sub_name;  # Only happens with Self_cover, AFAIK.
 
     get_location($start) if $start;
     # print STDERR "[[$File:$Line]]\n";
