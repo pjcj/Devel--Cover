@@ -436,6 +436,8 @@ sub MY::postamble
 {
     my %tests;
     @tests{@tests} = map { (my $t = $_) =~ s/\W/_/g; "cover_db_$t" } @tests;
+    my @reports =
+      qw(compilation html_basic html_minimal html html_subtle sort text2 text);
 
     qq[
 SET_VERSION = \$(PERL) -pi \\
@@ -523,13 +525,10 @@ all_gold :
 _delete_db : pure_all
 \t rm -rf cover_db
 
-_self_cover : @{[sort values %tests]}
-\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -write cover_db @{[sort values %tests]}
-\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover
-\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -report text > /dev/null
-\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -report html_basic
+_self_cover_tests : @{[sort values %tests]}
+\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -write cover_db @{[sort values %tests]} > /dev/null 2>&1
 
-self_cover : _self_cover
+self_cover : _self_cover_reports
 \t \$(PERL) -Mblib cover -report html_basic
 
 mani :
@@ -544,9 +543,17 @@ nok :
 \t \@$Perlbug -nokay || echo "Please send your report manually to $Author"
     ] . "\n" .
     join "\n",
-         map "$tests{$_} : _delete_db\n" .
+
+         map("$tests{$_} : _delete_db\n" .
              "\t \@echo Running $tests{$_}\n" .
              "\t \@rm -rf $tests{$_}\n" .
              "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover=-db,$tests{$_},-silent,1,-coverage,all,-ignore,tests/,-coverage,pod-also_private-xx $_ > /dev/null 2>&1\n",
-         sort keys %tests;
+             sort keys %tests),
+
+         "_self_cover_reports : @{[map qq(report_$_), @reports]}\n",
+
+         map("report_$_ : _self_cover_tests\n" .
+             "\t \@echo Generating $_ report\n" .
+             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -report $_ > /dev/null 2>&1\n",
+             @reports)
 }
