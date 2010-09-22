@@ -1,0 +1,73 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/Module_import.pm                      100.0    n/a    n/a  100.0  100.0
+tests/module_import                         100.0    n/a    n/a  100.0  100.0
+Total                                       100.0    n/a    n/a  100.0  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/Module_import.pm
+
+line  err   stmt   bran   cond    sub   code
+1                                       # Copyright 2002-2010, Paul Johnson (pjcj@cpan.org)
+2                                       
+3                                       # This software is free.  It is licensed under the same terms as Perl itself.
+4                                       
+5                                       # The latest version of this software should be available from my homepage:
+6                                       # http://www.pjcj.net
+7                                       
+8                                       package Module_import;
+9                                       
+10                                      sub import
+11                                      {
+12             1                    1       print "Module_import\n";
+13                                      }
+14                                      
+15                                      1
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location                 
+---------- ----- -------------------------
+import         1 tests/Module_import.pm:12
+
+
+tests/module_import
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2010, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                    1   BEGIN { push @INC, "tests" }
+11                                      
+12             1                    1   use Module_import;
+               1                        
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location              
+---------- ----- ----------------------
+BEGIN          1 tests/module_import:10
+BEGIN          1 tests/module_import:12
+
+
