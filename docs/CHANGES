@@ -1,5 +1,14 @@
 Devel::Cover.pm history
 
+Release 0.72 - 27th September 2010
+ - Teach cpancover how to work in parallel.
+ - Improve speed of check_file() (Goro Fuji).
+ - Fix errors with non-existent directories on Cygwin (Goro Fuji).
+ - Improve self coverage with new test.
+ - Fix tests to work with 5.13.5.
+ - New dependency on Test::Warn.
+ - New dependency on Parallel::Iterator for cpancover.
+
 Release 0.71 - 10th September 2010
  - Improve running of Devel::Cover on itself.
  - Fix occasional parallel test failures.
