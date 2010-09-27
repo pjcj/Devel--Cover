@@ -547,13 +547,13 @@ nok :
          map("$tests{$_} : _delete_db\n" .
              "\t \@echo Running $tests{$_}\n" .
              "\t \@rm -rf $tests{$_}\n" .
-             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover=-db,$tests{$_},-silent,1,-coverage,all,-ignore,tests/,-coverage,pod-also_private-xx $_ > /dev/null 2>&1\n",
+             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover=-db,$tests{$_},-silent,1,-coverage,all,-ignore,tests/,-coverage,pod-also_private-xx $_\n",
              sort keys %tests),
 
          "_self_cover_reports : @{[map qq(report_$_), @reports]}\n",
 
          map("report_$_ : _self_cover_tests\n" .
              "\t \@echo Generating $_ report\n" .
-             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -report $_ > /dev/null 2>&1\n",
+             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -report $_\n",
              @reports)
 }
