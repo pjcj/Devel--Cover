@@ -386,6 +386,7 @@ WriteMakefile
                      Storable      => 0,
                      "Digest::MD5" => 0,
                      "Test::More"  => 0,
+                     "Test::Warn"  => 0,
                  },
     dist      => { COMPRESS => "gzip --best --force" },
     test      => { TESTS    => "t/*/*.t"             },
