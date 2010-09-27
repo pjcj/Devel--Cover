@@ -24,3 +24,4 @@ lib/Devel/Cover/Inc.pm$
 ^bugs/
 .git/
 .tar.bz2$
+^MYMETA.yml$
