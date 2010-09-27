@@ -107,6 +107,10 @@ REQUIREMENTS
 
         in order to run the tests
 
+    *   Test::Warn
+
+        in order to run some of the tests
+
     *   Test::Differences
 
         if the tests fail and you would like nice output telling you why.

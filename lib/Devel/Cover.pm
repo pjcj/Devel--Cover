@@ -1322,6 +1322,10 @@ if you want Pod coverage.
 
 in order to run the tests
 
+=item * L<Test::Warn>
+
+in order to run some of the tests
+
 =item * L<Test::Differences>
 
 if the tests fail and you would like nice output telling you why.
