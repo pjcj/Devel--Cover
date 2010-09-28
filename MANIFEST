@@ -99,7 +99,6 @@ tests/t1
 tests/t2
 tests/trivial
 tests/uncoverable
-typemap
 utils/all_versions
 utils/create_gold
 utils/Devel/Cover/BuildUtils.pm
@@ -108,6 +107,7 @@ utils/install/System.pm
 utils/makeh
 utils/scanuncov
 utils/session.vim
+utils/typemap
 test_output/cover/alias.5.006001
 test_output/cover/alias1.5.006001
 test_output/cover/alias1.5.008

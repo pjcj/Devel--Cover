@@ -1,15 +1,44 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         Devel-Cover
-version:      0.58
-version_from: 
-installdirs:  site
+--- #YAML:1.0
+name:               Devel-Cover
+version:            0.72
+abstract:           Code coverage metrics for Perl
+author:
+    - Paul Johnson (pjcj@cpan.org)
+license:            perl
+distribution_type:  module
+configure_requires:
+    ExtUtils::MakeMaker:  0
+build_requires:
+    ExtUtils::MakeMaker:  0
+    Test::More:           0
+    Test::Warn:           0
 requires:
-    Digest::MD5:                   0
-    Storable:                      0
+    Digest::MD5:  0
+    perl:         5.006001
+    Storable:     0
+resources:
+    bugtracker:   http://rt.cpan.org/NoAuth/Bugs.html?Dist=Devel-Cover
+    homepage:     http://www.pjcj.net/perl.html
+    license:      http://dev.perl.org/licenses
+    MailingList:  http://lists.perl.org/list/perl-qa.html
+    repository:   http://github.com/pjcj/Devel--Cover
 no_index:
     directory:
+        - t
+        - inc
         - tests
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.17
+        - utils
+generated_by:       ExtUtils::MakeMaker version 6.56
+meta-spec:
+    url:      http://module-build.sourceforge.net/META-spec-v1.4.html
+    version:  1.4
+dynamic_config:     1
+recommends:
+    Parallel::Iterator:   0
+    perl:                 5.008002
+    Perl::Tidy:           20060719
+    Pod::Coverage:        0.06
+    Pod::Coverage::CountParents:  0
+    PPI::HTML:            1.07
+    Template:             2
+    Test::Differences:    0

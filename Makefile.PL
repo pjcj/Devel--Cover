@@ -204,6 +204,26 @@ else
     print "not found\n\n$e\n";
 }
 
+print "checking for Test::Warn                     ........ ";
+
+$e = <<EOM;
+
+Test::Warn is required to run some of the Devel::Cover tests.  You can
+download Test::Warn from CPAN.
+
+EOM
+
+eval "use Test::Warn";
+if (my $m = $INC{"Test/Warn.pm"})
+{
+    my $v = eval { no warnings; $Test::Warn::VERSION };
+    print "$v     $m\n";
+}
+else
+{
+    print "not found\n\n$e\n";
+}
+
 print "checking for Template          version 2.00 ........ ";
 
 $e = <<EOM;
@@ -376,28 +396,73 @@ $ExtUtils::MakeMaker::Verbose = 0;
 
 WriteMakefile
 (
-    NAME      => "Devel::Cover",
-    VERSION   => $Version,
-    AUTHOR    => 'Paul Johnson (pjcj@cpan.org)',
-    ABSTRACT  => "Code coverage metrics for Perl",
-    DIR       => [],
-    EXE_FILES => [ qw( cover gcov2perl cpancover ) ],
-    PREREQ_PM => {
-                     Storable      => 0,
-                     "Digest::MD5" => 0,
-                     "Test::More"  => 0,
-                     "Test::Warn"  => 0,
-                 },
-    dist      => { COMPRESS => "gzip --best --force" },
-    test      => { TESTS    => "t/*/*.t"             },
-    clean     => { FILES    => join " ",  "t/e2e/*"  },
-    depend    => { distdir  => "@files"              },
-    realclean => $] < 5.008008 ?
-                 {
-                     FILES => "lib/Devel/Cover/Inc.pm",
-                     POSTOP => "\$(RM_RF) cover_db t/e2e"
-                 } :
-                 { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
+    NAME             => "Devel::Cover",
+    VERSION          => $Version,
+    AUTHOR           => 'Paul Johnson (pjcj@cpan.org)',
+    ABSTRACT_FROM    => "lib/Devel/Cover.pm",
+    DIR              => [],
+    EXE_FILES        => [ qw( cover gcov2perl cpancover ) ],
+    LICENSE          => "perl",
+    META_ADD         =>
+    {
+        requires =>
+        {
+            perl                          => 5.006001,
+            Storable                      => 0,
+            "Digest::MD5"                 => 0,
+        },
+        dynamic_config => 1,
+    },
+    META_MERGE       =>
+    {
+        recommends =>
+        {
+            perl                          => 5.008002,
+            Template                      => 2.00,
+            "PPI::HTML"                   => 1.07,
+            "Perl::Tidy"                  => 20060719,
+            "Pod::Coverage"               => 0.06,
+            "Pod::Coverage::CountParents" => 0,
+            "Test::Differences"           => 0,
+            "Parallel::Iterator"          => 0,
+        },
+        build_requires =>
+        {
+            "Test::More"                  => 0,
+            "Test::Warn"                  => 0,
+        },
+        no_index =>
+        {
+            directory => [ "tests", "utils" ],
+        },
+        resources =>
+        {
+          license     => "http://dev.perl.org/licenses",
+          homepage    => "http://www.pjcj.net/perl.html",
+          bugtracker  => "http://rt.cpan.org/NoAuth/Bugs.html?Dist=Devel-Cover",
+          repository  => "http://github.com/pjcj/Devel--Cover",
+          MailingList => "http://lists.perl.org/list/perl-qa.html",
+        },
+    },
+    MIN_PERL_VERSION => "5.6.1",
+    PERL_MALLOC_OK   => 1,
+    PREREQ_PM        => {
+                            Storable      => 0,
+                            "Digest::MD5" => 0,
+                            "Test::More"  => 0,
+                            "Test::Warn"  => 0,
+                        },
+    TYPEMAPS         => [ "utils/typemap" ],
+    clean            => { FILES    => "t/e2e/* cover_db* t/e2e/*cover_db"  },
+    depend           => { distdir  => "@files"                             },
+    dist             => { COMPRESS => "gzip --best --force"                },
+    test             => { TESTS    => "t/*/*.t"                            },
+    realclean        => $] < 5.008008 ?
+                        {
+                            FILES => "lib/Devel/Cover/Inc.pm",
+                            POSTOP => "\$(RM_RF) cover_db t/e2e"
+                        } :
+                        { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
 );
 
 print "\n";
