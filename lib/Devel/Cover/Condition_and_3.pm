@@ -10,7 +10,7 @@ package Devel::Cover::Condition_and_3;
 use strict;
 use warnings;
 
-our $VERSION = "0.72";
+our $VERSION = "0.73";
 
 use base "Devel::Cover::Condition";
 
@@ -46,7 +46,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.72 - 27th September 2010
+Version 0.73 - 2nd October 2010
 
 =head1 LICENCE
 
