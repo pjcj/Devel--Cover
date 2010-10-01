@@ -294,6 +294,11 @@ sub import
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
 
+    my $ci     = $^O eq "MSWin32";
+    @Select_re = map qr/$_/,                           @Select;
+    @Ignore_re = map qr/$_/,                           @Ignore;
+    @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
+
     bootstrap Devel::Cover $VERSION;
 
     if (defined $Dir)
@@ -311,9 +316,9 @@ sub import
 
     unless (-d $DB)
     {
-        mkdir $DB, 0700 or croak "Can't mkdir $DB: $!\n";
+        mkdir $DB, 0700 or die "Can't mkdir $DB: $!";
     }
-    $DB = $1 if Cwd::abs_path($DB) =~ /(.*)/;
+    $DB = $1 if abs_path($DB) =~ /(.*)/;
     Devel::Cover::DB->delete($DB) unless $Merge;
 
     if ($blib)
@@ -323,10 +328,6 @@ sub import
         push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
     }
 
-    my $ci = $^O eq "MSWin32";
-    @Select_re = map qr/$_/,                           @Select;
-    @Ignore_re = map qr/$_/,                           @Ignore;
-    @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
     %Files     = ();  # start gathering file information from scratch
 
     for my $c (Devel::Cover::DB->new->criteria)
@@ -433,22 +434,30 @@ sub normalised_file
     }
     if ($] >= 5.008)
     {
-        if ($^O eq "MSWin32" || $^O eq "cygwin")
+        my $inc;
+        $inc ||= $file =~ $_ for @Inc_re;
+        # warn "inc for [$file] is [$inc] @Inc_re";
+        if ($inc && ($^O eq "MSWin32" || $^O eq "cygwin"))
         {
-            # TODO - Windows seems busted here
+            # Windows' Cwd::_win32_cwd() calls eval which will recurse back
+            # here if we call abs_path, so we just assume it's normalised.
+            # warn "giving up on getting normalised filename from <$file>\n";
         }
         else
         {
             # print STDERR "getting abs_path <$file> ";
-            my $abs;
-            $abs = abs_path($file) unless -l $file;  # leave symbolic links
-            # print STDERR "giving <$file> ";
-            $file = $abs if defined $abs;
+            if (-e $file)  # Windows likes the file to exist
+            {
+                my $abs;
+                $abs = abs_path($file) unless -l $file;  # leave symbolic links
+                # print STDERR "giving <$abs> ";
+                $file = $abs if defined $abs;
+            }
         }
         # print STDERR "finally <$file> <$Dir>\n";
     }
     $file =~ s|\\|/|g if $^O eq "MSWin32";
-    $file =~ s|^$Dir/||;
+    $file =~ s|^$Dir/|| if defined $Dir;
 
     # print STDERR "File: $f => $file\n";
 
@@ -483,12 +492,16 @@ sub use_file
 {
     my ($file) = @_;
 
+    # warn "use_file($file)\n";
+
     # die "bad file" unless length $file;
 
-    $file = $1 if $file =~ /^\(eval \d+\)\[(.*):\d+\]/;
+    $file = $1 if $file =~ /^\(eval \d+\)\[(.+):\d+\]/;
     $file =~ s/ \(autosplit into .*\)$//;
 
     return $Files{$file} if exists $Files{$file};
+    return 0 if $file =~ /\(eval \d+\)/          ||
+                $file =~ /^\.\.[\/\\]\.\.[\/\\]lib[\/\\](?:Storable|POSIX).pm$/;
 
     my $f = normalised_file($file);
 
@@ -502,9 +515,7 @@ sub use_file
     # system "pwd; ls -l '$file'";
     $Files{$file} = -e $file ? 1 : 0;
     warn __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
-        unless $Files{$file} || $Silent || $file =~ /\(eval \d+\)/ ||
-               $file eq "../../lib/Storable.pm" ||
-               $file eq "../../lib/POSIX.pm";
+        unless $Files{$file} || $Silent;
 
     $Files{$file}
 }

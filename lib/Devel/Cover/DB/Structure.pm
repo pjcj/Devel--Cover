@@ -197,6 +197,8 @@ sub digest
     my $self = shift;
     my ($file) = @_;
 
+    # warn "Opening $file for MD5 digest\n";
+
     my $digest;
     if (open my $fh, "<", $file)
     {
@@ -207,7 +209,7 @@ sub digest
     {
         warn "Devel::Cover: Can't open $file for MD5 digest: $!\n"
             unless lc $file eq "-e";
-        # print STDERR Carp::longmess("in " . `pwd`);
+        # require "Cwd"; warn Carp::longmess("in " . Cwd::cwd());
     }
     $digest
 }
