@@ -18,7 +18,13 @@ Update version number and date in Makefile.PL.
   - Then propagate the change.
   $ perl Makefile.PL && make
 
+Generate META.yml
+  $ make distdir
+  $ cp Devel-Cover-X.YZ/META.yml .
+  $ rm -r Devel-Cover-X.YZ
+
 Run basic tests.
+  $ perl Makefile.PL && make
   $ make test
 
 Test against all versions.
