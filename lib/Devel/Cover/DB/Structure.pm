@@ -225,6 +225,8 @@ sub get_count
 sub add_count
 {
     my $self = shift;
+    # warn Carp::longmess("undefined file") unless defined $self->{file};
+    return unless defined $self->{file};  # can happen during self_cover
     my ($criterion) = @_;
     $self->{additional_count}{$criterion}{$self->{file}}++
         if $self->{additional};

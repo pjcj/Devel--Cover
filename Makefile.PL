@@ -608,8 +608,8 @@ ok :
 nok :
 \t \@$Perlbug -nokay || echo "Please send your report manually to $Author"
     ] . "\n" .
-    join "\n",
 
+    join "\n",
          map("$tests{$_} : _delete_db\n" .
              "\t \@echo Running $tests{$_}\n" .
              "\t \@rm -rf $tests{$_}\n" .
@@ -620,6 +620,6 @@ nok :
 
          map("report_$_ : _self_cover_tests\n" .
              "\t \@echo Generating $_ report\n" .
-             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -report $_\n",
+             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -report $_ > /dev/null\n",
              @reports)
 }

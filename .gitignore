@@ -7,7 +7,7 @@ Cover.o
 Makefile
 Makefile.old
 blib/
-cover_db/
+cover_db*/
 t/e2e/
 lib/Devel/Cover/Inc.pm
 pm_to_blib

@@ -553,7 +553,7 @@ sub B::GV::find_cv
 sub sub_info
 {
     my ($cv) = @_;
-    my ($name, $start) = ("", 0);
+    my ($name, $start) = ("--unknown--", 0);
     if (!$cv->GV->isa("B::SPECIAL"))
     {
         return unless $cv->GV->can("SAFENAME");
@@ -837,7 +837,7 @@ sub add_condition_cover
         # if exists $condition_locations{$$op};
 
     my $key = get_key($op);
-    # print STDERR "Condition cover $$op from $File:$Line\n";
+    # warn "Condition cover $$op from $File:$Line\n";
     # print STDERR "left:  [$left]\nright: [$right]\n";
     # use Carp "cluck"; cluck("from here");
 
@@ -1102,7 +1102,7 @@ sub get_cover
 
     ($Sub_name, my $start) = sub_info($cv);
 
-    # print STDERR "get_cover: <$Sub_name>\n";
+    # warn "get_cover: <$Sub_name>\n";
     return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK.
     # return unless length  $Sub_name;  # Only happens with Self_cover, AFAIK.
 
