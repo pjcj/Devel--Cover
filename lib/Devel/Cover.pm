@@ -1295,7 +1295,7 @@ imagine that at least one of them is wrong.
 
 The most appropriate mailing list on which to discuss this module would
 be perl-qa.  Discussion has migrated there from perl-qa-metrics which is
-now defunct.  See L<http://lists.perl.org/showlist.cgi?name=perl-qa>.
+now defunct.  See L<http://lists.perl.org/list/perl-qa.html>.
 
 The Devel::Cover repository can be found at
 L<http://github.com/pjcj/Devel--Cover>.
