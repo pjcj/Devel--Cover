@@ -201,7 +201,7 @@ sub main
         # system "$^X Makefile.PL" unless -e "Makefile";
         delete_db($dbname, @ARGV);
         local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
-            "-MDevel::Cover";
+            "-MDevel::Cover=-db,$dbname";
 
         my $test = test_command();
 
@@ -248,7 +248,7 @@ sub main
         File::Find::find({ wanted => $gp, no_chdir => 1 }, ".");
         if (@gc)
         {
-            my $c = "gcov2perl @gc";
+            my $c = "gcov2perl -db $dbname @gc";
             print STDERR "cover: running $c\n";
             system $c;
         }
