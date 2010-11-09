@@ -275,7 +275,13 @@ sub read
     my $s        = retrieve($file);
     my $d        = $self->digest($s->{file});
     # use Data::Dumper; print STDERR "reading $digest from $file: ", Dumper $s;
-    if ($d && $d eq $s->{digest})
+    if (!$d) {
+        # No digest implies that we can't read the file. Likely this is because
+        # it's stored with a relative path. In which case, it's not valid to
+        # assume that the file has been changed, and hence that we need to
+        # "update" the structure database on disk.
+    }
+    elsif ($d eq $s->{digest})
     {
         $self->{f}{$s->{file}} = $s;
     }
