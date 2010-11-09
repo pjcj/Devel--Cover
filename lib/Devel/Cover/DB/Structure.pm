@@ -16,6 +16,9 @@ use Storable;
 
 use Devel::Cover::DB;
 
+# For comprehensive debug logging.
+use constant DEBUG => 0;
+
 our $VERSION = "0.73";
 our $AUTOLOAD;
 
@@ -76,6 +79,26 @@ sub AUTOLOAD
         };
     }
     goto &$func
+}
+
+sub debuglog {
+    my $self = shift;
+    my $dir = "$self->{base}/debuglog";
+    unless (-d $dir)
+    {
+        mkdir $dir, 0700 or confess "Can't mkdir $dir: $!";
+    }
+
+    require Data::Dumper;
+    local $Data::Dumper::Indent = 1;
+    local $\;
+    # One log file per process, as we're potentially dumping out large amounts,
+    # and might excede the atomic write size of the OS.
+    open my $fh, '>>', "$dir/$$" or confess "Can't open $dir/$$: $!";
+    print $fh "----------------" . gmtime() . "----------------\n";
+    print $fh ref $_ ? Dumper($_) : $_;
+    print $fh "\n";
+    close $fh or confess "Can't close $dir/$$: $!";
 }
 
 sub add_criteria
@@ -272,7 +295,18 @@ sub read
     my $self     = shift;
     my ($digest) = @_;
     my $file     = "$self->{base}/structure/$digest";
-    my $s        = retrieve($file);
+    my $s = eval { retrieve($file) };
+    if ($@ or !$s) {
+        $self->debuglog("read retrieve $file failed: $@") if DEBUG;
+        die $@;
+    }
+    if (DEBUG) {
+        foreach my $key (qw(file digest)) {
+            if (!defined $s->{$key}) {
+                $self->debuglog("retrieve $file had no $key entry. Got:\n", $s);
+            }
+        }
+    }
     my $d        = $self->digest($s->{file});
     # use Data::Dumper; print STDERR "reading $digest from $file: ", Dumper $s;
     if (!$d) {
@@ -289,7 +323,18 @@ sub read
     {
         warn "Devel::Cover: Deleting old coverage ",
              "for changed file $s->{file}\n";
-        unlink $file or warn "Devel::Cover: can't delete $file: $!\n";
+        if (unlink $file) {
+            $self->debuglog("Deleting old coverage $file for changed "
+                            . "$s->{file} $s->{digest} vs $d. Got:\n", $s,
+                            "Have:\n", $self->{f}{$file})
+                if DEBUG;
+        } else {
+            warn "Devel::Cover: can't delete $file: $!\n";
+            $self->debuglog("Failed to delete coverage $file for changed "
+                            . "$s->{file} ($!) $s->{digest} vs $d. Got:\n", $s,
+                            "Have:\n", $self->{f}{$file})
+                if DEBUG;
+        }
     }
     $self
 }

@@ -189,8 +189,8 @@ sub is_valid
     for my $file (readdir $fh)
     {
         next if $file eq "." || $file eq "..";
-        next if ($file eq "runs" || $file eq "structure") &&
-                -e "$self->{db}/$file";
+        next if ($file eq "runs" || $file eq "structure" || $file eq "debuglog")
+                && -e "$self->{db}/$file";
         # warn "found $file in $self->{db}";
         return 0;
     }
