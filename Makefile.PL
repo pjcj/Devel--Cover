@@ -402,49 +402,6 @@ WriteMakefile
     ABSTRACT_FROM    => "lib/Devel/Cover.pm",
     DIR              => [],
     EXE_FILES        => [ qw( cover gcov2perl cpancover ) ],
-    LICENSE          => "perl",
-    META_ADD         =>
-    {
-        requires =>
-        {
-            perl                          => 5.006001,
-            Storable                      => 0,
-            "Digest::MD5"                 => 0,
-        },
-        dynamic_config => 1,
-    },
-    META_MERGE       =>
-    {
-        recommends =>
-        {
-            perl                          => 5.008002,
-            Template                      => 2.00,
-            "PPI::HTML"                   => 1.07,
-            "Perl::Tidy"                  => 20060719,
-            "Pod::Coverage"               => 0.06,
-            "Pod::Coverage::CountParents" => 0,
-            "Test::Differences"           => 0,
-            "Parallel::Iterator"          => 0,
-        },
-        build_requires =>
-        {
-            "Test::More"                  => 0,
-            "Test::Warn"                  => 0,
-        },
-        no_index =>
-        {
-            directory => [ "tests", "utils" ],
-        },
-        resources =>
-        {
-          license     => "http://dev.perl.org/licenses",
-          homepage    => "http://www.pjcj.net/perl.html",
-          bugtracker  => "http://rt.cpan.org/NoAuth/Bugs.html?Dist=Devel-Cover",
-          repository  => "http://github.com/pjcj/Devel--Cover",
-          MailingList => "http://lists.perl.org/list/perl-qa.html",
-        },
-    },
-    MIN_PERL_VERSION => "5.6.1",
     PERL_MALLOC_OK   => 1,
     PREREQ_PM        => {
                             Storable      => 0,
@@ -463,6 +420,53 @@ WriteMakefile
                             POSTOP => "\$(RM_RF) cover_db t/e2e"
                         } :
                         { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
+    $] >= 5.008000 ?
+    (
+        LICENSE          => "perl",
+        META_ADD         =>
+        {
+            requires =>
+            {
+                perl                          => 5.006001,
+                Storable                      => 0,
+                "Digest::MD5"                 => 0,
+            },
+            dynamic_config => 1,
+        },
+        META_MERGE       =>
+        {
+            recommends =>
+            {
+                perl                          => 5.008002,
+                Template                      => 2.00,
+                "PPI::HTML"                   => 1.07,
+                "Perl::Tidy"                  => 20060719,
+                "Pod::Coverage"               => 0.06,
+                "Pod::Coverage::CountParents" => 0,
+                "Test::Differences"           => 0,
+                "Parallel::Iterator"          => 0,
+            },
+            build_requires =>
+            {
+                "Test::More"                  => 0,
+                "Test::Warn"                  => 0,
+            },
+            no_index =>
+            {
+                directory => [ "tests", "utils" ],
+            },
+            resources =>
+            {
+              license     => "http://dev.perl.org/licenses",
+              homepage    => "http://www.pjcj.net/perl.html",
+              bugtracker  => "http://rt.cpan.org/NoAuth/Bugs.html?Dist=Devel-Cover",
+              repository  => "http://github.com/pjcj/Devel--Cover",
+              MailingList => "http://lists.perl.org/list/perl-qa.html",
+            },
+        },
+        MIN_PERL_VERSION => "5.6.1",
+    ) :
+    ()
 );
 
 print "\n";
