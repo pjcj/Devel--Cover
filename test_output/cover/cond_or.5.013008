@@ -1,0 +1,283 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/cond_or                                90.7   35.0   72.3   75.0   74.4
+tests/cond_or.pl                            100.0    n/a   62.5  100.0   78.6
+Total                                        93.8   35.0   67.8   85.7   75.9
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/cond_or
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2010, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      # __COVER__ skip_test $] < 5.008 || $^O eq "cygwin"
+11                                      # __COVER__ skip_reason Busted on 5.6 and cygwin
+12                                      
+13             1                    1   use strict;
+               1                        
+               1                        
+14             1                    1   use warnings;
+               1                        
+               1                        
+15                                      
+16             1                        my @x;
+17                                      
+18             1                        my $y  = 1;
+19             1                        my $z  = 0;
+20             1                        $::foo = 17;
+21                                      
+22    ***      1     50                 if ($] >= 5.009)
+23                                      {
+24             1                            $ENV{PATH} = "/bin";
+25             1                            system "pwd";
+26             1                    1       use lib "tests";
+               1                        
+               1                        
+27             1                            my $file = "cond_or.pl";
+28    ***      1     50                     unless (my $return = do $file)
+29                                          {
+30    ***      0      0                         die "couldn't parse $file: $@" if $@;
+31    ***      0      0                         die "couldn't do $file: $!"    unless defined $return;
+32    ***      0      0                         die "couldn't run $file"       unless $return;
+33                                          }
+34                                      }
+35                                      
+36             1                        for (0 .. 10)
+37                                      {
+38    ***     11     50                     $y ||
+39                                              $x[1]++;
+40                                      
+41    ***     11     50     33              $y ||
+42                                              $x[0]++ ||
+43                                              $x[1]++;
+44                                      
+45    ***     11     50                     $x[2]++
+46                                              unless $z;
+47                                      
+48            11                            for (0 .. 2)
+49                                          {
+50            33                                $x[3]++;
+51                                          }
+52                                      
+53    ***     11     50                     if ($z)
+54                                          {
+55    ***      0                                $x[4]++;
+56                                          }
+57                                          else
+58                                          {
+59            11                                $x[5]++;
+60                                          }
+61                                      
+62    ***     11            33              my $p = $y || $z;
+63    ***     11            33              my $q = $z || $y;
+64            11           100              my $r = $_ || "qqq";
+65            11           100              my $s = $_ || [];
+66            11                            my $t = $y | $z;
+67    ***     11            50              my $u = $y || 0;
+68    ***     11            50              my $v = $y || undef;
+69    ***     11            50              my $w = $z || 0;
+70                                      
+71    ***     11            50              $p     ||= $y;
+72    ***     11            50              $p     ||= $z;
+73            11           100              $x[ 6] ||= $y;
+74    ***     11            50              $x[ 7] ||= $z;
+75            11           100              $x[ 8] ||= 1;
+76            11           100              $x[ 9] ||= {};
+77            11           100              $x[10] ||= \"foo";
+78            11           100              $x[11] ||= \$y;
+79            11           100              $x[12] ||= \*STDIO;
+80    ***     11           100      0       $x[13] ||= sub { 1 };
+      ***      0                        
+81            11           100              $x[14] ||= *::foo{SCALAR};
+82    ***     11            50              $x[15] ||= *STDIO{IO};
+83            11           100              $x[16] ||= bless {}, "XXX";
+84            11           100              $x[17] ||= <<"EOD";
+85                                      blah
+86                                      EOD
+87    ***     11     50                     cond_dor(\@x) if exists &cond_dor;
+88                                      }
+89                                      
+90                                      # print join(", ", @x), "\n";
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+22    ***     50      1      0   if ($] >= 5.009)
+28    ***     50      0      1   unless (my $return = do $file)
+30    ***      0      0      0   if $@
+31    ***      0      0      0   unless defined $return
+32    ***      0      0      0   unless $return
+38    ***     50      0     11   unless $y
+41    ***     50      0     11   unless $y or $x[0]++
+45    ***     50     11      0   unless $z
+53    ***     50      0     11   if ($z) { }
+87    ***     50     11      0   if exists &cond_dor
+
+
+Conditions
+----------
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+64           100     10      1   $_ || 'qqq'
+65           100     10      1   $_ || []
+67    ***     50     11      0   $y || 0
+68    ***     50     11      0   $y || undef
+69    ***     50      0     11   $z || 0
+71    ***     50     11      0   $p ||= $y
+72    ***     50     11      0   $p ||= $z
+73           100     10      1   $x[6] ||= $y
+74    ***     50      0     11   $x[7] ||= $z
+75           100     10      1   $x[8] ||= 1
+76           100     10      1   $x[9] ||= {}
+77           100     10      1   $x[10] ||= \'foo'
+78           100     10      1   $x[11] ||= \$y
+79           100     10      1   $x[12] ||= \*STDIO
+80           100     10      1   $x[13] ||= sub {
+	1;
+}
+
+81           100     10      1   $x[14] ||= *foo{'SCALAR'}
+82    ***     50      0     11   $x[15] ||= *STDIO{'IO'}
+83           100     10      1   $x[16] ||= bless({}, 'XXX')
+84           100     10      1   $x[17] ||= "blah\n"
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+41    ***     33     11      0      0   $y or $x[0]++
+62    ***     33     11      0      0   $y || $z
+63    ***     33      0     11      0   $z || $y
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location        
+---------- ----- ----------------
+BEGIN          1 tests/cond_or:13
+BEGIN          1 tests/cond_or:14
+BEGIN          1 tests/cond_or:26
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count Location        
+---------- ----- ----------------
+__ANON__       0 tests/cond_or:80
+
+
+tests/cond_or.pl
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2010, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                    1   use strict;
+               1                        
+               1                        
+11             1                    1   use warnings;
+               1                        
+               1                        
+12                                      
+13                                      sub cond_dor
+14                                      {
+15            11                   11       my ($x) = @_;
+16                                      
+17            11           100              $x->[18] //= undef;
+18            11           100              $x->[18] //= 0;
+19    ***     11            50              $x->[18] //= 0;
+20    ***     11            50              $x->[18] //= 1;
+21    ***     11            50              $x->[18] //= 1;
+22                                      
+23            11           100              $x->[19] //= 1;
+24    ***     11            50              $x->[19] //= 1;
+25    ***     11            50              $x->[19] //= 0;
+26    ***     11            50              $x->[19] //= undef;
+27    ***     11            50              $x->[19] //= 1;
+28                                      
+29    ***     11            50              $x->[20]   = $x->[21] // undef;
+30    ***     11            50              $x->[20]   = $x->[21] // 0;
+31    ***     11            50              $x->[20]   = $x->[21] // 0;
+32    ***     11            50              $x->[20]   = $x->[21] // 1;
+33    ***     11            50              $x->[20]   = $x->[21] // 1;
+34                                      
+35            11           100              $x->[22]   = $x->[22] // undef;
+36            11           100              $x->[22]   = $x->[22] // 0;
+37    ***     11            50              $x->[22]   = $x->[22] // 0;
+38    ***     11            50              $x->[22]   = $x->[22] // 1;
+39    ***     11            50              $x->[22]   = $x->[22] // 1;
+40                                      }
+41                                      
+42                                      1;
+
+
+Conditions
+----------
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+17           100     10      1   $$x[18] //= undef
+18           100     10      1   $$x[18] //= 0
+19    ***     50     11      0   $$x[18] //= 0
+20    ***     50     11      0   $$x[18] //= 1
+21    ***     50     11      0   $$x[18] //= 1
+23           100     10      1   $$x[19] //= 1
+24    ***     50     11      0   $$x[19] //= 1
+25    ***     50     11      0   $$x[19] //= 0
+26    ***     50     11      0   $$x[19] //= undef
+27    ***     50     11      0   $$x[19] //= 1
+29    ***     50      0     11   $$x[21] // undef
+30    ***     50      0     11   $$x[21] // 0
+31    ***     50      0     11   $$x[21] // 0
+32    ***     50      0     11   $$x[21] // 1
+33    ***     50      0     11   $$x[21] // 1
+35           100     10      1   $$x[22] // undef
+36           100     10      1   $$x[22] // 0
+37    ***     50     11      0   $$x[22] // 0
+38    ***     50     11      0   $$x[22] // 1
+39    ***     50     11      0   $$x[22] // 1
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location           
+---------- ----- -------------------
+BEGIN          1 tests/cond_or.pl:10
+BEGIN          1 tests/cond_or.pl:11
+cond_dor      11 tests/cond_or.pl:15
+
+
