@@ -12,9 +12,9 @@ use warnings;
 
 use Carp;
 use Digest::MD5;
-use Storable;
 
 use Devel::Cover::DB;
+use Devel::Cover::DB::IO        0.74;
 
 # For comprehensive debug logging.
 use constant DEBUG => 0;
@@ -287,7 +287,8 @@ sub write
         # TODO - determine if Structure has changed to save writing it.
         # my $f = $df; my $n = 1; $df = $f . "." . $n++ while -e $df;
         # print STDERR "Writing [$file] to [$df]\n";
-        Storable::nstore($self->{f}{$file}, $df_temp); # unless -e $df;
+        my $io = Devel::Cover::DB::IO->new;
+        $io->write($self->{f}{$file}, $df_temp); # unless -e $df;
         unless (rename $df_temp, $df_final) {
             unless ($Devel::Cover::Silent) {
                 if(-e $df_final) {
@@ -316,7 +317,8 @@ sub read
     my $self     = shift;
     my ($digest) = @_;
     my $file     = "$self->{base}/structure/$digest";
-    my $s = eval { retrieve($file) };
+    my $io       = Devel::Cover::DB::IO->new;
+    my $s        = eval { $io->read($file) };
     if ($@ or !$s) {
         $self->debuglog("read retrieve $file failed: $@") if DEBUG;
         die $@;

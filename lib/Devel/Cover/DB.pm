@@ -15,10 +15,10 @@ our $VERSION = "0.74";
 use Devel::Cover::Criterion     0.74;
 use Devel::Cover::DB::File      0.74;
 use Devel::Cover::DB::Structure 0.74;
+use Devel::Cover::DB::IO        0.74;
 
 use Carp;
 use File::Path;
-use Storable;
 
 my $DB = "cover.12";  # Version 12 of the database.
 
@@ -64,9 +64,11 @@ sub all_criteria_short { @{$_[0]->{all_criteria_short}} }
 
 sub read
 {
-    my $self = shift;
-    my $file = shift;
-    my $db   = retrieve($file);
+    my $self   = shift;
+    my ($file) = @_;
+
+    my $io     = Devel::Cover::DB::IO->new;
+    my $db     = $io->read($file);
     $self->{runs} = $db->{runs};
     $self
 }
@@ -75,6 +77,7 @@ sub write
 {
     my $self = shift;
     $self->{db} = shift if @_;
+
     croak "No db specified" unless length $self->{db};
     unless (-d $self->{db})
     {
@@ -82,15 +85,10 @@ sub write
     }
     $self->validate_db;
 
-    my $db =
-    {
-        runs => $self->{runs},
-    };
-
-    Storable::nstore($db, "$self->{db}/$DB");
-
+    my $db = { runs => $self->{runs} };
+    my $io = Devel::Cover::DB::IO->new;
+    $io->write($db, "$self->{db}/$DB");
     $self->{structure}->write($self->{base}) if $self->{structure};
-
     $self
 }
 
