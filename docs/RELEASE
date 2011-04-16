@@ -12,7 +12,7 @@ Update docs/CHANGES.
   - Include RT numbers.
 
 Commit the change.
-  $ git commit -m 'Add changes for X.YZ release' docs/CHANGES
+  $ git commit -m 'Add changes for X.YZ release.' docs/CHANGES
 
 Update version number and date in Makefile.PL.
   - Then propagate the change.
