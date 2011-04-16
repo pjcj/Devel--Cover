@@ -19,7 +19,7 @@ use Devel::Cover::DB;
 # For comprehensive debug logging.
 use constant DEBUG => 0;
 
-our $VERSION = "0.73";
+our $VERSION = "0.74";
 our $AUTOLOAD;
 
 sub new
@@ -400,7 +400,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.73 - 2nd October 2010
+Version 0.74 - 16th April 2011
 
 =head1 LICENCE
 
