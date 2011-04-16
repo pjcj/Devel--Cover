@@ -1,5 +1,13 @@
 Devel::Cover.pm history
 
+Release 0.74 - 16th April 2011
+ - Test against 5.12.3 and code frozen 5.14.0 (unreleased).
+ - Fix tests to work with all releases of 5.13.x.
+ - Avoid race condition writing DB structure files (Nicholas Clark).
+ - Add debuglog method to Devel::Cover::DB::Structure (Nicholas Clark).
+ - Be more careful deleting DB structure files (Nicholas Clark).
+ - Get cover -test to honour the db passed in.
+
 Release 0.73 - 2nd October 2010
  - Tidy up Makefile.PL and META.yml.
  - Get coverage working with Windows again.
