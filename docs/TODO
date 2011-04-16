@@ -9,7 +9,7 @@
   - Mutation coverage.
   - Regular Expression coverage.
   - Indicate how to increase coverage?
-  - Move away from Storable?  To?
+  - Move away from Storable?  To?  JSON?
   - BEGIN and CHECK blocks and code in modules.  Requires callbacks from perl?
   - Create a base class for Devel::Cover::Branch and Devel::Cover::Condition.
   - Handle C< $y || "${p}qqq" >.
@@ -26,6 +26,7 @@
   - Diff functionality.
   - Merge CSS from basic_html and cpancover.
   - Provide a way to control syntax colouring.
+  - Add git annotation (similar to SVK).
 - Bugs:
   - Work with memoize.  Is this still a problem?
   - See if the XS code leaks, and fix it if it does.
