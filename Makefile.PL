@@ -138,156 +138,77 @@ EOT
 closedir D or die "Cannot closedir tests: $!";
 
 s/^/tests\// for @tests;
-push @tests, grep !/e2e/, <t/*/*.t>;
+push @tests, grep !/e2e/, glob "t/*/*.t";
 
 print "done\n\n";
 
-my $e;
+sub check
+{
+    my ($module, $text, $version) = @_;
 
-print "checking for Storable                       ........ ";
+    printf "checking for %-18s %-16s .... ",
+           $module, $version ? "version $version" : "";
 
-$e = <<EOM;
+    eval "use $module";
+    (my $mod = $module) =~ s/::/\//g;
+    if (my $m = $INC{"$mod.pm"})
+    {
+        my $v = eval { no warnings; eval "\$${module}::VERSION" };
+        printf "%-8s $m\n", $v;
+        if ($version && $v < $version)
+        {
+            print "\n\n\n$text\n\n";
+        }
+    }
+    else
+    {
+        print "not found\n\n\n$text\n\n";
+    }
+};
 
+check "Storable", <<EOM;
 Storable is required to store the coverage database.  You can download
 Storable from CPAN.
-
 EOM
 
-eval "use Storable";
-if (my $m = $INC{"Storable.pm"})
-{
-    my $v = eval { no warnings; $Storable::VERSION };
-    print "$v     $m\n";
-}
-else
-{
-    print "not found\n\n$e\n";
-}
-
-print "checking for Digest::MD5                    ........ ";
-
-$e = <<EOM;
-
+check "Digest::MD5", <<EOM;
 Digest::MD5 is required to check whether covered files have changed.  You can
 download Digest::MD5 from CPAN.
-
 EOM
 
-eval "use Digest::MD5";
-if (my $m = $INC{"Digest/MD5.pm"})
-{
-    my $v = eval { no warnings; $Digest::MD5::VERSION };
-    print "$v     $m\n";
-}
-else
-{
-    print "not found\n\n$e\n";
-}
-
-print "checking for Test::More                     ........ ";
-
-$e = <<EOM;
-
+check "Test::More", <<EOM;
 Test::More is required to run the Devel::Cover tests.  You can download
 Test::More from CPAN.
-
 EOM
 
-eval "use Test::More";
-if (my $m = $INC{"Test/More.pm"})
-{
-    my $v = eval { no warnings; $Test::More::VERSION };
-    print "$v     $m\n";
-}
-else
-{
-    print "not found\n\n$e\n";
-}
-
-print "checking for Test::Warn                     ........ ";
-
-$e = <<EOM;
-
+check "Test::Warn", <<EOM;
 Test::Warn is required to run some of the Devel::Cover tests.  You can
 download Test::Warn from CPAN.
-
 EOM
 
-eval "use Test::Warn";
-if (my $m = $INC{"Test/Warn.pm"})
-{
-    my $v = eval { no warnings; $Test::Warn::VERSION };
-    print "$v     $m\n";
-}
-else
-{
-    print "not found\n\n$e\n";
-}
-
-print "checking for Template          version 2.00 ........ ";
-
-$e = <<EOM;
-
+check "Template", <<EOM, "2.00";
 Template 2.00 is required to run the some HTML backends to cover and
 for cpancover.  Unless you have specific requirements this should not be
 a problem, but you will not be able to use these reports until you
 install the Template Toolkit, available from CPAN.  In the meantime you
 may continue to use the rest of Devel::Cover.
-
 EOM
 
-eval "use Template";
-if (my $m = $INC{"Template.pm"})
-{
-    my $v = eval { no warnings; $Template::VERSION };
-    print $v < 2.00 ? "$v\n\n$e\n" : "$v     $m\n";
-}
-else
-{
-    print "not found\n\n$e\n";
-}
-
-print "checking for PPI::HTML         version 1.07 ........ ";
-
-$e = <<EOM;
-
+my $m = <<EOM;
 One of PPI::HTML 1.07 or Perl::Tidy 20060719 is required to add syntax
 highlighting to some HTML backends to cover and for cpancover.  Unless
 you have specific requirements this should not be a problem, but you will
 not be able to use syntax highlighting in these reports until you install
 PPI::HTML or Perl::Tidy, available from the CPAN.  In the meantime you
 may continue to use the rest of Devel::Cover.
-
 EOM
 
-eval "use PPI::HTML";
-if (my $m = $INC{"PPI/HTML.pm"})
-{
-    my $v = eval { no warnings; $PPI::HTML::VERSION };
-    print $v < 1.07 ? "$v\n\n$e\n" : "$v     $m\n";
-}
-else
-{
-    print "not found\n\n$e\n";
-}
+check "PPI::HTML", $m, "1.07";
 
-print "checking for Perl::Tidy        version 20060719 .... ";
+check "Perl::Tidy", $m, "20060719";
 
-eval "use Perl::Tidy";
-if (my $m = $INC{"Perl/Tidy.pm"})
-{
-    my $v = eval { no warnings; $Perl::Tidy::VERSION };
-    print $v < 20060719 ? "$v\n\n$e\n" : "$v $m\n";
-}
-else
-{
-    print "not found\n\n$e\n";
-}
-
-print "checking for Pod::Coverage     version 0.06 ........ ";
-
-$e = <<EOM;
-
+print "checking for Pod::Coverage      version 0.06     .... ";
+my $e = <<EOM;
 Pod::Coverage 0.06 is required to do pod coverage.  This will tell
 you how well you have documented your modules.  Pod coverage will be
 unavailable until you install this module, available from CPAN.  In the
@@ -298,17 +219,13 @@ eval "use Pod::Coverage";
 if (my $m = $INC{"Pod/Coverage.pm"})
 {
     my $v = eval { no warnings; $Pod::Coverage::VERSION };
-    print $v < 0.06 ? "$v\n\n$e\n" : "$v     $m\n";
-
-    print "checking for Pod::Coverage::CountParents.pm ........ ";
-
+    print $v < 0.06 ? "$v\n\n\n$e\n\n" : "$v     $m\n";
+    print "checking for Pod::Coverage::CountParents         .... ";
     $e = <<EOM;
-
     Pod::Coverage::CountParents.pm is used for Pod coverage if it is available.
     We will fall back to using Pod::Coverage.pm.  If you want to use
     Pod::Coverage::CountParents.pm, just install it from CPAN.
 EOM
-
     eval "use Pod::Coverage::CountParents";
     if (my $m = $INC{"Pod/Coverage/CountParents.pm"})
     {
@@ -318,38 +235,22 @@ EOM
     }
     else
     {
-        print "not found\n\n$e\n";
+        print "not found\n\n\n$e\n\n";
     }
-
 }
 else
 {
     print "not found\n\n$e\n";
 }
 
-print "checking for Test::Differences              ........ ";
-
-$e = <<EOM;
-
+check "Test::Differences", <<EOM;
 Test::Differences is used to display output from failed tests.
 Hopefully there won't be any failed tests, but if there are you will get
 output that may not be a model of clarity.  If you do get test failures
 and you fancy helping me by debugging them, then you might like to
 consider installing Test::Differences.  You can download
 Test::Differences from CPAN.
-
 EOM
-
-eval "use Test::Differences";
-if (my $m = $INC{"Test/Differences.pm"})
-{
-    my $v = eval { no warnings; $Test::Differences::VERSION };
-    printf "%-8s $m\n", $v;
-}
-else
-{
-    print "not found\n\n$e\n";
-}
 
 my $latest_tested = "5.012003";
 print <<EOM if $] > $latest_tested;
