@@ -329,7 +329,7 @@ WriteMakefile
                             POSTOP => "\$(RM_RF) cover_db t/e2e"
                         } :
                         { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
-    $] >= 5.008000 ?
+    $] >= 5.010001 ?
     (
         LICENSE          => "perl",
         META_ADD         =>
