@@ -14,12 +14,12 @@ use Carp;
 use Digest::MD5;
 
 use Devel::Cover::DB;
-use Devel::Cover::DB::IO        0.74;
+use Devel::Cover::DB::IO        0.75;
 
 # For comprehensive debug logging.
 use constant DEBUG => 0;
 
-our $VERSION = "0.74";
+our $VERSION = "0.75";
 our $AUTOLOAD;
 
 sub new
@@ -402,7 +402,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.74 - 16th April 2011
+Version 0.75 - 17th April 2011
 
 =head1 LICENCE
 
