@@ -506,7 +506,7 @@ _delete_db : pure_all
 \t rm -rf cover_db
 
 _self_cover_tests : @{[sort values %tests]}
-\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -write cover_db @{[sort values %tests]} > /dev/null 2>&1
+\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -write cover_db @{[sort values %tests]}
 
 self_cover : _self_cover_reports
 \t \$(PERL) -Mblib cover -report html_basic
