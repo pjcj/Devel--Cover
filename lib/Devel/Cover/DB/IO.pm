@@ -72,7 +72,7 @@ sub write
     }
 
     open my $fh, ">", $file or die "Can't open $file: $!";
-    print $fh JSON::PP::encode_json($data);
+    print $fh "", JSON::PP::encode_json($data);  # "", for 5.6.1
     close $fh or die "Can't close $file: $!";
     $self
 }
