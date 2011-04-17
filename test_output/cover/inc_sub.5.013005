@@ -4,8 +4,8 @@ Reading database from ...
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/inc_sub                               100.0   75.0    n/a  100.0   94.1
-Total                                       100.0   75.0    n/a  100.0   94.1
+tests/inc_sub                               100.0   75.0    n/a  100.0   94.4
+Total                                       100.0   75.0    n/a  100.0   94.4
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -29,18 +29,19 @@ line  err   stmt   bran   cond    sub   code
 8                                           (
 9                                               sub
 10                                              {
-11             3    100                             return unless $_[1] eq "IncSub.pm";
-12             1                                    my $fh;
-13    ***      1     50                             open $fh, "tests/IncSub.pm" or die $!;
-14             1                                    $fh
-15                                              }
-16                                          )
-17             1                    1   }
-18                                      
-19             1                    1   use IncSub;
+11             2                                    print map("[$_]", @_), "\n";
+12             2    100                             return unless $_[1] eq "IncSub.pm";
+13             1                                    my $fh;
+14    ***      1     50                             open $fh, "tests/IncSub.pm" or die $!;
+15             1                                    $fh
+16                                              }
+17                                          )
+18             1                    1   }
+19                                      
+20             1                    1   use IncSub;
                1                        
-20                                      
-21             1                        IncSub::check
+21                                      
+22             1                        IncSub::check
 
 
 Branches
@@ -48,8 +49,8 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-11           100      2      1   unless $_[1] eq 'IncSub.pm'
-13    ***     50      0      1   unless open $fh, 'tests/IncSub.pm'
+12           100      1      1   unless $_[1] eq 'IncSub.pm'
+14    ***     50      0      1   unless open $fh, 'tests/IncSub.pm'
 
 
 Covered Subroutines
@@ -57,8 +58,8 @@ Covered Subroutines
 
 Subroutine Count Location        
 ---------- ----- ----------------
-BEGIN          1 tests/inc_sub:17
-BEGIN          1 tests/inc_sub:19
+BEGIN          1 tests/inc_sub:18
+BEGIN          1 tests/inc_sub:20
 BEGIN          1 tests/inc_sub:3 
 
 
