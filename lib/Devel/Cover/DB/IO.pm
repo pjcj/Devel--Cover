@@ -68,7 +68,8 @@ sub write
 
     if ($self->{format} eq "Storable")
     {
-        return Storable::nstore($data, $file);
+        Storable::nstore($data, $file);
+        return $self;
     }
 
     open my $fh, ">", $file or die "Can't open $file: $!";
