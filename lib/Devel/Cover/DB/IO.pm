@@ -16,7 +16,8 @@ my $Format;
 
 BEGIN
 {
-    $Format = eval { require JSON::PP; 1 } ? "JSON" : "Storable";
+    $Format = $ENV{DEVEL_COVER_DB_FORMAT} ||
+              (eval { require JSON::PP; 1 } ? "JSON" : "Storable");
 }
 
 sub new
