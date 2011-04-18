@@ -96,7 +96,7 @@ typedef struct
 #if PERL_VERSION > 8
     Perl_ppaddr_t ppaddr[MAXO];
 #else
-    OP           *(CPERLscope(*ppaddr[MAXO]))(pTHX);
+    OP           *(*ppaddr[MAXO])(pTHX);
 #endif
 } my_cxt_t;
 
@@ -856,7 +856,7 @@ static OP *dc_nextstate(pTHX)
     NDEB(D(L, "dc_nextstate\n"));
     if (MY_CXT.covering)   check_if_collecting(aTHX);
     if (collecting_here(aTHX)) cover_current_statement(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_NEXTSTATE])(aTHX);
+    return MY_CXT.ppaddr[OP_NEXTSTATE](aTHX);
 }
 
 #if PERL_VERSION <= 10
@@ -865,7 +865,7 @@ static OP *dc_setstate(pTHX)
     dMY_CXT;
     if (MY_CXT.covering)   check_if_collecting(aTHX);
     if (collecting_here(aTHX)) cover_current_statement(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_SETSTATE])(aTHX);
+    return MY_CXT.ppaddr[OP_SETSTATE](aTHX);
 }
 #endif
 
@@ -874,49 +874,49 @@ static OP *dc_dbstate(pTHX)
     dMY_CXT;
     if (MY_CXT.covering)   check_if_collecting(aTHX);
     if (collecting_here(aTHX)) cover_current_statement(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_DBSTATE])(aTHX);
+    return MY_CXT.ppaddr[OP_DBSTATE](aTHX);
 }
 
 static OP *dc_entersub(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering) store_return(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_ENTERSUB])(aTHX);
+    return MY_CXT.ppaddr[OP_ENTERSUB](aTHX);
 }
 
 static OP *dc_cond_expr(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_cond(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_COND_EXPR])(aTHX);
+    return MY_CXT.ppaddr[OP_COND_EXPR](aTHX);
 }
 
 static OP *dc_and(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_AND])(aTHX);
+    return MY_CXT.ppaddr[OP_AND](aTHX);
 }
 
 static OP *dc_andassign(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_ANDASSIGN])(aTHX);
+    return MY_CXT.ppaddr[OP_ANDASSIGN](aTHX);
 }
 
 static OP *dc_or(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_OR])(aTHX);
+    return MY_CXT.ppaddr[OP_OR](aTHX);
 }
 
 static OP *dc_orassign(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_ORASSIGN])(aTHX);
+    return MY_CXT.ppaddr[OP_ORASSIGN](aTHX);
 }
 
 #if PERL_VERSION > 8
@@ -924,14 +924,14 @@ static OP *dc_dor(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_DOR])(aTHX);
+    return MY_CXT.ppaddr[OP_DOR](aTHX);
 }
 
 static OP *dc_dorassign(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_DORASSIGN])(aTHX);
+    return MY_CXT.ppaddr[OP_DORASSIGN](aTHX);
 }
 #endif
 
@@ -939,21 +939,21 @@ OP *dc_xor(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_XOR])(aTHX);
+    return MY_CXT.ppaddr[OP_XOR](aTHX);
 }
 
 static OP *dc_require(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) store_module(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_REQUIRE])(aTHX);
+    return MY_CXT.ppaddr[OP_REQUIRE](aTHX);
 }
 
 static OP *dc_exec(pTHX)
 {
     dMY_CXT;
     if (MY_CXT.covering && collecting_here(aTHX)) call_report(aTHX);
-    return CALL_FPTR(MY_CXT.ppaddr[OP_EXEC])(aTHX);
+    return MY_CXT.ppaddr[OP_EXEC](aTHX);
 }
 
 static void replace_ops (pTHX) {
@@ -963,24 +963,24 @@ static void replace_ops (pTHX) {
     for (i = 0; i < MAXO; i++)
         MY_CXT.ppaddr[i] = PL_ppaddr[i];
 
-    PL_ppaddr[OP_NEXTSTATE] = MEMBER_TO_FPTR(dc_nextstate);
+    PL_ppaddr[OP_NEXTSTATE] = dc_nextstate;
 #if PERL_VERSION <= 10
-    PL_ppaddr[OP_SETSTATE]  = MEMBER_TO_FPTR(dc_setstate);
+    PL_ppaddr[OP_SETSTATE]  = dc_setstate;
 #endif
-    PL_ppaddr[OP_DBSTATE]   = MEMBER_TO_FPTR(dc_dbstate);
-    PL_ppaddr[OP_ENTERSUB]  = MEMBER_TO_FPTR(dc_entersub);
-    PL_ppaddr[OP_COND_EXPR] = MEMBER_TO_FPTR(dc_cond_expr);
-    PL_ppaddr[OP_AND]       = MEMBER_TO_FPTR(dc_and);
-    PL_ppaddr[OP_ANDASSIGN] = MEMBER_TO_FPTR(dc_andassign);
-    PL_ppaddr[OP_OR]        = MEMBER_TO_FPTR(dc_or);
-    PL_ppaddr[OP_ORASSIGN]  = MEMBER_TO_FPTR(dc_orassign);
+    PL_ppaddr[OP_DBSTATE]   = dc_dbstate;
+    PL_ppaddr[OP_ENTERSUB]  = dc_entersub;
+    PL_ppaddr[OP_COND_EXPR] = dc_cond_expr;
+    PL_ppaddr[OP_AND]       = dc_and;
+    PL_ppaddr[OP_ANDASSIGN] = dc_andassign;
+    PL_ppaddr[OP_OR]        = dc_or;
+    PL_ppaddr[OP_ORASSIGN]  = dc_orassign;
 #if PERL_VERSION > 8
-    PL_ppaddr[OP_DOR]       = MEMBER_TO_FPTR(dc_dor);
-    PL_ppaddr[OP_DORASSIGN] = MEMBER_TO_FPTR(dc_dorassign);
+    PL_ppaddr[OP_DOR]       = dc_dor;
+    PL_ppaddr[OP_DORASSIGN] = dc_dorassign;
 #endif
-    PL_ppaddr[OP_XOR]       = MEMBER_TO_FPTR(dc_xor);
-    PL_ppaddr[OP_REQUIRE]   = MEMBER_TO_FPTR(dc_require);
-    PL_ppaddr[OP_EXEC]      = MEMBER_TO_FPTR(dc_exec);
+    PL_ppaddr[OP_XOR]       = dc_xor;
+    PL_ppaddr[OP_REQUIRE]   = dc_require;
+    PL_ppaddr[OP_EXEC]      = dc_exec;
 }
 
 static void initialise(pTHX)
@@ -1162,7 +1162,7 @@ static int runops_cover(pTHX)
         }
 
         call_fptr:
-        if (!(PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
+        if (!(PL_op = PL_op->op_ppaddr(aTHX)))
             break;
 
         PERL_ASYNC_CHECK();
@@ -1184,7 +1184,7 @@ static int runops_orig(pTHX)
 {
     NDEB(D(L, "runops_orig\n"));
 
-    while ((PL_op = CALL_FPTR(PL_op->op_ppaddr)(aTHX)))
+    while ((PL_op = PL_op->op_ppaddr(aTHX)))
     {
         PERL_ASYNC_CHECK();
     }

@@ -17,8 +17,11 @@ use Test::More tests => 1;
 # test makes sure we actually do, and will yell at us if we ever start
 # doing it again.
 #
-# CPAN RT#57174 is the corresponding Devel::Cover bug. This still
-# needs to be submitted to and fixed in perl core.
+# This bug in perl is now fixed with commit 91332126 and part of perl
+# 5.13.6. If we ever wanted to use regexp matching from use_file or
+# some place, that's called while collecting data, again we could pull
+# a hack similar to the aforementioned commit in Cover.xs so we
+# continue to work on perls older than 5.13.6.
 
 'x' =~ m{ (?: ((??{ 'x' })) )? }x;
 
