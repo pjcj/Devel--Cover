@@ -2,7 +2,7 @@ Devel::Cover.pm history
 
 Release 0.76 - 18th April 2011
  - Move CHANGES file into root for search.cpan.org (rt 67541).
-
+ - Add top level version subroutine (requested by H.Merijn Brand).
 
 Release 0.75 - 17th April 2011
  - Write database as JSON if JSON::PP is available.

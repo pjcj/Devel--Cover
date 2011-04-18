@@ -107,6 +107,8 @@ BEGIN
     $^P |= 0x004 | 0x100;
 }
 
+sub version { $VERSION }
+
 if (0 && $Config{useithreads})
 {
     eval "use threads";
