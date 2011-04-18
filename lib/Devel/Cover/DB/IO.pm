@@ -10,6 +10,8 @@ package Devel::Cover::DB::IO;
 use strict;
 use warnings;
 
+use Fcntl ":flock";
+
 our $VERSION = "0.75";
 
 my $Format;
@@ -52,10 +54,11 @@ sub read
 
     if ($self->{format} eq "Storable")
     {
-        return Storable::retrieve($file);
+        return Storable::lock_retrieve($file);
     }
 
     open my $fh, "<", $file or die "Can't open $file: $!";
+    flock($fh, LOCK_SH) or die "Cannot lock mailbox - $!\n";
     local $/;
     my $data = JSON::PP::decode_json(<$fh>);
     close $fh or die "Can't close $file: $!";
@@ -69,11 +72,12 @@ sub write
 
     if ($self->{format} eq "Storable")
     {
-        Storable::nstore($data, $file);
+        Storable::lock_nstore($data, $file);
         return $self;
     }
 
     open my $fh, ">", $file or die "Can't open $file: $!";
+    flock($fh, LOCK_EX) or die "Cannot lock mailbox - $!\n";
     print $fh "", JSON::PP::encode_json($data);  # "", for 5.6.1
     close $fh or die "Can't close $file: $!";
     $self
