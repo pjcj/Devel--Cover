@@ -33,7 +33,7 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      # __COVER__ skip_test $^O eq "MSWin32"
+10                                      # __COVER__ skip_test $^O eq "MSWin32" || $] == 5.008007
 11                                      # __COVER__ skip_reason Fork unreliable
 12                                      
 13             2                        $x = 1;

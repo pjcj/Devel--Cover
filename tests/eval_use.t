@@ -12,6 +12,12 @@ use warnings;
 
 use Devel::Cover::Test 0.75;
 
+if ($] == 5.008007)
+{
+    eval "use Test::More skip_all => 'Crashes 5.8.7'";
+    exit;
+}
+
 my $run_test = sub
 {
     my $test = shift;

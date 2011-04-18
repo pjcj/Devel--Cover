@@ -21,6 +21,12 @@ my $t  = "md5";
 my $ft = "$base/tests/$t";
 my $fg = "$base/tests/trivial";
 
+if ($] == 5.008007)
+{
+    eval "use Test::More skip_all => 'Crashes 5.8.7'";
+    exit;
+}
+
 my $run_test = sub
 {
     my $test = shift;
