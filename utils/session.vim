@@ -1,7 +1,7 @@
 1,999bd
 e Makefile.PL
 e MANIFEST
-e docs/CHANGES
+e CHANGES
 e docs/TODO
 e docs/BUGS
 e lib/Devel/Cover.pm
