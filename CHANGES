@@ -3,6 +3,11 @@ Devel::Cover.pm history
 Release 0.76 - 18th April 2011
  - Move CHANGES file into root for search.cpan.org (rt 67541).
  - Add top level version subroutine (requested by H.Merijn Brand).
+ - Add DEVEL_COVER_DB_FORMAT environment variable.
+ - Add advisory locking to database IO operations.
+ - Explain what to do if regexp_eval.t ever fails again (Florian Ragwitz).
+ - Remove leftovers from PERL_OBJECT (Florian Ragwitz).
+ - Recommend 5.8.8 and above - 5.8.7 is crashing so skip some tests there.
 
 Release 0.75 - 17th April 2011
  - Write database as JSON if JSON::PP is available.
