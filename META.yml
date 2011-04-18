@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Devel-Cover
-version:            0.75
+version:            0.76
 abstract:           Code coverage metrics for Perl
 author:
     - Paul Johnson (pjcj@cpan.org)

@@ -12,7 +12,7 @@ use warnings;
 
 use Fcntl ":flock";
 
-our $VERSION = "0.75";
+our $VERSION = "0.76";
 
 my $Format;
 
@@ -133,7 +133,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.75 - 17th April 2011
+Version 0.76 - 18th April 2011
 
 =head1 LICENCE
 
