@@ -1,9 +1,9 @@
 .gitignore
+CHANGES
 cover
 Cover.xs
 cpancover
 docs/BUGS
-docs/CHANGES
 docs/RELEASE
 docs/TODO
 gcov2perl
