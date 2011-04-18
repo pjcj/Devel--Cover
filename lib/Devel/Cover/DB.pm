@@ -20,7 +20,7 @@ use Devel::Cover::DB::IO        0.75;
 use Carp;
 use File::Path;
 
-my $DB = "cover.12";  # Version 12 of the database.
+my $DB = "cover.13";  # Version 13 of the database.
 
 @Devel::Cover::DB::Criteria =
     (qw( statement branch path condition subroutine pod time ));
