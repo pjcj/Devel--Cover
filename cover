@@ -35,6 +35,7 @@ my $Options =
     gcov                     => $Config{gccversion},
     ignore                   => [],
     ignore_re                => [],
+    make                     => $Config{make},
     select                   => [],
     select_re                => [],
     report                   => "",
@@ -64,6 +65,7 @@ sub get_options
                        ignore_re=s
                        ignore=s
                        info|i!
+                       make=s
                        outputdir=s
                        report=s
                        select_re=s
@@ -99,17 +101,17 @@ sub delete_db
 sub test_command { -e "Build.PL" ? mb_test_command() : mm_test_command() }
 
 # Compiler arguments necessary to do a coverage run
-sub gcov_args { "-fprofile-arcs\\ -ftest-coverage" }
+sub gcov_args() { "-fprofile-arcs -ftest-coverage" }
 
 # Test command for MakeMaker
 sub mm_test_command
 {
-    my $test = "make test";
+    my $test = "$Options->{make} test";
 
     if ($Options->{gcov})
     {
         my $o = gcov_args();
-        $test .= " OPTIMIZE=-O0\\ $o OTHERLDFLAGS=$o";
+        $test .= qq{ "OPTIMIZE=-O0 $o" "OTHERLDFLAGS=$o"};
     }
 
     $test
@@ -123,7 +125,7 @@ sub mb_test_command
     if ($Options->{gcov})
     {
         my $o = gcov_args();
-        $test .= " --extra_compiler_flags=-O0\\ $o --extra_linker_flags=$o";
+        $test .= qq{ "--extra_compiler_flags=-O0 $o" "--extra_linker_flags=$o"};
     }
 
     $test
@@ -360,6 +362,7 @@ cover - report coverage statistics
        -silent
        -coverage criterion
        -test -gcov
+       -make [make]
        -add_uncoverable_point -delete_uncoverable_point
        -clean_uncoverable_points -uncoverable_file
        [report specific options]
@@ -402,6 +405,7 @@ The following command line options are supported:
 
  -test                 - drop database(s) and run make test (default off)
  -gcov                 - run gcov to cover XS code     (default on if using gcc)
+ -make make_prog       - use the given 'make' program for 'make test'
 
  other options specific to the report
 
