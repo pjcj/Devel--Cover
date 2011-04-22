@@ -203,7 +203,7 @@ sub main
         # system "$^X Makefile.PL" unless -e "Makefile";
         delete_db($dbname, @ARGV);
         local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
-            "-MDevel::Cover=-db,$dbname";
+            "$ENV{DEVEL_COVER_TEST_OPTS} -MDevel::Cover=-db,$dbname";
 
         my $test = test_command();
 
