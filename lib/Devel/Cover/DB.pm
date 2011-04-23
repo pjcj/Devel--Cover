@@ -762,11 +762,8 @@ sub cover
     my %digests;  # mapping of digests to canonical filenames
     my %files;    # processed files
     my $cover = $self->{cover} = {};
-
-    my $st = Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
-
     my $uncoverable = {};
-
+    my $st = Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
     my @runs = sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
                     keys %{$self->{runs}};
     # use Data::Dumper; print STDERR "runs: ", Dumper $self->{runs};
