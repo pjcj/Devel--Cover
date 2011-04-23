@@ -699,13 +699,9 @@ sub cover
         condition => { left => 0, right => 1, false => 2 },
     );
 
+    my @runs = sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
+                    keys %{$self->{runs}};
     # use Data::Dumper; print STDERR "runs: ", Dumper $self->{runs};
-    my @runs;
-    {
-        no warnings "numeric";
-        # TODO - change sort order
-        @runs = sort { $b <=> $a } keys %{$self->{runs}};
-    }
 
     for my $run (@runs)
     {
