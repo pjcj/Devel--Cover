@@ -27,7 +27,8 @@ sub new
     my $class = shift;
     my $self  =
     {
-        format => $Format,
+        format  => $Format,
+        options => $ENV{DEVEL_COVER_IO_OPTIONS} || "",
         @_
     };
 
@@ -76,9 +77,11 @@ sub write
         return $self;
     }
 
+    my $json = JSON::PP->new->utf8;
+    $json->ascii->pretty->canonical if $self->{options} =~ /\bpretty\b/i;
     open my $fh, ">", $file or die "Can't open $file: $!";
     flock($fh, LOCK_EX) or die "Cannot lock mailbox - $!\n";
-    print $fh "", JSON::PP::encode_json($data);  # "", for 5.6.1
+    print $fh $json->encode($data);
     close $fh or die "Can't close $file: $!";
     $self
 }
