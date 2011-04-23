@@ -296,6 +296,13 @@ sub import
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
 
+    if ($blib)
+    {
+        eval "use blib";
+        for (@INC) { $_ = $1 if /(.*)/ }  # Die tainting.
+        push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
+    }
+
     my $ci     = $^O eq "MSWin32";
     @Select_re = map qr/$_/,                           @Select;
     @Ignore_re = map qr/$_/,                           @Ignore;
@@ -323,14 +330,7 @@ sub import
     $DB = $1 if abs_path($DB) =~ /(.*)/;
     Devel::Cover::DB->delete($DB) unless $Merge;
 
-    if ($blib)
-    {
-        eval "use blib";
-        for (@INC) { $_ = $1 if /(.*)/ }  # Die tainting.
-        push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
-    }
-
-    %Files     = ();  # start gathering file information from scratch
+    %Files = ();  # start gathering file information from scratch
 
     for my $c (Devel::Cover::DB->new->criteria)
     {
