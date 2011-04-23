@@ -678,6 +678,81 @@ sub clean_uncoverable
     my $self = shift;
 }
 
+sub uncoverable_comments
+{
+    my $self = shift;
+    my ($uncoverable, $file, $digest) = @_;
+
+    my $cr = join "|", @{$self->{all_criteria}};
+    my $uc = qr/(.*)# uncoverable ($cr)(.*)/;  # regex for uncoverable comments
+    my %types =
+    (
+        branch    => { true => 0, false => 1 },
+        condition => { left => 0, right => 1, false => 2 },
+    );
+
+    # Look for uncoverable comments
+    open my $fh, "<", $file or do
+    {
+        warn "Devel::Cover: Can't open file $file: $!\n";
+        next;
+    };
+    my @waiting;
+    while (<$fh>)
+    {
+        chomp;
+        # print STDERR "read [$.][$_]\n";
+        next unless /$uc/ || @waiting;
+        if ($2)
+        {
+            my ($code, $criterion, $info)     = ($1, $2, $3);
+            my ($count, $class, $note, $type) = (1, "default", "");
+
+            if ($criterion eq "branch" || $criterion eq "condition")
+            {
+                if ($info =~ /^\s*(\w+)(?:\s|$)/)
+                {
+                    my $t = $1;
+                    $type = $types{$criterion}{$t};
+                    unless (defined $type)
+                    {
+                        warn "Unknown type $t found parsing " .
+                             "uncoverable $criterion at $file:$.\n";
+                        $type = 999;  # partly magic number
+                    }
+                }
+            }
+            $count = $1 if $info =~ /count:(\d+)/;
+            $class = $1 if $info =~ /class:(\w+)/;
+            $note  = $1 if $info =~ /note:(.+)/;
+
+            # no warnings "uninitialized";
+            # warn "pushing $criterion, $count, $type, $class, $note";
+
+            push @waiting,
+                 [$criterion, $count - 1, $type, $class, $note];
+
+            next unless $code =~ /\S/;
+        }
+
+        # found what we are waiting for
+        while (my $w = shift @waiting)
+        {
+            my ($criterion, $count, $type, $class, $note) = @$w;
+            push @{$uncoverable->{$digest}{$criterion}{$.}[$count]},
+                 [$type, $class, $note];
+        }
+    }
+    close $fh;
+
+    warn scalar @waiting,
+         " unmatched uncoverable comments not found at end of $file\n"
+        if @waiting;
+
+    # TODO - read in and merge $self->uncoverable;
+    # use Data::Dumper; print Dumper $uncoverable;
+}
+
 sub cover
 {
     my $self = shift;
@@ -690,14 +765,7 @@ sub cover
 
     my $st = Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
 
-    my $cr = join "|", @{$self->{all_criteria}};
-    my $uc = qr/(.*)# uncoverable ($cr)(.*)/;  # regex for uncoverable comments
-    my %uncoverable;
-    my %types =
-    (
-        branch    => { true => 0, false => 1 },
-        condition => { left => 0, right => 1, false => 2 },
-    );
+    my $uncoverable = {};
 
     my @runs = sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
                     keys %{$self->{runs}};
@@ -725,73 +793,15 @@ sub cover
                          "into $digests{$digest}\n"
                 if !$files{$file}++ && $digests{$digest};
 
+            $self->uncoverable_comments($uncoverable, $file, $digest)
+                unless $digests{$digest};
+
             # Set up data structure to hold coverage being filled in
             my $cf = $cover->{$digests{$digest} ||= $file} ||= {};
 
-            # Look for uncoverable comments
-            open my $fh, "<", $file or do
-            {
-                warn "Devel::Cover: Can't open file $file: $!\n";
-                next;
-            };
-            my @waiting;
-            while (<$fh>)
-            {
-                chomp;
-                # print STDERR "read [$.][$_]\n";
-                next unless /$uc/ || @waiting;
-                if ($2)
-                {
-                    my ($code, $criterion, $info)     = ($1, $2, $3);
-                    my ($count, $class, $note, $type) = (1, "default", "");
-
-                    if ($criterion eq "branch" || $criterion eq "condition")
-                    {
-                        if ($info =~ /^\s*(\w+)(?:\s|$)/)
-                        {
-                            my $t = $1;
-                            $type = $types{$criterion}{$t};
-                            unless (defined $type)
-                            {
-                                warn "Unknown type $t found parsing " .
-                                     "uncoverable $criterion at $file:$.\n";
-                                $type = 999;  # partly magic number
-                            }
-                        }
-                    }
-                    $count = $1 if $info =~ /count:(\d+)/;
-                    $class = $1 if $info =~ /class:(\w+)/;
-                    $note  = $1 if $info =~ /note:(.+)/;
-
-                    # no warnings "uninitialized";
-                    # warn "pushing $criterion, $count, $type, $class, $note";
-
-                    push @waiting,
-                         [$criterion, $count - 1, $type, $class, $note];
-
-                    next unless $code =~ /\S/;
-                }
-
-                # found what we are waiting for
-                while (my $w = shift @waiting)
-                {
-                    my ($criterion, $count, $type, $class, $note) = @$w;
-                    push @{$uncoverable{$digest}{$criterion}{$.}[$count]},
-                         [$type, $class, $note];
-                }
-            }
-            close $fh;
-
-            warn scalar @waiting,
-                 " unmatched uncoverable comments not found at end of $file\n"
-                if @waiting;
-
-            # TODO - read in and merge $self->uncoverable;
-            # use Data::Dumper; print Dumper \%uncoverable;
-
             # print STDERR "st ", Dumper($st),
                          # "f  ", Dumper($f),
-                         # "uc ", Dumper($uncoverable{$digest});
+                         # "uc ", Dumper($uncoverable->{$digest});
             while (my ($criterion, $fc) = each %$f)
             {
                 my $get = "get_$criterion";
@@ -801,7 +811,7 @@ sub cover
                 my $cc  = $cf->{$criterion} ||= {};
                 my $add = "add_$criterion";
                 # print STDERR "$add():\n", Dumper $cc, $sc, $fc;
-                $self->$add($cc, $sc, $fc, $uncoverable{$digest}{$criterion});
+                $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
                 # print STDERR "--> $add():\n", Dumper $cc;
                 # $cc - coverage being filled in
                 # $sc - structure information
