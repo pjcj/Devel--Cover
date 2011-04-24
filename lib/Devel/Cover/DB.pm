@@ -19,6 +19,7 @@ use Devel::Cover::DB::IO        0.76;
 
 use Carp;
 use File::Path;
+use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 
 my $DB = "cover.13";  # Version 13 of the database.
 
@@ -26,8 +27,6 @@ my $DB = "cover.13";  # Version 13 of the database.
     (qw( statement branch path condition subroutine pod time ));
 @Devel::Cover::DB::Criteria_short =
     (qw( stmt      bran   path cond      sub        pod time ));
-
-# use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 
 sub new
 {
@@ -206,7 +205,6 @@ sub merge
 {
     my ($self, $from) = @_;
 
-    # use Data::Dumper; $Data::Dumper::Indent = 1;
     # print STDERR "Merging ", Dumper($self), "From ", Dumper($from);
 
     while (my ($fname, $frun) = each %{$from->{runs}})
@@ -352,7 +350,7 @@ sub calculate_summary
         $self->cover->get($file)->calculate_summary($self, $file, \%options);
     }
 
-    # use Data::Dumper; print STDERR Dumper $self;
+    # print STDERR Dumper $self;
 
     for my $file ($self->cover->items)
     {
@@ -447,8 +445,8 @@ sub add_statement
         $cc->{$l}[$n][0]  += $fc->[$i];
         $cc->{$l}[$n][1] ||= $uc->{$l}[$n][0][1];
     }
-    # use Data::Dumper; print STDERR Dumper $uc;
-    # use Data::Dumper; print STDERR "cc: ", Dumper $cc;
+    # print STDERR Dumper $uc;
+    # print STDERR "cc: ", Dumper $cc;
 }
 
 sub add_time
@@ -461,7 +459,6 @@ sub add_time
         my $l = $sc->[$i];
         unless (defined $l)
         {
-            # use Data::Dumper;
             # print STDERR "sc ", scalar @$sc, ", fc ", scalar @$fc, "\n";
             # print STDERR "sc ", Dumper($sc), "fc ", Dumper($fc);
             warn "Devel::Cover: ignoring extra statement\n";
@@ -509,8 +506,7 @@ sub add_subroutine
     my $self = shift;
     my ($cc, $sc, $fc, $uc) = @_;
 
-    # use Data::Dumper;
-    #     print STDERR "add_subroutine():\n", Dumper $cc, $sc, $fc, $uc;
+    # print STDERR "add_subroutine():\n", Dumper $cc, $sc, $fc, $uc;
 
     # $cc = { line_number => [ [ count, sub_name, uncoverable ], [ ... ] ], .. }
     # $sc = [ [ line_number, sub_name ], [ ... ] ]
@@ -524,7 +520,6 @@ sub add_subroutine
         my $l = $sc->[$i][0];
         unless (defined $l)
         {
-            # use Data::Dumper;
             # print STDERR "sc ", scalar @$sc, ", fc ", scalar @$fc, "\n";
             # print STDERR "sc ", Dumper($sc), "fc ", Dumper($fc);
             warn "Devel::Cover: ignoring extra subroutine\n";
@@ -581,7 +576,7 @@ sub uncoverable
         }
     }
 
-    # use Data::Dumper; $Data::Dumper::Indent = 1; print STDERR Dumper $u;
+    # print STDERR Dumper $u;
     # Now change the format of the uncoverable information.
 
     for my $file (sort keys %$u)
@@ -603,7 +598,7 @@ sub uncoverable
         }
         close $fh;
         my $f = $u->{$file};
-        # use Data::Dumper; $Data::Dumper::Indent = 1; print STDERR Dumper $f;
+        # print STDERR Dumper $f;
         for my $crit (keys %$f)
         {
             my $c = $f->{$crit};
@@ -629,7 +624,7 @@ sub uncoverable
         $u->{$df->hexdigest} = delete $u->{$file};
     }
 
-    use Data::Dumper; $Data::Dumper::Indent = 1; print STDERR Dumper $u;
+    print STDERR Dumper $u;
     $u
 }
 
@@ -750,7 +745,7 @@ sub uncoverable_comments
         if @waiting;
 
     # TODO - read in and merge $self->uncoverable;
-    # use Data::Dumper; print Dumper $uncoverable;
+    # print Dumper $uncoverable;
 }
 
 sub objectify_cover
@@ -856,7 +851,7 @@ sub cover
     my $st = Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
     my @runs = sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
                     keys %{$self->{runs}};
-    # use Data::Dumper; print STDERR "runs: ", Dumper $self->{runs};
+    # print STDERR "runs: ", Dumper $self->{runs};
 
     for my $run (@runs)
     {
@@ -866,7 +861,7 @@ sub cover
         @{$self->{collected}}{@{$r->{collected}}} = ();
         $st->add_criteria(@{$r->{collected}});
         my $count = $r->{count};
-        # use Data::Dumper; print STDERR "run $run, count: ", Dumper $count;
+        # print STDERR "run $run, count: ", Dumper $count;
         while (my ($file, $f) = each %$count)
         {
             my $digest = $r->{digests}{$file};
