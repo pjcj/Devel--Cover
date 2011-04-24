@@ -753,71 +753,9 @@ sub uncoverable_comments
     # use Data::Dumper; print Dumper $uncoverable;
 }
 
-sub cover
+sub objectify_cover
 {
     my $self = shift;
-
-    return $self->{cover} if $self->{cover_valid};
-
-    my %digests;  # mapping of digests to canonical filenames
-    my %files;    # processed files
-    my $cover = $self->{cover} = {};
-    my $uncoverable = {};
-    my $st = Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
-    my @runs = sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
-                    keys %{$self->{runs}};
-    # use Data::Dumper; print STDERR "runs: ", Dumper $self->{runs};
-
-    for my $run (@runs)
-    {
-        last unless $st;
-
-        my $r = $self->{runs}{$run};
-        @{$self->{collected}}{@{$r->{collected}}} = ();
-        $st->add_criteria(@{$r->{collected}});
-        my $count = $r->{count};
-        # use Data::Dumper; print STDERR "run $run, count: ", Dumper $count;
-        while (my ($file, $f) = each %$count)
-        {
-            my $digest = $r->{digests}{$file};
-            unless ($digest)
-            {
-                print STDERR "Devel::Cover: Can't find digest for $file\n";
-                next;
-            }
-            # print STDERR "File: $file\n";
-            print STDERR "Devel::Cover: merging data for $file ",
-                         "into $digests{$digest}\n"
-                if !$files{$file}++ && $digests{$digest};
-
-            $self->uncoverable_comments($uncoverable, $file, $digest)
-                unless $digests{$digest};
-
-            # Set up data structure to hold coverage being filled in
-            my $cf = $cover->{$digests{$digest} ||= $file} ||= {};
-
-            # print STDERR "st ", Dumper($st),
-                         # "f  ", Dumper($f),
-                         # "uc ", Dumper($uncoverable->{$digest});
-            while (my ($criterion, $fc) = each %$f)
-            {
-                my $get = "get_$criterion";
-                my $sc  = $st->$get($digests{$digest});
-                # print STDERR "$criterion: ", Dumper $sc, $fc;
-                next unless $sc;  # TODO - why?
-                my $cc  = $cf->{$criterion} ||= {};
-                my $add = "add_$criterion";
-                # print STDERR "$add():\n", Dumper $cc, $sc, $fc;
-                $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
-                # print STDERR "--> $add():\n", Dumper $cc;
-                # $cc - coverage being filled in
-                # $sc - structure information
-                # $fc - coverage from this file
-                # $uc - uncoverable information
-            }
-        }
-        # print STDERR "Cover: ", Dumper $cover;
-    }
 
     unless (UNIVERSAL::isa($self->{cover}, "Devel::Cover::DB::Cover"))
     {
@@ -903,7 +841,75 @@ sub cover
             };
         }
     }
+}
 
+sub cover
+{
+    my $self = shift;
+
+    return $self->{cover} if $self->{cover_valid};
+
+    my %digests;  # mapping of digests to canonical filenames
+    my %files;    # processed files
+    my $cover = $self->{cover} = {};
+    my $uncoverable = {};
+    my $st = Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
+    my @runs = sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
+                    keys %{$self->{runs}};
+    # use Data::Dumper; print STDERR "runs: ", Dumper $self->{runs};
+
+    for my $run (@runs)
+    {
+        last unless $st;
+
+        my $r = $self->{runs}{$run};
+        @{$self->{collected}}{@{$r->{collected}}} = ();
+        $st->add_criteria(@{$r->{collected}});
+        my $count = $r->{count};
+        # use Data::Dumper; print STDERR "run $run, count: ", Dumper $count;
+        while (my ($file, $f) = each %$count)
+        {
+            my $digest = $r->{digests}{$file};
+            unless ($digest)
+            {
+                print STDERR "Devel::Cover: Can't find digest for $file\n";
+                next;
+            }
+            # print STDERR "File: $file\n";
+            print STDERR "Devel::Cover: merging data for $file ",
+                         "into $digests{$digest}\n"
+                if !$files{$file}++ && $digests{$digest};
+
+            $self->uncoverable_comments($uncoverable, $file, $digest)
+                unless $digests{$digest};
+
+            # Set up data structure to hold coverage being filled in
+            my $cf = $cover->{$digests{$digest} ||= $file} ||= {};
+
+            # print STDERR "st ", Dumper($st),
+                         # "f  ", Dumper($f),
+                         # "uc ", Dumper($uncoverable->{$digest});
+            while (my ($criterion, $fc) = each %$f)
+            {
+                my $get = "get_$criterion";
+                my $sc  = $st->$get($digests{$digest});
+                # print STDERR "$criterion: ", Dumper $sc, $fc;
+                next unless $sc;  # TODO - why?
+                my $cc  = $cf->{$criterion} ||= {};
+                my $add = "add_$criterion";
+                # print STDERR "$add():\n", Dumper $cc, $sc, $fc;
+                $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
+                # print STDERR "--> $add():\n", Dumper $cc;
+                # $cc - coverage being filled in
+                # $sc - structure information
+                # $fc - coverage from this file
+                # $uc - uncoverable information
+            }
+        }
+        # print STDERR "Cover: ", Dumper $cover;
+    }
+
+    $self->objectify_cover;
     $self->{cover_valid} = 1;
     $self->{cover}
 }
