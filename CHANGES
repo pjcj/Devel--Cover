@@ -5,6 +5,11 @@ Release 0.77 -
  - Add DEVEL_COVER_IO_OPTIONS environment variable.
  - Sort runs by start time.
  - Add digests to DB.
+ - Add cover -make option (Olivier Mengué) (rt 44906).
+ - Add digests to DB.
+   This should fix some problems related to losing coverage data when there are
+   duplicate files.  This happens most usually when modules are sometimes loaded
+   from lib and sometimes from blib. (rt 14192, 32465, 45737).
 
 Release 0.76 - 18th April 2011
  - Move CHANGES file into root for search.cpan.org (rt 67541).
@@ -20,7 +25,7 @@ Release 0.75 - 17th April 2011
 
 Release 0.74 - 16th April 2011
  - Test against 5.12.3 and code frozen 5.14.0 (unreleased).
- - Fix tests to work with all releases of 5.13.x (rt 60901).
+ - Fix tests to work with all releases of 5.13.x (rt 64210, 60901).
  - Avoid race condition writing DB structure files (Nicholas Clark).
  - Add debuglog method to Devel::Cover::DB::Structure (Nicholas Clark).
  - Be more careful deleting DB structure files (Nicholas Clark).
