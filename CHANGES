@@ -1,7 +1,10 @@
 Devel::Cover.pm history
 
 Release 0.77 -
- - Fix cover -test covering all the test files too (Larry Leszczynski) (rt 65920).
+ - Fix cover -test covering all the test files (Larry Leszczynski) (rt 65920).
+ - Add DEVEL_COVER_IO_OPTIONS environment variable.
+ - Sort runs by start time.
+ - Add digests to DB.
 
 Release 0.76 - 18th April 2011
  - Move CHANGES file into root for search.cpan.org (rt 67541).
