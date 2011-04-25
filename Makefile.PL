@@ -276,7 +276,7 @@ if ($] < 5.008)
 Devel::Cover $Version is not fully functional on perl $].  It should
 mostly work, but there are some constructs for which coverage will not
 be collected, and you may well encounter bugs which have been fixed in
-subsequent versions of perl.  Perl versions 5.8.1 and above should work
+subsequent versions of perl.  Perl versions 5.8.8 and above should work
 better.
 
 EOM
