@@ -57,11 +57,18 @@ sub add_cover
     $run{start} = $run{finish} = time;
     my $structure = Devel::Cover::DB::Structure->new;
     $structure->add_criteria("statement");
+    $structure->add_criteria("branch");
+
+    my $statement_re = qr/^\s*([-0-9#]+):\s*(\d+):(.*)/;
+    my $branch_re    = qr/^branch\s+(\d+)\s+(?:taken|never)\s+(\w+)/;
+
+    my ($line, $text);
 
     open F, $file or die "Can't open $file: $!\n";
-    while (<F>)
+    gcov_line: while (my $gcov_text = <F>)
     {
-        if (/^[^:]+:[^:]+:Source:(.*)$/)
+        # print "Processing line [$gcov_text]\n";
+        if ($gcov_text =~ /^[^:]+:[^:]+:Source:(.*)$/)
         {
             $f = $1;
             $f = File::Spec->abs2rel(File::Spec->catfile($dir, $f))
@@ -77,17 +84,50 @@ sub add_cover
             }
             $run{digests}{$f} = $structure->set_file($f);
         }
-        next unless my ($count, $line) = /^\s*([-0-9#]+):\s*(\d+):/;
-        next if $count eq "-";
-        $count = 0 if $count eq "#####";
+        if ($gcov_text =~ $statement_re)
+        {
+            my $count = $1;
+            $line = $2;
+            $text = $3;
 
-        # print "$f:$line - $count\n";
-        push @{$run{count}{$f}{statement}}, $count;
-        $structure->add_statement($f, $line);
+            next if $count eq "-";
+            $count = 0 if $count eq "#####";
+
+            # print "$f:$line - $count\n";
+            push @{$run{count}{$f}{statement}}, $count;
+            $structure->add_statement($f, $line);
+        }
+        elsif ($gcov_text =~ $branch_re)
+        {
+            my @branches;
+            # look for:
+            #     branch  0 taken 0 (fallthrough)
+            #     branch  1 taken 19
+            #     branch  0 never executed
+            #     branch  1 never executed
+            while ($gcov_text =~ $branch_re)
+            {
+                push @branches, $2 eq "executed" ? 0 : $2;
+                $gcov_text = <F>;
+            }
+            # print "branches on $f:$line are: @branches\n";
+
+            if (@branches == 2)
+            {
+                $structure->add_branch($f, [ $line, { text => $text } ]);
+                push @{$run{count}{$f}{branch}}, \@branches;
+            }
+            else
+            {
+                warn "gcov2perl: Warning: ignoring branch with ",
+                     scalar @branches, " targets at $f:$line $text\n";
+            }
+            redo gcov_line;  # process the line after the branch data
+        }
     }
     close F or die "Can't close $file: $!\n";
 
-    my $run   = time . ".$$." . sprintf "%05d", rand 2 ** 16;
+    my $run   = $run{start} . ".$$." . sprintf "%05d", rand 2 ** 16;
     my $db    = $Options->{db};
     my $cover = Devel::Cover::DB->new
     (

@@ -234,7 +234,7 @@ sub main
             $graph_file =~ s{\.\w+$}{.gcno};
             return unless -e $graph_file;
 
-            my $c = "gcov -o $File::Find::dir $name";
+            my $c = "gcov -abc -o $File::Find::dir $name";
             print STDERR "cover: running $c\n";
             system $c;
         };
