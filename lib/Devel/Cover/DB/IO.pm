@@ -59,7 +59,7 @@ sub read
     }
 
     open my $fh, "<", $file or die "Can't open $file: $!";
-    flock($fh, LOCK_SH) or die "Cannot lock mailbox - $!\n";
+    flock($fh, LOCK_SH) or die "Cannot lock file: $!\n";
     local $/;
     my $data = JSON::PP::decode_json(<$fh>);
     close $fh or die "Can't close $file: $!";
@@ -80,7 +80,7 @@ sub write
     my $json = JSON::PP->new->utf8;
     $json->ascii->pretty->canonical if $self->{options} =~ /\bpretty\b/i;
     open my $fh, ">", $file or die "Can't open $file: $!";
-    flock($fh, LOCK_EX) or die "Cannot lock mailbox - $!\n";
+    flock($fh, LOCK_EX) or die "Cannot lock file: $!\n";
     print $fh $json->encode($data);
     close $fh or die "Can't close $file: $!";
     $self

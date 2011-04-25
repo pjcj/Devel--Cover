@@ -20,6 +20,7 @@ lib/Devel/Cover/Condition_or_3.pm
 lib/Devel/Cover/Condition_xor_4.pm
 lib/Devel/Cover/Criterion.pm
 lib/Devel/Cover/DB.pm
+lib/Devel/Cover/DB/Digests.pm
 lib/Devel/Cover/DB/File.pm
 lib/Devel/Cover/DB/IO.pm
 lib/Devel/Cover/DB/Structure.pm

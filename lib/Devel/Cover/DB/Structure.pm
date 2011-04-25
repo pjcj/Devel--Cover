@@ -60,12 +60,14 @@ sub AUTOLOAD
         {
             *$func = sub
             {
-                my $self = shift;
-                my $file = shift;
-                # print STDERR "file: $file, condition: $c\n";
-                # TODO - why no file?
-                return unless defined $file;
-                $self->{f}{$file}{$c}
+                my $self   = shift;
+                my $digest = shift;
+                # print STDERR "file: $digest, condition: $c\n";
+                for my $fval (values %{$self->{f}})
+                {
+                    return $fval->{$c} if $fval->{digest} eq $digest;
+                }
+                return
             }
         };
     }

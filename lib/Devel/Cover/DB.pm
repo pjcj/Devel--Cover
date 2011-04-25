@@ -186,9 +186,9 @@ sub is_valid
     for my $file (readdir $fh)
     {
         next if $file eq "." || $file eq "..";
-        next if ($file eq "runs" || $file eq "structure" || $file eq "debuglog")
+        next if $file =~ /(?:runs|structure|debuglog|digests)$/
                 && -e "$self->{db}/$file";
-        # warn "found $file in $self->{db}";
+        warn "found $file in $self->{db}";
         return 0;
     }
     closedir $fh
@@ -887,9 +887,14 @@ sub cover
             while (my ($criterion, $fc) = each %$f)
             {
                 my $get = "get_$criterion";
-                my $sc  = $st->$get($digests{$digest});
+                my $sc  = $st->$get($digest);
                 # print STDERR "$criterion: ", Dumper $sc, $fc;
-                next unless $sc;  # TODO - why?
+                unless ($sc)
+                {
+                    print STDERR "Devel::Cover: Can't locate structure for ",
+                                 "$criterion in $file\n";
+                    next;
+                }
                 my $cc  = $cf->{$criterion} ||= {};
                 my $add = "add_$criterion";
                 # print STDERR "$add():\n", Dumper $cc, $sc, $fc;

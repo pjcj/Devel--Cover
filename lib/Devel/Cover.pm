@@ -15,8 +15,9 @@ our $VERSION = "0.76";
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB  0.76;
-use Devel::Cover::Inc 0.76;
+use Devel::Cover::DB          0.76;
+use Devel::Cover::DB::Digests 0.76;
+use Devel::Cover::Inc         0.76;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -72,6 +73,7 @@ my $Sub_count;                           # Count for multiple subs on same line.
 
 my $Coverage;                            # Raw coverage data.
 my $Structure;                           # Structure of the files.
+my $Digests;                             # Digests of the files.
 
 my %Criteria;                            # Names of coverage criteria.
 my %Coverage;                            # Coverage criteria to collect.
@@ -423,6 +425,7 @@ sub normalised_file
 
     my $f = $file;
     $file =~ s/ \(autosplit into .*\)$//;
+    $file =~ s/^\(eval in .*\) //;
     # print STDERR "file is <$file>\n";
     # use Data::Dumper;
     # print STDERR "file is <$file>\ncoverage: ", Dumper coverage(0);
@@ -460,6 +463,9 @@ sub normalised_file
     }
     $file =~ s|\\|/|g if $^O eq "MSWin32";
     $file =~ s|^$Dir/|| if defined $Dir;
+
+    $Digests ||= Devel::Cover::DB::Digests->new(db => $DB);
+    $file = $Digests->canonical_file($file);
 
     # print STDERR "File: $f => $file\n";
 
@@ -499,6 +505,7 @@ sub use_file
     # die "bad file" unless length $file;
 
     $file = $1 if $file =~ /^\(eval \d+\)\[(.+):\d+\]/;
+    $file = $1 if $file =~ /^\(eval in \w+\) (.+)/;
     $file =~ s/ \(autosplit into .*\)$//;
 
     return $Files{$file} if exists $Files{$file};
@@ -721,6 +728,7 @@ sub _report
     print OUT __PACKAGE__, ": Writing coverage database to $dbrun\n"
         unless $Silent;
     $cover->write($dbrun);
+    $Digests->write;
     $cover->print_summary if $Summary && !$Silent;
 
     return if !$Self_cover || $Self_cover_run;
