@@ -47,6 +47,7 @@ MANIFEST.SKIP
 META.yml
 README
 t/internal/criteria.t
+t/internal/subprocess.t
 t/regexp/regexp_eval.t
 tests/.uncoverable
 tests/alias
