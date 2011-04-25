@@ -18,12 +18,13 @@ use Devel::Cover::DB 0.76;
 
 use Config;
 use File::Spec;
-use Data::Dumper;
 use File::Find ();
 use File::Path;
 use FindBin '$Bin';
 use Getopt::Long;
 use Pod::Usage;
+
+use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 
 my $Options =
 {
@@ -314,8 +315,6 @@ sub main
     $db->print_summary(@{$Options->{coverage}}) if $Options->{summary};
 
     return unless length $Options->{report};
-
-    # use Data::Dumper;  $Data::Dumper::Indent = 1; print Dumper $db->cover;
 
     # TODO - The sense of select and ignore should be reversed to match
     # collection.

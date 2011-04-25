@@ -22,6 +22,8 @@ use Pod::Usage;
 use Template 2.00;
 use Parallel::Iterator "iterate_as_array";
 
+use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
+
 # use Carp; $SIG{__DIE__} = \&Carp::confess;
 
 my $Template;
@@ -314,8 +316,6 @@ sub write_html
         }
     }
 
-    # use Data::Dumper; print Dumper $vars;
-
     write_stylesheet;
     $Template->process("summary", $vars, $f) or die $Template->error();
 
@@ -344,7 +344,7 @@ sub main
             sub { get_cover $_[1] },
             $Options->{module}
         );
-        use Data::Dumper;  print Dumper \@res;
+        print Dumper \@res;
         # get_cover($_) for @{$Options->{module}};
     }
 

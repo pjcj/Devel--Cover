@@ -19,6 +19,7 @@ use Devel::Cover::DB::IO        0.76;
 
 use Carp;
 use File::Path;
+
 use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 
 my $DB = "cover.13";  # Version 13 of the database.

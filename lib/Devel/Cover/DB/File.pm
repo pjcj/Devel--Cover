@@ -14,6 +14,8 @@ our $VERSION = "0.76";
 
 use Devel::Cover::Criterion 0.76;
 
+use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
+
 sub calculate_summary
 {
     my $self = shift;
@@ -39,7 +41,7 @@ sub calculate_percentage
     my $self = shift;
     my ($db, $s) = @_;
 
-    # use Data::Dumper; print STDERR Dumper $s;
+    # print STDERR Dumper $s;
 
     for my $criterion ($self->items)
     {
@@ -50,7 +52,7 @@ sub calculate_percentage
     }
     Devel::Cover::Criterion->calculate_percentage($db, $s->{total});
 
-    # use Data::Dumper; print STDERR Dumper $s;
+    # print STDERR Dumper $s;
 }
 
 1

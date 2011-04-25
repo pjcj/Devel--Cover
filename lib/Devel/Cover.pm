@@ -28,6 +28,8 @@ use Config;
 use Cwd "abs_path";
 use File::Spec;
 
+use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
+
 BEGIN
 {
     # Use Pod::Coverage if it is available.
@@ -426,8 +428,6 @@ sub normalised_file
     my $f = $file;
     $file =~ s/ \(autosplit into .*\)$//;
     $file =~ s/^\(eval in .*\) //;
-    # print STDERR "file is <$file>\n";
-    # use Data::Dumper;
     # print STDERR "file is <$file>\ncoverage: ", Dumper coverage(0);
     if (exists coverage(0)->{module} && exists coverage(0)->{module}{$file} &&
         !File::Spec->file_name_is_absolute($file))
@@ -658,12 +658,11 @@ sub _report
     $Structure      = Devel::Cover::DB::Structure->new(base => $DB);
     $Structure->read_all;
     $Structure->add_criteria(@collected);
-    # use Data::Dumper; $Data::Dumper::Indent = 1;
-    # use Data::Dumper; print STDERR "Start structure: ", Dumper $Structure;
+    # print STDERR "Start structure: ", Dumper $Structure;
 
     # print STDERR "Processing cover data\n@Inc\n";
     $Coverage = coverage(1) || die "No coverage data available.\n";
-    # use Data::Dumper; print STDERR Dumper $Coverage;
+    # print STDERR Dumper $Coverage;
 
     check_files();
 
@@ -708,7 +707,7 @@ sub _report
         $Structure->store_counts($file);
     }
 
-    # use Data::Dumper; print STDERR "End structure: ", Dumper $Structure;
+    # print STDERR "End structure: ", Dumper $Structure;
 
     my $run = time . ".$$." . sprintf "%05d", rand 2 ** 16;
     my $cover = Devel::Cover::DB->new
@@ -1177,7 +1176,7 @@ sub get_cover
                 }
             }
             $Pod = "Pod::Coverage" if delete $opts{nocp};
-            # use Data::Dumper; print STDERR "$Pod, ", Dumper \%opts;
+            # print STDERR "$Pod, ", Dumper \%opts;
             if ($Pod{$file} ||= $Pod->new(package => $pkg, %opts))
             {
                 my $covered;
