@@ -5,36 +5,37 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-package Devel::Cover::DB::IO;
+package Devel::Cover::DB::IO::Storable;
 
 use strict;
 use warnings;
 
+use Storable;
+
 our $VERSION = "0.76";
-
-my $Format;
-
-BEGIN
-{
-    $Format = "Storable" if eval "use Storable; 1";
-    # warn "Storable available\n" if $INC{"Storable.pm"};
-    $Format = "JSON"     if eval "use JSON::PP; 1";
-    # warn "JSON::PP available\n" if $INC{"JSON/PP.pm"};
-    die "Can't load either JSON::PP or Storable" unless $Format;
-}
 
 sub new
 {
     my $class = shift;
+    my $self  = { @_ };
+    bless $self, $class
+}
 
-    my $format = $ENV{DEVEL_COVER_DB_FORMAT} || $Format;
-    die "Devel::Cover: Unrecognised DB format: $format"
-        unless $format =~ /^(?:Storable|JSON)$/;
+sub read
+{
+    my $self   = shift;
+    my ($file) = @_;
 
-    $class .= "::$format";
-    eval "use $class; 1" or die "Devel::Cover: $@";
+    Storable::lock_retrieve($file)
+}
 
-    $class->new(options => $ENV{DEVEL_COVER_IO_OPTIONS} || "", @_)
+sub write
+{
+    my $self = shift;
+    my ($data, $file) = @_;
+
+    Storable::lock_nstore($data, $file);
+    $self
 }
 
 1
@@ -43,19 +44,19 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::DB::IO - IO routines for Devel::Cover::DB
+Devel::Cover::DB::IO::Storable - Storable based IO routines for Devel::Cover::DB
 
 =head1 SYNOPSIS
 
- use Devel::Cover::DB::IO;
+ use Devel::Cover::DB::IO::Storable;
 
- my $io = Devel::Cover::DB::IO->new(format => "JSON");
+ my $io = Devel::Cover::DB::IO::Storable->new;
  my $data = $io->read($file);
  $io->write($data, $file);
 
 =head1 DESCRIPTION
 
-This module provides IO routines for Devel::Cover::DB.
+This module provides Storable based IO routines for Devel::Cover::DB.
 
 =head1 SEE ALSO
 
@@ -65,7 +66,7 @@ This module provides IO routines for Devel::Cover::DB.
 
 =head2 new
 
- my $io = Devel::Cover::DB::IO->new(format => "JSON");
+ my $io = Devel::Cover::DB::IO::Storable->new;
 
 Contructs the IO object.
 

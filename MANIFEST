@@ -23,6 +23,8 @@ lib/Devel/Cover/DB.pm
 lib/Devel/Cover/DB/Digests.pm
 lib/Devel/Cover/DB/File.pm
 lib/Devel/Cover/DB/IO.pm
+lib/Devel/Cover/DB/IO/JSON.pm
+lib/Devel/Cover/DB/IO/Storable.pm
 lib/Devel/Cover/DB/Structure.pm
 lib/Devel/Cover/Op.pm
 lib/Devel/Cover/Pod.pm

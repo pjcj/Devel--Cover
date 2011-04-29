@@ -419,11 +419,18 @@ sub get_coverage
 
 my %File_cache;
 
+# Recursion in normalised_file() is bad.  It can happen if a call from the sub
+# evals something which wants to load a new module.  This has happened with
+# the Storable backend.  I don't think it happens with the JSON backend.
+my $Normalising;
+
 sub normalised_file
 {
     my ($file) = @_;
 
     return $File_cache{$file} if exists $File_cache{$file};
+    return $file if $Normalising;
+    $Normalising = 1;
 
     my $f = $file;
     $file =~ s/ \(autosplit into .*\)$//;
@@ -469,6 +476,7 @@ sub normalised_file
 
     # print STDERR "File: $f => $file\n";
 
+    $Normalising = 0;
     $File_cache{$f} = $file
 }
 
