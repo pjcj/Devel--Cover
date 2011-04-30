@@ -20,30 +20,40 @@ tests/inc_sub
 line  err   stmt   bran   cond    sub   code
 1                                       #!/bin/perl
 2                                       
-3              1                    1   use lib ();
-               1                        
-               1                        
+3                                       # Copyright 2002-2011, Paul Johnson (pjcj@cpan.org)
 4                                       
-5                                       BEGIN
-6                                       {
-7                                           lib->import
-8                                           (
-9                                               sub
-10                                              {
-11             2                                    print map("[$_]", @_), "\n";
-12             2    100                             return unless $_[1] eq "IncSub.pm";
-13             1                                    my $fh;
-14    ***      1     50                             open $fh, "tests/IncSub.pm" or die $!;
-15             1                                    $fh
-16                                              }
-17                                          )
-18             1                    1   }
-19                                      
-20             1                    1   use IncSub;
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      # __COVER__ changes s/(2[12]             )[23]/$1X/
+11                                      # __COVER__ changes s/(22           100      )[12]/$1X/
+12                                      
+13             1                    1   use lib ();
                1                        
                1                        
-21                                      
-22             1                        IncSub::check
+14                                      
+15                                      BEGIN
+16                                      {
+17                                          lib->import
+18                                          (
+19                                              sub
+20                                              {
+21             2                                    print map("[$_]", @_), "\n";
+22             2    100                             return unless $_[1] eq "IncSub.pm";
+23             1                                    my $fh;
+24    ***      1     50                             open $fh, "tests/IncSub.pm" or die $!;
+25             1                                    $fh
+26                                              }
+27                                          )
+28             1                    1   }
+29                                      
+30             1                    1   use IncSub;
+               1                        
+               1                        
+31                                      
+32             1                        IncSub::check
 
 
 Branches
@@ -51,8 +61,8 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-12           100      1      1   unless $_[1] eq 'IncSub.pm'
-14    ***     50      0      1   unless open $fh, 'tests/IncSub.pm'
+22           100      1      1   unless $_[1] eq 'IncSub.pm'
+24    ***     50      0      1   unless open $fh, 'tests/IncSub.pm'
 
 
 Covered Subroutines
@@ -60,8 +70,8 @@ Covered Subroutines
 
 Subroutine Count Location        
 ---------- ----- ----------------
-BEGIN          1 tests/inc_sub:18
-BEGIN          1 tests/inc_sub:20
-BEGIN          1 tests/inc_sub:3 
+BEGIN          1 tests/inc_sub:13
+BEGIN          1 tests/inc_sub:28
+BEGIN          1 tests/inc_sub:30
 
 
