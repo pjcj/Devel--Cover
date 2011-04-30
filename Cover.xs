@@ -1434,6 +1434,11 @@ BOOT:
         initialise(aTHX);
         if (MY_CXT.replace_ops) {
             replace_ops(aTHX);
+#if defined HAS_GETTIMEOFDAY
+            elapsed();
+#elif defined HAS_TIMES
+            cpu();
+#endif
         }
         else {
             PL_runops = runops_cover;
