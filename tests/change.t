@@ -15,6 +15,12 @@ use File::Copy;
 use Devel::Cover::Inc  0.76;
 use Devel::Cover::Test 0.76;
 
+if ($] == 5.008007)
+{
+    eval "use Test::More skip_all => 'Crashes 5.8.7'";
+    exit;
+}
+
 my $base = $Devel::Cover::Inc::Base;
 
 my $t  = "change";
