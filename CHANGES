@@ -10,6 +10,7 @@ Release 0.77 -
    This should fix some problems related to losing coverage data when there are
    duplicate files.  This happens most usually when modules are sometimes loaded
    from lib and sometimes from blib. (rt 14192, 32465, 45737).
+ - Add branch coverage for gcov (rt 30365).
 
 Release 0.76 - 18th April 2011
  - Move CHANGES file into root for search.cpan.org (rt 67541).
