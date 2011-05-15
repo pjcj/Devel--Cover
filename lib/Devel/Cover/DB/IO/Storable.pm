@@ -12,7 +12,7 @@ use warnings;
 
 use Storable;
 
-our $VERSION = "0.76";
+our $VERSION = "0.77";
 
 sub new
 {
@@ -88,7 +88,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.76 - 18th April 2011
+Version 0.77 - 15th May 2011
 
 =head1 LICENCE
 

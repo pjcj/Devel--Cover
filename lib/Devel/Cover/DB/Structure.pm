@@ -14,14 +14,14 @@ use Carp;
 use Digest::MD5;
 
 use Devel::Cover::DB;
-use Devel::Cover::DB::IO        0.76;
+use Devel::Cover::DB::IO        0.77;
 
 use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 
 # For comprehensive debug logging.
 use constant DEBUG => 0;
 
-our $VERSION = "0.76";
+our $VERSION = "0.77";
 our $AUTOLOAD;
 
 sub new
@@ -402,7 +402,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.76 - 18th April 2011
+Version 0.77 - 15th May 2011
 
 =head1 LICENCE
 

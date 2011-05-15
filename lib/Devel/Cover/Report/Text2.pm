@@ -2,9 +2,9 @@ package Devel::Cover::Report::Text2;
 use strict;
 use warnings;
 
-our $VERSION = "0.76";
+our $VERSION = "0.77";
 
-use Devel::Cover::DB 0.76;
+use Devel::Cover::DB 0.77;
 use Devel::Cover::Truth_Table;
 
 my %format = (
@@ -191,7 +191,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.76 - 18th April 2011
+Version 0.77 - 15th May 2011
 
 =head1 LICENCE
 
