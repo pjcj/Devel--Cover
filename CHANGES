@@ -1,6 +1,6 @@
 Devel::Cover.pm history
 
-Release 0.77 -
+Release 0.77 - 15th May 2011
  - Fix cover -test covering all the test files (Larry Leszczynski) (rt 65920).
  - Add DEVEL_COVER_IO_OPTIONS environment variable.
  - Sort runs by start time.
