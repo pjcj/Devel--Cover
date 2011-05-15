@@ -5,7 +5,7 @@
   $ git diff
   $ git commit -v MANIFEST
 
- 3. Update docs/CHANGES.
+ 3. Update CHANGES.
   - Show the release number and date of release.
   - Add important changes.
   - Credit the author as appropriate.
