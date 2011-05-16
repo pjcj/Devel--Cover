@@ -12,10 +12,10 @@ else
     plan tests => 2;
 }
 
-my $cmd = "$^X -e 'print \"Hello World.\\n\"'";
+my $cmd = qq[$^X -e "print q(Hello, world.)"];
 my $output = `$cmd 2>&1`;
-is($output, "Hello World.\n", 'simple test with perl -e');
+is($output, "Hello, world.", "simple test with perl -e");
 
-$cmd = "$^X -Mblib -MDevel::Cover=-silent,1 -e 'print \"Hello World.\\n\"'";
+$cmd = qq[$^X -Mblib -MDevel::Cover=-silent,1 -e "print q(Hello, world.)"];
 $output = `$cmd 2>&1`;
-is($output, "Hello World.\n", 'test with perl -MDevel::Cover,-silent,1 -e');
+is($output, "Hello, world.", "test with perl -MDevel::Cover,-silent,1 -e");
