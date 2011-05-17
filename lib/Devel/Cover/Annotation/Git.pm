@@ -10,7 +10,7 @@ package Devel::Cover::Annotation::Git;
 use strict;
 use warnings;
 
-our $VERSION = "0.77";
+our $VERSION = "0.78";
 
 use Getopt::Long;
 
@@ -153,7 +153,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.77 - 15th May 2011
+Version 0.78 - 17th May 2011
 
 =head1 LICENCE
 
