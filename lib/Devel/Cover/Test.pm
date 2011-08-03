@@ -36,11 +36,13 @@ sub new
     my $self =
     {
         test             => $test,
-        criteria         => $criteria,
+        criteria         => [ $criteria ],
         skip             => "",
-        uncoverable_file => "",
+        uncoverable_file => [],
         select           => "",
-        ignore           => "",
+        ignore           => [],
+        changes          => [],
+        test_parameters  => [],
         run_test_at_end  => 1,
         %params
     };
@@ -59,26 +61,38 @@ sub get_params
     {
         while (<T>)
         {
-            $self->{$1} = $2 if /__COVER__\s+(\w+)\s+(.*)/;
+            push @{$self->{$1}}, $2 if /__COVER__\s+(\w+)\s+(.*)/;
         }
         close T or die "Cannot close $test: $!";
     }
 
+    $self->{criteria} = $self->{criteria}[-1];
+
     $self->{select}         ||= "-select $self->{test}";
     $self->{test_parameters}  = "$self->{select}"
-                              . " -ignore blib Devel/Cover $self->{ignore}"
+                              . " -ignore blib Devel/Cover @{$self->{ignore}}"
                               . " -merge 0 -coverage $self->{criteria} "
-                              . ($self->{test_parameters} || "");
+                              . "@{$self->{test_parameters}}";
     $self->{criteria} =~ s/-\w+//g;
-    $self->{cover_db} = "$Devel::Cover::Inc::Base/t/e2e/cover_db_$self->{test}/";
+    $self->{cover_db} = "$Devel::Cover::Inc::Base/t/e2e/"
+                      . "cover_db_$self->{test}/";
     mkdir $self->{cover_db};
     $self->{cover_parameters} = join(" ", map "-coverage $_",
                                               split " ", $self->{criteria})
                               . " -report text " . $self->{cover_db};
-    $self->{cover_parameters} .= " -uncoverable_file $self->{uncoverable_file}"
-        if $self->{uncoverable_file};
-    $self->{skip}             = $self->{skip_reason}
-        if exists $self->{skip_test} && eval "{$self->{skip_test}}";
+    $self->{cover_parameters} .= " -uncoverable_file "
+                              .  "@{$self->{uncoverable_file}}"
+        if @{$self->{uncoverable_file}};
+    if (exists $self->{skip_test})
+    {
+        for my $s (@{$self->{skip_test}})
+        {
+            my $r = shift @{$self->{skip_reason}};
+            next unless eval "{$s}";
+            $self->{skip} = $r;
+            last;
+        }
+    }
 
     $self
 }
@@ -280,19 +294,24 @@ sub run_cover
             s/^(Finish: ).*/$1/;
             s/copyright .*//ix;
             no warnings "exiting";
-            eval $self->{changes} if exists $self->{changes};
+            eval join "; ", @{$self->{changes}};
             return $_;
         }
     };
 
+    # use Data::Dumper; print STDERR "--->", Dumper $self->{changes};
     open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
     while (!eof T)
     {
         my $t = $change_line->(sub { <T> });
         my $c = $change_line->(sub { shift @{$self->{cover}} });
         # print STDERR "[$t]\n[$c]\n" if $t ne $c;
-        # chomp(my $tn = $t); chomp(my $cn = $c);
-        # print STDERR "c-[$tn] $.\ng=[$cn]\n";
+        do
+        {
+            chomp(my $tn = $t); chomp(my $cn = $c);
+            print STDERR "c-[$tn] $.\ng=[$cn]\n";
+        } if $debug;
+
         if ($differences)
         {
             push @at, $t;
