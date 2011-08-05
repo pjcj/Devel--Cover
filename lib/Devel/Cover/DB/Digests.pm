@@ -10,10 +10,10 @@ package Devel::Cover::DB::Digests;
 use strict;
 use warnings;
 
-our $VERSION = "0.78";
+our $VERSION = "0.79";
 
-use Devel::Cover::DB::Structure 0.78;
-use Devel::Cover::DB::IO        0.78;
+use Devel::Cover::DB::Structure 0.79;
+use Devel::Cover::DB::IO        0.79;
 
 my $File = "digests";
 
@@ -140,7 +140,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.78 - 17th May 2011
+Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

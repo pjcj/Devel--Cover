@@ -13,7 +13,7 @@ use warnings;
 use Fcntl ":flock";
 use JSON::PP;
 
-our $VERSION = "0.78";
+our $VERSION = "0.79";
 
 sub new
 {
@@ -99,7 +99,7 @@ Huh?
 
 =head1 VERSION
 
-Version 0.78 - 17th May 2011
+Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

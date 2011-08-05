@@ -3,7 +3,7 @@
    "author" : [
       "Paul Johnson (pjcj@cpan.org)"
    ],
-   "dynamic_config" : 0,
+   "dynamic_config" : 1,
    "generated_by" : "ExtUtils::MakeMaker version 6.58, CPAN::Meta::Converter version 2.110930001",
    "license" : [
       "perl_5"
@@ -24,7 +24,9 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : 0
+            "ExtUtils::MakeMaker" : 0,
+            "Test::More" : 0,
+            "Test::Warn" : 0
          }
       },
       "configure" : {
@@ -47,8 +49,6 @@
          "requires" : {
             "Digest::MD5" : 0,
             "Storable" : 0,
-            "Test::More" : 0,
-            "Test::Warn" : 0,
             "perl" : "5.006001"
          }
       }
