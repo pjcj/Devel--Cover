@@ -18,9 +18,9 @@
   - Then propagate the change.
   $ perl Makefile.PL && make
 
- 6. Generate META.yml
+ 6. Generate META.yml and META.json
   $ make distdir
-  $ cp Devel-Cover-X.YZ/META.yml .
+  $ cp Devel-Cover-X.YZ/META.* .
   $ rm -r Devel-Cover-X.YZ
 
  7. Run basic tests.
