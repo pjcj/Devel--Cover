@@ -231,7 +231,8 @@ sub digest
     else
     {
         warn "Devel::Cover: Can't open $file for MD5 digest: $!\n"
-            unless lc $file eq "-e";
+            unless lc $file eq "-e" or
+                      $file =~ $Devel::Cover::Moose_filenames;
         # require "Cwd"; warn Carp::longmess("in " . Cwd::cwd());
     }
     $digest

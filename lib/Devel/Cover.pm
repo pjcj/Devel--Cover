@@ -95,7 +95,8 @@ use vars '$File',                        # Last filename we saw.  (localised)
          '%Files',                       # Whether we are interested in files.
                                          # Used in runops function.
          '$Replace_ops',                 # Whether we are replacing ops.
-         '$Silent';                      # Output nothing. Can be used anywhere.
+         '$Silent',                      # Output nothing. Can be used anywhere.
+         '$Moose_filenames';             # Moose generated filename to ignore.
 
 BEGIN
 {
@@ -109,6 +110,8 @@ BEGIN
     # $^P = 0x004 | 0x010 | 0x100 | 0x200;
     # $^P = 0x004 | 0x100 | 0x200;
     $^P |= 0x004 | 0x100;
+    $Moose_filenames =
+        qr/(?:reader|writer|constructor|destructor|accessor|predicate) /;
 }
 
 sub version { $VERSION }
@@ -532,7 +535,7 @@ sub use_file
     # system "pwd; ls -l '$file'";
     $Files{$file} = -e $file ? 1 : 0;
     warn __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
-        unless $Files{$file} || $Silent;
+        unless $Files{$file} || $Silent || $file =~ $Moose_filenames;
 
     $Files{$file}
 }
