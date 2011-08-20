@@ -20,7 +20,6 @@ use Config;
 use File::Spec;
 use File::Find ();
 use File::Path;
-use FindBin '$Bin';
 use Getopt::Long;
 use Pod::Usage;
 
@@ -251,7 +250,12 @@ sub main
         File::Find::find({ wanted => $gp, no_chdir => 1 }, ".");
         if (@gc)
         {
-            my $c = "gcov2perl -db $dbname @gc";
+            # Find the right gcov2perl based on this current script.
+            require Cwd;
+            my $path = Cwd::abs_path($0);
+            my ($vol, $dir, $cover) = File::Spec->splitpath($path);
+            my $gcov2perl = File::Spec->catpath($vol, $dir, 'gcov2perl');
+            my $c = "$gcov2perl -db $dbname @gc";
             print STDERR "cover: running $c\n";
             system $c;
         }
