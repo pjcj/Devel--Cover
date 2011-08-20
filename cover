@@ -233,9 +233,9 @@ sub main
             $graph_file =~ s{\.\w+$}{.gcno};
             return unless -e $graph_file;
 
-            my $c = "gcov -abc -o $File::Find::dir $name";
-            print STDERR "cover: running $c\n";
-            system $c;
+            my @c = ("gcov", "-abc", "-o", $File::Find::dir, $name);
+            print STDERR "cover: running @c\n";
+            system @c;
         };
         File::Find::find({ wanted => $gc, no_chdir => 1 }, ".");
         my @gc;
@@ -255,9 +255,9 @@ sub main
             my $path = Cwd::abs_path($0);
             my ($vol, $dir, $cover) = File::Spec->splitpath($path);
             my $gcov2perl = File::Spec->catpath($vol, $dir, 'gcov2perl');
-            my $c = "$gcov2perl -db $dbname @gc";
-            print STDERR "cover: running $c\n";
-            system $c;
+            my @c = ($gcov2perl, "-db", $dbname, @gc);
+            print STDERR "cover: running @c\n";
+            system @c;
         }
     }
 
