@@ -167,7 +167,8 @@ sub main ()
 
         dsys "sh ./Configure -des @opts";
         dsys "make" . (building "Xcoverage" ? " perl.gcov" : "");
-        dsys "HARNESS_OPTIONS=j$ENV{TEST_JOBS}:c make -j$ENV{TEST_JOBS} test_harness install";
+        dsys "HARNESS_OPTIONS=j$ENV{TEST_JOBS}:c " .
+             "make -j$ENV{TEST_JOBS} test_harness install";
         # dsys "make install";
 
         my ($version) = glob "${Perl}5.*";
@@ -325,7 +326,7 @@ sub main ()
 
     if (building "postgres")
     {
-        my $postgres = "postgresql-8.4.4";
+        my $postgres = "postgresql-9.0.4";
         build $postgres,
               $Src_dir,
               {
@@ -348,49 +349,37 @@ sub main ()
 
     if (building "modules")
     {
-        my @modules =
-        qw(
-            DBIx::Class::InflateColumn::DateTime
-            Template
-            DBD::Pg
-            DBIx::Class::Schema::Loader::DBI::Pg
+        my $modules = <<EOM;
 
-            Catalyst
-            Catalyst::Devel
-            Catalyst::Engine::PSGI
-            Catalyst::Model::DBIC::Schema
-            Catalyst::Plugin::Authentication
-            Catalyst::Plugin::Authorization::Roles
-            Catalyst::Plugin::ConfigLoader
-            Catalyst::Plugin::Session::State::Cookie
-            Catalyst::Plugin::Session::Store::FastMmap
-            Catalyst::Plugin::StackTrace
-            Catalyst::Plugin::Static::Simple
-            Catalyst::View::JSON
-            Catalyst::View::TT
+            # Modules with many dependencies
+            Task::Kensho
+            Task::Plack
+            Task::Catalyst
+            Task::Dancer
+            Mojolicious
+            Task::Moose
+            Task::Dist::Zilla
+            Task::CPAN::SmokeBox
+            Task::Perl::Critic
+            Task::Toolchain::Test
+            Task::Template::Benchmark
+            MojoMojo
+            Jifty
+            Bot::BasicBot
 
-            MooseX::Declare
-
-            Starman
-
-            Gitalist
-
+            # Stuff for Devel::Cover
             Devel::Cover
+            ../..
             Parallel::Iterator
             Test::Pod::Coverage
 
-            ../..
-
+            # My stuff
             Gedcom
             Shell::Source
 
-            XX-Top-Level-Modules-With-Many-Dependencies
-            MojoMojo
-            Jifty
-            Dist::Zilla
-            Bot::BasicBot
+            # There's going to be repetition down here
 
-            XX-Modules-With-Many-Dependents
+            # Modules with many dependents
             Exporter
             Text::Tabs
             Test::Harness
@@ -483,7 +472,7 @@ sub main ()
             File::Slurp
             Devel::StackTrace
 
-            XX-Modules-Which-Should-Not-Fail
+            # Modules which should not fail
             IO
             List::MoreUtils
             Test::Harness
@@ -519,7 +508,7 @@ sub main ()
             constant
             Test
             File::Temp
-            XXTemplate::Toolkit
+            Template::Toolkit
             Cache::Cache
             Feed::Find
             HTML::Tagset
@@ -543,9 +532,9 @@ sub main ()
             Fuse
             File::HomeDir
             Bot::BasicBot
-            XXURI::Find::Simple
+            # URI::Find::Simple
             base
-            XXGD
+            # GD
             WWW::Mechanize
             Test::Most
             Sys::Syslog
@@ -571,16 +560,20 @@ sub main ()
             Term::ReadKey
             DBI
             Test::Exception
-          );
+
+EOM
+
+        my @modules = grep /\S/, grep !/^ +#/, split /\n/, $modules;
+        s/^ +//, s/ +$// for @modules;
+        my %m; @modules = grep !$m{$_}++, @modules;
 
         my $cpanm = "$Sw/bin/cpanm";
         dsys((-e $cpanm ? $cpanm : "wget -O - http://cpanmin.us | $Perl -") .
-             " --self-upgrade\n");
+             " --self-upgrade");
         for my $mod (@modules)
         {
-            next if $mod =~ /^XX/;
-            dsys "$cpanm -v --force --mirror http://cpan.wanadoo.nl/ $mod\n"
-                if sys "$cpanm $mod\n";
+            sys "$cpanm $mod" or
+            dsys "$cpanm -v --force --mirror http://cpan.cpantesters.org/ $mod";
         }
     }
 
@@ -607,7 +600,7 @@ sub main ()
         $c .= $Blead ? "html" : "html_basic";
         # $c .= " -force";
         $c .= " -redo_html";
-        dsys "$c\n";
+        dsys $c;
     }
 
 
@@ -662,4 +655,4 @@ main
 
 __END__
 
-$ perl5.12.2 ./buildperl ~/g/perl/src perl-5.12.2 /usr/local/pkg/tsg perl modules postgres
+$ perl ./buildperl ~/g/perl/src perl-5.14.1 /usr/local/pkg/tsg perl modules coverage
