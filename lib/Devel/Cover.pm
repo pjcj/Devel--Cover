@@ -697,11 +697,13 @@ sub _report
         "did you require instead of use Devel::Cover?\n"
         unless defined $Dir;
 
-    chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
 
     my @collected = get_coverage();
     return unless @collected;
     set_coverage("none") unless $Self_cover;
+
+    my $starting_dir = $1 if Cwd::getcwd() =~ /(.*)/;
+    chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
 
     $Run{collected} = \@collected;
     $Structure      = Devel::Cover::DB::Structure->new(base => $DB);
@@ -779,10 +781,12 @@ sub _report
     $Digests->write;
     $cover->print_summary if $Summary && !$Silent;
 
-    return if !$Self_cover || $Self_cover_run;
+    if ( $Self_cover && !$Self_cover_run) {
 
-    $cover->delete;
-    delete $Run{vec};
+        $cover->delete;
+        delete $Run{vec};
+    }
+    chdir $starting_dir;
 }
 
 sub add_subroutine_cover
