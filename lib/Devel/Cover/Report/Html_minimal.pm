@@ -12,7 +12,7 @@ our $VERSION = "0.79";
 #-------------------------------------------------------------------------------
 # Subroutine : get_coverage_for_line
 # Purpose    : Retreive all available data for requested metrics on a line.
-# Notes      : 
+# Notes      :
 #-------------------------------------------------------------------------------
 sub get_coverage_for_line {
     my ($options, $data, $line) = @_;
@@ -27,8 +27,8 @@ sub get_coverage_for_line {
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_summary_for_file
-# Purpose    : 
-# Notes      : 
+# Purpose    :
+# Notes      :
 #-------------------------------------------------------------------------------
 sub get_summary_for_file {
     my $db   = shift;
@@ -56,8 +56,8 @@ sub get_summary_for_file {
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_showing_headers
-# Purpose    : 
-# Notes      : 
+# Purpose    :
+# Notes      :
 #-------------------------------------------------------------------------------
 sub get_showing_headers {
     my $db      = shift;
@@ -76,8 +76,8 @@ sub get_showing_headers {
 
 #-------------------------------------------------------------------------------
 # Subroutine : truth_table
-# Purpose    : 
-# Notes      : 
+# Purpose    :
+# Notes      :
 #-------------------------------------------------------------------------------
 sub truth_table {
     return if @_ > 16;
@@ -177,8 +177,8 @@ sub pclass {
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_coverage_report
-# Purpose    : 
-# Notes      : 
+# Purpose    :
+# Notes      :
 #-------------------------------------------------------------------------------
 sub get_coverage_report {
     my $type = shift;
@@ -281,8 +281,8 @@ END_HTML
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_summary
-# Purpose    : 
-# Notes      : 
+# Purpose    :
+# Notes      :
 #-------------------------------------------------------------------------------
 sub print_summary {
     my $fh       = shift;
@@ -310,8 +310,8 @@ END_HTML
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_th
-# Purpose    : 
-# Notes      : 
+# Purpose    :
+# Notes      :
 #-------------------------------------------------------------------------------
 sub print_th {
     my ($fh, $th, $span) = @_;
@@ -325,8 +325,8 @@ sub print_th {
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_link
-# Purpose    : 
-# Notes      : 
+# Purpose    :
+# Notes      :
 #-------------------------------------------------------------------------------
 sub get_link {
     my $file = shift;
@@ -418,7 +418,7 @@ END_HTML
 #-------------------------------------------------------------------------------
 # Subroutine : escape_HTML
 # Purpose    : make source code web-safe
-# Notes      : 
+# Notes      :
 #-------------------------------------------------------------------------------
 sub escape_HTML {
     my $text = shift;
@@ -521,7 +521,7 @@ sub print_file_report {
                     if ($c =~ /branch|condition|subroutine/) {
                         $link = get_link($fin, $c, $.);
                     }
-    
+
                     no warnings "uninitialized";  # TODO - hack, get rid of this
                     my $text = '<div';
                     $text .= $m->{class} ? qq' class="$m->{class}"' : '';
@@ -631,8 +631,8 @@ sub print_condition_report {
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_sub_report
-# Purpose    : 
-# Notes      : 
+# Purpose    :
+# Notes      :
 #-------------------------------------------------------------------------------
 sub print_sub_report {
     my ($db, $file, $opt) = @_;

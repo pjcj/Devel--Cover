@@ -132,9 +132,9 @@ sub _highlight_perltidy {
     my @coloured = ();
 
     Perl::Tidy::perltidy(
-        source      => \@all_lines, 
-        destination => \@coloured, 
-        argv        => '-html -pre -nopod2html', 
+        source      => \@all_lines,
+        destination => \@coloured,
+        argv        => '-html -pre -nopod2html',
         stderr      => '-',
         errorfile   => '-',
     );
