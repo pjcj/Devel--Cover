@@ -421,17 +421,8 @@ sub MY::postamble
       qw(compilation html_basic html_minimal html html_subtle sort text2 text);
 
     qq[
-SET_VERSION = \$(PERL) -pi \\
-    -e 's/(^\\s*(?:our\\s+)\\\$\$VERSION = ")\\d+\\.\\d+(";)/\$\${1}$Version\$\$2/;' \\
-    -e 's/(Version )\\d+\\.\\d+( - ).*/\$\${1}$Version\$\${2}$Date/;' \\
-    -e 's/(Devel::Cover Version )\\d+\\.\\d+/\$\${1}$Version/;' \\
-    -e 's/(\\buse Devel::Cover(?:::\\w+)*\\s+)\\d+\\.\\d+/\$\${1}$Version/;'
-
 tags : @files
 \t ptags @files
-
-@versions : Makefile.PL
-\t \$(SET_VERSION) @versions
 
 README : lib/Devel/Cover.pm
 \t TERMCAP= COLUMNS=80 pod2text -s lib/Devel/Cover.pm | \\
