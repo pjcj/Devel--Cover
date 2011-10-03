@@ -1,3 +1,7 @@
+=head1 NAME
+
+Devel::Cover::Tutorial - How to interpret the results
+
 =head1 TUTORIAL
 
 Here's part of a message I sent to perl-qa about code coverage metrics.
@@ -160,10 +164,6 @@ great it won't get used either.
 So there's a basic tutorial on code coverage, or at least my version of
 it.  Typing a few of these terms into google will probably provide a
 basis for future research.
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

@@ -171,10 +171,6 @@ This module is designed to be called from the C<cover> program.
 
 Huh?
 
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
-
 =head1 LICENCE
 
 Copyright 2005-2011, Paul Johnson (pjcj@cpan.org)

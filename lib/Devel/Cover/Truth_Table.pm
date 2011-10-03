@@ -564,10 +564,6 @@ Devel::Cover
 
 None that I'm aware of...
 
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
-
 =head1 LICENSE
 
 Copyright 2002 Michael Carman <mjcarman@mchsi.com>

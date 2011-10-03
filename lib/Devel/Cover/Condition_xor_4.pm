@@ -41,10 +41,6 @@ Module for storing condition coverage information for xor conditions.
 
 Huh?
 
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
-
 =head1 LICENCE
 
 Copyright 2001-2011, Paul Johnson (pjcj@cpan.org)

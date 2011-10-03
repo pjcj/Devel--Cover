@@ -488,10 +488,6 @@ The following exit values are returned:
  Undocumented.
  Needs to be redone properly.
 
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
-
 =head1 LICENCE
 
 Copyright 2002-2011, Paul Johnson (pjcj@cpan.org)

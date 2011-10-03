@@ -930,10 +930,6 @@ Output the specified file to the specified directory.
 
 Huh?
 
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
-
 =head1 LICENCE
 
 Copyright 2007-2011, Paul Johnson (pjcj@cpan.org) except where otherwise noted.
