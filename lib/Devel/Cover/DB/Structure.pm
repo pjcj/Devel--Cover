@@ -14,7 +14,7 @@ use Carp;
 use Digest::MD5;
 
 use Devel::Cover::DB;
-use Devel::Cover::DB::IO        0.79;
+use Devel::Cover::DB::IO       ;
 
 use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 

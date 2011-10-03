@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use CGI;
 use Getopt::Long;
-use Devel::Cover::DB 0.79;
-use Devel::Cover::Truth_Table 0.79;
+use Devel::Cover::DB;
+use Devel::Cover::Truth_Table;
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_coverage_for_line

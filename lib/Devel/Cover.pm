@@ -13,9 +13,9 @@ use warnings;
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB          0.79;
-use Devel::Cover::DB::Digests 0.79;
-use Devel::Cover::Inc         0.79;
+use Devel::Cover::DB         ;
+use Devel::Cover::DB::Digests;
+use Devel::Cover::Inc        ;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;

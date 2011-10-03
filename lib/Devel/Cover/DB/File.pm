@@ -10,7 +10,7 @@ package Devel::Cover::DB::File;
 use strict;
 use warnings;
 
-use Devel::Cover::Criterion 0.79;
+use Devel::Cover::Criterion;
 
 use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 

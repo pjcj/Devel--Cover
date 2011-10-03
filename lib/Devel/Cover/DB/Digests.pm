@@ -10,8 +10,8 @@ package Devel::Cover::DB::Digests;
 use strict;
 use warnings;
 
-use Devel::Cover::DB::Structure 0.79;
-use Devel::Cover::DB::IO        0.79;
+use Devel::Cover::DB::Structure;
+use Devel::Cover::DB::IO       ;
 
 my $File = "digests";
 

@@ -10,7 +10,7 @@ package Devel::Cover::Report::Text;
 use strict;
 use warnings;
 
-use Devel::Cover::DB 0.79;
+use Devel::Cover::DB;
 
 sub print_runs
 {

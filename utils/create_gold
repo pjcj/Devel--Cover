@@ -19,7 +19,7 @@ use blib;
 use Config;
 exit if $Config{useithreads};
 
-use Devel::Cover::Test 0.79;
+use Devel::Cover::Test;
 
 my @tests = @ARGV;
 

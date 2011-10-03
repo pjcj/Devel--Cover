@@ -2,7 +2,7 @@ package Devel::Cover::Report::Text2;
 use strict;
 use warnings;
 
-use Devel::Cover::DB 0.79;
+use Devel::Cover::DB;
 use Devel::Cover::Truth_Table;
 
 my %format = (

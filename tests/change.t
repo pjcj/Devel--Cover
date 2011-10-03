@@ -12,8 +12,8 @@ use warnings;
 
 use File::Copy;
 
-use Devel::Cover::Inc  0.79;
-use Devel::Cover::Test 0.79;
+use Devel::Cover::Inc;
+use Devel::Cover::Test;
 
 if ($] == 5.008007)
 {

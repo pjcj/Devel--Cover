@@ -10,10 +10,10 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-use Devel::Cover::Criterion     0.79;
-use Devel::Cover::DB::File      0.79;
-use Devel::Cover::DB::Structure 0.79;
-use Devel::Cover::DB::IO        0.79;
+use Devel::Cover::Criterion    ;
+use Devel::Cover::DB::File     ;
+use Devel::Cover::DB::Structure;
+use Devel::Cover::DB::IO       ;
 
 use Carp;
 use File::Path;

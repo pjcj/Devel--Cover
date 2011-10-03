@@ -15,7 +15,7 @@ use Carp;
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.79;
+use Devel::Cover::Inc;
 
 my $Test;
 

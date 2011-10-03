@@ -10,8 +10,8 @@ package Devel::Cover::Report::Html_basic;
 use strict;
 use warnings;
 
-use Devel::Cover::DB 0.79;
-use Devel::Cover::Web 0.79 "write_file";
+use Devel::Cover::DB;
+use Devel::Cover::Web "write_file";
 
 use Getopt::Long;
 use Template 2.00;

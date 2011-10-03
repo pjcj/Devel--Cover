@@ -2,8 +2,8 @@ package Devel::Cover::Report::Html_subtle;
 use strict;
 use warnings;
 
-use Devel::Cover::DB 0.79;
-use Devel::Cover::Truth_Table 0.79;
+use Devel::Cover::DB;
+use Devel::Cover::Truth_Table;
 
 use Template 2.00;
 use CGI;
