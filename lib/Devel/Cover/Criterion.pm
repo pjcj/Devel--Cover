@@ -10,8 +10,6 @@ package Devel::Cover::Criterion;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Devel::Cover::Statement       0.79;
 use Devel::Cover::Branch          0.79;
 use Devel::Cover::Condition       0.79;

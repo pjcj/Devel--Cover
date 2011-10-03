@@ -180,7 +180,6 @@ sub error {
 package Devel::Cover::Truth_Table;
 use warnings;
 use strict;
-our $VERSION = "0.79";
 
 #-------------------------------------------------------------------------------
 # Subroutine : new()

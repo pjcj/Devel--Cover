@@ -7,8 +7,6 @@ use Getopt::Long;
 use Devel::Cover::DB 0.79;
 use Devel::Cover::Truth_Table 0.79;
 
-our $VERSION = "0.79";
-
 #-------------------------------------------------------------------------------
 # Subroutine : get_coverage_for_line
 # Purpose    : Retreive all available data for requested metrics on a line.

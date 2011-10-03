@@ -10,8 +10,6 @@ package Devel::Cover::DB::Digests;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Devel::Cover::DB::Structure 0.79;
 use Devel::Cover::DB::IO        0.79;
 

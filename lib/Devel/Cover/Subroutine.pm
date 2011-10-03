@@ -10,8 +10,6 @@ package Devel::Cover::Subroutine;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Criterion";
 
 sub uncoverable { $_[0][2] }

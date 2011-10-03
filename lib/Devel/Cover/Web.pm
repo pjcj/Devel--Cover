@@ -12,8 +12,6 @@ package Devel::Cover::Web;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Exporter;
 
 our @ISA       = "Exporter";

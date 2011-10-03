@@ -18,8 +18,6 @@ package Devel::Cover::Report::Compilation;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Devel::Cover::DB 0.79;
 
 # TODO - uncoverable code?

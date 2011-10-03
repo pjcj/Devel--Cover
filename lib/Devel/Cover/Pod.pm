@@ -10,8 +10,6 @@ package Devel::Cover::Pod;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Criterion";
 
 BEGIN { eval "use Pod::Coverage 0.06" }     # We'll use this if it is available.

@@ -12,8 +12,6 @@ require 5.8.0;  # My patches to B::Concise didn't get released till 5.8.0.
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 
 use Devel::Cover qw( -ignore blib -ignore \\wB\\w );

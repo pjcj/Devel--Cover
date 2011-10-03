@@ -10,8 +10,6 @@ package Devel::Cover::Annotation::Svk;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Getopt::Long;
 use Digest::MD5;
 

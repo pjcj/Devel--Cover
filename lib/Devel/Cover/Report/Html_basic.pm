@@ -10,8 +10,6 @@ package Devel::Cover::Report::Html_basic;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Devel::Cover::DB 0.79;
 use Devel::Cover::Web 0.79 "write_file";
 
@@ -448,8 +446,6 @@ package Devel::Cover::Report::Html_basic::Template::Provider;
 
 use strict;
 use warnings;
-
-our $VERSION = "0.79";
 
 use base "Template::Provider";
 

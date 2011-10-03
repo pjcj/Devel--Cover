@@ -10,8 +10,6 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Carp;
 
 use File::Spec;

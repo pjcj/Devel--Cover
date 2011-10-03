@@ -10,8 +10,6 @@ package Devel::Cover::Condition_xor_4;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Condition";
 
 sub count   { 4 }

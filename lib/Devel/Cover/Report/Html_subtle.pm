@@ -2,8 +2,6 @@ package Devel::Cover::Report::Html_subtle;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Devel::Cover::DB 0.79;
 use Devel::Cover::Truth_Table 0.79;
 
@@ -385,8 +383,6 @@ sub report {
 package Devel::Cover::Report::Html_subtle::Template::Provider;
 use strict;
 use warnings;
-
-our $VERSION = "0.79";
 
 use base "Template::Provider";
 

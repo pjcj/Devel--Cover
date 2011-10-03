@@ -10,8 +10,6 @@ package Devel::Cover::Statement;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Criterion";
 
 sub val         { $_[0][0] }

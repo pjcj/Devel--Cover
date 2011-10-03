@@ -10,8 +10,6 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
@@ -114,7 +112,7 @@ BEGIN
         qr/(?:reader|writer|constructor|destructor|accessor|predicate) /;
 }
 
-sub version { $VERSION }
+sub version { __PACKAGE__->VERSION }
 
 if (0 && $Config{useithreads})
 {
@@ -200,7 +198,7 @@ EOM
         @coverage = get_coverage();
         my $last = pop @coverage || "";
 
-        print OUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
+        print OUT __PACKAGE__, " ".__PACKAGE__->VERSION.": Collecting coverage data for ",
               join(", ", @coverage),
               @coverage ? " and " : "",
               "$last.\n",
@@ -315,7 +313,7 @@ sub import
     @Ignore_re = map qr/$_/,                           @Ignore;
     @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
 
-    bootstrap Devel::Cover $VERSION;
+    bootstrap Devel::Cover __PACKAGE__->VERSION;
 
     if (defined $Dir)
     {

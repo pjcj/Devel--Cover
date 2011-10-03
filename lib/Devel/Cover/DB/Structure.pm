@@ -21,7 +21,6 @@ use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 # For comprehensive debug logging.
 use constant DEBUG => 0;
 
-our $VERSION = "0.79";
 our $AUTOLOAD;
 
 sub new

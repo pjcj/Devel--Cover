@@ -10,8 +10,6 @@ package Devel::Cover::Annotation::Git;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Getopt::Long;
 
 sub new

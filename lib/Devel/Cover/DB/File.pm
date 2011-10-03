@@ -10,8 +10,6 @@ package Devel::Cover::DB::File;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Devel::Cover::Criterion 0.79;
 
 use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;

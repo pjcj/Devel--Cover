@@ -10,8 +10,6 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Devel::Cover::Criterion     0.79;
 use Devel::Cover::DB::File      0.79;
 use Devel::Cover::DB::Structure 0.79;

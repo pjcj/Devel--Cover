@@ -10,8 +10,6 @@ package Devel::Cover::Report::Html;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Report::Html_minimal";
 
 1;

@@ -10,8 +10,6 @@ package Devel::Cover::Branch;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Criterion";
 
 sub pad         { my $self = shift; $self->[0] = [0, 0]

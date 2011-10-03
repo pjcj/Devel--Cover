@@ -12,8 +12,6 @@ require 5.6.1;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Devel::Cover::DB 0.79;
 
 use Cwd ();
@@ -56,7 +54,7 @@ sub get_options
                    version|v!
                  ));
 
-    print "$0 version $VERSION\n" and exit 0 if $Options->{version};
+    print "$0 version ".__PACKAGE__->VERSION."\n" and exit 0 if $Options->{version};
     pod2usage(-exitval => 0, -verbose => 0)  if $Options->{help};
     pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
 
@@ -355,8 +353,6 @@ package Devel::Cover::Cpancover::Template::Provider;
 
 use strict;
 use warnings;
-
-our $VERSION = "0.79";
 
 use base "Template::Provider";
 

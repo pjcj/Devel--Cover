@@ -10,8 +10,6 @@ package Devel::Cover::DB::IO;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 my $Format;
 
 BEGIN
