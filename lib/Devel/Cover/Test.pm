@@ -140,7 +140,7 @@ sub cover_command
     my $self = shift;
 
     my $b = shell_quote $Devel::Cover::Inc::Base;
-    my $c = $self->perl . " $b/cover $self->{cover_parameters}";
+    my $c = $self->perl . " $b/bin/cover $self->{cover_parameters}";
     $c
 }
 

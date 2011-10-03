@@ -310,7 +310,7 @@ WriteMakefile
     AUTHOR           => 'Paul Johnson (pjcj@cpan.org)',
     ABSTRACT_FROM    => "lib/Devel/Cover.pm",
     DIR              => [],
-    EXE_FILES        => [ qw( cover gcov2perl cpancover ) ],
+    EXE_FILES        => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],
     PERL_MALLOC_OK   => 1,
     PREREQ_PM        => {
                             Storable      => 0,
@@ -401,6 +401,7 @@ sub MY::libscan
 {
     my ($self, $path) = @_;
     (my $p = $path) =~ s/^\$\(INST_LIB\)/lib/;  # 5.6.1
+    $p =~ s/^\$\(INST_SCRIPT\)/bin/;
     $p =~ s|\\|/|g if $^O eq "MSWin32";
     # print "$path $p\n";
     my $wanted = -d $p;                         # 5.9.0
