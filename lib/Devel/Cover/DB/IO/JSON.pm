@@ -40,7 +40,7 @@ sub write
     my $self = shift;
     my ($data, $file) = @_;
 
-    my $json = JSON::PP->new->utf8;
+    my $json = JSON::PP->new->utf8->allow_blessed;
     $json->ascii->pretty->canonical if $self->{options} =~ /\bpretty\b/i;
     open my $fh, ">", $file or die "Can't open $file: $!";
     flock($fh, LOCK_EX) or die "Cannot lock file: $!\n";

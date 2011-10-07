@@ -451,6 +451,7 @@ ppm : ppd pure_all
     Devel-Cover.ppd
 
 TAINT = -T
+TAINT =
 COVER_OPTIONS =
 
 _run : pure_all
