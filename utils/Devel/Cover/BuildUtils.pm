@@ -10,8 +10,6 @@ package Devel::Cover::BuildUtils;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Exporter;
 
 our @ISA       = "Exporter";
@@ -74,10 +72,6 @@ Build utility functions for Devel::Cover.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

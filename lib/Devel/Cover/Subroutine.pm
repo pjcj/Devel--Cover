@@ -10,8 +10,6 @@ package Devel::Cover::Subroutine;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Criterion";
 
 sub uncoverable { $_[0][2] }
@@ -47,10 +45,6 @@ Module for storing subroutine coverage information.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

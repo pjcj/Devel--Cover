@@ -10,8 +10,6 @@ package Devel::Cover::Condition;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Branch";
 
 sub pad         { $_[0][0][$_] ||= 0 for 0 .. $_[0]->count - 1 }
@@ -47,10 +45,6 @@ Module for storing condition coverage information.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

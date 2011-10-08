@@ -10,11 +10,9 @@ package Devel::Cover::Branch;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Criterion";
 
-sub pad         { my $self = shift; $self->[0] = [0, 0] 
+sub pad         { my $self = shift; $self->[0] = [0, 0]
                   unless $self->[0] && @{$self->[0]}; }
 sub uncoverable { @_ > 1 ? $_[0][2][$_[1]] : scalar grep $_, @{$_[0][2]} }
 sub covered     { @_ > 1 ? $_[0][0][$_[1]] : scalar grep $_, @{$_[0][0]} }
@@ -85,10 +83,6 @@ Module for storing branch coverage information.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

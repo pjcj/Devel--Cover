@@ -13,8 +13,6 @@ use warnings;
 use Fcntl ":flock";
 use JSON::PP;
 
-our $VERSION = "0.79";
-
 sub new
 {
     my $class = shift;
@@ -96,10 +94,6 @@ Writes $data to $file in the format specified when creating $io.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

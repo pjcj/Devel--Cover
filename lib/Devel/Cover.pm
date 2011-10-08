@@ -10,14 +10,12 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB          0.79;
-use Devel::Cover::DB::Digests 0.79;
-use Devel::Cover::Inc         0.79;
+use Devel::Cover::DB         ;
+use Devel::Cover::DB::Digests;
+use Devel::Cover::Inc        ;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -114,7 +112,7 @@ BEGIN
         qr/(?:reader|writer|constructor|destructor|accessor|predicate) /;
 }
 
-sub version { $VERSION }
+sub version { __PACKAGE__->VERSION }
 
 if (0 && $Config{useithreads})
 {
@@ -200,7 +198,7 @@ EOM
         @coverage = get_coverage();
         my $last = pop @coverage || "";
 
-        print OUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
+        print OUT __PACKAGE__, " ".__PACKAGE__->VERSION.": Collecting coverage data for ",
               join(", ", @coverage),
               @coverage ? " and " : "",
               "$last.\n",
@@ -315,7 +313,16 @@ sub import
     @Ignore_re = map qr/$_/,                           @Ignore;
     @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
 
-    bootstrap Devel::Cover $VERSION;
+    if ($Devel::Cover::{VERSION})
+    {
+        # Usual situation in production from a full release.
+        bootstrap Devel::Cover ${$Devel::Cover::{VERSION}};
+    }
+    else
+    {
+        # Usual situation in development.
+        bootstrap Devel::Cover;
+    }
 
     if (defined $Dir)
     {
@@ -1517,10 +1524,6 @@ CV.  Hints, tips or patches to resolve this will be gladly accepted.
 Almost certainly.
 
 See the BUGS file.  And the TODO file.
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

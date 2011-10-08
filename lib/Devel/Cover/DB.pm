@@ -10,12 +10,10 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
-use Devel::Cover::Criterion     0.79;
-use Devel::Cover::DB::File      0.79;
-use Devel::Cover::DB::Structure 0.79;
-use Devel::Cover::DB::IO        0.79;
+use Devel::Cover::Criterion    ;
+use Devel::Cover::DB::File     ;
+use Devel::Cover::DB::Structure;
+use Devel::Cover::DB::IO       ;
 
 use Carp;
 use File::Path;
@@ -1014,10 +1012,6 @@ that's what it should do.)
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

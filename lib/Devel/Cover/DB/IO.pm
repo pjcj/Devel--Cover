@@ -10,8 +10,6 @@ package Devel::Cover::DB::IO;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 my $Format;
 
 BEGIN
@@ -84,10 +82,6 @@ Writes $data to $file in the format specified when creating $io.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

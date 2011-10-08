@@ -10,14 +10,12 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.79;
+use Devel::Cover::Inc;
 
 my $Test;
 
@@ -140,7 +138,7 @@ sub cover_command
     my $self = shift;
 
     my $b = shell_quote $Devel::Cover::Inc::Base;
-    my $c = $self->perl . " $b/cover $self->{cover_parameters}";
+    my $c = $self->perl . " $b/bin/cover $self->{cover_parameters}";
     $c
 }
 

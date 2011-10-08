@@ -28,7 +28,6 @@ my @perlbug  = ("perlbug", "-a", $Author,
 my $Perlbug  = join " ", map { / / ? "'$_'" : $_ } @perlbug;
 
 my @files    = sort keys %{maniread()}, "lib/Devel/Cover/Inc.pm";
-my @versions = grep !/^(?:README|Makefile\.PL|\.gitignore)$/, @files;
 
 my $base     = getcwd;
 
@@ -129,7 +128,7 @@ use lib "$base/blib/lib";
 use lib "$base/blib/arch";
 use lib "$base/t";
 
-use Devel::Cover::Test $Version;
+use Devel::Cover::Test;
 
 Devel::Cover::Test->new("$t");
 EOT
@@ -310,7 +309,7 @@ WriteMakefile
     AUTHOR           => 'Paul Johnson (pjcj@cpan.org)',
     ABSTRACT_FROM    => "lib/Devel/Cover.pm",
     DIR              => [],
-    EXE_FILES        => [ qw( cover gcov2perl cpancover ) ],
+    EXE_FILES        => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],
     PERL_MALLOC_OK   => 1,
     PREREQ_PM        => {
                             Storable      => 0,
@@ -320,7 +319,6 @@ WriteMakefile
                         },
     TYPEMAPS         => [ "utils/typemap" ],
     clean            => { FILES    => "t/e2e/* cover_db* t/e2e/*cover_db"  },
-    depend           => { distdir  => "@files"                             },
     dist             => { COMPRESS => "gzip --best --force"                },
     test             => { TESTS    => "t/*/*.t"                            },
     realclean        => $] < 5.008008 ?
@@ -397,16 +395,17 @@ README file, or send mail to me directly.
 
 EOM
 
-sub MY::libscan
+sub MY::libscanx
 {
     my ($self, $path) = @_;
     (my $p = $path) =~ s/^\$\(INST_LIB\)/lib/;  # 5.6.1
+    $p =~ s/^\$\(INST_SCRIPT\)/bin/;
     $p =~ s|\\|/|g if $^O eq "MSWin32";
-    # print "$path $p\n";
+    print "$path $p\n";
     my $wanted = -d $p;                         # 5.9.0
     for my $f (@files)
     {
-        # print "$p - $f\n";
+        print "$p - $f\n";
         last if $wanted ||= $p =~ /$f$/;
     }
     $wanted && $path;
@@ -420,17 +419,8 @@ sub MY::postamble
       qw(compilation html_basic html_minimal html html_subtle sort text2 text);
 
     qq[
-SET_VERSION = \$(PERL) -pi \\
-    -e 's/(^\\s*(?:our\\s+)\\\$\$VERSION = ")\\d+\\.\\d+(";)/\$\${1}$Version\$\$2/;' \\
-    -e 's/(Version )\\d+\\.\\d+( - ).*/\$\${1}$Version\$\${2}$Date/;' \\
-    -e 's/(Devel::Cover Version )\\d+\\.\\d+/\$\${1}$Version/;' \\
-    -e 's/(\\buse Devel::Cover(?:::\\w+)*\\s+)\\d+\\.\\d+/\$\${1}$Version/;'
-
-tags : @files
-\t ptags @files
-
-@versions : Makefile.PL
-\t \$(SET_VERSION) @versions
+tags :
+\t ctags --recurse .
 
 README : lib/Devel/Cover.pm
 \t TERMCAP= COLUMNS=80 pod2text -s lib/Devel/Cover.pm | \\

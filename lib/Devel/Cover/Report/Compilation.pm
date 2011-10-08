@@ -18,9 +18,7 @@ package Devel::Cover::Report::Compilation;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
-use Devel::Cover::DB 0.79;
+use Devel::Cover::DB;
 
 # TODO - uncoverable code?
 
@@ -166,10 +164,6 @@ through the reports.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

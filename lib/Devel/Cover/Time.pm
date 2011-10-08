@@ -10,8 +10,6 @@ package Devel::Cover::Time;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Criterion";
 
 sub uncoverable { 0 }
@@ -68,10 +66,6 @@ Contructs the DB from the specified database.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

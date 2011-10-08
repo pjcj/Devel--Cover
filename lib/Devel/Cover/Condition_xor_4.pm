@@ -10,8 +10,6 @@ package Devel::Cover::Condition_xor_4;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Condition";
 
 sub count   { 4 }
@@ -42,10 +40,6 @@ Module for storing condition coverage information for xor conditions.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

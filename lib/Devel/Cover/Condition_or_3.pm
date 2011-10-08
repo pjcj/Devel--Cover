@@ -10,8 +10,6 @@ package Devel::Cover::Condition_or_3;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
-
 use base "Devel::Cover::Condition";
 
 sub count   { 3 }
@@ -43,10 +41,6 @@ where the right value is a constant.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 
