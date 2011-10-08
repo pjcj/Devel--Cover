@@ -313,9 +313,16 @@ sub import
     @Ignore_re = map qr/$_/,                           @Ignore;
     @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
 
-    print STDERR "Bootstrapping Devel::Cover " . __PACKAGE__->VERSION . "\n";
-
-    bootstrap Devel::Cover __PACKAGE__->VERSION;
+    if ($Devel::Cover::{VERSION})
+    {
+        # Usual situation in production from a full release.
+        bootstrap Devel::Cover ${$Devel::Cover::{VERSION}};
+    }
+    else
+    {
+        # Usual situation in development.
+        bootstrap Devel::Cover;
+    }
 
     if (defined $Dir)
     {
