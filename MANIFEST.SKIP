@@ -25,3 +25,4 @@ lib/Devel/Cover/Inc.pm$
 .git/
 .tar.bz2$
 ^MYMETA.yml$
+tags
