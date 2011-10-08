@@ -395,22 +395,6 @@ README file, or send mail to me directly.
 
 EOM
 
-sub MY::libscanx
-{
-    my ($self, $path) = @_;
-    (my $p = $path) =~ s/^\$\(INST_LIB\)/lib/;  # 5.6.1
-    $p =~ s/^\$\(INST_SCRIPT\)/bin/;
-    $p =~ s|\\|/|g if $^O eq "MSWin32";
-    print "$path $p\n";
-    my $wanted = -d $p;                         # 5.9.0
-    for my $f (@files)
-    {
-        print "$p - $f\n";
-        last if $wanted ||= $p =~ /$f$/;
-    }
-    $wanted && $path;
-}
-
 sub MY::postamble
 {
     my %tests;
