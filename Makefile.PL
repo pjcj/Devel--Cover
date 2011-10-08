@@ -129,7 +129,7 @@ use lib "$base/blib/lib";
 use lib "$base/blib/arch";
 use lib "$base/t";
 
-use Devel::Cover::Test $Version;
+use Devel::Cover::Test;
 
 Devel::Cover::Test->new("$t");
 EOT
