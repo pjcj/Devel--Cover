@@ -434,13 +434,13 @@ _run : pure_all
 COVER_PARAMETERS = \$(PERL) -e '\$\$l = qx|grep __COVER__ \$\$ARGV[0]|; \$\$u = "-uncoverable_file \$\$1" if \$\$l =~ /__COVER__\\s+uncoverable_file\\s+(.*)/; (\$\$p) = \$\$l =~ /__COVER__\\s+cover_parameters\\s+(.*)/; print "\$\$u \$\$p"' tests/\$(TEST)
 
 html : _run
-\t \$(PERL) -Mblib cover `\$(COVER_PARAMETERS)` -report html
+\t \$(PERL) -Mblib bin/cover `\$(COVER_PARAMETERS)` -report html
 
 basic : _run
-\t \$(PERL) -Mblib cover `\$(COVER_PARAMETERS)` -report html_basic
+\t \$(PERL) -Mblib bin/cover `\$(COVER_PARAMETERS)` -report html_basic
 
 out : _run
-\t \$(PERL) -Mblib cover `\$(COVER_PARAMETERS)` -report text > \$(TEST).out
+\t \$(PERL) -Mblib bin/cover `\$(COVER_PARAMETERS)` -report text > \$(TEST).out
 
 text : out
 \t \$(VISUAL) \$(TEST).out
@@ -457,7 +457,7 @@ tst : pure_all
 DB = cover_db
 
 dump :
-\t \$(PERL) -Mblib cover -dump_db \$(DB)
+\t \$(PERL) -Mblib bin/cover -dump_db \$(DB)
 
 FONT = "Inconsolata 10"
 GEOM = 260x85+0+0
@@ -481,10 +481,10 @@ _delete_db : pure_all
 \t rm -rf cover_db
 
 _self_cover_tests : @{[sort values %tests]}
-\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -write cover_db @{[sort values %tests]}
+\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover bin/cover -silent -write cover_db @{[sort values %tests]}
 
 self_cover : _self_cover_reports
-\t \$(PERL) -Mblib cover -report html_basic
+\t \$(PERL) -Mblib bin/cover -report html_basic
 
 mani :
 \t -rm MANIFEST
@@ -509,6 +509,6 @@ nok :
 
          map("report_$_ : _self_cover_tests\n" .
              "\t \@echo Generating $_ report\n" .
-             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -report $_ > /dev/null\n",
+             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover bin/cover -silent -report $_ > /dev/null\n",
              @reports)
 }
