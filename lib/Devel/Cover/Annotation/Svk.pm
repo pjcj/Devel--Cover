@@ -10,6 +10,8 @@ package Devel::Cover::Annotation::Svk;
 use strict;
 use warnings;
 
+# VERSION
+
 use Getopt::Long;
 use Digest::MD5;
 

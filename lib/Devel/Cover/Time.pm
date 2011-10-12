@@ -10,6 +10,8 @@ package Devel::Cover::Time;
 use strict;
 use warnings;
 
+# VERSION
+
 use base "Devel::Cover::Criterion";
 
 sub uncoverable { 0 }

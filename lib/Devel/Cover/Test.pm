@@ -10,6 +10,8 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
+# VERSION
+
 use Carp;
 
 use File::Spec;

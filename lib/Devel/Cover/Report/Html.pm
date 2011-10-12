@@ -10,6 +10,8 @@ package Devel::Cover::Report::Html;
 use strict;
 use warnings;
 
+# VERSION
+
 use base "Devel::Cover::Report::Html_minimal";
 
 1;

@@ -10,12 +10,15 @@ package Devel::Cover;
 use strict;
 use warnings;
 
+# VERSION
+our $LVERSION = do { eval '$VERSION'; "0.001" };  # for development purposes
+
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB         ;
+use Devel::Cover::DB;
 use Devel::Cover::DB::Digests;
-use Devel::Cover::Inc        ;
+use Devel::Cover::Inc;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -112,7 +115,7 @@ BEGIN
         qr/(?:reader|writer|constructor|destructor|accessor|predicate) /;
 }
 
-sub version { __PACKAGE__->VERSION }
+sub version { $LVERSION }
 
 if (0 && $Config{useithreads})
 {
@@ -198,7 +201,7 @@ EOM
         @coverage = get_coverage();
         my $last = pop @coverage || "";
 
-        print OUT __PACKAGE__, " ".__PACKAGE__->VERSION.": Collecting coverage data for ",
+        print OUT __PACKAGE__, " $LVERSION: Collecting coverage data for ",
               join(", ", @coverage),
               @coverage ? " and " : "",
               "$last.\n",
@@ -313,10 +316,10 @@ sub import
     @Ignore_re = map qr/$_/,                           @Ignore;
     @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
 
-    if ($Devel::Cover::{VERSION})
+    if ($LVERSION > 0.002)
     {
         # Usual situation in production from a full release.
-        bootstrap Devel::Cover ${$Devel::Cover::{VERSION}};
+        bootstrap Devel::Cover $LVERSION;
     }
     else
     {

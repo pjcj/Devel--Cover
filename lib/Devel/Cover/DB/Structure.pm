@@ -14,13 +14,14 @@ use Carp;
 use Digest::MD5;
 
 use Devel::Cover::DB;
-use Devel::Cover::DB::IO       ;
+use Devel::Cover::DB::IO;
 
 use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 
 # For comprehensive debug logging.
 use constant DEBUG => 0;
 
+# VERSION
 our $AUTOLOAD;
 
 sub new

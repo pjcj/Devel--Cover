@@ -18,6 +18,8 @@ package Devel::Cover::Report::Compilation;
 use strict;
 use warnings;
 
+# VERSION
+
 use Devel::Cover::DB;
 
 # TODO - uncoverable code?

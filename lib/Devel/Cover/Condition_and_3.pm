@@ -10,6 +10,8 @@ package Devel::Cover::Condition_and_3;
 use strict;
 use warnings;
 
+# VERSION
+
 use base "Devel::Cover::Condition";
 
 sub count   { 3 }

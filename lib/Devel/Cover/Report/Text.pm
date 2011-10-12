@@ -10,6 +10,8 @@ package Devel::Cover::Report::Text;
 use strict;
 use warnings;
 
+# VERSION
+
 use Devel::Cover::DB;
 
 sub print_runs

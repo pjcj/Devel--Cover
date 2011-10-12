@@ -13,6 +13,8 @@ use warnings;
 use Fcntl ":flock";
 use JSON::PP;
 
+# VERSION
+
 sub new
 {
     my $class = shift;

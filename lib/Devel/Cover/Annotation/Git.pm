@@ -10,6 +10,8 @@ package Devel::Cover::Annotation::Git;
 use strict;
 use warnings;
 
+# VERSION
+
 use Getopt::Long;
 
 sub new

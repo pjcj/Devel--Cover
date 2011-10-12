@@ -12,6 +12,8 @@ package Devel::Cover::Web;
 use strict;
 use warnings;
 
+# VERSION
+
 use Exporter;
 
 our @ISA       = "Exporter";

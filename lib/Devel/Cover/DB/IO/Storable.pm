@@ -12,6 +12,8 @@ use warnings;
 
 use Storable;
 
+# VERSION
+
 sub new
 {
     my $class = shift;

@@ -10,6 +10,8 @@ package Devel::Cover::BuildUtils;
 use strict;
 use warnings;
 
+# VERSION
+
 use Exporter;
 
 our @ISA       = "Exporter";

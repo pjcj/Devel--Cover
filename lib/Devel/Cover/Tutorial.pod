@@ -1,6 +1,6 @@
 =head1 NAME
 
-Devel::Cover::Tutorial - How to interpret the results
+Devel::Cover::Tutorial - An introduction to code coverage
 
 =head1 TUTORIAL
 

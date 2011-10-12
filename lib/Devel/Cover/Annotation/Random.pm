@@ -10,6 +10,8 @@ package Devel::Cover::Annotation::Random;
 use strict;
 use warnings;
 
+# VERSION
+
 use Getopt::Long;
 
 sub new

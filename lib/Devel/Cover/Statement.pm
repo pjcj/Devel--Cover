@@ -10,6 +10,8 @@ package Devel::Cover::Statement;
 use strict;
 use warnings;
 
+# VERSION
+
 use base "Devel::Cover::Criterion";
 
 sub val         { $_[0][0] }

@@ -12,6 +12,8 @@ require 5.6.1;
 use strict;
 use warnings;
 
+# VERSION
+
 use Devel::Cover::DB;
 
 use Config;

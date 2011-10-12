@@ -2,6 +2,8 @@ package Devel::Cover::Report::Text2;
 use strict;
 use warnings;
 
+# VERSION
+
 use Devel::Cover::DB;
 use Devel::Cover::Truth_Table;
 

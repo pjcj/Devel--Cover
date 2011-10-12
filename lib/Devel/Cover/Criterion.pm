@@ -10,17 +10,19 @@ package Devel::Cover::Criterion;
 use strict;
 use warnings;
 
-use Devel::Cover::Statement      ;
-use Devel::Cover::Branch         ;
-use Devel::Cover::Condition      ;
-use Devel::Cover::Condition_or_2 ;
-use Devel::Cover::Condition_or_3 ;
+# VERSION
+
+use Devel::Cover::Statement;
+use Devel::Cover::Branch;
+use Devel::Cover::Condition;
+use Devel::Cover::Condition_or_2;
+use Devel::Cover::Condition_or_3;
 use Devel::Cover::Condition_and_2;
 use Devel::Cover::Condition_and_3;
 use Devel::Cover::Condition_xor_4;
-use Devel::Cover::Subroutine     ;
-use Devel::Cover::Time           ;
-use Devel::Cover::Pod            ;
+use Devel::Cover::Subroutine;
+use Devel::Cover::Time;
+use Devel::Cover::Pod;
 
 sub coverage    { $_[0][0] }
 sub information { $_[0][1] }
