@@ -474,8 +474,7 @@ all_test :
 \t exec \$(PERL) utils/all_versions make test
 
 all_gold :
-\t rm -rf test_output
-\t exec \$(PERL) utils/all_versions make gold
+\t \$(PERL) utils/create_all_gold \$(TEST)
 
 _delete_db : pure_all
 \t rm -rf cover_db
