@@ -280,7 +280,11 @@ sub write
         $self->{f}{$file}{file} = $file;
         unless ($self->{f}{$file}{digest})
         {
-            warn "Can't find digest for $file" unless $Devel::Cover::Silent;
+            warn "Can't find digest for $file"
+                unless $Devel::Cover::Silent ||
+                       $file =~ $Devel::Cover::Moose_filenames ||
+                       ($Devel::Cover::Self_cover &&
+                        $file =~ q|/Devel/Cover[./]|);
             next;
         }
         my $df_final = "$dir/$self->{f}{$file}{digest}";
@@ -293,9 +297,10 @@ sub write
         unless (rename $df_temp, $df_final) {
             unless ($Devel::Cover::Silent) {
                 if(-e $df_final) {
-                    warn "Can't rename $df_temp to $df_final (which exists): $!";
-                    $self->debuglog("Can't rename $df_temp to $df_final "
-                                    . "(which exists): $!")
+                    warn "Can't rename $df_temp to $df_final " .
+                           "(which exists): $!";
+                    $self->debuglog("Can't rename $df_temp to $df_final " .
+                                      "(which exists): $!")
                         if DEBUG;
                 } else {
                     warn "Can't rename $df_temp to $df_final: $!";

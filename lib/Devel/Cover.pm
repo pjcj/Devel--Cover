@@ -53,7 +53,6 @@ my $DB             = "cover_db";         # DB name.
 my $Merge          = 1;                  # Merge databases.
 my $Summary        = 1;                  # Output coverage summary.
 my $Subs_only      = 0;                  # Coverage only for sub bodies.
-my $Self_cover;                          # Coverage of Devel::Cover.
 my $Self_cover_run = 0;                  # Covering Devel::Cover now.
 
 my @Ignore;                              # Packages to ignore.
@@ -97,7 +96,8 @@ use vars '$File',                        # Last filename we saw.  (localised)
                                          # Used in runops function.
          '$Replace_ops',                 # Whether we are replacing ops.
          '$Silent',                      # Output nothing. Can be used anywhere.
-         '$Moose_filenames';             # Moose generated filename to ignore.
+         '$Self_cover',                  # Coverage of Devel::Cover.
+         '$Moose_filenames';             # Moose generated filenames to ignore.
 
 BEGIN
 {
@@ -112,7 +112,15 @@ BEGIN
     # $^P = 0x004 | 0x100 | 0x200;
     $^P |= 0x004 | 0x100;
     $Moose_filenames =
-        qr/(?:reader|writer|constructor|destructor|accessor|predicate) /;
+        qr/
+            (?:
+                (?:reader|writer|constructor|destructor|accessor|predicate)
+                \s .* \s
+                \(defined \s at \s .* \s line \s \d+ \)
+            )
+            |
+            (?:generated \s method \s \( unknown \s origin \))
+          /x;
 }
 
 sub version { $LVERSION }

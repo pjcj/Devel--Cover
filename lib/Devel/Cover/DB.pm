@@ -776,7 +776,17 @@ sub objectify_cover
                 }
             }
         }
-        bless $_, "Devel::Cover::DB::Run" for values %{$self->{runs}};
+        for my $r (keys %{$self->{runs}})
+        {
+            if (defined $self->{runs}{$r})
+            {
+                bless $self->{runs}{$r}, "Devel::Cover::DB::Run";
+            }
+            else
+            {
+                delete $self->{runs}{$r};  # DEVEL_COVER_SELF
+            }
+        }
     }
 
     unless (exists &Devel::Cover::DB::Base::items)
@@ -859,6 +869,7 @@ sub cover
         last unless $st;
 
         my $r = $self->{runs}{$run};
+        next unless $r->{collected};  # DEVEL_COVER_SELF
         @{$self->{collected}}{@{$r->{collected}}} = ();
         $st->add_criteria(@{$r->{collected}});
         my $count = $r->{count};
@@ -868,7 +879,11 @@ sub cover
             my $digest = $r->{digests}{$file};
             unless ($digest)
             {
-                print STDERR "Devel::Cover: Can't find digest for $file\n";
+                print STDERR "Devel::Cover: Can't find digest for $file\n"
+                    unless $Devel::Cover::Silent ||
+                           $file =~ $Devel::Cover::Moose_filenames ||
+                           ($Devel::Cover::Self_cover &&
+                            $file =~ q|/Devel/Cover[./]|);
                 next;
             }
             # print STDERR "File: $file\n";
