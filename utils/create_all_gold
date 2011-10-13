@@ -14,12 +14,11 @@ use warnings;
 
 # VERSION
 
-use File::Path;
-
 use Config;
 exit if $Config{useithreads};
 
 my @tests = @ARGV;
 die "Only one test allowed" if @tests > 1;
-rmtree "test_output" unless @tests;
+my $fn = @tests ? $tests[0] : "";
+unlink for <test_output/cover/$fn*>;
 exec $^X, "utils/all_versions", "make", "gold", "TEST=@tests"
