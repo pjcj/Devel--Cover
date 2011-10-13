@@ -213,6 +213,13 @@ sub run_test
 
     my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
 
+    if ($self->{skip})
+    {
+        plan tests => 1;
+        skip($self->{skip}, 1);
+        return;
+    }
+
     my $gold = $self->cover_gold;
     open I, $gold or die "Cannot open $gold: $!";
     my @cover = <I>;
@@ -224,17 +231,11 @@ sub run_test
     eval "use Test::Differences";
     my $differences = $INC{"Test/Differences.pm"};
 
-    plan tests => ($differences || $self->{skip})
-                  ? 1
-                  : exists $self->{tests}
-                    ? $self->{tests}->(scalar @cover)
-                    : scalar @cover;
-
-    if ($self->{skip})
-    {
-        skip($self->{skip}, 1);
-        return;
-    }
+    plan tests => $differences
+                      ? 1
+                      : exists $self->{tests}
+                            ? $self->{tests}->(scalar @cover)
+                            : scalar @cover;
 
     local $ENV{PERL5OPT};
 
