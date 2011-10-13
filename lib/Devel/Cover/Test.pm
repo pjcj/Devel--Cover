@@ -359,6 +359,14 @@ sub create_gold
     unless (-e $new_gold)
     {
         open my $g, ">$new_gold" or die "Can't open $new_gold: $!";
+        unlink $new_gold;
+    }
+
+    # use Data::Dumper; print STDERR Dumper $self;
+    if ($self->{skip})
+    {
+        print STDERR "Skipping: $self->{skip}\n";
+        return;
     }
 
     $self->{run_test}
