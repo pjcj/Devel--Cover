@@ -534,7 +534,7 @@ sub use_file
 
     # system "pwd; ls -l '$file'";
     $Files{$file} = -e $file ? 1 : 0;
-    warn __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
+    print STDERR __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
         unless $Files{$file} || $Silent || $file =~ $Moose_filenames;
 
     $Files{$file}
