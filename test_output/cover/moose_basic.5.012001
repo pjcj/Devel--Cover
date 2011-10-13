@@ -1,4 +1,3 @@
-Use of uninitialized value $Devel::Cover::Moose_filenames in regexp compilation at /home/pjcj/g/perl/Devel--Cover/blib/lib/Devel/Cover/DB.pm line 882.
 Reading database from ...
 
 
