@@ -256,7 +256,7 @@ consider installing Test::Differences.  You can download
 Test::Differences from CPAN.
 EOM
 
-my $latest_tested = "5.014001";
+my $latest_tested = "5.014002";
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
