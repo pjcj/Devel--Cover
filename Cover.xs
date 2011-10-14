@@ -412,7 +412,7 @@ static void call_report(pTHX)
 {
     dSP;
     PUSHMARK(SP);
-    call_pv("Devel::Cover::report", G_VOID|G_DISCARD);
+    call_pv("Devel::Cover::report", G_VOID|G_DISCARD|G_EVAL);
     SPAGAIN;
 }
 

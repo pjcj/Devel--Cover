@@ -661,7 +661,24 @@ my %Seen;
 
 sub report
 {
-    _report();
+    local $@;
+    eval
+    {
+        _report();
+    };
+    if ($@)
+    {
+        print STDERR <<"EOM" unless $Silent;
+Devel::Cover: Oops, it looks like something went wrong writing the coverage.
+              It's possible that more bad things may happen but we'll try to
+              carry on anyway as if nothing happened.  At a minimum you'll
+              probably find that you are missing coverage.  If you're
+              interrested, the problem was:
+
+$@
+
+EOM
+    }
     return unless $Self_cover;
     $Self_cover_run = 1;
     _report();

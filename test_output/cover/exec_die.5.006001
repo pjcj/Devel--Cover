@@ -1,0 +1,59 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/exec_die                               50.0   50.0    n/a    0.0   44.4
+Total                                        50.0   50.0    n/a    0.0   44.4
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/exec_die
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2007-2011, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                        my $pid = fork;
+11                                      
+12    ***      1     50                 if ($pid)
+13                                      {
+14             1                            wait;
+15                                      }
+16                                      else
+17                                      {
+18    ***      0                    0       local *Devel::Cover::_report = sub { die "Badness happened!" };
+      ***      0                        
+19    ***      0                            exec "echo We want to be able to see this.";
+20                                      }
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+12    ***     50      1      0   if ($pid) { }
+
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count Location         
+---------- ----- -----------------
+__ANON__       0 tests/exec_die:18
+
+
