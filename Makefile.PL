@@ -14,7 +14,6 @@ use warnings;
 
 use Cwd;
 use ExtUtils::MakeMaker;
-use ExtUtils::Manifest "maniread";
 use File::Copy;
 
 $| = 1;
@@ -26,8 +25,6 @@ my $Author   = 'pjcj@cpan.org';
 my @perlbug  = ("perlbug", "-a", $Author,
                            "-s", "Installation of Devel::Cover $Version");
 my $Perlbug  = join " ", map { / / ? "'$_'" : $_ } @perlbug;
-
-my @files    = sort keys %{maniread()}, "lib/Devel/Cover/Inc.pm";
 
 my $base     = getcwd;
 
