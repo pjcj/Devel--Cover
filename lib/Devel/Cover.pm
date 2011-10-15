@@ -512,7 +512,9 @@ sub get_location
     # warn "${File}::$Line\n";
 
     # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
-    ($File, $Line) = ($1, $2) if $File =~ /^\(eval \d+\)\[(.*):(\d+)\]/;
+    while ($File =~ /^\(eval \d+\)\[(.*):(\d+)\]/) {
+        ($File, $Line) = ($1, $2);
+    }
     $File = normalised_file($File);
 
     if (!exists $Run{vec}{$File} && $Run{collected})
@@ -533,8 +535,12 @@ sub use_file
 
     # die "bad file" unless length $file;
 
-    $file = $1 if $file =~ /^\(eval \d+\)\[(.+):\d+\]/;
-    $file = $1 if $file =~ /^\(eval in \w+\) (.+)/;
+    while ($file =~ /^\(eval \d+\)\[(.+):\d+\]/) {
+        $file = $1;
+    }
+    while ($file =~ /^\(eval in \w+\) (.+)/) {
+        $file = $1;
+    }
     $file =~ s/ \(autosplit into .*\)$//;
 
     return $Files{$file} if exists $Files{$file};
