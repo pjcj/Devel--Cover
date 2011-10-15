@@ -7,14 +7,10 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-my $pid = fork;
+use strict;
+use warnings;
 
-if ($pid)
-{
-    wait;
-}
-else
-{
-    local *Devel::Cover::_report = sub { die "Badness happened!" };
-    exec "echo We want to be able to see this.";
-}
+eval "eval q[ sub config { {} } ]";
+
+my $e1 = config()         || {};
+my $e2 = config()->{mail} || {};
