@@ -362,11 +362,12 @@ WriteMakefile
             },
             resources =>
             {
-              license     => "http://dev.perl.org/licenses",
-              homepage    => "http://www.pjcj.net/perl.html",
-              bugtracker  => "http://rt.cpan.org/NoAuth/Bugs.html?Dist=Devel-Cover",
-              repository  => "http://github.com/pjcj/Devel--Cover",
-              MailingList => "http://lists.perl.org/list/perl-qa.html",
+                license        => "http://dev.perl.org/licenses",
+                homepage       => "http://www.pjcj.net/perl.html",
+                bugtracker     =>
+                    "http://rt.cpan.org/NoAuth/Bugs.html?Dist=Devel-Cover",
+                repository     => "http://github.com/pjcj/Devel--Cover",
+                x_mailing_list => "http://lists.perl.org/list/perl-qa.html",
             },
         },
         MIN_PERL_VERSION => "5.6.1",
