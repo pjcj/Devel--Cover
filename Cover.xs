@@ -1421,7 +1421,8 @@ get_ends()
     PREINIT:
         dMY_CXT;
     CODE:
-        RETVAL = MY_CXT.ends;
+        if (!MY_CXT.ends) MY_CXT.ends = newAV();  /* TODO: how? */
+            RETVAL = MY_CXT.ends;
     OUTPUT:
         RETVAL
 
