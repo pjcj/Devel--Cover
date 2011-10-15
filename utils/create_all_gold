@@ -14,9 +14,6 @@ use warnings;
 
 # VERSION
 
-use Config;
-exit if $Config{useithreads};
-
 my @tests = @ARGV;
 die "Only one test allowed" if @tests > 1;
 my $fn = @tests ? $tests[0] : "";
