@@ -1371,12 +1371,16 @@ Perl 5.7.0 is unsupported.  Perl 5.8.8 or greater is recommended.  Perl
 5.8.7 has problems and may crash.  Whilst Perl 5.6 should mostly work
 you will probably miss out on coverage information which would be
 available using a more modern version and will likely run into bugs in
-perl.  Perl 5.8.0 will give slightly different results to more recent
-versions due to changes in the op tree.
+perl.  Different versions of perl may give slightly different results
+due to changes in the op tree.
 
 =item * The ability to compile XS extensions.
 
-This means a working compiler and make program at least.
+This means a working C compiler and make program at least.  If you built perl
+from source you will have these already and they will be used automatically.
+If your perl was built in some other way, for example you may have installed
+it using your Operating System's packaging mechanism, you will need to ensure
+that the appropriate tools are installed.
 
 =item * L<Storable> and L<Digest::MD5>
 

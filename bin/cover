@@ -428,10 +428,17 @@ Specify -select and -ignore options to report on specific files.
 Specify -coverage options to report on specific criteria.  By default
 all available information on all criteria in all files will be reported.
 
-The -test option will delete the databases and run make test to generate
-new coverage data before reporting on it.  The -gcov option will try to
-run gcov on any XS code.  This requires that you are using gcc of
-course.  If you are this option will be turned on by default.
+The -test option will delete the databases and run your tests to generate
+new coverage data before reporting on it.  Devel::Cover knows how to work
+with standard Perl Makefiles as well as Module::Build based distributions.
+For detailed instructions see the documentation for ExtUtils::MakeMaker at
+https://metacpan.org/module/ExtUtils::MakeMaker or for Module::Build at
+https://metacpan.org/module/Module::Build both of which come as standard
+in recent Perl distributions.
+
+The -gcov option will try to run gcov on any XS code.  This requires that
+you are using gcc of course.  If you are using the -test option will be
+turned on by default.
 
 =head1 EXIT STATUS
 
