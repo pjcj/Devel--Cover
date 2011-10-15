@@ -1333,9 +1333,28 @@ available using a more modern version and will likely run into bugs in
 perl.  Perl 5.8.0 will give slightly different results to more recent
 versions due to changes in the op tree.
 
+=item * GNU Make and a Makefile
+
+A Makefile with a test section and make are required for cover -test
+to function properly. If you do not have a Makefile a quick one can be built
+by creating a file called Makefile.PL and pasting in the following code:
+
+    use ExtUtils::MakeMaker;
+    
+    WriteMakefile(
+        'NAME'    => 'sample',
+        'VERSION' => '1.0.0',
+    );
+
+Now just run 
+
+    perl Makefile.PL 
+
+and a Makefile with a test section will be generated.
+
 =item * The ability to compile XS extensions.
 
-This means a working compiler and make program at least.
+This means a working compiler like gcc and the make program bare minimum.
 
 =item * L<Storable> and L<Digest::MD5>
 
@@ -1349,7 +1368,7 @@ if you want syntax highlighted HTML reports.
 
 if you want Pod coverage.
 
-=item * L<Test::More>
+=item * L<Test::More> or L<Test::Most>
 
 in order to run the tests
 
