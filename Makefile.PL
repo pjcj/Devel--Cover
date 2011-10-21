@@ -18,19 +18,16 @@ use File::Copy;
 
 $| = 1;
 
-my $Version  = "0.79";
-my $Date     = "5th August 2011";
-my $Author   = 'pjcj@cpan.org';
-
-my @perlbug  = ("perlbug", "-a", $Author,
-                           "-s", "Installation of Devel::Cover $Version");
-my $Perlbug  = join " ", map { / / ? "'$_'" : $_ } @perlbug;
-
-my $base     = getcwd;
-
-my %inc      = map { -d $_ ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () }
-                   @INC;
-my @inc      = sort keys %inc;
+my $Version = "0.79";
+my $Date    = "5th August 2011";
+my $Author  = 'pjcj@cpan.org';
+my @perlbug = ("perlbug", "-a", $Author,
+                          "-s", "Installation of Devel::Cover $Version");
+my $Perlbug = join " ", map { / / ? "'$_'" : $_ } @perlbug;
+my $base    = getcwd;
+my %inc     = map { -d $_ ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () }
+                  @INC;
+my @inc     = sort keys %inc;
 
 open I, ">lib/Devel/Cover/Inc.pm"
     or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
@@ -102,7 +99,8 @@ for my $t (readdir D)
 
     if ($t =~ /\.t/)
     {
-        copy("tests/$t", "t/e2e/$t") or die "Cannot copy tests/$t to t/e2e/$t: $!";
+        copy("tests/$t", "t/e2e/$t")
+            or die "Cannot copy tests/$t to t/e2e/$t: $!";
         next
     }
 
