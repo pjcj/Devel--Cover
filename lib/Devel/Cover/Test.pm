@@ -76,7 +76,10 @@ sub get_params
     $self->{criteria} =~ s/-\w+//g;
     $self->{cover_db} = "$Devel::Cover::Inc::Base/t/e2e/"
                       . "cover_db_$self->{test}/";
-    mkdir $self->{cover_db};
+    unless (mkdir $self->{cover_db})
+    {
+        die "Can't mkdir $self->{cover_db}: $!" unless -d $self->{cover_db};
+    }
     $self->{cover_parameters} = join(" ", map "-coverage $_",
                                               split " ", $self->{criteria})
                               . " -report text " . $self->{cover_db};

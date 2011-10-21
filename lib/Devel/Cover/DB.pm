@@ -79,9 +79,9 @@ sub write
     $self->{db} = shift if @_;
 
     croak "No db specified" unless length $self->{db};
-    unless (-d $self->{db})
+    unless (mkdir $self->{db}, 0700)
     {
-        mkdir $self->{db}, 0700 or croak "Can't mkdir $self->{db}: $!\n";
+        croak "Can't mkdir $self->{db}: $!\n" unless -d $self->{db};
     }
     $self->validate_db;
 

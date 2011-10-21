@@ -348,9 +348,9 @@ sub import
         $Dir = $1 if Cwd::getcwd() =~ /(.*)/;
     }
 
-    unless (-d $DB)
+    unless (mkdir $DB, 0700)
     {
-        mkdir $DB, 0700 or die "Can't mkdir $DB: $!";
+        die "Can't mkdir $DB: $!" unless -d $DB;
     }
     $DB = $1 if abs_path($DB) =~ /(.*)/;
     Devel::Cover::DB->delete($DB) unless $Merge;
@@ -770,9 +770,9 @@ sub _report
     );
 
     my $dbrun = "$DB/runs";
-    unless (-d $dbrun)
+    unless (mkdir $dbrun, 0700)
     {
-        mkdir $dbrun, 0700 or croak "Can't mkdir $dbrun: $!\n";
+        die "Can't mkdir $dbrun $!" unless -d $dbrun;
     }
     $dbrun .= "/$run";
 

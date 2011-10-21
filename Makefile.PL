@@ -81,9 +81,9 @@ print "Writing tests ........ ";
 
 for my $d (qw( t t/e2e ))
 {
-    unless (-d $d)
+    unless (mkdir $d)
     {
-        mkdir $d or die "Cannot mkdir $: $!";
+        die "Cannot mkdir $d: $!" unless -d $d;
     }
 }
 
