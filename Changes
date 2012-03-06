@@ -1,6 +1,8 @@
 {{$dist->name}} history
 
 {{$NEXT}}
+- Don't be so noisy with Moose code.
+- Move to Dist:Zilla (Christian Walde).
 
 Release 0.79 - 5th August 2011
  - Test against 5.12.4, 5.14.1, 5.15.0 and 5.15.1.
