@@ -11,7 +11,7 @@ use strict;
 use warnings;
 
 # VERSION
-our $LVERSION = do { eval '$VERSION'; "0.001" };  # for development purposes
+our $LVERSION = do { eval '$VERSION' || "0.001" };  # for development purposes
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
