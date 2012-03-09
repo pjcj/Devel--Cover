@@ -14,7 +14,7 @@ use lib "utils";
 
 use Getopt::Long;
 
-use Devel::Cover::BuildUtils "prove_command";
+use Devel::Cover::BuildUtils qw( prove_command cpus );
 
 my $Options =
 {
@@ -29,14 +29,15 @@ my $Silent = "";
 sub get_options
 {
     die "Bad option" unless
-    GetOptions($Options,  # Store the options in the Options hash.
-               qw(
-                   build!
-                   dry_run!
-                   ignore_failure!
-                   silent!
-                   version=s
-                 ));
+        GetOptions($Options,
+                   qw(
+                       build!
+                       dry_run!
+                       ignore_failure!
+                       list!
+                       silent!
+                       version=s
+                     ));
     $Options->{version} =
         [ map { ($_, "$_-thr") }
               qw( 5.6.1 5.6.2
@@ -68,13 +69,16 @@ sub build
     for my $v (@{$Options->{version}})
     {
         my $opts = "";
-        if ($v =~ /thr/)
-        {
-            $opts .= "-D usethreads --as perl-$v";
-        }
-        sys "perlbrew install -v $v $opts";
+        my ($n) = $v =~ /(\d+\.\d+\.\d+)/ or die "Can't parse [$v}";
+        $opts .= " -D usethreads" if $v =~ /thr/;
+        $opts .= " --force"       if $n =~ /^5\.6\./;
+        my $j = cpus + 1;
+        sys "perlbrew -v install $n --as dc-$v -j $j $opts";
+        sys "perlbrew use $v && " .
+            "curl -L http://cpanmin.us | perl - App::cpanminus";
         my @mods = qw( Storable Digest::MD5 Test::More Test::Warn );
-        if ($v !~ /thr/)
+        my ($s) = $n =~ /(\d+)$/;
+        if (($v !~ /thr/ || $s == 1) && $n !~ /^5\.6\./)
         {
             push @mods,
             qw(
@@ -87,9 +91,8 @@ sub build
                 Parallel::Iterator
                 JSON::PP
               );
-              my ($n) = $v =~ /(\d+)$/;
-              push @mods, "Perl::Tidy" if !$n ||   $n % 2;
-              push @mods, "PPI::HTML"  if !$n || !($n % 2);
+            push @mods, "Perl::Tidy" if !$s ||   $s % 2;
+            push @mods, "PPI::HTML"  if !$s || !($s % 2);
         }
         sys "perlbrew use $v && cpanm @mods";
     }
