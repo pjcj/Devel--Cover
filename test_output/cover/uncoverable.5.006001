@@ -28,40 +28,43 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      # __COVER__ uncoverable_file tests/.uncoverable
-11                                      
-12             1                        my $x = 1;
-13             1                        my $y = 1;
+10                                      # __COVER__ skip_test $] == 5.015006
+11                                      # __COVER__ skip_reason B::Deparse throws warnings
+12                                      
+13                                      # __COVER__ uncoverable_file tests/.uncoverable
 14                                      
-15                                      # uncoverable branch true
-16                                      # uncoverable condition left
-17                                      # uncoverable condition false
-18             1   - 50   - 33          if ($x && !$y)
-19                                      {
-20            -0                            $x++;  # uncoverable statement
-21                                          # uncoverable statement
-22            -0                            z();
-23                                      }
-24                                      
-25                                      # uncoverable branch true
-26                                      # uncoverable condition left
-27                                      # uncoverable condition right
-28             1   - 50   - 33          if (!$x || !$y)
-29                                      {
-30                                          # uncoverable statement count:1
-31                                          # uncoverable statement count:2
-32            -0                            b(); b();
+15             1                        my $x = 1;
+16             1                        my $y = 1;
+17                                      
+18                                      # uncoverable branch true
+19                                      # uncoverable condition left
+20                                      # uncoverable condition false
+21             1   - 50   - 33          if ($x && !$y)
+22                                      {
+23            -0                            $x++;  # uncoverable statement
+24                                          # uncoverable statement
+25            -0                            z();
+26                                      }
+27                                      
+28                                      # uncoverable branch true
+29                                      # uncoverable condition left
+30                                      # uncoverable condition right
+31             1   - 50   - 33          if (!$x || !$y)
+32                                      {
+33                                          # uncoverable statement count:1
+34                                          # uncoverable statement count:2
+35            -0                            b(); b();
               -0                        
-33                                      }
-34                                      
-35                                      sub z
-36                                      {
-37                                          # uncoverable subroutine
-38            -0                   -0       $y++; # uncoverable statement
-39                                      }
-40                                      
-41                                      # uncoverable statement
-42                                      # uncoverable subroutine
+36                                      }
+37                                      
+38                                      sub z
+39                                      {
+40                                          # uncoverable subroutine
+41            -0                   -0       $y++; # uncoverable statement
+42                                      }
+43                                      
+44                                      # uncoverable statement
+45                                      # uncoverable subroutine
 
 
 Branches
@@ -69,8 +72,8 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-18          - 50     -0      1   if ($x and not $y)
-28          - 50     -0      1   if (not $x or not $y)
+21          - 50     -0      1   if ($x and not $y)
+31          - 50     -0      1   if (not $x or not $y)
 
 
 Conditions
@@ -80,13 +83,13 @@ and 3 conditions
 
 line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
-18          - 33     -0      1     -0   $x and not $y
+21          - 33     -0      1     -0   $x and not $y
 
 or 3 conditions
 
 line  err      %      l  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------   ----
-28          - 33     -0     -0      1   not $x or not $y
+31          - 33     -0     -0      1   not $x or not $y
 
 
 Uncovered Subroutines
@@ -94,6 +97,6 @@ Uncovered Subroutines
 
 Subroutine Count Location            
 ---------- ----- --------------------
-z             -0 tests/uncoverable:38
+z             -0 tests/uncoverable:41
 
 
