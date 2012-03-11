@@ -7,9 +7,6 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# __COVER__ skip_test $] == 5.015006
-# __COVER__ skip_reason B::Deparse throws warnings
-
 # __COVER__ uncoverable_file tests/.uncoverable
 
 my $x = 1;
