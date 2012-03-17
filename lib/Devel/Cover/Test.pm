@@ -422,4 +422,12 @@ END
     $self->run_test if $self->{run_test_at_end};
 }
 
-1;
+1
+
+__END__
+
+=head1 NAME
+
+Devel::Cover::Test - Internal module for testing
+
+=cut
