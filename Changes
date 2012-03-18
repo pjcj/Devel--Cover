@@ -1,6 +1,9 @@
-{{$dist->name}} history
+Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.81 - 18th March 2012
+ - Fix up dzil release process.
 
 Release 0.80 - 18th March 2012
  - Don't be so noisy with Moose code.
