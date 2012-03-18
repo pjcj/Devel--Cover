@@ -1,6 +1,8 @@
 {{$dist->name}} history
 
 {{$NEXT}}
+
+Release 0.80 - 18th March 2012
  - Don't be so noisy with Moose code.
  - Move to Dist:Zilla (Christian Walde).
  - Test against 5.14.2 and 5.15.2 - 5.15.8.
