@@ -300,7 +300,7 @@ WriteMakefile
 (
     NAME             => "Devel::Cover",
     VERSION          => $Version,
-    AUTHOR           => 'Paul Johnson (pjcj@cpan.org)',
+    AUTHOR           => 'Paul Johnson <pjcj@cpan.org>',
     ABSTRACT_FROM    => "lib/Devel/Cover.pm",
     DIR              => [],
     EXE_FILES        => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],
@@ -321,55 +321,6 @@ WriteMakefile
                             POSTOP => "\$(RM_RF) cover_db t/e2e"
                         } :
                         { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
-    $] >= 5.010001 ?
-    (
-        LICENSE          => "perl",
-        META_ADD         =>
-        {
-            requires =>
-            {
-                perl                          => 5.006001,
-                Storable                      => 0,
-                "Digest::MD5"                 => 0,
-            },
-            dynamic_config => 1,
-        },
-        META_MERGE       =>
-        {
-            recommends =>
-            {
-                perl                          => 5.008002,
-                Template                      => 2.00,
-                "PPI::HTML"                   => 1.07,
-                "Perl::Tidy"                  => 20060719,
-                "Pod::Coverage"               => 0.06,
-                "Pod::Coverage::CountParents" => 0,
-                "Test::Differences"           => 0,
-                "Parallel::Iterator"          => 0,
-                "JSON::PP"                    => 0,
-            },
-            build_requires =>
-            {
-                "Test::More"                  => 0,
-                "Test::Warn"                  => 0,
-            },
-            no_index =>
-            {
-                directory => [ "tests", "utils" ],
-            },
-            resources =>
-            {
-                license        => "http://dev.perl.org/licenses",
-                homepage       => "http://www.pjcj.net/perl.html",
-                bugtracker     =>
-                    "http://rt.cpan.org/NoAuth/Bugs.html?Dist=Devel-Cover",
-                repository     => "http://github.com/pjcj/Devel--Cover",
-                x_mailing_list => "http://lists.perl.org/list/perl-qa.html",
-            },
-        },
-        MIN_PERL_VERSION => "5.6.1",
-    ) :
-    ()
 );
 
 print "\n";
@@ -482,11 +433,6 @@ _self_cover_tests : @{[sort values %tests]}
 
 self_cover : _self_cover_reports
 \t \$(PERL) -Mblib bin/cover -report html_basic
-
-mani :
-\t -rm MANIFEST
-\t \$(MAKE) manifest
-\t \$(PERL) -i.bak -ne '\$\$d = "test_output/cover"; print unless /^\$\$d/; END { open M, ">>MANIFEST"; opendir D, \$\$d; print M "\$\$d/\$\$_\\n" for sort grep -f "\$\$d/\$\$_", readdir D }' MANIFEST
 
 ok :
 \t \@$Perlbug -okay  || echo "Please send your report manually to $Author"
