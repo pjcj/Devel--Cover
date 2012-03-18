@@ -20,8 +20,9 @@
 6. Return to base perl version.
   $ perl Makefile.PL && make
 
-7. Run final tests.
-  $ dzil test
-
-8. Make the release.
+7. Make the release.
   $ dzil release
+
+8. Push the changes.
+  - The dzil Git::Push plugin hangs for me
+  $ git push
