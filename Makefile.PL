@@ -411,6 +411,9 @@ README : lib/Devel/Cover.pm
     -e 'print if (/REQUIREMENTS/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
     > README
 
+show_version :
+\t \@echo \$(VERSION)
+
 ppm : ppd pure_all
 \t tar cf Devel-Cover.tar blib
 \t gzip --best --force Devel-Cover.tar
