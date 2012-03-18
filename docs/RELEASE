@@ -5,20 +5,23 @@
 
 2. Update version number in Makefile.PL.
 
-3. Run basic tests.
+3. Check it in.
+  $ git commit -m "Bump version number." Makefile.PL
+
+4. Run basic tests.
   $ perl Makefile.PL && make
   $ make test
 
-4. Test against all versions.
+5. Test against all versions.
   $ make all_test
   - or, if you have multiple cores available:
   $ HARNESS_OPTIONS=j9:c HARNESS_TIMER=1 make all_test
 
-5. Return to base perl version.
+6. Return to base perl version.
   $ perl Makefile.PL && make
 
-6. Run final tests.
+7. Run final tests.
   $ dzil test
 
-7. Make the release.
+8. Make the release.
   $ dzil release
