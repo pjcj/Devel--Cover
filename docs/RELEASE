@@ -1,48 +1,27 @@
- 1. Make sure the MANIFEST is up to date.
-  $ make mani
-
- 2. Check for changes and commit if necessary.
-  $ git diff
-  $ git commit -v MANIFEST
-
- 3. Update CHANGES.
-  - Show the release number and date of release.
+1. Update Changes.
   - Add important changes.
   - Credit the author as appropriate.
   - Include RT numbers.
 
- 4. Commit the change.
-  $ git commit -m 'Add changes for X.YZ release.' CHANGES
+2. Update version number in Makefile.PL.
 
- 5. Update version number and date in Makefile.PL.
-  - Then propagate the change.
-  $ perl Makefile.PL && make
-
- 6. Generate META.yml and META.json
-  $ make distdir
-  $ cp Devel-Cover-X.YZ/META.* .
-  $ rm -r Devel-Cover-X.YZ
-
- 7. Run basic tests.
+3. Run basic tests.
   $ perl Makefile.PL && make
   $ make test
 
- 8. Test against all versions.
+4. Test against all versions.
   $ make all_test
   - or, if you have multiple cores available:
-  $ HARNESS_OPTIONS=j7:c HARNESS_TIMER=1 make all_test
+  $ HARNESS_OPTIONS=j9:c HARNESS_TIMER=1 make all_test
 
- 9. Return to base perl version.
+5. Return to base perl version.
   $ perl Makefile.PL && make
 
-10. Run dist test.
-  $ make disttest
+6. Run final tests
+  $ dzil test
 
-11. Commit the change.
-  $ git commit -a -m 'Update to version X.YZ'
+7. Make the distribution.
+  $ dzil build
 
-12. Tag the release.
-  $ git tag -a vX.YZ -m 'Release vX.YZ'
-
-13. Make the distribution.
-  $ make dist
+8. Make the release.
+  $ dzil release

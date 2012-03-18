@@ -19,7 +19,6 @@ use File::Copy;
 $| = 1;
 
 my $Version = "0.79";
-my $Date    = "5th August 2011";
 my $Author  = 'pjcj@cpan.org';
 my @perlbug = ("perlbug", "-a", $Author,
                           "-s", "Installation of Devel::Cover $Version");
