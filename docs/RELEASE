@@ -17,11 +17,8 @@
 5. Return to base perl version.
   $ perl Makefile.PL && make
 
-6. Run final tests
+6. Run final tests.
   $ dzil test
 
-7. Make the distribution.
-  $ dzil build
-
-8. Make the release.
+7. Make the release.
   $ dzil release
