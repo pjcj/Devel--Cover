@@ -49,7 +49,6 @@
     files are used in some runs.
   - Make sure dor is handled correctly and add more tests to cond_or.
 - Build:
-  - meta.yaml file to control pause indexing.
   - Fix up make text and friends for module_ignore.
   - Check for matching threadedness, 64bits etc. between build and run?
   - Turn Perl build lines into a script to work on Win32 etc.
