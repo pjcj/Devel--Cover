@@ -412,7 +412,7 @@ static void call_report(pTHX)
 {
     dSP;
     PUSHMARK(SP);
-    call_pv("Devel::Cover::report", G_VOID|G_DISCARD);
+    call_pv("Devel::Cover::report", G_VOID|G_DISCARD|G_EVAL);
     SPAGAIN;
 }
 
@@ -1421,7 +1421,8 @@ get_ends()
     PREINIT:
         dMY_CXT;
     CODE:
-        RETVAL = MY_CXT.ends;
+        if (!MY_CXT.ends) MY_CXT.ends = newAV();  /* TODO: how? */
+            RETVAL = MY_CXT.ends;
     OUTPUT:
         RETVAL
 

@@ -10,12 +10,12 @@ package Devel::Cover::DB;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
+# VERSION
 
-use Devel::Cover::Criterion     0.79;
-use Devel::Cover::DB::File      0.79;
-use Devel::Cover::DB::Structure 0.79;
-use Devel::Cover::DB::IO        0.79;
+use Devel::Cover::Criterion;
+use Devel::Cover::DB::File;
+use Devel::Cover::DB::Structure;
+use Devel::Cover::DB::IO;
 
 use Carp;
 use File::Path;
@@ -79,9 +79,9 @@ sub write
     $self->{db} = shift if @_;
 
     croak "No db specified" unless length $self->{db};
-    unless (-d $self->{db})
+    unless (mkdir $self->{db}, 0700)
     {
-        mkdir $self->{db}, 0700 or croak "Can't mkdir $self->{db}: $!\n";
+        croak "Can't mkdir $self->{db}: $!\n" unless -d $self->{db};
     }
     $self->validate_db;
 
@@ -776,7 +776,17 @@ sub objectify_cover
                 }
             }
         }
-        bless $_, "Devel::Cover::DB::Run" for values %{$self->{runs}};
+        for my $r (keys %{$self->{runs}})
+        {
+            if (defined $self->{runs}{$r})
+            {
+                bless $self->{runs}{$r}, "Devel::Cover::DB::Run";
+            }
+            else
+            {
+                delete $self->{runs}{$r};  # DEVEL_COVER_SELF
+            }
+        }
     }
 
     unless (exists &Devel::Cover::DB::Base::items)
@@ -859,6 +869,7 @@ sub cover
         last unless $st;
 
         my $r = $self->{runs}{$run};
+        next unless $r->{collected};  # DEVEL_COVER_SELF
         @{$self->{collected}}{@{$r->{collected}}} = ();
         $st->add_criteria(@{$r->{collected}});
         my $count = $r->{count};
@@ -868,7 +879,11 @@ sub cover
             my $digest = $r->{digests}{$file};
             unless ($digest)
             {
-                print STDERR "Devel::Cover: Can't find digest for $file\n";
+                print STDERR "Devel::Cover: Can't find digest for $file\n"
+                    unless $Devel::Cover::Silent ||
+                           $file =~ $Devel::Cover::Moose_filenames ||
+                           ($Devel::Cover::Self_cover &&
+                            $file =~ q|/Devel/Cover[./]|);
                 next;
             }
             # print STDERR "File: $file\n";
@@ -1014,10 +1029,6 @@ that's what it should do.)
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

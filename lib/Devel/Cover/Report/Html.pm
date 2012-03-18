@@ -10,7 +10,7 @@ package Devel::Cover::Report::Html;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
+# VERSION
 
 use base "Devel::Cover::Report::Html_minimal";
 
@@ -43,10 +43,6 @@ Devel::Cover::Report::Html_minimal.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

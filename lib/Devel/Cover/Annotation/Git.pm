@@ -10,7 +10,7 @@ package Devel::Cover::Annotation::Git;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
+# VERSION
 
 use Getopt::Long;
 
@@ -150,10 +150,6 @@ This module is designed to be called from the C<cover> program.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

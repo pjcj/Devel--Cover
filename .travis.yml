@@ -1,0 +1,11 @@
+language: perl
+perl:
+  - "5.10"
+  - "5.12"
+  - "5.14"
+before_install:
+    - perl -MYAML=LoadFile -le 'print for keys LoadFile("MYMETA.yml")->{recommends}' | xargs cpanm
+notifications:
+  email:
+    on_success: always
+    on_failure: always

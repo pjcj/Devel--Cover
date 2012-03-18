@@ -12,7 +12,7 @@ package Devel::Cover::Web;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
+# VERSION
 
 use Exporter;
 
@@ -931,10 +931,6 @@ Output the specified file to the specified directory.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

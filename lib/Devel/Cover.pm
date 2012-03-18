@@ -10,14 +10,15 @@ package Devel::Cover;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
+# VERSION
+our $LVERSION = do { eval '$VERSION' || "0.001" };  # for development purposes
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB          0.79;
-use Devel::Cover::DB::Digests 0.79;
-use Devel::Cover::Inc         0.79;
+use Devel::Cover::DB;
+use Devel::Cover::DB::Digests;
+use Devel::Cover::Inc;
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -52,7 +53,6 @@ my $DB             = "cover_db";         # DB name.
 my $Merge          = 1;                  # Merge databases.
 my $Summary        = 1;                  # Output coverage summary.
 my $Subs_only      = 0;                  # Coverage only for sub bodies.
-my $Self_cover;                          # Coverage of Devel::Cover.
 my $Self_cover_run = 0;                  # Covering Devel::Cover now.
 
 my @Ignore;                              # Packages to ignore.
@@ -96,7 +96,8 @@ use vars '$File',                        # Last filename we saw.  (localised)
                                          # Used in runops function.
          '$Replace_ops',                 # Whether we are replacing ops.
          '$Silent',                      # Output nothing. Can be used anywhere.
-         '$Moose_filenames';             # Moose generated filename to ignore.
+         '$Self_cover',                  # Coverage of Devel::Cover.
+         '$Moose_filenames';             # Moose generated filenames to ignore.
 
 BEGIN
 {
@@ -111,10 +112,18 @@ BEGIN
     # $^P = 0x004 | 0x100 | 0x200;
     $^P |= 0x004 | 0x100;
     $Moose_filenames =
-        qr/(?:reader|writer|constructor|destructor|accessor|predicate) /;
+        qr/
+            (?:
+                (?:reader|writer|constructor|destructor|accessor|predicate)
+                \s .* \s
+                \(defined \s at \s .* \s line \s \d+ \)
+            )
+            |
+            (?:generated \s method \s \( unknown \s origin \))
+          /x;
 }
 
-sub version { $VERSION }
+sub version { $LVERSION }
 
 if (0 && $Config{useithreads})
 {
@@ -200,7 +209,7 @@ EOM
         @coverage = get_coverage();
         my $last = pop @coverage || "";
 
-        print OUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
+        print OUT __PACKAGE__, " $LVERSION: Collecting coverage data for ",
               join(", ", @coverage),
               @coverage ? " and " : "",
               "$last.\n",
@@ -315,7 +324,16 @@ sub import
     @Ignore_re = map qr/$_/,                           @Ignore;
     @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
 
-    bootstrap Devel::Cover $VERSION;
+    if ($LVERSION > 0.002)
+    {
+        # Usual situation in production from a full release.
+        bootstrap Devel::Cover $LVERSION;
+    }
+    else
+    {
+        # Usual situation in development.
+        bootstrap Devel::Cover;
+    }
 
     if (defined $Dir)
     {
@@ -330,9 +348,9 @@ sub import
         $Dir = $1 if Cwd::getcwd() =~ /(.*)/;
     }
 
-    unless (-d $DB)
+    unless (mkdir $DB, 0700)
     {
-        mkdir $DB, 0700 or die "Can't mkdir $DB: $!";
+        die "Can't mkdir $DB: $!" unless -d $DB;
     }
     $DB = $1 if abs_path($DB) =~ /(.*)/;
     Devel::Cover::DB->delete($DB) unless $Merge;
@@ -494,7 +512,9 @@ sub get_location
     # warn "${File}::$Line\n";
 
     # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
-    ($File, $Line) = ($1, $2) if $File =~ /^\(eval \d+\)\[(.*):(\d+)\]/;
+    while ($File =~ /^\(eval \d+\)\[(.*):(\d+)\]/) {
+        ($File, $Line) = ($1, $2);
+    }
     $File = normalised_file($File);
 
     if (!exists $Run{vec}{$File} && $Run{collected})
@@ -515,8 +535,12 @@ sub use_file
 
     # die "bad file" unless length $file;
 
-    $file = $1 if $file =~ /^\(eval \d+\)\[(.+):\d+\]/;
-    $file = $1 if $file =~ /^\(eval in \w+\) (.+)/;
+    while ($file =~ /^\(eval \d+\)\[(.+):\d+\]/) {
+        $file = $1;
+    }
+    while ($file =~ /^\(eval in \w+\) (.+)/) {
+        $file = $1;
+    }
     $file =~ s/ \(autosplit into .*\)$//;
 
     return $Files{$file} if exists $Files{$file};
@@ -534,7 +558,7 @@ sub use_file
 
     # system "pwd; ls -l '$file'";
     $Files{$file} = -e $file ? 1 : 0;
-    warn __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
+    print STDERR __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
         unless $Files{$file} || $Silent || $file =~ $Moose_filenames;
 
     $Files{$file}
@@ -643,7 +667,24 @@ my %Seen;
 
 sub report
 {
-    _report();
+    local $@;
+    eval
+    {
+        _report();
+    };
+    if ($@)
+    {
+        print STDERR <<"EOM" unless $Silent;
+Devel::Cover: Oops, it looks like something went wrong writing the coverage.
+              It's possible that more bad things may happen but we'll try to
+              carry on anyway as if nothing happened.  At a minimum you'll
+              probably find that you are missing coverage.  If you're
+              interrested, the problem was:
+
+$@
+
+EOM
+    }
     return unless $Self_cover;
     $Self_cover_run = 1;
     _report();
@@ -729,9 +770,9 @@ sub _report
     );
 
     my $dbrun = "$DB/runs";
-    unless (-d $dbrun)
+    unless (mkdir $dbrun, 0700)
     {
-        mkdir $dbrun, 0700 or croak "Can't mkdir $dbrun: $!\n";
+        die "Can't mkdir $dbrun $!" unless -d $dbrun;
     }
     $dbrun .= "/$run";
 
@@ -1330,12 +1371,16 @@ Perl 5.7.0 is unsupported.  Perl 5.8.8 or greater is recommended.  Perl
 5.8.7 has problems and may crash.  Whilst Perl 5.6 should mostly work
 you will probably miss out on coverage information which would be
 available using a more modern version and will likely run into bugs in
-perl.  Perl 5.8.0 will give slightly different results to more recent
-versions due to changes in the op tree.
+perl.  Different versions of perl may give slightly different results
+due to changes in the op tree.
 
 =item * The ability to compile XS extensions.
 
-This means a working compiler and make program at least.
+This means a working C compiler and make program at least.  If you built perl
+from source you will have these already and they will be used automatically.
+If your perl was built in some other way, for example you may have installed
+it using your Operating System's packaging mechanism, you will need to ensure
+that the appropriate tools are installed.
 
 =item * L<Storable> and L<Digest::MD5>
 
@@ -1517,10 +1562,6 @@ CV.  Hints, tips or patches to resolve this will be gladly accepted.
 Almost certainly.
 
 See the BUGS file.  And the TODO file.
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

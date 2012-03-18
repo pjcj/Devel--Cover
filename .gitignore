@@ -18,7 +18,11 @@ pm_to_blib
 *.orig
 *.rej
 tmp/
-MYMETA.yml
+MYMETA.*
 Cover.def
 dll.base
 dll.exp
+Devel-Cover-*
+tags
+README
+.build/

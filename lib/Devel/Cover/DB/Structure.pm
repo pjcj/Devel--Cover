@@ -14,14 +14,14 @@ use Carp;
 use Digest::MD5;
 
 use Devel::Cover::DB;
-use Devel::Cover::DB::IO        0.79;
+use Devel::Cover::DB::IO;
 
 use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 
 # For comprehensive debug logging.
 use constant DEBUG => 0;
 
-our $VERSION = "0.79";
+# VERSION
 our $AUTOLOAD;
 
 sub new
@@ -88,9 +88,9 @@ sub AUTOLOAD
 sub debuglog {
     my $self = shift;
     my $dir = "$self->{base}/debuglog";
-    unless (-d $dir)
+    unless (mkdir $dir, 0700)
     {
-        mkdir $dir, 0700 or confess "Can't mkdir $dir: $!";
+        confess "Can't mkdir $dir: $!" unless -d $dir;
     }
 
     local $\;
@@ -230,7 +230,8 @@ sub digest
     }
     else
     {
-        warn "Devel::Cover: Can't open $file for MD5 digest: $!\n"
+        print STDERR "Devel::Cover: Warning: can't open $file " .
+                                             "for MD5 digest: $!\n"
             unless lc $file eq "-e" or
                       $file =~ $Devel::Cover::Moose_filenames;
         # require "Cwd"; warn Carp::longmess("in " . Cwd::cwd());
@@ -271,16 +272,20 @@ sub write
     my ($dir) = @_;
     # print STDERR Dumper $self;
     $dir .= "/structure";
-    unless (-d $dir)
+    unless (mkdir $dir, 0700)
     {
-        mkdir $dir, 0700 or croak "Can't mkdir $dir: $!\n";
+        confess "Can't mkdir $dir: $!" unless -d $dir;
     }
     for my $file (sort keys %{$self->{f}})
     {
         $self->{f}{$file}{file} = $file;
         unless ($self->{f}{$file}{digest})
         {
-            warn "Can't find digest for $file" unless $Devel::Cover::Silent;
+            warn "Can't find digest for $file"
+                unless $Devel::Cover::Silent ||
+                       $file =~ $Devel::Cover::Moose_filenames ||
+                       ($Devel::Cover::Self_cover &&
+                        $file =~ q|/Devel/Cover[./]|);
             next;
         }
         my $df_final = "$dir/$self->{f}{$file}{digest}";
@@ -293,9 +298,10 @@ sub write
         unless (rename $df_temp, $df_final) {
             unless ($Devel::Cover::Silent) {
                 if(-e $df_final) {
-                    warn "Can't rename $df_temp to $df_final (which exists): $!";
-                    $self->debuglog("Can't rename $df_temp to $df_final "
-                                    . "(which exists): $!")
+                    warn "Can't rename $df_temp to $df_final " .
+                           "(which exists): $!";
+                    $self->debuglog("Can't rename $df_temp to $df_final " .
+                                      "(which exists): $!")
                         if DEBUG;
                 } else {
                     warn "Can't rename $df_temp to $df_final: $!";
@@ -400,10 +406,6 @@ Devel::Cover::DB::Structure - Code coverage metrics for Perl
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 

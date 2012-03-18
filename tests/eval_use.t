@@ -10,7 +10,7 @@
 use strict;
 use warnings;
 
-use Devel::Cover::Test 0.79;
+use Devel::Cover::Test;
 
 if ($] == 5.008007)
 {

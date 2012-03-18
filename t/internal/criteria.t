@@ -4,19 +4,25 @@ use warnings;
 use Test::More;
 use Test::Warn;
 
-use Devel::Cover "-silent", 1;
-
 if ($] < 5.008000)
 {
     plan skip_all => "Test requires perl 5.8.0 or greater";
 }
+if ($] == 5.015006)
+{
+    plan skip_all => "5.16.6 throws too many erroneous warnings";
+}
 else
 {
+    require Devel::Cover;
+    Devel::Cover->import(qw( -silent 1 ));
     plan tests => 5;
 }
 
 Devel::Cover::set_coverage("none");
-is Devel::Cover::get_coverage(), "", "Set coverage to none empties coverage";
+is Devel::Cover::get_coverage(),
+   "",
+   "Set coverage to none empties coverage";
 
 Devel::Cover::set_coverage("all");
 is Devel::Cover::get_coverage(),
@@ -29,8 +35,8 @@ is Devel::Cover::get_coverage(),
    "Removing path coverage works";
 
 warning_like { Devel::Cover::add_coverage("does_not_exist") }
-           qr/Devel::Cover: Unknown coverage criterion "does_not_exist" ignored./,
-           "Adding non-existent coverage warns";
+   qr/Devel::Cover: Unknown coverage criterion "does_not_exist" ignored./,
+   "Adding non-existent coverage warns";
 is Devel::Cover::get_coverage(),
    "branch condition pod statement subroutine time",
    "Adding non-existent coverage has no effect";

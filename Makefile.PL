@@ -14,27 +14,19 @@ use warnings;
 
 use Cwd;
 use ExtUtils::MakeMaker;
-use ExtUtils::Manifest "maniread";
 use File::Copy;
 
 $| = 1;
 
-my $Version  = "0.79";
-my $Date     = "5th August 2011";
-my $Author   = 'pjcj@cpan.org';
-
-my @perlbug  = ("perlbug", "-a", $Author,
-                           "-s", "Installation of Devel::Cover $Version");
-my $Perlbug  = join " ", map { / / ? "'$_'" : $_ } @perlbug;
-
-my @files    = sort keys %{maniread()}, "lib/Devel/Cover/Inc.pm";
-my @versions = grep !/^(?:README|Makefile\.PL|\.gitignore)$/, @files;
-
-my $base     = getcwd;
-
-my %inc      = map { -d $_ ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () }
-                   @INC;
-my @inc      = sort keys %inc;
+my $Version = "0.79";
+my $Author  = 'pjcj@cpan.org';
+my @perlbug = ("perlbug", "-a", $Author,
+                          "-s", "Installation of Devel::Cover $Version");
+my $Perlbug = join " ", map { / / ? "'$_'" : $_ } @perlbug;
+my $base    = getcwd;
+my %inc     = map { -d $_ ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () }
+                  @INC;
+my @inc     = sort keys %inc;
 
 open I, ">lib/Devel/Cover/Inc.pm"
     or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
@@ -88,9 +80,9 @@ print "Writing tests ........ ";
 
 for my $d (qw( t t/e2e ))
 {
-    unless (-d $d)
+    unless (mkdir $d)
     {
-        mkdir $d or die "Cannot mkdir $: $!";
+        die "Cannot mkdir $d: $!" unless -d $d;
     }
 }
 
@@ -106,7 +98,8 @@ for my $t (readdir D)
 
     if ($t =~ /\.t/)
     {
-        copy("tests/$t", "t/e2e/$t") or die "Cannot copy tests/$t to t/e2e/$t: $!";
+        copy("tests/$t", "t/e2e/$t")
+            or die "Cannot copy tests/$t to t/e2e/$t: $!";
         next
     }
 
@@ -129,7 +122,7 @@ use lib "$base/blib/lib";
 use lib "$base/blib/arch";
 use lib "$base/t";
 
-use Devel::Cover::Test $Version;
+use Devel::Cover::Test;
 
 Devel::Cover::Test->new("$t");
 EOT
@@ -260,7 +253,7 @@ consider installing Test::Differences.  You can download
 Test::Differences from CPAN.
 EOM
 
-my $latest_tested = "5.014001";
+my $latest_tested = "5.014002";
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
@@ -310,7 +303,7 @@ WriteMakefile
     AUTHOR           => 'Paul Johnson (pjcj@cpan.org)',
     ABSTRACT_FROM    => "lib/Devel/Cover.pm",
     DIR              => [],
-    EXE_FILES        => [ qw( cover gcov2perl cpancover ) ],
+    EXE_FILES        => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],
     PERL_MALLOC_OK   => 1,
     PREREQ_PM        => {
                             Storable      => 0,
@@ -319,10 +312,9 @@ WriteMakefile
                             "Test::Warn"  => 0,
                         },
     TYPEMAPS         => [ "utils/typemap" ],
-    clean            => { FILES    => "t/e2e/* cover_db* t/e2e/*cover_db"  },
-    depend           => { distdir  => "@files"                             },
-    dist             => { COMPRESS => "gzip --best --force"                },
-    test             => { TESTS    => "t/*/*.t"                            },
+    clean            => { FILES => "t/e2e/* cover_db* t/e2e/*cover_db README" },
+    dist             => { COMPRESS => "gzip --best --force"                   },
+    test             => { TESTS    => "t/*/*.t"                               },
     realclean        => $] < 5.008008 ?
                         {
                             FILES => "lib/Devel/Cover/Inc.pm",
@@ -367,11 +359,12 @@ WriteMakefile
             },
             resources =>
             {
-              license     => "http://dev.perl.org/licenses",
-              homepage    => "http://www.pjcj.net/perl.html",
-              bugtracker  => "http://rt.cpan.org/NoAuth/Bugs.html?Dist=Devel-Cover",
-              repository  => "http://github.com/pjcj/Devel--Cover",
-              MailingList => "http://lists.perl.org/list/perl-qa.html",
+                license        => "http://dev.perl.org/licenses",
+                homepage       => "http://www.pjcj.net/perl.html",
+                bugtracker     =>
+                    "http://rt.cpan.org/NoAuth/Bugs.html?Dist=Devel-Cover",
+                repository     => "http://github.com/pjcj/Devel--Cover",
+                x_mailing_list => "http://lists.perl.org/list/perl-qa.html",
             },
         },
         MIN_PERL_VERSION => "5.6.1",
@@ -397,21 +390,6 @@ README file, or send mail to me directly.
 
 EOM
 
-sub MY::libscan
-{
-    my ($self, $path) = @_;
-    (my $p = $path) =~ s/^\$\(INST_LIB\)/lib/;  # 5.6.1
-    $p =~ s|\\|/|g if $^O eq "MSWin32";
-    # print "$path $p\n";
-    my $wanted = -d $p;                         # 5.9.0
-    for my $f (@files)
-    {
-        # print "$p - $f\n";
-        last if $wanted ||= $p =~ /$f$/;
-    }
-    $wanted && $path;
-}
-
 sub MY::postamble
 {
     my %tests;
@@ -420,17 +398,8 @@ sub MY::postamble
       qw(compilation html_basic html_minimal html html_subtle sort text2 text);
 
     qq[
-SET_VERSION = \$(PERL) -pi \\
-    -e 's/(^\\s*(?:our\\s+)\\\$\$VERSION = ")\\d+\\.\\d+(";)/\$\${1}$Version\$\$2/;' \\
-    -e 's/(Version )\\d+\\.\\d+( - ).*/\$\${1}$Version\$\${2}$Date/;' \\
-    -e 's/(Devel::Cover Version )\\d+\\.\\d+/\$\${1}$Version/;' \\
-    -e 's/(\\buse Devel::Cover(?:::\\w+)*\\s+)\\d+\\.\\d+/\$\${1}$Version/;'
-
-tags : @files
-\t ptags @files
-
-@versions : Makefile.PL
-\t \$(SET_VERSION) @versions
+tags :
+\t ctags --recurse .
 
 README : lib/Devel/Cover.pm
 \t TERMCAP= COLUMNS=80 pod2text -s lib/Devel/Cover.pm | \\
@@ -440,6 +409,9 @@ README : lib/Devel/Cover.pm
     -e 'print if (/DESCRIPTION/  ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
     -e 'print if (/REQUIREMENTS/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
     > README
+
+show_version :
+\t \@echo \$(VERSION)
 
 ppm : ppd pure_all
 \t tar cf Devel-Cover.tar blib
@@ -451,6 +423,7 @@ ppm : ppd pure_all
     Devel-Cover.ppd
 
 TAINT = -T
+TAINT =
 COVER_OPTIONS =
 
 _run : pure_all
@@ -459,13 +432,13 @@ _run : pure_all
 COVER_PARAMETERS = \$(PERL) -e '\$\$l = qx|grep __COVER__ \$\$ARGV[0]|; \$\$u = "-uncoverable_file \$\$1" if \$\$l =~ /__COVER__\\s+uncoverable_file\\s+(.*)/; (\$\$p) = \$\$l =~ /__COVER__\\s+cover_parameters\\s+(.*)/; print "\$\$u \$\$p"' tests/\$(TEST)
 
 html : _run
-\t \$(PERL) -Mblib cover `\$(COVER_PARAMETERS)` -report html
+\t \$(PERL) -Mblib bin/cover `\$(COVER_PARAMETERS)` -report html
 
 basic : _run
-\t \$(PERL) -Mblib cover `\$(COVER_PARAMETERS)` -report html_basic
+\t \$(PERL) -Mblib bin/cover `\$(COVER_PARAMETERS)` -report html_basic
 
 out : _run
-\t \$(PERL) -Mblib cover `\$(COVER_PARAMETERS)` -report text > \$(TEST).out
+\t \$(PERL) -Mblib bin/cover `\$(COVER_PARAMETERS)` -report text > \$(TEST).out
 
 text : out
 \t \$(VISUAL) \$(TEST).out
@@ -482,7 +455,7 @@ tst : pure_all
 DB = cover_db
 
 dump :
-\t \$(PERL) -Mblib cover -dump_db \$(DB)
+\t \$(PERL) -Mblib bin/cover -dump_db \$(DB)
 
 FONT = "Inconsolata 10"
 GEOM = 260x85+0+0
@@ -499,17 +472,16 @@ all_test :
 \t exec \$(PERL) utils/all_versions make test
 
 all_gold :
-\t rm -rf test_output
-\t exec \$(PERL) utils/all_versions make gold
+\t \$(PERL) utils/create_all_gold \$(TEST)
 
 _delete_db : pure_all
 \t rm -rf cover_db
 
 _self_cover_tests : @{[sort values %tests]}
-\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -write cover_db @{[sort values %tests]}
+\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover bin/cover -silent -write cover_db @{[sort values %tests]}
 
 self_cover : _self_cover_reports
-\t \$(PERL) -Mblib cover -report html_basic
+\t \$(PERL) -Mblib bin/cover -report html_basic
 
 mani :
 \t -rm MANIFEST
@@ -534,6 +506,6 @@ nok :
 
          map("report_$_ : _self_cover_tests\n" .
              "\t \@echo Generating $_ report\n" .
-             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover cover -silent -report $_ > /dev/null\n",
+             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover bin/cover -silent -report $_ > /dev/null\n",
              @reports)
 }

@@ -10,14 +10,14 @@ package Devel::Cover::Test;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
+# VERSION
 
 use Carp;
 
 use File::Spec;
 use Test;
 
-use Devel::Cover::Inc 0.79;
+use Devel::Cover::Inc;
 
 my $Test;
 
@@ -76,7 +76,10 @@ sub get_params
     $self->{criteria} =~ s/-\w+//g;
     $self->{cover_db} = "$Devel::Cover::Inc::Base/t/e2e/"
                       . "cover_db_$self->{test}/";
-    mkdir $self->{cover_db};
+    unless (mkdir $self->{cover_db})
+    {
+        die "Can't mkdir $self->{cover_db}: $!" unless -d $self->{cover_db};
+    }
     $self->{cover_parameters} = join(" ", map "-coverage $_",
                                               split " ", $self->{criteria})
                               . " -report text " . $self->{cover_db};
@@ -140,7 +143,7 @@ sub cover_command
     my $self = shift;
 
     my $b = shell_quote $Devel::Cover::Inc::Base;
-    my $c = $self->perl . " $b/cover $self->{cover_parameters}";
+    my $c = $self->perl . " $b/bin/cover $self->{cover_parameters}";
     $c
 }
 
@@ -213,6 +216,13 @@ sub run_test
 
     my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
 
+    if ($self->{skip})
+    {
+        plan tests => 1;
+        skip($self->{skip}, 1);
+        return;
+    }
+
     my $gold = $self->cover_gold;
     open I, $gold or die "Cannot open $gold: $!";
     my @cover = <I>;
@@ -224,17 +234,11 @@ sub run_test
     eval "use Test::Differences";
     my $differences = $INC{"Test/Differences.pm"};
 
-    plan tests => ($differences || $self->{skip})
-                  ? 1
-                  : exists $self->{tests}
-                    ? $self->{tests}->(scalar @cover)
-                    : scalar @cover;
-
-    if ($self->{skip})
-    {
-        skip($self->{skip}, 1);
-        return;
-    }
+    plan tests => $differences
+                      ? 1
+                      : exists $self->{tests}
+                            ? $self->{tests}->(scalar @cover)
+                            : scalar @cover;
 
     local $ENV{PERL5OPT};
 
@@ -359,6 +363,14 @@ sub create_gold
     unless (-e $new_gold)
     {
         open my $g, ">$new_gold" or die "Can't open $new_gold: $!";
+        unlink $new_gold;
+    }
+
+    # use Data::Dumper; print STDERR Dumper $self;
+    if ($self->{skip})
+    {
+        print STDERR "Skipping: $self->{skip}\n";
+        return;
     }
 
     $self->{run_test}
@@ -410,4 +422,12 @@ END
     $self->run_test if $self->{run_test_at_end};
 }
 
-1;
+1
+
+__END__
+
+=head1 NAME
+
+Devel::Cover::Test - Internal module for testing
+
+=cut

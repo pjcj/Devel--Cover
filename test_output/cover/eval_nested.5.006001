@@ -1,0 +1,58 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/eval_nested                           100.0    n/a   50.0  100.0   77.8
+Total                                       100.0    n/a   50.0  100.0   77.8
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/eval_nested
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2011, Paul Johnson (pjcj@cpan.org)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      use strict;
+11                                      use warnings;
+12                                      
+13             1                    2   eval "eval q[ sub config { {} } ]";
+               2                        
+14                                      
+15    ***      1            50          my $e1 = config()         || {};
+16    ***      1            50          my $e2 = config()->{mail} || {};
+
+
+Conditions
+----------
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+15    ***     50      1      0   config() || {}
+16    ***     50      0      1   config()->{'mail'} || {}
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location            
+---------- ----- --------------------
+config         2 tests/eval_nested:13
+
+

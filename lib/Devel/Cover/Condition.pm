@@ -10,7 +10,7 @@ package Devel::Cover::Condition;
 use strict;
 use warnings;
 
-our $VERSION = "0.79";
+# VERSION
 
 use base "Devel::Cover::Branch";
 
@@ -47,10 +47,6 @@ Module for storing condition coverage information.
 =head1 BUGS
 
 Huh?
-
-=head1 VERSION
-
-Version 0.79 - 5th August 2011
 
 =head1 LICENCE
 
