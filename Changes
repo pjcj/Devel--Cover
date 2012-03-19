@@ -2,6 +2,9 @@ Devel::Cover history
 
 {{$NEXT}}
 
+Release 0.82 - 19th March 2012
+ - Do not distribute MYMETA.json (Olivier Mengué) (rt 75883).
+
 Release 0.81 - 18th March 2012
  - Fix up dzil release process.
 
