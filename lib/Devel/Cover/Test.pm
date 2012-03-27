@@ -347,7 +347,7 @@ sub run_test
 
     $self->{end}->() if $self->{end};
     
-    $self
+    1
 }
 
 sub run_cover
@@ -433,6 +433,8 @@ sub run_cover
         ok 1 for @{$self->{cover}};
     }
     close T or die "Cannot close $cover_com: $!";
+    
+    1
 }
 
 sub create_gold
