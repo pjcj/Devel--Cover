@@ -346,6 +346,8 @@ sub run_test
     $self->run_cover unless $self->{no_report};
 
     $self->{end}->() if $self->{end};
+    
+    $self
 }
 
 sub run_cover

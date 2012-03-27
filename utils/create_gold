@@ -48,5 +48,5 @@ for my $test (@tests)
             $test;
     print STDERR "creating golden results for $test\n";
     require $t or die "Can't require $t: $!";
-    Devel::Cover::Test::test->create_gold;
+    Devel::Cover::Test->new($test)->create_gold;
 }
