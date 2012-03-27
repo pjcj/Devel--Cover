@@ -128,7 +128,7 @@ sub shell_quote
 
   my $perl = $self->perl()
 
-Returns full path to Perl interpreter with proper -I options (blib-wise).
+Returns absolute path to Perl interpreter with proper -I options (blib-wise).
 
 =cut
 
@@ -143,11 +143,11 @@ sub perl
 
   my $command = $self->test_command()
 
-Returns test command made of:
+Returns test command, made of:
 
 =over 4
 
-=item full path to Perl interpreter
+=item absolute path to Perl interpreter
 
 =item Devel::Cover -M option (if applicable)
 
@@ -175,6 +175,24 @@ sub test_command
     $c
 }
 
+=head2 cover_command
+
+  my $command = $self->cover_command()
+
+Returns test command, made of:
+
+=over 4
+
+=item absolute path to Perl interpreter
+
+=item absolute path to cover script 
+
+=item cover parameters
+
+=back
+
+=cut
+
 sub cover_command
 {
     my $self = shift;
@@ -198,6 +216,14 @@ sub test_file
 
     "$Devel::Cover::Inc::Base/tests/$self->{test}"
 }
+
+=head2 test_file_parameters
+
+  my $parameters = $self->test_file_parameters()
+
+Accessor to test_file_parameters property.
+
+=cut
 
 sub test_file_parameters
 {
