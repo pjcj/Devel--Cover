@@ -108,10 +108,18 @@ sub get_params
 
 sub test { $Test }
 
+=head2 shell_quote
+
+  my $quoted_item = shell_quote($item)
+
+Returns properly quoted item to cope with embedded spaces.
+
+=cut
+
 sub shell_quote
 {
     my ($item) = @_;
-    # properly quote the item
+    
     $^O eq "MSWin32" ? (/ / and $_ = qq("$_")) : s/ /\\ /g for $item;
     $item
 };
