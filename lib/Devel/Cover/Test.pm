@@ -506,7 +506,7 @@ sub create_gold
         }
     }
 
-    $self->{end}->() if $self->{end}
+    $self->{end}->() if $self->{end};
     
     1
 }
