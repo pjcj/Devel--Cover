@@ -23,7 +23,7 @@ use Devel::Cover::Inc;
 
 Devel::Cover::Test - Internal module for testing
 
-=head1 FUNCTIONS
+=head1 METHODS
 
 =cut
 
@@ -513,3 +513,18 @@ sub create_gold
 1
 
 __END__
+
+=head1 BUGS
+
+Huh?
+
+=head1 LICENCE
+
+Copyright 2001-2012, Paul Johnson (pjcj@cpan.org)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+http://www.pjcj.net
+
+=cut
