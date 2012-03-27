@@ -52,4 +52,4 @@ my $test = Devel::Cover::Test->new
     $t,
     run_test => $run_test,
     end      => sub { unlink $ft },
-);
+)->run_test;

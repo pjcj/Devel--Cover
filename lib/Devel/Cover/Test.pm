@@ -19,7 +19,26 @@ use Test;
 
 use Devel::Cover::Inc;
 
-my $Test;
+=head1 NAME
+
+Devel::Cover::Test - Internal module for testing
+
+=head1 METHODS
+
+=cut
+
+=head2 new
+
+  my $test = Devel::Cover::Test->new($test, criteria => $string)
+
+Constructor.
+
+"criteria" parameter (optional, defaults to "statement branch condition subroutine") is a space separated list of tokens.
+Supported tokens are "statement", "branch", "condition", "subroutine" and "pod".
+
+More optional parameters are supported. Refer to L</get_params> sub.
+
+=cut
 
 sub new
 {
@@ -33,7 +52,10 @@ sub new
     my $criteria = delete $params{criteria} ||
                    "statement branch condition subroutine";
 
-    my $self =
+    eval "use Test::Differences";
+    my $differences = $INC{"Test/Differences.pm"};
+    
+    my $self = bless
     {
         test             => $test,
         criteria         => [ $criteria ],
@@ -43,11 +65,11 @@ sub new
         ignore           => [],
         changes          => [],
         test_parameters  => [],
-        run_test_at_end  => 1,
+        debug            => $ENV{DEVEL_COVER_DEBUG} || 0,
+        differences      => $differences,
+        no_coverage      => $ENV{DEVEL_COVER_NO_COVERAGE} || 0,
         %params
-    };
-
-    $Test = bless $self, $class;
+    }, $class;
 
     $self->get_params
 }
@@ -100,34 +122,63 @@ sub get_params
     $self
 }
 
-sub test { $Test }
+=head2 shell_quote
+
+  my $quoted_item = shell_quote($item)
+
+Returns properly quoted item to cope with embedded spaces.
+
+=cut
 
 sub shell_quote
 {
     my ($item) = @_;
-    # properly quote the item
+    
     $^O eq "MSWin32" ? (/ / and $_ = qq("$_")) : s/ /\\ /g for $item;
     $item
 };
+
+=head2 perl
+
+  my $perl = $self->perl()
+
+Returns absolute path to Perl interpreter with proper -I options (blib-wise).
+
+=cut
 
 sub perl
 {
     my $self = shift;
 
-    my $perl = shell_quote $Devel::Cover::Inc::Perl;
-    my $base = $Devel::Cover::Inc::Base;
-
-    $perl .= " " . shell_quote "-I$base/$_" for "", "blib/lib", "blib/arch";
-
-    $perl
+    join " ", map { shell_quote($_) } $Devel::Cover::Inc::Perl, map { "-I$Devel::Cover::Inc::Base/$_" } "", "blib/lib", "blib/arch"
 }
+
+=head2 test_command
+
+  my $command = $self->test_command()
+
+Returns test command, made of:
+
+=over 4
+
+=item absolute path to Perl interpreter
+
+=item Devel::Cover -M option (if applicable)
+
+=item test file
+
+=item test file parameters (if applicable)
+
+=back
+
+=cut
 
 sub test_command
 {
     my $self = shift;
 
     my $c = $self->perl;
-    unless ($ENV{DEVEL_COVER_NO_COVERAGE})
+    unless ($self->{no_coverage})
     {
         $c .= " -MDevel::Cover=" .
               join(",", '-db', $self->{cover_db}, split ' ', $self->{test_parameters})
@@ -138,6 +189,24 @@ sub test_command
     $c
 }
 
+=head2 cover_command
+
+  my $command = $self->cover_command()
+
+Returns test command, made of:
+
+=over 4
+
+=item absolute path to Perl interpreter
+
+=item absolute path to cover script 
+
+=item cover parameters
+
+=back
+
+=cut
+
 sub cover_command
 {
     my $self = shift;
@@ -147,6 +216,14 @@ sub cover_command
     $c
 }
 
+=head2 test_file
+
+  my $file = $self->test_file()
+
+Returns absolute path to test file.
+
+=cut
+
 sub test_file
 {
     my $self = shift;
@@ -154,12 +231,33 @@ sub test_file
     "$Devel::Cover::Inc::Base/tests/$self->{test}"
 }
 
+=head2 test_file_parameters
+
+  my $parameters = $self->test_file_parameters()
+
+Accessor to test_file_parameters property.
+
+=cut
+
 sub test_file_parameters
 {
     my $self = shift;
 
     exists $self->{test_file_parameters} ? $self->{test_file_parameters} : ""
 }
+
+=head2 cover_gold
+
+  my $file = cover_gold()
+
+Returns absolute path to expected (aka "gold") file.
+
+File is like TEST-VERSION where VERSION is a floating-point number (aka "decimal version").
+
+Gold file is likely to be dependent on Perl version.
+In such cases, a single gold file is selected from TEST-* files (DWIM oblige).
+
+=cut
 
 sub cover_gold
 {
@@ -189,19 +287,25 @@ sub cover_gold
     "$td/$test.$v"
 }
 
+=head2 run_command
+
+  $self->run_command($command)
+
+Runs command, most likely obtained from L</test_command> sub.
+
+=cut
+
 sub run_command
 {
     my $self = shift;
     my ($command) = @_;
 
-    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
-
-    print STDERR "Running test [$command]\n" if $debug;
+    print STDERR "Running test [$command]\n" if $self->{debug};
 
     open T, "$command 2>&1 |" or die "Cannot run $command: $!";
     while (<T>)
     {
-        print STDERR if $debug;
+        print STDERR if $self->{debug};
     }
     close T or die "Cannot close $command: $!";
 
@@ -211,10 +315,6 @@ sub run_command
 sub run_test
 {
     my $self = shift;
-
-    $self->{run_test_at_end} = 0;
-
-    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
 
     if ($self->{skip})
     {
@@ -229,12 +329,9 @@ sub run_test
     close I or die "Cannot close $gold: $!";
     $self->{cover} = \@cover;
 
-    # print STDERR "gold from $gold\n", @cover if $debug;
+    # print STDERR "gold from $gold\n", @cover if $self->{debug};
 
-    eval "use Test::Differences";
-    my $differences = $INC{"Test/Differences.pm"};
-
-    plan tests => $differences
+    plan tests => $self->{differences}
                       ? 1
                       : exists $self->{tests}
                             ? $self->{tests}->(scalar @cover)
@@ -249,18 +346,16 @@ sub run_test
     $self->run_cover unless $self->{no_report};
 
     $self->{end}->() if $self->{end};
+    
+    1
 }
 
 sub run_cover
 {
     my $self = shift;
 
-    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
-    eval "use Test::Differences";
-    my $differences = $INC{"Test/Differences.pm"};
-
     my $cover_com = $self->cover_command;
-    print STDERR "Running cover [$cover_com]\n" if $debug;
+    print STDERR "Running cover [$cover_com]\n" if $self->{debug};
 
     my @at;
     my @ac;
@@ -274,7 +369,7 @@ sub run_cover
         {
             $_ = scalar $get_line->();
             $_ = "" unless defined $_;
-            print STDERR $_ if $debug;
+            print STDERR $_ if $self->{debug};
             redo if /^Devel::Cover: merging run/;
             redo if /^Set up gcc environment/;  # for MinGW
             if (/Can't opendir\(.+\): No such file or directory/)
@@ -314,45 +409,43 @@ sub run_cover
         {
             chomp(my $tn = $t); chomp(my $cn = $c);
             print STDERR "c-[$tn] $.\ng=[$cn]\n";
-        } if $debug;
+        } if $self->{debug};
 
-        if ($differences)
+        if ($self->{differences})
         {
             push @at, $t;
             push @ac, $c;
         }
         else
         {
-            $ENV{DEVEL_COVER_NO_COVERAGE} ? ok 1 : ok $t, $c;
-            last if $ENV{DEVEL_COVER_NO_COVERAGE} && !@{$self->{cover}};
+            $self->{no_coverage} ? ok 1 : ok $t, $c;
+            last if $self->{no_coverage} && !@{$self->{cover}};
         }
     }
-    if ($differences)
+    if ($self->{differences})
     {
         no warnings "redefine";
         local *Test::_quote = sub { "@_" };
-        $ENV{DEVEL_COVER_NO_COVERAGE} ? ok 1 : eq_or_diff(\@at, \@ac, "output");
+        $self->{no_coverage} ? ok 1 : eq_or_diff(\@at, \@ac, "output");
     }
-    elsif ($ENV{DEVEL_COVER_NO_COVERAGE})
+    elsif ($self->{no_coverage})
     {
         ok 1 for @{$self->{cover}};
     }
     close T or die "Cannot close $cover_com: $!";
+    
+    1
 }
 
 sub create_gold
 {
     my $self = shift;
 
-    $self->{run_test_at_end} = 0;
-
     # Pod::Coverage not available on all versions, but it must be there on
     # 5.6.1 and 5.8.0
     return if $self->{criteria} =~ /\bpod\b/ &&
                $] != 5.006001 &&
                $] != 5.008000;
-
-    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
 
     my $gold = $self->cover_gold;
     my $new_gold = $gold;
@@ -378,7 +471,7 @@ sub create_gold
         : $self->run_command($self->test_command);
 
     my $cover_com = $self->cover_command;
-    print STDERR "Running cover [$cover_com]\n" if $debug;
+    print STDERR "Running cover [$cover_com]\n" if $self->{debug};
 
     open G, ">$new_gold" or die "Cannot open $new_gold: $!";
     open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
@@ -388,22 +481,22 @@ sub create_gold
         $l =~ s/^($_: ).*$/$1.../
             for "Run", "Perl version", "OS", "Start", "Finish";
         $l =~ s/^(Reading database from ).*$/$1.../;
-        print STDERR $l if $debug;
+        print STDERR $l if $self->{debug};
         print G $l;
         $ng .= $l;
     }
     close T or die "Cannot close $cover_com: $!";
     close G or die "Cannot close $new_gold: $!";
 
-    print STDERR "gv is $gv and this is $]\n" if $debug;
-    print STDERR "gold is $gold and new_gold is $new_gold\n" if $debug;
+    print STDERR "gv is $gv and this is $]\n" if $self->{debug};
+    print STDERR "gold is $gold and new_gold is $new_gold\n" if $self->{debug};
     unless ($gv eq "5.0" || $gv eq $])
     {
         open G, "$gold" or die "Cannot open $gold: $!";
         my $g = do { local $/; <G> };
         close G or die "Cannot close $gold: $!";
 
-        print STDERR "checking $new_gold against $gold\n" if $debug;
+        print STDERR "checking $new_gold against $gold\n" if $self->{debug};
         # print "--[$ng]--\n";
         # print "--[$g]--\n";
         if ($ng eq $g)
@@ -414,20 +507,25 @@ sub create_gold
     }
 
     $self->{end}->() if $self->{end};
-}
-
-END
-{
-    my $self = $Test;
-    $self->run_test if $self->{run_test_at_end};
+    
+    1
 }
 
 1
 
 __END__
 
-=head1 NAME
+=head1 BUGS
 
-Devel::Cover::Test - Internal module for testing
+Huh?
+
+=head1 LICENCE
+
+Copyright 2001-2012, Paul Johnson (pjcj@cpan.org)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+http://www.pjcj.net
 
 =cut

@@ -36,11 +36,11 @@ my $run_test = sub
     $test->run_command($test->test_command);
 };
 
-$Devel::Cover::Test::test = Devel::Cover::Test->new
+Devel::Cover::Test->new
 (
     "eval2",
     golden_test => "eval_use.t",
     run_test    => $run_test,
     changes     => [ 'if (/^Run: /) { $get_line->() for 1 .. 5; redo }' ],
     tests       => sub { $_[0] - 24 },  # number of lines deleted above
-);
+)->run_test;
