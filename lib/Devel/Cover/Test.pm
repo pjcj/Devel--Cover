@@ -65,7 +65,6 @@ sub new
         ignore           => [],
         changes          => [],
         test_parameters  => [],
-        run_test_at_end  => 1,
         debug            => $ENV{DEVEL_COVER_DEBUG} || 0,
         differences      => $differences,
         no_coverage      => $ENV{DEVEL_COVER_NO_COVERAGE} || 0,
@@ -317,8 +316,6 @@ sub run_test
 {
     my $self = shift;
 
-    $self->{run_test_at_end} = 0;
-
     if ($self->{skip})
     {
         plan tests => 1;
@@ -439,8 +436,6 @@ sub run_cover
 sub create_gold
 {
     my $self = shift;
-
-    $self->{run_test_at_end} = 0;
 
     # Pod::Coverage not available on all versions, but it must be there on
     # 5.6.1 and 5.8.0
