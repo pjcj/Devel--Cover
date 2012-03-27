@@ -150,7 +150,7 @@ sub perl
 {
     my $self = shift;
 
-    join " ", map { shell_quote($_) } $Devel::Cover::Inc::Perl, map { "-I$Devel::Cover::Inc::Base/$_" } "", "blib/lib", "blib/arch";
+    join " ", map { shell_quote($_) } $Devel::Cover::Inc::Perl, map { "-I$Devel::Cover::Inc::Base/$_" } "", "blib/lib", "blib/arch"
 }
 
 =head2 test_command
@@ -506,7 +506,7 @@ sub create_gold
         }
     }
 
-    $self->{end}->() if $self->{end};
+    $self->{end}->() if $self->{end}
 }
 
 1
