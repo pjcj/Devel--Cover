@@ -115,16 +115,19 @@ sub shell_quote
     $item
 };
 
+=head2 perl
+
+  my $perl = $self->perl()
+
+Returns full path to Perl interpretor with proper -I options (blib-wise).
+
+=cut
+
 sub perl
 {
     my $self = shift;
 
-    my $perl = shell_quote $Devel::Cover::Inc::Perl;
-    my $base = $Devel::Cover::Inc::Base;
-
-    $perl .= " " . shell_quote "-I$base/$_" for "", "blib/lib", "blib/arch";
-
-    $perl
+    join " ", map { shell_quote($_) } $Devel::Cover::Inc::Perl, map { "-I$Devel::Cover::Inc::Base/$_" } "", "blib/lib", "blib/arch";
 }
 
 sub test_command
