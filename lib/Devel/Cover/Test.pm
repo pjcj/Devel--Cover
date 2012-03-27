@@ -273,6 +273,14 @@ sub cover_gold
     "$td/$test.$v"
 }
 
+=head2 run_command
+
+  $self->run_command($command)
+
+Runs command, most likely obtained from L</test_command> sub.
+
+=cut
+
 sub run_command
 {
     my $self = shift;
