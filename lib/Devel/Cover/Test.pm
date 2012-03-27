@@ -232,6 +232,19 @@ sub test_file_parameters
     exists $self->{test_file_parameters} ? $self->{test_file_parameters} : ""
 }
 
+=head2 cover_gold
+
+  my $file = cover_gold()
+
+Returns absolute path to expected (aka "gold") file.
+
+File is like TEST-VERSION where VERSION is a floating-point number (aka "decimal version").
+
+Gold file is likely to be dependent on Perl version.
+In such cases, a single gold file is selected from TEST-* files (DWIM oblige).
+
+=cut
+
 sub cover_gold
 {
     my $self = shift;
