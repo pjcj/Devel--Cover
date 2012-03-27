@@ -21,6 +21,27 @@ use Devel::Cover::Inc;
 
 my $Test;
 
+=head1 NAME
+
+Devel::Cover::Test - Internal module for testing
+
+=head1 FUNCTIONS
+
+=cut
+
+=head2 new
+
+  my $test = Devel::Cover::Test->new($test, criteria => $string)
+
+Constructor.
+
+"criteria" parameter (optional, defaults to "statement branch condition subroutine") is a space separated list of tokens.
+Supported tokens are "statement", "branch", "condition", "subroutine" and "pod".
+
+More optional parameters are supported. Refer to L</get_params> sub.
+
+=cut
+
 sub new
 {
     my $class = shift;
@@ -504,9 +525,3 @@ END
 1
 
 __END__
-
-=head1 NAME
-
-Devel::Cover::Test - Internal module for testing
-
-=cut
