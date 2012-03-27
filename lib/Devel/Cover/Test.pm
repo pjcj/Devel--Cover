@@ -44,6 +44,7 @@ sub new
         changes          => [],
         test_parameters  => [],
         run_test_at_end  => 1,
+        debug            => $ENV{DEVEL_COVER_DEBUG} || 0,
         %params
     };
 
@@ -194,14 +195,12 @@ sub run_command
     my $self = shift;
     my ($command) = @_;
 
-    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
-
-    print STDERR "Running test [$command]\n" if $debug;
+    print STDERR "Running test [$command]\n" if $self->{debug};
 
     open T, "$command 2>&1 |" or die "Cannot run $command: $!";
     while (<T>)
     {
-        print STDERR if $debug;
+        print STDERR if $self->{debug};
     }
     close T or die "Cannot close $command: $!";
 
@@ -213,8 +212,6 @@ sub run_test
     my $self = shift;
 
     $self->{run_test_at_end} = 0;
-
-    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
 
     if ($self->{skip})
     {
@@ -229,7 +226,7 @@ sub run_test
     close I or die "Cannot close $gold: $!";
     $self->{cover} = \@cover;
 
-    # print STDERR "gold from $gold\n", @cover if $debug;
+    # print STDERR "gold from $gold\n", @cover if $self->{debug};
 
     eval "use Test::Differences";
     my $differences = $INC{"Test/Differences.pm"};
@@ -255,12 +252,11 @@ sub run_cover
 {
     my $self = shift;
 
-    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
     eval "use Test::Differences";
     my $differences = $INC{"Test/Differences.pm"};
 
     my $cover_com = $self->cover_command;
-    print STDERR "Running cover [$cover_com]\n" if $debug;
+    print STDERR "Running cover [$cover_com]\n" if $self->{debug};
 
     my @at;
     my @ac;
@@ -274,7 +270,7 @@ sub run_cover
         {
             $_ = scalar $get_line->();
             $_ = "" unless defined $_;
-            print STDERR $_ if $debug;
+            print STDERR $_ if $self->{debug};
             redo if /^Devel::Cover: merging run/;
             redo if /^Set up gcc environment/;  # for MinGW
             if (/Can't opendir\(.+\): No such file or directory/)
@@ -314,7 +310,7 @@ sub run_cover
         {
             chomp(my $tn = $t); chomp(my $cn = $c);
             print STDERR "c-[$tn] $.\ng=[$cn]\n";
-        } if $debug;
+        } if $self->{debug};
 
         if ($differences)
         {
@@ -352,8 +348,6 @@ sub create_gold
                $] != 5.006001 &&
                $] != 5.008000;
 
-    my $debug = $ENV{DEVEL_COVER_DEBUG} || 0;
-
     my $gold = $self->cover_gold;
     my $new_gold = $gold;
     $new_gold =~ s/(5\.\d+)$/$]/;
@@ -378,7 +372,7 @@ sub create_gold
         : $self->run_command($self->test_command);
 
     my $cover_com = $self->cover_command;
-    print STDERR "Running cover [$cover_com]\n" if $debug;
+    print STDERR "Running cover [$cover_com]\n" if $self->{debug};
 
     open G, ">$new_gold" or die "Cannot open $new_gold: $!";
     open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
@@ -388,22 +382,22 @@ sub create_gold
         $l =~ s/^($_: ).*$/$1.../
             for "Run", "Perl version", "OS", "Start", "Finish";
         $l =~ s/^(Reading database from ).*$/$1.../;
-        print STDERR $l if $debug;
+        print STDERR $l if $self->{debug};
         print G $l;
         $ng .= $l;
     }
     close T or die "Cannot close $cover_com: $!";
     close G or die "Cannot close $new_gold: $!";
 
-    print STDERR "gv is $gv and this is $]\n" if $debug;
-    print STDERR "gold is $gold and new_gold is $new_gold\n" if $debug;
+    print STDERR "gv is $gv and this is $]\n" if $self->{debug};
+    print STDERR "gold is $gold and new_gold is $new_gold\n" if $self->{debug};
     unless ($gv eq "5.0" || $gv eq $])
     {
         open G, "$gold" or die "Cannot open $gold: $!";
         my $g = do { local $/; <G> };
         close G or die "Cannot close $gold: $!";
 
-        print STDERR "checking $new_gold against $gold\n" if $debug;
+        print STDERR "checking $new_gold against $gold\n" if $self->{debug};
         # print "--[$ng]--\n";
         # print "--[$g]--\n";
         if ($ng eq $g)
