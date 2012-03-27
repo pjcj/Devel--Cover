@@ -164,11 +164,11 @@ Storable is required to store the coverage database.  You can download
 Storable from CPAN.
 EOM
 
-check "JSON::PP", <<EOM;
-JSON::PP is required to store the coverage database in a portable format.
+check "JSON", <<EOM;
+JSON is required to store the coverage database in a portable format.
 This is necessary in order to merge coverage data from incompatible systems.
 Storing the database in a portable format will not be available until you
-install JSON::PP.  In the meantime you may continue to use the rest of
+install JSON.  In the meantime you may continue to use the rest of
 Devel::Cover.
 EOM
 
