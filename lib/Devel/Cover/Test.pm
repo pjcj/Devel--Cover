@@ -33,6 +33,9 @@ sub new
     my $criteria = delete $params{criteria} ||
                    "statement branch condition subroutine";
 
+    eval "use Test::Differences";
+    my $differences = $INC{"Test/Differences.pm"};
+    
     my $self =
     {
         test             => $test,
@@ -45,6 +48,7 @@ sub new
         test_parameters  => [],
         run_test_at_end  => 1,
         debug            => $ENV{DEVEL_COVER_DEBUG} || 0,
+        differences      => $differences,
         %params
     };
 
@@ -228,10 +232,7 @@ sub run_test
 
     # print STDERR "gold from $gold\n", @cover if $self->{debug};
 
-    eval "use Test::Differences";
-    my $differences = $INC{"Test/Differences.pm"};
-
-    plan tests => $differences
+    plan tests => $self->{differences}
                       ? 1
                       : exists $self->{tests}
                             ? $self->{tests}->(scalar @cover)
@@ -251,9 +252,6 @@ sub run_test
 sub run_cover
 {
     my $self = shift;
-
-    eval "use Test::Differences";
-    my $differences = $INC{"Test/Differences.pm"};
 
     my $cover_com = $self->cover_command;
     print STDERR "Running cover [$cover_com]\n" if $self->{debug};
@@ -312,7 +310,7 @@ sub run_cover
             print STDERR "c-[$tn] $.\ng=[$cn]\n";
         } if $self->{debug};
 
-        if ($differences)
+        if ($self->{differences})
         {
             push @at, $t;
             push @ac, $c;
@@ -323,7 +321,7 @@ sub run_cover
             last if $ENV{DEVEL_COVER_NO_COVERAGE} && !@{$self->{cover}};
         }
     }
-    if ($differences)
+    if ($self->{differences})
     {
         no warnings "redefine";
         local *Test::_quote = sub { "@_" };
