@@ -124,7 +124,7 @@ use lib "$base/t";
 
 use Devel::Cover::Test;
 
-Devel::Cover::Test->new("$t");
+Devel::Cover::Test->new("$t")->run_test;
 EOT
     close T or die "Cannot close t/e2e/a$t.t: $!";
 }

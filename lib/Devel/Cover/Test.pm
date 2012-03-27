@@ -19,8 +19,6 @@ use Test;
 
 use Devel::Cover::Inc;
 
-my $Test;
-
 =head1 NAME
 
 Devel::Cover::Test - Internal module for testing
@@ -57,7 +55,7 @@ sub new
     eval "use Test::Differences";
     my $differences = $INC{"Test/Differences.pm"};
     
-    my $self =
+    my $self = bless
     {
         test             => $test,
         criteria         => [ $criteria ],
@@ -72,9 +70,7 @@ sub new
         differences      => $differences,
         no_coverage      => $ENV{DEVEL_COVER_NO_COVERAGE} || 0,
         %params
-    };
-
-    $Test = bless $self, $class;
+    }, $class;
 
     $self->get_params
 }
@@ -126,8 +122,6 @@ sub get_params
 
     $self
 }
-
-sub test { $Test }
 
 =head2 shell_quote
 
@@ -514,12 +508,6 @@ sub create_gold
     }
 
     $self->{end}->() if $self->{end};
-}
-
-END
-{
-    my $self = $Test;
-    $self->run_test if $self->{run_test_at_end};
 }
 
 1
