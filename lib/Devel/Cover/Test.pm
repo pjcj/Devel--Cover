@@ -49,6 +49,7 @@ sub new
         run_test_at_end  => 1,
         debug            => $ENV{DEVEL_COVER_DEBUG} || 0,
         differences      => $differences,
+        no_coverage      => $ENV{DEVEL_COVER_NO_COVERAGE} || 0,
         %params
     };
 
@@ -135,7 +136,7 @@ sub test_command
     my $self = shift;
 
     my $c = $self->perl;
-    unless ($ENV{DEVEL_COVER_NO_COVERAGE})
+    unless ($self->{no_coverage})
     {
         $c .= " -MDevel::Cover=" .
               join(",", '-db', $self->{cover_db}, split ' ', $self->{test_parameters})
@@ -320,17 +321,17 @@ sub run_cover
         }
         else
         {
-            $ENV{DEVEL_COVER_NO_COVERAGE} ? ok 1 : ok $t, $c;
-            last if $ENV{DEVEL_COVER_NO_COVERAGE} && !@{$self->{cover}};
+            $self->{no_coverage} ? ok 1 : ok $t, $c;
+            last if $self->{no_coverage} && !@{$self->{cover}};
         }
     }
     if ($self->{differences})
     {
         no warnings "redefine";
         local *Test::_quote = sub { "@_" };
-        $ENV{DEVEL_COVER_NO_COVERAGE} ? ok 1 : eq_or_diff(\@at, \@ac, "output");
+        $self->{no_coverage} ? ok 1 : eq_or_diff(\@at, \@ac, "output");
     }
-    elsif ($ENV{DEVEL_COVER_NO_COVERAGE})
+    elsif ($self->{no_coverage})
     {
         ok 1 for @{$self->{cover}};
     }
