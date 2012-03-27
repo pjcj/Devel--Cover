@@ -128,7 +128,7 @@ sub shell_quote
 
   my $perl = $self->perl()
 
-Returns full path to Perl interpretor with proper -I options (blib-wise).
+Returns full path to Perl interpreter with proper -I options (blib-wise).
 
 =cut
 
@@ -138,6 +138,26 @@ sub perl
 
     join " ", map { shell_quote($_) } $Devel::Cover::Inc::Perl, map { "-I$Devel::Cover::Inc::Base/$_" } "", "blib/lib", "blib/arch";
 }
+
+=head2 test_command
+
+  my $command = test_command()
+
+Returns test command made of:
+
+=over 4
+
+=item full path to Perl interpreter
+
+=item Devel::Cover -M option (if applicable)
+
+=item test file
+
+=item test file parameters (if applicable)
+
+=back
+
+=cut
 
 sub test_command
 {
