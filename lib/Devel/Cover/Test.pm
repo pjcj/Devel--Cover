@@ -141,7 +141,7 @@ sub perl
 
 =head2 test_command
 
-  my $command = test_command()
+  my $command = $self->test_command()
 
 Returns test command made of:
 
@@ -183,6 +183,14 @@ sub cover_command
     my $c = $self->perl . " $b/bin/cover $self->{cover_parameters}";
     $c
 }
+
+=head2 test_file
+
+  my $file = $self->test_file()
+
+Returns absolute path to test file.
+
+=cut
 
 sub test_file
 {
