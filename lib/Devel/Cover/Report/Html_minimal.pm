@@ -150,6 +150,7 @@ sub merge_lineops {
 #===============================================================================
 my %Filenames;
 my @class = qw'c0 c1 c2 c3';
+my $threshold = { c0 => 75, c1 => 90, c2 => 100 };
 
 #-------------------------------------------------------------------------------
 # Subroutine : bclass()
@@ -169,9 +170,9 @@ sub bclass {
 sub pclass {
     my ($p, $e) = @_;
     return $class[3] unless $e;
-    $p <  75 && return $class[0];
-    $p <  90 && return $class[1];
-    $p < 100 && return $class[2];
+    $p < $threshold->{c0} && return $class[0];
+    $p < $threshold->{c1} && return $class[1];
+    $p < $threshold->{c2} && return $class[2];
     $class[3]
 }
 
@@ -682,7 +683,12 @@ sub get_options
                        pod!
                        summarytitle=s
                        unified!
+                       report_c0=s
+                       report_c1=s
+                       report_c2=s
                      ));
+    $threshold->{$_} = $opt->{option}{"report_$_"} for
+        grep { defined $opt->{option}{"report_$_"} } qw( c0 c1 c2 );
 }
 
 

@@ -38,15 +38,17 @@ sub oclass
     $o ? class($o->percentage, $o->error, $criterion) : ""
 }
 
+my $threshold = { c0 => 75, c1 => 90, c2 => 100 };
+
 sub class
 {
     my ($pc, $err, $criterion) = @_;
     return "" if $criterion eq "time";
     no warnings "uninitialized";
     !$err ? "c3"
-          : $pc <  75 ? "c0"
-          : $pc <  90 ? "c1"
-          : $pc < 100 ? "c2"
+          : $pc < $threshold->{c0} ? "c0"
+          : $pc < $threshold->{c1} ? "c1"
+          : $pc < $threshold->{c2} ? "c2"
           : "c3"
 }
 
@@ -380,7 +382,12 @@ sub get_options
         GetOptions($opt->{option},
                    qw(
                        outputfile=s
+                       report_c0=s
+                       report_c1=s
+                       report_c2=s
                      ));
+    $threshold->{$_} = $opt->{option}{"report_$_"} for
+        grep { defined $opt->{option}{"report_$_"} } qw( c0 c1 c2 );
 }
 
 sub report
