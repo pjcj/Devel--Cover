@@ -47,5 +47,7 @@ my $test = Devel::Cover::Test->new
     changes     => [ 'if (/^Run: /) { $get_line->() for 1 .. 5; redo }' ],
     tests       => sub { $_[0] - $runs * 6 },  # number of lines deleted above
 );
+
 $test->run_test;
+no warnings;
 $test  # for create_gold

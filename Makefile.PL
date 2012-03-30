@@ -126,6 +126,7 @@ use Devel::Cover::Test;
 
 my \$test = Devel::Cover::Test->new("$t");
 \$test->run_test;
+no warnings;
 \$test  # for create_gold
 EOT
     close T or die "Cannot close t/e2e/a$t.t: $!";

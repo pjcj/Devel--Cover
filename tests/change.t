@@ -63,5 +63,5 @@ my $test = Devel::Cover::Test->new
 );
 
 $test->run_test;
-
+no warnings;
 $test  # for create_gold
