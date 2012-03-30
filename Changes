@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.83 - 30th March 2012
  - Prefer JSON::XS for faster operation
  - Rework testing framework (Xavier Caron)
 
