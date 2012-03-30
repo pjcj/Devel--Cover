@@ -26,3 +26,4 @@
 8. Push the changes.
   - The dzil Git::Push plugin hangs for me
   $ git push
+  $ git push --tags
