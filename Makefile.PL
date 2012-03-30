@@ -124,7 +124,9 @@ use lib "$base/t";
 
 use Devel::Cover::Test;
 
-Devel::Cover::Test->new("$t")->run_test;
+my \$test = Devel::Cover::Test->new("$t");
+\$test->run_test;
+\$test  # for create_gold
 EOT
     close T or die "Cannot close t/e2e/a$t.t: $!";
 }

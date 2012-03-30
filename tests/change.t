@@ -60,4 +60,8 @@ my $test = Devel::Cover::Test->new
     run_test => $run_test,
     end      => sub { unlink $ft },
     no_report => 0,
-)->run_test;
+);
+
+$test->run_test;
+
+$test  # for create_gold

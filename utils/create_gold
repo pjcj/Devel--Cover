@@ -42,11 +42,16 @@ unless (@tests)
 
 for my $test (@tests)
 {
-    my $d = "t/e2e";
-    my $t = -e "$d/$test"    ? "$d/$test"    :
-            -e "$d/a$test.t" ? "$d/a$test.t" :
-            $test;
-    print STDERR "creating golden results for $test\n";
-    require $t or die "Can't require $t: $!";
-    Devel::Cover::Test->new($test)->create_gold;
+    my $e      = "t/e2e";
+    my ($file) = grep -e, "$e/$test", "$e/a$test.t";
+    $file    ||= $test;
+    print STDERR "creating golden results for $test: ";
+    my $t;
+    {
+        no warnings "redefine";
+        local *Devel::Cover::Test::run_test = sub {};
+        $t = require $file or die "Can't require $file: $!";
+    }
+    $t->create_gold;
+    print "\n";
 }

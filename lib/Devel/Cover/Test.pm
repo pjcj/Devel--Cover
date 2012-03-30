@@ -15,30 +15,9 @@ use warnings;
 use Carp;
 
 use File::Spec;
-use Test;
+use Test ();
 
 use Devel::Cover::Inc;
-
-=head1 NAME
-
-Devel::Cover::Test - Internal module for testing
-
-=head1 METHODS
-
-=cut
-
-=head2 new
-
-  my $test = Devel::Cover::Test->new($test, criteria => $string)
-
-Constructor.
-
-"criteria" parameter (optional, defaults to "statement branch condition subroutine") is a space separated list of tokens.
-Supported tokens are "statement", "branch", "condition", "subroutine" and "pod".
-
-More optional parameters are supported. Refer to L</get_params> sub.
-
-=cut
 
 sub new
 {
@@ -54,7 +33,7 @@ sub new
 
     eval "use Test::Differences";
     my $differences = $INC{"Test/Differences.pm"};
-    
+
     my $self = bless
     {
         test             => $test,
@@ -122,56 +101,23 @@ sub get_params
     $self
 }
 
-=head2 shell_quote
-
-  my $quoted_item = shell_quote($item)
-
-Returns properly quoted item to cope with embedded spaces.
-
-=cut
-
 sub shell_quote
 {
     my ($item) = @_;
-    
+
     $^O eq "MSWin32" ? (/ / and $_ = qq("$_")) : s/ /\\ /g for $item;
     $item
 };
-
-=head2 perl
-
-  my $perl = $self->perl()
-
-Returns absolute path to Perl interpreter with proper -I options (blib-wise).
-
-=cut
 
 sub perl
 {
     my $self = shift;
 
-    join " ", map { shell_quote($_) } $Devel::Cover::Inc::Perl, map { "-I$Devel::Cover::Inc::Base/$_" } "", "blib/lib", "blib/arch"
+    join " ",
+         map shell_quote($_),
+             $Devel::Cover::Inc::Perl,
+             map "-I$Devel::Cover::Inc::Base/$_", "", "blib/lib", "blib/arch"
 }
-
-=head2 test_command
-
-  my $command = $self->test_command()
-
-Returns test command, made of:
-
-=over 4
-
-=item absolute path to Perl interpreter
-
-=item Devel::Cover -M option (if applicable)
-
-=item test file
-
-=item test file parameters (if applicable)
-
-=back
-
-=cut
 
 sub test_command
 {
@@ -181,31 +127,15 @@ sub test_command
     unless ($self->{no_coverage})
     {
         $c .= " -MDevel::Cover=" .
-              join(",", '-db', $self->{cover_db}, split ' ', $self->{test_parameters})
+              join ",",
+                   "-db", $self->{cover_db},
+                   split " ", $self->{test_parameters}
     }
     $c .= " " . shell_quote $self->test_file;
     $c .= " " . $self->test_file_parameters;
 
     $c
 }
-
-=head2 cover_command
-
-  my $command = $self->cover_command()
-
-Returns test command, made of:
-
-=over 4
-
-=item absolute path to Perl interpreter
-
-=item absolute path to cover script 
-
-=item cover parameters
-
-=back
-
-=cut
 
 sub cover_command
 {
@@ -216,14 +146,6 @@ sub cover_command
     $c
 }
 
-=head2 test_file
-
-  my $file = $self->test_file()
-
-Returns absolute path to test file.
-
-=cut
-
 sub test_file
 {
     my $self = shift;
@@ -231,33 +153,12 @@ sub test_file
     "$Devel::Cover::Inc::Base/tests/$self->{test}"
 }
 
-=head2 test_file_parameters
-
-  my $parameters = $self->test_file_parameters()
-
-Accessor to test_file_parameters property.
-
-=cut
-
 sub test_file_parameters
 {
     my $self = shift;
 
     exists $self->{test_file_parameters} ? $self->{test_file_parameters} : ""
 }
-
-=head2 cover_gold
-
-  my $file = cover_gold()
-
-Returns absolute path to expected (aka "gold") file.
-
-File is like TEST-VERSION where VERSION is a floating-point number (aka "decimal version").
-
-Gold file is likely to be dependent on Perl version.
-In such cases, a single gold file is selected from TEST-* files (DWIM oblige).
-
-=cut
 
 sub cover_gold
 {
@@ -284,16 +185,8 @@ sub cover_gold
     $v = $ENV{DEVEL_COVER_GOLDEN_VERSION}
         if exists $ENV{DEVEL_COVER_GOLDEN_VERSION};
 
-    "$td/$test.$v"
+    ("$td/$test", $v eq "5.0" ? 0 : $v)
 }
-
-=head2 run_command
-
-  $self->run_command($command)
-
-Runs command, most likely obtained from L</test_command> sub.
-
-=cut
 
 sub run_command
 {
@@ -318,12 +211,15 @@ sub run_test
 
     if ($self->{skip})
     {
-        plan tests => 1;
-        skip($self->{skip}, 1);
+        Test::plan tests => 1;
+        Test::skip($self->{skip}, 1);
         return;
     }
 
-    my $gold = $self->cover_gold;
+    my ($base, $v) = $self->cover_gold;
+    return 1 unless $v;  # assume we are generating the golden results
+    my $gold = "$base.$v";
+
     open I, $gold or die "Cannot open $gold: $!";
     my @cover = <I>;
     close I or die "Cannot close $gold: $!";
@@ -331,11 +227,11 @@ sub run_test
 
     # print STDERR "gold from $gold\n", @cover if $self->{debug};
 
-    plan tests => $self->{differences}
-                      ? 1
-                      : exists $self->{tests}
-                            ? $self->{tests}->(scalar @cover)
-                            : scalar @cover;
+    Test::plan tests => $self->{differences}
+                            ? 1
+                            : exists $self->{tests}
+                                  ? $self->{tests}->(scalar @cover)
+                                  : scalar @cover;
 
     local $ENV{PERL5OPT};
 
@@ -346,7 +242,7 @@ sub run_test
     $self->run_cover unless $self->{no_report};
 
     $self->{end}->() if $self->{end};
-    
+
     1
 }
 
@@ -418,7 +314,7 @@ sub run_cover
         }
         else
         {
-            $self->{no_coverage} ? ok 1 : ok $t, $c;
+            $self->{no_coverage} ? Test::ok 1 : Test::ok $t, $c;
             last if $self->{no_coverage} && !@{$self->{cover}};
         }
     }
@@ -426,14 +322,14 @@ sub run_cover
     {
         no warnings "redefine";
         local *Test::_quote = sub { "@_" };
-        $self->{no_coverage} ? ok 1 : eq_or_diff(\@at, \@ac, "output");
+        $self->{no_coverage} ? Test::ok 1 : eq_or_diff(\@at, \@ac, "output");
     }
     elsif ($self->{no_coverage})
     {
-        ok 1 for @{$self->{cover}};
+        Test::ok 1 for @{$self->{cover}};
     }
     close T or die "Cannot close $cover_com: $!";
-    
+
     1
 }
 
@@ -447,11 +343,11 @@ sub create_gold
                $] != 5.006001 &&
                $] != 5.008000;
 
-    my $gold = $self->cover_gold;
-    my $new_gold = $gold;
-    $new_gold =~ s/(5\.\d+)$/$]/;
-    my $gv = $1;
-    my $ng = "";
+    my ($base, $v) = $self->cover_gold;
+    my $gold       = "$base.$v";
+    my $new_gold   = "$base.$]";
+    my $gv         = $v;
+    my $ng         = "";
 
     unless (-e $new_gold)
     {
@@ -490,7 +386,7 @@ sub create_gold
 
     print STDERR "gv is $gv and this is $]\n" if $self->{debug};
     print STDERR "gold is $gold and new_gold is $new_gold\n" if $self->{debug};
-    unless ($gv eq "5.0" || $gv eq $])
+    unless ($gv eq "0" || $gv eq $])
     {
         open G, "$gold" or die "Cannot open $gold: $!";
         my $g = do { local $/; <G> };
@@ -501,19 +397,114 @@ sub create_gold
         # print "--[$g]--\n";
         if ($ng eq $g)
         {
-            print "Output from $new_gold matches $gold\n";
+            print "matches $v";
             unlink $new_gold;
         }
     }
 
     $self->{end}->() if $self->{end};
-    
+
     1
 }
 
 1
 
 __END__
+
+=head1 NAME
+
+Devel::Cover::Test - Internal module for testing
+
+=head1 METHODS
+
+=cut
+
+=head2 new
+
+  my $test = Devel::Cover::Test->new($test, criteria => $string)
+
+Constructor.
+
+"criteria" parameter (optional, defaults to "statement branch condition
+subroutine") is a space separated list of tokens.
+Supported tokens are "statement", "branch", "condition", "subroutine" and
+"pod".
+
+More optional parameters are supported. Refer to L</get_params> sub.
+
+=head2 shell_quote
+
+  my $quoted_item = shell_quote($item)
+
+Returns properly quoted item to cope with embedded spaces.
+
+=head2 perl
+
+  my $perl = $self->perl()
+
+Returns absolute path to Perl interpreter with proper -I options (blib-wise).
+
+=head2 test_command
+
+  my $command = $self->test_command()
+
+Returns test command, made of:
+
+=over 4
+
+=item absolute path to Perl interpreter
+
+=item Devel::Cover -M option (if applicable)
+
+=item test file
+
+=item test file parameters (if applicable)
+
+=back
+
+=head2 cover_command
+
+  my $command = $self->cover_command()
+
+Returns test command, made of:
+
+=over 4
+
+=item absolute path to Perl interpreter
+
+=item absolute path to cover script
+
+=item cover parameters
+
+=back
+
+=head2 test_file
+
+  my $file = $self->test_file()
+
+Returns absolute path to test file.
+
+=head2 test_file_parameters
+
+  my $parameters = $self->test_file_parameters()
+
+Accessor to test_file_parameters property.
+
+=head2 cover_gold
+
+  my ($base, $v) = $self->cover_gold;
+
+Returns the absolute path of the base to the golden file and the suffix
+version number.
+
+$base comes from the name of the test and $v will be $] from the earliest perl
+version for which the golden results should be the same as for the current $]
+
+=head2 run_command
+
+  $self->run_command($command)
+
+Runs command, most likely obtained from L</test_command> sub.
 
 =head1 BUGS
 
