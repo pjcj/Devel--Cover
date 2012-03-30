@@ -53,3 +53,5 @@ my $test = Devel::Cover::Test->new
     run_test => $run_test,
     end      => sub { unlink $ft },
 );
+$test->run_test;
+$test  # for create_gold

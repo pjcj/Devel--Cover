@@ -18,7 +18,7 @@ use File::Copy;
 
 $| = 1;
 
-my $Version = "0.82";
+my $Version = "0.82_01";
 my $Author  = 'pjcj@cpan.org';
 my @perlbug = ("perlbug", "-a", $Author,
                           "-s", "Installation of Devel::Cover $Version");
@@ -124,7 +124,9 @@ use lib "$base/t";
 
 use Devel::Cover::Test;
 
-Devel::Cover::Test->new("$t");
+my \$test = Devel::Cover::Test->new("$t");
+\$test->run_test;
+\$test  # for create_gold
 EOT
     close T or die "Cannot close t/e2e/a$t.t: $!";
 }
@@ -414,7 +416,7 @@ GEOM = 260x85+0+0
 diff : out
 \t \$(PERL) utils/makeh strip_criterion 'time' \$(TEST).out
 \t \$(PERL) utils/makeh strip_criterion ' pod' \$(TEST).out
-\t gvim -geom \$(GEOM) -d -font \$(FONT) `\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new("\$(TEST)", run_test_at_end => 0); print \$\$t->cover_gold'` \$(TEST).out
+\t gvim -geom \$(GEOM) -d -font \$(FONT) `\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new("\$(TEST)"); print \$\$t->cover_gold'` \$(TEST).out
 
 gold : pure_all
 \t \$(PERL) utils/create_gold \$(TEST)

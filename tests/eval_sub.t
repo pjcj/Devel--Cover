@@ -39,7 +39,7 @@ my $run_test = sub
 
 my $runs = 4;
 
-$Devel::Cover::Test::test = Devel::Cover::Test->new
+my $test = Devel::Cover::Test->new
 (
     "eval3",
     golden_test => "eval_sub.t",
@@ -47,3 +47,5 @@ $Devel::Cover::Test::test = Devel::Cover::Test->new
     changes     => [ 'if (/^Run: /) { $get_line->() for 1 .. 5; redo }' ],
     tests       => sub { $_[0] - $runs * 6 },  # number of lines deleted above
 );
+$test->run_test;
+$test  # for create_gold
