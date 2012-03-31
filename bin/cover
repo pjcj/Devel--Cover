@@ -426,7 +426,7 @@ via -report_c0 <integer>, -report_c1 <integer> and -report_c2 <integer>.:
     0%      75%      90%      100%
     |   ..   |   ..   |   ..   |
        <=c0     <=c1     <c2   c3
-      green    orange    red
+       red     yellow   orange green
 
 =item html_basic
 
