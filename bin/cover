@@ -412,6 +412,40 @@ The following command line options are supported:
 
  other options specific to the report
 
+=head1 REPORT FORMATS
+
+Tool accepts -report option:
+
+=over 4
+
+=item html|html_minimal (default)
+
+HTML reporting. Percentage thresholds are color-coded and configurable
+via -report_c0 <integer>, -report_c1 <integer> and -report_c2 <integer>.:
+
+    0%      75%      90%      100%
+    |   ..   |   ..   |   ..   |
+       <=c0     <=c1     <c2   c3
+      green    orange    red
+
+=item html_basic
+
+HTML reporting with syntax highlighting if L<PPI::HTML> or L<Perl::Tidy>
+module is detected. Like html|html_minimal reporting, percentage thresholds
+are color-coded and configurable.
+
+=item text
+
+Plain text reporting.
+
+=item compilation
+
+Like text but hacked to give a minimal output in a format similar
+to that output by Perl itself so that it's easier to step through
+the untested locations with Emacs compilation mode.
+
+=back
+
 =head1 DETAILS
 
 Any number of coverage databases may be specified on the command line.
