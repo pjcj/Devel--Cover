@@ -541,6 +541,22 @@ $Templates{summary} = <<'EOT';
         <td class="sh" align="right">Report date:</td>
         <td class="sv" align="left">[% R.date %]</td>
     </tr>
+    <tr>
+        <td class="sh" align="right">C0:</td>
+        <td class="sv c0" align="left">&lt;&nbsp;[% R.options.report_c0 %]%</td>
+    </tr>
+    <tr>
+        <td class="sh" align="right">C1:</td>
+        <td class="sv c1" align="left">&lt;&nbsp;[% R.options.report_c1 %]%</td>
+    </tr>
+    <tr>
+        <td class="sh" align="right">C2:</td>
+        <td class="sv c2" align="left">&lt;&nbsp;[% R.options.report_c2 %]%</td>
+    </tr>
+    <tr>
+        <td class="sh" align="right">C3:</td>
+        <td class="sv c3" align="left">&gt;=&nbsp;[% R.options.report_c2 %]%</td>
+    </tr>
 </table>
 <div><br></br></div>
 <table class="sortable" id="coverage_table">

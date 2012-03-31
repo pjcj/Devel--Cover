@@ -78,6 +78,9 @@ sub get_options
                        test!
                        uncoverable_file=s
                        version|v!
+                       report_c0=s
+                       report_c1=s
+                       report_c2=s
                      ));
     Getopt::Long::Configure("nopass_through");
     $Options->{report} ||= "html" unless exists $Options->{write};
