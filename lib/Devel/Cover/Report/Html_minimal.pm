@@ -365,7 +365,21 @@ sub print_summary_report {
 <body>
 <h1>$options->{option}{summarytitle}</h1>
 <table>
-<tr><td class="h" align="right">Database:</td><td align="left">$db->{db}</td></tr>
+  <tr>
+    <td class="h" align="right">Database:</td><td align="left">$db->{db}</td>
+  </tr>
+  <tr>
+    <td class="h" align="right">C0:</td><td class="c0" align="left">&lt;&nbsp;$options->{report_c0}\%</td>
+  </tr>
+  <tr>
+    <td class="h" align="right">C1:</td><td class="c1" align="left">&lt;&nbsp;$options->{report_c1}\%</td>
+  </tr>
+  <tr>
+    <td class="h" align="right">C2:</td><td class="c2" align="left">&lt;&nbsp;$options->{report_c2}\%</td>
+  </tr>
+  <tr>
+    <td class="h" align="right">C3:</td><td class="c3" align="left">&gt;=&nbsp;$options->{report_c2}\%</td>
+  </tr>
 </table>
 <div><br/></div>
 <table>
