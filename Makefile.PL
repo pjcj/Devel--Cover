@@ -18,7 +18,7 @@ use File::Copy;
 
 $| = 1;
 
-my $Version = "0.82_01";
+my $Version = "0.83";
 my $Author  = 'pjcj@cpan.org';
 my @perlbug = ("perlbug", "-a", $Author,
                           "-s", "Installation of Devel::Cover $Version");
@@ -124,7 +124,10 @@ use lib "$base/t";
 
 use Devel::Cover::Test;
 
-Devel::Cover::Test->new("$t")->run_test;
+my \$test = Devel::Cover::Test->new("$t");
+\$test->run_test;
+no warnings;
+\$test  # for create_gold
 EOT
     close T or die "Cannot close t/e2e/a$t.t: $!";
 }

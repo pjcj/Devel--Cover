@@ -2,6 +2,10 @@ Devel::Cover history
 
 {{$NEXT}}
 
+Release 0.83 - 30th March 2012
+ - Prefer JSON::XS for faster operation
+ - Rework testing framework (Xavier Caron)
+
 Release 0.82 - 19th March 2012
  - Do not distribute MYMETA.json (Olivier Mengué) (rt 75883).
 
