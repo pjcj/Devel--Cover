@@ -41,6 +41,9 @@ my $Options =
     report                   => "",
     summary                  => 1,
     uncoverable_file         => [".uncoverable", glob("~/.uncoverable")],
+    report_c0                => 75,
+    report_c1                => 90,
+    report_c2                => 100,
 };
 
 sub get_options
@@ -410,7 +413,7 @@ The following command line options are supported:
  -gcov                 - run gcov to cover XS code     (default on if using gcc)
  -make make_prog       - use the given 'make' program for 'make test'
 
- other options specific to the report
+ other options specific to the report format
 
 =head1 REPORT FORMATS
 
@@ -425,7 +428,7 @@ via -report_c0 <integer>, -report_c1 <integer> and -report_c2 <integer>.:
 
     0%      75%      90%      100%
     |   ..   |   ..   |   ..   |
-       <=c0     <=c1     <c2   c3
+       <c0      <c1      <c2   c3
        red     yellow   orange green
 
 =item html_basic
