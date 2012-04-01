@@ -2,6 +2,10 @@ Devel::Cover history
 
 {{$NEXT}}
 
+Release 0.85 - 1th April 2012
+ - Add customisable thresholds to HTML reports (Xavier Caron).
+ - Improve Vim report.
+
 Release 0.84 - 31th March 2012
  - Add Vim report (based on discussion with Tatsuhiko Miyagawa).
 
