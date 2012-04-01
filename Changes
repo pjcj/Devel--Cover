@@ -10,7 +10,7 @@ Release 0.84 - 31th March 2012
  - Add Vim report (based on discussion with Tatsuhiko Miyagawa).
 
 Release 0.83 - 30th March 2012
- - Prefer JSON::XS for faster operation
+ - Prefer JSON::XS for faster operation (Audrey Tang (唐鳳)).
  - Rework testing framework (Xavier Caron)
 
 Release 0.82 - 19th March 2012
