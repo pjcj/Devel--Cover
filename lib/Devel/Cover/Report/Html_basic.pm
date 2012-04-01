@@ -378,16 +378,13 @@ sub get_options
 {
     my ($self, $opt) = @_;
     $opt->{option}{outputfile} = "coverage.html";
+    $threshold->{$_} = $opt->{"report_$_"} for
+        grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
     die "Invalid command line options" unless
         GetOptions($opt->{option},
                    qw(
                        outputfile=s
-                       report_c0=s
-                       report_c1=s
-                       report_c2=s
                      ));
-    $threshold->{$_} = $opt->{option}{"report_$_"} for
-        grep { defined $opt->{option}{"report_$_"} } qw( c0 c1 c2 );
 }
 
 sub report
