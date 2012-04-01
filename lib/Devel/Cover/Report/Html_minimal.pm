@@ -353,8 +353,6 @@ sub print_summary_report {
 
     my $outfile = "$options->{outputdir}/$options->{option}{outputfile}";
 
-    print "Writing HTML output to $outfile ...\n" unless $options->{silent};
-
     open(my $fh, '>', $outfile)
         or warn("Unable to open file '$outfile' [$!]\n"), return;
 
@@ -428,6 +426,9 @@ END_HTML
     }
     print $fh "</table>\n</body>\n</html>\n";
     close($fh) or warn "Unable to close '$outfile' [$!]";
+
+    print "HTML output written to $outfile\n" unless $options->{silent};
+
 }
 
 

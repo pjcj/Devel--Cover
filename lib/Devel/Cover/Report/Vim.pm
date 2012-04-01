@@ -89,9 +89,10 @@ sub report
                                    } @{$options->{file}},
     };
 
-    $template->process("vim", $vars,
-                       "$options->{outputdir}/$options->{outputfile}")
-        or die $template->error();
+    my $out = "$options->{outputdir}/$options->{outputfile}";
+    $template->process("vim", $vars, $out) or die $template->error();
+
+    print "Vim script written to $out\n" unless $options->{silent};
 }
 
 1;

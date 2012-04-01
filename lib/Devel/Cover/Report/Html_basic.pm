@@ -445,7 +445,7 @@ sub report
         print_subroutines if $show->{subroutine} || $show->{pod};
     }
 
-    print "HTML output sent to $html\n";
+    print "HTML output written to $html\n" unless $options->{silent};
 }
 
 1;
