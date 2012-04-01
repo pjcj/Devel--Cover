@@ -18,6 +18,7 @@
   - Accommodate reloading modules at runtime (Mark Glines).
   - Don't count BEGIN blocks as subroutines.
   - Remove Inc.pm - calculate libs at run time.
+  - Only collect boolean data for coverage information (no counts).
 - Reports:
   - Improve textual output.
   - Allow thresholds to be customisable in HTML output.
