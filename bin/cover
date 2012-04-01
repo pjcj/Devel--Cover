@@ -41,6 +41,9 @@ my $Options =
     report                   => "",
     summary                  => 1,
     uncoverable_file         => [".uncoverable", glob("~/.uncoverable")],
+    report_c0                => 75,
+    report_c1                => 90,
+    report_c2                => 100,
 };
 
 sub get_options
@@ -75,6 +78,9 @@ sub get_options
                        test!
                        uncoverable_file=s
                        version|v!
+                       report_c0=s
+                       report_c1=s
+                       report_c2=s
                      ));
     Getopt::Long::Configure("nopass_through");
     $Options->{report} ||= "html" unless exists $Options->{write};
@@ -410,7 +416,41 @@ The following command line options are supported:
  -gcov                 - run gcov to cover XS code     (default on if using gcc)
  -make make_prog       - use the given 'make' program for 'make test'
 
- other options specific to the report
+ other options specific to the report format
+
+=head1 REPORT FORMATS
+
+Tool accepts -report option:
+
+=over 4
+
+=item html|html_minimal (default)
+
+HTML reporting. Percentage thresholds are color-coded and configurable
+via -report_c0 <integer>, -report_c1 <integer> and -report_c2 <integer>.:
+
+    0%      75%      90%      100%
+    |   ..   |   ..   |   ..   |
+       <c0      <c1      <c2   c3
+       red     yellow   orange green
+
+=item html_basic
+
+HTML reporting with syntax highlighting if L<PPI::HTML> or L<Perl::Tidy>
+module is detected. Like html|html_minimal reporting, percentage thresholds
+are color-coded and configurable.
+
+=item text
+
+Plain text reporting.
+
+=item compilation
+
+Like text but hacked to give a minimal output in a format similar
+to that output by Perl itself so that it's easier to step through
+the untested locations with Emacs compilation mode.
+
+=back
 
 =head1 DETAILS
 

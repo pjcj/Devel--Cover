@@ -38,15 +38,17 @@ sub oclass
     $o ? class($o->percentage, $o->error, $criterion) : ""
 }
 
+my $threshold = { c0 => 75, c1 => 90, c2 => 100 };
+
 sub class
 {
     my ($pc, $err, $criterion) = @_;
     return "" if $criterion eq "time";
     no warnings "uninitialized";
     !$err ? "c3"
-          : $pc <  75 ? "c0"
-          : $pc <  90 ? "c1"
-          : $pc < 100 ? "c2"
+          : $pc < $threshold->{c0} ? "c0"
+          : $pc < $threshold->{c1} ? "c1"
+          : $pc < $threshold->{c2} ? "c2"
           : "c3"
 }
 
@@ -376,6 +378,8 @@ sub get_options
 {
     my ($self, $opt) = @_;
     $opt->{option}{outputfile} = "coverage.html";
+    $threshold->{$_} = $opt->{"report_$_"} for
+        grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
     die "Invalid command line options" unless
         GetOptions($opt->{option},
                    qw(
@@ -533,6 +537,22 @@ $Templates{summary} = <<'EOT';
     <tr>
         <td class="sh" align="right">Report date:</td>
         <td class="sv" align="left">[% R.date %]</td>
+    </tr>
+    <tr>
+        <td class="sh" align="right">C0:</td>
+        <td class="sv c0" align="left">&lt;&nbsp;[% R.options.report_c0 %]%</td>
+    </tr>
+    <tr>
+        <td class="sh" align="right">C1:</td>
+        <td class="sv c1" align="left">&lt;&nbsp;[% R.options.report_c1 %]%</td>
+    </tr>
+    <tr>
+        <td class="sh" align="right">C2:</td>
+        <td class="sv c2" align="left">&lt;&nbsp;[% R.options.report_c2 %]%</td>
+    </tr>
+    <tr>
+        <td class="sh" align="right">C3:</td>
+        <td class="sv c3" align="left">&gt;=&nbsp;[% R.options.report_c2 %]%</td>
     </tr>
 </table>
 <div><br></br></div>
