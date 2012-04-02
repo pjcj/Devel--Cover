@@ -549,6 +549,7 @@ sub use_file
 
     my $f = normalised_file($file);
 
+    # print STDERR "checking <$file> <$f>\n";
     # print STDERR "checking <$file> <$f> against ",
                  # "select(@Select_re), ignore(@Ignore_re), inc(@Inc_re)\n";
 
