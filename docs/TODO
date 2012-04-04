@@ -17,7 +17,7 @@
   - Add aliased subroutines to subroutine coverage.
   - Accommodate reloading modules at runtime (Mark Glines).
   - Don't count BEGIN blocks as subroutines.
-  - Remove Inc.pm - calculate libs at run time.
+  - Remove Inc.pm - calculate libs at run time.  (Speak to H.Merijn Brand.)
   - Only collect boolean data for coverage information (no counts).
 - Reports:
   - Improve textual output.
