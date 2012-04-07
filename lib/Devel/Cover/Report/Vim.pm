@@ -142,7 +142,7 @@ hi HitSign ctermfg=Green cterm=bold gui=bold guifg=Green
 hi MissSign ctermfg=Red cterm=bold gui=bold guifg=Red
 
 sign define hit  linehl=HitLine  texthl=HitSign  text=>>
-sign define miss linehl=MissLine texthl=MissSign text=:(
+sign define miss linehl=MissLine texthl=MissSign text=**
 
 let s:coverage = { [% coverage %] }
 
