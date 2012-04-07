@@ -406,6 +406,9 @@ prove : pure_all
 tst : pure_all
 \t \$(PERL) -Iutils -MDevel::Cover::BuildUtils=prove_command -le '\$\$c = prove_command and print \$\$c and system \$\$c and system "make test"'
 
+testdist : pure_all
+\t chdir tests/dist/\$(TEST); \$(PERL) Makefile.PL && make && DEVEL_COVER_TEST_OPTS=-Mblib=../../.. \$(PERL) -Mblib=../../.. ../../../bin/cover -test \$(COVER_OPTIONS)
+
 DB = cover_db
 
 dump :
