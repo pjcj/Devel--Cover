@@ -148,6 +148,10 @@ let s:coverage = { [% coverage %] }
 
 let s:generatedTime = [% now %]
 
+for filename in keys(s:coverage)
+  exe "au BufReadPost " . filename . ' call s:CoverageSigns(expand("%:p"))'
+endfor
+
 function! BestCoverage(coverageForName)
   let matchBadness = strlen(a:coverageForName)
   for filename in keys(s:coverage)
