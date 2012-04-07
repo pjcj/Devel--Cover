@@ -87,7 +87,7 @@ sub report
                                        local $" = ", ";
                                        my $c = "'$_': [ [ @$cov ], [ @$err ] ]";
                                        my @c = ($c);
-                                       $c =~ s/^'blib/'/;
+                                       $c =~ s/^'blib\//'/;
                                        push @c, $c if $c ne $c[0];
                                        @c
                                    } @{$options->{file}},
