@@ -60,6 +60,14 @@ sub report
         version  => $LVERSION,
         files    => $options->{file},
         cover    => $db->cover,
+        types    =>
+        [
+            do
+            {
+                my @types = qw( pod statement subroutine branch condition );
+                (@types, map "${_}_error", @types)
+            }
+        ],
     };
 
     my $out = "$options->{outputdir}/$options->{outputfile}";
@@ -105,11 +113,27 @@ $Templates{vim} = <<'EOT';
 
 [% END %]
 
-hi cov_statement       ctermfg=Green cterm=bold gui=bold guifg=Green
-hi cov_statement_error ctermfg=Red   cterm=bold gui=bold guifg=Red
+hi cov_pod              ctermfg=Green cterm=bold gui=bold guifg=Green
+hi cov_pod_error        ctermfg=Red   cterm=bold gui=bold guifg=Red
+hi cov_subroutine       ctermfg=Green cterm=bold gui=bold guifg=Green
+hi cov_subroutine_error ctermfg=Red   cterm=bold gui=bold guifg=Red
+hi cov_statement        ctermfg=Green cterm=bold gui=bold guifg=Green
+hi cov_statement_error  ctermfg=Red   cterm=bold gui=bold guifg=Red
+hi cov_branch           ctermfg=Green cterm=bold gui=bold guifg=Green
+hi cov_branch_error     ctermfg=Red   cterm=bold gui=bold guifg=Red
+hi cov_condition        ctermfg=Green cterm=bold gui=bold guifg=Green
+hi cov_condition_error  ctermfg=Red   cterm=bold gui=bold guifg=Red
 
-sign define statement       linehl=cov texthl=cov_statement       text=>S
-sign define statement_error linehl=err texthl=cov_statement_error text=*S
+sign define pod              linehl=cov texthl=cov_pod              text=P 
+sign define pod_error        linehl=err texthl=cov_pod_error        text=P 
+sign define subroutine       linehl=cov texthl=cov_subroutine       text=R 
+sign define subroutine_error linehl=err texthl=cov_subroutine_error text=R 
+sign define statement        linehl=cov texthl=cov_statement        text=S 
+sign define statement_error  linehl=err texthl=cov_statement_error  text=S 
+sign define branch           linehl=cov texthl=cov_branch           text=B 
+sign define branch_error     linehl=err texthl=cov_branch_error     text=B 
+sign define condition        linehl=cov texthl=cov_condition        text=C 
+sign define condition_error  linehl=err texthl=cov_condition_error  text=C 
 
 " The signs definitions can be overridden.  To do this add a file called
 " devel-cover.vim at some appropriate point in your ~/.vim directory and add
@@ -117,11 +141,18 @@ sign define statement_error linehl=err texthl=cov_statement_error text=*S
 " For example, I use the vim solarized theme and I have the following comamnds
 " in my local configuration file ~/.vim/local/devel-cover.vim:
 "
-
 "    highlight SignColumn ctermbg=0 guibg=#073642
 "
-"    highlight cov_statement       ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
-"    highlight cov_statement_error ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+"    highlight cov_pod              ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+"    highlight cov_pod_error        ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+"    highlight cov_subroutine       ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+"    highlight cov_subroutine_error ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+"    highlight cov_statement        ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+"    highlight cov_statement_error  ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+"    highlight cov_branch           ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+"    highlight cov_branch_error     ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+"    highlight cov_condition        ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+"    highlight cov_condition_error  ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
 "
 "    " highlight cov        ctermbg=8 guibg=#002b36
 "    " highlight err        ctermbg=0 guibg=#073642
@@ -133,33 +164,111 @@ if strlen(s:config)
     exe "source " . s:config
 endif
 
+let s:types = [
+[%- FOREACH type = types -%]
+ "[%- type -%]",
+[%- END -%]
+ ]
+
 let s:coverage =
 \ {
 \[% FOREACH file = files %]
 \     '[% file %]':
 \     {
-\         'statement': [ 
-      [%- statements = cover.file("$file").statement -%]
-      [%- FOREACH loc = statements.items.nsort -%]
-       [%- cov = 0 -%]
-       [%- FOREACH l = statements.location("$loc") -%]
-        [%- FOREACH s = l -%]
-[%- IF s.covered -%] [%- loc -%], [%- cov = 1; LAST; END -%]
+\         'pod': [
+    [%- pods = cover.file("$file").pod -%]
+    [%- FOREACH loc = pods.items.nsort -%]
+        [%- cov = 0 -%]
+        [%- FOREACH l = pods.location("$loc") -%]
+            [%- IF l.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
         [%- LAST IF cov; END -%]
-       [%- LAST IF cov; END -%]
-      [%- END -%]
-],
-\         'statement_error': [ 
-      [%- statements = cover.file("$file").statement -%]
-      [%- FOREACH loc = statements.items.nsort -%]
-       [%- cov = 0 -%]
-       [%- FOREACH l = statements.location("$loc") -%]
-        [%- FOREACH s = l -%]
-[%- IF s.error -%] [%- loc -%], [%- cov = 1; LAST; END -%]
+    [%- END -%]
+ ],
+\         'pod_error': [
+    [%- pods = cover.file("$file").pod -%]
+    [%- FOREACH loc = pods.items.nsort -%]
+        [%- cov = 0 -%]
+        [%- FOREACH l = pods.location("$loc") -%]
+            [%- IF l.error -%] [% loc -%],[%- cov = 1; LAST; END -%]
         [%- LAST IF cov; END -%]
-       [%- LAST IF cov; END -%]
-      [%- END -%]
-],
+    [%- END -%]
+ ],
+\         'subroutine': [
+    [%- subroutines = cover.file("$file").subroutine -%]
+    [%- FOREACH loc = subroutines.items.nsort -%]
+        [%- cov = 0 -%]
+        [%- FOREACH l = subroutines.location("$loc") -%]
+            [%- IF l.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
+        [%- LAST IF cov; END -%]
+    [%- END -%]
+ ],
+\         'subroutine_error': [
+    [%- subroutines = cover.file("$file").subroutine -%]
+    [%- FOREACH loc = subroutines.items.nsort -%]
+        [%- cov = 0 -%]
+        [%- FOREACH l = subroutines.location("$loc") -%]
+            [%- IF l.error -%] [% loc -%],[%- cov = 1; LAST; END -%]
+        [%- LAST IF cov; END -%]
+    [%- END -%]
+ ],
+\         'statement': [
+    [%- statements = cover.file("$file").statement -%]
+    [%- FOREACH loc = statements.items.nsort -%]
+        [%- cov = 0 -%]
+        [%- FOREACH l = statements.location("$loc") -%]
+            [%- FOREACH s = l -%]
+                [%- IF s.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
+            [%- LAST IF cov; END -%]
+        [%- LAST IF cov; END -%]
+    [%- END -%]
+ ],
+\         'statement_error': [
+    [%- statements = cover.file("$file").statement -%]
+    [%- FOREACH loc = statements.items.nsort -%]
+        [%- cov = 0 -%]
+        [%- FOREACH l = statements.location("$loc") -%]
+            [%- FOREACH s = l -%]
+                [%- IF s.error -%] [% loc -%],[%- cov = 1; LAST; END -%]
+            [%- LAST IF cov; END -%]
+        [%- LAST IF cov; END -%]
+    [%- END -%]
+ ],
+\         'branch': [
+    [%- branches = cover.file("$file").branch -%]
+    [%- FOREACH loc = branches.items.nsort -%]
+        [%- cov = 0 -%]
+        [%- FOREACH l = branches.location("$loc") -%]
+            [%- IF l.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
+        [%- LAST IF cov; END -%]
+    [%- END -%]
+ ],
+\         'branch_error': [
+    [%- branches = cover.file("$file").branch -%]
+    [%- FOREACH loc = branches.items.nsort -%]
+        [%- cov = 0 -%]
+        [%- FOREACH l = branches.location("$loc") -%]
+            [%- IF l.error -%] [% loc -%],[%- cov = 1; LAST; END -%]
+        [%- LAST IF cov; END -%]
+    [%- END -%]
+ ],
+\         'condition': [
+    [%- conditions = cover.file("$file").condition -%]
+    [%- FOREACH loc = conditions.items.nsort -%]
+        [%- cov = 0 -%]
+        [%- FOREACH l = conditions.location("$loc") -%]
+            [%- IF l.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
+        [%- LAST IF cov; END -%]
+    [%- END -%]
+ ],
+\         'condition_error': [
+    [%- conditions = cover.file("$file").condition -%]
+    [%- FOREACH loc = conditions.items.nsort -%]
+        [%- cov = 0 -%]
+        [%- FOREACH l = conditions.location("$loc") -%]
+            [%- IF l.error -%] [% loc -%],[%- cov = 1; LAST; END -%]
+        [%- LAST IF cov; END -%]
+    [%- END -%]
+ ],
 \     },
 \[% END %]
 \ }
@@ -198,7 +307,7 @@ function! s:CoverageSigns(filename)
         let s:signs[a:filename] = []
     endif
 
-    for s:type in keys(s:cov)
+    for s:type in s:types
         for s:line in s:cov[s:type]
             let id = s:signIndex
             let s:signIndex += 1
