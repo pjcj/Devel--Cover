@@ -56,18 +56,11 @@ sub report
             sort {$a->{start} <=> $b->{start}}
             $db->runs
         ],
-        now      => time,
-        version  => $LVERSION,
-        files    => $options->{file},
-        cover    => $db->cover,
-        types    =>
-        [
-            do
-            {
-                my @types = qw( pod statement subroutine branch condition );
-                (@types, map "${_}_error", @types)
-            }
-        ],
+        now     => time,
+        version => $LVERSION,
+        files   => $options->{file},
+        cover   => $db->cover,
+        types   => [ qw( pod statement subroutine branch condition ) ],
     };
 
     my $out = "$options->{outputdir}/$options->{outputfile}";
@@ -165,110 +158,28 @@ if strlen(s:config)
 endif
 
 let s:types = [
-[%- FOREACH type = types -%]
- "[%- type -%]",
-[%- END -%]
+[%- FOREACH type = types -%] "[%- type -%]",[%- END -%]
+[%- FOREACH type = types -%] "[%- type -%]_error",[%- END -%]
  ]
+
+[%- MACRO criterion(file, crit, error) BLOCK %]
+\         '[% crit %][% error ? "_error" : "" %]': [
+    [%- criteria = cover.file("$file").$crit -%]
+    [%- FOREACH loc = criteria.items.nsort -%]
+        [%- cov = 0 -%]
+        [%- FOREACH l = criteria.location("$loc") -%]
+            [%- IF error ? l.error : l.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
+        [%- LAST IF cov; END -%]
+    [%- END -%]
+ ],
+[%- END %]
 
 let s:coverage =
 \ {
 \[% FOREACH file = files %]
 \     '[% file %]':
 \     {
-\         'pod': [
-    [%- pods = cover.file("$file").pod -%]
-    [%- FOREACH loc = pods.items.nsort -%]
-        [%- cov = 0 -%]
-        [%- FOREACH l = pods.location("$loc") -%]
-            [%- IF l.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
-        [%- LAST IF cov; END -%]
-    [%- END -%]
- ],
-\         'pod_error': [
-    [%- pods = cover.file("$file").pod -%]
-    [%- FOREACH loc = pods.items.nsort -%]
-        [%- cov = 0 -%]
-        [%- FOREACH l = pods.location("$loc") -%]
-            [%- IF l.error -%] [% loc -%],[%- cov = 1; LAST; END -%]
-        [%- LAST IF cov; END -%]
-    [%- END -%]
- ],
-\         'subroutine': [
-    [%- subroutines = cover.file("$file").subroutine -%]
-    [%- FOREACH loc = subroutines.items.nsort -%]
-        [%- cov = 0 -%]
-        [%- FOREACH l = subroutines.location("$loc") -%]
-            [%- IF l.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
-        [%- LAST IF cov; END -%]
-    [%- END -%]
- ],
-\         'subroutine_error': [
-    [%- subroutines = cover.file("$file").subroutine -%]
-    [%- FOREACH loc = subroutines.items.nsort -%]
-        [%- cov = 0 -%]
-        [%- FOREACH l = subroutines.location("$loc") -%]
-            [%- IF l.error -%] [% loc -%],[%- cov = 1; LAST; END -%]
-        [%- LAST IF cov; END -%]
-    [%- END -%]
- ],
-\         'statement': [
-    [%- statements = cover.file("$file").statement -%]
-    [%- FOREACH loc = statements.items.nsort -%]
-        [%- cov = 0 -%]
-        [%- FOREACH l = statements.location("$loc") -%]
-            [%- FOREACH s = l -%]
-                [%- IF s.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
-            [%- LAST IF cov; END -%]
-        [%- LAST IF cov; END -%]
-    [%- END -%]
- ],
-\         'statement_error': [
-    [%- statements = cover.file("$file").statement -%]
-    [%- FOREACH loc = statements.items.nsort -%]
-        [%- cov = 0 -%]
-        [%- FOREACH l = statements.location("$loc") -%]
-            [%- FOREACH s = l -%]
-                [%- IF s.error -%] [% loc -%],[%- cov = 1; LAST; END -%]
-            [%- LAST IF cov; END -%]
-        [%- LAST IF cov; END -%]
-    [%- END -%]
- ],
-\         'branch': [
-    [%- branches = cover.file("$file").branch -%]
-    [%- FOREACH loc = branches.items.nsort -%]
-        [%- cov = 0 -%]
-        [%- FOREACH l = branches.location("$loc") -%]
-            [%- IF l.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
-        [%- LAST IF cov; END -%]
-    [%- END -%]
- ],
-\         'branch_error': [
-    [%- branches = cover.file("$file").branch -%]
-    [%- FOREACH loc = branches.items.nsort -%]
-        [%- cov = 0 -%]
-        [%- FOREACH l = branches.location("$loc") -%]
-            [%- IF l.error -%] [% loc -%],[%- cov = 1; LAST; END -%]
-        [%- LAST IF cov; END -%]
-    [%- END -%]
- ],
-\         'condition': [
-    [%- conditions = cover.file("$file").condition -%]
-    [%- FOREACH loc = conditions.items.nsort -%]
-        [%- cov = 0 -%]
-        [%- FOREACH l = conditions.location("$loc") -%]
-            [%- IF l.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
-        [%- LAST IF cov; END -%]
-    [%- END -%]
- ],
-\         'condition_error': [
-    [%- conditions = cover.file("$file").condition -%]
-    [%- FOREACH loc = conditions.items.nsort -%]
-        [%- cov = 0 -%]
-        [%- FOREACH l = conditions.location("$loc") -%]
-            [%- IF l.error -%] [% loc -%],[%- cov = 1; LAST; END -%]
-        [%- LAST IF cov; END -%]
-    [%- END -%]
- ],
+[%- FOREACH type = types; criterion(file, type, 0); criterion(file, type, 1); END %]
 \     },
 \[% END %]
 \ }
