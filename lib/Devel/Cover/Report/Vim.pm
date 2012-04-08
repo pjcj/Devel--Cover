@@ -370,12 +370,48 @@ Devel::Cover::Report::Vim - Backend for displaying coverage data in Vim
 This module provides a reporting mechanism for displaying coverage data in
 Vim.  It is designed to be called from the C<cover> program.
 
-By default, the output of this report is a file named C<coverage.vim> in the directory of the coverage database.  To use it, run
+By default, the output of this report is a file named C<coverage.vim> in the
+directory of the coverage database.  To use it, run
 
  :so cover_db/coverage.vim
 
 and you should see signs in the left column indicating the coverage status of
 that line.
+
+The signs are as follows:
+
+ P - Pod coverage
+ S - Statement coverage
+ R - Subroutine coverage
+ B - Branch coverage
+ C - Condition coverage
+
+The last of the criteria, in the order given above, is the one which is
+displayed.  Correctly covered criteria are shown in green.  Incorrectly
+covered criteria are shown in red.  Any incorrectly covered criterion will
+override a correctly covered criterion.
+
+igns may be overridden in a file named devel-cover.vim located somewhere
+underneath the ~/.vim directory.
+
+For example, I use the solarized theme and keep the following comamnds in my
+local configuration file ~/.vim/local/devel-cover.vim:
+
+ highlight SignColumn ctermbg=0 guibg=#073642
+
+ highlight cov_pod              ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+ highlight cov_pod_error        ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+ highlight cov_subroutine       ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+ highlight cov_subroutine_error ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+ highlight cov_statement        ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+ highlight cov_statement_error  ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+ highlight cov_branch           ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+ highlight cov_branch_error     ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+ highlight cov_condition        ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+ highlight cov_condition_error  ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+
+ " highlight cov        ctermbg=8 guibg=#002b36
+ " highlight err        ctermbg=0 guibg=#073642
 
 coverage.vim adds two user commands: :Cov and :Uncov which can be used to
 toggle the state of coverage signs.
@@ -386,6 +422,7 @@ https://github.com/nyarly/Simplecov-Vim
 =head1 SEE ALSO
 
  Devel::Cover
+ Simplecov-Vim (https://github.com/nyarly/Simplecov-Vim)
 
 =head1 BUGS
 
