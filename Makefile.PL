@@ -349,7 +349,8 @@ sub MY::postamble
     my %tests;
     @tests{@tests} = map { (my $t = $_) =~ s/\W/_/g; "cover_db_$t" } @tests;
     my @reports =
-      qw(compilation html_basic html_minimal html html_subtle sort text2 text);
+      qw(compilation html_basic html_minimal html html_subtle sort text2 text
+         vim);
 
     qq[
 tags :
@@ -439,6 +440,7 @@ _self_cover_tests : @{[sort values %tests]}
 
 self_cover : _self_cover_reports
 \t \$(PERL) -Mblib bin/cover -report html_basic
+\t \$(PERL) -Mblib bin/cover -report vim
 
 ok :
 \t \@$Perlbug -okay  || echo "Please send your report manually to $Author"
