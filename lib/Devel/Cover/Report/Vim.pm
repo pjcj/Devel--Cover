@@ -29,30 +29,6 @@ sub get_options
                      ));
 }
 
-sub coverage
-{
-    my ($db, $file, $options) = @_;
-
-    my $statements = $db->cover->file($file)->statement or return ([], []);
-
-    my ($cov, $err) = ([], []);
-
-    for my $location ($statements->items)
-    {
-        my $l = $statements->location($location);
-        my ($c, $e);
-        for my $statement (@$l)
-        {
-            $c ||= $statement->covered;
-            $e ||= $statement->error;
-        }
-        push @$cov, $location if $c;
-        push @$err, $location if $e;
-    }
-
-    ($cov, $err)
-}
-
 sub report
 {
     my ($pkg, $db, $options) = @_;
@@ -82,15 +58,8 @@ sub report
         ],
         now      => time,
         version  => $LVERSION,
-        coverage => join ", ", map {
-                                       my ($cov, $err) = coverage($db, $_);
-                                       local $" = ", ";
-                                       my $c = "'$_': [ [ @$cov ], [ @$err ] ]";
-                                       my @c = ($c);
-                                       $c =~ s/^'blib\//'/;
-                                       push @c, $c if $c ne $c[0];
-                                       @c
-                                   } @{$options->{file}},
+        files    => $options->{file},
+        cover    => $db->cover,
     };
 
     my $out = "$options->{outputdir}/$options->{outputfile}";
@@ -136,11 +105,11 @@ $Templates{vim} = <<'EOT';
 
 [% END %]
 
-hi HitSign  ctermfg=Green cterm=bold gui=bold guifg=Green
-hi MissSign ctermfg=Red   cterm=bold gui=bold guifg=Red
+hi cov_statement       ctermfg=Green cterm=bold gui=bold guifg=Green
+hi cov_statement_error ctermfg=Red   cterm=bold gui=bold guifg=Red
 
-sign define hit  linehl=HitLine  texthl=HitSign  text=>>
-sign define miss linehl=MissLine texthl=MissSign text=**
+sign define statement       linehl=cov texthl=cov_statement       text=>S
+sign define statement_error linehl=err texthl=cov_statement_error text=*S
 
 " The signs definitions can be overridden.  To do this add a file called
 " devel-cover.vim at some appropriate point in your ~/.vim directory and add
@@ -148,13 +117,14 @@ sign define miss linehl=MissLine texthl=MissSign text=**
 " For example, I use the vim solarized theme and I have the following comamnds
 " in my local configuration file ~/.vim/local/devel-cover.vim:
 "
-"    highlight SignColumn ctermbg=0             guibg=#073642
+
+"    highlight SignColumn ctermbg=0 guibg=#073642
 "
-"    highlight HitSign    ctermfg=6  cterm=bold guifg=#859900 guibg=#073642 gui=NONE
-"    highlight MissSign   ctermfg=1  cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+"    highlight cov_statement       ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+"    highlight cov_statement_error ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
 "
-"    " highlight HitLine    ctermbg=8             guibg=#002b36
-"    " highlight MissLine   ctermbg=0             guibg=#073642
+"    " highlight cov        ctermbg=8 guibg=#002b36
+"    " highlight err        ctermbg=0 guibg=#073642
 "
 
 let s:config = findfile("devel-cover.vim", expand('$HOME/.vim') . "/**")
@@ -163,14 +133,44 @@ if strlen(s:config)
     exe "source " . s:config
 endif
 
-let s:coverage = { [% coverage %] }
+let s:coverage =
+\ {
+\[% FOREACH file = files %]
+\     '[% file %]':
+\     {
+\         'statement': [ 
+      [%- statements = cover.file("$file").statement -%]
+      [%- FOREACH loc = statements.items.nsort -%]
+       [%- cov = 0 -%]
+       [%- FOREACH l = statements.location("$loc") -%]
+        [%- FOREACH s = l -%]
+[%- IF s.covered -%] [%- loc -%], [%- cov = 1; LAST; END -%]
+        [%- LAST IF cov; END -%]
+       [%- LAST IF cov; END -%]
+      [%- END -%]
+],
+\         'statement_error': [ 
+      [%- statements = cover.file("$file").statement -%]
+      [%- FOREACH loc = statements.items.nsort -%]
+       [%- cov = 0 -%]
+       [%- FOREACH l = statements.location("$loc") -%]
+        [%- FOREACH s = l -%]
+[%- IF s.error -%] [%- loc -%], [%- cov = 1; LAST; END -%]
+        [%- LAST IF cov; END -%]
+       [%- LAST IF cov; END -%]
+      [%- END -%]
+],
+\     },
+\[% END %]
+\ }
 
 let s:generatedTime = [% now %]
 
 function! BestCoverage(coverageForName)
     let matchBadness = strlen(a:coverageForName)
     for filename in keys(s:coverage)
-        let matchQuality = match(a:coverageForName, filename . "$")
+        let f = substitute(filename, "^blib/", "", "")
+        let matchQuality = match(a:coverageForName, f . "$")
         if (matchQuality >= 0 && matchQuality < matchBadness)
             let found = filename
         endif
@@ -180,41 +180,36 @@ function! BestCoverage(coverageForName)
         return s:coverage[found]
     else
         echom "No coverage recorded for " . a:coverageForName
-        return [[],[]]
+        return {}
     endif
 endfunction
 
-let s:signs = {}
+let s:signs     = {}
 let s:signIndex = 1
 
 function! s:CoverageSigns(filename)
-    let [hits,misses] = BestCoverage(a:filename)
+    let s:cov = BestCoverage(a:filename)
 
     if (getftime(a:filename) > s:generatedTime)
         echom "File is newer than coverage report which was generated at " . strftime("%c", s:generatedTime)
     endif
 
-    if (! exists("s:signs['".a:filename."']"))
+    if (!exists("s:signs['" . a:filename . "']"))
         let s:signs[a:filename] = []
     endif
 
-    for hit in hits
-        let id = s:signIndex
-        let s:signIndex += 1
-        let s:signs[a:filename] += [id]
-        exe ":sign place " . id . " line=" . hit . " name=hit  file=" . a:filename
-    endfor
-
-    for miss in misses
-        let id = s:signIndex
-        let s:signIndex += 1
-        let s:signs[a:filename] += [id]
-        exe ":sign place " . id . " line=" . miss . " name=miss file=" . a:filename
+    for s:type in keys(s:cov)
+        for s:line in s:cov[s:type]
+            let id = s:signIndex
+            let s:signIndex += 1
+            let s:signs[a:filename] += [id]
+            exe ":sign place " . id . " line=" . s:line . " name=" . s:type . " file=" . a:filename
+        endfor
     endfor
 endfunction
 
 function! s:ClearCoverageSigns(filename)
-    if(exists("s:signs['". a:filename."']"))
+    if(exists("s:signs['" . a:filename . "']"))
         for signId in s:signs[a:filename]
           exe ":sign unplace " . signId
         endfor
@@ -229,7 +224,7 @@ function! s:AutocommandUncov(sourced)
     endif
 endfunction
 
-command! -nargs=0 Cov call s:CoverageSigns(expand("%:p"))
+command! -nargs=0 Cov   call s:CoverageSigns(expand("%:p"))
 command! -nargs=0 Uncov call s:ClearCoverageSigns(expand("%:p"))
 
 augroup devel-cover
@@ -239,6 +234,10 @@ augroup devel-cover
     " show signs automatically for all known files
     for s:filename in keys(s:coverage)
         exe "au BufReadPost " . s:filename . ' call s:CoverageSigns(expand("%:p"))'
+        let s:f = substitute(s:filename, "^blib/", "", "")
+        if s:filename != s:f
+            exe "au BufReadPost " . s:f . ' call s:CoverageSigns(expand("%:p"))'
+        endif
     endfor
 augroup end
 
