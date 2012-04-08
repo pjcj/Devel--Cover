@@ -136,90 +136,110 @@ $Templates{vim} = <<'EOT';
 
 [% END %]
 
-"hi HitLine ctermbg=Cyan guibg=Cyan
-"hi MissLine ctermbg=Magenta guibg=Magenta
-hi HitSign ctermfg=Green cterm=bold gui=bold guifg=Green
-hi MissSign ctermfg=Red cterm=bold gui=bold guifg=Red
+hi HitSign  ctermfg=Green cterm=bold gui=bold guifg=Green
+hi MissSign ctermfg=Red   cterm=bold gui=bold guifg=Red
 
 sign define hit  linehl=HitLine  texthl=HitSign  text=>>
 sign define miss linehl=MissLine texthl=MissSign text=**
+
+" The signs definitions can be overridden.  To do this add a file called
+" devel-cover.vim at some appropriate point in your ~/.vim directory and add
+" your local configuration commands there.
+" For example, I use the vim solarized theme and I have the following comamnds
+" in my local configuration file ~/.vim/local/devel-cover.vim:
+"
+"    highlight SignColumn ctermbg=0             guibg=#073642
+"
+"    highlight HitSign    ctermfg=6  cterm=bold guifg=#859900 guibg=#073642 gui=NONE
+"    highlight MissSign   ctermfg=1  cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+"
+"    " highlight HitLine    ctermbg=8             guibg=#002b36
+"    " highlight MissLine   ctermbg=0             guibg=#073642
+"
+
+let s:config = findfile("devel-cover.vim", expand('$HOME/.vim') . "/**")
+if strlen(s:config)
+    echom "Reading local config from " . s:config
+    exe "source " . s:config
+endif
 
 let s:coverage = { [% coverage %] }
 
 let s:generatedTime = [% now %]
 
-for filename in keys(s:coverage)
-  exe "au BufReadPost " . filename . ' call s:CoverageSigns(expand("%:p"))'
-endfor
-
 function! BestCoverage(coverageForName)
-  let matchBadness = strlen(a:coverageForName)
-  for filename in keys(s:coverage)
-    let matchQuality = match(a:coverageForName, filename . "$")
-    if (matchQuality >= 0 && matchQuality < matchBadness)
-      let found = filename
-    endif
-  endfor
+    let matchBadness = strlen(a:coverageForName)
+    for filename in keys(s:coverage)
+        let matchQuality = match(a:coverageForName, filename . "$")
+        if (matchQuality >= 0 && matchQuality < matchBadness)
+            let found = filename
+        endif
+    endfor
 
-  if exists("found")
-    return s:coverage[found]
-  else
-    echom "No coverage recorded for " . a:coverageForName
-    return [[],[]]
-  endif
+    if exists("found")
+        return s:coverage[found]
+    else
+        echom "No coverage recorded for " . a:coverageForName
+        return [[],[]]
+    endif
 endfunction
 
 let s:signs = {}
 let s:signIndex = 1
 
 function! s:CoverageSigns(filename)
-  let [hits,misses] = BestCoverage(a:filename)
+    let [hits,misses] = BestCoverage(a:filename)
 
-  if (getftime(a:filename) > s:generatedTime)
-    echom "File is newer than coverage report which was generated at " . strftime("%c", s:generatedTime)
-  endif
+    if (getftime(a:filename) > s:generatedTime)
+        echom "File is newer than coverage report which was generated at " . strftime("%c", s:generatedTime)
+    endif
 
-  if (! exists("s:signs['".a:filename."']"))
-    let s:signs[a:filename] = []
-  endif
+    if (! exists("s:signs['".a:filename."']"))
+        let s:signs[a:filename] = []
+    endif
 
-  for hit in hits
-    let id = s:signIndex
-    let s:signIndex += 1
-    let s:signs[a:filename] += [id]
-    exe ":sign place ". id ." line=".hit." name=hit  file=" . a:filename
-  endfor
+    for hit in hits
+        let id = s:signIndex
+        let s:signIndex += 1
+        let s:signs[a:filename] += [id]
+        exe ":sign place " . id . " line=" . hit . " name=hit  file=" . a:filename
+    endfor
 
-  for miss in misses
-    let id = s:signIndex
-    let s:signIndex += 1
-    let s:signs[a:filename] += [id]
-    exe ":sign place ".id." line=".miss." name=miss file=" . a:filename
-  endfor
+    for miss in misses
+        let id = s:signIndex
+        let s:signIndex += 1
+        let s:signs[a:filename] += [id]
+        exe ":sign place " . id . " line=" . miss . " name=miss file=" . a:filename
+    endfor
 endfunction
 
 function! s:ClearCoverageSigns(filename)
-  if(exists("s:signs['". a:filename."']"))
-    for signId in s:signs[a:filename]
-      exe ":sign unplace ".signId
-    endfor
-    let s:signs[a:filename] = []
-  endif
+    if(exists("s:signs['". a:filename."']"))
+        for signId in s:signs[a:filename]
+          exe ":sign unplace " . signId
+        endfor
+        let s:signs[a:filename] = []
+    endif
 endfunction
 
 let s:filename = expand("<sfile>")
 function! s:AutocommandUncov(sourced)
-  if(a:sourced == s:filename)
-    call s:ClearCoverageSigns(expand("%:p"))
-  endif
+    if(a:sourced == s:filename)
+        call s:ClearCoverageSigns(expand("%:p"))
+    endif
 endfunction
 
 command! -nargs=0 Cov call s:CoverageSigns(expand("%:p"))
 command! -nargs=0 Uncov call s:ClearCoverageSigns(expand("%:p"))
 
-augroup SimpleCov
-  au!
-  exe "au SourcePre ".expand("<sfile>:t")." call s:AutocommandUncov(expand('<afile>:p'))"
+augroup devel-cover
+    au!
+    exe "au SourcePre " . expand("<sfile>:t") . " call s:AutocommandUncov(expand('<afile>:p'))"
+
+    " show signs automatically for all known files
+    for s:filename in keys(s:coverage)
+        exe "au BufReadPost " . s:filename . ' call s:CoverageSigns(expand("%:p"))'
+    endfor
 augroup end
 
 Cov
