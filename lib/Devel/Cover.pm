@@ -225,7 +225,7 @@ EOM
         $Run{perl}  = $] < 5.010 ? join ".", map ord, split //, $^V
                                  : sprintf "%vd", $^V;
         $Run{run}   = $0;
-        $Run{start} = get_elapsed();
+        $Run{start} = get_elapsed() / 1e6;
     }
 
     no warnings "void";  # avoid "Too late to run CHECK block" warning
@@ -696,7 +696,7 @@ sub _report
 {
     local @SIG{qw(__DIE__ __WARN__)};
 
-    $Run{finish} = get_elapsed();
+    $Run{finish} = get_elapsed() / 1e6;
 
     die "Devel::Cover::import() not run: " .
         "did you require instead of use Devel::Cover?\n"
