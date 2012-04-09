@@ -2,6 +2,9 @@ Devel::Cover history
 
 {{$NEXT}}
 
+Release 0.86 - 9th April 2012
+ - Add all coverage criteria to the Vim report.
+
 Release 0.85 - 1th April 2012
  - Add customisable thresholds to HTML reports (Xavier Caron).
  - Improve Vim report.
@@ -11,7 +14,7 @@ Release 0.84 - 31th March 2012
 
 Release 0.83 - 30th March 2012
  - Prefer JSON::XS for faster operation (Audrey Tang (唐鳳)).
- - Rework testing framework (Xavier Caron)
+ - Rework testing framework (Xavier Caron).
 
 Release 0.82 - 19th March 2012
  - Do not distribute MYMETA.json (Olivier Mengué) (rt 75883).
