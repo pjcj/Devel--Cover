@@ -47,13 +47,13 @@ sub report
         [
             map
             {
-                run    =>               $_->{run},
-                perl   =>               $_->{perl},
-                OS     =>               $_->{OS},
-                start  => scalar gmtime $_->{start},
-                finish => scalar gmtime $_->{finish},
+                run    =>               $_->run,
+                perl   =>               $_->perl,
+                OS     =>               $_->OS,
+                start  => scalar gmtime $_->start,
+                finish => scalar gmtime $_->finish,
             },
-            sort {$a->{start} <=> $b->{start}}
+            sort {$a->start <=> $b->start}
             $db->runs
         ],
         now     => time,
