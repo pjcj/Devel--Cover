@@ -56,11 +56,19 @@ sub report
             sort {$a->start <=> $b->start}
             $db->runs
         ],
-        now     => time,
-        version => $LVERSION,
-        files   => $options->{file},
-        cover   => $db->cover,
-        types   => [ qw( pod statement subroutine branch condition ) ],
+        cov_time => do
+        {
+            my $time = 0;
+            for ($db->runs)
+            {
+                $time = $_->finish if $_->finish > $time;
+            }
+            int $time
+        },
+        version  => $LVERSION,
+        files    => $options->{file},
+        cover    => $db->cover,
+        types    => [ qw( pod statement subroutine branch condition ) ],
     };
 
     my $out = "$options->{outputdir}/$options->{outputfile}";
@@ -106,16 +114,16 @@ $Templates{vim} = <<'EOT';
 
 [% END %]
 
-hi cov_pod              ctermfg=Green cterm=bold gui=bold guifg=Green
-hi cov_pod_error        ctermfg=Red   cterm=bold gui=bold guifg=Red
-hi cov_subroutine       ctermfg=Green cterm=bold gui=bold guifg=Green
-hi cov_subroutine_error ctermfg=Red   cterm=bold gui=bold guifg=Red
-hi cov_statement        ctermfg=Green cterm=bold gui=bold guifg=Green
-hi cov_statement_error  ctermfg=Red   cterm=bold gui=bold guifg=Red
-hi cov_branch           ctermfg=Green cterm=bold gui=bold guifg=Green
-hi cov_branch_error     ctermfg=Red   cterm=bold gui=bold guifg=Red
-hi cov_condition        ctermfg=Green cterm=bold gui=bold guifg=Green
-hi cov_condition_error  ctermfg=Red   cterm=bold gui=bold guifg=Red
+highlight cov_pod              ctermfg=Green cterm=bold gui=bold guifg=Green
+highlight cov_pod_error        ctermfg=Red   cterm=bold gui=bold guifg=Red
+highlight cov_subroutine       ctermfg=Green cterm=bold gui=bold guifg=Green
+highlight cov_subroutine_error ctermfg=Red   cterm=bold gui=bold guifg=Red
+highlight cov_statement        ctermfg=Green cterm=bold gui=bold guifg=Green
+highlight cov_statement_error  ctermfg=Red   cterm=bold gui=bold guifg=Red
+highlight cov_branch           ctermfg=Green cterm=bold gui=bold guifg=Green
+highlight cov_branch_error     ctermfg=Red   cterm=bold gui=bold guifg=Red
+highlight cov_condition        ctermfg=Green cterm=bold gui=bold guifg=Green
+highlight cov_condition_error  ctermfg=Red   cterm=bold gui=bold guifg=Red
 
 sign define pod              linehl=cov texthl=cov_pod              text=P 
 sign define pod_error        linehl=err texthl=cov_pod_error        text=P 
@@ -127,6 +135,12 @@ sign define branch           linehl=cov texthl=cov_branch           text=B
 sign define branch_error     linehl=err texthl=cov_branch_error     text=B 
 sign define condition        linehl=cov texthl=cov_condition        text=C 
 sign define condition_error  linehl=err texthl=cov_condition_error  text=C 
+
+function! g:coverage_old(filename)
+endfunction
+
+function! g:coverage_valid(filename)
+endfunction
 
 " The signs definitions can be overridden.  To do this add a file called
 " devel-cover.vim at some appropriate point in your ~/.vim directory and add
@@ -184,7 +198,7 @@ let s:coverage =
 \[% END %]
 \ }
 
-let s:generatedTime = [% now %]
+let s:cov_time = [% cov_time %]
 
 function! BestCoverage(coverageForName)
     let matchBadness = strlen(a:coverageForName)
@@ -210,8 +224,11 @@ let s:signIndex = 1
 function! s:CoverageSigns(filename)
     let s:cov = BestCoverage(a:filename)
 
-    if (getftime(a:filename) > s:generatedTime)
-        echom "File is newer than coverage report which was generated at " . strftime("%c", s:generatedTime)
+    if (getftime(a:filename) > s:cov_time)
+        echom "File is newer than coverage run of " . strftime("%c", s:cov_time)
+        call g:coverage_old(a:filename)
+    else
+        call g:coverage_valid(a:filename)
     endif
 
     if (!exists("s:signs['" . a:filename . "']"))
