@@ -148,22 +148,41 @@ endfunction
 " For example, I use the vim solarized theme and I have the following comamnds
 " in my local configuration file ~/.vim/local/devel-cover.vim:
 "
-"    highlight SignColumn ctermbg=0 guibg=#073642
+" ----------------------------------------------------------------------------
 "
-"    highlight cov_pod              ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
-"    highlight cov_pod_error        ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
-"    highlight cov_subroutine       ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
-"    highlight cov_subroutine_error ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
-"    highlight cov_statement        ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
-"    highlight cov_statement_error  ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
-"    highlight cov_branch           ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
-"    highlight cov_branch_error     ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
-"    highlight cov_condition        ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
-"    highlight cov_condition_error  ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+"    let s:fg_cover = "#dc322f"
+"    let s:fg_error = "#859900"
+"    let s:bg_valid = "#073642"
+"    let s:bg_old   = "#342a2a"
 "
-"    " highlight cov        ctermbg=8 guibg=#002b36
-"    " highlight err        ctermbg=0 guibg=#073642
+"    let s:types = [ "pod", "subroutine", "statement", "branch", "condition", ]
 "
+"    for s:type in s:types
+"        exe "highlight cov_" . s:type .       " ctermbg=1 cterm=bold gui=NONE guifg=" . s:fg_cover
+"        exe "highlight cov_" . s:type . "_error ctermbg=1 cterm=bold gui=NONE guifg=" . s:fg_error
+"    endfor
+"    exe "highlight SignColumn ctermbg=0 guibg=" . s:bg_valid
+"
+"    " highlight cov ctermbg=8 guibg=#002b36
+"    " highlight err ctermbg=0 guibg=#073642
+"
+"    function! s:set_bg(bg)
+"        for s:type in s:types
+"            exe "highlight cov_" . s:type .       " guibg=" . a:bg
+"            exe "highlight cov_" . s:type . "_error guibg=" . a:bg
+"        endfor
+"        exe "highlight SignColumn ctermbg=0 guibg=" . a:bg
+"    endfunction
+"
+"    function! g:coverage_valid(filename)
+"        call s:set_bg(s:bg_valid)
+"    endfunction
+"
+"    function! g:coverage_old(filename)
+"        call s:set_bg(s:bg_old)
+"    endfunction
+"
+" ----------------------------------------------------------------------------
 
 let s:config = findfile("devel-cover.vim", expand('$HOME/.vim') . "/**")
 if strlen(s:config)
@@ -319,27 +338,50 @@ displayed.  Correctly covered criteria are shown in green.  Incorrectly
 covered criteria are shown in red.  Any incorrectly covered criterion will
 override a correctly covered criterion.
 
-igns may be overridden in a file named devel-cover.vim located somewhere
+If the coverage for the file being displayed is out of date the a fucntion
+called g:coverage_old() is called and passed the name of the file.  Similarly,
+for current coverage data file file g:coverage_valid is called.
+
+Signs may be overridden in a file named devel-cover.vim located somewhere
 underneath the ~/.vim directory.
 
 For example, I use the solarized theme and keep the following comamnds in my
 local configuration file ~/.vim/local/devel-cover.vim:
 
- highlight SignColumn ctermbg=0 guibg=#073642
+ let s:fg_cover = "#dc322f"
+ let s:fg_error = "#859900"
+ let s:bg_valid = "#073642"
+ let s:bg_old   = "#342a2a"
 
- highlight cov_pod              ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
- highlight cov_pod_error        ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
- highlight cov_subroutine       ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
- highlight cov_subroutine_error ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
- highlight cov_statement        ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
- highlight cov_statement_error  ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
- highlight cov_branch           ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
- highlight cov_branch_error     ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
- highlight cov_condition        ctermfg=6 cterm=bold guifg=#859900 guibg=#073642 gui=NONE
- highlight cov_condition_error  ctermfg=1 cterm=bold guifg=#dc322f guibg=#073642 gui=NONE
+ let s:types = [ "pod", "subroutine", "statement", "branch", "condition", ]
 
- " highlight cov        ctermbg=8 guibg=#002b36
- " highlight err        ctermbg=0 guibg=#073642
+ for s:type in s:types
+     exe "highlight cov_" . s:type .       " ctermbg=1 cterm=bold gui=NONE guifg=" . s:fg_cover
+     exe "highlight cov_" . s:type . "_error ctermbg=1 cterm=bold gui=NONE guifg=" . s:fg_error
+ endfor
+ exe "highlight SignColumn ctermbg=0 guibg=" . s:bg_valid
+
+ " highlight cov ctermbg=8 guibg=#002b36
+ " highlight err ctermbg=0 guibg=#073642
+
+ function! s:set_bg(bg)
+     for s:type in s:types
+         exe "highlight cov_" . s:type .       " guibg=" . a:bg
+         exe "highlight cov_" . s:type . "_error guibg=" . a:bg
+     endfor
+     exe "highlight SignColumn ctermbg=0 guibg=" . a:bg
+ endfunction
+
+ function! g:coverage_valid(filename)
+     call s:set_bg(s:bg_valid)
+ endfunction
+
+ function! g:coverage_old(filename)
+     call s:set_bg(s:bg_old)
+ endfunction
+
+This configuration sets the background colour of the signs to a dark red when
+the coverage data is out of date.
 
 coverage.vim adds two user commands: :Cov and :Uncov which can be used to
 toggle the state of coverage signs.
