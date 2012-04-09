@@ -222,7 +222,8 @@ EOM
             unless $Silent;
 
         $Run{OS}    = $^O;
-        $Run{perl}  = join ".", map ord, split //, $^V;
+        $Run{perl}  = $] < 5.010 ? join ".", map ord, split //, $^V
+                                 : sprintf "%vd", $^V;
         $Run{run}   = $0;
         $Run{start} = get_elapsed();
     }
