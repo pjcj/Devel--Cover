@@ -30,6 +30,7 @@ sub percentage
     my $t = $_[0]->total;
     sprintf "%3d", $t ? $_[0]->covered / $t * 100 : 0
 }
+
 sub error
 {
     my $self = shift;
