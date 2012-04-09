@@ -150,8 +150,8 @@ endfunction
 "
 " ----------------------------------------------------------------------------
 "
-"    let s:fg_cover = "#dc322f"
-"    let s:fg_error = "#859900"
+"    let s:fg_cover = "#859900"
+"    let s:fg_error = "#dc322f"
 "    let s:bg_valid = "#073642"
 "    let s:bg_old   = "#342a2a"
 "
@@ -219,80 +219,83 @@ let s:coverage =
 
 let s:cov_time = [% cov_time %]
 
-function! BestCoverage(coverageForName)
-    let matchBadness = strlen(a:coverageForName)
-    for filename in keys(s:coverage)
-        let f = substitute(filename, "^blib/", "", "")
-        let matchQuality = match(a:coverageForName, f . "$")
-        if (matchQuality >= 0 && matchQuality < matchBadness)
-            let found = filename
+function! s:coverage_for(filename)
+    let s:fn_len = strlen(a:filename)
+    for s:cf in keys(s:coverage)
+        let s:f = substitute(s:cf, "^blib/", "", "")
+        let s:match_pos = match(a:filename, s:f . "$")
+        if s:match_pos >= 0 && s:match_pos < s:fn_len
+            return s:coverage[s:cf]
         endif
     endfor
 
-    if exists("found")
-        return s:coverage[found]
-    else
-        echom "No coverage recorded for " . a:coverageForName
-        return {}
-    endif
+    echom "No coverage recorded for " . a:filename
+    return {}
 endfunction
 
-let s:signs     = {}
-let s:signIndex = 1
+let s:signs    = {}
+let s:sign_num = 1
 
-function! s:CoverageSigns(filename)
-    let s:cov = BestCoverage(a:filename)
+function! s:add_coverage_signs(filename)
+    let s:cov = s:coverage_for(a:filename)
+    if !len(keys(s:cov))
+        return
+    endif
 
-    if (getftime(a:filename) > s:cov_time)
+    if getftime(a:filename) > s:cov_time
         echom "File is newer than coverage run of " . strftime("%c", s:cov_time)
         call g:coverage_old(a:filename)
     else
         call g:coverage_valid(a:filename)
     endif
 
-    if (!exists("s:signs['" . a:filename . "']"))
-        let s:signs[a:filename] = []
+    if !exists("s:signs['" . a:filename . "']")
+        let s:signs[a:filename] = {}
     endif
+    let s:s = s:signs[a:filename]
 
-    for s:type in s:types
+    for s:type in reverse(copy(s:types))
         for s:line in s:cov[s:type]
-            let id = s:signIndex
-            let s:signIndex += 1
-            let s:signs[a:filename] += [id]
-            exe ":sign place " . id . " line=" . s:line . " name=" . s:type . " file=" . a:filename
+            if !exists("s:s['" . s:line . "']")
+                let s:id = s:sign_num
+                let s:sign_num += 1
+                let s:s[s:line] = s:id
+                exe ":sign place " . s:id . " line=" . s:line . " name=" . s:type . " file=" . a:filename
+            endif
         endfor
     endfor
 endfunction
 
-function! s:ClearCoverageSigns(filename)
-    if(exists("s:signs['" . a:filename . "']"))
-        for signId in s:signs[a:filename]
-          exe ":sign unplace " . signId
+function! s:del_coverage_signs(filename)
+    if exists("s:signs['" . a:filename . "']")
+        let s:s = s:signs[a:filename]
+        for s:line in keys(s:s)
+            exe ":sign unplace " . s:s[s:line]
         endfor
-        let s:signs[a:filename] = []
+        let s:signs[a:filename] = {}
     endif
 endfunction
 
 let s:filename = expand("<sfile>")
-function! s:AutocommandUncov(sourced)
-    if(a:sourced == s:filename)
-        call s:ClearCoverageSigns(expand("%:p"))
+function! s:uncover(sourced)
+    if a:sourced == s:filename
+        call s:del_coverage_signs(expand("%:p"))
     endif
 endfunction
 
-command! -nargs=0 Cov   call s:CoverageSigns(expand("%:p"))
-command! -nargs=0 Uncov call s:ClearCoverageSigns(expand("%:p"))
+command! -nargs=0 Cov   call s:add_coverage_signs(expand("%:p"))
+command! -nargs=0 Uncov call s:del_coverage_signs(expand("%:p"))
 
 augroup devel-cover
     au!
-    exe "au SourcePre " . expand("<sfile>:t") . " call s:AutocommandUncov(expand('<afile>:p'))"
+    exe "au SourcePre " . expand("<sfile>:t") . " call s:uncover(expand('<afile>:p'))"
 
     " show signs automatically for all known files
     for s:filename in keys(s:coverage)
-        exe "au BufReadPost " . s:filename . ' call s:CoverageSigns(expand("%:p"))'
+        exe "au BufReadPost " . s:filename . ' call s:add_coverage_signs(expand("%:p"))'
         let s:f = substitute(s:filename, "^blib/", "", "")
         if s:filename != s:f
-            exe "au BufReadPost " . s:f . ' call s:CoverageSigns(expand("%:p"))'
+            exe "au BufReadPost " . s:f . ' call s:add_coverage_signs(expand("%:p"))'
         endif
     endfor
 augroup end
@@ -348,8 +351,8 @@ underneath the ~/.vim directory.
 For example, I use the solarized theme and keep the following comamnds in my
 local configuration file ~/.vim/local/devel-cover.vim:
 
- let s:fg_cover = "#dc322f"
- let s:fg_error = "#859900"
+ let s:fg_cover = "#859900"
+ let s:fg_error = "#dc322f"
  let s:bg_valid = "#073642"
  let s:bg_old   = "#342a2a"
 
