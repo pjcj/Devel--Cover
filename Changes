@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Major documentation overhaul (Pau Amma).
  - Cleanup Data::Dumper usage (localise settings) (Olivier Mengué) (rt 76531).
 
 Release 0.86 - 9th April 2012
