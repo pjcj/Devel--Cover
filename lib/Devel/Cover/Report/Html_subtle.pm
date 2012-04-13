@@ -706,9 +706,7 @@ statistics
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Report::Html_subtle;
-
- Devel::Cover::Report::Html_subtle->report($db, $options);
+ cover -report html_subtle
 
 =head1 DESCRIPTION
 

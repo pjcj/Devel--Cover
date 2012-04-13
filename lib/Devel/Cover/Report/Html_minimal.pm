@@ -742,9 +742,7 @@ statistics
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Report::Html_minimal;
-
- Devel::Cover::Report::Html_minimal->report($db, $options);
+ cover -report html_minimal
 
 =head1 DESCRIPTION
 
@@ -769,26 +767,26 @@ directory.
 
 =item pod
 
-Includes POD (and blank lines) in the file report. This is on by default.  It
+Includes POD (and blank lines) in the file report.  This is on by default.  It
 may be turned off with -nopod.
 
 =item data
 
-Includes text after the C<__DATA__> or C<__END__> tokens in the file report. By
+Includes text after the C<__DATA__> or C<__END__> tokens in the file report.  By
 default, this text is trimmed.
 
 Note: If your POD is after an C<__END__>, you have to specify 'data' to include
-it, not 'pod'. The 'pod' option only applies to POD before the C<__END__>.
+it, not 'pod'.  The 'pod' option only applies to POD before the C<__END__>.
 
 =item unified
 
-Generates a "unified" report for each file. The detailed data that normally
-appears in the auxilliary reports (branch, condition, etc.) is placed in the
-file report, and the auxilliarry reports are not generated.
+Generates a "unified" report for each file.  The detailed data that normally
+appears in the auxiliary reports (branch, condition, etc.) are placed in the
+file report, and the auxiliary reports are not generated.
 
 =item summarytitle
 
-Specify the tile of the summary.  The default is "Coverage Summary".
+Specify the title of the summary.  The default is "Coverage Summary".
 
 =back
 

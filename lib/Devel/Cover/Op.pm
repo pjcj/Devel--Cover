@@ -98,7 +98,7 @@ Devel::Cover::Op - B::Concise with coverage data
 =head1 DESCRIPTION
 
 This module works as if calling B::Concise but also outputs coverage
-information.  It's primary purpose is to aid in the development of Devel::Cover.
+information.  Its primary purpose is to aid in the development of Devel::Cover.
 
 See comments in Cover.xs (especially set_conditional()) to aid in interpreting
 the output.

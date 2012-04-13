@@ -58,3 +58,5 @@
   - Examples.
   - Document cpancover options.
   - Pod in private modules.
+  - Developer documentation.
+  - Better DB API docs (including writing?).

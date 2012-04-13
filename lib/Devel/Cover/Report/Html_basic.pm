@@ -772,9 +772,7 @@ statistics
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Report::Html_basic;
-
- Devel::Cover::Report::Html_basic->report($db, $options);
+ cover -report html_basic
 
 =head1 DESCRIPTION
 

@@ -167,14 +167,12 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Report::Text - Backend for textual reporting of coverage
+Devel::Cover::Report::Test2 - Backend for textual reporting of coverage
 statistics
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Report::Text;
-
- Devel::Cover::Report::Text->report($db, $options);
+ cover -report text2
 
 =head1 DESCRIPTION
 

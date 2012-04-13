@@ -973,10 +973,6 @@ Devel::Cover::DB - Code coverage metrics for Perl
 
 This module provides access to a database of code coverage information.
 
-=head1 SEE ALSO
-
- Devel::Cover
-
 =head1 METHODS
 
 =head2 new
@@ -1009,13 +1005,26 @@ data may be accessed.
      }
  }
 
-Data for different criteria will be in different formats, so that will
-need special handling, but I'll deal with that when we have the data for
-different criteria.
+Data for different criteria will be in different formats, so that will need
+special handling.  This is not yet documented so your best bet for now is to
+look at some of the simpler reports and/or the source.
 
-If you don't want to remember all the method names, use values() instead
-of files(), criteria() and locations() and get() instead of file(),
-criterion() and location().
+The methods in the above example are actually aliases for methods in
+Devel::Cover::DB::Base (the base class for all Devel::Cover::DB::* classes):
+
+=over
+
+=item * Devel::Cover::DB::Base->values
+
+Aliased to Devel::Cover::DB::Cover->files, Devel::Cover::DB::File->criteria,
+Devel::Cover::DB::Criterion->locations, and Devel::Cover::DB::Location->data
+
+=item * Devel::Cover::DB::Base->get
+
+Aliased to Devel::Cover::DB::Cover->file, Devel::Cover::DB::File->criteriom,
+Devel::Cover::DB::Criterion->location, and Devel::Cover::DB::Location->datum
+
+=back
 
 Instead of calling $file->criterion("x") you can also call $file->x.
 
@@ -1023,8 +1032,16 @@ Instead of calling $file->criterion("x") you can also call $file->x.
 
  my $valid = $db->is_valid;
 
-Returns true iff the db is valid.  (Actually there is one too many fs there, but
-that's what it should do.)
+Returns true if $db is valid (or looks valid, the function is too lax).
+
+=head1 SEE ALSO
+
+ Devel::Cover
+ Devel::Cover::DB::Base
+ Devel::Cover::DB::Cover
+ Devel::Cover::DB::File
+ Devel::Cover::DB::Criterion
+ Devel::Cover::DB::Location
 
 =head1 BUGS
 

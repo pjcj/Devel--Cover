@@ -136,7 +136,7 @@ Devel::Cover::Annotation::Git - Annotate with git information
 
 =head1 SYNOPSIS
 
- cover -report xxx -annotation git
+ cover -report text -annotation git  # Or any other report type
 
 =head1 DESCRIPTION
 

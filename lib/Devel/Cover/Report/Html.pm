@@ -25,9 +25,7 @@ statistics
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Report::Html;
-
- Devel::Cover::Report::Html->report($db, $options);
+ cover -report html
 
 =head1 DESCRIPTION
 

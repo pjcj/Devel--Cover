@@ -389,7 +389,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::DB::Structure - Code coverage metrics for Perl
+Devel::Cover::DB::Structure - Internal: abstract structure of a source file
 
 =head1 SYNOPSIS
 
@@ -400,6 +400,7 @@ Devel::Cover::DB::Structure - Code coverage metrics for Perl
 =head1 SEE ALSO
 
  Devel::Cover
+ Devel::Cover::DB
 
 =head1 METHODS
 

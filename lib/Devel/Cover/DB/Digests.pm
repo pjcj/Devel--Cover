@@ -113,6 +113,7 @@ This module stores digests for Devel::Cover::DB.
 =head1 SEE ALSO
 
  Devel::Cover
+ Devel::Cover::DB
 
 =head1 METHODS
 

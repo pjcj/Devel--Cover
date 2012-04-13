@@ -681,7 +681,7 @@ Devel::Cover: Oops, it looks like something went wrong writing the coverage.
               It's possible that more bad things may happen but we'll try to
               carry on anyway as if nothing happened.  At a minimum you'll
               probably find that you are missing coverage.  If you're
-              interrested, the problem was:
+              interested, the problem was:
 
 $@
 
@@ -1315,66 +1315,73 @@ If you want to get coverage for a program:
 
 =head1 DESCRIPTION
 
-This module provides code coverage metrics for Perl. Code coverage
-metrics describe how thoroughly tests exercise code. By using
-Devel::Cover you can discover areas of code not exercised by your tests
-and determine which tests to create to increase coverage. Code coverage
-can be considered as an indirect measure of quality.
+This module provides code coverage metrics for Perl.  Code coverage metrics
+describe how thoroughly tests exercise code.  By using Devel::Cover you can
+discover areas of code not exercised by your tests and determine which tests
+to create to increase coverage.  Code coverage can be considered as an
+indirect measure of quality.
 
-I consider this software to have an alpha status.  By that I mean that I
-reserve the right to alter the interface in a backwards incompatible manner
-without incrementing the major version number.  I specifically do not mean
-that this software is full of bugs or missing key features.  Although I'm
-making no guarantees on that front either.  In short, if you are looking for
-code coverage software for Perl, you have probably come to the end of your
-search.  For more of my opinions on this subject, see
-http://pjcj.sytes.net/notes/2007/03/14#alpha
+Although it is still being developed, Devel::Cover is now quite stable and
+provides many of the features to be expected in a useful coverage tool.
 
-Code coverage data are collected using a pluggable runops function which
-counts how many times each op is executed.  These data are then mapped
-back to reality using the B compiler modules.  There is also a statement
-profiling facility which needs a better backend to be really useful.
-This release also includes an experimental mode which replaces ops
-instead of using a pluggable runops function.  This provides a nice
-speed increase, but needs better testing before it becomes the default.
-You probably don't care about any of this.
+Statement, branch, condition, subroutine, and pod coverage information is
+reported.  Statement coverage data should be reasonable.  Branch and condition
+coverage data should be mostly accurate too, although not always what one
+might initially expect.  Subroutine coverage should be as accurate as
+statement coverage.  Pod coverage comes from L<Pod::Coverage>.  If
+L<Pod::Coverage::CountParents> is available it will be used instead.  Coverage
+data for other criteria are not yet collected.
 
-The F<cover> program can be used to generate coverage reports.
+The F<cover> program can be used to generate coverage reports.  Devel::Cover
+ships with a number of different reports including various types of HTML
+output, textual reports, a report to display missing coverage in the same
+format as compilation errors and a report to display coverage information
+within the Vim editor.
 
-Statement, branch, condition, subroutine, pod and time coverage information is
-reported.  Statement coverage data should be reasonable, although there may be
-some statements which are not reported.  Branch and condition coverage data
-should be mostly accurate too, although not always what one might initially
-expect.  Subroutine coverage should be as accurate as statement coverage.  Pod
-coverage comes from L<Pod::Coverage>.  If L<Pod::Coverage::CountParents> is
-available it will be used instead.  Coverage data for path coverage are not yet
-collected.
+It is possible to add annotations to reports, for example you could add a
+column to an HTML report showing who last changed a line, as determined by git
+blame.  Some annotation modules are shipped with Devel::Cover and you can
+easily create your own.
 
-The F<gcov2perl> program can be used to convert gcov files to
-C<Devel::Cover> databases.
+The F<gcov2perl> program can be used to convert gcov files to C<Devel::Cover>
+databases.  This allows you to display your C or XS code coverage together
+with your Perl coverage, or to use any of the Devel::Cvoer reports to display
+your C coverage data.
 
-You may find that the results don't match your expectations.  I would
-imagine that at least one of them is wrong.
+You may find that the coverage results don't match your expectations.  This
+could be due to a bug in Devel::Cover, but code coverage can be unintuitive to
+newcomers, and especially so with Perl, so you may want to reconsider your
+expectations as well.
 
-The most appropriate mailing list on which to discuss this module would
-be perl-qa.  Discussion has migrated there from perl-qa-metrics which is
-now defunct.  See L<http://lists.perl.org/list/perl-qa.html>.
+Code coverage data are collected by replacing perl ops with functions which
+count how many times the ops are executed.  These data are then mapped back to
+reality using the B compiler modules.  There is also a statement profiling
+facility which should not be relied on.  For proper profiling use
+Devel::NYTProf.  Previous versions of Devel::Cover collected coverage data by
+replacing perl's runops function.  It is still possible to switch to that mode
+of operation, but this now gets little testing and will probably be removed
+soon.  You probably don't care about any of this.
+
+The most appropriate mailing list on which to discuss this module would be
+perl-qa.  Discussion has migrated there from perl-qa-metrics which is now
+defunct.  See L<http://lists.perl.org/list/perl-qa.html>.
 
 The Devel::Cover repository can be found at
 L<http://github.com/pjcj/Devel--Cover>.
 
-=head1 REQUIREMENTS
+=head1 REQUIREMENTS AND RECOMMENDED MODULES
+
+=head2 REQUIREMENTS
 
 =over
 
 =item * Perl 5.6.1 or greater.  Perl 5.8.8 or greater is recommended.
 
-Perl 5.7.0 is unsupported.  Perl 5.8.8 or greater is recommended.  Perl
-5.8.7 has problems and may crash.  Whilst Perl 5.6 should mostly work
-you will probably miss out on coverage information which would be
-available using a more modern version and will likely run into bugs in
-perl.  Different versions of perl may give slightly different results
-due to changes in the op tree.
+Perl 5.7 is unsupported.  Perl 5.8.8 or greater is recommended.  Perl 5.8.7
+has problems and may crash.  Whilst Perl 5.6 should mostly work you will
+probably miss out on coverage information which would be available using a
+more modern version and will likely run into bugs in perl.  Different versions
+of perl may give slightly different results due to changes in the op tree.
 
 =item * The ability to compile XS extensions.
 
@@ -1388,27 +1395,38 @@ that the appropriate tools are installed.
 
 Both are in the core in Perl 5.8.0 and above.
 
-=item * L<Template> and L<PPI::HTML> or L<Perl::Tidy>
+=head2 OPTIONAL MODULES
 
-if you want syntax highlighted HTML reports.
+=item * L<Template>, and either L<PPI::HTML> or L<Perl::Tidy>
 
-=item * L<Pod::Coverage>
+Needed if you want syntax highlighted HTML reports.
 
-if you want Pod coverage.
+=item * L<Pod::Coverage> (0.06 or above) or L<Pod::Coverage::CountParents>
+
+One is needed if you want Pod coverage.  If L<Pod::Coverage::CountParents> is
+installed, it is preferred.
 
 =item * L<Test::More>
 
-in order to run the tests
+Required if you want to run Devel::Cover's own tests.
 
 =item * L<Test::Warn>
 
-in order to run some of the tests
+Some of Devel::Cover's own tests require it.
 
 =item * L<Test::Differences>
 
 if the tests fail and you would like nice output telling you why.
 
 =back
+
+=head2 Use with mod_perl
+
+By adding C<use Devel::Cover;> to your mod_perl startup script, you should be
+able to collect coverage information when running under mod_perl.  You can
+also add any options you need at this point.  I would suggest adding this as
+early as possible in your startup script in order to collect as much coverage
+information as possible.
 
 =head1 OPTIONS
 
@@ -1435,32 +1453,39 @@ if the tests fail and you would like nice output telling you why.
 =head2 More on Coverage Options
 
 You can specify options to some coverage criteria.  At the moment only pod
-coverage takes any options.  These are the parameters which are passed into the
-Pod::Coverage constructor.  The extra options are separated by dashes, and you
-may specify as many as you wish.  For example, to specify that all subroutines
-containing xx are private, call Devel::Cover with the option
+coverage takes any options.  These are the parameters which are passed into
+the Pod::Coverage constructor.  The extra options are separated by dashes, and
+you may specify as many as you wish.  For example, to specify that all
+subroutines containing xx are private, call Devel::Cover with the option
 -coverage,pod-also_private-xx.
 
 =head1 SELECTING FILES TO COVER
 
-You may select which files you want covered using the select, ignore and inc
-options.  The system works as follows:
+You may select the files for which you want to collect coverage data using the
+select, ignore and inc options.  The system uses the following procedure to
+decide whether a file will be included in coverage reports:
 
-Any file matching a RE given as a select option is selected.
+=over
 
-Otherwise, any file matching a RE given as an ignore option is ignored.
+=item * If the file matches a RE given as a select option, it will be
+included.
 
-Otherwise, any file in one of the inc directories is ignored.
+=item * Otherwise, if it matches a RE given as an ignore option, it won't be
+included.
 
-Otherwise the file is selected.
+=item * Otherwise, if it is in one of the inc directories, it won't be
+included.
+
+=item * Otherwise, it will be included.
+
+=back
 
 You may add to the REs to select by using +select, or you may reset the
-selections using -select.  The same principle applies to the REs to
-ignore.
+selections using -select.  The same principle applies to the REs to ignore.
 
-The inc directories are initially populated with the contents of the
-@INC array at the time Devel::Cover was built.  You may reset these
-directories using -inc, or add to them using +inc.
+The inc directories are initially populated with the contents of the @INC
+array at the time Devel::Cover was built.  You may reset these directories
+using -inc, or add to them using +inc.
 
 Although these options take regular expressions, you should not enclose the RE
 within // or any other quoting characters.
@@ -1468,14 +1493,16 @@ within // or any other quoting characters.
 =head1 ENVIRONMENT
 
 The -silent option is turned on when Devel::Cover is invoked via
-$HARNESS_PERL_SWITCHES or $PERL5OPT.  Devel::Cover tries to do the right
-thing when $MOD_PERL is set.  $DEVEL_COVER_OPTIONS is appended to any
-options passed into Devel::Cover.
+$HARNESS_PERL_SWITCHES or $PERL5OPT.  Devel::Cover tries to do the right thing
+when $MOD_PERL is set.  $DEVEL_COVER_OPTIONS is appended to any options passed
+into Devel::Cover.
 
 When running Devel::Cover's own test suite, $DEVEL_COVER_DEBUG turns on
-debugging information, $DEVEL_COVER_GOLDEN_VERSION overrides
-Devel::Cover's own idea of which golden results it should test against,
-and $DEVEL_COVER_NO_COVERAGE runs the tests without collecting coverage.
+debugging information, $DEVEL_COVER_GOLDEN_VERSION overrides Devel::Cover's
+own idea of which golden results it should test against, and
+$DEVEL_COVER_NO_COVERAGE runs the tests without collecting coverage.  The
+environment variables described in this paragraph are of interest to
+Devel::Cover maintainers only.
 
 =head1 ACKNOWLEDGEMENTS
 
@@ -1545,14 +1572,6 @@ Modules used by Devel::Cover while gathering coverage:
 
 =back
 
-=head2 mod_perl
-
-By adding C<use Devel::Cover;> to your mod_perl startup script, you
-should be able to collect coverage information when running under
-mod_perl.  You can also add any options you need at this point.  I would
-suggest adding this as early as possible in your startup script in order
-to collect as much coverage information as possible.
-
 =head2 Redefined subroutines
 
 If you redefine a subroutine you may find that the original subroutine is not
@@ -1563,15 +1582,17 @@ CV.  Hints, tips or patches to resolve this will be gladly accepted.
 
 Almost certainly.
 
-See the BUGS file.  And the TODO file.
+See the BUGS file, the TODO file and the bug trackers at
+https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover and
+https://github.com/pjcj/Devel--Cover/issues?sort=created&direction=desc&state=open
 
 =head1 LICENCE
 
-Copyright 2001-2011, Paul Johnson (pjcj@cpan.org)
+Copyright 2001-2012, Paul Johnson (pjcj@cpan.org)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 
-The latest version of this software should be available from my homepage:
-http://www.pjcj.net
+The latest version of this software should be available on CPAN and from my
+homepage: http://www.pjcj.net/.
 
 =cut
