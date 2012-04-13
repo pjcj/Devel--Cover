@@ -29,7 +29,7 @@ use Config;
 use Cwd "abs_path";
 use File::Spec;
 
-use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
+use Devel::Cover::Dumper;
 
 BEGIN
 {

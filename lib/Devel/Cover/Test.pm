@@ -294,7 +294,7 @@ sub run_cover
         }
     };
 
-    # use Data::Dumper; print STDERR "--->", Dumper $self->{changes};
+    # use Devel::Cover::Dumper; print STDERR "--->", Dumper $self->{changes};
     open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
     while (!eof T)
     {
@@ -355,7 +355,7 @@ sub create_gold
         unlink $new_gold;
     }
 
-    # use Data::Dumper; print STDERR Dumper $self;
+    # use Devel::Cover::Dumper; print STDERR Dumper $self;
     if ($self->{skip})
     {
         print STDERR "Skipping: $self->{skip}\n";

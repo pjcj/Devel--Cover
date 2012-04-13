@@ -325,7 +325,7 @@ sub print_conditions
         types => \@types,
     };
 
-    # use Data::Dumper; print Dumper \@types;
+    # use Devel::Cover::Dumper; print Dumper \@types;
 
     my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--condition.html";
     $Template->process("conditions", $vars, $html) or die $Template->error();

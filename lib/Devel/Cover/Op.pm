@@ -14,7 +14,7 @@ use warnings;
 
 # VERSION
 
-use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
+use Devel::Cover::Dumper;
 
 use Devel::Cover qw( -ignore blib -ignore \\wB\\w );
 use B::Concise   qw( set_style add_callback );

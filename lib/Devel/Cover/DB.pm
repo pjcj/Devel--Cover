@@ -20,7 +20,7 @@ use Devel::Cover::DB::IO;
 use Carp;
 use File::Path;
 
-use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
+use Devel::Cover::Dumper;  # For debugging
 
 my $DB = "cover.13";  # Version 13 of the database.
 

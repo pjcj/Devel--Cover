@@ -25,7 +25,7 @@ sub print_runs
         print "Start:        ", scalar gmtime $r->start  / 1e6, "\n";
         print "Finish:       ", scalar gmtime $r->finish / 1e6, "\n";
         print "\n";
-        # use Data::Dumper; print Dumper $r;
+        # use Devel::Cover::Dumper; print Dumper $r;
     }
 }
 

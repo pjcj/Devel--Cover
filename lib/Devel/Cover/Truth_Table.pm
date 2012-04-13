@@ -124,7 +124,7 @@ sub new {
 	my $proto = shift;
 	my $class = ref($proto) || $proto;
 	my @args = @_;
-        # use Data::Dumper; print Dumper \@args;
+        # use Devel::Cover::Dumper; print Dumper \@args;
 	return bless {
 		inputs    => $args[0],
 		result    => $args[1],
