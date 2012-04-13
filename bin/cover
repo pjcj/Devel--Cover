@@ -22,7 +22,7 @@ use File::Find ();
 use File::Path;
 use Getopt::Long;
 use Pod::Usage;
-use Data::Dumper ();   # no import of Dumper (use Devel::Devel::Cover if needed)
+use Data::Dumper ();  # no import of Dumper (use Devel::Cover::Dumper if needed)
 
 my $Options =
 {
