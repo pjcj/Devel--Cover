@@ -19,7 +19,7 @@ sub print_sort
     my ($db, $options) = @_;
     my %runs;
     my @collected = grep $_ ne "time", @{$options->{coverage}};
-    # use Data::Dumper; print Dumper [$db->runs];
+    # use Devel::Cover::Dumper; print Dumper [$db->runs];
     for my $r (sort {$a->{start} <=> $b->{start}} $db->runs)
     {
         print "Run:          ", $r->run,  "\n";
@@ -27,11 +27,11 @@ sub print_sort
         print "OS:           ", $r->OS,   "\n";
         print "Start:        ", scalar gmtime $r->start  / 1e6, "\n";
         print "Finish:       ", scalar gmtime $r->finish / 1e6, "\n";
-        # use Data::Dumper; print Dumper $r;
+        # use Devel::Cover::Dumper; print Dumper $r;
 
         @{$runs{$r->run}}{"vec", "size"} = ("", 0);
         my $run = $runs{$r->run};
-        # use Data::Dumper; print Dumper $run;
+        # use Devel::Cover::Dumper; print Dumper $run;
         my $vec = $r->vec;
         for my $file (@{$options->{file}})
         {

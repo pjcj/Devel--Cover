@@ -15,14 +15,13 @@ use warnings;
 # VERSION
 
 use Devel::Cover::DB;
+use Devel::Cover::Dumper;
 
 use Cwd ();
 use Getopt::Long;
 use Pod::Usage;
 use Template 2.00;
 use Parallel::Iterator "iterate_as_array";
-
-use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
 
 # use Carp; $SIG{__DIE__} = \&Carp::confess;
 

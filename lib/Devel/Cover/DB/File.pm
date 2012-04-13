@@ -14,7 +14,7 @@ use warnings;
 
 use Devel::Cover::Criterion;
 
-use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
+use Devel::Cover::Dumper;
 
 sub calculate_summary
 {
