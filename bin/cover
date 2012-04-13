@@ -22,8 +22,7 @@ use File::Find ();
 use File::Path;
 use Getopt::Long;
 use Pod::Usage;
-
-use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
+use Data::Dumper ();   # no import of Dumper (use Devel::Devel::Cover if needed)
 
 my $Options =
 {
