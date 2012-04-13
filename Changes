@@ -5,7 +5,7 @@ Devel::Cover history
 Release 0.86 - 9th April 2012
  - Add all coverage criteria to the Vim report.
 
-Release 0.85 - 1th April 2012
+Release 0.85 - 1st April 2012
  - Add customisable thresholds to HTML reports (Xavier Caron).
  - Improve Vim report.
 
