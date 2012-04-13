@@ -10,7 +10,7 @@ if ($] < 5.008000)
 }
 if ($] == 5.015006)
 {
-    plan skip_all => "5.16.6 throws too many erroneous warnings";
+    plan skip_all => "5.15.6 throws too many erroneous warnings";
 }
 else
 {
