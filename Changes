@@ -1,7 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
- - Cleanup Data::Dumper usage (localize settings)
+ - Cleanup Data::Dumper usage (localize settings) (Olivier Mengué) (rt 76531)
 
 Release 0.86 - 9th April 2012
  - Add all coverage criteria to the Vim report.
