@@ -214,7 +214,7 @@ sub _branch_report {
 #-------------------------------------------------------------------------------
 sub _condition_report {
     my $coverage = shift;
-    # use Data::Dumper; print STDERR Dumper $coverage;
+    # use Devel::Cover::Dumper; print STDERR Dumper $coverage;
 
     my @tables = truth_table(@{$coverage->{condition}});
     return unless @tables;
