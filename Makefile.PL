@@ -138,6 +138,8 @@ push @tests, grep !/e2e/, glob "t/*/*.t";
 
 print "done\n\n";
 
+my %checked;
+
 sub check
 {
     my ($module, $text, $version) = @_;
@@ -145,7 +147,10 @@ sub check
     printf "checking for %-18s %-16s .... ",
            $module, $version ? "version $version" : "";
 
-    eval "use $module";
+    {
+        local $SIG{__WARN__} = sub {};
+        eval "use $module";
+    }
     (my $mod = $module) =~ s/::/\//g;
     if (my $m = $INC{"$mod.pm"})
     {
@@ -153,27 +158,32 @@ sub check
         printf "%-8s $m\n", $v;
         if ($version && $v < $version)
         {
-            print "\n\n\n$text\n\n";
+            print "\n\n\n$text\n" unless $checked{$text}++;
+            print "\n";
         }
     }
     else
     {
-        print "not found\n\n\n$text\n\n";
+        print "not found";
+        print "\n\n\n$text\n" unless $checked{$text}++;
+        print "\n";
     }
 };
 
-check "Storable", <<EOM;
-Storable is required to store the coverage database.  You can download
-Storable from CPAN.
+my $d = <<EOM;
+The coverage database can be stored in either Storable format or in JSON.  To
+use the Storable format, the Storable module is required.  This has been a
+core module since perl-5.8.0.  To store the database in JSON format JSON::PP
+can be used.  This has been a core module since perl-5.14.0.  If you wish, you
+may install the JSON module which will be used in preference.  This may be
+configured to make database operations faster.  If both formats are available,
+JSON will be preferred by default.  The JSON format should be portable between
+all systems, whereas Storable format may not be.
 EOM
 
-check "JSON", <<EOM;
-JSON is required to store the coverage database in a portable format.
-This is necessary in order to merge coverage data from incompatible systems.
-Storing the database in a portable format will not be available until you
-install JSON.  In the meantime you may continue to use the rest of
-Devel::Cover.
-EOM
+check "Storable", $d;
+check "JSON",     $d;
+check "JSON::PP", $d;
 
 check "Digest::MD5", <<EOM;
 Digest::MD5 is required to check whether covered files have changed.  You can
@@ -207,8 +217,7 @@ PPI::HTML or Perl::Tidy, available from the CPAN.  In the meantime you
 may continue to use the rest of Devel::Cover.
 EOM
 
-check "PPI::HTML", $m, "1.07";
-
+check "PPI::HTML",  $m, "1.07";
 check "Perl::Tidy", $m, "20060719";
 
 print "checking for Pod::Coverage      version 0.06     .... ";
