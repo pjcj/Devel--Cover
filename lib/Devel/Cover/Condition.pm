@@ -21,7 +21,6 @@ sub count       { require Carp; Carp::confess("count() must be overridden") }
 sub headers     { require Carp; Carp::confess("headers() must be overridden") }
 sub criterion   { 'condition' }
 
-
 1
 
 __END__
