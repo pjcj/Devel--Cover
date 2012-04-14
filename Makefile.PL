@@ -362,7 +362,6 @@ README : lib/Devel/Cover.pm
     -e 'print if (/NAME/         ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
     -e 'print if (/SYNOPSIS/     ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
     -e 'print if (/DESCRIPTION/  ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
-    -e 'print if (/REQUIREMENTS/ ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
     > README
 
 show_version :
