@@ -13,6 +13,8 @@ package  # Private module
 use strict qw<vars subs>; # no refs
 use warnings;
 
+# VERSION
+
 sub import
 {
     my $caller = caller;
@@ -31,6 +33,41 @@ sub Dumper
     Data::Dumper::Dumper(@_);
 }
 
-1;
+1
+
 __END__
-# vim:set et:
+
+=head1 NAME
+
+Devel::Cover::Dumper - Internal module for debugging purposes
+
+=head1 SYNOPSIS
+
+ use Devel::Cover::Dumper;
+
+ print Dumper $x;
+
+=head1 DESCRIPTION
+
+Wrapper around Data::Dumper::Dumper.
+
+=head1 SEE ALSO
+
+ Devel::Cover
+
+=head1 METHODS
+
+=head1 BUGS
+
+Huh?
+
+=head1 LICENCE
+
+Copyright 2012, Olivier Mengué
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+http://www.pjcj.net
+
+=cut
