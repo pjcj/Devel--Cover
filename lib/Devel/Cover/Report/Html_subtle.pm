@@ -7,12 +7,24 @@ use warnings;
 use Devel::Cover::DB;
 use Devel::Cover::Truth_Table;
 
+use Getopt::Long;
 use Template 2.00;
 use CGI;
 
 my $Template;
 my %Filenames;
 my %File_exists;
+
+sub get_options
+{
+    my ($self, $opt) = @_;
+    $opt->{option}{outputfile} = "coverage.html";
+    die "Invalid command line options" unless
+        GetOptions($opt->{option},
+                   qw(
+                       outputfile=s
+                     ));
+}
 
 #-------------------------------------------------------------------------------
 # Subroutine : cvg_class()
@@ -101,7 +113,7 @@ sub print_summary {
         vals        => \%vals,
     };
 
-    my $html = "$options->{outputdir}/coverage.html";
+    my $html = "$options->{outputdir}/$options->{option}{outputfile}";
     $Template->process("summary", $vars, $html) or die $Template->error();
 
     print "HTML output sent to $html\n";
