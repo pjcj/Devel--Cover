@@ -5,6 +5,7 @@ use warnings;
 # VERSION
 
 use Devel::Cover::DB;
+use Devel::Cover::Html_Common "launch";
 use Devel::Cover::Truth_Table;
 
 use Getopt::Long;
