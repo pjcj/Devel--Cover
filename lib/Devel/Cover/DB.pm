@@ -881,7 +881,7 @@ sub cover
             {
                 print STDERR "Devel::Cover: Can't find digest for $file\n"
                     unless $Devel::Cover::Silent ||
-                           $file =~ $Devel::Cover::Moose_filenames ||
+                           $file =~ $Devel::Cover::Ignore_filenames ||
                            ($Devel::Cover::Self_cover &&
                             $file =~ q|/Devel/Cover[./]|);
                 next;

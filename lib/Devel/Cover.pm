@@ -97,7 +97,7 @@ use vars '$File',                        # Last filename we saw.  (localised)
          '$Replace_ops',                 # Whether we are replacing ops.
          '$Silent',                      # Output nothing. Can be used anywhere.
          '$Self_cover',                  # Coverage of Devel::Cover.
-         '$Moose_filenames';             # Moose generated filenames to ignore.
+         '$Ignore_filenames';            # Filenames to ignore.
 
 BEGIN
 {
@@ -111,16 +111,22 @@ BEGIN
     # $^P = 0x004 | 0x010 | 0x100 | 0x200;
     # $^P = 0x004 | 0x100 | 0x200;
     $^P |= 0x004 | 0x100;
-    $Moose_filenames =
-        qr/
+    $Ignore_filenames =
+        qr/   # Moose
             (?:
-                (?: reader | writer | constructor | destructor | accessor |
-                    predicate | clearer | native \s delegation \s method)
+                (?:
+                    reader | writer | constructor | destructor | accessor |
+                    predicate | clearer | native \s delegation \s method |
+                    # Template Toolkit
+                    Parser\.yp
+                )
                 \s .* \s
                 \( defined \s at \s .* \s line \s \d+ \)
             )
-            |
+            | # Moose
             (?: generated \s method \s \( unknown \s origin \) )
+            | # Template Toolkit
+            (?: Parser\.yp )
           /x;
 }
 
@@ -562,7 +568,7 @@ sub use_file
     # system "pwd; ls -l '$file'";
     $Files{$file} = -e $file ? 1 : 0;
     print STDERR __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
-        unless $Files{$file} || $Silent || $file =~ $Moose_filenames;
+        unless $Files{$file} || $Silent || $file =~ $Ignore_filenames;
 
     $Files{$file}
 }
