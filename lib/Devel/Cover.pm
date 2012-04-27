@@ -114,12 +114,13 @@ BEGIN
     $Moose_filenames =
         qr/
             (?:
-                (?:reader|writer|constructor|destructor|accessor|predicate)
+                (?: reader | writer | constructor | destructor | accessor |
+                    predicate | clearer | native \s delegation \s method)
                 \s .* \s
-                \(defined \s at \s .* \s line \s \d+ \)
+                \( defined \s at \s .* \s line \s \d+ \)
             )
             |
-            (?:generated \s method \s \( unknown \s origin \))
+            (?: generated \s method \s \( unknown \s origin \) )
           /x;
 }
 
