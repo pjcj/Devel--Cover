@@ -265,6 +265,11 @@ consider installing Test::Differences.  You can download
 Test::Differences from CPAN.
 EOM
 
+check "Browser::Open", <<EOM;
+Browser::Open is used to launch a web browser when the -launch flag is
+specified with HTML report formats. You can download Browser::Open from CPAN.
+EOM
+
 my $latest_tested = "5.014002";
 print <<EOM if $] > $latest_tested;
 
