@@ -360,6 +360,7 @@ sub print_summary_report {
     push @$show, 'total';
 
     print_html_header($fh, $options->{option}{summarytitle});
+    # TODO - >= 100% doesn't look nice.  See also Html_basic.
     print $fh <<"END_HTML";
 <body>
 <h1>$options->{option}{summarytitle}</h1>

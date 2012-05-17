@@ -21,7 +21,7 @@
   - Only collect boolean data for coverage information (no counts).
 - Reports:
   - Improve textual output.
-  - Allow thresholds to be customisable in HTML output.
+  - Remove >= 100% in customisable thresholds.
   - Move HTML version and platform info to main page and allow for multiples.
   - Add -db option to cover.
   - Diff functionality.
