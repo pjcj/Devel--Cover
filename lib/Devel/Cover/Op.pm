@@ -26,7 +26,7 @@ my %style =
     "(*(    )*)goto #class (#addr)\n",
     "#class pp_#name"],
    "concise" =>
-   ["#hyphseq2 #cover12 (*(   (x( ;)x))*)<#classsym> "
+   ["#hyphseq2 #addr10 #cover12 (*(   (x( ;)x))*)<#classsym> "
     . "#exname#arg(?([#targarglife])?)~#flags(?(/#private)?)(x(;~->#next)x)\n",
     "  (*(    )*)     goto #seq\n",
     "(?(<#seq>)?)#exname#arg(?([#targarglife])?)"],

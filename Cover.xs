@@ -573,7 +573,7 @@ static void add_condition(pTHX_ SV *cond_ref, int value)
         sv_setiv(*count, 0);
 
         /* Check if we have come from an xor with a true first op */
-        if (final)     value =  1;
+        if (final)     value  = 1;
         if (type == 1) value += 2;
 
         NDEB(D(L, "Found %p: %d, %d\n", op, type, value));
@@ -643,6 +643,10 @@ static OP *get_condition(pTHX)
     if (pc && SvROK(*pc))
     {
         dSP;
+        NDEB(D(L, "get_condition from %p, %p: %p (%s)\n",
+                  PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
+        /* dump_conditions(aTHX); */
+        NDEB(svdump(Pending_conditionals));
         add_condition(aTHX_ *pc, SvTRUE(TOPs) ? 2 : 1);
     }
     else
@@ -672,12 +676,15 @@ static void finalise_conditions(pTHX)
 
     HE *e;
 
+    NDEB(D(L, "finalise_conditions\n"));
+    /* dump_conditions(aTHX); */
+    NDEB(svdump(Pending_conditionals));
+
     MUTEX_LOCK(&DC_mutex);
     hv_iterinit(Pending_conditionals);
 
     while ((e = hv_iternext(Pending_conditionals)))
     {
-        NDEB(D(L, "finalise_conditions\n"));
         add_condition(aTHX_ hv_iterval(Pending_conditionals, e), 0);
     }
     MUTEX_UNLOCK(&DC_mutex);
@@ -744,6 +751,9 @@ static void cover_logop(pTHX)
         int left_val_def = SvOK(TOPs);
 #endif
         int void_context = GIMME_V == G_VOID;
+        NDEB(D(L, "left_val: %d, void_context: %d at %p\n",
+                  left_val, void_context, PL_op));
+        NDEB(op_dump(PL_op));
 
         set_conditional(aTHX_ PL_op, 5, void_context);
 
@@ -804,9 +814,16 @@ static void cover_logop(pTHX)
                     set_conditional(aTHX_ PL_op, 0, 1);
                 }
 
-                NDEB(op_dump(PL_op));
-
+#if PERL_VERSION > 14
+                next = (PL_op->op_type == OP_XOR)
+                    ? PL_op->op_next
+                    : right->op_next;
+#else
                 next = PL_op->op_next;
+#endif
+                NDEB(op_dump(PL_op));
+                NDEB(op_dump(next));
+
                 ch   = get_key(next);
                 MUTEX_LOCK(&DC_mutex);
                 cref = hv_fetch(Pending_conditionals, ch, KEY_SZ, 1);
@@ -829,10 +846,10 @@ static void cover_logop(pTHX)
                 cond = newSViv(PTR2IV(PL_op));
                 av_push(conds, cond);
 
-                NDEB(D(L, "Adding conditional %p (%p) "
+                NDEB(D(L, "Adding conditional %p (%s) "
                           "making %d at %p (%s), ppaddr: %p\n",
-                       next, next->op_targ, av_len(conds) - 1, PL_op,
-                       hex_key(ch), next->op_ppaddr));
+                       next, PL_op_name[next->op_targ], av_len(conds) - 1,
+                       PL_op, hex_key(ch), next->op_ppaddr));
                 /* dump_conditions(aTHX); */
                 NDEB(svdump(Pending_conditionals));
                 NDEB(op_dump(PL_op));
@@ -845,6 +862,20 @@ static void cover_logop(pTHX)
         else
         {
             /* short circuit */
+#if PERL_VERSION > 14
+            OP *up = cLOGOP->op_first->op_sibling->op_next;
+            while (up->op_type == PL_op->op_type)
+            {
+                NDEB(D(L, "Considering adding %p (%s) -> (%p) "
+                                        "from %p (%s) -> (%p)\n",
+                       up, PL_op_name[up->op_type], up->op_next,
+                       PL_op, PL_op_name[PL_op->op_type], PL_op->op_next));
+                add_conditional(aTHX_ up, 3);
+                if (up->op_next == PL_op->op_next)
+                    break;
+                up = cLOGOPx(up)->op_first->op_sibling->op_next;
+            }
+#endif
             add_conditional(aTHX_ PL_op, 3);
         }
     }
@@ -1182,12 +1213,35 @@ static int runops_cover(pTHX)
 
 static int runops_orig(pTHX)
 {
-    NDEB(D(L, "runops_orig\n"));
+    NDEB(D(L, "entering runops_orig\n"));
 
     while ((PL_op = PL_op->op_ppaddr(aTHX)))
     {
         PERL_ASYNC_CHECK();
     }
+
+    NDEB(D(L, "exiting runops_orig\n"));
+
+    TAINT_NOT;
+    return 0;
+}
+
+static int runops_trace(pTHX)
+{
+    PDEB(D(L, "entering runops_trace\n"));
+
+    for (;;)
+    {
+        PDEB(D(L, "running func %p from %p (%s)\n",
+               PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
+
+        if (!(PL_op = PL_op->op_ppaddr(aTHX)))
+            break;
+
+        PERL_ASYNC_CHECK();
+    }
+
+    PDEB(D(L, "exiting runops_trace\n"));
 
     TAINT_NOT;
     return 0;
@@ -1440,6 +1494,7 @@ BOOT:
 #elif defined HAS_TIMES
             cpu();
 #endif
+            /* PL_runops = runops_trace; */
         }
         else {
             PL_runops = runops_cover;

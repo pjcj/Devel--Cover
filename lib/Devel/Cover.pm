@@ -918,6 +918,7 @@ sub add_condition_cover
     # print STDERR "type:  [$type]\n";
 
     my $c = $Coverage->{condition}{$key};
+    # print STDERR "Condition: ", Dumper $c;
 
     no warnings "uninitialized";
 
