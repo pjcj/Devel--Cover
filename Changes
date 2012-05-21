@@ -1,8 +1,13 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.87 - 21th May 2012
  - Major documentation overhaul (Pau Amma).
  - Cleanup Data::Dumper usage (localise settings) (Olivier Mengué) (rt 76531).
+ - Ignore more generated filenames - Moose and Template Toolkit.
+ - Improve results for chained logical operators.
+ - Officially support 5.16.0.
 
 Release 0.86 - 9th April 2012
  - Add all coverage criteria to the Vim report.
