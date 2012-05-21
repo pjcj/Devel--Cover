@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2001-2011, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2012, Paul Johnson (pjcj@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -18,7 +18,7 @@ use File::Copy;
 
 $| = 1;
 
-my $Version = "0.86";
+my $Version = "0.87";
 my $Author  = 'pjcj@cpan.org';
 my @perlbug = ("perlbug", "-a", $Author,
                           "-s", "Installation of Devel::Cover $Version");
@@ -31,7 +31,7 @@ my @inc     = sort keys %inc;
 open I, ">lib/Devel/Cover/Inc.pm"
     or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
 print I <<"EOI";
-# Copyright 2001-2011, Paul Johnson (pjcj\@cpan.org)
+# Copyright 2001-2012, Paul Johnson (pjcj\@cpan.org)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
