@@ -27,7 +27,7 @@ tests/md5
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2004-2011, Paul Johnson (pjcj@cpan.org)
+3                                       # Copyright 2004-2012, Paul Johnson (pjcj@cpan.org)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
