@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+sub t1 {
+    for my $x (0, 1, 2) {
+        my $y = 3 if $x && $x == 2;
+    }
+}
+
+sub t2 {
+    for my $x (0, 1, 2) {
+        return if $x && $x == 2;
+    }
+}
+
+sub t3 {
+    for my $x (0, 1, 2) {
+        last if $x && $x == 2 && $x == 2 && $x == 2;
+    }
+}
+
+t1;
+t2;
+t3;
