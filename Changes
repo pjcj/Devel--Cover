@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Add -launch option to open report in appropriate viewer (Stephen Thirlwall).
 
 Release 0.87 - 21st May 2012
  - Major documentation overhaul (Pau Amma).
