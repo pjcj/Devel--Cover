@@ -2,6 +2,7 @@ Devel::Cover history
 
 {{$NEXT}}
  - Add -launch option to open report in appropriate viewer (Stephen Thirlwall).
+ - Move ignored filename list into DB module (rt 77163 and github 12).
 
 Release 0.87 - 21st May 2012
  - Major documentation overhaul (Pau Amma).

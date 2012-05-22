@@ -96,8 +96,7 @@ use vars '$File',                        # Last filename we saw.  (localised)
                                          # Used in runops function.
          '$Replace_ops',                 # Whether we are replacing ops.
          '$Silent',                      # Output nothing. Can be used anywhere.
-         '$Self_cover',                  # Coverage of Devel::Cover.
-         '$Ignore_filenames';            # Filenames to ignore.
+         '$Self_cover';                  # Coverage of Devel::Cover.
 
 BEGIN
 {
@@ -111,23 +110,6 @@ BEGIN
     # $^P = 0x004 | 0x010 | 0x100 | 0x200;
     # $^P = 0x004 | 0x100 | 0x200;
     $^P |= 0x004 | 0x100;
-    $Ignore_filenames =
-        qr/   # Moose
-            (?:
-                (?:
-                    reader | writer | constructor | destructor | accessor |
-                    predicate | clearer | native \s delegation \s method |
-                    # Template Toolkit
-                    Parser\.yp
-                )
-                \s .* \s
-                \( defined \s at \s .* \s line \s \d+ \)
-            )
-            | # Moose
-            (?: generated \s method \s \( unknown \s origin \) )
-            | # Template Toolkit
-            (?: Parser\.yp )
-          /x;
 }
 
 sub version { $LVERSION }
@@ -568,7 +550,8 @@ sub use_file
     # system "pwd; ls -l '$file'";
     $Files{$file} = -e $file ? 1 : 0;
     print STDERR __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
-        unless $Files{$file} || $Silent || $file =~ $Ignore_filenames;
+        unless $Files{$file} || $Silent
+                             || $file =~ $Devel::Cover::DB::Ignore_filenames;
 
     $Files{$file}
 }
