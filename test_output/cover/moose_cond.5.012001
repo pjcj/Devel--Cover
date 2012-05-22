@@ -1,0 +1,85 @@
+Devel::Cover: Can't find digest for accessor meep defined at /home/pjcj/g/perl/Devel--Cover/tests/moose_cond
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/moose_cond                            100.0    n/a   75.0  100.0   96.2
+Total                                       100.0    n/a   75.0  100.0   96.2
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/moose_cond
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2011-2012, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      # __COVER__ skip_test $] < 5.010 || !(eval "use Moose; 23")
+11                                      # __COVER__ skip_reason Moose not available or unreliable with Devel::Cover
+12                                      
+13             1                    1   use strict;
+               1                        
+               1                        
+14             1                    1   use warnings;
+               1                        
+               1                        
+15                                      
+16                                      package Cover_branch_bug;
+17                                      
+18             1                    1   use Moose;
+               1                        
+               1                        
+19             1                        has meep => ( isa => 'HashRef', is => 'rw' );
+20                                      
+21             1                        my $self = __PACKAGE__->new;
+22                                      
+23             1                        $self->meep( { marp => 0 } );
+24             1                        print "meep contains " . $self->wagh . "\n";
+25                                      
+26             1                        $self->meep( { marp => 1 } );
+27             1                        print "meep contains " . $self->wagh . "\n";
+28                                      
+29                                      sub wagh {
+30             2                    2       my ( $self ) = @_;
+31    ***      2            50              my $x = $self || 0;
+32             2           100              return $self->meep->{marp} || 0;
+33                                          # return $self || 0;
+34                                      }
+
+
+Conditions
+----------
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+31    ***     50      2      0   $self || 0
+32           100      1      1   $self->meep->{'marp'} || 0
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location           
+---------- ----- -------------------
+BEGIN          1 tests/moose_cond:13
+BEGIN          1 tests/moose_cond:14
+BEGIN          1 tests/moose_cond:18
+wagh           2 tests/moose_cond:30
+
+

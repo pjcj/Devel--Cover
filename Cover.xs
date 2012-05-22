@@ -735,6 +735,9 @@ static void cover_logop(pTHX)
 
     dMY_CXT;
 
+    NDEB(D(L, "logop() at %p\n", PL_op));
+    NDEB(op_dump(PL_op));
+
     if (!collecting(Condition))
         return;
 
@@ -939,6 +942,7 @@ static OP *dc_andassign(pTHX)
 static OP *dc_or(pTHX)
 {
     dMY_CXT;
+    NDEB(D(L, "dc_or() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
     return MY_CXT.ppaddr[OP_OR](aTHX);
 }

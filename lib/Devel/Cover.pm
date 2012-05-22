@@ -521,7 +521,7 @@ sub use_file
 {
     my ($file) = @_;
 
-    # warn "use_file($file)\n";
+    # print STDERR "use_file($file)\n";
 
     # die "bad file" unless length $file;
 
@@ -531,7 +531,12 @@ sub use_file
     while ($file =~ /^\(eval in \w+\) (.+)/) {
         $file = $1;
     }
+    while ($file =~ /\(defined at (.+) line \d+\)/) {
+        $file = $1;
+    }
     $file =~ s/ \(autosplit into .*\)$//;
+
+    # print STDERR "==> use_file($file)\n";
 
     return $Files{$file} if exists $Files{$file};
     return 0 if $file =~ /\(eval \d+\)/          ||
