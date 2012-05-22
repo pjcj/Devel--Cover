@@ -42,6 +42,8 @@ $Devel::Cover::DB::Ignore_filenames =
         )
         | # Moose
         (?: generated \s method \s \( unknown \s origin \) )
+        | # Mouse
+        (?: (?: rw-accessor | ro-accessor ) \s for )
         | # Template Toolkit
         (?: Parser\.yp )
       /x;
