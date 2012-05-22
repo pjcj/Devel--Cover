@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2001-2012, Paul Johnson (pjcj@cpan.org)
+# Copyright 2001-2012, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -19,7 +19,7 @@ use File::Copy;
 $| = 1;
 
 my $Version = "0.87";
-my $Author  = 'pjcj@cpan.org';
+my $Author  = 'paul@pjcj.net';
 my @perlbug = ("perlbug", "-a", $Author,
                           "-s", "Installation of Devel::Cover $Version");
 my $Perlbug = join " ", map { / / ? "'$_'" : $_ } @perlbug;
@@ -31,7 +31,7 @@ my @inc     = sort keys %inc;
 open I, ">lib/Devel/Cover/Inc.pm"
     or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
 print I <<"EOI";
-# Copyright 2001-2012, Paul Johnson (pjcj\@cpan.org)
+# Copyright 2001-2012, Paul Johnson (paul\@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -107,7 +107,7 @@ for my $t (readdir D)
     print T <<EOT;
 #!$^X
 
-# Copyright 2002-2012, Paul Johnson (pjcj\@cpan.org)
+# Copyright 2002-2012, Paul Johnson (paul\@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -312,7 +312,7 @@ WriteMakefile
 (
     NAME             => "Devel::Cover",
     VERSION          => $Version,
-    AUTHOR           => 'Paul Johnson <pjcj@cpan.org>',
+    AUTHOR           => 'Paul Johnson <paul@pjcj.net>',
     ABSTRACT_FROM    => "lib/Devel/Cover.pm",
     DIR              => [],
     EXE_FILES        => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],

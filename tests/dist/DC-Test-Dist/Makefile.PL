@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2012, Paul Johnson (pjcj@cpan.org)
+# Copyright 2012, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -23,7 +23,7 @@ WriteMakefile
 (
     NAME             => "DC::Test::Dist",
     VERSION          => $LVERSION,
-    AUTHOR           => 'Paul Johnson <pjcj@cpan.org>',
+    AUTHOR           => 'Paul Johnson <paul@pjcj.net>',
     ABSTRACT_FROM    => "lib/DC/Test/Dist.pm",
     clean            => { FILES => "cover_db" },
 );
