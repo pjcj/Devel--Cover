@@ -1,0 +1,87 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/Accessor_maker.pm                     100.0    n/a    n/a  100.0  100.0
+tests/accessor                              100.0  100.0    n/a  100.0  100.0
+Total                                       100.0  100.0    n/a  100.0  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/Accessor_maker.pm
+
+line  err   stmt   bran   cond    sub   code
+1                                       package Accessor_maker;
+2                                       sub import {
+3                                         no strict 'refs';
+4              4                    4     *{ caller() . '::' . 'foo' } = sub { $_[0]->{ 'foo' } };
+               1                    1   
+               1                        
+5                                       }
+6                                       1;
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location                 
+---------- ----- -------------------------
+__ANON__       4 tests/Accessor_maker.pm:4
+import         1 tests/Accessor_maker.pm:4
+
+
+tests/accessor
+
+line  err   stmt   bran   cond    sub   code
+1                                       package cm3;
+2              2                    2   sub new { bless $_[1], $_[0] }
+3                                       
+4                                       use lib "tests";
+5                                       
+6                                       # comment/uncomment one or the other:
+7                                       use Accessor_maker;
+8                                       # sub foo { $_[0]->{ 'foo' } }
+9                                       
+10                                      package main;
+11                                      
+12                                      sub test {
+13             2                    2     my $self = shift;
+14                                      
+15             2    100                   print 'un' unless defined $self->foo;
+16             2                          print "defined\n";
+17                                      
+18             2                          my $foo = $self->foo;
+19             2    100                   print 'un' unless defined $foo;
+20             2                          print "defined\n";
+21                                      }
+22                                      
+23             1                        test( cm3->new({}) );
+24             1                        test( cm3->new({foo => 1}) );
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+15           100      1      1   unless defined $self->foo
+19           100      1      1   unless defined $foo
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location         
+---------- ----- -----------------
+new            2 tests/accessor:2 
+test           2 tests/accessor:13
+
+

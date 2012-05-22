@@ -1,0 +1,24 @@
+package cm3;
+sub new { bless $_[1], $_[0] }
+
+use lib "tests";
+
+# comment/uncomment one or the other:
+use Accessor_maker;
+# sub foo { $_[0]->{ 'foo' } }
+
+package main;
+
+sub test {
+  my $self = shift;
+
+  print 'un' unless defined $self->foo;
+  print "defined\n";
+
+  my $foo = $self->foo;
+  print 'un' unless defined $foo;
+  print "defined\n";
+}
+
+test( cm3->new({}) );
+test( cm3->new({foo => 1}) );
