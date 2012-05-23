@@ -69,7 +69,7 @@ sub get_params
 
     $self->{criteria} = $self->{criteria}[-1];
 
-    $self->{select}         ||= "-select $self->{test}";
+    $self->{select}         ||= "-select /tests/$self->{test}\\b";
     $self->{test_parameters}  = "$self->{select}"
                               . " -ignore blib Devel/Cover @{$self->{ignore}}"
                               . " -merge 0 -coverage $self->{criteria} "
