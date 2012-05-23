@@ -185,7 +185,8 @@ sub main
         push @{$Options->{annotations}}, $ann;
     }
 
-    print "$0 version ".__PACKAGE__->VERSION."\n" and exit 0 if $Options->{version};
+    print "$0 version " . __PACKAGE__->VERSION . "\n" and exit 0
+        if $Options->{version};
     pod2usage(-exitval => 0, -verbose => 1)  if $Options->{help};
     pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
 
