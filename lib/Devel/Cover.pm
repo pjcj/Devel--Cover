@@ -517,6 +517,13 @@ sub get_location
     }
 }
 
+my $find_filename = qr/
+  (?:^\(eval\s \d+\)\[(.+):\d+\])      |
+  (?:^\(eval\sin\s\w+\)\s(.+))         |
+  (?:\(defined\sat\s(.+)\sline\s\d+\)) |
+  (?:\[from\s(.+)\sline\s\d+\])
+/x;
+
 sub use_file
 {
     my ($file) = @_;
@@ -525,15 +532,8 @@ sub use_file
 
     # die "bad file" unless length $file;
 
-    while ($file =~ /^\(eval \d+\)\[(.+):\d+\]/) {
-        $file = $1;
-    }
-    while ($file =~ /^\(eval in \w+\) (.+)/) {
-        $file = $1;
-    }
-    while ($file =~ /\(defined at (.+) line \d+\)/) {
-        $file = $1;
-    }
+    # just don't call your filenames 0
+    while ($file =~ $find_filename) { $file = $1 || $2 || $3 || $4 }
     $file =~ s/ \(autosplit into .*\)$//;
 
     # print STDERR "==> use_file($file)\n";
