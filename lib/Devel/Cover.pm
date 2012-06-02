@@ -999,7 +999,7 @@ sub deparse
         {
             # Collect everything under here.
             local ($File, $Line) = ($File, $Line);
-            $deparse = eval { $Original{deparse}->($self, @_) };
+            $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
             $deparse =~ s/^\010+//mg if defined $deparse;
             $deparse = "Deparse error: $@" if $@;
             # print STDERR "Collect Deparse $op $$op => <$deparse>\n";
@@ -1066,7 +1066,7 @@ sub deparse
     else
     {
         local ($File, $Line) = ($File, $Line);
-        $deparse = eval { $Original{deparse}->($self, @_) };
+        $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
         $deparse =~ s/^\010+//mg if defined $deparse;
         $deparse = "Deparse error: $@" if $@;
         # print STDERR "Deparse => <$deparse>\n";
