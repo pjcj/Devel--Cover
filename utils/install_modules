@@ -249,6 +249,10 @@ my $modules = <<EOM;
     Test::More
     YAML
 
+    # Math stuff
+    Math::ODE
+    Math::MatrixReal
+
 EOM
 
 my @modules = grep /\S/, grep !/^ +#/, split /\n/, $modules;
