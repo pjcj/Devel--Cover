@@ -480,7 +480,7 @@ sub normalised_file
         # print STDERR "finally <$file> <$Dir>\n";
     }
     $file =~ s|\\|/|g if $^O eq "MSWin32";
-    $file =~ s|^$Dir/|| if defined $Dir;
+    $file =~ s|^\Q$Dir\E/|| if defined $Dir;
 
     $Digests ||= Devel::Cover::DB::Digests->new(db => $DB);
     $file = $Digests->canonical_file($file);
