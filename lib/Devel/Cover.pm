@@ -1391,7 +1391,11 @@ that the appropriate tools are installed.
 
 Both are in the core in Perl 5.8.0 and above.
 
+=back
+
 =head2 OPTIONAL MODULES
+
+=over
 
 =item * L<Template>, and either L<PPI::HTML> or L<Perl::Tidy>
 

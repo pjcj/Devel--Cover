@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fix POD syntax error (rt 77599) (gregor herrmann <gregoa@debian.org>).
 
 Release 0.88 - 8th June 2012
  - Add -launch option to open report in appropriate viewer (Stephen Thirlwall).
