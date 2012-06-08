@@ -1,9 +1,13 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.88 - 8th June 2012
  - Add -launch option to open report in appropriate viewer (Stephen Thirlwall).
  - Move ignored filename list into DB module (rt 77163 and github 12).
  - Don't complain about Mouse accessors (rt 71680).
+ - Turn off $^W when calling B::Deparse (fixes perl #113464).
+ - Update cpancover.
 
 Release 0.87 - 21st May 2012
  - Major documentation overhaul (Pau Amma).
