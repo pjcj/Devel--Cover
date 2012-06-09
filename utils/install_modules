@@ -259,6 +259,9 @@ my $modules = <<EOM;
     Math::ODE
     Math::MatrixReal
 
+    # Other stuff
+    Image::PNG
+
 EOM
 
 my @modules = grep /\S/, grep !/^ +#/, split /\n/, $modules;
