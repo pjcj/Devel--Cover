@@ -228,28 +228,34 @@ my $modules = <<EOM;
     Carp::Always::Color
     App::cpanoutdated
     Dancer
+    Dancer::Logger::Log4perl
+    Dancer::Plugin::Auth::Twitter
     Dancer::Plugin::Database
     Dancer::Plugin::DBIC
-    Dancer::Plugin::SimpleCRUD
     Data::Printer
     DBD::SQLite
-    DBIx::Class::Schema::Loade
+    DBIx::Class::Schema::Loader
     DBIx::Class::TimeStamp
+    DBIx::Log4perl
     Exporter::Lite
+    Log::Log4perl
     JSON
     Module::Refresh
     Moose
     MooseX::Declare
     MooseX::StrictConstructor
+    MooseX::Types::DateTime::MoreCoercions
     Plack::Middleware::Debug
     Plack::Middleware::Debug::Dancer::Version
+    Plack::Middleware::ReverseProxy
+    Plack::Middleware::Debug::Dancer::TemplateVariables
     SQL::Translator
     Starman
     Template
     Test::More
     YAML
 
-    # Math stuff
+    # Maths stuff
     Math::ODE
     Math::MatrixReal
 
