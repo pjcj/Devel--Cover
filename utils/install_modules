@@ -264,11 +264,13 @@ my $modules = <<EOM;
 
 EOM
 
+my @opts = @ARGV;
+
 my @modules = grep /\S/, grep !/^ +#/, split /\n/, $modules;
 s/^ +//, s/ +$// for @modules;
 my %m; @modules = grep !$m{$_}++, @modules;
 
 for my $mod (sort @modules)
 {
-    system "cpanm $mod";
+    system "cpanm @opts $mod";
 }
