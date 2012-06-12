@@ -29,7 +29,7 @@ for my $d (grep -d, <$moddir/*/*>)
 }
 
 my $c;
-$c .= "cpancover -directory $lnkdir -outputdir $covdir/results ";
+$c .= "cpancover -directory $lnkdir -outputdir $resdir ";
 $c .= "-outputfile index.html -report html_basic";
 # $c .= " -force";
 # $c .= " -redo_html";
