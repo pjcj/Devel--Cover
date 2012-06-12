@@ -346,7 +346,7 @@ sub main
             sub { get_cover $_[1] },
             $Options->{module}
         );
-        print Dumper \@res;
+        # print Dumper \@res;
         # get_cover($_) for @{$Options->{module}};
     }
 
