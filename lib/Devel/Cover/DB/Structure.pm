@@ -87,7 +87,7 @@ sub AUTOLOAD
 sub debuglog {
     my $self = shift;
     my $dir = "$self->{base}/debuglog";
-    unless (mkdir $dir, 0700)
+    unless (mkdir $dir)
     {
         confess "Can't mkdir $dir: $!" unless -d $dir;
     }
@@ -271,7 +271,7 @@ sub write
     my ($dir) = @_;
     # print STDERR Dumper $self;
     $dir .= "/structure";
-    unless (mkdir $dir, 0700)
+    unless (mkdir $dir)
     {
         confess "Can't mkdir $dir: $!" unless -d $dir;
     }

@@ -338,7 +338,7 @@ sub import
         $Dir = $1 if Cwd::getcwd() =~ /(.*)/;
     }
 
-    unless (mkdir $DB, 0700)
+    unless (mkdir $DB)
     {
         die "Can't mkdir $DB: $!" unless -d $DB;
     }
@@ -769,7 +769,7 @@ sub _report
     );
 
     my $dbrun = "$DB/runs";
-    unless (mkdir $dbrun, 0700)
+    unless (mkdir $dbrun)
     {
         die "Can't mkdir $dbrun $!" unless -d $dbrun;
     }

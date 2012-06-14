@@ -98,7 +98,7 @@ sub write
     $self->{db} = shift if @_;
 
     croak "No db specified" unless length $self->{db};
-    unless (mkdir $self->{db}, 0700)
+    unless (mkdir $self->{db})
     {
         croak "Can't mkdir $self->{db}: $!\n" unless -d $self->{db};
     }
