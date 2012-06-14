@@ -476,6 +476,10 @@ The following command line options are supported:
 =head1 DETAILS
 
 
+=head1 REQUIREMENTS
+
+The modules L<Template> and L<Parallel::Iterator> are required.
+
 =head1 EXIT STATUS
 
 The following exit values are returned:

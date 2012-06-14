@@ -1422,6 +1422,10 @@ Some of Devel::Cover's own tests require it.
 
 if the tests fail and you would like nice output telling you why.
 
+=item * L<Template>, and L<Parallel::Iterator>
+
+Needed if you want to run cpancover.
+
 =back
 
 =head2 Use with mod_perl
