@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.89 - 15th June 2012
  - Fix POD syntax error (gregor herrmann <gregoa@debian.org>) (rt 77599).
  - Handle RE metachars in build directory (rt 75633 & 77598)
      (dcoupal@cisco.com & Niko Tyni <ntyni@debian.org>).
