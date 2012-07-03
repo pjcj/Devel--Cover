@@ -210,8 +210,10 @@ sub main
         # TODO - make this a little robust
         # system "$^X Makefile.PL" unless -e "Makefile";
         delete_db($dbname, @ARGV);
+        my $env_db_name = $dbname;
+        $env_db_name =~ s/\\/\\\\/g if $^O eq 'MSWin32';
         local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
-            ($ENV{DEVEL_COVER_TEST_OPTS} || "") . " -MDevel::Cover=-db,$dbname";
+            ($ENV{DEVEL_COVER_TEST_OPTS} || "") . " -MDevel::Cover=-db,$env_db_name";
 
         my $test = test_command();
 
