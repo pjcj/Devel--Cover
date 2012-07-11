@@ -126,12 +126,12 @@ sub test_command
     my $c = $self->perl;
     unless ($self->{no_coverage})
     {
-        $c .= " -MDevel::Cover=" .
+        $c .= " '-MDevel::Cover=" .
               join ",",
                    "-db", $self->{cover_db},
                    split " ", $self->{test_parameters}
     }
-    $c .= " " . shell_quote $self->test_file;
+    $c .= "' " . shell_quote $self->test_file;
     $c .= " " . $self->test_file_parameters;
 
     $c
