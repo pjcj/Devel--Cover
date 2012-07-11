@@ -1,7 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
- - Fix cover -test on Windows (Christian Walde) (github 24).
+ - Fix cover -test on Windows (Christian Walde) (github 24) (rt 75565).
  - Better document coverage options (github 23).
 
 Release 0.89 - 15th June 2012
