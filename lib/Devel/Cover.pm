@@ -1498,6 +1498,11 @@ using -inc, or add to them using +inc.
 Although these options take regular expressions, you should not enclose the RE
 within // or any other quoting characters.
 
+The options -coverage, [+-]select, [+-]ignore and [+-]inc can be specified
+multiple times, but they can also take multiple comma separated arguments.  In
+any case you should not add a space after the comma, unless you want the
+argument to start with that literal space.
+
 =head1 ENVIRONMENT
 
 The -silent option is turned on when Devel::Cover is invoked via
