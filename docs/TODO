@@ -57,6 +57,7 @@
 - Documentation:
   - General improvement.
   - Examples.
+  - Cookbook including +/-inc, +/-ignore and +/-select.
   - Document cpancover options.
   - Pod in private modules.
   - Developer documentation.
