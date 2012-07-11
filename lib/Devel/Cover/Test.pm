@@ -83,7 +83,7 @@ sub get_params
     }
     $self->{cover_parameters} = join(" ", map "-coverage $_",
                                               split " ", $self->{criteria})
-                              . " -report text " . $self->{cover_db};
+                              . " -report text '" . $self->{cover_db} . "'";
     $self->{cover_parameters} .= " -uncoverable_file "
                               .  "@{$self->{uncoverable_file}}"
         if @{$self->{uncoverable_file}};
@@ -127,11 +127,12 @@ sub test_command
     unless ($self->{no_coverage})
     {
         $c .= " '-MDevel::Cover=" .
-              join ",",
+              join(",",
                    "-db", $self->{cover_db},
-                   split " ", $self->{test_parameters}
+                   split " ", $self->{test_parameters}) .
+              "'";
     }
-    $c .= "' " . shell_quote $self->test_file;
+    $c .= " " . shell_quote $self->test_file;
     $c .= " " . $self->test_file_parameters;
 
     $c
