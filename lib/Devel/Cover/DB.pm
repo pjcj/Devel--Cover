@@ -38,7 +38,7 @@ $Devel::Cover::DB::Ignore_filenames =
                 Parser\.yp
             )
             \s .* \s
-            \( defined \s at \s .* \s line \s \d+ \)
+            (?: \( defined \s at \s .* \s line \s \d+ \) | defined \s at )
         )
         | # Moose
         (?: generated \s method \s \( unknown \s origin \) )
