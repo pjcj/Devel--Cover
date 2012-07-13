@@ -3,7 +3,6 @@
   - Marking of unreachable code - commandline tool and gui.
   - Threads support.
   - Test analysis.
-  - Extend cpancover so people can upload databases.
   - Profiling and speedups.
   - Collect data for path coverage.
   - Mutation coverage.
@@ -19,6 +18,9 @@
   - Don't count BEGIN blocks as subroutines.
   - Remove Inc.pm - calculate libs at run time.  (Speak to H.Merijn Brand.)
   - Only collect boolean data for coverage information (no counts).
+  - cpancover
+    - Extend cpancover so people can upload databases.
+    - Provide a view by author.
 - Reports:
   - Improve textual output.
   - Remove >= 100% in customisable thresholds.
