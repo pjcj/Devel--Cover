@@ -274,6 +274,7 @@ sub import
     my $class = shift;
 
     my @o = (@_, split ",", $ENV{DEVEL_COVER_OPTIONS} || "");
+    defined or $_ = "" for @o;
     # print STDERR __PACKAGE__, ": Parsing options from [@o]\n";
 
     my $blib = -d "blib";
@@ -354,7 +355,6 @@ sub import
         $Criteria{$c} = $func->();
     }
 
-    %Coverage = (all => 1) unless keys %Coverage;
     for (keys %Coverage)
     {
         my @c = split /-/, $_;
@@ -363,7 +363,9 @@ sub import
             $Coverage{shift @c} = \@c;
             delete $Coverage{$_};
         }
+        delete $Coverage{$_} unless length;
     }
+    %Coverage = (all => 1) unless keys %Coverage;
     %Coverage_options = %Coverage;
 
     $Initialised = 1;
