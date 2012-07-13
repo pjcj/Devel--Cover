@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+
+# Copyright 2011-2012, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# __COVER__ skip_test $] < 5.010 || !(eval "use Moose; 23")
+# __COVER__ skip_reason Moose not available or unreliable with Devel::Cover
+
+use 5.010;
+
+package Foo;
+
+use Moose;
+
+has bar => (
+    is      => 'rw',
+    isa     => 'Maybe[Str]',
+);
+
+package main;
+
+my $example = Foo->new();
+$example->bar('whatever');
+say $example->bar();
