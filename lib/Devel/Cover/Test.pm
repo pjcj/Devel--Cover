@@ -53,6 +53,14 @@ sub new
     $self->get_params
 }
 
+sub shell_quote
+{
+    my ($item) = @_;
+
+    $^O eq "MSWin32" ? (/ / and $_ = qq("$_")) : s/ /\\ /g for $item;
+    $item
+};
+
 sub get_params
 {
     my $self = shift;
@@ -83,7 +91,8 @@ sub get_params
     }
     $self->{cover_parameters} = join(" ", map "-coverage $_",
                                               split " ", $self->{criteria})
-                              . " -report text '" . $self->{cover_db} . "'";
+                              . " -report text "
+                              . shell_quote $self->{cover_db};
     $self->{cover_parameters} .= " -uncoverable_file "
                               .  "@{$self->{uncoverable_file}}"
         if @{$self->{uncoverable_file}};
@@ -100,14 +109,6 @@ sub get_params
 
     $self
 }
-
-sub shell_quote
-{
-    my ($item) = @_;
-
-    $^O eq "MSWin32" ? (/ / and $_ = qq("$_")) : s/ /\\ /g for $item;
-    $item
-};
 
 sub perl
 {
@@ -126,11 +127,10 @@ sub test_command
     my $c = $self->perl;
     unless ($self->{no_coverage})
     {
-        $c .= " '-MDevel::Cover=" .
-              join(",",
-                   "-db", $self->{cover_db},
-                   split " ", $self->{test_parameters}) .
-              "'";
+        $c .= " "
+           .  shell_quote "-MDevel::Cover=" .
+                          join(",", "-db", $self->{cover_db},
+                                    split " ", $self->{test_parameters});
     }
     $c .= " " . shell_quote $self->test_file;
     $c .= " " . $self->test_file_parameters;

@@ -109,9 +109,10 @@ BEGIN
     {
         local %ENV = %ENV;
         /perl/i and delete $ENV{$_} for keys %ENV;
-        my $inc = `$^X -MData::Dumper -e 'print Dumper \\\@INC'`;
+        my $cmd = "$^X -MData::Dumper -e " . '"print Dumper \@INC"';
         my $VAR1;
-        eval $inc;
+        # print STDERR "Running [$cmd]\n";
+        eval `$cmd`;
         @Inc = @$VAR1;
     };
     if ($@)
