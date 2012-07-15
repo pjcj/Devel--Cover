@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Generate inc directories at runtime (rt 68991, 76528, 66881, 37349).
+ - Get the tests running again on Windows.
 
 Release 0.90 - 13th July 2012
  - Fix cover -test on Windows (Christian Walde) (github 24) (rt 75565).
