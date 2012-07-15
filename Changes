@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.91 - 15th July 2012
  - Generate inc directories at runtime (rt 68991, 76528, 66881, 37349).
  - Get the tests running again on Windows.
 
