@@ -108,7 +108,8 @@ BEGIN
     eval
     {
         local %ENV = %ENV;
-        /perl/i and delete $ENV{$_} for keys %ENV;
+        # Clear *PERL* variables, but keep PERL5?LIB for local::lib environments
+        /perl/i and !/^PERL5?LIB$/ and delete $ENV{$_} for keys %ENV;
         my $cmd = "$^X -MData::Dumper -e " . '"print Dumper \@INC"';
         my $VAR1;
         # print STDERR "Running [$cmd]\n";
