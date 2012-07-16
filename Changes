@@ -1,7 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
- - Fix inc directories when working with local::lib (Olivier Mengué).
+ - Fix inc directories when working with local::lib (Olivier Mengué) (github 25)
 
 Release 0.91 - 15th July 2012
  - Generate inc directories at runtime (rt 68991, 76528, 66881, 37349).
