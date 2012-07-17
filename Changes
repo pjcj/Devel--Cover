@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.92 - 17 July 2012
  - Fix inc directories when working with local::lib (Olivier Mengué) (github 25)
 
 Release 0.91 - 15th July 2012
