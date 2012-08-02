@@ -327,10 +327,6 @@ sub main
 
     print "\n\n" unless $Options->{silent};
 
-    $db->print_summary(@{$Options->{coverage}}) if $Options->{summary};
-
-    return unless length $Options->{report};
-
     # TODO - The sense of select and ignore should be reversed to match
     # collection.
 
@@ -355,14 +351,23 @@ sub main
     };
     @{$Options->{file}} = sort grep $keep->($_), keys %f;
 
+    $db->print_summary($Options->{file}, $Options->{coverage}, {force => 1})
+        if $Options->{summary};
+
+    return unless length $Options->{report};
+
     $format->report($db, $Options);
 
-    if ($Options->{launch}) {
-        if ($format->can('launch')) {
+    if ($Options->{launch})
+    {
+        if ($format->can("launch"))
+        {
             $format->launch($Options);
         }
-        else {
-            print STDERR "launch not available for $Options->{report} reports\n"
+        else
+        {
+            print STDERR "The launch option is not available for the ",
+                         "$Options->{report} report.\n"
         }
     }
 }
