@@ -406,7 +406,9 @@ sub print_summary
     my $self = shift;
     my ($files, $criteria, $opts) = @_;
 
-    my %options = map(($_ => 1), $criteria ? @$criteria : $self->collected);
+    my %crit = map(($_ => 1), $self->collected);
+    my %options = $criteria ? map(($_ => 1), grep $crit{$_}, @$criteria)
+                            : %crit;
     $options{total} = 1 if keys %options;
 
     my $n = keys %options;
