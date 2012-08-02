@@ -68,7 +68,7 @@ sub report
         version  => $LVERSION,
         files    => $options->{file},
         cover    => $db->cover,
-        types    => [ qw( pod statement subroutine branch condition ) ],
+        types    => [ keys %{$options->{show}} ],
     };
 
     my $out = "$options->{outputdir}/$options->{outputfile}";
