@@ -362,7 +362,7 @@ sub main
             $format->launch($Options);
         }
         else {
-            print STDERR "launch not available for $Options->{report} reports\n";
+            print STDERR "launch not available for $Options->{report} reports\n"
         }
     }
 }

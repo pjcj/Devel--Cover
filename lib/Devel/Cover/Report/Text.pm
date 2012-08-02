@@ -22,8 +22,8 @@ sub print_runs
         print "Run:          ", $r->run,  "\n";
         print "Perl version: ", $r->perl, "\n";
         print "OS:           ", $r->OS,   "\n";
-        print "Start:        ", scalar gmtime $r->start  / 1e6, "\n";
-        print "Finish:       ", scalar gmtime $r->finish / 1e6, "\n";
+        print "Start:        ", scalar gmtime $r->start , "\n";
+        print "Finish:       ", scalar gmtime $r->finish, "\n";
         print "\n";
         # use Devel::Cover::Dumper; print Dumper $r;
     }
