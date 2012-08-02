@@ -413,7 +413,7 @@ sub print_summary
 
     my $oldfh = select STDOUT;
 
-    $options{files} = $files || [];
+    $options{files} = $files if $files && @$files;
     $self->calculate_summary(%options, %$opts);
 
     my $format = sub
