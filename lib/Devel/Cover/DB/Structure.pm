@@ -188,7 +188,7 @@ sub store_counts
         $self->{f}{$file}{start}{-1}{__COVER__}[0]{$_} =
         $self->get_count($_)
         for $self->criteria;
-    # print STDERR Dumper $self->{f}{$file}{start};
+    # print STDERR "store_counts: ", Dumper $self->{f}{$file}{start};
 }
 
 sub reuse

@@ -384,6 +384,7 @@ sub import
         delete $Coverage{$_} unless length;
     }
     %Coverage = (all => 1) unless keys %Coverage;
+    # print STDERR "Coverage: ", Dumper \%Coverage;
     %Coverage_options = %Coverage;
 
     $Initialised = 1;
@@ -519,7 +520,7 @@ sub get_location
 
     $File = $op->file;
     $Line = $op->line;
-    # warn "${File}::$Line\n";
+    # print STDERR "$File:$Line\n";
 
     # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
     while ($File =~ /^\(eval \d+\)\[(.*):(\d+)\]/) {
@@ -842,6 +843,7 @@ sub add_statement_cover
     my $key = get_key($op);
     my $val = $Coverage->{statement}{$key} || 0;
     my ($n, $new) = $Structure->add_count("statement");
+    # print STDERR "Stmt $File:$Line - $n, $new\n";
     $Structure->add_statement($File, $Line) if $new;
     $Run{count}{$File}{statement}[$n] += $val;
     my $vec = $Run{vec}{$File}{statement};
