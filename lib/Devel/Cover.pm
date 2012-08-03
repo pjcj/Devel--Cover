@@ -906,21 +906,11 @@ sub add_branch_cover
     # warn "branch $type %x [@$c] => [@{$ccount->{branch}[$n]}]\n", $$op;
 }
 
-my %condition_locations;
-
 sub add_condition_cover
 {
     my ($op, $strop, $left, $right) = @_;
 
     return unless $Collect && $Coverage{condition};
-    unless ($Collect)
-    {
-        # $condition_locations{$$op} = [ $File, $Line ];
-        return
-    }
-
-    # local ($File, $Line) = @{$condition_locations{$$op}}
-        # if exists $condition_locations{$$op};
 
     my $key = get_key($op);
     # warn "Condition cover $$op from $File:$Line\n";
@@ -928,13 +918,10 @@ sub add_condition_cover
     # use Carp "cluck"; cluck("from here");
 
     my $type = $op->name;
-    # print STDERR "type:  [$type]\n";
     $type =~ s/assign$//;
     $type = "or" if $type eq "dor";
-    # print STDERR "type:  [$type]\n";
 
     my $c = $Coverage->{condition}{$key};
-    # print STDERR "Condition: ", Dumper $c;
 
     no warnings "uninitialized";
 
