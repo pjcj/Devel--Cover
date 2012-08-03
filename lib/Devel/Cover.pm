@@ -851,7 +851,8 @@ sub add_statement_cover
     $vec->{size} = $n + 1;
     no warnings "uninitialized";
     $Run{count}{$File}{time}[$n] += $Coverage->{time}{$key}
-        if exists $Coverage->{time} && exists $Coverage->{time}{$key};
+        if $Coverage{time} &&
+           exists $Coverage->{time} && exists $Coverage->{time}{$key};
 }
 
 sub add_branch_cover
