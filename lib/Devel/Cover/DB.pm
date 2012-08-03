@@ -721,7 +721,7 @@ sub uncoverable_comments
     open my $fh, "<", $file or do
     {
         warn "Devel::Cover: Can't open file $file: $!\n";
-        next;
+        return;
     };
     my @waiting;
     while (<$fh>)
