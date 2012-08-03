@@ -173,7 +173,7 @@ sub set_subroutine
         # print STDERR "new $file:$line:$sub_name\n";
         $self->{count}{$_}{$file} =
             $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_} =
-            $self->get_count($_)
+            $self->get_count($file, $_)
             for $self->criteria;
     }
     # print STDERR "set_subroutine start $file:$line $sub_name($scount) ",
@@ -186,7 +186,7 @@ sub store_counts
     my ($file) = @_;
     $self->{count}{$_}{$file} =
         $self->{f}{$file}{start}{-1}{__COVER__}[0]{$_} =
-        $self->get_count($_)
+        $self->get_count($file, $_)
         for $self->criteria;
     # print STDERR "store_counts: ", Dumper $self->{f}{$file}{start};
 }
@@ -241,9 +241,8 @@ sub digest
 sub get_count
 {
     my $self = shift;
-    my ($criterion) = @_;
-    return 0 unless $self->{file};  # TODO - how does this get unset?
-    $self->{count}{$criterion}{$self->{file}}
+    my ($file, $criterion) = @_;
+    $self->{count}{$criterion}{$file}
 }
 
 sub add_count
