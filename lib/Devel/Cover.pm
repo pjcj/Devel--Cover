@@ -912,6 +912,7 @@ sub add_condition_cover
 {
     my ($op, $strop, $left, $right) = @_;
 
+    return unless $Collect && $Coverage{condition};
     unless ($Collect)
     {
         # $condition_locations{$$op} = [ $File, $Line ];
