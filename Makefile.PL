@@ -441,7 +441,7 @@ gold : pure_all
 \t \$(PERL) utils/create_gold \$(TEST)
 
 all_test :
-\t exec \$(PERL) utils/all_versions make test
+\t exec \$(PERL) utils/all_versions make t
 
 all_gold :
 \t \$(PERL) utils/create_all_gold \$(TEST)
