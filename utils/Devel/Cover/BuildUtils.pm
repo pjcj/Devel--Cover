@@ -31,7 +31,7 @@ sub find_prove
     my ($dir)    = $perl =~ m|(.*)/[^/]+|;
     my ($prove)  = grep -x, <$dir/prove*>;
 
-    warn "prove cannot be found in $dir\n";
+    print "prove is in $dir\n";
 
     $prove
 }
