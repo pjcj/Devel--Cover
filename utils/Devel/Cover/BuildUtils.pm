@@ -15,7 +15,7 @@ use warnings;
 use Exporter;
 
 our @ISA       = "Exporter";
-our @EXPORT_OK = qw(find_prove cpus prove_command);
+our @EXPORT_OK = qw(find_prove cpus nice_cpus rove_command);
 
 sub find_prove
 {
@@ -43,11 +43,18 @@ sub cpus
     $cpus
 }
 
+sub nice_cpus
+{
+    my $cpus = cpus;
+    $cpus-- if $cpus > 3;
+    $cpus-- if $cpus > 6;
+    $cpus
+}
+
 sub prove_command
 {
     my $prove = find_prove or return;
-    my $cpus  = cpus;
-    $cpus-- if $cpus > 4;
+    my $cpus  = nice_cpus;
     "$prove -brj$cpus t"
 }
 
