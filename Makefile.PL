@@ -456,7 +456,7 @@ _self_cover_tests : @{[sort values %tests]}
 \t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover bin/cover -silent -write cover_db @{[sort values %tests]}
 
 self_cover : _self_cover_reports
-\t \$(PERL) -Mblib bin/cover -report html_basic
+\t \$(PERL) -Mblib bin/cover -report html_basic -launch
 \t \$(PERL) -Mblib bin/cover -report vim
 
 ok :
