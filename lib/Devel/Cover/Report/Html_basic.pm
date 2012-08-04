@@ -409,6 +409,8 @@ sub report
             sprintf "%04d-%02d-%02d %02d:%02d:%02d",
                     $year + 1900, $mon + 1, $mday, $hour, $min, $sec
         },
+        perl_v  => $] < 5.010 ? $] : $^V,
+        os      => $^O,
         options => $options,
         version => $LVERSION,
         showing => [ grep $options->{show}{$_}, $db->criteria ],
@@ -540,6 +542,14 @@ $Templates{summary} = <<'EOT';
     <tr>
         <td class="sh" align="right">Report date:</td>
         <td class="sv" align="left">[% R.date %]</td>
+    </tr>
+    <tr>
+        <td class="sh" align="right">Perl version:</td>
+        <td class="sv" align="left">[% R.perl_v %]</td>
+    </tr>
+    <tr>
+        <td class="sh" align="right">OS:</td>
+        <td class="sv" align="left">[% R.os %]</td>
     </tr>
     <tr>
         <td class="sh" align="right">C0:</td>
