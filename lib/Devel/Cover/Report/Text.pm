@@ -63,12 +63,15 @@ sub print_statement
 
     printf $fmt, @args;
 
+    my $autoloader = 0;
+
     open F, $file or warn("Unable to open $file: $!\n"), return;
 
     LINE: while (defined(my $l = <F>))
     {
         chomp $l;
         my $n = $.;
+        $autoloader ||= $l =~ /use\s+AutoLoader/;
 
         my %criteria;
         for my $c ($db->criteria)
@@ -120,7 +123,7 @@ sub print_statement
             # print join(", ", map { "[$_]" } @args), "\n";
             printf $fmt, @args;
 
-            last LINE if $l =~ /^__(END|DATA)__/;
+            last LINE if !$autoloader && $l =~ /^__(END|DATA)__/;
             $n = $l = "";
         }
     }

@@ -474,10 +474,12 @@ sub print_file_report {
                   $db);
     print_th($out, ['line', @$th, 'code']);
 
+    my $autoloader = 0;
     while (my $sloc = <$in>) {
+        $autoloader ||= $sloc =~ /use\s+AutoLoader/;
 
         # Process stuff after __END__ or __DATA__ tokens
-        if ($sloc =~ /^__(END|DATA)__/) {
+        if (!$autoloader && $sloc =~ /^__(END|DATA)__/) {
             if ($opt->{option}{data}) {
                 # print all data in one cell
                 my ($i, $n) = ($., scalar @$th);
