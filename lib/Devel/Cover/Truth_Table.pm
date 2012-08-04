@@ -463,8 +463,7 @@ sub left_merge {
 
 =head1 NAME
 
-Devel::Cover::Truth_Table - Create and manipulate truth tables for
-coverage objects.
+Devel::Cover::Truth_Table - Truth tables for coverage objects.
 
 =head1 SYNOPSIS
 

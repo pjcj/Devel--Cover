@@ -747,8 +747,7 @@ sub report {
 
 =head1 NAME
 
-Devel::Cover::Report::Html_minimal - Backend for HTML reporting of coverage
-statistics
+Devel::Cover::Report::Html_minimal - HTML backend for Devel::Cover
 
 =head1 SYNOPSIS
 

@@ -143,8 +143,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Report::Compilation - Backend for reporting of coverage
-statistics in a format like Perl compilation
+Devel::Cover::Report::Compilation - backend for Devel::Cover
 
 =head1 SYNOPSIS
 

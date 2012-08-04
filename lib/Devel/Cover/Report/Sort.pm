@@ -74,7 +74,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Report::Sort - Report on runs in an optimal order
+Devel::Cover::Report::Sort - backend for Devel::Cover
 
 =head1 SYNOPSIS
 

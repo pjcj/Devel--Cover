@@ -167,8 +167,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Report::Test2 - Backend for textual reporting of coverage
-statistics
+Devel::Cover::Report::Test2 - Text backend for Devel::Cover
 
 =head1 SYNOPSIS
 

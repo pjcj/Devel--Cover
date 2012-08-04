@@ -20,8 +20,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Report::Html - Backend for HTML reporting of coverage
-statistics
+Devel::Cover::Report::Html - HTML backend for Devel::Cover
 
 =head1 SYNOPSIS
 

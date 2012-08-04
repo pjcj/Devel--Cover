@@ -782,8 +782,7 @@ s/^\s+//gm for values %Templates;
 
 =head1 NAME
 
-Devel::Cover::Report::Html_basic - Backend for HTML reporting of coverage
-statistics
+Devel::Cover::Report::Html_basic - HTML backend for Devel::Cover
 
 =head1 SYNOPSIS
 
