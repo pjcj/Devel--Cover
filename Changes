@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.93 - 4 August 2012
  - Fix up start and finish times in text report.
  - Make summary cover report respect options given.
  - Make vim report respect specified criteria.
