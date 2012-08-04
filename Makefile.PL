@@ -329,7 +329,10 @@ WriteMakefile
                             "Test::Warn"  => 0,
                         },
     TYPEMAPS         => [ "utils/typemap" ],
-    clean            => { FILES => "t/e2e/* cover_db* t/e2e/*cover_db README" },
+    clean            => {
+                            FILES => "t/e2e/* cover_db* t/e2e/*cover_db " .
+                                     "README *.gcov *.out"
+                        },
     dist             => { COMPRESS => "gzip --best --force"                   },
     test             => { TESTS    => "t/*/*.t"                               },
     realclean        => $] < 5.008008 ?
