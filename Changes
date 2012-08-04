@@ -1,6 +1,16 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fix up start and finish times in text report.
+ - Make summary cover report respect options given.
+ - Make vim report respect specified criteria.
+ - Only collect time and condition coverage when requested.
+ - Fix some "ignoring extra $criterion" errors.
+ - Don't stop reports at __END__ with AutoLoader.
+ - Add perl version and OS to html_basic.
+ - Make html_minimal summary more like html_basic.
+ - Time coverage is no use in the vim report.
+ - Keep descriptions to a single line.
 
 Release 0.92 - 17 July 2012
  - Fix inc directories when working with local::lib (Olivier Mengué) (github 25)
