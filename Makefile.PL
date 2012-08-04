@@ -420,11 +420,8 @@ wrun : pure_all
 prove : pure_all
 \t \$(PERL) -Iutils -MDevel::Cover::BuildUtils=prove_command -le '\$\$c = prove_command and print \$\$c and system \$\$c'
 
-tst : pure_all
-\t \$(PERL) -Iutils -MDevel::Cover::BuildUtils=prove_command -le '\$\$c = prove_command and print \$\$c and system \$\$c and system "make test"'
-
-testdist : pure_all
-\t chdir tests/dist/\$(TEST); \$(PERL) Makefile.PL && make && DEVEL_COVER_TEST_OPTS=-Mblib=../../.. \$(PERL) -Mblib=../../.. ../../../bin/cover -test \$(COVER_OPTIONS)
+t : pure_all
+\t exec make test HARNESS_OPTIONS=j`\$(PERL) -Iutils -MDevel::Cover::BuildUtils=cpus -e 'print cpus'`:c HARNESS_TIMER=1
 
 DB = cover_db
 
