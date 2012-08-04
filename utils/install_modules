@@ -39,6 +39,9 @@ my $modules = <<EOM;
     Gedcom
     Shell::Source
 
+    # Stuff with interest for Devel::Cover
+    NetAddr::IP
+
     # There's going to be repetition down here
 
     # Modules with many dependents
