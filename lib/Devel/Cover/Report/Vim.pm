@@ -68,7 +68,7 @@ sub report
         version  => $LVERSION,
         files    => $options->{file},
         cover    => $db->cover,
-        types    => [ keys %{$options->{show}} ],
+        types    => [ grep $_ ne "time", keys %{$options->{show}} ],
     };
 
     my $out = "$options->{outputdir}/$options->{outputfile}";
