@@ -34,6 +34,7 @@ my $modules = <<EOM;
     .
     Parallel::Iterator
     Test::Pod::Coverage
+    PPI::HTML
 
     # My stuff
     Gedcom
