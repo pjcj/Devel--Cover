@@ -97,6 +97,7 @@ th,.h,.hh,.sh,.sv {
 }
 
 .sv {
+    width       : 0;
     padding     : 0.2em;
 }
 
