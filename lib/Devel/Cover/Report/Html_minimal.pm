@@ -360,26 +360,32 @@ sub print_summary_report {
     my ($show, $th) = get_showing_headers($db, $options);
     push @$show, 'total';
 
+    my $le = sub { ($_[0] >   0 ? "&lt;" : "=") . " $_[0]%" };
+    my $ge = sub { ($_[0] < 100 ? "&gt;" : "") . "= $_[0]%" };
+    my @c = ( $le->($options->{report_c0}), $le->($options->{report_c1}),
+              $le->($options->{report_c2}), $ge->($options->{report_c2}) );
+    my $date = do
+    {
+        my ($sec, $min, $hour, $mday, $mon, $year) = localtime;
+        sprintf "%04d-%02d-%02d %02d:%02d:%02d",
+                $year + 1900, $mon + 1, $mday, $hour, $min, $sec
+    };
+    my $perl_v = $] < 5.010 ? $] : $^V;
+    my $os     = $^O;
+
     print_html_header($fh, $options->{option}{summarytitle});
     # TODO - >= 100% doesn't look nice.  See also Html_basic.
     print $fh <<"END_HTML";
 <body>
 <h1>$options->{option}{summarytitle}</h1>
 <table>
+  <tr><td class="h" align="right">Database:</td><td align="left" colspan="4">$db->{db}</td></tr>
+  <tr><td class="h" align="right">Report Date:</td><td align="left" colspan="4">$date</td></tr>
+  <tr><td class="h" align="right">Perl Version:</td><td align="left" colspan="4">$perl_v</td></tr>
+  <tr><td class="h" align="right">OS:</td><td align="left" colspan="4">$os</td></tr>
   <tr>
-    <td class="h" align="right">Database:</td><td align="left">$db->{db}</td>
-  </tr>
-  <tr>
-    <td class="h" align="right">C0:</td><td class="c0" align="left">&lt;&nbsp;$options->{report_c0}\%</td>
-  </tr>
-  <tr>
-    <td class="h" align="right">C1:</td><td class="c1" align="left">&lt;&nbsp;$options->{report_c1}\%</td>
-  </tr>
-  <tr>
-    <td class="h" align="right">C2:</td><td class="c2" align="left">&lt;&nbsp;$options->{report_c2}\%</td>
-  </tr>
-  <tr>
-    <td class="h" align="right">C3:</td><td class="c3" align="left">&gt;=&nbsp;$options->{report_c2}\%</td>
+    <td class="h" align="right">Thresholds:</td>
+    <td class="c0">$c[0]</td><td class="c1">$c[1]</td><td class="c2">$c[2]</td><td class="c3">$c[3]</td>
   </tr>
 </table>
 <div><br/></div>
