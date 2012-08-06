@@ -264,6 +264,8 @@ sub delete_file
     delete $self->{f}{$file};
 }
 
+# TODO - concurrent runs updating structure?
+
 sub write
 {
     my $self = shift;

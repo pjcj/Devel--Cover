@@ -114,6 +114,8 @@ BEGIN
         my $VAR1;
         # print STDERR "Running [$cmd]\n";
         eval `$cmd`;
+        # TODO - Devel::Cover: Error getting @INC: Insecure dependency in ``
+        # while running with -T switch at .../Devel/Cover.pm line 116.
         @Inc = @$VAR1;
     };
     if ($@)
