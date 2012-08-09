@@ -212,9 +212,20 @@ sub main
         delete_db($dbname, @ARGV);
         my $env_db_name = $dbname;
         $env_db_name =~ s/\\/\\\\/g if $^O eq 'MSWin32';
+        my $extra = "";
+        $extra .= ",-coverage,$_" for @{$Options->{coverage}};
+        $extra .= ",-ignore,$_"
+            for @{$Options->{ignore_re}},
+                map quotemeta glob, @{$Options->{ignore}};
+        $extra .= ",-select,$_"
+            for @{$Options->{select_re}},
+                map quotemeta glob, @{$Options->{select}};
+
+        $Options->{$_} = [] for qw( ignore ignoring select select_re );
+
         local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
             ($ENV{DEVEL_COVER_TEST_OPTS} || "") .
-            " -MDevel::Cover=-db,$env_db_name";
+            " -MDevel::Cover=-db,$env_db_name$extra";
 
         my $test = test_command();
 
@@ -225,6 +236,8 @@ sub main
             my $xs = sub { utime $t, $t, $_ if /\.(xs|c|h)$/ };
             File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
         }
+        print STDERR "$_: $ENV{$_}\n"
+            for qw( PERL5OPT HARNESS_PERL_SWITCHES );
         print STDERR "cover: running $test\n";
         system $test;
         $Options->{report} ||= "html";
