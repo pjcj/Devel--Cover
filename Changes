@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Officially support 5.16.1.
+ - Manage mod_perl2 setting $^X to httpd.
+ - Make changes to support 5.17.3.
 
 Release 0.93 - 4 August 2012
  - Fix up start and finish times in text report.
