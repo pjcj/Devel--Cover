@@ -18,7 +18,7 @@ use File::Copy;
 
 $| = 1;
 
-my $Version = "0.93";
+my $Version = "0.94";
 my $Author  = 'paul@pjcj.net';
 my @perlbug = ("perlbug", "-a", $Author,
                           "-s", "Installation of Devel::Cover $Version");
