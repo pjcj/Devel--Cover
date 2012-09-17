@@ -15,7 +15,7 @@ use warnings;
 use Exporter;
 
 our @ISA       = "Exporter";
-our @EXPORT_OK = qw(find_prove cpus nice_cpus rove_command);
+our @EXPORT_OK = qw(find_prove cpus nice_cpus prove_command);
 
 sub find_prove
 {
