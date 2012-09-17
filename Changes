@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.94 - 18 September 2012
  - Officially support 5.16.1.
  - Manage mod_perl2 setting $^X to httpd.
  - Make changes to support 5.17.3.
