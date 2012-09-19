@@ -240,13 +240,13 @@ static void set_firsts_if_needed(pTHX)
     }
 }
 
-static int check_if_collecting(pTHX)
+static int check_if_collecting(pTHX_ COP *cop)
 {
     dMY_CXT;
 
-    char *file = CopFILE(cCOP);
+    char *file = CopFILE(cop);
     int in_re_eval = strnEQ(file, "(reeval ", 8);
-    NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, CopLINE(cCOP)));
+    NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, CopLINE(cop)));
     if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file))
     {
         if (MY_CXT.replace_ops && !in_re_eval)
@@ -283,7 +283,7 @@ static int check_if_collecting(pTHX)
             SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
             MY_CXT.collecting_here = f ? SvIV(*f) : 1;
             NDEB(D(L, "File: %s:%ld [%d]\n",
-                      file, CopLINE(cCOP), MY_CXT.collecting_here));
+                      file, CopLINE(cop), MY_CXT.collecting_here));
         }
 
         sv_setpv(MY_CXT.lastfile, file);
@@ -887,8 +887,8 @@ static void cover_logop(pTHX)
 static OP *dc_nextstate(pTHX)
 {
     dMY_CXT;
-    NDEB(D(L, "dc_nextstate\n"));
-    if (MY_CXT.covering)   check_if_collecting(aTHX);
+    NDEB(D(L, "dc_nextstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+    if (MY_CXT.covering) check_if_collecting(aTHX_ cCOP);
     if (collecting_here(aTHX)) cover_current_statement(aTHX);
     return MY_CXT.ppaddr[OP_NEXTSTATE](aTHX);
 }
@@ -897,7 +897,8 @@ static OP *dc_nextstate(pTHX)
 static OP *dc_setstate(pTHX)
 {
     dMY_CXT;
-    if (MY_CXT.covering)   check_if_collecting(aTHX);
+    NDEB(D(L, "dc_setstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+    if (MY_CXT.covering) check_if_collecting(aTHX_ cCOP);
     if (collecting_here(aTHX)) cover_current_statement(aTHX);
     return MY_CXT.ppaddr[OP_SETSTATE](aTHX);
 }
@@ -906,7 +907,8 @@ static OP *dc_setstate(pTHX)
 static OP *dc_dbstate(pTHX)
 {
     dMY_CXT;
-    if (MY_CXT.covering)   check_if_collecting(aTHX);
+    NDEB(D(L, "dc_dbstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+    if (MY_CXT.covering) check_if_collecting(aTHX_ cCOP);
     if (collecting_here(aTHX)) cover_current_statement(aTHX);
     return MY_CXT.ppaddr[OP_DBSTATE](aTHX);
 }
@@ -914,6 +916,7 @@ static OP *dc_dbstate(pTHX)
 static OP *dc_entersub(pTHX)
 {
     dMY_CXT;
+    NDEB(D(L, "dc_entersub() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     if (MY_CXT.covering) store_return(aTHX);
     return MY_CXT.ppaddr[OP_ENTERSUB](aTHX);
 }
@@ -921,6 +924,8 @@ static OP *dc_entersub(pTHX)
 static OP *dc_cond_expr(pTHX)
 {
     dMY_CXT;
+    check_if_collecting(aTHX_ PL_curcop);
+    NDEB(D(L, "dc_cond_expr() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     if (MY_CXT.covering && collecting_here(aTHX)) cover_cond(aTHX);
     return MY_CXT.ppaddr[OP_COND_EXPR](aTHX);
 }
@@ -928,6 +933,10 @@ static OP *dc_cond_expr(pTHX)
 static OP *dc_and(pTHX)
 {
     dMY_CXT;
+    NDEB(D(L, "dc_and() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+    check_if_collecting(aTHX_ PL_curcop);
+    NDEB(D(L, "dc_and() at %p (%d)\n", PL_curcop, collecting_here(aTHX)));
+    NDEB(D(L, "PL_curcop: %s:%d\n", CopFILE(PL_curcop), CopLINE(PL_curcop)));
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
     return MY_CXT.ppaddr[OP_AND](aTHX);
 }
@@ -935,6 +944,8 @@ static OP *dc_and(pTHX)
 static OP *dc_andassign(pTHX)
 {
     dMY_CXT;
+    check_if_collecting(aTHX_ PL_curcop);
+    NDEB(D(L, "dc_andassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
     return MY_CXT.ppaddr[OP_ANDASSIGN](aTHX);
 }
@@ -942,6 +953,7 @@ static OP *dc_andassign(pTHX)
 static OP *dc_or(pTHX)
 {
     dMY_CXT;
+    check_if_collecting(aTHX_ PL_curcop);
     NDEB(D(L, "dc_or() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
     return MY_CXT.ppaddr[OP_OR](aTHX);
@@ -950,6 +962,8 @@ static OP *dc_or(pTHX)
 static OP *dc_orassign(pTHX)
 {
     dMY_CXT;
+    check_if_collecting(aTHX_ PL_curcop);
+    NDEB(D(L, "dc_orassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
     return MY_CXT.ppaddr[OP_ORASSIGN](aTHX);
 }
@@ -958,6 +972,8 @@ static OP *dc_orassign(pTHX)
 static OP *dc_dor(pTHX)
 {
     dMY_CXT;
+    check_if_collecting(aTHX_ PL_curcop);
+    NDEB(D(L, "dc_dor() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
     return MY_CXT.ppaddr[OP_DOR](aTHX);
 }
@@ -965,6 +981,8 @@ static OP *dc_dor(pTHX)
 static OP *dc_dorassign(pTHX)
 {
     dMY_CXT;
+    check_if_collecting(aTHX_ PL_curcop);
+    NDEB(D(L, "dc_dorassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
     return MY_CXT.ppaddr[OP_DORASSIGN](aTHX);
 }
@@ -973,6 +991,8 @@ static OP *dc_dorassign(pTHX)
 OP *dc_xor(pTHX)
 {
     dMY_CXT;
+    check_if_collecting(aTHX_ PL_curcop);
+    NDEB(D(L, "dc_xor() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
     return MY_CXT.ppaddr[OP_XOR](aTHX);
 }
@@ -980,6 +1000,7 @@ OP *dc_xor(pTHX)
 static OP *dc_require(pTHX)
 {
     dMY_CXT;
+    NDEB(D(L, "dc_require() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     if (MY_CXT.covering && collecting_here(aTHX)) store_module(aTHX);
     return MY_CXT.ppaddr[OP_REQUIRE](aTHX);
 }
@@ -987,6 +1008,7 @@ static OP *dc_require(pTHX)
 static OP *dc_exec(pTHX)
 {
     dMY_CXT;
+    NDEB(D(L, "dc_exec() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     if (MY_CXT.covering && collecting_here(aTHX)) call_report(aTHX);
     return MY_CXT.ppaddr[OP_EXEC](aTHX);
 }
@@ -1133,7 +1155,7 @@ static int runops_cover(pTHX)
 
         if (PL_op->op_type == OP_NEXTSTATE)
         {
-            check_if_collecting(aTHX);
+            check_if_collecting(aTHX_ cCOP);
         }
         else if (PL_op->op_type == OP_ENTERSUB)
         {

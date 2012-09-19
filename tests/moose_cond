@@ -32,18 +32,3 @@ sub wagh {
     return $self->meep->{marp} || 0;
     # return $self || 0;
 }
-
-package Cover_branch_bug_Moo;
-
-use Moo;
-
-has config  => ( is => 'lazy' );
-has config2 => ( is => 'ro' );
-
-__PACKAGE__->new( config => {}, config2 => {} )->trigger;
-__PACKAGE__->new( config => { debug => 1 }, config2 => { debug => 1 } )->trigger;
-
-sub trigger {
-    1 if $_[0]->config->{debug};
-    1 if $_[0]->config2->{debug};
-}

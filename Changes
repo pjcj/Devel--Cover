@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fix loss of condition coverage data when first operand calls into ignored
+   file (Celogeek, Christian Walde) (rt 63090) (github 15, 20).
 
 Release 0.94 - 18 September 2012
  - Officially support 5.16.1.

@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+
+# Copyright 2011-2012, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# __COVER__ skip_test $] < 5.008002 || !(eval "use Moo; 23")
+# __COVER__ skip_reason Moo not available
+
+use strict;
+use warnings;
+
+package Cover_branch_bug_Moo;
+
+use Moo;
+
+has config  => ( is => 'lazy' );
+has config2 => ( is => 'ro' );
+
+__PACKAGE__->new( config => {}, config2 => {} )->trigger;
+__PACKAGE__->new( config => {debug => 1}, config2 => {debug => 1} )->trigger;
+
+sub trigger {
+    1 if $_[0]->config->{debug};
+    1 if $_[0]->config2->{debug};
+}
