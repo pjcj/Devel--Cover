@@ -29,7 +29,9 @@ my $DB = "cover.13";  # Version 13 of the database.
 @Devel::Cover::DB::Criteria_short =
     (qw( stmt      bran   path cond      sub        pod time ));
 $Devel::Cover::DB::Ignore_filenames =
-    qr/   # Moose
+    qr/   # Used by Devel::Cover
+        (?: [\/\\]lib[\/\\](?:Storable|POSIX).pm$ )
+        | # Moose
         (?:
             (?:
                 reader | writer | constructor | destructor | accessor |
