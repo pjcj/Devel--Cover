@@ -1,0 +1,46 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/bigint                                100.0   50.0    n/a    n/a   75.0
+Total                                       100.0   50.0    n/a    n/a   75.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/bigint
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2012, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      use strict;
+11                                      use warnings;
+12                                      
+13                                      use Math::BigInt ":constant";
+14                                      
+15             1                        my $x = 1;
+16    ***      1     50                 print $x if 1 >= $x;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+16    ***     50      1      0   if \('+1') >= $x
+
+

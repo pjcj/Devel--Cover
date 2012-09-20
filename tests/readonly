@@ -1,0 +1,44 @@
+#!/usr/bin/perl
+
+# Copyright 2012, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# __COVER__ skip_test $] < 5.008002 || !(eval "use Moo; 23")
+# __COVER__ skip_reason Readonly not available
+
+use strict;
+use warnings;
+
+use Readonly;
+
+Readonly my $REGEXP_MATCH => '2';
+my @lines = ( '1', '2', '3', 'A', 'B', 'c' );
+
+sub test_readonly_coverage {
+    # All branches executed.
+    foreach my $line (@lines) {
+        if ($line =~ /$REGEXP_MATCH/msx) {
+            print "true ($line)\n";
+        } else {
+            print "false ($line)\n";
+        }
+    }
+}
+
+sub test_posix_regexp {
+    # All branches executed.
+    foreach my $line (@lines) {
+        if ($line =~ /[[:upper:]]/msx) {
+            print "true ($line)\n";
+        } else {
+            print "false ($line)\n";
+        }
+    }
+}
+
+test_readonly_coverage;
+test_posix_regexp;
