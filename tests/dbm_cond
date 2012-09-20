@@ -1,0 +1,61 @@
+#!/usr/bin/perl
+
+# Copyright 2012, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# __COVER__ skip_test $] < 5.008005 || !(eval "use DBM::Deep; 23")
+# __COVER__ skip_reason DBM::Deep not available
+
+use strict;
+use warnings;
+
+use Test::More;
+
+use DBM::Deep;
+
+my $db = DBM::Deep->new( "temp.db" );
+$db->{1} = 1;
+
+my $h = { 1 => 1 };
+
+sub testdbm
+{
+    my ( $p ) = @_;
+
+    if( exists $db->{$p} )
+    {
+        return "dbm: exists";
+    }
+    else
+    {
+        return "dbm: does not exist";
+    }
+}
+
+sub testh
+{
+    my ( $p ) = @_;
+
+    if( exists $h->{$p} )
+    {
+        return "h: exists";
+    }
+    else
+    {
+        return "h: does not exist";
+    }
+}
+
+is( testdbm( 1 ), "dbm: exists", "key exists in dbm" );
+is( testdbm( 2 ), "dbm: does not exist", "key does not exist in dbm" );
+
+is( testh( 1 ), "h: exists", "key exists in h" );
+is( testh( 2 ), "h: does not exist", "key does not exist in h" );
+
+unlink "temp.db";
+
+done_testing();
