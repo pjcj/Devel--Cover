@@ -15,7 +15,7 @@ Release 0.94 - 18 September 2012
 Release 0.93 - 4 August 2012
  - Fix up start and finish times in text report.
  - Make summary cover report respect options given.
- - Make vim report respect specified criteria.
+ - Make vim report respect specified criteria (rt 38258).
  - Only collect time and condition coverage when requested.
  - Fix some "ignoring extra $criterion" errors.
  - Don't stop reports at __END__ with AutoLoader.
