@@ -1,7 +1,7 @@
 #!/bin/sh -x
 
 perlbrew uninstall cpancover
-perlbrew install perl-5.16.0 --as cpancover -j 8
+perlbrew install perl-5.16.1 --as cpancover -j 8
 export PATH=$PERLBREW_ROOT/perls/cpancover/bin:$PATH
 rm -rf ~/.cpanm
 rm -rf ~/cpancover
@@ -10,7 +10,7 @@ cpanm .
 cpanm App::cpanoutdated
 cpan-outdated | cpanm
 perl utils/install_modules
-CPANCOVER_WORKERS=0 perl utils/cpanmcover
+CPANCOVER_WORKERS=8 perl utils/cpanmcover
 rm -r /home/pjcj/cpancover/modules/Archive-Extract-0.60/cover_db
 rm -r /home/pjcj/cpancover/modules/Test-LeakTrace-0.14/cover_db
 cpancover -directory ~/cpancover/modules -outputdir ~/cpancover/results -outputfile index.html -report html_basic -nocollect
