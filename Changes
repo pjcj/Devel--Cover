@@ -6,6 +6,7 @@ Devel::Cover history
  - Fix similar problem with branch coverage (Robert Freimuth) (rt 72027).
  - More similar problems (Brian Cassidy, Florian Ragwitz, Heikki J Laaksonen)
    (rt 63698).
+ - Test against 5.17.4.
 
 Release 0.94 - 18 September 2012
  - Officially support 5.16.1.
