@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.95 - 22 September 2012
  - Fix loss of condition coverage data when first operand calls into ignored
    file (Celogeek, Christian Walde) (rt 63090) (github 15, 20).
  - Fix similar problem with branch coverage (Robert Freimuth) (rt 72027).
