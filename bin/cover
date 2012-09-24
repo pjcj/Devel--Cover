@@ -236,8 +236,7 @@ sub main
             my $xs = sub { utime $t, $t, $_ if /\.(xs|c|h)$/ };
             File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
         }
-        print STDERR "$_: $ENV{$_}\n"
-            for qw( PERL5OPT HARNESS_PERL_SWITCHES );
+        # print STDERR "$_: $ENV{$_}\n" for qw(PERL5OPT HARNESS_PERL_SWITCHES);
         print STDERR "cover: running $test\n";
         system $test;
         $Options->{report} ||= "html";
