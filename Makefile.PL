@@ -421,6 +421,7 @@ prove : pure_all
 \t \$(PERL) -Iutils -MDevel::Cover::BuildUtils=prove_command -le '\$\$c = prove_command and print \$\$c and system \$\$c'
 
 t : pure_all
+\t \$(PERL) -Mblib bin/cover -delete
 \t exec make test HARNESS_OPTIONS=j`\$(PERL) -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e 'print nice_cpus'`:c HARNESS_TIMER=1
 
 DB = cover_db
