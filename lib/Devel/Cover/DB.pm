@@ -48,6 +48,8 @@ $Devel::Cover::DB::Ignore_filenames =
         (?: (?: rw-accessor | ro-accessor ) \s for )
         | # Template Toolkit
         (?: Parser\.yp )
+        | # perl generated
+        (?: \/loader\/0x )
       /x;
 
 sub new
