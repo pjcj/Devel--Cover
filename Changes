@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.96 - 24 September 2012
  - JSON:PP should have been JSON::PP (Paul Hirst) (github 28).
  - Correct when some new tests should be skipped.
  - Quieten some debugging output.
