@@ -4,6 +4,7 @@ Devel::Cover history
  - JSON:PP should have been JSON::PP (Paul Hirst) (github 28).
  - Correct when some new tests should be skipped.
  - Quieten some debugging output.
+ - Fix infinite loop during global destruction (github 29).
 
 Release 0.95 - 22 September 2012
  - Fix loss of condition coverage data when first operand calls into ignored

@@ -559,6 +559,9 @@ my $find_filename = qr/
 
 sub use_file
 {
+    # If we're in global destruction, forget it.
+    return unless $find_filename;
+
     my ($file) = @_;
 
     # print STDERR "use_file($file)\n";
