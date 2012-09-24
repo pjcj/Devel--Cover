@@ -20,14 +20,14 @@ tests/moo_cond
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2011-2012, Paul Johnson (paul@pjcj.net)
+3                                       # Copyright 2012, Paul Johnson (paul@pjcj.net)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      # __COVER__ skip_test $] < 5.008002 || !(eval "use Moo; 23")
+10                                      # __COVER__ skip_test $] < 5.008002 || !(eval "use Moo 1.000003; 23")
 11                                      # __COVER__ skip_reason Moo not available
 12                                      
 13             1                    1   use strict;
