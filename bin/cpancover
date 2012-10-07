@@ -18,6 +18,7 @@ use Devel::Cover::DB;
 use Devel::Cover::Dumper;
 
 use Cwd ();
+use Fcntl ":flock";
 use Getopt::Long;
 use Pod::Usage;
 use Template 2.00;
@@ -88,15 +89,19 @@ sub read_results
     my $f = "$Options->{outputdir}/cover.results";
     my %results;
 
-    if (open S, "<", $f)
+    open my $fh, "<", $f or return;
+    my $try;
+    until (flock $fh, LOCK_SH)
     {
-        while (<S>)
-        {
-            my ($mod, $status) = split;
-            $results{$mod} = $status;
-        }
-        close S or die "Can't close $f: $!\n";
+        die "Can't lock $f: $!\n" if $try++ > 60;
+        sleep 1;
     }
+    while (<$fh>)
+    {
+        my ($mod, $status) = split;
+        $results{$mod} = $status;
+    }
+    close $fh or die "Can't close $f: $!\n";
 
     \%results
 }
@@ -150,12 +155,18 @@ sub get_cover
 
     $results->{$module} = 1;
 
-    open S, ">", $f or die "Can't open $f: $!\n";
+    open my $fh, ">", $f or die "Can't open $f: $!\n";
+    my $try;
+    until (flock $fh, LOCK_EX)
+    {
+        die "Can't lock $f: $!\n" if $try++ > 60;
+        sleep 1;
+    }
     for my $mod (sort keys %$results)
     {
-        print S "$mod $results->{$mod}\n";
+        print $fh "$mod $results->{$mod}\n";
     }
-    close S or die "Can't close $f: $!\n";
+    close $fh or die "Can't close $f: $!\n";
 
     sys "cat $out" if -e $out;
 }
@@ -292,29 +303,32 @@ sub write_html
         chdir "$Options->{directory}/$module";
         print "Adding $module from $dbdir\n";
 
-        my $db = Devel::Cover::DB->new(db => $dbdir);
-        # next unless $db->is_valid;
-
-        my $criteria = $vars->{criteria} ||=
-                       [ grep(!/path|time/, $db->all_criteria) ];
-        $vars->{headers} ||=
-                       [ grep(!/path|time/, $db->all_criteria_short) ];
-
-        my %options = map { $_ => 1 } @$criteria;
-        $db->calculate_summary(%options);
-
-        push @{$vars->{modules}}, $module;
-        $vals{$module}{link} = "$module/$Options->{outputfile}";
-
-        for my $criterion (@$criteria)
+        eval
         {
-            my $summary = $db->summary("Total", $criterion);
-            my $pc = $summary->{percentage};
-            $pc = defined $pc ? sprintf "%6.2f", $pc : "n/a";
-            $vals{$module}{$criterion}{pc}      = $pc;
-            $vals{$module}{$criterion}{class}   = class($pc);
-            $vals{$module}{$criterion}{details} =
-                ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
+            my $db = Devel::Cover::DB->new(db => $dbdir);
+            # next unless $db->is_valid;
+
+            my $criteria = $vars->{criteria} ||=
+                           [ grep(!/path|time/, $db->all_criteria) ];
+            $vars->{headers} ||=
+                           [ grep(!/path|time/, $db->all_criteria_short) ];
+
+            my %options = map { $_ => 1 } @$criteria;
+            $db->calculate_summary(%options);
+
+            push @{$vars->{modules}}, $module;
+            $vals{$module}{link} = "$module/$Options->{outputfile}";
+
+            for my $criterion (@$criteria)
+            {
+                my $summary = $db->summary("Total", $criterion);
+                my $pc = $summary->{percentage};
+                $pc = defined $pc ? sprintf "%6.2f", $pc : "n/a";
+                $vals{$module}{$criterion}{pc}      = $pc;
+                $vals{$module}{$criterion}{class}   = class($pc);
+                $vals{$module}{$criterion}{details} =
+                  ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
+            }
         }
     }
 
@@ -343,7 +357,8 @@ sub main
         my @res = iterate_as_array
         (
             { workers => $workers },
-            sub { get_cover $_[1] },
+            sub { eval { get_cover $_[1] };
+                  warn "\n\n\n[$_[1]]: $@\n\n\n" if $@ },
             $Options->{module}
         );
         # print Dumper \@res;

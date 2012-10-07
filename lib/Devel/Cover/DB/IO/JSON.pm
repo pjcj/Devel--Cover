@@ -35,13 +35,17 @@ sub read
     my $self   = shift;
     my ($file) = @_;
 
-    open my $fh, "<", $file or die "Can't open $file: $!";
-    flock($fh, LOCK_SH) or die "Cannot lock file: $!\n";
+    open my $fh, "<", $file or die "Can't open $file: $!\n";
+    flock $fh, LOCK_SH      or die "Can't lock $file: $!\n";
     local $/;
-    my $data = $Format eq "JSON"
-        ? JSON::decode_json(<$fh>)
-        : JSON::PP::decode_json(<$fh>);
-    close $fh or die "Can't close $file: $!";
+    my $data;
+    eval {
+        $data = $Format eq "JSON"
+            ? JSON::decode_json(<$fh>)
+            : JSON::PP::decode_json(<$fh>);
+    };
+    die "Can't read $file with $Format: $@" if $@;
+    close $fh or die "Can't close $file: $!\n";
     $data
 }
 
@@ -53,10 +57,10 @@ sub write
     my $json = $Format eq "JSON" ? JSON->new : JSON::PP->new;
     $json->utf8->allow_blessed;
     $json->ascii->pretty->canonical if $self->{options} =~ /\bpretty\b/i;
-    open my $fh, ">", $file or die "Can't open $file: $!";
-    flock($fh, LOCK_EX) or die "Cannot lock file: $!\n";
+    open my $fh, ">", $file or die "Can't open $file: $!\n";
+    flock $fh, LOCK_EX      or die "Can't lock $file: $!\n";
     print $fh $json->encode($data);
-    close $fh or die "Can't close $file: $!";
+    close $fh or die "Can't close $file: $!\n";
     $self
 }
 
