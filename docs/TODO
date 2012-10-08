@@ -28,6 +28,7 @@
   - Diff functionality.
   - Merge CSS from basic_html and cpancover.
   - Provide a way to control syntax colouring.
+  - Cyclomatic complexity annotation.
 - Bugs:
   - Work with memoize.  Is this still a problem?
   - See if the XS code leaks, and fix it if it does.
