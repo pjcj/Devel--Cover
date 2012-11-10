@@ -8,8 +8,9 @@ use Cwd 'abs_path';
 use File::Spec;
 use Devel::Cover::Util 'remove_contained_paths';
 
+plan tests => 2;
+
 run();
-done_testing;
 
 sub run {
     my $cwd = abs_path "t/internal/inc_filter/cwd";
