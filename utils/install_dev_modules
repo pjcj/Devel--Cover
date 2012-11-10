@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cpanm Template Perl::Tidy Pod::Coverage Test::Differences Browser::Open \
+      Moose Moo DBM::Deep Readonly
