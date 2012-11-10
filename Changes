@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Filter paths contained in CWD out of @Inc (Christian Walde) (github 32).
+ - Test against 5.12.5, 5.14.3, 5.16.2, and 5.17.5.
+ - Improve parallelism for cpancover.
 
 Release 0.96 - 24 September 2012
  - JSON:PP should have been JSON::PP (Paul Hirst) (github 28).
