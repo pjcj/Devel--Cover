@@ -21,7 +21,8 @@ sub run {
 
     @inc = remove_contained_paths( $cwd, @inc );
 
-    is ~~ ( grep { /cwd_lib/ } @inc ), 4, "cwd_lib was left in the array four times";
+    is ~~ ( grep { /cwd_lib/ } @inc ), 4,
+       "cwd_lib was left in the array four times";
     is ~~ @inc, 4, "no other paths were left in the array";
 
     return;
