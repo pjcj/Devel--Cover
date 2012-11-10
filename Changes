@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.97 - 10 November 2012
  - Filter paths contained in CWD out of @Inc (Christian Walde) (github 32).
  - Test against 5.12.5, 5.14.3, 5.16.2, and 5.17.5.
  - Improve parallelism for cpancover.
