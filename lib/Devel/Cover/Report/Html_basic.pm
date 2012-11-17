@@ -447,7 +447,8 @@ sub report
     for (@{$options->{file}})
     {
         $R{file} = $_;
-        $R{file_html} = "$options->{outputdir}/$R{filenames}{$_}.html";
+        $R{file_link} = "$R{filenames}{$_}.html";
+        $R{file_html} = "$options->{outputdir}/$R{file_link}";
         my $show = $options->{show};
         print_file;
         print_branches    if $show->{branch};
@@ -683,7 +684,7 @@ $Templates{branches} = <<'EOT';
         <a name="[% branch.ref %]"> </a>
         <tr>
             <td class="h">
-                <a href="[% R.file_html %]#[% branch.number %]">[% branch.number %]</a>
+                <a href="[% R.file_link %]#[% branch.number %]">[% branch.number %]</a>
             </td>
             [% FOREACH part = branch.parts %]
                 <td class="[% part.class %]"> [% part.text %] </td>
@@ -719,7 +720,7 @@ $Templates{conditions} = <<'EOT';
             <a name="[% condition.ref %]"> </a>
             <tr>
                 <td class="h">
-                    <a href="[% R.file_html %]#[% condition.number %]">[% condition.number %]</a>
+                    <a href="[% R.file_link %]#[% condition.number %]">[% condition.number %]</a>
                 </td>
                 [% FOREACH part = condition.parts %]
                     <td class="[% part.class %]"> [% part.text %] </td>
@@ -759,7 +760,7 @@ $Templates{subroutines} = <<'EOT';
     [% FOREACH sub = subs %]
         <tr>
             <td class="h">
-                <a href="[% R.file_html %]#[% sub.line %]">[% sub.line %]</a>
+                <a href="[% R.file_link %]#[% sub.line %]">[% sub.line %]</a>
             </td>
             [% IF R.options.show.subroutine %]
                 <td class="[% sub.class %]"> [% sub.count %] </td>
