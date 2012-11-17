@@ -1223,6 +1223,123 @@ sub logassignop
 
 }
 
+sub is_scopex
+{
+    my $op = shift;
+    return $op->name eq "leave" || $op->name eq "scope" ||
+           $op->name eq "lineseq" ||
+           ($op->name eq "null" && class($op) eq "UNOP" &&
+               (is_scope($op->first) || $op->first->name eq "enter"));
+}
+
+sub is_ifelse_contx
+{
+    my $op = shift;
+    return ($op->name eq "null" and class($op) eq "UNOP" and
+            $op->first->name =~ /^(and|cond_expr)$/ and
+            is_scope($op->first->first->sibling));
+}
+
+sub process_op
+{
+    my $self = shift;
+    my ($op, $level) = @_;
+
+    if ($Collect)
+    {
+        my $class = class($op);
+        my $null  = $class eq "NULL";
+
+        # print STDERR "$class:$op at $File:$Line\n";
+
+        my $name = $op->can("name") ? $op->name : "Unknown";
+
+        print STDERR "$class:$name at $File:$Line\n";
+
+        # Get the coverage on this op.
+
+        if ($class eq "COP" && $Coverage{statement})
+        {
+            add_statement_cover($op) unless $Seen{statement}{$$op}++;
+        }
+        elsif (!$null && $name eq "null"
+                      && ppname($op->targ) eq "pp_nextstate"
+                      && $Coverage{statement})
+        {
+            # If the current op is null, but it was nextstate, we can still
+            # get at the file and line number, but we need to get dirty.
+
+            bless $op, "B::COP";
+            add_statement_cover($op) unless $Seen{statement}{$$op}++;
+            bless $op, "B::$class";
+        }
+        elsif ($Seen{other}{$$op}++)
+        {
+            return ""  # Only report on each op once.
+        }
+        elsif ($name eq "cond_expr")
+        {
+            local ($File, $Line) = ($File, $Line);
+            my $cond  = $op->first;
+            my $true  = $cond->sibling;
+            my $false = $true->sibling;
+            my $cx = 0;
+            if (!($cx < 1 && (is_scope($true) && $true->name ne "null") &&
+                    (is_scope($false) || is_ifelse_cont($false))))
+            {
+                { local $Collect; $cond = $self->deparse($cond, 8) }
+                add_branch_cover($op, "if", "$cond ? :", $File, $Line);
+            }
+            else
+            {
+                { local $Collect; $cond = $self->deparse($cond, 1) }
+                add_branch_cover($op, "if", "if ($cond) { }", $File, $Line);
+                while (class($false) ne "NULL" && is_ifelse_cont($false))
+                {
+                    my $newop   = $false->first;
+                    my $newcond = $newop->first;
+                    my $newtrue = $newcond->sibling;
+                    if ($newcond->name eq "lineseq")
+                    {
+                        # lineseq to ensure correct line numbers in elsif()
+                        # Bug #37302 fixed by change #33710.
+                        $newcond = $newcond->first->sibling;
+                    }
+                    # last in chain is OP_AND => no else
+                    $false      = $newtrue->sibling;
+                    { local $Collect; $newcond = $self->deparse($newcond, 1) }
+                    add_branch_cover($newop, "elsif", "elsif ($newcond) { }",
+                                     $File, $Line);
+                }
+            }
+        }
+        elsif ($class eq "LOGOP")
+        {
+            print STDERR "***************************\n";
+            { local $Collect; my $cond = $self->logop($op, 1) }
+        }
+    }
+}
+
+sub walk_topdown {
+    my ($op, $sub, $level) = @_;
+    $sub->($op, $level);
+    if ($op->can("flags") && $op->flags & OPf_KIDS) {
+        for (my $kid = $op->first; $$kid; $kid = $kid->sibling) {
+            walk_topdown($kid, $sub, $level + 1);
+        }
+    }
+    if (class($op) eq "PMOP") {
+        my $maybe_root = $op->pmreplroot;
+        if (ref($maybe_root) and $maybe_root->isa("B::OP")) {
+            # It really is the root of the replacement, not something
+            # else stored here for lack of space elsewhere
+            walk_topdown($maybe_root, $sub, $level + 1);
+        }
+    }
+}
+
+
 sub get_cover
 {
     my $deparse = B::Deparse->new;
@@ -1339,9 +1456,14 @@ sub get_cover
     local *B::Deparse::logop       = \&logop;
     local *B::Deparse::logassignop = \&logassignop;
 
+    my $cb = sub
+    {
+        # print "$_[0]: $_[1]\n";
+        process_op($deparse, @_);
+    };
     my $de = @_ && ref $_[0]
-                 ? $deparse->deparse($_[0], 0)
-                 : $deparse->deparse_sub($cv, 0);
+                 ? walk_topdown($_[0], $cb, 0)
+                 : walk_topdown($cv,   $cb, 0);
     # print STDERR "<$de>\n";
     $de
 }
