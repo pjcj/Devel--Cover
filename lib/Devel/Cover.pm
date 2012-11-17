@@ -900,9 +900,11 @@ sub add_statement_cover
 
 sub add_branch_cover
 {
-    return unless $Collect && $Coverage{branch};
+    # print "branch $Collect, $Coverage{branch}\n";
+    # return unless $Collect && $Coverage{branch};
 
     my ($op, $type, $text, $file, $line) = @_;
+    printf "branch $type %x $file:$line\n", $$op;
 
     # return unless $Seen{branch}{$$op}++;
 
@@ -946,14 +948,14 @@ sub add_branch_cover
         vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
     }
 
-    # warn "branch $type %x [@$c] => [@{$ccount->{branch}[$n]}]\n", $$op;
+    printf STDERR "branch $type %x [@$c] => [@{$ccount->{branch}[$n]}]\n", $$op;
 }
 
 sub add_condition_cover
 {
     my ($op, $strop, $left, $right) = @_;
 
-    return unless $Collect && $Coverage{condition};
+    # return unless $Collect && $Coverage{condition};
 
     my $key = get_key($op);
     # warn "Condition cover $$op from $File:$Line\n";
@@ -1045,7 +1047,7 @@ sub deparse
 
     my $deparse;
 
-    if ($Collect)
+    if (1 || $Collect)
     {
         my $class = class($op);
         my $null  = $class eq "NULL";
@@ -1154,7 +1156,7 @@ sub logop
     # print STDERR "left [$left], right [$right]\n";
     my ($file, $line) = ($File, $Line);
 
-    if ($cx < 1 && is_scope($right) && $blockname && $self->{expand} < 7)
+    if (1 || $cx < 1 && is_scope($right) && $blockname && $self->{expand} < 7)
     {
         # print STDERR 'if ($a) {$b}', "\n";
         # if ($a) {$b}
