@@ -114,7 +114,7 @@ BEGIN
     else
     {
         # Can't get @INC via eval `` in taint mode, revert to default value.
-        if ( ${^TAINT} )
+        if (${^TAINT})
         {
             @Inc = @Devel::Cover::Inc::Inc;
         }
@@ -134,8 +134,9 @@ BEGIN
             };
             if ($@)
             {
-                print STDERR __PACKAGE__, ": Error getting \@INC: $@\n",
-                                          "Reverting to default value for Inc.\n";
+                print STDERR __PACKAGE__,
+                             ": Error getting \@INC: $@\n",
+                             "Reverting to default value for Inc.\n";
                 @Inc = @Devel::Cover::Inc::Inc;
             }
         }
