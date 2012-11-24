@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fix setting Inc under taint mode (Guillaume Aubert) (guthub 26, 33).
 
 Release 0.97 - 10 November 2012
  - Filter paths contained in CWD out of @Inc (Christian Walde) (github 32).
