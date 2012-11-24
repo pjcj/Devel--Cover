@@ -1,7 +1,7 @@
 #!/bin/sh -x
 
 perlbrew uninstall cpancover
-perlbrew install perl-5.16.1 --as cpancover -j 8
+perlbrew install perl-5.16.2 --as cpancover -j 8
 export PATH=$PERLBREW_ROOT/perls/cpancover/bin:$PATH
 rm -rf ~/.cpanm
 rm -rf ~/cpancover
