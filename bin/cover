@@ -29,7 +29,7 @@ my $Options =
     add_uncoverable_point    => [],
     annotation               => [],
     coverage                 => [],
-    delete                   => 0,
+    delete                   => undef,
     delete_uncoverable_point => [],
     gcov                     => $Config{gccversion},
     ignore                   => [],
@@ -209,7 +209,7 @@ sub main
     {
         # TODO - make this a little robust
         # system "$^X Makefile.PL" unless -e "Makefile";
-        delete_db($dbname, @ARGV);
+        delete_db($dbname, @ARGV) unless defined $Options->{delete};
         my $env_db_name = $dbname;
         $env_db_name =~ s/\\/\\\\/g if $^O eq 'MSWin32';
         my $extra = "";
