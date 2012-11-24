@@ -619,7 +619,7 @@ sub uncoverable
         # print STDERR "Reading $file\n";
         open my $fh, "<", $file or do
         {
-            warn "Devel::Cover: Can't open file $file: $!\n";
+            warn "Devel::Cover: Can't open $file: $!\n";
             next;
         };
         my $df = Digest::MD5->new;  # MD5 digest of the file
@@ -724,7 +724,8 @@ sub uncoverable_comments
     # Look for uncoverable comments
     open my $fh, "<", $file or do
     {
-        warn "Devel::Cover: Can't open file $file: $!\n";
+        # The warning should have already been given ...
+        # warn "Devel::Cover: Warning: can't open $file: $!\n";
         return;
     };
     my @waiting;
@@ -898,6 +899,7 @@ sub cover
                     keys %{$self->{runs}};
     # print STDERR "runs: ", Dumper $self->{runs};
 
+    my %warned;
     for my $run (@runs)
     {
         last unless $st;
@@ -941,8 +943,9 @@ sub cover
                 # print STDERR "$criterion: ", Dumper $sc, $fc;
                 unless ($sc)
                 {
-                    print STDERR "Devel::Cover: Can't locate structure for ",
-                                 "$criterion in $file\n";
+                    print STDERR "Devel::Cover: Warning: can't locate ",
+                                 "structure for $criterion in $file\n"
+                        unless $warned{$file}{$criterion}++;
                     next;
                 }
                 my $cc  = $cf->{$criterion} ||= {};
