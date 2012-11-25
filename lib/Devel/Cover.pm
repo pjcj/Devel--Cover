@@ -1381,7 +1381,7 @@ easily create your own.
 
 The F<gcov2perl> program can be used to convert gcov files to C<Devel::Cover>
 databases.  This allows you to display your C or XS code coverage together
-with your Perl coverage, or to use any of the Devel::Cvoer reports to display
+with your Perl coverage, or to use any of the Devel::Cover reports to display
 your C coverage data.
 
 You may find that the coverage results don't match your expectations.  This
