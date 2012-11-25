@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.98 - 25 November 2012
  - Fix links on html_basic report.
  - Fix setting Inc under taint mode (Guillaume Aubert) (guthub 26, 33).
  - Test against 5.17.6.
