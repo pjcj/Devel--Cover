@@ -477,7 +477,7 @@ The following command line options are supported:
 
 The following exit values are returned:
 
-0   All operaions were completed successfully.
+0   All operations were completed successfully.
 
 >0  An error occurred.
 
