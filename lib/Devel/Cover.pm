@@ -1631,8 +1631,10 @@ CV.  Hints, tips or patches to resolve this will be gladly accepted.
 Almost certainly.
 
 See the BUGS file, the TODO file and the bug trackers at
-L<https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover> and
 L<https://github.com/pjcj/Devel--Cover/issues?sort=created&direction=desc&state=open>
+and L<https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover>
+
+Please report new bugs on Github.
 
 =head1 LICENCE
 
