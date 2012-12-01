@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Improve documentation (Olaf Alders) (github 34).
 
 Release 0.98 - 25 November 2012
  - Fix links on html_basic report.
