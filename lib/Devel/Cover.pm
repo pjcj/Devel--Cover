@@ -1297,7 +1297,7 @@ or
  HARNESS_PERL_SWITCHES=-MDevel::Cover make test
  cover
 
-To get coverage for an uninstalled module which uses Module::Build (0.26 or
+To get coverage for an uninstalled module which uses L<Module::Build> (0.26 or
 later):
 
  ./Build testcover
@@ -1357,7 +1357,7 @@ Code coverage data are collected by replacing perl ops with functions which
 count how many times the ops are executed.  These data are then mapped back to
 reality using the B compiler modules.  There is also a statement profiling
 facility which should not be relied on.  For proper profiling use
-Devel::NYTProf.  Previous versions of Devel::Cover collected coverage data by
+L<Devel::NYTProf>.  Previous versions of Devel::Cover collected coverage data by
 replacing perl's runops function.  It is still possible to switch to that mode
 of operation, but this now gets little testing and will probably be removed
 soon.  You probably don't care about any of this.
@@ -1454,7 +1454,7 @@ information as possible.
 
 You can specify options to some coverage criteria.  At the moment only pod
 coverage takes any options.  These are the parameters which are passed into
-the Pod::Coverage constructor.  The extra options are separated by dashes, and
+the L<Pod::Coverage> constructor.  The extra options are separated by dashes, and
 you may specify as many as you wish.  For example, to specify that all
 subroutines containing xx are private, call Devel::Cover with the option
 -coverage,pod-also_private-xx.
@@ -1508,15 +1508,15 @@ Devel::Cover maintainers only.
 
 Some code and ideas cribbed from:
 
- Devel::OpProf
- B::Concise
- B::Deparse
+ L<Devel::OpProf>
+ L<B::Concise>
+ L<B::Deparse>
 
 =head1 SEE ALSO
 
- Devel::Cover::Tutorial
- B
- Pod::Coverage
+ L<Devel::Cover::Tutorial>
+ L<B>
+ L<Pod::Coverage>
 
 =head1 LIMITATIONS
 
@@ -1552,23 +1552,23 @@ Modules used by Devel::Cover while gathering coverage:
 
 =over 4
 
-=item * B
+=item * L<B>
 
-=item * B::Debug
+=item * L<B::Debug>
 
-=item * B::Deparse
+=item * L<B::Deparse>
 
-=item * Carp
+=item * L<Carp>
 
-=item * Cwd
+=item * L<Cwd>
 
-=item * Digest::MD5
+=item * L<Digest::MD5>
 
-=item * File::Path
+=item * L<File::Path>
 
-=item * File::Spec
+=item * L<File::Spec>
 
-=item * Storable
+=item * L<Storable>
 
 =back
 
@@ -1583,8 +1583,8 @@ CV.  Hints, tips or patches to resolve this will be gladly accepted.
 Almost certainly.
 
 See the BUGS file, the TODO file and the bug trackers at
-https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover and
-https://github.com/pjcj/Devel--Cover/issues?sort=created&direction=desc&state=open
+L<https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover> and
+L<https://github.com/pjcj/Devel--Cover/issues?sort=created&direction=desc&state=open>
 
 =head1 LICENCE
 
