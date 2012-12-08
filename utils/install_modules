@@ -226,6 +226,11 @@ my $modules = <<EOM;
     Term::ReadKey
     DBI
     Test::Exception
+    Data::DPath
+    Config::INI::Serializer
+    Class::MethodMaker
+    PDF::FDF::Simple
+    TAP::DOM
 
     # Web stuff
     Authen::Passphrase::BlowfishCrypt
