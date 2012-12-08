@@ -462,6 +462,13 @@ $Templates{summary} = <<'EOT';
 
 </table>
 
+<br/>
+
+This server generously donated by
+<a href="www.bytemark.co.uk/r/cpancover">
+    http://www.bytemark.co.uk/images/subpages/spreadtheword/bytemark_logo_179_x_14.png
+</a>.
+
 [% END %]
 EOT
 
