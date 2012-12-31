@@ -464,10 +464,18 @@ $Templates{summary} = <<'EOT';
 
 <br/>
 
+<hr/>
+Coverage information from <a href="https://metacpan.org/module/Devel::Cover">
+  Devel::Cover
+</a> by <a href="http://pjcj.net">Paul Johnson</a>.
+
+<br/>
+<br/>
+
 This server generously donated by
-<a href="www.bytemark.co.uk/r/cpancover">
-    http://www.bytemark.co.uk/images/subpages/spreadtheword/bytemark_logo_179_x_14.png
-</a>.
+<a href="http://www.bytemark.co.uk/r/cpancover">
+  <img src="http://www.bytemark.co.uk/images/subpages/spreadtheword/bytemark_logo_179_x_14.png" alt="bytemark">
+</a>
 
 [% END %]
 EOT
