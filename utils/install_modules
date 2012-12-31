@@ -271,6 +271,9 @@ my $modules = <<EOM;
     # Other stuff
     Image::PNG
     Games::Bingo
+    Method::Signatures
+    Data::Random
+    Debuggit
 
 EOM
 
