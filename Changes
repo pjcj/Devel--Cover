@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 0.99 - 31 December 2012
  - Improve documentation (Olaf Alders) (github 34).
  - Thank Bytemark for the cpancover server.
  - Test against 5.17.7.
