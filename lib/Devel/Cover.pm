@@ -144,7 +144,7 @@ BEGIN
 
     @Inc = map { -d $_ ? ($_ eq "." ? $_ : Cwd::abs_path($_)) : () } @Inc;
 
-    @Inc = remove_contained_paths( getcwd, @Inc );
+    @Inc = remove_contained_paths(getcwd, @Inc);
 
     @Ignore = ("/Devel/Cover[./]") unless $Self_cover = $ENV{DEVEL_COVER_SELF};
     # $^P = 0x004 | 0x010 | 0x100 | 0x200;
