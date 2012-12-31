@@ -1,0 +1,59 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/redefine_sub                          100.0  100.0    n/a  100.0  100.0
+Total                                       100.0  100.0    n/a  100.0  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/redefine_sub
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       sub s1 {
+4              2                    2       my $t = shift;
+5              2    100                     if ($t > 5) {
+6              1                                print 5;
+7                                           } else {
+8              1                                print $t;
+9                                           }
+10                                      }
+11                                      
+12             1                        my $c = *main::s1{CODE};
+13                                      
+14                                      *main::s1 = sub {
+15             2                    2       print "extra";
+16             2                            &$c(@_);
+17             1                        };
+18                                      
+19             1                        s1(1);
+20             1                        s1(7);
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+5            100      1      1   if ($t > 5) { }
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location             
+---------- ----- ---------------------
+__ANON__       2 tests/redefine_sub:15
+s1             2 tests/redefine_sub:4 
+
+

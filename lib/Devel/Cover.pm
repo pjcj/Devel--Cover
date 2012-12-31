@@ -69,6 +69,7 @@ my $Pod = $INC{"Pod/Coverage/CountParents.pm"} ? "Pod::Coverage::CountParents" :
 my %Pod;                                 # Pod coverage data.
 
 my @Cvs;                                 # All the Cvs we want to cover.
+my %Cvs;                                 # All the Cvs we want to cover.
 my @Subs;                                # All the subs we want to cover.
 my $Cv;                                  # Cv we are looking in.
 my $Sub_name;                            # Name of the sub we are looking in.
@@ -604,6 +605,7 @@ sub use_file
         unless $Files{$file} || $Silent
                              || $file =~ $Devel::Cover::DB::Ignore_filenames;
 
+    add_cvs();  # add CVs now in case of symbol table manipulation
     $Files{$file}
 }
 
@@ -629,12 +631,14 @@ sub B::GV::find_cv
     return unless $$cv;
 
     # print STDERR "find_cv $$cv\n" if check_file($cv);
-    push @Cvs, $cv if check_file($cv);
-    push @Cvs, grep check_file($_), $cv->PADLIST->ARRAY->ARRAY
-        if $cv->can("PADLIST") &&
-           $cv->PADLIST->can("ARRAY") &&
-           $cv->PADLIST->ARRAY &&
-           $cv->PADLIST->ARRAY->can("ARRAY");
+    $Cvs{$cv} ||= $cv if check_file($cv);
+    if ($cv->can("PADLIST") &&
+        $cv->PADLIST->can("ARRAY") &&
+        $cv->PADLIST->ARRAY &&
+        $cv->PADLIST->ARRAY->can("ARRAY"))
+    {
+        $Cvs{$_} ||= $_ for grep check_file($_), $cv->PADLIST->ARRAY->ARRAY;
+    }
 };
 
 sub sub_info
@@ -666,11 +670,16 @@ sub sub_info
     ($name, $start)
 }
 
+sub add_cvs
+{
+    $Cvs{$_} ||= $_ for grep check_file($_), B::main_cv->PADLIST->ARRAY->ARRAY;
+}
+
 sub check_files
 {
     # print STDERR "Checking files\n";
 
-    @Cvs = grep check_file($_), B::main_cv->PADLIST->ARRAY->ARRAY;
+    add_cvs();
 
     my %seen_pkg;
     my %seen_cv;
@@ -692,11 +701,13 @@ sub check_files
         ($line, $name)
     };
 
+    # print Dumper \%Cvs;
+
     @Cvs = map  $_->[0],
            sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] }
            map  [ $_, $l->($_) ],
            grep !$seen_cv{$$_}++,
-           @Cvs;
+           values %Cvs;
 
     # Hack to bump up the refcount of the subs.  If we don't do this then the
     # subs in some modules don't seem to be around when we get to looking at

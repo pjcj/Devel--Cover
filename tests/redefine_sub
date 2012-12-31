@@ -1,0 +1,20 @@
+#!/usr/bin/perl
+
+sub s1 {
+    my $t = shift;
+    if ($t > 5) {
+        print 5;
+    } else {
+        print $t;
+    }
+}
+
+my $c = *main::s1{CODE};
+
+*main::s1 = sub {
+    print "extra";
+    &$c(@_);
+};
+
+s1(1);
+s1(7);
