@@ -4,6 +4,7 @@ Devel::Cover history
  - Improve documentation (Olaf Alders) (github 34).
  - Thank Bytemark for the cpancover server.
  - Test against 5.17.7.
+ - Provide coverage for subs removed from the symbol table (rt 13207).
 
 Release 0.98 - 25 November 2012
  - Fix links on html_basic report.

@@ -1,7 +1,7 @@
 - Enhancements:
   - Different criteria for different runs.
   - Marking of unreachable code - commandline tool and gui.
-  - Threads support.
+  - Threads support - at least for some coverage criteria.
   - Test analysis.
   - Profiling and speedups.
   - Collect data for path coverage.
