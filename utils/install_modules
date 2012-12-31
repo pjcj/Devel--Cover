@@ -270,6 +270,7 @@ my $modules = <<EOM;
 
     # Other stuff
     Image::PNG
+    Games::Bingo
 
 EOM
 
