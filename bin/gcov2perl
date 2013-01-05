@@ -23,8 +23,7 @@ use Pod::Usage;
 
 my $Options =
 {
-    db     => "cover_db",
-    merge  => 1,
+    db => "cover_db",
 };
 
 sub get_options
@@ -35,7 +34,6 @@ sub get_options
                    db=s
                    help|h!
                    info|i!
-                   merge!
                    version|v!
                  ));
     print "$0 version " . __PACKAGE__->VERSION . "\n" and exit 0
