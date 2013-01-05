@@ -824,6 +824,8 @@ static void cover_logop(pTHX)
 #else
                 next = PL_op->op_next;
 #endif
+                if (PL_op->op_type == OP_XOR && !next)
+                    return;  /* in fold_constants */
                 NDEB(op_dump(PL_op));
                 NDEB(op_dump(next));
 
