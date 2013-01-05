@@ -38,8 +38,8 @@ sub get_options
                  ));
     print "$0 version " . __PACKAGE__->VERSION . "\n" and exit 0
         if $Options->{version};
-    pod2usage(-exitval => 0, -verbose => 0)  if $Options->{help};
-    pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
+    pod2usage(-exitval => 0, -verbose => 0) if $Options->{help};
+    pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
 }
 
 sub add_cover
