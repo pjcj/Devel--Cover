@@ -1,7 +1,16 @@
+# Copyright 2001-2012, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+package Devel::Cover::Util;
+
 use strict;
 use warnings;
 
-package Devel::Cover::Util;
+# VERSION
 
 use Cwd 'abs_path';
 use File::Spec;
@@ -37,4 +46,41 @@ sub remove_contained_paths {
     return @paths;
 }
 
-1;
+1
+
+__END__
+
+=head1 NAME
+
+Devel::Cover::Util - Utility subroutines for Devel::Cover
+
+=head1 SYNOPSIS
+
+ use Devel::Cover::Util "remove_contained_paths";
+
+=head1 DESCRIPTION
+
+This module utility subroutines for Devel::Cover.
+
+=head1 SUBROUTINES
+
+=head2 remove_contained_paths
+
+ @Inc = remove_contained_paths(getcwd, @Inc);
+
+Remove certain paths from a list of paths.
+
+=head1 BUGS
+
+Huh?
+
+=head1 LICENCE
+
+Copyright 2001-2012, Paul Johnson (paul@pjcj.net)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+http://www.pjcj.net
+
+=cut
