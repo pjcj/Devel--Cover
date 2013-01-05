@@ -279,7 +279,9 @@ sub write
     for my $file (sort keys %{$self->{f}})
     {
         $self->{f}{$file}{file} = $file;
-        unless ($self->{f}{$file}{digest})
+        my $digest = $self->{f}{$file}{digest};
+        $digest = $1 if $digest =~ /(.*)/; # ie tainting.
+        unless ($digest)
         {
             warn "Can't find digest for $file"
                 unless $Devel::Cover::Silent ||
@@ -288,11 +290,10 @@ sub write
                         $file =~ q|/Devel/Cover[./]|);
             next;
         }
-        my $df_final = "$dir/$self->{f}{$file}{digest}";
-        my $df_temp = "$dir/.$self->{f}{$file}{digest}.$$";
+        my $df_final = "$dir/$digest";
+        my $df_temp = "$dir/.$digest.$$";
         # TODO - determine if Structure has changed to save writing it.
         # my $f = $df; my $n = 1; $df = $f . "." . $n++ while -e $df;
-        # print STDERR "Writing [$file] to [$df]\n";
         my $io = Devel::Cover::DB::IO->new;
         $io->write($self->{f}{$file}, $df_temp); # unless -e $df;
         unless (rename $df_temp, $df_final) {
