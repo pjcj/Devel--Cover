@@ -377,6 +377,7 @@ sub read_all
     opendir D, $dir or return;
     for my $d (sort grep $_ !~ /\./, readdir D)
     {
+        $d = $1 if $d =~ /(.*)/; # Die tainting.
         $self->read($d);
     }
     closedir D or die "Can't closedir $dir: $!";
