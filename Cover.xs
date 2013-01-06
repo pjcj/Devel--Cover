@@ -244,6 +244,9 @@ static int check_if_collecting(pTHX_ COP *cop)
 {
     dMY_CXT;
 
+#if !NO_TAINT_SUPPORT
+    int tainted = PL_tainted;
+#endif
     char *file = CopFILE(cop);
     int in_re_eval = strnEQ(file, "(reeval ", 8);
     NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, CopLINE(cop)));
@@ -319,6 +322,9 @@ static int check_if_collecting(pTHX_ COP *cop)
     }
 #endif
 
+#if !NO_TAINT_SUPPORT
+    PL_tainted = tainted;
+#endif
     return MY_CXT.collecting_here;
 }
 
