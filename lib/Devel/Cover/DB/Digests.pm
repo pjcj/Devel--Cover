@@ -76,7 +76,7 @@ sub canonical_file
         my $dfile = $self->get($digest);
         if ($dfile && $dfile ne $file)
         {
-            warn "Devel::Cover: Adding coverage for $file to $dfile\n"
+            print STDERR "Devel::Cover: Adding coverage for $file to $dfile\n"
                 unless $Devel::Cover::Silent;
             $cfile = $dfile;
         }
