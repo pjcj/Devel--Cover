@@ -568,6 +568,27 @@ $Templates{summary} = <<'EOT';
     </tr>
 </table>
 <div><br></br></div>
+
+<script language=javascript>
+
+    function filter_files(filter_by) {
+        var allelements = document.getElementsByTagName("tr");
+        var re_now       = new RegExp(filter_by, 'i');
+        for(var i = 0; i < allelements.length; i++) {
+            if(allelements[i].className) {
+                if(filter_by == "" || allelements[i].className == "Total" || (filter_by.length && re_now.test(allelements[i].className))) {
+                    allelements[i].style.display = "table-row";
+                } else if(filter_by.length && !re_now.test(allelements[i].className)) {
+                    allelements[i].style.display = "none";
+                }
+            }
+        }
+    }
+
+</script>
+<form name=filterform action='javascript:filter_files(document.forms["filterform"]["filterfield"].value)'>Restrict to regex: <input type=text name=filterfield><input type=submit></form>
+<br />
+
 <table class="sortable" id="coverage_table">
     <thead>
         <tr>
@@ -581,7 +602,7 @@ $Templates{summary} = <<'EOT';
 
     <tfoot>
     [% FOREACH file = files %]
-        <tr align="center" valign="top">
+        <tr align="center" valign="top" class="[% file %]">
             <td align="left">
                 [% IF R.exists.$file %]
                    <a href="[% R.filenames.$file %].html"> [% file %] </a>
