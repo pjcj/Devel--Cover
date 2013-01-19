@@ -257,15 +257,15 @@ sub print_branches
 
             push @branches,
                 {
-                    number     => $count == 1 ? $location : "",
-                    parts      =>
+                    number => $count == 1 ? $location : "",
+                    parts  =>
                     [
                         map { text  => $b->value($_),
                               class => class($b->value($_), $b->error($_),
                                              "branch") },
                             0 .. $b->total - 1
                     ],
-                    text       => $text,
+                    text   => $text,
                 };
         }
     }
@@ -298,16 +298,16 @@ sub print_conditions
 
             push @{$r{$c->type}},
                 {
-                    number     => $count{$c->type} == 1 ? $location : "",
-                    condition  => $c,
-                    parts      =>
+                    number    => $count{$c->type} == 1 ? $location : "",
+                    condition => $c,
+                    parts     =>
                     [
                         map { text  => $c->value($_),
                               class => class($c->value($_), $c->error($_),
                                              "condition") },
                             0 .. $c->total - 1
                     ],
-                    text       => $text,
+                    text      => $text,
                 };
         }
     }
