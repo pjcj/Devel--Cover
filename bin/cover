@@ -419,6 +419,8 @@ The following reports are currently available:
 
  text                  - detailed textual summary
  html                  - detailed HTML reports
+ html_basic            - detailed HTML reports with syntax highlighting
+ compilation           - output in a format similar to Perl
 
 =head1 OPTIONS
 

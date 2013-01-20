@@ -379,12 +379,14 @@ sub get_options
 {
     my ($self, $opt) = @_;
     $opt->{option}{outputfile} = "coverage.html";
+    $opt->{option}{restrict}   = 1;
     $threshold->{$_} = $opt->{"report_$_"} for
         grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
     die "Invalid command line options" unless
         GetOptions($opt->{option},
                    qw(
                        outputfile=s
+                       restrict!
                      ));
 }
 
@@ -569,25 +571,35 @@ $Templates{summary} = <<'EOT';
 </table>
 <div><br></br></div>
 
+[% IF R.options.option.restrict %]
 <script language=javascript>
 
-    function filter_files(filter_by) {
-        var allelements = document.getElementsByTagName("tr");
-        var re_now       = new RegExp(filter_by, 'i');
-        for(var i = 0; i < allelements.length; i++) {
-            if(allelements[i].className) {
-                if(filter_by == "" || allelements[i].className == "Total" || (filter_by.length && re_now.test(allelements[i].className))) {
-                    allelements[i].style.display = "table-row";
-                } else if(filter_by.length && !re_now.test(allelements[i].className)) {
-                    allelements[i].style.display = "none";
-                }
+function filter_files(filter_by) {
+    var allelements = document.getElementsByTagName("tr");
+    var re_now      = new RegExp(filter_by, "i");
+    for (var i = 0; i < allelements.length; i++) {
+        if (allelements[i].className) {
+            if (filter_by == "" || allelements[i].className == "Total" ||
+                (filter_by.length && re_now.test(allelements[i].className))) {
+                allelements[i].style.display = "table-row";
+            } else if (filter_by.length &&
+                       !re_now.test(allelements[i].className)) {
+                allelements[i].style.display = "none";
             }
         }
     }
+}
 
 </script>
-<form name=filterform action='javascript:filter_files(document.forms["filterform"]["filterfield"].value)'>Restrict to regex: <input type=text name=filterfield><input type=submit></form>
+
+<form name=filterform
+      action='javascript:filter_files(document.forms["filterform"]["filterfield"].value)'>
+    Restrict to regex:
+    <input type=text name=filterfield><input type=submit>
+</form>
+
 <br />
+[% END %]
 
 <table class="sortable" id="coverage_table">
     <thead>
@@ -815,6 +827,13 @@ Devel::Cover::Report::Html_basic - HTML backend for Devel::Cover
 This module provides a HTML reporting mechanism for coverage data.  It
 is designed to be called from the C<cover> program. It will add syntax
 highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
+
+=head1 OPTIONS
+
+The following command line options are supported:
+
+ -outputfile           - name of output file             (default coverage.html)
+ -restrict             - add restrict to regex form      (default on)
 
 =head1 SEE ALSO
 
