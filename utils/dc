@@ -1,0 +1,14 @@
+#!/usr/bin/zsh
+
+case "$1" in
+    "update-copyright")
+        from="${2:-`date +'%Y' --date='last year'`}"
+        to="${3:-`date +'%Y'`}"
+        echo Updating copyright from $from to $to
+        perl -pi -e "s/Copyright \d+-\K$from(, Paul Johnson)/$to\$1/" **/*(.)
+        perl -pi -e "s/Copyright $from\K(, Paul Johnson)/-$to\$1/" **/*(.)
+        ;;
+    *)
+        echo Unknown option "$1"
+        ;;
+esac
