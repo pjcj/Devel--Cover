@@ -1509,8 +1509,8 @@ information as possible.
 
 You can specify options to some coverage criteria.  At the moment only pod
 coverage takes any options.  These are the parameters which are passed into
-the L<Pod::Coverage> constructor.  The extra options are separated by dashes, and
-you may specify as many as you wish.  For example, to specify that all
+the L<Pod::Coverage> constructor.  The extra options are separated by dashes,
+and you may specify as many as you wish.  For example, to specify that all
 subroutines containing xx are private, call Devel::Cover with the option
 -coverage,pod-also_private-xx.
 
