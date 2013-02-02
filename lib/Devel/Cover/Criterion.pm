@@ -27,6 +27,7 @@ use Devel::Cover::Pod;
 sub coverage    { $_[0][0] }
 sub information { $_[0][1] }
 
+sub uncoverable { "n/a" }
 sub covered     { "n/a" }
 sub total       { "n/a" }
 sub percentage  { "n/a" }
