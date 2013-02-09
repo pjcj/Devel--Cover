@@ -1549,6 +1549,131 @@ multiple times, but they can also take multiple comma separated arguments.  In
 any case you should not add a space after the comma, unless you want the
 argument to start with that literal space.
 
+=head1 UNCOVERABLE CRITERIA
+
+Sometimes you have code which is uncoverable for some reason.  Perhaps it is
+an else clause that cannot be reached, or a check for an error condition that
+should never happen.  You can tell Devel::Cover that certain criteria are
+uncoverable and then they are not counted as errors when they are not
+exercised.  In fact, they are counted as error if they are exercised.
+
+This feature should only be used as something of a last resort.  Ideally you
+would find some way of exercising all your code.  But if you have analysed
+your code and determined that you are not going to be able to exercise it, it
+may be better to record that fact in some formal fashion and stop Devel::Cover
+complaining about it, so that real problems are not lost in the noise.
+
+There are two ways to specify a construct as uncoverable, one invasive and one
+non-invasive.
+
+=head2 Invasive specification
+
+You can use special comments in your code to specify uncoverable criteria.
+Comment are of the form:
+
+ # uncoverable <criterion> [details]
+
+The keyword "uncoverable" must be the first text in the comment.  It should be
+followed by the name of the coverage criterion which is uncoverable.  There
+may then be further information depending on the nature of the uncoverable
+construct.
+
+=head3 Statements
+
+The "uncoverable" comment should appear on either the same line as the
+statement, of on the line before it:
+
+    $impossible++;  # uncoverable statement
+    # uncoverable statement
+    it_has_all_gone_horribly_wrong();
+
+If there are multiple statements on a line you can specify which statement is
+uncoverable by using the "count" attribute, count:n, which indicates that the
+uncoverable statement is the nth statement on the line.
+
+    # uncoverable statement count:1
+    # uncoverable statement count:2
+    cannot_run_this(); or_this();
+
+=head3 Branches
+
+The "uncoverable" comment should specify whether the "true" or "false" branch
+is uncoverable.
+
+    # uncoverable branch true
+    if (pi == 3)
+
+Both branches my be uncoverable:
+
+    # uncoverable branch true
+    # uncoverable branch false
+    if (impossible_thing_happened_one_way()) {
+        handle_it_one_way();      # uncoverable statement
+    } else {
+        handle_it_another_way();  # uncoverable statement
+    }
+
+Both branches could be uncoverable:
+
+=head3 Conditions
+
+Because of the way in which Perl short-circuits boolean operations, there are
+three ways in which such conditionals can be uncoverable.  In the case of C<
+$x && $y> for example, the left operator may never be true, the right operator
+may never be true, and the whole operation may never be false.  These may be
+modelled thus:
+
+    # uncoverable branch true
+    # uncoverable condition left
+    # uncoverable condition false
+    if ($x && !$y)
+    {
+        $x++;  # uncoverable statement
+    }
+
+    # uncoverable branch true
+    # uncoverable condition right
+    # uncoverable condition false
+    if (!$x && $y)
+    {
+    }
+
+Or conditionals are handled in a similar fashion (TODO - provide some
+examples) but xor conditionals are not properly handled yet.
+
+=head3 Subroutines
+
+A subroutine should be marked as uncoverable at the point where the first
+statement is marked as uncoverable.  Ideally all statements in the subroutine
+would be marked as uncoverable automatically, but that isn't the case at the
+moment.
+
+    sub z
+    {
+        # uncoverable subroutine
+        $y++; # uncoverable statement
+    }
+
+=head2 Non-invasive specification
+
+If you can't, or don't want to add coverage comments to your code, you can
+specify the uncoverable information in a separate file.  My default this file
+is L<.uncoverable> but you can override that.
+
+The interface to managing this file is the L<cover> program, and the options
+are:
+
+ -uncoverable_file
+ -add_uncoverable_point
+ -delete_uncoverable_point
+ -clean_uncoverable_points
+
+Of these, only the first two are implemented at the moment.  The parameter for
+-add_uncoverable_point is a string composed of up to seven space separated
+elements: "$file $criterion $line $count $type $class $note".
+
+TODO - more information and examples.
+
 =head1 ENVIRONMENT
 
 The -silent option is turned on when Devel::Cover is invoked via

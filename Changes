@@ -5,6 +5,7 @@ Devel::Cover history
  - Fix various problems running Devel::Cover under tainting (github 41).
  - Add JavaScript to filter results in html_basic (David Cantrell) (github 42).
    Use -norestrict option to keep previous behaviour.
+ - Document ability to mark code as uncoverable.
 
 Release 0.99 - 31 December 2012
  - Improve documentation (Olaf Alders) (github 34).

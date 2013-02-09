@@ -23,9 +23,9 @@ if ($x && !$y)
 }
 
 # uncoverable branch true
-# uncoverable condition left
 # uncoverable condition right
-if (!$x || !$y)
+# uncoverable condition false
+if (!$x && $y)
 {
     # uncoverable statement count:1
     # uncoverable statement count:2

@@ -824,6 +824,7 @@ static void cover_logop(pTHX)
                 }
 
 #if PERL_VERSION > 14
+                NDEB(D(L, "Getting next\n"));
                 next = (PL_op->op_type == OP_XOR)
                     ? PL_op->op_next
                     : right->op_next;

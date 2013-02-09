@@ -44,9 +44,9 @@ line  err   stmt   bran   cond    sub   code
 23                                      }
 24                                      
 25                                      # uncoverable branch true
-26                                      # uncoverable condition left
-27                                      # uncoverable condition right
-28             1   - 50   - 33          if (!$x || !$y)
+26                                      # uncoverable condition right
+27                                      # uncoverable condition false
+28             1   - 50   - 33          if (!$x && $y)
 29                                      {
 30                                          # uncoverable statement count:1
 31                                          # uncoverable statement count:2
@@ -70,7 +70,7 @@ Branches
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 18          - 50     -0      1   if ($x and not $y)
-28          - 50     -0      1   if (not $x or not $y)
+28          - 50     -0      1   if (not $x and $y)
 
 
 Conditions
@@ -81,12 +81,7 @@ and 3 conditions
 line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
 18          - 33     -0      1     -0   $x and not $y
-
-or 3 conditions
-
-line  err      %      l  !l&&r !l&&!r   expr
------ --- ------ ------ ------ ------   ----
-28          - 33     -0     -0      1   not $x or not $y
+28          - 33      1     -0     -0   not $x and $y
 
 
 Uncovered Subroutines
