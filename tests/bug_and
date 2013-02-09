@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+
+# Copyright 2013, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+my $x = 1;
+my $y = 1;
+
+if ($x && !$y) {
+    die "Urgh";
+}
+
+if ($x && $y) {
+}
+
+unless ($x && $y) {
+    die "Urgh";
+}
+
+if (!($x && $y)) {
+    die "Urgh";
+}
+
+# TODO - this does not get reported on correctly.  It is reported identically
+# to the first case, but it should be the same as cases 2 - 4.
+if (!$x || !$y) {
+    die "Urgh";
+}
