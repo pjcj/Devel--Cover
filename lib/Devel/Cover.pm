@@ -1680,17 +1680,24 @@ TODO - more information and examples.
 
 =head1 ENVIRONMENT
 
+=head2 User variables
+
 The -silent option is turned on when Devel::Cover is invoked via
 $HARNESS_PERL_SWITCHES or $PERL5OPT.  Devel::Cover tries to do the right thing
 when $MOD_PERL is set.  $DEVEL_COVER_OPTIONS is appended to any options passed
 into Devel::Cover.
 
+=head2 Develeoper variables
+
 When running Devel::Cover's own test suite, $DEVEL_COVER_DEBUG turns on
 debugging information, $DEVEL_COVER_GOLDEN_VERSION overrides Devel::Cover's
 own idea of which golden results it should test against, and
-$DEVEL_COVER_NO_COVERAGE runs the tests without collecting coverage.  The
-environment variables described in this paragraph are of interest to
-Devel::Cover maintainers only.
+$DEVEL_COVER_NO_COVERAGE runs the tests without collecting coverage.
+$DEVEL_COVER_DB_FORMAT may be set to either "JSON" or "Storable" to override
+the default choice of DB format (JSON if available, otherwise Storable).
+$DEVEL_COVER_IO_OPTIONS provides fine-grained control over the DB format.  For
+example, setting it to "pretty" when the format is JSON will store the DB in a
+readable JSON format.
 
 =head1 ACKNOWLEDGEMENTS
 
