@@ -1358,6 +1358,8 @@ If you want to get coverage for a program:
  perl -MDevel::Cover yourprog args
  cover
 
+To alter default values:
+
  perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
 
 =head1 DESCRIPTION
@@ -1365,19 +1367,18 @@ If you want to get coverage for a program:
 This module provides code coverage metrics for Perl.  Code coverage metrics
 describe how thoroughly tests exercise code.  By using Devel::Cover you can
 discover areas of code not exercised by your tests and determine which tests
-to create to increase coverage.  Code coverage can be considered as an
-indirect measure of quality.
+to create to increase coverage.  Code coverage can be considered an indirect
+measure of quality.
 
 Although it is still being developed, Devel::Cover is now quite stable and
 provides many of the features to be expected in a useful coverage tool.
 
 Statement, branch, condition, subroutine, and pod coverage information is
-reported.  Statement coverage data should be reasonable.  Branch and condition
-coverage data should be mostly accurate too, although not always what one
-might initially expect.  Subroutine coverage should be as accurate as
-statement coverage.  Pod coverage comes from L<Pod::Coverage>.  If
-L<Pod::Coverage::CountParents> is available it will be used instead.  Coverage
-data for other criteria are not yet collected.
+reported.  Statement and subroutine coverage data should be accurate.  Branch
+and condition coverage data should be mostly accurate too, although not always
+what one might initially expect.  Pod coverage comes from L<Pod::Coverage>.
+If L<Pod::Coverage::CountParents> is available it will be used instead.
+Coverage data for other criteria are not yet collected.
 
 The F<cover> program can be used to generate coverage reports.  Devel::Cover
 ships with a number of different reports including various types of HTML
@@ -1385,20 +1386,15 @@ output, textual reports, a report to display missing coverage in the same
 format as compilation errors and a report to display coverage information
 within the Vim editor.
 
-It is possible to add annotations to reports, for example you could add a
-column to an HTML report showing who last changed a line, as determined by git
-blame.  Some annotation modules are shipped with Devel::Cover and you can
-easily create your own.
+It is possible to add annotations to reports, for example you can add a column
+to an HTML report showing who last changed a line, as determined by git blame.
+Some annotation modules are shipped with Devel::Cover and you can easily
+create your own.
 
 The F<gcov2perl> program can be used to convert gcov files to C<Devel::Cover>
 databases.  This allows you to display your C or XS code coverage together
 with your Perl coverage, or to use any of the Devel::Cover reports to display
 your C coverage data.
-
-You may find that the coverage results don't match your expectations.  This
-could be due to a bug in Devel::Cover, but code coverage can be unintuitive to
-newcomers, and especially so with Perl, so you may want to reconsider your
-expectations as well.
 
 Code coverage data are collected by replacing perl ops with functions which
 count how many times the ops are executed.  These data are then mapped back to
@@ -1410,11 +1406,11 @@ of operation, but this now gets little testing and will probably be removed
 soon.  You probably don't care about any of this.
 
 The most appropriate mailing list on which to discuss this module would be
-perl-qa.  Discussion has migrated there from perl-qa-metrics which is now
-defunct.  See L<http://lists.perl.org/list/perl-qa.html>.
+perl-qa.  See L<http://lists.perl.org/list/perl-qa.html>.
 
 The Devel::Cover repository can be found at
-L<http://github.com/pjcj/Devel--Cover>.
+L<http://github.com/pjcj/Devel--Cover>.  This is also where problems should be
+reported.
 
 =head1 REQUIREMENTS AND RECOMMENDED MODULES
 
@@ -1427,8 +1423,13 @@ L<http://github.com/pjcj/Devel--Cover>.
 Perl 5.7 is unsupported.  Perl 5.8.8 or greater is recommended.  Perl 5.8.7
 has problems and may crash.  Whilst Perl 5.6 should mostly work you will
 probably miss out on coverage information which would be available using a
-more modern version and will likely run into bugs in perl.  Different versions
-of perl may give slightly different results due to changes in the op tree.
+more modern version and will likely run into bugs in perl.  Devel::Cover
+support for unsupported Perl versions may be removed at any time, but I try to
+keep older versions running provided this does not cause undue difficulty i
+other areas.
+
+Different versions of perl may give slightly different results due to changes
+in the op tree.
 
 =item * The ability to compile XS extensions.
 
@@ -1467,11 +1468,15 @@ Some of Devel::Cover's own tests require it.
 
 =item * L<Test::Differences>
 
-if the tests fail and you would like nice output telling you why.
+Needed if the tests fail and you would like nice output telling you why.
 
-=item * L<Template>, and L<Parallel::Iterator>
+=item * L<Template> and L<Parallel::Iterator>
 
 Needed if you want to run cpancover.
+
+=item * L<JSON>,r L<JSON::PP> or L<JSON::XS>
+
+JSON is used to store the coverage database if it is available.
 
 =back
 
@@ -1555,7 +1560,7 @@ Sometimes you have code which is uncoverable for some reason.  Perhaps it is
 an else clause that cannot be reached, or a check for an error condition that
 should never happen.  You can tell Devel::Cover that certain criteria are
 uncoverable and then they are not counted as errors when they are not
-exercised.  In fact, they are counted as error if they are exercised.
+exercised.  In fact, they are counted as errors if they are exercised.
 
 This feature should only be used as something of a last resort.  Ideally you
 would find some way of exercising all your code.  But if you have analysed
@@ -1604,7 +1609,7 @@ is uncoverable.
     # uncoverable branch true
     if (pi == 3)
 
-Both branches my be uncoverable:
+Both branches may be uncoverable:
 
     # uncoverable branch true
     # uncoverable branch false
@@ -1614,15 +1619,13 @@ Both branches my be uncoverable:
         handle_it_another_way();  # uncoverable statement
     }
 
-Both branches could be uncoverable:
-
 =head3 Conditions
 
 Because of the way in which Perl short-circuits boolean operations, there are
 three ways in which such conditionals can be uncoverable.  In the case of C<
 $x && $y> for example, the left operator may never be true, the right operator
-may never be true, and the whole operation may never be false.  These may be
-modelled thus:
+may never be true, and the whole operation may never be false.  These
+conditions may be modelled thus:
 
     # uncoverable branch true
     # uncoverable condition left
@@ -1639,8 +1642,8 @@ modelled thus:
     {
     }
 
-Or conditionals are handled in a similar fashion (TODO - provide some
-examples) but xor conditionals are not properly handled yet.
+C<Or> conditionals are handled in a similar fashion (TODO - provide some
+examples) but C<xor> conditionals are not properly handled yet.
 
 =head3 Subroutines
 
@@ -1753,7 +1756,7 @@ Modules used by Devel::Cover while gathering coverage:
 
 =item * L<File::Spec>
 
-=item * L<Storable>
+=item * L<Storable> or L<JSON>
 
 =back
 
