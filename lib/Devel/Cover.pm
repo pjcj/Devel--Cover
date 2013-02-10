@@ -1474,7 +1474,7 @@ Needed if the tests fail and you would like nice output telling you why.
 
 Needed if you want to run cpancover.
 
-=item * L<JSON>,r L<JSON::PP> or L<JSON::XS>
+=item * L<JSON>, L<JSON::PP> or L<JSON::XS>
 
 JSON is used to store the coverage database if it is available.
 
@@ -1574,7 +1574,7 @@ non-invasive.
 =head2 Invasive specification
 
 You can use special comments in your code to specify uncoverable criteria.
-Comment are of the form:
+Comments are of the form:
 
  # uncoverable <criterion> [details]
 
@@ -1687,7 +1687,7 @@ $HARNESS_PERL_SWITCHES or $PERL5OPT.  Devel::Cover tries to do the right thing
 when $MOD_PERL is set.  $DEVEL_COVER_OPTIONS is appended to any options passed
 into Devel::Cover.
 
-=head2 Develeoper variables
+=head2 Developer variables
 
 When running Devel::Cover's own test suite, $DEVEL_COVER_DEBUG turns on
 debugging information, $DEVEL_COVER_GOLDEN_VERSION overrides Devel::Cover's
