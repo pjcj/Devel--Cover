@@ -1587,9 +1587,10 @@ statement, of on the line before it:
     # uncoverable statement
     it_has_all_gone_horribly_wrong();
 
-If there are multiple statements on a line you can specify which statement is
-uncoverable by using the "count" attribute, count:n, which indicates that the
-uncoverable statement is the nth statement on the line.
+If there are multiple statements (or any other criterion) on a line you can
+specify which statement is uncoverable by using the "count" attribute,
+count:n, which indicates that the uncoverable statement is the nth statement
+on the line.
 
     # uncoverable statement count:1
     # uncoverable statement count:2
@@ -1644,9 +1645,9 @@ examples) but xor conditionals are not properly handled yet.
 =head3 Subroutines
 
 A subroutine should be marked as uncoverable at the point where the first
-statement is marked as uncoverable.  Ideally all statements in the subroutine
-would be marked as uncoverable automatically, but that isn't the case at the
-moment.
+statement is marked as uncoverable.  Ideally all other criteria in the
+subroutine would be marked as uncoverable automatically, but that isn't the
+case at the moment.
 
     sub z
     {
