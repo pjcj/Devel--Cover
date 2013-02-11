@@ -12,6 +12,156 @@ use warnings;
 
 my $modules = <<EOM;
 
+    # Stuff for Devel::Cover
+    # Devel::Cover
+    .
+    Parallel::Iterator
+    Test::Pod::Coverage
+    PPI::HTML
+
+    # My stuff
+    Gedcom
+    Shell::Source
+
+    # Stuff with interest for Devel::Cover
+    NetAddr::IP
+
+    # There's going to be repetition down here
+
+    # Dual-lived core modules
+    Archive::Extract
+    Archive::Tar
+    Attribute::Handlers
+    autodie
+    AutoLoader
+    autouse
+    base
+    B::Debug
+    bignum
+    B::Lint
+    Carp
+    CGI
+    Compress::Raw::Bzip2
+    Compress::Raw::Zlib
+    Config::Perl::V
+    constant
+    CPAN
+    CPAN::Meta
+    CPAN::Meta::Requirements
+    CPAN::Meta::YAML
+    CPANPLUS
+    CPANPLUS::Dist::Build
+    Data::Dumper
+    DB_File
+    Devel::PPPort
+    Devel::SelfStubber
+    Digest
+    Digest::MD5
+    Digest::SHA
+    Dumpvalue
+    Encode
+    encoding::warnings
+    Env
+    Exporter
+    ExtUtils::CBuilder
+    ExtUtils::Command
+    ExtUtils::Constant
+    ExtUtils::Install
+    ExtUtils::MakeMaker
+    ExtUtils::Manifest
+    ExtUtils::ParseXS
+    File::CheckTree
+    File::Fetch
+    File::Path
+    File::Temp
+    Filter::Simple
+    Filter::Util::Call
+    Getopt::Long
+    HTTP::Tiny
+    I18N::Collate
+    I18N::LangTags
+    if
+    IO
+    IO-Compress
+    IO::Zlib
+    IPC::Cmd
+    IPC::SysV
+    JSON::PP
+    lib
+    libnet
+    Locale-Codes
+    Locale::Maketext
+    Locale::Maketext::Simple
+    Log::Message
+    Log::Message::Simple
+    Math::BigInt
+    Math::BigInt::FastCalc
+    Math::BigRat
+    Math::Complex
+    Memoize
+    MIME::Base64
+    Module::Build
+    Module::CoreList
+    Module::Load
+    Module::Load::Conditional
+    Module::Loaded
+    Module::Metadata
+    Module::Pluggable
+    Net::Ping
+    NEXT
+    Object::Accessor
+    Package::Constants
+    Params::Check
+    parent
+    Parse::CPAN::Meta
+    PathTools
+    perlfaq
+    PerlIO::via::QuotedPrint
+    Perl::OSType
+    Pod::Checker
+    Pod::Escapes
+    Pod::LaTeX
+    podlators
+    Pod::Parser
+    Pod::Perldoc
+    Pod::Simple
+    Pod::Usage
+    Safe
+    Scalar-List-Utils
+    Search::Dict
+    SelfLoader
+    Socket
+    Storable
+    Sys::Syslog
+    Term::ANSIColor
+    Term::Cap
+    Term::Complete
+    Term::ReadLine
+    Term::UI
+    Test
+    Test::Harness
+    Test::Simple
+    Text::Abbrev
+    Text::Balanced
+    Text::ParseWords
+    Text::Soundex
+    Text-Tabs+Wrap
+    Thread::Queue
+    threads
+    Thread::Semaphore
+    threads::shared
+    Tie::File
+    Tie::RefHash
+    Time::HiRes
+    Time::Local
+    Time::Piece
+    Unicode::Collate
+    Unicode::Normalize
+    version
+    Win32
+    Win32API::File
+    XSLoader
+
     # Modules with many dependencies
     Task::Kensho
     Task::Plack
@@ -28,22 +178,6 @@ my $modules = <<EOM;
     Jifty
     Bot::BasicBot
     Dist::Zilla
-
-    # Stuff for Devel::Cover
-    # Devel::Cover
-    .
-    Parallel::Iterator
-    Test::Pod::Coverage
-    PPI::HTML
-
-    # My stuff
-    Gedcom
-    Shell::Source
-
-    # Stuff with interest for Devel::Cover
-    NetAddr::IP
-
-    # There's going to be repetition down here
 
     # Modules with many dependents
     Exporter
