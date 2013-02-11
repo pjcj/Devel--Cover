@@ -130,7 +130,7 @@ sub get_cover
 
     my $od = "$Options->{outputdir}/$module";
     my $of = $Options->{outputfile};
-    my $timeout = 300;  # five minutes should be enough
+    my $timeout = 900;  # fifteen minutes should be enough
 
     if ($test || !-e "$od/$of" || $Options->{redo_html})
     {
