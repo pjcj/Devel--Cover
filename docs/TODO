@@ -57,7 +57,6 @@
 - Build:
   - Fix up make text and friends for module_ignore.
   - Check for matching threadedness, 64bits etc. between build and run?
-  - Turn Perl build lines into a script to work on Win32 etc.
 - Documentation:
   - General improvement.
   - Examples.
