@@ -5,6 +5,7 @@ perl:
   - "5.14"
   - "5.16"
 before_install:
+    - perlbrew -f install-cpanm
     - perl -MYAML=LoadFile -le 'print for keys LoadFile("MYMETA.yml")->{recommends}' | xargs cpanm
 notifications:
   email:
