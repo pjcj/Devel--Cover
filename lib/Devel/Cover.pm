@@ -754,7 +754,6 @@ sub _report
         "did you require instead of use Devel::Cover?\n"
         unless defined $Dir;
 
-
     my @collected = get_coverage();
     return unless @collected;
     set_coverage("none") unless $Self_cover;

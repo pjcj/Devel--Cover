@@ -370,8 +370,8 @@ sub MY::postamble
          vim);
 
     qq[
-tags :
-\t ctags --recurse .
+tags : pure_all
+\t ctags --recurse --exclude=blib --exclude=Devel-Cover-* .
 
 README : lib/Devel/Cover.pm
 \t TERMCAP= COLUMNS=80 pod2text -s lib/Devel/Cover.pm | \\
