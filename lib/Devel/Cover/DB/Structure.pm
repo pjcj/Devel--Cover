@@ -280,7 +280,7 @@ sub write
     {
         $self->{f}{$file}{file} = $file;
         my $digest = $self->{f}{$file}{digest};
-        $digest = $1 if $digest =~ /(.*)/; # ie tainting.
+        $digest = $1 if $digest && $digest =~ /(.*)/; # ie tainting.
         unless ($digest)
         {
             warn "Can't find digest for $file"
