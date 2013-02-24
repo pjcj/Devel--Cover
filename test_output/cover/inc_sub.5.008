@@ -27,8 +27,8 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      # __COVER__ changes s/(2[12]             )[23]/$1X/
-11                                      # __COVER__ changes s/(22           100      )[12]/$1X/
+10                                      # __COVER__ changes s/(2[12]             )\d/$1X/
+11                                      # __COVER__ changes s/(22           100      )\d/$1X/
 12                                      
 13             1                    1   use lib ();
                1                        

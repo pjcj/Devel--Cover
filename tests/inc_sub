@@ -7,8 +7,8 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# __COVER__ changes s/(2[12]             )[23]/$1X/
-# __COVER__ changes s/(22           100      )[12]/$1X/
+# __COVER__ changes s/(2[12]             )\d/$1X/
+# __COVER__ changes s/(22           100      )\d/$1X/
 
 use lib ();
 
