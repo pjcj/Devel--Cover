@@ -107,7 +107,7 @@ BEGIN
               ($ENV{PERL5OPT}              || "") =~ /Devel::Cover/;
     *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 
-    if ($^X =~ /httpd$/)
+    if ($^X =~ /(apache2|httpd)$/)
     {
         # mod_perl < 2.0.8
         @Inc = @Devel::Cover::Inc::Inc;
