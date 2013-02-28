@@ -232,6 +232,7 @@ sub digest
         print STDERR "Devel::Cover: Warning: can't open $file " .
                                              "for MD5 digest: $!\n"
             unless lc $file eq "-e" or
+                      $Devel::Cover::Silent or
                       $file =~ $Devel::Cover::DB::Ignore_filenames;
         # require "Cwd"; warn Carp::longmess("in " . Cwd::cwd());
     }
