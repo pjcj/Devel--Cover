@@ -87,11 +87,11 @@ sub all_criteria_short { @{$_[0]->{all_criteria_short}} }
 
 sub read
 {
-    my $self   = shift;
-    my ($file) = @_;
+    my $self      = shift;
+    my ($file)    = @_;
 
-    my $io     = Devel::Cover::DB::IO->new;
-    my $db     = $io->read($file);
+    my $io        = Devel::Cover::DB::IO->new;
+    my $db        = $io->read($file);
     $self->{runs} = $db->{runs};
     $self
 }

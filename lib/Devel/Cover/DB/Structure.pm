@@ -26,10 +26,7 @@ our $AUTOLOAD;
 sub new
 {
     my $class = shift;
-    my $self  =
-    {
-        @_
-    };
+    my $self  = { @_ };
     bless $self, $class
 }
 
@@ -51,11 +48,7 @@ sub AUTOLOAD
         my $c = $criterion eq "time" ? "statement" : $criterion;
         if (grep $_ eq $c, qw( sub_name file line ))
         {
-            *$func = sub
-            {
-                my $self = shift;
-                $self->{$c}
-            }
+            *$func = sub { shift->{$c} };
         }
         else
         {
