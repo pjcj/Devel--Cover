@@ -759,7 +759,14 @@ static void cover_logop(pTHX)
 #if PERL_VERSION > 8
         int left_val_def = SvOK(TOPs);
 #endif
-        int void_context = GIMME_V == G_VOID;
+        /* We don't count X= as void context because we care about the value
+         * of the RHS. */
+        int void_context = GIMME_V == G_VOID &&
+#if PERL_VERSION > 8
+                           PL_op->op_type != OP_DORASSIGN &&
+#endif
+                           PL_op->op_type != OP_ANDASSIGN &&
+                           PL_op->op_type != OP_ORASSIGN;
         NDEB(D(L, "left_val: %d, void_context: %d at %p\n",
                   left_val, void_context, PL_op));
         NDEB(op_dump(PL_op));
@@ -797,6 +804,7 @@ static void cover_logop(pTHX)
                  * success.
                  */
 
+                NDEB(D(L, "Add conditional 2\n"));
                 add_conditional(aTHX_ PL_op, 2);
             }
             else

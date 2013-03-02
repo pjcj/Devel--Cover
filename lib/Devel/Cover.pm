@@ -968,7 +968,7 @@ sub add_condition_cover
         my $name = $r->name;
         $name = $r->first->name if $name eq "sassign";
         # TODO - exec?  any others?
-        # print STDERR "Name [$name]\n";
+        # print STDERR "Name [$name]", Dumper $c;
         if ($c->[5] || $name =~ $Const_right)
         {
             $c = [ $c->[3], $c->[1] + $c->[2] ];
@@ -980,7 +980,7 @@ sub add_condition_cover
             @$c = @{$c}[$type eq "or" ? (3, 2, 1) : (3, 1, 2)];
             $count = 3;
         }
-        # print STDERR "$type 3 $name [@$c] $File:$Line\n";
+        # print STDERR "$type 3 $name [", join(",", @$c), "] $File:$Line\n";
     }
     elsif ($type eq "xor")
     {
