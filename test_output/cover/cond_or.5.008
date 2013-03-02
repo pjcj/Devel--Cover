@@ -4,8 +4,8 @@ Reading database from ...
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/cond_or                                84.5   30.0   66.7   75.0   69.1
-Total                                        84.5   30.0   66.7   75.0   69.1
+tests/cond_or                                83.3   30.0   64.4   60.0   67.4
+Total                                        83.3   30.0   64.4   60.0   67.4
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -116,9 +116,11 @@ line  err   stmt   bran   cond    sub   code
 87                                      blah
 88                                      EOD
 89    ***     11     50                     cond_dor(\@x) if exists &cond_dor;
-90                                      }
-91                                      
-92                                      # print join(", ", @x), "\n";
+90    ***     11             0      0       sub { $x[19] ||= 1 };
+      ***      0                        
+91                                      }
+92                                      
+93                                      # print join(", ", @x), "\n";
 
 
 Branches
@@ -163,6 +165,7 @@ line  err      %      l     !l   expr
 82    ***     50      0     11   $x[15] ||= *STDIO{'IO'}
 83           100     10      1   $x[16] ||= bless({}, 'XXX')
 86           100     10      1   $x[18] ||= "blah\n"
+90    ***      0      0      0   $x[19] ||= 1
 
 or 3 conditions
 
@@ -194,5 +197,6 @@ Uncovered Subroutines
 Subroutine Count Location        
 ---------- ----- ----------------
 __ANON__       0 tests/cond_or:80
+__ANON__       0 tests/cond_or:90
 
 

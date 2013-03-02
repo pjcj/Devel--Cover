@@ -87,6 +87,7 @@ for my $i (0 .. 10)
 blah
 EOD
     cond_dor(\@x) if exists &cond_dor;
+    sub { $x[19] ||= 1 };
 }
 
 # print join(", ", @x), "\n";

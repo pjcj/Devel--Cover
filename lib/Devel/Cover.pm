@@ -1044,14 +1044,18 @@ sub deparse
 
         my $name = $op->can("name") ? $op->name : "Unknown";
 
-        # print STDERR "$class:$name at $File:$Line\n";
+        # print STDERR "$class:$name ($$op) at $File:$Line\n";
+        # print STDERR "[$Seen{statement}{$$op}] [$Seen{other}{$$op}]\n";
+        # use Carp "cluck"; cluck("from here");
 
-        {
+        unless ($Seen{statement}{$$op} || $Seen{other}{$$op}) {
             # Collect everything under here.
             local ($File, $Line) = ($File, $Line);
+            # print STDERR "Collecting $$op under $File:$Line\n";
             $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
             $deparse =~ s/^\010+//mg if defined $deparse;
             $deparse = "Deparse error: $@" if $@;
+            # print STDERR "Collected $$op under $File:$Line\n";
             # print STDERR "Collect Deparse $op $$op => <$deparse>\n";
         }
 
@@ -1059,6 +1063,7 @@ sub deparse
 
         if ($class eq "COP" && $Coverage{statement})
         {
+            # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
             add_statement_cover($op) unless $Seen{statement}{$$op}++;
         }
         elsif (!$null && $name eq "null"
@@ -1069,11 +1074,13 @@ sub deparse
             # get at the file and line number, but we need to get dirty.
 
             bless $op, "B::COP";
+            # print STDERR "null $$op, seen [$Seen{statement}{$$op}]\n";
             add_statement_cover($op) unless $Seen{statement}{$$op}++;
             bless $op, "B::$class";
         }
         elsif ($Seen{other}{$$op}++)
         {
+            # print STDERR "seen [$Seen{other}{$$op}]\n";
             return ""  # Only report on each op once.
         }
         elsif ($name eq "cond_expr")
@@ -1116,12 +1123,15 @@ sub deparse
     else
     {
         local ($File, $Line) = ($File, $Line);
+        # print STDERR "Starting plain deparse at $File:$Line\n";
         $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
         $deparse =~ s/^\010+//mg if defined $deparse;
         $deparse = "Deparse error: $@" if $@;
+        # print STDERR "Ending plain deparse at $File:$Line\n";
         # print STDERR "Deparse => <$deparse>\n";
     }
 
+    # print STDERR "Returning [$deparse]\n";
     $deparse
 }
 
