@@ -33,7 +33,7 @@ if ($] >= 5.009)
     }
 }
 
-for (0 .. 10)
+for my $i (0 .. 10)
 {
     $y ||
         $x[1]++;
@@ -61,8 +61,8 @@ for (0 .. 10)
 
     my $p = $y || $z;
     my $q = $z || $y;
-    my $r = $_ || "qqq";
-    my $s = $_ || [];
+    my $r = $i || "qqq";
+    my $s = $i || [];
     my $t = $y | $z;
     my $u = $y || 0;
     my $v = $y || undef;
@@ -81,7 +81,9 @@ for (0 .. 10)
     $x[14] ||= *::foo{SCALAR};
     $x[15] ||= *STDIO{IO};
     $x[16] ||= bless {}, "XXX";
-    $x[17] ||= <<"EOD";
+    $x[17] ||= $i == 1;
+    $w     ||= ref($i) eq "SCALAR";
+    $x[18] ||= <<"EOD";
 blah
 EOD
     cond_dor(\@x) if exists &cond_dor;
