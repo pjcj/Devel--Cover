@@ -1,6 +1,6 @@
 1,999bd
 e Makefile.PL
-execute "edit" glob("`find . -name MANIFEST | tail -1`")
+execute "edit" glob("`find Devel-Cover\* -name MANIFEST | tail -1`")
 e Changes
 e docs/TODO
 e docs/BUGS
