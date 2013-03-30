@@ -21,6 +21,7 @@
     - Extend cpancover so people can upload databases.
     - Provide a view by author.
     - Make cpancover more general to be able to work on local modules.
+  - Add verbosity option and set silent option from it.
 - Reports:
   - Improve textual output.
   - Remove >= 100% in customisable thresholds.
@@ -36,7 +37,6 @@
   - Look at time coverage again - collecting for too many ops?
   - Sort out time coverage on Windows.
   - Check for core dumps with pod coverage.
-  - Uncovered dereferences as seen in svk.
   - Fix "ignored" errors - see IO::Pager.
   - cpancover on CPAN:
     - PerlIO-eol-0.13 hangs.
