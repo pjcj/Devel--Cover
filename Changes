@@ -1,9 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
- - Test against 5.17.8.
+ - Test against 5.14.4, 5.16.3, 5.17.8, 5.17.9 and 5.17.10.
  - Ignore PERL5OPT during tests.  And other make targets. (rt 43833).
  - &&=, ||= and //= operators now require RHS to be true and false.
+ - Fix some "uninitialized value" warnings.
 
 Release 1.00 - 10 February 2013
  - Fix segv in constant folding of xor ops (gitbub 40).
