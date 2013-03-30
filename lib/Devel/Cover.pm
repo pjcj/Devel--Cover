@@ -1333,7 +1333,10 @@ sub get_cover
     $de
 }
 
-1
+"
+We have normality, I repeat we have normality.
+Anything you still can’t cope with is therefore your own problem.
+"
 
 __END__
 
