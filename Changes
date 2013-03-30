@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.01 - 30 March 2013
  - Test against 5.14.4, 5.16.3, 5.17.8, 5.17.9 and 5.17.10.
  - Ignore PERL5OPT during tests.  And other make targets. (rt 43833).
  - &&=, ||= and //= operators now require RHS to be true and false.
