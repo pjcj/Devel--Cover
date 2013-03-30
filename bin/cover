@@ -233,7 +233,7 @@ sub main
         if ($Options->{gcov})
         {
             my $t = $] > 5.7 ? undef : time;
-            my $xs = sub { utime $t, $t, $_ if /\.(xs|c|h)$/ };
+            my $xs = sub { utime $t, $t, $_ if /\.(xs|cc?|hh?)$/ };
             File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
         }
         # print STDERR "$_: $ENV{$_}\n" for qw(PERL5OPT HARNESS_PERL_SWITCHES);
@@ -246,7 +246,7 @@ sub main
     {
         my $gc = sub
         {
-            return unless /\.(xs|c|h)$/;
+            return unless /\.(xs|cc?|hh?)$/;
 
             my ($name) = /([^\/]+$)/;
 
@@ -266,7 +266,7 @@ sub main
         {
             return unless /\.gcov$/;
             my $xs = $_;
-            return if $xs =~ s/\.(c|h)\.gcov$/.xs.gcov/ && -e $xs;
+            return if $xs =~ s/\.(cc?|hh?)\.gcov$/.xs.gcov/ && -e $xs;
             s/^\.\///;
             push @gc, $_;
         };
