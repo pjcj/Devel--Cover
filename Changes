@@ -2,6 +2,7 @@ Devel::Cover history
 
 {{$NEXT}}
  - make -silent even quieter (Sergiy Borodych) (guthub 49).
+ - mod_perl2 on Debian sets $^X to apache2 (Lasse Makholm) (github 47).
 
 Release 1.01 - 30 March 2013
  - Test against 5.14.4, 5.16.3, 5.17.8, 5.17.9 and 5.17.10.
@@ -10,7 +11,7 @@ Release 1.01 - 30 March 2013
  - Fix some "uninitialized value" warnings.
 
 Release 1.00 - 10 February 2013
- - Fix segv in constant folding of xor ops (gitbub 40).
+ - Fix segv in constant folding of xor ops (github 40).
  - Fix various problems running Devel::Cover under tainting (github 41).
  - Add JavaScript to filter results in html_basic (David Cantrell) (github 42).
    Use -norestrict option to keep previous behaviour.
