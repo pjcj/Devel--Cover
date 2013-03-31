@@ -276,7 +276,9 @@ sub main
         my $gc = sub
         {
             return unless /\.(xs|cc?|hh?)$/;
-
+	    for my $re ( $Options->{ignore_re} ) {
+	      return if m/$re/;
+	    }
             my ($name) = /([^\/]+$)/;
 
             # Don't bother running gcov if there's no index files.
