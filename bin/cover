@@ -85,6 +85,35 @@ sub get_options
                      ));
     Getopt::Long::Configure("nopass_through");
     $Options->{report} ||= "html" unless exists $Options->{write};
+
+    #handle comma seperated ops, like -coverage branch,statement
+    
+    @{$Options->{coverage}} = split(/,/,join(',', @{$Options->{coverage}} ));
+
+    #also accept them in the same format they're output
+    my %coverage_abbrev = (
+      stmt => 'statement', 
+      bran => 'branch',
+      cond => 'condition',
+      sub  => 'subroutine',
+     );
+
+    my %options_coverage = map {$_ => 1} @{$Options->{coverage}};
+    while (my ($abbr, $full) = each %coverage_abbrev) {
+      #push @{$Options->{coverage}}, $full if $options_coverage{$abbr};
+      $options_coverage{$full} = delete $options_coverage{$abbr}
+	if $options_coverage{$abbr};
+    }
+
+    @{$Options->{coverage}} = keys %options_coverage;
+
+    #generating data may take time, so bail now if options are wrong
+    my %coverage_allowed = map {$_=>1} 
+	(values(%coverage_abbrev), 'time', 'pod');
+    foreach my $cov ( @{$Options->{coverage}} ) {
+      die "Unrecognized -coverage: $cov" unless $coverage_allowed{$cov};
+    }
+
 }
 
 sub delete_db
