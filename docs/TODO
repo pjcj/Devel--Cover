@@ -22,6 +22,7 @@
     - Provide a view by author.
     - Make cpancover more general to be able to work on local modules.
   - Add verbosity option and set silent option from it.
+  - Get Sort report working.
 - Reports:
   - Improve textual output.
   - Remove >= 100% in customisable thresholds.
@@ -45,7 +46,7 @@
   - Games::Bingo broken.
   - Class::Unload only giving 50% coverage on return unless ... (losing data?)
   - JSON error in Archive::Extract and Test::LeakTrace.
-  - cover -write new_db doesn't work (meeds structire?).
+  - cover -write new_db doesn't work (needs structure?).
 - Testing:
   - Be able to run Devel::Cover on itself.
   - More comprehensive.
