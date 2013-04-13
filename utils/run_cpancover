@@ -2,7 +2,7 @@
 
 JOBS=8
 perlbrew uninstall cpancover
-perlbrew install perl-5.16.2 --as cpancover -j $JOBS -nf
+perlbrew install perl-5.16.3 --as cpancover -j $JOBS -nf
 export PATH=$PERLBREW_ROOT/perls/cpancover/bin:$PATH
 rm -rf ~/.cpanm
 rm -rf ~/cpancover
