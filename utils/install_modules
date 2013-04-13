@@ -308,7 +308,6 @@ my $modules = <<EOM;
     constant
     Test
     File::Temp
-    Template::Toolkit
     Cache::Cache
     Feed::Find
     HTML::Tagset
