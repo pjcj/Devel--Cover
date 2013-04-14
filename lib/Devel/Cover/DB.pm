@@ -897,7 +897,7 @@ sub cover
     my $st = Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
     my @runs = sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
                     keys %{$self->{runs}};
-    # print STDERR "runs: ", Dumper $self->{runs};
+    # print STDERR "runs: ", Dumper \@runs
 
     my %warned;
     for my $run (@runs)
@@ -967,11 +967,19 @@ sub cover
     $self->{cover}
 }
 
+sub run_keys
+{
+    my $self = shift;
+    $self->cover unless $self->{cover_valid};
+    sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
+         keys %{$self->{runs}};
+}
+
 sub runs
 {
     my $self = shift;
     $self->cover unless $self->{cover_valid};
-    values %{$self->{runs}}
+    @{$self->{runs}}{$self->run_keys}
 }
 
 package Devel::Cover::DB::Run;
