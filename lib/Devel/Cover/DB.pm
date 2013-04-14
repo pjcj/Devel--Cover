@@ -1004,7 +1004,6 @@ Devel::Cover::DB - Code coverage metrics for Perl
 
  my $db = Devel::Cover::DB->new(db => "my_coverage_db");
  $db->print_summary([$file1, $file2], ["statement", "pod"]);
- $db->print_details;
 
 =head1 DESCRIPTION
 
