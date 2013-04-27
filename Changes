@@ -4,6 +4,8 @@ Devel::Cover history
  - make -silent even quieter (Sergiy Borodych) (guthub 49).
  - mod_perl2 on Debian sets $^X to apache2 (Lasse Makholm) (github 47).
  - Add csv file for use with metacpan (Dinis Rebolo) (github 56).
+ - cover -test exists with the staus of the underlying test run (Kan Fushihara)
+   (github 57, 58)
 
 Release 1.01 - 30 March 2013
  - Test against 5.14.4, 5.16.3, 5.17.8, 5.17.9 and 5.17.10.

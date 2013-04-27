@@ -532,6 +532,8 @@ The following exit values are returned:
 
 >0  An error occurred.
 
+With the -test option the exit status of the underlying test run is retuened.
+
 =head1 SEE ALSO
 
  L<Devel::Cover>
