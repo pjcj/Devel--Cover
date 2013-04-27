@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.02 - 28 April 2013
  - Make -silent even quieter (Sergiy Borodych) (guthub 49).
  - mod_perl2 on Debian sets $^X to apache2 (Lasse Makholm) (github 47).
  - Add csv file for use with metacpan (Dinis Rebolo) (github 56).
