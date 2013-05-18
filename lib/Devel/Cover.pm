@@ -1048,6 +1048,8 @@ sub deparse
         # print STDERR "[$Seen{statement}{$$op}] [$Seen{other}{$$op}]\n";
         # use Carp "cluck"; cluck("from here");
 
+        return "" if $name eq "padrange";
+
         unless ($Seen{statement}{$$op} || $Seen{other}{$$op}) {
             # Collect everything under here.
             local ($File, $Line) = ($File, $Line);
