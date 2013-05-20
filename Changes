@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fixes for correct operation with 5.17.11, 5.18.0 and 5.19.0.
 
 Release 1.02 - 28 April 2013
  - Make -silent even quieter (Sergiy Borodych) (guthub 49).
