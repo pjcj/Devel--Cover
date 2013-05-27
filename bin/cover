@@ -240,6 +240,7 @@ sub main
         # print STDERR "$_: $ENV{$_}\n" for qw(PERL5OPT HARNESS_PERL_SWITCHES);
         print STDERR "cover: running $test\n";
         $test_result = system $test;
+        $test_result >>= 8;
         $Options->{report} ||= "html";
     }
 
@@ -296,9 +297,9 @@ sub main
     $db->add_uncoverable     ($Options->{add_uncoverable_point}   );
     $db->delete_uncoverable  ($Options->{delete_uncoverable_point});
     $db->clean_uncoverable if $Options->{clean_uncoverable_points} ;
-    exit 0 if @{$Options->{add_uncoverable_point}}    ||
-              @{$Options->{delete_uncoverable_point}} ||
-              $Options->{clean_uncoverable_points};
+    exit $test_result if @{$Options->{add_uncoverable_point}}    ||
+                         @{$Options->{delete_uncoverable_point}} ||
+                         $Options->{clean_uncoverable_points};
 
     for my $merge (@ARGV)
     {
@@ -320,7 +321,7 @@ sub main
         $s->Indent(1);
         $s->Sortkeys(1) if $] >= 5.008;
         print $s->Dump;
-        exit 0
+        exit $test_result;
     }
 
     if (exists $Options->{write})
@@ -330,7 +331,7 @@ sub main
         $db->write($dbname);
     }
 
-    return unless $Options->{summary} || $Options->{report};
+    exit $test_result unless $Options->{summary} || $Options->{report};
 
     $Options->{coverage}    = [ $db->collected ] unless @{$Options->{coverage}};
     $Options->{show}        = { map { $_ => 1 } @{$Options->{coverage}} };
