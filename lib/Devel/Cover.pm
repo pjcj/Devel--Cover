@@ -16,6 +16,8 @@ our $LVERSION = do { eval '$VERSION' || "0.001" };  # for development purposes
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
+# sub Pod::Coverage::TRACE_ALL () { 1 }
+
 use Devel::Cover::DB;
 use Devel::Cover::DB::Digests;
 use Devel::Cover::Inc;
@@ -1288,21 +1290,24 @@ sub get_cover
                 }
             }
             $Pod = "Pod::Coverage" if delete $opts{nocp};
-            # print STDERR "$Pod, ", Dumper \%opts;
-            if ($Pod{$file} ||= $Pod->new(package => $pkg, %opts))
+            # print STDERR "$Pod, $File:$Line ($Sub_name) [$file($pkg)]",
+            #              Dumper \%opts;
+            if ($Pod{$pkg} ||= $Pod->new(package => $pkg, %opts))
             {
+                # print STDERR Dumper $Pod{$file};
                 my $covered;
-                for ($Pod{$file}->covered)
+                for ($Pod{$pkg}->covered)
                 {
                     $covered = 1, last if $_ eq $Sub_name;
                 }
                 unless ($covered)
                 {
-                    for ($Pod{$file}->uncovered)
+                    for ($Pod{$pkg}->uncovered)
                     {
                         $covered = 0, last if $_ eq $Sub_name;
                     }
                 }
+                # print STDERR "covered ", $covered // "undef", "\n";
                 if (defined $covered)
                 {
                     my ($n, $new) = $Structure->add_count("pod");
