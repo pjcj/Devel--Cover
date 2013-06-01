@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.04 - 1 June 2013
  - Fix return code from cover (Kan Fushihara) (guthub 61).
  - Fix pod coverage for multiple packages in a file. (rt 34888).
  - Speed improvements.
