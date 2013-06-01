@@ -581,6 +581,11 @@ sub use_file
 
     # die "bad file" unless length $file;
 
+    # If you call your file something that matches $find_filename then things
+    # might go awry.  But it would be silly to do that, so don't.  This little
+    # optimisation provides a reasonable speedup.
+    return $Files{$file} if exists $Files{$file};
+
     # just don't call your filenames 0
     while ($file =~ $find_filename) { $file = $1 || $2 || $3 || $4 }
     $file =~ s/ \(autosplit into .*\)$//;
@@ -639,7 +644,8 @@ sub B::GV::find_cv
         $cv->PADLIST->ARRAY &&
         $cv->PADLIST->ARRAY->can("ARRAY"))
     {
-        $Cvs{$_} ||= $_ for grep check_file($_), $cv->PADLIST->ARRAY->ARRAY;
+        $Cvs{$_} ||= $_
+          for grep ref eq "B::CV" && check_file($_), $cv->PADLIST->ARRAY->ARRAY;
     }
 };
 

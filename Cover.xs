@@ -252,7 +252,20 @@ static int check_if_collecting(pTHX_ COP *cop)
     NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, CopLINE(cop)));
     if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file))
     {
-        if (MY_CXT.replace_ops && !in_re_eval)
+        int found = 0;
+        if (MY_CXT.files)
+        {
+            SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
+            if (f)
+            {
+                MY_CXT.collecting_here = SvIV(*f);
+                found = 1;
+                NDEB(D(L, "File: %s:%ld [%d]\n",
+                          file, CopLINE(cop), MY_CXT.collecting_here));
+            }
+        }
+
+        if (!found && MY_CXT.replace_ops && !in_re_eval)
         {
             dSP;
             int count;
@@ -280,13 +293,6 @@ static int check_if_collecting(pTHX_ COP *cop)
             PUTBACK;
             FREETMPS;
             LEAVE;
-        }
-        else if (MY_CXT.files)
-        {
-            SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
-            MY_CXT.collecting_here = f ? SvIV(*f) : 1;
-            NDEB(D(L, "File: %s:%ld [%d]\n",
-                      file, CopLINE(cop), MY_CXT.collecting_here));
         }
 
         sv_setpv(MY_CXT.lastfile, file);
