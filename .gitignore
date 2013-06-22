@@ -26,3 +26,4 @@ Devel-Cover-*
 tags
 README
 .build/
+callgrind.out.*
