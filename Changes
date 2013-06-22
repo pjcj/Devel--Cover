@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Quieten some deparse warnings.
 
 Release 1.04 - 1 June 2013
  - Fix return code from cover (Kan Fushihara) (guthub 61).

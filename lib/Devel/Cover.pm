@@ -1135,7 +1135,8 @@ sub deparse
         local ($File, $Line) = ($File, $Line);
         # print STDERR "Starting plain deparse at $File:$Line\n";
         $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
-        $deparse =~ s/^\010+//mg if defined $deparse;
+        $deparse = "" unless defined $deparse;
+        $deparse =~ s/^\010+//mg;
         $deparse = "Deparse error: $@" if $@;
         # print STDERR "Ending plain deparse at $File:$Line\n";
         # print STDERR "Deparse => <$deparse>\n";
