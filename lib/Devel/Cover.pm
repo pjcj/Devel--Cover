@@ -1526,8 +1526,8 @@ information as possible.
                        cwd).
  -ignore RE          - Set REs of files to ignore (default "/Devel/Cover\b").
  +ignore RE          - Append to REs of files to ignore.
- -inc path           - Set prefixes of files to ignore (default @INC).
- +inc path           - Append to prefixes of files to ignore.
+ -inc path           - Set prefixes of files to include (default @INC).
+ +inc path           - Append to prefixes of files to include.
  -merge val          - Merge databases, for multiple test benches (default on).
  -select RE          - Set REs of files to select (default none).
  +select RE          - Append to REs of files to select.
