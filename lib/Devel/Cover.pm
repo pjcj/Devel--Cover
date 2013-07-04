@@ -1729,15 +1729,27 @@ readable JSON format.
 
 Some code and ideas cribbed from:
 
- L<Devel::OpProf>
- L<B::Concise>
- L<B::Deparse>
+=over 4
+
+=item * L<Devel::OpProf>
+
+=item * L<B::Concise>
+
+=item * L<B::Deparse>
+
+=back
 
 =head1 SEE ALSO
 
- L<Devel::Cover::Tutorial>
- L<B>
- L<Pod::Coverage>
+=over 4
+
+=item * L<Devel::Cover::Tutorial>
+
+=item * L<B>
+
+=item * L<Pod::Coverage>
+
+=back
 
 =head1 LIMITATIONS
 
