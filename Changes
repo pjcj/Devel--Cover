@@ -4,6 +4,7 @@ Devel::Cover history
  - Quieten some deparse warnings.
  - Fix errors in write_csv (Jim Keenan) (github 64).
  - Fix error in -inc/+inc docs and pod formatting (Olaf Alders) (github 65).
+ - Add DEVEL_COVER_NO_TESTS option to not run any tests during p5cover.
 
 Release 1.04 - 1 June 2013
  - Fix return code from cover (Kan Fushihara) (guthub 61).

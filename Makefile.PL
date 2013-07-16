@@ -334,7 +334,11 @@ WriteMakefile
                                      "README *.gcov *.out"
                         },
     dist             => { COMPRESS => "gzip --best --force"                   },
-    test             => { TESTS    => "t/*/*.t"                               },
+    test             => {
+                            TESTS    => $ENV{DEVEL_COVER_NO_TESTS}
+                                          ? ""
+                                          : "t/*/*.t"
+                        },
     realclean        => $] < 5.008008 ?
                         {
                             FILES => "lib/Devel/Cover/Inc.pm",
