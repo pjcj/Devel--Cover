@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.05 - 17 July 2013
  - Quieten some deparse warnings.
  - Fix errors in write_csv (Jim Keenan) (github 64).
  - Fix error in -inc/+inc docs and pod formatting (Olaf Alders) (github 65).
