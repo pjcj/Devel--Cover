@@ -2,6 +2,8 @@ Devel::Cover history
 
 {{$NEXT}}
  - Quieten some deparse warnings.
+ - Fix errors in write_csv (Jim Keenan) (github 64).
+ - Fix error in -inc/+inc docs and pod formatting (Olaf Alders) (github 65).
 
 Release 1.04 - 1 June 2013
  - Fix return code from cover (Kan Fushihara) (guthub 61).
@@ -272,7 +274,7 @@ Release 0.62 - 5th November 2007
  - Add uncoverable comments.
  - Don't complain about POSIX.pm (Erwan Lemonnier).
  - Don't resolve pathnames of symbolic links (Stefan Becker).
- - Spelling nits (James E Keenen).
+ - Spelling nits (James E Keenan).
 
 Release 0.61 - 10th January 2007
  - Fix some "ignored" errors due to multiple subs of the same name on the same
