@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.06 - 17 July 2013
  - More DEVEL_COVER_NO_TESTS changes for p5cover.
 
 Release 1.05 - 17 July 2013
