@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - More DEVEL_COVER_NO_TESTS changes for p5cover.
 
 Release 1.05 - 17 July 2013
  - Quieten some deparse warnings.

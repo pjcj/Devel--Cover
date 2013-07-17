@@ -136,6 +136,14 @@ closedir D or die "Cannot closedir tests: $!";
 s/^/tests\// for @tests;
 push @tests, grep !/e2e/, glob "t/*/*.t";
 
+if ($ENV{DEVEL_COVER_NO_TESTS})
+{
+    # don't run tests under p5cover
+    print "removing all tests with DEVEL_COVER_NO_TESTS\n";
+    system "rm -rf t/*";  # TODO portability
+    @tests = ();
+}
+
 print "done\n\n";
 
 my %checked;
@@ -313,8 +321,7 @@ print "\n" x 3;
 
 $ExtUtils::MakeMaker::Verbose = 0;
 
-WriteMakefile
-(
+my $opts = {
     NAME             => "Devel::Cover",
     VERSION          => $Version,
     AUTHOR           => 'Paul Johnson <paul@pjcj.net>',
@@ -325,27 +332,30 @@ WriteMakefile
     PREREQ_PM        => {
                             Storable      => 0,
                             "Digest::MD5" => 0,
-                            "Test::More"  => 0,
-                            "Test::Warn"  => 0,
+                            $ENV{DEVEL_COVER_NO_TESTS}
+                                ? ()
+                                : ( "Test::More"  => 0, "Test::Warn"  => 0 )
                         },
     TYPEMAPS         => [ "utils/typemap" ],
     clean            => {
                             FILES => "t/e2e/* cover_db* t/e2e/*cover_db " .
                                      "README *.gcov *.out"
                         },
-    dist             => { COMPRESS => "gzip --best --force"                   },
+    dist             => { COMPRESS => "gzip --best --force" },
     test             => {
-                            TESTS    => $ENV{DEVEL_COVER_NO_TESTS}
-                                          ? ""
-                                          : "t/*/*.t"
+                            TESTS => $ENV{DEVEL_COVER_NO_TESTS}
+                                         ? ""
+                                         : "t/*/*.t"
                         },
     realclean        => $] < 5.008008 ?
                         {
-                            FILES => "lib/Devel/Cover/Inc.pm",
+                            FILES  => "lib/Devel/Cover/Inc.pm",
                             POSTOP => "\$(RM_RF) cover_db t/e2e"
                         } :
                         { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
-);
+};
+# use Data::Dumper; print Dumper $opts;
+WriteMakefile(%$opts);
 
 print "\n";
 print <<EOM if 0;
