@@ -72,7 +72,7 @@ Contructs the IO object.
 
  my $data = $io->read($file);
 
-Returns a perl data structure representingthe data read from $file.
+Returns a perl data structure representing the data read from $file.
 
 =head2 write
 
