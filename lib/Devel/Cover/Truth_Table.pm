@@ -384,7 +384,7 @@ sub html {
 #    0  1  1  |        1
 #    1  X  1  |        1
 #
-# Note that we don't have to calulate the result, it's taken directly
+# Note that we don't have to calculate the result, it's taken directly
 # from table B. We can do this because we've replaced b1 with an
 # something that evaluates to the same thing.
 #
