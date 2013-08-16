@@ -341,14 +341,14 @@ displayed.  Correctly covered criteria are shown in green.  Incorrectly
 covered criteria are shown in red.  Any incorrectly covered criterion will
 override a correctly covered criterion.
 
-If the coverage for the file being displayed is out of date the a fucntion
+If the coverage for the file being displayed is out of date the a function
 called g:coverage_old() is called and passed the name of the file.  Similarly,
-for current coverage data file file g:coverage_valid is called.
+for current coverage data file g:coverage_valid is called.
 
 Signs may be overridden in a file named devel-cover.vim located somewhere
 underneath the ~/.vim directory.
 
-For example, I use the solarized theme and keep the following comamnds in my
+For example, I use the solarized theme and keep the following commands in my
 local configuration file ~/.vim/local/devel-cover.vim:
 
  let s:fg_cover = "#859900"
