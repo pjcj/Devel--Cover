@@ -566,7 +566,7 @@ The following exit values are returned:
 
 >0  An error occurred.
 
-With the -test option the exit status of the underlying test run is retuened.
+With the -test option the exit status of the underlying test run is returned.
 
 =head1 SEE ALSO
 
