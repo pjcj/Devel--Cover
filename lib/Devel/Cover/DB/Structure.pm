@@ -87,7 +87,7 @@ sub debuglog {
 
     local $\;
     # One log file per process, as we're potentially dumping out large amounts,
-    # and might excede the atomic write size of the OS.
+    # and might exceed the atomic write size of the OS.
     open my $fh, '>>', "$dir/$$" or confess "Can't open $dir/$$: $!";
     print $fh "----------------" . gmtime() . "----------------\n";
     print $fh ref $_ ? Dumper($_) : $_;
