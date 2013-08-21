@@ -653,10 +653,11 @@ sub sub_info
 {
     my ($cv) = @_;
     my ($name, $start) = ("--unknown--", 0);
-    if (!$cv->GV->isa("B::SPECIAL"))
+    my $gv = $cv->GV;
+    if ($gv && !$gv->isa("B::SPECIAL"))
     {
-        return unless $cv->GV->can("SAFENAME");
-        $name = $cv->GV->SAFENAME;
+        return unless $gv->can("SAFENAME");
+        $name = $gv->SAFENAME;
         # print STDERR "--[$name]--\n";
         $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
     }
@@ -755,6 +756,7 @@ EOM
 sub _report
 {
     local @SIG{qw(__DIE__ __WARN__)};
+    # $SIG{__DIE__} = \&Carp::confess;
 
     $Run{finish} = get_elapsed() / 1e6;
 
@@ -1269,9 +1271,10 @@ sub get_cover
 
     if ($Pod && $Coverage{pod})
     {
-        unless ($cv->GV->isa("B::SPECIAL"))
+        my $gv = $cv->GV;
+        if ($gv && !$gv->isa("B::SPECIAL"))
         {
-            my $stash = $cv->GV->STASH;
+            my $stash = $gv->STASH;
             my $pkg   = $stash->NAME;
             my $file  = $cv->FILE;
             my %opts;
