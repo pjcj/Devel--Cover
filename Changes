@@ -3,6 +3,9 @@ Devel::Cover history
 {{$NEXT}}
  - Improve -coverage options, fix -ignore_re for .gcov files (Steve Sanbeg)
    (github 53).
+ - Work around B::CV::GV regression in 5.18.1.
+ - Officially support 5.18.1.
+ - Test against 5.19.1, 5.19.2 and 5.19.3.
 
 Release 1.06 - 17 July 2013
  - More DEVEL_COVER_NO_TESTS changes for p5cover.
