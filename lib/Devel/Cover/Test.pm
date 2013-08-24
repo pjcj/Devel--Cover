@@ -225,6 +225,14 @@ sub run_test
         return;
     }
 
+    if ($] > 5.019001 && $] < 5.019004)
+    {
+        Test::plan tests => 1;
+        Test::skip("Perl version $] contains a bug which causes this test " .
+                   "to fail", 1);
+        return;
+    }
+
     my ($base, $v) = $self->cover_gold;
     return 1 unless $v;  # assume we are generating the golden results
     my $gold = "$base.$v";
