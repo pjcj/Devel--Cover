@@ -4,6 +4,7 @@ Devel::Cover history
  - Don't test against 5.17.x development releases.
  - Don't test against 5.19.2 and 5.19.3 which have a bug which causes tests to
    fail.
+ - Perl 5.18 is more picky about POD encodings (Gregor Herrmann) (rt 88027).
 
 Release 1.07 - 22 August 2013
  - Improve -coverage options, fix -ignore_re for .gcov files (Steve Sanbeg)

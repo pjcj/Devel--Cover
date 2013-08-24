@@ -20,7 +20,8 @@ sub import
     my $caller = caller;
     if (defined &{"${caller}::Dumper"} && \&{"${caller}::Dumper"} != \&Dumper) {
         require Carp;
-        Carp::croak("Data::Dumper previously imported. Use instead Devel::Cover::Dumper");
+        Carp::croak("Data::Dumper previously imported.  " .
+                    "Use Devel::Cover::Dumper instead.");
     }
     *{"${caller}::Dumper"} = \&Dumper;
 }
@@ -36,6 +37,8 @@ sub Dumper
 1
 
 __END__
+
+=encoding utf8
 
 =head1 NAME
 
