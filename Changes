@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.08 - 24 August 2013
  - Don't test against 5.17.x development releases.
  - Don't test against 5.19.2 and 5.19.3 which have a bug which causes tests to
    fail.
