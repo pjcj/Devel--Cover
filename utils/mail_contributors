@@ -1,0 +1,77 @@
+#!/usr/bin/env perl
+
+# Copyright 2013, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# Run as: perl -C utils/mail_contributors < Contributors
+# Note *** Please don't run this - it was a one off for the first publication
+#      *** of the Contributors (née Authors) file.
+
+use 5.16.3;
+use warnings;
+
+use Email::Stuffer;
+
+sub main {
+    while (<>) {
+        chomp;
+        next unless /\@/;
+        # say;
+        sleep 10;
+        my @parts = split / /;
+        my $email = $parts[-1];
+        my $line = $_;
+        my $body = <<"EOM";
+Hello,
+
+I'm contacting you because you are one of the Authors of Devel::Cover.
+
+Thank you!
+
+Over 70 people have contributed to Devel::Cover over the years, and I have
+finally done something I should have done years ago.  I have created an
+Authors file, and you are in it.
+
+But before I publish the file I want to make sure that you are happy to be a
+part of it.  Your entry will read:
+
+$line
+
+If you are happy for this entry to be a part of the Devel::Cover Authors file
+then you don't need to do anything.  (But feel free to explicitly confirm.)
+If you don't want to be mentioned, or you would like the entry to be changed
+at all, please let me know.
+
+I plan to make a new release with this Authors file included in a couple of
+weeks or so, so please let me know by then.
+
+And thank you once more for your contribution.  Without you, Devel::Cover
+wouldn't be what it is today.
+
+With regards,
+
+Paul
+
+-- 
+Paul Johnson - paul\@pjcj.net
+EOM
+        eval {
+            Email::Stuffer->from     ('Paul Johnson <paul@pjcj.net>')
+                          ->to       ($email)
+                          ->subject  ("Devel::Cover Authors File")
+                          ->text_body($body)
+                          ->send_or_die;
+        };
+        if ($@) {
+            say "Failed to send mail <$line>\n$@"
+        } else {
+            say "Sent mail <$line>"
+        }
+    }
+}
+
+main
