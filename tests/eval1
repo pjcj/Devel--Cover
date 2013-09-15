@@ -8,7 +8,7 @@
 # http://www.pjcj.net
 
 # __COVER__ skip_test $] == 5.010
-# __COVER__ skip_reason One test fails only under make test on 5.10.0 unhreaded
+# __COVER__ skip_reason One test fails only under make test on 5.10.0 unthreaded
 
 use strict;
 use warnings;

@@ -28,7 +28,7 @@ line  err   stmt   bran   cond    sub   code
 8                                       # http://www.pjcj.net
 9                                       
 10                                      # __COVER__ skip_test $] == 5.010
-11                                      # __COVER__ skip_reason One test fails only under make test on 5.10.0 unhreaded
+11                                      # __COVER__ skip_reason One test fails only under make test on 5.10.0 unthreaded
 12                                      
 13                                      use strict;
 14                                      use warnings;
