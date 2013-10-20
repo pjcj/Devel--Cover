@@ -39,7 +39,7 @@ my $run_test = sub
 
     $test->run_command($test->test_command);
 
-    sleep 1;
+    # sleep 1;
 
     copy($fg, $ft) or die "Cannot copy $fg to $ft: $!";
 
