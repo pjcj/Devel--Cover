@@ -53,6 +53,13 @@ sub new
     $self->get_params
 }
 
+
+sub set_test {
+    my $self = shift;
+    my ($test) = @_;
+    $self->{test} = $test;
+}
+
 sub shell_quote
 {
     my ($item) = @_;
@@ -234,6 +241,7 @@ sub run_test
     }
 
     my ($base, $v) = $self->cover_gold;
+    # print STDERR "[$base,$v]\n";
     return 1 unless $v;  # assume we are generating the golden results
     my $gold = "$base.$v";
 
