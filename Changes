@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Add Contributors file.
+ - Test against 5.19.4 and 5.19.5.
 
 Release 1.08 - 24 August 2013
  - Don't test against 5.17.x development releases.
