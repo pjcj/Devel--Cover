@@ -1,0 +1,83 @@
+The following people have helped to make Devel::Cover what it is today, either
+by sending pull requests, patches or suggestions, or by reporting or working
+to fix bugs.
+
+Thank-you to one and all!
+
+Andrew Billeb                  [private]
+Andy Lester                    andy@petdance.com
+Artur Bergman                  arthur@contiller.se
+Audrey Tang (唐鳳)             audreyt@audreyt.org
+Brandon Black                  blblack@gmail.com
+Brian Cassidy                  bricas@cpan.org
+Buddy Burden                   barefootcoder@gmail.com
+Celogeek                       me@celogeek.com
+Chia-liang Kao                 clkao@clkao.org
+Christian Walde                walde.christian@gmail.com
+Curtis Jewell                  csjewell@cpan.org
+Daisuke Maki                   dmaki@cpan.org
+Dave Rolsky                    autarch@urth.org
+David Cantrell                 david@cantrell.org.uk
+David Steinbrunner             dsteinbrunner@pobox.com
+David E. Wheeler               david@justatheory.com
+Daniel Coupal                  dcoupal@cisco.com
+Denis Howe                     denis.howe@gmail.com
+Dinis Rebolo                   dinisrebolo@gmail.com
+Dominic Mitchell               dom@happygiraffe.net
+Erwan Lemonnier                erwan@cpan.org
+Florian Ragwitz                rafl@debian.org
+Gábor Szabó                    szabgab@gmail.com
+Gisle Aas                      gisle@ActiveState.com
+Goro Fuji                      gfuji@cpan.org
+Gregor Herrmann                gregoa@debian.org
+Guillaume Aubert               aubertg@cpan.org
+Heikki J Laaksonen             heikki.j.laaksonen@kolumbus.fi
+H.Merijn Brand                 h.m.brand@xs4all.nl
+Jeff Wren                      jeffrey.wren@paradigm-works.com
+Jim Cromie                     jcromie@cpan.org
+James E Keenan                 jkeenan@cpan.org
+John Lightsey                  jd@cpanel.net
+John LoVerso                   jloverso@mathworks.com
+Jonathan "Duke" Leto           jonathan@leto.net
+Kan Fushihara                  kan.fushihara@gmail.com
+Kirk Kimmel                    kimmel@cpan.org
+Larry Leszczynski              larryl@cpan.org
+Lasse Makholm                  lasse@unity3d.com
+Léon Brocard                   acme@astray.com
+Marcel Grünauer                marcel@cpan.org
+Mark Stosberg                  mark@summersault.com
+Max Maischein                  corion@cpan.org
+Michael Carman                 mjcarman@cpan.org
+Michael G Schwern              schwern@pobox.com
+Nathan Haigh                   n.haigh@sheffield.ac.uk
+Nicholas Clark                 nick@ccl4.org
+Niko Tyni                      ntyni@debian.org
+Norman Nunley                  nnunley@gmail.com
+Olaf Alders                    olaf@wundersolutions.com
+Olivier Mengué                 dolmen@cpan.org
+Pau Amma                       pauamma@cpan.org
+Paul Hirst                     paulhirst@bearandgiraffe.org
+Paul Johnson                   paul@pjcj.net
+Philippe M. Chiasson           gozer@cpan.org
+Robert Freimuth                rfreimuth@cpan.org
+Robin Barker                   RMBarker@cpan.org
+Rob Kinyon                     rob.kinyon@gmail.com
+Ruslan Zakirov                 Ruslan.Zakirov@gmail.com
+Sébastien Aperghis-Tramoni     saper@cpan.org
+Sergiy Borodych                Sergiy.Borodych@gmail.com
+Stefan Becker                  Stefan.Becker@nokia.com
+Steffen Schwigon               ss5@renormalist.net
+Stephen Thirlwall              sdt@dr.com
+Steve Hay                      shay@cpan.org
+Steve Peters                   smpeters@cpan.org
+Steve Sanbeg                   sanbeg@cpan.org
+Tatsuhiko Miyagawa             miyagawa@bulknews.net
+Thomas Dorner                  dorner (AT) cpan.org
+Vadim O. Ustiansky             ustiansky@cpan.org
+Xavier Caron                   xcaron@gmail.com
+
+
+If you should be on this list and I have overlooked your contribution, please
+accept my apologies and let me know what your entry should look like.
+Similarly, if you would like your entry changed or deleted, please let me
+know.
