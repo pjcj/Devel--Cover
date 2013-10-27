@@ -28,11 +28,11 @@ use B::Deparse;
 
 use Carp;
 use Config;
-use Cwd qw" abs_path getcwd ";
+use Cwd qw( abs_path getcwd );
 use File::Spec;
 
 use Devel::Cover::Dumper;
-use Devel::Cover::Util 'remove_contained_paths';
+use Devel::Cover::Util "remove_contained_paths";
 
 BEGIN
 {
