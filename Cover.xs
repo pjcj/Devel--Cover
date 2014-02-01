@@ -416,7 +416,7 @@ static void store_module(pTHX)
     dMY_CXT;
     dSP;
 
-    SvSetSV_nosteal(MY_CXT.module, TOPs);
+    SvSetSV_nosteal(MY_CXT.module, (SV*)newSVpv(SvPV_nolen(TOPs), 0));
     NDEB(D(L, "require %s\n", SvPV_nolen(MY_CXT.module)));
 }
 
