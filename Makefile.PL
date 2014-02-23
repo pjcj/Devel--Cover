@@ -278,7 +278,7 @@ Browser::Open is used to launch a web browser when the -launch flag is
 specified with HTML report formats. You can download Browser::Open from CPAN.
 EOM
 
-my $latest_tested = "5.018001";
+my $latest_tested = "5.018002";
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
