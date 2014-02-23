@@ -278,6 +278,13 @@ Browser::Open is used to launch a web browser when the -launch flag is
 specified with HTML report formats. You can download Browser::Open from CPAN.
 EOM
 
+check "CGI", <<EOM;
+CGI is used to run the Html_minimal report.  It used to be a part of the perl
+core, but as of perl 5.20 it will need to be downloaded from CPAN.  If you
+would like to use the Html_minimal report, please install CGI.  Otherwise,
+other reports will be available as usual.
+EOM
+
 my $latest_tested = "5.018002";
 print <<EOM if $] > $latest_tested;
 
