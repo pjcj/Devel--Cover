@@ -241,6 +241,7 @@ sub main
         delete_db($dbname, @ARGV) unless defined $Options->{delete};
         my $env_db_name = $dbname;
         $env_db_name =~ s/\\/\\\\/g if $^O eq 'MSWin32';
+        $env_db_name =~ s/ /\\ /g;
         my $extra = "";
         $extra .= ",-coverage,$_" for @{$Options->{coverage}};
         $extra .= ",-ignore,$_"
