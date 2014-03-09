@@ -639,9 +639,9 @@ sub B::GV::find_cv
 
     # print STDERR "find_cv $$cv\n" if check_file($cv);
     $Cvs{$cv} ||= $cv if check_file($cv);
-    if ($cv->can("PADLIST") &&
+    if ($cv->can("PADLIST")        &&
         $cv->PADLIST->can("ARRAY") &&
-        $cv->PADLIST->ARRAY &&
+        $cv->PADLIST->ARRAY        &&
         $cv->PADLIST->ARRAY->can("ARRAY"))
     {
         $Cvs{$_} ||= $_
