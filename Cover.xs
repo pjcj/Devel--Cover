@@ -653,7 +653,7 @@ static void dump_conditions(pTHX)
  */
 static OP *find_skipped_conditional(OP *o) {
     if (o->op_type != OP_OR && o->op_type != OP_AND) {
-        return;
+        return NULL;
     }
 
     /* Get to the end of the "a || b || c" block */
