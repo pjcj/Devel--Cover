@@ -646,6 +646,7 @@ static void dump_conditions(pTHX)
     MUTEX_UNLOCK(&DC_mutex);
 }
 
+#if PERL_VERSION > 18
 /* For if ($a || $b) and unless ($a && $b), rpeep skips passed a few
  * logops and messes with Devel::Cover.
  *
@@ -692,7 +693,7 @@ static OP *find_skipped_conditional(OP *o) {
     if ((next->op_flags & OPf_WANT) != OPf_WANT_VOID) {
         return NULL;
     }
-    
+
     if (!cLOGOPx(next)->op_other || !o->op_next) {
         return NULL;
     }
@@ -703,6 +704,7 @@ static OP *find_skipped_conditional(OP *o) {
 
     return next;
 }
+#endif
 
 /* NOTE: caller must protect get_condition calls by locking DC_mutex */
 
@@ -948,7 +950,9 @@ static void cover_logop(pTHX)
             /* short circuit */
 #if PERL_VERSION > 14
             OP *up = cLOGOP->op_first->op_sibling->op_next;
+#if PERL_VERSION > 18
             OP *skipped;
+#endif
 
             while (up->op_type == PL_op->op_type)
             {
@@ -964,11 +968,12 @@ static void cover_logop(pTHX)
 #endif
             add_conditional(aTHX_ PL_op, 3);
 
+#if PERL_VERSION > 18
             skipped = PL_op;
-
             while (skipped = find_skipped_conditional(skipped)) {
                 add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
             }
+#endif
         }
     }
 }
