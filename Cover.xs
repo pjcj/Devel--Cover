@@ -646,6 +646,64 @@ static void dump_conditions(pTHX)
     MUTEX_UNLOCK(&DC_mutex);
 }
 
+/* For if ($a || $b) and unless ($a && $b), rpeep skips passed a few
+ * logops and messes with Devel::Cover.
+ *
+ * This function will find the skipped op if there is one
+ */
+static OP *find_skipped_conditional(OP *o) {
+    if (o->op_type != OP_OR && o->op_type != OP_AND) {
+        return;
+    }
+
+    /* Get to the end of the "a || b || c" block */
+    OP *right = cLOGOP->op_first->op_sibling;
+    while (right && cLOGOPx(right)->op_sibling) {
+        right = cLOGOPx(right)->op_sibling;
+    }
+
+    if (!right) {
+        return NULL;
+    }
+
+    OP *next = right->op_next;
+    while (next && next->op_type == NULL) {
+        next = next->op_next;
+    }
+
+    if (!next) {
+        return NULL;
+    }
+
+    if (o == next) {
+        return NULL;
+    }
+
+    if (next->op_type != OP_OR && next->op_type != OP_AND) {
+        return NULL;
+    }
+
+    /* if ($a || $b) or unless ($a && $b) */
+    if (o->op_type == next->op_type) {
+        return NULL;
+    }
+
+
+    if ((next->op_flags & OPf_WANT) != OPf_WANT_VOID) {
+        return NULL;
+    }
+    
+    if (!cLOGOPx(next)->op_other || !o->op_next) {
+        return NULL;
+    }
+
+    if (cLOGOPx(next)->op_other != o->op_next) {
+        return NULL;
+    }
+
+    return next;
+}
+
 /* NOTE: caller must protect get_condition calls by locking DC_mutex */
 
 static OP *get_condition(pTHX)
@@ -890,6 +948,8 @@ static void cover_logop(pTHX)
             /* short circuit */
 #if PERL_VERSION > 14
             OP *up = cLOGOP->op_first->op_sibling->op_next;
+            OP *skipped;
+
             while (up->op_type == PL_op->op_type)
             {
                 NDEB(D(L, "Considering adding %p (%s) -> (%p) "
@@ -903,6 +963,12 @@ static void cover_logop(pTHX)
             }
 #endif
             add_conditional(aTHX_ PL_op, 3);
+
+            skipped = PL_op;
+
+            while (skipped = find_skipped_conditional(skipped)) {
+                add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
+            }
         }
     }
 }
