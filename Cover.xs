@@ -652,7 +652,7 @@ static void dump_conditions(pTHX)
  *
  * This function will find the skipped op if there is one
  */
-static OP *find_skipped_conditional(OP *o) {
+static OP *find_skipped_conditional(pTHX_ OP *o) {
     if (o->op_type != OP_OR && o->op_type != OP_AND) {
         return NULL;
     }
@@ -970,7 +970,7 @@ static void cover_logop(pTHX)
 
 #if PERL_VERSION > 18
             skipped = PL_op;
-            while (skipped = find_skipped_conditional(skipped)) {
+            while (skipped = find_skipped_conditional(aTHX_ skipped)) {
                 add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
             }
 #endif
