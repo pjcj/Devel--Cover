@@ -530,6 +530,12 @@ cpancover - report coverage statistics on CPAN modules
 =head1 SYNOPSIS
 
  cpancover -help -info -version
+           -collect -redo_cpancover_html -redo_html -force
+           -module module_name
+           -directory /path/to/dir
+           -outputdir /path/to/dir
+           -outputfile filename.html
+           -report report_name
 
 =head1 DESCRIPTION
 
@@ -541,11 +547,22 @@ The following command line options are supported:
  -h -help              - show help
  -i -info              - show documentation
  -v -version           - show version
+ -collect              - collect coverage from modules       (on)
+ -directory            - location of the modules             ($cwd)
+ -force                - recollect coverage                  (off)
+ -module               - modules to use                      (all in $directory)
+ -outputdir            - where to store output               ($directory)
+ -outputfile           - top level index                     (coverage.html)
+ -redo_cpancover_html  - don't set default modules           (off)
+ -redo_html            - force html generation for modules   (off)
+ -report               - report to use                       (html_basic)
 
 =head1 DETAILS
 
 
 =head1 REQUIREMENTS
+
+Collect coverage for results and create html, csv and json output.
 
 The modules L<Template> and L<Parallel::Iterator> are required.
 
