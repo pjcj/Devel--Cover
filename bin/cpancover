@@ -295,7 +295,7 @@ sub write_csv {
     }
 
     close $fh;
-    print "\n\nWrote csv output to $file\n";
+    print "Wrote csv output to $file\n";
 }
 
 sub write_json {
@@ -305,7 +305,7 @@ sub write_json {
     my $file = "$Options->{outputdir}/cpancover.json";
     $io->write($data, $file);
 
-    print "\n\nWrote json output to $file\n";
+    print "Wrote json output to $file\n";
 }
 
 sub write_html {
@@ -323,7 +323,7 @@ sub write_html {
         vals    => \%vals,
     };
 
-    print Dumper $vars;
+    print Dumper $vars, $results;
 
     for my $module (sort keys %$results) {
         my $dbdir = "$Options->{directory}/$module/cover_db";
