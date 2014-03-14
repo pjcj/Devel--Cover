@@ -15,6 +15,7 @@ use warnings;
 # VERSION
 
 use Devel::Cover::DB;
+use Devel::Cover::DB::IO::JSON;
 use Devel::Cover::Dumper;
 
 use Cwd ();
@@ -267,8 +268,8 @@ sub class {
 sub write_csv {
     my ($data) = @_;
 
-    open(my $fh, ">", "$Options->{outputdir}/cpan_cover.csv")
-            or die "cannot open > cpan_cover.txt: $!";
+    my $file = "$Options->{outputdir}/cpancover.csv";
+    open my $fh, ">", $file or die "cannot open $file: $!";
 
     # TODO GET DISTRIBUTION
     my @header = qw/release distribution link
@@ -278,23 +279,33 @@ sub write_csv {
                     statement_class statement_details statement_pc
                     subroutine_class subroutine_details subroutine_pc
                     total_class total_details total_pc/;
-    print $fh join(",", @header ) . "\n";
-    for my $release (keys %{$data->{vals}} ) {
+    print $fh join(",", @header) . "\n";
+    for my $release (keys %{$data->{vals}}) {
         my $line = [];
         push @$line, $release,
         push @$line, $data->{vals}{$release}{link};
 
         for my $level1 (
             qw/branch condition pod statement subroutine total/ ) {
-                foreach my $level2 ( qw/class details pc/ ) {
+                for my $level2 ( qw/class details pc/ ) {
                     push @$line, $data->{vals}{$release}{$level1}{$level2};
                 }
         }
-        print $fh join ( ",",@$line)."\n";
+        print $fh join(",", @$line) . "\n";
     }
+
     close $fh;
-    print "\n\nWrote cpan_cover.csv output to " .
-          "$Options->{outputdir}/cpan_cover.csv\n";
+    print "\n\nWrote csv output to $file\n";
+}
+
+sub write_json {
+    my ($data) = @_;
+
+    my $io = Devel::Cover::DB::IO::JSON->new(options => "pretty");
+    my $file = "$Options->{outputdir}/cpancover.json";
+    $io->write($data, $file);
+
+    print "\n\nWrote json output to $file\n";
 }
 
 sub write_html {
@@ -311,6 +322,8 @@ sub write_html {
         modules => [],
         vals    => \%vals,
     };
+
+    print Dumper $vars;
 
     for my $module (sort keys %$results) {
         my $dbdir = "$Options->{directory}/$module/cover_db";
@@ -346,7 +359,9 @@ sub write_html {
     }
     write_stylesheet;
     $Template->process("summary", $vars, $f) or die $Template->error();
+
     write_csv($vars);
+    write_json($vars);
 
     print "done.\n";
     print "\n\nWrote cpancover output to $f\n";
