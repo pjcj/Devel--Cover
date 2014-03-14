@@ -139,17 +139,15 @@ sub get_cover {
         }
     }
 
-    my $results = read_results;
     my $f = "$Options->{outputdir}/cover.results";
-
-    $results->{$module} = 1;
-
     open my $fh, ">", $f or die "Can't open $f: $!\n";
     my $try;
     until (flock $fh, LOCK_EX) {
         die "Can't lock $f: $!\n" if $try++ > 60;
         sleep 1;
     }
+    my $results = read_results;
+    $results->{$module} = 1;
     for my $mod (sort keys %$results) {
         print $fh "$mod $results->{$mod}\n";
     }
