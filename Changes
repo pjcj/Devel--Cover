@@ -2,7 +2,11 @@ Devel::Cover history
 
 {{$NEXT}}
  - Add Contributors file.
- - Test against 5.19.4 and 5.19.5.
+ - Test against 5.19.4 - 5.19.9.
+ - Officially support 5.18.2.
+ - Fix shortcircuiting conditional operators for blead changes
+   (Matthew Horsfall) (rt 90591) (github 75, 80).
+ - Fix tab expansion in HTML report (H.Merijn Brand) (github 83).
 
 Release 1.08 - 24 August 2013
  - Don't test against 5.17.x development releases.
