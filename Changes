@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.09 - 15 March 2014
  - Add Contributors file.
  - Test against 5.19.4 - 5.19.9.
  - Officially support 5.18.2.
