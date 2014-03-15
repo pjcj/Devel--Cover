@@ -6,16 +6,21 @@
 2. Check it in.
   $ git commit -m "Add Changes." Changes
 
-3. Update version number in Makefile.PL.
+3. Update Contributors.
 
 4. Check it in.
+  $ git commit -m "Update Contributors." Contributors
+
+5. Update version number in Makefile.PL.
+
+6. Check it in.
   $ git commit -m "Bump version number." Makefile.PL
 
-5. Run basic tests.
+7. Run basic tests.
   $ perl Makefile.PL && make
   $ make test
 
-6. Test against all versions.
+8. Test against all versions.
   $ make all_test
   - or, if you have multiple cores available:
   $ HARNESS_OPTIONS=j6:c HARNESS_TIMER=1 make all_test
@@ -23,10 +28,10 @@
 7. Return to base perl version.
   $ perl Makefile.PL && make
 
-8. Make the release.
+10. Make the release.
   $ dzil release
 
-9. Push the changes.
+11. Push the changes.
   - The dzil Git::Push plugin hangs for me
   $ git push
   $ git push --tags
