@@ -571,11 +571,11 @@ $Templates{summary} = <<'EOT';
         <td class="sv c3">[% R.c3 | html %]%</td>
     </tr>
 </table>
-<div><br></br></div>
+<div><br /></div>
 
 [% IF R.options.option.restrict %]
-<script language="javascript">
-
+<script type="text/javascript">
+<!-- hide
 function filter_files(filter_by) {
     var allelements = document.getElementsByTagName("tr");
     var re_now      = new RegExp(filter_by, "i");
@@ -591,13 +591,13 @@ function filter_files(filter_by) {
         }
     }
 }
-
+// -->
 </script>
 
-<form name=filterform
+<form name="filterform"
       action='javascript:filter_files(document.forms["filterform"]["filterfield"].value)'>
     Restrict to regex:
-    <input type=text name=filterfield><input type=submit>
+    <input type="text" name="filterfield" /><input type="submit" />
 </form>
 
 <br />
