@@ -451,11 +451,19 @@ sub escape_HTML {
 
     $text = CGI::escapeHTML($text);
 
-    # IE doesn't honor "white-space: pre" CSS
-    $text =~ s/^(\t+)/' ' x (8 * length $1)/se;
-    $text =~ s/^(\s+)/'&nbsp;' x length $1/se;
+    # Do not allow FF in text
+    $text =~ tr/\x0c//d;
 
-    return $text;
+    # IE doesn't honor "white-space: pre" CSS
+    my @text = split m/\n/ => $text;
+    for (@text) {
+	# Expand all tabs to spaces
+	1 while s/\t+/' ' x (length($&) * 8 - length($`) % 8)/e;
+	# make multiple spaces be multiple spaces
+	s/(  +)/'&nbsp;' x length $1/ge;
+    }
+
+    return join "\n" => @text;
 }
 
 #-------------------------------------------------------------------------------
