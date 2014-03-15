@@ -572,7 +572,7 @@ $Templates{summary} = <<'EOT';
 <div><br></br></div>
 
 [% IF R.options.option.restrict %]
-<script language=javascript>
+<script language="javascript">
 
 function filter_files(filter_by) {
     var allelements = document.getElementsByTagName("tr");
