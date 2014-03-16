@@ -20,7 +20,8 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-    ro  => [ qw( cpancover_dir cpanm_dir force report timeout verbose ) ],
+    ro  => [ qw( cpancover_dir cpanm_dir force outputfile report timeout
+                 verbose ) ],
     rwp => [ qw( build_dirs build_dir modules )                         ],
     rw  => [ qw( )                                                      ],
 );
@@ -34,6 +35,7 @@ sub BUILDARGS {
         cpanm_dir  => glob("~/.cpanm"),
         force      => 0,
         modules    => [],
+        outputfile => "index.html",
         report     => "html_basic",
         timeout    => 900,  # fifteen minutes should be enough
         verbose    => 0,
@@ -56,11 +58,6 @@ sub empty_cpanm_dir {
     say $output;
 }
 
-sub add_build_dirs {
-    my $self = shift;
-    push @{$self->build_dirs}, grep -d, glob $self->cpanm_dir . "/work/*/*";
-}
-
 sub add_modules {
     my $self = shift;
     push @{$self->modules}, @_;
@@ -76,12 +73,9 @@ sub build_modules {
     }
 }
 
-sub run_all {
+sub add_build_dirs {
     my $self = shift;
-    for my $dir (@{$self->build_dirs}) {
-        $self->_set_build_dir($dir);
-        $self->sys;
-    }
+    push @{$self->build_dirs}, grep -d, glob $self->cpanm_dir . "/work/*/*";
 }
 
 sub run {
@@ -119,6 +113,14 @@ sub run {
     }
 
     say $output;
+}
+
+sub run_all {
+    my $self = shift;
+    for my $dir (@{$self->build_dirs}) {
+        $self->_set_build_dir($dir);
+        $self->run;
+    }
 }
 
 "

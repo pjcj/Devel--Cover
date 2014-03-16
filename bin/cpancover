@@ -329,16 +329,20 @@ sub write_html {
 }
 
 sub main {
-    # TODO - only one nstance should run at a time
+    # TODO - only one instance should run at a time
     get_options;
     my $cp = Devel::Cover::Cpancover->new(
-        force   => $Options->{force},
-        verbose => $Options->{verbose},
+        force      => $Options->{force},
+        outputfile => $Options->{outputfile},
+        report     => $Options->{report},
+        verbose    => $Options->{verbose},
     );
 
     $cp->empty_cpanm_dir;
     $cp->add_modules("Gedcom", "Shell::Source");
     $cp->build_modules;
+    $cp->add_build_dirs;
+    $cp->run_all;
     return;
 
     $Template = Template->new ({
