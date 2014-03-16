@@ -7,13 +7,12 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-require 5.6.1;
-
-use strict;
+use 5.16.0;
 use warnings;
 
 # VERSION
 
+use Devel::Cover::Cpancover;
 use Devel::Cover::DB;
 use Devel::Cover::DB::IO::JSON;
 use Devel::Cover::Dumper;
@@ -36,43 +35,33 @@ my $Options = {
     directory    => Cwd::cwd(),
     force        => 0,
     module       => [],
+    outputfile   => "index.html",
     report       => "html_basic",
 };
 
 sub get_options {
-    die "Bad option" unless
-    GetOptions($Options,                # Store the options in the Options hash.
-               qw(
-                   collect!
-                   directory=s
-                   force!
-                   help|h!
-                   info|i!
-                   module=s
-                   outputdir=s
-                   outputfile=s
-                   redo_cpancover_html!
-                   redo_html!
-                   report=s
-                   version|v!
-                 ));
+    die "Bad option" unless GetOptions($Options, qw(
+        directory=s
+        force!
+        help|h!
+        info|i!
+        module=s
+        outputdir=s
+        outputfile=s
+        redo_cpancover_html!
+        redo_html!
+        report=s
+        verbose!
+        version|v!
+    ));
 
-    print "$0 version " . __PACKAGE__->VERSION . "\n" and exit 0
-        if $Options->{version};
-    pod2usage(-exitval => 0, -verbose => 0)  if $Options->{help};
-    pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
+    say "$0 version " . __PACKAGE__->VERSION and exit 0 if $Options->{version};
+    pod2usage(-exitval => 0, -verbose => 0)             if $Options->{help};
+    pod2usage(-exitval => 0, -verbose => 2)             if $Options->{info};
 
     $Options->{outputdir}  ||= $Options->{directory};
     $Options->{outputfile} ||= "coverage.html";
     push @{$Options->{module}}, @ARGV;
-    if (!$Options->{redo_cpancover_html} && !@{$Options->{module}}) {
-        my $d = $Options->{directory};
-        opendir D, $d or die "Can't opendir $d: $!\n";
-        @{$Options->{module}} = grep !/^\./ && -e "$d/$_/Makefile.PL",
-                                     sort readdir D
-            or die "No module directories found\n";
-        closedir D or die "Can't closedir $d: $!\n";
-    }
 }
 
 sub sys {
@@ -340,7 +329,17 @@ sub write_html {
 }
 
 sub main {
+    # TODO - only one nstance should run at a time
     get_options;
+    my $cp = Devel::Cover::Cpancover->new(
+        force   => $Options->{force},
+        verbose => $Options->{verbose},
+    );
+
+    $cp->empty_cpanm_dir;
+    $cp->add_modules("Gedcom", "Shell::Source");
+    $cp->build_modules;
+    return;
 
     $Template = Template->new ({
         LOAD_TEMPLATES => [

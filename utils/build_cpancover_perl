@@ -1,0 +1,14 @@
+#!/bin/sh -x
+
+JOBS=16
+perlbrew uninstall cpancover
+perlbrew install perl-5.18.2 --as cpancover -j $JOBS -nf
+export PATH=$PERLBREW_ROOT/perls/cpancover/bin:$PATH
+rm -rf ~/.cpanm
+cpan App::cpanminus
+cpanm -nf .
+cpanm -nf App::cpanoutdated
+cpan-outdated | cpanm -nf
+perl utils/install_modules -nf
+CPANCOVER_WORKERS=$JOBS perl utils/cpanmcover
+rm -r /home/pjcj/cpancover/modules/Test-LeakTrace-0.14/cover_db
