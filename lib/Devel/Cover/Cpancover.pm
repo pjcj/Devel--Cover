@@ -20,8 +20,8 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-    ro  => [ qw( cpancover_dir cpanm_dir force outputfile report timeout
-                 verbose ) ],
+    ro  => [ qw( cpancover_dir cpanm_dir results_dir force outputfile report
+                 timeout verbose ) ],
     rwp => [ qw( build_dirs build_dir modules )                         ],
     rw  => [ qw( )                                                      ],
 );
@@ -46,9 +46,17 @@ sub BUILDARGS {
 sub sys {
     my $self = shift;
     my (@command) = @_;
-    say "-> @command" if $self->verbose;
-    my $output = capture_merged { system @command };
+    my $output;
+    $output = "-> @command" if $self->verbose;
+    # TODO - check for failure
+    $output .= capture_merged { system @command };
     $output
+}
+
+sub initialise {
+    my $self = shift;
+    my $dir = $self->results_dir // die "No results dir";
+    $self->sys("mkdir", "-p", $dir);
 }
 
 sub empty_cpanm_dir {
@@ -85,6 +93,7 @@ sub run {
     chdir $d or die "Can't chdir $d: $!\n";
 
     my $module = $d =~ s|.*/||r;
+    say "Checking coverage of $module";
     my $output = "**** Checking coverage of $module ****\n";
 
     my $db = "$d/cover_db";
@@ -111,6 +120,11 @@ sub run {
         die unless $@ eq "alarm\n";   # propagate unexpected errors
         warn "$output\nTimed out after " . $self->timeout . " seconds!\n";
     }
+
+    my $dir = $self->results_dir // die "No results dir";
+    $dir .= "/$module";
+    $self->sys("mkdir", "-p", $dir);
+    $output .= $self->sys("mv", $db, $dir);
 
     say $output;
 }
