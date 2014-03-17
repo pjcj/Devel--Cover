@@ -131,6 +131,7 @@ sub run {
     my $dir = $self->results_dir // die "No results dir";
     $dir .= "/$module";
     # TODO - option to merge DB with existing one
+    # TODO - portability
     $output .= $self->sys("rm", "-rf", "$dir");
     $output .= $self->sys("mkdir", "-p", $dir);
     $output .= $self->sys("mv", $db, $dir);
@@ -158,7 +159,7 @@ sub run_all {
         },
         $self->build_dirs
     );
-    print Dumper \@res;
+    # print Dumper \@res;
 }
 
 sub generate_html {
@@ -174,11 +175,9 @@ sub generate_html {
 
 sub cover_modules {
     my $self = shift;
-    my (@modules) = @_;
 
     $self->initialise;
     $self->empty_cpanm_dir;
-    $self->add_modules(@modules);
     $self->build_modules;
     $self->add_build_dirs;
     $self->run_all;
@@ -206,8 +205,7 @@ sub fetch
 
 $Templates{colours} = <<'EOT';
 [%
-    colours =
-    {
+    colours = {
         default => "#ffffad",
         text    => "#000000",
         number  => "#ffffc0",
