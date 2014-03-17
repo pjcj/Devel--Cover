@@ -31,7 +31,7 @@ $|++;
 my $Template;
 
 my $Options = {
-    bin_dir      => abs_path($0) =~ s/cpancover$//r,
+    bin_dir      => abs_path($0) =~ s|/cpancover$||r,
     collect      => 1,
     results_dir  => cwd(),
     force        => 0,
@@ -339,6 +339,7 @@ sub main {
     my $cp = Devel::Cover::Collection->new(
         bin_dir     => $Options->{bin_dir},
         force       => $Options->{force},
+        modules     => $Options->{module},
         outputfile  => $Options->{outputfile},
         report      => $Options->{report},
         results_dir => $Options->{results_dir},
@@ -346,13 +347,7 @@ sub main {
         workers     => $Options->{workers},
     );
 
-    $cp->initialise;
-    $cp->empty_cpanm_dir;
-    $cp->add_modules("Gedcom", "Shell::Source");
-    $cp->build_modules;
-    $cp->add_build_dirs;
-    $cp->run_all;
-    $cp->generate_html;
+    $cp->cover_modules;
     return;
 
     $Template = Template->new ({
