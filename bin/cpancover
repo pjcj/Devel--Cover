@@ -17,7 +17,7 @@ use Devel::Cover::DB;
 use Devel::Cover::DB::IO::JSON;
 use Devel::Cover::Dumper;
 
-use Cwd ();
+use Cwd qw( abs_path cwd );
 use Fcntl ":flock";
 use Getopt::Long;
 use Pod::Usage;
@@ -31,16 +31,20 @@ $|++;
 my $Template;
 
 my $Options = {
+    bin_dir      => abs_path($0) =~ s/cpancover$//r,
     collect      => 1,
-    results_dir  => Cwd::cwd(),
+    results_dir  => cwd(),
     force        => 0,
     module       => [],
     outputfile   => "index.html",
     report       => "html_basic",
+    verbose      => 0,
+    workers      => 0,
 };
 
 sub get_options {
     die "Bad option" unless GetOptions($Options, qw(
+        bin_dir=s
         force!
         help|h!
         info|i!
@@ -53,6 +57,7 @@ sub get_options {
         report=s
         verbose!
         version|v!
+        workers=i
     ));
 
     say "$0 version " . __PACKAGE__->VERSION and exit 0 if $Options->{version};
@@ -332,11 +337,13 @@ sub main {
     # TODO - only one instance should run at a time
     get_options;
     my $cp = Devel::Cover::Cpancover->new(
-        results_dir => $Options->{results_dir},
+        bin_dir     => $Options->{bin_dir},
         force       => $Options->{force},
         outputfile  => $Options->{outputfile},
         report      => $Options->{report},
+        results_dir => $Options->{results_dir},
         verbose     => $Options->{verbose},
+        workers     => $Options->{workers},
     );
 
     $cp->initialise;

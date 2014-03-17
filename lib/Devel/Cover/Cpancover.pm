@@ -12,7 +12,10 @@ use warnings;
 
 # VERSION
 
-use Capture::Tiny "capture_merged";
+use Devel::Cover::Dumper;
+
+use Capture::Tiny      "capture_merged";
+use Parallel::Iterator "iterate_as_array";
 
 use Class::XSAccessor ();
 use Moo;
@@ -20,8 +23,8 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-    ro  => [ qw( cpancover_dir cpanm_dir results_dir force outputfile report
-                 timeout verbose ) ],
+    ro  => [ qw( bin_dir cpancover_dir cpanm_dir results_dir force outputfile
+                 report timeout verbose workers ) ],
     rwp => [ qw( build_dirs build_dir modules )                         ],
     rw  => [ qw( )                                                      ],
 );
@@ -39,6 +42,7 @@ sub BUILDARGS {
         report     => "html_basic",
         timeout    => 900,  # fifteen minutes should be enough
         verbose    => 0,
+        workers    => 0,
         %args,
     }
 };
@@ -47,7 +51,7 @@ sub sys {
     my $self = shift;
     my (@command) = @_;
     my $output;
-    $output = "-> @command" if $self->verbose;
+    $output = "-> @command\n" if $self->verbose;
     # TODO - check for failure
     $output .= capture_merged { system @command };
     $output
@@ -109,10 +113,12 @@ sub run {
     eval {
         local $SIG{ALRM} = sub { die "alarm\n" };
         alarm $self->timeout;
+        $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
         $output .= $self->sys(
-            "cover",       "-test",
-            "-report",     $self->report,
-            "-outputfile", $self->outputfile,
+            $^X,                        $ENV{DEVEL_COVER_TEST_OPTS},
+            $self->bin_dir . "/cover",  "-test",
+            "-report",                  $self->report,
+            "-outputfile",              $self->outputfile,
         );
         alarm 0;
     };
@@ -125,16 +131,35 @@ sub run {
     $dir .= "/$module";
     $self->sys("mkdir", "-p", $dir);
     $output .= $self->sys("mv", $db, $dir);
+    $output .= $self->sys("rm", "-rf", $db);
 
-    say $output;
+    my $line = "=" x 80;
+    say "\n$line\n$output$line\n";
 }
 
 sub run_all {
     my $self = shift;
-    for my $dir (@{$self->build_dirs}) {
-        $self->_set_build_dir($dir);
-        $self->run;
-    }
+    # for my $dir (@{$self->build_dirs}) {
+        # $self->_set_build_dir($dir);
+        # $self->run;
+    # }
+    # my $workers = $ENV{CPANCOVER_WORKERS} || 0;
+    my @res = iterate_as_array
+    (
+        { workers => $self->workers },
+        sub {
+            my (undef, $dir) = @_;
+            $self->_set_build_dir($dir);
+            eval { $self->run };
+            warn "\n\n\n[$dir]: $@\n\n\n" if $@;
+        },
+        $self->build_dirs
+    );
+    print Dumper \@res;
+}
+
+sub generate_html {
+    my $self = shift;
 }
 
 "
