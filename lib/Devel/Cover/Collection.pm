@@ -5,7 +5,7 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-package Devel::Cover::Cpancover;
+package Devel::Cover::Collection;
 
 use 5.16.0;
 use warnings;
@@ -171,7 +171,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Cpancover - Code coverage for CPAN
+Devel::Cover::Collection - Code coverage for a collection of modules
 
 =head1 SYNOPSIS
 

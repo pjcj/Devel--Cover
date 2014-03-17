@@ -12,7 +12,7 @@ use warnings;
 
 # VERSION
 
-use Devel::Cover::Cpancover;
+use Devel::Cover::Collection;
 use Devel::Cover::DB;
 use Devel::Cover::DB::IO::JSON;
 use Devel::Cover::Dumper;
@@ -336,7 +336,7 @@ sub write_html {
 sub main {
     # TODO - only one instance should run at a time
     get_options;
-    my $cp = Devel::Cover::Cpancover->new(
+    my $cp = Devel::Cover::Collection->new(
         bin_dir     => $Options->{bin_dir},
         force       => $Options->{force},
         outputfile  => $Options->{outputfile},
