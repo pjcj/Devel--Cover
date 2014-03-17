@@ -12,6 +12,7 @@ use warnings;
 
 # VERSION
 
+use Devel::Cover::DB::IO::JSON;
 use Devel::Cover::Dumper;
 
 use Capture::Tiny      "capture_merged";
@@ -55,12 +56,6 @@ sub sys {
     # TODO - check for failure
     $output .= capture_merged { system @command };
     $output
-}
-
-sub initialise {
-    my $self = shift;
-    my $dir = $self->results_dir // die "No results dir";
-    $self->sys("mkdir", "-p", $dir);
 }
 
 sub empty_cpanm_dir {
@@ -120,7 +115,7 @@ sub run {
             "-report",     $self->report,
             "-outputfile", $self->outputfile,
         );
-        $output .= $self->sys(@cmd, "-report", "json");
+        $output .= $self->sys(@cmd, "-report", "json", "-nosummary");
         alarm 0;
     };
     if ($@) {
@@ -129,11 +124,11 @@ sub run {
     }
 
     my $dir = $self->results_dir // die "No results dir";
+    $output .= $self->sys("mkdir", "-p", $dir);
     $dir .= "/$module";
     # TODO - option to merge DB with existing one
     # TODO - portability
-    $output .= $self->sys("rm", "-rf", "$dir");
-    $output .= $self->sys("mkdir", "-p", $dir);
+    $output .= $self->sys("rm", "-rf", $dir);
     $output .= $self->sys("mv", $db, $dir);
     $output .= $self->sys("rm", "-rf", $db);
 
@@ -143,11 +138,7 @@ sub run {
 
 sub run_all {
     my $self = shift;
-    # for my $dir (@{$self->build_dirs}) {
-        # $self->_set_build_dir($dir);
-        # $self->run;
-    # }
-    # my $workers = $ENV{CPANCOVER_WORKERS} || 0;
+
     my @res = iterate_as_array
     (
         { workers => $self->workers },
@@ -162,26 +153,183 @@ sub run_all {
     # print Dumper \@res;
 }
 
+sub class
+{
+    my ($pc) = @_;
+    $pc eq "n/a" ? "na" :
+    $pc <    75  ? "c0" :
+    $pc <    90  ? "c1" :
+    $pc <   100  ? "c2" :
+                   "c3"
+}
+
 sub generate_html {
     my $self = shift;
 
+    my $d = $self->results_dir;
+    chdir $d or die "Can't chdir $d: $!\n";
+
+    my $f = "$d/index.html";
+    say "\n\nWriting cpancover output to $f ...";
+
+    my $vars = {
+        title   => "Coverage report",
+        modules => [],
+        vals    => {},
+        headers => [ grep !/path|time/,
+                          @Devel::Cover::DB::Criteria_short, "total" ],
+    };
+    # print Dumper $vars, $results;
+
+    opendir my $dh, $d or die "Can't opendir $d: $!";
+    my @modules = sort grep !/^\./, readdir $dh;
+    closedir $dh or die "Can't closedir $d: $!";
+
+    for my $module (@modules) {
+        my $file = "$d/$module/cover.json";
+        next unless -e $file;
+        say "Adding $module";
+
+        my $io = Devel::Cover::DB::IO::JSON->new;
+        my $json = $io->read($file);
+
+        push @{$vars->{modules}}, $module;
+        my $m = $vars->{vals}{$module} = {};
+        $m->{link} = "$module/index.html";
+
+        for my $criterion (grep !/path|time/,
+                                @Devel::Cover::DB::Criteria, "total") {
+            my $summary = $json->{summary}{Total}{$criterion};
+            # print "summary:", Dumper $summary;
+            my $pc = $summary->{percentage};
+            $pc = defined $pc ? sprintf "%6.2f", $pc : "n/a";
+            $m->{$criterion}{pc}      = $pc;
+            $m->{$criterion}{class}   = class($pc);
+            $m->{$criterion}{details} =
+              ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
+        }
+    }
+    print "vars ", Dumper $vars;
+
+    $self->write_stylesheet;
     my $template = Template->new({
         LOAD_TEMPLATES => [
             Devel::Cover::Cpancover::Template::Provider->new({}),
         ],
     });
+    $template->process("summary", $vars, $f) or die $template->error;
+
+    say "\n\nWrote cpancover output to $f";
 }
 
 
 sub cover_modules {
     my $self = shift;
 
-    $self->initialise;
     $self->empty_cpanm_dir;
     $self->build_modules;
     $self->add_build_dirs;
     $self->run_all;
     $self->generate_html;
+}
+
+sub write_stylesheet {
+    my $self = shift;
+
+    my $css = $self->results_dir . "/cpancover.css";
+    open my $fh, ">", $css or die "Can't open $css: $!\n";
+    print $fh <<EOF;
+/* Stylesheet for Devel::Cover cpancover reports */
+
+/* You may modify this file to alter the appearance of your coverage
+ * reports. If you do, you should probably flag it read-only to prevent
+ * future runs from overwriting it.
+ */
+
+/* Note: default values use the color-safe web palette. */
+
+body {
+    font-family: sans-serif;
+}
+
+h1 {
+    text-align : center;
+    background-color: #cc99ff;
+    border: solid 1px #999999;
+    padding: 0.2em;
+    -moz-border-radius: 10px;
+}
+
+a {
+    color: #000000;
+}
+a:visited {
+    color: #333333;
+}
+
+table {
+    border-spacing: 0px;
+}
+tr {
+    text-align : center;
+    vertical-align: top;
+}
+th,.h,.hh {
+    background-color: #cccccc;
+    border: solid 1px #333333;
+    padding: 0em 0.2em;
+    width: 2.5em;
+    -moz-border-radius: 4px;
+}
+.hh {
+    width: 25%;
+}
+td {
+    border: solid 1px #cccccc;
+    border-top: none;
+    border-left: none;
+    -moz-border-radius: 4px;
+}
+.hblank {
+    height: 0.5em;
+}
+.dblank {
+    border: none;
+}
+
+/* source code */
+pre,.s {
+    text-align: left;
+    font-family: monospace;
+    white-space: pre;
+    padding: 0.2em 0.5em 0em 0.5em;
+}
+
+/* Classes for color-coding coverage information:
+ *   c0  : path not covered or coverage < 75%
+ *   c1  : coverage >= 75%
+ *   c2  : coverage >= 90%
+ *   c3  : path covered or coverage = 100%
+ */
+.c0 {
+    background-color: #ff9999;
+    border: solid 1px #cc0000;
+}
+.c1 {
+    background-color: #ffcc99;
+    border: solid 1px #ff9933;
+}
+.c2 {
+    background-color: #ffff99;
+    border: solid 1px #cccc66;
+}
+.c3 {
+    background-color: #99ff99;
+    border: solid 1px #009900;
+}
+EOF
+
+    close $fh or die "Can't close $css: $!\n";
 }
 
 package Devel::Cover::Collection::Template::Provider;
@@ -226,7 +374,7 @@ $Templates{html} = <<'EOT';
 <html xmlns="http://www.w3.org/1999/xhtml">
 <!--
 This file was generated by Devel::Cover Version $VERSION
-Devel::Cover is copyright 2001-2012, Paul Johnson (paul\@pjcj.net)
+Devel::Cover is copyright 2001-2013, Paul Johnson (paul\@pjcj.net)
 Devel::Cover is free. It is licensed under the same terms as Perl itself.
 The latest version of Devel::Cover should be available from my homepage:
 http://www.pjcj.net

@@ -31,29 +31,19 @@ sub add_runs
     \@runs
 }
 
-sub add_summary
-{
-    my ($db) = @_;
-    my %summary;
-    my $s = $db->{summary};
-    for my $file (grep($_ ne "Total", sort keys %$s), "Total") {
-        $summary{$file} = {
-            map { $_ => $s->{$file}{$_}{percentage} } @{$db->{all_criteria}}
-        };
-    }
-    \%summary
-}
-
 sub report
 {
     my ($pkg, $db, $options) = @_;
 
+    my %options = map { $_ => 1 } grep !/path|time/, $db->all_criteria, "force";
+    $db->calculate_summary(%options);
+
     my $json = {
         runs    => add_runs($db),
-        summary => add_summary($db),
+        summary => $db->{summary},
     };
     # print "JSON: ", Dumper $json;
-    print "$options->{outputdir}/cover.json\n";
+    print "JSON sent to $options->{outputdir}/cover.json\n";
 
     my $io = Devel::Cover::DB::IO::JSON->new(options => "pretty");
     $io->write($json, "$options->{outputdir}/cover.json");
