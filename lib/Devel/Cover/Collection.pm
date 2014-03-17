@@ -170,7 +170,7 @@ sub generate_html {
     chdir $d or die "Can't chdir $d: $!\n";
 
     my $f = "$d/index.html";
-    say "\n\nWriting cpancover output to $f ...";
+    say "\n\nWriting collection output to $f ...";
 
     my $vars = {
         title    => "Coverage report",
@@ -210,17 +210,17 @@ sub generate_html {
               ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
         }
     }
-    print "vars ", Dumper $vars;
+    # print "vars ", Dumper $vars;
 
     $self->write_stylesheet;
     my $template = Template->new({
         LOAD_TEMPLATES => [
-            Devel::Cover::Cpancover::Template::Provider->new({}),
+            Devel::Cover::Collection::Template::Provider->new({}),
         ],
     });
     $template->process("summary", $vars, $f) or die $template->error;
 
-    say "\n\nWrote cpancover output to $f";
+    say "\n\nWrote collection output to $f";
 }
 
 
@@ -237,10 +237,10 @@ sub cover_modules {
 sub write_stylesheet {
     my $self = shift;
 
-    my $css = $self->results_dir . "/cpancover.css";
+    my $css = $self->results_dir . "/collection.css";
     open my $fh, ">", $css or die "Can't open $css: $!\n";
     print $fh <<EOF;
-/* Stylesheet for Devel::Cover cpancover reports */
+/* Stylesheet for Devel::Cover collection reports */
 
 /* You may modify this file to alter the appearance of your coverage
  * reports. If you do, you should probably flag it read-only to prevent
@@ -384,7 +384,7 @@ http://www.pjcj.net
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta>
     <meta http-equiv="Content-Language" content="en-us"></meta>
-    <link rel="stylesheet" type="text/css" href="cpancover.css"></link>
+    <link rel="stylesheet" type="text/css" href="collection.css"></link>
     <title> [% title %] </title>
 </head>
 <body>
