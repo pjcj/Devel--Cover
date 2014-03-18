@@ -17,6 +17,7 @@ use Devel::Cover::Dumper;
 
 use Capture::Tiny      "capture_merged";
 use Parallel::Iterator "iterate_as_array";
+use Template;
 
 use Class::XSAccessor ();
 use Moo;
@@ -24,10 +25,11 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-    ro  => [ qw( bin_dir cpancover_dir cpanm_dir results_dir force outputfile
-                 report timeout verbose workers ) ],
-    rwp => [ qw( build_dirs build_dir modules )                         ],
-    rw  => [ qw( )                                                      ],
+    ro  => [ qw( bin_dir cpancover_dir cpanm_dir empty_cpanm_dir module_file
+                 results_dir force output_file report timeout verbose
+                 workers                                                    ) ],
+    rwp => [ qw( build_dirs build_dir modules )                               ],
+    rw  => [ qw( )                                                            ],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
 
@@ -35,15 +37,16 @@ sub BUILDARGS {
     my $class = shift;
     my (%args) = @_;
     {
-        build_dirs => [],
-        cpanm_dir  => glob("~/.cpanm"),
-        force      => 0,
-        modules    => [],
-        outputfile => "index.html",
-        report     => "html_basic",
-        timeout    => 900,  # fifteen minutes should be enough
-        verbose    => 0,
-        workers    => 0,
+        build_dirs      => [],
+        cpanm_dir       => glob("~/.cpanm"),
+        empty_cpanm_dir => 1,
+        force           => 0,
+        modules         => [],
+        output_file     => "index.html",
+        report          => "html_basic",
+        timeout         => 900,  # fifteen minutes should be enough
+        verbose         => 0,
+        workers         => 0,
         %args,
     }
 };
@@ -58,7 +61,7 @@ sub sys {
     $output
 }
 
-sub empty_cpanm_dir {
+sub do_empty_cpanm_dir {
     my $self = shift;
     # TODO - not portable
     my $output = $self->sys("rm", "-rf", $self->cpanm_dir);
@@ -70,11 +73,23 @@ sub add_modules {
     push @{$self->modules}, @_;
 }
 
+sub process_module_file {
+    my $self = shift;
+    my $file = $self->module_file;
+    return unless defined $file && length $file;
+    open my $fh, "<", $file or die "Can't open $file: $!";
+    my $modules = do { local $/; <$fh> };
+    close $fh or die "Can't close $file: $!";
+    my @modules = grep /\S/, grep !/^ +#/, split /\n/, $modules;
+    $self->add_modules(@modules);
+}
+
 sub build_modules {
     my $self = shift;
     my @command = qw( cpanm --notest );
     push @command, "--force" if $self->force;
-    for my $module (@{$self->modules}) {
+    my %m;
+    for my $module (sort grep !$m{$_}++, @{$self->modules}) {
         my $output = $self->sys(@command, $module);
         say $output;
     }
@@ -113,7 +128,7 @@ sub run {
         $output .= $self->sys(
             @cmd,          "-test",
             "-report",     $self->report,
-            "-outputfile", $self->outputfile,
+            "-outputfile", $self->output_file,
         );
         $output .= $self->sys(@cmd, "-report", "json", "-nosummary");
         alarm 0;
@@ -153,6 +168,21 @@ sub run_all {
     # print Dumper \@res;
 }
 
+sub write_json {
+    my $self = shift;
+    my ($vars) = @_;
+
+    my $results = {
+        map { $_ => $vars->{vals}{$_}{total}{pc} + 0 } keys %{$vars->{vals}}
+    };
+    # print Dumper $vars, $results;
+
+    my $io = Devel::Cover::DB::IO::JSON->new(options => "pretty");
+    my $file = $self->results_dir . "/cpancover.json";
+    $io->write($results, $file);
+    say "Wrote json output to $file";
+}
+
 sub class
 {
     my ($pc) = @_;
@@ -181,7 +211,6 @@ sub generate_html {
         criteria => [ grep !/path|time/,
                            @Devel::Cover::DB::Criteria,       "total" ],
     };
-    # print Dumper $vars, $results;
 
     opendir my $dh, $d or die "Can't opendir $d: $!";
     my @modules = sort grep !/^\./, readdir $dh;
@@ -220,14 +249,16 @@ sub generate_html {
     });
     $template->process("summary", $vars, $f) or die $template->error;
 
-    say "\n\nWrote collection output to $f";
-}
+    $self->write_json($vars);
 
+    say "Wrote collection output to $f";
+}
 
 sub cover_modules {
     my $self = shift;
 
-    $self->empty_cpanm_dir;
+    $self->do_empty_cpanm_dir if $self->empty_cpanm_dir;
+    $self->process_module_file;
     $self->build_modules;
     $self->add_build_dirs;
     $self->run_all;
