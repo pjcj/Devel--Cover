@@ -174,7 +174,7 @@ sub write_json {
     my ($vars) = @_;
 
     my $results = {
-        map { $_ => $vars->{vals}{$_}{total}{pc} + 0 } keys %{$vars->{vals}}
+        map { $_ => $vars->{vals}{$_}{total}{pc} } keys %{$vars->{vals}}
     };
     # print Dumper $vars, $results;
 
