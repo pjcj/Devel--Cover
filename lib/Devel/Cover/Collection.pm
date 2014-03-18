@@ -12,6 +12,7 @@ use warnings;
 
 # VERSION
 
+use Devel::Cover::DB;
 use Devel::Cover::DB::IO::JSON;
 use Devel::Cover::Dumper;
 
@@ -80,7 +81,7 @@ sub process_module_file {
     open my $fh, "<", $file or die "Can't open $file: $!";
     my $modules = do { local $/; <$fh> };
     close $fh or die "Can't close $file: $!";
-    my @modules = grep /\S/, grep !/^ +#/, split /\n/, $modules;
+    my @modules = grep /\S/, grep !/^ *#/, split /\n/, $modules;
     $self->add_modules(@modules);
 }
 
