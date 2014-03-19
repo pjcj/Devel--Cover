@@ -40,7 +40,7 @@ sub BUILDARGS {
     {
         build_dirs      => [],
         cpanm_dir       => glob("~/.cpanm"),
-        empty_cpanm_dir => 1,
+        empty_cpanm_dir => 0,
         force           => 0,
         modules         => [],
         output_file     => "index.html",
@@ -58,7 +58,7 @@ sub sys {
     my $output;
     $output = "-> @command\n" if $self->verbose;
     # TODO - check for failure
-    $output .= capture_merged { system @command };
+    $output .= capture_merged { system "@command < /dev/null" };
     $output
 }
 
@@ -88,7 +88,8 @@ sub process_module_file {
 sub build_modules {
     my $self = shift;
     my @command = qw( cpanm --notest );
-    push @command, "--force" if $self->force;
+    push @command, "--force"   if $self->force;
+    push @command, "--verbose" if $self->verbose;
     my %m;
     for my $module (sort grep !$m{$_}++, @{$self->modules}) {
         my $output = $self->sys(@command, $module);
@@ -119,7 +120,7 @@ sub run {
 
     $output .= "Testing $module\n";
     # TODO - is ths needed?
-    $output .= $self->sys($^X, "Makefile.PL") unless -e "Makefile";
+    # $output .= $self->sys($^X, "Makefile.PL") unless -e "Makefile";
 
     eval {
         local $SIG{ALRM} = sub { die "alarm\n" };

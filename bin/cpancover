@@ -25,7 +25,7 @@ $|++;
 
 my $Options = {
     bin_dir         => abs_path($0) =~ s|/cpancover$||r,
-    empty_cpanm_dir => 1,
+    empty_cpanm_dir => 0,
     force           => 0,
     module          => [],
     output_file     => "index.html",

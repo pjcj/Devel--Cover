@@ -1,6 +1,15 @@
 #!/usr/bin/zsh
 
-set -x
+# set -x
+
+export JOBS=16
+export AUTOMATED_TESTING=1
+export NONINTERACTIVE_TESTING=1
+
+WEBDIR=/usr/share/nginx/www
+CPANCOVER_STAGING=~/staging
+CPANCOVER_LATEST=$WEBDIR/latest
+MODLIST_DIR=tmp/modules
 
 case "$1" in
     "update-copyright")
@@ -21,6 +30,67 @@ case "$1" in
         $perl -Mblib -MDevel::Cover tests/change
         $perl -Mblib bin/cover -report text
         rm tests/change
+        ;;
+    "cpancover-move")
+        new=$WEBDIR/`date +%F`
+        sudo mv $new $new.$$
+        sudo mv $CPANCOVER_STAGING $new
+        sudo rm $CPANCOVER_LATEST
+        sudo ln -s $new $CPANCOVER_LATEST
+        ;;
+    "cpancover-generate-index")
+        perl -Mblib bin/cpancover -results_dir $CPANCOVER_STAGING -workers $JOBS
+        ;;
+    "cpancover-compress")
+        find $CPANCOVER_STAGING -type f -exec gzip -f9 {} \;
+        find $CPANCOVER_STAGING -name '*.json.gz' -exec gunzip {} \;
+        ;;
+    "cpancover-file")
+        file="$2"
+        perl -Mblib bin/cpancover -results_dir $CPANCOVER_STAGING \
+                                  -workers $JOBS -module_file $file --verbose
+        $0 cpancover-compress
+        $0 cpancover-generate-index
+        ;;
+    "cpancover-build-perl")
+        perlbrew uninstall cpancover
+        perlbrew install perl-5.18.2 --as cpancover -j $JOBS -nf
+        ;;
+    "cpancover-install-basics")
+        sudo rm -rf ~/.cpanm
+        sudo rm -rf $CPANCOVER_STAGING
+        cpan App::cpanminus
+        cpanm -nf .
+        cpanm -nf Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
+                  Moo namespace::clean
+        ;;
+    "cpancover-install-main")
+        cpanm -nf App::cpanoutdated
+        cpan-outdated | cpanm -nf
+        $0 cpancover-compress
+        $0 cpancover-generate-index
+        ;;
+    "cpancover-split-modlist")
+        rm -rf $MODLIST_DIR
+        mkdir -p $MODLIST_DIR
+        cd $MODLIST_DIR
+        perl -E 'eval(`zcat ~/.cpan/sources/modules/03modlist.data.gz` =~ s/.*?package/package/sr); say for sort keys %{CPAN::Modulelist->data}' | split -l 100
+        ;;
+    "cpancover-install-all")
+        $0 cpancover-split-modlist
+        for file in $MODLIST_DIR/*; do
+            $0 cpancover-file $file
+        done
+        ;;
+    "cpancover-full-run")
+        $0 cpancover-build-perl
+        $0 cpancover-install-basics
+        $0 cpancover-install-main
+        $0 cpancover-install-all
+        $0 cpancover-move
+        ;;
+    "options")
+        perl -nE 'say $1 if /^    "([\w-]+)"\)$/ && $1 !~ /^_/' < $0
         ;;
     *)
         echo Unknown option "$1"
