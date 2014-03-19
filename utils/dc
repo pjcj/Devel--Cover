@@ -42,8 +42,8 @@ case "$1" in
         perl -Mblib bin/cpancover -results_dir $CPANCOVER_STAGING -workers $JOBS
         ;;
     "cpancover-compress")
-        find $CPANCOVER_STAGING -type f -exec gzip -f9 {} \;
-        find $CPANCOVER_STAGING -name '*.json.gz' -exec gunzip {} \;
+        find $CPANCOVER_STAGING -type f -not -name '*.gz' -not -name '*.json' \
+                                -exec gzip -f9 {} \;
         ;;
     "cpancover-file")
         file="$2"
