@@ -55,10 +55,19 @@ sub BUILDARGS {
 sub sys {
     my $self = shift;
     my (@command) = @_;
-    my $output;
-    $output = "-> @command\n" if $self->verbose;
-    # TODO - check for failure
-    $output .= capture_merged { system "@command < /dev/null" };
+    my $output = "";
+    $output = "dc -> @command\n" if $self->verbose;
+    eval {
+        local $SIG{ALRM} = sub { die "alarm\n" };
+        alarm $self->timeout;
+        # TODO - check for failure
+        $output .= capture_merged { system "@command < /dev/null" };
+        alarm 0;
+    };
+    if ($@) {
+        die unless $@ eq "alarm\n";   # propagate unexpected errors
+        warn "$output\nTimed out after " . $self->timeout . " seconds!\n";
+    }
     $output
 }
 
@@ -112,7 +121,7 @@ sub run {
     say "Checking coverage of $module";
     my $output = "**** Checking coverage of $module ****\n";
 
-    my $db = "$d/cover_db";
+    my $db = "$d/structure";
     if (-d $db) {
         $output .= "Already analysed\n";
         return unless $self->force;
@@ -122,23 +131,14 @@ sub run {
     # TODO - is ths needed?
     # $output .= $self->sys($^X, "Makefile.PL") unless -e "Makefile";
 
-    eval {
-        local $SIG{ALRM} = sub { die "alarm\n" };
-        alarm $self->timeout;
-        $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
-        my @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
-        $output .= $self->sys(
-            @cmd,          "-test",
-            "-report",     $self->report,
-            "-outputfile", $self->output_file,
-        );
-        $output .= $self->sys(@cmd, "-report", "json", "-nosummary");
-        alarm 0;
-    };
-    if ($@) {
-        die unless $@ eq "alarm\n";   # propagate unexpected errors
-        warn "$output\nTimed out after " . $self->timeout . " seconds!\n";
-    }
+    $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
+    my @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
+    $output .= $self->sys(
+        @cmd,          "-test",
+        "-report",     $self->report,
+        "-outputfile", $self->output_file,
+    );
+    $output .= $self->sys(@cmd, "-report", "json", "-nosummary");
 
     my $dir = $self->results_dir // die "No results dir";
     $output .= $self->sys("mkdir", "-p", $dir);
