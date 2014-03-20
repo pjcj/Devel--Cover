@@ -31,6 +31,11 @@ case "$1" in
         $perl -Mblib bin/cover -report text
         rm tests/change
         ;;
+    "cpancover")
+        shift;
+        perl -Mblib bin/cpancover -results_dir $CPANCOVER_STAGING \
+                                  -workers $JOBS "$@"
+        ;;
     "cpancover-move")
         new=$WEBDIR/`date +%F`
         sudo mv $new $new.$$
@@ -47,8 +52,7 @@ case "$1" in
         ;;
     "cpancover-file")
         file="$2"
-        perl -Mblib bin/cpancover -results_dir $CPANCOVER_STAGING \
-                                  -workers $JOBS -module_file $file --verbose
+        $0 cpancover -module_file $file
         $0 cpancover-compress
         $0 cpancover-generate-index
         ;;
@@ -60,13 +64,13 @@ case "$1" in
         sudo rm -rf ~/.cpanm
         sudo rm -rf $CPANCOVER_STAGING
         cpan App::cpanminus
-        cpanm -nf .
-        cpanm -nf Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
-                  Moo namespace::clean
+        cpanm . Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
+              Moo namespace::clean
         ;;
     "cpancover-install-main")
-        cpanm -nf App::cpanoutdated
-        cpan-outdated | cpanm -nf
+        $0 cpancover App::cpanoutdated
+        cpan-outdated | xargs $0 cpancover
+        $0 cpancover-file utils/cpancover_modules
         $0 cpancover-compress
         $0 cpancover-generate-index
         ;;
