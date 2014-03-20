@@ -16,7 +16,8 @@ my $Format;
 
 BEGIN
 {
-    $Format = "JSON"     if              eval "use JSON; 1";
+    $Format = "Sereal"   if              eval "use Sereal::Decoder; 1";
+    $Format = "JSON"     if !$Format and eval "use JSON; 1";
     $Format = "JSON"     if !$Format and eval "use JSON::PP; 1";
     $Format = "Storable" if !$Format and eval "use Storable; 1";
     die "Can't load either JSON or Storable" unless $Format;
@@ -28,7 +29,7 @@ sub new
 
     my $format = $ENV{DEVEL_COVER_DB_FORMAT} || $Format;
     die "Devel::Cover: Unrecognised DB format: $format"
-        unless $format =~ /^(?:Storable|JSON)$/;
+        unless $format =~ /^(?:Storable|JSON|Sereal)$/;
 
     $class .= "::$format";
     eval "use $class; 1" or die "Devel::Cover: $@";
