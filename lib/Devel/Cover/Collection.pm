@@ -121,8 +121,8 @@ sub run {
     say "Checking coverage of $module";
     my $output = "**** Checking coverage of $module ****\n";
 
-    my $db = "$d/structure";
-    if (-d $db) {
+    my $db = "$d/cover_db";
+    if (-d $db || -d "$d/structure") {
         $output .= "Already analysed\n";
         return unless $self->force;
     }
