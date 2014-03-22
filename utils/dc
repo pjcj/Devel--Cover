@@ -44,7 +44,7 @@ case "$1" in
         sudo ln -s $new $CPANCOVER_LATEST
         ;;
     "cpancover-generate-index")
-        perl -Mblib bin/cpancover -results_dir $CPANCOVER_STAGING -workers $JOBS
+        $0 cpancover
         ;;
     "cpancover-compress")
         find $CPANCOVER_STAGING -type f -not -name '*.gz' -not -name '*.json' \
@@ -61,11 +61,14 @@ case "$1" in
         perlbrew install perl-5.18.2 --as cpancover -j $JOBS -nf
         ;;
     "cpancover-install-basics")
+        sudo rm -rf ~/.cpan
         sudo rm -rf ~/.cpanm
         sudo rm -rf $CPANCOVER_STAGING
-        cpan App::cpanminus
-        cpanm . Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
-              Moo namespace::clean
+        # cpan App::cpanminus
+        cpan -i -T . Sereal Digest::MD5 Template Pod::Coverage::CountParents \
+                   Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
+                   Moo namespace::clean < /dev/null
+        $0 cpancover-generate-index
         ;;
     "cpancover-install-main")
         $0 cpancover App::cpanoutdated

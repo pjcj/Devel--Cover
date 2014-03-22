@@ -26,10 +26,10 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-    ro  => [ qw( bin_dir cpancover_dir cpanm_dir empty_cpanm_dir module_file
-                 results_dir force output_file report timeout verbose
-                 workers                                                    ) ],
-    rwp => [ qw( build_dirs build_dir modules )                               ],
+    ro  => [ qw( bin_dir cpancover_dir cpan_dir empty_cpan_dir
+                 cpanm_dir empty_cpanm_dir module_file results_dir force
+                 output_file report timeout verbose workers                 ) ],
+    rwp => [ qw( build_dirs build_dir local_timeout modules )                 ],
     rw  => [ qw( )                                                            ],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
@@ -39,9 +39,12 @@ sub BUILDARGS {
     my (%args) = @_;
     {
         build_dirs      => [],
+        cpan_dir        => glob("~/.cpan"),
+        empty_cpan_dir  => 0,
         cpanm_dir       => glob("~/.cpanm"),
         empty_cpanm_dir => 0,
         force           => 0,
+        local_timeout   => 0,
         modules         => [],
         output_file     => "index.html",
         report          => "html_basic",
@@ -57,18 +60,26 @@ sub sys {
     my (@command) = @_;
     my $output = "";
     $output = "dc -> @command\n" if $self->verbose;
+    my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
     eval {
         local $SIG{ALRM} = sub { die "alarm\n" };
-        alarm $self->timeout;
+        alarm $timeout;
         # TODO - check for failure
         $output .= capture_merged { system "@command < /dev/null" };
         alarm 0;
     };
     if ($@) {
-        die unless $@ eq "alarm\n";   # propagate unexpected errors
-        warn "$output\nTimed out after " . $self->timeout . " seconds!\n";
+        die "propogate: $@" unless $@ eq "alarm\n";   # propagate unexpected errors
+        warn "$output\nTimed out after $timeout seconds!\n";
     }
     $output
+}
+
+sub do_empty_cpan_dir {
+    my $self = shift;
+    # TODO - not portable
+    my $output = $self->sys("rm", "-rf", $self->cpan_dir . "/build");
+    say $output;
 }
 
 sub do_empty_cpanm_dir {
@@ -96,18 +107,24 @@ sub process_module_file {
 
 sub build_modules {
     my $self = shift;
-    my @command = qw( cpanm --notest );
-    push @command, "--force"   if $self->force;
-    push @command, "--verbose" if $self->verbose;
+    # my @command = qw( cpanm --notest );
+    # push @command, "--force"   if $self->force;
+    # push @command, "--verbose" if $self->verbose;
+    my @command = qw( cpan -i -T );
+    push @command, "-f" if $self->force;
+    $self->_set_local_timeout(300);
     my %m;
     for my $module (sort grep !$m{$_}++, @{$self->modules}) {
+        say "Building $module";
         my $output = $self->sys(@command, $module);
         say $output;
     }
+    $self->_set_local_timeout(0);
 }
 
 sub add_build_dirs {
     my $self = shift;
+    push @{$self->build_dirs}, grep -d, glob $self->cpan_dir  . "/build/*";
     push @{$self->build_dirs}, grep -d, glob $self->cpanm_dir . "/work/*/*";
 }
 
@@ -115,7 +132,7 @@ sub run {
     my $self = shift;
 
     my $build_dir   = $self->build_dir;
-    my $module      = $build_dir =~ s|.*/||r;
+    my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\w{6})$|;
     my $db          = "$build_dir/cover_db";
     my $line        = "=" x 80;
     my $output      = "**** Checking coverage of $module ****\n";
@@ -266,6 +283,7 @@ sub generate_html {
 sub cover_modules {
     my $self = shift;
 
+    $self->do_empty_cpan_dir  if $self->empty_cpan_dir;
     $self->do_empty_cpanm_dir if $self->empty_cpanm_dir;
     $self->process_module_file;
     $self->build_modules;
