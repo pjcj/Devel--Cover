@@ -114,22 +114,28 @@ sub add_build_dirs {
 sub run {
     my $self = shift;
 
-    my $d = $self->build_dir;
-    chdir $d or die "Can't chdir $d: $!\n";
+    my $build_dir   = $self->build_dir;
+    my $module      = $build_dir =~ s|.*/||r;
+    my $db          = "$build_dir/cover_db";
+    my $line        = "=" x 80;
+    my $output      = "**** Checking coverage of $module ****\n";
+    my $results_dir = $self->results_dir // die "No results dir";
+    $output        .= $self->sys("mkdir", "-p", $results_dir);
+    $results_dir   .= "/$module";
 
-    my $module = $d =~ s|.*/||r;
+    chdir $build_dir or die "Can't chdir $build_dir: $!\n";
     say "Checking coverage of $module";
-    my $output = "**** Checking coverage of $module ****\n";
 
-    my $db = "$d/cover_db";
-    if (-d $db || -d "$d/structure") {
+    if (-d $db || -d "$build_dir/structure" || -d $results_dir) {
         $output .= "Already analysed\n";
-        return unless $self->force;
+        unless ($self->force) {
+            say "\n$line\n$output$line\n";
+            return;
+        }
     }
 
-    $output .= "Testing $module\n";
-    # TODO - is ths needed?
-    # $output .= $self->sys($^X, "Makefile.PL") unless -e "Makefile";
+    $output .= "Testing $module in $build_dir\n";
+    # say "\n$line\n$output$line\n"; return;
 
     $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
     my @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
@@ -140,16 +146,12 @@ sub run {
     );
     $output .= $self->sys(@cmd, "-report", "json", "-nosummary");
 
-    my $dir = $self->results_dir // die "No results dir";
-    $output .= $self->sys("mkdir", "-p", $dir);
-    $dir .= "/$module";
     # TODO - option to merge DB with existing one
     # TODO - portability
-    $output .= $self->sys("rm", "-rf", $dir);
-    $output .= $self->sys("mv", $db, $dir);
+    $output .= $self->sys("rm", "-rf", $results_dir);
+    $output .= $self->sys("mv", $db, $results_dir);
     $output .= $self->sys("rm", "-rf", $db);
 
-    my $line = "=" x 80;
     say "\n$line\n$output$line\n";
 }
 
