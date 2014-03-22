@@ -112,6 +112,9 @@ sub build_modules {
     # push @command, "--verbose" if $self->verbose;
     my @command = qw( cpan -i -T );
     push @command, "-f" if $self->force;
+    # my @command = qw( cpan );
+    # $ENV{CPAN_OPTS} = "-i -T";
+    # $ENV{CPAN_OPTS} .= " -f" if $self->force;
     $self->_set_local_timeout(300);
     my %m;
     for my $module (sort grep !$m{$_}++, @{$self->modules}) {
