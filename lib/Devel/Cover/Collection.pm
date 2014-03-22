@@ -176,8 +176,13 @@ sub write_json {
     my $self = shift;
     my ($vars) = @_;
 
+    # print Dumper $vars;
     my $results = {
-        map { $_ => $vars->{vals}{$_}{total}{pc} } keys %{$vars->{vals}}
+        map {
+            my $module = $_;
+            $module => { map { $_ => $vars->{vals}{$module}{$_}{pc} }
+                             grep !/link/, keys %{$vars->{vals}{$module}} }
+        } keys %{$vars->{vals}}
     };
     # print Dumper $vars, $results;
 
@@ -240,7 +245,7 @@ sub generate_html {
             $m->{$criterion}{pc}      = $pc;
             $m->{$criterion}{class}   = class($pc);
             $m->{$criterion}{details} =
-              ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
+                ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
         }
     }
     # print "vars ", Dumper $vars;
