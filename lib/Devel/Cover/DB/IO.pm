@@ -28,6 +28,7 @@ sub new
     my $class = shift;
 
     my $format = $ENV{DEVEL_COVER_DB_FORMAT} || $Format;
+    ($format) = $format =~ /(.*)/;  # die tainting
     die "Devel::Cover: Unrecognised DB format: $format"
         unless $format =~ /^(?:Storable|JSON|Sereal)$/;
 
