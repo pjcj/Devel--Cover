@@ -5,6 +5,7 @@ Devel::Cover history
  - Add Sereal backend and use it if available.
  - Support spaces in DB path (Keith Wissing) (github 81).
  - Test against 5.8 on Travis (Slaven Rezić) (github 76).
+ - HTML cleanups (H.Merijn Brand).
 
 Release 1.09 - 15 March 2014
  - Add Contributors file.
