@@ -283,10 +283,11 @@ sub merge
 sub _merge_hash
 {
     my ($into, $from) = @_;
+    return unless $from;
     for my $fkey (keys %{$from})
     {
+        # print STDERR "key [$fkey]\n";
         my $fval = $from->{$fkey};
-        my $fval_ref = ref $fval;
 
         if (defined $into->{$fkey} and UNIVERSAL::isa($into->{$fkey}, "ARRAY"))
         {

@@ -22,6 +22,7 @@ use File::Find ();
 use File::Path;
 use Getopt::Long;
 use Pod::Usage;
+use Devel::Cover::Dumper;  # For debugging
 use Data::Dumper ();  # no import of Dumper (use Devel::Cover::Dumper if needed)
 
 my $Options =
@@ -333,12 +334,27 @@ sub main
                          @{$Options->{delete_uncoverable_point}} ||
                          $Options->{clean_uncoverable_points};
 
+    my $structure;
+    my $read_structure = sub {
+        unless ($structure) {
+            $structure = Devel::Cover::DB::Structure->new(base => $dbname);
+            $structure->read_all;
+        }
+    };
+
     for my $merge (@ARGV)
     {
+        $read_structure->();
         print "Merging database from $merge\n" unless $Options->{silent};
         my $mdb = Devel::Cover::DB->new(db => $merge);
         $mdb = $mdb->merge_runs;
         $db->merge($mdb);
+        my $mst = Devel::Cover::DB::Structure->new(base => $merge);
+        $mst->read_all;
+        print STDERR "Merging structure", Dumper($structure),
+                     "From ", Dumper($mst);
+        $structure->merge($mst);
+        print STDERR "Merged structure", Dumper($structure);
     }
 
     if ($Options->{dump_db})
@@ -347,8 +363,7 @@ sub main
         $d->Indent(1);
         $d->Sortkeys(1) if $] >= 5.008;
         print $d->Dump;
-        my $structure = Devel::Cover::DB::Structure->new(base => $dbname);
-        $structure->read_all;
+        $read_structure->();
         my $s = Data::Dumper->new([$structure], ["structure"]);
         $s->Indent(1);
         $s->Sortkeys(1) if $] >= 5.008;
@@ -361,6 +376,8 @@ sub main
         $dbname = $Options->{write} if length $Options->{write};
         print "Writing database to $dbname\n" unless $Options->{silent};
         $db->write($dbname);
+        $read_structure->();
+        $structure->write($dbname);
     }
 
     exit $test_result unless $Options->{summary} || $Options->{report};
