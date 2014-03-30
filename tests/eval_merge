@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+# Copyright 2014, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+use lib "tests";
+
+$x = shift || 0;
+print "1 - $x\n";
+if (!$x) {
+    eval "use E2"; eval "use E3";
+    E2::E2(); E3::E3();
+} else {
+    eval "use E3"; eval "use E4";
+    E3::E3(); E4::E4();
+}
+print "2 - $x\n";

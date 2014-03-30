@@ -180,6 +180,7 @@ sub cover_gold
                    map     { /^$test\.(5\.\d+)$/ ? $1 : () }
                    readdir D;
     closedir D or die "Can't closedir $td: $!";
+    # print STDERR "Versions for [$test] from [$td] @versions\n";
 
     my $v = "5.0";
     for (@versions)

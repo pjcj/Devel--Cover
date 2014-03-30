@@ -9,4 +9,6 @@ package E4;
 
 print "E4\n";
 
+sub E4 { print "E4::E4\n" }
+
 1

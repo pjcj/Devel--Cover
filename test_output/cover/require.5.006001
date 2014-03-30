@@ -4,8 +4,9 @@ Reading database from ...
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
+tests/E2.pm                                   0.0    n/a    n/a    0.0    0.0
 tests/require                               100.0    n/a    n/a    n/a  100.0
-Total                                       100.0    n/a    n/a    n/a  100.0
+Total                                        50.0    n/a    n/a    0.0   33.3
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -14,6 +15,33 @@ Perl version: ...
 OS: ...
 Start: ...
 Finish: ...
+
+tests/E2.pm
+
+line  err   stmt   bran   cond    sub   code
+1                                       # Copyright 2004-2014, Paul Johnson (paul@pjcj.net)
+2                                       
+3                                       # This software is free.  It is licensed under the same terms as Perl itself.
+4                                       
+5                                       # The latest version of this software should be available from my homepage:
+6                                       # http://www.pjcj.net
+7                                       
+8                                       package E2;
+9                                       
+10                                      print "E2\n";
+11                                      
+12    ***      0                    0   sub E2 { print "E2::E2\n" }
+13                                      
+14                                      1
+
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count Location      
+---------- ----- --------------
+E2             0 tests/E2.pm:12
+
 
 tests/require
 

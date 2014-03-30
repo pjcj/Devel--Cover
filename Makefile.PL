@@ -418,8 +418,8 @@ ppm : ppd pure_all
     -e 's/(CODEBASE HREF=")[^"]*/\$\$1Devel-Cover.tar.gz/;' \\
     Devel-Cover.ppd
 
-TAINT =
 TAINT = -T
+TAINT =
 COVER_OPTIONS =
 PERL5OPT =
 

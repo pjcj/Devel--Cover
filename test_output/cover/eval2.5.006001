@@ -4,8 +4,10 @@ Reading database from ...
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
+tests/E3.pm                                   0.0    n/a    n/a    0.0    0.0
+tests/E4.pm                                   0.0    n/a    n/a    0.0    0.0
 tests/eval2                                  90.9   50.0   50.0    n/a   73.7
-Total                                        90.9   50.0   50.0    n/a   73.7
+Total                                        76.9   50.0   50.0    0.0   60.9
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -14,6 +16,60 @@ Perl version: ...
 OS: ...
 Start: ...
 Finish: ...
+
+tests/E3.pm
+
+line  err   stmt   bran   cond    sub   code
+1                                       # Copyright 2004-2014, Paul Johnson (paul@pjcj.net)
+2                                       
+3                                       # This software is free.  It is licensed under the same terms as Perl itself.
+4                                       
+5                                       # The latest version of this software should be available from my homepage:
+6                                       # http://www.pjcj.net
+7                                       
+8                                       package E3;
+9                                       
+10                                      print "E3\n";
+11                                      
+12    ***      0                    0   sub E3 { print "E3::E3\n" }
+13                                      
+14                                      1
+
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count Location      
+---------- ----- --------------
+E3             0 tests/E3.pm:12
+
+
+tests/E4.pm
+
+line  err   stmt   bran   cond    sub   code
+1                                       # Copyright 2004-2014, Paul Johnson (paul@pjcj.net)
+2                                       
+3                                       # This software is free.  It is licensed under the same terms as Perl itself.
+4                                       
+5                                       # The latest version of this software should be available from my homepage:
+6                                       # http://www.pjcj.net
+7                                       
+8                                       package E4;
+9                                       
+10                                      print "E4\n";
+11                                      
+12    ***      0                    0   sub E4 { print "E4::E4\n" }
+13                                      
+14                                      1
+
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count Location      
+---------- ----- --------------
+E4             0 tests/E4.pm:12
+
 
 tests/eval2
 

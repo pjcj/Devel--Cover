@@ -4,10 +4,11 @@ Reading database from ...
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/E3.pm                                   0.0    n/a    n/a    0.0    0.0
-tests/E4.pm                                   0.0    n/a    n/a    0.0    0.0
-tests/eval2                                  95.0   50.0   50.0  100.0   83.9
-Total                                        86.4   50.0   50.0   60.0   74.3
+tests/E2.pm                                 100.0    n/a    n/a  100.0  100.0
+tests/E3.pm                                 100.0    n/a    n/a  100.0  100.0
+tests/E4.pm                                 100.0    n/a    n/a  100.0  100.0
+tests/eval_merge                            100.0  100.0  100.0  100.0  100.0
+Total                                       100.0  100.0  100.0  100.0  100.0
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -16,6 +17,39 @@ Perl version: ...
 OS: ...
 Start: ...
 Finish: ...
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/E2.pm
+
+line  err   stmt   bran   cond    sub   code
+1                                       # Copyright 2004-2014, Paul Johnson (paul@pjcj.net)
+2                                       
+3                                       # This software is free.  It is licensed under the same terms as Perl itself.
+4                                       
+5                                       # The latest version of this software should be available from my homepage:
+6                                       # http://www.pjcj.net
+7                                       
+8                                       package E2;
+9                                       
+10                                      print "E2\n";
+11                                      
+12             1                    1   sub E2 { print "E2::E2\n" }
+13                                      
+14                                      1
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location      
+---------- ----- --------------
+E2             1 tests/E2.pm:12
+
 
 tests/E3.pm
 
@@ -31,17 +65,17 @@ line  err   stmt   bran   cond    sub   code
 9                                       
 10                                      print "E3\n";
 11                                      
-12    ***      0                    0   sub E3 { print "E3::E3\n" }
+12             2                    2   sub E3 { print "E3::E3\n" }
 13                                      
 14                                      1
 
 
-Uncovered Subroutines
----------------------
+Covered Subroutines
+-------------------
 
 Subroutine Count Location      
 ---------- ----- --------------
-E3             0 tests/E3.pm:12
+E3             2 tests/E3.pm:12
 
 
 tests/E4.pm
@@ -58,52 +92,61 @@ line  err   stmt   bran   cond    sub   code
 9                                       
 10                                      print "E4\n";
 11                                      
-12    ***      0                    0   sub E4 { print "E4::E4\n" }
+12             1                    1   sub E4 { print "E4::E4\n" }
 13                                      
 14                                      1
 
 
-Uncovered Subroutines
----------------------
+Covered Subroutines
+-------------------
 
 Subroutine Count Location      
 ---------- ----- --------------
-E4             0 tests/E4.pm:12
+E4             1 tests/E4.pm:12
 
 
-tests/eval2
+tests/eval_merge
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2004-2014, Paul Johnson (paul@pjcj.net)
+3                                       # Copyright 2014, Paul Johnson (paul@pjcj.net)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10             1                    1   use lib "tests";
-               1                        
-               1                        
+10             2                    2   use lib "tests";
+               2                        
+               2                        
 11                                      
-12    ***      1            50          $x = shift || 0;
-13             1                        print "1 - $x\n";
-14    ***      1     50                 if ($x) { eval 'use E2' }
-      ***      0                        
-15             1                        print "3 - $x\n";
-16    ***      1     50             1   if ($x < 4) { eval 'use E3' }
+12             2           100          $x = shift || 0;
+13             2                        print "1 - $x\n";
+14             2    100                 if (!$x) {
+15             1                    1       eval "use E2"; eval "use E3";
+               1                    1   
                1                        
                1                        
                1                        
                1                        
-17             1                        print "4 - $x\n";
-18    ***      1     50             1   if ($x < 6) { eval 'use E4' }
+               1                        
+               1                        
+16             1                            E2::E2(); E3::E3();
+               1                        
+17                                      } else {
+18             1                    1       eval "use E3"; eval "use E4";
+               1                    1   
                1                        
                1                        
                1                        
                1                        
-19             1                        print "5 - $x\n";
+               1                        
+               1                        
+19             1                            E3::E3(); E4::E4();
+               1                        
+20                                      }
+21             2                        print "2 - $x\n";
 
 
 Branches
@@ -111,9 +154,7 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-14    ***     50      0      1   if ($x)
-16    ***     50      1      0   if ($x < 4)
-18    ***     50      1      0   if ($x < 6)
+14           100      1      1   if (not $x) { }
 
 
 Conditions
@@ -123,16 +164,18 @@ or 2 conditions
 
 line  err      %      l     !l   expr
 ----- --- ------ ------ ------   ----
-12    ***     50      0      1   shift @ARGV || 0
+12           100      1      1   shift @ARGV || 0
 
 
 Covered Subroutines
 -------------------
 
-Subroutine Count Location      
----------- ----- --------------
-BEGIN          1 tests/eval2:10
-BEGIN          1 tests/eval2:16
-BEGIN          1 tests/eval2:18
+Subroutine Count Location           
+---------- ----- -------------------
+BEGIN          2 tests/eval_merge:10
+BEGIN          1 tests/eval_merge:15
+BEGIN          1 tests/eval_merge:15
+BEGIN          1 tests/eval_merge:18
+BEGIN          1 tests/eval_merge:18
 
 

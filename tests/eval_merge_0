@@ -1,14 +1,16 @@
-# Copyright 2004-2014, Paul Johnson (paul@pjcj.net)
+#!/usr/bin/perl
+
+# Copyright 2014, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-package E3;
+use lib "tests";
 
-print "E3\n";
+use E2;
+use E3;
 
-sub E3 { print "E3::E3\n" }
-
-1
+E2::E2;
+E3::E3;
