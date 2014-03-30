@@ -261,7 +261,7 @@ sub generate_html {
             my $summary = $json->{summary}{Total}{$criterion};
             # print "summary:", Dumper $summary;
             my $pc = $summary->{percentage};
-            $pc = defined $pc ? sprintf "%6.2f", $pc : "n/a";
+            $pc = defined $pc ? sprintf "%.2f", $pc : "n/a";
             $m->{$criterion}{pc}      = $pc;
             $m->{$criterion}{class}   = class($pc);
             $m->{$criterion}{details} =
