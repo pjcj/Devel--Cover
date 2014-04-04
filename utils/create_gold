@@ -26,32 +26,31 @@ my @tests = @ARGV;
 mkdir "test_output"       unless -d "test_output";
 mkdir "test_output/cover" unless -d "test_output/cover";
 
-unless (@tests)
-{
+unless (@tests) {
     opendir D, "tests" or die "Cannot opendir tests: $!";
-    for my $t (sort readdir D)
-    {
+    for my $t (sort readdir D) {
         next unless -f "tests/$t";
         next if $t =~ /\.(pm|pl|uncoverable|version|org|bak)$/;
         next if $t =~ /~$/;
-
         push @tests, $t;
     }
     closedir D or die "Cannot closedir tests: $!";
 }
 
-for my $test (@tests)
-{
+for my $test (@tests) {
     my $e      = "t/e2e";
     my ($file) = grep -e, "$e/$test", "$e/a$test.t";
     $file    ||= $test;
     print STDERR "creating golden results for $test: ";
-    my $t;
-    {
+    # print "requiring [$file]\n";
+    die "Can't fork" unless defined(my $pid = fork);
+    if ($pid) {
+        waitpid $pid, 0;
+    } else {
         no warnings "redefine";
         local *Devel::Cover::Test::run_test = sub {};
-        $t = require $file or die "Can't require $file: $!";
+        my $t = require $file or die "Can't require $file: $!";
+        $t->create_gold && print STDERR "\n";
+        exit;
     }
-    $t->create_gold;
-    print "\n";
 }

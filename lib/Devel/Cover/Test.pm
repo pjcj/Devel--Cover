@@ -423,8 +423,12 @@ sub create_gold
         # print "--[$g]--\n";
         if ($ng eq $g)
         {
-            print "matches $v";
+            print STDERR "matches $v";
             unlink $new_gold;
+        }
+        else
+        {
+            print STDERR "new";
         }
     }
 
