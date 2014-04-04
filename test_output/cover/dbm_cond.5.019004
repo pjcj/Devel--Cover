@@ -1,0 +1,113 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/dbm_cond                              100.0  100.0    n/a  100.0  100.0
+Total                                       100.0  100.0    n/a  100.0  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/dbm_cond
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2012-2014, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      # __COVER__ skip_test $] < 5.008005 || !(eval "use DBM::Deep; 23")
+11                                      # __COVER__ skip_reason DBM::Deep not available
+12                                      
+13             1                    1   use strict;
+               1                        
+               1                        
+14             1                    1   use warnings;
+               1                        
+               1                        
+15                                      
+16             1                    1   use Test::More;
+               1                        
+               1                        
+17                                      
+18             1                    1   use DBM::Deep;
+               1                        
+               1                        
+19                                      
+20             1                        my $db = DBM::Deep->new( "temp.db" );
+21             1                        $db->{1} = 1;
+22                                      
+23             1                        my $h = { 1 => 1 };
+24                                      
+25                                      sub testdbm
+26                                      {
+27             2                    2       my ( $p ) = @_;
+28                                      
+29             2    100                     if( exists $db->{$p} )
+30                                          {
+31             1                                return "dbm: exists";
+32                                          }
+33                                          else
+34                                          {
+35             1                                return "dbm: does not exist";
+36                                          }
+37                                      }
+38                                      
+39                                      sub testh
+40                                      {
+41             2                    2       my ( $p ) = @_;
+42                                      
+43             2    100                     if( exists $h->{$p} )
+44                                          {
+45             1                                return "h: exists";
+46                                          }
+47                                          else
+48                                          {
+49             1                                return "h: does not exist";
+50                                          }
+51                                      }
+52                                      
+53             1                        is( testdbm( 1 ), "dbm: exists", "key exists in dbm" );
+54             1                        is( testdbm( 2 ), "dbm: does not exist", "key does not exist in dbm" );
+55                                      
+56             1                        is( testh( 1 ), "h: exists", "key exists in h" );
+57             1                        is( testh( 2 ), "h: does not exist", "key does not exist in h" );
+58                                      
+59             1                        unlink "temp.db";
+60                                      
+61             1                        done_testing();
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+29           100      1      1   if (exists $$db{$p}) { }
+43           100      1      1   if (exists $$h{$p}) { }
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location         
+---------- ----- -----------------
+BEGIN          1 tests/dbm_cond:13
+BEGIN          1 tests/dbm_cond:14
+BEGIN          1 tests/dbm_cond:16
+BEGIN          1 tests/dbm_cond:18
+testdbm        2 tests/dbm_cond:27
+testh          2 tests/dbm_cond:41
+
+

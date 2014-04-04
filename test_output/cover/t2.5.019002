@@ -1,0 +1,87 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/t2                                     93.8   50.0    n/a  100.0   84.0
+Total                                        93.8   50.0    n/a  100.0   84.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/t2
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2014, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                    1   use strict;
+               1                        
+               1                        
+11             1                    1   use warnings;
+               1                        
+               1                        
+12                                      
+13             1                        my @x;
+14                                      
+15                                      sub xx
+16                                      {
+17            11                   11     $x[shift]++;
+18                                      }
+19                                      
+20             1                        for (0 .. 10)
+21                                      {
+22                                        time &&
+23    ***     11     50                     $x[1]++;
+24                                      
+25    ***     11     50                   $x[2]++
+26                                          if time;
+27                                      
+28            11                          for (0 .. 2)
+29                                        {
+30            33                              $x[3]++;
+31                                        }
+32                                      
+33    ***     11     50                   if (time)
+34                                        {
+35            11                            xx(4);
+36                                        }
+37                                        else
+38    ***      0                          {
+39                                          $x[5]++;
+40                                        }
+41                                      }
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+23    ***     50     11      0   if time
+25    ***     50     11      0   if time
+33    ***     50     11      0   if (time) { }
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location   
+---------- ----- -----------
+BEGIN          1 tests/t2:10
+BEGIN          1 tests/t2:11
+xx            11 tests/t2:17
+
+
