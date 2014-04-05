@@ -35,12 +35,11 @@ line  err   stmt   bran   cond    sub   code
 8                                       # http://www.pjcj.net
 9                                       
 10             1                        my $x = 1;
-11                                      sub new_sub
-12                                      {
-13             1                    1       my $y = 1;
-14                                      }
-15                                      
-16             1                        new_sub;
+11                                      sub new_sub {
+12             1                    1       my $y = 1;
+13                                      }
+14                                      
+15             1                        new_sub;
 
 
 Covered Subroutines
@@ -48,6 +47,6 @@ Covered Subroutines
 
 Subroutine Count Location       
 ---------- ----- ---------------
-new_sub        1 tests/change:13
+new_sub        1 tests/change:12
 
 
