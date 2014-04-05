@@ -19,13 +19,10 @@ use Test ();
 
 use Devel::Cover::Inc;
 
-sub new
-{
+sub new {
     my $class = shift;
     my $test  = shift;
-
     croak "No test specified" unless $test;
-
     my %params = @_;
 
     my $criteria = delete $params{criteria} ||
@@ -34,8 +31,7 @@ sub new
     eval "use Test::Differences";
     my $differences = $INC{"Test/Differences.pm"};
 
-    my $self = bless
-    {
+    my $self = bless {
         test             => $test,
         criteria         => [ $criteria ],
         skip             => "",
@@ -55,28 +51,23 @@ sub new
 
 
 sub set_test {
-    my $self = shift;
-    my ($test) = @_;
+    my $self      = shift;
+    my ($test)    = @_;
     $self->{test} = $test;
 }
 
-sub shell_quote
-{
+sub shell_quote {
     my ($item) = @_;
-
     $^O eq "MSWin32" ? (/ / and $_ = qq("$_")) : s/ /\\ /g for $item;
     $item
 };
 
-sub get_params
-{
+sub get_params {
     my $self = shift;
 
     my $test = $self->test_file;
-    if (open T, $test)
-    {
-        while (<T>)
-        {
+    if (open T, $test) {
+        while (<T>) {
             push @{$self->{$1}}, $2 if /__COVER__\s+(\w+)\s+(.*)/;
         }
         close T or die "Cannot close $test: $!";
@@ -92,8 +83,7 @@ sub get_params
     $self->{criteria} =~ s/-\w+//g;
     $self->{cover_db} = "$Devel::Cover::Inc::Base/t/e2e/"
                       . "cover_db_$self->{test}/";
-    unless (mkdir $self->{cover_db})
-    {
+    unless (mkdir $self->{cover_db}) {
         die "Can't mkdir $self->{cover_db}: $!" unless -d $self->{cover_db};
     }
     $self->{cover_parameters} = join(" ", map "-coverage $_",
@@ -103,10 +93,8 @@ sub get_params
     $self->{cover_parameters} .= " -uncoverable_file "
                               .  "@{$self->{uncoverable_file}}"
         if @{$self->{uncoverable_file}};
-    if (exists $self->{skip_test})
-    {
-        for my $s (@{$self->{skip_test}})
-        {
+    if (exists $self->{skip_test}) {
+        for my $s (@{$self->{skip_test}}) {
             my $r = shift @{$self->{skip_reason}};
             next unless eval "{$s}";
             $self->{skip} = $r;
@@ -117,23 +105,19 @@ sub get_params
     $self
 }
 
-sub perl
-{
+sub perl {
     my $self = shift;
-
     join " ",
          map shell_quote($_),
              $Devel::Cover::Inc::Perl,
              map "-I$Devel::Cover::Inc::Base/$_", "", "blib/lib", "blib/arch"
 }
 
-sub test_command
-{
+sub test_command {
     my $self = shift;
 
     my $c = $self->perl;
-    unless ($self->{no_coverage})
-    {
+    unless ($self->{no_coverage}) {
         $c .= " "
            .  shell_quote "-MDevel::Cover=" .
                           join(",", "-db", $self->{cover_db},
@@ -145,31 +129,24 @@ sub test_command
     $c
 }
 
-sub cover_command
-{
+sub cover_command {
     my $self = shift;
-
     my $b = shell_quote $Devel::Cover::Inc::Base;
     my $c = $self->perl . " $b/bin/cover $self->{cover_parameters}";
     $c
 }
 
-sub test_file
-{
+sub test_file {
     my $self = shift;
-
     "$Devel::Cover::Inc::Base/tests/$self->{test}"
 }
 
-sub test_file_parameters
-{
+sub test_file_parameters {
     my $self = shift;
-
     exists $self->{test_file_parameters} ? $self->{test_file_parameters} : ""
 }
 
-sub cover_gold
-{
+sub cover_gold {
     my $self = shift;
 
     my $test = $self->{golden_test} || $self->{test};
@@ -183,8 +160,7 @@ sub cover_gold
     # print STDERR "Versions for [$test] from [$td] @versions\n";
 
     my $v = "5.0";
-    for (@versions)
-    {
+    for (@versions) {
         last if $_ > $];
         $v = $_;
     }
@@ -197,16 +173,14 @@ sub cover_gold
     ("$td/$test", $v eq "5.0" ? 0 : $v)
 }
 
-sub run_command
-{
+sub run_command {
     my $self = shift;
     my ($command) = @_;
 
     print STDERR "Running test [$command]\n" if $self->{debug};
 
     open T, "$command 2>&1 |" or die "Cannot run $command: $!";
-    while (<T>)
-    {
+    while (<T>) {
         print STDERR if $self->{debug};
     }
     close T or die "Cannot close $command: $!";
@@ -214,27 +188,23 @@ sub run_command
     1
 }
 
-sub run_test
-{
+sub run_test {
     my $self = shift;
 
-    if ($self->{skip})
-    {
+    if ($self->{skip}) {
         Test::plan tests => 1;
         Test::skip($self->{skip}, 1);
         return;
     }
 
     my $version = int(($] - 5) * 1000 + 0.5);
-    if ($version % 2 && $version < 18)
-    {
+    if ($version % 2 && $version < 18) {
         Test::plan tests => 1;
         Test::skip("Perl version $] is an obsolete development version", 1);
         return;
     }
 
-    if ($] > 5.019001 && $] < 5.019004)
-    {
+    if ($] > 5.019001 && $] < 5.019004) {
         Test::plan tests => 1;
         Test::skip("Perl version $] contains a bug which causes this test " .
                    "to fail", 1);
@@ -260,42 +230,33 @@ sub run_test
                                   : scalar @cover;
 
     local $ENV{PERL5OPT};
-
     $self->{run_test}
         ? $self->{run_test}->($self)
         : $self->run_command($self->test_command);
-
     $self->run_cover unless $self->{no_report};
-
     $self->{end}->() if $self->{end};
 
     1
 }
 
-sub run_cover
-{
+sub run_cover {
     my $self = shift;
 
     my $cover_com = $self->cover_command;
     print STDERR "Running cover [$cover_com]\n" if $self->{debug};
 
-    my @at;
-    my @ac;
-
-    my $change_line = sub
-    {
+    my (@at, @ac);
+    my $change_line = sub {
         my ($get_line) = @_;
         local *_;
         LOOP:
-        while (1)
-        {
+        while (1) {
             $_ = scalar $get_line->();
             $_ = "" unless defined $_;
             print STDERR $_ if $self->{debug};
             redo if /^Devel::Cover: merging run/;
             redo if /^Set up gcc environment/;  # for MinGW
-            if (/Can't opendir\(.+\): No such file or directory/)
-            {
+            if (/Can't opendir\(.+\): No such file or directory/) {
                 # parallel tests
                 scalar $get_line->();
                 redo;
@@ -322,36 +283,28 @@ sub run_cover
 
     # use Devel::Cover::Dumper; print STDERR "--->", Dumper $self->{changes};
     open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
-    while (!eof T)
-    {
-        my $t = $change_line->(sub { <T> });
+    while (!eof T) {
+        my $t = $change_line->(sub { <T>                     });
         my $c = $change_line->(sub { shift @{$self->{cover}} });
         # print STDERR "[$t]\n[$c]\n" if $t ne $c;
-        do
-        {
+        do {
             chomp(my $tn = $t); chomp(my $cn = $c);
             print STDERR "c-[$tn] $.\ng=[$cn]\n";
         } if $self->{debug};
 
-        if ($self->{differences})
-        {
+        if ($self->{differences}) {
             push @at, $t;
             push @ac, $c;
-        }
-        else
-        {
+        } else {
             $self->{no_coverage} ? Test::ok 1 : Test::ok $t, $c;
             last if $self->{no_coverage} && !@{$self->{cover}};
         }
     }
-    if ($self->{differences})
-    {
+    if ($self->{differences}) {
         no warnings "redefine";
         local *Test::_quote = sub { "@_" };
         $self->{no_coverage} ? Test::ok 1 : eq_or_diff(\@at, \@ac, "output");
-    }
-    elsif ($self->{no_coverage})
-    {
+    } elsif ($self->{no_coverage}) {
         Test::ok 1 for @{$self->{cover}};
     }
     close T or die "Cannot close $cover_com: $!";
@@ -359,8 +312,7 @@ sub run_cover
     1
 }
 
-sub create_gold
-{
+sub create_gold {
     my $self = shift;
 
     # Pod::Coverage not available on all versions, but it must be there on
@@ -375,15 +327,13 @@ sub create_gold
     my $gv         = $v;
     my $ng         = "";
 
-    unless (-e $new_gold)
-    {
+    unless (-e $new_gold) {
         open my $g, ">$new_gold" or die "Can't open $new_gold: $!";
         unlink $new_gold;
     }
 
     # use Devel::Cover::Dumper; print STDERR Dumper $self;
-    if ($self->{skip})
-    {
+    if ($self->{skip}) {
         print STDERR "Skipping: $self->{skip}\n";
         return;
     }
@@ -397,8 +347,7 @@ sub create_gold
 
     open G, ">$new_gold" or die "Cannot open $new_gold: $!";
     open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
-    while (my $l = <T>)
-    {
+    while (my $l = <T>) {
         next if $l =~ /^Devel::Cover: merging run/;
         $l =~ s/^($_: ).*$/$1.../
             for "Run", "Perl version", "OS", "Start", "Finish";
@@ -412,8 +361,7 @@ sub create_gold
 
     print STDERR "gv is $gv and this is $]\n" if $self->{debug};
     print STDERR "gold is $gold and new_gold is $new_gold\n" if $self->{debug};
-    unless ($gv eq "0" || $gv eq $])
-    {
+    unless ($gv eq "0" || $gv eq $]) {
         open G, "$gold" or die "Cannot open $gold: $!";
         my $g = do { local $/; <G> };
         close G or die "Cannot close $gold: $!";
@@ -421,13 +369,10 @@ sub create_gold
         print STDERR "checking $new_gold against $gold\n" if $self->{debug};
         # print "--[$ng]--\n";
         # print "--[$g]--\n";
-        if ($ng eq $g)
-        {
+        if ($ng eq $g) {
             print STDERR "matches $v";
             unlink $new_gold;
-        }
-        else
-        {
+        } else {
             print STDERR "new";
         }
     }
@@ -470,13 +415,13 @@ Returns properly quoted item to cope with embedded spaces.
 
 =head2 perl
 
-  my $perl = $self->perl()
+  my $perl = $self->perl
 
 Returns absolute path to Perl interpreter with proper -I options (blib-wise).
 
 =head2 test_command
 
-  my $command = $self->test_command()
+  my $command = $self->test_command
 
 Returns test command, made of:
 
@@ -494,7 +439,7 @@ Returns test command, made of:
 
 =head2 cover_command
 
-  my $command = $self->cover_command()
+  my $command = $self->cover_command
 
 Returns test command, made of:
 
@@ -510,13 +455,13 @@ Returns test command, made of:
 
 =head2 test_file
 
-  my $file = $self->test_file()
+  my $file = $self->test_file
 
 Returns absolute path to test file.
 
 =head2 test_file_parameters
 
-  my $parameters = $self->test_file_parameters()
+  my $parameters = $self->test_file_parameters
 
 Accessor to test_file_parameters property.
 
