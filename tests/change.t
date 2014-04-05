@@ -15,8 +15,13 @@ use File::Copy;
 use Devel::Cover::Inc;
 use Devel::Cover::Test;
 
-if ($] == 5.008007)
-{
+if ($] < 5.010) {
+    eval "use Test::More skip_all => 'Test requires perl 5.10.0 or greater'";
+    # can't locate structure for statement
+    exit;
+}
+
+if ($] == 5.008007) {
     eval "use Test::More skip_all => 'Crashes 5.8.7'";
     exit;
 }
@@ -27,22 +32,16 @@ my $t  = "change";
 my $ft = "$base/tests/$t";
 my $fg = "$base/tests/trivial";
 
-my $run_test = sub
-{
+my $run_test = sub {
     my $test = shift;
 
     copy($fg, $ft) or die "Cannot copy $fg to $ft: $!";
-
     $test->run_command($test->test_command);
 
-    # sleep 1;
-
     copy($fg, $ft) or die "Cannot copy $fg to $ft: $!";
-
     open T, ">>$ft" or die "Cannot open $ft: $!";
     print T <<'EOT';
-sub new_sub
-{
+sub new_sub {
     my $y = 1;
 }
 
@@ -54,11 +53,10 @@ EOT
     $test->run_command($test->test_command);
 };
 
-my $test = Devel::Cover::Test->new
-(
+my $test = Devel::Cover::Test->new(
     $t,
-    run_test => $run_test,
-    end      => sub { unlink $ft },
+    run_test  => $run_test,
+    end       => sub { unlink $ft },
     no_report => 0,
 );
 
