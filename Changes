@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.10 - 6 April 2014
  - Test against 5.19.10.
  - Add Sereal backend and use it if available.
  - Support spaces in DB path (Keith Wissing) (github 81).
