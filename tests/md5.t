@@ -48,6 +48,7 @@ my $run_test = sub {
 
 my $test = Devel::Cover::Test->new(
     $t,
+    db_name  => "complex_$t",
     run_test => $run_test,
     end      => sub { unlink $ft },
 );

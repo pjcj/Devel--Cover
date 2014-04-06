@@ -41,6 +41,7 @@ my $runs = 2;
 
 my $test = Devel::Cover::Test->new(
     "eval_merge",
+    db_name     => "complex_eval_merge",
     golden_test => "eval_merge.t",
     run_test    => $run_test,
     changes     => [ 'if (/^Run: /) { $get_line->() for 1 .. 5; redo }' ],

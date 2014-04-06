@@ -39,6 +39,7 @@ my $run_test = sub
 my $test = Devel::Cover::Test->new
 (
     "eval2",
+    db_name     => "complex_eval_use",
     golden_test => "eval_use.t",
     run_test    => $run_test,
     changes     => [ 'if (/^Run: /) { $get_line->() for 1 .. 5; redo }' ],

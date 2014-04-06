@@ -73,16 +73,16 @@ sub get_params {
         close T or die "Cannot close $test: $!";
     }
 
-    $self->{criteria} = $self->{criteria}[-1];
-
+    $self->{criteria}         = $self->{criteria}[-1];
     $self->{select}         ||= "-select /tests/$self->{test}\\b";
     $self->{test_parameters}  = "$self->{select}"
                               . " -ignore blib Devel/Cover @{$self->{ignore}}"
                               . " -merge 0 -coverage $self->{criteria} "
                               . "@{$self->{test_parameters}}";
-    $self->{criteria} =~ s/-\w+//g;
-    $self->{cover_db} = "$Devel::Cover::Inc::Base/t/e2e/"
-                      . "cover_db_$self->{test}/";
+    $self->{criteria}         =~ s/-\w+//g;
+    $self->{db_name}        ||= $self->{test};
+    $self->{cover_db}         = "$Devel::Cover::Inc::Base/t/e2e/"
+                              . "cover_db_$self->{db_name}/";
     unless (mkdir $self->{cover_db}) {
         die "Can't mkdir $self->{cover_db}: $!" unless -d $self->{cover_db};
     }
