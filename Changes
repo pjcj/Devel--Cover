@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Tests should pass when all run in parallel (Kent Fredric) (github 69).
 
 Release 1.10 - 6 April 2014
  - Test against 5.19.10.
