@@ -45,10 +45,12 @@ sub cpus
 
 sub nice_cpus
 {
-    my $cpus = cpus;
-    $cpus-- if $cpus > 3;
-    $cpus-- if $cpus > 6;
-    $cpus
+    $ENV{DEVEL_COVER_CPUS} || do {
+        my $cpus = cpus;
+        $cpus-- if $cpus > 3;
+        $cpus-- if $cpus > 6;
+        $cpus
+    }
 }
 
 sub prove_command
