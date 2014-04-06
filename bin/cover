@@ -353,10 +353,10 @@ sub main
         $db->merge($mdb);
         my $mst = Devel::Cover::DB::Structure->new(base => $merge);
         $mst->read_all;
-        print STDERR "Merging structure", Dumper($structure),
-                     "From ", Dumper($mst);
+        # print STDERR "Merging structure", Dumper($structure),
+                     # "From ", Dumper($mst);
         $structure->merge($mst);
-        print STDERR "Merged structure", Dumper($structure);
+        # print STDERR "Merged structure", Dumper($structure);
     }
 
     if ($Options->{dump_db})
