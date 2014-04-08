@@ -103,6 +103,9 @@ sub write {
     unless (mkdir $self->{db}) {
         croak "Can't mkdir $self->{db}: $!\n" unless -d $self->{db};
     }
+    if ($self->{loose_perms}) {
+        chmod 0777, $self->{db};
+    }
     $self->validate_db;
 
     my $db = { runs => $self->{runs} };

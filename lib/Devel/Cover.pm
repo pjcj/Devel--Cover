@@ -57,6 +57,7 @@ my $Merge          = 1;                  # Merge databases.
 my $Summary        = 1;                  # Output coverage summary.
 my $Subs_only      = 0;                  # Coverage only for sub bodies.
 my $Self_cover_run = 0;                  # Covering Devel::Cover now.
+my $Loose_perms    = 0;                  # Use loose permissions in the cover DB
 
 my @Ignore;                              # Packages to ignore.
 my @Inc;                                 # Original @INC to ignore.
@@ -344,6 +345,7 @@ sub import {
         /^-silent/      && do { $Silent      = shift @o; next };
         /^-dir/         && do { $Dir         = shift @o; next };
         /^-db/          && do { $DB          = shift @o; next };
+        /^-loose_perms/ && do { $Loose_perms = shift @o; next };
         /^-merge/       && do { $Merge       = shift @o; next };
         /^-summary/     && do { $Summary     = shift @o; next };
         /^-blib/        && do { $blib        = shift @o; next };
@@ -391,6 +393,9 @@ sub import {
 
     unless (mkdir $DB) {
         die "Can't mkdir $DB: $!" unless -d $DB;
+    }
+    if ($Loose_perms) {
+        chmod 0777, $DB;
     }
     $DB = $1 if abs_path($DB) =~ /(.*)/;
     Devel::Cover::DB->delete($DB) unless $Merge;
@@ -755,7 +760,7 @@ sub _report {
     chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
 
     $Run{collected} = \@collected;
-    $Structure      = Devel::Cover::DB::Structure->new(base => $DB);
+    $Structure      = Devel::Cover::DB::Structure->new(base => $DB, loose_perms => $Loose_perms);
     $Structure->read_all;
     $Structure->add_criteria(@collected);
     # print STDERR "Start structure: ", Dumper $Structure;
@@ -809,11 +814,15 @@ sub _report {
         base      => $DB,
         runs      => { $run => \%Run },
         structure => $Structure,
+        loose_perms => $Loose_perms,
     );
 
     my $dbrun = "$DB/runs";
     unless (mkdir $dbrun) {
         die "Can't mkdir $dbrun $!" unless -d $dbrun;
+    }
+    if ($Loose_perms) {
+        chmod 0777, $dbrun;
     }
     $dbrun .= "/$run";
 
@@ -1450,7 +1459,10 @@ In this example, Devel::Cover will be operating in silent mode.
  +ignore RE          - Append to REs of files to ignore.
  -inc path           - Set prefixes of files to include (default @INC).
  +inc path           - Append to prefixes of files to include.
- -merge val          - Merge databases, for multiple test benches (default on).
+ -loose_perms val    - Use loose permissions on all files and directories in
+                       the coverage db so that code changing EUID can still
+                       write coverage information (default off).
+-merge val          - Merge databases, for multiple test benches (default on).
  -select RE          - Set REs of files to select (default none).
  +select RE          - Append to REs of files to select.
  -silent val         - Don't print informational messages (default off).
