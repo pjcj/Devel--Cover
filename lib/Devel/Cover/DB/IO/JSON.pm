@@ -42,6 +42,7 @@ sub write {
     my $self = shift;
     my ($data, $file) = @_;
 
+    unlink $file;
     open my $fh, ">", $file or die "Can't open $file: $!\n";
     flock $fh, LOCK_EX      or die "Can't lock $file: $!\n";
     print $fh ${$self}->encode($data);
