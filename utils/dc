@@ -65,7 +65,7 @@ case "$1" in
         sudo rm -rf ~/.cpanm
         sudo rm -rf $CPANCOVER_STAGING
         # cpan App::cpanminus
-        cpan -i -T . Sereal Digest::MD5 Template Pod::Coverage::CountParents \
+        cpan -iTf . Sereal Digest::MD5 Template Pod::Coverage::CountParents \
                    Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
                    Moo namespace::clean < /dev/null
         $0 cpancover-generate-index
