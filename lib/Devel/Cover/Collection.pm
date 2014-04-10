@@ -16,8 +16,8 @@ use Devel::Cover::DB;
 use Devel::Cover::DB::IO::JSON;
 use Devel::Cover::Dumper;
 
-use Capture::Tiny      "capture_merged";
 use Parallel::Iterator "iterate_as_array";
+use POSIX              "setsid";
 use Template;
 
 use Class::XSAccessor ();
@@ -58,21 +58,46 @@ sub BUILDARGS {
 sub sys {
     my $self = shift;
     my (@command) = @_;
-    my $output = "";
-    $output = "dc -> @command\n" if $self->verbose;
+    my ($output1, $output2) = ("", "");
+    $output1 = "dc -> @command\n" if $self->verbose;
     my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
+    my $max = 1e4;
+    say "Setting alarm for $timeout seconds";
+    my $pid;
     eval {
-        local $SIG{ALRM} = sub { die "alarm\n" };
-        alarm $timeout;
-        # TODO - check for failure
-        $output .= capture_merged { system "@command < /dev/null" };
-        alarm 0;
+        open STDIN, "<", "/dev/null" or die "Can't read /dev/null: $!";
+        $pid = open my $fh, "-|"     // die "Can't fork: $!";
+        if ($pid) {
+            local $SIG{ALRM} = sub { die "alarm\n" };
+            alarm $timeout;
+            while (<$fh>) {
+                # print "got: $_";
+                if (length $output2) {
+                    $output2 .= $_;
+                    $output2 = substr $output2 . $_, $max * -.1, $max * .1;
+                } else {
+                    $output1 .= $_;
+                    if (length $output1 > $max * .9) {
+                        $output1 = substr $output1, 0, $max * .9;
+                        $output2 = "\n";
+                    }
+                }
+            }
+            alarm 0;
+        } else {
+            setsid() != -1          or die "Can't start a new session: $!";
+            open STDERR, ">&STDOUT" or die "Can't dup stdout: $!";
+            exec @command           or die "Can't exec @command: $!";
+        }
     };
     if ($@) {
         die "propogate: $@" unless $@ eq "alarm\n";   # propagate unexpected errors
-        warn "$output\nTimed out after $timeout seconds!\n";
+        warn "Timed out after $timeout seconds!\n";
+        my $pgrp = getpgrp($pid);
+        my $n = kill "-KILL", $pgrp;
+        warn "killed $n processes";
     }
-    $output
+    length $output2 ? "$output1\n...\n$output2" : $output1
 }
 
 sub do_empty_cpan_dir {
@@ -115,7 +140,7 @@ sub build_modules {
     # my @command = qw( cpan );
     # $ENV{CPAN_OPTS} = "-i -T";
     # $ENV{CPAN_OPTS} .= " -f" if $self->force;
-    $self->_set_local_timeout(300);
+    # $self->_set_local_timeout(300);
     my %m;
     for my $module (sort grep !$m{$_}++, @{$self->modules}) {
         say "Building $module";
