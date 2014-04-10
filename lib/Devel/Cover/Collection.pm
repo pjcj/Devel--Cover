@@ -62,7 +62,7 @@ sub sys {
     $output1 = "dc -> @command\n" if $self->verbose;
     my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
     my $max = 1e4;
-    say "Setting alarm for $timeout seconds";
+    # say "Setting alarm for $timeout seconds";
     my $pid;
     eval {
         open STDIN, "<", "/dev/null" or die "Can't read /dev/null: $!";
@@ -203,8 +203,10 @@ sub run {
 sub run_all {
     my $self = shift;
 
-    my @res = iterate_as_array
-    (
+    my $results_dir = $self->results_dir // die "No results dir";
+    $self->sys("mkdir", "-p", $results_dir);
+
+    my @res = iterate_as_array(
         { workers => $self->workers },
         sub {
             my (undef, $dir) = @_;
