@@ -61,7 +61,7 @@ sub sys {
     my ($output1, $output2) = ("", "");
     $output1 = "dc -> @command\n" if $self->verbose;
     my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
-    my $max = 1e4;
+    my $max = 4e4;
     # say "Setting alarm for $timeout seconds";
     my $pid;
     eval {
