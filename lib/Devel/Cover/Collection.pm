@@ -73,7 +73,6 @@ sub sys {
             while (<$fh>) {
                 # print "got: $_";
                 if (length $output2) {
-                    $output2 .= $_;
                     $output2 = substr $output2 . $_, $max * -.1, $max * .1;
                 } else {
                     $output1 .= $_;
