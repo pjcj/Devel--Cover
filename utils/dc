@@ -1,5 +1,7 @@
 #!/usr/bin/zsh
 
+set -x
+
 case "$1" in
     "update-copyright")
         from="${2:-`date +'%Y' --date='last year'`}"
@@ -7,6 +9,18 @@ case "$1" in
         echo Updating copyright from $from to $to
         perl -pi -e "s/Copyright \d+-\K$from(, Paul Johnson)/$to\$1/" **/*(.)
         perl -pi -e "s/Copyright $from\K(, Paul Johnson)/-$to\$1/" **/*(.)
+        ;;
+    "sereal_each_bug")
+        perl="${2:-perl}"
+        $perl Makefile.PL
+        make
+        rm -rf cover_db
+        cp tests/trivial tests/change
+        $perl -Mblib -MDevel::Cover tests/change
+        cp tmp/change tests
+        $perl -Mblib -MDevel::Cover tests/change
+        $perl -Mblib bin/cover -report text
+        rm tests/change
         ;;
     *)
         echo Unknown option "$1"
