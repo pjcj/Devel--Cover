@@ -229,23 +229,26 @@ sub collected
     sort keys %{$self->{collected}}
 }
 
-sub merge
-{
+sub merge {
     my ($self, $from) = @_;
 
     # print STDERR "Merging ", Dumper($self), "From ", Dumper($from);
+    # print STDERR "Merging ", $self, "From ", $from, "\n";
+    # print STDERR "$_\n" for keys %{$from->{runs}};
 
-    while (my ($fname, $frun) = each %{$from->{runs}})
-    {
-        while (my ($file, $digest) = each %{$frun->{digests}})
-        {
-            while (my ($name, $run) = each %{$self->{runs}})
-            {
+    for my $fname (sort keys %{$from->{runs}}) {
+        # print STDERR "fname $fname\n";
+        my $frun = $from->{runs}{$fname};
+        for my $file (sort keys %{$frun->{digests}}) {
+            # print STDERR "file $file\n";
+            my $digest = $frun->{digests}{$file};
+            for my $name (sort keys %{$self->{runs}}) {
+                # print STDERR "name $name\n";
+                my $run = $self->{runs}{$name};
                 # print STDERR
-                #     "digests for $file: $digest, $run->{digests}{$file}\n";
+                    # "digests for $file: $digest, $run->{digests}{$file}\n";
                 if ($run->{digests}{$file} && $digest &&
-                    $run->{digests}{$file} ne $digest)
-                {
+                    $run->{digests}{$file} ne $digest) {
                     # File has changed.  Delete old coverage instead of merging.
                     print STDOUT "Devel::Cover: Deleting old coverage for ",
                                                "changed file $file\n"
@@ -270,8 +273,7 @@ sub merge
     _merge_hash($from->{runs},      $self->{runs});
     _merge_hash($from->{collected}, $self->{collected});
 
-    for (keys %$self)
-    {
+    for (keys %$self) {
         $from->{$_} = $self->{$_} unless $_ eq "runs" || $_ eq "collected";
     }
 
