@@ -15,12 +15,6 @@ use File::Copy;
 use Devel::Cover::Inc;
 use Devel::Cover::Test;
 
-if ($] < 5.010) {
-    eval "use Test::More skip_all => 'Test requires perl 5.10.0 or greater'";
-    # can't locate structure for statement
-    exit;
-}
-
 if ($] == 5.008007) {
     eval "use Test::More skip_all => 'Crashes 5.8.7'";
     exit;
