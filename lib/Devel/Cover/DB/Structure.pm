@@ -212,7 +212,7 @@ sub digest
     my $self = shift;
     my ($file) = @_;
 
-    # warn "Opening $file for MD5 digest\n";
+    # print STDERR "Opening $file for MD5 digest\n";
 
     my $digest;
     if (open my $fh, "<", $file)
@@ -227,7 +227,7 @@ sub digest
             unless lc $file eq "-e" or
                       $Devel::Cover::Silent or
                       $file =~ $Devel::Cover::DB::Ignore_filenames;
-        # require "Cwd"; warn Carp::longmess("in " . Cwd::cwd());
+        # require "Cwd"; print STDERR Carp::longmess("in " . Cwd::cwd());
     }
     $digest
 }
@@ -277,7 +277,7 @@ sub write
         $digest = $1 if defined $digest && $digest =~ /(.*)/; # ie tainting.
         unless ($digest)
         {
-            warn "Can't find digest for $file"
+            print STDERR "Can't find digest for $file"
                 unless $Devel::Cover::Silent ||
                        $file =~ $Devel::Cover::DB::Ignore_filenames ||
                        ($Devel::Cover::Self_cover &&
@@ -293,19 +293,19 @@ sub write
         unless (rename $df_temp, $df_final) {
             unless ($Devel::Cover::Silent) {
                 if(-e $df_final) {
-                    warn "Can't rename $df_temp to $df_final " .
-                           "(which exists): $!";
+                    print STDERR "Can't rename $df_temp to $df_final " .
+                                 "(which exists): $!";
                     $self->debuglog("Can't rename $df_temp to $df_final " .
                                       "(which exists): $!")
                         if DEBUG;
                 } else {
-                    warn "Can't rename $df_temp to $df_final: $!";
+                    print STDERR "Can't rename $df_temp to $df_final: $!";
                     $self->debuglog("Can't rename $df_temp to $df_final: $!")
                         if DEBUG;
                 }
             }
             unless (unlink $df_temp) {
-                warn "Can't remove $df_temp after failed rename: $!"
+                print STDERR "Can't remove $df_temp after failed rename: $!"
                     unless $Devel::Cover::Silent;
                 $self->debuglog("Can't remove $df_temp after failed rename: $!")
                     if DEBUG;
@@ -346,15 +346,15 @@ sub read
     }
     else
     {
-        warn "Devel::Cover: Deleting old coverage ",
-             "for changed file $s->{file}\n";
+        print STDERR "Devel::Cover: Deleting old coverage ",
+                     "for changed file $s->{file}\n";
         if (unlink $file) {
             $self->debuglog("Deleting old coverage $file for changed "
                             . "$s->{file} $s->{digest} vs $d. Got:\n", $s,
                             "Have:\n", $self->{f}{$file})
                 if DEBUG;
         } else {
-            warn "Devel::Cover: can't delete $file: $!\n";
+            print STDERR "Devel::Cover: can't delete $file: $!\n";
             $self->debuglog("Failed to delete coverage $file for changed "
                             . "$s->{file} ($!) $s->{digest} vs $d. Got:\n", $s,
                             "Have:\n", $self->{f}{$file})
