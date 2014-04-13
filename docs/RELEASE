@@ -22,8 +22,6 @@
 
 8. Test against all versions.
   $ make all_test
-  - or, if you have multiple cores available:
-  $ HARNESS_OPTIONS=j6:c HARNESS_TIMER=1 make all_test
 
 7. Return to base perl version.
   $ perl Makefile.PL && make
@@ -33,5 +31,4 @@
 
 11. Push the changes.
   - The dzil Git::Push plugin hangs for me
-  $ git push
-  $ git push --tags
+  $ git push && git push --tags
