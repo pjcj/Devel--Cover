@@ -1722,8 +1722,8 @@ When running Devel::Cover's own test suite, $DEVEL_COVER_DEBUG turns on
 debugging information, $DEVEL_COVER_GOLDEN_VERSION overrides Devel::Cover's
 own idea of which golden results it should test against, and
 $DEVEL_COVER_NO_COVERAGE runs the tests without collecting coverage.
-$DEVEL_COVER_DB_FORMAT may be set to "Seriel", "JSON" or "Storable" to
-override the default choice of DB format (Seriel, then JSON if either are
+$DEVEL_COVER_DB_FORMAT may be set to "Sereal", "JSON" or "Storable" to
+override the default choice of DB format (Sereal, then JSON if either are
 available, otherwise Storable).  $DEVEL_COVER_IO_OPTIONS provides fine-grained
 control over the DB format.  For example, setting it to "pretty" when the
 format is JSON will store the DB in a readable JSON format.  $DEVEL_COVER_CPUS
