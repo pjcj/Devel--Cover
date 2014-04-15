@@ -27,10 +27,10 @@ use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
     ro  => [ qw( bin_dir cpancover_dir cpan_dir empty_cpan_dir
-                 cpanm_dir empty_cpanm_dir module_file results_dir force
-                 output_file report timeout verbose workers                 ) ],
-    rwp => [ qw( build_dirs build_dir local_timeout modules )                 ],
-    rw  => [ qw( )                                                            ],
+                 cpanm_dir empty_cpanm_dir results_dir force
+                 output_file report timeout verbose workers latest          ) ],
+    rwp => [ qw( build_dirs build_dir local_timeout modules module_file     ) ],
+    rw  => [ qw(                                                            ) ],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
 
@@ -39,11 +39,12 @@ sub BUILDARGS {
     my (%args) = @_;
     {
         build_dirs      => [],
-        cpan_dir        => glob("~/.cpan"),
+        cpan_dir        => glob("~/.local/share/.cpan/build"),
         empty_cpan_dir  => 0,
         cpanm_dir       => glob("~/.cpanm"),
         empty_cpanm_dir => 0,
         force           => 0,
+        latest          => 0,
         local_timeout   => 0,
         modules         => [],
         output_file     => "index.html",
@@ -116,6 +117,17 @@ sub do_empty_cpanm_dir {
 sub add_modules {
     my $self = shift;
     push @{$self->modules}, @_;
+}
+
+sub set_modules {
+    my $self = shift;
+    @{$self->modules} = @_;
+}
+
+sub set_module_file {
+    my $self = shift;
+    my ($file) = @_;
+    $self->set_module_file($file);
 }
 
 sub process_module_file {
@@ -319,6 +331,25 @@ sub cover_modules {
     $self->add_build_dirs;
     $self->run_all;
     $self->generate_html;
+}
+
+sub get_latest {
+    my $self = shift;
+
+    require CPAN::Releases::Latest;
+
+    my $latest   = CPAN::Releases::Latest->new;
+    my $iterator = $latest->release_iterator;
+
+    while (my $release = $iterator->next_release) {
+        say $release->path;
+        next;
+        printf "%s path=%s  time=%d  size=%d\n",
+               $release->distname,
+               $release->path,
+               $release->timestamp,
+               $release->size;
+    }
 }
 
 sub write_stylesheet {

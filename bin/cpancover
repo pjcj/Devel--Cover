@@ -25,9 +25,11 @@ $|++;
 
 my $Options = {
     bin_dir         => abs_path($0) =~ s|/cpancover$||r,
+    build           => 1,
     empty_cpan_dir  => 0,
     empty_cpanm_dir => 0,
     force           => 0,
+    latest          => 0,
     module          => [],
     output_file     => "index.html",
     report          => "html_basic",
@@ -40,11 +42,13 @@ my $Options = {
 sub get_options {
     die "Bad option" unless GetOptions($Options, qw(
         bin_dir=s
+        build!
         empty_cpan_dir!
         empty_cpanm_dir!
         force!
         help|h!
         info|i!
+        latest!
         module_file=s
         module=s
         output_file=s
@@ -59,19 +63,15 @@ sub get_options {
     say "$0 version " . __PACKAGE__->VERSION and exit 0 if $Options->{version};
     pod2usage(-exitval => 0, -verbose => 0)             if $Options->{help};
     pod2usage(-exitval => 0, -verbose => 2)             if $Options->{info};
-
-    push @{$Options->{module}}, @ARGV;
 }
 
-sub main {
-    # TODO - only one instance should run at a time
-    get_options;
-    my $cp = Devel::Cover::Collection->new(
+sub newcp {
+    my $self = shift;
+    Devel::Cover::Collection->new(
         bin_dir         => $Options->{bin_dir},
         empty_cpan_dir  => $Options->{empty_cpan_dir},
         empty_cpanm_dir => $Options->{empty_cpanm_dir},
         force           => $Options->{force},
-        module_file     => $Options->{module_file},
         modules         => $Options->{module},
         output_file     => $Options->{output_file},
         report          => $Options->{report},
@@ -79,8 +79,43 @@ sub main {
         timeout         => $Options->{timeout},
         verbose         => $Options->{verbose},
         workers         => $Options->{workers},
-    );
-    $cp->cover_modules;
+    )
+}
+
+sub main {
+    # TODO - only one instance should run at a time
+    get_options;
+
+    if ($Options->{latest}) {
+        my $cp = newcp;
+        $cp->get_latest;
+        return;
+    }
+
+    if ($Options->{module_file}) {
+        my $cp = newcp;
+        $cp->set_module_file($Options->{module_file});
+        $cp->cover_modules;
+    }
+
+    if ($Options->{build}) {
+        if (@ARGV) {
+            my $cp = newcp;
+            $cp->set_modules(@ARGV);
+            $cp->cover_modules;
+        } else {
+            my @modules;
+            while (<>) {
+                chomp;
+                push @modules, split;
+            }
+            for my $module (@modules) {
+                my $cp = newcp;
+                $cp->set_modules($module);
+                $cp->cover_modules;
+            }
+        }
+    }
 }
 
 main

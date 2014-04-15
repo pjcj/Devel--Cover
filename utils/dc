@@ -66,8 +66,8 @@ case "$1" in
         sudo rm -rf $CPANCOVER_STAGING
         # cpan App::cpanminus
         cpan -iTf . Sereal Digest::MD5 Template Pod::Coverage::CountParents \
-                   Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
-                   Moo namespace::clean < /dev/null
+                  Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
+                  Moo namespace::clean CPAN::Releases::Latest < /dev/null
         $0 cpancover-generate-index
         ;;
     "cpancover-install-main")
@@ -89,11 +89,16 @@ case "$1" in
             $0 cpancover-file $file
         done
         ;;
+    "cpancover-install-latest")
+        $0 cpancover -latest
+        # $0 cpancover-compress
+        # $0 cpancover-generate-index
+        ;;
     "cpancover-full-run")
         $0 cpancover-build-perl
         $0 cpancover-install-basics
         $0 cpancover-install-main
-        $0 cpancover-install-all
+        $0 cpancover-install-latest
         $0 cpancover-move
         ;;
     "options")
