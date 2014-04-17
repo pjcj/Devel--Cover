@@ -13,9 +13,7 @@ use warnings;
 {
     package Cat;
 
-    use overload (
-        'bool' => 'meh',
-    );
+    use overload (bool => "meh");
 
     sub meh { 1 }
 }

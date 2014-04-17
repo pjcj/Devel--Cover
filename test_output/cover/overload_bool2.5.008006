@@ -37,18 +37,17 @@ line  err   stmt   bran   cond    sub   code
 13                                      {
 14             1                            package Cat;
 15                                      
-16                                          use overload (
-17             1                                'bool' => 'meh',
-18             1                    1       );
+16             1                    1       use overload (bool => "meh");
                1                        
-19                                      
-20             3                    3       sub meh { 1 }
-21                                      }
-22                                      
-23             1                        my $string = "hi";
-24             1                        my $x = bless \$string, "Cat";
-25                                      
-26             1                        my $fn = eval 'require $x';
+               1                        
+17                                      
+18             3                    3       sub meh { 1 }
+19                                      }
+20                                      
+21             1                        my $string = "hi";
+22             1                        my $x = bless \$string, "Cat";
+23                                      
+24             1                        my $fn = eval 'require $x';
 
 
 Covered Subroutines
@@ -58,7 +57,7 @@ Subroutine Count Location
 ---------- ----- -----------------------
 BEGIN          1 tests/overload_bool2:10
 BEGIN          1 tests/overload_bool2:11
-BEGIN          1 tests/overload_bool2:18
-meh            3 tests/overload_bool2:20
+BEGIN          1 tests/overload_bool2:16
+meh            3 tests/overload_bool2:18
 
 
