@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.12 - 17 April 2014
  - Fix test failure on OSX, FreeBSD and HPUX (thanks H.Merijn Brand).
 
 Release 1.11 - 13 April 2014
