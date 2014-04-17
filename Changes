@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fix test failure on OSX, FreeBSD and HPUX (thanks H.Merijn Brand).
 
 Release 1.11 - 13 April 2014
  - Tests should pass when all run in parallel (Kent Fredric) (github 69).
