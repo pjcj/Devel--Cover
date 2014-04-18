@@ -39,7 +39,7 @@ sub BUILDARGS {
     my (%args) = @_;
     {
         build_dirs      => [],
-        cpan_dir        => glob("~/.local/share/.cpan/build"),
+        cpan_dir        => glob("~/.local/share/.cpan"),
         empty_cpan_dir  => 0,
         cpanm_dir       => glob("~/.cpanm"),
         empty_cpanm_dir => 0,
@@ -163,7 +163,7 @@ sub build_modules {
 
 sub add_build_dirs {
     my $self = shift;
-    push @{$self->build_dirs}, grep -d, glob $self->cpan_dir  . "/*";
+    push @{$self->build_dirs}, grep -d, glob $self->cpan_dir  . "/build/*";
     push @{$self->build_dirs}, grep -d, glob $self->cpanm_dir . "/work/*/*";
 }
 
