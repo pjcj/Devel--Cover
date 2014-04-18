@@ -236,11 +236,7 @@ EOM
               "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
             unless $Silent;
 
-        $Run{OS}    = $^O;
-        $Run{perl}  = $] < 5.010 ? join ".", map ord, split //, $^V
-                                 : sprintf "%vd", $^V;
-        $Run{run}   = $0;
-        $Run{start} = get_elapsed() / 1e6;
+        populate_run();
     }
 
     no warnings "void";  # avoid "Too late to run CHECK block" warning
@@ -386,7 +382,34 @@ sub import {
     }
 }
 
-sub cover_names_to_val {
+sub populate_run {
+    my $self = shift;
+
+    $Run{OS}   = $^O;
+    $Run{perl} = $] < 5.010 ? join ".", map ord, split //, $^V
+                            : sprintf "%vd", $^V;
+    $Run{dir}  = $Dir;
+    $Run{run}  = $0;
+
+    my $version;
+    my $mymeta = "$Dir/MYMETA.json";
+    if (-e $mymeta) {
+        eval {
+            require Devel::Cover::DB::IO::JSON;
+            my $io   = Devel::Cover::DB::IO::JSON->new;
+            my $json = $io->read($mymeta);
+            $Run{$_} = $json->{$_} for qw( name version abstract );
+        }
+    } elsif ($Dir =~ m|.*/([^/]+?)(\d+\.\d+)(?:-\w{6})$|) {
+        $Run{name}    = $1;
+        $Run{version} = $2;
+    }
+
+    $Run{start} = get_elapsed() / 1e6;
+}
+
+sub cover_names_to_val
+{
     my $val = 0;
     for my $c (@_) {
         if (exists $Criteria{$c}) {

@@ -22,7 +22,7 @@ use File::Path;
 
 use Devel::Cover::Dumper;  # For debugging
 
-my $DB = "cover.13";  # Version 13 of the database.
+my $DB = "cover.14";  # Version of the database.
 
 @Devel::Cover::DB::Criteria =
     (qw( statement branch path condition subroutine pod time ));
