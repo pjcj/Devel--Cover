@@ -21,11 +21,8 @@ sub add_runs
     my @runs;
     for my $r (sort {$a->{start} <=> $b->{start}} $db->runs) {
         push @runs, {
-            run    => $r->run,
-            perl   => $r->perl,
-            OS     => $r->OS,
-            start  => $r->start,
-            finish => $r->finish,
+            map { $_ => $r->$_ }
+                qw( run perl OS dir name version abstract start finish )
         };
     }
     \@runs
