@@ -418,11 +418,7 @@ th,.h,.hh {
     background-color: #cccccc;
     border: solid 1px #333333;
     padding: 0em 0.2em;
-    // width: 2.5em;
     -moz-border-radius: 4px;
-}
-.hh {
-    width: 25%;
 }
 td {
     border: solid 1px #cccccc;
