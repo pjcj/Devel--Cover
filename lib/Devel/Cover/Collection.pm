@@ -163,7 +163,7 @@ sub build_modules {
 
 sub add_build_dirs {
     my $self = shift;
-    push @{$self->build_dirs}, grep -d, glob $self->cpan_dir  . "/build/*";
+    push @{$self->build_dirs}, grep -d, glob $self->cpan_dir  . "/*";
     push @{$self->build_dirs}, grep -d, glob $self->cpanm_dir . "/work/*/*";
 }
 
