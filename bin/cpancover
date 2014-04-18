@@ -103,7 +103,7 @@ sub main {
             my $cp = newcp;
             $cp->set_modules(@ARGV);
             $cp->cover_modules;
-        } else {
+        } elsif (! -t STDIN) {
             my @modules;
             while (<>) {
                 chomp;
@@ -114,6 +114,9 @@ sub main {
                 $cp->set_modules($module);
                 $cp->cover_modules;
             }
+        } else {
+            my $cp = newcp;
+            $cp->cover_modules;
         }
     }
 }
