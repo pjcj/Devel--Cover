@@ -235,12 +235,20 @@ sub write_json {
     my ($vars) = @_;
 
     # print Dumper $vars;
-    my $results = {
-        map {
-            my $module = $_;
-            $module => { map { $_ => $vars->{vals}{$module}{$_}{pc} }
-                             grep !/link/, keys %{$vars->{vals}{$module}} }
-        } keys %{$vars->{vals}}
+    my $results = {};
+    for my $module (keys %{$vars->{vals}}) {
+        my $m   = $vars->{vals}{$module};
+        my $mod = $m->{module};
+        my ($name, $version) =
+            ($mod->{module} // $module) =~ /(.+)-(\d+\.\d+)$/;
+        $name    = $mod->{name}     if defined $mod->{name};
+        $version = $mod->{version}  if defined $mod->{version};
+        if (defined $name && defined $version) {
+            $results->{$name}{$version} =
+                { map { $_ => $m->{$_}{pc} } grep !/link/, keys %$m };
+        } else {
+            print "Cannot process $module: ", Dumper $m;
+        }
     };
     # print Dumper $vars, $results;
 
@@ -284,16 +292,29 @@ sub generate_html {
     closedir $dh or die "Can't closedir $d: $!";
 
     for my $module (@modules) {
-        my $file = "$d/$module/cover.json";
-        next unless -e $file;
+        my $cover = "$d/$module/cover.json";
+        next unless -e $cover;
         say "Adding $module";
 
-        my $io = Devel::Cover::DB::IO::JSON->new;
-        my $json = $io->read($file);
+        my $io   = Devel::Cover::DB::IO::JSON->new;
+        my $json = $io->read($cover);
 
-        push @{$vars->{modules}}, $module;
+        my $mod = {
+            module => $module,
+            map { $_ => $json->{runs}[0]{$_} } qw( name version dir )
+        };
+        unless (defined $mod->{name} && defined $mod->{version}) {
+            my ($name, $version) =
+                ($mod->{module} // $module) =~ /(.+)-(\d+\.\d+)$/;
+            $mod->{name}    //= $name;
+            $mod->{version} //= $version;
+        }
+        push @{$vars->{modules}}, $mod;
+
         my $m = $vars->{vals}{$module} = {};
-        $m->{link} = "$module/index.html";
+        $m->{module} = $mod;
+        $m->{link}   = "$module/index.html"
+            if $json->{summary}{Total}{total}{total};
 
         for my $criterion (@{$vars->{criteria}}) {
             my $summary = $json->{summary}{Total}{$criterion};
@@ -397,7 +418,7 @@ th,.h,.hh {
     background-color: #cccccc;
     border: solid 1px #333333;
     padding: 0em 0.2em;
-    width: 2.5em;
+    // width: 2.5em;
     -moz-border-radius: 4px;
 }
 .hh {
@@ -520,7 +541,8 @@ $Templates{summary} = <<'EOT';
 
     [% IF modules %]
         <tr align="right" valign="middle">
-            <th class="header" align="left"> File </th>
+            <th class="header" align="left" style='white-space: nowrap;'> Module </th>
+            <th class="header">              Version </th>
             [% FOREACH header = headers %]
                 <th class="header"> [% header %] </th>
             [% END %]
@@ -528,15 +550,22 @@ $Templates{summary} = <<'EOT';
     [% END %]
 
     [% FOREACH module = modules %]
+        [% m = module.module %]
         <tr align="right" valign="middle">
             <td align="left">
-                <a href="[%- vals.$module.link -%]"> [% module %] </a>
+                [% IF vals.$m.link %]
+                    <a href="[%- vals.$m.link -%]">
+                        [% module.name || module.module %]
+                    </a>
+                [% ELSE %]
+                    [% module.name || module.module %]
+                [% END %]
             </td>
-
+            <td> [% module.version %] </td>
             [% FOREACH criterion = criteria %]
-                <td class="[%- vals.$module.$criterion.class -%]"
-                    title="[%- vals.$module.$criterion.details -%]">
-                    [% vals.$module.$criterion.pc %]
+                <td class="[%- vals.$m.$criterion.class -%]"
+                    title="[%- vals.$m.$criterion.details -%]">
+                    [% vals.$m.$criterion.pc %]
                 </td>
             [% END %]
         </tr>
