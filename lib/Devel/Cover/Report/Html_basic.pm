@@ -371,7 +371,11 @@ sub report {
     my $le = sub { ($_[0] >   0 ? "<" : "=") . " $_[0]" };
     my $ge = sub { ($_[0] < 100 ? ">" : "") . "= $_[0]" };
 
+    my $fname = (sort keys %{$db->{runs}})[0];
+    my $run   = $db->{runs}{$fname};
+
     %R = (
+        module  => { name => $run->name, version => $run->version },
         db      => $db,
         date    => do {
             my ($sec, $min, $hour, $mday, $mon, $year) = localtime;
@@ -504,6 +508,14 @@ $Templates{summary} = <<'EOT';
 
 <h1> Coverage Summary </h1>
 <table>
+    <tr>
+        <td class="sh" align="right">Module</td>
+        <td class="sv" align="left" colspan="4">[% R.module.name %]</td>
+    </tr>
+    <tr>
+        <td class="sh" align="right">Version</td>
+        <td class="sv" align="left" colspan="4">[% R.module.version %]</td>
+    </tr>
     <tr>
         <td class="sh" align="right">Database:</td>
         <td class="sv" align="left" colspan="4">[% R.db.db %]</td>
