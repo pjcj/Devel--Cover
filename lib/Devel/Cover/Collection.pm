@@ -56,9 +56,10 @@ sub BUILDARGS {
     }
 };
 
-sub sys {
+# display $non_buffered characters, then buffer
+sub _sys {
     my $self = shift;
-    my (@command) = @_;
+    my ($non_buffered, @command) = @_;
     my ($output1, $output2) = ("", "");
     $output1 = "dc -> @command\n" if $self->verbose;
     my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
@@ -69,11 +70,17 @@ sub sys {
         open STDIN, "<", "/dev/null" or die "Can't read /dev/null: $!";
         $pid = open my $fh, "-|"     // die "Can't fork: $!";
         if ($pid) {
+            my $printed = 0;
             local $SIG{ALRM} = sub { die "alarm\n" };
             alarm $timeout;
             while (<$fh>) {
                 # print "got: $_";
-                if (length $output2) {
+                if ($printed < $non_buffered) {
+                    print;
+                    if ($printed += length >= $non_buffered) {
+                        say "Devel::Cover: buffering ...";
+                    }
+                } elsif (length $output2) {
                     $output2 = substr $output2 . $_, $max * -.1, $max * .1;
                 } else {
                     $output1 .= $_;
@@ -99,6 +106,9 @@ sub sys {
     }
     length $output2 ? "$output1\n...\n$output2" : $output1
 }
+
+sub sys  { my $self = shift; $self->_sys(4e4, @_) }
+sub bsys { my $self = shift; $self->_sys(0,   @_) }
 
 sub do_empty_cpan_dir {
     my $self = shift;
@@ -195,7 +205,7 @@ sub run {
 
     $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
     my @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
-    $output .= $self->sys(
+    $output .= $self->bsys(
         @cmd,          "-test",
         "-report",     $self->report,
         "-outputfile", $self->output_file,
