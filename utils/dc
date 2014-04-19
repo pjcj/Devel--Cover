@@ -62,6 +62,7 @@ case "$1" in
         ;;
     "cpancover-install-basics")
         sudo rm -rf ~/.cpan
+        sudo rm -rf ~/.local/share/.cpan
         sudo rm -rf ~/.cpanm
         sudo rm -rf $CPANCOVER_STAGING
         # cpan App::cpanminus
