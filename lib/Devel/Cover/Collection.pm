@@ -39,7 +39,7 @@ sub BUILDARGS {
     my (%args) = @_;
     {
         build_dirs      => [],
-        cpan_dir        => glob("~/.local/share/.cpan"),
+        cpan_dir        => [grep -d, glob("~/.cpan ~/.local/share/.cpan")],
         empty_cpan_dir  => 0,
         cpanm_dir       => glob("~/.cpanm"),
         empty_cpanm_dir => 0,
@@ -114,7 +114,7 @@ sub bsys { my $self = shift; $self->_sys(0,   @_) }
 sub do_empty_cpan_dir {
     my $self = shift;
     # TODO - not portable
-    my $output = $self->sys("rm", "-rf", $self->cpan_dir . "/build");
+    my $output = $self->sys("rm", "-rf", map "$_/build", @{$self->cpan_dir});
     say $output;
 }
 
@@ -174,8 +174,10 @@ sub build_modules {
 
 sub add_build_dirs {
     my $self = shift;
-    push @{$self->build_dirs}, grep -d, glob $self->cpan_dir  . "/build/*";
-    push @{$self->build_dirs}, grep -d, glob $self->cpanm_dir . "/work/*/*";
+    push @{$self->build_dirs},
+         grep -d,
+         map(glob("$_/build/*"), @{$self->cpan_dir}),
+         glob $self->cpanm_dir . "/work/*/*";
 }
 
 sub run {
