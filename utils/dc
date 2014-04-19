@@ -73,7 +73,7 @@ case "$1" in
         ;;
     "cpancover-install-main")
         $0 cpancover App::cpanoutdated
-        cpan-outdated | xargs $0 cpancover
+        cpan-outdated | $0 cpancover
         $0 cpancover-file utils/cpancover_modules
         $0 cpancover-compress
         $0 cpancover-generate-index
