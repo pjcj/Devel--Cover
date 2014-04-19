@@ -75,9 +75,10 @@ sub _sys {
             alarm $timeout;
             while (<$fh>) {
                 # print "got: $_";
+                # say "printed $printed of $non_buffered";
                 if ($printed < $non_buffered) {
                     print;
-                    if ($printed += length >= $non_buffered) {
+                    if (($printed += length) >= $non_buffered) {
                         say "Devel::Cover: buffering ...";
                     }
                 } elsif (length $output2) {
