@@ -371,7 +371,7 @@ sub report {
     my $le = sub { ($_[0] >   0 ? "<" : "=") . " $_[0]" };
     my $ge = sub { ($_[0] < 100 ? ">" : "") . "= $_[0]" };
 
-    my $fname = (sort keys %{$db->{runs}})[0];
+    my $fname = (sort keys %{$db->{runs}})[0] or return;
     my $run   = $db->{runs}{$fname};
 
     %R = (
