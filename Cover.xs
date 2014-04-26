@@ -416,8 +416,10 @@ static void store_module(pTHX)
     dMY_CXT;
     dSP;
 
+#if PERL_VERSION > 8
     SvSetSV_nosteal(MY_CXT.module, (SV*)newSVpv(SvPV_nolen(TOPs), 0));
     NDEB(D(L, "require %s\n", SvPV_nolen(MY_CXT.module)));
+#endif
 }
 
 static void call_report(pTHX)

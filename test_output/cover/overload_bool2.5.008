@@ -41,7 +41,7 @@ line  err   stmt   bran   cond    sub   code
                1                        
                1                        
 17                                      
-18             6                    6       sub meh { 1 }
+18             1                    1       sub meh { 1 }
 19                                      }
 20                                      
 21             1                        my $string = "hi";
@@ -58,6 +58,6 @@ Subroutine Count Location
 BEGIN          1 tests/overload_bool2:10
 BEGIN          1 tests/overload_bool2:11
 BEGIN          1 tests/overload_bool2:16
-meh            6 tests/overload_bool2:18
+meh            1 tests/overload_bool2:18
 
 
