@@ -114,7 +114,7 @@ for my $v (@{$Options->{version}})
 {
     my $perl = "perl$v";
     (my $c = $command) =~ s/=perl/$perl/g;
-    $c =~ s/=v/$v/g;
+    # $c =~ s/=v/$v/g;
     if ($c =~ /^make /)
     {
         sys "rm -rf t/e2e";
