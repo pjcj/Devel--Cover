@@ -433,7 +433,8 @@ sub print_summary
     {
         my ($part, $criterion) = @_;
         $options{$criterion} && exists $part->{$criterion}
-            ? sprintf "%4.1f", $part->{$criterion}{percentage}
+            ? do { my $x = sprintf "%5.2f", $part->{$criterion}{percentage};
+                   chop $x; $x }
             : "n/a"
     };
 
