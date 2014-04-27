@@ -42,9 +42,13 @@ sub get_summary_for_file {
     for my $c (@$show) {
         if (exists $data->{$c}) {
             $summary{$c} = {
-                percent => sprintf("%4.1f", $data->{$c}{percentage}),
-                ratio   => sprintf("%d / %d",
-                    $data->{$c}{covered} || 0, $data->{$c}{total} || 0),
+                percent => do {
+                    my $x = sprintf "%5.2f", $data->{$c}{percentage};
+                    chop $x;
+                    $x
+                },
+                ratio   => sprintf("%d / %d", $data->{$c}{covered} || 0,
+                                              $data->{$c}{total} || 0),
                 error   => $data->{$c}{error},
             };
         }

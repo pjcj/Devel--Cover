@@ -68,7 +68,7 @@ sub get_summary
     $vals{class} = class($c->{percentage}, $c->{error}, $criterion);
 
     return \%vals unless defined $c->{percentage};
-    $vals{pc}       = sprintf "%4.1f", $c->{percentage};
+    $vals{pc} = do { my $x = sprintf "%5.2f", $c->{percentage}; chop $x; $x };
     $vals{covered}  = $c->{covered} || 0;
     $vals{total}    = $c->{total};
     $vals{details}  = "$vals{covered} / $vals{total}";

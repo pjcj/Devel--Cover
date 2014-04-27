@@ -77,7 +77,8 @@ sub print_summary {
         my $part = $db->{summary}{$file};
         for my $criterion (@showing) {
             my $pc = exists $part->{$criterion}
-            ? sprintf "%4.1f", $part->{$criterion}{percentage}
+            ? do { my $x = sprintf "%5.2f", $part->{$criterion}{percentage};
+                   chop $x; $x }
             : "n/a";
 
             if ($pc ne 'n/a') {
