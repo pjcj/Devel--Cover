@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Test against 5.19.11.
+ - Fix "use 5.xyz;" on pre 5.10 perls (github 87).
+ - Round percentages down in summary and reports (also fixes Windows tests).
 
 Release 1.12 - 17 April 2014
  - Fix test failure on OSX, FreeBSD and HPUX (thanks H.Merijn Brand).
