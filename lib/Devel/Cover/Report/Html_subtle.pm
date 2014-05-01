@@ -16,8 +16,7 @@ my $Template;
 my %Filenames;
 my %File_exists;
 
-sub get_options
-{
+sub get_options {
     my ($self, $opt) = @_;
     $opt->{option}{outputfile} = "coverage.html";
     die "Invalid command line options" unless
@@ -77,9 +76,9 @@ sub print_summary {
         my $part = $db->{summary}{$file};
         for my $criterion (@showing) {
             my $pc = exists $part->{$criterion}
-            ? do { my $x = sprintf "%5.2f", $part->{$criterion}{percentage};
-                   chop $x; $x }
-            : "n/a";
+                ? do { my $x = sprintf "%5.2f", $part->{$criterion}{percentage};
+                       chop $x; $x }
+                : "n/a";
 
             if ($pc ne 'n/a') {
                 if ($criterion ne 'time') {
@@ -88,11 +87,9 @@ sub print_summary {
                 if (exists $Filenames{$file}) {
                     if ($criterion eq 'branch') {
                         $vals{$file}{$criterion}{link} = "$Filenames{$file}--branch.html";
-                    }
-                    elsif ($criterion eq 'condition') {
+                    } elsif ($criterion eq 'condition') {
                         $vals{$file}{$criterion}{link} = "$Filenames{$file}--condition.html";
-                    }
-                    elsif ($criterion eq 'subroutine') {
+                    } elsif ($criterion eq 'subroutine') {
                         $vals{$file}{$criterion}{link} = "$Filenames{$file}--subroutine.html";
                     }
                 }
@@ -184,25 +181,20 @@ sub print_file {
                     link  => "$Filenames{$file}--branch.html#line$."};
                 }
                 push @{$line{metrics}}, \@p;
-            }
-            elsif ($c eq 'condition') {
+            } elsif ($c eq 'condition') {
                 my @tt = $file_data->condition->truth_table($.);
                 my @p;
-                if (@tt)
-                {
+                if (@tt) {
                     foreach (@tt) {
                         push @p, {text  => sprintf("%.0f", $_->[0]->percentage),
                         class => cvg_class($_->[0]->percentage),
                         link  => "$Filenames{$file}--condition.html#line$."};
                     }
-                }
-                else
-                {
+                } else {
                     push @p, { text => "expression contains > 16 terms: ignored" };
                 }
                 push @{$line{metrics}}, \@p;
-            }
-            elsif ($c eq 'subroutine') {
+            } elsif ($c eq 'subroutine') {
                 my @p;
                 while (my $o = shift @{$metric{$c}}) {
                     push @p, {text  => $o->covered,
@@ -210,8 +202,7 @@ sub print_file {
                     link  => "$Filenames{$file}--subroutine.html#line$."};
                 }
                 push @{$line{metrics}}, \@p;
-            }
-            else {
+            } else {
                 my @p;
                 while (my $o = shift @{$metric{$c}}) {
                     push @p, {text  => ($c =~ /statement|pod|time/) ? $o->covered : $o->percentage,
@@ -338,11 +329,9 @@ sub print_subroutines {
     return unless $subroutines;
 
     my @data;
-    for my $location ($subroutines->items)
-    {
+    for my $location ($subroutines->items) {
         my $l = $subroutines->location($location);
-        for my $sub (@$l)
-        {
+        for my $sub (@$l) {
             push @data, {
                 ref   => "line$location",
                 line  => $location,

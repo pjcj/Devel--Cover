@@ -23,8 +23,7 @@ my $Command = 0;
 my $Errors  = 0;
 my $Verbose = 0;
 
-sub import
-{
+sub import {
   my $class = shift;
   my $args = "@_";
   $Command = $args =~ /\bcommand\b/i;
@@ -36,8 +35,7 @@ sub import
   $class->export_to_level(1, "dsys") if $args =~ /\bdsys\b/i;
 }
 
-sub sys
-{
+sub sys {
   my (@command) = @_;
   local $| = 1;
   print "@command"; # if $Command;
@@ -46,33 +44,23 @@ sub sys
   ret($rc);
 }
 
-sub dsys
-{
+sub dsys {
   die "@_ failed" if sys @_;
 }
 
-sub ret
-{
+sub ret {
   my ($rc) = @_;
   printf "  returned %#04x: ", $rc if $Errors && $rc;
-  if ($rc == 0)
-  {
+  if ($rc == 0) {
     print "ran with normal exit\n" if $Verbose;
-  }
-  elsif ($rc == 0xff00)
-  {
+  } elsif ($rc == 0xff00) {
     print "command failed: $!\n" if $Errors;
-  }
-  elsif ($rc > 0x80)
-  {
+  } elsif ($rc > 0x80) {
     $rc >>= 8;
     print "ran with non-zero exit status $rc\n" if $Errors;
-  }
-  else
-  {
+  } else {
     print "ran with " if $Errors;
-    if ($rc & 0x80)
-    {
+    if ($rc & 0x80) {
       $rc &= ~0x80;
       print "coredump from " if $Errors;
     }

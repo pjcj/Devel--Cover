@@ -36,8 +36,7 @@ sub text        { "n/a" }
 sub values      { [ $_[0]->covered ] }
 sub criterion   { require Carp; Carp::confess("criterion() must be overridden") }
 
-sub calculate_percentage
-{
+sub calculate_percentage {
     my $class = shift;
     my ($db, $s) = @_;
     my $errors = $s->{error} || 0;
@@ -55,8 +54,7 @@ sub aggregate {
     $s->{Total}{total}{$keyword} += $t;
 }
 
-sub calculate_summary
-{
+sub calculate_summary {
     my $self = shift;
     my ($db, $file) = @_;
 

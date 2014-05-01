@@ -14,11 +14,9 @@ use warnings;
 
 use Devel::Cover::DB;
 
-sub print_runs
-{
+sub print_runs {
     my ($db, $options) = @_;
-    for my $r (sort {$a->{start} <=> $b->{start}} $db->runs)
-    {
+    for my $r (sort {$a->{start} <=> $b->{start}} $db->runs) {
         print "Run:          ", $r->run,  "\n";
         print "Perl version: ", $r->perl, "\n";
         print "OS:           ", $r->OS,   "\n";
@@ -29,8 +27,7 @@ sub print_runs
     }
 }
 
-sub print_statement
-{
+sub print_statement {
     my ($db, $file, $options) = @_;
 
     my $cover = $db->cover;
@@ -40,19 +37,15 @@ sub print_statement
 
     my $fmt = "%-5s %3s ";
     my @args = ("line", "err");
-    for my $ann (@{$options->{annotations}})
-    {
-        for my $a (0 .. $ann->count - 1)
-        {
+    for my $ann (@{$options->{annotations}}) {
+        for my $a (0 .. $ann->count - 1) {
             $fmt .= "%-" . $ann->width($a) . "s ";
             push @args, $ann->header($a);
         }
     }
     my %cr; @cr{$db->criteria} = $db->criteria_short;
-    for my $c ($db->criteria)
-    {
-        if ($options->{show}{$c})
-        {
+    for my $c ($db->criteria) {
+        if ($options->{show}{$c}) {
             $fmt .= "%6s ";
             push @args, $cr{$c};
         }
@@ -67,34 +60,28 @@ sub print_statement
 
     open F, $file or warn("Unable to open $file: $!\n"), return;
 
-    LINE: while (defined(my $l = <F>))
-    {
+    LINE: while (defined(my $l = <F>)) {
         chomp $l;
         my $n = $.;
         $autoloader ||= $l =~ /use\s+AutoLoader/;
 
         my %criteria;
-        for my $c ($db->criteria)
-        {
+        for my $c ($db->criteria) {
             next unless $options->{show}{$c};
             my $criterion = $f->$c();
-            if ($criterion)
-            {
+            if ($criterion) {
                 my $l = $criterion->location($n);
                 $criteria{$c} = $l ? [@$l] : $l;
             }
         }
 
         my $more = 1;
-        while ($more)
-        {
+        while ($more) {
             my @args  = ($n, "");
             my $error = 0;
 
-            for my $ann (@{$options->{annotations}})
-            {
-                for my $a (0 .. $ann->count - 1)
-                {
+            for my $ann (@{$options->{annotations}}) {
+                for my $a (0 .. $ann->count - 1) {
                     push @args,
                          substr $ann->text($file, $n, $a), 0, $ann->width($a);
                     $error ||= $ann->error($file, $n, $a);
@@ -102,8 +89,7 @@ sub print_statement
             }
 
             $more = 0;
-            for my $c ($db->criteria)
-            {
+            for my $c ($db->criteria) {
                 next unless $options->{show}{$c};
                 my $o = shift @{$criteria{$c}};
                 $more ||= @{$criteria{$c}};
@@ -132,8 +118,7 @@ sub print_statement
     print "\n\n";
 }
 
-sub print_branches
-{
+sub print_branches {
     my ($db, $file, $options) = @_;
 
     my $branches = $db->cover->file($file)->branch;
@@ -147,11 +132,9 @@ sub print_branches
     printf $tpl, "line", "err", "%", "true", "false", "branch";
     printf $tpl, "-----", "---", ("------") x 3, "------";
 
-    for my $location (sort { $a <=> $b } $branches->items)
-    {
+    for my $location (sort { $a <=> $b } $branches->items) {
         my $n = 0;
-        for my $b (@{$branches->location($location)})
-        {
+        for my $b (@{$branches->location($location)}) {
             printf $tpl,
                    $n ? "" : $location, $b->error ? "***" : "",
                    ($b->uncoverable ? "-" : "") . $b->percentage,
@@ -165,8 +148,7 @@ sub print_branches
     print "\n\n";
 }
 
-sub print_conditions
-{
+sub print_conditions {
     my ($db, $file, $options) = @_;
 
     my $conditions = $db->cover->file($file)->condition;
@@ -176,11 +158,9 @@ sub print_conditions
     my $template = sub { "%-5s %3s %6s " . ( "%6s " x shift ) . "  %s\n" };
 
     my %r;
-    for my $location (sort { $a <=> $b } $conditions->items)
-    {
+    for my $location (sort { $a <=> $b } $conditions->items) {
         my %seen;
-        for my $c (@{$conditions->location($location)})
-        {
+        for my $c (@{$conditions->location($location)}) {
             push @{$r{$c->type}}, [ $c, $seen{$c->type}++ ? "" : $location ];
         }
     }
@@ -189,14 +169,11 @@ sub print_conditions
     print "----------\n\n";
 
     my %seen;
-    for my $type (sort keys %r)
-    {
+    for my $type (sort keys %r) {
         my $tpl;
-        for (@{$r{$type}})
-        {
+        for (@{$r{$type}}) {
             my ($c, $location) = @$_;
-            unless ($seen{$type}++)
-            {
+            unless ($seen{$type}++) {
                 my $headers = $c->headers;
                 my $nh = @$headers;
                 $tpl = $template->($nh);
@@ -217,8 +194,7 @@ sub print_conditions
     print "\n";
 }
 
-sub print_subroutines
-{
+sub print_subroutines {
     my ($db, $file, $options) = @_;
 
     my $dfil = $db->cover->file($file);
@@ -230,12 +206,10 @@ sub print_subroutines
     my $maxs = 10;
     my %subs;
 
-    for my $location ($subs->items)
-    {
+    for my $location ($subs->items) {
         my $l = $subs->location($location);
         my $d = $pods && $pods->location($location);
-        for my $sub (@$l)
-        {
+        for my $sub (@$l) {
             my $h = "$file:$location";
             my $c = ($sub->uncoverable ? "-" : "") . $sub->covered;
             my $e = $pods && shift @$d;
@@ -254,16 +228,14 @@ sub print_subroutines
     $template .= "%${maxp}s " if $pods;
     $template .= "%-${maxh}s\n";
 
-    for my $type (sort keys %subs)
-    {
+    for my $type (sort keys %subs) {
         print ucfirst $type, " Subroutines\n";
         print "-" x (12 + length $type), "\n\n";
         printf $template, "Subroutine", "Count", $pods ? "Pod" : (), "Location";
         printf $template, "-" x $maxs, "-" x $maxc, $pods ? "-" x $maxp : (),
                           "-" x $maxh;
 
-        for my $s (sort keys %{$subs{$type}})
-        {
+        for my $s (sort keys %{$subs{$type}}) {
             printf $template, $s, @$_
                 for sort {$a->[-1] cmp $b->[-1]} @{$subs{$type}{$s}};
         }
@@ -273,13 +245,11 @@ sub print_subroutines
     print "\n";
 }
 
-sub report
-{
+sub report {
     my ($pkg, $db, $options) = @_;
 
     print_runs($db, $options);
-    for my $file (@{$options->{file}})
-    {
+    for my $file (@{$options->{file}}) {
         print_statement  ($db, $file, $options) if $options->{show}{statement};
         print_branches   ($db, $file, $options) if $options->{show}{branch};
         print_conditions ($db, $file, $options) if $options->{show}{condition};

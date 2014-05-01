@@ -30,8 +30,7 @@ $|++;
 
 my $Template;
 
-my $Options =
-{
+my $Options = {
     collect      => 1,
     directory    => Cwd::cwd(),
     force        => 0,
@@ -39,8 +38,7 @@ my $Options =
     report       => "html_basic",
 };
 
-sub get_options
-{
+sub get_options {
     die "Bad option" unless
     GetOptions($Options,                # Store the options in the Options hash.
                qw(
@@ -66,8 +64,7 @@ sub get_options
     $Options->{outputdir}  ||= $Options->{directory};
     $Options->{outputfile} ||= "coverage.html";
     push @{$Options->{module}}, @ARGV;
-    if (!$Options->{redo_cpancover_html} && !@{$Options->{module}})
-    {
+    if (!$Options->{redo_cpancover_html} && !@{$Options->{module}}) {
         my $d = $Options->{directory};
         opendir D, $d or die "Can't opendir $d: $!\n";
         @{$Options->{module}} = grep !/^\./ && -e "$d/$_/Makefile.PL",
@@ -77,27 +74,23 @@ sub get_options
     }
 }
 
-sub sys
-{
+sub sys {
     my ($command) = @_;
     print "$command\n";
     system $command;
 }
 
-sub read_results
-{
+sub read_results {
     my $f = "$Options->{outputdir}/cover.results";
     my %results;
 
     open my $fh, "<", $f or return;
     my $try;
-    until (flock $fh, LOCK_SH)
-    {
+    until (flock $fh, LOCK_SH) {
         die "Can't lock $f: $!\n" if $try++ > 60;
         sleep 1;
     }
-    while (<$fh>)
-    {
+    while (<$fh>) {
         my ($mod, $status) = split;
         $results{$mod} = $status;
     }
@@ -106,8 +99,7 @@ sub read_results
     \%results
 }
 
-sub get_cover
-{
+sub get_cover {
     my ($module) = @_;
 
     print "\n\n\n**** Checking coverage of $module ****\n\n\n";
@@ -122,8 +114,7 @@ sub get_cover
     unlink $out;
 
     my $test = !-e "$db/runs" || $Options->{force} ? " -test" : "";
-    if ($test)
-    {
+    if ($test) {
         print "Testing $module\n";
         sys "$^X Makefile.PL >> $out 2>&1" unless -e "Makefile";
     }
@@ -132,10 +123,8 @@ sub get_cover
     my $of = $Options->{outputfile};
     my $timeout = 900;  # fifteen minutes should be enough
 
-    if ($test || !-e "$od/$of" || $Options->{redo_html})
-    {
-        eval
-        {
+    if ($test || !-e "$od/$of" || $Options->{redo_html}) {
+        eval {
             local $SIG{ALRM} = sub { die "alarm\n" };
             alarm $timeout;
             sys "cover$test -report $Options->{report} " .
@@ -143,8 +132,7 @@ sub get_cover
                 ">> $out 2>&1";
             alarm 0;
         };
-        if ($@)
-        {
+        if ($@) {
             die unless $@ eq "alarm\n";   # propagate unexpected errors
             warn "Timed out after $timeout seconds!\n";
         }
@@ -157,13 +145,11 @@ sub get_cover
 
     open my $fh, ">", $f or die "Can't open $f: $!\n";
     my $try;
-    until (flock $fh, LOCK_EX)
-    {
+    until (flock $fh, LOCK_EX) {
         die "Can't lock $f: $!\n" if $try++ > 60;
         sleep 1;
     }
-    for my $mod (sort keys %$results)
-    {
+    for my $mod (sort keys %$results) {
         print $fh "$mod $results->{$mod}\n";
     }
     close $fh or die "Can't close $f: $!\n";
@@ -269,8 +255,7 @@ EOF
     close CSS or die "Can't close $css: $!\n";
 }
 
-sub class
-{
+sub class {
     my ($pc) = @_;
     $pc eq "n/a" ? "na" :
     $pc <    75  ? "c0" :
@@ -279,8 +264,7 @@ sub class
                    "c3"
 }
 
-sub write_csv
-{
+sub write_csv {
     my ($data) = @_;
 
     open(my $fh, ">", "$Options->{outputdir}/cpan_cover.csv")
@@ -295,13 +279,12 @@ sub write_csv
                     subroutine_class subroutine_details subroutine_pc
                     total_class total_details total_pc/;
     print $fh join(",", @header ) . "\n";
-    foreach my $release  (keys %{$data->{vals}} ) {
-
+    for my $release (keys %{$data->{vals}} ) {
         my $line = [];
         push @$line, $release,
         push @$line, $data->{vals}{$release}{link};
 
-        foreach my $level1 (
+        for my $level1 (
             qw/branch condition pod statement subroutine total/ ) {
                 foreach my $level2 ( qw/class details pc/ ) {
                     push @$line, $data->{vals}{$release}{$level1}{$level2};
@@ -310,11 +293,11 @@ sub write_csv
         print $fh join ( ",",@$line)."\n";
     }
     close $fh;
-    print "\n\nWrote cpan_cover.csv output to $Options->{outputdir}/cpan_cover.csv\n";
+    print "\n\nWrote cpan_cover.csv output to " .
+          "$Options->{outputdir}/cpan_cover.csv\n";
 }
 
-sub write_html
-{
+sub write_html {
     my $d = $Options->{directory};
     chdir $d or die "Can't chdir $d: $!\n";
 
@@ -323,22 +306,19 @@ sub write_html
     print "\n\nWriting cpancover output to $f ...\n";
 
     my %vals;
-    my $vars =
-    {
+    my $vars = {
         title   => "CPAN Coverage report",
         modules => [],
         vals    => \%vals,
     };
 
-    for my $module (sort keys %$results)
-    {
+    for my $module (sort keys %$results) {
         my $dbdir = "$Options->{directory}/$module/cover_db";
         next unless -d $dbdir;
         chdir "$Options->{directory}/$module";
         print "Adding $module from $dbdir\n";
 
-        eval
-        {
+        eval {
             my $db = Devel::Cover::DB->new(db => $dbdir);
             # next unless $db->is_valid;
 
@@ -353,8 +333,7 @@ sub write_html
             push @{$vars->{modules}}, $module;
             $vals{$module}{link} = "$module/$Options->{outputfile}";
 
-            for my $criterion (@$criteria)
-            {
+            for my $criterion (@$criteria) {
                 my $summary = $db->summary("Total", $criterion);
                 my $pc = $summary->{percentage};
                 $pc = defined $pc ? sprintf "%6.2f", $pc : "n/a";
@@ -373,23 +352,18 @@ sub write_html
     print "\n\nWrote cpancover output to $f\n";
 }
 
-sub main
-{
+sub main {
     get_options;
 
-    $Template = Template->new
-    ({
-        LOAD_TEMPLATES =>
-        [
+    $Template = Template->new ({
+        LOAD_TEMPLATES => [
             Devel::Cover::Cpancover::Template::Provider->new({}),
         ],
     });
 
-    if ($Options->{collect})
-    {
+    if ($Options->{collect}) {
         my $workers = $ENV{CPANCOVER_WORKERS} || 0;
-        my @res = iterate_as_array
-        (
+        my @res = iterate_as_array (
             { workers => $workers },
             sub { eval { get_cover $_[1] };
                   warn "\n\n\n[$_[1]]: $@\n\n\n" if $@ },
@@ -413,8 +387,7 @@ use base "Template::Provider";
 
 my %Templates;
 
-sub fetch
-{
+sub fetch {
     my $self = shift;
     my ($name) = @_;
     # print "Looking for <$name>\n";
@@ -423,8 +396,7 @@ sub fetch
 
 $Templates{colours} = <<'EOT';
 [%
-    colours =
-    {
+    colours = {
         default => "#ffffad",
         text    => "#000000",
         number  => "#ffffc0",

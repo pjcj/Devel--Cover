@@ -18,8 +18,7 @@ use Devel::Cover::DB;
 use Getopt::Long;
 use Template 2.00;
 
-sub get_options
-{
+sub get_options {
     my ($self, $opt) = @_;
     $opt->{outputfile} = "coverage.vim";
     die "Invalid command line options" unless
@@ -29,24 +28,18 @@ sub get_options
                      ));
 }
 
-sub report
-{
+sub report {
     my ($pkg, $db, $options) = @_;
 
-    my $template = Template->new
-    ({
-        LOAD_TEMPLATES =>
-        [
+    my $template = Template->new({
+        LOAD_TEMPLATES => [
             Devel::Cover::Report::Vim::Template::Provider->new({}),
         ],
     });
 
-    my $vars =
-    {
-        runs =>
-        [
-            map
-            {
+    my $vars = {
+        runs => [
+            map {
                 run    =>               $_->run,
                 perl   =>               $_->perl,
                 OS     =>               $_->OS,
@@ -56,11 +49,9 @@ sub report
             sort {$a->start <=> $b->start}
             $db->runs
         ],
-        cov_time => do
-        {
+        cov_time => do {
             my $time = 0;
-            for ($db->runs)
-            {
+            for ($db->runs) {
                 $time = $_->finish if $_->finish > $time;
             }
             int $time
@@ -90,8 +81,7 @@ use base "Template::Provider";
 
 my %Templates;
 
-sub fetch
-{
+sub fetch {
     my $self = shift;
     my ($name) = @_;
     # print "Looking for <$name>\n";

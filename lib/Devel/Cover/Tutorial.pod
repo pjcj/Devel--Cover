@@ -46,8 +46,7 @@ be sections of code designed to deal with error conditions, or rarely
 occurring events such as a signal received during a certain section of
 code.  There may also be code that should never be executed:
 
-  if ($param > 20)
-  {
+  if ($param > 20) {
     die "This should never happen!";
   }
 
@@ -65,20 +64,16 @@ The goal of branch coverage is to ensure that whenever a program can
 jump, it jumps to all possible destinations.  The most simple example is
 a complete if statement:
 
-  if ($x)
-  {
+  if ($x) {
     print "a";
-  }
-  else
-  {
+  } else {
     print "b";
   }
 
 In such a simple example statement coverage is as powerful, but branch
 coverage should also allow for the case where the else part is missing:
 
-  if ($x)
-  {
+  if ($x) {
     print "a";
   }
 
@@ -94,12 +89,9 @@ Branch coverage is also called decision or all edges coverage.
 There are classes of errors that branch coverage cannot detect, such as:
 
   $h = undef;
-  if ($x)
-  {
+  if ($x) {
     $h = { a => 1 };
-  }
-  if ($y)
-  {
+  } if ($y) {
     print $h->{a};
   }
 

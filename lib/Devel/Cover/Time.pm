@@ -20,8 +20,7 @@ sub total       { 1 }
 sub percentage  { ${$_[0]} ? 100 : 0 }
 sub error       { 0 }
 
-sub calculate_summary
-{
+sub calculate_summary {
     my $self = shift;
     my ($db, $file) = @_;
 
@@ -29,8 +28,7 @@ sub calculate_summary
     $db->{summary}{Total}{time}{total} += $$self;
 }
 
-sub calculate_percentage
-{
+sub calculate_percentage {
     my $class = shift;
     my ($db, $s) = @_;
     my $t = $db->{summary}{Total}{time}{total};

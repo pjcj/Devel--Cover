@@ -19,15 +19,13 @@ use Sereal::Encoder;
 my $Decoder;
 my $Encoder;
 
-sub new
-{
+sub new {
     my $class = shift;
     my $self  = { @_ };
     bless $self, $class
 }
 
-sub read
-{
+sub read {
     my $self   = shift;
     my ($file) = @_;
 
@@ -44,8 +42,7 @@ sub read
     $data
 }
 
-sub write
-{
+sub write {
     my $self = shift;
     my ($data, $file) = @_;
 

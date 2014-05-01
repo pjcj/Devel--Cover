@@ -19,4 +19,4 @@ die "Only one test allowed" if @tests > 1;
 my $fn = @tests ? $tests[0] : "";
 unlink for <test_output/cover/$fn*>;
 # print "tests [@tests]\n";
-exec $^X, "utils/all_versions", "make", "gold", "TEST=$tests[0]"
+exec $^X, "utils/all_versions", "make", "gold", "TEST=@tests"

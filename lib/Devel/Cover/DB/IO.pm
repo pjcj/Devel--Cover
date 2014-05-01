@@ -14,8 +14,7 @@ use warnings;
 
 my $Format;
 
-BEGIN
-{
+BEGIN {
     $Format = "Sereal"   if eval "use Sereal::Decoder; use Sereal::Encoder; 1";
     $Format = "JSON"     if !$Format and eval "use JSON; 1";
     $Format = "JSON"     if !$Format and eval "use JSON::PP; 1";
@@ -23,8 +22,7 @@ BEGIN
     die "Can't load either JSON or Storable" unless $Format;
 }
 
-sub new
-{
+sub new {
     my $class = shift;
 
     my $format = $ENV{DEVEL_COVER_DB_FORMAT} || $Format;

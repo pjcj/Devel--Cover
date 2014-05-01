@@ -16,35 +16,29 @@ use Devel::Cover::Criterion;
 
 use Devel::Cover::Dumper;
 
-sub calculate_summary
-{
+sub calculate_summary {
     my $self = shift;
     my ($db, $file, $options) = @_;
 
     my $s = $db->{summary}{$file} ||= {};
 
-    for my $criterion ($self->items)
-    {
+    for my $criterion ($self->items) {
         next unless $options->{$criterion};
-        for my $location ($self->$criterion()->locations)
-        {
-            for my $cover (@$location)
-            {
+        for my $location ($self->$criterion()->locations) {
+            for my $cover (@$location) {
                 $cover->calculate_summary($db, $file);
             }
         }
     }
 }
 
-sub calculate_percentage
-{
+sub calculate_percentage {
     my $self = shift;
     my ($db, $s) = @_;
 
     # print STDERR Dumper $s;
 
-    for my $criterion ($self->items)
-    {
+    for my $criterion ($self->items) {
         next unless exists $s->{$criterion};
         my $c = "Devel::Cover::\u$criterion";
         # print "$c\n";

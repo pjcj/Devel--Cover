@@ -14,12 +14,10 @@ use warnings;
 
 use Getopt::Long;
 
-sub new
-{
+sub new {
     my $class = shift;
     my $annotate_arg = $ENV{DEVEL_COVER_GIT_ANNOTATE} || "";
-    my $self =
-    {
+    my $self = {
         annotations => [ qw( version author date ) ],
         command     => "git blame --porcelain $annotate_arg [[file]]",
         @_
@@ -28,8 +26,7 @@ sub new
     bless $self, $class
 }
 
-sub get_annotations
-{
+sub get_annotations {
     my $self = shift;
     my ($file) = @_;
 
@@ -45,23 +42,18 @@ sub get_annotations
         or warn "cover: Can't run $command: $!\n", return;
     my @a;
     my $start = 1;
-    while (<$c>)
-    {
+    while (<$c>) {
         # print "[$_]\n";
-        if (/^\t/)
-        {
+        if (/^\t/) {
             push @$a, [@a];
             $start = 1;
             next;
         }
 
-        if ($start == 1)
-        {
+        if ($start == 1) {
             $a[0] = substr $1, 0, 8 if /^(\w+)/;
             $start = 0;
-        }
-        else
-        {
+        } else {
             $a[1] = $1 if /^author (.*)/;
             $a[2] = localtime $1 if /^author-time (.*)/;
         }
@@ -69,8 +61,7 @@ sub get_annotations
     close $c or warn "cover: Failed running $command: $!\n"
 }
 
-sub get_options
-{
+sub get_options {
     my ($self, $opt) = @_;
     $self->{$_} = 1 for @{$self->{annotations}};
     die "Bad option" unless
@@ -83,28 +74,24 @@ sub get_options
                      ));
 }
 
-sub count
-{
+sub count {
     my $self = shift;
     $self->{author} + $self->{date} + $self->{version}
 }
 
-sub header
-{
+sub header {
     my $self = shift;
     my ($annotation) = @_;
     $self->{annotations}[$annotation]
 }
 
-sub width
-{
+sub width {
     my $self = shift;
     my ($annotation) = @_;
     (8, 16, 24)[$annotation]
 }
 
-sub text
-{
+sub text {
     my $self = shift;
     my ($file, $line, $annotation) = @_;
     return "" unless $line;
@@ -112,15 +99,13 @@ sub text
     $self->{_annotations}{$file}[$line - 1][$annotation]
 }
 
-sub error
-{
+sub error {
     my $self = shift;
     my ($file, $line, $annotation) = @_;
     0
 }
 
-sub class
-{
+sub class {
     my $self = shift;
     my ($file, $line, $annotation) = @_;
     ""

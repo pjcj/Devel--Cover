@@ -21,12 +21,10 @@ our @EXPORT_OK = "write_file";
 
 my %Files;
 
-sub write_file
-{
+sub write_file {
     my ($directory, $file) = @_;
 
-    while (my($f, $contents) = each %Files)
-    {
+    while (my ($f, $contents) = each %Files) {
         next if
             $file ne "all" &&
             (($file eq "js" || $file eq "css") && $f !~ /\.$file$/) &&

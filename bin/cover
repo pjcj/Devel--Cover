@@ -25,8 +25,7 @@ use Pod::Usage;
 use Devel::Cover::Dumper;  # For debugging
 use Data::Dumper ();  # no import of Dumper (use Devel::Cover::Dumper if needed)
 
-my $Options =
-{
+my $Options = {
     add_uncoverable_point    => [],
     annotation               => [],
     coverage                 => [],
@@ -47,13 +46,11 @@ my $Options =
     uncoverable_file         => [".uncoverable", glob("~/.uncoverable")],
 };
 
-sub get_options
-{
+sub get_options {
     Getopt::Long::Configure("pass_through");
     die "Bad option" unless
         GetOptions($Options,            # Store the options in the Options hash.
-                   "write:s" => sub
-                   {
+                   "write:s" => sub {
                        @$Options{qw( write summary )} = ($_[1], 0)
                    },
                    qw(
@@ -91,8 +88,7 @@ sub get_options
     @{$Options->{coverage}} = split(/,/, join(",", @{$Options->{coverage}}));
 
     # also accept them in the same format they're output
-    my %coverage_abbrev =
-    (
+    my %coverage_abbrev = (
         stmt => 'statement',
         bran => 'branch',
         cond => 'condition',
@@ -100,8 +96,7 @@ sub get_options
     );
 
     my %options_coverage = map {$_ => 1} @{$Options->{coverage}};
-    while (my ($abbr, $full) = each %coverage_abbrev)
-    {
+    while (my ($abbr, $full) = each %coverage_abbrev) {
         $options_coverage{$full} = delete $options_coverage{$abbr}
             if $options_coverage{$abbr};
     }
@@ -110,19 +105,15 @@ sub get_options
 
     # generating data may take time, so bail now if options are wrong
     my %coverage_allowed = map {$_ => 1} values %coverage_abbrev, "time", "pod";
-    for my $cov (@{$Options->{coverage}})
-    {
+    for my $cov (@{$Options->{coverage}}) {
         die "Unrecognised -coverage: $cov" unless $coverage_allowed{$cov};
     }
 }
 
-sub delete_db
-{
-    for my $del (@_)
-    {
+sub delete_db {
+    for my $del (@_) {
         my $db = Devel::Cover::DB->new(db => $del);
-        unless ($db->is_valid)
-        {
+        unless ($db->is_valid) {
             print "Devel::Cover: $del is an invalid database - ignoring\n"
                 unless $Options->{silent};
             next;
@@ -140,42 +131,31 @@ sub test_command { -e "Build" ? mb_test_command() : mm_test_command() }
 sub gcov_args() { "-fprofile-arcs -ftest-coverage" }
 
 # Test command for MakeMaker
-sub mm_test_command
-{
+sub mm_test_command {
     my $test = "$Options->{make} test";
-
-    if ($Options->{gcov})
-    {
+    if ($Options->{gcov}) {
         my $o = gcov_args();
         $test .= qq{ "OPTIMIZE=-O0 $o" "OTHERLDFLAGS=$o"};
     }
-
     $test
 }
 
 # Test command for Module::Build
-sub mb_test_command
-{
+sub mb_test_command {
     my $test = './Build test';
-
-    if ($Options->{gcov})
-    {
+    if ($Options->{gcov}) {
         my $o = gcov_args();
         $test .= qq{ "--extra_compiler_flags=-O0 $o" "--extra_linker_flags=$o"};
     }
-
     $test
 }
 
-sub main
-{
+sub main {
     $|++;  # try to impose order on STDOUT and STDERR
 
-    if (!$ENV{DEVEL_COVER_SELF} && $INC{"Devel/Cover.pm"})
-    {
+    if (!$ENV{DEVEL_COVER_SELF} && $INC{"Devel/Cover.pm"}) {
         my $err = "$0 shouldn't be run with coverage turned on.\n";
-        eval
-        {
+        eval {
             require POSIX;
             print STDERR $err;
             POSIX::_exit(1);
@@ -188,11 +168,9 @@ sub main
     $Devel::Cover::Silent = 1 if $Options->{silent};
 
     my $format = "Devel::Cover::Report::\u$Options->{report}";
-    if (length $Options->{report})
-    {
+    if (length $Options->{report}) {
         eval ("use $format");
-        if ($@)
-        {
+        if ($@) {
             print "Error: $Options->{report} ",
                   "is not a recognised output format\n\n$@";
             exit 1;
@@ -202,12 +180,10 @@ sub main
     $format->get_options($Options) if $format->can("get_options");
 
     $Options->{annotations} = [];
-    for my $a (@{$Options->{annotation}})
-    {
+    for my $a (@{$Options->{annotation}}) {
         my $annotation = "Devel::Cover::Annotation::\u$a";
         eval ("use $annotation");
-        if ($@)
-        {
+        if ($@) {
             print "Error: $a is not a recognised annotation\n\n$@";
             exit 1;
         }
@@ -230,15 +206,13 @@ sub main
     $Options->{outputdir} = $od if defined $od;
     mkpath($Options->{outputdir}) unless -d $Options->{outputdir};
 
-    if ($Options->{delete})
-    {
+    if ($Options->{delete}) {
         delete_db($dbname, @ARGV);
         exit 0
     }
 
     my $test_result = 0;
-    if ($Options->{test})
-    {
+    if ($Options->{test}) {
         # TODO - make this a little robust
         # system "$^X Makefile.PL" unless -e "Makefile";
         delete_db($dbname, @ARGV) unless defined $Options->{delete};
@@ -263,8 +237,7 @@ sub main
         my $test = test_command();
 
         # touch the XS, C and H files so they rebuild
-        if ($Options->{gcov})
-        {
+        if ($Options->{gcov}) {
             my $t = $] > 5.7 ? undef : time;
             my $xs = sub { utime $t, $t, $_ if /\.(xs|cc?|hh?)$/ };
             File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
@@ -276,13 +249,10 @@ sub main
         $Options->{report} ||= "html";
     }
 
-    if ($Options->{gcov})
-    {
-        my $gc = sub
-        {
+    if ($Options->{gcov}) {
+        my $gc = sub {
             return unless /\.(xs|cc?|hh?)$/;
-            for my $re (@{$Options->{ignore_re}})
-            {
+            for my $re (@{$Options->{ignore_re}}) {
                 return if /$re/;
             }
             my ($name) = /([^\/]+$)/;
@@ -299,8 +269,7 @@ sub main
         };
         File::Find::find({ wanted => $gc, no_chdir => 1 }, ".");
         my @gc;
-        my $gp = sub
-        {
+        my $gp = sub {
             return unless /\.gcov$/;
             my $xs = $_;
             return if $xs =~ s/\.(cc?|hh?)\.gcov$/.xs.gcov/ && -e $xs;
@@ -308,8 +277,7 @@ sub main
             push @gc, $_;
         };
         File::Find::find({ wanted => $gp, no_chdir => 1 }, ".");
-        if (@gc)
-        {
+        if (@gc) {
             # Find the right gcov2perl based on this current script.
             require Cwd;
             my $path = Cwd::abs_path($0);
@@ -322,8 +290,7 @@ sub main
     }
 
     print "Reading database from $dbname\n" unless $Options->{silent};
-    my $db = Devel::Cover::DB->new
-    (
+    my $db = Devel::Cover::DB->new(
         db               => $dbname,
         uncoverable_file => $Options->{uncoverable_file},
     );
@@ -344,8 +311,7 @@ sub main
         }
     };
 
-    for my $merge (@ARGV)
-    {
+    for my $merge (@ARGV) {
         $read_structure->();
         print "Merging database from $merge\n" unless $Options->{silent};
         my $mdb = Devel::Cover::DB->new(db => $merge);
@@ -359,8 +325,7 @@ sub main
         # print STDERR "Merged structure", Dumper($structure);
     }
 
-    if ($Options->{dump_db})
-    {
+    if ($Options->{dump_db}) {
         my $d = Data::Dumper->new([$db], ["db"]);
         $d->Indent(1);
         $d->Sortkeys(1) if $] >= 5.008;
@@ -373,8 +338,7 @@ sub main
         exit $test_result;
     }
 
-    if (exists $Options->{write})
-    {
+    if (exists $Options->{write}) {
         $dbname = $Options->{write} if length $Options->{write};
         print "Writing database to $dbname\n" unless $Options->{silent};
         $db->write($dbname);
@@ -400,16 +364,13 @@ sub main
                              : $db->cover->items);
     delete @f{map glob, @{$Options->{ignore}}};
 
-    my $keep = sub
-    {
+    my $keep = sub {
         my ($f) = @_;
         return 0 unless exists $db->{summary}{$_};
-        for (@{$Options->{ignore_re}})
-        {
+        for (@{$Options->{ignore_re}}) {
             return 0 if $f =~ /$_/
         }
-        for (@{$Options->{select_re}})
-        {
+        for (@{$Options->{select_re}}) {
             return 1 if $f =~ /$_/
         }
         !@{$Options->{select_re}}
@@ -423,14 +384,10 @@ sub main
 
     $format->report($db, $Options);
 
-    if ($Options->{launch})
-    {
-        if ($format->can("launch"))
-        {
+    if ($Options->{launch}) {
+        if ($format->can("launch")) {
             $format->launch($Options);
-        }
-        else
-        {
+        } else {
             print STDERR "The launch option is not available for the ",
                          "$Options->{report} report.\n"
         }

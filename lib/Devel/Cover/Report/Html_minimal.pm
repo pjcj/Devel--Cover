@@ -51,8 +51,7 @@ sub get_summary_for_file {
                                               $data->{$c}{total} || 0),
                 error   => $data->{$c}{error},
             };
-        }
-        else {
+        } else {
             $summary{$c} = {percent => 'n/a', ratio => undef, error => undef};
         }
     }
@@ -120,17 +119,14 @@ sub merge_lineops {
                 $ops[$_]{tt}->left_merge($ops[0]{tt});
                 $ops[0] = $ops[$_];
                 $rm = $_; last;
-            }
-            elsif ($ops[0]{expr} eq $ops[$_]{cvg}{right}) {
+            } elsif ($ops[0]{expr} eq $ops[$_]{cvg}{right}) {
                 $ops[$_]{tt}->right_merge($ops[0]{tt});
                 $ops[0] = $ops[$_];
                 $rm = $_; last;
-            }
-            elsif ($ops[$_]{expr} eq $ops[0]{cvg}{left}) {
+            } elsif ($ops[$_]{expr} eq $ops[0]{cvg}{left}) {
                 $ops[0]{tt}->left_merge($ops[$_]{tt});
                 $rm = $_; last;
-            }
-            elsif ($ops[$_]{expr} eq $ops[0]{cvg}{right}) {
+            } elsif ($ops[$_]{expr} eq $ops[0]{cvg}{right}) {
                 $ops[0]{tt}->right_merge($ops[$_]{tt});
                 $rm = $_; last;
             }
@@ -138,8 +134,7 @@ sub merge_lineops {
         if ($rm) {
             splice(@ops, $rm, 1);
             $rotations = 0;
-        }
-        else {
+        } else {
             # First op didn't merge with anything. Rotate @ops in hopes
             # of finding something that can be merged.
             unshift(@ops, pop @ops);
@@ -368,8 +363,7 @@ sub print_summary_report {
     my $ge = sub { ($_[0] < 100 ? "&gt;" : "") . "= $_[0]%" };
     my @c = ( $le->($options->{report_c0}), $le->($options->{report_c1}),
               $le->($options->{report_c2}), $ge->($options->{report_c2}) );
-    my $date = do
-    {
+    my $date = do {
         my ($sec, $min, $hour, $mday, $mon, $year) = localtime;
         sprintf "%04d-%02d-%02d %02d:%02d:%02d",
                 $year + 1900, $mon + 1, $mday, $hour, $min, $sec
@@ -405,8 +399,7 @@ END_HTML
         my $url = get_link($file);
         if ($url) {
             print $fh qq'<tr><td align="left"><a href="$url">$file</a></td>';
-        }
-        else {
+        } else {
             print $fh qq'<tr><td align="left">$file</td>';
         }
 
@@ -416,8 +409,7 @@ END_HTML
 
             if ($pc eq 'n/a' || $c eq 'time') {
                 $class = $popup = '';
-            }
-            else {
+            } else {
                 $class = sprintf(qq' class="%s"',
                                  pclass($pc, $summary->{$c}{error}));
                 $popup = sprintf(qq' title="%s"', $summary->{$c}{ratio});
@@ -429,8 +421,7 @@ END_HTML
             if ($link) {
                 printf $fh qq'<td%s%s><a href="%s">%s</a></td>',
                     $class, $popup, $link, $pc;
-            }
-            else {
+            } else {
                 printf $fh qq'<td%s%s>%s</td>', $class, $popup, $pc;
             }
         }
@@ -461,10 +452,10 @@ sub escape_HTML {
     # IE doesn't honor "white-space: pre" CSS
     my @text = split m/\n/ => $text;
     for (@text) {
-	# Expand all tabs to spaces
-	1 while s/\t+/' ' x (length($&) * 8 - length($`) % 8)/e;
-	# make multiple spaces be multiple spaces
-	s/(  +)/'&nbsp;' x length $1/ge;
+        # Expand all tabs to spaces
+        1 while s/\t+/' ' x (length($&) * 8 - length($`) % 8)/e;
+        # make multiple spaces be multiple spaces
+        s/(  +)/'&nbsp;' x length $1/ge;
     }
 
     return join "\n" => @text;
@@ -523,8 +514,7 @@ sub print_file_report {
                 print $out qq'<tr><td class="h">$i - $.</td><td colspan="$n"></td><td class="s"><pre>$sloc</pre></td></tr>\n';
                 # &nbsp; is IE empty cell hack
                 #print $out qq'<tr><td class="h">$i - $.</td><td colspan="$n">&nbsp;</td><td class="s"><pre>$sloc</pre></td></tr>\n';
-            }
-            else {
+            } else {
                 1 while (<$in> !~ /^=cut/);
             }
             next;
@@ -554,8 +544,7 @@ sub print_file_report {
                 if ($opt->{option}{unified} &&
                     ($c eq 'branch' || $c eq 'condition')) {
                     print $out '<div>', $m->{string}, '</div>';
-                }
-                else {
+                } else {
                     my $link;
                     if ($c =~ /branch|condition|subroutine/) {
                         $link = get_link($fin, $c, $.);
@@ -707,8 +696,7 @@ sub print_sub_report {
 }
 
 
-sub get_options
-{
+sub get_options {
     my ($self, $opt) = @_;
     $opt->{option}{pod}          = 1;
     $opt->{option}{outputfile}   = "coverage.html";

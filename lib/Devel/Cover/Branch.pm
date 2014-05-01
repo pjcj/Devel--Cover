@@ -25,30 +25,25 @@ sub text        { $_[0][1]{text} }
 sub criterion   { 'branch' }
 
 
-sub percentage
-{
+sub percentage {
     my $t = $_[0]->total;
     sprintf "%3d", $t ? $_[0]->covered / $t * 100 : 0
 }
 
-sub error
-{
+sub error {
     my $self = shift;
-    if (@_)
-    {
+    if (@_) {
         my $c = shift;
         return !($self->covered($c) xor $self->uncoverable($c));
     }
     my $e = 0;
-    for my $c (0 .. $#{$self->[0]})
-    {
+    for my $c (0 .. $#{$self->[0]}) {
         $e++ if !($self->covered($c) xor $self->uncoverable($c));
     }
     $e
 }
 
-sub calculate_summary
-{
+sub calculate_summary {
     my $self = shift;
     my ($db, $file) = @_;
 

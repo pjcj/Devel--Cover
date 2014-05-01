@@ -17,11 +17,9 @@ use Exporter;
 our @ISA       = "Exporter";
 our @EXPORT_OK = qw(find_prove cpus nice_cpus prove_command);
 
-sub find_prove
-{
+sub find_prove {
     my $perl = $^X;
-    unless (-x $perl)
-    {
+    unless (-x $perl) {
         my ($dir) = grep -x "$_/$perl", split /:/, $ENV{PATH};
         $perl     = "$dir/$perl";
     }
@@ -36,15 +34,13 @@ sub find_prove
     $prove
 }
 
-sub cpus
-{
+sub cpus {
     my $cpus = 1;
     eval { chomp ($cpus = `grep -c processor /proc/cpuinfo`); };
     $cpus
 }
 
-sub nice_cpus
-{
+sub nice_cpus {
     $ENV{DEVEL_COVER_CPUS} || do {
         my $cpus = cpus;
         $cpus-- if $cpus > 3;
@@ -53,8 +49,7 @@ sub nice_cpus
     }
 }
 
-sub prove_command
-{
+sub prove_command {
     my $prove = find_prove or return;
     my $cpus  = nice_cpus;
     "$prove -brj$cpus t"

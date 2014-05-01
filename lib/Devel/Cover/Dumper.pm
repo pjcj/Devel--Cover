@@ -10,13 +10,12 @@
 package  # Private module
    Devel::Cover::Dumper;
 
-use strict qw<vars subs>; # no refs
+use strict qw( vars subs );  # no refs
 use warnings;
 
 # VERSION
 
-sub import
-{
+sub import {
     my $caller = caller;
     if (defined &{"${caller}::Dumper"} && \&{"${caller}::Dumper"} != \&Dumper) {
         require Carp;
@@ -26,8 +25,7 @@ sub import
     *{"${caller}::Dumper"} = \&Dumper;
 }
 
-sub Dumper
-{
+sub Dumper {
     require Data::Dumper;
     local $Data::Dumper::Indent = 1;
     local $Data::Dumper::Sortkeys = 1;

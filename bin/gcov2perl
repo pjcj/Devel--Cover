@@ -21,13 +21,11 @@ use File::Spec;
 use Getopt::Long;
 use Pod::Usage;
 
-my $Options =
-{
+my $Options = {
     db => "cover_db",
 };
 
-sub get_options
-{
+sub get_options {
     die "Bad option" unless
     GetOptions($Options,                # Store the options in the Options hash.
                qw(
@@ -42,8 +40,7 @@ sub get_options
     pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
 }
 
-sub add_cover
-{
+sub add_cover {
     my ($file) = @_;
     my ($vol, $dir) = File::Spec->splitpath(File::Spec->rel2abs($file));
     $dir = File::Spec->catpath($vol, $dir);
@@ -64,27 +61,22 @@ sub add_cover
     my ($line, $text);
 
     open F, $file or die "Can't open $file: $!\n";
-    gcov_line: while (my $gcov_text = <F>)
-    {
+    gcov_line: while (my $gcov_text = <F>) {
         # print "Processing line [$gcov_text]\n";
-        if ($gcov_text =~ /^[^:]+:[^:]+:Source:(.*)$/)
-        {
+        if ($gcov_text =~ /^[^:]+:[^:]+:Source:(.*)$/) {
             $f = $1;
             $f = File::Spec->abs2rel(File::Spec->catfile($dir, $f))
                 unless File::Spec->file_name_is_absolute($f);
         }
-        unless (defined $run{digests}{$f})
-        {
-            unless (-f $f)
-            {
+        unless (defined $run{digests}{$f}) {
+            unless (-f $f) {
                 warn "no source $f found for $file\n";
                 close F or die "Can't close $file: $!\n";
                 return;
             }
             $run{digests}{$f} = $structure->set_file($f);
         }
-        if ($gcov_text =~ $statement_re)
-        {
+        if ($gcov_text =~ $statement_re) {
             my $count = $1;
             $line = $2;
             $text = $3;
@@ -95,29 +87,23 @@ sub add_cover
             # print "$f:$line - $count\n";
             push @{$run{count}{$f}{statement}}, $count;
             $structure->add_statement($f, $line);
-        }
-        elsif ($gcov_text =~ $branch_re)
-        {
+        } elsif ($gcov_text =~ $branch_re) {
             my @branches;
             # look for:
             #     branch  0 taken 0 (fallthrough)
             #     branch  1 taken 19
             #     branch  0 never executed
             #     branch  1 never executed
-            while ($gcov_text =~ $branch_re)
-            {
+            while ($gcov_text =~ $branch_re) {
                 push @branches, $2 eq "executed" ? 0 : $2;
                 $gcov_text = <F>;
             }
             # print "branches on $f:$line are: @branches\n";
 
-            if (@branches == 2)
-            {
+            if (@branches == 2) {
                 $structure->add_branch($f, [ $line, { text => $text } ]);
                 push @{$run{count}{$f}{branch}}, \@branches;
-            }
-            else
-            {
+            } else {
                 warn "gcov2perl: Warning: ignoring branch with ",
                      scalar @branches, " targets at $f:$line $text\n";
             }
@@ -128,8 +114,7 @@ sub add_cover
 
     my $run   = $run{start} . ".$$." . sprintf "%05d", rand 2 ** 16;
     my $db    = $Options->{db};
-    my $cover = Devel::Cover::DB->new
-    (
+    my $cover = Devel::Cover::DB->new(
         base      => $db,
         runs      => { $run => \%run },
         structure => $structure,
@@ -145,8 +130,7 @@ sub add_cover
     $cover->write;
 }
 
-sub main
-{
+sub main {
     get_options;
     add_cover $_ for @ARGV;
 }

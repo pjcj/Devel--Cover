@@ -10,15 +10,12 @@
 use strict;
 use warnings;
 
-my $Command =
-{
-    strip_criterion => sub
-    {
+my $Command = {
+    strip_criterion => sub {
         my ($command, $criterion, $file) = @_;
         my $t;
         local ($^I, @ARGV) = (".bak", $file);
-        while (<>)
-        {
+        while (<>) {
             $t = index($_, "$criterion   code") -3 if !defined $t || $t < 0;
             substr $_, $t, 7, ""
                 if /^line  err   stmt/ .. /^--------/ and $t > -1 and length > $t;
@@ -27,8 +24,7 @@ my $Command =
     },
 };
 
-sub main
-{
+sub main {
     my ($command) = @ARGV;
     die "No such command: $command" unless $Command->{$command};
     $Command->{$command}->(@ARGV)

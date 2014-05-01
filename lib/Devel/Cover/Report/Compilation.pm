@@ -24,33 +24,27 @@ use Devel::Cover::DB;
 
 # TODO - uncoverable code?
 
-sub print_statement
-{
+sub print_statement {
     my ($db, $file, $options) = @_;
 
     my $statements = $db->cover->file($file)->statement or return;
 
-    for my $location ($statements->items)
-    {
+    for my $location ($statements->items) {
         my $l = $statements->location($location);
-        for my $statement (@$l)
-        {
+        for my $statement (@$l) {
             next if $statement->covered;
             print "Uncovered statement at $file line $location:\n";
         }
     }
 }
 
-sub print_branches
-{
+sub print_branches {
     my ($db, $file, $options) = @_;
 
     my $branches = $db->cover->file($file)->branch or return;
 
-    for my $location (sort { $a <=> $b } $branches->items)
-    {
-        for my $b (@{$branches->location($location)})
-        {
+    for my $location (sort { $a <=> $b } $branches->items) {
+        for my $b (@{$branches->location($location)}) {
             next unless $b->error;
 
             # One or both paths from this branch weren't reached.
@@ -72,8 +66,7 @@ sub print_branches
     }
 }
 
-sub print_conditions
-{
+sub print_conditions {
     my ($db, $file, $options) = @_;
 
     my $conditions = $db->cover->file($file)->condition or return;
@@ -81,21 +74,17 @@ sub print_conditions
     my $template = sub { "%-5s %3s %6s " . ( "%6s " x shift ) . "  %s\n" };
 
     my %r;
-    for my $location (sort { $a <=> $b } $conditions->items)
-    {
+    for my $location (sort { $a <=> $b } $conditions->items) {
         my %seen;
-        for my $c (@{$conditions->location($location)})
-        {
+        for my $c (@{$conditions->location($location)}) {
             push @{$r{$c->type}}, [ $c, $seen{$c->type}++ ? "" : $location ];
         }
     }
 
     my %seen;
-    for my $type (sort keys %r)
-    {
+    for my $type (sort keys %r) {
         my $tpl;
-        for (@{$r{$type}})
-        {
+        for (@{$r{$type}}) {
             my ($c, $location) = @$_;
             next unless $c->error;
             my @headers = @{$c->headers};
@@ -106,17 +95,14 @@ sub print_conditions
     }
 }
 
-sub print_subroutines
-{
+sub print_subroutines {
     my ($db, $file, $options) = @_;
 
     my $subroutines = $db->cover->file($file)->subroutine or return;
 
-    for my $location ($subroutines->items)
-    {
+    for my $location ($subroutines->items) {
         my $l = $subroutines->location($location);
-        for my $sub (@$l)
-        {
+        for my $sub (@$l) {
             next if $sub->covered;
             print "Uncovered subroutine ", $sub->name,
                   " at $file line $location\n";
@@ -124,12 +110,10 @@ sub print_subroutines
     }
 }
 
-sub report
-{
+sub report {
     my ($pkg, $db, $options) = @_;
 
-    for my $file (@{$options->{file}})
-    {
+    for my $file (@{$options->{file}}) {
         print_statement  ($db, $file, $options) if $options->{show}{statement};
         print_branches   ($db, $file, $options) if $options->{show}{branch};
         print_conditions ($db, $file, $options) if $options->{show}{condition};

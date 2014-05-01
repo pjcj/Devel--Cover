@@ -8,11 +8,12 @@ sub process_file {
     my $file = shift;
     open my $fh, $file or die $!;
     while (<$fh>) {
-	my ($count, $crit, $reason) = m/# uncoverable:\s+(\d+)\s+(\w+)\s+(.*$)/ or next;
-	my $md5 = Digest::MD5->new->add($_)->hexdigest;
-	$crit =~ s/s$//;
-	for (0..$count-1) {
-	    print "$file $crit $md5 $_ 0 $reason\n";
-	}
+        my ($count, $crit, $reason) = m/# uncoverable:\s+(\d+)\s+(\w+)\s+(.*$)/
+            or next;
+        my $md5 = Digest::MD5->new->add($_)->hexdigest;
+        $crit =~ s/s$//;
+        for (0..$count-1) {
+            print "$file $crit $md5 $_ 0 $reason\n";
+        }
     }
 }

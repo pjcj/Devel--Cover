@@ -16,8 +16,7 @@ sub launch {
     my $outfile = "$opt->{outputdir}/$opt->{option}{outputfile}";
     if (eval { require Browser::Open }) {
         Browser::Open::open_browser($outfile);
-    }
-    else {
+    } else {
         print STDERR "Devel::Cover: -launch requires Browser::Open\n";
     }
 }
@@ -48,4 +47,5 @@ function to enable the -launch flag for that report type.
 Devel::Cover
 
 =cut
+
 1;

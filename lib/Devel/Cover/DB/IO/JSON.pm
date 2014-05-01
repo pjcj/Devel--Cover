@@ -16,22 +16,19 @@ use Fcntl ":flock";
 
 my $Format;
 
-BEGIN
-{
+BEGIN {
     $Format = "JSON"     if              eval "use JSON; 1";
     $Format = "JSON::PP" if !$Format and eval "use JSON::PP; 1";
     die "Can't load either JSON or JSON::PP" unless $Format;
 }
 
-sub new
-{
+sub new {
     my $class = shift;
     my $self  = { @_ };
     bless $self, $class
 }
 
-sub read
-{
+sub read {
     my $self   = shift;
     my ($file) = @_;
 
@@ -49,8 +46,7 @@ sub read
     $data
 }
 
-sub write
-{
+sub write {
     my $self = shift;
     my ($data, $file) = @_;
 

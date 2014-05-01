@@ -19,8 +19,7 @@ mkdir $covdir, 0750 unless -d $covdir;
 mkdir $lnkdir, 0750 unless -d $lnkdir;
 mkdir $resdir, 0750 unless -d $resdir;
 
-for my $d (grep -d, <$moddir/*/*>)
-{
+for my $d (grep -d, <$moddir/*/*>) {
     print "Linking $d\n";
     my ($e) = $d =~ m|/([^/]+)$| or die "Can't find module name";
     my $new = "$lnkdir/$e";

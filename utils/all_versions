@@ -16,8 +16,7 @@ use Getopt::Long;
 
 use Devel::Cover::BuildUtils qw( prove_command cpus );
 
-my $Options =
-{
+my $Options = {
     dry_run        => 0,
     ignore_failure => 0,
     silent         => 1,
@@ -26,39 +25,36 @@ my $Options =
 
 my $Silent = "";
 
-sub get_options
-{
+sub get_options {
     die "Bad option" unless
-        GetOptions($Options,
-                   qw(
-                       build!
-                       dry_run!
-                       ignore_failure!
-                       list!
-                       silent!
-                       version=s
-                     ));
-    $Options->{version} =
-        [ map { ($_, "$_-thr") }
-              qw( 5.6.1 5.6.2
-                  5.8.0 5.8.1 5.8.2 5.8.3 5.8.4 5.8.5 5.8.6 5.8.7 5.8.8 5.8.9
-                  5.10.0 5.10.1
-                  5.12.0 5.12.1 5.12.2 5.12.3 5.12.4 5.12.5
-                  5.14.0 5.14.1 5.14.2 5.14.3 5.14.4
-                  5.16.0 5.16.1 5.16.2 5.16.3
-                  5.18.0 5.18.1 5.18.2
-                  5.19.0 5.19.1 5.19.2 5.19.3 5.19.4  5.19.5
-                  5.19.6 5.19.7 5.19.8 5.19.9 5.19.10 5.19.11
-                ) ]
-        unless @{$Options->{version}};
+        GetOptions($Options, qw(
+            build!
+            dry_run!
+            ignore_failure!
+            list!
+            silent!
+            version=s
+         ));
+    $Options->{version} = [
+        map { ($_, "$_-thr") }
+            qw( 5.6.1 5.6.2
+                5.8.0 5.8.1 5.8.2 5.8.3 5.8.4 5.8.5 5.8.6 5.8.7 5.8.8 5.8.9
+                5.10.0 5.10.1
+                5.12.0 5.12.1 5.12.2 5.12.3 5.12.4 5.12.5
+                5.14.0 5.14.1 5.14.2 5.14.3 5.14.4
+                5.16.0 5.16.1 5.16.2 5.16.3
+                5.18.0 5.18.1 5.18.2
+                5.19.0 5.19.1 5.19.2 5.19.3 5.19.4  5.19.5
+                5.19.6 5.19.7 5.19.8 5.19.9 5.19.10 5.19.11
+              )
+    ] unless @{$Options->{version}};
     $Silent = " >/dev/null 2>&1" if $Options->{silent};
     $Options->{version} =
         [ grep eval { !system "perl$_ -v$Silent" }, @{$Options->{version}} ]
         unless $Options->{build};
 }
 
-sub sys
-{
+sub sys {
     my ($command, $user) = @_;
     print "$command\n";
     return if $Options->{dry_run};
@@ -67,10 +63,8 @@ sub sys
     die "command failed: $?" if $ret && !$Options->{ignore_failure};
 }
 
-sub build
-{
-    for my $v (@{$Options->{version}})
-    {
+sub build {
+    for my $v (@{$Options->{version}}) {
         my $opts = "";
         my ($n) = $v =~ /(\d+\.\d+\.\d+)/ or die "Can't parse [$v}";
         $opts .= " -D usethreads" if $v =~ /thr/;
@@ -81,10 +75,8 @@ sub build
             "curl -L http://cpanmin.us | perl - App::cpanminus";
         my @mods = qw( Storable Digest::MD5 Test::More Test::Warn );
         my ($s) = $n =~ /(\d+)$/;
-        if (($v !~ /thr/ || $s == 1) && $n !~ /^5\.6\./)
-        {
-            push @mods,
-            qw(
+        if (($v !~ /thr/ || $s == 1) && $n !~ /^5\.6\./) {
+            push @mods, qw(
                 Template
                 PPI::HTML
                 Perl::Tidy
@@ -93,7 +85,7 @@ sub build
                 Test::Differences
                 Parallel::Iterator
                 JSON::PP
-              );
+            );
             push @mods, "Perl::Tidy" if !$s ||   $s % 2;
             push @mods, "PPI::HTML"  if !$s || !($s % 2);
         }
@@ -110,13 +102,11 @@ build if $Options->{build};
 my $command = "@ARGV" or die "Usage: $0 [-v version] command\n";
 
 print "Testing against: @{$Options->{version}}\n";
-for my $v (@{$Options->{version}})
-{
+for my $v (@{$Options->{version}}) {
     my $perl = "perl$v";
     (my $c = $command) =~ s/=perl/$perl/g;
     # $c =~ s/=v/$v/g;
-    if ($c =~ /^make /)
-    {
+    if ($c =~ /^make /) {
         sys "rm -rf t/e2e";
         sys "$perl Makefile.PL";
         sys "make clean";

@@ -14,26 +14,21 @@ use Storable;
 
 # VERSION
 
-sub new
-{
+sub new {
     my $class = shift;
     my $self  = { @_ };
     bless $self, $class
 }
 
-sub read
-{
+sub read {
     my $self   = shift;
     my ($file) = @_;
-
     Storable::lock_retrieve($file)
 }
 
-sub write
-{
+sub write {
     my $self = shift;
     my ($data, $file) = @_;
-
     Storable::lock_nstore($data, $file);
     $self
 }

@@ -23,8 +23,7 @@ use Template 2.00;
 
 my ($Have_highlighter, $Have_PPI, $Have_perltidy);
 
-BEGIN
-{
+BEGIN {
     eval "use PPI; use PPI::HTML;";
     $Have_PPI = !$@;
     eval "use Perl::Tidy";
@@ -35,16 +34,14 @@ BEGIN
 my $Template;
 my %R;
 
-sub oclass
-{
+sub oclass {
     my ($o, $criterion) = @_;
     $o ? class($o->percentage, $o->error, $criterion) : ""
 }
 
 my $threshold = { c0 => 75, c1 => 90, c2 => 100 };
 
-sub class
-{
+sub class {
     my ($pc, $err, $criterion) = @_;
     return "" if $criterion eq "time";
     no warnings "uninitialized";
@@ -55,8 +52,7 @@ sub class
           : "c3"
 }
 
-sub get_summary
-{
+sub get_summary {
     my ($file, $criterion) = @_;
 
     my %vals;
@@ -81,10 +77,8 @@ sub get_summary
     \%vals
 };
 
-sub print_summary
-{
-    my $vars =
-    {
+sub print_summary {
+    my $vars = {
         R     => \%R,
         files => [ "Total", grep $R{db}->summary($_), @{$R{options}{file}} ],
     };
@@ -156,8 +150,7 @@ sub _highlight_perltidy {
             : $Have_perltidy ? \&_highlight_perltidy
             : sub {};
 
-sub print_file
-{
+sub print_file {
     my @lines;
     my $f = $R{db}->cover->file($R{file});
 
@@ -167,17 +160,14 @@ sub print_file
     @all_lines = _highlight(@all_lines) if $Have_highlighter;
 
     my $linen = 1;
-    LINE: while (defined(my $l = shift @all_lines))
-    {
+    LINE: while (defined(my $l = shift @all_lines)) {
         my $n  = $linen++;
         chomp $l;
 
         my %criteria;
-        for my $c (@{$R{showing}})
-        {
+        for my $c (@{$R{showing}}) {
             my $criterion = $f->$c();
-            if ($criterion)
-            {
+            if ($criterion) {
                 my $l = $criterion->location($n);
                 $criteria{$c} = $l ? [@$l] : undef;
             }
@@ -185,8 +175,7 @@ sub print_file
 
         my $count = 0;
         my $more  = 1;
-        while ($more)
-        {
+        while ($more) {
             my %line;
 
             $count++;
@@ -195,22 +184,18 @@ sub print_file
 
             my $error = 0;
             $more = 0;
-            for my $ann (@{$R{options}{annotations}})
-            {
-                for my $a (0 .. $ann->count - 1)
-                {
+            for my $ann (@{$R{options}{annotations}}) {
+                for my $a (0 .. $ann->count - 1) {
                     my $text = $ann->text ($R{file}, $n, $a);
                     $text = "&nbsp;" unless $text && length $text;
-                    push @{$line{criteria}},
-                    {
+                    push @{$line{criteria}}, {
                         text  => $text,
                         class => $ann->class($R{file}, $n, $a),
                     };
                     $error ||= $ann->error($R{file}, $n, $a);
                 }
             }
-            for my $c (@{$R{showing}})
-            {
+            for my $c (@{$R{showing}}) {
                 my $o = shift @{$criteria{$c}};
                 $more ||= @{$criteria{$c}};
                 my $link = $c !~ /statement|time/;
@@ -232,8 +217,7 @@ sub print_file
     }
     close F or die "Unable to close $R{file}: $!";
 
-    my $vars =
-    {
+    my $vars = {
         R     => \%R,
         lines => \@lines,
     };
@@ -241,17 +225,14 @@ sub print_file
     $Template->process("file", $vars, $R{file_html}) or die $Template->error();
 }
 
-sub print_branches
-{
+sub print_branches {
     my $branches = $R{db}->cover->file($R{file})->branch;
     return unless $branches;
 
     my @branches;
-    for my $location (sort { $a <=> $b } $branches->items)
-    {
+    for my $location (sort { $a <=> $b } $branches->items) {
         my $count = 0;
-        for my $b (@{$branches->location($location)})
-        {
+        for my $b (@{$branches->location($location)}) {
             $count++;
             my $text = $b->text;
             ($text) = _highlight($text) if $Have_highlighter;
@@ -259,8 +240,7 @@ sub print_branches
             push @branches,
                 {
                     number => $count == 1 ? $location : "",
-                    parts  =>
-                    [
+                    parts  => [
                         map { text  => $b->value($_),
                               class => class($b->value($_), $b->error($_),
                                              "branch") },
@@ -271,8 +251,7 @@ sub print_branches
         }
     }
 
-    my $vars =
-    {
+    my $vars = {
         R        => \%R,
         branches => \@branches,
     };
@@ -281,17 +260,14 @@ sub print_branches
     $Template->process("branches", $vars, $html) or die $Template->error();
 }
 
-sub print_conditions
-{
+sub print_conditions {
     my $conditions = $R{db}->cover->file($R{file})->condition;
     return unless $conditions;
 
     my %r;
-    for my $location (sort { $a <=> $b } $conditions->items)
-    {
+    for my $location (sort { $a <=> $b } $conditions->items) {
         my %count;
-        for my $c (@{$conditions->location($location)})
-        {
+        for my $c (@{$conditions->location($location)}) {
             $count{$c->type}++;
             # print "-- [$count{$c->type}][@{[$c->text]}]}]\n";
             my $text = $c->text;
@@ -301,8 +277,7 @@ sub print_conditions
                 {
                     number    => $count{$c->type} == 1 ? $location : "",
                     condition => $c,
-                    parts     =>
-                    [
+                    parts     => [
                         map { text  => $c->value($_),
                               class => class($c->value($_), $c->error($_),
                                              "condition") },
@@ -314,15 +289,14 @@ sub print_conditions
     }
 
     my @types = map
-               {
-                   name       => do { my $n = $_; $n =~ s/_/ /g; $n },
-                   headers    => [ map { CGI::escapeHTML($_) }
-				   @{$r{$_}[0]{condition}->headers || []} ],
-                   conditions => $r{$_},
-               }, sort keys %r;
+                {
+                    name       => do { my $n = $_; $n =~ s/_/ /g; $n },
+                    headers    => [ map { CGI::escapeHTML($_) }
+                                    @{$r{$_}[0]{condition}->headers || []} ],
+                    conditions => $r{$_},
+                }, sort keys %r;
 
-    my $vars =
-    {
+    my $vars = {
         R     => \%R,
         types => \@types,
     };
@@ -333,8 +307,7 @@ sub print_conditions
     $Template->process("conditions", $vars, $html) or die $Template->error();
 }
 
-sub print_subroutines
-{
+sub print_subroutines {
     my $subroutines = $R{db}->cover->file($R{file})->subroutine;
     return unless $subroutines;
     my $s = $R{options}{show}{subroutine};
@@ -343,19 +316,15 @@ sub print_subroutines
     $pods = $R{db}->cover->file($R{file})->pod if $R{options}{show}{pod};
 
     my $subs;
-    for my $line (sort { $a <=> $b } $subroutines->items)
-    {
+    for my $line (sort { $a <=> $b } $subroutines->items) {
         my @p;
-        if ($pods)
-        {
+        if ($pods) {
             my $l = $pods->location($line);
             @p = @$l if $l;
         }
-        for my $o (@{$subroutines->location($line)})
-        {
+        for my $o (@{$subroutines->location($line)}) {
             my $p = shift @p;
-            push @$subs,
-            {
+            push @$subs, {
                 line   => $line,
                 name   => $o->name,
                 count  => $s ? $o->covered : "",
@@ -366,8 +335,7 @@ sub print_subroutines
         }
     }
 
-    my $vars =
-    {
+    my $vars = {
         R    => \%R,
         subs => $subs,
     };
@@ -377,8 +345,7 @@ sub print_subroutines
     $Template->process("subroutines", $vars, $html) or die $Template->error();
 }
 
-sub get_options
-{
+sub get_options {
     my ($self, $opt) = @_;
     $opt->{option}{outputfile} = "coverage.html";
     $opt->{option}{restrict}   = 1;
@@ -392,14 +359,11 @@ sub get_options
                      ));
 }
 
-sub report
-{
+sub report {
     my ($pkg, $db, $options) = @_;
 
-    $Template = Template->new
-    ({
-        LOAD_TEMPLATES =>
-        [
+    $Template = Template->new({
+        LOAD_TEMPLATES => [
             Devel::Cover::Report::Html_basic::Template::Provider->new({}),
         ],
     });
@@ -407,11 +371,9 @@ sub report
     my $le = sub { ($_[0] >   0 ? "<" : "=") . " $_[0]" };
     my $ge = sub { ($_[0] < 100 ? ">" : "") . "= $_[0]" };
 
-    %R =
-    (
+    %R = (
         db      => $db,
-        date    => do
-        {
+        date    => do {
             my ($sec, $min, $hour, $mday, $mon, $year) = localtime;
             sprintf "%04d-%02d-%02d %02d:%02d:%02d",
                     $year + 1900, $mon + 1, $mday, $hour, $min, $sec
@@ -421,19 +383,16 @@ sub report
         options => $options,
         version => $LVERSION,
         showing => [ grep $options->{show}{$_}, $db->criteria ],
-        headers =>
-        [
+        headers => [
             map { ($db->criteria_short)[$_] }
                 grep { $options->{show}{($db->criteria)[$_]} }
                      (0 .. $db->criteria - 1)
         ],
-        annotations =>
-        [
+        annotations => [
             map { my $a = $_; map $a->header($_), 0 .. $a->count - 1 }
                 @{$options->{annotations}}
         ],
-        filenames =>
-        {
+        filenames => {
             map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } }
                 @{$options->{file}}
         },
@@ -448,8 +407,7 @@ sub report
     write_file $R{options}{outputdir}, "all";
     my $html = print_summary;
 
-    for (@{$options->{file}})
-    {
+    for (@{$options->{file}}) {
         $R{file} = $_;
         $R{file_link} = "$R{filenames}{$_}.html";
         $R{file_html} = "$options->{outputdir}/$R{file_link}";
@@ -476,8 +434,7 @@ use base "Template::Provider";
 
 my %Templates;
 
-sub fetch
-{
+sub fetch {
     my $self = shift;
     my ($name) = @_;
     # print "Looking for <$name>\n";

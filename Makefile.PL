@@ -53,8 +53,7 @@ chomp (our \$Perl  = <<'EOV');  # Careful with \\\\ in the path
 $^X
 EOV
 
-if (\$Perl_version ne \$])
-{
+if (\$Perl_version ne \$]) {
     print STDERR <<"EOM";
 
 This version of Devel::Cover was built with Perl version \$Perl_version.
@@ -78,26 +77,22 @@ close I or die "Cannot close lib/Devel/Cover/Inc.pm: $!";
 
 print "Writing tests ........ ";
 
-for my $d (qw( t t/e2e ))
-{
-    unless (mkdir $d)
-    {
+for my $d (qw( t t/e2e )) {
+    unless (mkdir $d) {
         die "Cannot mkdir $d: $!" unless -d $d;
     }
 }
 
 my @tests;
 opendir D, "tests" or die "Cannot opendir tests: $!";
-for my $t (readdir D)
-{
+for my $t (readdir D) {
     next unless -f "tests/$t";
     next if $t =~ /\.(pm|pl|org|bak|uncoverable)$/;
     next if $t =~ /~$/;
 
     push @tests, $t;
 
-    if ($t =~ /\.t/)
-    {
+    if ($t =~ /\.t/) {
         copy("tests/$t", "t/e2e/$t")
             or die "Cannot copy tests/$t to t/e2e/$t: $!";
         next
@@ -136,8 +131,7 @@ closedir D or die "Cannot closedir tests: $!";
 s/^/tests\// for @tests;
 push @tests, grep !/e2e/, glob "t/*/*.t";
 
-if ($ENV{DEVEL_COVER_NO_TESTS})
-{
+if ($ENV{DEVEL_COVER_NO_TESTS}) {
     # don't run tests under p5cover
     print "removing all tests with DEVEL_COVER_NO_TESTS\n";
     system "rm -rf t/*";  # TODO portability
@@ -148,8 +142,7 @@ print "done\n\n";
 
 my %checked;
 
-sub check
-{
+sub check {
     my ($module, $text, $version) = @_;
 
     printf "checking for %-18s %-16s .... ",
@@ -160,18 +153,14 @@ sub check
         eval "use $module";
     }
     (my $mod = $module) =~ s/::/\//g;
-    if (my $m = $INC{"$mod.pm"})
-    {
+    if (my $m = $INC{"$mod.pm"}) {
         my $v = eval { no warnings; eval "\$${module}::VERSION" };
         printf "%-8s $m\n", $v;
-        if ($version && $v < $version)
-        {
+        if ($version && $v < $version) {
             print "\n\n\n$text\n" unless $checked{$text}++;
             print "\n";
         }
-    }
-    else
-    {
+    } else {
         print "not found";
         print "\n\n\n$text\n" unless $checked{$text}++;
         print "\n";
@@ -241,8 +230,7 @@ meantime, you may continue to use the rest of Devel::Cover.
 EOM
 
 eval "use Pod::Coverage";
-if (my $m = $INC{"Pod/Coverage.pm"})
-{
+if (my $m = $INC{"Pod/Coverage.pm"}) {
     my $v = eval { no warnings; $Pod::Coverage::VERSION };
     print $v < 0.06 ? "$v\n\n\n$e\n\n" : "$v     $m\n";
     print "checking for Pod::Coverage::CountParents         .... ";
@@ -252,19 +240,14 @@ if (my $m = $INC{"Pod/Coverage.pm"})
     Pod::Coverage::CountParents.pm, just install it from CPAN.
 EOM
     eval "use Pod::Coverage::CountParents";
-    if (my $m = $INC{"Pod/Coverage/CountParents.pm"})
-    {
+    if (my $m = $INC{"Pod/Coverage/CountParents.pm"}) {
         my $v = eval { no warnings; $Pod::Coverage::CountParents::VERSION };
         $v ||= "    ";
         print "$v     $m\n";
-    }
-    else
-    {
+    } else {
         print "not found\n\n\n$e\n\n";
     }
-}
-else
-{
+} else {
     print "not found\n\n$e\n";
 }
 
@@ -298,8 +281,7 @@ You may well find failing tests.
 
 EOM
 
-if ($] < 5.008)
-{
+if ($] < 5.008) {
     print <<EOM;
 
 Devel::Cover $Version is not fully functional on perl $].  It should
@@ -315,9 +297,7 @@ And things are even worse under Windows.  You may well find random bugs
 of various severities.
 
 EOM
-}
-elsif ($] < 5.008002)
-{
+} elsif ($] < 5.008002) {
     print <<EOM;
 
 Devel::Cover $Version mostly works on perl $], but you may encounter
@@ -386,8 +366,7 @@ README file, or send mail to me directly.
 
 EOM
 
-sub MY::postamble
-{
+sub MY::postamble {
     my %tests;
     @tests{@tests} = map { (my $t = $_) =~ s/\W/_/g; "cover_db_$t" } @tests;
     my @reports =

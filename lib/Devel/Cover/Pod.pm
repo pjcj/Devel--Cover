@@ -23,8 +23,7 @@ sub percentage  { $_[0][0] ? 100 : 0 }
 sub error       { $_[0][0] xor !$_[0][2] }
 sub criterion   { 'pod' }
 
-sub calculate_summary
-{
+sub calculate_summary {
     my $self = shift;
     my ($db, $file) = @_;
 
