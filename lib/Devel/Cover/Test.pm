@@ -43,6 +43,7 @@ sub new {
         debug            => $ENV{DEVEL_COVER_DEBUG} || 0,
         differences      => $differences,
         no_coverage      => $ENV{DEVEL_COVER_NO_COVERAGE} || 0,
+        delay_after_run  => 0,
         %params
     }, $class;
 
@@ -184,6 +185,11 @@ sub run_command {
         print STDERR if $self->{debug};
     }
     close T or die "Cannot close $command: $!";
+
+    if ($self->{delay_after_run}) {
+        eval { select undef, undef, undef, $self->{delay_after_run}; 1 } or
+            sleep int $self->{delay_after_run} + 1;
+    }
 
     1
 }
