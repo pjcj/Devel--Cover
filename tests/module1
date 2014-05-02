@@ -18,20 +18,15 @@ use Module1;
 
 my @x;
 
-sub xx
-{
+sub xx {
   $x[shift]++;
   Module1::zz(0);
 }
 
-for (0 .. 10)
-{
-  if (time)
-  {
+for (0 .. 10) {
+  if (time) {
     xx(0);
-  }
-  else
-  {
+  } else {
     $x[1]++;
   }
 }

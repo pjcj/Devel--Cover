@@ -22,30 +22,22 @@ $db->{1} = 1;
 
 my $h = { 1 => 1 };
 
-sub testdbm
-{
+sub testdbm {
     my ( $p ) = @_;
 
-    if( exists $db->{$p} )
-    {
+    if( exists $db->{$p} ) {
         return "dbm: exists";
-    }
-    else
-    {
+    } else {
         return "dbm: does not exist";
     }
 }
 
-sub testh
-{
+sub testh {
     my ( $p ) = @_;
 
-    if( exists $h->{$p} )
-    {
+    if( exists $h->{$p} ) {
         return "h: exists";
-    }
-    else
-    {
+    } else {
         return "h: does not exist";
     }
 }

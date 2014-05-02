@@ -18,27 +18,23 @@ use lib -d "t" ? "t" : "..";
 my $x;
 
 eval <<'EOS';
-sub e
-{
+sub e {
     $x++;
     $x
 }
 EOS
 
 eval <<'EOS';
-sub f
-{
+sub f {
     $x++;
     $x
 }
 
-sub g
-{
+sub g {
     $x++;
 }
 
-sub h
-{
+sub h {
     $x++;
 }
 EOS

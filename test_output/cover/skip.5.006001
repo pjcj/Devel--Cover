@@ -27,18 +27,16 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      sub main
-11                                      {
-12             1                    1       my ($debug) = @_;
-13             1                            print "main\n";
-14    ***      1     50                     print "debug1\n" if $debug;
-15    ***      1     50                     if ($debug)
-16                                          {
-17    ***      0                                print "debug2\n";
-18                                          }
-19                                      }
-20                                      
-21             1                        main 0;
+10                                      sub main {
+11             1                    1       my ($debug) = @_;
+12             1                            print "main\n";
+13    ***      1     50                     print "debug1\n" if $debug;
+14    ***      1     50                     if ($debug) {
+15    ***      0                                print "debug2\n";
+16                                          }
+17                                      }
+18                                      
+19             1                        main 0;
 
 
 Branches
@@ -46,8 +44,8 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-14    ***     50      0      1   if $debug
-15    ***     50      0      1   if ($debug)
+13    ***     50      0      1   if $debug
+14    ***     50      0      1   if ($debug)
 
 
 Covered Subroutines
@@ -55,6 +53,6 @@ Covered Subroutines
 
 Subroutine Count Location     
 ---------- ----- -------------
-main           1 tests/skip:12
+main           1 tests/skip:11
 
 

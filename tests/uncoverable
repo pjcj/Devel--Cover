@@ -15,8 +15,7 @@ my $y = 1;
 # uncoverable branch true
 # uncoverable condition left
 # uncoverable condition false
-if ($x && !$y)
-{
+if ($x && !$y) {
     $x++;  # uncoverable statement
     # uncoverable statement
     z();
@@ -25,15 +24,13 @@ if ($x && !$y)
 # uncoverable branch true
 # uncoverable condition right
 # uncoverable condition false
-if (!$x && $y)
-{
+if (!$x && $y) {
     # uncoverable statement count:1
     # uncoverable statement count:2
     b(); b();
 }
 
-sub z
-{
+sub z {
     # uncoverable subroutine
     $y++; # uncoverable statement
 }

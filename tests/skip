@@ -7,13 +7,11 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-sub main
-{
+sub main {
     my ($debug) = @_;
     print "main\n";
     print "debug1\n" if $debug;
-    if ($debug)
-    {
+    if ($debug) {
         print "debug2\n";
     }
 }

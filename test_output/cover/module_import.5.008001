@@ -28,12 +28,11 @@ line  err   stmt   bran   cond    sub   code
 7                                       
 8                                       package Module_import;
 9                                       
-10                                      sub import
-11                                      {
-12             1                    1       print "Module_import\n";
-13                                      }
-14                                      
-15                                      1
+10                                      sub import {
+11             1                    1       print "Module_import\n";
+12                                      }
+13                                      
+14                                      1
 
 
 Covered Subroutines
@@ -41,7 +40,7 @@ Covered Subroutines
 
 Subroutine Count Location                 
 ---------- ----- -------------------------
-import         1 tests/Module_import.pm:12
+import         1 tests/Module_import.pm:11
 
 
 tests/module_import

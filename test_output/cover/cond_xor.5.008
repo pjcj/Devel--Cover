@@ -37,20 +37,18 @@ line  err   stmt   bran   cond    sub   code
 13             1                        my $i = 1;
 14             1                        my $j = 0;
 15                                      
-16             1                        for my $y (0, 1, 1, 1)
+16             1                        for my $y (0, 1, 1, 1) {
                4                        
-17                                      {
-18             4                            for my $z (0, 0, 1)
+17             4                            for my $z (0, 0, 1) {
               12                        
-19                                          {
-20            12                                my $x = $y ^ $z;
-21            12           100                  $x = ($y xor $z);
-22                                      
-23    ***     12            50                  my $p = ($i xor $y);
-24    ***     12            50                  $p = ($j xor $y);
-25            12                                $p ^= $y;
-26                                          }
-27                                      }
+18            12                                my $x = $y ^ $z;
+19            12           100                  $x = ($y xor $z);
+20                                      
+21    ***     12            50                  my $p = ($i xor $y);
+22    ***     12            50                  $p = ($j xor $y);
+23            12                                $p ^= $y;
+24                                          }
+25                                      }
 
 
 Conditions
@@ -60,9 +58,9 @@ xor 4 conditions
 
 line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------ ------   ----
-21           100      3      6      1      2   $y xor $z
-23    ***     50      9      3      0      0   $i xor $y
-24    ***     50      0      0      9      3   $j xor $y
+19           100      3      6      1      2   $y xor $z
+21    ***     50      9      3      0      0   $i xor $y
+22    ***     50      0      0      9      3   $j xor $y
 
 
 Covered Subroutines

@@ -10,8 +10,7 @@
 use strict;
 use warnings;
 
-sub cond_dor
-{
+sub cond_dor {
     my ($x) = @_;
 
     $x->[18] //= undef;

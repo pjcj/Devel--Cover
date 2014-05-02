@@ -2,24 +2,20 @@
 
 use strict;
 
-my %sort =
-(
+my %sort = (
     B => \&backwards,
     F => \&forwards
 );
 
-sub backwards
-{
+sub backwards {
     return $b cmp $a;
 }
 
-sub forwards
-{
+sub forwards {
     return $a cmp $b;
 }
 
-sub GetAlgorithm
-{
+sub GetAlgorithm {
     my ($alg) = @_;
     return $sort{$alg};
 }
@@ -37,14 +33,12 @@ print STDERR Dumper(\@list);
 
 package Failure;
 
-sub fail
-{
+sub fail {
     my @x = 1 .. 5;
     my @y = sort { Failure->xyz( $a, $b ) } @x;
 }
 
-sub xyz
-{
+sub xyz {
     my $self = shift;
     my ($a, $b) = @_;
     $a <=> $b;

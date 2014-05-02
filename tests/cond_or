@@ -19,22 +19,19 @@ my $y  = 1;
 my $z  = 0;
 $::foo = 17;
 
-if ($] >= 5.009)
-{
+if ($] >= 5.009) {
     $ENV{PATH} = "/bin";
     system "pwd";
     use lib "tests";
     my $file = "cond_or.pl";
-    unless (my $return = do $file)
-    {
+    unless (my $return = do $file) {
         die "couldn't parse $file: $@" if $@;
         die "couldn't do $file: $!"    unless defined $return;
         die "couldn't run $file"       unless $return;
     }
 }
 
-for my $i (0 .. 10)
-{
+for my $i (0 .. 10) {
     $y ||
         $x[1]++;
 
@@ -45,17 +42,13 @@ for my $i (0 .. 10)
     $x[2]++
         unless $z;
 
-    for (0 .. 2)
-    {
+    for (0 .. 2) {
         $x[3]++;
     }
 
-    if ($z)
-    {
+    if ($z) {
         $x[4]++;
-    }
-    else
-    {
+    } else {
         $x[5]++;
     }
 

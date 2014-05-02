@@ -32,12 +32,11 @@ line  err   stmt   bran   cond    sub   code
 12                                      
 13                                      use B::Deparse;
 14                                      
-15                                      my $xx = sub
-16                                      {
-17    ***      0                    0       print "xx";
-18             1                        };
-19                                      
-20             1                        print B::Deparse->new->coderef2text($xx)
+15                                      my $xx = sub {
+16    ***      0                    0       print "xx";
+17             1                        };
+18                                      
+19             1                        print B::Deparse->new->coderef2text($xx)
 
 
 Uncovered Subroutines
@@ -45,6 +44,6 @@ Uncovered Subroutines
 
 Subroutine Count Location        
 ---------- ----- ----------------
-__ANON__       0 tests/deparse:17
+__ANON__       0 tests/deparse:16
 
 

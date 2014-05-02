@@ -13,10 +13,8 @@ use warnings;
 my $i = 1;
 my $j = 0;
 
-for my $y (0, 1, 1, 1)
-{
-    for my $z (0, 0, 1)
-    {
+for my $y (0, 1, 1, 1) {
+    for my $z (0, 0, 1) {
         my $x = $y ^ $z;
         $x = ($y xor $z);
 

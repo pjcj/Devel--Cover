@@ -4,8 +4,8 @@ Reading database from ...
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/inc_sub                               100.0   75.0    n/a  100.0   95.0
-Total                                       100.0   75.0    n/a  100.0   95.0
+tests/inc_sub                               100.0   75.0    n/a  100.0   96.3
+Total                                       100.0   75.0    n/a  100.0   96.3
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -27,33 +27,36 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      # __COVER__ changes s/(2[12]             )\d/$1X/
-11                                      # __COVER__ changes s/(22           100      )\d/$1X/
+10                                      # __COVER__ skip_test $] < 5.010
+11                                      # __COVER__ skip_reason %+ not available before 5.10
 12                                      
 13             1                    1   use lib ();
                1                        
                1                        
 14                                      
-15                                      BEGIN
-16                                      {
-17                                          lib->import
-18                                          (
-19                                              sub
-20                                              {
-21             2                                    print map("[$_]", @_), "\n";
-22             2    100                             return unless $_[1] eq "IncSub.pm";
-23             1                                    my $fh;
-24    ***      1     50                             open $fh, "tests/IncSub.pm" or die $!;
-25             1                                    $fh
-26                                              }
-27                                          )
-28             1                    1   }
-29                                      
-30             1                    1   use IncSub;
+15                                      BEGIN {
+16                                          lib->import(
+17                                              sub {
+18             3                                    print map("[$_]", @_), "\n";
+19             3    100                             return unless $_[1] eq "IncSub.pm";
+20             1                                    my $fh;
+21    ***      1     50                             open $fh, "tests/IncSub.pm" or die $!;
+22             1                                    $fh
+23                                              }
+24                                          )
+25             1                    1   }
+26                                      
+27             1                    1   use IncSub;
                1                        
                1                        
-31                                      
-32             1                        IncSub::check
+28                                      
+29             1                    1   BEGIN { "x" =~ /((?<x>x))/; print "$+{x}\n" }  # force Tie::Hash::NamedCapture
+               1                    1   
+               1                        
+               1                        
+               1                        
+30                                      
+31             1                        IncSub::check
 
 
 Branches
@@ -61,8 +64,8 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-22           100      1      1   unless $_[1] eq 'IncSub.pm'
-24    ***     50      0      1   unless open $fh, 'tests/IncSub.pm'
+19           100      2      1   unless $_[1] eq 'IncSub.pm'
+21    ***     50      0      1   unless open $fh, 'tests/IncSub.pm'
 
 
 Covered Subroutines
@@ -71,7 +74,9 @@ Covered Subroutines
 Subroutine Count Location        
 ---------- ----- ----------------
 BEGIN          1 tests/inc_sub:13
-BEGIN          1 tests/inc_sub:28
-BEGIN          1 tests/inc_sub:30
+BEGIN          1 tests/inc_sub:25
+BEGIN          1 tests/inc_sub:27
+BEGIN          1 tests/inc_sub:29
+BEGIN          1 tests/inc_sub:29
 
 

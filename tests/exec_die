@@ -12,12 +12,9 @@
 
 die unless defined ($pid = fork);
 
-if ($pid)
-{
+if ($pid) {
     wait;
-}
-else
-{
+} else {
     local *Devel::Cover::_report = sub { die "Badness happened!" };
     exec "echo We want to be able to see this.";
 }

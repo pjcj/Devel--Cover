@@ -12,24 +12,16 @@ use warnings;
 
 my @x;
 
-for my $y (0, 0)
-{
-    for my $z (1, 0)
-    {
-        if ($y && $z)
-        {
+for my $y (0, 0) {
+    for my $z (1, 0) {
+        if ($y && $z) {
             $x[1]++;
-        }
-        else
-        {
+        } else {
             $x[2]++;
         }
-        if ($y || $z)
-        {
+        if ($y || $z) {
             $x[3]++;
-        }
-        else
-        {
+        } else {
             $x[4]++;
         }
 
@@ -48,20 +40,13 @@ for my $y (0, 0)
         $y ? $x[9]++  : $x[10]++;
         $z ? $x[11]++ : $x[12]++;
 
-        if ($y)
-        {
+        if ($y) {
             $x[13]++;
-        }
-        elsif ($y && $z)
-        {
+        } elsif ($y && $z) {
             $x[14]++;
-        }
-        elsif ($y || $z)
-        {
+        } elsif ($y || $z) {
             $x[15]++;
-        }
-        else
-        {
+        } else {
             $x[16]++;
         }
 
@@ -70,122 +55,104 @@ for my $y (0, 0)
 }
 
 
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     $y || next;
     $x[18]++;
 }
 
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     $y || next;
     $x[19]++;
 }
 
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     $y && next;
     $x[20]++;
 }
 
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     $y && next;
     $x[21]++;
 }
 
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     no warnings "void";
     my $w = $y xor next;
     $x[22]++;
 }
 
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     no warnings "void";
     my $w = $y xor next;
     $x[23]++;
 }
 
 
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     $y || last;
     $x[24]++;
 }
 
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     $y || last;
     $x[25]++;
 }
 
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     $y && last;
     $x[26]++;
 }
 
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     $y && last;
     $x[27]++;
 }
 
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     no warnings "void";
     my $w = $y xor last;
     $x[28]++;
 }
 
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     no warnings "void";
     my $w = $y xor last;
     $x[29]++;
 }
 
 
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     $y || goto G1;
     $x[30]++;
 }
 G1:
 
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     $y || goto G2;
     $x[31]++;
 }
 G2:
 
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     $y && goto G3;
     $x[32]++;
 }
 G3:
 
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     $y && goto G4;
     $x[33]++;
 }
 G4:
 
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     no warnings "void";
     my $w = $y xor goto G5;
     $x[34]++;
 }
 G5:
 
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     no warnings "void";
     my $w = $y xor goto G6;
     $x[35]++;
@@ -196,8 +163,7 @@ G6:
 my $z;
 
 $z = -1;
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     $z++;
     last if $z > 1;
     $z || redo;
@@ -205,8 +171,7 @@ for my $y (0, 1)
 }
 
 $z = -1;
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     $z++;
     last if $z > 1;
     !$z || redo;
@@ -214,8 +179,7 @@ for my $y (1, 0)
 }
 
 $z = -1;
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     $z++;
     last if $z > 1;
     $z && redo;
@@ -223,8 +187,7 @@ for my $y (0, 1)
 }
 
 $z = -1;
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     $z++;
     last if $z > 1;
     !$z && redo;
@@ -233,8 +196,7 @@ for my $y (1, 0)
 
 
 $z = -1;
-for my $y (0, 1)
-{
+for my $y (0, 1) {
     $z++;
     last if $z > 1;
     no warnings "void";
@@ -243,8 +205,7 @@ for my $y (0, 1)
 }
 
 $z = -1;
-for my $y (1, 0)
-{
+for my $y (1, 0) {
     $z++;
     last if $z > 1;
     no warnings "void";
@@ -253,100 +214,81 @@ for my $y (1, 0)
 }
 
 
-my @s =
-(
-    sub
-    {
+my @s = (
+    sub {
         shift || return;
         $x[42]++;
     },
 
-    sub
-    {
+    sub {
         shift && return;
         $x[43]++;
     },
 
-    sub
-    {
+    sub {
         no warnings "void";
         shift xor return;
         $x[44]++;
     },
 
-    sub
-    {
+    sub {
         my $x = shift || return;
         $x[45]++;
     },
 
-    sub
-    {
+    sub {
         my $x = shift && return;
         $x[46]++;
     },
 
-    sub
-    {
+    sub {
         my $x = shift;
-        for my $y (1 .. 2)
-        {
+        for my $y (1 .. 2) {
             my $z = $x || last;
             $x[47]++;
         }
     },
 
-    sub
-    {
+    sub {
         my $x = shift;
-        for my $y (1 .. 2)
-        {
+        for my $y (1 .. 2) {
             my $z = $x || next;
             $x[48]++;
         }
     },
 
-    sub
-    {
+    sub {
         my $x = shift;
-        for my $y (1 .. 2)
-        {
+        for my $y (1 .. 2) {
             my $z = $x++ || redo;
             $x[49]++;
         }
     },
 
-    sub
-    {
+    sub {
         my $x = shift;
-        for my $y (1 .. 2)
-        {
+        for my $y (1 .. 2) {
             my $z = $x || goto GR;
             $x[50]++;
         }
 GR:
     },
 
-    sub
-    {
+    sub {
         my $x = shift;
-        for my $y (1 .. 2)
-        {
+        for my $y (1 .. 2) {
             eval { my $z = $x || die };
             $x[51]++;
         }
     },
 );
 
-for my $s (@s)
-{
-    for my $y (0, 1)
-    {
+for my $s (@s) {
+    for my $y (0, 1) {
         $s->($y)
     }
 
-    for my $y (1, 0)
-    {
+    for my $y (1, 0) {
         $s->($y)
     }
 }
@@ -354,23 +296,15 @@ for my $s (@s)
 
 my ($a, $b) = (0, 1);
 
-if ($a && $b)
-{
+if ($a && $b) {
     print "path 1\n";
-}
-elsif (!$a && !$b)
-{
+} elsif (!$a && !$b) {
     print "path 2\n";
-}
-elsif ($b || 0)
-{
+} elsif ($b || 0) {
     print "path 3\n";
-    if (!$b || $a)
-    {
+    if (!$b || $a) {
         print "path 4\n";
-    }
-    elsif (!$a && $b)
-    {
+    } elsif (!$a && $b) {
         print "path 5\n";
     }
 }

@@ -18,14 +18,10 @@ use Module1;
 
 my @x;
 
-for (0 .. 10)
-{
-    if (Module1::zz($_))
-    {
+for (0 .. 10) {
+    if (Module1::zz($_)) {
         $x[0]++;
-    }
-    else
-    {
+    } else {
         $x[1]++;
     }
 }

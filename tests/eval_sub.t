@@ -12,14 +12,12 @@ use warnings;
 
 use Devel::Cover::Test;
 
-if ($] == 5.008007)
-{
+if ($] == 5.008007) {
     eval "use Test::More skip_all => 'Crashes 5.8.7'";
     exit;
 }
 
-my $run_test = sub
-{
+my $run_test = sub {
     my $test = shift;
 
     $test->{test_file_parameters} = "5";
@@ -39,8 +37,7 @@ my $run_test = sub
 
 my $runs = 4;
 
-my $test = Devel::Cover::Test->new
-(
+my $test = Devel::Cover::Test->new(
     "eval3",
     db_name     => "complex_eval_sub",
     golden_test => "eval_sub.t",

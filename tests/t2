@@ -12,30 +12,24 @@ use warnings;
 
 my @x;
 
-sub xx
-{
+sub xx {
   $x[shift]++;
 }
 
-for (0 .. 10)
-{
+for (0 .. 10) {
   time &&
     $x[1]++;
 
   $x[2]++
     if time;
 
-  for (0 .. 2)
-  {
+  for (0 .. 2) {
       $x[3]++;
   }
 
-  if (time)
-  {
+  if (time) {
     xx(4);
-  }
-  else
-  {
+  } else {
     $x[5]++;
   }
 }

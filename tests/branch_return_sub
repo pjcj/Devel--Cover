@@ -10,8 +10,7 @@
 use strict;
 use warnings;
 
-sub my_sqrt
-{
+sub my_sqrt {
     my $n = shift;
 
     if ( !defined($n) || ($n < 0) ) {

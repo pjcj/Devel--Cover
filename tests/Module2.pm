@@ -10,26 +10,22 @@ package NotModule2;
 my $y = 7;
 $y++;
 
-sub _aa
-{
+sub _aa {
     $y++;
     die;
     die;
 }
 
-sub _xx
-{
+sub _xx {
     $y++;
     die;
 }
 
-sub yy
-{
+sub yy {
     $y++;
 }
 
-sub zz
-{
+sub zz {
     my $x = shift;
     $x++;
 }

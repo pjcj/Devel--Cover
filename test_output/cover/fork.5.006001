@@ -40,17 +40,14 @@ line  err   stmt   bran   cond    sub   code
 14                                      
 15    ***      2     50                 die unless defined ($pid = fork);
 16                                      
-17             2    100                 if ($pid)
-18                                      {
-19             1                            $x = 2;
-20             1                            waitpid $pid, 0;
-21                                      }
-22                                      else
-23                                      {
-24             1                            $x = 3;
-25                                      }
-26                                      
-27             2                        print "$x: $$\n";
+17             2    100                 if ($pid) {
+18             1                            $x = 2;
+19             1                            waitpid $pid, 0;
+20                                      } else {
+21             1                            $x = 3;
+22                                      }
+23                                      
+24             2                        print "$x: $$\n";
 
 
 Branches

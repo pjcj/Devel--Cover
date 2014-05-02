@@ -14,26 +14,21 @@ use warnings;
 
 use DC::Test::Dist::M1;
 
-sub new
-{
+sub new {
     bless {}, shift
 }
 
-sub d1
-{
+sub d1 {
     my $self = shift;
-    if (@_)
-    {
+    if (@_) {
         $self->{d1} = shift;
     }
     $self->{d1}
 }
 
-sub d2
-{
+sub d2 {
     my $self = shift;
-    if (@_)
-    {
+    if (@_) {
         $self->{d2} = shift;
     }
     $self->{d2}

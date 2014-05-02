@@ -7,17 +7,14 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# __COVER__ changes s/(2[12]             )\d/$1X/
-# __COVER__ changes s/(22           100      )\d/$1X/
+# __COVER__ skip_test $] < 5.010
+# __COVER__ skip_reason %+ not available before 5.10
 
 use lib ();
 
-BEGIN
-{
-    lib->import
-    (
-        sub
-        {
+BEGIN {
+    lib->import(
+        sub {
             print map("[$_]", @_), "\n";
             return unless $_[1] eq "IncSub.pm";
             my $fh;
@@ -28,5 +25,7 @@ BEGIN
 }
 
 use IncSub;
+
+BEGIN { "x" =~ /((?<x>x))/; print "$+{x}\n" }  # force Tie::Hash::NamedCapture
 
 IncSub::check

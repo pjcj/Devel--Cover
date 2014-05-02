@@ -13,8 +13,7 @@ sub new { bless {}, shift }
 
 my $x;
 
-sub DESTROY
-{
+sub DESTROY {
     $x++;
     $x++;
 }

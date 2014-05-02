@@ -12,23 +12,19 @@ use warnings;
 
 my $x;
 
-BEGIN
-{
+BEGIN {
     $x++
 }
 
-CHECK
-{
+CHECK {
     $x++
 }
 
-INIT
-{
+INIT {
     $x++
 }
 
-END
-{
+END {
     $x++
 }
 

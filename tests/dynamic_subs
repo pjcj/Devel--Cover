@@ -10,11 +10,9 @@
 sub unused { 0 }
 sub empty  {   }
 
-sub gen
-{
+sub gen {
     my $x = shift;
-    sub
-    {
+    sub {
         my $y = shift;
         return $x + $y if $y;
     }
@@ -29,11 +27,9 @@ my $t = gen(5)->(6);
 
 print "$p, $q, $r, $s, $t\n";
 
-for my $func (qw(f1 f2 f3))
-{
+for my $func (qw(f1 f2 f3)) {
     no strict "refs";
-    *$func = sub
-    {
+    *$func = sub {
         print "$func\n";
     }
 }
@@ -41,22 +37,16 @@ for my $func (qw(f1 f2 f3))
 f1();
 f2();
 
-sub AUTOLOAD
-{
+sub AUTOLOAD {
     my $func = $AUTOLOAD;
     $func =~ s/^.*:://;
     no strict "refs";
-    if ($func eq "add")
-    {
-        *$func = sub
-        {
+    if ($func eq "add") {
+        *$func = sub {
             print "Add!\n";
         };
-    }
-    else
-    {
-        *$func = sub
-        {
+    } else {
+        *$func = sub {
             print "$func\n";
         };
     }

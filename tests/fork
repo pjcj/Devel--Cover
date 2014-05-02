@@ -14,13 +14,10 @@ $x = 1;
 
 die unless defined ($pid = fork);
 
-if ($pid)
-{
+if ($pid) {
     $x = 2;
     waitpid $pid, 0;
-}
-else
-{
+} else {
     $x = 3;
 }
 

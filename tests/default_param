@@ -10,8 +10,7 @@
 use strict;
 use warnings;
 
-sub p
-{
+sub p {
     my $x = shift || 11;
     my $y = shift || [];
     my $z = shift || {};

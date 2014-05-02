@@ -10,26 +10,22 @@ package Module1;
 my $y = 7;
 $y++;
 
-sub _aa
-{
+sub _aa {
     $y++;
     die;
     die;
 }
 
-sub xx
-{
+sub xx {
     $y++;
     die;
 }
 
-sub yy
-{
+sub yy {
     $y++;
 }
 
-sub zz
-{
+sub zz {
     my $x = shift;
     $x++;
 }

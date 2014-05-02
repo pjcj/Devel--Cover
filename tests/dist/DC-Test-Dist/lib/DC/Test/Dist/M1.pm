@@ -12,26 +12,21 @@ use warnings;
 
 # VERSION
 
-sub new
-{
+sub new {
     bless {}, shift
 }
 
-sub m1
-{
+sub m1 {
     my $self = shift;
-    if (@_)
-    {
+    if (@_) {
         $self->{m1} = shift;
     }
     $self->{m1}
 }
 
-sub m2
-{
+sub m2 {
     my $self = shift;
-    if (@_)
-    {
+    if (@_) {
         $self->{m2} = shift;
     }
     $self->{m2}

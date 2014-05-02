@@ -14,33 +14,26 @@ my ($x, $p, $q, $r, $s);
 
 $x = 0;
 
-if ($x)
-{
+if ($x) {
     $p++
 }
 
-unless ($x)
-{
+unless ($x) {
     $q++
 }
 
 $x = 1;
 
-if ($x)
-{
+if ($x) {
     $r++
 }
 
-if ($x)
-{
+if ($x) {
     $r++
-}
-else
-{
+} else {
     $s++
 }
 
-unless ($x)
-{
+unless ($x) {
     $s++
 }

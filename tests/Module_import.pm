@@ -7,8 +7,7 @@
 
 package Module_import;
 
-sub import
-{
+sub import {
     print "Module_import\n";
 }
 

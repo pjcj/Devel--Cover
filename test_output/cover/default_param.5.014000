@@ -34,14 +34,13 @@ line  err   stmt   bran   cond    sub   code
                1                        
                1                        
 12                                      
-13                                      sub p
-14                                      {
-15             2           100      2       my $x = shift || 11;
-16             2           100              my $y = shift || [];
-17             2           100              my $z = shift || {};
-18                                      }
-19                                      
-20             1                        p $_, $_, $_ for 0, 1;
+13                                      sub p {
+14             2           100      2       my $x = shift || 11;
+15             2           100              my $y = shift || [];
+16             2           100              my $z = shift || {};
+17                                      }
+18                                      
+19             1                        p $_, $_, $_ for 0, 1;
 
 
 Conditions
@@ -51,9 +50,9 @@ or 2 conditions
 
 line  err      %      l     !l   expr
 ----- --- ------ ------ ------   ----
-15           100      1      1   shift() || 11
-16           100      1      1   shift() || []
-17           100      1      1   shift() || {}
+14           100      1      1   shift() || 11
+15           100      1      1   shift() || []
+16           100      1      1   shift() || {}
 
 
 Covered Subroutines
@@ -63,6 +62,6 @@ Subroutine Count Location
 ---------- ----- ----------------------
 BEGIN          1 tests/default_param:10
 BEGIN          1 tests/default_param:11
-p              2 tests/default_param:15
+p              2 tests/default_param:14
 
 

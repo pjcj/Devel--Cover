@@ -36,27 +36,23 @@ line  err   stmt   bran   cond    sub   code
 12                                      
 13             1                        my $x;
 14                                      
-15                                      BEGIN
-16                                      {
-17             1                    1       $x++
-18                                      }
-19                                      
-20                                      CHECK
-21                                      {
-22             1                    1       $x++
-23                                      }
-24                                      
-25                                      INIT
-26                                      {
-27                                          $x++
-28                                      }
-29                                      
-30                                      END
-31                                      {
-32                                          $x++
-33                                      }
-34                                      
-35             1                        $x++;
+15                                      BEGIN {
+16             1                    1       $x++
+17                                      }
+18                                      
+19                                      CHECK {
+20             1                    1       $x++
+21                                      }
+22                                      
+23                                      INIT {
+24                                          $x++
+25                                      }
+26                                      
+27                                      END {
+28                                          $x++
+29                                      }
+30                                      
+31             1                        $x++;
 
 
 Covered Subroutines
@@ -66,7 +62,7 @@ Subroutine Count Location
 ---------- ----- -----------------------
 BEGIN          1 tests/special_blocks:10
 BEGIN          1 tests/special_blocks:11
-BEGIN          1 tests/special_blocks:17
-CHECK          1 tests/special_blocks:22
+BEGIN          1 tests/special_blocks:16
+CHECK          1 tests/special_blocks:20
 
 

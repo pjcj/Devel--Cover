@@ -36,22 +36,17 @@ line  err   stmt   bran   cond    sub   code
 16                                      
 17                                      my @x;
 18                                      
-19                                      sub xx
-20                                      {
-21            11                   11     $x[shift]++;
-22                                      }
-23                                      
-24                                      for (0 .. 10)
-25                                      {
-26                                        if (time)
-27                                        {
-28                                          xx(0);
-29                                        }
-30                                        else
-31                                        {
-32                                          $x[1]++;
-33                                        }
-34                                      }
+19                                      sub xx {
+20            11                   11     $x[shift]++;
+21                                      }
+22                                      
+23                                      for (0 .. 10) {
+24                                        if (time) {
+25                                          xx(0);
+26                                        } else {
+27                                          $x[1]++;
+28                                        }
+29                                      }
 
 
 Covered Subroutines
@@ -59,6 +54,6 @@ Covered Subroutines
 
 Subroutine Count Location          
 ---------- ----- ------------------
-xx            11 tests/subs_only:21
+xx            11 tests/subs_only:20
 
 

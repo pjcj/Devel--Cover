@@ -33,15 +33,14 @@ line  err   stmt   bran   cond    sub   code
 13                                      
 14             1                        my $x;
 15                                      
-16                                      sub DESTROY
-17                                      {
-18             1                    1       $x++;
-19             1                            $x++;
-20                                      }
-21                                      
-22                                      package main;
-23                                      
-24             1                        my $d = Destroy->new;
+16                                      sub DESTROY {
+17             1                    1       $x++;
+18             1                            $x++;
+19                                      }
+20                                      
+21                                      package main;
+22                                      
+23             1                        my $d = Destroy->new;
 
 
 Covered Subroutines
@@ -49,7 +48,7 @@ Covered Subroutines
 
 Subroutine Count Location        
 ---------- ----- ----------------
-DESTROY        1 tests/destroy:18
+DESTROY        1 tests/destroy:17
 new            1 tests/destroy:12
 
 

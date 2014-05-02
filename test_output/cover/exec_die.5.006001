@@ -32,16 +32,13 @@ line  err   stmt   bran   cond    sub   code
 12                                      
 13    ***      1     50                 die unless defined ($pid = fork);
 14                                      
-15    ***      1     50                 if ($pid)
-16                                      {
-17             1                            wait;
-18                                      }
-19                                      else
-20                                      {
-21    ***      0                    0       local *Devel::Cover::_report = sub { die "Badness happened!" };
+15    ***      1     50                 if ($pid) {
+16             1                            wait;
+17                                      } else {
+18    ***      0                    0       local *Devel::Cover::_report = sub { die "Badness happened!" };
       ***      0                        
-22    ***      0                            exec "echo We want to be able to see this.";
-23                                      }
+19    ***      0                            exec "echo We want to be able to see this.";
+20                                      }
 
 
 Branches
@@ -58,6 +55,6 @@ Uncovered Subroutines
 
 Subroutine Count Location         
 ---------- ----- -----------------
-__ANON__       0 tests/exec_die:21
+__ANON__       0 tests/exec_die:18
 
 

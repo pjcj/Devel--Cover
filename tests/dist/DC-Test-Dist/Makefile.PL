@@ -19,8 +19,7 @@ our $LVERSION = do { eval '$VERSION' || "0.001" };  # for development purposes
 
 $ExtUtils::MakeMaker::Verbose = 0;
 
-WriteMakefile
-(
+WriteMakefile(
     NAME             => "DC::Test::Dist",
     VERSION          => $LVERSION,
     AUTHOR           => 'Paul Johnson <paul@pjcj.net>',
