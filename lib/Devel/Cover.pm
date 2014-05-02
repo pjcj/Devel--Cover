@@ -1645,6 +1645,9 @@ If you redefine a subroutine you may find that the original subroutine is not
 reported on.  This is because I haven't yet found a way to locate the original
 CV.  Hints, tips or patches to resolve this will be gladly accepted.
 
+The module Test::TestCoverage uses this technique and so should not be used in
+conjunction with Devel::Cover.
+
 =head1 BUGS
 
 Almost certainly.
