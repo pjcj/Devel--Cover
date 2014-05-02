@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fix test failures on OpenBSD, NetBSD and Windows.
 
 Release 1.13 - 28 April 2014
  - Test against 5.19.11.
