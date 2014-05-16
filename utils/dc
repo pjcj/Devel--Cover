@@ -1,4 +1,4 @@
-#!/usr/bin/zsh
+#!/bin/sh
 
 # set -x
 
@@ -16,8 +16,10 @@ case "$1" in
         from="${2:-`date +'%Y' --date='last year'`}"
         to="${3:-`date +'%Y'`}"
         echo Updating copyright from $from to $to
-        perl -pi -e "s/Copyright \d+-\K$from(, Paul Johnson)/$to\$1/i" **/*(.)
-        perl -pi -e "s/Copyright $from\K(, Paul Johnson)/-$to\$1/i" **/*(.)
+        perl -pi -e "s/Copyright \d+-\K$from(, Paul Johnson)/$to\$1/i" \
+             `git ls-files`
+        perl -pi -e "s/Copyright $from\K(, Paul Johnson)/-$to\$1/i" \
+             `git ls-files`
         ;;
     "sereal_each_bug")
         perl="${2:-perl}"
