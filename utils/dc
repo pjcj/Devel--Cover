@@ -2,7 +2,7 @@
 
 # set -x
 
-export JOBS=16
+export JOBS=4
 export AUTOMATED_TESTING=1
 export NONINTERACTIVE_TESTING=1
 
@@ -103,6 +103,27 @@ case "$1" in
         $0 cpancover-install-main
         $0 cpancover-install-latest
         $0 cpancover-move
+        ;;
+    "cpancover-module")
+        module="$2"
+        $0 cpancover "$module"
+        $0 cpancover-compress
+        ;;
+    "cpancover-docker-module")
+        module="$2"
+        # name="$module-"`date --iso-8601=ns`
+        # name="$module-$$"
+        name="$$"
+        container=$(docker.io run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro -w=/dc \
+            --rm=false --name="$name" pjcj/cpancover dc cpancover-module $module)
+        # https://github.com/dotcloud/docker/issues/3986
+        docker.io wait "$name"
+        docker.io logs "$name"
+        sudo docker.io cp "$name:/staging" "$name"
+        sudo chmod -R 755 "$name"
+        sudo find "$name" -type f -exec chmod 644 {} \;
+        sudo chown -R pjcj:pjcj "$name"
+        docker.io rm "$name"
         ;;
     "options")
         perl -nE 'say $1 if /^    "([\w-]+)"\)$/ && $1 !~ /^_/' < $0
