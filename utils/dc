@@ -119,9 +119,11 @@ case "$1" in
         docker.io wait "$name"
         docker.io logs "$name"
         sudo docker.io cp "$name:/staging" "$name"
-        sudo chmod -R 755 "$name"
-        sudo find "$name" -type f -exec chmod 644 {} \;
-        sudo chown -R pjcj:pjcj "$name"
+        if [ -d "$name" ]; then
+            sudo chmod -R 755 "$name"
+            sudo find "$name" -type f -exec chmod 644 {} \;
+            sudo chown -R pjcj:pjcj "$name"
+        fi
         docker.io rm "$name"
         ;;
     "options")
