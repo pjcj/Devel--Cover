@@ -536,7 +536,7 @@ less memory intensive.  See the documentation for L<Devel::Cover> for more
 information.
 
 If you want all *except* some criteria, then you can say something like
-'-coverage,default,-pod'.
+'-coverage default,-pod'.
 
 The -test option will delete the databases and run your tests to generate
 new coverage data before reporting on it.  L<Devel::Cover> knows how to work
