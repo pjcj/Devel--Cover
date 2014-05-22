@@ -85,7 +85,6 @@ sub get_options {
     $Options->{report} ||= "html" unless exists $Options->{write};
 
     # handle comma seperated ops, like -coverage branch,statement
-    @{$Options->{coverage}} = split(/,/, join(",", @{$Options->{coverage}}));
 
     # also accept them in the same format they're output
     my %coverage_abbrev = (
@@ -94,6 +93,19 @@ sub get_options {
         cond => 'condition',
         sub  => 'subroutine',
     );
+
+    my %coverage_allowed = map {$_ => 1} values %coverage_abbrev, "time", "pod";
+
+    # expanding 'default' to all available
+    @{$Options->{coverage}} = map { 
+        $_ eq 'default' ? (keys %coverage_allowed) : $_
+    } split(/,/, join(",", @{$Options->{coverage}}));
+
+    # delete exclusions from that list
+    foreach my $exclusion (grep { /^-/ } @{$Options->{coverage}}) {
+        $exclusion = substr($exclusion, 1); # chop off leading -
+        @{$Options->{coverage}} = grep { $_ ne $exclusion } @{$Options->{coverage}}
+    }
 
     my %options_coverage = map {$_ => 1} @{$Options->{coverage}};
     while (my ($abbr, $full) = each %coverage_abbrev) {
@@ -104,7 +116,6 @@ sub get_options {
     @{$Options->{coverage}} = keys %options_coverage;
 
     # generating data may take time, so bail now if options are wrong
-    my %coverage_allowed = map {$_ => 1} values %coverage_abbrev, "time", "pod";
     for my $cov (@{$Options->{coverage}}) {
         die "Unrecognised -coverage: $cov" unless $coverage_allowed{$cov};
     }
@@ -516,12 +527,16 @@ on specific files.  -select and -ignore are interpreted as shell globs;
 
 Specify -coverage options to report on specific criteria.  By default all
 available information on all criteria in all files will be reported.
-Available coverage options are statement, branch, condition, subroutine, and
-pod.  However, if you know you only want coverage information for certain
-criteria it is better to only collect data for those criteria in the first
-place by specifying them at that point.  This will make the data collection
-and reporting processes faster and less memory intensive.  See the
-documentation for L<Devel::Cover> for more information.
+Available coverage options are statement, branch, condition, subroutine, pod,
+and defaulti (which equates to all available options).  However, if you know
+you only want coverage information for certain criteria it is better to only
+collect data for those criteria in the first place by specifying them at that
+point.  This will make the data collection and reporting processes faster and
+less memory intensive.  See the documentation for L<Devel::Cover> for more
+information.
+
+If you want all *except* some criteria, then you can say something like
+'-coverage default,-pod'.
 
 The -test option will delete the databases and run your tests to generate
 new coverage data before reporting on it.  L<Devel::Cover> knows how to work
