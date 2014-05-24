@@ -122,7 +122,7 @@ case "$1" in
     "cpancover-docker-module")
         module="$2"
         name="$3"
-        echo $name
+        # echo $name
         container=$(docker.io run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
                     -w=/dc --rm=false --name="$name" \
                     pjcj/cpancover dc cpancover-build-module $module)
