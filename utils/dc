@@ -92,6 +92,11 @@ case "$1" in
             $0 cpancover-file $file
         done
         ;;
+    "cpancover-latest")
+        $0 cpancover -latest
+        # $0 cpancover-compress
+        # $0 cpancover-generate-index
+        ;;
     "cpancover-install-latest")
         $0 cpancover -latest
         # $0 cpancover-compress
@@ -109,12 +114,18 @@ case "$1" in
         $0 cpancover "$module"
         $0 cpancover-compress
         ;;
+    "cpancover-build-module")
+        module="$2"
+        $0 cpancover -local_build "$module"
+        $0 cpancover-compress
+        ;;
     "cpancover-docker-module")
         module="$2"
-        name=$( echo -n "$module-"$( date --iso-8601=ns ) | tr -c 'a-zA-Z0-9_.' - )
+        name="$3"
         echo $name
-        container=$(docker.io run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro -w=/dc \
-            --rm=false --name="$name" pjcj/cpancover dc cpancover-module $module)
+        container=$(docker.io run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
+                    -w=/dc --rm=false --name="$name" \
+                    pjcj/cpancover dc cpancover-build-module $module)
         # https://github.com/dotcloud/docker/issues/3986
         docker.io wait "$name"
         docker.io logs "$name"

@@ -30,6 +30,7 @@ my $Options = {
     empty_cpanm_dir => 0,
     force           => 0,
     latest          => 0,
+    local_build     => 0,
     module          => [],
     output_file     => "index.html",
     report          => "html_basic",
@@ -49,6 +50,7 @@ sub get_options {
         help|h!
         info|i!
         latest!
+        local_build!
         module_file=s
         module=s
         output_file=s
@@ -88,8 +90,15 @@ sub main {
 
     if ($Options->{latest}) {
         my $cp = newcp;
-        say for @{$cp->cpan_dir};
+        # say for @{$cp->cpan_dir};
         $cp->get_latest;
+        return;
+    }
+
+    if ($Options->{local_build}) {
+        my $cp = newcp;
+        $cp->set_modules(@ARGV);
+        $cp->local_build;
         return;
     }
 

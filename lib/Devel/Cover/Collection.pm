@@ -355,7 +355,7 @@ sub generate_html {
     say "Wrote collection output to $f";
 }
 
-sub cover_modules {
+sub local_build {
     my $self = shift;
 
     $self->do_empty_cpan_dir  if $self->empty_cpan_dir;
@@ -365,6 +365,36 @@ sub cover_modules {
     $self->add_build_dirs;
     $self->run_all;
     $self->generate_html;
+}
+
+sub cover_modules {
+    my $self = shift;
+
+    $self->process_module_file;
+
+    my @command = qw( utils/dc cpancover-docker-module );
+    $self->_set_local_timeout(300);
+    my %m;
+    for my $module (sort grep !$m{$_}++, @{$self->modules}) {
+        my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
+        # say "Setting alarm for $timeout seconds";
+        my $name = ("$module-" . localtime . "-$$") =~ tr/a-zA-Z0-9_./-/cr;
+        say "Building $module in docker container $name";
+        eval {
+            local $SIG{ALRM} = sub { die "alarm\n" };
+            alarm $timeout;
+            system @command, $module, $name;
+            alarm 0;
+            say "Built $module in docker container $name";
+        };
+        if ($@) {
+            die "propogate: $@" unless $@ eq "alarm\n";  # unexpected errors
+            warn "Timed out after $timeout seconds!\n";
+            sys "docker.io kill $name";
+            warn "killed docker container $name";
+        }
+    }
+    $self->_set_local_timeout(0);
 }
 
 sub get_latest {
