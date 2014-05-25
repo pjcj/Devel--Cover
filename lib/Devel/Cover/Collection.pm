@@ -375,26 +375,31 @@ sub cover_modules {
 
     my @command = qw( utils/dc cpancover-docker-module );
     $self->_set_local_timeout(300);
-    my %m;
-    for my $module (sort grep !$m{$_}++, @{$self->modules}) {
-        my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
-        # say "Setting alarm for $timeout seconds";
-        my $name = sprintf("%s-%18.6f", $module, time) =~ tr/a-zA-Z0-9_./-/cr;
-        say "Building $module in docker container $name";
-        eval {
-            local $SIG{ALRM} = sub { die "alarm\n" };
-            alarm $timeout;
-            system @command, $module, $name;
-            alarm 0;
-            say "Built $module in docker container $name";
-        };
-        if ($@) {
-            die "propogate: $@" unless $@ eq "alarm\n";  # unexpected errors
-            warn "Timed out after $timeout seconds!\n";
-            sys "docker.io kill $name";
-            warn "killed docker container $name";
-        }
-    }
+    my @res = iterate_as_array(
+        { workers => $self->workers },
+        sub {
+            my (undef, $module) = @_;
+            my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
+            # say "Setting alarm for $timeout seconds";
+            my $name = sprintf("%s-%18.6f", $module, time)
+                         =~ tr/a-zA-Z0-9_./-/cr;
+            say "Building $module in docker container $name";
+            eval {
+                local $SIG{ALRM} = sub { die "alarm\n" };
+                alarm $timeout;
+                system @command, $module, $name;
+                alarm 0;
+                say "Built $module in docker container $name";
+            };
+            if ($@) {
+                die "propogate: $@" unless $@ eq "alarm\n";  # unexpected errors
+                warn "Timed out after $timeout seconds!\n";
+                sys "docker.io kill $name";
+                warn "killed docker container $name";
+            }
+        },
+        do { my %m; [sort grep !$m{$_}++, @{$self->modules}] }
+    );
     $self->_set_local_timeout(0);
 }
 
