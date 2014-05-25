@@ -19,6 +19,7 @@ use Devel::Cover::Dumper;
 use Parallel::Iterator "iterate_as_array";
 use POSIX              "setsid";
 use Template;
+use Time::HiRes        "time";
 
 use Class::XSAccessor ();
 use Moo;
@@ -378,7 +379,7 @@ sub cover_modules {
     for my $module (sort grep !$m{$_}++, @{$self->modules}) {
         my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
         # say "Setting alarm for $timeout seconds";
-        my $name = ("$module-" . localtime . "-$$") =~ tr/a-zA-Z0-9_./-/cr;
+        my $name = sprintf("%s-%18.6f", $module, time) =~ tr/a-zA-Z0-9_./-/cr;
         say "Building $module in docker container $name";
         eval {
             local $SIG{ALRM} = sub { die "alarm\n" };
