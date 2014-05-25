@@ -29,6 +29,7 @@ my $Options = {
     empty_cpan_dir  => 0,
     empty_cpanm_dir => 0,
     force           => 0,
+    generate_html   => 0,
     latest          => 0,
     local_build     => 0,
     module          => [],
@@ -47,6 +48,7 @@ sub get_options {
         empty_cpan_dir!
         empty_cpanm_dir!
         force!
+        generate_html!
         help|h!
         info|i!
         latest!
@@ -129,6 +131,12 @@ sub main {
             $cp->cover_modules;
         }
     }
+
+    if ($Options->{generate_html}) {
+        my $cp = newcp;
+        $cp->generate_html;
+    }
+
 }
 
 main
