@@ -27,3 +27,4 @@ tags
 README
 .build/
 callgrind.out.*
+staging/
