@@ -131,11 +131,14 @@ case "$1" in
         # https://github.com/dotcloud/docker/issues/3986
         docker.io wait "$name"
         docker.io logs "$name"
-        sudo docker.io cp "$name:/staging" "$staging/$name"
-        if [ -d "$name" ]; then
-            sudo chmod -R 755 "$name"
-            sudo find "$name" -type f -exec chmod 644 {} \;
-            sudo chown -R pjcj:pjcj "$name"
+        local_staging="$staging/$name"
+        sudo docker.io cp "$name:/staging" "$local_staging"
+        if [ -d "$local_staging" ]; then
+            sudo chmod -R 755 "$local_staging"
+            sudo find "$local_staging" -type f -exec chmod 644 {} \;
+            sudo chown -R pjcj:pjcj "$local_staging"
+            mv "$local_staging"/staging/* "$staging"
+            rm -r "$local_staging"
         fi
         docker.io rm "$name"
         ;;
