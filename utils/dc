@@ -122,7 +122,7 @@ case "$1" in
     "cpancover-docker-module")
         module="$2"
         name="$3"
-        staging="${4:-staging}"
+        staging="${4:-$CPANCOVER_STAGING}"
         mkdir -p $staging
         # echo $name
         container=$(docker.io run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
