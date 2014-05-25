@@ -122,6 +122,8 @@ case "$1" in
     "cpancover-docker-module")
         module="$2"
         name="$3"
+        staging="${4:-staging}"
+        mkdir -p $staging
         # echo $name
         container=$(docker.io run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
                     -w=/dc --rm=false --name="$name" \
@@ -129,7 +131,7 @@ case "$1" in
         # https://github.com/dotcloud/docker/issues/3986
         docker.io wait "$name"
         docker.io logs "$name"
-        sudo docker.io cp "$name:/staging" "$name"
+        sudo docker.io cp "$name:/staging" "$staging/$name"
         if [ -d "$name" ]; then
             sudo chmod -R 755 "$name"
             sudo find "$name" -type f -exec chmod 644 {} \;
