@@ -143,6 +143,10 @@ case "$1" in
         fi
         docker.io rm "$name"
         ;;
+    "cpancover-generate-html")
+        $0 cpancover -generate_html
+        $0 cpancover-compress
+        ;;
     "options")
         perl -nE 'say $1 if /^    "([\w-]+)"\)$/ && $1 !~ /^_/' < $0
         ;;
