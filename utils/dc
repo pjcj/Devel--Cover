@@ -137,6 +137,7 @@ case "$1" in
             sudo chmod -R 755 "$local_staging"
             sudo find "$local_staging" -type f -exec chmod 644 {} \;
             sudo chown -R pjcj:pjcj "$local_staging"
+            find "$local_staging"/staging/* -maxdepth 0 -type f -exec rm {} \;
             mv "$local_staging"/staging/* "$staging"
             rm -r "$local_staging"
         fi
