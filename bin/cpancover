@@ -121,11 +121,9 @@ sub main {
                 chomp;
                 push @modules, split;
             }
-            for my $module (@modules) {
-                my $cp = newcp;
-                $cp->set_modules($module);
-                $cp->cover_modules;
-            }
+            my $cp = newcp;
+            $cp->set_modules(@modules);
+            $cp->cover_modules;
         } else {
             my $cp = newcp;
             $cp->cover_modules;
