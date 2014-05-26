@@ -123,7 +123,8 @@ case "$1" in
         module="$2"
         name="$3"
         staging="${4:-$CPANCOVER_STAGING}"
-        mkdir -p $staging
+        staging_tmp="$staging"_tmp
+        mkdir -p $staging $staging_tmp
         # echo $name
         container=$(docker.io run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
                     -w=/dc --rm=false --name="$name" \
@@ -131,7 +132,7 @@ case "$1" in
         # https://github.com/dotcloud/docker/issues/3986
         docker.io wait "$name"
         docker.io logs "$name"
-        local_staging="$staging/$name"
+        local_staging="$staging_tmp/$name"
         sudo docker.io cp "$name:/staging" "$local_staging"
         if [ -d "$local_staging" ]; then
             sudo chmod -R 755 "$local_staging"
@@ -141,6 +142,7 @@ case "$1" in
             mv "$local_staging"/staging/* "$staging"
             rm -r "$local_staging"
         fi
+        rm -rf $staging_tmp
         docker.io rm "$name"
         ;;
     "cpancover-generate-html")
