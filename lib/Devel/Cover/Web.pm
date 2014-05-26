@@ -79,23 +79,16 @@ th,.h,.hh,.sh,.sv {
     background-color   : #cccccc;
     border             : solid 1px #333333;
     padding            : 0em 0.2em;
-    width              : 2.5em;
     -moz-border-radius : 4px;
 }
 
-.hh {
-    width: 25%;
-}
-
 .sh {
-    width       : 0;
     color       : #CD5555;
     font-weight : bold;
     padding     : 0.2em;
 }
 
 .sv {
-    width       : 0;
     padding     : 0.2em;
 }
 

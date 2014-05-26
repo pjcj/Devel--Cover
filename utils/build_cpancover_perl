@@ -1,0 +1,5 @@
+#!/bin/sh -x
+
+JOBS=16
+perlbrew uninstall cpancover
+perlbrew install perl-5.18.2 --as cpancover -j $JOBS -nf
