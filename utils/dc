@@ -10,6 +10,7 @@ WEBDIR=/usr/share/nginx/www
 CPANCOVER_STAGING=~/staging
 CPANCOVER_LATEST=$WEBDIR/latest
 MODLIST_DIR=tmp/modules
+DOCKER=docker
 
 case "$1" in
     "update-copyright")
@@ -125,15 +126,15 @@ case "$1" in
         staging="${4:-$CPANCOVER_STAGING}"
         mkdir -p $staging
         # echo $name
-        container=$(docker.io run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
+        container=$($DOCKER run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
                     -w=/dc --rm=false --name="$name" \
                     pjcj/cpancover dc cpancover-build-module $module)
         # https://github.com/dotcloud/docker/issues/3986
-        docker.io wait "$name"
+        $DOCKER wait "$name"
         if [ $? = 0 ]; then
-            docker.io logs "$name"
+            $DOCKER logs "$name"
             local_staging="$staging/$name"
-            sudo docker.io cp "$name:/staging" "$local_staging"
+            sudo $DOCKER cp "$name:/staging" "$local_staging"
             if [ -d "$local_staging" ]; then
                 sudo chmod -R 755 "$local_staging"
                 sudo find "$local_staging" -type f -exec chmod 644 {} \;
@@ -148,7 +149,7 @@ case "$1" in
                 rm -r "$local_staging"
             fi
         fi
-        docker.io rm "$name"
+        $DOCKER rm "$name"
         ;;
     "cpancover-generate-html")
         $0 cpancover -generate_html
