@@ -374,7 +374,7 @@ sub cover_modules {
     $self->process_module_file;
 
     my @command = qw( utils/dc cpancover-docker-module );
-    $self->_set_local_timeout(300);
+    $self->_set_local_timeout(0);
     my @res = iterate_as_array(
         { workers => $self->workers },
         sub {
@@ -393,9 +393,9 @@ sub cover_modules {
             };
             if ($@) {
                 die "propogate: $@" unless $@ eq "alarm\n";  # unexpected errors
-                warn "Timed out after $timeout seconds!\n";
-                sys "docker.io kill $name";
-                warn "killed docker container $name";
+                say "Timed out after $timeout seconds!";
+                $self->sys("docker.io", "kill", $name);
+                say "Killed docker container $name";
             }
         },
         do { my %m; [sort grep !$m{$_}++, @{$self->modules}] }
