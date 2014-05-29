@@ -29,7 +29,7 @@ use warnings FATAL => "all";  # be explicit since Moo sets this
 my %A = (
     ro  => [ qw( bin_dir cpancover_dir cpan_dir results_dir force output_file
                  report timeout verbose workers docker                      ) ],
-    rwp => [ qw( build_dirs build_dir local_timeout modules module_file     ) ],
+    rwp => [ qw( build_dirs local_timeout modules module_file               ) ],
     rw  => [ qw(                                                            ) ],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
@@ -161,8 +161,8 @@ sub add_build_dirs {
 
 sub run {
     my $self = shift;
+    my ($build_dir) = @_;
 
-    my $build_dir   = $self->build_dir;
     my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\w{6})$|;
     my $db          = "$build_dir/cover_db";
     my $line        = "=" x 80;
@@ -213,8 +213,7 @@ sub run_all {
         { workers => $self->workers },
         sub {
             my (undef, $dir) = @_;
-            $self->_set_build_dir($dir);
-            eval { $self->run };
+            eval { $self->run($dir) };
             warn "\n\n\n[$dir]: $@\n\n\n" if $@;
         },
         $self->build_dirs
