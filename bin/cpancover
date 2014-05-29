@@ -26,6 +26,7 @@ $|++;
 my $Options = {
     bin_dir         => abs_path($0) =~ s|/cpancover$||r,
     build           => 1,
+    docker          => "docker",
     empty_cpan_dir  => 0,
     empty_cpanm_dir => 0,
     force           => 0,
@@ -45,6 +46,7 @@ sub get_options {
     die "Bad option" unless GetOptions($Options, qw(
         bin_dir=s
         build!
+        docker=s
         empty_cpan_dir!
         empty_cpanm_dir!
         force!
@@ -73,6 +75,7 @@ sub newcp {
     my $self = shift;
     Devel::Cover::Collection->new(
         bin_dir         => $Options->{bin_dir},
+        docker          => $Options->{docker},
         empty_cpan_dir  => $Options->{empty_cpan_dir},
         empty_cpanm_dir => $Options->{empty_cpanm_dir},
         force           => $Options->{force},

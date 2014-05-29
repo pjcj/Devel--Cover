@@ -117,7 +117,7 @@ case "$1" in
         ;;
     "cpancover-build-module")
         module="$2"
-        $0 cpancover -local_build "$module"
+        $0 cpancover -local_build -docker $DOCKER "$module"
         $0 cpancover-compress
         ;;
     "cpancover-docker-module")

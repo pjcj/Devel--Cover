@@ -29,7 +29,7 @@ use warnings FATAL => "all";  # be explicit since Moo sets this
 my %A = (
     ro  => [ qw( bin_dir cpancover_dir cpan_dir empty_cpan_dir
                  cpanm_dir empty_cpanm_dir results_dir force
-                 output_file report timeout verbose workers latest          ) ],
+                 output_file report timeout verbose workers latest docker   ) ],
     rwp => [ qw( build_dirs build_dir local_timeout modules module_file     ) ],
     rw  => [ qw(                                                            ) ],
 );
@@ -43,6 +43,7 @@ sub BUILDARGS {
         cpan_dir        => [grep -d, glob("~/.cpan ~/.local/share/.cpan")],
         empty_cpan_dir  => 0,
         cpanm_dir       => glob("~/.cpanm"),
+        docker          => "docker",
         empty_cpanm_dir => 0,
         force           => 0,
         latest          => 0,
@@ -394,7 +395,7 @@ sub cover_modules {
             if ($@) {
                 die "propogate: $@" unless $@ eq "alarm\n";  # unexpected errors
                 say "Timed out after $timeout seconds!";
-                $self->sys("docker.io", "kill", $name);
+                $self->sys($self->docker, "kill", $name);
                 say "Killed docker container $name";
             }
         },
