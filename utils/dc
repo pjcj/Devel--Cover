@@ -11,6 +11,7 @@ CPANCOVER_STAGING=~/staging
 CPANCOVER_LATEST=$WEBDIR/latest
 MODLIST_DIR=tmp/modules
 DOCKER=docker
+DOCKER_IMAGE=pjcj/devel-cover-git
 
 case "$1" in
     "update-copyright")
@@ -128,7 +129,7 @@ case "$1" in
         # echo $name
         container=$($DOCKER run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
                     -w=/dc --rm=false --name="$name" \
-                    pjcj/cpancover dc cpancover-build-module $module)
+                    $DOCKER_IMAGE dc cpancover-build-module $module)
         # https://github.com/dotcloud/docker/issues/3986
         $DOCKER wait "$name"
         if [ $? = 0 ]; then
