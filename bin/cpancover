@@ -27,7 +27,6 @@ my $Options = {
     bin_dir         => abs_path($0) =~ s|/cpancover$||r,
     build           => 1,
     docker          => "docker",
-    empty_cpan_dir  => 0,
     force           => 0,
     generate_html   => 0,
     latest          => 0,
@@ -46,7 +45,6 @@ sub get_options {
         bin_dir=s
         build!
         docker=s
-        empty_cpan_dir!
         force!
         generate_html!
         help|h!
@@ -74,7 +72,6 @@ sub newcp {
     Devel::Cover::Collection->new(
         bin_dir         => $Options->{bin_dir},
         docker          => $Options->{docker},
-        empty_cpan_dir  => $Options->{empty_cpan_dir},
         force           => $Options->{force},
         modules         => $Options->{module},
         output_file     => $Options->{output_file},
@@ -92,7 +89,6 @@ sub main {
 
     if ($Options->{latest}) {
         my $cp = newcp;
-        # say for @{$cp->cpan_dir};
         $cp->get_latest;
         return;
     }

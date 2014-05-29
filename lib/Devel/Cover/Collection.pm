@@ -27,9 +27,8 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-    ro  => [ qw( bin_dir cpancover_dir cpan_dir empty_cpan_dir results_dir
-                 force output_file report timeout verbose workers latest
-                 docker                                                     ) ],
+    ro  => [ qw( bin_dir cpancover_dir cpan_dir results_dir force output_file
+                 report timeout verbose workers latest docker               ) ],
     rwp => [ qw( build_dirs build_dir local_timeout modules module_file     ) ],
     rw  => [ qw(                                                            ) ],
 );
@@ -41,7 +40,6 @@ sub BUILDARGS {
     {
         build_dirs      => [],
         cpan_dir        => [grep -d, glob("~/.cpan ~/.local/share/.cpan")],
-        empty_cpan_dir  => 0,
         docker          => "docker",
         force           => 0,
         latest          => 0,
@@ -110,13 +108,6 @@ sub _sys {
 
 sub sys  { my $self = shift; $self->_sys(4e4, @_) }
 sub bsys { my $self = shift; $self->_sys(0,   @_) }
-
-sub do_empty_cpan_dir {
-    my $self = shift;
-    # TODO - not portable
-    my $output = $self->sys("rm", "-rf", map "$_/build", @{$self->cpan_dir});
-    say $output;
-}
 
 sub add_modules {
     my $self = shift;
@@ -351,7 +342,6 @@ sub generate_html {
 sub local_build {
     my $self = shift;
 
-    $self->do_empty_cpan_dir  if $self->empty_cpan_dir;
     $self->process_module_file;
     $self->build_modules;
     $self->add_build_dirs;
