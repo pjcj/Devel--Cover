@@ -8,7 +8,7 @@ export NONINTERACTIVE_TESTING=1
 WEBDIR=/usr/share/nginx/www
 CPANCOVER_STAGING=~/staging
 CPANCOVER_LATEST=$WEBDIR/latest
-MODLIST_DIR=tmp/modules
+CPANCOVER_DIR=$CPANCOVER_STAGING
 DOCKER=docker
 DOCKER_IMAGE=pjcj/devel-cover-git
 
@@ -22,18 +22,6 @@ case "$1" in
         perl -pi -e "s/Copyright $from\K(, Paul Johnson)/-$to\$1/i" \
              `git ls-files`
         ;;
-    "sereal_each_bug")
-        perl="${2:-perl}"
-        $perl Makefile.PL
-        make
-        rm -rf cover_db
-        cp tests/trivial tests/change
-        $perl -Mblib -MDevel::Cover tests/change
-        cp tmp/change tests
-        $perl -Mblib -MDevel::Cover tests/change
-        $perl -Mblib bin/cover -report text
-        rm tests/change
-        ;;
     "nice_cpus")
         shift;
         perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e 'print nice_cpus'
@@ -41,85 +29,15 @@ case "$1" in
     "cpancover")
         shift;
         jobs=$($0 nice_cpus)
-        perl -Mblib bin/cpancover -results_dir $CPANCOVER_STAGING \
+        perl -Mblib bin/cpancover -results_dir $CPANCOVER_DIR \
                                   -workers $jobs "$@"
         ;;
-    "cpancover-move")
-        new=$WEBDIR/`date +%F`
-        sudo mv $new $new.$$
-        sudo mv $CPANCOVER_STAGING $new
-        sudo rm $CPANCOVER_LATEST
-        sudo ln -s $new $CPANCOVER_LATEST
-        ;;
-    "cpancover-generate-index")
-        $0 cpancover
-        ;;
     "cpancover-compress")
-        find $CPANCOVER_STAGING -type f -not -name '*.gz' -not -name '*.json' \
-                                -exec gzip -f9 {} \;
-        ;;
-    "cpancover-file")
-        file="$2"
-        $0 cpancover -module_file $file
-        $0 cpancover-compress
-        $0 cpancover-generate-index
-        ;;
-    "cpancover-build-perl")
-        perlbrew uninstall cpancover
-        jobs=$($0 nice_cpus)
-        perlbrew install perl-5.18.2 --as cpancover -j $jobs -nf
-        ;;
-    "cpancover-install-basics")
-        sudo rm -rf ~/.cpan
-        sudo rm -rf ~/.local/share/.cpan
-        sudo rm -rf ~/.cpanm
-        sudo rm -rf $CPANCOVER_STAGING
-        # cpan App::cpanminus
-        cpan -iTf . Sereal Digest::MD5 Template Pod::Coverage::CountParents \
-                  Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
-                  Moo namespace::clean CPAN::Releases::Latest < /dev/null
-        $0 cpancover-generate-index
-        ;;
-    "cpancover-install-main")
-        $0 cpancover App::cpanoutdated
-        cpan-outdated | $0 cpancover
-        $0 cpancover-file utils/cpancover_modules
-        $0 cpancover-compress
-        $0 cpancover-generate-index
-        ;;
-    "cpancover-split-modlist")
-        rm -rf $MODLIST_DIR
-        mkdir -p $MODLIST_DIR
-        cd $MODLIST_DIR
-        perl -E 'eval(`zcat ~/.cpan/sources/modules/03modlist.data.gz` =~ s/.*?package/package/sr); say for sort keys %{CPAN::Modulelist->data}' | split -l 100
-        ;;
-    "cpancover-install-all")
-        $0 cpancover-split-modlist
-        for file in $MODLIST_DIR/*; do
-            $0 cpancover-file $file
-        done
+        find $CPANCOVER_DIR -type f -not -name '*.gz' -not -name '*.json' \
+                            -exec gzip -f9 {} \;
         ;;
     "cpancover-latest")
         $0 cpancover -latest
-        # $0 cpancover-compress
-        # $0 cpancover-generate-index
-        ;;
-    "cpancover-install-latest")
-        $0 cpancover -latest
-        # $0 cpancover-compress
-        # $0 cpancover-generate-index
-        ;;
-    "cpancover-full-run")
-        $0 cpancover-build-perl
-        $0 cpancover-install-basics
-        $0 cpancover-install-main
-        $0 cpancover-install-latest
-        $0 cpancover-move
-        ;;
-    "cpancover-module")
-        module="$2"
-        $0 cpancover "$module"
-        $0 cpancover-compress
         ;;
     "cpancover-build-module")
         module="$2"
@@ -129,7 +47,7 @@ case "$1" in
     "cpancover-docker-module")
         module="$2"
         name="$3"
-        staging="${4:-$CPANCOVER_STAGING}"
+        staging="${4:-$CPANCOVER_DIR}"
         mkdir -p $staging
         # echo $name
         container=$($DOCKER run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
@@ -160,6 +78,18 @@ case "$1" in
     "cpancover-generate-html")
         $0 cpancover -generate_html
         $0 cpancover-compress
+        ;;
+    "sereal_each_bug")
+        perl="${2:-perl}"
+        $perl Makefile.PL
+        make
+        rm -rf cover_db
+        cp tests/trivial tests/change
+        $perl -Mblib -MDevel::Cover tests/change
+        cp tmp/change tests
+        $perl -Mblib -MDevel::Cover tests/change
+        $perl -Mblib bin/cover -report text
+        rm tests/change
         ;;
     "options")
         perl -nE 'say $1 if /^    "([\w-]+)"\)$/ && $1 !~ /^_/' < $0
