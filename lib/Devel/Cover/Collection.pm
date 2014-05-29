@@ -28,7 +28,7 @@ use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
     ro  => [ qw( bin_dir cpancover_dir cpan_dir results_dir force output_file
-                 report timeout verbose workers latest docker               ) ],
+                 report timeout verbose workers docker                      ) ],
     rwp => [ qw( build_dirs build_dir local_timeout modules module_file     ) ],
     rw  => [ qw(                                                            ) ],
 );
@@ -42,7 +42,6 @@ sub BUILDARGS {
         cpan_dir        => [grep -d, glob("~/.cpan ~/.local/share/.cpan")],
         docker          => "docker",
         force           => 0,
-        latest          => 0,
         local_timeout   => 0,
         modules         => [],
         output_file     => "index.html",
