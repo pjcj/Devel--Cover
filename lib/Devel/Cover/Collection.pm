@@ -259,8 +259,12 @@ sub write_json {
         $name    = $mod->{name}     if defined $mod->{name};
         $version = $mod->{version}  if defined $mod->{version};
         if (defined $name && defined $version) {
-            $results->{$name}{$version}{coverage}{total} =
-                { map { $_ => $m->{$_}{pc} } grep !/link|module/, keys %$m };
+            $results->{$name}{$version}{coverage}{total} = {
+                map { $_ => $m->{$_}{pc} }
+                grep $m->{$_}{pc} ne 'n/a',
+                grep !/link|module/,
+                keys %$m
+            };
         } else {
             print "Cannot process $module: ", Dumper $m;
         }
