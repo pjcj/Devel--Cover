@@ -28,7 +28,6 @@ my $Options = {
     build           => 1,
     docker          => "docker",
     empty_cpan_dir  => 0,
-    empty_cpanm_dir => 0,
     force           => 0,
     generate_html   => 0,
     latest          => 0,
@@ -48,7 +47,6 @@ sub get_options {
         build!
         docker=s
         empty_cpan_dir!
-        empty_cpanm_dir!
         force!
         generate_html!
         help|h!
@@ -77,7 +75,6 @@ sub newcp {
         bin_dir         => $Options->{bin_dir},
         docker          => $Options->{docker},
         empty_cpan_dir  => $Options->{empty_cpan_dir},
-        empty_cpanm_dir => $Options->{empty_cpanm_dir},
         force           => $Options->{force},
         modules         => $Options->{module},
         output_file     => $Options->{output_file},

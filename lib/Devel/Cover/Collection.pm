@@ -27,9 +27,9 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-    ro  => [ qw( bin_dir cpancover_dir cpan_dir empty_cpan_dir
-                 cpanm_dir empty_cpanm_dir results_dir force
-                 output_file report timeout verbose workers latest docker   ) ],
+    ro  => [ qw( bin_dir cpancover_dir cpan_dir empty_cpan_dir results_dir
+                 force output_file report timeout verbose workers latest
+                 docker                                                     ) ],
     rwp => [ qw( build_dirs build_dir local_timeout modules module_file     ) ],
     rw  => [ qw(                                                            ) ],
 );
@@ -42,9 +42,7 @@ sub BUILDARGS {
         build_dirs      => [],
         cpan_dir        => [grep -d, glob("~/.cpan ~/.local/share/.cpan")],
         empty_cpan_dir  => 0,
-        cpanm_dir       => glob("~/.cpanm"),
         docker          => "docker",
-        empty_cpanm_dir => 0,
         force           => 0,
         latest          => 0,
         local_timeout   => 0,
@@ -120,13 +118,6 @@ sub do_empty_cpan_dir {
     say $output;
 }
 
-sub do_empty_cpanm_dir {
-    my $self = shift;
-    # TODO - not portable
-    my $output = $self->sys("rm", "-rf", $self->cpanm_dir);
-    say $output;
-}
-
 sub add_modules {
     my $self = shift;
     push @{$self->modules}, @_;
@@ -156,9 +147,6 @@ sub process_module_file {
 
 sub build_modules {
     my $self = shift;
-    # my @command = qw( cpanm --notest );
-    # push @command, "--force"   if $self->force;
-    # push @command, "--verbose" if $self->verbose;
     my @command = qw( cpan -i -T );
     push @command, "-f" if $self->force;
     # my @command = qw( cpan );
@@ -178,8 +166,7 @@ sub add_build_dirs {
     my $self = shift;
     push @{$self->build_dirs},
          grep -d,
-         map(glob("$_/build/*"), @{$self->cpan_dir}),
-         glob $self->cpanm_dir . "/work/*/*";
+         map glob("$_/build/*"), @{$self->cpan_dir};
 }
 
 sub run {
@@ -365,7 +352,6 @@ sub local_build {
     my $self = shift;
 
     $self->do_empty_cpan_dir  if $self->empty_cpan_dir;
-    $self->do_empty_cpanm_dir if $self->empty_cpanm_dir;
     $self->process_module_file;
     $self->build_modules;
     $self->add_build_dirs;
