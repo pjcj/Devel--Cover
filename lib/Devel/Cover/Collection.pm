@@ -362,13 +362,13 @@ sub cover_modules {
             # say "Setting alarm for $timeout seconds";
             my $name = sprintf("%s-%18.6f", $module, time)
                          =~ tr/a-zA-Z0-9_./-/cr;
-            say "Building $module in docker container $name";
+            say "$module -> $name";
             eval {
                 local $SIG{ALRM} = sub { die "alarm\n" };
                 alarm $timeout;
                 system @command, $module, $name;
                 alarm 0;
-                say "Built $module in docker container $name";
+                say "$module done";
             };
             if ($@) {
                 die "propogate: $@" unless $@ eq "alarm\n";  # unexpected errors
