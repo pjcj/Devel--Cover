@@ -2,7 +2,6 @@
 
 # set -x
 
-export JOBS=4
 export AUTOMATED_TESTING=1
 export NONINTERACTIVE_TESTING=1
 
@@ -35,10 +34,15 @@ case "$1" in
         $perl -Mblib bin/cover -report text
         rm tests/change
         ;;
+    "nice_cpus")
+        shift;
+        perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e 'print nice_cpus'
+        ;;
     "cpancover")
         shift;
+        jobs=$($0 nice_cpus)
         perl -Mblib bin/cpancover -results_dir $CPANCOVER_STAGING \
-                                  -workers $JOBS "$@"
+                                  -workers $jobs "$@"
         ;;
     "cpancover-move")
         new=$WEBDIR/`date +%F`
@@ -62,7 +66,8 @@ case "$1" in
         ;;
     "cpancover-build-perl")
         perlbrew uninstall cpancover
-        perlbrew install perl-5.18.2 --as cpancover -j $JOBS -nf
+        jobs=$($0 nice_cpus)
+        perlbrew install perl-5.18.2 --as cpancover -j $jobs -nf
         ;;
     "cpancover-install-basics")
         sudo rm -rf ~/.cpan
