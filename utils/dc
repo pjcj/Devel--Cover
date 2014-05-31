@@ -84,6 +84,8 @@ case "$1" in
     "cpancover-generate-html")
         $0 cpancover -generate_html
         $0 cpancover-compress
+        gzip -9 < $CPANCOVER_DIR/cpancover.json \
+                > $CPANCOVER_DIR/cpancover.json.gz
         ;;
     "sereal_each_bug")
         perl="${2:-perl}"
