@@ -89,6 +89,9 @@ case "$1" in
         echo Compressing $json
         pigz < $json > $tmp && mv $tmp $json.gz
         ;;
+    "cpancover-kill-docker")
+        docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r docker kill
+        ;;
     "sereal_each_bug")
         perl="${2:-perl}"
         $perl Makefile.PL
