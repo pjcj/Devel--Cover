@@ -204,7 +204,7 @@ sub run_test {
     }
 
     my $version = int(($] - 5) * 1000 + 0.5);
-    if ($version % 2 && $version < 18) {
+    if ($version % 2 && $version < 20) {
         Test::plan tests => 1;
         Test::skip("Perl version $] is an obsolete development version", 1);
         return;
