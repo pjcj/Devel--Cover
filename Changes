@@ -1,6 +1,11 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Allow -coverage default,-pod option to cover (David Cantrell) (github 89).
+ - Get cpancover coverage in docker containers.
+ - Add CGI.pm as a prerequisite.
+ - Test against 5.20.0 and 5.21.0.
+ - Add longer delay in tests to try to appease *BSD.
 
 Release 1.14 - 2 May 2014
  - Fix test failures on OpenBSD, NetBSD and Windows.
