@@ -214,8 +214,8 @@ One of PPI::HTML 1.07 or Perl::Tidy 20060719 is required to add syntax
 highlighting to some HTML backends to cover and for cpancover.  Unless you have
 specific requirements this should not be a problem, but you will not be able to
 use syntax highlighting in these reports until you install PPI::HTML or
-Perl::Tidy, available from the CPAN.  In the meantime you may continue to use
-the rest of Devel::Cover.
+Perl::Tidy, available from the CPAN.  However, the rest of Devel::Cover will be
+available as usual.
 EOM
 
 check "PPI::HTML",  $m, "1.07";
