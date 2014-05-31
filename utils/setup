@@ -1,4 +1,8 @@
-tidy () { echo -n $1 | perl -naF: -e 'print join ":", grep !$s{$_}++ && -e, @F' }
+#!/bin/sh
+
+# . ./utils/setup
+
+tidy () { echo -n $1 | perl -naF: -e 'print join ":", grep !$s{$_}++ && -e, @F'; }
 dc_home=$PWD
 export PATH=$(tidy $dc_home/utils:$PATH)
 
