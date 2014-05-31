@@ -45,7 +45,7 @@ my $test = Devel::Cover::Test->new(
     db_name         => "complex_$t",
     run_test        => $run_test,
     end             => sub { unlink $ft },
-    delay_after_run => 0.25,
+    delay_after_run => 0.50,
 );
 
 $test->run_test;
