@@ -1,7 +1,7 @@
 1. Update Changes.
   - Add important changes.
   - Credit the author as appropriate.
-  - Include RT numbers.
+  - Include github and RT numbers.
 
 2. Check it in.
   $ git commit -m "Add Changes." Changes
