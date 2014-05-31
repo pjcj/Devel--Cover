@@ -358,17 +358,23 @@ sub cover_modules {
         { workers => $self->workers },
         sub {
             my (undef, $module) = @_;
+            my $dir = $module =~ s|.*/||r
+                              =~ s/\.(?:zip|tgz|(?:tar\.(?:gz|bz2)))$//r;
+            if (-d $self->results_dir . "/$dir") {
+                say "$module already covered";
+                return;
+            }
             my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
             # say "Setting alarm for $timeout seconds";
             my $name = sprintf("%s-%18.6f", $module, time)
                          =~ tr/a-zA-Z0-9_./-/cr;
-            say "$module -> $name";
+            say "$dir -> $name";
             eval {
                 local $SIG{ALRM} = sub { die "alarm\n" };
                 alarm $timeout;
                 system @command, $module, $name;
                 alarm 0;
-                say "$module done";
+                say "$dir done";
             };
             if ($@) {
                 die "propogate: $@" unless $@ eq "alarm\n";  # unexpected errors
