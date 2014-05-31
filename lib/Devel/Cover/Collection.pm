@@ -163,7 +163,7 @@ sub run {
     my $self = shift;
     my ($build_dir) = @_;
 
-    my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\w{6})$|;
+    my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\w{6})$| or return;
     my $db          = "$build_dir/cover_db";
     my $line        = "=" x 80;
     my $output      = "**** Checking coverage of $module ****\n";
