@@ -12,6 +12,7 @@ I have only run this in Ubuntu 14.04.  The docker version there, 0.9.1 (as of
 versions inbetween.
 
 The latest version of docker can be installed on Ubuntu as follows:
+(see http://askubuntu.com/questions/472412/how-do-i-upgrade-docker)
 
 # wget -qO- https://get.docker.io/gpg | apt-key add -
 # echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list
