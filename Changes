@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.15 - 1 June 2014
  - Allow -coverage default,-pod option to cover (David Cantrell) (github 89).
  - Get cpancover coverage in docker containers.
  - Add CGI.pm as a prerequisite.
