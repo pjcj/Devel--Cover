@@ -266,10 +266,11 @@ specified with HTML report formats. You can download Browser::Open from CPAN.
 EOM
 
 check "CGI", <<EOM;
-CGI is used to run the Html_minimal report.  It used to be a part of the perl
-core, but as of perl 5.20 it will need to be downloaded from CPAN.  If you
-would like to use the Html_minimal report, please install CGI.  Otherwise,
-other reports will be available as usual.
+CGI is used to run the HTML reports.  It used to be a part of the perl core, but
+as of perl 5.20 it will need to be downloaded from CPAN.  If you would like to
+use the HTML report, please install CGI.  Otherwise, other reports will be
+available as usual.  Because HTML reports are expected, GCI has been added to
+the prerequisites.
 EOM
 
 my $latest_tested = "5.018002";
@@ -323,6 +324,7 @@ my $opts = {
     PREREQ_PM        => {
                             Storable      => 0,
                             "Digest::MD5" => 0,
+                            CGI           => 0,
                             $ENV{DEVEL_COVER_NO_TESTS}
                                 ? ()
                                 : ( "Test::More"  => 0, "Test::Warn"  => 0 )
