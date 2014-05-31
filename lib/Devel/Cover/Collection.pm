@@ -46,7 +46,7 @@ sub BUILDARGS {
         modules         => [],
         output_file     => "index.html",
         report          => "html_basic",
-        timeout         => 1800,  # is half an hour enough?
+        timeout         => 1800,  # half an hour
         verbose         => 0,
         workers         => 0,
         %args,
