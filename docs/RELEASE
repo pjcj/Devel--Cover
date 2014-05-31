@@ -23,12 +23,16 @@
 8. Test against all versions.
   $ make all_test
 
-7. Return to base perl version.
+9. Return to base perl version.
   $ perl Makefile.PL && make
 
-10. Make the release.
+10. If there's a new stable release of perl:
+  $ cpan Dist::Zilla
+  $ cpan `dzil authordeps --missing`
+
+11. Make the release.
   $ dzil release
 
-11. Push the changes.
+12. Push the changes.
   - The dzil Git::Push plugin hangs for me
   $ git push && git push --tags
