@@ -154,9 +154,20 @@ sub build_modules {
 
 sub add_build_dirs {
     my $self = shift;
+    # say "add_build_dirs"; say for @{$self->build_dirs};
+    # say && system "ls -al $_" for "/remote_staging",
+                                  # map "$_/build", @{$self->cpan_dir};
+    my $exists = sub {
+        my $dir = "/remote_staging/" . (s|.*/||r =~ s/-\w{6}$/*/r);
+        # say "checking [$dir]";
+        my @files = glob $dir;
+        @files
+    };
     push @{$self->build_dirs},
+         grep { !$exists->() }
          grep -d,
          map glob("$_/build/*"), @{$self->cpan_dir};
+    # say "add_build_dirs"; say for @{$self->build_dirs};
 }
 
 sub run {

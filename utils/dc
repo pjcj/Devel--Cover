@@ -56,8 +56,11 @@ case "$1" in
         staging="${4:-$CPANCOVER_DIR}"
         mkdir -p $staging
         # echo $name
-        container=$($DOCKER run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
-                    -w=/dc --rm=false --name="$name" \
+        container=$($DOCKER run -d                                 \
+                    --volume=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
+                    --volume=$CPANCOVER_STAGING:/remote_staging:ro \
+                    --workdir=/dc --rm=false --name="$name"        \
+                    --memory=1g                                    \
                     $DOCKER_IMAGE dc cpancover-build-module $module)
         # https://github.com/dotcloud/docker/issues/3986
         $DOCKER wait "$name"
