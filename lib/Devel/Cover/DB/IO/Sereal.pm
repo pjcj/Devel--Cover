@@ -47,8 +47,10 @@ sub write {
     my ($data, $file) = @_;
 
     $Encoder ||= Sereal::Encoder->new({});
-    open my $fh, ">", $file or die "Can't open $file: $!\n";
+    open my $fh, ">>", $file or die "Can't open $file: $!\n";
     flock $fh, LOCK_EX      or die "Can't lock $file: $!\n";
+    seek $fh, 0, 0;
+    truncate $fh, 0         or die "Can't truncate $file: $!\n";
     print $fh $Encoder->encode($data);
     close $fh or die "Can't close $file: $!\n";
     $self

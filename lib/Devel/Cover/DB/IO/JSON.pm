@@ -53,8 +53,10 @@ sub write {
     my $json = $Format eq "JSON" ? JSON->new : JSON::PP->new;
     $json->utf8->allow_blessed;
     $json->ascii->pretty->canonical if $self->{options} =~ /\bpretty\b/i;
-    open my $fh, ">", $file or die "Can't open $file: $!\n";
+    open my $fh, ">>", $file or die "Can't open $file: $!\n";
     flock $fh, LOCK_EX      or die "Can't lock $file: $!\n";
+    seek $fh, 0, 0;
+    truncate $fh, 0         or die "Can't truncate $file: $!\n";
     print $fh $json->encode($data);
     close $fh or die "Can't close $file: $!\n";
     $self
