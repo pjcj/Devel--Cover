@@ -13,6 +13,7 @@ use strict;
 use warnings;
 
 # VERSION
+our $LVERSION = do { no warnings; eval '$VERSION' || "0.001" };  # for dev
 
 use Devel::Cover::DB;
 
@@ -203,10 +204,9 @@ sub main {
         push @{$Options->{annotations}}, $ann;
     }
 
-    print "$0 version " . __PACKAGE__->VERSION . "\n" and exit 0
-        if $Options->{version};
-    pod2usage(-exitval => 0, -verbose => 1)  if $Options->{help};
-    pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
+    print "$0 version $LVERSION\n" and exit 0 if $Options->{version};
+    pod2usage(-exitval => 0, -verbose => 1)   if $Options->{help};
+    pod2usage(-exitval => 0, -verbose => 2)   if $Options->{info};
 
     my $dbname = File::Spec->rel2abs(@ARGV ? shift @ARGV : "cover_db");
     die "Can't open database $dbname\n"
