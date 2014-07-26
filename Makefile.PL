@@ -429,6 +429,9 @@ t : pure_all
 \t \$(PERL) -Mblib bin/cover -delete
 \t exec make test HARNESS_OPTIONS=j`\$(PERL) -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e 'print nice_cpus'`:c HARNESS_TIMER=1
 
+no_replace_ops_t : pure_all
+\t DEVEL_COVER_OPTIONS=-replace_ops,0 exec make t
+
 DB = cover_db
 
 dump :
