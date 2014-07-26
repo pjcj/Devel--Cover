@@ -369,9 +369,9 @@ EOM
 sub MY::postamble {
     my %tests;
     @tests{@tests} = map { (my $t = $_) =~ s/\W/_/g; "cover_db_$t" } @tests;
-    my @reports =
-      qw(compilation html_basic html_minimal html html_subtle sort text2 text
-         vim);
+    my @reports = qw(
+        compilation html_basic html_minimal html html_subtle sort text2 text vim
+    );
 
     qq[
 tags : pure_all
