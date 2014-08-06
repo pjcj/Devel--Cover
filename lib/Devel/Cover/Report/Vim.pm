@@ -126,10 +126,10 @@ sign define branch_error     linehl=err texthl=cov_branch_error     text=B
 sign define condition        linehl=cov texthl=cov_condition        text=C 
 sign define condition_error  linehl=err texthl=cov_condition_error  text=C 
 
-function! g:coverage_old(filename)
+function! CoverageOld(filename)
 endfunction
 
-function! g:coverage_valid(filename)
+function! CoverageValid(filename)
 endfunction
 
 " The signs definitions can be overridden.  To do this add a file called
@@ -164,11 +164,11 @@ endfunction
 "        exe "highlight SignColumn ctermbg=0 guibg=" . a:bg
 "    endfunction
 "
-"    function! g:coverage_valid(filename)
+"    function! CoverageValid(filename)
 "        call s:set_bg(s:bg_valid)
 "    endfunction
 "
-"    function! g:coverage_old(filename)
+"    function! CoverageOld(filename)
 "        call s:set_bg(s:bg_old)
 "    endfunction
 "
@@ -234,9 +234,9 @@ function! s:add_coverage_signs(filename)
 
     if getftime(a:filename) > s:cov_time
         echom "File is newer than coverage run of " . strftime("%c", s:cov_time)
-        call g:coverage_old(a:filename)
+        call CoverageOld(a:filename)
     else
-        call g:coverage_valid(a:filename)
+        call CoverageValid(a:filename)
     endif
 
     if !exists("s:signs['" . a:filename . "']")
@@ -332,8 +332,8 @@ covered criteria are shown in red.  Any incorrectly covered criterion will
 override a correctly covered criterion.
 
 If the coverage for the file being displayed is out of date the a function
-called g:coverage_old() is called and passed the name of the file.  Similarly,
-for current coverage data file g:coverage_valid is called.
+called CoverageOld() is called and passed the name of the file.  Similarly,
+for current coverage data file CoverageValid is called.
 
 Signs may be overridden in a file named devel-cover.vim located somewhere
 underneath the ~/.vim directory.
@@ -365,11 +365,11 @@ local configuration file ~/.vim/local/devel-cover.vim:
      exe "highlight SignColumn ctermbg=0 guibg=" . a:bg
  endfunction
 
- function! g:coverage_valid(filename)
+ function! CoverageValid(filename)
      call s:set_bg(s:bg_valid)
  endfunction
 
- function! g:coverage_old(filename)
+ function! CoverageOld(filename)
      call s:set_bg(s:bg_old)
  endfunction
 
