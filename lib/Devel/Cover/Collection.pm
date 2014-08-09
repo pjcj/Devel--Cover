@@ -623,6 +623,10 @@ Coverage information from <a href="https://metacpan.org/module/Devel::Cover">
 
 <br/>
 
+Please report problems with this site to the
+<a href="https://github.com/pjcj/Devel--Cover/issues">issue tracker</a>
+
+<br/>
 <a href="http://cpancover.com/blead/latest/coverage.html">Core coverage</a>
 (under development)
 
