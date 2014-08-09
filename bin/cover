@@ -417,7 +417,9 @@ cover - report coverage statistics
 
 =head1 SYNOPSIS
 
- cover -test 
+ cover -test
+
+ cover -report html_basic
 
 =head1 DESCRIPTION
 
@@ -428,10 +430,12 @@ available by using the report option.
 
 The following reports are currently available:
 
- text                  - detailed textual summary
- html                  - detailed HTML reports
- html_basic            - detailed HTML reports with syntax highlighting
- compilation           - output in a format similar to Perl
+ text        - detailed textual summary
+ html        - detailed HTML reports
+ html_basic  - detailed HTML reports with syntax highlighting
+ compilation - output in a format similar to Perl
+ json        - output in a JSON
+ vim         - show coverage information in vim gutter
 
 =head1 OPTIONS
 
@@ -444,7 +448,7 @@ The following command line options are supported:
  -silent               - don't print informational messages (default off)
  -summary              - give summary report                (default on)
  -report report_format - report format                      (default html)
- -outputdir dir        - directory for output               (default cover_db)
+ -outputdir dir        - directory for output               (default given db)
  -launch               - launch report in viewer (if avail) (default off)
 
  -select filename      - only report on the file            (default all)
@@ -461,10 +465,10 @@ The following command line options are supported:
  -gcov                 - run gcov to cover XS code     (default on if using gcc)
  -make make_prog       - use the given 'make' program for 'make test'
 
- -add_uncoverable_point
- -delete_uncoverable_point
+ -add_uncoverable_point    string
+ -delete_uncoverable_point string
  -clean_uncoverable_points
- -uncoverable_file
+ -uncoverable_file         file
 
  other options specific to the report format
 
