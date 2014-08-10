@@ -152,22 +152,23 @@ cpancover - report coverage statistics on CPAN modules
 
 The following command line options are supported:
 
- -h -help              - show help
- -i -info              - show documentation
- -v -version           - show version
- -collect              - collect coverage from modules       (on)
- -directory            - location of the modules             ($cwd)
- -force                - recollect coverage                  (off)
- -module module_name   - modules to use                      (all in $directory)
- -outputdir /path/to/dir   - where to store output               ($directory)
- -outputfile filename.html - top level index                     (coverage.html)
- -redo_cpancover_html  - don't set default modules           (off)
- -redo_html            - force html generation for modules   (off)
- -report report_name   - report to use                       (html_basic)
- -results_dir /path/to/dir
- -latest
- -local_build
- -bin_dir
+ -h --help              - show help
+ -i --info              - show documentation
+ -v --version           - show version
+ --verbose
+ --collect              - collect coverage from modules       (on)
+ --directory            - location of the modules             ($cwd)
+ --force                - recollect coverage                  (off)
+ --module module_name   - modules to use                      (all in $directory)
+ --outputdir /path/to/dir   - where to store output               ($directory)
+ --outputfile filename.html - top level index                     (coverage.html)
+ --redo_cpancover_html  - don't set default modules           (off)
+ --redo_html            - force html generation for modules   (off)
+ --report report_name   - report to use                       (html_basic)
+ --results_dir /path/to/dir
+ --latest
+ --local_build
+ --bin_dir
 
 =head1 DETAILS
 
