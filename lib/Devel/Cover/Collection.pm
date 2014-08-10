@@ -96,7 +96,7 @@ sub _sys {
         }
     };
     if ($@) {
-        die "propogate: $@" unless $@ eq "alarm\n";   # propagate unexpected errors
+        die "propogate: $@" unless $@ eq "alarm\n";  # propagate unexpected errs
         warn "Timed out after $timeout seconds!\n";
         my $pgrp = getpgrp($pid);
         my $n = kill "-KILL", $pgrp;
@@ -358,6 +358,51 @@ sub local_build {
     $self->generate_html;
 }
 
+sub failed_dir {
+    my $self = shift;
+    my ($dir) = @_;
+    $self->results_dir . "/__failed__"
+}
+
+sub covered_dir {
+    my $self = shift;
+    my ($dir) = @_;
+    $self->results_dir . "/$dir"
+}
+
+sub failed_file {
+    my $self = shift;
+    my ($dir) = @_;
+    $self->failed_dir . "/$dir"
+}
+
+sub is_covered {
+    my $self = shift;
+    my ($dir) = @_;
+    -d $self->covered_dir($dir)
+}
+
+sub is_failed {
+    my $self = shift;
+    my ($dir) = @_;
+    -e $self->failed_dir($dir)
+}
+
+sub set_covered {
+    my $self = shift;
+    my ($dir) = @_;
+    unlink $self->failed_file($dir);
+}
+
+sub set_failed {
+    my $self = shift;
+    my ($dir) = @_;
+    my $ff = $self->failed_file($dir);
+    open my $fh, ">", $ff or return warn "Can't open $ff: $!";
+    print $fh, localtime;
+    close $fh or warn "Can't close $ff: $!";
+}
+
 sub cover_modules {
     my $self = shift;
 
@@ -371,10 +416,15 @@ sub cover_modules {
             my (undef, $module) = @_;
             my $dir = $module =~ s|.*/||r
                               =~ s/\.(?:zip|tgz|(?:tar\.(?:gz|bz2)))$//r;
-            if (-d $self->results_dir . "/$dir") {
+            if ($self->is_covered($dir)) {
+                $self->set_covered($dir);
                 say "$module already covered";
                 return;
+            } elsif ($self->is_failed($dir)) {
+                say "$module already failed";
+                return;
             }
+
             my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
             # say "Setting alarm for $timeout seconds";
             my $name = sprintf("%s-%18.6f", $module, time)
@@ -393,6 +443,9 @@ sub cover_modules {
                 $self->sys($self->docker, "kill", $name);
                 say "Killed docker container $name";
             }
+
+            $self->is_covered($dir) ? $self->set_covered($dir)
+                                    : $self->set_failed($dir);
         },
         do { my %m; [sort grep !$m{$_}++, @{$self->modules}] }
     );
