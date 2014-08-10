@@ -13,7 +13,8 @@ use strict;
 use warnings;
 
 # VERSION
-our $LVERSION = do { no warnings; eval '$VERSION' || "0.001" };  # for dev
+our $LVERSION =
+    do { local $SIG{__WARN__} = sub {}; eval '$VERSION' || "0.001" };  # for dev
 
 use Devel::Cover::DB;
 
