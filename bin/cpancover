@@ -158,6 +158,7 @@ The following command line options are supported:
  -h -help              - show help
  -i -info              - show documentation
  -v -version           - show version
+ -verbose
  -collect              - collect coverage from modules       (on)
  -directory            - location of the modules             ($cwd)
  -force                - recollect coverage                  (off)
