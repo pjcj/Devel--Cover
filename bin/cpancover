@@ -63,7 +63,7 @@ sub get_options {
     ));
 
     say "$0 version " . __PACKAGE__->VERSION and exit 0 if $Options->{version};
-    pod2usage(-exitval => 0, -verbose => 0)             if $Options->{help};
+    pod2usage(-exitval => 0, -verbose => 1)             if $Options->{help};
     pod2usage(-exitval => 0, -verbose => 2)             if $Options->{info};
 }
 
@@ -143,13 +143,7 @@ cpancover - report coverage statistics on CPAN modules
 
 =head1 SYNOPSIS
 
- cpancover -help -info -version
-           -collect -redo_cpancover_html -redo_html -force
-           -module module_name
-           -results_dir /path/to/dir
-           -outputdir /path/to/dir
-           -outputfile filename.html
-           -report report_name
+ cpancover --help
 
 =head1 DESCRIPTION
 
@@ -164,12 +158,16 @@ The following command line options are supported:
  -collect              - collect coverage from modules       (on)
  -directory            - location of the modules             ($cwd)
  -force                - recollect coverage                  (off)
- -module               - modules to use                      (all in $directory)
- -outputdir            - where to store output               ($directory)
- -outputfile           - top level index                     (coverage.html)
+ -module module_name   - modules to use                      (all in $directory)
+ -outputdir /path/to/dir   - where to store output               ($directory)
+ -outputfile filename.html - top level index                     (coverage.html)
  -redo_cpancover_html  - don't set default modules           (off)
  -redo_html            - force html generation for modules   (off)
- -report               - report to use                       (html_basic)
+ -report report_name   - report to use                       (html_basic)
+ -results_dir /path/to/dir
+ -latest
+ -local_build
+ -bin_dir
 
 =head1 DETAILS
 
