@@ -360,8 +360,9 @@ sub local_build {
 
 sub failed_dir {
     my $self = shift;
-    my ($dir) = @_;
-    $self->results_dir . "/__failed__"
+    my $dir = $self->results_dir . "/__failed__";
+    -d $dir or mkdir $dir or die "Can't mkdir $dir: $!";
+    $dir
 }
 
 sub covered_dir {
@@ -385,7 +386,7 @@ sub is_covered {
 sub is_failed {
     my $self = shift;
     my ($dir) = @_;
-    -e $self->failed_dir($dir)
+    -e $self->failed_file($dir)
 }
 
 sub set_covered {
@@ -399,7 +400,7 @@ sub set_failed {
     my ($dir) = @_;
     my $ff = $self->failed_file($dir);
     open my $fh, ">", $ff or return warn "Can't open $ff: $!";
-    print $fh, localtime;
+    print $fh localtime;
     close $fh or warn "Can't close $ff: $!";
 }
 
@@ -435,7 +436,6 @@ sub cover_modules {
                 alarm $timeout;
                 system @command, $module, $name;
                 alarm 0;
-                say "$dir done";
             };
             if ($@) {
                 die "propogate: $@" unless $@ eq "alarm\n";  # unexpected errors
@@ -444,8 +444,13 @@ sub cover_modules {
                 say "Killed docker container $name";
             }
 
-            $self->is_covered($dir) ? $self->set_covered($dir)
-                                    : $self->set_failed($dir);
+            if ($self->is_covered($dir)) {
+                $self->set_covered($dir);
+                say "$dir done";
+            } else {
+                $self->set_failed($dir);
+                say "$dir failed";
+            }
         },
         do { my %m; [sort grep !$m{$_}++, @{$self->modules}] }
     );
