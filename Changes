@@ -3,6 +3,7 @@ Devel::Cover history
 {{$NEXT}}
 
 Release 1.16 - 17 August 2014
+ - Fix segfault in 5.20.0.
  - Improvements to cpancover.
  - Fix vim report to work with recent versions (cono) (github 94).
  - Ignore vim swap files in git (Gábor Szabó) (github 95).
