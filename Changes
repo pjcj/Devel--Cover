@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Improvements to cpancover.
+ - Fix vim report to work with recent versions (cono) (github 94).
+ - Ignore vim swap files in git (Gábor Szabó) (github 95).
+ - Improve help for cover command (Gábor Szabó) (github 96).
 
 Release 1.15 - 1 June 2014
  - Allow -coverage default,-pod option to cover (David Cantrell) (github 89).
