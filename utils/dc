@@ -39,8 +39,9 @@ case "$1" in
                                   -workers $jobs "$@"
         ;;
     "cpancover-compress")
-        find $CPANCOVER_DIR/ -type f -not -name '*.gz' -not -name '*.json' \
-                             -exec gzip -f9 {} \;
+        find $CPANCOVER_DIR/ -name __failed__ -prune -o \
+                               -type f -not -name '*.gz' -not -name '*.json' \
+                               -exec gzip -f9 {} \;
         ;;
     "cpancover-latest")
         $0 cpancover -latest
