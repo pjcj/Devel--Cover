@@ -400,7 +400,7 @@ sub set_failed {
     my ($dir) = @_;
     my $ff = $self->failed_file($dir);
     open my $fh, ">", $ff or return warn "Can't open $ff: $!";
-    print $fh localtime;
+    print $fh scalar localtime;
     close $fh or warn "Can't close $ff: $!";
 }
 
