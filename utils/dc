@@ -35,8 +35,7 @@ case "$1" in
     "cpancover")
         shift;
         jobs=$($0 nice_cpus)
-        perl -Mblib bin/cpancover -results_dir $CPANCOVER_DIR \
-                                  -workers $jobs "$@"
+        cpancover -results_dir $CPANCOVER_DIR -workers $jobs "$@"
         ;;
     "cpancover-compress")
         find $CPANCOVER_DIR/ -name __failed__ -prune -o \

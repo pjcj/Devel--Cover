@@ -196,6 +196,7 @@ sub run {
     $output .= "Testing $module in $build_dir\n";
     # say "\n$line\n$output$line\n"; return;
 
+    # $self->sys($^X, "-V");
     $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
     my @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
     $output .= $self->bsys(
