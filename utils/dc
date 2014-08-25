@@ -10,7 +10,7 @@ CPANCOVER_STAGING=~/staging
 CPANCOVER_LATEST=$WEBDIR/latest
 CPANCOVER_DIR=$CPANCOVER_STAGING
 DOCKER=docker
-DOCKER_IMAGE=pjcj/devel-cover-git
+DOCKER_IMAGE=pjcj/cpancover
 
 case "$1" in
     "update-copyright")
