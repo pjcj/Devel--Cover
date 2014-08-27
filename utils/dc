@@ -50,6 +50,17 @@ case "$1" in
         $0 cpancover -local_build -docker $DOCKER -workers 1 "$module"
         $0 cpancover-compress
         ;;
+    "cpancover-docker-shell")
+        staging="${4:-$CPANCOVER_DIR}"
+        mkdir -p $staging
+        # echo $name
+        $DOCKER run -it                                    \
+            --volume=/home/pjcj/g/perl/Devel--Cover:/dc:rw \
+            --volume=$CPANCOVER_STAGING:/remote_staging:rw \
+            --workdir=/dc --rm=false                       \
+            --memory=1g                                    \
+            $DOCKER_IMAGE /bin/bash
+        ;;
     "cpancover-docker-module")
         module="$2"
         name="$3"
