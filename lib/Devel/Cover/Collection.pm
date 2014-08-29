@@ -28,7 +28,7 @@ use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
     ro  => [ qw( bin_dir cpancover_dir cpan_dir results_dir force output_file
-                 report timeout verbose workers docker                      ) ],
+                 report timeout verbose workers docker local                ) ],
     rwp => [ qw( build_dirs local_timeout modules module_file               ) ],
     rw  => [ qw(                                                            ) ],
 );
@@ -42,6 +42,7 @@ sub BUILDARGS {
         cpan_dir        => [grep -d, glob("~/.cpan ~/.local/share/.cpan")],
         docker          => "docker",
         force           => 0,
+        local           => 0,
         local_timeout   => 0,
         modules         => [],
         output_file     => "index.html",
@@ -57,8 +58,6 @@ sub BUILDARGS {
 sub _sys {
     my $self = shift;
     my ($non_buffered, @command) = @_;
-    # say defined($_) ? "[$_]" : "undef" for @command;
-    # die 'undef' if grep !defined, @command;
     # system @command; return ".";
     my ($output1, $output2) = ("", "");
     $output1 = "dc -> @command\n" if $self->verbose;
@@ -200,9 +199,13 @@ sub run {
     # say "\n$line\n$output$line\n"; return;
 
     # $self->sys($^X, "-V");
-    # $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
-    # my @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
-    my @cmd = ($^X, $self->bin_dir . "/cover");
+    my @cmd;
+    if ($self->local) {
+        $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
+        @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
+    } else {
+        @cmd = ($^X, $self->bin_dir . "/cover");
+    }
     $output .= $self->bsys(
         @cmd,          "-test",
         "-report",     $self->report,
