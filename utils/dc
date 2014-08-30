@@ -38,9 +38,8 @@ case "$1" in
         if [ -z $CPANCOVER_LOCAL ]; then
             cpancover=cpancover
         else
-            cpancover=perl -Mblib bin/cpancover
+            cpancover="perl -Mblib bin/cpancover -local"
         fi
-
         $cpancover -results_dir $CPANCOVER_DIR -workers $jobs "$@"
         ;;
     "cpancover-compress")

@@ -201,6 +201,7 @@ sub run {
     # $self->sys($^X, "-V");
     my @cmd;
     if ($self->local) {
+        $ENV{DEVEL_COVER_OPTIONS} = "-ignore,/usr/local/lib/perl5";
         $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
         @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
     } else {
