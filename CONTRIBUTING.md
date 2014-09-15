@@ -34,6 +34,13 @@ are many variables.  This is currently the default.
 if not as nicely as in minimal. It also allows for coloured code.
 
 
+How to run Devel::Cover from Git
+---------------------------------
+cd some_dir/
+perl -I/home/foobar/work/Devel--Cover/lib/ /home/foobar/work/Devel--Cover/bin/cover --test -report html_basic
+
+
+
 CPAN Cover
 -----------
    
@@ -41,8 +48,7 @@ http://cpancover.com/
 
 Devel::Cover::Collection  is used by bin/cpancover and has some templates in it.
 
-How to run Devel::Cover from Git
----------------------------------
-cd some_dir/
-perl -I/home/foobar/work/Devel--Cover/lib/ /home/foobar/work/Devel--Cover/bin/cover --test -report html_basic
+In order to run cpancover a few extra modules are needed:
+Template and Parallel::Iterator
+
 
