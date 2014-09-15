@@ -13,6 +13,8 @@ use strict;
 use warnings;
 
 # VERSION
+our $LVERSION =
+    do { local $SIG{__WARN__} = sub {}; eval '$VERSION' || "0.001" };  # for dev
 
 use Devel::Cover::DB;
 
@@ -203,10 +205,9 @@ sub main {
         push @{$Options->{annotations}}, $ann;
     }
 
-    print "$0 version " . __PACKAGE__->VERSION . "\n" and exit 0
-        if $Options->{version};
-    pod2usage(-exitval => 0, -verbose => 1)  if $Options->{help};
-    pod2usage(-exitval => 0, -verbose => 2)  if $Options->{info};
+    print "$0 version $LVERSION\n" and exit 0 if $Options->{version};
+    pod2usage(-exitval => 0, -verbose => 1)   if $Options->{help};
+    pod2usage(-exitval => 0, -verbose => 2)   if $Options->{info};
 
     my $dbname = File::Spec->rel2abs(@ARGV ? shift @ARGV : "cover_db");
     die "Can't open database $dbname\n"
@@ -417,19 +418,9 @@ cover - report coverage statistics
 
 =head1 SYNOPSIS
 
- cover -help -info -version
-       -summary -report report_format -outputdir dir
-       -select filename -ignore filename
-       -select_re RE -ignore_re RE
-       -write [db] -delete -dump_db -launch
-       -silent
-       -coverage criterion
-       -test -gcov
-       -make [make]
-       -add_uncoverable_point -delete_uncoverable_point
-       -clean_uncoverable_points -uncoverable_file
-       [report specific options]
-       coverage_database [coverage_database ...]
+ cover -test
+
+ cover -report html_basic
 
 =head1 DESCRIPTION
 
@@ -440,10 +431,12 @@ available by using the report option.
 
 The following reports are currently available:
 
- text                  - detailed textual summary
- html                  - detailed HTML reports
- html_basic            - detailed HTML reports with syntax highlighting
- compilation           - output in a format similar to Perl
+ text        - detailed textual summary
+ html        - detailed HTML reports
+ html_basic  - detailed HTML reports with syntax highlighting
+ compilation - output in a format similar to Perl
+ json        - output in a JSON
+ vim         - show coverage information in vim gutter
 
 =head1 OPTIONS
 
@@ -456,7 +449,7 @@ The following command line options are supported:
  -silent               - don't print informational messages (default off)
  -summary              - give summary report                (default on)
  -report report_format - report format                      (default html)
- -outputdir            - directory for output               (default db)
+ -outputdir dir        - directory for output               (default given db)
  -launch               - launch report in viewer (if avail) (default off)
 
  -select filename      - only report on the file            (default all)
@@ -473,7 +466,14 @@ The following command line options are supported:
  -gcov                 - run gcov to cover XS code     (default on if using gcc)
  -make make_prog       - use the given 'make' program for 'make test'
 
+ -add_uncoverable_point    string
+ -delete_uncoverable_point string
+ -clean_uncoverable_points
+ -uncoverable_file         file
+
  other options specific to the report format
+
+ coverage_database [coverage_database ...]
 
 =head1 REPORT FORMATS
 

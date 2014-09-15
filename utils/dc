@@ -2,14 +2,15 @@
 
 # set -x
 
-export JOBS=4
 export AUTOMATED_TESTING=1
 export NONINTERACTIVE_TESTING=1
 
 WEBDIR=/usr/share/nginx/www
 CPANCOVER_STAGING=~/staging
 CPANCOVER_LATEST=$WEBDIR/latest
-MODLIST_DIR=tmp/modules
+CPANCOVER_DIR=$CPANCOVER_STAGING
+DOCKER=docker
+DOCKER_IMAGE=pjcj/cpancover
 
 case "$1" in
     "update-copyright")
@@ -20,6 +21,98 @@ case "$1" in
              `git ls-files`
         perl -pi -e "s/Copyright $from\K(, Paul Johnson)/-$to\$1/i" \
              `git ls-files`
+        ;;
+    "install_dependencies")
+        shift;
+        cpan -iTf Sereal Digest::MD5 Template Pod::Coverage::CountParents \
+                  Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
+                  Moo namespace::clean CPAN::Releases::Latest . < /dev/null
+        ;;
+    "nice_cpus")
+        shift;
+        perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e 'print nice_cpus'
+        ;;
+    "cpancover")
+        shift;
+        jobs=$($0 nice_cpus)
+        if [ -z $CPANCOVER_LOCAL ]; then
+            cpancover=cpancover
+        else
+            cpancover="perl -Mblib bin/cpancover -local"
+        fi
+        $cpancover -results_dir $CPANCOVER_DIR -workers $jobs "$@"
+        ;;
+    "cpancover-compress")
+        find $CPANCOVER_DIR/ -name __failed__ -prune -o \
+                               -type f -not -name '*.gz' -not -name '*.json' \
+                               -exec gzip -f9 {} \;
+        ;;
+    "cpancover-latest")
+        $0 cpancover -latest
+        ;;
+    "cpancover-build-module")
+        module="$2"
+        $0 cpancover -local_build -docker $DOCKER -workers 1 "$module"
+        $0 cpancover-compress
+        ;;
+    "cpancover-docker-shell")
+        staging="${4:-$CPANCOVER_DIR}"
+        mkdir -p $staging
+        # echo $name
+        $DOCKER run -it                                    \
+            --volume=/home/pjcj/g/perl/Devel--Cover:/dc:rw \
+            --volume=$CPANCOVER_STAGING:/remote_staging:rw \
+            --workdir=/dc --rm=false                       \
+            --memory=1g                                    \
+            $DOCKER_IMAGE /bin/bash
+        ;;
+    "cpancover-docker-module")
+        module="$2"
+        name="$3"
+        staging="${4:-$CPANCOVER_DIR}"
+        mkdir -p $staging
+        # echo $name
+        container=$($DOCKER run -d                                 \
+                    --volume=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
+                    --volume=$CPANCOVER_STAGING:/remote_staging:ro \
+                    --workdir=/dc --rm=false --name="$name"        \
+                    --memory=1g                                    \
+                    $DOCKER_IMAGE dc cpancover-build-module $module)
+        # https://github.com/dotcloud/docker/issues/3986
+        $DOCKER wait "$name"
+        if [ $? = 0 ]; then
+            $DOCKER logs "$name" > "$staging/$name.out"
+            local_staging="$staging/$name"
+            sudo $DOCKER cp "$name:/staging" "$local_staging"
+            if [ -d "$local_staging" ]; then
+                sudo chmod -R 755 "$local_staging"
+                sudo find "$local_staging" -type f -exec chmod 644 {} \;
+                sudo chown -R pjcj:pjcj "$local_staging"
+                cd "$local_staging"/*
+                for f in *; do
+                    if [ -d $f ]; then
+                        rm -rf "$staging"/$f
+                        mv $f "$staging"
+                    fi
+                done
+                rm -r "$local_staging"
+            fi
+        fi
+        $DOCKER rm "$name"
+        ;;
+    "cpancover-generate-html")
+        $0 cpancover -generate_html
+        $0 cpancover-compress
+        json=$CPANCOVER_DIR/cpancover.json
+        tmp=$json-tmp-$$.gz
+        echo Compressing $json
+        pigz < $json > $tmp && mv $tmp $json.gz
+        ;;
+    "cpancover-kill-docker")
+        docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r docker kill
+        ;;
+    "cpancover-rm-docker")
+        docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r docker rm -f
         ;;
     "sereal_each_bug")
         perl="${2:-perl}"
@@ -32,120 +125,6 @@ case "$1" in
         $perl -Mblib -MDevel::Cover tests/change
         $perl -Mblib bin/cover -report text
         rm tests/change
-        ;;
-    "cpancover")
-        shift;
-        perl -Mblib bin/cpancover -results_dir $CPANCOVER_STAGING \
-                                  -workers $JOBS "$@"
-        ;;
-    "cpancover-move")
-        new=$WEBDIR/`date +%F`
-        sudo mv $new $new.$$
-        sudo mv $CPANCOVER_STAGING $new
-        sudo rm $CPANCOVER_LATEST
-        sudo ln -s $new $CPANCOVER_LATEST
-        ;;
-    "cpancover-generate-index")
-        $0 cpancover
-        ;;
-    "cpancover-compress")
-        find $CPANCOVER_STAGING -type f -not -name '*.gz' -not -name '*.json' \
-                                -exec gzip -f9 {} \;
-        ;;
-    "cpancover-file")
-        file="$2"
-        $0 cpancover -module_file $file
-        $0 cpancover-compress
-        $0 cpancover-generate-index
-        ;;
-    "cpancover-build-perl")
-        perlbrew uninstall cpancover
-        perlbrew install perl-5.18.2 --as cpancover -j $JOBS -nf
-        ;;
-    "cpancover-install-basics")
-        sudo rm -rf ~/.cpan
-        sudo rm -rf ~/.local/share/.cpan
-        sudo rm -rf ~/.cpanm
-        sudo rm -rf $CPANCOVER_STAGING
-        # cpan App::cpanminus
-        cpan -iTf . Sereal Digest::MD5 Template Pod::Coverage::CountParents \
-                  Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
-                  Moo namespace::clean CPAN::Releases::Latest < /dev/null
-        $0 cpancover-generate-index
-        ;;
-    "cpancover-install-main")
-        $0 cpancover App::cpanoutdated
-        cpan-outdated | $0 cpancover
-        $0 cpancover-file utils/cpancover_modules
-        $0 cpancover-compress
-        $0 cpancover-generate-index
-        ;;
-    "cpancover-split-modlist")
-        rm -rf $MODLIST_DIR
-        mkdir -p $MODLIST_DIR
-        cd $MODLIST_DIR
-        perl -E 'eval(`zcat ~/.cpan/sources/modules/03modlist.data.gz` =~ s/.*?package/package/sr); say for sort keys %{CPAN::Modulelist->data}' | split -l 100
-        ;;
-    "cpancover-install-all")
-        $0 cpancover-split-modlist
-        for file in $MODLIST_DIR/*; do
-            $0 cpancover-file $file
-        done
-        ;;
-    "cpancover-latest")
-        $0 cpancover -latest
-        # $0 cpancover-compress
-        # $0 cpancover-generate-index
-        ;;
-    "cpancover-install-latest")
-        $0 cpancover -latest
-        # $0 cpancover-compress
-        # $0 cpancover-generate-index
-        ;;
-    "cpancover-full-run")
-        $0 cpancover-build-perl
-        $0 cpancover-install-basics
-        $0 cpancover-install-main
-        $0 cpancover-install-latest
-        $0 cpancover-move
-        ;;
-    "cpancover-module")
-        module="$2"
-        $0 cpancover "$module"
-        $0 cpancover-compress
-        ;;
-    "cpancover-build-module")
-        module="$2"
-        $0 cpancover -local_build "$module"
-        $0 cpancover-compress
-        ;;
-    "cpancover-docker-module")
-        module="$2"
-        name="$3"
-        staging="${4:-$CPANCOVER_STAGING}"
-        mkdir -p $staging
-        # echo $name
-        container=$(docker.io run -d -v=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
-                    -w=/dc --rm=false --name="$name" \
-                    pjcj/cpancover dc cpancover-build-module $module)
-        # https://github.com/dotcloud/docker/issues/3986
-        docker.io wait "$name"
-        docker.io logs "$name"
-        local_staging="$staging/$name"
-        sudo docker.io cp "$name:/staging" "$local_staging"
-        if [ -d "$local_staging" ]; then
-            sudo chmod -R 755 "$local_staging"
-            sudo find "$local_staging" -type f -exec chmod 644 {} \;
-            sudo chown -R pjcj:pjcj "$local_staging"
-            find "$local_staging"/staging/* -maxdepth 0 -type f -exec rm {} \;
-            mv "$local_staging"/staging/* "$staging"
-            rm -r "$local_staging"
-        fi
-        docker.io rm "$name"
-        ;;
-    "cpancover-generate-html")
-        $0 cpancover -generate_html
-        $0 cpancover-compress
         ;;
     "options")
         perl -nE 'say $1 if /^    "([\w-]+)"\)$/ && $1 !~ /^_/' < $0

@@ -53,7 +53,7 @@ my $test = Devel::Cover::Test->new(
     run_test        => $run_test,
     end             => sub { unlink $ft },
     no_report       => 0,
-    delay_after_run => 0.25,
+    delay_after_run => 0.50,
 );
 
 $test->run_test;

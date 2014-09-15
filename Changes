@@ -2,6 +2,20 @@ Devel::Cover history
 
 {{$NEXT}}
 
+Release 1.16 - 17 August 2014
+ - Fix segfault in 5.20.0.
+ - Improvements to cpancover.
+ - Fix vim report to work with recent versions (cono) (github 94).
+ - Ignore vim swap files in git (Gábor Szabó) (github 95).
+ - Improve help for cover command (Gábor Szabó) (github 96).
+
+Release 1.15 - 1 June 2014
+ - Allow -coverage default,-pod option to cover (David Cantrell) (github 89).
+ - Get cpancover coverage in docker containers.
+ - Add CGI.pm as a prerequisite.
+ - Test against 5.20.0 and 5.21.0.
+ - Add longer delay in tests to try to appease *BSD.
+
 Release 1.14 - 2 May 2014
  - Fix test failures on OpenBSD, NetBSD and Windows.
 

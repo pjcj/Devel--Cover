@@ -28,3 +28,4 @@ README
 .build/
 callgrind.out.*
 staging/
+*.sw?

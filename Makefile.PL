@@ -18,7 +18,7 @@ use File::Copy;
 
 $| = 1;
 
-my $Version = "1.14";
+my $Version = "1.16";
 my $Author  = 'paul@pjcj.net';
 my @perlbug = ("perlbug", "-a", $Author,
                           "-s", "Installation of Devel::Cover $Version");
@@ -169,16 +169,16 @@ sub check {
 
 my $d = <<EOM;
 The coverage database can be stored in any of the Storable, JSON or Sereal
-formats.  To use the Storable format, the Storable module is required.  This
-has been a core module since perl-5.8.0.  To store the database in JSON format
+formats.  To use the Storable format, the Storable module is required.  This has
+been a core module since perl-5.8.0.  To store the database in JSON format
 JSON::PP can be used.  This has been a core module since perl-5.14.0.  If you
-wish, you may install the JSON module which will be used in preference.  To
-use the Sereal format, the Sereal module should be installed.  This is
-available on CPAN.
+wish, you may install the JSON module which will be used in preference.  To use
+the Sereal format, the Sereal module should be installed.  This is available on
+CPAN.
 
 Sereal is used if it is available.  Otherwise JSON is used, if available.
-Otherwise Storable will be used.  The Sereal and JSON formats should be
-portable between all systems, whereas Storable format may not be.
+Otherwise Storable will be used.  The Sereal and JSON formats should be portable
+between all systems, whereas Storable format may not be.
 EOM
 
 check "Storable", $d;
@@ -197,25 +197,25 @@ Test::More from CPAN.
 EOM
 
 check "Test::Warn", <<EOM;
-Test::Warn is required to run some of the Devel::Cover tests.  You can
-download Test::Warn from CPAN.
+Test::Warn is required to run some of the Devel::Cover tests.  You can download
+Test::Warn from CPAN.
 EOM
 
 check "Template", <<EOM, "2.00";
-Template 2.00 is required to run the some HTML backends to cover and
-for cpancover.  Unless you have specific requirements this should not be
-a problem, but you will not be able to use these reports until you
-install the Template Toolkit, available from CPAN.  In the meantime you
-may continue to use the rest of Devel::Cover.
+Template 2.00 is required to run the some HTML backends to cover and for
+cpancover.  Unless you have specific requirements this should not be a problem,
+but you will not be able to use these reports until you install the Template
+Toolkit, available from CPAN.  In the meantime you may continue to use the rest
+of Devel::Cover.
 EOM
 
 my $m = <<EOM;
 One of PPI::HTML 1.07 or Perl::Tidy 20060719 is required to add syntax
-highlighting to some HTML backends to cover and for cpancover.  Unless
-you have specific requirements this should not be a problem, but you will
-not be able to use syntax highlighting in these reports until you install
-PPI::HTML or Perl::Tidy, available from the CPAN.  In the meantime you
-may continue to use the rest of Devel::Cover.
+highlighting to some HTML backends to cover and for cpancover.  Unless you have
+specific requirements this should not be a problem, but you will not be able to
+use syntax highlighting in these reports until you install PPI::HTML or
+Perl::Tidy, available from the CPAN.  However, the rest of Devel::Cover will be
+available as usual.
 EOM
 
 check "PPI::HTML",  $m, "1.07";
@@ -223,10 +223,10 @@ check "Perl::Tidy", $m, "20060719";
 
 print "checking for Pod::Coverage      version 0.06     .... ";
 my $e = <<EOM;
-Pod::Coverage 0.06 is required to do pod coverage.  This will tell
-you how well you have documented your modules.  Pod coverage will be
-unavailable until you install this module, available from CPAN.  In the
-meantime, you may continue to use the rest of Devel::Cover.
+Pod::Coverage 0.06 is required to do pod coverage.  This will tell you how well
+you have documented your modules.  Pod coverage will be unavailable until you
+install this module, available from CPAN.  In the meantime, you may continue to
+use the rest of Devel::Cover.
 EOM
 
 eval "use Pod::Coverage";
@@ -235,9 +235,9 @@ if (my $m = $INC{"Pod/Coverage.pm"}) {
     print $v < 0.06 ? "$v\n\n\n$e\n\n" : "$v     $m\n";
     print "checking for Pod::Coverage::CountParents         .... ";
     $e = <<EOM;
-    Pod::Coverage::CountParents.pm is used for Pod coverage if it is available.
-    We will fall back to using Pod::Coverage.pm.  If you want to use
-    Pod::Coverage::CountParents.pm, just install it from CPAN.
+Pod::Coverage::CountParents.pm is used for Pod coverage if it is available.  We
+will fall back to using Pod::Coverage.pm.  If you want to use
+Pod::Coverage::CountParents.pm, just install it from CPAN.
 EOM
     eval "use Pod::Coverage::CountParents";
     if (my $m = $INC{"Pod/Coverage/CountParents.pm"}) {
@@ -252,27 +252,27 @@ EOM
 }
 
 check "Test::Differences", <<EOM;
-Test::Differences is used to display output from failed tests.
-Hopefully there won't be any failed tests, but if there are you will get
-output that may not be a model of clarity.  If you do get test failures
-and you fancy helping me by debugging them, then you might like to
-consider installing Test::Differences.  You can download
-Test::Differences from CPAN.
+Test::Differences is used to display output from failed tests.  Hopefully there
+won't be any failed tests, but if there are you will get output that may not be
+a model of clarity.  If you do get test failures and you fancy helping me by
+debugging them, then you might like to consider installing Test::Differences.
+You can download Test::Differences from CPAN.
 EOM
 
 check "Browser::Open", <<EOM;
-Browser::Open is used to launch a web browser when the -launch flag is
-specified with HTML report formats. You can download Browser::Open from CPAN.
+Browser::Open is used to launch a web browser when the -launch flag is specified
+with HTML report formats. You can download Browser::Open from CPAN.
 EOM
 
 check "CGI", <<EOM;
-CGI is used to run the Html_minimal report.  It used to be a part of the perl
-core, but as of perl 5.20 it will need to be downloaded from CPAN.  If you
-would like to use the Html_minimal report, please install CGI.  Otherwise,
-other reports will be available as usual.
+CGI is used to run the HTML reports.  It used to be a part of the perl core, but
+as of perl 5.20 it will need to be downloaded from CPAN.  If you would like to
+use the HTML report, please install CGI.  Otherwise, other reports will be
+available as usual.  Because HTML reports are expected, GCI has been added to
+the prerequisites.
 EOM
 
-my $latest_tested = "5.018002";
+my $latest_tested = "5.020000";
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
@@ -284,26 +284,25 @@ EOM
 if ($] < 5.008) {
     print <<EOM;
 
-Devel::Cover $Version is not fully functional on perl $].  It should
-mostly work, but there are some constructs for which coverage will not
-be collected, and you may well encounter bugs which have been fixed in
-subsequent versions of perl.  Perl versions 5.8.8 and above should work
-better.
+Devel::Cover $Version is not fully functional on perl $].  It should mostly
+work, but there are some constructs for which coverage will not be collected,
+and you may well encounter bugs which have been fixed in subsequent versions of
+perl.  Perl versions 5.8.8 and above should work better.
 
 EOM
 
     print <<EOM if $^O eq "MSWin32";
-And things are even worse under Windows.  You may well find random bugs
-of various severities.
+And things are even worse under Windows.  You may well find random bugs of
+various severities.
 
 EOM
 } elsif ($] < 5.008002) {
     print <<EOM;
 
-Devel::Cover $Version mostly works on perl $], but you may encounter
-strange behaviours (bugs) which have been fixed in subsequent versions
-of perl.  This is particularly true if you are running a threaded perl.
-Perl versions 5.8.2 and above should work better.
+Devel::Cover $Version mostly works on perl $], but you may encounter strange
+behaviours (bugs) which have been fixed in subsequent versions of perl.  This is
+particularly true if you are running a threaded perl.  Perl versions 5.8.2 and
+above should work better.
 
 EOM
 }
@@ -323,6 +322,7 @@ my $opts = {
     PREREQ_PM        => {
                             Storable      => 0,
                             "Digest::MD5" => 0,
+                            CGI           => 0,
                             $ENV{DEVEL_COVER_NO_TESTS}
                                 ? ()
                                 : ( "Test::More"  => 0, "Test::Warn"  => 0 )
@@ -369,9 +369,9 @@ EOM
 sub MY::postamble {
     my %tests;
     @tests{@tests} = map { (my $t = $_) =~ s/\W/_/g; "cover_db_$t" } @tests;
-    my @reports =
-      qw(compilation html_basic html_minimal html html_subtle sort text2 text
-         vim);
+    my @reports = qw(
+        compilation html_basic html_minimal html html_subtle sort text2 text vim
+    );
 
     qq[
 tags : pure_all
@@ -428,6 +428,9 @@ prove : pure_all
 t : pure_all
 \t \$(PERL) -Mblib bin/cover -delete
 \t exec make test HARNESS_OPTIONS=j`\$(PERL) -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e 'print nice_cpus'`:c HARNESS_TIMER=1
+
+no_replace_ops_t : pure_all
+\t DEVEL_COVER_OPTIONS=-replace_ops,0 exec make t
 
 DB = cover_db
 

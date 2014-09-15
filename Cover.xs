@@ -834,8 +834,7 @@ static void cover_logop(pTHX) {
 #else
                 next = PL_op->op_next;
 #endif
-                if (PL_op->op_type == OP_XOR && !next)
-                    return;  /* in fold_constants */
+                if (!next) return;  /* in fold_constants */
                 NDEB(op_dump(PL_op));
                 NDEB(op_dump(next));
 
@@ -880,7 +879,7 @@ static void cover_logop(pTHX) {
             OP *skipped;
 #endif
 
-            while (up->op_type == PL_op->op_type) {
+            while (up && up->op_type == PL_op->op_type) {
                 NDEB(D(L, "Considering adding %p (%s) -> (%p) "
                                         "from %p (%s) -> (%p)\n",
                        up, PL_op_name[up->op_type], up->op_next,

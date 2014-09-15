@@ -27,10 +27,9 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-    ro  => [ qw( bin_dir cpancover_dir cpan_dir empty_cpan_dir
-                 cpanm_dir empty_cpanm_dir results_dir force
-                 output_file report timeout verbose workers latest          ) ],
-    rwp => [ qw( build_dirs build_dir local_timeout modules module_file     ) ],
+    ro  => [ qw( bin_dir cpancover_dir cpan_dir results_dir force output_file
+                 report timeout verbose workers docker local                ) ],
+    rwp => [ qw( build_dirs local_timeout modules module_file               ) ],
     rw  => [ qw(                                                            ) ],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
@@ -41,16 +40,14 @@ sub BUILDARGS {
     {
         build_dirs      => [],
         cpan_dir        => [grep -d, glob("~/.cpan ~/.local/share/.cpan")],
-        empty_cpan_dir  => 0,
-        cpanm_dir       => glob("~/.cpanm"),
-        empty_cpanm_dir => 0,
+        docker          => "docker",
         force           => 0,
-        latest          => 0,
+        local           => 0,
         local_timeout   => 0,
         modules         => [],
         output_file     => "index.html",
         report          => "html_basic",
-        timeout         => 1800,  # is half an hour enough?
+        timeout         => 1800,  # half an hour
         verbose         => 0,
         workers         => 0,
         %args,
@@ -61,6 +58,7 @@ sub BUILDARGS {
 sub _sys {
     my $self = shift;
     my ($non_buffered, @command) = @_;
+    # system @command; return ".";
     my ($output1, $output2) = ("", "");
     $output1 = "dc -> @command\n" if $self->verbose;
     my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
@@ -100,7 +98,7 @@ sub _sys {
         }
     };
     if ($@) {
-        die "propogate: $@" unless $@ eq "alarm\n";   # propagate unexpected errors
+        die "propogate: $@" unless $@ eq "alarm\n";  # propagate unexpected errs
         warn "Timed out after $timeout seconds!\n";
         my $pgrp = getpgrp($pid);
         my $n = kill "-KILL", $pgrp;
@@ -111,20 +109,6 @@ sub _sys {
 
 sub sys  { my $self = shift; $self->_sys(4e4, @_) }
 sub bsys { my $self = shift; $self->_sys(0,   @_) }
-
-sub do_empty_cpan_dir {
-    my $self = shift;
-    # TODO - not portable
-    my $output = $self->sys("rm", "-rf", map "$_/build", @{$self->cpan_dir});
-    say $output;
-}
-
-sub do_empty_cpanm_dir {
-    my $self = shift;
-    # TODO - not portable
-    my $output = $self->sys("rm", "-rf", $self->cpanm_dir);
-    say $output;
-}
 
 sub add_modules {
     my $self = shift;
@@ -155,9 +139,6 @@ sub process_module_file {
 
 sub build_modules {
     my $self = shift;
-    # my @command = qw( cpanm --notest );
-    # push @command, "--force"   if $self->force;
-    # push @command, "--verbose" if $self->verbose;
     my @command = qw( cpan -i -T );
     push @command, "-f" if $self->force;
     # my @command = qw( cpan );
@@ -175,17 +156,27 @@ sub build_modules {
 
 sub add_build_dirs {
     my $self = shift;
+    # say "add_build_dirs"; say for @{$self->build_dirs};
+    # say && system "ls -al $_" for "/remote_staging",
+                                  # map "$_/build", @{$self->cpan_dir};
+    my $exists = sub {
+        my $dir = "/remote_staging/" . (s|.*/||r =~ s/-\w{6}$/*/r);
+        # say "checking [$dir]";
+        my @files = glob $dir;
+        @files
+    };
     push @{$self->build_dirs},
+         grep { !$exists->() }
          grep -d,
-         map(glob("$_/build/*"), @{$self->cpan_dir}),
-         glob $self->cpanm_dir . "/work/*/*";
+         map glob("$_/build/*"), @{$self->cpan_dir};
+    # say "add_build_dirs"; say for @{$self->build_dirs};
 }
 
 sub run {
     my $self = shift;
+    my ($build_dir) = @_;
 
-    my $build_dir   = $self->build_dir;
-    my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\w{6})$|;
+    my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\w{6})$| or return;
     my $db          = "$build_dir/cover_db";
     my $line        = "=" x 80;
     my $output      = "**** Checking coverage of $module ****\n";
@@ -207,8 +198,15 @@ sub run {
     $output .= "Testing $module in $build_dir\n";
     # say "\n$line\n$output$line\n"; return;
 
-    $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
-    my @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
+    # $self->sys($^X, "-V");
+    my @cmd;
+    if ($self->local) {
+        $ENV{DEVEL_COVER_OPTIONS} = "-ignore,/usr/local/lib/perl5";
+        $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
+        @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
+    } else {
+        @cmd = ($^X, $self->bin_dir . "/cover");
+    }
     $output .= $self->bsys(
         @cmd,          "-test",
         "-report",     $self->report,
@@ -235,8 +233,7 @@ sub run_all {
         { workers => $self->workers },
         sub {
             my (undef, $dir) = @_;
-            $self->_set_build_dir($dir);
-            eval { $self->run };
+            eval { $self->run($dir) };
             warn "\n\n\n[$dir]: $@\n\n\n" if $@;
         },
         $self->build_dirs
@@ -258,8 +255,12 @@ sub write_json {
         $name    = $mod->{name}     if defined $mod->{name};
         $version = $mod->{version}  if defined $mod->{version};
         if (defined $name && defined $version) {
-            $results->{$name}{$version}{coverage}{total} =
-                { map { $_ => $m->{$_}{pc} } grep !/link|module/, keys %$m };
+            $results->{$name}{$version}{coverage}{total} = {
+                map { $_ => $m->{$_}{pc} }
+                grep $m->{$_}{pc} ne 'n/a',
+                grep !/link|module/,
+                keys %$m
+            };
         } else {
             print "Cannot process $module: ", Dumper $m;
         }
@@ -359,13 +360,57 @@ sub generate_html {
 sub local_build {
     my $self = shift;
 
-    $self->do_empty_cpan_dir  if $self->empty_cpan_dir;
-    $self->do_empty_cpanm_dir if $self->empty_cpanm_dir;
     $self->process_module_file;
     $self->build_modules;
     $self->add_build_dirs;
     $self->run_all;
     $self->generate_html;
+}
+
+sub failed_dir {
+    my $self = shift;
+    my $dir = $self->results_dir . "/__failed__";
+    -d $dir or mkdir $dir or die "Can't mkdir $dir: $!";
+    $dir
+}
+
+sub covered_dir {
+    my $self = shift;
+    my ($dir) = @_;
+    $self->results_dir . "/$dir"
+}
+
+sub failed_file {
+    my $self = shift;
+    my ($dir) = @_;
+    $self->failed_dir . "/$dir"
+}
+
+sub is_covered {
+    my $self = shift;
+    my ($dir) = @_;
+    -d $self->covered_dir($dir)
+}
+
+sub is_failed {
+    my $self = shift;
+    my ($dir) = @_;
+    -e $self->failed_file($dir)
+}
+
+sub set_covered {
+    my $self = shift;
+    my ($dir) = @_;
+    unlink $self->failed_file($dir);
+}
+
+sub set_failed {
+    my $self = shift;
+    my ($dir) = @_;
+    my $ff = $self->failed_file($dir);
+    open my $fh, ">", $ff or return warn "Can't open $ff: $!";
+    print $fh scalar localtime;
+    close $fh or warn "Can't close $ff: $!";
 }
 
 sub cover_modules {
@@ -374,28 +419,46 @@ sub cover_modules {
     $self->process_module_file;
 
     my @command = qw( utils/dc cpancover-docker-module );
-    $self->_set_local_timeout(300);
+    $self->_set_local_timeout(0);
     my @res = iterate_as_array(
         { workers => $self->workers },
         sub {
             my (undef, $module) = @_;
+            my $dir = $module =~ s|.*/||r
+                              =~ s/\.(?:zip|tgz|(?:tar\.(?:gz|bz2)))$//r;
+            if ($self->is_covered($dir)) {
+                $self->set_covered($dir);
+                say "$module already covered";
+                return;
+            } elsif ($self->is_failed($dir)) {
+                say "$module already failed";
+                return;
+            }
+
             my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
             # say "Setting alarm for $timeout seconds";
             my $name = sprintf("%s-%18.6f", $module, time)
                          =~ tr/a-zA-Z0-9_./-/cr;
-            say "Building $module in docker container $name";
+            say "$dir -> $name";
             eval {
                 local $SIG{ALRM} = sub { die "alarm\n" };
                 alarm $timeout;
                 system @command, $module, $name;
                 alarm 0;
-                say "Built $module in docker container $name";
             };
             if ($@) {
                 die "propogate: $@" unless $@ eq "alarm\n";  # unexpected errors
-                warn "Timed out after $timeout seconds!\n";
-                sys "docker.io kill $name";
-                warn "killed docker container $name";
+                say "Timed out after $timeout seconds!";
+                $self->sys($self->docker, "kill", $name);
+                say "Killed docker container $name";
+            }
+
+            if ($self->is_covered($dir)) {
+                $self->set_covered($dir);
+                say "$dir done";
+            } else {
+                $self->set_failed($dir);
+                say "$dir failed";
             }
         },
         do { my %m; [sort grep !$m{$_}++, @{$self->modules}] }
@@ -627,6 +690,10 @@ Coverage information from <a href="https://metacpan.org/module/Devel::Cover">
 
 <br/>
 
+Please report problems with this site to the
+<a href="https://github.com/pjcj/Devel--Cover/issues">issue tracker</a>
+
+<br/>
 <a href="http://cpancover.com/blead/latest/coverage.html">Core coverage</a>
 (under development)
 

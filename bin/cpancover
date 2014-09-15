@@ -26,17 +26,17 @@ $|++;
 my $Options = {
     bin_dir         => abs_path($0) =~ s|/cpancover$||r,
     build           => 1,
-    empty_cpan_dir  => 0,
-    empty_cpanm_dir => 0,
+    docker          => "docker",
     force           => 0,
     generate_html   => 0,
     latest          => 0,
+    local           => 0,
     local_build     => 0,
     module          => [],
     output_file     => "index.html",
     report          => "html_basic",
     results_dir     => cwd(),
-    timeout         => 900,  # quarter of an hour
+    timeout         => 1800,  # half an hour
     verbose         => 0,
     workers         => 0,
 };
@@ -45,13 +45,13 @@ sub get_options {
     die "Bad option" unless GetOptions($Options, qw(
         bin_dir=s
         build!
-        empty_cpan_dir!
-        empty_cpanm_dir!
+        docker=s
         force!
         generate_html!
         help|h!
         info|i!
         latest!
+        local!
         local_build!
         module_file=s
         module=s
@@ -65,7 +65,7 @@ sub get_options {
     ));
 
     say "$0 version " . __PACKAGE__->VERSION and exit 0 if $Options->{version};
-    pod2usage(-exitval => 0, -verbose => 0)             if $Options->{help};
+    pod2usage(-exitval => 0, -verbose => 1)             if $Options->{help};
     pod2usage(-exitval => 0, -verbose => 2)             if $Options->{info};
 }
 
@@ -73,9 +73,9 @@ sub newcp {
     my $self = shift;
     Devel::Cover::Collection->new(
         bin_dir         => $Options->{bin_dir},
-        empty_cpan_dir  => $Options->{empty_cpan_dir},
-        empty_cpanm_dir => $Options->{empty_cpanm_dir},
+        docker          => $Options->{docker},
         force           => $Options->{force},
+        local           => $Options->{local},
         modules         => $Options->{module},
         output_file     => $Options->{output_file},
         report          => $Options->{report},
@@ -92,7 +92,6 @@ sub main {
 
     if ($Options->{latest}) {
         my $cp = newcp;
-        # say for @{$cp->cpan_dir};
         $cp->get_latest;
         return;
     }
@@ -121,11 +120,9 @@ sub main {
                 chomp;
                 push @modules, split;
             }
-            for my $module (@modules) {
-                my $cp = newcp;
-                $cp->set_modules($module);
-                $cp->cover_modules;
-            }
+            my $cp = newcp;
+            $cp->set_modules(@modules);
+            $cp->cover_modules;
         } else {
             my $cp = newcp;
             $cp->cover_modules;
@@ -149,13 +146,7 @@ cpancover - report coverage statistics on CPAN modules
 
 =head1 SYNOPSIS
 
- cpancover -help -info -version
-           -collect -redo_cpancover_html -redo_html -force
-           -module module_name
-           -results_dir /path/to/dir
-           -outputdir /path/to/dir
-           -outputfile filename.html
-           -report report_name
+ cpancover --help
 
 =head1 DESCRIPTION
 
@@ -167,15 +158,21 @@ The following command line options are supported:
  -h -help              - show help
  -i -info              - show documentation
  -v -version           - show version
+ -verbose
  -collect              - collect coverage from modules       (on)
  -directory            - location of the modules             ($cwd)
  -force                - recollect coverage                  (off)
- -module               - modules to use                      (all in $directory)
- -outputdir            - where to store output               ($directory)
- -outputfile           - top level index                     (coverage.html)
+ -module module_name   - modules to use                      (all in $directory)
+ -outputdir /path/to/dir   - where to store output               ($directory)
+ -outputfile filename.html - top level index                     (coverage.html)
  -redo_cpancover_html  - don't set default modules           (off)
  -redo_html            - force html generation for modules   (off)
- -report               - report to use                       (html_basic)
+ -local                - use local (uninstalled) code        (off)
+ -report report_name   - report to use                       (html_basic)
+ -results_dir /path/to/dir
+ -latest
+ -local_build
+ -bin_dir
 
 =head1 DETAILS
 

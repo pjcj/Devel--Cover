@@ -1,0 +1,32 @@
+How to set up cpancover
+
+Cpancover requires a bourne shell and docker, as well as a recent perl.  The
+code requires 5.16.0 but earlier versions may work.
+
+Each module is built in an individual docker container.  This should allow its
+resources to be constrained.  In addition the docker container is killed after a
+certain time.
+
+I have only run this in Ubuntu 14.04.  The docker version there, 0.9.1 (as of
+31.05.2104) is insufficient.  Version 0.11.1 is fine.  I don't know about the
+versions inbetween.
+
+The latest version of docker can be installed on Ubuntu as follows:
+(see http://askubuntu.com/questions/472412/how-do-i-upgrade-docker)
+
+# wget -qO- https://get.docker.io/gpg | apt-key add -
+# echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list
+# aptitude update
+# aptitude remove docker.io
+# aptitude install lxc-docker
+
+You may need to add yourself to the docker group.
+
+Jobs are run as follows:
+
+$ . ./utils/setup
+$ dc cpancover-latest | head -2000 | dc cpancover
+
+The top level html and json is generated with:
+
+$ dc cpancover-generate-html
