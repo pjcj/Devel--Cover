@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+Get cpancover to release quality.
+Add IRC link to META.
 
 Release 1.16 - 17 August 2014
  - Fix segfault in 5.20.0.
