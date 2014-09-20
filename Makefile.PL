@@ -272,7 +272,7 @@ available as usual.  Because HTML reports are expected, GCI has been added to
 the prerequisites.
 EOM
 
-my $latest_tested = "5.020000";
+my $latest_tested = "5.020001";
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
