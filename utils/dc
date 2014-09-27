@@ -111,6 +111,15 @@ case "$1" in
         pigz < $json > $tmp && mv $tmp $json.gz
         echo Done
         ;;
+    "cpancover-run")
+        while true; do
+            echo Starting cpancover run at `date`
+            $0 cpancover-latest | $0 cpancover
+            $0 cpancover-generate-html
+            echo Finished cpancover run at `date`
+            sleep 600  # 10 minutes
+        done
+        ;;
     "cpancover-kill-docker")
         docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r docker kill
         ;;
