@@ -101,12 +101,15 @@ case "$1" in
         $DOCKER rm "$name"
         ;;
     "cpancover-generate-html")
+        echo Generating HTML at `date`
+        # perl -V
         $0 cpancover -generate_html
         $0 cpancover-compress
         json=$CPANCOVER_DIR/cpancover.json
         tmp=$json-tmp-$$.gz
         echo Compressing $json
         pigz < $json > $tmp && mv $tmp $json.gz
+        echo Done
         ;;
     "cpancover-kill-docker")
         docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r docker kill
