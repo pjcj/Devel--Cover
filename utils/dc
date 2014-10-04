@@ -112,6 +112,8 @@ case "$1" in
         echo Done
         ;;
     "cpancover-run")
+        export CPANCOVER_LOCAL=1
+        export DEVEL_COVER_CPUS=10
         while true; do
             echo Starting cpancover run at `date`
             $0 cpancover-latest | $0 cpancover
