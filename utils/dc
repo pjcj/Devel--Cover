@@ -79,7 +79,7 @@ case "$1" in
                     --memory=1g                                    \
                     $DOCKER_IMAGE dc cpancover-build-module $module)
         # https://github.com/dotcloud/docker/issues/3986
-        $DOCKER wait "$name"
+        $DOCKER wait "$name" > /dev/null
         if [ $? = 0 ]; then
             $DOCKER logs "$name" > "$staging/$name.out"
             local_staging="$staging/$name"

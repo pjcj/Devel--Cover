@@ -262,7 +262,7 @@ sub write_json {
                 keys %$m
             };
         } else {
-            print "Cannot process $module: ", Dumper $m;
+            print "Cannot process $module: ", Dumper $m if $self->verbose;
         }
     };
     # print Dumper $vars, $results;
@@ -309,7 +309,7 @@ sub generate_html {
     for my $module (@modules) {
         my $cover = "$d/$module/cover.json";
         next unless -e $cover;
-        say "Adding $module";
+        say "Adding $module" if $self->verbose;
 
         my $io   = Devel::Cover::DB::IO::JSON->new;
         my $json = $io->read($cover);
@@ -428,10 +428,10 @@ sub cover_modules {
                               =~ s/\.(?:zip|tgz|(?:tar\.(?:gz|bz2)))$//r;
             if ($self->is_covered($dir)) {
                 $self->set_covered($dir);
-                say "$module already covered";
+                say "$module already covered" if $self->verbose;
                 return;
             } elsif ($self->is_failed($dir)) {
-                say "$module already failed";
+                say "$module already failed" if $self->verbose;
                 return;
             }
 
