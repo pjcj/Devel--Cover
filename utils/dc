@@ -115,7 +115,8 @@ case "$1" in
         export CPANCOVER_LOCAL=1
         export DEVEL_COVER_CPUS=10
         while true; do
-            echo Starting cpancover run at `date`
+            echo Starting cpancover run at `date` on $DEVEL_COVER_CPUS cpus
+            $0 cpancover-rm-docker  # just in case something bad happened
             $0 cpancover-latest | $0 cpancover
             $0 cpancover-generate-html
             echo Finished cpancover run at `date`
