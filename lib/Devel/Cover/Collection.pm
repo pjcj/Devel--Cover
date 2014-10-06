@@ -471,7 +471,7 @@ sub get_latest {
 
     require CPAN::Releases::Latest;
 
-    my $latest   = CPAN::Releases::Latest->new;
+    my $latest   = CPAN::Releases::Latest->new(max_age => 0);  # no caching
     my $iterator = $latest->release_iterator;
 
     while (my $release = $iterator->next_release) {
