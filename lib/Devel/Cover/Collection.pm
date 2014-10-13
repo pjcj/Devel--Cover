@@ -296,6 +296,7 @@ sub generate_html {
         title    => "Coverage report",
         modules  => {},
         vals     => {},
+        subdir   => "latest/",
         headers  => [ grep !/path|time/,
                            @Devel::Cover::DB::Criteria_short, "total" ],
         criteria => [ grep !/path|time/,
@@ -639,7 +640,7 @@ http://www.pjcj.net
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta>
     <meta http-equiv="Content-Language" content="en-us"></meta>
-    <link rel="stylesheet" type="text/css" href="/collection.css"></link>
+    <link rel="stylesheet" type="text/css" href="/[% subdir %]collection.css"></link>
     <title> [% title %] </title>
 </head>
 <body>
@@ -653,7 +654,7 @@ http://www.pjcj.net
     <br/>
 
     Please report problems with this site to the
-    <a href="https://github.com/pjcj/Devel--Cover/issues">issue tracker</a>
+    <a href="https://github.com/pjcj/Devel--Cover/issues">issue tracker</a>.
 
     <br/>
     <br/>
@@ -709,7 +710,7 @@ $Templates{module_by_start} = <<'EOT';
         <tr align="right" valign="middle">
             <td align="left">
                 [% IF vals.$m.link %]
-                    <a href="[%- vals.$m.link -%]">
+                    <a href="/[% subdir %][%- vals.$m.link -%]">
                         [% module.name || module.module %]
                     </a>
                 [% ELSE %]
