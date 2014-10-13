@@ -294,7 +294,7 @@ sub generate_html {
 
     my $vars = {
         title    => "Coverage report",
-        modules  => [],
+        modules  => {},
         vals     => {},
         headers  => [ grep !/path|time/,
                            @Devel::Cover::DB::Criteria_short, "total" ],
@@ -324,11 +324,12 @@ sub generate_html {
             $mod->{name}    //= $name;
             $mod->{version} //= $version;
         }
-        push @{$vars->{modules}}, $mod;
+        my $start = uc substr $module, 0, 1;
+        push @{$vars->{modules}{$start}}, $mod;
 
         my $m = $vars->{vals}{$module} = {};
         $m->{module} = $mod;
-        $m->{link}   = "$module/index.html"
+        $m->{link}   = "/$module/index.html"
             if $json->{summary}{Total}{total}{total};
 
         for my $criterion (@{$vars->{criteria}}) {
@@ -351,7 +352,14 @@ sub generate_html {
         ],
     });
     $template->process("summary", $vars, $f) or die $template->error;
+    for my $start (sort keys %{$vars->{modules}}) {
+        $vars->{module_start} = $start;
+        my $dist = "$d/dist/$start.html";
+        $template->process("module_by_start", $vars, $dist)
+            or die $template->error;
+    }
 
+    # print Dumper $vars;
     $self->write_json($vars);
 
     say "Wrote collection output to $f";
@@ -631,11 +639,29 @@ http://www.pjcj.net
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta>
     <meta http-equiv="Content-Language" content="en-us"></meta>
-    <link rel="stylesheet" type="text/css" href="collection.css"></link>
+    <link rel="stylesheet" type="text/css" href="/collection.css"></link>
     <title> [% title %] </title>
 </head>
 <body>
     [% content %]
+    <p/>
+    <hr/>
+    Coverage information from <a href="https://metacpan.org/module/Devel::Cover">
+      Devel::Cover
+    </a> by <a href="http://pjcj.net">Paul Johnson</a>.
+
+    <br/>
+
+    Please report problems with this site to the
+    <a href="https://github.com/pjcj/Devel--Cover/issues">issue tracker</a>
+
+    <br/>
+    <br/>
+
+    This server generously donated by
+    <a href="http://www.bytemark.co.uk/r/cpancover">
+      <img src="http://www.bytemark.co.uk/images/subpages/spreadtheword/bytemark_logo_179_x_14.png" alt="bytemark"/>
+    </a>
 </body>
 </html>
 EOT
@@ -643,11 +669,32 @@ EOT
 $Templates{summary} = <<'EOT';
 [% WRAPPER html %]
 
-<h1> [% title %] </h1>
+<h1> CPANCover </h1>
+
+<h2> Distributions </h2>
+
+Search for distributions by first character:<p/>
+
+[% FOREACH start = modules.keys.sort %]
+    <a href="dist/[%- start -%].html">[% start %]</a>
+[% END %]
+
+<h2> Core coverage </h2>
+
+<a href="http://cpancover.com/blead/latest/coverage.html">Perl core coverage</a>
+(under development)
+
+[% END %]
+EOT
+
+$Templates{module_by_start} = <<'EOT';
+[% WRAPPER html %]
+
+<h1> [% title %] - [% modules_tart %] </h1>
 
 <table>
 
-    [% IF modules %]
+    [% IF modules.$module_start %]
         <tr align="right" valign="middle">
             <th class="header" align="left" style='white-space: nowrap;'> Module </th>
             <th class="header">              Version </th>
@@ -657,7 +704,7 @@ $Templates{summary} = <<'EOT';
         </tr>
     [% END %]
 
-    [% FOREACH module = modules %]
+    [% FOREACH module = modules.$module_start %]
         [% m = module.module %]
         <tr align="right" valign="middle">
             <td align="left">
@@ -682,28 +729,6 @@ $Templates{summary} = <<'EOT';
 </table>
 
 <br/>
-
-<hr/>
-Coverage information from <a href="https://metacpan.org/module/Devel::Cover">
-  Devel::Cover
-</a> by <a href="http://pjcj.net">Paul Johnson</a>.
-
-<br/>
-
-Please report problems with this site to the
-<a href="https://github.com/pjcj/Devel--Cover/issues">issue tracker</a>
-
-<br/>
-<a href="http://cpancover.com/blead/latest/coverage.html">Core coverage</a>
-(under development)
-
-<br/>
-<br/>
-
-This server generously donated by
-<a href="http://www.bytemark.co.uk/r/cpancover">
-  <img src="http://www.bytemark.co.uk/images/subpages/spreadtheword/bytemark_logo_179_x_14.png" alt="bytemark"/>
-</a>
 
 [% END %]
 EOT
