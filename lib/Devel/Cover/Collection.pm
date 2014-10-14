@@ -258,7 +258,7 @@ sub write_json {
             $results->{$name}{$version}{coverage}{total} = {
                 map { $_ => $m->{$_}{pc} }
                 grep $m->{$_}{pc} ne 'n/a',
-                grep !/link|module/,
+                grep !/link|log|module/,
                 keys %$m
             };
         } else {
@@ -344,6 +344,17 @@ sub generate_html {
                 ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
         }
     }
+
+    for my $file (@modules) {
+        # say "looking at [$file]";
+        my ($module) = $file =~ /^ \w - \w\w - \w+ - (.*)
+                                 \. (?: zip | tgz | (?: tar \. (?: gz | bz2 )))
+                                 -- \d{10,11} \. \d{6} \. out \. gz $/x
+          or next;
+        # say "found at [$module]";
+        $vars->{vals}{$module}{log} = $file;
+    }
+
     # print "vars ", Dumper $vars;
 
     $self->write_stylesheet;
@@ -698,7 +709,8 @@ $Templates{module_by_start} = <<'EOT';
     [% IF modules.$module_start %]
         <tr align="right" valign="middle">
             <th class="header" align="left" style='white-space: nowrap;'> Module </th>
-            <th class="header">              Version </th>
+            <th class="header"> Version </th>
+            <th class="header"> Log </th>
             [% FOREACH header = headers %]
                 <th class="header"> [% header %] </th>
             [% END %]
@@ -718,6 +730,7 @@ $Templates{module_by_start} = <<'EOT';
                 [% END %]
             </td>
             <td> [% module.version %] </td>
+            <td> <a href="/[% subdir %][% vals.$m.log %]"> &para; </a> </td>
             [% FOREACH criterion = criteria %]
                 <td class="[%- vals.$m.$criterion.class -%]"
                     title="[%- vals.$m.$criterion.details -%]">
