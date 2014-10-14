@@ -691,7 +691,7 @@ EOT
 $Templates{module_by_start} = <<'EOT';
 [% WRAPPER html %]
 
-<h1> [% title %] - [% modules_tart %] </h1>
+<h1> [% title %] - [% module_start %] </h1>
 
 <table>
 
