@@ -307,6 +307,7 @@ sub generate_html {
     my @modules = sort grep !/^\./, readdir $dh;
     closedir $dh or die "Can't closedir $d: $!";
 
+    my $n = 0;
     for my $module (@modules) {
         my $cover = "$d/$module/cover.json";
         next unless -e $cover;
@@ -343,8 +344,11 @@ sub generate_html {
             $m->{$criterion}{details} =
                 ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
         }
+
+        print "." if !($n++ % 1000) && !$self->verbose;
     }
 
+    $n = 0;
     for my $file (@modules) {
         # say "looking at [$file]";
         my ($module) = $file =~ /^ \w - \w\w - \w+ - (.*)
@@ -353,6 +357,7 @@ sub generate_html {
           or next;
         # say "found at [$module]";
         $vars->{vals}{$module}{log} = $file;
+        print "-" if !($n++ % 1000) && !$self->verbose;
     }
 
     # print "vars ", Dumper $vars;
@@ -374,7 +379,7 @@ sub generate_html {
     # print Dumper $vars;
     $self->write_json($vars);
 
-    say "Wrote collection output to $f";
+    say "\nWrote collection output to $f";
 }
 
 sub local_build {
