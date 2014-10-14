@@ -24,9 +24,10 @@ case "$1" in
         ;;
     "install_dependencies")
         shift;
-        cpan -iTf Sereal Digest::MD5 Template Pod::Coverage::CountParents \
+        cpan -iTf Sereal Digest::MD5 Template Pod::Coverage::CountParents     \
                   Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
-                  Moo namespace::clean CPAN::Releases::Latest < /dev/null
+                  Moo namespace::clean CPAN::Releases::Latest                 \
+                  < /dev/null
         ;;
     "nice_cpus")
         shift;
