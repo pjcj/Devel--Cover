@@ -1375,7 +1375,7 @@ information as possible.
 =head1 OPTIONS
 
  -blib               - "use blib" and ignore files matching \bt/ (default true
-                       iff blib directory exists).
+                       if blib directory exists).
  -coverage criterion - Turn on coverage for the specified criterion.  Criteria
                        include statement, branch, condition, path, subroutine,
                        pod, time, all and none (default all available).
