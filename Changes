@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Remove dependency on CGI (use HTML::Entities instead)
 
 Release 1.17 - 20 September 2014
  - Get cpancover to release quality.

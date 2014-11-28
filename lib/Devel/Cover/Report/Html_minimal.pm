@@ -2,7 +2,7 @@ package Devel::Cover::Report::Html_minimal;
 BEGIN {require 5.006}
 use strict;
 use warnings;
-use CGI;
+use HTML::Entities;
 use Getopt::Long;
 use Devel::Cover::DB;
 use Devel::Cover::Html_Common "launch";
@@ -444,7 +444,7 @@ sub escape_HTML {
     my $text = shift;
     chomp $text;
 
-    $text = CGI::escapeHTML($text);
+    $text = encode_entities($text);
 
     # Do not allow FF in text
     $text =~ tr/\x0c//d;

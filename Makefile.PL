@@ -264,12 +264,11 @@ Browser::Open is used to launch a web browser when the -launch flag is specified
 with HTML report formats. You can download Browser::Open from CPAN.
 EOM
 
-check "CGI", <<EOM;
-CGI is used to run the HTML reports.  It used to be a part of the perl core, but
-as of perl 5.20 it will need to be downloaded from CPAN.  If you would like to
-use the HTML report, please install CGI.  Otherwise, other reports will be
-available as usual.  Because HTML reports are expected, GCI has been added to
-the prerequisites.
+check "HTML::Entities", <<EOM;
+HTML::Entities is used to run the HTML reports.  If you would like to use the
+HTML report, please install HTML::Entities.  Otherwise, other reports will be
+available as usual.  Because HTML reports are expected, HTML::Entities has been
+added to the prerequisites.
 EOM
 
 my $latest_tested = "5.020001";
@@ -322,7 +321,7 @@ my $opts = {
     PREREQ_PM        => {
                             Storable      => 0,
                             "Digest::MD5" => 0,
-                            CGI           => 0,
+                            "HTML::Entities" => 3.69,
                             $ENV{DEVEL_COVER_NO_TESTS}
                                 ? ()
                                 : ( "Test::More"  => 0, "Test::Warn"  => 0 )

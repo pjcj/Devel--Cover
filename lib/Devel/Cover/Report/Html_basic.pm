@@ -17,7 +17,7 @@ use Devel::Cover::DB;
 use Devel::Cover::Html_Common "launch";
 use Devel::Cover::Web "write_file";
 
-use CGI;
+use HTML::Entities;
 use Getopt::Long;
 use Template 2.00;
 
@@ -291,7 +291,7 @@ sub print_conditions {
     my @types = map
                 {
                     name       => do { my $n = $_; $n =~ s/_/ /g; $n },
-                    headers    => [ map { CGI::escapeHTML($_) }
+                    headers    => [ map { encode_entities($_) }
                                     @{$r{$_}[0]{condition}->headers || []} ],
                     conditions => $r{$_},
                 }, sort keys %r;
