@@ -1375,7 +1375,7 @@ information as possible.
 =head1 OPTIONS
 
  -blib               - "use blib" and ignore files matching \bt/ (default true
-                       iff blib directory exists).
+                       if blib directory exists, false otherwise).
  -coverage criterion - Turn on coverage for the specified criterion.  Criteria
                        include statement, branch, condition, path, subroutine,
                        pod, time, all and none (default all available).
@@ -1392,7 +1392,7 @@ information as possible.
  -silent val         - Don't print informational messages (default off).
  -subs_only val      - Only cover code in subroutine bodies (default off).
  -replace_ops val    - Use op replacing rather than runops (default on).
- -summary val        - Print summary information iff val is true (default on).
+ -summary val        - Print summary information if val is true (default on).
 
 =head2 More on Coverage Options
 
