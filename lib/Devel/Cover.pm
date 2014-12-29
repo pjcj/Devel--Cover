@@ -1542,7 +1542,7 @@ case at the moment.
 =head2 Non-invasive specification
 
 If you can't, or don't want to add coverage comments to your code, you can
-specify the uncoverable information in a separate file.  My default this file
+specify the uncoverable information in a separate file.  By default this file
 is L<.uncoverable> but you can override that.
 
 The interface to managing this file is the L<cover> program, and the options
