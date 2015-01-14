@@ -217,6 +217,19 @@ sub print_file {
     }
     close F or die "Unable to close $R{file}: $!";
 
+    # Add forward references to uncovered lines ...
+    # first line has a ref to the first uncovered line unless
+    # the first line already is uncovered in which case it links
+    # to the *next* uncovered line
+    {	my @unc = grep { $_->{criteria}[0]{class} eq "c0" &&
+                         $_->{criteria}[0]{text}  eq  "0" } @lines;
+	while (@unc) {
+	    my $u = pop @unc;
+	    my $link = "#" . $u->{number};
+	    (@unc ? $unc[-1] : $lines[0])->{criteria}[0]{link} ||= $link;
+	}
+    }
+
     my $vars = {
         R     => \%R,
         lines => \@lines,
