@@ -359,6 +359,7 @@ sub generate_html {
         $vars->{vals}{$module}{log} = $file;
         print "-" if !($n++ % 1000) && !$self->verbose;
     }
+    say "";
 
     # print "vars ", Dumper $vars;
 
@@ -379,7 +380,7 @@ sub generate_html {
     # print Dumper $vars;
     $self->write_json($vars);
 
-    say "\nWrote collection output to $f";
+    say "Wrote collection output to $f";
 }
 
 sub local_build {
