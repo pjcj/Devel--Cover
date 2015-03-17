@@ -1470,7 +1470,7 @@ construct.
 =head3 Statements
 
 The "uncoverable" comment should appear on either the same line as the
-statement, of on the line before it:
+statement, or on the line before it:
 
     $impossible++;  # uncoverable statement
     # uncoverable statement
