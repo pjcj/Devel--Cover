@@ -588,8 +588,8 @@ static void dump_conditions(pTHX) {
         i = 2;
 #endif
 
-        PDEB(D(L, "  %s: op %p, next %p (%d)\n",
-               hex_key(key), next, addr, av_len(conds) - 1));
+        PDEB(D(L, "  %s: op %p, next %p (%ld)\n",
+               hex_key(key), next, addr, (long)av_len(conds) - 1));
 
         for (; i <= av_len(conds); i++) {
             OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
