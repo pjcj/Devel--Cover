@@ -19,11 +19,12 @@ Christian Walde                walde.christian@gmail.com
 cono                           https://github.com/cono
 Curtis Jewell                  csjewell@cpan.org
 Daisuke Maki                   dmaki@cpan.org
+Daniel Coupal                  dcoupal@cisco.com
+Daniel Perrett                 perrettdl@googlemail.com
 Dave Rolsky                    autarch@urth.org
 David Cantrell                 david@cantrell.org.uk
-David Steinbrunner             dsteinbrunner@pobox.com
 David E. Wheeler               david@justatheory.com
-Daniel Coupal                  dcoupal@cisco.com
+David Steinbrunner             dsteinbrunner@pobox.com
 Denis Howe                     denis.howe@gmail.com
 Dinis Rebolo                   dinisrebolo@gmail.com
 Dominic Mitchell               dom@happygiraffe.net
@@ -37,18 +38,19 @@ Gregor Herrmann                gregoa@debian.org
 Guillaume Aubert               aubertg@cpan.org
 Heikki J Laaksonen             heikki.j.laaksonen@kolumbus.fi
 H.Merijn Brand                 h.m.brand@xs4all.nl
+James E Keenan                 jkeenan@cpan.org
 Jeff Wren                      jeffrey.wren@paradigm-works.com
 Jim Cromie                     jcromie@cpan.org
-James E Keenan                 jkeenan@cpan.org
 John Lightsey                  jd@cpanel.net
 John LoVerso                   jloverso@mathworks.com
 Jonathan "Duke" Leto           jonathan@leto.net
 Kan Fushihara                  kan.fushihara@gmail.com
-Kent Fredric                   kentfredric@gmail.com
 Keith Wissing
+Kent Fredric                   kentfredric@gmail.com
 Kirk Kimmel                    kimmel@cpan.org
 Larry Leszczynski              larryl@cpan.org
 Lasse Makholm                  lasse@unity3d.com
+Lee Johnson                    lee@givengain.ch
 Léon Brocard                   acme@astray.com
 Marcel Grünauer                marcel@cpan.org
 Mark Stosberg                  mark@summersault.com
@@ -83,6 +85,7 @@ Tatsuhiko Miyagawa             miyagawa@bulknews.net
 Thomas Dorner                  dorner (AT) cpan.org
 Vadim O. Ustiansky             ustiansky@cpan.org
 Xavier Caron                   xcaron@gmail.com
+Zefram                         zefram@fysh.org
 
 
 If you should be on this list and I have overlooked your contribution, please

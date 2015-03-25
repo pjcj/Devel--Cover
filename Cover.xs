@@ -622,7 +622,7 @@ static OP *find_skipped_conditional(pTHX_ OP *o) {
         return NULL;
 
     OP *next = right->op_next;
-    while (next && next->op_type == NULL)
+    while (next && next->op_type == OP_NULL)
         next = next->op_next;
 
     if (!next)

@@ -1,7 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
- - Remove dependency on CGI (use HTML::Entities instead)
+ - Remove dependency on CGI (use HTML::Entities instead) (Lee Johnson).
+ - Fix a use of the wrong type of null constant (Zefram) (RT #103102).
 
 Release 1.17 - 20 September 2014
  - Get cpancover to release quality.
