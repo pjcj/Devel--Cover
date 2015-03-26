@@ -20,7 +20,7 @@ tests/cond_or
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2002-2014, Paul Johnson (paul@pjcj.net)
+3                                       # Copyright 2002-2015, Paul Johnson (paul@pjcj.net)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
