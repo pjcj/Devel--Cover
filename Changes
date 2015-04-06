@@ -4,6 +4,7 @@ Devel::Cover history
  - Remove dependency on CGI (use HTML::Entities instead) (Lee Johnson).
  - Fix a use of the wrong type of null constant (Zefram) (RT #103102).
  - Link to next uncovered statement in html_basic (H.Merijn Brand).
+ - Add "provides" to metadata (Ivan Wills) (github 119).
 
 Release 1.17 - 20 September 2014
  - Get cpancover to release quality.
