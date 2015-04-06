@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.18 - 6 April 2015
  - Remove dependency on CGI (use HTML::Entities instead) (Lee Johnson).
  - Fix a use of the wrong type of null constant (Zefram) (RT #103102).
  - Link to next uncovered statement in html_basic (H.Merijn Brand) (github 112).
