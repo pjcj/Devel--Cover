@@ -4,8 +4,8 @@ Reading database from ...
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/overloaded                            100.0   50.0    n/a  100.0   91.6
-Total                                       100.0   50.0    n/a  100.0   91.6
+tests/overloaded                            100.0   50.0    n/a  100.0   93.7
+Total                                       100.0   50.0    n/a  100.0   93.7
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -36,9 +36,11 @@ line  err   stmt   bran   cond    sub   code
 16                                      
 17             1                    1   sub new { my $p = shift; bless [@_], $p }
                1                        
-18                                      use overload '""' => \&str, '0+' => \&num, fallback => 1;
+18             1                    1   use overload '""' => \&str, '0+' => \&num, fallback => 1;
+               1                        
+               1                        
 19             2                    2   sub num {shift->[1]}
-20             2                    2   sub str {shift->[0]}
+20             3                    3   sub str {shift->[0]}
 21                                      
 22                                      package main;
 23                                      
@@ -52,7 +54,7 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-26    ***     50      1      0   if $seven =~ /i/
+26    ***     50      1      0   if /i/
 
 
 Covered Subroutines
@@ -60,8 +62,9 @@ Covered Subroutines
 
 Subroutine Count Location           
 ---------- ----- -------------------
+BEGIN          1 tests/overloaded:18
 new            1 tests/overloaded:17
 num            2 tests/overloaded:19
-str            2 tests/overloaded:20
+str            3 tests/overloaded:20
 
 
