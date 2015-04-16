@@ -9,6 +9,9 @@
 
 # Example stolen from overload documentation
 
+# __COVER__ changes s/^17 +3 +3/17 2 2/
+# __COVER__ changes s/^(str +)3( tests/overloaded:17)/${1}2$2/
+
 package two_face;
 
 sub new { my $p = shift; bless [@_], $p }
