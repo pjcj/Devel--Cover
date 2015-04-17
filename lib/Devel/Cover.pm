@@ -391,7 +391,6 @@ sub populate_run {
     $Run{dir}  = $Dir;
     $Run{run}  = $0;
 
-    my $version;
     my $mymeta = "$Dir/MYMETA.json";
     if (-e $mymeta) {
         eval {
@@ -400,9 +399,14 @@ sub populate_run {
             my $json = $io->read($mymeta);
             $Run{$_} = $json->{$_} for qw( name version abstract );
         }
-    } elsif ($Dir =~ m|.*/([^/]+?)(\d+\.\d+)(?:-\w{6})$|) {
-        $Run{name}    = $1;
-        $Run{version} = $2;
+    } elsif ($Dir =~ m|.*/([^/]+)$|) {
+        my $filename = $1;
+        eval {
+             require CPAN::DistnameInfo;
+             my $dinfo = CPAN::DistnameInfo->new($filename);
+             $Run{name}    = $dinfo->dist;
+             $Run{version} = $dinfo->version;
+        }
     }
 
     $Run{start} = get_elapsed() / 1e6;
