@@ -96,6 +96,7 @@ typedef struct {
 #else
     OP           *(*ppaddr[MAXO])(pTHX);
 #endif
+    Perl_ophook_t ophook;
 } my_cxt_t;
 
 #ifdef USE_ITHREADS
@@ -1285,6 +1286,13 @@ static SV *make_sv_object(pTHX_ SV *arg, SV *sv) {
     return arg;
 }
 
+static void dc_ophook(pTHX_ OP *o) {
+    /* if (PL_dirty) return; */
+    dMY_CXT;
+    PDEB(D(L, "deleting op %p (%s)\n", o, OP_NAME(o)));
+    if (MY_CXT.ophook) MY_CXT.ophook(aTHX_ o);
+}
+
 
 typedef OP *B__OP;
 typedef AV *B__AV;
@@ -1497,7 +1505,9 @@ BOOT:
         } else {
             PL_runops = runops_cover;
         }
+        MY_CXT.ophook = PL_opfreehook;
+        PL_opfreehook = dc_ophook;
 #if PERL_VERSION > 6
-        PL_savebegin = TRUE;
+        PL_savebegin = TRUE;  /* TODO - needed? */
 #endif
     }
