@@ -951,7 +951,7 @@ sub deparse_cond {
     my ($deparse, $cond, $cx) = @_;
     return "?" unless $deparse;
     local $Collect;
-    $deparse->deparse($cond, 8)
+    $deparse->deparse($cond, $cx)
 }
 
 sub collect_op {
