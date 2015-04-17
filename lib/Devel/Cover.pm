@@ -992,7 +992,7 @@ sub collect_op {
             my $cond  = $op->first;
             my $true  = $cond->sibling;
             my $false = $true->sibling;
-            if (!((!defined $cx || $cx < 1) && (is_scope($true) && $true->name ne "null") &&
+            if (!((defined $cx && $cx < 1) && (is_scope($true) && $true->name ne "null") &&
                     (is_scope($false) || is_ifelse_cont($false))
                     && $deparse->{'expand'} < 7)) {
                 $cond = deparse_cond($deparse, $cond, 8);
