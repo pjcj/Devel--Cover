@@ -1,0 +1,18 @@
+#!/usr/bin/perl
+
+# Copyright 2002-2015, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+use lib "tests";
+
+use Module_statements;
+
+sub xx {
+  Module_statements::aa;
+}
+
+xx;

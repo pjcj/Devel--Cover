@@ -22,7 +22,8 @@ use Devel::Cover::DB;
 use Devel::Cover::DB::Digests;
 use Devel::Cover::Inc;
 
-use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
+use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS
+          svref_2object );
 use B::Debug;
 use B::Deparse;
 
@@ -75,6 +76,7 @@ my @Subs;                                # All the subs we want to cover.
 my $Cv;                                  # Cv we are looking in.
 my $Sub_name;                            # Name of the sub we are looking in.
 my $Sub_count;                           # Count for multiple subs on same line.
+my $Collect_ophook = 1;                  # Are we collecting from ophook calls.
 
 my $Coverage;                            # Raw coverage data.
 my $Structure;                           # Structure of the files.
@@ -259,6 +261,8 @@ EOM
 
 sub last_end {
     # print STDERR "**** END 2 - [$Initialised]\n";
+    reset_ophook();
+    $Collect_ophook = 0;
     report() if $Initialised;
     # print STDERR "**** END 2 - ended\n";
 }
@@ -692,6 +696,17 @@ EOM
     _report();
 }
 
+sub read_structure {
+    return if $Structure;
+    $Structure = Devel::Cover::DB::Structure->new(base => $DB);
+    $Structure->read_all;
+}
+
+sub show_coverage {
+    my $c = coverage(0) || die "No coverage data available.\n";
+    print STDERR "Coverage: ", Dumper $c;
+}
+
 sub _report {
     local @SIG{qw(__DIE__ __WARN__)};
     # $SIG{__DIE__} = \&Carp::confess;
@@ -709,15 +724,17 @@ sub _report {
     my $starting_dir = $1 if Cwd::getcwd() =~ /(.*)/;
     chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
 
-    $Run{collected} = \@collected;
-    $Structure      = Devel::Cover::DB::Structure->new(base => $DB);
-    $Structure->read_all;
-    $Structure->add_criteria(@collected);
     # print STDERR "Start structure: ", Dumper $Structure;
+    # print STDERR "Start run: ", Dumper \%Run;
+    $Run{collected} = \@collected;
+    read_structure;
+    $Structure->add_criteria(@collected);
+    # print STDERR "Raad structure: ", Dumper $Structure;
 
     # print STDERR "Processing cover data\n@Inc\n";
+    # print STDERR "Coverage was: ", Dumper $Coverage;
     $Coverage = coverage(1) || die "No coverage data available.\n";
-    # print STDERR Dumper $Coverage;
+    # print STDERR "Coverage: ", Dumper $Coverage;
 
     check_files();
 
@@ -814,9 +831,9 @@ sub add_statement_cover {
 
     $Run{digests}{$File} ||= $Structure->set_file($File);
     my $key = get_key($op);
-    my $val = $Coverage->{statement}{$key} || 0;
+    my $val = $Coverage->{statement}{$key} ||= 1;
     my ($n, $new) = $Structure->add_count("statement");
-    # print STDERR "Stmt $File:$Line - $n, $new\n";
+    # print STDERR "Stmt $File:$Line - $n, $new, $key, $val\n", Dumper $Coverage;
     $Structure->add_statement($File, $Line) if $new;
     $Run{count}{$File}{statement}[$n] += $val;
     my $vec = $Run{vec}{$File}{statement};
@@ -956,6 +973,10 @@ sub deparse_cond {
 
 sub collect_op {
     my ($op, $deparse, $cx) = @_;
+    # print STDERR "collect_op [$op][$Collect_ophook][$Collect]\n";
+
+    return unless $Collect_ophook || $deparse;
+    read_structure;
 
     if ($Collect) {
         my $class = class($op);
@@ -964,6 +985,7 @@ sub collect_op {
         my $name = $op->can("name") ? $op->name : "Unknown";
 
         # print STDERR "$class:$name ($$op) at $File:$Line\n";
+        # print STDERR "statement [$Coverage{statement}]\n";
         # print STDERR "[$Seen{statement}{$$op}] [$Seen{other}{$$op}]\n";
         # use Carp "cluck"; cluck("from here");
 
@@ -971,12 +993,12 @@ sub collect_op {
 
         # Get the coverage on this op.
 
-        if ($class eq "COP" && $Coverage{statement}) {
+        if ($class eq "COP" && ($Collect_ophook || $Coverage{statement})) {
             # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
             add_statement_cover($op) unless $Seen{statement}{$$op}++;
         } elsif (!$null && $name eq "null"
                       && ppname($op->targ) eq "pp_nextstate"
-                      && $Coverage{statement}) {
+                      && ($Collect_ophook || $Coverage{statement})) {
             # If the current op is null, but it was nextstate, we can still
             # get at the file and line number, but we need to get dirty.
 
