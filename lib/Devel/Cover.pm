@@ -947,6 +947,79 @@ BEGIN {
     $Original{logassignop} = \&B::Deparse::logassignop;
 }
 
+sub deparse_cond {
+    my ($deparse, $cond, $cx) = @_;
+    return "?" unless $deparse;
+    local $Collect;
+    $deparse->deparse($cond, 8)
+}
+
+sub collect_op {
+    my ($op, $deparse, $cx) = @_;
+
+    if ($Collect) {
+        my $class = class($op);
+        my $null  = $class eq "NULL";
+
+        my $name = $op->can("name") ? $op->name : "Unknown";
+
+        # print STDERR "$class:$name ($$op) at $File:$Line\n";
+        # print STDERR "[$Seen{statement}{$$op}] [$Seen{other}{$$op}]\n";
+        # use Carp "cluck"; cluck("from here");
+
+        return if $name eq "padrange";
+
+        # Get the coverage on this op.
+
+        if ($class eq "COP" && $Coverage{statement}) {
+            # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
+            add_statement_cover($op) unless $Seen{statement}{$$op}++;
+        } elsif (!$null && $name eq "null"
+                      && ppname($op->targ) eq "pp_nextstate"
+                      && $Coverage{statement}) {
+            # If the current op is null, but it was nextstate, we can still
+            # get at the file and line number, but we need to get dirty.
+
+            bless $op, "B::COP";
+            # print STDERR "null $$op, seen [$Seen{statement}{$$op}]\n";
+            add_statement_cover($op) unless $Seen{statement}{$$op}++;
+            bless $op, "B::$class";
+        } elsif ($Seen{other}{$$op}++) {
+            # print STDERR "seen [$Seen{other}{$$op}]\n";
+            return ""  # Only report on each op once.
+        } elsif ($name eq "cond_expr") {
+            local ($File, $Line) = ($File, $Line);
+            my $cond  = $op->first;
+            my $true  = $cond->sibling;
+            my $false = $true->sibling;
+            if (!((!defined $cx || $cx < 1) && (is_scope($true) && $true->name ne "null") &&
+                    (is_scope($false) || is_ifelse_cont($false))
+                    && $deparse->{'expand'} < 7)) {
+                $cond = deparse_cond($deparse, $cond, 8);
+                add_branch_cover($op, "if", "$cond ? :", $File, $Line);
+            } else {
+                $cond = deparse_cond($deparse, $cond, 1);
+                add_branch_cover($op, "if", "if ($cond) { }", $File, $Line);
+                while (class($false) ne "NULL" && is_ifelse_cont($false)) {
+                    my $newop   = $false->first;
+                    my $newcond = $newop->first;
+                    my $newtrue = $newcond->sibling;
+                    if ($newcond->name eq "lineseq") {
+                        # lineseq to ensure correct line numbers in elsif()
+                        # Bug #37302 fixed by change #33710.
+                        $newcond = $newcond->first->sibling;
+                    }
+                    # last in chain is OP_AND => no else
+                    $false      = $newtrue->sibling;
+                    $newcond = deparse_cond($deparse, $newcond, 1);
+                    add_branch_cover($newop, "elsif", "elsif ($newcond) { }",
+                                     $File, $Line);
+                }
+            }
+        }
+    }
+}
+
 sub deparse {
     my $self = shift;
     my ($op, $cx) = @_;
@@ -977,53 +1050,7 @@ sub deparse {
         }
 
         # Get the coverage on this op.
-
-        if ($class eq "COP" && $Coverage{statement}) {
-            # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
-            add_statement_cover($op) unless $Seen{statement}{$$op}++;
-        } elsif (!$null && $name eq "null"
-                      && ppname($op->targ) eq "pp_nextstate"
-                      && $Coverage{statement}) {
-            # If the current op is null, but it was nextstate, we can still
-            # get at the file and line number, but we need to get dirty.
-
-            bless $op, "B::COP";
-            # print STDERR "null $$op, seen [$Seen{statement}{$$op}]\n";
-            add_statement_cover($op) unless $Seen{statement}{$$op}++;
-            bless $op, "B::$class";
-        } elsif ($Seen{other}{$$op}++) {
-            # print STDERR "seen [$Seen{other}{$$op}]\n";
-            return ""  # Only report on each op once.
-        } elsif ($name eq "cond_expr") {
-            local ($File, $Line) = ($File, $Line);
-            my $cond  = $op->first;
-            my $true  = $cond->sibling;
-            my $false = $true->sibling;
-            if (!($cx < 1 && (is_scope($true) && $true->name ne "null") &&
-                    (is_scope($false) || is_ifelse_cont($false))
-                    && $self->{'expand'} < 7)) {
-                { local $Collect; $cond = $self->deparse($cond, 8) }
-                add_branch_cover($op, "if", "$cond ? :", $File, $Line);
-            } else {
-                { local $Collect; $cond = $self->deparse($cond, 1) }
-                add_branch_cover($op, "if", "if ($cond) { }", $File, $Line);
-                while (class($false) ne "NULL" && is_ifelse_cont($false)) {
-                    my $newop   = $false->first;
-                    my $newcond = $newop->first;
-                    my $newtrue = $newcond->sibling;
-                    if ($newcond->name eq "lineseq") {
-                        # lineseq to ensure correct line numbers in elsif()
-                        # Bug #37302 fixed by change #33710.
-                        $newcond = $newcond->first->sibling;
-                    }
-                    # last in chain is OP_AND => no else
-                    $false      = $newtrue->sibling;
-                    { local $Collect; $newcond = $self->deparse($newcond, 1) }
-                    add_branch_cover($newop, "elsif", "elsif ($newcond) { }",
-                                     $File, $Line);
-                }
-            }
-        }
+        collect_op($op, $self, $cx);
     } else {
         local ($File, $Line) = ($File, $Line);
         # print STDERR "Starting plain deparse at $File:$Line\n";
