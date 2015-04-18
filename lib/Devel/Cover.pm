@@ -76,7 +76,7 @@ my @Subs;                                # All the subs we want to cover.
 my $Cv;                                  # Cv we are looking in.
 my $Sub_name;                            # Name of the sub we are looking in.
 my $Sub_count;                           # Count for multiple subs on same line.
-my $Collect_ophook = 1;                  # Are we collecting from ophook calls.
+my $Collect_opfreehook = 1;              # Collecting from opfreehook calls?
 
 my $Coverage;                            # Raw coverage data.
 my $Structure;                           # Structure of the files.
@@ -261,8 +261,8 @@ EOM
 
 sub last_end {
     # print STDERR "**** END 2 - [$Initialised]\n";
-    reset_ophook();
-    $Collect_ophook = 0;
+    reset_opfreehook();
+    $Collect_opfreehook = 0;
     report() if $Initialised;
     # print STDERR "**** END 2 - ended\n";
 }
@@ -973,9 +973,9 @@ sub deparse_cond {
 
 sub collect_op {
     my ($op, $deparse, $cx) = @_;
-    # print STDERR "collect_op [$op][$Collect_ophook][$Collect]\n";
+    print STDERR "collect_op [$op][$Collect_opfreehook][$Collect]\n";
 
-    return unless $Collect_ophook || $deparse;
+    # return unless $Collect_opfreehook || $deparse;
     read_structure;
 
     if ($Collect) {
@@ -993,12 +993,12 @@ sub collect_op {
 
         # Get the coverage on this op.
 
-        if ($class eq "COP" && ($Collect_ophook || $Coverage{statement})) {
+        if ($class eq "COP" && ($Collect_opfreehook || $Coverage{statement})) {
             # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
             add_statement_cover($op) unless $Seen{statement}{$$op}++;
         } elsif (!$null && $name eq "null"
                       && ppname($op->targ) eq "pp_nextstate"
-                      && ($Collect_ophook || $Coverage{statement})) {
+                      && ($Collect_opfreehook || $Coverage{statement})) {
             # If the current op is null, but it was nextstate, we can still
             # get at the file and line number, but we need to get dirty.
 

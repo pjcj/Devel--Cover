@@ -96,7 +96,7 @@ typedef struct {
 #else
     OP           *(*ppaddr[MAXO])(pTHX);
 #endif
-    Perl_ophook_t ophook;
+    Perl_ophook_t opfreehook;
 } my_cxt_t;
 
 #ifdef USE_ITHREADS
@@ -419,7 +419,7 @@ static void cover_statement(pTHX_ OP *op) {
     SV  **count;
     IV    c;
 
-    if (!collecting(Statement) && !MY_CXT.ophook) return;
+    if (!collecting(Statement) && !MY_CXT.opfreehook) return;
 
     ch    = get_key(op);
     count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
@@ -1472,7 +1472,7 @@ make_op_object(pTHX_ const OP *o)
 
 /* end cut and paste */
 
-static void dc_ophook(pTHX_ OP *o) {
+static void dc_opfreehook(pTHX_ OP *o) {
     /* if (PL_dirty) return; */
     dMY_CXT;
     NDEB(D(L, "deleting op %p (%s)\n", o, OP_NAME(o)));
@@ -1495,14 +1495,16 @@ static void dc_ophook(pTHX_ OP *o) {
         FREETMPS;
         LEAVE;
     }
-    if (MY_CXT.ophook) MY_CXT.ophook(aTHX_ o);
+    if (MY_CXT.opfreehook) MY_CXT.opfreehook(aTHX_ o);
 }
 
-static void do_reset_ophook(pTHX) {
+static void do_reset_opfreehook(pTHX) {
     dMY_CXT;
-    NDEB(D(L, "do_reset_ophook\n"));
-    PL_opfreehook = MY_CXT.ophook;
-    MY_CXT.ophook = 0;
+    NDEB(D(L, "do_reset_opfreehook\n"));
+    if (MY_CXT.opfreehook) {
+        PL_opfreehook = MY_CXT.opfreehook;
+        MY_CXT.opfreehook = 0;
+    }
 
 }
 
@@ -1700,9 +1702,9 @@ get_ends()
         RETVAL
 
 void
-reset_ophook()
+reset_opfreehook()
     PPCODE:
-        do_reset_ophook(aTHX);
+        do_reset_opfreehook(aTHX);
 
 BOOT:
     {
@@ -1722,8 +1724,8 @@ BOOT:
         } else {
             PL_runops = runops_cover;
         }
-        MY_CXT.ophook = PL_opfreehook;
-        PL_opfreehook = dc_ophook;
+        MY_CXT.opfreehook = PL_opfreehook;
+        PL_opfreehook = dc_opfreehook;
 #if PERL_VERSION > 6
         PL_savebegin = TRUE;  /* TODO - needed? */
 #endif
