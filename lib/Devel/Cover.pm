@@ -737,9 +737,12 @@ sub _report {
     # print STDERR "Coverage: ", Dumper $Coverage;
 
     check_files();
+    ($File, $Line) = ("", 0);
 
     unless ($Subs_only) {
+        print STDERR "main\n";
         get_cover(main_cv, main_root);
+        print STDERR "special blocks\n";
         get_cover($_)
             for B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ();
         if (exists &B::check_av) {
@@ -750,7 +753,7 @@ sub _report {
         get_cover($_)
             for get_ends()->isa("B::AV") ? get_ends()->ARRAY : ();
     }
-    # print STDERR "--- @Cvs\n";
+    print STDERR "--- @Cvs\n";
     get_cover($_) for @Cvs;
 
     my %files;
@@ -831,11 +834,14 @@ sub add_statement_cover {
 
     $Run{digests}{$File} ||= $Structure->set_file($File);
     my $key = get_key($op);
-    my $val = $Coverage->{statement}{$key} ||= 1;
+    my $val = $Coverage->{statement}{$key} || 0;
     my ($n, $new) = $Structure->add_count("statement");
-    # print STDERR "Stmt $File:$Line - $n, $new, $key, $val\n", Dumper $Coverage;
+    print STDERR "Stmt $File:$Line - $n, $new, $val\n";
+    # print STDERR Dumper $Coverage;
     $Structure->add_statement($File, $Line) if $new;
     $Run{count}{$File}{statement}[$n] += $val;
+    print STDERR "--> ", $Run{count}{$File}{statement}[$n], "\n";
+    print STDERR Dumper $Run{count}, $Structure;
     my $vec = $Run{vec}{$File}{statement};
     vec($vec->{vec}, $n, 1) = $val ? 1 : 0;
     $vec->{size} = $n + 1;
@@ -966,6 +972,7 @@ BEGIN {
 
 sub deparse_cond {
     my ($deparse, $cond, $cx) = @_;
+    return "cond [$cond]";
     return "?" unless $deparse;
     local $Collect;
     $deparse->deparse($cond, $cx)
@@ -975,68 +982,69 @@ sub collect_op {
     my ($op, $deparse, $cx) = @_;
     print STDERR "collect_op [$op][$Collect_opfreehook][$Collect]\n";
 
-    # return unless $Collect_opfreehook || $deparse;
+    return unless $Collect && ($Collect_opfreehook || $deparse);
+
+    my $class = class($op);
+    my $null  = $class eq "NULL";
+
+    my $name = $op->can("name") ? $op->name : "Unknown";
+
+    print STDERR "$class:$name ($$op) at $File:$Line\n";
+    # my $dep = B::Deparse->new;
+    # eval { print STDERR "vvv\n", $dep->deparse($op, 0), "\n^^^\n" };
+    # print STDERR "statement [$Coverage{statement}]\n";
+    # print STDERR "[$Seen{statement}{$$op}] [$Seen{other}{$$op}]\n";
+    # use Carp "cluck"; cluck("from here");
+
+    return if $name eq "padrange";
+
     read_structure;
+    $Coverage = coverage(0) || die "No coverage data available.\n";
+    # Get the coverage on this op.
 
-    if ($Collect) {
-        my $class = class($op);
-        my $null  = $class eq "NULL";
+    if ($class eq "COP" && ($Collect_opfreehook || $Coverage{statement})) {
+        # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
+        add_statement_cover($op) unless $Seen{statement}{$$op}++;
+    } elsif (!$null && $name eq "null"
+                    && ppname($op->targ) eq "pp_nextstate"
+                    && ($Collect_opfreehook || $Coverage{statement})) {
+        # If the current op is null, but it was nextstate, we can still
+        # get at the file and line number, but we need to get dirty.
 
-        my $name = $op->can("name") ? $op->name : "Unknown";
-
-        # print STDERR "$class:$name ($$op) at $File:$Line\n";
-        # print STDERR "statement [$Coverage{statement}]\n";
-        # print STDERR "[$Seen{statement}{$$op}] [$Seen{other}{$$op}]\n";
-        # use Carp "cluck"; cluck("from here");
-
-        return if $name eq "padrange";
-
-        # Get the coverage on this op.
-
-        if ($class eq "COP" && ($Collect_opfreehook || $Coverage{statement})) {
-            # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
-            add_statement_cover($op) unless $Seen{statement}{$$op}++;
-        } elsif (!$null && $name eq "null"
-                      && ppname($op->targ) eq "pp_nextstate"
-                      && ($Collect_opfreehook || $Coverage{statement})) {
-            # If the current op is null, but it was nextstate, we can still
-            # get at the file and line number, but we need to get dirty.
-
-            bless $op, "B::COP";
-            # print STDERR "null $$op, seen [$Seen{statement}{$$op}]\n";
-            add_statement_cover($op) unless $Seen{statement}{$$op}++;
-            bless $op, "B::$class";
-        } elsif ($Seen{other}{$$op}++) {
-            # print STDERR "seen [$Seen{other}{$$op}]\n";
-            return ""  # Only report on each op once.
-        } elsif ($name eq "cond_expr") {
-            local ($File, $Line) = ($File, $Line);
-            my $cond  = $op->first;
-            my $true  = $cond->sibling;
-            my $false = $true->sibling;
-            if (!((defined $cx && $cx < 1) && (is_scope($true) && $true->name ne "null") &&
-                    (is_scope($false) || is_ifelse_cont($false))
-                    && $deparse->{'expand'} < 7)) {
-                $cond = deparse_cond($deparse, $cond, 8);
-                add_branch_cover($op, "if", "$cond ? :", $File, $Line);
-            } else {
-                $cond = deparse_cond($deparse, $cond, 1);
-                add_branch_cover($op, "if", "if ($cond) { }", $File, $Line);
-                while (class($false) ne "NULL" && is_ifelse_cont($false)) {
-                    my $newop   = $false->first;
-                    my $newcond = $newop->first;
-                    my $newtrue = $newcond->sibling;
-                    if ($newcond->name eq "lineseq") {
-                        # lineseq to ensure correct line numbers in elsif()
-                        # Bug #37302 fixed by change #33710.
-                        $newcond = $newcond->first->sibling;
-                    }
-                    # last in chain is OP_AND => no else
-                    $false      = $newtrue->sibling;
-                    $newcond = deparse_cond($deparse, $newcond, 1);
-                    add_branch_cover($newop, "elsif", "elsif ($newcond) { }",
-                                     $File, $Line);
+        bless $op, "B::COP";
+        # print STDERR "null $$op, seen [$Seen{statement}{$$op}]\n";
+        add_statement_cover($op) unless $Seen{statement}{$$op}++;
+        bless $op, "B::$class";
+    } elsif ($Seen{other}{$$op}++) {
+        # print STDERR "seen [$Seen{other}{$$op}]\n";
+        return ""  # Only report on each op once.
+    } elsif ($name eq "cond_expr") {
+        local ($File, $Line) = ($File, $Line);
+        my $cond  = $op->first;
+        my $true  = $cond->sibling;
+        my $false = $true->sibling;
+        if (!((defined $cx && $cx < 1) && (is_scope($true) && $true->name ne "null") &&
+                (is_scope($false) || is_ifelse_cont($false))
+                && $deparse->{'expand'} < 7)) {
+            $cond = deparse_cond($deparse, $cond, 8);
+            add_branch_cover($op, "if", "$cond ? :", $File, $Line);
+        } else {
+            $cond = deparse_cond($deparse, $cond, 1);
+            add_branch_cover($op, "if", "if ($cond) { }", $File, $Line);
+            while (class($false) ne "NULL" && is_ifelse_cont($false)) {
+                my $newop   = $false->first;
+                my $newcond = $newop->first;
+                my $newtrue = $newcond->sibling;
+                if ($newcond->name eq "lineseq") {
+                    # lineseq to ensure correct line numbers in elsif()
+                    # Bug #37302 fixed by change #33710.
+                    $newcond = $newcond->first->sibling;
                 }
+                # last in chain is OP_AND => no else
+                $false      = $newtrue->sibling;
+                $newcond = deparse_cond($deparse, $newcond, 1);
+                add_branch_cover($newop, "elsif", "elsif ($newcond) { }",
+                                    $File, $Line);
             }
         }
     }
@@ -1054,8 +1062,8 @@ sub deparse {
 
         my $name = $op->can("name") ? $op->name : "Unknown";
 
-        # print STDERR "$class:$name ($$op) at $File:$Line\n";
-        # print STDERR "[$Seen{statement}{$$op}] [$Seen{other}{$$op}]\n";
+        print STDERR "deparse $class:$name ($$op) at $File:$Line\n";
+        # print STDERR "deparse [$Seen{statement}{$$op}] [$Seen{other}{$$op}]\n";
         # use Carp "cluck"; cluck("from here");
 
         return "" if $name eq "padrange";
@@ -1155,14 +1163,18 @@ sub get_cover {
 
     ($Sub_name, my $start) = sub_info($cv);
 
-    # warn "get_cover: <$Sub_name>\n";
+    print STDERR "get_cover: <$Sub_name>\n";
     return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK.
     # return unless length  $Sub_name;  # Only happens with Self_cover, AFAIK.
 
-    get_location($start) if $start;
-    # print STDERR "[[$File:$Line]]\n";
+    if ($start) {
+        get_location($start);
+    } else {
+        ($File, $Line) = ("", 0);
+    }
+    # print STDERR "[[$File:$Line]] $Self_cover_run $start\n";
     # return unless length $File;
-    return if length $File && !use_file($File);
+    return if !$start && length $File && !use_file($File);
 
     return if !$Self_cover_run && $File =~ /Devel\/Cover/;
     return if  $Self_cover_run && $File !~ /Devel\/Cover/;

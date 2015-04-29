@@ -7,6 +7,8 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
+use strict;
+
 use lib "tests";
 
 use Module_statements;
@@ -14,5 +16,8 @@ use Module_statements;
 sub xx {
   Module_statements::aa;
 }
+
+print 18;
+print 19;
 
 xx;
