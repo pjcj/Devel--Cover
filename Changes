@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Document setting PerlSwitches for mod_perl (jpsalvesen) (githun 128).
 
 Release 1.19 - 5 July 2015
  - Get things working with 5.22.0.

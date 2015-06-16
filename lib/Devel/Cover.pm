@@ -1378,6 +1378,11 @@ also add any options you need at this point.  I would suggest adding this as
 early as possible in your startup script in order to collect as much coverage
 information as possible.
 
+Alternatively, add -MDevel::Cover to the parameters for mod_perl.
+In this example, Devel::Cover will be operating in silent mode.
+
+ PerlSwitches -MDevel::Cover=-silent,1
+
 =head1 OPTIONS
 
  -blib               - "use blib" and ignore files matching \bt/ (default true
