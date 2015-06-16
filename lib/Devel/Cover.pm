@@ -1372,8 +1372,8 @@ also add any options you need at this point.  I would suggest adding this as
 early as possible in your startup script in order to collect as much coverage
 information as possible.
 
-Alternatively, add -MDevel::Cover to the parameters for the perl interpreter 
-mod_perl. In this example, Devel::Cover will be operating in silent mode. 
+Alternatively, add -MDevel::Cover to the parameters for mod_perl. 
+In this example, Devel::Cover will be operating in silent mode. 
 
  PerlSwitches -MDevel::Cover=-silent,1
 
