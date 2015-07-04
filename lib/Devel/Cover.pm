@@ -980,7 +980,17 @@ sub deparse {
 
         if ($class eq "COP" && $Coverage{statement}) {
             # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
-            add_statement_cover($op) unless $Seen{statement}{$$op}++;
+            my $nnnext = "";
+            eval {
+                my $next   = $op->next;
+                my $nnext  = $next && $next->next;
+                   $nnnext = $nnext && $nnext->next;
+            };
+            # print STDERR "COP $$op, ", $next, " -> ", $nnext,
+                                              # " -> ", $nnnext, "\n";
+            if ($nnnext) {
+                add_statement_cover($op) unless $Seen{statement}{$$op}++;
+            }
         } elsif (!$null && $name eq "null"
                       && ppname($op->targ) eq "pp_nextstate"
                       && $Coverage{statement}) {
