@@ -29,7 +29,6 @@ line  err   stmt   bran   cond    sub   code
 9                                       
 10             1                    1   use 5.006;
                1                        
-               1                        
 11                                      
 12             1                        my $x = 1;
 

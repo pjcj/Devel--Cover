@@ -4,8 +4,8 @@ Reading database from ...
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/dynamic_subs                           94.5   75.0    n/a   80.0   90.2
-Total                                        94.5   75.0    n/a   80.0   90.2
+tests/dynamic_subs                           97.2   75.0    n/a   80.0   92.0
+Total                                        97.2   75.0    n/a   80.0   92.0
 ------------------------------------------ ------ ------ ------ ------ ------
 
 
@@ -28,7 +28,7 @@ line  err   stmt   bran   cond    sub   code
 8                                       # http://www.pjcj.net
 9                                       
 10    ***      0                    0   sub unused { 0 }
-11    ***      0                    0   sub empty  {   }
+11    ***                           0   sub empty  {   }
 12                                      
 13                                      sub gen {
 14             4                    4       my $x = shift;

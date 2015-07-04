@@ -347,7 +347,7 @@ line  err   stmt   bran   cond    sub   code
 272            4                                    $x[50]++;
 273                                             }
 274                                     GR:
-275            4                            },
+275                                         },
 276                                     
 277                                         sub {
 278            4                    4           my $x = shift;
