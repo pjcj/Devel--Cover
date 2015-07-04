@@ -60,7 +60,6 @@ line  err   stmt   bran   cond    sub   code
 12             1                    1   use Module_import;
                1                        
                1                        
-               1                        
 
 
 Covered Subroutines
