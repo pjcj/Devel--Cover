@@ -271,7 +271,7 @@ available as usual.  Because HTML reports are expected, HTML::Entities has been
 added to the prerequisites.
 EOM
 
-my $latest_tested = "5.020001";
+my $latest_tested = "5.022000";
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
