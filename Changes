@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.19 - 5 July 2015
  - Get things working with 5.22.0.
  - Test against 5.23.0.
  - Remove dependency on Test::Warn.
