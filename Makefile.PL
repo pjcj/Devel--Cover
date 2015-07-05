@@ -196,11 +196,6 @@ Test::More is required to run the Devel::Cover tests.  You can download
 Test::More from CPAN.
 EOM
 
-check "Test::Warn", <<EOM;
-Test::Warn is required to run some of the Devel::Cover tests.  You can download
-Test::Warn from CPAN.
-EOM
-
 check "Template", <<EOM, "2.00";
 Template 2.00 is required to run the some HTML backends to cover and for
 cpancover.  Unless you have specific requirements this should not be a problem,
@@ -324,7 +319,7 @@ my $opts = {
                             "HTML::Entities" => 3.69,
                             $ENV{DEVEL_COVER_NO_TESTS}
                                 ? ()
-                                : ( "Test::More"  => 0, "Test::Warn"  => 0 )
+                                : ( "Test::More" => 0 )
                         },
     TYPEMAPS         => [ "utils/typemap" ],
     clean            => {

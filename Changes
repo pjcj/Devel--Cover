@@ -3,6 +3,7 @@ Devel::Cover history
 {{$NEXT}}
  - Get things working with 5.22.0.
  - Test against 5.23.0.
+ - Remove dependency on Test::Warn.
 
 Release 1.18 - 6 April 2015
  - Remove dependency on CGI (use HTML::Entities instead) (Lee Johnson).

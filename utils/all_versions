@@ -74,7 +74,7 @@ sub build {
         sys "perlbrew -v install $n --as dc-$v -j $j $opts";
         sys "perlbrew use $v && " .
             "curl -L http://cpanmin.us | perl - App::cpanminus";
-        my @mods = qw( Storable Digest::MD5 Test::More Test::Warn );
+        my @mods = qw( Storable Digest::MD5 Test::More );
         my ($s) = $n =~ /(\d+)$/;
         if (($v !~ /thr/ || $s == 1) && $n !~ /^5\.6\./) {
             push @mods, qw(

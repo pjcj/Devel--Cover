@@ -1356,10 +1356,6 @@ installed, it is preferred.
 
 Required if you want to run Devel::Cover's own tests.
 
-=item * L<Test::Warn>
-
-Some of Devel::Cover's own tests require it.
-
 =item * L<Test::Differences>
 
 Needed if the tests fail and you would like nice output telling you why.
