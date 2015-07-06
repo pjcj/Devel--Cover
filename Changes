@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.20 - 6 July 2015
  - Document setting PerlSwitches for mod_perl (jpsalvesen) (github 128).
 
 Release 1.19 - 5 July 2015
