@@ -11,7 +11,9 @@
 4. Check it in.
   $ git commit -m "Update Contributors." Contributors
 
-5. Update version number in Makefile.PL.
+5. Update $latest_tested in Makefile.PL.
+   Update test for obsolete development version skipping in ...::Test.pm.
+   Update version number in Makefile.PL.
 
 6. Check it in.
   $ git commit -m "Bump version number." Makefile.PL
