@@ -12,8 +12,6 @@ perl:
     - "dev"
     - "blead"
 matrix:
-    include:
-        - perl: 5.6.2
     allow_failures:
         - perl: blead
 sudo: false
