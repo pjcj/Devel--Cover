@@ -12,13 +12,18 @@ perl:
     - "5.22-thr"
     - "dev"
     - "blead"
-notifications:
-    email:
-        on_success: always
-        on_failure: always
 matrix:
     allow_failures:
         - perl: blead
 sudo: false
 before_install:
-    - eval $(curl https://travis-perl.github.io/init) --auto
+    - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
+    - source ~/travis-perl-helpers/init
+    - build-perl
+    - perl -V
+    - build-dist
+    - cd $BUILD_DIR
+notifications:
+    email:
+        on_success: always
+        on_failure: always
