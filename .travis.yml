@@ -21,7 +21,8 @@ before_install:
     - source ~/travis-perl-helpers/init
     - build-perl
     - perl -V
-    - perl Makefile.PL
+    - build-dist
+    - cd $BUILD_DIR
 install:
     - cpan-install --deps
 notifications:
