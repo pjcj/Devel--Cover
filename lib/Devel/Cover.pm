@@ -1463,6 +1463,11 @@ your code and determined that you are not going to be able to exercise it, it
 may be better to record that fact in some formal fashion and stop Devel::Cover
 complaining about it, so that real problems are not lost in the noise.
 
+If you have uncoverable criteria I suggest not using the default HTML report
+(with uses html_minimal at the moment) because this sometimes shows uncoverable
+points as uncovered.  Instead, you should use the html_basic report for HTML
+output which should behave correctly in this regard.
+
 There are two ways to specify a construct as uncoverable, one invasive and one
 non-invasive.
 
