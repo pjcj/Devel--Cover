@@ -444,11 +444,14 @@ sub cover_modules {
 
     $self->process_module_file;
 
+    # say "modules: ", Dumper $self->modules;
+
     my @command = qw( utils/dc cpancover-docker-module );
     $self->_set_local_timeout(0);
     my @res = iterate_as_array(
         { workers => $self->workers },
         sub {
+            # say "mod ", Dumper \@_;
             my (undef, $module) = @_;
             my $dir = $module =~ s|.*/||r
                               =~ s/\.(?:zip|tgz|(?:tar\.(?:gz|bz2)))$//r;

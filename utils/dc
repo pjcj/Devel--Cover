@@ -84,7 +84,7 @@ case "$1" in
         if [ $? = 0 ]; then
             $DOCKER logs "$name" > "$staging/$name.out"
             local_staging="$staging/$name"
-            sudo $DOCKER cp "$name:/staging" "$local_staging"
+            $DOCKER cp "$name:/root/staging" "$local_staging"
             if [ -d "$local_staging" ]; then
                 sudo chmod -R 755 "$local_staging"
                 sudo find "$local_staging" -type f -exec chmod 644 {} \;
