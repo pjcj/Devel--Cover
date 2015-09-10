@@ -3,6 +3,7 @@
 Parallel::Iterator
 Test::Pod::Coverage
 PPI::HTML
+JSON::MaybeXS
 
 # My stuff
 Gedcom

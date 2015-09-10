@@ -85,7 +85,7 @@ sub build {
                 Pod::Coverage::CountParents
                 Test::Differences
                 Parallel::Iterator
-                JSON::PP
+                JSON::MaybeXS
             );
             push @mods, "Perl::Tidy" if !$s ||   $s % 2;
             push @mods, "PPI::HTML"  if !$s || !($s % 2);
