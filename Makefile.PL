@@ -172,20 +172,18 @@ my $d = <<EOM;
 The coverage database can be stored in any of the Storable, JSON or Sereal
 formats.  To use the Storable format, the Storable module is required.  This has
 been a core module since perl-5.8.0.  To store the database in JSON format
-JSON::PP can be used.  This has been a core module since perl-5.14.0.  If you
-wish, you may install the JSON module which will be used in preference.  To use
-the Sereal format, the Sereal module should be installed.  This is available on
-CPAN.
+JSON::MaybeXS can be used.  It will use the best JSON backend available, trying
+first Cpanel::JSON::XS.  To use the Sereal format, the Sereal module should be
+installed.  This is available on CPAN.
 
 Sereal is used if it is available.  Otherwise JSON is used, if available.
 Otherwise Storable will be used.  The Sereal and JSON formats should be portable
 between all systems, whereas Storable format may not be.
 EOM
 
-check "Storable", $d;
-check "JSON",     $d;
-check "JSON::PP", $d;
-check "Sereal",   $d;
+check "Storable",      $d;
+check "JSON::MaybeXS", $d;
+check "Sereal",        $d;
 
 check "Digest::MD5", <<EOM;
 Digest::MD5 is required to check whether covered files have changed.  You can
