@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.21 - 20 September 2015
  - Test more versions on travis.
  - Fix things up with cpancover for new docker release.
  - Fix problem under 5.22 (Dick Franks) (github 140).
