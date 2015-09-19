@@ -502,6 +502,9 @@ sub normalised_file {
 sub get_location {
     my ($op) = @_;
 
+    # print STDERR "get_location ", $op, "\n";
+    # use Carp "cluck"; cluck("from here");
+    return unless $op->can("file");  # How does this happen?
     $File = $op->file;
     $Line = $op->line;
     # print STDERR "$File:$Line\n";
