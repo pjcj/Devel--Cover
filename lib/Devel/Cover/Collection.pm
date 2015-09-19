@@ -390,7 +390,6 @@ sub local_build {
     $self->build_modules;
     $self->add_build_dirs;
     $self->run_all;
-    $self->generate_html;
 }
 
 sub failed_dir {
