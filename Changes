@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Test more versions on travis.
+ - Fix things up with cpancover for new docker release.
+ - Fix problem under 5.22 (Dick Franks) (github 140).
 
 Release 1.20 - 6 July 2015
  - Document setting PerlSwitches for mod_perl (jpsalvesen) (github 128).
