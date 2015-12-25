@@ -664,8 +664,8 @@ http://www.pjcj.net
 </head>
 <body>
     [% content %]
-    <p/>
     <hr/>
+    <p>
     Coverage information from <a href="https://metacpan.org/module/Devel::Cover">
       Devel::Cover
     </a> by <a href="http://pjcj.net">Paul Johnson</a>.
@@ -673,15 +673,13 @@ http://www.pjcj.net
     <br/>
 
     Please report problems with this site to the
-    <a href="https://github.com/pjcj/Devel--Cover/issues">issue tracker</a>.
+    <a href="https://github.com/pjcj/Devel--Cover/issues">issue tracker</a>.</p>
 
-    <br/>
-    <br/>
-
-    This server generously donated by
+    <p>This server generously donated by
     <a href="http://www.bytemark.co.uk/r/cpancover">
       <img src="http://www.bytemark.co.uk/images/subpages/spreadtheword/bytemark_logo_179_x_14.png" alt="bytemark"/>
     </a>
+    </p>
 </body>
 </html>
 EOT
@@ -693,7 +691,7 @@ $Templates{summary} = <<'EOT';
 
 <h2> Distributions </h2>
 
-Search for distributions by first character:<p/>
+<p>Search for distributions by first character:</p>
 
 [% FOREACH start = modules.keys.sort %]
     <a href="dist/[%- start -%].html">[% start %]</a>
