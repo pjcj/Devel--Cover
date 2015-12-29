@@ -66,6 +66,8 @@ extern "C" {
 struct unique {  /* Well, we'll be fairly unlucky if it's not */
     OP *addr,
         op;
+    /* include hashed file location information, where available (cops) */
+    size_t fileinfohash;
 };
 
 #define KEY_SZ sizeof(struct unique)
@@ -192,13 +194,52 @@ static int cpu() {
 
 #endif /* HAS_GETTIMEOFDAY */
 
+/*
+ * http://codereview.stackexchange.com/questions/85556/simple-string-hashing-algorithm-implementation
+ * https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
+ * http://www.isthe.com/chongo/tech/comp/fnv/index.html#public_domain
+ *
+ *   FNV hash algorithms and source code have been released into the
+ *   public domain. The authors of the FNV algorithmm took deliberate
+ *   steps to disclose the algorhtm in a public forum soon after it was
+ *   invented. More than a year passed after this public disclosure and the
+ *   authors deliberatly took no steps to patent the FNV algorithm. Therefore
+ *   it is safe to say that the FNV authors have no patent claims on the FNV
+ *   algorithm as published.
+ *
+*/
+
+/* Fowler/Noll/Vo (FNV) hash function, variant 1a */
+static size_t fnv1a_hash(const char* cp)
+{
+    size_t hash = 0x811c9dc5;
+    while (*cp) {
+        hash ^= (unsigned char) *cp++;
+        hash *= 0x01000193;
+    }
+    return hash;
+}
+
+#define FILEINFOSZ 1024
+
 static char *get_key(OP *o) {
     static struct unique uniq;
+    static char mybuf[FILEINFOSZ];
 
     uniq.addr          = o;
     uniq.op            = *o;
     uniq.op.op_ppaddr  = 0;  /* we mess with this field */
     uniq.op.op_targ    = 0;  /* might change            */
+    if (o->op_type == OP_NEXTSTATE || o->op_type == OP_DBSTATE) {
+        /* cop, has file location information */
+        char *file = CopFILE((COP *)o);
+        long  line = CopLINE((COP *)o);
+        snprintf(mybuf, FILEINFOSZ - 1, "%s:%ld", file, line);
+        uniq.fileinfohash = fnv1a_hash(mybuf);
+    } else {
+        /* no file location information available */
+        uniq.fileinfohash = 0;
+    }
 
     return (char *)&uniq;
 }

@@ -3,6 +3,7 @@ Devel::Cover history
 {{$NEXT}}
  - Fix C code to work with MSVC (Marc-Philip) (github 177).
  - Fix cover command using Module::Build on Win32 (sago35) (github 160).
+ - Add file and line info to keep ops unique (Niko Tyni) (github 143).
 
 Release 1.24 - 18 April 2017
  - Work with 5.25.x (op_sibling) (Dan Collins, Matthew Horsfall) (github 162).
