@@ -23,7 +23,7 @@ Cover.def
 dll.base
 dll.exp
 Devel-Cover-*
-tags
+tags*
 README
 .build/
 callgrind.out.*
