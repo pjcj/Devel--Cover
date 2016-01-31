@@ -1561,22 +1561,23 @@ case at the moment.
 =head2 Non-invasive specification
 
 If you can't, or don't want to add coverage comments to your code, you can
-specify the uncoverable information in a separate file.  By default this file
-is L<.uncoverable> but you can override that.
+specify the uncoverable information in a separate file.  By default the files
+PWD/.uncoverable and HOME/.uncoverable are checked.  If you use the
+-uncoverable_file parameter then the file you provide is checked as well as
+those two files.
 
 The interface to managing this file is the L<cover> program, and the options
 are:
 
  -uncoverable_file
  -add_uncoverable_point
- -delete_uncoverable_point
- -clean_uncoverable_points
+ -delete_uncoverable_point   **UNIMPLEMENTED**
+ -clean_uncoverable_points   **UNIMPLEMENTED**
 
-Of these, only the first two are implemented at the moment.  The parameter for
--add_uncoverable_point is a string composed of up to seven space separated
-elements: "$file $criterion $line $count $type $class $note".
+The parameter for -add_uncoverable_point is a string composed of up to seven
+space separated elements: "$file $criterion $line $count $type $class $note".
 
-TODO - more information and examples.
+The contents of the uncoverable file is the same, with one point per line.
 
 =head1 ENVIRONMENT
 
