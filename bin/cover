@@ -45,7 +45,7 @@ my $Options = {
     select                   => [],
     select_re                => [],
     summary                  => 1,
-    uncoverable_file         => [".uncoverable", glob("~/.uncoverable")],
+    uncoverable_file         => [], # .uncoverable and ~/.uncoverable are always checked
 };
 
 sub get_options {
