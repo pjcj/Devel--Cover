@@ -1367,9 +1367,10 @@ Needed if the tests fail and you would like nice output telling you why.
 
 Needed if you want to run cpancover.
 
-=item * L<JSON>, L<JSON::PP> or L<JSON::XS>
+=item * L<JSON::MaybeXS>
 
-JSON is used to store the coverage database if it is available.
+JSON is used to store the coverage database if it is available. JSON::MaybeXS
+will select the best JSON backend installed.
 
 =back
 
@@ -1678,7 +1679,7 @@ Modules used by Devel::Cover while gathering coverage:
 
 =item * L<File::Spec>
 
-=item * L<Storable> or L<JSON>
+=item * L<Storable> or L<JSON::MaybeXS> (and its backend) or L<Sereal>
 
 =back
 
