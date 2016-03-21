@@ -458,7 +458,7 @@ sub cover_modules {
                 $self->set_covered($dir);
                 say "$module already covered" if $self->verbose;
                 return;
-            } elsif ($self->is_failed($dir)) {
+            } elsif ($self->is_failed($dir) && !$self->force) {
                 say "$module already failed" if $self->verbose;
                 return;
             }

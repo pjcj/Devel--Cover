@@ -39,7 +39,15 @@ case "$1" in
         else
             cpancover="perl -Mblib bin/cpancover -local"
         fi
-        $cpancover -results_dir $CPANCOVER_DIR -workers $jobs "$@"
+        if ! [ -z $CPANCOVER_VERBOSE ]; then
+            cpancover="$cpancover -verbose"
+        fi
+        if ! [ -z $CPANCOVER_FORCE ]; then
+            cpancover="$cpancover -force"
+        fi
+        cmd="$cpancover -results_dir $CPANCOVER_DIR -workers $jobs $@"
+        # echo $cmd
+        $cmd
         ;;
     "cpancover-compress")
         find $CPANCOVER_DIR/ -name __failed__ -prune -o \
