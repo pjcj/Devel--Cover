@@ -63,7 +63,7 @@ case "$1" in
         $0 cpancover-compress
         ;;
     "cpancover-docker-shell")
-        staging="${4:-$CPANCOVER_DIR}"
+        staging="${2:-$CPANCOVER_DIR}"
         mkdir -p $staging
         # echo $name
         $DOCKER run -it                                    \
