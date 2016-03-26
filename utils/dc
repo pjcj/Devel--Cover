@@ -1,6 +1,13 @@
 #!/bin/sh
 
-# set -x
+# Copyright 2001-2016, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+set -e
 
 export AUTOMATED_TESTING=1
 export NONINTERACTIVE_TESTING=1
