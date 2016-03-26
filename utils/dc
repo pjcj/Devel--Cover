@@ -15,10 +15,11 @@ case "$1" in
         from="${2:-$(date +'%Y' --date='last year')}"
         to="${3:-$(date +'%Y')}"
         echo "Updating copyright from $from to $to"
-        perl -pi -e "s/Copyright \d+-\K$from(, Paul Johnson)/$to\$1/i" \
-             "$(git ls-files)"
-        perl -pi -e "s/Copyright $from\K(, Paul Johnson)/-$to\$1/i" \
-             "$(git ls-files)"
+        files=$(git ls-files)
+        # shellcheck disable=SC2086
+        perl -pi -e "s/Copyright \d+-\K$from(, Paul Johnson)/$to\$1/i" $files
+        # shellcheck disable=SC2086
+        perl -pi -e "s/Copyright $from\K(, Paul Johnson)/-$to\$1/i"    $files
         ;;
     "install_dependencies")
         shift;
