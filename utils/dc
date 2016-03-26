@@ -12,13 +12,13 @@ DOCKER_IMAGE=pjcj/cpancover
 
 case "$1" in
     "update-copyright")
-        from="${2:-`date +'%Y' --date='last year'`}"
-        to="${3:-`date +'%Y'`}"
-        echo Updating copyright from $from to $to
+        from="${2:-$(date +'%Y' --date='last year')}"
+        to="${3:-$(date +'%Y')}"
+        echo "Updating copyright from $from to $to"
         perl -pi -e "s/Copyright \d+-\K$from(, Paul Johnson)/$to\$1/i" \
-             `git ls-files`
+             "$(git ls-files)"
         perl -pi -e "s/Copyright $from\K(, Paul Johnson)/-$to\$1/i" \
-             `git ls-files`
+             "$(git ls-files)"
         ;;
     "install_dependencies")
         shift;
@@ -34,18 +34,18 @@ case "$1" in
     "cpancover")
         shift;
         jobs=$($0 nice_cpus)
-        if [ -z $CPANCOVER_LOCAL ]; then
+        if [ -z "$CPANCOVER_LOCAL" ]; then
             cpancover=cpancover
         else
             cpancover="perl -Mblib bin/cpancover -local"
         fi
-        if ! [ -z $CPANCOVER_VERBOSE ]; then
+        if ! [ -z "$CPANCOVER_VERBOSE" ]; then
             cpancover="$cpancover -verbose"
         fi
-        if ! [ -z $CPANCOVER_FORCE ]; then
+        if ! [ -z "$CPANCOVER_FORCE" ]; then
             cpancover="$cpancover -force"
         fi
-        cmd="$cpancover -results_dir $CPANCOVER_DIR -workers $jobs $@"
+        cmd="$cpancover -results_dir $CPANCOVER_DIR -workers $jobs $*"
         # echo $cmd
         $cmd
         ;;
@@ -64,7 +64,7 @@ case "$1" in
         ;;
     "cpancover-docker-shell")
         staging="${2:-$CPANCOVER_DIR}"
-        mkdir -p $staging
+        mkdir -p "$staging"
         # echo $name
         $DOCKER run -it                                    \
             --volume=/home/pjcj/g/perl/Devel--Cover:/dc:rw \
@@ -77,30 +77,31 @@ case "$1" in
         module="$2"
         name="$3"
         staging="${4:-$CPANCOVER_DIR}"
-        mkdir -p $staging
+        mkdir -p "$staging"
         # echo $name
-        container=$($DOCKER run -d                                 \
-                    --volume=/home/pjcj/g/perl/Devel--Cover:/dc:ro \
-                    --volume=$CPANCOVER_STAGING:/remote_staging:ro \
-                    --workdir=/dc --rm=false --name="$name"        \
-                    --memory=1g                                    \
-                    $DOCKER_IMAGE dc cpancover-build-module $module)
+        container=$($DOCKER run -d                                     \
+                    --volume=/home/pjcj/g/perl/Devel--Cover:/dc:ro     \
+                    --volume=$CPANCOVER_STAGING:/remote_staging:ro     \
+                    --workdir=/dc --rm=false --name="$name"            \
+                    --memory=1g                                        \
+                    $DOCKER_IMAGE dc cpancover-build-module "$module")
         # https://github.com/dotcloud/docker/issues/3986
+        echo "container is $container"
         $DOCKER wait "$name" > /dev/null
         if [ $? = 0 ]; then
             $DOCKER logs "$name" > "$staging/$name.out"
             local_staging="$staging/$name"
-            mkdir -p $local_staging
+            mkdir -p "$local_staging"
             $DOCKER cp "$name:/root/staging" "$local_staging"
             if [ -d "$local_staging" ]; then
                 sudo chmod -R 755 "$local_staging"
                 sudo find "$local_staging" -type f -exec chmod 644 {} \;
                 sudo chown -R pjcj:pjcj "$local_staging"
-                cd "$local_staging"/*
+                cd "$local_staging"/* || exit
                 for f in *; do
-                    if [ -d $f ]; then
-                        rm -rf "$staging"/$f
-                        mv $f "$staging"
+                    if [ -d "$f" ]; then
+                        rm -rf "${staging:?}/$f"
+                        mv "$f" "$staging"
                     fi
                 done
                 rm -r "$local_staging"
@@ -109,7 +110,7 @@ case "$1" in
         $DOCKER rm "$name"
         ;;
     "cpancover-generate-html")
-        echo Generating HTML at `date`
+        echo "Generating HTML at $(date)"
         # perl -V
         $0 cpancover -generate_html
         $0 cpancover-compress
@@ -123,11 +124,11 @@ case "$1" in
         export CPANCOVER_LOCAL=1
         export DEVEL_COVER_CPUS=10
         while true; do
-            echo Starting cpancover run at `date` on $DEVEL_COVER_CPUS cpus
+            echo "Starting cpancover run at $(date) on $DEVEL_COVER_CPUS cpus"
             $0 cpancover-rm-docker  # just in case something bad happened
             $0 cpancover-latest | $0 cpancover
             $0 cpancover-generate-html
-            echo Finished cpancover run at `date`
+            echo "Finished cpancover run at ä(date)"
             sleep 600  # 10 minutes
         done
         ;;
@@ -150,7 +151,7 @@ case "$1" in
         rm tests/change
         ;;
     "options")
-        perl -nE 'say $1 if /^    "([\w-]+)"\)$/ && $1 !~ /^_/' < $0
+        perl -nE 'say $1 if /^    "([\w-]+)"\)$/ && $1 !~ /^_/' < "$0"
         ;;
     *)
         echo Unknown option "$1"
