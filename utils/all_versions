@@ -13,11 +13,14 @@ use warnings;
 use lib "utils";
 
 use Getopt::Long;
+use Parallel::Iterator "iterate_as_array";
 
-use Devel::Cover::BuildUtils qw( prove_command cpus );
+use Devel::Cover::BuildUtils qw( prove_command cpus nice_cpus );
 
 my $Options = {
+    build          => 0,
     dry_run        => 0,
+    force          => 0,
     ignore_failure => 0,
     silent         => 1,
     version        => [],
@@ -25,35 +28,40 @@ my $Options = {
 
 my $Silent = "";
 
+sub _exists {
+    my ($v) = @_;
+    eval { !system "dc-$v -v$Silent" }
+}
+
 sub get_options {
     die "Bad option" unless
         GetOptions($Options, qw(
             build!
             dry_run!
+            force!
             ignore_failure!
             list!
             silent!
             version=s
          ));
-    $Options->{version} = [
-        map { ($_, "$_-thr") }
-            qw( 5.6.1 5.6.2
-                5.8.0 5.8.1 5.8.2 5.8.3 5.8.4 5.8.5 5.8.6 5.8.7 5.8.8 5.8.9
-                5.10.0 5.10.1
-                5.12.0 5.12.1 5.12.2 5.12.3 5.12.4 5.12.5
-                5.14.0 5.14.1 5.14.2 5.14.3 5.14.4
-                5.16.0 5.16.1 5.16.2 5.16.3
-                5.18.0 5.18.1 5.18.2
-                5.20.0 5.20.1 5.20.2 5.20.3
-                5.22.0 5.22.1
-                5.23.0 5.23.1 5.23.2 5.23.3 5.23.4 5.23.5 5.23.6
-                5.23.7
-              )
-    ] unless @{$Options->{version}};
+    $Options->{version} = [ map { ($_, "$_-thr") } qw(
+        5.6.1 5.6.2
+        5.8.0 5.8.1 5.8.2 5.8.3 5.8.4 5.8.5 5.8.6 5.8.7 5.8.8 5.8.9
+        5.10.0 5.10.1
+        5.12.0 5.12.1 5.12.2 5.12.3 5.12.4 5.12.5
+        5.14.0 5.14.1 5.14.2 5.14.3 5.14.4
+        5.16.0 5.16.1 5.16.2 5.16.3
+        5.18.0 5.18.1 5.18.2 5.18.3 5.18.4
+        5.20.0 5.20.1 5.20.2 5.20.3
+        5.22.0 5.22.1
+        5.23.0 5.23.1 5.23.2 5.23.3 5.23.4 5.23.5 5.23.6 5.23.7 5.23.8 5.23.9
+    ) ] unless @{$Options->{version}};
     $Silent = " >/dev/null 2>&1" if $Options->{silent};
     $Options->{version} =
-        [ grep eval { !system "perl$_ -v$Silent" }, @{$Options->{version}} ]
-        unless $Options->{build};
+        [ grep {
+            my $exists = eval { !system "dc-$_ -v$Silent" };
+            $exists ^ $Options->{build}
+        } @{$Options->{version}} ];
 }
 
 sub sys {
@@ -62,41 +70,71 @@ sub sys {
     return if $Options->{dry_run};
     $command .= $Silent if $Options->{silent} && !$user;
     my $ret = system $command;
-    die "command failed: $?" if $ret && !$Options->{ignore_failure};
+    warn "command failed: $?" if $ret && !$Options->{ignore_failure};
+    !$ret
+}
+
+sub _build_version {
+    my ($v) = @_;
+    my $opts = "";
+    my ($n) = $v =~ /(\d+\.\d+\.\d+)/ or die "Can't parse [$v}";
+    $opts .= " --thread" if $v =~ /thr/;
+    $opts .= " --force"  if $n =~ /^5\.6\./;
+    my $j = cpus + 1;
+    sys "perlbrew -v install $n --as dc-$v -j $j $opts --notest --noman" or do {
+        warn "perlbrew $v failed";
+        return;
+    };
+    my $dir = ($ENV{PERLBREW_ROOT} || die 'No $PERLBREW_ROOT') .
+                "/perls/dc-$v/bin";
+    unless (-d $dir) {
+        warn "$dir does not exist";
+        return;
+    }
+    $ENV{PATH} = "$dir:$ENV{PATH}";
+    sys "curl -L http://cpanmin.us | perl - App::cpanminus" or do {
+        warn "cpanm installation for $v failed";
+        return;
+    };
+    my @mods = qw( Storable Digest::MD5 Test::More );
+    my ($s) = $n =~ /(\d+)$/;
+    if (($v !~ /thr/ || $s == 1) && $n !~ /^5\.6\./) {
+        push @mods, qw(
+            Template
+            PPI::HTML
+            Perl::Tidy
+            Pod::Coverage
+            Pod::Coverage::CountParents
+            Test::Differences
+            Parallel::Iterator
+            JSON::PP
+        );
+        push @mods, "Perl::Tidy" if !$s ||   $s % 2;
+        push @mods, "PPI::HTML"  if !$s || !($s % 2);
+    }
+    sys "cpanm @mods" or do {
+        warn "module installation for $v failed";
+        return;
+    };
+    my $ln = "/usr/local/bin/dc-$v";
+    unlink $ln;
+    my ($perl) = "$dir/perl";
+    print "$perl => $ln\n";
+    sys "sudo ln -s $perl $ln" or warn "Can't ln $perl => $ln: $!";
 }
 
 sub build {
-    for my $v (@{$Options->{version}}) {
-        my $opts = "";
-        my ($n) = $v =~ /(\d+\.\d+\.\d+)/ or die "Can't parse [$v}";
-        $opts .= " -D usethreads" if $v =~ /thr/;
-        $opts .= " --force"       if $n =~ /^5\.6\./;
-        my $j = cpus + 1;
-        sys "perlbrew -v install $n --as dc-$v -j $j $opts";
-        sys "perlbrew use $v && " .
-            "curl -L http://cpanmin.us | perl - App::cpanminus";
-        my @mods = qw( Storable Digest::MD5 Test::More );
-        my ($s) = $n =~ /(\d+)$/;
-        if (($v !~ /thr/ || $s == 1) && $n !~ /^5\.6\./) {
-            push @mods, qw(
-                Template
-                PPI::HTML
-                Perl::Tidy
-                Pod::Coverage
-                Pod::Coverage::CountParents
-                Test::Differences
-                Parallel::Iterator
-                JSON::PP
-            );
-            push @mods, "Perl::Tidy" if !$s ||   $s % 2;
-            push @mods, "PPI::HTML"  if !$s || !($s % 2);
-        }
-        sys "perlbrew use $v && cpanm @mods";
-    }
+    print "Building: @{$Options->{version}}\n";
+    my @res = iterate_as_array(
+        { workers => nice_cpus * 2 },
+        sub {
+            my (undef, $v) = @_;
+            _build_version($v);
+        },
+        $Options->{version}
+    );
     exit
 }
-
-$ENV{PATH} = join ":", grep !/perlbrew/, split ":", $ENV{PATH};
 
 get_options;
 build if $Options->{build};
@@ -105,8 +143,9 @@ my $command = "@ARGV" or die "Usage: $0 [-v version] command\n";
 
 print "Testing against: @{$Options->{version}}\n";
 for my $v (@{$Options->{version}}) {
-    my $perl = "perl$v";
+    my $perl = "dc-$v";
     (my $c = $command) =~ s/=perl/$perl/g;
+    # print "Running [$c] from $v\n";
     # $c =~ s/=v/$v/g;
     if ($c =~ /^make /) {
         sys "rm -rf t/e2e";
