@@ -7,6 +7,15 @@ opendir my $d, 'lib/Devel/Cover/Report';
 my @reporters = grep { s/\.pm$// } readdir($d);
 closedir $d;
 
+{
+    local $SIG{__WARN__} = sub {};
+    eval "use HTML::Entities; 1";
+    if ($@) {
+        plan skip_all => "No HTML::Entities";
+        exit;
+    }
+}
+
 plan tests => scalar @reporters;
 
 my @reporters_with_launch = qw(
