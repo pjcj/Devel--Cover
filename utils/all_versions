@@ -28,11 +28,6 @@ my $Options = {
 
 my $Silent = "";
 
-sub _exists {
-    my ($v) = @_;
-    eval { !system "dc-$v -v$Silent" }
-}
-
 sub get_options {
     die "Bad option" unless
         GetOptions($Options, qw(
