@@ -181,7 +181,7 @@ sub main {
     $Devel::Cover::Silent = 1 if $Options->{silent};
 
     my $format = "Devel::Cover::Report::\u$Options->{report}";
-    if (length $Options->{report}) {
+    if (length $Options->{report} && !$Options->{delete}) {
         eval ("use $format");
         if ($@) {
             print "Error: $Options->{report} ",
