@@ -39,6 +39,10 @@ case "$1" in
         shift;
         perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e 'print nice_cpus'
         ;;
+    "all_versions")
+        shift
+        ./utils/all_versions "$@"
+        ;;
     "cpancover")
         shift;
         jobs=$($0 nice_cpus)
