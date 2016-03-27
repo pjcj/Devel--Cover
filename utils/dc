@@ -136,7 +136,7 @@ case "$1" in
             $0 cpancover-rm-docker  # just in case something bad happened
             $0 cpancover-latest | $0 cpancover
             $0 cpancover-generate-html
-            echo "Finished cpancover run at ä(date)"
+            echo "Finished cpancover run at $(date)"
             sleep 600  # 10 minutes
         done
         ;;
