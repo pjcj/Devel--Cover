@@ -7,7 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-require 5.006001;
+require 5.008001;
 
 use strict;
 use warnings;

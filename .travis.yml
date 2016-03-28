@@ -1,7 +1,5 @@
 language: perl
 perl:
-  # - "5.6.1"  # I can't be bothered to work out why this fails.
-    - "5.6.2"
     - "5.8"
     - "5.10"
     - "5.12"
