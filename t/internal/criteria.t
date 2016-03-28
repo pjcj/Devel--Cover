@@ -3,9 +3,7 @@ use warnings;
 
 use Test::More;
 
-if ($] < 5.008000) {
-    plan skip_all => "Test requires perl 5.8.0 or greater";
-} if ($] == 5.015006) {
+if ($] == 5.015006) {
     plan skip_all => "5.15.6 throws too many erroneous warnings";
 } else {
     require Devel::Cover;
