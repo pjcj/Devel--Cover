@@ -107,6 +107,7 @@ sub _build_version {
         push @mods, "Perl::Tidy" if !$s ||   $s % 2;
         push @mods, "PPI::HTML"  if !$s || !($s % 2);
     }
+    my %seen; @mods = grep !$seen{$_}++, @mods;
     sys "cpanm @mods" or do {
         warn "module installation for $v failed";
         return;
