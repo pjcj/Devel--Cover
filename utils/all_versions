@@ -57,6 +57,10 @@ sub get_options {
             my $exists = eval { !system "dc-$_ -v$Silent" };
             $exists ^ $Options->{build}
         } @{$Options->{version}} ];
+    if ($Options->{list}) {
+        print "Versions: @{$Options->{version}}\n";
+        exit;
+    }
 }
 
 sub sys {
