@@ -57,8 +57,8 @@ sub get_options {
             my $exists = eval { !system $cmd };
             $Options->{force} || ($exists ^ $Options->{build})
         } @{$Options->{version}} ];
+    print "Versions: @{$Options->{version}}\n";
     if ($Options->{list}) {
-        print "Versions: @{$Options->{version}}\n";
         exit;
     }
 }
