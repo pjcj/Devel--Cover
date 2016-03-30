@@ -412,7 +412,7 @@ END_HTML
             } else {
                 $class = sprintf(qq' class="%s"',
                                  pclass($pc, $summary->{$c}{error}));
-                $popup = sprintf(qq' title="%s"', $summary->{$c}{ratio});
+                $popup = sprintf(qq' title="%s"', $c . ': ' . $summary->{$c}{ratio});
                 if ($c =~ /branch|condition|subroutine/) {
                     $link = get_link($file, $c);
                 }
