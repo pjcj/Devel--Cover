@@ -26,7 +26,7 @@ my $Options = {
     version        => [],
 };
 
-my $Silent = "";
+my $Silent = " >/dev/null 2>&1";
 
 sub get_options {
     die "Bad option" unless
@@ -39,6 +39,7 @@ sub get_options {
             silent!
             version=s
          ));
+
     $Options->{version} = [ map { ($_, "$_-thr") } qw(
         5.8.1 5.8.2 5.8.3 5.8.4 5.8.5 5.8.6 5.8.7 5.8.8 5.8.9
         5.10.0 5.10.1
@@ -50,11 +51,11 @@ sub get_options {
         5.22.0 5.22.1
         5.23.0 5.23.1 5.23.2 5.23.3 5.23.4 5.23.5 5.23.6 5.23.7 5.23.8 5.23.9
     ) ] unless @{$Options->{version}};
-    $Silent = " >/dev/null 2>&1" if $Options->{silent};
     $Options->{version} =
         [ grep {
-            my $exists = eval { !system "dc-$_ -v$Silent" };
-            $exists ^ $Options->{build}
+            my $cmd = "dc-$_ -v$Silent";
+            my $exists = eval { !system $cmd };
+            $Options->{force} || ($exists ^ $Options->{build})
         } @{$Options->{version}} ];
     if ($Options->{list}) {
         print "Versions: @{$Options->{version}}\n";
@@ -72,52 +73,75 @@ sub sys {
     !$ret
 }
 
+sub _mods {
+    my ($v, $n) = @_;
+
+    my ($s) = $n =~ /(\d+)$/;
+    my $version = version->parse($n);
+
+    my @mods = qw( Test::Harness Test::Warn HTML::Entities );
+
+    return @mods if $v =~ /-thr/ && $s != 1;
+
+    push @mods, qw(
+        Template
+        Pod::Coverage
+        Test::Differences
+        Readonly
+        Parallel::Iterator
+        Sereal
+    );
+
+    push @mods, "Algorithm::C3" if     $n =~ /^5\.8\.9\b/;
+    push @mods, "Moose"         unless $n =~ /^5\.8\.[012]\b/;
+    push @mods, "Moo"           unless $n =~ /^5\.8\.[012]\b/;
+    push @mods, "DBM::Deep"     unless $n =~ /^5\.8\.[01234]\b/;
+    push @mods, "Perl::Tidy"    if !$s ||   $s % 2;
+    push @mods, "PPI::HTML"     if !$s || !($s % 2);
+
+    @mods
+}
+
 sub _build_version {
     my ($v) = @_;
+
     print "building $v\n";
     # sleep 1; return;
-    my $opts = "";
-    my ($n) = $v =~ /(\d+\.\d+\.\d+)/ or die "Can't parse [$v}";
-    $opts .= " --thread" if $v =~ /thr/;
-    my $j = cpus + 1;
-    sys "perlbrew -v install $n --as dc-$v -j $j $opts --notest --noman" or do {
-        die "perlbrew $v failed";
-        return;
-    };
+
     my $dir = ($ENV{PERLBREW_ROOT} || die 'No $PERLBREW_ROOT') .
                 "/perls/dc-$v/bin";
+    my ($n) = $v =~ /(\d+\.\d+\.\d+)/ or die "Can't parse [$v}";
+
     unless (-d $dir) {
-        warn "$dir does not exist";
-        return;
+        my $opts = "";
+        $opts .= " --thread" if $v =~ /thr/;
+        my $j = cpus + 1;
+        sys "perlbrew -v install $n --as dc-$v -j $j $opts --notest --noman" or
+            do {
+                die "perlbrew $v failed";
+                return;
+            };
+        unless (-d $dir) {
+            warn "perl for $v does not exist";
+            return;
+        }
     }
+
     $ENV{PATH} = "$dir:$ENV{PATH}";
     sys "curl -L http://cpanmin.us | perl - App::cpanminus" or do {
         warn "cpanm installation for $v failed";
         return;
     };
-    my @mods = qw( Storable Digest::MD5 Test::More );
-    my ($s) = $n =~ /(\d+)$/;
-    my $version = version->parse($n);
-    if (($v !~ /thr/ || $s == 1) && $version->numify >= 5.008008) {
-        push @mods, qw(
-            PPI::HTML
-            Perl::Tidy
-            Pod::Coverage
-            Pod::Coverage::CountParents
-            Test::Differences
-            Parallel::Iterator
-            JSON::PP
-        );
-        push @mods, "Perl::Tidy" if !$s ||   $s % 2;
-        push @mods, "PPI::HTML"  if !$s || !($s % 2);
-    }
-    my %seen; @mods = grep !$seen{$_}++, @mods;
+
+    my @mods = _mods($v, $n);
     sys "cpanm --notest @mods" or do {
         warn "module installation for $v failed";
         return;
     };
+
     my $ln = "/usr/local/bin/dc-$v";
-    sys "sudo rm $ln";
+    sys "sudo rm $ln$Silent";
+
     my ($perl) = "$dir/perl";
     print "$perl => $ln\n";
     sys "sudo ln -s $perl $ln" or warn "Can't ln $perl => $ln: $!";
@@ -136,22 +160,26 @@ sub build {
     exit;
 }
 
-get_options;
-build if $Options->{build};
+sub main {
+    get_options;
+    build if $Options->{build};
 
-my $command = "@ARGV" or die "Usage: $0 [-v version] command\n";
+    my $command = "@ARGV" or die "Usage: $0 [-v version] command\n";
 
-for my $v (@{$Options->{version}}) {
-    my $perl = "dc-$v";
-    (my $c = $command) =~ s/=perl/$perl/g;
-    # print "Running [$c] from $v\n";
-    # $c =~ s/=v/$v/g;
-    if ($c =~ /^make /) {
-        sys "rm -rf t/e2e";
-        sys "$perl Makefile.PL";
-        sys "make clean";
-        sys "$perl Makefile.PL";
-        sys "make";
+    for my $v (@{$Options->{version}}) {
+        my $perl = "dc-$v";
+        (my $c = $command) =~ s/=perl/$perl/g;
+        # print "Running [$c] from $v\n";
+        # $c =~ s/=v/$v/g;
+        if ($c =~ /^make /) {
+            sys "rm -rf t/e2e";
+            sys "$perl Makefile.PL";
+            sys "make clean";
+            sys "$perl Makefile.PL";
+            sys "make";
+        }
+        sys $c, 1;
     }
-    sys $c, 1;
 }
+
+main
