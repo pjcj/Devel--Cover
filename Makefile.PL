@@ -18,7 +18,7 @@ use File::Copy;
 
 $| = 1;
 
-my $Version = "1.21";
+my $Version = "1.22";
 my $Author  = 'paul@pjcj.net';
 my @perlbug = ("perlbug", "-a", $Author,
                           "-s", "Installation of Devel::Cover $Version");
@@ -266,7 +266,7 @@ available as usual.  Because HTML reports are expected, HTML::Entities has been
 added to the prerequisites.
 EOM
 
-my $latest_tested = "5.023000";
+my $latest_tested = "5.023007";
 print <<EOM if $] > $latest_tested;
 
 Devel::Cover $Version has not been tested with perl $].
