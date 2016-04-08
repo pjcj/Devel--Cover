@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Test against 5.20.3, 5.21.1 - 5.21.9, 5.22.1.
+ - Improve uncoverable docs (Alex Balhatchet) (github 148).
+ - Improve cpancover.
 
 Release 1.21 - 20 September 2015
  - Test more versions on travis.
