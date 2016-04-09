@@ -377,6 +377,11 @@ sub generate_html {
             or die $template->error;
     }
 
+    my $about_f = "$d/about.html";
+    say "\nWriting about page to $about_f ...";
+
+    $template->process("about", {}, $about_f) or die $template->error;
+
     # print Dumper $vars;
     $self->write_json($vars);
 
@@ -664,8 +669,8 @@ http://www.pjcj.net
 </head>
 <body>
     [% content %]
-    <p/>
     <hr/>
+    <p>
     Coverage information from <a href="https://metacpan.org/module/Devel::Cover">
       Devel::Cover
     </a> by <a href="http://pjcj.net">Paul Johnson</a>.
@@ -673,15 +678,15 @@ http://www.pjcj.net
     <br/>
 
     Please report problems with this site to the
-    <a href="https://github.com/pjcj/Devel--Cover/issues">issue tracker</a>.
+    <a href="https://github.com/pjcj/Devel--Cover/issues">issue tracker</a>.</p>
 
-    <br/>
-    <br/>
+    <p><a href="http://cpancover.com/latest/about.html">About</a> the project.</p>
 
-    This server generously donated by
+    <p>This server generously donated by
     <a href="http://www.bytemark.co.uk/r/cpancover">
       <img src="http://www.bytemark.co.uk/images/subpages/spreadtheword/bytemark_logo_179_x_14.png" alt="bytemark"/>
     </a>
+    </p>
 </body>
 </html>
 EOT
@@ -693,7 +698,7 @@ $Templates{summary} = <<'EOT';
 
 <h2> Distributions </h2>
 
-Search for distributions by first character:<p/>
+<p>Search for distributions by first character:</p>
 
 [% FOREACH start = modules.keys.sort %]
     <a href="dist/[%- start -%].html">[% start %]</a>
@@ -703,6 +708,28 @@ Search for distributions by first character:<p/>
 
 <a href="http://cpancover.com/blead/latest/coverage.html">Perl core coverage</a>
 (under development)
+
+[% END %]
+EOT
+
+$Templates{about} = <<'EOT';
+[% WRAPPER html %]
+
+<h1> CPANCover </h1>
+
+<h2> About </h2>
+
+<p>Devel::Cover is a Perl module that provides code coverage metrics for Perl.</p>
+
+<p>Code coverage data are collected using a pluggable runops function which
+counts how many times each op is executed. These data are then mapped back to
+reality using the B compiler mocules.</p>
+
+<p>The source code is available at the
+  <a href="https://github.com/pjcj/Devel--Cover">GitHub repository</a>.
+  Contributions are also accepted for several
+  <a href="http://pjcj.net/devel-cover/projects.html">open projects</a>.
+</p>
 
 [% END %]
 EOT
