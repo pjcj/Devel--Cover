@@ -7,7 +7,7 @@
 
 package Devel::Cover::Op;
 
-require 5.8.0;  # My patches to B::Concise didn't get released till 5.8.0.
+require 5.8.1;  # My patches to B::Concise didn't get released till 5.8.0.
 
 use strict;
 use warnings;
