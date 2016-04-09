@@ -380,7 +380,8 @@ sub generate_html {
     my $about_f = "$d/about.html";
     say "\nWriting about page to $about_f ...";
 
-    $template->process("about", {}, $about_f) or die $template->error;
+    $template->process("about", { subdir => "latest/" }, $about_f)
+        or die $template->error;
 
     # print Dumper $vars;
     $self->write_json($vars);
