@@ -203,6 +203,12 @@ sub run_test {
         return;
     }
 
+    if ($] < 5.008001) {
+        Test::plan tests => 1;
+        Test::skip("Perl version $] is not supported", 1);
+        return;
+    }
+
     my $version = int(($] - 5) * 1000 + 0.5);
     if ($version % 2 && $version < 22) {
         Test::plan tests => 1;

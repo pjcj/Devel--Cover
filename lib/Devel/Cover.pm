@@ -107,6 +107,38 @@ BEGIN {
               ($ENV{PERL5OPT}              || "") =~ /Devel::Cover/;
     *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 
+    if ($] < 5.008002 && !$ENV{DEVEL_COVER_UNSUPPORTED}) {
+        print <<EOM;
+
+Devel::Cover $LVERSION is not supported on perl $].  The last version of
+Devel::Cover which was supported was version 1.22.  This version may not work.
+I have not tested it.  If it does work it will not be fully functional.
+
+If you decide to use it anyway, you are on your own.  If it works at all, there
+will be some constructs for which coverage will not be collected, and you may
+well encounter bugs which have been fixed in subsequent versions of perl.
+
+EOM
+
+        print <<EOM if $^O eq "MSWin32";
+And things are even worse under Windows.  You may well find random bugs of
+various severities.
+
+EOM
+        print <<EOM;
+
+If you are actually using this version of Devel::Cover with perl $], please let
+me know.  I don't want to know if you are just testing Devel::Cover, only if you
+are seriously using this version to do code coverage analysis of real code.  If
+I get no reports of such usage then I will remove support and delete the
+workarounds for versions of perl below 5.8.1.
+
+To suppress this message at runtime set the environment variable
+\$DEVEL_COVER_UNSUPPORTED
+
+EOM
+    }
+
     if ($^X =~ /(apache2|httpd)$/) {
         # mod_perl < 2.0.8
         @Inc = @Devel::Cover::Inc::Inc;

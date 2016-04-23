@@ -275,19 +275,34 @@ You may well find failing tests.
 
 EOM
 
-if ($] < 5.008) {
+if ($] < 5.008001) {
     print <<EOM;
 
-Devel::Cover $Version is not fully functional on perl $].  It should mostly
-work, but there are some constructs for which coverage will not be collected,
-and you may well encounter bugs which have been fixed in subsequent versions of
-perl.  Perl versions 5.8.8 and above should work better.
+Devel::Cover $Version is not supported on perl $].  The last version of
+Devel::Cover which was supported was version 1.22.  This version may not work.
+I have not tested it.  If it does work it will not be fully functional.
+
+If you decide to use it anyway, you are on your own.  If it works at all, there
+will be some constructs for which coverage will not be collected, and you may
+well encounter bugs which have been fixed in subsequent versions of perl.
 
 EOM
 
     print <<EOM if $^O eq "MSWin32";
 And things are even worse under Windows.  You may well find random bugs of
 various severities.
+
+EOM
+    print <<EOM;
+
+If you are actually using this version of Devel::Cover with perl $], please let
+me know.  I don't want to know if you are just testing Devel::Cover, only if you
+are seriously using this version to do code coverage analysis of real code.  If
+I get no reports of such usage then I will remove support and delete the
+workarounds for versions of perl below 5.8.1.
+
+To suppress this message at runtime set the environment variable
+\$DEVEL_COVER_UNSUPPORTED
 
 EOM
 } elsif ($] < 5.008002) {
