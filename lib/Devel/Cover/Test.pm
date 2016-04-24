@@ -298,7 +298,7 @@ sub run_cover {
             push @at, $t;
             push @ac, $c;
         } else {
-            $self->{no_coverage} ? pass : ok($t, $c);
+            $self->{no_coverage} ? pass : is($t, $c);
             last if $self->{no_coverage} && !@{$self->{cover}};
         }
     }
