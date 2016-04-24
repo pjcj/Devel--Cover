@@ -604,7 +604,7 @@ static void dump_conditions(pTHX) {
 }
 
 #if PERL_VERSION > 18
-/* For if ($a || $b) and unless ($a && $b), rpeep skips passed a few
+/* For if ($a || $b) and unless ($a && $b), rpeep skips past a few
  * logops and messes with Devel::Cover.
  *
  * This function will find the skipped op if there is one
