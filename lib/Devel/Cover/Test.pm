@@ -328,10 +328,8 @@ sub create_gold {
     my $self = shift;
 
     # Pod::Coverage not available on all versions, but it must be there on
-    # 5.6.1 and 5.8.0
-    return if $self->{criteria} =~ /\bpod\b/ &&
-               $] != 5.006001 &&
-               $] != 5.008000;
+    # 5.8.1
+    return if $self->{criteria} =~ /\bpod\b/ && $] != 5.008001;
 
     my ($base, $v) = $self->cover_gold;
     my $gold       = "$base.$v";
