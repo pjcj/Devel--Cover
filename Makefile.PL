@@ -446,13 +446,10 @@ DB = cover_db
 dump :
 \t \$(PERL) -Mblib bin/cover -dump_db \$(DB)
 
-FONT = "Inconsolata 10"
-GEOM = 260x85+0+0
-
 diff : out
 \t \$(PERL) utils/makeh strip_criterion 'time' \$(TEST).out
 \t \$(PERL) utils/makeh strip_criterion ' pod' \$(TEST).out
-\t gold="`\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new(qq(\$(TEST))); print join qq(.), \$\$t->cover_gold'`" && gvim -geom \$(GEOM) -d -font \$(FONT) "\$\$gold" \$(TEST).out
+\t gold="`\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new(qq(\$(TEST))); print join qq(.), \$\$t->cover_gold'`" && \$(EDITOR) -d "\$\$gold" \$(TEST).out
 
 gold : pure_all
 \t \$(PERL) utils/create_gold \$(TEST)
