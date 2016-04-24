@@ -1,0 +1,83 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/E2.pm                                   0.0    n/a    n/a    0.0    0.0
+tests/require                               100.0   50.0    n/a  100.0   90.9
+Total                                        87.5   50.0    n/a   66.6   76.9
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/E2.pm
+
+line  err   stmt   bran   cond    sub   code
+1                                       # Copyright 2004-2016, Paul Johnson (paul@pjcj.net)
+2                                       
+3                                       # This software is free.  It is licensed under the same terms as Perl itself.
+4                                       
+5                                       # The latest version of this software should be available from my homepage:
+6                                       # http://www.pjcj.net
+7                                       
+8                                       package E2;
+9                                       
+10                                      print "E2\n";
+11                                      
+12    ***      0                    0   sub E2 { print "E2::E2\n" }
+13                                      
+14                                      1
+
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count Location      
+---------- ----- --------------
+E2             0 tests/E2.pm:12
+
+
+tests/require
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2016, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10    ***      1     50             1   use lib -d "t" ? "." : "..";
+               1                        
+               1                        
+11             1                    1   use File::Spec;
+               1                        
+               1                        
+12             1                        require File::Spec->catfile("tests", "E2.pm");
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+10    ***     50      1      0   -d 't' ? :
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location        
+---------- ----- ----------------
+BEGIN          1 tests/require:10
+BEGIN          1 tests/require:11
+
+

@@ -1,0 +1,54 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/destroy                               100.0    n/a    n/a  100.0  100.0
+Total                                       100.0    n/a    n/a  100.0  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/destroy
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2004-2016, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      package Destroy;
+11                                      
+12             1                    1   sub new { bless {}, shift }
+13                                      
+14             1                        my $x;
+15                                      
+16                                      sub DESTROY {
+17             1                    1       $x++;
+18             1                            $x++;
+19                                      }
+20                                      
+21                                      package main;
+22                                      
+23             1                        my $d = Destroy->new;
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location        
+---------- ----- ----------------
+DESTROY        1 tests/destroy:17
+new            1 tests/destroy:12
+
+

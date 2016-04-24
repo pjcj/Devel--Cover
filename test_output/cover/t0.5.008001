@@ -1,0 +1,95 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/t0                                     94.1   62.5   66.6  100.0   83.3
+Total                                        94.1   62.5   66.6  100.0   83.3
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/t0
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2016, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                    1   use strict;
+               1                        
+               1                        
+11             1                    1   use warnings;
+               1                        
+               1                        
+12                                      
+13             1                        my @x;
+14                                      
+15             1                        my $y = 1;
+16                                      
+17             1                        for (0 .. 10) {
+18    ***     11     50                   $y &&
+19                                          $x[1]++;
+20                                      
+21    ***     11    100     66            $y &&
+22                                          $x[0]++ &&
+23                                          $x[1]++;
+24                                      
+25    ***     11     50                   $x[2]++
+26                                          if $y;
+27                                      
+28            11                          for (0 .. 2) {
+29            33                              $x[3]++;
+30                                        }
+31                                      
+32    ***     11     50                   if ($y) {
+33            11                            $x[4]++;
+34                                        } else {
+35    ***      0                            $x[5]++;
+36                                        }
+37                                      }
+38                                      
+39                                      # print join(", ", @x), "\n";
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+18    ***     50     11      0   if $y
+21           100     10      1   if $y and $x[0]++
+25    ***     50     11      0   if $y
+32    ***     50     11      0   if ($y) { }
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+21    ***     66      0      1     10   $y and $x[0]++
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location   
+---------- ----- -----------
+BEGIN          1 tests/t0:10
+BEGIN          1 tests/t0:11
+
+

@@ -1,0 +1,93 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/readonly                              100.0  100.0    n/a  100.0  100.0
+Total                                       100.0  100.0    n/a  100.0  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/readonly
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2012-2016, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      # __COVER__ skip_test $] < 5.008002 || !(eval "use Readonly; 23")
+11                                      # __COVER__ skip_reason Readonly not available
+12                                      
+13             1                    1   use strict;
+               1                        
+               1                        
+14             1                    1   use warnings;
+               1                        
+               1                        
+15                                      
+16             1                    1   use Readonly;
+               1                        
+               1                        
+17                                      
+18             1                        Readonly my $REGEXP_MATCH => '2';
+19             1                        my @lines = ( '1', '2', '3', 'A', 'B', 'c' );
+20                                      
+21                                      sub test_readonly_coverage {
+22                                          # All branches executed.
+23             1                    1       foreach my $line (@lines) {
+24             6    100                         if ($line =~ /$REGEXP_MATCH/msx) {
+25             1                                    print "true ($line)\n";
+26                                              } else {
+27             5                                    print "false ($line)\n";
+28                                              }
+29                                          }
+30                                      }
+31                                      
+32                                      sub test_posix_regexp {
+33                                          # All branches executed.
+34             1                    1       foreach my $line (@lines) {
+35             6    100                         if ($line =~ /[[:upper:]]/msx) {
+36             2                                    print "true ($line)\n";
+37                                              } else {
+38             4                                    print "false ($line)\n";
+39                                              }
+40                                          }
+41                                      }
+42                                      
+43             1                        test_readonly_coverage;
+44             1                        test_posix_regexp;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+24           100      1      5   if ($line =~ /$REGEXP_MATCH/msx) { }
+35           100      2      4   if ($line =~ /[[:upper:]]/msx) { }
+
+
+Covered Subroutines
+-------------------
+
+Subroutine             Count Location         
+---------------------- ----- -----------------
+BEGIN                      1 tests/readonly:13
+BEGIN                      1 tests/readonly:14
+BEGIN                      1 tests/readonly:16
+test_posix_regexp          1 tests/readonly:34
+test_readonly_coverage     1 tests/readonly:23
+
+

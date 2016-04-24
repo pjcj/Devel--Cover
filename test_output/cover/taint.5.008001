@@ -1,0 +1,57 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/taint                                 100.0    n/a    n/a  100.0  100.0
+Total                                       100.0    n/a    n/a  100.0  100.0
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/taint
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2013-2016, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                    1   use strict;
+               1                        
+               1                        
+11             1                    1   use warnings;
+               1                        
+               1                        
+12             1                    1   use lib "tests";
+               1                        
+               1                        
+13                                      
+14             1                    1   use Taint;
+               1                        
+               1                        
+15                                      
+16             1                        print "taint\n";
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location      
+---------- ----- --------------
+BEGIN          1 tests/taint:10
+BEGIN          1 tests/taint:11
+BEGIN          1 tests/taint:12
+BEGIN          1 tests/taint:14
+
+
