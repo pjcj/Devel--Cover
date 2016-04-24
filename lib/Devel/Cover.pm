@@ -11,7 +11,8 @@ use strict;
 use warnings;
 
 # VERSION
-our $LVERSION = do { no warnings; eval '$VERSION' || "0.001" };  # for dev
+our $LVERSION;
+BEGIN { $LVERSION = do { no warnings; eval '$VERSION' || "0.001" } }  # for dev
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
@@ -110,6 +111,11 @@ BEGIN {
     if ($] < 5.008002 && !$ENV{DEVEL_COVER_UNSUPPORTED}) {
         print <<EOM;
 
+================================================================================
+
+                                   IMPORTANT
+                                   ---------
+
 Devel::Cover $LVERSION is not supported on perl $].  The last version of
 Devel::Cover which was supported was version 1.22.  This version may not work.
 I have not tested it.  If it does work it will not be fully functional.
@@ -117,13 +123,12 @@ I have not tested it.  If it does work it will not be fully functional.
 If you decide to use it anyway, you are on your own.  If it works at all, there
 will be some constructs for which coverage will not be collected, and you may
 well encounter bugs which have been fixed in subsequent versions of perl.
-
 EOM
 
         print <<EOM if $^O eq "MSWin32";
+
 And things are even worse under Windows.  You may well find random bugs of
 various severities.
-
 EOM
         print <<EOM;
 
@@ -133,10 +138,14 @@ are seriously using this version to do code coverage analysis of real code.  If
 I get no reports of such usage then I will remove support and delete the
 workarounds for versions of perl below 5.8.1.
 
-To suppress this message at runtime set the environment variable
-\$DEVEL_COVER_UNSUPPORTED
+In order to use this version of Devel::Cover with perl $] you must set the
+environment variable \$DEVEL_COVER_UNSUPPORTED
+
+================================================================================
 
 EOM
+
+        die "Exiting";
     }
 
     if ($^X =~ /(apache2|httpd)$/) {
