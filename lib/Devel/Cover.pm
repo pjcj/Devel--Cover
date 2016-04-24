@@ -1356,15 +1356,22 @@ reported.
 
 =over
 
-=item * Perl 5.6.1 or greater.  Perl 5.8.8 or greater is recommended.
+=item * Perl 5.8.1 or greater.  Perl 5.8.8 or greater is recommended.
 
-Perl 5.7 is unsupported.  Perl 5.8.8 or greater is recommended.  Perl 5.8.7
-has problems and may crash.  Whilst Perl 5.6 should mostly work you will
-probably miss out on coverage information which would be available using a
-more modern version and will likely run into bugs in perl.  Devel::Cover
-support for unsupported Perl versions may be removed at any time, but I try to
-keep older versions running provided this does not cause undue difficulty i
-other areas.
+Perl versions 5.6.1, 5.6.2 and 5.8.0 may work to an extent but are unsupported.
+Perl 5.8.8 or greater is recommended.  Perl 5.8.7 has problems and may crash.
+
+If you want to use an unsupported version you will need to set the environment
+variable $DEVEL_COVER_UNSUPPORTED.  Unsupported versions are also untested.  I
+will consider patches for unsupported versions only if they do not compromise
+the code.  This is a vague, nebulous concept that I will decide on if and when
+necessary.
+
+If you are using an unsupported version, please let me know.  I don't want to
+know if you are just testing Devel::Cover, only if you are seriously using it to
+do code coverage analysis of real code.  If I get no reports of such usage then
+I will remove support and delete the workarounds for versions of perl below
+5.8.1.  I may do that anyway.
 
 Different versions of perl may give slightly different results due to changes
 in the op tree.
