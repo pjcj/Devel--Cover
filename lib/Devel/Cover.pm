@@ -108,7 +108,7 @@ BEGIN {
               ($ENV{PERL5OPT}              || "") =~ /Devel::Cover/;
     *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 
-    if ($] < 5.008002 && !$ENV{DEVEL_COVER_UNSUPPORTED}) {
+    if ($] < 5.008001 && !$ENV{DEVEL_COVER_UNSUPPORTED}) {
         print <<EOM;
 
 ================================================================================
