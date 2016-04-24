@@ -15,7 +15,7 @@ use warnings;
 use Carp;
 
 use File::Spec;
-use Test ();
+use Test::More;
 
 use Devel::Cover::Inc;
 
@@ -198,28 +198,13 @@ sub run_test {
     my $self = shift;
 
     if ($self->{skip}) {
-        Test::plan tests => 1;
-        Test::skip($self->{skip}, 1);
-        return;
-    }
-
-    if ($] < 5.008001) {
-        Test::plan tests => 1;
-        Test::skip("Perl version $] is not supported", 1);
+        plan skip_all => $self->{skip};
         return;
     }
 
     my $version = int(($] - 5) * 1000 + 0.5);
     if ($version % 2 && $version < 22) {
-        Test::plan tests => 1;
-        Test::skip("Perl version $] is an obsolete development version", 1);
-        return;
-    }
-
-    if ($] > 5.019001 && $] < 5.019004) {
-        Test::plan tests => 1;
-        Test::skip("Perl version $] contains a bug which causes this test " .
-                   "to fail", 1);
+        plan skip_all => "Perl version $] is an obsolete development version";
         return;
     }
 
@@ -235,11 +220,11 @@ sub run_test {
 
     # print STDERR "gold from $gold\n", @cover if $self->{debug};
 
-    Test::plan tests => $self->{differences}
-                            ? 1
-                            : exists $self->{tests}
-                                  ? $self->{tests}->(scalar @cover)
-                                  : scalar @cover;
+    plan tests => $self->{differences}
+        ? 1
+        : exists $self->{tests}
+            ? $self->{tests}->(scalar @cover)
+            : scalar @cover;
 
     local $ENV{PERL5OPT};
     $self->{run_test}
@@ -308,16 +293,16 @@ sub run_cover {
             push @at, $t;
             push @ac, $c;
         } else {
-            $self->{no_coverage} ? Test::ok 1 : Test::ok $t, $c;
+            $self->{no_coverage} ? pass : ok($t, $c);
             last if $self->{no_coverage} && !@{$self->{cover}};
         }
     }
     if ($self->{differences}) {
         no warnings "redefine";
         local *Test::_quote = sub { "@_" };
-        $self->{no_coverage} ? Test::ok 1 : eq_or_diff(\@at, \@ac, "output");
+        $self->{no_coverage} ? pass : eq_or_diff(\@at, \@ac, "output");
     } elsif ($self->{no_coverage}) {
-        Test::ok 1 for @{$self->{cover}};
+        pass for @{$self->{cover}};
     }
     close T or die "Cannot close $cover_com: $!";
 
