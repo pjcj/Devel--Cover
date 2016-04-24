@@ -197,6 +197,11 @@ sub run_command {
 sub run_test {
     my $self = shift;
 
+    if ($] < 5.008001) {
+        plan skip_all => "Perl version $] is not supported";
+        return;
+    }
+
     if ($self->{skip}) {
         plan skip_all => $self->{skip};
         return;
