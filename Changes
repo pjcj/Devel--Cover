@@ -4,7 +4,7 @@ Devel::Cover history
 
 Release 1.23 - 24 April 2016
  - Enhance html coverage popups (Haydn Newport) (guthub 156).
- - Add cpamcover about page (Guillermo O. Freschi) (github 146).
+ - Add cpancover about page (Guillermo O. Freschi) (github 146).
  - Perl versions below 5.8.1 are now unsupported.
 
 Release 1.22 - 9 April 2016
