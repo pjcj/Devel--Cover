@@ -155,7 +155,8 @@ sub mm_test_command {
 
 # Test command for Module::Build
 sub mb_test_command {
-    my $test = "./Build test";
+    my $builder = File::Spec->catfile(File::Spec->curdir, "Build");
+    my $test = "$builder test";
     if ($Options->{gcov}) {
         my $o = gcov_args();
         $test .= qq{ "--extra_compiler_flags=-O0 $o" "--extra_linker_flags=$o"};
