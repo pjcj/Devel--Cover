@@ -614,9 +614,9 @@ static OP *find_skipped_conditional(pTHX_ OP *o) {
         return NULL;
 
     /* Get to the end of the "a || b || c" block */
-    OP *right = cLOGOP->op_first->op_sibling;
-    while (right && cLOGOPx(right)->op_sibling)
-        right = cLOGOPx(right)->op_sibling;
+    OP *right = OpSIBLING(cLOGOP->op_first);
+    while (right && OpSIBLING(cLOGOPx(right)))
+        right = OpSIBLING(cLOGOPx(right));
 
     if (!right)
         return NULL;
@@ -784,7 +784,7 @@ static void cover_logop(pTHX) {
             (PL_op->op_type == OP_XOR)) {
             /* no short circuit */
 
-            OP *right = cLOGOP->op_first->op_sibling;
+            OP *right = OpSIBLING(cLOGOP->op_first);
 
             NDEB(op_dump(right));
 
@@ -874,7 +874,7 @@ static void cover_logop(pTHX) {
         } else {
             /* short circuit */
 #if PERL_VERSION > 14
-            OP *up = cLOGOP->op_first->op_sibling->op_next;
+            OP *up = OpSIBLING(cLOGOP->op_first)->op_next;
 #if PERL_VERSION > 18
             OP *skipped;
 #endif
@@ -887,7 +887,7 @@ static void cover_logop(pTHX) {
                 add_conditional(aTHX_ up, 3);
                 if (up->op_next == PL_op->op_next)
                     break;
-                up = cLOGOPx(up)->op_first->op_sibling->op_next;
+                up = OpSIBLING(cLOGOPx(up)->op_first)->op_next;
             }
 #endif
             add_conditional(aTHX_ PL_op, 3);
