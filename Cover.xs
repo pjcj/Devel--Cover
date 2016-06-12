@@ -882,6 +882,8 @@ static void cover_logop(pTHX) {
                 next = (PL_op->op_type == OP_XOR)
                     ? PL_op->op_next
                     : right->op_next;
+                while (next && next->op_type == OP_NULL)
+                    next = next->op_next;
 #else
                 next = PL_op->op_next;
 #endif
