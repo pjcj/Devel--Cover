@@ -911,6 +911,41 @@ static void cover_logop(pTHX) {
     }
 }
 
+#if PERL_VERSION > 16
+/* A sequence of variable declarations may have been optimized
+ * to a single OP_PADRANGE. The original sequence may span multiple lines,
+ * but only the first line has been marked as covered for now.
+ * Mark other OP_NEXTSTATE inside the original sequence of statements.
+ */
+static void cover_padrange(pTHX) {
+    dMY_CXT;
+    if (!collecting(Statement)) return;
+    OP *next = PL_op->op_next;
+    OP *orig = PL_op->op_sibling;
+
+    /* Ignore padrange preparing subroutine call. */
+    while (orig && orig != next) {
+	if (orig->op_type == OP_ENTERSUB) return;
+	orig = orig->op_next;
+    }
+    orig = PL_op->op_sibling;
+    while (orig && orig != next) {
+	if (orig->op_type == OP_NEXTSTATE) {
+	    cover_statement(aTHX_ orig);
+	}
+	orig = orig->op_next;
+    }
+}
+
+static OP *dc_padrange(pTHX) {
+    dMY_CXT;
+    check_if_collecting(aTHX_ PL_curcop);
+    NDEB(D(L, "dc_padrange() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+    if (MY_CXT.covering) cover_padrange(aTHX);
+    return MY_CXT.ppaddr[OP_PADRANGE](aTHX);
+}
+#endif
+
 static OP *dc_nextstate(pTHX) {
     dMY_CXT;
     NDEB(D(L, "dc_nextstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
@@ -1039,6 +1074,9 @@ static void replace_ops (pTHX) {
 #endif
     PL_ppaddr[OP_DBSTATE]   = dc_dbstate;
     PL_ppaddr[OP_ENTERSUB]  = dc_entersub;
+#if PERL_VERSION > 16
+    PL_ppaddr[OP_PADRANGE]  = dc_padrange;
+#endif
     PL_ppaddr[OP_COND_EXPR] = dc_cond_expr;
     PL_ppaddr[OP_AND]       = dc_and;
     PL_ppaddr[OP_ANDASSIGN] = dc_andassign;
@@ -1182,6 +1220,13 @@ static int runops_cover(pTHX) {
                 cover_current_statement(aTHX);
                 break;
             }
+
+#if PERL_VERSION > 16
+            case OP_PADRANGE: {
+		cover_padrange(aTHX);
+		break;
+            }
+#endif
 
             case OP_COND_EXPR: {
                 cover_cond(aTHX);
