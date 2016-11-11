@@ -12,6 +12,7 @@ require 5.006001;
 use strict;
 use warnings;
 
+use Config;
 use Cwd;
 use ExtUtils::MakeMaker;
 use File::Copy;
@@ -343,6 +344,8 @@ my $opts = {
                                 : ( "Test::More" => 0 )
                         },
     TYPEMAPS         => [ "utils/typemap" ],
+    # force MSVC to build generated Cover.c as C++ file
+    CCFLAGS          => ($^O =~ /mswin/i) ? $Config{ccflags}." /TP": "",
     clean            => {
                             FILES => "t/e2e/* cover_db* t/e2e/*cover_db " .
                                      "README *.gcov *.out"
