@@ -36,7 +36,7 @@ my $Options = {
     output_file     => "index.html",
     report          => "html_basic",
     results_dir     => cwd(),
-    timeout         => 1800,  # half an hour
+    timeout         => 7200,  # two hours
     verbose         => 0,
     workers         => 0,
 };
@@ -70,7 +70,6 @@ sub get_options {
 }
 
 sub newcp {
-    my $self = shift;
     Devel::Cover::Collection->new(
         bin_dir         => $Options->{bin_dir},
         docker          => $Options->{docker},
