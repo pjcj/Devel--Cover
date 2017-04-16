@@ -8,7 +8,7 @@ export PATH=$(tidy $dc_home/utils:$PATH)
 
 if [ ! -z $ZSH_VERSION ]; then
     _dc() {
-      reply=(`utils/dc options`)
+        reply=(`utils/dc options`)
     }
     compctl -K _dc dc
 fi
