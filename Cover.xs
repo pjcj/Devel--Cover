@@ -610,18 +610,21 @@ static void dump_conditions(pTHX) {
  * This function will find the skipped op if there is one
  */
 static OP *find_skipped_conditional(pTHX_ OP *o) {
+    OP *right;
+    OP *next;
+
     if (o->op_type != OP_OR && o->op_type != OP_AND)
         return NULL;
 
     /* Get to the end of the "a || b || c" block */
-    OP *right = cLOGOP->op_first->op_sibling;
+    right = cLOGOP->op_first->op_sibling;
     while (right && cLOGOPx(right)->op_sibling)
         right = cLOGOPx(right)->op_sibling;
 
     if (!right)
         return NULL;
 
-    OP *next = right->op_next;
+    next = right->op_next;
     while (next && next->op_type == OP_NULL)
         next = next->op_next;
 
