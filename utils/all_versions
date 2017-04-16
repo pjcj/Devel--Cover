@@ -149,15 +149,21 @@ sub _build_version {
     sys "sudo ln -s $perl $ln" or warn "Can't ln $perl => $ln: $!";
 }
 
+sub _build_versions {
+    my ($v) = @_;
+    _build_version $v;
+    _build_version "$v-thr";
+}
+
 sub build {
     print "Building: @{$Options->{version}}\n";
     my @res = iterate_as_array(
         { workers => nice_cpus * 2 },
         sub {
             my (undef, $v) = @_;
-            _build_version($v);
+            _build_versions($v);
         },
-        $Options->{version}
+        [ grep !/-thr/, @{$Options->{version}} ]
     );
     exit;
 }
