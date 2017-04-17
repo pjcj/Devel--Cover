@@ -20,20 +20,15 @@ use PodMod;
 
 my @x;
 
-sub xx
-{
-  $x[shift]++;
-  Module1::zz(0);
+sub xx {
+    $x[shift]++;
+    Module1::zz(0);
 }
 
-for (0 .. 10)
-{
-  if (time)
-  {
-    xx(0);
-  }
-  else
-  {
-    $x[1]++;
-  }
+for (0 .. 10) {
+    if (time) {
+        xx(0);
+    } else {
+        $x[1]++;
+    }
 }
