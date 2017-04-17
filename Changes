@@ -1,9 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Work with 5.25.x (op_sibling) (Dan Collins, Matthew Horsfall) (github 162)
 
 Release 1.23 - 24 April 2016
- - Enhance html coverage popups (Haydn Newport) (guthub 156).
+ - Enhance html coverage popups (Haydn Newport) (github 156).
  - Add cpancover about page (Guillermo O. Freschi) (github 146).
  - Perl versions below 5.8.1 are now unsupported.
 
