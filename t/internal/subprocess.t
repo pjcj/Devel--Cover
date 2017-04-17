@@ -3,12 +3,9 @@ use warnings;
 
 use Test::More;
 
-if ($] < 5.008000)
-{
-    plan skip_all => "Test requires perl 5.8.0 or greater";
-}
-else
-{
+if ($] < 5.010000) {
+    plan skip_all => "Perl version $] is not supported";
+} else {
     plan tests => 2;
 }
 

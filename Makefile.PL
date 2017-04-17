@@ -275,7 +275,8 @@ You may well find failing tests.
 
 EOM
 
-if ($] < 5.008001) {
+if ($] < 5.010000) {
+    my $v = $] < 5.008001 ? "1.22" : "1.23";
     print <<EOM;
 
 ================================================================================
@@ -284,8 +285,8 @@ if ($] < 5.008001) {
                                    ---------
 
 Devel::Cover $Version is not supported on perl $].  The last version of
-Devel::Cover which was supported was version 1.22.  This version may not work.
-I have not tested it.  If it does work it will not be fully functional.
+Devel::Cover which was supported was version $v.  This version may not work.
+I have not tested it.  If it does work it will probably not be fully functional.
 
 If you decide to use it anyway, you are on your own.  If it works at all, there
 will be some constructs for which coverage will not be collected, and you may
@@ -299,25 +300,16 @@ various severities.
 EOM
     print <<EOM;
 
-If you are actually using this version of Devel::Cover with perl $], please let
-me know.  I don't want to know if you are just testing Devel::Cover, only if you
-are seriously using this version to do code coverage analysis of real code.  If
-I get no reports of such usage then I will remove support and delete the
-workarounds for versions of perl below 5.8.1.
+If you are actually using this version of Devel::Cover with perl $], please
+let me know.  I don't want to know if you are just testing Devel::Cover, only if
+you are seriously using this version to do code coverage analysis of real code.
+If I get no reports of such usage then I will remove support and delete the
+workarounds for versions of perl below 5.10.0.
 
 In order to use this version of Devel::Cover with perl $] you must set the
 environment variable \$DEVEL_COVER_UNSUPPORTED
 
 ================================================================================
-
-EOM
-} elsif ($] < 5.008002) {
-    print <<EOM;
-
-Devel::Cover $Version mostly works on perl $], but you may encounter strange
-behaviours (bugs) which have been fixed in subsequent versions of perl.  This is
-particularly true if you are running a threaded perl.  Perl versions 5.8.2 and
-above should work better.
 
 EOM
 }

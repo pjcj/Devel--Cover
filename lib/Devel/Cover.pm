@@ -108,7 +108,8 @@ BEGIN {
               ($ENV{PERL5OPT}              || "") =~ /Devel::Cover/;
     *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 
-    if ($] < 5.008001 && !$ENV{DEVEL_COVER_UNSUPPORTED}) {
+    if ($] < 5.010000 && !$ENV{DEVEL_COVER_UNSUPPORTED}) {
+        my $v = $] < 5.008001 ? "1.22" : "1.23";
         print <<EOM;
 
 ================================================================================
@@ -117,7 +118,7 @@ BEGIN {
                                    ---------
 
 Devel::Cover $LVERSION is not supported on perl $].  The last version of
-Devel::Cover which was supported was version 1.22.  This version may not work.
+Devel::Cover which was supported was version $v.  This version may not work.
 I have not tested it.  If it does work it will not be fully functional.
 
 If you decide to use it anyway, you are on your own.  If it works at all, there
@@ -136,7 +137,7 @@ If you are actually using this version of Devel::Cover with perl $], please let
 me know.  I don't want to know if you are just testing Devel::Cover, only if you
 are seriously using this version to do code coverage analysis of real code.  If
 I get no reports of such usage then I will remove support and delete the
-workarounds for versions of perl below 5.8.1.
+workarounds for versions of perl below 5.10.0.
 
 In order to use this version of Devel::Cover with perl $] you must set the
 environment variable \$DEVEL_COVER_UNSUPPORTED
