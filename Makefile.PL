@@ -18,15 +18,16 @@ use File::Copy;
 
 $| = 1;
 
-my $Version = "1.23";
-my $Author  = 'paul@pjcj.net';
-my @perlbug = ("perlbug", "-a", $Author,
-                          "-s", "Installation of Devel::Cover $Version");
-my $Perlbug = join " ", map { / / ? "'$_'" : $_ } @perlbug;
-my $base    = getcwd;
-my %inc     = map { -d $_ ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () }
-                  @INC;
-my @inc     = sort keys %inc;
+my $Version  = "1.23";
+my $Latest_t = "5.025011";
+my $Author   = 'paul@pjcj.net';
+my @perlbug  = ("perlbug", "-a", $Author,
+                           "-s", "Installation of Devel::Cover $Version");
+my $Perlbug  = join " ", map { / / ? "'$_'" : $_ } @perlbug;
+my $base     = getcwd;
+my %inc      = map { -d $_ ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () }
+                   @INC;
+my @inc      = sort keys %inc;
 
 open I, ">lib/Devel/Cover/Inc.pm"
     or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
@@ -266,11 +267,10 @@ available as usual.  Because HTML reports are expected, HTML::Entities has been
 added to the prerequisites.
 EOM
 
-my $latest_tested = "5.023009";
-print <<EOM if $] > $latest_tested;
+print <<EOM if $] > $Latest_t;
 
 Devel::Cover $Version has not been tested with perl $].
-Testing will take place against expected output from perl $latest_tested.
+Testing will take place against expected output from perl $Latest_t.
 You may well find failing tests.
 
 EOM
