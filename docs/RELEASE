@@ -29,12 +29,13 @@
   $ perl Makefile.PL && make
 
 10. If there's a new stable release of perl:
-  $ cpan Dist::Zilla
-  $ cpan `dzil authordeps --missing`
+  $ cpan App::cpm
+  $ cpm install -g Dist::Zilla
+  $ cpm install -g `dzil authordeps --missing`
 
 11. Make the release.
   $ dzil release
 
 12. Push the changes.
   - The dzil Git::Push plugin hangs for me
-  $ git push && git push --tags
+  $ git push --follow-tags
