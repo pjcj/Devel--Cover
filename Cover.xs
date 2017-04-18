@@ -45,6 +45,14 @@ extern "C" {
 
 #define MY_CXT_KEY "Devel::Cover::_guts" XS_VERSION
 
+#ifndef OpHAS_SIBLING
+#define OpHAS_SIBLING(o)      (cBOOL((o)->op_sibling))
+#endif
+
+#ifndef OpSIBLING
+#define OpSIBLING(o)          (0 + (o)->op_sibling)
+#endif
+
 #define PDEB(a) a
 #define NDEB(a) ;
 #define D PerlIO_printf
