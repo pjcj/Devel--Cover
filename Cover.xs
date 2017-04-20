@@ -960,21 +960,23 @@ static void cover_logop(pTHX) {
  */
 static void cover_padrange(pTHX) {
     dMY_CXT;
+    OP *next,
+       *orig;
     if (!collecting(Statement)) return;
-    OP *next = PL_op->op_next;
-    OP *orig = OpSIBLING(PL_op);
+    next = PL_op->op_next;
+    orig = OpSIBLING(PL_op);
 
     /* Ignore padrange preparing subroutine call. */
     while (orig && orig != next) {
-	if (orig->op_type == OP_ENTERSUB) return;
-	orig = orig->op_next;
+        if (orig->op_type == OP_ENTERSUB) return;
+        orig = orig->op_next;
     }
     orig = OpSIBLING(PL_op);
     while (orig && orig != next) {
-	if (orig->op_type == OP_NEXTSTATE) {
-	    cover_statement(aTHX_ orig);
-	}
-	orig = orig->op_next;
+        if (orig->op_type == OP_NEXTSTATE) {
+            cover_statement(aTHX_ orig);
+        }
+        orig = orig->op_next;
     }
 }
 
