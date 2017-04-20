@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fix C code to work with MSVC (Marc-Philip) (github 177).
 
 Release 1.24 - 18 April 2017
  - Work with 5.25.x (op_sibling) (Dan Collins, Matthew Horsfall) (github 162).
