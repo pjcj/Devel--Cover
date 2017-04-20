@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2014-2016, Paul Johnson (paul@pjcj.net)
+# Copyright 2014-2017, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
