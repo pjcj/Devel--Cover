@@ -27,7 +27,10 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10             1                        my @s;
-11             1                        for (@s) {}
+10             1                        my $a;
+11             1                        my ($b, $c);
+12             1                        my ($d);
+13             1                        my @s;
+14             1                        for (@s) {}
 
 
