@@ -84,7 +84,7 @@ This module provides Sereal based IO routines for Devel::Cover::DB.
 
  my $io = Devel::Cover::DB::IO::Sereal->new;
 
-Contructs the IO object.
+Constructs the IO object.
 
 =head2 read
 

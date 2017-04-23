@@ -63,7 +63,7 @@ This module provides Storable based IO routines for Devel::Cover::DB.
 
  my $io = Devel::Cover::DB::IO::Storable->new;
 
-Contructs the IO object.
+Constructs the IO object.
 
 =head2 read
 

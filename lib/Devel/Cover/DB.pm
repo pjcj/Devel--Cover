@@ -907,7 +907,7 @@ This module provides access to a database of code coverage information.
 
  my $db = Devel::Cover::DB->new(db => "my_coverage_db");
 
-Contructs the DB from the specified database.
+Constructs the DB from the specified database.
 
 =head2 cover
 

@@ -5,6 +5,7 @@ Devel::Cover history
  - Fix cover command using Module::Build on Win32 (sago35) (github 160).
  - Add file and line info to keep ops unique (Niko Tyni) (github 143).
  - Report coverage for all declarations (Heinz Knutzen) (github 166).
+ - Fix spelling mistakes (Gregor Herrmann) (github 171).
 
 Release 1.24 - 18 April 2017
  - Work with 5.25.x (op_sibling) (Dan Collins, Matthew Horsfall) (github 162).

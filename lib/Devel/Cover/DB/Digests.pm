@@ -110,7 +110,7 @@ This module stores digests for Devel::Cover::DB.
 
  my $digests = Devel::Cover::DB::Digests->new(db => $DB);
 
-Contructs the digests object.
+Constructs the digests object.
 
 =head2 read
 

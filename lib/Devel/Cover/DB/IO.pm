@@ -66,7 +66,7 @@ This module provides IO routines for Devel::Cover::DB.
 
  my $io = Devel::Cover::DB::IO->new(format => "JSON");
 
-Contructs the IO object.
+Constructs the IO object.
 
 =head2 read
 
