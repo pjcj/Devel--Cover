@@ -4,7 +4,7 @@ Reading database from ...
 ------------------------------------------ ------ ------ ------ ------ ------
 File                                         stmt   bran   cond    sub  total
 ------------------------------------------ ------ ------ ------ ------ ------
-tests/bug_and                                63.6   50.0   33.3    n/a   47.2
+tests/and                                    63.6   50.0   33.3    n/a   47.2
 Total                                        63.6   50.0   33.3    n/a   47.2
 ------------------------------------------ ------ ------ ------ ------ ------
 
@@ -15,7 +15,7 @@ OS: ...
 Start: ...
 Finish: ...
 
-tests/bug_and
+tests/and
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -45,11 +45,9 @@ line  err   stmt   bran   cond    sub   code
 25    ***      0                            die "Urgh";
 26                                      }
 27                                      
-28                                      # TODO - this does not get reported on correctly.  It is reported identically
-29                                      # to the first case, but it should be the same as cases 2 - 4.
-30    ***      1     50     33          if (!$x || !$y) {
-31    ***      0                            die "Urgh";
-32                                      }
+28    ***      1     50     33          if (!$x || !$y) {
+29    ***      0                            die "Urgh";
+30                                      }
 
 
 Branches
@@ -60,8 +58,8 @@ line  err      %   true  false   branch
 13    ***     50      0      1   if ($x and not $y)
 17    ***     50      1      0   if ($x and $y)
 20    ***     50      0      1   unless ($x and $y)
-24    ***     50      0      1   unless ($x and $y)
-30    ***     50      0      1   unless ($x and $y)
+24    ***     50      0      1   if (not $x && $y)
+28    ***     50      0      1   if (not $x or not $y)
 
 
 Conditions
@@ -74,7 +72,12 @@ line  err      %     !l  l&&!r   l&&r   expr
 13    ***     33      0      1      0   $x and not $y
 17    ***     33      0      0      1   $x and $y
 20    ***     33      0      0      1   $x and $y
-24    ***     33      0      0      1   $x and $y
-30    ***     33      0      1      0   $x and $y
+24    ***     33      0      0      1   $x && $y
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+28    ***     33      0      0      1   not $x or not $y
 
 
