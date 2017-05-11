@@ -16,7 +16,7 @@
    Update version number in Makefile.PL.
 
 6. Check it in.
-  $ git commit -m "Bump version number." Makefile.PL
+  $ git commit -m "Bump version number" Makefile.PL
 
 7. Run basic tests.
   $ perl Makefile.PL && make
