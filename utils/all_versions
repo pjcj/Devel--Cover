@@ -91,6 +91,7 @@ sub _mods {
         Readonly
         Parallel::Iterator
         Sereal
+        JSON::MaybeXS
     );
 
     push @mods, "Algorithm::C3" if     $n =~ /^5\.8\.9\b/;
