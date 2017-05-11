@@ -11,6 +11,7 @@ use strict;
 use warnings;
 
 use Carp;
+use Cwd "abs_path";
 use Digest::MD5;
 
 use Devel::Cover::DB;
@@ -169,7 +170,7 @@ sub reuse {
 sub set_file {
     my $self = shift;
     my ($file) = @_;
-    $self->{file} = $file;
+    $self->{file} = abs_path($file);
     my $digest = $self->digest($file);
     if ($digest) {
         # print STDERR "Adding $digest for $file\n";
@@ -234,7 +235,7 @@ sub write {
         confess "Can't mkdir $dir: $!" unless -d $dir;
     }
     for my $file (sort keys %{$self->{f}}) {
-        $self->{f}{$file}{file} = $file;
+        $self->{f}{$file}{file} = abs_path($file);
         my $digest = $self->{f}{$file}{digest};
         $digest = $1 if defined $digest && $digest =~ /(.*)/; # ie tainting.
         unless ($digest) {
