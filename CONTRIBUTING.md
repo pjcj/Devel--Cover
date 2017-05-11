@@ -13,7 +13,7 @@ Devel::Cover::Web contains a number of static files that are saved when a report
     common.js
     css.js
     standardista-table-sorting.js
-  
+
 Report formats are 
     html|html_minimal (default)
     html_basic
@@ -43,12 +43,10 @@ perl -I/home/foobar/work/Devel--Cover/lib/ /home/foobar/work/Devel--Cover/bin/co
 
 CPAN Cover
 -----------
-   
+
 http://cpancover.com/
 
 Devel::Cover::Collection  is used by bin/cpancover and has some templates in it.
 
 In order to run cpancover a few extra modules are needed:
 Template and Parallel::Iterator
-
-
