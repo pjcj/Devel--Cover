@@ -98,6 +98,7 @@ case "$1" in
         # https://github.com/dotcloud/docker/issues/3986
         echo "container is $container"
         $DOCKER wait "$name" > /dev/null
+        # shellcheck disable=2181
         if [ $? = 0 ]; then
             $DOCKER logs "$name" > "$staging/$name.out"
             local_staging="$staging/$name"
