@@ -42,6 +42,7 @@ To run the system as a whole:
     $ . ./utils/setup
     $ build_cpancover_perl
     $ perlbrew use cpancover_perl
+    $ dc install_dependencies
     $ dc cpancover-run
 
 Or, for slightly more control, jobs can be run as follows:
