@@ -1,0 +1,21 @@
+server {
+    root /usr/share/nginx/www;
+    index index.html index.html.gz;
+
+    gzip                  on;
+    gzip_static           on;
+    gzip_comp_level       9;
+    gzip_min_length       1400;
+    gzip_types            text/plain text/css image/png image/gif image/jpeg application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+    gzip_vary             on;
+    gzip_http_version     1.1;
+    gzip_disable          "MSIE [1-6]\.(?!.*SV1)";
+
+    server_name localhost;
+
+    location / {
+        rewrite ^/$ /latest/index.html permanent;
+    }
+
+    error_page 404 /404.html;
+}
