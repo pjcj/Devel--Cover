@@ -39,14 +39,16 @@ Running
 
 To run the system as a whole:
 
+  $ . ./utils/setup
+  $ build_cpancover_perl
+  $ perlbrew use cpancover_perl
   $ dc cpancover-run
 
 Or, for slightly more control, jobs can be run as follows:
 
-  $ . ./utils/setup
   $ dc cpancover-latest | head -2000 | dc cpancover
 
-The top level html and json is generated with:
+The top level HTML and JSON is generated with:
 
   $ dc cpancover-generate-html
 
