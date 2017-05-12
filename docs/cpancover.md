@@ -22,11 +22,11 @@ versions in between.
 The latest version of docker can be installed on Ubuntu as follows:
 (see http://askubuntu.com/questions/472412/how-do-i-upgrade-docker)
 
-  # wget -qO- https://get.docker.io/gpg | apt-key add -
-  # echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list
-  # aptitude update
-  # aptitude remove docker.io
-  # aptitude install lxc-docker
+    # wget -qO- https://get.docker.io/gpg | apt-key add -
+    # echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list
+    # aptitude update
+    # aptitude remove docker.io
+    # aptitude install lxc-docker
 
 You may need to add yourself to the docker group.
 
@@ -39,18 +39,18 @@ Running
 
 To run the system as a whole:
 
-  $ . ./utils/setup
-  $ build_cpancover_perl
-  $ perlbrew use cpancover_perl
-  $ dc cpancover-run
+    $ . ./utils/setup
+    $ build_cpancover_perl
+    $ perlbrew use cpancover_perl
+    $ dc cpancover-run
 
 Or, for slightly more control, jobs can be run as follows:
 
-  $ dc cpancover-latest | head -2000 | dc cpancover
+    $ dc cpancover-latest | head -2000 | dc cpancover
 
 The top level HTML and JSON is generated with:
 
-  $ dc cpancover-generate-html
+    $ dc cpancover-generate-html
 
 Results
 -------
