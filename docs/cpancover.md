@@ -34,6 +34,9 @@ To build the docker container, check out the
 [devel-cover-docker](https://github.com/pjcj/devel-cover-docker) project and
 follow the instructions there.
 
+If you want to use your own docker container, edit the file `utils/dc` to point
+to the correct container.
+
 Perlbrew
 --------
 
