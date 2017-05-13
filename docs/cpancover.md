@@ -87,3 +87,28 @@ If you use nginx, the file in `utils/cpancover.nginx` can be copied into the
 `/etc/nginx/sites-available` directory and from thence symlinked into
 sites-enabled.  The static files are all gzipped and served as such where
 possible.
+
+cpancover.com
+-------------
+
+The server which is currently running cpancover.com has been graciously
+provided by [Bytemark](http://www.bytemark.co.uk/r/cpancover).  It has plantly
+of memory and cpu power, but not a large amount of disk space.  That's fine
+though, it has plenty for cpancover's needs.
+
+The server is on the account of pjcj at bytemark.  Logins are owned by pjcj and
+the metacpan group.
+
+The Devel::Cover directory from which cpancover is run is in
+`/cover/Devel--Cover`.  It is a git checkout of the Devel::Cover repository
+but, ideally, that should be treated as a read-only directory.  The staging
+directory is symlinked to `/cover/staging`.
+
+In addition to hosting and running cpancover.com, I also use this server for
+some development work, and in particular for testing Devel::Cover against all
+the versions of perl which are supported, plus recent development versions.
+For each version there is a standatd and a threaded perlbrew installation.
+
+The development directory for these purposes is `/cover/dc`.  New versions of
+perl can be installed by adding them to `utils/all_versions` and running `dc
+all_versions build`.
