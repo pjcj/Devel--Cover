@@ -45,7 +45,9 @@ To run the system as a whole:
     $ dc install_dependencies
     $ dc cpancover-run
 
-Or, for slightly more control, jobs can be run as follows:
+The cpancover-run command will just sit there picking up on newly uploaded
+distributions and running the coverage for them.  Or, for slightly more
+control, jobs can be run as follows:
 
     $ dc cpancover-latest | head -2000 | dc cpancover
 
@@ -57,7 +59,7 @@ Results
 -------
 
 The results of the runs will be stored in the ~/staging directory.  If this is
-not where you want them stored (quite is rather likely) then the simplest
+not where you want them stored (which is rather likely) then the simplest
 solution is probably to make that directory a symlink to the real location.
 
 The results consist of the Devel::Cover cover_db directory for each package
