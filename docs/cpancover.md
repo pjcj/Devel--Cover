@@ -72,7 +72,7 @@ is not where you want them stored (which is rather likely) then the simplest
 solution is probably to make that directory a symlink to the real location.  If
 you would prefer not to do that, or you want to run multiple separate cpancover
 instances (probably only for development purposes), then you can change the
-`$CPANCOVER_STAGING` variable in the `utils/dc script`.
+`$CPANCOVER_STAGING` variable in the `utils/dc` script.
 
 The results consist of the Devel::Cover `cover_db` directory for each package
 tested, including the generated HTML output for that DB and the JSON summary
@@ -95,9 +95,9 @@ cpancover.com
 -------------
 
 The server which is currently running cpancover.com has been graciously
-provided by [Bytemark](http://www.bytemark.co.uk/r/cpancover).  It has plantly
+provided by [Bytemark](http://www.bytemark.co.uk/r/cpancover).  It has plenty
 of memory and cpu power, but not a large amount of disk space.  That's fine
-though, it has plenty for cpancover's needs.
+though, it has sufficient for cpancover's needs.
 
 The server is on the account of pjcj at bytemark.  Logins are owned by pjcj and
 the metacpan group.
@@ -110,7 +110,7 @@ directory is symlinked to `/cover/staging`.
 In addition to hosting and running cpancover.com, I also use this server for
 some development work, and in particular for testing Devel::Cover against all
 the versions of perl which are supported, plus recent development versions.
-For each version there is a standatd and a threaded perlbrew installation.
+For each version there is a standard and a threaded perlbrew installation.
 
 The development directory for these purposes is `/cover/dc`.  New versions of
 perl can be installed by adding them to `utils/all_versions` and running `dc
