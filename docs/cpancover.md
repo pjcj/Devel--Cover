@@ -4,8 +4,8 @@ How to set up cpancover
 Overview
 --------
 
-Cpancover requires a bourne shell and docker, as well as a recent perl.  The
-code requires Perl 5.16.0 but earlier versions may work.
+Cpancover requires a bourne shell, perlbrew, and docker, as well as a recent
+perl.  The code requires Perl 5.16.0 but earlier versions may work.
 
 Docker
 ------
@@ -33,6 +33,12 @@ You may need to add yourself to the docker group.
 To build the docker container, check out the
 [devel-cover-docker](https://github.com/pjcj/devel-cover-docker) project and
 follow the instructions there.
+
+Perlbrew
+--------
+
+Install perlbrew by following the instructions on
+[perlbrew.pl](https://perlbrew.pl/).
 
 Running
 -------
