@@ -51,7 +51,7 @@ To run the system as a whole:
     $ dc install_dependencies
     $ dc cpancover-run
 
-The cpancover-run command will just sit there picking up on newly uploaded
+The `cpancover-run` command will just sit there picking up on newly uploaded
 distributions and running the coverage for them.  Or, for slightly more
 control, jobs can be run as follows:
 
@@ -64,14 +64,14 @@ The top level HTML and JSON is generated with:
 Results
 -------
 
-The results of the runs will be stored in the ~/staging directory.  If this is
-not where you want them stored (which is rather likely) then the simplest
+The results of the runs will be stored in the `~/staging` directory.  If this
+is not where you want them stored (which is rather likely) then the simplest
 solution is probably to make that directory a symlink to the real location.  If
 you would prefer not to do that, or you want to run multiple separate cpancover
 instances (probably only for development purposes), then you can change the
-CPANCOVER_STAGING variable in the utils/dc script.
+`$CPANCOVER_STAGING` variable in the `utils/dc script`.
 
-The results consist of the Devel::Cover cover_db directory for each package
+The results consist of the Devel::Cover `cover_db` directory for each package
 tested, including the generated HTML output for that DB and the JSON summary
 file.  Sitting above those directories is summary HTML providing links to the
 individual coverage reports.
@@ -83,7 +83,7 @@ If you want anyone to be able to look at the results, you'll need a web server
 somewhere.  The results are all static HTML so there is not much configuration
 required.
 
-If you use nginx, the file in utils/cpancover.nginx can be copied into the
-/etc/nginx/sites-available directory and from thence symlinked into
+If you use nginx, the file in `utils/cpancover.nginx` can be copied into the
+`/etc/nginx/sites-available` directory and from thence symlinked into
 sites-enabled.  The static files are all gzipped and served as such where
 possible.
