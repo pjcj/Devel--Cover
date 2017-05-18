@@ -125,7 +125,7 @@ main() {
                 cpancover="$cpancover -force"
             fi
             cmd="$cpancover -results_dir $cpancover_dir -workers $jobs $*"
-            # echo $cmd
+            # echo "$cmd"
             $cmd
             ;;
         cpancover-compress)
