@@ -1,6 +1,11 @@
 *.org
 *.bak
 *~
+
+# for Mac OSX
+._*
+.DS_Store
+
 Cover.bs
 Cover.c
 Cover.o
