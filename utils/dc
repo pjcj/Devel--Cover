@@ -73,10 +73,10 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-CPANCOVER_VERBOSE=$verbose
-CPANCOVER_STAGING=$cpancover_staging
-CPANCOVER_DOCKER=$docker
-CPANCOVER_IMAGE=$docker_image
+export CPANCOVER_VERBOSE=$verbose
+export CPANCOVER_STAGING=$cpancover_staging
+export CPANCOVER_DOCKER=$docker
+export CPANCOVER_IMAGE=$docker_image
 
 # TODO - clarify relationship between these two
 cpancover_dir=$cpancover_staging
