@@ -40,10 +40,10 @@ export NONINTERACTIVE_TESTING=1
 export EXTENDED_TESTING=1
 
 PATH="$scrdir:$PATH"
-verbose=0
-cpancover_staging=~/staging
-docker=docker
-docker_image=pjcj/cpancover
+verbose=${CPANCOVER_VERBOSE:-0}
+cpancover_staging=${CPANCOVER_STAGING:-~/staging}
+docker=${CPANCOVER_DOCKER:-docker}
+docker_image=${CPANCOVER_IMAGE:-pjcj/cpancover}
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -72,6 +72,11 @@ while [ $# -gt 0 ]; do
             ;;
     esac
 done
+
+CPANCOVER_VERBOSE=$verbose
+CPANCOVER_STAGING=$cpancover_staging
+CPANCOVER_DOCKER=$docker
+CPANCOVER_IMAGE=$docker_image
 
 # TODO - clarify relationship between these two
 cpancover_dir=$cpancover_staging
