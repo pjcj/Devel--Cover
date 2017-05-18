@@ -427,11 +427,13 @@ sub import {
 sub populate_run {
     my $self = shift;
 
-    $Run{OS}   = $^O;
-    $Run{perl} = $] < 5.010 ? join ".", map ord, split //, $^V
-                            : sprintf "%vd", $^V;
-    $Run{dir}  = $Dir;
-    $Run{run}  = $0;
+    $Run{OS}      = $^O;
+    $Run{perl}    = $] < 5.010 ? join ".", map ord, split //, $^V
+                               : sprintf "%vd", $^V;
+    $Run{dir}     = $Dir;
+    $Run{run}     = $0;
+    $Run{name}    = $Dir;
+    $Run{version} = "unknown";
 
     my $mymeta = "$Dir/MYMETA.json";
     if (-e $mymeta) {
@@ -444,10 +446,10 @@ sub populate_run {
     } elsif ($Dir =~ m|.*/([^/]+)$|) {
         my $filename = $1;
         eval {
-             require CPAN::DistnameInfo;
-             my $dinfo = CPAN::DistnameInfo->new($filename);
-             $Run{name}    = $dinfo->dist;
-             $Run{version} = $dinfo->version;
+            require CPAN::DistnameInfo;
+            my $dinfo     = CPAN::DistnameInfo->new($filename);
+            $Run{name}    = $dinfo->dist;
+            $Run{version} = $dinfo->version;
         }
     }
 
