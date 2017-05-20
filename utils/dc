@@ -129,7 +129,7 @@ main() {
             $cmd
             ;;
         cpancover-compress)
-            find $cpancover_dir/ -name __failed__ -prune -o                   \
+            find "$cpancover_dir/" -name __failed__ -prune -o                 \
                                 -type f -not -name '*.gz' -not -name '*.json' \
                                 -exec gzip -f9 {} \;
             ;;
@@ -138,19 +138,19 @@ main() {
             ;;
         cpancover-build-module)
             module="$2"
-            $0 cpancover -local_build -docker $docker -workers 1 "$module"
+            $0 cpancover -local_build -docker "$docker" -workers 1 "$module"
             $0 cpancover-compress
             ;;
         cpancover-docker-shell)
             staging="${2:-$cpancover_dir}"
             mkdir -p "$staging"
             # echo $name
-            $docker run -it                                    \
-                --volume=/home/pjcj/g/perl/Devel--Cover:/dc:rw \
-                --volume=$cpancover_staging:/remote_staging:rw \
-                --workdir=/dc --rm=false                       \
-                --memory=1g                                    \
-                $docker_image /bin/bash
+            $docker run -it                                      \
+                --volume=/home/pjcj/g/perl/Devel--Cover:/dc:rw   \
+                --volume="$cpancover_staging:/remote_staging:rw" \
+                --workdir=/dc --rm=false                         \
+                --memory=1g                                      \
+                "$docker_image" /bin/bash
             ;;
         cpancover-docker-module)
             module="$2"
@@ -158,12 +158,12 @@ main() {
             staging="${4:-$cpancover_dir}"
             mkdir -p "$staging"
             # echo $name
-            container=$($docker run -d                                     \
-                        --volume=/home/pjcj/g/perl/Devel--Cover:/dc:ro     \
-                        --volume=$cpancover_staging:/remote_staging:ro     \
-                        --workdir=/dc --rm=false --name="$name"            \
-                        --memory=1g                                        \
-                        $docker_image dc cpancover-build-module "$module")
+            container=$($docker run -d                                   \
+                        --volume=/home/pjcj/g/perl/Devel--Cover:/dc:ro   \
+                        --volume="$cpancover_staging:/remote_staging:ro" \
+                        --workdir=/dc --rm=false --name="$name"          \
+                        --memory=1g                                      \
+                        "$docker_image" dc cpancover-build-module "$module")
             # https://github.com/dotcloud/docker/issues/3986
             echo "container is $container"
             $docker wait "$name" > /dev/null
@@ -196,8 +196,8 @@ main() {
             $0 cpancover-compress
             json=$cpancover_dir/cpancover.json
             tmp=$json-tmp-$$.gz
-            echo Compressing $json
-            pigz < $json > $tmp && mv $tmp $json.gz
+            echo Compressing "$json"
+            pigz < "$json" > "$tmp" && mv "$tmp" "$json.gz"
             echo Done
             ;;
         cpancover-run)
@@ -213,10 +213,10 @@ main() {
             done
             ;;
         cpancover-kill-docker)
-            $docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r $docker kill
+            $docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r "$docker" kill
             ;;
         cpancover-rm-docker)
-            $docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r $docker rm -f
+            $docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r "$docker" rm -f
             ;;
         sereal_each_bug)
             perl="${2:-perl}"
