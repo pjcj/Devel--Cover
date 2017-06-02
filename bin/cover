@@ -432,11 +432,11 @@ available by using the report option.
 
 The following reports are currently available:
 
- text        - detailed textual summary
  html        - detailed HTML reports
  html_basic  - detailed HTML reports with syntax highlighting
- compilation - output in a format similar to Perl
- json        - output in a JSON
+ text        - detailed textual summary
+ compilation - output in a format similar to Perl errors
+ json        - output in a JSON format
  vim         - show coverage information in vim gutter
 
 =head1 OPTIONS
