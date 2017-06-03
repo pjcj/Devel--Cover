@@ -484,7 +484,7 @@ Tool accepts -report option:
 
 =item html|html_minimal (default)
 
-HTML reporting. Percentage thresholds are color-coded and configurable
+HTML reporting. Percentage thresholds are colour-coded and configurable
 via -report_c0 <integer>, -report_c1 <integer> and -report_c2 <integer>.:
 
     0%      75%      90%      100%
