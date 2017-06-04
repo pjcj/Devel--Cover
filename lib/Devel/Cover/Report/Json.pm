@@ -13,7 +13,7 @@ use warnings;
 # VERSION
 
 use Devel::Cover::DB::IO::JSON;
-use Devel::Cover::Dumper;  # For debugging
+# use Devel::Cover::Dumper;  # For debugging
 
 sub add_runs
 {
