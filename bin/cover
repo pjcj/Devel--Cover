@@ -432,7 +432,7 @@ available by using the report option.
 
 The following reports are currently available:
 
- html        - detailed HTML reports
+ html        - detailed HTML reports  (default)
  html_basic  - detailed HTML reports with syntax highlighting
  text        - detailed textual summary
  compilation - output in a format similar to Perl errors
