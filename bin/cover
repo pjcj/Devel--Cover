@@ -478,7 +478,8 @@ The following command line options are supported:
 
 =head1 REPORT FORMATS
 
-Tool accepts -report option:
+The following C<-report> options are available in the core module.  Other
+reports may be available if they've been installed from external packages.
 
 =over 4
 
