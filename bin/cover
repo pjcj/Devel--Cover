@@ -505,9 +505,9 @@ Plain text reporting.
 
 =item compilation
 
-Like text but hacked to give a minimal output in a format similar
-to that output by Perl itself so that it's easier to step through
-the untested locations with Emacs compilation mode.
+A textual report in a format similar to that output by Perl itself such that
+the report may be used by your editor or other reporting tools to show where
+coverage is missing.
 
 =back
 
