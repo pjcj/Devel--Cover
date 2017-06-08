@@ -509,6 +509,15 @@ A textual report in a format similar to that output by Perl itself such that
 the report may be used by your editor or other reporting tools to show where
 coverage is missing.
 
+=item json
+
+A report in JSON format.
+
+=item vim
+
+A report suitable for use with the vim editor to show coverage data in the sign
+column.
+
 =back
 
 =head1 DETAILS
