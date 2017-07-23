@@ -49,7 +49,7 @@ sub nice_cpus {
     }
 }
 
-sub njobs { nice_cpus * 2 }
+sub njobs { nice_cpus }
 
 sub prove_command {
     my $prove = find_prove or return;
