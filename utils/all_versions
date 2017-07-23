@@ -70,7 +70,7 @@ sub sys {
     return if $Options->{dry_run};
     $command .= $Silent if $Options->{silent} && !$user;
     my $ret = system $command;
-    warn "command failed: $?" if $ret && !$Options->{ignore_failure};
+    warn "command failed: $? - $command" if $ret && !$Options->{ignore_failure};
     !$ret
 }
 
