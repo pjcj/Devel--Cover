@@ -97,8 +97,8 @@ main() {
             perl -pi -e "s/Copyright $from\\K(, $me)/-$to\$1/i"    $files
             ;;
         install_dependencies)
-            cpan App::cpm
-            cpm install --workers=10 --global                               \
+            cpanm  --notest App::cpm
+            cpm install --workers="$($0 nice_cpus)" --global                \
                 Sereal Digest::MD5 Template Pod::Coverage::CountParents     \
                 Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
                 Moo namespace::clean CPAN::Releases::Latest JSON::MaybeXS   \

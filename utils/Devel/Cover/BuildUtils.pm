@@ -15,7 +15,7 @@ use warnings;
 use Exporter;
 
 our @ISA       = "Exporter";
-our @EXPORT_OK = qw(find_prove cpus nice_cpus prove_command);
+our @EXPORT_OK = qw(find_prove cpus nice_cpus njobs prove_command);
 
 sub find_prove {
     my $perl = $^X;
@@ -48,6 +48,8 @@ sub nice_cpus {
         $cpus
     }
 }
+
+sub njobs { nice_cpus * 2 }
 
 sub prove_command {
     my $prove = find_prove or return;
