@@ -135,7 +135,7 @@ sub _build_version {
     };
 
     my $ln = "/usr/local/bin/dc-$v";
-    sys "sudo rm $ln$Silent";
+    sys "sudo rm -f $ln$Silent";
 
     my ($perl) = "$dir/perl";
     print "$perl => $ln\n";
