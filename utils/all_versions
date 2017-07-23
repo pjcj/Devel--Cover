@@ -15,7 +15,7 @@ use lib "utils";
 use Getopt::Long;
 use Parallel::Iterator "iterate_as_array";
 
-use Devel::Cover::BuildUtils qw( prove_command cpus nice_cpus );
+use Devel::Cover::BuildUtils qw( prove_command njobs );
 
 my $Options = {
     build          => 0,
@@ -110,23 +110,16 @@ sub _build_version {
     print "building $v\n";
     # sleep 1; return;
 
-    my $dir = ($ENV{PERLBREW_ROOT} || die 'No $PERLBREW_ROOT') .
-                "/perls/dc-$v/bin";
     my ($n) = $v =~ /(\d+\.\d+\.\d+)/ or die "Can't parse [$v}";
 
+    my $dir = "$ENV{HOME}/.plenv/versions/dc-$v/bin";
     unless (-d $dir) {
         my $opts = "";
-        $opts .= " --thread" if $v =~ /thr/;
-        my $j = cpus + 1;
-        sys "perlbrew -v install $n --as dc-$v -j $j $opts --notest --noman" or
-            do {
-                die "perlbrew $v failed";
-                return;
-            };
-        unless (-d $dir) {
-            warn "perl for $v does not exist";
-            return;
-        }
+        $opts .= "-D usethreads" if $v =~ /thr/;
+        my $j = njobs;
+        sys "plenv install $n --as dc-$v -j $j $opts --noman" or
+            die "plenv $v failed";
+        die "perl for $v does not exist" unless -d $dir;
     }
 
     $ENV{PATH} = "$dir:$ENV{PATH}";
@@ -158,7 +151,7 @@ sub _build_versions {
 sub build {
     print "Building: @{$Options->{version}}\n";
     my @res = iterate_as_array(
-        { workers => nice_cpus * 2 },
+        { workers => njobs },
         sub {
             my (undef, $v) = @_;
             _build_versions($v);
