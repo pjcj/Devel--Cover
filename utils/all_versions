@@ -117,9 +117,14 @@ sub _build_version {
         my $opts = "";
         $opts .= "-D usethreads" if $v =~ /thr/;
         my $j = njobs;
-        sys "plenv install $n --as dc-$v -j $j $opts --noman" or
-            die "plenv $v failed";
-        die "perl for $v does not exist" unless -d $dir;
+        sys "plenv install $n --as dc-$v -j $j $opts --noman" or do {
+            warn "plenv $v failed";
+            return;
+        };
+        unless (-d $dir) {
+            warn "perl for $v does not exist";
+            return;
+        }
     }
 
     $ENV{PATH} = "$dir:$ENV{PATH}";
