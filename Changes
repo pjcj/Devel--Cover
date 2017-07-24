@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Untaint $DEVEL_COVER_OPTIONS (Alexey Sokolov) (github 187).
 
 Release 1.25 - 11 May 2017
  - Fix C code to work with MSVC (Marc-Philip) (github 177).
