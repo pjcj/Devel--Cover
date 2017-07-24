@@ -4,8 +4,8 @@ How to set up cpancover
 Overview
 --------
 
-Cpancover requires a bourne shell, perlbrew, and docker, as well as a recent
-perl.  The code requires Perl 5.16.0 but earlier versions may work.
+Cpancover requires a bourne shell, plenv, and docker, as well as a recent perl.
+The code requires Perl 5.16.0 but earlier versions may work.
 
 Docker
 ------
@@ -37,11 +37,11 @@ follow the instructions there.
 If you want to use your own docker container, edit the file `utils/dc` to point
 to the correct container.
 
-Perlbrew
+Plenv
 --------
 
-Install perlbrew by following the instructions on
-[perlbrew.pl](https://perlbrew.pl/).
+Install plenv by following the instructions on
+[github](https://github.com/tokuhirom/plenv).
 
 Running
 -------
@@ -49,9 +49,15 @@ Running
 To run the system as a whole:
 
     $ . ./utils/setup
-    $ build_cpancover_perl
-    $ perlbrew use cpancover_perl
+
+Install a cpancover perl if not already done:
+
+    $ plenv install --as cpancover -j 32 --noman 5.26.0
+    $ plenv global cpancover
     $ dc install_dependencies
+
+Run cpancover:
+
     $ dc cpancover-run
 
 The `cpancover-run` command will just sit there picking up on newly uploaded
@@ -110,7 +116,7 @@ directory is symlinked to `/cover/staging`.
 In addition to hosting and running cpancover.com, I also use this server for
 some development work, and in particular for testing Devel::Cover against all
 the versions of perl which are supported, plus recent development versions.
-For each version there is a standard and a threaded perlbrew installation.
+For each version there is a standard and a threaded plenv installation.
 
 The development directory for these purposes is `/cover/dc`.  New versions of
 perl can be installed by adding them to `utils/all_versions` and running `dc
