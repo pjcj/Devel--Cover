@@ -4,6 +4,8 @@ Devel::Cover history
  - Untaint $DEVEL_COVER_OPTIONS (Alexey Sokolov) (github 187).
  - Add loose_perms option (Todd Rinaldo) (github 185).
  - Set EXTENDED_TESTING during cpancover runs.
+ - Improve version parsing for cpancover (Helmut Wollmersdorfer) (github 124).
+ - Improve cpancover code and documentation
 
 Release 1.25 - 11 May 2017
  - Fix C code to work with MSVC (Marc-Philip) (github 177).
