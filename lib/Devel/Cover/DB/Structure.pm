@@ -233,6 +233,9 @@ sub write {
     unless (mkdir $dir) {
         confess "Can't mkdir $dir: $!" unless -d $dir;
     }
+    if ($self->{loose_perms}) {
+        chmod 0777, $dir;
+    }
     for my $file (sort keys %{$self->{f}}) {
         $self->{f}{$file}{file} = $file;
         my $digest = $self->{f}{$file}{digest};

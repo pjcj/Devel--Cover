@@ -29,6 +29,8 @@ sub read {
 sub write {
     my $self = shift;
     my ($data, $file) = @_;
+
+    unlink $file;
     Storable::lock_nstore($data, $file);
     $self
 }
