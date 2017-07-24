@@ -330,7 +330,10 @@ sub import {
 
     my $class = shift;
 
-    my @o = (@_, split ",", $ENV{DEVEL_COVER_OPTIONS} || "");
+    # Die tainting.
+    # Anyone using this module can do worse things than messing with tainting.
+    my $options = ($ENV{DEVEL_COVER_OPTIONS} || "") =~ /(.*)/ ? $1 : "";
+    my @o = (@_, split ",", $options);
     defined or $_ = "" for @o;
     # print STDERR __PACKAGE__, ": Parsing options from [@o]\n";
 
@@ -380,10 +383,7 @@ sub import {
     }
 
     if (defined $Dir) {
-        # Die tainting.
-        # Anyone using this module can do worse things than messing with
-        # tainting.
-        $Dir = $1 if $Dir =~ /(.*)/;
+        $Dir = $1 if $Dir =~ /(.*)/;  # Die tainting.
         chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
     } else {
         $Dir = $1 if Cwd::getcwd() =~ /(.*)/;
