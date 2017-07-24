@@ -12,7 +12,8 @@
   $ git commit -m "Update Contributors." Contributors
 
 5. Update $Latest_t in Makefile.PL.
-   Update test for obsolete development version skipping in ...::Test.pm.
+   Update test for obsolete development version skipping in
+       run_test method of ...::Test.pm.
    Update version number in Makefile.PL.
 
 6. Check it in.
