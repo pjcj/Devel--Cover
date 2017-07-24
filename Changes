@@ -49,7 +49,7 @@ Release 1.18 - 6 April 2015
 Release 1.17 - 20 September 2014
  - Get cpancover to release quality.
  - Add IRC link to META.
- - Test against 5.20.1, 5.21.1, 5.21.2, 5.21,3 and 5.21.4.
+ - Test against 5.20.1, 5.21.1, 5.21.2, 5.21.3 and 5.21.4.
  - Officially support 5.20.1.
 
 Release 1.16 - 17 August 2014
