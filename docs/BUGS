@@ -19,5 +19,3 @@
 
 - If an END block installs another END block it won't be covered.  More
   generally, any code run after Devel::Cover's END block won't be covered.
-
-- Empty subs will be ignored in Perl 5.8.1.
