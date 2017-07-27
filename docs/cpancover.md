@@ -18,15 +18,15 @@ I have only run this in Ubuntu 14.04.  The docker version there, 0.9.1 (as of
 31.05.2104) is insufficient.  Version 0.11.1 is fine.  I don't know about the
 versions in between.
 
-(TODO - update docker build instructions)
 The latest version of docker can be installed on Ubuntu as follows:
-(see http://askubuntu.com/questions/472412/how-do-i-upgrade-docker)
+(see https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/)
 
-    # wget -qO- https://get.docker.io/gpg | apt-key add -
-    # echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list
     # aptitude update
-    # aptitude remove docker.io
-    # aptitude install lxc-docker
+    # aptitude install apt-transport-https ca-certificates curl software-properties-common
+    # curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+    # sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    # aptitude update
+    # aptitude install docker-ce
 
 You may need to add yourself to the docker group.
 
@@ -38,7 +38,7 @@ If you want to use your own docker container, edit the file `utils/dc` to point
 to the correct container.
 
 Plenv
---------
+-----
 
 Install plenv by following the instructions on
 [github](https://github.com/tokuhirom/plenv).
