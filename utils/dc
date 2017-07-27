@@ -88,7 +88,7 @@ main() {
         update-copyright)
             from="${2:-$(date +'%Y' --date='last year')}"
             to="${3:-$(date +'%Y')}"
-            echo "Updating copyright from $from to $to"
+            pi "Updating copyright from $from to $to"
             me="Paul Johnson"
             files=$(git ls-files)
             # shellcheck disable=SC2086
@@ -126,7 +126,7 @@ main() {
                 cpancover="$cpancover -force"
             fi
             cmd="$cpancover -results_dir $cpancover_dir -workers $jobs $*"
-            # echo "$cmd"
+            # pd "$cmd"
             $cmd
             ;;
         cpancover-compress)
@@ -145,7 +145,7 @@ main() {
         cpancover-docker-shell)
             staging="${2:-$cpancover_dir}"
             mkdir -p "$staging"
-            # echo $name
+            # pd $name
             $docker run -it                                      \
                 --volume=/home/pjcj/g/perl/Devel--Cover:/dc:rw   \
                 --volume="$cpancover_staging:/remote_staging:rw" \
@@ -158,7 +158,7 @@ main() {
             name="$3"
             staging="${4:-$cpancover_dir}"
             mkdir -p "$staging"
-            # echo $name
+            # pd $name
             container=$($docker run -d                                   \
                         --volume=/home/pjcj/g/perl/Devel--Cover:/dc:ro   \
                         --volume="$cpancover_staging:/remote_staging:ro" \
