@@ -48,6 +48,7 @@ Running
 
 To run the system as a whole:
 
+    $ cd /cover/dc
     $ . ./utils/setup
 
 Install a cpancover perl if not already done:
@@ -108,16 +109,16 @@ though, it has sufficient for cpancover's needs.
 The server is on the account of pjcj at bytemark.  Logins are owned by pjcj and
 the metacpan group.
 
-The Devel::Cover directory from which cpancover is run is in
-`/cover/Devel--Cover`.  It is a git checkout of the Devel::Cover repository
-but, ideally, that should be treated as a read-only directory.  The staging
-directory is symlinked to `/cover/staging`.
+The Devel::Cover directory from which cpancover is run is in `/cover/dc`.  It
+is a git checkout of the Devel::Cover repository but, ideally, that should be
+treated as a read-only directory.  The staging directory is symlinked to
+`/cover/staging`.
 
 In addition to hosting and running cpancover.com, I also use this server for
 some development work, and in particular for testing Devel::Cover against all
 the versions of perl which are supported, plus recent development versions.
 For each version there is a standard and a threaded plenv installation.
 
-The development directory for these purposes is `/cover/dc`.  New versions of
-perl can be installed by adding them to `utils/all_versions` and running `dc
-all_versions build`.
+The development directory for these purposes is `/cover/Devel--Cover`.  New
+versions of perl can be installed by adding them to `utils/all_versions` and
+running `dc all_versions build`.
