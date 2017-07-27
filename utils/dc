@@ -147,7 +147,7 @@ main() {
             mkdir -p "$staging"
             # pd $name
             $docker run -it                                      \
-                --volume=/home/pjcj/g/perl/Devel--Cover:/dc:rw   \
+                --volume=/cover/dc:/dc:rw                        \
                 --volume="$cpancover_staging:/remote_staging:rw" \
                 --workdir=/dc --rm=false                         \
                 --memory=1g                                      \
@@ -160,7 +160,7 @@ main() {
             mkdir -p "$staging"
             # pd $name
             container=$($docker run -d                                   \
-                        --volume=/home/pjcj/g/perl/Devel--Cover:/dc:ro   \
+                        --volume=/cover/dc:/dc:ro                        \
                         --volume="$cpancover_staging:/remote_staging:ro" \
                         --workdir=/dc --rm=false --name="$name"          \
                         --memory=1g                                      \
