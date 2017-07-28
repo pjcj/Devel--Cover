@@ -7,7 +7,7 @@
 
 package Devel::Cover::Collection;
 
-use 5.16.0;
+use 5.26.0;
 use warnings;
 
 # VERSION

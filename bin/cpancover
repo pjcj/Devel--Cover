@@ -7,7 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-use 5.16.0;
+use 5.26.0;
 use warnings;
 
 # VERSION
