@@ -40,7 +40,7 @@ export NONINTERACTIVE_TESTING=1
 export EXTENDED_TESTING=1
 
 PATH="$scrdir:$PATH"
-verbose=${CPANCOVER_VERBOSE:-0}
+verbose=${CPANCOVER_VERBOSE:-}
 cpancover_staging=${CPANCOVER_STAGING:-~/staging}
 docker=${CPANCOVER_DOCKER:-docker}
 docker_image=${CPANCOVER_IMAGE:-pjcj/cpancover}
