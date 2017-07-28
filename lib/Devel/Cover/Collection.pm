@@ -160,23 +160,24 @@ sub add_build_dirs {
     # say && system "ls -al $_" for "/remote_staging",
                                   # map "$_/build", @{$self->cpan_dir};
     my $exists = sub {
-        my $dir = "/remote_staging/" . (s|.*/||r =~ s/-\w{6}$/*/r);
-        # say "checking [$dir]";
+        # say "exists [$_]";
+        my $dir = "/remote_staging/" . (s|.*/||r =~ s/-\d+$/*/r);
         my @files = glob $dir;
+        # say "checking [$dir] -> [@files]";
         @files
     };
     push @{$self->build_dirs},
          grep { !$exists->() }
          grep -d,
          map glob("$_/build/*"), @{$self->cpan_dir};
-    # say "add_build_dirs"; say for @{$self->build_dirs};
+    # say "add_build_dirs:"; say for @{$self->build_dirs};
 }
 
 sub run {
     my $self = shift;
     my ($build_dir) = @_;
 
-    my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\w{6})$| or return;
+    my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\d+)$| or return;
     my $db          = "$build_dir/cover_db";
     my $line        = "=" x 80;
     my $output      = "**** Checking coverage of $module ****\n";
