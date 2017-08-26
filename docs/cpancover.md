@@ -121,4 +121,4 @@ For each version there is a standard and a threaded plenv installation.
 
 The development directory for these purposes is `/cover/Devel--Cover`.  New
 versions of perl can be installed by adding them to `utils/all_versions` and
-running `dc all_versions build`.
+running `dc all_versions --build`.
