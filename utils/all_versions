@@ -81,6 +81,7 @@ sub _mods {
     my $version = version->parse($n);
 
     my @mods = qw( Test::Harness Test::Warn HTML::Entities );
+    push @mods, "B::Debug" if $version > version->parse("5.27.2");
 
     return @mods if $v =~ /-thr/ && $s != 1;
 
