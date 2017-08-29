@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Test against 5.27.3.
+ - Add dependency on B::Debug (Ryan Voots) (github 189).
 
 Release 1.26 - 24 July 2017
  - Untaint $DEVEL_COVER_OPTIONS (Alexey Sokolov) (github 187).
