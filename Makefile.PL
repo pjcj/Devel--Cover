@@ -325,8 +325,9 @@ my $opts = {
     EXE_FILES        => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],
     PERL_MALLOC_OK   => 1,
     PREREQ_PM        => {
-                            Storable      => 0,
-                            "Digest::MD5" => 0,
+                            "Storable"       => 0,
+                            "Digest::MD5"    => 0,
+                            "B::Debug"       => 0,
                             "HTML::Entities" => 3.69,
                             $ENV{DEVEL_COVER_NO_TESTS}
                                 ? ()
