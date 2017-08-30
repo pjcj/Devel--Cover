@@ -10,12 +10,17 @@ package Devel::Cover::Report::Html_basic;
 use strict;
 use warnings;
 
+our $VERSION;
+BEGIN {
 # VERSION
-our $LVERSION = do { eval '$VERSION' || "0.001" };  # for development purposes
+}
 
 use Devel::Cover::DB;
 use Devel::Cover::Html_Common "launch";
+use Devel::Cover::Inc;
 use Devel::Cover::Web "write_file";
+
+BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 use HTML::Entities;
 use Getopt::Long;
@@ -398,7 +403,7 @@ sub report {
         perl_v  => $] < 5.010 ? $] : $^V,
         os      => $^O,
         options => $options,
-        version => $LVERSION,
+        version => $VERSION,
         showing => [ grep $options->{show}{$_}, $db->criteria ],
         headers => [
             map { ($db->criteria_short)[$_] }

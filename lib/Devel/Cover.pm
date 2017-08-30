@@ -10,9 +10,10 @@ package Devel::Cover;
 use strict;
 use warnings;
 
+our $VERSION;
+BEGIN {
 # VERSION
-our $LVERSION;
-BEGIN { $LVERSION = do { no warnings; eval '$VERSION' || "0.001" } }  # for dev
+}
 
 use DynaLoader ();
 our @ISA = "DynaLoader";
@@ -22,6 +23,8 @@ our @ISA = "DynaLoader";
 use Devel::Cover::DB;
 use Devel::Cover::DB::Digests;
 use Devel::Cover::Inc;
+
+BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 use B qw( class ppname main_cv main_start main_root walksymtable OPf_KIDS );
 use B::Debug;
@@ -118,7 +121,7 @@ BEGIN {
                                    IMPORTANT
                                    ---------
 
-Devel::Cover $LVERSION is not supported on perl $].  The last version of
+Devel::Cover $VERSION is not supported on perl $].  The last version of
 Devel::Cover which was supported was version $v.  This version may not work.
 I have not tested it.  If it does work it will not be fully functional.
 
@@ -188,7 +191,7 @@ EOM
     $^P |= 0x004 | 0x100;
 }
 
-sub version { $LVERSION }
+sub version { $VERSION }
 
 if (0 && $Config{useithreads}) {
     eval "use threads";
@@ -267,7 +270,7 @@ EOM
         @coverage = get_coverage();
         my $last = pop @coverage || "";
 
-        print OUT __PACKAGE__, " $LVERSION: Collecting coverage data for ",
+        print OUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
               join(", ", @coverage),
               @coverage ? " and " : "",
               "$last.\n",
@@ -376,13 +379,7 @@ sub import {
     @Ignore_re = map qr/$_/,                           @Ignore;
     @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
 
-    if ($LVERSION > 0.002) {
-        # Usual situation in production from a full release.
-        bootstrap Devel::Cover $LVERSION;
-    } else {
-        # Usual situation in development.
-        bootstrap Devel::Cover;
-    }
+    bootstrap Devel::Cover $VERSION;
 
     if (defined $Dir) {
         $Dir = $1 if $Dir =~ /(.*)/;  # Die tainting.

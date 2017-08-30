@@ -10,10 +10,15 @@ package Devel::Cover::Report::Vim;
 use strict;
 use warnings;
 
+our $VERSION;
+BEGIN {
 # VERSION
-our $LVERSION = do { eval '$VERSION' || "0.001" };  # for development purposes
+}
 
 use Devel::Cover::DB;
+use Devel::Cover::Inc;
+
+BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 use Getopt::Long;
 use Template 2.00;
@@ -56,7 +61,7 @@ sub report {
             }
             int $time
         },
-        version  => $LVERSION,
+        version  => $VERSION,
         files    => $options->{file},
         cover    => $db->cover,
         types    => [ grep $_ ne "time", keys %{$options->{show}} ],
