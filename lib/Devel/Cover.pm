@@ -18,8 +18,6 @@ BEGIN {
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-# sub Pod::Coverage::TRACE_ALL () { 1 }
-
 use Devel::Cover::DB;
 use Devel::Cover::DB::Digests;
 use Devel::Cover::Inc;
@@ -50,6 +48,7 @@ BEGIN {
 }
 
 # $SIG{__DIE__} = \&Carp::confess;
+# sub Pod::Coverage::TRACE_ALL () { 1 }
 
 my $Initialised;                         # import() has been called.
 
