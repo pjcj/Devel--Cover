@@ -373,7 +373,7 @@ static void cover_time(pTHX)
     if (collecting(Time)) {
         /*
          * Profiling information is stored against MY_CXT.profiling_key,
-         * the key for the op we have just run.
+         * the key for the op we have just run
          */
 
         NDEB(D(L, "Cop at %p, op at %p\n", PL_curcop, PL_op));
@@ -654,7 +654,7 @@ static void dump_conditions(pTHX) {
 
 #if PERL_VERSION > 18
 /* For if ($a || $b) and unless ($a && $b), rpeep skips past a few
- * logops and messes with Devel::Cover.
+ * logops and messes with Devel::Cover
  *
  * This function will find the skipped op if there is one
  */
@@ -811,7 +811,7 @@ static void cover_logop(pTHX) {
         int left_val_def = SvOK(TOPs);
 #endif
         /* We don't count X= as void context because we care about the value
-         * of the RHS. */
+         * of the RHS */
         int void_context = GIMME_V == G_VOID &&
 #if PERL_VERSION > 8
                            PL_op->op_type != OP_DORASSIGN &&
@@ -968,7 +968,7 @@ static void cover_padrange(pTHX) {
     next = PL_op->op_next;
     orig = OpSIBLING(PL_op);
 
-    /* Ignore padrange preparing subroutine call. */
+    /* Ignore padrange preparing subroutine call */
     while (orig && orig != next) {
         if (orig->op_type == OP_ENTERSUB) return;
         orig = orig->op_next;
@@ -1253,7 +1253,7 @@ static int runops_cover(pTHX) {
 
         /*
          * We are about the run the op PL_op, so we'll collect
-         * information for it now.
+         * information for it now
          */
 
         switch (PL_op->op_type) {
@@ -1268,8 +1268,8 @@ static int runops_cover(pTHX) {
 
 #if PERL_VERSION > 16
             case OP_PADRANGE: {
-		cover_padrange(aTHX);
-		break;
+                cover_padrange(aTHX);
+                break;
             }
 #endif
 
