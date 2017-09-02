@@ -22,7 +22,7 @@ use File::Path;
 
 use Devel::Cover::Dumper;  # For debugging
 
-my $DB = "cover.14";  # Version of the database.
+my $DB = "cover.14";  # Version of the database
 
 @Devel::Cover::DB::Criteria =
     (qw( statement branch path condition subroutine pod time ));
@@ -252,7 +252,7 @@ sub merge {
     return $self;  # TODO - what's going on here?
 
     # When the database gets big, it's quicker to merge into what's
-    # already there.
+    # already there
 
     _merge_hash($from->{runs},      $self->{runs});
     _merge_hash($from->{collected}, $self->{collected});
@@ -551,7 +551,7 @@ sub uncoverable {
     }
 
     # print STDERR Dumper $u;
-    # Now change the format of the uncoverable information.
+    # Now change the format of the uncoverable information
 
     for my $file (sort keys %$u) {
         # print STDERR "Reading $file\n";
@@ -577,7 +577,7 @@ sub uncoverable {
                     # print STDERR
                     # "Found uncoverable $file:$crit:$line -> $dl{$line}\n";
 
-                    # Change key from the MD5 digest to the actual line number.
+                    # Change key from the MD5 digest to the actual line number
                     $c->{$dl{$line}} = delete $c->{$line};
                 } else {
                     warn "Devel::Cover: Can't find line for uncovered data: " .
@@ -586,7 +586,7 @@ sub uncoverable {
                 }
             }
         }
-        # Change the key from the filename to the MD5 digest of the file.
+        # Change the key from the filename to the MD5 digest of the file
         $u->{$df->hexdigest} = delete $u->{$file};
     }
 
@@ -761,7 +761,7 @@ sub objectify_cover {
         *Devel::Cover::DB::File::DESTROY = sub {};
         unless (exists &Devel::Cover::DB::File::AUTOLOAD) {
             *Devel::Cover::DB::File::AUTOLOAD = sub {
-                # Work around a change in bleadperl from 12251 to 14899.
+                # Work around a change in bleadperl from 12251 to 14899
                 my $func = $Devel::Cover::DB::AUTOLOAD || $::AUTOLOAD;
 
                 # print STDERR "autoloading <$func>\n";
