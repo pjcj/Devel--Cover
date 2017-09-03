@@ -13,23 +13,23 @@ use warnings;
 my @x;
 
 sub xx {
-  $x[shift]++;
+    $x[shift]++;
 }
 
 for (0 .. 10) {
-  time &&
+    time &&
     $x[1]++;
 
-  $x[2]++
+    $x[2]++
     if time;
 
-  for (0 .. 2) {
-      $x[3]++;
-  }
+    for (0 .. 2) {
+        $x[3]++;
+    }
 
-  if (time) {
-    xx(4);
-  } else {
-    $x[5]++;
-  }
+    if (time) {
+        xx(4);
+    } else {
+        $x[5]++;
+    }
 }

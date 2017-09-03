@@ -17,13 +17,13 @@ use lib "tests";
 my @x;
 
 sub xx {
-  $x[shift]++;
+    $x[shift]++;
 }
 
 for (0 .. 10) {
-  if (time) {
-    xx(0);
-  } else {
-    $x[1]++;
-  }
+    if (time) {
+        xx(0);
+    } else {
+        $x[1]++;
+    }
 }

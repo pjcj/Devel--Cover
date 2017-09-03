@@ -19,23 +19,17 @@ use Module1;
 my @x;
 
 sub xx {
-  $x[shift]++;
-  Module1::zz(0);
+    $x[shift]++;
+    Module1::zz(0);
 }
 
 for (0 .. 10) {
-  if (time) {
-    xx(0);
-  } else {
-    $x[1]++;
-  }
+    if (time) {
+        xx(0);
+    } else {
+        $x[1]++;
+    }
 }
-# Copyright 2002-2017, Paul Johnson (paul@pjcj.net)
-
-# This software is free.  It is licensed under the same terms as Perl itself.
-
-# The latest version of this software should be available from my homepage:
-# http://www.pjcj.net
 
 package Module1;
 

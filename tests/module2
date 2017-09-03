@@ -19,14 +19,14 @@ use Module2;
 my @x;
 
 sub xx {
-  $x[shift]++;
-  NotModule2::zz(0);
+    $x[shift]++;
+    NotModule2::zz(0);
 }
 
 for (0 .. 10) {
-  if (time) {
-    xx(0);
-  } else {
-    $x[1]++;
-  }
+    if (time) {
+        xx(0);
+    } else {
+        $x[1]++;
+    }
 }
