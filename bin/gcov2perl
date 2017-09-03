@@ -27,7 +27,7 @@ my $Options = {
 
 sub get_options {
     die "Bad option" unless
-    GetOptions($Options,                # Store the options in the Options hash.
+    GetOptions($Options,                 # Store the options in the Options hash
                qw(
                    db=s
                    help|h!

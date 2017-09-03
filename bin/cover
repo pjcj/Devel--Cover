@@ -49,7 +49,8 @@ my $Options = {
     select                   => [],
     select_re                => [],
     summary                  => 1,
-    uncoverable_file         => [], # .uncoverable and ~/.uncoverable are always checked
+    uncoverable_file         => [],
+        # .uncoverable and ~/.uncoverable are always checked
 };
 
 sub get_options {
@@ -295,7 +296,7 @@ sub main {
         };
         File::Find::find({ wanted => $gp, no_chdir => 1 }, ".");
         if (@gc) {
-            # Find the right gcov2perl based on this current script.
+            # Find the right gcov2perl based on this current script
             require Cwd;
             my $path = Cwd::abs_path($0);
             my ($vol, $dir, $cover) = File::Spec->splitpath($path);
@@ -374,7 +375,7 @@ sub main {
     print "\n\n" unless $Options->{silent};
 
     # TODO - The sense of select and ignore should be reversed to match
-    # collection.
+    # collection
 
     my %f = map { $_ => 1 } (@{$Options->{select}}
                              ? map glob, @{$Options->{select}}
