@@ -14,7 +14,7 @@ use warnings;
 
 use base "Devel::Cover::Condition";
 
-sub count   { 4 }
+sub count   { 4                               }
 sub headers { [qw( l&&r l&&!r !l&&r !l&&!r )] }
 
 1

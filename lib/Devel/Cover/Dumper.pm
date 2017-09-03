@@ -27,7 +27,7 @@ sub import {
 
 sub Dumper {
     require Data::Dumper;
-    local $Data::Dumper::Indent = 1;
+    local $Data::Dumper::Indent   = 1;
     local $Data::Dumper::Sortkeys = 1;
     Data::Dumper::Dumper(@_);
 }

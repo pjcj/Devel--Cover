@@ -1,5 +1,5 @@
 package Devel::Cover::Html_Common;
-BEGIN {require 5.006}
+
 use strict;
 use warnings;
 
@@ -7,8 +7,8 @@ use warnings;
 
 use Exporter;
 
-our @ISA       = 'Exporter';
-our @EXPORT_OK = 'launch';
+our @ISA       = "Exporter";
+our @EXPORT_OK = "launch";
 
 sub launch {
     my ($package, $opt) = @_;
@@ -48,4 +48,4 @@ Devel::Cover
 
 =cut
 
-1;
+1

@@ -14,11 +14,11 @@ use warnings;
 
 use base "Devel::Cover::Criterion";
 
-sub uncoverable { 0 }
-sub covered     { ${$_[0]} }
-sub total       { 1 }
+sub uncoverable { 0                  }
+sub covered     { ${$_[0]}           }
+sub total       { 1                  }
 sub percentage  { ${$_[0]} ? 100 : 0 }
-sub error       { 0 }
+sub error       { 0                  }
 
 sub calculate_summary {
     my $self = shift;

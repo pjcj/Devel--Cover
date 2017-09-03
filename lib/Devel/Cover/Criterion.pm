@@ -24,17 +24,18 @@ use Devel::Cover::Subroutine;
 use Devel::Cover::Time;
 use Devel::Cover::Pod;
 
-sub coverage    { $_[0][0] }
-sub information { $_[0][1] }
+sub coverage    { $_[0][0]                                        }
+sub information { $_[0][1]                                        }
 
-sub uncoverable { "n/a" }
-sub covered     { "n/a" }
-sub total       { "n/a" }
-sub percentage  { "n/a" }
-sub error       { "n/a" }
-sub text        { "n/a" }
-sub values      { [ $_[0]->covered ] }
-sub criterion   { require Carp; Carp::confess("criterion() must be overridden") }
+sub uncoverable { "n/a"                                           }
+sub covered     { "n/a"                                           }
+sub total       { "n/a"                                           }
+sub percentage  { "n/a"                                           }
+sub error       { "n/a"                                           }
+sub text        { "n/a"                                           }
+sub values      { [ $_[0]->covered ]                              }
+sub criterion   { require Carp;
+                  Carp::confess("criterion() must be overridden") }
 
 sub calculate_percentage {
     my $class = shift;
