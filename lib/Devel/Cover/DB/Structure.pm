@@ -75,7 +75,7 @@ sub debuglog {
 
     local $\;
     # One log file per process, as we're potentially dumping out large amounts,
-    # and might exceed the atomic write size of the OS.
+    # and might exceed the atomic write size of the OS
     open my $fh, '>>', "$dir/$$" or confess "Can't open $dir/$$: $!";
     print $fh "----------------" . gmtime() . "----------------\n";
     print $fh ref $_ ? Dumper($_) : $_;
@@ -237,7 +237,7 @@ sub write {
     for my $file (sort keys %{$self->{f}}) {
         $self->{f}{$file}{file} = $file;
         my $digest = $self->{f}{$file}{digest};
-        $digest = $1 if defined $digest && $digest =~ /(.*)/; # ie tainting.
+        $digest = $1 if defined $digest && $digest =~ /(.*)/; # ie tainting
         unless ($digest) {
             print STDERR "Can't find digest for $file"
                 unless $Devel::Cover::Silent ||
@@ -248,7 +248,7 @@ sub write {
         }
         my $df_final = "$dir/$digest";
         my $df_temp = "$dir/.$digest.$$";
-        # TODO - determine if Structure has changed to save writing it.
+        # TODO - determine if Structure has changed to save writing it
         # my $f = $df; my $n = 1; $df = $f . "." . $n++ while -e $df;
         my $io = Devel::Cover::DB::IO->new;
         $io->write($self->{f}{$file}, $df_temp); # unless -e $df;
@@ -327,7 +327,7 @@ sub read_all {
     $dir .= "/structure";
     opendir D, $dir or return;
     for my $d (sort grep $_ !~ /\./, readdir D) {
-        $d = $1 if $d =~ /(.*)/; # Die tainting.
+        $d = $1 if $d =~ /(.*)/; # Die tainting
         $self->read($d);
     }
     closedir D or die "Can't closedir $dir: $!";
