@@ -57,6 +57,6 @@ esac
 
 exit
 
-#if you need to invert the exit code, replace the exit in your test with:
+# if you need to invert the exit code, replace the exit in your test with:
 [ $ret -eq 0 ] && exit 1
 exit 0
