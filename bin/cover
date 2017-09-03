@@ -241,10 +241,10 @@ sub main {
         $extra .= ",-coverage,$_" for @{$Options->{coverage}};
         $extra .= ",-ignore,$_"
             for @{$Options->{ignore_re}},
-                map quotemeta glob, @{$Options->{ignore}};
+                map quotemeta, map glob, @{$Options->{ignore}};
         $extra .= ",-select,$_"
             for @{$Options->{select_re}},
-                map quotemeta glob, @{$Options->{select}};
+                map quotemeta, map glob, @{$Options->{select}};
 
         $Options->{$_} = [] for qw( ignore ignoring select select_re );
 
