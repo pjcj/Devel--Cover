@@ -1,32 +1,32 @@
-1. Update Changes.
-  - Add important changes.
-  - Credit the author as appropriate.
-  - Include github and RT numbers.
+1. Update Changes
+  - Add important changes
+  - Credit the author as appropriate
+  - Include github and RT numbers
 
-2. Check it in.
+2. Check it in
   $ git commit -m "Add Changes." Changes
 
-3. Update Contributors.
+3. Update Contributors
 
-4. Check it in.
+4. Check it in
   $ git commit -m "Update Contributors." Contributors
 
-5. Update $Latest_t in Makefile.PL.
+5. Update $Latest_t in Makefile.PL
    Update test for obsolete development version skipping in
-       run_test method of ...::Test.pm.
-   Update version number in Makefile.PL.
+       run_test method of ...::Test.pm
+   Update version number in Makefile.PL
 
-6. Check it in.
+6. Check it in
   $ git commit -m "Bump version number" Makefile.PL
 
-7. Run basic tests.
+7. Run basic tests
   $ perl Makefile.PL && make
   $ make test
 
-8. Test against all versions.
+8. Test against all versions
   $ make all_test
 
-9. Return to base perl version.
+9. Return to base perl version
   $ perl Makefile.PL && make
 
 10. If there's a new stable release of perl:
@@ -34,9 +34,9 @@
   $ cpm install -g Dist::Zilla
   $ cpm install -g `dzil authordeps --missing`
 
-11. Make the release.
+11. Make the release
   $ dzil release
 
-12. Push the changes.
+12. Push the changes
   - The dzil Git::Push plugin hangs for me
   $ git push --follow-tags

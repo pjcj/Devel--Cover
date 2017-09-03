@@ -1,68 +1,68 @@
 - Enhancements:
-  - Different criteria for different runs.
-  - Marking of unreachable code - commandline tool and gui.
-  - Threads support - at least for some coverage criteria.
-  - Test analysis.
-  - Profiling and speedups.
-  - Collect data for path coverage.
-  - Mutation coverage.
-  - Regular Expression coverage.
+  - Different criteria for different runs
+  - Marking of unreachable code - commandline tool and gui
+  - Threads support - at least for some coverage criteria
+  - Test analysis
+  - Profiling and speedups
+  - Collect data for path coverage
+  - Mutation coverage
+  - Regular Expression coverage
   - Indicate how to increase coverage?
   - BEGIN and CHECK blocks and code in modules.  Requires callbacks from perl?
-  - Create a base class for Devel::Cover::Branch and Devel::Cover::Condition.
-  - Handle C< $y || "${p}qqq" >.
+  - Create a base class for Devel::Cover::Branch and Devel::Cover::Condition
+  - Handle C< $y || "${p}qqq" >
     - 22:09 <@nothingmuch> return, redo, next, last, goto should probably all
                            be treated as short circuiting
-  - Add aliased subroutines to subroutine coverage.
-  - Accommodate reloading modules at runtime (Mark Glines).
-  - Don't count BEGIN blocks as subroutines.
-  - Only collect boolean data for coverage information (no counts).
+  - Add aliased subroutines to subroutine coverage
+  - Accommodate reloading modules at runtime (Mark Glines)
+  - Don't count BEGIN blocks as subroutines
+  - Only collect boolean data for coverage information (no counts)
   - cpancover
-    - Extend cpancover so people can upload databases.
-    - Provide a view by author.
-    - Make cpancover more general to be able to work on local modules.
-  - Add verbosity option and set silent option from it.
-  - Get Sort report working.
+    - Extend cpancover so people can upload databases
+    - Provide a view by author
+    - Make cpancover more general to be able to work on local modules
+  - Add verbosity option and set silent option from it
+  - Get Sort report working
 - Reports:
-  - Improve textual output.
-  - Remove >= 100% in customisable thresholds.
-  - Move HTML version and platform info to main page and allow for multiples.
-  - Add -db option to cover.
-  - Diff functionality.
-  - Merge CSS from basic_html and cpancover.
-  - Provide a way to control syntax colouring.
-  - Cyclomatic complexity annotation.
+  - Improve textual output
+  - Remove >= 100% in customisable thresholds
+  - Move HTML version and platform info to main page and allow for multiples
+  - Add -db option to cover
+  - Diff functionality
+  - Merge CSS from basic_html and cpancover
+  - Provide a way to control syntax colouring
+  - Cyclomatic complexity annotation
 - Bugs:
   - Work with memoize.  Is this still a problem?
-  - See if the XS code leaks, and fix it if it does.
+  - See if the XS code leaks, and fix it if it does
   - Look at time coverage again - collecting for too many ops?
-  - Sort out time coverage on Windows.
-  - Check for core dumps with pod coverage.
-  - Fix "ignored" errors - see IO::Pager.
+  - Sort out time coverage on Windows
+  - Check for core dumps with pod coverage
+  - Fix "ignored" errors - see IO::Pager
   - cpancover on CPAN:
-    - PerlIO-eol-0.13 hangs.
-    - CPAN@1432 hangs with bleadperl@29642.
+    - PerlIO-eol-0.13 hangs
+    - CPAN@1432 hangs with bleadperl@29642
   - cover -delete uses too much memory when cover_db doesn't exist. (clkao)
-  - Games::Bingo broken.
+  - Games::Bingo broken
   - Class::Unload only giving 50% coverage on return unless ... (losing data?)
-  - JSON error in Archive::Extract and Test::LeakTrace.
-  - cover -write new_db doesn't work (needs structure?).
+  - JSON error in Archive::Extract and Test::LeakTrace
+  - cover -write new_db doesn't work (needs structure?)
 - Testing:
-  - Be able to run Devel::Cover on itself.
-  - More comprehensive.
-  - Functional tests.
+  - Be able to run Devel::Cover on itself
+  - More comprehensive
+  - Functional tests
   - Overhaul test system.  Include patt?
   - Tests for INIT and END blocks included in required files when the
-    files are used in some runs.
-  - Make sure dor is handled correctly and add more tests to cond_or.
+    files are used in some runs
+  - Make sure dor is handled correctly and add more tests to cond_or
 - Build:
-  - Fix up make text and friends for module_ignore.
+  - Fix up make text and friends for module_ignore
   - Check for matching threadedness, 64bits etc. between build and run?
 - Documentation:
-  - General improvement.
-  - Examples.
-  - Cookbook including +/-inc, +/-ignore and +/-select.
-  - Document cpancover options.
-  - Pod in private modules.
-  - Developer documentation.
-  - Better DB API docs (including writing?).
+  - General improvement
+  - Examples
+  - Cookbook including +/-inc, +/-ignore and +/-select
+  - Document cpancover options
+  - Pod in private modules
+  - Developer documentation
+  - Better DB API docs (including writing?)
