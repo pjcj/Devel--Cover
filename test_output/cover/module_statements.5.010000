@@ -47,52 +47,46 @@ line  err   stmt   bran   cond    sub   code
 19             1                        my @x;
 20                                      
 21                                      sub xx {
-22            11                   11     $x[shift]++;
-23            11                          Module1::zz(0);
+22            11                   11       $x[shift]++;
+23            11                            Module1::zz(0);
 24                                      }
 25                                      
 26             1                        for (0 .. 10) {
-27    ***     11     50                   if (time) {
-28            11                            xx(0);
-29                                        } else {
-30    ***      0                            $x[1]++;
-31                                        }
+27    ***     11     50                     if (time) {
+28            11                                xx(0);
+29                                          } else {
+30    ***      0                                $x[1]++;
+31                                          }
 32                                      }
-33                                      # Copyright 2002-2017, Paul Johnson (paul@pjcj.net)
-34                                      
-35                                      # This software is free.  It is licensed under the same terms as Perl itself.
-36                                      
-37                                      # The latest version of this software should be available from my homepage:
-38                                      # http://www.pjcj.net
-39                                      
-40                                      package Module1;
-41                                      
-42             1                        my $y = 7;
-43             1                        $y++;
+33                                      
+34                                      package Module1;
+35                                      
+36             1                        my $y = 7;
+37             1                        $y++;
+38                                      
+39                                      sub _aa {
+40    ***      0                    0       $y++;
+41    ***      0                            die;
+42    ***      0                            die;
+43                                      }
 44                                      
-45                                      sub _aa {
+45                                      sub xx {
 46    ***      0                    0       $y++;
 47    ***      0                            die;
-48    ***      0                            die;
-49                                      }
-50                                      
-51                                      sub xx {
-52    ***      0                    0       $y++;
-53    ***      0                            die;
-54                                      }
-55                                      
-56                                      sub yy {
-57    ***      0                    0       $y++;
-58                                      }
-59                                      
-60                                      sub zz {
-61            11                   11       my $x = shift;
-62            11                            $x++;
-63                                      }
-64                                      
-65                                      1
-66                                      
-67                                      __END__
+48                                      }
+49                                      
+50                                      sub yy {
+51    ***      0                    0       $y++;
+52                                      }
+53                                      
+54                                      sub zz {
+55            11                   11       my $x = shift;
+56            11                            $x++;
+57                                      }
+58                                      
+59                                      1
+60                                      
+61                                      __END__
 
 
 Branches
@@ -113,15 +107,15 @@ BEGIN          1 tests/module_statements:13
 BEGIN          1 tests/module_statements:15
 BEGIN          1 tests/module_statements:17
 xx            11 tests/module_statements:22
-zz            11 tests/module_statements:61
+zz            11 tests/module_statements:55
 
 Uncovered Subroutines
 ---------------------
 
 Subroutine Count Location                  
 ---------- ----- --------------------------
-_aa            0 tests/module_statements:46
-xx             0 tests/module_statements:52
-yy             0 tests/module_statements:57
+_aa            0 tests/module_statements:40
+xx             0 tests/module_statements:46
+yy             0 tests/module_statements:51
 
 

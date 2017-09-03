@@ -105,16 +105,16 @@ line  err   stmt   bran   cond    sub   code
 19             1                        my @x;
 20                                      
 21                                      sub xx {
-22            11                   11     $x[shift]++;
-23            11                          NotModule2::zz(0);
+22            11                   11       $x[shift]++;
+23            11                            NotModule2::zz(0);
 24                                      }
 25                                      
 26             1                        for (0 .. 10) {
-27    ***     11     50                   if (time) {
-28            11                            xx(0);
-29                                        } else {
-30    ***      0                            $x[1]++;
-31                                        }
+27    ***     11     50                     if (time) {
+28            11                                xx(0);
+29                                          } else {
+30    ***      0                                $x[1]++;
+31                                          }
 32                                      }
 
 

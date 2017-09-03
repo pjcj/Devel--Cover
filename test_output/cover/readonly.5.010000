@@ -45,7 +45,7 @@ line  err   stmt   bran   cond    sub   code
 19             1                        my @lines = ( '1', '2', '3', 'A', 'B', 'c' );
 20                                      
 21                                      sub test_readonly_coverage {
-22                                          # All branches executed.
+22                                          # All branches executed
 23             1                    1       foreach my $line (@lines) {
 24             6    100                         if ($line =~ /$REGEXP_MATCH/msx) {
 25             1                                    print "true ($line)\n";
@@ -56,7 +56,7 @@ line  err   stmt   bran   cond    sub   code
 30                                      }
 31                                      
 32                                      sub test_posix_regexp {
-33                                          # All branches executed.
+33                                          # All branches executed
 34             1                    1       foreach my $line (@lines) {
 35             6    100                         if ($line =~ /[[:upper:]]/msx) {
 36             2                                    print "true ($line)\n";

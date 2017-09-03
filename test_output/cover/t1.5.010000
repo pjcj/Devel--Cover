@@ -37,7 +37,7 @@ line  err   stmt   bran   cond    sub   code
 13             1                        my @x;
 14                                      
 15                                      sub xx {
-16             1                    1     $x[shift]++;
+16             1                    1       $x[shift]++;
 17                                      }
 18                                      
 19             1                        xx(4);
