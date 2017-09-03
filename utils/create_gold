@@ -49,7 +49,7 @@ for my $test (@tests) {
     } else {
         no warnings "redefine";
         local *Devel::Cover::Test::run_test = sub {};
-        my $t = require $file or die "Can't require $file: $!";
+        my $t = require "./$file" or die "Can't require $file: $!";
         $t->create_gold && print STDERR "\n";
         exit;
     }
