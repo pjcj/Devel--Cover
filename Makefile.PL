@@ -24,7 +24,6 @@ my $Author   = 'paul@pjcj.net';
 my @perlbug  = ("perlbug", "-a", $Author,
                            "-s", "Installation of Devel::Cover $Version");
 my $Perlbug  = join " ", map { / / ? "'$_'" : $_ } @perlbug;
-my $base     = getcwd;
 my %inc      = map { -d $_ ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () }
                    @INC;
 my @inc      = sort keys %inc;
@@ -48,7 +47,6 @@ use warnings;
 
 our \$VERSION      = "$Version";
 our \$Perl_version = '$]';
-our \$Base         = '$base';
 our \@Inc          = qw( @inc );
 chomp (our \$Perl  = <<'EOV');  # Careful with \\\\ in the path
 $^X
@@ -113,10 +111,10 @@ for my $t (readdir D) {
 use strict;
 use warnings;
 
-use lib "$base/lib";
-use lib "$base/blib/lib";
-use lib "$base/blib/arch";
-use lib "$base/t";
+use lib "./lib";
+use lib "./blib/lib";
+use lib "./blib/arch";
+use lib "./t";
 
 use Devel::Cover::Test;
 

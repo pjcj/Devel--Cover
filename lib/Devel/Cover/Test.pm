@@ -82,8 +82,7 @@ sub get_params {
                               . "@{$self->{test_parameters}}";
     $self->{criteria}         =~ s/-\w+//g;
     $self->{db_name}        ||= $self->{test};
-    $self->{cover_db}         = "$Devel::Cover::Inc::Base/t/e2e/"
-                              . "cover_db_$self->{db_name}/";
+    $self->{cover_db}         = "./t/e2e/cover_db_$self->{db_name}/";
     unless (mkdir $self->{cover_db}) {
         die "Can't mkdir $self->{cover_db}: $!" unless -d $self->{cover_db};
     }
@@ -111,7 +110,7 @@ sub perl {
     join " ",
          map shell_quote($_),
              $Devel::Cover::Inc::Perl,
-             map "-I$Devel::Cover::Inc::Base/$_", "", "blib/lib", "blib/arch"
+             map "-I./$_", "", "blib/lib", "blib/arch"
 }
 
 sub test_command {
@@ -132,14 +131,13 @@ sub test_command {
 
 sub cover_command {
     my $self = shift;
-    my $b = shell_quote $Devel::Cover::Inc::Base;
-    my $c = $self->perl . " $b/bin/cover $self->{cover_parameters}";
+    my $c = $self->perl . " ./bin/cover $self->{cover_parameters}";
     $c
 }
 
 sub test_file {
     my $self = shift;
-    "$Devel::Cover::Inc::Base/tests/$self->{test}"
+    "./tests/$self->{test}"
 }
 
 sub test_file_parameters {
@@ -152,7 +150,7 @@ sub cover_gold {
 
     my $test = $self->{golden_test} || $self->{test};
 
-    my $td = "$Devel::Cover::Inc::Base/test_output/cover";
+    my $td = "./test_output/cover";
     opendir D, $td or die "Can't opendir $td: $!";
     my @versions = sort    { $a <=> $b }
                    map     { /^$test\.(5\.\d+)$/ ? $1 : () }

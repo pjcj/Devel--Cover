@@ -12,7 +12,6 @@ use warnings;
 
 use File::Copy;
 
-use Devel::Cover::Inc;
 use Devel::Cover::Test;
 
 if ($] == 5.008007) {
@@ -20,11 +19,9 @@ if ($] == 5.008007) {
     exit;
 }
 
-my $base = $Devel::Cover::Inc::Base;
-
 my $t  = "md5";
-my $ft = "$base/tests/$t";
-my $fg = "$base/tests/trivial";
+my $ft = "./tests/$t";
+my $fg = "./tests/trivial";
 
 my $run_test = sub {
     my $test = shift;
