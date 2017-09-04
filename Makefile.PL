@@ -417,6 +417,9 @@ html : _run
 basic : _run
 \t \$(PERL) -Mblib bin/cover `\$(COVER_PARAMETERS)` -report html_basic
 
+subtle : _run
+\t \$(PERL) -Mblib bin/cover `\$(COVER_PARAMETERS)` -report html_subtle
+
 out : _run
 \t \$(PERL) -Mblib bin/cover `\$(COVER_PARAMETERS)` -report text > \$(TEST).out
 
