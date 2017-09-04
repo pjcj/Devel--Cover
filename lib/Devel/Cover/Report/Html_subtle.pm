@@ -115,7 +115,7 @@ sub print_summary {
     my $html = "$options->{outputdir}/$options->{option}{outputfile}";
     $Template->process("summary", $vars, $html) or die $Template->error();
 
-    print "HTML output sent to $html\n";
+    print "HTML output written to $html\n" unless $options->{silent};
 }
 
 
@@ -373,7 +373,6 @@ sub report {
     %File_exists = map {$_ => -e} @{$options->{file}};
 
     print_stylesheet($db);
-    print_summary($db, $options);
 
     for my $file (@{$options->{file}}) {
         print_file($db,        $file, $options);
@@ -381,6 +380,7 @@ sub report {
         print_conditions($db,  $file, $options) if $options->{show}{condition};
         print_subroutines($db, $file, $options) if $options->{show}{subroutine};
     }
+    print_summary($db, $options);
 }
 
 1;

@@ -438,7 +438,6 @@ END_HTML
     close($fh) or warn "Unable to close '$outfile' [$!]";
 
     print "HTML output written to $outfile\n" unless $options->{silent};
-
 }
 
 
@@ -737,7 +736,6 @@ sub report {
     %Filenames = map {$_ => do {(my $f = $_) =~ s/\W/-/g; $f}} @files;
 
     print_stylesheet($db, $opt);
-    print_summary_report($db, $opt);
     for my $file (@files) {
         print_file_report($db, $file, $opt);
         unless ($opt->{option}{unified}) {
@@ -746,6 +744,7 @@ sub report {
             print_sub_report       ($db, $file, $opt) if $opt->{show}{subroutine};
         }
     }
+    print_summary_report($db, $opt);
 
     print "done.\n" unless $opt->{silent};
 }

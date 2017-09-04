@@ -5,6 +5,7 @@ Devel::Cover history
  - Add dependency on B::Debug (Ryan Voots) (github 189)
  - Remove obsolete dev and cpancover code
  - Manage multiple ignore and select options (Sullivan Beck) (github 163)
+ - Write top-level html last for better sorting (Christian Walde) (github 158)
 
 Release 1.26 - 24 July 2017
  - Untaint $DEVEL_COVER_OPTIONS (Alexey Sokolov) (github 187)

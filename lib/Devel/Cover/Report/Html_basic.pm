@@ -427,7 +427,6 @@ sub report {
     );
 
     write_file $R{options}{outputdir}, "all";
-    my $html = print_summary;
 
     for (@{$options->{file}}) {
         $R{file} = $_;
@@ -440,6 +439,7 @@ sub report {
         print_subroutines if $show->{subroutine} || $show->{pod};
     }
 
+    my $html = print_summary;
     print "HTML output written to $html\n" unless $options->{silent};
 }
 
