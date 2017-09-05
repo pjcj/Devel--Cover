@@ -466,7 +466,7 @@ sub cover_modules {
                               =~ s/\.(?:zip|tgz|(?:tar\.(?:gz|bz2)))$//r;
             if ($self->is_covered($dir)) {
                 $self->set_covered($dir);
-                say "$module already covered xx" if $self->verbose;
+                say "$module already covered" if $self->verbose;
                 return unless $self->force;
             } elsif ($self->is_failed($dir)) {
                 say "$module already failed" if $self->verbose;
@@ -481,7 +481,7 @@ sub cover_modules {
             eval {
                 local $SIG{ALRM} = sub { die "alarm\n" };
                 alarm $timeout;
-                say "running: @command";
+                say "running: @command" if $self->verbose;
                 system @command, $module, $name;
                 alarm 0;
             };
