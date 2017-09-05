@@ -452,7 +452,9 @@ sub cover_modules {
 
     # say "modules: ", Dumper $self->modules;
 
-    my @command = qw( utils/dc cpancover-docker-module );
+    my $dir = "";
+    $dir = "/dc/" if $self->local && -d "/dc";
+    my @command = ("${dir}utils/dc", "cpancover-docker-module");
     $self->_set_local_timeout(0);
     my @res = iterate_as_array(
         { workers => $self->workers },
