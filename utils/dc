@@ -80,6 +80,7 @@ export CPANCOVER_IMAGE=$docker_image
 
 # TODO - clarify relationship between these two
 cpancover_dir=$cpancover_staging
+dcdir=$(readlink -f "$srcdir/..")
 
 main() {
     ((verbose)) && pi "Running $*"
@@ -147,7 +148,7 @@ main() {
             mkdir -p "$staging"
             # pd $name
             $docker run -it                                      \
-                --volume=/cover/dc:/dc:rw                        \
+                --volume="$dcdir:/dc:ro"                         \
                 --volume="$cpancover_staging:/remote_staging:rw" \
                 --workdir=/dc --rm=false                         \
                 --memory=1g                                      \
@@ -160,7 +161,7 @@ main() {
             mkdir -p "$staging"
             # pd $name
             container=$($docker run -d                                   \
-                        --volume=/cover/dc:/dc:ro                        \
+                        --volume="$dcdir:/dc:ro"                         \
                         --volume="$cpancover_staging:/remote_staging:ro" \
                         --workdir=/dc --rm=false --name="$name"          \
                         --memory=1g                                      \
