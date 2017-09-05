@@ -449,13 +449,13 @@ sub cover_modules {
     my $self = shift;
 
     $self->process_module_file;
-
     # say "modules: ", Dumper $self->modules;
 
     my $dir = "";
     $dir = "/dc/" if $self->local && -d "/dc";
-    my @command = ("${dir}utils/dc", "cpancover-docker-module");
-    say "XXXXX";
+    my @opts;
+    push @opts, "--local" if $self->local;
+    my @command = ("${dir}utils/dc", @opts, "cpancover-docker-module");
     $self->_set_local_timeout(0);
     my @res = iterate_as_array(
         { workers => $self->workers },

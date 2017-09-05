@@ -169,13 +169,18 @@ main() {
             name="$3"
             staging="${4:-$cpancover_dir}"
             mkdir -p "$staging"
-            # pd $name
+            # pd "name: $name"
+            l="";
+            ((alocal)) && l="--local"
+            dir="";
+            ((alocal)) && [ -d /dc ] && dir=/dc/
             container=$($docker run -d                                   \
                         --volume="$dcdir:/dc:ro"                         \
                         --volume="$cpancover_staging:/remote_staging:ro" \
                         --workdir=/dc --rm=false --name="$name"          \
                         --memory=1g                                      \
-                        "$docker_image" dc cpancover-build-module "$module")
+                        "$docker_image"                                  \
+                        "${dir}dc" "$l" cpancover-build-module "$module")
             # https://github.com/dotcloud/docker/issues/3986
             echo "container is $container"
             $docker wait "$name" > /dev/null
