@@ -455,6 +455,7 @@ sub cover_modules {
     my $dir = "";
     $dir = "/dc/" if $self->local && -d "/dc";
     my @command = ("${dir}utils/dc", "cpancover-docker-module");
+    say "XXXXX";
     $self->_set_local_timeout(0);
     my @res = iterate_as_array(
         { workers => $self->workers },
@@ -465,11 +466,11 @@ sub cover_modules {
                               =~ s/\.(?:zip|tgz|(?:tar\.(?:gz|bz2)))$//r;
             if ($self->is_covered($dir)) {
                 $self->set_covered($dir);
-                say "$module already covered" if $self->verbose;
-                return;
-            } elsif ($self->is_failed($dir) && !$self->force) {
+                say "$module already covered xx" if $self->verbose;
+                return unless $self->force;
+            } elsif ($self->is_failed($dir)) {
                 say "$module already failed" if $self->verbose;
-                return;
+                return unless $self->force;
             }
 
             my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
@@ -480,6 +481,7 @@ sub cover_modules {
             eval {
                 local $SIG{ALRM} = sub { die "alarm\n" };
                 alarm $timeout;
+                say "running: @command";
                 system @command, $module, $name;
                 alarm 0;
             };
