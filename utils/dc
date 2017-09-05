@@ -41,6 +41,8 @@ export EXTENDED_TESTING=1
 
 PATH="$srcdir:$PATH"
 verbose=${CPANCOVER_VERBOSE:-}
+force=${CPANCOVER_FORCE:-}
+alocal=${CPANCOVER_LOCAL:-}
 cpancover_staging=${CPANCOVER_STAGING:-~/staging}
 docker=${CPANCOVER_DOCKER:-docker}
 docker_image=${CPANCOVER_IMAGE:-pjcj/cpancover}
@@ -59,6 +61,14 @@ while [ $# -gt 0 ]; do
             verbose=1
             shift
             ;;
+        -f|--force)
+            force=1
+            shift
+            ;;
+        -l|--local)
+            alocal=1
+            shift
+            ;;
         -d|--cpancover_dir)
             cpancover_staging="$2"
             shift 2
@@ -74,6 +84,8 @@ while [ $# -gt 0 ]; do
 done
 
 export CPANCOVER_VERBOSE=$verbose
+export CPANCOVER_FORCE=$force
+export CPANCOVER_LOCAL=$alocal
 export CPANCOVER_STAGING=$cpancover_staging
 export CPANCOVER_DOCKER=$docker
 export CPANCOVER_IMAGE=$docker_image
@@ -115,17 +127,13 @@ main() {
         cpancover)
             shift;
             jobs=$($0 nice_cpus)
-            if [ -z "${CPANCOVER_LOCAL:-}" ]; then
-                cpancover=cpancover
-            else
+            if ((alocal)); then
                 cpancover="perl -Mblib bin/cpancover -local"
+            else
+                cpancover=cpancover
             fi
-            if ! [ -z "${CPANCOVER_VERBOSE:-}" ]; then
-                cpancover="$cpancover -verbose"
-            fi
-            if ! [ -z "${CPANCOVER_FORCE:-}" ]; then
-                cpancover="$cpancover -force"
-            fi
+            ((verbose)) && cpancover="$cpancover -verbose"
+            ((force))   && cpancover="$cpancover -force"
             cmd="$cpancover -results_dir $cpancover_dir -workers $jobs $*"
             # pd "$cmd"
             $cmd
@@ -203,7 +211,6 @@ main() {
             echo Done
             ;;
         cpancover-run)
-            export CPANCOVER_LOCAL=1
             export DEVEL_COVER_CPUS=10
             while true; do
                 echo "Starting cpancover run at $(date) on $DEVEL_COVER_CPUS cpus"
