@@ -301,7 +301,9 @@ sub main {
             my $path = Cwd::abs_path($0);
             my ($vol, $dir, $cover) = File::Spec->splitpath($path);
             my $gcov2perl = File::Spec->catpath($vol, $dir, 'gcov2perl');
-            my @c = ($^X, $gcov2perl, "-db", $dbname, @gc);
+            my @opts = split " ", $ENV{DEVEL_COVER_TEST_OPTS};
+            # print STDERR "cover: test [$ENV{DEVEL_COVER_TEST_OPTS}]\n";
+            my @c = ($^X, @opts, $gcov2perl, "-db", $dbname, @gc);
             print STDERR "cover: running @c\n";
             system @c;
         }
