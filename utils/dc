@@ -128,14 +128,16 @@ main() {
             shift;
             jobs=$($0 nice_cpus)
             if ((alocal)); then
-                cpancover="perl -Mblib bin/cpancover -local"
+                root=
+                [ -d /dc ] && root=/dc/
+                cpancover="perl -Mblib=$root ${root}bin/cpancover -local"
             else
                 cpancover=cpancover
             fi
             ((verbose)) && cpancover="$cpancover -verbose"
             ((force))   && cpancover="$cpancover -force"
             cmd="$cpancover -results_dir $cpancover_dir -workers $jobs $*"
-            # pd "$cmd"
+            ((verbose)) && pi "$cmd"
             $cmd
             ;;
         cpancover-compress)
