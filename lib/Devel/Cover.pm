@@ -1330,10 +1330,9 @@ If L<Pod::Coverage::CountParents> is available it will be used instead.
 Coverage data for other criteria are not yet collected.
 
 The F<cover> program can be used to generate coverage reports.  Devel::Cover
-ships with a number of different reports including various types of HTML
-output, textual reports, a report to display missing coverage in the same
-format as compilation errors and a report to display coverage information
-within the Vim editor.
+ships with a number of reports including various types of HTML output, textual
+reports, a report to display missing coverage in the same format as compilation
+errors and a report to display coverage information within the Vim editor.
 
 It is possible to add annotations to reports, for example you can add a column
 to an HTML report showing who last changed a line, as determined by git blame.
