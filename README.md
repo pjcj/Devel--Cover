@@ -50,18 +50,29 @@ The Devel::Cover repository can be found at
 reported.
 
 To get coverage for an uninstalled module:
+
     cover -test
+
 or
+
     cover -delete
     HARNESS_PERL_SWITCHES=-MDevel::Cover make test
     cover
+
 To get coverage for an uninstalled module which uses Module::Build (0.26 or
 later):
+
     ./Build testcover
+
 If the module does not use the t/*.t framework:
+
     PERL5OPT=-MDevel::Cover make test
+
 If you want to get coverage for a program:
+
     perl -MDevel::Cover yourprog args
     cover
+
 To alter default values:
+
     perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
