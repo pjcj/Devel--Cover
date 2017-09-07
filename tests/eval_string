@@ -1,0 +1,47 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+my $i = 1;
+
+if ($i == 2) {
+    print STDERR "hello\n";
+} else {
+    print STDERR "goodbye\n";
+}
+
+eval {
+if ($i == 2) {
+    print STDERR "hello\n";
+} else {
+    print STDERR "goodbye\n";
+}
+};
+
+eval <<'EOF';
+if ($i == 2) {
+    print STDERR "hello\n";
+} else {
+    print STDERR "goodbye\n";
+}
+EOF
+
+sub ev {
+eval {
+if ($i == 2) {
+    print STDERR "hello\n";
+} else {
+    print STDERR "goodbye\n";
+}
+};
+
+eval <<'EOF';
+if ($i == 2) {
+    print STDERR "hello\n";
+} else {
+    print STDERR "goodbye\n";
+}
+EOF
+}
+
+ev;
