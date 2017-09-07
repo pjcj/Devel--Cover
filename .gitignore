@@ -34,3 +34,4 @@ README
 callgrind.out.*
 staging/
 *.sw?
+.perl-version
