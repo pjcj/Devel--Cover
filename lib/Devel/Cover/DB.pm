@@ -788,8 +788,14 @@ sub cover {
     my $cover = $self->{cover} = {};
     my $uncoverable = {};
     my $st = Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
-    my @runs = sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
-                    keys %{$self->{runs}};
+    # Sometimes the start value is undefined.  It's not yet clear why, but it
+    # probably has something to do with the code under test forking.  We'll
+    # just try to cope with that here.
+    my @runs = sort {
+        ($self->{runs}{$b}{start} || 0) <=> ($self->{runs}{$a}{start} || 0)
+                                        ||
+                                     $b cmp $a
+    } keys %{$self->{runs}};
     # print STDERR "runs: ", Dumper \@runs
 
     my %warned;
