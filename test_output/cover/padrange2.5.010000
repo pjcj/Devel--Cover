@@ -1,0 +1,51 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/padrange2                             100.0   50.0    n/a  100.0   90.9
+Total                                       100.0   50.0    n/a  100.0   90.9
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/padrange2
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3              1                    1   use strict;
+               1                        
+               1                        
+4              1                    1   use warnings;
+               1                        
+               1                        
+5                                       
+6     ***      1     50                 if (my @x = 'foo' =~ m/(.)/) {
+7                                       } else {
+8                                       }
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+6     ***     50      1      0   if (my(@x) = 'foo' =~ /(.)/) { }
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location         
+---------- ----- -----------------
+BEGIN          1 tests/padrange2:3
+BEGIN          1 tests/padrange2:4
+
+

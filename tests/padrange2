@@ -1,0 +1,8 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+if (my @x = 'foo' =~ m/(.)/) {
+} else {
+}
