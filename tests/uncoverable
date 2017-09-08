@@ -35,5 +35,22 @@ sub z {
     $y++; # uncoverable statement
 }
 
+# uncoverable branch false count:1
+# uncoverable branch true  count:2
+# uncoverable branch false count:2
+# uncoverable condition left  count:1
+# uncoverable condition right count:1
+# uncoverable condition left  count:2
+# uncoverable condition right count:2
+# uncoverable condition true  count:2
+# uncoverable condition false count:2
+if ($x > 0 && $y > 0) {
+    $y++;
+} elsif ($x < 2 && $y < 0) {
+    $y++; # uncoverable statement
+} else {
+    $y++; # uncoverable statement
+}
+
 # uncoverable statement
 # uncoverable subroutine

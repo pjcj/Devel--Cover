@@ -1584,6 +1584,19 @@ Both branches may be uncoverable:
         handle_it_another_way();  # uncoverable statement
     }
 
+If there is an elsif in the branch then it can be addressed as the second
+branch on the line by using the "count" attribute.  Futher elsifs are the third
+and fourth "count" value, and so on:
+
+# uncoverable branch false count:2
+if ($thing == 1) {
+    handle_thing_being_one();
+} elsif ($thing == 2) {
+    handle_thing_being_tow();
+} else {
+    die "thing can only be one or two, not $thing"; # uncoverable statement
+}
+
 =head3 Conditions
 
 Because of the way in which Perl short-circuits boolean operations, there are
@@ -1607,6 +1620,9 @@ conditions may be modelled thus:
 
 C<Or> conditionals are handled in a similar fashion (TODO - provide some
 examples) but C<xor> conditionals are not properly handled yet.
+
+As for branches, the "count" value may be used for either conditions in elsif
+conditionals, or for complex conditions.
 
 =head3 Subroutines
 

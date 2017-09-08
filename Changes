@@ -10,6 +10,7 @@ Devel::Cover history
  - Allow cpancover to run fully from local directory
  - Handle missing start times in runs (Chad Granum) (github 190)
  - Add test for string eval (Sebastian Paaske Tørholm) (github 145)
+ - Improve uncoverable tests and docs (Kevin Brannen) (github 167)
 
 Release 1.26 - 24 July 2017
  - Untaint $DEVEL_COVER_OPTIONS (Alexey Sokolov) (github 187)
