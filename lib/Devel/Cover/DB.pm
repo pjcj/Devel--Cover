@@ -827,7 +827,12 @@ sub cover {
                 unless $digests{$digest};
 
             # Set up data structure to hold coverage being filled in
-            my $cf = $cover->{$digests{$digest} ||= $file} ||= {};
+            my $ff = $file;
+            if ($self->{prefer_lib}) {
+                $ff =~ s|^blib/||;
+                $ff = $file unless -e $ff;
+            }
+            my $cf = $cover->{$digests{$digest} ||= $ff} ||= {};
 
             # print STDERR "st ", Dumper($st),
                          # "f  ", Dumper($f),
