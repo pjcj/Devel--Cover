@@ -10,29 +10,28 @@ package Devel::Cover::DB::IO::Storable;
 use strict;
 use warnings;
 
+use base "Devel::Cover::DB::IO::Base";
+
 use Storable;
 
 # VERSION
 
 sub new {
     my $class = shift;
-    my $self  = { @_ };
+    my $self = $class->SUPER::new(@_);
     bless $self, $class
 }
 
 sub read {
     my $self   = shift;
     my ($file) = @_;
-    Storable::lock_retrieve($file)
+    $self->_read($file, sub { Storable::retrieve($file) })
 }
 
 sub write {
     my $self = shift;
     my ($data, $file) = @_;
-
-    unlink $file;
-    Storable::lock_nstore($data, $file);
-    $self
+    $self->_write($file, sub { Storable::nstore($data, $file) })
 }
 
 1

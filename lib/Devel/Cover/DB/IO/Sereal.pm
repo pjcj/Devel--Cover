@@ -10,49 +10,41 @@ package Devel::Cover::DB::IO::Sereal;
 use strict;
 use warnings;
 
-use Fcntl ":flock";
+use base "Devel::Cover::DB::IO::Base";
+
 use Sereal::Decoder;
 use Sereal::Encoder;
 
 # VERSION
 
-my $Decoder;
-my $Encoder;
+my ($Decoder, $Encoder);
 
 sub new {
     my $class = shift;
-    my $self  = { @_ };
+    my $self = $class->SUPER::new(@_);
     bless $self, $class
 }
-
 sub read {
     my $self   = shift;
     my ($file) = @_;
-
-    open my $fh, "<", $file or die "Can't open $file: $!\n";
-    flock $fh, LOCK_SH      or die "Can't lock $file: $!\n";
-    local $/;
-    my $data;
-    eval {
-        $Decoder ||= Sereal::Decoder->new({});
-        $data = $Decoder->decode(<$fh>);
-    };
-    die "Can't read $file with Sereal $@" if $@;
-    close $fh or die "Can't close $file: $!\n";
-    $data
+    $self->_read_fh($file, sub {
+        my ($fh) = @_;
+        local $/;
+        my $data = eval {
+            ($Decoder ||= Sereal::Decoder->new({}))->decode(<$fh>)
+        };
+        die "Can't read $file with Sereal: $@" if $@;
+        $data
+    })
 }
 
 sub write {
     my $self = shift;
     my ($data, $file) = @_;
-
-    $Encoder ||= Sereal::Encoder->new({});
-    unlink $file;
-    open my $fh, ">", $file or die "Can't open $file: $!\n";
-    flock $fh, LOCK_EX      or die "Can't lock $file: $!\n";
-    print $fh $Encoder->encode($data);
-    close $fh or die "Can't close $file: $!\n";
-    $self
+    $self->_write_fh($file, sub {
+        my ($fh) = @_;
+        print $fh ($Encoder ||= Sereal::Encoder->new({}))->encode($data);
+    })
 }
 
 1

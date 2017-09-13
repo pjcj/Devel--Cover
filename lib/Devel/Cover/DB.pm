@@ -199,7 +199,7 @@ sub is_valid {
     opendir my $fh, $self->{db} or return 0;
     for my $file (readdir $fh) {
         next if $file eq "." || $file eq "..";
-        next if $file =~ /(?:runs|structure|debuglog|digests)$/
+        next if $file =~ /(?:runs|structure|debuglog|digests)|(?:\.lock)$/
                 && -e "$self->{db}/$file";
         warn "found $file in $self->{db}";
         return 0;

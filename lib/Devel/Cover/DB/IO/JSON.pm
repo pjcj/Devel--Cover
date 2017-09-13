@@ -10,7 +10,8 @@ package Devel::Cover::DB::IO::JSON;
 use strict;
 use warnings;
 
-use Fcntl ":flock";
+use base "Devel::Cover::DB::IO::Base";
+
 use JSON::MaybeXS ();
 
 # VERSION
@@ -18,36 +19,32 @@ use JSON::MaybeXS ();
 sub new {
     my $class = shift;
     my %args = @_;
-
     my $json = JSON::MaybeXS->new(utf8 => 1, allow_blessed => 1);
-    $json->ascii->pretty->canonical if exists $args{options} && $args{options} =~ /\bpretty\b/i;
-
-    bless \$json, $class
+    $json->ascii->pretty->canonical
+        if exists $args{options} && $args{options} =~ /\bpretty\b/i;
+    my $self = $class->SUPER::new(%args, json => $json);
+    bless $self, $class
 }
 
 sub read {
     my $self   = shift;
     my ($file) = @_;
-
-    open my $fh, "<", $file or die "Can't open $file: $!\n";
-    flock $fh, LOCK_SH      or die "Can't lock $file: $!\n";
-    local $/;
-    my $data = eval { ${$self}->decode(<$fh>) };
-    die "Can't read $file with ".(ref ${$self}).": $@" if $@;
-    close $fh or die "Can't close $file: $!\n";
-    $data
+    $self->_read_fh($file, sub {
+        my ($fh) = @_;
+        local $/;
+        my $data = eval { $self->{json}->decode(<$fh>) };
+        die "Can't read $file with ", (ref $self->{json}), ": $@" if $@;
+        $data
+    })
 }
 
 sub write {
     my $self = shift;
     my ($data, $file) = @_;
-
-    unlink $file;
-    open my $fh, ">", $file or die "Can't open $file: $!\n";
-    flock $fh, LOCK_EX      or die "Can't lock $file: $!\n";
-    print $fh ${$self}->encode($data);
-    close $fh or die "Can't close $file: $!\n";
-    $self
+    $self->_write_fh($file, sub {
+        my ($fh) = @_;
+        print $fh $self->{json}->encode($data);
+    })
 }
 
 1
