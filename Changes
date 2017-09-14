@@ -13,6 +13,7 @@ Devel::Cover history
  - Improve uncoverable tests and docs (Kevin Brannen) (github 167)
  - The cover program accepts multiple reports (Eden Hochbaum) (github 172)
  - Add -prefer_lib option to cover script (Kent Fredric) (github 91)
+ - Fix low-level file locking (Graham Knop) (github 90)
 
 Release 1.26 - 24 July 2017
  - Untaint $DEVEL_COVER_OPTIONS (Alexey Sokolov) (github 187)
