@@ -184,7 +184,7 @@ main() {
             # https://github.com/dotcloud/docker/issues/3986
             ((verbose)) && pi "container is $container"
             $docker wait "$name" > /dev/null
-            # shellcheck disable=2181
+            # shellcheck disable=SC2181
             if [ $? = 0 ]; then
                 $docker logs "$name" > "$staging/$name.out"
                 local_staging="$staging/$name"
