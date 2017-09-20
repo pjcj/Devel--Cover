@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.27 - 20 September 2017
  - Test against 5.27.3
  - Add dependency on B::Debug (Ryan Voots) (github 189)
  - Remove obsolete dev and cpancover code
