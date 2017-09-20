@@ -26,3 +26,4 @@ lib/Devel/Cover/Inc.pm$
 \.tar.bz2$
 MYMETA\.
 tags
+.perl-version
