@@ -14,9 +14,9 @@ Each module is built in an individual docker container.  This should allow its
 resources to be constrained.  In addition the docker container is killed after a
 certain time.
 
-I have only run this in Ubuntu 14.04.  The docker version there, 0.9.1 (as of
-31.05.2104) is insufficient.  Version 0.11.1 is fine.  I don't know about the
-versions in between.
+I have only run this in Ubuntu 14.04 and 16.04.  The docker version in 14.04,
+0.9.1 (as of 31.05.2104) is insufficient.  Version 0.11.1 is fine.  I don't
+know about the versions in between.
 
 The latest version of docker can be installed on Ubuntu as follows:
 (see https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/)
@@ -108,6 +108,9 @@ though, it has sufficient for cpancover's needs.
 
 The server is on the account of pjcj at bytemark.  Logins are owned by pjcj and
 the metacpan group.
+
+The server is currently running Ubuntu 16.04 LTS and was upgraded from 14.04
+LTS.
 
 The Devel::Cover directory from which cpancover is run is in `/cover/dc`.  It
 is a git checkout of the Devel::Cover repository but, ideally, that should be
