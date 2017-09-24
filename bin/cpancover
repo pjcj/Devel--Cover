@@ -71,17 +71,17 @@ sub get_options {
 
 sub newcp {
     Devel::Cover::Collection->new(
-        bin_dir         => $Options->{bin_dir},
-        docker          => $Options->{docker},
-        force           => $Options->{force},
-        local           => $Options->{local},
-        modules         => $Options->{module},
-        output_file     => $Options->{output_file},
-        report          => $Options->{report},
-        results_dir     => $Options->{results_dir},
-        timeout         => $Options->{timeout},
-        verbose         => $Options->{verbose},
-        workers         => $Options->{workers},
+        bin_dir     => $Options->{bin_dir},
+        docker      => $Options->{docker},
+        force       => $Options->{force},
+        local       => $Options->{local},
+        modules     => $Options->{module},
+        output_file => $Options->{output_file},
+        report      => $Options->{report},
+        results_dir => $Options->{results_dir},
+        timeout     => $Options->{timeout},
+        verbose     => $Options->{verbose},
+        workers     => $Options->{workers},
     )
 }
 
