@@ -1585,7 +1585,7 @@ Both branches may be uncoverable:
     }
 
 If there is an elsif in the branch then it can be addressed as the second
-branch on the line by using the "count" attribute.  Futher elsifs are the third
+branch on the line by using the "count" attribute.  Further elsifs are the third
 and fourth "count" value, and so on:
 
 # uncoverable branch false count:2
