@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fix typo in docs (Gregor Herrmann) (github 195)
 
 Release 1.27 - 20 September 2017
  - Test against 5.27.3
