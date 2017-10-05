@@ -18,8 +18,8 @@ use File::Copy;
 
 $| = 1;
 
-my $Version  = "1.27";
-my $Latest_t = "5.027003";
+my $Version  = "1.28";
+my $Latest_t = "5.027004";
 my $Author   = 'paul@pjcj.net';
 my @perlbug  = ("perlbug", "-a", $Author,
                            "-s", "Installation of Devel::Cover $Version");
