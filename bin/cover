@@ -222,6 +222,11 @@ sub main {
     pod2usage(-exitval => 0, -verbose => 1)   if $Options->{help};
     pod2usage(-exitval => 0, -verbose => 2)   if $Options->{info};
 
+    my @argv = @ARGV;
+    my $options = dclone($Options);
+    my $report = $Options->{report}[0];
+    my $format = "Devel::Cover::Report::\u$report";
+    $format->get_options($options) if $format->can("get_options");
     my $dbname = File::Spec->rel2abs(@ARGV ? shift @ARGV : "cover_db");
     die "Can't open database $dbname\n"
         if !$Options->{delete} && !$Options->{test} && !-d $dbname;
@@ -238,7 +243,7 @@ sub main {
 
     my $test_result = 0;
     if ($Options->{test}) {
-        # TODO - make this a little robust
+        # TODO - make this a little more robust
         # system "$^X Makefile.PL" unless -e "Makefile";
         delete_db($dbname, @ARGV) unless defined $Options->{delete};
         my $env_db_name = $dbname;
@@ -409,6 +414,7 @@ sub main {
         if $Options->{summary};
 
     for my $report (@{$Options->{report}}) {
+        @ARGV = @argv;
         my $options = dclone($Options);
         my $format = "Devel::Cover::Report::\u$report";
         $format->get_options($options) if $format->can("get_options");
