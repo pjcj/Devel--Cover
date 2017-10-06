@@ -124,6 +124,13 @@ main() {
             shift
             ./utils/all_versions "$@"
             ;;
+        install_cpancover_perl)
+            version="${2:?No version specified}"
+            yes | plenv uninstall cpancover || true
+            plenv install --as cpancover -j 32 --noman "$version"
+            plenv install-cpanm
+            PLENV_VERSION=cpancover dc install_dependencies
+            ;;
         cpancover)
             shift;
             jobs=$($0 nice_cpus)
