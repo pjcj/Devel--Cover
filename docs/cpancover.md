@@ -51,11 +51,9 @@ To run the system as a whole:
     $ cd /cover/dc
     $ . ./utils/setup
 
-Install a cpancover perl if not already done:
+Install or upgrade a cpancover perl:
 
-    $ plenv install --as cpancover -j 32 --noman 5.26.0
-    $ plenv global cpancover
-    $ dc install_dependencies
+    $ dc install_cpancover_perl 5.26.1
 
 Run cpancover:
 
