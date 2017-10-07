@@ -118,7 +118,8 @@ main() {
                 CPAN::DistnameInfo B::Debug
             ;;
         nice_cpus)
-            perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e 'print nice_cpus'
+            perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus \
+                 -e 'print nice_cpus'
             ;;
         all_versions)
             shift
