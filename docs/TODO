@@ -20,7 +20,6 @@
   - cpancover
     - Extend cpancover so people can upload databases
     - Provide a view by author
-    - Make cpancover more general to be able to work on local modules
   - Add verbosity option and set silent option from it
   - Get Sort report working
 - Reports:
