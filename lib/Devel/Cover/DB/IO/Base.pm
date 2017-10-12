@@ -23,7 +23,7 @@ sub _lock {
     my $self = shift;
     my ($file, $type) = @_;
     my $lock = "$file.lock";
-    open my $fh, ">>", $lock or die "Can't open $lock: $!\n";
+    open my $fh, "+>>", $lock or die "Can't open $lock: $!\n";
     flock $fh, $type         or die "Can't lock $lock: $!\n";
     $fh
 }
