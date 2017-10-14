@@ -390,7 +390,7 @@ sub main {
     print "\n\n" unless $Options->{silent};
 
     # TODO - The sense of select and ignore should be reversed to match
-    # collection
+    # collection - check this
 
     my %f = map { $_ => 1 } (@{$Options->{select}}
                              ? map glob, @{$Options->{select}}
