@@ -4,12 +4,12 @@
   - Include github and RT numbers
 
 2. Check it in
-  $ git commit -m "Add Changes." Changes
+  $ git commit -m "Add Changes" Changes
 
 3. Update Contributors
 
 4. Check it in
-  $ git commit -m "Update Contributors." Contributors
+  $ git commit -m "Update Contributors" Contributors
 
 5. Update $Latest_t in Makefile.PL
    Update test for obsolete development version skipping in
