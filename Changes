@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.29 - 15 October 2017
  - Lock using read and append mode (Stephan Loyd) (github 196)
  - Clean up lock files when running cover command
 
