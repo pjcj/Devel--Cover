@@ -18,6 +18,7 @@ use Devel::Cover::DB::Structure;
 use Devel::Cover::DB::IO;
 
 use Carp;
+use File::Find;
 use File::Path;
 
 use Devel::Cover::Dumper;  # For debugging
@@ -133,6 +134,16 @@ sub delete {
     $self
 }
 
+sub clean {
+    my $self = shift;
+
+    # remove all lock files
+    my $rm_lock = sub {
+        unlink if /\.lock$/
+    };
+    find($rm_lock, $self->{db});
+}
+
 sub merge_runs {
     my $self = shift;
     my $db = $self->{db};
@@ -168,6 +179,8 @@ sub merge_runs {
         }
         $st->write($self->{base});
     }
+
+    $self->clean;
 
     $self
 }

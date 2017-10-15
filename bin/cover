@@ -379,6 +379,8 @@ sub main {
         $structure->write($dbname);
     }
 
+    $db->clean;
+
     exit $test_result unless $Options->{summary} || @{$Options->{report}};
 
     $Options->{coverage}    = [ $db->collected ] unless @{$Options->{coverage}};
