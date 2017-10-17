@@ -7,11 +7,11 @@ Source Code
 The source code can be found at https://github.com/pjcj/Devel--Cover
 
 Github is the main repository and the location to file bug reports and send
-pull requersts.  There are still some old bug reports in RT which are described
+pull requests.  There are still some old bug reports in RT which are described
 in https://github.com/pjcj/Devel--Cover/issues/35
 
 I welcome all contributions, be they in the form of code, bug reports,
-suggestions, documentation, discussion of anything else.  In general, and as
+suggestions, documentation, discussion or anything else.  In general, and as
 with most open source projects, it is wise to dicuss any large changes before
 starting on implementation.
 
