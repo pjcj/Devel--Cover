@@ -231,8 +231,9 @@ if (0 && $Config{useithreads}) {
         my $sub       = shift;
         my $wantarray = wantarray;
 
-        $new->($class,
-               sub {
+        $new->(
+            $class,
+            sub {
                    print STDERR "Starting thread\n";
                    set_coverage(keys %Coverage);
                    my $ret = [ $sub->(@_) ];
@@ -240,9 +241,9 @@ if (0 && $Config{useithreads}) {
                    report() if $Initialised;
                    print STDERR "Ended thread\n";
                    $wantarray ? @{$ret} : $ret->[0];
-               },
-               @_
-              );
+            },
+            @_
+        );
     };
 }
 
