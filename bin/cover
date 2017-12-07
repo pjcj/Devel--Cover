@@ -355,6 +355,7 @@ sub main {
         # print STDERR "Merging structure", Dumper($structure),
                      # "From ", Dumper($mst);
         $structure->merge($mst);
+        $db->setStructure($structure);
         # print STDERR "Merged structure", Dumper($structure);
     }
 
