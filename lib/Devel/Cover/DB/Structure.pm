@@ -337,7 +337,7 @@ sub read_all {
 sub merge {
     my $self   = shift;
     my ($from) = @_;
-    Devel::Cover::DB::_merge_hash($self->{f}, $from->{f});
+    Devel::Cover::DB::_merge_hash($self->{f}, $from->{f}, "noadd");
 }
 
 1
