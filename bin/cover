@@ -269,7 +269,7 @@ sub main {
         # touch the XS, C and H files so they rebuild
         if ($Options->{gcov}) {
             my $t = $] > 5.7 ? undef : time;
-            my $xs = sub { utime $t, $t, $_ if /\.(xs|cc?|hh?)$/ };
+            my $xs = sub { utime $t, $t, $_ if /\.(xs|cc?|cpp|hh?|hpp)$/ };
             File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
         }
         # print STDERR "$_: $ENV{$_}\n" for qw(PERL5OPT HARNESS_PERL_SWITCHES);
