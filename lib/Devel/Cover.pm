@@ -1480,6 +1480,15 @@ and you may specify as many as you wish.  For example, to specify that all
 subroutines containing xx are private, call Devel::Cover with the option
 -coverage,pod-also_private-xx.
 
+Or, to ignore all files in C<t/lib> as well as files ending in C<Foo.pm>:
+
+    cover -test -silent -ignore ^t/lib/,Foo.pm$
+
+Note that C<-ignore> replaces any default ignore regexes.  To preserve any
+ignore regexes which have already been set, use C<+ignore>:
+
+    cover -test -silent +ignore ^t/lib/,Foo.pm$
+
 =head1 SELECTING FILES TO COVER
 
 You may select the files for which you want to collect coverage data using the
