@@ -1456,16 +1456,16 @@ In this example, Devel::Cover will be operating in silent mode.
  -db cover_db        - Store results in coverage db (default ./cover_db)
  -dir path           - Directory in which coverage will be collected (default
                        cwd)
- -ignore RE          - Set REs of files to ignore (default "/Devel/Cover\b")
- +ignore RE          - Append to REs of files to ignore
+ -ignore RE          - Set regular expressions for files to ignore (default "/Devel/Cover\b")
+ +ignore RE          - Append to regular expressions of files to ignore
  -inc path           - Set prefixes of files to include (default @INC)
- +inc path           - Append to prefixes of files to include
+ +inc path           - Append to prefixes of files regular expressionsto include
  -loose_perms val    - Use loose permissions on all files and directories in
                        the coverage db so that code changing EUID can still
                        write coverage information (default off)
  -merge val          - Merge databases, for multiple test benches (default on)
- -select RE          - Set REs of files to select (default none)
- +select RE          - Append to REs of files to select
+ -select RE          - Set regular expressions of files to select (default none)
+ +select RE          - Append to regular expressions of files to select
  -silent val         - Don't print informational messages (default off)
  -subs_only val      - Only cover code in subroutine bodies (default off)
  -replace_ops val    - Use op replacing rather than runops (default on)
