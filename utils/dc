@@ -24,7 +24,7 @@ usage() {
     cat <<EOT
 $script --help
 $script --trace --verbose
-$script --cpancover_dir=/cover/staging_dev --image=pjcj/cpancover_dev cpancover-run
+$script --results_dir=/cover/dev --image=pjcj/cpancover_dev cpancover-run
 EOT
     exit 0
 }
@@ -43,7 +43,7 @@ PATH="$srcdir:$PATH"
 verbose=${CPANCOVER_VERBOSE:-}
 force=${CPANCOVER_FORCE:-}
 alocal=${CPANCOVER_LOCAL:-}
-cpancover_staging=${CPANCOVER_STAGING:-~/staging}
+results_dir=${CPANCOVER_RESULTS_DIR:-~/staging}
 docker=${CPANCOVER_DOCKER:-docker}
 docker_image=${CPANCOVER_IMAGE:-pjcj/cpancover}
 
@@ -69,8 +69,8 @@ while [ $# -gt 0 ]; do
             alocal=1
             shift
             ;;
-        -d|--cpancover_dir)
-            cpancover_staging="$2"
+        -r|--results_dir)
+            results_dir="$2"
             shift 2
             ;;
         -i|--image)
@@ -86,12 +86,10 @@ done
 export CPANCOVER_VERBOSE=$verbose
 export CPANCOVER_FORCE=$force
 export CPANCOVER_LOCAL=$alocal
-export CPANCOVER_STAGING=$cpancover_staging
+export CPANCOVER_RESULTS_DIR=$results_dir
 export CPANCOVER_DOCKER=$docker
 export CPANCOVER_IMAGE=$docker_image
 
-# TODO - clarify relationship between these two
-cpancover_dir=$cpancover_staging
 dcdir=$(readlink -f "$srcdir/..")
 
 main() {
@@ -143,6 +141,7 @@ main() {
         cpancover)
             shift;
             jobs=$($0 nice_cpus)
+            mkdir -p "$results_dir"
             if ((alocal)); then
                 root=
                 [ -d /dc ] && root=/dc/
@@ -152,14 +151,14 @@ main() {
             fi
             ((verbose)) && cpancover="$cpancover -verbose"
             ((force))   && cpancover="$cpancover -force"
-            cmd="$cpancover -results_dir $cpancover_dir -workers $jobs $*"
+            cmd="$cpancover -results_dir $results_dir -workers $jobs $*"
             ((verbose)) && pi "$cmd"
             $cmd
             ;;
         cpancover-compress)
-            find "$cpancover_dir/" -name __failed__ -prune -o                 \
-                                -type f -not -name '*.gz' -not -name '*.json' \
-                                -exec gzip -f9 {} \;
+            find "$results_dir/" -name __failed__ -prune -o   \
+                -type f -not -name '*.gz' -not -name '*.json' \
+                -exec gzip -f9 {} \;
             ;;
         cpancover-latest)
             $0 cpancover -latest
@@ -170,12 +169,12 @@ main() {
             $0 cpancover-compress
             ;;
         cpancover-docker-shell)
-            staging="${2:-$cpancover_dir}"
+            staging="${2:-$results_dir}"
             mkdir -p "$staging"
             # pd $name
             $docker run -it                                      \
                 --volume="$dcdir:/dc:ro"                         \
-                --volume="$cpancover_staging:/remote_staging:rw" \
+                --volume="$staging:/remote_staging:rw" \
                 --workdir=/dc --rm=false                         \
                 --memory=1g                                      \
                 "$docker_image" /bin/bash
@@ -183,7 +182,7 @@ main() {
         cpancover-docker-module)
             module="$2"
             name="$3"
-            staging="${4:-$cpancover_dir}"
+            staging="${4:-$results_dir}"
             mkdir -p "$staging"
             # pd "name: $name"
             l="";
@@ -192,7 +191,7 @@ main() {
             ((alocal)) && [ -d /dc ] && dir=/dc/
             container=$($docker run -d                                   \
                         --volume="$dcdir:/dc:ro"                         \
-                        --volume="$cpancover_staging:/remote_staging:ro" \
+                        --volume="$staging:/remote_staging:ro" \
                         --workdir=/dc --rm=false --name="$name"          \
                         --memory=1g                                      \
                         "$docker_image"                                  \
@@ -227,7 +226,7 @@ main() {
             # perl -V
             $0 cpancover -generate_html
             $0 cpancover-compress
-            json=$cpancover_dir/cpancover.json
+            json=$results_dir/cpancover.json
             tmp=$json-tmp-$$.gz
             pi "Compressing $json"
             pigz < "$json" > "$tmp" && mv "$tmp" "$json.gz"

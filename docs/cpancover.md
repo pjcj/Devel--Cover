@@ -76,8 +76,9 @@ The results of the runs will be stored in the `~/staging` directory.  If this
 is not where you want them stored (which is rather likely) then the simplest
 solution is probably to make that directory a symlink to the real location.  If
 you would prefer not to do that, or you want to run multiple separate cpancover
-instances (probably only for development purposes), then you can change the
-`$CPANCOVER_STAGING` variable in the `utils/dc` script.
+instances (probably only for development purposes), then you can pass
+`--results_dir` to the `utils/dc` script or change the `$CPANCOVER_RESULTS_DIR`
+variable there.
 
 The results consist of the Devel::Cover `cover_db` directory for each package
 tested, including the generated HTML output for that DB and the JSON summary
