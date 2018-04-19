@@ -16,6 +16,7 @@ use Devel::Cover::DB;
 use Devel::Cover::DB::IO::JSON;
 use Devel::Cover::Dumper;
 
+use JSON::MaybeXS ();
 use Parallel::Iterator "iterate_as_array";
 use POSIX              "setsid";
 use Template;
@@ -27,8 +28,8 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-    ro  => [ qw( bin_dir cpancover_dir cpan_dir results_dir force output_file
-                 report timeout verbose workers docker local                ) ],
+    ro  => [ qw( bin_dir cpancover_dir cpan_dir results_dir dryrun force
+                 output_file report timeout verbose workers docker local    ) ],
     rwp => [ qw( build_dirs local_timeout modules module_file               ) ],
     rw  => [ qw(                                                            ) ],
 );
@@ -38,18 +39,19 @@ sub BUILDARGS {
     my $class = shift;
     my (%args) = @_;
     {
-        build_dirs      => [],
-        cpan_dir        => [grep -d, glob("~/.cpan ~/.local/share/.cpan")],
-        docker          => "docker",
-        force           => 0,
-        local           => 0,
-        local_timeout   => 0,
-        modules         => [],
-        output_file     => "index.html",
-        report          => "html_basic",
-        timeout         => 1800,  # half an hour
-        verbose         => 0,
-        workers         => 0,
+        build_dirs    => [],
+        cpan_dir      => [grep -d, glob("~/.cpan ~/.local/share/.cpan")],
+        docker        => "docker",
+        dryrun        => 0,
+        force         => 0,
+        local         => 0,
+        local_timeout => 0,
+        modules       => [],
+        output_file   => "index.html",
+        report        => "html_basic",
+        timeout       => 1800, # half an hour
+        verbose       => 0,
+        workers       => 0,
         %args,
     }
 };
@@ -64,6 +66,7 @@ sub _sys {
     my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
     my $max = 4e4;
     # say "Setting alarm for $timeout seconds";
+    my $ok = 0;
     my $pid;
     eval {
         open STDIN, "<", "/dev/null" or die "Can't read /dev/null: $!";
@@ -91,6 +94,11 @@ sub _sys {
                 }
             }
             alarm 0;
+            if (close $fh) {
+                $ok = 1;
+            } else {
+                warn "Error running @command\n";
+            }
         } else {
             setsid() != -1          or die "Can't start a new session: $!";
             open STDERR, ">&STDOUT" or die "Can't dup stdout: $!";
@@ -98,17 +106,20 @@ sub _sys {
         }
     };
     if ($@) {
-        die "propogate: $@" unless $@ eq "alarm\n";  # propagate unexpected errs
+        $ok = 0;
+        die "$@" unless $@ eq "alarm\n";  # propagate unexpected errs
         warn "Timed out after $timeout seconds!\n";
         my $pgrp = getpgrp($pid);
         my $n = kill "-KILL", $pgrp;
         warn "killed $n processes";
     }
-    length $output2 ? "$output1\n...\n$output2" : $output1
+    $ok ? length $output2 ? "$output1\n...\n$output2" : $output1 : undef
 }
 
-sub sys  { my $self = shift; $self->_sys(4e4, @_) }
-sub bsys { my $self = shift; $self->_sys(0,   @_) }
+sub sys   { my ($s, @a) = @_; $s->_sys(4e4, @a) // ""                   }
+sub bsys  { my ($s, @a) = @_; $s->_sys(0,   @a) // ""                   }
+sub fsys  { my ($s, @a) = @_; $s->_sys(4e4, @a) // die "Can't run @a\n" }
+sub fbsys { my ($s, @a) = @_; $s->_sys(0,   @a) // die "Can't run @a\n" }
 
 sub add_modules {
     my $self = shift;
@@ -148,7 +159,7 @@ sub build_modules {
     my %m;
     for my $module (sort grep !$m{$_}++, @{$self->modules}) {
         say "Building $module";
-        my $output = $self->sys(@command, $module);
+        my $output = $self->fsys(@command, $module);
         say $output;
     }
     $self->_set_local_timeout(0);
@@ -182,7 +193,7 @@ sub run {
     my $line        = "=" x 80;
     my $output      = "**** Checking coverage of $module ****\n";
     my $results_dir = $self->results_dir // die "No results dir";
-    $output        .= $self->sys("mkdir", "-p", $results_dir);
+    $output        .= $self->fsys("mkdir", "-p", $results_dir);
     $results_dir   .= "/$module";
 
     chdir $build_dir or die "Can't chdir $build_dir: $!\n";
@@ -208,18 +219,18 @@ sub run {
     } else {
         @cmd = ($^X, $self->bin_dir . "/cover");
     }
-    $output .= $self->bsys(
+    $output .= $self->fbsys(
         @cmd,          "-test",
         "-report",     $self->report,
         "-outputfile", $self->output_file,
     );
-    $output .= $self->sys(@cmd, "-report", "json", "-nosummary");
+    $output .= $self->fsys(@cmd, "-report", "json", "-nosummary");
 
     # TODO - option to merge DB with existing one
     # TODO - portability
-    $output .= $self->sys("rm", "-rf", $results_dir);
-    $output .= $self->sys("mv", $db, $results_dir);
-    $output .= $self->sys("rm", "-rf", $db);
+    $output .= $self->fsys("rm", "-rf", $results_dir);
+    $output .= $self->fsys("mv", $db, $results_dir);
+    $output .= $self->fsys("rm", "-rf", $db);
 
     say "\n$line\n$output$line\n";
 }
@@ -228,7 +239,7 @@ sub run_all {
     my $self = shift;
 
     my $results_dir = $self->results_dir // die "No results dir";
-    $self->sys("mkdir", "-p", $results_dir);
+    $self->fsys("mkdir", "-p", $results_dir);
 
     my @res = iterate_as_array(
         { workers => $self->workers },
@@ -390,6 +401,67 @@ sub generate_html {
     say "Wrote collection output to $f";
 }
 
+sub compress_old_versions {
+    my $self = shift;
+    my ($versions) = @_;
+
+    my $dir = $self->results_dir;
+    opendir my $fh, $dir or die "Can't opendir $dir: $!";
+    my @dirs = sort grep -d, map "$dir/$_", readdir $fh;
+    closedir $fh or die "Can't closedir $dir: $!";
+
+    my %modules;
+    for my $dir (@dirs) {
+        my $file = "$dir/cover.json";
+        my $json = JSON::MaybeXS->new(utf8 => 1, allow_blessed => 1);
+        open my $fh, "<", $file or next;
+        # say "file: $file";
+        my $data = do { local $/; eval { $json->decode(<$fh>) } } or next;
+        next if $@;
+        close $fh or next;
+        my ($name)  = $dir =~ /.+\/(.+)/;
+        $name =~ s/-[^-]+$//;
+        my @runs    = grep { ($_->{name} // "") eq $name } $data->{runs}->@*;
+        # say "$name " . @runs;
+        my $run     = $runs[0]                   // next;
+        my $version = $run->{version} =~ s/_//gr // next;
+        my $v       = eval { version->parse($version)->numify };
+        if ($@ || !$v) {
+            $v = $version;
+            $v =~ s/[^0-9.]//g;
+            my @parts = split /\./, $v;
+            if (@parts > 2) {
+                $v = shift(@parts) . "." . join "", @parts;
+            }
+        }
+        $v ||= 0;
+        push $modules{$name}->@*, { dir => $dir, version => $v };
+    }
+
+    for my $name (sort keys %modules) {
+        # print Dumper $modules{$name};
+        my @o = sort { $b->{version} <=> $a->{version} } $modules{$name}->@*;
+        shift @o for 1 .. $versions;
+        for my $v (@o) {
+            my ($d, $s) = $v->{dir} =~ /(.+)\/(.+)/;
+            my $archive = "$v->{dir}.tar.xz";
+            my @cmd1    = ($self->dc_file, "-d", $d,
+                           "cpancover-uncompress-dir", $s);
+            my @cmd2    = ("bash", "-c", "tar cv - -C $d $s | xz -z > $archive");
+            my @cmd3    = ("rm", "-rf", $v->{dir});
+            if ($self->dryrun) {
+                say for "compressing $s", "@cmd1", "@cmd2", "@cmd3";
+            } else {
+                say "compressing $s";
+                eval {
+                    $self->fsys(@$_) for \@cmd1, \@cmd2, \@cmd3;
+                };
+                say $@ if $@;
+            }
+        }
+    }
+}
+
 sub local_build {
     my $self = shift;
 
@@ -445,17 +517,22 @@ sub set_failed {
     close $fh or warn "Can't close $ff: $!";
 }
 
+sub dc_file {
+    my $self = shift;
+    my $dir = "";
+    $dir = "/dc/" if $self->local && -d "/dc";
+    "${dir}utils/dc"
+}
+
 sub cover_modules {
     my $self = shift;
 
     $self->process_module_file;
     # say "modules: ", Dumper $self->modules;
 
-    my $dir = "";
-    $dir = "/dc/" if $self->local && -d "/dc";
-    my @opts;
-    push @opts, "--local" if $self->local;
-    my @command = ("${dir}utils/dc", @opts, "cpancover-docker-module");
+    my @cmd = $self->dc_file;
+    push @cmd, "--local" if $self->local;
+    my @command = (@cmd, "cpancover-docker-module");
     $self->_set_local_timeout(0);
     my @res = iterate_as_array(
         { workers => $self->workers },
@@ -486,7 +563,7 @@ sub cover_modules {
                 alarm 0;
             };
             if ($@) {
-                die "propogate: $@" unless $@ eq "alarm\n";  # unexpected errors
+                die "$@" unless $@ eq "alarm\n";  # unexpected errors
                 say "Timed out after $timeout seconds!";
                 $self->sys($self->docker, "kill", $name);
                 say "Killed docker container $name";

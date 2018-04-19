@@ -160,6 +160,12 @@ main() {
                 -type f -not -name '*.gz' -not -name '*.json' \
                 -exec gzip -f9 {} \;
             ;;
+        cpancover-uncompress-dir)
+            subdir="${2:?No subdir specified}"
+            find "$results_dir/$subdir/" -name __failed__ -prune -o \
+                -type f -name '*.gz'                                \
+                -exec gzip -d {} \;
+            ;;
         cpancover-latest)
             $0 cpancover -latest
             ;;
