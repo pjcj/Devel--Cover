@@ -178,11 +178,11 @@ main() {
             staging="${2:-$results_dir}"
             mkdir -p "$staging"
             # pd $name
-            $docker run -it                                      \
-                --volume="$dcdir:/dc:ro"                         \
+            $docker run -it                            \
+                --volume="$dcdir:/dc:ro"               \
                 --volume="$staging:/remote_staging:rw" \
-                --workdir=/dc --rm=false                         \
-                --memory=1g                                      \
+                --workdir=/dc --rm=false               \
+                --memory=1g                            \
                 "$docker_image" /bin/bash
             ;;
         cpancover-docker-module)
@@ -197,7 +197,7 @@ main() {
             ((alocal)) && [ -d /dc ] && dir=/dc/
             container=$($docker run -d                                   \
                         --volume="$dcdir:/dc:ro"                         \
-                        --volume="$staging:/remote_staging:ro" \
+                        --volume="$staging:/remote_staging:ro"           \
                         --workdir=/dc --rm=false --name="$name"          \
                         --memory=1g                                      \
                         "$docker_image"                                  \
@@ -271,7 +271,7 @@ main() {
             rm tests/change
             ;;
         options)
-            perl -nE 'say $1 =~ s/"//gr =~ s/\s*\|\s*/\n/gr' \
+            perl -nE 'say $1 =~ s/"//gr =~ s/\s*\|\s*/\n/gr'               \
                 -E 'if /^ {8}"?([a-zA-Z0-9_ "|\\-]+)"?(?:\)|\s*\|\s*\\)$/' \
                 -E '&& $1 !~ /^_/' < "$0"
             ;;
