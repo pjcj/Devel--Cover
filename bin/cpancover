@@ -34,7 +34,7 @@ my $Options = {
     latest                => 0,
     local                 => 0,
     local_build           => 0,
-    module                => [],
+    modules               => [],
     output_file           => "index.html",
     report                => "html_basic",
     results_dir           => cwd(),
@@ -58,7 +58,7 @@ sub get_options {
         local!
         local_build!
         module_file=s
-        module=s
+        modules=s
         output_file=s
         report=s
         results_dir=s
@@ -158,7 +158,7 @@ cpancover - report coverage statistics on CPAN modules
 
  cpancover -help -info -version
            -collect -redo_cpancover_html -redo_html -force -dryrun
-           -module module_name
+           -modules module_name
            -results_dir /path/to/dir
            -outputdir /path/to/dir
            -outputfile filename.html
@@ -180,7 +180,7 @@ The following command line options are supported:
  -directory             - location of the modules             ($cwd)
  -dryrun                - don't execute (for some commands)   (off)
  -force                 - recollect coverage                  (off)
- -module                - modules to use                      (all in $dir)
+ -modules               - modules to use                      (all in $dir)
  -outputdir             - where to store output               ($directory)
  -outputfile            - top level index                     (coverage.html)
  -redo_cpancover_html   - don't set default modules           (off)
