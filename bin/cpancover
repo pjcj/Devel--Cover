@@ -24,28 +24,32 @@ use Pod::Usage;
 $|++;
 
 my $Options = {
-    bin_dir         => abs_path($0) =~ s|/cpancover$||r,
-    build           => 1,
-    docker          => "docker",
-    force           => 0,
-    generate_html   => 0,
-    latest          => 0,
-    local           => 0,
-    local_build     => 0,
-    module          => [],
-    output_file     => "index.html",
-    report          => "html_basic",
-    results_dir     => cwd(),
-    timeout         => 7200,  # two hours
-    verbose         => 0,
-    workers         => 0,
+    bin_dir               => abs_path($0) =~ s|/cpancover$||r,
+    build                 => 1,
+    compress_old_versions => 0,
+    docker                => "docker",
+    dryrun                => 0,
+    force                 => 0,
+    generate_html         => 0,
+    latest                => 0,
+    local                 => 0,
+    local_build           => 0,
+    modules               => [],
+    output_file           => "index.html",
+    report                => "html_basic",
+    results_dir           => cwd(),
+    timeout               => 7200,  # two hours
+    verbose               => 0,
+    workers               => 0,
 };
 
 sub get_options {
     die "Bad option" unless GetOptions($Options, qw(
         bin_dir=s
         build!
+        compress_old_versions=i
         docker=s
+        dryrun!
         force!
         generate_html!
         help|h!
@@ -54,7 +58,7 @@ sub get_options {
         local!
         local_build!
         module_file=s
-        module=s
+        modules=s
         output_file=s
         report=s
         results_dir=s
@@ -71,17 +75,20 @@ sub get_options {
 
 sub newcp {
     Devel::Cover::Collection->new(
-        bin_dir     => $Options->{bin_dir},
-        docker      => $Options->{docker},
-        force       => $Options->{force},
-        local       => $Options->{local},
-        modules     => $Options->{module},
-        output_file => $Options->{output_file},
-        report      => $Options->{report},
-        results_dir => $Options->{results_dir},
-        timeout     => $Options->{timeout},
-        verbose     => $Options->{verbose},
-        workers     => $Options->{workers},
+        map { $_ => $Options->{$_} } qw(
+            bin_dir
+            docker
+            dryrun
+            force
+            local
+            modules
+            output_file
+            report
+            results_dir
+            timeout
+            verbose
+            workers
+        )
     )
 }
 
@@ -133,6 +140,10 @@ sub main {
         $cp->generate_html;
     }
 
+    if ($Options->{compress_old_versions}) {
+        my $cp = newcp;
+        $cp->compress_old_versions($Options->{compress_old_versions});
+    }
 }
 
 main
@@ -146,37 +157,40 @@ cpancover - report coverage statistics on CPAN modules
 =head1 SYNOPSIS
 
  cpancover -help -info -version
-           -collect -redo_cpancover_html -redo_html -force
-           -module module_name
+           -collect -redo_cpancover_html -redo_html -force -dryrun
+           -modules module_name
            -results_dir /path/to/dir
            -outputdir /path/to/dir
            -outputfile filename.html
            -report report_name
+           -generate_html
+           -compress_old_versions number_to_keep
            -local
 
 =head1 DESCRIPTION
-
 
 =head1 OPTIONS
 
 The following command line options are supported:
 
- -h -help              - show help
- -i -info              - show documentation
- -v -version           - show version
- -collect              - collect coverage from modules       (on)
- -directory            - location of the modules             ($cwd)
- -force                - recollect coverage                  (off)
- -module               - modules to use                      (all in $directory)
- -outputdir            - where to store output               ($directory)
- -outputfile           - top level index                     (coverage.html)
- -redo_cpancover_html  - don't set default modules           (off)
- -redo_html            - force html generation for modules   (off)
- -report               - report to use                       (html_basic)
- -local                - use local (uninstalled) code        (off)
+ -h -help               - show help
+ -i -info               - show documentation
+ -v -version            - show version
+ -collect               - collect coverage from modules       (on)
+ -directory             - location of the modules             ($cwd)
+ -dryrun                - don't execute (for some commands)   (off)
+ -force                 - recollect coverage                  (off)
+ -modules               - modules to use                      (all in $dir)
+ -outputdir             - where to store output               ($directory)
+ -outputfile            - top level index                     (coverage.html)
+ -redo_cpancover_html   - don't set default modules           (off)
+ -redo_html             - force html generation for modules   (off)
+ -report                - report to use                       (html_basic)
+ -generate_html         - generate html                       (off)
+ -compress_old_versions - compress data older than n versions (3)
+ -local                 - use local (uninstalled) code        (off)
 
 =head1 DETAILS
-
 
 =head1 REQUIREMENTS
 
