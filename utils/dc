@@ -46,6 +46,7 @@ alocal=${CPANCOVER_LOCAL:-}
 results_dir=${CPANCOVER_RESULTS_DIR:-~/staging}
 docker=${CPANCOVER_DOCKER:-docker}
 docker_image=${CPANCOVER_IMAGE:-pjcj/cpancover}
+dryrun=${CPANCOVER_DRYRUN:-}
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -77,6 +78,10 @@ while [ $# -gt 0 ]; do
             docker_image="$2"
             shift 2
             ;;
+        -d|--dryrun)
+            dryrun=1
+            shift
+            ;;
         *)
             break
             ;;
@@ -89,6 +94,7 @@ export CPANCOVER_LOCAL=$alocal
 export CPANCOVER_RESULTS_DIR=$results_dir
 export CPANCOVER_DOCKER=$docker
 export CPANCOVER_IMAGE=$docker_image
+export CPANCOVER_DRYRUN=$dryrun
 
 dcdir=$(readlink -f "$srcdir/..")
 
@@ -145,13 +151,14 @@ main() {
             if ((alocal)); then
                 root=
                 [ -d /dc ] && root=/dc/
-                cpancover="perl -Mblib=$root ${root}bin/cpancover -local"
+                cpancover="perl -Mblib=$root ${root}bin/cpancover --local"
             else
                 cpancover=cpancover
             fi
-            ((verbose)) && cpancover="$cpancover -verbose"
-            ((force))   && cpancover="$cpancover -force"
-            cmd="$cpancover -results_dir $results_dir -workers $jobs $*"
+            ((verbose)) && cpancover="$cpancover --verbose"
+            ((force))   && cpancover="$cpancover --force"
+            ((dryrun))  && cpancover="$cpancover --dryrun"
+            cmd="$cpancover --results_dir $results_dir --workers $jobs $*"
             ((verbose)) && pi "$cmd"
             $cmd
             ;;
