@@ -258,7 +258,7 @@ main() {
             done
             ;;
         cpancover-compress-old-versions)
-            keep="${2:-32}"
+            keep="${2:-3}"
             $0 cpancover --nobuild --compress_old_versions "$keep"
             ;;
         cpancover-kill-docker)
