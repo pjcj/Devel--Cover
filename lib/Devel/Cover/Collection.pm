@@ -447,7 +447,8 @@ sub compress_old_versions {
             my $archive = "$v->{dir}.tar.xz";
             my @cmd1    = ($self->dc_file, "-r", $d,
                            "cpancover-uncompress-dir", $s);
-            my @cmd2    = ("bash", "-c", "tar cv - -C $d $s | xz -z > $archive");
+            my @cmd2    = ("bash", "-c",
+                           "tar cf - -C $d $s | xz -z > $archive");
             my @cmd3    = ("rm", "-rf", $v->{dir});
             if ($self->dryrun) {
                 say for "compressing $s", "@cmd1", "@cmd2", "@cmd3";
