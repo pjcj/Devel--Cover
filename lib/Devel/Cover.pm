@@ -146,7 +146,7 @@ BEGIN {
     @Ignore = ("/Devel/Cover[./]") unless $Self_cover = $ENV{DEVEL_COVER_SELF};
     # $^P = 0x004 | 0x010 | 0x100 | 0x200;
     # $^P = 0x004 | 0x100 | 0x200;
-    $^P |= 0x004 | 0x100;
+    $^P |= 0x004 | 0x008 | 0x100;
 }
 
 sub version { $VERSION }

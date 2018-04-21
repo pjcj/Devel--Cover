@@ -1396,6 +1396,26 @@ typedef OP *B__OP;
 typedef AV *B__AV;
 
 
+MODULE = Devel::Cover PACKAGE = DB
+
+PROTOTYPES: DISABLE
+
+void
+postponed(filename)
+	SV *filename
+    PREINIT:
+        dMY_CXT;
+    PPCODE:
+        if (PL_eval_root) {
+            PerlIO_printf(Perl_debug_log,
+                "*** PL_eval_root=%p CX_CUR()->blk_eval.cv=%p filename=%" SVf "\n",
+                (void *) PL_eval_root,
+                (void *) CX_CUR()->blk_eval.cv,
+                SVfARG(filename));
+            sv_dump((SV *) CX_CUR()->blk_eval.cv);
+            op_dump(PL_eval_root);
+        }
+
 MODULE = Devel::Cover PACKAGE = Devel::Cover
 
 PROTOTYPES: ENABLE
