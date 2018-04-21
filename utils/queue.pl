@@ -90,32 +90,59 @@ push @{ app->commands->namespaces }, 'Devel::Cover::Queue::Commands';
   }
 }
 
+helper release_covered => sub {
+  my ($c, $release) = @_;
+  my $check = $c->results->child($release)->to_abs;
+  return -d "$check";
+};
+
+helper visit_latest_releases => sub {
+  my ($c, $cb) = @_;
+  require CPAN::Releases::Latest;
+
+  my $latest   = CPAN::Releases::Latest->new(max_age => 0);  # no caching
+  my $iterator = $latest->release_iterator;
+
+  while (my $release = $iterator->next_release) {
+    $c->$cb($release);
+  }
+};
+
+app->minion->add_task(enqueue_latest => sub {
+  my $job = shift;
+  my $app = $job->app;
+  my $minion = $app->minion;
+  $app->visit_latest_releases(sub{
+    my (undef, $r) = @_;
+    return if $app->release_covered($r->distinfo->distvname);
+    $minion->enqueue(run_cover => [ $r->path ]);
+  });
+});
+
 app->minion->add_task(run_cover => sub {
   my ($job, $data, $opts) = @_;
 
   my $path = '';
   my $file = '';
-  my $distvname = '';
+  my $release = '';
   if (ref $data) {
     $path .= substr($data->{author}, 0, 1) . '/';
     $path .= substr($data->{author}, 0, 2) . '/';
     $path .= "$data->{author}/$data->{filename}";
     $file = $data->{filename};
-    $distvname = "$data->{dist}-$data->{version}";
+    $release = "$data->{dist}-$data->{version}";
   } else {
     $path = $data;
     my $d = CPAN::DistnameInfo->new("authors/id/$path");
     $file = $d->filename;
-    $distvname = $d->distvname;
+    $release = $d->distvname;
   }
 
   my $results = $job->app->results->to_abs;
   my $command = "dc -v -r $results cpancover $path";
   my $output = capture_merged { system $command };
 
-  my $check = $results->child($distvname);
-
-  if (-d $check) {
+  if ($job->app->release_covered($release)) {
     $job->finish({
       command => $command,
       message => "$file was processed",
