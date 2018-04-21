@@ -108,6 +108,13 @@ helper visit_latest_releases => sub {
   }
 };
 
+app->minion->add_task(generate_html => sub {
+  my $job = shift;
+  my $results = $job->app->results->to_abs;
+  my $command = "dc -r $results cpancover-generate-html";
+  system $command;
+});
+
 app->minion->add_task(enqueue_latest => sub {
   my $job = shift;
   my $app = $job->app;
