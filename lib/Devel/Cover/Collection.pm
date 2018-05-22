@@ -210,7 +210,8 @@ sub run {
     $output .= "Testing $module in $build_dir\n";
     # say "\n$line\n$output$line\n"; return;
 
-    # $self->sys($^X, "-V");
+    # $output .= $self->sys($^X, "-V");
+    # $output .= $self->sys("pwd");
     my @cmd;
     if ($self->local) {
         $ENV{DEVEL_COVER_OPTIONS} = "-ignore,/usr/local/lib/perl5";

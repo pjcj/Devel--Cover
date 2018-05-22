@@ -1,14 +1,12 @@
-use Mojolicious::Lite;
+#!/usr/bin/env perl
 
 use 5.26.0;
 
 # requires: Mojolicious Minion Minion::Backend::SQLite
-
+use Mojolicious::Lite -signatures;
 use Mojo::File;
 use CPAN::DistnameInfo;
 use Capture::Tiny "capture_merged";
-
-use experimental "signatures";
 
 plugin Config => {
     default => {
@@ -19,11 +17,10 @@ plugin Config => {
     },
 };
 
-plugin 'Minion' => app->config->{minion};
-plugin 'Minion::Admin';
+plugin "Minion" => app->config->{minion};
+plugin "Minion::Admin";
 
 my $Debug = $ENV{COVER_DEBUG};
-say STDERR "starting" if $Debug;
 
 helper results => sub { Mojo::File->new(shift->app->config->{results_dir}) };
 
@@ -32,13 +29,11 @@ push app->commands->namespaces->@*, "Devel::Cover::Queue::Commands";
 
 package Devel::Cover::Queue::Commands::monitor {
     use Mojo::Base "Mojolicious::Command";
-
     use Mojo::IOLoop;
     use Mojo::UserAgent;
     use Mojo::WebSocket;
     use Scalar::Util ();
-
-    no warnings "experimental::signatures";
+    use experimental "signatures";
 
     has ua => sub { Mojo::UserAgent->new->inactivity_timeout(0) };
 
@@ -104,12 +99,12 @@ helper visit_latest_releases => sub ($c, $cb) {
 
 app->minion->add_task(generate_html => sub ($job) {
     my $results = $job->app->results->to_abs;
-    my $command = "dc -r $results cpancover-generate-html";
+    my $command = "dc -v -r $results cpancover-generate-html";
     system $command;
 });
 
 app->minion->add_task(enqueue_latest => sub ($job) {
-    say STDERR "add enqueue_latest" if $Debug;
+    say STDERR "run enqueue_latest" if $Debug;
     my $app    = $job->app;
     my $minion = $app->minion;
     $app->visit_latest_releases(sub ($, $r) {
@@ -118,7 +113,11 @@ app->minion->add_task(enqueue_latest => sub ($job) {
     });
 });
 
-app->minion->add_task(run_cover => sub ($job, $data, $opts) {
+app->minion->add_task(run_cover => sub ($job, $data, $opts = undef) {
+    say STDERR "run run_cover", Mojo::Util::dumper $data if $Debug;
+    # say STDERR "path $ENV{PATH}" if $Debug;
+    # say STDERR `which dc` if $Debug;
+    # say STDERR `which perl` if $Debug;
     my $path    = "";
     my $file    = "";
     my $release = "";
@@ -138,6 +137,7 @@ app->minion->add_task(run_cover => sub ($job, $data, $opts) {
     my $results = $job->app->results->to_abs;
     my $command = "dc -v -r $results cpancover $path";
     my $output  = capture_merged { system $command };
+    say STDERR $output if $Debug;
 
     if ($job->app->release_covered($release)) {
         $job->finish({

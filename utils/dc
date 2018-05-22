@@ -12,13 +12,13 @@ set -euo pipefail
 script=$(basename "$0")
 srcdir=$(readlink -f "$(dirname "$0")")
 readonly LOG_FILE="/tmp/$script.log"
-_p() { l=$1; shift; echo "$l $script: $*" | tee -a "$LOG_FILE" >&2; }
-pt() { _p "[TRACE]  " "$*";                                         }
-pd() { _p "[DEBUG]  " "$*";                                         }
-pi() { _p "[INFO]   " "$*";                                         }
-pw() { _p "[WARNING]" "$*";                                         }
-pe() { _p "[ERROR]  " "$*";                                         }
-pf() { _p "[FATAL]  " "$*"; exit 1;                                 }
+_p() { __l=$1; shift; echo "$__l $script: $*" | tee -a "$LOG_FILE" >&2; }
+pt() { _p "[TRACE]  " "$*";                                             }
+pd() { _p "[DEBUG]  " "$*";                                             }
+pi() { _p "[INFO]   " "$*";                                             }
+pw() { _p "[WARNING]" "$*";                                             }
+pe() { _p "[ERROR]  " "$*";                                             }
+pf() { _p "[FATAL]  " "$*"; exit 1;                                     }
 
 usage() {
     cat <<EOT
@@ -202,6 +202,8 @@ main() {
             ((alocal)) && l="--local"
             dir="";
             ((alocal)) && [ -d /dc ] && dir=/dc/
+            # ((verbose)) && pi "[-$l-] [$dir] [$module]"
+            # set -x
             container=$($docker run -d                                   \
                         --volume="$dcdir:/dc:ro"                         \
                         --volume="$staging:/remote_staging:ro"           \
