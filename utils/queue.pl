@@ -85,6 +85,19 @@ package Devel::Cover::Queue::Commands::monitor {
     }
 }
 
+package Devel::Cover::Queue::Commands::add {
+    use Mojo::Base "Mojolicious::Command";
+    use experimental "signatures";
+
+    has description => "Add a distribution to the queue";
+    has usage       => "add P/PJ/PJCJ/Shell-Source-0.01.tar.gz";
+
+    sub run ($command, $dist) {
+        say STDERR "add $dist" if $Debug;
+        $command->app->minion->enqueue(run_cover => [ $dist ]);
+    }
+}
+
 helper release_covered => sub ($c, $release) {
     my $check = $c->results->child($release)->to_abs;
     -d "$check"
