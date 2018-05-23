@@ -8,19 +8,19 @@ use Mojo::File;
 use CPAN::DistnameInfo;
 use Capture::Tiny "capture_merged";
 
+my $Debug = $ENV{COVER_DEBUG};
+
 plugin Config => {
     default => {
         minion           => { SQLite => "sqlite:queue.db" },
         # uploads_socket => "ws://api-3.cpantesters.org/v3/upload",
         uploads_socket   => "ws://localhost:3001/v3/upload",
-        results_dir      => "results",
+        results_dir      => "/cover/staging_dev",
     },
 };
 
 plugin "Minion" => app->config->{minion};
 plugin "Minion::Admin";
-
-my $Debug = $ENV{COVER_DEBUG};
 
 helper results => sub { Mojo::File->new(shift->app->config->{results_dir}) };
 
@@ -166,4 +166,4 @@ app->minion->add_task(run_cover => sub ($job, $data, $opts = undef) {
     }
 });
 
-app->start;
+app->start
