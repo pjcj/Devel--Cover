@@ -272,6 +272,16 @@ main() {
                           | xargs -r "$docker" rm -f
             $docker system prune --force
             ;;
+        cpancover-start-queue)
+            COVER_DEBUG=1 perl bin/queue minion worker -j 4
+            ;;
+        cpancover-start-minion)
+            COVER_DEBUG=1 perl bin/queue daemon -l http://\*:30000 -m production
+            ;;
+        cpancover-add)
+            module="$2"
+            COVER_DEBUG=1 perl bin/queue add "$module"
+            ;;
         sereal_each_bug)
             perl="${2:-perl}"
             $perl Makefile.PL
