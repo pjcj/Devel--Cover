@@ -127,7 +127,7 @@ app->minion->add_task(enqueue_latest => sub ($job) {
 });
 
 app->minion->add_task(run_cover => sub ($job, $data, $opts = undef) {
-    say STDERR "run run_cover", Mojo::Util::dumper $data if $Debug;
+    say STDERR "run_cover $data" if $Debug;
     # say STDERR "path $ENV{PATH}" if $Debug;
     # say STDERR `which dc` if $Debug;
     # say STDERR `which perl` if $Debug;
