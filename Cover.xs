@@ -1341,6 +1341,7 @@ static int runops_orig(pTHX) {
     return 0;
 }
 
+#if defined DO_RUNOPS_TRACE
 static int runops_trace(pTHX) {
     PDEB(D(L, "entering runops_trace\n"));
 
@@ -1359,6 +1360,7 @@ static int runops_trace(pTHX) {
     TAINT_NOT;
     return 0;
 }
+#endif
 
 static char *svclassnames[] = {
     "B::NULL",
@@ -1597,7 +1599,9 @@ BOOT:
 #elif defined HAS_TIMES
             cpu();
 #endif
-            /* PL_runops = runops_trace; */
+#if defined DO_RUNOPS_TRACE
+            PL_runops = runops_trace;
+#endif
         } else {
             PL_runops = runops_cover;
         }
