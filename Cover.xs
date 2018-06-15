@@ -61,7 +61,11 @@ extern "C" {
 #define Time       0x00000040
 #define All        0xffffffff
 
-#define CAN_PROFILE defined HAS_GETTIMEOFDAY || defined HAS_TIMES
+#if defined HAS_GETTIMEOFDAY || defined HAS_TIMES
+# define CAN_PROFILE 1
+#else
+# define CAN_PROFILE 0
+#endif
 
 struct unique {  /* Well, we'll be fairly unlucky if it's not */
     OP *addr,
