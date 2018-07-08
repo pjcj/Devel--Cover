@@ -951,7 +951,7 @@ static void cover_logop(pTHX) {
 
 #if PERL_VERSION > 18
             skipped = PL_op;
-            while (NULL != (skipped = find_skipped_conditional(aTHX_ skipped)))
+            while ((skipped = find_skipped_conditional(aTHX_ skipped)) != NULL)
                 add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
 #endif
         }
