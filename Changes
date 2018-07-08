@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fix incorrect merging of structure (Emiliya Boyadjieva) (github 199)
+ - Fix up compiler warnings (Jens Rehsack) (github 211)
+ - Test against 5.28.0, 5.29.0 and some other versions
+ - Compress and then delete old cpancover data
 
 Release 1.29 - 15 October 2017
  - Lock using read and append mode (Stephan Loyd) (github 196)
