@@ -61,7 +61,11 @@ extern "C" {
 #define Time       0x00000040
 #define All        0xffffffff
 
-#define CAN_PROFILE defined HAS_GETTIMEOFDAY || defined HAS_TIMES
+#if defined HAS_GETTIMEOFDAY || defined HAS_TIMES
+# define CAN_PROFILE 1
+#else
+# define CAN_PROFILE 0
+#endif
 
 struct unique {  /* Well, we'll be fairly unlucky if it's not */
     OP *addr,
@@ -947,7 +951,7 @@ static void cover_logop(pTHX) {
 
 #if PERL_VERSION > 18
             skipped = PL_op;
-            while (skipped = find_skipped_conditional(aTHX_ skipped))
+            while ((skipped = find_skipped_conditional(aTHX_ skipped)) != NULL)
                 add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
 #endif
         }
@@ -1337,6 +1341,7 @@ static int runops_orig(pTHX) {
     return 0;
 }
 
+#if defined DO_RUNOPS_TRACE
 static int runops_trace(pTHX) {
     PDEB(D(L, "entering runops_trace\n"));
 
@@ -1355,6 +1360,7 @@ static int runops_trace(pTHX) {
     TAINT_NOT;
     return 0;
 }
+#endif
 
 static char *svclassnames[] = {
     "B::NULL",
@@ -1593,7 +1599,9 @@ BOOT:
 #elif defined HAS_TIMES
             cpu();
 #endif
-            /* PL_runops = runops_trace; */
+#if defined DO_RUNOPS_TRACE
+            PL_runops = runops_trace;
+#endif
         } else {
             PL_runops = runops_cover;
         }
