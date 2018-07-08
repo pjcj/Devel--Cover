@@ -1456,7 +1456,8 @@ In this example, Devel::Cover will be operating in silent mode.
  -db cover_db        - Store results in coverage db (default ./cover_db)
  -dir path           - Directory in which coverage will be collected (default
                        cwd)
- -ignore RE          - Set regular expressions for files to ignore (default "/Devel/Cover\b")
+ -ignore RE          - Set regular expressions for files to ignore (default
+                       "/Devel/Cover\b")
  +ignore RE          - Append to regular expressions of files to ignore
  -inc path           - Set prefixes of files to include (default @INC)
  +inc path           - Append to prefixes of files regular expressionsto include
