@@ -8,6 +8,7 @@ Devel::Cover history
  - Clarify some docs around ignore (Olaf Alders) (github 207)
  - Run coverage on cpp and hpp files (Jacques Germishuys) (github 203)
  - Add docs for coverage of modules on command line (Slaven Rezić) (github 204)
+ - Ignore .AppleDouble files (David Cantrell) (github 200)
 
 Release 1.29 - 15 October 2017
  - Lock using read and append mode (Stephan Loyd) (github 196)

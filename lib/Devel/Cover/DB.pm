@@ -210,10 +210,12 @@ sub is_valid {
     return 1 if !-e $self->{db};
     return 1 if -e "$self->{db}/$DB";
     opendir my $fh, $self->{db} or return 0;
+    my $ignore = join "|", qw(
+        runs structure debuglog digests .AppleDouble
+    );
     for my $file (readdir $fh) {
         next if $file eq "." || $file eq "..";
-        next if $file =~ /(?:runs|structure|debuglog|digests)|(?:\.lock)$/
-                && -e "$self->{db}/$file";
+        next if $file =~ /(?:$ignore)|(?:\.lock)$/ && -e "$self->{db}/$file";
         warn "found $file in $self->{db}";
         return 0;
     }
