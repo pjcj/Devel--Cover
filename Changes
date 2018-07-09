@@ -6,6 +6,7 @@ Devel::Cover history
  - Test against 5.28.0, 5.29.0 and some other versions
  - Compress and then delete old cpancover data
  - Clarify some docs around ignore (Olaf Alders) (github 207)
+ - Run coverage on cpp and hpp files (Jacques Germishuys) (github 203)
 
 Release 1.29 - 15 October 2017
  - Lock using read and append mode (Stephan Loyd) (github 196)
