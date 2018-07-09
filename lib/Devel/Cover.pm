@@ -1677,6 +1677,13 @@ $HARNESS_PERL_SWITCHES or $PERL5OPT.  Devel::Cover tries to do the right thing
 when $MOD_PERL is set.  $DEVEL_COVER_OPTIONS is appended to any options passed
 into Devel::Cover.
 
+Note that when Devel::Cover is invoked via an environment variable, any modules
+specified on the command line, such as via the -Mmodule option, will not be
+covered.  This is because the environment variables are processed after the
+command line and any code to be covered must appear after Devel::Cover has been
+loaded.  To work around this, Devel::Cover can also be specified on the command
+line.
+
 =head2 Developer variables
 
 When running Devel::Cover's own test suite, $DEVEL_COVER_DEBUG turns on
