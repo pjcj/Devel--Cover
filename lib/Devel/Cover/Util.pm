@@ -1,4 +1,4 @@
-# Copyright 2001-2017, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2018, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -76,7 +76,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2001-2017, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2018, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

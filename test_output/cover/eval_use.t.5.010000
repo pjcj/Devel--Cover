@@ -39,7 +39,7 @@ Finish: ...
 tests/E2.pm
 
 line  err   stmt   bran   cond    sub   code
-1                                       # Copyright 2004-2017, Paul Johnson (paul@pjcj.net)
+1                                       # Copyright 2004-2018, Paul Johnson (paul@pjcj.net)
 2                                       
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
@@ -66,7 +66,7 @@ E2             0 tests/E2.pm:12
 tests/E3.pm
 
 line  err   stmt   bran   cond    sub   code
-1                                       # Copyright 2004-2017, Paul Johnson (paul@pjcj.net)
+1                                       # Copyright 2004-2018, Paul Johnson (paul@pjcj.net)
 2                                       
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
@@ -93,7 +93,7 @@ E3             0 tests/E3.pm:12
 tests/E4.pm
 
 line  err   stmt   bran   cond    sub   code
-1                                       # Copyright 2004-2017, Paul Johnson (paul@pjcj.net)
+1                                       # Copyright 2004-2018, Paul Johnson (paul@pjcj.net)
 2                                       
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
@@ -122,7 +122,7 @@ tests/eval2
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2004-2017, Paul Johnson (paul@pjcj.net)
+3                                       # Copyright 2004-2018, Paul Johnson (paul@pjcj.net)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
