@@ -240,7 +240,7 @@ main() {
             pi "Generating HTML at $(date)"
             # perl -V
             $0 cpancover-compress-old-versions
-            $0 cpancover -generate_html
+            $0 cpancover --generate_html
             $0 cpancover-compress
             json=$results_dir/cpancover.json
             tmp=$json-tmp-$$.gz
