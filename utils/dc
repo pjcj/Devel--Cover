@@ -82,6 +82,25 @@ while [ $# -gt 0 ]; do
             dryrun=1
             shift
             ;;
+        -e|--env)
+            shift
+            case "$1" in
+                prod)
+                    results_dir=~/staging
+                    docker_image=pjcj/cpancover
+                    shift
+                    ;;
+                dev)
+                    results_dir=/cover/staging_dev
+                    docker_image=pjcj/cpancover_dev
+                    shift
+                    ;;
+                *)
+                    pf "Unrecognised environment: $1"
+                    break
+                    ;;
+            esac
+            ;;
         *)
             break
             ;;
