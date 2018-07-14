@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.30 - 14 July 2018
  - Fix incorrect merging of structure (Emiliya Boyadjieva) (github 199)
  - Fix up compiler warnings (Jens Rehsack) (github 211)
  - Test against 5.28.0, 5.29.0 and some other versions
