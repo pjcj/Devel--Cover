@@ -193,11 +193,11 @@ main() {
                 -exec gzip -d {} \;
             ;;
         cpancover-latest)
-            $0 cpancover -latest
+            $0 cpancover --latest
             ;;
         cpancover-build-module)
             module="$2"
-            $0 cpancover -local_build -docker "$docker" -workers 1 "$module"
+            $0 cpancover --local_build --docker "$docker" --workers 1 "$module"
             $0 cpancover-compress
             ;;
         cpancover-docker-shell)
