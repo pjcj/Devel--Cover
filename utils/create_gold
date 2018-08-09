@@ -30,7 +30,7 @@ unless (@tests) {
     opendir D, "tests" or die "Cannot opendir tests: $!";
     for my $t (sort readdir D) {
         next unless -f "tests/$t";
-        next if $t =~ /\.(pm|pl|uncoverable|version|org|bak)$/;
+        next if $t =~ /\.(pm|pl|uncoverable|version|org|bak|swp)$/;
         next if $t =~ /~$/;
         push @tests, $t;
     }
