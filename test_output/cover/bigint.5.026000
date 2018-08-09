@@ -47,7 +47,7 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-16    ***     50      1      0   if bless( {"sign" => "+","value" => [1]}, 'Math::BigInt' ) >= $x
+16    ***     50      1      0   if bless( {"sign" => "+","value" => bless( [1], 'Math::BigInt::Calc' )}, 'Math::BigInt' ) >= $x
 
 
 Covered Subroutines

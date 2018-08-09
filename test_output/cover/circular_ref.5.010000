@@ -1,0 +1,57 @@
+Reading database from ...
+
+
+------------------------------------------ ------ ------ ------ ------ ------
+File                                         stmt   bran   cond    sub  total
+------------------------------------------ ------ ------ ------ ------ ------
+tests/circular_ref                           83.3    0.0    n/a   66.6   63.6
+Total                                        83.3    0.0    n/a   66.6   63.6
+------------------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/circular_ref
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3              1                        my $VAR1;
+4              1                    1   BEGIN { $VAR1 = \$VAR1 }
+5              1                    1   use constant MyType => $VAR1;
+               1                        
+               1                        
+6                                       
+7                                       sub f {
+8     ***      0      0             0       return MyType if @_;
+9                                       }
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+8     ***      0      0      0   if @_
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location            
+---------- ----- --------------------
+BEGIN          1 tests/circular_ref:4
+BEGIN          1 tests/circular_ref:5
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count Location            
+---------- ----- --------------------
+f              0 tests/circular_ref:8
+
+

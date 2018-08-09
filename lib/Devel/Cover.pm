@@ -1025,6 +1025,11 @@ sub deparse {
             # Collect everything under here
             local ($File, $Line) = ($File, $Line);
             # print STDERR "Collecting $$op under $File:$Line\n";
+            no warnings "redefine";
+            my $use_dumper = $class eq 'SVOP' && $name eq 'const';
+            local *B::Deparse::const = \&B::Deparse::const_dumper
+              if $use_dumper;
+            require Data::Dumper if $use_dumper;
             $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
             $deparse =~ s/^\010+//mg if defined $deparse;
             $deparse = "Deparse error: $@" if $@;
