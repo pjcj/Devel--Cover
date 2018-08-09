@@ -1,0 +1,9 @@
+#!/usr/bin/perl
+
+my $VAR1;
+BEGIN { $VAR1 = \$VAR1 }
+use constant MyType => $VAR1;
+
+sub f {
+    return MyType if @_;
+}
