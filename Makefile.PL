@@ -86,7 +86,7 @@ my @tests;
 opendir D, "tests" or die "Cannot opendir tests: $!";
 for my $t (readdir D) {
     next unless -f "tests/$t";
-    next if $t =~ /\.(pm|pl|org|bak|uncoverable)$/;
+    next if $t =~ /\.(pm|pl|org|bak|uncoverable|swp)$/;
     next if $t =~ /~$/;
 
     push @tests, $t;
