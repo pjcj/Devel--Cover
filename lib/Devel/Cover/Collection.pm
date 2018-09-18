@@ -221,9 +221,9 @@ sub run {
         @cmd = ($^X, $self->bin_dir . "/cover");
     }
     $output .= $self->fbsys(
-        @cmd,          "-test",
-        "-report",     $self->report,
-        "-outputfile", $self->output_file,
+        @cmd,           "--test",
+        "--report",     $self->report,
+        "--outputfile", $self->output_file,
     );
     $output .= $self->fsys(@cmd, "-report", "json", "-nosummary");
 
