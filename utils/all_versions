@@ -51,7 +51,7 @@ sub get_options {
         5.24.0 5.24.1 5.24.2 5.24.3 5.24.4
         5.26.0 5.26.1 5.26.2
         5.28.0
-        5.29.0
+        5.29.0 5.29.1 5.29.2
     ) ] unless @{$Options->{version}};
     $Options->{version} =
         [ grep {
