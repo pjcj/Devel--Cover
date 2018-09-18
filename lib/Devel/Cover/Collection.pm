@@ -560,7 +560,7 @@ sub cover_modules {
             eval {
                 local $SIG{ALRM} = sub { die "alarm\n" };
                 alarm $timeout;
-                say "running: @command" if $self->verbose;
+                say "running: @command $module $name" if $self->verbose;
                 system @command, $module, $name;
                 alarm 0;
             };
