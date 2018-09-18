@@ -3,6 +3,7 @@ Devel::Cover history
 {{$NEXT}}
  - Add queue for cpancover (Joel Berger)
  - Handle circular refs (Ed J) (github 164, 216)
+ - Allow for $DEVEL_COVER_TEST_OPTS to be unset (Dick Franks) (github 217)
 
 Release 1.30 - 14 July 2018
  - Fix incorrect merging of structure (Emiliya Boyadjieva) (github 199)
