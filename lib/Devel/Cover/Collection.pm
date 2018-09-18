@@ -210,7 +210,8 @@ sub run {
     $output .= "Testing $module in $build_dir\n";
     # say "\n$line\n$output$line\n"; return;
 
-    # $self->sys($^X, "-V");
+    # $output .= $self->sys($^X, "-V");
+    # $output .= $self->sys("pwd");
     my @cmd;
     if ($self->local) {
         $ENV{DEVEL_COVER_OPTIONS} = "-ignore,/usr/local/lib/perl5";
@@ -220,9 +221,9 @@ sub run {
         @cmd = ($^X, $self->bin_dir . "/cover");
     }
     $output .= $self->fbsys(
-        @cmd,          "-test",
-        "-report",     $self->report,
-        "-outputfile", $self->output_file,
+        @cmd,           "--test",
+        "--report",     $self->report,
+        "--outputfile", $self->output_file,
     );
     $output .= $self->fsys(@cmd, "-report", "json", "-nosummary");
 
@@ -559,7 +560,7 @@ sub cover_modules {
             eval {
                 local $SIG{ALRM} = sub { die "alarm\n" };
                 alarm $timeout;
-                say "running: @command" if $self->verbose;
+                say "running: @command $module $name" if $self->verbose;
                 system @command, $module, $name;
                 alarm 0;
             };

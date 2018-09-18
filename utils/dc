@@ -12,13 +12,13 @@ set -euo pipefail
 script=$(basename "$0")
 srcdir=$(readlink -f "$(dirname "$0")")
 readonly LOG_FILE="/tmp/$script.log"
-_p() { l=$1; shift; echo "$l $script: $*" | tee -a "$LOG_FILE" >&2; }
-pt() { _p "[TRACE]  " "$*";                                         }
-pd() { _p "[DEBUG]  " "$*";                                         }
-pi() { _p "[INFO]   " "$*";                                         }
-pw() { _p "[WARNING]" "$*";                                         }
-pe() { _p "[ERROR]  " "$*";                                         }
-pf() { _p "[FATAL]  " "$*"; exit 1;                                 }
+_p() { __l=$1; shift; echo "$__l $script: $*" | tee -a "$LOG_FILE" >&2; }
+pt() { _p "[TRACE]  " "$*";                                             }
+pd() { _p "[DEBUG]  " "$*";                                             }
+pi() { _p "[INFO]   " "$*";                                             }
+pw() { _p "[WARNING]" "$*";                                             }
+pe() { _p "[ERROR]  " "$*";                                             }
+pf() { _p "[FATAL]  " "$*"; exit 1;                                     }
 
 usage() {
     cat <<EOT
@@ -81,6 +81,25 @@ while [ $# -gt 0 ]; do
         -d|--dryrun)
             dryrun=1
             shift
+            ;;
+        -e|--env)
+            shift
+            case "$1" in
+                prod)
+                    results_dir=~/staging
+                    docker_image=pjcj/cpancover
+                    shift
+                    ;;
+                dev)
+                    results_dir=/cover/staging_dev
+                    docker_image=pjcj/cpancover_dev
+                    shift
+                    ;;
+                *)
+                    pf "Unrecognised environment: $1"
+                    break
+                    ;;
+            esac
             ;;
         *)
             break
@@ -174,11 +193,11 @@ main() {
                 -exec gzip -d {} \;
             ;;
         cpancover-latest)
-            $0 cpancover -latest
+            $0 cpancover --latest
             ;;
         cpancover-build-module)
             module="$2"
-            $0 cpancover -local_build -docker "$docker" -workers 1 "$module"
+            $0 cpancover --local_build --docker "$docker" --workers 1 "$module"
             $0 cpancover-compress
             ;;
         cpancover-docker-shell)
@@ -202,6 +221,8 @@ main() {
             ((alocal)) && l="--local"
             dir="";
             ((alocal)) && [ -d /dc ] && dir=/dc/
+            # ((verbose)) && pi "[-$l-] [$dir] [$module]"
+            # set -x
             container=$($docker run -d                                   \
                         --volume="$dcdir:/dc:ro"                         \
                         --volume="$staging:/remote_staging:ro"           \
@@ -238,7 +259,7 @@ main() {
             pi "Generating HTML at $(date)"
             # perl -V
             $0 cpancover-compress-old-versions
-            $0 cpancover -generate_html
+            $0 cpancover --generate_html
             $0 cpancover-compress
             json=$results_dir/cpancover.json
             tmp=$json-tmp-$$.gz
@@ -269,6 +290,16 @@ main() {
             $docker ps -a | tail -n +2 | awk '{ print $1 }' \
                           | xargs -r "$docker" rm -f
             $docker system prune --force
+            ;;
+        cpancover-start-queue)
+            COVER_DEBUG=1 perl bin/queue minion worker -j 4
+            ;;
+        cpancover-start-minion)
+            COVER_DEBUG=1 perl bin/queue daemon -l http://\*:30000 -m production
+            ;;
+        cpancover-add)
+            module="$2"
+            COVER_DEBUG=1 perl bin/queue add "$module"
             ;;
         sereal_each_bug)
             perl="${2:-perl}"
