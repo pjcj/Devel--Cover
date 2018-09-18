@@ -35,3 +35,5 @@ callgrind.out.*
 staging/
 *.sw?
 .perl-version
+
+queue.db
