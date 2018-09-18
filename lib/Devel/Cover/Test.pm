@@ -303,7 +303,7 @@ sub run_cover {
     if ($self->{differences}) {
         no warnings "redefine";
         local *Test::_quote = sub { "@_" };
-        $self->{no_coverage} ? pass : eq_or_diff(\@at, \@ac, "output");
+        $self->{no_coverage} ? pass : eq_or_diff(\@at, \@ac, "output", { context => 0 });
     } elsif ($self->{no_coverage}) {
         pass for @{$self->{cover}};
     }
