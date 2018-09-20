@@ -20,6 +20,26 @@ use Test::More;
 use Devel::Cover::Inc;
 
 my $LATEST_RELEASED_PERL = 28;
+my %TEST2VERSIONOVERRIDE = (
+    bigint => \&_default_version_override,
+);
+my %TEST2MODULE2VERSION2PERL = (
+    bigint => { 'Math::BigInt' => { '1.999806' => '5.026000' } },
+);
+sub _default_version_override {
+    my ($test, $v) = @_;
+    return $v unless my $override = $TEST2MODULE2VERSION2PERL{$test};
+    my @perl_versions = $v;
+    for my $module (sort keys %$override) {
+        my $version2perl = $override->{$module};
+        eval "require $module"; # string-eval saves faff with turning to file
+        die $@ if $@;
+        my $modversion = do { no strict 'refs'; ${$module . '::VERSION'} };
+        push @perl_versions, map $version2perl->{$_},
+            grep $_ < $modversion, keys %$version2perl;
+    }
+    return (sort @perl_versions)[-1]; # highest version found
+}
 
 sub new {
     my $class = shift;
@@ -147,30 +167,31 @@ sub test_file_parameters {
     exists $self->{test_file_parameters} ? $self->{test_file_parameters} : ""
 }
 
-sub cover_gold {
-    my $self = shift;
-
-    my $test = $self->{golden_test} || $self->{test};
-
-    my $td = "./test_output/cover";
+sub _get_right_version {
+    my ($td, $test) = @_;
     opendir D, $td or die "Can't opendir $td: $!";
     my @versions = sort    { $a <=> $b }
                    map     { /^$test\.(5\.\d+)$/ ? $1 : () }
                    readdir D;
     closedir D or die "Can't closedir $td: $!";
     # print STDERR "Versions for [$test] from [$td] @versions\n";
-
     my $v = "5.0";
     for (@versions) {
         last if $_ > $];
         $v = $_;
     }
-
     # die "Can't find golden results for $test" if $v eq "5.0";
+    return $v unless my $override_sub = $TEST2VERSIONOVERRIDE{$test};
+    $override_sub->($test, $v);
+}
 
-    $v = $ENV{DEVEL_COVER_GOLDEN_VERSION}
-        if exists $ENV{DEVEL_COVER_GOLDEN_VERSION};
-
+sub cover_gold {
+    my $self = shift;
+    my $td = "./test_output/cover";
+    my $test = $self->{golden_test} || $self->{test};
+    my $v = exists $ENV{DEVEL_COVER_GOLDEN_VERSION}
+        ? $ENV{DEVEL_COVER_GOLDEN_VERSION}
+        : _get_right_version($td, $test);
     ("$td/$test", $v eq "5.0" ? 0 : $v)
 }
 
@@ -474,6 +495,10 @@ version number.
 
 $base comes from the name of the test and $v will be $] from the earliest perl
 version for which the golden results should be the same as for the current $]
+
+C<$v> will be overridden if installed libraries' versions dictate; for
+instance, if L<Math::BigInt> is at version > 1.999806, then the version
+of Perl will be overridden as though it is 5.26.
 
 =head2 run_command
 
