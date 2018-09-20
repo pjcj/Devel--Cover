@@ -340,7 +340,7 @@ my $opts = {
     test             => {
                             TESTS => $ENV{DEVEL_COVER_NO_TESTS}
                                          ? ""
-                                         : "t/*/*.t"
+                                         : "t/*.t t/*/*.t"
                         },
     realclean        => $] < 5.008008 ?
                         {
