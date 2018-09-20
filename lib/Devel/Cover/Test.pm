@@ -19,6 +19,8 @@ use Test::More;
 
 use Devel::Cover::Inc;
 
+my $LATEST_RELEASED_PERL = 28;
+
 sub new {
     my $class = shift;
     my $test  = shift;
@@ -206,7 +208,7 @@ sub run_test {
     }
 
     my $version = int(($] - 5) * 1000 + 0.5);
-    if ($version % 2 && $version < 28) {
+    if ($version % 2 && $version < $LATEST_RELEASED_PERL) {
         plan skip_all => "Perl version $] is an obsolete development version";
         return;
     }
