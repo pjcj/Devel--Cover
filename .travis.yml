@@ -17,12 +17,16 @@ matrix:
     allow_failures:
         - perl: "5.8"
         - perl: "blead"
+    include:
+        - perl: "5.24"
+          env: MATH_BIGINT_VERSION=1.999813
 sudo: false
 before_install:
     - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
     - source ~/travis-perl-helpers/init
     - build-perl
     - perl -V
+    - '[ -n "$MATH_BIGINT_VERSION" ] && cpanm -n Math::BigInt@"$MATH_BIGINT_VERSION" || true'
     - build-dist
     - cd $BUILD_DIR
 install:
