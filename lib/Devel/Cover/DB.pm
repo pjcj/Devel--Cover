@@ -23,6 +23,8 @@ use File::Path;
 
 use Devel::Cover::Dumper;  # For debugging
 
+use constant CAN_TERM_SIZE => eval { require Term::Size };
+
 my $DB = "cover.14";  # Version of the database
 
 @Devel::Cover::DB::Criteria =
@@ -407,7 +409,7 @@ sub print_summary {
             : "n/a"
     };
 
-    my $fw = 77 - $n * 7;
+    my $fw = ( CAN_TERM_SIZE && -t STDOUT ? ( Term::Size::chars(\*STDOUT))[0] : 80 ) - $n * 7 - 3;
     $fw = 28 if $fw < 28;
 
     no warnings "uninitialized";
