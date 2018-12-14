@@ -409,7 +409,7 @@ sub print_summary {
             : "n/a"
     };
 
-    my $fw = ( CAN_TERM_SIZE ? ( Term::Size::chars \*STDOUT )[0] : 80 ) - $n * 7 - 3;
+    my $fw = ( CAN_TERM_SIZE && -t STDOUT ? ( Term::Size::chars \*STDOUT )[0] : 80 ) - $n * 7 - 3;
     $fw = 28 if $fw < 28;
 
     no warnings "uninitialized";
