@@ -1632,14 +1632,14 @@ If there is an elsif in the branch then it can be addressed as the second
 branch on the line by using the "count" attribute.  Further elsifs are the
 third and fourth "count" value, and so on:
 
-# uncoverable branch false count:2
-if ($thing == 1) {
-    handle_thing_being_one();
-} elsif ($thing == 2) {
-    handle_thing_being_tow();
-} else {
-    die "thing can only be one or two, not $thing"; # uncoverable statement
-}
+    # uncoverable branch false count:2
+    if ($thing == 1) {
+        handle_thing_being_one();
+    } elsif ($thing == 2) {
+        handle_thing_being_tow();
+    } else {
+        die "thing can only be one or two, not $thing"; # uncoverable statement
+    }
 
 =head3 Conditions
 
