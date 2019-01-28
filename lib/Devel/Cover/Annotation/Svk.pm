@@ -72,7 +72,7 @@ sub get_annotations {
     my $command = $self->{command};
     $command =~ s/\[\[file\]\]/$realfile/g;
     open my $c, "-|", $command
-        or warn "cover: Can't run $command: $!\n", return;
+        or warn("cover: Can't run $command: $!\n"), return;
     <$c>; <$c>;  # ignore first two lines
     while (<$c>) {
         my @a = /(\d+)\s*\(\s*(\S+)\s*(.*?)\):/;
