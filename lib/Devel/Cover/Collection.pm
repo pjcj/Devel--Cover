@@ -594,12 +594,6 @@ sub get_latest {
 
     while (my $release = $iterator->next_release) {
         say $release->path;
-        next;
-        printf "%s path=%s  time=%d  size=%d\n",
-               $release->distname,
-               $release->path,
-               $release->timestamp,
-               $release->size;
     }
 }
 
