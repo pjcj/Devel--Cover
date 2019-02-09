@@ -518,7 +518,7 @@ static AV *get_conditional_array(pTHX_ OP *op) {
 
 static void set_conditional(pTHX_ OP *op, int cond, int value) {
     /*
-     * The conditional array comprises six elements:
+     * The conditional array is composed of six elements:
      *
      * 0 - 1 iff we are in an xor and the first operand was true
      * 1 - not short circuited - second operand is false
@@ -769,11 +769,11 @@ static void cover_cond(pTHX)
 static void cover_logop(pTHX) {
     /*
      * For OP_AND, if the first operand is false, we have short
-     * circuited the second, otherwise the value of the and op is the
+     * circuited the second, otherwise the value of the op is the
      * value of the second operand.
      *
      * For OP_OR, if the first operand is true, we have short circuited
-     * the second, otherwise the value of the and op is the value of the
+     * the second, otherwise the value of the op is the value of the
      * second operand.
      *
      * We check the value of the first operand by simply looking on the
