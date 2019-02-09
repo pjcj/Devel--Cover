@@ -777,18 +777,18 @@ sub _report {
 
     unless ($Subs_only) {
         get_cover(main_cv, main_root);
-        get_cover($_)
-            for B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ();
+        get_cover_progress("BEGIN block",
+            B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ());
         if (exists &B::check_av) {
-            get_cover($_)
-                for B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ();
+            get_cover_progress("CHECK block",
+                B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ());
         }
         # get_ends includes INIT blocks
-        get_cover($_)
-            for get_ends()->isa("B::AV") ? get_ends()->ARRAY : ();
+        get_cover_progress("END/INIT block",
+            get_ends()->isa("B::AV") ? get_ends()->ARRAY : ());
     }
     # print STDERR "--- @Cvs\n";
-    get_cover($_) for @Cvs;
+    get_cover_progress("CV", @Cvs);
 
     my %files;
     $files{$_}++ for keys %{$Run{count}}, keys %{$Run{vec}};
@@ -1274,6 +1274,34 @@ sub get_cover {
                  : $deparse->deparse_sub($cv, 0);
     # print STDERR "<$de>\n";
     $de
+}
+
+sub _report_progress {
+    my ($msg, $code, @items) = @_;
+    if ($Silent) {
+        $code->($_) for @items;
+        return;
+    }
+    my $tot = @items || 1;
+    my $prog = sub {
+        my ($n) = @_;
+        print OUT "\r" . __PACKAGE__ . ": " . int(100 * $n / $tot) . "% ";
+    };
+    my ($old_pipe, $n, $start) = ($|, 0, time);
+    $|++;
+    print OUT __PACKAGE__, ": $msg\n";
+    for (@items) {
+        $prog->($n++);
+        $code->($_);
+    }
+    $prog->($n || 1);
+    print OUT "- " . (time - $start) . "s taken\n";
+    $| = $old_pipe;
+}
+
+sub get_cover_progress {
+    my ($type, @cvs) = @_;
+    _report_progress("getting $type coverage", sub { get_cover($_) }, @cvs);
 }
 
 "
