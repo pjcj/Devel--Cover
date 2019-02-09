@@ -788,7 +788,7 @@ sub _report {
             get_ends()->isa("B::AV") ? get_ends()->ARRAY : ());
     }
     # print STDERR "--- @Cvs\n";
-    get_cover_progress("Cv", @Cvs);
+    get_cover_progress("CV", @Cvs);
 
     my %files;
     $files{$_}++ for keys %{$Run{count}}, keys %{$Run{vec}};
@@ -1282,19 +1282,27 @@ sub _report_progress {
         $code->($_) for @items;
         return;
     }
+    my $tot = @items || 1;
+    my $prog = sub {
+        my ($n) = @_;
+        print OUT "\r" . __PACKAGE__ . ": " . int(100 * $n / $tot) . "% ";
+    };
     my ($old_pipe, $n, $start) = ($|, 0, time);
     $|++;
     print OUT __PACKAGE__, ": $msg\n";
     for (@items) {
+        $prog->($n++);
         $code->($_);
-        print OUT "\r".__PACKAGE__.": ".int(100 * ++$n / @items)."% ";
     }
-    print OUT "- ".(time-$start)."s taken\n";
-    $|=$old_pipe;
-    return;
+    $prog->($n || 1);
+    print OUT "- " . (time - $start) . "s taken\n";
+    $| = $old_pipe;
 }
 
-sub get_cover_progress { _report_progress("getting ".shift()." coverages", sub {get_cover($_)}, @_) }
+sub get_cover_progress {
+    my ($type, @cvs) = @_;
+    _report_progress("getting $type coverage", sub { get_cover($_) }, @cvs);
+}
 
 "
 We have normality, I repeat we have normality.
