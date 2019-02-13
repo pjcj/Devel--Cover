@@ -409,8 +409,13 @@ sub print_summary {
             : "n/a"
     };
 
-    my $fw = ( CAN_TERM_SIZE && -t STDOUT ? ( Term::Size::chars(\*STDOUT))[0] : 80 ) - $n * 7 - 3;
-    $fw = 28 if $fw < 28;
+    my $s     = $self->{summary};
+    my @files = (grep($_ ne "Total", sort keys %$s), "Total");
+    my $max   = 5; for (@files) { $max = length if length > $max }
+    my $fw    = (
+        CAN_TERM_SIZE && -t STDOUT ? (Term::Size::chars(\*STDOUT))[0] : 80
+    ) - $n * 7 - 3;
+    $fw = $max if $max < $fw;
 
     no warnings "uninitialized";
     my $fmt = "%-${fw}s" . " %6s" x $n . "\n";
@@ -421,8 +426,7 @@ sub print_summary {
                  (0 .. $#{$self->{all_criteria}});
     printf $fmt, "-" x $fw, ("------") x $n;
 
-    my $s = $self->{summary};
-    for my $file (grep($_ ne "Total", sort keys %$s), "Total") {
+    for my $file (@files) {
         printf $fmt,
                trimmed_file($file, $fw),
                map { $format->($s->{$file}, $_) }
