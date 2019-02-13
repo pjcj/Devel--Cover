@@ -412,10 +412,11 @@ sub print_summary {
     my $s     = $self->{summary};
     my @files = (grep($_ ne "Total", sort keys %$s), "Total");
     my $max   = 5; for (@files) { $max = length if length > $max }
-    my $fw    = (
-        CAN_TERM_SIZE && -t STDOUT ? (Term::Size::chars(\*STDOUT))[0] : 80
-    ) - $n * 7 - 3;
-    $fw = $max if $max < $fw;
+    my $width = !$ENV{DEVEL_COVER_TEST_SUITE} && CAN_TERM_SIZE && -t STDOUT
+        ? (Term::Size::chars(\*STDOUT))[0]
+        : 80;
+    my $fw    = $width - $n * 7 - 3;
+    $fw       = $max if $max < $fw;
 
     no warnings "uninitialized";
     my $fmt = "%-${fw}s" . " %6s" x $n . "\n";
