@@ -3,12 +3,12 @@ Unknown type true found parsing uncoverable condition at tests/uncoverable:45
 2 unmatched uncoverable comments not found at end of tests/uncoverable
 
 
------------------------------------------- ------ ------ ------ ------ ------
-File                                         stmt   bran   cond    sub  total
------------------------------------------- ------ ------ ------ ------ ------
-tests/uncoverable                           100.0  100.0  100.0  100.0  100.0
-Total                                       100.0  100.0  100.0  100.0  100.0
------------------------------------------- ------ ------ ------ ------ ------
+----------------- ------ ------ ------ ------ ------
+File                stmt   bran   cond    sub  total
+----------------- ------ ------ ------ ------ ------
+tests/uncoverable  100.0  100.0  100.0  100.0  100.0
+Total              100.0  100.0  100.0  100.0  100.0
+----------------- ------ ------ ------ ------ ------
 
 
 Run: ...
