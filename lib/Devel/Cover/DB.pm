@@ -23,6 +23,8 @@ use File::Path;
 
 use Devel::Cover::Dumper;  # For debugging
 
+use constant CAN_TERM_SIZE => eval { require Term::Size };
+
 my $DB = "cover.14";  # Version of the database
 
 @Devel::Cover::DB::Criteria =
@@ -407,8 +409,14 @@ sub print_summary {
             : "n/a"
     };
 
-    my $fw = 77 - $n * 7;
-    $fw = 28 if $fw < 28;
+    my $s     = $self->{summary};
+    my @files = (grep($_ ne "Total", sort keys %$s), "Total");
+    my $max   = 5; for (@files) { $max = length if length > $max }
+    my $width = !$ENV{DEVEL_COVER_TEST_SUITE} && CAN_TERM_SIZE && -t STDOUT
+        ? (Term::Size::chars(\*STDOUT))[0]
+        : 80;
+    my $fw    = $width - $n * 7 - 3;
+    $fw       = $max if $max < $fw;
 
     no warnings "uninitialized";
     my $fmt = "%-${fw}s" . " %6s" x $n . "\n";
@@ -419,8 +427,7 @@ sub print_summary {
                  (0 .. $#{$self->{all_criteria}});
     printf $fmt, "-" x $fw, ("------") x $n;
 
-    my $s = $self->{summary};
-    for my $file (grep($_ ne "Total", sort keys %$s), "Total") {
+    for my $file (@files) {
         printf $fmt,
                trimmed_file($file, $fw),
                map { $format->($s->{$file}, $_) }

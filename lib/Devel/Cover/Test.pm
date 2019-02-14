@@ -218,6 +218,8 @@ sub run_command {
 sub run_test {
     my $self = shift;
 
+    $ENV{DEVEL_COVER_TEST_SUITE} = 1;
+
     if ($] < 5.010000) {
         plan skip_all => "Perl version $] is not supported";
         return;
