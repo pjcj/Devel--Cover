@@ -4,6 +4,8 @@ Devel::Cover history
  - Fix up tests with recent Math::BigInt versions (Ed J) (github 219)
  - Add progress text when processing coverage (Christian Walde) (github 221)
  - Optionally use Term::Size (Paul "LeoNerd" Evans) (github 228)
+ - Fix indentation in pod (Graham Knop) (github 229)
+ - Fix warn precedence (Alexandr Evstigneev) (github 231)
 
 Release 1.31 - 18 September 2018
  - Add queue for cpancover (Joel Berger)
