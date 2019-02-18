@@ -266,21 +266,16 @@ sub merge {
     _merge_hash($self->{runs},      $from->{runs});
     _merge_hash($self->{collected}, $from->{collected});
 
-    return $self;  # TODO - what's going on here?
+    # TODO - determine whether, when the database gets big, it's quicker to
+    # merge into what's already there.  Instead of the previous two lines we
+    # would have these:
 
-    # When the database gets big, it's quicker to merge into what's
-    # already there
-
-    _merge_hash($from->{runs},      $self->{runs});
-    _merge_hash($from->{collected}, $self->{collected});
-
-    for (keys %$self) {
-        $from->{$_} = $self->{$_} unless $_ eq "runs" || $_ eq "collected";
-    }
-
-    # print STDERR "Giving ", Dumper($from);
-
-    $_[0] = $from;
+    # _merge_hash($from->{runs},      $self->{runs});
+    # _merge_hash($from->{collected}, $self->{collected});
+    # for (keys %$self) {
+        # $from->{$_} = $self->{$_} unless $_ eq "runs" || $_ eq "collected";
+    # }
+    # $_[0] = $from;
 }
 
 sub _merge_hash {

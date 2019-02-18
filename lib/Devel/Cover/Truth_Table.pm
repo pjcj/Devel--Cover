@@ -174,7 +174,8 @@ sub covered {
 
 sub error {
         return 1;
-	return $_[0]{error}[$_[1]];
+        # TODO - sort out how this should really work, or remove this report
+	# return $_[0]{error}[$_[1]];
 }
 
 package Devel::Cover::Truth_Table;
