@@ -39,7 +39,7 @@ sub get_annotations {
     $command =~ s/\[\[file\]\]/$file/g;
     # print "Running [$command]\n";
     open my $c, "-|", $command
-        or warn "cover: Can't run $command: $!\n", return;
+        or warn("cover: Can't run $command: $!\n"), return;
     my @a;
     my $start = 1;
     while (<$c>) {

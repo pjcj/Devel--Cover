@@ -34,7 +34,7 @@ sub new {
     bless $self, $class;
 
     open my $c, "-|", "svk info"
-        or warn "cover: Not a svk checkout: $!\n", return;
+        or warn("cover: Not a svk checkout: $!\n"), return;
     while (<$c>) {
         chomp;
         next unless s/^Depot Path: //;
@@ -43,13 +43,13 @@ sub new {
     }
 
     open $c, "-|", "svk ls -Rf $self->{depotbase}"
-        or warn "cover: Can't run svk ls: $!\n", return;
+        or warn("cover: Can't run svk ls: $!\n"), return;
     while (<$c>) {
         chomp;
         s|^\Q$self->{depotbase}\E/||;
         next unless -f $_;
 
-        open my $f, $_ or warn "cover: Can't open $_: $!\n", next;
+        open my $f, $_ or warn("cover: Can't open $_: $!\n"), next;
         $self->{md5map}{md5_fh($f)} = $_;
     }
 
@@ -65,14 +65,14 @@ sub get_annotations {
 
     print "cover: Getting svk annotation information for $file\n";
 
-    open my $fh, $file or warn "cover: Can't open file $file: $!\n", return;
+    open my $fh, $file or warn("cover: Can't open file $file: $!\n"), return;
     my $realfile = $self->{md5map}{md5_fh($fh)}
-        or warn "cover: $file is not under svk control\n", return;
+        or warn("cover: $file is not under svk control\n"), return;
 
     my $command = $self->{command};
     $command =~ s/\[\[file\]\]/$realfile/g;
     open my $c, "-|", $command
-        or warn "cover: Can't run $command: $!\n", return;
+        or warn("cover: Can't run $command: $!\n"), return;
     <$c>; <$c>;  # ignore first two lines
     while (<$c>) {
         my @a = /(\d+)\s*\(\s*(\S+)\s*(.*?)\):/;
