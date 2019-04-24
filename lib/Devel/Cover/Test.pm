@@ -488,6 +488,11 @@ Returns absolute path to test file.
 
 Accessor to test_file_parameters property.
 
+=head2 get_params
+
+Populates the key C<criteria>, C<select>, C<test_parameters>, C<db_name>, C<cover_db>,
+C<cover_parameters> and C<skip> using the C<test_file> if available otherwise sets the default.
+
 =head2 cover_gold
 
   my ($base, $v) = $self->cover_gold;
