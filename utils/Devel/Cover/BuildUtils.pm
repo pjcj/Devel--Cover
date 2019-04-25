@@ -36,8 +36,9 @@ sub find_prove {
 
 sub cpus {
     my $cpus = 1;
-    eval { chomp ($cpus = `grep -c processor /proc/cpuinfo`); };
-    $cpus
+    eval { chomp ($cpus = `grep -c processor /proc/cpuinfo 2>/dev/null`) };
+    $cpus || eval { ($cpus) = `sysctl hw.ncpu` =~ /(\d+)/ };
+    $cpus || 1
 }
 
 sub nice_cpus {
