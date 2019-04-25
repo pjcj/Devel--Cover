@@ -20,7 +20,7 @@ require Data::Dumper;
 $| = 1;
 
 my $Version  = "1.31";
-my $Latest_t = "5.029007";
+my $Latest_t = "5.029010";
 my $Author   = 'paul@pjcj.net';
 my @perlbug  = ("perlbug", "-a", $Author,
                            "-s", "Installation of Devel::Cover $Version");
