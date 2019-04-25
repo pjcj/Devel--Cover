@@ -10,7 +10,9 @@
 set -euo pipefail
 
 script=$(basename "$0")
-srcdir=$(readlink -f "$(dirname "$0")")
+readl=readlink
+if which greadlink >&/dev/null; then readl=greadlink; fi
+srcdir=$($readl -f "$(dirname "$0")")
 readonly LOG_FILE="/tmp/$script.log"
 _p() { __l=$1; shift; echo "$__l $script: $*" | tee -a "$LOG_FILE" >&2; }
 pt() { _p "[TRACE]  " "$*";                                             }
@@ -115,7 +117,7 @@ export CPANCOVER_DOCKER=$docker
 export CPANCOVER_IMAGE=$docker_image
 export CPANCOVER_DRYRUN=$dryrun
 
-dcdir=$(readlink -f "$srcdir/..")
+dcdir=$($readl -f "$srcdir/..")
 
 main() {
     ((verbose)) && pi "Running $*"
