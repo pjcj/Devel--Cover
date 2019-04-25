@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+
+# Copyright 2019, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# __COVER__ skip_test $] < 5.020
+# __COVER__ skip_reason Signatures not available before 5.20
+
+use 5.20.0;
+use warnings;
+use experimental "signatures";
+
+sub xx ($p, $q, $r, $s = 6, @t) {
+    $p + $q + $r + $s + @t
+}
+
+my $x = xx(3, 4, 5);
+die unless $x == 18;
