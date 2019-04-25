@@ -250,9 +250,9 @@ static char *get_key(OP *o) {
 
 static char *hex_key(char *key) {
     static char hk[KEY_SZ * 2 + 1];
-    unsigned int c;
+    size_t c;
     for (c = 0; c < KEY_SZ; c++) {
-        NDEB(D(L, "%d of %d, <%02X> at %p\n",
+        NDEB(D(L, "%zu of %zu, <%02X> at %p\n",
                c, KEY_SZ, (unsigned char)key[c], hk + c * 2));
         sprintf(hk + c * 2, "%02X", (unsigned char)key[c]);
     }
@@ -289,7 +289,7 @@ static int check_if_collecting(pTHX_ COP *cop) {
 #endif
     char *file = CopFILE(cop);
     int in_re_eval = strnEQ(file, "(reeval ", 8);
-    NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, CopLINE(cop)));
+    NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, (long)CopLINE(cop)));
     if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file)) {
         int found = 0;
         if (MY_CXT.files) {
@@ -298,7 +298,7 @@ static int check_if_collecting(pTHX_ COP *cop) {
                 MY_CXT.collecting_here = SvIV(*f);
                 found = 1;
                 NDEB(D(L, "File: %s:%ld [%d]\n",
-                          file, CopLINE(cop), MY_CXT.collecting_here));
+                           file, (long)CopLINE(cop), MY_CXT.collecting_here));
             }
         }
 
@@ -467,7 +467,7 @@ static void cover_statement(pTHX_ OP *op) {
     count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
     c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
 
-    NDEB(D(L, "Statement: %s:%ld\n", CopFILE(cCOPx(op)), CopLINE(cCOPx(op))));
+    NDEB(D(L, "Statement: %s:%ld\n", CopFILE(cCOPx(op)), (long)CopLINE(cCOPx(op))));
 
     sv_setiv(*count, c);
     NDEB(op_dump(op));
@@ -589,7 +589,7 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
 #else
     i = 2;
 #endif
-    NDEB(D(L, "Looking through %d conditionals at %p\n",
+    NDEB(D(L, "Looking through %zd conditionals at %p\n",
            av_len(conds) - 1, PL_op));
     for (; i <= av_len(conds); i++) {
         OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
@@ -613,7 +613,7 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
     while (av_len(conds) > i) av_pop(conds);
 
     NDEB(svdump(conds));
-    NDEB(D(L, "addr is %p, next is %p, PL_op is %p, length is %d final is %d\n",
+    NDEB(D(L, "addr is %p, next is %p, PL_op is %p, length is %zd final is %d\n",
               addr, next, PL_op, av_len(conds), final));
     if (!final) next->op_ppaddr = addr;
 }
@@ -917,7 +917,7 @@ static void cover_logop(pTHX) {
                 av_push(conds, cond);
 
                 NDEB(D(L, "Adding conditional %p (%s) "
-                          "making %d at %p (%s), ppaddr: %p\n",
+                          "making %zd at %p (%s), ppaddr: %p\n",
                        next, PL_op_name[next->op_targ], av_len(conds) - 1,
                        PL_op, hex_key(ch), next->op_ppaddr));
                 /* dump_conditions(aTHX); */
@@ -1041,7 +1041,7 @@ static OP *dc_and(pTHX) {
     NDEB(D(L, "dc_and() at %p (%d)\n", PL_op, collecting_here(aTHX)));
     check_if_collecting(aTHX_ PL_curcop);
     NDEB(D(L, "dc_and() at %p (%d)\n", PL_curcop, collecting_here(aTHX)));
-    NDEB(D(L, "PL_curcop: %s:%d\n", CopFILE(PL_curcop), CopLINE(PL_curcop)));
+    NDEB(D(L, "PL_curcop: %s:%ld\n", CopFILE(PL_curcop), (long)CopLINE(PL_curcop)));
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
     return MY_CXT.ppaddr[OP_AND](aTHX);
 }
@@ -1549,8 +1549,8 @@ collect_inits()
         dMY_CXT;
     PPCODE:
         int i;
-        NDEB(svdump(end));
         if (!MY_CXT.ends) MY_CXT.ends = newAV();
+        NDEB(svdump(MY_CXT.ends));
         if (PL_initav)
             for (i = 0; i <= av_len(PL_initav); i++) {
                 SV **cv = av_fetch(PL_initav, i, 0);
