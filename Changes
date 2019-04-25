@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.32 - 25 April 2019
  - Test up to 5.26.3, 5.28.3 and  5.29.10
  - Get dev environment working on MacOS
  - Fix up tests with recent Math::BigInt versions (Ed J) (github 219)
