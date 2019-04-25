@@ -1493,7 +1493,7 @@ In this example, Devel::Cover will be operating in silent mode.
                        "/Devel/Cover\b")
  +ignore RE          - Append to regular expressions of files to ignore
  -inc path           - Set prefixes of files to include (default @INC)
- +inc path           - Append to prefixes of files regular expressionsto include
+ +inc path           - Append to prefixes of files to include
  -loose_perms val    - Use loose permissions on all files and directories in
                        the coverage db so that code changing EUID can still
                        write coverage information (default off)
