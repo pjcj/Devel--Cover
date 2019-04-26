@@ -168,8 +168,12 @@ sub mb_test_command {
     my $builder = File::Spec->catfile(File::Spec->curdir, "Build");
     my $test = "$builder test";
     if ($Options->{gcov}) {
-        my $o = gcov_args();
-        $test .= qq{ "--extra_compiler_flags=-O0 $o" "--extra_linker_flags=$o"};
+        my $c = my $l = gcov_args();
+        if (my $params = do './_build/build_params') {
+            $c = join(' ', @{$params->[-1]{extra_compiler_flags} || []}, $c);
+            $l = join(' ', @{$params->[-1]{extra_linker_flags} || []}, $c);
+        }
+        $test .= qq{ --extra_compiler_flags="-O0 $c" --extra_linker_flags="$l"};
     }
     $test
 }
