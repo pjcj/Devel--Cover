@@ -147,8 +147,10 @@ main() {
             cpm install --workers="$($0 nice_cpus)" --global                \
                 Dist::Zilla
             plenv rehash
-            cpm install --workers="$($0 nice_cpus)" --global                \
-                "$(dzil authordeps --missing)"
+            dzil authordeps --missing | \
+                xargs cpm install --workers="$($0 nice_cpus)" --global
+            dzil listdeps --missing | \
+                xargs cpm install --workers="$($0 nice_cpus)" --global
             ;;
         nice_cpus)
             perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus \
