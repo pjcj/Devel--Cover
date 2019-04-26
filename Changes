@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+Release 1.33 - 26 April 2019
  - Fix pod error (Mohammad S Anwar) (github 240)
  - Work with cperl where class is a keyword (Reini Urban) (github 238)
  - Restore correct behaviour on merging DBs (Daniel Egeberg) (github 232)
