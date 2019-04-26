@@ -2,6 +2,7 @@ Devel::Cover history
 
 {{$NEXT}}
  - Fix pod error (Mohammad S Anwar) (github 240)
+ - Work with cperl where class is a keyword (Reini Urban) (github 238)
 
 Release 1.32 - 25 April 2019
  - Test up to 5.26.3, 5.28.3 and  5.29.10
