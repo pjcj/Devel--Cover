@@ -1,7 +1,0 @@
-#!/bin/sh
-
-cpan App:cpanminus < /dev/null
-cpanm Template Perl::Tidy Pod::Coverage Test::Differences Browser::Open \
-      Moose Moo DBM::Deep Readonly Dist::Zilla B::Debug
-dzil authordeps | cpanm
-dzil listdeps | cpanm
