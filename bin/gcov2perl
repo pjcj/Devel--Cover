@@ -55,7 +55,7 @@ sub add_cover {
     $structure->add_criteria("statement");
     $structure->add_criteria("branch");
 
-    my $statement_re = qr/^\s*([-0-9#]+):\s*(\d+):(.*)/;
+    my $statement_re = qr/^\s*([-0-9#]+\*?):\s*(\d+):(.*)/;
     my $branch_re    = qr/^branch\s+(\d+)\s+(?:taken|never)\s+(\w+)/;
 
     my ($line, $text);
