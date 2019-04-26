@@ -203,7 +203,8 @@ sub main {
         }
     } @{$Options->{report}} ];
 
-    exit 1 if !@{$Options->{report}} && !$Options->{delete};
+    exit 1 if !@{$Options->{report}} &&
+              !$Options->{delete} && !exists $Options->{write};
 
     $Options->{annotations} = [];
     for my $a (@{$Options->{annotation}}) {
