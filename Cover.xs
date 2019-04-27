@@ -88,7 +88,8 @@ typedef struct {
 #endif
                  *modules,
                  *files;
-    AV           *ends;
+    AV           *ends,
+                 *module_cvs;
     char          profiling_key[KEY_SZ];
     bool          profiling_key_valid;
     SV           *module,
@@ -1402,18 +1403,25 @@ PROTOTYPES: DISABLE
 
 void
 postponed(filename)
-	SV *filename
+        SV *filename
     PREINIT:
         dMY_CXT;
     PPCODE:
         if (PL_eval_root) {
-            PerlIO_printf(Perl_debug_log,
+            PDEB(D(L,
                 "*** PL_eval_root=%p CX_CUR()->blk_eval.cv=%p filename=%" SVf "\n",
                 (void *) PL_eval_root,
                 (void *) CX_CUR()->blk_eval.cv,
-                SVfARG(filename));
-            sv_dump((SV *) CX_CUR()->blk_eval.cv);
-            op_dump(PL_eval_root);
+                SVfARG(filename)));
+            PDEB(sv_dump((SV *) CX_CUR()->blk_eval.cv));
+            PDEB(op_dump(PL_eval_root));
+
+            if (!MY_CXT.module_cvs) MY_CXT.module_cvs = newAV();
+            SV *cv = (SV *)CX_CUR()->blk_eval.cv;
+            SvREFCNT_inc(cv);
+            av_push(MY_CXT.module_cvs, cv);
+            av_push(MY_CXT.module_cvs, PL_eval_root);
+            PDEB(D(L, "Added %p\n", (void *)cv));
         }
 
 MODULE = Devel::Cover PACKAGE = Devel::Cover
@@ -1602,6 +1610,16 @@ get_ends()
     CODE:
         if (!MY_CXT.ends) MY_CXT.ends = newAV();  /* TODO: how? */
             RETVAL = MY_CXT.ends;
+    OUTPUT:
+        RETVAL
+
+B::AV
+get_module_cvs()
+    PREINIT:
+        dMY_CXT;
+    CODE:
+        if (!MY_CXT.module_cvs) MY_CXT.module_cvs = newAV();
+            RETVAL = MY_CXT.module_cvs;
     OUTPUT:
         RETVAL
 

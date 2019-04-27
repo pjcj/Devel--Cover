@@ -33,6 +33,8 @@ use Config;
 use Cwd qw( abs_path getcwd );
 use File::Spec;
 
+use Carp::Always;
+
 use Devel::Cover::Dumper;
 use Devel::Cover::Util "remove_contained_paths";
 
@@ -615,25 +617,36 @@ sub B::GV::find_cv {
 
 sub sub_info {
     my ($cv) = @_;
+    warn "sub_info: ", $cv;
     my ($name, $start) = ("--unknown--", 0);
-    my $gv = $cv->GV;
-    if ($gv && !$gv->isa("B::SPECIAL")) {
-        return unless $gv->can("SAFENAME");
-        $name = $gv->SAFENAME;
-        # print STDERR "--[$name]--\n";
-        $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
+    if ($cv->can("GV")) {
+        my $gv = $cv->GV;
+        warn "gv ", $gv;
+        if ($gv && !$gv->isa("B::SPECIAL")) {
+            return unless $gv->can("SAFENAME");
+            $name = $gv->SAFENAME;
+            print STDERR "--[$name]--\n";
+            $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
+        }
     }
-    my $root = $cv->ROOT;
+    # my $root = $cv->ROOT;
+    my $root = $cv;
     if ($root->can("first")) {
         my $lineseq = $root->first;
+        warn "lineseq ", $lineseq;
         if ($lineseq->can("first")) {
             # normal case
             $start = $lineseq->first;
+            warn "start: ", $start;
         } elsif ($lineseq->name eq "nextstate") {
             # completely empty sub - sub empty { }
             $start = $lineseq;
         }
+    } else {
+        warn "No first";
+        # $self->deparse($cv);
     }
+    # $start |= $cv->START;
     ($name, $start)
 }
 
@@ -734,6 +747,7 @@ sub _report {
     check_files();
 
     unless ($Subs_only) {
+=for p
         get_cover(main_cv, main_root);
         get_cover_progress("BEGIN block",
             B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ());
@@ -744,9 +758,21 @@ sub _report {
         # get_ends includes INIT blocks
         get_cover_progress("END/INIT block",
             get_ends()->isa("B::AV") ? get_ends()->ARRAY : ());
+=cut
+        warn "======================================== modules start";
+        my @mcvs =get_module_cvs()->isa("B::AV") ? get_module_cvs()->ARRAY : ();
+        while (@mcvs) {
+            my $cv   = shift @mcvs;
+            my $root = shift @mcvs;
+            bless $root, "B::UNOP";
+            get_cover($root, $root);
+        }
+        # get_cover($_)
+            # for get_module_cvs()->isa("B::AV") ? get_module_cvs()->ARRAY : ();
+        warn "======================================== modules end";
     }
     # print STDERR "--- @Cvs\n";
-    get_cover_progress("CV", @Cvs);
+    # get_cover_progress("CV", @Cvs);
 
     my %files;
     $files{$_}++ for keys %{$Run{count}}, keys %{$Run{vec}};
@@ -1135,7 +1161,7 @@ sub get_cover {
 
     ($Sub_name, my $start) = sub_info($cv);
 
-    # warn "get_cover: <$Sub_name>\n";
+    warn "get_cover: <$Sub_name> <$start>\n";
     return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK
     # return unless length  $Sub_name;  # Only happens with Self_cover, AFAIK
 
@@ -1166,7 +1192,7 @@ sub get_cover {
         }
     }
 
-    if ($Pod && $Coverage{pod}) {
+    if ($Pod && $Coverage{pod} && $cv->can("GV")) {
         my $gv = $cv->GV;
         if ($gv && !$gv->isa("B::SPECIAL")) {
             my $stash = $gv->STASH;
