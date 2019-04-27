@@ -3,15 +3,9 @@ use warnings;
 
 use Test::More;
 
-if ($] < 5.010000) {
-    plan skip_all => "Perl version $] is not supported";
-} if ($] == 5.015006) {
-    plan skip_all => "5.15.6 throws too many erroneous warnings";
-} else {
-    require Devel::Cover;
-    Devel::Cover->import(qw( -silent 1 ));
-    plan tests => 5;
-}
+require Devel::Cover;
+Devel::Cover->import(qw( -silent 1 ));
+plan tests => 5;
 
 Devel::Cover::set_coverage("none");
 is Devel::Cover::get_coverage(),

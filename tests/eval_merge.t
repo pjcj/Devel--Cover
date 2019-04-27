@@ -12,27 +12,11 @@ use warnings;
 
 use Devel::Cover::Test;
 
-# print "QQQ\n";
-
-if ($] == 5.008007) {
-    eval "use Test::More skip_all => 'Crashes 5.8.7'";
-    exit;
-}
-
-# print "RRR\n";
-
 my $run_test = sub {
     my $test = shift;
-
-    # print "UUU\n";
-
     $test->{test_file_parameters} = "0";
     $test->run_command($test->test_command);
-
-    # print "VVV\n";
-
     $test->{test_parameters} .= " -merge 1";
-
     $test->{test_file_parameters} = "1";
     $test->run_command($test->test_command);
 };
@@ -48,11 +32,7 @@ my $test = Devel::Cover::Test->new(
     tests       => sub { $_[0] - $runs * 6 },  # number of lines deleted above
 );
 
-# print "SSS\n";
-
 $test->run_test;
-
-# print "TTT\n";
 
 no warnings;
 $test  # for create_gold

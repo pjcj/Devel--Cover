@@ -14,11 +14,6 @@ use File::Copy;
 
 use Devel::Cover::Test;
 
-if ($] == 5.008007) {
-    eval "use Test::More skip_all => 'Crashes 5.8.7'";
-    exit;
-}
-
 my $t  = "change";
 my $ft = "./tests/$t";
 my $fg = "./tests/trivial";

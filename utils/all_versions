@@ -97,10 +97,6 @@ sub _mods {
         JSON::MaybeXS
     );
 
-    push @mods, "Algorithm::C3" if     $n =~ /^5\.8\.9\b/;
-    push @mods, "Moose"         unless $n =~ /^5\.8\.[012]\b/;
-    push @mods, "Moo"           unless $n =~ /^5\.8\.[012]\b/;
-    push @mods, "DBM::Deep"     unless $n =~ /^5\.8\.[01234]\b/;
     push @mods, "Perl::Tidy"    if !$s ||   $s % 2;
     push @mods, "PPI::HTML"     if !$s || !($s % 2);
 

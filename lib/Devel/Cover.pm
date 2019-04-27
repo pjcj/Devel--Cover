@@ -111,47 +111,6 @@ BEGIN {
               ($ENV{PERL5OPT}              || "") =~ /Devel::Cover/;
     *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 
-    if ($] < 5.010000 && !$ENV{DEVEL_COVER_UNSUPPORTED}) {
-        my $v = $] < 5.008001 ? "1.22" : "1.23";
-        print <<EOM;
-
-================================================================================
-
-                                   IMPORTANT
-                                   ---------
-
-Devel::Cover $VERSION is not supported on perl $].  The last version of
-Devel::Cover which was supported was version $v.  This version may not work.
-I have not tested it.  If it does work it will not be fully functional.
-
-If you decide to use it anyway, you are on your own.  If it works at all, there
-will be some constructs for which coverage will not be collected, and you may
-well encounter bugs which have been fixed in subsequent versions of perl.
-EOM
-
-        print <<EOM if $^O eq "MSWin32";
-
-And things are even worse under Windows.  You may well find random bugs of
-various severities.
-EOM
-        print <<EOM;
-
-If you are actually using this version of Devel::Cover with perl $], please let
-me know.  I don't want to know if you are just testing Devel::Cover, only if you
-are seriously using this version to do code coverage analysis of real code.  If
-I get no reports of such usage then I will remove support and delete the
-workarounds for versions of perl below 5.10.0.
-
-In order to use this version of Devel::Cover with perl $] you must set the
-environment variable \$DEVEL_COVER_UNSUPPORTED
-
-================================================================================
-
-EOM
-
-        die "Exiting";
-    }
-
     if ($^X =~ /(apache2|httpd)$/) {
         # mod_perl < 2.0.8
         @Inc = @Devel::Cover::Inc::Inc;
@@ -717,8 +676,7 @@ sub check_files {
     # subs in some modules don't seem to be around when we get to looking at
     # them.  I'm not sure why this is, and it seems to me that this hack could
     # affect the order of destruction, but I've not seen any problems.  Yet.
-    # object_2svref doesn't exist before 5.8.1.
-    @Subs = map $_->object_2svref, @Cvs if $] >= 5.008001;
+    @Subs = map $_->object_2svref, @Cvs;
 }
 
 my %Seen;
@@ -1402,20 +1360,10 @@ reported.
 
 =item * Perl 5.10.0 or greater.
 
-Perl versions 5.6.1, 5.6.2 and 5.8.x may work to an extent but are unsupported.
-Perl 5.8.7 has problems and may crash.
-
-If you want to use an unsupported version you will need to set the environment
-variable $DEVEL_COVER_UNSUPPORTED.  Unsupported versions are also untested.  I
-will consider patches for unsupported versions only if they do not compromise
-the code.  This is a vague, nebulous concept that I will decide on if and when
-necessary.
-
-If you are using an unsupported version, please let me know.  I don't want to
-know if you are just testing Devel::Cover, only if you are seriously using it to
-do code coverage analysis of real code.  If I get no reports of such usage then
-I will remove support and delete the workarounds for versions of perl below
-5.10.0.  I may do that anyway.
+The latest version of Devel::Cover on which Perl 5.8 was supported was 1.23.
+Perl versions 5.6.1 and 5.6.2 were not supported after version 1.22.  Perl
+versions 5.6.0 and earlier were never supported.  Using Devel::Cover with Perl
+5.8.7 was always problematic and frequently lead to crashes.
 
 Different versions of perl may give slightly different results due to changes
 in the op tree.
@@ -1433,6 +1381,14 @@ that the appropriate tools are installed.
 Both are in the core in Perl 5.8.0 and above.
 
 =back
+
+=head2 REQUIRED MODULES
+
+=over
+
+=item * L<B::Debug>
+
+This was core before Perl 5.30.0.
 
 =head2 OPTIONAL MODULES
 
