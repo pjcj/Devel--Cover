@@ -1408,20 +1408,17 @@ postponed(filename)
         dMY_CXT;
     PPCODE:
         if (PL_eval_root) {
-            PDEB(D(L,
+            NDEB(D(L,
                 "*** PL_eval_root=%p CX_CUR()->blk_eval.cv=%p filename=%" SVf "\n",
                 (void *) PL_eval_root,
                 (void *) CX_CUR()->blk_eval.cv,
                 SVfARG(filename)));
-            PDEB(sv_dump((SV *) CX_CUR()->blk_eval.cv));
-            PDEB(op_dump(PL_eval_root));
+            NDEB(sv_dump((SV *) CX_CUR()->blk_eval.cv));
+            NDEB(op_dump(PL_eval_root));
 
             if (!MY_CXT.module_cvs) MY_CXT.module_cvs = newAV();
-            SV *cv = (SV *)CX_CUR()->blk_eval.cv;
-            SvREFCNT_inc(cv);
-            av_push(MY_CXT.module_cvs, cv);
+            SvREFCNT_inc(PL_eval_root);
             av_push(MY_CXT.module_cvs, PL_eval_root);
-            PDEB(D(L, "Added %p\n", (void *)cv));
         }
 
 MODULE = Devel::Cover PACKAGE = Devel::Cover

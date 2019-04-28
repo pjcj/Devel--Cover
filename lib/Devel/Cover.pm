@@ -33,8 +33,6 @@ use Config;
 use Cwd qw( abs_path getcwd );
 use File::Spec;
 
-use Carp::Always;
-
 use Devel::Cover::Dumper;
 use Devel::Cover::Util "remove_contained_paths";
 
@@ -617,36 +615,29 @@ sub B::GV::find_cv {
 
 sub sub_info {
     my ($cv) = @_;
-    warn "sub_info: ", $cv;
     my ($name, $start) = ("--unknown--", 0);
-    if ($cv->can("GV")) {
-        my $gv = $cv->GV;
-        warn "gv ", $gv;
-        if ($gv && !$gv->isa("B::SPECIAL")) {
-            return unless $gv->can("SAFENAME");
-            $name = $gv->SAFENAME;
-            print STDERR "--[$name]--\n";
-            $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
+    if ($cv) {
+        if ($cv->can("GV")) {
+            my $gv = $cv->GV;
+            if ($gv && !$gv->isa("B::SPECIAL")) {
+                return unless $gv->can("SAFENAME");
+                $name = $gv->SAFENAME;
+                # print STDERR "--[$name]--\n";
+                $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
+            }
+        }
+        my $root = $cv->ROOT;
+        if ($root->can("first")) {
+            my $lineseq = $root->first;
+            if ($lineseq->can("first")) {
+                # normal case
+                $start = $lineseq->first;
+            } elsif ($lineseq->name eq "nextstate") {
+                # completely empty sub - sub empty { }
+                $start = $lineseq;
+            }
         }
     }
-    # my $root = $cv->ROOT;
-    my $root = $cv;
-    if ($root->can("first")) {
-        my $lineseq = $root->first;
-        warn "lineseq ", $lineseq;
-        if ($lineseq->can("first")) {
-            # normal case
-            $start = $lineseq->first;
-            warn "start: ", $start;
-        } elsif ($lineseq->name eq "nextstate") {
-            # completely empty sub - sub empty { }
-            $start = $lineseq;
-        }
-    } else {
-        warn "No first";
-        # $self->deparse($cv);
-    }
-    # $start |= $cv->START;
     ($name, $start)
 }
 
@@ -747,39 +738,28 @@ sub _report {
     check_files();
 
     unless ($Subs_only) {
-=for p
         get_cover(main_cv, main_root);
-        get_cover_progress("BEGIN block",
+        get_cover_cv_progress("BEGIN block",
             B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ());
         if (exists &B::check_av) {
-            get_cover_progress("CHECK block",
+            get_cover_cv_progress("CHECK block",
                 B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ());
         }
-        # get_ends includes INIT blocks
-        get_cover_progress("END/INIT block",
+        get_cover_cv_progress("INIT/END block",
             get_ends()->isa("B::AV") ? get_ends()->ARRAY : ());
-=cut
-        warn "======================================== modules start";
         my @mcvs =get_module_cvs()->isa("B::AV") ? get_module_cvs()->ARRAY : ();
-        while (@mcvs) {
-            my $cv   = shift @mcvs;
-            my $root = shift @mcvs;
-            bless $root, "B::UNOP";
-            get_cover($root, $root);
-        }
-        # get_cover($_)
-            # for get_module_cvs()->isa("B::AV") ? get_module_cvs()->ARRAY : ();
-        warn "======================================== modules end";
+        _report_progress(
+            "getting module statements coverage",
+            sub { get_cover(0, shift->first) },
+            map { bless $_, "B::UNOP" } @mcvs
+        );
     }
-    # print STDERR "--- @Cvs\n";
-    # get_cover_progress("CV", @Cvs);
+    get_cover_cv_progress("module subroutines", @Cvs);
 
     my %files;
     $files{$_}++ for keys %{$Run{count}}, keys %{$Run{vec}};
     for my $file (sort keys %files) {
-        # print STDERR "looking at $file\n";
         unless (use_file($file)) {
-            # print STDERR "deleting $file\n";
             delete $Run{count}->{$file};
             delete $Run{vec}  ->{$file};
             $Structure->delete_file($file);
@@ -999,7 +979,7 @@ sub deparse {
 
         my $name = $op->can("name") ? $op->name : "Unknown";
 
-        # print STDERR "$class:$name ($$op) at $File:$Line\n";
+        # printf STDERR "$class:$name ($$op, %x) at $File:$Line\n", $$op;
         # print STDERR "[$Seen{statement}{$$op}] [$Seen{other}{$$op}]\n";
         # use Carp "cluck"; cluck("from here");
 
@@ -1024,7 +1004,7 @@ sub deparse {
         # Get the coverage on this op
 
         if ($class eq "COP" && $Coverage{statement}) {
-            # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
+            # print STDERR "COP $$op, $class:$name seen [$Seen{statement}{$$op}]\n";
             my $nnnext = "";
             eval {
                 my $next   = $op->next;
@@ -1158,23 +1138,27 @@ sub get_cover {
     my $deparse = B::Deparse->new;
 
     my $cv = $deparse->{curcv} = shift;
+    # use Devel::Peek;
+    # print STDERR "get_cover: "; Dump($cv);
 
     ($Sub_name, my $start) = sub_info($cv);
 
-    warn "get_cover: <$Sub_name> <$start>\n";
+    # warn "get_cover: <$Sub_name> <$start>\n";
     return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK
     # return unless length  $Sub_name;  # Only happens with Self_cover, AFAIK
 
-    get_location($start) if $start;
-    # print STDERR "[[$File:$Line]]\n";
-    # return unless length $File;
-    return if length $File && !use_file($File);
+    if ($cv) {
+        get_location($start) if $start;
+        # print STDERR "[[$File:$Line]]\n";
+        # return unless length $File;
+        return if length $File && !use_file($File);
 
-    return if !$Self_cover_run && $File =~ /Devel\/Cover/;
-    return if  $Self_cover_run && $File !~ /Devel\/Cover/;
-    return if  $Self_cover_run &&
-               $File =~ /Devel\/Cover\.pm$/ &&
-               $Sub_name eq "import";
+        return if !$Self_cover_run && $File =~ /Devel\/Cover/;
+        return if  $Self_cover_run && $File !~ /Devel\/Cover/;
+        return if  $Self_cover_run &&
+                $File =~ /Devel\/Cover\.pm$/ &&
+                $Sub_name eq "import";
+    }
 
     # printf STDERR "getting cover for $Sub_name ($start), %x\n", $$cv;
 
@@ -1192,7 +1176,7 @@ sub get_cover {
         }
     }
 
-    if ($Pod && $Coverage{pod} && $cv->can("GV")) {
+    if ($Pod && $Coverage{pod} && $cv && $cv->can("GV")) {
         my $gv = $cv->GV;
         if ($gv && !$gv->isa("B::SPECIAL")) {
             my $stash = $gv->STASH;
@@ -1266,26 +1250,27 @@ sub _report_progress {
         $code->($_) for @items;
         return;
     }
-    my $tot = @items || 1;
-    my $prog = sub {
-        my ($n) = @_;
-        print OUT "\r" . __PACKAGE__ . ": " . int(100 * $n / $tot) . "% ";
-    };
     my ($old_pipe, $n, $start) = ($|, 0, time);
     $|++;
-    print OUT __PACKAGE__, ": $msg\n";
+    my $tot  = @items || 1;
+    my $len  = length $tot;
+    my $tmpl = __PACKAGE__ . ": $msg - %-${len}d/%-${len}d = %-3d%% - %ds";
+    my $out  = sub {
+        my ($n) = @_;
+        printf OUT "\r$tmpl", $n, $tot, $n / $tot * 100, time - $start;
+    };
+    $out->($n);
     for (@items) {
-        $prog->($n++);
         $code->($_);
+        $out->($n++);
     }
-    $prog->($n || 1);
-    print OUT "- " . (time - $start) . "s taken\n";
+    $out->($n || 1); print OUT "\n";
     $| = $old_pipe;
 }
 
-sub get_cover_progress {
+sub get_cover_cv_progress {
     my ($type, @cvs) = @_;
-    _report_progress("getting $type coverage", sub { get_cover($_) }, @cvs);
+    _report_progress("getting $type coverage", sub { get_cover(shift) }, @cvs);
 }
 
 "
