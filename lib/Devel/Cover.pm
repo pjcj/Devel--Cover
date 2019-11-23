@@ -329,7 +329,7 @@ sub import {
 
     if ($blib) {
         eval "use blib";
-        for (@INC) { $_ = $1 if /(.*)/ }  # Die tainting
+        for (@INC) { $_ = $1 if ref $_ ne 'CODE' && /(.*)/ }  # Die tainting
         push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
     }
 
