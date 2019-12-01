@@ -2,6 +2,7 @@ Devel::Cover history
 
 {{$NEXT}}
  - Minimum supported version is now 5.10.0 (Karen Etheridge) (github 226)
+ - Don't chdir when given a -dir flag (Dave Rolsky) (github 253)
 
 Release 1.33 - 26 April 2019
  - Fix pod error (Mohammad S Anwar) (github 240)

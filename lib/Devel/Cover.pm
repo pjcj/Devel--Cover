@@ -342,11 +342,11 @@ sub import {
 
     if (defined $Dir) {
         $Dir = $1 if $Dir =~ /(.*)/;  # Die tainting
-        chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
     } else {
         $Dir = $1 if Cwd::getcwd() =~ /(.*)/;
     }
 
+    $DB = File::Spec->catdir($Dir, $DB);
     unless (mkdir $DB) {
         die "Can't mkdir $DB: $!" unless -d $DB;
     }
