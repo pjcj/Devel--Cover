@@ -19,7 +19,7 @@ use Test::More;
 
 use Devel::Cover::Inc;
 
-my $LATEST_RELEASED_PERL = 28;
+my $LATEST_RELEASED_PERL = 30;
 my %TEST2VERSIONOVERRIDE = (
     bigint => \&_default_version_override,
 );
