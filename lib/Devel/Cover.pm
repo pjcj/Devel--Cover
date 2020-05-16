@@ -611,7 +611,7 @@ sub B::GV::find_cv {
         $Cvs{$_} ||= $_
           for grep ref eq "B::CV" && check_file($_), $cv->PADLIST->ARRAY->ARRAY;
     }
-};
+}
 
 sub sub_info {
     my ($cv) = @_;
