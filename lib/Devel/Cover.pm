@@ -623,7 +623,7 @@ sub sub_info {
         # print STDERR "--[$name]--\n";
         $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
     }
-    my $op = sub { my ($t, $o) = @_; print "$t\n"; $o->debug };
+    # my $op = sub { my ($t, $o) = @_; print "$t\n"; $o->debug };
     my $root = $cv->ROOT;
     # $op->(root => $root);
     if ($root->can("first")) {
