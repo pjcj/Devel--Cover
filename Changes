@@ -2,6 +2,7 @@ Devel::Cover history
 
 {{$NEXT}}
  - Minimum supported version is now 5.10.0 (Karen Etheridge) (GH-226)
+ - Support 5.32 by accomodating signauture changes (GH-260)
 
 Release 1.33 - 26 April 2019
  - Fix pod error (Mohammad S Anwar) (GH-240)
