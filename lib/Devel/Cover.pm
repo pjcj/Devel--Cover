@@ -532,10 +532,10 @@ sub get_location {
 }
 
 my $find_filename = qr/
-  (?:^\(eval\s \d+\)\[(.+):\d+\])      |
-  (?:^\(eval\sin\s\w+\)\s(.+))         |
-  (?:\(defined\sat\s(.+)\sline\s\d+\)) |
-  (?:\[from\s(.+)\sline\s\d+\])
+    (?:^\(eval\s \d+\)\[(.+):\d+\])      |
+    (?:^\(eval\sin\s\w+\)\s(.+))         |
+    (?:\(defined\sat\s(.+)\sline\s\d+\)) |
+    (?:\[from\s(.+)\sline\s\d+\])
 /x;
 
 sub use_file {
