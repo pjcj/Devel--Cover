@@ -623,12 +623,26 @@ sub sub_info {
         # print STDERR "--[$name]--\n";
         $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
     }
+    my $op = sub { my ($t, $o) = @_; print "$t\n"; $o->debug };
     my $root = $cv->ROOT;
+    # $op->(root => $root);
     if ($root->can("first")) {
         my $lineseq = $root->first;
+        # $op->(lineseq => $lineseq);
         if ($lineseq->can("first")) {
             # normal case
             $start = $lineseq->first;
+            # $op->(start => $start);
+            # signatures
+            if ($start->name eq "null" && $start->can("first")) {
+                my $lineseq2 = $start->first;
+                # $op->(lineseq2 => $lineseq2);
+                if ($lineseq2->name eq "lineseq" && $lineseq2->can("first")) {
+                    my $cop = $lineseq2->first;
+                    # $op->(cop => $cop);
+                    $start = $cop if $cop->name eq "nextstate";
+                }
+            }
         } elsif ($lineseq->name eq "nextstate") {
             # completely empty sub - sub empty { }
             $start = $lineseq;
