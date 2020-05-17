@@ -94,16 +94,16 @@ my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
                        scalar|return|last|next|redo|goto)$/x;
                                          # constant ops
 
-use vars '$File',                        # Last filename we saw.  (localised)
-         '$Line',                        # Last line number we saw.  (localised)
-         '$Collect',                     # Whether or not we are collecting
+our $File;                               # Last filename we saw.  (localised)
+our $Line;                               # Last line number we saw.  (localised)
+our $Collect;                            # Whether or not we are collecting
                                          # coverage data.  We make two passes
                                          # over conditions.  (localised)
-         '%Files',                       # Whether we are interested in files
+our %Files;                              # Whether we are interested in files
                                          # Used in runops function
-         '$Replace_ops',                 # Whether we are replacing ops
-         '$Silent',                      # Output nothing. Can be used anywhere
-         '$Self_cover';                  # Coverage of Devel::Cover
+our $Replace_ops;                        # Whether we are replacing ops
+our $Silent;                             # Output nothing. Can be used anywhere
+our $Self_cover;                         # Coverage of Devel::Cover
 
 BEGIN {
     ($File, $Line, $Collect) = ("", 0, 1);
