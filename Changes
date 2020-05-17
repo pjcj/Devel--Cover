@@ -6,18 +6,18 @@ Devel::Cover history
  - Don't chdir when given a -dir flag (Dave Rolsky) (GH-253)
  - Manage code references in @INC (Slaven Rezić) (GH-249, GH-250)
 
-Release 1.34 - 16 May 2020
+1.34 - 16 May 2020
  - Minimum supported version is now 5.10.0 (Karen Etheridge) (GH-226)
  - Support 5.32 by accomodating signauture changes (GH-260)
 
-Release 1.33 - 26 April 2019
+1.33 - 26 April 2019
  - Fix pod error (Mohammad S Anwar) (GH-240)
  - Work with cperl where class is a keyword (Reini Urban) (GH-238)
  - Restore correct behaviour on merging DBs (Daniel Egeberg) (GH-232)
  - Fix gcov output being on incorrect lines
  - Fix cover -test with Build.PL (Dagfinn Ilmari Mannsåker) (GH-241)
 
-Release 1.32 - 25 April 2019
+1.32 - 25 April 2019
  - Test up to 5.26.3, 5.28.3 and  5.29.10
  - Get dev environment working on MacOS
  - Fix up tests with recent Math::BigInt versions (Ed J) (GH-219)
@@ -26,12 +26,12 @@ Release 1.32 - 25 April 2019
  - Fix indentation in pod (Graham Knop) (GH-229)
  - Fix warn precedence (Alexandr Evstigneev) (GH-231)
 
-Release 1.31 - 18 September 2018
+1.31 - 18 September 2018
  - Add queue for cpancover (Joel Berger)
  - Handle circular refs (Ed J) (GH-164, GH-216)
  - Allow for $DEVEL_COVER_TEST_OPTS to be unset (Dick Franks) (GH-217)
 
-Release 1.30 - 14 July 2018
+1.30 - 14 July 2018
  - Fix incorrect merging of structure (Emiliya Boyadjieva) (GH-199)
  - Fix up compiler warnings (Jens Rehsack) (GH-211)
  - Test against 5.28.0, 5.29.0 and some other versions
@@ -41,15 +41,15 @@ Release 1.30 - 14 July 2018
  - Add docs for coverage of modules on command line (Slaven Rezić) (GH-204)
  - Ignore .AppleDouble files (David Cantrell) (GH-200)
 
-Release 1.29 - 15 October 2017
+1.29 - 15 October 2017
  - Lock using read and append mode (Stephan Loyd) (GH-196)
  - Clean up lock files when running cover command
 
-Release 1.28 - 5 October 2017
+1.28 - 5 October 2017
  - Fix typo in docs (Gregor Herrmann) (GH-195)
  - Fix up options to cover program (GH-194)
 
-Release 1.27 - 20 September 2017
+1.27 - 20 September 2017
  - Test against 5.27.3
  - Add dependency on B::Debug (Ryan Voots) (GH-189)
  - Remove obsolete dev and cpancover code
@@ -64,14 +64,14 @@ Release 1.27 - 20 September 2017
  - Add -prefer_lib option to cover script (Kent Fredric) (GH-91)
  - Fix low-level file locking (Graham Knop) (GH-90)
 
-Release 1.26 - 24 July 2017
+1.26 - 24 July 2017
  - Untaint $DEVEL_COVER_OPTIONS (Alexey Sokolov) (GH-187)
  - Add loose_perms option (Todd Rinaldo) (GH-185)
  - Set EXTENDED_TESTING during cpancover runs
  - Improve version parsing for cpancover (Helmut Wollmersdorfer) (GH-124)
  - Improve cpancover code and documentation
 
-Release 1.25 - 11 May 2017
+1.25 - 11 May 2017
  - Fix C code to work with MSVC (Marc-Philip) (GH-177)
  - Fix cover command using Module::Build on Win32 (sago35) (GH-160)
  - Add file and line info to keep ops unique (Niko Tyni) (GH-143)
@@ -81,75 +81,75 @@ Release 1.25 - 11 May 2017
  - Use JSON::MaybeXS for sppen and flexibility (Olivier Mengué) (GH-139)
  - Add CONTRIBUTING file (Gabor Szabó) (GH-100)
 
-Release 1.24 - 18 April 2017
+1.24 - 18 April 2017
  - Work with 5.25.x (op_sibling) (Dan Collins, Matthew Horsfall) (GH-162)
  - Perl versions below 5.10.0 are now unsupported
 
-Release 1.23 - 24 April 2016
+1.23 - 24 April 2016
  - Enhance html coverage popups (Haydn Newport) (GH-156)
  - Add cpancover about page (Guillermo O. Freschi) (GH-146)
  - Perl versions below 5.8.1 are now unsupported
 
-Release 1.22 - 9 April 2016
+1.22 - 9 April 2016
  - Test against 5.20.3, 5.23.1 - 5.23.9, 5.22.1
  - Improve uncoverable docs (Alex Balhatchet) (GH-148)
  - Improve cpancover
 
-Release 1.21 - 20 September 2015
+1.21 - 20 September 2015
  - Test more versions on travis
  - Fix things up with cpancover for new docker release
  - Fix problem under 5.22 (Dick Franks) (GH-140)
 
-Release 1.20 - 6 July 2015
+1.20 - 6 July 2015
  - Document setting PerlSwitches for mod_perl (jpsalvesen) (GH-128)
 
-Release 1.19 - 5 July 2015
+1.19 - 5 July 2015
  - Get things working with 5.22.0
  - Test against 5.23.0
  - Remove dependency on Test::Warn
 
-Release 1.18 - 6 April 2015
+1.18 - 6 April 2015
  - Remove dependency on CGI (use HTML::Entities instead) (Lee Johnson)
  - Fix a use of the wrong type of null constant (Zefram) (RT-103102)
  - Link to next uncovered statement in html_basic (H.Merijn Brand) (GH-112)
  - Add "provides" to metadata (Ivan Wills) (GH-119)
 
-Release 1.17 - 20 September 2014
+1.17 - 20 September 2014
  - Get cpancover to release quality
  - Add IRC link to META
  - Test against 5.20.1, 5.21.1, 5.21.2, 5.21.3 and 5.21.4
  - Officially support 5.20.1
 
-Release 1.16 - 17 August 2014
+1.16 - 17 August 2014
  - Fix segfault in 5.20.0
  - Improvements to cpancover
  - Fix vim report to work with recent versions (cono) (GH-94)
  - Ignore vim swap files in git (Gábor Szabó) (GH-95)
  - Improve help for cover command (Gábor Szabó) (GH-96)
 
-Release 1.15 - 1 June 2014
+1.15 - 1 June 2014
  - Allow -coverage default,-pod option to cover (David Cantrell) (GH-89)
  - Get cpancover coverage in docker containers
  - Add CGI.pm as a prerequisite
  - Test against 5.20.0 and 5.21.0
  - Add longer delay in tests to try to appease *BSD
 
-Release 1.14 - 2 May 2014
+1.14 - 2 May 2014
  - Fix test failures on OpenBSD, NetBSD and Windows
 
-Release 1.13 - 28 April 2014
+1.13 - 28 April 2014
  - Test against 5.19.11
  - Fix "use 5.xyz;" on pre 5.10 perls (GH-87)
  - Round percentages down in summary and reports (also fixes Windows tests)
 
-Release 1.12 - 17 April 2014
+1.12 - 17 April 2014
  - Fix test failure on OSX, FreeBSD and HPUX (thanks H.Merijn Brand)
 
-Release 1.11 - 13 April 2014
+1.11 - 13 April 2014
  - Tests should pass when all run in parallel (Kent Fredric) (GH-69)
  - Fix problems with using Sereal as DB format
 
-Release 1.10 - 6 April 2014
+1.10 - 6 April 2014
  - Test against 5.19.10
  - Add Sereal backend and use it if available
  - Support spaces in DB path (Keith Wissing) (GH-81)
@@ -158,7 +158,7 @@ Release 1.10 - 6 April 2014
  - Fix deep recursion with use overload (Matthew Horsfall) (GH-78, GH-79)
  - Improve testing process
 
-Release 1.09 - 15 March 2014
+1.09 - 15 March 2014
  - Add Contributors file
  - Test against 5.19.4 - 5.19.9
  - Officially support 5.18.2
@@ -166,38 +166,38 @@ Release 1.09 - 15 March 2014
    (Matthew Horsfall) (RT-90591, GH-75, GH-80)
  - Fix tab expansion in HTML report (H.Merijn Brand) (GH-83)
 
-Release 1.08 - 24 August 2013
+1.08 - 24 August 2013
  - Don't test against 5.17.x development releases
  - Don't test against 5.19.2 and 5.19.3 which have a bug which causes tests to
    fail
  - Perl 5.18 is more picky about POD encodings (Gregor Herrmann) (RT-88027)
  - Numerous typo fixes (David Steinbrunner) (GH-67)
 
-Release 1.07 - 22 August 2013
+1.07 - 22 August 2013
  - Improve -coverage options, fix -ignore_re for .gcov files (Steve Sanbeg)
    (GH-53)
  - Work around B::CV::GV regression in 5.18.1
  - Officially support 5.18.1
  - Test against 5.19.1, 5.19.2 and 5.19.3
 
-Release 1.06 - 17 July 2013
+1.06 - 17 July 2013
  - More DEVEL_COVER_NO_TESTS changes for p5cover
 
-Release 1.05 - 17 July 2013
+1.05 - 17 July 2013
  - Quieten some deparse warnings
  - Fix errors in write_csv (Jim Keenan) (GH-64)
  - Fix error in -inc/+inc docs and pod formatting (Olaf Alders) (GH-65)
  - Add DEVEL_COVER_NO_TESTS option to not run any tests during p5cover
 
-Release 1.04 - 1 June 2013
+1.04 - 1 June 2013
  - Fix return code from cover (Kan Fushihara) (guthub 61)
  - Fix pod coverage for multiple packages in a file. (RT-34888)
  - Speed improvements
 
-Release 1.03 - 20 May 2013
+1.03 - 20 May 2013
  - Fixes for correct operation with 5.17.11, 5.18.0 and 5.19.0
 
-Release 1.02 - 28 April 2013
+1.02 - 28 April 2013
  - Make -silent even quieter (Sergiy Borodych) (guthub 49)
  - mod_perl2 on Debian sets $^X to apache2 (Lasse Makholm) (GH-47)
  - Add csv file for use with metacpan (Dinis Rebolo) (GH-56)
@@ -205,26 +205,26 @@ Release 1.02 - 28 April 2013
    (GH-57, GH-58)
  - Quieten a warning (Jim Keenan) (GH-59)
 
-Release 1.01 - 30 March 2013
+1.01 - 30 March 2013
  - Test against 5.14.4, 5.16.3, 5.17.8, 5.17.9 and 5.17.10
  - Ignore PERL5OPT during tests.  And other make targets. (RT-43833)
  - &&=, ||= and //= operators now require RHS to be true and false
  - Fix some "uninitialized value" warnings
 
-Release 1.00 - 10 February 2013
+1.00 - 10 February 2013
  - Fix segv in constant folding of xor ops (GH-40)
  - Fix various problems running Devel::Cover under tainting (GH-41)
  - Add JavaScript to filter results in html_basic (David Cantrell) (GH-42)
    Use -norestrict option to keep previous behaviour
  - Document ability to mark code as uncoverable (GH-45)
 
-Release 0.99 - 31 December 2012
+0.99 - 31 December 2012
  - Improve documentation (Olaf Alders) (GH-34)
  - Thank Bytemark for the cpancover server
  - Test against 5.17.7
  - Provide coverage for subs removed from the symbol table (RT-13207)
 
-Release 0.98 - 25 November 2012
+0.98 - 25 November 2012
  - Fix links on html_basic report
  - Fix setting Inc under taint mode (Guillaume Aubert) (GH-26, GH-33)
  - Test against 5.17.6
@@ -233,18 +233,18 @@ Release 0.98 - 25 November 2012
  - Run cpancover with 5.16.2
  - Prefer bugs on github rather than RT
 
-Release 0.97 - 10 November 2012
+0.97 - 10 November 2012
  - Filter paths contained in CWD out of @Inc (Christian Walde) (GH-32)
  - Test against 5.12.5, 5.14.3, 5.16.2, and 5.17.5
  - Improve parallelism for cpancover
 
-Release 0.96 - 24 September 2012
+0.96 - 24 September 2012
  - JSON:PP should have been JSON::PP (Paul Hirst) (GH-28)
  - Correct when some new tests should be skipped
  - Quieten some debugging output
  - Fix infinite loop during global destruction (GH-29)
 
-Release 0.95 - 22 September 2012
+0.95 - 22 September 2012
  - Fix loss of condition coverage data when first operand calls into ignored
    file (Celogeek, Christian Walde) (RT-63090, GH-15, GH-20)
  - Fix similar problem with branch coverage (Robert Freimuth) (RT-72027)
@@ -252,12 +252,12 @@ Release 0.95 - 22 September 2012
    (RT-63698)
  - Test against 5.17.4
 
-Release 0.94 - 18 September 2012
+0.94 - 18 September 2012
  - Officially support 5.16.1
  - Manage mod_perl2 setting $^X to httpd
  - Make changes to support 5.17.3
 
-Release 0.93 - 4 August 2012
+0.93 - 4 August 2012
  - Fix up start and finish times in text report
  - Make summary cover report respect options given
  - Make vim report respect specified criteria (RT-38258)
@@ -269,61 +269,61 @@ Release 0.93 - 4 August 2012
  - Time coverage is no use in the vim report
  - Keep descriptions to a single line
 
-Release 0.92 - 17 July 2012
+0.92 - 17 July 2012
  - Fix inc directories when working with local::lib (Olivier Mengué) (GH-25)
 
-Release 0.91 - 15th July 2012
+0.91 - 15th July 2012
  - Generate inc directories at runtime (RT-68991, RT-76528, RT-66881, RT-37349)
  - Get the tests running again on Windows
 
-Release 0.90 - 13th July 2012
+0.90 - 13th July 2012
  - Fix cover -test on Windows (Christian Walde) (GH-24, RT-75565)
  - Better document coverage options (GH-23)
  - Run in directories containing spaces (RT-62423)
  - Add moose_constraint test (RT-57173)
 
-Release 0.89 - 15th June 2012
+0.89 - 15th June 2012
  - Fix POD syntax error (gregor herrmann <gregoa@debian.org>) (RT-77599)
  - Handle RE metachars in build directory (RT-75633, RT-77598)
      (dcoupal@cisco.com & Niko Tyni <ntyni@debian.org>)
  - Return to starting directory after cover report (John Lightsey) (RT-61515)
  - Relax permissions on DB directories (GH-22)
 
-Release 0.88 - 8th June 2012
+0.88 - 8th June 2012
  - Add -launch option to open report in appropriate viewer (Stephen Thirlwall)
  - Move ignored filename list into DB module (RT-77163, GH-12)
  - Don't complain about Mouse accessors (RT-71680)
  - Turn off $^W when calling B::Deparse (fixes PERLRT-113464)
  - Update cpancover
 
-Release 0.87 - 21st May 2012
+0.87 - 21st May 2012
  - Major documentation overhaul (Pau Amma)
  - Cleanup Data::Dumper usage (localise settings) (Olivier Mengué) (RT-76531)
  - Ignore more generated filenames - Moose and Template Toolkit
  - Improve results for chained logical operators
  - Officially support 5.16.0
 
-Release 0.86 - 9th April 2012
+0.86 - 9th April 2012
  - Add all coverage criteria to the Vim report
 
-Release 0.85 - 1st April 2012
+0.85 - 1st April 2012
  - Add customisable thresholds to HTML reports (Xavier Caron)
  - Improve Vim report
 
-Release 0.84 - 31th March 2012
+0.84 - 31th March 2012
  - Add Vim report (based on discussion with Tatsuhiko Miyagawa)
 
-Release 0.83 - 30th March 2012
+0.83 - 30th March 2012
  - Prefer JSON::XS for faster operation (Audrey Tang (唐鳳))
  - Rework testing framework (Xavier Caron)
 
-Release 0.82 - 19th March 2012
+0.82 - 19th March 2012
  - Do not distribute MYMETA.json (Olivier Mengué) (RT-75883)
 
-Release 0.81 - 18th March 2012
+0.81 - 18th March 2012
  - Fix up dzil release process
 
-Release 0.80 - 18th March 2012
+0.80 - 18th March 2012
  - Don't be so noisy with Moose code
  - Move to Dist:Zilla (Christian Walde)
  - Test against 5.14.2 and 5.15.2 - 5.15.8
@@ -336,14 +336,14 @@ Release 0.80 - 18th March 2012
  - Add travis config file
  - Add word "Warning" to MD5 digest message
 
-Release 0.79 - 5th August 2011
+0.79 - 5th August 2011
  - Test against 5.12.4, 5.14.1, 5.15.0 and 5.15.1
  - Fix inc_sub test failures dependant on whether JSON:PP was installed
 
-Release 0.78 - 17th May 2011
+0.78 - 17th May 2011
  - Fix up test quoting to work with Windows too
 
-Release 0.77 - 15th May 2011
+0.77 - 15th May 2011
  - Fix cover -test covering all the test files (Larry Leszczynski) (RT-65920)
  - Add DEVEL_COVER_IO_OPTIONS environment variable
  - Sort runs by start time
@@ -355,7 +355,7 @@ Release 0.77 - 15th May 2011
    from lib and sometimes from blib. (RT-14192, RT-32465, RT-45737)
  - Add branch coverage for gcov (RT-30365)
 
-Release 0.76 - 18th April 2011
+0.76 - 18th April 2011
  - Move CHANGES file into root for search.cpan.org (RT-67541)
  - Add top level version subroutine (requested by H.Merijn Brand)
  - Add DEVEL_COVER_DB_FORMAT environment variable
@@ -364,10 +364,10 @@ Release 0.76 - 18th April 2011
  - Remove leftovers from PERL_OBJECT (Florian Ragwitz)
  - Recommend 5.8.8 and above - 5.8.7 is crashing so skip some tests there
 
-Release 0.75 - 17th April 2011
+0.75 - 17th April 2011
  - Write database as JSON if JSON::PP is available
 
-Release 0.74 - 16th April 2011
+0.74 - 16th April 2011
  - Test against 5.12.3 and code frozen 5.14.0 (unreleased)
  - Fix tests to work with all releases of 5.13.x (RT-64210, RT-60901)
  - Avoid race condition writing DB structure files (Nicholas Clark)
@@ -375,11 +375,11 @@ Release 0.74 - 16th April 2011
  - Be more careful deleting DB structure files (Nicholas Clark)
  - Get cover -test to honour the db passed in
 
-Release 0.73 - 2nd October 2010
+0.73 - 2nd October 2010
  - Tidy up Makefile.PL and META.yml
  - Get coverage working with Windows again
 
-Release 0.72 - 27th September 2010
+0.72 - 27th September 2010
  - Teach cpancover how to work in parallel
  - Improve speed of check_file() (Goro Fuji)
  - Fix errors with non-existent directories on Cygwin (Goro Fuji)
@@ -388,16 +388,16 @@ Release 0.72 - 27th September 2010
  - New dependency on Test::Warn
  - New dependency on Parallel::Iterator for cpancover
 
-Release 0.71 - 10th September 2010
+0.71 - 10th September 2010
  - Improve running of Devel::Cover on itself
  - Fix occasional parallel test failures
  - Test against 5.12.2
 
-Release 0.70 - 29th August 2010
+0.70 - 29th August 2010
  - Get Devel::Cover working better on itself
  - Distribution should now pass on 5.13.* development releases
 
-Release 0.69 - 28th August 2010
+0.69 - 28th August 2010
  - Correctly report on C<my $x = $y || return> and other shortcuts
  - Put end to end tests in t/e2e
  - Add test for regexp eval fail (Florian Ragwitz)
@@ -406,16 +406,16 @@ Release 0.69 - 28th August 2010
  - Test against 5.13.* development releases
  - We now require Test::More to run the tests
 
-Release 0.68 - 5th August 2010
+0.68 - 5th August 2010
  - Fix gcov2perl to work with large numbers (Thomas Dorner) (RT-45028)
  - Fix "gcov -l" include files (Thomas Dorner) (RT-44864)
  - Test against 5.12.1
  - Gross workaround for for regexp evals (Florian Ragwitz)
 
-Release 0.67 - 8th May 2010
+0.67 - 8th May 2010
  - Fix up the Makefile for dmake on Strawberry Perl (Curtis Jewell) (RT-50774)
 
-Release 0.66 - 12th April 2010
+0.66 - 12th April 2010
  - Move to faster method of collecting data.  Could be up to twice as fast now
  - Add -replace_ops options to be able to revert to previous collection method
  - Test against 5.12.0 and update tests as necessary
@@ -424,26 +424,26 @@ Release 0.66 - 12th April 2010
    (Florian Ragwitz)
  - Don't chmod created directories (mkdir should suffice)
 
-Release 0.65 - 8th August 2009
+0.65 - 8th August 2009
  - Fix uninitialised value warning (reported by Andrew Billeb)
  - Test against 5.8.9 and 5.10.1 (RC1)
  - Correct deparsed conditional output in elsif conditions
  - Unset PERL5OPT when running tests
 
-Release 0.64 - 10th April 2008
+0.64 - 10th April 2008
  - Build on Windows
  - Make "cover -test" work for Module::Build (Michael G Schwern) (RT-34263)
  - Make "cover -test" cover .[ch] files (Michael G Schwern) (RT-34262)
  - Make "cover -gcov" a valid option (Michael G Schwern) (RT-34261)
 
-Release 0.63 - 16th November 2007
+0.63 - 16th November 2007
  - require 5.006001 might stop CPAN testers trying to test with 5.005
  - store_return() should be a void function (H.Merijn Brand)
  - Finish dor support
  - Add support for exec (Brandon Black)
  - Tested against 5.10 (RC1)
 
-Release 0.62 - 5th November 2007
+0.62 - 5th November 2007
  - Add table sorting to Html_basic report (Nathan Haigh)
  - Assume heredocs are constants
  - Don't add 0x200 to $^P ("file" names for evals) (Fix for Template::Declare)
@@ -460,13 +460,13 @@ Release 0.62 - 5th November 2007
  - Don't resolve pathnames of symbolic links (Stefan Becker)
  - Spelling nits (James E Keenan)
 
-Release 0.61 - 10th January 2007
+0.61 - 10th January 2007
  - Fix some "ignored" errors due to multiple subs of the same name on the same
    line (RT-14192)
  - Display pod coverage with subroutine coverage in text report
  - Update golden output (tests were failing in 0.60)
 
-Release 0.60 - 2nd January 2007
+0.60 - 2nd January 2007
  - Simplify get_key function and remove TODO item (Gisle Aas)
  - Be careful with UNC paths on Windows (John LoVerso) (RT-24105)
  - Only call HvSHAREKEYS_off if threading is enabled
@@ -480,20 +480,20 @@ Release 0.60 - 2nd January 2007
  - Use outputfile for both cover and cpancover
  - Add compilation report (Denis Howe)
 
-Release 0.59 - 23rd August 2006
+0.59 - 23rd August 2006
  - Tidy up HTML, especially for cpancover
  - Allow coverage of subroutine statements in a different file (as with Mason)
    (clkao)
  - Bump refcount on subs to ensure they stay around for us to look at them
    (yes, this is a hack)
 
-Release 0.58 - 6th August 2006
+0.58 - 6th August 2006
  - Be more clever about void context and so avoid SvROK hack
  - Document some bugs, limitations and requirements
  - HTML alignment fix (Sébastien Aperghis-Tramoni)
  - CSS improvements for HTML reports (Sébastien Aperghis-Tramoni)
 
-Release 0.57 - 3rd August 2006
+0.57 - 3rd August 2006
  - Report Pod::Coverage load failure (dom - happygiraffe.net) (RT-14425)
  - Use Perl::Tidy as an alternative syntax highlighter
    (Sébastien Aperghis-Tramoni)
@@ -502,7 +502,7 @@ Release 0.57 - 3rd August 2006
    (Sébastien Aperghis-Tramoni)
  - subs_only option to only show coverage for subs (Nicholas Clark)
 
-Release 0.56 - 1st August 2006
+0.56 - 1st August 2006
  - gcov2perl creates db if necessary (Steve Peters) (RT-13536)
  - Properly merge identical files (Jeff Wren) (RT-12410)
  - Allow line achors in html_basic (Mark Stosberg) (RT-13615)
@@ -528,13 +528,13 @@ Release 0.56 - 1st August 2006
    format to stdout (clkao)
  - Add and update overload tests
 
-Release 0.55 - 22nd September 2005
+0.55 - 22nd September 2005
  - Add -gcov option to cover and make it default when using gcc
  - Remolve unused File::Find from cpancover
  - Document how to get XS coverage in gcov2perl
  - Improvements to SVK annotation (Chia-liang Kao)
 
-Release 0.54 - 13th September 2005
+0.54 - 13th September 2005
  - Make html_basic prettier
  - Fix pod coverage percentages
  - Fix integer <-> pointer conversion warnings (Robin Barker)
@@ -551,7 +551,7 @@ Release 0.54 - 13th September 2005
  - Partial solution for structure problems including debugging code
  - Add outputfile option to Html_basic
 
-Release 0.53 - 17th April 2005
+0.53 - 17th April 2005
  - Clean up database directories
  - Allow require File::Spec->catfile('t', 'common.pl'); (from an example by
    Randy W. Sims)
@@ -563,29 +563,29 @@ Release 0.53 - 17th April 2005
  - Allow Test::Differences output to be displayed usefully
  - Test against perl-5.9.3
 
-Release 0.52 - 13th December 2004
+0.52 - 13th December 2004
  - Fix thread locking bug (Ruslan Zakirov)
  - Make valgrind happy
  - Fix gcov2perl (Steve Peters)
  - Restore failure message to CLONE
 
-Release 0.51 - 29th November 2004
+0.51 - 29th November 2004
  - Handle $y || undef
  - Small branch coverage fix
  - Improve reporting of uncoverable constructs in html reports
  - Test against perl-5.8.6
  - Recommend at least perl-5.8.2
 
-Release 0.50 - 25th October 2004
+0.50 - 25th October 2004
  - Add -test option to cover
  - Fix missing coverage when calling a sub in an ignored module
  - Add module_ignore test
  - Add uncoverable options to cover
 
-Release 0.49 - 6th October 2004
+0.49 - 6th October 2004
  - Compile on Win32 (and elsewhere) (Steve Hay)
 
-Release 0.48 - 5th October 2004
+0.48 - 5th October 2004
  - Working towards thread safety
  - Test against perl-5.8.5
  - Store perl version number in Inc.pm and complain if it doesn't match
@@ -602,11 +602,11 @@ Release 0.48 - 5th October 2004
  - Fix problems with references in INC (which can't be handled)
  - Fixes for mod_perl (Vadim O. Ustiansky)
 
-Release 0.47 - 27th June 2004
+0.47 - 27th June 2004
  - Provide subroutine coverage for empty subs - sub empty { }
  - Only override B::Deparse subs whilst using them and add deparse test
 
-Release 0.46 - 23rd June 2004
+0.46 - 23rd June 2004
  - Don't lose data merging DBs
  - Work with Safe.pm, by not covering it
  - Swap Profiling_op for Profiling_key to avoid accessing freed memory
@@ -614,13 +614,13 @@ Release 0.46 - 23rd June 2004
  - Fully cover conditions and branches when the condition calls a sub in
    an ignored file
 
-Release 0.45 - 27th May 2004
+0.45 - 27th May 2004
  - Cope with spaces in build path on Windows (Max Maischein)
  - Allow Devel::Cover to be used under mod_perl (Philippe M. Chiasson)
  - Handle $x ||= 1 and friends nicely, including subs and *foo{THING}
  - Allow uncoverable code to be specified.  (Unfinished)
 
-Release 0.44 - 18th May 2004
+0.44 - 18th May 2004
  - Fix get_elapsed, although its result is not used yet
  - Recommend 5.8.1 as a minimum
  - Replace run Makefile target with text and html
@@ -628,7 +628,7 @@ Release 0.44 - 18th May 2004
  - Fail gracefully when covering a threaded program
  - Add DEVEL_COVER_OPTIONS environment variable
 
-Release 0.43 - 2nd May 2004
+0.43 - 2nd May 2004
  - Add +ignore and +select options, and change meaning of -ignore and
    -select options.  This is an interface change
  - Ignore coverage on Devel::Cover's files by default
@@ -637,12 +637,12 @@ Release 0.43 - 2nd May 2004
  - Add a message in Makefile.PL recommending against using Devel::Cover
    on 5.6, especially under Windows
 
-Release 0.42 - 30th April 2004
+0.42 - 30th April 2004
  - Add SYNOPSIS section to README
  - Resolve links for Devel::Cover::Inc (Dave Rolsky)
  - Get things running on Windows again
 
-Release 0.41 - 29th April 2004
+0.41 - 29th April 2004
  - Correct time coverage percentages
  - Collect data for BEGIN, CHECK, INIT and END blocks in the main
    program, and INIT and END blocks in modules
@@ -656,21 +656,21 @@ Release 0.41 - 29th April 2004
  - Get cpancover running again with the DB changes
  - Normalise filenames
 
-Release 0.40 - 24th March 2004
+0.40 - 24th March 2004
  - Remove DB structure for unwanted files
  - Identify ops based on address and OP contents, except for op_ppaddr,
    which we modify
  - Overhaul of coverage collection
  - Additions to tests
 
-Release 0.39 - 22nd March 2004
+0.39 - 22nd March 2004
  - Major database rework to store runs
  - Add Devel::Cover::DB::Structure.pm
  - Check for Test::Differences in Makefile.PL
  - Test with perl5.9.2
  - Skip fork test on MSWin32
 
-Release 0.38 - 12th March 2004
+0.38 - 12th March 2004
  - Allow coverage summary title to be changed (David Wheeler)
  - More care generating pod golden results
  - Small Devel::Cover::Op output fix
@@ -679,18 +679,18 @@ Release 0.38 - 12th March 2004
  - Provide summary output to one decimal place
  - Update gcov2perl
 
-Release 0.37 - 10th March 2004
+0.37 - 10th March 2004
  - Fix up pod test golden results
  - Add limitation documentation (Michael Carman)
 
-Release 0.36 - 9th March 2004
+0.36 - 9th March 2004
  - Add fork test
  - Remove debugging code from md5 test
  - Remove runs after merging - code was commented out for debugging
  - Don't merge runs during coverage collection
  - Delete database at start if not merging to cope with forking
 
-Release 0.35 - 8th March 2004
+0.35 - 8th March 2004
  - Change Text2 to pick up version changes
  - Minor documentation updates
  - Minor changes to Devel::Cover::Op
@@ -710,11 +710,11 @@ Release 0.35 - 8th March 2004
  - Documentation updates (Andy Lester)
  - Document the mechanism by which files are selected for coverage
 
-Release 0.34 - 14th January 2004
+0.34 - 14th January 2004
  - Fix various warnings and errors that had crept in whilst working on
    dynamic subs
 
-Release 0.33 - 13th January 2004
+0.33 - 13th January 2004
  - Get things working on paths with spaces in them
  - Documentation clarifications (Andy Lester)
  - Fix coverage for simple if, elsif and unless conditionals
@@ -725,7 +725,7 @@ Release 0.33 - 13th January 2004
  - Fix and document Devel::Cover::Op
  - Redo subroutine coverage so anon subs are covered correctly in 5.6.x
 
-Release 0.32 - 4th January 2004
+0.32 - 4th January 2004
  - Actually include do test
  - Create run concept in database
  - Belatedly remove check for Template
@@ -735,13 +735,13 @@ Release 0.32 - 4th January 2004
  - Add all_versions utility script
  - Put /usr/bin/perl on all shebang lines
 
-Release 0.31 - 22nd December 2003
+0.31 - 22nd December 2003
  - Remove debugging output.  Hmmm
 
-Release 0.30 - 22nd December 2003
+0.30 - 22nd December 2003
  - Get things working under Windows
 
-Release 0.29 - 19th December 2003
+0.29 - 19th December 2003
  - Merge data from files with identical MD5 checksums (Arthur Bergman)
  - Add do test
  - Handle $x || return
@@ -752,7 +752,7 @@ Release 0.29 - 19th December 2003
  - Make 5.6.x builds a bit quieter
  - Clean up time routines in XS code
 
-Release 0.28 - 1st December 2003
+0.28 - 1st December 2003
  - Remove leading whitespace from HTML templates (Gabor Szabó)
  - Remove obsolete indent option
  - Add MD5 checksums (Michael Carman)
@@ -762,36 +762,36 @@ Release 0.28 - 1st December 2003
  - Specify the output directory for HTML
  - Search up directory trees for modules
 
-Release 0.27 - 9th November 2003
+0.27 - 9th November 2003
  - Behave sensibly if import() is not called, for example when MakeMaker does a
    PREREQ_PM check
  - Use Storable for the database instead of Data::Dumper/eval (Michael Carman)
 
-Release 0.26 - 12th October 2003
+0.26 - 12th October 2003
  - Decline to output HTML results for conditions containing > 16 terms
  - Add titles to HTML output
 
-Release 0.25 - 10th October 2003
+0.25 - 10th October 2003
  - Fix for perl 5.6.1.  Cwd::abs_path($d) gets upset if $d doesn't exist
  - Start of some changes to cpancover HTML
 
-Release 0.24 - 10th October 2003
+0.24 - 10th October 2003
  - Paths in Devel::Cover::Inc in single quotes for Windows platforms
  - Add -dir option and default it to cwd
  - Ignore test.pl in cpancover
  - Display pod coverage in cpancover
 
-Release 0.23 - 6th September 2003
+0.23 - 6th September 2003
  - Report condition coverage for branches on the same line as the branch
  - Add subroutine coverage
  - Made "all" coverage value work and made it the default
 
-Release 0.22 - 2nd September 2003
+0.22 - 2nd September 2003
  - Rewrite runops function
      - First line of DESTROY blocks and overload subs not now skipped
  - Add some more tests
 
-Release 0.21 - 1st September 2003
+0.21 - 1st September 2003
  - Add cpancover
  - Handle $x || next and friends
  - Add html_subtle and text2 backends (Michael Carman)
@@ -804,15 +804,15 @@ Release 0.21 - 1st September 2003
  - Provide golden results for different Perl versions
  - Change some B::Deparse logic to mirror changes in 5.8.1/5.10
 
-Release 0.20 - 5th October 2002
+0.20 - 5th October 2002
  - Add break after default to satisfy IBM's xlC compiler on AIX
  - Get things working with threads again
  - make realclean is
 
-Release 0.19 - 29th September 2002
+0.19 - 29th September 2002
  - Quieten uninitialised value warnings
 
-Release 0.18 - 28th September 2002
+0.18 - 28th September 2002
  - Redo the way condition coverage is gathered - abuse op_ppaddr
  - Put or conditions the right way round
  - Allow for subclasses of coverage types
@@ -824,17 +824,17 @@ Release 0.18 - 28th September 2002
  - "use" all conditions in Criterion.pm, and nowhere else
  - Add support for xor, ||= and &&=
 
-Release 0.17 - 15th September 2002
+0.17 - 15th September 2002
  - Call check_files() in report() to ensure we pick up anything added to the
    symbol table while the program was running
 
-Release 0.16 - 9th September 2002
+0.16 - 9th September 2002
  - Get rid of some uninitialised warnings
  - Inline the HTML templates
  - Rebless the op after blessing it as a COP
  - Make branch coverage line numbers more accurate
 
-Release 0.15 - 5th September 2002
+0.15 - 5th September 2002
  - Reinstate coverage of subs in main:: which got lost somewhere (0.11?)
  - Bug fixes for use of uninitialised values
  - Automatically generate tests.  Well, their infrastructure anyway
@@ -852,15 +852,15 @@ Release 0.15 - 5th September 2002
  - Abstract away cover backends
  - Use TT for HTML output
 
-Release 0.14 - 28th February 2002
+0.14 - 28th February 2002
  - Add a workaround for an AUTOLOAD bug in bleadperl
  - Add gcov2perl program to convert gcov files to Devel::Cover databases
  - Get rid of // comments in xs file
 
-Release 0.13 - 14th October 2001
+0.13 - 14th October 2001
  - Forgot to allow for lack of Pod::Coverage in Devel::Cover::Pod.pm
 
-Release 0.12 - 14th October 2001
+0.12 - 14th October 2001
  - Improve pod coverage by considering private subs
  - Add time coverage, aka profiling
  - Add:
@@ -868,7 +868,7 @@ Release 0.12 - 14th October 2001
      Devel::Cover::Time.pm
  - Abstract summary and percentage calculations to appropriate classes
 
-Release 0.11 - 10th September 2001
+0.11 - 10th September 2001
  - Add pod coverage based on Pod::Coverage.pm
  - Put a full API on the database
  - Add:
@@ -878,21 +878,21 @@ Release 0.11 - 10th September 2001
      Devel::Cover::Pod.pm
  - Some improvements to the cover program
 
-Release 0.10 - 27th August 2001
+0.10 - 27th August 2001
  - Add cover program to generate reports
 
-Release 0.09 - 18th August 2001
+0.09 - 18th August 2001
  - Beef up Devel::Cover::DB
 
-Release 0.08 - 18th August 2001
+0.08 - 18th August 2001
  - Provide better handling of files to report on or ignore
      Makefile.PL generates Inc.pm containing default @INC
      added +inc, -ignore and -select
 
-Release 0.07 - 17th August 2001
+0.07 - 17th August 2001
  - Add an API to Devel::Cover::DB
 
-Release 0.06 - 10th August 2001
+0.06 - 10th August 2001
  - Rename Devel::Cover::Process to Devel::Cover::DB
  - Make the database a directory
  - Add fix for eval in filename. (Arthur Bergman <arthur@contiller.se>)
@@ -900,21 +900,21 @@ Release 0.06 - 10th August 2001
  - Clear @Inc if it is set explicitly
  - Trim filename length in detailed output
 
-Release 0.05 - 9th August 2001
+0.05 - 9th August 2001
  - Make line numbers more accurate when nextstate has been optimised away
  - Get things working with ithreads
 
-Release 0.04 - 12th April 2001
+0.04 - 12th April 2001
  - Include Devel::Cover::Op
  - Add condition coverage (sort of)
 
-Release 0.03 - 10th April 2001
+0.03 - 10th April 2001
  - Add detailed output
  - Add -d option to turn it on
 
-Release 0.02 - 10th April 2001
+0.02 - 10th April 2001
  - Add summary output
  - Add -S option to turn it off
  - Turn Devel::Cover::Process into a class
 
-Release 0.01 - Initial release - 9th April 2001
+0.01 - Initial release - 9th April 2001
