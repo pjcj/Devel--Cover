@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.35 - 17 May 2020
  - Replace "use vars" with "our" (James Raspass) (GH-255)
  - Remove tray db file from release
  - Don't chdir when given a -dir flag (Dave Rolsky) (GH-253)
