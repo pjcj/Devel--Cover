@@ -27,3 +27,4 @@ lib/Devel/Cover/Inc.pm$
 MYMETA\.
 tags
 .perl-version
+\.db
