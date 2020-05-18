@@ -1404,6 +1404,8 @@ Both are in the core in Perl 5.8.0 and above.
 
 This was core before Perl 5.30.0.
 
+=back
+
 =head2 OPTIONAL MODULES
 
 =over
