@@ -135,12 +135,13 @@ sub _highlight_perltidy {
     my @all_lines = @_;
     my @coloured = ();
 
+    my ($stderr, $errorfile);
     Perl::Tidy::perltidy(
         source      => \@all_lines,
         destination => \@coloured,
         argv        => '-html -pre -nopod2html',
-        stderr      => '-',
-        errorfile   => '-',
+        stderr      => \$stderr,
+        errorfile   => \$errorfile,
     );
 
     # remove the PRE
