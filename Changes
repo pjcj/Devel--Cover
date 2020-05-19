@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.36 - 19 May 2020
  - Fix pod error
  - Quieten perltidy syntax highlighting errors
  - Fix up minimum perl version (Dick Franks) (GH-268)
