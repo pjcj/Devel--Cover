@@ -3,6 +3,7 @@ Devel::Cover history
 {{$NEXT}}
  - Fix pod error
  - Quieten perltidy syntax highlighting errors
+ - Fix up minimum perl version (Dick Franks) (GH-268)
 
 1.35 - 17 May 2020
  - Replace "use vars" with "our" (James Raspass) (GH-255)
