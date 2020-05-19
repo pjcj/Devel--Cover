@@ -346,7 +346,7 @@ sub import {
         $Dir = $1 if Cwd::getcwd() =~ /(.*)/;
     }
 
-    $DB = File::Spec->catdir($Dir, $DB);
+    $DB = File::Spec->rel2abs($DB, $Dir);
     unless (mkdir $DB) {
         die "Can't mkdir $DB: $!" unless -d $DB;
     }
