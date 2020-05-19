@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fix pod error
  - Quieten perltidy syntax highlighting errors
 
 1.35 - 17 May 2020
