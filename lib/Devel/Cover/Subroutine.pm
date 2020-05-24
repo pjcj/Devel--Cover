@@ -28,11 +28,11 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Statement - Code coverage metrics for Perl
+Devel::Cover::Subroutine - Code coverage metrics for Perl subroutines
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Statement;
+ use Devel::Cover::Subroutine;
 
 =head1 DESCRIPTION
 
