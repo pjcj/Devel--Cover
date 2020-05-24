@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Fix Subroutine module docs (bkerin) (GH-262)
 
 1.36 - 19 May 2020
  - Fix pod error
