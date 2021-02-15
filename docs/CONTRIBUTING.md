@@ -21,6 +21,34 @@ perl -I/path/to/Devel--Cover/lib /path/to/Devel--Cover/bin/cover \
     --test -report html_basic
 ```
 
+## Adding tests
+
+The tests found in the CPAN distribution in `t/e2e` are generated from the
+files in `tests/`.  Such generating then also needs a file in
+`test_output/cover/` to be created using the `create_gold` utility.
+
+Perl internals change between releases and, since Devel::Cover is tightly bound
+with at least the perl optree, Devel::Cover output can vary slightly between
+perl releases.  For this reason some Devel::Cover tests have difference golden
+results depending on the perl version.
+
+A set of perl versions can be created by running the `dc all_versions --build`
+command.  Once this is done golden results for all versions can be created by
+running `make all_gold TEST=circular_ref`.
+
+If you don't have all the perl versions available, and if your new test has the
+same results across all versions, golden results can be created by:
+
+```sh
+# can set vars just once, obviously
+NEWTEST=circular_ref
+make gold TEST=$NEWTEST && \
+  mv test_output/cover/$NEWTEST.* test_output/cover/$NEWTEST.5.010000 && \
+  make test TEST_FILES=t/e2e/a$NEWTEST.t
+```
+
+The `e2e` files get generated from `tests` by `perl Makefile.PL`.
+
 ## HTML report generation
 
 Devel::Cover::Web contains a number of static files that are saved when a
