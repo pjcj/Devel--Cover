@@ -36,6 +36,7 @@ use Data::Dumper ();  # no import of Dumper (use Devel::Cover::Dumper if needed)
 my $Options = {
     add_uncoverable_point    => [],
     annotation               => [],
+    gcov_chdir               => 0,
     coverage                 => [],
     delete                   => undef,
     delete_uncoverable_point => [],
@@ -67,6 +68,7 @@ sub get_options {
                    qw(
                        add_uncoverable_point=s
                        annotation=s
+                       gcov_chdir!
                        clean_uncoverable_points!
                        coverage=s
                        delete!
@@ -301,11 +303,12 @@ sub main {
             return unless -e $graph_file;
             my $gcov_flags = "-abc";
             $gcov_flags .= "r" if $Options->{relative_only};
-            my @c = ("gcov", $gcov_flags, "-o", $File::Find::dir, $name);
+            my @args = $Options->{gcov_chdir} ? () : ("-o", $File::Find::dir);
+            my @c = ("gcov", $gcov_flags, @args, $name);
             print STDERR "cover: running @c\n";
             system @c;
         };
-        File::Find::find({ wanted => $gc, no_chdir => 1 }, ".");
+        File::Find::find({ wanted => $gc, no_chdir => !$Options->{gcov_chdir} }, ".");
         my @gc;
         my $gp = sub {
             return unless /\.gcov$/;
@@ -494,6 +497,7 @@ The following command line options are supported:
  -select_re RE         - append to REs of files to select   (default none)
  -ignore_re RE         - append to REs of files to ignore   (default none)
  -relative_only        - for XS, ignore absolute paths      (default off)
+ -gcov_chdir           - for XS, run gcov in subdirs        (default off)
  -write [db]           - write the merged database          (default off)
  -delete               - drop database(s)                   (default off)
  -dump_db              - dump database(s) (for debugging)   (default off)
@@ -604,7 +608,9 @@ in recent Perl distributions.
 
 The C<-gcov> option will try to run gcov on any XS code.  This requires that
 you are using gcc of course.  If you are using the C<-test> option will be
-turned on by default.
+turned on by default. If you have XS code in subdirectories, you will
+probably need to add the C<-gcov_chdir> option since gcov seems to work
+better with that.
 
 The C<-prefer_lib> option tells Devel::Cover to report on files in the lib
 directory even if they were used from the blib directory.
