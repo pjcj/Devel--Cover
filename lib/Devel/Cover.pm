@@ -973,6 +973,17 @@ BEGIN {
     $Original{deparse}     = \&B::Deparse::deparse;
     $Original{logop}       = \&B::Deparse::logop;
     $Original{logassignop} = \&B::Deparse::logassignop;
+    $Original{const_dumper} = \&B::Deparse::const_dumper;
+}
+
+sub const_dumper {
+    no warnings 'redefine';
+    local *B::Deparse::deparse      = $Original{deparse};
+    local *B::Deparse::logop        = $Original{logop};
+    local *B::Deparse::logassignop  = $Original{logassignop};
+    local *B::Deparse::const_dumper = $Original{const_dumper};
+
+    $Original{const_dumper}->(@_);
 }
 
 sub deparse {
@@ -999,8 +1010,8 @@ sub deparse {
             # print STDERR "Collecting $$op under $File:$Line\n";
             no warnings "redefine";
             my $use_dumper = $class eq 'SVOP' && $name eq 'const';
-            local *B::Deparse::const = \&B::Deparse::const_dumper
-              if $use_dumper;
+            local $self->{use_dumper} = 1
+                if $use_dumper;
             require Data::Dumper if $use_dumper;
             $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
             $deparse =~ s/^\010+//mg if defined $deparse;
@@ -1240,6 +1251,7 @@ sub get_cover {
     local *B::Deparse::deparse     = \&deparse;
     local *B::Deparse::logop       = \&logop;
     local *B::Deparse::logassignop = \&logassignop;
+    local *B::Deparse::const_dumper = \&const_dumper;
 
     my $de = @_ && ref $_[0]
                  ? $deparse->deparse($_[0], 0)
