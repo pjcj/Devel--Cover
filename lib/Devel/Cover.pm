@@ -348,7 +348,8 @@ sub import {
 
     $DB = File::Spec->rel2abs($DB, $Dir);
     unless (mkdir $DB) {
-        die "Can't mkdir $DB: $!" unless -d $DB;
+        my $err = $!;
+        die "Can't mkdir $DB as EUID $>: $err" unless -d $DB;
     }
     chmod 0777, $DB if $Loose_perms;
     $DB = $1 if abs_path($DB) =~ /(.*)/;
