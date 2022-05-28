@@ -1,9 +1,11 @@
+---
 name: Run Tests
 
+# yamllint disable-line rule:truthy
 on:
   push:
     branches:
-      - '**'
+      - "**"
   pull_request:
   workflow_dispatch:
 
@@ -12,24 +14,24 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
-        perl: ['5']
+        os: [ macos-latest, windows-latest ]
+        perl: [ "5" ]
         include:
-          - { os: 'ubuntu-latest', perl: "5.10" }
-          - { os: 'ubuntu-latest', perl: "5.12" }
-          - { os: 'ubuntu-latest', perl: "5.14" }
-          - { os: 'ubuntu-latest', perl: "5.16" }
-          - { os: 'ubuntu-latest', perl: "5.18" }
-          - { os: 'ubuntu-latest', perl: "5.20" }
-          - { os: 'ubuntu-latest', perl: "5.22" }
-          - { os: 'ubuntu-latest', perl: "5.24" }
-          - { os: 'ubuntu-latest', perl: "5.24" , math-bigint: '1.999813' }
-          - { os: 'ubuntu-latest', perl: "5.26" }
-          - { os: 'ubuntu-latest', perl: "5.28" }
-          - { os: 'ubuntu-latest', perl: "5.30" }
-          - { os: 'ubuntu-latest', perl: "5.32" }
-          - { os: 'ubuntu-latest', perl: "5.34" }
-          - { os: 'ubuntu-latest', perl: "5.34" , perl-threaded: true }
+          - { os: "ubuntu-latest", perl: "5.10" }
+          - { os: "ubuntu-latest", perl: "5.12" }
+          - { os: "ubuntu-latest", perl: "5.14" }
+          - { os: "ubuntu-latest", perl: "5.16" }
+          - { os: "ubuntu-latest", perl: "5.18" }
+          - { os: "ubuntu-latest", perl: "5.20" }
+          - { os: "ubuntu-latest", perl: "5.22" }
+          - { os: "ubuntu-latest", perl: "5.24" }
+          - { os: "ubuntu-latest", perl: "5.24", math-bigint: "1.999813" }
+          - { os: "ubuntu-latest", perl: "5.26" }
+          - { os: "ubuntu-latest", perl: "5.28" }
+          - { os: "ubuntu-latest", perl: "5.30" }
+          - { os: "ubuntu-latest", perl: "5.32" }
+          - { os: "ubuntu-latest", perl: "5.34" }
+          - { os: "ubuntu-latest", perl: "5.34", perl-threaded: true }
 
     steps:
       - name: Checkout code
@@ -37,15 +39,15 @@ jobs:
 
       - name: Set up perl
         uses: shogo82148/actions-setup-perl@v1
-        if: matrix.os != 'windows-latest'
+        if: matrix.os != "windows-latest"
         with:
           perl-version: ${{ matrix.perl }}
           multi-thread: ${{ matrix.perl-threaded }}
       - name: Set up perl (Strawberry)
         uses: shogo82148/actions-setup-perl@v1
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == "windows-latest"
         with:
-          distribution: 'strawberry'
+          distribution: "strawberry"
 
       - run: perl -V
 
