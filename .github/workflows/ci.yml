@@ -1,0 +1,95 @@
+---
+name: Run Tests
+
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ macos-latest, windows-latest ]
+        perl: [ "5" ]
+        include:
+          - { os: "ubuntu-latest", perl: "5.10" }
+          - { os: "ubuntu-latest", perl: "5.12" }
+          - { os: "ubuntu-latest", perl: "5.14" }
+          - { os: "ubuntu-latest", perl: "5.16" }
+          - { os: "ubuntu-latest", perl: "5.18" }
+          - { os: "ubuntu-latest", perl: "5.20" }
+          - { os: "ubuntu-latest", perl: "5.22" }
+          - { os: "ubuntu-latest", perl: "5.24" }
+          - { os: "ubuntu-latest", perl: "5.24", math-bigint: "1.999813" }
+          - { os: "ubuntu-latest", perl: "5.26" }
+          - { os: "ubuntu-latest", perl: "5.28" }
+          - { os: "ubuntu-latest", perl: "5.30" }
+          - { os: "ubuntu-latest", perl: "5.32" }
+          - { os: "ubuntu-latest", perl: "5.34" }
+          - { os: "ubuntu-latest", perl: "5.34", perl-threaded: true }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up perl
+        uses: shogo82148/actions-setup-perl@v1
+        if: matrix.os != 'windows-latest'
+        with:
+          perl-version: ${{ matrix.perl }}
+          multi-thread: ${{ matrix.perl-threaded }}
+      - name: Set up perl (Strawberry)
+        uses: shogo82148/actions-setup-perl@v1
+        if: matrix.os == 'windows-latest'
+        with:
+          distribution: "strawberry"
+
+      - run: perl -V
+
+      - name: Install specific version of Math::BigInt
+        if: matrix.math-bigint
+        run: |
+          cpanm --notest Math::BigInt@${{ matrix.math-bigint }}
+
+      - name: Install Perl deps
+        run: |
+          cpanm --notest --installdeps .
+      - name: Install optional Perl deps
+        run: |
+          # for database format
+          cpanm --notest Sereal
+          # for tests
+          cpanm --notest DBM::Deep Readonly Moose
+
+      - name: Install Perl recommend deps
+        run:
+          cpanm --notest
+            Template
+            PPI::HTML
+            Perl::Tidy
+            Pod::Coverage
+            Pod::Coverage::CountParents
+            Parallel::Iterator
+            JSON::MaybeXS
+            Test::Differences
+            Browser::Open
+            Capture::Tiny
+            Class::XSAccessor
+            Moo
+            namespace::clean
+            HTML::Parser
+            Sereal::Decoder
+            Sereal::Encoder
+
+      - name: Install develop deps
+        run: |
+          cpanm --notest --installdeps --with-develop .
+
+      - name: Run tests
+        run:
+          cpanm --verbose --test-only .
