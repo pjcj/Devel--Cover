@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+
+# Copyright 2022, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# __COVER__ skip_test $] < 5.016
+# __COVER__ skip_reason __SUB__ is available from 5.16
+
+use feature "current_sub";
+
+sub recursive_func
+{
+    my ($ref) = @_;
+    return $ref unless ref $ref eq "ARRAY";
+    return __SUB__->($ref->[0]);
+}
+
+recursive_func([[[]]]);
