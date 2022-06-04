@@ -676,6 +676,8 @@ sub check_files {
             $line = $Line;
             # print STDERR "$name - $File:$Line\n";
         }
+        $line = 0  unless defined $line;
+        $name = '' unless defined $name;
         ($line, $name)
     };
 
