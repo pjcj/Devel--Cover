@@ -973,14 +973,14 @@ sub add_condition_cover {
 
 my %Original;
 BEGIN {
-    $Original{deparse}     = \&B::Deparse::deparse;
-    $Original{logop}       = \&B::Deparse::logop;
-    $Original{logassignop} = \&B::Deparse::logassignop;
+    $Original{deparse}      = \&B::Deparse::deparse;
+    $Original{logop}        = \&B::Deparse::logop;
+    $Original{logassignop}  = \&B::Deparse::logassignop;
     $Original{const_dumper} = \&B::Deparse::const_dumper;
 }
 
 sub const_dumper {
-    no warnings 'redefine';
+    no warnings "redefine";
     local *B::Deparse::deparse      = $Original{deparse};
     local *B::Deparse::logop        = $Original{logop};
     local *B::Deparse::logassignop  = $Original{logassignop};
@@ -1012,9 +1012,8 @@ sub deparse {
             local ($File, $Line) = ($File, $Line);
             # print STDERR "Collecting $$op under $File:$Line\n";
             no warnings "redefine";
-            my $use_dumper = $class eq 'SVOP' && $name eq 'const';
-            local $self->{use_dumper} = 1
-                if $use_dumper;
+            my $use_dumper = $class eq "SVOP" && $name eq "const";
+            local $self->{use_dumper} = 1 if $use_dumper;
             require Data::Dumper if $use_dumper;
             $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
             $deparse =~ s/^\010+//mg if defined $deparse;
@@ -1251,9 +1250,9 @@ sub get_cover {
     # print STDERR "<$dd>\n";
 
     no warnings "redefine";
-    local *B::Deparse::deparse     = \&deparse;
-    local *B::Deparse::logop       = \&logop;
-    local *B::Deparse::logassignop = \&logassignop;
+    local *B::Deparse::deparse      = \&deparse;
+    local *B::Deparse::logop        = \&logop;
+    local *B::Deparse::logassignop  = \&logassignop;
     local *B::Deparse::const_dumper = \&const_dumper;
 
     my $de = @_ && ref $_[0]
