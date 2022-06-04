@@ -1,5 +1,5 @@
 Reading database from ...
-Unknown type true found parsing uncoverable condition at tests/uncoverable:45
+Unknown type true found parsing uncoverable condition at tests/uncoverable:52
 2 unmatched uncoverable comments not found at end of tests/uncoverable
 
 
@@ -51,33 +51,55 @@ line  err   stmt   bran   cond    sub   code
 29                                          # uncoverable statement count:2
 30            -0                            b(); b();
               -0                        
-31                                      }
-32                                      
-33                                      sub z {
-34                                          # uncoverable subroutine
-35            -0                   -0       $y++; # uncoverable statement
-36                                      }
+31                                      
+32                                          # uncoverable statement count:1,2
+33            -0                            b(); b();
+              -0                        
+34                                      
+35                                          # uncoverable statement count:1..4
+36            -0                            b(); b(); b(); b();
+              -0                        
+              -0                        
+              -0                        
 37                                      
-38                                      # uncoverable branch false count:1
-39                                      # uncoverable branch true  count:2
-40                                      # uncoverable branch false count:2
-41                                      # uncoverable condition left  count:1
-42                                      # uncoverable condition right count:1
-43                                      # uncoverable condition left  count:2
-44                                      # uncoverable condition right count:2
-45                                      # uncoverable condition true  count:2
-46                                      # uncoverable condition false count:2
-47             1   - 50   - 33          if ($x > 0 && $y > 0) {
+38                                          # uncoverable statement count:1,2,3..4,5..7,8,9,10..11,12
+39            -0                            b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b();
+              -0                        
+              -0                        
+              -0                        
+              -0                        
+              -0                        
+              -0                        
+              -0                        
+              -0                        
+              -0                        
+              -0                        
+              -0                        
+40                                      }
+41                                      
+42                                      sub z {
+43                                          # uncoverable subroutine
+44            -0                   -0       $y++; # uncoverable statement
+45                                      }
+46                                      
+47                                      # uncoverable branch false count:1
+48                                      # uncoverable branch true  count:2
+49                                      # uncoverable branch false count:2
+50                                      # uncoverable condition left  count:1,2
+51                                      # uncoverable condition right count:1..2
+52                                      # uncoverable condition true  count:2
+53                                      # uncoverable condition false count:2
+54             1   - 50   - 33          if ($x > 0 && $y > 0) {
                    -  0   -  0          
-48             1                            $y++;
-49                                      } elsif ($x < 2 && $y < 0) {
-50            -0                            $y++; # uncoverable statement
-51                                      } else {
-52            -0                            $y++; # uncoverable statement
-53                                      }
-54                                      
-55                                      # uncoverable statement
-56                                      # uncoverable subroutine
+55             1                            $y++;
+56                                      } elsif ($x < 2 && $y < 0) {
+57            -0                            $y++; # uncoverable statement
+58                                      } else {
+59            -0                            $y++; # uncoverable statement
+60                                      }
+61                                      
+62                                      # uncoverable statement
+63                                      # uncoverable subroutine
 
 
 Branches
@@ -87,7 +109,7 @@ line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 18          - 50     -0      1   if ($x and not $y)
 27          - 50     -0      1   if (not $x and $y)
-47          - 50      1     -0   if ($x > 0 and $y > 0) { }
+54          - 50      1     -0   if ($x > 0 and $y > 0) { }
             -  0     -0     -0   elsif ($x < 2 and $y < 0) { }
 
 
@@ -100,7 +122,7 @@ line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
 18          - 33     -0      1     -0   $x and not $y
 27          - 33      1     -0     -0   not $x and $y
-47          - 33     -0     -0      1   $x > 0 and $y > 0
+54          - 33     -0     -0      1   $x > 0 and $y > 0
             -  0     -0     -0     -0   $x < 2 and $y < 0
 
 
@@ -109,6 +131,6 @@ Uncovered Subroutines
 
 Subroutine Count Location            
 ---------- ----- --------------------
-z             -0 tests/uncoverable:35
+z             -0 tests/uncoverable:44
 
 
