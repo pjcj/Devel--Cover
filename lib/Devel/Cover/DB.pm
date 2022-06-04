@@ -685,15 +685,16 @@ sub uncoverable_comments {
                 }
             }
             # e.g.: count:1 | count:2,5 | count:1,4..7
-            $count = $1 if $info =~ /count:(\d+(?:\.\.\d+)?(?:,\d+(?:\.\.\d+)?)*)/;
-            my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/, $count;
+            my $c = qr/\d+(?:\.\.\d+)?/;
+            $count = $1 if $info =~ /count:($c(?:,$c)*)/;
+            my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ }
+                split m/,/, $count;
             $class = $1 if $info =~ /class:(\w+)/;
             $note  = $1 if $info =~ /note:(.+)/;
 
-            # no warnings "uninitialized";
-            # warn "pushing $criterion, $count, $type, $class, $note";
-
             for my $c (@counts) {
+                # no warnings "uninitialized";
+                # warn "pushing $criterion, $c - 1, $type, $class, $note";
                 push @waiting, [$criterion, $c - 1, $type, $class, $note];
             }
 
