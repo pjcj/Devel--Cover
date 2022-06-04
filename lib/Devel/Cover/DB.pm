@@ -684,14 +684,19 @@ sub uncoverable_comments {
                     }
                 }
             }
-            $count = $1 if $info =~ /count:(\d+)/;
+            # e.g.: count:1 | count:2,5 | count:1,4..7
+            my $c = qr/\d+(?:\.\.\d+)?/;
+            $count = $1 if $info =~ /count:($c(?:,$c)*)/;
+            my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ }
+                split m/,/, $count;
             $class = $1 if $info =~ /class:(\w+)/;
             $note  = $1 if $info =~ /note:(.+)/;
 
-            # no warnings "uninitialized";
-            # warn "pushing $criterion, $count, $type, $class, $note";
-
-            push @waiting, [$criterion, $count - 1, $type, $class, $note];
+            for my $c (@counts) {
+                # no warnings "uninitialized";
+                # warn "pushing $criterion, $c - 1, $type, $class, $note";
+                push @waiting, [$criterion, $c - 1, $type, $class, $note];
+            }
 
             next unless $code =~ /\S/;
         }

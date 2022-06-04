@@ -28,6 +28,15 @@ if (!$x && $y) {
     # uncoverable statement count:1
     # uncoverable statement count:2
     b(); b();
+
+    # uncoverable statement count:1,2
+    b(); b();
+
+    # uncoverable statement count:1..4
+    b(); b(); b(); b();
+
+    # uncoverable statement count:1,2,3..4,5..7,8,9,10..11,12
+    b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b();
 }
 
 sub z {
@@ -38,10 +47,8 @@ sub z {
 # uncoverable branch false count:1
 # uncoverable branch true  count:2
 # uncoverable branch false count:2
-# uncoverable condition left  count:1
-# uncoverable condition right count:1
-# uncoverable condition left  count:2
-# uncoverable condition right count:2
+# uncoverable condition left  count:1,2
+# uncoverable condition right count:1..2
 # uncoverable condition true  count:2
 # uncoverable condition false count:2
 if ($x > 0 && $y > 0) {
