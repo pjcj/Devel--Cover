@@ -84,6 +84,11 @@ sub add_cover {
             next if $count eq "-";
             $count = 0 if $count eq "#####";
 
+            # Remove asterisk after execution count. Gcov outputs an asterisk
+            # symbol for certain lines as noted at
+            # <https://gcc.gnu.org/onlinedocs/gcc/Invoking-Gcov.html>.
+            $count =~ s/\*$//;
+
             # print "$f:$line - $count\n";
             push @{$run{count}{$f}{statement}}, $count;
             $structure->add_statement($f, $line);
