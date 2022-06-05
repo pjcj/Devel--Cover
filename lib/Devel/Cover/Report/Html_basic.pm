@@ -154,11 +154,10 @@ sub _highlight_perltidy {
 }
 
 sub _highlight {
-    if ($Have_PPI && !$R{options}->{option}->{noppihtml}) {
+    if ($Have_PPI && !$R{options}{option}{noppihtml}) {
         return _highlight_ppi(@_);
-    }
-    else {
-        if ($Have_perltidy && !$R{options}->{option}->{noperltidy}) {
+    } else {
+        if ($Have_perltidy && !$R{options}{option}{noperltidy}) {
             return _highlight_perltidy(@_);
         }
     }
@@ -173,7 +172,7 @@ sub print_file {
     open F, $R{file} or warn("Unable to open $R{file}: $!\n"), return;
     my @all_lines = <F>;
 
-    if (!($R{options}->{option}->{noppihtml} && $R{options}->{option}->{noperltidy})) {
+    if (!($R{options}{option}{noppihtml} && $R{options}{option}{noperltidy})) {
         @all_lines = _highlight(@all_lines) if $Have_highlighter;
     }
 
@@ -837,10 +836,10 @@ highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
 
 The following command line options are supported:
 
- -outputfile           - name of output file              (default coverage.html)
- -restrict             - add restrict to regex form       (default on)
- -noppihtml            - disables PPI::HTML highlighting  (default off)
- -noperltidy           - disables Perl::Tidy highlighting (default off)
+ -outputfile  - name of output file              (default coverage.html)
+ -restrict    - add restrict to regex form       (default on)
+ -noppihtml   - disables PPI::HTML highlighting  (default off)
+ -noperltidy  - disables Perl::Tidy highlighting (default off)
 
 =head1 SEE ALSO
 
