@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.37 - 5 June 2022
  - Fix Subroutine module docs (bkerin) (GH-262)
  - Use github actions instead of travis (Zakariyya Mughal) (GH-291)
  - Improve mkdir error messages (Felipe Gasper) (GH-296)
