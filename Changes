@@ -2,6 +2,16 @@ Devel::Cover history
 
 {{$NEXT}}
  - Fix Subroutine module docs (bkerin) (GH-262)
+ - Use github actions instead of travis (Zakariyya Mughal) (GH-291)
+ - Improve mkdir error messages (Felipe Gasper) (GH-296)
+ - Remove asterisk from gcov count (Zakariyya Mughal) (GH-294)
+ - Test against 5.36.0
+ - Avoid warnings from check_files (Nicolas R) (GH-292)
+ - Support __SUB__ (Graham Knop) (GH-290, GH-243, GH-285)
+ - Support uncoverable count ranges (Tina Müller) (GH-288)
+ - Improve gcov support for XS code (Ed J) (GH-280)
+ - Allow overriding of HTML code highlighting (Jesús Alonso Abad) (GH-271)
+ - Improve contributing docs
 
 1.36 - 19 May 2020
  - Fix pod error
