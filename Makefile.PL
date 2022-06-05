@@ -346,14 +346,6 @@ sub MY::postamble {
 tags : pure_all
 \t ctags --recurse --exclude=blib --exclude=Devel-Cover-* .
 
-README : lib/Devel/Cover.pm
-\t TERMCAP= COLUMNS=80 pod2text -s lib/Devel/Cover.pm | \\
-    \$(PERL) -n \\
-    -e 'print if (/NAME/         ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
-    -e 'print if (/SYNOPSIS/     ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
-    -e 'print if (/DESCRIPTION/  ... /^[A-Z ]+\$\$/) =~ /^\\d+\$\$/;' \\
-    > README
-
 show_version :
 \t \@echo \$(VERSION)
 
