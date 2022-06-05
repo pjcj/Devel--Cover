@@ -1,14 +1,11 @@
-How to set up cpancover
-=======================
+# How to set up cpancover
 
-Overview
---------
+## Overview
 
 Cpancover requires a bourne shell, plenv, and docker, as well as a recent perl.
 The code requires Perl 5.16.0 but earlier versions may work.
 
-Docker
-------
+## Docker
 
 Each module is built in an individual docker container.  This should allow its
 resources to be constrained.  In addition the docker container is killed after a
@@ -18,15 +15,9 @@ I have only run this in Ubuntu 14.04 and 16.04.  The docker version in 14.04,
 0.9.1 (as of 31.05.2104) is insufficient.  Version 0.11.1 is fine.  I don't
 know about the versions in between.
 
-The latest version of docker can be installed on Ubuntu as follows:
-(see https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/)
-
-    # aptitude update
-    # aptitude install apt-transport-https ca-certificates curl software-properties-common
-    # curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-    # sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-    # aptitude update
-    # aptitude install docker-ce
+The latest version of docker can be installed on Ubuntu by following the
+[official
+instructions](https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/)
 
 You may need to add yourself to the docker group.
 
@@ -37,40 +28,47 @@ follow the instructions there.
 If you want to use your own docker container, edit the file `utils/dc` to point
 to the correct container.
 
-Plenv
------
+## Plenv
 
 Install plenv by following the instructions on
 [github](https://github.com/tokuhirom/plenv).
 
-Running
--------
+## Running
 
 To run the system as a whole:
 
-    $ cd /cover/dc
-    $ . ./utils/setup
+```sh
+cd /cover/dc
+. ./utils/setup
+```
 
 Install or upgrade a cpancover perl:
 
-    $ dc install_cpancover_perl 5.26.1
+```sh
+dc install_cpancover_perl 5.26.1
+```
 
 Run cpancover:
 
-    $ dc cpancover-run
+```sh
+dc cpancover-run
+```
 
 The `cpancover-run` command will just sit there picking up on newly uploaded
 distributions and running the coverage for them.  Or, for slightly more
 control, jobs can be run as follows:
 
-    $ dc cpancover-latest | head -2000 | dc cpancover
+```sh
+dc cpancover-latest | head -2000 | dc cpancover
+```
 
 The top level HTML and JSON is generated with:
 
-    $ dc cpancover-generate-html
+```sh
+dc cpancover-generate-html
+```
 
-Results
--------
+## Results
 
 The results of the runs will be stored in the `~/staging` directory.  If this
 is not where you want them stored (which is rather likely) then the simplest
@@ -85,8 +83,7 @@ tested, including the generated HTML output for that DB and the JSON summary
 file.  Sitting above those directories is summary HTML providing links to the
 individual coverage reports.
 
-Web server
-----------
+## Web server
 
 If you want anyone to be able to look at the results, you'll need a web server
 somewhere.  The results are all static HTML so there is not much configuration
@@ -97,8 +94,7 @@ If you use nginx, the file in `utils/cpancover.nginx` can be copied into the
 sites-enabled.  The static files are all gzipped and served as such where
 possible.
 
-cpancover.com
--------------
+## cpancover.com
 
 The server which is currently running cpancover.com has been graciously
 provided by [Bytemark](http://www.bytemark.co.uk/r/cpancover).  It has plenty
