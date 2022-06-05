@@ -15,11 +15,11 @@
 
 5. Update `$Latest_t` in `Makefile.PL`
     - Update test for obsolete development version skipping via
-        `$LATEST_RELEASED_PERL` variable in ...::Test.pm
+        `$LATEST_RELEASED_PERL` variable in Devel::Cover::Test.pm
     - Update version number in `Makefile.PL`
 
 6. Check it in
-    - `git commit -m "Bump version number" Makefile.PL`
+    - `git commit -am "Bump version number"`
 
 7. Run basic tests
     - `perl Makefile.PL && make`
