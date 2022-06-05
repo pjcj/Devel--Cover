@@ -19,7 +19,7 @@ require Data::Dumper;
 
 $| = 1;
 
-my $Version  = "1.37";
+my $Version  = "1.38";
 my $Latest_t = "5.036";
 my $Author   = 'paul@pjcj.net';
 my @perlbug  = ("perlbug", "-a", $Author,
