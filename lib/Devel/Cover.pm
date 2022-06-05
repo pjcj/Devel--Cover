@@ -1339,15 +1339,14 @@ discover areas of code not exercised by your tests and determine which tests
 to create to increase coverage.  Code coverage can be considered an indirect
 measure of quality.
 
-Although it is still being developed, Devel::Cover is now quite stable and
-provides many of the features to be expected in a useful coverage tool.
+Devel::Cover is now quite stable and provides many of the features to be
+expected in a useful coverage tool.
 
 Statement, branch, condition, subroutine, and pod coverage information is
 reported.  Statement and subroutine coverage data should be accurate.  Branch
 and condition coverage data should be mostly accurate too, although not always
-what one might initially expect.  Pod coverage comes from L<Pod::Coverage>.
-If L<Pod::Coverage::CountParents> is available it will be used instead.
-Coverage data for other criteria are not yet collected.
+what one might initially expect.  Pod coverage comes from L<Pod::Coverage>. If
+L<Pod::Coverage::CountParents> is available it will be used instead.
 
 The F<cover> program can be used to generate coverage reports.  Devel::Cover
 ships with a number of reports including various types of HTML output, textual
