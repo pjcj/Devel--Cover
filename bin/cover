@@ -36,6 +36,7 @@ use Data::Dumper ();  # no import of Dumper (use Devel::Cover::Dumper if needed)
 my $Options = {
     add_uncoverable_point    => [],
     annotation               => [],
+    gcov_chdir               => 0,
     coverage                 => [],
     delete                   => undef,
     delete_uncoverable_point => [],
@@ -45,6 +46,7 @@ my $Options = {
     launch                   => 0,
     make                     => $Config{make},
     prefer_lib               => 0,
+    relative_only            => 0,
     report                   => [],
     report_c0                => 75,
     report_c1                => 90,
@@ -66,6 +68,7 @@ sub get_options {
                    qw(
                        add_uncoverable_point=s
                        annotation=s
+                       gcov_chdir!
                        clean_uncoverable_points!
                        coverage=s
                        delete!
@@ -80,6 +83,7 @@ sub get_options {
                        make=s
                        outputdir=s
                        prefer_lib!
+                       relative_only!
                        report_c0=s
                        report_c1=s
                        report_c2=s
@@ -297,12 +301,14 @@ sub main {
             my $graph_file = $_;
             $graph_file =~ s{\.\w+$}{.gcno};
             return unless -e $graph_file;
-
-            my @c = ("gcov", "-abc", "-o", $File::Find::dir, $name);
+            my $gcov_flags = "-abc";
+            $gcov_flags .= "r" if $Options->{relative_only};
+            my @args = $Options->{gcov_chdir} ? () : ("-o", $File::Find::dir);
+            my @c = ("gcov", $gcov_flags, @args, $name);
             print STDERR "cover: running @c\n";
             system @c;
         };
-        File::Find::find({ wanted => $gc, no_chdir => 1 }, ".");
+        File::Find::find({ wanted => $gc, no_chdir => !$Options->{gcov_chdir} }, ".");
         my @gc;
         my $gp = sub {
             return unless /\.gcov$/;
@@ -490,6 +496,8 @@ The following command line options are supported:
  -ignore filename      - don't report on the file           (default none)
  -select_re RE         - append to REs of files to select   (default none)
  -ignore_re RE         - append to REs of files to ignore   (default none)
+ -relative_only        - for XS, ignore absolute paths      (default off)
+ -gcov_chdir           - for XS, run gcov in subdirs        (default off)
  -write [db]           - write the merged database          (default off)
  -delete               - drop database(s)                   (default off)
  -dump_db              - dump database(s) (for debugging)   (default off)
@@ -600,7 +608,9 @@ in recent Perl distributions.
 
 The C<-gcov> option will try to run gcov on any XS code.  This requires that
 you are using gcc of course.  If you are using the C<-test> option will be
-turned on by default.
+turned on by default. If you have XS code in subdirectories, you will
+probably need to add the C<-gcov_chdir> option since gcov seems to work
+better with that.
 
 The C<-prefer_lib> option tells Devel::Cover to report on files in the lib
 directory even if they were used from the blib directory.
