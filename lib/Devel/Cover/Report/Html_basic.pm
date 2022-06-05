@@ -153,9 +153,17 @@ sub _highlight_perltidy {
     @coloured
 }
 
-*_highlight = $Have_PPI      ? \&_highlight_ppi
-            : $Have_perltidy ? \&_highlight_perltidy
-            :                  sub {};
+sub _highlight {
+    if ($Have_PPI && !$R{options}{option}{noppihtml}) {
+        return _highlight_ppi(@_);
+    } else {
+        if ($Have_perltidy && !$R{options}{option}{noperltidy}) {
+            return _highlight_perltidy(@_);
+        }
+    }
+
+    return;
+}
 
 sub print_file {
     my @lines;
@@ -164,7 +172,9 @@ sub print_file {
     open F, $R{file} or warn("Unable to open $R{file}: $!\n"), return;
     my @all_lines = <F>;
 
-    @all_lines = _highlight(@all_lines) if $Have_highlighter;
+    if (!($R{options}{option}{noppihtml} && $R{options}{option}{noperltidy})) {
+        @all_lines = _highlight(@all_lines) if $Have_highlighter;
+    }
 
     my $linen = 1;
     LINE: while (defined(my $l = shift @all_lines)) {
@@ -375,6 +385,8 @@ sub get_options {
     die "Invalid command line options" unless
         GetOptions($opt->{option},
                    qw(
+                       noppihtml
+                       noperltidy
                        outputfile=s
                        restrict!
                      ));
@@ -824,8 +836,10 @@ highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
 
 The following command line options are supported:
 
- -outputfile           - name of output file             (default coverage.html)
- -restrict             - add restrict to regex form      (default on)
+ -outputfile  - name of output file              (default coverage.html)
+ -restrict    - add restrict to regex form       (default on)
+ -noppihtml   - disables PPI::HTML highlighting  (default off)
+ -noperltidy  - disables Perl::Tidy highlighting (default off)
 
 =head1 SEE ALSO
 
