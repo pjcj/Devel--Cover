@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Improve documentation
 
 1.37 - 5 June 2022
  - Fix Subroutine module docs (bkerin) (GH-262)
