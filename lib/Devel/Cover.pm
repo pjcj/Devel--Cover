@@ -1203,13 +1203,13 @@ sub get_cover {
             if (ref $Coverage_options{pod}) {
                 my $p;
                 for (@{$Coverage_options{pod}}) {
-                    if (/^package|(?:also_)?private|trust_me|pod_from|nocp$/) {
+                    if (/^package|(?:also_)?private|trustme|pod_from|nocp$/) {
                         $opts{$p = $_} = [];
                     } elsif ($p) {
                         push @{$opts{$p}}, $_;
                     }
                 }
-                for $p (qw( private also_private trust_me )) {
+                for $p (qw( private also_private trustme )) {
                     next unless exists $opts{$p};
                     $_ = qr/$_/ for @{$opts{$p}};
                 }
