@@ -31,7 +31,7 @@ sub get_annotations {
     my ($file) = @_;
 
     return if exists $self->{_annotations}{$file};
-    my $a = $self->{_annotations}{$file} = [];
+    my $annotations = $self->{_annotations}{$file} = [];
 
     print "cover: Getting git annotation information for $file\n";
 
@@ -40,22 +40,22 @@ sub get_annotations {
     # print "Running [$command]\n";
     open my $c, "-|", $command
         or warn("cover: Can't run $command: $!\n"), return;
-    my @a;
+    my @annotaiton;
     my $start = 1;
-    while (<$c>) {
+    while (my $line = <$c>) {
         # print "[$_]\n";
-        if (/^\t/) {
-            push @$a, [@a];
+        if ($line =~ /^\t/) {
+            push @$annotations, [@annotaiton];
             $start = 1;
             next;
         }
 
         if ($start == 1) {
-            $a[0] = substr $1, 0, 8 if /^(\w+)/;
+            $annotaiton[0] = substr $1, 0, 8 if /$line =~ ^(\w+)/;
             $start = 0;
         } else {
-            $a[1] = $1 if /^author (.*)/;
-            $a[2] = localtime $1 if /^author-time (.*)/;
+            $annotaiton[1] = $1 if $line =~ /^author (.*)/;
+            $annotaiton[2] = localtime $1 if $line =~ /^author-time (.*)/;
         }
     }
     close $c or warn "cover: Failed running $command: $!\n"
