@@ -1274,11 +1274,15 @@ sub _report_progress {
     my ($old_pipe, $n, $start) = ($|, 0, time);
     $|++;
     print OUT __PACKAGE__, ": $msg\n";
+    my $is_interactive = -t *OUT;
     for (@items) {
-        $prog->($n++);
+        $prog->($n++)
+            if $is_interactive;
         $code->($_);
     }
     $prog->($n || 1);
+    print OUT __PACKAGE__ . ": Done "
+        if !$is_interactive;
     print OUT "- " . (time - $start) . "s taken\n";
     $| = $old_pipe;
 }
