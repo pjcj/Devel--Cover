@@ -1283,7 +1283,7 @@ sub _report_progress {
         $code->($_);
     }
     $prog->($n || 1);
-    print OUT "\r" . __PACKAGE__ . ": Done "
+    print OUT __PACKAGE__ . ": Done "
         if !$is_interactive;
     print OUT "- " . (time - $start) . "s taken\n";
     $| = $old_pipe;
