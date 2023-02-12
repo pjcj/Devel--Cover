@@ -397,9 +397,8 @@ sub populate_run {
     my $mymeta = "$Dir/MYMETA.json";
     if (-e $mymeta) {
         eval {
-            require Devel::Cover::DB::IO::JSON;
-            my $io   = Devel::Cover::DB::IO::JSON->new;
-            my $json = $io->read($mymeta);
+            require CPAN::Meta;
+            my $json = CPAN::Meta->load_file($mymeta)->as_struct;
             $Run{$_} = $json->{$_} for qw( name version abstract );
         }
     } elsif ($Dir =~ m|.*/([^/]+)$|) {
