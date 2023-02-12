@@ -61,6 +61,8 @@ jobs:
         run: |
           cpanm --notest --installdeps .
       - name: Install optional Perl deps
+        # for example Test::Deep is not installable anymore for older perls
+        continue-on-error: ${{ matrix.perl < 5.12 }}
         run: |
           # for database format
           cpanm --notest Sereal
@@ -68,6 +70,8 @@ jobs:
           cpanm --notest DBM::Deep Readonly Moose
 
       - name: Install Perl recommend deps
+        # for example Test::Deep is not installable anymore for older perls
+        continue-on-error: ${{ matrix.perl < 5.12 }}
         run:
           cpanm --notest
             Template
