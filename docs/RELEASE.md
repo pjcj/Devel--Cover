@@ -36,7 +36,3 @@
 
 11. Make the release
     - `dzil release`
-
-12. Push the changes
-    - The dzil Git::Push plugin hangs for me
-    - `git push`
