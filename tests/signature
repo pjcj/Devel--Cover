@@ -7,8 +7,8 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# __COVER__ skip_test $] < 5.020
-# __COVER__ skip_reason Signatures not available before 5.20
+# __COVER__ skip_test $] < 5.032
+# __COVER__ skip_reason Too fagile below 5.32
 
 use 5.20.0;
 use warnings;

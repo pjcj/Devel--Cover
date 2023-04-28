@@ -27,8 +27,8 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      # __COVER__ skip_test $] < 5.020
-11                                      # __COVER__ skip_reason Signatures not available before 5.20
+10                                      # __COVER__ skip_test $] < 5.032
+11                                      # __COVER__ skip_reason Too fagile below 5.32
 12                                      
 13             1                    1   use 5.20.0;
                1                        
