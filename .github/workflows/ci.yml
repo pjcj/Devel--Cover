@@ -24,7 +24,7 @@ jobs:
           - { os: "ubuntu-latest", perl: "5.20" }
           - { os: "ubuntu-latest", perl: "5.22" }
           - { os: "ubuntu-latest", perl: "5.24" }
-          - { os: "ubuntu-latest", perl: "5.24", math-bigint: "1.999813" }
+          - { os: "ubuntu-latest", perl: "5.24" }
           - { os: "ubuntu-latest", perl: "5.26" }
           - { os: "ubuntu-latest", perl: "5.28" }
           - { os: "ubuntu-latest", perl: "5.30" }
@@ -50,11 +50,6 @@ jobs:
           distribution: "strawberry"
 
       - run: perl -V
-
-      - name: Install specific version of Math::BigInt
-        if: matrix.math-bigint
-        run: |
-          cpanm --notest Math::BigInt@${{ matrix.math-bigint }}
 
       - name: Install Perl deps
         run: |

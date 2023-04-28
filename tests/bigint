@@ -7,6 +7,9 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
+# __COVER__ skip_test $] < 5.032
+# __COVER__ skip_reason Too fagile below 5.32
+
 use strict;
 use warnings;
 

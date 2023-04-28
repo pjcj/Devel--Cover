@@ -20,27 +20,6 @@ use Test::More;
 use Devel::Cover::Inc;
 
 my $LATEST_RELEASED_PERL = 36;
-my %TEST2VERSIONOVERRIDE = (
-    bigint => \&_default_version_override,
-);
-my %TEST2MODULE2VERSION2PERL = (
-    bigint => { 'Math::BigInt' => { '1.999806' => '5.032000' } },
-);
-sub _default_version_override {
-    my ($test, $v) = @_;
-    return $v unless my $override = $TEST2MODULE2VERSION2PERL{$test};
-    my @perl_versions = $v;
-    for my $module (sort keys %$override) {
-        my $version2perl = $override->{$module};
-        eval "require $module"; # string-eval saves faff with turning to file
-        die $@ if $@;
-        my $modversion = do { no strict 'refs'; ${$module . '::VERSION'} };
-        $modversion = eval $modversion;
-        push @perl_versions, map $version2perl->{$_},
-            grep $_ < $modversion, keys %$version2perl;
-    }
-    return (sort @perl_versions)[-1]; # highest version found
-}
 
 sub new {
     my $class = shift;
@@ -182,8 +161,7 @@ sub _get_right_version {
         $v = $_;
     }
     # die "Can't find golden results for $test" if $v eq "5.0";
-    return $v unless my $override_sub = $TEST2VERSIONOVERRIDE{$test};
-    $override_sub->($test, $v);
+    $v
 }
 
 sub cover_gold {

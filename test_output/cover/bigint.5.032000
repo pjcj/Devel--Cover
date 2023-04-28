@@ -27,19 +27,22 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10             1                    1   use strict;
-               1                        
-               1                        
-11             1                    1   use warnings;
-               1                        
-               1                        
+10                                      # __COVER__ skip_test $] < 5.032
+11                                      # __COVER__ skip_reason Too fagile below 5.32
 12                                      
-13             1                    1   use Math::BigInt ":constant";
+13             1                    1   use strict;
                1                        
                1                        
-14                                      
-15             1                        my $x = 1;
-16    ***      1     50                 print $x if 1 >= $x;
+14             1                    1   use warnings;
+               1                        
+               1                        
+15                                      
+16             1                    1   use Math::BigInt ":constant";
+               1                        
+               1                        
+17                                      
+18             1                        my $x = 1;
+19    ***      1     50                 print $x if 1 >= $x;
 
 
 Branches
@@ -47,7 +50,7 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-16    ***     50      1      0   if bless( {"sign" => "+","value" => bless( [1], 'Math::BigInt::Calc' )}, 'Math::BigInt' ) >= $x
+19    ***     50      1      0   if bless( {"sign" => "+","value" => bless( [1], 'Math::BigInt::Calc' )}, 'Math::BigInt' ) >= $x
 
 
 Covered Subroutines
@@ -55,8 +58,8 @@ Covered Subroutines
 
 Subroutine Count Location       
 ---------- ----- ---------------
-BEGIN          1 tests/bigint:10
-BEGIN          1 tests/bigint:11
 BEGIN          1 tests/bigint:13
+BEGIN          1 tests/bigint:14
+BEGIN          1 tests/bigint:16
 
 
