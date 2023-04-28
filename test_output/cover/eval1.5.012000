@@ -1,0 +1,108 @@
+Reading database from ...
+
+
+----------- ------ ------ ------ ------ ------
+File          stmt   bran   cond    sub  total
+----------- ------ ------ ------ ------ ------
+tests/eval1   96.1   50.0    n/a   85.7   91.4
+Total         96.1   50.0    n/a   85.7   91.4
+----------- ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/eval1
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2022, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10             1                    1   use strict;
+               1                        
+               1                        
+11             1                    1   use warnings;
+               1                        
+               1                        
+12                                      
+13    ***      1     50             1   use lib -d "t" ? "t" : "..";
+               1                        
+               1                        
+14                                      
+15             1                        my $x;
+16                                      
+17             1                    3   eval <<'EOS';
+               3                        
+               3                        
+18                                      sub e {
+19                                          $x++;
+20                                          $x
+21                                      }
+22                                      EOS
+23                                      
+24             1                    2   eval <<'EOS';
+      ***      2                    0   
+               2                    3   
+      ***      0                        
+               3                        
+25                                      sub f {
+26                                          $x++;
+27                                          $x
+28                                      }
+29                                      
+30                                      sub g {
+31                                          $x++;
+32                                      }
+33                                      
+34                                      sub h {
+35                                          $x++;
+36                                      }
+37                                      EOS
+38                                      
+39             1                        e();
+40             1                        e();
+41             1                        e();
+42             1                        f();
+43             1                        f();
+44             1                        h();
+45             1                        h();
+46             1                        h();
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+13    ***     50      1      0   -d 't' ? :
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location      
+---------- ----- --------------
+BEGIN          1 tests/eval1:10
+BEGIN          1 tests/eval1:11
+BEGIN          1 tests/eval1:13
+e              3 tests/eval1:17
+f              2 tests/eval1:24
+h              3 tests/eval1:24
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count Location      
+---------- ----- --------------
+g              0 tests/eval1:24
+
+
