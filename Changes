@@ -4,6 +4,7 @@ Devel::Cover history
  - Remove dependency on B::Debug (Jim Keenan) (GH-289)
  - Raise minimum version to 5.12
  - Correct spelling of Pod::Coverage trustme parameter (Oliver Youle) (GH-302)
+ - Fix annotations in html_basic report (Opera Wang) (GH-310)
 
 1.38 - 5 June 2022
  - Improve documentation
