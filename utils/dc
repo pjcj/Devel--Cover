@@ -140,7 +140,7 @@ main() {
                 Sereal Digest::MD5 Template Pod::Coverage::CountParents     \
                 Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
                 Moo namespace::clean CPAN::Releases::Latest JSON::MaybeXS   \
-                CPAN::DistnameInfo B::Debug HTML::Entities
+                CPAN::DistnameInfo HTML::Entities
             ;;
         install_dzil)
             cpanm --notest App::cpm

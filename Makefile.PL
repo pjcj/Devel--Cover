@@ -290,7 +290,6 @@ my $opts = {
     PREREQ_PM        => {
                             "Storable"       => 0,
                             "Digest::MD5"    => 0,
-                            "B::Debug"       => 0,
                             "HTML::Entities" => 3.69,
                             $ENV{DEVEL_COVER_NO_TESTS}
                                 ? ()

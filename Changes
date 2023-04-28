@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Remove dependency on B::Debug (Jim Keenan) (GH-289)
 
 1.38 - 5 June 2022
  - Improve documentation

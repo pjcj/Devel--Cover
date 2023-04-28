@@ -25,7 +25,6 @@ use Devel::Cover::Inc;
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 use B qw( ppname main_cv main_start main_root walksymtable OPf_KIDS );
-use B::Debug;
 use B::Deparse;
 
 use Carp;
@@ -1409,16 +1408,6 @@ Both are in the core in Perl 5.8.0 and above.
 
 =back
 
-=head2 REQUIRED MODULES
-
-=over
-
-=item * L<B::Debug>
-
-This was core before Perl 5.30.0.
-
-=back
-
 =head2 OPTIONAL MODULES
 
 =over
@@ -1777,8 +1766,6 @@ Modules used by Devel::Cover while gathering coverage:
 =over 4
 
 =item * L<B>
-
-=item * L<B::Debug>
 
 =item * L<B::Deparse>
 
