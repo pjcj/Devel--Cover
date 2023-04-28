@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.39 - 29 April 2023
  - Remove dependency on B::Debug (Jim Keenan) (GH-289)
  - Raise minimum version to 5.12
  - Correct spelling of Pod::Coverage trustme parameter (Oliver Youle) (GH-302)
