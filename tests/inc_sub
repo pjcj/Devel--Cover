@@ -7,8 +7,6 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# __COVER__ skip_test $] < 5.010
-# __COVER__ skip_reason %+ not available before 5.10
 # __COVER__ skip_test 1
 # __COVER__ skip_reason depends too much on specific installed perl
 
