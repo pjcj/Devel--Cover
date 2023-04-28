@@ -24,7 +24,7 @@ my %TEST2VERSIONOVERRIDE = (
     bigint => \&_default_version_override,
 );
 my %TEST2MODULE2VERSION2PERL = (
-    bigint => { 'Math::BigInt' => { '1.999806' => '5.026000' } },
+    bigint => { 'Math::BigInt' => { '1.999806' => '5.032000' } },
 );
 sub _default_version_override {
     my ($test, $v) = @_;
