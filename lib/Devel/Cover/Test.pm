@@ -35,6 +35,7 @@ sub _default_version_override {
         eval "require $module"; # string-eval saves faff with turning to file
         die $@ if $@;
         my $modversion = do { no strict 'refs'; ${$module . '::VERSION'} };
+        $modversion = eval $modversion;
         push @perl_versions, map $version2perl->{$_},
             grep $_ < $modversion, keys %$version2perl;
     }
