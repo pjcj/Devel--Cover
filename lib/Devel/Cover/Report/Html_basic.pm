@@ -101,7 +101,7 @@ sub _highlight_ppi {
     my $highlight = PPI::HTML->new(line_numbers => 1);
     my $pretty    = $highlight->html($document);
 
-    my $split     = '<span class                ="line_number">';
+    my $split     = '<span class="line_number">';
 
     no warnings "uninitialized";
 
