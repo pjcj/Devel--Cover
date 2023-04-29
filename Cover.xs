@@ -204,10 +204,10 @@ static int cpu() {
  * http://www.isthe.com/chongo/tech/comp/fnv/index.html#public_domain
  *
  *   FNV hash algorithms and source code have been released into the
- *   public domain. The authors of the FNV algorithmm took deliberate
- *   steps to disclose the algorhtm in a public forum soon after it was
+ *   public domain. The authors of the FNV algorithm took deliberate
+ *   steps to disclose the algorithm in a public forum soon after it was
  *   invented. More than a year passed after this public disclosure and the
- *   authors deliberatly took no steps to patent the FNV algorithm. Therefore
+ *   authors deliberately took no steps to patent the FNV algorithm. Therefore
  *   it is safe to say that the FNV authors have no patent claims on the FNV
  *   algorithm as published.
  *
@@ -806,7 +806,7 @@ static void cover_logop(pTHX) {
         return;
 
     if (cLOGOP->op_first->op_type == OP_ITER) {
-        /* loop - ignore it for now*/
+        /* loop - ignore it for now */
     } else {
         dSP;
 
