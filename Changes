@@ -4,6 +4,7 @@ Devel::Cover history
  - Note usage with dzil (Steve Rogerson) (GH-319)
  - Fix html_basic report (jkahrman) (GH-318)
  - Use CPAN::Meta (Slaven Rezić) (GH-314)
+ - Make non-interactive output less noisy (jkahrman) (GH-312)
 
 1.39 - 29 April 2023
  - Remove dependency on B::Debug (Jim Keenan) (GH-289)
