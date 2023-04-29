@@ -1312,6 +1312,11 @@ or
  HARNESS_PERL_SWITCHES=-MDevel::Cover make test
  cover
 
+or if you are using dzil (Dist::Zilla) and have installed
+L<Dist::Zilla::App::Command::cover>:
+
+ dzil cover
+
 To get coverage for an uninstalled module which uses L<Module::Build> (0.26 or
 later):
 
