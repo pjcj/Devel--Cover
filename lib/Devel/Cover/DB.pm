@@ -535,8 +535,11 @@ sub add_subroutine {
     }
 }
 
-*add_condition = \&add_branch;
-*add_pod       = \&add_subroutine;
+{
+    no warnings "once";
+    *add_condition = \&add_branch;
+    *add_pod       = \&add_subroutine;
+}
 
 sub uncoverable_files {
     my $self = shift;
@@ -754,16 +757,19 @@ sub objectify_cover {
             keys %$self
         };
 
-        *Devel::Cover::DB::Base::values = sub {
-            my $self = shift;
-            values %$self
-        };
+        {
+            no warnings "once";
+            *Devel::Cover::DB::Base::values = sub {
+                my $self = shift;
+                values %$self
+            };
 
-        *Devel::Cover::DB::Base::get = sub {
-            my $self = shift;
-            my ($get) = @_;
-            $self->{$get}
-        };
+            *Devel::Cover::DB::Base::get = sub {
+                my $self = shift;
+                my ($get) = @_;
+                $self->{$get}
+            };
+        }
 
         my $classes = {
             Cover     => [ qw( files file ) ],
@@ -780,22 +786,25 @@ sub objectify_cover {
             *{"${c}::$functions->[1]"} = \&{"${base}::get"};
         }
 
-        *Devel::Cover::DB::File::DESTROY = sub {};
-        unless (exists &Devel::Cover::DB::File::AUTOLOAD) {
-            *Devel::Cover::DB::File::AUTOLOAD = sub {
-                # Work around a change in bleadperl from 12251 to 14899
-                my $func = $Devel::Cover::DB::AUTOLOAD || $::AUTOLOAD;
+        {
+            no warnings "once";
+            *Devel::Cover::DB::File::DESTROY = sub {};
+            unless (exists &Devel::Cover::DB::File::AUTOLOAD) {
+                *Devel::Cover::DB::File::AUTOLOAD = sub {
+                    # Work around a change in bleadperl from 12251 to 14899
+                    my $func = $Devel::Cover::DB::AUTOLOAD || $::AUTOLOAD;
 
-                # print STDERR "autoloading <$func>\n";
-                (my $f = $func) =~ s/.*:://;
-                carp "Undefined subroutine $f called"
-                    unless grep { $_ eq $f }
-                                @{$self->{all_criteria}},
-                                @{$self->{all_criteria_short}};
-                no strict "refs";
-                *$func = sub { shift->{$f} };
-                goto &$func
-            };
+                    # print STDERR "autoloading <$func>\n";
+                    (my $f = $func) =~ s/.*:://;
+                    carp "Undefined subroutine $f called"
+                        unless grep { $_ eq $f }
+                                    @{$self->{all_criteria}},
+                                    @{$self->{all_criteria_short}};
+                    no strict "refs";
+                    *$func = sub { shift->{$f} };
+                    goto &$func
+                };
+            }
         }
     }
 }
