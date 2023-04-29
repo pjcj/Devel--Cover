@@ -963,18 +963,22 @@ sub add_condition_cover {
     }
 }
 
-*is_scope       = \&B::Deparse::is_scope;
-*is_state       = \&B::Deparse::is_state;
-*is_ifelse_cont = \&B::Deparse::is_ifelse_cont;
-
 {
+    no warnings "once";
+    *is_scope       = \&B::Deparse::is_scope;
+    *is_state       = \&B::Deparse::is_state;
+    *is_ifelse_cont = \&B::Deparse::is_ifelse_cont;
+}
 
 my %Original;
+{
+
 BEGIN {
     $Original{deparse}      = \&B::Deparse::deparse;
     $Original{logop}        = \&B::Deparse::logop;
     $Original{logassignop}  = \&B::Deparse::logassignop;
     $Original{const_dumper} = \&B::Deparse::const_dumper;
+    $Original{const}        = \&B::Deparse::const if defined &B::Deparse::const;
 }
 
 sub const_dumper {
@@ -983,8 +987,17 @@ sub const_dumper {
     local *B::Deparse::logop        = $Original{logop};
     local *B::Deparse::logassignop  = $Original{logassignop};
     local *B::Deparse::const_dumper = $Original{const_dumper};
-
+    local *B::Deparse::const        = $Original{const} if $Original{const};
     $Original{const_dumper}->(@_);
+}
+
+sub const {
+    no warnings "redefine";
+    local *B::Deparse::deparse      = $Original{deparse};
+    local *B::Deparse::logop        = $Original{logop};
+    local *B::Deparse::logassignop  = $Original{logassignop};
+    local *B::Deparse::const_dumper = $Original{const_dumper};
+    $Original{const}->(@_);
 }
 
 sub deparse {
@@ -1252,6 +1265,7 @@ sub get_cover {
     local *B::Deparse::logop        = \&logop;
     local *B::Deparse::logassignop  = \&logassignop;
     local *B::Deparse::const_dumper = \&const_dumper;
+    local *B::Deparse::const        = \&const if $Original{const};
 
     my $de = @_ && ref $_[0]
                  ? $deparse->deparse($_[0], 0)
