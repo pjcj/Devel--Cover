@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Note usage with dzil (Steve Rogerson) (GH-319)
 
 1.39 - 29 April 2023
  - Remove dependency on B::Debug (Jim Keenan) (GH-289)

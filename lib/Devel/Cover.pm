@@ -1312,7 +1312,8 @@ or
  HARNESS_PERL_SWITCHES=-MDevel::Cover make test
  cover
 
-or if you are using dzil (Dist::Zilla) install L<Dist::Zilla::App::Command::cover>
+or if you are using dzil (Dist::Zilla) and have installed
+L<Dist::Zilla::App::Command::cover>:
 
  dzil cover
 
