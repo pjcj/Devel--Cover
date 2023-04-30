@@ -40,8 +40,8 @@ sub criterion   { require Carp;
 sub err_chk {
     my $self = shift;
     my ($covered, $uncoverable) = @_;
-    no warnings "once";
-    $Devel::Cover::Ignore_covered_err
+    no warnings qw( once uninitialized );
+    $Devel::Cover::Ignore_covered_err || $uncoverable eq "ignore_covered_err"
         ? !($covered ||  $uncoverable)
         : !($covered xor $uncoverable)
 }
