@@ -102,6 +102,8 @@ our %Files;                              # Whether we are interested in files
                                          # Used in runops function
 our $Replace_ops;                        # Whether we are replacing ops
 our $Silent;                             # Output nothing. Can be used anywhere
+our $Ignore_covered_err;                 # Don't flag an error when uncoverable
+                                         # code is covered.
 our $Self_cover;                         # Coverage of Devel::Cover
 
 BEGIN {
@@ -315,13 +317,13 @@ sub import {
         /^-blib/        && do { $blib        = shift @o; next };
         /^-subs_only/   && do { $Subs_only   = shift @o; next };
         /^-replace_ops/ && do { $Replace_ops = shift @o; next };
-        /^-coverage/    &&
+        /^-coverage/  &&
             do { $Coverage{+shift @o} = 1 while @o && $o[0] !~ /^[-+]/; next };
-        /^[-+]ignore/   &&
+        /^[-+]ignore/ &&
             do { push @Ignore,   shift @o while @o && $o[0] !~ /^[-+]/; next };
-        /^[-+]inc/      &&
+        /^[-+]inc/    &&
             do { push @Inc,      shift @o while @o && $o[0] !~ /^[-+]/; next };
-        /^[-+]select/   &&
+        /^[-+]select/ &&
             do { push @Select,   shift @o while @o && $o[0] !~ /^[-+]/; next };
         warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }

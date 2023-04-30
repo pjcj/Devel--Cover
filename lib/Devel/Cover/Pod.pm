@@ -20,7 +20,7 @@ sub uncoverable { $_[0][2]               }
 sub covered     { $_[0][0] ? 1 : 0       }
 sub total       { 1                      }
 sub percentage  { $_[0][0] ? 100 : 0     }
-sub error       { $_[0][0] xor !$_[0][2] }
+sub error       { $_[0]->simple_error    }
 sub criterion   { "pod"                  }
 
 sub calculate_summary {
