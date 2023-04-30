@@ -30,7 +30,7 @@ line  err   stmt   bran   cond    sub   code
 9                                       
 10                                      print "E2\n";
 11                                      
-12    ***      0                    0   sub E2 { print "E2::E2\n" }
+12    ***     *0                   *0   sub E2 { print "E2::E2\n" }
 13                                      
 14                                      1
 
@@ -55,7 +55,7 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10    ***      1     50             1   use lib -d "t" ? "." : "..";
+10    ***      1   * 50             1   use lib -d "t" ? "." : "..";
                1                        
                1                        
 11             1                    1   use File::Spec;

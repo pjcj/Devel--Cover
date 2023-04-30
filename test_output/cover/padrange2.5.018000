@@ -27,7 +27,7 @@ line  err   stmt   bran   cond    sub   code
                1                        
                1                        
 5                                       
-6     ***      1     50                 if (my @x = 'foo' =~ m/(.)/) {
+6     ***      1   * 50                 if (my @x = 'foo' =~ m/(.)/) {
 7                                       } else {
 8                                       }
 

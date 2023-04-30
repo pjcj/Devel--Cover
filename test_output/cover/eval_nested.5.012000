@@ -37,8 +37,8 @@ line  err   stmt   bran   cond    sub   code
 13             1                    2   eval "eval q[ sub config { {} } ]";
                2                        
 14                                      
-15    ***      1            50          my $e1 = config()         || {};
-16    ***      1            50          my $e2 = config()->{mail} || {};
+15    ***      1          * 50          my $e1 = config()         || {};
+16    ***      1          * 50          my $e2 = config()->{mail} || {};
 
 
 Conditions

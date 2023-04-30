@@ -39,7 +39,7 @@ line  err   stmt   bran   cond    sub   code
                1                        
 14                                      
 15                                      my $xx = sub {
-16    ***      0                    0       print "xx";
+16    ***     *0                   *0       print "xx";
 17             1                        };
 18                                      
 19             1                        print B::Deparse->new->coderef2text($xx)

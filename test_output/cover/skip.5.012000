@@ -30,9 +30,9 @@ line  err   stmt   bran   cond    sub   code
 10                                      sub main {
 11             1                    1       my ($debug) = @_;
 12             1                            print "main\n";
-13    ***      1     50                     print "debug1\n" if $debug;
-14    ***      1     50                     if ($debug) {
-15    ***      0                                print "debug2\n";
+13    ***      1   * 50                     print "debug1\n" if $debug;
+14    ***      1   * 50                     if ($debug) {
+15    ***     *0                                print "debug2\n";
 16                                          }
 17                                      }
 18                                      

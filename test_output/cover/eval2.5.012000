@@ -31,7 +31,7 @@ line  err   stmt   bran   cond    sub   code
 9                                       
 10                                      print "E3\n";
 11                                      
-12    ***      0                    0   sub E3 { print "E3::E3\n" }
+12    ***     *0                   *0   sub E3 { print "E3::E3\n" }
 13                                      
 14                                      1
 
@@ -58,7 +58,7 @@ line  err   stmt   bran   cond    sub   code
 9                                       
 10                                      print "E4\n";
 11                                      
-12    ***      0                    0   sub E4 { print "E4::E4\n" }
+12    ***     *0                   *0   sub E4 { print "E4::E4\n" }
 13                                      
 14                                      1
 
@@ -87,18 +87,18 @@ line  err   stmt   bran   cond    sub   code
                1                        
                1                        
 11                                      
-12    ***      1            50          $x = shift || 0;
+12    ***      1          * 50          $x = shift || 0;
 13             1                        print "1 - $x\n";
-14    ***      1     50                 if ($x) { eval 'use E2' }
-      ***      0                        
+14    ***      1   * 50                 if ($x) { eval 'use E2' }
+      ***     *0                        
 15             1                        print "3 - $x\n";
-16    ***      1     50             1   if ($x < 4) { eval 'use E3' }
+16    ***      1   * 50             1   if ($x < 4) { eval 'use E3' }
                1                        
                1                        
                1                        
                1                        
 17             1                        print "4 - $x\n";
-18    ***      1     50             1   if ($x < 6) { eval 'use E4' }
+18    ***      1   * 50             1   if ($x < 6) { eval 'use E4' }
                1                        
                1                        
                1                        

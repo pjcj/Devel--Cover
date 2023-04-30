@@ -42,7 +42,7 @@ line  err   stmt   bran   cond    sub   code
                1                        
 17                                      
 18             1                        my $x = 1;
-19    ***      1     50                 print $x if 1 >= $x;
+19    ***      1   * 50                 print $x if 1 >= $x;
 
 
 Branches

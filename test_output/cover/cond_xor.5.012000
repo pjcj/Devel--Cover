@@ -42,8 +42,8 @@ line  err   stmt   bran   cond    sub   code
 18            12                                my $x = $y ^ $z;
 19            12           100                  $x = ($y xor $z);
 20                                      
-21    ***     12            50                  my $p = ($i xor $y);
-22    ***     12            50                  $p = ($j xor $y);
+21    ***     12          * 50                  my $p = ($i xor $y);
+22    ***     12          * 50                  $p = ($j xor $y);
 23            12                                $p ^= $y;
 24                                          }
 25                                      }

@@ -38,7 +38,7 @@ line  err   stmt   bran   cond    sub   code
 12                                      
 13             2                        $x = 1;
 14                                      
-15    ***      2     50                 die unless defined ($pid = fork);
+15    ***      2   * 50                 die unless defined ($pid = fork);
 16                                      
 17             2    100                 if ($pid) {
 18             1                            $x = 2;

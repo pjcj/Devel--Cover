@@ -36,8 +36,8 @@ line  err   stmt   bran   cond    sub   code
 12                                      
 13                                      sub p {
 14             2           100      2       my $x = shift || 11;
-15    ***      2            66              my $y = shift || [];
-16    ***      2            66              my $z = shift || {};
+15    ***      2          * 66              my $y = shift || [];
+16    ***      2          * 66              my $z = shift || {};
 17                                      }
 18                                      
 19             1                        p $_, $_, $_ for 0, 1;
