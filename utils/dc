@@ -134,6 +134,7 @@ main() {
             ;;
         install_dependencies)
             cpanm --notest App::cpm
+            plenv rehash
             cpm install --workers="$($0 nice_cpus)" --global                \
                 Sereal Digest::MD5 Template Pod::Coverage::CountParents     \
                 Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
@@ -161,8 +162,8 @@ main() {
         install_cpancover_perl)
             version="${2:?No version specified}"
             yes | plenv uninstall cpancover || true
-            plenv install --as cpancover -j 32 --noman "$version"
-            plenv install-cpanm
+            plenv install --as cpancover -j 32 -D usedevel --noman "$version"
+            PLENV_VERSION=cpancover plenv install-cpanm
             PLENV_VERSION=cpancover dc install_dependencies
             ;;
         cpancover)

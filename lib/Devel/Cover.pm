@@ -90,7 +90,7 @@ my %Coverage_options;                    # Options for overage criteria
 my %Run;                                 # Data collected from the run
 
 my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
-                       scalar|return|last|next|redo|goto)$/x;
+                       emptyavhv|scalar|return|last|next|redo|goto)$/x;
                                          # constant ops
 
 our $File;                               # Last filename we saw.  (localised)
