@@ -35,8 +35,8 @@ line  err   stmt   bran   cond    sub   code
 15                                      sub t3 {
 16             1                    1       for my $x (0, 1, 2) {
 17             3    100    100                  last if $x && $x == 2 && $x == 2 && $x == 2;
-      ***                   66          
-      ***                   66          
+      ***                 * 66          
+      ***                 * 66          
 18                                          }
 19                                      }
 20                                      

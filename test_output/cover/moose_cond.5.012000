@@ -54,7 +54,7 @@ line  err   stmt   bran   cond    sub   code
 28                                      
 29                                      sub wagh {
 30             2                    2       my ( $self ) = @_;
-31    ***      2            50              my $x = $self || 0;
+31    ***      2          * 50              my $x = $self || 0;
 32             2           100              return $self->meep->{marp} || 0;
 33                                          # return $self || 0;
 34                                      }

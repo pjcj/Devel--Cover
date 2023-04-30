@@ -31,6 +31,6 @@ line  err   stmt   bran   cond    sub   code
 11                                      
 12             1                        exec "echo foo";
 13                                      
-14    ***      0                        die "Unreachable";
+14    ***     *0                        die "Unreachable";
 
 

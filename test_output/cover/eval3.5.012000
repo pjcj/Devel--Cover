@@ -31,18 +31,18 @@ line  err   stmt   bran   cond    sub   code
                1                        
                1                        
 11                                      
-12    ***      1            50          $x = shift || 0;
+12    ***      1          * 50          $x = shift || 0;
 13             1                        print "1 - $x\n";
-14    ***      1     50                 if ($x) { eval 'sub s1 { print "s1\n" }'; s1() }
-      ***      0                        
-      ***      0                        
+14    ***      1   * 50                 if ($x) { eval 'sub s1 { print "s1\n" }'; s1() }
+      ***     *0                        
+      ***     *0                        
 15             1                        print "3 - $x\n";
-16    ***      1     50             1   if ($x < 4) { eval 'sub s2 { print "s2\n" }'; s2() }
+16    ***      1   * 50             1   if ($x < 4) { eval 'sub s2 { print "s2\n" }'; s2() }
                1                        
                1                        
                1                        
 17             1                        print "4 - $x\n";
-18    ***      1     50             1   if ($x < 6) { eval 'sub s3 { print "s3\n" }'; s3() }
+18    ***      1   * 50             1   if ($x < 6) { eval 'sub s3 { print "s3\n" }'; s3() }
                1                        
                1                        
                1                        

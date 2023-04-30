@@ -34,7 +34,7 @@ line  err   stmt   bran   cond    sub   code
                1                        
                1                        
 12                                      
-13    ***      1     50             1   use lib -d "t" ? "t" : "..";
+13    ***      1   * 50             1   use lib -d "t" ? "t" : "..";
                1                        
                1                        
 14                                      
@@ -50,9 +50,9 @@ line  err   stmt   bran   cond    sub   code
 22                                      EOS
 23                                      
 24             1                    2   eval <<'EOS';
-      ***      2                    0   
+      ***      2                   *0   
                2                    3   
-      ***      0                        
+      ***     *0                        
                3                        
 25                                      sub f {
 26                                          $x++;

@@ -37,7 +37,6 @@ sub calculate_percentage {
     my ($db, $s) = @_;
 
     # print STDERR Dumper $s;
-
     for my $criterion ($self->items) {
         next unless exists $s->{$criterion};
         my $c = "Devel::Cover::\u$criterion";
@@ -45,7 +44,6 @@ sub calculate_percentage {
         $c->calculate_percentage($db, $s->{$criterion});
     }
     Devel::Cover::Criterion->calculate_percentage($db, $s->{total});
-
     # print STDERR Dumper $s;
 }
 

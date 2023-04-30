@@ -38,8 +38,8 @@ line  err   stmt   bran   cond    sub   code
                1                        
                1                        
 14                                      
-15    ***      1                    0   $SIG{__WARN__} = sub { die @_ };
-      ***      0                        
+15    ***      1                   *0   $SIG{__WARN__} = sub { die @_ };
+      ***     *0                        
 16             1                        require COP;
 
 

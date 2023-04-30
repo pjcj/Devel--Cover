@@ -50,7 +50,7 @@ line  err   stmt   bran   cond    sub   code
 19                                      }
 20                                      
 21             1                        my $x = xx(3, 4, 5);
-22    ***      1     50                 die unless $x == 18;
+22    ***      1   * 50                 die unless $x == 18;
 
 
 Branches

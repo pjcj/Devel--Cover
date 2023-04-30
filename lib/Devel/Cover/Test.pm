@@ -88,9 +88,10 @@ sub get_params {
     unless (mkdir $self->{cover_db}) {
         die "Can't mkdir $self->{cover_db}: $!" unless -d $self->{cover_db};
     }
+    my $p = $self->{cover_parameters} || [];
     $self->{cover_parameters} = join(" ", map "-coverage $_",
                                               split " ", $self->{criteria})
-                              . " -report text "
+                              . " @$p -report text "
                               . shell_quote $self->{cover_db};
     $self->{cover_parameters} .= " -uncoverable_file "
                               .  "@{$self->{uncoverable_file}}"

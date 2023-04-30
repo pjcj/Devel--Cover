@@ -35,7 +35,7 @@ line  err   stmt   bran   cond    sub   code
                1                        
 12                                      
 13                                      {
-14    ***      0                            package Cat;
+14    ***     *0                            package Cat;
 15                                      
 16             1                    1       use overload (bool => "meh");
                1                        

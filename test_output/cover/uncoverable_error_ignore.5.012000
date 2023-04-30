@@ -1,0 +1,108 @@
+Reading database from ...
+
+
+------------------------------ ------ ------ ------ ------ ------
+File                             stmt   bran   cond    sub  total
+------------------------------ ------ ------ ------ ------ ------
+tests/uncoverable_error_ignore   82.3   75.0   66.6  100.0   78.7
+Total                            82.3   75.0   66.6  100.0   78.7
+------------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/uncoverable_error_ignore
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2023, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      # __COVER__ cover_parameters -ignore_covered_err
+11                                      
+12                                      sub usub {
+13                                          # uncoverable subroutine
+14                                          # uncoverable statement
+15            -1                   -1       my $x = 1;
+16                                      }
+17                                      
+18                                      sub main {
+19             1                    1       my $x = 1;
+20                                          # uncoverable branch false
+21                                          # uncoverable branch true
+22             1   - 50                     if ($x > 1) {
+23    ***     *0                                $x = 0;
+24                                              # uncoverable statement
+25            -0                                $x = 2;
+26    ***     *0   *  0                         if ($x > 3) {
+27    ***     *0                                    $x = 4;
+28                                              }
+29                                          }
+30                                      
+31             1                            my $y = 0;
+32                                          # uncoverable branch true
+33                                          # uncoverable condition right
+34    ***      1   - 50  *- 33              if ($x > 0 && $y > 0) {
+35                                              # uncoverable statement
+36            -0                                $y = 1;
+37                                          }
+38                                      
+39             1                            while ($y < 4) {
+40                                              # uncoverable branch false
+41                                              # uncoverable condition left
+42                                              # uncoverable condition right
+43             2   -100   - 66                  if ($x > 0 && $y > 0) {
+44             1                                    $y = 4;
+45                                              } else {
+46             1                                    $y++;
+47                                              }
+48                                          }
+49                                      
+50                                          # uncoverable statement
+51            -1                            $x = 3;
+52             1                            usub;
+53                                      }
+54                                      
+55             1                        main
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+22          - 50     -0     -1   if ($x > 1)
+26    ***      0      0      0   if ($x > 3)
+34          - 50     -0      1   if ($x > 0 and $y > 0)
+43          -100      1     -1   if ($x > 0 and $y > 0) { }
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+34    ***   - 33      0     -1      0   $x > 0 and $y > 0
+43          - 66     -0     -1      1   $x > 0 and $y > 0
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location                         
+---------- ----- ---------------------------------
+main           1 tests/uncoverable_error_ignore:19
+usub          -1 tests/uncoverable_error_ignore:15
+
+

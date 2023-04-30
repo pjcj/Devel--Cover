@@ -27,7 +27,7 @@ line  err   stmt   bran   cond    sub   code
                1                        
 6                                       
 7                                       sub f {
-8     ***      0      0             0       return MyType if @_;
+8     ***     *0   *  0            *0       return MyType if @_;
 9                                       }
 
 

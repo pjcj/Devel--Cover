@@ -37,6 +37,20 @@ sub values      { [ $_[0]->covered ]                              }
 sub criterion   { require Carp;
                   Carp::confess("criterion() must be overridden") }
 
+sub err_chk {
+    my $self = shift;
+    my ($covered, $uncoverable) = @_;
+    no warnings qw( once uninitialized );
+    $Devel::Cover::Ignore_covered_err || $uncoverable eq "ignore_covered_err"
+        ? !($covered ||  $uncoverable)
+        : !($covered xor $uncoverable)
+}
+
+sub simple_error {
+    my $self = shift;
+    $self->err_chk($self->covered, $self->uncoverable)
+}
+
 sub calculate_percentage {
     my $class = shift;
     my ($db, $s) = @_;
@@ -65,7 +79,6 @@ sub calculate_summary {
     $self->aggregate($s, $file, "covered",     1) if $self->covered;
     $self->aggregate($s, $file, "error",       1) if $self->error;
 }
-
 
 1
 

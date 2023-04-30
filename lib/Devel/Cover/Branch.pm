@@ -24,7 +24,6 @@ sub values      { @{$_[0][0]}                                            }
 sub text        { $_[0][1]{text}                                         }
 sub criterion   { "branch"                                               }
 
-
 sub percentage {
     my $t = $_[0]->total;
     sprintf "%3d", $t ? $_[0]->covered / $t * 100 : 0
@@ -34,11 +33,11 @@ sub error {
     my $self = shift;
     if (@_) {
         my $c = shift;
-        return !($self->covered($c) xor $self->uncoverable($c));
+        return $self->err_chk($self->covered($c), $self->uncoverable($c));
     }
     my $e = 0;
     for my $c (0 .. $#{$self->[0]}) {
-        $e++ if !($self->covered($c) xor $self->uncoverable($c));
+        $e++ if $self->err_chk($self->covered($c), $self->uncoverable($c));
     }
     $e
 }

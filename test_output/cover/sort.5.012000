@@ -34,7 +34,7 @@ line  err   stmt   bran   cond    sub   code
 12                                      }
 13                                      
 14                                      sub forwards {
-15    ***      0                    0       return $a cmp $b;
+15    ***     *0                   *0       return $a cmp $b;
 16                                      }
 17                                      
 18                                      sub GetAlgorithm {

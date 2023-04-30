@@ -46,7 +46,7 @@ line  err   stmt   bran   cond    sub   code
 23                                      
 24             1                        my $seven = new two_face ("vii", 7);
 25             1                        printf "seven=$seven, seven=%d, eight=%d\n", $seven, $seven+1;
-26    ***      1     50                 print "seven contains `i'\n" if $seven =~ /i/;
+26    ***      1   * 50                 print "seven contains `i'\n" if $seven =~ /i/;
 
 
 Branches

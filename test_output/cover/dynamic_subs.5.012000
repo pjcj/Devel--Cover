@@ -27,14 +27,14 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10    ***      0                    0   sub unused { 0 }
-11    ***                           0   sub empty  {   }
+10    ***     *0                   *0   sub unused { 0 }
+11    ***                          *0   sub empty  {   }
 12                                      
 13                                      sub gen {
 14             4                    4       my $x = shift;
 15                                          sub {
 16             5                    5           my $y = shift;
-17    ***      5     50                         return $x + $y if $y;
+17    ***      5   * 50                         return $x + $y if $y;
 18                                          }
 19             4                        };
 20                                      
