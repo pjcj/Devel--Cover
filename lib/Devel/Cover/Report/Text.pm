@@ -75,6 +75,7 @@ sub print_statement {
             }
         }
 
+        # use Devel::Cover::Dumper; print STDERR Dumper(\%criteria);
         my $more = 1;
         while ($more) {
             my @args  = ($n, "");
@@ -99,6 +100,7 @@ sub print_statement {
                         : $o->percentage
                     : "";
                 $value = "-" . $value if $o && $o->uncoverable;
+                $value = "*" . $value if $o && $o->error;
                 push @args, $value;
                 $error ||= $o->error if $o;
             }
