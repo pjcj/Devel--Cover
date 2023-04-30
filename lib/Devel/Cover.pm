@@ -1,4 +1,4 @@
-# Copyright 2001-2022, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -472,25 +472,25 @@ sub normalised_file {
         $file = File::Spec->rel2abs($file, $m->[1]);
         # print STDERR "as <$file> ";
     }
-    if ($] >= 5.008) {
-        my $inc;
-        $inc ||= $file =~ $_ for @Inc_re;
-        # warn "inc for [$file] is [$inc] @Inc_re";
-        if ($inc && ($^O eq "MSWin32" || $^O eq "cygwin")) {
-            # Windows' Cwd::_win32_cwd() calls eval which will recurse back
-            # here if we call abs_path, so we just assume it's normalised.
-            # warn "giving up on getting normalised filename from <$file>\n";
-        } else {
-            # print STDERR "getting abs_path <$file> ";
-            if (-e $file) {  # Windows likes the file to exist
-                my $abs;
-                $abs = abs_path($file) unless -l $file;  # leave symbolic links
-                # print STDERR "giving <$abs> ";
-                $file = $abs if defined $abs;
-            }
+
+    my $inc;
+    $inc ||= $file =~ $_ for @Inc_re;
+    # warn "inc for [$file] is [$inc] @Inc_re";
+    if ($inc && ($^O eq "MSWin32" || $^O eq "cygwin")) {
+        # Windows' Cwd::_win32_cwd() calls eval which will recurse back
+        # here if we call abs_path, so we just assume it's normalised.
+        # warn "giving up on getting normalised filename from <$file>\n";
+    } else {
+        # print STDERR "getting abs_path <$file> ";
+        if (-e $file) {  # Windows likes the file to exist
+            my $abs;
+            $abs = abs_path($file) unless -l $file;  # leave symbolic links
+            # print STDERR "giving <$abs> ";
+            $file = $abs if defined $abs;
         }
-        # print STDERR "finally <$file> <$Dir>\n";
     }
+    # print STDERR "finally <$file> <$Dir>\n";
+
     $file =~ s|\\|/|g if $^O eq "MSWin32";
     $file =~ s|^\Q$Dir\E/|| if defined $Dir;
 
@@ -1827,7 +1827,7 @@ Please report new bugs on Github.
 
 =head1 LICENCE
 
-Copyright 2001-2022, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 
