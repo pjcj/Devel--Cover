@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.40 - 30 April 2023
  - Note usage with dzil (Steve Rogerson) (GH-319)
  - Fix html_basic report (jkahrman) (GH-318)
  - Use CPAN::Meta (Slaven Rezić) (GH-314)
