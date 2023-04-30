@@ -6,6 +6,8 @@ Devel::Cover history
  - Use CPAN::Meta (Slaven Rezić) (GH-314)
  - Make non-interactive output less noisy (jkahrman) (GH-312)
  - Avoid infinite recursion in Type::Tiny and other places (Ed J) (GH-307)
+ - Add ignore_covered_err option (Tina Müller) (GH-323)
+ - Handle empty hashes and arrays on condition RHS in 5.37.6 and later
 
 1.39 - 29 April 2023
  - Remove dependency on B::Debug (Jim Keenan) (GH-289)
