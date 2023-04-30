@@ -489,8 +489,8 @@ sub add_branch {
             return;
         }
         my $n = $line{$l}++;
+        no warnings "uninitialized";
         if (my $a = $cc->{$l}[$n]) {
-            no warnings "uninitialized";
             $a->[0][0] += $fc->[$i][0];
             $a->[0][1] += $fc->[$i][1];
             $a->[0][2] += $fc->[$i][2] if exists $fc->[$i][2];
