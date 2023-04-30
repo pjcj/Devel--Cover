@@ -380,7 +380,7 @@ out : _run
 \t \$(PERL) -Mblib bin/cover `\$(COVER_PARAMETERS)` -report text > \$(TEST).out
 
 text : out
-\t \$(VISUAL) \$(TEST).out
+\t \$(PAGER) \$(TEST).out
 
 wrun : pure_all
 \t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-ignore,blib,-merge,0 tests/\$(TEST)
