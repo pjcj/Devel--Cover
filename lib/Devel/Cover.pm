@@ -1591,6 +1591,22 @@ followed by the name of the coverage criterion which is uncoverable.  There
 may then be further information depending on the nature of the uncoverable
 construct.
 
+In all cases as L<class> attribute may be included in L<details>.  At present a
+single class attribute is recognised: L<ignore_covered_err>.  Normally, an
+error is flagged if code marked as L<uncoverable> is covered.  When the
+L<ignore_covered_err> attribute is specified then such errors will not be
+flagged.  This is a more precise method to flag such exceptions than the global
+L<-ignore_covered_err> flag to the L<cover> program.
+
+There is also a L<note> attribute which can also be included in L<details>.
+This should be the final attribute and will consude all the remaining text.
+Currently this attribute is not used, but it is intented as a form of
+documentation for the uncoverable data.
+
+Example:
+
+    # uncoverable branch true count:1..3 class:ignore_covered_err note:error chk
+
 =head3 Statements
 
 The "uncoverable" comment should appear on either the same line as the
