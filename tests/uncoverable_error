@@ -1,0 +1,55 @@
+#!/usr/bin/perl
+
+# Copyright 2023, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+sub usub {
+    # uncoverable subroutine class:ignore_covered_err
+    # uncoverable statement  class:ignore_covered_err
+    my $x = 1;
+}
+
+sub main {
+    my $x = 1;
+    # uncoverable branch false class:ignore_covered_err
+    # uncoverable branch true
+    if ($x > 1) {
+        $x = 0;
+        # uncoverable statement class:ignore_covered_err
+        $x = 2;
+        if ($x > 3) {
+            $x = 4;
+        }
+    }
+
+    my $y = 0;
+    # uncoverable branch true
+    # uncoverable condition left
+    # uncoverable condition right class:ignore_covered_err
+    # uncoverable condition false
+    if ($x > 0 && $y > 0) {
+        # uncoverable statement
+        $y = 1;
+    }
+
+    while ($y < 4) {
+        # uncoverable branch false
+        # uncoverable condition left
+        # uncoverable condition right
+        if ($x > 0 && $y > 0) {
+            $y = 4;
+        } else {
+            $y++;
+        }
+    }
+
+    # uncoverable statement class:ignore_covered_err
+    $x = 3;
+    usub;
+}
+
+main
