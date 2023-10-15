@@ -1600,7 +1600,7 @@ L<-ignore_covered_err> flag to the L<cover> program.
 
 There is also a L<note> attribute which can also be included in L<details>.
 This should be the final attribute and will consude all the remaining text.
-Currently this attribute is not used, but it is intented as a form of
+Currently this attribute is not used, but it is intended as a form of
 documentation for the uncoverable data.
 
 Example:
