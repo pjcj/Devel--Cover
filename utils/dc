@@ -143,12 +143,11 @@ main() {
             ;;
         install_dzil)
             cpanm --notest App::cpm
-            cpm install --workers="$($0 nice_cpus)" --global                \
-                Dist::Zilla
+            cpm install --workers="$($0 nice_cpus)" --global Dist::Zilla
             plenv rehash
-            dzil authordeps --missing | \
+            dzil authordeps --missing |
                 xargs cpm install --workers="$($0 nice_cpus)" --global
-            dzil listdeps --missing | \
+            dzil listdeps --missing |
                 xargs cpm install --workers="$($0 nice_cpus)" --global
             ;;
         nice_cpus)
