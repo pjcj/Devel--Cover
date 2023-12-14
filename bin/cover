@@ -101,7 +101,7 @@ sub get_options {
     $Options->{report} = ["html"]
         if !@{$Options->{report}} && !exists $Options->{write};
 
-    # handle comma seperated ops, like -coverage branch,statement
+    # handle comma separated ops, like -coverage branch,statement
 
     # also accept them in the same format they're output
     my %coverage_abbrev = (
