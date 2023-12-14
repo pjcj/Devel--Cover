@@ -229,7 +229,7 @@ sub main {
         push @{$Options->{annotations}}, $ann;
     }
 
-    print "$0 version $VERSION\n" and exit 0 if $Options->{version};
+    print "$0 version $VERSION\n" and exit 0  if $Options->{version};
     pod2usage(-exitval => 0, -verbose => 1)   if $Options->{help};
     pod2usage(-exitval => 0, -verbose => 2)   if $Options->{info};
 
@@ -310,7 +310,9 @@ sub main {
             print STDERR "cover: running @c\n";
             system @c;
         };
-        File::Find::find({ wanted => $gc, no_chdir => !$Options->{gcov_chdir} }, ".");
+        File::Find::find(
+            { wanted => $gc, no_chdir => !$Options->{gcov_chdir} }, "."
+        );
         my @gc;
         my $gp = sub {
             return unless /\.gcov$/;
