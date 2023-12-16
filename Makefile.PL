@@ -306,12 +306,7 @@ my $opts = {
                                          ? ""
                                          : "t/*.t t/*/*.t"
                         },
-    realclean        => $] < 5.008008 ?
-                        {
-                            FILES  => "lib/Devel/Cover/Inc.pm",
-                            POSTOP => "\$(RM_RF) cover_db t/e2e"
-                        } :
-                        { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
+    realclean        => { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
 };
 # use Data::Dumper; print Dumper $opts;
 WriteMakefile(%$opts);
