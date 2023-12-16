@@ -134,7 +134,9 @@ main() {
             ;;
         install_dependencies)
             cpanm --notest App::cpm
-            plenv rehash
+            if command -v plenv >/dev/null 2>&1; then
+                plenv rehash
+            fi
             cpm install --workers="$($0 nice_cpus)" --global                \
                 Sereal Digest::MD5 Template Pod::Coverage::CountParents     \
                 Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
