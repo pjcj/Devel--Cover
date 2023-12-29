@@ -17,7 +17,7 @@ shopt -s inherit_errexit
 
 script=$(basename "$0")
 readl=readlink
-if which greadlink >&/dev/null; then readl=greadlink; fi
+if command -v greadlink >&/dev/null; then readl=greadlink; fi
 srcdir=$("$readl" -f "$(dirname "$0")")
 readonly LOG_FILE="/tmp/$script.log"
 _p() {
