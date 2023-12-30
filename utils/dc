@@ -196,7 +196,7 @@ main() {
     ((dryrun)) && cpancover="$cpancover --dryrun"
     cmd="$cpancover --results_dir $results_dir --workers $jobs $*"
     ((verbose)) && pi "$cmd"
-    "$cmd"
+    $cmd
     ;;
   cpancover-compress)
     find "$results_dir/" -name __failed__ -prune -o \
