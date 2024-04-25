@@ -215,9 +215,9 @@ sub run_test {
   return 1 unless $v;  # assume we are generating the golden results
   my $gold = "$base.$v";
 
-  open I, $gold or die "Cannot open $gold: $!";
-  my @cover = <I>;
-  close I or die "Cannot close $gold: $!";
+  open my $i, "<", $gold or die "Cannot open $gold: $!";
+  my @cover = <$i>;
+  close $i or die "Cannot close $gold: $!";
   $self->{cover} = \@cover;
 
   # print STDERR "gold from $gold\n", @cover if $self->{debug};
