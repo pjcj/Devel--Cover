@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Spelling, linting and formatting changes
 
 1.40 - 30 April 2023
  - Note usage with dzil (Steve Rogerson) (GH-319)

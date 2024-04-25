@@ -199,11 +199,6 @@ sub run_test {
 
   $ENV{DEVEL_COVER_TEST_SUITE} = 1;
 
-  if ($] < 5.010000) {
-    plan skip_all => "Perl version $] is not supported";
-    return;
-  }
-
   if ($self->{skip}) {
     plan skip_all => $self->{skip};
     return;
@@ -220,9 +215,9 @@ sub run_test {
   return 1 unless $v;  # assume we are generating the golden results
   my $gold = "$base.$v";
 
-  open I, $gold or die "Cannot open $gold: $!";
-  my @cover = <I>;
-  close I or die "Cannot close $gold: $!";
+  open my $i, "<", $gold or die "Cannot open $gold: $!";
+  my @cover = <$i>;
+  close $i or die "Cannot close $gold: $!";
   $self->{cover} = \@cover;
 
   # print STDERR "gold from $gold\n", @cover if $self->{debug};
