@@ -20,15 +20,16 @@ tests/Accessor_maker.pm
 
 line  err   stmt   bran   cond    sub   code
 1                                       package Accessor_maker;
-2                                       sub import {
-3              1                    1     no strict 'refs';
+2                                       
+3                                       sub import {
+4              1                    1     no strict 'refs';
                1                        
                1                        
-4              4                    4     *{ caller() . '::' . 'foo' } = sub { $_[0]->{ 'foo' } };
+5              4                    4     *{ caller() . '::' . 'foo' } = sub { $_[0]->{'foo'} };
                1                    1   
                1                        
-5                                       }
-6                                       1;
+6                                       }
+7                                       1;
 
 
 Covered Subroutines
@@ -36,9 +37,9 @@ Covered Subroutines
 
 Subroutine Count Location                 
 ---------- ----- -------------------------
-BEGIN          1 tests/Accessor_maker.pm:3
-__ANON__       4 tests/Accessor_maker.pm:4
-import         1 tests/Accessor_maker.pm:4
+BEGIN          1 tests/Accessor_maker.pm:4
+__ANON__       4 tests/Accessor_maker.pm:5
+import         1 tests/Accessor_maker.pm:5
 
 
 tests/accessor

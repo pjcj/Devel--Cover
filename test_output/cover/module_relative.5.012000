@@ -29,7 +29,7 @@ line  err   stmt   bran   cond    sub   code
 8                                       package Module_import;
 9                                       
 10                                      sub import {
-11             1                    1       print "Module_import\n";
+11             1                    1     print "Module_import\n";
 12                                      }
 13                                      
 14                                      1

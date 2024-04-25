@@ -39,14 +39,14 @@ line  err   stmt   bran   cond    sub   code
                1                        
                1                        
 14                                      
-15                                      our @ISA = qw(Exporter);
+15                                      our @ISA    = qw(Exporter);
 16                                      our @EXPORT = qw(is_3digits);
 17                                      
 18                                      sub is_3digits {
-19             2                    2       my $val = shift;
-20             2                            my $retval = undef;
-21             2    100                     $retval=1 if $val =~ /^\d{3}$/;
-22             2                            return $retval;
+19             2                    2     my $val    = shift;
+20             2                          my $retval = undef;
+21             2    100                   $retval = 1 if $val =~ /^\d{3}$/;
+22             2                          return $retval;
 23                                      }
 24                                      
 25                                      1;
