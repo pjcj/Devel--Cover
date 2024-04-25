@@ -1,0 +1,51 @@
+-utf8                                  # input is UTF-8
+--converge                             # keep running until no changes
+--output-line-ending=unix              # output uses unix line endings
+
+--indent-columns=2                     # indent level is 2 cols
+--extended-continuation-indentation    # indent extended continuations
+--no-outdent-long-lines                # don't outdent long lines
+--no-outdent-labels                    # don't outdent labels
+--no-outdent-long-comments             # don't outdent long comments
+
+--paren-tightness=2                    # keep parentheses tight
+--space-prototype-paren=2              # space before prototype parentheses
+# --space-signature-paren=2            # space before signature parentheses
+                                       #   needs a recent Perl::Tidy
+--keyword-paren-inner-tightness=2      # keep keyword parentheses tight
+--space-backslash-quote=0              # no space between backslash and quote
+--minimum-space-to-comment=2           # spaces before side comments
+--break-before-all-operators           # break before all operators
+--break-after-all-operators            # break after all operators
+--no-space-for-semicolon               # no space before semicolons in for loops
+
+--no-add-semicolons                    # no optional semicolons at end of blocks
+--one-line-block-semicolons=0          # no semicolons after one-line blocks
+--one-line-block-nesting=1             # use one line block nesting
+--delete-closing-side-comments         # delete closing side comments
+--no-blanks-before-comments            # no blank lines before comments
+
+--cuddled-else                         # cuddle elses
+--cuddled-block-list=sort,map,grep     # cuddle blocks for sort, map, grep
+--cuddled-paren-brace                  # cuddle paren-brace blocks  ) {
+--opening-token-right                  # no break between comma and bracket  , {
+--vertical-tightness=0                 # break after every bracket
+--brace-follower-vertical-tightness=2  # keep code after brace on same line
+--weld-nested-containers               # allow container delimiters on same line
+--weld-fat-comma                       # allow fat comma on same line
+# --comma-arrow-breakpoints=3          # commas after => aren't special
+                                       #   we only want this sometimes
+--break-after-labels=2                 # never break after labels
+--valign-if-unless                     # vertically align if and unless
+
+--delete-repeated-commas               # delete repeated commas
+--want-trailing-commas="w(h W(m [m {m" # trailing commas for arrays and hashes
+--add-trailing-commas                  # add trailing commas
+--delete-trailing-commas               # delete trailing commas
+--delete-weld-interfering-commas       # delete commas that interfere with welds
+
+--ignore-old-breakpoints               # ignore all old breakpoints
+
+--keep-old-blank-lines=1               # keep existing blank lines
+--keyword-group-blanks                 # add blank lines between keyword groups
+--keyword-group-blanks-size=5          # size of keyword groups
