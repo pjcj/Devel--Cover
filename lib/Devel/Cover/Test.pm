@@ -199,11 +199,6 @@ sub run_test {
 
   $ENV{DEVEL_COVER_TEST_SUITE} = 1;
 
-  if ($] < 5.010000) {
-    plan skip_all => "Perl version $] is not supported";
-    return;
-  }
-
   if ($self->{skip}) {
     plan skip_all => $self->{skip};
     return;
