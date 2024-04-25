@@ -13,23 +13,23 @@ use warnings;
 # VERSION
 
 sub new {
-    bless {}, shift
+  bless {}, shift
 }
 
 sub m1 {
-    my $self = shift;
-    if (@_) {
-        $self->{m1} = shift;
-    }
-    $self->{m1}
+  my $self = shift;
+  if (@_) {
+    $self->{m1} = shift;
+  }
+  $self->{m1}
 }
 
 sub m2 {
-    my $self = shift;
-    if (@_) {
-        $self->{m2} = shift;
-    }
-    $self->{m2}
+  my $self = shift;
+  if (@_) {
+    $self->{m2} = shift;
+  }
+  $self->{m2}
 }
 
 1

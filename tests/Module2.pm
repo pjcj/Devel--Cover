@@ -11,23 +11,23 @@ my $y = 7;
 $y++;
 
 sub _aa {
-    $y++;
-    die;
-    die;
+  $y++;
+  die;
+  die;
 }
 
 sub _xx {
-    $y++;
-    die;
+  $y++;
+  die;
 }
 
 sub yy {
-    $y++;
+  $y++;
 }
 
 sub zz {
-    my $x = shift;
-    $x++;
+  my $x = shift;
+  $x++;
 }
 
 1

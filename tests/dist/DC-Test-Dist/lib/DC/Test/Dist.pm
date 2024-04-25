@@ -15,23 +15,23 @@ use warnings;
 use DC::Test::Dist::M1;
 
 sub new {
-    bless {}, shift
+  bless {}, shift
 }
 
 sub d1 {
-    my $self = shift;
-    if (@_) {
-        $self->{d1} = shift;
-    }
-    $self->{d1}
+  my $self = shift;
+  if (@_) {
+    $self->{d1} = shift;
+  }
+  $self->{d1}
 }
 
 sub d2 {
-    my $self = shift;
-    if (@_) {
-        $self->{d2} = shift;
-    }
-    $self->{d2}
+  my $self = shift;
+  if (@_) {
+    $self->{d2} = shift;
+  }
+  $self->{d2}
 }
 
 1

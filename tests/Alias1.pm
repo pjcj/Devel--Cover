@@ -12,14 +12,14 @@ use warnings;
 
 use Exporter;
 
-our @ISA = qw(Exporter);
+our @ISA    = qw(Exporter);
 our @EXPORT = qw(is_3digits);
 
 sub is_3digits {
-    my $val = shift;
-    my $retval = undef;
-    $retval=1 if $val =~ /^\d{3}$/;
-    return $retval;
+  my $val    = shift;
+  my $retval = undef;
+  $retval = 1 if $val =~ /^\d{3}$/;
+  return $retval;
 }
 
 1;
