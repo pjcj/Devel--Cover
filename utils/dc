@@ -141,9 +141,9 @@ main() {
     me="Paul Johnson"
     files=$(git ls-files)
     # shellcheck disable=SC2086
-    perl -pi -e "s/Copyright \\d+-\\K$from(, $me)/$to\$1/i" "$files"
+    perl -pi -e "s/Copyright \\d+-\\K$from(, $me)/$to\$1/i" $files
     # shellcheck disable=SC2086
-    perl -pi -e "s/Copyright $from\\K(, $me)/-$to\$1/i" "$files"
+    perl -pi -e "s/Copyright $from\\K(, $me)/-$to\$1/i" $files
     ;;
   install_dependencies)
     cpanm --notest App::cpm
