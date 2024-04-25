@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -35,7 +35,7 @@ chomp (my $inc_string = $dumper->Dump);
 open I, ">lib/Devel/Cover/Inc.pm"
     or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
 print I <<"EOI";
-# Copyright 2001-2023, Paul Johnson (paul\@pjcj.net)
+# Copyright 2001-2024, Paul Johnson (paul\@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -105,7 +105,7 @@ for my $t (readdir D) {
     print T <<EOT;
 #!$^X
 
-# Copyright 2002-2023, Paul Johnson (paul\@pjcj.net)
+# Copyright 2002-2024, Paul Johnson (paul\@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
