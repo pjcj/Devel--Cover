@@ -156,12 +156,13 @@ main() {
       Moo namespace::clean CPAN::Releases::Latest JSON::MaybeXS \
       CPAN::DistnameInfo HTML::Entities
     ;;
-  install_dzil)
+  install_development_dependencies)
     cpanm --notest App::cpm
-    cpm install --workers="$("$0" nice_cpus)" --global Dist::Zilla
     if command -v plenv >/dev/null 2>&1; then
       plenv rehash
     fi
+    cpm install --workers="$("$0" nice_cpus)" --global \
+      Perl::Critic Perl::Tidy Dist::Zilla
     dzil authordeps --missing |
       xargs cpm install --workers="$("$0" nice_cpus)" --global
     dzil listdeps --missing |
@@ -181,6 +182,14 @@ main() {
     plenv install --as cpancover -j 32 -D usedevel --noman "$version"
     PLENV_VERSION=cpancover plenv install-cpanm
     PLENV_VERSION=cpancover dc install_dependencies
+    ;;
+  install_dc_perl)
+    version="${2:?No version specified}"
+    yes | plenv uninstall dc || true
+    plenv install --as dc -j 32 -D usedevel --noman "$version"
+    PLENV_VERSION=dc plenv install-cpanm
+    PLENV_VERSION=dc dc install_dependencies
+    PLENV_VERSION=dc dc install_development_dependencies
     ;;
   cpancover)
     shift
