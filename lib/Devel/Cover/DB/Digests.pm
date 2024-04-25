@@ -1,4 +1,4 @@
-# Copyright 2011-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2011-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -18,66 +18,63 @@ use Devel::Cover::DB::IO;
 my $File = "digests";
 
 sub new {
-    my $class = shift;
-    my $self  = {
-        digests => {},
-        @_
-    };
+  my $class = shift;
+  my $self  = { digests => {}, @_ };
 
-    die "No db specified" unless $self->{db};
-    $self->{file} = "$self->{db}/$File";
+  die "No db specified" unless $self->{db};
+  $self->{file} = "$self->{db}/$File";
 
-    bless $self, $class;
-    $self->read;
-    $self
+  bless $self, $class;
+  $self->read;
+  $self
 }
 
 sub read {
-    my $self = shift;
-    my $io = Devel::Cover::DB::IO->new;
-    $self->{digests} = $io->read($self->{file}) if -e $self->{file};
-    $self
+  my $self = shift;
+  my $io   = Devel::Cover::DB::IO->new;
+  $self->{digests} = $io->read($self->{file}) if -e $self->{file};
+  $self
 }
 
 sub write {
-    my $self = shift;
-    my $io = Devel::Cover::DB::IO->new;
-    $io->write($self->{digests}, $self->{file});
-    $self
+  my $self = shift;
+  my $io   = Devel::Cover::DB::IO->new;
+  $io->write($self->{digests}, $self->{file});
+  $self
 }
 
 sub get {
-    my $self = shift;
-    my ($digest) = @_;
-    $self->{digests}{$digest}
+  my $self = shift;
+  my ($digest) = @_;
+  $self->{digests}{$digest}
 }
 
 sub set {
-    my $self = shift;
-    my ($file, $digest) = @_;
-    $self->{digests}{$digest} = $file;
+  my $self = shift;
+  my ($file, $digest) = @_;
+  $self->{digests}{$digest} = $file;
 }
 
 sub canonical_file {
-    my $self = shift;
-    my ($file) = @_;
+  my $self = shift;
+  my ($file) = @_;
 
-    my $cfile = $file;
-    my $digest = Devel::Cover::DB::Structure->digest($file);
-    if ($digest) {
-        my $dfile = $self->get($digest);
-        if ($dfile && $dfile ne $file) {
-            print STDERR "Devel::Cover: Adding coverage for $file to $dfile\n"
-                unless $Devel::Cover::Silent;
-            $cfile = $dfile;
-        } else {
-            $self->set($file, $digest);
-        }
+  my $cfile  = $file;
+  my $digest = Devel::Cover::DB::Structure->digest($file);
+  if ($digest) {
+    my $dfile = $self->get($digest);
+    if ($dfile && $dfile ne $file) {
+      print STDERR "Devel::Cover: Adding coverage for $file to $dfile\n"
+        unless $Devel::Cover::Silent;
+      $cfile = $dfile;
+    } else {
+      $self->set($file, $digest);
     }
+  }
 
-    # warn "[$file] => [$cfile]\n";
+  # warn "[$file] => [$cfile]\n";
 
-    $cfile
+  $cfile
 }
 
 1
@@ -130,7 +127,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2011-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2011-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

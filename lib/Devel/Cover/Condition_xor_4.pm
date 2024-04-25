@@ -1,4 +1,4 @@
-# Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -14,7 +14,7 @@ use warnings;
 
 use base "Devel::Cover::Condition";
 
-sub count   { 4                               }
+sub count   { 4 }
 sub headers { [qw( l&&r l&&!r !l&&r !l&&!r )] }
 
 1
@@ -45,7 +45,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

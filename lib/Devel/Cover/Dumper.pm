@@ -8,7 +8,7 @@
 # Author of this file: Olivier Mengué
 
 package  # Private module
-   Devel::Cover::Dumper;
+  Devel::Cover::Dumper;
 
 use strict qw( vars subs );  # no refs
 use warnings;
@@ -16,21 +16,21 @@ use warnings;
 # VERSION
 
 sub import {
-    my $caller = caller;
-    if (defined &{"${caller}::Dumper"} && \&{"${caller}::Dumper"} != \&Dumper) {
-        require Carp;
-        Carp::croak("Data::Dumper previously imported.  " .
-                    "Use Devel::Cover::Dumper instead.");
-    }
-    *{"${caller}::Dumper"} = \&Dumper;
+  my $caller = caller;
+  if (defined &{"${caller}::Dumper"} && \&{"${caller}::Dumper"} != \&Dumper) {
+    require Carp;
+    Carp::croak("Data::Dumper previously imported.  "
+        . "Use Devel::Cover::Dumper instead.");
+  }
+  *{"${caller}::Dumper"} = \&Dumper;
 }
 
 sub Dumper {
-    require Data::Dumper;
-    no warnings "once";
-    local $Data::Dumper::Indent   = 1;
-    local $Data::Dumper::Sortkeys = 1;
-    Data::Dumper::Dumper(@_);
+  require Data::Dumper;
+  no warnings "once";
+  local $Data::Dumper::Indent   = 1;
+  local $Data::Dumper::Sortkeys = 1;
+  Data::Dumper::Dumper(@_);
 }
 
 1

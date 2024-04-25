@@ -1,4 +1,4 @@
-# Copyright 2012-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2012-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -13,23 +13,23 @@ use warnings;
 # VERSION
 
 sub new {
-    bless {}, shift
+  bless {}, shift
 }
 
 sub m1 {
-    my $self = shift;
-    if (@_) {
-        $self->{m1} = shift;
-    }
-    $self->{m1}
+  my $self = shift;
+  if (@_) {
+    $self->{m1} = shift;
+  }
+  $self->{m1}
 }
 
 sub m2 {
-    my $self = shift;
-    if (@_) {
-        $self->{m2} = shift;
-    }
-    $self->{m2}
+  my $self = shift;
+  if (@_) {
+    $self->{m2} = shift;
+  }
+  $self->{m2}
 }
 
 1
@@ -50,7 +50,7 @@ None.
 
 =head1 LICENCE
 
-Copyright 2012-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2012-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

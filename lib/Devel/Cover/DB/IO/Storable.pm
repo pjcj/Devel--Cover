@@ -1,4 +1,4 @@
-# Copyright 2011-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2011-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -17,21 +17,21 @@ use Storable;
 # VERSION
 
 sub new {
-    my $class = shift;
-    my $self = $class->SUPER::new(@_);
-    bless $self, $class
+  my $class = shift;
+  my $self  = $class->SUPER::new(@_);
+  bless $self, $class
 }
 
 sub read {
-    my $self   = shift;
-    my ($file) = @_;
-    $self->_read($file, sub { Storable::retrieve($file) })
+  my $self = shift;
+  my ($file) = @_;
+  $self->_read($file, sub { Storable::retrieve($file) })
 }
 
 sub write {
-    my $self = shift;
-    my ($data, $file) = @_;
-    $self->_write($file, sub { Storable::nstore($data, $file) })
+  my $self = shift;
+  my ($data, $file) = @_;
+  $self->_write($file, sub { Storable::nstore($data, $file) })
 }
 
 1
@@ -84,7 +84,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2011-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2011-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

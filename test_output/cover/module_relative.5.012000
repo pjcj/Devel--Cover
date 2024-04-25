@@ -19,7 +19,7 @@ Finish: ...
 tests/Module_import.pm
 
 line  err   stmt   bran   cond    sub   code
-1                                       # Copyright 2002-2023, Paul Johnson (paul@pjcj.net)
+1                                       # Copyright 2002-2024, Paul Johnson (paul@pjcj.net)
 2                                       
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
@@ -29,7 +29,7 @@ line  err   stmt   bran   cond    sub   code
 8                                       package Module_import;
 9                                       
 10                                      sub import {
-11             1                    1       print "Module_import\n";
+11             1                    1     print "Module_import\n";
 12                                      }
 13                                      
 14                                      1
@@ -48,7 +48,7 @@ tests/module_relative
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
 2                                       
-3                                       # Copyright 2002-2023, Paul Johnson (paul@pjcj.net)
+3                                       # Copyright 2002-2024, Paul Johnson (paul@pjcj.net)
 4                                       
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       

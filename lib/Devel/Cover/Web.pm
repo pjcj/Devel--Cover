@@ -1,4 +1,4 @@
-# Copyright 2007-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2007-2024, Paul Johnson (paul@pjcj.net)
 # except where otherwise noted.
 
 # This software is free.  It is licensed under the same terms as Perl itself,
@@ -22,18 +22,18 @@ our @EXPORT_OK = "write_file";
 my %Files;
 
 sub write_file {
-    my ($directory, $file) = @_;
+  my ($directory, $file) = @_;
 
-    while (my ($f, $contents) = each %Files) {
-        next if
-            $file ne "all" &&
-            (($file eq "js" || $file eq "css") && $f !~ /\.$file$/) &&
-            $file ne $f;
-        my $path = "$directory/$f";
-        open my $p, ">", $path or next;
-        print $p $contents;
-        close $p;
-    }
+  while (my ($f, $contents) = each %Files) {
+    next
+      if $file ne "all"
+      && (($file eq "js" || $file eq "css") && $f !~ /\.$file$/)
+      && $file ne $f;
+    my $path = "$directory/$f";
+    open my $p, ">", $path or next;
+    print $p $contents;
+    close $p;
+  }
 }
 
 $Files{"cover.css"} = <<'EOF';
@@ -926,7 +926,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2007-2023, Paul Johnson (paul@pjcj.net) except where otherwise noted.
+Copyright 2007-2024, Paul Johnson (paul@pjcj.net) except where otherwise noted.
 
 This software is free.  It is licensed under the same terms as Perl itself,
 except where otherwise noted.

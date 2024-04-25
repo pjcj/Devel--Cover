@@ -1,4 +1,4 @@
-# Copyright 2002-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2002-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -8,7 +8,7 @@
 package Module_import;
 
 sub import {
-    print "Module_import\n";
+  print "Module_import\n";
 }
 
 1

@@ -1,4 +1,4 @@
-# Copyright 2004-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2004-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -15,57 +15,57 @@ use warnings;
 use Getopt::Long;
 
 sub new {
-    my $class = shift;
-    bless {@_}, $class
+  my $class = shift;
+  bless {@_}, $class
 }
 
 sub get_options {
-    my ($self, $opt) = @_;
-    $self->{count} = 1;
-    die "Bad option" unless
-        GetOptions($self,
-                   qw(
-                       count=s
-                     ));
+  my ($self, $opt) = @_;
+  $self->{count} = 1;
+  die "Bad option" unless GetOptions(
+    $self, qw(
+      count=s
+    )
+  );
 }
 
 sub count {
-    my $self = shift;
-    $self->{count}
+  my $self = shift;
+  $self->{count}
 }
 
 sub header {
-    my $self = shift;
-    my ($annotation) = @_;
-    "rnd$annotation"
+  my $self = shift;
+  my ($annotation) = @_;
+  "rnd$annotation"
 }
 
 sub width {
-    my $self = shift;
-    my ($annotation) = @_;
-    length $self->header($annotation)
+  my $self = shift;
+  my ($annotation) = @_;
+  length $self->header($annotation)
 }
 
 sub text {
-    my $self = shift;
-    my ($file, $line, $annotation) = @_;
-    return "" unless $line;
-    $self->{annotation}{$file}[$line][$annotation] = int rand 10
-        unless defined $self->{annotation}{$file}[$line][$annotation];
-    $self->{annotation}{$file}[$line][$annotation]
+  my $self = shift;
+  my ($file, $line, $annotation) = @_;
+  return "" unless $line;
+  $self->{annotation}{$file}[$line][$annotation] = int rand 10
+    unless defined $self->{annotation}{$file}[$line][$annotation];
+  $self->{annotation}{$file}[$line][$annotation]
 }
 
 sub error {
-    my $self = shift;
-    my ($file, $line, $annotation) = @_;
-    !$self->text($file, $line, $annotation)
+  my $self = shift;
+  my ($file, $line, $annotation) = @_;
+  !$self->text($file, $line, $annotation)
 }
 
 sub class {
-    my $self = shift;
-    my ($file, $line, $annotation) = @_;
-    return "" unless $line;
-    "c" . int(($self->text($file, $line, $annotation) + 2) / 3)
+  my $self = shift;
+  my ($file, $line, $annotation) = @_;
+  return "" unless $line;
+  "c" . int(($self->text($file, $line, $annotation) + 2) / 3)
 }
 
 1
@@ -95,7 +95,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2004-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2004-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

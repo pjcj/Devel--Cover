@@ -1,4 +1,4 @@
-# Copyright 2005-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2005-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -15,100 +15,99 @@ use warnings;
 use Getopt::Long;
 
 sub new {
-    my $class = shift;
-    my $annotate_arg = $ENV{DEVEL_COVER_GIT_ANNOTATE} || "";
-    my $self = {
-        annotations => [ qw( version author date ) ],
-        command     => "git blame --porcelain $annotate_arg [[file]]",
-        @_
-    };
+  my $class        = shift;
+  my $annotate_arg = $ENV{DEVEL_COVER_GIT_ANNOTATE} || "";
+  my $self         = {
+    annotations => [qw( version author date )],
+    command     => "git blame --porcelain $annotate_arg [[file]]",
+    @_,
+  };
 
-    bless $self, $class
+  bless $self, $class
 }
 
 sub get_annotations {
-    my $self = shift;
-    my ($file) = @_;
+  my $self = shift;
+  my ($file) = @_;
 
-    return if exists $self->{_annotations}{$file};
-    my $annotations = $self->{_annotations}{$file} = [];
+  return if exists $self->{_annotations}{$file};
+  my $annotations = $self->{_annotations}{$file} = [];
 
-    print "cover: Getting git annotation information for $file\n";
+  print "cover: Getting git annotation information for $file\n";
 
-    my $command = $self->{command};
-    $command =~ s/\[\[file\]\]/$file/g;
-    # print "Running [$command]\n";
-    open my $c, "-|", $command
-        or warn("cover: Can't run $command: $!\n"), return;
-    my @annotaiton;
-    my $start = 1;
-    while (my $line = <$c>) {
-        # print "[$_]\n";
-        if ($line =~ /^\t/) {
-            push @$annotations, [@annotaiton];
-            $start = 1;
-            next;
-        }
-
-        if ($start == 1) {
-            $annotaiton[0] = substr $1, 0, 8 if /$line =~ ^(\w+)/;
-            $start = 0;
-        } else {
-            $annotaiton[1] = $1 if $line =~ /^author (.*)/;
-            $annotaiton[2] = localtime $1 if $line =~ /^author-time (.*)/;
-        }
+  my $command = $self->{command};
+  $command =~ s/\[\[file\]\]/$file/g;
+  # print "Running [$command]\n";
+  open my $c, "-|", $command or warn("cover: Can't run $command: $!\n"), return;
+  my @annotaiton;
+  my $start = 1;
+  while (my $line = <$c>) {
+    # print "[$_]\n";
+    if ($line =~ /^\t/) {
+      push @$annotations, [@annotaiton];
+      $start = 1;
+      next;
     }
-    close $c or warn "cover: Failed running $command: $!\n"
+
+    if ($start == 1) {
+      $annotaiton[0] = substr $1, 0, 8 if /$line =~ ^(\w+)/;
+      $start = 0;
+    } else {
+      $annotaiton[1] = $1           if $line =~ /^author (.*)/;
+      $annotaiton[2] = localtime $1 if $line =~ /^author-time (.*)/;
+    }
+  }
+  close $c or warn "cover: Failed running $command: $!\n"
 }
 
 sub get_options {
-    my ($self, $opt) = @_;
-    $self->{$_} = 1 for @{$self->{annotations}};
-    die "Bad option" unless
-        GetOptions($self,
-                   qw(
-                       author
-                       command=s
-                       date
-                       version
-                     ));
+  my ($self, $opt) = @_;
+  $self->{$_} = 1 for @{ $self->{annotations} };
+  die "Bad option" unless GetOptions(
+    $self, qw(
+      author
+      command=s
+      date
+      version
+    )
+  );
 }
 
 sub count {
-    my $self = shift;
-    $self->{author} + $self->{date} + $self->{version}
+  my $self = shift;
+  $self->{author} + $self->{date} + $self->{version}
 }
 
 sub header {
-    my $self = shift;
-    my ($annotation) = @_;
-    $self->{annotations}[$annotation]
+  my $self = shift;
+  my ($annotation) = @_;
+  $self->{annotations}[$annotation]
 }
 
 sub width {
-    my $self = shift;
-    my ($annotation) = @_;
-    (8, 16, 24)[$annotation]
+  my $self = shift;
+  my ($annotation) = @_;
+  (8, 16, 24)[$annotation]
 }
 
 sub text {
-    my $self = shift;
-    my ($file, $line, $annotation) = @_;
-    return "" unless $line;
-    $self->get_annotations($file);
-    $self->{_annotations}{$file}[$line - 1][$annotation]
+  my $self = shift;
+  my ($file, $line, $annotation) = @_;
+  return "" unless $line;
+  $self->get_annotations($file);
+  $self->{_annotations}{$file}[ $line - 1 ][$annotation]
 }
 
 sub error {
-    my $self = shift;
-    my ($file, $line, $annotation) = @_;
-    0
+  my $self = shift;
+  my ($file, $line, $annotation) = @_;
+  0
 }
 
 sub class {
-    my $self = shift;
-    my ($file, $line, $annotation) = @_;
-    ""
+  my $self = shift;
+  my ($file, $line, $annotation) = @_;
+  ""
 }
 
 1
@@ -138,7 +137,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2005-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2005-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

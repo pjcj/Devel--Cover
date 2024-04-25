@@ -1,4 +1,4 @@
-# Copyright 2011-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2011-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -17,34 +17,40 @@ use JSON::MaybeXS ();
 # VERSION
 
 sub new {
-    my $class = shift;
-    my %args = @_;
-    my $json = JSON::MaybeXS->new(utf8 => 1, allow_blessed => 1);
-    $json->ascii->pretty->canonical
-        if exists $args{options} && $args{options} =~ /\bpretty\b/i;
-    my $self = $class->SUPER::new(%args, json => $json);
-    bless $self, $class
+  my $class = shift;
+  my %args  = @_;
+  my $json  = JSON::MaybeXS->new(utf8 => 1, allow_blessed => 1);
+  $json->ascii->pretty->canonical
+    if exists $args{options} && $args{options} =~ /\bpretty\b/i;
+  my $self = $class->SUPER::new(%args, json => $json);
+  bless $self, $class
 }
 
 sub read {
-    my $self   = shift;
-    my ($file) = @_;
-    $self->_read_fh($file, sub {
-        my ($fh) = @_;
-        local $/;
-        my $data = eval { $self->{json}->decode(<$fh>) };
-        die "Can't read $file with ", (ref $self->{json}), ": $@" if $@;
-        $data
-    })
+  my $self = shift;
+  my ($file) = @_;
+  $self->_read_fh(
+    $file,
+    sub {
+      my ($fh) = @_;
+      local $/;
+      my $data = eval { $self->{json}->decode(<$fh>) };
+      die "Can't read $file with ", (ref $self->{json}), ": $@" if $@;
+      $data
+    }
+  )
 }
 
 sub write {
-    my $self = shift;
-    my ($data, $file) = @_;
-    $self->_write_fh($file, sub {
-        my ($fh) = @_;
-        print $fh $self->{json}->encode($data);
-    })
+  my $self = shift;
+  my ($data, $file) = @_;
+  $self->_write_fh(
+    $file,
+    sub {
+      my ($fh) = @_;
+      print $fh $self->{json}->encode($data);
+    }
+  )
 }
 
 1
@@ -98,7 +104,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2011-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2011-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

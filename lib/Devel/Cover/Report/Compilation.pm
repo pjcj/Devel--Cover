@@ -1,4 +1,4 @@
-# Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -25,100 +25,100 @@ use Devel::Cover::DB;
 # TODO - uncoverable code?
 
 sub print_statement {
-    my ($db, $file, $options) = @_;
+  my ($db, $file, $options) = @_;
 
-    my $statements = $db->cover->file($file)->statement or return;
+  my $statements = $db->cover->file($file)->statement or return;
 
-    for my $location ($statements->items) {
-        my $l = $statements->location($location);
-        for my $statement (@$l) {
-            next if $statement->covered;
-            print "Uncovered statement at $file line $location:\n";
-        }
+  for my $location ($statements->items) {
+    my $l = $statements->location($location);
+    for my $statement (@$l) {
+      next if $statement->covered;
+      print "Uncovered statement at $file line $location:\n";
     }
+  }
 }
 
 sub print_branches {
-    my ($db, $file, $options) = @_;
+  my ($db, $file, $options) = @_;
 
-    my $branches = $db->cover->file($file)->branch or return;
+  my $branches = $db->cover->file($file)->branch or return;
 
-    for my $location (sort { $a <=> $b } $branches->items) {
-        for my $b (@{$branches->location($location)}) {
-            next unless $b->error;
+  for my $location (sort { $a <=> $b } $branches->items) {
+    for my $b (@{ $branches->location($location) }) {
+      next unless $b->error;
 
-            # One or both paths from this branch weren't reached.
-            # $b->covered(0) and (1) say whether the first and second
-            # paths were reached.  If the branch condition text begins
-            # with "unless" then the meanings of 0 and 1 are swapped.
-            # The output is easier to understand if we strip off
-            # "unless" and say whether the remaining condition was
-            # true or false.
+      # One or both paths from this branch weren't reached.
+      # $b->covered(0) and (1) say whether the first and second
+      # paths were reached.  If the branch condition text begins
+      # with "unless" then the meanings of 0 and 1 are swapped.
+      # The output is easier to understand if we strip off
+      # "unless" and say whether the remaining condition was
+      # true or false.
 
-            my $text = $b->text;
-            my ($t, $f) = map $b->covered($_),
-                $text =~ s/^(if|unless) // && $1 eq "unless" ? (1, 0) : (0, 1);
-            # TODO - uncoverable code?
-            print "Branch never ",
-                $t ? ($f ? "???" : "false") : ($f ? "true" : "reached"),
-                " at $file line $location: $text\n";
-        }
+      my $text = $b->text;
+      my ($t, $f) = map $b->covered($_),
+        $text =~ s/^(if|unless) // && $1 eq "unless" ? (1, 0) : (0, 1);
+      # TODO - uncoverable code?
+      print "Branch never ",
+        $t ? ($f ? "???" : "false") : ($f ? "true" : "reached"),
+        " at $file line $location: $text\n";
     }
+  }
 }
 
 sub print_conditions {
-    my ($db, $file, $options) = @_;
+  my ($db, $file, $options) = @_;
 
-    my $conditions = $db->cover->file($file)->condition or return;
+  my $conditions = $db->cover->file($file)->condition or return;
 
-    my $template = sub { "%-5s %3s %6s " . ( "%6s " x shift ) . "  %s\n" };
+  my $template = sub { "%-5s %3s %6s " . ("%6s " x shift) . "  %s\n" };
 
-    my %r;
-    for my $location (sort { $a <=> $b } $conditions->items) {
-        my %seen;
-        for my $c (@{$conditions->location($location)}) {
-            push @{$r{$c->type}}, [ $c, $seen{$c->type}++ ? "" : $location ];
-        }
-    }
-
+  my %r;
+  for my $location (sort { $a <=> $b } $conditions->items) {
     my %seen;
-    for my $type (sort keys %r) {
-        my $tpl;
-        for (@{$r{$type}}) {
-            my ($c, $location) = @$_;
-            next unless $c->error;
-            my @headers = @{$c->headers};
-            print "Uncovered condition (", join(", ",
-                map (!$c->covered($_) ? $headers[$_] : (), 0..$c->total-1)),
-                ") at $file line $location: ", $c->text, "\n";
-        }
+    for my $c (@{ $conditions->location($location) }) {
+      push @{ $r{ $c->type } }, [ $c, $seen{ $c->type }++ ? "" : $location ];
     }
+  }
+
+  my %seen;
+  for my $type (sort keys %r) {
+    my $tpl;
+    for (@{ $r{$type} }) {
+      my ($c, $location) = @$_;
+      next unless $c->error;
+      my @headers = @{ $c->headers };
+      print "Uncovered condition (",
+        join(", ",
+        map (!$c->covered($_) ? $headers[$_] : (), 0 .. $c->total - 1)),
+        ") at $file line $location: ", $c->text, "\n";
+    }
+  }
 }
 
 sub print_subroutines {
-    my ($db, $file, $options) = @_;
+  my ($db, $file, $options) = @_;
 
-    my $subroutines = $db->cover->file($file)->subroutine or return;
+  my $subroutines = $db->cover->file($file)->subroutine or return;
 
-    for my $location ($subroutines->items) {
-        my $l = $subroutines->location($location);
-        for my $sub (@$l) {
-            next if $sub->covered;
-            print "Uncovered subroutine ", $sub->name,
-                  " at $file line $location\n";
-        }
+  for my $location ($subroutines->items) {
+    my $l = $subroutines->location($location);
+    for my $sub (@$l) {
+      next if $sub->covered;
+      print "Uncovered subroutine ", $sub->name, " at $file line $location\n";
     }
+  }
 }
 
 sub report {
-    my ($pkg, $db, $options) = @_;
+  my ($pkg, $db, $options) = @_;
 
-    for my $file (@{$options->{file}}) {
-        print_statement  ($db, $file, $options) if $options->{show}{statement};
-        print_branches   ($db, $file, $options) if $options->{show}{branch};
-        print_conditions ($db, $file, $options) if $options->{show}{condition};
-        print_subroutines($db, $file, $options) if $options->{show}{subroutine};
-    }
+  for my $file (@{ $options->{file} }) {
+    print_statement($db, $file, $options)   if $options->{show}{statement};
+    print_branches($db, $file, $options)    if $options->{show}{branch};
+    print_conditions($db, $file, $options)  if $options->{show}{condition};
+    print_subroutines($db, $file, $options) if $options->{show}{subroutine};
+  }
 }
 
 1
@@ -152,7 +152,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

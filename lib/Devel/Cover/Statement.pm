@@ -1,4 +1,4 @@
-# Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -14,13 +14,13 @@ use warnings;
 
 use base "Devel::Cover::Criterion";
 
-sub val         { $_[0][0]            }
-sub uncoverable { $_[0][1]            }
-sub covered     { $_[0][0]            }
-sub total       { 1                   }
-sub percentage  { $_[0][0] ? 100 : 0  }
+sub val         { $_[0][0] }
+sub uncoverable { $_[0][1] }
+sub covered     { $_[0][0] }
+sub total       { 1 }
+sub percentage  { $_[0][0] ? 100 : 0 }
 sub error       { $_[0]->simple_error }
-sub criterion   { "statement"         }
+sub criterion   { "statement" }
 
 1
 
@@ -50,7 +50,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

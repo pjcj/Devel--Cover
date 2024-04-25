@@ -1,0 +1,21 @@
+[files]
+  extend-exclude = [ ".codespell" ]
+  ignore-hidden = false
+
+[default.extend-words]
+  thr = "thr"
+
+[default.extend-identifiers]
+
+[default]
+
+extend-ignore-words-re = [
+]
+
+extend-ignore-identifiers-re = [
+]
+
+extend-ignore-re = [
+  '"[^"]+"\n\n__END__\n\n',              # quotes
+  '::ProhibitMultipleWiths\b',           # perl critic
+]

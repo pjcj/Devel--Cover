@@ -1,4 +1,4 @@
-# Copyright 2014-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2014-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -18,9 +18,9 @@ use Devel::Cover::Dumper;
 
 use JSON::MaybeXS ();
 use Parallel::Iterator "iterate_as_array";
-use POSIX              "setsid";
+use POSIX "setsid";
 use Template;
-use Time::HiRes        "time";
+use Time::HiRes "time";
 
 use Class::XSAccessor ();
 use Moo;
@@ -28,587 +28,576 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-    ro  => [ qw( bin_dir cpancover_dir cpan_dir results_dir dryrun force
-                 output_file report timeout verbose workers docker local    ) ],
-    rwp => [ qw( build_dirs local_timeout modules module_file               ) ],
-    rw  => [ qw(                                                            ) ],
+  ro => [ qw( bin_dir cpancover_dir cpan_dir results_dir dryrun force
+    output_file report timeout verbose workers docker local    ) ],
+  rwp => [qw( build_dirs local_timeout modules module_file               )],
+  rw  => [qw(                                                            )],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
 
 sub BUILDARGS {
-    my $class = shift;
-    my (%args) = @_;
-    {
-        build_dirs    => [],
-        cpan_dir      => [grep -d, glob("~/.cpan ~/.local/share/.cpan")],
-        docker        => "docker",
-        dryrun        => 0,
-        force         => 0,
-        local         => 0,
-        local_timeout => 0,
-        modules       => [],
-        output_file   => "index.html",
-        report        => "html_basic",
-        timeout       => 1800, # half an hour
-        verbose       => 0,
-        workers       => 0,
-        %args,
-    }
-};
+  my $class = shift;
+  my (%args) = @_;
+  {
+    build_dirs    => [],
+    cpan_dir      => [ grep -d, glob("~/.cpan ~/.local/share/.cpan") ],
+    docker        => "docker",
+    dryrun        => 0,
+    force         => 0,
+    local         => 0,
+    local_timeout => 0,
+    modules       => [],
+    output_file   => "index.html",
+    report        => "html_basic",
+    timeout       => 1800,  # half an hour
+    verbose       => 0,
+    workers       => 0,
+    %args,
+  }
+}
 
 # display $non_buffered characters, then buffer
 sub _sys {
-    my $self = shift;
-    my ($non_buffered, @command) = @_;
-    # system @command; return ".";
-    my ($output1, $output2) = ("", "");
-    $output1 = "dc -> @command\n" if $self->verbose;
-    my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
-    my $max = 4e4;
-    # say "Setting alarm for $timeout seconds";
-    my $ok = 0;
-    my $pid;
-    eval {
-        open STDIN, "<", "/dev/null" or die "Can't read /dev/null: $!";
-        $pid = open my $fh, "-|"     // die "Can't fork: $!";
-        if ($pid) {
-            my $printed = 0;
-            local $SIG{ALRM} = sub { die "alarm\n" };
-            alarm $timeout;
-            while (<$fh>) {
-                # print "got: $_";
-                # say "printed $printed of $non_buffered";
-                if ($printed < $non_buffered) {
-                    print;
-                    if (($printed += length) >= $non_buffered) {
-                        say "Devel::Cover: buffering ...";
-                    }
-                } elsif (length $output2) {
-                    $output2 = substr $output2 . $_, $max * -.1, $max * .1;
-                } else {
-                    $output1 .= $_;
-                    if (length $output1 > $max * .9) {
-                        $output1 = substr $output1, 0, $max * .9;
-                        $output2 = "\n";
-                    }
-                }
-            }
-            alarm 0;
-            if (close $fh) {
-                $ok = 1;
-            } else {
-                warn "Error running @command\n";
-            }
+  my $self = shift;
+  my ($non_buffered, @command) = @_;
+  # system @command; return ".";
+  my ($output1, $output2) = ("", "");
+  $output1 = "dc -> @command\n" if $self->verbose;
+  my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
+  my $max     = 4e4;
+  # say "Setting alarm for $timeout seconds";
+  my $ok = 0;
+  my $pid;
+  eval {
+    open STDIN, "<", "/dev/null" or die "Can't read /dev/null: $!";
+    $pid = open my $fh, "-|" // die "Can't fork: $!";
+    if ($pid) {
+      my $printed = 0;
+      local $SIG{ALRM} = sub { die "alarm\n" };
+      alarm $timeout;
+      while (<$fh>) {
+        # print "got: $_";
+        # say "printed $printed of $non_buffered";
+        if ($printed < $non_buffered) {
+          print;
+          if (($printed += length) >= $non_buffered) {
+            say "Devel::Cover: buffering ...";
+          }
+        } elsif (length $output2) {
+          $output2 = substr $output2 . $_, $max * -.1, $max * .1;
         } else {
-            setsid() != -1          or die "Can't start a new session: $!";
-            open STDERR, ">&STDOUT" or die "Can't dup stdout: $!";
-            exec @command           or die "Can't exec @command: $!";
+          $output1 .= $_;
+          if (length $output1 > $max * .9) {
+            $output1 = substr $output1, 0, $max * .9;
+            $output2 = "\n";
+          }
         }
-    };
-    if ($@) {
-        $ok = 0;
-        die "$@" unless $@ eq "alarm\n";  # propagate unexpected errs
-        warn "Timed out after $timeout seconds!\n";
-        my $pgrp = getpgrp($pid);
-        my $n = kill "-KILL", $pgrp;
-        warn "killed $n processes";
+      }
+      alarm 0;
+      if (close $fh) {
+        $ok = 1;
+      } else {
+        warn "Error running @command\n";
+      }
+    } else {
+      setsid() != -1 or die "Can't start a new session: $!";
+      open STDERR, ">&STDOUT" or die "Can't dup stdout: $!";
+      exec @command or die "Can't exec @command: $!";
     }
-    $ok ? length $output2 ? "$output1\n...\n$output2" : $output1 : undef
+  };
+  if ($@) {
+    $ok = 0;
+    die "$@" unless $@ eq "alarm\n";  # propagate unexpected errs
+    warn "Timed out after $timeout seconds!\n";
+    my $pgrp = getpgrp($pid);
+    my $n    = kill "-KILL", $pgrp;
+    warn "killed $n processes";
+  }
+  $ok ? length $output2 ? "$output1\n...\n$output2" : $output1 : undef
 }
 
-sub sys   { my ($s, @a) = @_; $s->_sys(4e4, @a) // ""                   }
-sub bsys  { my ($s, @a) = @_; $s->_sys(0,   @a) // ""                   }
+sub sys   { my ($s, @a) = @_; $s->_sys(4e4, @a) // "" }
+sub bsys  { my ($s, @a) = @_; $s->_sys(0,   @a) // "" }
 sub fsys  { my ($s, @a) = @_; $s->_sys(4e4, @a) // die "Can't run @a\n" }
 sub fbsys { my ($s, @a) = @_; $s->_sys(0,   @a) // die "Can't run @a\n" }
 
 sub add_modules {
-    my $self = shift;
-    push @{$self->modules}, @_;
+  my $self = shift;
+  push @{ $self->modules }, @_;
 }
 
 sub set_modules {
-    my $self = shift;
-    @{$self->modules} = @_;
+  my $self = shift;
+  @{ $self->modules } = @_;
 }
 
 sub set_module_file {
-    my $self = shift;
-    my ($file) = @_;
-    $self->set_module_file($file);
+  my $self = shift;
+  my ($file) = @_;
+  $self->set_module_file($file);
 }
 
 sub process_module_file {
-    my $self = shift;
-    my $file = $self->module_file;
-    return unless defined $file && length $file;
-    open my $fh, "<", $file or die "Can't open $file: $!";
-    my $modules = do { local $/; <$fh> };
-    close $fh or die "Can't close $file: $!";
-    my @modules = grep /\S/, grep !/^ *#/, split /\n/, $modules;
-    $self->add_modules(@modules);
+  my $self = shift;
+  my $file = $self->module_file;
+  return unless defined $file && length $file;
+  open my $fh, "<", $file or die "Can't open $file: $!";
+  my $modules = do { local $/; <$fh> };
+  close $fh or die "Can't close $file: $!";
+  my @modules = grep /\S/, grep !/^ *#/, split /\n/, $modules;
+  $self->add_modules(@modules);
 }
 
 sub build_modules {
-    my $self = shift;
-    my @command = qw( cpan -i -T );
-    push @command, "-f" if $self->force;
-    # my @command = qw( cpan );
-    # $ENV{CPAN_OPTS} = "-i -T";
-    # $ENV{CPAN_OPTS} .= " -f" if $self->force;
-    # $self->_set_local_timeout(300);
-    my %m;
-    for my $module (sort grep !$m{$_}++, @{$self->modules}) {
-        say "Building $module";
-        my $output = $self->fsys(@command, $module);
-        say $output;
-    }
-    $self->_set_local_timeout(0);
+  my $self    = shift;
+  my @command = qw( cpan -i -T );
+  push @command, "-f" if $self->force;
+  # my @command = qw( cpan );
+  # $ENV{CPAN_OPTS} = "-i -T";
+  # $ENV{CPAN_OPTS} .= " -f" if $self->force;
+  # $self->_set_local_timeout(300);
+  my %m;
+  for my $module (sort grep !$m{$_}++, @{ $self->modules }) {
+    say "Building $module";
+    my $output = $self->fsys(@command, $module);
+    say $output;
+  }
+  $self->_set_local_timeout(0);
 }
 
 sub add_build_dirs {
-    my $self = shift;
-    # say "add_build_dirs"; say for @{$self->build_dirs};
-    # say && system "ls -al $_" for "/remote_staging",
-                                  # map "$_/build", @{$self->cpan_dir};
-    my $exists = sub {
-        # say "exists [$_]";
-        my $dir = "/remote_staging/" . (s|.*/||r =~ s/-\d+$/*/r);
-        my @files = glob $dir;
-        # say "checking [$dir] -> [@files]";
-        @files
-    };
-    push @{$self->build_dirs},
-         grep { !$exists->() }
-         grep -d,
-         map glob("$_/build/*"), @{$self->cpan_dir};
-    # say "add_build_dirs:"; say for @{$self->build_dirs};
+  my $self = shift;
+  # say "add_build_dirs"; say for @{$self->build_dirs};
+  # say && system "ls -al $_" for "/remote_staging",
+  # map "$_/build", @{$self->cpan_dir};
+  my $exists = sub {
+    # say "exists [$_]";
+    my $dir   = "/remote_staging/" . (s|.*/||r =~ s/-\d+$/*/r);
+    my @files = glob $dir;
+    # say "checking [$dir] -> [@files]";
+    @files
+  };
+  push @{ $self->build_dirs }, grep { !$exists->() } grep -d,
+    map glob("$_/build/*"), @{ $self->cpan_dir };
+  # say "add_build_dirs:"; say for @{$self->build_dirs};
 }
 
 sub run {
-    my $self = shift;
-    my ($build_dir) = @_;
 
-    my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\d+)$| or return;
-    my $db          = "$build_dir/cover_db";
-    my $line        = "=" x 80;
-    my $output      = "**** Checking coverage of $module ****\n";
-    my $results_dir = $self->results_dir // die "No results dir";
-    $output        .= $self->fsys("mkdir", "-p", $results_dir);
-    $results_dir   .= "/$module";
+  my $self = shift;
+  my ($build_dir) = @_;
 
-    chdir $build_dir or die "Can't chdir $build_dir: $!\n";
-    say "Checking coverage of $module";
+  my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\d+)$| or return;
+  my $db          = "$build_dir/cover_db";
+  my $line        = "=" x 80;
+  my $output      = "**** Checking coverage of $module ****\n";
+  my $results_dir = $self->results_dir // die "No results dir";
 
-    if (-d $db || -d "$build_dir/structure" || -d $results_dir) {
-        $output .= "Already analysed\n";
-        unless ($self->force) {
-            say "\n$line\n$output$line\n";
-            return;
-        }
+  $output      .= $self->fsys("mkdir", "-p", $results_dir);
+  $results_dir .= "/$module";
+
+  chdir $build_dir or die "Can't chdir $build_dir: $!\n";
+  say "Checking coverage of $module";
+
+  if (-d $db || -d "$build_dir/structure" || -d $results_dir) {
+    $output .= "Already analysed\n";
+    unless ($self->force) {
+      say "\n$line\n$output$line\n";
+      return;
     }
+  }
 
-    $output .= "Testing $module in $build_dir\n";
-    # say "\n$line\n$output$line\n"; return;
+  $output .= "Testing $module in $build_dir\n";
+  # say "\n$line\n$output$line\n"; return;
 
-    # $output .= $self->sys($^X, "-V");
-    # $output .= $self->sys("pwd");
-    my @cmd;
-    if ($self->local) {
-        $ENV{DEVEL_COVER_OPTIONS} = "-ignore,/usr/local/lib/perl5";
-        $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
-        @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
-    } else {
-        @cmd = ($^X, $self->bin_dir . "/cover");
-    }
-    $output .= $self->fbsys(
-        @cmd,           "--test",
-        "--report",     $self->report,
-        "--outputfile", $self->output_file,
-    );
-    $output .= $self->fsys(@cmd, "-report", "json", "-nosummary");
+  # $output .= $self->sys($^X, "-V");
+  # $output .= $self->sys("pwd");
+  my @cmd;
+  if ($self->local) {
+    $ENV{DEVEL_COVER_OPTIONS}   = "-ignore,/usr/local/lib/perl5";
+    $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
+    @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
+  } else {
+    @cmd = ($^X, $self->bin_dir . "/cover");
+  }
+  $output
+    .= $self->fbsys(@cmd, "--test", "--report", $self->report, "--outputfile",
+      $self->output_file);
+  $output .= $self->fsys(@cmd, "-report", "json", "-nosummary");
 
-    # TODO - option to merge DB with existing one
-    # TODO - portability
-    $output .= $self->fsys("rm", "-rf", $results_dir);
-    $output .= $self->fsys("mv", $db, $results_dir);
-    $output .= $self->fsys("rm", "-rf", $db);
+  # TODO - option to merge DB with existing one
+  # TODO - portability
+  $output .= $self->fsys("rm", "-rf", $results_dir);
+  $output .= $self->fsys("mv", $db,   $results_dir);
+  $output .= $self->fsys("rm", "-rf", $db);
 
-    say "\n$line\n$output$line\n";
+  say "\n$line\n$output$line\n";
 }
 
 sub run_all {
-    my $self = shift;
+  my $self = shift;
 
-    my $results_dir = $self->results_dir // die "No results dir";
-    $self->fsys("mkdir", "-p", $results_dir);
+  my $results_dir = $self->results_dir // die "No results dir";
+  $self->fsys("mkdir", "-p", $results_dir);
 
-    my @res = iterate_as_array(
-        { workers => $self->workers },
-        sub {
-            my (undef, $dir) = @_;
-            eval { $self->run($dir) };
-            warn "\n\n\n[$dir]: $@\n\n\n" if $@;
-        },
-        $self->build_dirs
-    );
-    # print Dumper \@res;
+  my @res = iterate_as_array(
+    { workers => $self->workers },
+    sub {
+      my (undef, $dir) = @_;
+      eval { $self->run($dir) };
+      warn "\n\n\n[$dir]: $@\n\n\n" if $@;
+    },
+    $self->build_dirs
+  );
+  # print Dumper \@res;
 }
 
 sub write_json {
-    my $self = shift;
-    my ($vars) = @_;
+  my $self = shift;
+  my ($vars) = @_;
 
-    # print Dumper $vars;
-    my $results = {};
-    for my $module (keys %{$vars->{vals}}) {
-        my $m   = $vars->{vals}{$module};
-        my $mod = $m->{module};
-        my ($name, $version) =
-            ($mod->{module} // $module) =~ /(.+)-(\d+\.\d+)$/;
-        $name    = $mod->{name}     if defined $mod->{name};
-        $version = $mod->{version}  if defined $mod->{version};
-        if (defined $name && defined $version) {
-            $results->{$name}{$version}{coverage}{total} = {
-                map { $_ => $m->{$_}{pc} }
-                grep $m->{$_}{pc} ne 'n/a',
-                grep !/link|log|module/,
-                keys %$m
-            };
-        } else {
-            print "Cannot process $module: ", Dumper $m if $self->verbose;
-        }
-    };
-    # print Dumper $vars, $results;
+  # print Dumper $vars;
+  my $results = {};
+  for my $module (keys %{ $vars->{vals} }) {
+    my $m   = $vars->{vals}{$module};
+    my $mod = $m->{module};
+    my ($name, $version) = ($mod->{module} // $module) =~ /(.+)-(\d+\.\d+)$/;
+    $name    = $mod->{name}    if defined $mod->{name};
+    $version = $mod->{version} if defined $mod->{version};
+    if (defined $name && defined $version) {
+      $results->{$name}{$version}{coverage}{total} = {
+        map { $_ => $m->{$_}{pc} } grep $m->{$_}{pc} ne 'n/a',
+        grep !/link|log|module/,
+        keys %$m,
+      };
+    } else {
+      print "Cannot process $module: ", Dumper $m if $self->verbose;
+    }
+  }
+  # print Dumper $vars, $results;
 
-    my $io = Devel::Cover::DB::IO::JSON->new(options => "pretty");
-    my $file = $self->results_dir . "/cpancover.json";
-    $io->write($results, $file);
-    say "Wrote json output to $file";
+  my $io   = Devel::Cover::DB::IO::JSON->new(options => "pretty");
+  my $file = $self->results_dir . "/cpancover.json";
+  $io->write($results, $file);
+  say "Wrote json output to $file";
 }
 
-sub class
-{
-    my ($pc) = @_;
-    $pc eq "n/a" ? "na" :
-    $pc <    75  ? "c0" :
-    $pc <    90  ? "c1" :
-    $pc <   100  ? "c2" :
-                   "c3"
+sub class {
+  my ($pc) = @_;
+      $pc eq "n/a" ? "na"
+    : $pc < 75     ? "c0"
+    : $pc < 90     ? "c1"
+    : $pc < 100    ? "c2"
+    : "c3"
 }
 
 sub generate_html {
-    my $self = shift;
+  my $self = shift;
 
-    my $d = $self->results_dir;
-    chdir $d or die "Can't chdir $d: $!\n";
+  my $d = $self->results_dir;
+  chdir $d or die "Can't chdir $d: $!\n";
 
-    my $f = "$d/index.html";
-    say "\n\nWriting collection output to $f ...";
+  my $f = "$d/index.html";
+  say "\n\nWriting collection output to $f ...";
 
-    my $vars = {
-        title    => "Coverage report",
-        modules  => {},
-        vals     => {},
-        subdir   => "latest/",
-        headers  => [ grep !/path|time/,
-                           @Devel::Cover::DB::Criteria_short, "total" ],
-        criteria => [ grep !/path|time/,
-                           @Devel::Cover::DB::Criteria,       "total" ],
+  my $vars = {
+    title   => "Coverage report",
+    modules => {},
+    vals    => {},
+    subdir  => "latest/",
+    headers =>
+      [ grep !/path|time/, @Devel::Cover::DB::Criteria_short, "total" ],
+    criteria => [ grep !/path|time/, @Devel::Cover::DB::Criteria, "total" ],
+  };
+
+  opendir my $dh, $d or die "Can't opendir $d: $!";
+  my @modules = sort grep !/^\./, readdir $dh;
+  closedir $dh or die "Can't closedir $d: $!";
+
+  my $n = 0;
+  for my $module (@modules) {
+    my $cover = "$d/$module/cover.json";
+    next                 unless -e $cover;
+    say "Adding $module" if $self->verbose;
+
+    my $io   = Devel::Cover::DB::IO::JSON->new;
+    my $json = $io->read($cover);
+
+    my $mod = {
+      module => $module,
+      map { $_ => $json->{runs}[0]{$_} } qw( name version dir ),
     };
+    unless (defined $mod->{name} && defined $mod->{version}) {
+      my ($name, $version) = ($mod->{module} // $module) =~ /(.+)-(\d+\.\d+)$/;
+      $mod->{name}    //= $name;
+      $mod->{version} //= $version;
+    }
+    my $start = uc substr $module, 0, 1;
+    push @{ $vars->{modules}{$start} }, $mod;
 
-    opendir my $dh, $d or die "Can't opendir $d: $!";
-    my @modules = sort grep !/^\./, readdir $dh;
-    closedir $dh or die "Can't closedir $d: $!";
+    my $m = $vars->{vals}{$module} = {};
+    $m->{module} = $mod;
+    $m->{link} = "/$module/index.html" if $json->{summary}{Total}{total}{total};
 
-    my $n = 0;
-    for my $module (@modules) {
-        my $cover = "$d/$module/cover.json";
-        next unless -e $cover;
-        say "Adding $module" if $self->verbose;
-
-        my $io   = Devel::Cover::DB::IO::JSON->new;
-        my $json = $io->read($cover);
-
-        my $mod = {
-            module => $module,
-            map { $_ => $json->{runs}[0]{$_} } qw( name version dir )
-        };
-        unless (defined $mod->{name} && defined $mod->{version}) {
-            my ($name, $version) =
-                ($mod->{module} // $module) =~ /(.+)-(\d+\.\d+)$/;
-            $mod->{name}    //= $name;
-            $mod->{version} //= $version;
-        }
-        my $start = uc substr $module, 0, 1;
-        push @{$vars->{modules}{$start}}, $mod;
-
-        my $m = $vars->{vals}{$module} = {};
-        $m->{module} = $mod;
-        $m->{link}   = "/$module/index.html"
-            if $json->{summary}{Total}{total}{total};
-
-        for my $criterion (@{$vars->{criteria}}) {
-            my $summary = $json->{summary}{Total}{$criterion};
-            # print "summary:", Dumper $summary;
-            my $pc = $summary->{percentage};
-            $pc = defined $pc ? sprintf "%.2f", $pc : "n/a";
-            $m->{$criterion}{pc}      = $pc;
-            $m->{$criterion}{class}   = class($pc);
-            $m->{$criterion}{details} =
-                ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
-        }
-
-        print "." if !($n++ % 1000) && !$self->verbose;
+    for my $criterion (@{ $vars->{criteria} }) {
+      my $summary = $json->{summary}{Total}{$criterion};
+      # print "summary:", Dumper $summary;
+      my $pc = $summary->{percentage};
+      $pc                     = defined $pc ? sprintf "%.2f", $pc : "n/a";
+      $m->{$criterion}{pc}    = $pc;
+      $m->{$criterion}{class} = class($pc);
+      $m->{$criterion}{details}
+        = ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
     }
 
-    $n = 0;
-    for my $file (@modules) {
-        # say "looking at [$file]";
-        my ($module) = $file =~ /^ \w - \w\w - \w+ - (.*)
+    print "." if !($n++ % 1000) && !$self->verbose;
+  }
+
+  $n = 0;
+  for my $file (@modules) {
+    # say "looking at [$file]";
+    my ($module) = $file =~ /^ \w - \w\w - \w+ - (.*)
                                  \. (?: zip | tgz | (?: tar \. (?: gz | bz2 )))
                                  -- \d{10,11} \. \d{6} \. out \. gz $/x
-          or next;
-        # say "found at [$module]";
-        $vars->{vals}{$module}{log} = $file;
-        print "-" if !($n++ % 1000) && !$self->verbose;
-    }
-    say "";
+      or next;
+    # say "found at [$module]";
+    $vars->{vals}{$module}{log} = $file;
+    print "-" if !($n++ % 1000) && !$self->verbose;
+  }
+  say "";
 
-    # print "vars ", Dumper $vars;
+  # print "vars ", Dumper $vars;
 
-    $self->write_stylesheet;
-    my $template = Template->new({
-        LOAD_TEMPLATES => [
-            Devel::Cover::Collection::Template::Provider->new({}),
-        ],
-    });
-    $template->process("summary", $vars, $f) or die $template->error;
-    for my $start (sort keys %{$vars->{modules}}) {
-        $vars->{module_start} = $start;
-        my $dist = "$d/dist/$start.html";
-        $template->process("module_by_start", $vars, $dist)
-            or die $template->error;
-    }
+  $self->write_stylesheet;
+  my $template = Template->new({
+    LOAD_TEMPLATES =>
+      [ Devel::Cover::Collection::Template::Provider->new({}) ]
+  });
+  $template->process("summary", $vars, $f) or die $template->error;
+  for my $start (sort keys %{ $vars->{modules} }) {
+    $vars->{module_start} = $start;
+    my $dist = "$d/dist/$start.html";
+    $template->process("module_by_start", $vars, $dist) or die $template->error;
+  }
 
-    my $about_f = "$d/about.html";
-    say "\nWriting about page to $about_f ...";
+  my $about_f = "$d/about.html";
+  say "\nWriting about page to $about_f ...";
 
-    $template->process("about", { subdir => "latest/" }, $about_f)
-        or die $template->error;
+  $template->process("about", { subdir => "latest/" }, $about_f)
+    or die $template->error;
 
-    # print Dumper $vars;
-    $self->write_json($vars);
+  # print Dumper $vars;
+  $self->write_json($vars);
 
-    say "Wrote collection output to $f";
+  say "Wrote collection output to $f";
 }
 
 sub compress_old_versions {
-    my $self = shift;
-    my ($versions) = @_;
+  my $self = shift;
+  my ($versions) = @_;
 
-    my $dir = $self->results_dir;
-    opendir my $fh, $dir or die "Can't opendir $dir: $!";
-    my @dirs = sort grep -d, map "$dir/$_", readdir $fh;
-    closedir $fh or die "Can't closedir $dir: $!";
+  my $dir = $self->results_dir;
+  opendir my $fh, $dir or die "Can't opendir $dir: $!";
+  my @dirs = sort grep -d, map "$dir/$_", readdir $fh;
+  closedir $fh or die "Can't closedir $dir: $!";
 
-    my %modules;
-    for my $dir (@dirs) {
-        my $file = "$dir/cover.json";
-        my $json = JSON::MaybeXS->new(utf8 => 1, allow_blessed => 1);
-        open my $fh, "<", $file or next;
-        # say "file: $file";
-        my $data = do { local $/; eval { $json->decode(<$fh>) } } or next;
-        next if $@;
-        close $fh or next;
-        my ($name)  = $dir =~ /.+\/(.+)/;
-        $name =~ s/-[^-]+$//;
-        my @runs    = grep { ($_->{name} // "") eq $name } $data->{runs}->@*;
-        # say "$name " . @runs;
-        my $run     = $runs[0]                   // next;
-        my $version = $run->{version} =~ s/_//gr // next;
-        my $v       = eval { version->parse($version)->numify };
-        if ($@ || !$v) {
-            $v = $version;
-            $v =~ s/[^0-9.]//g;
-            my @parts = split /\./, $v;
-            if (@parts > 2) {
-                $v = shift(@parts) . "." . join "", @parts;
-            }
-        }
-        $v ||= 0;
-        push $modules{$name}->@*, { dir => $dir, version => $v };
+  my %modules;
+  for my $dir (@dirs) {
+    my $file = "$dir/cover.json";
+    my $json = JSON::MaybeXS->new(utf8 => 1, allow_blessed => 1);
+    open my $fh, "<", $file or next;
+    # say "file: $file";
+    my $data
+      = do { local $/; eval { $json->decode(<$fh>) } }
+      or next;
+    next if $@;
+    close $fh or next;
+    my ($name) = $dir =~ /.+\/(.+)/;
+    $name =~ s/-[^-]+$//;
+    my @runs = grep { ($_->{name} // "") eq $name } $data->{runs}->@*;
+    # say "$name " . @runs;
+    my $run     = $runs[0]                   // next;
+    my $version = $run->{version} =~ s/_//gr // next;
+    my $v       = eval { version->parse($version)->numify };
+    if ($@ || !$v) {
+      $v = $version;
+      $v =~ s/[^0-9.]//g;
+      my @parts = split /\./, $v;
+      if (@parts > 2) {
+        $v = shift(@parts) . "." . join "", @parts;
+      }
     }
+    $v ||= 0;
+    push $modules{$name}->@*, { dir => $dir, version => $v };
+  }
 
-    for my $name (sort keys %modules) {
-        # print Dumper $modules{$name};
-        my @o = sort { $b->{version} <=> $a->{version} } $modules{$name}->@*;
-        shift @o for 1 .. $versions;
-        for my $v (@o) {
-            my ($d, $s) = $v->{dir} =~ /(.+)\/(.+)/;
-            my $archive = "$v->{dir}.tar.xz";
-            my @cmd1    = ($self->dc_file, "-r", $d,
-                           "cpancover-uncompress-dir", $s);
-            my @cmd2    = ("bash", "-c",
-                           "tar cf - -C $d $s | xz -z > $archive");
-            my @cmd3    = ("rm", "-rf", $v->{dir});
-            if ($self->dryrun) {
-                say for "compressing $s", "@cmd1", "@cmd2", "@cmd3";
-            } else {
-                say "compressing $s";
-                eval {
-                    $self->fsys(@$_) for \@cmd1, \@cmd2, \@cmd3;
-                };
-                say $@ if $@;
-            }
-        }
+  for my $name (sort keys %modules) {
+    # print Dumper $modules{$name};
+    my @o = sort { $b->{version} <=> $a->{version} } $modules{$name}->@*;
+    shift @o for 1 .. $versions;
+    for my $v (@o) {
+
+      my ($d, $s) = $v->{dir} =~ /(.+)\/(.+)/;
+      my $archive = "$v->{dir}.tar.xz";
+      my @cmd1    = ($self->dc_file, "-r", $d, "cpancover-uncompress-dir", $s);
+      my @cmd2    = ("bash", "-c",  "tar cf - -C $d $s | xz -z > $archive");
+      my @cmd3    = ("rm",   "-rf", $v->{dir});
+
+      if ($self->dryrun) {
+        say for "compressing $s", "@cmd1", "@cmd2", "@cmd3";
+      } else {
+        say "compressing $s";
+        eval { $self->fsys(@$_) for \@cmd1, \@cmd2, \@cmd3; };
+        say $@ if $@;
+      }
     }
+  }
 }
 
 sub local_build {
-    my $self = shift;
+  my $self = shift;
 
-    $self->process_module_file;
-    $self->build_modules;
-    $self->add_build_dirs;
-    $self->run_all;
+  $self->process_module_file;
+  $self->build_modules;
+  $self->add_build_dirs;
+  $self->run_all;
 }
 
 sub failed_dir {
-    my $self = shift;
-    my $dir = $self->results_dir . "/__failed__";
-    -d $dir or mkdir $dir or die "Can't mkdir $dir: $!";
-    $dir
+  my $self = shift;
+  my $dir  = $self->results_dir . "/__failed__";
+  -d $dir or mkdir $dir or die "Can't mkdir $dir: $!";
+  $dir
 }
 
 sub covered_dir {
-    my $self = shift;
-    my ($dir) = @_;
-    $self->results_dir . "/$dir"
+  my $self = shift;
+  my ($dir) = @_;
+  $self->results_dir . "/$dir"
 }
 
 sub failed_file {
-    my $self = shift;
-    my ($dir) = @_;
-    $self->failed_dir . "/$dir"
+  my $self = shift;
+  my ($dir) = @_;
+  $self->failed_dir . "/$dir"
 }
 
 sub is_covered {
-    my $self = shift;
-    my ($dir) = @_;
-    -d $self->covered_dir($dir)
+  my $self = shift;
+  my ($dir) = @_;
+  -d $self->covered_dir($dir)
 }
 
 sub is_failed {
-    my $self = shift;
-    my ($dir) = @_;
-    -e $self->failed_file($dir)
+  my $self = shift;
+  my ($dir) = @_;
+  -e $self->failed_file($dir)
 }
 
 sub set_covered {
-    my $self = shift;
-    my ($dir) = @_;
-    unlink $self->failed_file($dir);
+  my $self = shift;
+  my ($dir) = @_;
+  unlink $self->failed_file($dir);
 }
 
 sub set_failed {
-    my $self = shift;
-    my ($dir) = @_;
-    my $ff = $self->failed_file($dir);
-    open my $fh, ">", $ff or return warn "Can't open $ff: $!";
-    print $fh scalar localtime;
-    close $fh or warn "Can't close $ff: $!";
+  my $self  = shift;
+  my ($dir) = @_;
+  my $ff    = $self->failed_file($dir);
+  open my $fh, ">", $ff or return warn "Can't open $ff: $!";
+  print $fh scalar localtime;
+  close $fh or warn "Can't close $ff: $!";
 }
 
 sub dc_file {
-    my $self = shift;
-    my $dir = "";
-    $dir = "/dc/" if $self->local && -d "/dc";
-    "${dir}utils/dc"
+  my $self = shift;
+  my $dir  = "";
+  $dir = "/dc/" if $self->local && -d "/dc";
+  "${dir}utils/dc"
 }
 
 sub cover_modules {
-    my $self = shift;
+  my $self = shift;
 
-    $self->process_module_file;
-    # say "modules: ", Dumper $self->modules;
+  $self->process_module_file;
+  # say "modules: ", Dumper $self->modules;
 
-    my @cmd = $self->dc_file;
-    push @cmd, "--local" if $self->local;
-    my @command = (@cmd, "cpancover-docker-module");
-    $self->_set_local_timeout(0);
-    my @res = iterate_as_array(
-        { workers => $self->workers },
-        sub {
-            # say "mod ", Dumper \@_;
-            my (undef, $module) = @_;
-            my $dir = $module =~ s|.*/||r
-                              =~ s/\.(?:zip|tgz|(?:tar\.(?:gz|bz2)))$//r;
-            if ($self->is_covered($dir)) {
-                $self->set_covered($dir);
-                say "$module already covered" if $self->verbose;
-                return unless $self->force;
-            } elsif ($self->is_failed($dir)) {
-                say "$module already failed" if $self->verbose;
-                return unless $self->force;
-            }
+  my @cmd = $self->dc_file;
+  push @cmd, "--local" if $self->local;
+  my @command = (@cmd, "cpancover-docker-module");
+  $self->_set_local_timeout(0);
+  my @res = iterate_as_array(
+    { workers => $self->workers },
+    sub {
+      # say "mod ", Dumper \@_;
+      my (undef, $module) = @_;
+      my $dir
+        = $module =~ s|.*/||r =~ s/\.(?:zip|tgz|(?:tar\.(?:gz|bz2)))$//r;
+      if ($self->is_covered($dir)) {
+        $self->set_covered($dir);
+        say "$module already covered" if $self->verbose;
+        return                        unless $self->force;
+      } elsif ($self->is_failed($dir)) {
+        say "$module already failed" if $self->verbose;
+        return                       unless $self->force;
+      }
 
-            my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
-            # say "Setting alarm for $timeout seconds";
-            my $name = sprintf("%s-%18.6f", $module, time)
-                         =~ tr/a-zA-Z0-9_./-/cr;
-            say "$dir -> $name";
-            eval {
-                local $SIG{ALRM} = sub { die "alarm\n" };
-                alarm $timeout;
-                say "running: @command $module $name" if $self->verbose;
-                system @command, $module, $name;
-                alarm 0;
-            };
-            if ($@) {
-                die "$@" unless $@ eq "alarm\n";  # unexpected errors
-                say "Timed out after $timeout seconds!";
-                $self->sys($self->docker, "kill", $name);
-                say "Killed docker container $name";
-            }
+      my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
+      # say "Setting alarm for $timeout seconds";
+      my $name = sprintf("%s-%18.6f", $module, time) =~ tr/a-zA-Z0-9_./-/cr;
+      say "$dir -> $name";
+      eval {
+        local $SIG{ALRM} = sub { die "alarm\n" };
+        alarm $timeout;
+        say "running: @command $module $name" if $self->verbose;
+        system @command, $module, $name;
+        alarm 0;
+      };
+      if ($@) {
+        die "$@" unless $@ eq "alarm\n";  # unexpected errors
+        say "Timed out after $timeout seconds!";
+        $self->sys($self->docker, "kill", $name);
+        say "Killed docker container $name";
+      }
 
-            if ($self->is_covered($dir)) {
-                $self->set_covered($dir);
-                say "$dir done";
-            } else {
-                $self->set_failed($dir);
-                say "$dir failed";
-            }
-        },
-        do { my %m; [sort grep !$m{$_}++, @{$self->modules}] }
-    );
-    $self->_set_local_timeout(0);
+      if ($self->is_covered($dir)) {
+        $self->set_covered($dir);
+        say "$dir done";
+      } else {
+        $self->set_failed($dir);
+        say "$dir failed";
+      }
+    },
+    do { my %m; [ sort grep !$m{$_}++, @{ $self->modules } ] }
+  );
+  $self->_set_local_timeout(0);
 }
 
 sub get_latest {
-    my $self = shift;
+  my $self = shift;
 
-    require CPAN::Releases::Latest;
+  require CPAN::Releases::Latest;
 
-    my $latest   = CPAN::Releases::Latest->new(max_age => 0);  # no caching
-    my $iterator = $latest->release_iterator;
+  my $latest   = CPAN::Releases::Latest->new(max_age => 0);  # no caching
+  my $iterator = $latest->release_iterator;
 
-    while (my $release = $iterator->next_release) {
-        say $release->path;
-        # Debugging code:
-        # printf "%s path=%s  time=%d  size=%d\n",
-               # $release->distname,
-               # $release->path,
-               # $release->timestamp,
-               # $release->size;
-    }
+  while (my $release = $iterator->next_release) {
+    say $release->path;
+    # Debugging code:
+    # printf "%s path=%s  time=%d  size=%d\n",
+    # $release->distname,
+    # $release->path,
+    # $release->timestamp,
+    # $release->size;
+  }
 }
 
 sub write_stylesheet {
-    my $self = shift;
+  my $self = shift;
 
-    my $css = $self->results_dir . "/collection.css";
-    open my $fh, ">", $css or die "Can't open $css: $!\n";
-    print $fh <<EOF;
+  my $css = $self->results_dir . "/collection.css";
+  open my $fh, ">", $css or die "Can't open $css: $!\n";
+  print $fh <<EOF;
 /* Stylesheet for Devel::Cover collection reports */
 
 /* You may modify this file to alter the appearance of your coverage
@@ -695,7 +684,7 @@ pre,.s {
 }
 EOF
 
-    close $fh or die "Can't close $css: $!\n";
+  close $fh or die "Can't close $css: $!\n";
 }
 
 package Devel::Cover::Collection::Template::Provider;
@@ -709,12 +698,11 @@ use base "Template::Provider";
 
 my %Templates;
 
-sub fetch
-{
-    my $self = shift;
-    my ($name) = @_;
-    # print "Looking for <$name>\n";
-    $self->SUPER::fetch(exists $Templates{$name} ? \$Templates{$name} : $name)
+sub fetch {
+  my $self = shift;
+  my ($name) = @_;
+  # print "Looking for <$name>\n";
+  $self->SUPER::fetch(exists $Templates{$name} ? \$Templates{$name} : $name)
 }
 
 $Templates{colours} = <<'EOT';
@@ -740,7 +728,7 @@ $Templates{html} = <<'EOT';
 <html xmlns="http://www.w3.org/1999/xhtml">
 <!--
 This file was generated by Devel::Cover Version $VERSION
-Devel::Cover is copyright 2001-2023, Paul Johnson (paul\@pjcj.net)
+Devel::Cover is copyright 2001-2024, Paul Johnson (paul\@pjcj.net)
 Devel::Cover is free. It is licensed under the same terms as Perl itself.
 The latest version of Devel::Cover should be available from my homepage:
 http://www.pjcj.net
@@ -896,7 +884,7 @@ Almost certainly.
 
 =head1 LICENCE
 
-Copyright 2014-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2014-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

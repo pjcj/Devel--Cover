@@ -17,13 +17,13 @@ my %Filenames;
 my %File_exists;
 
 sub get_options {
-    my ($self, $opt) = @_;
-    $opt->{option}{outputfile} = "coverage.html";
-    die "Invalid command line options" unless
-        GetOptions($opt->{option},
-                   qw(
-                       outputfile=s
-                     ));
+  my ($self, $opt) = @_;
+  $opt->{option}{outputfile} = "coverage.html";
+  die "Invalid command line options" unless GetOptions(
+    $opt->{option}, qw(
+      outputfile=s
+    )
+  );
 }
 
 #-------------------------------------------------------------------------------
@@ -33,14 +33,13 @@ sub get_options {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub cvg_class {
-    my ($pc, $err) = @_;
-    defined $err && !$err ? "covered"
-                          : $pc <  75 ? "uncovered"
-                          : $pc <  90 ? "covered75"
-                          : $pc < 100 ? "covered90"
-                          : "covered";
+  my ($pc, $err) = @_;
+  defined $err && !$err ? "covered"
+    : $pc < 75          ? "uncovered"
+    : $pc < 90          ? "covered75"
+    : $pc < 100         ? "covered90"
+    :                     "covered";
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_stylesheet()
@@ -48,13 +47,13 @@ sub cvg_class {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_stylesheet {
-    my $db = shift;
-    my $file = "$db->{db}/cover.css";
-    open(CSS, '>', $file) or return;
-    my $p = tell(DATA);
-    print CSS <DATA>;
-    seek(DATA, $p, 0);
-    close(CSS);
+  my $db   = shift;
+  my $file = "$db->{db}/cover.css";
+  open(CSS, '>', $file) or return;
+  my $p = tell(DATA);
+  print CSS <DATA>;
+  seek(DATA, $p, 0);
+  close(CSS);
 }
 
 #-------------------------------------------------------------------------------
@@ -63,61 +62,68 @@ sub print_stylesheet {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_summary {
-    my ($db, $options) = @_;
-    my @showing = grep $options->{show}{$_}, $db->all_criteria;
-    my @headers = map { ($db->all_criteria_short)[$_] }
-    grep { $options->{show}{($db->all_criteria)[$_]} }
+
+  my ($db, $options) = @_;
+  my @showing = grep $options->{show}{$_}, $db->all_criteria;
+  my @headers
+    = map { ($db->all_criteria_short)[$_] }
+    grep  { $options->{show}{ ($db->all_criteria)[$_] } }
     (0 .. $db->all_criteria - 1);
-    my @files = (grep($db->{summary}{$_}, @{$options->{file}}), 'Total');
+  my @files = (grep($db->{summary}{$_}, @{ $options->{file} }), 'Total');
 
-    my %vals;
-    for my $file (@files) {
-        my %pvals;
-        my $part = $db->{summary}{$file};
-        for my $criterion (@showing) {
-            my $pc = exists $part->{$criterion}
-                ? do { my $x = sprintf "%5.2f", $part->{$criterion}{percentage};
-                       chop $x; $x }
-                : "n/a";
+  my %vals;
 
-            if ($pc ne 'n/a') {
-                if ($criterion ne 'time') {
-                    $vals{$file}{$criterion}{class} = cvg_class($pc);
-                }
-                if (exists $Filenames{$file}) {
-                    if ($criterion eq 'branch') {
-                        $vals{$file}{$criterion}{link} = "$Filenames{$file}--branch.html";
-                    } elsif ($criterion eq 'condition') {
-                        $vals{$file}{$criterion}{link} = "$Filenames{$file}--condition.html";
-                    } elsif ($criterion eq 'subroutine') {
-                        $vals{$file}{$criterion}{link} = "$Filenames{$file}--subroutine.html";
-                    }
-                }
-                my $c = $part->{$criterion};
-                $vals{$file}{$criterion}{details} =
-                ($c->{covered} || 0) . " / " . ($c->{total} || 0);
-            }
-            $vals{$file}{$criterion}{pc} = $pc;
+  for my $file (@files) {
+    my %pvals;
+    my $part = $db->{summary}{$file};
+    for my $criterion (@showing) {
+      my $pc = exists $part->{$criterion}
+        ? do {
+          my $x = sprintf "%5.2f", $part->{$criterion}{percentage};
+          chop $x;
+          $x
         }
+        : "n/a";
+
+      if ($pc ne 'n/a') {
+        if ($criterion ne 'time') {
+          $vals{$file}{$criterion}{class} = cvg_class($pc);
+        }
+        if (exists $Filenames{$file}) {
+          if ($criterion eq 'branch') {
+            $vals{$file}{$criterion}{link} = "$Filenames{$file}--branch.html";
+          } elsif ($criterion eq 'condition') {
+            $vals{$file}{$criterion}{link}
+              = "$Filenames{$file}--condition.html";
+          } elsif ($criterion eq 'subroutine') {
+            $vals{$file}{$criterion}{link}
+              = "$Filenames{$file}--subroutine.html";
+          }
+        }
+        my $c = $part->{$criterion};
+        $vals{$file}{$criterion}{details}
+          = ($c->{covered} || 0) . " / " . ($c->{total} || 0);
+      }
+      $vals{$file}{$criterion}{pc} = $pc;
     }
+  }
 
-    my $vars = {
-        title       => "Coverage Summary: $db->{db}",
-        dbname      => $db->{db},
-        showing     => \@showing,
-        headers     => \@headers,
-        files       => \@files,
-        filenames   => \%Filenames,
-        file_exists => \%File_exists,
-        vals        => \%vals,
-    };
+  my $vars = {
+    title       => "Coverage Summary: $db->{db}",
+    dbname      => $db->{db},
+    showing     => \@showing,
+    headers     => \@headers,
+    files       => \@files,
+    filenames   => \%Filenames,
+    file_exists => \%File_exists,
+    vals        => \%vals,
+  };
 
-    my $html = "$options->{outputdir}/$options->{option}{outputfile}";
-    $Template->process("summary", $vars, $html) or die $Template->error();
+  my $html = "$options->{outputdir}/$options->{option}{outputfile}";
+  $Template->process("summary", $vars, $html) or die $Template->error();
 
-    print "HTML output written to $html\n" unless $options->{silent};
+  print "HTML output written to $html\n" unless $options->{silent};
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_metrics()
@@ -125,20 +131,20 @@ sub print_summary {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub get_metrics {
-    my ($db, $options, $file_data, $line) = @_;
-    my %m;
+  my ($db, $options, $file_data, $line) = @_;
+  my %m;
 
-    for my $c ($db->criteria) {                   # find all metrics available in db
-        next unless $options->{show}{$c};         # skip those we don't want in report
-        my $criterion = $file_data->$c();         # check if metric collected for this file
-        if ($criterion) {                         # if it exists...
-            my $li = $criterion->location($line); #   get the metric info for the current line
-            $m{$c} = $li ? [@$li] : undef;        #   and stash it
-        }
+  for my $c ($db->criteria) {  # find all metrics available in db
+    next unless $options->{show}{$c};  # skip those we don't want in report
+    my $criterion = $file_data->$c();  # check if metric collected for this file
+    if ($criterion) {                  # if it exists...
+      my $li = $criterion->location($line)
+        ;  #   get the metric info for the current line
+      $m{$c} = $li ? [@$li] : undef;  #   and stash it
     }
-    return %m;
+  }
+  return %m;
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_file()
@@ -146,95 +152,101 @@ sub get_metrics {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_file {
-    my ($db, $file, $options) = @_;
+  my ($db, $file, $options) = @_;
 
-    open(F,'<',  $file) or warn("Unable to open '$file' [$!]\n"), return;
+  open(F, '<', $file) or warn("Unable to open '$file' [$!]\n"), return;
 
-    my @lines;
-    my @showing = grep $options->{show}{$_}, $db->criteria;
-    my @headers = map { ($db->all_criteria_short)[$_] }
-    grep { $options->{show}{($db->criteria)[$_]} } (0 .. $db->criteria - 1);
+  my @lines;
+  my @showing = grep $options->{show}{$_}, $db->criteria;
+  my @headers = map { ($db->all_criteria_short)[$_] }
+    grep { $options->{show}{ ($db->criteria)[$_] } } (0 .. $db->criteria - 1);
 
-    my $file_data = $db->cover->file($file);
+  my $file_data = $db->cover->file($file);
 
-    while (my $l = <F>) {
-        chomp $l;
+  while (my $l = <F>) {
+    chomp $l;
 
-        my %metric = get_metrics($db, $options, $file_data, $.);
-        my %line = (
-            number  => $.,
-            text    => encode_entities($l),
-            metrics => [],
-        );
-        $line{text} =~ s/\t/        /g;
-        $line{text} =~ s/\s/&nbsp;/g; # IE doesn't honor "white-space: pre" CSS
+    my %metric = get_metrics($db, $options, $file_data, $.);
+    my %line   = (number => $., text => encode_entities($l), metrics => []);
+    $line{text} =~ s/\t/        /g;
+    $line{text} =~ s/\s/&nbsp;/g;   # IE doesn't honor "white-space: pre" CSS
 
-        foreach my $c ($db->criteria) {
-            next unless $options->{show}{$c};
-            push(@{$line{metrics}}, []), next unless $metric{$c};
+    foreach my $c ($db->criteria) {
+      next unless $options->{show}{$c};
+      push(@{ $line{metrics} }, []), next unless $metric{$c};
 
-            if ($c eq 'branch') {
-                my @p;
-                foreach (@{$file_data->branch->get($.)}) {
-                    push @p, {text  => sprintf("%.0f", $_->percentage),
-                    class => cvg_class($_->percentage),
-                    link  => "$Filenames{$file}--branch.html#line$."};
-                }
-                push @{$line{metrics}}, \@p;
-            } elsif ($c eq 'condition') {
-                my @tt = $file_data->condition->truth_table($.);
-                my @p;
-                if (@tt) {
-                    foreach (@tt) {
-                        push @p, {text  => sprintf("%.0f", $_->[0]->percentage),
-                        class => cvg_class($_->[0]->percentage),
-                        link  => "$Filenames{$file}--condition.html#line$."};
-                    }
-                } else {
-                    push @p, { text => "expression contains > 16 terms: ignored" };
-                }
-                push @{$line{metrics}}, \@p;
-            } elsif ($c eq 'subroutine') {
-                my @p;
-                while (my $o = shift @{$metric{$c}}) {
-                    push @p, {text  => $o->covered,
-                    class => $o->error ? 'uncovered' : 'covered',
-                    link  => "$Filenames{$file}--subroutine.html#line$."};
-                }
-                push @{$line{metrics}}, \@p;
-            } else {
-                my @p;
-                while (my $o = shift @{$metric{$c}}) {
-                    push @p, {text  => ($c =~ /statement|pod|time/) ? $o->covered : $o->percentage,
-                    class => $c eq 'time' ? undef : $o->error ? 'uncovered' : 'covered',
-                    link  => undef};
-                }
-                push @{$line{metrics}}, \@p;
-            }
+      if ($c eq 'branch') {
+        my @p;
+        foreach (@{ $file_data->branch->get($.) }) {
+          push @p, {
+              text  => sprintf("%.0f", $_->percentage),
+              class => cvg_class($_->percentage),
+              link  => "$Filenames{$file}--branch.html#line$.",
+            };
         }
-        push @lines, \%line;
-        last if $l =~ /^__(END|DATA)__/;
+        push @{ $line{metrics} }, \@p;
+      } elsif ($c eq 'condition') {
+        my @tt = $file_data->condition->truth_table($.);
+        my @p;
+        if (@tt) {
+          foreach (@tt) {
+            push @p, {
+                text  => sprintf("%.0f", $_->[0]->percentage),
+                class => cvg_class($_->[0]->percentage),
+                link  => "$Filenames{$file}--condition.html#line$.",
+              };
+          }
+        } else {
+          push @p, { text => "expression contains > 16 terms: ignored" };
+        }
+        push @{ $line{metrics} }, \@p;
+      } elsif ($c eq 'subroutine') {
+        my @p;
+        while (my $o = shift @{ $metric{$c} }) {
+          push @p, {
+              text  => $o->covered,
+              class => $o->error ? 'uncovered' : 'covered',
+              link  => "$Filenames{$file}--subroutine.html#line$.",
+            };
+        }
+        push @{ $line{metrics} }, \@p;
+      } else {
+        my @p;
+        while (my $o = shift @{ $metric{$c} }) {
+          push @p, {
+              text => ($c =~ /statement|pod|time/) ? $o->covered
+              : $o->percentage,
+              class => $c eq 'time' ? undef
+              : $o->error ? 'uncovered'
+              : 'covered',
+              link => undef,
+            };
+        }
+        push @{ $line{metrics} }, \@p;
+      }
     }
-    close F or die "Unable to close '$file' [$!]";
+    push @lines, \%line;
+    last if $l =~ /^__(END|DATA)__/;
+  }
+  close F or die "Unable to close '$file' [$!]";
 
-    my $vars = {
-        title       => "File Coverage: $file",
-        file        => $file,
-        percentage  => sprintf("%.1f", $db->{summary}{$file}{total}{percentage}),
-        class       => cvg_class($db->{summary}{$file}{total}{percentage}),
-        showing     => \@showing,
-        headers     => \@headers,
-        filenames   => \%Filenames,
-        file_exists => \%File_exists,
-        lines       => \@lines,
-        perlver     => join('.', map {ord} split(//, $^V)), # should come from db
-        platform    => $^O,                                 # should come from db
-    };
+  my $vars = {
+    title       => "File Coverage: $file",
+    file        => $file,
+    percentage  => sprintf("%.1f", $db->{summary}{$file}{total}{percentage}),
+    class       => cvg_class($db->{summary}{$file}{total}{percentage}),
+    showing     => \@showing,
+    headers     => \@headers,
+    filenames   => \%Filenames,
+    file_exists => \%File_exists,
+    lines       => \@lines,
+    perlver     => join('.', map { ord } split(//, $^V)),  # should come from db
+    platform    => $^O,                                    # should come from db
+  };
 
-    my $html = "$options->{outputdir}/$Filenames{$file}.html";
-    $Template->process("file", $vars, $html) or die $Template->error();
+  my $html = "$options->{outputdir}/$Filenames{$file}.html";
+  $Template->process("file", $vars, $html) or die $Template->error();
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_branches()
@@ -242,44 +254,44 @@ sub print_file {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_branches {
-    my ($db, $file, $options) = @_;
+  my ($db, $file, $options) = @_;
 
-    my $branches = $db->cover->file($file)->branch;
+  my $branches = $db->cover->file($file)->branch;
 
-    return unless $branches;
+  return unless $branches;
 
-    my @branches;
-    for my $location (sort { $a <=> $b } $branches->items) {
-        my $count = 0;
-        for my $b (@{$branches->location($location)}) {
-            my @tf = $b->values;
-            push @branches,
-            {
-                ref        => "line$location",
-                number     => $count++ ? undef : $location,
-                percentage => sprintf("%.0f", $b->percentage),
-                class      => cvg_class($b->percentage),
-                parts      => [{text => 'T', class => $tf[0] ? 'covered' : 'uncovered'},
-                {text => 'F', class => $tf[1] ? 'covered' : 'uncovered'}],
-                text       => encode_entities($b->text),
-            };
-        }
+  my @branches;
+  for my $location (sort { $a <=> $b } $branches->items) {
+    my $count = 0;
+    for my $b (@{ $branches->location($location) }) {
+      my @tf = $b->values;
+      push @branches, {
+          ref        => "line$location",
+          number     => $count++ ? undef : $location,
+          percentage => sprintf("%.0f", $b->percentage),
+          class      => cvg_class($b->percentage),
+          parts      => [
+            { text => 'T', class => $tf[0] ? 'covered' : 'uncovered' },
+            { text => 'F', class => $tf[1] ? 'covered' : 'uncovered' },
+          ],
+          text => encode_entities($b->text),
+        };
     }
+  }
 
-    my $vars = {
-        title       => "Branch Coverage: $file",
-        file        => $file,
-        percentage  => sprintf("%.1f", $db->{summary}{$file}{branch}{percentage}),
-        class       => cvg_class($db->{summary}{$file}{branch}{percentage}),
-        branches    => \@branches,
-        perlver     => join('.', map {ord} split(//, $^V)), # should come from db
-        platform    => $^O,                                 # should come from db
-    };
+  my $vars = {
+    title      => "Branch Coverage: $file",
+    file       => $file,
+    percentage => sprintf("%.1f", $db->{summary}{$file}{branch}{percentage}),
+    class      => cvg_class($db->{summary}{$file}{branch}{percentage}),
+    branches   => \@branches,
+    perlver    => join('.', map { ord } split(//, $^V)),  # should come from db
+    platform   => $^O,                                    # should come from db
+  };
 
-    my $html = "$options->{outputdir}/$Filenames{$file}--branch.html";
-    $Template->process("branches", $vars, $html) or die $Template->error();
+  my $html = "$options->{outputdir}/$Filenames{$file}--branch.html";
+  $Template->process("branches", $vars, $html) or die $Template->error();
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_conditions()
@@ -287,75 +299,74 @@ sub print_branches {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_conditions {
-    my ($db, $file, $options) = @_;
-    my $conditions = $db->cover->file($file)->condition;
-    return unless $conditions;
+  my ($db, $file, $options) = @_;
+  my $conditions = $db->cover->file($file)->condition;
+  return unless $conditions;
 
-    my @data;
-    for my $location (sort { $a <=> $b } $conditions->items) {
-        my @x = $conditions->truth_table($location);
+  my @data;
+  for my $location (sort { $a <=> $b } $conditions->items) {
+    my @x = $conditions->truth_table($location);
 
-        for my $c (@x) {
-            push @data, {
-                line       => $location,
-                ref        => "line$location",
-                percentage => sprintf("%.0f", $c->[0]->percentage),
-                class      => cvg_class($c->[0]->percentage),
-                condition  => encode_entities($c->[1]),
-                coverage   => $c->[0]->html,
-            };
-        }
+    for my $c (@x) {
+      push @data, {
+          line       => $location,
+          ref        => "line$location",
+          percentage => sprintf("%.0f", $c->[0]->percentage),
+          class      => cvg_class($c->[0]->percentage),
+          condition  => encode_entities($c->[1]),
+          coverage   => $c->[0]->html,
+        };
     }
+  }
 
-    my $vars = {
-        title      => "Condition Coverage: $file",
-        file        => $file,
-        percentage  => sprintf("%.1f", $db->{summary}{$file}{condition}{percentage}),
-        class       => cvg_class($db->{summary}{$file}{condition}{percentage}),
-        headers     => ['line', '%', 'coverage', 'condition'],
-        conditions  => \@data,
-        perlver     => join('.', map {ord} split(//, $^V)), # should come from db
-        platform    => $^O,                                 # should come from db
-    };
+  my $vars = {
+    title      => "Condition Coverage: $file",
+    file       => $file,
+    percentage =>
+      sprintf("%.1f", $db->{summary}{$file}{condition}{percentage}),
+    class      => cvg_class($db->{summary}{$file}{condition}{percentage}),
+    headers    => [ 'line', '%', 'coverage', 'condition' ],
+    conditions => \@data,
+    perlver    => join('.', map { ord } split(//, $^V)),  # should come from db
+    platform   => $^O,                                    # should come from db
+  };
 
-    my $html = "$db->{db}/$Filenames{$file}--condition.html";
-    $Template->process("conditions", $vars, $html)
-        or die $Template->error();
+  my $html = "$db->{db}/$Filenames{$file}--condition.html";
+  $Template->process("conditions", $vars, $html) or die $Template->error();
 }
 
 sub print_subroutines {
-    my ($db, $file, $options) = @_;
-    my $subroutines = $db->cover->file($file)->subroutine;
-    return unless $subroutines;
+  my ($db, $file, $options) = @_;
+  my $subroutines = $db->cover->file($file)->subroutine;
+  return unless $subroutines;
 
-    my @data;
-    for my $location ($subroutines->items) {
-        my $l = $subroutines->location($location);
-        for my $sub (@$l) {
-            push @data, {
-                ref   => "line$location",
-                line  => $location,
-                name  => $sub->name,
-                class => cvg_class($sub->percentage),
-            }
+  my @data;
+  for my $location ($subroutines->items) {
+    my $l = $subroutines->location($location);
+    for my $sub (@$l) {
+      push @data, {
+          ref   => "line$location",
+          line  => $location,
+          name  => $sub->name,
+          class => cvg_class($sub->percentage),
         }
     }
+  }
 
-    my $vars = {
-        title      => "Subroutine Coverage: $file",
-        file        => $file,
-        percentage  => sprintf("%.1f", $db->{summary}{$file}{subroutine}{percentage}),
-        class       => cvg_class($db->{summary}{$file}{subroutine}{percentage}),
-        subroutines =>  [ sort { $a->{name} cmp $b->{name} } @data ],
-        perlver     => join('.', map {ord} split(//, $^V)), # should come from db
-        platform    => $^O,                                 # should come from db
-    };
+  my $vars = {
+    title      => "Subroutine Coverage: $file",
+    file       => $file,
+    percentage =>
+      sprintf("%.1f", $db->{summary}{$file}{subroutine}{percentage}),
+    class       => cvg_class($db->{summary}{$file}{subroutine}{percentage}),
+    subroutines => [ sort { $a->{name} cmp $b->{name} } @data ],
+    perlver     => join('.', map { ord } split(//, $^V)),  # should come from db
+    platform    => $^O,                                    # should come from db
+  };
 
-    my $html = "$db->{db}/$Filenames{$file}--subroutine.html";
-    $Template->process("subroutines", $vars, $html)
-        or die $Template->error();
+  my $html = "$db->{db}/$Filenames{$file}--subroutine.html";
+  $Template->process("subroutines", $vars, $html) or die $Template->error();
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : report()
@@ -363,24 +374,26 @@ sub print_subroutines {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub report {
-    my ($pkg, $db, $options) = @_;
+  my ($pkg, $db, $options) = @_;
 
-    $Template = Template->new({
-        LOAD_TEMPLATES => [Devel::Cover::Report::Html_subtle::Template::Provider->new({}),],
-    });
+  $Template = Template->new({
+    LOAD_TEMPLATES =>
+      [ Devel::Cover::Report::Html_subtle::Template::Provider->new({}) ]
+  });
 
-    %Filenames   = map {$_ => do {(my $f = $_) =~ s/\W/-/g; $f}} @{$options->{file}};
-    %File_exists = map {$_ => -e} @{$options->{file}};
+  %Filenames
+    = map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } @{ $options->{file} };
+  %File_exists = map { $_ => -e } @{ $options->{file} };
 
-    print_stylesheet($db);
+  print_stylesheet($db);
 
-    for my $file (@{$options->{file}}) {
-        print_file($db,        $file, $options);
-        print_branches($db,    $file, $options) if $options->{show}{branch};
-        print_conditions($db,  $file, $options) if $options->{show}{condition};
-        print_subroutines($db, $file, $options) if $options->{show}{subroutine};
-    }
-    print_summary($db, $options);
+  for my $file (@{ $options->{file} }) {
+    print_file($db, $file, $options);
+    print_branches($db, $file, $options)    if $options->{show}{branch};
+    print_conditions($db, $file, $options)  if $options->{show}{condition};
+    print_subroutines($db, $file, $options) if $options->{show}{subroutine};
+  }
+  print_summary($db, $options);
 }
 
 1;
@@ -396,11 +409,11 @@ use base "Template::Provider";
 my %Templates;
 
 sub fetch {
-    my $self = shift;
-    my ($name) = @_;
+  my $self = shift;
+  my ($name) = @_;
 
-    # print "Looking for <$name>\n";
-    $self->SUPER::fetch(exists $Templates{$name} ? \$Templates{$name} : $name);
+  # print "Looking for <$name>\n";
+  $self->SUPER::fetch(exists $Templates{$name} ? \$Templates{$name} : $name);
 }
 
 #<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
@@ -408,7 +421,7 @@ $Templates{html} = <<'EOT';
 <?xml version="1.0" encoding="utf-8"?>
 <!--
 This file was generated by Devel::Cover Version $VERSION
-Devel::Cover is copyright 2001-2023, Paul Johnson (paul\@pjcj.net)
+Devel::Cover is copyright 2001-2024, Paul Johnson (paul\@pjcj.net)
 Devel::Cover is free. It is licensed under the same terms as Perl itself.
 The latest version of Devel::Cover should be available from my homepage:
 http://www.pjcj.net
@@ -728,7 +741,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

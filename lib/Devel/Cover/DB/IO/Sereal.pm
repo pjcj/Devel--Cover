@@ -1,4 +1,4 @@
-# Copyright 2014-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2014-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -20,31 +20,37 @@ use Sereal::Encoder;
 my ($Decoder, $Encoder);
 
 sub new {
-    my $class = shift;
-    my $self = $class->SUPER::new(@_);
-    bless $self, $class
+  my $class = shift;
+  my $self  = $class->SUPER::new(@_);
+  bless $self, $class
 }
+
 sub read {
-    my $self   = shift;
-    my ($file) = @_;
-    $self->_read_fh($file, sub {
-        my ($fh) = @_;
-        local $/;
-        my $data = eval {
-            ($Decoder ||= Sereal::Decoder->new({}))->decode(<$fh>)
-        };
-        die "Can't read $file with Sereal: $@" if $@;
-        $data
-    })
+  my $self = shift;
+  my ($file) = @_;
+  $self->_read_fh(
+    $file,
+    sub {
+      my ($fh) = @_;
+      local $/;
+      my $data
+        = eval { ($Decoder ||= Sereal::Decoder->new({}))->decode(<$fh>) };
+      die "Can't read $file with Sereal: $@" if $@;
+      $data
+    }
+  )
 }
 
 sub write {
-    my $self = shift;
-    my ($data, $file) = @_;
-    $self->_write_fh($file, sub {
-        my ($fh) = @_;
-        print $fh ($Encoder ||= Sereal::Encoder->new({}))->encode($data);
-    })
+  my $self = shift;
+  my ($data, $file) = @_;
+  $self->_write_fh(
+    $file,
+    sub {
+      my ($fh) = @_;
+      print $fh ($Encoder ||= Sereal::Encoder->new({}))->encode($data);
+    }
+  )
 }
 
 1
@@ -97,7 +103,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2011-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2011-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

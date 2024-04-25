@@ -1,5 +1,6 @@
 package Devel::Cover::Report::Html_minimal;
-BEGIN {require 5.006}
+BEGIN { require 5.006 }
+
 use strict;
 use warnings;
 use HTML::Entities;
@@ -9,14 +10,14 @@ use Devel::Cover::Html_Common "launch";
 use Devel::Cover::Truth_Table;
 
 our $VERSION;
+
 BEGIN {
-# VERSION
+  # VERSION
 }
 
 use Devel::Cover::Inc;
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_coverage_for_line
@@ -24,15 +25,14 @@ BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 # Notes      :
 #-------------------------------------------------------------------------------
 sub get_coverage_for_line {
-    my ($options, $data, $line) = @_;
-    my %coverage;
-    foreach my $c (grep {$data->$_()} keys %{$options->{show}}) {
-        my $m = $data->$c()->location($line);
-        $coverage{$c} = $m if $m;
-    }
-    return \%coverage;
+  my ($options, $data, $line) = @_;
+  my %coverage;
+  foreach my $c (grep { $data->$_() } keys %{ $options->{show} }) {
+    my $m = $data->$c()->location($line);
+    $coverage{$c} = $m if $m;
+  }
+  return \%coverage;
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_summary_for_file
@@ -40,31 +40,33 @@ sub get_coverage_for_line {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub get_summary_for_file {
-    my $db   = shift;
-    my $file = shift;
-    my $show = shift;
-    my %summary;
 
-    my $data = $db->{summary}{$file};
-    for my $c (@$show) {
-        if (exists $data->{$c}) {
-            $summary{$c} = {
-                percent => do {
-                    my $x = sprintf "%5.2f", $data->{$c}{percentage};
-                    chop $x;
-                    $x
-                },
-                ratio   => sprintf("%d / %d", $data->{$c}{covered} || 0,
-                                              $data->{$c}{total} || 0),
-                error   => $data->{$c}{error},
-            };
-        } else {
-            $summary{$c} = {percent => 'n/a', ratio => undef, error => undef};
-        }
+  my $db   = shift;
+  my $file = shift;
+  my $show = shift;
+  my %summary;
+
+  my $data = $db->{summary}{$file};
+
+  for my $c (@$show) {
+    if (exists $data->{$c}) {
+      $summary{$c} = {
+        percent => do {
+          my $x = sprintf "%5.2f", $data->{$c}{percentage};
+          chop $x;
+          $x
+        },
+        ratio => sprintf("%d / %d",
+          $data->{$c}{covered} || 0,
+          $data->{$c}{total}   || 0),
+        error => $data->{$c}{error},
+      };
+    } else {
+      $summary{$c} = { percent => 'n/a', ratio => undef, error => undef };
     }
-    return \%summary;
+  }
+  return \%summary;
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_showing_headers
@@ -72,19 +74,18 @@ sub get_summary_for_file {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub get_showing_headers {
-    my $db      = shift;
-    my $options = shift;
 
-    my @crit       = $db->criteria;
-    my @short_crit = $db->criteria_short;
-    my @showing    = grep $options->{show}{$_}, @crit;
-    my @headers    = map  { $short_crit[$_] }
-                     grep { $options->{show}{$crit[$_]} }
-                     (0 .. $#crit);
+  my $db      = shift;
+  my $options = shift;
 
-    return(\@showing, \@headers);
+  my @crit       = $db->criteria;
+  my @short_crit = $db->criteria_short;
+  my @showing    = grep $options->{show}{$_}, @crit;
+  my @headers    = map { $short_crit[$_] }
+    grep { $options->{show}{ $crit[$_] } } (0 .. $#crit);
+
+  return (\@showing, \@headers);
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : truth_table
@@ -92,22 +93,22 @@ sub get_showing_headers {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub truth_table {
-    return if @_ > 16;
-    my @lops;
-    my $n = 0;
-    foreach my $c (@_) {
-        my $op = $c->[1]{type};
-        my @hit = map {defined() && $_ > 0 ? 1 : 0} @{$c->[0]};
-        @hit = reverse @hit if $op =~ /^or_[23]$/;
-        my $t = {
-            tt   => Devel::Cover::Truth_Table->new_primitive($op, @hit),
-            # tt   => Devel::Cover::Truth_Table->new_primitive($op, $c, $n++);
-            cvg  => $c->[1],
-            expr => join(' ', @{$c->[1]}{qw/left op right/}),
-        };
-        push(@lops, $t);
-    }
-    return map {[$_->{tt}->sort, $_->{expr}]} merge_lineops(@lops);
+  return if @_ > 16;
+  my @lops;
+  my $n = 0;
+  foreach my $c (@_) {
+    my $op  = $c->[1]{type};
+    my @hit = map { defined() && $_ > 0 ? 1 : 0 } @{ $c->[0] };
+    @hit = reverse @hit if $op =~ /^or_[23]$/;
+    my $t = {
+      tt => Devel::Cover::Truth_Table->new_primitive($op, @hit),
+      # tt   => Devel::Cover::Truth_Table->new_primitive($op, $c, $n++);
+      cvg  => $c->[1],
+      expr => join(' ', @{ $c->[1] }{qw/left op right/}),
+    };
+    push(@lops, $t);
+  }
+  return map { [ $_->{tt}->sort, $_->{expr} ] } merge_lineops(@lops);
 }
 
 #-------------------------------------------------------------------------------
@@ -117,47 +118,51 @@ sub truth_table {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub merge_lineops {
-    my @ops = @_;
-    my $rotations;
-    while ($#ops > 0) {
-        my $rm;
-        for (1 .. $#ops) {
-            if ($ops[0]{expr} eq $ops[$_]{cvg}{left}) {
-                $ops[$_]{tt}->left_merge($ops[0]{tt});
-                $ops[0] = $ops[$_];
-                $rm = $_; last;
-            } elsif ($ops[0]{expr} eq $ops[$_]{cvg}{right}) {
-                $ops[$_]{tt}->right_merge($ops[0]{tt});
-                $ops[0] = $ops[$_];
-                $rm = $_; last;
-            } elsif ($ops[$_]{expr} eq $ops[0]{cvg}{left}) {
-                $ops[0]{tt}->left_merge($ops[$_]{tt});
-                $rm = $_; last;
-            } elsif ($ops[$_]{expr} eq $ops[0]{cvg}{right}) {
-                $ops[0]{tt}->right_merge($ops[$_]{tt});
-                $rm = $_; last;
-            }
-        }
-        if ($rm) {
-            splice(@ops, $rm, 1);
-            $rotations = 0;
-        } else {
-            # First op didn't merge with anything. Rotate @ops in hopes
-            # of finding something that can be merged.
-            unshift(@ops, pop @ops);
-
-            # Hmm... we've come full circle and *still* haven't found
-            # anything to merge. Did the source code have multiple
-            # statements on the same line?
-            last if ($rotations++ > $#ops);
-        }
+  my @ops = @_;
+  my $rotations;
+  while ($#ops > 0) {
+    my $rm;
+    for (1 .. $#ops) {
+      if ($ops[0]{expr} eq $ops[$_]{cvg}{left}) {
+        $ops[$_]{tt}->left_merge($ops[0]{tt});
+        $ops[0] = $ops[$_];
+        $rm = $_;
+        last;
+      } elsif ($ops[0]{expr} eq $ops[$_]{cvg}{right}) {
+        $ops[$_]{tt}->right_merge($ops[0]{tt});
+        $ops[0] = $ops[$_];
+        $rm = $_;
+        last;
+      } elsif ($ops[$_]{expr} eq $ops[0]{cvg}{left}) {
+        $ops[0]{tt}->left_merge($ops[$_]{tt});
+        $rm = $_;
+        last;
+      } elsif ($ops[$_]{expr} eq $ops[0]{cvg}{right}) {
+        $ops[0]{tt}->right_merge($ops[$_]{tt});
+        $rm = $_;
+        last;
+      }
     }
-    return @ops;
+    if ($rm) {
+      splice(@ops, $rm, 1);
+      $rotations = 0;
+    } else {
+      # First op didn't merge with anything. Rotate @ops in hopes
+      # of finding something that can be merged.
+      unshift(@ops, pop @ops);
+
+      # Hmm... we've come full circle and *still* haven't found
+      # anything to merge. Did the source code have multiple
+      # statements on the same line?
+      last if ($rotations++ > $#ops);
+    }
+  }
+  return @ops;
 }
 
 #===============================================================================
 my %Filenames;
-my @class = qw'c0 c1 c2 c3';
+my @class     = qw'c0 c1 c2 c3';
 my $threshold = { c0 => 75, c1 => 90, c2 => 100 };
 
 #-------------------------------------------------------------------------------
@@ -166,8 +171,8 @@ my $threshold = { c0 => 75, c1 => 90, c2 => 100 };
 # Notes      :
 #-------------------------------------------------------------------------------
 sub bclass {
-    my @c = map {$_ ? $class[-1] : $class[0] } @_;
-    return wantarray ? @c : $c[0];
+  my @c = map { $_ ? $class[-1] : $class[0] } @_;
+  return wantarray ? @c : $c[0];
 }
 
 #-------------------------------------------------------------------------------
@@ -176,12 +181,12 @@ sub bclass {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub pclass {
-    my ($p, $e) = @_;
-    return $class[3] unless $e;
-    $p < $threshold->{c0} && return $class[0];
-    $p < $threshold->{c1} && return $class[1];
-    $p < $threshold->{c2} && return $class[2];
-    $class[3]
+  my ($p, $e) = @_;
+  return $class[3] unless $e;
+  $p < $threshold->{c0} && return $class[0];
+  $p < $threshold->{c1} && return $class[1];
+  $p < $threshold->{c2} && return $class[2];
+  $class[3]
 }
 
 #-------------------------------------------------------------------------------
@@ -190,51 +195,54 @@ sub pclass {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub get_coverage_report {
-    my $type = shift;
-    my $data = shift;
-    return _branch_report($data)     if $type eq 'branch';
-    return _condition_report($data)  if $type eq 'condition';
-    return _time_report($data)       if $type eq 'time';
-    return _count_report($type, $data);
+  my $type = shift;
+  my $data = shift;
+  return _branch_report($data)    if $type eq 'branch';
+  return _condition_report($data) if $type eq 'condition';
+  return _time_report($data)      if $type eq 'time';
+  return _count_report($type, $data);
 }
 #-------------------------------------------------------------------------------
 sub _count_report {
-    my $type = shift;
-    my $data = shift;
-    return map {{
-        class      => bclass(!$_->error || $_->covered),
-        percentage => $_->covered,
-    }} @{$data->{$type}}
+  my $type = shift;
+  my $data = shift;
+  return map { {
+    class      => bclass(!$_->error || $_->covered),
+    percentage => $_->covered,
+  } }
+    @{ $data->{$type} }
 }
 #-------------------------------------------------------------------------------
 sub _branch_report {
-    my $coverage = shift;
-    my $sfmt = qq'<table width="100%%"><tr><td class="%s">T</td><td class="%s">F</td></tr></table>';
+  my $coverage = shift;
+  my $sfmt
+    = qq'<table width="100%%"><tr><td class="%s">T</td><td class="%s">F</td></tr></table>';
 
-    return map {{
-        percentage => sprintf("%.0f", $_->percentage),
-        title      => sprintf("%s/%s", $_->[0][0] ? 'T' : '-', $_->[0][1] ? 'F' : '-'),
-        class      => pclass($_->percentage, $_->error),
-        string     => sprintf($sfmt, bclass($_->[0][0]), bclass($_->[0][1])),
-    }} @{$coverage->{branch}}
+  return map { {
+    percentage => sprintf("%.0f", $_->percentage),
+    title  => sprintf("%s/%s", $_->[0][0] ? 'T' : '-', $_->[0][1] ? 'F' : '-'),
+    class  => pclass($_->percentage, $_->error),
+    string => sprintf($sfmt, bclass($_->[0][0]), bclass($_->[0][1])),
+  } }
+    @{ $coverage->{branch} }
 }
 #-------------------------------------------------------------------------------
 sub _condition_report {
-    my $coverage = shift;
-    # use Devel::Cover::Dumper; print STDERR Dumper $coverage;
+  my $coverage = shift;
+  # use Devel::Cover::Dumper; print STDERR Dumper $coverage;
 
-    my @tables = truth_table(@{$coverage->{condition}});
-    return unless @tables;
-    return map {{
-        percentage => sprintf("%.0f", $_->[0]->percentage),
-        class      => pclass($_->[0]->percentage, $_->[0]->error),
-        string     => $_->[0]->html(bclass(0,1)),
-    }} @tables;
+  my @tables = truth_table(@{ $coverage->{condition} });
+  return unless @tables;
+  return map { {
+    percentage => sprintf("%.0f", $_->[0]->percentage),
+    class      => pclass($_->[0]->percentage, $_->[0]->error),
+    string     => $_->[0]->html(bclass(0, 1)),
+  } } @tables;
 }
 #-------------------------------------------------------------------------------
 sub _time_report {
-    my $coverage = shift;
-    return map {{string => $_->covered}} @{$coverage->{time}};
+  my $coverage = shift;
+  return map { { string => $_->covered } } @{ $coverage->{time} };
 }
 #-------------------------------------------------------------------------------
 
@@ -244,16 +252,15 @@ sub _time_report {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_stylesheet {
-    my ($db, $options) = @_;
-    my $file = "$options->{outputdir}/cover.css";
+  my ($db, $options) = @_;
+  my $file = "$options->{outputdir}/cover.css";
 
-    open(my $css, '>', $file) or return;
-    my $p = tell(DATA);
-    print $css <DATA>;
-    seek(DATA, $p, 0);
-    close($css);
+  open(my $css, '>', $file) or return;
+  my $p = tell(DATA);
+  print $css <DATA>;
+  seek(DATA, $p, 0);
+  close($css);
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_html_header
@@ -261,17 +268,17 @@ sub print_stylesheet {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_html_header {
-    my $fh    = shift;
-    my $title = shift;
+  my $fh    = shift;
+  my $title = shift;
 
-    print $fh <<"END_HTML";
+  print $fh <<"END_HTML";
 <!DOCTYPE html
      PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <!--
 This file was generated by Devel::Cover Version $VERSION
-Devel::Cover is copyright 2001-2023, Paul Johnson (paul\@pjcj.net)
+Devel::Cover is copyright 2001-2024, Paul Johnson (paul\@pjcj.net)
 Devel::Cover is free. It is licensed under the same terms as Perl itself.
 The latest version of Devel::Cover should be available from my homepage:
 http://www.pjcj.net
@@ -287,24 +294,24 @@ END_HTML
 
 }
 
-
 #-------------------------------------------------------------------------------
 # Subroutine : print_summary
 # Purpose    :
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_summary {
-    my $fh       = shift;
-    my $title    = shift;
-    my $file     = shift;
-    my $percent  = sprintf("%.1f", shift @_ || 0);
-    my $error    = shift;
-    my $db       = shift;
-    my $class    = pclass($percent, $error);
 
-    my $meta     = $db->{meta}{$file};
+  my $fh      = shift;
+  my $title   = shift;
+  my $file    = shift;
+  my $percent = sprintf("%.1f", shift @_ || 0);
+  my $error   = shift;
+  my $db      = shift;
+  my $class   = pclass($percent, $error);
 
-    print $fh <<"END_HTML";
+  my $meta = $db->{meta}{$file};
+
+  print $fh <<"END_HTML";
 <body>
 <h1>$title</h1>
 <table>
@@ -323,14 +330,15 @@ END_HTML
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_th {
-    my ($fh, $th, $span) = @_;
-    print $fh '<tr>';
-    foreach my $h (@$th) {
-        print $fh $span->{$h} ? qq'<th colspan="$span->{$h}">$h</th>' : "<th>$h</th>";
-    }
-    print $fh "</tr>\n";
+  my ($fh, $th, $span) = @_;
+  print $fh '<tr>';
+  foreach my $h (@$th) {
+    print $fh $span->{$h}
+      ? qq'<th colspan="$span->{$h}">$h</th>'
+      : "<th>$h</th>";
+  }
+  print $fh "</tr>\n";
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_link
@@ -338,17 +346,16 @@ sub print_th {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub get_link {
-    my $file = shift;
-    my $type = shift;
-    my $line = shift;
-    return unless exists $Filenames{$file};
-    my $link = $Filenames{$file};
-    $link .= "--$type" if $type;
-    $link .= ".html";
-    $link .= "#L$line" if $line;
-    return $link;
+  my $file = shift;
+  my $type = shift;
+  my $line = shift;
+  return unless exists $Filenames{$file};
+  my $link = $Filenames{$file};
+  $link .= "--$type" if $type;
+  $link .= ".html";
+  $link .= "#L$line" if $line;
+  return $link;
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_summary_report()
@@ -356,31 +363,33 @@ sub get_link {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_summary_report {
-    my ($db, $options) = @_;
+  my ($db, $options) = @_;
 
-    my $outfile = "$options->{outputdir}/$options->{option}{outputfile}";
+  my $outfile = "$options->{outputdir}/$options->{option}{outputfile}";
 
-    open(my $fh, '>', $outfile)
-        or warn("Unable to open file '$outfile' [$!]\n"), return;
+  open(my $fh, '>', $outfile)
+    or warn("Unable to open file '$outfile' [$!]\n"), return;
 
-    my ($show, $th) = get_showing_headers($db, $options);
-    push @$show, 'total';
+  my ($show, $th) = get_showing_headers($db, $options);
+  push @$show, 'total';
 
-    my $le = sub { ($_[0] >   0 ? "&lt;" : "=") . " $_[0]%" };
-    my $ge = sub { ($_[0] < 100 ? "&gt;" : "") . "= $_[0]%" };
-    my @c = ( $le->($options->{report_c0}), $le->($options->{report_c1}),
-              $le->($options->{report_c2}), $ge->($options->{report_c2}) );
-    my $date = do {
-        my ($sec, $min, $hour, $mday, $mon, $year) = localtime;
-        sprintf "%04d-%02d-%02d %02d:%02d:%02d",
-                $year + 1900, $mon + 1, $mday, $hour, $min, $sec
-    };
-    my $perl_v = $] < 5.010 ? $] : $^V;
-    my $os     = $^O;
+  my $le = sub { ($_[0] > 0   ? "&lt;" : "=") . " $_[0]%" };
+  my $ge = sub { ($_[0] < 100 ? "&gt;" : "") . "= $_[0]%" };
+  my @c  = (
+    $le->($options->{report_c0}), $le->($options->{report_c1}),
+    $le->($options->{report_c2}), $ge->($options->{report_c2}),
+  );
+  my $date = do {
+    my ($sec, $min, $hour, $mday, $mon, $year) = localtime;
+    sprintf "%04d-%02d-%02d %02d:%02d:%02d", $year + 1900, $mon + 1, $mday,
+      $hour, $min, $sec
+  };
+  my $perl_v = $] < 5.010 ? $] : $^V;
+  my $os     = $^O;
 
-    print_html_header($fh, $options->{option}{summarytitle});
-    # TODO - >= 100% doesn't look nice.  See also Html_basic.
-    print $fh <<"END_HTML";
+  print_html_header($fh, $options->{option}{summarytitle});
+  # TODO - >= 100% doesn't look nice.  See also Html_basic.
+  print $fh <<"END_HTML";
 <body>
 <h1>$options->{option}{summarytitle}</h1>
 <table>
@@ -396,50 +405,48 @@ sub print_summary_report {
 <div><br/></div>
 <table>
 END_HTML
-    print_th($fh, ['file', @$th, 'total']);
+  print_th($fh, [ 'file', @$th, 'total' ]);
 
-    my @files = (grep($db->{summary}{$_}, @{$options->{file}}), 'Total');
+  my @files = (grep($db->{summary}{$_}, @{ $options->{file} }), 'Total');
 
-    for my $file (@files) {
-        my $summary = get_summary_for_file($db, $file, $show);
+  for my $file (@files) {
+    my $summary = get_summary_for_file($db, $file, $show);
 
-        my $url = get_link($file);
-        if ($url) {
-            print $fh qq'<tr><td align="left"><a href="$url">$file</a></td>';
-        } else {
-            print $fh qq'<tr><td align="left">$file</td>';
-        }
-
-        for my $c (@$show) {
-            my $pc = $summary->{$c}{percent};
-            my ($class, $popup, $link);
-
-            if ($pc eq 'n/a' || $c eq 'time') {
-                $class = $popup = '';
-            } else {
-                $class = sprintf(qq' class="%s"',
-                                 pclass($pc, $summary->{$c}{error}));
-                $popup = sprintf(qq' title="%s"', $c . ': ' . $summary->{$c}{ratio});
-                if ($c =~ /branch|condition|subroutine/) {
-                    $link = get_link($file, $c);
-                }
-            }
-
-            if ($link) {
-                printf $fh qq'<td%s%s><a href="%s">%s</a></td>',
-                    $class, $popup, $link, $pc;
-            } else {
-                printf $fh qq'<td%s%s>%s</td>', $class, $popup, $pc;
-            }
-        }
-        print $fh "</tr>\n";
+    my $url = get_link($file);
+    if ($url) {
+      print $fh qq'<tr><td align="left"><a href="$url">$file</a></td>';
+    } else {
+      print $fh qq'<tr><td align="left">$file</td>';
     }
-    print $fh "</table>\n</body>\n</html>\n";
-    close($fh) or warn "Unable to close '$outfile' [$!]";
 
-    print "HTML output written to $outfile\n" unless $options->{silent};
+    for my $c (@$show) {
+      my $pc = $summary->{$c}{percent};
+      my ($class, $popup, $link);
+
+      if ($pc eq 'n/a' || $c eq 'time') {
+        $class = $popup = '';
+      } else {
+        $class = sprintf(qq' class="%s"', pclass($pc, $summary->{$c}{error}));
+        $popup = sprintf(qq' title="%s"', $c . ': ' . $summary->{$c}{ratio});
+        if ($c =~ /branch|condition|subroutine/) {
+          $link = get_link($file, $c);
+        }
+      }
+
+      if ($link) {
+        printf $fh qq'<td%s%s><a href="%s">%s</a></td>', $class, $popup, $link,
+          $pc;
+      } else {
+        printf $fh qq'<td%s%s>%s</td>', $class, $popup, $pc;
+      }
+    }
+    print $fh "</tr>\n";
+  }
+  print $fh "</table>\n</body>\n</html>\n";
+  close($fh) or warn "Unable to close '$outfile' [$!]";
+
+  print "HTML output written to $outfile\n" unless $options->{silent};
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : escape_HTML
@@ -447,24 +454,24 @@ END_HTML
 # Notes      :
 #-------------------------------------------------------------------------------
 sub escape_HTML {
-    my $text = shift;
-    chomp $text;
+  my $text = shift;
+  chomp $text;
 
-    $text = encode_entities($text);
+  $text = encode_entities($text);
 
-    # Do not allow FF in text
-    $text =~ tr/\x0c//d;
+  # Do not allow FF in text
+  $text =~ tr/\x0c//d;
 
-    # IE doesn't honor "white-space: pre" CSS
-    my @text = split m/\n/ => $text;
-    for (@text) {
-        # Expand all tabs to spaces
-        1 while s/\t+/' ' x (length($&) * 8 - length($`) % 8)/e;
-        # make multiple spaces be multiple spaces
-        s/(  +)/'&nbsp;' x length $1/ge;
-    }
+  # IE doesn't honor "white-space: pre" CSS
+  my @text = split m/\n/ => $text;
+  for (@text) {
+    # Expand all tabs to spaces
+    1 while s/\t+/' ' x (length($&) * 8 - length($`) % 8)/e;
+    # make multiple spaces be multiple spaces
+    s/(  +)/'&nbsp;' x length $1/ge;
+  }
 
-    return join "\n" => @text;
+  return join "\n" => @text;
 }
 
 #-------------------------------------------------------------------------------
@@ -473,109 +480,112 @@ sub escape_HTML {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_file_report {
-    my ($db, $fin, $opt) = @_;
+  my ($db, $fin, $opt) = @_;
 
-    my $fout = "$opt->{outputdir}/$Filenames{$fin}.html";
-    open(my $in,  '<', $fin ) or warn("Can't read file '$fin' [$!]\n"), return;
-    open(my $out, '>', $fout) or warn("Can't open file '$fout' [$!]\n"), return;
+  my $fout = "$opt->{outputdir}/$Filenames{$fin}.html";
+  open(my $in,  '<', $fin)  or warn("Can't read file '$fin' [$!]\n"),  return;
+  open(my $out, '>', $fout) or warn("Can't open file '$fout' [$!]\n"), return;
 
-    my ($show, $th) = get_showing_headers($db, $opt);
-    my $file_data   = $db->cover->file($fin);
+  my ($show, $th) = get_showing_headers($db, $opt);
+  my $file_data = $db->cover->file($fin);
 
-    print_html_header($out, "File Coverage: $fin");
-    print_summary($out, 'File Coverage', $fin,
-                  $db->{summary}{$fin}{total}{percentage},
-                  $db->{summary}{$fin}{total}{error},
-                  $db);
-    print_th($out, ['line', @$th, 'code']);
+  print_html_header($out, "File Coverage: $fin");
+  print_summary(
+    $out, 'File Coverage',
+    $fin,
+    $db->{summary}{$fin}{total}{percentage},
+    $db->{summary}{$fin}{total}{error}, $db
+  );
+  print_th($out, [ 'line', @$th, 'code' ]);
 
-    my $autoloader = 0;
-    while (my $sloc = <$in>) {
-        $autoloader ||= $sloc =~ /use\s+AutoLoader/;
+  my $autoloader = 0;
+  while (my $sloc = <$in>) {
+    $autoloader ||= $sloc =~ /use\s+AutoLoader/;
 
-        # Process stuff after __END__ or __DATA__ tokens
-        if (!$autoloader && $sloc =~ /^__(END|DATA)__/) {
-            if ($opt->{option}{data}) {
-                # print all data in one cell
-                my ($i, $n) = ($., scalar @$th);
-                while (my $line = <$in>) { $sloc .= $line }
-                $sloc = escape_HTML($sloc);
-                print $out qq'<tr><td class="h">$i - $.</td><td colspan="$n"></td><td class="s"><pre>$sloc</pre></td></tr>\n';
-                # &nbsp; is IE empty cell hack
-                #print $out qq'<tr><td class="h">$i - $.</td><td colspan="$n">&nbsp;</td><td class="s"><pre>$sloc</pre></td></tr>\n';
-            }
-            last;
-        }
-
-        # Process embedded POD
-        if ($sloc =~ /^=(pod|head|over|item|begin|for)/) {
-            if ($opt->{option}{pod}) {
-                # print all POD in one cell
-                my ($i, $n) = ($., scalar @$th);
-                while (my $line = <$in>) {
-                    $sloc .= $line;
-                    last if $line =~ /^=cut/;
-                }
-                $sloc = escape_HTML($sloc);
-                print $out qq'<tr><td class="h">$i - $.</td><td colspan="$n"></td><td class="s"><pre>$sloc</pre></td></tr>\n';
-                # &nbsp; is IE empty cell hack
-                #print $out qq'<tr><td class="h">$i - $.</td><td colspan="$n">&nbsp;</td><td class="s"><pre>$sloc</pre></td></tr>\n';
-            } else {
-                1 while (<$in> !~ /^=cut/);
-            }
-            next;
-        }
-
-        if ($sloc =~ /^\s*$/) {
-            if ($opt->{option}{pod}) {
-                my $n = @$th + 1;
-                print $out qq'<tr><td class="h">$.</td><td colspan="$n"></td></tr>';
-                # &nbsp; is IE empty cell hack
-                #print $out qq'<tr><td class="h">$.</td><td colspan="$n">&nbsp;</td></tr>';
-            }
-            next;
-        }
-
+    # Process stuff after __END__ or __DATA__ tokens
+    if (!$autoloader && $sloc =~ /^__(END|DATA)__/) {
+      if ($opt->{option}{data}) {
+        # print all data in one cell
+        my ($i, $n) = ($., scalar @$th);
+        while (my $line = <$in>) { $sloc .= $line }
         $sloc = escape_HTML($sloc);
-
-        print $out qq'<tr><td class="h">$.</td>';
-
-        my $metric = get_coverage_for_line($opt, $file_data, $.);
-
-        foreach my $c (@$show) {
-            my @m = get_coverage_report($c, $metric);
-            print $out '<td>';
-            foreach my $m (@m) {
-
-                if ($opt->{option}{unified} &&
-                    ($c eq 'branch' || $c eq 'condition')) {
-                    print $out '<div>', $m->{string}, '</div>';
-                } else {
-                    my $link;
-                    if ($c =~ /branch|condition|subroutine/) {
-                        $link = get_link($fin, $c, $.);
-                    }
-
-                    no warnings "uninitialized";  # TODO - hack, get rid of this
-                    my $text = '<div';
-                    $text .= $m->{class} ? qq' class="$m->{class}"' : '';
-                    $text .= $m->{title} ? qq' title="$m->{title}"' : '';
-                    $text .= '>';
-                    $text .= $link       ? qq'<a href="$link">'     : '';
-                    $text .= $m->{class} ? $m->{percentage}         : $m->{string};
-                    $text .= $link       ? '</a></div>'             : '</div>';
-                    print $out $text;
-                }
-            }
-            print $out '</td>';
-            #print $out '&nbsp;' unless @m; # IE empty cell hack
-        }
-        print $out qq'<td class="s">$sloc</td></tr>\n';
+        print $out
+          qq'<tr><td class="h">$i - $.</td><td colspan="$n"></td><td class="s"><pre>$sloc</pre></td></tr>\n';
+        # &nbsp; is IE empty cell hack
+        #print $out qq'<tr><td class="h">$i - $.</td><td colspan="$n">&nbsp;</td><td class="s"><pre>$sloc</pre></td></tr>\n';
+      }
+      last;
     }
-    print $out "</table>\n</body>\n</html>\n";
 
-    close($in)  or warn "Can't close file '$fin' [$!]";
-    close($out) or warn "Can't close file '$fout' [$!]";
+    # Process embedded POD
+    if ($sloc =~ /^=(pod|head|over|item|begin|for)/) {
+      if ($opt->{option}{pod}) {
+        # print all POD in one cell
+        my ($i, $n) = ($., scalar @$th);
+        while (my $line = <$in>) {
+          $sloc .= $line;
+          last if $line =~ /^=cut/;
+        }
+        $sloc = escape_HTML($sloc);
+        print $out
+          qq'<tr><td class="h">$i - $.</td><td colspan="$n"></td><td class="s"><pre>$sloc</pre></td></tr>\n';
+        # &nbsp; is IE empty cell hack
+        #print $out qq'<tr><td class="h">$i - $.</td><td colspan="$n">&nbsp;</td><td class="s"><pre>$sloc</pre></td></tr>\n';
+      } else {
+        1 while (<$in> !~ /^=cut/);
+      }
+      next;
+    }
+
+    if ($sloc =~ /^\s*$/) {
+      if ($opt->{option}{pod}) {
+        my $n = @$th + 1;
+        print $out qq'<tr><td class="h">$.</td><td colspan="$n"></td></tr>';
+        # &nbsp; is IE empty cell hack
+        #print $out qq'<tr><td class="h">$.</td><td colspan="$n">&nbsp;</td></tr>';
+      }
+      next;
+    }
+
+    $sloc = escape_HTML($sloc);
+
+    print $out qq'<tr><td class="h">$.</td>';
+
+    my $metric = get_coverage_for_line($opt, $file_data, $.);
+
+    foreach my $c (@$show) {
+      my @m = get_coverage_report($c, $metric);
+      print $out '<td>';
+      foreach my $m (@m) {
+
+        if ($opt->{option}{unified} && ($c eq 'branch' || $c eq 'condition')) {
+          print $out '<div>', $m->{string}, '</div>';
+        } else {
+          my $link;
+          if ($c =~ /branch|condition|subroutine/) {
+            $link = get_link($fin, $c, $.);
+          }
+
+          no warnings "uninitialized";  # TODO - hack, get rid of this
+          my $text = '<div';
+          $text .= $m->{class} ? qq' class="$m->{class}"' : '';
+          $text .= $m->{title} ? qq' title="$m->{title}"' : '';
+          $text .= '>';
+          $text .= $link       ? qq'<a href="$link">' : '';
+          $text .= $m->{class} ? $m->{percentage}     : $m->{string};
+          $text .= $link       ? '</a></div>'         : '</div>';
+          print $out $text;
+        }
+      }
+      print $out '</td>';
+      #print $out '&nbsp;' unless @m; # IE empty cell hack
+    }
+    print $out qq'<td class="s">$sloc</td></tr>\n';
+  }
+  print $out "</table>\n</body>\n</html>\n";
+
+  close($in)  or warn "Can't close file '$fin' [$!]";
+  close($out) or warn "Can't close file '$fout' [$!]";
 }
 
 #-------------------------------------------------------------------------------
@@ -584,42 +594,47 @@ sub print_file_report {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_branch_report {
-    my ($db, $file, $opt) = @_;
-    my $data = $db->cover->file($file)->branch;
-    return unless $data;
+  my ($db, $file, $opt) = @_;
+  my $data = $db->cover->file($file)->branch;
+  return unless $data;
 
-    my $fout = "$opt->{outputdir}/$Filenames{$file}--branch.html";
-    open(my $out, '>', $fout) or warn("Can't open file '$fout' [$!]\n"), return;
+  my $fout = "$opt->{outputdir}/$Filenames{$file}--branch.html";
+  open(my $out, '>', $fout) or warn("Can't open file '$fout' [$!]\n"), return;
 
-    print_html_header($out, "Branch Coverage: $file");
-    print_summary($out, 'Branch Coverage', $file,
-                  $db->{summary}{$file}{branch}{percentage},
-                  $db->{summary}{$file}{branch}{error},
-                  $db);
-    print_th($out, ['line', '%', 'coverage', 'branch'], {coverage => 2});
+  print_html_header($out, "Branch Coverage: $file");
+  print_summary(
+    $out, 'Branch Coverage',
+    $file,
+    $db->{summary}{$file}{branch}{percentage},
+    $db->{summary}{$file}{branch}{error}, $db
+  );
+  print_th($out, [ 'line', '%', 'coverage', 'branch' ], { coverage => 2 });
 
-    my $fmt = qq'<tr><td class="h">%s</td>'
-            . qq'<td class="%s">%.0f</td>'
-            . qq'<td class="%s">T</td>'
-            . qq'<td class="%s">F</td>'
-            . qq'<td class="s">%s</td></tr>\n';
+  my $fmt
+    = qq'<tr><td class="h">%s</td>'
+    . qq'<td class="%s">%.0f</td>'
+    . qq'<td class="%s">T</td>'
+    . qq'<td class="%s">F</td>'
+    . qq'<td class="s">%s</td></tr>\n';
 
-    foreach my $line (sort { $a <=> $b } $data->items) {
-        my $n = 0;
-        foreach my $x (@{$data->location($line)}) {
-            my @tf = $x->values;
-            printf $out ($fmt,
-                $n++ > 0 ? '' : qq'<a id="L$line">$line</a>',
-                pclass($x->percentage, $x->error), $x->percentage,
-                bclass($tf[0]), bclass($tf[1]),
-                escape_HTML($x->text),
-            );
-        }
+  foreach my $line (sort { $a <=> $b } $data->items) {
+    my $n = 0;
+    foreach my $x (@{ $data->location($line) }) {
+      my @tf = $x->values;
+      printf $out (
+        $fmt,
+        $n++ > 0 ? '' : qq'<a id="L$line">$line</a>',
+        pclass($x->percentage, $x->error),
+        $x->percentage,
+        bclass($tf[0]),
+        bclass($tf[1]),
+        escape_HTML($x->text),
+      );
     }
-    print $out "</table>\n</body>\n</html>\n";
-    close($out) or warn "Can't close file '$fout' [$!]";
+  }
+  print $out "</table>\n</body>\n</html>\n";
+  close($out) or warn "Can't close file '$fout' [$!]";
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_condition_report()
@@ -627,41 +642,45 @@ sub print_branch_report {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_condition_report {
-    my ($db, $file, $opt) = @_;
-    my $data = $db->cover->file($file)->condition;
-    return unless $data;
+  my ($db, $file, $opt) = @_;
+  my $data = $db->cover->file($file)->condition;
+  return unless $data;
 
-    my $fout = "$opt->{outputdir}/$Filenames{$file}--condition.html";
-    open(my $out, '>', $fout) or warn("Can't open file '$fout' [$!]\n"), return;
+  my $fout = "$opt->{outputdir}/$Filenames{$file}--condition.html";
+  open(my $out, '>', $fout) or warn("Can't open file '$fout' [$!]\n"), return;
 
-    print_html_header($out, "Condition Coverage: $file");
-    print_summary($out, 'Condition Coverage', $file,
-                  $db->{summary}{$file}{condition}{percentage},
-                  $db->{summary}{$file}{condition}{error},
-                  $db);
-    print_th($out, ['line', '%', 'coverage', 'condition']);
+  print_html_header($out, "Condition Coverage: $file");
+  print_summary(
+    $out, 'Condition Coverage',
+    $file,
+    $db->{summary}{$file}{condition}{percentage},
+    $db->{summary}{$file}{condition}{error}, $db
+  );
+  print_th($out, [ 'line', '%', 'coverage', 'condition' ]);
 
-    my $fmt = qq'<tr><td class="h">%s</td>'
-            . qq'<td class="%s">%.0f</td>'
-            . qq'<td>%s</td>'
-            . qq'<td class="s">%s</td></tr>\n';
+  my $fmt
+    = qq'<tr><td class="h">%s</td>'
+    . qq'<td class="%s">%.0f</td>'
+    . qq'<td>%s</td>'
+    . qq'<td class="s">%s</td></tr>\n';
 
-    foreach my $line (sort { $a <=> $b } $data->items) {
-        my @tt = $data->truth_table($line);
-        my $n = 0;
-        foreach my $x (@tt) {
-            printf $out ($fmt,
-                $n++ > 0 ? '' : qq'<a id="L$line">$line</a>',
-                pclass($x->[0]->percentage, $x->[0]->error), $x->[0]->percentage,
-                '<div>' . $x->[0]->html(bclass(0,1)) . '</div>',
-                escape_HTML($x->[1]),
-            );
-        }
+  foreach my $line (sort { $a <=> $b } $data->items) {
+    my @tt = $data->truth_table($line);
+    my $n  = 0;
+    foreach my $x (@tt) {
+      printf $out (
+        $fmt,
+        $n++ > 0 ? '' : qq'<a id="L$line">$line</a>',
+        pclass($x->[0]->percentage, $x->[0]->error),
+        $x->[0]->percentage,
+        '<div>' . $x->[0]->html(bclass(0, 1)) . '</div>',
+        escape_HTML($x->[1]),
+      );
     }
-    print $out "</table>\n</body>\n</html>\n";
-    close($out) or warn "Can't close file '$fout' [$!]";
+  }
+  print $out "</table>\n</body>\n</html>\n";
+  close($out) or warn "Can't close file '$fout' [$!]";
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_sub_report
@@ -669,60 +688,61 @@ sub print_condition_report {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_sub_report {
-    my ($db, $file, $opt) = @_;
-    my $data = $db->cover->file($file)->subroutine;
-    return unless $data;
+  my ($db, $file, $opt) = @_;
+  my $data = $db->cover->file($file)->subroutine;
+  return unless $data;
 
-    my $fout = "$opt->{outputdir}/$Filenames{$file}--subroutine.html";
-    open(my $out, '>', $fout) or warn("Can't open file '$fout' [$!]\n"), return;
+  my $fout = "$opt->{outputdir}/$Filenames{$file}--subroutine.html";
+  open(my $out, '>', $fout) or warn("Can't open file '$fout' [$!]\n"), return;
 
-    print_html_header($out, "Subroutine Coverage: $file");
-    print_summary($out, 'Subroutine Coverage', $file,
-                  $db->{summary}{$file}{subroutine}{percentage},
-                  $db->{summary}{$file}{subroutine}{error},
-                  $db);
-    print_th($out, ['line', 'subroutine']);
+  print_html_header($out, "Subroutine Coverage: $file");
+  print_summary(
+    $out, 'Subroutine Coverage',
+    $file,
+    $db->{summary}{$file}{subroutine}{percentage},
+    $db->{summary}{$file}{subroutine}{error}, $db
+  );
+  print_th($out, [ 'line', 'subroutine' ]);
 
-    my $fmt = qq'<tr><td class="h">%s</td>'
-            . qq'<td class="%s"><div class="s">%s</div></td></tr>\n';
+  my $fmt = qq'<tr><td class="h">%s</td>'
+    . qq'<td class="%s"><div class="s">%s</div></td></tr>\n';
 
-    foreach my $line (sort { $a <=> $b } $data->items) {
-        my $l = $data->location($line);
-        my $n = 0;
-        foreach my $x (@$l) {
-            printf $out ($fmt,
-                $n++ > 0 ? '' : qq'<a id="L$line">$line</a>',
-                pclass($x->percentage, $x->error),
-                escape_HTML($x->name),
-            );
-        }
+  foreach my $line (sort { $a <=> $b } $data->items) {
+    my $l = $data->location($line);
+    my $n = 0;
+    foreach my $x (@$l) {
+      printf $out (
+        $fmt,
+        $n++ > 0 ? '' : qq'<a id="L$line">$line</a>',
+        pclass($x->percentage, $x->error),
+        escape_HTML($x->name),
+      );
     }
-    print $out "</table>\n</body>\n</html>\n";
-    close($out) or warn "Can't close file '$fout' [$!]";
+  }
+  print $out "</table>\n</body>\n</html>\n";
+  close($out) or warn "Can't close file '$fout' [$!]";
 }
-
 
 sub get_options {
-    my ($self, $opt) = @_;
-    $opt->{option}{pod}          = 1;
-    $opt->{option}{outputfile}   = "coverage.html";
-    $opt->{option}{summarytitle} = "Coverage Summary";
-    $threshold->{$_} = $opt->{"report_$_"} for
-        grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
-    die "Invalid command line options" unless
-        GetOptions($opt->{option},
-                   qw(
-                       data!
-                       outputfile=s
-                       pod!
-                       summarytitle=s
-                       unified!
-                       report_c0=s
-                       report_c1=s
-                       report_c2=s
-                     ));
+  my ($self, $opt) = @_;
+  $opt->{option}{pod}          = 1;
+  $opt->{option}{outputfile}   = "coverage.html";
+  $opt->{option}{summarytitle} = "Coverage Summary";
+  $threshold->{$_}             = $opt->{"report_$_"}
+    for grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
+  die "Invalid command line options" unless GetOptions(
+    $opt->{option}, qw(
+      data!
+      outputfile=s
+      pod!
+      summarytitle=s
+      unified!
+      report_c0=s
+      report_c1=s
+      report_c2=s
+    )
+  );
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : report()
@@ -730,23 +750,23 @@ sub get_options {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub report {
-    my (undef, $db, $opt) = @_;
+  my (undef, $db, $opt) = @_;
 
-    my @files  = @{$opt->{file}};
-    %Filenames = map {$_ => do {(my $f = $_) =~ s/\W/-/g; $f}} @files;
+  my @files = @{ $opt->{file} };
+  %Filenames = map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } @files;
 
-    print_stylesheet($db, $opt);
-    for my $file (@files) {
-        print_file_report($db, $file, $opt);
-        unless ($opt->{option}{unified}) {
-            print_branch_report    ($db, $file, $opt) if $opt->{show}{branch};
-            print_condition_report ($db, $file, $opt) if $opt->{show}{condition};
-            print_sub_report       ($db, $file, $opt) if $opt->{show}{subroutine};
-        }
+  print_stylesheet($db, $opt);
+  for my $file (@files) {
+    print_file_report($db, $file, $opt);
+    unless ($opt->{option}{unified}) {
+      print_branch_report($db, $file, $opt)    if $opt->{show}{branch};
+      print_condition_report($db, $file, $opt) if $opt->{show}{condition};
+      print_sub_report($db, $file, $opt)       if $opt->{show}{subroutine};
     }
-    print_summary_report($db, $opt);
+  }
+  print_summary_report($db, $opt);
 
-    print "done.\n" unless $opt->{silent};
+  print "done.\n" unless $opt->{silent};
 }
 
 =pod
@@ -811,7 +831,7 @@ Devel::Cover
 
 =head1 LICENCE
 
-Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free. It is licensed under the same terms as Perl itself.
 

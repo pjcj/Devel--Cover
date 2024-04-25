@@ -1,4 +1,4 @@
-# Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -19,17 +19,17 @@ use base "Exporter";
 our @EXPORT_OK = qw( remove_contained_paths );
 
 sub remove_contained_paths {
-    my ($container, @paths) = @_;
+  my ($container, @paths) = @_;
 
-    # File::Spec's case tolerancy detection on *nix/Mac systems does not
-    # take actual file system properties into account, but is better than
-    # trying to normalise paths with per-os logic. On Windows it is
-    # properly determined per drive.
-    my ($drive) = File::Spec->splitpath($container);
-    my $ignore_case = "(?i)";
-    $ignore_case = "" if !File::Spec->case_tolerant($drive);
+  # File::Spec's case tolerancy detection on *nix/Mac systems does not
+  # take actual file system properties into account, but is better than
+  # trying to normalise paths with per-os logic. On Windows it is
+  # properly determined per drive.
+  my ($drive) = File::Spec->splitpath($container);
+  my $ignore_case = "(?i)";
+  $ignore_case = "" if !File::Spec->case_tolerant($drive);
 
-    my $regex = qr[
+  my $regex = qr[
       $ignore_case      # ignore case on tolerant filesystems
       ^                 # string to match starts with:
       \Q$container\E    # path, meta-quoted for safety
@@ -38,12 +38,12 @@ sub remove_contained_paths {
                         # similar to the container
     ]x;
 
-    @paths = grep {
-        my $path = abs_path $_;    # normalise backslashes
-        $path !~ $regex;           # check if path is inside the container
-    } @paths;
+  @paths = grep {
+    my $path = abs_path $_;  # normalise backslashes
+    $path !~ $regex;         # check if path is inside the container
+  } @paths;
 
-    return @paths;
+  return @paths;
 }
 
 1
@@ -76,7 +76,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

@@ -1,4 +1,4 @@
-# Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -15,249 +15,252 @@ use warnings;
 use Devel::Cover::DB;
 
 sub print_runs {
-    my ($db, $options) = @_;
-    for my $r (sort {$a->{start} <=> $b->{start}} $db->runs) {
-        print "Run:          ", $r->run,  "\n";
-        print "Perl version: ", $r->perl, "\n";
-        print "OS:           ", $r->OS,   "\n";
-        print "Start:        ", scalar gmtime $r->start , "\n";
-        print "Finish:       ", scalar gmtime $r->finish, "\n";
-        print "\n";
-        # use Devel::Cover::Dumper; print Dumper $r;
-    }
+  my ($db, $options) = @_;
+  for my $r (sort { $a->{start} <=> $b->{start} } $db->runs) {
+    print "Run:          ", $r->run,                  "\n";
+    print "Perl version: ", $r->perl,                 "\n";
+    print "OS:           ", $r->OS,                   "\n";
+    print "Start:        ", scalar gmtime $r->start,  "\n";
+    print "Finish:       ", scalar gmtime $r->finish, "\n";
+    print "\n";
+    # use Devel::Cover::Dumper; print Dumper $r;
+  }
 }
 
 sub print_statement {
-    my ($db, $file, $options) = @_;
+  my ($db, $file, $options) = @_;
 
-    my $cover = $db->cover;
+  my $cover = $db->cover;
 
-    print "$file\n\n";
-    my $f = $cover->file($file);
+  print "$file\n\n";
+  my $f = $cover->file($file);
 
-    my $fmt = "%-5s %3s ";
-    my @args = ("line", "err");
-    for my $ann (@{$options->{annotations}}) {
-        for my $a (0 .. $ann->count - 1) {
-            $fmt .= "%-" . $ann->width($a) . "s ";
-            push @args, $ann->header($a);
-        }
+  my $fmt  = "%-5s %3s ";
+  my @args = ("line", "err");
+  for my $ann (@{ $options->{annotations} }) {
+    for my $a (0 .. $ann->count - 1) {
+      $fmt .= "%-" . $ann->width($a) . "s ";
+      push @args, $ann->header($a);
     }
-    my %cr; @cr{$db->criteria} = $db->criteria_short;
+  }
+  my %cr;
+  @cr{ $db->criteria } = $db->criteria_short;
+  for my $c ($db->criteria) {
+    if ($options->{show}{$c}) {
+      $fmt .= "%6s ";
+      push @args, $cr{$c};
+    }
+  }
+
+  $fmt .= "  %s\n";
+  push @args, "code";
+
+  printf $fmt, @args;
+
+  my $autoloader = 0;
+
+  open F, $file or warn("Unable to open $file: $!\n"), return;
+
+  LINE: while (defined(my $l = <F>)) {
+    chomp $l;
+    my $n = $.;
+    $autoloader ||= $l =~ /use\s+AutoLoader/;
+
+    my %criteria;
     for my $c ($db->criteria) {
-        if ($options->{show}{$c}) {
-            $fmt .= "%6s ";
-            push @args, $cr{$c};
-        }
+      next unless $options->{show}{$c};
+      my $criterion = $f->$c();
+      if ($criterion) {
+        my $l = $criterion->location($n);
+        $criteria{$c} = $l ? [@$l] : $l;
+      }
     }
 
-    $fmt .= "  %s\n";
-    push @args, "code";
+    # use Devel::Cover::Dumper; print STDERR Dumper(\%criteria);
+    my $more = 1;
+    while ($more) {
+      my @args  = ($n, "");
+      my $error = 0;
 
-    printf $fmt, @args;
-
-    my $autoloader = 0;
-
-    open F, $file or warn("Unable to open $file: $!\n"), return;
-
-    LINE: while (defined(my $l = <F>)) {
-        chomp $l;
-        my $n = $.;
-        $autoloader ||= $l =~ /use\s+AutoLoader/;
-
-        my %criteria;
-        for my $c ($db->criteria) {
-            next unless $options->{show}{$c};
-            my $criterion = $f->$c();
-            if ($criterion) {
-                my $l = $criterion->location($n);
-                $criteria{$c} = $l ? [@$l] : $l;
-            }
+      for my $ann (@{ $options->{annotations} }) {
+        for my $a (0 .. $ann->count - 1) {
+          push @args, substr $ann->text($file, $n, $a), 0, $ann->width($a);
+          $error ||= $ann->error($file, $n, $a);
         }
+      }
 
-        # use Devel::Cover::Dumper; print STDERR Dumper(\%criteria);
-        my $more = 1;
-        while ($more) {
-            my @args  = ($n, "");
-            my $error = 0;
+      $more = 0;
+      for my $c ($db->criteria) {
+        next unless $options->{show}{$c};
+        my $o = shift @{ $criteria{$c} };
+        $more ||= @{ $criteria{$c} };
+        my $value
+          = $o
+          ? ($c =~ /statement|sub|pod|time/)
+            ? $o->covered
+            : $o->percentage
+          : "";
+        $value = "-" . $value if $o && $o->uncoverable;
+        $value = "*" . $value if $o && $o->error;
+        push @args, $value;
+        $error ||= $o->error if $o;
+      }
 
-            for my $ann (@{$options->{annotations}}) {
-                for my $a (0 .. $ann->count - 1) {
-                    push @args,
-                         substr $ann->text($file, $n, $a), 0, $ann->width($a);
-                    $error ||= $ann->error($file, $n, $a);
-                }
-            }
+      $args[1] = "***" if $error;
+      push @args, $l;
 
-            $more = 0;
-            for my $c ($db->criteria) {
-                next unless $options->{show}{$c};
-                my $o = shift @{$criteria{$c}};
-                $more ||= @{$criteria{$c}};
-                my $value = $o
-                    ? ($c =~ /statement|sub|pod|time/)
-                        ? $o->covered
-                        : $o->percentage
-                    : "";
-                $value = "-" . $value if $o && $o->uncoverable;
-                $value = "*" . $value if $o && $o->error;
-                push @args, $value;
-                $error ||= $o->error if $o;
-            }
+      # print join(", ", map { "[$_]" } @args), "\n";
+      printf $fmt, @args;
 
-            $args[1] = "***" if $error;
-            push @args, $l;
-
-            # print join(", ", map { "[$_]" } @args), "\n";
-            printf $fmt, @args;
-
-            last LINE if !$autoloader && $l =~ /^__(END|DATA)__/;
-            $n = $l = "";
-        }
+      last LINE if !$autoloader && $l =~ /^__(END|DATA)__/;
+      $n = $l = "";
     }
+  }
 
-    close F or die "Unable to close $file: $!";
-    print "\n\n";
+  close F or die "Unable to close $file: $!";
+  print "\n\n";
 }
 
 sub print_branches {
-    my ($db, $file, $options) = @_;
+  my ($db, $file, $options) = @_;
 
-    my $branches = $db->cover->file($file)->branch;
+  my $branches = $db->cover->file($file)->branch;
 
-    return unless $branches;
+  return unless $branches;
 
-    print "Branches\n";
-    print "--------\n\n";
+  print "Branches\n";
+  print "--------\n\n";
 
-    my $tpl = "%-5s %3s %6s %6s %6s   %s\n";
-    printf $tpl, "line", "err", "%", "true", "false", "branch";
-    printf $tpl, "-----", "---", ("------") x 3, "------";
+  my $tpl = "%-5s %3s %6s %6s %6s   %s\n";
+  printf $tpl, "line", "err", "%", "true", "false", "branch";
+  printf $tpl, "-----", "---", ("------") x 3, "------";
 
-    for my $location (sort { $a <=> $b } $branches->items) {
-        my $n = 0;
-        for my $b (@{$branches->location($location)}) {
-            printf $tpl,
-                   $n ? "" : $location, $b->error ? "***" : "",
-                   ($b->uncoverable ? "-" : "") . $b->percentage,
-                   map (($b->uncoverable($_) ? "-" : "") .
-                        ($b->covered($_) || 0), 0 .. $b->total - 1),
-                   $b->text;
-            $n++;
-        }
+  for my $location (sort { $a <=> $b } $branches->items) {
+    my $n = 0;
+    for my $b (@{ $branches->location($location) }) {
+      printf $tpl, $n ? "" : $location, $b->error ? "***" : "",
+        ($b->uncoverable ? "-" : "") . $b->percentage,
+        map (($b->uncoverable($_) ? "-" : "") . ($b->covered($_) || 0),
+          0 .. $b->total - 1),
+        $b->text;
+      $n++;
     }
+  }
 
-    print "\n\n";
+  print "\n\n";
 }
 
 sub print_conditions {
-    my ($db, $file, $options) = @_;
+  my ($db, $file, $options) = @_;
 
-    my $conditions = $db->cover->file($file)->condition;
+  my $conditions = $db->cover->file($file)->condition;
 
-    return unless $conditions;
+  return unless $conditions;
 
-    my $template = sub { "%-5s %3s %6s " . ( "%6s " x shift ) . "  %s\n" };
+  my $template = sub { "%-5s %3s %6s " . ("%6s " x shift) . "  %s\n" };
 
-    my %r;
-    for my $location (sort { $a <=> $b } $conditions->items) {
-        my %seen;
-        for my $c (@{$conditions->location($location)}) {
-            push @{$r{$c->type}}, [ $c, $seen{$c->type}++ ? "" : $location ];
-        }
-    }
-
-    print "Conditions\n";
-    print "----------\n\n";
-
+  my %r;
+  for my $location (sort { $a <=> $b } $conditions->items) {
     my %seen;
-    for my $type (sort keys %r) {
-        my $tpl;
-        for (@{$r{$type}}) {
-            my ($c, $location) = @$_;
-            unless ($seen{$type}++) {
-                my $headers = $c->headers;
-                my $nh = @$headers;
-                $tpl = $template->($nh);
-                (my $t = $type) =~ s/_/ /g;
-                print "$t conditions\n\n";
-                printf $tpl, "line",  "err", "%",         @$headers, "expr";
-                printf $tpl, "-----", "---", ("------") x ($nh + 1), "----";
-            }
-            printf $tpl, $location, $c->error ? "***" : "",
-                   ($c->uncoverable ? "-" : "") . $c->percentage,
-                   map (($c->uncoverable($_) ? "-" : "") .
-                        ($c->covered($_) || 0), 0 .. $c->total - 1),
-                   $c->text;
-        }
-        print "\n";
+    for my $c (@{ $conditions->location($location) }) {
+      push @{ $r{ $c->type } }, [ $c, $seen{ $c->type }++ ? "" : $location ];
     }
+  }
 
+  print "Conditions\n";
+  print "----------\n\n";
+
+  my %seen;
+  for my $type (sort keys %r) {
+    my $tpl;
+    for (@{ $r{$type} }) {
+      my ($c, $location) = @$_;
+      unless ($seen{$type}++) {
+        my $headers = $c->headers;
+        my $nh      = @$headers;
+        $tpl = $template->($nh);
+        (my $t = $type) =~ s/_/ /g;
+        print "$t conditions\n\n";
+        printf $tpl, "line", "err", "%", @$headers, "expr";
+        printf $tpl, "-----", "---", ("------") x ($nh + 1), "----";
+      }
+      printf $tpl, $location, $c->error ? "***" : "",
+        ($c->uncoverable ? "-" : "") . $c->percentage,
+        map (($c->uncoverable($_) ? "-" : "") . ($c->covered($_) || 0),
+          0 .. $c->total - 1),
+        $c->text;
+    }
     print "\n";
+  }
+
+  print "\n";
 }
 
 sub print_subroutines {
-    my ($db, $file, $options) = @_;
 
-    my $dfil = $db->cover->file($file);
-    my $subs = $dfil->subroutine or return;
-    my $pods = $options->{show}{pod} && $dfil->pod;
-    my $maxh = 8;
-    my $maxc = 5;
-    my $maxp = 3;
-    my $maxs = 10;
-    my %subs;
+  my ($db, $file, $options) = @_;
 
-    for my $location ($subs->items) {
-        my $l = $subs->location($location);
-        my $d = $pods && $pods->location($location);
-        for my $sub (@$l) {
-            my $h = "$file:$location";
-            my $c = ($sub->uncoverable ? "-" : "") . $sub->covered;
-            my $e = $pods && shift @$d;
-            my $p = $e ? ($e->uncoverable ? "-" : "") . $e->covered : "";
-            my $s = $sub->name;
-            $maxh = length $h if       length $h > $maxh;
-            $maxc = length $c if       length $c > $maxc;
-            $maxp = length $p if $p && length $p > $maxp;
-            $maxs = length $s if       length $s > $maxs;
-            push @{$subs{$sub->covered ? "covered" : "uncovered"}{$s}},
-                 [$c, $pods ? $p : (), $h];
-        }
+  my $dfil = $db->cover->file($file);
+  my $subs = $dfil->subroutine or return;
+  my $pods = $options->{show}{pod} && $dfil->pod;
+  my $maxh = 8;
+  my $maxc = 5;
+  my $maxp = 3;
+  my $maxs = 10;
+  my %subs;
+
+  for my $location ($subs->items) {
+    my $l = $subs->location($location);
+    my $d = $pods && $pods->location($location);
+    for my $sub (@$l) {
+
+      my $h = "$file:$location";
+      my $c = ($sub->uncoverable ? "-" : "") . $sub->covered;
+      my $e = $pods && shift @$d;
+      my $p = $e ? ($e->uncoverable ? "-" : "") . $e->covered : "";
+      my $s = $sub->name;
+
+      $maxh = length $h if length $h > $maxh;
+      $maxc = length $c if length $c > $maxc;
+      $maxp = length $p if $p && length $p > $maxp;
+      $maxs = length $s if length $s > $maxs;
+      push @{ $subs{ $sub->covered ? "covered" : "uncovered" }{$s} },
+        [ $c, $pods ? $p : (), $h ];
     }
+  }
 
-    my $template = "%-${maxs}s %${maxc}s ";
-    $template .= "%${maxp}s " if $pods;
-    $template .= "%-${maxh}s\n";
+  my $template = "%-${maxs}s %${maxc}s ";
+  $template .= "%${maxp}s " if $pods;
+  $template .= "%-${maxh}s\n";
 
-    for my $type (sort keys %subs) {
-        print ucfirst $type, " Subroutines\n";
-        print "-" x (12 + length $type), "\n\n";
-        printf $template, "Subroutine", "Count", $pods ? "Pod" : (), "Location";
-        printf $template, "-" x $maxs, "-" x $maxc, $pods ? "-" x $maxp : (),
-                          "-" x $maxh;
+  for my $type (sort keys %subs) {
+    print ucfirst $type,             " Subroutines\n";
+    print "-" x (12 + length $type), "\n\n";
+    printf $template, "Subroutine", "Count", $pods ? "Pod" : (), "Location";
+    printf $template, "-" x $maxs, "-" x $maxc, $pods ? "-" x $maxp : (),
+      "-" x $maxh;
 
-        for my $s (sort keys %{$subs{$type}}) {
-            printf $template, $s, @$_
-                for sort {$a->[-1] cmp $b->[-1]} @{$subs{$type}{$s}};
-        }
-        print "\n";
+    for my $s (sort keys %{ $subs{$type} }) {
+      printf $template, $s, @$_
+        for sort { $a->[-1] cmp $b->[-1] } @{ $subs{$type}{$s} };
     }
-
     print "\n";
+  }
+
+  print "\n";
 }
 
 sub report {
-    my ($pkg, $db, $options) = @_;
+  my ($pkg, $db, $options) = @_;
 
-    print_runs($db, $options);
-    for my $file (@{$options->{file}}) {
-        print_statement  ($db, $file, $options) if $options->{show}{statement};
-        print_branches   ($db, $file, $options) if $options->{show}{branch};
-        print_conditions ($db, $file, $options) if $options->{show}{condition};
-        print_subroutines($db, $file, $options)
-            if $options->{show}{subroutine} || $options->{show}{pod};
-    }
+  print_runs($db, $options);
+  for my $file (@{ $options->{file} }) {
+    print_statement($db, $file, $options)  if $options->{show}{statement};
+    print_branches($db, $file, $options)   if $options->{show}{branch};
+    print_conditions($db, $file, $options) if $options->{show}{condition};
+    print_subroutines($db, $file, $options)
+      if $options->{show}{subroutine} || $options->{show}{pod};
+  }
 }
 
 1
@@ -287,7 +290,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

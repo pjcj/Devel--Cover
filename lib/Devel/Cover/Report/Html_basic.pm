@@ -1,4 +1,4 @@
-# Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -11,8 +11,9 @@ use strict;
 use warnings;
 
 our $VERSION;
+
 BEGIN {
-# VERSION
+  # VERSION
 }
 
 use Devel::Cover::DB;
@@ -29,433 +30,423 @@ use Template 2.00;
 my ($Have_highlighter, $Have_PPI, $Have_perltidy);
 
 BEGIN {
-    eval "use PPI; use PPI::HTML;";
-    $Have_PPI = !$@;
-    eval "use Perl::Tidy";
-    $Have_perltidy = !$@;
-    $Have_highlighter = $Have_PPI || $Have_perltidy;
+  eval "use PPI; use PPI::HTML;";
+  $Have_PPI = !$@;
+  eval "use Perl::Tidy";
+  $Have_perltidy    = !$@;
+  $Have_highlighter = $Have_PPI || $Have_perltidy;
 }
 
 my $Template;
 my %R;
 
 sub oclass {
-    my ($o, $criterion) = @_;
-    $o ? class($o->percentage, $o->error, $criterion) : ""
+  my ($o, $criterion) = @_;
+  $o ? class($o->percentage, $o->error, $criterion) : ""
 }
 
 my $threshold = { c0 => 75, c1 => 90, c2 => 100 };
 
 sub class {
-    my ($pc, $err, $criterion) = @_;
-    return "" if $criterion eq "time";
-    no warnings "uninitialized";
-      !$err                  ? "c3"
+  my ($pc, $err, $criterion) = @_;
+  return "" if $criterion eq "time";
+  no warnings "uninitialized";
+     !$err                   ? "c3"
     : $pc < $threshold->{c0} ? "c0"
     : $pc < $threshold->{c1} ? "c1"
     : $pc < $threshold->{c2} ? "c2"
-    :                          "c3"
+    : "c3"
 }
 
 sub get_summary {
-    my ($file, $criterion) = @_;
+  my ($file, $criterion) = @_;
 
-    my %vals;
-    @vals{"pc", "class"} = ("n/a", "");
+  my %vals;
+  @vals{ "pc", "class" } = ("n/a", "");
 
-    my $part = $R{db}->summary($file);
-    return \%vals unless exists $part->{$criterion};
-    my $c = $part->{$criterion};
-    $vals{class} = class($c->{percentage}, $c->{error}, $criterion);
+  my $part = $R{db}->summary($file);
+  return \%vals unless exists $part->{$criterion};
+  my $c = $part->{$criterion};
+  $vals{class} = class($c->{percentage}, $c->{error}, $criterion);
 
-    return \%vals unless defined $c->{percentage};
-    $vals{pc} = do { my $x = sprintf "%5.2f", $c->{percentage}; chop $x; $x };
-    $vals{covered}  = $c->{covered} || 0;
-    $vals{total}    = $c->{total};
-    $vals{details}  = "$vals{covered} / $vals{total}";
+  return \%vals unless defined $c->{percentage};
+  $vals{pc} = do { my $x = sprintf "%5.2f", $c->{percentage}; chop $x; $x };
+  $vals{covered} = $c->{covered} || 0;
+  $vals{total}   = $c->{total};
+  $vals{details} = "$vals{covered} / $vals{total}";
 
-    my $cr = $criterion eq "pod" ? "subroutine" : $criterion;
-    return \%vals if $cr !~ /^branch|condition|subroutine$/ ||
-                     !exists $R{filenames}{$file};
-    $vals{link} = "$R{filenames}{$file}--$cr.html";
+  my $cr = $criterion eq "pod" ? "subroutine" : $criterion;
+  return \%vals
+    if $cr !~ /^branch|condition|subroutine$/ || !exists $R{filenames}{$file};
+  $vals{link} = "$R{filenames}{$file}--$cr.html";
 
-    \%vals
-};
+  \%vals
+}
 
 sub print_summary {
-    my $vars = {
-        R     => \%R,
-        files => [ "Total", grep $R{db}->summary($_), @{$R{options}{file}} ],
-    };
+  my $vars = {
+    R     => \%R,
+    files => [ "Total", grep $R{db}->summary($_), @{ $R{options}{file} } ],
+  };
 
-    my $html = "$R{options}{outputdir}/$R{options}{option}{outputfile}";
-    $Template->process("summary", $vars, $html) or die $Template->error();
+  my $html = "$R{options}{outputdir}/$R{options}{option}{outputfile}";
+  $Template->process("summary", $vars, $html) or die $Template->error();
 
-    $html
+  $html
 }
 
 sub _highlight_ppi {
-    my @all_lines = @_;
-    my $code      = join "", @all_lines;
-    my $document  = PPI::Document->new(\$code);
-    my $highlight = PPI::HTML->new(line_numbers => 1);
-    my $pretty    = $highlight->html($document);
 
-    my $split     = '<span class="line_number">';
+  my @all_lines = @_;
+  my $code      = join "", @all_lines;
+  my $document  = PPI::Document->new(\$code);
+  my $highlight = PPI::HTML->new(line_numbers => 1);
+  my $pretty    = $highlight->html($document);
 
-    no warnings "uninitialized";
+  my $split = '<span class="line_number">';
 
-    # turn significant whitespace into &nbsp;
-    @all_lines = map {
-        $_ =~ s{</span>( +)}{"</span>" . ("&nbsp;" x length($1))}e;
-        "$split$_";
-    } split /$split/, $pretty;
+  no warnings "uninitialized";
 
-    # remove the line number
-    @all_lines = map {
-        s{<span class="line_number">.*?</span>}{}; $_;
-    } @all_lines;
-    @all_lines = map {
-        s{<span class="line_number">}{}; $_;
-    } @all_lines;
+  # turn significant whitespace into &nbsp;
+  @all_lines = map {
+    $_ =~ s{</span>( +)}{"</span>" . ("&nbsp;" x length($1))}e;
+    "$split$_";
+  } split /$split/, $pretty;
 
-    # remove the BR
-    @all_lines = map {
-        s{<br>$}{}; $_;
-    } @all_lines;
-    @all_lines = map {
-        s{<br>\n</span>}{</span>}; $_;
-    } @all_lines;
+  # remove the line number
+  @all_lines = map {
+    s{<span class="line_number">.*?</span>}{};
+    $_;
+  } @all_lines;
+  @all_lines = map {
+    s{<span class="line_number">}{};
+    $_;
+  } @all_lines;
 
-    shift @all_lines if $all_lines[0] eq "";
+  # remove the BR
+  @all_lines = map {
+    s{<br>$}{};
+    $_;
+  } @all_lines;
+  @all_lines = map {
+    s{<br>\n</span>}{</span>};
+    $_;
+  } @all_lines;
 
-    @all_lines
+  shift @all_lines if $all_lines[0] eq "";
+
+  @all_lines
 }
 
 sub _highlight_perltidy {
-    my @all_lines = @_;
-    my @coloured;
+  my @all_lines = @_;
+  my @coloured;
 
-    my ($stderr, $errorfile);
-    Perl::Tidy::perltidy(
-        source      => \@all_lines,
-        destination => \@coloured,
-        argv        => "-html -pre -nopod2html",
-        stderr      => \$stderr,
-        errorfile   => \$errorfile,
-    );
+  my ($stderr, $errorfile);
+  Perl::Tidy::perltidy(
+    source      => \@all_lines,
+    destination => \@coloured,
+    argv        => "-html -pre -nopod2html",
+    stderr      => \$stderr,
+    errorfile   => \$errorfile
+  );
 
-    # remove the PRE
-    shift @coloured;
-    pop @coloured;
-    @coloured = grep { !/<a name=/ } @coloured;
+  # remove the PRE
+  shift @coloured;
+  pop @coloured;
+  @coloured = grep { !/<a name=/ } @coloured;
 
-    @coloured
+  @coloured
 }
 
 sub _highlight {
-    if ($Have_PPI && !$R{options}{option}{noppihtml}) {
-        return _highlight_ppi(@_);
-    } else {
-        if ($Have_perltidy && !$R{options}{option}{noperltidy}) {
-            return _highlight_perltidy(@_);
-        }
+  if ($Have_PPI && !$R{options}{option}{noppihtml}) {
+    return _highlight_ppi(@_);
+  } else {
+    if ($Have_perltidy && !$R{options}{option}{noperltidy}) {
+      return _highlight_perltidy(@_);
     }
+  }
 
-    return;
+  return;
 }
 
 sub print_file {
-    my @lines;
-    my $f = $R{db}->cover->file($R{file});
+  my @lines;
+  my $f = $R{db}->cover->file($R{file});
 
-    open F, $R{file} or warn("Unable to open $R{file}: $!\n"), return;
-    my @all_lines = <F>;
+  open F, $R{file} or warn("Unable to open $R{file}: $!\n"), return;
+  my @all_lines = <F>;
 
-    if (!($R{options}{option}{noppihtml} && $R{options}{option}{noperltidy})) {
-        @all_lines = _highlight(@all_lines) if $Have_highlighter;
+  if (!($R{options}{option}{noppihtml} && $R{options}{option}{noperltidy})) {
+    @all_lines = _highlight(@all_lines) if $Have_highlighter;
+  }
+
+  my $linen = 1;
+  LINE: while (defined(my $l = shift @all_lines)) {
+    my $n = $linen++;
+    chomp $l;
+
+    my %criteria;
+    for my $c (@{ $R{showing} }) {
+      my $criterion = $f->$c();
+      if ($criterion) {
+        my $l = $criterion->location($n);
+        $criteria{$c} = $l ? [@$l] : undef;
+      }
     }
 
-    my $linen = 1;
-    LINE: while (defined(my $l = shift @all_lines)) {
-        my $n  = $linen++;
-        chomp $l;
+    my $count = 0;
+    my $more  = 1;
+    while ($more) {
+      my %line;
 
-        my %criteria;
-        for my $c (@{$R{showing}}) {
-            my $criterion = $f->$c();
-            if ($criterion) {
-                my $l = $criterion->location($n);
-                $criteria{$c} = $l ? [@$l] : undef;
-            }
+      $count++;
+      $line{number} = length $n ? $n : "&nbsp;";
+      $line{text}   = length $l ? $l : "&nbsp;";
+
+      my $error = 0;
+      $more = 0;
+      for my $ann (@{ $R{options}{annotations} }) {
+        for my $a (0 .. $ann->count - 1) {
+          my $text = $ann->text($R{file}, $n, $a);
+          $text = "&nbsp;" unless $text && length $text;
+          push @{ $line{criteria} },
+            { text => $text, class => $ann->class($R{file}, $n, $a) };
+          $error ||= $ann->error($R{file}, $n, $a);
         }
+      }
+      for my $c (@{ $R{showing} }) {
+        my $o = shift @{ $criteria{$c} };
+        $more ||= @{ $criteria{$c} };
 
-        my $count = 0;
-        my $more  = 1;
-        while ($more) {
-            my %line;
+        my $link      = $c          !~ /statement|time/;
+        my $pc        = $link && $c !~ /subroutine|pod/;
+        my $text      = $o ? $pc ? $o->percentage : $o->covered : "&nbsp;";
+        my %criterion = (text => $text, class => oclass($o, $c));
+        my $cr        = $c eq "pod" ? "subroutine" : $c;
 
-            $count++;
-            $line{number} = length $n ? $n : "&nbsp;";
-            $line{text}   = length $l ? $l : "&nbsp;";
+        $criterion{link} = "$R{filenames}{$R{file}}--$cr.html#$n-$count"
+          if $o && $link;
+        push @{ $line{criteria} }, \%criterion;
+        $error ||= $o->error if $o;
+      }
 
-            my $error = 0;
-            $more = 0;
-            for my $ann (@{$R{options}{annotations}}) {
-                for my $a (0 .. $ann->count - 1) {
-                    my $text = $ann->text ($R{file}, $n, $a);
-                    $text = "&nbsp;" unless $text && length $text;
-                    push @{$line{criteria}}, {
-                        text  => $text,
-                        class => $ann->class($R{file}, $n, $a),
-                    };
-                    $error ||= $ann->error($R{file}, $n, $a);
-                }
-            }
-            for my $c (@{$R{showing}}) {
-                my $o = shift @{$criteria{$c}};
-                $more ||= @{$criteria{$c}};
-                my $link = $c !~ /statement|time/;
-                my $pc = $link && $c !~ /subroutine|pod/;
-                my $text = $o ? $pc ? $o->percentage : $o->covered : "&nbsp;";
-                my %criterion = ( text => $text, class => oclass($o, $c) );
-                my $cr = $c eq "pod" ? "subroutine" : $c;
-                $criterion{link} = "$R{filenames}{$R{file}}--$cr.html#$n-$count"
-                    if $o && $link;
-                push @{$line{criteria}}, \%criterion;
-                $error ||= $o->error if $o;
-            }
+      push @lines, \%line;
 
-            push @lines, \%line;
-
-            last LINE if $l =~ /^__(END|DATA)__/;
-            $n = $l = "";
-        }
+      last LINE if $l =~ /^__(END|DATA)__/;
+      $n = $l = "";
     }
-    close F or die "Unable to close $R{file}: $!";
+  }
+  close F or die "Unable to close $R{file}: $!";
 
-    # Add forward references to uncovered lines ...
-    # first line has a ref to the first uncovered line unless
-    # the first line already is uncovered in which case it links
-    # to the *next* uncovered line
-    {
-        my @unc = grep { $_->{criteria}[0]{class} eq "c0" &&
-            $_->{criteria}[0]{text}  eq  "0" } @lines;
-        while (@unc) {
-            my $u = pop @unc;
-            my $link = "#" . $u->{number};
-            (@unc ? $unc[-1] : $lines[0])->{criteria}[0]{link} ||= $link;
-        }
+  # Add forward references to uncovered lines ...
+  # first line has a ref to the first uncovered line unless
+  # the first line already is uncovered in which case it links
+  # to the *next* uncovered line
+  {
+    my @unc = grep {
+      $_->{criteria}[0]{class} eq "c0" && $_->{criteria}[0]{text} eq "0"
+    } @lines;
+    while (@unc) {
+      my $u    = pop @unc;
+      my $link = "#" . $u->{number};
+      (@unc ? $unc[-1] : $lines[0])->{criteria}[0]{link} ||= $link;
     }
+  }
 
-    my $vars = {
-        R     => \%R,
-        lines => \@lines,
-    };
+  my $vars = { R => \%R, lines => \@lines };
 
-    $Template->process("file", $vars, $R{file_html}) or die $Template->error();
+  $Template->process("file", $vars, $R{file_html}) or die $Template->error();
 }
 
 sub print_branches {
-    my $branches = $R{db}->cover->file($R{file})->branch;
-    return unless $branches;
+  my $branches = $R{db}->cover->file($R{file})->branch;
+  return unless $branches;
 
-    my @branches;
-    for my $location (sort { $a <=> $b } $branches->items) {
-        my $count = 0;
-        for my $b (@{$branches->location($location)}) {
-            $count++;
-            my $text = $b->text;
-            ($text) = _highlight($text) if $Have_highlighter;
+  my @branches;
+  for my $location (sort { $a <=> $b } $branches->items) {
+    my $count = 0;
+    for my $b (@{ $branches->location($location) }) {
+      $count++;
+      my $text = $b->text;
+      ($text) = _highlight($text) if $Have_highlighter;
 
-            push @branches,
-                {
-                    number => $count == 1 ? $location : "",
-                    parts  => [
-                        map { text  => $b->value($_),
-                              class => class($b->value($_), $b->error($_),
-                                             "branch") },
-                            0 .. $b->total - 1
-                    ],
-                    text   => $text,
-                };
-        }
+      push @branches, {
+        number => $count == 1 ? $location : "",
+        parts  => [
+          map {
+            text    => $b->value($_),
+              class => class($b->value($_), $b->error($_), "branch")
+          },
+          0 .. $b->total - 1,
+        ],
+        text => $text,
+      };
     }
+  }
 
-    my $vars = {
-        R        => \%R,
-        branches => \@branches,
-    };
+  my $vars = { R => \%R, branches => \@branches };
 
-    my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--branch.html";
-    $Template->process("branches", $vars, $html) or die $Template->error();
+  my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--branch.html";
+  $Template->process("branches", $vars, $html) or die $Template->error();
 }
 
 sub print_conditions {
-    my $conditions = $R{db}->cover->file($R{file})->condition;
-    return unless $conditions;
+  my $conditions = $R{db}->cover->file($R{file})->condition;
+  return unless $conditions;
 
-    my %r;
-    for my $location (sort { $a <=> $b } $conditions->items) {
-        my %count;
-        for my $c (@{$conditions->location($location)}) {
-            $count{$c->type}++;
-            # print "-- [$count{$c->type}][@{[$c->text]}]}]\n";
-            my $text = $c->text;
-            ($text) = _highlight($text) if $Have_highlighter;
+  my %r;
+  for my $location (sort { $a <=> $b } $conditions->items) {
+    my %count;
+    for my $c (@{ $conditions->location($location) }) {
+      $count{ $c->type }++;
+      # print "-- [$count{$c->type}][@{[$c->text]}]}]\n";
+      my $text = $c->text;
+      ($text) = _highlight($text) if $Have_highlighter;
 
-            push @{$r{$c->type}},
-                {
-                    number    => $count{$c->type} == 1 ? $location : "",
-                    condition => $c,
-                    parts     => [
-                        map { text  => $c->value($_),
-                              class => class($c->value($_), $c->error($_),
-                                             "condition") },
-                            0 .. $c->total - 1
-                    ],
-                    text      => $text,
-                };
-        }
+      push @{ $r{ $c->type } }, {
+        number    => $count{ $c->type } == 1 ? $location : "",
+        condition => $c,
+        parts     => [
+          map {
+            text    => $c->value($_),
+              class => class($c->value($_), $c->error($_), "condition")
+          },
+          0 .. $c->total - 1,
+        ],
+        text => $text,
+      };
     }
+  }
 
-    my @types = map
-                {
-                    name       => do { my $n = $_; $n =~ s/_/ /g; $n },
-                    headers    => [ map { encode_entities($_) }
-                                    @{$r{$_}[0]{condition}->headers || []} ],
-                    conditions => $r{$_},
-                }, sort keys %r;
+  my @types = map {
+    name      => do { my $n = $_; $n =~ s/_/ /g; $n },
+      headers =>
+      [ map { encode_entities($_) } @{ $r{$_}[0]{condition}->headers || [] } ],
+      conditions => $r{$_},
+  }, sort keys %r;
 
-    my $vars = {
-        R     => \%R,
-        types => \@types,
-    };
+  my $vars = { R => \%R, types => \@types };
 
-    # use Devel::Cover::Dumper; print Dumper \@types;
+  # use Devel::Cover::Dumper; print Dumper \@types;
 
-    my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--condition.html";
-    $Template->process("conditions", $vars, $html) or die $Template->error();
+  my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--condition.html";
+  $Template->process("conditions", $vars, $html) or die $Template->error();
 }
 
 sub print_subroutines {
-    my $subroutines = $R{db}->cover->file($R{file})->subroutine;
-    return unless $subroutines;
-    my $s = $R{options}{show}{subroutine};
+  my $subroutines = $R{db}->cover->file($R{file})->subroutine;
+  return unless $subroutines;
+  my $s = $R{options}{show}{subroutine};
 
-    my $pods;
-    $pods = $R{db}->cover->file($R{file})->pod if $R{options}{show}{pod};
+  my $pods;
+  $pods = $R{db}->cover->file($R{file})->pod if $R{options}{show}{pod};
 
-    my $subs;
-    for my $line (sort { $a <=> $b } $subroutines->items) {
-        my @p;
-        if ($pods) {
-            my $l = $pods->location($line);
-            @p = @$l if $l;
-        }
-        for my $o (@{$subroutines->location($line)}) {
-            my $p = shift @p;
-            push @$subs, {
-                line   => $line,
-                name   => $o->name,
-                count  => $s ? $o->covered : "",
-                class  => $s ? oclass($o, "subroutine") : "",
-                pod    => $p ? $p->covered ? "Yes" : "No" : "n/a",
-                pclass => $p ? oclass($p, "pod") : "",
-            };
-        }
+  my $subs;
+  for my $line (sort { $a <=> $b } $subroutines->items) {
+    my @p;
+    if ($pods) {
+      my $l = $pods->location($line);
+      @p = @$l if $l;
     }
+    for my $o (@{ $subroutines->location($line) }) {
+      my $p = shift @p;
+      push @$subs, {
+          line   => $line,
+          name   => $o->name,
+          count  => $s ? $o->covered              : "",
+          class  => $s ? oclass($o, "subroutine") : "",
+          pod    => $p ? $p->covered ? "Yes" : "No" : "n/a",
+          pclass => $p ? oclass($p, "pod") : "",
+        };
+    }
+  }
 
-    my $vars = {
-        R    => \%R,
-        subs => $subs,
-    };
+  my $vars = { R => \%R, subs => $subs };
 
-    my $html =
-        "$R{options}{outputdir}/$R{filenames}{$R{file}}--subroutine.html";
-    $Template->process("subroutines", $vars, $html) or die $Template->error();
+  my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--subroutine.html";
+  $Template->process("subroutines", $vars, $html) or die $Template->error();
 }
 
 sub get_options {
-    my ($self, $opt) = @_;
-    $opt->{option}{outputfile} = "coverage.html";
-    $opt->{option}{restrict}   = 1;
-    $threshold->{$_} = $opt->{"report_$_"} for
-        grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
-    die "Invalid command line options" unless
-        GetOptions($opt->{option},
-                   qw(
-                       noppihtml
-                       noperltidy
-                       outputfile=s
-                       restrict!
-                     ));
+  my ($self, $opt) = @_;
+  $opt->{option}{outputfile} = "coverage.html";
+  $opt->{option}{restrict}   = 1;
+  $threshold->{$_}           = $opt->{"report_$_"}
+    for grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
+  die "Invalid command line options" unless GetOptions(
+    $opt->{option}, qw(
+      noppihtml
+      noperltidy
+      outputfile=s
+      restrict!
+    )
+  );
 }
 
 sub report {
-    my ($pkg, $db, $options) = @_;
+  my ($pkg, $db, $options) = @_;
 
-    $Template = Template->new({
-        LOAD_TEMPLATES => [
-            Devel::Cover::Report::Html_basic::Template::Provider->new({}),
-        ],
-    });
+  $Template = Template->new({
+    LOAD_TEMPLATES =>
+      [ Devel::Cover::Report::Html_basic::Template::Provider->new({}) ]
+  });
 
-    my $le = sub { ($_[0] >   0 ? "<" : "=") . " $_[0]" };
-    my $ge = sub { ($_[0] < 100 ? ">" : "") . "= $_[0]" };
+  my $le = sub { ($_[0] > 0   ? "<" : "=") . " $_[0]" };
+  my $ge = sub { ($_[0] < 100 ? ">" : "") . "= $_[0]" };
 
-    my $fname = (sort keys %{$db->{runs}})[0] or return;
-    my $run   = $db->{runs}{$fname};
+  my $fname = (sort keys %{ $db->{runs} })[0] or return;
+  my $run   = $db->{runs}{$fname};
 
-    %R = (
-        module  => { name => $run->name, version => $run->version },
-        db      => $db,
-        date    => do {
-            my ($sec, $min, $hour, $mday, $mon, $year) = localtime;
-            sprintf "%04d-%02d-%02d %02d:%02d:%02d",
-                    $year + 1900, $mon + 1, $mday, $hour, $min, $sec
-        },
-        perl_v  => $] < 5.010 ? $] : $^V,
-        os      => $^O,
-        options => $options,
-        version => $VERSION,
-        showing => [ grep $options->{show}{$_}, $db->criteria ],
-        headers => [
-            map { ($db->criteria_short)[$_] }
-                grep { $options->{show}{($db->criteria)[$_]} }
-                     (0 .. $db->criteria - 1)
-        ],
-        annotations => [
-            map { my $a = $_; map $a->header($_), 0 .. $a->count - 1 }
-                @{$options->{annotations}}
-        ],
-        filenames => {
-            map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } }
-                @{$options->{file}}
-        },
-        exists      => { map { $_ => -e } @{$options->{file}} },
-        get_summary => \&get_summary,
-        c0          => $le->($options->{report_c0}),
-        c1          => $le->($options->{report_c1}),
-        c2          => $le->($options->{report_c2}),
-        c3          => $ge->($options->{report_c2}),
-    );
+  %R = (
+    module => { name => $run->name, version => $run->version },
+    db     => $db,
+    date   => do {
+      my ($sec, $min, $hour, $mday, $mon, $year) = localtime;
+      sprintf "%04d-%02d-%02d %02d:%02d:%02d", $year + 1900, $mon + 1, $mday,
+        $hour, $min, $sec
+    },
+    perl_v  => $] < 5.010 ? $] : $^V,
+    os      => $^O,
+    options => $options,
+    version => $VERSION,
+    showing => [ grep $options->{show}{$_}, $db->criteria ],
+    headers => [
+      map  { ($db->criteria_short)[$_] }
+      grep { $options->{show}{ ($db->criteria)[$_] } }
+        (0 .. $db->criteria - 1)
+    ],
+    annotations => [
+      map { my $a = $_; map $a->header($_), 0 .. $a->count - 1 }
+        @{ $options->{annotations} }
+    ],
+    filenames => {
+      map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } @{ $options->{file} }
+    },
+    exists      => { map { $_ => -e } @{ $options->{file} } },
+    get_summary => \&get_summary,
+    c0          => $le->($options->{report_c0}),
+    c1          => $le->($options->{report_c1}),
+    c2          => $le->($options->{report_c2}),
+    c3          => $ge->($options->{report_c2}),
+  );
 
-    write_file $R{options}{outputdir}, "all";
+  write_file $R{options}{outputdir}, "all";
 
-    for (@{$options->{file}}) {
-        $R{file} = $_;
-        $R{file_link} = "$R{filenames}{$_}.html";
-        $R{file_html} = "$options->{outputdir}/$R{file_link}";
-        my $show = $options->{show};
-        print_file;
-        print_branches    if $show->{branch};
-        print_conditions  if $show->{condition};
-        print_subroutines if $show->{subroutine} || $show->{pod};
-    }
+  for (@{ $options->{file} }) {
+    $R{file}      = $_;
+    $R{file_link} = "$R{filenames}{$_}.html";
+    $R{file_html} = "$options->{outputdir}/$R{file_link}";
+    my $show = $options->{show};
+    print_file;
+    print_branches    if $show->{branch};
+    print_conditions  if $show->{condition};
+    print_subroutines if $show->{subroutine} || $show->{pod};
+  }
 
-    my $html = print_summary;
-    print "HTML output written to $html\n" unless $options->{silent};
+  my $html = print_summary;
+  print "HTML output written to $html\n" unless $options->{silent};
 }
 
 1;
@@ -472,10 +463,10 @@ use base "Template::Provider";
 my %Templates;
 
 sub fetch {
-    my $self = shift;
-    my ($name) = @_;
-    # print "Looking for <$name>\n";
-    $self->SUPER::fetch(exists $Templates{$name} ? \$Templates{$name} : $name)
+  my $self = shift;
+  my ($name) = @_;
+  # print "Looking for <$name>\n";
+  $self->SUPER::fetch(exists $Templates{$name} ? \$Templates{$name} : $name)
 }
 
 $Templates{html} = <<'EOT';
@@ -485,7 +476,7 @@ $Templates{html} = <<'EOT';
 <html xmlns="http://www.w3.org/1999/xhtml">
 <!--
 This file was generated by Devel::Cover Version [% R.version %]
-Devel::Cover is copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+Devel::Cover is copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 Devel::Cover is free. It is licensed under the same terms as Perl itself.
 The latest version of Devel::Cover should be available from my homepage:
 http://www.pjcj.net
@@ -851,7 +842,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

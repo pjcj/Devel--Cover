@@ -11,14 +11,14 @@ our @ISA       = "Exporter";
 our @EXPORT_OK = "launch";
 
 sub launch {
-    my ($package, $opt) = @_;
+  my ($package, $opt) = @_;
 
-    my $outfile = "$opt->{outputdir}/$opt->{option}{outputfile}";
-    if (eval { require Browser::Open }) {
-        Browser::Open::open_browser($outfile);
-    } else {
-        print STDERR "Devel::Cover: -launch requires Browser::Open\n";
-    }
+  my $outfile = "$opt->{outputdir}/$opt->{option}{outputfile}";
+  if (eval { require Browser::Open }) {
+    Browser::Open::open_browser($outfile);
+  } else {
+    print STDERR "Devel::Cover: -launch requires Browser::Open\n";
+  }
 }
 
 =pod

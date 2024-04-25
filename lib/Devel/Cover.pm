@@ -1,4 +1,4 @@
-# Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -11,8 +11,9 @@ use strict;
 use warnings;
 
 our $VERSION;
+
 BEGIN {
-# VERSION
+  # VERSION
 }
 
 use DynaLoader ();
@@ -36,464 +37,464 @@ use Devel::Cover::Dumper;
 use Devel::Cover::Util "remove_contained_paths";
 
 BEGIN {
-    # Use Pod::Coverage if it is available
-    eval "use Pod::Coverage 0.06";
-    # If there is any error other than a failure to locate, report it
-    die $@ if $@ && $@ !~ m/Can't locate Pod\/Coverage.+pm in \@INC/;
+  # Use Pod::Coverage if it is available
+  eval "use Pod::Coverage 0.06";
+  # If there is any error other than a failure to locate, report it
+  die $@ if $@ && $@ !~ m/Can't locate Pod\/Coverage.+pm in \@INC/;
 
-    # We'll prefer Pod::Coverage::CountParents
-    eval "use Pod::Coverage::CountParents";
-    die $@ if $@ && $@ !~ m/Can't locate Pod\/Coverage.+pm in \@INC/;
+  # We'll prefer Pod::Coverage::CountParents
+  eval "use Pod::Coverage::CountParents";
+  die $@ if $@ && $@ !~ m/Can't locate Pod\/Coverage.+pm in \@INC/;
 }
 
 # $SIG{__DIE__} = \&Carp::confess;
 # sub Pod::Coverage::TRACE_ALL () { 1 }
 
-my $Initialised;                         # import() has been called
+my $Initialised;  # import() has been called
 
-my $Dir;                                 # Directory in which coverage will be
-                                         # collected
-my $DB             = "cover_db";         # DB name
-my $Merge          = 1;                  # Merge databases
-my $Summary        = 1;                  # Output coverage summary
-my $Subs_only      = 0;                  # Coverage only for sub bodies
-my $Self_cover_run = 0;                  # Covering Devel::Cover now
-my $Loose_perms    = 0;                  # Use loose permissions in the cover DB
+my $Dir;                          # Directory in which coverage will be
+                                  # collected
+my $DB             = "cover_db";  # DB name
+my $Merge          = 1;           # Merge databases
+my $Summary        = 1;           # Output coverage summary
+my $Subs_only      = 0;           # Coverage only for sub bodies
+my $Self_cover_run = 0;           # Covering Devel::Cover now
+my $Loose_perms    = 0;           # Use loose permissions in the cover DB
 
-my @Ignore;                              # Packages to ignore
-my @Inc;                                 # Original @INC to ignore
-my @Select;                              # Packages to select
-my @Ignore_re;                           # Packages to ignore
-my @Inc_re;                              # Original @INC to ignore
-my @Select_re;                           # Packages to select
+my @Ignore;                       # Packages to ignore
+my @Inc;                          # Original @INC to ignore
+my @Select;                       # Packages to select
+my @Ignore_re;                    # Packages to ignore
+my @Inc_re;                       # Original @INC to ignore
+my @Select_re;                    # Packages to select
 
-my $Pod = $INC{"Pod/Coverage/CountParents.pm"} ? "Pod::Coverage::CountParents"
-        : $INC{"Pod/Coverage.pm"}              ? "Pod::Coverage"
-        : "";                            # Type of pod coverage available
-my %Pod;                                 # Pod coverage data
+my $Pod
+  = $INC{"Pod/Coverage/CountParents.pm"} ? "Pod::Coverage::CountParents"
+  : $INC{"Pod/Coverage.pm"}              ? "Pod::Coverage"
+  :                                        "";  # Type of pod coverage available
+my %Pod;                                        # Pod coverage data
 
-my @Cvs;                                 # All the Cvs we want to cover
-my %Cvs;                                 # All the Cvs we want to cover
-my @Subs;                                # All the subs we want to cover
-my $Cv;                                  # Cv we are looking in
-my $Sub_name;                            # Name of the sub we are looking in
-my $Sub_count;                           # Count for multiple subs on same line
+my @Cvs;        # All the Cvs we want to cover
+my %Cvs;        # All the Cvs we want to cover
+my @Subs;       # All the subs we want to cover
+my $Cv;         # Cv we are looking in
+my $Sub_name;   # Name of the sub we are looking in
+my $Sub_count;  # Count for multiple subs on same line
 
-my $Coverage;                            # Raw coverage data
-my $Structure;                           # Structure of the files
-my $Digests;                             # Digests of the files
+my $Coverage;   # Raw coverage data
+my $Structure;  # Structure of the files
+my $Digests;    # Digests of the files
 
-my %Criteria;                            # Names of coverage criteria
-my %Coverage;                            # Coverage criteria to collect
-my %Coverage_options;                    # Options for overage criteria
+my %Criteria;          # Names of coverage criteria
+my %Coverage;          # Coverage criteria to collect
+my %Coverage_options;  # Options for overage criteria
 
-my %Run;                                 # Data collected from the run
+my %Run;               # Data collected from the run
 
 my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
                        emptyavhv|scalar|return|last|next|redo|goto)$/x;
-                                         # constant ops
 
-our $File;                               # Last filename we saw.  (localised)
-our $Line;                               # Last line number we saw.  (localised)
-our $Collect;                            # Whether or not we are collecting
-                                         # coverage data.  We make two passes
-                                         # over conditions.  (localised)
-our %Files;                              # Whether we are interested in files
-                                         # Used in runops function
-our $Replace_ops;                        # Whether we are replacing ops
-our $Silent;                             # Output nothing. Can be used anywhere
-our $Ignore_covered_err;                 # Don't flag an error when uncoverable
-                                         # code is covered.
-our $Self_cover;                         # Coverage of Devel::Cover
+# constant ops
+
+our $File;                # Last filename we saw.  (localised)
+our $Line;                # Last line number we saw.  (localised)
+our $Collect;             # Whether or not we are collecting
+                          # coverage data.  We make two passes
+                          # over conditions.  (localised)
+our %Files;               # Whether we are interested in files
+                          # Used in runops function
+our $Replace_ops;         # Whether we are replacing ops
+our $Silent;              # Output nothing. Can be used anywhere
+our $Ignore_covered_err;  # Don't flag an error when uncoverable
+                          # code is covered.
+our $Self_cover;          # Coverage of Devel::Cover
 
 BEGIN {
-    ($File, $Line, $Collect) = ("", 0, 1);
-    $Silent = ($ENV{HARNESS_PERL_SWITCHES} || "") =~ /Devel::Cover/ ||
-              ($ENV{PERL5OPT}              || "") =~ /Devel::Cover/;
-    *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
+  ($File, $Line, $Collect) = ("", 0, 1);
+  $Silent = ($ENV{HARNESS_PERL_SWITCHES} || "") =~ /Devel::Cover/
+    || ($ENV{PERL5OPT} || "") =~ /Devel::Cover/;
+  *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 
-    if ($^X =~ /(apache2|httpd)$/) {
-        # mod_perl < 2.0.8
-        @Inc = @Devel::Cover::Inc::Inc;
+  if ($^X =~ /(apache2|httpd)$/) {
+    # mod_perl < 2.0.8
+    @Inc = @Devel::Cover::Inc::Inc;
+  } else {
+    # Can't get @INC via eval `` in taint mode, revert to default value
+    if (${^TAINT}) {
+      @Inc = @Devel::Cover::Inc::Inc;
     } else {
-        # Can't get @INC via eval `` in taint mode, revert to default value
-        if (${^TAINT}) {
-            @Inc = @Devel::Cover::Inc::Inc;
-        } else {
-            eval {
-                local %ENV = %ENV;
-                # Clear *PERL* variables, but keep PERL5?LIB for local::lib
-                # environments
-                /perl/i and !/^PERL5?LIB$/ and delete $ENV{$_} for keys %ENV;
-                my $cmd = "$^X -MData::Dumper -e " . '"print Dumper \@INC"';
-                my $VAR1;
-                # print STDERR "Running [$cmd]\n";
-                eval `$cmd`;
-                @Inc = @$VAR1;
-            };
-            if ($@) {
-                print STDERR __PACKAGE__,
-                             ": Error getting \@INC: $@\n",
-                             "Reverting to default value for Inc.\n";
-                @Inc = @Devel::Cover::Inc::Inc;
-            }
-        }
+      eval {
+        local %ENV = %ENV;
+        # Clear *PERL* variables, but keep PERL5?LIB for local::lib
+        # environments
+        /perl/i and !/^PERL5?LIB$/ and delete $ENV{$_} for keys %ENV;
+        my $cmd = "$^X -MData::Dumper -e " . '"print Dumper \@INC"';
+        my $VAR1;
+        # print STDERR "Running [$cmd]\n";
+        eval `$cmd`;
+        @Inc = @$VAR1;
+      };
+      if ($@) {
+        print STDERR __PACKAGE__, ": Error getting \@INC: $@\n",
+          "Reverting to default value for Inc.\n";
+        @Inc = @Devel::Cover::Inc::Inc;
+      }
     }
+  }
 
-    @Inc = map { -d $_ ? ($_ eq "." ? $_ : Cwd::abs_path($_)) : () } @Inc;
+  @Inc = map { -d $_ ? ($_ eq "." ? $_ : Cwd::abs_path($_)) : () } @Inc;
 
-    @Inc = remove_contained_paths(getcwd, @Inc);
+  @Inc = remove_contained_paths(getcwd, @Inc);
 
-    @Ignore = ("/Devel/Cover[./]") unless $Self_cover = $ENV{DEVEL_COVER_SELF};
-    # $^P = 0x004 | 0x010 | 0x100 | 0x200;
-    # $^P = 0x004 | 0x100 | 0x200;
-    $^P |= 0x004 | 0x100;
+  @Ignore = ("/Devel/Cover[./]") unless $Self_cover = $ENV{DEVEL_COVER_SELF};
+  # $^P = 0x004 | 0x010 | 0x100 | 0x200;
+  # $^P = 0x004 | 0x100 | 0x200;
+  $^P |= 0x004 | 0x100;
 }
 
 sub version { $VERSION }
 
 if (0 && $Config{useithreads}) {
-    eval "use threads";
+  eval "use threads";
 
-    no warnings "redefine";
+  no warnings "redefine";
 
-    my $original_join;
-    BEGIN { $original_join = \&threads::join }
-    # print STDERR "original_join: $original_join\n";
+  my $original_join;
+  BEGIN { $original_join = \&threads::join }
+  # print STDERR "original_join: $original_join\n";
 
-    # $original_join = sub { print STDERR "j\n" };
+  # $original_join = sub { print STDERR "j\n" };
 
-    # sub threads::join
-    *threads::join = sub {
-        # print STDERR "threads::join- ", \&threads::join, "\n";
-        # print STDERR "original_join- $original_join\n";
-        my $self = shift;
-        print STDERR "(joining thread ", $self->tid, ")\n";
-        my @ret = $original_join->($self, @_);
-        print STDERR "(returning <@ret>)\n";
-        @ret
-    };
+  # sub threads::join
+  *threads::join = sub {
+    # print STDERR "threads::join- ", \&threads::join, "\n";
+    # print STDERR "original_join- $original_join\n";
+    my $self = shift;
+    print STDERR "(joining thread ", $self->tid, ")\n";
+    my @ret = $original_join->($self, @_);
+    print STDERR "(returning <@ret>)\n";
+    @ret
+  };
 
-    my $original_destroy;
-    BEGIN { $original_destroy = \&threads::DESTROY }
+  my $original_destroy;
+  BEGIN { $original_destroy = \&threads::DESTROY }
 
-    *threads::DESTROY = sub {
-        my $self = shift;
-        print STDERR "(destroying thread ", $self->tid, ")\n";
-        $original_destroy->($self, @_);
-    };
+  *threads::DESTROY = sub {
+    my $self = shift;
+    print STDERR "(destroying thread ", $self->tid, ")\n";
+    $original_destroy->($self, @_);
+  };
 
-    # print STDERR "threads::join: ", \&threads::join, "\n";
+  # print STDERR "threads::join: ", \&threads::join, "\n";
 
-    my $new = \&threads::new;
-    *threads::new = *threads::create = sub {
-        my $class     = shift;
-        my $sub       = shift;
-        my $wantarray = wantarray;
+  my $new = \&threads::new;
+  *threads::new = *threads::create = sub {
+    my $class     = shift;
+    my $sub       = shift;
+    my $wantarray = wantarray;
 
-        $new->(
-            $class,
-            sub {
-                   print STDERR "Starting thread\n";
-                   set_coverage(keys %Coverage);
-                   my $ret = [ $sub->(@_) ];
-                   print STDERR "Ending thread\n";
-                   report() if $Initialised;
-                   print STDERR "Ended thread\n";
-                   $wantarray ? @{$ret} : $ret->[0];
-            },
-            @_
-        );
-    };
+    $new->(
+      $class,
+      sub {
+        print STDERR "Starting thread\n";
+        set_coverage(keys %Coverage);
+        my $ret = [ $sub->(@_) ];
+        print STDERR "Ending thread\n";
+        report() if $Initialised;
+        print STDERR "Ended thread\n";
+        $wantarray ? @{$ret} : $ret->[0];
+      },
+      @_,
+    );
+  };
 }
 
 {
-    sub check {
-        return unless $Initialised;
 
-        check_files();
+  sub check {
+    return unless $Initialised;
 
-        set_coverage(keys %Coverage);
-        my @coverage = get_coverage();
-        %Coverage = map { $_ => 1 } @coverage;
+    check_files();
 
-        delete $Coverage{path};  # not done yet
-        my $nopod = "";
-        if (!$Pod && exists $Coverage{pod}) {
-            delete $Coverage{pod};  # Pod::Coverage unavailable
-            $nopod = <<EOM;
+    set_coverage(keys %Coverage);
+    my @coverage = get_coverage();
+    %Coverage = map { $_ => 1 } @coverage;
+
+    delete $Coverage{path};  # not done yet
+    my $nopod = "";
+    if (!$Pod && exists $Coverage{pod}) {
+      delete $Coverage{pod};  # Pod::Coverage unavailable
+      $nopod = <<EOM;
     Pod coverage is unavailable.  Please install Pod::Coverage from CPAN.
 EOM
-        }
-
-        set_coverage(keys %Coverage);
-        @coverage = get_coverage();
-        my $last = pop @coverage || "";
-
-        print OUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
-              join(", ", @coverage),
-              @coverage ? " and " : "",
-              "$last.\n",
-              $nopod,
-              $Subs_only     ? "    Collecting for subroutines only.\n" : "",
-              $ENV{MOD_PERL} ? "    Collecting under $ENV{MOD_PERL}\n"  : "",
-              "Selecting packages matching:", join("\n    ", "", @Select), "\n",
-              "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
-              "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
-            unless $Silent;
-
-        populate_run();
     }
 
-    no warnings "void";  # avoid "Too late to run CHECK block" warning
-    CHECK { check }
+    set_coverage(keys %Coverage);
+    @coverage = get_coverage();
+    my $last = pop @coverage || "";
+
+    print OUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
+      join(", ", @coverage), @coverage ? " and " : "", "$last.\n", $nopod,
+      $Subs_only     ? "    Collecting for subroutines only.\n" : "",
+      $ENV{MOD_PERL} ? "    Collecting under $ENV{MOD_PERL}\n"  : "",
+      "Selecting packages matching:", join("\n    ", "", @Select), "\n",
+      "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
+      "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
+      unless $Silent;
+
+    populate_run();
+  }
+
+  no warnings "void";  # avoid "Too late to run CHECK block" warning
+  CHECK { check }
 }
 
 {
-    my $run_end = 0;
-    sub first_end {
-        # print STDERR "**** END 1 - $run_end\n";
-        set_last_end() unless $run_end++
-    }
+  my $run_end = 0;
 
-    my $run_init = 0;
-    sub first_init {
-        # print STDERR "**** INIT 1 - $run_init\n";
-        collect_inits() unless $run_init++
-    }
+  sub first_end {
+    # print STDERR "**** END 1 - $run_end\n";
+    set_last_end() unless $run_end++
+  }
+
+  my $run_init = 0;
+
+  sub first_init {
+    # print STDERR "**** INIT 1 - $run_init\n";
+    collect_inits() unless $run_init++
+  }
 }
 
 sub last_end {
-    # print STDERR "**** END 2 - [$Initialised]\n";
-    report() if $Initialised;
-    # print STDERR "**** END 2 - ended\n";
+  # print STDERR "**** END 2 - [$Initialised]\n";
+  report() if $Initialised;
+  # print STDERR "**** END 2 - ended\n";
 }
 
 {
-    no warnings "void";  # avoid "Too late to run ... block" warning
-    INIT  {}  # dummy sub to make sure PL_initav is set up and populated
-    END   {}  # dummy sub to make sure PL_endav  is set up and populated
-    CHECK { set_first_init_and_end() }  # we really want to be first
+  no warnings "void";  # avoid "Too late to run ... block" warning
+  INIT  { }  # dummy sub to make sure PL_initav is set up and populated
+  END   { }  # dummy sub to make sure PL_endav  is set up and populated
+  CHECK { set_first_init_and_end() }  # we really want to be first
 }
 
 sub CLONE {
-    print STDERR <<EOM;
+  print STDERR <<EOM;
 
 Unfortunately, Devel::Cover does not yet work with threads.  I have done
 some work in this area, but there is still more to be done.
 
 EOM
-    require POSIX;
-    POSIX::_exit(1);
+  require POSIX;
+  POSIX::_exit(1);
 }
 
 $Replace_ops = !$Self_cover;
 
 sub import {
-    return if $Initialised;
+  return if $Initialised;
 
-    my $class = shift;
+  my $class = shift;
 
-    # Die tainting
-    # Anyone using this module can do worse things than messing with tainting
-    my $options = ($ENV{DEVEL_COVER_OPTIONS} || "") =~ /(.*)/ ? $1 : "";
-    my @o = (@_, split ",", $options);
-    defined or $_ = "" for @o;
-    # print STDERR __PACKAGE__, ": Parsing options from [@o]\n";
+  # Die tainting
+  # Anyone using this module can do worse things than messing with tainting
+  my $options = ($ENV{DEVEL_COVER_OPTIONS} || "") =~ /(.*)/ ? $1 : "";
+  my @o       = (@_, split ",", $options);
+  defined or $_ = "" for @o;
+  # print STDERR __PACKAGE__, ": Parsing options from [@o]\n";
 
-    my $blib = -d "blib";
-    @Inc     = () if "@o" =~ /-inc /;
-    @Ignore  = () if "@o" =~ /-ignore /;
-    @Select  = () if "@o" =~ /-select /;
-    while (@o)
-    {
-        local $_ = shift @o;
-        /^-silent/      && do { $Silent      = shift @o; next };
-        /^-dir/         && do { $Dir         = shift @o; next };
-        /^-db/          && do { $DB          = shift @o; next };
-        /^-loose_perms/ && do { $Loose_perms = shift @o; next };
-        /^-merge/       && do { $Merge       = shift @o; next };
-        /^-summary/     && do { $Summary     = shift @o; next };
-        /^-blib/        && do { $blib        = shift @o; next };
-        /^-subs_only/   && do { $Subs_only   = shift @o; next };
-        /^-replace_ops/ && do { $Replace_ops = shift @o; next };
-        /^-coverage/  &&
-            do { $Coverage{+shift @o} = 1 while @o && $o[0] !~ /^[-+]/; next };
-        /^[-+]ignore/ &&
-            do { push @Ignore,   shift @o while @o && $o[0] !~ /^[-+]/; next };
-        /^[-+]inc/    &&
-            do { push @Inc,      shift @o while @o && $o[0] !~ /^[-+]/; next };
-        /^[-+]select/ &&
-            do { push @Select,   shift @o while @o && $o[0] !~ /^[-+]/; next };
-        warn __PACKAGE__ . ": Unknown option $_ ignored\n";
+  my $blib = -d "blib";
+  @Inc    = () if "@o" =~ /-inc /;
+  @Ignore = () if "@o" =~ /-ignore /;
+  @Select = () if "@o" =~ /-select /;
+  while (@o) {
+    local $_ = shift @o;
+    /^-silent/      && do { $Silent      = shift @o; next };
+    /^-dir/         && do { $Dir         = shift @o; next };
+    /^-db/          && do { $DB          = shift @o; next };
+    /^-loose_perms/ && do { $Loose_perms = shift @o; next };
+    /^-merge/       && do { $Merge       = shift @o; next };
+    /^-summary/     && do { $Summary     = shift @o; next };
+    /^-blib/        && do { $blib        = shift @o; next };
+    /^-subs_only/   && do { $Subs_only   = shift @o; next };
+    /^-replace_ops/ && do { $Replace_ops = shift @o; next };
+    /^-coverage/
+      && do { $Coverage{ +shift @o } = 1 while @o && $o[0] !~ /^[-+]/; next };
+    /^[-+]ignore/
+      && do { push @Ignore, shift @o while @o && $o[0] !~ /^[-+]/; next };
+    /^[-+]inc/ && do { push @Inc, shift @o while @o && $o[0] !~ /^[-+]/; next };
+    /^[-+]select/
+      && do { push @Select, shift @o while @o && $o[0] !~ /^[-+]/; next };
+    warn __PACKAGE__ . ": Unknown option $_ ignored\n";
+  }
+
+  if ($blib) {
+    eval "use blib";
+    for (@INC) { $_ = $1 if ref $_ ne 'CODE' && /(.*)/ }  # Die tainting
+    push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
+  }
+
+  my $ci = $^O eq "MSWin32";
+  @Select_re = map qr/$_/, @Select;
+  @Ignore_re = map qr/$_/, @Ignore;
+  @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
+
+  bootstrap Devel::Cover $VERSION;
+
+  if (defined $Dir) {
+    $Dir = $1 if $Dir =~ /(.*)/;                          # Die tainting
+  } else {
+    $Dir = $1 if Cwd::getcwd() =~ /(.*)/;
+  }
+
+  $DB = File::Spec->rel2abs($DB, $Dir);
+  unless (mkdir $DB) {
+    my $err = $!;
+    die "Can't mkdir $DB as EUID $>: $err" unless -d $DB;
+  }
+  chmod 0777, $DB if $Loose_perms;
+  $DB = $1                      if abs_path($DB) =~ /(.*)/;
+  Devel::Cover::DB->delete($DB) unless $Merge;
+
+  %Files = ();  # start gathering file information from scratch
+
+  for my $c (Devel::Cover::DB->new->criteria) {
+    my $func = "coverage_$c";
+    no strict "refs";
+    $Criteria{$c} = $func->();
+  }
+
+  for (keys %Coverage) {
+    my @c = split /-/, $_;
+    if (@c > 1) {
+      $Coverage{ shift @c } = \@c;
+      delete $Coverage{$_};
     }
+    delete $Coverage{$_} unless length;
+  }
+  %Coverage = (all => 1) unless keys %Coverage;
+  # print STDERR "Coverage: ", Dumper \%Coverage;
+  %Coverage_options = %Coverage;
 
-    if ($blib) {
-        eval "use blib";
-        for (@INC) { $_ = $1 if ref $_ ne 'CODE' && /(.*)/ }  # Die tainting
-        push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
-    }
+  $Initialised = 1;
 
-    my $ci     = $^O eq "MSWin32";
-    @Select_re = map qr/$_/,                           @Select;
-    @Ignore_re = map qr/$_/,                           @Ignore;
-    @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
-
-    bootstrap Devel::Cover $VERSION;
-
-    if (defined $Dir) {
-        $Dir = $1 if $Dir =~ /(.*)/;  # Die tainting
-    } else {
-        $Dir = $1 if Cwd::getcwd() =~ /(.*)/;
-    }
-
-    $DB = File::Spec->rel2abs($DB, $Dir);
-    unless (mkdir $DB) {
-        my $err = $!;
-        die "Can't mkdir $DB as EUID $>: $err" unless -d $DB;
-    }
-    chmod 0777, $DB if $Loose_perms;
-    $DB = $1 if abs_path($DB) =~ /(.*)/;
-    Devel::Cover::DB->delete($DB) unless $Merge;
-
-    %Files = ();  # start gathering file information from scratch
-
-    for my $c (Devel::Cover::DB->new->criteria) {
-        my $func = "coverage_$c";
-        no strict "refs";
-        $Criteria{$c} = $func->();
-    }
-
-    for (keys %Coverage) {
-        my @c = split /-/, $_;
-        if (@c > 1) {
-            $Coverage{shift @c} = \@c;
-            delete $Coverage{$_};
-        }
-        delete $Coverage{$_} unless length;
-    }
-    %Coverage = (all => 1) unless keys %Coverage;
-    # print STDERR "Coverage: ", Dumper \%Coverage;
-    %Coverage_options = %Coverage;
-
-    $Initialised = 1;
-
-    if ($ENV{MOD_PERL}) {
-        eval "BEGIN {}";
-        check();
-        set_first_init_and_end();
-    }
+  if ($ENV{MOD_PERL}) {
+    eval "BEGIN {}";
+    check();
+    set_first_init_and_end();
+  }
 }
 
 sub populate_run {
-    my $self = shift;
+  my $self = shift;
 
-    $Run{OS}      = $^O;
-    $Run{perl}    = $] < 5.010 ? join ".", map ord, split //, $^V
-                               : sprintf "%vd", $^V;
-    $Run{dir}     = $Dir;
-    $Run{run}     = $0;
-    $Run{name}    = $Dir;
-    $Run{version} = "unknown";
+  $Run{OS}   = $^O;
+  $Run{perl} = $] < 5.010 ? join ".", map ord, split //, $^V : sprintf "%vd",
+    $^V;
+  $Run{dir}     = $Dir;
+  $Run{run}     = $0;
+  $Run{name}    = $Dir;
+  $Run{version} = "unknown";
 
-    my $mymeta = "$Dir/MYMETA.json";
-    if (-e $mymeta) {
-        eval {
-            require CPAN::Meta;
-            my $json = CPAN::Meta->load_file($mymeta)->as_struct;
-            $Run{$_} = $json->{$_} for qw( name version abstract );
-        }
-    } elsif ($Dir =~ m|.*/([^/]+)$|) {
-        my $filename = $1;
-        eval {
-            require CPAN::DistnameInfo;
-            my $dinfo     = CPAN::DistnameInfo->new($filename);
-            $Run{name}    = $dinfo->dist;
-            $Run{version} = $dinfo->version;
-        }
+  my $mymeta = "$Dir/MYMETA.json";
+  if (-e $mymeta) {
+    eval {
+      require CPAN::Meta;
+      my $json = CPAN::Meta->load_file($mymeta)->as_struct;
+      $Run{$_} = $json->{$_} for qw( name version abstract );
     }
+  } elsif ($Dir =~ m|.*/([^/]+)$|) {
+    my $filename = $1;
+    eval {
+      require CPAN::DistnameInfo;
+      my $dinfo = CPAN::DistnameInfo->new($filename);
+      $Run{name}    = $dinfo->dist;
+      $Run{version} = $dinfo->version;
+    }
+  }
 
-    $Run{start} = get_elapsed() / 1e6;
+  $Run{start} = get_elapsed() / 1e6;
 }
 
-sub cover_names_to_val
-{
-    my $val = 0;
-    for my $c (@_) {
-        if (exists $Criteria{$c}) {
-            $val |= $Criteria{$c};
-        } elsif ($c eq "all" || $c eq "none") {
-            my $func = "coverage_$c";
-            no strict "refs";
-            $val |= $func->();
-        } else {
-            warn __PACKAGE__ . qq(: Unknown coverage criterion "$c" ignored.\n);
-        }
+sub cover_names_to_val {
+  my $val = 0;
+  for my $c (@_) {
+    if (exists $Criteria{$c}) {
+      $val |= $Criteria{$c};
+    } elsif ($c eq "all" || $c eq "none") {
+      my $func = "coverage_$c";
+      no strict "refs";
+      $val |= $func->();
+    } else {
+      warn __PACKAGE__ . qq(: Unknown coverage criterion "$c" ignored.\n);
     }
-    $val;
+  }
+  $val;
 }
 
-sub set_coverage    { set_criteria(cover_names_to_val(@_))    }
-sub add_coverage    { add_criteria(cover_names_to_val(@_))    }
+sub set_coverage    { set_criteria(cover_names_to_val(@_)) }
+sub add_coverage    { add_criteria(cover_names_to_val(@_)) }
 sub remove_coverage { remove_criteria(cover_names_to_val(@_)) }
 
 sub get_coverage {
-    return unless defined wantarray;
-    my @names;
-    my $val = get_criteria();
-    for my $c (sort keys %Criteria) {
-        push @names, $c if $val & $Criteria{$c};
-    }
-    return wantarray ? @names : "@names";
+  return unless defined wantarray;
+  my @names;
+  my $val = get_criteria();
+  for my $c (sort keys %Criteria) {
+    push @names, $c if $val & $Criteria{$c};
+  }
+  return wantarray ? @names : "@names";
 }
 
 {
 
-my %File_cache;
+  my %File_cache;
 
-# Recursion in normalised_file() is bad.  It can happen if a call from the sub
-# evals something which wants to load a new module.  This has happened with
-# the Storable backend.  I don't think it happens with the JSON backend.
-my $Normalising;
+  # Recursion in normalised_file() is bad.  It can happen if a call from the sub
+  # evals something which wants to load a new module.  This has happened with
+  # the Storable backend.  I don't think it happens with the JSON backend.
+  my $Normalising;
 
-sub normalised_file {
+  sub normalised_file {
     my ($file) = @_;
 
     return $File_cache{$file} if exists $File_cache{$file};
-    return $file if $Normalising;
+    return $file              if $Normalising;
     $Normalising = 1;
 
     my $f = $file;
     $file =~ s/ \(autosplit into .*\)$//;
     $file =~ s/^\(eval in .*\) //;
     # print STDERR "file is <$file>\ncoverage: ", Dumper coverage(0);
-    if (exists coverage(0)->{module} && exists coverage(0)->{module}{$file} &&
-        !File::Spec->file_name_is_absolute($file)) {
-        my $m = coverage(0)->{module}{$file};
-        # print STDERR "Loaded <$file> <$m->[0]> from <$m->[1]> ";
-        $file = File::Spec->rel2abs($file, $m->[1]);
-        # print STDERR "as <$file> ";
+    if ( exists coverage(0)->{module}
+      && exists coverage(0)->{module}{$file}
+      && !File::Spec->file_name_is_absolute($file))
+    {
+      my $m = coverage(0)->{module}{$file};
+      # print STDERR "Loaded <$file> <$m->[0]> from <$m->[1]> ";
+      $file = File::Spec->rel2abs($file, $m->[1]);
+      # print STDERR "as <$file> ";
     }
 
     my $inc;
     $inc ||= $file =~ $_ for @Inc_re;
     # warn "inc for [$file] is [$inc] @Inc_re";
     if ($inc && ($^O eq "MSWin32" || $^O eq "cygwin")) {
-        # Windows' Cwd::_win32_cwd() calls eval which will recurse back
-        # here if we call abs_path, so we just assume it's normalised.
-        # warn "giving up on getting normalised filename from <$file>\n";
+      # Windows' Cwd::_win32_cwd() calls eval which will recurse back
+      # here if we call abs_path, so we just assume it's normalised.
+      # warn "giving up on getting normalised filename from <$file>\n";
     } else {
-        # print STDERR "getting abs_path <$file> ";
-        if (-e $file) {  # Windows likes the file to exist
-            my $abs;
-            $abs = abs_path($file) unless -l $file;  # leave symbolic links
-            # print STDERR "giving <$abs> ";
-            $file = $abs if defined $abs;
-        }
+      # print STDERR "getting abs_path <$file> ";
+      if (-e $file) {  # Windows likes the file to exist
+        my $abs;
+        $abs = abs_path($file) unless -l $file; # leave symbolic links
+                                                # print STDERR "giving <$abs> ";
+        $file = $abs           if defined $abs;
+      }
     }
     # print STDERR "finally <$file> <$Dir>\n";
 
-    $file =~ s|\\|/|g if $^O eq "MSWin32";
+    $file =~ s|\\|/|g       if $^O eq "MSWin32";
     $file =~ s|^\Q$Dir\E/|| if defined $Dir;
 
     $Digests ||= Devel::Cover::DB::Digests->new(db => $DB);
@@ -503,33 +504,33 @@ sub normalised_file {
 
     $Normalising = 0;
     $File_cache{$f} = $file
-}
+  }
 
 }
 
 sub get_location {
-    my ($op) = @_;
+  my ($op) = @_;
 
-    # print STDERR "get_location ", $op, "\n";
-    # use Carp "cluck"; cluck("from here");
-    return unless $op->can("file");  # How does this happen?
-    $File = $op->file;
-    $Line = $op->line;
-    # print STDERR "$File:$Line\n";
+  # print STDERR "get_location ", $op, "\n";
+  # use Carp "cluck"; cluck("from here");
+  return unless $op->can("file");  # How does this happen?
+  $File = $op->file;
+  $Line = $op->line;
+  # print STDERR "$File:$Line\n";
 
-    # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
-    while ($File =~ /^\(eval \d+\)\[(.*):(\d+)\]/) {
-        ($File, $Line) = ($1, $2);
-    }
-    $File = normalised_file($File);
+  # If there's an eval, get the real filename.  Enabled from $^P & 0x100.
+  while ($File =~ /^\(eval \d+\)\[(.*):(\d+)\]/) {
+    ($File, $Line) = ($1, $2);
+  }
+  $File = normalised_file($File);
 
-    if (!exists $Run{vec}{$File} && $Run{collected}) {
-        my %vec;
-        @vec{@{$Run{collected}}} = ();
-        delete $vec{time};
-        $vec{subroutine}++ if exists $vec{pod};
-        @{$Run{vec}{$File}{$_}}{"vec", "size"} = ("", 0) for keys %vec;
-    }
+  if (!exists $Run{vec}{$File} && $Run{collected}) {
+    my %vec;
+    @vec{ @{ $Run{collected} } } = ();
+    delete $vec{time};
+    $vec{subroutine}++ if exists $vec{pod};
+    @{ $Run{vec}{$File}{$_} }{ "vec", "size" } = ("", 0) for keys %vec;
+  }
 }
 
 my $find_filename = qr/
@@ -540,169 +541,170 @@ my $find_filename = qr/
 /x;
 
 sub use_file {
-    # If we're in global destruction, forget it
-    return unless $find_filename;
+  # If we're in global destruction, forget it
+  return unless $find_filename;
 
-    my ($file) = @_;
+  my ($file) = @_;
 
-    # print STDERR "use_file($file)\n";
+  # print STDERR "use_file($file)\n";
 
-    # die "bad file" unless length $file;
+  # die "bad file" unless length $file;
 
-    # If you call your file something that matches $find_filename then things
-    # might go awry.  But it would be silly to do that, so don't.  This little
-    # optimisation provides a reasonable speedup.
-    return $Files{$file} if exists $Files{$file};
+  # If you call your file something that matches $find_filename then things
+  # might go awry.  But it would be silly to do that, so don't.  This little
+  # optimisation provides a reasonable speedup.
+  return $Files{$file} if exists $Files{$file};
 
-    # just don't call your filenames 0
-    while ($file =~ $find_filename) { $file = $1 || $2 || $3 || $4 }
-    $file =~ s/ \(autosplit into .*\)$//;
+  # just don't call your filenames 0
+  while ($file =~ $find_filename) { $file = $1 || $2 || $3 || $4 }
+  $file =~ s/ \(autosplit into .*\)$//;
 
-    # print STDERR "==> use_file($file)\n";
+  # print STDERR "==> use_file($file)\n";
 
-    return $Files{$file} if exists $Files{$file};
-    return 0 if $file =~ /\(eval \d+\)/ ||
-                $file =~ /^\.\.[\/\\]\.\.[\/\\]lib[\/\\](?:Storable|POSIX).pm$/;
+  return $Files{$file} if exists $Files{$file};
+  return 0
+    if $file =~ /\(eval \d+\)/
+    || $file =~ /^\.\.[\/\\]\.\.[\/\\]lib[\/\\](?:Storable|POSIX).pm$/;
 
-    my $f = normalised_file($file);
+  my $f = normalised_file($file);
 
-    # print STDERR "checking <$file> <$f>\n";
-    # print STDERR "checking <$file> <$f> against ",
-                 # "select(@Select_re), ignore(@Ignore_re), inc(@Inc_re)\n";
+  # print STDERR "checking <$file> <$f>\n";
+  # print STDERR "checking <$file> <$f> against ",
+  # "select(@Select_re), ignore(@Ignore_re), inc(@Inc_re)\n";
 
-    for (@Select_re) { return $Files{$file} = 1 if $f =~ $_ }
-    for (@Ignore_re) { return $Files{$file} = 0 if $f =~ $_ }
-    for (@Inc_re)    { return $Files{$file} = 0 if $f =~ $_ }
+  for (@Select_re) { return $Files{$file} = 1 if $f =~ $_ }
+  for (@Ignore_re) { return $Files{$file} = 0 if $f =~ $_ }
+  for (@Inc_re)    { return $Files{$file} = 0 if $f =~ $_ }
 
-    # system "pwd; ls -l '$file'";
-    $Files{$file} = -e $file ? 1 : 0;
-    print STDERR __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
-        unless $Files{$file} || $Silent
-                             || $file =~ $Devel::Cover::DB::Ignore_filenames;
+  # system "pwd; ls -l '$file'";
+  $Files{$file} = -e $file ? 1 : 0;
+  print STDERR __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
+    unless $Files{$file}
+    || $Silent
+    || $file =~ $Devel::Cover::DB::Ignore_filenames;
 
-    add_cvs();  # add CVs now in case of symbol table manipulation
-    $Files{$file}
+  add_cvs();  # add CVs now in case of symbol table manipulation
+  $Files{$file}
 }
 
 sub check_file {
-    my ($cv) = @_;
+  my ($cv) = @_;
 
-    return unless ref($cv) eq "B::CV";
+  return unless ref($cv) eq "B::CV";
 
-    my $op = $cv->START;
-    return unless ref($op) eq "B::COP";
+  my $op = $cv->START;
+  return unless ref($op) eq "B::COP";
 
-    my $file = $op->file;
-    my $use  = use_file($file);
-    # printf STDERR "%6s $file\n", $use ? "use" : "ignore";
+  my $file = $op->file;
+  my $use  = use_file($file);
+  # printf STDERR "%6s $file\n", $use ? "use" : "ignore";
 
-    $use
+  $use
 }
 
 sub B::GV::find_cv {
-    my $cv = $_[0]->CV;
-    return unless $$cv;
+  my $cv = $_[0]->CV;
+  return unless $$cv;
 
-    # print STDERR "find_cv $$cv\n" if check_file($cv);
-    $Cvs{$cv} ||= $cv if check_file($cv);
-    if ($cv->can("PADLIST")        &&
-        $cv->PADLIST->can("ARRAY") &&
-        $cv->PADLIST->ARRAY        &&
-        $cv->PADLIST->ARRAY->can("ARRAY")) {
-        $Cvs{$_} ||= $_
-          for grep ref eq "B::CV" && check_file($_), $cv->PADLIST->ARRAY->ARRAY;
-    }
+  # print STDERR "find_cv $$cv\n" if check_file($cv);
+  $Cvs{$cv} ||= $cv if check_file($cv);
+  if ( $cv->can("PADLIST")
+    && $cv->PADLIST->can("ARRAY")
+    && $cv->PADLIST->ARRAY
+    && $cv->PADLIST->ARRAY->can("ARRAY"))
+  {
+    $Cvs{$_} ||= $_
+      for grep ref eq "B::CV" && check_file($_), $cv->PADLIST->ARRAY->ARRAY;
+  }
 }
 
 sub sub_info {
-    my ($cv) = @_;
-    my ($name, $start) = ("--unknown--", 0);
-    my $gv = $cv->GV;
-    if ($gv && !$gv->isa("B::SPECIAL")) {
-        return unless $gv->can("SAFENAME");
-        $name = $gv->SAFENAME;
-        # print STDERR "--[$name]--\n";
-        $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
-    }
-    # my $op = sub { my ($t, $o) = @_; print "$t\n"; $o->debug };
-    my $root = $cv->ROOT;
-    # $op->(root => $root);
-    if ($root->can("first")) {
-        my $lineseq = $root->first;
-        # $op->(lineseq => $lineseq);
-        if ($lineseq->can("first")) {
-            # normal case
-            $start = $lineseq->first;
-            # $op->(start => $start);
-            # signatures
-            if ($start->name eq "null" && $start->can("first")) {
-                my $lineseq2 = $start->first;
-                # $op->(lineseq2 => $lineseq2);
-                if ($lineseq2->name eq "lineseq" && $lineseq2->can("first")) {
-                    my $cop = $lineseq2->first;
-                    # $op->(cop => $cop);
-                    $start = $cop if $cop->name eq "nextstate";
-                }
-            }
-        } elsif ($lineseq->name eq "nextstate") {
-            # completely empty sub - sub empty { }
-            $start = $lineseq;
+  my ($cv) = @_;
+  my ($name, $start) = ("--unknown--", 0);
+  my $gv = $cv->GV;
+  if ($gv && !$gv->isa("B::SPECIAL")) {
+    return unless $gv->can("SAFENAME");
+    $name = $gv->SAFENAME;
+    # print STDERR "--[$name]--\n";
+    $name =~ s/(__ANON__)\[.+:\d+\]/$1/ if defined $name;
+  }
+  # my $op = sub { my ($t, $o) = @_; print "$t\n"; $o->debug };
+  my $root = $cv->ROOT;
+  # $op->(root => $root);
+  if ($root->can("first")) {
+    my $lineseq = $root->first;
+    # $op->(lineseq => $lineseq);
+    if ($lineseq->can("first")) {
+      # normal case
+      $start = $lineseq->first;
+      # $op->(start => $start);
+      # signatures
+      if ($start->name eq "null" && $start->can("first")) {
+        my $lineseq2 = $start->first;
+        # $op->(lineseq2 => $lineseq2);
+        if ($lineseq2->name eq "lineseq" && $lineseq2->can("first")) {
+          my $cop = $lineseq2->first;
+          # $op->(cop => $cop);
+          $start = $cop if $cop->name eq "nextstate";
         }
+      }
+    } elsif ($lineseq->name eq "nextstate") {
+      # completely empty sub - sub empty { }
+      $start = $lineseq;
     }
-    ($name, $start)
+  }
+  ($name, $start)
 }
 
 sub add_cvs {
-    $Cvs{$_} ||= $_ for grep check_file($_), B::main_cv->PADLIST->ARRAY->ARRAY;
+  $Cvs{$_} ||= $_ for grep check_file($_), B::main_cv->PADLIST->ARRAY->ARRAY;
 }
 
 sub check_files {
-    # print STDERR "Checking files\n";
+  # print STDERR "Checking files\n";
 
-    add_cvs();
+  add_cvs();
 
-    my %seen_pkg;
-    my %seen_cv;
+  my %seen_pkg;
+  my %seen_cv;
 
-    walksymtable(\%main::, "find_cv", sub { !$seen_pkg{$_[0]}++ });
+  walksymtable(\%main::, "find_cv", sub { !$seen_pkg{ $_[0] }++ });
 
-    my $l = sub {
-        my ($cv) = @_;
-        my $line = 0;
-        my ($name, $start) = sub_info($cv);
-        if ($start) {
-            local ($Line, $File);
-            get_location($start);
-            $line = $Line;
-            # print STDERR "$name - $File:$Line\n";
-        }
-        $line = 0  unless defined $line;
-        $name = '' unless defined $name;
-        ($line, $name)
-    };
+  my $l = sub {
+    my ($cv) = @_;
+    my $line = 0;
+    my ($name, $start) = sub_info($cv);
+    if ($start) {
+      local ($Line, $File);
+      get_location($start);
+      $line = $Line;
+      # print STDERR "$name - $File:$Line\n";
+    }
+    $line = 0  unless defined $line;
+    $name = '' unless defined $name;
+    ($line, $name)
+  };
 
-    # print Dumper \%Cvs;
+  # print Dumper \%Cvs;
 
-    @Cvs = map  $_->[0],
-           sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] }
-           map  [ $_, $l->($_) ],
-           grep !$seen_cv{$$_}++,
-           values %Cvs;
+  @Cvs = map $_->[0],
+    sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] } map [ $_, $l->($_) ],
+    grep !$seen_cv{$$_}++, values %Cvs;
 
-    # Hack to bump up the refcount of the subs.  If we don't do this then the
-    # subs in some modules don't seem to be around when we get to looking at
-    # them.  I'm not sure why this is, and it seems to me that this hack could
-    # affect the order of destruction, but I've not seen any problems.  Yet.
-    @Subs = map $_->object_2svref, @Cvs;
+  # Hack to bump up the refcount of the subs.  If we don't do this then the
+  # subs in some modules don't seem to be around when we get to looking at
+  # them.  I'm not sure why this is, and it seems to me that this hack could
+  # affect the order of destruction, but I've not seen any problems.  Yet.
+  @Subs = map $_->object_2svref, @Cvs;
 }
 
 my %Seen;
 
 sub report {
-    local $@;
-    eval { _report() };
-    if ($@) {
-        print STDERR <<"EOM" unless $Silent;
+  local $@;
+  eval { _report() };
+  if ($@) {
+    print STDERR <<"EOM" unless $Silent;
 Devel::Cover: Oops, it looks like something went wrong writing the coverage.
               It's possible that more bad things may happen but we'll try to
               carry on anyway as if nothing happened.  At a minimum you'll
@@ -712,403 +714,411 @@ Devel::Cover: Oops, it looks like something went wrong writing the coverage.
 $@
 
 EOM
-    }
-    return unless $Self_cover;
-    $Self_cover_run = 1;
-    _report();
+  }
+  return unless $Self_cover;
+  $Self_cover_run = 1;
+  _report();
 }
 
 sub _report {
-    local @SIG{qw(__DIE__ __WARN__)};
-    # $SIG{__DIE__} = \&Carp::confess;
+  local @SIG{qw(__DIE__ __WARN__)};
+  # $SIG{__DIE__} = \&Carp::confess;
 
-    $Run{finish} = get_elapsed() / 1e6;
+  $Run{finish} = get_elapsed() / 1e6;
 
-    die "Devel::Cover::import() not run: " .
-        "did you require instead of use Devel::Cover?\n"
-        unless defined $Dir;
+  die "Devel::Cover::import() not run: "
+    . "did you require instead of use Devel::Cover?\n"
+    unless defined $Dir;
 
-    my @collected = get_coverage();
-    return unless @collected;
-    set_coverage("none") unless $Self_cover;
+  my @collected = get_coverage();
+  return               unless @collected;
+  set_coverage("none") unless $Self_cover;
 
-    my $starting_dir = $1 if Cwd::getcwd() =~ /(.*)/;
-    chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
+  my $starting_dir = $1 if Cwd::getcwd() =~ /(.*)/;
+  chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
 
-    $Run{collected} = \@collected;
-    $Structure      = Devel::Cover::DB::Structure->new(
-        base        => $DB,
-        loose_perms => $Loose_perms,
-    );
-    $Structure->read_all;
-    $Structure->add_criteria(@collected);
-    # print STDERR "Start structure: ", Dumper $Structure;
+  $Run{collected} = \@collected;
+  $Structure = Devel::Cover::DB::Structure->new(base => $DB,
+    loose_perms => $Loose_perms);
+  $Structure->read_all;
+  $Structure->add_criteria(@collected);
+  # print STDERR "Start structure: ", Dumper $Structure;
 
-    # print STDERR "Processing cover data\n@Inc\n";
-    $Coverage = coverage(1) || die "No coverage data available.\n";
-    # print STDERR Dumper $Coverage;
+  # print STDERR "Processing cover data\n@Inc\n";
+  $Coverage = coverage(1) || die "No coverage data available.\n";
+  # print STDERR Dumper $Coverage;
 
-    check_files();
+  check_files();
 
-    unless ($Subs_only) {
-        get_cover(main_cv, main_root);
-        get_cover_progress("BEGIN block",
-            B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ());
-        if (exists &B::check_av) {
-            get_cover_progress("CHECK block",
-                B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ());
-        }
-        # get_ends includes INIT blocks
-        get_cover_progress("END/INIT block",
-            get_ends()->isa("B::AV") ? get_ends()->ARRAY : ());
+  unless ($Subs_only) {
+    get_cover(main_cv, main_root);
+    get_cover_progress("BEGIN block",
+      B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ());
+    if (exists &B::check_av) {
+      get_cover_progress("CHECK block",
+        B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ());
     }
-    # print STDERR "--- @Cvs\n";
-    get_cover_progress("CV", @Cvs);
+    # get_ends includes INIT blocks
+    get_cover_progress("END/INIT block",
+      get_ends()->isa("B::AV") ? get_ends()->ARRAY : ());
+  }
+  # print STDERR "--- @Cvs\n";
+  get_cover_progress("CV", @Cvs);
 
-    my %files;
-    $files{$_}++ for keys %{$Run{count}}, keys %{$Run{vec}};
-    for my $file (sort keys %files) {
-        # print STDERR "looking at $file\n";
-        unless (use_file($file)) {
-            # print STDERR "deleting $file\n";
-            delete $Run{count}->{$file};
-            delete $Run{vec}  ->{$file};
-            $Structure->delete_file($file);
-            next;
-        }
-
-        # $Structure->add_digest($file, \%Run);
-
-        for my $run (keys %{$Run{vec}{$file}}) {
-            delete $Run{vec}{$file}{$run} unless $Run{vec}{$file}{$run}{size};
-        }
-
-        $Structure->store_counts($file);
+  my %files;
+  $files{$_}++ for keys %{ $Run{count} }, keys %{ $Run{vec} };
+  for my $file (sort keys %files) {
+    # print STDERR "looking at $file\n";
+    unless (use_file($file)) {
+      # print STDERR "deleting $file\n";
+      delete $Run{count}->{$file};
+      delete $Run{vec}->{$file};
+      $Structure->delete_file($file);
+      next;
     }
 
-    # print STDERR "End structure: ", Dumper $Structure;
+    # $Structure->add_digest($file, \%Run);
 
-    my $run = time . ".$$." . sprintf "%05d", rand 2 ** 16;
-    my $cover = Devel::Cover::DB->new(
-        base        => $DB,
-        runs        => { $run => \%Run },
-        structure   => $Structure,
-        loose_perms => $Loose_perms,
-    );
-
-    my $dbrun = "$DB/runs";
-    unless (mkdir $dbrun) {
-        die "Can't mkdir $dbrun $!" unless -d $dbrun;
+    for my $run (keys %{ $Run{vec}{$file} }) {
+      delete $Run{vec}{$file}{$run} unless $Run{vec}{$file}{$run}{size};
     }
-    chmod 0777, $dbrun if $Loose_perms;
-    $dbrun .= "/$run";
 
-    print OUT __PACKAGE__, ": Writing coverage database to $dbrun\n"
-        unless $Silent;
-    $cover->write($dbrun);
-    $Digests->write;
-    $cover->print_summary if $Summary && !$Silent;
+    $Structure->store_counts($file);
+  }
 
-    if ($Self_cover && !$Self_cover_run) {
-        $cover->delete;
-        delete $Run{vec};
-    }
-    chdir $starting_dir;
+  # print STDERR "End structure: ", Dumper $Structure;
+
+  my $run   = time . ".$$." . sprintf "%05d", rand 2**16;
+  my $cover = Devel::Cover::DB->new(
+    base        => $DB,
+    runs        => { $run => \%Run },
+    structure   => $Structure,
+    loose_perms => $Loose_perms
+  );
+
+  my $dbrun = "$DB/runs";
+  unless (mkdir $dbrun) {
+    die "Can't mkdir $dbrun $!" unless -d $dbrun;
+  }
+  chmod 0777, $dbrun if $Loose_perms;
+  $dbrun .= "/$run";
+
+  print OUT __PACKAGE__, ": Writing coverage database to $dbrun\n"
+    unless $Silent;
+  $cover->write($dbrun);
+  $Digests->write;
+  $cover->print_summary if $Summary && !$Silent;
+
+  if ($Self_cover && !$Self_cover_run) {
+    $cover->delete;
+    delete $Run{vec};
+  }
+  chdir $starting_dir;
 }
 
 sub add_subroutine_cover {
-    my ($op) = @_;
+  my ($op) = @_;
 
-    get_location($op);
-    return unless $File;
+  get_location($op);
+  return unless $File;
 
-    # print STDERR "Subroutine $Sub_name $File:$Line: ", $op->name, "\n";
+  # print STDERR "Subroutine $Sub_name $File:$Line: ", $op->name, "\n";
 
-    my $key = get_key($op);
-    my $val = $Coverage->{statement}{$key} || 0;
-    my ($n, $new) = $Structure->add_count("subroutine");
-    # print STDERR "******* subroutine $n - $new\n";
-    $Structure->add_subroutine($File, [ $Line, $Sub_name ]) if $new;
-    $Run{count}{$File}{subroutine}[$n] += $val;
-    my $vec = $Run{vec}{$File}{subroutine};
-    vec($vec->{vec}, $n, 1) = $val ? 1 : 0;
-    $vec->{size} = $n + 1;
+  my $key = get_key($op);
+  my $val = $Coverage->{statement}{$key} || 0;
+  my ($n, $new) = $Structure->add_count("subroutine");
+  # print STDERR "******* subroutine $n - $new\n";
+  $Structure->add_subroutine($File, [ $Line, $Sub_name ]) if $new;
+  $Run{count}{$File}{subroutine}[$n] += $val;
+  my $vec = $Run{vec}{$File}{subroutine};
+  vec($vec->{vec}, $n, 1) = $val ? 1 : 0;
+  $vec->{size} = $n + 1;
 }
 
 sub add_statement_cover {
-    my ($op) = @_;
+  my ($op) = @_;
 
-    get_location($op);
-    return unless $File;
+  get_location($op);
+  return unless $File;
 
-    # print STDERR "Stmt $File:$Line: $op $$op ", $op->name, "\n";
+  # print STDERR "Stmt $File:$Line: $op $$op ", $op->name, "\n";
 
-    $Run{digests}{$File} ||= $Structure->set_file($File);
-    my $key = get_key($op);
-    my $val = $Coverage->{statement}{$key} || 0;
-    my ($n, $new) = $Structure->add_count("statement");
-    # print STDERR "Stmt $File:$Line - $n, $new\n";
-    $Structure->add_statement($File, $Line) if $new;
-    $Run{count}{$File}{statement}[$n] += $val;
-    my $vec = $Run{vec}{$File}{statement};
-    vec($vec->{vec}, $n, 1) = $val ? 1 : 0;
-    $vec->{size} = $n + 1;
-    no warnings "uninitialized";
-    $Run{count}{$File}{time}[$n] += $Coverage->{time}{$key}
-        if $Coverage{time} &&
-           exists $Coverage->{time} && exists $Coverage->{time}{$key};
+  $Run{digests}{$File} ||= $Structure->set_file($File);
+  my $key = get_key($op);
+  my $val = $Coverage->{statement}{$key} || 0;
+  my ($n, $new) = $Structure->add_count("statement");
+  # print STDERR "Stmt $File:$Line - $n, $new\n";
+  $Structure->add_statement($File, $Line) if $new;
+  $Run{count}{$File}{statement}[$n] += $val;
+  my $vec = $Run{vec}{$File}{statement};
+  vec($vec->{vec}, $n, 1) = $val ? 1 : 0;
+  $vec->{size} = $n + 1;
+  no warnings "uninitialized";
+  $Run{count}{$File}{time}[$n] += $Coverage->{time}{$key}
+    if $Coverage{time}
+    && exists $Coverage->{time}
+    && exists $Coverage->{time}{$key};
 }
 
 sub add_branch_cover {
-    return unless $Collect && $Coverage{branch};
+  return unless $Collect && $Coverage{branch};
 
-    my ($op, $type, $text, $file, $line) = @_;
+  my ($op, $type, $text, $file, $line) = @_;
 
-    # return unless $Seen{branch}{$$op}++;
+  # return unless $Seen{branch}{$$op}++;
 
-    $text =~ s/^\s+//;
-    $text =~ s/\s+$//;
+  $text =~ s/^\s+//;
+  $text =~ s/\s+$//;
 
-    my $key = get_key($op);
-    my $c   = $Coverage->{condition}{$key};
+  my $key = get_key($op);
+  my $c   = $Coverage->{condition}{$key};
 
-    no warnings "uninitialized";
-    # warn "add_branch_cover $File:$Line [$type][@{[join ', ', @$c]}]\n";
+  no warnings "uninitialized";
+  # warn "add_branch_cover $File:$Line [$type][@{[join ', ', @$c]}]\n";
 
-    if ($type eq "and" ||
-        $type eq "or"  ||
-        ($type eq "elsif" && !exists $Coverage->{branch}{$key})) {
-        # and   => this could also be a plain if with no else or elsif
-        # or    => this could also be an unless with no else or elsif
-        # elsif => no subsequent elsifs or elses
-        # True path taken if not short circuited.
-        # False path taken if short circuited.
-        $c = [ $c->[1] + $c->[2], $c->[3] ];
-        # print STDERR "branch $type [@$c]\n";
-    } else {
-        $c = $Coverage->{branch}{$key} || [0, 0];
-    }
+  if ( $type eq "and"
+    || $type eq "or"
+    || ($type eq "elsif" && !exists $Coverage->{branch}{$key}))
+  {
+    # and   => this could also be a plain if with no else or elsif
+    # or    => this could also be an unless with no else or elsif
+    # elsif => no subsequent elsifs or elses
+    # True path taken if not short circuited.
+    # False path taken if short circuited.
+    $c = [ $c->[1] + $c->[2], $c->[3] ];
+    # print STDERR "branch $type [@$c]\n";
+  } else {
+    $c = $Coverage->{branch}{$key} || [ 0, 0 ];
+  }
 
-    my ($n, $new) = $Structure->add_count("branch");
-    $Structure->add_branch($file, [ $line, { text => $text } ]) if $new;
-    my $ccount = $Run{count}{$file};
-    if (exists $ccount->{branch}[$n]) {
-        $ccount->{branch}[$n][$_] += $c->[$_] for 0 .. $#$c;
-    } else {
-        $ccount->{branch}[$n] = $c;
-        my $vec = $Run{vec}{$File}{branch};
-        vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
-    }
+  my ($n, $new) = $Structure->add_count("branch");
+  $Structure->add_branch($file, [ $line, { text => $text } ]) if $new;
+  my $ccount = $Run{count}{$file};
+  if (exists $ccount->{branch}[$n]) {
+    $ccount->{branch}[$n][$_] += $c->[$_] for 0 .. $#$c;
+  } else {
+    $ccount->{branch}[$n] = $c;
+    my $vec = $Run{vec}{$File}{branch};
+    vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
+  }
 
-    # warn "branch $type %x [@$c] => [@{$ccount->{branch}[$n]}]\n", $$op;
+  # warn "branch $type %x [@$c] => [@{$ccount->{branch}[$n]}]\n", $$op;
 }
 
 sub add_condition_cover {
-    my ($op, $strop, $left, $right) = @_;
+  my ($op, $strop, $left, $right) = @_;
 
-    return unless $Collect && $Coverage{condition};
+  return unless $Collect && $Coverage{condition};
 
-    my $key = get_key($op);
-    # warn "Condition cover $$op from $File:$Line\n";
-    # print STDERR "left:  [$left]\nright: [$right]\n";
-    # use Carp "cluck"; cluck("from here");
+  my $key = get_key($op);
+  # warn "Condition cover $$op from $File:$Line\n";
+  # print STDERR "left:  [$left]\nright: [$right]\n";
+  # use Carp "cluck"; cluck("from here");
 
-    my $type = $op->name;
-    $type =~ s/assign$//;
-    $type = "or" if $type eq "dor";
+  my $type = $op->name;
+  $type =~ s/assign$//;
+  $type = "or" if $type eq "dor";
 
-    my $c = $Coverage->{condition}{$key};
+  my $c = $Coverage->{condition}{$key};
 
-    no warnings "uninitialized";
+  no warnings "uninitialized";
 
-    my $count;
+  my $count;
 
-    if ($type eq "or" || $type eq "and") {
-        my $r = $op->first->sibling;
-        my $name = $r->name;
-        $name = $r->first->name if $name eq "sassign";
-        # TODO - exec?  any others?
-        # print STDERR "Name [$name]", Dumper $c;
-        if ($c->[5] || $name =~ $Const_right) {
-            $c = [ $c->[3], $c->[1] + $c->[2] ];
-            $count = 2;
-            # print STDERR "Special short circuit\n";
-        } else {
-            @$c = @{$c}[$type eq "or" ? (3, 2, 1) : (3, 1, 2)];
-            $count = 3;
-        }
-        # print STDERR "$type 3 $name [", join(",", @$c), "] $File:$Line\n";
-    } elsif ($type eq "xor") {
-        # !l&&!r  l&&!r  l&&r  !l&&r
-        @$c = @{$c}[3, 2, 4, 1];
-        $count = 4;
+  if ($type eq "or" || $type eq "and") {
+    my $r    = $op->first->sibling;
+    my $name = $r->name;
+    $name = $r->first->name if $name eq "sassign";
+    # TODO - exec?  any others?
+    # print STDERR "Name [$name]", Dumper $c;
+    if ($c->[5] || $name =~ $Const_right) {
+      $c     = [ $c->[3], $c->[1] + $c->[2] ];
+      $count = 2;
+      # print STDERR "Special short circuit\n";
     } else {
-        die qq(Unknown type "$type" for conditional);
+      @$c    = @{$c}[ $type eq "or" ? (3, 2, 1) : (3, 1, 2) ];
+      $count = 3;
     }
+    # print STDERR "$type 3 $name [", join(",", @$c), "] $File:$Line\n";
+  } elsif ($type eq "xor") {
+    # !l&&!r  l&&!r  l&&r  !l&&r
+    @$c    = @{$c}[ 3, 2, 4, 1 ];
+    $count = 4;
+  } else {
+    die qq(Unknown type "$type" for conditional);
+  }
 
-    my $structure = {
-        type  => "${type}_${count}",
-        op    => $strop,
-        left  => $left,
-        right => $right,
-    };
+  my $structure = {
+    type  => "${type}_${count}",
+    op    => $strop,
+    left  => $left,
+    right => $right,
+  };
 
-    my ($n, $new) = $Structure->add_count("condition");
-    $Structure->add_condition($File, [ $Line, $structure ]) if $new;
-    my $ccount = $Run{count}{$File};
-    if (exists $ccount->{condition}[$n]) {
-        $ccount->{condition}[$n][$_] += $c->[$_] for 0 .. $#$c;
-    } else {
-        $ccount->{condition}[$n] = $c;
-        my $vec = $Run{vec}{$File}{condition};
-        vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
-    }
+  my ($n, $new) = $Structure->add_count("condition");
+  $Structure->add_condition($File, [ $Line, $structure ]) if $new;
+  my $ccount = $Run{count}{$File};
+  if (exists $ccount->{condition}[$n]) {
+    $ccount->{condition}[$n][$_] += $c->[$_] for 0 .. $#$c;
+  } else {
+    $ccount->{condition}[$n] = $c;
+    my $vec = $Run{vec}{$File}{condition};
+    vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
+  }
 }
 
 {
-    no warnings "once";
-    *is_scope       = \&B::Deparse::is_scope;
-    *is_state       = \&B::Deparse::is_state;
-    *is_ifelse_cont = \&B::Deparse::is_ifelse_cont;
+  no warnings "once";
+  *is_scope       = \&B::Deparse::is_scope;
+  *is_state       = \&B::Deparse::is_state;
+  *is_ifelse_cont = \&B::Deparse::is_ifelse_cont;
 }
 
 my %Original;
 {
 
-BEGIN {
+  BEGIN {
     $Original{deparse}      = \&B::Deparse::deparse;
     $Original{logop}        = \&B::Deparse::logop;
     $Original{logassignop}  = \&B::Deparse::logassignop;
     $Original{const_dumper} = \&B::Deparse::const_dumper;
     $Original{const}        = \&B::Deparse::const if defined &B::Deparse::const;
-}
+  }
 
-sub const_dumper {
+  sub const_dumper {
     no warnings "redefine";
+
     local *B::Deparse::deparse      = $Original{deparse};
     local *B::Deparse::logop        = $Original{logop};
     local *B::Deparse::logassignop  = $Original{logassignop};
     local *B::Deparse::const_dumper = $Original{const_dumper};
     local *B::Deparse::const        = $Original{const} if $Original{const};
-    $Original{const_dumper}->(@_);
-}
 
-sub const {
+    $Original{const_dumper}->(@_);
+  }
+
+  sub const {
     no warnings "redefine";
     local *B::Deparse::deparse      = $Original{deparse};
     local *B::Deparse::logop        = $Original{logop};
     local *B::Deparse::logassignop  = $Original{logassignop};
     local *B::Deparse::const_dumper = $Original{const_dumper};
     $Original{const}->(@_);
-}
+  }
 
-sub deparse {
+  sub deparse {
     my $self = shift;
     my ($op, $cx) = @_;
 
     my $deparse;
 
     if ($Collect) {
-        my $class = B::class($op);
-        my $null  = $class eq "NULL";
+      my $class = B::class($op);
+      my $null  = $class eq "NULL";
 
-        my $name = $op->can("name") ? $op->name : "Unknown";
+      my $name = $op->can("name") ? $op->name : "Unknown";
 
-        # print STDERR "$class:$name ($$op) at $File:$Line\n";
-        # print STDERR "[$Seen{statement}{$$op}] [$Seen{other}{$$op}]\n";
-        # use Carp "cluck"; cluck("from here");
+      # print STDERR "$class:$name ($$op) at $File:$Line\n";
+      # print STDERR "[$Seen{statement}{$$op}] [$Seen{other}{$$op}]\n";
+      # use Carp "cluck"; cluck("from here");
 
-        return "" if $name eq "padrange";
+      return "" if $name eq "padrange";
 
-        unless ($Seen{statement}{$$op} || $Seen{other}{$$op}) {
-            # Collect everything under here
-            local ($File, $Line) = ($File, $Line);
-            # print STDERR "Collecting $$op under $File:$Line\n";
-            no warnings "redefine";
-            my $use_dumper = $class eq "SVOP" && $name eq "const";
-            local $self->{use_dumper} = 1 if $use_dumper;
-            require Data::Dumper if $use_dumper;
-            $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
-            $deparse =~ s/^\010+//mg if defined $deparse;
-            $deparse = "Deparse error: $@" if $@;
-            # print STDERR "Collected $$op under $File:$Line\n";
-            # print STDERR "Collect Deparse $op $$op => <$deparse>\n";
-        }
-
-        # Get the coverage on this op
-
-        if ($class eq "COP" && $Coverage{statement}) {
-            # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
-            my $nnnext = "";
-            eval {
-                my $next   = $op->next;
-                my $nnext  = $next && $next->next;
-                   $nnnext = $nnext && $nnext->next;
-            };
-            # print STDERR "COP $$op, ", $next, " -> ", $nnext,
-                                              # " -> ", $nnnext, "\n";
-            if ($nnnext) {
-                add_statement_cover($op) unless $Seen{statement}{$$op}++;
-            }
-        } elsif (!$null && $name eq "null"
-                      && ppname($op->targ) eq "pp_nextstate"
-                      && $Coverage{statement}) {
-            # If the current op is null, but it was nextstate, we can still
-            # get at the file and line number, but we need to get dirty
-
-            bless $op, "B::COP";
-            # print STDERR "null $$op, seen [$Seen{statement}{$$op}]\n";
-            add_statement_cover($op) unless $Seen{statement}{$$op}++;
-            bless $op, "B::$class";
-        } elsif ($Seen{other}{$$op}++) {
-            # print STDERR "seen [$Seen{other}{$$op}]\n";
-            return ""  # Only report on each op once
-        } elsif ($name eq "cond_expr") {
-            local ($File, $Line) = ($File, $Line);
-            my $cond  = $op->first;
-            my $true  = $cond->sibling;
-            my $false = $true->sibling;
-            if (!($cx < 1 && (is_scope($true) && $true->name ne "null") &&
-                    (is_scope($false) || is_ifelse_cont($false))
-                    && $self->{'expand'} < 7)) {
-                { local $Collect; $cond = $self->deparse($cond, 8) }
-                add_branch_cover($op, "if", "$cond ? :", $File, $Line);
-            } else {
-                { local $Collect; $cond = $self->deparse($cond, 1) }
-                add_branch_cover($op, "if", "if ($cond) { }", $File, $Line);
-                while (B::class($false) ne "NULL" && is_ifelse_cont($false)) {
-                    my $newop   = $false->first;
-                    my $newcond = $newop->first;
-                    my $newtrue = $newcond->sibling;
-                    if ($newcond->name eq "lineseq") {
-                        # lineseq to ensure correct line numbers in elsif()
-                        # Bug #37302 fixed by change #33710
-                        $newcond = $newcond->first->sibling;
-                    }
-                    # last in chain is OP_AND => no else
-                    $false      = $newtrue->sibling;
-                    { local $Collect; $newcond = $self->deparse($newcond, 1) }
-                    add_branch_cover($newop, "elsif", "elsif ($newcond) { }",
-                                     $File, $Line);
-                }
-            }
-        }
-    } else {
+      unless ($Seen{statement}{$$op} || $Seen{other}{$$op}) {
+        # Collect everything under here
         local ($File, $Line) = ($File, $Line);
-        # print STDERR "Starting plain deparse at $File:$Line\n";
+        # print STDERR "Collecting $$op under $File:$Line\n";
+        no warnings "redefine";
+        my $use_dumper = $class eq "SVOP" && $name eq "const";
+        local $self->{use_dumper} = 1 if $use_dumper;
+        require Data::Dumper if $use_dumper;
         $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
-        $deparse = "" unless defined $deparse;
-        $deparse =~ s/^\010+//mg;
+        $deparse =~ s/^\010+//mg       if defined $deparse;
         $deparse = "Deparse error: $@" if $@;
-        # print STDERR "Ending plain deparse at $File:$Line\n";
-        # print STDERR "Deparse => <$deparse>\n";
+        # print STDERR "Collected $$op under $File:$Line\n";
+        # print STDERR "Collect Deparse $op $$op => <$deparse>\n";
+      }
+
+      # Get the coverage on this op
+
+      if ($class eq "COP" && $Coverage{statement}) {
+        # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
+        my $nnnext = "";
+        eval {
+          my $next  = $op->next;
+          my $nnext = $next && $next->next;
+          $nnnext = $nnext && $nnext->next;
+        };
+        # print STDERR "COP $$op, ", $next, " -> ", $nnext,
+        # " -> ", $nnnext, "\n";
+        if ($nnnext) {
+          add_statement_cover($op) unless $Seen{statement}{$$op}++;
+        }
+      } elsif (!$null
+        && $name eq "null"
+        && ppname($op->targ) eq "pp_nextstate"
+        && $Coverage{statement})
+      {
+        # If the current op is null, but it was nextstate, we can still
+        # get at the file and line number, but we need to get dirty
+
+        bless $op, "B::COP";
+        # print STDERR "null $$op, seen [$Seen{statement}{$$op}]\n";
+        add_statement_cover($op) unless $Seen{statement}{$$op}++;
+        bless $op, "B::$class";
+      } elsif ($Seen{other}{$$op}++) {
+        # print STDERR "seen [$Seen{other}{$$op}]\n";
+        return ""  # Only report on each op once
+      } elsif ($name eq "cond_expr") {
+        local ($File, $Line) = ($File, $Line);
+        my $cond  = $op->first;
+        my $true  = $cond->sibling;
+        my $false = $true->sibling;
+        if (!(
+             $cx < 1
+          && (is_scope($true) && $true->name ne "null")
+          && (is_scope($false) || is_ifelse_cont($false))
+          && $self->{'expand'} < 7
+        ))
+        {
+          { local $Collect; $cond = $self->deparse($cond, 8) }
+          add_branch_cover($op, "if", "$cond ? :", $File, $Line);
+        } else {
+          { local $Collect; $cond = $self->deparse($cond, 1) }
+          add_branch_cover($op, "if", "if ($cond) { }", $File, $Line);
+          while (B::class($false) ne "NULL" && is_ifelse_cont($false)) {
+            my $newop   = $false->first;
+            my $newcond = $newop->first;
+            my $newtrue = $newcond->sibling;
+            if ($newcond->name eq "lineseq") {
+              # lineseq to ensure correct line numbers in elsif()
+              # Bug #37302 fixed by change #33710
+              $newcond = $newcond->first->sibling;
+            }
+            # last in chain is OP_AND => no else
+            $false = $newtrue->sibling;
+            { local $Collect; $newcond = $self->deparse($newcond, 1) }
+            add_branch_cover($newop, "elsif", "elsif ($newcond) { }",
+              $File, $Line);
+          }
+        }
+      }
+    } else {
+      local ($File, $Line) = ($File, $Line);
+      # print STDERR "Starting plain deparse at $File:$Line\n";
+      $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
+      $deparse = "" unless defined $deparse;
+      $deparse =~ s/^\010+//mg;
+      $deparse = "Deparse error: $@" if $@;
+      # print STDERR "Ending plain deparse at $File:$Line\n";
+      # print STDERR "Deparse => <$deparse>\n";
     }
 
     # print STDERR "Returning [$deparse]\n";
     $deparse
-}
+  }
 
-sub logop {
+  sub logop {
     my $self = shift;
     my ($op, $cx, $lowop, $lowprec, $highop, $highprec, $blockname) = @_;
     my $left  = $op->first;
@@ -1117,195 +1127,196 @@ sub logop {
     my ($file, $line) = ($File, $Line);
 
     if ($cx < 1 && is_scope($right) && $blockname && $self->{expand} < 7) {
-        # print STDERR 'if ($a) {$b}', "\n";
-        # if ($a) {$b}
-        $left  = $self->deparse($left,  1);
-        $right = $self->deparse($right, 0);
-        add_branch_cover($op, $lowop, "$blockname ($left)", $file, $line)
-            unless $Seen{branch}{$$op}++;
-        return "$blockname ($left) {\n\t$right\n\b}\cK"
+      # print STDERR 'if ($a) {$b}', "\n";
+      # if ($a) {$b}
+      $left  = $self->deparse($left,  1);
+      $right = $self->deparse($right, 0);
+      add_branch_cover($op, $lowop, "$blockname ($left)", $file, $line)
+        unless $Seen{branch}{$$op}++;
+      return "$blockname ($left) {\n\t$right\n\b}\cK"
     } elsif ($cx < 1 && $blockname && !$self->{parens} && $self->{expand} < 7) {
-        # print STDERR '$b if $a', "\n";
-        # $b if $a
-        $right = $self->deparse($right, 1);
-        $left  = $self->deparse($left,  1);
-        add_branch_cover($op, $lowop, "$blockname $left", $file, $line)
-            unless $Seen{branch}{$$op}++;
-        return "$right $blockname $left"
+      # print STDERR '$b if $a', "\n";
+      # $b if $a
+      $right = $self->deparse($right, 1);
+      $left  = $self->deparse($left,  1);
+      add_branch_cover($op, $lowop, "$blockname $left", $file, $line)
+        unless $Seen{branch}{$$op}++;
+      return "$right $blockname $left"
     } elsif ($cx > $lowprec && $highop) {
-        # print STDERR '$a && $b', "\n";
-        # $a && $b
-        {
-            local $Collect;
-            $left  = $self->deparse_binop_left ($op, $left,  $highprec);
-            $right = $self->deparse_binop_right($op, $right, $highprec);
-        }
-        # print STDERR "left [$left], right [$right]\n";
-        add_condition_cover($op, $highop, $left, $right)
-            unless $Seen{condition}{$$op}++;
-        return $self->maybe_parens("$left $highop $right", $cx, $highprec)
+      # print STDERR '$a && $b', "\n";
+      # $a && $b
+      {
+        local $Collect;
+        $left  = $self->deparse_binop_left($op, $left, $highprec);
+        $right = $self->deparse_binop_right($op, $right, $highprec);
+      }
+      # print STDERR "left [$left], right [$right]\n";
+      add_condition_cover($op, $highop, $left, $right)
+        unless $Seen{condition}{$$op}++;
+      return $self->maybe_parens("$left $highop $right", $cx, $highprec)
     } else {
-        # print STDERR '$a and $b', "\n";
-        # $a and $b
-        $left  = $self->deparse_binop_left ($op, $left,  $lowprec);
-        $right = $self->deparse_binop_right($op, $right, $lowprec);
-        add_condition_cover($op, $lowop, $left, $right)
-            unless $Seen{condition}{$$op}++;
-        return $self->maybe_parens("$left $lowop $right", $cx, $lowprec)
+      # print STDERR '$a and $b', "\n";
+      # $a and $b
+      $left  = $self->deparse_binop_left($op, $left, $lowprec);
+      $right = $self->deparse_binop_right($op, $right, $lowprec);
+      add_condition_cover($op, $lowop, $left, $right)
+        unless $Seen{condition}{$$op}++;
+      return $self->maybe_parens("$left $lowop $right", $cx, $lowprec)
     }
-}
+  }
 
-sub logassignop {
+  sub logassignop {
     my $self = shift;
     my ($op, $cx, $opname) = @_;
-    my $left = $op->first;
+    my $left  = $op->first;
     my $right = $op->first->sibling->first;  # skip sassign
-    $left = $self->deparse($left, 7);
+    $left  = $self->deparse($left,  7);
     $right = $self->deparse($right, 7);
     add_condition_cover($op, $opname, $left, $right);
     return $self->maybe_parens("$left $opname $right", $cx, 7);
-}
+  }
 
 }
 
 sub get_cover {
-    my $deparse = B::Deparse->new;
+  my $deparse = B::Deparse->new;
 
-    my $cv = $deparse->{curcv} = shift;
+  my $cv = $deparse->{curcv} = shift;
 
-    ($Sub_name, my $start) = sub_info($cv);
+  ($Sub_name, my $start) = sub_info($cv);
 
-    # warn "get_cover: <$Sub_name>\n";
-    return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK
+  # warn "get_cover: <$Sub_name>\n";
+  return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK
     # return unless length  $Sub_name;  # Only happens with Self_cover, AFAIK
 
-    get_location($start) if $start;
-    # print STDERR "[[$File:$Line]]\n";
-    # return unless length $File;
-    return if length $File && !use_file($File);
+  get_location($start) if $start;
+  # print STDERR "[[$File:$Line]]\n";
+  # return unless length $File;
+  return if length $File && !use_file($File);
 
-    return if !$Self_cover_run && $File =~ /Devel\/Cover/;
-    return if  $Self_cover_run && $File !~ /Devel\/Cover/;
-    return if  $Self_cover_run &&
-               $File =~ /Devel\/Cover\.pm$/ &&
-               $Sub_name eq "import";
+  return if !$Self_cover_run && $File =~ /Devel\/Cover/;
+  return if $Self_cover_run  && $File !~ /Devel\/Cover/;
+  return
+    if $Self_cover_run && $File =~ /Devel\/Cover\.pm$/ && $Sub_name eq "import";
 
-    # printf STDERR "getting cover for $Sub_name ($start), %x\n", $$cv;
+  # printf STDERR "getting cover for $Sub_name ($start), %x\n", $$cv;
 
-    if ($start) {
-        no warnings "uninitialized";
-        if ($File eq $Structure->get_file && $Line == $Structure->get_line &&
-            $Sub_name eq "__ANON__" && $Structure->get_sub_name eq "__ANON__") {
-            # Merge instances of anonymous subs into one
-            # TODO - multiple anonymous subs on the same line
-        } else {
-            my $count = $Sub_count->{$File}{$Line}{$Sub_name}++;
-            $Structure->set_subroutine($Sub_name, $File, $Line, $count);
-            add_subroutine_cover($start)
-                if $Coverage{subroutine} || $Coverage{pod};  # pod requires subs
-        }
+  if ($start) {
+    no warnings "uninitialized";
+    if ( $File eq $Structure->get_file
+      && $Line == $Structure->get_line
+      && $Sub_name eq "__ANON__"
+      && $Structure->get_sub_name eq "__ANON__")
+    {
+      # Merge instances of anonymous subs into one
+      # TODO - multiple anonymous subs on the same line
+    } else {
+      my $count = $Sub_count->{$File}{$Line}{$Sub_name}++;
+      $Structure->set_subroutine($Sub_name, $File, $Line, $count);
+      add_subroutine_cover($start)
+        if $Coverage{subroutine} || $Coverage{pod};  # pod requires subs
     }
+  }
 
-    if ($Pod && $Coverage{pod}) {
-        my $gv = $cv->GV;
-        if ($gv && !$gv->isa("B::SPECIAL")) {
-            my $stash = $gv->STASH;
-            my $pkg   = $stash->NAME;
-            my $file  = $cv->FILE;
-            my %opts;
-            $Run{digests}{$File} ||= $Structure->set_file($File);
-            if (ref $Coverage_options{pod}) {
-                my $p;
-                for (@{$Coverage_options{pod}}) {
-                    if (/^package|(?:also_)?private|trustme|pod_from|nocp$/) {
-                        $opts{$p = $_} = [];
-                    } elsif ($p) {
-                        push @{$opts{$p}}, $_;
-                    }
-                }
-                for $p (qw( private also_private trustme )) {
-                    next unless exists $opts{$p};
-                    $_ = qr/$_/ for @{$opts{$p}};
-                }
-            }
-            $Pod = "Pod::Coverage" if delete $opts{nocp};
-            # print STDERR "$Pod, $File:$Line ($Sub_name) [$file($pkg)]",
-            #              Dumper \%opts;
-            if ($Pod{$pkg} ||= $Pod->new(package => $pkg, %opts)) {
-                # print STDERR Dumper $Pod{$file};
-                my $covered;
-                for ($Pod{$pkg}->covered) {
-                    $covered = 1, last if $_ eq $Sub_name;
-                }
-                unless ($covered) {
-                    for ($Pod{$pkg}->uncovered) {
-                        $covered = 0, last if $_ eq $Sub_name;
-                    }
-                }
-                # print STDERR "covered ", $covered // "undef", "\n";
-                if (defined $covered) {
-                    my ($n, $new) = $Structure->add_count("pod");
-                    $Structure->add_pod($File, [ $Line, $Sub_name ]) if $new;
-                    $Run{count}{$File}{pod}[$n] += $covered;
-                    my $vec = $Run{vec}{$File}{pod};
-                    vec($vec->{vec}, $n, 1) = $covered ? 1 : 0;
-                    $vec->{size} = $n + 1;
-                }
-            }
+  if ($Pod && $Coverage{pod}) {
+    my $gv = $cv->GV;
+    if ($gv && !$gv->isa("B::SPECIAL")) {
+      my $stash = $gv->STASH;
+      my $pkg   = $stash->NAME;
+      my $file  = $cv->FILE;
+      my %opts;
+      $Run{digests}{$File} ||= $Structure->set_file($File);
+      if (ref $Coverage_options{pod}) {
+        my $p;
+        for (@{ $Coverage_options{pod} }) {
+          if (/^package|(?:also_)?private|trustme|pod_from|nocp$/) {
+            $opts{ $p = $_ } = [];
+          } elsif ($p) {
+            push @{ $opts{$p} }, $_;
+          }
         }
+        for $p (qw( private also_private trustme )) {
+          next unless exists $opts{$p};
+          $_ = qr/$_/ for @{ $opts{$p} };
+        }
+      }
+      $Pod = "Pod::Coverage" if delete $opts{nocp};
+      # print STDERR "$Pod, $File:$Line ($Sub_name) [$file($pkg)]",
+      #              Dumper \%opts;
+      if ($Pod{$pkg} ||= $Pod->new(package => $pkg, %opts)) {
+        # print STDERR Dumper $Pod{$file};
+        my $covered;
+        for ($Pod{$pkg}->covered) {
+          $covered = 1, last if $_ eq $Sub_name;
+        }
+        unless ($covered) {
+          for ($Pod{$pkg}->uncovered) {
+            $covered = 0, last if $_ eq $Sub_name;
+          }
+        }
+        # print STDERR "covered ", $covered // "undef", "\n";
+        if (defined $covered) {
+          my ($n, $new) = $Structure->add_count("pod");
+          $Structure->add_pod($File, [ $Line, $Sub_name ]) if $new;
+          $Run{count}{$File}{pod}[$n] += $covered;
+          my $vec = $Run{vec}{$File}{pod};
+          vec($vec->{vec}, $n, 1) = $covered ? 1 : 0;
+          $vec->{size} = $n + 1;
+        }
+      }
     }
+  }
 
-    # my $dd = @_ && ref $_[0]
-                 # ? $deparse->deparse($_[0], 0)
-                 # : $deparse->deparse_sub($cv, 0);
-    # print STDERR "get_cover: <$Sub_name>\n";
-    # print STDERR "[[$File:$Line]]\n";
-    # print STDERR "<$dd>\n";
+  # my $dd = @_ && ref $_[0]
+  # ? $deparse->deparse($_[0], 0)
+  # : $deparse->deparse_sub($cv, 0);
+  # print STDERR "get_cover: <$Sub_name>\n";
+  # print STDERR "[[$File:$Line]]\n";
+  # print STDERR "<$dd>\n";
 
-    no warnings "redefine";
-    local *B::Deparse::deparse      = \&deparse;
-    local *B::Deparse::logop        = \&logop;
-    local *B::Deparse::logassignop  = \&logassignop;
-    local *B::Deparse::const_dumper = \&const_dumper;
-    local *B::Deparse::const        = \&const if $Original{const};
+  no warnings "redefine";
 
-    my $de = @_ && ref $_[0]
-                 ? $deparse->deparse($_[0], 0)
-                 : $deparse->deparse_sub($cv, 0);
-    # print STDERR "<$de>\n";
-    $de
+  local *B::Deparse::deparse      = \&deparse;
+  local *B::Deparse::logop        = \&logop;
+  local *B::Deparse::logassignop  = \&logassignop;
+  local *B::Deparse::const_dumper = \&const_dumper;
+  local *B::Deparse::const        = \&const if $Original{const};
+
+  my $de = @_
+    && ref $_[0] ? $deparse->deparse($_[0], 0) : $deparse->deparse_sub($cv, 0);
+
+  # print STDERR "<$de>\n";
+  $de
 }
 
 sub _report_progress {
-    my ($msg, $code, @items) = @_;
-    if ($Silent) {
-        $code->($_) for @items;
-        return;
-    }
-    my $tot = @items || 1;
-    my $prog = sub {
-        my ($n) = @_;
-        print OUT "\r" . __PACKAGE__ . ": " . int(100 * $n / $tot) . "% ";
-    };
-    my ($old_pipe, $n, $start) = ($|, 0, time);
-    $|++;
-    print OUT __PACKAGE__, ": $msg\n";
-    my $is_interactive = -t *OUT;
-    for (@items) {
-        $prog->($n++)
-            if $is_interactive;
-        $code->($_);
-    }
-    $prog->($n || 1);
-    print OUT __PACKAGE__ . ": Done "
-        if !$is_interactive;
-    print OUT "- " . (time - $start) . "s taken\n";
-    $| = $old_pipe;
+  my ($msg, $code, @items) = @_;
+  if ($Silent) {
+    $code->($_) for @items;
+    return;
+  }
+  my $tot  = @items || 1;
+  my $prog = sub {
+    my ($n) = @_;
+    print OUT "\r" . __PACKAGE__ . ": " . int(100 * $n / $tot) . "% ";
+  };
+  my ($old_pipe, $n, $start) = ($|, 0, time);
+  $|++;
+  print OUT __PACKAGE__, ": $msg\n";
+  my $is_interactive = -t *OUT;
+  for (@items) {
+    $prog->($n++) if $is_interactive;
+    $code->($_);
+  }
+  $prog->($n || 1);
+  print OUT __PACKAGE__ . ": Done " if !$is_interactive;
+  print OUT "- " . (time - $start) . "s taken\n";
+  $| = $old_pipe;
 }
 
 sub get_cover_progress {
-    my ($type, @cvs) = @_;
-    _report_progress("getting $type coverage", sub { get_cover($_) }, @cvs);
+  my ($type, @cvs) = @_;
+  _report_progress("getting $type coverage", sub { get_cover($_) }, @cvs);
 }
 
 "
@@ -1845,7 +1856,7 @@ Please report new bugs on Github.
 
 =head1 LICENCE
 
-Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

@@ -1,0 +1,7 @@
+shell=bash
+external-sources=true
+enable=add-default-case
+enable=avoid-nullary-conditions
+enable=check-unassigned-uppercase
+enable=deprecate-which
+enable=require-double-brackets

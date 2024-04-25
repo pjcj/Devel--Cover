@@ -1,4 +1,4 @@
-# Copyright 2002-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2002-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -11,23 +11,23 @@ my $y = 7;
 $y++;
 
 sub _aa {
-    $y++;
-    die;
-    die;
+  $y++;
+  die;
+  die;
 }
 
 sub xx {
-    $y++;
-    die;
+  $y++;
+  die;
 }
 
 sub yy {
-    $y++;
+  $y++;
 }
 
 sub zz {
-    my $x = shift;
-    $x++;
+  my $x = shift;
+  $x++;
 }
 
 1

@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# Copyright 2013-2023, Paul Johnson (paul@pjcj.net)
+# Copyright 2013-2024, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -17,15 +17,15 @@ use warnings;
 use Email::Stuffer;
 
 sub main {
-    while (<>) {
-        chomp;
-        next unless /\@/;
-        # say;
-        sleep 10;
-        my @parts = split / /;
-        my $email = $parts[-1];
-        my $line = $_;
-        my $body = <<"EOM";
+  while (<>) {
+    chomp;
+    next unless /\@/;
+    # say;
+    sleep 10;
+    my @parts = split / /;
+    my $email = $parts[-1];
+    my $line  = $_;
+    my $body  = <<"EOM";
 Hello,
 
 I'm contacting you because you are one of the Authors of Devel::Cover.
@@ -59,19 +59,16 @@ Paul
 -- 
 Paul Johnson - paul\@pjcj.net
 EOM
-        eval {
-            Email::Stuffer->from     ('Paul Johnson <paul@pjcj.net>')
-                          ->to       ($email)
-                          ->subject  ("Devel::Cover Authors File")
-                          ->text_body($body)
-                          ->send_or_die;
-        };
-        if ($@) {
-            say "Failed to send mail <$line>\n$@"
-        } else {
-            say "Sent mail <$line>"
-        }
+    eval {
+      Email::Stuffer->from('Paul Johnson <paul@pjcj.net>')->to($email)
+        ->subject("Devel::Cover Authors File")->text_body($body)->send_or_die;
+    };
+    if ($@) {
+      say "Failed to send mail <$line>\n$@"
+    } else {
+      say "Sent mail <$line>"
     }
+  }
 }
 
 main

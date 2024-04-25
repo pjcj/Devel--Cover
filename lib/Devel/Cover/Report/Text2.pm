@@ -8,13 +8,13 @@ use Devel::Cover::DB;
 use Devel::Cover::Truth_Table;
 
 my %format = (
-    line      => "%4s ",
-    err       => "%3s ",
-    statement => "%4s ",
-    condition => "%-24s ",
-    branch    => "%-6s ",
-    time      => "%6s ",
-    code      => "| %s\n",
+  line      => "%4s ",
+  err       => "%3s ",
+  statement => "%4s ",
+  condition => "%-24s ",
+  branch    => "%-6s ",
+  time      => "%6s ",
+  code      => "| %s\n",
 );
 
 #-------------------------------------------------------------------------------
@@ -23,27 +23,26 @@ my %format = (
 # Notes      :
 #-------------------------------------------------------------------------------
 sub headers {
-    my ($db, $options) = @_;
-    my ($fmt, @data);
+  my ($db, $options) = @_;
+  my ($fmt, @data);
 
-    for (qw/line err/) {
-        $fmt .= $format{$_};
-        push @data, $_;
-    }
+  for (qw/line err/) {
+    $fmt .= $format{$_};
+    push @data, $_;
+  }
 
-    my %cr;
-    @cr{$db->criteria} = $db->criteria_short;
-    foreach my $c ($db->criteria) {
-        next unless $options->{show}{$c};
-        $fmt .= $format{$c};
-        push @data, $cr{$c};
-    }
-    $fmt .= $format{code};
-    push @data, 'code';
+  my %cr;
+  @cr{ $db->criteria } = $db->criteria_short;
+  foreach my $c ($db->criteria) {
+    next unless $options->{show}{$c};
+    $fmt .= $format{$c};
+    push @data, $cr{$c};
+  }
+  $fmt .= $format{code};
+  push @data, 'code';
 
-    return $fmt, @data;
+  return $fmt, @data;
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_metrics()
@@ -51,20 +50,20 @@ sub headers {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub get_metrics {
-    my ($db, $options, $file_data, $line) = @_;
-    my %m;
+  my ($db, $options, $file_data, $line) = @_;
+  my %m;
 
-    for my $c ($db->criteria) {                   # find all metrics available in db
-        next unless $options->{show}{$c};         # skip those we don't want in report
-        my $criterion = $file_data->$c();         # check if metric collected for this file
-        if ($criterion) {                         # if it exists...
-            my $li = $criterion->location($line); #   get the metric info for the current line
-            $m{$c} = $li ? [@$li] : undef;        #   and stash it
-        }
+  for my $c ($db->criteria) {  # find all metrics available in db
+    next unless $options->{show}{$c};  # skip those we don't want in report
+    my $criterion = $file_data->$c();  # check if metric collected for this file
+    if ($criterion) {                  # if it exists...
+      my $li = $criterion->location($line)
+        ;  #   get the metric info for the current line
+      $m{$c} = $li ? [@$li] : undef;  #   and stash it
     }
-    return %m;
+  }
+  return %m;
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : print_file()
@@ -72,13 +71,13 @@ sub get_metrics {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_file {
-    my ($db, $file, $options) = @_;
+  my ($db, $file, $options) = @_;
 
-    open(F, '<', $file) or warn("Unable to open '$file' [$!]\n"), return;
+  open(F, '<', $file) or warn("Unable to open '$file' [$!]\n"), return;
 
-    my $pct  = sprintf("%.1f%%", $db->{summary}{$file}{total}{percentage});
-    my $pver = join('.', map {ord} split(//, $^V));
-    print <<EOT;
+  my $pct  = sprintf("%.1f%%", $db->{summary}{$file}{total}{percentage});
+  my $pver = join('.', map { ord } split(//, $^V));
+  print <<EOT;
 #         File: $file
 #     Coverage: $pct
 # Perl Version: $pver
@@ -86,53 +85,51 @@ sub print_file {
 
 EOT
 
-    my ($fmt, @out) = headers($db, $options);
-    printf $fmt, @out;
+  my ($fmt, @out) = headers($db, $options);
+  printf $fmt, @out;
 
-    my $file_data = $db->cover->file($file);
-    while (my $line = <F>) {
-        chomp $line;
+  my $file_data = $db->cover->file($file);
+  while (my $line = <F>) {
+    chomp $line;
 
-        my $error;
-        my %metric = get_metrics($db, $options, $file_data, $.);
-        my @out    = ([$.], ['']);
+    my $error;
+    my %metric = get_metrics($db, $options, $file_data, $.);
+    my @out    = ([$.], ['']);
 
-        foreach my $c ($db->criteria) {
-            next unless $options->{show}{$c};
-            push(@out, []), next unless $metric{$c};
+    foreach my $c ($db->criteria) {
+      next unless $options->{show}{$c};
+      push(@out, []), next unless $metric{$c};
 
-            my $value = [];
-            if ($c eq 'branch') {
-                @$value  = $file_data->branch->branch_coverage($.);
-                $error ||= $file_data->branch->error($.);
-            } elsif ($c eq 'condition') {
-                @$value  = map {$_->[0]->text}
-                               $file_data->condition->truth_table($.);
-                $error ||= $file_data->condition->error($.);
-            } else {
-                while (my $o = shift @{$metric{$c}}) {
-                    push @$value, ($c =~ /statement|pod|time/)
-                    ? $o->covered : $o->percentage;
-                    $error ||= $o->error;
-                }
-            }
-            push @out, $value;
+      my $value = [];
+      if ($c eq 'branch') {
+        @$value = $file_data->branch->branch_coverage($.);
+        $error ||= $file_data->branch->error($.);
+      } elsif ($c eq 'condition') {
+        @$value = map { $_->[0]->text } $file_data->condition->truth_table($.);
+        $error ||= $file_data->condition->error($.);
+      } else {
+        while (my $o = shift @{ $metric{$c} }) {
+          push @$value,
+            ($c =~ /statement|pod|time/) ? $o->covered : $o->percentage;
+          $error ||= $o->error;
         }
-
-        $out[1] = ['***'] if $error; # flag missing coverage
-        push @out, [$line];
-
-        foreach my $i (0 .. max(map {$#$_} @out)) {
-            no warnings 'uninitialized';
-            printf $fmt, map{$_->[$i]} @out;
-        }
-
-        last if $line =~ /^__(END|DATA)__/;
+      }
+      push @out, $value;
     }
-    close F or die "Unable to close '$file' [$!]";
-    print "\n\n";
-}
 
+    $out[1] = ['***'] if $error;  # flag missing coverage
+    push @out, [$line];
+
+    foreach my $i (0 .. max(map { $#$_ } @out)) {
+      no warnings 'uninitialized';
+      printf $fmt, map { $_->[$i] } @out;
+    }
+
+    last if $line =~ /^__(END|DATA)__/;
+  }
+  close F or die "Unable to close '$file' [$!]";
+  print "\n\n";
+}
 
 #-------------------------------------------------------------------------------
 # Subroutine : max()
@@ -140,13 +137,12 @@ EOT
 # Notes      :
 #-------------------------------------------------------------------------------
 sub max {
-    my $max = shift;
-    foreach (@_) {
-        $max = $_ if $_ > $max;
-    }
-    return $max;
+  my $max = shift;
+  foreach (@_) {
+    $max = $_ if $_ > $max;
+  }
+  return $max;
 }
-
 
 #-------------------------------------------------------------------------------
 # Subroutine : report()
@@ -154,10 +150,10 @@ sub max {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub report {
-    my ($pkg, $db, $options) = @_;
-    foreach my $file (@{$options->{file}}) {
-        print_file($db, $file, $options);
-    }
+  my ($pkg, $db, $options) = @_;
+  foreach my $file (@{ $options->{file} }) {
+    print_file($db, $file, $options);
+  }
 }
 
 1;
@@ -187,7 +183,7 @@ Huh?
 
 =head1 LICENCE
 
-Copyright 2001-2023, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 
