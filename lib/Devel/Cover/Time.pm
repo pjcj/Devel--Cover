@@ -14,25 +14,25 @@ use warnings;
 
 use base "Devel::Cover::Criterion";
 
-sub uncoverable { 0                  }
-sub covered     { ${$_[0]}           }
-sub total       { 1                  }
-sub percentage  { ${$_[0]} ? 100 : 0 }
-sub error       { 0                  }
+sub uncoverable { 0 }
+sub covered     { ${ $_[0] } }
+sub total       { 1 }
+sub percentage  { ${ $_[0] } ? 100 : 0 }
+sub error       { 0 }
 
 sub calculate_summary {
-    my $self = shift;
-    my ($db, $file) = @_;
+  my $self = shift;
+  my ($db, $file) = @_;
 
-    $db->{summary}{$file}{time}{total} += $$self;
-    $db->{summary}{Total}{time}{total} += $$self;
+  $db->{summary}{$file}{time}{total} += $$self;
+  $db->{summary}{Total}{time}{total} += $$self;
 }
 
 sub calculate_percentage {
-    my $class = shift;
-    my ($db, $s) = @_;
-    my $t = $db->{summary}{Total}{time}{total};
-    $s->{percentage} = $t ? $s->{total} * 100 / $t : 100;
+  my $class = shift;
+  my ($db, $s) = @_;
+  my $t = $db->{summary}{Total}{time}{total};
+  $s->{percentage} = $t ? $s->{total} * 100 / $t : 100;
 }
 
 1

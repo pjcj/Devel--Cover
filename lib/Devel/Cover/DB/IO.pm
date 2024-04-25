@@ -15,24 +15,24 @@ use warnings;
 my $Format;
 
 BEGIN {
-    $Format = "Sereal"   if eval "use Sereal::Decoder; use Sereal::Encoder; 1";
-    $Format = "JSON"     if !$Format and eval { require JSON::MaybeXS; 1 };
-    $Format = "Storable" if !$Format and eval "use Storable; 1";
-    die "Can't load either JSON or Storable" unless $Format;
+  $Format = "Sereal"   if eval "use Sereal::Decoder; use Sereal::Encoder; 1";
+  $Format = "JSON"     if !$Format and eval { require JSON::MaybeXS; 1 };
+  $Format = "Storable" if !$Format and eval "use Storable; 1";
+  die "Can't load either JSON or Storable" unless $Format;
 }
 
 sub new {
-    my $class = shift;
+  my $class = shift;
 
-    my $format = $ENV{DEVEL_COVER_DB_FORMAT} || $Format;
-    ($format) = $format =~ /(.*)/;  # die tainting
-    die "Devel::Cover: Unrecognised DB format: $format"
-        unless $format =~ /^(?:Storable|JSON|Sereal)$/;
+  my $format = $ENV{DEVEL_COVER_DB_FORMAT} || $Format;
+  ($format) = $format =~ /(.*)/;  # die tainting
+  die "Devel::Cover: Unrecognised DB format: $format"
+    unless $format =~ /^(?:Storable|JSON|Sereal)$/;
 
-    $class .= "::$format";
-    eval "use $class; 1" or die "Devel::Cover: $@";
+  $class .= "::$format";
+  eval "use $class; 1" or die "Devel::Cover: $@";
 
-    $class->new(options => $ENV{DEVEL_COVER_IO_OPTIONS} || "", @_)
+  $class->new(options => $ENV{DEVEL_COVER_IO_OPTIONS} || "", @_)
 }
 
 1

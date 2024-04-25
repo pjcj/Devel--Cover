@@ -17,21 +17,21 @@ use Storable;
 # VERSION
 
 sub new {
-    my $class = shift;
-    my $self = $class->SUPER::new(@_);
-    bless $self, $class
+  my $class = shift;
+  my $self  = $class->SUPER::new(@_);
+  bless $self, $class
 }
 
 sub read {
-    my $self   = shift;
-    my ($file) = @_;
-    $self->_read($file, sub { Storable::retrieve($file) })
+  my $self = shift;
+  my ($file) = @_;
+  $self->_read($file, sub { Storable::retrieve($file) })
 }
 
 sub write {
-    my $self = shift;
-    my ($data, $file) = @_;
-    $self->_write($file, sub { Storable::nstore($data, $file) })
+  my $self = shift;
+  my ($data, $file) = @_;
+  $self->_write($file, sub { Storable::nstore($data, $file) })
 }
 
 1

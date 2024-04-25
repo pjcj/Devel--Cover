@@ -22,18 +22,18 @@ our @EXPORT_OK = "write_file";
 my %Files;
 
 sub write_file {
-    my ($directory, $file) = @_;
+  my ($directory, $file) = @_;
 
-    while (my ($f, $contents) = each %Files) {
-        next if
-            $file ne "all" &&
-            (($file eq "js" || $file eq "css") && $f !~ /\.$file$/) &&
-            $file ne $f;
-        my $path = "$directory/$f";
-        open my $p, ">", $path or next;
-        print $p $contents;
-        close $p;
-    }
+  while (my ($f, $contents) = each %Files) {
+    next
+      if $file ne "all"
+      && (($file eq "js" || $file eq "css") && $f !~ /\.$file$/)
+      && $file ne $f;
+    my $path = "$directory/$f";
+    open my $p, ">", $path or next;
+    print $p $contents;
+    close $p;
+  }
 }
 
 $Files{"cover.css"} = <<'EOF';

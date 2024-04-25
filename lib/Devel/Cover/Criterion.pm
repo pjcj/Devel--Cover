@@ -24,60 +24,63 @@ use Devel::Cover::Subroutine;
 use Devel::Cover::Time;
 use Devel::Cover::Pod;
 
-sub coverage    { $_[0][0]                                        }
-sub information { $_[0][1]                                        }
+sub coverage    { $_[0][0] }
+sub information { $_[0][1] }
 
-sub uncoverable { "n/a"                                           }
-sub covered     { "n/a"                                           }
-sub total       { "n/a"                                           }
-sub percentage  { "n/a"                                           }
-sub error       { "n/a"                                           }
-sub text        { "n/a"                                           }
-sub values      { [ $_[0]->covered ]                              }
-sub criterion   { require Carp;
-                  Carp::confess("criterion() must be overridden") }
+sub uncoverable { "n/a" }
+sub covered     { "n/a" }
+sub total       { "n/a" }
+sub percentage  { "n/a" }
+sub error       { "n/a" }
+sub text        { "n/a" }
+sub values      { [ $_[0]->covered ] }
+
+sub criterion {
+  require Carp;
+  Carp::confess("criterion() must be overridden")
+}
 
 sub err_chk {
-    my $self = shift;
-    my ($covered, $uncoverable) = @_;
-    no warnings qw( once uninitialized );
-    $Devel::Cover::Ignore_covered_err || $uncoverable eq "ignore_covered_err"
-        ? !($covered ||  $uncoverable)
-        : !($covered xor $uncoverable)
+  my $self = shift;
+  my ($covered, $uncoverable) = @_;
+  no warnings qw( once uninitialized );
+  $Devel::Cover::Ignore_covered_err || $uncoverable eq "ignore_covered_err"
+    ? !($covered || $uncoverable)
+    : !($covered xor $uncoverable)
 }
 
 sub simple_error {
-    my $self = shift;
-    $self->err_chk($self->covered, $self->uncoverable)
+  my $self = shift;
+  $self->err_chk($self->covered, $self->uncoverable)
 }
 
 sub calculate_percentage {
-    my $class = shift;
-    my ($db, $s) = @_;
-    my $errors = $s->{error} || 0;
-    $s->{percentage} = $s->{total} ? 100 - $errors * 100 / $s->{total} : 100;
+  my $class = shift;
+  my ($db, $s) = @_;
+  my $errors = $s->{error} || 0;
+  $s->{percentage} = $s->{total} ? 100 - $errors * 100 / $s->{total} : 100;
 }
 
 sub aggregate {
-    my ($self, $s, $file, $keyword, $t) = @_;
+  my ($self, $s, $file, $keyword, $t) = @_;
 
-    my $name = $self->criterion;
-    $t = int($t);
-    $s->{$file}{$name}{$keyword} += $t;
-    $s->{$file}{total}{$keyword} += $t;
-    $s->{Total}{$name}{$keyword} += $t;
-    $s->{Total}{total}{$keyword} += $t;
+  my $name = $self->criterion;
+  $t = int($t);
+  $s->{$file}{$name}{$keyword} += $t;
+  $s->{$file}{total}{$keyword} += $t;
+  $s->{Total}{$name}{$keyword} += $t;
+  $s->{Total}{total}{$keyword} += $t;
 }
 
 sub calculate_summary {
-    my $self = shift;
-    my ($db, $file) = @_;
+  my $self = shift;
+  my ($db, $file) = @_;
 
-    my $s = $db->{summary};
-    $self->aggregate($s, $file, "total",       $self->total);
-    $self->aggregate($s, $file, "uncoverable", 1) if $self->uncoverable;
-    $self->aggregate($s, $file, "covered",     1) if $self->covered;
-    $self->aggregate($s, $file, "error",       1) if $self->error;
+  my $s = $db->{summary};
+  $self->aggregate($s, $file, "total",       $self->total);
+  $self->aggregate($s, $file, "uncoverable", 1) if $self->uncoverable;
+  $self->aggregate($s, $file, "covered",     1) if $self->covered;
+  $self->aggregate($s, $file, "error",       1) if $self->error;
 }
 
 1

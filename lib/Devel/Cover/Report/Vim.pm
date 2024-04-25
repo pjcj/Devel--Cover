@@ -11,8 +11,9 @@ use strict;
 use warnings;
 
 our $VERSION;
+
 BEGIN {
-# VERSION
+  # VERSION
 }
 
 use Devel::Cover::DB;
@@ -24,53 +25,51 @@ use Getopt::Long;
 use Template 2.00;
 
 sub get_options {
-    my ($self, $opt) = @_;
-    $opt->{outputfile} = "coverage.vim";
-    die "Invalid command line options" unless
-        GetOptions($opt,
-                   qw(
-                       outputfile=s
-                     ));
+  my ($self, $opt) = @_;
+  $opt->{outputfile} = "coverage.vim";
+  die "Invalid command line options" unless GetOptions(
+    $opt, qw(
+      outputfile=s
+    )
+  );
 }
 
 sub report {
-    my ($pkg, $db, $options) = @_;
+  my ($pkg, $db, $options) = @_;
 
-    my $template = Template->new({
-        LOAD_TEMPLATES => [
-            Devel::Cover::Report::Vim::Template::Provider->new({}),
-        ],
-    });
+  my $template = Template->new({
+    LOAD_TEMPLATES =>
+      [ Devel::Cover::Report::Vim::Template::Provider->new({}) ]
+  });
 
-    my $vars = {
-        runs => [
-            map {
-                run    =>               $_->run,
-                perl   =>               $_->perl,
-                OS     =>               $_->OS,
-                start  => scalar gmtime $_->start,
-                finish => scalar gmtime $_->finish,
-            },
-            sort {$a->start <=> $b->start}
-            $db->runs
-        ],
-        cov_time => do {
-            my $time = 0;
-            for ($db->runs) {
-                $time = $_->finish if $_->finish > $time;
-            }
-            int $time
-        },
-        version  => $VERSION,
-        files    => $options->{file},
-        cover    => $db->cover,
-        types    => [ grep $_ ne "time", keys %{$options->{show}} ],
-    };
+  my $vars = {
+    runs => [
+      map {
+        run      => $_->run,
+          perl   => $_->perl,
+          OS     => $_->OS,
+          start  => scalar gmtime $_->start,
+          finish => scalar gmtime $_->finish,
+      },
+      sort { $a->start <=> $b->start } $db->runs,
+    ],
+    cov_time => do {
+      my $time = 0;
+      for ($db->runs) {
+        $time = $_->finish if $_->finish > $time;
+      }
+      int $time
+    },
+    version => $VERSION,
+    files   => $options->{file},
+    cover   => $db->cover,
+    types   => [ grep $_ ne "time", keys %{ $options->{show} } ],
+  };
 
-    my $out = "$options->{outputdir}/$options->{outputfile}";
-    $template->process("vim", $vars, $out) or die $template->error();
+  my $out = "$options->{outputdir}/$options->{outputfile}";
+  $template->process("vim", $vars, $out) or die $template->error();
 
-    print "Vim script written to $out\n" unless $options->{silent};
+  print "Vim script written to $out\n" unless $options->{silent};
 }
 
 1;
@@ -87,10 +86,10 @@ use base "Template::Provider";
 my %Templates;
 
 sub fetch {
-    my $self = shift;
-    my ($name) = @_;
-    # print "Looking for <$name>\n";
-    $self->SUPER::fetch(exists $Templates{$name} ? \$Templates{$name} : $name)
+  my $self = shift;
+  my ($name) = @_;
+  # print "Looking for <$name>\n";
+  $self->SUPER::fetch(exists $Templates{$name} ? \$Templates{$name} : $name)
 }
 
 $Templates{vim} = <<'EOT';
