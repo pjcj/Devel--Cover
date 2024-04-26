@@ -1334,36 +1334,36 @@ Devel::Cover - Code coverage metrics for Perl
 
 To get coverage for an uninstalled module:
 
- cover -test
+  cover -test
 
 or
 
- cover -delete
- HARNESS_PERL_SWITCHES=-MDevel::Cover make test
- cover
+  cover -delete
+  HARNESS_PERL_SWITCHES=-MDevel::Cover make test
+  cover
 
 or if you are using dzil (Dist::Zilla) and have installed
 L<Dist::Zilla::App::Command::cover>:
 
- dzil cover
+  dzil cover
 
 To get coverage for an uninstalled module which uses L<Module::Build> (0.26 or
 later):
 
- ./Build testcover
+  ./Build testcover
 
 If the module does not use the t/*.t framework:
 
- PERL5OPT=-MDevel::Cover make test
+  PERL5OPT=-MDevel::Cover make test
 
 If you want to get coverage for a program:
 
- perl -MDevel::Cover yourprog args
- cover
+  perl -MDevel::Cover yourprog args
+  cover
 
 To alter default values:
 
- perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
+  perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
 
 =head1 DESCRIPTION
 
@@ -1487,33 +1487,34 @@ information as possible.
 Alternatively, add -MDevel::Cover to the parameters for mod_perl.
 In this example, Devel::Cover will be operating in silent mode.
 
- PerlSwitches -MDevel::Cover=-silent,1
+  PerlSwitches -MDevel::Cover=-silent,1
 
 =head1 OPTIONS
 
- -blib               - "use blib" and ignore files matching \bt/ (default true
-                       if blib directory exists, false otherwise)
- -coverage criterion - Turn on coverage for the specified criterion.  Criteria
-                       include statement, branch, condition, path, subroutine,
-                       pod, time, all and none (default all available)
- -db cover_db        - Store results in coverage db (default ./cover_db)
- -dir path           - Directory in which coverage will be collected (default
-                       cwd)
- -ignore RE          - Set regular expressions for files to ignore (default
-                       "/Devel/Cover\b")
- +ignore RE          - Append to regular expressions of files to ignore
- -inc path           - Set prefixes of files to include (default @INC)
- +inc path           - Append to prefixes of files to include
- -loose_perms val    - Use loose permissions on all files and directories in
-                       the coverage db so that code changing EUID can still
-                       write coverage information (default off)
- -merge val          - Merge databases, for multiple test benches (default on)
- -select RE          - Set regular expressions of files to select (default none)
- +select RE          - Append to regular expressions of files to select
- -silent val         - Don't print informational messages (default off)
- -subs_only val      - Only cover code in subroutine bodies (default off)
- -replace_ops val    - Use op replacing rather than runops (default on)
- -summary val        - Print summary information if val is true (default on)
+  -blib               - "use blib" and ignore files matching \bt/ (default true
+                        if blib directory exists, false otherwise)
+  -coverage criterion - Turn on coverage for the specified criterion.  Criteria
+                        include statement, branch, condition, path, subroutine,
+                        pod, time, all and none (default all available)
+  -db cover_db        - Store results in coverage db (default ./cover_db)
+  -dir path           - Directory in which coverage will be collected (default
+                        cwd)
+  -ignore RE          - Set regular expressions for files to ignore (default
+                        "/Devel/Cover\b")
+  +ignore RE          - Append to regular expressions of files to ignore
+  -inc path           - Set prefixes of files to include (default @INC)
+  +inc path           - Append to prefixes of files to include
+  -loose_perms val    - Use loose permissions on all files and directories in
+                        the coverage db so that code changing EUID can still
+                        write coverage information (default off)
+  -merge val          - Merge databases, for multiple test benches (default on)
+  -select RE          - Set regular expressions of files to select (default
+                        none)
+  +select RE          - Append to regular expressions of files to select
+  -silent val         - Don't print informational messages (default off)
+  -subs_only val      - Only cover code in subroutine bodies (default off)
+  -replace_ops val    - Use op replacing rather than runops (default on)
+  -summary val        - Print summary information if val is true (default on)
 
 =head2 More on Coverage Options
 
@@ -1526,12 +1527,12 @@ subroutines containing xx are private, call Devel::Cover with the option
 
 Or, to ignore all files in C<t/lib> as well as files ending in C<Foo.pm>:
 
-    cover -test -silent -ignore ^t/lib/,Foo.pm$
+  cover -test -silent -ignore ^t/lib/,Foo.pm$
 
 Note that C<-ignore> replaces any default ignore regexes.  To preserve any
 ignore regexes which have already been set, use C<+ignore>:
 
-    cover -test -silent +ignore ^t/lib/,Foo.pm$
+  cover -test -silent +ignore ^t/lib/,Foo.pm$
 
 =head1 SELECTING FILES TO COVER
 
@@ -1595,7 +1596,7 @@ non-invasive.
 You can use special comments in your code to specify uncoverable criteria.
 Comments are of the form:
 
- # uncoverable <criterion> [details]
+  # uncoverable <criterion> [details]
 
 The keyword "uncoverable" must be the first text in the comment.  It should be
 followed by the name of the coverage criterion which is uncoverable.  There
@@ -1616,56 +1617,56 @@ documentation for the uncoverable data.
 
 Example:
 
-    # uncoverable branch true count:1..3 class:ignore_covered_err note:error chk
+  # uncoverable branch true count:1..3 class:ignore_covered_err note:error chk
 
 =head3 Statements
 
 The "uncoverable" comment should appear on either the same line as the
 statement, or on the line before it:
 
-    $impossible++;  # uncoverable statement
-    # uncoverable statement
-    it_has_all_gone_horribly_wrong();
+  $impossible++;  # uncoverable statement
+  # uncoverable statement
+  it_has_all_gone_horribly_wrong();
 
 If there are multiple statements (or any other criterion) on a line you can
 specify which statement is uncoverable by using the "count" attribute,
 count:n, which indicates that the uncoverable statement is the nth statement
 on the line.
 
-    # uncoverable statement count:1
-    # uncoverable statement count:2
-    cannot_run_this(); or_this();
+  # uncoverable statement count:1
+  # uncoverable statement count:2
+  cannot_run_this(); or_this();
 
 =head3 Branches
 
 The "uncoverable" comment should specify whether the "true" or "false" branch
 is uncoverable.
 
-    # uncoverable branch true
-    if (pi == 3)
+  # uncoverable branch true
+  if (pi == 3)
 
 Both branches may be uncoverable:
 
-    # uncoverable branch true
-    # uncoverable branch false
-    if (impossible_thing_happened_one_way()) {
-        handle_it_one_way();      # uncoverable statement
-    } else {
-        handle_it_another_way();  # uncoverable statement
-    }
+  # uncoverable branch true
+  # uncoverable branch false
+  if (impossible_thing_happened_one_way()) {
+    handle_it_one_way();      # uncoverable statement
+  } else {
+    handle_it_another_way();  # uncoverable statement
+  }
 
 If there is an elsif in the branch then it can be addressed as the second
 branch on the line by using the "count" attribute.  Further elsifs are the
 third and fourth "count" value, and so on:
 
-    # uncoverable branch false count:2
-    if ($thing == 1) {
-        handle_thing_being_one();
-    } elsif ($thing == 2) {
-        handle_thing_being_tow();
-    } else {
-        die "thing can only be one or two, not $thing"; # uncoverable statement
-    }
+  # uncoverable branch false count:2
+  if ($thing == 1) {
+    handle_thing_being_one();
+  } elsif ($thing == 2) {
+    handle_thing_being_tow();
+  } else {
+    die "thing can only be one or two, not $thing"; # uncoverable statement
+  }
 
 =head3 Conditions
 
@@ -1675,18 +1676,18 @@ $x && $y> for example, the left operator may never be true, the right operator
 may never be true, and the whole operation may never be false.  These
 conditions may be modelled thus:
 
-    # uncoverable branch true
-    # uncoverable condition left
-    # uncoverable condition false
-    if ($x && !$y) {
-        $x++;  # uncoverable statement
-    }
+  # uncoverable branch true
+  # uncoverable condition left
+  # uncoverable condition false
+  if ($x && !$y) {
+    $x++;  # uncoverable statement
+  }
 
-    # uncoverable branch true
-    # uncoverable condition right
-    # uncoverable condition false
-    if (!$x && $y) {
-    }
+  # uncoverable branch true
+  # uncoverable condition right
+  # uncoverable condition false
+  if (!$x && $y) {
+  }
 
 C<Or> conditionals are handled in a similar fashion (TODO - provide some
 examples) but C<xor> conditionals are not properly handled yet.
@@ -1701,10 +1702,10 @@ statement is marked as uncoverable.  Ideally all other criteria in the
 subroutine would be marked as uncoverable automatically, but that isn't the
 case at the moment.
 
-    sub z {
-        # uncoverable subroutine
-        $y++; # uncoverable statement
-    }
+  sub z {
+    # uncoverable subroutine
+    $y++; # uncoverable statement
+  }
 
 =head2 Non-invasive specification
 
@@ -1717,10 +1718,10 @@ those two files.
 The interface to managing this file is the L<cover> program, and the options
 are:
 
- -uncoverable_file
- -add_uncoverable_point
- -delete_uncoverable_point   **UNIMPLEMENTED**
- -clean_uncoverable_points   **UNIMPLEMENTED**
+  -uncoverable_file
+  -add_uncoverable_point
+  -delete_uncoverable_point   **UNIMPLEMENTED**
+  -clean_uncoverable_points   **UNIMPLEMENTED**
 
 The parameter for -add_uncoverable_point is a string composed of up to seven
 space separated elements: "$file $criterion $line $count $type $class $note".
@@ -1795,20 +1796,20 @@ where a runtime import fails if the module being imported is one that
 Devel::Cover uses internally.  For example, suppose your program has
 this function:
 
- sub foo {
-     eval { require Storable };
-     if ($@) {
-         carp "Can't find Storable";
-         return;
-     }
-     # ...
- }
+  sub foo {
+    eval { require Storable };
+    if ($@) {
+        carp "Can't find Storable";
+        return;
+    }
+    # ...
+  }
 
 You might write a test for the failure mode as
 
- BEGIN { @INC = () }
- foo();
- # check for error message
+  BEGIN { @INC = () }
+  foo();
+  # check for error message
 
 Because Devel::Cover uses Storable internally, the import will succeed
 (and the test will fail) under a coverage run.
