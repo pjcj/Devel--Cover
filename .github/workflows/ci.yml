@@ -31,7 +31,8 @@ jobs:
           - { os: "ubuntu-latest", perl: "5.32" }
           - { os: "ubuntu-latest", perl: "5.34" }
           - { os: "ubuntu-latest", perl: "5.36" }
-          - { os: "ubuntu-latest", perl: "5.36", perl-threaded: true }
+          - { os: "ubuntu-latest", perl: "5.38" }
+          - { os: "ubuntu-latest", perl: "5.38", perl-threaded: true }
 
     steps:
       - name: Checkout code
