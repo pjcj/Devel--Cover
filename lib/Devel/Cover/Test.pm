@@ -19,7 +19,7 @@ use Test::More;
 
 use Devel::Cover::Inc;
 
-my $LATEST_RELEASED_PERL = 36;
+my $LATEST_RELEASED_PERL = 38;
 
 sub new {
   my $class = shift;
