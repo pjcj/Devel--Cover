@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Improve tests
 
 1.41 - 25 April 2024
  - Spelling, linting and formatting changes
