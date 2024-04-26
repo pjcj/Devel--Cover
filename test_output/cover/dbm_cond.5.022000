@@ -27,8 +27,8 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      # __COVER__ skip_test $] < 5.008005 || !(eval "use DBM::Deep; 23")
-11                                      # __COVER__ skip_reason DBM::Deep not available
+10                                      # __COVER__ skip_test $] < 5.014000 || !(eval "use DBM::Deep; 23")
+11                                      # __COVER__ skip_reason DBM::Deep not available or painful to install
 12                                      
 13             1                    1   use strict;
                1                        
