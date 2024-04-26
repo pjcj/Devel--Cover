@@ -183,6 +183,7 @@ sub main {
     my $perl = "dc-$v";
     (my $c = $command) =~ s/=perl/$perl/g;
     # print "Running [$c] from $v\n";
+    $ENV{PLENV_VERSION} = $perl;
     # $c =~ s/=v/$v/g;
     if ($c =~ /^make /) {
       sys "rm -rf t/e2e";

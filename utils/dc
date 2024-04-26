@@ -147,10 +147,10 @@ main() {
     ;;
   install_dependencies)
     cpanm --notest App::cpm
-    if command -v plenv >/dev/null 2>&1; then
-      plenv rehash
-    fi
-    cpm install --workers="$("$0" nice_cpus)" --global \
+    plenv rehash
+    local cpm
+    cpm="$(plenv which cpm)"
+    $cpm install --workers="$("$0" nice_cpus)" --global \
       Sereal Digest::MD5 Template Pod::Coverage::CountParents \
       Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
       Moo namespace::clean CPAN::Releases::Latest JSON::MaybeXS \
@@ -158,15 +158,31 @@ main() {
     ;;
   install_development_dependencies)
     cpanm --notest App::cpm
-    if command -v plenv >/dev/null 2>&1; then
-      plenv rehash
-    fi
-    cpm install --workers="$("$0" nice_cpus)" --global \
-      Perl::Critic Perl::Tidy Dist::Zilla
+    plenv rehash
+    local cpm
+    cpm="$(plenv which cpm)"
+    $cpm install --workers="$("$0" nice_cpus)" --global \
+      Dist::Zilla Perl::Critic Perl::Tidy
+    plenv rehash
     dzil authordeps --missing |
       xargs cpm install --workers="$("$0" nice_cpus)" --global
     dzil listdeps --missing |
       xargs cpm install --workers="$("$0" nice_cpus)" --global
+    ;;
+  install_perl)
+    name="${2:?No name specified}"
+    version="${3:?No version specified}"
+    yes | plenv uninstall "$name" || true
+    plenv install --as "$name" -j 32 -D usedevel --noman "$version"
+    PLENV_VERSION="$name" plenv install-cpanm
+    PLENV_VERSION="$name" dc install_dependencies
+    ;;
+  install_cpancover_perl)
+    dc install_perl cpancover "$2"
+    ;;
+  install_dc_dev_perl)
+    dc install_perl dc-dev "$2"
+    PLENV_VERSION=dc-dev dc install_development_dependencies
     ;;
   nice_cpus)
     perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus \
@@ -175,21 +191,6 @@ main() {
   all_versions)
     shift
     ./utils/all_versions "$@"
-    ;;
-  install_cpancover_perl)
-    version="${2:?No version specified}"
-    yes | plenv uninstall cpancover || true
-    plenv install --as cpancover -j 32 -D usedevel --noman "$version"
-    PLENV_VERSION=cpancover plenv install-cpanm
-    PLENV_VERSION=cpancover dc install_dependencies
-    ;;
-  install_dc_perl)
-    version="${2:?No version specified}"
-    yes | plenv uninstall dc || true
-    plenv install --as dc -j 32 -D usedevel --noman "$version"
-    PLENV_VERSION=dc plenv install-cpanm
-    PLENV_VERSION=dc dc install_dependencies
-    PLENV_VERSION=dc dc install_development_dependencies
     ;;
   cpancover)
     shift
