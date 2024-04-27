@@ -29,30 +29,28 @@ use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
   ro => [ qw( bin_dir cpancover_dir cpan_dir results_dir dryrun force
-    output_file report timeout verbose workers docker local              )],
-  rwp => [qw( build_dirs local_timeout modules module_file               )],
-  rw  => [qw(                                                            )],
+    output_file report timeout verbose workers docker local            ) ],
+  rwp => [qw( build_dirs local_timeout modules module_file              )],
+  rw  => [qw(                                                           )],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
 
-sub BUILDARGS ($class, %args) {
-  {
-    build_dirs    => [],
-    cpan_dir      => [ grep -d, glob("~/.cpan ~/.local/share/.cpan") ],
-    docker        => "docker",
-    dryrun        => 0,
-    force         => 0,
-    local         => 0,
-    local_timeout => 0,
-    modules       => [],
-    output_file   => "index.html",
-    report        => "html_basic",
-    timeout       => 1800,  # half an hour
-    verbose       => 0,
-    workers       => 0,
-    %args,
-  }
-}
+sub BUILDARGS ($class, %args) { {
+  build_dirs    => [],
+  cpan_dir      => [ grep -d, glob "~/.cpan ~/.local/share/.cpan" ],
+  docker        => "docker",
+  dryrun        => 0,
+  force         => 0,
+  local         => 0,
+  local_timeout => 0,
+  modules       => [],
+  output_file   => "index.html",
+  report        => "html_basic",
+  timeout       => 1800,  # half an hour
+  verbose       => 0,
+  workers       => 0,
+  %args,
+} }
 
 # display $non_buffered characters, then buffer
 sub _sys ($self, $non_buffered, @command) {
@@ -117,8 +115,8 @@ sub bsys  { my ($s, @a) = @_; $s->_sys(0,   @a) // "" }
 sub fsys  { my ($s, @a) = @_; $s->_sys(4e4, @a) // die "Can't run @a\n" }
 sub fbsys { my ($s, @a) = @_; $s->_sys(0,   @a) // die "Can't run @a\n" }
 
-sub add_modules ($self, @o) { push $self->modules->@*, @o }
-sub set_modules ($self, @o) { $self->modules = \@o }
+sub add_modules     ($self, @o)    { push $self->modules->@*, @o }
+sub set_modules     ($self, @o)    { $self->modules->@* = @o }
 sub set_module_file ($self, $file) { $self->set_module_file($file) }
 
 sub process_module_file ($self) {
@@ -164,6 +162,7 @@ sub add_build_dirs ($self) {
 }
 
 sub run ($self, $build_dir) {
+
   my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\d+)$| or return;
   my $db          = "$build_dir/cover_db";
   my $line        = "=" x 80;
@@ -429,26 +428,26 @@ sub local_build ($self) {
 }
 
 sub failed_dir ($self) {
-  my $dir  = $self->results_dir . "/__failed__";
+  my $dir = $self->results_dir . "/__failed__";
   -d $dir or mkdir $dir or die "Can't mkdir $dir: $!";
   $dir
 }
 
 sub covered_dir ($self, $dir) { $self->results_dir . "/$dir" }
 sub failed_file ($self, $dir) { $self->failed_dir . "/$dir" }
-sub is_covered ($self, $dir) { -d $self->covered_dir($dir) }
-sub is_failed ($self, $dir) { -e $self->failed_file($dir) }
+sub is_covered  ($self, $dir) { -d $self->covered_dir($dir) }
+sub is_failed   ($self, $dir) { -e $self->failed_file($dir) }
 sub set_covered ($self, $dir) { unlink $self->failed_file($dir) }
 
 sub set_failed ($self, $dir) {
-  my $ff    = $self->failed_file($dir);
+  my $ff = $self->failed_file($dir);
   open my $fh, ">", $ff or return warn "Can't open $ff: $!";
   print $fh scalar localtime;
   close $fh or warn "Can't close $ff: $!";
 }
 
 sub dc_file ($self) {
-  my $dir  = "";
+  my $dir = "";
   $dir = "/dc/" if $self->local && -d "/dc";
   "${dir}utils/dc"
 }
