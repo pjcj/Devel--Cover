@@ -31,7 +31,11 @@ to the correct container.
 ## Plenv
 
 Install plenv by following the instructions on
-[github](https://github.com/tokuhirom/plenv).
+[github](https://github.com/tokuhirom/plenv).  If you are running brew
+
+```sh
+brew install plenv
+```
 
 ## Running
 
