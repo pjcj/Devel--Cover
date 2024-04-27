@@ -7,7 +7,7 @@
 
 package Devel::Cover::Collection;
 
-use 5.26.0;
+use 5.38.0;
 use warnings;
 
 # VERSION
@@ -29,15 +29,13 @@ use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
   ro => [ qw( bin_dir cpancover_dir cpan_dir results_dir dryrun force
-    output_file report timeout verbose workers docker local    ) ],
+    output_file report timeout verbose workers docker local              )],
   rwp => [qw( build_dirs local_timeout modules module_file               )],
   rw  => [qw(                                                            )],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
 
-sub BUILDARGS {
-  my $class = shift;
-  my (%args) = @_;
+sub BUILDARGS ($class, %args) {
   {
     build_dirs    => [],
     cpan_dir      => [ grep -d, glob("~/.cpan ~/.local/share/.cpan") ],
@@ -57,9 +55,7 @@ sub BUILDARGS {
 }
 
 # display $non_buffered characters, then buffer
-sub _sys {
-  my $self = shift;
-  my ($non_buffered, @command) = @_;
+sub _sys ($self, $non_buffered, @command) {
   # system @command; return ".";
   my ($output1, $output2) = ("", "");
   $output1 = "dc -> @command\n" if $self->verbose;
@@ -109,7 +105,7 @@ sub _sys {
     $ok = 0;
     die "$@" unless $@ eq "alarm\n";  # propagate unexpected errs
     warn "Timed out after $timeout seconds!\n";
-    my $pgrp = getpgrp($pid);
+    my $pgrp = getpgrp $pid;
     my $n    = kill "-KILL", $pgrp;
     warn "killed $n processes";
   }
@@ -121,24 +117,11 @@ sub bsys  { my ($s, @a) = @_; $s->_sys(0,   @a) // "" }
 sub fsys  { my ($s, @a) = @_; $s->_sys(4e4, @a) // die "Can't run @a\n" }
 sub fbsys { my ($s, @a) = @_; $s->_sys(0,   @a) // die "Can't run @a\n" }
 
-sub add_modules {
-  my $self = shift;
-  push @{ $self->modules }, @_;
-}
+sub add_modules ($self, @o) { push $self->modules->@*, @o }
+sub set_modules ($self, @o) { $self->modules = \@o }
+sub set_module_file ($self, $file) { $self->set_module_file($file) }
 
-sub set_modules {
-  my $self = shift;
-  @{ $self->modules } = @_;
-}
-
-sub set_module_file {
-  my $self = shift;
-  my ($file) = @_;
-  $self->set_module_file($file);
-}
-
-sub process_module_file {
-  my $self = shift;
+sub process_module_file ($self) {
   my $file = $self->module_file;
   return unless defined $file && length $file;
   open my $fh, "<", $file or die "Can't open $file: $!";
@@ -148,8 +131,7 @@ sub process_module_file {
   $self->add_modules(@modules);
 }
 
-sub build_modules {
-  my $self    = shift;
+sub build_modules ($self) {
   my @command = qw( cpan -i -T );
   push @command, "-f" if $self->force;
   # my @command = qw( cpan );
@@ -157,7 +139,7 @@ sub build_modules {
   # $ENV{CPAN_OPTS} .= " -f" if $self->force;
   # $self->_set_local_timeout(300);
   my %m;
-  for my $module (sort grep !$m{$_}++, @{ $self->modules }) {
+  for my $module (sort grep !$m{$_}++, $self->modules->@*) {
     say "Building $module";
     my $output = $self->fsys(@command, $module);
     say $output;
@@ -165,8 +147,7 @@ sub build_modules {
   $self->_set_local_timeout(0);
 }
 
-sub add_build_dirs {
-  my $self = shift;
+sub add_build_dirs ($self) {
   # say "add_build_dirs"; say for @{$self->build_dirs};
   # say && system "ls -al $_" for "/remote_staging",
   # map "$_/build", @{$self->cpan_dir};
@@ -177,16 +158,12 @@ sub add_build_dirs {
     # say "checking [$dir] -> [@files]";
     @files
   };
-  push @{ $self->build_dirs }, grep { !$exists->() } grep -d,
-    map glob("$_/build/*"), @{ $self->cpan_dir };
+  push $self->build_dirs->@*, grep { !$exists->() } grep -d,
+    map glob("$_/build/*"), $self->cpan_dir->@*;
   # say "add_build_dirs:"; say for @{$self->build_dirs};
 }
 
-sub run {
-
-  my $self = shift;
-  my ($build_dir) = @_;
-
+sub run ($self, $build_dir) {
   my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\d+)$| or return;
   my $db          = "$build_dir/cover_db";
   my $line        = "=" x 80;
@@ -234,9 +211,7 @@ sub run {
   say "\n$line\n$output$line\n";
 }
 
-sub run_all {
-  my $self = shift;
-
+sub run_all ($self) {
   my $results_dir = $self->results_dir // die "No results dir";
   $self->fsys("mkdir", "-p", $results_dir);
 
@@ -252,13 +227,10 @@ sub run_all {
   # print Dumper \@res;
 }
 
-sub write_json {
-  my $self = shift;
-  my ($vars) = @_;
-
+sub write_json ($self, $vars) {
   # print Dumper $vars;
   my $results = {};
-  for my $module (keys %{ $vars->{vals} }) {
+  for my $module (keys $vars->{vals}->%*) {
     my $m   = $vars->{vals}{$module};
     my $mod = $m->{module};
     my ($name, $version) = ($mod->{module} // $module) =~ /(.+)-(\d+\.\d+)$/;
@@ -291,9 +263,7 @@ sub class {
     : "c3"
 }
 
-sub generate_html {
-  my $self = shift;
-
+sub generate_html ($self) {
   my $d = $self->results_dir;
   chdir $d or die "Can't chdir $d: $!\n";
 
@@ -339,7 +309,7 @@ sub generate_html {
     $m->{module} = $mod;
     $m->{link} = "/$module/index.html" if $json->{summary}{Total}{total}{total};
 
-    for my $criterion (@{ $vars->{criteria} }) {
+    for my $criterion ($vars->{criteria}->%*) {
       my $summary = $json->{summary}{Total}{$criterion};
       # print "summary:", Dumper $summary;
       my $pc = $summary->{percentage};
@@ -374,7 +344,7 @@ sub generate_html {
       [ Devel::Cover::Collection::Template::Provider->new({}) ]
   });
   $template->process("summary", $vars, $f) or die $template->error;
-  for my $start (sort keys %{ $vars->{modules} }) {
+  for my $start (sort keys $vars->{modules}->%*) {
     $vars->{module_start} = $start;
     my $dist = "$d/dist/$start.html";
     $template->process("module_by_start", $vars, $dist) or die $template->error;
@@ -392,10 +362,7 @@ sub generate_html {
   say "Wrote collection output to $f";
 }
 
-sub compress_old_versions {
-  my $self = shift;
-  my ($versions) = @_;
-
+sub compress_old_versions ($self, $versions) {
   my $dir = $self->results_dir;
   opendir my $fh, $dir or die "Can't opendir $dir: $!";
   my @dirs = sort grep -d, map "$dir/$_", readdir $fh;
@@ -454,71 +421,39 @@ sub compress_old_versions {
   }
 }
 
-sub local_build {
-  my $self = shift;
-
+sub local_build ($self) {
   $self->process_module_file;
   $self->build_modules;
   $self->add_build_dirs;
   $self->run_all;
 }
 
-sub failed_dir {
-  my $self = shift;
+sub failed_dir ($self) {
   my $dir  = $self->results_dir . "/__failed__";
   -d $dir or mkdir $dir or die "Can't mkdir $dir: $!";
   $dir
 }
 
-sub covered_dir {
-  my $self = shift;
-  my ($dir) = @_;
-  $self->results_dir . "/$dir"
-}
+sub covered_dir ($self, $dir) { $self->results_dir . "/$dir" }
+sub failed_file ($self, $dir) { $self->failed_dir . "/$dir" }
+sub is_covered ($self, $dir) { -d $self->covered_dir($dir) }
+sub is_failed ($self, $dir) { -e $self->failed_file($dir) }
+sub set_covered ($self, $dir) { unlink $self->failed_file($dir) }
 
-sub failed_file {
-  my $self = shift;
-  my ($dir) = @_;
-  $self->failed_dir . "/$dir"
-}
-
-sub is_covered {
-  my $self = shift;
-  my ($dir) = @_;
-  -d $self->covered_dir($dir)
-}
-
-sub is_failed {
-  my $self = shift;
-  my ($dir) = @_;
-  -e $self->failed_file($dir)
-}
-
-sub set_covered {
-  my $self = shift;
-  my ($dir) = @_;
-  unlink $self->failed_file($dir);
-}
-
-sub set_failed {
-  my $self  = shift;
-  my ($dir) = @_;
+sub set_failed ($self, $dir) {
   my $ff    = $self->failed_file($dir);
   open my $fh, ">", $ff or return warn "Can't open $ff: $!";
   print $fh scalar localtime;
   close $fh or warn "Can't close $ff: $!";
 }
 
-sub dc_file {
-  my $self = shift;
+sub dc_file ($self) {
   my $dir  = "";
   $dir = "/dc/" if $self->local && -d "/dc";
   "${dir}utils/dc"
 }
 
-sub cover_modules {
-  my $self = shift;
-
+sub cover_modules ($self) {
   $self->process_module_file;
   # say "modules: ", Dumper $self->modules;
 
@@ -573,9 +508,7 @@ sub cover_modules {
   $self->_set_local_timeout(0);
 }
 
-sub get_latest {
-  my $self = shift;
-
+sub get_latest ($self) {
   require CPAN::Releases::Latest;
 
   my $latest   = CPAN::Releases::Latest->new(max_age => 0);  # no caching
@@ -592,9 +525,7 @@ sub get_latest {
   }
 }
 
-sub write_stylesheet {
-  my $self = shift;
-
+sub write_stylesheet ($self) {
   my $css = $self->results_dir . "/collection.css";
   open my $fh, ">", $css or die "Can't open $css: $!\n";
   print $fh <<EOF;
@@ -698,9 +629,7 @@ use base "Template::Provider";
 
 my %Templates;
 
-sub fetch {
-  my $self = shift;
-  my ($name) = @_;
+sub fetch ($self, $name) {
   # print "Looking for <$name>\n";
   $self->SUPER::fetch(exists $Templates{$name} ? \$Templates{$name} : $name)
 }
