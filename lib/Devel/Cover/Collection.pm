@@ -76,9 +76,8 @@ sub _sys ($self, $non_buffered, @command) {
         # say "printed $printed of $non_buffered";
         if ($printed < $non_buffered) {
           print;
-          if (($printed += length) >= $non_buffered) {
-            say "Devel::Cover: buffering ...";
-          }
+          say "Devel::Cover: buffering ..."
+            if ($printed += length) >= $non_buffered;
         } elsif (length $output2) {
           $output2 = substr $output2 . $_, $max * -.1, $max * .1;
         } else {
@@ -132,7 +131,7 @@ sub process_module_file ($self) {
 }
 
 sub build_modules ($self) {
-  my @command = qw( cpan -i -T );
+  my @command = qw( cpan -Ti );
   push @command, "-f" if $self->force;
   # my @command = qw( cpan );
   # $ENV{CPAN_OPTS} = "-i -T";
@@ -334,7 +333,7 @@ sub generate_html ($self) {
       $mod->{version} //= $version;
     }
     my $start = uc substr $module, 0, 1;
-    push @{ $vars->{modules}{$start} }, $mod;
+    push $vars->{modules}{$start}->@*, $mod;
 
     my $m = $vars->{vals}{$module} = {};
     $m->{module} = $mod;
