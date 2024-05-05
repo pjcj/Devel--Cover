@@ -1516,7 +1516,7 @@ severity                           = 1
 # packages = Data::Dumper File::Find FindBin Log::Log4perl Test::Builder Text::Wrap
 
 # The set of packages to allow variables for, in addition to those given in "packages".
-add_packages = DBI
+add_packages = Devel::Cover::DB
 
 
 # Use double colon (::) to separate package name components instead of single quotes (').
