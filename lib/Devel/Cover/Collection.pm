@@ -95,7 +95,7 @@ sub _sys ($self, $non_buffered, @command) {
       }
     } else {
       setsid() != -1 or die "Can't start a new session: $!";
-      open STDERR, ">&STDOUT" or die "Can't dup stdout: $!";
+      open STDERR, ">&", STDOUT or die "Can't dup stdout: $!";
       exec @command or die "Can't exec @command: $!";
     }
   };
