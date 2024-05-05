@@ -110,10 +110,10 @@ sub _sys ($self, $non_buffered, @command) {
   $ok ? length $output2 ? "$output1\n...\n$output2" : $output1 : undef
 }
 
-sub sys   { my ($s, @a) = @_; $s->_sys(4e4, @a) // "" }
-sub bsys  { my ($s, @a) = @_; $s->_sys(0,   @a) // "" }
-sub fsys  { my ($s, @a) = @_; $s->_sys(4e4, @a) // die "Can't run @a\n" }
-sub fbsys { my ($s, @a) = @_; $s->_sys(0,   @a) // die "Can't run @a\n" }
+sub sys   ($s, @a) { $s->_sys(4e4, @a) // "" }
+sub bsys  ($s, @a) { $s->_sys(0,   @a) // "" }
+sub fsys  ($s, @a) { $s->_sys(4e4, @a) // die "Can't run @a" }
+sub fbsys ($s, @a) { $s->_sys(0,   @a) // die "Can't run @a" }
 
 sub add_modules     ($self, @o)    { push $self->modules->@*, @o }
 sub set_modules     ($self, @o)    { $self->modules->@* = @o }
