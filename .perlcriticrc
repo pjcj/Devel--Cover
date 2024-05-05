@@ -441,7 +441,7 @@ script_sections = NAME | SYNOPSIS | DESCRIPTION
 [ErrorHandling::RequireCheckingReturnValueOfEval]
 # set_themes                         = bugs core
 # add_themes                         =
-# severity                           = 3
+severity                           = 1
 # maximum_violations_per_document    = no_limit
 
 
