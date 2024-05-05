@@ -159,16 +159,16 @@ cpancover - report coverage statistics on CPAN modules
 
 =head1 SYNOPSIS
 
-  cpancover -help -info -version
-            -collect -redo_cpancover_html -redo_html -force -dryrun
-            -modules module_name
-            -results_dir /path/to/dir
-            -outputdir /path/to/dir
-            -outputfile filename.html
-            -report report_name
-            -generate_html
-            -compress_old_versions number_to_keep
-            -local
+  cpancover --help --info --version
+            --collect --redo_cpancover_html --redo_html --force --dryrun
+            --modules module_name
+            --results_dir /path/to/dir
+            --outputdir /path/to/dir
+            --outputfile filename.html
+            --report report_name
+            --generate_html
+            --compress_old_versions number_to_keep
+            --local
 
 =head1 DESCRIPTION
 
@@ -176,22 +176,22 @@ cpancover - report coverage statistics on CPAN modules
 
 The following command line options are supported:
 
-  -h -help               - show help
-  -i -info               - show documentation
-  -v -version            - show version
-  -collect               - collect coverage from modules       (on)
-  -directory             - location of the modules             ($cwd)
-  -dryrun                - don't execute (for some commands)   (off)
-  -force                 - recollect coverage                  (off)
-  -modules               - modules to use                      (all in $dir)
-  -outputdir             - where to store output               ($directory)
-  -outputfile            - top level index                     (coverage.html)
-  -redo_cpancover_html   - don't set default modules           (off)
-  -redo_html             - force html generation for modules   (off)
-  -report                - report to use                       (html_basic)
-  -generate_html         - generate html                       (off)
-  -compress_old_versions - compress data older than n versions (3)
-  -local                 - use local (uninstalled) code        (off)
+  -h --help               - show help
+  -i --info               - show documentation
+  -v --version            - show version
+  --collect               - collect coverage from modules       (on)
+  --directory             - location of the modules             ($cwd)
+  --dryrun                - don't execute (for some commands)   (off)
+  --force                 - recollect coverage                  (off)
+  --modules               - modules to use                      (all in $dir)
+  --outputdir             - where to store output               ($directory)
+  --outputfile            - top level index                     (coverage.html)
+  --redo_cpancover_html   - don't set default modules           (off)
+  --redo_html             - force html generation for modules   (off)
+  --report                - report to use                       (html_basic)
+  --generate_html         - generate html                       (off)
+  --compress_old_versions - compress data older than n versions (3)
+  --local                 - use local (uninstalled) code        (off)
 
 =head1 DETAILS
 
