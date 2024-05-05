@@ -31,7 +31,7 @@ my %A = (
   ro => [ qw( bin_dir cpancover_dir cpan_dir results_dir dryrun force
     output_file report timeout verbose workers docker local            ) ],
   rwp => [qw( build_dirs local_timeout modules module_file              )],
-  rw  => [qw(                                                           )],
+  rw  => [qw( dir file                                                  )],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
 
@@ -264,11 +264,41 @@ sub class {
     : "c3"
 }
 
+sub write_summary($self, $vars) {
+  my $d = $self->dir;
+  my $f = $self->file;
+
+  $self->write_stylesheet;
+  my $template = Template->new({
+    LOAD_TEMPLATES =>
+      [ Devel::Cover::Collection::Template::Provider->new({}) ]
+  });
+  $template->process("summary", $vars, $f) or die $template->error;
+  for my $start (sort keys $vars->{modules}->%*) {
+    $vars->{module_start} = $start;
+    my $dist = "$d/dist/$start.html";
+    $template->process("module_by_start", $vars, $dist) or die $template->error;
+  }
+
+  my $about_f = "$d/about.html";
+  say "\nWriting about page to $about_f ...";
+
+  $template->process("about", { subdir => "latest/" }, $about_f)
+    or die $template->error;
+
+  # print Dumper $vars;
+  $self->write_json($vars);
+
+  say "Wrote collection output to $f";
+}
+
 sub generate_html ($self) {
   my $d = $self->results_dir;
   chdir $d or die "Can't chdir $d: $!\n";
+  $self->dir($d);
 
   my $f = "$d/index.html";
+  $self->file($f);
   say "\n\nWriting collection output to $f ...";
 
   my $vars = {
@@ -338,29 +368,7 @@ sub generate_html ($self) {
   say "";
 
   # print "vars ", Dumper $vars;
-
-  $self->write_stylesheet;
-  my $template = Template->new({
-    LOAD_TEMPLATES =>
-      [ Devel::Cover::Collection::Template::Provider->new({}) ]
-  });
-  $template->process("summary", $vars, $f) or die $template->error;
-  for my $start (sort keys $vars->{modules}->%*) {
-    $vars->{module_start} = $start;
-    my $dist = "$d/dist/$start.html";
-    $template->process("module_by_start", $vars, $dist) or die $template->error;
-  }
-
-  my $about_f = "$d/about.html";
-  say "\nWriting about page to $about_f ...";
-
-  $template->process("about", { subdir => "latest/" }, $about_f)
-    or die $template->error;
-
-  # print Dumper $vars;
-  $self->write_json($vars);
-
-  say "Wrote collection output to $f";
+  $self->write_summary($vars);
 }
 
 sub compress_old_versions ($self, $versions) {
