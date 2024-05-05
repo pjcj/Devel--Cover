@@ -52,12 +52,14 @@ sub BUILDARGS ($class, %args) { {
   %args,
 } }
 
+sub get_timeout ($self) { $self->local_timeout || $self->timeout || 30 * 60 }
+
 # display $non_buffered characters, then buffer
 sub _sys ($self, $non_buffered, @command) {
   # system @command; return ".";
   my ($output1, $output2) = ("", "");
   $output1 = "dc -> @command\n" if $self->verbose;
-  my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
+  my $timeout = $self->get_timeout;
   my $max     = 4e4;
   # say "Setting alarm for $timeout seconds";
   my $ok = 0;
@@ -476,7 +478,7 @@ sub cover_modules ($self) {
         return                       unless $self->force;
       }
 
-      my $timeout = $self->local_timeout || $self->timeout || 30 * 60;
+      my $timeout = $self->get_timeout;
       # say "Setting alarm for $timeout seconds";
       my $name = sprintf("%s-%18.6f", $module, time) =~ tr/a-zA-Z0-9_./-/cr;
       say "$dir -> $name";
