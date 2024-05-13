@@ -28,3 +28,4 @@ MYMETA\.
 tags
 .perl-version
 \.db
+^\.build\b
