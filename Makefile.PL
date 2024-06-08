@@ -22,9 +22,6 @@ $| = 1;
 my $Version  = "1.42";
 my $Latest_t = "5.039009";
 my $Author   = 'paul@pjcj.net';
-my @perlbug  = ("perlbug", "-a", $Author,
-                           "-s", "Installation of Devel::Cover $Version");
-my $Perlbug  = join " ", map { / / ? "'$_'" : $_ } @perlbug;
 my %inc      = map { -d $_ ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () }
                    @INC;
 my $dumper = Data::Dumper->new( [[ sort keys %inc ]] );
@@ -312,22 +309,6 @@ my $opts = {
 WriteMakefile(%$opts);
 
 print "\n";
-print <<EOM if 0;
-
---------------------------------------------------------------------------------
-
-I like to have some idea of the distribution of this software.  To that end I
-would be very grateful for mail from you.  This will be used only to satisfy my
-curiosity and to help me make decisions which may involve changes to the
-module.
-
-If you can run perlbug you can send me a success report with "make ok".
-Failure reports with "make nok" are also appreciated.
-
-If you have any questions or comments, mailing list details are available in the
-README file, or send mail to me directly.
-
-EOM
 
 sub MY::postamble {
     my %tests;
@@ -418,12 +399,6 @@ _self_cover_tests : @{[sort values %tests]}
 self_cover : _self_cover_reports
 \t \$(PERL) -Mblib bin/cover -report html_basic -launch
 \t \$(PERL) -Mblib bin/cover -report vim
-
-ok :
-\t \@$Perlbug -okay  || echo "Please send your report manually to $Author"
-
-nok :
-\t \@$Perlbug -nokay || echo "Please send your report manually to $Author"
     ] . "\n" .
 
     join "\n",
