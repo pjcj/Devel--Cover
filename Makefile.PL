@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl  ## no critic (ProhibitExcessMainComplexity)
 
 # Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
 
@@ -17,21 +17,24 @@ use ExtUtils::MakeMaker;
 use File::Copy;
 require Data::Dumper;
 
-$| = 1;
+local $| = 1;
 
 my $Version  = "1.42";
 my $Latest_t = "5.039009";
 my $Author   = 'paul@pjcj.net';
-my %inc      = map { -d $_ ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () }
-                   @INC;
-my $dumper = Data::Dumper->new( [[ sort keys %inc ]] );
-$dumper->Indent(1)->Terse(1);
-$dumper->Sortkeys(1) if $dumper->can("Sortkeys");
-chomp (my $inc_string = $dumper->Dump);
+my $Inc_str  = do {
+  my %inc
+    = map { -d ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () } @INC;
+  my $dumper = Data::Dumper->new([ [ sort keys %inc ] ]);
+  $dumper->Indent(1)->Terse(1);
+  $dumper->Sortkeys(1) if $dumper->can("Sortkeys");
+  chomp(my $str = $dumper->Dump);
+  $str
+};
 
-open I, ">lib/Devel/Cover/Inc.pm"
-    or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
-print I <<"EOI";
+open my $i, ">", "lib/Devel/Cover/Inc.pm"
+  or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
+print $i <<"EOI";
 # Copyright 2001-2024, Paul Johnson (paul\@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
@@ -48,13 +51,13 @@ use warnings;
 
 our \$VERSION      = "$Version";
 our \$Perl_version = '$]';
-our \@Inc          = \@{ $inc_string };
+our \@Inc          = \@{ $Inc_str };
 chomp (our \$Perl  = <<'EOV');  # Careful with \\\\ in the path
 $^X
 EOV
 
 if (\$Perl_version ne \$]) {
-    print STDERR <<"EOM";
+  print STDERR <<"EOM";
 
 This version of Devel::Cover was built with Perl version \$Perl_version.
 It is now being run with Perl version \$].
@@ -63,43 +66,42 @@ not have coverage data collected.  You may need to alter the +-inc, +-ignore
 and +-select options.
 
 EOM
-    eval "use Cwd";
-    my \%inc = map { -d \$_ ? ((\$_ eq "." ? \$_ : Cwd::abs_path(\$_)) => 1) : () }
-                   \@INC;
-    \@Inc = sort keys \%inc;
+  eval "use Cwd";
+  my \%inc =
+    map { -d \$_ ? ((\$_ eq "." ? \$_ : Cwd::abs_path(\$_)) => 1) : () } \@INC;
+  \@Inc = sort keys \%inc;
 }
 
 # TODO - check for threadedness, 64bits etc. ?
 
 1
 EOI
-close I or die "Cannot close lib/Devel/Cover/Inc.pm: $!";
+close $i or die "Cannot close lib/Devel/Cover/Inc.pm: $!";
 
 print "Writing tests ........ ";
 
 for my $d (qw( t t/e2e )) {
-    unless (mkdir $d) {
-        die "Cannot mkdir $d: $!" unless -d $d;
-    }
+  unless (mkdir $d) {
+    die "Cannot mkdir $d: $!" unless -d $d;
+  }
 }
 
-my @tests;
-opendir D, "tests" or die "Cannot opendir tests: $!";
-for my $t (readdir D) {
-    next unless -f "tests/$t";
-    next if $t =~ /\.(pm|pl|org|bak|uncoverable|swp)$/;
-    next if $t =~ /~$/;
+my @Tests;
+opendir my $dir, "tests" or die "Cannot opendir tests: $!";
+for my $t (readdir $dir) {
+  next unless -f "tests/$t";
+  next if $t =~ /\.(pm|pl|org|bak|uncoverable|swp)$/;
+  next if $t =~ /~$/;
 
-    push @tests, $t;
+  push @Tests, $t;
 
-    if ($t =~ /\.t/) {
-        copy("tests/$t", "t/e2e/$t")
-            or die "Cannot copy tests/$t to t/e2e/$t: $!";
-        next
-    }
+  if ($t =~ /\.t/) {
+    copy("tests/$t", "t/e2e/$t") or die "Cannot copy tests/$t to t/e2e/$t: $!";
+    next
+  }
 
-    open T, ">t/e2e/a$t.t" or die "Cannot open t/e2e/a$t.t: $!";
-    print T <<EOT;
+  open my $test, ">", "t/e2e/a$t.t" or die "Cannot open t/e2e/a$t.t: $!";
+  print $test <<EOT;
 #!$^X
 
 # Copyright 2002-2024, Paul Johnson (paul\@pjcj.net)
@@ -124,50 +126,51 @@ my \$test = Devel::Cover::Test->new("$t");
 no warnings;
 \$test  # for create_gold
 EOT
-    close T or die "Cannot close t/e2e/a$t.t: $!";
+  close $test or die "Cannot close t/e2e/a$t.t: $!";
 }
-closedir D or die "Cannot closedir tests: $!";
+closedir $dir or die "Cannot closedir tests: $!";
 
-s/^/tests\// for @tests;
-push @tests, grep !/e2e/, glob "t/*/*.t";
+s/^/tests\// for @Tests;
+push @Tests, grep !/e2e/, glob "t/*/*.t";
 
 if ($ENV{DEVEL_COVER_NO_TESTS}) {
-    # don't run tests under p5cover
-    print "removing all tests with DEVEL_COVER_NO_TESTS\n";
-    system "rm -rf t/*";  # TODO portability
-    @tests = ();
+  # don't run tests under p5cover
+  print "removing all tests with DEVEL_COVER_NO_TESTS\n";
+  system "rm -rf t/*";  # TODO portability
+  @Tests = ();
 }
 
 print "done\n\n";
 
-my %checked;
+my %Checked;
 
 sub check {
-    my ($module, $text, $version) = @_;
+  my ($module, $text, $version) = @_;
 
-    printf "checking for %-18s %-16s .... ",
-           $module, $version ? "version $version" : "";
+  printf "checking for %-18s %-16s .... ", $module,
+    $version ? "version $version" : "";
 
-    {
-        local $SIG{__WARN__} = sub {};
-        eval "use $module";
+  {
+    local $SIG{__WARN__} = sub { };
+    eval "use $module";
+  }
+  (my $mod = $module) =~ s/::/\//g;
+  if (my $m = $INC{"$mod.pm"}) {
+    ## no critic (ProhibitNoWarnings, ProhibitStringyEval)
+    my $v = eval { no warnings; eval "\$${module}::VERSION" };
+    printf "%-8s $m\n", $v;
+    if ($version && $v < $version) {
+      print "\n\n\n$text\n" unless $Checked{$text}++;
+      print "\n";
     }
-    (my $mod = $module) =~ s/::/\//g;
-    if (my $m = $INC{"$mod.pm"}) {
-        my $v = eval { no warnings; eval "\$${module}::VERSION" };
-        printf "%-8s $m\n", $v;
-        if ($version && $v < $version) {
-            print "\n\n\n$text\n" unless $checked{$text}++;
-            print "\n";
-        }
-    } else {
-        print "not found";
-        print "\n\n\n$text\n" unless $checked{$text}++;
-        print "\n";
-    }
-};
+  } else {
+    print "not found";
+    print "\n\n\n$text\n" unless $Checked{$text}++;
+    print "\n";
+  }
+}
 
-my $d = <<EOM;
+my $D = <<EOM;
 The coverage database can be stored in any of the Storable, JSON or Sereal
 formats.  To use the Storable format, the Storable module is required.  This has
 been a core module since perl-5.8.0.  To store the database in JSON format
@@ -180,9 +183,9 @@ Otherwise Storable will be used.  The Sereal and JSON formats should be portable
 between all systems, whereas Storable format may not be.
 EOM
 
-check "Storable",      $d;
-check "JSON::MaybeXS", $d;
-check "Sereal",        $d;
+check "Storable",      $D;
+check "JSON::MaybeXS", $D;
+check "Sereal",        $D;
 
 check "Digest::MD5", <<EOM;
 Digest::MD5 is required to check whether covered files have changed.  You can
@@ -202,7 +205,7 @@ Toolkit, available from CPAN.  In the meantime you may continue to use the rest
 of Devel::Cover.
 EOM
 
-my $m = <<EOM;
+my $M = <<EOM;
 One of PPI::HTML 1.07 or Perl::Tidy 20060719 is required to add syntax
 highlighting to some HTML backends to cover and for cpancover.  Unless you have
 specific requirements this should not be a problem, but you will not be able to
@@ -211,11 +214,11 @@ Perl::Tidy, available from the CPAN.  However, the rest of Devel::Cover will be
 available as usual.
 EOM
 
-check "PPI::HTML",  $m, "1.07";
-check "Perl::Tidy", $m, "20060719";
+check "PPI::HTML",  $M, "1.07";
+check "Perl::Tidy", $M, "20060719";
 
 print "checking for Pod::Coverage      version 0.06     .... ";
-my $e = <<EOM;
+my $E = <<EOM;
 Pod::Coverage 0.06 is required to do pod coverage.  This will tell you how well
 you have documented your modules.  Pod coverage will be unavailable until you
 install this module, available from CPAN.  In the meantime, you may continue to
@@ -224,24 +227,25 @@ EOM
 
 eval "use Pod::Coverage";
 if (my $m = $INC{"Pod/Coverage.pm"}) {
-    my $v = eval { no warnings; $Pod::Coverage::VERSION };
-    print $v < 0.06 ? "$v\n\n\n$e\n\n" : "$v     $m\n";
-    print "checking for Pod::Coverage::CountParents         .... ";
-    $e = <<EOM;
+  ## no critic (ProhibitNoWarnings)
+  my $v = eval { no warnings; $Pod::Coverage::VERSION };
+  print $v < 0.06 ? "$v\n\n\n$E\n\n" : "$v     $m\n";
+  print "checking for Pod::Coverage::CountParents         .... ";
+  $E = <<EOM;
 Pod::Coverage::CountParents.pm is used for Pod coverage if it is available.  We
 will fall back to using Pod::Coverage.pm.  If you want to use
 Pod::Coverage::CountParents.pm, just install it from CPAN.
 EOM
-    eval "use Pod::Coverage::CountParents";
-    if (my $m = $INC{"Pod/Coverage/CountParents.pm"}) {
-        my $v = eval { no warnings; $Pod::Coverage::CountParents::VERSION };
-        $v ||= "    ";
-        print "$v     $m\n";
-    } else {
-        print "not found\n\n\n$e\n\n";
-    }
+  eval "use Pod::Coverage::CountParents";
+  if (my $m = $INC{"Pod/Coverage/CountParents.pm"}) {
+    my $w = eval { no warnings; $Pod::Coverage::CountParents::VERSION };
+    $w ||= "    ";
+    print "$w     $m\n";
+  } else {
+    print "not found\n\n\n$E\n\n";
+  }
 } else {
-    print "not found\n\n$e\n";
+  print "not found\n\n$E\n";
 }
 
 check "Test::Differences", <<EOM;
@@ -274,50 +278,43 @@ EOM
 
 print "\n" x 3;
 
+## no critic (ProhibitPackageVars)
 $ExtUtils::MakeMaker::Verbose = 0;
 
-my $opts = {
-    NAME             => "Devel::Cover",
-    VERSION          => $Version,
-    AUTHOR           => 'Paul Johnson <paul@pjcj.net>',
-    ABSTRACT_FROM    => "lib/Devel/Cover.pm",
-    DIR              => [],
-    EXE_FILES        => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],
-    PERL_MALLOC_OK   => 1,
-    PREREQ_PM        => {
-                            "Storable"       => 0,
-                            "Digest::MD5"    => 0,
-                            "HTML::Entities" => 3.69,
-                            $ENV{DEVEL_COVER_NO_TESTS}
-                                ? ()
-                                : ( "Test::More" => 0 )
-                        },
-    TYPEMAPS         => [ "utils/typemap" ],
-    clean            => {
-                            FILES => "t/e2e/* cover_db* t/e2e/*cover_db " .
-                                     "README *.gcov *.out"
-                        },
-    dist             => { COMPRESS => "gzip --best --force" },
-    test             => {
-                            TESTS => $ENV{DEVEL_COVER_NO_TESTS}
-                                         ? ""
-                                         : "t/*.t t/*/*.t"
-                        },
-    realclean        => { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
+my $Opts = {
+  NAME           => "Devel::Cover",
+  VERSION        => $Version,
+  AUTHOR         => 'Paul Johnson <paul@pjcj.net>',
+  ABSTRACT_FROM  => "lib/Devel/Cover.pm",
+  DIR            => [],
+  EXE_FILES      => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],
+  PERL_MALLOC_OK => 1,
+  PREREQ_PM      => {
+    "Storable"       => 0,
+    "Digest::MD5"    => 0,
+    "HTML::Entities" => 3.69,
+    $ENV{DEVEL_COVER_NO_TESTS} ? () : ("Test::More" => 0),
+  },
+  TYPEMAPS => ["utils/typemap"],
+  clean    =>
+    { FILES => "t/e2e/* cover_db* t/e2e/*cover_db " . "README *.gcov *.out" },
+  dist => { COMPRESS => "gzip --best --force" },
+  test => { TESTS    => $ENV{DEVEL_COVER_NO_TESTS} ? "" : "t/*.t t/*/*.t" },
+  realclean => { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
 };
-# use Data::Dumper; print Dumper $opts;
-WriteMakefile(%$opts);
+# use Data::Dumper; print Dumper $Opts;
+WriteMakefile(%$Opts);
 
 print "\n";
 
 sub MY::postamble {
-    my %tests;
-    @tests{@tests} = map { (my $t = $_) =~ s/\W/_/g; "cover_db_$t" } @tests;
-    my @reports = qw(
-        compilation html_basic html_minimal html html_subtle sort text2 text vim
-    );
+  my %tests;
+  @tests{@Tests} = map { (my $t = $_) =~ s/\W/_/g; "cover_db_$t" } @Tests;
+  my @reports = qw(
+    compilation html_basic html_minimal html html_subtle sort text2 text vim
+  );
 
-    qq[
+  qq[
 tags : pure_all
 \t ctags --recurse --exclude=blib --exclude=Devel-Cover-* .
 
@@ -328,10 +325,10 @@ ppm : ppd pure_all
 \t tar cf Devel-Cover.tar blib
 \t gzip --best --force Devel-Cover.tar
 \t \$(PERL) -pi.bak \\
-    -e 's/(OS NAME=")[^"]*/\$\$1MSWin32/;' \\
-    -e 's/(ARCHITECTURE NAME=")[^"]*/\$\$1MSWin32-x86-multi-thread/;' \\
-    -e 's/(CODEBASE HREF=")[^"]*/\$\$1Devel-Cover.tar.gz/;' \\
-    Devel-Cover.ppd
+  -e 's/(OS NAME=")[^"]*/\$\$1MSWin32/;' \\
+  -e 's/(ARCHITECTURE NAME=")[^"]*/\$\$1MSWin32-x86-multi-thread/;' \\
+  -e 's/(CODEBASE HREF=")[^"]*/\$\$1Devel-Cover.tar.gz/;' \\
+  Devel-Cover.ppd
 
 TAINT = -T
 TAINT =
@@ -399,19 +396,19 @@ _self_cover_tests : @{[sort values %tests]}
 self_cover : _self_cover_reports
 \t \$(PERL) -Mblib bin/cover -report html_basic -launch
 \t \$(PERL) -Mblib bin/cover -report vim
-    ] . "\n" .
+  ] . "\n" . join "\n",
+    map("$tests{$_} : _delete_db\n"
+      . "\t \@echo Running $tests{$_}\n"
+      . "\t \@rm -rf $tests{$_}\n"
+      . "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover=-db,$tests{$_},-silent,1,-coverage,all,-ignore,tests/,-coverage,pod-also_private-xx $_\n",
+      sort keys %tests),
 
-    join "\n",
-         map("$tests{$_} : _delete_db\n" .
-             "\t \@echo Running $tests{$_}\n" .
-             "\t \@rm -rf $tests{$_}\n" .
-             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover=-db,$tests{$_},-silent,1,-coverage,all,-ignore,tests/,-coverage,pod-also_private-xx $_\n",
-             sort keys %tests),
+    "_self_cover_reports : @{[map qq(report_$_), @reports]}\n",
 
-         "_self_cover_reports : @{[map qq(report_$_), @reports]}\n",
-
-         map("report_$_ : _self_cover_tests\n" .
-             "\t \@echo Generating $_ report\n" .
-             "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover bin/cover -silent -report $_ > /dev/null\n",
-             @reports)
+    (
+        map "report_$_ : _self_cover_tests\n"
+      . "\t \@echo Generating $_ report\n"
+      . "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover bin/cover -silent -report $_ > /dev/null\n",
+      @reports,
+    )
 }
