@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+ - Bump coancover version requirements to 5.38
+ - Format cpancover and Cover::Collection
+ - Format main documentation
+ - Tidy dc script
 
 1.42 - 26 April 2024
  - Improve tests
