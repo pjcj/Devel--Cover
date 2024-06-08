@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.43 - 8 June 2024
  - Bump coancover version requirements to 5.38
  - Format cpancover and Cover::Collection
  - Format main documentation
