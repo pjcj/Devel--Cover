@@ -24,7 +24,7 @@ my $Latest_t = "5.039009";
 my $Author   = 'paul@pjcj.net';
 my $Inc_str  = do {
   my %inc
-    = map { -d ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () } @INC;
+    = map { -d () ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () } @INC;
   my $dumper = Data::Dumper->new([ [ sort keys %inc ] ]);
   $dumper->Indent(1)->Terse(1);
   $dumper->Sortkeys(1) if $dumper->can("Sortkeys");
