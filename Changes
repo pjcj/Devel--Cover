@@ -57,7 +57,7 @@ Devel::Cover history
 
 1.34 - 16 May 2020
  - Minimum supported version is now 5.10.0 (Karen Etheridge) (GH-226)
- - Support 5.32 by accomodating signauture changes (GH-260)
+ - Support 5.32 by accommodating signauture changes (GH-260)
 
 1.33 - 26 April 2019
  - Fix pod error (Mohammad S Anwar) (GH-240)
@@ -250,7 +250,7 @@ Devel::Cover history
  - Make -silent even quieter (Sergiy Borodych) (guthub 49)
  - mod_perl2 on Debian sets $^X to apache2 (Lasse Makholm) (GH-47)
  - Add csv file for use with metacpan (Dinis Rebolo) (GH-56)
- - cover -test exists with the staus of the underlying test run (Kan Fushihara)
+ - cover -test exists with the status of the underlying test run (Kan Fushihara)
    (GH-57, GH-58)
  - Quieten a warning (Jim Keenan) (GH-59)
 
@@ -523,7 +523,7 @@ Devel::Cover history
  - Don't key on op_targ - it might change (RT-22701)
  - Tidy up docs and error messages for reports (RT-21098)
  - Better database validation
- - Don't delete invalid datbases (RT-16039)
+ - Don't delete invalid databases (RT-16039)
  - Tested against 5.9.5
  - Allow for new anonlist and anonhash ops (RT-24067)
  - Use outputfile for both cover and cpancover
@@ -554,7 +554,7 @@ Devel::Cover history
 0.56 - 1st August 2006
  - gcov2perl creates db if necessary (Steve Peters) (RT-13536)
  - Properly merge identical files (Jeff Wren) (RT-12410)
- - Allow line achors in html_basic (Mark Stosberg) (RT-13615)
+ - Allow line anchors in html_basic (Mark Stosberg) (RT-13615)
  - Right justify numerical tabular html output (Sébastien Aperghis-Tramoni)
  - Work around ExtUtils::MakeMaker realclean bug (Florian Ragwitz) (RT-17324)
  - Don't try to delete db if it isn't there
@@ -749,7 +749,7 @@ Devel::Cover history
  - Make Devel::Cover taint safe, or tolerant at least
  - Only add versioned golden results to tests that need them
  - Add trivial, md5 and module_no_inc tests
- - Increase flexibility of testing system to accomodate md5 test
+ - Increase flexibility of testing system to accommodate md5 test
  - Add mani, all_gold and all_test Makefile targets
  - Make all_versions skip non-existent platforms
  - Add DB option to make dump target

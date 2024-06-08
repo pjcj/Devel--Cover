@@ -18,4 +18,5 @@ extend-ignore-identifiers-re = [
 extend-ignore-re = [
   '"[^"]+"\n\n__END__\n\n',              # quotes
   '::ProhibitMultipleWiths\b',           # perl critic
+  'Gisle Aas',                           # author
 ]
