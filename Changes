@@ -5,6 +5,7 @@ Devel::Cover history
  - Format cpancover and Cover::Collection
  - Format main documentation
  - Tidy dc script
+ - Remove dzil's .build from distribution (Graham Knop) (GH-337)
 
 1.42 - 26 April 2024
  - Improve tests
