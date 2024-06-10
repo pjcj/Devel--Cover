@@ -82,6 +82,7 @@ jobs:
             HTML::Parser
             Sereal::Decoder
             Sereal::Encoder
+            DBM::Deep
 
       - name: Install develop deps
         run: |
