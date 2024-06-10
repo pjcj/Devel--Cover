@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.44 - 10 June 2024
  - Test against 5.40
  - Test with DBM::Deep on CI
 
