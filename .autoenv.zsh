@@ -1,4 +1,4 @@
 if [[ $autoenv_event == "enter" ]]; then
-    . ./utils/setup
+  . ./utils/setup
 else
 fi
