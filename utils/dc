@@ -7,6 +7,8 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
+# set -x
+
 if ((BASH_VERSINFO[0] < 5)); then
   echo "❌ bash version $BASH_VERSION is too old. Please install v5 or higher."
   exit 1
@@ -15,11 +17,6 @@ fi
 set -eEuo pipefail
 shopt -s inherit_errexit
 
-script=$(basename "$0")
-readl=readlink
-if command -v greadlink >&/dev/null; then readl=greadlink; fi
-srcdir=$("$readl" -f "$(dirname "$0")")
-readonly LOG_FILE="/tmp/$script.log"
 _p() {
   __l=$1
   shift
@@ -50,307 +47,410 @@ cleanup() {
   exit "$res"
 }
 
-export AUTOMATED_TESTING=1
-export NONINTERACTIVE_TESTING=1
-export EXTENDED_TESTING=1
-
-PATH="$srcdir:$PATH"
-verbose=${CPANCOVER_VERBOSE:-}
-force=${CPANCOVER_FORCE:-}
-alocal=${CPANCOVER_LOCAL:-}
-results_dir=${CPANCOVER_RESULTS_DIR:-~/staging}
-docker=${CPANCOVER_DOCKER:-docker}
-docker_image=${CPANCOVER_IMAGE:-pjcj/cpancover}
-dryrun=${CPANCOVER_DRYRUN:-}
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-  -h | --help)
-    usage
-    ;;
-  -t | --trace)
-    set -x
-    shift
-    ;;
-  -v | --verbose)
-    verbose=1
-    shift
-    ;;
-  -f | --force)
-    force=1
-    shift
-    ;;
-  -l | --local)
-    alocal=1
-    shift
-    ;;
-  -r | --results_dir)
-    results_dir="$2"
-    shift 2
-    ;;
-  -i | --image)
-    docker_image="$2"
-    shift 2
-    ;;
-  -d | --dryrun)
-    dryrun=1
-    shift
-    ;;
-  -e | --env)
-    shift
+parse_options() {
+  while [[ $# -gt 0 ]]; do
     case "$1" in
-    prod)
-      results_dir=~/staging
-      docker_image=pjcj/cpancover
+    -h | --help)
+      usage
+      ;;
+    -t | --trace)
+      set -x
       shift
       ;;
-    dev)
-      results_dir=/cover/staging_dev
-      docker_image=pjcj/cpancover_dev
+    -v | --verbose)
+      verbose=1
       shift
+      ;;
+    -f | --force)
+      force=1
+      shift
+      ;;
+    -l | --local)
+      alocal=1
+      shift
+      ;;
+    -r | --results_dir)
+      results_dir="$2"
+      shift 2
+      ;;
+    -i | --image)
+      docker_image="$2"
+      shift 2
+      ;;
+    -d | --dryrun)
+      dryrun=1
+      shift
+      ;;
+    -e | --env)
+      shift
+      case "$1" in
+      prod)
+        results_dir=~/staging
+        docker_image=pjcj/cpancover
+        shift
+        ;;
+      dev)
+        results_dir=~/cover/staging_dev
+        docker_image=pjcj/cpancover_dev
+        shift
+        ;;
+      *)
+        pf "Unrecognised environment: $1"
+        ;;
+      esac
       ;;
     *)
-      pf "Unrecognised environment: $1"
+      recipe="$1"
+      shift
+      args=("$@")
+      break
       ;;
     esac
-    ;;
-  *)
-    break
-    ;;
-  esac
-done
+  done
+}
 
-export CPANCOVER_VERBOSE=$verbose
-export CPANCOVER_FORCE=$force
-export CPANCOVER_LOCAL=$alocal
-export CPANCOVER_RESULTS_DIR=$results_dir
-export CPANCOVER_DOCKER=$docker
-export CPANCOVER_IMAGE=$docker_image
-export CPANCOVER_DRYRUN=$dryrun
+recipe_options() {
+  echo "-h --help"
+  echo "-t --trace"
+  echo "-v --verbose"
+  echo "-f --force"
+  echo "-l --local"
+  echo "-r --results_dir"
+  echo "-i --image"
+  echo "-d --dryrun"
+  echo "-e --env"
+  declare -F | perl -nE 'say $1 if /recipe_(.+)/'
+}
 
-dcdir=$("$readl" -f "$srcdir/..")
+setup() {
+  script=$(basename "$0")
+  readl=readlink
+  if command -v greadlink >&/dev/null; then readl=greadlink; fi
+  srcdir=$("$readl" -f "$(dirname "$0")")
+  readonly LOG_FILE="/tmp/$script.log"
+
+  export AUTOMATED_TESTING=1
+  export NONINTERACTIVE_TESTING=1
+  export EXTENDED_TESTING=1
+
+  PATH="$srcdir:$PATH"
+  verbose=${CPANCOVER_VERBOSE:-}
+  force=${CPANCOVER_FORCE:-}
+  alocal=${CPANCOVER_LOCAL:-}
+  results_dir=${CPANCOVER_RESULTS_DIR:-~/staging}
+  docker=${CPANCOVER_DOCKER:-docker}
+  docker_image=${CPANCOVER_IMAGE:-pjcj/cpancover}
+  dryrun=${CPANCOVER_DRYRUN:-}
+
+  parse_options "$@"
+
+  export CPANCOVER_VERBOSE=$verbose
+  export CPANCOVER_FORCE=$force
+  export CPANCOVER_LOCAL=$alocal
+  export CPANCOVER_RESULTS_DIR=$results_dir
+  export CPANCOVER_DOCKER=$docker
+  export CPANCOVER_IMAGE=$docker_image
+  export CPANCOVER_DRYRUN=$dryrun
+
+  dcdir=$("$readl" -f "$srcdir/..")
+}
+
+nice_cpus() {
+  perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e "print nice_cpus"
+}
+
+recipe_nice-cpus() {
+  nice_cpus
+}
+
+recipe_update-copyright() {
+  local from="${1:-$(date +'%Y' --date='last year')}"
+  local to="${2:-$(date +'%Y')}"
+  pi "Updating copyright from $from to $to"
+  local me="Paul Johnson"
+  local files
+  files=$(git ls-files)
+  # shellcheck disable=SC2086
+  perl -pi -e "s/Copyright \\d+-\\K$from(, $me)/$to\$1/i" $files
+  # shellcheck disable=SC2086
+  perl -pi -e "s/Copyright $from\\K(, $me)/-$to\$1/i" $files
+}
+
+get_cpm() {
+  cpanm --notest App::cpm
+  plenv rehash
+  cpm=$(plenv which cpm)
+}
+
+install_dependencies() {
+  get_cpm
+  pi "Installing dependencies with $cpm"
+  $cpm install --workers="$(nice_cpus)" --global \
+    Sereal Digest::MD5 Template Pod::Coverage::CountParents \
+    Capture::Tiny Parallel::Iterator Template Class::XSAccessor
+}
+
+install-development-dependencies() {
+  get_cpm
+  $cpm install --workers="$(nice_cpus)" --global \
+    Dist::Zilla Perl::Critic Perl::Tidy
+  plenv rehash
+  dzil authordeps --missing |
+    xargs "$cpm" install --workers="$(nice_cpus)" --global
+  dzil listdeps --missing |
+    xargs "$cpm" install --workers="$(nice_cpus)" --global
+}
+
+install-test-dependencies() {
+  get_cpm
+  $cpm install --workers="$(nice_cpus)" --global \
+    DBM::Deep
+}
+
+recipe-install-dependencies() {
+  install_dependencies
+}
+
+recipe_install-development-dependencies() {
+  install_development_dependencies
+}
+
+recipe_install-test-dependencies() {
+  install_test_dependencies
+}
+
+install_perl() {
+  local name="${1:?No name specified}"
+  local version="${2:?No version specified}"
+  yes | plenv uninstall "$name" || true
+  plenv install --as "$name" -j 32 -D usedevel --noman "$version"
+  export PLENV_VERSION="$name"
+  plenv install-cpanm
+  install_dependencies
+}
+
+recipe_install-perl() {
+  local name="${1:?No name specified}"
+  local version="${2:?No version specified}"
+  install_perl "$name" "$version"
+}
+
+recipe_install-cpancover-perl() {
+  local version="${1:?No version specified}"
+  install_perl cpancover "$version"
+}
+
+recipe_install-dc_dev-perl() {
+  local version="${1:?No version specified}"
+  install_perl dc-dev "$version"
+  install_development_dependencies
+}
+
+recipe_all-versions() {
+  ./utils/all_versions "$@"
+}
+
+run_cpancover() {
+  mkdir -p "$results_dir"
+  local l=
+  if ((alocal)); then
+    local root=
+    l="--local"
+    [[ -d /dc ]] && root=/dc/
+    PATH="./utils:./bin:$PATH"
+    cpancover="perl -Mblib=$root ${root}bin/cpancover --local"
+  else
+    cpancover=cpancover
+  fi
+  ((verbose)) && cpancover="$cpancover --verbose"
+  ((force)) && cpancover="$cpancover --force"
+  ((dryrun)) && cpancover="$cpancover --dryrun"
+  local cmd
+  cmd="$cpancover --results_dir $results_dir --workers $(nice_cpus) $*"
+  ((verbose)) && pi "$cmd"
+  $cmd
+}
+
+recipe_cpancover() {
+  run_cpancover "${args[@]:-}"
+}
+
+recipe_cpancover-kill-docker() {
+  $docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r "$docker" kill
+}
+
+cpancover_rm_docker() {
+  $docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r "$docker" rm -f
+  $docker system prune --force
+}
+
+recipe_cpancover-rm-docker() {
+  cpancover_rm_docker
+}
+
+recipe_cpancover-rm-docker-image() {
+  $docker ps -q --filter ancestor="$docker_image" | xargs -r "$docker" stop
+  $docker ps -aq --filter ancestor="$docker_image" | xargs -r "$docker" rm
+  $docker rmi "$docker_image"
+}
+
+cpancover_latest() {
+  run_cpancover --latest
+}
+
+recipe_cpancover-latest() {
+  cpancover_latest
+}
+
+recipe_cpancover-build-module() {
+  local module="${1:?No module specified}"
+  local v=
+  ((verbose)) && v=--verbose
+  run_cpancover "$v" --local_build --docker "$docker" --workers 1 "$module"
+}
+
+recipe_cpancover-docker-shell() {
+  local staging="${1:-$results_dir}"
+  mkdir -p "$staging"
+  $docker run -it \
+    --volume="$dcdir:/dc:ro" \
+    --volume="$staging:/remote_staging:rw" \
+    --workdir=/dc --rm=false \
+    --memory=1g \
+    "$docker_image" /bin/bash
+}
+
+recipe_cpancover-docker-module() {
+  local module="${1:?No module specified}"
+  local name="${2:?No name specified}"
+  local staging="${3:-$results_dir}"
+  mkdir -p "$staging"
+  local l=
+  local dir=.
+  if ((alocal)); then
+    l="--local"
+    [[ -d /dc ]] && dir=/dc
+    PATH="./utils:./bin:$PATH"
+    export PERL5OPT=-Mblib=$dir
+  fi
+  ((verbose)) && pi "[-$l-] [$dir] [$module]"
+  local v=
+  ((verbose)) && v=--verbose
+  container=$($docker run -d \
+    --volume="$dcdir:/dc:ro" \
+    --volume="$staging:/remote_staging:ro" \
+    --workdir=/dc --rm=false --name="$name" \
+    --memory=1g \
+    "$docker_image" \
+    "$dir/utils/dc" "$l" cpancover-build-module "$module" "$v")
+  ((verbose)) && pi "container is $container"
+  $docker wait "$name" # >/dev/null
+  # shellcheck disable=SC2181
+  if [[ $? == 0 ]]; then
+    $docker logs "$name"
+    local_staging="$staging/$name"
+    mkdir -p "$local_staging"
+    $docker cp "$name:/root/staging" "$local_staging"
+    if [[ -d $local_staging ]]; then
+      sudo chmod -R 755 "$local_staging"
+      sudo find "$local_staging" -type f -exec chmod 644 {} \;
+      sudo chown -R "$(id -un):$(id -gn)" "$local_staging"
+      cd "$local_staging"/* || exit
+      for f in *; do
+        if [[ -d $f ]]; then
+          rm -rf "${staging:?}/$f"
+          mv "$f" "$staging"
+        fi
+      done
+      rm -r "$local_staging"
+    fi
+  fi
+  $docker rm "$name" >/dev/null
+}
+
+cpancover_compress() {
+  rm -rf "$results_dir"/*/{runs,structure}
+  find "$results_dir/" -name __failed__ -prune -o \
+    -type f -not -name '*.gz' -not -name '*.json' \
+    -exec gzip -f9 {} \;
+}
+
+recipe_cpancover-compress() {
+  cpancover_compress
+}
+
+recipe_cpancover-uncompress-dir() {
+  subdir="${1:?No subdir specified}"
+  find "$results_dir/$subdir/" -name __failed__ -prune -o \
+    -type f -name '*.gz' \
+    -exec gzip -d {} \;
+}
+
+cpancover_compress_old_versions() {
+  keep="${1:-3}"
+  run_cpancover --nobuild --compress_old_versions "$keep"
+}
+
+recipe_cpancover-compress-old-versions() {
+  cpancover_compress_old_versions "${args[@]:-}"
+}
+
+cpancover_generate_html() {
+  pi "Generating HTML at $(date)"
+  cpancover_compress_old_versions
+  run_cpancover --generate_html
+  cpancover_compress
+  local json=$results_dir/cpancover.json
+  local tmp=$json-tmp-$$.gz
+  pi "Compressing $json"
+  pigz <"$json" >"$tmp" && mv "$tmp" "$json.gz"
+  pi "Done"
+}
+
+recipe_cpancover-generate-html() {
+  cpancover_generate_html
+}
+
+cpancover_run() {
+  export DEVEL_COVER_CPUS=10
+  while true; do
+    pi "Starting cpancover run at $(date) on $DEVEL_COVER_CPUS cpus"
+    cpancover_rm_docker
+    cpancover_latest | run_cpancover
+    cpancover_generate_html
+    pi "Finished cpancover run at $(date)"
+    sleep 600 # 10 minutes
+  done
+}
+
+recipe_cpancover-start-queue() {
+  COVER_DEBUG=1 perl bin/queue minion worker -j 4
+}
+
+recipe_cpancover-start-minion() {
+  COVER_DEBUG=1 perl bin/queue daemon -l http://\*:30000 -m production
+}
+
+recipe_cpancover-add() {
+  module="${1:?No module specified}"
+  COVER_DEBUG=1 perl bin/queue add "$module"
+}
+
+run_recipe() {
+  recipe="recipe_$recipe"
+  shift
+  if declare -F "$recipe" >/dev/null 2>&1; then
+    "$recipe" "${args[@]:-}"
+  else
+    pf "Unknown recipe: $recipe"
+  fi
+}
 
 main() {
-  ((verbose)) && pi "Running $*"
-  [[ ${1:-} == "" ]] && pf "Missing argument"
-  case "$1" in
-  update-copyright)
-    from="${2:-$(date +'%Y' --date='last year')}"
-    to="${3:-$(date +'%Y')}"
-    pi "Updating copyright from $from to $to"
-    me="Paul Johnson"
-    files=$(git ls-files)
-    # shellcheck disable=SC2086
-    perl -pi -e "s/Copyright \\d+-\\K$from(, $me)/$to\$1/i" $files
-    # shellcheck disable=SC2086
-    perl -pi -e "s/Copyright $from\\K(, $me)/-$to\$1/i" $files
-    ;;
-  install_dependencies)
-    cpanm --notest App::cpm
-    plenv rehash
-    local cpm
-    cpm="$(plenv which cpm)"
-    $cpm install --workers="$("$0" nice_cpus)" --global \
-      Sereal Digest::MD5 Template Pod::Coverage::CountParents \
-      Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
-      Moo namespace::clean CPAN::Releases::Latest JSON::MaybeXS \
-      CPAN::DistnameInfo HTML::Entities
-    ;;
-  install_development_dependencies)
-    cpanm --notest App::cpm
-    plenv rehash
-    local cpm
-    cpm="$(plenv which cpm)"
-    $cpm install --workers="$("$0" nice_cpus)" --global \
-      Dist::Zilla Perl::Critic Perl::Tidy
-    plenv rehash
-    dzil authordeps --missing |
-      xargs cpm install --workers="$("$0" nice_cpus)" --global
-    dzil listdeps --missing |
-      xargs cpm install --workers="$("$0" nice_cpus)" --global
-    ;;
-  install_perl)
-    name="${2:?No name specified}"
-    version="${3:?No version specified}"
-    yes | plenv uninstall "$name" || true
-    plenv install --as "$name" -j 32 -D usedevel --noman "$version"
-    PLENV_VERSION="$name" plenv install-cpanm
-    PLENV_VERSION="$name" dc install_dependencies
-    ;;
-  install_cpancover_perl)
-    dc install_perl cpancover "$2"
-    ;;
-  install_dc_dev_perl)
-    dc install_perl dc-dev "$2"
-    PLENV_VERSION=dc-dev dc install_development_dependencies
-    ;;
-  nice_cpus)
-    perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus \
-      -e "print nice_cpus"
-    ;;
-  all_versions)
-    shift
-    ./utils/all_versions "$@"
-    ;;
-  cpancover)
-    shift
-    jobs=$("$0" nice_cpus)
-    mkdir -p "$results_dir"
-    if ((alocal)); then
-      root=
-      [[ -d /dc ]] && root=/dc/
-      cpancover="perl -Mblib=$root ${root}bin/cpancover --local"
-    else
-      cpancover=cpancover
-    fi
-    ((verbose)) && cpancover="$cpancover --verbose"
-    ((force)) && cpancover="$cpancover --force"
-    ((dryrun)) && cpancover="$cpancover --dryrun"
-    cmd="$cpancover --results_dir $results_dir --workers $jobs $*"
-    ((verbose)) && pi "$cmd"
-    $cmd
-    ;;
-  cpancover-compress)
-    find "$results_dir/" -name __failed__ -prune -o \
-      -type f -not -name '*.gz' -not -name '*.json' \
-      -exec gzip -f9 {} \;
-    ;;
-  cpancover-uncompress-dir)
-    subdir="${2:?No subdir specified}"
-    find "$results_dir/$subdir/" -name __failed__ -prune -o \
-      -type f -name '*.gz' \
-      -exec gzip -d {} \;
-    ;;
-  cpancover-latest)
-    "$0" cpancover --latest
-    ;;
-  cpancover-build-module)
-    module="$2"
-    "$0" cpancover --local_build --docker "$docker" --workers 1 "$module"
-    "$0" cpancover-compress
-    ;;
-  cpancover-docker-shell)
-    staging="${2:-$results_dir}"
-    mkdir -p "$staging"
-    # pd $name
-    "$docker" run -it \
-      --volume="$dcdir:/dc:ro" \
-      --volume="$staging:/remote_staging:rw" \
-      --workdir=/dc --rm=false \
-      --memory=1g \
-      "$docker_image" /bin/bash
-    ;;
-  cpancover-docker-module)
-    module="$2"
-    name="$3"
-    staging="${4:-$results_dir}"
-    mkdir -p "$staging"
-    # pd "name: $name"
-    l=""
-    ((alocal)) && l="--local"
-    dir=""
-    ((alocal)) && [[ -d /dc ]] && dir=/dc/
-    # ((verbose)) && pi "[-$l-] [$dir] [$module]"
-    # set -x
-    container=$("$docker" run -d \
-      --volume="$dcdir:/dc:ro" \
-      --volume="$staging:/remote_staging:ro" \
-      --workdir=/dc --rm=false --name="$name" \
-      --memory=1g \
-      "$docker_image" \
-      "${dir}dc" "$l" cpancover-build-module "$module")
-    # https://github.com/dotcloud/docker/issues/3986
-    ((verbose)) && pi "container is $container"
-    "$docker" wait "$name" >/dev/null
-    # shellcheck disable=SC2181
-    if [[ $? == 0 ]]; then
-      "$docker" logs "$name" >"$staging/$name.out"
-      local_staging="$staging/$name"
-      mkdir -p "$local_staging"
-      "$docker" cp "$name:/root/staging" "$local_staging"
-      if [[ -d $local_staging ]]; then
-        sudo chmod -R 755 "$local_staging"
-        sudo find "$local_staging" -type f -exec chmod 644 {} \;
-        sudo chown -R pjcj:pjcj "$local_staging"
-        cd "$local_staging"/* || exit
-        for f in *; do
-          if [[ -d $f ]]; then
-            rm -rf "${staging:?}/$f"
-            mv "$f" "$staging"
-          fi
-        done
-        rm -r "$local_staging"
-      fi
-    fi
-    "$docker" rm "$name" >/dev/null
-    ;;
-  cpancover-generate-html)
-    pi "Generating HTML at $(date)"
-    # perl -V
-    "$0" cpancover-compress-old-versions
-    "$0" cpancover --generate_html
-    "$0" cpancover-compress
-    json=$results_dir/cpancover.json
-    tmp=$json-tmp-$$.gz
-    pi "Compressing $json"
-    pigz <"$json" >"$tmp" && mv "$tmp" "$json.gz"
-    pi "Done"
-    ;;
-  cpancover-run)
-    export DEVEL_COVER_CPUS=10
-    while true; do
-      pi "Starting cpancover run at $(date) on $DEVEL_COVER_CPUS cpus"
-      "$0" cpancover-rm-docker # just in case something bad happened
-      "$0" cpancover-latest | "$0" cpancover
-      "$0" cpancover-generate-html
-      pi "Finished cpancover run at $(date)"
-      sleep 600 # 10 minutes
-    done
-    ;;
-  cpancover-compress-old-versions)
-    keep="${2:-3}"
-    "$0" cpancover --nobuild --compress_old_versions "$keep"
-    ;;
-  cpancover-kill-docker)
-    "$docker" ps -a | tail -n +2 | awk '{ print $1 }' |
-      xargs -r "$docker" kill
-    ;;
-  cpancover-rm-docker)
-    "$docker" ps -a | tail -n +2 | awk '{ print $1 }' |
-      xargs -r "$docker" rm -f
-    "$docker" system prune --force
-    ;;
-  cpancover-start-queue)
-    COVER_DEBUG=1 perl bin/queue minion worker -j 4
-    ;;
-  cpancover-start-minion)
-    COVER_DEBUG=1 perl bin/queue daemon -l http://\*:30000 -m production
-    ;;
-  cpancover-add)
-    module="$2"
-    COVER_DEBUG=1 perl bin/queue add "$module"
-    ;;
-  sereal_each_bug)
-    perl="${2:-perl}"
-    "$perl" Makefile.PL
-    make
-    rm -rf cover_db
-    cp tests/trivial tests/change
-    "$perl" -Mblib -MDevel::Cover tests/change
-    cp tmp/change tests
-    "$perl" -Mblib -MDevel::Cover tests/change
-    "$perl" -Mblib bin/cover -report text
-    rm tests/change
-    ;;
-  options)
-    perl -nE 'say $1 =~ s/"//gr =~ s/\s*\|\s*/\n/gr' \
-      -E 'if /^ {2}"?([a-zA-Z0-9_ "|\\-]+)"?(?:\)|\s*\|\s*\\)$/' \
-      -E '&& $1 !~ /^_/' <"$0"
-    ;;
-  *)
-    pf "Unknown option: $1"
-    ;;
-  esac
+  setup "$@"
+  ((verbose)) && pi "Running $recipe ${args[*]:-}"
+  [[ ${recipe:-} == "" ]] && pf "Missing recipe"
+  run_recipe "${args[@]:-}"
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then

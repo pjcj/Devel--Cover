@@ -32,7 +32,7 @@ with at least the perl optree, Devel::Cover output can vary slightly between
 perl releases.  For this reason some Devel::Cover tests have difference golden
 results depending on the perl version.
 
-A set of perl versions can be created by running the `dc all_versions --build`
+A set of perl versions can be created by running the `dc all-versions --build`
 command.  Once this is done golden results for all versions can be created by
 running `make all_gold TEST=circular_ref`.
 

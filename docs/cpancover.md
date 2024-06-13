@@ -49,7 +49,7 @@ cd /cover/dc
 Install or upgrade a cpancover perl:
 
 ```sh
-dc install_cpancover_perl 5.26.1
+dc install-cpancover-perl 5.26.1
 ```
 
 Run cpancover:
@@ -123,7 +123,7 @@ For each version there is a standard and a threaded plenv installation.
 
 The development directory for these purposes is `/cover/Devel--Cover`.  New
 versions of perl can be installed by adding them to `utils/all_versions` and
-running `dc all_versions --build`.
+running `dc all-versions --build`.
 
-To install a version of perl with development tools run `dc install_dc_dev_perl
+To install a version of perl with development tools run `dc install-dc_dev-perl
 5.38.2`.
