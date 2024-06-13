@@ -133,9 +133,6 @@ sub process_module_file ($self) {
 sub build_modules ($self) {
   my @command = qw( cpan -Ti );
   push @command, "-f" if $self->force;
-  # my @command = qw( cpan );
-  # $ENV{CPAN_OPTS} = "-i -T";
-  # $ENV{CPAN_OPTS} .= " -f" if $self->force;
   # $self->_set_local_timeout(300);
   my %m;
   for my $module (sort grep !$m{$_}++, $self->modules->@*) {
@@ -147,19 +144,13 @@ sub build_modules ($self) {
 }
 
 sub add_build_dirs ($self) {
-  # say "add_build_dirs"; say for @{$self->build_dirs};
-  # say && system "ls -al $_" for "/remote_staging",
-  # map "$_/build", @{$self->cpan_dir};
   my $exists = sub {
-    # say "exists [$_]";
     my $dir   = "/remote_staging/" . (s|.*/||r =~ s/-\d+$/*/r);
     my @files = glob $dir;
-    # say "checking [$dir] -> [@files]";
     @files
   };
   push $self->build_dirs->@*, grep { !$exists->() } grep -d,
     map glob("$_/build/*"), $self->cpan_dir->@*;
-  # say "add_build_dirs:"; say for @{$self->build_dirs};
 }
 
 sub run ($self, $build_dir) {
@@ -185,14 +176,11 @@ sub run ($self, $build_dir) {
   }
 
   $output .= "Testing $module in $build_dir\n";
-  # say "\n$line\n$output$line\n"; return;
 
-  # $output .= $self->sys($^X, "-V");
-  # $output .= $self->sys("pwd");
   my @cmd;
   if ($self->local) {
     $ENV{DEVEL_COVER_OPTIONS}   = "-ignore,/usr/local/lib/perl5";
-    $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir;
+    $ENV{DEVEL_COVER_TEST_OPTS} = "-Mblib=" . $self->bin_dir . "/..";
     @cmd = ($^X, $ENV{DEVEL_COVER_TEST_OPTS}, $self->bin_dir . "/cover");
   } else {
     @cmd = ($^X, $self->bin_dir . "/cover");
@@ -224,7 +212,6 @@ sub run_all ($self) {
     },
     $self->build_dirs
   );
-  # print Dumper \@res;
 }
 
 sub write_json ($self, $vars) {
@@ -339,7 +326,7 @@ sub generate_html ($self) {
     $m->{module} = $mod;
     $m->{link} = "/$module/index.html" if $json->{summary}{Total}{total}{total};
 
-    for my $criterion ($vars->{criteria}->%*) {
+    for my $criterion ($vars->{criteria}->@*) {
       my $summary = $json->{summary}{Total}{$criterion};
       # print "summary:", Dumper $summary;
       my $pc = $summary->{percentage};
@@ -466,7 +453,9 @@ sub cover_modules ($self) {
   # say "modules: ", Dumper $self->modules;
 
   my @cmd = $self->dc_file;
-  push @cmd, "--local" if $self->local;
+  push @cmd, "--local"   if $self->local;
+  push @cmd, "--verbose" if $self->verbose;
+  push @cmd, "-i", "pjcj/cpancover_dev:latest";
   my @command = (@cmd, "cpancover-docker-module");
   $self->_set_local_timeout(0);
   my @res = iterate_as_array(
@@ -637,7 +626,7 @@ use base "Template::Provider";
 
 my %Templates;
 
-sub fetch ($self, $name) {
+sub fetch ($self, $name, $) {
   # print "Looking for <$name>\n";
   $self->SUPER::fetch(exists $Templates{$name} ? \$Templates{$name} : $name)
 }
