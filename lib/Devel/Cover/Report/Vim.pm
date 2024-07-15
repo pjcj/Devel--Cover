@@ -3,7 +3,7 @@
 # This software is free.  It is licensed under the same terms as Perl itself.
 
 # The latest version of this software should be available from my homepage:
-# http://www.pjcj.net
+# https://pjcj.net
 
 package Devel::Cover::Report::Vim;
 
@@ -97,7 +97,7 @@ $Templates{vim} = <<'EOT';
 " Devel::Cover is copyright 2001-2025, Paul Johnson (paul@pjcj.net)
 " Devel::Cover is free. It is licensed under the same terms as Perl itself.
 " The latest version of Devel::Cover should be available from my homepage:
-" http://www.pjcj.net
+" https://pjcj.net
 
 [% FOREACH r = runs %]
 " Run:          [% r.run    %]
@@ -402,7 +402,7 @@ Copyright 2012-2025, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-http://www.pjcj.net
+https://pjcj.net
 
 The template is copied from Simplecov-Vim
 (https://github.com/nyarly/Simplecov-Vim) and is under the MIT Licence.
