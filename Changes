@@ -257,7 +257,7 @@ Devel::Cover history
  - Add DEVEL_COVER_NO_TESTS option to not run any tests during p5cover
 
 1.04 - 1 June 2013
- - Fix return code from cover (Kan Fushihara) (guthub 61)
+ - Fix return code from cover (Kan Fushihara) (GH-61)
  - Fix pod coverage for multiple packages in a file. (RT-34888)
  - Speed improvements
 
@@ -265,7 +265,7 @@ Devel::Cover history
  - Fixes for correct operation with 5.17.11, 5.18.0 and 5.19.0
 
 1.02 - 28 April 2013
- - Make -silent even quieter (Sergiy Borodych) (guthub 49)
+ - Make -silent even quieter (Sergiy Borodych) (GH-49)
  - mod_perl2 on Debian sets $^X to apache2 (Lasse Makholm) (GH-47)
  - Add csv file for use with metacpan (Dinis Rebolo) (GH-56)
  - cover -test exists with the status of the underlying test run (Kan Fushihara)
