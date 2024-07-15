@@ -139,7 +139,7 @@ endfunction
 " The signs definitions can be overridden.  To do this add a file called
 " devel-cover.vim at some appropriate point in your ~/.vim directory and add
 " your local configuration commands there.
-" For example, I use the vim solarized theme and I have the following comamnds
+" For example, I use the vim solarized theme and I have the following commands
 " in my local configuration file ~/.vim/local/devel-cover.vim:
 "
 " ----------------------------------------------------------------------------
