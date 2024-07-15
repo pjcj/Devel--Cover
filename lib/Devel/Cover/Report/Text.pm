@@ -200,9 +200,9 @@ sub print_subroutines {
 
   my ($db, $file, $options) = @_;
 
-  my $dfil = $db->cover->file($file);
-  my $subs = $dfil->subroutine or return;
-  my $pods = $options->{show}{pod} && $dfil->pod;
+  my $dfile = $db->cover->file($file);
+  my $subs = $dfile->subroutine or return;
+  my $pods = $options->{show}{pod} && $dfile->pod;
   my $maxh = 8;
   my $maxc = 5;
   my $maxp = 3;
