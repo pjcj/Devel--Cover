@@ -597,7 +597,7 @@ Devel::Cover history
 
 0.55 - 22nd September 2005
  - Add -gcov option to cover and make it default when using gcc
- - Remolve unused File::Find from cpancover
+ - Remove unused File::Find from cpancover
  - Document how to get XS coverage in gcov2perl
  - Improvements to SVK annotation (Chia-liang Kao)
 
