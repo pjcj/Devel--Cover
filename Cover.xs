@@ -195,7 +195,7 @@ static int cpu() {
 #endif /* HAS_GETTIMEOFDAY */
 
 /*
- * http://codereview.stackexchange.com/questions/85556/simple-string-hashing-algorithm-implementation
+ * https://codereview.stackexchange.com/questions/85556/simple-string-hashing-algorithm-implementation
  * https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
  * http://www.isthe.com/chongo/tech/comp/fnv/index.html#public_domain
  *
