@@ -449,7 +449,7 @@ Devel::Cover history
 0.72 - 27th September 2010
  - Teach cpancover how to work in parallel
  - Improve speed of check_file() (Goro Fuji)
- - Fix errors with non-existent directories on Cygwin (Goro Fuji)
+ - Fix errors with nonexistent directories on Cygwin (Goro Fuji)
  - Improve self coverage with new test
  - Fix tests to work with 5.13.5
  - New dependency on Test::Warn
@@ -486,7 +486,7 @@ Devel::Cover history
  - Move to faster method of collecting data.  Could be up to twice as fast now
  - Add -replace_ops options to be able to revert to previous collection method
  - Test against 5.12.0 and update tests as necessary
- - Work better with non-existent databases
+ - Work better with nonexistent databases
  - XS fixes related to overriding ops rather than replacing runops
    (Florian Ragwitz)
  - Don't chmod created directories (mkdir should suffice)
@@ -769,7 +769,7 @@ Devel::Cover history
  - Add trivial, md5 and module_no_inc tests
  - Increase flexibility of testing system to accommodate md5 test
  - Add mani, all_gold and all_test Makefile targets
- - Make all_versions skip non-existent platforms
+ - Make all_versions skip nonexistent platforms
  - Add DB option to make dump target
  - Remove dependencies on op_seq.  (I removed it from bleadperl.)  Use
    op_targ instead
