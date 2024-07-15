@@ -335,7 +335,7 @@ displayed.  Correctly covered criteria are shown in green.  Incorrectly
 covered criteria are shown in red.  Any incorrectly covered criterion will
 override a correctly covered criterion.
 
-If the coverage for the file being displayed is out of date the a function
+If the coverage for the file being displayed is out of date the function
 called CoverageOld() is called and passed the name of the file.  Similarly,
 for current coverage data file CoverageValid is called.
 
