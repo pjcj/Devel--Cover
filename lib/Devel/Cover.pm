@@ -1407,10 +1407,10 @@ of operation, but this now gets little testing and will probably be removed
 soon.  You probably don't care about any of this.
 
 The most appropriate mailing list on which to discuss this module would be
-perl-qa.  See L<http://lists.perl.org/list/perl-qa.html>.
+perl-qa.  See L<https://lists.perl.org/list/perl-qa.html>.
 
 The Devel::Cover repository can be found at
-L<http://github.com/pjcj/Devel--Cover>.  This is also where problems should be
+L<https://github.com/pjcj/Devel--Cover>.  This is also where problems should be
 reported.
 
 =head1 REQUIREMENTS AND RECOMMENDED MODULES

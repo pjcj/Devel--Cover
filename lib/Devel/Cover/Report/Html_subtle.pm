@@ -428,8 +428,8 @@ https://pjcj.net
 -->
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML Basic 1.0//EN"
-    "http://www.w3.org/TR/xhtml-basic/xhtml-basic10.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+    "https://www.w3.org/TR/xhtml-basic/xhtml-basic10.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"></meta>
     <meta http-equiv="Content-Language" content="en-us"></meta>
