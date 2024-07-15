@@ -5,7 +5,7 @@
 # This software is free.  It is licensed under the same terms as Perl itself.
 
 # The latest version of this software should be available from my homepage:
-# http://www.pjcj.net
+# https://pjcj.net
 
 # Run as: perl -C utils/mail_contributors < Contributors
 # Note *** Please don't run this - it was a one off for the first publication

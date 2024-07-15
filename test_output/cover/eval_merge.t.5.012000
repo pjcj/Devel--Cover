@@ -32,7 +32,7 @@ line  err   stmt   bran   cond    sub   code
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
 5                                       # The latest version of this software should be available from my homepage:
-6                                       # http://www.pjcj.net
+6                                       # https://pjcj.net
 7                                       
 8                                       package E2;
 9                                       
@@ -59,7 +59,7 @@ line  err   stmt   bran   cond    sub   code
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
 5                                       # The latest version of this software should be available from my homepage:
-6                                       # http://www.pjcj.net
+6                                       # https://pjcj.net
 7                                       
 8                                       package E3;
 9                                       
@@ -86,7 +86,7 @@ line  err   stmt   bran   cond    sub   code
 3                                       # This software is free.  It is licensed under the same terms as Perl itself.
 4                                       
 5                                       # The latest version of this software should be available from my homepage:
-6                                       # http://www.pjcj.net
+6                                       # https://pjcj.net
 7                                       
 8                                       package E4;
 9                                       
@@ -115,7 +115,7 @@ line  err   stmt   bran   cond    sub   code
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
 7                                       # The latest version of this software should be available from my homepage:
-8                                       # http://www.pjcj.net
+8                                       # https://pjcj.net
 9                                       
 10             2                    2   use lib "tests";
                2                        
