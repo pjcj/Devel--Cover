@@ -28,7 +28,7 @@ line  err   stmt   bran   cond    sub   code
 8                                       # http://www.pjcj.net
 9                                       
 10                                      # __COVER__ skip_test $] < 5.032
-11                                      # __COVER__ skip_reason Too fagile below 5.32
+11                                      # __COVER__ skip_reason Too fragile below 5.32
 12                                      
 13             1                    1   use strict;
                1                        
