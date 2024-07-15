@@ -477,7 +477,7 @@ Devel::Cover history
  - Fix gcov2perl to work with large numbers (Thomas Dorner) (RT-45028)
  - Fix "gcov -l" include files (Thomas Dorner) (RT-44864)
  - Test against 5.12.1
- - Gross workaround for for regexp evals (Florian Ragwitz)
+ - Gross workaround for regexp evals (Florian Ragwitz)
 
 0.67 - 8th May 2010
  - Fix up the Makefile for dmake on Strawberry Perl (Curtis Jewell) (RT-50774)
