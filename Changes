@@ -86,7 +86,7 @@ Devel::Cover history
 
 1.32 - 25 April 2019
  - Test up to 5.26.3, 5.28.3 and  5.29.10
- - Get dev environment working on MacOS
+ - Get dev environment working on macOS
  - Fix up tests with recent Math::BigInt versions (Ed J) (GH-219)
  - Add progress text when processing coverage (Christian Walde) (GH-221)
  - Optionally use Term::Size (Paul "LeoNerd" Evans) (GH-228)
