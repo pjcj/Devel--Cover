@@ -8,7 +8,7 @@
 # http://www.pjcj.net
 
 # __COVER__ skip_test $] < 5.032
-# __COVER__ skip_reason Too fagile below 5.32
+# __COVER__ skip_reason Too fragile below 5.32
 
 use 5.20.0;
 use warnings;
