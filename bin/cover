@@ -248,7 +248,7 @@ sub check_options {
   pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
 
   my $options = dclone($Options);
-  my $report  = $Options->{report}[0];
+  my $report  = $Options->{report}[0] or return;
   my $format  = "Devel::Cover::Report::\u$report";
   $format->get_options($options) if $format->can("get_options");
 }
