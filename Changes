@@ -905,7 +905,7 @@ Devel::Cover history
  - Reinstate coverage of subs in main:: which got lost somewhere (0.11?)
  - Bug fixes for use of uninitialised values
  - Automatically generate tests.  Well, their infrastructure anyway
- - Move Cover to lib/Devel/Cover to keep case insensitive filesystems happy
+ - Move Cover to lib/Devel/Cover to keep case-insensitive filesystems happy
  - Remove -detail option. (It belongs to cover.)
  - Work on op addresses and sequence numbers instead of just op addresses, to be
    (almost) unique
