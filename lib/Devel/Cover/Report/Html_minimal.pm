@@ -20,7 +20,7 @@ BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 #-------------------------------------------------------------------------------
 # Subroutine : get_coverage_for_line
-# Purpose    : Retreive all available data for requested metrics on a line.
+# Purpose    : Retrieve all available data for requested metrics on a line.
 # Notes      :
 #-------------------------------------------------------------------------------
 sub get_coverage_for_line {
