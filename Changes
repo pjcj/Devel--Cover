@@ -210,7 +210,7 @@ Devel::Cover history
  - Round percentages down in summary and reports (also fixes Windows tests)
 
 1.12 - 17 April 2014
- - Fix test failure on OSX, FreeBSD and HPUX (thanks H.Merijn Brand)
+ - Fix test failure on OS X, FreeBSD and HPUX (thanks H.Merijn Brand)
 
 1.11 - 13 April 2014
  - Tests should pass when all run in parallel (Kent Fredric) (GH-69)
