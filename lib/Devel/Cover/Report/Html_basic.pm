@@ -570,16 +570,16 @@ $Templates{summary} = <<'EOT';
 <script type="text/javascript">
 <!-- hide
 function filter_files(filter_by) {
-    var allelements = document.getElementsByTagName("tr");
+    var allElements = document.getElementsByTagName("tr");
     var re_now      = new RegExp(filter_by, "i");
-    for (var i = 0; i < allelements.length; i++) {
-        if (allelements[i].className) {
-            if (filter_by == "" || allelements[i].className == "Total" ||
-                (filter_by.length && re_now.test(allelements[i].className))) {
-                allelements[i].style.display = "table-row";
+    for (var i = 0; i < allElements.length; i++) {
+        if (allElements[i].className) {
+            if (filter_by == "" || allElements[i].className == "Total" ||
+                (filter_by.length && re_now.test(allElements[i].className))) {
+                allElements[i].style.display = "table-row";
             } else if (filter_by.length &&
-                       !re_now.test(allelements[i].className)) {
-                allelements[i].style.display = "none";
+                       !re_now.test(allElements[i].className)) {
+                allElements[i].style.display = "none";
             }
         }
     }
