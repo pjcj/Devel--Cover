@@ -12,7 +12,7 @@ case "$1" in
     "launch")
         shift
         if [ -z "$1" ]; then
-            echo "uasge: $0 launch your_test"
+            echo "usage: $0 launch your_test"
             exit 1
         fi
         test="$1"
