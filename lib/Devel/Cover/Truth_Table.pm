@@ -585,6 +585,6 @@ None that I'm aware of...
 Copyright 2002 Michael Carman <mjcarman@mchsi.com>
 
 This software is free. It is licensed under the same terms as Perl
-itself. The latest version should be available from: http://www.pjcj.net
+itself. The latest version should be available from: https://pjcj.net
 
 =cut

@@ -101,7 +101,7 @@ possible.
 ## cpancover.com
 
 The server which is currently running cpancover.com has been graciously
-provided by [Bytemark](http://www.bytemark.co.uk/r/cpancover).  It has plenty
+provided by [Bytemark](https://www.bytemark.co.uk/r/cpancover).  It has plenty
 of memory and cpu power, but not a large amount of disk space.  That's fine
 though, it has sufficient for cpancover's needs.
 

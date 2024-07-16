@@ -25,7 +25,7 @@ line  err   stmt   bran   cond    sub   code
 5                                       # This software is free.  It is licensed under the same terms as Perl itself.
 6                                       
 7                                       # The latest version of this software should be available from my homepage:
-8                                       # http://www.pjcj.net
+8                                       # https://pjcj.net
 9                                       
 10                                      # __COVER__ skip_test $^O eq "MSWin32"
 11                                      # __COVER__ skip_reason Fork uses threads on Windows

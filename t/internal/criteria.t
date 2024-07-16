@@ -28,8 +28,8 @@ is Devel::Cover::get_coverage(),
     Devel::Cover::add_coverage("does_not_exist");
     like $warning,
          qr/Devel::Cover: Unknown coverage criterion "does_not_exist" ignored./,
-         "Adding non-existent coverage warns";
+         "Adding nonexistent coverage warns";
 }
 is Devel::Cover::get_coverage(),
    "branch condition pod statement subroutine time",
-   "Adding non-existent coverage has no effect";
+   "Adding nonexistent coverage has no effect";
