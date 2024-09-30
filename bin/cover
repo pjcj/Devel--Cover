@@ -113,21 +113,28 @@ sub get_options {
 
     my %coverage_allowed = map {$_ => 1} values %coverage_abbrev, "time", "pod";
 
-    # expanding 'default' to all available
-    @{$Options->{coverage}} = map {
-        $_ eq "default" ? (keys %coverage_allowed) : $_
-    } split(/,/, join(",", @{$Options->{coverage}}));
+    my %options_coverage = map { $_ => 1 }
+        split /,/, join ',', @{ $Options->{coverage} };
 
-    # delete exclusions from that list
-    for my $exclusion (grep /^-/, @{$Options->{coverage}}) {
-        $exclusion = substr($exclusion, 1);  # chop off leading -
-        $Options->{coverage} = [grep $_ ne $exclusion, @{$Options->{coverage}}];
+    # expanding 'default' to all available
+    if ( delete $options_coverage{default} ) {
+        $options_coverage{$_} = 1 for keys %coverage_allowed;
     }
 
-    my %options_coverage = map {$_ => 1} @{$Options->{coverage}};
+    # expanding abbreviations
     while (my ($abbr, $full) = each %coverage_abbrev) {
         $options_coverage{$full} = delete $options_coverage{$abbr}
             if $options_coverage{$abbr};
+        $options_coverage{"-$full"} = delete $options_coverage{"-$abbr"}
+            if $options_coverage{"-$abbr"};
+    }
+
+    # delete exclusions
+    for ( keys %options_coverage ) {
+        if ( index( $_, '-' ) == 0 ) {
+            delete $options_coverage{$_};
+            delete $options_coverage{ substr $_, 1 };
+        }
     }
 
     @{$Options->{coverage}} = keys %options_coverage;
