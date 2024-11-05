@@ -29,7 +29,7 @@ files in `tests/`.  Such generating then also needs a file in
 
 Perl internals change between releases and, since Devel::Cover is tightly bound
 with at least the perl optree, Devel::Cover output can vary slightly between
-perl releases.  For this reason some Devel::Cover tests have difference golden
+perl releases.  For this reason some Devel::Cover tests have different golden
 results depending on the perl version.
 
 A set of perl versions can be created by running the `dc all_versions --build`
