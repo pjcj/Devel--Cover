@@ -181,10 +181,15 @@ sub run_command {
   print STDERR "Running test [$command]\n" if $self->{debug};
 
   open my $fh, "-|", "$command 2>&1" or die "Cannot run $command: $!";
+  my @lines;
   while (<$fh>) {
+    push @lines, $_;
     print STDERR if $self->{debug};
   }
-  close $fh or die "Cannot close $command: $!";
+  if (!close $fh) {
+    die "Cannot close $command: $!" if $!;
+    die "Error closing $command, output was:\n", @lines;
+  }
 
   if ($self->{delay_after_run}) {
     eval { select undef, undef, undef, $self->{delay_after_run}; 1 }
