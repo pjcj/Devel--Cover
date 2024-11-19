@@ -10,7 +10,7 @@
 package Foo;
 use overload
    '""' => sub { shift->render},
-   bool => sub { die; 1 };
+   bool => sub { die "I was used as a bool and shouldn't be\n"; 1 };
 
 sub render {
    "foo";
@@ -18,5 +18,8 @@ sub render {
 
 my $foo = 1;
 bless {}, 'Foo' if $foo;
+
+my $boolobj = bless {}, 'Foo';
+$boolobj //= 5;
 
 1;
