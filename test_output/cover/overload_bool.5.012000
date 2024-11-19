@@ -4,8 +4,8 @@ Reading database from ...
 ------------------- ------ ------ ------ ------ ------
 File                  stmt   bran   cond    sub  total
 ------------------- ------ ------ ------ ------ ------
-tests/overload_bool   55.5   50.0    n/a   25.0   46.6
-Total                 55.5   50.0    n/a   25.0   46.6
+tests/overload_bool   63.6   50.0   50.0   25.0   52.6
+Total                 63.6   50.0   50.0   25.0   52.6
 ------------------- ------ ------ ------ ------ ------
 
 
@@ -30,7 +30,7 @@ line  err   stmt   bran   cond    sub   code
 10                                      package Foo;
 11                                      use overload
 12    ***     *0                   *0      '""' => sub { shift->render},
-13             1                    1      bool => sub { die; 1 };
+13             1                    1      bool => sub { die "I was used as a bool and shouldn't be\n"; 1 };
       ***      1                   *0   
                1                        
       ***     *0                        
@@ -43,7 +43,10 @@ line  err   stmt   bran   cond    sub   code
 19             1                        my $foo = 1;
 20    ***      1   * 50                 bless {}, 'Foo' if $foo;
 21                                      
-22                                      1;
+22             1                        my $boolobj = bless {}, 'Foo';
+23    ***      1          * 50          $boolobj //= 5;
+24                                      
+25                                      1;
 
 
 Branches
@@ -52,6 +55,16 @@ Branches
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 20    ***     50      1      0   if $foo
+
+
+Conditions
+----------
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+23    ***     50      1      0   $boolobj //= 5
 
 
 Covered Subroutines

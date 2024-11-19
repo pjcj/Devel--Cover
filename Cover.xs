@@ -527,7 +527,9 @@ static void set_conditional(pTHX_ OP *op, int cond, int value) {
 
 static void add_conditional(pTHX_ OP *op, int cond) {
     SV **count = av_fetch(get_conditional_array(aTHX_ op), cond, 1);
-    int  c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
+    int true_ish = (op->op_type == OP_DOR || op->op_type == OP_DORASSIGN)
+      ? SvOK(*count) : SvTRUE(*count);
+    int  c     = true_ish ? SvIV(*count) + 1 : 1;
     sv_setiv(*count, c);
     NDEB(D(L, "Adding %d conditional making %d at %p\n", cond, c, op));
 }
@@ -586,14 +588,16 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
     for (; i <= av_len(conds); i++) {
         OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
         SV **count = av_fetch(get_conditional_array(aTHX_ op), 0, 1);
-        int  type  = SvTRUE(*count) ? SvIV(*count) : 0;
+        int true_ish = (op->op_type == OP_DOR || op->op_type == OP_DORASSIGN)
+          ? SvOK(*count) : SvTRUE(*count);
+        int  type  = true_ish ? SvIV(*count) : 0;
         sv_setiv(*count, 0);
 
         /* Check if we have come from an xor with a true first op */
         if (final)     value  = 1;
         if (type == 1) value += 2;
 
-        NDEB(D(L, "Found %p: %d, %d\n", op, type, value));
+        NDEB(D(L, "Found %p (trueish=%d): %d, %d\n", op, true_ish, type, value));
         add_conditional(aTHX_ op, value);
     }
 
@@ -706,11 +710,15 @@ static OP *get_condition(pTHX) {
 
     if (pc && SvROK(*pc)) {
         dSP;
+        int true_ish;
         NDEB(D(L, "get_condition from %p, %p: %p (%s)\n",
                   PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
         /* dump_conditions(aTHX); */
         NDEB(svdump(Pending_conditionals));
-        add_condition(aTHX_ *pc, SvTRUE(TOPs) ? 2 : 1);
+        true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
+          ? SvOK(TOPs) : SvTRUE(TOPs);
+        NDEB(D(L, "   get_condition true_ish=%d\n", true_ish));
+        add_condition(aTHX_ *pc, true_ish ? 2 : 1);
     } else {
         PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
                   PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
@@ -802,26 +810,26 @@ static void cover_logop(pTHX) {
     } else {
         dSP;
 
-        int left_val     = SvTRUE(TOPs);
-        int left_val_def = SvOK(TOPs);
+        int leftval_true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
+          ? SvOK(TOPs) : SvTRUE(TOPs);
         /* We don't count X= as void context because we care about the value
          * of the RHS */
         int void_context = GIMME_V == G_VOID &&
                            PL_op->op_type != OP_DORASSIGN &&
                            PL_op->op_type != OP_ANDASSIGN &&
                            PL_op->op_type != OP_ORASSIGN;
-        NDEB(D(L, "left_val: %d, void_context: %d at %p\n",
-                  left_val, void_context, PL_op));
+        NDEB(D(L, "leftval_true_ish: %d, void_context: %d at %p\n",
+                  leftval_true_ish, void_context, PL_op));
         NDEB(op_dump(PL_op));
 
         set_conditional(aTHX_ PL_op, 5, void_context);
 
-        if ((PL_op->op_type == OP_AND       &&  left_val)     ||
-            (PL_op->op_type == OP_ANDASSIGN &&  left_val)     ||
-            (PL_op->op_type == OP_OR        && !left_val)     ||
-            (PL_op->op_type == OP_ORASSIGN  && !left_val)     ||
-            (PL_op->op_type == OP_DOR       && !left_val_def) ||
-            (PL_op->op_type == OP_DORASSIGN && !left_val_def) ||
+        if ((PL_op->op_type == OP_AND       &&  leftval_true_ish)     ||
+            (PL_op->op_type == OP_ANDASSIGN &&  leftval_true_ish)     ||
+            (PL_op->op_type == OP_OR        && !leftval_true_ish)     ||
+            (PL_op->op_type == OP_ORASSIGN  && !leftval_true_ish)     ||
+            (PL_op->op_type == OP_DOR       && !leftval_true_ish) ||
+            (PL_op->op_type == OP_DORASSIGN && !leftval_true_ish) ||
             (PL_op->op_type == OP_XOR)) {
             /* no short circuit */
 
@@ -852,7 +860,7 @@ static void cover_logop(pTHX) {
                      *cond;
                 OP   *next;
 
-                if (PL_op->op_type == OP_XOR && left_val) {
+                if (PL_op->op_type == OP_XOR && leftval_true_ish) {
                     /*
                      * This is an xor.  It does not short circuit.  We
                      * have just executed the first op.  When we get to
