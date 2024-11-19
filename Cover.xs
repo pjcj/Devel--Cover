@@ -97,11 +97,7 @@ typedef struct {
     int           replace_ops;
     /* - fix up whatever is broken with module_relative on Windows here */
 
-#if PERL_VERSION > 8
     Perl_ppaddr_t ppaddr[MAXO];
-#else
-    OP           *(*ppaddr[MAXO])(pTHX);
-#endif
 } my_cxt_t;
 
 #ifdef USE_ITHREADS
@@ -336,7 +332,6 @@ static int check_if_collecting(pTHX_ COP *cop) {
     NDEB(D(L, "%s - %d\n",
               SvPV_nolen(MY_CXT.lastfile), MY_CXT.collecting_here));
 
-#if PERL_VERSION > 6
     if (SvTRUE(MY_CXT.module)) {
         STRLEN mlen,
                flen = strlen(file);
@@ -358,7 +353,6 @@ static int check_if_collecting(pTHX_ COP *cop) {
         sv_setpv(MY_CXT.module, "");
         set_firsts_if_needed(aTHX);
     }
-#endif
 
 #if !NO_TAINT_SUPPORT
     PL_tainted = tainted;
@@ -441,10 +435,8 @@ static void store_module(pTHX) {
     dMY_CXT;
     dSP;
 
-#if PERL_VERSION > 8
     SvSetSV_nosteal(MY_CXT.module, (SV*)newSVpv(SvPV_nolen(TOPs), 0));
     NDEB(D(L, "require %s\n", SvPV_nolen(MY_CXT.module)));
-#endif
 }
 
 static void call_report(pTHX) {
@@ -811,15 +803,11 @@ static void cover_logop(pTHX) {
         dSP;
 
         int left_val     = SvTRUE(TOPs);
-#if PERL_VERSION > 8
         int left_val_def = SvOK(TOPs);
-#endif
         /* We don't count X= as void context because we care about the value
          * of the RHS */
         int void_context = GIMME_V == G_VOID &&
-#if PERL_VERSION > 8
                            PL_op->op_type != OP_DORASSIGN &&
-#endif
                            PL_op->op_type != OP_ANDASSIGN &&
                            PL_op->op_type != OP_ORASSIGN;
         NDEB(D(L, "left_val: %d, void_context: %d at %p\n",
@@ -832,10 +820,8 @@ static void cover_logop(pTHX) {
             (PL_op->op_type == OP_ANDASSIGN &&  left_val)     ||
             (PL_op->op_type == OP_OR        && !left_val)     ||
             (PL_op->op_type == OP_ORASSIGN  && !left_val)     ||
-#if PERL_VERSION > 8
             (PL_op->op_type == OP_DOR       && !left_val_def) ||
             (PL_op->op_type == OP_DORASSIGN && !left_val_def) ||
-#endif
             (PL_op->op_type == OP_XOR)) {
             /* no short circuit */
 
@@ -1003,16 +989,6 @@ static OP *dc_nextstate(pTHX) {
     return MY_CXT.ppaddr[OP_NEXTSTATE](aTHX);
 }
 
-#if PERL_VERSION <= 10
-static OP *dc_setstate(pTHX) {
-    dMY_CXT;
-    NDEB(D(L, "dc_setstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering) check_if_collecting(aTHX_ cCOP);
-    if (collecting_here(aTHX)) cover_current_statement(aTHX);
-    return MY_CXT.ppaddr[OP_SETSTATE](aTHX);
-}
-#endif
-
 static OP *dc_dbstate(pTHX) {
     dMY_CXT;
     NDEB(D(L, "dc_dbstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
@@ -1070,7 +1046,6 @@ static OP *dc_orassign(pTHX) {
     return MY_CXT.ppaddr[OP_ORASSIGN](aTHX);
 }
 
-#if PERL_VERSION > 8
 static OP *dc_dor(pTHX) {
     dMY_CXT;
     check_if_collecting(aTHX_ PL_curcop);
@@ -1086,7 +1061,6 @@ static OP *dc_dorassign(pTHX) {
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
     return MY_CXT.ppaddr[OP_DORASSIGN](aTHX);
 }
-#endif
 
 OP *dc_xor(pTHX) {
     dMY_CXT;
@@ -1118,9 +1092,6 @@ static void replace_ops (pTHX) {
         MY_CXT.ppaddr[i] = PL_ppaddr[i];
 
     PL_ppaddr[OP_NEXTSTATE] = dc_nextstate;
-#if PERL_VERSION <= 10
-    PL_ppaddr[OP_SETSTATE]  = dc_setstate;
-#endif
     PL_ppaddr[OP_DBSTATE]   = dc_dbstate;
     PL_ppaddr[OP_ENTERSUB]  = dc_entersub;
 #if PERL_VERSION > 16
@@ -1131,10 +1102,8 @@ static void replace_ops (pTHX) {
     PL_ppaddr[OP_ANDASSIGN] = dc_andassign;
     PL_ppaddr[OP_OR]        = dc_or;
     PL_ppaddr[OP_ORASSIGN]  = dc_orassign;
-#if PERL_VERSION > 8
     PL_ppaddr[OP_DOR]       = dc_dor;
     PL_ppaddr[OP_DORASSIGN] = dc_dorassign;
-#endif
     PL_ppaddr[OP_XOR]       = dc_xor;
     PL_ppaddr[OP_REQUIRE]   = dc_require;
     PL_ppaddr[OP_EXEC]      = dc_exec;
@@ -1262,9 +1231,6 @@ static int runops_cover(pTHX) {
 
         switch (PL_op->op_type) {
             case OP_NEXTSTATE:
-#if PERL_VERSION <= 10
-            case OP_SETSTATE:
-#endif
             case OP_DBSTATE: {
                 cover_current_statement(aTHX);
                 break;
@@ -1286,10 +1252,8 @@ static int runops_cover(pTHX) {
             case OP_ANDASSIGN:
             case OP_OR:
             case OP_ORASSIGN:
-#if PERL_VERSION > 8
             case OP_DOR:
             case OP_DORASSIGN:
-#endif
             case OP_XOR: {
                 cover_logop(aTHX);
                 break;
@@ -1605,7 +1569,5 @@ BOOT:
         } else {
             PL_runops = runops_cover;
         }
-#if PERL_VERSION > 6
         PL_savebegin = TRUE;
-#endif
     }
