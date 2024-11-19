@@ -279,7 +279,7 @@ sub main {
 
         # touch the XS, C and H files so they rebuild
         if ($Options->{gcov}) {
-            my $t = $] > 5.7 ? undef : time;
+            my $t = time;
             my $xs = sub { utime $t, $t, $_ if /\.(xs|cc?|cpp|hh?|hpp)$/ };
             File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
         }
@@ -378,12 +378,12 @@ sub main {
     if ($Options->{dump_db}) {
         my $d = Data::Dumper->new([$db], ["db"]);
         $d->Indent(1);
-        $d->Sortkeys(1) if $] >= 5.008;
+        $d->Sortkeys(1);
         print $d->Dump;
         $read_structure->();
         my $s = Data::Dumper->new([$structure], ["structure"]);
         $s->Indent(1);
-        $s->Sortkeys(1) if $] >= 5.008;
+        $s->Sortkeys(1);
         print $s->Dump;
         exit $test_result;
     }
