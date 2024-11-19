@@ -46,7 +46,7 @@ extern "C" {
 #define MY_CXT_KEY "Devel::Cover::_guts" XS_VERSION
 
 #define PDEB(a) a
-#define NDEB(a) ;
+#define NDEB(a) ; /* if change to a, comment defining PERL_NO_GET_CONTEXT */
 #define D PerlIO_printf
 #define L Perl_debug_log
 #define svdump(sv) do_sv_dump(0, L, (SV *)sv, 0, 10, 1, 0);
