@@ -7,8 +7,8 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# __COVER__ skip_test $] < 5.008 || $^O eq "cygwin"
-# __COVER__ skip_reason Busted on 5.6 and cygwin
+# __COVER__ skip_test $^O eq "cygwin"
+# __COVER__ skip_reason Busted on cygwin
 
 use strict;
 use warnings;
@@ -19,16 +19,14 @@ my $y  = 1;
 my $z  = 0;
 $::foo = 17;
 
-if ($] >= 5.009) {
-    $ENV{PATH} = "/bin";
-    system "pwd";
-    use lib "tests";
-    my $file = "cond_or.pl";
-    unless (my $return = do $file) {
-        die "couldn't parse $file: $@" if $@;
-        die "couldn't do $file: $!"    unless defined $return;
-        die "couldn't run $file"       unless $return;
-    }
+$ENV{PATH} = "/bin";
+system "pwd";
+use lib "tests";
+my $file = "cond_or.pl";
+unless (my $return = do $file) {
+    die "couldn't parse $file: $@" if $@;
+    die "couldn't do $file: $!"    unless defined $return;
+    die "couldn't run $file"       unless $return;
 }
 
 for my $i (0 .. 10) {

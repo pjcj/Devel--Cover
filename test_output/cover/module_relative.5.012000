@@ -55,8 +55,8 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # http://www.pjcj.net
 9                                       
-10                                      # __COVER__ skip_test $] < 5.008 || $^O eq "cygwin"
-11                                      # __COVER__ skip_reason Busted on 5.6 and cygwin
+10                                      # __COVER__ skip_test $^O eq "cygwin"
+11                                      # __COVER__ skip_reason Busted on cygwin
 12                                      
 13             1                    1   BEGIN { chdir "tests/random/dir" }
 14             1                    1   use lib "../..";
