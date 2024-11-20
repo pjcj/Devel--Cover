@@ -7,7 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# __COVER__ skip_test $] < 5.008002 || !(eval "use Readonly; 23")
+# __COVER__ skip_test !(eval "use Readonly; 23")
 # __COVER__ skip_reason Readonly not available
 
 use strict;
