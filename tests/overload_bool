@@ -21,5 +21,6 @@ bless {}, 'Foo' if $foo;
 
 my $boolobj = bless {}, 'Foo';
 $boolobj //= 5;
+my $var; $var //= bless {}, "Foo";
 
 1;
