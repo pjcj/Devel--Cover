@@ -703,11 +703,9 @@ static OP *find_skipped_conditional(pTHX_ OP *o) {
 }
 #endif
 
-/* NOTE: caller must protect get_condition calls by locking DC_mutex */
-
+/* NOTE: caller must protect get_condition* calls by locking DC_mutex */
 static OP *get_condition(pTHX) {
     SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
-
     if (pc && SvROK(*pc)) {
         dSP;
         int true_ish;
@@ -724,10 +722,29 @@ static OP *get_condition(pTHX) {
                   PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
         dump_conditions(aTHX);
         NDEB(svdump(Pending_conditionals));
-        /* croak("urgh"); */
         exit(1);
     }
-
+    return PL_op;
+}
+static OP *get_condition_dor(pTHX) {
+    SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
+    if (pc && SvROK(*pc)) {
+        dSP;
+        int true_ish;
+        NDEB(D(L, "get_condition_dor from %p, %p: %p (%s)\n",
+                  PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
+        /* dump_conditions(aTHX); */
+        NDEB(svdump(Pending_conditionals));
+        true_ish = SvOK(TOPs);
+        NDEB(D(L, "   get_condition_dor true_ish=%d\n", true_ish));
+        add_condition(aTHX_ *pc, true_ish ? 2 : 1);
+    } else {
+        PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
+                  PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
+        dump_conditions(aTHX);
+        NDEB(svdump(Pending_conditionals));
+        exit(1);
+    }
     return PL_op;
 }
 
@@ -919,7 +936,9 @@ static void cover_logop(pTHX) {
                 NDEB(op_dump(PL_op));
                 NDEB(op_dump(next));
 
-                next->op_ppaddr = get_condition;
+                next->op_ppaddr = (next->op_type == OP_NEXTSTATE && (
+                  PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN))
+                  ? get_condition_dor : get_condition;
                 MUTEX_UNLOCK(&DC_mutex);
             }
         } else {
