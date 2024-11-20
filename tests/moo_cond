@@ -7,7 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# __COVER__ skip_test $] < 5.008002 || !(eval "use Moo 1.000003; 23")
+# __COVER__ skip_test !(eval "use Moo 1.000003; 23")
 # __COVER__ skip_reason Moo not available
 
 use strict;
