@@ -236,8 +236,10 @@ sub main {
     my @argv = @ARGV;
     my $options = dclone($Options);
     my $report = $Options->{report}[0];
-    my $format = "Devel::Cover::Report::\u$report";
-    $format->get_options($options) if $format->can("get_options");
+    if ($report) {
+      my $format = "Devel::Cover::Report::\u$report";
+      $format->get_options($options) if $format->can("get_options");
+    }
     my $dbname = File::Spec->rel2abs(@ARGV ? shift @ARGV : "cover_db");
     die "Can't open database $dbname\n"
         if !$Options->{delete} && !$Options->{test} && !-d $dbname;
