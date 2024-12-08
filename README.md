@@ -43,10 +43,10 @@ little testing and will probably be removed soon.  You probably don't care
 about any of this.
 
 The most appropriate mailing list on which to discuss this module would be
-[perl-qa](http://lists.perl.org/list/perl-qa.html).
+[perl-qa](https://lists.perl.org/list/perl-qa.html).
 
 The Devel::Cover repository can be found on
-[github](http://github.com/pjcj/Devel--Cover).  This is also where problems
+[github](https://github.com/pjcj/Devel--Cover).  This is also where problems
 should be reported.
 
 To get coverage for an uninstalled module:
