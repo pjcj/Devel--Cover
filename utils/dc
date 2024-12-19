@@ -7,8 +7,6 @@
 # The latest version of this software should be available from my homepage:
 # http://www.pjcj.net
 
-# set -x
-
 if ((BASH_VERSINFO[0] < 5)); then
   echo "❌ bash version $BASH_VERSION is too old. Please install v5 or higher."
   exit 1
@@ -151,10 +149,10 @@ setup() {
   export CPANCOVER_DOCKER=$docker
   export CPANCOVER_IMAGE=$docker_image
   export CPANCOVER_DRYRUN=$dryrun
-
-  dcdir=$("$readl" -f "$srcdir/..")
 }
 
+
+  dcdir=$("$readl" -f "$srcdir/..")
 nice_cpus() {
   perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e "print nice_cpus"
 }
