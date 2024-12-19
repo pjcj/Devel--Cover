@@ -12,12 +12,12 @@ use warnings;
 
 # VERSION
 
-use Devel::Cover::Collection;
+use Devel::Cover::Collection ();
 
-use Cwd qw( abs_path cwd );
-use Fcntl ":flock";
-use Getopt::Long;
-use Pod::Usage;
+use Cwd          qw( abs_path cwd );
+use Getopt::Long qw( GetOptions );
+use Pod::Usage   qw( pod2usage );
+use Data::Dumper qw( Dumper );
 
 # use Carp; $SIG{__DIE__} = \&Carp::confess;
 
@@ -98,7 +98,7 @@ sub newcp {
 sub main {
   # TODO - only one instance should run at a time
   get_options;
-  use Data::Dumper; say Dumper($Options) if $Options->{verbose};
+  say Dumper($Options) if $Options->{verbose};
 
   if ($Options->{latest}) {
     my $cp = newcp;
