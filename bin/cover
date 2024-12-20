@@ -271,7 +271,7 @@ sub main {
 
         $Options->{$_} = [] for qw( ignore ignoring select select_re );
 
-        local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
+        local $ENV{ (-d "t" || $ENV{DEVEL_COVER_USE_HARNESS_VAR}) ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
             ($ENV{DEVEL_COVER_TEST_OPTS} || "") .
             " -MDevel::Cover=-db,$env_db_name$extra";
 
