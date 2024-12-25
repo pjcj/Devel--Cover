@@ -191,7 +191,7 @@ install_dependencies() {
 install-development-dependencies() {
   get_cpm
   $cpm install --workers="$(nice_cpus)" --global \
-    Dist::Zilla Perl::Critic Perl::Tidy
+    Dist::Zilla Perl::Critic Perl::Tidy App::perlimports
   plenv rehash
   dzil authordeps --missing |
     xargs "$cpm" install --workers="$(nice_cpus)" --global
