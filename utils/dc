@@ -307,6 +307,17 @@ recipe_cpancover-build-module() {
   run_cpancover "$v" --local_build --docker "$docker" --workers 1 "$module"
 }
 
+recipe_cpancover-controller-shell() {
+  local staging="${1:-$results_dir}"
+  mkdir -p "$staging"
+  local sock=/var/run/docker.sock
+  $docker run -it                                              \
+    --mount type=bind,source=$sock,target=$sock                \
+    --mount type=bind,source="$staging",target=/remote_staging \
+    --rm=false --memory=1g                                     \
+    "$docker_image" /bin/bash
+}
+
 recipe_cpancover-docker-shell() {
   local staging="${1:-$results_dir}"
   mkdir -p "$staging"
