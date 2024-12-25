@@ -304,7 +304,7 @@ sub generate_html ($self) {
   my $n = 0;
   for my $module (@modules) {
     my $cover = "$d/$module/cover.json";
-    next                 unless -e $cover;
+    next unless -e $cover;
     say "Adding $module" if $self->verbose;
 
     my $io   = Devel::Cover::DB::IO::JSON->new;
@@ -468,10 +468,10 @@ sub cover_modules ($self) {
       if ($self->is_covered($dir)) {
         $self->set_covered($dir);
         say "$module already covered" if $self->verbose;
-        return                        unless $self->force;
+        return unless $self->force;
       } elsif ($self->is_failed($dir)) {
         say "$module already failed" if $self->verbose;
-        return                       unless $self->force;
+        return unless $self->force;
       }
 
       my $timeout = $self->get_timeout;

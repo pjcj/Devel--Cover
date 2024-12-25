@@ -36,7 +36,8 @@
 # --comma-arrow-breakpoints=3          # commas after => aren't special
                                        #   we only want this sometimes
 --break-after-labels=2                 # never break after labels
---valign-if-unless                     # vertically align if and unless
+# --valign-if-unless                   # vertically align if and unless
+                                         # doesn't really help
 
 --delete-repeated-commas               # delete repeated commas
 --want-trailing-commas="w(h W(m [m {m" # trailing commas for arrays and hashes
