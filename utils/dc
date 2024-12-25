@@ -188,7 +188,7 @@ install_dependencies() {
     Capture::Tiny Parallel::Iterator Template Class::XSAccessor
 }
 
-install-development-dependencies() {
+install_development_dependencies() {
   get_cpm
   $cpm install --workers="$(nice_cpus)" --global \
     Dist::Zilla Perl::Critic Perl::Tidy App::perlimports
@@ -199,13 +199,13 @@ install-development-dependencies() {
     xargs "$cpm" install --workers="$(nice_cpus)" --global
 }
 
-install-test-dependencies() {
+install_test_dependencies() {
   get_cpm
   $cpm install --workers="$(nice_cpus)" --global \
     DBM::Deep
 }
 
-recipe-install-dependencies() {
+recipe_install-dependencies() {
   install_dependencies
 }
 
@@ -238,7 +238,7 @@ recipe_install-cpancover-perl() {
   install_perl cpancover "$version"
 }
 
-recipe_install-dc_dev-perl() {
+recipe_install-dc-dev-perl() {
   local version="${1:?No version specified}"
   install_perl dc-dev "$version"
   install_development_dependencies
