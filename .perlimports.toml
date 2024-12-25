@@ -9,10 +9,10 @@
 # particular, you're encouraged to leave preserve_duplicates and
 # preserve_unused disabled.
 
-cache = false                        # setting this to true is discouraged
-ignore_modules = []
+cache = false                         # setting this to true is discouraged
+ignore_modules = ["namespace::clean", "Class::XSAccessor"]
 ignore_modules_filename = ""
-ignore_modules_pattern = ""          # regex like "^(Foo|Foo::Bar)"
+ignore_modules_pattern = ""           # regex like "^(Foo|Foo::Bar)"
 ignore_modules_pattern_filename = ""
 libs = ["lib", "t/lib"]
 log_filename = ""
