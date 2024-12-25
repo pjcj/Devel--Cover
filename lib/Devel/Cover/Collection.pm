@@ -12,15 +12,15 @@ use warnings;
 
 # VERSION
 
-use Devel::Cover::DB;
-use Devel::Cover::DB::IO::JSON;
-use Devel::Cover::Dumper;
+use Devel::Cover::DB           ();
+use Devel::Cover::DB::IO::JSON ();
+use Devel::Cover::Dumper       qw( Dumper );
 
-use JSON::MaybeXS ();
-use Parallel::Iterator "iterate_as_array";
-use POSIX "setsid";
-use Template;
-use Time::HiRes "time";
+use JSON::MaybeXS      ();
+use Parallel::Iterator qw( iterate_as_array );
+use POSIX              qw( setsid );
+use Template           ();
+use Time::HiRes        qw( alarm time );
 
 use Class::XSAccessor ();
 use Moo;
