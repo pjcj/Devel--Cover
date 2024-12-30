@@ -273,20 +273,32 @@ recipe_cpancover() {
   run_cpancover "${args[@]:-}"
 }
 
-recipe_cpancover-kill-docker() {
-  $docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r "$docker" kill
+cpancover_docker_ps() {
+  $docker ps -a | tail -n +2 | grep -w "$docker_image" | grep -vw "$(hostname)"
 }
 
-cpancover_rm_docker() {
-  $docker ps -a | tail -n +2 | awk '{ print $1 }' | xargs -r "$docker" rm -f
+recipe_cpancover-docker-ps() {
+  cpancover_docker_ps
+}
+
+cpancover_docker_ps_ids() {
+  cpancover_docker_ps | awk '{ print $1 }'
+}
+
+recipe_cpancover-docker-kill() {
+  cpancover_docker_ps_ids | xargs -r "$docker" kill
+}
+
+cpancover_docker_rm() {
+  cpancover_docker_ps_ids | xargs -r "$docker" rm -f
   $docker system prune --force
 }
 
-recipe_cpancover-rm-docker() {
-  cpancover_rm_docker
+recipe_cpancover-docker-rm() {
+  cpancover_docker_rm
 }
 
-recipe_cpancover-rm-docker-image() {
+recipe_cpancover-docker-rm-image() {
   $docker ps -q --filter ancestor="$docker_image" | xargs -r "$docker" stop
   $docker ps -aq --filter ancestor="$docker_image" | xargs -r "$docker" rm
   $docker rmi "$docker_image"
@@ -424,7 +436,7 @@ cpancover_run() {
   export DEVEL_COVER_CPUS=10
   while true; do
     pi "Starting cpancover run at $(date) on $DEVEL_COVER_CPUS cpus"
-    cpancover_rm_docker
+    cpancover_docker_rm
     cpancover_latest | run_cpancover
     cpancover_generate_html
     pi "Finished cpancover run at $(date)"
