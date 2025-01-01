@@ -320,25 +320,39 @@ recipe_cpancover-build-module() {
   run_cpancover "$v" --local_build --docker "$docker" --workers 1 "$module"
 }
 
-recipe_cpancover-controller-shell() {
-  local staging="${1:-$results_dir}"
-  mkdir -p "$staging"
+docker_name() {
+  local name="${1:?No name specified}"
+  name="$docker_image-$name-$(date +%s+%N)"
+  echo "${name//[^a-zA-Z0-9_.]/-}"
+}
+
+recipe_docker-name() {
+  docker_name "${args[@]:-}"
+}
+
+cpancover_controller_command() {
+  local name="${1:?No name specified}"
+  shift
+  local cmd=("$@")
+  mkdir -p "$results_dir"
   local sock=/var/run/docker.sock
-  $docker run -it                                              \
-    --mount type=bind,source=$sock,target=$sock                \
-    --mount type=bind,source="$staging",target=/remote_staging \
-    --rm=false --memory=1g                                     \
-    "$docker_image" /bin/bash
+  $docker run -it \
+    --mount type=bind,source=$sock,target=$sock \
+    --mount type=bind,source="$results_dir",target=/remote_staging \
+    --rm=false --memory=1g --name="$(docker_name "$name")" \
+    "$docker_image" "${cmd[@]}"
+}
+
+recipe_cpancover-controller-shell() {
+  cpancover_controller_command controller_bash "/bin/bash"
 }
 
 recipe_cpancover-docker-shell() {
   local staging="${1:-$results_dir}"
   mkdir -p "$staging"
   $docker run -it \
-    --volume="$dcdir:/dc:ro" \
-    --volume="$staging:/remote_staging:rw" \
-    --workdir=/dc --rm=false \
-    --memory=1g \
+    --mount type=bind,source="$staging",target=/remote_staging \
+    --rm=false --memory=1g --name="$(docker_name docker)" \
     "$docker_image" /bin/bash
 }
 
