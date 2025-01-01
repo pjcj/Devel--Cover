@@ -425,7 +425,8 @@ sub local_build ($self) {
 
 sub failed_dir ($self) {
   my $dir = $self->results_dir . "/__failed__";
-  -d $dir or mkdir $dir or die "Can't mkdir $dir: $!";
+  -d $dir or eval { mkdir $dir };
+  -d $dir or die "Can't mkdir $dir: $@";
   $dir
 }
 
