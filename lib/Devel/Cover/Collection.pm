@@ -193,6 +193,7 @@ sub run ($self, $build_dir) {
   # TODO - option to merge DB with existing one
   # TODO - portability
   $output .= $self->fsys("rm", "-rf", $results_dir);
+  $output .= `rm -f $db/structure/*.lock`;
   $output .= $self->fsys("mv", $db,   $results_dir);
   $output .= $self->fsys("rm", "-rf", $db);
 
