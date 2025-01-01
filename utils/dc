@@ -83,7 +83,7 @@ parse_options() {
       shift
       case "$1" in
       prod)
-        results_dir=~/staging
+        results_dir=~/cover/staging
         docker_image=pjcj/cpancover
         shift
         ;;
@@ -96,6 +96,11 @@ parse_options() {
         pf "Unrecognised environment: $1"
         ;;
       esac
+      if grep -q "/docker/" /proc/self/mountinfo 2>/dev/null; then
+        # we're inside a docker container so use the remote staging directory
+        results_dir=/remote_staging
+      fi
+
       ;;
     *)
       recipe="$1"
@@ -135,7 +140,7 @@ setup() {
   verbose=${CPANCOVER_VERBOSE:-}
   force=${CPANCOVER_FORCE:-}
   alocal=${CPANCOVER_LOCAL:-}
-  results_dir=${CPANCOVER_RESULTS_DIR:-~/staging}
+  results_dir=${CPANCOVER_RESULTS_DIR:-~/cover/staging}
   docker=${CPANCOVER_DOCKER:-docker}
   docker_image=${CPANCOVER_IMAGE:-pjcj/cpancover}
   dryrun=${CPANCOVER_DRYRUN:-}
@@ -151,8 +156,6 @@ setup() {
   export CPANCOVER_DRYRUN=$dryrun
 }
 
-
-  dcdir=$("$readl" -f "$srcdir/..")
 nice_cpus() {
   perl -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e "print nice_cpus"
 }
