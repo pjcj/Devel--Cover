@@ -98,7 +98,7 @@ sub newcp {
 sub main {
   # TODO - only one instance should run at a time
   get_options;
-  say Dumper($Options) if $Options->{verbose};
+  # say Dumper($Options) if $Options->{verbose};
 
   if ($Options->{latest}) {
     my $cp = newcp;
