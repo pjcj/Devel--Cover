@@ -12,10 +12,10 @@ require 5.012000;
 use strict;
 use warnings;
 
-use Cwd;
-use ExtUtils::MakeMaker;
-use File::Copy;
-require Data::Dumper;
+use Cwd                 ();
+use ExtUtils::MakeMaker qw( $VERSION WriteMakefile );
+use File::Copy          qw( copy );
+use Data::Dumper        ();
 
 local $| = 1;
 
