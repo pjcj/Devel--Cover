@@ -153,16 +153,21 @@ sub add_build_dirs ($self) {
     map glob("$_/build/*"), $self->cpan_dir->@*;
 }
 
+sub made_res_dir ($self, $sub_dir = undef) {
+  my $dir = $self->results_dir // die "No results dir";
+  $dir .= "/$sub_dir" if defined $sub_dir;
+  my $output = $self->fsys("mkdir", "-p", $dir);
+  $dir, $output
+}
+
 sub run ($self, $build_dir) {
 
-  my ($module)    = $build_dir =~ m|.*/([^/]+?)(?:-\d+)$| or return;
-  my $db          = "$build_dir/cover_db";
-  my $line        = "=" x 80;
-  my $output      = "**** Checking coverage of $module ****\n";
-  my $results_dir = $self->results_dir // die "No results dir";
-
-  $output      .= $self->fsys("mkdir", "-p", $results_dir);
-  $results_dir .= "/$module";
+  my ($module) = $build_dir =~ m|.*/([^/]+?)(?:-\d+)$| or return;
+  my $db       = "$build_dir/cover_db";
+  my $line     = "=" x 80;
+  my ($res_dir, $out) = $self->made_res_dir;
+  my $results_dir = "$res_dir/$module";
+  my $output      = "**** Checking coverage of $module ****\n$out";
 
   chdir $build_dir or die "Can't chdir $build_dir: $!\n";
   say "Checking coverage of $module";
@@ -201,9 +206,6 @@ sub run ($self, $build_dir) {
 }
 
 sub run_all ($self) {
-  my $results_dir = $self->results_dir // die "No results dir";
-  $self->fsys("mkdir", "-p", $results_dir);
-
   my @res = iterate_as_array(
     { workers => $self->workers },
     sub {
@@ -236,8 +238,9 @@ sub write_json ($self, $vars) {
   }
   # print Dumper $vars, $results;
 
-  my $io   = Devel::Cover::DB::IO::JSON->new(options => "pretty");
-  my $file = $self->results_dir . "/cpancover.json";
+  my $io            = Devel::Cover::DB::IO::JSON->new(options => "pretty");
+  my ($results_dir) = $self->made_res_dir;
+  my $file          = "$results_dir/cpancover.json";
   $io->write($results, $file);
   say "Wrote json output to $file";
 }
@@ -280,7 +283,7 @@ sub write_summary($self, $vars) {
 }
 
 sub generate_html ($self) {
-  my $d = $self->results_dir;
+  my ($d) = $self->made_res_dir;
   chdir $d or die "Can't chdir $d: $!\n";
   $self->dir($d);
 
@@ -359,7 +362,7 @@ sub generate_html ($self) {
 }
 
 sub compress_old_versions ($self, $versions) {
-  my $dir = $self->results_dir;
+  my ($dir) = $self->made_res_dir;
   opendir my $fh, $dir or die "Can't opendir $dir: $!";
   my @dirs = sort grep -d, map "$dir/$_", readdir $fh;
   closedir $fh or die "Can't closedir $dir: $!";
@@ -424,13 +427,7 @@ sub local_build ($self) {
   $self->run_all;
 }
 
-sub failed_dir ($self) {
-  my $dir = $self->results_dir . "/__failed__";
-  -d $dir or eval { mkdir $dir };
-  -d $dir or die "Can't mkdir $dir: $@";
-  $dir
-}
-
+sub failed_dir  ($self)       { ($self->made_res_dir("__failed__"))[0] }
 sub covered_dir ($self, $dir) { $self->results_dir . "/$dir" }
 sub failed_file ($self, $dir) { $self->failed_dir . "/$dir" }
 sub is_covered  ($self, $dir) { -d $self->covered_dir($dir) }
@@ -525,7 +522,7 @@ sub get_latest ($self) {
 }
 
 sub write_stylesheet ($self) {
-  my $css = $self->results_dir . "/collection.css";
+  my $css = ($self->made_res_dir)[0] . "/collection.css";
   open my $fh, ">", $css or die "Can't open $css: $!\n";
   print $fh <<EOF;
 /* Stylesheet for Devel::Cover collection reports */
