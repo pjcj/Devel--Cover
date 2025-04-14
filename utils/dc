@@ -372,7 +372,7 @@ recipe_cpancover-docker-module() {
     $docker logs "$name"
     local_staging="$staging/$name"
     mkdir -p "$local_staging"
-    $docker cp "$name:/root/staging" "$local_staging"
+    $docker cp "$name:/root/cover/staging" "$local_staging"
     if [[ -d $local_staging ]]; then
       chmod -R 755 "$local_staging"
       find "$local_staging" -type f -exec chmod 644 {} \;
