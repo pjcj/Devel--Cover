@@ -63,10 +63,6 @@ parse_options() {
       force=1
       shift
       ;;
-    -l | --local)
-      alocal=1
-      shift
-      ;;
     -r | --results_dir)
       results_dir="$2"
       shift 2
@@ -117,7 +113,6 @@ recipe_options() {
   echo "-t --trace"
   echo "-v --verbose"
   echo "-f --force"
-  echo "-l --local"
   echo "-r --results_dir"
   echo "-i --image"
   echo "-d --dryrun"
@@ -139,7 +134,6 @@ setup() {
   PATH="$srcdir:$PATH"
   verbose=${CPANCOVER_VERBOSE:-}
   force=${CPANCOVER_FORCE:-}
-  alocal=${CPANCOVER_LOCAL:-}
   results_dir=${CPANCOVER_RESULTS_DIR:-~/cover/staging}
   docker=${CPANCOVER_DOCKER:-docker}
   docker_image=${CPANCOVER_IMAGE:-pjcj/cpancover}
@@ -149,7 +143,6 @@ setup() {
 
   export CPANCOVER_VERBOSE=$verbose
   export CPANCOVER_FORCE=$force
-  export CPANCOVER_LOCAL=$alocal
   export CPANCOVER_RESULTS_DIR=$results_dir
   export CPANCOVER_DOCKER=$docker
   export CPANCOVER_IMAGE=$docker_image
@@ -253,15 +246,13 @@ recipe_all-versions() {
 
 run_cpancover() {
   mkdir -p "$results_dir"
-  local l=
-  if ((alocal)); then
+  local cpancover=cpancover
+  if [[ $(pwd) != /dc ]]; then
     local root=
-    l="--local"
     [[ -d /dc ]] && root=/dc/
     PATH="./utils:./bin:$PATH"
+    perl Makefile.PL && make
     cpancover="perl -Mblib=$root ${root}bin/cpancover --local"
-  else
-    cpancover=cpancover
   fi
   ((verbose)) && cpancover="$cpancover --verbose"
   ((force)) && cpancover="$cpancover --force"
@@ -367,15 +358,7 @@ recipe_cpancover-docker-module() {
 
   name=$(docker_name "$name")
   mkdir -p "$staging"
-  local l=
-  local dir=.
-  if ((alocal)); then
-    l="--local"
-    [[ -d /dc ]] && dir=/dc
-    PATH="./utils:./bin:$PATH"
-    export PERL5OPT=-Mblib=$dir
-  fi
-  ((verbose)) && pi "[-$l-] [$dir] [$module]"
+  ((verbose)) && pi "module: $module"
   local v=
   ((verbose)) && v=--verbose
   container=$($docker run -d \

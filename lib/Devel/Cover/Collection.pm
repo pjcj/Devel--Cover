@@ -452,7 +452,6 @@ sub cover_modules ($self) {
   # say "modules: ", Dumper $self->modules;
 
   my @cmd = $self->dc_file;
-  push @cmd, "--local"   if $self->local;
   push @cmd, "--verbose" if $self->verbose;
   push @cmd, "-i", "pjcj/cpancover_dev:latest";
   my @command = (@cmd, "cpancover-docker-module");

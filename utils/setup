@@ -12,5 +12,3 @@ if [ ! -z $ZSH_VERSION ]; then
     }
     compctl -K _dc dc
 fi
-
-export CPANCOVER_LOCAL=1
