@@ -433,16 +433,28 @@ recipe_cpancover-generate-html() {
   cpancover_generate_html
 }
 
-cpancover_run() {
-  export DEVEL_COVER_CPUS=10
+cpancover_run_once() {
+  export DEVEL_COVER_CPUS=30
+  pi "Starting cpancover run at $(date) on $DEVEL_COVER_CPUS cpus"
+  cpancover_docker_rm
+  cpancover_latest | run_cpancover --build
+  cpancover_generate_html
+  pi "Finished cpancover run at $(date)"
+}
+
+cpancover_run_loop() {
   while true; do
-    pi "Starting cpancover run at $(date) on $DEVEL_COVER_CPUS cpus"
-    cpancover_docker_rm
-    cpancover_latest | run_cpancover
-    cpancover_generate_html
-    pi "Finished cpancover run at $(date)"
+    cpancover_run_once
     sleep 600 # 10 minutes
   done
+}
+
+recipe_cpancover-run-once() {
+  cpancover_run_once
+}
+
+recipe_cpancover-run-loop() {
+  cpancover_run_loop
 }
 
 recipe_cpancover-start-queue() {
