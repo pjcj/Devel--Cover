@@ -4,9 +4,10 @@
 
 tidy () { echo -n $1 | perl -naF: -e 'print join ":", grep !$s{$_}++ && -e, @F'; }
 dc_home=$PWD
-export PATH=$(tidy $dc_home/utils:$PATH)
+PATH=$(tidy "$dc_home/utils:$PATH")
+export PATH
 
-if [ ! -z $ZSH_VERSION ]; then
+if [ -n "$ZSH_VERSION" ]; then
     _dc() {
         reply=(`utils/dc options`)
     }
