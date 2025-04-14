@@ -457,6 +457,16 @@ recipe_cpancover-run-loop() {
   cpancover_run_loop
 }
 
+recipe_cpancover-controller-run() {
+  cpancover_controller_command controller \
+    dc --results_dir "$results_dir" --verbose cpancover-run-loop
+}
+
+recipe_cpancover-controller-run-once() {
+  cpancover_controller_command controller \
+    dc --results_dir "$results_dir" --verbose cpancover-run-once
+}
+
 recipe_cpancover-start-queue() {
   COVER_DEBUG=1 perl bin/queue minion worker -j 4
 }
