@@ -251,7 +251,7 @@ sub class {
     : $pc < 75     ? "c0"
     : $pc < 90     ? "c1"
     : $pc < 100    ? "c2"
-    : "c3"
+    :                "c3"
 }
 
 sub write_summary($self, $vars) {
