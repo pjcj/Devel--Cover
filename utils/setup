@@ -8,8 +8,10 @@ PATH=$(tidy "$dc_home/utils:$PATH")
 export PATH
 
 if [ -n "$ZSH_VERSION" ]; then
-  _dc() {
-    reply=($(utils/dc options))
-  }
+    # shellcheck disable=SC2207,SC3030
+  _dc() { reply=($(utils/dc options)); }
+    # shellcheck disable=SC2207,SC3030,SC2034
+  _build() { reply=($(docker/BUILD options)); }
   compctl -K _dc dc
+  compctl -K _build BUILD
 fi
