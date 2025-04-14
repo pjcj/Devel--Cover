@@ -2,7 +2,8 @@
 
 # . ./utils/setup
 
-tidy () { echo -n "$1" | perl -naF: -e 'print join ":", grep !$s{$_}++ && -e, @F'; }
+# shellcheck disable=SC3037
+tidy() { echo -n "$1" | perl -naF: -e'print join ":", grep !$s{$_}++&&-e, @F'; }
 dc_home=$PWD
 PATH=$(tidy "$dc_home/utils:$PATH")
 export PATH
