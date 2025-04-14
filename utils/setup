@@ -2,14 +2,14 @@
 
 # . ./utils/setup
 
-tidy () { echo -n $1 | perl -naF: -e 'print join ":", grep !$s{$_}++ && -e, @F'; }
+tidy () { echo -n "$1" | perl -naF: -e 'print join ":", grep !$s{$_}++ && -e, @F'; }
 dc_home=$PWD
 PATH=$(tidy "$dc_home/utils:$PATH")
 export PATH
 
 if [ -n "$ZSH_VERSION" ]; then
-    _dc() {
-        reply=(`utils/dc options`)
-    }
-    compctl -K _dc dc
+  _dc() {
+    reply=($(utils/dc options))
+  }
+  compctl -K _dc dc
 fi
