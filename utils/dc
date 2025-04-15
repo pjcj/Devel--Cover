@@ -332,7 +332,7 @@ cpancover_controller_command() {
   local sock=/var/run/docker.sock
   $docker run -it \
     --mount type=bind,source=$sock,target=$sock \
-    --mount type=bind,source="$results_dir",target=/remote_staging \
+    --mount type=bind,source="$results_dir",target=/root/cover/staging \
     --rm=false --memory=1g --name="$(docker_name "$name")" \
     "$docker_image" "${cmd[@]}"
 }
