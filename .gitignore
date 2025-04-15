@@ -27,7 +27,7 @@ MYMETA.*
 Cover.def
 dll.base
 dll.exp
-Devel-Cover-*
+./Devel-Cover-*
 tags*
 README
 .build/

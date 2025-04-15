@@ -1,6 +1,6 @@
 #!/usr/bin/perl  ## no critic (ProhibitExcessMainComplexity)
 
-# Copyright 2001-2024, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2025, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -12,10 +12,10 @@ require 5.012000;
 use strict;
 use warnings;
 
-use Cwd;
-use ExtUtils::MakeMaker;
-use File::Copy;
-require Data::Dumper;
+use Cwd                 ();
+use ExtUtils::MakeMaker qw( $VERSION WriteMakefile );
+use File::Copy          qw( copy );
+use Data::Dumper        ();
 
 local $| = 1;
 
@@ -35,7 +35,7 @@ my $Inc_str  = do {
 open my $i, ">", "lib/Devel/Cover/Inc.pm"
   or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
 print $i <<"EOI";
-# Copyright 2001-2024, Paul Johnson (paul\@pjcj.net)
+# Copyright 2001-2025, Paul Johnson (paul\@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -104,7 +104,7 @@ for my $t (readdir $dir) {
   print $test <<EOT;
 #!$^X
 
-# Copyright 2002-2024, Paul Johnson (paul\@pjcj.net)
+# Copyright 2002-2025, Paul Johnson (paul\@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 

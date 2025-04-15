@@ -2,15 +2,17 @@
 
 # . ./utils/setup
 
-tidy () { echo -n $1 | perl -naF: -e 'print join ":", grep !$s{$_}++ && -e, @F'; }
+# shellcheck disable=SC3037
+tidy() { echo -n "$1" | perl -naF: -e'print join ":", grep !$s{$_}++&&-e, @F'; }
 dc_home=$PWD
-export PATH=$(tidy $dc_home/utils:$PATH)
+PATH=$(tidy "$dc_home/utils:$PATH")
+export PATH
 
-if [ ! -z $ZSH_VERSION ]; then
-    _dc() {
-        reply=(`utils/dc options`)
-    }
-    compctl -K _dc dc
+if [ -n "$ZSH_VERSION" ]; then
+    # shellcheck disable=SC2207,SC3030
+  _dc() { reply=($(utils/dc options)); }
+    # shellcheck disable=SC2207,SC3030,SC2034
+  _build() { reply=($(docker/BUILD options)); }
+  compctl -K _dc dc
+  compctl -K _build BUILD
 fi
-
-export CPANCOVER_LOCAL=1

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2002-2024, Paul Johnson (paul@pjcj.net)
+# Copyright 2002-2025, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -12,12 +12,12 @@ use warnings;
 
 # VERSION
 
-use Devel::Cover::Collection;
+use Devel::Cover::Collection ();
 
-use Cwd qw( abs_path cwd );
-use Fcntl ":flock";
-use Getopt::Long;
-use Pod::Usage;
+use Cwd          qw( abs_path cwd );
+use Getopt::Long qw( GetOptions );
+use Pod::Usage   qw( pod2usage );
+use Data::Dumper qw( Dumper );
 
 # use Carp; $SIG{__DIE__} = \&Carp::confess;
 
@@ -98,6 +98,7 @@ sub newcp {
 sub main {
   # TODO - only one instance should run at a time
   get_options;
+  # say Dumper($Options) if $Options->{verbose};
 
   if ($Options->{latest}) {
     my $cp = newcp;
@@ -169,6 +170,7 @@ cpancover - report coverage statistics on CPAN modules
             --generate_html
             --compress_old_versions number_to_keep
             --local
+            --local_build
 
 =head1 DESCRIPTION
 
@@ -179,19 +181,21 @@ The following command line options are supported:
   -h --help               - show help
   -i --info               - show documentation
   -v --version            - show version
+
   --collect               - collect coverage from modules       (on)
+  --compress_old_versions - compress data older than n versions (3)
   --directory             - location of the modules             ($cwd)
   --dryrun                - don't execute (for some commands)   (off)
   --force                 - recollect coverage                  (off)
+  --generate_html         - generate html                       (off)
+  --local                 - use local (uninstalled) code        (off)
+  --local_build           - build coveraage for all the modules (off)
   --modules               - modules to use                      (all in $dir)
   --outputdir             - where to store output               ($directory)
   --outputfile            - top level index                     (coverage.html)
   --redo_cpancover_html   - don't set default modules           (off)
   --redo_html             - force html generation for modules   (off)
   --report                - report to use                       (html_basic)
-  --generate_html         - generate html                       (off)
-  --compress_old_versions - compress data older than n versions (3)
-  --local                 - use local (uninstalled) code        (off)
 
 =head1 DETAILS
 
@@ -227,7 +231,7 @@ Undocumented.
 
 =head1 LICENCE
 
-Copyright 2002-2024, Paul Johnson (paul@pjcj.net)
+Copyright 2002-2025, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 
