@@ -16,7 +16,7 @@ set -eEuo pipefail
 shopt -s inherit_errexit
 
 _p() {
-  __l=$1
+  __l="$(hostname): $1"
   shift
   echo "$__l $script: $*" | tee -a "$LOG_FILE" >&2
 }
