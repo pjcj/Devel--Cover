@@ -458,13 +458,15 @@ recipe_cpancover-run-loop() {
 }
 
 recipe_cpancover-controller-run() {
-  cpancover_controller_command controller \
-    dc --results_dir "$results_dir" --verbose cpancover-run-loop
+  local v=
+  ((verbose)) && v=--verbose
+  cpancover_controller_command controller dc "$v" cpancover-run-loop
 }
 
 recipe_cpancover-controller-run-once() {
-  cpancover_controller_command controller \
-    dc --results_dir "$results_dir" --verbose cpancover-run-once
+  local v=
+  ((verbose)) && v=--verbose
+  cpancover_controller_command controller dc $v cpancover-run-once
 }
 
 recipe_cpancover-start-queue() {
