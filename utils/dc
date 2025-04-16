@@ -110,14 +110,14 @@ parse_options() {
 }
 
 recipe_options() {
-  echo "-h --help"
-  echo "-t --trace"
-  echo "-v --verbose"
-  echo "-f --force"
-  echo "-r --results_dir"
-  echo "-i --image"
   echo "-d --dryrun"
   echo "-e --env"
+  echo "-f --force"
+  echo "-h --help"
+  echo "-i --image"
+  echo "-r --results_dir"
+  echo "-t --trace"
+  echo "-v --verbose"
   declare -F | perl -nE 'say $1 if /recipe_(.+)/'
 }
 
