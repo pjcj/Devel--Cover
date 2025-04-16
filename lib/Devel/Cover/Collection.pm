@@ -46,7 +46,7 @@ sub BUILDARGS ($class, %args) { {
   modules       => [],
   output_file   => "index.html",
   report        => "html_basic",
-  timeout       => 1800,  # half an hour
+  timeout       => 30 * 60,  # half an hour
   verbose       => 0,
   workers       => 0,
   %args,
