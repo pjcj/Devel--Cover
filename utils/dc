@@ -49,8 +49,46 @@ cleanup() {
 parse_options() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
+    -d | --dryrun)
+      dryrun=1
+      shift
+      ;;
+    -e | --env)
+      shift
+      env="$1"
+      case "$env" in
+      prod)
+        results_dir=~/cover/staging
+        docker_image=pjcj/cpancover
+        ;;
+      dev)
+        results_dir=~/cover/staging_dev
+        docker_image=pjcj/cpancover_dev
+        ;;
+      *)
+        pf "Unrecognised environment: $1"
+        ;;
+      esac
+      shift
+      if grep -q "/docker/" /proc/self/mountinfo 2>/dev/null; then
+        # we're inside a docker container so use the remote staging directory
+        results_dir=/remote_staging
+      fi
+      ;;
+    -f | --force)
+      force=1
+      shift
+      ;;
     -h | --help)
       usage
+      ;;
+    -i | --image)
+      docker_image="$2"
+      shift 2
+      ;;
+    -r | --results_dir)
+      results_dir="$2"
+      shift 2
       ;;
     -t | --trace)
       set -x
@@ -59,45 +97,6 @@ parse_options() {
     -v | --verbose)
       verbose=1
       shift
-      ;;
-    -f | --force)
-      force=1
-      shift
-      ;;
-    -r | --results_dir)
-      results_dir="$2"
-      shift 2
-      ;;
-    -i | --image)
-      docker_image="$2"
-      shift 2
-      ;;
-    -d | --dryrun)
-      dryrun=1
-      shift
-      ;;
-    -e | --env)
-      shift
-      case "$1" in
-      prod)
-        results_dir=~/cover/staging
-        docker_image=pjcj/cpancover
-        shift
-        ;;
-      dev)
-        results_dir=~/cover/staging_dev
-        docker_image=pjcj/cpancover_dev
-        shift
-        ;;
-      *)
-        pf "Unrecognised environment: $1"
-        ;;
-      esac
-      if grep -q "/docker/" /proc/self/mountinfo 2>/dev/null; then
-        # we're inside a docker container so use the remote staging directory
-        results_dir=/remote_staging
-      fi
-
       ;;
     *)
       recipe="$1"
