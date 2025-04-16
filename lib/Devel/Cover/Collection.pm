@@ -30,7 +30,7 @@ use warnings FATAL => "all";  # be explicit since Moo sets this
 my %A = (
   ro => [ qw( bin_dir cpancover_dir cpan_dir results_dir dryrun env
     force output_file report timeout verbose workers docker local ) ],
-  rwp => [qw( build_dirs local_timeout modules module_file         )],
+  rwp => [qw( build_dirs modules module_file                       )],
   rw  => [qw( dir file                                             )],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
@@ -43,7 +43,6 @@ sub BUILDARGS ($class, %args) { {
   env           => "prod",
   force         => 0,
   local         => 0,
-  local_timeout => 0,            # TODO - remove
   modules       => [],
   output_file   => "index.html",
   report        => "html_basic",
@@ -53,14 +52,12 @@ sub BUILDARGS ($class, %args) { {
   %args,
 } }
 
-sub get_timeout ($self) { $self->local_timeout || $self->timeout || 30 * 60 }
-
 # display $non_buffered characters, then buffer
 sub _sys ($self, $non_buffered, @command) {
   # system @command; return ".";
   my ($output1, $output2) = ("", "");
   $output1 = "dc -> @command\n" if $self->verbose;
-  my $timeout = $self->get_timeout;
+  my $timeout = $self->timeout;
   my $max     = 4e4;
   # say "Setting alarm for $timeout seconds";
   my $ok = 0;
@@ -134,14 +131,12 @@ sub process_module_file ($self) {
 sub build_modules ($self) {
   my @command = qw( cpan -Ti );
   push @command, "-f" if $self->force;
-  # $self->_set_local_timeout(300);
   my %m;
   for my $module (sort grep !$m{$_}++, $self->modules->@*) {
     say "Building $module";
     my $output = $self->fsys(@command, $module);
     say $output;
   }
-  $self->_set_local_timeout(0);
 }
 
 sub add_build_dirs ($self) {
@@ -454,7 +449,6 @@ sub cover_modules ($self) {
   my @cmd = ($self->dc_file, "--env", $self->env);
   push @cmd, "--verbose" if $self->verbose;
   my @command = (@cmd, "cpancover-docker-module");
-  $self->_set_local_timeout(0);
   my @res = iterate_as_array(
     { workers => $self->workers },
     sub {
@@ -471,7 +465,7 @@ sub cover_modules ($self) {
         return unless $self->force;
       }
 
-      my $timeout = $self->get_timeout;
+      my $timeout = $self->timeout;
       # say "Setting alarm for $timeout seconds";
       my $name = sprintf("%s-%18.6f", $module, time) =~ tr/a-zA-Z0-9_./-/cr;
       say "$dir -> $name";
@@ -499,7 +493,6 @@ sub cover_modules ($self) {
     },
     do { my %m; [ sort grep !$m{$_}++, @{ $self->modules } ] }
   );
-  $self->_set_local_timeout(0);
 }
 
 sub get_latest ($self) {
