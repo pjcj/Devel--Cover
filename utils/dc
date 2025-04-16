@@ -296,7 +296,7 @@ recipe_cpancover-docker-rm-image() {
 }
 
 cpancover_latest() {
-  run_cpancover --latest
+  run_cpancover --latest | head -3
 }
 
 recipe_cpancover-latest() {
