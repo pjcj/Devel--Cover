@@ -161,16 +161,15 @@ sub made_res_dir ($self, $sub_dir = undef) {
 }
 
 sub run ($self, $build_dir) {
-
+  chdir $build_dir or die "Can't chdir $build_dir: $!\n";
   my ($module) = $build_dir =~ m|.*/([^/]+?)(?:-\d+)$| or return;
-  my $db       = "$build_dir/cover_db";
-  my $line     = "=" x 80;
+  say "Checking coverage of $module";
+
+  my $db   = "$build_dir/cover_db";
+  my $line = "=" x 80;
   my ($res_dir, $out) = $self->made_res_dir;
   my $results_dir = "$res_dir/$module";
   my $output      = "**** Checking coverage of $module ****\n$out";
-
-  chdir $build_dir or die "Can't chdir $build_dir: $!\n";
-  say "Checking coverage of $module";
 
   if (-d $db || -d "$build_dir/structure" || -d $results_dir) {
     $output .= "Already analysed\n";
