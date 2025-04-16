@@ -42,11 +42,11 @@ sub BUILDARGS ($class, %args) { {
   dryrun        => 0,
   force         => 0,
   local         => 0,
-  local_timeout => 0,
+  local_timeout => 0,            # TODO - remove
   modules       => [],
   output_file   => "index.html",
   report        => "html_basic",
-  timeout       => 30 * 60,  # half an hour
+  timeout       => 30 * 60,      # half an hour
   verbose       => 0,
   workers       => 0,
   %args,
