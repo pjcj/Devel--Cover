@@ -34,6 +34,7 @@ usage() {
   cat <<EOT
 $script --help
 $script --trace --verbose
+$script --env=dev cpancover-controller-run-once
 $script --results_dir=/cover/dev --image=pjcj/cpancover_dev cpancover-run
 EOT
   exit 0
@@ -258,7 +259,8 @@ run_cpancover() {
   ((force)) && cpancover="$cpancover --force"
   ((dryrun)) && cpancover="$cpancover --dryrun"
   local cmd
-  cmd="$cpancover --results_dir $results_dir --workers $(nice_cpus) $*"
+  cmd="$cpancover --env $env --results_dir $results_dir"
+  cmd="$cmd --workers $(nice_cpus) $*"
   ((verbose)) && pi "$cmd"
   $cmd || true
 }
