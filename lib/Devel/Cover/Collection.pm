@@ -28,10 +28,10 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-  ro => [ qw( bin_dir cpancover_dir cpan_dir results_dir dryrun force
-    output_file report timeout verbose workers docker local            ) ],
-  rwp => [qw( build_dirs local_timeout modules module_file              )],
-  rw  => [qw( dir file                                                  )],
+  ro => [ qw( bin_dir cpancover_dir cpan_dir results_dir dryrun env
+    force output_file report timeout verbose workers docker local ) ],
+  rwp => [qw( build_dirs local_timeout modules module_file         )],
+  rw  => [qw( dir file                                             )],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
 
@@ -40,6 +40,7 @@ sub BUILDARGS ($class, %args) { {
   cpan_dir      => [ grep -d, glob "~/.cpan ~/.local/share/.cpan" ],
   docker        => "docker",
   dryrun        => 0,
+  env           => "prod",
   force         => 0,
   local         => 0,
   local_timeout => 0,            # TODO - remove
@@ -450,9 +451,8 @@ sub cover_modules ($self) {
   $self->process_module_file;
   # say "modules: ", Dumper $self->modules;
 
-  my @cmd = $self->dc_file;
+  my @cmd = ($self->dc_file, "--env", $self->env);
   push @cmd, "--verbose" if $self->verbose;
-  push @cmd, "-i", "pjcj/cpancover_dev:latest";
   my @command = (@cmd, "cpancover-docker-module");
   $self->_set_local_timeout(0);
   my @res = iterate_as_array(
