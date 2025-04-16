@@ -434,8 +434,7 @@ recipe_cpancover-generate-html() {
 }
 
 cpancover_run_once() {
-  export DEVEL_COVER_CPUS=30
-  pi "Starting cpancover run at $(date) on $DEVEL_COVER_CPUS cpus"
+  pi "Starting cpancover run at $(date) on $(nice_cpus) cpus"
   cpancover_docker_rm
   cpancover_latest | run_cpancover --build
   cpancover_generate_html
