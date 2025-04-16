@@ -454,15 +454,15 @@ recipe_cpancover-run-loop() {
 }
 
 recipe_cpancover-controller-run() {
-  local v=
-  ((verbose)) && v=--verbose
-  cpancover_controller_command controller dc "$v" cpancover-run-loop
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  cpancover_controller_command controller dc "${o[@]}" cpancover-run-loop
 }
 
 recipe_cpancover-controller-run-once() {
-  local v=
-  ((verbose)) && v=--verbose
-  cpancover_controller_command controller dc $v cpancover-run-once
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  cpancover_controller_command controller dc "${o[@]}" cpancover-run-once
 }
 
 recipe_cpancover-start-queue() {
