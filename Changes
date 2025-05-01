@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.45 - 1 May 2025
  - Add new versions and test against them
  - Fix things to work with 5.41.x and new ^^ operator
  - Add explicit test for ^^ operator
