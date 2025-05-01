@@ -34,6 +34,7 @@ usage() {
   cat <<EOT
 $script --help
 $script --trace --verbose
+$script --env=dev cpancover-controller-run-once
 $script --results_dir=/cover/dev --image=pjcj/cpancover_dev cpancover-run
 EOT
   exit 0
@@ -48,8 +49,46 @@ cleanup() {
 parse_options() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
+    -d | --dryrun)
+      dryrun=1
+      shift
+      ;;
+    -e | --env)
+      shift
+      env="$1"
+      case "$env" in
+      prod)
+        results_dir=~/cover/staging
+        docker_image=pjcj/cpancover
+        ;;
+      dev)
+        results_dir=~/cover/staging_dev
+        docker_image=pjcj/cpancover_dev
+        ;;
+      *)
+        pf "Unrecognised environment: $1"
+        ;;
+      esac
+      shift
+      if grep -q "/docker/" /proc/self/mountinfo 2>/dev/null; then
+        # we're inside a docker container so use the remote staging directory
+        results_dir=/remote_staging
+      fi
+      ;;
+    -f | --force)
+      force=1
+      shift
+      ;;
     -h | --help)
       usage
+      ;;
+    -i | --image)
+      docker_image="$2"
+      shift 2
+      ;;
+    -r | --results_dir)
+      results_dir="$2"
+      shift 2
       ;;
     -t | --trace)
       set -x
@@ -58,45 +97,6 @@ parse_options() {
     -v | --verbose)
       verbose=1
       shift
-      ;;
-    -f | --force)
-      force=1
-      shift
-      ;;
-    -r | --results_dir)
-      results_dir="$2"
-      shift 2
-      ;;
-    -i | --image)
-      docker_image="$2"
-      shift 2
-      ;;
-    -d | --dryrun)
-      dryrun=1
-      shift
-      ;;
-    -e | --env)
-      shift
-      case "$1" in
-      prod)
-        results_dir=~/cover/staging
-        docker_image=pjcj/cpancover
-        shift
-        ;;
-      dev)
-        results_dir=~/cover/staging_dev
-        docker_image=pjcj/cpancover_dev
-        shift
-        ;;
-      *)
-        pf "Unrecognised environment: $1"
-        ;;
-      esac
-      if grep -q "/docker/" /proc/self/mountinfo 2>/dev/null; then
-        # we're inside a docker container so use the remote staging directory
-        results_dir=/remote_staging
-      fi
-
       ;;
     *)
       recipe="$1"
@@ -109,14 +109,14 @@ parse_options() {
 }
 
 recipe_options() {
-  echo "-h --help"
-  echo "-t --trace"
-  echo "-v --verbose"
-  echo "-f --force"
-  echo "-r --results_dir"
-  echo "-i --image"
   echo "-d --dryrun"
   echo "-e --env"
+  echo "-f --force"
+  echo "-h --help"
+  echo "-i --image"
+  echo "-r --results_dir"
+  echo "-t --trace"
+  echo "-v --verbose"
   declare -F | perl -nE 'say $1 if /recipe_(.+)/'
 }
 
@@ -132,21 +132,16 @@ setup() {
   export EXTENDED_TESTING=1
 
   PATH="$srcdir:$PATH"
-  verbose=${CPANCOVER_VERBOSE:-}
-  force=${CPANCOVER_FORCE:-}
-  results_dir=${CPANCOVER_RESULTS_DIR:-~/cover/staging}
-  docker=${CPANCOVER_DOCKER:-docker}
-  docker_image=${CPANCOVER_IMAGE:-pjcj/cpancover}
-  dryrun=${CPANCOVER_DRYRUN:-}
+
+  docker=docker
+  docker_image=pjcj/cpancover
+  dryrun=0
+  env=prod
+  force=0
+  results_dir=~/cover/staging
+  verbose=0
 
   parse_options "$@"
-
-  export CPANCOVER_VERBOSE=$verbose
-  export CPANCOVER_FORCE=$force
-  export CPANCOVER_RESULTS_DIR=$results_dir
-  export CPANCOVER_DOCKER=$docker
-  export CPANCOVER_IMAGE=$docker_image
-  export CPANCOVER_DRYRUN=$dryrun
 }
 
 nice_cpus() {
@@ -258,7 +253,8 @@ run_cpancover() {
   ((force)) && cpancover="$cpancover --force"
   ((dryrun)) && cpancover="$cpancover --dryrun"
   local cmd
-  cmd="$cpancover --results_dir $results_dir --workers $(nice_cpus) $*"
+  cmd="$cpancover --env $env --results_dir $results_dir"
+  cmd="$cmd --workers $(nice_cpus) $*"
   ((verbose)) && pi "$cmd"
   $cmd || true
 }
@@ -332,7 +328,7 @@ cpancover_controller_command() {
   local sock=/var/run/docker.sock
   $docker run -it \
     --mount type=bind,source=$sock,target=$sock \
-    --mount type=bind,source="$results_dir",target=/root/cover/staging \
+    --mount type=bind,source="$results_dir",target=/remote_staging \
     --rm=false --memory=1g --name="$(docker_name "$name")" \
     "$docker_image" "${cmd[@]}"
 }
@@ -434,8 +430,7 @@ recipe_cpancover-generate-html() {
 }
 
 cpancover_run_once() {
-  export DEVEL_COVER_CPUS=30
-  pi "Starting cpancover run at $(date) on $DEVEL_COVER_CPUS cpus"
+  pi "Starting cpancover run at $(date) on $(nice_cpus) cpus"
   cpancover_docker_rm
   cpancover_latest | run_cpancover --build
   cpancover_generate_html
@@ -458,15 +453,15 @@ recipe_cpancover-run-loop() {
 }
 
 recipe_cpancover-controller-run() {
-  local v=
-  ((verbose)) && v=--verbose
-  cpancover_controller_command controller dc "$v" cpancover-run-loop
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  cpancover_controller_command controller dc "${o[@]}" cpancover-run-loop
 }
 
 recipe_cpancover-controller-run-once() {
-  local v=
-  ((verbose)) && v=--verbose
-  cpancover_controller_command controller dc $v cpancover-run-once
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  cpancover_controller_command controller dc "${o[@]}" cpancover-run-once
 }
 
 recipe_cpancover-start-queue() {

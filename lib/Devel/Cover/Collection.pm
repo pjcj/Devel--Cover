@@ -28,10 +28,10 @@ use namespace::clean;
 use warnings FATAL => "all";  # be explicit since Moo sets this
 
 my %A = (
-  ro => [ qw( bin_dir cpancover_dir cpan_dir results_dir dryrun force
-    output_file report timeout verbose workers docker local            ) ],
-  rwp => [qw( build_dirs local_timeout modules module_file              )],
-  rw  => [qw( dir file                                                  )],
+  ro => [ qw( bin_dir cpancover_dir cpan_dir results_dir dryrun env
+    force output_file report timeout verbose workers docker local ) ],
+  rwp => [qw( build_dirs modules module_file                       )],
+  rw  => [qw( dir file                                             )],
 );
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
 
@@ -40,26 +40,24 @@ sub BUILDARGS ($class, %args) { {
   cpan_dir      => [ grep -d, glob "~/.cpan ~/.local/share/.cpan" ],
   docker        => "docker",
   dryrun        => 0,
+  env           => "prod",
   force         => 0,
   local         => 0,
-  local_timeout => 0,
   modules       => [],
   output_file   => "index.html",
   report        => "html_basic",
-  timeout       => 1800,  # half an hour
+  timeout       => 30 * 60,      # half an hour
   verbose       => 0,
   workers       => 0,
   %args,
 } }
-
-sub get_timeout ($self) { $self->local_timeout || $self->timeout || 30 * 60 }
 
 # display $non_buffered characters, then buffer
 sub _sys ($self, $non_buffered, @command) {
   # system @command; return ".";
   my ($output1, $output2) = ("", "");
   $output1 = "dc -> @command\n" if $self->verbose;
-  my $timeout = $self->get_timeout;
+  my $timeout = $self->timeout;
   my $max     = 4e4;
   # say "Setting alarm for $timeout seconds";
   my $ok = 0;
@@ -133,14 +131,12 @@ sub process_module_file ($self) {
 sub build_modules ($self) {
   my @command = qw( cpan -Ti );
   push @command, "-f" if $self->force;
-  # $self->_set_local_timeout(300);
   my %m;
   for my $module (sort grep !$m{$_}++, $self->modules->@*) {
     say "Building $module";
     my $output = $self->fsys(@command, $module);
     say $output;
   }
-  $self->_set_local_timeout(0);
 }
 
 sub add_build_dirs ($self) {
@@ -161,16 +157,15 @@ sub made_res_dir ($self, $sub_dir = undef) {
 }
 
 sub run ($self, $build_dir) {
-
+  chdir $build_dir or die "Can't chdir $build_dir: $!\n";
   my ($module) = $build_dir =~ m|.*/([^/]+?)(?:-\d+)$| or return;
-  my $db       = "$build_dir/cover_db";
-  my $line     = "=" x 80;
+  say "Checking coverage of $module";
+
+  my $db   = "$build_dir/cover_db";
+  my $line = "=" x 80;
   my ($res_dir, $out) = $self->made_res_dir;
   my $results_dir = "$res_dir/$module";
   my $output      = "**** Checking coverage of $module ****\n$out";
-
-  chdir $build_dir or die "Can't chdir $build_dir: $!\n";
-  say "Checking coverage of $module";
 
   if (-d $db || -d "$build_dir/structure" || -d $results_dir) {
     $output .= "Already analysed\n";
@@ -451,11 +446,9 @@ sub cover_modules ($self) {
   $self->process_module_file;
   # say "modules: ", Dumper $self->modules;
 
-  my @cmd = $self->dc_file;
+  my @cmd = ($self->dc_file, "--env", $self->env);
   push @cmd, "--verbose" if $self->verbose;
-  push @cmd, "-i", "pjcj/cpancover_dev:latest";
   my @command = (@cmd, "cpancover-docker-module");
-  $self->_set_local_timeout(0);
   my @res = iterate_as_array(
     { workers => $self->workers },
     sub {
@@ -472,7 +465,7 @@ sub cover_modules ($self) {
         return unless $self->force;
       }
 
-      my $timeout = $self->get_timeout;
+      my $timeout = $self->timeout;
       # say "Setting alarm for $timeout seconds";
       my $name = sprintf("%s-%18.6f", $module, time) =~ tr/a-zA-Z0-9_./-/cr;
       say "$dir -> $name";
@@ -500,7 +493,6 @@ sub cover_modules ($self) {
     },
     do { my %m; [ sort grep !$m{$_}++, @{ $self->modules } ] }
   );
-  $self->_set_local_timeout(0);
 }
 
 sub get_latest ($self) {
