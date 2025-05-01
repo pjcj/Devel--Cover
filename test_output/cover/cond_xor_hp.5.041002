@@ -1,0 +1,79 @@
+Reading database from ...
+
+
+----------------- ------ ------ ------ ------ ------
+File                stmt   bran   cond    sub  total
+----------------- ------ ------ ------ ------ ------
+tests/cond_xor_hp  100.0    n/a   66.6  100.0   86.6
+Total              100.0    n/a   66.6  100.0   86.6
+----------------- ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/cond_xor_hp
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2002-2025, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      # __COVER__ skip_test $] < 5.040000
+11                                      # __COVER__ skip_reason ^^ not implemented
+12                                      
+13             1                    1   use strict;
+               1                        
+               1                        
+14             1                    1   use warnings;
+               1                        
+               1                        
+15                                      
+16                                      sub main {
+17             1                    1     my $i = 1;
+18             1                          my $j = 0;
+19                                      
+20             1                          for my $y (0, 1, 1, 1) {
+21             4                            for my $z (0, 0, 1) {
+22            12                              my $x = $y ^ $z;
+23            12           100                $x = $y ^^ $z;
+24                                      
+25    ***     12          * 50                my $p = $i ^^ $y;
+26    ***     12          * 50                $p = $j ^^ $y;
+27                                          }
+28                                        }
+29                                      }
+30                                      
+31             1                        main
+
+
+Conditions
+----------
+
+xor 4 conditions
+
+line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------ ------   ----
+23           100      3      6      1      2   $y ^^ $z
+25    ***     50      9      3      0      0   $i ^^ $y
+26    ***     50      0      0      9      3   $j ^^ $y
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location            
+---------- ----- --------------------
+BEGIN          1 tests/cond_xor_hp:13
+BEGIN          1 tests/cond_xor_hp:14
+main           1 tests/cond_xor_hp:17
+
+
