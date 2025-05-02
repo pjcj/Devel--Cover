@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.46 - 2 May 2025
  - Add tests for new any and all functions
  - Note testing against 5.40.2
 
