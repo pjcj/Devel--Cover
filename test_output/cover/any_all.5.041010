@@ -1,0 +1,81 @@
+Reading database from ...
+
+
+------------- ------ ------ ------ ------ ------
+File            stmt   bran   cond    sub  total
+------------- ------ ------ ------ ------ ------
+tests/any_all  100.0   50.0    n/a  100.0   93.5
+Total          100.0   50.0    n/a  100.0   93.5
+------------- ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/any_all
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2025, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # http://www.pjcj.net
+9                                       
+10                                      # __COVER__ skip_test $] < 5.041010
+11                                      # __COVER__ skip_reason any/all not implemented
+12                                      
+13             1                    1   use strict;
+               1                        
+               1                        
+14             1                    1   use warnings;
+               1                        
+               1                        
+15             1                    1   no warnings "experimental";
+               1                        
+               1                        
+16             1                    1   use feature "keyword_any";
+               1                        
+               1                        
+17             1                    1   use feature "keyword_all";
+               1                        
+               1                        
+18                                      
+19                                      sub main {
+20             1                    1     my $haystack = [ 1 .. 8 ];
+21    ***      1   * 50                   print "any\n" if any { $_ % 2 } @$haystack;
+               1                        
+22    ***      1   * 50                   print "all\n" if all { $_ < 9 } @$haystack;
+               8                        
+23                                      }
+24                                      
+25             1                        main
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+21    ***     50      1      0   if CORE::any {$_ % 2;} @$haystack
+22    ***     50      1      0   if CORE::all {$_ < 9;} @$haystack
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location        
+---------- ----- ----------------
+BEGIN          1 tests/any_all:13
+BEGIN          1 tests/any_all:14
+BEGIN          1 tests/any_all:15
+BEGIN          1 tests/any_all:16
+BEGIN          1 tests/any_all:17
+main           1 tests/any_all:20
+
+
