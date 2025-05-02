@@ -2,6 +2,7 @@ Devel::Cover history
 
 {{$NEXT}}
  - Add tests for new any and all functions
+ - Note testing against 5.40.2
 
 1.45 - 1 May 2025
  - Add new versions and test against them
