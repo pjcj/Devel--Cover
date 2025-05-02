@@ -68,11 +68,11 @@ sub get_params {
   my $self = shift;
 
   my $test = $self->test_file;
-  if (open T, $test) {
-    while (<T>) {
+  if (open my $fh, "<", $test) {
+    while (<$fh>) {
       push @{ $self->{$1} }, $2 if /__COVER__\s+(\w+)\s+(.*)/;
     }
-    close T or die "Cannot close $test: $!";
+    close $fh or die "Cannot close $test: $!";
   }
 
   $self->{criteria} = $self->{criteria}[-1];
@@ -180,11 +180,16 @@ sub run_command {
 
   print STDERR "Running test [$command]\n" if $self->{debug};
 
-  open T, "$command 2>&1 |" or die "Cannot run $command: $!";
-  while (<T>) {
+  open my $fh, "-|", "$command 2>&1" or die "Cannot run $command: $!";
+  my @lines;
+  while (<$fh>) {
+    push @lines, $_;
     print STDERR if $self->{debug};
   }
-  close T or die "Cannot close $command: $!";
+  if (!close $fh) {
+    die "Cannot close $command: $!" if $!;
+    die "Error closing $command, output was:\n", @lines;
+  }
 
   if ($self->{delay_after_run}) {
     eval { select undef, undef, undef, $self->{delay_after_run}; 1 }
@@ -278,9 +283,9 @@ sub run_cover {
   };
 
   # use Devel::Cover::Dumper; print STDERR "--->", Dumper $self->{changes};
-  open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
-  while (!eof T) {
-    my $t = $change_line->(sub { <T> });
+  open my $cover_fh, '-|', "$cover_com 2>&1" or die "Cannot run $cover_com: $!";
+  while (!eof $cover_fh) {
+    my $t = $change_line->(sub { <$cover_fh> });
     my $c = $change_line->(sub { shift @{ $self->{cover} } });
     # print STDERR "[$t]\n[$c]\n" if $t ne $c;
     do {
@@ -306,7 +311,7 @@ sub run_cover {
   } elsif ($self->{no_coverage}) {
     pass for @{ $self->{cover} };
   }
-  close T or die "Cannot close $cover_com: $!";
+  close $cover_fh or die "Cannot close $cover_com: $!";
 
   1
 }
@@ -325,7 +330,7 @@ sub create_gold {
   my $ng       = "";
 
   unless (-e $new_gold) {
-    open my $g, ">$new_gold" or die "Can't open $new_gold: $!";
+    open my $g, ">", $new_gold or die "Can't open $new_gold: $!";
     unlink $new_gold;
   }
 
@@ -342,26 +347,26 @@ sub create_gold {
   my $cover_com = $self->cover_command;
   print STDERR "Running cover [$cover_com]\n" if $self->{debug};
 
-  open G, ">$new_gold"        or die "Cannot open $new_gold: $!";
-  open T, "$cover_com 2>&1 |" or die "Cannot run $cover_com: $!";
-  while (my $l = <T>) {
+  open my $gold_fh, ">", $new_gold        or die "Cannot open $new_gold: $!";
+  open my $cover_fh, "-|", "$cover_com 2>&1" or die "Cannot run $cover_com: $!";
+  while (my $l = <$cover_fh>) {
     next if $l =~ /^Devel::Cover: merging run/;
     $l =~ s/^($_: ).*$/$1.../
       for "Run", "Perl version", "OS", "Start", "Finish";
     $l =~ s/^(Reading database from ).*$/$1.../;
     print STDERR $l if $self->{debug};
-    print G $l;
+    print $gold_fh $l;
     $ng .= $l;
   }
-  close T or die "Cannot close $cover_com: $!";
-  close G or die "Cannot close $new_gold: $!";
+  close $cover_fh or die "Cannot close $cover_com: $!";
+  close $gold_fh or die "Cannot close $new_gold: $!";
 
   print STDERR "gv is $gv and this is $]\n"                if $self->{debug};
   print STDERR "gold is $gold and new_gold is $new_gold\n" if $self->{debug};
   unless ($gv eq "0" || $gv eq $]) {
-    open G, "$gold" or die "Cannot open $gold: $!";
-    my $g = do { local $/; <G> };
-    close G or die "Cannot close $gold: $!";
+    open my $gold_fh, $gold or die "Cannot open $gold: $!";
+    my $g = do { local $/; <$gold_fh> };
+    close $gold_fh or die "Cannot close $gold: $!";
 
     print STDERR "checking $new_gold against $gold\n" if $self->{debug};
     # print "--[$ng]--\n";

@@ -17,7 +17,7 @@ use warnings;
 use blib;
 
 use Config;
-exit if $Config{useithreads};
+die "useithreads true, exiting" if $Config{useithreads};
 
 use Devel::Cover::Test;
 

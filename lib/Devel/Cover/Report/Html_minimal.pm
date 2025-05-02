@@ -1,5 +1,4 @@
 package Devel::Cover::Report::Html_minimal;
-BEGIN { require 5.006 }
 
 use strict;
 use warnings;

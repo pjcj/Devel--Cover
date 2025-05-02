@@ -46,7 +46,7 @@ extern "C" {
 #define MY_CXT_KEY "Devel::Cover::_guts" XS_VERSION
 
 #define PDEB(a) a
-#define NDEB(a) ;
+#define NDEB(a) ; /* if change to a, comment defining PERL_NO_GET_CONTEXT */
 #define D PerlIO_printf
 #define L Perl_debug_log
 #define svdump(sv) do_sv_dump(0, L, (SV *)sv, 0, 10, 1, 0);
@@ -97,11 +97,7 @@ typedef struct {
     int           replace_ops;
     /* - fix up whatever is broken with module_relative on Windows here */
 
-#if PERL_VERSION > 8
     Perl_ppaddr_t ppaddr[MAXO];
-#else
-    OP           *(*ppaddr[MAXO])(pTHX);
-#endif
 } my_cxt_t;
 
 #ifdef USE_ITHREADS
@@ -336,7 +332,6 @@ static int check_if_collecting(pTHX_ COP *cop) {
     NDEB(D(L, "%s - %d\n",
               SvPV_nolen(MY_CXT.lastfile), MY_CXT.collecting_here));
 
-#if PERL_VERSION > 6
     if (SvTRUE(MY_CXT.module)) {
         STRLEN mlen,
                flen = strlen(file);
@@ -358,7 +353,6 @@ static int check_if_collecting(pTHX_ COP *cop) {
         sv_setpv(MY_CXT.module, "");
         set_firsts_if_needed(aTHX);
     }
-#endif
 
 #if !NO_TAINT_SUPPORT
     PL_tainted = tainted;
@@ -441,10 +435,8 @@ static void store_module(pTHX) {
     dMY_CXT;
     dSP;
 
-#if PERL_VERSION > 8
     SvSetSV_nosteal(MY_CXT.module, (SV*)newSVpv(SvPV_nolen(TOPs), 0));
     NDEB(D(L, "require %s\n", SvPV_nolen(MY_CXT.module)));
-#endif
 }
 
 static void call_report(pTHX) {
@@ -535,7 +527,9 @@ static void set_conditional(pTHX_ OP *op, int cond, int value) {
 
 static void add_conditional(pTHX_ OP *op, int cond) {
     SV **count = av_fetch(get_conditional_array(aTHX_ op), cond, 1);
-    int  c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
+    int true_ish = (op->op_type == OP_DOR || op->op_type == OP_DORASSIGN)
+      ? SvOK(*count) : SvTRUE(*count);
+    int  c     = true_ish ? SvIV(*count) + 1 : 1;
     sv_setiv(*count, c);
     NDEB(D(L, "Adding %d conditional making %d at %p\n", cond, c, op));
 }
@@ -594,14 +588,16 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
     for (; i <= av_len(conds); i++) {
         OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
         SV **count = av_fetch(get_conditional_array(aTHX_ op), 0, 1);
-        int  type  = SvTRUE(*count) ? SvIV(*count) : 0;
+        int true_ish = (op->op_type == OP_DOR || op->op_type == OP_DORASSIGN)
+          ? SvOK(*count) : SvTRUE(*count);
+        int  type  = true_ish ? SvIV(*count) : 0;
         sv_setiv(*count, 0);
 
         /* Check if we have come from an xor with a true first op */
         if (final)     value  = 1;
         if (type == 1) value += 2;
 
-        NDEB(D(L, "Found %p: %d, %d\n", op, type, value));
+        NDEB(D(L, "Found %p (trueish=%d): %d, %d\n", op, true_ish, type, value));
         add_conditional(aTHX_ op, value);
     }
 
@@ -707,27 +703,48 @@ static OP *find_skipped_conditional(pTHX_ OP *o) {
 }
 #endif
 
-/* NOTE: caller must protect get_condition calls by locking DC_mutex */
-
+/* NOTE: caller must protect get_condition* calls by locking DC_mutex */
 static OP *get_condition(pTHX) {
     SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
-
     if (pc && SvROK(*pc)) {
         dSP;
+        int true_ish;
         NDEB(D(L, "get_condition from %p, %p: %p (%s)\n",
                   PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
         /* dump_conditions(aTHX); */
         NDEB(svdump(Pending_conditionals));
-        add_condition(aTHX_ *pc, SvTRUE(TOPs) ? 2 : 1);
+        true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
+          ? SvOK(TOPs) : SvTRUE(TOPs);
+        NDEB(D(L, "   get_condition true_ish=%d\n", true_ish));
+        add_condition(aTHX_ *pc, true_ish ? 2 : 1);
     } else {
         PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
                   PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
         dump_conditions(aTHX);
         NDEB(svdump(Pending_conditionals));
-        /* croak("urgh"); */
         exit(1);
     }
-
+    return PL_op;
+}
+static OP *get_condition_dor(pTHX) {
+    SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
+    if (pc && SvROK(*pc)) {
+        dSP;
+        int true_ish;
+        NDEB(D(L, "get_condition_dor from %p, %p: %p (%s)\n",
+                  PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
+        /* dump_conditions(aTHX); */
+        NDEB(svdump(Pending_conditionals));
+        true_ish = SvOK(TOPs);
+        NDEB(D(L, "   get_condition_dor true_ish=%d\n", true_ish));
+        add_condition(aTHX_ *pc, true_ish ? 2 : 1);
+    } else {
+        PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
+                  PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
+        dump_conditions(aTHX);
+        NDEB(svdump(Pending_conditionals));
+        exit(1);
+    }
     return PL_op;
 }
 
@@ -810,32 +827,26 @@ static void cover_logop(pTHX) {
     } else {
         dSP;
 
-        int left_val     = SvTRUE(TOPs);
-#if PERL_VERSION > 8
-        int left_val_def = SvOK(TOPs);
-#endif
+        int leftval_true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
+          ? SvOK(TOPs) : SvTRUE(TOPs);
         /* We don't count X= as void context because we care about the value
          * of the RHS */
         int void_context = GIMME_V == G_VOID &&
-#if PERL_VERSION > 8
                            PL_op->op_type != OP_DORASSIGN &&
-#endif
                            PL_op->op_type != OP_ANDASSIGN &&
                            PL_op->op_type != OP_ORASSIGN;
-        NDEB(D(L, "left_val: %d, void_context: %d at %p\n",
-                  left_val, void_context, PL_op));
+        NDEB(D(L, "leftval_true_ish: %d, void_context: %d at %p\n",
+                  leftval_true_ish, void_context, PL_op));
         NDEB(op_dump(PL_op));
 
         set_conditional(aTHX_ PL_op, 5, void_context);
 
-        if ((PL_op->op_type == OP_AND       &&  left_val)     ||
-            (PL_op->op_type == OP_ANDASSIGN &&  left_val)     ||
-            (PL_op->op_type == OP_OR        && !left_val)     ||
-            (PL_op->op_type == OP_ORASSIGN  && !left_val)     ||
-#if PERL_VERSION > 8
-            (PL_op->op_type == OP_DOR       && !left_val_def) ||
-            (PL_op->op_type == OP_DORASSIGN && !left_val_def) ||
-#endif
+        if ((PL_op->op_type == OP_AND       &&  leftval_true_ish)     ||
+            (PL_op->op_type == OP_ANDASSIGN &&  leftval_true_ish)     ||
+            (PL_op->op_type == OP_OR        && !leftval_true_ish)     ||
+            (PL_op->op_type == OP_ORASSIGN  && !leftval_true_ish)     ||
+            (PL_op->op_type == OP_DOR       && !leftval_true_ish) ||
+            (PL_op->op_type == OP_DORASSIGN && !leftval_true_ish) ||
             (PL_op->op_type == OP_XOR)) {
             /* no short circuit */
 
@@ -866,7 +877,7 @@ static void cover_logop(pTHX) {
                      *cond;
                 OP   *next;
 
-                if (PL_op->op_type == OP_XOR && left_val) {
+                if (PL_op->op_type == OP_XOR && leftval_true_ish) {
                     /*
                      * This is an xor.  It does not short circuit.  We
                      * have just executed the first op.  When we get to
@@ -925,7 +936,9 @@ static void cover_logop(pTHX) {
                 NDEB(op_dump(PL_op));
                 NDEB(op_dump(next));
 
-                next->op_ppaddr = get_condition;
+                next->op_ppaddr = (next->op_type == OP_NEXTSTATE && (
+                  PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN))
+                  ? get_condition_dor : get_condition;
                 MUTEX_UNLOCK(&DC_mutex);
             }
         } else {
@@ -1003,16 +1016,6 @@ static OP *dc_nextstate(pTHX) {
     return MY_CXT.ppaddr[OP_NEXTSTATE](aTHX);
 }
 
-#if PERL_VERSION <= 10
-static OP *dc_setstate(pTHX) {
-    dMY_CXT;
-    NDEB(D(L, "dc_setstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering) check_if_collecting(aTHX_ cCOP);
-    if (collecting_here(aTHX)) cover_current_statement(aTHX);
-    return MY_CXT.ppaddr[OP_SETSTATE](aTHX);
-}
-#endif
-
 static OP *dc_dbstate(pTHX) {
     dMY_CXT;
     NDEB(D(L, "dc_dbstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
@@ -1070,7 +1073,6 @@ static OP *dc_orassign(pTHX) {
     return MY_CXT.ppaddr[OP_ORASSIGN](aTHX);
 }
 
-#if PERL_VERSION > 8
 static OP *dc_dor(pTHX) {
     dMY_CXT;
     check_if_collecting(aTHX_ PL_curcop);
@@ -1086,7 +1088,6 @@ static OP *dc_dorassign(pTHX) {
     if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
     return MY_CXT.ppaddr[OP_DORASSIGN](aTHX);
 }
-#endif
 
 OP *dc_xor(pTHX) {
     dMY_CXT;
@@ -1118,9 +1119,6 @@ static void replace_ops (pTHX) {
         MY_CXT.ppaddr[i] = PL_ppaddr[i];
 
     PL_ppaddr[OP_NEXTSTATE] = dc_nextstate;
-#if PERL_VERSION <= 10
-    PL_ppaddr[OP_SETSTATE]  = dc_setstate;
-#endif
     PL_ppaddr[OP_DBSTATE]   = dc_dbstate;
     PL_ppaddr[OP_ENTERSUB]  = dc_entersub;
 #if PERL_VERSION > 16
@@ -1131,10 +1129,8 @@ static void replace_ops (pTHX) {
     PL_ppaddr[OP_ANDASSIGN] = dc_andassign;
     PL_ppaddr[OP_OR]        = dc_or;
     PL_ppaddr[OP_ORASSIGN]  = dc_orassign;
-#if PERL_VERSION > 8
     PL_ppaddr[OP_DOR]       = dc_dor;
     PL_ppaddr[OP_DORASSIGN] = dc_dorassign;
-#endif
     PL_ppaddr[OP_XOR]       = dc_xor;
     PL_ppaddr[OP_REQUIRE]   = dc_require;
     PL_ppaddr[OP_EXEC]      = dc_exec;
@@ -1262,9 +1258,6 @@ static int runops_cover(pTHX) {
 
         switch (PL_op->op_type) {
             case OP_NEXTSTATE:
-#if PERL_VERSION <= 10
-            case OP_SETSTATE:
-#endif
             case OP_DBSTATE: {
                 cover_current_statement(aTHX);
                 break;
@@ -1286,10 +1279,8 @@ static int runops_cover(pTHX) {
             case OP_ANDASSIGN:
             case OP_OR:
             case OP_ORASSIGN:
-#if PERL_VERSION > 8
             case OP_DOR:
             case OP_DORASSIGN:
-#endif
             case OP_XOR: {
                 cover_logop(aTHX);
                 break;
@@ -1605,7 +1596,5 @@ BOOT:
         } else {
             PL_runops = runops_cover;
         }
-#if PERL_VERSION > 6
         PL_savebegin = TRUE;
-#endif
     }

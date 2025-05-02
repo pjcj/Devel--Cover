@@ -13,6 +13,7 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ macos-latest, windows-latest ]
         perl: [ "5" ]
@@ -23,7 +24,6 @@ jobs:
           - { os: "ubuntu-latest", perl: "5.18" }
           - { os: "ubuntu-latest", perl: "5.20" }
           - { os: "ubuntu-latest", perl: "5.22" }
-          - { os: "ubuntu-latest", perl: "5.24" }
           - { os: "ubuntu-latest", perl: "5.24" }
           - { os: "ubuntu-latest", perl: "5.26" }
           - { os: "ubuntu-latest", perl: "5.28" }

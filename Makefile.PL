@@ -285,6 +285,7 @@ my $Opts = {
   NAME           => "Devel::Cover",
   VERSION        => $Version,
   AUTHOR         => 'Paul Johnson <paul@pjcj.net>',
+  MIN_PERL_VERSION => '5.012',
   ABSTRACT_FROM  => "lib/Devel/Cover.pm",
   DIR            => [],
   EXE_FILES      => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],
