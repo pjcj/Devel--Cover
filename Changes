@@ -534,7 +534,7 @@ Devel::Cover history
  - Simplify get_key function and remove TODO item (Gisle Aas)
  - Be careful with UNC paths on Windows (John LoVerso) (RT-24105)
  - Only call HvSHAREKEYS_off if threading is enabled
- - s/unvailable/unavailable/ (Jim Cromie)
+ - Fix spelling of "unavailable" (Jim Cromie)
  - Don't key on op_targ - it might change (RT-22701)
  - Tidy up docs and error messages for reports (RT-21098)
  - Better database validation
