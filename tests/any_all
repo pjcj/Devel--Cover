@@ -1,0 +1,25 @@
+#!/usr/bin/perl
+
+# Copyright 2025, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# http://www.pjcj.net
+
+# __COVER__ skip_test $] < 5.041010
+# __COVER__ skip_reason any/all not implemented
+
+use strict;
+use warnings;
+no warnings "experimental";
+use feature "keyword_any";
+use feature "keyword_all";
+
+sub main {
+  my $haystack = [ 1 .. 8 ];
+  print "any\n" if any { $_ % 2 } @$haystack;
+  print "all\n" if all { $_ < 9 } @$haystack;
+}
+
+main
