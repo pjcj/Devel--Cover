@@ -454,6 +454,12 @@ sub set_files {
   @{ $Options->{file} } = sort grep $keep->($_), keys %f;
 }
 
+sub print_summary {
+  my ($db) = @_;
+  $db->print_summary($Options->{file}, $Options->{coverage}, { force => 1 })
+    if $Options->{summary};
+}
+
 sub run_reports {
   my ($db, $argv) = @_;
   for my $report (@{ $Options->{report} }) {
@@ -486,10 +492,7 @@ sub main {
   do_gcov($dbname);
   my $db = manage_dbs($dbname, $test_result);
   set_files($db);
-
-  $db->print_summary($Options->{file}, $Options->{coverage}, { force => 1 })
-    if $Options->{summary};
-
+  print_summary($db);
   run_reports($db, \@argv);
 
   exit $test_result;
