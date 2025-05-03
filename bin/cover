@@ -199,10 +199,7 @@ sub check_self_coverage {
   }
 }
 
-sub main {
-  $|++;  # try to impose order on STDOUT and STDERR
-
-  check_self_coverage;
+sub check_options {
   get_options;
 
   $Devel::Cover::Silent             = 1 if $Options->{silent};
@@ -243,6 +240,13 @@ sub main {
   print "$0 version $VERSION\n" and exit 0 if $Options->{version};
   pod2usage(-exitval => 0, -verbose => 1) if $Options->{help};
   pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
+}
+
+sub main {
+  $|++;  # try to impose order on STDOUT and STDERR
+
+  check_self_coverage;
+  check_options;
 
   my @argv    = @ARGV;
   my $options = dclone($Options);
