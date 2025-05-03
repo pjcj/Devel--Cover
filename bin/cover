@@ -187,9 +187,7 @@ sub mb_test_command {
   $test
 }
 
-sub main {
-  $|++;  # try to impose order on STDOUT and STDERR
-
+sub check_self_coverage {
   if (!$ENV{DEVEL_COVER_SELF} && $INC{"Devel/Cover.pm"}) {
     my $err = "$0 shouldn't be run with coverage turned on.\n";
     eval {
@@ -199,7 +197,12 @@ sub main {
     };
     die $err;
   }
+}
 
+sub main {
+  $|++;  # try to impose order on STDOUT and STDERR
+
+  check_self_coverage;
   get_options;
 
   $Devel::Cover::Silent             = 1 if $Options->{silent};
