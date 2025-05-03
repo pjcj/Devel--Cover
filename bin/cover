@@ -446,18 +446,18 @@ sub main {
     if $Options->{summary};
 
   for my $report (@{ $Options->{report} }) {
-    @ARGV = @argv;
-    my $options = dclone($Options);
-    my $format  = "Devel::Cover::Report::\u$report";
-    $format->get_options($options) if $format->can("get_options");
-    $format->report($db, $options);
+    local @ARGV = @argv;
+    my $loptions = dclone($Options);
+    my $lformat  = "Devel::Cover::Report::\u$report";
+    $lformat->get_options($loptions) if $lformat->can("get_options");
+    $lformat->report($db, $loptions);
 
-    if ($options->{launch}) {
-      if ($format->can("launch")) {
-        $format->launch($options);
+    if ($loptions->{launch}) {
+      if ($lformat->can("launch")) {
+        $lformat->launch($loptions);
       } else {
         print STDERR "The launch option is not available for the ",
-          "$options->{report} report.\n"
+          "$loptions->{report} report.\n"
       }
     }
   }
