@@ -240,6 +240,29 @@ sub check_options {
   print "$0 version $VERSION\n" and exit 0 if $Options->{version};
   pod2usage(-exitval => 0, -verbose => 1) if $Options->{help};
   pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
+
+  my $options = dclone($Options);
+  my $report  = $Options->{report}[0];
+  my $format  = "Devel::Cover::Report::\u$report";
+  $format->get_options($options) if $format->can("get_options");
+}
+
+sub get_dbname {
+  my $dbname = File::Spec->rel2abs(@ARGV ? shift @ARGV : "cover_db");
+  die "Can't open database $dbname\n"
+    if !$Options->{delete} && !$Options->{test} && !-d $dbname;
+  if ($Options->{delete}) {
+    delete_db($dbname, @ARGV);
+    exit 0
+  }
+  $Options->{outputdir} //= $dbname
+
+}
+
+sub check_outputdir {
+  my $od = File::Spec->rel2abs($Options->{outputdir});
+  $Options->{outputdir} = $od if defined $od;
+  mkpath($Options->{outputdir}) unless -d $Options->{outputdir};
 }
 
 sub main {
@@ -248,24 +271,9 @@ sub main {
   check_self_coverage;
   check_options;
 
-  my @argv    = @ARGV;
-  my $options = dclone($Options);
-  my $report  = $Options->{report}[0];
-  my $format  = "Devel::Cover::Report::\u$report";
-  $format->get_options($options) if $format->can("get_options");
-  my $dbname = File::Spec->rel2abs(@ARGV ? shift @ARGV : "cover_db");
-  die "Can't open database $dbname\n"
-    if !$Options->{delete} && !$Options->{test} && !-d $dbname;
-
-  $Options->{outputdir} = $dbname unless exists $Options->{outputdir};
-  my $od = File::Spec->rel2abs($Options->{outputdir});
-  $Options->{outputdir} = $od if defined $od;
-  mkpath($Options->{outputdir}) unless -d $Options->{outputdir};
-
-  if ($Options->{delete}) {
-    delete_db($dbname, @ARGV);
-    exit 0
-  }
+  my @argv   = @ARGV;
+  my $dbname = get_dbname;
+  check_outputdir;
 
   my $test_result = 0;
   if ($Options->{test}) {
