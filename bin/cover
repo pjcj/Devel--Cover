@@ -352,16 +352,8 @@ sub do_gcov {
   }
 }
 
-sub main {
-  $|++;  # try to impose order on STDOUT and STDERR
-
-  check_self_coverage;
-  check_options;
-  my @argv   = @ARGV;
-  my $dbname = get_dbname;
-  check_outputdir;
-  my $test_result = do_test($dbname);
-  do_gcov($dbname);
+sub manage_dbs {
+  my ($dbname, $test_result) = @_;
 
   print "Reading database from $dbname\n" unless $Options->{silent};
   my $db = Devel::Cover::DB->new(
@@ -434,6 +426,21 @@ sub main {
   $db->calculate_summary(map { $_ => 1 } @{ $Options->{coverage} });
 
   print "\n\n" unless $Options->{silent};
+
+  $db
+}
+
+sub main {
+  $|++;  # try to impose order on STDOUT and STDERR
+
+  check_self_coverage;
+  check_options;
+  my @argv   = @ARGV;
+  my $dbname = get_dbname;
+  check_outputdir;
+  my $test_result = do_test($dbname);
+  do_gcov($dbname);
+  my $db = manage_dbs($dbname, $test_result);
 
   # TODO - The sense of select and ignore should be reversed to match
   # collection - check this
