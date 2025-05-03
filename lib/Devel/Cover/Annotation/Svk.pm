@@ -17,9 +17,9 @@ use Digest::MD5;
 
 sub md5_fh {
   my $fh  = shift;
-  my $ctx = Digest::MD5->new;
-  $ctx->addfile($fh);
-  $ctx->hexdigest
+  my $md5 = Digest::MD5->new;
+  $md5->addfile($fh);
+  $md5->hexdigest
 }
 
 sub new {
