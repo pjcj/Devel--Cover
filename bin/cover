@@ -13,443 +13,489 @@ use strict;
 use warnings;
 
 our $VERSION;
+
 BEGIN {
-# VERSION
+  # VERSION
 }
 
-use Devel::Cover::DB;
-use Devel::Cover::Inc;
+use Devel::Cover::DB  ();
+use Devel::Cover::Inc ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use Config;
-use File::Spec;
-use File::Find ();
-use File::Path;
-use Getopt::Long;
-use Pod::Usage;
-use Storable qw( dclone );
+use Config       qw( %Config );
+use File::Spec   ();
+use File::Find   ();
+use File::Path   qw( mkpath rmtree );
+use Getopt::Long qw( GetOptions );
+use Pod::Usage   qw( pod2usage );
+use Storable     qw( dclone );
 
-use Devel::Cover::Dumper;  # For debugging
+use Devel::Cover::Dumper qw( Dumper );  ## no perlimports
 use Data::Dumper ();  # no import of Dumper (use Devel::Cover::Dumper if needed)
 
 my $Options = {
-    add_uncoverable_point    => [],
-    annotation               => [],
-    gcov_chdir               => 0,
-    coverage                 => [],
-    delete                   => undef,
-    delete_uncoverable_point => [],
-    gcov                     => $Config{gccversion},
-    ignore                   => [],
-    ignore_re                => [],
-    launch                   => 0,
-    make                     => $Config{make},
-    prefer_lib               => 0,
-    relative_only            => 0,
-    report                   => [],
-    report_c0                => 75,
-    report_c1                => 90,
-    report_c2                => 100,
-    select                   => [],
-    select_re                => [],
-    summary                  => 1,
-    uncoverable_file         => [],
-        # .uncoverable and ~/.uncoverable are always checked
+  add_uncoverable_point    => [],
+  annotation               => [],
+  gcov_chdir               => 0,
+  coverage                 => [],
+  delete                   => undef,
+  delete_uncoverable_point => [],
+  gcov                     => $Config{gccversion},
+  ignore                   => [],
+  ignore_re                => [],
+  launch                   => 0,
+  make                     => $Config{make},
+  prefer_lib               => 0,
+  relative_only            => 0,
+  report                   => [],
+  report_c0                => 75,
+  report_c1                => 90,
+  report_c2                => 100,
+  select                   => [],
+  select_re                => [],
+  summary                  => 1,
+  uncoverable_file         => [],
+  # .uncoverable and ~/.uncoverable are always checked
 };
 
 sub get_options {
-    Getopt::Long::Configure("pass_through");
-    die "Bad option" unless
-        GetOptions($Options,            # Store the options in the Options hash.
-                   "write:s" => sub {
-                       @$Options{qw( write summary )} = ($_[1], 0)
-                   },
-                   qw(
-                       add_uncoverable_point=s
-                       annotation=s
-                       clean_uncoverable_points!
-                       coverage=s
-                       delete!
-                       delete_uncoverable_point=s
-                       dump_db!
-                       gcov!
-                       gcov_chdir!
-                       help|h!
-                       ignore=s
-                       ignore_covered_err!
-                       ignore_re=s
-                       info|i!
-                       launch!
-                       make=s
-                       outputdir=s
-                       prefer_lib!
-                       relative_only!
-                       report=s
-                       report_c0=s
-                       report_c1=s
-                       report_c2=s
-                       select=s
-                       select_re=s
-                       silent!
-                       summary!
-                       test!
-                       uncoverable_file=s
-                       version|v!
-                     ));
-    Getopt::Long::Configure("nopass_through");
-    $Options->{report} = ["html"]
-        if !@{$Options->{report}} && !exists $Options->{write};
-
-    # handle comma separated ops, like -coverage branch,statement
-
-    # also accept them in the same format they're output
-    my %coverage_abbrev = (
-        stmt => "statement",
-        bran => "branch",
-        cond => "condition",
-        sub  => "subroutine",
+  Getopt::Long::Configure("pass_through");
+  die "Bad option"
+    unless GetOptions(
+      $Options,  # Store the options in the Options hash.
+      "write:s" => sub {
+        @$Options{qw( write summary )} = ($_[1], 0)
+      },
+      qw(
+        add_uncoverable_point=s
+        annotation=s
+        clean_uncoverable_points!
+        coverage=s
+        delete!
+        delete_uncoverable_point=s
+        dump_db!
+        gcov!
+        gcov_chdir!
+        help|h!
+        ignore=s
+        ignore_covered_err!
+        ignore_re=s
+        info|i!
+        launch!
+        make=s
+        outputdir=s
+        prefer_lib!
+        relative_only!
+        report=s
+        report_c0=s
+        report_c1=s
+        report_c2=s
+        select=s
+        select_re=s
+        silent!
+        summary!
+        test!
+        uncoverable_file=s
+        version|v!
+      )
     );
+  Getopt::Long::Configure("nopass_through");
+  $Options->{report} = ["html"]
+    if !@{ $Options->{report} } && !exists $Options->{write};
 
-    my %coverage_allowed = map {$_ => 1} values %coverage_abbrev, "time", "pod";
+  # handle comma separated ops, like -coverage branch,statement
 
-    # expanding 'default' to all available
-    @{$Options->{coverage}} = map {
-        $_ eq "default" ? (keys %coverage_allowed) : $_
-    } split(/,/, join(",", @{$Options->{coverage}}));
+  # also accept them in the same format they're output
+  my %coverage_abbrev = (
+    stmt => "statement",
+    bran => "branch",
+    cond => "condition",
+    sub  => "subroutine",
+  );
 
-    # delete exclusions from that list
-    for my $exclusion (grep /^-/, @{$Options->{coverage}}) {
-        $exclusion = substr($exclusion, 1);  # chop off leading -
-        $Options->{coverage} = [grep $_ ne $exclusion, @{$Options->{coverage}}];
-    }
+  my %coverage_allowed = map { $_ => 1 } values %coverage_abbrev, "time", "pod";
 
-    my %options_coverage = map {$_ => 1} @{$Options->{coverage}};
-    while (my ($abbr, $full) = each %coverage_abbrev) {
-        $options_coverage{$full} = delete $options_coverage{$abbr}
-            if $options_coverage{$abbr};
-    }
+  # expanding 'default' to all available
+  @{ $Options->{coverage} } = map {
+    $_ eq "default" ? (keys %coverage_allowed) : $_
+  } split /,/, join ",", @{ $Options->{coverage} };
 
-    @{$Options->{coverage}} = keys %options_coverage;
+  # delete exclusions from that list
+  for my $exclusion (grep /^-/, @{ $Options->{coverage} }) {
+    $exclusion           = substr $exclusion, 1;  # chop off leading -
+    $Options->{coverage} = [ grep $_ ne $exclusion, @{ $Options->{coverage} } ];
+  }
 
-    # generating data may take time, so bail now if options are wrong
-    for my $cov (@{$Options->{coverage}}) {
-        die "Unrecognised -coverage: $cov" unless $coverage_allowed{$cov};
-    }
+  my %options_coverage = map { $_ => 1 } @{ $Options->{coverage} };
+  while (my ($abbr, $full) = each %coverage_abbrev) {
+    $options_coverage{$full} = delete $options_coverage{$abbr}
+      if $options_coverage{$abbr};
+  }
+
+  @{ $Options->{coverage} } = keys %options_coverage;
+
+  # generating data may take time, so bail now if options are wrong
+  for my $cov (@{ $Options->{coverage} }) {
+    die "Unrecognised -coverage: $cov" unless $coverage_allowed{$cov};
+  }
 }
 
 sub delete_db {
-    for my $del (@_) {
-        my $db = Devel::Cover::DB->new(db => $del);
-        unless ($db->is_valid) {
-            print "Devel::Cover: $del is an invalid database - ignoring\n"
-                unless $Options->{silent};
-            next;
-        }
-        print "Deleting database $del\n" if $db->exists && !$Options->{silent};
-        $db->delete;
-        rmtree($del);
+  my @dbs = @_;
+  for my $del (@dbs) {
+    my $db = Devel::Cover::DB->new(db => $del);
+    unless ($db->is_valid) {
+      print "Devel::Cover: $del is an invalid database - ignoring\n"
+        unless $Options->{silent};
+      next;
     }
+    print "Deleting database $del\n" if $db->exists && !$Options->{silent};
+    $db->delete;
+    rmtree($del);
+  }
 }
 
 # Decide whether to run ./Build test or make test
 sub test_command { -e "Build" ? mb_test_command() : mm_test_command() }
 
 # Compiler arguments necessary to do a coverage run
-sub gcov_args() { "-fprofile-arcs -ftest-coverage" }
+sub gcov_args () { "-fprofile-arcs -ftest-coverage" }
 
 # Test command for MakeMaker
 sub mm_test_command {
-    my $test = "$Options->{make} test";
-    if ($Options->{gcov}) {
-        my $o = gcov_args();
-        $test .= qq{ "OPTIMIZE=-O0 $o" "OTHERLDFLAGS=$o"};
-    }
-    $test
+  my $test = "$Options->{make} test";
+  if ($Options->{gcov}) {
+    my $o = gcov_args();
+    $test .= qq( "OPTIMIZE=-O0 $o" "OTHERLDFLAGS=$o");
+  }
+  $test
 }
 
 # Test command for Module::Build
 sub mb_test_command {
-    my $builder = File::Spec->catfile(File::Spec->curdir, "Build");
-    my $test = "$builder test";
-    if ($Options->{gcov}) {
-        my $c = my $l = gcov_args();
-        if (my $params = do("./_build/build_params")) {
-            $c = join(' ', @{$params->[-1]{extra_compiler_flags} || []}, $c);
-            $l = join(' ', @{$params->[-1]{extra_linker_flags} || []}, $c);
-        }
-        $test .= qq{ --extra_compiler_flags="-O0 $c" --extra_linker_flags="$l"};
+  my $builder = File::Spec->catfile(File::Spec->curdir, "Build");
+  my $test    = "$builder test";
+  if ($Options->{gcov}) {
+    my $c = my $l = gcov_args();
+    if (my $params = do("./_build/build_params")) {
+      $c = join " ", @{ $params->[-1]{extra_compiler_flags} || [] }, $c;
+      $l = join " ", @{ $params->[-1]{extra_linker_flags}   || [] }, $c;
     }
-    $test
+    $test .= qq( --extra_compiler_flags="-O0 $c" --extra_linker_flags="$l");
+  }
+  $test
+}
+
+sub check_self_coverage {
+  if (!$ENV{DEVEL_COVER_SELF} && $INC{"Devel/Cover.pm"}) {
+    my $err = "$0 shouldn't be run with coverage turned on.\n";
+    eval {
+      require POSIX;
+      print STDERR $err;
+      POSIX::_exit(1);
+    };
+    die $err;
+  }
+}
+
+sub check_options {
+  get_options;
+
+  $Devel::Cover::Silent             = 1 if $Options->{silent};
+  $Devel::Cover::Ignore_covered_err = 1 if $Options->{ignore_covered_err};
+
+  $Options->{report} = [
+    grep {
+      my $report = $_;
+      my $format = "Devel::Cover::Report::\u$report";
+      eval "use $format";
+      if ($@) {
+        print "Error: $report is not a recognised output format\n$@\n\n";
+        ()
+      } else {
+        $report
+      }
+    } @{ $Options->{report} }
+  ];
+
+  exit 1
+    if !@{ $Options->{report} }
+    && !$Options->{delete}
+    && !exists $Options->{write};
+
+  $Options->{annotations} = [];
+  for my $a (@{ $Options->{annotation} }) {
+    my $annotation = "Devel::Cover::Annotation::\u$a";
+    eval "use $annotation";
+    if ($@) {
+      print "Error: $a is not a recognised annotation\n\n$@";
+      exit 1;
+    }
+    my $ann = $annotation->new;
+    $ann->get_options($Options) if $ann->can("get_options");
+    push @{ $Options->{annotations} }, $ann;
+  }
+
+  print "$0 version $VERSION\n" and exit 0 if $Options->{version};
+  pod2usage(-exitval => 0, -verbose => 1) if $Options->{help};
+  pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
+
+  my $options = dclone($Options);
+  my $report  = $Options->{report}[0];
+  my $format  = "Devel::Cover::Report::\u$report";
+  $format->get_options($options) if $format->can("get_options");
+}
+
+sub get_dbname {
+  my $dbname = File::Spec->rel2abs(@ARGV ? shift @ARGV : "cover_db");
+  die "Can't open database $dbname\n"
+    if !$Options->{delete} && !$Options->{test} && !-d $dbname;
+  if ($Options->{delete}) {
+    delete_db($dbname, @ARGV);
+    exit 0
+  }
+  $Options->{outputdir} //= $dbname
+
+}
+
+sub check_outputdir {
+  my $od = File::Spec->rel2abs($Options->{outputdir});
+  $Options->{outputdir} = $od if defined $od;
+  mkpath($Options->{outputdir}) unless -d $Options->{outputdir};
+}
+
+sub do_test {
+  my ($dbname) = @_;
+  return 0                  unless $Options->{test};
+  delete_db($dbname, @ARGV) unless defined $Options->{delete};
+  my $env_db_name = $dbname;
+  $env_db_name =~ s/\\/\\\\/g if $^O eq "MSWin32";
+  $env_db_name =~ s/ /\\ /g;
+  my $extra = "";
+  $extra .= ",-coverage,$_" for @{ $Options->{coverage} };
+  $extra .= ",-ignore,$_"
+    for @{ $Options->{ignore_re} }, map quotemeta, map glob,
+    @{ $Options->{ignore} };
+  $extra .= ",-select,$_"
+    for @{ $Options->{select_re} }, map quotemeta, map glob,
+    @{ $Options->{select} };
+
+  $Options->{$_} = [] for qw( ignore ignoring select select_re );
+  $Options->{report} = ["html"] unless @{ $Options->{report} };
+
+  my $opts = join " ", grep $_, $ENV{DEVEL_COVER_TEST_OPTS},
+    "-MDevel::Cover=-db,$env_db_name$extra";
+  local $ENV{HARNESS_PERL_SWITCHES} = $opts;
+  local $ENV{PERL5OPT}              = $opts;
+
+  my $test = test_command;
+
+  # touch the XS, C and H files so they rebuild
+  if ($Options->{gcov}) {
+    my $t  = time;
+    my $xs = sub { utime $t, $t, $_ if /\.(xs|cc?|cpp|hh?|hpp)$/ };
+    File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
+  }
+  # print STDERR "$_: $ENV{$_}\n" for qw(PERL5OPT HARNESS_PERL_SWITCHES);
+  print STDERR "cover: running $test\n";
+  my $test_result = system $test;
+  $test_result >>= 8;
+}
+
+sub do_gcov {
+  my ($dbname) = @_;
+  return unless $Options->{gcov};
+  my $gc = sub {
+    return unless /\.(xs|cc?|hh?)$/;
+    for my $re (@{ $Options->{ignore_re} }) {
+      return if /$re/;
+    }
+    my ($name) = /([^\/]+$)/;
+
+    # Don't bother running gcov if there's no index files.
+    # Otherwise it's noisy.
+    my $graph_file = $_;
+    $graph_file =~ s{\.\w+$}{.gcno};
+    return unless -e $graph_file;
+    my $gcov_flags = "-abc";
+    $gcov_flags .= "r" if $Options->{relative_only};
+    my @args = $Options->{gcov_chdir} ? () : ("-o", $File::Find::dir);
+    my @c    = ("gcov", $gcov_flags, @args, $name);
+    print STDERR "cover: running @c\n";
+    system @c;
+  };
+  File::Find::find({ wanted => $gc, no_chdir => !$Options->{gcov_chdir} }, ".");
+  my @gc;
+  my $gp = sub {
+    return unless /\.gcov$/;
+    my $xs = $_;
+    return if $xs =~ s/\.(cc?|hh?)\.gcov$/.xs.gcov/ && -e $xs;
+    s/^\.\///;
+    push @gc, $_;
+  };
+  File::Find::find({ wanted => $gp, no_chdir => 1 }, ".");
+  if (@gc) {
+    # Find the right gcov2perl based on this current script
+    require Cwd;
+
+    my $path = Cwd::abs_path($0);
+    my ($vol, $dir, $cover) = File::Spec->splitpath($path);
+    my $gcov2perl = File::Spec->catpath($vol, $dir, 'gcov2perl');
+    my $o         = $ENV{DEVEL_COVER_TEST_OPTS};
+    my @opts      = defined $o ? split " ", $o : ();
+
+    # print STDERR "cover: test [$o]\n";
+    my @c = ($^X, @opts, $gcov2perl, "-db", $dbname, @gc);
+    print STDERR "cover: running @c\n";
+    system @c;
+  }
+}
+
+sub manage_dbs {
+  my ($dbname, $test_result) = @_;
+
+  print "Reading database from $dbname\n" unless $Options->{silent};
+  my $db = Devel::Cover::DB->new(
+    db               => $dbname,
+    prefer_lib       => $Options->{prefer_lib},
+    uncoverable_file => $Options->{uncoverable_file}
+  );
+  $db = $db->merge_runs;
+
+  $db->add_uncoverable($Options->{add_uncoverable_point});
+  $db->delete_uncoverable($Options->{delete_uncoverable_point});
+  $db->clean_uncoverable if $Options->{clean_uncoverable_points};
+  exit $test_result
+    if @{ $Options->{add_uncoverable_point} }
+    || @{ $Options->{delete_uncoverable_point} }
+    || $Options->{clean_uncoverable_points};
+
+  my $structure;
+  my $read_structure = sub {
+    unless ($structure) {
+      $structure = Devel::Cover::DB::Structure->new(base => $dbname);
+      $structure->read_all;
+    }
+  };
+
+  for my $merge (@ARGV) {
+    $read_structure->();
+    print "Merging database from $merge\n" unless $Options->{silent};
+    my $mdb = Devel::Cover::DB->new(db => $merge);
+    $mdb = $mdb->merge_runs;
+    $db->merge($mdb);
+    my $mst = Devel::Cover::DB::Structure->new(base => $merge);
+    $mst->read_all;
+    # print STDERR "Merging structure", Dumper($structure),
+    # "From ", Dumper($mst);
+    $structure->merge($mst);
+    $db->set_structure($structure);
+    # print STDERR "Merged structure", Dumper($structure);
+  }
+
+  if ($Options->{dump_db}) {
+    my $d = Data::Dumper->new([$db], ["db"]);
+    $d->Indent(1);
+    $d->Sortkeys(1);
+    print $d->Dump;
+    $read_structure->();
+    my $s = Data::Dumper->new([$structure], ["structure"]);
+    $s->Indent(1);
+    $s->Sortkeys(1);
+    print $s->Dump;
+    exit $test_result;
+  }
+
+  if (exists $Options->{write}) {
+    $dbname = $Options->{write} if length $Options->{write};
+    print "Writing database to $dbname\n" unless $Options->{silent};
+    $db->write($dbname);
+    $read_structure->();
+    $structure->write($dbname);
+  }
+
+  $db->clean;
+
+  exit $test_result unless $Options->{summary} || @{ $Options->{report} };
+
+  $Options->{coverage}    = [ $db->collected ] unless @{ $Options->{coverage} };
+  $Options->{show}        = { map { $_ => 1 } @{ $Options->{coverage} } };
+  $Options->{show}{total} = 1 if keys %{ $Options->{show} };
+
+  $db->calculate_summary(map { $_ => 1 } @{ $Options->{coverage} });
+
+  print "\n\n" unless $Options->{silent};
+
+  $db
+}
+
+sub set_files {
+  my ($db) = @_;
+  my %f = map { $_ => 1 } (
+    @{ $Options->{select} }
+    ? map glob,
+      @{ $Options->{select} }
+    : $db->cover->items,
+  );
+  delete @f{ map glob, @{ $Options->{ignore} } };
+
+  my $keep = sub {
+    my ($f) = @_;
+    return 0 unless exists $db->{summary}{$_};
+    for (@{ $Options->{ignore_re} }) {
+      return 0 if $f =~ /$_/
+    }
+    for (@{ $Options->{select_re} }) {
+      return 1 if $f =~ /$_/
+    }
+    !@{ $Options->{select_re} }
+  };
+  @{ $Options->{file} } = sort grep $keep->($_), keys %f;
+}
+
+sub print_summary {
+  my ($db) = @_;
+  $db->print_summary($Options->{file}, $Options->{coverage}, { force => 1 })
+    if $Options->{summary};
+}
+
+sub run_reports {
+  my ($db, $argv) = @_;
+  for my $report (@{ $Options->{report} }) {
+    local @ARGV = @$argv;
+    my $options = dclone($Options);
+    my $format  = "Devel::Cover::Report::\u$report";
+    $format->get_options($options) if $format->can("get_options");
+    $format->report($db, $options);
+
+    if ($options->{launch}) {
+      if ($format->can("launch")) {
+        $format->launch($options);
+      } else {
+        print STDERR "The launch option is not available for the ",
+          "$options->{report} report.\n"
+      }
+    }
+  }
 }
 
 sub main {
-    $|++;  # try to impose order on STDOUT and STDERR
+  $|++;  # try to impose order on STDOUT and STDERR
 
-    if (!$ENV{DEVEL_COVER_SELF} && $INC{"Devel/Cover.pm"}) {
-        my $err = "$0 shouldn't be run with coverage turned on.\n";
-        eval {
-            require POSIX;
-            print STDERR $err;
-            POSIX::_exit(1);
-        };
-        die $err;
-    }
+  check_self_coverage;
+  check_options;
+  my @argv   = @ARGV;
+  my $dbname = get_dbname;
+  check_outputdir;
+  my $test_result = do_test($dbname);
+  do_gcov($dbname);
+  my $db = manage_dbs($dbname, $test_result);
+  set_files($db);
+  print_summary($db);
+  run_reports($db, \@argv);
 
-    get_options;
-
-    $Devel::Cover::Silent             = 1 if $Options->{silent};
-    $Devel::Cover::Ignore_covered_err = 1 if $Options->{ignore_covered_err};
-
-    $Options->{report} = [ grep {
-        my $report = $_;
-        my $format = "Devel::Cover::Report::\u$report";
-        eval ("use $format");
-        if ($@) {
-            print "Error: $report is not a recognised output format\n$@\n\n";
-            ()
-        } else {
-            $report
-        }
-    } @{$Options->{report}} ];
-
-    exit 1 if !@{$Options->{report}} &&
-              !$Options->{delete} && !exists $Options->{write};
-
-    $Options->{annotations} = [];
-    for my $a (@{$Options->{annotation}}) {
-        my $annotation = "Devel::Cover::Annotation::\u$a";
-        eval ("use $annotation");
-        if ($@) {
-            print "Error: $a is not a recognised annotation\n\n$@";
-            exit 1;
-        }
-        my $ann = $annotation->new;
-        $ann->get_options($Options) if $ann->can("get_options");
-        push @{$Options->{annotations}}, $ann;
-    }
-
-    print "$0 version $VERSION\n" and exit 0  if $Options->{version};
-    pod2usage(-exitval => 0, -verbose => 1)   if $Options->{help};
-    pod2usage(-exitval => 0, -verbose => 2)   if $Options->{info};
-
-    my @argv = @ARGV;
-    my $options = dclone($Options);
-    my $report = $Options->{report}[0];
-    my $format = "Devel::Cover::Report::\u$report";
-    $format->get_options($options) if $format->can("get_options");
-    my $dbname = File::Spec->rel2abs(@ARGV ? shift @ARGV : "cover_db");
-    die "Can't open database $dbname\n"
-        if !$Options->{delete} && !$Options->{test} && !-d $dbname;
-
-    $Options->{outputdir} = $dbname unless exists $Options->{outputdir};
-    my $od = File::Spec->rel2abs($Options->{outputdir});
-    $Options->{outputdir} = $od if defined $od;
-    mkpath($Options->{outputdir}) unless -d $Options->{outputdir};
-
-    if ($Options->{delete}) {
-        delete_db($dbname, @ARGV);
-        exit 0
-    }
-
-    my $test_result = 0;
-    if ($Options->{test}) {
-        # TODO - make this a little more robust
-        # system "$^X Makefile.PL" unless -e "Makefile";
-        delete_db($dbname, @ARGV) unless defined $Options->{delete};
-        my $env_db_name = $dbname;
-        $env_db_name =~ s/\\/\\\\/g if $^O eq 'MSWin32';
-        $env_db_name =~ s/ /\\ /g;
-        my $extra = "";
-        $extra .= ",-coverage,$_" for @{$Options->{coverage}};
-        $extra .= ",-ignore,$_"
-            for @{$Options->{ignore_re}},
-                map quotemeta, map glob, @{$Options->{ignore}};
-        $extra .= ",-select,$_"
-            for @{$Options->{select_re}},
-                map quotemeta, map glob, @{$Options->{select}};
-
-        $Options->{$_} = [] for qw( ignore ignoring select select_re );
-
-        local $ENV{ -d "t" ? "HARNESS_PERL_SWITCHES" : "PERL5OPT" } =
-            ($ENV{DEVEL_COVER_TEST_OPTS} || "") .
-            " -MDevel::Cover=-db,$env_db_name$extra";
-
-        my $test = test_command();
-
-        # touch the XS, C and H files so they rebuild
-        if ($Options->{gcov}) {
-            my $t = time;
-            my $xs = sub { utime $t, $t, $_ if /\.(xs|cc?|cpp|hh?|hpp)$/ };
-            File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
-        }
-        # print STDERR "$_: $ENV{$_}\n" for qw(PERL5OPT HARNESS_PERL_SWITCHES);
-        print STDERR "cover: running $test\n";
-        $test_result = system $test;
-        $test_result >>= 8;
-        $Options->{report} = ["html"]  unless @{$Options->{report}};
-    }
-
-    if ($Options->{gcov}) {
-        my $gc = sub {
-            return unless /\.(xs|cc?|hh?)$/;
-            for my $re (@{$Options->{ignore_re}}) {
-                return if /$re/;
-            }
-            my ($name) = /([^\/]+$)/;
-
-            # Don't bother running gcov if there's no index files.
-            # Otherwise it's noisy.
-            my $graph_file = $_;
-            $graph_file =~ s{\.\w+$}{.gcno};
-            return unless -e $graph_file;
-            my $gcov_flags = "-abc";
-            $gcov_flags .= "r" if $Options->{relative_only};
-            my @args = $Options->{gcov_chdir} ? () : ("-o", $File::Find::dir);
-            my @c = ("gcov", $gcov_flags, @args, $name);
-            print STDERR "cover: running @c\n";
-            system @c;
-        };
-        File::Find::find(
-            { wanted => $gc, no_chdir => !$Options->{gcov_chdir} }, "."
-        );
-        my @gc;
-        my $gp = sub {
-            return unless /\.gcov$/;
-            my $xs = $_;
-            return if $xs =~ s/\.(cc?|hh?)\.gcov$/.xs.gcov/ && -e $xs;
-            s/^\.\///;
-            push @gc, $_;
-        };
-        File::Find::find({ wanted => $gp, no_chdir => 1 }, ".");
-        if (@gc) {
-            # Find the right gcov2perl based on this current script
-            require Cwd;
-            my $path = Cwd::abs_path($0);
-            my ($vol, $dir, $cover) = File::Spec->splitpath($path);
-            my $gcov2perl = File::Spec->catpath($vol, $dir, 'gcov2perl');
-            my $o = $ENV{DEVEL_COVER_TEST_OPTS};
-            my @opts = defined $o ? split " ", $o : ();
-            # print STDERR "cover: test [$o]\n";
-            my @c = ($^X, @opts, $gcov2perl, "-db", $dbname, @gc);
-            print STDERR "cover: running @c\n";
-            system @c;
-        }
-    }
-
-    print "Reading database from $dbname\n" unless $Options->{silent};
-    my $db = Devel::Cover::DB->new(
-        db               => $dbname,
-        prefer_lib       => $Options->{prefer_lib},
-        uncoverable_file => $Options->{uncoverable_file},
-    );
-    $db = $db->merge_runs;
-
-    $db->add_uncoverable     ($Options->{add_uncoverable_point}   );
-    $db->delete_uncoverable  ($Options->{delete_uncoverable_point});
-    $db->clean_uncoverable if $Options->{clean_uncoverable_points} ;
-    exit $test_result if @{$Options->{add_uncoverable_point}}    ||
-                         @{$Options->{delete_uncoverable_point}} ||
-                         $Options->{clean_uncoverable_points};
-
-    my $structure;
-    my $read_structure = sub {
-        unless ($structure) {
-            $structure = Devel::Cover::DB::Structure->new(base => $dbname);
-            $structure->read_all;
-        }
-    };
-
-    for my $merge (@ARGV) {
-        $read_structure->();
-        print "Merging database from $merge\n" unless $Options->{silent};
-        my $mdb = Devel::Cover::DB->new(db => $merge);
-        $mdb = $mdb->merge_runs;
-        $db->merge($mdb);
-        my $mst = Devel::Cover::DB::Structure->new(base => $merge);
-        $mst->read_all;
-        # print STDERR "Merging structure", Dumper($structure),
-                     # "From ", Dumper($mst);
-        $structure->merge($mst);
-        $db->set_structure($structure);
-        # print STDERR "Merged structure", Dumper($structure);
-    }
-
-    if ($Options->{dump_db}) {
-        my $d = Data::Dumper->new([$db], ["db"]);
-        $d->Indent(1);
-        $d->Sortkeys(1);
-        print $d->Dump;
-        $read_structure->();
-        my $s = Data::Dumper->new([$structure], ["structure"]);
-        $s->Indent(1);
-        $s->Sortkeys(1);
-        print $s->Dump;
-        exit $test_result;
-    }
-
-    if (exists $Options->{write}) {
-        $dbname = $Options->{write} if length $Options->{write};
-        print "Writing database to $dbname\n" unless $Options->{silent};
-        $db->write($dbname);
-        $read_structure->();
-        $structure->write($dbname);
-    }
-
-    $db->clean;
-
-    exit $test_result unless $Options->{summary} || @{$Options->{report}};
-
-    $Options->{coverage}    = [ $db->collected ] unless @{$Options->{coverage}};
-    $Options->{show}        = { map { $_ => 1 } @{$Options->{coverage}} };
-    $Options->{show}{total} = 1 if keys %{$Options->{show}};
-
-    $db->calculate_summary(map { $_ => 1 } @{$Options->{coverage}});
-
-    print "\n\n" unless $Options->{silent};
-
-    # TODO - The sense of select and ignore should be reversed to match
-    # collection - check this
-
-    my %f = map { $_ => 1 } (@{$Options->{select}}
-                             ? map glob, @{$Options->{select}}
-                             : $db->cover->items);
-    delete @f{map glob, @{$Options->{ignore}}};
-
-    my $keep = sub {
-        my ($f) = @_;
-        return 0 unless exists $db->{summary}{$_};
-        for (@{$Options->{ignore_re}}) {
-            return 0 if $f =~ /$_/
-        }
-        for (@{$Options->{select_re}}) {
-            return 1 if $f =~ /$_/
-        }
-        !@{$Options->{select_re}}
-    };
-    @{$Options->{file}} = sort grep $keep->($_), keys %f;
-
-    $db->print_summary($Options->{file}, $Options->{coverage}, {force => 1})
-        if $Options->{summary};
-
-    for my $report (@{$Options->{report}}) {
-        @ARGV = @argv;
-        my $options = dclone($Options);
-        my $format = "Devel::Cover::Report::\u$report";
-        $format->get_options($options) if $format->can("get_options");
-        $format->report($db, $options);
-
-        if ($options->{launch}) {
-            if ($format->can("launch")) {
-                $format->launch($options);
-            } else {
-                print STDERR "The launch option is not available for the ",
-                            "$options->{report} report.\n"
-            }
-        }
-    }
-
-    exit $test_result;
+  exit $test_result;
 }
 
 main

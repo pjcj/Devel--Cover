@@ -1421,7 +1421,7 @@ severity                           = 1
 
 
 # Require $VERSION to be a constant rather than a computed value.
-[ValuesAndExpressions::RequireConstantVersion]
+[-ValuesAndExpressions::RequireConstantVersion]
 # set_themes                         = core maintenance
 # add_themes                         =
 # severity                           = 2
@@ -1506,7 +1506,7 @@ severity                           = 1
 
 
 # Eliminate globals declared with `our' or `use vars'.
-[Variables::ProhibitPackageVars]
+[-Variables::ProhibitPackageVars]
 # set_themes                         = core maintenance pbp
 # add_themes                         =
 # severity                           = 3
