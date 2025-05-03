@@ -17,20 +17,20 @@ BEGIN {
 # VERSION
 }
 
-use Devel::Cover::DB;
-use Devel::Cover::Inc;
+use Devel::Cover::DB  ();
+use Devel::Cover::Inc ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use Config;
-use File::Spec;
-use File::Find ();
-use File::Path;
-use Getopt::Long;
-use Pod::Usage;
-use Storable qw( dclone );
+use Config       qw( %Config );
+use File::Spec   ();
+use File::Find   ();
+use File::Path   qw( mkpath rmtree );
+use Getopt::Long qw( GetOptions );
+use Pod::Usage   qw( pod2usage );
+use Storable     qw( dclone );
 
-use Devel::Cover::Dumper;  # For debugging
+use Devel::Cover::Dumper qw( Dumper );  ## no perlimports
 use Data::Dumper ();  # no import of Dumper (use Devel::Cover::Dumper if needed)
 
 my $Options = {
