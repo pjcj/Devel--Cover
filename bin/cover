@@ -430,21 +430,8 @@ sub manage_dbs {
   $db
 }
 
-sub main {
-  $|++;  # try to impose order on STDOUT and STDERR
-
-  check_self_coverage;
-  check_options;
-  my @argv   = @ARGV;
-  my $dbname = get_dbname;
-  check_outputdir;
-  my $test_result = do_test($dbname);
-  do_gcov($dbname);
-  my $db = manage_dbs($dbname, $test_result);
-
-  # TODO - The sense of select and ignore should be reversed to match
-  # collection - check this
-
+sub set_files {
+  my ($db) = @_;
   my %f = map { $_ => 1 } (
     @{ $Options->{select} }
     ? map glob,
@@ -465,6 +452,20 @@ sub main {
     !@{ $Options->{select_re} }
   };
   @{ $Options->{file} } = sort grep $keep->($_), keys %f;
+}
+
+sub main {
+  $|++;  # try to impose order on STDOUT and STDERR
+
+  check_self_coverage;
+  check_options;
+  my @argv   = @ARGV;
+  my $dbname = get_dbname;
+  check_outputdir;
+  my $test_result = do_test($dbname);
+  do_gcov($dbname);
+  my $db = manage_dbs($dbname, $test_result);
+  set_files($db);
 
   $db->print_summary($Options->{file}, $Options->{coverage}, { force => 1 })
     if $Options->{summary};
