@@ -142,7 +142,8 @@ sub get_options {
 }
 
 sub delete_db {
-  for my $del (@_) {
+  my @dbs = @_;
+  for my $del (@dbs) {
     my $db = Devel::Cover::DB->new(db => $del);
     unless ($db->is_valid) {
       print "Devel::Cover: $del is an invalid database - ignoring\n"
