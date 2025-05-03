@@ -1421,7 +1421,7 @@ severity                           = 1
 
 
 # Require $VERSION to be a constant rather than a computed value.
-[ValuesAndExpressions::RequireConstantVersion]
+[-ValuesAndExpressions::RequireConstantVersion]
 # set_themes                         = core maintenance
 # add_themes                         =
 # severity                           = 2
