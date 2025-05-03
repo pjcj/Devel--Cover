@@ -1506,7 +1506,7 @@ severity                           = 1
 
 
 # Eliminate globals declared with `our' or `use vars'.
-[Variables::ProhibitPackageVars]
+[-Variables::ProhibitPackageVars]
 # set_themes                         = core maintenance pbp
 # add_themes                         =
 # severity                           = 3
