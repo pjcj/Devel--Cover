@@ -454,6 +454,26 @@ sub set_files {
   @{ $Options->{file} } = sort grep $keep->($_), keys %f;
 }
 
+sub run_reports {
+  my ($db, $argv) = @_;
+  for my $report (@{ $Options->{report} }) {
+    local @ARGV = @$argv;
+    my $options = dclone($Options);
+    my $format  = "Devel::Cover::Report::\u$report";
+    $format->get_options($options) if $format->can("get_options");
+    $format->report($db, $options);
+
+    if ($options->{launch}) {
+      if ($format->can("launch")) {
+        $format->launch($options);
+      } else {
+        print STDERR "The launch option is not available for the ",
+          "$options->{report} report.\n"
+      }
+    }
+  }
+}
+
 sub main {
   $|++;  # try to impose order on STDOUT and STDERR
 
@@ -470,22 +490,7 @@ sub main {
   $db->print_summary($Options->{file}, $Options->{coverage}, { force => 1 })
     if $Options->{summary};
 
-  for my $report (@{ $Options->{report} }) {
-    local @ARGV = @argv;
-    my $loptions = dclone($Options);
-    my $lformat  = "Devel::Cover::Report::\u$report";
-    $lformat->get_options($loptions) if $lformat->can("get_options");
-    $lformat->report($db, $loptions);
-
-    if ($loptions->{launch}) {
-      if ($lformat->can("launch")) {
-        $lformat->launch($loptions);
-      } else {
-        print STDERR "The launch option is not available for the ",
-          "$loptions->{report} report.\n"
-      }
-    }
-  }
+  run_reports($db, \@argv);
 
   exit $test_result;
 }
