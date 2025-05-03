@@ -265,54 +265,53 @@ sub check_outputdir {
   mkpath($Options->{outputdir}) unless -d $Options->{outputdir};
 }
 
+sub do_test {
+  my ($dbname) = @_;
+  return 0                  unless $Options->{test};
+  delete_db($dbname, @ARGV) unless defined $Options->{delete};
+  my $env_db_name = $dbname;
+  $env_db_name =~ s/\\/\\\\/g if $^O eq "MSWin32";
+  $env_db_name =~ s/ /\\ /g;
+  my $extra = "";
+  $extra .= ",-coverage,$_" for @{ $Options->{coverage} };
+  $extra .= ",-ignore,$_"
+    for @{ $Options->{ignore_re} }, map quotemeta, map glob,
+    @{ $Options->{ignore} };
+  $extra .= ",-select,$_"
+    for @{ $Options->{select_re} }, map quotemeta, map glob,
+    @{ $Options->{select} };
+
+  $Options->{$_} = [] for qw( ignore ignoring select select_re );
+  $Options->{report} = ["html"] unless @{ $Options->{report} };
+
+  my $opts = join " ", grep $_, $ENV{DEVEL_COVER_TEST_OPTS},
+    "-MDevel::Cover=-db,$env_db_name$extra";
+  local $ENV{HARNESS_PERL_SWITCHES} = $opts;
+  local $ENV{PERL5OPT}              = $opts;
+
+  my $test = test_command;
+
+  # touch the XS, C and H files so they rebuild
+  if ($Options->{gcov}) {
+    my $t  = time;
+    my $xs = sub { utime $t, $t, $_ if /\.(xs|cc?|cpp|hh?|hpp)$/ };
+    File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
+  }
+  # print STDERR "$_: $ENV{$_}\n" for qw(PERL5OPT HARNESS_PERL_SWITCHES);
+  print STDERR "cover: running $test\n";
+  my $test_result = system $test;
+  $test_result >>= 8;
+}
+
 sub main {
   $|++;  # try to impose order on STDOUT and STDERR
 
   check_self_coverage;
   check_options;
-
   my @argv   = @ARGV;
   my $dbname = get_dbname;
   check_outputdir;
-
-  my $test_result = 0;
-  if ($Options->{test}) {
-    # TODO - make this a little more robust
-    # system "$^X Makefile.PL" unless -e "Makefile";
-    delete_db($dbname, @ARGV) unless defined $Options->{delete};
-    my $env_db_name = $dbname;
-    $env_db_name =~ s/\\/\\\\/g if $^O eq 'MSWin32';
-    $env_db_name =~ s/ /\\ /g;
-    my $extra = "";
-    $extra .= ",-coverage,$_" for @{ $Options->{coverage} };
-    $extra .= ",-ignore,$_"
-      for @{ $Options->{ignore_re} }, map quotemeta, map glob,
-      @{ $Options->{ignore} };
-    $extra .= ",-select,$_"
-      for @{ $Options->{select_re} }, map quotemeta, map glob,
-      @{ $Options->{select} };
-
-    $Options->{$_} = [] for qw( ignore ignoring select select_re );
-
-    my $opts = join " ", grep $_, $ENV{DEVEL_COVER_TEST_OPTS},
-      "-MDevel::Cover=-db,$env_db_name$extra";
-    local $ENV{HARNESS_PERL_SWITCHES} = $opts;
-    local $ENV{PERL5OPT}              = $opts;
-
-    my $test = test_command();
-
-    # touch the XS, C and H files so they rebuild
-    if ($Options->{gcov}) {
-      my $t  = time;
-      my $xs = sub { utime $t, $t, $_ if /\.(xs|cc?|cpp|hh?|hpp)$/ };
-      File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
-    }
-    # print STDERR "$_: $ENV{$_}\n" for qw(PERL5OPT HARNESS_PERL_SWITCHES);
-    print STDERR "cover: running $test\n";
-    $test_result = system $test;
-    $test_result >>= 8;
-    $Options->{report} = ["html"] unless @{ $Options->{report} };
-  }
+  my $test_result = do_test($dbname);
 
   if ($Options->{gcov}) {
     my $gc = sub {
