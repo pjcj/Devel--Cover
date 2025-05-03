@@ -209,7 +209,7 @@ sub main {
     grep {
       my $report = $_;
       my $format = "Devel::Cover::Report::\u$report";
-      eval("use $format");
+      eval "use $format";
       if ($@) {
         print "Error: $report is not a recognised output format\n$@\n\n";
         ()
@@ -227,7 +227,7 @@ sub main {
   $Options->{annotations} = [];
   for my $a (@{ $Options->{annotation} }) {
     my $annotation = "Devel::Cover::Annotation::\u$a";
-    eval("use $annotation");
+    eval "use $annotation";
     if ($@) {
       print "Error: $a is not a recognised annotation\n\n$@";
       exit 1;
