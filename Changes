@@ -1,6 +1,11 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Improve defined-or handling (Ed J) (GH-352)
+- Always set both HARNESS_PERL_SWITCHES and PERL5OPT (Ed J) (GH-351)
+- Fix many spelling mistakes (Josh Soref) (GH-341)
+- Improve criteria handling in cover script (Tom Wyant) (GH-347)
+- Fix uninitialized value warning in `cover -write` (Josh Soref) (GH-339)
 
 1.46 - 2 May 2025
  - Add tests for new any and all functions
