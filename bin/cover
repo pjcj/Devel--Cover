@@ -5,7 +5,7 @@
 # This software is free.  It is licensed under the same terms as Perl itself.
 
 # The latest version of this software should be available from my homepage:
-# http://www.pjcj.net
+# https://pjcj.net
 
 require 5.12.0;
 
@@ -558,7 +558,7 @@ The following command line options are supported:
  -gcov                 - run gcov to cover XS code     (default on if using gcc)
  -make make_prog       - use the given 'make' program for 'make test'
  -prefer_lib           - prefer files in lib                (default off)
- -ignore_covered_err   - allow coverung uncoverable code    (default off)
+ -ignore_covered_err   - allow covering uncoverable code    (default off)
 
  -add_uncoverable_point    string
  -delete_uncoverable_point string
@@ -696,6 +696,6 @@ Copyright 2001-2025, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-http://www.pjcj.net
+https://pjcj.net
 
 =cut

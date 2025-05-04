@@ -3,7 +3,7 @@
 # This software is free.  It is licensed under the same terms as Perl itself.
 
 # The latest version of this software should be available from my homepage:
-# http://www.pjcj.net
+# https://pjcj.net
 
 package Devel::Cover::Annotation::Git;
 
@@ -39,22 +39,22 @@ sub get_annotations {
   $command =~ s/\[\[file\]\]/$file/g;
   # print "Running [$command]\n";
   open my $c, "-|", $command or warn("cover: Can't run $command: $!\n"), return;
-  my @annotaiton;
+  my @annotation;
   my $start = 1;
   while (my $line = <$c>) {
     # print "[$_]\n";
     if ($line =~ /^\t/) {
-      push @$annotations, [@annotaiton];
+      push @$annotations, [@annotation];
       $start = 1;
       next;
     }
 
     if ($start == 1) {
-      $annotaiton[0] = substr $1, 0, 8 if /$line =~ ^(\w+)/;
+      $annotation[0] = substr $1, 0, 8 if /$line =~ ^(\w+)/;
       $start = 0;
     } else {
-      $annotaiton[1] = $1           if $line =~ /^author (.*)/;
-      $annotaiton[2] = localtime $1 if $line =~ /^author-time (.*)/;
+      $annotation[1] = $1           if $line =~ /^author (.*)/;
+      $annotation[2] = localtime $1 if $line =~ /^author-time (.*)/;
     }
   }
   close $c or warn "cover: Failed running $command: $!\n"
@@ -142,6 +142,6 @@ Copyright 2005-2025, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-http://www.pjcj.net
+https://pjcj.net
 
 =cut

@@ -3,7 +3,7 @@
 # This software is free.  It is licensed under the same terms as Perl itself.
 
 # The latest version of this software should be available from my homepage:
-# http://www.pjcj.net
+# https://pjcj.net
 
 # Author of this file: Olivier Mengué
 
@@ -70,6 +70,6 @@ Copyright 2012, Olivier Mengué
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-http://www.pjcj.net
+https://pjcj.net
 
 =cut

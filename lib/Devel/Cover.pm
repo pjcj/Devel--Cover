@@ -3,7 +3,7 @@
 # This software is free.  It is licensed under the same terms as Perl itself.
 
 # The latest version of this software should be available from my homepage:
-# http://www.pjcj.net
+# https://pjcj.net
 
 package Devel::Cover;
 
@@ -1407,10 +1407,10 @@ of operation, but this now gets little testing and will probably be removed
 soon.  You probably don't care about any of this.
 
 The most appropriate mailing list on which to discuss this module would be
-perl-qa.  See L<http://lists.perl.org/list/perl-qa.html>.
+perl-qa.  See L<https://lists.perl.org/list/perl-qa.html>.
 
 The Devel::Cover repository can be found at
-L<http://github.com/pjcj/Devel--Cover>.  This is also where problems should be
+L<https://github.com/pjcj/Devel--Cover>.  This is also where problems should be
 reported.
 
 =head1 REQUIREMENTS AND RECOMMENDED MODULES
@@ -1611,7 +1611,7 @@ flagged.  This is a more precise method to flag such exceptions than the global
 L<-ignore_covered_err> flag to the L<cover> program.
 
 There is also a L<note> attribute which can also be included in L<details>.
-This should be the final attribute and will consude all the remaining text.
+This should be the final attribute and will consume all the remaining text.
 Currently this attribute is not used, but it is intended as a form of
 documentation for the uncoverable data.
 
@@ -1853,7 +1853,7 @@ See the BUGS file, the TODO file and the bug trackers at
 L<https://github.com/pjcj/Devel--Cover/issues?sort=created&direction=desc&state=open>
 and L<https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover>
 
-Please report new bugs on Github.
+Please report new bugs on GitHub.
 
 =head1 LICENCE
 
@@ -1862,6 +1862,6 @@ Copyright 2001-2025, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available on CPAN and from my
-homepage: http://www.pjcj.net/.
+homepage: https://pjcj.net/.
 
 =cut

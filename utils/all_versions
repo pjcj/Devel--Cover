@@ -5,7 +5,7 @@
 # This software is free.  It is licensed under the same terms as Perl itself.
 
 # The latest version of this software should be available from my homepage:
-# http://www.pjcj.net
+# https://pjcj.net
 
 use strict;
 use warnings;
@@ -138,7 +138,7 @@ sub _build_version {
   }
 
   $ENV{PATH} = "$dir:$ENV{PATH}";
-  sys "curl -L http://cpanmin.us | perl - App::cpanminus" or do {
+  sys "curl -L https://cpanmin.us | perl - App::cpanminus" or do {
     warn "cpanm installation for $v failed";
     return;
   };

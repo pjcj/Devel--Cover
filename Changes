@@ -86,7 +86,7 @@ Devel::Cover history
 
 1.32 - 25 April 2019
  - Test up to 5.26.3, 5.28.3 and  5.29.10
- - Get dev environment working on MacOS
+ - Get dev environment working on macOS
  - Fix up tests with recent Math::BigInt versions (Ed J) (GH-219)
  - Add progress text when processing coverage (Christian Walde) (GH-221)
  - Optionally use Term::Size (Paul "LeoNerd" Evans) (GH-228)
@@ -210,7 +210,7 @@ Devel::Cover history
  - Round percentages down in summary and reports (also fixes Windows tests)
 
 1.12 - 17 April 2014
- - Fix test failure on OSX, FreeBSD and HPUX (thanks H.Merijn Brand)
+ - Fix test failure on OS X, FreeBSD and HPUX (thanks H.Merijn Brand)
 
 1.11 - 13 April 2014
  - Tests should pass when all run in parallel (Kent Fredric) (GH-69)
@@ -257,7 +257,7 @@ Devel::Cover history
  - Add DEVEL_COVER_NO_TESTS option to not run any tests during p5cover
 
 1.04 - 1 June 2013
- - Fix return code from cover (Kan Fushihara) (guthub 61)
+ - Fix return code from cover (Kan Fushihara) (GH-61)
  - Fix pod coverage for multiple packages in a file. (RT-34888)
  - Speed improvements
 
@@ -265,7 +265,7 @@ Devel::Cover history
  - Fixes for correct operation with 5.17.11, 5.18.0 and 5.19.0
 
 1.02 - 28 April 2013
- - Make -silent even quieter (Sergiy Borodych) (guthub 49)
+ - Make -silent even quieter (Sergiy Borodych) (GH-49)
  - mod_perl2 on Debian sets $^X to apache2 (Lasse Makholm) (GH-47)
  - Add csv file for use with metacpan (Dinis Rebolo) (GH-56)
  - cover -test exists with the status of the underlying test run (Kan Fushihara)
@@ -449,7 +449,7 @@ Devel::Cover history
 0.72 - 27th September 2010
  - Teach cpancover how to work in parallel
  - Improve speed of check_file() (Goro Fuji)
- - Fix errors with non-existent directories on Cygwin (Goro Fuji)
+ - Fix errors with nonexistent directories on Cygwin (Goro Fuji)
  - Improve self coverage with new test
  - Fix tests to work with 5.13.5
  - New dependency on Test::Warn
@@ -477,7 +477,7 @@ Devel::Cover history
  - Fix gcov2perl to work with large numbers (Thomas Dorner) (RT-45028)
  - Fix "gcov -l" include files (Thomas Dorner) (RT-44864)
  - Test against 5.12.1
- - Gross workaround for for regexp evals (Florian Ragwitz)
+ - Gross workaround for regexp evals (Florian Ragwitz)
 
 0.67 - 8th May 2010
  - Fix up the Makefile for dmake on Strawberry Perl (Curtis Jewell) (RT-50774)
@@ -486,7 +486,7 @@ Devel::Cover history
  - Move to faster method of collecting data.  Could be up to twice as fast now
  - Add -replace_ops options to be able to revert to previous collection method
  - Test against 5.12.0 and update tests as necessary
- - Work better with non-existent databases
+ - Work better with nonexistent databases
  - XS fixes related to overriding ops rather than replacing runops
    (Florian Ragwitz)
  - Don't chmod created directories (mkdir should suffice)
@@ -597,7 +597,7 @@ Devel::Cover history
 
 0.55 - 22nd September 2005
  - Add -gcov option to cover and make it default when using gcc
- - Remolve unused File::Find from cpancover
+ - Remove unused File::Find from cpancover
  - Document how to get XS coverage in gcov2perl
  - Improvements to SVK annotation (Chia-liang Kao)
 
@@ -769,7 +769,7 @@ Devel::Cover history
  - Add trivial, md5 and module_no_inc tests
  - Increase flexibility of testing system to accommodate md5 test
  - Add mani, all_gold and all_test Makefile targets
- - Make all_versions skip non-existent platforms
+ - Make all_versions skip nonexistent platforms
  - Add DB option to make dump target
  - Remove dependencies on op_seq.  (I removed it from bleadperl.)  Use
    op_targ instead
@@ -905,7 +905,7 @@ Devel::Cover history
  - Reinstate coverage of subs in main:: which got lost somewhere (0.11?)
  - Bug fixes for use of uninitialised values
  - Automatically generate tests.  Well, their infrastructure anyway
- - Move Cover to lib/Devel/Cover to keep case insensitive filesystems happy
+ - Move Cover to lib/Devel/Cover to keep case-insensitive filesystems happy
  - Remove -detail option. (It belongs to cover.)
  - Work on op addresses and sequence numbers instead of just op addresses, to be
    (almost) unique

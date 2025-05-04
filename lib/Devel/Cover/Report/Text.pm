@@ -3,7 +3,7 @@
 # This software is free.  It is licensed under the same terms as Perl itself.
 
 # The latest version of this software should be available from my homepage:
-# http://www.pjcj.net
+# https://pjcj.net
 
 package Devel::Cover::Report::Text;
 
@@ -200,13 +200,13 @@ sub print_subroutines {
 
   my ($db, $file, $options) = @_;
 
-  my $dfil = $db->cover->file($file);
-  my $subs = $dfil->subroutine or return;
-  my $pods = $options->{show}{pod} && $dfil->pod;
-  my $maxh = 8;
-  my $maxc = 5;
-  my $maxp = 3;
-  my $maxs = 10;
+  my $dfile = $db->cover->file($file);
+  my $subs  = $dfile->subroutine or return;
+  my $pods  = $options->{show}{pod} && $dfile->pod;
+  my $maxh  = 8;
+  my $maxc  = 5;
+  my $maxp  = 3;
+  my $maxs  = 10;
   my %subs;
 
   for my $location ($subs->items) {
@@ -295,6 +295,6 @@ Copyright 2001-2025, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-http://www.pjcj.net
+https://pjcj.net
 
 =cut
