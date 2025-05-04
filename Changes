@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.47 - 4 May 2025
 - Improve defined-or handling (Ed J) (GH-352)
 - Always set both HARNESS_PERL_SWITCHES and PERL5OPT (Ed J) (GH-351)
 - Fix many spelling mistakes (Josh Soref) (GH-341)
