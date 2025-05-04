@@ -19,7 +19,7 @@ use Data::Dumper        ();
 
 local $| = 1;
 
-my $Version  = "1.46";
+my $Version  = "1.47";
 my $Latest_t = "5.040002";
 my $Author   = 'paul@pjcj.net';
 my $Inc_str  = do {
