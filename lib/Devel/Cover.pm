@@ -19,22 +19,20 @@ BEGIN {
 use DynaLoader ();
 our @ISA = "DynaLoader";
 
-use Devel::Cover::DB;
-use Devel::Cover::DB::Digests;
-use Devel::Cover::Inc;
+use Devel::Cover::DB          ();
+use Devel::Cover::DB::Digests ();
+use Devel::Cover::Inc         ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use B qw( ppname main_cv main_start main_root walksymtable OPf_KIDS );
-use B::Deparse;
+use B          qw( main_cv main_root ppname walksymtable );
+use B::Deparse ();
 
-use Carp;
-use Config;
-use Cwd qw( abs_path getcwd );
-use File::Spec;
+use Config     qw( %Config );
+use Cwd        qw( abs_path getcwd );
+use File::Spec ();
 
-use Devel::Cover::Dumper;
-use Devel::Cover::Util "remove_contained_paths";
+use Devel::Cover::Util qw( remove_contained_paths );
 
 BEGIN {
   # Use Pod::Coverage if it is available
