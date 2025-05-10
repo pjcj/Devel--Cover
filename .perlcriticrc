@@ -171,7 +171,7 @@ allow_includes = 1
 
 
 # Employ `use parent' instead of `@ISA'.
-[ClassHierarchies::ProhibitExplicitISA]
+[-ClassHierarchies::ProhibitExplicitISA]
 # set_themes                         = certrec core maintenance pbp
 # add_themes                         =
 # severity                           = 3
@@ -822,31 +822,31 @@ packages = via|[A-Z][a-z0-9_]*
 subroutines = :all_lower
 
 # Subroutine names that are exempt from capitalization rules.  The values here are regexes that will be surrounded by \A and \z.
-subroutine_exemptions = AUTOLOAD BUILD BUILDARGS CLEAR CLOSE DELETE DEMOLISH DESTROY EXISTS EXTEND FETCH FETCHSIZE FIRSTKEY GETC NEXTKEY POP PRINT PRINTF PUSH READ READLINE SCALAR SHIFT SPLICE STORE STORESIZE TIEARRAY TIEHANDLE TIEHASH TIESCALAR UNSHIFT UNTIE PUSHED OPEN WRITE CXT LOG CFG TRC
+subroutine_exemptions = AUTOLOAD BUILD BUILDARGS CLEAR CLOSE DELETE DEMOLISH DESTROY EXISTS EXTEND FETCH FETCHSIZE FIRSTKEY GETC NEXTKEY POP PRINT PRINTF PUSH READ READLINE SCALAR SHIFT SPLICE STORE STORESIZE TIEARRAY TIEHANDLE TIEHASH TIESCALAR UNSHIFT UNTIE PUSHED OPEN WRITE CXT LOG CFG TRC CLONE
 
 # How local lexical variables names should be capitalized.  Valid values are :single_case, :all_lower, :all_upper, :starts_with_lower, :starts_with_upper, :no_restriction, or a regex.
 local_lexical_variables = :all_lower
 
 # Local lexical variable names that are exempt from capitalization rules.  The values here are regexes that will be surrounded by \A and \z.
-# local_lexical_variable_exemptions =
+local_lexical_variable_exemptions = VAR1
 
 # How lexical variables that are scoped to a subset of subroutines, should be capitalized.  Valid values are :single_case, :all_lower, :all_upper, :starts_with_lower, :starts_with_upper, :no_restriction, or a regex.
 scoped_lexical_variables = :all_lower
 
 # Names for variables in anonymous blocks that are exempt from capitalization rules.  The values here are regexes that will be surrounded by \A and \z.
-# scoped_lexical_variable_exemptions =
+scoped_lexical_variable_exemptions = VAR1 File_cache Normalising
 
 # How lexical variables at the file level should be capitalized.  Valid values are :single_case, :all_lower, :all_upper, :starts_with_lower, :starts_with_upper, :no_restriction, or a regex.
 file_lexical_variables = [A-Z][a-z0-9_]*
 
 # File-scope lexical variable names that are exempt from capitalization rules.  The values here are regexes that will be surrounded by \A and \z.
-# file_lexical_variable_exemptions =
+file_lexical_variable_exemptions = DB
 
 # How global (package) variables should be capitalized.  Valid values are :single_case, :all_lower, :all_upper, :starts_with_lower, :starts_with_upper, :no_restriction, or a regex.
 global_variables = [A-Z][a-z0-9_]*
 
 # Global variable names that are exempt from capitalization rules.  The values here are regexes that will be surrounded by \A and \z.
-global_variable_exemptions = VERSION ISA EXPORT(?:_OK)? EXPORT_TAGS AUTOLOAD ENV SIG
+global_variable_exemptions = VERSION ISA EXPORT(?:_OK)? EXPORT_TAGS AUTOLOAD ENV SIG self
 
 # How constant names should be capitalized.  Valid values are :single_case, :all_lower, :all_upper, :starts_with_lower, :starts_with_upper, :no_restriction, or a regex.
 # constants = :all_upper
@@ -869,7 +869,7 @@ global_variable_exemptions = VERSION ISA EXPORT(?:_OK)? EXPORT_TAGS AUTOLOAD ENV
 # maximum_violations_per_document    = no_limit
 
 # The variable names that are not to be allowed.
-forbid = abstract bases contract left no record right second
+forbid = abstract bases contract no record second
 
 
 # Prohibit indirect object call syntax.
@@ -1490,7 +1490,7 @@ severity                           = 1
 
 
 # Use `my' instead of `local', except when you have to.
-[Variables::ProhibitLocalVars]
+[-Variables::ProhibitLocalVars]
 # set_themes                         = core maintenance pbp
 # add_themes                         =
 # severity                           = 2
@@ -1595,7 +1595,7 @@ add_packages = Devel::Cover::DB
 
 # Global variables to exclude from this policy.
 # Values that are always included: $ARG, $_, @_.
-allow = %ENV %SIG $> $0
+allow = %ENV %SIG $> $0 $|
 
 
 # Negative array index should be used.
