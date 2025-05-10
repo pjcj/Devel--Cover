@@ -75,7 +75,7 @@ my %Pod;                                        # Pod coverage data
 my @Cvs;        # All the Cvs we want to cover
 my %Cvs;        # All the Cvs we want to cover
 my @Subs;       # All the subs we want to cover
-my $Cv;         # Cv we are looking in
+my $Cv;         ## no critic (ProhibitUnusedVariables)  # Cv we are looking in
 my $Sub_name;   # Name of the sub we are looking in
 my $Sub_count;  # Count for multiple subs on same line
 
