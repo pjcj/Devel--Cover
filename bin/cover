@@ -489,7 +489,7 @@ sub run_reports {
         $format->launch($options);
       } else {
         print STDERR "The launch option is not available for the ",
-          "$options->{report} report.\n"
+          "$report report.\n"
       }
     }
   }
@@ -499,7 +499,7 @@ sub main {
   $|++;  # try to impose order on STDOUT and STDERR
 
   check_self_coverage;
-  my $argv = check_options;
+  my $argv   = check_options;
   my $dbname = get_dbname;
   check_outputdir;
   my $test_result = do_test($dbname);
