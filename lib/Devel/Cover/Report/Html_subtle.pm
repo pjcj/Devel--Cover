@@ -4,13 +4,12 @@ use warnings;
 
 # VERSION
 
-use Devel::Cover::DB;
-use Devel::Cover::Html_Common "launch";
-use Devel::Cover::Truth_Table;
+use Devel::Cover::Html_Common qw( launch );  ## no perlimports
+use Devel::Cover::Truth_Table;               ## no perlimports
 
-use Getopt::Long;
-use Template 2.00;
-use HTML::Entities;
+use Getopt::Long   qw( GetOptions );
+use Template 2.00  ();
+use HTML::Entities qw( encode_entities );
 
 my $Template;
 my %Filenames;
