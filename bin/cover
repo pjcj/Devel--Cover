@@ -207,6 +207,7 @@ sub check_self_coverage {
 
 sub check_options {
   get_options;
+  my @argv = @ARGV;  # store args after local processing for report processing
 
   $Devel::Cover::Silent             = 1 if $Options->{silent};
   $Devel::Cover::Ignore_covered_err = 1 if $Options->{ignore_covered_err};
@@ -247,10 +248,18 @@ sub check_options {
   pod2usage(-exitval => 0, -verbose => 1) if $Options->{help};
   pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
 
+  # This is a bit of a hack but it basically works.  It's possible to specify
+  # multiple reports and they arew run at the end.  This is why we need to store
+  # @argvm and restore it for each report to be able to provess the options.
+  # But we need to remove report options from @ARGV so we can see what's left
+  # and use that to get the cover_db name.  So just take the first report and
+  # process its options here.
   my $options = dclone($Options);
   my $report  = $Options->{report}[0] or return;
   my $format  = "Devel::Cover::Report::\u$report";
   $format->get_options($options) if $format->can("get_options");
+
+  return \@argv;
 }
 
 sub get_dbname {
@@ -469,7 +478,7 @@ sub print_summary {
 sub run_reports {
   my ($db, $argv) = @_;
   for my $report (@{ $Options->{report} }) {
-    local @ARGV = @$argv;
+    local @ARGV = @$argv;  # restore locally processed args for each report
     my $options = dclone($Options);
     my $format  = "Devel::Cover::Report::\u$report";
     $format->get_options($options) if $format->can("get_options");
@@ -490,8 +499,7 @@ sub main {
   $|++;  # try to impose order on STDOUT and STDERR
 
   check_self_coverage;
-  check_options;
-  my @argv   = @ARGV;
+  my $argv = check_options;
   my $dbname = get_dbname;
   check_outputdir;
   my $test_result = do_test($dbname);
@@ -499,7 +507,7 @@ sub main {
   my $db = manage_dbs($dbname, $test_result);
   set_files($db);
   print_summary($db);
-  run_reports($db, \@argv);
+  run_reports($db, $argv);
 
   exit $test_result;
 }
