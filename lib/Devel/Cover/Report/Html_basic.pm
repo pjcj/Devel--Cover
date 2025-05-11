@@ -16,16 +16,15 @@ BEGIN {
   # VERSION
 }
 
-use Devel::Cover::DB;
-use Devel::Cover::Html_Common "launch";
-use Devel::Cover::Inc;
-use Devel::Cover::Web "write_file";
+use Devel::Cover::Html_Common qw( launch );     ## no perlimports
+use Devel::Cover::Inc         ();
+use Devel::Cover::Web         qw( write_file );
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use HTML::Entities;
-use Getopt::Long;
-use Template 2.00;
+use HTML::Entities qw( encode_entities );
+use Getopt::Long   qw( GetOptions );
+use Template 2.00  ();
 
 my ($Have_highlighter, $Have_PPI, $Have_perltidy);
 
@@ -55,7 +54,7 @@ sub class {
     : $pc < $threshold->{c0} ? "c0"
     : $pc < $threshold->{c1} ? "c1"
     : $pc < $threshold->{c2} ? "c2"
-    : "c3"
+    :                          "c3"
 }
 
 sub get_summary {
