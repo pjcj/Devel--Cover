@@ -250,7 +250,7 @@ sub check_options {
 
   # This is a bit of a hack but it basically works.  It's possible to specify
   # multiple reports and they arew run at the end.  This is why we need to store
-  # @argvm and restore it for each report to be able to provess the options.
+  # @argv, and restore it for each report to be able to provess the options.
   # But we need to remove report options from @ARGV so we can see what's left
   # and use that to get the cover_db name.  So just take the first report and
   # process its options here.
