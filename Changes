@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.48 - 11 May 2025
 - Fix up args handling for reports (Mitch McCracken) (GH-354)
 - Correct error message when launch is unavailable
 - Improve perlcritic compliance
