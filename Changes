@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Fix up args handling for reports (Mitch McCracken) (GH-354)
+- Correct error message when launch is unavailable
+- Improve perlcritic compliance
 
 1.47 - 4 May 2025
 - Improve defined-or handling (Ed J) (GH-352)
