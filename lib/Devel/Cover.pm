@@ -351,7 +351,7 @@ sub import {
     die "Can't mkdir $DB as EUID $>: $err" unless -d $DB;
   }
   chmod 0777, $DB if $Loose_perms;
-  $DB = $1                      if abs_path($DB) =~ /(.*)/;
+  $DB = $1 if abs_path($DB) =~ /(.*)/;
   Devel::Cover::DB->delete($DB) unless $Merge;
 
   %Files = ();  # start gathering file information from scratch
@@ -487,7 +487,7 @@ sub get_coverage {
         my $abs;
         $abs = abs_path($file) unless -l $file; # leave symbolic links
                                                 # print STDERR "giving <$abs> ";
-        $file = $abs           if defined $abs;
+        $file = $abs if defined $abs;
       }
     }
     # print STDERR "finally <$file> <$Dir>\n";
