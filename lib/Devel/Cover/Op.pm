@@ -17,7 +17,7 @@ use Devel::Cover::Dumper;
 use Devel::Cover qw( -ignore blib -ignore \\wB\\w );
 use B::Concise   qw( set_style add_callback );
 
-my %style = (
+my %Style = (
   "terse" => [
     "(?(#label =>\n)?)(*(    )*)#class (#addr) #name <#cover> (?([#targ])?) "
       . "#svclass~(?((#svaddr))?)~#svval~(?(label \"#coplabel\")?)\n",
@@ -45,9 +45,9 @@ my @Options;
 
 sub import {
   my $class = shift;
-  set_style(@{ $style{concise} });
+  set_style(@{ $Style{concise} });
   for (@_) {
-    /-(.*)/ && exists $style{$1} ? set_style(@{ $style{$1} }) : push @Options,
+    /-(.*)/ && exists $Style{$1} ? set_style(@{ $Style{$1} }) : push @Options,
       $_;
   }
 
