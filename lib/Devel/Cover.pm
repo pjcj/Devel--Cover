@@ -979,6 +979,7 @@ my %Original;
     $Original{deparse}      = \&B::Deparse::deparse;
     $Original{logop}        = \&B::Deparse::logop;
     $Original{logassignop}  = \&B::Deparse::logassignop;
+    $Original{binop}        = \&B::Deparse::binop;
     $Original{const_dumper} = \&B::Deparse::const_dumper;
     $Original{const}        = \&B::Deparse::const if defined &B::Deparse::const;
   }
@@ -989,6 +990,7 @@ my %Original;
     local *B::Deparse::deparse      = $Original{deparse};
     local *B::Deparse::logop        = $Original{logop};
     local *B::Deparse::logassignop  = $Original{logassignop};
+    local *B::Deparse::binop        = $Original{binop};
     local *B::Deparse::const_dumper = $Original{const_dumper};
     local *B::Deparse::const        = $Original{const} if $Original{const};
 
@@ -997,10 +999,13 @@ my %Original;
 
   sub const {
     no warnings "redefine";
+
     local *B::Deparse::deparse      = $Original{deparse};
     local *B::Deparse::logop        = $Original{logop};
     local *B::Deparse::logassignop  = $Original{logassignop};
+    local *B::Deparse::binop        = $Original{binop};
     local *B::Deparse::const_dumper = $Original{const_dumper};
+
     $Original{const}->(@_);
   }
 
@@ -1175,6 +1180,25 @@ my %Original;
     return $self->maybe_parens("$left $opname $right", $cx, 7);
   }
 
+  sub binop {
+    my $self = shift;
+    my ($op, $cx, $opname, $prec, $flags) = (@_, 0);
+    if ($] >= 5.041012
+      && ($opname eq "xor" || $opname eq "^^" && !$Seen{condition}{$$op}++))
+    {
+      my $left  = $op->first;
+      my $right = $op->last;
+      {
+        local $Collect;
+        $left  = $self->deparse_binop_left($op, $left, $prec);
+        $right = $self->deparse_binop_right($op, $right, $prec);
+      }
+      # print STDERR "opname [$opname], left [$left], right [$right]\n";
+      add_condition_cover($op, $opname, $left, $right);
+    }
+    $Original{binop}->($self, $op, $cx, $opname, $prec, $flags)
+  }
+
 }
 
 sub get_cover {
@@ -1278,6 +1302,7 @@ sub get_cover {
   local *B::Deparse::deparse      = \&deparse;
   local *B::Deparse::logop        = \&logop;
   local *B::Deparse::logassignop  = \&logassignop;
+  local *B::Deparse::binop        = \&binop;
   local *B::Deparse::const_dumper = \&const_dumper;
   local *B::Deparse::const        = \&const if $Original{const};
 
