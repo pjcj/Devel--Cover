@@ -44,9 +44,9 @@ my %Style = (
 my @Options;
 
 sub import {
-  my $class = shift;
+  my ($class, @args) = @_;
   set_style(@{ $Style{concise} });
-  for (@_) {
+  for (@args) {
     /-(.*)/ && exists $Style{$1} ? set_style(@{ $Style{$1} }) : push @Options,
       $_;
   }
