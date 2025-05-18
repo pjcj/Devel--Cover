@@ -298,7 +298,7 @@ sub import {
   # Die tainting
   # Anyone using this module can do worse things than messing with tainting
   my $options = ($ENV{DEVEL_COVER_OPTIONS} || "") =~ /(.*)/ ? $1 : "";
-  my @o       = (@_, split ",", $options);
+  my @o       = (@_, split /,/, $options);
   defined or $_ = "" for @o;
   # print STDERR __PACKAGE__, ": Parsing options from [@o]\n";
 
