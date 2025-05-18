@@ -352,7 +352,7 @@ sub import {
     die "Can't mkdir $DB as EUID $>: $err" unless -d $DB;
   }
   chmod 0777, $DB if $Loose_perms;
-  $DB = $1 if abs_path($DB) =~ /(.*)/;
+  $DB = $1 if abs_path($DB) =~ /(.*)/;  ## no critic (CaptureWithoutTest)
   Devel::Cover::DB->delete($DB) unless $Merge;
 
   %Files = ();  # start gathering file information from scratch
