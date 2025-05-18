@@ -1119,7 +1119,7 @@ my %Original;
     $deparse
   }
 
-  sub logop {
+  sub logop {  ## no critic (ProhibitManyArgs) # B::Deparse API
     my $self = shift;
     my ($op, $cx, $lowop, $lowprec, $highop, $highprec, $blockname) = @_;
     my $left  = $op->first;
