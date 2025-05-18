@@ -732,7 +732,7 @@ sub _report {
   return               unless @collected;
   set_coverage("none") unless $Self_cover;
 
-  my $starting_dir = $1 if Cwd::getcwd() =~ /(.*)/;
+  my ($starting_dir) = Cwd::getcwd() =~ /(.*)/;
   chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
 
   $Run{collected} = \@collected;
