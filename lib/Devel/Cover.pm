@@ -364,7 +364,7 @@ sub import {
   }
 
   for (keys %Coverage) {
-    my @c = split /-/, $_;
+    my @c = split /-/;
     if (@c > 1) {
       $Coverage{ shift @c } = \@c;
       delete $Coverage{$_};
