@@ -7,6 +7,7 @@
 
 package Devel::Cover;
 
+use v5.12.0;
 use strict;
 use warnings;
 
@@ -531,18 +532,15 @@ sub get_location {
   }
 }
 
-my $find_filename = qr/
+sub use_file {
+  my ($file) = @_;
+
+  state $find_filename = qr/
     (?:^\(eval\s \d+\)\[(.+):\d+\])      |
     (?:^\(eval\sin\s\w+\)\s(.+))         |
     (?:\(defined\sat\s(.+)\sline\s\d+\)) |
     (?:\[from\s(.+)\sline\s\d+\])
-/x;
-
-sub use_file {
-  # If we're in global destruction, forget it
-  return unless $find_filename;
-
-  my ($file) = @_;
+  /x;
 
   # print STDERR "use_file($file)\n";
 
