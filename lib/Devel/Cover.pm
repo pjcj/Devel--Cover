@@ -129,7 +129,7 @@ BEGIN {
         my $cmd = "$^X -MData::Dumper -e " . '"print Dumper \@INC"';
         my $VAR1;
         # print STDERR "Running [$cmd]\n";
-        eval `$cmd`;
+        eval `$cmd`;  ## no critic (ProhibitStringyEval)
         @Inc = @$VAR1;
       };
       if ($@) {
@@ -377,7 +377,7 @@ sub import {
   $Initialised = 1;
 
   if ($ENV{MOD_PERL}) {
-    eval "BEGIN {}";
+    eval "BEGIN {}";  ## no critic (ProhibitStringyEval)
     check();
     set_first_init_and_end();
   }
