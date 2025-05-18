@@ -278,7 +278,6 @@ EOM
 
 print "\n" x 3;
 
-## no critic (ProhibitPackageVars)
 $ExtUtils::MakeMaker::Verbose = 0;
 
 my $Opts = {
