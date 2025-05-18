@@ -1129,7 +1129,7 @@ my %Original;
     # print STDERR "left [$left], right [$right]\n";
     my ($file, $line) = ($File, $Line);
 
-    $blockname &&= $self->keyword($blockname);
+    $blockname &&= $self->keyword($blockname) if $] >= 5.014000;
     if ($cx < 1 && is_scope($right) && $blockname && $self->{expand} < 7) {
       # print STDERR 'if ($a) {$b}', "\n";
       # if ($a) {$b}
