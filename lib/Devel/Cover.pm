@@ -140,7 +140,7 @@ BEGIN {
     }
   }
 
-  @Inc = map { -d $_ ? ($_ eq "." ? $_ : Cwd::abs_path($_)) : () } @Inc;
+  @Inc = map { -d ? ($_ eq "." ? $_ : Cwd::abs_path($_)) : () } @Inc;
 
   @Inc = remove_contained_paths(getcwd, @Inc);
 
