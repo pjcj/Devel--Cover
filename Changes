@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.49 - 18 May 2025
 - Handle core Deparse changes for xor (Jim Keenan) (GH-355)
 - Code tidying
 
