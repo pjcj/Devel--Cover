@@ -1258,7 +1258,7 @@ sub get_cover {
             push @{ $opts{$p} }, $_;
           }
         }
-        for $p (qw( private also_private trustme )) {
+        for my $p (qw( private also_private trustme )) {
           next unless exists $opts{$p};
           $_ = qr/$_/ for @{ $opts{$p} };
         }
