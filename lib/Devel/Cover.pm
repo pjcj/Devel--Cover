@@ -811,7 +811,7 @@ sub _report {
     $cover->delete;
     delete $Run{vec};
   }
-  chdir $starting_dir;
+  chdir $starting_dir if $starting_dir;
 }
 
 sub add_subroutine_cover {
