@@ -1,17 +1,21 @@
 *.org
 *.bak
+*.sw?
 *~
-
-# for Mac OSX
 ._*
 .DS_Store
+tmp/
 
+tags*
+.perl-version
 Cover.bs
 Cover.c
 Cover.o
 Makefile
 Makefile.old
 blib/
+.build/
+README
 cover_db*/
 t/e2e/
 lib/Devel/Cover/Inc.pm
@@ -22,19 +26,12 @@ pm_to_blib
 *.patch
 *.orig
 *.rej
-tmp/
 MYMETA.*
 Cover.def
 dll.base
 dll.exp
 Devel-Cover-*
 !*/Devel-Cover-*
-tags*
-README
-.build/
 callgrind.out.*
 staging/
-*.sw?
-.perl-version
-
 queue.db
