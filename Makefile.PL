@@ -156,7 +156,7 @@ sub check {
   }
   (my $mod = $module) =~ s/::/\//g;
   if (my $m = $INC{"$mod.pm"}) {
-    ## no critic (ProhibitNoWarnings, ProhibitStringyEval)
+    ## no critic (ProhibitNoWarnings)
     my $v = eval { no warnings; eval "\$${module}::VERSION" };
     printf "%-8s $m\n", $v;
     if ($version && $v < $version) {
