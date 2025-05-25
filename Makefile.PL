@@ -281,15 +281,15 @@ print "\n" x 3;
 $ExtUtils::MakeMaker::Verbose = 0;
 
 my $Opts = {
-  NAME           => "Devel::Cover",
-  VERSION        => $Version,
-  AUTHOR         => 'Paul Johnson <paul@pjcj.net>',
-  MIN_PERL_VERSION => '5.012',
-  ABSTRACT_FROM  => "lib/Devel/Cover.pm",
-  DIR            => [],
-  EXE_FILES      => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],
-  PERL_MALLOC_OK => 1,
-  PREREQ_PM      => {
+  NAME             => "Devel::Cover",
+  VERSION          => $Version,
+  AUTHOR           => 'Paul Johnson <paul@pjcj.net>',
+  MIN_PERL_VERSION => "5.012",
+  ABSTRACT_FROM    => "lib/Devel/Cover.pm",
+  DIR              => [],
+  EXE_FILES        => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],
+  PERL_MALLOC_OK   => 1,
+  PREREQ_PM        => {
     "Storable"       => 0,
     "Digest::MD5"    => 0,
     "HTML::Entities" => 3.69,
@@ -297,7 +297,7 @@ my $Opts = {
   },
   TYPEMAPS => ["utils/typemap"],
   clean    =>
-    { FILES => "t/e2e/* cover_db* t/e2e/*cover_db " . "README *.gcov *.out" },
+    { FILES => "t/e2e/* cover_db* t/e2e/*cover_db README *.gcov *.out" },
   dist => { COMPRESS => "gzip --best --force" },
   test => { TESTS    => $ENV{DEVEL_COVER_NO_TESTS} ? "" : "t/*.t t/*/*.t" },
   realclean => { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
