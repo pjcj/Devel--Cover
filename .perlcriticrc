@@ -72,7 +72,7 @@ max_statements = 5
 
 
 # Write `eval { my $foo; bar($foo) }' instead of `eval "my $foo; bar($foo);"'.
-[BuiltinFunctions::ProhibitStringyEval]
+[-BuiltinFunctions::ProhibitStringyEval]
 # set_themes                         = bugs certrule core pbp
 # add_themes                         =
 # severity                           = 5
