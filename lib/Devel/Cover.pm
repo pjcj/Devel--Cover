@@ -542,6 +542,8 @@ sub use_file {
     (?:\[from\s(.+)\sline\s\d+\])
   /x;
 
+  return 0 unless $file && $find_filename;  # global destruction, probably
+
   # print STDERR "use_file($file)\n";
 
   # die "bad file" unless length $file;
