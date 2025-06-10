@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.50 - 10 June 2025
 - Avoid some warnings during global destruction
 
 1.49 - 18 May 2025
