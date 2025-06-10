@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Avoid some warnings during global destruction
 
 1.49 - 18 May 2025
 - Handle core Deparse changes for xor (Jim Keenan) (GH-355)
