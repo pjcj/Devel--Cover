@@ -125,5 +125,5 @@ The development directory for these purposes is `/cover/Devel--Cover`.  New
 versions of perl can be installed by adding them to `utils/all_versions` and
 running `dc all-versions --build`.
 
-To install a version of perl with development tools run `dc install-dc_dev-perl
+To install a version of perl with development tools run `dc install-dc-dev-perl
 5.38.2`.
