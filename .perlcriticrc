@@ -736,7 +736,6 @@ max_mccabe = 3
 # The additional modules to treat as equivalent to "Moose", "Moose::Role", or "MooseX::Role::Parameterized".
 # Values that are always included: Moose, Moose::Role, MooseX::Role::Parameterized.
 # equivalent_modules =
-equivalent_modules = Repobase::Base::Moose Repobase::Base::Moose::Role Perceptyx::Base::Moose Perceptyx::Base::Moose::Role
 
 
 # Avoid lazy_build
@@ -749,7 +748,6 @@ equivalent_modules = Repobase::Base::Moose Repobase::Base::Moose::Role Perceptyx
 # The additional modules to treat as equivalent to "Moose", "Moose::Role", "MooseX::Role::Parameterized", or "MooseX::Singleton".
 # Values that are always included: Moose, Moose::Role, MooseX::Role::Parameterized, MooseX::Singleton.
 # equivalent_modules = Moose Moose::Role MooseX::Role::Parameterized MooseX::Singleton
-equivalent_modules = Repobase::Base::Moose Repobase::Base::Moose::Role Perceptyx::Base::Moose Perceptyx::Base::Moose::Role
 
 
 # Require role composition
@@ -762,7 +760,6 @@ equivalent_modules = Repobase::Base::Moose Repobase::Base::Moose::Role Perceptyx
 # The additional modules to treat as equivalent to "Moose", "Moose::Role", or "MooseX::Role::Parameterized".
 # Values that are always included: Moose, Moose::Role, MooseX::Role::Parameterized.
 # equivalent_modules = Moose Moose::Role MooseX::Role::Parameterized
-equivalent_modules = Repobase::Base::Moose Repobase::Base::Moose::Role Perceptyx::Base::Moose Perceptyx::Base::Moose::Role
 
 
 # Don't override Moose's standard constructors.
@@ -775,7 +772,6 @@ equivalent_modules = Repobase::Base::Moose Repobase::Base::Moose::Role Perceptyx
 # The additional modules to treat as equivalent to "Moose", "Moose::Role", or "MooseX::Role::Parameterized".
 # Values that are always included: Moose, Moose::Role, MooseX::Role::Parameterized.
 # equivalent_modules = Moose Moose::Role MooseX::Role::Parameterized
-equivalent_modules = Repobase::Base::Moose Repobase::Base::Moose::Role Perceptyx::Base::Moose Perceptyx::Base::Moose::Role
 
 
 # Require removing implementation details from you packages.
@@ -802,7 +798,6 @@ equivalent_modules = Repobase::Base::Moose Repobase::Base::Moose::Role Perceptyx
 # The additional modules to treat as equivalent to "Moose".
 # Values that are always included: Moose.
 # equivalent_modules = Moose
-equivalent_modules = Repobase::Base::Moose Perceptyx::Base::Moose
 
 
 # Distinguish different program components by case.
@@ -1232,7 +1227,6 @@ statements = 10
 
 # The additional modules to treat as equivalent to "strict".
 # Values that are always included: Any::Moose, Dancer, Dancer2, Mo, Modern::Perl, Mojo::Base, Mojolicious::Lite, Moo, Moo::Role, Moos, Moose, Moose::Exporter, Moose::Role, Moose::Util::TypeConstraints, MooseX::MethodAttributes::Role, MooseX::NonMoose, MooseX::Role::Parameterized, MooseX::Singleton, Mouse, Mouse::Exporter, Mouse::Role, Mouse::Util, Mouse::Util::TypeConstraints, Mousse, Object::Simple, Role::Tiny, Test::Class::Moose, Test::Spec, sane, strict, strictures.
-equivalent_modules = Repobase::Base Repobase::Base::Moose Repobase::Base::Moose::Role Perceptyx::Base Perceptyx::Base::Moose Perceptyx::Base::Moose::Role Test::Perceptyx::Base
 
 
 # Always `use warnings'.
@@ -1244,7 +1238,6 @@ equivalent_modules = Repobase::Base Repobase::Base::Moose Repobase::Base::Moose:
 
 # The additional modules to treat as equivalent to "warnings".
 # Values that are always included: Any::Moose, Dancer, Dancer2, Mo, Modern::Perl, Mojo::Base, Mojolicious::Lite, Moo, Moo::Role, Moos, Moose, Moose::Exporter, Moose::Role, Moose::Util::TypeConstraints, MooseX::MethodAttributes::Role, MooseX::NonMoose, MooseX::Role::Parameterized, MooseX::Singleton, Mouse, Mouse::Exporter, Mouse::Role, Mouse::Util, Mouse::Util::TypeConstraints, Mousse, Object::Simple, Role::Tiny, Test::Class::Moose, Test::Spec, sane, strictures, warnings.
-equivalent_modules = Repobase::Base Repobase::Base::Moose Repobase::Base::Moose::Role Perceptyx::Base Perceptyx::Base::Moose Perceptyx::Base::Moose::Role Test::Perceptyx::Base
 
 
 # Don't use the comma operator as a statement separator.
