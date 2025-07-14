@@ -110,61 +110,139 @@ $Templates{nvim} = <<'EOT';
 
 local M = {}
 
--- Highlight groups for coverage display
-local highlight_groups = {
-  cov_pod = { ctermfg = "Green", cterm = "bold", gui = "bold", guifg = "Green" },
-  cov_pod_error = { ctermfg = "Red", cterm = "bold", gui = "bold", guifg = "Red" },
-  cov_subroutine = { ctermfg = "Green", cterm = "bold", gui = "bold", guifg = "Green" },
-  cov_subroutine_error = { ctermfg = "Red", cterm = "bold", gui = "bold", guifg = "Red" },
-  cov_statement = { ctermfg = "Green", cterm = "bold", gui = "bold", guifg = "Green" },
-  cov_statement_error = { ctermfg = "Red", cterm = "bold", gui = "bold", guifg = "Red" },
-  cov_branch = { ctermfg = "Green", cterm = "bold", gui = "bold", guifg = "Green" },
-  cov_branch_error = { ctermfg = "Red", cterm = "bold", gui = "bold", guifg = "Red" },
-  cov_condition = { ctermfg = "Green", cterm = "bold", gui = "bold", guifg = "Green" },
-  cov_condition_error = { ctermfg = "Red", cterm = "bold", gui = "bold", guifg = "Red" },
+-- Configuration defaults - can be overridden via vim.g variables
+local config = {
+  -- Colors
+  cover_fg = vim.g.devel_cover_fg or "Green",
+  error_fg = vim.g.devel_cover_error_fg or "Red",
+  cover_bg = vim.g.devel_cover_bg or nil,
+  error_bg = vim.g.devel_cover_error_bg or nil,
+  valid_bg = vim.g.devel_cover_valid_bg or nil,
+  old_bg = vim.g.devel_cover_old_bg or nil,
+
+  -- Sign text - can be customized
+  signs = vim.g.devel_cover_signs or {
+    pod = "P ",
+    subroutine = "R ",
+    statement = "S ",
+    branch = "B ",
+    condition = "C "
+  },
+
+  -- Line highlight groups
+  linehl_cover = vim.g.devel_cover_linehl or "cov",
+  linehl_error = vim.g.devel_cover_linehl_error or "err",
+
+  -- Additional highlight options
+  cterm = vim.g.devel_cover_cterm or "bold",
+  gui = vim.g.devel_cover_gui or "bold",
 }
 
--- Define highlight groups
-for group, opts in pairs(highlight_groups) do
-  local cmd = "highlight " .. group
-  for key, value in pairs(opts) do
-    cmd = cmd .. " " .. key .. "=" .. value
+-- Build highlight group definitions dynamically
+local function create_highlight_groups()
+  local types = { "pod", "subroutine", "statement", "branch", "condition" }
+
+  for _, type_name in ipairs(types) do
+    -- Normal coverage highlight
+    local hl_opts = {
+      fg = config.cover_fg,
+      bold = config.cterm == "bold" or config.gui == "bold",
+    }
+    if config.cover_bg then
+      hl_opts.bg = config.cover_bg
+    end
+    vim.api.nvim_set_hl(0, "cov_" .. type_name, hl_opts)
+
+    -- Error coverage highlight
+    local err_hl_opts = {
+      fg = config.error_fg,
+      bold = config.cterm == "bold" or config.gui == "bold",
+    }
+    if config.error_bg then
+      err_hl_opts.bg = config.error_bg
+    end
+    vim.api.nvim_set_hl(0, "cov_" .. type_name .. "_error", err_hl_opts)
   end
-  vim.cmd(cmd)
 end
 
--- Sign definitions
-local sign_definitions = {
-  { name = "pod", text = "P ", linehl = "cov", texthl = "cov_pod" },
-  { name = "pod_error", text = "P ", linehl = "err", texthl = "cov_pod_error" },
-  { name = "subroutine", text = "R ", linehl = "cov", texthl = "cov_subroutine" },
-  { name = "subroutine_error", text = "R ", linehl = "err", texthl = "cov_subroutine_error" },
-  { name = "statement", text = "S ", linehl = "cov", texthl = "cov_statement" },
-  { name = "statement_error", text = "S ", linehl = "err", texthl = "cov_statement_error" },
-  { name = "branch", text = "B ", linehl = "cov", texthl = "cov_branch" },
-  { name = "branch_error", text = "B ", linehl = "err", texthl = "cov_branch_error" },
-  { name = "condition", text = "C ", linehl = "cov", texthl = "cov_condition" },
-  { name = "condition_error", text = "C ", linehl = "err", texthl = "cov_condition_error" },
-}
+-- Create highlight groups
+create_highlight_groups()
 
--- Define signs
-for _, sign_def in ipairs(sign_definitions) do
-  vim.fn.sign_define(sign_def.name, {
-    text = sign_def.text,
-    linehl = sign_def.linehl,
-    texthl = sign_def.texthl
-  })
+-- Build sign definitions dynamically
+local function create_sign_definitions()
+  local types = { "pod", "subroutine", "statement", "branch", "condition" }
+
+  for _, type_name in ipairs(types) do
+    -- Normal coverage sign
+    vim.fn.sign_define(type_name, {
+      text = config.signs[type_name],
+      linehl = config.linehl_cover,
+      texthl = "cov_" .. type_name
+    })
+
+    -- Error coverage sign
+    vim.fn.sign_define(type_name .. "_error", {
+      text = config.signs[type_name],
+      linehl = config.linehl_error,
+      texthl = "cov_" .. type_name .. "_error"
+    })
+  end
 end
 
--- Placeholder functions for custom configuration
+-- Create sign definitions
+create_sign_definitions()
+
+-- Functions for handling coverage age
 function M.coverage_old(filename)
   -- This function is called when coverage data is older than the file
-  -- Override this in your local configuration if needed
+  if config.old_bg then
+    M.set_background(config.old_bg)
+  end
 end
 
 function M.coverage_valid(filename)
   -- This function is called when coverage data is current
-  -- Override this in your local configuration if needed
+  if config.valid_bg then
+    M.set_background(config.valid_bg)
+  end
+end
+
+-- Helper function to set background colors for all coverage types
+function M.set_background(bg)
+  local types = { "pod", "subroutine", "statement", "branch", "condition" }
+  for _, type_name in ipairs(types) do
+    -- Get existing highlight and create new options table
+    local hl = vim.api.nvim_get_hl(0, { name = "cov_" .. type_name })
+    local new_hl = {
+      fg = hl.fg,
+      bg = bg,
+      bold = hl.bold,
+      italic = hl.italic,
+      underline = hl.underline,
+    }
+    vim.api.nvim_set_hl(0, "cov_" .. type_name, new_hl)
+
+    local err_hl = vim.api.nvim_get_hl(0, { name = "cov_" .. type_name .. "_error" })
+    local new_err_hl = {
+      fg = err_hl.fg,
+      bg = bg,
+      bold = err_hl.bold,
+      italic = err_hl.italic,
+      underline = err_hl.underline,
+    }
+    vim.api.nvim_set_hl(0, "cov_" .. type_name .. "_error", new_err_hl)
+  end
+
+  -- Update SignColumn background
+  local sign_hl = vim.api.nvim_get_hl(0, { name = "SignColumn" })
+  local new_sign_hl = {
+    fg = sign_hl.fg,
+    bg = bg,
+    bold = sign_hl.bold,
+    italic = sign_hl.italic,
+    underline = sign_hl.underline,
+  }
+  vim.api.nvim_set_hl(0, "SignColumn", new_sign_hl)
 end
 
 -- Load local configuration if it exists
@@ -352,44 +430,66 @@ If the coverage for the file being displayed is out of date the function
 called coverage_old() is called and passed the name of the file.  Similarly,
 for current coverage data file coverage_valid() is called.
 
-Signs may be overridden in a file named devel-cover.lua located in your
-Neovim configuration directory (~/.config/nvim/lua/devel-cover.lua).
+Colors and signs can be customized using global vim variables. Set these in your
+init.lua or init.vim file before loading the coverage script.
 
-For example, using the solarized theme:
+Available configuration variables:
 
- -- ~/.config/nvim/lua/devel-cover.lua
- local M = {}
+ vim.g.devel_cover_fg         -- Foreground color for covered lines (default: "Green")
+ vim.g.devel_cover_error_fg   -- Foreground color for uncovered lines (default: "Red")
+ vim.g.devel_cover_bg         -- Background color for covered lines (default: nil)
+ vim.g.devel_cover_error_bg   -- Background color for uncovered lines (default: nil)
+ vim.g.devel_cover_valid_bg   -- Background when coverage is current (default: nil)
+ vim.g.devel_cover_old_bg     -- Background when coverage is old (default: nil)
+ vim.g.devel_cover_cterm      -- Terminal styling (default: "bold")
+ vim.g.devel_cover_gui        -- GUI styling (default: "bold")
+ vim.g.devel_cover_linehl     -- Line highlight group for covered (default: "cov")
+ vim.g.devel_cover_linehl_error -- Line highlight group for errors (default: "err")
+ vim.g.devel_cover_signs      -- Custom sign text table
 
- local fg_cover = "#859900"
- local fg_error = "#dc322f"
- local bg_valid = "#073642"
- local bg_old   = "#342a2a"
+Example configuration for solarized theme in init.lua:
 
- local types = { "pod", "subroutine", "statement", "branch", "condition" }
+ -- Set colors before loading coverage
+ vim.g.devel_cover_fg = "#859900"        -- solarized green
+ vim.g.devel_cover_error_fg = "#dc322f"  -- solarized red
+ vim.g.devel_cover_valid_bg = "#073642"  -- solarized base02
+ vim.g.devel_cover_old_bg = "#342a2a"    -- darker red-tinted background
+ vim.g.devel_cover_cterm = "NONE"
+ vim.g.devel_cover_gui = "NONE"
 
- for _, type_name in ipairs(types) do
-   vim.cmd("highlight cov_" .. type_name .. " ctermbg=1 cterm=bold gui=NONE guifg=" .. fg_cover)
-   vim.cmd("highlight cov_" .. type_name .. "_error ctermbg=1 cterm=bold gui=NONE guifg=" .. fg_error)
- end
- vim.cmd("highlight SignColumn ctermbg=0 guibg=" .. bg_valid)
+ -- Custom sign characters (optional)
+ -- Note: The same character is used for both covered/uncovered
+ -- The difference is shown through fg/bg colors defined above
+ vim.g.devel_cover_signs = {
+   pod = "P ",
+   subroutine = "R ",
+   statement = "· ",  -- Subtle dot for statements (most common)
+   branch = "B ",
+   condition = "C "
+ }
 
- local function set_bg(bg)
-   for _, type_name in ipairs(types) do
-     vim.cmd("highlight cov_" .. type_name .. " guibg=" .. bg)
-     vim.cmd("highlight cov_" .. type_name .. "_error guibg=" .. bg)
-   end
-   vim.cmd("highlight SignColumn ctermbg=0 guibg=" .. bg)
- end
+ -- Or for a minimal look that relies purely on colors
+ vim.g.devel_cover_bg = "#002b36"        -- dark for covered
+ vim.g.devel_cover_error_bg = "#2d1616"  -- dark red for uncovered
+ vim.g.devel_cover_signs = {
+   pod = "  ",
+   subroutine = "  ",
+   statement = "│ ",  -- Thin vertical bar (unobtrusive)
+   branch = "  ",
+   condition = "  "
+ }
 
- function M.coverage_valid(filename)
-   set_bg(bg_valid)
- end
+ -- Or use subtle Unicode characters
+ vim.g.devel_cover_signs = {
+   pod = "¶ ",
+   subroutine = "ƒ ",
+   statement = "• ",  -- Small bullet (unobtrusive)
+   branch = "» ",
+   condition = "? "
+ }
 
- function M.coverage_old(filename)
-   set_bg(bg_old)
- end
-
- return M
+Alternative: You can still override via devel-cover.lua in your config directory
+for more complex customizations
 
 This configuration sets the background colour of the signs to a dark red when
 the coverage data is out of date.
