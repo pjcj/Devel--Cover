@@ -136,6 +136,10 @@ local config = {
   -- Additional highlight options
   cterm = vim.g.devel_cover_cterm or "bold",
   gui = vim.g.devel_cover_gui or "bold",
+
+  -- Sign column configuration
+  sign_group = vim.g.devel_cover_sign_group or "DevelCover",
+  sign_priority = vim.g.devel_cover_sign_priority or 10,
 }
 
 -- Build highlight group definitions dynamically
@@ -330,7 +334,7 @@ local function add_coverage_signs(filename)
           local id = sign_num
           sign_num = sign_num + 1
           s[line] = id
-          vim.fn.sign_place(id, "", type_name, filename, { lnum = line })
+          vim.fn.sign_place(id, config.sign_group, type_name, filename, { lnum = line, priority = config.sign_priority })
         end
       end
     end
@@ -342,7 +346,7 @@ local function del_coverage_signs(filename)
   if signs[filename] then
     local s = signs[filename]
     for line, id in pairs(s) do
-      vim.fn.sign_unplace("", { id = id })
+      vim.fn.sign_unplace(config.sign_group, { id = id })
     end
     signs[filename] = {}
   end
@@ -446,6 +450,8 @@ Available configuration variables:
  vim.g.devel_cover_linehl     -- Line highlight group for covered (default: "cov")
  vim.g.devel_cover_linehl_error -- Line highlight group for errors (default: "err")
  vim.g.devel_cover_signs      -- Custom sign text table
+ vim.g.devel_cover_sign_group -- Sign group name for dedicated column (default: "DevelCover")
+ vim.g.devel_cover_sign_priority -- Sign priority within group (default: 10)
 
 Example configuration for solarized theme in init.lua:
 
@@ -487,6 +493,13 @@ Example configuration for solarized theme in init.lua:
    branch = "» ",
    condition = "? "
  }
+
+ -- For a dedicated coverage column (recommended)
+ -- This keeps coverage signs separate from other signs like diagnostics
+ vim.g.devel_cover_sign_group = "DevelCover"  -- Creates its own column
+
+ -- You can also configure the sign column appearance
+ vim.o.signcolumn = "yes:2"  -- Show 2 sign columns (1 for diagnostics, 1 for coverage)
 
 Alternative: You can still override via devel-cover.lua in your config directory
 for more complex customizations
