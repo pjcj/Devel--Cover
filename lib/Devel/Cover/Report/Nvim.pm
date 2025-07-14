@@ -16,13 +16,12 @@ BEGIN {
   # VERSION
 }
 
-use Devel::Cover::DB;
-use Devel::Cover::Inc;
+use Devel::Cover::Inc ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use Getopt::Long;
-use Template 2.00;
+use Getopt::Long  qw( GetOptions );
+use Template 2.00 ();
 
 sub get_options {
   my ($self, $opt) = @_;
@@ -139,7 +138,7 @@ local config = {
 
   -- Sign column configuration
   sign_group = vim.g.devel_cover_sign_group or "DevelCover",
-  sign_priority = vim.g.devel_cover_sign_priority or 10,
+  sign_priority = vim.g.devel_cover_sign_priority or 1,
 }
 
 -- Build highlight group definitions dynamically
@@ -171,6 +170,14 @@ end
 
 -- Create highlight groups
 create_highlight_groups()
+
+-- Create line highlight groups for covered/error lines
+if config.cover_bg then
+  vim.api.nvim_set_hl(0, config.linehl_cover, { bg = config.cover_bg })
+end
+if config.error_bg then
+  vim.api.nvim_set_hl(0, config.linehl_error, { bg = config.error_bg })
+end
 
 -- Build sign definitions dynamically
 local function create_sign_definitions()
@@ -214,8 +221,10 @@ end
 -- Helper function to set background colors for all coverage types
 function M.set_background(bg)
   local types = { "pod", "subroutine", "statement", "branch", "condition" }
+  
+  -- Update highlight groups for coverage sign characters with new background
   for _, type_name in ipairs(types) do
-    -- Get existing highlight and create new options table
+    -- Get existing highlight and create new options table for normal coverage
     local hl = vim.api.nvim_get_hl(0, { name = "cov_" .. type_name })
     local new_hl = {
       fg = hl.fg,
@@ -226,6 +235,7 @@ function M.set_background(bg)
     }
     vim.api.nvim_set_hl(0, "cov_" .. type_name, new_hl)
 
+    -- Get existing highlight and create new options table for error coverage
     local err_hl = vim.api.nvim_get_hl(0, { name = "cov_" .. type_name .. "_error" })
     local new_err_hl = {
       fg = err_hl.fg,
@@ -237,16 +247,26 @@ function M.set_background(bg)
     vim.api.nvim_set_hl(0, "cov_" .. type_name .. "_error", new_err_hl)
   end
 
-  -- Update SignColumn background
-  local sign_hl = vim.api.nvim_get_hl(0, { name = "SignColumn" })
-  local new_sign_hl = {
-    fg = sign_hl.fg,
-    bg = bg,
-    bold = sign_hl.bold,
-    italic = sign_hl.italic,
-    underline = sign_hl.underline,
-  }
-  vim.api.nvim_set_hl(0, "SignColumn", new_sign_hl)
+  -- Redefine all signs with updated texthl (no numhl to avoid affecting line numbers)
+  for _, type_name in ipairs(types) do
+    -- Normal coverage sign
+    vim.fn.sign_define(type_name, {
+      text = config.signs[type_name],
+      linehl = config.linehl_cover,
+      texthl = "cov_" .. type_name
+    })
+
+    -- Error coverage sign
+    vim.fn.sign_define(type_name .. "_error", {
+      text = config.signs[type_name],
+      linehl = config.linehl_error,
+      texthl = "cov_" .. type_name .. "_error"
+    })
+  end
+
+  -- Force a refresh by issuing redraw commands
+  vim.cmd("redraw!")
+  vim.cmd("redrawstatus!")
 end
 
 -- Load local configuration if it exists
@@ -301,6 +321,17 @@ end
 local signs = {}
 local sign_num = 1
 
+-- Remove coverage signs from a file
+local function del_coverage_signs(filename)
+  if signs[filename] then
+    local s = signs[filename]
+    for line, id in pairs(s) do
+      vim.fn.sign_unplace(config.sign_group, { id = id })
+    end
+    signs[filename] = {}
+  end
+end
+
 -- Add coverage signs to a file
 local function add_coverage_signs(filename)
   local cov = coverage_for(filename)
@@ -309,11 +340,23 @@ local function add_coverage_signs(filename)
   end
 
   local file_time = vim.fn.getftime(filename)
+  local needs_refresh = false
+
+  -- Check if we already have signs and background is changing
+  if signs[filename] and not vim.tbl_isempty(signs[filename]) then
+    needs_refresh = true
+  end
+
   if file_time > cov_time then
     print("File is newer than coverage run of " .. os.date("%c", cov_time))
     M.coverage_old(filename)
   else
     M.coverage_valid(filename)
+  end
+
+  -- If background changed and we had existing signs, refresh them
+  if needs_refresh then
+    del_coverage_signs(filename)
   end
 
   if not signs[filename] then
@@ -341,16 +384,6 @@ local function add_coverage_signs(filename)
   end
 end
 
--- Remove coverage signs from a file
-local function del_coverage_signs(filename)
-  if signs[filename] then
-    local s = signs[filename]
-    for line, id in pairs(s) do
-      vim.fn.sign_unplace(config.sign_group, { id = id })
-    end
-    signs[filename] = {}
-  end
-end
 
 -- User commands
 vim.api.nvim_create_user_command("Cov", function()
@@ -360,6 +393,20 @@ end, {})
 vim.api.nvim_create_user_command("Uncov", function()
   del_coverage_signs(vim.fn.expand("%:p"))
 end, {})
+
+-- Clear all existing Devel::Cover signs from all buffers when loading new coverage data
+-- This ensures old signs don't persist when coverage.lua is reloaded
+local function clear_all_coverage_signs()
+  -- Get all existing signs in the Devel::Cover group across all buffers
+  vim.fn.sign_unplace(config.sign_group)
+  
+  -- Clear the signs tracking table
+  signs = {}
+  sign_num = 1
+end
+
+-- Clear old signs when script loads
+clear_all_coverage_signs()
 
 -- Auto commands for coverage display
 local augroup = vim.api.nvim_create_augroup("devel-cover", { clear = true })
