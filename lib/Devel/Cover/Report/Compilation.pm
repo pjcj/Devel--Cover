@@ -20,8 +20,6 @@ use warnings;
 
 # VERSION
 
-use Devel::Cover::DB;
-
 # TODO - uncoverable code?
 
 sub print_statement {
@@ -83,15 +81,13 @@ sub print_conditions {
 
   my %seen;
   for my $type (sort keys %r) {
-    my $tpl;
     for (@{ $r{$type} }) {
       my ($c, $location) = @$_;
       next unless $c->error;
       my @headers = @{ $c->headers };
       print "Uncovered condition (",
-        join(", ",
-        map (!$c->covered($_) ? $headers[$_] : (), 0 .. $c->total - 1)),
-        ") at $file line $location: ", $c->text, "\n";
+        join(", ", map !$c->covered($_) ? $headers[$_] : (),
+          0 .. $c->total - 1), ") at $file line $location: ", $c->text, "\n";
     }
   }
 }
@@ -135,8 +131,8 @@ Devel::Cover::Report::Compilation - backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a textual reporting mechanism for coverage data.
-It is designed to be called from the C<cover> program.
+This module provides a textual reporting mechanism for coverage data. It is
+designed to be called from the C<cover> program.
 
 It produces one report per line, in a format like Perl's own compilation error
 messages.  This makes it easy to, e.g. use Emacs compilation mode to step
