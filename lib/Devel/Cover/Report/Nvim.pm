@@ -221,7 +221,7 @@ end
 -- Helper function to set background colors for all coverage types
 function M.set_background(bg)
   local types = { "pod", "subroutine", "statement", "branch", "condition" }
-  
+
   -- Update highlight groups for coverage sign characters with new background
   for _, type_name in ipairs(types) do
     -- Get existing highlight and create new options table for normal coverage
@@ -377,7 +377,28 @@ local function add_coverage_signs(filename)
           local id = sign_num
           sign_num = sign_num + 1
           s[line] = id
-          vim.fn.sign_place(id, config.sign_group, type_name, filename, { lnum = line, priority = config.sign_priority })
+
+          -- Validate parameters before placing sign
+          local bufnr = vim.fn.bufnr(filename)
+          if bufnr == -1 then
+            -- Buffer doesn't exist, skip this sign
+            goto continue
+          end
+
+          -- Validate line number
+          local line_count = vim.api.nvim_buf_line_count(bufnr)
+          if line > line_count then
+            -- Line doesn't exist in buffer, skip this sign
+            goto continue
+          end
+
+          -- Place the sign with buffer number instead of filename for better reliability
+          local success, err = pcall(vim.fn.sign_place, id, config.sign_group, type_name, bufnr, { lnum = line, priority = config.sign_priority })
+          if not success then
+            print("Warning: Failed to place coverage sign: " .. err)
+          end
+
+          ::continue::
         end
       end
     end
@@ -399,7 +420,7 @@ end, {})
 local function clear_all_coverage_signs()
   -- Get all existing signs in the Devel::Cover group across all buffers
   vim.fn.sign_unplace(config.sign_group)
-  
+
   -- Clear the signs tracking table
   signs = {}
   sign_num = 1
