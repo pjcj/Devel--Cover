@@ -106,6 +106,20 @@ sub print_subroutines {
   }
 }
 
+sub print_pod {
+  my ($db, $file, $options) = @_;
+
+  my $pod = $db->cover->file($file)->pod or return;
+
+  for my $location ($pod->items) {
+    my $l = $pod->location($location);
+    for my $p (@$l) {
+      next if $p->covered;
+      print "Uncovered pod at $file line $location\n";
+    }
+  }
+}
+
 sub report {
   my ($pkg, $db, $options) = @_;
 
@@ -114,6 +128,7 @@ sub report {
     print_branches($db, $file, $options)    if $options->{show}{branch};
     print_conditions($db, $file, $options)  if $options->{show}{condition};
     print_subroutines($db, $file, $options) if $options->{show}{subroutine};
+    print_pod($db, $file, $options)         if $options->{show}{pod};
   }
 }
 
