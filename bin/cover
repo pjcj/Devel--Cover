@@ -270,8 +270,8 @@ sub get_dbname {
     delete_db($dbname, @ARGV);
     exit 0
   }
-  $Options->{outputdir} //= $dbname
-
+  $Options->{outputdir} //= $dbname;
+  $dbname
 }
 
 sub check_outputdir {
