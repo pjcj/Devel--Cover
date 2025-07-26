@@ -7,7 +7,7 @@ allow-unsafe = 1
 # color = 0
 # pager =
 # top = 0
-verbose = 8
+verbose = %f:%l:%c [%p] %m - %e\n
 # include =
 # exclude =
 # single-policy =
@@ -727,7 +727,7 @@ max_mccabe = 3
 
 
 # Use DEMOLISH instead of DESTROY
-[Moose::ProhibitDESTROYMethod]
+# [Moose::ProhibitDESTROYMethod]
 # set_themes                         = bugs moose
 # add_themes                         =
 # severity                           = 3
@@ -739,7 +739,7 @@ max_mccabe = 3
 
 
 # Avoid lazy_build
-[-Moose::ProhibitLazyBuild]
+# [-Moose::ProhibitLazyBuild]
 # set_themes                         = bugs moose
 # add_themes                         =
 # severity                           = 2
@@ -751,7 +751,7 @@ max_mccabe = 3
 
 
 # Require role composition
-[Moose::ProhibitMultipleWiths]
+# [Moose::ProhibitMultipleWiths]
 # set_themes                         = bugs moose roles
 # add_themes                         =
 # severity                           = 4
@@ -763,7 +763,7 @@ max_mccabe = 3
 
 
 # Don't override Moose's standard constructors.
-[Moose::ProhibitNewMethod]
+# [Moose::ProhibitNewMethod]
 # set_themes                         = bugs moose
 # add_themes                         =
 # severity                           = 4
@@ -775,7 +775,7 @@ max_mccabe = 3
 
 
 # Require removing implementation details from you packages.
-[Moose::RequireCleanNamespace]
+# [Moose::RequireCleanNamespace]
 # set_themes                         = maintenance moose
 # add_themes                         =
 # severity                           = 3
@@ -789,7 +789,7 @@ max_mccabe = 3
 
 
 # Ensure that you've made your Moose code fast
-[Moose::RequireMakeImmutable]
+# [Moose::RequireMakeImmutable]
 # set_themes                         = moose performance
 # add_themes                         =
 # severity                           = 3
@@ -1597,3 +1597,7 @@ allow = %ENV %SIG $> $0 $|
 # add_themes                         =
 # severity                           = 4
 # maximum_violations_per_document    = no_limit
+
+
+[ValuesAndExpressions::RequireConsistentQuoting]
+[CodeLayout::ProhibitLongLines]
