@@ -2,6 +2,8 @@ Devel::Cover history
 
 {{$NEXT}}
 
+1.51 - 26 July 2025
+
 - Test against 5.42.0
 - Add nvim report to show coverage in neovim
 - Fix cover --outputdir option (Hannes Thorsell) (GH-358)
