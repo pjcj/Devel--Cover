@@ -1627,7 +1627,7 @@ followed by the name of the coverage criterion which is uncoverable.  There
 may then be further information depending on the nature of the uncoverable
 construct.
 
-In all cases as L<class> attribute may be included in L<details>.  At present a
+In all cases a L<class> attribute may be included in L<details>.  At present a
 single class attribute is recognised: L<ignore_covered_err>.  Normally, an
 error is flagged if code marked as L<uncoverable> is covered.  When the
 L<ignore_covered_err> attribute is specified then such errors will not be
