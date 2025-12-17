@@ -12,7 +12,7 @@ resources to be constrained.  In addition the docker container is killed after a
 certain time.
 
 I have only run this in Ubuntu 14.04 and 16.04.  The docker version in 14.04,
-0.9.1 (as of 31.05.2104) is insufficient.  Version 0.11.1 is fine.  I don't
+0.9.1 (as of 31.05.2014) is insufficient.  Version 0.11.1 is fine.  I don't
 know about the versions in between.
 
 The latest version of docker can be installed on Ubuntu by following the
