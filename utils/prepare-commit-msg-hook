@@ -13,9 +13,9 @@ use feature           qw( unicode_strings  );
 $|++;
 
 sub get_current_branch {
-  my $branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null`;
-  chomp $branch if defined $branch;
-  $branch // ""
+  my $branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null` // "";
+  chomp $branch;
+  $branch
 }
 
 sub get_ticket {
