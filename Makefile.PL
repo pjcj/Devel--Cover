@@ -78,6 +78,21 @@ EOM
 EOI
 close $i or die "Cannot close lib/Devel/Cover/Inc.pm: $!";
 
+# Set up git hooks if in a git repo
+if (-d ".git" && -d ".git/hooks") {
+  for my $hook (qw( commit-msg prepare-commit-msg )) {
+    my $path   = ".git/hooks/$hook";
+    my $target = "../../utils/$hook-hook";
+    if (!-e $path) {
+      if (symlink $target, $path) {
+        print "Created git $hook hook\n";
+      } else {
+        warn "Could not create $hook hook: $!\n";
+      }
+    }
+  }
+}
+
 print "Writing tests ........ ";
 
 for my $d (qw( t t/e2e )) {
