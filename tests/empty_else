@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+
+# Copyright 2025, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# Test for empty else blocks optimized away by Perl 5.43.4+
+# See GH-362 and Perl PR #23367
+
+use strict;
+use warnings;
+
+# Main level - exercises: $false->name eq "null"
+if ($ARGV[0]) {
+} else {
+}
+
+# Subroutine - exercises: B::class($false) eq "NULL"
+sub test_sub {
+  my $x = shift;
+  if ($x) {
+  } else {
+  }
+}
+
+test_sub(1);
