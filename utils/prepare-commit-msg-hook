@@ -6,9 +6,9 @@
 use 5.28.0;
 use warnings;
 use warnings FATAL => qw( utf8 recursion   );
-use experimental      qw( signatures       );
-use open              qw( :encoding(UTF-8) );
-use feature           qw( unicode_strings  );
+use experimental qw( signatures       );
+use open         qw( :encoding(UTF-8) );
+use feature      qw( unicode_strings  );
 
 $|++;
 
@@ -59,8 +59,8 @@ sub main {
     if (eof) {
       say "\nTicket $ticket" if $type ne "merge" && !$seen_ticket;
       say "#\n# *** HINT ***\n",
-          "# Add the -v option to git commit to see your changes here\n",
-          '# or run "git config --global commit.verbose true".'
+        "# Add the -v option to git commit to see your changes here\n",
+        '# or run "git config --global commit.verbose true".'
         if !$type && !$seen_scissors;
     }
   }

@@ -6,9 +6,9 @@
 use 5.28.0;
 use warnings;
 use warnings FATAL => qw( utf8 recursion   );
-use experimental      qw( signatures       );
-use open              qw( :encoding(UTF-8) );
-use feature           qw( unicode_strings  );
+use experimental qw( signatures       );
+use open         qw( :encoding(UTF-8) );
+use feature      qw( unicode_strings  );
 
 my $Version = "1.00";
 
@@ -80,7 +80,8 @@ my @Blocklist = (qw(
   uses       using        used
 ));  # adapted from https://github.com/m1foley/fit-commit
 
-my $Blocklist = join "|", @Blocklist;  $Blocklist = qr/^(?:$Blocklist)\b/i;
+my $Blocklist = join "|", @Blocklist;
+$Blocklist = qr/^(?:$Blocklist)\b/i;
 my @Errors;
 
 sub check_line_endings ($msg) {
@@ -97,7 +98,7 @@ sub check_line_endings ($msg) {
 sub check_beginning ($msg) {
   return unless @$msg;
 
-  my $l = shift @$msg;
+  my $l     = shift @$msg;
   my $merge = $l =~ /^Merge branch /;
   push @Errors, [ "Line 1 is longer than 50 characters", $l ]
     if !$merge && length $l > 50;
@@ -139,7 +140,7 @@ sub check_end ($msg) {
 }
 
 sub process_msg ($msg) {
-  push @Errors, [ "Empty commit message" ] unless @$msg;
+  push @Errors, ["Empty commit message"] unless @$msg;
   check_line_endings($msg);
   chomp @$msg;
   check_beginning($msg);
@@ -160,7 +161,7 @@ sub main {
   say "Errors found:";
   my $max = 0;
   for my $e (@Errors) { $max = length $e->[0] if length $e->[0] > $max }
-  for my $e (@Errors) { printf "%-${max}s: «%s»\n", @$e                }
+  for my $e (@Errors) { printf "%-${max}s: «%s»\n", @$e }
 
   print "Force commit? [y/N] ";
   open my $in, "<", "/dev/tty" or die "Can't open tty";
