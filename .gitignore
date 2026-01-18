@@ -5,6 +5,7 @@
 ._*
 .DS_Store
 tmp/
+llm/
 
 tags*
 .perl-version
