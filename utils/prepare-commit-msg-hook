@@ -1,0 +1,71 @@
+#!/usr/bin/env perl
+
+# Git prepare-commit-msg hook to help create commit messages according to our
+# standards. Automatically installed by Makefile.PL
+
+use 5.28.0;
+use warnings;
+use warnings FATAL => qw( utf8 recursion   );
+use experimental      qw( signatures       );
+use open              qw( :encoding(UTF-8) );
+use feature           qw( unicode_strings  );
+
+$|++;
+
+sub get_current_branch {
+  my $branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null`;
+  chomp $branch if defined $branch;
+  $branch // ""
+}
+
+sub get_ticket {
+  get_current_branch =~ /^([A-Z]{2,8}-\d+)/ ? $1 : "GH-XXXXX"
+}
+
+sub main {
+  my ($file, $type) = @ARGV;
+  $type //= "";
+
+  return 0 if $type !~ /^(?:|message|template|merge)$/;
+
+  my $ticket = get_ticket();
+  my ($seen_ticket, $seen_scissors);
+
+  local ($^I, @ARGV) = ("", $file);
+  while (my $line = <<>>) {
+    chomp $line;
+
+    if ($type eq "merge") {
+      $line =~ s/^(Merge branch ')([A-Z]{2,8}-\d+).*/$1$2'/;
+      say "" if $. == 2 && $line ne "";
+    } else {
+      if ($. == 1 && $line eq "") {
+        say "\n\nTicket $ticket\n";
+        $seen_ticket = 1;
+        next;
+      }
+      if ($. == 3 && !$seen_ticket) {
+        $seen_ticket = 1;
+        unless ($line =~ /^Ticket [A-Z]{2,8}-\d+$/) {
+          say "Ticket $ticket\n";
+        }
+      }
+      $seen_scissors = 1
+        if $line eq "# ------------------------ >8 ------------------------";
+    }
+
+    say $line;
+
+    if (eof) {
+      say "\nTicket $ticket" if $type ne "merge" && !$seen_ticket;
+      say "#\n# *** HINT ***\n",
+          "# Add the -v option to git commit to see your changes here\n",
+          '# or run "git config --global commit.verbose true".'
+        if !$type && !$seen_scissors;
+    }
+  }
+
+  0
+}
+
+exit main
