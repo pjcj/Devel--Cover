@@ -1,0 +1,74 @@
+Reading database from ...
+
+
+---------------- ------ ------ ------ ------ ------
+File               stmt   bran   cond    sub  total
+---------------- ------ ------ ------ ------ ------
+tests/empty_else  100.0   50.0    n/a  100.0   88.2
+Total             100.0   50.0    n/a  100.0   88.2
+---------------- ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/empty_else
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2025, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # https://pjcj.net
+9                                       
+10                                      # Test for empty else blocks optimized away by Perl 5.43.4+
+11                                      # See GH-362 and Perl PR #23367
+12                                      
+13             1                    1   use strict;
+               1                        
+               1                        
+14             1                    1   use warnings;
+               1                        
+               1                        
+15                                      
+16                                      # Main level - exercises: $false->name eq "null"
+17    ***      1   * 50                 if ($ARGV[0]) {
+18                                      } else {
+19                                      }
+20                                      
+21                                      # Subroutine - exercises: B::class($false) eq "NULL"
+22                                      sub test_sub {
+23             1                    1     my $x = shift;
+24    ***      1   * 50                   if ($x) {
+25                                        } else {
+26                                        }
+27                                      }
+28                                      
+29             1                        test_sub(1);
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+17    ***     50      0      1   if ($ARGV[0]) { }
+24    ***     50      1      0   if ($x) { }
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location           
+---------- ----- -------------------
+BEGIN          1 tests/empty_else:13
+BEGIN          1 tests/empty_else:14
+test_sub       1 tests/empty_else:23
+
+
