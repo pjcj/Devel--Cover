@@ -1079,9 +1079,13 @@ my %Original;
         my $false = $true->sibling;
         if (!(
              $cx < 1
-          && (is_scope($true) && $true->name ne "null")
-          && (is_scope($false) || is_ifelse_cont($false))
           && $self->{'expand'} < 7
+          && (
+              B::class($false) eq "NULL" # sub:  empty else optimised to NULL
+              || $false->name eq "null"  # main: empty else optimised to null op
+              || ((is_scope($true) && $true->name ne "null")
+                  && (is_scope($false) || is_ifelse_cont($false)))
+          )
         ))
         {
           { local $Collect; $cond = $self->deparse($cond, 8) }
