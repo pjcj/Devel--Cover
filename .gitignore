@@ -1,6 +1,7 @@
 *.org
 *.bak
 *.sw?
+*.tdy
 *~
 ._*
 .DS_Store
