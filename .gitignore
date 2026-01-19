@@ -1,10 +1,12 @@
 *.org
 *.bak
 *.sw?
+*.tdy
 *~
 ._*
 .DS_Store
 tmp/
+llm/
 
 tags*
 .perl-version

@@ -1,0 +1,173 @@
+#!/usr/bin/env perl
+
+# Git commit message hook to check for some of our standards.
+# Automatically installed by Makefile.PL
+
+use 5.28.0;
+use warnings;
+use warnings FATAL => qw( utf8 recursion   );
+use experimental qw( signatures       );
+use open         qw( :encoding(UTF-8) );
+use feature      qw( unicode_strings  );
+
+my $Version = "1.00";
+
+$|++;
+
+my @Blocklist = (qw(
+  adapts     adapting     adapted
+  adds       adding       added
+  allows     allowing     allowed
+  amends     amending     amended
+  bumps      bumping      bumped
+  calculates calculating  calculated
+  changes    changing     changed
+  cleans     cleaning     cleaned
+  commits    committing   committed
+  corrects   correcting   corrected
+  creates    creating     created
+  darkens    darkening    darkened
+  disables   disabling    disabled
+  displays   displaying   displayed
+  drys       drying       dryed
+  ends       ending       ended
+  enforces   enforcing    enforced
+  enqueues   enqueuing    enqueued
+  extracts   extracting   extracted
+  finishes   finishing    finished
+  fixes      fixing       fixed
+  formats    formatting   formatted
+  goes       going        went
+  guards     guarding     guarded
+  handles    handling     handled
+  hides      hiding       hid
+  increases  increasing   increased
+  ignores    ignoring     ignored
+  implements implementing implemented
+  improves   improving    improved
+  keeps      keeping      kept
+  kills      killing      killed
+  makes      making       made
+  merges     merging      merged
+  moves      moving       moved
+  permits    permitting   permitted
+  prevents   preventing   prevented
+  pushes     pushing      pushed
+  rebases    rebasing     rebased
+  refactors  refactoring  refactored
+  removes    removing     removed
+  renames    renaming     renamed
+  reorders   reordering   reordered
+  replaces   replacing    replaced
+  requires   requiring    required
+  restores   restoring    restored
+  returns    returning    returned
+  runs       running      ran
+  sends      sending      sent
+  sets       setting
+  separates  separating   separated
+  shows      showing      showed
+  skips      skipping     skipped
+  sorts      sorting      sorted
+  speeds     speeding     sped
+  starts     starting     started
+  supports   supporting   supported
+  takes      taking       took
+  tests      testing      tested
+  truncates  truncating   truncated
+  turns      turning      turned
+  updates    updating     updated
+  uses       using        used
+));  # adapted from https://github.com/m1foley/fit-commit
+
+my $Blocklist = join "|", @Blocklist;
+$Blocklist = qr/^(?:$Blocklist)\b/i;
+my @Errors;
+
+sub check_line_endings ($msg) {
+  my $n = 1;
+  for my $m (@$msg) {
+    if ($m =~ /\015\012$/) {
+      $m =~ s/\015\012$//;
+      push @Errors, [ "Line $n has windows line endings (CR LF)", $m ];
+    }
+    $n++;
+  }
+}
+
+sub check_beginning ($msg) {
+  return unless @$msg;
+
+  my $l     = shift @$msg;
+  my $merge = $l =~ /^Merge branch /;
+  push @Errors, [ "Line 1 is longer than 50 characters", $l ]
+    if !$merge && length $l > 50;
+  push @Errors, [ "Line 1 should not reference ticket id", $l ]
+    if !$merge && $l =~ /[-#]\w?(?:\d{3,})/;
+  push @Errors,
+    [ "Merge should reference ticket rather than full branch name", $l ]
+    if $merge && $l !~ /'[A-Z]{2,8}-\d+'/;
+  my $start = substr($l, 0, 1) // "";
+  push @Errors, [ "Line 1 does not start with an expected character", $l ]
+    if $start !~ /\w/;
+  push @Errors, [ "Line 1 does not start with a capital letter", $l ]
+    if $start eq lc $start;
+  my $verb = $l =~ $Blocklist ? "does" : $l =~ /^\w+ing\b/ ? "might" : "";
+  push @Errors, [ "Line 1 $verb not use imperative present tense", $l ]
+    if $verb;
+  push @Errors, [ "Line 1 needs changing from the commit template", $l ]
+    if $l =~ /Capitalised, short description/;
+
+  my $l2 = $msg->[0] // "";
+  push @Errors, [ "Line 2 is not empty", $l2 ] if !$merge && length $l2;
+
+  my $l3 = $msg->[1] // "";
+  push @Errors, [ "Line 3 does not reference ticket id", $l3 ]
+    if !$merge && $l3 !~ /^Ticket [A-Z]{2,8}-\d+$/;
+}
+
+sub check_end ($msg) {
+  my $n = 2;
+  while (@$msg) {
+    my $m = shift @$msg;
+    last if $m eq "# ------------------------ >8 ------------------------";
+    last if $m =~ /^# interactive rebase in progress; onto/;
+    next if $m =~ /^#/;
+    push @Errors, [ "Line $n is longer than 72 characters", $m ]
+      if length $m > 72;
+    $n++;
+  }
+}
+
+sub process_msg ($msg) {
+  push @Errors, ["Empty commit message"] unless @$msg;
+  check_line_endings($msg);
+  chomp @$msg;
+  check_beginning($msg);
+  check_end($msg);
+}
+
+sub main {
+  my ($file) = @ARGV;
+  # say STDERR "commit-msg hook: [$file]";
+
+  open my $fh, "<", $file or die "Can't open $file: $!";
+  my @msg = <$fh>;
+  close $fh or die "Can't close $file: $!";
+  process_msg(\@msg);
+
+  return 0 unless @Errors;
+
+  say "Errors found:";
+  my $max = 0;
+  for my $e (@Errors) { $max = length $e->[0] if length $e->[0] > $max }
+  for my $e (@Errors) { printf "%-${max}s: «%s»\n", @$e }
+
+  print "Force commit? [y/N] ";
+  open my $in, "<", "/dev/tty" or die "Can't open tty";
+  my $force = <$in> // "";
+  close $in or die "Can't close tty";
+  $force =~ /^y/i ? 0 : 1
+}
+
+exit main

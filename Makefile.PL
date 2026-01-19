@@ -1,4 +1,5 @@
 #!/usr/bin/perl  ## no critic (ProhibitExcessMainComplexity)
+## no critic (ProhibitLongLines)
 
 # Copyright 2001-2025, Paul Johnson (paul@pjcj.net)
 
@@ -77,6 +78,43 @@ EOM
 1
 EOI
 close $i or die "Cannot close lib/Devel/Cover/Inc.pm: $!";
+
+# Set up git hooks if in a git repo
+if (-d ".git" && -d ".git/hooks") {
+  for my $hook (qw( commit-msg prepare-commit-msg )) {
+    my $path   = ".git/hooks/$hook";
+    my $target = "../../utils/$hook-hook";
+    if (!-e $path) {
+      if (symlink $target, $path) {
+        print "Created git $hook hook\n";
+      } else {
+        warn "Could not create $hook hook: $!\n";
+      }
+    }
+  }
+
+  # Install pre-commit hooks if pre-commit is available
+  if (-f ".pre-commit-config.yaml") {
+    my $pre_commit = `which pre-commit 2>/dev/null`;
+    chomp $pre_commit;
+    if ($pre_commit && -x $pre_commit) {
+      print "Installing pre-commit hooks ...\n";
+      my $result = system "pre-commit install --install-hooks";
+      if ($result == 0) {
+        print "Pre-commit hooks installed successfully\n";
+      } else {
+        print "Pre-commit hook installation failed (exit code: $result)\n";
+        print "  To install manually, run:\n";
+        print "    pre-commit install --install-hooks\n";
+      }
+    } else {
+      print "pre-commit not found, skipping pre-commit hook installation\n";
+      print "  Install with: brew install pre-commit\n";
+      print "    (or pip install pre-commit)\n";
+      print "  Then run: pre-commit install --install-hooks\n";
+    }
+  }
+}
 
 print "Writing tests ........ ";
 

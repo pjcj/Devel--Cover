@@ -119,16 +119,16 @@ highlight cov_branch_error     ctermfg=Red   cterm=bold gui=bold guifg=Red
 highlight cov_condition        ctermfg=Green cterm=bold gui=bold guifg=Green
 highlight cov_condition_error  ctermfg=Red   cterm=bold gui=bold guifg=Red
 
-sign define pod              linehl=cov texthl=cov_pod              text=P 
-sign define pod_error        linehl=err texthl=cov_pod_error        text=P 
-sign define subroutine       linehl=cov texthl=cov_subroutine       text=R 
-sign define subroutine_error linehl=err texthl=cov_subroutine_error text=R 
-sign define statement        linehl=cov texthl=cov_statement        text=S 
-sign define statement_error  linehl=err texthl=cov_statement_error  text=S 
-sign define branch           linehl=cov texthl=cov_branch           text=B 
-sign define branch_error     linehl=err texthl=cov_branch_error     text=B 
-sign define condition        linehl=cov texthl=cov_condition        text=C 
-sign define condition_error  linehl=err texthl=cov_condition_error  text=C 
+sign define pod              linehl=cov texthl=cov_pod              text=P
+sign define pod_error        linehl=err texthl=cov_pod_error        text=P
+sign define subroutine       linehl=cov texthl=cov_subroutine       text=R
+sign define subroutine_error linehl=err texthl=cov_subroutine_error text=R
+sign define statement        linehl=cov texthl=cov_statement        text=S
+sign define statement_error  linehl=err texthl=cov_statement_error  text=S
+sign define branch           linehl=cov texthl=cov_branch           text=B
+sign define branch_error     linehl=err texthl=cov_branch_error     text=B
+sign define condition        linehl=cov texthl=cov_condition        text=C
+sign define condition_error  linehl=err texthl=cov_condition_error  text=C
 
 function! CoverageOld(filename)
 endfunction

@@ -1,0 +1,17 @@
+{
+  "min-tokens": 1,
+  "min-lines": 1,
+  "max-lines": 100000,
+  "max-size": 10000000,
+  "threshold": 3.75,
+  "reporters": [
+    "console"
+  ],
+  "mode": "mild",
+  "blame": false,
+  "gitignore": true,
+  "ignore": [
+    "**/test_output/**",
+    "**/t/e2e/**"
+  ]
+}
