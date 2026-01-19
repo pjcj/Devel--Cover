@@ -1,0 +1,98 @@
+---
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+fail_fast: false  # Allow all checks to run even if one fails
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [ --maxkb=600 ]
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-yaml
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: end-of-file-fixer
+        exclude: ^test_output/
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending
+        args: [ --fix=lf ]
+        exclude: ^test_output/
+      - id: trailing-whitespace
+        exclude: ^test_output/
+
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 3.0.0
+    hooks:
+      - id: forbid-binary
+        exclude: |
+          (?x)(
+            \.png$  |
+            \.ico$
+          )
+      - id: shellcheck
+        args: [ -a ]
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [ --config-file=.yamllint ]
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.44.0
+    hooks:
+      - id: markdownlint
+
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.13.1-beta
+    hooks:
+      - id: hadolint
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.42.0
+    hooks:
+      - id: typos
+        args: [ --force-exclude ]
+
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.22
+    hooks:
+      - id: mdformat
+        args: [ --number ]
+        additional_dependencies:
+          - mdformat-gfm
+          - mdformat-frontmatter
+
+  - repo: local
+    hooks:
+      - id: perltidy-check
+        name: perltidy (check only)
+        description: Check Perl files are formatted with perltidy
+        language: system
+        entry: >-
+          bash -c 'for f in "$@"; do perltidy --profile=.perltidyrc -st "$f" |
+          diff -q "$f" - >/dev/null || { echo "Not tidy: $f"; exit 1; };
+          done' --
+        types: [ perl ]
+
+      - id: perlcritic
+        name: perlcritic
+        description: Check Perl files with perlcritic
+        language: system
+        entry: perlcritic --profile .perlcriticrc
+        types: [ perl ]
+
+      - id: jscpd
+        name: Check for duplicated code
+        description: Ensure we don't have large sections of duplicated code
+        language: node
+        entry: jscpd --gitignore
+        pass_filenames: false
