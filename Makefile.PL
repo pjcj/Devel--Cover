@@ -8,7 +8,7 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-require 5.012000;
+require 5.020000;
 
 use strict;
 use warnings;
@@ -322,7 +322,7 @@ my $Opts = {
   NAME             => "Devel::Cover",
   VERSION          => $Version,
   AUTHOR           => 'Paul Johnson <paul@pjcj.net>',
-  MIN_PERL_VERSION => "5.012",
+  MIN_PERL_VERSION => "5.020",
   ABSTRACT_FROM    => "lib/Devel/Cover.pm",
   DIR              => [],
   EXE_FILES        => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],

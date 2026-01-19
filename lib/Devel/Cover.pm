@@ -7,7 +7,7 @@
 
 package Devel::Cover;
 
-use v5.12.0;
+use v5.20.0;
 use strict;
 use warnings;
 

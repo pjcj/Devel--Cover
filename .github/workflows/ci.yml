@@ -18,10 +18,6 @@ jobs:
         os: [ macos-latest, windows-latest ]
         perl: [ "5" ]
         include:
-          - { os: "ubuntu-latest", perl: "5.12" }
-          - { os: "ubuntu-latest", perl: "5.14" }
-          - { os: "ubuntu-latest", perl: "5.16" }
-          - { os: "ubuntu-latest", perl: "5.18" }
           - { os: "ubuntu-latest", perl: "5.20" }
           - { os: "ubuntu-latest", perl: "5.22" }
           - { os: "ubuntu-latest", perl: "5.24" }
