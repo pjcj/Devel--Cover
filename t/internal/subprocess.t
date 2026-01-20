@@ -1,13 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More;
-
-if ($] < 5.010000) {
-    plan skip_all => "Perl version $] is not supported";
-} else {
-    plan tests => 2;
-}
+use Test::More tests => 2;
 
 my $cmd = qq[$^X -e "print q(Hello, world.)"];
 my $output = `$cmd 2>&1`;

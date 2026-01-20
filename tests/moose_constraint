@@ -7,10 +7,10 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-# __COVER__ skip_test $] < 5.010 || !(eval "use Moose; 23")
+# __COVER__ skip_test !(eval "use Moose; 23")
 # __COVER__ skip_reason Moose not available or unreliable with Devel::Cover
 
-use 5.010;
+use 5.020;
 
 package Foo;
 

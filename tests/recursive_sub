@@ -7,9 +7,6 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-# __COVER__ skip_test $] < 5.016
-# __COVER__ skip_reason __SUB__ is available from 5.16
-
 use feature "current_sub";
 
 sub recursive_func

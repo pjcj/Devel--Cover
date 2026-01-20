@@ -406,7 +406,7 @@ sub report {
       sprintf "%04d-%02d-%02d %02d:%02d:%02d", $year + 1900, $mon + 1, $mday,
         $hour, $min, $sec
     },
-    perl_v  => $] < 5.010 ? $] : $^V,
+    perl_v  => $^V,
     os      => $^O,
     options => $options,
     version => $VERSION,

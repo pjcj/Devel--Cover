@@ -388,8 +388,7 @@ sub populate_run {
   my $self = shift;
 
   $Run{OS}   = $^O;
-  $Run{perl} = $] < 5.010 ? join ".", map ord, split //, $^V : sprintf "%vd",
-    $^V;
+  $Run{perl} = sprintf "%vd", $^V;
   $Run{dir}     = $Dir;
   $Run{run}     = $0;
   $Run{name}    = $Dir;
@@ -1133,7 +1132,7 @@ my %Original;
     # print STDERR "left [$left], right [$right]\n";
     my ($file, $line) = ($File, $Line);
 
-    $blockname &&= $self->keyword($blockname) if $] >= 5.016000;
+    $blockname &&= $self->keyword($blockname);
     if ($cx < 1 && is_scope($right) && $blockname && $self->{expand} < 7) {
       # print STDERR 'if ($a) {$b}', "\n";
       # if ($a) {$b}
