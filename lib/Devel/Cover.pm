@@ -1447,13 +1447,14 @@ reported.
 
 =over
 
-=item * Perl 5.12.0 or greater.
+=item * Perl 5.20.0 or greater.
 
-The latest version of Devel::Cover on which Perl 5.10 was supported was 1.38.
-The latest version of Devel::Cover on which Perl 5.8 was supported was 1.23.
-Perl versions 5.6.1 and 5.6.2 were not supported after version 1.22.  Perl
-versions 5.6.0 and earlier were never supported.  Using Devel::Cover with Perl
-5.8.7 was always problematic and frequently lead to crashes.
+The latest version of Devel::Cover on which Perl 5.12 to 5.18 was supported was
+1.44.  The latest version of Devel::Cover on which Perl 5.10 was supported was
+1.38.  The latest version of Devel::Cover on which Perl 5.8 was supported was
+1.23.  Perl versions 5.6.1 and 5.6.2 were not supported after version 1.22.
+Perl versions 5.6.0 and earlier were never supported.  Using Devel::Cover with
+Perl 5.8.7 was always problematic and frequently lead to crashes.
 
 Different versions of perl may give slightly different results due to changes
 in the op tree.

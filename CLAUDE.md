@@ -247,7 +247,7 @@ After adding a new stable Perl version:
 
 ### Version Compatibility
 
-- Supports Perl 5.12+
+- Supports Perl 5.20+
 - Has version-specific test outputs for different Perl versions
 - Self-adjusts for different Perl installations
 
