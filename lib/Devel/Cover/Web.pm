@@ -17,7 +17,7 @@ use warnings;
 use Exporter;
 
 our @ISA       = "Exporter";
-our @EXPORT_OK = "write_file";
+our @EXPORT_OK = qw( get_file write_file );
 
 my %Files;
 
@@ -36,7 +36,12 @@ sub write_file {
   }
 }
 
-$Files{"cover.css"} = <<'EOF';
+sub get_file {
+  my ($file) = @_;
+  $Files{$file}
+}
+
+my $common_css = <<'EOF';
 /* Stylesheet for Devel::Cover HTML reports */
 
 /* You may modify this file to alter the appearance of your coverage
@@ -75,21 +80,11 @@ tr {
     vertical-align : top;
 }
 
-th,.h,.hh,.sh,.sv {
+th,.h,.hh {
     background-color   : #cccccc;
     border             : solid 1px #333333;
     padding            : 0em 0.2em;
     -moz-border-radius : 4px;
-}
-
-.sh {
-    color       : #CD5555;
-    font-weight : bold;
-    padding     : 0.2em;
-}
-
-.sv {
-    padding     : 0.2em;
 }
 
 td {
@@ -105,10 +100,6 @@ td {
 
 .dblank {
     border: none;
-}
-
-table.sortable a.sortheader {
-  text-decoration: none;
 }
 
 /* source code */
@@ -140,6 +131,30 @@ border           : solid 1px #cccc66;
 .c3 {
 background-color :           #99ff99;
 border           : solid 1px #009900;
+}
+EOF
+
+my $extra_css = <<'EOF';
+
+.sh,.sv {
+    background-color   : #cccccc;
+    border             : solid 1px #333333;
+    padding            : 0em 0.2em;
+    -moz-border-radius : 4px;
+}
+
+.sh {
+    color       : #CD5555;
+    font-weight : bold;
+    padding     : 0.2em;
+}
+
+.sv {
+    padding     : 0.2em;
+}
+
+table.sortable a.sortheader {
+  text-decoration: none;
 }
 
 /* For syntax highlighting with PPI::HTML */
@@ -178,6 +193,9 @@ border           : solid 1px #009900;
 .v  { color: #B452CD;                    } /* v-string        */
 .w  { color: #000000;                    } /* bareword        */
 EOF
+
+$Files{"collection.css"} = $common_css;
+$Files{"cover.css"}      = $common_css . $extra_css;
 
 $Files{"common.js"} = <<'EOF';
 /**

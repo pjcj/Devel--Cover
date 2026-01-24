@@ -15,6 +15,7 @@ use warnings;
 use Devel::Cover::DB           ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Dumper       qw( Dumper );
+use Devel::Cover::Web          qw( get_file );
 
 use JSON::MaybeXS      ();
 use Parallel::Iterator qw( iterate_as_array );
@@ -36,19 +37,19 @@ my %A = (
 while (my ($type, $names) = each %A) { has $_ => (is => $type) for @$names }
 
 sub BUILDARGS ($class, %args) { {
-  build_dirs    => [],
-  cpan_dir      => [ grep -d, glob "~/.cpan ~/.local/share/.cpan" ],
-  docker        => "docker",
-  dryrun        => 0,
-  env           => "prod",
-  force         => 0,
-  local         => 0,
-  modules       => [],
-  output_file   => "index.html",
-  report        => "html_basic",
-  timeout       => 30 * 60,      # half an hour
-  verbose       => 0,
-  workers       => 0,
+  build_dirs  => [],
+  cpan_dir    => [ grep -d, glob "~/.cpan ~/.local/share/.cpan" ],
+  docker      => "docker",
+  dryrun      => 0,
+  env         => "prod",
+  force       => 0,
+  local       => 0,
+  modules     => [],
+  output_file => "index.html",
+  report      => "html_basic",
+  timeout     => 30 * 60,                                         # half an hour
+  verbose     => 0,
+  workers     => 0,
   %args,
 } }
 
@@ -449,7 +450,7 @@ sub cover_modules ($self) {
   my @cmd = ($self->dc_file, "--env", $self->env);
   push @cmd, "--verbose" if $self->verbose;
   my @command = (@cmd, "cpancover-docker-module");
-  my @res = iterate_as_array(
+  my @res     = iterate_as_array(
     { workers => $self->workers },
     sub {
       # say "mod ", Dumper \@_;
@@ -515,93 +516,7 @@ sub get_latest ($self) {
 sub write_stylesheet ($self) {
   my $css = ($self->made_res_dir)[0] . "/collection.css";
   open my $fh, ">", $css or die "Can't open $css: $!\n";
-  print $fh <<EOF;
-/* Stylesheet for Devel::Cover collection reports */
-
-/* You may modify this file to alter the appearance of your coverage
- * reports. If you do, you should probably flag it read-only to prevent
- * future runs from overwriting it.
- */
-
-/* Note: default values use the color-safe web palette. */
-
-body {
-  font-family: sans-serif;
-}
-
-h1 {
-  text-align : center;
-  background-color: #cc99ff;
-  border: solid 1px #999999;
-  padding: 0.2em;
-  -moz-border-radius: 10px;
-}
-
-a {
-  color: #000000;
-}
-a:visited {
-  color: #333333;
-}
-
-table {
-  border-spacing: 0px;
-}
-tr {
-  text-align : center;
-  vertical-align: top;
-}
-th,.h,.hh {
-  background-color: #cccccc;
-  border: solid 1px #333333;
-  padding: 0em 0.2em;
-  -moz-border-radius: 4px;
-}
-td {
-  border: solid 1px #cccccc;
-  border-top: none;
-  border-left: none;
-  -moz-border-radius: 4px;
-}
-.hblank {
-  height: 0.5em;
-}
-.dblank {
-  border: none;
-}
-
-/* source code */
-pre,.s {
-  text-align: left;
-  font-family: monospace;
-  white-space: pre;
-  padding: 0.2em 0.5em 0em 0.5em;
-}
-
-/* Classes for color-coding coverage information:
- *   c0  : path not covered or coverage < 75%
- *   c1  : coverage >= 75%
- *   c2  : coverage >= 90%
- *   c3  : path covered or coverage = 100%
- */
-.c0 {
-  background-color: #ff9999;
-  border: solid 1px #cc0000;
-}
-.c1 {
-  background-color: #ffcc99;
-  border: solid 1px #ff9933;
-}
-.c2 {
-  background-color: #ffff99;
-  border: solid 1px #cccc66;
-}
-.c3 {
-  background-color: #99ff99;
-  border: solid 1px #009900;
-}
-EOF
-
+  print $fh get_file("collection.css");
   close $fh or die "Can't close $css: $!\n";
 }
 
