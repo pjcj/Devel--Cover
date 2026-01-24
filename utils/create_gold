@@ -12,7 +12,7 @@ use warnings;
 
 # VERSION
 
-use feature qw( say signatures );
+use feature "signatures";
 no warnings "experimental::signatures";
 
 use blib;
