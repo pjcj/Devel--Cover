@@ -835,10 +835,6 @@ The following command line options are supported:
 
  Devel::Cover
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2001-2025, Paul Johnson (paul@pjcj.net)

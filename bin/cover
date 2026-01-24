@@ -695,12 +695,6 @@ With the -test option the exit status of the underlying test run is returned.
 
 L<Devel::Cover>
 
-=head1 BUGS
-
-Did I mention that this is alpha code?
-
-See the BUGS file.
-
 =head1 LICENCE
 
 Copyright 2001-2025, Paul Johnson (paul@pjcj.net)

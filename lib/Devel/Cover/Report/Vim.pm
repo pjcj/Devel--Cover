@@ -391,10 +391,6 @@ https://github.com/nyarly/Simplecov-Vim
  Devel::Cover
  Simplecov-Vim (https://github.com/nyarly/Simplecov-Vim)
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2012-2025, Paul Johnson (paul@pjcj.net)

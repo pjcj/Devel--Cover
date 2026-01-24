@@ -89,10 +89,6 @@ It is designed to be called from the C<cover> program.
 
  Devel::Cover
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2004-2025, Paul Johnson (paul@pjcj.net)

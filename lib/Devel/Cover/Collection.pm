@@ -794,10 +794,6 @@ Devel::Cover::Collection - Code coverage for a collection of modules
 
 =head1 ENVIRONMENT
 
-=head1 BUGS
-
-Almost certainly.
-
 =head1 LICENCE
 
 Copyright 2014-2025, Paul Johnson (paul@pjcj.net)

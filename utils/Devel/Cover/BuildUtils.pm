@@ -78,10 +78,6 @@ Build utility functions for Devel::Cover.
 
 =head1 METHODS
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2001-2025, Paul Johnson (paul@pjcj.net)

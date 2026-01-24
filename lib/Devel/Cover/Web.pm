@@ -920,10 +920,6 @@ Output the specified file to the specified directory.
  Devel::Cover::Report::Html_basic
  cpancover
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2007-2025, Paul Johnson (paul@pjcj.net) except where otherwise noted.

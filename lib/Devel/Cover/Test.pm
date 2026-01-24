@@ -493,10 +493,6 @@ of Perl will be overridden as though it is 5.26.
 
 Runs command, most likely obtained from L</test_command> sub.
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2001-2025, Paul Johnson (paul@pjcj.net)

@@ -576,10 +576,6 @@ Merge entries from C<$sub_table> into left column of table.
 
 Devel::Cover
 
-=head1 BUGS
-
-None that I'm aware of...
-
 =head1 LICENSE
 
 Copyright 2002 Michael Carman <mjcarman@mchsi.com>
