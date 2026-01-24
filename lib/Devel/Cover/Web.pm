@@ -33,7 +33,7 @@ sub write_file ($directory, $file) {
     my $path = "$directory/$f";
     open my $p, ">", $path or next;
     print $p $contents;
-    close $p;
+    close $p or die "Can't close $path: $!";
   }
 }
 
