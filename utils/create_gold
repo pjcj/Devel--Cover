@@ -7,50 +7,59 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-require 5.12.0;
-
-use strict;
+use 5.20.0;
 use warnings;
 
 # VERSION
 
+use feature qw( say signatures );
+no warnings "experimental::signatures";
+
 use blib;
+use Config             qw( %Config );
+use Devel::Cover::Test ();
 
-use Config;
-die "useithreads true, exiting" if $Config{useithreads};
-
-use Devel::Cover::Test;
-
-my @tests = @ARGV;
-
-mkdir "test_output"       unless -d "test_output";
-mkdir "test_output/cover" unless -d "test_output/cover";
-
-unless (@tests) {
-  opendir D, "tests" or die "Cannot opendir tests: $!";
-  for my $t (sort readdir D) {
+sub get_tests_from_dir {
+  my @tests;
+  opendir my $dh, "tests" or die "Cannot opendir tests: $!";
+  for my $t (sort readdir $dh) {
     next unless -f "tests/$t";
     next if $t =~ /\.(pm|pl|uncoverable|version|org|bak|swp)$/;
     next if $t =~ /~$/;
     push @tests, $t;
   }
-  closedir D or die "Cannot closedir tests: $!";
+  closedir $dh or die "Cannot closedir tests: $!";
+  @tests
 }
 
-for my $test (@tests) {
-  my $e      = "t/e2e";
-  my ($file) = grep -e, "$e/$test", "$e/a$test.t";
-  $file ||= $test;
-  print STDERR "creating golden results for $test: ";
-  # print "requiring [$file]\n";
-  die "Can't fork" unless defined(my $pid = fork);
+sub run_test_in_child ($test) {
+  my $e    = "t/e2e";
+  my $file = (grep -e, "$e/$test", "$e/a$test.t")[0] // $test;
+  say "creating golden results for $test: ";
+  my $pid = fork // die "Can't fork";
   if ($pid) {
     waitpid $pid, 0;
   } else {
     no warnings "redefine";
     local *Devel::Cover::Test::run_test = sub { };
     my $t = require "./$file" or die "Can't require $file: $!";
-    $t->create_gold && print STDERR "\n";
+    $t->create_gold and say "";
     exit;
   }
 }
+
+sub main {
+  if ($Config{useithreads}) {
+    say "useithreads true, exiting";
+    return;
+  }
+
+  mkdir "test_output"       unless -d "test_output";
+  mkdir "test_output/cover" unless -d "test_output/cover";
+
+  my @tests = @ARGV;
+  @tests = get_tests_from_dir unless @tests;
+  run_test_in_child($_) for @tests;
+}
+
+main
