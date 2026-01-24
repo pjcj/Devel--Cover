@@ -850,7 +850,7 @@ global_variable_exemptions = VERSION ISA EXPORT(?:_OK)? EXPORT_TAGS AUTOLOAD ENV
 # constant_exemptions =
 
 # How labels should be capitalized.  Valid values are :single_case, :all_lower, :all_upper, :starts_with_lower, :starts_with_upper, :no_restriction, or a regex.
-# labels = :all_upper
+labels = :all_lower
 
 # Labels that are exempt from capitalization rules.  The values here are regexes that will be surrounded by \A and \z.
 # label_exemptions =
