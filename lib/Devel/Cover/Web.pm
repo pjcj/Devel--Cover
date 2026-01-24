@@ -41,7 +41,7 @@ sub get_file ($file) {
   $Files{$file}
 }
 
-my $common_css = <<'EOF';
+my $Common_css = <<'EOF';
 /* Stylesheet for Devel::Cover HTML reports */
 
 /* You may modify this file to alter the appearance of your coverage
@@ -134,7 +134,7 @@ border           : solid 1px #009900;
 }
 EOF
 
-my $extra_css = <<'EOF';
+my $Extra_css = <<'EOF';
 
 .sh,.sv {
     background-color   : #cccccc;
@@ -194,8 +194,8 @@ table.sortable a.sortheader {
 .w  { color: #000000;                    } /* bareword        */
 EOF
 
-$Files{"collection.css"} = $common_css;
-$Files{"cover.css"}      = $common_css . $extra_css;
+$Files{"collection.css"} = $Common_css;
+$Files{"cover.css"}      = $Common_css . $Extra_css;
 
 $Files{"common.js"} = <<'EOF';
 /**
