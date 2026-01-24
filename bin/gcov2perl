@@ -10,6 +10,9 @@
 use 5.20.0;
 use warnings;
 
+use feature qw( signatures postderef );
+no warnings qw( experimental::signatures experimental::postderef );
+
 # VERSION
 
 use Devel::Cover::DB ();
@@ -21,7 +24,7 @@ use Pod::Usage   qw( pod2usage );
 
 my $Options = { db => "cover_db" };
 
-sub get_options {
+sub get_options () {
   die "Bad option"
     unless GetOptions(
       $Options,  # Store the options in the Options hash
@@ -38,8 +41,7 @@ sub get_options {
   pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
 }
 
-sub add_cover {
-  my ($file) = @_;
+sub add_cover ($file) {
   my ($vol, $dir) = File::Spec->splitpath(File::Spec->rel2abs($file));
   $dir = File::Spec->catpath($vol, $dir);
 
@@ -88,7 +90,7 @@ sub add_cover {
       $count =~ s/\*$//;
 
       # print "$f:$line - $count\n";
-      push @{ $run{count}{$f}{statement} }, $count;
+      push $run{count}{$f}{statement}->@*, $count;
       $structure->add_statement($f, $line);
     } elsif ($gcov_text =~ $branch_re) {
       my @branches;
@@ -105,7 +107,7 @@ sub add_cover {
 
       if (@branches == 2) {
         $structure->add_branch($f, [ $line, { text => $text } ]);
-        push @{ $run{count}{$f}{branch} }, \@branches;
+        push $run{count}{$f}{branch}->@*, \@branches;
       } else {
         warn "gcov2perl: Warning: ignoring branch with ", scalar @branches,
           " targets at $f:$line $text\n";
@@ -133,7 +135,7 @@ sub add_cover {
   $cover->write;
 }
 
-sub main {
+sub main () {
   get_options;
   add_cover $_ for @ARGV;
 }
