@@ -9,8 +9,11 @@
 
 package Devel::Cover::Web;
 
-use strict;
+use 5.20.0;
 use warnings;
+
+use feature "signatures";
+no warnings "experimental::signatures";
 
 # VERSION
 
@@ -21,9 +24,7 @@ our @EXPORT_OK = qw( get_file write_file );
 
 my %Files;
 
-sub write_file {
-  my ($directory, $file) = @_;
-
+sub write_file ($directory, $file) {
   while (my ($f, $contents) = each %Files) {
     next
       if $file ne "all"
@@ -36,8 +37,7 @@ sub write_file {
   }
 }
 
-sub get_file {
-  my ($file) = @_;
+sub get_file ($file) {
   $Files{$file}
 }
 
