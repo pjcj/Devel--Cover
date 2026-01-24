@@ -1449,7 +1449,7 @@ reported.
 =item * Perl 5.20.0 or greater.
 
 The latest version of Devel::Cover on which Perl 5.12 to 5.18 was supported was
-1.44.  The latest version of Devel::Cover on which Perl 5.10 was supported was
+1.51.  The latest version of Devel::Cover on which Perl 5.10 was supported was
 1.38.  The latest version of Devel::Cover on which Perl 5.8 was supported was
 1.23.  Perl versions 5.6.1 and 5.6.2 were not supported after version 1.22.
 Perl versions 5.6.0 and earlier were never supported.  Using Devel::Cover with
