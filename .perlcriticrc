@@ -853,7 +853,7 @@ global_variable_exemptions = VERSION ISA EXPORT(?:_OK)? EXPORT_TAGS AUTOLOAD ENV
 labels = :all_lower
 
 # Labels that are exempt from capitalization rules.  The values here are regexes that will be surrounded by \A and \z.
-# label_exemptions =
+label_exemptions = SKIP
 
 
 # Don't use vague variable or subroutine names like 'last' or 'record'.
