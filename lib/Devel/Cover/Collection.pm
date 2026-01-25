@@ -265,6 +265,14 @@ class Devel::Cover::Collection {
     say "Wrote json output to $f";
   }
 
+  method coverage_class ($pc) {
+        $pc eq "n/a" ? "na"
+      : $pc < 75     ? "c0"
+      : $pc < 90     ? "c1"
+      : $pc < 100    ? "c2"
+      : "c3"
+  }
+
   method write_summary ($vars) {
     my $d = $self->dir;
     my $f = $self->file;
@@ -350,7 +358,7 @@ class Devel::Cover::Collection {
         my $pc = $summary->{percentage};
         $pc                     = defined $pc ? sprintf "%.2f", $pc : "n/a";
         $m->{$criterion}{pc}    = $pc;
-        $m->{$criterion}{class} = &class($pc);  ## no critic (AmpersandSigils)
+        $m->{$criterion}{class} = $self->coverage_class($pc);
         $m->{$criterion}{details}
           = ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
       }
@@ -531,16 +539,6 @@ class Devel::Cover::Collection {
       # $release->size;
     }
   }
-}
-
-# class() function defined outside class block due to keyword conflict
-sub class {
-  my ($pc) = @_;
-      $pc eq "n/a" ? "na"
-    : $pc < 75     ? "c0"
-    : $pc < 90     ? "c1"
-    : $pc < 100    ? "c2"
-    :                "c3"
 }
 
 package Devel::Cover::Collection::Template::Provider;
@@ -966,6 +964,18 @@ then runs coverage for each module in parallel.
 Generates HTML coverage reports for all modules in the results directory.
 Creates an index page, per-module pages, and an about page.
 
+=head3 coverage_class
+
+  my $css_class = $collection->coverage_class($percentage);
+
+Converts a coverage percentage to a CSS class name for HTML reports:
+
+  n/a     -> "na"
+  < 75    -> "c0"
+  < 90    -> "c1"
+  < 100   -> "c2"
+  100     -> "c3"
+
 =head3 write_summary
 
   $collection->write_summary($vars);
@@ -1084,20 +1094,6 @@ Like C<sys>, but dies on failure.
   my $output = $collection->fbsys(@command);
 
 Like C<bsys>, but dies on failure.
-
-=head1 FUNCTIONS
-
-=head2 class
-
-  my $css_class = Devel::Cover::Collection::class($percentage);
-
-Converts a coverage percentage to a CSS class name for HTML reports:
-
-  n/a     -> "na"
-  < 75    -> "c0"
-  < 90    -> "c1"
-  < 100   -> "c2"
-  100     -> "c3"
 
 =head1 EMBEDDED CLASSES
 

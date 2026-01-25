@@ -26,19 +26,6 @@ use Devel::Cover::Collection ();
 # _sys() uses Time::HiRes::alarm() which is not available on Windows
 my $Is_win32 = $^O eq "MSWin32";
 
-sub class_function () {
-  my $class = \&Devel::Cover::Collection::class;
-  is $class->("n/a"), "na", "class('n/a') -> 'na'";
-  is $class->(0),     "c0", "class(0) -> 'c0'";
-  is $class->(50),    "c0", "class(50) -> 'c0'";
-  is $class->(74.99), "c0", "class(74.99) -> 'c0'";
-  is $class->(75),    "c1", "class(75) -> 'c1'";
-  is $class->(89.99), "c1", "class(89.99) -> 'c1'";
-  is $class->(90),    "c2", "class(90) -> 'c2'";
-  is $class->(99.99), "c2", "class(99.99) -> 'c2'";
-  is $class->(100),   "c3", "class(100) -> 'c3'";
-}
-
 sub constructor_defaults () {
   my $c = Devel::Cover::Collection->new;
   is_deeply $c->build_dirs, [], "build_dirs defaults to empty arrayref";
@@ -426,6 +413,19 @@ sub dc_file () {
   }
 }
 
+sub coverage_class_method () {
+  my $c = Devel::Cover::Collection->new;
+  is $c->coverage_class("n/a"), "na", "coverage_class('n/a') -> 'na'";
+  is $c->coverage_class(0),     "c0", "coverage_class(0) -> 'c0'";
+  is $c->coverage_class(50),    "c0", "coverage_class(50) -> 'c0'";
+  is $c->coverage_class(74.99), "c0", "coverage_class(74.99) -> 'c0'";
+  is $c->coverage_class(75),    "c1", "coverage_class(75) -> 'c1'";
+  is $c->coverage_class(89.99), "c1", "coverage_class(89.99) -> 'c1'";
+  is $c->coverage_class(90),    "c2", "coverage_class(90) -> 'c2'";
+  is $c->coverage_class(99.99), "c2", "coverage_class(99.99) -> 'c2'";
+  is $c->coverage_class(100),   "c3", "coverage_class(100) -> 'c3'";
+}
+
 sub write_json () {
   SKIP: {
     skip "alarm not available on Windows", 8 if $Is_win32;
@@ -482,7 +482,6 @@ sub template_provider_fetch () {
 
 sub main () {
   my @tests = qw(
-    class_function
     constructor_defaults
     constructor_with_args
     ro_accessors
@@ -508,6 +507,7 @@ sub main () {
     bsys_multiline_output
     bsys_stderr_capture
     dc_file
+    coverage_class_method
     write_json
     template_provider_fetch
   );
