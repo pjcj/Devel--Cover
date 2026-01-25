@@ -258,9 +258,12 @@ sub sys_successful_command () {
 }
 
 sub sys_failed_command () {
-  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $warning = "";
+  local $SIG{__WARN__} = sub { $warning .= shift };
   my $output = $c->sys("false");
   is $output, "", "sys returns empty string on failed command";
+  like $warning, qr/Error running false/, "sys warns on failed command";
 }
 
 sub bsys_successful_command () {
@@ -271,9 +274,12 @@ sub bsys_successful_command () {
 }
 
 sub bsys_failed_command () {
-  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $warning = "";
+  local $SIG{__WARN__} = sub { $warning .= shift };
   my $output = $c->bsys("false");
   is $output, "", "bsys returns empty string on failed command";
+  like $warning, qr/Error running false/, "bsys warns on failed command";
 }
 
 sub fsys_successful_command () {
@@ -284,13 +290,16 @@ sub fsys_successful_command () {
 }
 
 sub fsys_failed_command () {
-  my $c    = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $warning = "";
+  local $SIG{__WARN__} = sub { $warning .= shift };
   my $died = 0;
   eval {
     $c->fsys("false");
     1;
   } or $died = 1;
   ok $died, "fsys dies on failed command";
+  like $warning, qr/Error running false/, "fsys warns on failed command";
 }
 
 sub fbsys_successful_command () {
@@ -301,22 +310,29 @@ sub fbsys_successful_command () {
 }
 
 sub fbsys_failed_command () {
-  my $c    = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $warning = "";
+  local $SIG{__WARN__} = sub { $warning .= shift };
   my $died = 0;
   eval {
     $c->fbsys("false");
     1;
   } or $died = 1;
   ok $died, "fbsys dies on failed command";
+  like $warning, qr/Error running false/, "fbsys warns on failed command";
 }
 
 sub sys_timeout () {
   SKIP: {
-    skip "slow test - set EXTENDED_TESTING=1 to run", 1
+    skip "slow test - set EXTENDED_TESTING=1 to run", 3
       unless $ENV{EXTENDED_TESTING};
-    my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 1);
+    my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 1);
+    my $warning = "";
+    local $SIG{__WARN__} = sub { $warning .= shift };
     my $output = $c->sys("sleep", "10");
     is $output, "", "sys returns empty string on timeout";
+    like $warning, qr/Timed out after 1 seconds/, "sys warns on timeout";
+    like $warning, qr/killed \d+ processes/, "sys warns about killed processes";
   }
 }
 
