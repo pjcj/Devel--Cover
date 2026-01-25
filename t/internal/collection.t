@@ -243,6 +243,95 @@ sub status_tracking () {
   ok !$c->is_failed("Never-Failed"), "set_covered on non-existent is safe";
 }
 
+sub sys_successful_command () {
+  # sys prints short output to stdout (not captured), returns empty on success
+  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $output = $c->sys("true");
+  is $output, "", "sys returns empty string for short successful command";
+}
+
+sub sys_failed_command () {
+  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $output = $c->sys("false");
+  is $output, "", "sys returns empty string on failed command";
+}
+
+sub bsys_successful_command () {
+  # bsys buffers all output (non_buffered=0), so output is captured
+  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $output = $c->bsys("echo", "buffered output");
+  like $output, qr/buffered output/, "bsys captures output";
+}
+
+sub bsys_failed_command () {
+  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $output = $c->bsys("false");
+  is $output, "", "bsys returns empty string on failed command";
+}
+
+sub fsys_successful_command () {
+  # fsys prints short output to stdout (not captured), returns empty on success
+  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $output = $c->fsys("true");
+  is $output, "", "fsys returns empty string for short successful command";
+}
+
+sub fsys_failed_command () {
+  my $c    = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $died = 0;
+  eval {
+    $c->fsys("false");
+    1;
+  } or $died = 1;
+  ok $died, "fsys dies on failed command";
+}
+
+sub fbsys_successful_command () {
+  # fbsys buffers all output (non_buffered=0), so output is captured
+  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $output = $c->fbsys("echo", "fatal buffered");
+  like $output, qr/fatal buffered/, "fbsys captures output";
+}
+
+sub fbsys_failed_command () {
+  my $c    = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $died = 0;
+  eval {
+    $c->fbsys("false");
+    1;
+  } or $died = 1;
+  ok $died, "fbsys dies on failed command";
+}
+
+sub sys_timeout () {
+  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 1);
+  my $output = $c->sys("sleep", "10");
+  is $output, "", "sys returns empty string on timeout";
+}
+
+sub sys_verbose_output () {
+  # verbose mode adds command prefix to output1 before any output is read
+  my $c      = Devel::Cover::Collection->new(verbose => 1, timeout => 10);
+  my $output = $c->sys("true");
+  like $output, qr/dc -> true/, "sys includes command prefix in verbose mode";
+}
+
+sub bsys_multiline_output () {
+  # bsys captures all output since non_buffered=0
+  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $output = $c->bsys("printf", "line1\\nline2\\nline3\\n");
+  like $output, qr/line1/, "bsys captures first line";
+  like $output, qr/line2/, "bsys captures middle line";
+  like $output, qr/line3/, "bsys captures last line";
+}
+
+sub bsys_stderr_capture () {
+  # _sys redirects stderr to stdout in child, bsys captures it
+  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+  my $output = $c->bsys("sh", "-c", "echo stderr >&2");
+  like $output, qr/stderr/, "bsys captures stderr (redirected to stdout)";
+}
+
 sub main () {
   my @tests = qw(
     class_function
@@ -257,6 +346,18 @@ sub main () {
     made_res_dir
     path_methods
     status_tracking
+    sys_successful_command
+    sys_failed_command
+    bsys_successful_command
+    bsys_failed_command
+    fsys_successful_command
+    fsys_failed_command
+    fbsys_successful_command
+    fbsys_failed_command
+    sys_timeout
+    sys_verbose_output
+    bsys_multiline_output
+    bsys_stderr_capture
   );
   for my $test (@tests) {
     no strict "refs";
