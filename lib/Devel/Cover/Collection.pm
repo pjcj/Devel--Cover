@@ -224,7 +224,7 @@ sub write_json ($self, $vars) {
     $version = $mod->{version} if defined $mod->{version};
     if (defined $name && defined $version) {
       $results->{$name}{$version}{coverage}{total} = {
-        map { $_ => $m->{$_}{pc} } grep $m->{$_}{pc} ne 'n/a',
+        map { $_ => $m->{$_}{pc} } grep $m->{$_}{pc} ne "n/a",
         grep !/link|log|module/,
         keys %$m,
       };
@@ -561,7 +561,8 @@ https://pjcj.net
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta>
   <meta http-equiv="Content-Language" content="en-us"></meta>
-  <link rel="stylesheet" type="text/css" href="/[% subdir %]collection.css"></link>
+  <link rel="stylesheet" type="text/css"
+        href="/[% subdir %]collection.css"></link>
   <title> [% title %] </title>
 </head>
 <body>
@@ -580,10 +581,7 @@ https://pjcj.net
   <p><a href="http://cpancover.com/latest/about.html">About</a> the project.</p>
 
   <p>This server generously donated by
-  <a href="https://www.bytemark.co.uk/r/cpancover">
-    <img src="https://www.bytemark.co.uk/images/subpages/spreadtheword/bytemark_logo_179_x_14.png" alt="bytemark"/>
-  </a>
-  </p>
+  <a href="https://www.bytemark.co.uk">Bytemark</a>.</p>
 </body>
 </html>
 EOT
@@ -616,9 +614,10 @@ $Templates{about} = <<'EOT';
 
 <h2> About </h2>
 
-<p>CPANCover is a project to provide code coverage information for <a
-href="https://metacpan.org"> CPAN</a> modules.  When a new module, or an update to an
-existing module, is uploaded to CPAN it will automatically be downloaded by
+<p>CPANCover is a project to provide code coverage information for
+<a href="https://metacpan.org">CPAN</a> modules.  When a new module, or an
+update to an existing module, is uploaded to CPAN it will automatically be
+downloaded by
 CPANCover.  CPANCover will run the module's tests and measure the code coverage
 provided by the tests.  This information is then made available as HTML pages
 and JSON data.</p>
