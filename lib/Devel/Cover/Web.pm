@@ -907,7 +907,9 @@ function standardistaTableSortingInit() {
 addEvent(window, 'load', standardistaTableSortingInit)
 EOF
 
-1;
+1
+
+__END__
 
 =head1 NAME
 
