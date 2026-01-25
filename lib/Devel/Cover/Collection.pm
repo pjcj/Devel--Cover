@@ -15,7 +15,7 @@ use warnings;
 use Devel::Cover::DB           ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Dumper       qw( Dumper );
-use Devel::Cover::Web          qw( get_file );
+use Devel::Cover::Web          qw( write_file );
 
 use JSON::MaybeXS      ();
 use Parallel::Iterator qw( iterate_as_array );
@@ -254,7 +254,7 @@ sub write_summary($self, $vars) {
   my $d = $self->dir;
   my $f = $self->file;
 
-  $self->write_stylesheet;
+  write_file(($self->made_res_dir)[0], "collection.css");
   my $template = Template->new({
     LOAD_TEMPLATES =>
       [ Devel::Cover::Collection::Template::Provider->new({}) ]
@@ -511,13 +511,6 @@ sub get_latest ($self) {
     # $release->timestamp,
     # $release->size;
   }
-}
-
-sub write_stylesheet ($self) {
-  my $css = ($self->made_res_dir)[0] . "/collection.css";
-  open my $fh, ">", $css or die "Can't open $css: $!\n";
-  print $fh get_file("collection.css");
-  close $fh or die "Can't close $css: $!\n";
 }
 
 package Devel::Cover::Collection::Template::Provider;

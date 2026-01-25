@@ -20,25 +20,20 @@ no warnings "experimental::signatures";
 use Exporter;
 
 our @ISA       = "Exporter";
-our @EXPORT_OK = qw( get_file write_file );
+our @EXPORT_OK = qw( write_file );
 
 my %Files;
 
 sub write_file ($directory, $file) {
-  while (my ($f, $contents) = each %Files) {
-    next
-      if $file ne "all"
-      && (($file eq "js" || $file eq "css") && $f !~ /\.$file$/)
-      && $file ne $f;
-    my $path = "$directory/$f";
-    open my $p, ">", $path or next;
-    print $p $contents;
-    close $p or die "Can't close $path: $!";
+  my @files = $file eq "all" ? keys %Files : $file eq "js" ? grep /\.js$/,
+    keys %Files : $file eq "css" ? grep /\.css$/, keys %Files : ($file);
+  for my $f (@files) {
+    my $contents = $Files{$f} // next;
+    my $path     = "$directory/$f";
+    open my $fh, ">", $path or die "Can't open $path: $!\n";
+    print $fh $contents;
+    close $fh or die "Can't close $path: $!\n";
   }
-}
-
-sub get_file ($file) {
-  $Files{$file}
 }
 
 my $Common_css = <<'EOF';
