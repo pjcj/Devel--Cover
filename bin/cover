@@ -7,9 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-require 5.12.0;
-
-use strict;
+use 5.20.0;
 use warnings;
 
 our $VERSION;
@@ -696,12 +694,6 @@ With the -test option the exit status of the underlying test run is returned.
 =head1 SEE ALSO
 
 L<Devel::Cover>
-
-=head1 BUGS
-
-Did I mention that this is alpha code?
-
-See the BUGS file.
 
 =head1 LICENCE
 

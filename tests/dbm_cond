@@ -7,7 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-# __COVER__ skip_test $] < 5.014000 || !(eval "use DBM::Deep; 23")
+# __COVER__ skip_test !(eval "use DBM::Deep; 23")
 # __COVER__ skip_reason DBM::Deep not available or painful to install
 
 use strict;

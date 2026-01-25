@@ -59,10 +59,6 @@ Wrapper around Data::Dumper::Dumper.
 
 =head1 METHODS
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2012, Olivier Mengué

@@ -1,0 +1,14 @@
+        -:    0:Source:simple.c
+        -:    0:Graph:simple-simple.gcno
+        -:    0:Data:simple-simple.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:/* Simple test file for gcov2perl */
+        -:    2:
+        1:    3:int main(void) {
+        1:    4:    int x = 1;
+        1:    5:    if (x) {
+        1:    6:        return 0;
+        -:    7:    }
+    #####:    8:    return 1;
+        1:    9:}

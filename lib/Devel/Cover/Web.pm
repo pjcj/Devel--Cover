@@ -9,34 +9,34 @@
 
 package Devel::Cover::Web;
 
-use strict;
+use 5.20.0;
 use warnings;
+
+use feature "signatures";
+no warnings "experimental::signatures";
 
 # VERSION
 
 use Exporter;
 
 our @ISA       = "Exporter";
-our @EXPORT_OK = "write_file";
+our @EXPORT_OK = qw( write_file );
 
 my %Files;
 
-sub write_file {
-  my ($directory, $file) = @_;
-
-  while (my ($f, $contents) = each %Files) {
-    next
-      if $file ne "all"
-      && (($file eq "js" || $file eq "css") && $f !~ /\.$file$/)
-      && $file ne $f;
-    my $path = "$directory/$f";
-    open my $p, ">", $path or next;
-    print $p $contents;
-    close $p;
+sub write_file ($directory, $file) {
+  my @files = $file eq "all" ? keys %Files : $file eq "js" ? grep /\.js$/,
+    keys %Files : $file eq "css" ? grep /\.css$/, keys %Files : ($file);
+  for my $f (@files) {
+    my $contents = $Files{$f} // next;
+    my $path     = "$directory/$f";
+    open my $fh, ">", $path or die "Can't open $path: $!\n";
+    print $fh $contents;
+    close $fh or die "Can't close $path: $!\n";
   }
 }
 
-$Files{"cover.css"} = <<'EOF';
+my $Common_css = <<'EOF';
 /* Stylesheet for Devel::Cover HTML reports */
 
 /* You may modify this file to alter the appearance of your coverage
@@ -75,21 +75,11 @@ tr {
     vertical-align : top;
 }
 
-th,.h,.hh,.sh,.sv {
+th,.h,.hh {
     background-color   : #cccccc;
     border             : solid 1px #333333;
     padding            : 0em 0.2em;
     -moz-border-radius : 4px;
-}
-
-.sh {
-    color       : #CD5555;
-    font-weight : bold;
-    padding     : 0.2em;
-}
-
-.sv {
-    padding     : 0.2em;
 }
 
 td {
@@ -105,10 +95,6 @@ td {
 
 .dblank {
     border: none;
-}
-
-table.sortable a.sortheader {
-  text-decoration: none;
 }
 
 /* source code */
@@ -140,6 +126,30 @@ border           : solid 1px #cccc66;
 .c3 {
 background-color :           #99ff99;
 border           : solid 1px #009900;
+}
+EOF
+
+my $Extra_css = <<'EOF';
+
+.sh,.sv {
+    background-color   : #cccccc;
+    border             : solid 1px #333333;
+    padding            : 0em 0.2em;
+    -moz-border-radius : 4px;
+}
+
+.sh {
+    color       : #CD5555;
+    font-weight : bold;
+    padding     : 0.2em;
+}
+
+.sv {
+    padding     : 0.2em;
+}
+
+table.sortable a.sortheader {
+  text-decoration: none;
 }
 
 /* For syntax highlighting with PPI::HTML */
@@ -178,6 +188,9 @@ border           : solid 1px #009900;
 .v  { color: #B452CD;                    } /* v-string        */
 .w  { color: #000000;                    } /* bareword        */
 EOF
+
+$Files{"collection.css"} = $Common_css;
+$Files{"cover.css"}      = $Common_css . $Extra_css;
 
 $Files{"common.js"} = <<'EOF';
 /**
@@ -257,7 +270,8 @@ fixEvent.stopPropagation = function() {
  **/
 function createElement(element) {
     if (typeof document.createElementNS != 'undefined') {
-        return document.createElementNS('https://www.w3.org/1999/xhtml', element);
+        return document.createElementNS(
+            'https://www.w3.org/1999/xhtml', element);
     }
     if (typeof document.createElement != 'undefined') {
         return document.createElement(element);
@@ -293,7 +307,8 @@ $Files{"css.js"} = <<'EOF';
  * Written by Neil Crosby.
  * http://www.workingwith.me.uk/
  *
- * Use this wherever you want, but please keep this comment at the top of this file.
+ * Use this wherever you want, but please keep this comment at the top of
+ * this file.
  *
  * Copyright (c) 2006 Neil Crosby
  *
@@ -413,7 +428,8 @@ var css = {
      * element with id equal to idString
      **/
     removeClassFromId: function(idString, classString) {
-        this.removeClassFromElement(document.getElementById(idString), classString);
+        this.removeClassFromElement(
+            document.getElementById(idString), classString);
     },
 
     /**
@@ -446,7 +462,8 @@ $Files{"standardista-table-sorting.js"} = <<'EOF';
  * sortCurrency functions are heavily based on his code.  This module would not
  * have been possible without Stuart's earlier outstanding work.
  *
- * Use this wherever you want, but please keep this comment at the top of this file.
+ * Use this wherever you want, but please keep this comment at the top of
+ * this file.
  *
  * Copyright (c) 2006 Neil Crosby
  *
@@ -482,7 +499,8 @@ var standardistaTableSorting = {
      * Initialises the Standardista Table Sorting module
      **/
     init : function() {
-        // first, check whether this web browser is capable of running this script
+        // first, check whether this web browser is capable of running this
+        // script
         if (!document.getElementsByTagName) {
             return;
         }
@@ -494,7 +512,8 @@ var standardistaTableSorting = {
     },
 
     /**
-     * Runs over each table in the document, making it sortable if it has a class
+     * Runs over each table in the document, making it sortable if it has a
+     * class
      * assigned named "sortable" and an id assigned.
      **/
     run : function() {
@@ -524,7 +543,8 @@ var standardistaTableSorting = {
             return;
         }
 
-        // we'll assume that the last row of headings in the thead is the row that
+        // we'll assume that the last row of headings in the thead is the row
+        // that
         // wants to become clickable
         var row = table.tHead.rows[table.tHead.rows.length - 1];
 
@@ -562,7 +582,8 @@ var standardistaTableSorting = {
             this.isOdd = false;
             var rows = table.tBodies[0].rows;
 
-            // We appendChild rows that already exist to the tbody, so it moves them rather than creating new ones
+            // We appendChild rows that already exist to the tbody, so it moves
+            // them rather than creating new ones
             for (var i=0;i<rows.length;i++) {
                 this.doStripe(rows[i]);
             }
@@ -600,20 +621,23 @@ var standardistaTableSorting = {
             previousSortOrder = arrows[0].getAttribute('sortOrder');
         }
 
-        // work out how we want to sort this column using the data in the first cell
-        // but just getting the first cell is no good if it contains no data
-        // so if the first cell just contains white space then we need to track
+        // work out how we want to sort this column using the data in the
+        // first cell but just getting the first cell is no good if it
+        // contains no data so if the first cell just contains white space
+        // then we need to track
         // down until we find a cell which does contain some actual data
         var itm = ''
         var rowNum = 0;
         while ('' == itm && rowNum < table.tBodies[0].rows.length) {
-            itm = that.getInnerText(table.tBodies[0].rows[rowNum].cells[column]);
+            itm = that.getInnerText(
+                table.tBodies[0].rows[rowNum].cells[column]);
             rowNum++;
         }
         var sortfn = that.determineSortFunction(itm);
-        // if the last column that was sorted was this one, then all we need to
-        // do is reverse the sorting on this column
-        if (table.id == that.lastSortedTable && column == that.sortColumnIndex) {
+        // if the last column that was sorted was this one, then all we need
+        // to do is reverse the sorting on this column
+        if (table.id == that.lastSortedTable &&
+                column == that.sortColumnIndex) {
             newRows = that.newRows;
             newRows.reverse();
         // otherwise, we have to do the full sort
@@ -626,7 +650,8 @@ var standardistaTableSorting = {
 
             for (var j = 0; j < table.tBodies[0].rows.length; j++) {
                 newRows[j] = table.tBodies[0].rows[j];
-                // alert("element " + j + " is " + that.getInnerText(newRows[j].cells[that.sortColumnIndex]));
+                // alert("element " + j + " is " + that.getInnerText(
+                //     newRows[j].cells[that.sortColumnIndex]));
             }
 
             newRows.sort(sortfn);
@@ -655,7 +680,8 @@ var standardistaTableSorting = {
         // now, add back in some feedback
         var spanEl = createElement('span');
         spanEl.className = 'tableSortArrow';
-        if (null == previousSortOrder || '' == previousSortOrder || 'DESC' == previousSortOrder) {
+        if (null == previousSortOrder || '' == previousSortOrder ||
+                'DESC' == previousSortOrder) {
             spanEl.appendChild(document.createTextNode(' \u2191'));
             spanEl.setAttribute('sortOrder', 'ASC');
         } else {
@@ -690,7 +716,8 @@ var standardistaTableSorting = {
             // 'if' is considerably quicker than a 'switch' statement,
             // in Internet Explorer which translates up to a good time
             // reduction since this is a very often called recursive function
-            // alert("node " + i + " is [" + cs[i].nodeType + "] [" + cs[i].nodeValue + "] [" + cs[i].childNodes.length + "]");
+            // alert("node " + i + " is [" + cs[i].nodeType + "] [" +
+            //     cs[i].nodeValue + "] [" + cs[i].childNodes.length + "]");
             if (cs[i].childNodes.length)
             {
                 str += this.getInnerText(cs[i]);
@@ -733,7 +760,11 @@ var standardistaTableSorting = {
         if (itm.match(/^[+-]?\d*\.?\d+([eE]-?\d+)?$/)) {
             sortfn = this.sortNumeric;
         }
-            if (itm.match(/^([01]?\d\d?|2[0-4]\d|25[0-5])\.([01]?\d\d?|2[0-4]\d|25[0-5])\.([01]?\d\d?|2[0-4]\d|25[0-5])\.([01]?\d\d?|2[0-4]\d|25[0-5])$/)) {
+            var defined = '([01]?\\d\\d?|2[0-4]\\d|25[0-5])';
+            var ipRegex = new RegExp(
+                '^' + defined + '\\.' + defined + '\\.' +
+                    defined + '\\.' + defined + '$');
+            if (itm.match(ipRegex)) {
                 sortfn = this.sortIP;
         }
         */
@@ -763,7 +794,8 @@ var standardistaTableSorting = {
     sortDate : function(a,b) {
         var that = standardistaTableSorting.that;
 
-        // y2k notes: two digit years less than 50 are treated as 20XX, greater than 50 are treated as 19XX
+        // y2k notes: two digit years less than 50 are treated as 20XX,
+        // greater than 50 are treated as 19XX
         var aa = that.getInnerText(a.cells[that.sortColumnIndex]);
         var bb = that.getInnerText(b.cells[that.sortColumnIndex]);
 
@@ -804,8 +836,10 @@ var standardistaTableSorting = {
     sortCurrency : function(a,b) {
         var that = standardistaTableSorting.that;
 
-        var aa = that.getInnerText(a.cells[that.sortColumnIndex]).replace(/[^0-9.]/g,'');
-        var bb = that.getInnerText(b.cells[that.sortColumnIndex]).replace(/[^0-9.]/g,'');
+        var aa = that.getInnerText(a.cells[that.sortColumnIndex])
+            .replace(/[^0-9.]/g,'');
+        var bb = that.getInnerText(b.cells[that.sortColumnIndex])
+            .replace(/[^0-9.]/g,'');
         return parseFloat(aa) - parseFloat(bb);
     },
 
@@ -846,8 +880,10 @@ var standardistaTableSorting = {
     sortIP : function(a,b) {
         var that = standardistaTableSorting.that;
 
-        var aa = that.makeStandardIPAddress(that.getInnerText(a.cells[that.sortColumnIndex]).toLowerCase());
-        var bb = that.makeStandardIPAddress(that.getInnerText(b.cells[that.sortColumnIndex]).toLowerCase());
+        var aa = that.makeStandardIPAddress(
+            that.getInnerText(a.cells[that.sortColumnIndex]).toLowerCase());
+        var bb = that.makeStandardIPAddress(
+            that.getInnerText(b.cells[that.sortColumnIndex]).toLowerCase());
         if (aa==bb) {
             return 0;
         } else if (aa<bb) {
@@ -860,7 +896,8 @@ var standardistaTableSorting = {
     moveRows : function(table, newRows) {
         this.isOdd = false;
 
-        // We appendChild rows that already exist to the tbody, so it moves them rather than creating new ones
+        // We appendChild rows that already exist to the tbody, so it moves
+        // them rather than creating new ones
         for (var i=0;i<newRows.length;i++) {
             var rowItem = newRows[i];
 
@@ -889,7 +926,9 @@ function standardistaTableSortingInit() {
 addEvent(window, 'load', standardistaTableSortingInit)
 EOF
 
-1;
+1
+
+__END__
 
 =head1 NAME
 
@@ -919,10 +958,6 @@ Output the specified file to the specified directory.
 
  Devel::Cover::Report::Html_basic
  cpancover
-
-=head1 BUGS
-
-Huh?
 
 =head1 LICENCE
 

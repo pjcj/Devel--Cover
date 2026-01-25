@@ -78,10 +78,6 @@ Returns a perl data structure representing the data read from $file.
 
 Writes $data to $file in the format specified when creating $io.
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2011-2025, Paul Johnson (paul@pjcj.net)

@@ -121,10 +121,6 @@ Read the digests from the DB.
 
 Write the digests to the DB.
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2011-2025, Paul Johnson (paul@pjcj.net)

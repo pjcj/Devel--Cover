@@ -362,10 +362,6 @@ Devel::Cover::DB::Structure - Internal: abstract structure of a source file
 
 =head1 METHODS
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2004-2025, Paul Johnson (paul@pjcj.net)

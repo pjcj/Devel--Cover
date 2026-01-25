@@ -7,9 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-require 5.12.0;
-
-use strict;
+use 5.20.0;
 use warnings;
 
 # VERSION

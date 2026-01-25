@@ -1,0 +1,9 @@
+/* Simple test file for gcov2perl */
+
+int main(void) {
+    int x = 1;
+    if (x) {
+        return 0;
+    }
+    return 1;
+}

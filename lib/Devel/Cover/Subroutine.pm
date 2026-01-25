@@ -44,10 +44,6 @@ Module for storing subroutine coverage information.
 
 =head1 METHODS
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2004-2025, Paul Johnson (paul@pjcj.net)
