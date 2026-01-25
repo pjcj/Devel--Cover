@@ -23,6 +23,9 @@ use File::Temp qw( tempdir );
 
 use Devel::Cover::Collection ();
 
+# _sys() uses Time::HiRes::alarm() which is not available on Windows
+my $Is_win32 = $^O eq "MSWin32";
+
 sub class_function () {
   my $class = \&Devel::Cover::Collection::class;
   is $class->("n/a"), "na", "class('n/a') -> 'na'";
@@ -260,79 +263,100 @@ sub status_tracking () {
 }
 
 sub sys_successful_command () {
-  # sys prints short output to stdout (not captured), returns empty on success
-  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $output = $c->sys("true");
-  is $output, "", "sys returns empty string for short successful command";
+  SKIP: {
+    skip "alarm not available on Windows", 1 if $Is_win32;
+    my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+    my $output = $c->sys("true");
+    is $output, "", "sys returns empty string for short successful command";
+  }
 }
 
 sub sys_failed_command () {
-  my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $warning = "";
-  local $SIG{__WARN__} = sub { $warning .= shift };
-  my $output = $c->sys("false");
-  is $output, "", "sys returns empty string on failed command";
-  like $warning, qr/Error running false/, "sys warns on failed command";
+  SKIP: {
+    skip "alarm not available on Windows", 2 if $Is_win32;
+    my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+    my $warning = "";
+    local $SIG{__WARN__} = sub { $warning .= shift };
+    my $output = $c->sys("false");
+    is $output, "", "sys returns empty string on failed command";
+    like $warning, qr/Error running false/, "sys warns on failed command";
+  }
 }
 
 sub bsys_successful_command () {
-  # bsys buffers all output (non_buffered=0), so output is captured
-  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $output = $c->bsys("echo", "buffered output");
-  like $output, qr/buffered output/, "bsys captures output";
+  SKIP: {
+    skip "alarm not available on Windows", 1 if $Is_win32;
+    my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+    my $output = $c->bsys("echo", "buffered output");
+    like $output, qr/buffered output/, "bsys captures output";
+  }
 }
 
 sub bsys_failed_command () {
-  my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $warning = "";
-  local $SIG{__WARN__} = sub { $warning .= shift };
-  my $output = $c->bsys("false");
-  is $output, "", "bsys returns empty string on failed command";
-  like $warning, qr/Error running false/, "bsys warns on failed command";
+  SKIP: {
+    skip "alarm not available on Windows", 2 if $Is_win32;
+    my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+    my $warning = "";
+    local $SIG{__WARN__} = sub { $warning .= shift };
+    my $output = $c->bsys("false");
+    is $output, "", "bsys returns empty string on failed command";
+    like $warning, qr/Error running false/, "bsys warns on failed command";
+  }
 }
 
 sub fsys_successful_command () {
-  # fsys prints short output to stdout (not captured), returns empty on success
-  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $output = $c->fsys("true");
-  is $output, "", "fsys returns empty string for short successful command";
+  SKIP: {
+    skip "alarm not available on Windows", 1 if $Is_win32;
+    my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+    my $output = $c->fsys("true");
+    is $output, "", "fsys returns empty string for short successful command";
+  }
 }
 
 sub fsys_failed_command () {
-  my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $warning = "";
-  local $SIG{__WARN__} = sub { $warning .= shift };
-  my $died = 0;
-  eval {
-    $c->fsys("false");
-    1;
-  } or $died = 1;
-  ok $died, "fsys dies on failed command";
-  like $warning, qr/Error running false/, "fsys warns on failed command";
+  SKIP: {
+    skip "alarm not available on Windows", 2 if $Is_win32;
+    my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+    my $warning = "";
+    local $SIG{__WARN__} = sub { $warning .= shift };
+    my $died = 0;
+    eval {
+      $c->fsys("false");
+      1;
+    } or $died = 1;
+    ok $died, "fsys dies on failed command";
+    like $warning, qr/Error running false/, "fsys warns on failed command";
+  }
 }
 
 sub fbsys_successful_command () {
-  # fbsys buffers all output (non_buffered=0), so output is captured
-  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $output = $c->fbsys("echo", "fatal buffered");
-  like $output, qr/fatal buffered/, "fbsys captures output";
+  SKIP: {
+    skip "alarm not available on Windows", 1 if $Is_win32;
+    my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+    my $output = $c->fbsys("echo", "fatal buffered");
+    like $output, qr/fatal buffered/, "fbsys captures output";
+  }
 }
 
 sub fbsys_failed_command () {
-  my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $warning = "";
-  local $SIG{__WARN__} = sub { $warning .= shift };
-  my $died = 0;
-  eval {
-    $c->fbsys("false");
-    1;
-  } or $died = 1;
-  ok $died, "fbsys dies on failed command";
-  like $warning, qr/Error running false/, "fbsys warns on failed command";
+  SKIP: {
+    skip "alarm not available on Windows", 2 if $Is_win32;
+    my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+    my $warning = "";
+    local $SIG{__WARN__} = sub { $warning .= shift };
+    my $died = 0;
+    eval {
+      $c->fbsys("false");
+      1;
+    } or $died = 1;
+    ok $died, "fbsys dies on failed command";
+    like $warning, qr/Error running false/, "fbsys warns on failed command";
+  }
 }
 
 sub sys_timeout () {
   SKIP: {
+    skip "alarm not available on Windows", 3 if $Is_win32;
     skip "slow test - set EXTENDED_TESTING=1 to run", 3
       unless $ENV{EXTENDED_TESTING};
     my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 1);
@@ -346,26 +370,32 @@ sub sys_timeout () {
 }
 
 sub sys_verbose_output () {
-  # verbose mode adds command prefix to output1 before any output is read
-  my $c      = Devel::Cover::Collection->new(verbose => 1, timeout => 10);
-  my $output = $c->sys("true");
-  like $output, qr/dc -> true/, "sys includes command prefix in verbose mode";
+  SKIP: {
+    skip "alarm not available on Windows", 1 if $Is_win32;
+    my $c      = Devel::Cover::Collection->new(verbose => 1, timeout => 10);
+    my $output = $c->sys("true");
+    like $output, qr/dc -> true/, "sys includes command prefix in verbose mode";
+  }
 }
 
 sub bsys_multiline_output () {
-  # bsys captures all output since non_buffered=0
-  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $output = $c->bsys("printf", "line1\\nline2\\nline3\\n");
-  like $output, qr/line1/, "bsys captures first line";
-  like $output, qr/line2/, "bsys captures middle line";
-  like $output, qr/line3/, "bsys captures last line";
+  SKIP: {
+    skip "alarm not available on Windows", 3 if $Is_win32;
+    my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+    my $output = $c->bsys("printf", "line1\\nline2\\nline3\\n");
+    like $output, qr/line1/, "bsys captures first line";
+    like $output, qr/line2/, "bsys captures middle line";
+    like $output, qr/line3/, "bsys captures last line";
+  }
 }
 
 sub bsys_stderr_capture () {
-  # _sys redirects stderr to stdout in child, bsys captures it
-  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $output = $c->bsys("sh", "-c", "echo stderr >&2");
-  like $output, qr/stderr/, "bsys captures stderr (redirected to stdout)";
+  SKIP: {
+    skip "alarm not available on Windows", 1 if $Is_win32;
+    my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
+    my $output = $c->bsys("sh", "-c", "echo stderr >&2");
+    like $output, qr/stderr/, "bsys captures stderr (redirected to stdout)";
+  }
 }
 
 sub dc_file () {
@@ -382,41 +412,44 @@ sub dc_file () {
 }
 
 sub write_json () {
-  my $dir = tempdir(CLEANUP => 1);
-  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+  SKIP: {
+    skip "alarm not available on Windows", 8 if $Is_win32;
+    my $dir = tempdir(CLEANUP => 1);
+    my $c   = Devel::Cover::Collection->new(results_dir => $dir);
 
-  my $vars = {
-    vals => {
-      "Foo-Bar-1.23" => {
-        module =>
-          { module => "Foo-Bar-1.23", name => "Foo-Bar", version => "1.23" },
-        statement  => { pc => "85.00" },
-        branch     => { pc => "70.00" },
-        condition  => { pc => "n/a" },
-        subroutine => { pc => "100.00" },
-        total      => { pc => "82.50" },
-        link       => "/Foo-Bar/index.html",
-        log        => "build.log",
+    my $vars = {
+      vals => {
+        "Foo-Bar-1.23" => {
+          module =>
+            { module => "Foo-Bar-1.23", name => "Foo-Bar", version => "1.23" },
+          statement  => { pc => "85.00" },
+          branch     => { pc => "70.00" },
+          condition  => { pc => "n/a" },
+          subroutine => { pc => "100.00" },
+          total      => { pc => "82.50" },
+          link       => "/Foo-Bar/index.html",
+          log        => "build.log",
+        }
       }
-    }
-  };
+    };
 
-  $c->write_json($vars);
+    $c->write_json($vars);
 
-  my $json_file = "$dir/cpancover.json";
-  ok -e $json_file, "write_json creates cpancover.json";
+    my $json_file = "$dir/cpancover.json";
+    ok -e $json_file, "write_json creates cpancover.json";
 
-  open my $fh, "<", $json_file or die "Can't read $json_file: $!";
-  my $content = do { local $/; <$fh> };
-  close $fh or die "Can't close $json_file: $!";
+    open my $fh, "<", $json_file or die "Can't read $json_file: $!";
+    my $content = do { local $/; <$fh> };
+    close $fh or die "Can't close $json_file: $!";
 
-  like $content,   qr/"Foo-Bar"/,   "JSON contains module name";
-  like $content,   qr/"1\.23"/,     "JSON contains version";
-  like $content,   qr/"statement"/, "JSON contains statement coverage";
-  like $content,   qr/"85\.00"/,    "JSON contains coverage percentage";
-  unlike $content, qr/"condition"/, "JSON excludes n/a criteria";
-  unlike $content, qr/"link"/,      "JSON excludes link field";
-  unlike $content, qr/"log"/,       "JSON excludes log field";
+    like $content,   qr/"Foo-Bar"/,   "JSON contains module name";
+    like $content,   qr/"1\.23"/,     "JSON contains version";
+    like $content,   qr/"statement"/, "JSON contains statement coverage";
+    like $content,   qr/"85\.00"/,    "JSON contains coverage percentage";
+    unlike $content, qr/"condition"/, "JSON excludes n/a criteria";
+    unlike $content, qr/"link"/,      "JSON excludes link field";
+    unlike $content, qr/"log"/,       "JSON excludes log field";
+  }
 }
 
 sub template_provider_fetch () {
