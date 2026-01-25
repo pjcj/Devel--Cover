@@ -11,7 +11,7 @@ use strict;
 use warnings;
 
 use Test::More import =>
-  [qw( done_testing is is_deeply like ok plan skip subtest )];
+  [qw( done_testing is is_deeply like ok plan skip subtest unlike )];
 
 BEGIN {
   plan skip_all => "Perl 5.42.0 required" if $] < 5.042000;
@@ -143,6 +143,15 @@ sub set_modules () {
   is_deeply $c->modules, ["New::Module"], "set_modules replaces all modules";
   $c->set_modules("A", "B", "C");
   is_deeply $c->modules, [ "A", "B", "C" ], "set_modules with multiple modules";
+}
+
+sub set_module_file () {
+  my $c = Devel::Cover::Collection->new;
+  is $c->module_file, undef, "module_file initially undef";
+  $c->set_module_file("/tmp/modules.txt");
+  is $c->module_file, "/tmp/modules.txt", "set_module_file sets value";
+  $c->set_module_file("/other/path.txt");
+  is $c->module_file, "/other/path.txt", "set_module_file updates value";
 }
 
 sub process_module_file () {
@@ -359,6 +368,70 @@ sub bsys_stderr_capture () {
   like $output, qr/stderr/, "bsys captures stderr (redirected to stdout)";
 }
 
+sub dc_file () {
+  my $c1 = Devel::Cover::Collection->new(local => 0);
+  is $c1->dc_file, "utils/dc", "dc_file returns utils/dc when not local";
+
+  my $c2 = Devel::Cover::Collection->new(local => 1);
+  if (-d "/dc") {
+    is $c2->dc_file, "/dc/utils/dc", "dc_file returns /dc/utils/dc when local";
+  } else {
+    is $c2->dc_file, "utils/dc",
+      "dc_file returns utils/dc when local but /dc missing";
+  }
+}
+
+sub write_json () {
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+
+  my $vars = {
+    vals => {
+      "Foo-Bar-1.23" => {
+        module =>
+          { module => "Foo-Bar-1.23", name => "Foo-Bar", version => "1.23" },
+        statement  => { pc => "85.00" },
+        branch     => { pc => "70.00" },
+        condition  => { pc => "n/a" },
+        subroutine => { pc => "100.00" },
+        total      => { pc => "82.50" },
+        link       => "/Foo-Bar/index.html",
+        log        => "build.log",
+      }
+    }
+  };
+
+  $c->write_json($vars);
+
+  my $json_file = "$dir/cpancover.json";
+  ok -e $json_file, "write_json creates cpancover.json";
+
+  open my $fh, "<", $json_file or die "Can't read $json_file: $!";
+  my $content = do { local $/; <$fh> };
+  close $fh or die "Can't close $json_file: $!";
+
+  like $content,   qr/"Foo-Bar"/,   "JSON contains module name";
+  like $content,   qr/"1\.23"/,     "JSON contains version";
+  like $content,   qr/"statement"/, "JSON contains statement coverage";
+  like $content,   qr/"85\.00"/,    "JSON contains coverage percentage";
+  unlike $content, qr/"condition"/, "JSON excludes n/a criteria";
+  unlike $content, qr/"link"/,      "JSON excludes link field";
+  unlike $content, qr/"log"/,       "JSON excludes log field";
+}
+
+sub template_provider_fetch () {
+  my $provider = Devel::Cover::Collection::Template::Provider->new({});
+
+  for my $name (qw( colours html summary about module_by_start )) {
+    my ($data, $error) = $provider->fetch($name, undef);
+    ok defined $data, "template '$name' found";
+    ok !$error,       "no error fetching '$name'";
+  }
+
+  my ($data, $error) = $provider->fetch("nonexistent_template", undef);
+  ok $error, "error for nonexistent template";
+}
+
 sub main () {
   my @tests = qw(
     class_function
@@ -369,6 +442,7 @@ sub main () {
     rwp_accessors
     add_modules
     set_modules
+    set_module_file
     process_module_file
     made_res_dir
     path_methods
@@ -385,6 +459,9 @@ sub main () {
     sys_verbose_output
     bsys_multiline_output
     bsys_stderr_capture
+    dc_file
+    write_json
+    template_provider_fetch
   );
   for my $test (@tests) {
     no strict "refs";

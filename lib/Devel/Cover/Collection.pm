@@ -117,7 +117,7 @@ sub fbsys ($s, @a) { $s->_sys(0,   @a) // die "Can't run @a" }
 
 sub add_modules     ($self, @o)    { push $self->modules->@*, @o }
 sub set_modules     ($self, @o)    { $self->modules->@* = @o }
-sub set_module_file ($self, $file) { $self->set_module_file($file) }
+sub set_module_file ($self, $file) { $self->_set_module_file($file) }
 
 sub process_module_file ($self) {
   my $file = $self->module_file;
