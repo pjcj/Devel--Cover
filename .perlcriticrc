@@ -817,7 +817,7 @@ packages = via|[A-Z][a-z0-9_]*
 subroutines = :all_lower
 
 # Subroutine names that are exempt from capitalization rules.  The values here are regexes that will be surrounded by \A and \z.
-subroutine_exemptions = AUTOLOAD BUILD BUILDARGS CLEAR CLOSE DELETE DEMOLISH DESTROY EXISTS EXTEND FETCH FETCHSIZE FIRSTKEY GETC NEXTKEY POP PRINT PRINTF PUSH READ READLINE SCALAR SHIFT SPLICE STORE STORESIZE TIEARRAY TIEHANDLE TIEHASH TIESCALAR UNSHIFT UNTIE PUSHED OPEN WRITE CXT LOG CFG TRC CLONE
+subroutine_exemptions = AUTOLOAD BUILD BUILDARGS CLEAR CLOSE DELETE DEMOLISH DESTROY EXISTS EXTEND FETCH FETCHSIZE FIRSTKEY GETC NEXTKEY POP PRINT PRINTF PUSH READ READLINE SCALAR SHIFT SPLICE STORE STORESIZE TIEARRAY TIEHANDLE TIEHASH TIESCALAR UNSHIFT UNTIE PUSHED OPEN WRITE ADJUST
 
 # How local lexical variables names should be capitalized.  Valid values are :single_case, :all_lower, :all_upper, :starts_with_lower, :starts_with_upper, :no_restriction, or a regex.
 local_lexical_variables = :all_lower
@@ -1111,7 +1111,7 @@ skip_object = 1
 # skip_when_using =
 
 # Pattern defining private subroutine names that are always allowed.
-allow_name_regex = ^(?:_build_\w+|_data_printer)$
+allow_name_regex = ^(?:_(build|set)_\w+|_data_printer)$
 
 
 # Prevent access to private subs in other packages.
