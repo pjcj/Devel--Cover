@@ -194,72 +194,87 @@ sub process_module_file () {
 }
 
 sub made_res_dir () {
-  my $dir = tempdir(CLEANUP => 1);
-  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+  SKIP: {
+    skip "uses fsys which requires alarm (not available on Windows)", 7
+      if $Is_win32;
+    my $dir = tempdir(CLEANUP => 1);
+    my $c   = Devel::Cover::Collection->new(results_dir => $dir);
 
-  my ($path, $output) = $c->made_res_dir;
-  is $path, $dir, "made_res_dir returns results_dir path";
-  ok -d $path, "made_res_dir creates directory";
+    my ($path, $output) = $c->made_res_dir;
+    is $path, $dir, "made_res_dir returns results_dir path";
+    ok -d $path, "made_res_dir creates directory";
 
-  my ($sub_path, $sub_output) = $c->made_res_dir("subdir");
-  is $sub_path, "$dir/subdir", "made_res_dir with subdir returns correct path";
-  ok -d $sub_path, "made_res_dir creates subdirectory";
+    my ($sub_path, $sub_output) = $c->made_res_dir("subdir");
+    is $sub_path, "$dir/subdir",
+      "made_res_dir with subdir returns correct path";
+    ok -d $sub_path, "made_res_dir creates subdirectory";
 
-  my ($nested_path) = $c->made_res_dir("a/b/c");
-  is $nested_path, "$dir/a/b/c", "made_res_dir handles nested path";
-  ok -d $nested_path, "made_res_dir creates nested directories";
+    my ($nested_path) = $c->made_res_dir("a/b/c");
+    is $nested_path, "$dir/a/b/c", "made_res_dir handles nested path";
+    ok -d $nested_path, "made_res_dir creates nested directories";
 
-  my $c2 = Devel::Cover::Collection->new;
-  eval { $c2->made_res_dir };
-  like $@, qr/No results dir/, "made_res_dir dies without results_dir";
+    my $c2 = Devel::Cover::Collection->new;
+    eval { $c2->made_res_dir };
+    like $@, qr/No results dir/, "made_res_dir dies without results_dir";
+  }
 }
 
 sub path_methods () {
-  my $dir = tempdir(CLEANUP => 1);
-  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+  SKIP: {
+    skip "failed_dir uses fsys which requires alarm (not available on Windows)",
+      4
+      if $Is_win32;
+    my $dir = tempdir(CLEANUP => 1);
+    my $c   = Devel::Cover::Collection->new(results_dir => $dir);
 
-  is $c->covered_dir("Foo-Bar"), "$dir/Foo-Bar",
-    "covered_dir returns results_dir/module";
+    is $c->covered_dir("Foo-Bar"), "$dir/Foo-Bar",
+      "covered_dir returns results_dir/module";
 
-  my $failed = $c->failed_dir;
-  is $failed, "$dir/__failed__", "failed_dir returns __failed__ path";
-  ok -d $failed, "failed_dir creates the directory";
+    my $failed = $c->failed_dir;
+    is $failed, "$dir/__failed__", "failed_dir returns __failed__ path";
+    ok -d $failed, "failed_dir creates the directory";
 
-  is $c->failed_file("Foo-Bar"), "$dir/__failed__/Foo-Bar",
-    "failed_file returns path in __failed__ dir";
+    is $c->failed_file("Foo-Bar"), "$dir/__failed__/Foo-Bar",
+      "failed_file returns path in __failed__ dir";
+  }
 }
 
 sub status_tracking () {
-  my $dir = tempdir(CLEANUP => 1);
-  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+  SKIP: {
+    skip "set_failed uses fsys which requires alarm (not available on Windows)",
+      12
+      if $Is_win32;
+    my $dir = tempdir(CLEANUP => 1);
+    my $c   = Devel::Cover::Collection->new(results_dir => $dir);
 
-  ok !$c->is_covered("Foo-Bar"), "is_covered false when dir doesn't exist";
-  ok !$c->is_failed("Foo-Bar"),  "is_failed false when file doesn't exist";
+    ok !$c->is_covered("Foo-Bar"), "is_covered false when dir doesn't exist";
+    ok !$c->is_failed("Foo-Bar"),  "is_failed false when file doesn't exist";
 
-  mkdir "$dir/Foo-Bar" or die "Can't mkdir: $!";
-  ok $c->is_covered("Foo-Bar"), "is_covered true when dir exists";
-  ok !$c->is_failed("Foo-Bar"), "is_failed still false";
+    mkdir "$dir/Foo-Bar" or die "Can't mkdir: $!";
+    ok $c->is_covered("Foo-Bar"), "is_covered true when dir exists";
+    ok !$c->is_failed("Foo-Bar"), "is_failed still false";
 
-  $c->set_failed("Baz-Qux");
-  ok !$c->is_covered("Baz-Qux"), "is_covered false for failed module";
-  ok $c->is_failed("Baz-Qux"),   "is_failed true after set_failed";
+    $c->set_failed("Baz-Qux");
+    ok !$c->is_covered("Baz-Qux"), "is_covered false for failed module";
+    ok $c->is_failed("Baz-Qux"),   "is_failed true after set_failed";
 
-  my $ff = $c->failed_file("Baz-Qux");
-  ok -e $ff, "set_failed creates file";
-  open my $fh, "<", $ff or die "Can't read $ff: $!";
-  my $content = do { local $/; <$fh> };
-  close $fh or die "Can't close $ff: $!";
-  like $content, qr/\w{3} \w{3} +\d+ \d+:\d+:\d+ \d{4}/,
-    "set_failed writes timestamp";
+    my $ff = $c->failed_file("Baz-Qux");
+    ok -e $ff, "set_failed creates file";
+    open my $fh, "<", $ff or die "Can't read $ff: $!";
+    my $content = do { local $/; <$fh> };
+    close $fh or die "Can't close $ff: $!";
+    like $content, qr/\w{3} \w{3} +\d+ \d+:\d+:\d+ \d{4}/,
+      "set_failed writes timestamp";
 
-  $c->set_failed("Quux-Corge");
-  ok $c->is_failed("Quux-Corge"), "is_failed true before set_covered";
-  $c->set_covered("Quux-Corge");
-  ok !$c->is_failed("Quux-Corge"),      "is_failed false after set_covered";
-  ok !-e $c->failed_file("Quux-Corge"), "set_covered removes failed file";
+    $c->set_failed("Quux-Corge");
+    ok $c->is_failed("Quux-Corge"), "is_failed true before set_covered";
+    $c->set_covered("Quux-Corge");
+    ok !$c->is_failed("Quux-Corge"),      "is_failed false after set_covered";
+    ok !-e $c->failed_file("Quux-Corge"), "set_covered removes failed file";
 
-  $c->set_covered("Never-Failed");
-  ok !$c->is_failed("Never-Failed"), "set_covered on non-existent is safe";
+    $c->set_covered("Never-Failed");
+    ok !$c->is_failed("Never-Failed"), "set_covered on non-existent is safe";
+  }
 }
 
 sub sys_successful_command () {
