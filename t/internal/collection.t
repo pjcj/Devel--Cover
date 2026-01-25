@@ -7,10 +7,17 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-use 5.42.0;
+use strict;
 use warnings;
 
-use Test::More import => [qw( done_testing is is_deeply like ok subtest )];
+use Test::More import =>
+  [qw( done_testing is is_deeply like ok plan skip subtest )];
+
+BEGIN {
+  plan skip_all => "Perl 5.42.0 required" if $] < 5.042000;
+}
+
+use 5.42.0;
 
 use File::Temp qw( tempdir );
 
@@ -304,9 +311,13 @@ sub fbsys_failed_command () {
 }
 
 sub sys_timeout () {
-  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 1);
-  my $output = $c->sys("sleep", "10");
-  is $output, "", "sys returns empty string on timeout";
+  SKIP: {
+    skip "slow test - set EXTENDED_TESTING=1 to run", 1
+      unless $ENV{EXTENDED_TESTING};
+    my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 1);
+    my $output = $c->sys("sleep", "10");
+    is $output, "", "sys returns empty string on timeout";
+  }
 }
 
 sub sys_verbose_output () {
