@@ -18,6 +18,7 @@ use lib "utils";
 use File::Path         qw( make_path );
 use Getopt::Long       qw( GetOptions );
 use Parallel::Iterator qw( iterate_as_array );
+use POSIX              qw( strftime );
 use Time::HiRes        qw( time );
 
 use Devel::Cover::BuildUtils qw( prove_command njobs );
@@ -65,6 +66,88 @@ sub format_duration ($seconds) {
     my $mins  = int(($seconds % 3600) / 60);
     return sprintf "%dh %dm", $hours, $mins;
   }
+}
+
+sub format_table ($headers, $rows) {
+  my @widths = map length, @$headers;
+  for my $row (@$rows) {
+    for my $i (0 .. $#$row) {
+      my $len = length $row->[$i];
+      $widths[$i] = $len if $len > $widths[$i];
+    }
+  }
+
+  my $header = "| " . join(
+    " | ",
+    map {
+      sprintf "%-*s", $widths[$_], $headers->[$_]
+    } 0 .. $#$headers
+  ) . " |\n";
+
+  my $sep = "|" . join("|", map { "-" x ($_ + 2) } @widths) . "|\n";
+
+  my $body = "";
+  for my $row (@$rows) {
+    $body .= "| " . join(
+      " | ",
+      map {
+        sprintf "%-*s", $widths[$_], $row->[$_]
+      } 0 .. $#$row
+    ) . " |\n";
+  }
+
+  $header . $sep . $body
+}
+
+sub write_status ($log_dir, $command, $start_time, $elapsed, $passed, $failed,
+  $timing,)
+{
+  my $status_file = "$log_dir/status.md";
+  my $timestamp   = strftime("%Y-%m-%d %H:%M:%S", localtime int $start_time);
+  my $total       = @$passed + @$failed;
+  my $status      = @$failed ? "FAILED" : "PASSED";
+
+  open my $fh, ">", $status_file or do {
+    warn "Can't write $status_file: $!";
+    return;
+  };
+
+  print $fh "# all_versions Run Status\n\n";
+  print $fh "## Summary\n\n";
+  print $fh format_table(
+    [ "Field", "Value" ],
+    [
+      [ "Status",   "**$status**" ],
+      [ "Started",  $timestamp ],
+      [ "Duration", format_duration($elapsed) ],
+      [ "Command",  "`$command`" ],
+      [ "Passed",   @$passed . "/$total" ],
+      [ "Failed",   @$failed . "/$total" ],
+    ]
+  );
+  print $fh "\n";
+
+  if (@$passed) {
+    print $fh "## Passed Versions\n\n";
+    print $fh format_table([ "Version", "Duration" ],
+      [ map { [ $_, format_duration($timing->{$_}) ] } @$passed ]);
+    print $fh "\n";
+  }
+
+  if (@$failed) {
+    print $fh "## Failed Versions\n\n";
+    print $fh format_table(
+      [ "Version", "Duration", "Log" ],
+      [
+        map {
+          [ $_, format_duration($timing->{$_}), "[$_.log]($_.log)" ]
+        } @$failed
+      ]
+    );
+    print $fh "\n";
+  }
+
+  close $fh or warn "Can't close $status_file: $!";
 }
 
 sub get_options {
@@ -282,7 +365,12 @@ sub main {
   build_default if $command =~ /^make /;
 
   my $total_elapsed = time - $total_start;
-  my $total         = @passed + @failed;
+
+  write_status($log_dir, $command, $total_start, $total_elapsed, \@passed,
+    \@failed, \%timing)
+    unless $Options->{dry_run};
+
+  my $total = @passed + @failed;
   say "\n" . "=" x 72;
   say colour("SUMMARY", "bold");
   say "=" x 72;
