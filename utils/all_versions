@@ -212,6 +212,12 @@ sub _build_versions ($v) {
   _build_version "$v-thr";
 }
 
+sub build_default {
+  delete $ENV{PLENV_VERSION};
+  sys "perl Makefile.PL";
+  sys "make";
+}
+
 sub build {
   say "Building: @{$Options->{version}}";
   my @res = iterate_as_array(
@@ -272,6 +278,8 @@ sub main {
       say colour("  ✗ $v ($dur) - see $logfile", "red");
     }
   }
+
+  build_default if $command =~ /^make /;
 
   my $total_elapsed = time - $total_start;
   my $total         = @passed + @failed;
