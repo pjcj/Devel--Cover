@@ -7,8 +7,11 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-use strict;
+use v5.20.0;
 use warnings;
+
+use feature qw( signatures postderef );
+no warnings qw( experimental::signatures experimental::postderef );
 
 use lib "utils";
 
@@ -59,23 +62,22 @@ sub get_options {
       5.43.1 5.43.2 5.43.3 5.43.4 5.43.5 5.43.6 5.43.7
       )
     ]
-    unless @{ $Options->{version} };
+    unless $Options->{version}->@*;
   $Options->{version} = [
     grep {
       my $cmd    = "dc-$_ -v$Silent";
       my $exists = eval { !system $cmd };
       $Options->{force} || ($exists ^ $Options->{build})
-    } @{ $Options->{version} }
+    } $Options->{version}->@*
   ];
-  print "Versions: @{$Options->{version}}\n";
+  say "Versions: @{$Options->{version}}";
   if ($Options->{list}) {
     exit;
   }
 }
 
-sub sys {
-  my ($command, $user) = @_;
-  print "$command\n";
+sub sys ($command, $user = 0) {
+  say $command;
   return              if $Options->{dry_run};
   $command .= $Silent if $Options->{silent} && !$user;
   my $ret = system $command;
@@ -83,9 +85,7 @@ sub sys {
   !$ret
 }
 
-sub _mods {
-  my ($v, $n) = @_;
-
+sub _mods ($v, $n) {
   my ($s) = $n =~ /(\d+)$/;
   my $version = version->parse($n);
 
@@ -109,10 +109,8 @@ sub _mods {
   @mods
 }
 
-sub _build_version {
-  my ($v) = @_;
-
-  print "building $v\n";
+sub _build_version ($v) {
+  say "building $v";
   # sleep 1; return;
 
   my ($n) = $v =~ /(\d+\.\d+\.\d+)/ or die "Can't parse [$v}";
@@ -147,26 +145,24 @@ sub _build_version {
   my $ln = "/usr/local/bin/dc-$v";
   sys "sudo rm -f $ln$Silent";
 
-  my ($perl) = "$dir/perl";
-  print "$perl => $ln\n";
+  my $perl = "$dir/perl";
+  say "$perl => $ln";
   sys "sudo ln -s $perl $ln" or warn "Can't ln $perl => $ln: $!";
 }
 
-sub _build_versions {
-  my ($v) = @_;
+sub _build_versions ($v) {
   _build_version $v;
   _build_version "$v-thr";
 }
 
 sub build {
-  print "Building: @{$Options->{version}}\n";
+  say "Building: @{$Options->{version}}";
   my @res = iterate_as_array(
     { workers => njobs },
-    sub {
-      my (undef, $v) = @_;
+    sub ($i, $v) {
       _build_versions($v);
     },
-    [ grep !/-thr/, @{ $Options->{version} } ]
+    [ grep !/-thr/, $Options->{version}->@* ]
   );
   exit;
 }
@@ -180,10 +176,10 @@ sub main {
   my @failed;
   my @passed;
 
-  for my $v (@{ $Options->{version} }) {
+  for my $v ($Options->{version}->@*) {
     my $perl = "dc-$v";
     (my $c = $command) =~ s/=perl/$perl/g;
-    # print "Running [$c] from $v\n";
+    # say "Running [$c] from $v";
     $ENV{PLENV_VERSION} = $perl;
     # $c =~ s/=v/$v/g;
     if ($c =~ /^make /) {
@@ -202,16 +198,16 @@ sub main {
 
   # Print summary
   my $total = @passed + @failed;
-  print "\n" . "=" x 72 . "\n";
-  print "SUMMARY\n";
-  print "=" x 72 . "\n";
+  say "\n" . "=" x 72;
+  say "SUMMARY";
+  say "=" x 72;
   printf "Passed: %d/%d\n", scalar @passed, $total;
   if (@failed) {
-    print "Failed versions:\n";
-    print "  - $_\n" for @failed;
+    say "Failed versions:";
+    say "  - $_" for @failed;
     exit 1;
   } else {
-    print "All versions passed.\n";
+    say "All versions passed.";
   }
 }
 
