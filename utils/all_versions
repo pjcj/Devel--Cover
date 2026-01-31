@@ -15,21 +15,57 @@ no warnings qw( experimental::signatures experimental::postderef );
 
 use lib "utils";
 
+use File::Path         qw( make_path );
 use Getopt::Long       qw( GetOptions );
 use Parallel::Iterator qw( iterate_as_array );
+use Time::HiRes        qw( time );
 
 use Devel::Cover::BuildUtils qw( prove_command njobs );
 
-my $Options = {
-  build          => 0,
-  dry_run        => 0,
-  force          => 0,
-  ignore_failure => 0,
-  silent         => 1,
-  version        => [],
-};
+my $Options;
+my $Use_colour;
+my %Colour;
 
 my $Silent = " >/dev/null 2>&1";
+
+sub setup {
+  $Options = {
+    build          => 0,
+    dry_run        => 0,
+    force          => 0,
+    ignore_failure => 0,
+    silent         => 1,
+    version        => [],
+  };
+
+  $Use_colour = -t STDOUT;
+  %Colour     = (
+    reset  => $Use_colour ? "\e[0m"  : "",
+    red    => $Use_colour ? "\e[31m" : "",
+    green  => $Use_colour ? "\e[32m" : "",
+    yellow => $Use_colour ? "\e[33m" : "",
+    bold   => $Use_colour ? "\e[1m"  : "",
+  );
+}
+
+sub colour ($text, @codes) {
+  return $text unless $Use_colour;
+  join("", map { $Colour{$_} } @codes) . $text . $Colour{reset}
+}
+
+sub format_duration ($seconds) {
+  if ($seconds < 60) {
+    return sprintf "%.1fs", $seconds;
+  } elsif ($seconds < 3600) {
+    my $mins = int($seconds / 60);
+    my $secs = $seconds % 60;
+    return sprintf "%dm %ds", $mins, $secs;
+  } else {
+    my $hours = int($seconds / 3600);
+    my $mins  = int(($seconds % 3600) / 60);
+    return sprintf "%dh %dm", $hours, $mins;
+  }
+}
 
 sub get_options {
   die "Bad option" unless GetOptions(
@@ -76,12 +112,33 @@ sub get_options {
   }
 }
 
-sub sys ($command, $user = 0) {
+sub sys ($command, $user = 0, $logfile = undef) {
   say $command;
-  return              if $Options->{dry_run};
-  $command .= $Silent if $Options->{silent} && !$user;
-  my $ret = system $command;
-  warn "command failed: $? - $command" if $ret && !$Options->{ignore_failure};
+  return 1 if $Options->{dry_run};
+
+  my $ret;
+  if ($logfile) {
+    open my $log_fh, ">>", $logfile        or warn "Can't open $logfile: $!";
+    open my $cmd_fh, "-|", "$command 2>&1" or do {
+      warn "Can't run $command: $!";
+      return 0;
+    };
+
+    while (my $line = <$cmd_fh>) {
+      print $log_fh $line if $log_fh;
+      print $line         if $user;
+    }
+
+    close $cmd_fh or 1;  # Ignore - exit status captured via $?
+    $ret = $?;
+    close $log_fh or warn "Can't close $logfile: $!" if $log_fh;
+  } elsif ($Options->{silent} && !$user) {
+    $ret = system "$command$Silent";
+  } else {
+    $ret = system $command;
+  }
+
+  warn "command failed: $ret - $command" if $ret && !$Options->{ignore_failure};
   !$ret
 }
 
@@ -168,47 +225,79 @@ sub build {
 }
 
 sub main {
+  setup;
   get_options;
   build if $Options->{build};
 
-  my $command = "@ARGV" or die "Usage: $0 [-v version] command\n";
+  my $command     = "@ARGV" or die "Usage: $0 [-v version] command\n";
+  my $log_dir     = "tmp/all_versions";
+  my $total_start = time;
+  my (@failed, @passed, %timing);
 
-  my @failed;
-  my @passed;
+  make_path($log_dir) unless $Options->{dry_run};
 
   for my $v ($Options->{version}->@*) {
-    my $perl = "dc-$v";
-    (my $c = $command) =~ s/=perl/$perl/g;
+    my $perl    = "dc-$v";
+    my $logfile = "$log_dir/$v.log";
+
+    unless ($Options->{dry_run}) {
+      open my $fh, ">", $logfile or warn "Can't create $logfile: $!";
+    }
+
+    my $c = $command =~ s/=perl/$perl/rg;
     # say "Running [$c] from $v";
     $ENV{PLENV_VERSION} = $perl;
     # $c =~ s/=v/$v/g;
+
+    my $start = time;
+
     if ($c =~ /^make /) {
-      sys "rm -rf t/e2e";
-      sys "$perl Makefile.PL";
-      sys "make clean";
-      sys "$perl Makefile.PL";
-      sys "make";
+      sys "rm -rf t/e2e",      0, $logfile;
+      sys "$perl Makefile.PL", 0, $logfile;
+      sys "make clean",        0, $logfile;
+      sys "$perl Makefile.PL", 0, $logfile;
+      sys "make",              0, $logfile;
     }
-    if (sys $c, 1) {
+    my $success = sys $c, 1, $logfile;
+
+    my $elapsed = time - $start;
+    $timing{$v} = $elapsed;
+
+    if ($success) {
       push @passed, $v;
+      say colour("  ✓ $v (" . format_duration($elapsed) . ")", "green");
     } else {
       push @failed, $v;
+      my $dur = format_duration($elapsed);
+      say colour("  ✗ $v ($dur) - see $logfile", "red");
     }
   }
 
-  # Print summary
-  my $total = @passed + @failed;
+  my $total_elapsed = time - $total_start;
+  my $total         = @passed + @failed;
   say "\n" . "=" x 72;
-  say "SUMMARY";
+  say colour("SUMMARY", "bold");
   say "=" x 72;
-  printf "Passed: %d/%d\n", scalar @passed, $total;
+  say "Total time: " . format_duration($total_elapsed);
+  say "Log directory: $log_dir/";
+  say "";
+
   if (@failed) {
-    say "Failed versions:";
-    say "  - $_" for @failed;
-    exit 1;
+    printf "%s: %d/%d\n", colour("Passed", "green"), scalar @passed, $total;
+    printf "%s: %d/%d\n", colour("Failed", "red"),   scalar @failed, $total;
+    say "";
+    say colour("Failed versions:", "red");
+    for my $v (@failed) {
+      my $dur = format_duration($timing{$v});
+      say colour("  - $v", "red") . " ($dur) - $log_dir/$v.log";
+    }
+    return 1;
   } else {
-    say "All versions passed.";
+    say colour("Passed: $total/$total", "green");
+    say "";
+    say colour("All versions passed.", "green", "bold");
   }
+  0
 }
 
-main
+exit main
