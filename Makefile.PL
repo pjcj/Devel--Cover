@@ -406,6 +406,15 @@ t : pure_all
 no_replace_ops_t : pure_all
 \t DEVEL_COVER_OPTIONS=-replace_ops,0 exec make t
 
+xt : pure_all
+\t exec yath test -j20 --show-times --qvf xt
+
+at : pure_all
+\t exec yath test -j20 --qvf xt t
+
+tt : pure_all
+\t dc build-and-test-all
+
 DB = cover_db
 
 dump :
@@ -420,7 +429,8 @@ gold : pure_all
 \t \$(PERL) utils/create_gold \$(TEST)
 
 all_test :
-\t exec \$(PERL) utils/all_versions make t
+\t \$(PERL) utils/all_versions make t
+\t exec make at
 
 all_gold :
 \t \$(PERL) utils/create_all_gold \$(TEST)

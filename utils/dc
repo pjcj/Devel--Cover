@@ -183,7 +183,7 @@ install_development_dependencies() {
   get_cpm
   $cpm install --workers="$(nice_cpus)" --global \
     Dist::Zilla Perl::Critic Perl::Tidy App::perlimports \
-    Archive::Tar::Wrapper Perl::Critic::PJCJ
+    Archive::Tar::Wrapper Perl::Critic::PJCJ App::Yath UUID
   plenv rehash
   dzil authordeps --missing |
     xargs "$cpm" install --workers="$(nice_cpus)" --global
@@ -238,6 +238,11 @@ recipe_install-dc-dev-perl() {
 
 recipe_all-versions() {
   ./utils/all_versions "$@"
+}
+
+recipe_build-and-test-all() {
+  perl Makefile.PL
+  make at
 }
 
 run_cpancover() {
