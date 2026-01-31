@@ -177,6 +177,9 @@ sub main {
 
   my $command = "@ARGV" or die "Usage: $0 [-v version] command\n";
 
+  my @failed;
+  my @passed;
+
   for my $v (@{ $Options->{version} }) {
     my $perl = "dc-$v";
     (my $c = $command) =~ s/=perl/$perl/g;
@@ -190,7 +193,25 @@ sub main {
       sys "$perl Makefile.PL";
       sys "make";
     }
-    sys $c, 1;
+    if (sys $c, 1) {
+      push @passed, $v;
+    } else {
+      push @failed, $v;
+    }
+  }
+
+  # Print summary
+  my $total = @passed + @failed;
+  print "\n" . "=" x 72 . "\n";
+  print "SUMMARY\n";
+  print "=" x 72 . "\n";
+  printf "Passed: %d/%d\n", scalar @passed, $total;
+  if (@failed) {
+    print "Failed versions:\n";
+    print "  - $_\n" for @failed;
+    exit 1;
+  } else {
+    print "All versions passed.\n";
   }
 }
 
