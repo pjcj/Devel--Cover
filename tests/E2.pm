@@ -1,4 +1,4 @@
-# Copyright 2004-2025, Paul Johnson (paul@pjcj.net)
+# Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 

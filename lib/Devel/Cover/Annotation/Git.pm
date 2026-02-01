@@ -1,4 +1,4 @@
-# Copyright 2005-2025, Paul Johnson (paul@pjcj.net)
+# Copyright 2005-2026, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -133,7 +133,7 @@ This module is designed to be called from the C<cover> program.
 
 =head1 LICENCE
 
-Copyright 2005-2025, Paul Johnson (paul@pjcj.net)
+Copyright 2005-2026, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

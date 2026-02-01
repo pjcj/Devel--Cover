@@ -1,4 +1,4 @@
-# Copyright 2007-2025, Paul Johnson (paul@pjcj.net)
+# Copyright 2007-2026, Paul Johnson (paul@pjcj.net)
 # except where otherwise noted.
 
 # This software is free.  It is licensed under the same terms as Perl itself,
@@ -961,7 +961,7 @@ Output the specified file to the specified directory.
 
 =head1 LICENCE
 
-Copyright 2007-2025, Paul Johnson (paul@pjcj.net) except where otherwise noted.
+Copyright 2007-2026, Paul Johnson (paul@pjcj.net) except where otherwise noted.
 
 This software is free.  It is licensed under the same terms as Perl itself,
 except where otherwise noted.

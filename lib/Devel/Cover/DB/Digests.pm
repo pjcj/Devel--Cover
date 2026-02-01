@@ -1,4 +1,4 @@
-# Copyright 2011-2025, Paul Johnson (paul@pjcj.net)
+# Copyright 2011-2026, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -123,7 +123,7 @@ Write the digests to the DB.
 
 =head1 LICENCE
 
-Copyright 2011-2025, Paul Johnson (paul@pjcj.net)
+Copyright 2011-2026, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

@@ -1,4 +1,4 @@
-# Copyright 2001-2025, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -60,7 +60,7 @@ Module for storing pod coverage information.
 
 =head1 LICENCE
 
-Copyright 2001-2025, Paul Johnson (paul@pjcj.net)
+Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 

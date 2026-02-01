@@ -1,7 +1,7 @@
 #!/usr/bin/perl  ## no critic (ProhibitExcessMainComplexity)
 ## no critic (ProhibitLongLines)
 
-# Copyright 2001-2025, Paul Johnson (paul@pjcj.net)
+# Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -36,7 +36,7 @@ my $Inc_str  = do {
 open my $i, ">", "lib/Devel/Cover/Inc.pm"
   or die "Cannot open lib/Devel/Cover/Inc.pm: $!";
 print $i <<"EOI";
-# Copyright 2001-2025, Paul Johnson (paul\@pjcj.net)
+# Copyright 2001-2026, Paul Johnson (paul\@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
@@ -142,7 +142,7 @@ for my $t (readdir $dir) {
   print $test <<EOT;
 #!$^X
 
-# Copyright 2002-2025, Paul Johnson (paul\@pjcj.net)
+# Copyright 2002-2026, Paul Johnson (paul\@pjcj.net)
 
 # This software is free.  It is licensed under the same terms as Perl itself.
 
