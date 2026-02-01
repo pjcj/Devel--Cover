@@ -73,24 +73,23 @@ The system builds Docker images in layers, each building upon the previous:
 
 ## Build System
 
-The `BUILD` script manages the entire build process:
+The `BUILD` script manages the entire build process. You can run it directly or
+via `dc`:
 
 ```bash
-# Basic build (uses main branch, pushes to Docker Hub)
-./BUILD
+# Using dc (recommended - inherits environment settings)
+dc -e dev docker-build              # Development build
+dc docker-build                     # Production build
+dc -e dev docker-build --no-cache   # Force clean rebuild
 
-# Development build (uses local source, no push)
-./BUILD --env=dev
-
-# Custom options
-./BUILD --user=myuser --perl=5.40.2 --no-cache --nopush
-
-# Build specific image
-./BUILD --image=cpancover_dev --src=my_branch
+# Using BUILD directly
+docker/BUILD --env=dev              # Development build
+docker/BUILD                        # Production build
+docker/BUILD --user=myuser --perl=5.40.2 --no-cache --nopush
 
 # Access shell in specific container
-./BUILD cpancover-shell
-./BUILD devel-cover-dc-shell
+docker/BUILD cpancover-shell
+docker/BUILD devel-cover-dc-shell
 ```
 
 ### Build Options
@@ -347,7 +346,7 @@ perl Makefile.PL && make test
 rm -rf ~/cover/staging*(N)
 
 # 3. Build development Docker images with local changes
-docker/BUILD -e dev
+dc -e dev docker-build
 
 # 4. Run a single coverage cycle in dev environment (via controller container)
 dc -e dev cpancover-controller-run-once
@@ -512,11 +511,11 @@ dc cpancover-docker-rm
 
 ```bash
 # 1. Build and test locally
-docker/BUILD --env=dev
-dc -e dev cpancover-controller-run-once
+dc -e dev docker-build
+dc -e dev cpancover-controller-test
 
 # 2. Build production image from main branch
-docker/BUILD
+dc docker-build
 
 # 3. On production server, pull new image
 docker pull pjcj/cpancover:latest

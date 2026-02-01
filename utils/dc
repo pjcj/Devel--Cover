@@ -303,6 +303,10 @@ recipe_cpancover-docker-rm-image() {
   "$docker" rmi "$docker_image"
 }
 
+recipe_docker-build() {
+  docker/BUILD --env "$env" "${args[@]:-}"
+}
+
 cpancover_latest() {
   if [[ -n "${CPANCOVER_TEST_MODULES:-}" ]]; then
     echo "$CPANCOVER_TEST_MODULES"
