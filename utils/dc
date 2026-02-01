@@ -304,7 +304,11 @@ recipe_cpancover-docker-rm-image() {
 }
 
 cpancover_latest() {
-  run_cpancover --latest
+  if [[ -n "${CPANCOVER_TEST_MODULES:-}" ]]; then
+    echo "$CPANCOVER_TEST_MODULES"
+  else
+    run_cpancover --latest
+  fi
 }
 
 recipe_cpancover-latest() {
@@ -447,6 +451,18 @@ cpancover_run_once() {
   pi "Finished cpancover run at $(date)"
 }
 
+cpancover_build_stdin() {
+  pi "Starting cpancover build at $(date) on $(nice_cpus) cpus"
+  cpancover_docker_rm
+  run_cpancover --build
+  cpancover_generate_html
+  pi "Finished cpancover build at $(date)"
+}
+
+recipe_cpancover-build-stdin() {
+  cpancover_build_stdin
+}
+
 cpancover_run_loop() {
   while true; do
     cpancover_run_once
@@ -472,6 +488,25 @@ recipe_cpancover-controller-run-once() {
   local o=(--env "$env")
   ((verbose)) && o+=("--verbose")
   cpancover_controller_command controller dc "${o[@]}" cpancover-run-once
+}
+
+# Default test module - small, stable, predictable
+cpancover_default_test_module="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.1.2.tar.gz"
+
+recipe_cpancover-test() {
+  : "${CPANCOVER_TEST_MODULES:=$cpancover_default_test_module}"
+  export CPANCOVER_TEST_MODULES
+  pi "Testing with modules: $CPANCOVER_TEST_MODULES"
+  cpancover_run_once
+}
+
+recipe_cpancover-controller-test() {
+  : "${CPANCOVER_TEST_MODULES:=$cpancover_default_test_module}"
+  pi "Testing with modules: $CPANCOVER_TEST_MODULES"
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  echo "$CPANCOVER_TEST_MODULES" | \
+    cpancover_controller_command controller dc "${o[@]}" cpancover-build-stdin
 }
 
 recipe_cpancover-start-queue() {

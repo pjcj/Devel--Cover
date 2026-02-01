@@ -271,6 +271,18 @@ This provides:
    utils/dc cpancover-docker-rm
    ```
 
+   **Important**: Use `-e dev` for development containers:
+
+   ```bash
+   # These only find production (cpancover) containers
+   dc cpancover-docker-ps
+
+   # Use -e dev to find development (cpancover_dev) containers
+   dc -e dev cpancover-docker-ps
+   dc -e dev cpancover-docker-kill
+   dc -e dev cpancover-docker-rm
+   ```
+
 4. **Disk space issues**
 
    - Regular cleanup: `docker system prune`
@@ -287,6 +299,7 @@ This provides:
 ## Environment Variables
 
 - `CPANCOVER_RESULTS_DIR`: Override default results directory
+- `CPANCOVER_TEST_MODULES`: Override module list for testing (newline-separated)
 - `COVER_DEBUG`: Enable debug output in queue system
 
 ## Security Considerations
@@ -350,25 +363,36 @@ dt ~/cover/staging*
 dc -e dev cpancover-build-module Some::Module
 ```
 
-### Controlled Testing with Limited Modules
+### Testing Docker Images
 
-By default, `cpancover-controller-run-once` processes all latest CPAN uploads,
-which can take a long time. For faster testing cycles, temporarily modify
-`cpancover_latest()` in `utils/dc`:
+After building new Docker images, use the test recipes for quick verification
+with a known stable module:
 
 ```bash
-# Option 1: Test with a specific module
-cpancover_latest() {
-  echo P/PJ/PJCJ/Perl-Critic-PJCJ-v0.1.2.tar.gz
-}
-
-# Option 2: Limit to first N modules from latest
-cpancover_latest() {
-  run_cpancover --latest | head -5
-}
+# Quick test with default module (Perl-Critic-PJCJ)
+dc -e dev cpancover-test                 # Direct execution
+dc -e dev cpancover-controller-test      # Via controller container
 ```
 
-Remember to revert these changes before committing.
+To test with custom modules, set `CPANCOVER_TEST_MODULES`:
+
+```bash
+# Single module
+CPANCOVER_TEST_MODULES="A/AU/AUTHOR/Module-1.00.tar.gz" \
+  dc -e dev cpancover-controller-test
+
+# Multiple modules (newline-separated)
+CPANCOVER_TEST_MODULES=$'A/AA/AAA/Foo.tar.gz\nB/BB/BBB/Bar.tar.gz' \
+  dc -e dev cpancover-controller-test
+```
+
+The environment variable also works with other recipes:
+
+```bash
+# Limit cpancover-run-once to specific modules
+CPANCOVER_TEST_MODULES="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.1.2.tar.gz" \
+  dc -e dev cpancover-controller-run-once
+```
 
 ### Development vs Production Environments
 
