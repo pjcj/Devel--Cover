@@ -334,7 +334,9 @@ cpancover_controller_command() {
   local cmd=("$@")
   mkdir -p "$results_dir"
   local sock=/var/run/docker.sock
-  $docker run -it \
+  local tty_flag=""
+  [[ -t 0 ]] && tty_flag="-t"
+  $docker run -i $tty_flag \
     --mount type=bind,source=$sock,target=$sock \
     --mount type=bind,source="$results_dir",target=/remote_staging \
     --rm=false --memory=1g --name="$(docker_name "$name")" \
