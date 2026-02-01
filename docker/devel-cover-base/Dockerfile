@@ -48,7 +48,6 @@ RUN                                                                          \
     Pod::Coverage::CountParents \
     Sereal \
     Template \
-    Template \
     namespace::clean \
   && rm -rf ~/.cpan/build ~/.cpan/sources/authors ~/.cpanm                      \
     ~/.local/share/.cpan/build ~/.local/share/.cpan/sources/authors
