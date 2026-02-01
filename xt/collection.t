@@ -470,7 +470,7 @@ sub main () {
     template_provider_fetch
   );
   for my $test (@tests) {
-    no strict "refs";
+    no strict qw( refs );
     subtest $test => \&$test;
   }
   done_testing;
