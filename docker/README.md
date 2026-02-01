@@ -350,6 +350,26 @@ dt ~/cover/staging*
 dc -e dev cpancover-build-module Some::Module
 ```
 
+### Controlled Testing with Limited Modules
+
+By default, `cpancover-controller-run-once` processes all latest CPAN uploads,
+which can take a long time. For faster testing cycles, temporarily modify
+`cpancover_latest()` in `utils/dc`:
+
+```bash
+# Option 1: Test with a specific module
+cpancover_latest() {
+  echo P/PJ/PJCJ/Perl-Critic-PJCJ-v0.1.2.tar.gz
+}
+
+# Option 2: Limit to first N modules from latest
+cpancover_latest() {
+  run_cpancover --latest | head -5
+}
+```
+
+Remember to revert these changes before committing.
+
 ### Development vs Production Environments
 
 The system supports two environments configured via `--env`:
