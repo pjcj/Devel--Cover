@@ -304,7 +304,8 @@ recipe_cpancover-docker-rm-image() {
 }
 
 recipe_docker-build() {
-  docker/BUILD --env "$env" "${args[@]:-}"
+  local build="$srcdir/../docker/BUILD"
+  "$build" -e "$env" "${args[@]:+${args[@]}}"
 }
 
 cpancover_latest() {
@@ -344,7 +345,7 @@ cpancover_controller_command() {
   local sock=/var/run/docker.sock
   local tty_flag=""
   [[ -t 0 ]] && tty_flag="-t"
-  "$docker" run -i "${tty_flag:+"$tty_flag"}" \
+  "$docker" run -i ${tty_flag:+"$tty_flag"} \
     --mount "type=bind,source=$sock,target=$sock" \
     --mount "type=bind,source=$results_dir,target=/remote_staging" \
     --rm=false --memory=1g --name="$(docker_name "$name")" \

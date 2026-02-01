@@ -83,9 +83,9 @@ dc docker-build                     # Production build
 dc -e dev docker-build --no-cache   # Force clean rebuild
 
 # Using BUILD directly
-docker/BUILD --env=dev              # Development build
+docker/BUILD -e dev                 # Development build
 docker/BUILD                        # Production build
-docker/BUILD --user=myuser --perl=5.40.2 --no-cache --nopush
+docker/BUILD --user myuser --perl 5.40.2 --no-cache --nopush
 
 # Access shell in specific container
 docker/BUILD cpancover-shell
