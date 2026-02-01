@@ -70,10 +70,6 @@ This module utility subroutines for Devel::Cover.
 
 Remove certain paths from a list of paths.
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2001-2025, Paul Johnson (paul@pjcj.net)

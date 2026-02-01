@@ -63,10 +63,6 @@ Module for storing time coverage information.
 
 Constructs the DB from the specified database.
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2001-2025, Paul Johnson (paul@pjcj.net)

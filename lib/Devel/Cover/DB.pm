@@ -1021,10 +1021,6 @@ Returns true if $db is valid (or looks valid, the function is too lax).
  Devel::Cover::DB::Criterion
  Devel::Cover::DB::Location
 
-=head1 BUGS
-
-Huh?
-
 =head1 LICENCE
 
 Copyright 2001-2025, Paul Johnson (paul@pjcj.net)

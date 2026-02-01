@@ -183,7 +183,7 @@ install_development_dependencies() {
   get_cpm
   $cpm install --workers="$(nice_cpus)" --global \
     Dist::Zilla Perl::Critic Perl::Tidy App::perlimports \
-    Archive::Tar::Wrapper Perl::Critic::PJCJ
+    Archive::Tar::Wrapper Perl::Critic::PJCJ App::Yath UUID
   plenv rehash
   dzil authordeps --missing |
     xargs "$cpm" install --workers="$(nice_cpus)" --global
@@ -238,6 +238,13 @@ recipe_install-dc-dev-perl() {
 
 recipe_all-versions() {
   ./utils/all_versions "$@"
+}
+
+recipe_build-and-test-all() {
+  perl Makefile.PL
+  make clean
+  perl Makefile.PL
+  make at
 }
 
 run_cpancover() {
@@ -476,6 +483,54 @@ recipe_cpancover-start-minion() {
 recipe_cpancover-add() {
   module="${1:?No module specified}"
   COVER_DEBUG=1 perl bin/queue add "$module"
+}
+
+generate_gcov_fixtures() {
+  if ! command -v gcc >/dev/null; then
+    pf "gcc is required to generate gcov fixtures"
+  fi
+  if ! command -v gcov >/dev/null; then
+    pf "gcov is required to generate gcov fixtures"
+  fi
+
+  local fixtures_dir="t/fixtures/gcov2perl"
+  pi "Generating gcov fixtures in $fixtures_dir"
+  pushd "$fixtures_dir" >/dev/null
+
+  for src in *.c; do
+    [[ -f "$src" ]] || continue
+    local base="${src%.c}"
+    pi "Processing $src"
+
+    # Compile with gcov instrumentation
+    gcc -fprofile-arcs -ftest-coverage -o "$base" "$src"
+
+    # Run to generate .gcda coverage data
+    ./"$base" || true  # Allow non-zero exit for branch coverage
+
+    # Generate .gcov file
+    # On macOS/clang, gcno/gcda files are named <output>-<source>.gc*
+    # so we call gcov with the object prefix, not the source file
+    if [[ -f "$base-$base.gcno" ]]; then
+      gcov "$base-$base" >/dev/null
+    else
+      gcov "$src" >/dev/null
+    fi
+
+    # Rename to .fixture so cover's *.gcov scan won't find it
+    mv "$src.gcov" "$src.gcov.fixture"
+
+    # Clean up intermediates, keep only .c and .gcov.fixture
+    rm -f "$base" "$base.gcno" "$base.gcda" "$base-$base.gcno" "$base-$base.gcda"
+
+    pi "Generated $src.gcov.fixture"
+  done
+
+  popd >/dev/null
+}
+
+recipe_generate-gcov-fixtures() {
+  generate_gcov_fixtures
 }
 
 run_recipe() {

@@ -382,7 +382,7 @@ sub print_summary_report {
     sprintf "%04d-%02d-%02d %02d:%02d:%02d", $year + 1900, $mon + 1, $mday,
       $hour, $min, $sec
   };
-  my $perl_v = $] < 5.010 ? $] : $^V;
+  my $perl_v = $^V;
   my $os     = $^O;
 
   print_html_header($fh, $options->{option}{summarytitle});

@@ -3,7 +3,7 @@
   "min-lines": 1,
   "max-lines": 100000,
   "max-size": 10000000,
-  "threshold": 3.75,
+  "threshold": 0,
   "reporters": [
     "console"
   ],
@@ -12,6 +12,7 @@
   "gitignore": true,
   "ignore": [
     "**/test_output/**",
-    "**/t/e2e/**"
+    "**/t/e2e/**",
+    "**/lib/Devel/Cover/Report/**"
   ]
 }

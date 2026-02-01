@@ -7,26 +7,148 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-use strict;
+use v5.20.0;
 use warnings;
 
-use lib "utils";
+use feature qw( signatures postderef );
+no warnings qw( experimental::signatures experimental::postderef );
 
+use lib qw( utils );
+
+use File::Path         qw( make_path );
 use Getopt::Long       qw( GetOptions );
 use Parallel::Iterator qw( iterate_as_array );
+use POSIX              qw( strftime );
+use Time::HiRes        qw( time );
 
 use Devel::Cover::BuildUtils qw( prove_command njobs );
 
-my $Options = {
-  build          => 0,
-  dry_run        => 0,
-  force          => 0,
-  ignore_failure => 0,
-  silent         => 1,
-  version        => [],
-};
+my $Options;
+my $Use_colour;
+my %Colour;
 
 my $Silent = " >/dev/null 2>&1";
+
+sub setup {
+  $Options = {
+    build          => 0,
+    dry_run        => 0,
+    force          => 0,
+    ignore_failure => 0,
+    silent         => 1,
+    version        => [],
+  };
+
+  $Use_colour = -t STDOUT;
+  %Colour     = (
+    reset  => $Use_colour ? "\e[0m"  : "",
+    red    => $Use_colour ? "\e[31m" : "",
+    green  => $Use_colour ? "\e[32m" : "",
+    yellow => $Use_colour ? "\e[33m" : "",
+    bold   => $Use_colour ? "\e[1m"  : "",
+  );
+}
+
+sub colour ($text, @codes) {
+  return $text unless $Use_colour;
+  join("", map { $Colour{$_} } @codes) . $text . $Colour{reset}
+}
+
+sub format_duration ($seconds) {
+  if ($seconds < 60) {
+    return sprintf "%.1fs", $seconds;
+  } elsif ($seconds < 3600) {
+    my $mins = int($seconds / 60);
+    my $secs = $seconds % 60;
+    return sprintf "%dm %ds", $mins, $secs;
+  } else {
+    my $hours = int($seconds / 3600);
+    my $mins  = int(($seconds % 3600) / 60);
+    return sprintf "%dh %dm", $hours, $mins;
+  }
+}
+
+sub format_table ($headers, $rows) {
+  my @widths = map length, @$headers;
+  for my $row (@$rows) {
+    for my $i (0 .. $#$row) {
+      my $len = length $row->[$i];
+      $widths[$i] = $len if $len > $widths[$i];
+    }
+  }
+
+  my $header = "| " . join(
+    " | ",
+    map {
+      sprintf "%-*s", $widths[$_], $headers->[$_]
+    } 0 .. $#$headers
+  ) . " |\n";
+
+  my $sep = "|" . join("|", map { "-" x ($_ + 2) } @widths) . "|\n";
+
+  my $body = "";
+  for my $row (@$rows) {
+    $body .= "| " . join(
+      " | ",
+      map {
+        sprintf "%-*s", $widths[$_], $row->[$_]
+      } 0 .. $#$row
+    ) . " |\n";
+  }
+
+  $header . $sep . $body
+}
+
+sub write_status ($log_dir, $command, $start_time, $elapsed, $passed, $failed,
+  $timing,)
+{
+  my $status_file = "$log_dir/status.md";
+  my $timestamp   = strftime("%Y-%m-%d %H:%M:%S", localtime int $start_time);
+  my $total       = @$passed + @$failed;
+  my $status      = @$failed ? "FAILED" : "PASSED";
+
+  open my $fh, ">", $status_file or do {
+    warn "Can't write $status_file: $!";
+    return;
+  };
+
+  print $fh "# all_versions Run Status\n\n";
+  print $fh "## Summary\n\n";
+  print $fh format_table(
+    [ "Field", "Value" ],
+    [
+      [ "Status",   "**$status**" ],
+      [ "Started",  $timestamp ],
+      [ "Duration", format_duration($elapsed) ],
+      [ "Command",  "`$command`" ],
+      [ "Passed",   @$passed . "/$total" ],
+      [ "Failed",   @$failed . "/$total" ],
+    ]
+  );
+  print $fh "\n";
+
+  if (@$passed) {
+    print $fh "## Passed Versions\n\n";
+    print $fh format_table([ "Version", "Duration" ],
+      [ map { [ $_, format_duration($timing->{$_}) ] } @$passed ]);
+    print $fh "\n";
+  }
+
+  if (@$failed) {
+    print $fh "## Failed Versions\n\n";
+    print $fh format_table(
+      [ "Version", "Duration", "Log" ],
+      [
+        map {
+          [ $_, format_duration($timing->{$_}), "[$_.log]($_.log)" ]
+        } @$failed
+      ]
+    );
+    print $fh "\n";
+  }
+
+  close $fh or warn "Can't close $status_file: $!";
+}
 
 sub get_options {
   die "Bad option" unless GetOptions(
@@ -44,10 +166,6 @@ sub get_options {
   $Options->{version} = [
     map { ($_, "$_-thr") }
       qw(
-      5.12.0 5.12.1 5.12.2 5.12.3 5.12.4 5.12.5
-      5.14.0 5.14.1 5.14.2 5.14.3 5.14.4
-      5.16.0 5.16.1 5.16.2 5.16.3
-      5.18.0 5.18.1 5.18.2 5.18.3 5.18.4
       5.20.0 5.20.1 5.20.2 5.20.3
       5.22.0 5.22.1 5.22.2 5.22.3 5.22.4
       5.24.0 5.24.1 5.24.2 5.24.3 5.24.4
@@ -60,36 +178,54 @@ sub get_options {
       5.38.0 5.38.1 5.38.2 5.38.3 5.38.4
       5.40.0 5.40.1 5.40.2
       5.42.0
-      5.43.1 5.43.2 5.43.3 5.43.4 5.43.5 5.43.6
+      5.43.1 5.43.2 5.43.3 5.43.4 5.43.5 5.43.6 5.43.7
       )
     ]
-    unless @{ $Options->{version} };
+    unless $Options->{version}->@*;
   $Options->{version} = [
     grep {
       my $cmd    = "dc-$_ -v$Silent";
       my $exists = eval { !system $cmd };
       $Options->{force} || ($exists ^ $Options->{build})
-    } @{ $Options->{version} }
+    } $Options->{version}->@*
   ];
-  print "Versions: @{$Options->{version}}\n";
+  say "Versions: @{$Options->{version}}";
   if ($Options->{list}) {
     exit;
   }
 }
 
-sub sys {
-  my ($command, $user) = @_;
-  print "$command\n";
-  return              if $Options->{dry_run};
-  $command .= $Silent if $Options->{silent} && !$user;
-  my $ret = system $command;
-  warn "command failed: $? - $command" if $ret && !$Options->{ignore_failure};
+sub sys ($command, $user = 0, $logfile = undef) {
+  say $command;
+  return 1 if $Options->{dry_run};
+
+  my $ret;
+  if ($logfile) {
+    open my $log_fh, ">>", $logfile        or warn "Can't open $logfile: $!";
+    open my $cmd_fh, "-|", "$command 2>&1" or do {
+      warn "Can't run $command: $!";
+      return 0;
+    };
+
+    while (my $line = <$cmd_fh>) {
+      print $log_fh $line if $log_fh;
+      print $line         if $user;
+    }
+
+    close $cmd_fh or 1;  # Ignore - exit status captured via $?
+    $ret = $?;
+    close $log_fh or warn "Can't close $logfile: $!" if $log_fh;
+  } elsif ($Options->{silent} && !$user) {
+    $ret = system "$command$Silent";
+  } else {
+    $ret = system $command;
+  }
+
+  warn "command failed: $ret - $command" if $ret && !$Options->{ignore_failure};
   !$ret
 }
 
-sub _mods {
-  my ($v, $n) = @_;
-
+sub _mods ($v, $n) {
   my ($s) = $n =~ /(\d+)$/;
   my $version = version->parse($n);
 
@@ -113,10 +249,8 @@ sub _mods {
   @mods
 }
 
-sub _build_version {
-  my ($v) = @_;
-
-  print "building $v\n";
+sub _build_version ($v) {
+  say "building $v";
   # sleep 1; return;
 
   my ($n) = $v =~ /(\d+\.\d+\.\d+)/ or die "Can't parse [$v}";
@@ -151,51 +285,115 @@ sub _build_version {
   my $ln = "/usr/local/bin/dc-$v";
   sys "sudo rm -f $ln$Silent";
 
-  my ($perl) = "$dir/perl";
-  print "$perl => $ln\n";
+  my $perl = "$dir/perl";
+  say "$perl => $ln";
   sys "sudo ln -s $perl $ln" or warn "Can't ln $perl => $ln: $!";
 }
 
-sub _build_versions {
-  my ($v) = @_;
+sub _build_versions ($v) {
   _build_version $v;
   _build_version "$v-thr";
 }
 
+sub build_default {
+  delete $ENV{PLENV_VERSION};
+  sys "perl Makefile.PL";
+  sys "make tt", 1;
+}
+
 sub build {
-  print "Building: @{$Options->{version}}\n";
+  say "Building: @{$Options->{version}}";
   my @res = iterate_as_array(
     { workers => njobs },
-    sub {
-      my (undef, $v) = @_;
+    sub ($i, $v) {
       _build_versions($v);
     },
-    [ grep !/-thr/, @{ $Options->{version} } ]
+    [ grep !/-thr/, $Options->{version}->@* ]
   );
   exit;
 }
 
 sub main {
+  setup;
   get_options;
   build if $Options->{build};
 
-  my $command = "@ARGV" or die "Usage: $0 [-v version] command\n";
+  my $command     = "@ARGV" or die "Usage: $0 [-v version] command\n";
+  my $log_dir     = "tmp/all_versions";
+  my $total_start = time;
+  my (@failed, @passed, %timing);
 
-  for my $v (@{ $Options->{version} }) {
-    my $perl = "dc-$v";
-    (my $c = $command) =~ s/=perl/$perl/g;
-    # print "Running [$c] from $v\n";
+  make_path($log_dir) unless $Options->{dry_run};
+
+  for my $v ($Options->{version}->@*) {
+    my $perl    = "dc-$v";
+    my $logfile = "$log_dir/$v.log";
+
+    unless ($Options->{dry_run}) {
+      open my $fh, ">", $logfile or warn "Can't create $logfile: $!";
+    }
+
+    my $c = $command =~ s/=perl/$perl/rg;
+    # say "Running [$c] from $v";
     $ENV{PLENV_VERSION} = $perl;
     # $c =~ s/=v/$v/g;
+
+    my $start = time;
+
     if ($c =~ /^make /) {
-      sys "rm -rf t/e2e";
-      sys "$perl Makefile.PL";
-      sys "make clean";
-      sys "$perl Makefile.PL";
-      sys "make";
+      sys "rm -rf t/e2e",      0, $logfile;
+      sys "$perl Makefile.PL", 0, $logfile;
+      sys "make clean",        0, $logfile;
+      sys "$perl Makefile.PL", 0, $logfile;
+      sys "make",              0, $logfile;
     }
-    sys $c, 1;
+    my $success = sys $c, 1, $logfile;
+
+    my $elapsed = time - $start;
+    $timing{$v} = $elapsed;
+
+    if ($success) {
+      push @passed, $v;
+      say colour("  ✓ $v (" . format_duration($elapsed) . ")", "green");
+    } else {
+      push @failed, $v;
+      my $dur = format_duration($elapsed);
+      say colour("  ✗ $v ($dur) - see $logfile", "red");
+    }
   }
+
+  build_default if $command =~ /^make /;
+
+  my $total_elapsed = time - $total_start;
+
+  write_status($log_dir, $command, $total_start, $total_elapsed, \@passed,
+    \@failed, \%timing)
+    unless $Options->{dry_run};
+
+  my $total = @passed + @failed;
+  say "\n" . "=" x 72;
+  say colour("SUMMARY", "bold");
+  say "=" x 72;
+  say "Total time: " . format_duration($total_elapsed);
+  say "Log directory: $log_dir/";
+  say "";
+
+  if (@failed) {
+    printf "%s: %d/%d\n", colour("Passed", "green"), scalar @passed, $total;
+    printf "%s: %d/%d\n", colour("Failed", "red"),   scalar @failed, $total;
+    say "";
+    say colour("Failed versions:", "red");
+    for my $v (@failed) {
+      my $dur = format_duration($timing{$v});
+      say colour("  - $v", "red") . " ($dur) - $log_dir/$v.log";
+    }
+    return 1;
+  } else {
+    say colour("Passed: $total/$total", "green");
+    say "";
+    say colour("All versions passed.", "green", "bold");
+  }
+  0
 }
 
-main
+exit main

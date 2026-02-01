@@ -27,7 +27,7 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # https://pjcj.net
 9                                       
-10                                      # __COVER__ skip_test $] < 5.010 || !(eval "use Moose; 23")
+10                                      # __COVER__ skip_test !(eval "use Moose; 23")
 11                                      # __COVER__ skip_reason Moose not available or unreliable with Devel::Cover
 12                                      
 13                                      package Foo;
