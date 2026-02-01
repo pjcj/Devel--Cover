@@ -430,7 +430,6 @@ gold : pure_all
 
 all_test :
 \t \$(PERL) utils/all_versions make t
-\t exec make at
 
 all_gold :
 \t \$(PERL) utils/create_all_gold \$(TEST)

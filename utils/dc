@@ -242,6 +242,8 @@ recipe_all-versions() {
 
 recipe_build-and-test-all() {
   perl Makefile.PL
+  make clean
+  perl Makefile.PL
   make at
 }
 

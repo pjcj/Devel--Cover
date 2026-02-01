@@ -13,7 +13,7 @@ use warnings;
 use feature qw( signatures postderef );
 no warnings qw( experimental::signatures experimental::postderef );
 
-use lib "utils";
+use lib qw( utils );
 
 use File::Path         qw( make_path );
 use Getopt::Long       qw( GetOptions );
@@ -298,7 +298,7 @@ sub _build_versions ($v) {
 sub build_default {
   delete $ENV{PLENV_VERSION};
   sys "perl Makefile.PL";
-  sys "make";
+  sys "make tt", 1;
 }
 
 sub build {
