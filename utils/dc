@@ -160,9 +160,9 @@ recipe_update-copyright() {
   local files
   files=$(git ls-files)
   # shellcheck disable=SC2086
-  perl -pi -e "s/Copyright \\d+-\\K$from(, $me)/$to\$1/i" "$files"
+  perl -pi -e "s/Copyright \\d+-\\K$from(, $me)/$to\$1/i" $files
   # shellcheck disable=SC2086
-  perl -pi -e "s/Copyright $from\\K(, $me)/-$to\$1/i" "$files"
+  perl -pi -e "s/Copyright $from\\K(, $me)/-$to\$1/i" $files
 }
 
 get_cpm() {
@@ -174,14 +174,14 @@ get_cpm() {
 install_dependencies() {
   get_cpm
   pi "Installing dependencies with $cpm"
-  "$cpm" install --workers="$(nice_cpus)" --global \
+  $cpm install --workers="$(nice_cpus)" --global \
     Sereal Digest::MD5 Template Pod::Coverage::CountParents \
     Capture::Tiny Parallel::Iterator Template Class::XSAccessor
 }
 
 install_development_dependencies() {
   get_cpm
-  "$cpm" install --workers="$(nice_cpus)" --global \
+  $cpm install --workers="$(nice_cpus)" --global \
     Dist::Zilla Perl::Critic Perl::Tidy App::perlimports \
     Archive::Tar::Wrapper Perl::Critic::PJCJ App::Yath UUID
   plenv rehash
@@ -193,7 +193,7 @@ install_development_dependencies() {
 
 install_test_dependencies() {
   get_cpm
-  "$cpm" install --workers="$(nice_cpus)" --global \
+  $cpm install --workers="$(nice_cpus)" --global \
     DBM::Deep
 }
 
@@ -250,7 +250,7 @@ recipe_build-and-test-all() {
 run_cpancover() {
   mkdir -p "$results_dir"
   local cpancover=cpancover
-  if [[ $PWD != /dc ]]; then
+  if [[ $(pwd) != /dc ]]; then
     local root=
     [[ -d /dc ]] && root=/dc/
     PATH="./utils:./bin:$PATH"
@@ -264,7 +264,7 @@ run_cpancover() {
   cmd="$cpancover --env $env --results_dir $results_dir"
   cmd="$cmd --workers $(nice_cpus) $*"
   ((verbose)) && pi "$cmd"
-  "$cmd" || true
+  $cmd || true
 }
 
 recipe_cpancover() {
@@ -273,7 +273,7 @@ recipe_cpancover() {
 
 cpancover_docker_ps() {
   local name="${docker_image//[^a-zA-Z0-9_.]/-}"
-  "$docker" ps -a | tail -n +2 | grep "$name-" | grep -vw "$(hostname)"
+  $docker ps -a | tail -n +2 | grep "$name-" | grep -vw "$(hostname)"
 }
 
 recipe_cpancover-docker-ps() {
@@ -290,7 +290,7 @@ recipe_cpancover-docker-kill() {
 
 cpancover_docker_rm() {
   cpancover_docker_ps_ids | xargs -r "$docker" rm -f
-  "$docker" system prune --force
+  $docker system prune --force
 }
 
 recipe_cpancover-docker-rm() {
@@ -298,9 +298,9 @@ recipe_cpancover-docker-rm() {
 }
 
 recipe_cpancover-docker-rm-image() {
-  "$docker" ps -q --filter ancestor="$docker_image" | xargs -r "$docker" stop
-  "$docker" ps -aq --filter ancestor="$docker_image" | xargs -r "$docker" rm
-  "$docker" rmi "$docker_image"
+  $docker ps -q --filter ancestor="$docker_image" | xargs -r "$docker" stop
+  $docker ps -aq --filter ancestor="$docker_image" | xargs -r "$docker" rm
+  $docker rmi "$docker_image"
 }
 
 recipe_docker-build() {
@@ -359,8 +359,8 @@ recipe_cpancover-controller-shell() {
 recipe_cpancover-docker-shell() {
   local staging="${1:-$results_dir}"
   mkdir -p "$staging"
-  "$docker" run -it \
-    --mount "type=bind,source=$staging,target=/remote_staging" \
+  $docker run -it \
+    --mount type=bind,source="$staging",target=/remote_staging \
     --rm=false --memory=1g --name="$(docker_name docker)" \
     "$docker_image" /bin/bash
 }
@@ -376,18 +376,18 @@ recipe_cpancover-docker-module() {
   ((verbose)) && pi "module: $module"
   local v=
   ((verbose)) && v=--verbose
-  container=$("$docker" run -d \
+  container=$($docker run -d \
     --rm=false --memory=1g --name="$name" \
     "$docker_image" \
-    dc "${v:+"$v"}" cpancover-build-module "$module")
+    dc $v cpancover-build-module "$module")
   ((verbose)) && pi "container is $container"
-  "$docker" wait "$name" # >/dev/null
+  $docker wait "$name" # >/dev/null
   # shellcheck disable=SC2181
   if [[ $? == 0 ]]; then
-    "$docker" logs "$name"
+    $docker logs "$name"
     local_staging="$staging/$name"
     mkdir -p "$local_staging"
-    "$docker" cp "$name:/root/cover/staging" "$local_staging"
+    $docker cp "$name:/root/cover/staging" "$local_staging"
     if [[ -d $local_staging ]]; then
       chmod -R 755 "$local_staging"
       find "$local_staging" -type f -exec chmod 644 {} \;
@@ -402,7 +402,7 @@ recipe_cpancover-docker-module() {
       rm -r "$local_staging"
     fi
   fi
-  "$docker" rm "$name" >/dev/null
+  $docker rm "$name" >/dev/null
 }
 
 cpancover_compress() {
