@@ -311,6 +311,8 @@ recipe_docker-build() {
 cpancover_latest() {
   if [[ -n "${CPANCOVER_TEST_MODULES:-}" ]]; then
     echo "$CPANCOVER_TEST_MODULES"
+  elif [[ -n "${CPANCOVER_TEST_REGEX:-}" ]]; then
+    run_cpancover --latest | grep -E "$CPANCOVER_TEST_REGEX"
   else
     run_cpancover --latest
   fi
@@ -345,9 +347,13 @@ cpancover_controller_command() {
   local sock=/var/run/docker.sock
   local tty_flag=""
   [[ -t 0 ]] && tty_flag="-t"
+  local env_flags=()
+  [[ -n "${CPANCOVER_TEST_REGEX:-}" ]] &&
+    env_flags+=(--env "CPANCOVER_TEST_REGEX=$CPANCOVER_TEST_REGEX")
   "$docker" run -i ${tty_flag:+"$tty_flag"} \
     --mount "type=bind,source=$sock,target=$sock" \
     --mount "type=bind,source=$results_dir,target=/remote_staging" \
+    "${env_flags[@]:+${env_flags[@]}}" \
     --rm=false --memory=1g --name="$(docker_name "$name")" \
     "$docker_image" "${cmd[@]}"
 }
