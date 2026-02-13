@@ -377,6 +377,7 @@ recipe_cpancover-docker-module() {
   local module="${1:?No module specified}"
   local name="${2:?No name specified}"
   local staging="${3:-$results_dir}"
+  local module_timeout="${DEVEL_COVER_TIMEOUT:-1800}"
 
   name=$(docker_name "$name")
   mkdir -p "$staging"
@@ -388,9 +389,7 @@ recipe_cpancover-docker-module() {
     "$docker_image" \
     dc $v cpancover-build-module "$module")
   ((verbose)) && pi "container is $container"
-  $docker wait "$name" # >/dev/null
-  # shellcheck disable=SC2181
-  if [[ $? == 0 ]]; then
+  if timeout "$module_timeout" "$docker" wait "$name" >/dev/null 2>&1; then
     $docker logs "$name"
     local_staging="$staging/$name"
     mkdir -p "$local_staging"
@@ -408,8 +407,11 @@ recipe_cpancover-docker-module() {
       done
       rm -r "$local_staging"
     fi
+  else
+    pi "module timed out after ${module_timeout}s, killing container: $module"
+    $docker kill "$name" >/dev/null 2>&1 || true
   fi
-  $docker rm "$name" >/dev/null
+  $docker rm "$name" >/dev/null 2>&1 || true
 }
 
 cpancover_compress() {
