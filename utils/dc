@@ -348,8 +348,9 @@ cpancover_controller_command() {
   local tty_flag=""
   [[ -t 0 ]] && tty_flag="-t"
   local env_flags=()
-  [[ -n "${CPANCOVER_TEST_REGEX:-}" ]] &&
-    env_flags+=(--env "CPANCOVER_TEST_REGEX=$CPANCOVER_TEST_REGEX")
+  while IFS='=' read -r var value; do
+    env_flags+=(--env "$var=$value")
+  done < <(env | grep -E '^(CPANCOVER_|DEVEL_COVER_)' || true)
   "$docker" run -i ${tty_flag:+"$tty_flag"} \
     --mount "type=bind,source=$sock,target=$sock" \
     --mount "type=bind,source=$results_dir,target=/remote_staging" \
