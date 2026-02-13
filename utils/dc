@@ -353,7 +353,7 @@ cpancover_controller_command() {
   "$docker" run -i ${tty_flag:+"$tty_flag"} \
     --mount "type=bind,source=$sock,target=$sock" \
     --mount "type=bind,source=$results_dir,target=/remote_staging" \
-    "${env_flags[@]:+${env_flags[@]}}" \
+    ${env_flags[@]:+"${env_flags[@]}"} \
     --rm=false --memory=1g --name="$(docker_name "$name")" \
     "$docker_image" "${cmd[@]}"
 }
