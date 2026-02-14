@@ -377,7 +377,7 @@ recipe_cpancover-docker-module() {
   local module="${1:?No module specified}"
   local name="${2:?No name specified}"
   local staging="${3:-$results_dir}"
-  local module_timeout="${DEVEL_COVER_TIMEOUT:-1800}"
+  local module_timeout="${CPANCOVER_TIMEOUT:-1800}" # half an hour
 
   name=$(docker_name "$name")
   mkdir -p "$staging"

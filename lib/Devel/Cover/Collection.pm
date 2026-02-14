@@ -65,9 +65,10 @@ class Devel::Cover::Collection {
     $modules     //= [];
     $output_file //= "index.html";
     $report      //= "html_basic";
-    $timeout     //= 30 * 60;  # half an hour
+    $timeout     //= $ENV{CPANCOVER_TIMEOUT} // 30 * 60;  # half an hour
     $verbose     //= 0;
     $workers     //= 0;
+    $ENV{CPANCOVER_TIMEOUT} = $timeout;
   }
 
   # rwp private setters
@@ -280,7 +281,7 @@ class Devel::Cover::Collection {
     write_file(($self->made_res_dir)[0], "collection.css");
     my $template = Template->new({
       LOAD_TEMPLATES =>
-        [ Devel::Cover::Collection::Template::Provider->new({}) ]
+        [ Devel::Cover::Collection::Template::Provider->new({}) ],
     });
     $template->process("summary", $vars, $f) or die $template->error;
     for my $start (sort keys $vars->{modules}->%*) {
