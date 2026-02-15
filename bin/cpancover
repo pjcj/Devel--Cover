@@ -37,7 +37,7 @@ my $Options = {
   output_file           => "index.html",
   report                => "html_basic",
   results_dir           => cwd(),
-  timeout               => 7200,                             # two hours
+  timeout               => undef,
   verbose               => 0,
   workers               => 0,
 };

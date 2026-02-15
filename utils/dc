@@ -303,8 +303,131 @@ recipe_cpancover-docker-rm-image() {
   $docker rmi "$docker_image"
 }
 
+recipe_docker-build() {
+  local build="$srcdir/../docker/BUILD"
+  "$build" -e "$env" "${args[@]:+${args[@]}}"
+}
+
+# docker push authenticates via `docker login` credentials stored in
+# ~/.docker/config.json. The Docker Hub *web API* (hub.docker.com/v2),
+# used for listing and deleting tags, has its own auth — POST username +
+# PAT to /v2/users/login to obtain a JWT. The CLI credentials cannot be
+# reused for this.
+#
+# HUB_USERNAME: your Docker Hub username
+# HUB_TOKEN:    a Personal Access Token created at
+#               https://hub.docker.com/settings/security
+#               (needs Read & Write & Delete permissions)
+
+Docker_hub_repo="pjcj/cpancover"
+
+# Authenticate with Docker Hub and print a JWT.
+docker_hub_auth() {
+  if [[ -z "${HUB_USERNAME:-}" || -z "${HUB_TOKEN:-}" ]]; then
+    pf "HUB_USERNAME and HUB_TOKEN environment variables are required"
+  fi
+
+  local token
+  token=$(curl -sf "https://hub.docker.com/v2/users/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"username\":\"$HUB_USERNAME\",\"password\":\"$HUB_TOKEN\"}" |
+    perl -MJSON::PP -e 'print decode_json(do{local$/;<STDIN>})->{token}')
+
+  if [[ -z "$token" ]]; then
+    pf "Failed to authenticate with Docker Hub"
+  fi
+
+  echo "$token"
+}
+
+# Fetch versioned tags from Docker Hub into the Hub_tags array (sorted
+# newest-first). Sets Hub_token for callers that need it afterwards.
+docker_hub_fetch_tags() {
+  Hub_token=$(docker_hub_auth)
+  Hub_tags=()
+
+  local url="https://hub.docker.com/v2/repositories/$Docker_hub_repo/tags?page_size=100"
+  while [[ -n "$url" && "$url" != "null" ]]; do
+    local response
+    response=$(curl -sf "$url" -H "Authorization: Bearer $Hub_token")
+    while IFS= read -r t; do
+      [[ -n "$t" ]] && Hub_tags+=("$t")
+    done < <(echo "$response" |
+      perl -MJSON::PP -e '
+        my $d = decode_json(do{local$/;<STDIN>});
+        for (@{$d->{results}}) {
+          my $n = $_->{name};
+          print "$n\n" if $n =~ /^\d{4}-\d{2}-\d{2}-\d{4}-/;
+        }')
+    url=$(echo "$response" |
+      perl -MJSON::PP -e 'print decode_json(do{local$/;<STDIN>})->{next}//"null"')
+  done
+
+  # Sort newest-first (the tag format is naturally sortable)
+  mapfile -t Hub_tags < <(printf '%s\n' "${Hub_tags[@]}" | sort -r)
+}
+
+docker_show_tags() {
+  docker_hub_fetch_tags
+
+  pi "Found ${#Hub_tags[@]} versioned tags for $Docker_hub_repo:"
+  for t in "${Hub_tags[@]}"; do
+    pi "  $t"
+  done
+}
+
+recipe_docker-show-tags() {
+  docker_show_tags
+}
+
+docker_prune_tags() {
+  local keep="${1:-20}"
+
+  docker_hub_fetch_tags
+
+  pi "Found ${#Hub_tags[@]} versioned tags for $Docker_hub_repo:"
+  for t in "${Hub_tags[@]}"; do
+    pi "  $t"
+  done
+
+  if ((${#Hub_tags[@]} <= keep)); then
+    pi "Nothing to prune (${#Hub_tags[@]} tags <= $keep)"
+    return
+  fi
+
+  local to_delete=("${Hub_tags[@]:$keep}")
+
+  pi "Deleting ${#to_delete[@]} old tags (keeping $keep)"
+
+  for tag in "${to_delete[@]}"; do
+    if ((dryrun)); then
+      pi "[dry run] would delete $Docker_hub_repo:$tag"
+    else
+      if curl -sf -X DELETE \
+        "https://hub.docker.com/v2/repositories/$Docker_hub_repo/tags/$tag/" \
+        -H "Authorization: Bearer $Hub_token" >/dev/null; then
+        pi "Deleted $Docker_hub_repo:$tag"
+      else
+        pe "Failed to delete $Docker_hub_repo:$tag"
+      fi
+    fi
+  done
+
+  pi "Done"
+}
+
+recipe_docker-prune-tags() {
+  docker_prune_tags "${args[@]:-}"
+}
+
 cpancover_latest() {
-  run_cpancover --latest
+  if [[ -n "${CPANCOVER_TEST_MODULES:-}" ]]; then
+    echo "$CPANCOVER_TEST_MODULES"
+  elif [[ -n "${CPANCOVER_TEST_REGEX:-}" ]]; then
+    run_cpancover --latest | grep -E "$CPANCOVER_TEST_REGEX"
+  else
+    run_cpancover --latest
+  fi
 }
 
 recipe_cpancover-latest() {
@@ -334,9 +457,16 @@ cpancover_controller_command() {
   local cmd=("$@")
   mkdir -p "$results_dir"
   local sock=/var/run/docker.sock
-  $docker run -it \
-    --mount type=bind,source=$sock,target=$sock \
-    --mount type=bind,source="$results_dir",target=/remote_staging \
+  local tty_flag=""
+  [[ -t 0 ]] && tty_flag="-t"
+  local env_flags=()
+  while IFS='=' read -r var value; do
+    env_flags+=(--env "$var=$value")
+  done < <(env | grep -E '^(CPANCOVER_|DEVEL_COVER_)' || true)
+  "$docker" run -i ${tty_flag:+"$tty_flag"} \
+    --mount "type=bind,source=$sock,target=$sock" \
+    --mount "type=bind,source=$results_dir,target=/remote_staging" \
+    ${env_flags[@]:+"${env_flags[@]}"} \
     --rm=false --memory=1g --name="$(docker_name "$name")" \
     "$docker_image" "${cmd[@]}"
 }
@@ -359,6 +489,7 @@ recipe_cpancover-docker-module() {
   local module="${1:?No module specified}"
   local name="${2:?No name specified}"
   local staging="${3:-$results_dir}"
+  local module_timeout="${CPANCOVER_TIMEOUT:-1800}" # half an hour
 
   name=$(docker_name "$name")
   mkdir -p "$staging"
@@ -370,9 +501,7 @@ recipe_cpancover-docker-module() {
     "$docker_image" \
     dc $v cpancover-build-module "$module")
   ((verbose)) && pi "container is $container"
-  $docker wait "$name" # >/dev/null
-  # shellcheck disable=SC2181
-  if [[ $? == 0 ]]; then
+  if timeout "$module_timeout" "$docker" wait "$name" >/dev/null 2>&1; then
     $docker logs "$name"
     local_staging="$staging/$name"
     mkdir -p "$local_staging"
@@ -390,8 +519,11 @@ recipe_cpancover-docker-module() {
       done
       rm -r "$local_staging"
     fi
+  else
+    pi "module timed out after ${module_timeout}s, killing container: $module"
+    $docker kill "$name" >/dev/null 2>&1 || true
   fi
-  $docker rm "$name" >/dev/null
+  $docker rm "$name" >/dev/null 2>&1 || true
 }
 
 cpancover_compress() {
@@ -445,6 +577,18 @@ cpancover_run_once() {
   pi "Finished cpancover run at $(date)"
 }
 
+cpancover_build_stdin() {
+  pi "Starting cpancover build at $(date) on $(nice_cpus) cpus"
+  cpancover_docker_rm
+  run_cpancover --build
+  cpancover_generate_html
+  pi "Finished cpancover build at $(date)"
+}
+
+recipe_cpancover-build-stdin() {
+  cpancover_build_stdin
+}
+
 cpancover_run_loop() {
   while true; do
     cpancover_run_once
@@ -470,6 +614,25 @@ recipe_cpancover-controller-run-once() {
   local o=(--env "$env")
   ((verbose)) && o+=("--verbose")
   cpancover_controller_command controller dc "${o[@]}" cpancover-run-once
+}
+
+# Default test module - small, stable, predictable
+cpancover_default_test_module="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.1.2.tar.gz"
+
+recipe_cpancover-test() {
+  : "${CPANCOVER_TEST_MODULES:=$cpancover_default_test_module}"
+  export CPANCOVER_TEST_MODULES
+  pi "Testing with modules: $CPANCOVER_TEST_MODULES"
+  cpancover_run_once
+}
+
+recipe_cpancover-controller-test() {
+  : "${CPANCOVER_TEST_MODULES:=$cpancover_default_test_module}"
+  pi "Testing with modules: $CPANCOVER_TEST_MODULES"
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  echo "$CPANCOVER_TEST_MODULES" |
+    cpancover_controller_command controller dc "${o[@]}" cpancover-build-stdin
 }
 
 recipe_cpancover-start-queue() {
@@ -506,7 +669,7 @@ generate_gcov_fixtures() {
     gcc -fprofile-arcs -ftest-coverage -o "$base" "$src"
 
     # Run to generate .gcda coverage data
-    ./"$base" || true  # Allow non-zero exit for branch coverage
+    ./"$base" || true # Allow non-zero exit for branch coverage
 
     # Generate .gcov file
     # On macOS/clang, gcno/gcda files are named <output>-<source>.gc*
@@ -521,7 +684,8 @@ generate_gcov_fixtures() {
     mv "$src.gcov" "$src.gcov.fixture"
 
     # Clean up intermediates, keep only .c and .gcov.fixture
-    rm -f "$base" "$base.gcno" "$base.gcda" "$base-$base.gcno" "$base-$base.gcda"
+    rm -f "$base" "$base.gcno" "$base.gcda" \
+      "$base-$base.gcno" "$base-$base.gcda"
 
     pi "Generated $src.gcov.fixture"
   done

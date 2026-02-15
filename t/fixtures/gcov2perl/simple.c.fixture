@@ -1,3 +1,4 @@
+/* vim: set ft=c: */
 /* Simple test file for gcov2perl */
 
 int main(void) {

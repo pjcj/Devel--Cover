@@ -21,8 +21,10 @@ my $Fixtures = File::Spec->catdir($Root, "t", "fixtures", "gcov2perl");
 sub setup () {
   my $tmpdir = tempdir(CLEANUP => 1);
 
-  copy(File::Spec->catfile($Fixtures, "simple.c"), $tmpdir)
-    or die "Failed to copy simple.c: $!";
+  copy(
+    File::Spec->catfile($Fixtures, "simple.c.fixture"),
+    File::Spec->catfile($tmpdir,   "simple.c")
+  ) or die "Failed to copy simple.c.fixture: $!";
   copy(
     File::Spec->catfile($Fixtures, "simple.c.gcov.fixture"),
     File::Spec->catfile($tmpdir,   "simple.c.gcov")

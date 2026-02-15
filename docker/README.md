@@ -73,24 +73,23 @@ The system builds Docker images in layers, each building upon the previous:
 
 ## Build System
 
-The `BUILD` script manages the entire build process:
+The `BUILD` script manages the entire build process. You can run it directly or
+via `dc`:
 
 ```bash
-# Basic build (uses main branch, pushes to Docker Hub)
-./BUILD
+# Using dc (recommended - inherits environment settings)
+dc -e dev docker-build              # Development build
+dc docker-build                     # Production build
+dc -e dev docker-build --no-cache   # Force clean rebuild
 
-# Development build (uses local source, no push)
-./BUILD --env=dev
-
-# Custom options
-./BUILD --user=myuser --perl=5.40.2 --no-cache --nopush
-
-# Build specific image
-./BUILD --image=cpancover_dev --src=my_branch
+# Using BUILD directly
+docker/BUILD -e dev                 # Development build
+docker/BUILD                        # Production build
+docker/BUILD --user myuser --perl 5.40.2 --no-cache --nopush
 
 # Access shell in specific container
-./BUILD cpancover-shell
-./BUILD devel-cover-dc-shell
+docker/BUILD cpancover-shell
+docker/BUILD devel-cover-dc-shell
 ```
 
 ### Build Options
@@ -102,6 +101,52 @@ The `BUILD` script manages the entire build process:
 - `--no-cache`: Force rebuild without cache
 - `--nopush`: Skip pushing to Docker Hub
 - `--env`: Environment (prod/dev)
+
+## Image Versioning
+
+Production builds of `pjcj/cpancover` are tagged with a combined date and git
+SHA, for example `2026-02-15-1430-c1213eac`. The `:latest` tag is always
+updated alongside the versioned tag, so pulling `:latest` gives you the most
+recent build while every previous build remains addressable.
+
+### Tag format
+
+```text
+YYYY-MM-DD-HHMM-<short-sha>
+```
+
+The timestamp is UTC and the SHA is from `git rev-parse --short HEAD` at build
+time.
+
+### Managing tags
+
+List all versioned tags on Docker Hub:
+
+```bash
+dc docker-show-tags
+```
+
+Prune old versioned tags, keeping the most recent:
+
+```bash
+dc docker-prune-tags        # keep the 20 most recent (default)
+dc docker-prune-tags 10     # keep the 10 most recent
+dc -d docker-prune-tags     # dry run — list what would be deleted
+```
+
+The `latest` tag is never deleted. Two environment variables are required:
+
+- `HUB_USERNAME` — your Docker Hub username
+- `HUB_TOKEN` — a Personal Access Token (PAT)
+
+These are needed because tag deletion uses the Docker Hub web API, which
+authenticates separately from `docker push` (which uses `docker login`
+credentials). To create a PAT:
+
+1. Go to <https://hub.docker.com/settings/security>
+2. Click **Personal access tokens** and then **Generate new token**
+3. Give it **Read, Write & Delete** permissions
+4. Copy the token and export it as `HUB_TOKEN`
 
 ## Running the System
 
@@ -271,6 +316,18 @@ This provides:
    utils/dc cpancover-docker-rm
    ```
 
+   **Important**: Use `-e dev` for development containers:
+
+   ```bash
+   # These only find production (cpancover) containers
+   dc cpancover-docker-ps
+
+   # Use -e dev to find development (cpancover_dev) containers
+   dc -e dev cpancover-docker-ps
+   dc -e dev cpancover-docker-kill
+   dc -e dev cpancover-docker-rm
+   ```
+
 4. **Disk space issues**
 
    - Regular cleanup: `docker system prune`
@@ -287,6 +344,7 @@ This provides:
 ## Environment Variables
 
 - `CPANCOVER_RESULTS_DIR`: Override default results directory
+- `CPANCOVER_TEST_MODULES`: Override module list for testing (newline-separated)
 - `COVER_DEBUG`: Enable debug output in queue system
 
 ## Security Considerations
@@ -334,7 +392,7 @@ perl Makefile.PL && make test
 rm -rf ~/cover/staging*(N)
 
 # 3. Build development Docker images with local changes
-docker/BUILD -e dev
+dc -e dev docker-build
 
 # 4. Run a single coverage cycle in dev environment (via controller container)
 dc -e dev cpancover-controller-run-once
@@ -348,6 +406,37 @@ dt ~/cover/staging*
 ```bash
 # Run directly from host (faster for single modules)
 dc -e dev cpancover-build-module Some::Module
+```
+
+### Testing Docker Images
+
+After building new Docker images, use the test recipes for quick verification
+with a known stable module:
+
+```bash
+# Quick test with default module (Perl-Critic-PJCJ)
+dc -e dev cpancover-test                 # Direct execution
+dc -e dev cpancover-controller-test      # Via controller container
+```
+
+To test with custom modules, set `CPANCOVER_TEST_MODULES`:
+
+```bash
+# Single module
+CPANCOVER_TEST_MODULES="A/AU/AUTHOR/Module-1.00.tar.gz" \
+  dc -e dev cpancover-controller-test
+
+# Multiple modules (newline-separated)
+CPANCOVER_TEST_MODULES=$'A/AA/AAA/Foo.tar.gz\nB/BB/BBB/Bar.tar.gz' \
+  dc -e dev cpancover-controller-test
+```
+
+The environment variable also works with other recipes:
+
+```bash
+# Limit cpancover-run-once to specific modules
+CPANCOVER_TEST_MODULES="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.1.2.tar.gz" \
+  dc -e dev cpancover-controller-run-once
 ```
 
 ### Development vs Production Environments
@@ -468,11 +557,11 @@ dc cpancover-docker-rm
 
 ```bash
 # 1. Build and test locally
-docker/BUILD --env=dev
-dc -e dev cpancover-controller-run-once
+dc -e dev docker-build
+dc -e dev cpancover-controller-test
 
 # 2. Build production image from main branch
-docker/BUILD
+dc docker-build
 
 # 3. On production server, pull new image
 docker pull pjcj/cpancover:latest
