@@ -184,6 +184,11 @@ EOF
 
 build() {
   pi "Building $user/$image"
+  local sha
+  sha=$(git rev-parse --short HEAD)
+  local tag
+  tag="$(date -u +%Y-%m-%d-%H%M)-$sha"
+
   local env=prod
   [[ $src == /* ]] && env=dev
   docker build $nocache -t "$user/perl-$perl" "docker/perl-$perl"
@@ -201,8 +206,17 @@ build() {
     docker build --no-cache --build-arg BRANCH="$src" \
       -t "$user/devel-cover-dc" docker/devel-cover-git
   fi
-  docker build -t "$user/$image" docker/cpancover && pi "built"
-  ((push)) && docker push "$user/$image" && pi "pushed"
+  docker build -t "$user/$image:$tag" -t "$user/$image:latest" \
+    docker/cpancover && pi "built $user/$image:$tag"
+  if ((push)); then
+    if ! docker push "$user/$image:$tag" ||
+       ! docker push "$user/$image:latest"; then
+      pe "Push failed — are you logged in to Docker Hub?"
+      pe "Run: docker login"
+      return 1
+    fi
+    pi "pushed $user/$image:$tag"
+  fi
   true
 }
 

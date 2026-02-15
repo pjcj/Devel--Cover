@@ -308,6 +308,118 @@ recipe_docker-build() {
   "$build" -e "$env" "${args[@]:+${args[@]}}"
 }
 
+# docker push authenticates via `docker login` credentials stored in
+# ~/.docker/config.json. The Docker Hub *web API* (hub.docker.com/v2),
+# used for listing and deleting tags, has its own auth — POST username +
+# PAT to /v2/users/login to obtain a JWT. The CLI credentials cannot be
+# reused for this.
+#
+# HUB_USERNAME: your Docker Hub username
+# HUB_TOKEN:    a Personal Access Token created at
+#               https://hub.docker.com/settings/security
+#               (needs Read & Write & Delete permissions)
+
+Docker_hub_repo="pjcj/cpancover"
+
+# Authenticate with Docker Hub and print a JWT.
+docker_hub_auth() {
+  if [[ -z "${HUB_USERNAME:-}" || -z "${HUB_TOKEN:-}" ]]; then
+    pf "HUB_USERNAME and HUB_TOKEN environment variables are required"
+  fi
+
+  local token
+  token=$(curl -sf "https://hub.docker.com/v2/users/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"username\":\"$HUB_USERNAME\",\"password\":\"$HUB_TOKEN\"}" |
+    perl -MJSON::PP -e 'print decode_json(do{local$/;<STDIN>})->{token}')
+
+  if [[ -z "$token" ]]; then
+    pf "Failed to authenticate with Docker Hub"
+  fi
+
+  echo "$token"
+}
+
+# Fetch versioned tags from Docker Hub into the Hub_tags array (sorted
+# newest-first). Sets Hub_token for callers that need it afterwards.
+docker_hub_fetch_tags() {
+  Hub_token=$(docker_hub_auth)
+  Hub_tags=()
+
+  local url="https://hub.docker.com/v2/repositories/$Docker_hub_repo/tags?page_size=100"
+  while [[ -n "$url" && "$url" != "null" ]]; do
+    local response
+    response=$(curl -sf "$url" -H "Authorization: Bearer $Hub_token")
+    while IFS= read -r t; do
+      [[ -n "$t" ]] && Hub_tags+=("$t")
+    done < <(echo "$response" |
+      perl -MJSON::PP -e '
+        my $d = decode_json(do{local$/;<STDIN>});
+        for (@{$d->{results}}) {
+          my $n = $_->{name};
+          print "$n\n" if $n =~ /^\d{4}-\d{2}-\d{2}-\d{4}-/;
+        }')
+    url=$(echo "$response" |
+      perl -MJSON::PP -e 'print decode_json(do{local$/;<STDIN>})->{next}//"null"')
+  done
+
+  # Sort newest-first (the tag format is naturally sortable)
+  mapfile -t Hub_tags < <(printf '%s\n' "${Hub_tags[@]}" | sort -r)
+}
+
+docker_show_tags() {
+  docker_hub_fetch_tags
+
+  pi "Found ${#Hub_tags[@]} versioned tags for $Docker_hub_repo:"
+  for t in "${Hub_tags[@]}"; do
+    pi "  $t"
+  done
+}
+
+recipe_docker-show-tags() {
+  docker_show_tags
+}
+
+docker_prune_tags() {
+  local keep="${1:-20}"
+
+  docker_hub_fetch_tags
+
+  pi "Found ${#Hub_tags[@]} versioned tags for $Docker_hub_repo:"
+  for t in "${Hub_tags[@]}"; do
+    pi "  $t"
+  done
+
+  if ((${#Hub_tags[@]} <= keep)); then
+    pi "Nothing to prune (${#Hub_tags[@]} tags <= $keep)"
+    return
+  fi
+
+  local to_delete=("${Hub_tags[@]:$keep}")
+
+  pi "Deleting ${#to_delete[@]} old tags (keeping $keep)"
+
+  for tag in "${to_delete[@]}"; do
+    if ((dryrun)); then
+      pi "[dry run] would delete $Docker_hub_repo:$tag"
+    else
+      if curl -sf -X DELETE \
+        "https://hub.docker.com/v2/repositories/$Docker_hub_repo/tags/$tag/" \
+        -H "Authorization: Bearer $Hub_token" >/dev/null; then
+        pi "Deleted $Docker_hub_repo:$tag"
+      else
+        pe "Failed to delete $Docker_hub_repo:$tag"
+      fi
+    fi
+  done
+
+  pi "Done"
+}
+
+recipe_docker-prune-tags() {
+  docker_prune_tags "${args[@]:-}"
+}
+
 cpancover_latest() {
   if [[ -n "${CPANCOVER_TEST_MODULES:-}" ]]; then
     echo "$CPANCOVER_TEST_MODULES"

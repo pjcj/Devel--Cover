@@ -102,6 +102,52 @@ docker/BUILD devel-cover-dc-shell
 - `--nopush`: Skip pushing to Docker Hub
 - `--env`: Environment (prod/dev)
 
+## Image Versioning
+
+Production builds of `pjcj/cpancover` are tagged with a combined date and git
+SHA, for example `2026-02-15-1430-c1213eac`. The `:latest` tag is always
+updated alongside the versioned tag, so pulling `:latest` gives you the most
+recent build while every previous build remains addressable.
+
+### Tag format
+
+```text
+YYYY-MM-DD-HHMM-<short-sha>
+```
+
+The timestamp is UTC and the SHA is from `git rev-parse --short HEAD` at build
+time.
+
+### Managing tags
+
+List all versioned tags on Docker Hub:
+
+```bash
+dc docker-show-tags
+```
+
+Prune old versioned tags, keeping the most recent:
+
+```bash
+dc docker-prune-tags        # keep the 20 most recent (default)
+dc docker-prune-tags 10     # keep the 10 most recent
+dc -d docker-prune-tags     # dry run — list what would be deleted
+```
+
+The `latest` tag is never deleted. Two environment variables are required:
+
+- `HUB_USERNAME` — your Docker Hub username
+- `HUB_TOKEN` — a Personal Access Token (PAT)
+
+These are needed because tag deletion uses the Docker Hub web API, which
+authenticates separately from `docker push` (which uses `docker login`
+credentials). To create a PAT:
+
+1. Go to <https://hub.docker.com/settings/security>
+2. Click **Personal access tokens** and then **Generate new token**
+3. Give it **Read, Write & Delete** permissions
+4. Copy the token and export it as `HUB_TOKEN`
+
 ## Running the System
 
 ### Local Development
