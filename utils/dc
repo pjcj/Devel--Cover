@@ -531,6 +531,30 @@ cpancover_compress() {
   find "$results_dir/" -name __failed__ -prune -o \
     -type f -not -name '*.gz' -not -name '*.json' \
     -exec gzip -f9 {} \;
+
+  # Create empty hardlinked placeholders for .gz files so that
+  # Caddy's "precompressed gzip" directive can match them.
+  local dir
+  for dir in "$results_dir"/*/; do
+    [[ -d "$dir" ]] || continue
+    [[ "$(basename "$dir")" == __failed__ ]] && continue
+    local marker="$dir/virtual_unzipped"
+    local found_gz=false
+    local gzfile basefile
+    for gzfile in "$dir"/*.gz; do
+      [[ -f "$gzfile" ]] || continue
+      found_gz=true
+      break
+    done
+    if [[ "$found_gz" == true ]]; then
+      [[ -f "$marker" ]] || touch "$marker"
+      for gzfile in "$dir"/*.gz; do
+        [[ -f "$gzfile" ]] || continue
+        basefile="${gzfile%.gz}"
+        [[ -e "$basefile" ]] || ln "$marker" "$basefile"
+      done
+    fi
+  done
 }
 
 recipe_cpancover-compress() {
