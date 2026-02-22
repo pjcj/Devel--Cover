@@ -534,13 +534,12 @@ cpancover_compress() {
 
   # Create empty hardlinked placeholders for .gz files so that
   # Caddy's "precompressed gzip" directive can match them.
-  local dir
-  for dir in "$results_dir"/*/; do
+  local dir marker found_gz gzfile basefile
+  for dir in "$results_dir" "$results_dir"/*/; do
     [[ -d "$dir" ]] || continue
     [[ "$(basename "$dir")" == __failed__ ]] && continue
-    local marker="$dir/virtual_unzipped"
-    local found_gz=false
-    local gzfile basefile
+    marker="$dir/virtual_unzipped"
+    found_gz=false
     for gzfile in "$dir"/*.gz; do
       [[ -f "$gzfile" ]] || continue
       found_gz=true
