@@ -560,6 +560,34 @@ recipe_cpancover-compress() {
   cpancover_compress
 }
 
+cpancover_serve() {
+  local www_dir="$results_dir/../www_${env}"
+  local latest="$www_dir/latest"
+  mkdir -p "$www_dir"
+  if [[ ! -L "$latest" ]]; then
+    ln -s "$results_dir" "$latest"
+  fi
+  local port="${1:-8080}"
+  local caddyfile
+  caddyfile="$(mktemp)"
+  cat >"$caddyfile" <<EOF
+:${port} {
+  root * $www_dir
+  redir / /latest/ 301
+  file_server {
+    precompressed gzip
+  }
+}
+EOF
+  trap 'rm -f "$caddyfile"' EXIT
+  pi "serving $results_dir at http://localhost:$port/latest/"
+  caddy run --adapter caddyfile --config "$caddyfile"
+}
+
+recipe_cpancover-serve() {
+  cpancover_serve "${args[@]:+${args[@]}}"
+}
+
 recipe_cpancover-uncompress-dir() {
   subdir="${1:?No subdir specified}"
   find "$results_dir/$subdir/" -name __failed__ -prune -o \
