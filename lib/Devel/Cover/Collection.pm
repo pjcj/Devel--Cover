@@ -29,29 +29,29 @@ no warnings "experimental::class";
 
 class Devel::Cover::Collection {
   # ro attributes
-  field $bin_dir       : param : reader = undef;
-  field $cpancover_dir : param : reader = undef;
-  field $cpan_dir      : param : reader = undef;
-  field $results_dir   : param : reader = undef;
-  field $dryrun        : param : reader = undef;
-  field $env           : param : reader = undef;
-  field $force         : param : reader = undef;
-  field $output_file   : param : reader = undef;
-  field $report        : param : reader = undef;
-  field $timeout       : param : reader = undef;
-  field $verbose       : param : reader = undef;
-  field $workers       : param : reader = undef;
-  field $docker        : param : reader = undef;
-  field $local         : param : reader = undef;
+  field $bin_dir       :param :reader = undef;
+  field $cpancover_dir :param :reader = undef;
+  field $cpan_dir      :param :reader = undef;
+  field $results_dir   :param :reader = undef;
+  field $dryrun        :param :reader = undef;
+  field $env           :param :reader = undef;
+  field $force         :param :reader = undef;
+  field $output_file   :param :reader = undef;
+  field $report        :param :reader = undef;
+  field $timeout       :param :reader = undef;
+  field $verbose       :param :reader = undef;
+  field $workers       :param :reader = undef;
+  field $docker        :param :reader = undef;
+  field $local         :param :reader = undef;
 
   # rwp attributes (reader + private setter)
-  field $build_dirs  : param : reader = undef;
-  field $modules     : param : reader = undef;
-  field $module_file : param : reader = undef;
+  field $build_dirs  :param :reader = undef;
+  field $modules     :param :reader = undef;
+  field $module_file :param :reader = undef;
 
   # rw attributes (custom accessors for Moo compatibility)
-  field $dir  : param = undef;
-  field $file : param = undef;
+  field $dir  :param = undef;
+  field $file :param = undef;
 
   ADJUST {
     # Apply defaults (equivalent to BUILDARGS)
@@ -212,8 +212,9 @@ class Devel::Cover::Collection {
     } else {
       @cmd = ($^X, $bin_dir . "/cover");
     }
-    $output .= $self->fbsys(@cmd, "--test", "--report", $report, "--outputfile",
-      $output_file);
+    $output .= $self->fbsys(
+      @cmd, "--test", "--report", $report, "--outputfile", $output_file
+    );
     $output .= $self->fsys(@cmd, "-report", "json", "-nosummary");
 
     # TODO - option to merge DB with existing one
