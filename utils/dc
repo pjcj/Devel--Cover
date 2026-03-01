@@ -526,38 +526,83 @@ recipe_cpancover-docker-module() {
   $docker rm "$name" >/dev/null 2>&1 || true
 }
 
-cpancover_compress() {
-  rm -rf "$results_dir"/*/{runs,structure}
-  find "$results_dir/" -name __failed__ -prune -o \
-    -type f -not -name '*.gz' -not -name '*.json' \
-    -exec gzip -f9 {} \;
+cpancover_compress_dir() {
+  local dir="$1" do_sidecars="${2:-}" prefix="${3:-}"
+  shift 3 2>/dev/null || shift $#
+  local exclude=("$@")
 
-  # Create empty hardlinked placeholders for .gz files so that
-  # Caddy's "precompressed gzip" directive can match them.
-  local dir marker found_gz gzfile basefile
-  for dir in "$results_dir" "$results_dir"/*/; do
-    [[ -d "$dir" ]] || continue
-    [[ "$(basename "$dir")" == __failed__ ]] && continue
-    marker="$dir/virtual_unzipped"
-    found_gz=false
-    for gzfile in "$dir"/*.gz; do
-      [[ -f "$gzfile" ]] || continue
-      found_gz=true
-      break
-    done
-    if [[ "$found_gz" == true ]]; then
-      [[ -f "$marker" ]] || touch "$marker"
-      for gzfile in "$dir"/*.gz; do
-        [[ -f "$gzfile" ]] || continue
-        basefile="${gzfile%.gz}"
-        [[ -e "$basefile" ]] || ln "$marker" "$basefile"
-      done
+  rm -rf "$dir/runs" "$dir/structure"
+  rm -f "$dir"/digests "$dir"/digests.gz "$dir"/cover.[0-9]* \
+    "$dir"/cover.[0-9]*.gz "$dir"/*.lock "$dir"/*.lock.gz
+
+  local find_args=("$dir" -maxdepth 1
+    -type f -not -name '*.gz' -not -name '*.xz' -not -name '*.json'
+    -not -name 'virtual_unzipped')
+  local name
+  for name in "${exclude[@]}"; do
+    find_args+=(-not -name "$name")
+  done
+  local files
+  files=$(find "${find_args[@]}")
+  if [[ -n "$files" ]]; then
+    pi "${prefix}compressing"
+    echo "$files" | xargs pigz -f9
+  fi
+
+  [[ -n "$do_sidecars" ]] || return 0
+
+  local marker="$dir/virtual_unzipped" created=false gzfile basefile
+  for gzfile in "$dir"/*.gz; do
+    [[ -f "$gzfile" ]] || continue
+    [[ -f "$marker" ]] || touch "$marker"
+    basefile="${gzfile%.gz}"
+    if [[ ! -e "$basefile" ]]; then
+      ln "$marker" "$basefile"
+      created=true
     fi
   done
+  if [[ "$created" == true ]]; then
+    pi "${prefix}created sidecars"
+  fi
+}
+
+cpancover_compress_dirs() {
+  local only_new="$1"
+  local max_jobs="${CPANCOVER_COMPRESS_JOBS:-$(nice_cpus)}"
+  local jobs=0 dir name prefix
+
+  rm -f "$results_dir"/about.html.gz "$results_dir"/index.html.gz \
+    "$results_dir"/collection.css.gz "$results_dir"/cpancover.json.gz
+  cpancover_compress_dir "$results_dir" "" "top-level: " \
+    about.html index.html collection.css
+  for dir in "$results_dir"/*/; do
+    [[ -d "$dir" ]] || continue
+    name="$(basename "$dir")"
+    [[ "$name" == __failed__ || "$name" == dist ]] && continue
+    [[ "$only_new" == true && -f "$dir/virtual_unzipped" ]] && continue
+    printf -v prefix "%-40.40s " "$name"
+    cpancover_compress_dir "$dir" sidecars "$prefix" &
+    (( ++jobs >= max_jobs )) && { wait -n; (( jobs-- )); }
+  done
+  wait
+}
+
+cpancover_compress() {
+  pi "compressing $results_dir"
+  cpancover_compress_dirs false
+}
+
+cpancover_compress_new() {
+  pi "compressing new directories in $results_dir"
+  cpancover_compress_dirs true
 }
 
 recipe_cpancover-compress() {
   cpancover_compress
+}
+
+recipe_cpancover-compress-new() {
+  cpancover_compress_new
 }
 
 cpancover_serve() {
