@@ -718,7 +718,7 @@ cpancover_generate_html() {
   pi "Generating HTML at $(date)"
   cpancover_compress_old_versions
   run_cpancover --generate_html
-  cpancover_compress
+  cpancover_compress_new
   local json=$results_dir/cpancover.json
   local tmp=$json-tmp-$$.gz
   pi "Compressing $json"
