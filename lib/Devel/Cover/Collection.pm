@@ -408,7 +408,7 @@ class Devel::Cover::Collection {
       # say "$name " . @runs;
       my $run     = $runs[0]                   // next;
       my $version = $run->{version} =~ s/_//gr // next;
-      my $v       = eval { version->parse($version)->numify };
+      my $v = eval { no warnings "overflow"; version->parse($version)->numify };
       if ($@ || !$v) {
         $v = $version;
         $v =~ s/[^0-9.]//g;
