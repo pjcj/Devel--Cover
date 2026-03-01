@@ -702,7 +702,7 @@ recipe_cpancover-uncompress-dir() {
   subdir="${1:?No subdir specified}"
   find "$results_dir/$subdir/" -name __failed__ -prune -o \
     -type f -name '*.gz' \
-    -exec gzip -d {} \;
+    -exec gzip -df {} \;
 }
 
 cpancover_compress_old_versions() {
