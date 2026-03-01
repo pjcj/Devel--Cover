@@ -371,10 +371,10 @@ class Devel::Cover::Collection {
     $n = 0;
     for my $f (@mods) {
       # say "looking at [$f]";
-      my ($module) = $f =~ /^ \w - \w\w - \w+ - (.*)
-                                  \. (?: zip | tgz | (?: tar \. (?: gz | bz2 )))
-                                  -- \d{10,11} \. \d{6} \. out \. gz $/x
-        or next;
+      my $re       = qr/^\w-\w\w-\w+-(.*)/;
+      my $ext      = qr/\.(zip|tgz|tar\.(gz|bz2|xz))/;
+      my $ts       = qr/--\d{10,11}\.\d{6}\.out\.gz$/;
+      my ($module) = $f =~ /${re}${ext}${ts}/ or next;
       # say "found at [$module]";
       $vars->{vals}{$module}{log} = $f;
       print "-" if !($n++ % 1000) && !$verbose;
@@ -484,8 +484,7 @@ class Devel::Cover::Collection {
       sub {
         # say "mod ", Dumper \@_;
         my (undef, $module) = @_;
-        my $d
-          = $module =~ s|.*/||r =~ s/\.(?:zip|tgz|(?:tar\.(?:gz|bz2)))$//r;
+        my $d = $module =~ s|.*/||r =~ s/\.(?:zip|tgz|tar\.(?:gz|bz2|xz))$//r;
         if ($self->is_covered($d)) {
           $self->set_covered($d);
           say "$module already covered" if $verbose;
