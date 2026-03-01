@@ -575,6 +575,11 @@ cpancover_compress_dirs() {
     "$results_dir"/collection.css.gz "$results_dir"/cpancover.json.gz
   cpancover_compress_dir "$results_dir" "" "top-level: " \
     about.html index.html collection.css
+
+  # dist/ contains generated HTML that must be served uncompressed;
+  # delete stale .gz files so Caddy serves the fresh versions.
+  rm -f "$results_dir"/dist/*.gz
+
   for dir in "$results_dir"/*/; do
     [[ -d "$dir" ]] || continue
     name="$(basename "$dir")"
