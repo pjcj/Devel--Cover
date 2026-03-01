@@ -778,7 +778,7 @@ recipe_cpancover-controller-run-once() {
 }
 
 # Default test module - small, stable, predictable
-cpancover_default_test_module="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.1.2.tar.gz"
+cpancover_default_test_module="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz"
 
 recipe_cpancover-test() {
   : "${CPANCOVER_TEST_MODULES:=$cpancover_default_test_module}"
