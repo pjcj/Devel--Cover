@@ -631,7 +631,7 @@ cpancover_serve() {
   }
 }
 EOF
-  trap 'rm -f "$caddyfile"' EXIT
+  trap 'rm -f "$caddyfile"; cleanup' EXIT
   pi "serving $results_dir at http://localhost:$port/latest/"
   caddy run --adapter caddyfile --config "$caddyfile"
 }
