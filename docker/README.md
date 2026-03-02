@@ -435,7 +435,7 @@ The environment variable also works with other recipes:
 
 ```bash
 # Limit cpancover-run-once to specific modules
-CPANCOVER_TEST_MODULES="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.1.2.tar.gz" \
+CPANCOVER_TEST_MODULES="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz" \
   dc -e dev cpancover-controller-run-once
 ```
 
