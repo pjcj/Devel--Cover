@@ -828,10 +828,14 @@ generate_gcov_fixtures() {
   pi "Generating gcov fixtures in $fixtures_dir"
   pushd "$fixtures_dir" >/dev/null
 
-  for src in *.c; do
-    [[ -f "$src" ]] || continue
+  for fixture in *.c.fixture; do
+    [[ -f "$fixture" ]] || continue
+    local src="${fixture%.fixture}"
     local base="${src%.c}"
-    pi "Processing $src"
+    pi "Processing $fixture"
+
+    # gcc needs a .c file
+    cp "$fixture" "$src"
 
     # Compile with gcov instrumentation
     gcc -fprofile-arcs -ftest-coverage -o "$base" "$src"
@@ -851,8 +855,8 @@ generate_gcov_fixtures() {
     # Rename to .fixture so cover's *.gcov scan won't find it
     mv "$src.gcov" "$src.gcov.fixture"
 
-    # Clean up intermediates, keep only .c and .gcov.fixture
-    rm -f "$base" "$base.gcno" "$base.gcda" \
+    # Clean up intermediates, keep only .c.fixture and .gcov.fixture
+    rm -f "$src" "$base" "$base.gcno" "$base.gcda" \
       "$base-$base.gcno" "$base-$base.gcda"
 
     pi "Generated $src.gcov.fixture"
