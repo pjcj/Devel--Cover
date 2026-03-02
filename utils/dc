@@ -664,15 +664,22 @@ cpancover.com, www.cpancover.com {
 EOF
 }
 
+cpancover_validated_caddyfile() {
+  local tmpfile
+  tmpfile="$(mktemp)"
+  cpancover_caddyfile >"$tmpfile"
+  if ! caddy validate --adapter caddyfile --config "$tmpfile"; then
+    rm -f "$tmpfile"
+    pf "Caddyfile validation failed"
+  fi
+  echo "$tmpfile"
+}
+
 cpancover_configure_caddy() {
   local caddyfile="/etc/caddy/Caddyfile"
   local tmpfile
-  tmpfile="$(mktemp)"
+  tmpfile="$(cpancover_validated_caddyfile)"
   trap 'rm -f "$tmpfile"' RETURN
-  cpancover_caddyfile >"$tmpfile"
-  if ! caddy validate --adapter caddyfile --config "$tmpfile"; then
-    pf "Caddyfile validation failed"
-  fi
   if diff -q "$caddyfile" "$tmpfile" >/dev/null 2>&1; then
     pi "Caddyfile is already up to date"
     return
@@ -689,12 +696,8 @@ recipe_cpancover-configure-caddy() {
 cpancover_check_caddy() {
   local caddyfile="/etc/caddy/Caddyfile"
   local tmpfile
-  tmpfile="$(mktemp)"
+  tmpfile="$(cpancover_validated_caddyfile)"
   trap 'rm -f "$tmpfile"' RETURN
-  cpancover_caddyfile >"$tmpfile"
-  if ! caddy validate --adapter caddyfile --config "$tmpfile"; then
-    pf "Caddyfile validation failed"
-  fi
   pi "Generated config validates OK"
   local differ="diff -u"
   command -v delta >/dev/null && differ="delta"
