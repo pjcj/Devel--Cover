@@ -304,6 +304,33 @@ class Devel::Cover::Collection {
     say "Wrote collection output to $f";
   }
 
+  method resolve_log_links ($d, $mods, $vars) {
+    # Match top-level .out.gz log files to modules
+    my $n   = 0;
+    my $re  = qr/^\w-\w\w-\w+-(.*)/;
+    my $ext = qr/\.(zip|tgz|tar\.(gz|bz2|xz))/;
+    my $ts  = qr/--\d{10,11}\.\d{6}\.out\.gz$/;
+    for my $f ($mods->@*) {
+      my ($module) = $f =~ /${re}${ext}${ts}/ or next;
+      next if $vars->{vals}{$module}{log};
+      $vars->{vals}{$module}{log} = $f;
+      print "-" if !($n++ % 1000) && !$verbose;
+    }
+
+    # Fallback: .log_ref for modules built as dependencies
+    $n = 0;
+    for my $module (keys $vars->{vals}->%*) {
+      next if $vars->{vals}{$module}{log};
+      my $ref = "$d/$module/.log_ref";
+      open my $fh, "<", $ref or next;
+      chomp(my $log = <$fh>);
+      close $fh or warn "Can't close $ref: $!";
+      $vars->{vals}{$module}{log} = $log if length $log;
+      print "-"                          if !($n++ % 1000) && !$verbose;
+    }
+    say "";
+  }
+
   method generate_html {
     my ($d) = $self->made_res_dir;
     chdir $d or die "Can't chdir $d: $!\n";
@@ -368,18 +395,7 @@ class Devel::Cover::Collection {
       print "." if !($n++ % 1000) && !$verbose;
     }
 
-    $n = 0;
-    for my $f (@mods) {
-      # say "looking at [$f]";
-      my $re       = qr/^\w-\w\w-\w+-(.*)/;
-      my $ext      = qr/\.(zip|tgz|tar\.(gz|bz2|xz))/;
-      my $ts       = qr/--\d{10,11}\.\d{6}\.out\.gz$/;
-      my ($module) = $f =~ /${re}${ext}${ts}/ or next;
-      # say "found at [$module]";
-      $vars->{vals}{$module}{log} = $f;
-      print "-" if !($n++ % 1000) && !$verbose;
-    }
-    say "";
+    $self->resolve_log_links($d, \@mods, $vars);
 
     # print "vars ", Dumper $vars;
     $self->write_summary($vars);
@@ -694,7 +710,11 @@ $Templates{module_by_start} = <<'EOT';
         [% END %]
       </td>
       <td> [% module.version %] </td>
-      <td> <a href="/[% subdir %][% vals.$m.log %]"> &para; </a> </td>
+      <td>
+        [% IF vals.$m.log %]
+        <a href="/[% subdir %][% vals.$m.log %]"> &para; </a>
+        [% END %]
+      </td>
       [% FOREACH criterion = criteria %]
         <td class="[%- vals.$m.$criterion.class -%]"
           title="[%- vals.$m.$criterion.details -%]">
