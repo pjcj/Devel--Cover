@@ -385,12 +385,7 @@ recipe_docker-show-tags() {
 docker_prune_tags() {
   local keep="${1:-20}"
 
-  docker_hub_fetch_tags
-
-  pi "Found ${#Hub_tags[@]} versioned tags for $Docker_hub_repo:"
-  for t in "${Hub_tags[@]}"; do
-    pi "  $t"
-  done
+  docker_show_tags
 
   if ((${#Hub_tags[@]} <= keep)); then
     pi "Nothing to prune (${#Hub_tags[@]} tags <= $keep)"
