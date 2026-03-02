@@ -27,6 +27,8 @@ use feature "class";
 
 no warnings "experimental::class";
 
+my $Dist_ext_re = qr/\.(?:zip|tgz|tar\.(?:gz|bz2|xz))/;
+
 class Devel::Cover::Collection {
   # ro attributes
   field $bin_dir       :param :reader = undef;
@@ -308,7 +310,7 @@ class Devel::Cover::Collection {
     # Match top-level .out.gz log files to modules
     my $n   = 0;
     my $re  = qr/^\w-\w\w-\w+-(.*)/;
-    my $ext = qr/\.(zip|tgz|tar\.(gz|bz2|xz))/;
+    my $ext = qr/($Dist_ext_re)/;
     my $ts  = qr/--\d{10,11}\.\d{6}\.out\.gz$/;
     for my $f ($mods->@*) {
       my ($module) = $f =~ /${re}${ext}${ts}/ or next;
@@ -500,7 +502,7 @@ class Devel::Cover::Collection {
       sub {
         # say "mod ", Dumper \@_;
         my (undef, $module) = @_;
-        my $d = $module =~ s|.*/||r =~ s/\.(?:zip|tgz|tar\.(?:gz|bz2|xz))$//r;
+        my $d = $module =~ s|.*/||r =~ s/${Dist_ext_re}$//r;
         if ($self->is_covered($d)) {
           $self->set_covered($d);
           say "$module already covered" if $verbose;
