@@ -743,15 +743,7 @@ recipe_cpancover-generate-html() {
   cpancover_generate_html
 }
 
-cpancover_run_once() {
-  pi "Starting cpancover run at $(date) on $(nice_cpus) cpus"
-  cpancover_docker_rm
-  cpancover_latest | run_cpancover --build
-  cpancover_generate_html
-  pi "Finished cpancover run at $(date)"
-}
-
-cpancover_build_stdin() {
+cpancover_build() {
   pi "Starting cpancover build at $(date) on $(nice_cpus) cpus"
   cpancover_docker_rm
   run_cpancover --build
@@ -759,8 +751,12 @@ cpancover_build_stdin() {
   pi "Finished cpancover build at $(date)"
 }
 
+cpancover_run_once() {
+  cpancover_latest | cpancover_build
+}
+
 recipe_cpancover-build-stdin() {
-  cpancover_build_stdin
+  cpancover_build
 }
 
 cpancover_run_loop() {
