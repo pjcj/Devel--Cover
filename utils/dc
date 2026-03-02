@@ -346,7 +346,8 @@ docker_hub_fetch_tags() {
   Hub_token=$(docker_hub_auth)
   Hub_tags=()
 
-  local url="https://hub.docker.com/v2/repositories/$Docker_hub_repo/tags?page_size=100"
+  local base="https://hub.docker.com/v2/repositories"
+  local url="$base/$Docker_hub_repo/tags?page_size=100"
   while [[ -n "$url" && "$url" != "null" ]]; do
     local response
     response=$(curl -sf "$url" -H "Authorization: Bearer $Hub_token")
@@ -359,8 +360,9 @@ docker_hub_fetch_tags() {
           my $n = $_->{name};
           print "$n\n" if $n =~ /^\d{4}-\d{2}-\d{2}-\d{4}-/;
         }')
-    url=$(echo "$response" |
-      perl -MJSON::PP -e 'print decode_json(do{local$/;<STDIN>})->{next}//"null"')
+    url=$(echo "$response" | perl -MJSON::PP -e '
+      print decode_json(do{local$/;<STDIN>})->{next}//"null"
+    ')
   done
 
   # Sort newest-first (the tag format is naturally sortable)
@@ -514,7 +516,7 @@ recipe_cpancover-docker-module() {
       cd "$local_staging"/* || exit
       for f in *; do
         if [[ -d $f && ! -d "$staging/$f" ]]; then
-          echo "$log_name.out.gz" > "$f/.log_ref"
+          echo "$log_name.out.gz" >"$f/.log_ref"
           mv "$f" "$staging"
         fi
       done
@@ -589,7 +591,10 @@ cpancover_compress_dirs() {
     [[ "$only_new" == true && -f "$dir/virtual_unzipped" ]] && continue
     printf -v prefix "%-40.40s " "$name"
     cpancover_compress_dir "$dir" sidecars "$prefix" &
-    (( ++jobs >= max_jobs )) && { wait -n; (( jobs-- )); }
+    ((++jobs >= max_jobs)) && {
+      wait -n
+      ((jobs--))
+    }
   done
   wait
 }
