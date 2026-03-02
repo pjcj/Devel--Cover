@@ -331,7 +331,7 @@ docker_hub_auth() {
   token=$(curl -sf "https://hub.docker.com/v2/users/login" \
     -H "Content-Type: application/json" \
     -d "{\"username\":\"$HUB_USERNAME\",\"password\":\"$HUB_TOKEN\"}" |
-    perl -MJSON::PP -e 'print decode_json(do{local$/;<STDIN>})->{token}')
+    perl -MJSON::PP -e 'print decode_json(do { local $/; <STDIN> })->{token}')
 
   if [[ -z "$token" ]]; then
     pf "Failed to authenticate with Docker Hub"
@@ -353,19 +353,19 @@ docker_hub_fetch_tags() {
     response=$(curl -sf "$url" -H "Authorization: Bearer $Hub_token")
     local parsed
     parsed=$(echo "$response" | perl -MJSON::PP -e '
-      my $d = decode_json(do{local$/;<STDIN>});
+      my $d = decode_json(do { local $/; <STDIN> });
       for (@{$d->{results}}) {
         my $n = $_->{name};
         print "$n\n" if $n =~ /^\d{4}-\d{2}-\d{2}-\d{4}-/;
       }
       print "---NEXT---\n";
-      print $d->{next}//"null", "\n";
+      print $d->{next} // "null", "\n";
     ')
     while IFS= read -r t; do
       [[ "$t" == "---NEXT---" ]] && break
       [[ -n "$t" ]] && Hub_tags+=("$t")
-    done <<< "$parsed"
-    url=$(tail -1 <<< "$parsed")
+    done <<<"$parsed"
+    url=$(tail -1 <<<"$parsed")
   done
 
   # Sort newest-first (the tag format is naturally sortable)
