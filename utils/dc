@@ -351,18 +351,21 @@ docker_hub_fetch_tags() {
   while [[ -n "$url" && "$url" != "null" ]]; do
     local response
     response=$(curl -sf "$url" -H "Authorization: Bearer $Hub_token")
-    while IFS= read -r t; do
-      [[ -n "$t" ]] && Hub_tags+=("$t")
-    done < <(echo "$response" |
-      perl -MJSON::PP -e '
-        my $d = decode_json(do{local$/;<STDIN>});
-        for (@{$d->{results}}) {
-          my $n = $_->{name};
-          print "$n\n" if $n =~ /^\d{4}-\d{2}-\d{2}-\d{4}-/;
-        }')
-    url=$(echo "$response" | perl -MJSON::PP -e '
-      print decode_json(do{local$/;<STDIN>})->{next}//"null"
+    local parsed
+    parsed=$(echo "$response" | perl -MJSON::PP -e '
+      my $d = decode_json(do{local$/;<STDIN>});
+      for (@{$d->{results}}) {
+        my $n = $_->{name};
+        print "$n\n" if $n =~ /^\d{4}-\d{2}-\d{2}-\d{4}-/;
+      }
+      print "---NEXT---\n";
+      print $d->{next}//"null", "\n";
     ')
+    while IFS= read -r t; do
+      [[ "$t" == "---NEXT---" ]] && break
+      [[ -n "$t" ]] && Hub_tags+=("$t")
+    done <<< "$parsed"
+    url=$(tail -1 <<< "$parsed")
   done
 
   # Sort newest-first (the tag format is naturally sortable)
