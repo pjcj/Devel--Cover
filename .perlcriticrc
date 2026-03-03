@@ -649,7 +649,8 @@ only_in_void_context = 1
 
 
 # Minimize complexity in code that is outside of subroutines.
-[Modules::ProhibitExcessMainComplexity]
+# Critic doesn't know about new class keyword
+[-Modules::ProhibitExcessMainComplexity]
 # set_themes                         = complexity core maintenance
 # add_themes                         =
 # severity                           = 3

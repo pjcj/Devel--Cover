@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # . ./utils/setup
 
@@ -8,11 +8,18 @@ dc_home=$PWD
 PATH=$(tidy "$dc_home/utils:$PATH")
 export PATH
 
-if [ -n "$ZSH_VERSION" ]; then
-    # shellcheck disable=SC2207,SC3030
-  _dc() { reply=($(utils/dc options)); }
-    # shellcheck disable=SC2207,SC3030,SC2034
-  _build() { reply=($(docker/BUILD options)); }
-  compctl -K _dc dc
-  compctl -K _build BUILD
+# shellcheck disable=SC2034,SC2207,SC3030,SC3043
+if [[ -n "$ZSH_VERSION" ]]; then
+  _dc() {
+    local -a o
+    o=($(utils/dc options))
+    _describe 'dc command' o
+  }
+  _build() {
+    local -a o
+    o=($(docker/BUILD options))
+    _describe 'build command' o
+  }
+  compdef _dc dc
+  compdef _build BUILD
 fi

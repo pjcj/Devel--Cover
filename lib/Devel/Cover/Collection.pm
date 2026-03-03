@@ -27,31 +27,33 @@ use feature "class";
 
 no warnings "experimental::class";
 
+my $Dist_ext_re = qr/\.(?:zip|tgz|tar\.(?:gz|bz2|xz))/;
+
 class Devel::Cover::Collection {
   # ro attributes
-  field $bin_dir       : param : reader = undef;
-  field $cpancover_dir : param : reader = undef;
-  field $cpan_dir      : param : reader = undef;
-  field $results_dir   : param : reader = undef;
-  field $dryrun        : param : reader = undef;
-  field $env           : param : reader = undef;
-  field $force         : param : reader = undef;
-  field $output_file   : param : reader = undef;
-  field $report        : param : reader = undef;
-  field $timeout       : param : reader = undef;
-  field $verbose       : param : reader = undef;
-  field $workers       : param : reader = undef;
-  field $docker        : param : reader = undef;
-  field $local         : param : reader = undef;
+  field $bin_dir       :param :reader = undef;
+  field $cpancover_dir :param :reader = undef;
+  field $cpan_dir      :param :reader = undef;
+  field $results_dir   :param :reader = undef;
+  field $dryrun        :param :reader = undef;
+  field $env           :param :reader = undef;
+  field $force         :param :reader = undef;
+  field $output_file   :param :reader = undef;
+  field $report        :param :reader = undef;
+  field $timeout       :param :reader = undef;
+  field $verbose       :param :reader = undef;
+  field $workers       :param :reader = undef;
+  field $docker        :param :reader = undef;
+  field $local         :param :reader = undef;
 
   # rwp attributes (reader + private setter)
-  field $build_dirs  : param : reader = undef;
-  field $modules     : param : reader = undef;
-  field $module_file : param : reader = undef;
+  field $build_dirs  :param :reader = undef;
+  field $modules     :param :reader = undef;
+  field $module_file :param :reader = undef;
 
   # rw attributes (custom accessors for Moo compatibility)
-  field $dir  : param = undef;
-  field $file : param = undef;
+  field $dir  :param = undef;
+  field $file :param = undef;
 
   ADJUST {
     # Apply defaults (equivalent to BUILDARGS)
@@ -65,9 +67,10 @@ class Devel::Cover::Collection {
     $modules     //= [];
     $output_file //= "index.html";
     $report      //= "html_basic";
-    $timeout     //= 30 * 60;  # half an hour
+    $timeout     //= $ENV{CPANCOVER_TIMEOUT} // 30 * 60;  # half an hour
     $verbose     //= 0;
     $workers     //= 0;
+    $ENV{CPANCOVER_TIMEOUT} = $timeout;
   }
 
   # rwp private setters
@@ -211,8 +214,9 @@ class Devel::Cover::Collection {
     } else {
       @cmd = ($^X, $bin_dir . "/cover");
     }
-    $output .= $self->fbsys(@cmd, "--test", "--report", $report, "--outputfile",
-      $output_file);
+    $output .= $self->fbsys(
+      @cmd, "--test", "--report", $report, "--outputfile", $output_file
+    );
     $output .= $self->fsys(@cmd, "-report", "json", "-nosummary");
 
     # TODO - option to merge DB with existing one
@@ -280,7 +284,7 @@ class Devel::Cover::Collection {
     write_file(($self->made_res_dir)[0], "collection.css");
     my $template = Template->new({
       LOAD_TEMPLATES =>
-        [ Devel::Cover::Collection::Template::Provider->new({}) ]
+        [ Devel::Cover::Collection::Template::Provider->new({}) ],
     });
     $template->process("summary", $vars, $f) or die $template->error;
     for my $start (sort keys $vars->{modules}->%*) {
@@ -300,6 +304,33 @@ class Devel::Cover::Collection {
     $self->write_json($vars);
 
     say "Wrote collection output to $f";
+  }
+
+  method resolve_log_links ($d, $mods, $vars) {
+    # Match top-level .out.gz log files to modules
+    my $n   = 0;
+    my $re  = qr/^\w-\w\w-\w+-(.*)/;
+    my $ext = qr/($Dist_ext_re)/;
+    my $ts  = qr/--\d{10,11}\.\d{6}\.out\.gz$/;
+    for my $f ($mods->@*) {
+      my ($module) = $f =~ /${re}${ext}${ts}/ or next;
+      next if $vars->{vals}{$module}{log};
+      $vars->{vals}{$module}{log} = $f;
+      print "-" if !($n++ % 1000) && !$verbose;
+    }
+
+    # Fallback: .log_ref for modules built as dependencies
+    $n = 0;
+    for my $module (keys $vars->{vals}->%*) {
+      next if $vars->{vals}{$module}{log};
+      my $ref = "$d/$module/.log_ref";
+      open my $fh, "<", $ref or next;
+      chomp(my $log = <$fh>);
+      close $fh or warn "Can't close $ref: $!";
+      $vars->{vals}{$module}{log} = $log if length $log;
+      print "-"                          if !($n++ % 1000) && !$verbose;
+    }
+    say "";
   }
 
   method generate_html {
@@ -366,18 +397,7 @@ class Devel::Cover::Collection {
       print "." if !($n++ % 1000) && !$verbose;
     }
 
-    $n = 0;
-    for my $f (@mods) {
-      # say "looking at [$f]";
-      my ($module) = $f =~ /^ \w - \w\w - \w+ - (.*)
-                                  \. (?: zip | tgz | (?: tar \. (?: gz | bz2 )))
-                                  -- \d{10,11} \. \d{6} \. out \. gz $/x
-        or next;
-      # say "found at [$module]";
-      $vars->{vals}{$module}{log} = $f;
-      print "-" if !($n++ % 1000) && !$verbose;
-    }
-    say "";
+    $self->resolve_log_links($d, \@mods, $vars);
 
     # print "vars ", Dumper $vars;
     $self->write_summary($vars);
@@ -406,7 +426,7 @@ class Devel::Cover::Collection {
       # say "$name " . @runs;
       my $run     = $runs[0]                   // next;
       my $version = $run->{version} =~ s/_//gr // next;
-      my $v       = eval { version->parse($version)->numify };
+      my $v = eval { no warnings "overflow"; version->parse($version)->numify };
       if ($@ || !$v) {
         $v = $version;
         $v =~ s/[^0-9.]//g;
@@ -482,8 +502,7 @@ class Devel::Cover::Collection {
       sub {
         # say "mod ", Dumper \@_;
         my (undef, $module) = @_;
-        my $d
-          = $module =~ s|.*/||r =~ s/\.(?:zip|tgz|(?:tar\.(?:gz|bz2)))$//r;
+        my $d = $module =~ s|.*/||r =~ s/${Dist_ext_re}$//r;
         if ($self->is_covered($d)) {
           $self->set_covered($d);
           say "$module already covered" if $verbose;
@@ -693,7 +712,11 @@ $Templates{module_by_start} = <<'EOT';
         [% END %]
       </td>
       <td> [% module.version %] </td>
-      <td> <a href="/[% subdir %][% vals.$m.log %]"> &para; </a> </td>
+      <td>
+        [% IF vals.$m.log %]
+        <a href="/[% subdir %][% vals.$m.log %]"> &para; </a>
+        [% END %]
+      </td>
       [% FOREACH criterion = criteria %]
         <td class="[%- vals.$m.$criterion.class -%]"
           title="[%- vals.$m.$criterion.details -%]">

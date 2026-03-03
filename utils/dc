@@ -303,8 +303,131 @@ recipe_cpancover-docker-rm-image() {
   $docker rmi "$docker_image"
 }
 
+recipe_docker-build() {
+  local build="$srcdir/../docker/BUILD"
+  "$build" -e "$env" "${args[@]:+${args[@]}}"
+}
+
+# docker push authenticates via `docker login` credentials stored in
+# ~/.docker/config.json. The Docker Hub *web API* (hub.docker.com/v2),
+# used for listing and deleting tags, has its own auth — POST username +
+# PAT to /v2/users/login to obtain a JWT. The CLI credentials cannot be
+# reused for this.
+#
+# HUB_USERNAME: your Docker Hub username
+# HUB_TOKEN:    a Personal Access Token created at
+#               https://hub.docker.com/settings/security
+#               (needs Read & Write & Delete permissions)
+
+Docker_hub_repo="pjcj/cpancover"
+
+# Authenticate with Docker Hub and print a JWT.
+docker_hub_auth() {
+  if [[ -z "${HUB_USERNAME:-}" || -z "${HUB_TOKEN:-}" ]]; then
+    pf "HUB_USERNAME and HUB_TOKEN environment variables are required"
+  fi
+
+  local token
+  token=$(curl -sf "https://hub.docker.com/v2/users/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"username\":\"$HUB_USERNAME\",\"password\":\"$HUB_TOKEN\"}" |
+    perl -MJSON::PP -e 'print decode_json(do { local $/; <STDIN> })->{token}')
+
+  if [[ -z "$token" ]]; then
+    pf "Failed to authenticate with Docker Hub"
+  fi
+
+  echo "$token"
+}
+
+# Fetch versioned tags from Docker Hub into the Hub_tags array (sorted
+# newest-first). Sets Hub_token for callers that need it afterwards.
+docker_hub_fetch_tags() {
+  Hub_token=$(docker_hub_auth)
+  Hub_tags=()
+
+  local base="https://hub.docker.com/v2/repositories"
+  local url="$base/$Docker_hub_repo/tags?page_size=100"
+  while [[ -n "$url" && "$url" != "null" ]]; do
+    local response
+    response=$(curl -sf "$url" -H "Authorization: Bearer $Hub_token")
+    local parsed
+    parsed=$(echo "$response" | perl -MJSON::PP -e '
+      my $d = decode_json(do { local $/; <STDIN> });
+      for (@{$d->{results}}) {
+        my $n = $_->{name};
+        print "$n\n" if $n =~ /^\d{4}-\d{2}-\d{2}-\d{4}-/;
+      }
+      print "---NEXT---\n";
+      print $d->{next} // "null", "\n";
+    ')
+    while IFS= read -r t; do
+      [[ "$t" == "---NEXT---" ]] && break
+      [[ -n "$t" ]] && Hub_tags+=("$t")
+    done <<<"$parsed"
+    url=$(tail -1 <<<"$parsed")
+  done
+
+  # Sort newest-first (the tag format is naturally sortable)
+  mapfile -t Hub_tags < <(printf '%s\n' "${Hub_tags[@]}" | sort -r)
+}
+
+docker_show_tags() {
+  docker_hub_fetch_tags
+
+  pi "Found ${#Hub_tags[@]} versioned tags for $Docker_hub_repo:"
+  for t in "${Hub_tags[@]}"; do
+    pi "  $t"
+  done
+}
+
+recipe_docker-show-tags() {
+  docker_show_tags
+}
+
+docker_prune_tags() {
+  local keep="${1:-20}"
+
+  docker_show_tags
+
+  if ((${#Hub_tags[@]} <= keep)); then
+    pi "Nothing to prune (${#Hub_tags[@]} tags <= $keep)"
+    return
+  fi
+
+  local to_delete=("${Hub_tags[@]:$keep}")
+
+  pi "Deleting ${#to_delete[@]} old tags (keeping $keep)"
+
+  for tag in "${to_delete[@]}"; do
+    if ((dryrun)); then
+      pi "[dry run] would delete $Docker_hub_repo:$tag"
+    else
+      if curl -sf -X DELETE \
+        "https://hub.docker.com/v2/repositories/$Docker_hub_repo/tags/$tag/" \
+        -H "Authorization: Bearer $Hub_token" >/dev/null; then
+        pi "Deleted $Docker_hub_repo:$tag"
+      else
+        pe "Failed to delete $Docker_hub_repo:$tag"
+      fi
+    fi
+  done
+
+  pi "Done"
+}
+
+recipe_docker-prune-tags() {
+  docker_prune_tags "${args[@]:-}"
+}
+
 cpancover_latest() {
-  run_cpancover --latest
+  if [[ -n "${CPANCOVER_TEST_MODULES:-}" ]]; then
+    echo "$CPANCOVER_TEST_MODULES"
+  elif [[ -n "${CPANCOVER_TEST_REGEX:-}" ]]; then
+    run_cpancover --latest | grep -E "$CPANCOVER_TEST_REGEX"
+  else
+    run_cpancover --latest
+  fi
 }
 
 recipe_cpancover-latest() {
@@ -334,9 +457,16 @@ cpancover_controller_command() {
   local cmd=("$@")
   mkdir -p "$results_dir"
   local sock=/var/run/docker.sock
-  $docker run -it \
-    --mount type=bind,source=$sock,target=$sock \
-    --mount type=bind,source="$results_dir",target=/remote_staging \
+  local tty_flag=""
+  [[ -t 0 ]] && tty_flag="-t"
+  local env_flags=()
+  while IFS='=' read -r var value; do
+    env_flags+=(--env "$var=$value")
+  done < <(env | grep -E '^(CPANCOVER_|DEVEL_COVER_)' || true)
+  "$docker" run -i ${tty_flag:+"$tty_flag"} \
+    --mount "type=bind,source=$sock,target=$sock" \
+    --mount "type=bind,source=$results_dir,target=/remote_staging" \
+    ${env_flags[@]:+"${env_flags[@]}"} \
     --rm=false --memory=1g --name="$(docker_name "$name")" \
     "$docker_image" "${cmd[@]}"
 }
@@ -359,7 +489,9 @@ recipe_cpancover-docker-module() {
   local module="${1:?No module specified}"
   local name="${2:?No name specified}"
   local staging="${3:-$results_dir}"
+  local module_timeout="${CPANCOVER_TIMEOUT:-1800}" # half an hour
 
+  local log_name="$name"
   name=$(docker_name "$name")
   mkdir -p "$staging"
   ((verbose)) && pi "module: $module"
@@ -370,10 +502,8 @@ recipe_cpancover-docker-module() {
     "$docker_image" \
     dc $v cpancover-build-module "$module")
   ((verbose)) && pi "container is $container"
-  $docker wait "$name" # >/dev/null
-  # shellcheck disable=SC2181
-  if [[ $? == 0 ]]; then
-    $docker logs "$name"
+  if timeout "$module_timeout" "$docker" wait "$name" >/dev/null 2>&1; then
+    $docker logs "$name" | tee "$staging/$log_name.out"
     local_staging="$staging/$name"
     mkdir -p "$local_staging"
     $docker cp "$name:/root/cover/staging" "$local_staging"
@@ -383,33 +513,207 @@ recipe_cpancover-docker-module() {
       chown -R "$(id -un):$(id -gn)" "$local_staging"
       cd "$local_staging"/* || exit
       for f in *; do
-        if [[ -d $f ]]; then
-          rm -rf "${staging:?}/$f"
+        if [[ -d $f && ! -d "$staging/$f" ]]; then
+          echo "$log_name.out.gz" >"$f/.log_ref"
           mv "$f" "$staging"
         fi
       done
       rm -r "$local_staging"
     fi
+  else
+    pi "module timed out after ${module_timeout}s, killing container: $module"
+    $docker logs "$name" | tee "$staging/$log_name.out" 2>/dev/null || true
+    $docker kill "$name" >/dev/null 2>&1 || true
   fi
-  $docker rm "$name" >/dev/null
+  $docker rm "$name" >/dev/null 2>&1 || true
+}
+
+cpancover_compress_dir() {
+  local dir="$1" do_sidecars="${2:-}" prefix="${3:-}"
+  shift 3 2>/dev/null || shift $#
+  local exclude=("$@")
+
+  rm -rf "$dir/runs" "$dir/structure"
+  rm -f "$dir"/digests "$dir"/digests.gz "$dir"/cover.[0-9]* \
+    "$dir"/cover.[0-9]*.gz "$dir"/*.lock "$dir"/*.lock.gz
+
+  local find_args=("$dir" -maxdepth 1
+    -type f -not -name '*.gz' -not -name '*.xz' -not -name '*.json'
+    -not -name 'virtual_unzipped' -not -name '.log_ref')
+  local name
+  for name in "${exclude[@]}"; do
+    find_args+=(-not -name "$name")
+  done
+  if find "${find_args[@]}" -print -quit | read -r; then
+    pi "${prefix}compressing"
+    find "${find_args[@]}" -print0 | xargs -0 pigz -f9
+  fi
+
+  [[ -n "$do_sidecars" ]] || return 0
+
+  local marker="$dir/virtual_unzipped" created=false gzfile basefile
+  for gzfile in "$dir"/*.gz; do
+    [[ -f "$gzfile" ]] || continue
+    [[ -f "$marker" ]] || touch "$marker"
+    basefile="${gzfile%.gz}"
+    if [[ ! -e "$basefile" ]]; then
+      ln "$marker" "$basefile"
+      created=true
+    fi
+  done
+  if [[ "$created" == true ]]; then
+    pi "${prefix}created sidecars"
+  fi
+}
+
+cpancover_compress_dirs() {
+  local only_new="$1"
+  local max_jobs="${CPANCOVER_COMPRESS_JOBS:-$(nice_cpus)}"
+  local jobs=0 dir name prefix
+
+  rm -f "$results_dir"/about.html.gz "$results_dir"/index.html.gz \
+    "$results_dir"/collection.css.gz "$results_dir"/cpancover.json.gz
+  cpancover_compress_dir "$results_dir" "" "top-level: " \
+    about.html index.html collection.css
+
+  # dist/ contains generated HTML that must be served uncompressed;
+  # delete stale .gz files so Caddy serves the fresh versions.
+  rm -f "$results_dir"/dist/*.gz
+
+  for dir in "$results_dir"/*/; do
+    [[ -d "$dir" ]] || continue
+    name="$(basename "$dir")"
+    [[ "$name" == __failed__ || "$name" == dist ]] && continue
+    [[ "$only_new" == true && -f "$dir/virtual_unzipped" ]] && continue
+    printf -v prefix "%-40.40s " "$name"
+    cpancover_compress_dir "$dir" sidecars "$prefix" &
+    ((++jobs >= max_jobs)) && {
+      wait -n
+      ((jobs--))
+    }
+  done
+  wait
 }
 
 cpancover_compress() {
-  rm -rf "$results_dir"/*/{runs,structure}
-  find "$results_dir/" -name __failed__ -prune -o \
-    -type f -not -name '*.gz' -not -name '*.json' \
-    -exec gzip -f9 {} \;
+  pi "compressing $results_dir"
+  cpancover_compress_dirs false
+}
+
+cpancover_compress_new() {
+  pi "compressing new directories in $results_dir"
+  cpancover_compress_dirs true
 }
 
 recipe_cpancover-compress() {
   cpancover_compress
 }
 
+recipe_cpancover-compress-new() {
+  cpancover_compress_new
+}
+
+cpancover_serve() {
+  local www_dir="$results_dir/../www_${env}"
+  local latest="$www_dir/latest"
+  mkdir -p "$www_dir"
+  if [[ ! -L "$latest" ]]; then
+    ln -s "$results_dir" "$latest"
+  fi
+  local port="${1:-8080}"
+  local caddyfile
+  caddyfile="$(mktemp)"
+  cat >"$caddyfile" <<EOF
+:${port} {
+  root * $www_dir
+  redir / /latest/ 301
+  file_server {
+    precompressed gzip
+  }
+}
+EOF
+  trap 'rm -f "$caddyfile"; cleanup' EXIT
+  pi "serving $results_dir at http://localhost:$port/latest/"
+  caddy run --adapter caddyfile --config "$caddyfile"
+}
+
+recipe_cpancover-serve() {
+  cpancover_serve "${args[@]:+${args[@]}}"
+}
+
+cpancover_caddyfile() {
+  local www_dir="$results_dir/../www"
+  cat <<EOF
+cpancover.com, www.cpancover.com {
+  root * $www_dir
+  redir / /latest/ 301
+  encode zstd gzip
+  file_server {
+    precompressed gzip
+  }
+  tls paul@pjcj.net
+  log {
+    output file /var/log/caddy/cpancover.com.log
+    format console
+  }
+}
+EOF
+}
+
+cpancover_validated_caddyfile() {
+  local tmpfile
+  tmpfile="$(mktemp)"
+  cpancover_caddyfile >"$tmpfile"
+  if ! caddy validate --adapter caddyfile --config "$tmpfile"; then
+    rm -f "$tmpfile"
+    pf "Caddyfile validation failed"
+  fi
+  echo "$tmpfile"
+}
+
+cpancover_configure_caddy() {
+  local caddyfile="/etc/caddy/Caddyfile"
+  local tmpfile
+  tmpfile="$(cpancover_validated_caddyfile)"
+  trap 'rm -f "$tmpfile"' RETURN
+  if diff -q "$caddyfile" "$tmpfile" >/dev/null 2>&1; then
+    pi "Caddyfile is already up to date"
+    return
+  fi
+  sudo install -m 644 -o root -g root "$tmpfile" "$caddyfile"
+  sudo systemctl reload caddy
+  pi "Caddyfile updated and Caddy reloaded"
+}
+
+recipe_cpancover-configure-caddy() {
+  cpancover_configure_caddy
+}
+
+cpancover_check_caddy() {
+  local caddyfile="/etc/caddy/Caddyfile"
+  local tmpfile
+  tmpfile="$(cpancover_validated_caddyfile)"
+  trap 'rm -f "$tmpfile"' RETURN
+  pi "Generated config validates OK"
+  local differ="diff -u"
+  command -v delta >/dev/null && differ="delta"
+  if diff -q "$caddyfile" "$tmpfile" >/dev/null 2>&1; then
+    pi "Caddyfile is up to date"
+  else
+    pw "Caddyfile differs from generated config:"
+    $differ "$caddyfile" "$tmpfile"
+  fi
+}
+
+recipe_cpancover-check-caddy() {
+  cpancover_check_caddy
+}
+
 recipe_cpancover-uncompress-dir() {
   subdir="${1:?No subdir specified}"
   find "$results_dir/$subdir/" -name __failed__ -prune -o \
     -type f -name '*.gz' \
-    -exec gzip -d {} \;
+    -exec gzip -df {} \;
 }
 
 cpancover_compress_old_versions() {
@@ -425,7 +729,7 @@ cpancover_generate_html() {
   pi "Generating HTML at $(date)"
   cpancover_compress_old_versions
   run_cpancover --generate_html
-  cpancover_compress
+  cpancover_compress_new
   local json=$results_dir/cpancover.json
   local tmp=$json-tmp-$$.gz
   pi "Compressing $json"
@@ -437,12 +741,20 @@ recipe_cpancover-generate-html() {
   cpancover_generate_html
 }
 
-cpancover_run_once() {
-  pi "Starting cpancover run at $(date) on $(nice_cpus) cpus"
+cpancover_build() {
+  pi "Starting cpancover build at $(date) on $(nice_cpus) cpus"
   cpancover_docker_rm
-  cpancover_latest | run_cpancover --build
+  run_cpancover --build
   cpancover_generate_html
-  pi "Finished cpancover run at $(date)"
+  pi "Finished cpancover build at $(date)"
+}
+
+cpancover_run_once() {
+  cpancover_latest | cpancover_build
+}
+
+recipe_cpancover-build-stdin() {
+  cpancover_build
 }
 
 cpancover_run_loop() {
@@ -472,6 +784,25 @@ recipe_cpancover-controller-run-once() {
   cpancover_controller_command controller dc "${o[@]}" cpancover-run-once
 }
 
+# Default test module - small, stable, predictable
+cpancover_default_test_module="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz"
+
+recipe_cpancover-test() {
+  : "${CPANCOVER_TEST_MODULES:=$cpancover_default_test_module}"
+  export CPANCOVER_TEST_MODULES
+  pi "Testing with modules: $CPANCOVER_TEST_MODULES"
+  cpancover_run_once
+}
+
+recipe_cpancover-controller-test() {
+  : "${CPANCOVER_TEST_MODULES:=$cpancover_default_test_module}"
+  pi "Testing with modules: $CPANCOVER_TEST_MODULES"
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  echo "$CPANCOVER_TEST_MODULES" |
+    cpancover_controller_command controller dc "${o[@]}" cpancover-build-stdin
+}
+
 recipe_cpancover-start-queue() {
   COVER_DEBUG=1 perl bin/queue minion worker -j 4
 }
@@ -497,16 +828,20 @@ generate_gcov_fixtures() {
   pi "Generating gcov fixtures in $fixtures_dir"
   pushd "$fixtures_dir" >/dev/null
 
-  for src in *.c; do
-    [[ -f "$src" ]] || continue
+  for fixture in *.c.fixture; do
+    [[ -f "$fixture" ]] || continue
+    local src="${fixture%.fixture}"
     local base="${src%.c}"
-    pi "Processing $src"
+    pi "Processing $fixture"
+
+    # gcc needs a .c file
+    cp "$fixture" "$src"
 
     # Compile with gcov instrumentation
     gcc -fprofile-arcs -ftest-coverage -o "$base" "$src"
 
     # Run to generate .gcda coverage data
-    ./"$base" || true  # Allow non-zero exit for branch coverage
+    ./"$base" || true # Allow non-zero exit for branch coverage
 
     # Generate .gcov file
     # On macOS/clang, gcno/gcda files are named <output>-<source>.gc*
@@ -520,8 +855,9 @@ generate_gcov_fixtures() {
     # Rename to .fixture so cover's *.gcov scan won't find it
     mv "$src.gcov" "$src.gcov.fixture"
 
-    # Clean up intermediates, keep only .c and .gcov.fixture
-    rm -f "$base" "$base.gcno" "$base.gcda" "$base-$base.gcno" "$base-$base.gcda"
+    # Clean up intermediates, keep only .c.fixture and .gcov.fixture
+    rm -f "$src" "$base" "$base.gcno" "$base.gcda" \
+      "$base-$base.gcno" "$base-$base.gcda"
 
     pi "Generated $src.gcov.fixture"
   done

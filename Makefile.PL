@@ -434,6 +434,16 @@ all_test :
 all_gold :
 \t \$(PERL) utils/create_all_gold \$(TEST)
 
+precommit :
+\t pre-commit run
+
+precommit_all :
+\t pre-commit run --all-files
+
+lint : precommit_all
+
+lint_changes : precommit
+
 _delete_db : pure_all
 \t rm -rf cover_db
 
