@@ -544,11 +544,9 @@ cpancover_compress_dir() {
   for name in "${exclude[@]}"; do
     find_args+=(-not -name "$name")
   done
-  local files
-  files=$(find "${find_args[@]}" -print0)
-  if [[ -n "$files" ]]; then
+  if find "${find_args[@]}" -print -quit | read -r; then
     pi "${prefix}compressing"
-    echo -n "$files" | xargs -0 pigz -f9
+    find "${find_args[@]}" -print0 | xargs -0 pigz -f9
   fi
 
   [[ -n "$do_sidecars" ]] || return 0
