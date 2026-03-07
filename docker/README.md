@@ -56,7 +56,7 @@ The system builds Docker images in layers, each building upon the previous:
   - Essential CPAN modules for cpancover operation
   - Compression tools (pigz)
 
-#### devel-cover-dc (Development Cover)
+#### devel-cover-dc (Devel::Cover code)
 
 - Base: devel-cover-base:latest
 - Two variants:
