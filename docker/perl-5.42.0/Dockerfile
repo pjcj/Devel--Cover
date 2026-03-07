@@ -10,6 +10,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # hadolint ignore=DL3008
 RUN apt-get update && apt-get -y --no-install-recommends install \
+    ca-certificates \
     gcc \
     libc6-dev \
     libssl-dev \
@@ -18,7 +19,7 @@ RUN apt-get update && apt-get -y --no-install-recommends install \
     zlib1g-dev \
   && rm -rf /var/lib/apt/lists/*
 
-RUN wget --progress=dot:giga http://www.cpan.org/src/5.0/perl-5.42.0.tar.gz \
+RUN wget --progress=dot:giga https://cpan.metacpan.org/src/5.0/perl-5.42.0.tar.gz \
     -O - | tar xzf - -C /usr/local/src
 
 WORKDIR /usr/local/src/perl-5.42.0
