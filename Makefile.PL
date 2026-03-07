@@ -349,7 +349,9 @@ sub MY::postamble {
   my %tests;
   @tests{@Tests} = map { (my $t = $_) =~ s/\W/_/g; "cover_db_$t" } @Tests;
   my @reports = qw(
-    compilation html_basic html_minimal html html_subtle sort text2 text vim
+    compilation html_basic html_minimal html
+    html_subtle sort       text2        text
+    vim
   );
 
   qq[
