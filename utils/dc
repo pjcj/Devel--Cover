@@ -303,6 +303,14 @@ recipe_cpancover-docker-rm-image() {
   $docker rmi "$docker_image"
 }
 
+cpancover_docker_pull() {
+  $docker pull "$docker_image"
+}
+
+recipe_cpancover-docker-pull() {
+  cpancover_docker_pull
+}
+
 recipe_docker-build() {
   local build="$srcdir/../docker/BUILD"
   "$build" -e "$env" "${args[@]:+${args[@]}}"

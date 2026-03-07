@@ -56,7 +56,7 @@ The system builds Docker images in layers, each building upon the previous:
   - Essential CPAN modules for cpancover operation
   - Compression tools (pigz)
 
-#### devel-cover-dc (Development Cover)
+#### devel-cover-dc (Devel::Cover code)
 
 - Base: devel-cover-base:latest
 - Two variants:
@@ -314,6 +314,9 @@ This provides:
 
    # Remove all cpancover containers
    utils/dc cpancover-docker-rm
+
+   # Pull latest image from Docker Hub
+   utils/dc cpancover-docker-pull
    ```
 
    **Important**: Use `-e dev` for development containers:
@@ -564,7 +567,7 @@ dc -e dev cpancover-controller-test
 dc docker-build
 
 # 3. On production server, pull new image
-docker pull pjcj/cpancover:latest
+dc cpancover-docker-pull
 
 # 4. Restart coverage runs
 # (Stop existing controller first)

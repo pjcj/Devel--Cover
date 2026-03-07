@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Add cpancover-docker-pull recipe (GH-377)
 - Fix spelling: led (Josh Soref) (GH-368)
 
 1.52 - 7 March 2026
