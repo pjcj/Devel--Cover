@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Fix spelling: led (Josh Soref) (GH-368)
 
 1.52 - 7 March 2026
 - Increase minimum Perl version to 5.20
