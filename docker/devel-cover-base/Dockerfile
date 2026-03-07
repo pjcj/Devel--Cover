@@ -21,7 +21,17 @@ RUN apt-get update                                                          && \
     apt-get -y --no-install-recommends install docker-ce-cli                && \
     rm -rf /var/lib/apt/lists/*
 
-RUN cpan -Ti                                                                   \
+# hadolint ignore=SC2016
+RUN mkdir -p /root/.cpan/CPAN                                               && \
+    printf '%s\n'                                                              \
+      '$CPAN::Config = {'                                                      \
+      '  urllist => ['                                                         \
+      '    q(https://cpan.metacpan.org/),'                                     \
+      '    q(https://www.cpan.org/),'                                          \
+      '  ],'                                                                   \
+      '}; 1;'                                                                  \
+      > /root/.cpan/CPAN/MyConfig.pm                                        && \
+    cpan -Ti                                                                   \
       CPAN::DistnameInfo                                                       \
       CPAN::Releases::Latest                                                   \
       Digest::MD5                                                              \
