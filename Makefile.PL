@@ -1,4 +1,4 @@
-#!/usr/bin/perl  ## no critic (ProhibitExcessMainComplexity)
+#!/usr/bin/perl
 ## no critic (ProhibitLongLines)
 
 # Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
