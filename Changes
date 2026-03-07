@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+
+1.52 - 7 March 2026
 - Increase minimum Perl version to 5.20
 - Handle empty else branches optimised away by Perl (GH-362)
 - Fix set_module_file bug (GH-366)
