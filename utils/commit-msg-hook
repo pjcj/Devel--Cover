@@ -5,10 +5,10 @@
 
 use 5.28.0;
 use warnings;
-use warnings FATAL => qw( utf8 recursion   );
-use experimental qw( signatures       );
-use open         qw( :encoding(UTF-8) );
-use feature      qw( unicode_strings  );
+use warnings FATAL => qw( utf8 recursion );
+use experimental "signatures";
+use open ":encoding(UTF-8)";
+use feature "unicode_strings";
 
 my $Version = "1.00";
 
