@@ -5,15 +5,16 @@
 
 use 5.28.0;
 use warnings;
-use warnings FATAL => qw( utf8 recursion   );
-use experimental qw( signatures       );
-use open         qw( :encoding(UTF-8) );
-use feature      qw( unicode_strings  );
+use warnings FATAL => qw( utf8 recursion );
+use experimental "signatures";
+use open ":encoding(UTF-8)";
+use feature "unicode_strings";
 
 my $Version = "1.00";
 
 $|++;
 
+#<<<
 my @Blocklist = (qw(
   adapts     adapting     adapted
   adds       adding       added
@@ -79,10 +80,19 @@ my @Blocklist = (qw(
   updates    updating     updated
   uses       using        used
 ));  # adapted from https://github.com/m1foley/fit-commit
+#>>>
 
 my $Blocklist = join "|", @Blocklist;
 $Blocklist = qr/^(?:$Blocklist)\b/i;
 my @Errors;
+
+sub get_current_branch {
+  my $branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null` // "";
+  chomp $branch;
+  $branch
+}
+
+sub on_main { get_current_branch eq "main" }
 
 sub check_line_endings ($msg) {
   my $n = 1;
@@ -98,6 +108,7 @@ sub check_line_endings ($msg) {
 sub check_beginning ($msg) {
   return unless @$msg;
 
+  my $main  = on_main;
   my $l     = shift @$msg;
   my $merge = $l =~ /^Merge branch /;
   push @Errors, [ "Line 1 is longer than 50 characters", $l ]
@@ -106,7 +117,7 @@ sub check_beginning ($msg) {
     if !$merge && $l =~ /[-#]\w?(?:\d{3,})/;
   push @Errors,
     [ "Merge should reference ticket rather than full branch name", $l ]
-    if $merge && $l !~ /'[A-Z]{2,8}-\d+'/;
+    if !$main && $merge && $l !~ /'[A-Z]{2,8}-\d+'/;
   my $start = substr($l, 0, 1) // "";
   push @Errors, [ "Line 1 does not start with an expected character", $l ]
     if $start !~ /\w/;
@@ -123,7 +134,7 @@ sub check_beginning ($msg) {
 
   my $l3 = $msg->[1] // "";
   push @Errors, [ "Line 3 does not reference ticket id", $l3 ]
-    if !$merge && $l3 !~ /^Ticket [A-Z]{2,8}-\d+$/;
+    if !$main && !$merge && $l3 !~ /^Ticket [A-Z]{2,8}-\d+$/;
 }
 
 sub check_end ($msg) {
