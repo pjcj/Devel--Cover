@@ -1,6 +1,26 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Increase minimum Perl version to 5.20
+- Handle empty else branches optimised away by Perl (GH-362)
+- Fix set_module_file bug (GH-366)
+- Skip alarm-dependent tests on Windows (GH-366)
+- Refactor Collection.pm to Perl 5.42 builtin class (GH-366)
+- Extract shared code from Vim and Nvim reports (GH-366)
+- Consolidate CSS handling in Web module (GH-366)
+- Add test for gcov2perl (GH-366)
+- Add collection tests (GH-366)
+- Overhaul cpancover compression (GH-334)
+- Use multi-stage build for perl Docker images (GH-334)
+- Add Caddy configuration management (GH-334)
+- Add CPANCOVER_TEST_REGEX filter (GH-334)
+- Fix TTY handling in cpancover controller command (GH-334)
+- Update zsh completion to use modern compdef
+- Add pre-commit hooks and linting (GH-364)
+- Add Perl 5.42 to CI matrix
+- Test against 5.43.6 and 5.43.7
+- Enhance all_versions with timing and logging (GH-366)
+- Remove SVK annotation module (GH-364)
 
 1.51 - 26 July 2025
 - Test against 5.42.0
