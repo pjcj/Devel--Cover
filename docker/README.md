@@ -26,7 +26,7 @@ The cpancover system uses a multi-layer Docker architecture:
 │  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘       │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                 │
-│  Results Directory: ~/cover/staging (mounted as /remote_staging)│
+│ Results Directory: ~/cover/staging (mounted as /remote_staging) │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
