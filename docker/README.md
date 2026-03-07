@@ -558,19 +558,20 @@ dc cpancover-docker-rm
 
 #### Production Image Updates
 
+The production image must be built on the production server (or a machine
+with matching architecture) to avoid platform mismatches.
+
 ```bash
-# 1. Build and test locally
+# 1. Build and test locally (dev environment)
 dc -e dev docker-build
 dc -e dev cpancover-controller-test
 
-# 2. Build production image from main branch
+# 2. On production server, build production image from main branch
+#    (this also pushes to Docker Hub)
 dc docker-build
 
-# 3. On production server, pull new image
-dc cpancover-docker-pull
-
-# 4. Restart coverage runs
-# (Stop existing controller first)
+# 3. Restart coverage runs
+#    (stop existing controller first)
 dc cpancover-controller-run
 ```
 
