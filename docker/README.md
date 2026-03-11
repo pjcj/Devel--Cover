@@ -10,24 +10,24 @@ containers.
 The cpancover system uses a multi-layer Docker architecture:
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                         Host System                             │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                    Controller Container                   │  │
-│  │  (Orchestrates coverage runs, manages worker containers)  │  │
-│  └─────────────┬─────────────────────────────────────────────┘  │
-│                │                                                │
-│                ▼                                                │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │               Worker Containers (per module)              │  │
-│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐       │  │
-│  │  │ Module  │  │ Module  │  │ Module  │  │ Module  │       │  │
-│  │  │ Worker  │  │ Worker  │  │ Worker  │  │ Worker  │       │  │
-│  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘       │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│ Results Directory: ~/cover/staging (mounted as /remote_staging) │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              Host System                                │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                      Controller Container                         │  │
+│  │     (Orchestrates coverage runs, manages worker containers)       │  │
+│  └────────────────────────────────┬──────────────────────────────────┘  │
+│                                   │                                     │
+│                                   ▼                                     │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                  Worker Containers (per module)                   │  │
+│  │      ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐       │  │
+│  │      │  Module  │  │  Module  │  │  Module  │  │  Module  │       │  │
+│  │      │  Worker  │  │  Worker  │  │  Worker  │  │  Worker  │       │  │
+│  │      └──────────┘  └──────────┘  └──────────┘  └──────────┘       │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  Results: ~/cover/staging → /cover/staging (mounted as /remote_staging) │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Docker Image Layers
@@ -227,7 +227,7 @@ The controller container:
    - Each module gets its own container
    - Container name: `{image}-{module}-{timestamp}`
    - Memory limited to 1GB
-   - Timeout of 2 hours (configurable)
+   - Timeout of 30 minutes (configurable via `CPANCOVER_TIMEOUT`)
 
 3. **Coverage Analysis**
 
@@ -252,10 +252,13 @@ Coverage results are organized as:
 
 ```text
 ~/cover/staging/
-├── module-name-version/
-│   ├── cover_db/         # Coverage database
-│   ├── coverage.html     # HTML reports
-│   └── coverage.json     # JSON summary
+├── Module-Name-1.00/
+│   ├── cover.json        # Coverage database (JSON)
+│   ├── index.html        # Module coverage report
+│   ├── structure/        # Coverage structure data
+│   └── ...               # Per-file coverage reports
+├── __failed__/           # Failed module markers
+│   └── Module-Name-1.00  # Timestamp of failure
 ├── cpancover.json        # Overall summary
 └── index.html            # Main index page
 ```
@@ -346,7 +349,7 @@ This provides:
 
 ## Environment Variables
 
-- `CPANCOVER_RESULTS_DIR`: Override default results directory
+- `CPANCOVER_TIMEOUT`: Override module build timeout in seconds (default: 1800)
 - `CPANCOVER_TEST_MODULES`: Override module list for testing (newline-separated)
 - `COVER_DEBUG`: Enable debug output in queue system
 
@@ -457,7 +460,8 @@ The system supports two environments configured via `--env`:
 #### Production Environment (`--env=prod`)
 
 - Clones from GitHub repository
-- Staging directory: `~/cover/staging`
+- Staging directory: `~/cover/staging` (symlinked to `/cover/staging` in
+  production)
 - Docker image: `pjcj/cpancover`
 - Can push to Docker Hub
 - Builds using `docker/devel-cover-git`
@@ -604,8 +608,8 @@ dc cpancover < /remote_staging/modules.txt
 # Adjust worker count (default: number of CPUs)
 dc cpancover --workers=8
 
-# Change timeout (default: 7200 seconds = 2 hours)
-dc cpancover --timeout=3600
+# Change timeout (default: 1800 seconds = 30 minutes)
+CPANCOVER_TIMEOUT=3600 dc cpancover
 
 # Run with lower memory limit
 docker run -it --memory=512m pjcj/cpancover dc cpancover-build-module \
@@ -617,8 +621,8 @@ docker run -it --memory=512m pjcj/cpancover dc cpancover-build-module \
 When a module fails coverage analysis:
 
 ```bash
-# 1. Check for __failed__ marker
-ls ~/cover/staging/*/__failed__
+# 1. Check for __failed__ markers
+ls ~/cover/staging/__failed__/
 
 # 2. Run module directly with verbose output
 dc -v cpancover-build-module Failed::Module
@@ -635,9 +639,6 @@ docker run -it --rm pjcj/cpancover_dev cpan -Ti Failed::Module
 ### Monitoring and Logs
 
 ```bash
-# View cpancover logs
-tail -f /tmp/dc.log
-
 # Monitor Docker resource usage
 docker stats
 
@@ -710,10 +711,9 @@ For automated testing in CI:
 
 ```bash
 # Build specific module and check coverage
-dc --env=dev cpancover-build-module Your::Module
-if [[ -f ~/cover/staging_dev/Your-Module-*/coverage.json ]]; then
-    coverage=$(jq .summary.Total ~/cover/staging_dev/My-Module-*/coverage.json)
-    echo "Coverage: $coverage%"
+dc -e dev cpancover-build-module Your::Module
+if [[ -f ~/cover/staging_dev/Your-Module/cover.json ]]; then
+    jq .summary.Total ~/cover/staging_dev/Your-Module/cover.json
 fi
 ```
 
