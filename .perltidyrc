@@ -63,3 +63,4 @@
 --keep-old-blank-lines=1               # keep existing blank lines
 --keyword-group-blanks                 # add blank lines between keyword groups
 --keyword-group-blanks-size=5          # size of keyword groups
+--keyword-group-blanks-before=1        # not at the start of a block
