@@ -646,11 +646,6 @@ $Templates{summary} = <<'EOT';
   <a href="dist/[%- start -%].html">[% start %]</a>
 [% END %]
 
-<h2> Core coverage </h2>
-
-<a href="http://cpancover.com/blead/latest/coverage.html">Perl core coverage</a>
-(under development)
-
 [% END %]
 EOT
 
