@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 
+# VERSION
+
 use 5.26.0;
 
 # requires: Mojolicious Minion Minion::Backend::SQLite
@@ -166,4 +168,23 @@ app->minion->add_task(run_cover => sub ($job, $data, $opts = undef) {
     }
 });
 
-app->start
+app->start;
+
+__END__
+
+=head1 NAME
+
+queue - Minion-based job queue for CPAN coverage processing
+
+=head1 SYNOPSIS
+
+  queue daemon
+  queue monitor
+  queue add P/PJ/PJCJ/Shell-Source-0.01.tar.gz
+
+=head1 DESCRIPTION
+
+Minion-based job queue for processing CPAN distribution coverage with
+Devel::Cover. Monitors CPAN uploads and enqueues coverage analysis jobs.
+
+=cut
