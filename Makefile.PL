@@ -436,6 +436,9 @@ all_test :
 all_gold :
 \t \$(PERL) utils/create_all_gold \$(TEST)
 
+all_build_perl :
+\tdc all-versions --build
+
 precommit :
 \t pre-commit run
 
