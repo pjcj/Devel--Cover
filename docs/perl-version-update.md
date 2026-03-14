@@ -35,6 +35,7 @@ Replace `<version>` throughout with the new version number (e.g. `5.42.1`).
 07. Generate golden results for all versions
 
     - `make all_gold`
+    - This may be a no-op if the new version produces identical output
 
 08. Run tests across all versions to verify
 
