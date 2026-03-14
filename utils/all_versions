@@ -45,6 +45,7 @@ sub setup {
     red    => $Use_colour ? "\e[31m" : "",
     green  => $Use_colour ? "\e[32m" : "",
     yellow => $Use_colour ? "\e[33m" : "",
+    blue   => $Use_colour ? "\e[34m" : "",
     bold   => $Use_colour ? "\e[1m"  : "",
   );
 }
@@ -333,13 +334,16 @@ sub main {
     }
 
     my $c = $command =~ s/=perl/$perl/rg;
-    # say "Running [$c] from $v";
     $ENV{PLENV_VERSION} = $perl;
-    # $c =~ s/=v/$v/g;
 
     my $start = time;
 
     if ($c =~ /^make /) {
+      say "";
+      say colour("=" x 72,         "blue");
+      say colour(" " x 32 . $perl, "blue");
+      say colour("=" x 72,         "blue");
+      say "";
       sys "rm -rf t/e2e",      0, $logfile;
       sys "$perl Makefile.PL", 0, $logfile;
       sys "make clean",        0, $logfile;
@@ -371,7 +375,8 @@ sub main {
   ) unless $Options->{dry_run};
 
   my $total = @passed + @failed;
-  say "\n" . "=" x 72;
+  say "";
+  say "=" x 72;
   say colour("SUMMARY", "bold");
   say "=" x 72;
   say "Total time: " . format_duration($total_elapsed);
