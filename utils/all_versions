@@ -376,11 +376,12 @@ sub main {
 
   my $total = @passed + @failed;
   say "";
-  say "=" x 72;
-  say colour("SUMMARY", "bold");
-  say "=" x 72;
-  say "Total time: " . format_duration($total_elapsed);
-  say "Log directory: $log_dir/";
+  say colour("=" x 72,             "blue");
+  say colour(" " x 32 . "Summary", "blue");
+  say colour("=" x 72,             "blue");
+  say "";
+  say colour("Total time: " . format_duration($total_elapsed), "yellow");
+  say colour("Log directory: $log_dir/",                       "yellow");
   say "";
 
   if (@failed) {
@@ -395,7 +396,6 @@ sub main {
     return 1;
   } else {
     say colour("Passed: $total/$total", "green");
-    say "";
     say colour("All versions passed.", "green", "bold");
   }
   0
