@@ -180,7 +180,7 @@ This project uses `plenv` to manage multiple Perl versions for testing. The
 
 - `dc-<version>` - Non-threaded builds (e.g., `dc-5.38.0`)
 - `dc-<version>-thr` - Threaded builds (e.g., `dc-5.38.0-thr`)
-- `dc-dev` - Development version (currently 5.42.0)
+- `dc-dev` - Development version (usually the latest stable version)
 
 **Common plenv Commands**:
 
@@ -213,19 +213,7 @@ dc all-versions <command>
 
 **Adding a New Perl Version**:
 
-```bash
-# Install/update the development Perl (dc-dev)
-dc install-dc-dev-perl <version>
-
-# Build a specific dc-* version for multi-version testing
-dc all-versions --build --version <version>
-```
-
-After adding a new stable Perl version:
-
-1. Update `$Latest_t` in `Makefile.PL` to the new version number
-2. Add the version to the list in `utils/all_versions`
-3. Generate golden results: `make all_gold`
+See `docs/perl-version-update.md` for the full step-by-step guide.
 
 ## Development Notes
 
