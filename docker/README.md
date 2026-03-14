@@ -95,7 +95,7 @@ docker/BUILD devel-cover-dc-shell
 ### Build Options
 
 - `--user`: Docker Hub username (default: pjcj)
-- `--perl`: Perl version to use (default: 5.42.0)
+- `--perl`: Perl version to use (default: specified in BUILD)
 - `--image`: Image name (cpancover or cpancover_dev)
 - `--src`: Source branch/path (default: main)
 - `--no-cache`: Force rebuild without cache
