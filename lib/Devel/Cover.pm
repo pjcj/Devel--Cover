@@ -590,6 +590,9 @@ sub check_file {
   return unless ref($cv) eq "B::CV";
 
   my $op = $cv->START;
+  # Methods defined with the class feature start with a methstart op;
+  # advance past it to reach the nextstate op that has file information.
+  $op = $op->next if ref($op) eq "B::UNOP_AUX" && $op->name eq "methstart";
   return unless ref($op) eq "B::COP";
 
   my $file = $op->file;
@@ -635,6 +638,8 @@ sub sub_info {
       # normal case
       $start = $lineseq->first;
       # $op->(start => $start);
+      # methods defined with the class feature start with a methstart op
+      $start = $start->sibling if $start->name eq "methstart";
       # signatures
       if ($start->name eq "null" && $start->can("first")) {
         my $lineseq2 = $start->first;
