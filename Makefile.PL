@@ -8,7 +8,7 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-require 5.020000;
+require 5.20.0;
 
 use strict;
 use warnings;
@@ -17,11 +17,12 @@ use Cwd                 ();
 use ExtUtils::MakeMaker qw( $VERSION WriteMakefile );
 use File::Copy          qw( copy );
 use Data::Dumper        ();
+use version             ();
 
 local $| = 1;
 
 my $Version  = "1.52";
-my $Latest_t = "5.042000";
+my $Latest_t = "v5.42.1";
 my $Author   = 'paul@pjcj.net';
 my $Inc_str  = do {
   my %inc
@@ -306,9 +307,9 @@ available as usual.  Because HTML reports are expected, HTML::Entities has been
 added to the prerequisites.
 EOM
 
-print <<EOM if $] > $Latest_t;
+print <<EOM if version->parse($^V) > version->parse("$Latest_t");
 
-Devel::Cover $Version has not been tested with perl $].
+Devel::Cover $Version has not been tested with perl $^V.
 Testing will take place against expected output from perl $Latest_t.
 You may well find failing tests.
 
@@ -435,6 +436,9 @@ all_test :
 
 all_gold :
 \t \$(PERL) utils/create_all_gold \$(TEST)
+
+all_build_perl :
+\t dc all-versions --build
 
 precommit :
 \t pre-commit run

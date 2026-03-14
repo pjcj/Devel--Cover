@@ -45,6 +45,7 @@ sub setup {
     red    => $Use_colour ? "\e[31m" : "",
     green  => $Use_colour ? "\e[32m" : "",
     yellow => $Use_colour ? "\e[33m" : "",
+    blue   => $Use_colour ? "\e[34m" : "",
     bold   => $Use_colour ? "\e[1m"  : "",
   );
 }
@@ -99,9 +100,9 @@ sub format_table ($headers, $rows) {
   $header . $sep . $body
 }
 
-sub write_status ($log_dir, $command, $start_time, $elapsed, $passed, $failed,
-  $timing,)
-{
+sub write_status (
+  $log_dir, $command, $start_time, $elapsed, $passed, $failed, $timing,
+) {
   my $status_file = "$log_dir/status.md";
   my $timestamp   = strftime("%Y-%m-%d %H:%M:%S", localtime int $start_time);
   my $total       = @$passed + @$failed;
@@ -129,8 +130,10 @@ sub write_status ($log_dir, $command, $start_time, $elapsed, $passed, $failed,
 
   if (@$passed) {
     print $fh "## Passed Versions\n\n";
-    print $fh format_table([ "Version", "Duration" ],
-      [ map { [ $_, format_duration($timing->{$_}) ] } @$passed ]);
+    print $fh format_table(
+      [ "Version",                                  "Duration" ],
+      [ map [ $_, format_duration($timing->{$_}) ], @$passed ]
+    );
     print $fh "\n";
   }
 
@@ -139,9 +142,8 @@ sub write_status ($log_dir, $command, $start_time, $elapsed, $passed, $failed,
     print $fh format_table(
       [ "Version", "Duration", "Log" ],
       [
-        map {
-          [ $_, format_duration($timing->{$_}), "[$_.log]($_.log)" ]
-        } @$failed
+        map [ $_, format_duration($timing->{$_}), "[$_.log]($_.log)" ],
+        @$failed,
       ]
     );
     print $fh "\n";
@@ -151,37 +153,32 @@ sub write_status ($log_dir, $command, $start_time, $elapsed, $passed, $failed,
 }
 
 sub get_options {
-  die "Bad option" unless GetOptions(
-    $Options, qw(
-      build!
-      dry_run!
-      force!
-      ignore_failure!
-      list!
-      silent!
-      version=s
-    )
-  );
+  die "Bad option"
+    unless GetOptions(
+      $Options,
+      qw( build! dry_run! force! ignore_failure! list! silent! version=s )
+    );
 
   $Options->{version} = [
     map { ($_, "$_-thr") }
+      #<<<
       qw(
-      5.20.0 5.20.1 5.20.2 5.20.3
-      5.22.0 5.22.1 5.22.2 5.22.3 5.22.4
-      5.24.0 5.24.1 5.24.2 5.24.3 5.24.4
-      5.26.0 5.26.1 5.26.2 5.26.3
-      5.28.0 5.28.1 5.28.2 5.28.3
-      5.30.0 5.30.1 5.30.2 5.30.3
-      5.32.0 5.32.1
-      5.34.0 5.34.1 5.34.2 5.34.3
-      5.36.0 5.36.1 5.36.2 5.36.3
-      5.38.0 5.38.1 5.38.2 5.38.3 5.38.4
-      5.40.0 5.40.1 5.40.2
-      5.42.0
-      5.43.1 5.43.2 5.43.3 5.43.4 5.43.5 5.43.6 5.43.7
+        5.20.0 5.20.1 5.20.2 5.20.3
+        5.22.0 5.22.1 5.22.2 5.22.3 5.22.4
+        5.24.0 5.24.1 5.24.2 5.24.3 5.24.4
+        5.26.0 5.26.1 5.26.2 5.26.3
+        5.28.0 5.28.1 5.28.2 5.28.3
+        5.30.0 5.30.1 5.30.2 5.30.3
+        5.32.0 5.32.1
+        5.34.0 5.34.1 5.34.2 5.34.3
+        5.36.0 5.36.1 5.36.2 5.36.3
+        5.38.0 5.38.1 5.38.2 5.38.3 5.38.4
+        5.40.0 5.40.1 5.40.2
+        5.42.0 5.42.1
+        5.43.1 5.43.2 5.43.3 5.43.4 5.43.5 5.43.6 5.43.7 5.43.8
       )
-    ]
-    unless $Options->{version}->@*;
+      #>>>
+  ] unless $Options->{version}->@*;
   $Options->{version} = [
     grep {
       my $cmd    = "dc-$_ -v$Silent";
@@ -233,15 +230,18 @@ sub _mods ($v, $n) {
 
   return @mods if $v =~ /-thr/ && $s != 1;
 
-  push @mods, qw(
-    Template
-    Pod::Coverage
-    Test::Differences
-    Readonly
-    Parallel::Iterator
-    Sereal
-    JSON::MaybeXS
-  );
+  push @mods,
+    #<<<
+    qw(
+      Template
+      Pod::Coverage
+      Test::Differences
+      Readonly
+      Parallel::Iterator
+      Sereal
+      JSON::MaybeXS
+    );
+    #>>>
 
   push @mods, "Perl::Tidy" if !$s || $s % 2;
   push @mods, "PPI::HTML"  if !$s || !($s % 2);
@@ -259,7 +259,7 @@ sub _build_version ($v) {
   unless (-d $dir) {
     my $opts = "-D usedevel";
     $opts .= " -D usethreads" if $v =~ /thr/;
-    my $j = njobs;
+    my $j  = njobs;
     sys "plenv install $n --as dc-$v -j $j $opts --noman" or do {
       warn "plenv $v failed";
       return;
@@ -334,13 +334,16 @@ sub main {
     }
 
     my $c = $command =~ s/=perl/$perl/rg;
-    # say "Running [$c] from $v";
     $ENV{PLENV_VERSION} = $perl;
-    # $c =~ s/=v/$v/g;
 
     my $start = time;
 
     if ($c =~ /^make /) {
+      say "";
+      say colour("=" x 72,         "blue");
+      say colour(" " x 32 . $perl, "blue");
+      say colour("=" x 72,         "blue");
+      say "";
       sys "rm -rf t/e2e",      0, $logfile;
       sys "$perl Makefile.PL", 0, $logfile;
       sys "make clean",        0, $logfile;
@@ -366,16 +369,19 @@ sub main {
 
   my $total_elapsed = time - $total_start;
 
-  write_status($log_dir, $command, $total_start, $total_elapsed, \@passed,
-    \@failed, \%timing)
-    unless $Options->{dry_run};
+  write_status(
+    $log_dir, $command, $total_start, $total_elapsed,
+    \@passed, \@failed, \%timing
+  ) unless $Options->{dry_run};
 
   my $total = @passed + @failed;
-  say "\n" . "=" x 72;
-  say colour("SUMMARY", "bold");
-  say "=" x 72;
-  say "Total time: " . format_duration($total_elapsed);
-  say "Log directory: $log_dir/";
+  say "";
+  say colour("=" x 72,             "blue");
+  say colour(" " x 32 . "Summary", "blue");
+  say colour("=" x 72,             "blue");
+  say "";
+  say colour("Total time: " . format_duration($total_elapsed), "yellow");
+  say colour("Log directory: $log_dir/",                       "yellow");
   say "";
 
   if (@failed) {
@@ -390,7 +396,6 @@ sub main {
     return 1;
   } else {
     say colour("Passed: $total/$total", "green");
-    say "";
     say colour("All versions passed.", "green", "bold");
   }
   0
