@@ -149,9 +149,8 @@ sub merge_runs ($self) {
   $self->{changed_files} = {};
 
   # The ordering is important here.  The runs need to be merged in the order
-  # they were created.  We're only at a granularity of one second, but that
-  # shouldn't be a problem unless a file is altered and the coverage run created
-  # in less than a second.  I think we're OK for now.
+  # they were created.  Run names use microsecond timestamps so lexicographic
+  # sorting matches chronological order.
 
   for my $run (sort @runs) {
     my $r = Devel::Cover::DB->new(base => $self->{base}, db => $run);

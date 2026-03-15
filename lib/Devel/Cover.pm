@@ -40,9 +40,10 @@ BEGIN {
   B->import("OPpSTATEMENT") if $v;
 }
 
-use Config     qw( %Config );
-use Cwd        qw( abs_path getcwd );
-use File::Spec ();
+use Config      qw( %Config );
+use Cwd         qw( abs_path getcwd );
+use File::Spec  ();
+use Time::HiRes ();
 
 use Devel::Cover::Util qw( remove_contained_paths );
 
@@ -840,7 +841,8 @@ sub _filter_cover_files {
 sub _write_coverage_db {
   # print STDERR "End structure: ", Dumper $Structure;
 
-  my $run   = time . ".$$." . sprintf "%05d", rand 2**16;
+  my $run = int(Time::HiRes::time() * 1e6) . ".$$." . sprintf "%05d",
+    rand 2**16;
   my $cover = Devel::Cover::DB->new(
     base        => $DB,
     runs        => { $run => \%Run },
