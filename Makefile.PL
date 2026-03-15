@@ -335,8 +335,10 @@ my $Opts = {
     $ENV{DEVEL_COVER_NO_TESTS} ? () : ("Test::More" => 0),
   },
   TYPEMAPS => ["utils/typemap"],
-  clean    =>
-    { FILES => "t/e2e/* cover_db* t/e2e/*cover_db README *.gcov *.out" },
+  clean    => {
+    FILES => "t/e2e/* cover_db* t/e2e/*cover_db README *.gcov *.out"
+      . " tests/change tests/md5",
+  },
   dist => { COMPRESS => "gzip --best --force" },
   test => { TESTS    => $ENV{DEVEL_COVER_NO_TESTS} ? "" : "t/*.t t/*/*.t" },
   realclean => { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
