@@ -11,8 +11,8 @@ use v5.20.0;
 use strict;
 use warnings;
 
-use feature "signatures";
-no warnings "experimental::signatures";
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 our $VERSION;
 
