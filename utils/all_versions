@@ -35,6 +35,7 @@ sub setup {
     dry_run        => 0,
     force          => 0,
     ignore_failure => 0,
+    key            => 0,
     silent         => 1,
     version        => [],
   };
@@ -154,9 +155,8 @@ sub write_status (
 
 sub get_options {
   die "Bad option"
-    unless GetOptions(
-      $Options,
-      qw( build! dry_run! force! ignore_failure! list! silent! version=s )
+    unless GetOptions($Options,
+      qw( build! dry_run! force! ignore_failure! key! list! silent! version=s )
     );
 
   $Options->{version} = [
@@ -179,6 +179,11 @@ sub get_options {
       )
       #>>>
   ] unless $Options->{version}->@*;
+  if ($Options->{key}) {
+    my %key = map { $_ => 1 }
+      qw( 5.20.0 5.28.0 5.38.0 5.40.0 5.42.1 5.42.1-thr 5.43.8 );
+    $Options->{version} = [ grep { $key{$_} } $Options->{version}->@* ];
+  }
   $Options->{version} = [
     grep {
       my $cmd    = "dc-$_ -v$Silent";

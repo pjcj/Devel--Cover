@@ -434,6 +434,9 @@ gold : pure_all
 all_test :
 \t \$(PERL) utils/all_versions make t
 
+key_test :
+\t \$(PERL) utils/all_versions --key make t
+
 all_gold :
 \t \$(PERL) utils/create_all_gold \$(TEST)
 
