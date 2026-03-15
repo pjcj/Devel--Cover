@@ -149,7 +149,7 @@ BEGIN {
     }
   }
 
-  @Inc = map { -d() ? ($_ eq "." ? $_ : Cwd::abs_path($_)) : () } @Inc;
+  @Inc = map { -d () ? ($_ eq "." ? $_ : Cwd::abs_path($_)) : () } @Inc;
 
   @Inc = remove_contained_paths(getcwd, @Inc);
 
@@ -211,7 +211,7 @@ if (0 && $Config{useithreads}) {
         print STDERR "Ended thread\n";
         $wantarray ? @{$ret} : $ret->[0];
       },
-      @_,
+      @_
     );
   };
 }
@@ -395,8 +395,8 @@ sub import {
 sub populate_run {
   my $self = shift;
 
-  $Run{OS}   = $^O;
-  $Run{perl} = sprintf "%vd", $^V;
+  $Run{OS}      = $^O;
+  $Run{perl}    = sprintf "%vd", $^V;
   $Run{dir}     = $Dir;
   $Run{run}     = $0;
   $Run{name}    = $Dir;
@@ -472,10 +472,11 @@ sub get_coverage {
     $file =~ s/ \(autosplit into .*\)$//;
     $file =~ s/^\(eval in .*\) //;
     # print STDERR "file is <$file>\ncoverage: ", Dumper coverage(0);
-    if ( exists coverage(0)->{module}
+    if (
+         exists coverage(0)->{module}
       && exists coverage(0)->{module}{$file}
-      && !File::Spec->file_name_is_absolute($file))
-    {
+      && !File::Spec->file_name_is_absolute($file)
+    ) {
       my $m = coverage(0)->{module}{$file};
       # print STDERR "Loaded <$file> <$m->[0]> from <$m->[1]> ";
       $file = File::Spec->rel2abs($file, $m->[1]);
@@ -504,7 +505,7 @@ sub get_coverage {
     $file =~ s|^\Q$Dir\E/|| if defined $Dir;
 
     $Digests ||= Devel::Cover::DB::Digests->new(db => $DB);
-    $file = $Digests->canonical_file($file);
+    $file      = $Digests->canonical_file($file);
 
     # print STDERR "File: $f => $file\n";
 
@@ -616,11 +617,12 @@ sub B::GV::find_cv {
 
   # print STDERR "find_cv $$cv\n" if check_file($cv);
   $Cvs{$cv} ||= $cv if check_file($cv);
-  if ( $cv->can("PADLIST")
+  if (
+       $cv->can("PADLIST")
     && $cv->PADLIST->can("ARRAY")
     && $cv->PADLIST->ARRAY
-    && $cv->PADLIST->ARRAY->can("ARRAY"))
-  {
+    && $cv->PADLIST->ARRAY->can("ARRAY")
+  ) {
     $Cvs{$_} ||= $_
       for grep ref eq "B::CV" && check_file($_), $cv->PADLIST->ARRAY->ARRAY;
   }
@@ -678,15 +680,18 @@ sub check_files {
   my %seen_pkg;
   my %seen_cv;
 
-  walksymtable(\%main::, "find_cv", sub {
-    return 0 if $seen_pkg{ $_[0] }++;
-    no strict "refs";
-    $Cvs{$_} ||= $_ for
-      grep  check_file($_),
-      map   B::svref_2object($_),
-      adjust_blocks(\%{ $_[0] });
-    1
-  });
+  walksymtable(
+    \%main::,
+    "find_cv",
+    sub {
+      return 0 if $seen_pkg{ $_[0] }++;
+      no strict "refs";
+      $Cvs{$_} ||= $_
+        for grep check_file($_), map B::svref_2object($_),
+        adjust_blocks(\%{ $_[0] });
+      1
+    }
+  );
 
   my $l = sub {
     my ($cv) = @_;
@@ -739,7 +744,7 @@ EOM
 }
 
 sub _report {
-  local @SIG{qw(__DIE__ __WARN__)};
+  local @SIG{ qw( __DIE__ __WARN__ ) };
   # $SIG{__DIE__} = \&Carp::confess;
 
   $Run{finish} = get_elapsed() / 1e6;
@@ -770,15 +775,19 @@ sub _report {
 
   unless ($Subs_only) {
     get_cover(main_cv, main_root);
-    get_cover_progress("BEGIN block",
-      B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ());
+    get_cover_progress(
+      "BEGIN block", B::begin_av()->isa("B::AV") ? B::begin_av()->ARRAY : ()
+    );
     if (exists &B::check_av) {
-      get_cover_progress("CHECK block",
-        B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ());
+      get_cover_progress(
+        "CHECK block", B::check_av()->isa("B::AV") ? B::check_av()->ARRAY : ()
+      );
     }
     # get_ends includes INIT blocks
-    get_cover_progress("END/INIT block",
-      get_ends()->isa("B::AV") ? get_ends()->ARRAY : ());
+    get_cover_progress(
+      "END/INIT block",
+      get_ends()->isa("B::AV") ? get_ends()->ARRAY : ()
+    );
   }
   # print STDERR "--- @Cvs\n";
   get_cover_progress("CV", @Cvs);
@@ -789,8 +798,8 @@ sub _report {
     # print STDERR "looking at $file\n";
     unless (use_file($file)) {
       # print STDERR "deleting $file\n";
-      delete $Run{count}->{$file};
-      delete $Run{vec}->{$file};
+      delete $Run{count}{$file};
+      delete $Run{vec}{$file};
       $Structure->delete_file($file);
       next;
     }
@@ -894,10 +903,11 @@ sub add_branch_cover {
   no warnings "uninitialized";
   # warn "add_branch_cover $File:$Line [$type][@{[join ', ', @$c]}]\n";
 
-  if ( $type eq "and"
+  if (
+       $type eq "and"
     || $type eq "or"
-    || ($type eq "elsif" && !exists $Coverage->{branch}{$key}))
-  {
+    || ($type eq "elsif" && !exists $Coverage->{branch}{$key})
+  ) {
     # and   => this could also be a plain if with no else or elsif
     # or    => this could also be an unless with no else or elsif
     # elsif => no subsequent elsifs or elses
@@ -1077,11 +1087,12 @@ my %Original;
         if ($nnnext && $name ne "null") {
           add_statement_cover($op) unless $Seen{statement}{$$op}++;
         }
-      } elsif (!$null
+      } elsif (
+        !$null
         && $name eq "null"
         && ppname($op->targ) eq "pp_nextstate"
-        && $Coverage{statement})
-      {
+        && $Coverage{statement}
+      ) {
         # If the current op is null, but it was nextstate, we can still
         # get at the file and line number, but we need to get dirty
 
@@ -1102,10 +1113,11 @@ my %Original;
         # children.  OPf_SPECIAL unset means the true block was removed; swap so
         # $false holds the else/elsif content. Gated on Has_op_statement because
         # the old heuristic cannot safely handle the swapped state.
-        if (Has_op_statement
+        if (
+             Has_op_statement
           && B::class($false) eq "NULL"
-          && !($op->flags & OPf_SPECIAL))
-        {
+          && !($op->flags & OPf_SPECIAL)
+        ) {
           ($true, $false) = ($false, $true);
         }
 
@@ -1114,13 +1126,14 @@ my %Original;
         if (Has_op_statement) {
           $is_statement = $op->private & OPpSTATEMENT();
         } else {
-          $is_statement = $cx < 1
+          $is_statement
+            = $cx < 1
             && $self->{expand} < 7
             && (
-                B::class($false) eq "NULL"
-                || $false->name eq "null"
-                || ((is_scope($true) && $true->name ne "null")
-                    && (is_scope($false) || is_ifelse_cont($false)))
+                 B::class($false) eq "NULL"
+              || $false->name eq "null"
+              || ( (is_scope($true) && $true->name ne "null")
+                && (is_scope($false) || is_ifelse_cont($false)))
             );
         }
 
@@ -1142,8 +1155,10 @@ my %Original;
             # last in chain is OP_AND => no else
             $false = $newtrue->sibling;
             { local $Collect; $newcond = $self->deparse($newcond, 1) }
-            add_branch_cover($newop, "elsif", "elsif ($newcond) { }",
-              $File, $Line);
+            add_branch_cover(
+              $newop, "elsif", "elsif ($newcond) { }",
+              $File,  $Line
+            );
           }
         }
       }
@@ -1174,9 +1189,10 @@ my %Original;
 
     # On 5.43.8+ use the authoritative OPpSTATEMENT flag; on older Perls fall
     # back to the heuristic that B::Deparse used to use.
-    my $is_statement = Has_op_statement
-      ? $op->private & OPpSTATEMENT()
-      : $cx < 1 && $blockname && $self->{expand} < 7;
+    my $is_statement
+      = Has_op_statement ? $op->private & OPpSTATEMENT() : $cx < 1
+      && $blockname
+      && $self->{expand} < 7;
 
     if ($is_statement && is_scope($right)) {
       # print STDERR 'if ($a) {$b}', "\n";
@@ -1231,9 +1247,10 @@ my %Original;
   sub binop {
     my $self = shift;
     my ($op, $cx, $opname, $prec, $flags) = (@_, 0);
-    if ($] >= 5.041012
-      && ($opname eq "xor" || $opname eq "^^" && !$Seen{condition}{$$op}++))
-    {
+    if (
+      $] >= 5.041012
+      && ($opname eq "xor" || $opname eq "^^" && !$Seen{condition}{$$op}++)
+    ) {
       my $left  = $op->first;
       my $right = $op->last;
       {
@@ -1274,11 +1291,12 @@ sub get_cover {
 
   if ($start) {
     no warnings "uninitialized";
-    if ( $File eq $Structure->get_file
+    if (
+         $File eq $Structure->get_file
       && $Line == $Structure->get_line
       && $Sub_name eq "__ANON__"
-      && $Structure->get_sub_name eq "__ANON__")
-    {
+      && $Structure->get_sub_name eq "__ANON__"
+    ) {
       # Merge instances of anonymous subs into one
       # TODO - multiple anonymous subs on the same line
     } else {
