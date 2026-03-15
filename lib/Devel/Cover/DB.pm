@@ -7,67 +7,69 @@
 
 package Devel::Cover::DB;
 
+use v5.20.0;
 use strict;
 use warnings;
 
+use feature "signatures";
+no warnings "experimental::signatures";
+
 # VERSION
 
-use Devel::Cover::Criterion;
-use Devel::Cover::DB::File;
-use Devel::Cover::DB::Structure;
-use Devel::Cover::DB::IO;
+use Devel::Cover::Criterion     ();
+use Devel::Cover::DB::File      ();
+use Devel::Cover::DB::Structure ();
+use Devel::Cover::DB::IO        ();
 
-use Carp;
-use File::Find;
-use File::Path;
+use Carp       qw( carp croak );
+use File::Find qw( find );
+use File::Path qw( rmtree );
 
-use Devel::Cover::Dumper;  # For debugging
+use Devel::Cover::Dumper qw( Dumper );  # For debugging
 
-use constant CAN_TERM_SIZE => eval { require Term::Size };
+my $Has_term_size = eval { require Term::Size };
 
-my $DB = "cover.14";       # Version of the database
+my $DB = "cover.14";                    # Version of the database
 
 @Devel::Cover::DB::Criteria
   = (qw( statement branch path condition subroutine pod time ));
-@Devel::Cover::DB::Criteria_short
-  = (qw( stmt      bran   path cond      sub        pod time ));
+@Devel::Cover::DB::Criteria_short   = (qw( stmt bran path cond sub pod time ));
 $Devel::Cover::DB::Ignore_filenames = qr/   # Used by Devel::Cover
-    (?: [\/\\]lib[\/\\](?:Storable|POSIX).pm$ )
-    | # Moose
+  (?: [\/\\]lib[\/\\](?:Storable|POSIX).pm$ )
+  | # Moose
+  (?:
     (?:
-        (?:
-            reader | writer | constructor | destructor | accessor |
-            predicate | clearer | native \s delegation \s method |
-            # Template Toolkit
-            Parser\.yp
-        )
-        \s .* \s
-        (?: \( defined \s at \s .* \s line \s \d+ \) | defined \s at )
+      reader | writer | constructor | destructor | accessor |
+      predicate | clearer | native \s delegation \s method |
+      # Template Toolkit
+      Parser\.yp
     )
-    | # Moose
-    (?: generated \s method \s \( unknown \s origin \) )
-    | # Mouse
-    (?: (?: rw-accessor | ro-accessor ) \s for )
-    | # Template Toolkit
-    (?: Parser\.yp )
-    | # perl generated
-    (?: \/loader\/0x )
+    \s .* \s
+    (?: \( defined \s at \s .* \s line \s \d+ \) | defined \s at )
+  )
+  | # Moose
+  (?: generated \s method \s \( unknown \s origin \) )
+  | # Mouse
+  (?: (?: rw-accessor | ro-accessor ) \s for )
+  | # Template Toolkit
+  (?: Parser\.yp )
+  | # perl generated
+  (?: \/loader\/0x )
 /x;
 
-sub new {
-  my $class = shift;
-  my $self  = {
+sub new ($class, %o) {
+  my $self = {
     criteria         => \@Devel::Cover::DB::Criteria,
     criteria_short   => \@Devel::Cover::DB::Criteria_short,
     runs             => {},
     collected        => {},
     uncoverable_file => [],
-    @_,
+    %o,
   };
 
-  $self->{all_criteria}       = [ @{ $self->{criteria} },       "total" ];
-  $self->{all_criteria_short} = [ @{ $self->{criteria_short} }, "total" ];
-  $self->{base} ||= $self->{db};
+  $self->{all_criteria}         = [ $self->{criteria}->@*,       "total" ];
+  $self->{all_criteria_short}   = [ $self->{criteria_short}->@*, "total" ];
+  $self->{base}               ||= $self->{db};
   bless $self, $class;
 
   if (defined $self->{db}) {
@@ -79,18 +81,15 @@ sub new {
   $self
 }
 
-sub criteria           { @{ $_[0]->{criteria} } }
-sub criteria_short     { @{ $_[0]->{criteria_short} } }
-sub all_criteria       { @{ $_[0]->{all_criteria} } }
-sub all_criteria_short { @{ $_[0]->{all_criteria_short} } }
+sub criteria           ($self) { $self->{criteria}->@* }
+sub criteria_short     ($self) { $self->{criteria_short}->@* }
+sub all_criteria       ($self) { $self->{all_criteria}->@* }
+sub all_criteria_short ($self) { $self->{all_criteria_short}->@* }
 
-sub read {
-  my $self = shift;
-  my ($file) = @_;
-
+sub read ($self, $file) {
   my $io = Devel::Cover::DB::IO->new;
   my $db = eval { $io->read($file) };
-  if ($@ or !$db) {
+  if ($@ || !$db) {
     warn $@;
   } else {
     $self->{runs} = $db->{runs};
@@ -98,9 +97,8 @@ sub read {
   $self
 }
 
-sub write {
-  my $self = shift;
-  $self->{db} = shift if @_;
+sub write ($self, $db = undef) {
+  $self->{db} = $db if defined $db;
 
   croak "No db specified" unless length $self->{db};
   unless (mkdir $self->{db}) {
@@ -109,62 +107,51 @@ sub write {
   chmod 0777, $self->{db} if $self->{loose_perms};
   $self->validate_db;
 
-  my $db = { runs => $self->{runs} };
-  my $io = Devel::Cover::DB::IO->new;
-  $io->write($db, "$self->{db}/$DB");
+  my $data = { runs => $self->{runs} };
+  my $io   = Devel::Cover::DB::IO->new;
+  $io->write($data, "$self->{db}/$DB");
   $self->{structure}->write($self->{base}) if $self->{structure};
   $self
 }
 
-sub delete {
-  my $self = shift;
-
-  my $db = "";
-  $db         = $self->{db} if ref $self;
-  $db         = shift       if @_;
-  $self->{db} = $db         if ref $self;
+sub delete ($self, $db = undef) {
+  $db         //= $self->{db} if ref $self;
+  $db         //= "";
+  $self->{db}   = $db if ref $self;
   croak "No db specified" unless length $db;
 
   return $self unless -d $db;
 
   # TODO - just delete the directory?
-  opendir DIR, $db or die "Can't opendir $db: $!";
-  my @files = map "$db/$_", map /(.*)/ && $1, grep !/^\.\.?/, readdir DIR;
-  closedir DIR or die "Can't closedir $db: $!";
+  opendir my $dir, $db or die "Can't opendir $db: $!";
+  my @files = map "$db/$_", map /(.*)/ && $1, grep !/^\.\.?/, readdir $dir;
+  closedir $dir or die "Can't closedir $db: $!";
   rmtree(\@files) if @files;
 
   $self
 }
 
-sub clean {
-  my $self = shift;
-
+sub clean ($self) {
   # remove all lock files
-  my $rm_lock = sub {
-    unlink if /\.lock$/
-  };
+  my $rm_lock = sub { unlink if /\.lock$/ };
   find($rm_lock, $self->{db});
 }
 
-sub merge_runs {
-  my $self = shift;
-  my $db   = $self->{db};
-  # print STDERR "merge_runs from $db/runs/*\n";
-  # system "ls -al $db/runs";
+sub merge_runs ($self) {
+  my $db = $self->{db};
   return $self unless length $db;
-  opendir DIR, "$db/runs" or return $self;
-  my @runs = map "$db/runs/$_", grep !/^\.\.?/, readdir DIR;
-  closedir DIR or die "Can't closedir $db/runs: $!";
+  opendir my $dir, "$db/runs" or return $self;
+  my @runs = map "$db/runs/$_", grep !/^\.\.?/, readdir $dir;
+  closedir $dir or die "Can't closedir $db/runs: $!";
 
   $self->{changed_files} = {};
 
   # The ordering is important here.  The runs need to be merged in the order
   # they were created.  We're only at a granularity of one second, but that
-  # shouldn't be a problem unless a file is altered and the coverage run
-  # created in less than a second.  I think we're OK for now.
+  # shouldn't be a problem unless a file is altered and the coverage run created
+  # in less than a second.  I think we're OK for now.
 
   for my $run (sort @runs) {
-    # print STDERR "Devel::Cover: merging run $run <$self->{base}>\n";
     my $r = Devel::Cover::DB->new(base => $self->{base}, db => $run);
     $self->merge($r);
   }
@@ -172,11 +159,10 @@ sub merge_runs {
   $self->write($db) if @runs;
   rmtree(\@runs);
 
-  if (keys %{ $self->{changed_files} }) {
+  if (keys $self->{changed_files}->%*) {
     my $st = Devel::Cover::DB::Structure->new(base => $self->{base});
     $st->read_all;
-    for my $file (sort keys %{ $self->{changed_files} }) {
-      # print STDERR "dealing with changed file <$file>\n";
+    for my $file (sort keys $self->{changed_files}->%*) {
       $st->delete_file($file);
     }
     $st->write($self->{base});
@@ -187,12 +173,9 @@ sub merge_runs {
   $self
 }
 
-sub validate_db {
-  my $self = shift;
-
+sub validate_db ($self) {
   # Check validity of the db.  It is valid if the $DB file is there, or if it
-  # is not there but the db directory is empty, or if there is no db
-  # directory.
+  # is not there but the db directory is empty, or if there is no db directory.
   # die if the db is invalid.
 
   # just warn for now
@@ -202,56 +185,39 @@ sub validate_db {
   $self
 }
 
-sub exists {
-  my $self = shift;
-  -d $self->{db}
-}
+sub exists ($self) { -d $self->{db} }
 
-sub is_valid {
-  my $self = shift;
+sub is_valid ($self) {
   return 1 if !-e $self->{db};
   return 1 if -e "$self->{db}/$DB";
-  opendir my $fh, $self->{db} or return 0;
-  my $ignore = join "|", qw(
-    runs structure debuglog digests .AppleDouble
-  );
-  for my $file (readdir $fh) {
+  opendir my $dir, $self->{db} or return 0;
+  my $ignore = join "|", qw( runs structure debuglog digests .AppleDouble );
+  for my $file (readdir $dir) {
     next if $file eq "." || $file eq "..";
     next if $file =~ /(?:$ignore)|(?:\.lock)$/ && -e "$self->{db}/$file";
     warn "found $file in $self->{db}";
     return 0;
   }
-  closedir $fh
+  closedir $dir
 }
 
-sub collected {
-  my $self = shift;
+sub collected ($self) {
   $self->cover;
-  sort keys %{ $self->{collected} }
+  sort keys $self->{collected}->%*
 }
 
-sub merge {
-  my ($self, $from) = @_;
-
-  # print STDERR "Merging ", Dumper($self), "From ", Dumper($from);
-  # print STDERR "Merging ", $self, "From ", $from, "\n";
-  # print STDERR "$_\n" for keys %{$from->{runs}};
-
-  for my $fname (sort keys %{ $from->{runs} }) {
-    # print STDERR "fname $fname\n";
+sub merge ($self, $from) {
+  for my $fname (sort keys $from->{runs}->%*) {
     my $frun = $from->{runs}{$fname};
-    for my $file (sort keys %{ $frun->{digests} }) {
-      # print STDERR "file $file\n";
+    for my $file (sort keys $frun->{digests}->%*) {
       my $digest = $frun->{digests}{$file};
-      for my $name (sort keys %{ $self->{runs} }) {
-        # print STDERR "name $name\n";
+      for my $name (sort keys $self->{runs}->%*) {
         my $run = $self->{runs}{$name};
-        # print STDERR
-        # "digests for $file: $digest, $run->{digests}{$file}\n";
-        if ( $run->{digests}{$file}
+        if (
+             $run->{digests}{$file}
           && $digest
-          && $run->{digests}{$file} ne $digest)
-        {
+          && $run->{digests}{$file} ne $digest
+        ) {
           # File has changed.  Delete old coverage instead of merging.
           print STDOUT "Devel::Cover: Deleting old coverage for ",
             "changed file $file\n"
@@ -280,44 +246,44 @@ sub merge {
   # $_[0] = $from;
 }
 
-sub _merge_hash {
-  my ($into, $from, $noadd) = @_;
+sub _merge_hash ($into, $from, $noadd = 0) {
   return unless $from;
-  for my $fkey (keys %{$from}) {
-    # print STDERR "key [$fkey]\n";
+  for my $fkey (keys %$from) {
     my $fval = $from->{$fkey};
 
-    if (defined $into->{$fkey} and UNIVERSAL::isa($into->{$fkey}, "ARRAY")) {
+    if (defined $into->{$fkey} && UNIVERSAL::isa($into->{$fkey}, "ARRAY")) {
       _merge_array($into->{$fkey}, $fval, $noadd);
     } elsif (defined $fval && UNIVERSAL::isa($fval, "HASH")) {
-      if (defined $into->{$fkey} and UNIVERSAL::isa($into->{$fkey}, "HASH")) {
+      if (defined $into->{$fkey} && UNIVERSAL::isa($into->{$fkey}, "HASH")) {
         _merge_hash($into->{$fkey}, $fval, $noadd);
       } else {
         $into->{$fkey} = $fval;
       }
     } else {
-      # A scalar (or a blessed scalar).  We know there is no into
-      # array, or we would have just merged with it.
+      # A scalar (or a blessed scalar).  We know there is no into array, or we
+      # would have just merged with it.
       $into->{$fkey} = $fval;
     }
   }
 }
 
-sub _merge_array {
-  my ($into, $from, $noadd) = @_;
+sub _merge_array ($into, $from, $noadd = 0) {
   for my $i (@$into) {
     my $f = shift @$from;
-    if (UNIVERSAL::isa($i, "ARRAY")
-      || !defined $i && UNIVERSAL::isa($f, "ARRAY"))
-    {
+    if (
+      UNIVERSAL::isa($i, "ARRAY")
+      || !defined $i && UNIVERSAL::isa($f, "ARRAY")
+    ) {
       _merge_array($i, $f || [], $noadd);
-    } elsif (UNIVERSAL::isa($i, "HASH")
-      || !defined $i && UNIVERSAL::isa($f, "HASH"))
-    {
+    } elsif (
+      UNIVERSAL::isa($i, "HASH")
+      || !defined $i && UNIVERSAL::isa($f, "HASH")
+    ) {
       _merge_hash($i, $f || {}, $noadd);
-    } elsif (UNIVERSAL::isa($i, "SCALAR")
-      || !defined $i && UNIVERSAL::isa($f, "SCALAR"))
-    {
+    } elsif (
+      UNIVERSAL::isa($i, "SCALAR")
+      || !defined $i && UNIVERSAL::isa($f, "SCALAR")
+    ) {
       $$i += $$f;
     } else {
       if (defined $f) {
@@ -325,7 +291,7 @@ sub _merge_array {
         if (!$noadd && $f =~ /^\d+$/ && $i =~ /^\d+$/) {
           $i += $f;
         } elsif ($i ne $f) {
-          warn "<$i> does not match <$f> - using later value";
+          warn "<$i> does not match <$f> - using latter value";
           $i = $f;
         }
       }
@@ -334,33 +300,26 @@ sub _merge_array {
   push @$into, @$from;
 }
 
-sub summary {
-  my $self = shift;
-  my ($file, $criterion, $part) = @_;
+sub summary ($self, $file, $criterion, $part) {
   my $f = $self->{summary}{$file};
   return $f unless $f && defined $criterion;
   my $c = $f->{$criterion};
   $c && defined $part ? $c->{$part} : $c
 }
 
-sub calculate_summary {
-  my $self    = shift;
-  my %options = @_;
-
+sub calculate_summary ($self, %options) {
   return if exists $self->{summary} && !$options{force};
   my $s = $self->{summary} = {};
 
   my @files = $self->cover->items;
   if (my $files = delete $options{files}) {
-    my %required_files = map { ($_ => 1) } @$files;
+    my %required_files = map { $_ => 1 } @$files;
     @files = grep $required_files{$_}, @files;
   }
 
   for my $file (@files) {
     $self->cover->get($file)->calculate_summary($self, $file, \%options);
   }
-
-  # print STDERR Dumper $self;
 
   for my $file (@files) {
     $self->cover->get($file)->calculate_percentage($self, $s->{$file});
@@ -373,22 +332,16 @@ sub calculate_summary {
     $c->calculate_percentage($self, $t->{$criterion});
   }
   Devel::Cover::Criterion->calculate_percentage($self, $t->{total});
-
-  # print STDERR Dumper $self->{summary};
 }
 
-sub trimmed_file {
-  my ($f, $len) = @_;
+sub trimmed_file ($f, $len) {
   substr $f, 0, 3 - $len, "..." if length $f > $len;
   $f
 }
 
-sub print_summary {
-  my $self = shift;
-  my ($files, $criteria, $opts) = @_;
-
-  my %crit    = map(($_ => 1), $self->collected);
-  my %options = $criteria ? map(($_ => 1), grep $crit{$_}, @$criteria) : %crit;
+sub print_summary ($self, $files, $criteria, $opts) {
+  my %crit    = map { $_ => 1 } $self->collected;
+  my %options = $criteria ? map { $_ => 1 } grep $crit{$_}, @$criteria : %crit;
   $options{total} = 1 if keys %options;
 
   my $n = keys %options;
@@ -398,14 +351,13 @@ sub print_summary {
   $options{files} = $files if $files && @$files;
   $self->calculate_summary(%options, %$opts);
 
-  my $format = sub {
-    my ($part, $criterion) = @_;
+  my $format = sub ($part, $criterion) {
     $options{$criterion} && exists $part->{$criterion}
       ? do {
         my $x = sprintf "%5.2f", $part->{$criterion}{percentage};
         chop $x;
         $x
-    }
+      }
       : "n/a"
   };
 
@@ -415,7 +367,7 @@ sub print_summary {
   for (@files) { $max = length if length > $max }
   my $width
     = !$ENV{DEVEL_COVER_TEST_SUITE}
-    && CAN_TERM_SIZE
+    && $Has_term_size
     && -t STDOUT ? (Term::Size::chars(\*STDOUT))[0] : 80;
   my $fw = $width - $n * 7 - 3;
 
@@ -424,16 +376,13 @@ sub print_summary {
   no warnings "uninitialized";
   my $fmt = "%-${fw}s" . " %6s" x $n . "\n";
   printf $fmt, "-" x $fw, ("------") x $n;
-  printf $fmt, "File",
-    map  { $self->{all_criteria_short}[$_] }
-    grep { $options{ $self->{all_criteria}[$_] } }
-    (0 .. $#{ $self->{all_criteria} });
+  printf $fmt, "File", map $self->{all_criteria_short}[$_],
+    grep $options{ $self->{all_criteria}[$_] }, 0 .. $self->{all_criteria}->$#*;
   printf $fmt, "-" x $fw, ("------") x $n;
 
   for my $file (@files) {
-    printf $fmt, trimmed_file($file, $fw),
-      map { $format->($s->{$file}, $_) }
-      grep { $options{$_} } @{ $self->{all_criteria} };
+    printf $fmt, trimmed_file($file, $fw), map $format->($s->{$file}, $_),
+      grep $options{$_}, $self->{all_criteria}->@*;
 
   }
 
@@ -443,57 +392,41 @@ sub print_summary {
   select $oldfh;
 }
 
-sub add_statement {
-  my $self = shift;
-  my ($cc, $sc, $fc, $uc) = @_;
+sub add_statement ($self, $cc, $sc, $fc, $uc) {
   my %line;
   for my $i (0 .. $#$fc) {
-    # print STDERR "statement: $i\n";
-    my $l = $sc->[$i];
-    unless (defined $l) {
-      # print STDERR "sc ", scalar @$sc, ", fc ", scalar @$fc, "\n";
-      # print STDERR "sc ", Dumper($sc), "fc ", Dumper($fc);
+    my $l = $sc->[$i] // do {
       warn "Devel::Cover: ignoring extra statement\n";
       return;
-    }
+    };
     my $n = $line{$l}++;
     no warnings "uninitialized";
-    $cc->{$l}[$n][0] += $fc->[$i];
+    $cc->{$l}[$n][0]  += $fc->[$i];
     $cc->{$l}[$n][1] ||= $uc->{$l}[$n][0][1];
   }
-  # print STDERR Dumper $uc;
-  # print STDERR "cc: ", Dumper $cc;
 }
 
-sub add_time {
-  my $self = shift;
-  my ($cc, $sc, $fc) = @_;
+sub add_time ($self, $cc, $sc, $fc) {
   my %line;
   for my $i (0 .. $#$fc) {
-    my $l = $sc->[$i];
-    unless (defined $l) {
-      # print STDERR "sc ", scalar @$sc, ", fc ", scalar @$fc, "\n";
-      # print STDERR "sc ", Dumper($sc), "fc ", Dumper($fc);
+    my $l = $sc->[$i] // do {
       warn "Devel::Cover: ignoring extra statement\n";
       return;
-    }
+    };
     my $n = $line{$l}++;
     $cc->{$l}[$n] ||= do { my $c; \$c };
     no warnings "uninitialized";
-    ${ $cc->{$l}[$n] } += $fc->[$i];
+    $cc->{$l}[$n]->$* += $fc->[$i];
   }
 }
 
-sub add_branch {
-  my $self = shift;
-  my ($cc, $sc, $fc, $uc) = @_;
+sub add_branch ($self, $cc, $sc, $fc, $uc) {
   my %line;
   for my $i (0 .. $#$fc) {
-    my $l = $sc->[$i][0];
-    unless (defined $l) {
+    my $l = $sc->[$i][0] // do {
       warn "Devel::Cover: ignoring extra branch\n";
       return;
-    }
+    };
     my $n = $line{$l}++;
     no warnings "uninitialized";
     if (my $a = $cc->{$l}[$n]) {
@@ -508,12 +441,7 @@ sub add_branch {
   }
 }
 
-sub add_subroutine {
-  my $self = shift;
-  my ($cc, $sc, $fc, $uc) = @_;
-
-  # print STDERR "add_subroutine():\n", Dumper $cc, $sc, $fc, $uc;
-
+sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
   # $cc = { line_number => [ [ count, sub_name, uncoverable ], [ ... ] ], .. }
   # $sc = [ [ line_number, sub_name ], [ ... ] ]
   # $fc = [ count, ... ]
@@ -522,13 +450,10 @@ sub add_subroutine {
 
   my %line;
   for my $i (0 .. $#$fc) {
-    my $l = $sc->[$i][0];
-    unless (defined $l) {
-      # print STDERR "sc ", scalar @$sc, ", fc ", scalar @$fc, "\n";
-      # print STDERR "sc ", Dumper($sc), "fc ", Dumper($fc);
+    my $l = $sc->[$i][0] // do {
       warn "Devel::Cover: ignoring extra subroutine\n";
       return;
-    }
+    };
 
     my $n = $line{$l}++;
     if (my $a = $cc->{$l}[$n]) {
@@ -547,22 +472,19 @@ sub add_subroutine {
   *add_pod       = \&add_subroutine;
 }
 
-sub uncoverable_files {
-  my $self = shift;
-  my $f    = ".uncoverable";
-  (@{ $self->{uncoverable_file} }, $f, glob("~/$f"))
+sub uncoverable_files ($self) {
+  my $f = ".uncoverable";
+  ($self->{uncoverable_file}->@*, $f, glob "~/$f")
 }
 
-sub uncoverable {
-  my $self = shift;
-
+sub uncoverable ($self) {
   my $u = {};  # holds all the uncoverable information
 
   # First populate $u with the uncoverable information directly from the
-  # .uncoverable files.  Then loop through the information converting it to
-  # the format we will use later to manage the uncoverable code.  The
-  # primary changes are converting MD5 digests of lines to line numbers, and
-  # converting filenames to MD5 digests of the files.
+  # .uncoverable files.  Then loop through the information converting it to the
+  # format we will use later to manage the uncoverable code.  The primary
+  # changes are converting MD5 digests of lines to line numbers, and converting
+  # filenames to MD5 digests of the files.
 
   for my $file ($self->uncoverable_files) {
     open my $f, "<", $file or next;
@@ -571,15 +493,12 @@ sub uncoverable {
     while (<$f>) {
       chomp;
       my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $_, 7;
-      push @{ $u->{$file}{$crit}{$line}[$count] }, [ $type, $class, $note ];
+      push $u->{$file}{$crit}{$line}[$count]->@*, [ $type, $class, $note ];
     }
   }
 
-  # print STDERR Dumper $u;
   # Now change the format of the uncoverable information
-
   for my $file (sort keys %$u) {
-    # print STDERR "Reading $file\n";
     open my $fh, "<", $file or do {
       warn "Devel::Cover: Can't open $file: $!\n";
       next;
@@ -588,20 +507,15 @@ sub uncoverable {
     my %dl;                     # maps MD5 digests of lines to line numbers
     my $ln = 0;                 # line number
     while (<$fh>) {
-      # print STDERR "read [$.][$_]\n";
       $dl{ Digest::MD5->new->add($_)->hexdigest } = ++$ln;
       $df->add($_);
     }
-    close $fh;
+    close $fh or warn "Devel::Cover: Can't close $file: $!\n";
     my $f = $u->{$file};
-    # print STDERR Dumper $f;
     for my $crit (keys %$f) {
       my $c = $f->{$crit};
       for my $line (keys %$c) {
         if (exists $dl{$line}) {
-          # print STDERR
-          # "Found uncoverable $file:$crit:$line -> $dl{$line}\n";
-
           # Change key from the MD5 digest to the actual line number
           $c->{ $dl{$line} } = delete $c->{$line};
         } else {
@@ -619,9 +533,7 @@ sub uncoverable {
   $u
 }
 
-sub add_uncoverable {
-  my $self = shift;
-  my ($adds) = @_;
+sub add_uncoverable ($self, $adds) {
   for my $add (@$adds) {
     my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $_, 7;
     my ($uncoverable_file) = $self->uncoverable_files;
@@ -646,20 +558,14 @@ sub add_uncoverable {
   }
 }
 
-sub delete_uncoverable {
-  my $self = shift;
+sub delete_uncoverable ($self, $deletes) {
 }
 
-sub clean_uncoverable {
-  my $self = shift;
+sub clean_uncoverable ($self) {
 }
 
-sub uncoverable_comments {
-
-  my $self = shift;
-  my ($uncoverable, $file, $digest) = @_;
-
-  my $cr    = join "|", @{ $self->{all_criteria} };
+sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
+  my $cr    = join "|", $self->{all_criteria}->@*;
   my $uc    = qr/(.*)# uncoverable ($cr)(.*)/;  # regex for uncoverable comments
   my %types = (
     branch    => { true => 0, false => 1 },
@@ -675,7 +581,6 @@ sub uncoverable_comments {
   my @waiting;
   while (<$fh>) {
     chomp;
-    # print STDERR "read [$.][$_]\n";
     next unless /$uc/ || @waiting;
     if ($2) {
       my ($code, $criterion, $info) = ($1, $2, $3);
@@ -712,11 +617,11 @@ sub uncoverable_comments {
     # found what we are waiting for
     while (my $w = shift @waiting) {
       my ($criterion, $count, $type, $class, $note) = @$w;
-      push @{ $uncoverable->{$digest}{$criterion}{$.}[$count] },
+      push $uncoverable->{$digest}{$criterion}{$.}[$count]->@*,
         [ $type, $class, $note ];
     }
   }
-  close $fh;
+  close $fh or warn "Devel::Cover: Can't close $file: $!\n";
 
   warn scalar @waiting,
     " unmatched uncoverable comments not found at end of $file\n"
@@ -726,12 +631,10 @@ sub uncoverable_comments {
   # print Dumper $uncoverable;
 }
 
-sub objectify_cover {
-  my $self = shift;
-
+sub objectify_cover ($self) {
   unless (UNIVERSAL::isa($self->{cover}, "Devel::Cover::DB::Cover")) {
     bless $self->{cover}, "Devel::Cover::DB::Cover";
-    for my $file (values %{ $self->{cover} }) {
+    for my $file (values $self->{cover}->%*) {
       bless $file, "Devel::Cover::DB::File";
       while (my ($crit, $criterion) = each %$file) {
         next if $crit eq "meta";  # ignore meta data
@@ -742,12 +645,11 @@ sub objectify_cover {
             die "<$crit:$o>" unless ref $o;
             bless $o, $class;
             bless $o, $class . "_" . $o->type if $o->can("type");
-            # print "blessed $crit, $o\n";
           }
         }
       }
     }
-    for my $r (keys %{ $self->{runs} }) {
+    for my $r (keys $self->{runs}->%*) {
       if (defined $self->{runs}{$r}) {
         bless $self->{runs}{$r}, "Devel::Cover::DB::Run";
       } else {
@@ -757,30 +659,19 @@ sub objectify_cover {
   }
 
   unless (exists &Devel::Cover::DB::Base::items) {
-    *Devel::Cover::DB::Base::items = sub {
-      my $self = shift;
-      keys %$self
-    };
+    *Devel::Cover::DB::Base::items = sub ($self) { keys %$self };
 
     {
       no warnings "once";
-      *Devel::Cover::DB::Base::values = sub {
-        my $self = shift;
-        values %$self
-      };
-
-      *Devel::Cover::DB::Base::get = sub {
-        my $self = shift;
-        my ($get) = @_;
-        $self->{$get}
-      };
+      *Devel::Cover::DB::Base::values = sub ($self) { values %$self };
+      *Devel::Cover::DB::Base::get    = sub ($self, $get) { $self->{$get} };
     }
 
     my $classes = {
-      Cover     => [qw( files file )],
-      File      => [qw( criteria criterion )],
-      Criterion => [qw( locations location )],
-      Location  => [qw( data datum )],
+      Cover     => [ qw( files     file ) ],
+      File      => [ qw( criteria  criterion ) ],
+      Criterion => [ qw( locations location ) ],
+      Location  => [ qw( data      datum ) ],
     };
     my $base = "Devel::Cover::DB::Base";
     while (my ($class, $functions) = each %$classes) {
@@ -799,13 +690,12 @@ sub objectify_cover {
           # Work around a change in bleadperl from 12251 to 14899
           my $func = $Devel::Cover::DB::AUTOLOAD || $::AUTOLOAD;
 
-          # print STDERR "autoloading <$func>\n";
           (my $f = $func) =~ s/.*:://;
           carp "Undefined subroutine $f called"
-            unless grep { $_ eq $f } @{ $self->{all_criteria} },
-            @{ $self->{all_criteria_short} };
+            unless grep $_ eq $f, $self->{all_criteria}->@*,
+            $self->{all_criteria_short}->@*;
           no strict "refs";
-          *$func = sub { shift->{$f} };
+          *$func = sub ($self) { $self->{$f} };
           goto &$func
         };
       }
@@ -813,9 +703,7 @@ sub objectify_cover {
   }
 }
 
-sub cover {
-  my $self = shift;
-
+sub cover ($self) {
   return $self->{cover} if $self->{cover_valid};
 
   my %digests;  # mapping of digests to canonical filenames
@@ -831,8 +719,7 @@ sub cover {
   my @runs = sort {
     ($self->{runs}{$b}{start} || 0) <=> ($self->{runs}{$a}{start} || 0)
       || $b cmp $a
-  } keys %{ $self->{runs} };
-  # print STDERR "runs: ", Dumper \@runs
+  } keys $self->{runs}->%*;
 
   my %warned;
   for my $run (@runs) {
@@ -840,20 +727,18 @@ sub cover {
 
     my $r = $self->{runs}{$run};
     next unless $r->{collected};  # DEVEL_COVER_SELF
-    @{ $self->{collected} }{ @{ $r->{collected} } } = ();
-    $st->add_criteria(@{ $r->{collected} });
+    $self->{collected}->@{ $r->{collected}->@* } = ();
+    $st->add_criteria($r->{collected}->@*);
     my $count = $r->{count};
-    # print STDERR "run $run, count: ", Dumper $count;
     while (my ($file, $f) = each %$count) {
       my $digest = $r->{digests}{$file};
       unless ($digest) {
         print STDERR "Devel::Cover: Can't find digest for $file\n"
           unless $Devel::Cover::Silent
           || $file =~ $Devel::Cover::DB::Ignore_filenames
-          || ($Devel::Cover::Self_cover && $file =~ q|/Devel/Cover[./]|);
+          || ($Devel::Cover::Self_cover && $file =~ "/Devel/Cover[./]");
         next;
       }
-      # print STDERR "File: $file\n";
       print STDERR "Devel::Cover: merging data for $file ",
         "into $digests{$digest}\n"
         if !$files{$file}++ && $digests{$digest};
@@ -869,31 +754,23 @@ sub cover {
       }
       my $cf = $cover->{ $digests{$digest} ||= $ff } ||= {};
 
-      # print STDERR "st ", Dumper($st),
-      # "f  ", Dumper($f),
-      # "uc ", Dumper($uncoverable->{$digest});
       while (my ($criterion, $fc) = each %$f) {
         my $get = "get_$criterion";
-        my $sc  = $st->$get($digest);
-        # print STDERR "$criterion: ", Dumper $sc, $fc;
-        unless ($sc) {
+        my $sc  = $st->$get($digest) or do {
           print STDERR "Devel::Cover: Warning: can't locate ",
             "structure for $criterion in $file\n"
             unless $warned{$file}{$criterion}++;
           next;
-        }
+        };
         my $cc  = $cf->{$criterion} ||= {};
         my $add = "add_$criterion";
-        # print STDERR "$add():\n", Dumper $cc, $sc, $fc;
         $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
-        # print STDERR "--> $add():\n", Dumper $cc;
         # $cc - coverage being filled in
         # $sc - structure information
         # $fc - coverage from this file
         # $uc - uncoverable information
       }
     }
-    # print STDERR "Cover: ", Dumper $cover;
   }
 
   $self->objectify_cover;
@@ -901,22 +778,18 @@ sub cover {
   $self->{cover}
 }
 
-sub run_keys {
-  my $self = shift;
+sub run_keys ($self) {
   $self->cover unless $self->{cover_valid};
   sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
-    keys %{ $self->{runs} };
+    keys $self->{runs}->%*
 }
 
-sub runs {
-  my $self = shift;
+sub runs ($self) {
   $self->cover unless $self->{cover_valid};
-  @{ $self->{runs} }{ $self->run_keys }
+  $self->{runs}->@{ $self->run_keys }
 }
 
-sub set_structure {
-  my $self = shift;
-  my ($structure) = @_;
+sub set_structure ($self, $structure) {
   $self->{_structure} = $structure;
 }
 
@@ -928,7 +801,6 @@ sub DESTROY { }
 
 sub AUTOLOAD {
   my $func = $AUTOLOAD;
-  # print STDERR "autoloading <$func>\n";
   (my $f = $func) =~ s/.*:://;
   no strict "refs";
   *$func = sub { shift->{$f} };
