@@ -168,7 +168,13 @@ When `perl Makefile.PL` runs, it generates test files in `t/e2e/`:
 **Golden Results**:
 
 - Files are named `<test>.<perl_version>` (e.g., `empty_else.5.042000`)
-- The test system finds the closest matching version for comparison
+- Not every Perl version needs its own golden file. The test system finds the
+  closest matching version that is less than or equal to the current Perl
+  version. For example, if golden files exist for `5.020000` and `5.038000`, a
+  test run on 5.28.0 uses `5.020000` and a run on 5.40.0 uses `5.038000`.
+- Only generate a new golden file when a Perl version produces genuinely
+  different coverage output (e.g. due to optree changes or new ops). If the
+  output matches an earlier version's golden file, no new file is needed.
 - `$Latest_t` in `Makefile.PL` defines the latest tested Perl version
 
 ### Perl Version Management (plenv)
