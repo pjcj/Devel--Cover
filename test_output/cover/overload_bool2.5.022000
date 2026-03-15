@@ -4,8 +4,8 @@ Reading database from ...
 -------------------- ------ ------ ------ ------ ------
 File                   stmt   bran   cond    sub  total
 -------------------- ------ ------ ------ ------ ------
-tests/overload_bool2   93.3    n/a    n/a  100.0   94.7
-Total                  93.3    n/a    n/a  100.0   94.7
+tests/overload_bool2  100.0    n/a    n/a  100.0  100.0
+Total                 100.0    n/a    n/a  100.0  100.0
 -------------------- ------ ------ ------ ------ ------
 
 
@@ -35,7 +35,7 @@ line  err   stmt   bran   cond    sub   code
                1                        
 12                                      
 13                                      {
-14    ***     *0                            package Cat;
+14                                          package Cat;
 15                                      
 16             1                    1       use overload (bool => "meh");
                1                        
