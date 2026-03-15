@@ -272,7 +272,7 @@ sub last_end {
   CHECK { set_first_init_and_end() }  # we really want to be first
 }
 
-sub CLONE {
+sub CLONE ($class) {
   print STDERR <<EOM;
 
 Unfortunately, Devel::Cover does not yet work with threads.  I have done
@@ -309,7 +309,7 @@ sub _parse_options ($o, $blib) {
     } elsif (/^-coverage/) {
       $Coverage{ +shift @$o } = 1 while @$o && $o->[0] !~ /^[-+]/;
     } elsif (/^[-+](\w+)/ && $list_opt{$1}) {
-      push @{ $list_opt{$1} }, shift @$o while @$o && $o->[0] !~ /^[-+]/;
+      push $list_opt{$1}->@*, shift @$o while @$o && $o->[0] !~ /^[-+]/;
     } else {
       warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
@@ -393,8 +393,6 @@ sub import ($class, @o) {
 }
 
 sub populate_run {
-  my $self = shift;
-
   $Run{OS}      = $^O;
   $Run{perl}    = sprintf "%vd", $^V;
   $Run{dir}     = $Dir;
@@ -461,9 +459,7 @@ sub get_coverage {
   # the Storable backend.  I don't think it happens with the JSON backend.
   my $Normalising;
 
-  sub normalised_file {
-    my ($file) = @_;
-
+  sub normalised_file ($file) {
     return $File_cache{$file} if exists $File_cache{$file};
     return $file              if $Normalising;
     $Normalising = 1;
@@ -506,9 +502,7 @@ sub get_coverage {
 
 }
 
-sub get_location {
-  my ($op) = @_;
-
+sub get_location ($op) {
   return unless $op->can("file");  # How does this happen?
   $File = $op->file;
   $Line = $op->line;
@@ -521,16 +515,14 @@ sub get_location {
 
   if (!exists $Run{vec}{$File} && $Run{collected}) {
     my %vec;
-    @vec{ @{ $Run{collected} } } = ();
+    @vec{ $Run{collected}->@* } = ();
     delete $vec{time};
     $vec{subroutine}++ if exists $vec{pod};
-    @{ $Run{vec}{$File}{$_} }{ "vec", "size" } = ("", 0) for keys %vec;
+    $Run{vec}{$File}{$_}->@{ "vec", "size" } = ("", 0) for keys %vec;
   }
 }
 
-sub use_file {
-  my ($file) = @_;
-
+sub use_file ($file) {
   state $find_filename = qr/
     (?:^\(eval\s \d+\)\[(.+):\d+\])      |
     (?:^\(eval\sin\s\w+\)\s(.+))         |
@@ -560,7 +552,7 @@ sub use_file {
   for (@Ignore_re, @Inc_re) { return $Files{$file} = 0 if $f =~ $_ }
 
   $Files{$file} = -e $file ? 1 : 0;
-  print STDERR __PACKAGE__ . qq[: Can't find file "$file" (@_): ignored.\n]
+  print STDERR __PACKAGE__ . qq(: Can't find file "$file": ignored.\n)
     unless $Files{$file}
     || $Silent
     || $file =~ $Devel::Cover::DB::Ignore_filenames;
@@ -569,9 +561,7 @@ sub use_file {
   $Files{$file}
 }
 
-sub check_file {
-  my ($cv) = @_;
-
+sub check_file ($cv) {
   return unless ref($cv) eq "B::CV";
 
   my $op = $cv->START;
@@ -602,8 +592,7 @@ sub B::GV::find_cv ($gv) {
   }
 }
 
-sub sub_info {
-  my ($cv) = @_;
+sub sub_info ($cv) {
   my ($name, $start) = ("--unknown--", 0);
   my $gv = $cv->GV;
   if ($gv && !$gv->isa("B::SPECIAL")) {
@@ -648,18 +637,17 @@ sub check_files {
   walksymtable(
     \%main::,
     "find_cv",
-    sub {
-      return 0 if $seen_pkg{ $_[0] }++;
+    sub ($pkg) {
+      return 0 if $seen_pkg{$pkg}++;
       no strict "refs";
       $Cvs{$_} ||= $_
         for grep check_file($_), map B::svref_2object($_),
-        adjust_blocks(\%{ $_[0] });
+        adjust_blocks(\%{$pkg});
       1
     }
   );
 
-  my $l = sub {
-    my ($cv) = @_;
+  my $l = sub ($cv) {
     my $line = 0;
     my ($name, $start) = sub_info($cv);
     if ($start) {
@@ -757,7 +745,7 @@ sub _report {
 
 sub _filter_cover_files {
   my %files;
-  $files{$_}++ for keys %{ $Run{count} }, keys %{ $Run{vec} };
+  $files{$_}++ for keys $Run{count}->%*, keys $Run{vec}->%*;
   for my $file (sort keys %files) {
     unless (use_file($file)) {
       delete $Run{count}{$file};
@@ -766,7 +754,7 @@ sub _filter_cover_files {
       next;
     }
 
-    for my $run (keys %{ $Run{vec}{$file} }) {
+    for my $run (keys $Run{vec}{$file}->%*) {
       delete $Run{vec}{$file}{$run} unless $Run{vec}{$file}{$run}{size};
     }
 
@@ -803,9 +791,7 @@ sub _write_coverage_db {
   }
 }
 
-sub add_subroutine_cover {
-  my ($op) = @_;
-
+sub add_subroutine_cover ($op) {
   get_location($op);
   return unless $File;
 
@@ -819,9 +805,7 @@ sub add_subroutine_cover {
   $vec->{size} = $n + 1;
 }
 
-sub add_statement_cover {
-  my ($op) = @_;
-
+sub add_statement_cover ($op) {
   get_location($op);
   return unless $File;
 
@@ -879,9 +863,7 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
   }
 }
 
-sub add_condition_cover {
-  my ($op, $strop, $left, $right) = @_;
-
+sub add_condition_cover ($op, $strop, $left, $right) {
   return unless $Collect && $Coverage{condition};
 
   my $key  = get_key($op);
@@ -904,12 +886,12 @@ sub add_condition_cover {
       $c     = [ $c->[3], $c->[1] + $c->[2] ];
       $count = 2;
     } else {
-      @$c    = @{$c}[ $type eq "or" ? (3, 2, 1) : (3, 1, 2) ];
+      @$c    = $c->@[ $type eq "or" ? (3, 2, 1) : (3, 1, 2) ];
       $count = 3;
     }
   } elsif ($type eq "xor") {
     # !l&&!r  l&&!r  l&&r  !l&&r
-    @$c    = @{$c}[ 3, 2, 4, 1 ];
+    @$c    = $c->@[ 3, 2, 4, 1 ];
     $count = 4;
   } else {
     die qq(Unknown type "$type" for conditional);
@@ -1205,16 +1187,16 @@ sub _parse_pod_options {
   my %opts;
   if (ref $Coverage_options{pod}) {
     my $p;
-    for (@{ $Coverage_options{pod} }) {
+    for ($Coverage_options{pod}->@*) {
       if (/^package|(?:also_)?private|trustme|pod_from|nocp$/) {
         $opts{ $p = $_ } = [];
       } elsif ($p) {
-        push @{ $opts{$p} }, $_;
+        push $opts{$p}->@*, $_;
       }
     }
     for my $p (qw( private also_private trustme )) {
       next unless exists $opts{$p};
-      $_ = qr/$_/ for @{ $opts{$p} };
+      $_ = qr/$_/ for $opts{$p}->@*;
     }
   }
   $Pod = "Pod::Coverage" if delete $opts{nocp};
@@ -1306,15 +1288,13 @@ sub get_cover ($cv, $root = undef) {
   $de
 }
 
-sub _report_progress {
-  my ($msg, $code, @items) = @_;
+sub _report_progress ($msg, $code, @items) {
   if ($Silent) {
     $code->($_) for @items;
     return;
   }
   my $tot  = @items || 1;
-  my $prog = sub {
-    my ($n) = @_;
+  my $prog = sub ($n) {
     print OUT "\r" . __PACKAGE__ . ": " . int(100 * $n / $tot) . "% ";
   };
   my ($old_pipe, $n, $start) = ($|, 0, time);
@@ -1331,8 +1311,7 @@ sub _report_progress {
   $| = $old_pipe;
 }
 
-sub get_cover_progress {
-  my ($type, @cvs) = @_;
+sub get_cover_progress ($type, @cvs) {
   _report_progress("getting $type coverage", sub { get_cover($_) }, @cvs);
 }
 
