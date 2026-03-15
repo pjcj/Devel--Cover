@@ -1218,7 +1218,7 @@ my %Original;
     # On 5.43.8+ use the authoritative OPpSTATEMENT flag; on older Perls fall
     # back to the heuristic that B::Deparse used to use.
     my $is_statement
-      = Has_op_statement ? $op->private & OPpSTATEMENT() : $cx < 1
+      = Has_op_statement() ? $op->private & OPpSTATEMENT() : $cx < 1
       && $blockname
       && $self->{expand} < 7;
 
