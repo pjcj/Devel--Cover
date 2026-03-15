@@ -1576,6 +1576,24 @@ get_ends()
     OUTPUT:
         RETVAL
 
+void
+adjust_blocks(stash)
+        HV *stash
+    PPCODE:
+#if PERL_VERSION >= 38
+        if (HvHasAUX(stash) && HvAUX(stash)->xhv_aux_flags & HvAUXf_IS_CLASS) {
+            AV *blocks = HvAUX(stash)->xhv_class_adjust_blocks;
+            if (blocks) {
+                SSize_t i;
+                for (i = 0; i <= AvFILL(blocks); i++) {
+                    CV *cv = (CV *)AvARRAY(blocks)[i];
+                    if (cv && (SV *)cv != &PL_sv_undef)
+                        XPUSHs(sv_2mortal(newRV_inc((SV *)cv)));
+                }
+            }
+        }
+#endif
+
 BOOT:
     {
         MY_CXT_INIT;
