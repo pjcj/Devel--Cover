@@ -1891,8 +1891,8 @@ conjunction with Devel::Cover.
 Almost certainly.
 
 See the BUGS file, the TODO file and the bug trackers at
-L<https://github.com/pjcj/Devel--Cover/issues?sort=created&direction=desc&state=open>
-and L<https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover>
+L<https://github.com/pjcj/Devel--Cover/issues?state=open> and
+L<https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover>
 
 Please report new bugs on GitHub.
 
