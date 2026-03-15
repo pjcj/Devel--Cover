@@ -329,7 +329,7 @@ sub import {
 
   if ($blib) {
     eval "use blib";
-    for (@INC) { $_ = $1 if ref $_ ne 'CODE' && /(.*)/ }  # Die tainting
+    for (@INC) { $_ = $1 if ref $_ ne "CODE" && /(.*)/ }  # Die tainting
     push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
   }
 
@@ -575,7 +575,7 @@ sub use_file {
 
   # system "pwd; ls -l '$file'";
   $Files{$file} = -e $file ? 1 : 0;
-  print STDERR __PACKAGE__ . qq(: Can't find file "$file" (@_): ignored.\n)
+  print STDERR __PACKAGE__ . qq[: Can't find file "$file" (@_): ignored.\n]
     unless $Files{$file}
     || $Silent
     || $file =~ $Devel::Cover::DB::Ignore_filenames;
@@ -691,7 +691,7 @@ sub check_files {
       # print STDERR "$name - $File:$Line\n";
     }
     $line = 0  unless defined $line;
-    $name = '' unless defined $name;
+    $name = "" unless defined $name;
     ($line, $name)
   };
 
