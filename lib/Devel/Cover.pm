@@ -11,6 +11,9 @@ use v5.20.0;
 use strict;
 use warnings;
 
+use feature "signatures";
+no warnings "experimental::signatures";
+
 our $VERSION;
 
 BEGIN {
@@ -298,15 +301,13 @@ EOM
 
 $Replace_ops = !$Self_cover;
 
-sub import {
+sub import ($class, @o) {
   return if $Initialised;
-
-  my $class = shift;
 
   # Die tainting
   # Anyone using this module can do worse things than messing with tainting
   my $options = ($ENV{DEVEL_COVER_OPTIONS} || "") =~ /(.*)/ ? $1 : "";
-  my @o       = (@_, split /,/, $options);
+  @o = (@o, split /,/, $options);
   defined or $_ = "" for @o;
   # print STDERR __PACKAGE__, ": Parsing options from [@o]\n";
 
@@ -422,9 +423,9 @@ sub populate_run {
   $Run{start} = get_elapsed() / 1e6;
 }
 
-sub cover_names_to_val {
+sub cover_names_to_val (@o) {
   my $val = 0;
-  for my $c (@_) {
+  for my $c (@o) {
     if (exists $Criteria{$c}) {
       $val |= $Criteria{$c};
     } elsif ($c eq "all" || $c eq "none") {
@@ -438,9 +439,9 @@ sub cover_names_to_val {
   $val;
 }
 
-sub set_coverage    { set_criteria(cover_names_to_val(@_)) }
-sub add_coverage    { add_criteria(cover_names_to_val(@_)) }
-sub remove_coverage { remove_criteria(cover_names_to_val(@_)) }
+sub set_coverage    (@o) { set_criteria(cover_names_to_val(@o)) }
+sub add_coverage    (@o) { add_criteria(cover_names_to_val(@o)) }
+sub remove_coverage (@o) { remove_criteria(cover_names_to_val(@o)) }
 
 sub get_coverage {
   return unless defined wantarray;
@@ -611,8 +612,8 @@ sub check_file {
   $use
 }
 
-sub B::GV::find_cv {
-  my $cv = $_[0]->CV;
+sub B::GV::find_cv ($gv) {
+  my $cv = $gv->CV;
   return unless $$cv;
 
   # print STDERR "find_cv $$cv\n" if check_file($cv);
@@ -887,10 +888,8 @@ sub add_statement_cover {
     && exists $Coverage->{time}{$key};
 }
 
-sub add_branch_cover {
+sub add_branch_cover ($op, $type, $text, $file, $line) {
   return unless $Collect && $Coverage{branch};
-
-  my ($op, $type, $text, $file, $line) = @_;
 
   # return unless $Seen{branch}{$$op}++;
 
@@ -1014,7 +1013,7 @@ my %Original;
     $Original{const}        = \&B::Deparse::const if defined &B::Deparse::const;
   }
 
-  sub const_dumper {
+  sub const_dumper (@o) {
     no warnings "redefine";
 
     local *B::Deparse::deparse      = $Original{deparse};
@@ -1024,10 +1023,10 @@ my %Original;
     local *B::Deparse::const_dumper = $Original{const_dumper};
     local *B::Deparse::const        = $Original{const} if $Original{const};
 
-    $Original{const_dumper}->(@_);
+    $Original{const_dumper}->(@o);
   }
 
-  sub const {
+  sub const (@o) {
     no warnings "redefine";
 
     local *B::Deparse::deparse      = $Original{deparse};
@@ -1036,12 +1035,10 @@ my %Original;
     local *B::Deparse::binop        = $Original{binop};
     local *B::Deparse::const_dumper = $Original{const_dumper};
 
-    $Original{const}->(@_);
+    $Original{const}->(@o);
   }
 
-  sub deparse {
-    my $self = shift;
-    my ($op, $cx) = @_;
+  sub deparse ($self, $op, $cx) {
 
     my $deparse;
 
@@ -1065,7 +1062,7 @@ my %Original;
         my $use_dumper = $class eq "SVOP" && $name eq "const";
         local $self->{use_dumper} = 1 if $use_dumper;
         require Data::Dumper if $use_dumper;
-        $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
+        $deparse = eval { local $^W; $Original{deparse}->($self, $op, $cx) };
         $deparse =~ s/^\010+//mg       if defined $deparse;
         $deparse = "Deparse error: $@" if $@;
         # print STDERR "Collected $$op under $File:$Line\n";
@@ -1165,7 +1162,7 @@ my %Original;
     } else {
       local ($File, $Line) = ($File, $Line);
       # print STDERR "Starting plain deparse at $File:$Line\n";
-      $deparse = eval { local $^W; $Original{deparse}->($self, @_) };
+      $deparse = eval { local $^W; $Original{deparse}->($self, $op, $cx) };
       $deparse = "" unless defined $deparse;
       $deparse =~ s/^\010+//mg;
       $deparse = "Deparse error: $@" if $@;
@@ -1177,9 +1174,12 @@ my %Original;
     $deparse
   }
 
-  sub logop {  ## no critic (ProhibitManyArgs) # B::Deparse API
-    my $self = shift;
-    my ($op, $cx, $lowop, $lowprec, $highop, $highprec, $blockname) = @_;
+  sub logop (
+    $self, $op, $cx, $lowop, $lowprec,
+    $highop    = undef,
+    $highprec  = undef,
+    $blockname = undef,
+  ) {
     my $left  = $op->first;
     my $right = $op->first->sibling;
     # print STDERR "left [$left], right [$right]\n";
@@ -1233,9 +1233,7 @@ my %Original;
     }
   }
 
-  sub logassignop {
-    my $self = shift;
-    my ($op, $cx, $opname) = @_;
+  sub logassignop ($self, $op, $cx, $opname) {
     my $left  = $op->first;
     my $right = $op->first->sibling->first;  # skip sassign
     $left  = $self->deparse($left,  7);
@@ -1244,9 +1242,7 @@ my %Original;
     return $self->maybe_parens("$left $opname $right", $cx, 7);
   }
 
-  sub binop {
-    my $self = shift;
-    my ($op, $cx, $opname, $prec, $flags) = (@_, 0);
+  sub binop ($self, $op, $cx, $opname, $prec, $flags = 0) {
     if (
       $] >= 5.041012
       && ($opname eq "xor" || $opname eq "^^" && !$Seen{condition}{$$op}++)
@@ -1266,10 +1262,10 @@ my %Original;
 
 }
 
-sub get_cover {
+sub get_cover ($cv, $root = undef) {
   my $deparse = B::Deparse->new;
 
-  my $cv = $deparse->{curcv} = shift;
+  $deparse->{curcv} = $cv;
 
   ($Sub_name, my $start) = sub_info($cv);
 
@@ -1372,8 +1368,7 @@ sub get_cover {
   local *B::Deparse::const_dumper = \&const_dumper;
   local *B::Deparse::const        = \&const if $Original{const};
 
-  my $de = @_
-    && ref $_[0] ? $deparse->deparse($_[0], 0) : $deparse->deparse_sub($cv, 0);
+  my $de = $root ? $deparse->deparse($root, 0) : $deparse->deparse_sub($cv, 0);
 
   # print STDERR "<$de>\n";
   $de
