@@ -21,27 +21,7 @@ extern "C" {
 }
 #endif
 
-#ifdef PERL_OBJECT
-#define CALLOP this->*PL_op
-#else
 #define CALLOP *PL_op
-#endif
-
-#ifndef START_MY_CXT
-/* No threads in 5.6 */
-#define START_MY_CXT    static my_cxt_t my_cxt;
-#define dMY_CXT_SV      dNOOP
-#define dMY_CXT         dNOOP
-#define MY_CXT_INIT     NOOP
-#define MY_CXT          my_cxt
-
-#define pMY_CXT         void
-#define pMY_CXT_
-#define _pMY_CXT
-#define aMY_CXT
-#define aMY_CXT_
-#define _aMY_CXT
-#endif
 
 #define MY_CXT_KEY "Devel::Cover::_guts" XS_VERSION
 
@@ -652,7 +632,6 @@ static void dump_conditions(pTHX) {
     MUTEX_UNLOCK(&DC_mutex);
 }
 
-#if PERL_VERSION > 18
 /* For if ($a || $b) and unless ($a && $b), rpeep skips past a few
  * logops and messes with Devel::Cover
  *
@@ -701,7 +680,6 @@ static OP *find_skipped_conditional(pTHX_ OP *o) {
 
     return next;
 }
-#endif
 
 /* NOTE: caller must protect get_condition* calls by locking DC_mutex */
 static OP *get_condition(pTHX) {
@@ -892,16 +870,12 @@ static void cover_logop(pTHX) {
                     set_conditional(aTHX_ PL_op, 0, 1);
                 }
 
-#if PERL_VERSION > 14
                 NDEB(D(L, "Getting next\n"));
                 next = (PL_op->op_type == OP_XOR)
                     ? PL_op->op_next
                     : right->op_next;
                 while (next && next->op_type == OP_NULL)
                     next = next->op_next;
-#else
-                next = PL_op->op_next;
-#endif
                 if (!next) return;  /* in fold_constants */
                 NDEB(op_dump(PL_op));
                 NDEB(op_dump(next));
@@ -943,11 +917,8 @@ static void cover_logop(pTHX) {
             }
         } else {
             /* short circuit */
-#if PERL_VERSION > 14
             OP *up = OpSIBLING(cLOGOP->op_first)->op_next;
-#if PERL_VERSION > 18
             OP *skipped;
-#endif
 
             while (up && up->op_type == PL_op->op_type) {
                 NDEB(D(L, "Considering adding %p (%s) -> (%p) "
@@ -959,19 +930,15 @@ static void cover_logop(pTHX) {
                     break;
                 up = OpSIBLING(cLOGOPx(up)->op_first)->op_next;
             }
-#endif
             add_conditional(aTHX_ PL_op, 3);
 
-#if PERL_VERSION > 18
             skipped = PL_op;
             while ((skipped = find_skipped_conditional(aTHX_ skipped)) != NULL)
                 add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
-#endif
         }
     }
 }
 
-#if PERL_VERSION > 16
 /* A sequence of variable declarations may have been optimized
  * to a single OP_PADRANGE. The original sequence may span multiple lines,
  * but only the first line has been marked as covered for now.
@@ -1006,7 +973,6 @@ static OP *dc_padrange(pTHX) {
     if (MY_CXT.covering) cover_padrange(aTHX);
     return MY_CXT.ppaddr[OP_PADRANGE](aTHX);
 }
-#endif
 
 static OP *dc_nextstate(pTHX) {
     dMY_CXT;
@@ -1121,9 +1087,7 @@ static void replace_ops (pTHX) {
     PL_ppaddr[OP_NEXTSTATE] = dc_nextstate;
     PL_ppaddr[OP_DBSTATE]   = dc_dbstate;
     PL_ppaddr[OP_ENTERSUB]  = dc_entersub;
-#if PERL_VERSION > 16
     PL_ppaddr[OP_PADRANGE]  = dc_padrange;
-#endif
     PL_ppaddr[OP_COND_EXPR] = dc_cond_expr;
     PL_ppaddr[OP_AND]       = dc_and;
     PL_ppaddr[OP_ANDASSIGN] = dc_andassign;
@@ -1263,12 +1227,10 @@ static int runops_cover(pTHX) {
                 break;
             }
 
-#if PERL_VERSION > 16
             case OP_PADRANGE: {
                 cover_padrange(aTHX);
                 break;
             }
-#endif
 
             case OP_COND_EXPR: {
                 cover_cond(aTHX);
@@ -1575,6 +1537,24 @@ get_ends()
             RETVAL = MY_CXT.ends;
     OUTPUT:
         RETVAL
+
+void
+adjust_blocks(stash)
+        HV *stash
+    PPCODE:
+#if PERL_VERSION >= 38
+        if (HvHasAUX(stash) && HvAUX(stash)->xhv_aux_flags & HvAUXf_IS_CLASS) {
+            AV *blocks = HvAUX(stash)->xhv_class_adjust_blocks;
+            if (blocks) {
+                SSize_t i;
+                for (i = 0; i <= AvFILL(blocks); i++) {
+                    CV *cv = (CV *)AvARRAY(blocks)[i];
+                    if (cv && (SV *)cv != &PL_sv_undef)
+                        XPUSHs(sv_2mortal(newRV_inc((SV *)cv)));
+                }
+            }
+        }
+#endif
 
 BOOT:
     {
