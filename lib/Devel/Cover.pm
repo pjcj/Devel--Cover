@@ -1215,12 +1215,13 @@ my %Original;
 
     $blockname &&= $self->keyword($blockname);
 
-    # On 5.43.8+ use the authoritative OPpSTATEMENT flag; on older Perls fall
-    # back to the heuristic that B::Deparse used to use.
+    # On 5.43.8+ use OPpSTATEMENT, but also treat statement-level logops
+    # (e.g. $y && $x++) as statements for coverage - they're branches where
+    # the return value is discarded.  On older Perls use B::Deparse's heuristic.
     my $is_statement
-      = Has_op_statement() ? $op->private & OPpSTATEMENT() : $cx < 1
-      && $blockname
-      && $self->{expand} < 7;
+      = Has_op_statement()
+      ? ($op->private & OPpSTATEMENT()) || ($cx < 1 && $blockname)
+      : $cx < 1 && $blockname && $self->{expand} < 7;
 
     if ($is_statement && is_scope($right)) {
       # print STDERR 'if ($a) {$b}', "\n";
