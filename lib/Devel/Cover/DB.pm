@@ -21,9 +21,11 @@ use Devel::Cover::DB::File      ();
 use Devel::Cover::DB::Structure ();
 use Devel::Cover::DB::IO        ();
 
-use Carp       qw( carp croak );
-use File::Find qw( find );
-use File::Path qw( rmtree );
+use Carp         qw( carp croak );
+use File::Find   qw( find );
+use File::Path   qw( rmtree );
+use List::Util   qw( any );
+use Scalar::Util qw( blessed reftype );
 
 use Devel::Cover::Dumper qw( Dumper );  # For debugging
 
@@ -251,10 +253,10 @@ sub _merge_hash ($into, $from, $noadd = 0) {
   for my $fkey (keys %$from) {
     my $fval = $from->{$fkey};
 
-    if (defined $into->{$fkey} && UNIVERSAL::isa($into->{$fkey}, "ARRAY")) {
+    if (defined $into->{$fkey} && (reftype($into->{$fkey}) // "") eq "ARRAY") {
       _merge_array($into->{$fkey}, $fval, $noadd);
-    } elsif (defined $fval && UNIVERSAL::isa($fval, "HASH")) {
-      if (defined $into->{$fkey} && UNIVERSAL::isa($into->{$fkey}, "HASH")) {
+    } elsif (defined $fval && (reftype($fval) // "") eq "HASH") {
+      if (defined $into->{$fkey} && (reftype($into->{$fkey}) // "") eq "HASH") {
         _merge_hash($into->{$fkey}, $fval, $noadd);
       } else {
         $into->{$fkey} = $fval;
@@ -269,21 +271,14 @@ sub _merge_hash ($into, $from, $noadd = 0) {
 
 sub _merge_array ($into, $from, $noadd = 0) {
   for my $i (@$into) {
-    my $f = shift @$from;
-    if (
-      UNIVERSAL::isa($i, "ARRAY")
-      || !defined $i && UNIVERSAL::isa($f, "ARRAY")
-    ) {
+    my $f  = shift @$from;
+    my $it = reftype($i) // "";
+    my $ft = reftype($f) // "";
+    if ($it eq "ARRAY" || !defined $i && $ft eq "ARRAY") {
       _merge_array($i, $f || [], $noadd);
-    } elsif (
-      UNIVERSAL::isa($i, "HASH")
-      || !defined $i && UNIVERSAL::isa($f, "HASH")
-    ) {
+    } elsif ($it eq "HASH" || !defined $i && $ft eq "HASH") {
       _merge_hash($i, $f || {}, $noadd);
-    } elsif (
-      UNIVERSAL::isa($i, "SCALAR")
-      || !defined $i && UNIVERSAL::isa($f, "SCALAR")
-    ) {
+    } elsif ($it eq "SCALAR" || !defined $i && $ft eq "SCALAR") {
       $$i += $$f;
     } else {
       if (defined $f) {
@@ -346,8 +341,6 @@ sub print_summary ($self, $files, $criteria, $opts) {
 
   my $n = keys %options;
 
-  my $oldfh = select STDOUT;
-
   $options{files} = $files if $files && @$files;
   $self->calculate_summary(%options, %$opts);
 
@@ -375,21 +368,19 @@ sub print_summary ($self, $files, $criteria, $opts) {
 
   no warnings "uninitialized";
   my $fmt = "%-${fw}s" . " %6s" x $n . "\n";
-  printf $fmt, "-" x $fw, ("------") x $n;
-  printf $fmt, "File", map $self->{all_criteria_short}[$_],
+  printf STDOUT $fmt, "-" x $fw, ("------") x $n;
+  printf STDOUT $fmt, "File", map $self->{all_criteria_short}[$_],
     grep $options{ $self->{all_criteria}[$_] }, 0 .. $self->{all_criteria}->$#*;
-  printf $fmt, "-" x $fw, ("------") x $n;
+  printf STDOUT $fmt, "-" x $fw, ("------") x $n;
 
   for my $file (@files) {
-    printf $fmt, trimmed_file($file, $fw), map $format->($s->{$file}, $_),
-      grep $options{$_}, $self->{all_criteria}->@*;
-
+    printf STDOUT $fmt, trimmed_file($file, $fw),
+      map $format->($s->{$file}, $_), grep $options{$_},
+      $self->{all_criteria}->@*;
   }
 
-  printf $fmt, "-" x $fw, ("------") x $n;
-  print "\n\n";
-
-  select $oldfh;
+  printf STDOUT $fmt, "-" x $fw, ("------") x $n;
+  print STDOUT "\n\n";
 }
 
 sub add_statement ($self, $cc, $sc, $fc, $uc) {
@@ -602,8 +593,8 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
       $count = $1 if $info =~ /count:($c(?:,$c)*)/;
       my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/,
         $count;
-      $class = $1 if $info =~ /class:(\w+)/;
-      $note  = $1 if $info =~ /note:(.+)/;
+      if ($info =~ /class:(\w+)/) { $class = $1 }
+      if ($info =~ /note:(.+)/)   { $note  = $1 }
 
       for my $c (@counts) {
         # no warnings "uninitialized";
@@ -632,7 +623,10 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
 }
 
 sub objectify_cover ($self) {
-  unless (UNIVERSAL::isa($self->{cover}, "Devel::Cover::DB::Cover")) {
+  unless (
+    blessed($self->{cover})
+    && $self->{cover}->isa("Devel::Cover::DB::Cover")
+  ) {
     bless $self->{cover}, "Devel::Cover::DB::Cover";
     for my $file (values $self->{cover}->%*) {
       bless $file, "Devel::Cover::DB::File";
@@ -692,7 +686,7 @@ sub objectify_cover ($self) {
 
           (my $f = $func) =~ s/.*:://;
           carp "Undefined subroutine $f called"
-            unless grep $_ eq $f, $self->{all_criteria}->@*,
+            unless any { $_ eq $f } $self->{all_criteria}->@*,
             $self->{all_criteria_short}->@*;
           no strict "refs";
           *$func = sub ($self) { $self->{$f} };
@@ -700,6 +694,50 @@ sub objectify_cover ($self) {
         };
       }
     }
+  }
+}
+
+sub _file_digest ($r, $file) {
+  my $digest = $r->{digests}{$file};
+  return $digest if $digest;
+  print STDERR "Devel::Cover: Can't find digest for $file\n"
+    unless $Devel::Cover::Silent
+    || $file =~ $Devel::Cover::DB::Ignore_filenames
+    || ($Devel::Cover::Self_cover && $file =~ "/Devel/Cover[./]");
+  undef
+}
+
+sub _cover_file (
+  $self,  $file,        $f,       $r,     $st,
+  $cover, $uncoverable, $digests, $files, $warned,
+) {
+  my $digest = _file_digest($r, $file) or return;
+
+  print STDERR "Devel::Cover: merging data for $file ",
+    "into $digests->{$digest}\n"
+    if !$files->{$file}++ && $digests->{$digest};
+
+  $self->uncoverable_comments($uncoverable, $file, $digest)
+    unless $digests->{$digest};
+
+  my $ff = $file;
+  if ($self->{prefer_lib}) {
+    $ff =~ s|^blib/||;
+    $ff = $file unless -e $ff;
+  }
+  my $cf = $cover->{ $digests->{$digest} ||= $ff } ||= {};
+
+  while (my ($criterion, $fc) = each %$f) {
+    my $get = "get_$criterion";
+    my $sc  = $st->$get($digest) or do {
+      print STDERR "Devel::Cover: Warning: can't locate ",
+        "structure for $criterion in $file\n"
+        unless $warned->{$file}{$criterion}++;
+      next;
+    };
+    my $cc  = $cf->{$criterion} ||= {};
+    my $add = "add_$criterion";
+    $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
   }
 }
 
@@ -731,45 +769,10 @@ sub cover ($self) {
     $st->add_criteria($r->{collected}->@*);
     my $count = $r->{count};
     while (my ($file, $f) = each %$count) {
-      my $digest = $r->{digests}{$file};
-      unless ($digest) {
-        print STDERR "Devel::Cover: Can't find digest for $file\n"
-          unless $Devel::Cover::Silent
-          || $file =~ $Devel::Cover::DB::Ignore_filenames
-          || ($Devel::Cover::Self_cover && $file =~ "/Devel/Cover[./]");
-        next;
-      }
-      print STDERR "Devel::Cover: merging data for $file ",
-        "into $digests{$digest}\n"
-        if !$files{$file}++ && $digests{$digest};
-
-      $self->uncoverable_comments($uncoverable, $file, $digest)
-        unless $digests{$digest};
-
-      # Set up data structure to hold coverage being filled in
-      my $ff = $file;
-      if ($self->{prefer_lib}) {
-        $ff =~ s|^blib/||;
-        $ff = $file unless -e $ff;
-      }
-      my $cf = $cover->{ $digests{$digest} ||= $ff } ||= {};
-
-      while (my ($criterion, $fc) = each %$f) {
-        my $get = "get_$criterion";
-        my $sc  = $st->$get($digest) or do {
-          print STDERR "Devel::Cover: Warning: can't locate ",
-            "structure for $criterion in $file\n"
-            unless $warned{$file}{$criterion}++;
-          next;
-        };
-        my $cc  = $cf->{$criterion} ||= {};
-        my $add = "add_$criterion";
-        $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
-        # $cc - coverage being filled in
-        # $sc - structure information
-        # $fc - coverage from this file
-        # $uc - uncoverable information
-      }
+      $self->_cover_file(
+        $file, $f, $r, $st, $cover,
+        $uncoverable, \%digests, \%files, \%warned
+      );
     }
   }
 
