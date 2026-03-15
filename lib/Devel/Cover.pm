@@ -1058,7 +1058,7 @@ my %Original;
         };
         # print STDERR "COP $$op, ", $next, " -> ", $nnext,
         # " -> ", $nnnext, "\n";
-        if ($nnnext) {
+        if ($nnnext && $name ne "null") {
           add_statement_cover($op) unless $Seen{statement}{$$op}++;
         }
       } elsif (!$null
