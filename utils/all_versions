@@ -180,9 +180,8 @@ sub get_options {
       #>>>
   ] unless $Options->{version}->@*;
   if ($Options->{key}) {
-    my %key = map { $_ => 1 }
-      qw( 5.20.0 5.28.0 5.38.0 5.40.0 5.42.1 5.42.1-thr 5.43.8 );
-    $Options->{version} = [ grep { $key{$_} } $Options->{version}->@* ];
+    $Options->{version}
+      = [ qw( 5.20.0 5.28.0 5.38.0 5.40.0 5.42.1 5.42.1-thr 5.43.8 ) ];
   }
   $Options->{version} = [
     grep {
