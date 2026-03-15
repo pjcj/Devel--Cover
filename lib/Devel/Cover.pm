@@ -1202,10 +1202,8 @@ my %Original;
     $deparse
   }
 
-  sub logop (
-    $self, $op, $cx, $lowop, $lowprec,
-    $highop    = undef,
-    $highprec  = undef,
+  sub logop (  ## no critic (ProhibitExcessComplexity)
+    $self, $op, $cx, $lowop, $lowprec, $highop = undef, $highprec = undef,
     $blockname = undef,
   ) {
     my $left  = $op->first;
@@ -1215,13 +1213,17 @@ my %Original;
 
     $blockname &&= $self->keyword($blockname);
 
-    # On 5.43.8+ use OPpSTATEMENT, but also treat statement-level logops
-    # (e.g. $y && $x++) as statements for coverage - they're branches where
-    # the return value is discarded.  On older Perls use B::Deparse's heuristic.
+    # On 5.43.8+ use OPpSTATEMENT to decide deparse format (if vs and/or).
+    # On older Perls use B::Deparse's heuristic.
     my $is_statement
-      = Has_op_statement()
-      ? ($op->private & OPpSTATEMENT()) || ($cx < 1 && $blockname)
-      : $cx < 1 && $blockname && $self->{expand} < 7;
+      = Has_op_statement() ? $op->private & OPpSTATEMENT() : $cx < 1
+      && $blockname
+      && $self->{expand} < 7;
+
+    # Statement-level expression logops (e.g. $y && $x++) are branches
+    # where the return value is discarded, even though they aren't in
+    # statement form.
+    my $is_branch = $is_statement || ($cx < 1 && $blockname);
 
     if ($is_statement && is_scope($right)) {
       # print STDERR 'if ($a) {$b}', "\n";
@@ -1256,8 +1258,13 @@ my %Original;
       # $a and $b
       $left  = $self->deparse_binop_left($op, $left, $lowprec);
       $right = $self->deparse_binop_right($op, $right, $lowprec);
-      add_condition_cover($op, $lowop, $left, $right)
-        unless $Seen{condition}{$$op}++;
+      if ($is_branch) {
+        add_branch_cover($op, $lowop, "$left $lowop $right", $file, $line)
+          unless $Seen{branch}{$$op}++;
+      } else {
+        add_condition_cover($op, $lowop, $left, $right)
+          unless $Seen{condition}{$$op}++;
+      }
       return $self->maybe_parens("$left $lowop $right", $cx, $lowprec)
     }
   }

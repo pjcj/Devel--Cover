@@ -39,11 +39,16 @@ executes and its return value is not used. This includes:
 | -------------------------- | ----------------- | --------------- |
 | `if ($x) { ... }`          | `if ($x) { }`     | Block statement |
 | `$y++ if $x`               | `if $x`           | Statement mod   |
-| `$x && $y++` (at stmt lvl) | `if $x`           | Void context    |
-| `$x \|\| next`             | `unless $x`       | Void context    |
+| `$x && $y++` (at stmt lvl) | `$x and ++$y` \*  | Void context    |
+| `$x \|\| next`             | `$x or next` \*   | Void context    |
 | `unless ($x) { ... }`      | `unless ($x) { }` | Block statement |
 | `$x ? $a : $b`             | `$x ? :`          | Ternary         |
 | `if ($x) { } elsif { }`    | `if ($x) { }`     | Chain           |
+
+\*On Perl 5.43.8+, expression-form logops at statement level keep their
+expression-form labels (`$x and ++$y`, `$x or next`). On older Perls,
+they get statement-modifier labels (`if $x`, `unless $x`) because the
+optree cannot distinguish the two forms.
 
 The ternary (`?:` / `cond_expr`) is always branch coverage regardless
 of context, because it always has two distinct code paths (true block
@@ -99,34 +104,40 @@ Case 3: $cx > $lowprec && $highop
 
 Case 4: else
         -> deparse: "$left and $right"
-        -> CONDITION coverage
+        -> BRANCH if $is_branch, CONDITION otherwise
 ```
 
-The `$is_statement` variable controls the split. On Perl 5.43.8+, the
-`OPpSTATEMENT` private flag authoritatively marks ops that were written
-in statement form (`$x++ if $y`, `if ($x) { ... }`). However,
-expression-form logops at statement level (`$y && $x++`) do not carry
-this flag even though their return value is discarded.
+Two variables control the split:
 
-To keep these as branch coverage, `$is_statement` also checks for
-statement-level context:
+- **`$is_statement`** determines deparse format (statement modifier
+  vs expression form). On 5.43.8+ it reflects `OPpSTATEMENT` only.
+  On older Perls it uses B::Deparse's heuristic.
+
+- **`$is_branch`** determines coverage classification. It is true
+  whenever `$is_statement` is true, and also for statement-level
+  expression-form logops (`$cx < 1 && $blockname`).
 
 ```perl
 my $is_statement
   = Has_op_statement()
-  ? ($op->private & OPpSTATEMENT()) || ($cx < 1 && $blockname)
+  ? $op->private & OPpSTATEMENT()
   : $cx < 1 && $blockname && $self->{expand} < 7;
+
+my $is_branch = $is_statement || ($cx < 1 && $blockname);
 ```
 
-The `$cx < 1` test means we are at statement level (the return value
-is discarded). `$blockname` being set means the op has a statement-form
-keyword (`if`/`unless`). Together they identify logops that are
-semantically branches even though OPpSTATEMENT is not set.
+On 5.43.8+, this separation means expression-form logops at statement
+level (e.g. `$y && $x++`) fall through to case 4, where they get
+expression-form labels (`$y and ++$x[5]`) but are still classified as
+branch coverage because `$is_branch` is true. On older Perls,
+`$is_statement` and `$is_branch` are always equal (both use the same
+heuristic), so cases 1/2 handle all statement-level logops with
+statement-modifier labels (`if $y`).
 
-On older Perls (before 5.43.8), the heuristic
-`$cx < 1 && $blockname && $self->{expand} < 7` serves the same
-purpose. This was B::Deparse's own heuristic for deciding statement
-vs expression form.
+The `$cx < 1` test means we are at statement level (the return value
+is discarded). `$blockname` being set means the op has a
+statement-form keyword (`if`/`unless`). Together they identify logops
+that are semantically branches.
 
 ### `_cover_cond_expr` - the `?:` / `if-else` handler
 
@@ -316,9 +327,9 @@ operator.
 ### Where OPpSTATEMENT is used
 
 1. **`logop`**: determines deparse format (statement modifier vs
-   expression). For coverage classification, it is combined with
-   `$cx < 1 && $blockname` to also classify statement-level
-   expression-form logops as branches.
+   expression). A separate `$is_branch` variable combines
+   `$is_statement` with `$cx < 1 && $blockname` to also classify
+   statement-level expression-form logops as branches.
 
 2. **`_cover_cond_expr`**: determines whether to label as
    `"if ($cond) { }"` (with elsif walking) or `"$cond ? :"`. Both
@@ -335,7 +346,16 @@ taken, not about the combined truth value of `$y && $x++`.
 If classified as condition coverage, the report would show 2 or 3
 condition outcomes for `$y and ++$x`, which is misleading - the truth
 value of `$x++` is irrelevant. Branch coverage with a simple
-true/false outcome for `if $y` is the appropriate metric.
+true/false outcome is the appropriate metric.
+
+On 5.43.8+, because `$is_statement` only reflects `OPpSTATEMENT`, the
+expression-form logop falls through to case 4 of `logop` and gets an
+expression-form label (`$y and ++$x[5]`). The `$is_branch` variable
+ensures it is still classified as branch coverage despite not being in
+statement form.
+
+On older Perls, both forms are indistinguishable in the optree, so
+both get the statement-modifier label (`if $y`).
 
 The XS layer's void-context detection already handles this at the data
 level (recording only 2 outcomes when in void context), so the Perl
@@ -349,7 +369,15 @@ layer's classification aligns with what the runtime actually measured.
 $y && $x++;   # void context - branch coverage
 ```
 
-Report output:
+Report output on 5.43.8+:
+
+```text
+Branches
+line  err      %   true  false   branch
+28    ***     50      0      4   $y and ++$x[5]
+```
+
+On older Perls (before 5.43.8):
 
 ```text
 Branches
@@ -358,6 +386,7 @@ line  err      %   true  false   branch
 ```
 
 Two outcomes: `$y` was true (path taken) or false (short-circuited).
+The label format differs but the coverage data is identical.
 
 ### Branch: `if ($x) { } elsif ($y) { } else { }`
 
