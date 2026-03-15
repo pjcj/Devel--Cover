@@ -670,7 +670,15 @@ sub check_files {
   my %seen_pkg;
   my %seen_cv;
 
-  walksymtable(\%main::, "find_cv", sub { !$seen_pkg{ $_[0] }++ });
+  walksymtable(\%main::, "find_cv", sub {
+    return 0 if $seen_pkg{ $_[0] }++;
+    no strict "refs";
+    $Cvs{$_} ||= $_ for
+      grep  check_file($_),
+      map   B::svref_2object($_),
+      adjust_blocks(\%{ $_[0] });
+    1
+  });
 
   my $l = sub {
     my ($cv) = @_;
