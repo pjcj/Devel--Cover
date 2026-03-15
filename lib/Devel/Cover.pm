@@ -26,8 +26,16 @@ use Devel::Cover::Inc         ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use B          qw( main_cv main_root ppname walksymtable );
+use B          qw( main_cv main_root OPf_SPECIAL ppname walksymtable );
 use B::Deparse ();
+
+# OPpSTATEMENT (added in 5.43.8) authoritatively distinguishes statement-form
+# ops (if/unless/if-else) from expression-form (&&/and/?:)
+BEGIN {
+  my $v = $] >= 5.043008 ? 1 : 0;
+  *Has_op_statement = sub () { $v };
+  B->import("OPpSTATEMENT") if $v;
+}
 
 use Config     qw( %Config );
 use Cwd        qw( abs_path getcwd );
@@ -1089,17 +1097,34 @@ my %Original;
         my $cond  = $op->first;
         my $true  = $cond->sibling;
         my $false = $true->sibling;
-        if (!(
-             $cx < 1
-          && $self->{'expand'} < 7
-          && (
-              B::class($false) eq "NULL" # sub:  empty else optimised to NULL
-              || $false->name eq "null"  # main: empty else optimised to null op
-              || ((is_scope($true) && $true->name ne "null")
-                  && (is_scope($false) || is_ifelse_cont($false)))
-          )
-        ))
+
+        # Since 5.43.2 empty if{} blocks may be optimised away, leaving only 2
+        # children.  OPf_SPECIAL unset means the true block was removed; swap so
+        # $false holds the else/elsif content. Gated on Has_op_statement because
+        # the old heuristic cannot safely handle the swapped state.
+        if (Has_op_statement
+          && B::class($false) eq "NULL"
+          && !($op->flags & OPf_SPECIAL))
         {
+          ($true, $false) = ($false, $true);
+        }
+
+        # Use OPpSTATEMENT on 5.43.8+ to distinguish if/else from ?:
+        my $is_statement;
+        if (Has_op_statement) {
+          $is_statement = $op->private & OPpSTATEMENT();
+        } else {
+          $is_statement = $cx < 1
+            && $self->{expand} < 7
+            && (
+                B::class($false) eq "NULL"
+                || $false->name eq "null"
+                || ((is_scope($true) && $true->name ne "null")
+                    && (is_scope($false) || is_ifelse_cont($false)))
+            );
+        }
+
+        if (!$is_statement) {
           { local $Collect; $cond = $self->deparse($cond, 8) }
           add_branch_cover($op, "if", "$cond ? :", $File, $Line);
         } else {
@@ -1146,7 +1171,14 @@ my %Original;
     my ($file, $line) = ($File, $Line);
 
     $blockname &&= $self->keyword($blockname);
-    if ($cx < 1 && is_scope($right) && $blockname && $self->{expand} < 7) {
+
+    # On 5.43.8+ use the authoritative OPpSTATEMENT flag; on older Perls fall
+    # back to the heuristic that B::Deparse used to use.
+    my $is_statement = Has_op_statement
+      ? $op->private & OPpSTATEMENT()
+      : $cx < 1 && $blockname && $self->{expand} < 7;
+
+    if ($is_statement && is_scope($right)) {
       # print STDERR 'if ($a) {$b}', "\n";
       # if ($a) {$b}
       $left  = $self->deparse($left,  1);
@@ -1154,7 +1186,7 @@ my %Original;
       add_branch_cover($op, $lowop, "$blockname ($left)", $file, $line)
         unless $Seen{branch}{$$op}++;
       return "$blockname ($left) {\n\t$right\n\b}\cK"
-    } elsif ($cx < 1 && $blockname && !$self->{parens} && $self->{expand} < 7) {
+    } elsif ($is_statement && (Has_op_statement || !$self->{parens})) {
       # print STDERR '$b if $a', "\n";
       # $b if $a
       $right = $self->deparse($right, 1);
