@@ -1,12 +1,12 @@
 Reading database from ...
 
 
------------------- ------ ------ ------ ------ ------
-File                 stmt   bran   cond    sub  total
------------------- ------ ------ ------ ------ ------
-tests/class_method   91.6   50.0    n/a   87.5   78.8
-Total                91.6   50.0    n/a   87.5   78.8
------------------- ------ ------ ------ ------ ------
+------------- ------ ------ ------ ------ ------
+File            stmt   bran   cond    sub  total
+------------- ------ ------ ------ ------ ------
+tests/class42   95.6   50.0    n/a   87.5   80.6
+Total           95.6   50.0    n/a   87.5   80.6
+------------- ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -15,7 +15,7 @@ OS: ...
 Start: ...
 Finish: ...
 
-tests/class_method
+tests/class42
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -27,52 +27,51 @@ line  err   stmt   bran   cond    sub   code
 7                                       # The latest version of this software should be available from my homepage:
 8                                       # https://pjcj.net
 9                                       
-10                                      # __COVER__ skip_test $] < 5.038
-11                                      # __COVER__ skip_reason class feature not available before 5.38
+10                                      # __COVER__ skip_test $] < 5.042
+11                                      # __COVER__ skip_reason :writer and my method not available before 5.42
 12                                      
-13             1                    1   use strict;
+13             1                    1   use 5.42.0;
+               1                        
+14             1                    1   use feature "class";
                1                        
                1                        
-14             1                    1   use warnings;
+15             1                    1   no warnings "experimental::class";
                1                        
                1                        
-15             1                    1   use feature "class";
-               1                        
-               1                        
-16             1                    1   no warnings "experimental::class";
-               1                        
-               1                        
-17                                      
-18             1                        class Animal {
-19             1                          field $name  :param;
-20             1                          field $sound :param  = "...";
-21             1                          field $count :reader = 0;
-22             1                          field $label :reader :writer = "default";
-23                                      
-24                                        ADJUST { $name = ucfirst $name }
-25                                      
-26             2                    2     method name   { $name }
-27             2                    2     method speak  { "$name says $sound" }
-28    ***     *0                   *0     method unused { "never called" }
-29                                      
-30                                  2     method greet ($greeting = "Hello") {
-31             2                            "$greeting, I am $name"
-32                                        }
-33                                      
-34    ***      1   * 50             1     method is_loud { $sound eq "WOOF" ? 1 : 0 }
-35                                      
-36             1                    1     my method _private { "private: $name" }
-37                                      
+16                                      
+17             1                        class Animal {
+18             1                          field $name  :param;
+19             1                          field $sound :param  = "...";
+20             1                          field $count :reader = 0;
+21             1                          field $label :reader :writer = "default";
+22                                      
+23             2                    2     ADJUST { $name = ucfirst $name }
+24                                      
+25             2                    2     method name   { $name }
+26             2                    2     method speak  { "$name says $sound" }
+27    ***     *0                   *0     method unused { "never called" }
+28                                      
+29             2                    2     method greet ($greeting = "Hello") {
+               2                        
+               2                        
+30             2                            "$greeting, I am $name"
+31                                        }
+32                                      
+33    ***      1   * 50             1     method is_loud { $sound eq "WOOF" ? 1 : 0 }
+34                                      
+35             1                    1     my method _private { "private: $name" }
+36                                      
+37                                        ## no critic (ProhibitAmpersandSigils)
 38             1                    1     method call_private { $self->&_private }
 39                                      
 40             1                    1     method get_anon { method { "anon: $name" } }
                1                    1   
-41    ***     *0                        }
+41                                      }
 42                                      
 43             1                        class Dog :isa(Animal) {
 44             1                    1     method speak      { $self->SUPER::speak . "!" }
 45    ***     *0                   *0     method unused_dog { "never called in Dog" }
-46    ***     *0                        }
+46                                      }
 47                                      
 48                                      sub main {
 49             1                    1     my $a = Animal->new(name => "cat", sound => "meow");
@@ -103,7 +102,7 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-34    ***     50      0      1   $sound eq 'WOOF' ? :
+33    ***     50      0      1   $sound eq 'WOOF' ? :
 50    ***     50      0      1   unless $a->name eq "Cat"
 51    ***     50      0      1   unless $a->speak eq "Cat says meow"
 52    ***     50      0      1   unless $a->greet eq "Hello, I am Cat"
@@ -121,29 +120,29 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine   Count Location             
------------- ----- ---------------------
-BEGIN            1 tests/class_method:13
-BEGIN            1 tests/class_method:14
-BEGIN            1 tests/class_method:15
-BEGIN            1 tests/class_method:16
-__ANON__         1 tests/class_method:40
-_private         1 tests/class_method:36
-call_private     1 tests/class_method:38
-get_anon         1 tests/class_method:40
-greet            2 tests/class_method:30
-is_loud          1 tests/class_method:34
-main             1 tests/class_method:49
-name             2 tests/class_method:26
-speak            2 tests/class_method:27
-speak            1 tests/class_method:44
+Subroutine   Count Location        
+------------ ----- ----------------
+BEGIN            1 tests/class42:13
+BEGIN            1 tests/class42:14
+BEGIN            1 tests/class42:15
+__ANON__         2 tests/class42:23
+__ANON__         1 tests/class42:40
+_private         1 tests/class42:35
+call_private     1 tests/class42:38
+get_anon         1 tests/class42:40
+greet            2 tests/class42:29
+is_loud          1 tests/class42:33
+main             1 tests/class42:49
+name             2 tests/class42:25
+speak            2 tests/class42:26
+speak            1 tests/class42:44
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine   Count Location             
------------- ----- ---------------------
-unused           0 tests/class_method:28
-unused_dog       0 tests/class_method:45
+Subroutine   Count Location        
+------------ ----- ----------------
+unused           0 tests/class42:27
+unused_dog       0 tests/class42:45
 
 

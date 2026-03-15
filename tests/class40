@@ -7,11 +7,10 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-# __COVER__ skip_test $] < 5.038
-# __COVER__ skip_reason class feature not available before 5.38
+# __COVER__ skip_test $] < 5.040
+# __COVER__ skip_reason :reader not available before 5.40
 
-use strict;
-use warnings;
+use 5.40.0;
 use feature "class";
 no warnings "experimental::class";
 
@@ -19,7 +18,7 @@ class Animal {
   field $name  :param;
   field $sound :param  = "...";
   field $count :reader = 0;
-  field $label :reader :writer = "default";
+  field $label :reader = "default";
 
   ADJUST { $name = ucfirst $name }
 
@@ -32,11 +31,6 @@ class Animal {
   }
 
   method is_loud { $sound eq "WOOF" ? 1 : 0 }
-
-  my method _private { "private: $name" }
-
-  ## no critic (ProhibitAmpersandSigils)
-  method call_private { $self->&_private }
 
   method get_anon { method { "anon: $name" } }
 }
@@ -53,11 +47,8 @@ sub main {
   die unless $a->greet eq "Hello, I am Cat";
   die unless $a->greet("Hi") eq "Hi, I am Cat";
   die unless !$a->is_loud;
-  die unless $a->call_private eq "private: Cat";
   die unless $a->count == 0;
   die unless $a->label eq "default";
-  $a->set_label("custom");
-  die unless $a->label eq "custom";
 
   my $anon = $a->get_anon;
   die unless $a->$anon eq "anon: Cat";

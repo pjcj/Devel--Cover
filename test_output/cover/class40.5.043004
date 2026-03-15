@@ -1,0 +1,134 @@
+Reading database from ...
+
+
+------------- ------ ------ ------ ------ ------
+File            stmt   bran   cond    sub  total
+------------- ------ ------ ------ ------ ------
+tests/class40   94.7   50.0    n/a   85.7   79.7
+Total           94.7   50.0    n/a   85.7   79.7
+------------- ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/class40
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # https://pjcj.net
+9                                       
+10                                      # __COVER__ skip_test $] < 5.040
+11                                      # __COVER__ skip_reason :reader not available before 5.40
+12                                      
+13             1                    1   use 5.40.0;
+               1                        
+14             1                    1   use feature "class";
+               1                        
+               1                        
+15             1                    1   no warnings "experimental::class";
+               1                        
+               1                        
+16                                      
+17             1                        class Animal {
+18             1                          field $name  :param;
+19             1                          field $sound :param  = "...";
+20             1                          field $count :reader = 0;
+21             1                          field $label :reader = "default";
+22                                      
+23             2                    2     ADJUST { $name = ucfirst $name }
+24                                      
+25             2                    2     method name   { $name }
+26             2                    2     method speak  { "$name says $sound" }
+27    ***     *0                   *0     method unused { "never called" }
+28                                      
+29                                  2     method greet ($greeting = "Hello") {
+30             2                            "$greeting, I am $name"
+31                                        }
+32                                      
+33    ***      1   * 50             1     method is_loud { $sound eq "WOOF" ? 1 : 0 }
+34                                      
+35             1                    1     method get_anon { method { "anon: $name" } }
+               1                    1   
+36                                      }
+37                                      
+38             1                        class Dog :isa(Animal) {
+39             1                    1     method speak      { $self->SUPER::speak . "!" }
+40    ***     *0                   *0     method unused_dog { "never called in Dog" }
+41                                      }
+42                                      
+43                                      sub main {
+44             1                    1     my $a = Animal->new(name => "cat", sound => "meow");
+45    ***      1   * 50                   die unless $a->name eq "Cat";
+46    ***      1   * 50                   die unless $a->speak eq "Cat says meow";
+47    ***      1   * 50                   die unless $a->greet eq "Hello, I am Cat";
+48    ***      1   * 50                   die unless $a->greet("Hi") eq "Hi, I am Cat";
+49    ***      1   * 50                   die unless !$a->is_loud;
+50    ***      1   * 50                   die unless $a->count == 0;
+51    ***      1   * 50                   die unless $a->label eq "default";
+52                                      
+53             1                          my $anon = $a->get_anon;
+54    ***      1   * 50                   die unless $a->$anon eq "anon: Cat";
+55                                      
+56             1                          my $d = Dog->new(name => "dog", sound => "woof");
+57    ***      1   * 50                   die unless $d->speak eq "Dog says woof!";
+58    ***      1   * 50                   die unless $d->name eq "Dog";
+59                                      }
+60                                      
+61             1                        main;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+33    ***     50      0      1   $sound eq 'WOOF' ? :
+45    ***     50      0      1   unless $a->name eq "Cat"
+46    ***     50      0      1   unless $a->speak eq "Cat says meow"
+47    ***     50      0      1   unless $a->greet eq "Hello, I am Cat"
+48    ***     50      0      1   unless $a->greet("Hi") eq "Hi, I am Cat"
+49    ***     50      0      1   if $a->is_loud
+50    ***     50      0      1   unless $a->count == 0
+51    ***     50      0      1   unless $a->label eq "default"
+54    ***     50      0      1   unless $a->$anon eq "anon: Cat"
+57    ***     50      0      1   unless $d->speak eq "Dog says woof!"
+58    ***     50      0      1   unless $d->name eq "Dog"
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location        
+---------- ----- ----------------
+BEGIN          1 tests/class40:13
+BEGIN          1 tests/class40:14
+BEGIN          1 tests/class40:15
+__ANON__       2 tests/class40:23
+__ANON__       1 tests/class40:35
+get_anon       1 tests/class40:35
+greet          2 tests/class40:29
+is_loud        1 tests/class40:33
+main           1 tests/class40:44
+name           2 tests/class40:25
+speak          2 tests/class40:26
+speak          1 tests/class40:39
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count Location        
+---------- ----- ----------------
+unused         0 tests/class40:27
+unused_dog     0 tests/class40:40
+
+
