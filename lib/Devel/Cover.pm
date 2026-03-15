@@ -301,56 +301,40 @@ EOM
 
 $Replace_ops = !$Self_cover;
 
-sub import ($class, @o) {
-  return if $Initialised;
+sub _parse_options ($o, $blib) {
+  my %scalar_opt = (
+    "-silent"      => \$Silent,
+    "-dir"         => \$Dir,
+    "-db"          => \$DB,
+    "-loose_perms" => \$Loose_perms,
+    "-merge"       => \$Merge,
+    "-summary"     => \$Summary,
+    "-blib"        => $blib,
+    "-subs_only"   => \$Subs_only,
+    "-replace_ops" => \$Replace_ops,
+  );
+  my %list_opt = ("ignore" => \@Ignore, "inc" => \@Inc, "select" => \@Select);
 
-  # Die tainting
-  # Anyone using this module can do worse things than messing with tainting
-  my $options = ($ENV{DEVEL_COVER_OPTIONS} || "") =~ /(.*)/ ? $1 : "";
-  @o = (@o, split /,/, $options);
-  defined or $_ = "" for @o;
-  # print STDERR __PACKAGE__, ": Parsing options from [@o]\n";
-
-  my $blib = -d "blib";
-  @Inc    = () if "@o" =~ /-inc /;
-  @Ignore = () if "@o" =~ /-ignore /;
-  @Select = () if "@o" =~ /-select /;
-  while (@o) {
-    local $_ = shift @o;
-    /^-silent/      && do { $Silent      = shift @o; next };
-    /^-dir/         && do { $Dir         = shift @o; next };
-    /^-db/          && do { $DB          = shift @o; next };
-    /^-loose_perms/ && do { $Loose_perms = shift @o; next };
-    /^-merge/       && do { $Merge       = shift @o; next };
-    /^-summary/     && do { $Summary     = shift @o; next };
-    /^-blib/        && do { $blib        = shift @o; next };
-    /^-subs_only/   && do { $Subs_only   = shift @o; next };
-    /^-replace_ops/ && do { $Replace_ops = shift @o; next };
-    /^-coverage/
-      && do { $Coverage{ +shift @o } = 1 while @o && $o[0] !~ /^[-+]/; next };
-    /^[-+]ignore/
-      && do { push @Ignore, shift @o while @o && $o[0] !~ /^[-+]/; next };
-    /^[-+]inc/ && do { push @Inc, shift @o while @o && $o[0] !~ /^[-+]/; next };
-    /^[-+]select/
-      && do { push @Select, shift @o while @o && $o[0] !~ /^[-+]/; next };
-    warn __PACKAGE__ . ": Unknown option $_ ignored\n";
+  @Inc    = () if "@$o" =~ /-inc /;
+  @Ignore = () if "@$o" =~ /-ignore /;
+  @Select = () if "@$o" =~ /-select /;
+  while (@$o) {
+    local $_ = shift @$o;
+    if (my $ref = $scalar_opt{$_}) {
+      $$ref = shift @$o;
+    } elsif (/^-coverage/) {
+      $Coverage{ +shift @$o } = 1 while @$o && $o->[0] !~ /^[-+]/;
+    } elsif (/^[-+](\w+)/ && $list_opt{$1}) {
+      push @{ $list_opt{$1} }, shift @$o while @$o && $o->[0] !~ /^[-+]/;
+    } else {
+      warn __PACKAGE__ . ": Unknown option $_ ignored\n";
+    }
   }
+}
 
-  if ($blib) {
-    eval "use blib";
-    for (@INC) { $_ = $1 if ref $_ ne "CODE" && /(.*)/ }  # Die tainting
-    push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
-  }
-
-  my $ci = $^O eq "MSWin32";
-  @Select_re = map qr/$_/, @Select;
-  @Ignore_re = map qr/$_/, @Ignore;
-  @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
-
-  bootstrap Devel::Cover $VERSION;
-
+sub _init_db {
   if (defined $Dir) {
-    $Dir = $1 if $Dir =~ /(.*)/;                          # Die tainting
+    $Dir = $1 if $Dir =~ /(.*)/;  # Die tainting
   } else {
     $Dir = $1 if Cwd::getcwd() =~ /(.*)/;
   }
@@ -363,7 +347,9 @@ sub import ($class, @o) {
   chmod 0777, $DB if $Loose_perms;
   $DB = $1 if abs_path($DB) =~ /(.*)/;  ## no critic (CaptureWithoutTest)
   Devel::Cover::DB->delete($DB) unless $Merge;
+}
 
+sub _init_coverage {
   %Files = ();  # start gathering file information from scratch
 
   for my $c (Devel::Cover::DB->new->criteria) {
@@ -383,6 +369,36 @@ sub import ($class, @o) {
   %Coverage = (all => 1) unless keys %Coverage;
   # print STDERR "Coverage: ", Dumper \%Coverage;
   %Coverage_options = %Coverage;
+}
+
+sub import ($class, @o) {
+  return if $Initialised;
+
+  # Die tainting
+  # Anyone using this module can do worse things than messing with tainting
+  my $options = ($ENV{DEVEL_COVER_OPTIONS} || "") =~ /(.*)/ ? $1 : "";
+  @o = (@o, split /,/, $options);
+  defined or $_ = "" for @o;
+  # print STDERR __PACKAGE__, ": Parsing options from [@o]\n";
+
+  my $blib = -d "blib";
+  _parse_options(\@o, \$blib);
+
+  if ($blib) {
+    eval "use blib";
+    for (@INC) { ($_) = /(.*)/ if ref $_ ne "CODE" }  # Die tainting
+    push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
+  }
+
+  my $ci = $^O eq "MSWin32";
+  @Select_re = map qr/$_/, @Select;
+  @Ignore_re = map qr/$_/, @Ignore;
+  @Inc_re    = map $ci ? qr/^\Q$_\//i : qr/^\Q$_\//, @Inc;
+
+  bootstrap Devel::Cover $VERSION;
+
+  _init_db();
+  _init_coverage();
 
   $Initialised = 1;
 
@@ -579,9 +595,8 @@ sub use_file {
   # print STDERR "checking <$file> <$f> against ",
   # "select(@Select_re), ignore(@Ignore_re), inc(@Inc_re)\n";
 
-  for (@Select_re) { return $Files{$file} = 1 if $f =~ $_ }
-  for (@Ignore_re) { return $Files{$file} = 0 if $f =~ $_ }
-  for (@Inc_re)    { return $Files{$file} = 0 if $f =~ $_ }
+  for (@Select_re)          { return $Files{$file} = 1 if $f =~ $_ }
+  for (@Ignore_re, @Inc_re) { return $Files{$file} = 0 if $f =~ $_ }
 
   # system "pwd; ls -l '$file'";
   $Files{$file} = -e $file ? 1 : 0;
@@ -793,6 +808,13 @@ sub _report {
   # print STDERR "--- @Cvs\n";
   get_cover_progress("CV", @Cvs);
 
+  _filter_cover_files();
+  _write_coverage_db();
+
+  chdir $starting_dir if $starting_dir;
+}
+
+sub _filter_cover_files {
   my %files;
   $files{$_}++ for keys %{ $Run{count} }, keys %{ $Run{vec} };
   for my $file (sort keys %files) {
@@ -813,7 +835,9 @@ sub _report {
 
     $Structure->store_counts($file);
   }
+}
 
+sub _write_coverage_db {
   # print STDERR "End structure: ", Dumper $Structure;
 
   my $run   = time . ".$$." . sprintf "%05d", rand 2**16;
@@ -841,7 +865,6 @@ sub _report {
     $cover->delete;
     delete $Run{vec};
   }
-  chdir $starting_dir if $starting_dir;
 }
 
 sub add_subroutine_cover {
@@ -1262,6 +1285,89 @@ my %Original;
 
 }
 
+sub _parse_pod_options {
+  my %opts;
+  if (ref $Coverage_options{pod}) {
+    my $p;
+    for (@{ $Coverage_options{pod} }) {
+      if (/^package|(?:also_)?private|trustme|pod_from|nocp$/) {
+        $opts{ $p = $_ } = [];
+      } elsif ($p) {
+        push @{ $opts{$p} }, $_;
+      }
+    }
+    for my $p (qw( private also_private trustme )) {
+      next unless exists $opts{$p};
+      $_ = qr/$_/ for @{ $opts{$p} };
+    }
+  }
+  $Pod = "Pod::Coverage" if delete $opts{nocp};
+  %opts
+}
+
+sub _add_pod_cover ($cv) {
+  my $gv = $cv->GV;
+  return if !$gv || $gv->isa("B::SPECIAL");
+
+  my $pkg  = $gv->STASH->NAME;
+  my %opts = _parse_pod_options();
+  $Run{digests}{$File} ||= $Structure->set_file($File);
+  # print STDERR "$Pod, $File:$Line ($Sub_name) [", $cv->FILE, "($pkg)]",
+  #              Dumper \%opts;
+  $Pod{$pkg} ||= $Pod->new(package => $pkg, %opts);
+  return unless $Pod{$pkg};
+
+  # print STDERR Dumper $Pod{$pkg};
+  my $covered;
+  for ($Pod{$pkg}->covered) {
+    $covered = 1, last if $_ eq $Sub_name;
+  }
+  unless ($covered) {
+    for ($Pod{$pkg}->uncovered) {
+      $covered = 0, last if $_ eq $Sub_name;
+    }
+  }
+  # print STDERR "covered ", $covered // "undef", "\n";
+  return unless defined $covered;
+
+  my ($n, $new) = $Structure->add_count("pod");
+  $Structure->add_pod($File, [ $Line, $Sub_name ]) if $new;
+  $Run{count}{$File}{pod}[$n] += $covered;
+  my $vec = $Run{vec}{$File}{pod};
+  vec($vec->{vec}, $n, 1) = $covered ? 1 : 0;
+  $vec->{size} = $n + 1;
+}
+
+sub _want_cover_for {
+  return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK
+  return if length $File     && !use_file($File);
+  return if !$Self_cover_run && $File =~ /Devel\/Cover/;
+  return if $Self_cover_run  && $File !~ /Devel\/Cover/;
+  return
+    if $Self_cover_run && $File =~ /Devel\/Cover\.pm$/ && $Sub_name eq "import";
+  1
+}
+
+sub _add_subroutine_structure ($cv, $start) {
+  return unless $start;
+  no warnings "uninitialized";
+  if (
+       $File eq $Structure->get_file
+    && $Line == $Structure->get_line
+    && $Sub_name eq "__ANON__"
+    && $Structure->get_sub_name eq "__ANON__"
+  ) {
+    # Merge instances of anonymous subs into one
+    # TODO - multiple anonymous subs on the same line
+  } else {
+    my $count = $Sub_count->{$File}{$Line}{$Sub_name}++;
+    $Structure->set_subroutine($Sub_name, $File, $Line, $count);
+    add_subroutine_cover($start)
+      if $Coverage{subroutine} || $Coverage{pod};  # pod requires subs
+  }
+  _add_pod_cover($cv) if $Pod && $Coverage{pod};
+}
+
 sub get_cover ($cv, $root = undef) {
   my $deparse = B::Deparse->new;
 
@@ -1269,95 +1375,13 @@ sub get_cover ($cv, $root = undef) {
 
   ($Sub_name, my $start) = sub_info($cv);
 
-  # warn "get_cover: <$Sub_name>\n";
-  return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK
-    # return unless length  $Sub_name;  # Only happens with Self_cover, AFAIK
-
   get_location($start) if $start;
   # print STDERR "[[$File:$Line]]\n";
-  # return unless length $File;
-  return if length $File && !use_file($File);
-
-  return if !$Self_cover_run && $File =~ /Devel\/Cover/;
-  return if $Self_cover_run  && $File !~ /Devel\/Cover/;
-  return
-    if $Self_cover_run && $File =~ /Devel\/Cover\.pm$/ && $Sub_name eq "import";
+  return unless _want_cover_for();
 
   # printf STDERR "getting cover for $Sub_name ($start), %x\n", $$cv;
 
-  if ($start) {
-    no warnings "uninitialized";
-    if (
-         $File eq $Structure->get_file
-      && $Line == $Structure->get_line
-      && $Sub_name eq "__ANON__"
-      && $Structure->get_sub_name eq "__ANON__"
-    ) {
-      # Merge instances of anonymous subs into one
-      # TODO - multiple anonymous subs on the same line
-    } else {
-      my $count = $Sub_count->{$File}{$Line}{$Sub_name}++;
-      $Structure->set_subroutine($Sub_name, $File, $Line, $count);
-      add_subroutine_cover($start)
-        if $Coverage{subroutine} || $Coverage{pod};  # pod requires subs
-    }
-  }
-
-  if ($Pod && $Coverage{pod}) {
-    my $gv = $cv->GV;
-    if ($gv && !$gv->isa("B::SPECIAL")) {
-      my $stash = $gv->STASH;
-      my $pkg   = $stash->NAME;
-      my $file  = $cv->FILE;
-      my %opts;
-      $Run{digests}{$File} ||= $Structure->set_file($File);
-      if (ref $Coverage_options{pod}) {
-        my $p;
-        for (@{ $Coverage_options{pod} }) {
-          if (/^package|(?:also_)?private|trustme|pod_from|nocp$/) {
-            $opts{ $p = $_ } = [];
-          } elsif ($p) {
-            push @{ $opts{$p} }, $_;
-          }
-        }
-        for my $p (qw( private also_private trustme )) {
-          next unless exists $opts{$p};
-          $_ = qr/$_/ for @{ $opts{$p} };
-        }
-      }
-      $Pod = "Pod::Coverage" if delete $opts{nocp};
-      # print STDERR "$Pod, $File:$Line ($Sub_name) [$file($pkg)]",
-      #              Dumper \%opts;
-      if ($Pod{$pkg} ||= $Pod->new(package => $pkg, %opts)) {
-        # print STDERR Dumper $Pod{$file};
-        my $covered;
-        for ($Pod{$pkg}->covered) {
-          $covered = 1, last if $_ eq $Sub_name;
-        }
-        unless ($covered) {
-          for ($Pod{$pkg}->uncovered) {
-            $covered = 0, last if $_ eq $Sub_name;
-          }
-        }
-        # print STDERR "covered ", $covered // "undef", "\n";
-        if (defined $covered) {
-          my ($n, $new) = $Structure->add_count("pod");
-          $Structure->add_pod($File, [ $Line, $Sub_name ]) if $new;
-          $Run{count}{$File}{pod}[$n] += $covered;
-          my $vec = $Run{vec}{$File}{pod};
-          vec($vec->{vec}, $n, 1) = $covered ? 1 : 0;
-          $vec->{size} = $n + 1;
-        }
-      }
-    }
-  }
-
-  # my $dd = @_ && ref $_[0]
-  # ? $deparse->deparse($_[0], 0)
-  # : $deparse->deparse_sub($cv, 0);
-  # print STDERR "get_cover: <$Sub_name>\n";
-  # print STDERR "[[$File:$Line]]\n";
-  # print STDERR "<$dd>\n";
+  _add_subroutine_structure($cv, $start);
 
   no warnings "redefine";
 
