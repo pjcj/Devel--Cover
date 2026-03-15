@@ -1202,31 +1202,38 @@ my %Original;
     $deparse
   }
 
-  sub logop (  ## no critic (ProhibitExcessComplexity)
-    $self, $op, $cx, $lowop, $lowprec, $highop = undef, $highprec = undef,
-    $blockname = undef,
-  ) {
-    my $left  = $op->first;
-    my $right = $op->first->sibling;
-    # print STDERR "left [$left], right [$right]\n";
-    my ($file, $line) = ($File, $Line);
-
-    $blockname &&= $self->keyword($blockname);
-
-    # On 5.43.8+ use OPpSTATEMENT to decide deparse format (if vs and/or).
-    # On older Perls use B::Deparse's heuristic.
+  sub _classify_op ($self, $op, $cx, $blockname) {
+    # $is_statement: controls deparse format (statement modifier vs
+    # expression). On 5.43.8+ uses OPpSTATEMENT; on older Perls uses
+    # B::Deparse's heuristic.
     my $is_statement
       = Has_op_statement() ? $op->private & OPpSTATEMENT() : $cx < 1
       && $blockname
       && $self->{expand} < 7;
 
-    # Statement-level expression logops (e.g. $y && $x++) are branches
-    # where the return value is discarded, even though they aren't in
-    # statement form.
+    # $is_branch: controls coverage classification. Statement-level
+    # expression logops (e.g. $y && $x++) are branches where the return
+    # value is discarded, even though they aren't in statement form.
     my $is_branch = $is_statement || ($cx < 1 && $blockname);
 
+    ($is_statement, $is_branch)
+  }
+
+  sub logop (
+    $self, $op, $cx, $lowop, $lowprec,
+    $highop    = undef,
+    $highprec  = undef,
+    $blockname = undef,
+  ) {
+    my $left  = $op->first;
+    my $right = $op->first->sibling;
+    my ($file, $line) = ($File, $Line);
+
+    $blockname &&= $self->keyword($blockname);
+
+    my ($is_statement, $is_branch) = _classify_op($self, $op, $cx, $blockname);
+
     if ($is_statement && is_scope($right)) {
-      # print STDERR 'if ($a) {$b}', "\n";
       # if ($a) {$b}
       $left  = $self->deparse($left,  1);
       $right = $self->deparse($right, 0);
@@ -1234,7 +1241,6 @@ my %Original;
         unless $Seen{branch}{$$op}++;
       return "$blockname ($left) {\n\t$right\n\b}\cK"
     } elsif ($is_statement && (Has_op_statement || !$self->{parens})) {
-      # print STDERR '$b if $a', "\n";
       # $b if $a
       $right = $self->deparse($right, 1);
       $left  = $self->deparse($left,  1);
@@ -1242,19 +1248,16 @@ my %Original;
         unless $Seen{branch}{$$op}++;
       return "$right $blockname $left"
     } elsif ($cx > $lowprec && $highop) {
-      # print STDERR '$a && $b', "\n";
       # $a && $b
       {
         local $Collect;
         $left  = $self->deparse_binop_left($op, $left, $highprec);
         $right = $self->deparse_binop_right($op, $right, $highprec);
       }
-      # print STDERR "left [$left], right [$right]\n";
       add_condition_cover($op, $highop, $left, $right)
         unless $Seen{condition}{$$op}++;
       return $self->maybe_parens("$left $highop $right", $cx, $highprec)
     } else {
-      # print STDERR '$a and $b', "\n";
       # $a and $b
       $left  = $self->deparse_binop_left($op, $left, $lowprec);
       $right = $self->deparse_binop_right($op, $right, $lowprec);
