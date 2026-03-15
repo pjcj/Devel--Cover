@@ -1061,6 +1061,96 @@ my %Original;
     $Original{const}->(@o);
   }
 
+  sub _cover_statement_op ($op, $class, $null, $name) {
+    if ($class eq "COP" && $Coverage{statement}) {
+      # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
+      my $nnnext = "";
+      eval {
+        my $next  = $op->next;
+        my $nnext = $next && $next->next;
+        $nnnext = $nnext && $nnext->next;
+      };
+      # print STDERR "COP $$op, ", $next, " -> ", $nnext,
+      # " -> ", $nnnext, "\n";
+      if ($nnnext && $name ne "null") {
+        add_statement_cover($op) unless $Seen{statement}{$$op}++;
+      }
+      return 1;
+    } elsif (
+      !$null
+      && $name eq "null"
+      && ppname($op->targ) eq "pp_nextstate"
+      && $Coverage{statement}
+    ) {
+      # If the current op is null, but it was nextstate, we can still
+      # get at the file and line number, but we need to get dirty
+
+      bless $op, "B::COP";
+      # print STDERR "null $$op, seen [$Seen{statement}{$$op}]\n";
+      add_statement_cover($op) unless $Seen{statement}{$$op}++;
+      bless $op, "B::$class";
+      return 1;
+    }
+    return 0;
+  }
+
+  sub _cover_cond_expr ($self, $op, $cx) {
+    local ($File, $Line) = ($File, $Line);
+    my $cond  = $op->first;
+    my $true  = $cond->sibling;
+    my $false = $true->sibling;
+
+    # Since 5.43.2 empty if{} blocks may be optimised away, leaving only 2
+    # children.  OPf_SPECIAL unset means the true block was removed; swap so
+    # $false holds the else/elsif content. Gated on Has_op_statement because
+    # the old heuristic cannot safely handle the swapped state.
+    if (
+         Has_op_statement
+      && B::class($false) eq "NULL"
+      && !($op->flags & OPf_SPECIAL)
+    ) {
+      ($true, $false) = ($false, $true);
+    }
+
+    # Use OPpSTATEMENT on 5.43.8+ to distinguish if/else from ?:
+    my $is_statement;
+    if (Has_op_statement) {
+      $is_statement = $op->private & OPpSTATEMENT();
+    } else {
+      $is_statement
+        = $cx < 1
+        && $self->{expand} < 7
+        && (
+             B::class($false) eq "NULL"
+          || $false->name eq "null"
+          || ( (is_scope($true) && $true->name ne "null")
+            && (is_scope($false) || is_ifelse_cont($false)))
+        );
+    }
+
+    if (!$is_statement) {
+      { local $Collect; $cond = $self->deparse($cond, 8) }
+      add_branch_cover($op, "if", "$cond ? :", $File, $Line);
+    } else {
+      { local $Collect; $cond = $self->deparse($cond, 1) }
+      add_branch_cover($op, "if", "if ($cond) { }", $File, $Line);
+      while (B::class($false) ne "NULL" && is_ifelse_cont($false)) {
+        my $newop   = $false->first;
+        my $newcond = $newop->first;
+        my $newtrue = $newcond->sibling;
+        if ($newcond->name eq "lineseq") {
+          # lineseq to ensure correct line numbers in elsif()
+          # Bug #37302 fixed by change #33710
+          $newcond = $newcond->first->sibling;
+        }
+        # last in chain is OP_AND => no else
+        $false = $newtrue->sibling;
+        { local $Collect; $newcond = $self->deparse($newcond, 1) }
+        add_branch_cover($newop, "elsif", "elsif ($newcond) { }", $File, $Line);
+      }
+    }
+  }
+
   sub deparse ($self, $op, $cx) {
 
     my $deparse;
@@ -1093,94 +1183,9 @@ my %Original;
       }
 
       # Get the coverage on this op
-
-      if ($class eq "COP" && $Coverage{statement}) {
-        # print STDERR "COP $$op, seen [$Seen{statement}{$$op}]\n";
-        my $nnnext = "";
-        eval {
-          my $next  = $op->next;
-          my $nnext = $next && $next->next;
-          $nnnext = $nnext && $nnext->next;
-        };
-        # print STDERR "COP $$op, ", $next, " -> ", $nnext,
-        # " -> ", $nnnext, "\n";
-        if ($nnnext && $name ne "null") {
-          add_statement_cover($op) unless $Seen{statement}{$$op}++;
-        }
-      } elsif (
-        !$null
-        && $name eq "null"
-        && ppname($op->targ) eq "pp_nextstate"
-        && $Coverage{statement}
-      ) {
-        # If the current op is null, but it was nextstate, we can still
-        # get at the file and line number, but we need to get dirty
-
-        bless $op, "B::COP";
-        # print STDERR "null $$op, seen [$Seen{statement}{$$op}]\n";
-        add_statement_cover($op) unless $Seen{statement}{$$op}++;
-        bless $op, "B::$class";
-      } elsif ($Seen{other}{$$op}++) {
-        # print STDERR "seen [$Seen{other}{$$op}]\n";
-        return ""  # Only report on each op once
-      } elsif ($name eq "cond_expr") {
-        local ($File, $Line) = ($File, $Line);
-        my $cond  = $op->first;
-        my $true  = $cond->sibling;
-        my $false = $true->sibling;
-
-        # Since 5.43.2 empty if{} blocks may be optimised away, leaving only 2
-        # children.  OPf_SPECIAL unset means the true block was removed; swap so
-        # $false holds the else/elsif content. Gated on Has_op_statement because
-        # the old heuristic cannot safely handle the swapped state.
-        if (
-             Has_op_statement
-          && B::class($false) eq "NULL"
-          && !($op->flags & OPf_SPECIAL)
-        ) {
-          ($true, $false) = ($false, $true);
-        }
-
-        # Use OPpSTATEMENT on 5.43.8+ to distinguish if/else from ?:
-        my $is_statement;
-        if (Has_op_statement) {
-          $is_statement = $op->private & OPpSTATEMENT();
-        } else {
-          $is_statement
-            = $cx < 1
-            && $self->{expand} < 7
-            && (
-                 B::class($false) eq "NULL"
-              || $false->name eq "null"
-              || ( (is_scope($true) && $true->name ne "null")
-                && (is_scope($false) || is_ifelse_cont($false)))
-            );
-        }
-
-        if (!$is_statement) {
-          { local $Collect; $cond = $self->deparse($cond, 8) }
-          add_branch_cover($op, "if", "$cond ? :", $File, $Line);
-        } else {
-          { local $Collect; $cond = $self->deparse($cond, 1) }
-          add_branch_cover($op, "if", "if ($cond) { }", $File, $Line);
-          while (B::class($false) ne "NULL" && is_ifelse_cont($false)) {
-            my $newop   = $false->first;
-            my $newcond = $newop->first;
-            my $newtrue = $newcond->sibling;
-            if ($newcond->name eq "lineseq") {
-              # lineseq to ensure correct line numbers in elsif()
-              # Bug #37302 fixed by change #33710
-              $newcond = $newcond->first->sibling;
-            }
-            # last in chain is OP_AND => no else
-            $false = $newtrue->sibling;
-            { local $Collect; $newcond = $self->deparse($newcond, 1) }
-            add_branch_cover(
-              $newop, "elsif", "elsif ($newcond) { }",
-              $File,  $Line
-            );
-          }
-        }
+      if (!_cover_statement_op($op, $class, $null, $name)) {
+        return "" if $Seen{other}{$$op}++;  # Only report on each op once
+        _cover_cond_expr($self, $op, $cx) if $name eq "cond_expr";
       }
     } else {
       local ($File, $Line) = ($File, $Line);
