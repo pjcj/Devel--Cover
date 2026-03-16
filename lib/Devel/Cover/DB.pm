@@ -333,7 +333,7 @@ sub trimmed_file ($f, $len) {
   $f
 }
 
-sub print_summary ($self, $files, $criteria, $opts) {
+sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
   my %crit    = map { $_ => 1 } $self->collected;
   my %options = $criteria ? map { $_ => 1 } grep $crit{$_}, @$criteria : %crit;
   $options{total} = 1 if keys %options;
