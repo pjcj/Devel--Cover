@@ -20,8 +20,7 @@ BEGIN {
   # VERSION
 }
 
-use DynaLoader ();
-our @ISA = "DynaLoader";
+use parent "DynaLoader";
 
 use Devel::Cover::DB          ();
 use Devel::Cover::DB::Digests ();
@@ -40,7 +39,6 @@ BEGIN {
   B->import("OPpSTATEMENT") if $v;
 }
 
-use Config      qw( %Config );
 use Cwd         qw( abs_path getcwd );
 use File::Spec  ();
 use Time::HiRes ();
@@ -57,9 +55,6 @@ BEGIN {
   eval "use Pod::Coverage::CountParents";
   die $@ if $@ && $@ !~ m/Can't locate Pod\/Coverage.+pm in \@INC/;
 }
-
-# $SIG{__DIE__} = \&Carp::confess;
-# sub Pod::Coverage::TRACE_ALL () { 1 }
 
 my $Initialised;  # import() has been called
 
@@ -88,7 +83,6 @@ my %Pod;                                        # Pod coverage data
 my @Cvs;        # All the Cvs we want to cover
 my %Cvs;        # All the Cvs we want to cover
 my @Subs;       # All the subs we want to cover
-my $Cv;         ## no critic (ProhibitUnusedVariables)  # Cv we are looking in
 my $Sub_name;   # Name of the sub we are looking in
 my $Sub_count;  # Count for multiple subs on same line
 
@@ -126,86 +120,34 @@ BEGIN {
     || ($ENV{PERL5OPT} || "") =~ /Devel::Cover/;
   *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 
-  if ($^X =~ /(apache2|httpd)$/) {
-    # mod_perl < 2.0.8
-    @Inc = @Devel::Cover::Inc::Inc;
-  } else {
-    # Can't get @INC via eval `` in taint mode, revert to default value
-    if (${^TAINT}) {
-      @Inc = @Devel::Cover::Inc::Inc;
-    } else {
-      eval {
-        local %ENV = %ENV;
-        # Clear *PERL* variables, but keep PERL5?LIB for local::lib
-        # environments
-        /perl/i and not /^PERL5?LIB$/ and delete $ENV{$_} for keys %ENV;
-        my $cmd = "$^X -MData::Dumper -e " . '"print Dumper \@INC"';
-        my $VAR1;
-        # print STDERR "Running [$cmd]\n";
-        eval `$cmd`;
-        @Inc = @$VAR1;
-      };
-      if ($@) {
-        print STDERR __PACKAGE__, ": Error getting \@INC: $@\n",
-          "Reverting to default value for Inc.\n";
-        @Inc = @Devel::Cover::Inc::Inc;
+  # Default to the value baked in by Makefile.PL; override below if we can get
+  # the real @INC from a clean subprocess.
+  @Inc = @Devel::Cover::Inc::Inc;
+  if ($^X !~ /(?:apache2|httpd)$/ && !${^TAINT}) {
+    eval {
+      local %ENV = %ENV;
+      # Clear *PERL* variables, but keep PERL5?LIB for local::lib environments
+      /perl/i && !/^PERL5?LIB$/ && delete $ENV{$_} for keys %ENV;
+      if (open my $fh, "-|", $^X, "-e", 'print join("\0", @INC)') {
+        local $/ = "\0";
+        chomp(my @inc = <$fh>);
+        close $fh or die "Can't close pipe to $^X: $!";
+        @Inc = @inc if @inc;
       }
+    };
+    if ($@) {
+      print STDERR __PACKAGE__, ": Error getting \@INC: $@\n";
+      @Inc = @Devel::Cover::Inc::Inc;
     }
   }
 
   @Inc     = map { -d () ? ($_ eq "." ? $_ : abs_path($_)) : () } @Inc;
   @Inc     = remove_contained_paths(getcwd, @Inc);
   @Ignore  = ("/Devel/Cover[./]") unless $Self_cover = $ENV{DEVEL_COVER_SELF};
-  $^P     |= 0x004 | 0x100;
+  $^P     |= 0x004 | 0x100;  # save source lines; evals report file info
 }
 
 sub version { $VERSION }
-
-if (0 && $Config{useithreads}) {
-  eval "use threads";
-
-  no warnings "redefine";
-
-  my $original_join;
-  BEGIN { $original_join = \&threads::join }
-  *threads::join = sub {
-    my $self = shift;
-    print STDERR "(joining thread ", $self->tid, ")\n";
-    my @ret = $original_join->($self, @_);
-    print STDERR "(returning <@ret>)\n";
-    @ret
-  };
-
-  my $original_destroy;
-  BEGIN { $original_destroy = \&threads::DESTROY }
-
-  *threads::DESTROY = sub {
-    my $self = shift;
-    print STDERR "(destroying thread ", $self->tid, ")\n";
-    $original_destroy->($self, @_);
-  };
-
-  my $new = \&threads::new;
-  *threads::new = *threads::create = sub {
-    my $class     = shift;
-    my $sub       = shift;
-    my $wantarray = wantarray;
-
-    $new->(
-      $class,
-      sub {
-        print STDERR "Starting thread\n";
-        set_coverage(keys %Coverage);
-        my $ret = [ $sub->(@_) ];
-        print STDERR "Ending thread\n";
-        report() if $Initialised;
-        print STDERR "Ended thread\n";
-        $wantarray ? @{$ret} : $ret->[0];
-      },
-      @_
-    );
-  };
-}
 
 {
 
@@ -350,8 +292,7 @@ sub _init_coverage {
     }
     delete $Coverage{$_} unless length;
   }
-  %Coverage = (all => 1) unless keys %Coverage;
-  # print STDERR "Coverage: ", Dumper \%Coverage;
+  %Coverage         = (all => 1) unless keys %Coverage;
   %Coverage_options = %Coverage;
 }
 
@@ -1166,8 +1107,9 @@ my %Original;
 
   sub binop ($self, $op, $cx, $opname, $prec, $flags = 0) {
     if (
-      $] >= 5.041012
-      && ($opname eq "xor" || $opname eq "^^" && !$Seen{condition}{$$op}++)
+         $] >= 5.041012
+      && ($opname eq "xor" || $opname eq "^^")
+      && !$Seen{condition}{$$op}++
     ) {
       my $left  = $op->first;
       my $right = $op->last;
