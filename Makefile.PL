@@ -12,6 +12,8 @@ require 5.20.0;
 
 use strict;
 use warnings;
+use feature qw( signatures );
+no warnings qw( experimental::signatures );
 
 use Cwd                 ();
 use ExtUtils::MakeMaker qw( $VERSION WriteMakefile );
@@ -348,10 +350,21 @@ WriteMakefile(%$Opts);
 
 print "\n";
 
+sub _should_skip ($file) {
+  open my $fh, "<", $file or return 0;
+  while (my $line = <$fh>) {
+    if ($line =~ /__COVER__\s+skip_test\s+(.*)/) {
+      return 1 if eval $1;
+    }
+  }
+  0
+}
+
 sub MY::postamble {
   my %tests;
-  @tests{@Tests} = map { (my $t = $_) =~ s/\W/_/g; "cover_db_$t" } @Tests;
-  my @reports = qw(
+  @tests{@Tests} = map { "cover_db_" . s/\W/_/gr } @Tests;
+  my %sc_tests = map { $_ => $tests{$_} } grep !_should_skip($_), keys %tests;
+  my @reports  = qw(
     compilation html_basic html_minimal html
     html_subtle sort       text2        text
     vim
@@ -467,18 +480,25 @@ lint_changes : precommit
 _delete_db : pure_all
 \t rm -rf cover_db
 
-_self_cover_tests : @{[sort values %tests]}
-\t DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover bin/cover -silent -write cover_db @{[sort values %tests]}
+SC_PERL = DEVEL_COVER_SELF=1 \$(PERL) -Mblib
+SC_OPTS = -silent,1,-coverage,all,-ignore,tests/,-coverage,pod-also_private-xx
+
+_self_cover_tests : @{[sort values %sc_tests]}
+\t \$(SC_PERL) -MDevel::Cover bin/cover \\
+\t   -silent -write cover_db \\
+\t   @{[sort values %sc_tests]}
 
 self_cover : _self_cover_reports
 \t \$(PERL) -Mblib bin/cover -report html_basic -launch
 \t \$(PERL) -Mblib bin/cover -report vim
   ] . "\n" . join "\n",
-    map("$tests{$_} : _delete_db\n"
-      . "\t \@echo Running $tests{$_}\n"
-      . "\t \@rm -rf $tests{$_}\n"
-      . "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover=-db,$tests{$_},-silent,1,-coverage,all,-ignore,tests/,-coverage,pod-also_private-xx $_\n",
-      sort keys %tests),
+    map("$sc_tests{$_} : _delete_db\n"
+      . "\t \@echo Running $sc_tests{$_}\n"
+      . "\t \@rm -rf $sc_tests{$_}\n"
+      . "\t \@\$(SC_PERL) -MDevel::Cover"
+      . "=-db,$sc_tests{$_},"
+      . "\$(SC_OPTS) $_\n",
+      sort keys %sc_tests),
 
     "_self_cover_reports : @{[map qq(report_$_), @reports]}\n",
 
