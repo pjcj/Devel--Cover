@@ -1107,8 +1107,9 @@ my %Original;
 
   sub binop ($self, $op, $cx, $opname, $prec, $flags = 0) {
     if (
-      $] >= 5.041012
-      && ($opname eq "xor" || $opname eq "^^" && !$Seen{condition}{$$op}++)
+         $] >= 5.041012
+      && ($opname eq "xor" || $opname eq "^^")
+      && !$Seen{condition}{$$op}++
     ) {
       my $left  = $op->first;
       my $right = $op->last;
