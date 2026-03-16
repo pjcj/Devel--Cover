@@ -160,52 +160,6 @@ BEGIN {
 
 sub version { $VERSION }
 
-if (0 && $Config{useithreads}) {
-  eval "use threads";
-
-  no warnings "redefine";
-
-  my $original_join;
-  BEGIN { $original_join = \&threads::join }
-  *threads::join = sub {
-    my $self = shift;
-    print STDERR "(joining thread ", $self->tid, ")\n";
-    my @ret = $original_join->($self, @_);
-    print STDERR "(returning <@ret>)\n";
-    @ret
-  };
-
-  my $original_destroy;
-  BEGIN { $original_destroy = \&threads::DESTROY }
-
-  *threads::DESTROY = sub {
-    my $self = shift;
-    print STDERR "(destroying thread ", $self->tid, ")\n";
-    $original_destroy->($self, @_);
-  };
-
-  my $new = \&threads::new;
-  *threads::new = *threads::create = sub {
-    my $class     = shift;
-    my $sub       = shift;
-    my $wantarray = wantarray;
-
-    $new->(
-      $class,
-      sub {
-        print STDERR "Starting thread\n";
-        set_coverage(keys %Coverage);
-        my $ret = [ $sub->(@_) ];
-        print STDERR "Ending thread\n";
-        report() if $Initialised;
-        print STDERR "Ended thread\n";
-        $wantarray ? @{$ret} : $ret->[0];
-      },
-      @_
-    );
-  };
-}
-
 {
 
   sub check {
