@@ -56,9 +56,6 @@ BEGIN {
   die $@ if $@ && $@ !~ m/Can't locate Pod\/Coverage.+pm in \@INC/;
 }
 
-# $SIG{__DIE__} = \&Carp::confess;
-# sub Pod::Coverage::TRACE_ALL () { 1 }
-
 my $Initialised;  # import() has been called
 
 my $Dir;                          # Directory in which coverage will be
@@ -295,8 +292,7 @@ sub _init_coverage {
     }
     delete $Coverage{$_} unless length;
   }
-  %Coverage = (all => 1) unless keys %Coverage;
-  # print STDERR "Coverage: ", Dumper \%Coverage;
+  %Coverage         = (all => 1) unless keys %Coverage;
   %Coverage_options = %Coverage;
 }
 
