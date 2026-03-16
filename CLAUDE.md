@@ -221,6 +221,14 @@ dc all-versions <command>
 
 See `docs/perl-version-update.md` for the full step-by-step guide.
 
+## Documentation
+
+The `docs/` directory contains project documentation including contribution
+guidelines, release procedures, and a Perl version update guide. The
+`docs/technical/` subdirectory contains detailed technical documentation on
+coverage internals such as branch/condition handling, class coverage, and optree
+adjustments.
+
 ## Development Notes
 
 ### Style Guidelines
