@@ -20,8 +20,7 @@ BEGIN {
   # VERSION
 }
 
-use DynaLoader ();
-our @ISA = "DynaLoader";
+use parent "DynaLoader";
 
 use Devel::Cover::DB          ();
 use Devel::Cover::DB::Digests ();
