@@ -74,16 +74,16 @@ sub get_params {
     close $fh or die "Cannot close $test: $!";
   }
 
-  $self->{criteria} = $self->{criteria}[-1];
-  $self->{select} ||= "-select /tests/$self->{test}\\b";
+  $self->{criteria}   = $self->{criteria}[-1];
+  $self->{select}   ||= "-select /tests/$self->{test}\\b";
   $self->{test_parameters}
     = "$self->{select}"
     . " -ignore blib Devel/Cover @{$self->{ignore}}"
     . " -merge 0 -coverage $self->{criteria} "
     . "@{$self->{test_parameters}}";
   $self->{criteria} =~ s/-\w+//g;
-  $self->{db_name} ||= $self->{test};
-  $self->{cover_db} = "./t/e2e/cover_db_$self->{db_name}/";
+  $self->{db_name}  ||= $self->{test};
+  $self->{cover_db}   = "./t/e2e/cover_db_$self->{db_name}/";
   unless (mkdir $self->{cover_db}) {
     die "Can't mkdir $self->{cover_db}: $!" unless -d $self->{cover_db};
   }
@@ -178,6 +178,9 @@ sub run_command {
   my ($command) = @_;
 
   print STDERR "Running test [$command]\n" if $self->{debug};
+
+  local $ENV{DEVEL_COVER_SELF};
+  delete $ENV{DEVEL_COVER_SELF};
 
   open my $fh, "-|", "$command 2>&1" or die "Cannot run $command: $!";
   my @lines;
@@ -341,7 +344,7 @@ sub create_gold {
   my $cover_com = $self->cover_command;
   print STDERR "Running cover [$cover_com]\n" if $self->{debug};
 
-  open my $gold_fh, ">", $new_gold        or die "Cannot open $new_gold: $!";
+  open my $gold_fh,  ">",  $new_gold         or die "Cannot open $new_gold: $!";
   open my $cover_fh, "-|", "$cover_com 2>&1" or die "Cannot run $cover_com: $!";
   while (my $l = <$cover_fh>) {
     next if $l =~ /^Devel::Cover: merging run/;
@@ -353,7 +356,7 @@ sub create_gold {
     $ng .= $l;
   }
   close $cover_fh or die "Cannot close $cover_com: $!";
-  close $gold_fh or die "Cannot close $new_gold: $!";
+  close $gold_fh  or die "Cannot close $new_gold: $!";
 
   print STDERR "gv is $gv and this is $]\n"                if $self->{debug};
   print STDERR "gold is $gold and new_gold is $new_gold\n" if $self->{debug};
