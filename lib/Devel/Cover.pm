@@ -40,7 +40,6 @@ BEGIN {
   B->import("OPpSTATEMENT") if $v;
 }
 
-use Config      qw( %Config );
 use Cwd         qw( abs_path getcwd );
 use File::Spec  ();
 use Time::HiRes ();
@@ -125,30 +124,24 @@ BEGIN {
     || ($ENV{PERL5OPT} || "") =~ /Devel::Cover/;
   *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 
-  if ($^X =~ /(apache2|httpd)$/) {
-    # mod_perl < 2.0.8
-    @Inc = @Devel::Cover::Inc::Inc;
-  } else {
-    # Can't get @INC via eval `` in taint mode, revert to default value
-    if (${^TAINT}) {
-      @Inc = @Devel::Cover::Inc::Inc;
-    } else {
-      eval {
-        local %ENV = %ENV;
-        # Clear *PERL* variables, but keep PERL5?LIB for local::lib
-        # environments
-        /perl/i and not /^PERL5?LIB$/ and delete $ENV{$_} for keys %ENV;
-        my $cmd = "$^X -MData::Dumper -e " . '"print Dumper \@INC"';
-        my $VAR1;
-        # print STDERR "Running [$cmd]\n";
-        eval `$cmd`;
-        @Inc = @$VAR1;
-      };
-      if ($@) {
-        print STDERR __PACKAGE__, ": Error getting \@INC: $@\n",
-          "Reverting to default value for Inc.\n";
-        @Inc = @Devel::Cover::Inc::Inc;
+  # Default to the value baked in by Makefile.PL; override below if we can get
+  # the real @INC from a clean subprocess.
+  @Inc = @Devel::Cover::Inc::Inc;
+  if ($^X !~ /(?:apache2|httpd)$/ && !${^TAINT}) {
+    eval {
+      local %ENV = %ENV;
+      # Clear *PERL* variables, but keep PERL5?LIB for local::lib environments
+      /perl/i && !/^PERL5?LIB$/ && delete $ENV{$_} for keys %ENV;
+      if (open my $fh, "-|", $^X, "-e", 'print join("\0", @INC)') {
+        local $/ = "\0";
+        chomp(my @inc = <$fh>);
+        close $fh or die "Can't close pipe to $^X: $!";
+        @Inc = @inc if @inc;
       }
+    };
+    if ($@) {
+      print STDERR __PACKAGE__, ": Error getting \@INC: $@\n";
+      @Inc = @Devel::Cover::Inc::Inc;
     }
   }
 
