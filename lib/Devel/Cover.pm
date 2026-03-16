@@ -144,7 +144,7 @@ BEGIN {
   @Inc     = map { -d () ? ($_ eq "." ? $_ : abs_path($_)) : () } @Inc;
   @Inc     = remove_contained_paths(getcwd, @Inc);
   @Ignore  = ("/Devel/Cover[./]") unless $Self_cover = $ENV{DEVEL_COVER_SELF};
-  $^P     |= 0x004 | 0x100;
+  $^P     |= 0x004 | 0x100;  # save source lines; evals report file info
 }
 
 sub version { $VERSION }
