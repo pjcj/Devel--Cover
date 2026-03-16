@@ -425,10 +425,19 @@ DB = cover_db
 dump :
 \t \$(PERL) -Mblib bin/cover -dump_db \$(DB)
 
-diff : out
+GOLD_FILE = \$(PERL) -Mblib -MDevel::Cover::Test \\
+\t -e '\$\$t = Devel::Cover::Test->new(qq(\$(TEST))); \\
+\t print join qq(.), \$\$t->cover_gold'
+
+_diff : out
 \t \$(PERL) utils/makeh strip_criterion 'time' \$(TEST).out
 \t \$(PERL) utils/makeh strip_criterion ' pod' \$(TEST).out
-\t gold="`\$(PERL) -Mblib -MDevel::Cover::Test -e '\$\$t = Devel::Cover::Test->new(qq(\$(TEST))); print join qq(.), \$\$t->cover_gold'`" && \$(EDITOR) -d "\$\$gold" \$(TEST).out
+
+diff : _diff
+\t gold="`\$(GOLD_FILE)`" && diff -u "\$\$gold" \$(TEST).out
+
+ediff : _diff
+\t gold="`\$(GOLD_FILE)`" && \$(EDITOR) -d "\$\$gold" \$(TEST).out
 
 gold : pure_all
 \t \$(PERL) utils/create_gold \$(TEST)
