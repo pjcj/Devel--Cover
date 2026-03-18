@@ -27,9 +27,7 @@ sub shell_quote ($item) {
   $item
 }
 
-sub test_file ($self) {
-  "./tests/$self->{test}"
-}
+sub test_file ($self) { "./tests/$self->{test}" }
 
 sub test_file_parameters ($self) {
   exists $self->{test_file_parameters} ? $self->{test_file_parameters} : ""
@@ -104,9 +102,7 @@ sub new ($class, $test, %params) {
   $self->get_params
 }
 
-sub set_test ($self, $test) {
-  $self->{test} = $test;
-}
+sub set_test ($self, $test) { $self->{test} = $test }
 
 sub perl ($self) {
   join " ", map shell_quote($_), $Devel::Cover::Inc::Perl, map "-I./$_", "",
