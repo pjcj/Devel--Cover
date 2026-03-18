@@ -19,7 +19,7 @@
 05. Update `$Latest_t` in `Makefile.PL`
 
     - Update test for obsolete development version skipping via
-      `$LATEST_RELEASED_PERL` variable in Devel::Cover::Test.pm
+      `$Latest_released_perl` variable in Devel::Cover::Test.pm
     - Update version number in `Makefile.PL`
 
 06. Check it in
