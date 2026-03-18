@@ -39,7 +39,7 @@ sub get_params ($self) {
   my $test = $self->test_file;
   if (open my $fh, "<", $test) {
     while (<$fh>) {
-      push @{ $self->{$1} }, $2 if /__COVER__\s+(\w+)\s+(.*)/;
+      push $self->{$1}->@*, $2 if /__COVER__\s+(\w+)\s+(.*)/;
     }
     close $fh or die "Cannot close $test: $!";
   }
@@ -64,10 +64,10 @@ sub get_params ($self) {
     . shell_quote $self->{cover_db};
   $self->{cover_parameters}
     .= " -uncoverable_file " . "@{$self->{uncoverable_file}}"
-    if @{ $self->{uncoverable_file} };
+    if $self->{uncoverable_file}->@*;
   if (exists $self->{skip_test}) {
-    for my $s (@{ $self->{skip_test} }) {
-      my $r = shift @{ $self->{skip_reason} };
+    for my $s ($self->{skip_test}->@*) {
+      my $r = shift $self->{skip_reason}->@*;
       next unless eval "{$s}";
       $self->{skip} = $r;
       last;
@@ -199,7 +199,7 @@ sub _normalise_line ($self, $get_line) {
     s/^(Finish: ).*/$1/;
     s/copyright .*//ix;
     no warnings "exiting";
-    eval join "; ", @{ $self->{changes} };
+    eval join "; ", $self->{changes}->@*;
     return $_;
   }
 }
@@ -208,7 +208,7 @@ sub _compare_cover_output ($self, $cover_fh) {
   my (@at, @ac);
   while (!eof $cover_fh) {
     my $t = $self->_normalise_line(sub { <$cover_fh> });
-    my $c = $self->_normalise_line(sub { shift @{ $self->{cover} } });
+    my $c = $self->_normalise_line(sub { shift $self->{cover}->@* });
     if ($self->{debug}) {
       chomp(my $tn = $t);
       chomp(my $cn = $c);
@@ -222,7 +222,7 @@ sub _compare_cover_output ($self, $cover_fh) {
       $self->{no_coverage}
         ? pass("no coverage")
         : is($t, $c, "coverage output");
-      last if $self->{no_coverage} && !@{ $self->{cover} };
+      last if $self->{no_coverage} && !$self->{cover}->@*;
     }
   }
   if ($self->{differences}) {
@@ -233,7 +233,7 @@ sub _compare_cover_output ($self, $cover_fh) {
       ? pass("no coverage")
       : eq_or_diff(\@at, \@ac, "output", { context => 0 });
   } elsif ($self->{no_coverage}) {
-    pass("no coverage") for @{ $self->{cover} };
+    pass("no coverage") for $self->{cover}->@*;
   }
 }
 
