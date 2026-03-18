@@ -7,25 +7,76 @@
 
 package Devel::Cover::Test;
 
+use v5.20.0;
 use strict;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Carp;
+use Carp qw( croak );
+use Test::More import => [ qw( is pass plan ) ];
 
-use File::Spec;
-use Test::More;
+use Devel::Cover::Inc ();
 
-use Devel::Cover::Inc;
+my $Latest_released_perl = 42;
 
-my $LATEST_RELEASED_PERL = 42;
+sub shell_quote ($item) {
+  $^O eq "MSWin32" ? (/ / and $_ = qq("$_")) : s/ /\\ /g for $item;
+  $item
+}
 
-sub new {
-  my $class = shift;
-  my $test  = shift;
+sub test_file ($self) { "./tests/$self->{test}" }
+
+sub test_file_parameters ($self) {
+  exists $self->{test_file_parameters} ? $self->{test_file_parameters} : ""
+}
+
+sub get_params ($self) {
+  my $test = $self->test_file;
+  if (open my $fh, "<", $test) {
+    while (<$fh>) {
+      push $self->{$1}->@*, $2 if /__COVER__\s+(\w+)\s+(.*)/;
+    }
+    close $fh or die "Cannot close $test: $!";
+  }
+
+  $self->{criteria}   = $self->{criteria}[-1];
+  $self->{select}   ||= "-select /tests/$self->{test}\\b";
+  $self->{test_parameters}
+    = "$self->{select}"
+    . " -ignore blib Devel/Cover @{$self->{ignore}}"
+    . " -merge 0 -coverage $self->{criteria} "
+    . "@{$self->{test_parameters}}";
+  $self->{criteria} =~ s/-\w+//g;
+  $self->{db_name}  ||= $self->{test};
+  $self->{cover_db}   = "./t/e2e/cover_db_$self->{db_name}/";
+  unless (mkdir $self->{cover_db}) {
+    die "Can't mkdir $self->{cover_db}: $!" unless -d $self->{cover_db};
+  }
+  my $p = $self->{cover_parameters} || [];
+  $self->{cover_parameters}
+    = join(" ", map "-coverage $_", split " ", $self->{criteria})
+    . " @$p -report text "
+    . shell_quote $self->{cover_db};
+  $self->{cover_parameters}
+    .= " -uncoverable_file " . "@{$self->{uncoverable_file}}"
+    if $self->{uncoverable_file}->@*;
+  if (exists $self->{skip_test}) {
+    for my $s ($self->{skip_test}->@*) {
+      my $r = shift $self->{skip_reason}->@*;
+      next unless eval "{$s}";
+      $self->{skip} = $r;
+      last;
+    }
+  }
+
+  $self
+}
+
+sub new ($class, $test, %params) {
   croak "No test specified" unless $test;
-  my %params = @_;
 
   my $criteria
     = delete $params{criteria} || "statement branch condition subroutine";
@@ -51,78 +102,19 @@ sub new {
   $self->get_params
 }
 
-sub set_test {
-  my $self = shift;
-  my ($test) = @_;
-  $self->{test} = $test;
-}
+sub set_test ($self, $test) { $self->{test} = $test }
 
-sub shell_quote {
-  my ($item) = @_;
-  $^O eq "MSWin32" ? (/ / and $_ = qq("$_")) : s/ /\\ /g for $item;
-  $item
-}
-
-sub get_params {
-  my $self = shift;
-
-  my $test = $self->test_file;
-  if (open my $fh, "<", $test) {
-    while (<$fh>) {
-      push @{ $self->{$1} }, $2 if /__COVER__\s+(\w+)\s+(.*)/;
-    }
-    close $fh or die "Cannot close $test: $!";
-  }
-
-  $self->{criteria} = $self->{criteria}[-1];
-  $self->{select} ||= "-select /tests/$self->{test}\\b";
-  $self->{test_parameters}
-    = "$self->{select}"
-    . " -ignore blib Devel/Cover @{$self->{ignore}}"
-    . " -merge 0 -coverage $self->{criteria} "
-    . "@{$self->{test_parameters}}";
-  $self->{criteria} =~ s/-\w+//g;
-  $self->{db_name} ||= $self->{test};
-  $self->{cover_db} = "./t/e2e/cover_db_$self->{db_name}/";
-  unless (mkdir $self->{cover_db}) {
-    die "Can't mkdir $self->{cover_db}: $!" unless -d $self->{cover_db};
-  }
-  my $p = $self->{cover_parameters} || [];
-  $self->{cover_parameters}
-    = join(" ", map "-coverage $_", split " ", $self->{criteria})
-    . " @$p -report text "
-    . shell_quote $self->{cover_db};
-  $self->{cover_parameters}
-    .= " -uncoverable_file " . "@{$self->{uncoverable_file}}"
-    if @{ $self->{uncoverable_file} };
-  if (exists $self->{skip_test}) {
-    for my $s (@{ $self->{skip_test} }) {
-      my $r = shift @{ $self->{skip_reason} };
-      next unless eval "{$s}";
-      $self->{skip} = $r;
-      last;
-    }
-  }
-
-  $self
-}
-
-sub perl {
-  my $self = shift;
+sub perl ($self) {
   join " ", map shell_quote($_), $Devel::Cover::Inc::Perl, map "-I./$_", "",
     "blib/lib", "blib/arch"
 }
 
-sub test_command {
-  my $self = shift;
-
+sub test_command ($self) {
   my $c = $self->perl;
   unless ($self->{no_coverage}) {
-    $c
-      .= " "
-      . shell_quote "-MDevel::Cover="
-      . join(",", "-db", $self->{cover_db}, split " ",
-        $self->{test_parameters});
+    my $params = join ",", "-db", $self->{cover_db}, split " ",
+      $self->{test_parameters};
+    $c .= " -MDevel::Cover=$params";
   }
   $c .= " " . shell_quote $self->test_file;
   $c .= " " . $self->test_file_parameters;
@@ -130,40 +122,24 @@ sub test_command {
   $c
 }
 
-sub cover_command {
-  my $self = shift;
-  my $c    = $self->perl . " ./bin/cover $self->{cover_parameters}";
-  $c
+sub cover_command ($self) {
+  $self->perl . " ./bin/cover $self->{cover_parameters}"
 }
 
-sub test_file {
-  my $self = shift;
-  "./tests/$self->{test}"
-}
-
-sub test_file_parameters {
-  my $self = shift;
-  exists $self->{test_file_parameters} ? $self->{test_file_parameters} : ""
-}
-
-sub _get_right_version {
-  my ($td, $test) = @_;
-  opendir D, $td or die "Can't opendir $td: $!";
+sub _get_right_version ($td, $test) {
+  opendir my $dh, $td or die "Can't opendir $td: $!";
   my @versions
-    = sort { $a <=> $b } map { /^$test\.(5\.\d+)$/ ? $1 : () } readdir D;
-  closedir D or die "Can't closedir $td: $!";
-  # print STDERR "Versions for [$test] from [$td] @versions\n";
+    = sort { $a <=> $b } map { /^$test\.(5\.\d+)$/ ? $1 : () } readdir $dh;
+  closedir $dh or die "Can't closedir $td: $!";
   my $v = "5.0";
   for (@versions) {
     last if $_ > $];
     $v = $_;
   }
-  # die "Can't find golden results for $test" if $v eq "5.0";
   $v
 }
 
-sub cover_gold {
-  my $self = shift;
+sub cover_gold ($self) {
   my $td   = "./test_output/cover";
   my $test = $self->{golden_test} || $self->{test};
   my $v
@@ -173,11 +149,11 @@ sub cover_gold {
   ("$td/$test", $v eq "5.0" ? 0 : $v)
 }
 
-sub run_command {
-  my $self = shift;
-  my ($command) = @_;
-
+sub run_command ($self, $command) {
   print STDERR "Running test [$command]\n" if $self->{debug};
+
+  local $ENV{DEVEL_COVER_SELF};
+  delete $ENV{DEVEL_COVER_SELF};
 
   open my $fh, "-|", "$command 2>&1" or die "Cannot run $command: $!";
   my @lines;
@@ -193,9 +169,82 @@ sub run_command {
   1
 }
 
-sub run_test {
-  my $self = shift;
+sub _normalise_line ($self, $get_line) {
+  local *_;
+  loop: while (1) {
+    $_ = scalar $get_line->();
+    $_ = "" unless defined;
+    print STDERR $_ if $self->{debug};
+    redo            if /^Devel::Cover: merging run/;
+    redo            if /^Set up gcc environment/;
+    if (/Can't opendir\(.+\): No such file or directory/) {
+      scalar $get_line->();
+      redo;
+    }
+    s/^(Reading database from ).*/$1/;
+    s|(__ANON__\[) .* (/tests/ \w+ : \d+ \])|$1$2|x;
+    s/(Subroutine) +(Location)/$1 $2/;
+    s/-+/-/;
+    s/^ \.\.\. .* - \d+ \. \d+ \/*(\S+)\s*/$1/x;
+    s/.* Devel \/ Cover \/*(\S+)\s*/$1/x;
+    s/^(Devel::Cover: merging run).*/$1/;
+    s/^(Run: ).*/$1/;
+    s/^(OS: ).*/$1/;
+    s/^(Perl version: ).*/$1/;
+    s/^(Start: ).*/$1/;
+    s/^(Finish: ).*/$1/;
+    s/copyright .*//ix;
+    no warnings "exiting";
+    eval join "; ", $self->{changes}->@*;
+    return $_;
+  }
+}
 
+sub _compare_cover_output ($self, $cover_fh) {
+  my (@at, @ac);
+  while (!eof $cover_fh) {
+    my $t = $self->_normalise_line(sub { <$cover_fh> });
+    my $c = $self->_normalise_line(sub { shift $self->{cover}->@* });
+    if ($self->{debug}) {
+      chomp(my $tn = $t);
+      chomp(my $cn = $c);
+      print STDERR "c-[$tn] $.\ng=[$cn]\n";
+    }
+
+    if ($self->{differences}) {
+      push @at, $t;
+      push @ac, $c;
+    } else {
+      $self->{no_coverage}
+        ? pass("no coverage")
+        : is($t, $c, "coverage output");
+      last if $self->{no_coverage} && !$self->{cover}->@*;
+    }
+  }
+  if ($self->{differences}) {
+    ## no critic (Variables::ProtectPrivateVars)
+    no warnings "redefine";
+    local *Test::_quote = sub { "@_" };
+    $self->{no_coverage}
+      ? pass("no coverage")
+      : eq_or_diff(\@at, \@ac, "output", { context => 0 });
+  } elsif ($self->{no_coverage}) {
+    pass("no coverage") for $self->{cover}->@*;
+  }
+}
+
+sub run_cover ($self) {
+  my $cover_com = $self->cover_command;
+  print STDERR "Running cover [$cover_com]\n" if $self->{debug};
+
+  open my $cover_fh, "-|", "$cover_com 2>&1" or die "Cannot run $cover_com: $!";
+  $self->_compare_cover_output($cover_fh);
+  close $cover_fh or die "Cannot close $cover_com: $!";
+
+  1
+}
+
+sub run_test ($self) {
   $ENV{DEVEL_COVER_TEST_SUITE} = 1;
 
   if ($self->{skip}) {
@@ -204,22 +253,19 @@ sub run_test {
   }
 
   my $version = int(($] - 5) * 1000 + 0.5);
-  if ($version % 2 && $version < $LATEST_RELEASED_PERL) {
+  if ($version % 2 && $version < $Latest_released_perl) {
     plan skip_all => "Perl version $] is an obsolete development version";
     return;
   }
 
   my ($base, $v) = $self->cover_gold;
-  # print STDERR "[$base,$v]\n";
-  return 1 unless $v;  # assume we are generating the golden results
+  return 1 unless $v;
   my $gold = "$base.$v";
 
   open my $i, "<", $gold or die "Cannot open $gold: $!";
   my @cover = <$i>;
   close $i or die "Cannot close $gold: $!";
   $self->{cover} = \@cover;
-
-  # print STDERR "gold from $gold\n", @cover if $self->{debug};
 
   plan tests => $self->{differences} ? 1
     : exists $self->{tests} ? $self->{tests}->(scalar @cover)
@@ -235,100 +281,56 @@ sub run_test {
   1
 }
 
-sub run_cover {
-  my $self = shift;
-
-  my $cover_com = $self->cover_command;
-  print STDERR "Running cover [$cover_com]\n" if $self->{debug};
-
-  my (@at, @ac);
-  my $change_line = sub {
-    my ($get_line) = @_;
-    local *_;
-    LOOP: while (1) {
-      $_ = scalar $get_line->();
-      $_ = "" unless defined $_;
-      print STDERR $_ if $self->{debug};
-      redo            if /^Devel::Cover: merging run/;
-      redo            if /^Set up gcc environment/;    # for MinGW
-      if (/Can't opendir\(.+\): No such file or directory/) {
-        # parallel tests
-        scalar $get_line->();
-        redo;
-      }
-      s/^(Reading database from ).*/$1/;
-      s|(__ANON__\[) .* (/tests/ \w+ : \d+ \])|$1$2|x;
-      s/(Subroutine) +(Location)/$1 $2/;
-      s/-+/-/;
-      # s/.* Devel-Cover - \d+ \. \d+ \/*(\S+)\s*/$1/x;
-      s/^ \.\.\. .* - \d+ \. \d+ \/*(\S+)\s*/$1/x;
-      s/.* Devel \/ Cover \/*(\S+)\s*/$1/x;
-      s/^(Devel::Cover: merging run).*/$1/;
-      s/^(Run: ).*/$1/;
-      s/^(OS: ).*/$1/;
-      s/^(Perl version: ).*/$1/;
-      s/^(Start: ).*/$1/;
-      s/^(Finish: ).*/$1/;
-      s/copyright .*//ix;
-      no warnings "exiting";
-      eval join "; ", @{ $self->{changes} };
-      return $_;
-    }
-  };
-
-  # use Devel::Cover::Dumper; print STDERR "--->", Dumper $self->{changes};
-  open my $cover_fh, '-|', "$cover_com 2>&1" or die "Cannot run $cover_com: $!";
-  while (!eof $cover_fh) {
-    my $t = $change_line->(sub { <$cover_fh> });
-    my $c = $change_line->(sub { shift @{ $self->{cover} } });
-    # print STDERR "[$t]\n[$c]\n" if $t ne $c;
-    do {
-      chomp(my $tn = $t);
-      chomp(my $cn = $c);
-      print STDERR "c-[$tn] $.\ng=[$cn]\n";
-    } if $self->{debug};
-
-    if ($self->{differences}) {
-      push @at, $t;
-      push @ac, $c;
-    } else {
-      $self->{no_coverage} ? pass : is($t, $c);
-      last if $self->{no_coverage} && !@{ $self->{cover} };
-    }
-  }
-  if ($self->{differences}) {
-    no warnings "redefine";
-    local *Test::_quote = sub { "@_" };
-    $self->{no_coverage}
-      ? pass
-      : eq_or_diff(\@at, \@ac, "output", { context => 0 });
-  } elsif ($self->{no_coverage}) {
-    pass for @{ $self->{cover} };
+sub _capture_cover_output ($self, $cover_com, $new_gold) {
+  open my $gold_fh,  ">",  $new_gold         or die "Cannot open $new_gold: $!";
+  open my $cover_fh, "-|", "$cover_com 2>&1" or die "Cannot run $cover_com: $!";
+  my $ng = "";
+  while (my $l = <$cover_fh>) {
+    next if $l =~ /^Devel::Cover: merging run/;
+    $l =~ s/^($_: ).*$/$1.../
+      for "Run", "Perl version", "OS", "Start", "Finish";
+    $l =~ s/^(Reading database from ).*$/$1.../;
+    print STDERR $l if $self->{debug};
+    print $gold_fh $l;
+    $ng .= $l;
   }
   close $cover_fh or die "Cannot close $cover_com: $!";
-
-  1
+  close $gold_fh  or die "Cannot close $new_gold: $!";
+  $ng
 }
 
-sub create_gold {
-  my $self = shift;
+sub _compare_with_existing_gold ($self, $gold, $new_gold, $ng, $v) {
+  print STDERR "gv is $v and this is $]\n"                 if $self->{debug};
+  print STDERR "gold is $gold and new_gold is $new_gold\n" if $self->{debug};
+  return if $v eq "0" || $v eq $];
 
-  # Pod::Coverage not available on all versions, but it must be there on
-  # 5.20.0
+  open my $gold_fh, "<", $gold or die "Cannot open $gold: $!";
+  my $g = do { local $/; <$gold_fh> };
+  close $gold_fh or die "Cannot close $gold: $!";
+
+  print STDERR "checking $new_gold against $gold\n" if $self->{debug};
+  if ($ng eq $g) {
+    print STDERR "matches $v";
+    unlink $new_gold;
+  } else {
+    print STDERR "new";
+  }
+}
+
+sub create_gold ($self) {
+  # Pod::Coverage not available on all versions, but it must be
+  # there on 5.20.0
   return if $self->{criteria} =~ /\bpod\b/ && $] != 5.020000;
 
   my ($base, $v) = $self->cover_gold;
   my $gold     = "$base.$v";
   my $new_gold = "$base.$]";
-  my $gv       = $v;
-  my $ng       = "";
 
   unless (-e $new_gold) {
     open my $g, ">", $new_gold or die "Can't open $new_gold: $!";
     unlink $new_gold;
   }
 
-  # use Devel::Cover::Dumper; print STDERR Dumper $self;
   if ($self->{skip}) {
     print STDERR "Skipping: $self->{skip}\n";
     return;
@@ -341,37 +343,8 @@ sub create_gold {
   my $cover_com = $self->cover_command;
   print STDERR "Running cover [$cover_com]\n" if $self->{debug};
 
-  open my $gold_fh, ">", $new_gold        or die "Cannot open $new_gold: $!";
-  open my $cover_fh, "-|", "$cover_com 2>&1" or die "Cannot run $cover_com: $!";
-  while (my $l = <$cover_fh>) {
-    next if $l =~ /^Devel::Cover: merging run/;
-    $l =~ s/^($_: ).*$/$1.../
-      for "Run", "Perl version", "OS", "Start", "Finish";
-    $l =~ s/^(Reading database from ).*$/$1.../;
-    print STDERR $l if $self->{debug};
-    print $gold_fh $l;
-    $ng .= $l;
-  }
-  close $cover_fh or die "Cannot close $cover_com: $!";
-  close $gold_fh or die "Cannot close $new_gold: $!";
-
-  print STDERR "gv is $gv and this is $]\n"                if $self->{debug};
-  print STDERR "gold is $gold and new_gold is $new_gold\n" if $self->{debug};
-  unless ($gv eq "0" || $gv eq $]) {
-    open my $gold_fh, $gold or die "Cannot open $gold: $!";
-    my $g = do { local $/; <$gold_fh> };
-    close $gold_fh or die "Cannot close $gold: $!";
-
-    print STDERR "checking $new_gold against $gold\n" if $self->{debug};
-    # print "--[$ng]--\n";
-    # print "--[$g]--\n";
-    if ($ng eq $g) {
-      print STDERR "matches $v";
-      unlink $new_gold;
-    } else {
-      print STDERR "new";
-    }
-  }
+  my $ng = $self->_capture_cover_output($cover_com, $new_gold);
+  $self->_compare_with_existing_gold($gold, $new_gold, $ng, $v);
 
   $self->{end}->() if $self->{end};
 
@@ -386,38 +359,64 @@ __END__
 
 Devel::Cover::Test - Internal module for testing
 
+=head1 SYNOPSIS
+
+  use Devel::Cover::Test;
+
+  my $test = Devel::Cover::Test->new("my_test",
+    criteria => "statement branch condition subroutine",
+  );
+  $test->run_test;
+
+=head1 DESCRIPTION
+
+Internal module used by the Devel::Cover test suite to run end-to-end coverage
+tests. It handles building test commands, running coverage analysis, and
+comparing output against golden result files.
+
 =head1 METHODS
 
 =cut
 
-=head2 new
+=head2 shell_quote ($item)
+
+Returns properly quoted item to cope with embedded spaces.
+
+=head2 test_file ($self)
+
+Returns relative path to test file.
+
+=head2 test_file_parameters ($self)
+
+Accessor to test_file_parameters property.
+
+=head2 get_params ($self)
+
+Populates the keys C<criteria>, C<select>, C<test_parameters>, C<db_name>,
+C<cover_db>, C<cover_parameters> and C<skip> using the C<test_file> if available
+otherwise sets the default.
+
+=head2 new ($class, $test, %params)
 
   my $test = Devel::Cover::Test->new($test, criteria => $string)
 
 Constructor.
 
 "criteria" parameter (optional, defaults to "statement branch condition
-subroutine") is a space separated list of tokens.
-Supported tokens are "statement", "branch", "condition", "subroutine" and
-"pod".
+subroutine") is a space separated list of tokens. Supported tokens are
+"statement", "branch", "condition", "subroutine" and "pod".
 
 More optional parameters are supported. Refer to L</get_params> sub.
 
-=head2 shell_quote
+=head2 set_test ($self, $test)
 
-  my $quoted_item = shell_quote($item)
+Sets the test name.
 
-Returns properly quoted item to cope with embedded spaces.
-
-=head2 perl
-
-  my $perl = $self->perl
+=head2 perl ($self)
 
 Returns absolute path to Perl interpreter with proper -I options (blib-wise).
 
-=head2 test_command
-
-  my $command = $self->test_command
+=head2 test_command ($self)
 
 Returns test command, made of:
 
@@ -433,11 +432,9 @@ Returns test command, made of:
 
 =back
 
-=head2 cover_command
+=head2 cover_command ($self)
 
-  my $command = $self->cover_command
-
-Returns test command, made of:
+Returns cover command, made of:
 
 =over 4
 
@@ -449,43 +446,38 @@ Returns test command, made of:
 
 =back
 
-=head2 test_file
-
-  my $file = $self->test_file
-
-Returns absolute path to test file.
-
-=head2 test_file_parameters
-
-  my $parameters = $self->test_file_parameters
-
-Accessor to test_file_parameters property.
-
-=head2 get_params
-
-Populates the keys C<criteria>, C<select>, C<test_parameters>, C<db_name>,
-C<cover_db>, C<cover_parameters> and C<skip> using the C<test_file> if
-available otherwise sets the default.
-
-=head2 cover_gold
+=head2 cover_gold ($self)
 
   my ($base, $v) = $self->cover_gold;
 
-Returns the absolute path of the base to the golden file and the suffix
-version number.
+Returns the relative path of the base to the golden file and the suffix version
+number.
 
 $base comes from the name of the test and $v will be $] from the earliest perl
 version for which the golden results should be the same as for the current $]
 
-C<$v> will be overridden if installed libraries' versions dictate; for
-instance, if L<Math::BigInt> is at version > 1.999806, then the version
-of Perl will be overridden as though it is 5.26.
+C<$v> will be overridden if installed libraries' versions dictate; for instance,
+if L<Math::BigInt> is at version > 1.999806, then the version of Perl will be
+overridden as though it is 5.26.
 
-=head2 run_command
+=head2 run_command ($self, $command)
 
   $self->run_command($command)
 
 Runs command, most likely obtained from L</test_command> sub.
+
+=head2 run_cover ($self)
+
+Runs the cover command and compares output against golden results.
+
+=head2 run_test ($self)
+
+Runs the full test cycle: executes the test file under coverage, then runs cover
+and compares against golden results.
+
+=head2 create_gold ($self)
+
+Generates golden result files for the current Perl version.
 
 =head1 LICENCE
 

@@ -294,7 +294,7 @@ sub _merge_array ($into, $from, $noadd = 0) {
   push @$into, @$from;
 }
 
-sub summary ($self, $file, $criterion, $part) {
+sub summary ($self, $file, $criterion = undef, $part = undef) {
   my $f = $self->{summary}{$file};
   return $f unless $f && defined $criterion;
   my $c = $f->{$criterion};
@@ -396,7 +396,7 @@ sub add_statement ($self, $cc, $sc, $fc, $uc) {
   }
 }
 
-sub add_time ($self, $cc, $sc, $fc) {
+sub add_time ($self, $cc, $sc, $fc, $) {
   my %line;
   for my $i (0 .. $#$fc) {
     my $l = $sc->[$i] // do {
