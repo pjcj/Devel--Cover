@@ -21,7 +21,7 @@ sub report ($pkg, $db, $options) {
     LOAD_TEMPLATES => [
       Devel::Cover::Base::Editor::Template::Provider->new({
         editor_class => $pkg, })
-    ]
+    ],
   });
 
   my $vars = {
@@ -77,7 +77,7 @@ sub new ($class, $params) {
   $self
 }
 
-sub fetch ($self, $name) {
+sub fetch ($self, $name, $prefix = undef) {
   my $templates = $self->{_editor_class}->templates;
   $self->SUPER::fetch(exists $templates->{$name} ? \$templates->{$name} : $name)
 }
