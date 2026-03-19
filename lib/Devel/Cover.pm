@@ -97,7 +97,8 @@ my %Coverage_options;  # Options for overage criteria
 my %Run;               # Data collected from the run
 
 my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
-                       emptyavhv|scalar|return|last|next|redo|goto)$/x;
+                       emptyavhv|scalar|return|last|next|redo|goto|
+                       exec|exit|warn)$/x;
 
 # Check whether the right operand of a logical op is a constant-like
 # expression whose truth value is fixed.  Unwraps sassign if present.
@@ -835,7 +836,6 @@ sub add_condition_cover ($op, $strop, $left, $right) {
 
   if ($type eq "or" || $type eq "and") {
     my $r = $op->first->sibling;
-    # TODO - exec?  any others?
     if ($c->[5] || _is_const_right($r)) {
       $c     = [ $c->[3], $c->[1] + $c->[2] ];
       $count = 2;
