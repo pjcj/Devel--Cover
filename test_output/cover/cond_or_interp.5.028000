@@ -4,8 +4,8 @@ Reading database from ...
 -------------------- ------ ------ ------ ------ ------
 File                   stmt   bran   cond    sub  total
 -------------------- ------ ------ ------ ------ ------
-tests/cond_or_interp  100.0  100.0   86.0  100.0   92.3
-Total                 100.0  100.0   86.0  100.0   92.3
+tests/cond_or_interp  100.0  100.0  100.0  100.0  100.0
+Total                 100.0  100.0  100.0  100.0  100.0
 -------------------- ------ ------ ------ ------ ------
 
 
@@ -67,8 +67,8 @@ line  err   stmt   bran   cond    sub   code
 43             3           100            $r = $or_lhs || "literal";
 44                                      
 45                                        # || with multiconcat RHS, literal text (should be 2-outcome)
-46    ***      3          * 66            $r = $or_lhs || "value $v end";
-47    ***      3          * 66            $r = $or_lhs || "value $v";
+46             3           100            $r = $or_lhs || "value $v end";
+47             3           100            $r = $or_lhs || "value $v";
 48                                      
 49                                        # || with multiconcat RHS, "0" literal text (correctly 3-outcome:
 50                                        # "0" is non-empty but falsy, so result can be falsy)
@@ -87,8 +87,8 @@ line  err   stmt   bran   cond    sub   code
 63             3           100            $r = $dor_lhs // "literal";
 64                                      
 65                                        # // with multiconcat RHS, literal text (should be 2-outcome)
-66    ***      3          * 66            $r = $dor_lhs // "value $v end";
-67    ***      3          * 66            $r = $dor_lhs // "value $v";
+66             3           100            $r = $dor_lhs // "value $v end";
+67             3           100            $r = $dor_lhs // "value $v";
 68                                      
 69                                        # // with multiconcat RHS, no literal text (correctly 3-outcome)
 70             3           100            $r = $dor_lhs // "$v$v$v";
@@ -100,10 +100,10 @@ line  err   stmt   bran   cond    sub   code
 76             3           100            $r = $dor_lhs // "$v";
 77                                      
 78                                        # ||= with multiconcat RHS, literal text (should be 2-outcome)
-79    ***      3          * 66            $Arr[0] ||= "value $v end";
+79             3           100            $Arr[0] ||= "value $v end";
 80                                      
 81                                        # //= with multiconcat RHS, literal text (should be 2-outcome)
-82    ***      3          * 66            $Arr[1] //= "value $v end";
+82             3           100            $Arr[1] //= "value $v end";
 83                                      }
 
 
@@ -125,25 +125,25 @@ or 2 conditions
 line  err      %      l     !l   expr
 ----- --- ------ ------ ------   ----
 43           100      1      2   $or_lhs || 'literal'
+46           100      1      2   $or_lhs || "value $v end"
+47           100      1      2   $or_lhs || "value $v"
 63           100      1      2   $dor_lhs // "literal"
+66           100      1      2   $dor_lhs // "value $v end"
+67           100      1      2   $dor_lhs // "value $v"
+79           100      2      1   $Arr[0] ||= "value $v end"
+82           100      2      1   $Arr[1] //= "value $v end"
 
 or 3 conditions
 
 line  err      %      l  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------   ----
-46    ***     66      1      2      0   $or_lhs || "value $v end"
-47    ***     66      1      2      0   $or_lhs || "value $v"
 51           100      1      1      1   $or_lhs || "0$v$v$v"
 54           100      1      1      1   $or_lhs || "$v$v$v"
 57           100      1      1      1   $or_lhs || "$v$v"
 60           100      1      1      1   $or_lhs || "$v"
-66    ***     66      1      2      0   $dor_lhs // "value $v end"
-67    ***     66      1      2      0   $dor_lhs // "value $v"
 70           100      1      1      1   $dor_lhs // "$v$v$v"
 73           100      1      1      1   $dor_lhs // "$v$v"
 76           100      1      1      1   $dor_lhs // "$v"
-79    ***     66      2      1      0   $Arr[0] ||= "value $v end"
-82    ***     66      2      1      0   $Arr[1] //= "value $v end"
 
 
 Covered Subroutines
