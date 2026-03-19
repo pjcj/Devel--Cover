@@ -46,6 +46,10 @@ for my $iter (0 .. 2) {
   $r = $or_lhs || "value $v end";
   $r = $or_lhs || "value $v";
 
+  # || with multiconcat RHS, "0" literal text (correctly 3-outcome:
+  # "0" is non-empty but falsy, so result can be falsy)
+  $r = $or_lhs || "0$v$v$v";
+
   # || with multiconcat RHS, no literal text (correctly 3-outcome)
   $r = $or_lhs || "$v$v$v";
 
