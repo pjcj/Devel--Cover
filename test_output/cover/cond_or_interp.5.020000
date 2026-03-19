@@ -4,8 +4,8 @@ Reading database from ...
 -------------------- ------ ------ ------ ------ ------
 File                   stmt   bran   cond    sub  total
 -------------------- ------ ------ ------ ------ ------
-tests/cond_or_interp  100.0  100.0   86.0  100.0   92.3
-Total                 100.0  100.0   86.0  100.0   92.3
+tests/cond_or_interp  100.0  100.0   83.6  100.0   90.9
+Total                 100.0  100.0   83.6  100.0   90.9
 -------------------- ------ ------ ------ ------ ------
 
 
@@ -104,7 +104,16 @@ line  err   stmt   bran   cond    sub   code
 80                                      
 81                                        # //= with multiconcat RHS, literal text (should be 2-outcome)
 82    ***      3          * 66            $Arr[1] //= "value $v end";
-83                                      }
+83                                      
+84                                        # warn always returns 1 (correctly 2-outcome)
+85             3           100            $r = $or_lhs || warn "expected\n";
+86                                      
+87                                        # exit and exec never return normally (correctly 2-outcome).
+88                                        # Use always-truthy LHS so they never actually execute.
+89             3                          my $true = 1;
+90    ***      3          * 50            $r = $true || exit 1;
+91    ***      3          * 50            $r = $true || exec "true";
+92                                      }
 
 
 Branches
@@ -126,6 +135,9 @@ line  err      %      l     !l   expr
 ----- --- ------ ------ ------   ----
 43           100      1      2   $or_lhs || 'literal'
 63           100      1      2   $dor_lhs // "literal"
+85           100      1      2   $or_lhs || warn("expected\n")
+90    ***     50      3      0   $true || exit 1
+91    ***     50      3      0   $true || exec('true')
 
 or 3 conditions
 

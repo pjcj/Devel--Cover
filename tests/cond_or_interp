@@ -80,4 +80,13 @@ for my $iter (0 .. 2) {
 
   # //= with multiconcat RHS, literal text (should be 2-outcome)
   $Arr[1] //= "value $v end";
+
+  # warn always returns 1 (correctly 2-outcome)
+  $r = $or_lhs || warn "expected\n";
+
+  # exit and exec never return normally (correctly 2-outcome).
+  # Use always-truthy LHS so they never actually execute.
+  my $true = 1;
+  $r = $true || exit 1;
+  $r = $true || exec "true";
 }
