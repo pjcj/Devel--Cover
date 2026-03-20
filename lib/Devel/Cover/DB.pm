@@ -30,7 +30,7 @@ use Devel::Cover::Dumper qw( Dumper );  # For debugging
 
 my $Has_term_size = eval { require Term::Size };
 
-my $DB = "cover.14";                    # Version of the database
+my $DB = "cover.15";                    # Version of the database
 
 @Devel::Cover::DB::Criteria
   = (qw( statement branch path condition subroutine pod time ));
@@ -63,6 +63,7 @@ sub new ($class, %o) {
     criteria         => \@Devel::Cover::DB::Criteria,
     criteria_short   => \@Devel::Cover::DB::Criteria_short,
     runs             => {},
+    files            => [],
     collected        => {},
     uncoverable_file => [],
     %o,
@@ -86,6 +87,7 @@ sub criteria           ($self) { $self->{criteria}->@* }
 sub criteria_short     ($self) { $self->{criteria_short}->@* }
 sub all_criteria       ($self) { $self->{all_criteria}->@* }
 sub all_criteria_short ($self) { $self->{all_criteria_short}->@* }
+sub files              ($self) { $self->{files}->@* }
 
 sub read ($self, $file) {
   my $io = Devel::Cover::DB::IO->new;
@@ -93,7 +95,8 @@ sub read ($self, $file) {
   if ($@ || !$db) {
     warn $@;
   } else {
-    $self->{runs} = $db->{runs};
+    $self->{runs}  = $db->{runs};
+    $self->{files} = $db->{files} // [];
   }
   $self
 }
@@ -108,7 +111,7 @@ sub write ($self, $db = undef) {
   chmod 0777, $self->{db} if $self->{loose_perms};
   $self->validate_db;
 
-  my $data = { runs => $self->{runs} };
+  my $data = { runs => $self->{runs}, files => $self->{files} };
   my $io   = Devel::Cover::DB::IO->new;
   $io->write($data, "$self->{db}/$DB");
   $self->{structure}->write($self->{base}) if $self->{structure};
