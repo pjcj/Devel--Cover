@@ -16,25 +16,16 @@ BEGIN {
   # VERSION
 }
 
-use Devel::Cover::Html_Common qw( launch );     ## no perlimports
-use Devel::Cover::Inc         ();
-use Devel::Cover::Web         qw( write_file );
+use Devel::Cover::Html_Common  ## no perlimports
+  qw( launch highlight $Have_highlighter );
+use Devel::Cover::Inc ();
+use Devel::Cover::Web qw( write_file );
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 use HTML::Entities qw( encode_entities );
 use Getopt::Long   qw( GetOptions );
 use Template 2.00  ();
-
-my ($Have_highlighter, $Have_PPI, $Have_perltidy);
-
-BEGIN {
-  eval "use PPI; use PPI::HTML;";
-  $Have_PPI = !$@;
-  eval "use Perl::Tidy";
-  $Have_perltidy    = !$@;
-  $Have_highlighter = $Have_PPI || $Have_perltidy;
-}
 
 my $Template;
 my %R;
@@ -94,82 +85,6 @@ sub print_summary {
   $html
 }
 
-sub _highlight_ppi {
-
-  my @all_lines = @_;
-  my $code      = join "", @all_lines;
-  my $document  = PPI::Document->new(\$code);
-  my $highlight = PPI::HTML->new(line_numbers => 1);
-  my $pretty    = $highlight->html($document);
-
-  my $split = '<span class="line_number">';
-
-  no warnings "uninitialized";
-
-  # turn significant whitespace into &nbsp;
-  @all_lines = map {
-    $_ =~ s{</span>( +)}{"</span>" . ("&nbsp;" x length($1))}e;
-    "$split$_";
-  } split /$split/, $pretty;
-
-  # remove the line number
-  @all_lines = map {
-    s{<span class="line_number">.*?</span>}{};
-    $_;
-  } @all_lines;
-  @all_lines = map {
-    s{<span class="line_number">}{};
-    $_;
-  } @all_lines;
-
-  # remove the BR
-  @all_lines = map {
-    s{<br>$}{};
-    $_;
-  } @all_lines;
-  @all_lines = map {
-    s{<br>\n</span>}{</span>};
-    $_;
-  } @all_lines;
-
-  shift @all_lines if $all_lines[0] eq "";
-
-  @all_lines
-}
-
-sub _highlight_perltidy {
-  my @all_lines = @_;
-  my @coloured;
-
-  my ($stderr, $errorfile);
-  Perl::Tidy::perltidy(
-    source      => \@all_lines,
-    destination => \@coloured,
-    argv        => "-html -pre -nopod2html",
-    stderr      => \$stderr,
-    errorfile   => \$errorfile
-  );
-
-  # remove the PRE
-  shift @coloured;
-  pop @coloured;
-  @coloured = grep { !/<a name=/ } @coloured;
-
-  @coloured
-}
-
-sub _highlight {
-  if ($Have_PPI && !$R{options}{option}{noppihtml}) {
-    return _highlight_ppi(@_);
-  } else {
-    if ($Have_perltidy && !$R{options}{option}{noperltidy}) {
-      return _highlight_perltidy(@_);
-    }
-  }
-
-  return;
-}
-
 sub print_file {
   my @lines;
   my $f = $R{db}->cover->file($R{file});
@@ -177,8 +92,8 @@ sub print_file {
   open F, $R{file} or warn("Unable to open $R{file}: $!\n"), return;
   my @all_lines = <F>;
 
-  if (!($R{options}{option}{noppihtml} && $R{options}{option}{noperltidy})) {
-    @all_lines = _highlight(@all_lines) if $Have_highlighter;
+  if ($Have_highlighter) {
+    @all_lines = highlight($R{options}{option}, @all_lines);
   }
 
   my $linen = 1;
@@ -216,7 +131,7 @@ sub print_file {
         }
       }
       for my $c (@{ $R{showing} }) {
-        my $o = shift @{ $criteria{$c} };
+        my $o   = shift @{ $criteria{$c} };
         $more ||= @{ $criteria{$c} };
 
         my $link      = $c          !~ /statement|time/;
@@ -269,7 +184,7 @@ sub print_branches {
     for my $b (@{ $branches->location($location) }) {
       $count++;
       my $text = $b->text;
-      ($text) = _highlight($text) if $Have_highlighter;
+      ($text) = highlight($R{options}{option}, $text) if $Have_highlighter;
 
       push @branches, {
         number => $count == 1 ? $location : "",
@@ -302,7 +217,7 @@ sub print_conditions {
       $count{ $c->type }++;
       # print "-- [$count{$c->type}][@{[$c->text]}]}]\n";
       my $text = $c->text;
-      ($text) = _highlight($text) if $Have_highlighter;
+      ($text) = highlight($R{options}{option}, $text) if $Have_highlighter;
 
       push @{ $r{ $c->type } }, {
         number    => $count{ $c->type } == 1 ? $location : "",
@@ -374,14 +289,10 @@ sub get_options {
   $opt->{option}{restrict}   = 1;
   $threshold->{$_}           = $opt->{"report_$_"}
     for grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
-  die "Invalid command line options" unless GetOptions(
-    $opt->{option}, qw(
-      noppihtml
-      noperltidy
-      outputfile=s
-      restrict!
-    )
-  );
+  die "Invalid command line options"
+    unless GetOptions(
+      $opt->{option}, qw( noppihtml noperltidy outputfile=s restrict! )
+    );
 }
 
 sub report {
@@ -389,7 +300,7 @@ sub report {
 
   $Template = Template->new({
     LOAD_TEMPLATES =>
-      [ Devel::Cover::Report::Html_basic::Template::Provider->new({}) ]
+      [ Devel::Cover::Report::Html_basic::Template::Provider->new({}) ],
   });
 
   my $le = sub { ($_[0] > 0   ? "<" : "=") . " $_[0]" };
