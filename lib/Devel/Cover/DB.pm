@@ -10,7 +10,6 @@ package Devel::Cover::DB;
 use v5.20.0;
 use strict;
 use warnings;
-
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
