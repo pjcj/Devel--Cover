@@ -63,6 +63,7 @@ HTML report formats are:
 
 - html|html_minimal (default)
 - html_basic
+- html_crisp
 - html_subtle
 
 They are implemented in:
@@ -70,6 +71,7 @@ They are implemented in:
 - Devel::Cover::Report::Html
   - which is an empty subclass of Devel::Cover::Report::Html_minimal
 - Devel::Cover::Report::Html_basic
+- Devel::Cover::Report::Html_crisp
 - Devel::Cover::Report::Html_subtle
 
 **Minimal** was written by Michael Carman. One of the goals was to keep the
@@ -79,9 +81,15 @@ are nice, they are not always correct when there are many variables. This is
 currently the default HTML report.
 
 **Basic** handles uncovered code correctly and the conditions are displayed
-correctly, if not as nicely as in minimal. It also allows for coloured
-code. This report requires [Template Toolkit](https://metacpan.org/pod/Template)
-and is the format used for cpancover.
+correctly, if not as nicely as in minimal. It also allows for coloured code.
+This report requires [Template Toolkit](https://metacpan.org/pod/Template) and
+is the format used for cpancover.
+
+**Crisp** is a modern, self-contained HTML reporter. All CSS, JavaScript and
+templates are embedded in a single module. It features dark mode,
+sortable/filterable file tables, directory grouping, inline branch and condition
+truth tables, a scroll minimap, and keyboard navigation. Requires
+[Template Toolkit](https://metacpan.org/pod/Template).
 
 ## cpancover
 
