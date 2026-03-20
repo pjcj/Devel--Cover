@@ -116,92 +116,70 @@ sub _build_dir_groups ($file_data) {
     my $t = $f->{total};
     $s->{covered} += $t->{covered} || 0;
     $s->{total}   += $t->{total}   || 0;
-  }
-  my @groups;
-  for my $d (sort keys %dirs) {
-    my $s = $dir_stats{$d};
+  } map {
+    my $s = $dir_stats{$_};
     my $pc
       = $s->{total}
       ? sprintf("%.1f", 100 * $s->{covered} / $s->{total})
       : "n/a";
-    push @groups, {
-        dir   => $d || "(root)",
-        pc    => $pc,
-        class => class($pc, $pc < 100 ? 1 : 0, "total"),
-        files => $dirs{$d},
-      };
-  }
-  @groups
+    {
+      dir   => $_ || "(root)",
+      pc    => $pc,
+      class => class($pc, $pc < 100 ? 1 : 0, "total"),
+      files => $dirs{$_},
+    }
+  } sort keys %dirs
 }
 
 sub _line_subroutines ($f, $n) {
   my $subs = $f->subroutine or return;
   my $loc  = $subs->location($n);
   return unless $loc && @$loc;
-  my @sd;
-  for my $s (@$loc) {
-    push @sd, {
-        name    => encode_entities($s->name),
-        covered => $s->covered,
-        class   => oclass($s, "subroutine"),
-      };
-  }
-  @sd
+  map { {
+    name    => encode_entities($_->name),
+    covered => $_->covered,
+    class   => oclass($_, "subroutine"),
+  } } @$loc
 }
 
 sub _line_pod ($f, $n) {
   my $pod = $f->pod or return;
   my $loc = $pod->location($n);
   return unless $loc && @$loc;
-  my @pd;
-  for my $p (@$loc) {
-    push @pd, { covered => $p->covered, class => oclass($p, "pod") };
-  }
-  @pd
+  map { { covered => $_->covered, class => oclass($_, "pod") } } @$loc
 }
 
 sub _line_branches ($f, $n) {
   my $branches = $f->branch or return;
   my $loc      = $branches->location($n);
   return unless $loc && @$loc;
-  my @bd;
-  for my $b (@$loc) {
-    push @bd, {
-        true_count  => $b->value(0),
-        false_count => $b->value(1),
-        true_class  => class($b->value(0), $b->error(0), "branch"),
-        false_class => class($b->value(1), $b->error(1), "branch"),
-        text        => encode_entities($b->text // ""),
-      };
-  }
-  @bd
+  map { {
+    true_count  => $_->value(0),
+    false_count => $_->value(1),
+    true_class  => class($_->value(0), $_->error(0), "branch"),
+    false_class => class($_->value(1), $_->error(1), "branch"),
+    text        => encode_entities($_->text // ""),
+  } } @$loc
 }
 
 sub _line_truth_tables ($f, $n) {
   my $conditions = $f->condition or return;
   my $loc        = $conditions->location($n);
   return unless $loc && @$loc && @$loc <= 16;
-  my @tts;
-  my @tables = $conditions->truth_table($n);
-  for my $t (@tables) {
-    my ($tt, $expr) = @$t;
-    my @rows;
-    for my $row (@$tt) {
-      push @rows, {
-          inputs  => [ $row->inputs ],
-          result  => $row->result,
-          covered => $row->covered,
-          class   => $row->covered ? "c3" : "c0",
-        };
+  grep { $_->{rows}->@* } map {
+    my ($tt, $expr) = @$_;
+    my @rows = map { {
+      inputs  => [ $_->inputs ],
+      result  => $_->result,
+      covered => $_->covered,
+      class   => $_->covered ? "c3" : "c0",
+    } } @$tt;
+    {
+      expr    => encode_entities($expr),
+      rows    => \@rows,
+      headers => [ map { chr ord("A") + $_ } 0 .. $rows[0]{inputs}->$#* ],
     }
-    next unless @rows;
-    push @tts, {
-        expr    => encode_entities($expr),
-        rows    => \@rows,
-        headers => [ map { chr ord("A") + $_ } 0 .. $rows[0]{inputs}->$#* ],
-      };
-  }
-  @tts
+  } $conditions->truth_table($n)
 }
 
 sub _exec_class ($count) {
@@ -1838,15 +1816,15 @@ Devel::Cover::Report::Html_crisp - Modern HTML backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a modern HTML reporting mechanism for coverage data.
-It generates a single-page dashboard with file listing and per-file
-source views with inline branch, condition, and subroutine detail.
+This module provides a modern HTML reporting mechanism for coverage data. It
+generates a single-page dashboard with file listing and per-file source views
+with inline branch, condition, and subroutine detail.
 
-Features include dark mode support, keyboard navigation, sortable
-columns, and inline condition truth tables.
+Features include dark mode support, keyboard navigation, sortable columns, and
+inline condition truth tables.
 
-It is designed to be called from the C<cover> program.  It will add
-syntax highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
+It is designed to be called from the C<cover> program.  It will add syntax
+highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
 
 =head1 OPTIONS
 
