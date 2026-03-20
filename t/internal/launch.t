@@ -19,7 +19,7 @@ closedir $d;
 plan tests => scalar @reporters;
 
 my @reporters_with_launch = qw(
-    Html Html_basic Html_minimal Html_subtle
+    Html Html_basic Html_crisp Html_minimal Html_subtle
 );
 
 # Check that the expected reporters support the launch feature
