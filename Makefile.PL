@@ -364,11 +364,20 @@ sub MY::postamble {
   my %tests;
   @tests{@Tests} = map { "cover_db_" . s/\W/_/gr } @Tests;
   my %sc_tests = map { $_ => $tests{$_} } grep !_should_skip($_), keys %tests;
+  #<<<
   my @reports  = qw(
-    compilation html_basic html_minimal html
-    html_subtle sort       text2        text
+    compilation
+    html
+    html_basic
+    html_crisp
+    html_minimal
+    html_subtle
+    sort
+    text
+    text2
     vim
   );
+  #>>>
 
   qq[
 tags : pure_all
