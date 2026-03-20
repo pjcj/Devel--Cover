@@ -19,27 +19,18 @@ BEGIN {
   # VERSION
 }
 
-use Devel::Cover::Html_Common qw( launch );  ## no perlimports
-use Devel::Cover::Inc         ();
+use Devel::Cover::Html_Common  ## no perlimports
+  qw( launch highlight $Have_highlighter );
+use Devel::Cover::Truth_Table;  ## no perlimports
+use Devel::Cover::Inc ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use Devel::Cover::Truth_Table;               ## no perlimports
 use HTML::Entities qw( encode_entities );
 use Getopt::Long   qw( GetOptions );
 use Template 2.00  ();
 use File::Path     qw( mkpath );
 use List::Util     qw( any );
-
-my ($Have_highlighter, $Have_ppi, $Have_perltidy);
-
-BEGIN {
-  eval "use PPI; use PPI::HTML;";
-  $Have_ppi = !$@;
-  eval "use Perl::Tidy";
-  $Have_perltidy    = !$@;
-  $Have_highlighter = $Have_ppi || $Have_perltidy;
-}
 
 my $Template;
 my %R;
@@ -64,7 +55,8 @@ sub oclass ($o, $criterion) {
 
 sub _fmt_pc ($pc) {
   return "n/a" unless defined $pc;
-  my $x = sprintf "%5.1f", $pc;
+  my $x = sprintf "%5.2f", $pc;
+  chop $x;
   $x =~ s/^\s+//;
   $x
 }
@@ -140,58 +132,6 @@ sub _build_dir_groups ($file_data) {
       };
   }
   @groups
-}
-
-sub _highlight_ppi (@all_lines) {
-  my $code      = join "", @all_lines;
-  my $document  = PPI::Document->new(\$code);
-  my $highlight = PPI::HTML->new(line_numbers => 1);
-  my $pretty    = $highlight->html($document);
-
-  my $split = '<span class="line_number">';
-
-  no warnings "uninitialized";
-
-  @all_lines = split /$split/, $pretty;
-  for (@all_lines) {
-    s{</span>( +)}{"</span>" . ("&nbsp;" x length $1)}e;
-    $_ = "$split$_";
-  }
-
-  for (@all_lines) {
-    s{<span class="line_number">.*?</span>}{};
-    s{<span class="line_number">}{};
-    s{<br>$}{};
-    s{<br>\n</span>}{</span>};
-  }
-
-  shift @all_lines if $all_lines[0] eq "";
-  @all_lines
-}
-
-sub _highlight_perltidy (@all_lines) {
-  my @coloured;
-  my ($stderr, $errorfile);
-  Perl::Tidy::perltidy(
-    source      => \@all_lines,
-    destination => \@coloured,
-    argv        => "-html -pre -nopod2html",
-    stderr      => \$stderr,
-    errorfile   => \$errorfile
-  );
-  shift @coloured;
-  pop @coloured;
-  @coloured = grep { !/<a name=/ } @coloured;
-  @coloured
-}
-
-sub _highlight (@all_lines) {
-  if ($Have_ppi && !$R{options}{option}{noppihtml}) {
-    return _highlight_ppi(@all_lines);
-  } elsif ($Have_perltidy && !$R{options}{option}{noperltidy}) {
-    return _highlight_perltidy(@all_lines);
-  }
-  return;
 }
 
 sub _line_subroutines ($f, $n) {
@@ -295,8 +235,8 @@ sub _build_source_lines ($file) {
   my @all_lines = <$fh>;
   close $fh or die "Can't close $file: $!\n";
 
-  if (!($R{options}{option}{noppihtml} && $R{options}{option}{noperltidy})) {
-    my @hl = _highlight(@all_lines);
+  if ($Have_highlighter) {
+    my @hl = highlight($R{options}{option}, @all_lines);
     @all_lines = @hl if @hl;
   }
 
