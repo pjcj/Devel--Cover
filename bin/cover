@@ -51,6 +51,7 @@ my $Options = {
   report_c1                => 90,
   report_c2                => 100,
   select                   => [],
+  select_dir               => [],
   select_re                => [],
   summary                  => 1,
   uncoverable_file         => [],
@@ -90,6 +91,7 @@ sub get_options {
         report_c1=s
         report_c2=s
         select=s
+        select_dir=s
         select_re=s
         silent!
         summary!
@@ -365,6 +367,31 @@ sub do_gcov {
   }
 }
 
+sub scan_select_dirs {
+  my ($db) = @_;
+  return unless @{ $Options->{select_dir} };
+
+  my @files;
+  my $wanted = sub {
+    return if $File::Find::dir =~ m{(?:^|/)blib(?:/|$)};
+    return unless -f && /\.p[ml]\z/;
+    push @files, $File::Find::name;
+  };
+
+  for my $dir (@{ $Options->{select_dir} }) {
+    unless (-d $dir) {
+      warn "cover: --select_dir directory does not exist: $dir\n";
+      next;
+    }
+    File::Find::find({ wanted => $wanted, no_chdir => 1 }, $dir);
+  }
+
+  $db->{files} = [ sort @files ];
+  $db->write($db->{db});
+  print "Added ", scalar @files, " file(s) from --select_dir\n"
+    unless $Options->{silent};
+}
+
 sub manage_dbs {
   my ($dbname, $test_result) = @_;
 
@@ -375,6 +402,7 @@ sub manage_dbs {
     uncoverable_file => $Options->{uncoverable_file}
   );
   $db = $db->merge_runs;
+  scan_select_dirs($db);
 
   $db->add_uncoverable($Options->{add_uncoverable_point});
   $db->delete_uncoverable($Options->{delete_uncoverable_point});
@@ -555,6 +583,7 @@ The following command line options are supported:
  -launch               - launch report in viewer (if avail) (default off)
 
  -select filename      - only report on the file            (default all)
+ -select_dir dir       - include all Perl files in dir      (default none)
  -ignore filename      - don't report on the file           (default none)
  -select_re RE         - append to REs of files to select   (default none)
  -ignore_re RE         - append to REs of files to ignore   (default none)
@@ -581,8 +610,8 @@ The following command line options are supported:
 
  coverage_database [coverage_database ...]
 
-The C<-report>, C<-select>, C<-ignore>, C<-select_re>, C<-ignore_re>, and
-C<-coverage> options may be specified multiple times.
+The C<-report>, C<-select>, C<-select_dir>, C<-ignore>, C<-select_re>,
+C<-ignore_re>, and C<-coverage> options may be specified multiple times.
 
 =head1 REPORT FORMATS
 
@@ -643,6 +672,12 @@ default.
 Specify the C<-select>, C<-select_re>, C<-ignore>, and C<-ignore_re> options to
 report on specific files.  C<-select> and C<-ignore> are interpreted as shell
 globs; C<-select_re> and C<-ignore_re> are interpreted as regular expressions.
+
+The C<-select_dir> option scans the given directory for C<.pm> and C<.pl>
+files and ensures they appear in the coverage report even if no tests
+exercised them.  This is useful for identifying completely untested code.
+Files under C<blib> directories are excluded.  The option may be specified
+multiple times.
 
 Specify C<-coverage> options to report on specific criteria.  By default all
 available information on all criteria in all files will be reported.
