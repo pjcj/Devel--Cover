@@ -778,6 +778,11 @@ sub cover ($self) {
   }
 
   $self->objectify_cover;
+  for my $file ($self->{files}->@*) {
+    next if exists $self->{cover}{$file};
+    $self->{cover}{$file} =
+      bless { meta => { uncompiled => 1 } }, "Devel::Cover::DB::File";
+  }
   $self->{cover_valid} = 1;
   $self->{cover}
 }

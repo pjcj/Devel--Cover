@@ -21,6 +21,7 @@ sub calculate_summary {
   my ($db, $file, $options) = @_;
 
   my $s = $db->{summary}{$file} ||= {};
+  return if $self->{meta}{uncompiled};
 
   for my $criterion ($self->items) {
     next unless $options->{$criterion};
@@ -35,6 +36,7 @@ sub calculate_summary {
 sub calculate_percentage {
   my $self = shift;
   my ($db, $s) = @_;
+  return if $self->{meta}{uncompiled};
 
   # print STDERR Dumper $s;
   for my $criterion ($self->items) {
