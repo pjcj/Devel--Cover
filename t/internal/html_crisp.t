@@ -52,6 +52,15 @@ sub test_html_crisp_report () {
 
   like $content, qr/Uncovered\.pm/, "Uncovered.pm appears in index";
 
+  my $have_ppi = eval { require PPI; 1 };
+  if ($have_ppi) {
+    like $content, qr/Uncovered\.pm.*\b0\.0\b/s,
+      "0.0 shown for Uncovered.pm (PPI available)";
+  } else {
+    like $content, qr/Uncovered\.pm.*n\/a/s,
+      "n/a shown for Uncovered.pm (no PPI)";
+  }
+
   # Detail page filenames are the full path with \W replaced by '-'.
   # Filter out index.html; look for pages matching each module's basename.
   my @detail_pages    = grep !/index\.html$/,        glob "$outdir/*.html";
