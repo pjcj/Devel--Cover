@@ -76,26 +76,29 @@ sub _get_summary ($file, $criterion) {
 
 sub _build_file_data () {
   my @file_data;
+  my $na = { pc => "n/a", class => "", covered => 0, total => 0, error => 0 };
   for my $file ($R{options}{file}->@*) {
     next unless $R{db}->summary($file);
     (my $dir = $file) =~ s{/[^/]+$}{};
     $dir = "" if $dir eq $file;
     (my $basename = $file) =~ s{.*/}{};
-    my %f = (
-      name     => $file,
-      basename => $basename,
-      dir      => $dir,
-      link     => "$R{filenames}{$file}.html",
-      exists   => -e $file,
-      criteria => {},
+    my $uncompiled = $R{db}->cover->file($file)->{meta}{uncompiled} ? 1 : 0;
+    my %f          = (
+      name       => $file,
+      basename   => $basename,
+      dir        => $dir,
+      link       => "$R{filenames}{$file}.html",
+      exists     => !$uncompiled && -e $file,
+      uncompiled => $uncompiled,
+      criteria   => {},
     );
     my $risk = 0;
     for my $c ($R{showing}->@*) {
-      my $s = _get_summary($file, $c);
+      my $s = $uncompiled ? $na : _get_summary($file, $c);
       $f{criteria}{$c} = $s;
       $risk += ($s->{error} || 0) if $c =~ /^(?:branch|condition)$/;
     }
-    my $total = _get_summary($file, "total");
+    my $total = $uncompiled ? $na : _get_summary($file, "total");
     $f{total} = $total;
     my $pc = $total->{pc} // "n/a";
     $f{total_pc}   = $pc;
@@ -125,7 +128,7 @@ sub _build_dir_groups ($file_data) {
     {
       dir   => $_ || "(root)",
       pc    => $pc,
-      class => class($pc, $pc < 100 ? 1 : 0, "total"),
+      class => class($pc, ($pc eq "n/a" || $pc < 100) ? 1 : 0, "total"),
       files => $dirs{$_},
     }
   } sort keys %dirs
@@ -290,12 +293,13 @@ sub _totals_for ($file) {
 }
 
 sub _coverage_distribution ($file_data) {
-  my %dist = (c0 => 0, c1 => 0, c2 => 0, c3 => 0);
-  for my $fd (@$file_data) {
+  my %dist     = (c0 => 0, c1 => 0, c2 => 0, c3 => 0);
+  my @compiled = grep { !$_->{uncompiled} } @$file_data;
+  for my $fd (@compiled) {
     my $cl = $fd->{total}{class} || "c3";
     $dist{$cl}++ if exists $dist{$cl};
   }
-  $dist{dist_total} = @$file_data || 1;
+  $dist{dist_total} = @compiled || 1;
   %dist
 }
 
