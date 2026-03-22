@@ -47,8 +47,8 @@ sub test_minimal () {
     use warnings;
 
     sub hello {
-        my $name = shift;
-        print "hello $name\n";
+      my $name = shift;
+      print "hello $name\n";
     }
 
     1
@@ -72,31 +72,31 @@ sub test_branches () {
     use warnings;
 
     sub check {
-        my $x = shift;
-        my $out;
-        if ($x > 10) {
-            $out = "big";
-        } elsif ($x > 0) {
-            $out = "small";
-        } else {
-            $out = "non-positive";
-        }
-        print "$out\n";
+      my $x = shift;
+      my $out;
+      if ($x > 10) {
+        $out = "big";
+      } elsif ($x > 0) {
+        $out = "small";
+      } else {
+        $out = "non-positive";
+      }
+      print "$out\n";
     }
 
     sub toggle {
-        my $flag = shift;
-        my $val = 0;
-        unless ($flag) {
-            $val = 99;
-        }
-        return $val;
+      my $flag = shift;
+      my $val  = 0;
+      unless ($flag) {
+        $val = 99;
+      }
+      return $val;
     }
 
     sub label {
-        my $x = shift;
-        my $result = $x > 5 ? "high" : "low";
-        return $result;
+      my $x      = shift;
+      my $result = $x > 5 ? "high" : "low";
+      return $result;
     }
 
     1
@@ -129,12 +129,12 @@ sub test_loops () {
     use warnings;
 
     sub total {
-        my $n = shift;
-        my $sum = 0;
-        for my $i (1..$n) {
-            $sum += $i;
-        }
-        return $sum;
+      my $n   = shift;
+      my $sum = 0;
+      for my $i (1 .. $n) {
+        $sum += $i;
+      }
+      return $sum;
     }
 
     1
@@ -170,13 +170,13 @@ sub test_pod () {
     =cut
 
     sub foo {
-        my $x = shift;
-        print "$x\n";
+      my $x = shift;
+      print "$x\n";
     }
 
     sub bar {
-        my $y = shift;
-        return $y;
+      my $y = shift;
+      return $y;
     }
 
     1
@@ -197,43 +197,43 @@ sub test_conditions () {
     use warnings;
 
     sub normal_and {
-        my ($x, $y) = @_;
-        my $z = $x && $y;
-        return $z;
+      my ($x, $y) = @_;
+      my $z = $x && $y;
+      return $z;
     }
 
     sub normal_or {
-        my ($x, $y) = @_;
-        my $z = $x || $y;
-        return $z;
+      my ($x, $y) = @_;
+      my $z = $x || $y;
+      return $z;
     }
 
     sub normal_dor {
-        my ($x, $y) = @_;
-        my $z = $x // $y;
-        return $z;
+      my ($x, $y) = @_;
+      my $z = $x // $y;
+      return $z;
     }
 
     sub flow_control {
-        my $x = shift;
-        $x or die "missing";
-        $x || return;
-        $x // warn "undef";
-        $x && next;
-        open my $fh, "<", $x or die "open: $!";
+      my $x = shift;
+      $x or die "missing";
+      $x || return;
+      $x // warn "undef";
+      $x && next;
+      open my $fh, "<", $x or die "open: $!";
     }
 
     sub const_rhs {
-        my $x = shift;
-        my $y = $x || "default";
-        my $z = $x // 42;
-        my $w = $x && undef;
+      my $x = shift;
+      my $y = $x || "default";
+      my $z = $x // 42;
+      my $w = $x && undef;
     }
 
     sub xor_op {
-        my ($a, $b) = @_;
-        my $c = $a xor $b;
-        return $c;
+      my ($a, $b) = @_;
+      my $c = $a xor $b;
+      return $c;
     }
 
     1
