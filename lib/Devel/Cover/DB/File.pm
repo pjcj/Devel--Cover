@@ -21,7 +21,25 @@ sub calculate_summary {
   my ($db, $file, $options) = @_;
 
   my $s = $db->{summary}{$file} ||= {};
-  return if $self->{meta}{uncompiled};
+  if ($self->{meta}{uncompiled}) {
+    my $counts = $self->{meta}{counts} // return;
+    my $t      = $db->{summary};
+    for my $c (keys %$counts) {
+      next unless $options->{$c};
+      next unless $counts->{$c};  # skip criteria with nothing to cover
+      $s->{$c} = {
+        covered => 0,
+        total   => $counts->{$c},
+        error   => $counts->{$c},
+      };
+      for my $k (qw( total covered error )) {
+        $s->{total}{$k}         += $s->{$c}{$k};
+        $t->{Total}{$c}{$k}    += $s->{$c}{$k};
+        $t->{Total}{total}{$k} += $s->{$c}{$k};
+      }
+    }
+    return;
+  }
 
   for my $criterion ($self->items) {
     next unless $options->{$criterion};
@@ -36,7 +54,14 @@ sub calculate_summary {
 sub calculate_percentage {
   my $self = shift;
   my ($db, $s) = @_;
-  return if $self->{meta}{uncompiled};
+  if ($self->{meta}{uncompiled}) {
+    my $counts = $self->{meta}{counts} // return;
+    for my $c (keys %$counts) {
+      Devel::Cover::Criterion->calculate_percentage($db, $s->{$c});
+    }
+    Devel::Cover::Criterion->calculate_percentage($db, $s->{total});
+    return;
+  }
 
   # print STDERR Dumper $s;
   for my $criterion ($self->items) {

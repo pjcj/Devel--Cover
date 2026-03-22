@@ -778,10 +778,16 @@ sub cover ($self) {
   }
 
   $self->objectify_cover;
-  for my $file ($self->{files}->@*) {
-    next if exists $self->{cover}{$file};
-    $self->{cover}{$file} =
-      bless { meta => { uncompiled => 1 } }, "Devel::Cover::DB::File";
+  if ($self->{files}->@*) {
+    require Devel::Cover::Static;
+    for my $file ($self->{files}->@*) {
+      next if exists $self->{cover}{$file};
+      my $counts = Devel::Cover::Static::count_criteria($file);
+      $self->{cover}{$file}
+        = bless {
+          meta => { uncompiled => 1, ($counts ? (counts => $counts) : ()) }, },
+        "Devel::Cover::DB::File";
+    }
   }
   $self->{cover_valid} = 1;
   $self->{cover}

@@ -64,10 +64,20 @@ sub test_uncompiled_in_cover () {
   ok defined $file_obj, "Uncovered.pm appears in cover()";
   ok $file_obj && $file_obj->{meta}{uncompiled},
     "Uncovered.pm has uncompiled meta flag";
+
+  my $have_ppi = eval { require PPI; 1 };
+  if ($have_ppi) {
+    ok $file_obj->{meta}{counts}, "counts present when PPI available";
+    ok $file_obj->{meta}{counts}{subroutine},
+      "subroutine count is non-zero";
+  } else {
+    ok !$file_obj->{meta}{counts}, "no counts without PPI";
+  }
 }
 
 # the text report summary should list uncovered files (those in --select_dir
-# but absent from all runs) with n/a for every coverage criterion.
+# but absent from all runs).  When PPI is available, Static analysis provides
+# real counts so values show 0.0; otherwise they show n/a.
 sub test_text_report () {
   my ($tmpdir, $libdir) = setup_lib_dir;
   my $cover_db = create_cover_db($tmpdir, $libdir);
@@ -77,8 +87,16 @@ sub test_text_report () {
   );
 
   is $exit, 0, "cover --report text exits 0";
-  like $out, qr/Uncovered\.pm/,       "Uncovered.pm appears in report";
-  like $out, qr/Uncovered\.pm.*n\/a/, "n/a shown on Uncovered.pm row";
+  like $out, qr/Uncovered\.pm/, "Uncovered.pm appears in report";
+
+  my $have_ppi = eval { require PPI; 1 };
+  if ($have_ppi) {
+    like $out, qr/Uncovered\.pm.*\b0\.0\b/,
+      "0.0 shown on Uncovered.pm row (PPI available)";
+  } else {
+    like $out, qr/Uncovered\.pm.*n\/a/,
+      "n/a shown on Uncovered.pm row (no PPI)";
+  }
 }
 
 sub main () {
