@@ -41,18 +41,18 @@ sub write_file ($name, $content) {
 # statements. DC would count: 6 include stmts (3 per use) + 1
 # compound header (none) + 2 simple stmts = 8 total.
 sub test_minimal () {
-  my $file = write_file("Minimal.pm", <<~'PERL');
-    package Minimal;
-    use strict;
-    use warnings;
+  my $file = write_file("Minimal.pm", <<'EOPERL');
+package Minimal;
+use strict;
+use warnings;
 
-    sub hello {
-      my $name = shift;
-      print "hello $name\n";
-    }
+sub hello {
+  my $name = shift;
+  print "hello $name\n";
+}
 
-    1
-    PERL
+1
+EOPERL
 
   my $counts = Devel::Cover::Static::count_criteria($file);
   ok defined $counts, "minimal: returns counts";
@@ -66,41 +66,41 @@ sub test_minimal () {
 # Branches: if/elsif/else, unless, ternary.
 # DC branch outcomes = 2 per decision point.
 sub test_branches () {
-  my $file = write_file("Branchy.pm", <<~'PERL');
-    package Branchy;
-    use strict;
-    use warnings;
+  my $file = write_file("Branchy.pm", <<'EOPERL');
+package Branchy;
+use strict;
+use warnings;
 
-    sub check {
-      my $x = shift;
-      my $out;
-      if ($x > 10) {
-        $out = "big";
-      } elsif ($x > 0) {
-        $out = "small";
-      } else {
-        $out = "non-positive";
-      }
-      print "$out\n";
-    }
+sub check {
+  my $x = shift;
+  my $out;
+  if ($x > 10) {
+    $out = "big";
+  } elsif ($x > 0) {
+    $out = "small";
+  } else {
+    $out = "non-positive";
+  }
+  print "$out\n";
+}
 
-    sub toggle {
-      my $flag = shift;
-      my $val  = 0;
-      unless ($flag) {
-        $val = 99;
-      }
-      return $val;
-    }
+sub toggle {
+  my $flag = shift;
+  my $val  = 0;
+  unless ($flag) {
+    $val = 99;
+  }
+  return $val;
+}
 
-    sub label {
-      my $x      = shift;
-      my $result = $x > 5 ? "high" : "low";
-      return $result;
-    }
+sub label {
+  my $x      = shift;
+  my $result = $x > 5 ? "high" : "low";
+  return $result;
+}
 
-    1
-    PERL
+1
+EOPERL
 
   my $counts = Devel::Cover::Static::count_criteria($file);
   ok defined $counts, "branches: returns counts";
@@ -123,22 +123,22 @@ sub test_branches () {
 # For loop - DC does not count a range-for as a branch, but it does
 # count the for header as a statement.
 sub test_loops () {
-  my $file = write_file("Loopy.pm", <<~'PERL');
-    package Loopy;
-    use strict;
-    use warnings;
+  my $file = write_file("Loopy.pm", <<'EOPERL');
+package Loopy;
+use strict;
+use warnings;
 
-    sub total {
-      my $n   = shift;
-      my $sum = 0;
-      for my $i (1 .. $n) {
-        $sum += $i;
-      }
-      return $sum;
-    }
+sub total {
+  my $n   = shift;
+  my $sum = 0;
+  for my $i (1 .. $n) {
+    $sum += $i;
+  }
+  return $sum;
+}
 
-    1
-    PERL
+1
+EOPERL
 
   my $counts = Devel::Cover::Static::count_criteria($file);
   ok defined $counts, "loops: returns counts";
@@ -154,33 +154,33 @@ sub test_loops () {
 
 # Pod coverage: total = number of named user subs (excluding BEGIN).
 sub test_pod () {
-  my $file = write_file("Documented.pm", <<~'PERL');
-    package Documented;
-    use strict;
-    use warnings;
+  my $file = write_file("Documented.pm", <<'EOPERL');
+package Documented;
+use strict;
+use warnings;
 
-    =head1 NAME
+=head1 NAME
 
-    Documented - a test module
+Documented - a test module
 
-    =head2 foo
+=head2 foo
 
-    Does foo.
+Does foo.
 
-    =cut
+=cut
 
-    sub foo {
-      my $x = shift;
-      print "$x\n";
-    }
+sub foo {
+  my $x = shift;
+  print "$x\n";
+}
 
-    sub bar {
-      my $y = shift;
-      return $y;
-    }
+sub bar {
+  my $y = shift;
+  return $y;
+}
 
-    1
-    PERL
+1
+EOPERL
 
   my $counts = Devel::Cover::Static::count_criteria($file);
   ok defined $counts, "pod: returns counts";
@@ -191,53 +191,53 @@ sub test_pod () {
 # Constant/flow-control RHS gives 2 outcomes, normal gives 3,
 # xor always gives 4.
 sub test_conditions () {
-  my $file = write_file("Conditions.pm", <<~'PERL');
-    package Conditions;
-    use strict;
-    use warnings;
+  my $file = write_file("Conditions.pm", <<'EOPERL');
+package Conditions;
+use strict;
+use warnings;
 
-    sub normal_and {
-      my ($x, $y) = @_;
-      my $z = $x && $y;
-      return $z;
-    }
+sub normal_and {
+  my ($x, $y) = @_;
+  my $z = $x && $y;
+  return $z;
+}
 
-    sub normal_or {
-      my ($x, $y) = @_;
-      my $z = $x || $y;
-      return $z;
-    }
+sub normal_or {
+  my ($x, $y) = @_;
+  my $z = $x || $y;
+  return $z;
+}
 
-    sub normal_dor {
-      my ($x, $y) = @_;
-      my $z = $x // $y;
-      return $z;
-    }
+sub normal_dor {
+  my ($x, $y) = @_;
+  my $z = $x // $y;
+  return $z;
+}
 
-    sub flow_control {
-      my $x = shift;
-      $x or die "missing";
-      $x || return;
-      $x // warn "undef";
-      $x && next;
-      open my $fh, "<", $x or die "open: $!";
-    }
+sub flow_control {
+  my $x = shift;
+  $x or die "missing";
+  $x || return;
+  $x // warn "undef";
+  $x && next;
+  open my $fh, "<", $x or die "open: $!";
+}
 
-    sub const_rhs {
-      my $x = shift;
-      my $y = $x || "default";
-      my $z = $x // 42;
-      my $w = $x && undef;
-    }
+sub const_rhs {
+  my $x = shift;
+  my $y = $x || "default";
+  my $z = $x // 42;
+  my $w = $x && undef;
+}
 
-    sub xor_op {
-      my ($a, $b) = @_;
-      my $c = $a xor $b;
-      return $c;
-    }
+sub xor_op {
+  my ($a, $b) = @_;
+  my $c = $a xor $b;
+  return $c;
+}
 
-    1
-    PERL
+1
+EOPERL
 
   my $counts = Devel::Cover::Static::count_criteria($file);
   ok defined $counts, "conditions: returns counts";
