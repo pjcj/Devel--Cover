@@ -300,7 +300,7 @@ sub _write_asset ($dir, $name, $content) {
 }
 
 sub get_options ($self, $opt) {
-  $opt->{option}{outputfile} = "index.html";
+  $opt->{option}{outputfile} = "coverage.html";
   $opt->{option}{restrict}   = 1;
   $Threshold->{$_}           = $opt->{"report_$_"}
     for grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
@@ -1856,7 +1856,7 @@ $Templates{file} = <<'EOT';
 <a href="[% prev_file.link %]" class="nav-prev">&laquo; [% prev_file.name %]</a>
 [% END %]
 </span>
-<span><a href="index.html">&uarr; Summary</a></span>
+<span><a href="coverage.html">&uarr; Summary</a></span>
 <span>
 [% IF next_file %]
 <a href="[% next_file.link %]" class="nav-next">[% next_file.name %] &raquo;</a>
@@ -1980,7 +1980,7 @@ Condition: [% tt.expr %]
 <a href="[% prev_file.link %]" class="nav-prev">&laquo; [% prev_file.name %]</a>
 [% END %]
 </span>
-<span><a href="index.html">&uarr; Summary</a></span>
+<span><a href="coverage.html">&uarr; Summary</a></span>
 <span>
 [% IF next_file %]
 <a href="[% next_file.link %]" class="nav-next">[% next_file.name %] &raquo;</a>
@@ -2058,7 +2058,7 @@ highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
 
 The following command line options are supported:
 
- -outputfile  - name of output file              (default index.html)
+ -outputfile  - name of output file              (default coverage.html)
  -noppihtml   - disables PPI::HTML highlighting  (default off)
  -noperltidy  - disables Perl::Tidy highlighting (default off)
 

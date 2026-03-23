@@ -51,8 +51,8 @@ sub test_html_crisp_report () {
 
   is $exit, 0, "cover --report html_crisp exits 0";
 
-  my $index = File::Spec->catfile($outdir, "index.html");
-  ok -e $index, "index.html was generated";
+  my $index = File::Spec->catfile($outdir, "coverage.html");
+  ok -e $index, "coverage.html was generated";
 
   my $content = _slurp($index);
 
