@@ -1097,18 +1097,18 @@ BODY
 
   # HTML reporters get an output directory and browser launch
   case "$report" in
-    html* | *subtle*)
-      cover_args=("--outputdir" "$outdir" "${cover_args[@]}")
-      "$PERL" -Iblib/lib -Iblib/arch "$srcdir/../bin/cover" "${cover_args[@]}"
-      local index="$outdir/index.html"
-      if [[ -f "$index" ]]; then
-        pi "Report: $index"
-        open "$index" 2>/dev/null || xdg-open "$index" 2>/dev/null || true
-      fi
-      ;;
-    *)
-      "$PERL" -Iblib/lib -Iblib/arch "$srcdir/../bin/cover" "${cover_args[@]}"
-      ;;
+  html*)
+    cover_args=("--outputdir" "$outdir" "${cover_args[@]}")
+    "$PERL" -Iblib/lib -Iblib/arch "$srcdir/../bin/cover" "${cover_args[@]}"
+    local index="$outdir/coverage.html"
+    if [[ -f "$index" ]]; then
+      pi "Report: $index"
+      open "$index" 2>/dev/null || xdg-open "$index" 2>/dev/null || true
+    fi
+    ;;
+  *)
+    "$PERL" -Iblib/lib -Iblib/arch "$srcdir/../bin/cover" "${cover_args[@]}"
+    ;;
   esac
 }
 
