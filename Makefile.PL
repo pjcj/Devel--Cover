@@ -483,7 +483,7 @@ precommit_all :
 \t pre-commit run --all-files
 
 lint : precommit_all
-
+\
 lint_changes : precommit
 
 _delete_db : pure_all
@@ -514,7 +514,14 @@ self_cover : _self_cover_reports
     (
         map "report_$_ : _self_cover_tests\n"
       . "\t \@echo Generating $_ report\n"
-      . "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover bin/cover -silent -report $_ > /dev/null\n",
+      . "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover"
+      . " bin/cover -silent -report $_ > /dev/null\n",
+      @reports,
+    ),
+
+    (
+      map "demo_$_ : pure_all\n"
+      . qq[\t PERL="\$(PERL)" utils/dc demo-report $_\n],
       @reports,
     )
 }

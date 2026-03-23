@@ -27,10 +27,18 @@ for my $mod (qw( HTML::Entities Template )) {
   };
 }
 
+sub _slurp ($path) {
+  open my $fh, "<", $path or die "Cannot read $path: $!";
+  my $content = do { local $/; <$fh> };
+  close $fh or die "Cannot close $path: $!";
+  $content
+}
+
 # Html_crisp report for a db with --select_dir:
-# - Uncovered.pm (never loaded) appears in the summary index
-# - Uncovered.pm has no per-file detail page
-# - Covered.pm does have a per-file detail page
+# - All four modules appear in the summary index
+# - Uncovered modules have no per-file detail pages
+# - Covered modules do have per-file detail pages
+# - When PPI is available, uncovered modules show 0.0
 sub test_html_crisp_report () {
   my ($tmpdir, $libdir) = setup_lib_dir;
   my $cover_db = create_cover_db($tmpdir, $libdir);
@@ -46,29 +54,39 @@ sub test_html_crisp_report () {
   my $index = File::Spec->catfile($outdir, "index.html");
   ok -e $index, "index.html was generated";
 
-  open my $fh, "<", $index or die "Cannot read $index: $!";
-  my $content = do { local $/; <$fh> };
-  close $fh or die "Cannot close $index: $!";
+  my $content = _slurp($index);
 
-  like $content, qr/Uncovered\.pm/, "Uncovered.pm appears in index";
+  # All four modules appear in the index
+  like $content, qr/Covered\/Calc\.pm/,    "Covered/Calc.pm in index";
+  like $content, qr/Covered\/Utils\.pm/,   "Covered/Utils.pm in index";
+  like $content, qr/Uncovered\/Calc\.pm/,  "Uncovered/Calc.pm in index";
+  like $content, qr/Uncovered\/Utils\.pm/, "Uncovered/Utils.pm in index";
 
+  # When PPI is available, uncovered files show 0.0
   my $have_ppi = eval { require PPI; 1 };
   if ($have_ppi) {
-    like $content, qr/Uncovered\.pm.*\b0\.0\b/s,
-      "0.0 shown for Uncovered.pm (PPI available)";
+    like $content, qr/Uncovered\/Calc\.pm.*?\b0\.0\b/s,
+      "0.0 shown for Uncovered/Calc.pm (PPI available)";
+    like $content, qr/Uncovered\/Utils\.pm.*?\b0\.0\b/s,
+      "0.0 shown for Uncovered/Utils.pm (PPI available)";
   } else {
-    like $content, qr/Uncovered\.pm.*n\/a/s,
-      "n/a shown for Uncovered.pm (no PPI)";
+    like $content, qr/Uncovered\/Calc\.pm.*?n\/a/s,
+      "n/a shown for Uncovered/Calc.pm (no PPI)";
+    like $content, qr/Uncovered\/Utils\.pm.*?n\/a/s,
+      "n/a shown for Uncovered/Utils.pm (no PPI)";
   }
 
-  # Detail page filenames are the full path with \W replaced by '-'.
-  # Filter out index.html; look for pages matching each module's basename.
-  my @detail_pages    = grep !/index\.html$/,        glob "$outdir/*.html";
-  my @covered_pages   = grep /-Covered-pm\.html$/,   @detail_pages;
-  my @uncovered_pages = grep /-Uncovered-pm\.html$/, @detail_pages;
+  # Detail pages: covered modules have them, uncovered don't.
+  my @detail_pages = grep !/index\.html$/, glob "$outdir/*.html";
 
-  ok @covered_pages,    "detail page for Covered.pm exists";
-  ok !@uncovered_pages, "no detail page for Uncovered.pm";
+  ok( (grep /-Calc-pm\.html$/,  @detail_pages),
+    "detail page for Covered/Calc.pm exists" );
+  ok( (grep /-Utils-pm\.html$/, @detail_pages),
+    "detail page for Covered/Utils.pm exists" );
+
+  # Uncovered detail pages would contain "Uncovered" in the filename
+  my @uncov_pages = grep /Uncovered/, @detail_pages;
+  ok !@uncov_pages, "no detail pages for Uncovered modules";
 }
 
 sub main () {
