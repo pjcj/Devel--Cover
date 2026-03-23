@@ -934,6 +934,101 @@ sub negate {
 }
 BODY
 
+  local full_body
+  read -r -d '' full_body <<'BODY' || true
+=head2 double
+
+Double a number.
+
+=cut
+
+sub double {
+  my $x = shift;
+  if ($x > 0) {
+    return $x * 2;
+  } else {
+    return 0;
+  }
+}
+
+=head2 clamp
+
+Clamp a value to a range.
+
+=cut
+
+sub clamp {
+  my ($val, $min, $max) = @_;
+  if ($val < $min) {
+    return $min;
+  } elsif ($val > $max) {
+    return $max;
+  } else {
+    return $val;
+  }
+}
+
+=head2 sign
+
+Return the sign of a number.
+
+=cut
+
+sub sign {
+  my $x = shift;
+  return $x > 0 ? "positive" : "non-positive";
+}
+
+=head2 label
+
+Label a value.
+
+=cut
+
+sub label {
+  my $val = shift;
+  return $val && "yes" || "no";
+}
+
+=head2 abs_val
+
+Absolute value.
+
+=cut
+
+sub abs_val {
+  my $x = shift;
+  return $x < 0 ? -$x : $x;
+}
+
+=head2 is_even
+
+Check if even.
+
+=cut
+
+sub is_even {
+  my $x = shift;
+  return $x % 2 == 0;
+}
+
+=head2 inc
+
+Increment.
+
+=cut
+
+sub inc {
+  my $x = shift;
+  return $x + 1;
+}
+
+sub _helper {
+  my $x = shift;
+  return $x + 1;
+}
+BODY
+
   read -r -d '' utils_body <<'BODY' || true
 =head2 greet
 
@@ -953,8 +1048,24 @@ sub upper {
 }
 BODY
 
+  local trivial_body
+  read -r -d '' trivial_body <<'BODY' || true
+=head2 id
+
+Return the argument unchanged.
+
+=cut
+
+sub id {
+  my $x = shift;
+  return $x;
+}
+BODY
+
   for side in Covered Uncovered; do
     demo_write_module "$libdir/$side/Calc.pm" "${side}::Calc" "$calc_body"
+    demo_write_module "$libdir/$side/Full.pm" "${side}::Full" "$full_body"
+    demo_write_module "$libdir/$side/Trivial.pm" "${side}::Trivial" "$trivial_body"
     demo_write_module "$libdir/$side/Utils.pm" "${side}::Utils" "$utils_body"
   done
 
@@ -963,8 +1074,18 @@ BODY
   select=$(perl -e "print quotemeta q($libdir)")
   "$PERL" -Iblib/lib -Iblib/arch "-I$libdir" \
     "-MDevel::Cover=-db,$cover_db,-silent,1,-merge,0,-select,$select" \
-    -e 'use Covered::Calc; use Covered::Utils;
-        Covered::Calc::add(1, 2); Covered::Utils::greet("world")' 2>&1
+    -e 'use Covered::Calc; use Covered::Full;
+        use Covered::Trivial; use Covered::Utils;
+        Covered::Calc::add(1, 2);
+        Covered::Utils::greet("world"); Covered::Utils::upper("hi");
+        Covered::Full::double(5); Covered::Full::double(-1);
+        Covered::Full::clamp(0, 1, 10); Covered::Full::clamp(5, 1, 10);
+        Covered::Full::clamp(99, 1, 10);
+        Covered::Full::sign(1); Covered::Full::sign(-1);
+        Covered::Full::label(1); Covered::Full::label(0);
+        Covered::Full::abs_val(-3); Covered::Full::is_even(4);
+        Covered::Full::inc(1);
+        Covered::Trivial::id(42)' 2>&1
 
   pi "Generating $report report"
   local cover_args=(

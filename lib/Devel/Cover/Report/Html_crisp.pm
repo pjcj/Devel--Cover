@@ -63,7 +63,8 @@ sub _fmt_pc ($pc) {
 
 sub _get_summary ($file, $criterion) {
   my $part = $R{db}->summary($file);
-  return {} unless exists $part->{$criterion};
+  return { pc => "n/a", class => "", covered => 0, total => 0, error => 0 }
+    unless exists $part->{$criterion};
   my $c = $part->{$criterion};
   {
     pc      => _fmt_pc($c->{percentage}),
@@ -76,9 +77,6 @@ sub _get_summary ($file, $criterion) {
 
 sub _build_file_data () {
   my @file_data;
-  my $na = { pc => "n/a", class => "", covered => 0, total => 0, error => 0 };
-  my $zero
-    = { pc => "0.0", class => "c0", covered => 0, total => 0, error => 0 };
   for my $file ($R{options}{file}->@*) {
     next unless $R{db}->summary($file);
     (my $dir = $file) =~ s{/[^/]+$}{};
@@ -91,7 +89,7 @@ sub _build_file_data () {
       basename   => $basename,
       dir        => $dir,
       link       => "$R{filenames}{$file}.html",
-      exists     => !$uncompiled && -e $file,
+      exists     => -e $file,
       uncompiled => $uncompiled,
       criteria   => {},
     );
@@ -99,11 +97,17 @@ sub _build_file_data () {
     my $risk = 0;
 
     for my $c ($R{showing}->@*) {
-      my $s = $uncompiled ? $zero : _get_summary($file, $c);
-      $f{criteria}{$c} = $s;
-      $risk += ($s->{error} || 0) if $c =~ /^(?:branch|condition)$/;
+      my $s = _get_summary($file, $c);
+      $s->{class}       = "c0"  if $uncompiled && $s->{pc} eq "n/a";
+      $s->{pc}          = "0.0" if $uncompiled && $s->{pc} eq "n/a";
+      $f{criteria}{$c}  = $s;
+      $risk            += ($s->{error} || 0) if $c =~ /^(?:branch|condition)$/;
     }
-    my $total = $uncompiled ? $zero : _get_summary($file, "total");
+    my $total = _get_summary($file, "total");
+    if ($uncompiled && $total->{pc} eq "n/a") {
+      $total->{class} = "c0";
+      $total->{pc}    = "0.0";
+    }
     $f{total} = $total;
     my $pc = $total->{pc} // "n/a";
     $f{total_pc}   = $pc;
@@ -260,6 +264,29 @@ sub _build_source_lines ($file) {
   \@lines
 }
 
+sub _build_untested_source_lines ($file) {
+  open my $fh, "<", $file or warn("Unable to open $file: $!\n"), return [];
+  my @all_lines = <$fh>;
+  close $fh or die "Can't close $file: $!\n";
+
+  if ($Have_highlighter) {
+    my @hl = highlight($R{options}{option}, @all_lines);
+    @all_lines = @hl if @hl;
+  }
+
+  my @lines;
+  my $linen = 1;
+  while (defined(my $l = shift @all_lines)) {
+    my $n = $linen++;
+    chomp $l;
+    my %line = (number => $n, text => length $l ? $l : "&nbsp;");
+    push @lines, \%line;
+    last if $l =~ /^__(END|DATA)__/;
+  }
+
+  \@lines
+}
+
 sub _write_asset ($dir, $name, $content) {
   my $path = "$dir/$name";
   open my $fh, ">", $path or die "Can't open $path: $!\n";
@@ -298,14 +325,24 @@ sub _totals_for ($file) {
 }
 
 sub _coverage_distribution ($file_data) {
-  my %dist = (c0 => 0, c1 => 0, c2 => 0, c3 => 0);
-  my @counted
-    = grep { !$_->{uncompiled} || $_->{total}{pc} ne "n/a" } @$file_data;
-  for my $fd (@counted) {
-    my $cl = $fd->{total}{class} || "c3";
-    $dist{$cl}++ if exists $dist{$cl};
+  my %dist = (c0 => 0, c1 => 0, c2 => 0, c3 => 0, untested => 0);
+  for my $fd (@$file_data) {
+    if ($fd->{uncompiled}) {
+      $dist{untested}++;
+    } else {
+      my $cl = $fd->{total}{class} || "c3";
+      $dist{$cl}++ if exists $dist{$cl};
+    }
   }
-  $dist{dist_total} = @counted || 1;
+  $dist{dist_total} = @$file_data || 1;
+
+  my $pl = sub ($n) { $n == 1 ? "file" : "files" };
+  my $t  = $Threshold;
+  $dist{tip_c0} = "$dist{c0} ${\$pl->($dist{c0})}" . " &lt; $t->{c0}%";
+  $dist{tip_c1} = "$dist{c1} ${\$pl->($dist{c1})}" . " $t->{c0}-$t->{c1}%";
+  $dist{tip_c2} = "$dist{c2} ${\$pl->($dist{c2})}" . " $t->{c1}-100%";
+  $dist{tip_c3} = "$dist{c3} ${\$pl->($dist{c3})}" . " 100%";
+  $dist{tip_untested} = "$dist{untested} untested ${\$pl->($dist{untested})}";
   %dist
 }
 
@@ -333,9 +370,17 @@ sub _generate_file_pages ($outdir, $file_data) {
   for my $idx (0 .. $#$file_data) {
     my $fd = $file_data->[$idx];
     next unless $fd->{exists};
-    my $file       = $fd->{name};
-    my $lines      = _build_source_lines($file);
-    my %file_total = _totals_for($file);
+    my $file = $fd->{name};
+    my $lines
+      = $fd->{uncompiled}
+      ? _build_untested_source_lines($file)
+      : _build_source_lines($file);
+    my %file_total = $fd->{uncompiled}
+      ? (
+        map { $_ => $fd->{criteria}{$_} // $fd->{total} } $R{showing}->@*,
+        "total",
+      )
+      : _totals_for($file);
 
     my $prev = $idx > 0            ? $file_data->[ $idx - 1 ] : undef;
     my $next = $idx < $#$file_data ? $file_data->[ $idx + 1 ] : undef;
@@ -414,18 +459,25 @@ $Assets{css} = <<'CSS';
 /* Devel::Cover Html_crisp report stylesheet */
 
 :root {
-  --cov-none-bg: #f8c0c0;
-  --cov-none-border: #d32f2f;
-  --cov-none-fg: #b71c1c;
-  --cov-low-bg: #f8d8a0;
-  --cov-low-border: #d08020;
-  --cov-low-fg: #8a4a00;
-  --cov-good-bg: #f5e880;
-  --cov-good-border: #c8a800;
-  --cov-good-fg: #8a7000;
-  --cov-full-bg: #90d890;
-  --cov-full-border: #2e7d32;
-  --cov-full-fg: #1b5e20;
+  --cov-none-bg: #fcc;
+  --cov-none-border: #d00;
+  --cov-none-fg: #900;
+  --cov-low-bg: #ffe0b0;
+  --cov-low-border: #e08000;
+  --cov-low-fg: #7a4000;
+  --cov-good-bg: #fffab0;
+  --cov-good-border: #bba000;
+  --cov-good-fg: #665800;
+  --cov-full-bg: #b0f0b0;
+  --cov-full-border: #080;
+  --cov-full-fg: #050;
+
+  --untested-bar: #bbb;
+  --untested-badge-bg: #e0eaf4;
+  --untested-badge-fg: #3060a0;
+  --untested-badge-border: #90b0d0;
+  --untested-worst-bg: #e8e8e8;
+  --untested-worst-fg: #666;
 
   --exec-none: #f09090;
   --exec-partial: #e8d840;
@@ -462,18 +514,25 @@ $Assets{css} = <<'CSS';
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --cov-none-bg: #3d1818;
-    --cov-none-border: #e05050;
-    --cov-none-fg: #f8c8c8;
-    --cov-low-bg: #3d2810;
-    --cov-low-border: #e08030;
-    --cov-low-fg: #f8d0a0;
-    --cov-good-bg: #383010;
-    --cov-good-border: #d0c020;
-    --cov-good-fg: #f0e8a0;
-    --cov-full-bg: #143818;
-    --cov-full-border: #40b044;
-    --cov-full-fg: #b8e8ba;
+    --cov-none-bg: #501010;
+    --cov-none-border: #f44;
+    --cov-none-fg: #fcc;
+    --cov-low-bg: #503008;
+    --cov-low-border: #f0a030;
+    --cov-low-fg: #ffe0a0;
+    --cov-good-bg: #585808;
+    --cov-good-border: #ffe030;
+    --cov-good-fg: #ffffb0;
+    --cov-full-bg: #0a400a;
+    --cov-full-border: #4d4;
+    --cov-full-fg: #bfb;
+
+    --untested-bar: #555;
+    --untested-badge-bg: #1a2a3d;
+    --untested-badge-fg: #90c0f0;
+    --untested-badge-border: #4080c0;
+    --untested-worst-bg: #333;
+    --untested-worst-fg: #bbb;
 
     --exec-none: #801818;
     --exec-partial: #686000;
@@ -502,18 +561,25 @@ $Assets{css} = <<'CSS';
 }
 
 html[data-theme="dark"] {
-  --cov-none-bg: #3d1818;
-  --cov-none-border: #e05050;
-  --cov-none-fg: #f8c8c8;
-  --cov-low-bg: #3d2810;
-  --cov-low-border: #e08030;
-  --cov-low-fg: #f8d0a0;
-  --cov-good-bg: #383010;
-  --cov-good-border: #d0c020;
-  --cov-good-fg: #f0e8a0;
-  --cov-full-bg: #143818;
-  --cov-full-border: #40b044;
-  --cov-full-fg: #b8e8ba;
+  --cov-none-bg: #501010;
+  --cov-none-border: #f44;
+  --cov-none-fg: #fcc;
+  --cov-low-bg: #503008;
+  --cov-low-border: #f0a030;
+  --cov-low-fg: #ffe0a0;
+  --cov-good-bg: #404008;
+  --cov-good-border: #e0d020;
+  --cov-good-fg: #fffa90;
+  --cov-full-bg: #0a400a;
+  --cov-full-border: #4d4;
+  --cov-full-fg: #bfb;
+
+  --untested-bar: #555;
+  --untested-badge-bg: #1a2a3d;
+  --untested-badge-fg: #90c0f0;
+  --untested-badge-border: #4080c0;
+  --untested-worst-bg: #333;
+  --untested-worst-fg: #bbb;
 
   --exec-none: #801818;
   --exec-partial: #686000;
@@ -541,18 +607,25 @@ html[data-theme="dark"] {
 }
 
 html[data-theme="light"] {
-  --cov-none-bg: #f8c0c0;
-  --cov-none-border: #d32f2f;
-  --cov-none-fg: #b71c1c;
-  --cov-low-bg: #f8d8a0;
-  --cov-low-border: #d08020;
-  --cov-low-fg: #8a4a00;
-  --cov-good-bg: #f5e880;
-  --cov-good-border: #c8a800;
-  --cov-good-fg: #8a7000;
-  --cov-full-bg: #90d890;
-  --cov-full-border: #2e7d32;
-  --cov-full-fg: #1b5e20;
+  --cov-none-bg: #fcc;
+  --cov-none-border: #d00;
+  --cov-none-fg: #900;
+  --cov-low-bg: #ffe0b0;
+  --cov-low-border: #e08000;
+  --cov-low-fg: #7a4000;
+  --cov-good-bg: #fffab0;
+  --cov-good-border: #bba000;
+  --cov-good-fg: #665800;
+  --cov-full-bg: #b0f0b0;
+  --cov-full-border: #080;
+  --cov-full-fg: #050;
+
+  --untested-bar: #bbb;
+  --untested-badge-bg: #e0eaf4;
+  --untested-badge-fg: #3060a0;
+  --untested-badge-border: #90b0d0;
+  --untested-worst-bg: #e8e8e8;
+  --untested-worst-fg: #666;
 
   --exec-none: #f09090;
   --exec-partial: #e8d840;
@@ -799,6 +872,40 @@ a:visited { color: var(--link-visited); }
 .file-table .sort-asc::after { content: " \25b2"; }
 .file-table .sort-desc::after { content: " \25bc"; }
 
+/* --- Cell tooltips --- */
+
+.has-tip {
+  position: relative;
+  cursor: default;
+}
+
+.has-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--fg);
+  color: var(--bg);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 20;
+}
+
+.has-tip:hover::after { opacity: 1; }
+
+.header .has-tip::after {
+  bottom: auto;
+  top: 100%;
+  margin-top: 4px;
+}
+
 .dir-header {
   cursor: pointer;
   user-select: none;
@@ -851,7 +958,7 @@ tr.untested { opacity: 0.7; }
   display: inline-block;
   width: 50px;
   height: 8px;
-  background: #555;
+  background: var(--untested-bar);
   border-radius: 4px;
   vertical-align: middle;
   margin-left: 4px;
@@ -868,10 +975,25 @@ tr.untested { opacity: 0.7; }
   vertical-align: middle;
   font-weight: 600;
   letter-spacing: 0.03em;
-  background: #1a2a3d;
-  color: #90c0f0;
-  border: 1px solid #4080c0;
+  background: var(--untested-badge-bg);
+  color: var(--untested-badge-fg);
+  border: 1px solid var(--untested-badge-border);
 }
+
+.untested-worst {
+  background: var(--untested-worst-bg);
+  border-color: var(--untested-bar);
+  color: var(--untested-worst-fg);
+}
+
+.untested-stat {
+  background: var(--untested-worst-bg);
+  border-color: var(--untested-bar);
+  color: var(--untested-worst-fg);
+}
+
+.untested-page .source-table { opacity: 0.7; }
+.untested-page .exec-0 { background: var(--untested-bar); }
 
 /* --- Source view --- */
 
@@ -1013,7 +1135,6 @@ td.chevron {
   display: flex;
   height: 12px;
   border-radius: 3px;
-  overflow: hidden;
   margin-bottom: 16px;
   border: 1px solid var(--border);
 }
@@ -1023,7 +1144,11 @@ td.chevron {
   position: relative;
 }
 
-.dist-bar-seg[title]:hover { opacity: 0.8; }
+.dist-bar-seg:first-child { border-radius: 3px 0 0 3px; }
+.dist-bar-seg:last-child { border-radius: 0 3px 3px 0; }
+.dist-bar-seg:only-child { border-radius: 3px; }
+
+.dist-bar-seg:hover { opacity: 0.8; }
 
 .dist-legend {
   display: flex;
@@ -1047,6 +1172,7 @@ td.chevron {
 .dist-legend .leg-c1::before { background: var(--cov-low-border); }
 .dist-legend .leg-c2::before { background: var(--cov-good-border); }
 .dist-legend .leg-c3::before { background: var(--cov-full-border); }
+.dist-legend .leg-untested::before { background: var(--untested-bar); }
 
 /* --- Nav links --- */
 
@@ -1470,8 +1596,8 @@ $Templates{index} = <<'EOT';
 <h1>Coverage Report</h1>
 <div class="header-stats">
 [% IF total.total.pc != "n/a" %]
-<span class="stat-badge [% total.total.class %]"
-      title="[% total.total.covered %] / [% total.total.total %]">
+<span class="stat-badge [% total.total.class %] has-tip"
+      data-tip="[% total.total.covered %] / [% total.total.total %]">
 Total: [% total.total.pc %]%
 <span class="cov-bar">
 <span class="cov-bar-fill"
@@ -1483,9 +1609,15 @@ Total: [% total.total.pc %]%
 [% s = total.$c %]
 [% NEXT IF c == "time" %]
 [% NEXT UNLESS s.pc %]
-<span class="stat-badge [% s.class %]"
-      title="[% c %]: [% s.covered %] / [% s.total %]">
+<span class="stat-badge [% s.class %] has-tip"
+      data-tip="[% s.covered %] / [% s.total %]">
 [% c %] [% s.pc %]%
+[% IF s.pc != 'n/a' %]
+<span class="cov-bar">
+<span class="cov-bar-fill"
+  style="width:[% s.pc %]%"></span>
+</span>
+[% END %]
 </span>
 [% END %]
 </div>
@@ -1501,10 +1633,15 @@ Total: [% total.total.pc %]%
 <div class="worst-list">
 [% FOREACH f = worst %]
 [% NEXT IF f.risk == 0 %]
-<div class="worst-item [% f.total.class %]">
+<div class="worst-item
+  [% IF f.uncompiled %]untested-worst
+  [% ELSE %][% f.total.class %][% END %]">
 [% IF f.exists %]
 <a href="[% f.link %]">[% f.name %]</a>
 [% ELSE %][% f.name %][% END %]
+[% IF f.uncompiled %]
+<span class="untested-badge">untested</span>
+[% END %]
 <strong>[% f.risk | format('%d') %]</strong>
 </div>
 [% END %]
@@ -1515,32 +1652,34 @@ Total: [% total.total.pc %]%
 [% IF dist_total > 0 %]
 <div class="dist-bar">
 [% IF dist.c0 %]
-<div class="dist-bar-seg"
+<div class="dist-bar-seg has-tip"
   style="width:[% dist.c0 / dist_total * 100 %]%;
     background:var(--cov-none-border)"
-  title="[% dist.c0 %] files &lt; [% R.threshold.c0 %]%">
-</div>
+  data-tip="[% dist.tip_c0 %]"></div>
 [% END %]
 [% IF dist.c1 %]
-<div class="dist-bar-seg"
+<div class="dist-bar-seg has-tip"
   style="width:[% dist.c1 / dist_total * 100 %]%;
     background:var(--cov-low-border)"
-  title="[% dist.c1 %] files [% R.threshold.c0 %]-[% R.threshold.c1 %]%">
-</div>
+  data-tip="[% dist.tip_c1 %]"></div>
 [% END %]
 [% IF dist.c2 %]
-<div class="dist-bar-seg"
+<div class="dist-bar-seg has-tip"
   style="width:[% dist.c2 / dist_total * 100 %]%;
     background:var(--cov-good-border)"
-  title="[% dist.c2 %] files [% R.threshold.c1 %]-100%">
-</div>
+  data-tip="[% dist.tip_c2 %]"></div>
 [% END %]
 [% IF dist.c3 %]
-<div class="dist-bar-seg"
+<div class="dist-bar-seg has-tip"
   style="width:[% dist.c3 / dist_total * 100 %]%;
     background:var(--cov-full-border)"
-  title="[% dist.c3 %] files 100%">
-</div>
+  data-tip="[% dist.tip_c3 %]"></div>
+[% END %]
+[% IF dist.untested %]
+<div class="dist-bar-seg has-tip"
+  style="width:[% dist.untested / dist_total * 100 %]%;
+    background:var(--untested-bar)"
+  data-tip="[% dist.tip_untested %]"></div>
 [% END %]
 </div>
 <div class="dist-legend">
@@ -1550,6 +1689,9 @@ Total: [% total.total.pc %]%
 </span>
 <span class="leg-c2">[% dist.c2 %] [% R.threshold.c1 %]-100%</span>
 <span class="leg-c3">[% dist.c3 %] at 100%</span>
+[% IF dist.untested %]
+<span class="leg-untested">[% dist.untested %] untested</span>
+[% END %]
 </div>
 [% END %]
 
@@ -1610,9 +1752,9 @@ Group by directory</label>
 [% FOREACH c = R.showing %]
 [% NEXT IF c == "time" %]
 [% s = f.criteria.$c %]
-<td class="[% s.class %]"
+<td class="[% s.class %] has-tip"
     data-value="[% s.pc == 'n/a' ? -1 : s.pc %]"
-    title="[% s.covered %] / [% s.total %]">
+    data-tip="[% s.covered %] / [% s.total %]">
 [% s.pc %]
 [% IF s.pc != 'n/a' %]
 <span class="[% f.uncompiled ? 'cov-bar-untested' : 'cov-bar' %]">
@@ -1624,9 +1766,9 @@ Group by directory</label>
 [% END %]
 </td>
 [% END %]
-<td class="[% f.total.class %]"
+<td class="[% f.total.class %] has-tip"
     data-value="[% f.total_sort %]"
-    title="[% f.total.covered %] / [% f.total.total %]">
+    data-tip="[% f.total.covered %] / [% f.total.total %]">
 [% f.total.pc %]
 [% IF f.total.pc != 'n/a' %]
 <span class="[% f.uncompiled ? 'cov-bar-untested' : 'cov-bar' %]">
@@ -1652,18 +1794,30 @@ EOT
 $Templates{file} = <<'EOT';
 [% WRAPPER layout asset_prefix="" title=file.name %]
 
+<div class="[% IF file.uncompiled %]untested-page[% END %]">
 <div class="header">
 <div class="header-inner">
-<h1>[% file.name %]</h1>
+<h1>[% file.name %]
+[% IF file.uncompiled %]
+<span class="untested-badge">untested</span>
+[% END %]
+</h1>
 <div class="header-stats">
 [% FOREACH c = R.showing %]
 [% NEXT IF c == "time" %]
 [% s = total.$c %]
+[% IF file.uncompiled %]
+<span class="stat-badge untested-stat"
+      title="[% c %]: 0">
+[% c %] 0.0%
+</span>
+[% ELSE %]
 [% NEXT UNLESS s.pc AND s.pc != 'n/a' %]
 <span class="stat-badge [% s.class %]"
       title="[% c %]: [% s.covered %] / [% s.total %]">
 [% c %] [% s.pc %]%
 </span>
+[% END %]
 [% END %]
 </div>
 <button class="theme-toggle" aria-label="Toggle dark mode">&#x263e;</button>
@@ -1821,6 +1975,7 @@ Condition: [% tt.expr %]
 </div>
 
 </div>
+[% IF file.uncompiled %]</div>[% END %]
 [% END %]
 EOT
 

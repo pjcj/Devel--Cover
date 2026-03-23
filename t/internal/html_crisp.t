@@ -56,11 +56,15 @@ sub test_html_crisp_report () {
 
   my $content = _slurp($index);
 
-  # All four modules appear in the index
-  like $content, qr/Covered\/Calc\.pm/,    "Covered/Calc.pm in index";
-  like $content, qr/Covered\/Utils\.pm/,   "Covered/Utils.pm in index";
-  like $content, qr/Uncovered\/Calc\.pm/,  "Uncovered/Calc.pm in index";
-  like $content, qr/Uncovered\/Utils\.pm/, "Uncovered/Utils.pm in index";
+  # All eight modules appear in the index
+  like $content, qr/Covered\/Calc\.pm/,      "Covered/Calc.pm in index";
+  like $content, qr/Covered\/Full\.pm/,      "Covered/Full.pm in index";
+  like $content, qr/Covered\/Trivial\.pm/,   "Covered/Trivial.pm in index";
+  like $content, qr/Covered\/Utils\.pm/,     "Covered/Utils.pm in index";
+  like $content, qr/Uncovered\/Calc\.pm/,    "Uncovered/Calc.pm in index";
+  like $content, qr/Uncovered\/Full\.pm/,    "Uncovered/Full.pm in index";
+  like $content, qr/Uncovered\/Trivial\.pm/, "Uncovered/Trivial.pm in index";
+  like $content, qr/Uncovered\/Utils\.pm/,   "Uncovered/Utils.pm in index";
 
   # When PPI is available, uncovered files show 0.0
   my $have_ppi = eval { require PPI; 1 };
@@ -76,17 +80,25 @@ sub test_html_crisp_report () {
       "n/a shown for Uncovered/Utils.pm (no PPI)";
   }
 
-  # Detail pages: covered modules have them, uncovered don't.
+  # Detail pages exist for all modules (covered and uncovered).
   my @detail_pages = grep !/index\.html$/, glob "$outdir/*.html";
 
-  ok( (grep /-Calc-pm\.html$/,  @detail_pages),
+  ok( (grep /Covered-Calc-pm\.html$/,    @detail_pages),
     "detail page for Covered/Calc.pm exists" );
-  ok( (grep /-Utils-pm\.html$/, @detail_pages),
+  ok( (grep /Covered-Utils-pm\.html$/,   @detail_pages),
     "detail page for Covered/Utils.pm exists" );
+  ok( (grep /Uncovered-Calc-pm\.html$/,  @detail_pages),
+    "detail page for Uncovered/Calc.pm exists" );
+  ok( (grep /Uncovered-Utils-pm\.html$/, @detail_pages),
+    "detail page for Uncovered/Utils.pm exists" );
 
-  # Uncovered detail pages would contain "Uncovered" in the filename
-  my @uncov_pages = grep /Uncovered/, @detail_pages;
-  ok !@uncov_pages, "no detail pages for Uncovered modules";
+  # Untested detail pages contain the untested badge.
+  my $uncov_page = (grep /Uncovered-Calc-pm\.html$/, @detail_pages)[0];
+  my $uncov_html = _slurp($uncov_page);
+  like $uncov_html, qr/untested-badge/,
+    "untested detail page has badge";
+  like $uncov_html, qr/untested-page/,
+    "untested detail page has dimmed wrapper";
 }
 
 sub main () {
