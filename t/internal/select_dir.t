@@ -38,11 +38,15 @@ sub test_scan () {
   my $db    = Devel::Cover::DB->new(db => $cover_db);
   my @files = sort $db->files;
 
-  is scalar @files, 4, "exactly four files found";
-  ok grep(/Covered\/Calc\.pm$/,    @files), "Covered/Calc.pm in files";
-  ok grep(/Covered\/Utils\.pm$/,   @files), "Covered/Utils.pm in files";
-  ok grep(/Uncovered\/Calc\.pm$/,  @files), "Uncovered/Calc.pm in files";
-  ok grep(/Uncovered\/Utils\.pm$/, @files), "Uncovered/Utils.pm in files";
+  is scalar @files, 8, "exactly eight files found";
+  ok grep(/Covered\/Calc\.pm$/,      @files), "Covered/Calc.pm in files";
+  ok grep(/Covered\/Full\.pm$/,      @files), "Covered/Full.pm in files";
+  ok grep(/Covered\/Trivial\.pm$/,   @files), "Covered/Trivial.pm in files";
+  ok grep(/Covered\/Utils\.pm$/,     @files), "Covered/Utils.pm in files";
+  ok grep(/Uncovered\/Calc\.pm$/,    @files), "Uncovered/Calc.pm in files";
+  ok grep(/Uncovered\/Full\.pm$/,    @files), "Uncovered/Full.pm in files";
+  ok grep(/Uncovered\/Trivial\.pm$/, @files), "Uncovered/Trivial.pm in files";
+  ok grep(/Uncovered\/Utils\.pm$/,   @files), "Uncovered/Utils.pm in files";
   ok !grep(/blib/,                 @files), "blib files excluded";
   ok !grep(/\.txt$/,               @files), "non-pm files excluded";
 }
