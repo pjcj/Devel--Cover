@@ -165,13 +165,18 @@ sub _line_branches ($f, $n) {
   my $branches = $f->branch or return;
   my $loc      = $branches->location($n);
   return unless $loc && @$loc;
-  map { {
-    true_count  => $_->value(0),
-    false_count => $_->value(1),
-    true_class  => class($_->value(0), $_->error(0), "branch"),
-    false_class => class($_->value(1), $_->error(1), "branch"),
-    text        => encode_entities($_->text // ""),
-  } } @$loc
+  map {
+    my $t = $_->value(0);
+    my $f = $_->value(1);
+    {
+      true_count  => $t,
+      false_count => $f,
+      total_count => $t + $f,
+      true_class  => class($t, $_->error(0), "branch"),
+      false_class => class($f, $_->error(1), "branch"),
+      text        => encode_entities($_->text // ""),
+    }
+  } @$loc
 }
 
 sub _line_truth_tables ($f, $n) {
@@ -479,6 +484,9 @@ $Assets{css} = <<'CSS';
   --untested-worst-bg: #e8e8e8;
   --untested-worst-fg: #666;
 
+  --tip-bg: #1a1a1a;
+  --tip-fg: #ffffff;
+
   --exec-none: #f09090;
   --exec-partial: #e8d840;
   --exec-covered: #70c870;
@@ -534,6 +542,9 @@ $Assets{css} = <<'CSS';
     --untested-worst-bg: #333;
     --untested-worst-fg: #bbb;
 
+    --tip-bg: #bbb;
+    --tip-fg: #1a1a1a;
+
     --exec-none: #801818;
     --exec-partial: #686000;
     --exec-covered: #1a6828;
@@ -581,6 +592,9 @@ html[data-theme="dark"] {
   --untested-worst-bg: #333;
   --untested-worst-fg: #bbb;
 
+  --tip-bg: #e0e0e0;
+  --tip-fg: #1a1a1a;
+
   --exec-none: #801818;
   --exec-partial: #686000;
   --exec-covered: #1a6828;
@@ -626,6 +640,9 @@ html[data-theme="light"] {
   --untested-badge-border: #90b0d0;
   --untested-worst-bg: #e8e8e8;
   --untested-worst-fg: #666;
+
+  --tip-bg: #1a1a1a;
+  --tip-fg: #ffffff;
 
   --exec-none: #f09090;
   --exec-partial: #e8d840;
@@ -890,8 +907,8 @@ a:visited { color: var(--link-visited); }
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
-  background: var(--fg);
-  color: var(--bg);
+  background: var(--tip-bg);
+  color: var(--tip-fg);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.15s ease;
@@ -952,7 +969,10 @@ a:visited { color: var(--link-visited); }
 
 /* --- Untested files --- */
 
-tr.untested { opacity: 0.7; }
+tr.untested td { opacity: 0.7; }
+tr.untested td .has-tip::after { opacity: 0; }
+tr.untested td:hover { opacity: 1; }
+tr.untested td:hover .has-tip:hover::after { opacity: 1; }
 
 .cov-bar-untested {
   display: inline-block;
@@ -1807,15 +1827,19 @@ $Templates{file} = <<'EOT';
 [% NEXT IF c == "time" %]
 [% s = total.$c %]
 [% IF file.uncompiled %]
-<span class="stat-badge untested-stat"
-      title="[% c %]: 0">
+<span class="stat-badge untested-stat has-tip"
+      data-tip="[% c %]: 0">
 [% c %] 0.0%
 </span>
 [% ELSE %]
 [% NEXT UNLESS s.pc AND s.pc != 'n/a' %]
-<span class="stat-badge [% s.class %]"
-      title="[% c %]: [% s.covered %] / [% s.total %]">
+<span class="stat-badge [% s.class %] has-tip"
+      data-tip="[% s.covered %] / [% s.total %]">
 [% c %] [% s.pc %]%
+<span class="cov-bar">
+<span class="cov-bar-fill"
+  style="width:[% s.pc %]%"></span>
+</span>
 </span>
 [% END %]
 [% END %]
@@ -1911,12 +1935,13 @@ Branch: [% line.branches.size %]
 branch[% IF line.branches.size > 1 %]es[% END %]
 </span>
 <table>
-<tr><th>Branch</th><th>True</th><th>False</th></tr>
+<tr><th>Branch</th><th>True</th><th>False</th><th>Total</th></tr>
 [% FOREACH b = line.branches %]
 <tr>
 <td>[% b.text %]</td>
 <td class="[% b.true_class %]">[% b.true_count %]</td>
 <td class="[% b.false_class %]">[% b.false_count %]</td>
+<td>[% b.total_count %]</td>
 </tr>
 [% END %]
 </table>
