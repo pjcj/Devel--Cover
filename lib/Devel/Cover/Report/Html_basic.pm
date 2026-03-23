@@ -719,6 +719,8 @@ s/^\s+//gm for values %Templates;
 
 1;
 
+__END__
+
 =head1 NAME
 
 Devel::Cover::Report::Html_basic - HTML backend for Devel::Cover
