@@ -17,14 +17,9 @@ my $Have_ppi;
 
 BEGIN { $Have_ppi = eval { require PPI; 1 } }
 
-# Keywords/ops that DC treats as constant or flow-control RHS, reducing a
-# condition from 3 outcomes to 2. Mirrors $Const_right and the OP_* checks in
-# Cover.xs.
 my %Const_rhs = map { $_ => 1 }
   qw( die warn croak confess next last redo goto return exit exec undef bless );
 
-# Detect the trailing "1" return value at end of module - DC does
-# not count this as an executable statement.
 sub _is_module_true ($doc, $s) {
   # Must be a bare PPI::Statement (not a subclass)
   return 0 unless ref($s) eq "PPI::Statement";
@@ -47,9 +42,6 @@ sub _is_module_true ($doc, $s) {
   1
 }
 
-# Skip statements inside for-loop parentheses, e.g. the range
-# expression "1..$n" in "for my $i (1..$n)". DC counts the for
-# header as one statement, not the range separately.
 sub _inside_for_parens ($s) {
   my $parent = $s->parent or return 0;
   return 0 unless $parent->isa("PPI::Structure::List");
@@ -75,11 +67,8 @@ sub _count_statements ($doc, $includes, $compounds) {
     $simple++;
   }
 
-  # Each compound header (if/for/while/unless) is an executable stmt
   my $compound_headers = @$compounds;
-
-  # DC records ~3 statement markers per use/require (BEGIN execution)
-  my $include_stmts = @$includes * 3;
+  my $include_stmts    = @$includes * 3;
 
   $simple + $compound_headers + $include_stmts
 }
@@ -95,9 +84,6 @@ sub _count_branches ($doc, $compounds) {
       }) || [];
       push @decisions, @$elsifs;
     }
-    # Note: for/while/until with conditions produce DC branches, but
-    # distinguishing conditional loops from range-for is unreliable in PPI. Omit
-    # loops for now - slight undercount is preferable to overcounting.
   }
 
   # Ternary operators
@@ -116,13 +102,9 @@ sub _count_branches ($doc, $compounds) {
   }) || [];
   push @decisions, @$modifiers;
 
-  # DC tracks branch outcomes (true + false per decision)
   @decisions * 2
 }
 
-# Check whether the RHS of a logical operator is a constant or flow-control
-# keyword. In PPI, the RHS is the next significant sibling after the operator
-# token.
 sub _has_const_rhs ($op) {
   my $rhs = $op->snext_sibling or return 0;
 
@@ -144,7 +126,6 @@ sub _has_const_rhs ($op) {
 sub _count_conditions ($doc) {
   my $total = 0;
 
-  # Find && || // and or xor operators (all PPI::Token::Operator)
   my $ops = $doc->find(sub {
     $_[1]->isa("PPI::Token::Operator")
       && $_[1]->content =~ m{^(?:&&|\|\||//|&&=|\|\|=|//=|and|or|xor)$}
@@ -169,12 +150,9 @@ sub _count_subroutines ($doc, $includes) {
     $_[1]->isa("PPI::Statement::Sub") && $_[1]->name
   }) || [];
 
-  # DC counts one BEGIN sub per use/require
   @$subs + @$includes
 }
 
-# Pod coverage total = number of named user subs (DC checks whether
-# each sub has corresponding documentation).
 sub _count_pod ($doc) {
   my $subs = $doc->find(sub {
     $_[1]->isa("PPI::Statement::Sub") && $_[1]->name
@@ -182,10 +160,6 @@ sub _count_pod ($doc) {
   0 + @$subs
 }
 
-# Count coverable criteria in a source file using static analysis.
-# Returns undef when PPI is unavailable or the file cannot be parsed.
-# Returns { statement => N, branch => N, condition => N,
-#   subroutine => N, pod => N }.
 sub count_criteria ($file) {
   return unless $Have_ppi;
   my $doc = PPI::Document->new($file) or return;
@@ -202,4 +176,124 @@ sub count_criteria ($file) {
   }
 }
 
-1
+"
+Winter, spring, summer, or fall
+All you have to do is call
+"
+
+__END__
+
+=encoding utf8
+
+=head1 NAME
+
+Devel::Cover::Static - PPI-based static analysis for uncovered files
+
+=head1 SYNOPSIS
+
+  use Devel::Cover::Static;
+
+  my $counts = Devel::Cover::Static::count_criteria("lib/Foo.pm");
+  # { statement => 12, branch => 4, condition => 2, subroutine => 3, pod => 3 }
+
+=head1 DESCRIPTION
+
+This module provides static analysis of Perl source files using PPI. It
+estimates the number of coverable constructs (statements, branches, conditions,
+subroutines, and pod) without executing the code.
+
+It is used by L<Devel::Cover::DB> to populate coverage data for files discovered
+via C<--select_dir> that were never exercised by any test. The counts allow
+reports to show meaningful 0/N ratios rather than bare zeroes.
+
+Returns C<undef> if PPI is not installed or the file cannot be parsed.
+
+=head1 SUBROUTINES
+
+=over 4
+
+=item count_criteria($file)
+
+The sole public entry point. Parses C<$file> with PPI and returns a hashref of
+estimated coverable counts:
+
+  {
+    statement  => $n,
+    branch     => $n,
+    condition  => $n,
+    subroutine => $n,
+    pod        => $n,
+  }
+
+Returns C<undef> if PPI is unavailable or the file fails to parse.
+
+B<Statements> include simple statements, compound headers (if/for/while), and an
+estimated three markers per C<use>/C<require>. The trailing C<1;> return value
+and statements inside for-loop parentheses are excluded.
+
+B<Branches> count two outcomes per decision point: if/unless blocks, elsif
+clauses, ternary operators, and postfix if/unless modifiers. Loop conditions are
+currently omitted to avoid overcounting.
+
+B<Conditions> count outcomes per logical operator: 4 for C<xor>, 2 when the
+right-hand side is a constant or flow-control keyword (matching Devel::Cover's
+C<$Const_right> heuristic), and 3 otherwise.
+
+B<Subroutines> count named subs plus one BEGIN per C<use>/C<require>.
+
+B<Pod> counts named subroutines (the number of subs that should have
+documentation).
+
+=back
+
+=head1 PRIVATE SUBROUTINES
+
+=over 4
+
+=item _is_module_true($doc, $s)
+
+Detects the trailing C<1> return value at end of a module. These are not counted
+as executable statements by Devel::Cover.
+
+=item _inside_for_parens($s)
+
+Returns true if a statement sits inside for-loop parentheses (e.g. the range
+expression in C<for my $i (1..$n)>). Devel::Cover counts the for header as one
+statement, not the inner expression separately.
+
+=item _count_statements($doc, $includes, $compounds)
+
+Counts executable statements: simple statements, compound headers, and an
+estimated three markers per C<use>/C<require>.
+
+=item _count_branches($doc, $compounds)
+
+Counts branch outcomes from if/unless blocks, elsif clauses, ternary operators,
+and postfix if/unless modifiers. Each decision contributes two outcomes.
+
+=item _count_conditions($doc)
+
+Counts condition outcomes from logical operators (C<&&>, C<||>, C<//>, C<and>,
+C<or>, C<xor> and their assignment forms).
+
+=item _has_const_rhs($op)
+
+Returns true if the right-hand side of a logical operator is a constant or
+flow-control keyword, reducing the condition from 3 outcomes to 2.
+
+=item _count_subroutines($doc, $includes)
+
+Counts named subroutines plus one BEGIN per C<use>/C<require>.
+
+=item _count_pod($doc)
+
+Counts named subroutines as the number of subs expected to have POD
+documentation.
+
+=back
+
+=head1 SEE ALSO
+
+L<Devel::Cover>, L<Devel::Cover::DB>, L<PPI>
+
+=cut
