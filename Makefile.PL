@@ -350,11 +350,14 @@ WriteMakefile(%$Opts);
 
 print "\n";
 
+my $Skip_pkg = 0;
+
 sub _should_skip ($file) {
   open my $fh, "<", $file or return 0;
   while (my $line = <$fh>) {
     if ($line =~ /__COVER__\s+skip_test\s+(.*)/) {
-      return 1 if eval $1;
+      my $pkg = "Devel::Cover::SkipCheck" . $Skip_pkg++;
+      return 1 if eval "package $pkg; $1";
     }
   }
   0
