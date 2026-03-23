@@ -24,7 +24,7 @@ use File::Spec ();
 use Devel::Cover::DB ();
 use TestHelper       qw( create_cover_db run_cover setup_lib_dir );
 
-# GREEN: --select_dir scans .pm/.pl files and persists the list in the DB,
+# --select_dir scans .pm/.pl files and persists the list in the DB,
 # excluding blib/ subdirectories and non-Perl files.
 sub test_scan () {
   my ($tmpdir, $libdir) = setup_lib_dir;
@@ -38,21 +38,22 @@ sub test_scan () {
   my $db    = Devel::Cover::DB->new(db => $cover_db);
   my @files = sort $db->files;
 
-  is scalar @files, 2, "exactly two files found";
-  ok grep(/Covered\.pm$/,   @files), "Covered.pm in files";
-  ok grep(/Uncovered\.pm$/, @files), "Uncovered.pm in files";
-  ok !grep(/blib/,          @files), "blib files excluded";
-  ok !grep(/\.txt$/,        @files), "non-pm files excluded";
+  is scalar @files, 4, "exactly four files found";
+  ok grep(/Covered\/Calc\.pm$/,    @files), "Covered/Calc.pm in files";
+  ok grep(/Covered\/Utils\.pm$/,   @files), "Covered/Utils.pm in files";
+  ok grep(/Uncovered\/Calc\.pm$/,  @files), "Uncovered/Calc.pm in files";
+  ok grep(/Uncovered\/Utils\.pm$/, @files), "Uncovered/Utils.pm in files";
+  ok !grep(/blib/,                 @files), "blib files excluded";
+  ok !grep(/\.txt$/,               @files), "non-pm files excluded";
 }
 
-# when $db->{files} lists a file absent from all runs, $db->cover should
-# include it as an uncompiled entry with the {meta}{uncompiled} flag set.
+# When $db->{files} lists a file absent from all runs, $db->cover
+# should include it as an uncompiled entry with the meta flag set.
 sub test_uncompiled_in_cover () {
   my ($tmpdir, $libdir) = setup_lib_dir;
-  my $uncovered_pm = File::Spec->catfile($libdir, "Uncovered.pm");
+  my $uncovered_pm
+    = File::Spec->catfile($libdir, "Uncovered", "Calc.pm");
 
-  # Empty cover_db - no runs, so Uncovered.pm has no coverage data.
-  # Simulate what scan_select_dirs would write into $db->{files}.
   my $cover_db = File::Spec->catdir($tmpdir, "cover_db_unit");
   make_path($cover_db);
   my $db = Devel::Cover::DB->new(db => $cover_db);
@@ -61,23 +62,26 @@ sub test_uncompiled_in_cover () {
   my $cover    = $db->cover;
   my $file_obj = $cover->file($uncovered_pm);
 
-  ok defined $file_obj, "Uncovered.pm appears in cover()";
+  ok defined $file_obj, "Uncovered/Calc.pm appears in cover()";
   ok $file_obj && $file_obj->{meta}{uncompiled},
-    "Uncovered.pm has uncompiled meta flag";
+    "Uncovered/Calc.pm has uncompiled meta flag";
 
   my $have_ppi = eval { require PPI; 1 };
   if ($have_ppi) {
     ok $file_obj->{meta}{counts}, "counts present when PPI available";
     ok $file_obj->{meta}{counts}{subroutine},
       "subroutine count is non-zero";
+    ok $file_obj->{meta}{counts}{branch},
+      "branch count is non-zero";
+    ok $file_obj->{meta}{counts}{condition},
+      "condition count is non-zero";
   } else {
     ok !$file_obj->{meta}{counts}, "no counts without PPI";
   }
 }
 
-# the text report summary should list uncovered files (those in --select_dir
-# but absent from all runs).  When PPI is available, Static analysis provides
-# real counts so values show 0.0; otherwise they show n/a.
+# The text report should list uncovered files with all criteria
+# columns populated when PPI is available.
 sub test_text_report () {
   my ($tmpdir, $libdir) = setup_lib_dir;
   my $cover_db = create_cover_db($tmpdir, $libdir);
@@ -87,15 +91,21 @@ sub test_text_report () {
   );
 
   is $exit, 0, "cover --report text exits 0";
-  like $out, qr/Uncovered\.pm/, "Uncovered.pm appears in report";
+  like $out, qr/Uncovered\/Calc\.pm/,  "Uncovered/Calc.pm in report";
+  like $out, qr/Uncovered\/Utils\.pm/, "Uncovered/Utils.pm in report";
+  like $out, qr/Covered\/Calc\.pm/,    "Covered/Calc.pm in report";
 
   my $have_ppi = eval { require PPI; 1 };
   if ($have_ppi) {
-    like $out, qr/Uncovered\.pm.*\b0\.0\b/,
-      "0.0 shown on Uncovered.pm row (PPI available)";
+    like $out, qr/Uncovered\/Calc\.pm.*\b0\.0\b/,
+      "0.0 shown for Uncovered/Calc.pm (PPI available)";
+    like $out, qr/Uncovered\/Utils\.pm.*\b0\.0\b/,
+      "0.0 shown for Uncovered/Utils.pm (PPI available)";
   } else {
-    like $out, qr/Uncovered\.pm.*n\/a/,
-      "n/a shown on Uncovered.pm row (no PPI)";
+    like $out, qr/Uncovered\/Calc\.pm.*n\/a/,
+      "n/a shown for Uncovered/Calc.pm (no PPI)";
+    like $out, qr/Uncovered\/Utils\.pm.*n\/a/,
+      "n/a shown for Uncovered/Utils.pm (no PPI)";
   }
 }
 
