@@ -128,7 +128,7 @@ sub _count_conditions ($doc) {
 
   my $ops = $doc->find(sub {
     $_[1]->isa("PPI::Token::Operator")
-      && $_[1]->content =~ m{^(?:&&|\|\||//|&&=|\|\|=|//=|and|or|xor)$}
+      && $_[1]->content =~ m!^(?:&&|\|\||//|&&=|\|\|=|//=|and|or|xor)$!
   }) || [];
 
   for my $op (@$ops) {
