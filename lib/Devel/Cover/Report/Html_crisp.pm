@@ -77,6 +77,8 @@ sub _get_summary ($file, $criterion) {
 sub _build_file_data () {
   my @file_data;
   my $na = { pc => "n/a", class => "", covered => 0, total => 0, error => 0 };
+  my $zero
+    = { pc => "0.0", class => "c0", covered => 0, total => 0, error => 0 };
   for my $file ($R{options}{file}->@*) {
     next unless $R{db}->summary($file);
     (my $dir = $file) =~ s{/[^/]+$}{};
@@ -84,7 +86,6 @@ sub _build_file_data () {
     (my $basename = $file) =~ s{.*/}{};
     my $meta       = $R{db}->cover->file($file)->{meta} // {};
     my $uncompiled = $meta->{uncompiled} ? 1 : 0;
-    my $use_na     = $uncompiled && !$meta->{counts};
     my %f          = (
       name       => $file,
       basename   => $basename,
@@ -98,11 +99,11 @@ sub _build_file_data () {
     my $risk = 0;
 
     for my $c ($R{showing}->@*) {
-      my $s = $use_na ? $na : _get_summary($file, $c);
+      my $s = $uncompiled ? $zero : _get_summary($file, $c);
       $f{criteria}{$c} = $s;
       $risk += ($s->{error} || 0) if $c =~ /^(?:branch|condition)$/;
     }
-    my $total = $use_na ? $na : _get_summary($file, "total");
+    my $total = $uncompiled ? $zero : _get_summary($file, "total");
     $f{total} = $total;
     my $pc = $total->{pc} // "n/a";
     $f{total_pc}   = $pc;
@@ -842,6 +843,36 @@ a:visited { color: var(--link-visited); }
   border-radius: 4px;
 }
 
+/* --- Untested files --- */
+
+tr.untested { opacity: 0.7; }
+
+.cov-bar-untested {
+  display: inline-block;
+  width: 50px;
+  height: 8px;
+  background: #555;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.untested-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: #1a2a3d;
+  color: #90c0f0;
+  border: 1px solid #4080c0;
+}
+
 /* --- Source view --- */
 
 .source-table {
@@ -1566,11 +1597,15 @@ Group by directory</label>
 <td></td>
 </tr>
 [% FOREACH f = g.files %]
-<tr class="dir-file" data-dir="[% g.dir %]">
+<tr class="dir-file[% IF f.uncompiled %] untested[% END %]"
+    data-dir="[% g.dir %]">
 <td data-value="[% f.name %]">
 [% IF f.exists %]
 <a href="[% f.link %]">[% f.basename %]</a>
 [% ELSE %][% f.basename %][% END %]
+[% IF f.uncompiled %]
+<span class="untested-badge">untested</span>
+[% END %]
 </td>
 [% FOREACH c = R.showing %]
 [% NEXT IF c == "time" %]
@@ -1580,9 +1615,11 @@ Group by directory</label>
     title="[% s.covered %] / [% s.total %]">
 [% s.pc %]
 [% IF s.pc != 'n/a' %]
-<span class="cov-bar">
+<span class="[% f.uncompiled ? 'cov-bar-untested' : 'cov-bar' %]">
+[% UNLESS f.uncompiled %]
 <span class="cov-bar-fill"
   style="width:[% s.pc %]%"></span>
+[% END %]
 </span>
 [% END %]
 </td>
@@ -1592,9 +1629,11 @@ Group by directory</label>
     title="[% f.total.covered %] / [% f.total.total %]">
 [% f.total.pc %]
 [% IF f.total.pc != 'n/a' %]
-<span class="cov-bar">
+<span class="[% f.uncompiled ? 'cov-bar-untested' : 'cov-bar' %]">
+[% UNLESS f.uncompiled %]
 <span class="cov-bar-fill"
   style="width:[% f.total.pc %]%"></span>
+[% END %]
 </span>
 [% END %]
 </td>
