@@ -375,9 +375,16 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
   printf STDOUT $fmt, "-" x $fw, ("------") x $n;
 
   for my $file (@files) {
+    my $uncompiled
+      = $file ne "Total" && $self->cover->file($file)->{meta}{uncompiled};
     printf STDOUT $fmt, trimmed_file($file, $fw),
-      map $format->($s->{$file}, $_), grep $options{$_},
-      $self->{all_criteria}->@*;
+      $uncompiled
+      ? ("n/a") x $n
+      : (
+        map $format->($s->{$file}, $_),
+        grep $options{$_},
+        $self->{all_criteria}->@*,
+      );
   }
 
   printf STDOUT $fmt, "-" x $fw, ("------") x $n;
