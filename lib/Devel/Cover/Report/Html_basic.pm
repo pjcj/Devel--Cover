@@ -68,6 +68,7 @@ sub get_summary {
   my $cr = $criterion eq "pod" ? "subroutine" : $criterion;
   return \%vals
     if $cr !~ /^branch|condition|subroutine$/ || !exists $R{filenames}{$file};
+  return \%vals if $R{uncompiled}{$file};
   $vals{link} = "$R{filenames}{$file}--$cr.html";
 
   \%vals
@@ -334,7 +335,11 @@ sub report {
     filenames => {
       map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } @{ $options->{file} }
     },
-    exists      => { map { $_ => -e } @{ $options->{file} } },
+    exists     => { map { $_ => -e } @{ $options->{file} } },
+    uncompiled => {
+      map { $_ => ($db->cover->file($_)->{meta}{uncompiled} ? 1 : 0) }
+        @{ $options->{file} }
+    },
     get_summary => \&get_summary,
     c0          => $le->($options->{report_c0}),
     c1          => $le->($options->{report_c1}),
@@ -350,9 +355,11 @@ sub report {
     $R{file_html} = "$options->{outputdir}/$R{file_link}";
     my $show = $options->{show};
     print_file;
-    print_branches    if $show->{branch};
-    print_conditions  if $show->{condition};
-    print_subroutines if $show->{subroutine} || $show->{pod};
+    unless ($R{uncompiled}{$_}) {
+      print_branches    if $show->{branch};
+      print_conditions  if $show->{condition};
+      print_subroutines if $show->{subroutine} || $show->{pod};
+    }
   }
 
   my $html = print_summary;
@@ -526,6 +533,7 @@ function filter_files(filter_by) {
                 [% ELSE %]
                     [% file %]
                 [% END %]
+                [% IF R.uncompiled.$file %] <em>(untested)</em>[% END %]
             </td>
 
             [% FOREACH criterion = R.showing %]
