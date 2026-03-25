@@ -43,9 +43,10 @@ sub report ($pkg, $db, $options) {
       int $time
     },
     version => $pkg->VERSION,
-    files   => $options->{file},
-    cover   => $db->cover,
-    types   => [ grep $_ ne "time", keys $options->{show}->%* ],
+    files   =>
+      [ grep !$db->cover->file($_)->{meta}{uncompiled}, $options->{file}->@* ],
+    cover => $db->cover,
+    types => [ grep $_ ne "time", keys $options->{show}->%* ],
   };
 
   my $out = "$options->{outputdir}/$options->{outputfile}";
