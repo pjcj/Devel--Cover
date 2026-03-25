@@ -470,6 +470,9 @@ gold : pure_all
 all_test :
 \t \$(PERL) utils/all_versions make t
 
+all_test_bail :
+\t \$(PERL) utils/all_versions --bail make t
+
 key_test :
 \t \$(PERL) utils/all_versions --key make t
 
