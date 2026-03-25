@@ -46,8 +46,8 @@ sub cvg_class {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_stylesheet {
-  my $db   = shift;
-  my $file = "$db->{db}/cover.css";
+  my ($db, $options) = @_;
+  my $file = "$options->{outputdir}/cover.css";
   open(CSS, '>', $file) or return;
   my $p = tell(DATA);
   print CSS <DATA>;
@@ -335,7 +335,7 @@ sub print_conditions {
     platform   => $^O,                                    # should come from db
   };
 
-  my $html = "$db->{db}/$Filenames{$file}--condition.html";
+  my $html = "$options->{outputdir}/$Filenames{$file}--condition.html";
   $Template->process("conditions", $vars, $html) or die $Template->error();
 }
 
@@ -368,7 +368,7 @@ sub print_subroutines {
     platform    => $^O,                                    # should come from db
   };
 
-  my $html = "$db->{db}/$Filenames{$file}--subroutine.html";
+  my $html = "$options->{outputdir}/$Filenames{$file}--subroutine.html";
   $Template->process("subroutines", $vars, $html) or die $Template->error();
 }
 
@@ -389,7 +389,7 @@ sub report {
     = map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } @{ $options->{file} };
   %File_exists = map { $_ => -e } @{ $options->{file} };
 
-  print_stylesheet($db);
+  print_stylesheet($db, $options);
 
   for my $file (@{ $options->{file} }) {
     print_file($db, $file, $options);
