@@ -110,22 +110,12 @@ sub test_text_report () {
   like $out, qr/Covered\/Calc\.pm/, "Covered/Calc.pm in report";
 
   my $got = _uncovered_summary($out);
-  my $expected;
-  if (have_ppi) {
-    $expected = [
-      sort "Uncovered/Calc.pm  0.0  0.0  0.0  0.0  0.0  n/a  0.0",
-      "Uncovered/Full.pm  0.0  0.0  0.0  0.0  0.0  n/a  0.0",
-      "Uncovered/Trivial.pm  0.0  n/a  n/a  0.0  0.0  n/a  0.0",
-      "Uncovered/Utils.pm  0.0  0.0  n/a  0.0  0.0  n/a  0.0",
-    ];
-  } else {
-    $expected = [
-      sort "Uncovered/Calc.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
-      "Uncovered/Full.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
-      "Uncovered/Trivial.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
-      "Uncovered/Utils.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
-    ];
-  }
+  my $expected = [
+    "Uncovered/Calc.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
+    "Uncovered/Full.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
+    "Uncovered/Trivial.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
+    "Uncovered/Utils.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
+  ];
   if ($Has_test_diff) {
     eq_or_diff($got, $expected, "uncovered file summary");
   } else {
