@@ -7,7 +7,7 @@
 
 package Devel::Cover::DB;
 
-use v5.20.0;
+use 5.20.0;
 use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
