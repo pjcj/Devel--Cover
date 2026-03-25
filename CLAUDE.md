@@ -104,7 +104,7 @@ make dist
 
 ### Testing Requirements
 
-- Tests must use Test2 system (not Test::More)
+- Tests must use Test:More system (not Test2 as it is not core)
 - All new code requires tests in the `t/` directory
 - Tests should be run with `yath` test runner
 - Coverage verification using Devel::Cover with JSON reports
@@ -235,6 +235,20 @@ adjustments.
 
 - Use British English throughout the project (e.g., "optimised" not "optimized",
   "colour" not "color", "behaviour" not "behavior")
+
+### Perl Preamble
+
+All files using `v5.20.0` must use this standard preamble:
+
+```perl
+use v5.20.0;
+use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
+```
+
+- `use v5.20.0` implies `use strict`, so do not add it explicitly
+- Additional features (e.g. `say`) may be included where needed
 
 ### Code Generation
 
