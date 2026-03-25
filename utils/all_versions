@@ -9,7 +9,6 @@
 
 use v5.20.0;
 use warnings;
-
 use feature qw( signatures postderef );
 no warnings qw( experimental::signatures experimental::postderef );
 
@@ -31,6 +30,7 @@ my $Silent = " >/dev/null 2>&1";
 
 sub setup {
   $Options = {
+    bail           => 0,
     build          => 0,
     dry_run        => 0,
     force          => 0,
@@ -155,8 +155,13 @@ sub write_status (
 
 sub get_options {
   die "Bad option"
-    unless GetOptions($Options,
-      qw( build! dry_run! force! ignore_failure! key! list! silent! version=s )
+    unless GetOptions(
+      $Options,
+      qw(
+        bail!           build! dry_run! force!
+        ignore_failure! key!   list!    silent!
+        version=s
+      )
     );
 
   $Options->{version} = [
@@ -366,6 +371,7 @@ sub main {
       push @failed, $v;
       my $dur = format_duration($elapsed);
       say colour("  ✗ $v ($dur) - see $logfile", "red");
+      last if $Options->{bail};
     }
   }
 
