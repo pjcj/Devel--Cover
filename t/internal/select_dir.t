@@ -102,18 +102,20 @@ sub test_text_report () {
   my $cover_db = create_cover_db($tmpdir, $libdir);
 
   my ($out, $exit) = run_cover(
-    "--select_dir", $libdir, "--report", "text", "--silent", $cover_db
+    "--select_dir", $libdir,
+    map({ ("-coverage", $_) } qw( statement branch condition subroutine )),
+    "--report", "text", "--silent", $cover_db
   );
 
   is $exit, 0, "cover --report text exits 0";
   like $out, qr/Covered\/Calc\.pm/, "Covered/Calc.pm in report";
 
-  my $got = _uncovered_summary($out);
+  my $got      = _uncovered_summary($out);
   my $expected = [
-    "Uncovered/Calc.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
-    "Uncovered/Full.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
-    "Uncovered/Trivial.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
-    "Uncovered/Utils.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
+    "Uncovered/Calc.pm  n/a  n/a  n/a  n/a  n/a",
+    "Uncovered/Full.pm  n/a  n/a  n/a  n/a  n/a",
+    "Uncovered/Trivial.pm  n/a  n/a  n/a  n/a  n/a",
+    "Uncovered/Utils.pm  n/a  n/a  n/a  n/a  n/a",
   ];
   if ($Has_test_diff) {
     eq_or_diff($got, $expected, "uncovered file summary");
