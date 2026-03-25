@@ -238,16 +238,17 @@ adjustments.
 
 ### Perl Preamble
 
-All files using `v5.20.0` must use this standard preamble:
+All files using `5.20.0` must use this standard preamble:
 
 ```perl
-use v5.20.0;
+use 5.20.0;
 use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 ```
 
-- `use v5.20.0` implies `use strict`, so do not add it explicitly
+- `use 5.20.0` implies `use strict`, so do not add it explicitly
+- Use `use 5.x.y;` (without the `v` prefix) throughout the project
 - Additional features (e.g. `say`) may be included where needed
 
 ### Code Generation

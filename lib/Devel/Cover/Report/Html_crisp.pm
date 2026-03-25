@@ -7,7 +7,7 @@
 
 package Devel::Cover::Report::Html_crisp;
 
-use v5.20.0;
+use 5.20.0;
 use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
@@ -2008,7 +2008,7 @@ s/^\s+//gm for values %Templates;
 
 package Devel::Cover::Report::Html_crisp::Template::Provider;
 
-use v5.20.0;
+use 5.20.0;
 use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );

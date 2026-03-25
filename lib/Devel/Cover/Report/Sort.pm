@@ -7,7 +7,7 @@
 
 package Devel::Cover::Report::Sort;
 
-use v5.20.0;
+use 5.20.0;
 use warnings;
 use feature qw( postderef say signatures );
 no warnings qw( experimental::postderef experimental::signatures );
