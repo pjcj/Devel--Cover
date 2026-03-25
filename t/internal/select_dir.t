@@ -16,7 +16,10 @@ no warnings qw( experimental::signatures );
 use FindBin ();
 use lib $FindBin::Bin, qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [ qw( done_testing is like ok ) ];
+use Test::More import => [ qw( done_testing is is_deeply like ok ) ];
+
+eval "use Test::Differences";
+my $Has_test_diff = $INC{"Test/Differences.pm"};
 
 use File::Path qw( make_path );
 use File::Spec ();
@@ -25,6 +28,18 @@ use Devel::Cover::DB ();
 use TestHelper       qw( create_cover_db run_cover setup_lib_dir );
 
 sub have_ppi () { eval { require PPI; 1 } }
+
+# Extract uncovered file summary lines from text report output, normalising
+# away temp-dir prefixes so comparisons are stable.
+sub _uncovered_summary ($out) { [
+  sort map {
+    my ($file, $rest) = /(Uncovered\/\w+\.pm)\s+(.*)/;
+    my @vals = ($rest =~ /([\d.]+|n\/a)/g);
+    join "  ", $file, @vals
+  } grep /Uncovered\//,
+  split /\n/,
+  $out,
+] }
 
 # --select_dir scans .pm/.pl files and persists the list in the DB, excluding
 # blib/ subdirectories and non-Perl files.
@@ -40,7 +55,7 @@ sub test_scan () {
   my $db    = Devel::Cover::DB->new(db => $cover_db);
   my @files = sort $db->files;
 
-  is scalar @files, 8, "exactly eight files found";
+  is @files, 8, "exactly eight files found";
   ok grep(/Covered\/Calc\.pm$/,      @files), "Covered/Calc.pm in files";
   ok grep(/Covered\/Full\.pm$/,      @files), "Covered/Full.pm in files";
   ok grep(/Covered\/Trivial\.pm$/,   @files), "Covered/Trivial.pm in files";
@@ -92,20 +107,29 @@ sub test_text_report () {
   );
 
   is $exit, 0, "cover --report text exits 0";
-  like $out, qr/Uncovered\/Calc\.pm/,  "Uncovered/Calc.pm in report";
-  like $out, qr/Uncovered\/Utils\.pm/, "Uncovered/Utils.pm in report";
-  like $out, qr/Covered\/Calc\.pm/,    "Covered/Calc.pm in report";
+  like $out, qr/Covered\/Calc\.pm/, "Covered/Calc.pm in report";
 
+  my $got = _uncovered_summary($out);
+  my $expected;
   if (have_ppi) {
-    like $out, qr/Uncovered\/Calc\.pm.*\b0\.0\b/,
-      "0.0 shown for Uncovered/Calc.pm (PPI available)";
-    like $out, qr/Uncovered\/Utils\.pm.*\b0\.0\b/,
-      "0.0 shown for Uncovered/Utils.pm (PPI available)";
+    $expected = [
+      sort "Uncovered/Calc.pm  0.0  0.0  0.0  0.0  0.0  n/a  0.0",
+      "Uncovered/Full.pm  0.0  0.0  0.0  0.0  0.0  n/a  0.0",
+      "Uncovered/Trivial.pm  0.0  n/a  n/a  0.0  0.0  n/a  0.0",
+      "Uncovered/Utils.pm  0.0  0.0  n/a  0.0  0.0  n/a  0.0",
+    ];
   } else {
-    like $out, qr/Uncovered\/Calc\.pm.*n\/a/,
-      "n/a shown for Uncovered/Calc.pm (no PPI)";
-    like $out, qr/Uncovered\/Utils\.pm.*n\/a/,
-      "n/a shown for Uncovered/Utils.pm (no PPI)";
+    $expected = [
+      sort "Uncovered/Calc.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
+      "Uncovered/Full.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
+      "Uncovered/Trivial.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
+      "Uncovered/Utils.pm  n/a  n/a  n/a  n/a  n/a  n/a  n/a",
+    ];
+  }
+  if ($Has_test_diff) {
+    eq_or_diff($got, $expected, "uncovered file summary");
+  } else {
+    is_deeply($got, $expected, "uncovered file summary");
   }
 }
 
