@@ -241,7 +241,7 @@ sub setup_lib_dir () {
 
 sub create_cover_db ($tmpdir, $libdir) {
   my $cover_db = File::Spec->catdir($tmpdir, "cover_db");
-  my $select   = quotemeta $libdir;
+  my $select   = "\\Q$libdir\\E";
 
   local $ENV{DEVEL_COVER_SELF};
   delete $ENV{DEVEL_COVER_SELF};
