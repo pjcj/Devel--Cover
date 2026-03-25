@@ -31,7 +31,7 @@ sub print_statement {
     my $l = $statements->location($location);
     for my $statement (@$l) {
       next if $statement->covered;
-      print "Uncovered statement at $file line $location:\n";
+      print "Uncovered statement at $file line $location\n";
     }
   }
 }
@@ -124,6 +124,10 @@ sub report {
   my ($pkg, $db, $options) = @_;
 
   for my $file (@{ $options->{file} }) {
+    if ($db->cover->file($file)->{meta}{uncompiled}) {
+      print "Untested file at $file line 1\n";
+      next;
+    }
     print_statement($db, $file, $options)   if $options->{show}{statement};
     print_branches($db, $file, $options)    if $options->{show}{branch};
     print_conditions($db, $file, $options)  if $options->{show}{condition};
