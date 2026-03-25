@@ -24,8 +24,10 @@ use File::Spec ();
 use Devel::Cover::DB ();
 use TestHelper       qw( create_cover_db run_cover setup_lib_dir );
 
-# --select_dir scans .pm/.pl files and persists the list in the DB,
-# excluding blib/ subdirectories and non-Perl files.
+sub have_ppi () { eval { require PPI; 1 } }
+
+# --select_dir scans .pm/.pl files and persists the list in the DB, excluding
+# blib/ subdirectories and non-Perl files.
 sub test_scan () {
   my ($tmpdir, $libdir) = setup_lib_dir;
   my $cover_db = File::Spec->catdir($tmpdir, "cover_db_scan");
@@ -47,16 +49,15 @@ sub test_scan () {
   ok grep(/Uncovered\/Full\.pm$/,    @files), "Uncovered/Full.pm in files";
   ok grep(/Uncovered\/Trivial\.pm$/, @files), "Uncovered/Trivial.pm in files";
   ok grep(/Uncovered\/Utils\.pm$/,   @files), "Uncovered/Utils.pm in files";
-  ok !grep(/blib/,                 @files), "blib files excluded";
-  ok !grep(/\.txt$/,               @files), "non-pm files excluded";
+  ok !grep(/blib/,                   @files), "blib files excluded";
+  ok !grep(/\.txt$/,                 @files), "non-pm files excluded";
 }
 
-# When $db->{files} lists a file absent from all runs, $db->cover
-# should include it as an uncompiled entry with the meta flag set.
+# When $db->{files} lists a file absent from all runs, $db->cover should include
+# it as an uncompiled entry with the meta flag set.
 sub test_uncompiled_in_cover () {
   my ($tmpdir, $libdir) = setup_lib_dir;
-  my $uncovered_pm
-    = File::Spec->catfile($libdir, "Uncovered", "Calc.pm");
+  my $uncovered_pm = File::Spec->catfile($libdir, "Uncovered", "Calc.pm");
 
   my $cover_db = File::Spec->catdir($tmpdir, "cover_db_unit");
   make_path($cover_db);
@@ -70,22 +71,18 @@ sub test_uncompiled_in_cover () {
   ok $file_obj && $file_obj->{meta}{uncompiled},
     "Uncovered/Calc.pm has uncompiled meta flag";
 
-  my $have_ppi = eval { require PPI; 1 };
-  if ($have_ppi) {
+  if (have_ppi) {
     ok $file_obj->{meta}{counts}, "counts present when PPI available";
-    ok $file_obj->{meta}{counts}{subroutine},
-      "subroutine count is non-zero";
-    ok $file_obj->{meta}{counts}{branch},
-      "branch count is non-zero";
-    ok $file_obj->{meta}{counts}{condition},
-      "condition count is non-zero";
+    ok $file_obj->{meta}{counts}{subroutine}, "subroutine count is non-zero";
+    ok $file_obj->{meta}{counts}{branch},     "branch count is non-zero";
+    ok $file_obj->{meta}{counts}{condition},  "condition count is non-zero";
   } else {
     ok !$file_obj->{meta}{counts}, "no counts without PPI";
   }
 }
 
-# The text report should list uncovered files with all criteria
-# columns populated when PPI is available.
+# The text report should list uncovered files with all criteria columns
+# populated when PPI is available.
 sub test_text_report () {
   my ($tmpdir, $libdir) = setup_lib_dir;
   my $cover_db = create_cover_db($tmpdir, $libdir);
@@ -99,8 +96,7 @@ sub test_text_report () {
   like $out, qr/Uncovered\/Utils\.pm/, "Uncovered/Utils.pm in report";
   like $out, qr/Covered\/Calc\.pm/,    "Covered/Calc.pm in report";
 
-  my $have_ppi = eval { require PPI; 1 };
-  if ($have_ppi) {
+  if (have_ppi) {
     like $out, qr/Uncovered\/Calc\.pm.*\b0\.0\b/,
       "0.0 shown for Uncovered/Calc.pm (PPI available)";
     like $out, qr/Uncovered\/Utils\.pm.*\b0\.0\b/,
