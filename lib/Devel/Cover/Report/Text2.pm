@@ -8,13 +8,15 @@ use Devel::Cover::DB;
 use Devel::Cover::Truth_Table;
 
 my %format = (
-  line      => "%4s ",
-  err       => "%3s ",
-  statement => "%4s ",
-  condition => "%-24s ",
-  branch    => "%-6s ",
-  time      => "%6s ",
-  code      => "| %s\n",
+  line       => "%4s ",
+  err        => "%3s ",
+  statement  => "%4s ",
+  branch     => "%-6s ",
+  condition  => "%-24s ",
+  subroutine => "%4s ",
+  pod        => "%4s ",
+  time       => "%6s ",
+  code       => "| %s\n",
 );
 
 #-------------------------------------------------------------------------------
@@ -76,7 +78,7 @@ sub print_file {
   open(F, '<', $file) or warn("Unable to open '$file' [$!]\n"), return;
 
   my $pct  = sprintf("%.1f%%", $db->{summary}{$file}{total}{percentage});
-  my $pver = join('.', map { ord } split(//, $^V));
+  my $pver = $^V->stringify;
   print <<EOT;
 #         File: $file
 #     Coverage: $pct
@@ -152,6 +154,7 @@ sub max {
 sub report {
   my ($pkg, $db, $options) = @_;
   foreach my $file (@{ $options->{file} }) {
+    next if $db->cover->file($file)->{meta}{uncompiled};
     print_file($db, $file, $options);
   }
 }
