@@ -70,9 +70,13 @@ sub print_summary {
     (0 .. $db->all_criteria - 1);
   my @files = (grep($db->{summary}{$_}, @{ $options->{file} }), 'Total');
 
-  my %vals;
+  my (%vals, %uncompiled);
 
   for my $file (@files) {
+    my $is_uncompiled = $file ne "Total"
+      && $db->cover->file($file)->{meta}{uncompiled};
+    $uncompiled{$file} = 1 if $is_uncompiled;
+
     my %pvals;
     my $part = $db->{summary}{$file};
     for my $criterion (@showing) {
@@ -88,7 +92,7 @@ sub print_summary {
         if ($criterion ne 'time') {
           $vals{$file}{$criterion}{class} = cvg_class($pc);
         }
-        if (exists $Filenames{$file}) {
+        if (!$is_uncompiled && exists $Filenames{$file}) {
           if ($criterion eq 'branch') {
             $vals{$file}{$criterion}{link} = "$Filenames{$file}--branch.html";
           } elsif ($criterion eq 'condition') {
@@ -115,6 +119,7 @@ sub print_summary {
     files       => \@files,
     filenames   => \%Filenames,
     file_exists => \%File_exists,
+    uncompiled  => \%uncompiled,
     vals        => \%vals,
   };
 
@@ -388,9 +393,11 @@ sub report {
 
   for my $file (@{ $options->{file} }) {
     print_file($db, $file, $options);
-    print_branches($db, $file, $options)    if $options->{show}{branch};
-    print_conditions($db, $file, $options)  if $options->{show}{condition};
-    print_subroutines($db, $file, $options) if $options->{show}{subroutine};
+    unless ($db->cover->file($file)->{meta}{uncompiled}) {
+      print_branches($db, $file, $options)    if $options->{show}{branch};
+      print_conditions($db, $file, $options)  if $options->{show}{condition};
+      print_subroutines($db, $file, $options) if $options->{show}{subroutine};
+    }
   }
   print_summary($db, $options);
 }
@@ -469,6 +476,7 @@ $Templates{summary} = <<'EOT';
         [% ELSE %]
             [% file %]
         [% END %]
+        [% IF uncompiled.$file %] <em>(untested)</em>[% END %]
         </td>
 
         [% FOREACH criterion = showing %]
