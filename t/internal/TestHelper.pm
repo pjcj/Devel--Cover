@@ -8,10 +8,9 @@ package TestHelper;
 # https://pjcj.net
 
 use v5.20.0;
-use strict;
 use warnings;
-use feature qw( signatures );
-no warnings qw( experimental::signatures );
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 use Exporter qw( import );
 our @EXPORT_OK = qw( create_cover_db run_cover setup_lib_dir );

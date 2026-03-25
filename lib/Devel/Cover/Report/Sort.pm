@@ -8,7 +8,6 @@
 package Devel::Cover::Report::Sort;
 
 use v5.20.0;
-use strict;
 use warnings;
 use feature qw( postderef say signatures );
 no warnings qw( experimental::postderef experimental::signatures );

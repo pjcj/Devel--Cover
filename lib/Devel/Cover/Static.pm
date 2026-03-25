@@ -8,10 +8,9 @@
 package Devel::Cover::Static;
 
 use v5.20.0;
-use strict;
 use warnings;
-use feature qw( signatures );
-no warnings qw( experimental::signatures );
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 my $Have_ppi;
 
