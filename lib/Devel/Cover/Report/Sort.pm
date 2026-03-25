@@ -31,7 +31,9 @@ sub print_sort {
     my $run = $runs{ $r->run };
     # use Devel::Cover::Dumper; print Dumper $run;
     my $vec = $r->vec;
-    for my $file (@{ $options->{file} }) {
+    for my $file (grep !$db->cover->file($_)->{meta}{uncompiled},
+      @{ $options->{file} })
+    {
       # print "$file\n";
       for my $criterion (@collected) {
         my ($v, $sz) = @{ $vec->{$file}{$criterion} }{ "vec", "size" };
