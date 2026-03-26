@@ -13,6 +13,7 @@ use warnings;
 # VERSION
 
 use Devel::Cover::DB;
+use Devel::Cover::Util qw( common_prefix );
 
 sub print_runs {
   my ($db, $options) = @_;
@@ -28,11 +29,11 @@ sub print_runs {
 }
 
 sub print_statement {
-  my ($db, $file, $options) = @_;
+  my ($db, $file, $options, $short) = @_;
 
   my $cover = $db->cover;
 
-  print "$file\n\n";
+  print "$short->{$file}\n\n";
   my $f = $cover->file($file);
 
   my $fmt  = "%-5s %3s ";
@@ -92,7 +93,7 @@ sub print_statement {
       $more = 0;
       for my $c ($db->criteria) {
         next unless $options->{show}{$c};
-        my $o = shift @{ $criteria{$c} };
+        my $o   = shift @{ $criteria{$c} };
         $more ||= @{ $criteria{$c} };
         my $value
           = $o
@@ -198,7 +199,7 @@ sub print_conditions {
 
 sub print_subroutines {
 
-  my ($db, $file, $options) = @_;
+  my ($db, $file, $options, $short) = @_;
 
   my $dfile = $db->cover->file($file);
   my $subs  = $dfile->subroutine or return;
@@ -214,7 +215,7 @@ sub print_subroutines {
     my $d = $pods && $pods->location($location);
     for my $sub (@$l) {
 
-      my $h = "$file:$location";
+      my $h = "$short->{$file}:$location";
       my $c = ($sub->uncoverable ? "-" : "") . $sub->covered;
       my $e = $pods && shift @$d;
       my $p = $e ? ($e->uncoverable ? "-" : "") . $e->covered : "";
@@ -253,13 +254,17 @@ sub print_subroutines {
 sub report {
   my ($pkg, $db, $options) = @_;
 
+  my @files = $options->{file}->@*;
+  my ($prefix, $short) = common_prefix(@files);
+
   print_runs($db, $options);
-  for my $file (@{ $options->{file} }) {
+  for my $file (@files) {
     next if $db->cover->file($file)->{meta}{uncompiled};
-    print_statement($db, $file, $options)  if $options->{show}{statement};
+    print_statement($db, $file, $options, $short)
+      if $options->{show}{statement};
     print_branches($db, $file, $options)   if $options->{show}{branch};
     print_conditions($db, $file, $options) if $options->{show}{condition};
-    print_subroutines($db, $file, $options)
+    print_subroutines($db, $file, $options, $short)
       if $options->{show}{subroutine} || $options->{show}{pod};
   }
 }
