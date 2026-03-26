@@ -17,9 +17,8 @@ no warnings "experimental::signatures";
 
 # VERSION
 
-use Exporter;
+use Exporter qw( import );
 
-our @ISA       = "Exporter";
 our @EXPORT_OK = qw( write_file );
 
 my %Files;

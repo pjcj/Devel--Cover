@@ -7,9 +7,8 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Exporter;
+use Exporter qw( import );
 
-our @ISA       = "Exporter";
 our @EXPORT_OK = qw( launch highlight $Have_highlighter );
 
 our $Have_highlighter;

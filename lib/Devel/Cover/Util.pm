@@ -15,8 +15,8 @@ no warnings qw( experimental::postderef experimental::signatures );
 # VERSION
 
 use Cwd        qw( abs_path );
+use Exporter   qw( import );
 use File::Spec ();
-use parent "Exporter";
 
 our @EXPORT_OK = qw( remove_contained_paths );
 
