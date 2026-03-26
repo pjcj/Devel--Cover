@@ -12,10 +12,9 @@ use warnings;
 
 # VERSION
 
-use Exporter;
+use Exporter qw( import );
 
-our @ISA       = "Exporter";
-our @EXPORT_OK = qw(find_prove cpus nice_cpus njobs prove_command);
+our @EXPORT_OK = qw( find_prove cpus nice_cpus njobs prove_command );
 
 sub find_prove {
   my $perl = $^X;
