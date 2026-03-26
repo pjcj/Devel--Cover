@@ -57,6 +57,8 @@ sub write {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::DB::IO::JSON - JSON based IO routines for Devel::Cover::DB

@@ -775,6 +775,8 @@ sub report {
 
 =pod
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Report::Html_minimal - HTML backend for Devel::Cover

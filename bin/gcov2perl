@@ -144,6 +144,8 @@ main
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 gcov2perl - convert gcov files to Devel::Cover databases

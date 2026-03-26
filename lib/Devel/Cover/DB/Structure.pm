@@ -345,6 +345,8 @@ sub merge {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::DB::Structure - Internal: abstract structure of a source file

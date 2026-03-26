@@ -18,6 +18,8 @@ use base "Devel::Cover::Report::Html_minimal";
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Report::Html - HTML backend for Devel::Cover

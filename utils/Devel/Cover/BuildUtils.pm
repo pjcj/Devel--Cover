@@ -60,6 +60,8 @@ sub prove_command {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::BuildUtils - Build utility functions for Devel::Cover

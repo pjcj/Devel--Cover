@@ -838,6 +838,8 @@ sub AUTOLOAD {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::DB - Code coverage metrics for Perl

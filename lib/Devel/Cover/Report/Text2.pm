@@ -163,6 +163,8 @@ sub report {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Report::Test2 - Text backend for Devel::Cover

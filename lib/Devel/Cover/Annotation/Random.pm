@@ -72,6 +72,8 @@ sub class {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Annotation::Random - Example annotation for formatters

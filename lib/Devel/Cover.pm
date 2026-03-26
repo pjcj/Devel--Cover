@@ -1275,6 +1275,8 @@ Anything you still can’t cope with is therefore your own problem.
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover - Code coverage metrics for Perl

@@ -21,6 +21,8 @@ sub headers { [qw( l !l&&r !l&&!r )] }
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Condition_or_3 - Code coverage metrics for Perl
