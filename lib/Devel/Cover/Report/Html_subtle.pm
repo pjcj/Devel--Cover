@@ -722,6 +722,8 @@ s/^\s+//gm for values %Templates;
 
 =pod
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Report::Html_subtle - HTML backend for Devel::Cover

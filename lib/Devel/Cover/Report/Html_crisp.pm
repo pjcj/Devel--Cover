@@ -2040,6 +2040,8 @@ And pay no worship to the garish sun.
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Report::Html_crisp - Modern HTML backend for Devel::Cover

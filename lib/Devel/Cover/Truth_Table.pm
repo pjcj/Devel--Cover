@@ -479,6 +479,8 @@ __END__
 
 =pod
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Truth_Table - Truth tables for coverage objects.

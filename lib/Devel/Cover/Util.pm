@@ -50,6 +50,8 @@ sub remove_contained_paths {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Util - Utility subroutines for Devel::Cover

@@ -62,6 +62,8 @@ sub report ($pkg, $db, $options) {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Report::Sort - backend for Devel::Cover

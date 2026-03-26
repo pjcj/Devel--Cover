@@ -158,6 +158,8 @@ package Documented;
 use strict;
 use warnings;
 
+=encoding utf8
+
 =head1 NAME
 
 Documented - a test module

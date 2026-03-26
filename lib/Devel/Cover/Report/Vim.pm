@@ -247,6 +247,8 @@ EOT
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Report::Vim - Backend for displaying coverage data in Vim

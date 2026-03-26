@@ -75,6 +75,8 @@ END { B::Concise::compile(@Options)->() }
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Op - B::Concise with coverage data

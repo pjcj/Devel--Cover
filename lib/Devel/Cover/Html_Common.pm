@@ -92,6 +92,8 @@ __END__
 
 =pod
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Html_Common - Common code for HTML reporters

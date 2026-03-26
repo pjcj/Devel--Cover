@@ -354,6 +354,8 @@ sub create_gold ($self) {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Test - Internal module for testing

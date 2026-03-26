@@ -285,6 +285,8 @@ Heal the scars and change the stars
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Test::Showcase - fixture library for Devel::Cover showcase

@@ -87,6 +87,8 @@ sub fetch ($self, $name, $prefix = undef) {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Base::Editor - Base class for editor coverage report backends

@@ -65,6 +65,8 @@ main @ARGV;
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 showcase - generate a Devel::Cover report from fixture modules

@@ -36,6 +36,8 @@ sub m2 {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 DC::Test::Dist::M1 - Devel::Cover distribution test submodule

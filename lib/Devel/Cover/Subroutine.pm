@@ -26,6 +26,8 @@ sub criterion   { "subroutine" }
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Subroutine - Code coverage metrics for Perl subroutines

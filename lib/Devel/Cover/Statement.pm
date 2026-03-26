@@ -26,6 +26,8 @@ sub criterion   { "statement" }
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Statement - Code coverage metrics for Perl
