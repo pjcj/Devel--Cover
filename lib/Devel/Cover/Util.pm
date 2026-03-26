@@ -7,20 +7,20 @@
 
 package Devel::Cover::Util;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Cwd "abs_path";
-use File::Spec;
-use base "Exporter";
+use Cwd        qw( abs_path );
+use File::Spec ();
+use parent "Exporter";
 
 our @EXPORT_OK = qw( remove_contained_paths );
 
-sub remove_contained_paths {
-  my ($container, @paths) = @_;
-
+sub remove_contained_paths ($container, @paths) {
   # File::Spec's case tolerancy detection on *nix/Mac systems does not
   # take actual file system properties into account, but is better than
   # trying to normalise paths with per-os logic. On Windows it is
@@ -38,12 +38,10 @@ sub remove_contained_paths {
                         # similar to the container
     ]x;
 
-  @paths = grep {
+  grep {
     my $path = abs_path $_;  # normalise backslashes
     $path !~ $regex;         # check if path is inside the container
-  } @paths;
-
-  return @paths;
+  } @paths
 }
 
 1
