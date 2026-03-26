@@ -25,11 +25,12 @@ use File::Path   qw( rmtree );
 use List::Util   qw( any );
 use Scalar::Util qw( blessed reftype );
 
-use Devel::Cover::Dumper qw( Dumper );  # For debugging
+use Devel::Cover::Dumper qw( Dumper );        # For debugging
+use Devel::Cover::Util   qw( common_prefix );
 
 my $Has_term_size = eval { require Term::Size };
 
-my $DB = "cover.15";                    # Version of the database
+my $DB = "cover.15";                          # Version of the database
 
 @Devel::Cover::DB::Criteria
   = (qw( statement branch path condition subroutine pod time ));
@@ -357,7 +358,9 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
   my $s     = $self->{summary};
   my @files = (grep($_ ne "Total", sort keys %$s), "Total");
   my $max   = 5;
-  for (@files) { $max = length if length > $max }
+  my ($prefix, $short) = common_prefix(@files);
+  for (@files) { $max = length $short->{$_} if length $short->{$_} > $max }
+
   my $width
     = !$ENV{DEVEL_COVER_TEST_SUITE}
     && $Has_term_size
@@ -368,7 +371,9 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
 
   no warnings "uninitialized";
   my $fmt = "%-${fw}s" . " %6s" x $n . "\n";
-  printf STDOUT $fmt, "-" x $fw, ("------") x $n;
+
+  printf STDOUT "\nCommon prefix: %s\n\n", $prefix if $prefix;
+  printf STDOUT $fmt,                      "-" x $fw, ("------") x $n;
   printf STDOUT $fmt, "File", map $self->{all_criteria_short}[$_],
     grep $options{ $self->{all_criteria}[$_] }, 0 .. $self->{all_criteria}->$#*;
   printf STDOUT $fmt, "-" x $fw, ("------") x $n;
@@ -378,7 +383,7 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
     my $uncompiled
       = $file ne "Total" && $self->cover->file($file)->{meta}{uncompiled};
     $has_uncompiled ||= $uncompiled;
-    printf STDOUT $fmt, trimmed_file($file, $fw),
+    printf STDOUT $fmt, trimmed_file($short->{$file}, $fw),
       $uncompiled
       ? ("n/a") x $n
       : (
