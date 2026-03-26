@@ -13,7 +13,8 @@ use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
 use FindBin ();
-use lib $FindBin::Bin, qw( ./lib ./blib/lib ./blib/arch );
+use lib "$FindBin::Bin/../lib", $FindBin::Bin,
+  qw( ./lib ./blib/lib ./blib/arch );
 
 use Test::More import => [ qw( done_testing is is_deeply like ok ) ];
 
@@ -23,8 +24,8 @@ my $Has_test_diff = $INC{"Test/Differences.pm"};
 use File::Path qw( make_path );
 use File::Spec ();
 
-use Devel::Cover::DB ();
-use TestHelper       qw( create_cover_db run_cover setup_lib_dir );
+use Devel::Cover::DB              ();
+use Devel::Cover::Test::Showcase  qw( create_cover_db run_cover setup_lib_dir );
 
 sub have_ppi () { eval { require PPI; 1 } }
 

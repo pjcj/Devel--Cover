@@ -1,4 +1,4 @@
-package TestHelper;
+package Devel::Cover::Test::Showcase;
 
 # Copyright 2026, Paul Johnson (paul@pjcj.net)
 
@@ -21,7 +21,7 @@ use File::Path     qw( make_path );
 use File::Spec     ();
 use File::Temp     qw( tempdir );
 
-my $Root  = realpath(File::Spec->catdir(dirname(__FILE__), "..", ".."));
+my $Root  = realpath(File::Spec->catdir(dirname(__FILE__), (("..") x 5)));
 my $Cover = File::Spec->catfile($Root, "bin", "cover");
 
 sub run_cover (@args) {
@@ -246,16 +246,28 @@ sub create_cover_db ($tmpdir, $libdir) {
   local $ENV{DEVEL_COVER_SELF};
   delete $ENV{DEVEL_COVER_SELF};
 
-  my $oneliner = join " ", "use Covered::Calc; use Covered::Full;",
-    "use Covered::Trivial; use Covered::Utils;", "Covered::Calc::add(1, 2);",
-    "Covered::Utils::greet(q(world));", "Covered::Utils::upper(q(hi));",
-    "Covered::Full::double(5);",        "Covered::Full::double(-1);",
-    "Covered::Full::clamp(0, 1, 10);",  "Covered::Full::clamp(5, 1, 10);",
-    "Covered::Full::clamp(99, 1, 10);", "Covered::Full::sign(1);",
-    "Covered::Full::sign(-1);",         "Covered::Full::label(1);",
-    "Covered::Full::label(0);",         "Covered::Full::abs_val(-3);",
-    "Covered::Full::is_even(4);",       "Covered::Full::inc(1);",
-    "Covered::Trivial::id(42)";
+  my $oneliner = join " ", split /\n/, <<ONELINER;
+use Covered::Calc;
+use Covered::Full;
+use Covered::Trivial;
+use Covered::Utils;
+Covered::Calc::add(1, 2);
+Covered::Utils::greet(q(world));
+Covered::Utils::upper(q(hi));
+Covered::Full::double(5);
+Covered::Full::double(-1);
+Covered::Full::clamp(0, 1, 10);
+Covered::Full::clamp(5, 1, 10);
+Covered::Full::clamp(99, 1, 10);
+Covered::Full::sign(1);
+Covered::Full::sign(-1);
+Covered::Full::label(1);
+Covered::Full::label(0);
+Covered::Full::abs_val(-3);
+Covered::Full::is_even(4);
+Covered::Full::inc(1);
+Covered::Trivial::id(42)
+ONELINER
   my $cmd
     = "$^X -Iblib/lib -Iblib/arch -I$libdir"
     . " -MDevel::Cover=-db,$cover_db,-silent,1,-merge,0,-select,$select"
@@ -266,4 +278,109 @@ sub create_cover_db ($tmpdir, $libdir) {
   $cover_db
 }
 
-1
+"
+Would you do it with me?
+Heal the scars and change the stars
+"
+
+__END__
+
+=head1 NAME
+
+Devel::Cover::Test::Showcase - fixture library for Devel::Cover showcase
+
+=head1 SYNOPSIS
+
+ use Devel::Cover::Test::Showcase qw(
+   setup_lib_dir create_cover_db run_cover
+ );
+
+ my ($tmpdir, $libdir) = setup_lib_dir;
+ my $cover_db          = create_cover_db($tmpdir, $libdir);
+ my ($out, $exit)      = run_cover(
+   "--select_dir", $libdir,
+   "--report",     "text",
+   "--silent",
+   $cover_db,
+ );
+
+=head1 DESCRIPTION
+
+This module provides a reusable set of Perl source fixtures and helper functions
+for showcasing and testing Devel::Cover features.  It is used by the
+C<utils/showcase> script (via C<make showcase_*> targets) and by the internal
+test suite.
+
+L</setup_lib_dir> creates a temporary directory tree containing eight small
+modules - four under C<Covered::> and four identical copies under C<Uncovered::>
+- that exercise a range of coverage criteria: statements, branches
+(if/elsif/else, ternary), conditions (C<&&>, C<||>), subroutines, and pod.
+
+L</create_cover_db> runs the C<Covered::> modules under Devel::Cover to produce
+a coverage database.  The C<Uncovered::> modules are never loaded, so they
+appear as untested files when C<--select_dir> is used.
+
+=head1 EXPORTED SUBROUTINES
+
+All functions are exported on request via L<Exporter>.
+
+=head2 setup_lib_dir
+
+ my ($tmpdir, $libdir) = setup_lib_dir;
+
+Create a temporary directory tree containing eight fixture modules: four under
+C<Covered::> and four identical copies under C<Uncovered::>.  Also creates a
+C<blib/lib/BlibMod.pm> (to test blib exclusion) and a C<README.txt> (to test
+non-Perl file exclusion).
+
+Returns C<($tmpdir, $libdir)>.  The tempdir is cleaned up automatically when
+C<$tmpdir> goes out of scope.
+
+=head2 create_cover_db
+
+ my $cover_db = create_cover_db($tmpdir, $libdir);
+
+Collect coverage on the C<Covered::> modules by exercising a representative set
+of calls, and return the path to the resulting C<cover_db> directory. C<$tmpdir>
+and C<$libdir> should be the values returned by L</setup_lib_dir>.
+
+Only the C<Covered::> side is exercised; the C<Uncovered::> modules are never
+loaded, so they appear as untested files when C<--select_dir> is used.
+
+=head2 run_cover
+
+ my ($output, $exit_code) = run_cover(@args);
+
+Run C<bin/cover> with the given arguments, using the current C<$^X> and the blib
+paths so that the development version of Devel::Cover is
+used. C<DEVEL_COVER_SELF> is temporarily cleared to avoid self-coverage
+interference.
+
+=head1 FIXTURE MODULES
+
+The following modules are created in both the C<Covered::> and C<Uncovered::>
+namespaces, with identical source:
+
+=over
+
+=item B<Calc> - if/elsif/else branches, C<&&>/C<||> conditions, pod
+
+=item B<Full> - branches, ternaries, conditions, nine subs (including a private
+C<_helper>), full pod coverage
+
+=item B<Trivial> - single sub, no branches or conditions
+
+=item B<Utils> - string functions, postfix C<if> branch, partial pod
+
+=back
+
+=head1 LICENCE
+
+Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+https://pjcj.net
+
+=cut
