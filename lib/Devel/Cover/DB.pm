@@ -373,9 +373,11 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
     grep $options{ $self->{all_criteria}[$_] }, 0 .. $self->{all_criteria}->$#*;
   printf STDOUT $fmt, "-" x $fw, ("------") x $n;
 
+  my $has_uncompiled;
   for my $file (@files) {
     my $uncompiled
       = $file ne "Total" && $self->cover->file($file)->{meta}{uncompiled};
+    $has_uncompiled ||= $uncompiled;
     printf STDOUT $fmt, trimmed_file($file, $fw),
       $uncompiled
       ? ("n/a") x $n
@@ -387,6 +389,10 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
   }
 
   printf STDOUT $fmt, "-" x $fw, ("------") x $n;
+  if ($has_uncompiled && !eval { require PPI; 1 }) {
+    printf STDOUT "\n%s\n",
+      "n/a: install PPI for estimated coverage of untested files";
+  }
   print STDOUT "\n\n";
 }
 

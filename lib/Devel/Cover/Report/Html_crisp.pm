@@ -40,6 +40,7 @@ my $Threshold = { c0 => 75, c1 => 90, c2 => 100 };
 
 sub class ($pc, $err, $criterion) {
   return "" if $criterion && $criterion eq "time";
+  return "" unless defined $pc && $pc =~ /\A[0-9.]+\z/;
   no warnings "uninitialized";
      !$err                   ? "c3"
     : $pc < $Threshold->{c0} ? "c0"
@@ -434,6 +435,7 @@ sub report ($pkg, $db, $options) {
       map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } $options->{file}->@*
     },
     threshold      => $Threshold,
+    have_ppi       => eval { require PPI; 1 } ? 1 : 0,
     favicon_colour => "%232e7d32",
     report_id      => $options->{outputdir},
     file_count     => 0 + $options->{file}->@*,
@@ -1659,7 +1661,9 @@ Total: [% total.total.pc %]%
 <a href="[% f.link %]">[% f.name %]</a>
 [% ELSE %][% f.name %][% END %]
 [% IF f.uncompiled %]
-<span class="untested-badge">untested</span>
+<span class="untested-badge[% UNLESS R.have_ppi %] has-tip[% END %]"
+[%- UNLESS R.have_ppi %] data-tip="Install PPI for coverage estimates"[% END -%]
+>untested</span>
 [% END %]
 <strong>[% f.risk | format('%d') %]</strong>
 </div>
@@ -1765,7 +1769,9 @@ Group by directory</label>
 <a href="[% f.link %]">[% f.basename %]</a>
 [% ELSE %][% f.basename %][% END %]
 [% IF f.uncompiled %]
-<span class="untested-badge">untested</span>
+<span class="untested-badge[% UNLESS R.have_ppi %] has-tip[% END %]"
+[%- UNLESS R.have_ppi %] data-tip="Install PPI for coverage estimates"[% END -%]
+>untested</span>
 [% END %]
 </td>
 [% FOREACH c = R.showing %]
@@ -1818,7 +1824,9 @@ $Templates{file} = <<'EOT';
 <div class="header-inner">
 <h1>[% file.name %]
 [% IF file.uncompiled %]
-<span class="untested-badge">untested</span>
+<span class="untested-badge[% UNLESS R.have_ppi %] has-tip[% END %]"
+[%- UNLESS R.have_ppi %] data-tip="Install PPI for coverage estimates"[% END -%]
+>untested</span>
 [% END %]
 </h1>
 <div class="header-stats">
