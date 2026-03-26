@@ -43,161 +43,161 @@ sub _write_module ($path, $pkg, $body) {
 # Shared module bodies - identical between Covered and Uncovered
 # variants so criteria counts match exactly for comparison.
 
-my $Calc_body = <<'BODY';
-=head2 add
+my $Calc_body = <<'BODY' =~ s/^  //gmr;
+  =head2 add
 
-Add two numbers and classify the result.
+  Add two numbers and classify the result.
 
-=cut
+  =cut
 
-sub add {
-  my ($a, $b) = @_;
-  my $sum = $a + $b;
-  if ($sum > 100) {
-    return "big";
-  } elsif ($sum > 0) {
-    return "positive";
-  } else {
-    return "non-positive";
+  sub add {
+    my ($a, $b) = @_;
+    my $sum = $a + $b;
+    if ($sum > 100) {
+      return "big";
+    } elsif ($sum > 0) {
+      return "positive";
+    } else {
+      return "non-positive";
+    }
   }
-}
 
-sub check {
-  my ($x, $y) = @_;
-  my $ok = $x && $y;
-  return $ok || "invalid";
-}
+  sub check {
+    my ($x, $y) = @_;
+    my $ok = $x && $y;
+    return $ok || "invalid";
+  }
 
-sub negate {
-  my $x = shift;
-  return -$x;
-}
+  sub negate {
+    my $x = shift;
+    return -$x;
+  }
 BODY
 
-my $Full_body = <<'BODY';
-=head2 double
+my $Full_body = <<'BODY' =~ s/^  //gmr;
+  =head2 double
 
-Double a number.
+  Double a number.
 
-=cut
+  =cut
 
-sub double {
-  my $x = shift;
-  if ($x > 0) {
-    return $x * 2;
-  } else {
-    return 0;
+  sub double {
+    my $x = shift;
+    if ($x > 0) {
+      return $x * 2;
+    } else {
+      return 0;
+    }
   }
-}
 
-=head2 clamp
+  =head2 clamp
 
-Clamp a value to a range.
+  Clamp a value to a range.
 
-=cut
+  =cut
 
-sub clamp {
-  my ($val, $min, $max) = @_;
-  if ($val < $min) {
-    return $min;
-  } elsif ($val > $max) {
-    return $max;
-  } else {
-    return $val;
+  sub clamp {
+    my ($val, $min, $max) = @_;
+    if ($val < $min) {
+      return $min;
+    } elsif ($val > $max) {
+      return $max;
+    } else {
+      return $val;
+    }
   }
-}
 
-=head2 sign
+  =head2 sign
 
-Return the sign of a number.
+  Return the sign of a number.
 
-=cut
+  =cut
 
-sub sign {
-  my $x = shift;
-  return $x > 0 ? "positive" : "non-positive";
-}
+  sub sign {
+    my $x = shift;
+    return $x > 0 ? "positive" : "non-positive";
+  }
 
-=head2 label
+  =head2 label
 
-Label a value.
+  Label a value.
 
-=cut
+  =cut
 
-sub label {
-  my $val = shift;
-  return $val && "yes" || "no";
-}
+  sub label {
+    my $val = shift;
+    return $val && "yes" || "no";
+  }
 
-=head2 abs_val
+  =head2 abs_val
 
-Absolute value.
+  Absolute value.
 
-=cut
+  =cut
 
-sub abs_val {
-  my $x = shift;
-  return $x < 0 ? -$x : $x;
-}
+  sub abs_val {
+    my $x = shift;
+    return $x < 0 ? -$x : $x;
+  }
 
-=head2 is_even
+  =head2 is_even
 
-Check if even.
+  Check if even.
 
-=cut
+  =cut
 
-sub is_even {
-  my $x = shift;
-  return $x % 2 == 0;
-}
+  sub is_even {
+    my $x = shift;
+    return $x % 2 == 0;
+  }
 
-=head2 inc
+  =head2 inc
 
-Increment.
+  Increment.
 
-=cut
+  =cut
 
-sub inc {
-  my $x = shift;
-  return $x + 1;
-}
+  sub inc {
+    my $x = shift;
+    return $x + 1;
+  }
 
-sub _helper {
-  my $x = shift;
-  return $x + 1;
-}
+  sub _helper {
+    my $x = shift;
+    return $x + 1;
+  }
 BODY
 
-my $Trivial_body = <<'BODY';
-=head2 id
+my $Trivial_body = <<'BODY' =~ s/^  //gmr;
+  =head2 id
 
-Return the argument unchanged.
+  Return the argument unchanged.
 
-=cut
+  =cut
 
-sub id {
-  my $x = shift;
-  return $x;
-}
+  sub id {
+    my $x = shift;
+    return $x;
+  }
 BODY
 
-my $Utils_body = <<'BODY';
-=head2 greet
+my $Utils_body = <<'BODY' =~ s/^  //gmr;
+  =head2 greet
 
-Return a greeting string.
+  Return a greeting string.
 
-=cut
+  =cut
 
-sub greet {
-  my $name = shift;
-  return "hello $name";
-}
+  sub greet {
+    my $name = shift;
+    return "hello $name";
+  }
 
-sub upper {
-  my $str = shift;
-  return uc($str) if defined $str;
-  return "";
-}
+  sub upper {
+    my $str = shift;
+    return uc($str) if defined $str;
+    return "";
+  }
 BODY
 
 sub setup_lib_dir () {
@@ -246,27 +246,27 @@ sub create_cover_db ($tmpdir, $libdir) {
   local $ENV{DEVEL_COVER_SELF};
   delete $ENV{DEVEL_COVER_SELF};
 
-  my $oneliner = join " ", split /\n/, <<ONELINER;
-use Covered::Calc;
-use Covered::Full;
-use Covered::Trivial;
-use Covered::Utils;
-Covered::Calc::add(1, 2);
-Covered::Utils::greet(q(world));
-Covered::Utils::upper(q(hi));
-Covered::Full::double(5);
-Covered::Full::double(-1);
-Covered::Full::clamp(0, 1, 10);
-Covered::Full::clamp(5, 1, 10);
-Covered::Full::clamp(99, 1, 10);
-Covered::Full::sign(1);
-Covered::Full::sign(-1);
-Covered::Full::label(1);
-Covered::Full::label(0);
-Covered::Full::abs_val(-3);
-Covered::Full::is_even(4);
-Covered::Full::inc(1);
-Covered::Trivial::id(42)
+  my $oneliner = join " ", split /\n/, <<ONELINER =~ s/^  //gmr;
+  use Covered::Calc;
+  use Covered::Full;
+  use Covered::Trivial;
+  use Covered::Utils;
+  Covered::Calc::add(1, 2);
+  Covered::Utils::greet(q(world));
+  Covered::Utils::upper(q(hi));
+  Covered::Full::double(5);
+  Covered::Full::double(-1);
+  Covered::Full::clamp(0, 1, 10);
+  Covered::Full::clamp(5, 1, 10);
+  Covered::Full::clamp(99, 1, 10);
+  Covered::Full::sign(1);
+  Covered::Full::sign(-1);
+  Covered::Full::label(1);
+  Covered::Full::label(0);
+  Covered::Full::abs_val(-3);
+  Covered::Full::is_even(4);
+  Covered::Full::inc(1);
+  Covered::Trivial::id(42)
 ONELINER
   my $cmd
     = "$^X -Iblib/lib -Iblib/arch -I$libdir"
