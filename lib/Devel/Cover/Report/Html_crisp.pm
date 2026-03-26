@@ -25,6 +25,8 @@ use Devel::Cover::Inc ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
+use Devel::Cover::Util qw( common_prefix );
+
 use HTML::Entities qw( encode_entities );
 use Getopt::Long   qw( GetOptions );
 use Template 2.00  ();
@@ -451,8 +453,24 @@ sub report ($pkg, $db, $options) {
   _write_asset($assets, "app.js",    $Assets{js});
 
   my @file_data = _build_file_data;
-  my %total     = _totals_for("Total");
-  my %dist      = _coverage_distribution(\@file_data);
+
+  my ($prefix, $short_map) = common_prefix(map { $_->{name} } @file_data);
+  $R{common_prefix} = $prefix;
+  if ($prefix) {
+    for my $f (@file_data) {
+      my $s = $short_map->{ $f->{name} };
+      $f->{short} = $s;
+      (my $dir = $s) =~ s{/[^/]+$}{};
+      $dir           = "" if $dir eq $s;
+      $f->{dir}      = $dir;
+      $f->{basename} = $s =~ s{.*/}{}r;
+    }
+  } else {
+    $_->{short} = $_->{name} for @file_data;
+  }
+
+  my %total = _totals_for("Total");
+  my %dist  = _coverage_distribution(\@file_data);
 
   _generate_index($outdir, $options, \@file_data, \%total, \%dist);
   _generate_file_pages($outdir, \@file_data);
@@ -465,6 +483,10 @@ $Assets{css} = <<'CSS';
 /* Devel::Cover Html_crisp report stylesheet */
 
 :root {
+  --prefix-bg: #e4edf6;
+  --prefix-border: #a0bcd8;
+  --prefix-label: #4a6f96;
+
   --cov-none-bg: #fcc;
   --cov-none-border: #d00;
   --cov-none-fg: #900;
@@ -523,6 +545,10 @@ $Assets{css} = <<'CSS';
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --prefix-bg: #1a2a3d;
+    --prefix-border: #3a6090;
+    --prefix-label: #80b0e0;
+
     --cov-none-bg: #501010;
     --cov-none-border: #f44;
     --cov-none-fg: #fcc;
@@ -573,6 +599,10 @@ $Assets{css} = <<'CSS';
 }
 
 html[data-theme="dark"] {
+  --prefix-bg: #1a2a3d;
+  --prefix-border: #3a6090;
+  --prefix-label: #80b0e0;
+
   --cov-none-bg: #501010;
   --cov-none-border: #f44;
   --cov-none-fg: #fcc;
@@ -622,6 +652,10 @@ html[data-theme="dark"] {
 }
 
 html[data-theme="light"] {
+  --prefix-bg: #e4edf6;
+  --prefix-border: #a0bcd8;
+  --prefix-label: #4a6f96;
+
   --cov-none-bg: #fcc;
   --cov-none-border: #d00;
   --cov-none-fg: #900;
@@ -782,6 +816,28 @@ a:visited { color: var(--link-visited); }
   max-width: 1400px;
   margin: 0 auto;
   padding: 16px 24px;
+}
+
+.common-prefix {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--prefix-bg);
+  border: 1px solid var(--prefix-border);
+  border-radius: 6px;
+  padding: 6px 14px;
+  margin: 16px 0;
+  font-size: var(--font-size-small);
+}
+
+.common-prefix-label {
+  color: var(--prefix-label);
+  font-weight: 600;
+}
+
+.common-prefix-path {
+  font-family: monospace;
+  color: var(--fg);
 }
 
 /* --- Worst files --- */
@@ -1648,6 +1704,13 @@ Total: [% total.total.pc %]%
 
 <div class="content">
 
+[% IF R.common_prefix %]
+<div class="common-prefix">
+<span class="common-prefix-label">Prefix:</span>
+<span class="common-prefix-path">[% R.common_prefix %]</span>
+</div>
+[% END %]
+
 [% IF worst.size > 0 %][% IF worst.0.risk > 0 %]
 <div class="worst-files">
 <h2>Highest risk</h2>
@@ -1658,8 +1721,8 @@ Total: [% total.total.pc %]%
   [% IF f.uncompiled %]untested-worst
   [% ELSE %][% f.total.class %][% END %]">
 [% IF f.exists %]
-<a href="[% f.link %]">[% f.name %]</a>
-[% ELSE %][% f.name %][% END %]
+<a href="[% f.link %]">[% f.short %]</a>
+[% ELSE %][% f.short %][% END %]
 [% IF f.uncompiled %]
 <span class="untested-badge[% UNLESS R.have_ppi %] has-tip[% END %]"
 [%- UNLESS R.have_ppi %] data-tip="Install PPI for coverage estimates"[% END -%]
@@ -1764,7 +1827,7 @@ Group by directory</label>
 [% FOREACH f = g.files %]
 <tr class="dir-file[% IF f.uncompiled %] untested[% END %]"
     data-dir="[% g.dir %]">
-<td data-value="[% f.name %]">
+<td data-value="[% f.short %]">
 [% IF f.exists %]
 <a href="[% f.link %]">[% f.basename %]</a>
 [% ELSE %][% f.basename %][% END %]
@@ -1817,12 +1880,12 @@ Group by directory</label>
 EOT
 
 $Templates{file} = <<'EOT';
-[% WRAPPER layout asset_prefix="" title=file.name %]
+[% WRAPPER layout asset_prefix="" title=file.short %]
 
 <div class="[% IF file.uncompiled %]untested-page[% END %]">
 <div class="header">
 <div class="header-inner">
-<h1>[% file.name %]
+<h1>[% file.short %]
 [% IF file.uncompiled %]
 <span class="untested-badge[% UNLESS R.have_ppi %] has-tip[% END %]"
 [%- UNLESS R.have_ppi %] data-tip="Install PPI for coverage estimates"[% END -%]
@@ -1860,20 +1923,22 @@ $Templates{file} = <<'EOT';
 <div class="file-nav">
 <span>
 [% IF prev_file %]
-<a href="[% prev_file.link %]" class="nav-prev">&laquo; [% prev_file.name %]</a>
+<a href="[% prev_file.link %]"
+  class="nav-prev">&laquo; [% prev_file.short %]</a>
 [% END %]
 </span>
 <span><a href="coverage.html">&uarr; Summary</a></span>
 <span>
 [% IF next_file %]
-<a href="[% next_file.link %]" class="nav-next">[% next_file.name %] &raquo;</a>
+<a href="[% next_file.link %]"
+  class="nav-next">[% next_file.short %] &raquo;</a>
 [% END %]
 </span>
 </div>
 
 <div class="minimap"></div>
 <table class="source-table" role="table"
-  aria-label="Coverage for [% file.name %]">
+  aria-label="Coverage for [% file.short %]">
 [% FOREACH line = lines %]
 [% SET cov_defined = line.count.defined %]
 [% SET is_uncov = cov_defined AND line.count == 0
@@ -1984,13 +2049,15 @@ Condition: [% tt.expr %]
 <div class="file-nav">
 <span>
 [% IF prev_file %]
-<a href="[% prev_file.link %]" class="nav-prev">&laquo; [% prev_file.name %]</a>
+<a href="[% prev_file.link %]"
+  class="nav-prev">&laquo; [% prev_file.short %]</a>
 [% END %]
 </span>
 <span><a href="coverage.html">&uarr; Summary</a></span>
 <span>
 [% IF next_file %]
-<a href="[% next_file.link %]" class="nav-next">[% next_file.name %] &raquo;</a>
+<a href="[% next_file.link %]"
+  class="nav-next">[% next_file.short %] &raquo;</a>
 [% END %]
 </span>
 </div>
