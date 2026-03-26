@@ -17,8 +17,36 @@ no warnings qw( experimental::postderef experimental::signatures );
 use Cwd        qw( abs_path );
 use Exporter   qw( import );
 use File::Spec ();
+use List::Util qw( any min );
 
-our @EXPORT_OK = qw( remove_contained_paths );
+our @EXPORT_OK = qw( common_prefix remove_contained_paths );
+
+sub common_prefix (@files) {
+  my @paths = grep { $_ ne "Total" } @files;
+  return ("", { map { $_ => $_ } @files }) if @paths < 2;
+
+  my @split = map { [ split m|/| ] } @paths;
+  my $min   = min(map { scalar @$_ } @split);
+
+  # stop before the last component - it is the filename, not a directory
+  my $limit  = $min - 1;
+  my $shared = 0;
+  for my $i (0 .. $limit - 1) {
+    last if any { $_->[$i] ne $split[0][$i] } @split[ 1 .. $#split ];
+    $shared++;
+  }
+
+  my $prefix = join("/", $split[0]->@[ 0 .. $shared - 1 ]) . "/";
+
+  # bare "/" or empty is not a meaningful prefix
+  return ("", { map { $_ => $_ } @files }) if $shared < 1 || $prefix eq "/";
+
+  my $plen  = length $prefix;
+  my %short = map { $_ => substr $_, $plen } @paths;
+  $short{Total} = "Total" if any { $_ eq "Total" } @files;
+
+  ($prefix, \%short)
+}
 
 sub remove_contained_paths ($container, @paths) {
   my ($drive) = File::Spec->splitpath($container);
@@ -33,7 +61,14 @@ sub remove_contained_paths ($container, @paths) {
   grep { (abs_path $_) !~ $regex } @paths
 }
 
-1
+"
+Master!
+Apprentice!
+Heartborne, 7th Seeker
+Warrior!
+Disciple!
+In me the Wishmaster
+"
 
 __END__
 
@@ -45,7 +80,10 @@ Devel::Cover::Util - Utility subroutines for Devel::Cover
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Util qw( remove_contained_paths );
+ use Devel::Cover::Util qw( common_prefix remove_contained_paths );
+
+ # Strip the shared directory prefix from a list of files
+ my ($prefix, $short) = common_prefix(@files);
 
  # Remove paths that fall inside the current directory
  my @filtered = remove_contained_paths(getcwd, @Inc);
@@ -56,6 +94,20 @@ This module provides utility subroutines for Devel::Cover.  All functions are
 importable on request via L<Exporter>.
 
 =head1 SUBROUTINES
+
+=head2 common_prefix (@files)
+
+ my ($prefix, $short) = common_prefix(@files);
+
+Compute the longest common directory prefix shared by all C<@files>.  Returns a
+two-element list: the prefix string (with trailing C</>) and a hashref mapping
+each original path to its shortened suffix.
+
+If the common prefix has fewer than two path components (e.g. bare C</> or
+empty), an empty prefix is returned and every path maps to itself.
+
+Entries equal to C<"Total"> are passed through unchanged and excluded from the
+prefix calculation.
 
 =head2 remove_contained_paths
 
