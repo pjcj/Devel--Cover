@@ -6,6 +6,7 @@ use warnings;
 
 use Devel::Cover::DB;
 use Devel::Cover::Truth_Table;
+use Devel::Cover::Util qw( common_prefix );
 
 my %format = (
   line       => "%4s ",
@@ -73,14 +74,15 @@ sub get_metrics {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_file {
-  my ($db, $file, $options) = @_;
+  my ($db, $file, $options, $short) = @_;
 
   open(F, '<', $file) or warn("Unable to open '$file' [$!]\n"), return;
 
-  my $pct  = sprintf("%.1f%%", $db->{summary}{$file}{total}{percentage});
-  my $pver = $^V->stringify;
+  my $display = $short->{$file};
+  my $pct     = sprintf("%.1f%%", $db->{summary}{$file}{total}{percentage});
+  my $pver    = $^V->stringify;
   print <<EOT;
-#         File: $file
+#         File: $display
 #     Coverage: $pct
 # Perl Version: $pver
 #     Platform: $^O
@@ -153,9 +155,11 @@ sub max {
 #-------------------------------------------------------------------------------
 sub report {
   my ($pkg, $db, $options) = @_;
-  foreach my $file (@{ $options->{file} }) {
+  my @files = $options->{file}->@*;
+  my ($prefix, $short) = common_prefix(@files);
+  foreach my $file (@files) {
     next if $db->cover->file($file)->{meta}{uncompiled};
-    print_file($db, $file, $options);
+    print_file($db, $file, $options, $short);
   }
 }
 
