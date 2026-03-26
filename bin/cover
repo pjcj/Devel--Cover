@@ -389,6 +389,12 @@ sub scan_select_dirs ($db) {
   $db->write($db->{db});
   print "Added ", scalar @files, " file(s) from --select_dir\n"
     unless $Options->{silent};
+  unless (eval { require PPI; 1 }) {
+    print "PPI is not installed. Coverage estimates for untested"
+      . " files are unavailable.\n"
+      . "Install PPI from CPAN for per-criteria counts.\n"
+      unless $Options->{silent};
+  }
 }
 
 sub manage_dbs ($dbname, $test_result) {
