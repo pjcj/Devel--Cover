@@ -11,9 +11,8 @@ package Devel::Cover::Web;
 
 use 5.20.0;
 use warnings;
-
-use feature "signatures";
-no warnings "experimental::signatures";
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
