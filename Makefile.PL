@@ -256,6 +256,12 @@ EOM
 check "PPI::HTML",  $M, "1.07";
 check "Perl::Tidy", $M, "20060719";
 
+check "PPI", <<EOM;
+PPI is used to estimate coverage criteria for untested files included via
+--select_dir.  Without PPI, untested files will show n/a instead of estimated
+counts.  You can download PPI from CPAN.
+EOM
+
 print "checking for Pod::Coverage      version 0.06     .... ";
 my $E = <<EOM;
 Pod::Coverage 0.06 is required to do pod coverage.  This will tell you how well
