@@ -9,22 +9,21 @@
 
 use 5.20.0;
 use warnings;
-use feature qw( postderef signatures );
+use feature qw( postderef say signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
-use Cwd            qw( realpath );
-use File::Basename qw( dirname );
-use File::Path     qw( remove_tree );
-use File::Spec     ();
-use FindBin        ();
+use Cwd        qw( realpath );
+use File::Path qw( remove_tree );
+use File::Spec ();
+use FindBin    ();
 
 use lib "$FindBin::Bin/../t/lib", qw( ./lib ./blib/lib ./blib/arch );
 
-use Devel::Cover::Test::Showcase qw( setup_lib_dir create_cover_db run_cover );
+use Devel::Cover::Test::Showcase qw( create_cover_db run_cover setup_lib_dir );
 
 my $Base = File::Spec->catdir(realpath(File::Spec->tmpdir), "dc-showcase");
 
-sub _launch ($path) {
+sub launch ($path) {
   system("open", $path) == 0 or system "xdg-open", $path
 }
 
@@ -35,21 +34,19 @@ sub main (@args) {
   local $ENV{TMPDIR} = $Base;
   mkdir $Base or die "Cannot create $Base: $!\n";
 
-  warn "Setting up fixture modules\n";
+  say "Setting up fixture modules";
   my ($tmpdir, $libdir) = setup_lib_dir;
 
-  warn "Collecting coverage\n";
+  say "Collecting coverage";
   my $cover_db = create_cover_db($tmpdir, $libdir);
 
-  warn "Generating $report report\n";
+  say "Generating $report report";
   my $outdir = File::Spec->catdir($Base, "html");
 
   my @cover_args
     = ("--select_dir", $libdir, "--report", $report, "--silent", $cover_db);
 
-  if ($report =~ /^html/) {
-    unshift @cover_args, "--outputdir", $outdir;
-  }
+  unshift @cover_args, "--outputdir", $outdir if $report =~ /^html/;
 
   my ($out, $exit) = run_cover(@cover_args);
   print $out;
@@ -58,10 +55,56 @@ sub main (@args) {
   if ($report =~ /^html/) {
     my $index = File::Spec->catfile($outdir, "coverage.html");
     if (-f $index) {
-      warn "Report: $index\n";
-      _launch($index);
+      say "Report: $index";
+      launch($index);
     }
   }
 }
 
-main(@ARGV);
+main @ARGV;
+
+__END__
+
+=head1 NAME
+
+showcase - generate a Devel::Cover report from fixture modules
+
+=head1 SYNOPSIS
+
+ perl utils/showcase text
+ perl utils/showcase html_crisp
+
+ # Or via make targets:
+ make showcase_text
+ make showcase_html_crisp
+
+=head1 DESCRIPTION
+
+Generate a Devel::Cover report using the fixture modules from
+L<Devel::Cover::Test::Showcase>.  Four modules under C<Covered::> are exercised
+with representative calls; four identical modules under C<Uncovered::> are
+included via C<--select_dir> but never loaded, so they appear as untested files
+in the report.
+
+For HTML reports the output is written to a stable directory under
+C</tmp/dc-showcase/> and opened in the default browser.
+
+=head1 ARGUMENTS
+
+A single required argument: the report format name.  This is passed directly to
+C<cover --report>, e.g. C<text>, C<html_crisp>, C<html_basic>, C<compilation>.
+
+=head1 SEE ALSO
+
+L<Devel::Cover::Test::Showcase>, L<Devel::Cover>
+
+=head1 LICENCE
+
+Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+https://pjcj.net
+
+=cut
