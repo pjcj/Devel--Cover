@@ -13,11 +13,12 @@ use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
 use FindBin ();
-use lib $FindBin::Bin, qw( ./lib ./blib/lib ./blib/arch );
+use lib "$FindBin::Bin/../lib", $FindBin::Bin,
+  qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Spec ();
 use Test::More import => [ qw( done_testing is like ok plan ) ];
-use TestHelper qw( create_cover_db run_cover setup_lib_dir );
+use Devel::Cover::Test::Showcase qw( create_cover_db run_cover setup_lib_dir );
 
 for my $mod (qw( HTML::Entities Template )) {
   eval "require $mod; 1" or do {

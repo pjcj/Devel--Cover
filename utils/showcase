@@ -1,0 +1,67 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use 5.20.0;
+use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
+
+use Cwd            qw( realpath );
+use File::Basename qw( dirname );
+use File::Path     qw( remove_tree );
+use File::Spec     ();
+use FindBin        ();
+
+use lib "$FindBin::Bin/../t/lib", qw( ./lib ./blib/lib ./blib/arch );
+
+use Devel::Cover::Test::Showcase qw( setup_lib_dir create_cover_db run_cover );
+
+my $Base = File::Spec->catdir(realpath(File::Spec->tmpdir), "dc-showcase");
+
+sub _launch ($path) {
+  system("open", $path) == 0 or system "xdg-open", $path
+}
+
+sub main (@args) {
+  my $report = $args[0] // die "Usage: $0 <report-name>\n";
+
+  remove_tree($Base) if -d $Base;
+  local $ENV{TMPDIR} = $Base;
+  mkdir $Base or die "Cannot create $Base: $!\n";
+
+  warn "Setting up fixture modules\n";
+  my ($tmpdir, $libdir) = setup_lib_dir;
+
+  warn "Collecting coverage\n";
+  my $cover_db = create_cover_db($tmpdir, $libdir);
+
+  warn "Generating $report report\n";
+  my $outdir = File::Spec->catdir($Base, "html");
+
+  my @cover_args
+    = ("--select_dir", $libdir, "--report", $report, "--silent", $cover_db);
+
+  if ($report =~ /^html/) {
+    unshift @cover_args, "--outputdir", $outdir;
+  }
+
+  my ($out, $exit) = run_cover(@cover_args);
+  print $out;
+  die "cover failed (exit $exit)\n" if $exit;
+
+  if ($report =~ /^html/) {
+    my $index = File::Spec->catfile($outdir, "coverage.html");
+    if (-f $index) {
+      warn "Report: $index\n";
+      _launch($index);
+    }
+  }
+}
+
+main(@ARGV);

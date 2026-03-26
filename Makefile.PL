@@ -524,8 +524,8 @@ self_cover : _self_cover_reports
     ),
 
     (
-      map "demo_$_ : pure_all\n"
-      . qq[\t PERL="\$(PERL)" utils/dc demo-report $_\n],
+      map "showcase_$_ : pure_all\n"
+      . qq[\t PERL="\$(PERL)" utils/dc showcase $_\n],
       @reports,
     )
 }
