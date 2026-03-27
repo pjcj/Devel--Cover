@@ -1,13 +1,16 @@
 Reading database from ...
 
 
----------------- ------ ------ ------ ------ ------
-File               stmt   bran   cond    sub  total
----------------- ------ ------ ------ ------ ------
-tests/Module2.pm   25.0    n/a    n/a   25.0   25.0
-tests/module2      94.7   50.0    n/a  100.0   92.3
-Total              74.0   50.0    n/a   66.6   71.0
----------------- ------ ------ ------ ------ ------
+
+Common prefix: tests/
+
+---------- ------ ------ ------ ------ ------
+File         stmt   bran   cond    sub  total
+---------- ------ ------ ------ ------ ------
+Module2.pm   25.0    n/a    n/a   25.0   25.0
+module2      94.7   50.0    n/a  100.0   92.3
+Total        74.0   50.0    n/a   66.6   71.0
+---------- ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,7 +19,7 @@ OS: ...
 Start: ...
 Finish: ...
 
-tests/Module2.pm
+Module2.pm
 
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2002-2026, Paul Johnson (paul@pjcj.net)
@@ -59,21 +62,21 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location           
----------- ----- -------------------
-zz            11 tests/Module2.pm:29
+Subroutine Count Location     
+---------- ----- -------------
+zz            11 Module2.pm:29
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location           
----------- ----- -------------------
-_aa            0 tests/Module2.pm:14
-_xx            0 tests/Module2.pm:20
-yy             0 tests/Module2.pm:25
+Subroutine Count Location     
+---------- ----- -------------
+_aa            0 Module2.pm:14
+_xx            0 Module2.pm:20
+yy             0 Module2.pm:25
 
 
-tests/module2
+module2
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -129,12 +132,12 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location        
----------- ----- ----------------
-BEGIN          1 tests/module2:12
-BEGIN          1 tests/module2:13
-BEGIN          1 tests/module2:15
-BEGIN          1 tests/module2:17
-xx            11 tests/module2:22
+Subroutine Count Location  
+---------- ----- ----------
+BEGIN          1 module2:12
+BEGIN          1 module2:13
+BEGIN          1 module2:15
+BEGIN          1 module2:17
+xx            11 module2:22
 
 
