@@ -241,7 +241,13 @@ sub setup_lib_dir () {
 
 sub create_cover_db ($tmpdir, $libdir) {
   my $cover_db = File::Spec->catdir($tmpdir, "cover_db");
-  my $select   = "\\Q$libdir\\E";
+  # quotemeta escapes the path for use as a regex in Devel::Cover's -select
+  # option.  On Windows, the -M argument passes through Perl's '' processing
+  # which halves \\ to \, stripping the escaping that quotemeta added for
+  # backslash path separators.  Pre-doubling the backslashes with s|\\|\\\\|g
+  # compensates so the regex arrives intact.
+  my $select = quotemeta $libdir;
+  $select =~ s|\\|\\\\|g if $^O eq "MSWin32";
 
   local $ENV{DEVEL_COVER_SELF};
   delete $ENV{DEVEL_COVER_SELF};
