@@ -9,7 +9,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 use Devel::Cover::DB;
 use Devel::Cover::Truth_Table;
-use Devel::Cover::Util qw( common_prefix );
+use Devel::Cover::Path qw( common_prefix );
 
 my %format = (
   line       => "%4s ",
@@ -109,11 +109,11 @@ EOT
 
       my $value = [];
       if ($c eq 'branch') {
-        @$value = $file_data->branch->branch_coverage($.);
-        $error ||= $file_data->branch->error($.);
+        @$value   = $file_data->branch->branch_coverage($.);
+        $error  ||= $file_data->branch->error($.);
       } elsif ($c eq 'condition') {
         @$value = map { $_->[0]->text } $file_data->condition->truth_table($.);
-        $error ||= $file_data->condition->error($.);
+        $error  ||= $file_data->condition->error($.);
       } else {
         while (my $o = shift @{ $metric{$c} }) {
           push @$value,
