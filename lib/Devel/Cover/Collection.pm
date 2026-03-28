@@ -8,7 +8,6 @@
 package Devel::Cover::Collection;
 
 use 5.42.0;
-use warnings;
 
 # VERSION
 

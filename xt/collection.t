@@ -9,7 +9,6 @@
 # https://pjcj.net
 
 use 5.42.0;
-use warnings;
 
 use Test2::V0  qw( done_testing is like ok skip_all subtest unlike );
 use File::Temp qw( tempdir );

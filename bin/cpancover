@@ -7,8 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-use 5.38.0;
-use warnings;
+use 5.42.0;
 
 # VERSION
 
@@ -43,6 +42,7 @@ my $Options = {
 };
 
 sub get_options {
+  #<<<
   die "Bad option" unless GetOptions(
     $Options, qw(
       bin_dir=s
@@ -69,6 +69,7 @@ sub get_options {
       workers=i
     )
   );
+  #>>>
 
   say "$0 version " . __PACKAGE__->VERSION and exit 0 if $Options->{version};
   pod2usage(-exitval => 0, -verbose => 0) if $Options->{help};
@@ -76,9 +77,9 @@ sub get_options {
 }
 
 sub newcp {
+  #<<<
   Devel::Cover::Collection->new(
-    map { $_ => $Options->{$_} }
-      qw(
+    map { $_ => $Options->{$_} } qw(
       bin_dir
       docker
       dryrun
@@ -92,8 +93,9 @@ sub newcp {
       timeout
       verbose
       workers
-      )
+    )
   )
+  #>>>
 }
 
 sub main {
