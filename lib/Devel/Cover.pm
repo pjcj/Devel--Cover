@@ -41,7 +41,7 @@ use Cwd         qw( abs_path getcwd );
 use File::Spec  ();
 use Time::HiRes ();
 
-use Devel::Cover::Util qw( remove_contained_paths );
+use Devel::Cover::Core qw( remove_contained_paths );
 
 BEGIN {
   # Use Pod::Coverage if it is available

@@ -14,12 +14,10 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Cwd        qw( abs_path );
 use Exporter   qw( import );
-use File::Spec ();
 use List::Util qw( any min );
 
-our @EXPORT_OK = qw( common_prefix remove_contained_paths );
+our @EXPORT_OK = qw( common_prefix );
 
 sub common_prefix (@files) {
   my @paths = grep { $_ ne "Total" } @files;
@@ -48,19 +46,6 @@ sub common_prefix (@files) {
   ($prefix, \%short)
 }
 
-sub remove_contained_paths ($container, @paths) {
-  my ($drive) = File::Spec->splitpath($container);
-  my $ignore_case = "(?i)";
-  $ignore_case = "" if !File::Spec->case_tolerant($drive);
-
-  my $regex = qr[
-      $ignore_case
-      ^ \Q$container\E ($|/)
-    ]x;
-
-  grep { (abs_path $_) !~ $regex } @paths
-}
-
 "
 Master!
 Apprentice!
@@ -80,13 +65,10 @@ Devel::Cover::Util - Utility subroutines for Devel::Cover
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Util qw( common_prefix remove_contained_paths );
+ use Devel::Cover::Util qw( common_prefix );
 
  # Strip the shared directory prefix from a list of files
  my ($prefix, $short) = common_prefix(@files);
-
- # Remove paths that fall inside the current directory
- my @filtered = remove_contained_paths(getcwd, @Inc);
 
 =head1 DESCRIPTION
 
@@ -108,22 +90,6 @@ empty), an empty prefix is returned and every path maps to itself.
 
 Entries equal to C<"Total"> are passed through unchanged and excluded from the
 prefix calculation.
-
-=head2 remove_contained_paths
-
- my @outside = remove_contained_paths($container, @paths);
-
-Return the elements of C<@paths> that are B<not> inside C<$container>.  A path
-is considered "inside" the container when its L<Cwd/abs_path> starts with
-C<$container> followed by a C</> or the end of the string.  The trailing-slash
-check prevents false positives when a directory name is a prefix of a sibling
-(e.g. C</opt/app> should not match C</opt/appdata>).
-
-Case sensitivity is determined per-drive via L<File::Spec/case_tolerant>.  On
-Windows this is evaluated for the drive letter of C<$container>; on Unix and
-macOS systems C<File::Spec> uses a compile-time heuristic which may not reflect
-the actual filesystem (e.g. case-insensitive APFS), but is the best available
-without probing the mount point.
 
 =head1 LICENCE
 
