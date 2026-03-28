@@ -1,6 +1,9 @@
 package Devel::Cover::Report::Text2;
-use strict;
+
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
