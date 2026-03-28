@@ -5,7 +5,7 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-package Devel::Cover::Util;
+package Devel::Cover::Path;
 
 use 5.20.0;
 use warnings;
@@ -61,19 +61,19 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Util - Utility subroutines for Devel::Cover
+Devel::Cover::Path - Path manipulation subroutines for Devel::Cover
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Util qw( common_prefix );
+ use Devel::Cover::Path qw( common_prefix );
 
  # Strip the shared directory prefix from a list of files
  my ($prefix, $short) = common_prefix(@files);
 
 =head1 DESCRIPTION
 
-This module provides utility subroutines for Devel::Cover.  All functions are
-importable on request via L<Exporter>.
+This module provides path manipulation subroutines for Devel::Cover.  All
+functions are importable on request via L<Exporter>.
 
 =head1 SUBROUTINES
 

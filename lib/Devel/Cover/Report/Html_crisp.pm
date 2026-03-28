@@ -25,7 +25,7 @@ use Devel::Cover::Inc ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use Devel::Cover::Util qw( common_prefix );
+use Devel::Cover::Path qw( common_prefix );
 
 use HTML::Entities qw( encode_entities );
 use Getopt::Long   qw( GetOptions );
