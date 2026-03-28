@@ -1,13 +1,16 @@
 Reading database from ...
 
 
----------------------- ------ ------ ------ ------ ------
-File                     stmt   bran   cond    sub  total
----------------------- ------ ------ ------ ------ ------
-tests/Module_import.pm  100.0    n/a    n/a  100.0  100.0
-tests/module_import     100.0    n/a    n/a  100.0  100.0
-Total                   100.0    n/a    n/a  100.0  100.0
----------------------- ------ ------ ------ ------ ------
+
+Common prefix: tests/
+
+---------------- ------ ------ ------ ------ ------
+File               stmt   bran   cond    sub  total
+---------------- ------ ------ ------ ------ ------
+Module_import.pm  100.0    n/a    n/a  100.0  100.0
+module_import     100.0    n/a    n/a  100.0  100.0
+Total             100.0    n/a    n/a  100.0  100.0
+---------------- ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,7 +19,7 @@ OS: ...
 Start: ...
 Finish: ...
 
-tests/Module_import.pm
+Module_import.pm
 
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2002-2026, Paul Johnson (paul@pjcj.net)
@@ -38,12 +41,12 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location                 
----------- ----- -------------------------
-import         1 tests/Module_import.pm:11
+Subroutine Count Location           
+---------- ----- -------------------
+import         1 Module_import.pm:11
 
 
-tests/module_import
+module_import
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -65,9 +68,9 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location              
----------- ----- ----------------------
-BEGIN          1 tests/module_import:10
-BEGIN          1 tests/module_import:12
+Subroutine Count Location        
+---------- ----- ----------------
+BEGIN          1 module_import:10
+BEGIN          1 module_import:12
 
 

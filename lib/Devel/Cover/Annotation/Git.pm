@@ -114,6 +114,8 @@ sub class {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Annotation::Git - Annotate with git information

@@ -78,6 +78,8 @@ I am free but life is so cheap
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::DB::IO::Base - Base class for IO routines for Devel::Cover::DB

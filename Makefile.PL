@@ -8,12 +8,10 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-require 5.20.0;
-
-use strict;
+use 5.20.0;
 use warnings;
-use feature qw( signatures );
-no warnings qw( experimental::signatures );
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 use Cwd                 ();
 use ExtUtils::MakeMaker qw( $VERSION WriteMakefile );
@@ -258,6 +256,12 @@ EOM
 check "PPI::HTML",  $M, "1.07";
 check "Perl::Tidy", $M, "20060719";
 
+check "PPI", <<EOM;
+PPI is used to estimate coverage criteria for untested files included via
+--select_dir.  Without PPI, untested files will show n/a instead of estimated
+counts.  You can download PPI from CPAN.
+EOM
+
 print "checking for Pod::Coverage      version 0.06     .... ";
 my $E = <<EOM;
 Pod::Coverage 0.06 is required to do pod coverage.  This will tell you how well
@@ -350,11 +354,14 @@ WriteMakefile(%$Opts);
 
 print "\n";
 
+my $Skip_pkg = 0;
+
 sub _should_skip ($file) {
   open my $fh, "<", $file or return 0;
   while (my $line = <$fh>) {
     if ($line =~ /__COVER__\s+skip_test\s+(.*)/) {
-      return 1 if eval $1;
+      my $pkg = "Devel::Cover::SkipCheck" . $Skip_pkg++;
+      return 1 if eval "package $pkg; $1";
     }
   }
   0
@@ -467,6 +474,9 @@ gold : pure_all
 all_test :
 \t \$(PERL) utils/all_versions make t
 
+all_test_bail :
+\t \$(PERL) utils/all_versions --bail make t
+
 key_test :
 \t \$(PERL) utils/all_versions --key make t
 
@@ -483,7 +493,7 @@ precommit_all :
 \t pre-commit run --all-files
 
 lint : precommit_all
-
+\
 lint_changes : precommit
 
 _delete_db : pure_all
@@ -514,7 +524,14 @@ self_cover : _self_cover_reports
     (
         map "report_$_ : _self_cover_tests\n"
       . "\t \@echo Generating $_ report\n"
-      . "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover bin/cover -silent -report $_ > /dev/null\n",
+      . "\t \@DEVEL_COVER_SELF=1 \$(PERL) -Mblib -MDevel::Cover"
+      . " bin/cover -silent -report $_ > /dev/null\n",
+      @reports,
+    ),
+
+    (
+      map "showcase_$_ : pure_all\n"
+      . qq[\t PERL="\$(PERL)" utils/dc showcase $_\n],
       @reports,
     )
 }

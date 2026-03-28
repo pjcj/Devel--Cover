@@ -7,8 +7,7 @@
 
 package Devel::Cover::Test;
 
-use v5.20.0;
-use strict;
+use 5.20.0;
 use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
@@ -354,6 +353,8 @@ sub create_gold ($self) {
 1
 
 __END__
+
+=encoding utf8
 
 =head1 NAME
 

@@ -1,13 +1,16 @@
 Reading database from ...
 
 
------------------------ ------ ------ ------ ------ ------
-File                      stmt   bran   cond    sub  total
------------------------ ------ ------ ------ ------ ------
-tests/Accessor_maker.pm  100.0    n/a    n/a  100.0  100.0
-tests/accessor           100.0  100.0    n/a  100.0  100.0
-Total                    100.0  100.0    n/a  100.0  100.0
------------------------ ------ ------ ------ ------ ------
+
+Common prefix: tests/
+
+----------------- ------ ------ ------ ------ ------
+File                stmt   bran   cond    sub  total
+----------------- ------ ------ ------ ------ ------
+Accessor_maker.pm  100.0    n/a    n/a  100.0  100.0
+accessor           100.0  100.0    n/a  100.0  100.0
+Total              100.0  100.0    n/a  100.0  100.0
+----------------- ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,7 +19,7 @@ OS: ...
 Start: ...
 Finish: ...
 
-tests/Accessor_maker.pm
+Accessor_maker.pm
 
 line  err   stmt   bran   cond    sub   code
 1                                       package Accessor_maker;
@@ -35,14 +38,14 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location                 
----------- ----- -------------------------
-BEGIN          1 tests/Accessor_maker.pm:4
-__ANON__       4 tests/Accessor_maker.pm:5
-import         1 tests/Accessor_maker.pm:5
+Subroutine Count Location           
+---------- ----- -------------------
+BEGIN          1 Accessor_maker.pm:4
+__ANON__       4 Accessor_maker.pm:5
+import         1 Accessor_maker.pm:5
 
 
-tests/accessor
+accessor
 
 line  err   stmt   bran   cond    sub   code
 1                                       package cm3;
@@ -87,11 +90,11 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location         
----------- ----- -----------------
-BEGIN          1 tests/accessor:4 
-BEGIN          1 tests/accessor:7 
-new            2 tests/accessor:2 
-test           2 tests/accessor:13
+Subroutine Count Location   
+---------- ----- -----------
+BEGIN          1 accessor:4 
+BEGIN          1 accessor:7 
+new            2 accessor:2 
+test           2 accessor:13
 
 

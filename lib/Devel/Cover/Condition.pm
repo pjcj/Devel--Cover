@@ -25,6 +25,8 @@ sub criterion { "condition" }
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Condition - Code coverage metrics for Perl

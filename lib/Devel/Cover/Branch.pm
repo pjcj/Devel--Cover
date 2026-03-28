@@ -61,6 +61,8 @@ sub calculate_summary {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Branch - Code coverage metrics for Perl
