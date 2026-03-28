@@ -155,6 +155,8 @@ main
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 cpancover - report coverage statistics on CPAN modules

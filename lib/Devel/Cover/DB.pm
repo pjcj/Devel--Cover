@@ -7,8 +7,7 @@
 
 package Devel::Cover::DB;
 
-use v5.20.0;
-use strict;
+use 5.20.0;
 use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
@@ -26,11 +25,12 @@ use File::Path   qw( rmtree );
 use List::Util   qw( any );
 use Scalar::Util qw( blessed reftype );
 
-use Devel::Cover::Dumper qw( Dumper );  # For debugging
+use Devel::Cover::Dumper qw( Dumper );        # For debugging
+use Devel::Cover::Util   qw( common_prefix );
 
 my $Has_term_size = eval { require Term::Size };
 
-my $DB = "cover.14";                    # Version of the database
+my $DB = "cover.15";                          # Version of the database
 
 @Devel::Cover::DB::Criteria
   = (qw( statement branch path condition subroutine pod time ));
@@ -63,6 +63,7 @@ sub new ($class, %o) {
     criteria         => \@Devel::Cover::DB::Criteria,
     criteria_short   => \@Devel::Cover::DB::Criteria_short,
     runs             => {},
+    files            => [],
     collected        => {},
     uncoverable_file => [],
     %o,
@@ -86,6 +87,7 @@ sub criteria           ($self) { $self->{criteria}->@* }
 sub criteria_short     ($self) { $self->{criteria_short}->@* }
 sub all_criteria       ($self) { $self->{all_criteria}->@* }
 sub all_criteria_short ($self) { $self->{all_criteria_short}->@* }
+sub files              ($self) { $self->{files}->@* }
 
 sub read ($self, $file) {
   my $io = Devel::Cover::DB::IO->new;
@@ -93,7 +95,8 @@ sub read ($self, $file) {
   if ($@ || !$db) {
     warn $@;
   } else {
-    $self->{runs} = $db->{runs};
+    $self->{runs}  = $db->{runs};
+    $self->{files} = $db->{files} // [];
   }
   $self
 }
@@ -108,7 +111,7 @@ sub write ($self, $db = undef) {
   chmod 0777, $self->{db} if $self->{loose_perms};
   $self->validate_db;
 
-  my $data = { runs => $self->{runs} };
+  my $data = { runs => $self->{runs}, files => $self->{files} };
   my $io   = Devel::Cover::DB::IO->new;
   $io->write($data, "$self->{db}/$DB");
   $self->{structure}->write($self->{base}) if $self->{structure};
@@ -355,7 +358,9 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
   my $s     = $self->{summary};
   my @files = (grep($_ ne "Total", sort keys %$s), "Total");
   my $max   = 5;
-  for (@files) { $max = length if length > $max }
+  my ($prefix, $short) = common_prefix(@files);
+  for (@files) { $max = length $short->{$_} if length $short->{$_} > $max }
+
   my $width
     = !$ENV{DEVEL_COVER_TEST_SUITE}
     && $Has_term_size
@@ -366,18 +371,33 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
 
   no warnings "uninitialized";
   my $fmt = "%-${fw}s" . " %6s" x $n . "\n";
-  printf STDOUT $fmt, "-" x $fw, ("------") x $n;
+
+  printf STDOUT "\nCommon prefix: %s\n\n", $prefix if $prefix;
+  printf STDOUT $fmt,                      "-" x $fw, ("------") x $n;
   printf STDOUT $fmt, "File", map $self->{all_criteria_short}[$_],
     grep $options{ $self->{all_criteria}[$_] }, 0 .. $self->{all_criteria}->$#*;
   printf STDOUT $fmt, "-" x $fw, ("------") x $n;
 
+  my $has_uncompiled;
   for my $file (@files) {
-    printf STDOUT $fmt, trimmed_file($file, $fw),
-      map $format->($s->{$file}, $_), grep $options{$_},
-      $self->{all_criteria}->@*;
+    my $uncompiled
+      = $file ne "Total" && $self->cover->file($file)->{meta}{uncompiled};
+    $has_uncompiled ||= $uncompiled;
+    printf STDOUT $fmt, trimmed_file($short->{$file}, $fw),
+      $uncompiled
+      ? ("n/a") x $n
+      : (
+        map $format->($s->{$file}, $_),
+        grep $options{$_},
+        $self->{all_criteria}->@*,
+      );
   }
 
   printf STDOUT $fmt, "-" x $fw, ("------") x $n;
+  if ($has_uncompiled && !eval { require PPI; 1 }) {
+    printf STDOUT "\n%s\n",
+      "n/a: install PPI for estimated coverage of untested files";
+  }
   print STDOUT "\n\n";
 }
 
@@ -775,6 +795,17 @@ sub cover ($self) {
   }
 
   $self->objectify_cover;
+  if ($self->{files}->@*) {
+    require Devel::Cover::Static;
+    for my $file ($self->{files}->@*) {
+      next if exists $self->{cover}{$file};
+      my $counts = Devel::Cover::Static::count_criteria($file);
+      $self->{cover}{$file}
+        = bless {
+          meta => { uncompiled => 1, ($counts ? (counts => $counts) : ()) }, },
+        "Devel::Cover::DB::File";
+    }
+  }
   $self->{cover_valid} = 1;
   $self->{cover}
 }
@@ -811,6 +842,8 @@ sub AUTOLOAD {
 1
 
 __END__
+
+=encoding utf8
 
 =head1 NAME
 

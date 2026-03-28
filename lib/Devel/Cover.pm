@@ -7,8 +7,7 @@
 
 package Devel::Cover;
 
-use v5.20.0;
-use strict;
+use 5.20.0;
 use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
@@ -1275,6 +1274,8 @@ Anything you still can’t cope with is therefore your own problem.
 "
 
 __END__
+
+=encoding utf8
 
 =head1 NAME
 

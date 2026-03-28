@@ -190,6 +190,8 @@ app->start;
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 queue - Minion-based job queue for CPAN coverage processing

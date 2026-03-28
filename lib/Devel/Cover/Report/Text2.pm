@@ -6,15 +6,18 @@ use warnings;
 
 use Devel::Cover::DB;
 use Devel::Cover::Truth_Table;
+use Devel::Cover::Util qw( common_prefix );
 
 my %format = (
-  line      => "%4s ",
-  err       => "%3s ",
-  statement => "%4s ",
-  condition => "%-24s ",
-  branch    => "%-6s ",
-  time      => "%6s ",
-  code      => "| %s\n",
+  line       => "%4s ",
+  err        => "%3s ",
+  statement  => "%4s ",
+  branch     => "%-6s ",
+  condition  => "%-24s ",
+  subroutine => "%4s ",
+  pod        => "%4s ",
+  time       => "%6s ",
+  code       => "| %s\n",
 );
 
 #-------------------------------------------------------------------------------
@@ -71,14 +74,15 @@ sub get_metrics {
 # Notes      :
 #-------------------------------------------------------------------------------
 sub print_file {
-  my ($db, $file, $options) = @_;
+  my ($db, $file, $options, $short) = @_;
 
   open(F, '<', $file) or warn("Unable to open '$file' [$!]\n"), return;
 
-  my $pct  = sprintf("%.1f%%", $db->{summary}{$file}{total}{percentage});
-  my $pver = join('.', map { ord } split(//, $^V));
+  my $display = $short->{$file};
+  my $pct     = sprintf("%.1f%%", $db->{summary}{$file}{total}{percentage});
+  my $pver    = $^V->stringify;
   print <<EOT;
-#         File: $file
+#         File: $display
 #     Coverage: $pct
 # Perl Version: $pver
 #     Platform: $^O
@@ -151,14 +155,19 @@ sub max {
 #-------------------------------------------------------------------------------
 sub report {
   my ($pkg, $db, $options) = @_;
-  foreach my $file (@{ $options->{file} }) {
-    print_file($db, $file, $options);
+  my @files = $options->{file}->@*;
+  my ($prefix, $short) = common_prefix(@files);
+  foreach my $file (@files) {
+    next if $db->cover->file($file)->{meta}{uncompiled};
+    print_file($db, $file, $options, $short);
   }
 }
 
 1;
 
 __END__
+
+=encoding utf8
 
 =head1 NAME
 

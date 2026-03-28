@@ -9,8 +9,8 @@ package Devel::Cover::Base::Editor;
 
 use 5.20.0;
 use warnings;
-use feature "signatures";
-no warnings "experimental::signatures";
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
@@ -43,9 +43,10 @@ sub report ($pkg, $db, $options) {
       int $time
     },
     version => $pkg->VERSION,
-    files   => $options->{file},
-    cover   => $db->cover,
-    types   => [ grep $_ ne "time", keys $options->{show}->%* ],
+    files   =>
+      [ grep !$db->cover->file($_)->{meta}{uncompiled}, $options->{file}->@* ],
+    cover => $db->cover,
+    types => [ grep $_ ne "time", keys $options->{show}->%* ],
   };
 
   my $out = "$options->{outputdir}/$options->{outputfile}";
@@ -85,6 +86,8 @@ sub fetch ($self, $name, $prefix = undef) {
 1
 
 __END__
+
+=encoding utf8
 
 =head1 NAME
 

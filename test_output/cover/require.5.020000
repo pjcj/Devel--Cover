@@ -1,13 +1,16 @@
 Reading database from ...
 
 
-------------- ------ ------ ------ ------ ------
-File            stmt   bran   cond    sub  total
-------------- ------ ------ ------ ------ ------
-tests/E2.pm      0.0    n/a    n/a    0.0    0.0
-tests/require  100.0   50.0    n/a  100.0   90.9
-Total           87.5   50.0    n/a   66.6   76.9
-------------- ------ ------ ------ ------ ------
+
+Common prefix: tests/
+
+------- ------ ------ ------ ------ ------
+File      stmt   bran   cond    sub  total
+------- ------ ------ ------ ------ ------
+E2.pm      0.0    n/a    n/a    0.0    0.0
+require  100.0   50.0    n/a  100.0   90.9
+Total     87.5   50.0    n/a   66.6   76.9
+------- ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,7 +19,7 @@ OS: ...
 Start: ...
 Finish: ...
 
-tests/E2.pm
+E2.pm
 
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
@@ -38,12 +41,12 @@ line  err   stmt   bran   cond    sub   code
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location      
----------- ----- --------------
-E2             0 tests/E2.pm:12
+Subroutine Count Location
+---------- ----- --------
+E2             0 E2.pm:12
 
 
-tests/require
+require
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -75,9 +78,9 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location        
----------- ----- ----------------
-BEGIN          1 tests/require:10
-BEGIN          1 tests/require:11
+Subroutine Count Location  
+---------- ----- ----------
+BEGIN          1 require:10
+BEGIN          1 require:11
 
 

@@ -38,6 +38,8 @@ sub d2 {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 DC::Test::Dist - Devel::Cover distribution test module

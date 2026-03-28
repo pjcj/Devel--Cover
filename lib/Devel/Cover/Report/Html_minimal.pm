@@ -408,14 +408,18 @@ END_HTML
   my @files = (grep($db->{summary}{$_}, @{ $options->{file} }), 'Total');
 
   for my $file (@files) {
+    my $uncompiled = $file ne "Total"
+      && $db->cover->file($file)->{meta}{uncompiled};
     my $summary = get_summary_for_file($db, $file, $show);
 
     my $url = get_link($file);
     if ($url) {
-      print $fh qq'<tr><td align="left"><a href="$url">$file</a></td>';
+      print $fh qq'<tr><td align="left"><a href="$url">$file</a>';
     } else {
-      print $fh qq'<tr><td align="left">$file</td>';
+      print $fh qq'<tr><td align="left">$file';
     }
+    print $fh qq' <em>(untested)</em>' if $uncompiled;
+    print $fh qq'</td>';
 
     for my $c (@$show) {
       my $pc = $summary->{$c}{percent};
@@ -426,7 +430,7 @@ END_HTML
       } else {
         $class = sprintf(qq' class="%s"', pclass($pc, $summary->{$c}{error}));
         $popup = sprintf(qq' title="%s"', $c . ': ' . $summary->{$c}{ratio});
-        if ($c =~ /branch|condition|subroutine/) {
+        if (!$uncompiled && $c =~ /branch|condition|subroutine/) {
           $link = get_link($file, $c);
         }
       }
@@ -756,7 +760,9 @@ sub report {
   print_stylesheet($db, $opt);
   for my $file (@files) {
     print_file_report($db, $file, $opt);
-    unless ($opt->{option}{unified}) {
+    unless ($db->cover->file($file)->{meta}{uncompiled}
+      || $opt->{option}{unified})
+    {
       print_branch_report($db, $file, $opt)    if $opt->{show}{branch};
       print_condition_report($db, $file, $opt) if $opt->{show}{condition};
       print_sub_report($db, $file, $opt)       if $opt->{show}{subroutine};
@@ -768,6 +774,8 @@ sub report {
 }
 
 =pod
+
+=encoding utf8
 
 =head1 NAME
 

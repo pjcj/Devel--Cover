@@ -81,6 +81,8 @@ sub canonical_file {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::DB::Digests - store digests for Devel::Cover::DB

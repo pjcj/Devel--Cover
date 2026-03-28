@@ -877,6 +877,11 @@ recipe_generate-gcov-fixtures() {
   generate_gcov_fixtures
 }
 
+recipe_showcase() {
+  : "${PERL:=perl}"
+  "$PERL" "$srcdir/showcase" "${args[@]:?No report specified}"
+}
+
 run_recipe() {
   recipe="recipe_$recipe"
   shift

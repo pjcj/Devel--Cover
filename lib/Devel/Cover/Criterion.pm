@@ -57,6 +57,7 @@ sub simple_error {
 sub calculate_percentage {
   my $class = shift;
   my ($db, $s) = @_;
+  return unless $s;
   my $errors = $s->{error} || 0;
   $s->{percentage} = $s->{total} ? 100 - $errors * 100 / $s->{total} : 100;
 }
@@ -86,6 +87,8 @@ sub calculate_summary {
 1
 
 __END__
+
+=encoding utf8
 
 =head1 NAME
 

@@ -7,9 +7,8 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Exporter;
+use Exporter qw( import );
 
-our @ISA       = "Exporter";
 our @EXPORT_OK = qw( launch highlight $Have_highlighter );
 
 our $Have_highlighter;
@@ -86,11 +85,21 @@ sub highlight ($option, @all_lines) {
   return;
 }
 
+1;
+
+__END__
+
 =pod
+
+=encoding utf8
 
 =head1 NAME
 
 Devel::Cover::Html_Common - Common code for HTML reporters
+
+=head1 SYNOPSIS
+
+  use Devel::Cover::Html_Common qw( launch highlight );
 
 =head1 DESCRIPTION
 
@@ -124,5 +133,3 @@ True if PPI::HTML or Perl::Tidy is available.
 Devel::Cover
 
 =cut
-
-1

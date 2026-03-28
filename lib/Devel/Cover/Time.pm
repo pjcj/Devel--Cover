@@ -39,6 +39,8 @@ sub calculate_percentage {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Time - Code coverage metrics for Perl

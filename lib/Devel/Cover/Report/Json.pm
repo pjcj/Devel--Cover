@@ -44,6 +44,8 @@ sub report {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Devel::Cover::Report::Json - JSON backend for Devel::Cover
