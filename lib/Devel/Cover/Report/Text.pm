@@ -14,7 +14,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Devel::Cover::Util qw( common_prefix );
+use Devel::Cover::Path qw( common_prefix );
 
 sub _print_criteria_value ($o, $c) {
   $c =~ /statement|sub|pod|time/ ? $o->covered : $o->percentage
@@ -314,7 +314,7 @@ start/finish timestamps.
 =head2 print_statement ($db, $file, $options, $short)
 
 Print source lines for C<$file> with per-line coverage counts for each enabled
-criterion.  C<$short> is the hashref from L<Devel::Cover::Util/common_prefix>
+criterion.  C<$short> is the hashref from L<Devel::Cover::Path/common_prefix>
 mapping full paths to display names.
 
 =head2 print_branches ($db, $file, $options)

@@ -26,7 +26,7 @@ use List::Util   qw( any );
 use Scalar::Util qw( blessed reftype );
 
 use Devel::Cover::Dumper qw( Dumper );        # For debugging
-use Devel::Cover::Util   qw( common_prefix );
+use Devel::Cover::Path   qw( common_prefix );
 
 my $Has_term_size = eval { require Term::Size };
 
