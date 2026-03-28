@@ -18,7 +18,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use Test::More import => [ qw( done_testing is is_deeply ) ];
 
-use Devel::Cover::Util qw( common_prefix );
+use Devel::Cover::Path qw( common_prefix );
 
 sub test_empty_list () {
   my ($prefix, $short) = common_prefix();
@@ -92,16 +92,20 @@ sub test_three_levels_shared () {
 
 sub test_mixed_depths () {
   my ($prefix, $short) = common_prefix(
-    "/a/b/c/Foo.pm", "/a/b/c/Bar.pm", "/a/b/c/Baz.pm",
-    "/a/b/c/d/e/Deep.pm", "/a/b/c/d/e/Deeper.pm",
+    "/a/b/c/Foo.pm",         ##
+    "/a/b/c/Bar.pm",         ##
+    "/a/b/c/Baz.pm",         ##
+    "/a/b/c/d/e/Deep.pm",    ##
+    "/a/b/c/d/e/Deeper.pm",  ##
   );
   is $prefix, "/a/b/c/", "mixed depths: prefix";
-  is_deeply $short,
-    { "/a/b/c/Foo.pm"       => "Foo.pm",
-      "/a/b/c/Bar.pm"       => "Bar.pm",
-      "/a/b/c/Baz.pm"       => "Baz.pm",
-      "/a/b/c/d/e/Deep.pm"  => "d/e/Deep.pm",
-      "/a/b/c/d/e/Deeper.pm" => "d/e/Deeper.pm" },
+  is_deeply $short, {
+      "/a/b/c/Foo.pm"        => "Foo.pm",
+      "/a/b/c/Bar.pm"        => "Bar.pm",
+      "/a/b/c/Baz.pm"        => "Baz.pm",
+      "/a/b/c/d/e/Deep.pm"   => "d/e/Deep.pm",
+      "/a/b/c/d/e/Deeper.pm" => "d/e/Deeper.pm",
+    },
     "mixed depths: short map";
 }
 
