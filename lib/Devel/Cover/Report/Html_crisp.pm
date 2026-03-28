@@ -77,47 +77,66 @@ sub _get_summary ($file, $criterion) {
   }
 }
 
+sub _add_risk ($f, $risk_parts) {
+  my $pc   = $f->{total_pc};
+  my $gap  = 100 - ($pc eq "n/a" ? 0 : $pc);
+  my $berr = $risk_parts->{branch}    || 0;
+  my $cerr = $risk_parts->{condition} || 0;
+  $f->{risk}        = $berr + $cerr + $gap;
+  $f->{risk_branch} = $berr;
+  $f->{risk_cond}   = $cerr;
+  $f->{risk_gap}    = sprintf "%.0f", $gap;
+  $f->{risk_gap_pc} = $pc;
+}
+
+sub _build_one_file ($file) {
+  return unless $R{db}->summary($file);
+  my $dir = $file =~ s|/[^/]+$||r;
+  $dir = "" if $dir eq $file;
+  my $basename   = $file =~ s|.*/||r;
+  my $meta       = $R{db}->cover->file($file)->{meta} // {};
+  my $uncompiled = $meta->{uncompiled} ? 1 : 0;
+  my %f          = (
+    name       => $file,
+    basename   => $basename,
+    dir        => $dir,
+    link       => "$R{filenames}{$file}.html",
+    exists     => -e $file,
+    uncompiled => $uncompiled,
+    criteria   => {},
+  );
+
+  my %risk_parts;
+
+  for my $c ($R{showing}->@*) {
+    my $s = _get_summary($file, $c);
+    $s->{class}      = "c0"  if $uncompiled && $s->{pc} eq "n/a";
+    $s->{pc}         = "0.0" if $uncompiled && $s->{pc} eq "n/a";
+    $f{criteria}{$c} = $s;
+    $risk_parts{$c}  = $s->{error} || 0 if $c =~ /^(?:branch|condition)$/;
+  }
+  my $total = _get_summary($file, "total");
+  if ($uncompiled && $total->{pc} eq "n/a") {
+    $total->{class} = "c0";
+    $total->{pc}    = "0.0";
+  }
+  $f{total} = $total;
+  my $pc = $total->{pc} // "n/a";
+  $f{total_pc}   = $pc;
+  $f{total_sort} = $pc eq "n/a" ? -1 : $pc;
+  _add_risk(\%f, \%risk_parts);
+  \%f
+}
+
 sub _build_file_data () {
   my @file_data;
   for my $file ($R{options}{file}->@*) {
-    next unless $R{db}->summary($file);
-    (my $dir = $file) =~ s{/[^/]+$}{};
-    $dir = "" if $dir eq $file;
-    (my $basename = $file) =~ s{.*/}{};
-    my $meta       = $R{db}->cover->file($file)->{meta} // {};
-    my $uncompiled = $meta->{uncompiled} ? 1 : 0;
-    my %f          = (
-      name       => $file,
-      basename   => $basename,
-      dir        => $dir,
-      link       => "$R{filenames}{$file}.html",
-      exists     => -e $file,
-      uncompiled => $uncompiled,
-      criteria   => {},
-    );
-
-    my $risk = 0;
-
-    for my $c ($R{showing}->@*) {
-      my $s = _get_summary($file, $c);
-      $s->{class}       = "c0"  if $uncompiled && $s->{pc} eq "n/a";
-      $s->{pc}          = "0.0" if $uncompiled && $s->{pc} eq "n/a";
-      $f{criteria}{$c}  = $s;
-      $risk            += ($s->{error} || 0) if $c =~ /^(?:branch|condition)$/;
-    }
-    my $total = _get_summary($file, "total");
-    if ($uncompiled && $total->{pc} eq "n/a") {
-      $total->{class} = "c0";
-      $total->{pc}    = "0.0";
-    }
-    $f{total} = $total;
-    my $pc = $total->{pc} // "n/a";
-    $f{total_pc}   = $pc;
-    $f{total_sort} = $pc eq "n/a" ? -1 : $pc;
-    $f{risk}       = $risk + (100 - ($pc eq "n/a" ? 0 : $pc));
-    push @file_data, \%f;
+    my $f = _build_one_file($file);
+    push @file_data, $f if $f;
   } sort {
-    ($a->{total_sort} // -1) <=> ($b->{total_sort} // -1)
+         ($b->{risk} || 0) <=> ($a->{risk} || 0)
+      || ($a->{total_sort} // -1) <=> ($b->{total_sort} // -1)
+      || $a->{name} cmp $b->{name}
   } @file_data
 }
 
@@ -973,6 +992,39 @@ a:visited { color: var(--link-visited); }
 }
 
 .has-tip:hover::after { opacity: 1; }
+.risk-hover {
+  position: relative;
+  cursor: default;
+}
+.risk-hover:hover { z-index: 30; }
+.risk-tip {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: normal;
+  white-space: nowrap;
+  background: var(--tip-bg);
+  color: var(--tip-fg);
+  z-index: 30;
+  border-collapse: collapse;
+  pointer-events: none;
+}
+.risk-hover:hover .risk-tip { display: table; }
+.risk-tip td {
+  padding: 1px 6px;
+  font-variant-numeric: tabular-nums;
+}
+.risk-tip td:first-child { text-align: left; }
+.risk-tip td:last-child { text-align: right; }
+.risk-tip .risk-total td {
+  border-top: 1px solid var(--tip-fg);
+  font-weight: 600;
+}
 
 .header .has-tip::after {
   bottom: auto;
@@ -1043,13 +1095,23 @@ tr.untested td:hover .has-tip:hover::after { opacity: 1; }
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
 }
 
+tr.untested td:first-child,
+tr.dir-file td:first-child {
+  display: flex;
+  align-items: center;
+}
+tr.untested td:first-child a,
+tr.untested td:first-child span:first-child,
+tr.dir-file td:first-child a {
+  flex: 1;
+}
 .untested-badge {
   display: inline-block;
   font-size: 10px;
   padding: 1px 5px;
   border-radius: 3px;
   margin-left: 6px;
-  vertical-align: middle;
+  flex-shrink: 0;
   font-weight: 600;
   letter-spacing: 0.03em;
   background: var(--untested-badge-bg);
@@ -1319,8 +1381,8 @@ $Assets{js} = <<'JS';
     var groupToggle = document.querySelector(".group-toggle");
 
     /* --- Read persisted state --- */
-    var sortCol = rget("sort-col", "total");
-    var sortDir = rget("sort-dir", "asc");
+    var sortCol = rget("sort-col", "risk");
+    var sortDir = rget("sort-dir", "desc");
 
     var defaultGrouped = fileCount > 30;
     var storedGrouped = rget("grouped", null);
@@ -1728,7 +1790,15 @@ Total: [% total.total.pc %]%
 [%- UNLESS R.have_ppi %] data-tip="Install PPI for coverage estimates"[% END -%]
 >untested</span>
 [% END %]
-<strong>[% f.risk | format('%d') %]</strong>
+<strong class="risk-hover">[% f.risk | format('%d') %]
+<table class="risk-tip">
+<tr><td>Branch errors</td><td>[% f.risk_branch %]</td></tr>
+<tr><td>Condition errors</td><td>[% f.risk_cond %]</td></tr>
+<tr><td>Coverage gap</td><td>[% f.risk_gap %]%</td></tr>
+<tr class="risk-total"><td>Risk</td>
+<td>[% f.risk | format('%d') %]</td></tr>
+</table>
+</strong>
 </div>
 [% END %]
 </div>
@@ -1867,8 +1937,16 @@ Group by directory</label>
 </span>
 [% END %]
 </td>
-<td data-value="[% f.risk %]">
-[% f.risk | format('%d') %]</td>
+<td data-value="[% f.risk %]" class="risk-hover">
+[% f.risk | format('%d') %]
+<table class="risk-tip">
+<tr><td>Branch errors</td><td>[% f.risk_branch %]</td></tr>
+<tr><td>Condition errors</td><td>[% f.risk_cond %]</td></tr>
+<tr><td>Coverage gap</td><td>[% f.risk_gap %]%</td></tr>
+<tr class="risk-total"><td>Risk</td>
+<td>[% f.risk | format('%d') %]</td></tr>
+</table>
+</td>
 </tr>
 [% END %]
 [% END %]
