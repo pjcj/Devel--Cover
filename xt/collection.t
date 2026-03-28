@@ -9,10 +9,10 @@
 # https://pjcj.net
 
 use 5.42.0;
-use warnings;
 
-use Test2::V0  qw( done_testing is like ok skip_all subtest unlike );
-use File::Temp qw( tempdir );
+use Test2::V0     qw( done_testing is like ok skip_all subtest unlike );
+use File::Temp    qw( tempdir );
+use JSON::MaybeXS ();
 
 use Devel::Cover::Collection ();
 
@@ -403,8 +403,8 @@ sub write_json () {
         total      => { pc => "82.50" },
         link       => "/Foo-Bar/index.html",
         log        => "build.log",
-      }
-    }
+      },
+    },
   };
 
   $c->write_json($vars);
@@ -425,6 +425,58 @@ sub write_json () {
   unlike $content, qr/"log"/,       "JSON excludes log field";
 }
 
+sub compress_old_versions () {
+  skip_all "uses fsys which requires alarm (not available on Windows)"
+    if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+
+  # Reproduce GH-409: CPAN versions that sort incorrectly when numified.
+  # 0.41 numifies to 0.410, less than 0.700/0.800/0.900, so the latest
+  # release was compressed and removed under the old version-based sort.
+  my @versions = (
+    { ver => "0.7",  start => 1000 },
+    { ver => "0.8",  start => 2000 },
+    { ver => "0.9",  start => 3000 },
+    { ver => "0.41", start => 4000 },
+  );
+
+  my $json = JSON::MaybeXS->new(utf8 => 1);
+  for my $v (@versions) {
+    my $mod_dir = "$dir/Net-RDAP-$v->{ver}";
+    mkdir $mod_dir or die "Can't mkdir $mod_dir: $!";
+    my $cover
+      = { runs =>
+        [ { name => "Net-RDAP", version => $v->{ver}, start => $v->{start} } ],
+      };
+    open my $fh, ">", "$mod_dir/cover.json" or die "Can't write: $!";
+    print $fh $json->encode($cover);
+    close $fh or die "Can't close: $!";
+  }
+
+  my $c = Devel::Cover::Collection->new(results_dir => $dir, dryrun => 1);
+
+  my $outfile = "$dir/compress_output.txt";
+  {
+    open my $saved, ">&", STDOUT or die "Can't dup STDOUT: $!";
+    open STDOUT, ">", $outfile  or die "Can't redirect STDOUT: $!";
+    $c->compress_old_versions(3);
+    open STDOUT, ">&", $saved   or die "Can't restore STDOUT: $!";
+  }
+  open my $ofh, "<", $outfile or die "Can't read $outfile: $!";
+  my $output = do { local $/; <$ofh> };
+  close $ofh or die "Can't close $outfile: $!";
+
+  # 4 versions, keep 3: the oldest by start time should be compressed
+  like $output, qr/^compressing Net-RDAP-0\.7$/m,
+    "oldest version by start time is compressed";
+  unlike $output, qr/^compressing Net-RDAP-0\.41$/m,
+    "latest release is kept (was removed by numeric version sort)";
+  unlike $output, qr/^compressing Net-RDAP-0\.9$/m,
+    "recent version 0.9 is kept";
+  unlike $output, qr/^compressing Net-RDAP-0\.8$/m,
+    "recent version 0.8 is kept";
+}
+
 sub template_provider_fetch () {
   my $provider = Devel::Cover::Collection::Template::Provider->new({});
 
@@ -439,6 +491,7 @@ sub template_provider_fetch () {
 }
 
 sub main () {
+  #<<<
   my @tests = qw(
     constructor_defaults
     constructor_with_args
@@ -467,8 +520,10 @@ sub main () {
     dc_file
     coverage_class_method
     write_json
+    compress_old_versions
     template_provider_fetch
   );
+  #>>>
   for my $test (@tests) {
     no strict qw( refs );
     subtest $test => \&$test;

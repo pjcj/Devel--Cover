@@ -8,7 +8,6 @@
 package Devel::Cover::Collection;
 
 use 5.42.0;
-use warnings;
 
 # VERSION
 
@@ -424,24 +423,13 @@ class Devel::Cover::Collection {
       $name =~ s/-[^-]+$//;
       my @runs = grep { ($_->{name} // "") eq $name } $data->{runs}->@*;
       # say "$name " . @runs;
-      my $run     = $runs[0]                   // next;
-      my $version = $run->{version} =~ s/_//gr // next;
-      my $v = eval { no warnings "overflow"; version->parse($version)->numify };
-      if ($@ || !$v) {
-        $v = $version;
-        $v =~ s/[^0-9.]//g;
-        my @parts = split /\./, $v;
-        if (@parts > 2) {
-          $v = shift(@parts) . "." . join "", @parts;
-        }
-      }
-      $v ||= 0;
-      push $mods{$name}->@*, { dir => $entry, version => $v };
+      my $run = $runs[0] // next;
+      push $mods{$name}->@*, { dir => $entry, start => $run->{start} // 0 };
     }
 
     for my $name (sort keys %mods) {
       # print Dumper $mods{$name};
-      my @o = sort { $b->{version} <=> $a->{version} } $mods{$name}->@*;
+      my @o = sort { $b->{start} <=> $a->{start} } $mods{$name}->@*;
       shift @o for 1 .. $versions;
       for my $v (@o) {
 
