@@ -881,7 +881,7 @@ Dc_cover_perl="perl -Iblib/lib -Iblib/arch"
 
 dc_cover_lib() {
   local db="dc_cover_lib_db"
-  local select="Devel/Cover/(Path|Static|Op|DB/IO/)"
+  local select="Devel/Cover/Path"
   local launch="${1:-1}"
 
   rm -rf "$db"
