@@ -25,12 +25,11 @@ use File::Path   qw( rmtree );
 use List::Util   qw( any );
 use Scalar::Util qw( blessed reftype );
 
-use Devel::Cover::Dumper qw( Dumper );        # For debugging
-use Devel::Cover::Path   qw( common_prefix );
+use Devel::Cover::Dumper qw( Dumper );  # For debugging
 
 my $Has_term_size = eval { require Term::Size };
 
-my $DB = "cover.15";                          # Version of the database
+my $DB = "cover.15";                    # Version of the database
 
 @Devel::Cover::DB::Criteria
   = (qw( statement branch path condition subroutine pod time ));
@@ -358,7 +357,9 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
   my $s     = $self->{summary};
   my @files = (grep($_ ne "Total", sort keys %$s), "Total");
   my $max   = 5;
-  my ($prefix, $short) = common_prefix(@files);
+  require Devel::Cover::Path;
+  my ($prefix, $short) = Devel::Cover::Path::common_prefix(@files);
+
   for (@files) { $max = length $short->{$_} if length $short->{$_} > $max }
 
   my $width

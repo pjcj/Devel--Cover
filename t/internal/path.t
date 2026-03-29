@@ -109,6 +109,14 @@ sub test_mixed_depths () {
     "mixed depths: short map";
 }
 
+sub test_no_shared_components () {
+  my ($prefix, $short) = common_prefix("src/Foo.pm", "lib/Bar.pm");
+  is $prefix, "", "no shared components: prefix";
+  is_deeply $short,
+    { "src/Foo.pm" => "src/Foo.pm", "lib/Bar.pm" => "lib/Bar.pm" },
+    "no shared components: short map";
+}
+
 sub main () {
   test_empty_list;
   test_single_file;
@@ -121,6 +129,7 @@ sub main () {
   test_total_only;
   test_three_levels_shared;
   test_mixed_depths;
+  test_no_shared_components;
   done_testing;
 }
 

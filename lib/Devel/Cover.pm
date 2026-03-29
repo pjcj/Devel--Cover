@@ -98,12 +98,12 @@ my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
                        emptyavhv|scalar|return|last|next|redo|goto|
                        exec|exit|warn)$/x;
 
-# Check whether the right operand of a logical op is a constant-like
-# expression whose truth value is fixed.  Unwraps sassign if present.
-# Also handles multiconcat (Perl 5.28+) with truthy literal text -
-# the constant string is element [1] of aux_list and does not depend
-# on the CV passed.  We check truthiness rather than mere non-emptiness
-# because "0" is the one non-empty string that is falsy in Perl.
+# Check whether the right operand of a logical op is a constant-like expression
+# whose truth value is fixed.  Unwraps sassign if present. Also handles
+# multiconcat (Perl 5.28+) with truthy literal text - the constant string is
+# element [1] of aux_list and does not depend on the CV passed.  We check
+# truthiness rather than mere non-emptiness because "0" is the one non-empty
+# string that is falsy in Perl.
 sub _is_const_right ($op) {
   my $rhs  = $op->name eq "sassign" ? $op->first : $op;
   my $name = $rhs->name;
@@ -161,7 +161,8 @@ BEGIN {
   $^P     |= 0x004 | 0x100;  # save source lines; evals report file info
 }
 
-sub version { $VERSION }
+sub version    { $VERSION }
+sub has_select { scalar @Select_re }
 
 {
 
@@ -1187,9 +1188,13 @@ sub _add_pod_cover ($cv) {
 
 sub _want_cover_for {
   return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK
-  return if length $File     && !use_file($File);
-  return if !$Self_cover_run && $File =~ /Devel\/Cover/;
-  return if $Self_cover_run  && $File !~ /Devel\/Cover/;
+  return if length $File && !use_file($File);
+  if (!$Self_cover_run && $File =~ /Devel\/Cover/) {
+    # Allow partial self-coverage: if -select patterns are active and this DC
+    # module matches one, let it through for instrumentation.
+    return unless @Select_re && List::Util::any { $File =~ $_ } @Select_re;
+  }
+  return if $Self_cover_run && $File !~ /Devel\/Cover/;
   return
     if $Self_cover_run && $File =~ /Devel\/Cover\.pm$/ && $Sub_name eq "import";
   1

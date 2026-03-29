@@ -19,6 +19,7 @@ blib/
 .build/
 README
 cover_db*/
+dc_cover*/
 t/e2e/
 lib/Devel/Cover/Inc.pm
 pm_to_blib
