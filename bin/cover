@@ -60,7 +60,11 @@ my $Options = {
 };
 
 sub check_self_coverage () {
-  if (!$ENV{DEVEL_COVER_SELF} && $INC{"Devel/Cover.pm"}) {
+  if (
+      !$ENV{DEVEL_COVER_SELF}
+    && $INC{"Devel/Cover.pm"}
+    && !Devel::Cover::has_select()
+  ) {
     my $err = "$0 shouldn't be run with coverage turned on.\n";
     eval {
       require POSIX;

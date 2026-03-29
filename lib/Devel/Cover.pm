@@ -161,7 +161,8 @@ BEGIN {
   $^P     |= 0x004 | 0x100;  # save source lines; evals report file info
 }
 
-sub version { $VERSION }
+sub version    { $VERSION }
+sub has_select { scalar @Select_re }
 
 {
 
@@ -1187,9 +1188,11 @@ sub _add_pod_cover ($cv) {
 
 sub _want_cover_for {
   return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK
-  return if length $File     && !use_file($File);
-  return if !$Self_cover_run && $File =~ /Devel\/Cover/;
-  return if $Self_cover_run  && $File !~ /Devel\/Cover/;
+  return if length $File && !use_file($File);
+  if (!$Self_cover_run && $File =~ /Devel\/Cover/) {
+    return unless @Select_re && List::Util::any { $File =~ $_ } @Select_re;
+  }
+  return if $Self_cover_run && $File !~ /Devel\/Cover/;
   return
     if $Self_cover_run && $File =~ /Devel\/Cover\.pm$/ && $Sub_name eq "import";
   1
