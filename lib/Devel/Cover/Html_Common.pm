@@ -56,7 +56,8 @@ sub _highlight_ppi (@all_lines) {
     s{<br>\n</span>}{</span>};
   }
 
-  shift @all_lines if $all_lines[0] eq "";
+  shift @all_lines if @all_lines && $all_lines[0] eq "";
+  pop @all_lines   if @all_lines && $all_lines[-1] eq "";
   @all_lines
 }
 
