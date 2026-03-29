@@ -98,12 +98,12 @@ my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
                        emptyavhv|scalar|return|last|next|redo|goto|
                        exec|exit|warn)$/x;
 
-# Check whether the right operand of a logical op is a constant-like
-# expression whose truth value is fixed.  Unwraps sassign if present.
-# Also handles multiconcat (Perl 5.28+) with truthy literal text -
-# the constant string is element [1] of aux_list and does not depend
-# on the CV passed.  We check truthiness rather than mere non-emptiness
-# because "0" is the one non-empty string that is falsy in Perl.
+# Check whether the right operand of a logical op is a constant-like expression
+# whose truth value is fixed.  Unwraps sassign if present. Also handles
+# multiconcat (Perl 5.28+) with truthy literal text - the constant string is
+# element [1] of aux_list and does not depend on the CV passed.  We check
+# truthiness rather than mere non-emptiness because "0" is the one non-empty
+# string that is falsy in Perl.
 sub _is_const_right ($op) {
   my $rhs  = $op->name eq "sassign" ? $op->first : $op;
   my $name = $rhs->name;
