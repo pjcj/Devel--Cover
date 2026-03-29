@@ -881,13 +881,16 @@ Dc_cover_perl="perl -Iblib/lib -Iblib/arch"
 
 dc_cover_lib() {
   local db="dc_cover_lib_db"
-  local select="Devel/Cover/Path"
+  local select="Devel/Cover/(Path|Static)"
   local launch="${1:-1}"
 
   rm -rf "$db"
   $Dc_cover_perl \
-    "-MDevel::Cover=-select,$select,-db,$db,-merge,0" \
+    "-MDevel::Cover=-select,$select,-db,$db,-merge,1" \
     t/internal/path.t
+  $Dc_cover_perl \
+    "-MDevel::Cover=-select,$select,-db,$db,-merge,1" \
+    t/internal/static.t
   if ((launch)); then
     $Dc_cover_perl bin/cover "$db" -report html_crisp -launch
   fi
