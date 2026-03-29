@@ -86,8 +86,13 @@ make show_version
 # Create test files from tests/ directory
 # (automatically done by Makefile.PL)
 
-# Self-coverage analysis
+# Self-coverage analysis (full, using DEVEL_COVER_SELF)
 make self_cover
+
+# Partial self-coverage (late-loaded modules only)
+make dc_cover          # combined report
+make dc_cover_lib      # library modules (Path, Static)
+make dc_cover_reports  # report modules via bin/cover
 
 # Create distribution
 make dist
@@ -113,9 +118,15 @@ make dist
 
 ### Core Modules
 
+Modules loaded at bootstrap (before instrumentation activates) cannot be
+covered without `DEVEL_COVER_SELF`. Late-loaded modules (reports, Path,
+Static, etc.) can be covered using `-select` - see
+`docs/technical/self-coverage.md`.
+
 **Coverage Collection**:
 
 - `Devel::Cover` - Main module that hooks into Perl's op execution
+- `Devel::Cover::Core` - Bootstrap utility (remove_contained_paths)
 - `Devel::Cover::Op` - Handles operation coverage tracking
 - `Devel::Cover::DB` - Database storage and management
 - `Devel::Cover::Inc` - Include path management (auto-generated)

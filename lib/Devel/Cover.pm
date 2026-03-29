@@ -1190,6 +1190,8 @@ sub _want_cover_for {
   return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK
   return if length $File && !use_file($File);
   if (!$Self_cover_run && $File =~ /Devel\/Cover/) {
+    # Allow partial self-coverage: if -select patterns are active and this DC
+    # module matches one, let it through for instrumentation.
     return unless @Select_re && List::Util::any { $File =~ $_ } @Select_re;
   }
   return if $Self_cover_run && $File !~ /Devel\/Cover/;
