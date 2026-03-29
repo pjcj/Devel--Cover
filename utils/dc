@@ -877,6 +877,71 @@ recipe_generate-gcov-fixtures() {
   generate_gcov_fixtures
 }
 
+Dc_cover_perl="perl -Iblib/lib -Iblib/arch"
+
+dc_cover_lib() {
+  local db="dc_cover_lib_db"
+  local select="Devel/Cover/(Path|Static|Op|DB/IO/)"
+  local launch="${1:-1}"
+
+  rm -rf "$db"
+  $Dc_cover_perl \
+    "-MDevel::Cover=-select,$select,-db,$db,-merge,0" \
+    t/internal/path.t
+  if ((launch)); then
+    $Dc_cover_perl bin/cover "$db" -report html_crisp -launch
+  fi
+}
+
+dc_cover_reports() {
+  local input_db="dc_cover_reports_input_db"
+  local db="dc_cover_reports_db"
+  local select="Devel/Cover/(Report|Annotation|Html_Common"
+  select="$select|Web|Truth_Table|Base/Editor)"
+  local launch="${1:-1}"
+
+  rm -rf "$input_db" "$db"
+
+  # Build a rich input DB to exercise report code paths
+  $Dc_cover_perl "-MDevel::Cover=-db,$input_db,-merge,1" \
+    t/e2e/acond_or.t t/e2e/apod.t t/e2e/astatement.t \
+    t/e2e/acond_and.t t/e2e/atrivial.t
+
+  # Run report generation under self-coverage
+  $Dc_cover_perl \
+    "-MDevel::Cover=-select,$select,-db,$db,-merge,0" bin/cover "$input_db" \
+    -report html_crisp -report text -report json
+
+  if ((launch)); then
+    $Dc_cover_perl bin/cover "$db" -report html_crisp -launch
+  fi
+}
+
+dc_cover() {
+  local db="dc_cover_db"
+
+  dc_cover_lib 0
+  dc_cover_reports 0
+
+  rm -rf "$db"
+  $Dc_cover_perl bin/cover \
+    dc_cover_lib_db dc_cover_reports_db \
+    -write "$db"
+  $Dc_cover_perl bin/cover "$db" -report html_crisp -launch
+}
+
+recipe_dc-cover-lib() {
+  dc_cover_lib
+}
+
+recipe_dc-cover-reports() {
+  dc_cover_reports
+}
+
+recipe_dc-cover() {
+  dc_cover
+}
+
 recipe_showcase() {
   : "${PERL:=perl}"
   "$PERL" "$srcdir/showcase" "${args[@]:?No report specified}"
