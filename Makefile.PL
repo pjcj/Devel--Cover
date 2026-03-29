@@ -496,6 +496,15 @@ lint : precommit_all
 \
 lint_changes : precommit
 
+dc_cover_lib : pure_all
+\t utils/dc dc-cover-lib
+
+dc_cover_reports : pure_all
+\t utils/dc dc-cover-reports
+
+dc_cover : pure_all
+\t utils/dc dc-cover
+
 _delete_db : pure_all
 \t rm -rf cover_db
 
