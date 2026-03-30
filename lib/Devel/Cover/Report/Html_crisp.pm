@@ -463,6 +463,11 @@ sub report ($pkg, $db, $options) {
       grep { $options->{show}{ ($db->criteria)[$_] } }
         (0 .. $db->criteria - 1)
     ],
+    short => do {
+      my @c = $db->criteria;
+      my @s = $db->criteria_short;
+      +{ (map { $c[$_] => $s[$_] } 0 .. $#c), total => "total" }
+    },
     filenames => {
       map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } $options->{file}->@*
     },
@@ -1797,29 +1802,29 @@ $Templates{index} = <<'EOT';
 <div class="header-inner">
 <h1>Coverage Report</h1>
 <div class="header-stats">
-[% IF total.total.pc != "n/a" %]
-<span class="stat-badge [% total.total.class %] has-tip"
-      data-tip="[% total.total.covered %] / [% total.total.total %]">
-Total: [% total.total.pc %]%
-<span class="cov-bar">
-<span class="cov-bar-fill"
-  style="width:[% total.total.pc %]%"></span>
-</span>
-</span>
-[% END %]
 [% FOREACH c = R.showing %]
 [% s = total.$c %]
 [% NEXT IF c == "time" %]
 [% NEXT UNLESS s.pc %]
 <span class="stat-badge [% s.class %] has-tip"
       data-tip="[% s.covered %] / [% s.total %]">
-[% c %] [% s.pc %]%
+[% R.short.$c %] [% s.pc %]%
 [% IF s.pc != 'n/a' %]
 <span class="cov-bar">
 <span class="cov-bar-fill"
   style="width:[% s.pc %]%"></span>
 </span>
 [% END %]
+</span>
+[% END %]
+[% IF total.total.pc != "n/a" %]
+<span class="stat-badge [% total.total.class %] has-tip"
+      data-tip="[% total.total.covered %] / [% total.total.total %]">
+total [% total.total.pc %]%
+<span class="cov-bar">
+<span class="cov-bar-fill"
+  style="width:[% total.total.pc %]%"></span>
+</span>
 </span>
 [% END %]
 </div>
@@ -1932,10 +1937,10 @@ Group by directory</label>
 <th data-sort="file">File</th>
 [% FOREACH c = R.showing %]
 [% NEXT IF c == "time" %]
-<th data-sort="[% c %]">[% c %]</th>
+<th data-sort="[% c %]">[% R.short.$c %]</th>
 [% END %]
-<th data-sort="total">Total</th>
-<th data-sort="risk">Risk</th>
+<th data-sort="total">total</th>
+<th data-sort="risk">risk</th>
 </tr>
 </thead>
 <tbody>
@@ -2040,14 +2045,14 @@ $Templates{file} = <<'EOT';
 [% IF file.uncompiled %]
 <span class="stat-badge untested-stat has-tip"
       data-tip="[% c %]: 0" data-criterion="[% c %]">
-[% c %] 0.0%
+[% R.short.$c %] 0.0%
 </span>
 [% ELSE %]
 [% NEXT UNLESS s.pc AND s.pc != 'n/a' %]
 <span class="stat-badge [% s.class %] has-tip"
       data-tip="[% s.covered %] / [% s.total %]"
       data-criterion="[% c %]">
-[% c %] [% s.pc %]%
+[% R.short.$c %] [% s.pc %]%
 <span class="cov-bar">
 <span class="cov-bar-fill"
   style="width:[% s.pc %]%"></span>
