@@ -39,7 +39,6 @@ compiled before instrumentation activates:
 - `Devel::Cover::DB`
 - `Devel::Cover::DB::Digests`
 - `Devel::Cover::DB::File`
-- `Devel::Cover::DB::Structure`
 - `Devel::Cover::DB::IO`
 - `Devel::Cover::Criterion` and all subclasses (Statement, Branch, Condition
   variants, Subroutine, Time, Pod)
@@ -55,6 +54,7 @@ instrumentation is active:
 
 **Library modules** (tested by `t/internal/`):
 
+- `Devel::Cover::DB::Structure` - abstract structure of source files
 - `Devel::Cover::Path` - path shortening for reports
 - `Devel::Cover::Static` - static analysis of uncovered files
 
