@@ -625,6 +625,28 @@ sub test_debuglog () {
   ok 1, "debuglog: second call succeeds (dir exists)";
 }
 
+sub test_write_no_digest_self_cover_no_match () {
+  local $Devel::Cover::Self_cover = 1;
+  my $base = fresh_base("no_digest_self_nm");
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  # Path does not match /Devel/Cover[./] so the Self_cover guard
+  # doesn't suppress the warning
+  $st->{f}{"/lib/Some/Other.pm"} = { data => 1 };
+
+  my $stderr = capture_stderr { $st->write($base) };
+  like $stderr, qr/Can't find digest/,
+    "write no digest self_cover no match: warns";
+}
+
+sub test_autoload_no_criterion () {
+  my $st = Devel::Cover::DB::Structure->new;
+  # "get_" has an empty criterion, so the regex captures undef
+  my $ok = eval { $st->get_; 1 };
+  ok !$ok, "autoload no criterion: croaks";
+  like $@, qr/Undefined subroutine/, "autoload no criterion: correct error";
+}
+
 sub test_digest_dash_e () {
   my $st     = Devel::Cover::DB::Structure->new;
   my $stderr = capture_stderr {
@@ -677,6 +699,8 @@ sub main () {
   test_write_no_digest_self_cover;
   test_write_no_digest_ignored;
   test_debuglog;
+  test_write_no_digest_self_cover_no_match;
+  test_autoload_no_criterion;
   test_digest_dash_e;
   done_testing;
 }
