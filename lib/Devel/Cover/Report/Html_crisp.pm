@@ -283,6 +283,17 @@ sub _build_source_lines ($file) {
 
     _line_partial(\%line, \@bd, \@tts, \@sd);
 
+    my @errors;
+    push @errors, "branch"
+      if any { $_->{true_count} == 0 || $_->{false_count} == 0 } @bd;
+    push @errors, "condition" if any {
+      any { !$_->{covered} }
+        $_->{rows}->@*
+    } @tts;
+    push @errors, "subroutine" if any { !$_->{covered} } @sd;
+    push @errors, "pod"        if $line{pod_uncovered};
+    $line{errors} = join ",", @errors if @errors;
+
     push @lines, \%line;
     last line if $l =~ /^__(END|DATA)__/;
   }
@@ -791,6 +802,11 @@ a:visited { color: var(--link-visited); }
 }
 
 .stat-badge:hover { opacity: 0.85; }
+.stat-badge[data-criterion] { cursor: pointer; }
+.stat-badge.badge-active {
+  outline: 2px solid var(--link);
+  outline-offset: -1px;
+}
 
 .theme-toggle {
   margin-left: auto;
@@ -1599,6 +1615,53 @@ $Assets{js} = <<'JS';
       }
     );
 
+    /* --- Badge criterion filter --- */
+    var badges = document.querySelectorAll(
+      ".header .stat-badge[data-criterion]");
+    var activeCriterion = null;
+
+    function clearFilter() {
+      activeCriterion = null;
+      details.forEach(function(d) { d.hidden = true; });
+      sourceTable.querySelectorAll(".has-detail td.chevron")
+        .forEach(function(ch) { ch.textContent = "\u25b6"; });
+      badges.forEach(function(b) {
+        b.classList.remove("badge-active");
+      });
+    }
+
+    function applyFilter(crit) {
+      activeCriterion = crit;
+      badges.forEach(function(b) {
+        b.classList.toggle("badge-active",
+          b.getAttribute("data-criterion") === crit);
+      });
+      sourceTable.querySelectorAll(".has-detail").forEach(
+        function(row) {
+          var d = row.nextElementSibling;
+          if (!d || !d.classList.contains("line-detail"))
+            return;
+          var errors = row.getAttribute("data-errors") || "";
+          var match = errors.split(",").indexOf(crit) >= 0;
+          d.hidden = !match;
+          var ch = row.querySelector("td.chevron");
+          if (ch) ch.textContent = match ? "\u25bc" : "\u25b6";
+        }
+      );
+    }
+
+    badges.forEach(function(badge) {
+      badge.addEventListener("click", function(e) {
+        e.preventDefault();
+        var crit = badge.getAttribute("data-criterion");
+        if (crit === activeCriterion || crit === "statement") {
+          clearFilter();
+        } else {
+          applyFilter(crit);
+        }
+      });
+    });
+
     /* --- Keyboard navigation --- */
     var uncovered = document.querySelectorAll(
       "tr[data-cov='0'], tr[data-cov='2']");
@@ -1976,13 +2039,14 @@ $Templates{file} = <<'EOT';
 [% s = total.$c %]
 [% IF file.uncompiled %]
 <span class="stat-badge untested-stat has-tip"
-      data-tip="[% c %]: 0">
+      data-tip="[% c %]: 0" data-criterion="[% c %]">
 [% c %] 0.0%
 </span>
 [% ELSE %]
 [% NEXT UNLESS s.pc AND s.pc != 'n/a' %]
 <span class="stat-badge [% s.class %] has-tip"
-      data-tip="[% s.covered %] / [% s.total %]">
+      data-tip="[% s.covered %] / [% s.total %]"
+      data-criterion="[% c %]">
 [% c %] [% s.pc %]%
 <span class="cov-bar">
 <span class="cov-bar-fill"
@@ -2031,7 +2095,8 @@ $Templates{file} = <<'EOT';
       [%- ELSIF line.partial %]2[% ELSE %]1[% END %]"
     [%- END %]
     class="[% IF is_uncov %]src-c0[% END -%]
-      [%- IF has_detail %] has-detail[% END %]">
+      [%- IF has_detail %] has-detail[% END %]"
+    [%- IF line.errors %] data-errors="[% line.errors %]"[% END -%]>
 <td role="cell" class="ln">
 <a id="L[% line.number %]"
   href="#L[% line.number %]">[% line.number %]</a>
