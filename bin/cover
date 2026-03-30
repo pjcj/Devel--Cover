@@ -425,6 +425,7 @@ sub manage_dbs ($dbname, $test_result) {
   my $structure;
   my $read_structure = sub () {
     unless ($structure) {
+      require Devel::Cover::DB::Structure;
       $structure = Devel::Cover::DB::Structure->new(base => $dbname);
       $structure->read_all;
     }

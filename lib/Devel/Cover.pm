@@ -666,6 +666,7 @@ sub _report {
   chdir $Dir or die __PACKAGE__ . ": Can't chdir $Dir: $!\n";
 
   $Run{collected} = \@collected;
+  require Devel::Cover::DB::Structure;
   $Structure = Devel::Cover::DB::Structure->new(base => $DB,
     loose_perms => $Loose_perms);
   $Structure->read_all;
