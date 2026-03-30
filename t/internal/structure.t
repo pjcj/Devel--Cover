@@ -20,7 +20,7 @@ use Digest::MD5 ();
 use File::Path  qw( make_path );
 use File::Spec  ();
 use File::Temp  qw( tempdir );
-use Test::More import => [ qw( done_testing is is_deeply like ok ) ];
+use Test::More import => [ qw( done_testing is is_deeply like ok pass ) ];
 
 use Devel::Cover::DB::Structure ();
 
@@ -348,6 +348,292 @@ sub test_write_no_digest_silent () {
   is $stderr, "", "write no digest silent: no warning";
 }
 
+sub test_write_creates_structure_dir () {
+  my $base = File::Spec->catdir($Tmpdir, "write_mkdir");
+  make_path($base);
+  # Don't pre-create structure/ - let write() do it
+  my $file = write_source("mkdir.pm", "package MkDir;\n1\n");
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->set_file($file);
+  $st->write($base);
+
+  ok -d "$base/structure", "write mkdir: creates structure dir";
+}
+
+sub test_write_rename_failure () {
+  my $base   = fresh_base("rename_fail");
+  my $file   = write_source("renamefail.pm", "package RenameFail;\n1\n");
+  my $digest = md5_file($file);
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->set_file($file);
+
+  # Pre-create target as a directory so rename fails
+  mkdir "$base/structure/$digest"
+    or die "Cannot mkdir $base/structure/$digest: $!";
+
+  my $stderr = capture_stderr { $st->write($base) };
+  rmdir "$base/structure/$digest";
+
+  like $stderr, qr/Can't rename/, "write rename fail: warns on STDERR";
+}
+
+sub test_write_rename_failure_silent () {
+  local $Devel::Cover::Silent = 1;
+  my $base   = fresh_base("rename_fail_s");
+  my $file   = write_source("renamefails.pm", "package RenameFailS;\n1\n");
+  my $digest = md5_file($file);
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+
+  $st->set_file($file);
+
+  mkdir "$base/structure/$digest"
+    or die "Cannot mkdir $base/structure/$digest: $!";
+
+  my $stderr = capture_stderr { $st->write($base) };
+  rmdir "$base/structure/$digest";
+
+  is $stderr, "", "write rename fail silent: no warning";
+}
+
+sub test_autoload_get_time () {
+  my $file   = write_source("time.pm", "package Time;\n1\n");
+  my $digest = md5_file($file);
+  my $st     = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+
+  # time criterion maps to statement internally
+  $st->{f}{$file}{statement} = [ [ $file, 1 ] ];
+
+  my $got = $st->get_time($digest);
+  is_deeply $got, [ [ $file, 1 ] ], "autoload get_time: maps to statement data";
+}
+
+sub test_set_file_missing () {
+  my $st    = Devel::Cover::DB::Structure->new;
+  my $bogus = File::Spec->catfile($Tmpdir, "no_such_setfile.pm");
+
+  my $stderr = capture_stderr {
+    my $digest = $st->set_file($bogus);
+    ok !defined $digest, "set_file missing: returns undef"
+  };
+  ok !exists $st->{f}{$bogus}{digest}, "set_file missing: no digest stored";
+}
+
+sub test_add_count_no_file () {
+  my $st = Devel::Cover::DB::Structure->new;
+  $st->add_criteria("statement");
+  # $self->{file} is undef - should return early
+  my @result = $st->add_count("statement");
+  is @result, 0, "add_count no file: returns empty";
+}
+
+sub test_set_subroutine_new () {
+  my $file = write_source("setsub_new.pm", "package SetSubNew;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->add_criteria("statement");
+
+  # Increment count so get_count returns something
+  $st->add_count("statement");
+  $st->add_count("statement");
+
+  $st->set_subroutine("mysub", $file, 10, 0);
+
+  is $st->{sub_name}, "mysub", "set_sub new: sets sub_name";
+  is $st->{file},     $file,   "set_sub new: sets file";
+  is $st->{line},     10,      "set_sub new: sets line";
+  ok exists $st->{f}{$file}{start}{10}{mysub}[0]{statement},
+    "set_sub new: creates start entry";
+  is $st->{f}{$file}{start}{10}{mysub}[0]{statement}, 2,
+    "set_sub new: start entry has correct count";
+}
+
+sub test_set_subroutine_reuse_existing () {
+  my $file = write_source("setsub_reuse.pm", "package SetSubReuse;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->add_criteria("statement");
+
+  # Set up a reusable structure with __COVER__ and an existing sub
+  $st->{f}{$file}{start}{-1}{__COVER__} = [ { statement => 0 } ];
+  $st->{f}{$file}{start}{10}{oldsub}    = [ { statement => 5 } ];
+
+  $st->set_subroutine("oldsub", $file, 10, 0);
+
+  is $st->{count}{statement}{$file}, 5,
+    "set_sub reuse existing: restores count from start";
+  ok !$st->{additional}, "set_sub reuse existing: additional flag is false";
+}
+
+sub test_set_subroutine_reuse_additional_first () {
+  my $file = write_source("setsub_add1.pm", "package SetSubAdd1;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->add_criteria("statement");
+
+  # Set up reusable structure but without the sub we'll request
+  $st->{f}{$file}{start}{-1}{__COVER__} = [ { statement => 10 } ];
+
+  $st->set_subroutine("newsub", $file, 20, 0);
+
+  ok $st->{additional},
+    "set_sub reuse additional first: additional flag is true";
+  is $st->{count}{statement}{$file}, 10,
+    "set_sub reuse additional first: count from __COVER__";
+}
+
+sub test_set_subroutine_reuse_additional_repeat () {
+  my $file = write_source("setsub_add2.pm", "package SetSubAdd2;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->add_criteria("statement");
+
+  # Set up reusable structure without the sub
+  $st->{f}{$file}{start}{-1}{__COVER__} = [ { statement => 10 } ];
+  # Simulate that we've already seen an additional sub in this file
+  $st->{additional_count}{statement}{$file} = 1;
+
+  $st->set_subroutine("another", $file, 30, 0);
+
+  ok $st->{additional},
+    "set_sub reuse additional repeat: additional flag is true";
+  # Count should come from add_count, not from __COVER__
+  ok defined $st->{f}{$file}{start}{30}{another}[0]{statement},
+    "set_sub reuse additional repeat: start entry created";
+}
+
+sub test_add_count_with_additional () {
+  my $file = write_source("addcount_add.pm", "package AddCountAdd;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->add_criteria("statement");
+  $st->{additional} = 1;
+
+  my ($n, $new) = $st->add_count("statement");
+  is $n, 0, "add_count additional: returns count";
+  is $st->{additional_count}{statement}{$file}, 1,
+    "add_count additional: increments additional_count";
+}
+
+sub test_add_count_reuse_not_additional () {
+  my $file = write_source("addcount_reuse.pm", "package AddCountReuse;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->add_criteria("statement");
+
+  # Set up reuse so the || branch in add_count is tested
+  $st->{f}{$file}{start}{-1}{__COVER__} = [ { statement => 0 } ];
+  $st->{additional} = 0;
+
+  my ($n, $new) = $st->add_count("statement");
+  ok !$new, "add_count reuse not additional: new is false";
+}
+
+sub test_read_corrupt () {
+  my $base = fresh_base("read_corrupt");
+
+  # Write a corrupt file into the structure directory
+  my $corrupt = "$base/structure/deadbeef0123456789abcdef01234567";
+  open my $fh, ">", $corrupt or die "Cannot write $corrupt: $!";
+  print $fh "this is not valid serialised data";
+  close $fh or die "Cannot close $corrupt: $!";
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  my $ok = eval { $st->read_all; 1 };
+  ok !$ok, "read corrupt: dies on corrupt data";
+}
+
+sub test_read_source_deleted () {
+  my $base = fresh_base("read_deleted");
+  my $file = write_source("deleted.pm", "package Deleted;\n1\n");
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->set_file($file);
+  $st->write($base);
+
+  # Remove the source file so digest returns undef
+  unlink $file or die "Cannot unlink $file: $!";
+
+  local $Devel::Cover::Silent = 1;
+  my $st2 = Devel::Cover::DB::Structure->new(base => $base);
+  $st2->read_all;
+
+  # The !$d branch: entry not loaded, but also not deleted
+  ok !exists $st2->{f}{$file}, "read source deleted: entry not loaded";
+}
+
+sub test_destroy () {
+  my $st = Devel::Cover::DB::Structure->new;
+  $st->DESTROY;
+  pass "DESTROY: can be called explicitly";
+}
+
+sub test_digest_ignored_file () {
+  my $st     = Devel::Cover::DB::Structure->new;
+  my $ignore = "/some/lib/Storable.pm";
+  my $stderr = capture_stderr {
+    my $d = $st->digest($ignore);
+    ok !defined $d, "digest ignored: returns undef"
+  };
+  is $stderr, "", "digest ignored: no warning for ignored file";
+}
+
+sub test_write_no_digest_self_cover () {
+  local $Devel::Cover::Self_cover = 1;
+  my $base = fresh_base("no_digest_self");
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->{f}{"/lib/Devel/Cover/Foo.pm"} = { data => 1 };
+
+  my $stderr = capture_stderr { $st->write($base) };
+  is $stderr, "", "write no digest self_cover: no warning for DC module";
+}
+
+sub test_write_no_digest_ignored () {
+  my $base = fresh_base("no_digest_ign");
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->{f}{"/some/lib/POSIX.pm"} = { data => 1 };
+
+  my $stderr = capture_stderr { $st->write($base) };
+  is $stderr, "", "write no digest ignored: no warning for ignored file";
+}
+
+sub test_debuglog () {
+  my $base = fresh_base("debuglog");
+  my $st   = Devel::Cover::DB::Structure->new(base => $base);
+
+  # Call with a scalar and a hashref to exercise both branches of the
+  # ref-check ternary
+  $st->debuglog("plain text", { key => "value" });
+
+  my $logfile = "$base/debuglog/$$";
+  ok -f $logfile, "debuglog: creates log file";
+
+  open my $fh, "<", $logfile or die "Cannot open $logfile: $!";
+  my $content = do { local $/; <$fh> };
+  close $fh or die "Cannot close $logfile: $!";
+
+  like $content, qr/plain text/, "debuglog: writes scalar args";
+  like $content, qr/'key'/,      "debuglog: writes Dumper output for refs";
+
+  # Call again to exercise the "dir already exists" branch
+  $st->debuglog("second call");
+  ok 1, "debuglog: second call succeeds (dir exists)";
+}
+
+sub test_digest_dash_e () {
+  my $st     = Devel::Cover::DB::Structure->new;
+  my $stderr = capture_stderr {
+    my $d = $st->digest("-e");
+    ok !defined $d, "digest -e: returns undef"
+  };
+  is $stderr, "", "digest -e: suppresses warning for -e";
+}
+
 sub main () {
   test_new;
   test_digest;
@@ -372,6 +658,26 @@ sub main () {
   test_write_loose_perms;
   test_write_no_digest;
   test_write_no_digest_silent;
+  test_write_creates_structure_dir;
+  test_write_rename_failure;
+  test_write_rename_failure_silent;
+  test_autoload_get_time;
+  test_set_file_missing;
+  test_add_count_no_file;
+  test_set_subroutine_new;
+  test_set_subroutine_reuse_existing;
+  test_set_subroutine_reuse_additional_first;
+  test_set_subroutine_reuse_additional_repeat;
+  test_add_count_with_additional;
+  test_add_count_reuse_not_additional;
+  test_read_corrupt;
+  test_read_source_deleted;
+  test_destroy;
+  test_digest_ignored_file;
+  test_write_no_digest_self_cover;
+  test_write_no_digest_ignored;
+  test_debuglog;
+  test_digest_dash_e;
   done_testing;
 }
 
