@@ -77,8 +77,10 @@ sub debuglog {
   # and might exceed the atomic write size of the OS
   open my $fh, '>>', "$dir/$$" or confess "Can't open $dir/$$: $!";
   print $fh "----------------" . gmtime() . "----------------\n";
-  print $fh ref $_ ? Dumper($_) : $_;
-  print $fh "\n";
+  for (@_) {
+    print $fh ref $_ ? Dumper($_) : $_;
+    print $fh "\n";
+  }
   close $fh or confess "Can't close $dir/$$: $!";
 }
 
