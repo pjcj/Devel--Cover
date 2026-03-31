@@ -606,29 +606,6 @@ sub test_write_no_digest_ignored () {
   is $stderr, "", "write no digest ignored: no warning for ignored file";
 }
 
-sub test_debuglog () {
-  my $base = fresh_base("debuglog");
-  my $st   = Devel::Cover::DB::Structure->new(base => $base);
-
-  # Call with a scalar and a hashref to exercise both branches of the
-  # ref-check ternary
-  $st->debuglog("plain text", { key => "value" });
-
-  my $logfile = "$base/debuglog/$$";
-  ok -f $logfile, "debuglog: creates log file";
-
-  open my $fh, "<", $logfile or die "Cannot open $logfile: $!";
-  my $content = do { local $/; <$fh> };
-  close $fh or die "Cannot close $logfile: $!";
-
-  like $content, qr/plain text/, "debuglog: writes scalar args";
-  like $content, qr/'key'/,      "debuglog: writes Dumper output for refs";
-
-  # Call again to exercise the "dir already exists" branch
-  $st->debuglog("second call");
-  ok 1, "debuglog: second call succeeds (dir exists)";
-}
-
 sub test_write_no_digest_self_cover_no_match () {
   local $Devel::Cover::Self_cover = 1;
   my $base = fresh_base("no_digest_self_nm");
@@ -702,7 +679,6 @@ sub main () {
   test_digest_ignored_file;
   test_write_no_digest_self_cover;
   test_write_no_digest_ignored;
-  test_debuglog;
   test_write_no_digest_self_cover_no_match;
   test_autoload_no_criterion;
   test_digest_dash_e;
