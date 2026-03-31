@@ -243,7 +243,7 @@ sub read_all ($self) {
 sub merge ($self, $from) {
   # TODO - make _merge_hash a public API in Devel::Cover::DB
   Devel::Cover::DB::_merge_hash(  ## no critic (ProtectPrivateSubs)
-    $self->{f}, $from->{f}, "noadd"
+    $self->{f}, $from->{f}, "noadd",
   )
 }
 
