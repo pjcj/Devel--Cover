@@ -14,10 +14,9 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Devel::Cover::Criterion     ();
-use Devel::Cover::DB::File      ();
-use Devel::Cover::DB::Structure ();
-use Devel::Cover::DB::IO        ();
+use Devel::Cover::Criterion ();
+use Devel::Cover::DB::File  ();
+use Devel::Cover::DB::IO    ();
 
 use Carp         qw( carp croak );
 use File::Find   qw( find );
@@ -162,6 +161,7 @@ sub merge_runs ($self) {
   rmtree(\@runs);
 
   if (keys $self->{changed_files}->%*) {
+    require Devel::Cover::DB::Structure;
     my $st = Devel::Cover::DB::Structure->new(base => $self->{base});
     $st->read_all;
     for my $file (sort keys $self->{changed_files}->%*) {
@@ -767,7 +767,8 @@ sub cover ($self) {
   my %files;    # processed files
   my $cover       = $self->{cover} = {};
   my $uncoverable = {};
-  my $st          = $self->{_structure}
+  require Devel::Cover::DB::Structure;
+  my $st = $self->{_structure}
     // Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
 
   # Sometimes the start value is undefined.  It's not yet clear why, but it

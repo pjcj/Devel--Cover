@@ -28,12 +28,7 @@ sub get_options () {
   die "Bad option"
     unless GetOptions(
       $Options,  # Store the options in the Options hash
-      qw(
-        db=s
-        help|h!
-        info|i!
-        version|v!
-      )
+      qw( db=s help|h! info|i! version|v! )
     );
   print "$0 version " . __PACKAGE__->VERSION . "\n" and exit 0
     if $Options->{version};
@@ -51,6 +46,7 @@ sub add_cover ($file) {
   my %run;
   $run{collected} = ["statement"];
   $run{start}     = $run{finish} = time;
+  require Devel::Cover::DB::Structure;
   my $structure = Devel::Cover::DB::Structure->new;
   $structure->add_criteria("statement");
   $structure->add_criteria("branch");

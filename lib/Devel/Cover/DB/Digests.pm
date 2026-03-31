@@ -12,7 +12,6 @@ use warnings;
 
 # VERSION
 
-use Devel::Cover::DB::Structure;
 use Devel::Cover::DB::IO;
 
 my $File = "digests";
@@ -59,8 +58,10 @@ sub canonical_file {
   my $self = shift;
   my ($file) = @_;
 
-  my $cfile  = $file;
+  my $cfile = $file;
+  require Devel::Cover::DB::Structure;
   my $digest = Devel::Cover::DB::Structure->digest($file);
+
   if ($digest) {
     my $dfile = $self->get($digest);
     if ($dfile && $dfile ne $file) {

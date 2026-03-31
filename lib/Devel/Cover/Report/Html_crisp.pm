@@ -283,6 +283,17 @@ sub _build_source_lines ($file) {
 
     _line_partial(\%line, \@bd, \@tts, \@sd);
 
+    my @errors;
+    push @errors, "branch"
+      if any { $_->{true_count} == 0 || $_->{false_count} == 0 } @bd;
+    push @errors, "condition" if any {
+      any { !$_->{covered} }
+        $_->{rows}->@*
+    } @tts;
+    push @errors, "subroutine" if any { !$_->{covered} } @sd;
+    push @errors, "pod"        if $line{pod_uncovered};
+    $line{errors} = join ",", @errors if @errors;
+
     push @lines, \%line;
     last line if $l =~ /^__(END|DATA)__/;
   }
@@ -452,6 +463,11 @@ sub report ($pkg, $db, $options) {
       grep { $options->{show}{ ($db->criteria)[$_] } }
         (0 .. $db->criteria - 1)
     ],
+    short => do {
+      my @c = $db->criteria;
+      my @s = $db->criteria_short;
+      +{ (map { $c[$_] => $s[$_] } 0 .. $#c), total => "total" }
+    },
     filenames => {
       map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } $options->{file}->@*
     },
@@ -731,9 +747,10 @@ body {
   font-family: var(--font-body);
   font-size: var(--font-size-base);
   color: var(--fg);
-  background: var(--bg);
-  background-image: radial-gradient(
-    ellipse at 50% 0%, var(--bg-alt) 0%, var(--bg) 70%);
+  background:
+    radial-gradient(
+      ellipse at 50% 0%, var(--bg-alt) 0%, var(--bg) 70%)
+    no-repeat var(--bg);
   line-height: 1.5;
 }
 
@@ -770,30 +787,69 @@ a:visited { color: var(--link-visited); }
   border: none;
   padding: 0;
   text-align: left;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-stats {
   display: flex;
   gap: 16px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .stat-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   font-size: var(--font-size-small);
+  font-variant-numeric: tabular-nums;
   padding: 2px 8px;
   border-radius: 4px;
   border: 1px solid;
   transition: opacity 0.15s ease;
+  width: 96px;
 }
 
 .stat-badge:hover { opacity: 0.85; }
+.stat-na {
+  background: var(--bg-alt);
+  border-color: var(--border);
+  color: var(--fg-muted);
+}
+.stat-risk {
+  background: var(--prefix-bg);
+  border-color: var(--prefix-border);
+  color: var(--fg);
+}
+.stat-badge[data-criterion] {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.stat-badge[data-criterion]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  opacity: 1;
+}
+.stat-badge.badge-active {
+  outline: 2px solid var(--link);
+  outline-offset: -1px;
+}
+.filter-label {
+  font-size: 11px;
+  color: var(--fg-muted);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
 
-.theme-toggle {
-  margin-left: auto;
+.theme-toggle, .help-toggle {
   background: none;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -804,7 +860,76 @@ a:visited { color: var(--link-visited); }
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.theme-toggle:hover { background: var(--bg-alt); }
+.theme-toggle:hover, .help-toggle:hover { background: var(--bg-alt); }
+
+.help-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-overlay:not([hidden]) {
+  display: flex;
+}
+
+.help-panel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px 32px;
+  max-width: 520px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.help-panel h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+}
+
+.help-panel dt {
+  font-weight: 600;
+  font-size: var(--font-size-small);
+  margin-top: 10px;
+}
+
+.help-panel dd {
+  margin: 2px 0 0 0;
+  font-size: var(--font-size-small);
+  color: var(--fg-muted);
+}
+
+.help-panel kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--header-bg);
+  font-family: var(--font-code);
+  font-size: 11px;
+}
+
+.help-panel .help-close {
+  float: right;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--fg-muted);
+  padding: 0;
+  line-height: 1;
+}
+
+.help-panel .help-close:hover { color: var(--fg); }
 
 /* --- Coverage classes --- */
 
@@ -1027,6 +1152,12 @@ a:visited { color: var(--link-visited); }
 }
 
 .header .has-tip::after {
+  bottom: auto;
+  top: 100%;
+  margin-top: 4px;
+}
+
+.header .risk-tip {
   bottom: auto;
   top: 100%;
   margin-top: 4px;
@@ -1322,6 +1453,18 @@ td.chevron {
   font-size: var(--font-size-small);
 }
 
+.file-nav > span {
+  flex: 1;
+}
+
+.file-nav > span:nth-child(2) {
+  text-align: center;
+}
+
+.file-nav > span:last-child {
+  text-align: right;
+}
+
 /* --- Footer --- */
 
 .footer {
@@ -1369,6 +1512,31 @@ $Assets{js} = <<'JS';
     var isDark = stored === "dark" ||
       (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
     toggle.textContent = isDark ? "\u2600" : "\u263e";
+  }
+
+  /* --- Help overlay --- */
+  var helpOverlay = document.querySelector(".help-overlay");
+  var helpBtn = document.querySelector(".help-toggle");
+  if (helpOverlay) {
+    function showHelp()  { helpOverlay.hidden = false; }
+    function hideHelp()  { helpOverlay.hidden = true; }
+    if (helpBtn) helpBtn.addEventListener("click", function() {
+      if (helpOverlay.hidden) showHelp(); else hideHelp();
+    });
+    helpOverlay.addEventListener("click", function(e) {
+      if (e.target === helpOverlay) hideHelp();
+    });
+    var closeBtn = helpOverlay.querySelector(".help-close");
+    if (closeBtn) closeBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      hideHelp();
+    });
+    document.addEventListener("keydown", function(e) {
+      var tag = e.target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "Escape" && !helpOverlay.hidden) hideHelp();
+      else if (e.key === "?" && helpOverlay.hidden) showHelp();
+    });
   }
 
   /* --- Index page table (sort, filter, group) --- */
@@ -1580,47 +1748,165 @@ $Assets{js} = <<'JS';
     render();
   }
 
+  /* --- Truncated filename tooltip --- */
+  var fileH1 = document.querySelector(".header h1");
+  if (fileH1) {
+    function updateH1Title() {
+      if (fileH1.scrollWidth > fileH1.clientWidth)
+        fileH1.title = fileH1.textContent.trim();
+      else
+        fileH1.removeAttribute("title");
+    }
+    updateH1Title();
+    window.addEventListener("resize", updateH1Title);
+  }
+
   /* --- Line detail expand/collapse (source view) --- */
   var sourceTable = document.querySelector(".source-table");
   if (sourceTable) {
     var details = sourceTable.querySelectorAll(".line-detail");
     details.forEach(function(d) { d.hidden = true; });
 
+    function toggleDetail(row) {
+      if (!row || !row.classList.contains("has-detail")) return;
+      var d = row.nextElementSibling;
+      if (!d || !d.classList.contains("line-detail")) return;
+      d.hidden = !d.hidden;
+      var ch = row.querySelector("td.chevron");
+      if (ch) ch.textContent = d.hidden ? "\u25b6" : "\u25bc";
+    }
+
     sourceTable.querySelectorAll(".has-detail").forEach(
       function(row) {
         row.addEventListener("click", function() {
-          var d = row.nextElementSibling;
-          if (d && d.classList.contains("line-detail")) {
-            d.hidden = !d.hidden;
-            var ch = row.querySelector("td.chevron");
-            if (ch) ch.textContent = d.hidden ? "\u25b6" : "\u25bc";
-          }
+          toggleDetail(row);
         });
       }
     );
+
+    /* --- Badge criterion filter --- */
+    var badges = document.querySelectorAll(
+      ".header .stat-badge[data-criterion]");
+    var activeCriterion = null;
+
+    var detailIdx = -1;
+    var currentRow = null;
+
+    function clearFilter() {
+      activeCriterion = null;
+      detailIdx = -1;
+      currentRow = null;
+      details.forEach(function(d) { d.hidden = true; });
+      sourceTable.querySelectorAll(".has-detail td.chevron")
+        .forEach(function(ch) { ch.textContent = "\u25b6"; });
+      badges.forEach(function(b) {
+        b.classList.remove("badge-active");
+      });
+    }
+
+    function applyFilter(crit) {
+      activeCriterion = crit;
+      badges.forEach(function(b) {
+        b.classList.toggle("badge-active",
+          b.getAttribute("data-criterion") === crit);
+      });
+      sourceTable.querySelectorAll(".has-detail").forEach(
+        function(row) {
+          var d = row.nextElementSibling;
+          if (!d || !d.classList.contains("line-detail"))
+            return;
+          var errors = row.getAttribute("data-errors") || "";
+          var match = errors.split(",").indexOf(crit) >= 0;
+          d.hidden = !match;
+          var ch = row.querySelector("td.chevron");
+          if (ch) ch.textContent = match ? "\u25bc" : "\u25b6";
+        }
+      );
+      detailIdx = 0;
+      var first = sourceTable.querySelector(
+        ".line-detail:not([hidden])");
+      if (first) {
+        currentRow = first.previousElementSibling || first;
+        scrollHighlight(currentRow);
+      }
+    }
+
+    function toggleFilter(crit) {
+      if (crit === activeCriterion || crit === "statement") {
+        clearFilter();
+      } else {
+        applyFilter(crit);
+      }
+    }
+
+    badges.forEach(function(badge) {
+      badge.addEventListener("click", function(e) {
+        e.preventDefault();
+        toggleFilter(badge.getAttribute("data-criterion"));
+      });
+    });
 
     /* --- Keyboard navigation --- */
     var uncovered = document.querySelectorAll(
       "tr[data-cov='0'], tr[data-cov='2']");
     var currentIdx = -1;
 
-    function jumpTo(idx) {
-      if (idx < 0 || idx >= uncovered.length) return;
-      currentIdx = idx;
-      var el = uncovered[idx];
+    function scrollHighlight(el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       el.style.outline = "2px solid var(--link)";
       setTimeout(function() { el.style.outline = ""; }, 1500);
     }
 
+    function openDetails() {
+      var rows = [];
+      sourceTable.querySelectorAll(".has-detail").forEach(
+        function(row) {
+          var d = row.nextElementSibling;
+          if (d && d.classList.contains("line-detail") && !d.hidden)
+            rows.push(row);
+        }
+      );
+      return rows;
+    }
+
+    function jumpTo(idx) {
+      if (idx < 0 || idx >= uncovered.length) return;
+      currentIdx = idx;
+      currentRow = uncovered[idx];
+      scrollHighlight(currentRow);
+    }
+
+    var badgeKeys = {
+      s: "statement", b: "branch", c: "condition",
+      u: "subroutine", p: "pod"
+    };
+
     document.addEventListener("keydown", function(e) {
       var tag = e.target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
-      var len = uncovered.length;
-      if (e.key === "j") {
-        jumpTo(currentIdx + 1 < len ? currentIdx + 1 : 0);
-      } else if (e.key === "k") {
-        jumpTo(currentIdx > 0 ? currentIdx - 1 : len - 1);
+      if (e.key === "j" || e.key === "k") {
+        if (activeCriterion) {
+          var open = openDetails();
+          if (!open.length) return;
+          if (e.key === "j")
+            detailIdx = (detailIdx + 1) % open.length;
+          else
+            detailIdx = (detailIdx - 1 + open.length) % open.length;
+          currentRow = open[detailIdx];
+          scrollHighlight(currentRow);
+        } else {
+          var len = uncovered.length;
+          if (e.key === "j")
+            jumpTo(currentIdx + 1 < len ? currentIdx + 1 : 0);
+          else
+            jumpTo(currentIdx > 0 ? currentIdx - 1 : len - 1);
+        }
+      }
+      else if (badgeKeys[e.key]) {
+        toggleFilter(badgeKeys[e.key]);
+      }
+      else if (e.key === "Enter" && currentRow) {
+        toggleDetail(currentRow);
       }
       else if (e.key === "[") {
         var prev = document.querySelector(".nav-prev");
@@ -1629,10 +1915,6 @@ $Assets{js} = <<'JS';
       else if (e.key === "]") {
         var next = document.querySelector(".nav-next");
         if (next) window.location = next.href;
-      }
-      else if (e.key === "?") {
-        var help = document.querySelector(".help-overlay");
-        if (help) help.hidden = !help.hidden;
       }
     });
 
@@ -1734,23 +2016,13 @@ $Templates{index} = <<'EOT';
 <div class="header-inner">
 <h1>Coverage Report</h1>
 <div class="header-stats">
-[% IF total.total.pc != "n/a" %]
-<span class="stat-badge [% total.total.class %] has-tip"
-      data-tip="[% total.total.covered %] / [% total.total.total %]">
-Total: [% total.total.pc %]%
-<span class="cov-bar">
-<span class="cov-bar-fill"
-  style="width:[% total.total.pc %]%"></span>
-</span>
-</span>
-[% END %]
 [% FOREACH c = R.showing %]
 [% s = total.$c %]
 [% NEXT IF c == "time" %]
 [% NEXT UNLESS s.pc %]
 <span class="stat-badge [% s.class %] has-tip"
       data-tip="[% s.covered %] / [% s.total %]">
-[% c %] [% s.pc %]%
+[% R.short.$c %] [% s.pc %]%
 [% IF s.pc != 'n/a' %]
 <span class="cov-bar">
 <span class="cov-bar-fill"
@@ -1759,8 +2031,41 @@ Total: [% total.total.pc %]%
 [% END %]
 </span>
 [% END %]
+[% IF total.total.pc != "n/a" %]
+<span class="stat-badge [% total.total.class %] has-tip"
+      data-tip="[% total.total.covered %] / [% total.total.total %]">
+total [% total.total.pc %]%
+<span class="cov-bar">
+<span class="cov-bar-fill"
+  style="width:[% total.total.pc %]%"></span>
+</span>
+</span>
+[% END %]
 </div>
+<button class="help-toggle" aria-label="Help">?</button>
 <button class="theme-toggle" aria-label="Toggle dark mode">&#x263e;</button>
+</div>
+</div>
+
+<div class="help-overlay" hidden>
+<div class="help-panel">
+<button class="help-close" aria-label="Close">&times;</button>
+<h3>Coverage report help</h3>
+<dl>
+<dt>Sorting</dt>
+<dd>Click any column header to sort; click again to reverse.</dd>
+<dt>Filtering</dt>
+<dd>Type in the filter box to filter files (supports regex).
+Toggle "Hide 100% covered" to focus on incomplete files.</dd>
+<dt>Grouping</dt>
+<dd>Toggle "Group by directory" to organise files into
+collapsible groups. Click a directory row to collapse it.</dd>
+<dt>Risk</dt>
+<dd>Hover the risk column for a breakdown: branch errors +
+condition errors + coverage gap.</dd>
+<dt>Tooltips</dt>
+<dd>Hover any badge or coverage cell for covered/total counts.</dd>
+</dl>
 </div>
 </div>
 
@@ -1869,10 +2174,10 @@ Group by directory</label>
 <th data-sort="file">File</th>
 [% FOREACH c = R.showing %]
 [% NEXT IF c == "time" %]
-<th data-sort="[% c %]">[% c %]</th>
+<th data-sort="[% c %]">[% R.short.$c %]</th>
 [% END %]
-<th data-sort="total">Total</th>
-<th data-sort="risk">Risk</th>
+<th data-sort="total">total</th>
+<th data-sort="risk">risk</th>
 </tr>
 </thead>
 <tbody>
@@ -1971,28 +2276,83 @@ $Templates{file} = <<'EOT';
 [% END %]
 </h1>
 <div class="header-stats">
+<span class="filter-label">filter:</span>
 [% FOREACH c = R.showing %]
 [% NEXT IF c == "time" %]
 [% s = total.$c %]
 [% IF file.uncompiled %]
 <span class="stat-badge untested-stat has-tip"
-      data-tip="[% c %]: 0">
-[% c %] 0.0%
+      data-tip="[% c %]: 0" data-criterion="[% c %]">
+[% R.short.$c %] 0.0%
 </span>
 [% ELSE %]
-[% NEXT UNLESS s.pc AND s.pc != 'n/a' %]
-<span class="stat-badge [% s.class %] has-tip"
-      data-tip="[% s.covered %] / [% s.total %]">
-[% c %] [% s.pc %]%
-<span class="cov-bar">
-<span class="cov-bar-fill"
-  style="width:[% s.pc %]%"></span>
-</span>
+<span class="stat-badge [% s.class || 'stat-na' %] has-tip"
+      data-tip="[% s.covered %] / [% s.total %]"
+      data-criterion="[% c %]">
+[% R.short.$c %] [% s.pc %][% IF s.pc != 'n/a' %]%[% END %]
 </span>
 [% END %]
+[% END %]
+[% IF file.uncompiled %]
+<span class="stat-badge untested-stat has-tip"
+      data-tip="total: 0">
+total 0.0%
+</span>
+<span class="stat-badge stat-risk has-tip"
+      data-tip="risk: 0">
+risk 0
+</span>
+[% ELSE %]
+[% IF total.total.pc != 'n/a' %]
+<span class="stat-badge [% total.total.class %] has-tip"
+      data-tip="[% total.total.covered %] / [% total.total.total %]">
+total [% total.total.pc %]%
+</span>
+[% END %]
+<span class="stat-badge stat-risk risk-hover has-tip"
+      data-tip="risk score">
+risk [% file.risk | format('%d') %]
+<table class="risk-tip">
+<tr><td>Branch errors</td><td>[% file.risk_branch %]</td></tr>
+<tr><td>Condition errors</td><td>[% file.risk_cond %]</td></tr>
+<tr><td>Coverage gap</td><td>[% file.risk_gap %]%</td></tr>
+<tr class="risk-total"><td>Risk</td>
+<td>[% file.risk | format('%d') %]</td></tr>
+</table>
+</span>
 [% END %]
 </div>
+<button class="help-toggle" aria-label="Help">?</button>
 <button class="theme-toggle" aria-label="Toggle dark mode">&#x263e;</button>
+</div>
+</div>
+
+<div class="help-overlay" hidden>
+<div class="help-panel">
+<button class="help-close" aria-label="Close">&times;</button>
+<h3>File coverage help</h3>
+<dl>
+<dt>Filter badges</dt>
+<dd>Click a criterion badge (stmt, bran, etc.) to expand all
+lines with errors of that type. Click again to close.</dd>
+<dt>Line details</dt>
+<dd>Click any line with a &#x25b6; chevron to expand branch,
+condition, or subroutine detail.</dd>
+<dt>Minimap</dt>
+<dd>The strip on the right shows coverage at a glance. Click to
+jump to that line.</dd>
+<dt>Tooltips</dt>
+<dd>Hover badges for covered/total counts. Hover risk for a
+breakdown.</dd>
+<dt>Keyboard</dt>
+<dd><kbd>j</kbd> / <kbd>k</kbd> next/prev uncovered line
+(or open detail when filtered)
+&middot; <kbd>Enter</kbd> toggle detail on current line
+&middot; <kbd>s</kbd> <kbd>b</kbd> <kbd>c</kbd> <kbd>u</kbd>
+<kbd>p</kbd> toggle filter for stmt / bran / cond / sub / pod
+&middot; <kbd>[</kbd> / <kbd>]</kbd> prev/next file
+&middot; <kbd>?</kbd> toggle this help</dd>
+</dl>
 </div>
 </div>
 
@@ -2031,7 +2391,8 @@ $Templates{file} = <<'EOT';
       [%- ELSIF line.partial %]2[% ELSE %]1[% END %]"
     [%- END %]
     class="[% IF is_uncov %]src-c0[% END -%]
-      [%- IF has_detail %] has-detail[% END %]">
+      [%- IF has_detail %] has-detail[% END %]"
+    [%- IF line.errors %] data-errors="[% line.errors %]"[% END -%]>
 <td role="cell" class="ln">
 <a id="L[% line.number %]"
   href="#L[% line.number %]">[% line.number %]</a>
@@ -2138,17 +2499,6 @@ Condition: [% tt.expr %]
   class="nav-next">[% next_file.short %] &raquo;</a>
 [% END %]
 </span>
-</div>
-
-<div class="help-overlay" hidden>
-<h3>Keyboard shortcuts</h3>
-<table>
-<tr><td><kbd>j</kbd></td><td>Next uncovered/partial line</td></tr>
-<tr><td><kbd>k</kbd></td><td>Previous uncovered/partial line</td></tr>
-<tr><td><kbd>[</kbd></td><td>Previous file</td></tr>
-<tr><td><kbd>]</kbd></td><td>Next file</td></tr>
-<tr><td><kbd>?</kbd></td><td>Toggle this help</td></tr>
-</table>
 </div>
 
 </div>
