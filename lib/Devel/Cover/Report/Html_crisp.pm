@@ -840,7 +840,7 @@ a:visited { color: var(--link-visited); }
   text-transform: uppercase;
 }
 
-.theme-toggle {
+.theme-toggle, .help-toggle {
   background: none;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -851,7 +851,76 @@ a:visited { color: var(--link-visited); }
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.theme-toggle:hover { background: var(--bg-alt); }
+.theme-toggle:hover, .help-toggle:hover { background: var(--bg-alt); }
+
+.help-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-overlay:not([hidden]) {
+  display: flex;
+}
+
+.help-panel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px 32px;
+  max-width: 520px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.help-panel h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+}
+
+.help-panel dt {
+  font-weight: 600;
+  font-size: var(--font-size-small);
+  margin-top: 10px;
+}
+
+.help-panel dd {
+  margin: 2px 0 0 0;
+  font-size: var(--font-size-small);
+  color: var(--fg-muted);
+}
+
+.help-panel kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--header-bg);
+  font-family: var(--font-code);
+  font-size: 11px;
+}
+
+.help-panel .help-close {
+  float: right;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--fg-muted);
+  padding: 0;
+  line-height: 1;
+}
+
+.help-panel .help-close:hover { color: var(--fg); }
 
 /* --- Coverage classes --- */
 
@@ -1424,6 +1493,31 @@ $Assets{js} = <<'JS';
     toggle.textContent = isDark ? "\u2600" : "\u263e";
   }
 
+  /* --- Help overlay --- */
+  var helpOverlay = document.querySelector(".help-overlay");
+  var helpBtn = document.querySelector(".help-toggle");
+  if (helpOverlay) {
+    function showHelp()  { helpOverlay.hidden = false; }
+    function hideHelp()  { helpOverlay.hidden = true; }
+    if (helpBtn) helpBtn.addEventListener("click", function() {
+      if (helpOverlay.hidden) showHelp(); else hideHelp();
+    });
+    helpOverlay.addEventListener("click", function(e) {
+      if (e.target === helpOverlay) hideHelp();
+    });
+    var closeBtn = helpOverlay.querySelector(".help-close");
+    if (closeBtn) closeBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      hideHelp();
+    });
+    document.addEventListener("keydown", function(e) {
+      var tag = e.target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "Escape" && !helpOverlay.hidden) hideHelp();
+      else if (e.key === "?" && helpOverlay.hidden) showHelp();
+    });
+  }
+
   /* --- Index page table (sort, filter, group) --- */
   var table = document.querySelector(".file-table");
   if (table) {
@@ -1743,10 +1837,6 @@ $Assets{js} = <<'JS';
         var next = document.querySelector(".nav-next");
         if (next) window.location = next.href;
       }
-      else if (e.key === "?") {
-        var help = document.querySelector(".help-overlay");
-        if (help) help.hidden = !help.hidden;
-      }
     });
 
     /* --- Scroll minimap --- */
@@ -1873,7 +1963,30 @@ total [% total.total.pc %]%
 </span>
 [% END %]
 </div>
+<button class="help-toggle" aria-label="Help">?</button>
 <button class="theme-toggle" aria-label="Toggle dark mode">&#x263e;</button>
+</div>
+</div>
+
+<div class="help-overlay" hidden>
+<div class="help-panel">
+<button class="help-close" aria-label="Close">&times;</button>
+<h3>Coverage report help</h3>
+<dl>
+<dt>Sorting</dt>
+<dd>Click any column header to sort; click again to reverse.</dd>
+<dt>Filtering</dt>
+<dd>Type in the filter box to filter files (supports regex).
+Toggle "Hide 100% covered" to focus on incomplete files.</dd>
+<dt>Grouping</dt>
+<dd>Toggle "Group by directory" to organise files into
+collapsible groups. Click a directory row to collapse it.</dd>
+<dt>Risk</dt>
+<dd>Hover the risk column for a breakdown: branch errors +
+condition errors + coverage gap.</dd>
+<dt>Tooltips</dt>
+<dd>Hover any badge or coverage cell for covered/total counts.</dd>
+</dl>
 </div>
 </div>
 
@@ -2131,7 +2244,33 @@ risk [% file.risk | format('%d') %]
 </span>
 [% END %]
 </div>
+<button class="help-toggle" aria-label="Help">?</button>
 <button class="theme-toggle" aria-label="Toggle dark mode">&#x263e;</button>
+</div>
+</div>
+
+<div class="help-overlay" hidden>
+<div class="help-panel">
+<button class="help-close" aria-label="Close">&times;</button>
+<h3>File coverage help</h3>
+<dl>
+<dt>Filter badges</dt>
+<dd>Click a criterion badge (stmt, bran, etc.) to expand all
+lines with errors of that type. Click again to close.</dd>
+<dt>Line details</dt>
+<dd>Click any line with a &#x25b6; chevron to expand branch,
+condition, or subroutine detail.</dd>
+<dt>Minimap</dt>
+<dd>The strip on the right shows coverage at a glance. Click to
+jump to that line.</dd>
+<dt>Tooltips</dt>
+<dd>Hover badges for covered/total counts. Hover risk for a
+breakdown.</dd>
+<dt>Keyboard</dt>
+<dd><kbd>j</kbd> / <kbd>k</kbd> next/prev uncovered line
+&middot; <kbd>[</kbd> / <kbd>]</kbd> prev/next file
+&middot; <kbd>?</kbd> toggle this help</dd>
+</dl>
 </div>
 </div>
 
@@ -2278,17 +2417,6 @@ Condition: [% tt.expr %]
   class="nav-next">[% next_file.short %] &raquo;</a>
 [% END %]
 </span>
-</div>
-
-<div class="help-overlay" hidden>
-<h3>Keyboard shortcuts</h3>
-<table>
-<tr><td><kbd>j</kbd></td><td>Next uncovered/partial line</td></tr>
-<tr><td><kbd>k</kbd></td><td>Previous uncovered/partial line</td></tr>
-<tr><td><kbd>[</kbd></td><td>Previous file</td></tr>
-<tr><td><kbd>]</kbd></td><td>Next file</td></tr>
-<tr><td><kbd>?</kbd></td><td>Toggle this help</td></tr>
-</table>
 </div>
 
 </div>
