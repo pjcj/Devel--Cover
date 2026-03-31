@@ -1452,6 +1452,18 @@ td.chevron {
   font-size: var(--font-size-small);
 }
 
+.file-nav > span {
+  flex: 1;
+}
+
+.file-nav > span:nth-child(2) {
+  text-align: center;
+}
+
+.file-nav > span:last-child {
+  text-align: right;
+}
+
 /* --- Footer --- */
 
 .footer {
