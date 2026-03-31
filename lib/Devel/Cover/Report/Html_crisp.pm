@@ -805,15 +805,23 @@ a:visited { color: var(--link-visited); }
 .stat-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   font-size: var(--font-size-small);
+  font-variant-numeric: tabular-nums;
   padding: 2px 8px;
   border-radius: 4px;
   border: 1px solid;
   transition: opacity 0.15s ease;
+  width: 96px;
 }
 
 .stat-badge:hover { opacity: 0.85; }
+.stat-na {
+  background: var(--bg-alt);
+  border-color: var(--border);
+  color: var(--fg-muted);
+}
 .stat-risk {
   background: var(--prefix-bg);
   border-color: var(--prefix-border);
@@ -2207,11 +2215,10 @@ $Templates{file} = <<'EOT';
 [% R.short.$c %] 0.0%
 </span>
 [% ELSE %]
-[% NEXT UNLESS s.pc AND s.pc != 'n/a' %]
-<span class="stat-badge [% s.class %] has-tip"
+<span class="stat-badge [% s.class || 'stat-na' %] has-tip"
       data-tip="[% s.covered %] / [% s.total %]"
       data-criterion="[% c %]">
-[% R.short.$c %] [% s.pc %]%
+[% R.short.$c %] [% s.pc %][% IF s.pc != 'n/a' %]%[% END %]
 </span>
 [% END %]
 [% END %]
