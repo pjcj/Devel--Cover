@@ -1816,7 +1816,7 @@ $Assets{js} = <<'JS';
           if (ch) ch.textContent = match ? "\u25bc" : "\u25b6";
         }
       );
-      detailIdx = -1;
+      detailIdx = 0;
       var first = sourceTable.querySelector(
         ".line-detail:not([hidden])");
       if (first) {
@@ -1866,6 +1866,11 @@ $Assets{js} = <<'JS';
       scrollHighlight(uncovered[idx]);
     }
 
+    var badgeKeys = {
+      s: "statement", b: "branch", c: "condition",
+      u: "subroutine", p: "pod"
+    };
+
     document.addEventListener("keydown", function(e) {
       var tag = e.target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
@@ -1884,6 +1889,14 @@ $Assets{js} = <<'JS';
             jumpTo(currentIdx + 1 < len ? currentIdx + 1 : 0);
           else
             jumpTo(currentIdx > 0 ? currentIdx - 1 : len - 1);
+        }
+      }
+      else if (badgeKeys[e.key]) {
+        var crit = badgeKeys[e.key];
+        if (crit === activeCriterion || crit === "statement") {
+          clearFilter();
+        } else {
+          applyFilter(crit);
         }
       }
       else if (e.key === "[") {
@@ -2324,6 +2337,9 @@ jump to that line.</dd>
 breakdown.</dd>
 <dt>Keyboard</dt>
 <dd><kbd>j</kbd> / <kbd>k</kbd> next/prev uncovered line
+(or open detail when filtered)
+&middot; <kbd>s</kbd> <kbd>b</kbd> <kbd>c</kbd> <kbd>u</kbd>
+<kbd>p</kbd> toggle filter for stmt / bran / cond / sub / pod
 &middot; <kbd>[</kbd> / <kbd>]</kbd> prev/next file
 &middot; <kbd>?</kbd> toggle this help</dd>
 </dl>
