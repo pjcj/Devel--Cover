@@ -1785,8 +1785,11 @@ $Assets{js} = <<'JS';
       ".header .stat-badge[data-criterion]");
     var activeCriterion = null;
 
+    var detailIdx = -1;
+
     function clearFilter() {
       activeCriterion = null;
+      detailIdx = -1;
       details.forEach(function(d) { d.hidden = true; });
       sourceTable.querySelectorAll(".has-detail td.chevron")
         .forEach(function(ch) { ch.textContent = "\u25b6"; });
@@ -1813,13 +1816,12 @@ $Assets{js} = <<'JS';
           if (ch) ch.textContent = match ? "\u25bc" : "\u25b6";
         }
       );
+      detailIdx = -1;
       var first = sourceTable.querySelector(
         ".line-detail:not([hidden])");
       if (first) {
         var target = first.previousElementSibling || first;
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
-        target.style.outline = "2px solid var(--link)";
-        setTimeout(function() { target.style.outline = ""; }, 1500);
+        scrollHighlight(target);
       }
     }
 
@@ -1840,23 +1842,49 @@ $Assets{js} = <<'JS';
       "tr[data-cov='0'], tr[data-cov='2']");
     var currentIdx = -1;
 
-    function jumpTo(idx) {
-      if (idx < 0 || idx >= uncovered.length) return;
-      currentIdx = idx;
-      var el = uncovered[idx];
+    function scrollHighlight(el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       el.style.outline = "2px solid var(--link)";
       setTimeout(function() { el.style.outline = ""; }, 1500);
     }
 
+    function openDetails() {
+      var rows = [];
+      sourceTable.querySelectorAll(".has-detail").forEach(
+        function(row) {
+          var d = row.nextElementSibling;
+          if (d && d.classList.contains("line-detail") && !d.hidden)
+            rows.push(row);
+        }
+      );
+      return rows;
+    }
+
+    function jumpTo(idx) {
+      if (idx < 0 || idx >= uncovered.length) return;
+      currentIdx = idx;
+      scrollHighlight(uncovered[idx]);
+    }
+
     document.addEventListener("keydown", function(e) {
       var tag = e.target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
-      var len = uncovered.length;
-      if (e.key === "j") {
-        jumpTo(currentIdx + 1 < len ? currentIdx + 1 : 0);
-      } else if (e.key === "k") {
-        jumpTo(currentIdx > 0 ? currentIdx - 1 : len - 1);
+      if (e.key === "j" || e.key === "k") {
+        if (activeCriterion) {
+          var open = openDetails();
+          if (!open.length) return;
+          if (e.key === "j")
+            detailIdx = (detailIdx + 1) % open.length;
+          else
+            detailIdx = (detailIdx - 1 + open.length) % open.length;
+          scrollHighlight(open[detailIdx]);
+        } else {
+          var len = uncovered.length;
+          if (e.key === "j")
+            jumpTo(currentIdx + 1 < len ? currentIdx + 1 : 0);
+          else
+            jumpTo(currentIdx > 0 ? currentIdx - 1 : len - 1);
+        }
       }
       else if (e.key === "[") {
         var prev = document.querySelector(".nav-prev");
