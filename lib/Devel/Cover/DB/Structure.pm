@@ -7,105 +7,92 @@
 
 package Devel::Cover::DB::Structure;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
-use Carp;
-use Digest::MD5;
+use Carp        qw( confess croak );
+use Digest::MD5 ();
+use List::Util  qw( any );
 
-use Devel::Cover::DB;
-use Devel::Cover::DB::IO;
-use Devel::Cover::Dumper;
-
-# For comprehensive debug logging.
-use constant DEBUG => 0;
+use Devel::Cover::DB     ();
+use Devel::Cover::DB::IO ();
 
 # VERSION
 our $AUTOLOAD;
 
-sub new {
-  my $class = shift;
-  my $self  = {@_};
-  bless $self, $class
-}
+sub new ($class, %args) { bless \%args, $class }
 
-sub DESTROY { }
+sub DESTROY ($self) { }
 
-sub AUTOLOAD {
+sub AUTOLOAD {  ## no critic (RequireArgUnpacking) - goto needs @_ intact
   my $self = $_[0];
   my $func = $AUTOLOAD;
   $func =~ s/.*:://;
   my ($function, $criterion) = $func =~ /^(add|get)_(.*)/;
   croak "Undefined subroutine $func called"
-    unless $criterion && grep $_ eq $criterion, @Devel::Cover::DB::Criteria,
+    unless $criterion && any { $_ eq $criterion } @Devel::Cover::DB::Criteria,
     qw( sub_name file line );
   no strict "refs";
   if ($function eq "get") {
     my $c = $criterion eq "time" ? "statement" : $criterion;
-    if (grep $_ eq $c, qw( sub_name file line )) {
-      *$func = sub { shift->{$c} };
+    if (any { $_ eq $c } qw( sub_name file line )) {
+      *$func = sub ($self) { $self->{$c} };
     } else {
-      *$func = sub {
-        my $self   = shift;
-        my $digest = shift;
+      *$func = sub ($self, $digest) {
         # print STDERR "file: $digest, condition: $c\n";
-        for my $fval (values %{ $self->{f} }) {
+        for my $fval (values $self->{f}->%*) {
           return $fval->{$c} if $fval->{digest} eq $digest;
         }
         return
-      }
+      };
     }
   } else {
-    *$func = sub {
-      my $self = shift;
-      my $file = shift;
-      push @{ $self->{f}{$file}{$criterion} }, @_;
+    *$func = sub ($self, $file, @vals) {
+      push $self->{f}{$file}{$criterion}->@*, @vals;
     };
   }
   goto &$func
 }
 
-sub debuglog {
-  my $self = shift;
-  my $dir  = "$self->{base}/debuglog";
-  unless (mkdir $dir) {
-    confess "Can't mkdir $dir: $!" unless -d $dir;
-  }
-
-  local $\;
-  # One log file per process, as we're potentially dumping out large amounts,
-  # and might exceed the atomic write size of the OS
-  open my $fh, '>>', "$dir/$$" or confess "Can't open $dir/$$: $!";
-  print $fh "----------------" . gmtime() . "----------------\n";
-  for (@_) {
-    print $fh ref $_ ? Dumper($_) : $_;
-    print $fh "\n";
-  }
-  close $fh or confess "Can't close $dir/$$: $!";
-}
-
-sub add_criteria {
-  my $self = shift;
-  @{ $self->{criteria} }{@_} = ();
+sub add_criteria ($self, @names) {
+  $self->{criteria}->@{@names} = ();
   $self
 }
 
-sub criteria {
-  my $self = shift;
-  keys %{ $self->{criteria} }
+sub criteria ($self) { keys $self->{criteria}->%* }
+
+sub reuse ($self, $file) {
+  exists $self->{f}{$file}{start}{-1}{__COVER__}
+  # TODO - exists $self->{f}{$file}{start}{-1}
 }
 
-sub set_subroutine {
-  my $self = shift;
-  my ($sub_name, $file, $line, $scount)
-    = @{$self}{qw( sub_name file line scount )} = @_;
+sub get_count ($self, $file, $criterion) {
+  $self->{count}{$criterion}{$file}
+}
 
-  # When new code is added at runtime, via a string eval in some guise, we
-  # need information about where structure information for the subroutine
-  # is.  This information is stored in $self->{f}{$file}{start} keyed on the
-  # filename, line number, subroutine name and the count, the count being
-  # for when there are multiple subroutines of the same name on the same
-  # line (such subroutines generally being called BEGIN).
+sub add_count ($self, $criterion) {
+  # warn Carp::longmess("undefined file") unless defined $self->{file};
+  return unless defined $self->{file};  # can happen during self_cover
+  $self->{additional_count}{$criterion}{ $self->{file} }++
+    if $self->{additional};
+  (
+    $self->{count}{$criterion}{ $self->{file} }++,
+    !$self->reuse($self->{file}) || $self->{additional},
+  )
+}
+
+sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
+  @$self{ qw( sub_name file line scount ) }
+    = ($sub_name, $file, $line, $scount);
+
+  # When new code is added at runtime, via a string eval in some guise, we need
+  # information about where structure information for the subroutine is.  This
+  # information is stored in $self->{f}{$file}{start} keyed on the filename,
+  # line number, subroutine name and the count, the count being for when there
+  # are multiple subroutines of the same name on the same line (such subroutines
+  # generally being called BEGIN).
 
   # print STDERR "set_subroutine start $file:$line $sub_name($scount) ",
   # Dumper $self->{f}{$file}{start};
@@ -133,7 +120,7 @@ sub set_subroutine {
         # print STDERR "reuse first $file:$line:$sub_name\n";
         $self->{count}{$_}{$file} = $self->{additional_count}{$_}{$file}
           = $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
-          = $self->{f}{$file}{start}{-1}{"__COVER__"}[$scount]{$_}
+          = $self->{f}{$file}{start}{-1}{__COVER__}[$scount]{$_}
           for $self->criteria;
       }
     }
@@ -149,39 +136,14 @@ sub set_subroutine {
   # Dumper $self->{f}{$file}{start};
 }
 
-sub store_counts {
-  my $self = shift;
-  my ($file) = @_;
+sub store_counts ($self, $file) {
   $self->{count}{$_}{$file} = $self->{f}{$file}{start}{-1}{__COVER__}[0]{$_}
     = $self->get_count($file, $_)
     for $self->criteria;
   # print STDERR "store_counts: ", Dumper $self->{f}{$file}{start};
 }
 
-sub reuse {
-  my $self = shift;
-  my ($file) = @_;
-  exists $self->{f}{$file}{start}{-1}{"__COVER__"}
-  # TODO - exists $self->{f}{$file}{start}{-1}
-}
-
-sub set_file {
-  my $self = shift;
-  my ($file) = @_;
-  $self->{file} = $file;
-  my $digest = $self->digest($file);
-  if ($digest) {
-    # print STDERR "Adding $digest for $file\n";
-    $self->{f}{$file}{digest} = $digest;
-    push @{ $self->{digests}{$digest} }, $file;
-  }
-  $digest
-}
-
-sub digest {
-  my $self = shift;
-  my ($file) = @_;
-
+sub digest ($self, $file) {
   # print STDERR "Opening $file for MD5 digest\n";
 
   my $digest;
@@ -199,43 +161,29 @@ sub digest {
   $digest
 }
 
-sub get_count {
-  my $self = shift;
-  my ($file, $criterion) = @_;
-  $self->{count}{$criterion}{$file}
+sub set_file ($self, $file) {
+  $self->{file} = $file;
+  my $digest = $self->digest($file);
+  if ($digest) {
+    # print STDERR "Adding $digest for $file\n";
+    $self->{f}{$file}{digest} = $digest;
+    push $self->{digests}{$digest}->@*, $file;
+  }
+  $digest
 }
 
-sub add_count {
-  my $self = shift;
-  # warn Carp::longmess("undefined file") unless defined $self->{file};
-  return unless defined $self->{file};  # can happen during self_cover
-  my ($criterion) = @_;
-  $self->{additional_count}{$criterion}{ $self->{file} }++
-    if $self->{additional};
-  (
-    $self->{count}{$criterion}{ $self->{file} }++,
-    !$self->reuse($self->{file}) || $self->{additional},
-  )
-}
-
-sub delete_file {
-  my $self = shift;
-  my ($file) = @_;
-  delete $self->{f}{$file};
-}
+sub delete_file ($self, $file) { delete $self->{f}{$file} }
 
 # TODO - concurrent runs updating structure?
 
-sub write {
-  my $self = shift;
-  my ($dir) = @_;
+sub write ($self, $dir) {
   # print STDERR Dumper $self;
   $dir .= "/structure";
   unless (mkdir $dir) {
     confess "Can't mkdir $dir: $!" unless -d $dir;
   }
   chmod 0777, $dir if $self->{loose_perms};
-  for my $file (sort keys %{ $self->{f} }) {
+  for my $file (sort keys $self->{f}->%*) {
     $self->{f}{$file}{file} = $file;
     my $digest = $self->{f}{$file}{digest};
     $digest = $1 if defined $digest && $digest =~ /(.*)/;  # ie tainting
@@ -243,7 +191,7 @@ sub write {
       print STDERR "Can't find digest for $file"
         unless $Devel::Cover::Silent
         || $file =~ $Devel::Cover::DB::Ignore_filenames
-        || ($Devel::Cover::Self_cover && $file =~ q|/Devel/Cover[./]|);
+        || ($Devel::Cover::Self_cover && $file =~ "/Devel/Cover[./]");
       next;
     }
     my $df_final = "$dir/$digest";
@@ -257,93 +205,68 @@ sub write {
         if (-e $df_final) {
           print STDERR "Can't rename $df_temp to $df_final "
             . "(which exists): $!";
-          $self->debuglog(
-            "Can't rename $df_temp to $df_final " . "(which exists): $!")
-            if DEBUG;
         } else {
           print STDERR "Can't rename $df_temp to $df_final: $!";
-          $self->debuglog("Can't rename $df_temp to $df_final: $!") if DEBUG;
         }
       }
       unless (unlink $df_temp) {
         print STDERR "Can't remove $df_temp after failed rename: $!"
           unless $Devel::Cover::Silent;
-        $self->debuglog("Can't remove $df_temp after failed rename: $!")
-          if DEBUG;
       }
     }
   }
 }
 
-sub read {
+sub read ($self, $digest) {
+  my $file = "$self->{base}/structure/$digest";
+  my $io   = Devel::Cover::DB::IO->new;
+  my $s    = eval { $io->read($file) };
 
-  my $self     = shift;
-  my ($digest) = @_;
-  my $file     = "$self->{base}/structure/$digest";
-  my $io       = Devel::Cover::DB::IO->new;
-  my $s        = eval { $io->read($file) };
-
-  if ($@ or !$s) {
-    $self->debuglog("read retrieve $file failed: $@") if DEBUG;
+  if ($@ || !$s) {
     die $@;
-  }
-  if (DEBUG) {
-    foreach my $key (qw(file digest)) {
-      if (!defined $s->{$key}) {
-        $self->debuglog("retrieve $file had no $key entry. Got:\n", $s);
-      }
-    }
   }
   my $d = $self->digest($s->{file});
   # print STDERR "reading $digest from $file: ", Dumper $s;
   if (!$d) {
-    # No digest implies that we can't read the file. Likely this is because
-    # it's stored with a relative path. In which case, it's not valid to
-    # assume that the file has been changed, and hence that we need to
-    # "update" the structure database on disk.
+    # No digest implies that we can't read the file. Likely this is because it's
+    # stored with a relative path. In which case, it's not valid to assume that
+    # the file has been changed, and hence that we need to "update" the
+    # structure database on disk.
   } elsif ($d eq $s->{digest}) {
     $self->{f}{ $s->{file} } = $s;
   } else {
     print STDERR "Devel::Cover: Deleting old coverage ",
       "for changed file $s->{file}\n";
-    if (unlink $file) {
-      $self->debuglog(
-        "Deleting old coverage $file for changed "
-          . "$s->{file} $s->{digest} vs $d. Got:\n",
-        $s, "Have:\n", $self->{f}{$file}
-      ) if DEBUG;
-    } else {
+    unless (unlink $file) {
       print STDERR "Devel::Cover: can't delete $file: $!\n";
-      $self->debuglog(
-        "Failed to delete coverage $file for changed "
-          . "$s->{file} ($!) $s->{digest} vs $d. Got:\n",
-        $s, "Have:\n", $self->{f}{$file}
-      ) if DEBUG;
     }
   }
   $self
 }
 
-sub read_all {
-  my ($self) = @_;
+sub read_all ($self) {
   my $dir = $self->{base};
   $dir .= "/structure";
-  opendir D, $dir or return;
-  for my $d (sort grep $_ !~ /\./, readdir D) {
-    $d = $1 if $d =~ /(.*)/;  # Die tainting
+  opendir my $dh, $dir or return;
+  for my $d (sort grep !/\./, readdir $dh) {
+    $d = $1 if $d =~ /(.*)/;  # De-tainting
     $self->read($d);
   }
-  closedir D or die "Can't closedir $dir: $!";
+  closedir $dh or die "Can't closedir $dir: $!";
   $self
 }
 
-sub merge {
-  my $self = shift;
-  my ($from) = @_;
-  Devel::Cover::DB::_merge_hash($self->{f}, $from->{f}, "noadd");
+sub merge ($self, $from) {
+  # TODO - make _merge_hash a public API in Devel::Cover::DB
+  Devel::Cover::DB::_merge_hash(  ## no critic (ProtectPrivateSubs)
+    $self->{f}, $from->{f}, "noadd"
+  )
 }
 
-1
+"
+So let's shake hands and reach across those party lines
+You've got your friends just like I've got mine
+"
 
 __END__
 
@@ -351,20 +274,144 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::DB::Structure - Internal: abstract structure of a source file
+Devel::Cover::DB::Structure - Manage source file structure for coverage data
 
 =head1 SYNOPSIS
 
  use Devel::Cover::DB::Structure;
 
+ my $struct = Devel::Cover::DB::Structure->new(base => $db_path);
+ $struct->add_criteria("statement", "branch");
+ my $digest = $struct->set_file($filename);
+ $struct->set_subroutine($sub_name, $file, $line, $scount);
+ $struct->write($dir);
+
+ # In a later run
+ my $struct = Devel::Cover::DB::Structure->new(base => $db_path);
+ $struct->read_all;
+ $struct->merge($other_struct);
+
 =head1 DESCRIPTION
+
+This module tracks the structural layout of source files being analysed by
+L<Devel::Cover>.  It records which subroutines, statements, branches, and
+conditions exist in each file, and maps those elements to digest-keyed storage
+so that coverage data can be matched to the correct source even across multiple
+runs.
+
+Structure information is persisted to the C<structure/> subdirectory of the
+coverage database, with one file per source digest.  When a file changes between
+runs, the stale structure entry is detected via MD5 digest comparison and
+deleted automatically.
+
+=head1 METHODS
+
+=head2 new (%args)
+
+ my $struct = Devel::Cover::DB::Structure->new(base => $path);
+
+Construct a new structure object.  All key-value pairs in C<%args> are stored as
+instance attributes.  The C<base> attribute should point to the coverage
+database directory.
+
+=head2 add_criteria (@names)
+
+ $struct->add_criteria("statement", "branch", "condition");
+
+Register coverage criteria that this structure should track.  Returns C<$self>.
+
+=head2 criteria
+
+ my @names = $struct->criteria;
+
+Return the list of registered criteria names.
+
+=head2 reuse ($file)
+
+ my $bool = $struct->reuse($file);
+
+Return true if C<$file> already has stored structure information from a previous
+run that can be reused.
+
+=head2 get_count ($file, $criterion)
+
+ my $count = $struct->get_count($file, $criterion);
+
+Return the current counter value for C<$criterion> in C<$file>.
+
+=head2 add_count ($criterion)
+
+ my ($count, $is_new) = $struct->add_count($criterion);
+
+Increment and return the counter for C<$criterion> in the current file. The
+second return value is true when the count represents a new (not reused)
+structure entry.
+
+=head2 set_subroutine ($sub_name, $file, $line, $scount)
+
+Record the start of subroutine C<$sub_name> at C<$file>:C<$line>. C<$scount>
+disambiguates multiple subroutines with the same name on the same line
+(typically C<BEGIN> blocks).
+
+Handles three cases: reusing existing structure, adding a new subroutine to a
+reused structure (e.g. a conditional C<< eval "use M" >>), and recording a
+subroutine in a new structure.
+
+=head2 store_counts ($file)
+
+Initialise counter storage for C<$file> across all registered criteria.
+
+=head2 digest ($file)
+
+ my $hex = $struct->digest($file);
+
+Return the MD5 hex digest of C<$file>, or C<undef> if the file cannot be opened.
+
+=head2 set_file ($file)
+
+ my $digest = $struct->set_file($file);
+
+Record C<$file> as the current file, compute its digest, and register the
+file-to-digest mapping.  Returns the digest.
+
+=head2 delete_file ($file)
+
+Remove all structure information for C<$file>.
+
+=head2 write ($dir)
+
+Serialise each file's structure to C<< $dir/structure/<digest> >>. Uses atomic
+rename to avoid partial writes.
+
+=head2 read ($digest)
+
+ $struct->read($digest);
+
+Load structure for C<$digest> from disk.  If the source file has changed since
+the structure was written, the stale entry is deleted. Returns C<$self>.
+
+=head2 read_all
+
+ $struct->read_all;
+
+Load all structure files from the database directory.  Returns C<$self>.
+
+=head2 merge ($from)
+
+ $struct->merge($other_struct);
+
+Merge structure information from C<$from> into this object.
+
+=head1 AUTOLOADED METHODS
+
+Methods of the form C<< add_<criterion> >> and C<< get_<criterion> >> are
+generated on first call via C<AUTOLOAD> for each coverage criterion
+(e.g. C<add_statement>, C<get_branch>), as well as for the meta-fields
+C<sub_name>, C<file>, and C<line>.
 
 =head1 SEE ALSO
 
- Devel::Cover
- Devel::Cover::DB
-
-=head1 METHODS
+L<Devel::Cover>, L<Devel::Cover::DB>
 
 =head1 LICENCE
 
