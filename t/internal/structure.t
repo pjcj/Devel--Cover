@@ -40,15 +40,19 @@ sub md5_file ($path) {
   Digest::MD5->new->addfile($fh)->hexdigest
 }
 
-sub capture_stderr :prototype(&) ($code) {
-  my $stderr = "";
-  open my $save, ">&", \*STDERR or die "Cannot dup STDERR: $!";
-  close STDERR or die "Cannot close STDERR: $!";
-  open STDERR, ">", \$stderr or die "Cannot redirect STDERR: $!";
-  $code->();
-  close STDERR or die "Cannot close STDERR: $!";
-  open STDERR, ">&", $save or die "Cannot restore STDERR: $!";
-  $stderr
+{
+  no feature "signatures";
+  sub capture_stderr (&) {
+    my ($code) = @_;
+    my $stderr = "";
+    open my $save, ">&", \*STDERR or die "Cannot dup STDERR: $!";
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">", \$stderr or die "Cannot redirect STDERR: $!";
+    $code->();
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">&", $save or die "Cannot restore STDERR: $!";
+    $stderr
+  }
 }
 
 sub fresh_base ($label) {
