@@ -1813,6 +1813,14 @@ $Assets{js} = <<'JS';
           if (ch) ch.textContent = match ? "\u25bc" : "\u25b6";
         }
       );
+      var first = sourceTable.querySelector(
+        ".line-detail:not([hidden])");
+      if (first) {
+        var target = first.previousElementSibling || first;
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        target.style.outline = "2px solid var(--link)";
+        setTimeout(function() { target.style.outline = ""; }, 1500);
+      }
     }
 
     badges.forEach(function(badge) {
