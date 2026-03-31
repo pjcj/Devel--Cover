@@ -218,9 +218,11 @@ sub read ($self, $digest) {
     $self->{f}{ $s->{file} } = $s;
   } else {
     print STDERR "Devel::Cover: Deleting old coverage ",
-      "for changed file $s->{file}\n";
+      "for changed file $s->{file}\n"
+      unless $Devel::Cover::Silent;
     unless (unlink $file) {
-      print STDERR "Devel::Cover: can't delete $file: $!\n";
+      print STDERR "Devel::Cover: can't delete $file: $!\n"
+        unless $Devel::Cover::Silent;
     }
   }
   $self
