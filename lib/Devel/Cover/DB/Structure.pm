@@ -41,7 +41,6 @@ sub AUTOLOAD {  ## no critic (RequireArgUnpacking) - goto needs @_ intact
       *$func = sub ($self) { $self->{$c} };
     } else {
       *$func = sub ($self, $digest) {
-        # print STDERR "file: $digest, condition: $c\n";
         for my $fval (values $self->{f}->%*) {
           return $fval->{$c} if $fval->{digest} eq $digest;
         }
@@ -73,7 +72,6 @@ sub get_count ($self, $file, $criterion) {
 }
 
 sub add_count ($self, $criterion) {
-  # warn Carp::longmess("undefined file") unless defined $self->{file};
   return unless defined $self->{file};  # can happen during self_cover
   $self->{additional_count}{$criterion}{ $self->{file} }++
     if $self->{additional};
@@ -94,14 +92,11 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
   # are multiple subroutines of the same name on the same line (such subroutines
   # generally being called BEGIN).
 
-  # print STDERR "set_subroutine start $file:$line $sub_name($scount) ",
-  # Dumper $self->{f}{$file}{start};
   $self->{additional} = 0;
   if ($self->reuse($file)) {
     # reusing a structure
     if (exists $self->{f}{$file}{start}{$line}{$sub_name}[$scount]) {
       # sub already exists - normal case
-      # print STDERR "reuse $file:$line:$sub_name\n";
       $self->{count}{$_}{$file}
         = $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
         for $self->criteria;
@@ -110,14 +105,12 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
       $self->{additional} = 1;
       if (exists $self->{additional_count}{ ($self->criteria)[0] }{$file}) {
         # already had such a sub in module
-        # print STDERR "reuse additional $file:$line:$sub_name\n";
         $self->{count}{$_}{$file}
           = $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
           = ($self->add_count($_))[0]
           for $self->criteria;
       } else {
         # first such a sub in module
-        # print STDERR "reuse first $file:$line:$sub_name\n";
         $self->{count}{$_}{$file} = $self->{additional_count}{$_}{$file}
           = $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
           = $self->{f}{$file}{start}{-1}{__COVER__}[$scount]{$_}
@@ -126,26 +119,20 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
     }
   } else {
     # first time sub seen in new structure
-    # print STDERR "new $file:$line:$sub_name\n";
     $self->{count}{$_}{$file}
       = $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
       = $self->get_count($file, $_)
       for $self->criteria;
   }
-  # print STDERR "set_subroutine start $file:$line $sub_name($scount) ",
-  # Dumper $self->{f}{$file}{start};
 }
 
 sub store_counts ($self, $file) {
   $self->{count}{$_}{$file} = $self->{f}{$file}{start}{-1}{__COVER__}[0]{$_}
     = $self->get_count($file, $_)
     for $self->criteria;
-  # print STDERR "store_counts: ", Dumper $self->{f}{$file}{start};
 }
 
 sub digest ($self, $file) {
-  # print STDERR "Opening $file for MD5 digest\n";
-
   my $digest;
   if (open my $fh, "<", $file) {
     binmode $fh;
@@ -156,7 +143,6 @@ sub digest ($self, $file) {
       unless lc $file eq "-e"
       or $Devel::Cover::Silent
       or $file =~ $Devel::Cover::DB::Ignore_filenames;
-    # require "Cwd"; print STDERR Carp::longmess("in " . Cwd::cwd());
   }
   $digest
 }
@@ -165,7 +151,6 @@ sub set_file ($self, $file) {
   $self->{file} = $file;
   my $digest = $self->digest($file);
   if ($digest) {
-    # print STDERR "Adding $digest for $file\n";
     $self->{f}{$file}{digest} = $digest;
     push $self->{digests}{$digest}->@*, $file;
   }
@@ -177,7 +162,6 @@ sub delete_file ($self, $file) { delete $self->{f}{$file} }
 # TODO - concurrent runs updating structure?
 
 sub write ($self, $dir) {
-  # print STDERR Dumper $self;
   $dir .= "/structure";
   unless (mkdir $dir) {
     confess "Can't mkdir $dir: $!" unless -d $dir;
@@ -197,9 +181,8 @@ sub write ($self, $dir) {
     my $df_final = "$dir/$digest";
     my $df_temp  = "$dir/.$digest.$$";
     # TODO - determine if Structure has changed to save writing it
-    # my $f = $df; my $n = 1; $df = $f . "." . $n++ while -e $df;
     my $io = Devel::Cover::DB::IO->new;
-    $io->write($self->{f}{$file}, $df_temp);  # unless -e $df;
+    $io->write($self->{f}{$file}, $df_temp);               # unless -e $df;
     unless (rename $df_temp, $df_final) {
       unless ($Devel::Cover::Silent) {
         if (-e $df_final) {
@@ -226,7 +209,6 @@ sub read ($self, $digest) {
     die $@;
   }
   my $d = $self->digest($s->{file});
-  # print STDERR "reading $digest from $file: ", Dumper $s;
   if (!$d) {
     # No digest implies that we can't read the file. Likely this is because it's
     # stored with a relative path. In which case, it's not valid to assume that
