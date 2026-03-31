@@ -807,6 +807,11 @@ a:visited { color: var(--link-visited); }
 }
 
 .stat-badge:hover { opacity: 0.85; }
+.stat-risk {
+  background: var(--prefix-bg);
+  border-color: var(--prefix-border);
+  color: var(--fg);
+}
 .stat-badge[data-criterion] { cursor: pointer; }
 .stat-badge.badge-active {
   outline: 2px solid var(--link);
@@ -1048,6 +1053,12 @@ a:visited { color: var(--link-visited); }
 }
 
 .header .has-tip::after {
+  bottom: auto;
+  top: 100%;
+  margin-top: 4px;
+}
+
+.header .risk-tip {
   bottom: auto;
   top: 100%;
   margin-top: 4px;
@@ -2059,6 +2070,38 @@ $Templates{file} = <<'EOT';
 </span>
 </span>
 [% END %]
+[% END %]
+[% IF file.uncompiled %]
+<span class="stat-badge untested-stat has-tip"
+      data-tip="total: 0">
+total 0.0%
+</span>
+<span class="stat-badge stat-risk has-tip"
+      data-tip="risk: 0">
+risk 0
+</span>
+[% ELSE %]
+[% IF total.total.pc != 'n/a' %]
+<span class="stat-badge [% total.total.class %] has-tip"
+      data-tip="[% total.total.covered %] / [% total.total.total %]">
+total [% total.total.pc %]%
+<span class="cov-bar">
+<span class="cov-bar-fill"
+  style="width:[% total.total.pc %]%"></span>
+</span>
+</span>
+[% END %]
+<span class="stat-badge stat-risk risk-hover has-tip"
+      data-tip="risk score">
+risk [% file.risk | format('%d') %]
+<table class="risk-tip">
+<tr><td>Branch errors</td><td>[% file.risk_branch %]</td></tr>
+<tr><td>Condition errors</td><td>[% file.risk_cond %]</td></tr>
+<tr><td>Coverage gap</td><td>[% file.risk_gap %]%</td></tr>
+<tr class="risk-total"><td>Risk</td>
+<td>[% file.risk | format('%d') %]</td></tr>
+</table>
+</span>
 [% END %]
 </div>
 <button class="theme-toggle" aria-label="Toggle dark mode">&#x263e;</button>
