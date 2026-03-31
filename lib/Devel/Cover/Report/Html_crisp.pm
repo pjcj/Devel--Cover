@@ -812,10 +812,25 @@ a:visited { color: var(--link-visited); }
   border-color: var(--prefix-border);
   color: var(--fg);
 }
-.stat-badge[data-criterion] { cursor: pointer; }
+.stat-badge[data-criterion] {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.stat-badge[data-criterion]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  opacity: 1;
+}
 .stat-badge.badge-active {
   outline: 2px solid var(--link);
   outline-offset: -1px;
+}
+.filter-label {
+  font-size: 11px;
+  color: var(--fg-muted);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .theme-toggle {
@@ -2050,6 +2065,7 @@ $Templates{file} = <<'EOT';
 [% END %]
 </h1>
 <div class="header-stats">
+<span class="filter-label">filter:</span>
 [% FOREACH c = R.showing %]
 [% NEXT IF c == "time" %]
 [% s = total.$c %]
