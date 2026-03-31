@@ -1786,10 +1786,12 @@ $Assets{js} = <<'JS';
     var activeCriterion = null;
 
     var detailIdx = -1;
+    var currentRow = null;
 
     function clearFilter() {
       activeCriterion = null;
       detailIdx = -1;
+      currentRow = null;
       details.forEach(function(d) { d.hidden = true; });
       sourceTable.querySelectorAll(".has-detail td.chevron")
         .forEach(function(ch) { ch.textContent = "\u25b6"; });
@@ -1820,8 +1822,8 @@ $Assets{js} = <<'JS';
       var first = sourceTable.querySelector(
         ".line-detail:not([hidden])");
       if (first) {
-        var target = first.previousElementSibling || first;
-        scrollHighlight(target);
+        currentRow = first.previousElementSibling || first;
+        scrollHighlight(currentRow);
       }
     }
 
@@ -1863,7 +1865,8 @@ $Assets{js} = <<'JS';
     function jumpTo(idx) {
       if (idx < 0 || idx >= uncovered.length) return;
       currentIdx = idx;
-      scrollHighlight(uncovered[idx]);
+      currentRow = uncovered[idx];
+      scrollHighlight(currentRow);
     }
 
     var badgeKeys = {
@@ -1882,7 +1885,8 @@ $Assets{js} = <<'JS';
             detailIdx = (detailIdx + 1) % open.length;
           else
             detailIdx = (detailIdx - 1 + open.length) % open.length;
-          scrollHighlight(open[detailIdx]);
+          currentRow = open[detailIdx];
+          scrollHighlight(currentRow);
         } else {
           var len = uncovered.length;
           if (e.key === "j")
@@ -1898,6 +1902,14 @@ $Assets{js} = <<'JS';
         } else {
           applyFilter(crit);
         }
+      }
+      else if (e.key === "Enter" && currentRow) {
+        if (!currentRow.classList.contains("has-detail")) return;
+        var d = currentRow.nextElementSibling;
+        if (!d || !d.classList.contains("line-detail")) return;
+        d.hidden = !d.hidden;
+        var ch = currentRow.querySelector("td.chevron");
+        if (ch) ch.textContent = d.hidden ? "\u25b6" : "\u25bc";
       }
       else if (e.key === "[") {
         var prev = document.querySelector(".nav-prev");
@@ -2338,6 +2350,7 @@ breakdown.</dd>
 <dt>Keyboard</dt>
 <dd><kbd>j</kbd> / <kbd>k</kbd> next/prev uncovered line
 (or open detail when filtered)
+&middot; <kbd>Enter</kbd> toggle detail on current line
 &middot; <kbd>s</kbd> <kbd>b</kbd> <kbd>c</kbd> <kbd>u</kbd>
 <kbd>p</kbd> toggle filter for stmt / bran / cond / sub / pod
 &middot; <kbd>[</kbd> / <kbd>]</kbd> prev/next file
