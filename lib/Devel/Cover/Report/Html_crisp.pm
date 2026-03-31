@@ -1767,15 +1767,19 @@ $Assets{js} = <<'JS';
     var details = sourceTable.querySelectorAll(".line-detail");
     details.forEach(function(d) { d.hidden = true; });
 
+    function toggleDetail(row) {
+      if (!row || !row.classList.contains("has-detail")) return;
+      var d = row.nextElementSibling;
+      if (!d || !d.classList.contains("line-detail")) return;
+      d.hidden = !d.hidden;
+      var ch = row.querySelector("td.chevron");
+      if (ch) ch.textContent = d.hidden ? "\u25b6" : "\u25bc";
+    }
+
     sourceTable.querySelectorAll(".has-detail").forEach(
       function(row) {
         row.addEventListener("click", function() {
-          var d = row.nextElementSibling;
-          if (d && d.classList.contains("line-detail")) {
-            d.hidden = !d.hidden;
-            var ch = row.querySelector("td.chevron");
-            if (ch) ch.textContent = d.hidden ? "\u25b6" : "\u25bc";
-          }
+          toggleDetail(row);
         });
       }
     );
@@ -1827,15 +1831,18 @@ $Assets{js} = <<'JS';
       }
     }
 
+    function toggleFilter(crit) {
+      if (crit === activeCriterion || crit === "statement") {
+        clearFilter();
+      } else {
+        applyFilter(crit);
+      }
+    }
+
     badges.forEach(function(badge) {
       badge.addEventListener("click", function(e) {
         e.preventDefault();
-        var crit = badge.getAttribute("data-criterion");
-        if (crit === activeCriterion || crit === "statement") {
-          clearFilter();
-        } else {
-          applyFilter(crit);
-        }
+        toggleFilter(badge.getAttribute("data-criterion"));
       });
     });
 
@@ -1896,20 +1903,10 @@ $Assets{js} = <<'JS';
         }
       }
       else if (badgeKeys[e.key]) {
-        var crit = badgeKeys[e.key];
-        if (crit === activeCriterion || crit === "statement") {
-          clearFilter();
-        } else {
-          applyFilter(crit);
-        }
+        toggleFilter(badgeKeys[e.key]);
       }
       else if (e.key === "Enter" && currentRow) {
-        if (!currentRow.classList.contains("has-detail")) return;
-        var d = currentRow.nextElementSibling;
-        if (!d || !d.classList.contains("line-detail")) return;
-        d.hidden = !d.hidden;
-        var ch = currentRow.querySelector("td.chevron");
-        if (ch) ch.textContent = d.hidden ? "\u25b6" : "\u25bc";
+        toggleDetail(currentRow);
       }
       else if (e.key === "[") {
         var prev = document.querySelector(".nav-prev");
