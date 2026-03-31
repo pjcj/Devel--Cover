@@ -786,13 +786,20 @@ a:visited { color: var(--link-visited); }
   border: none;
   padding: 0;
   text-align: left;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-stats {
   display: flex;
   gap: 16px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .stat-badge {
@@ -834,7 +841,6 @@ a:visited { color: var(--link-visited); }
 }
 
 .theme-toggle {
-  margin-left: auto;
   background: none;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -1627,6 +1633,19 @@ $Assets{js} = <<'JS';
     render();
   }
 
+  /* --- Truncated filename tooltip --- */
+  var fileH1 = document.querySelector(".header h1");
+  if (fileH1) {
+    function updateH1Title() {
+      if (fileH1.scrollWidth > fileH1.clientWidth)
+        fileH1.title = fileH1.textContent.trim();
+      else
+        fileH1.removeAttribute("title");
+    }
+    updateH1Title();
+    window.addEventListener("resize", updateH1Title);
+  }
+
   /* --- Line detail expand/collapse (source view) --- */
   var sourceTable = document.querySelector(".source-table");
   if (sourceTable) {
@@ -2080,10 +2099,6 @@ $Templates{file} = <<'EOT';
       data-tip="[% s.covered %] / [% s.total %]"
       data-criterion="[% c %]">
 [% R.short.$c %] [% s.pc %]%
-<span class="cov-bar">
-<span class="cov-bar-fill"
-  style="width:[% s.pc %]%"></span>
-</span>
 </span>
 [% END %]
 [% END %]
@@ -2101,10 +2116,6 @@ risk 0
 <span class="stat-badge [% total.total.class %] has-tip"
       data-tip="[% total.total.covered %] / [% total.total.total %]">
 total [% total.total.pc %]%
-<span class="cov-bar">
-<span class="cov-bar-fill"
-  style="width:[% total.total.pc %]%"></span>
-</span>
 </span>
 [% END %]
 <span class="stat-badge stat-risk risk-hover has-tip"
