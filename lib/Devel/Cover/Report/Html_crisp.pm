@@ -747,9 +747,10 @@ body {
   font-family: var(--font-body);
   font-size: var(--font-size-base);
   color: var(--fg);
-  background: var(--bg);
-  background-image: radial-gradient(
-    ellipse at 50% 0%, var(--bg-alt) 0%, var(--bg) 70%);
+  background:
+    radial-gradient(
+      ellipse at 50% 0%, var(--bg-alt) 0%, var(--bg) 70%)
+    no-repeat var(--bg);
   line-height: 1.5;
 }
 
