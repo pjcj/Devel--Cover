@@ -179,6 +179,24 @@ sub test_read_changed () {
     "read changed: warning printed";
 }
 
+sub test_read_changed_silent () {
+  local $Devel::Cover::Silent = 1;
+  my $base = fresh_base("read_chg_s");
+  my $file = write_source("changed_s.pm", "package ChangedS;\n1\n");
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->set_file($file);
+  $st->write($base);
+
+  # Modify the source file so the digest no longer matches
+  write_source("changed_s.pm", "package ChangedS;\nsub x { 1 }\n1\n");
+
+  my $st2    = Devel::Cover::DB::Structure->new(base => $base);
+  my $stderr = capture_stderr { $st2->read_all };
+  ok !exists $st2->{f}{$file}, "read changed silent: entry not loaded";
+  is $stderr, "", "read changed silent: no warning";
+}
+
 sub test_read_all_empty () {
   my $base = fresh_base("read_empty");
   my $st   = Devel::Cover::DB::Structure->new(base => $base);
@@ -648,6 +666,7 @@ sub main () {
   test_write_read;
   test_read_unchanged;
   test_read_changed;
+  test_read_changed_silent;
   test_read_all_empty;
   test_read_all_no_dir;
   test_merge;
