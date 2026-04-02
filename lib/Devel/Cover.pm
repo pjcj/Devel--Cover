@@ -600,7 +600,7 @@ sub check_files {
         for grep check_file($_), map B::svref_2object($_),
         adjust_blocks(\%{$pkg});
       1
-    }
+    },
   );
 
   my $l = sub ($cv) {
@@ -668,7 +668,7 @@ sub _report {
   $Run{collected} = \@collected;
   require Devel::Cover::DB::Structure;
   $Structure = Devel::Cover::DB::Structure->new(base => $DB,
-    loose_perms => $Loose_perms);
+    loose_perms => $Loose_perms,);
   $Structure->read_all;
   $Structure->add_criteria(@collected);
 
@@ -689,7 +689,7 @@ sub _report {
     # get_ends includes INIT blocks
     get_cover_progress(
       "END/INIT block",
-      get_ends()->isa("B::AV") ? get_ends()->ARRAY : ()
+      get_ends()->isa("B::AV") ? get_ends()->ARRAY : (),
     );
   }
   get_cover_progress("CV", @Cvs);
@@ -726,7 +726,7 @@ sub _write_coverage_db {
     base        => $DB,
     runs        => { $run => \%Run },
     structure   => $Structure,
-    loose_perms => $Loose_perms
+    loose_perms => $Loose_perms,
   );
 
   my $dbrun = "$DB/runs";
