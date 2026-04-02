@@ -189,22 +189,26 @@ static int cpu() {
  *
 */
 
-/* Fowler/Noll/Vo (FNV) hash function, variant 1a */
-static size_t fnv1a_hash(const char* cp)
-{
+/* Fowler/Noll/Vo (FNV) hash function, variant 1a
+ * Hash filename bytes and line number directly, avoiding snprintf. */
+static size_t fnv1a_hash_file_line(const char *file, long line) {
     size_t hash = 0x811c9dc5;
-    while (*cp) {
-        hash ^= (unsigned char) *cp++;
+    const unsigned char *p;
+    size_t i;
+    while (*file) {
+        hash ^= (unsigned char)*file++;
+        hash *= 0x01000193;
+    }
+    p = (const unsigned char *)&line;
+    for (i = 0; i < sizeof(line); i++) {
+        hash ^= p[i];
         hash *= 0x01000193;
     }
     return hash;
 }
 
-#define FILEINFOSZ 1024
-
 static char *get_key(OP *o) {
     static struct unique uniq;
-    static char mybuf[FILEINFOSZ];
 
     uniq.addr          = o;
     uniq.op            = *o;
@@ -212,10 +216,8 @@ static char *get_key(OP *o) {
     uniq.op.op_targ    = 0;  /* might change            */
     if (o->op_type == OP_NEXTSTATE || o->op_type == OP_DBSTATE) {
         /* cop, has file location information */
-        char *file = CopFILE((COP *)o);
-        long  line = CopLINE((COP *)o);
-        snprintf(mybuf, FILEINFOSZ - 1, "%s:%ld", file, line);
-        uniq.fileinfohash = fnv1a_hash(mybuf);
+        uniq.fileinfohash = fnv1a_hash_file_line(
+            CopFILE((COP *)o), CopLINE((COP *)o));
     } else {
         /* no file location information available */
         uniq.fileinfohash = 0;
