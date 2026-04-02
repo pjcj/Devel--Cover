@@ -344,7 +344,7 @@ static int check_if_collecting(pTHX_ COP *cop) {
 
 #if CAN_PROFILE
 
-static void cover_time(pTHX)
+static void cover_time(pTHX_ const char *key)
 {
     dMY_CXT;
     SV **count;
@@ -368,8 +368,8 @@ static void cover_time(pTHX)
 #endif
             sv_setnv(*count, c);
         }
-        if (PL_op) {
-            memcpy(MY_CXT.profiling_key, get_key(PL_op), KEY_SZ);
+        if (key) {
+            memcpy(MY_CXT.profiling_key, key, KEY_SZ);
             MY_CXT.profiling_key_valid = 1;
         } else {
             MY_CXT.profiling_key_valid = 0;
@@ -385,8 +385,7 @@ static int collecting_here(pTHX) {
     if (MY_CXT.collecting_here) return 1;
 
 #if CAN_PROFILE
-    cover_time(aTHX);
-    MY_CXT.profiling_key_valid = 0;
+    cover_time(aTHX_ NULL);
 #endif
 
     NDEB(D(L, "op %p is %s\n", PL_op, OP_NAME(PL_op)));
@@ -428,16 +427,14 @@ static void call_report(pTHX) {
     SPAGAIN;
 }
 
-static void cover_statement(pTHX_ OP *op) {
+static void cover_statement(pTHX_ OP *op, const char *ch) {
     dMY_CXT;
 
-    char *ch;
     SV  **count;
     IV    c;
 
     if (!collecting(Statement)) return;
 
-    ch    = get_key(op);
     count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
     c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
 
@@ -448,11 +445,11 @@ static void cover_statement(pTHX_ OP *op) {
 }
 
 static void cover_current_statement(pTHX) {
+    const char *ch = get_key(PL_op);
 #if CAN_PROFILE
-    cover_time(aTHX);
+    cover_time(aTHX_ ch);
 #endif
-
-    cover_statement(aTHX_ PL_op);
+    cover_statement(aTHX_ PL_op, ch);
 }
 
 static void add_branch(pTHX_ OP *op, int br) {
@@ -962,7 +959,7 @@ static void cover_padrange(pTHX) {
     orig = OpSIBLING(PL_op);
     while (orig && orig != next) {
         if (orig->op_type == OP_NEXTSTATE) {
-            cover_statement(aTHX_ orig);
+            cover_statement(aTHX_ orig, get_key(orig));
         }
         orig = orig->op_next;
     }
@@ -1272,7 +1269,7 @@ static int runops_cover(pTHX) {
     }
 
 #if CAN_PROFILE
-    cover_time(aTHX);
+    cover_time(aTHX_ NULL);
 #endif
 
     MY_CXT.collecting_here = 1;
