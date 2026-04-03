@@ -72,7 +72,7 @@ struct unique {         /* Well, we'll be fairly unlucky if it's not */
 typedef struct {
   OP     *addr;         /* key: op address (NULL = empty slot)    */
   OP     *op_next;      /* slab reuse guard: o->op_next at insert */
-  size_t  op_identity;  /* for struct unique key at flush time    */
+  size_t  op_identity;  /* slab reuse guard; also flush-time key  */
   size_t  fileinfohash; /* for struct unique key at flush time    */
   IV      stmt_count;   /* accumulated statement count            */
 } dc_stmt_slot;
@@ -618,6 +618,42 @@ static void dc_av_grow(dc_av_cache *c) {
   Safefree(old_slots);
 }
 
+/*
+ * Fetch (or create) the AV for an op from the av_cache, falling back to
+ * hv_fetch on the given backing HV on a cache miss.  If the AV is newly
+ * created, pre-extend it with init_slots empty entries (0 = no extension).
+ */
+static AV *dc_av_cached_fetch(pTHX_ dc_av_cache *cache, HV *backing_hv,
+                              OP *op, size_t identity, int init_slots) {
+  AV         *av;
+  dc_av_slot *slot = dc_av_lookup(cache, op);
+
+  if (slot && slot->op_next == op->op_next && slot->op_identity == identity)
+    return slot->av;
+
+  /* Slow path: hv_fetch */
+  {
+    SV **svp = hv_fetch(backing_hv, get_key(op), KEY_SZ, 1);
+    if (SvROK(*svp)) {
+      av = (AV *) SvRV(*svp);
+    } else {
+      *svp = newRV_inc((SV*) (av = newAV()));
+      if (init_slots)
+        av_unshift(av, init_slots);
+    }
+  }
+
+  if (slot) {
+    slot->op_next     = op->op_next;
+    slot->op_identity = identity;
+    slot->av          = av;
+  } else {
+    dc_av_insert(cache, op, op->op_next, identity, av);
+  }
+
+  return av;
+}
+
 #if CAN_PROFILE
 
 static void cover_time(pTHX_ const char *key)
@@ -796,70 +832,18 @@ static void cover_current_statement(pTHX) {
 
 static void add_branch(pTHX_ OP *op, int br) {
   dMY_CXT;
-
-  AV  *branches;
-  SV **count;
-  int  c;
-  size_t identity;
-  dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
-
-  identity = hash_op_identity(op);
-  if (slot && slot->op_next == op->op_next && slot->op_identity == identity) {
-    branches = slot->av;
-  } else {
-    SV **tmp = hv_fetch(MY_CXT.branches, get_key(op), KEY_SZ, 1);
-    if (SvROK(*tmp)) {
-      branches = (AV *) SvRV(*tmp);
-    } else {
-      *tmp = newRV_inc((SV*) (branches = newAV()));
-      av_unshift(branches, 2);
-    }
-    if (slot) {
-      slot->op_next     = op->op_next;
-      slot->op_identity = identity;
-      slot->av          = branches;
-    } else {
-      dc_av_insert(&MY_CXT.av_cache, op, op->op_next, identity, branches);
-    }
-  }
-
-  count = av_fetch(branches, br, 1);
-  c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
+  AV  *branches = dc_av_cached_fetch(aTHX_ &MY_CXT.av_cache, MY_CXT.branches,
+                                     op, hash_op_identity(op), 2);
+  SV **count    = av_fetch(branches, br, 1);
+  int  c        = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
   sv_setiv(*count, c);
   NDEB(D(L, "Adding branch making %d at %p\n", c, op));
 }
 
 static AV *get_conditional_array(pTHX_ OP *op) {
   dMY_CXT;
-
-  AV  *conds;
-  size_t identity = hash_op_identity(op);
-  dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
-
-  if (slot) {
-    if (slot->op_next == op->op_next && slot->op_identity == identity)
-      return slot->av;
-    /* Slab reuse: update slot in place below */
-  }
-
-  /* Slow path: hv_fetch */
-  {
-    SV **cref = hv_fetch(MY_CXT.conditions, get_key(op), KEY_SZ, 1);
-    if (SvROK(*cref))
-      conds = (AV *) SvRV(*cref);
-    else
-      *cref = newRV_inc((SV*) (conds = newAV()));
-  }
-
-  if (slot) {
-    slot->op_next     = op->op_next;
-    slot->op_identity = identity;
-    slot->av          = conds;
-  } else {
-    dc_av_insert(&MY_CXT.av_cache, op, op->op_next, identity, conds);
-  }
-
-  return conds;
+  return dc_av_cached_fetch(aTHX_ &MY_CXT.av_cache, MY_CXT.conditions, op,
+                            hash_op_identity(op), 0);
 }
 
 static void set_conditional(pTHX_ OP *op, int cond, int value) {
