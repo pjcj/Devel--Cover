@@ -87,6 +87,32 @@ typedef struct {
 #define DC_STMT_CACHE_INIT_CAP 1024
 #define DC_STMT_CACHE_LOAD_PCT 70
 
+/*
+ * C-level cache mapping OP * -> AV * for condition and branch arrays.
+ * Avoids the get_key + hv_fetch path on repeat executions.  Unlike the
+ * statement cache, no flush is needed: the cached AV pointer IS the
+ * authoritative object living in the conditions or branches HV.
+ *
+ * The same cache serves both condition and branch ops because the two
+ * sets are disjoint (logops vs OP_COND_EXPR).
+ */
+
+typedef struct {
+    OP  *addr;      /* key: op address (NULL = empty slot) */
+    OP  *op_next;   /* slab reuse guard                    */
+    AV  *av;        /* cached AV pointer                   */
+} dc_av_slot;
+
+typedef struct {
+    dc_av_slot *slots;
+    size_t      capacity; /* always power of 2 */
+    size_t      count;    /* occupied slots     */
+    size_t      mask;     /* capacity - 1       */
+} dc_av_cache;
+
+#define DC_AV_CACHE_INIT_CAP 256
+#define DC_AV_CACHE_LOAD_PCT 70
+
 typedef struct {
     unsigned      covering;
     int           collecting_here;
@@ -110,6 +136,7 @@ typedef struct {
     /* - fix up whatever is broken with module_relative on Windows here */
 
     dc_stmt_cache stmt_cache;
+    dc_av_cache   av_cache;
     Perl_ppaddr_t ppaddr[MAXO];
 } my_cxt_t;
 
@@ -521,6 +548,69 @@ static void dc_stmt_cache_flush(pTHX_ dc_stmt_cache *c, HV *statements) {
     }
 }
 
+static void dc_av_cache_init(dc_av_cache *c) {
+    c->capacity = DC_AV_CACHE_INIT_CAP;
+    c->count    = 0;
+    c->mask     = c->capacity - 1;
+    Newxz(c->slots, c->capacity, dc_av_slot);
+}
+
+static void dc_av_grow(dc_av_cache *c);
+
+static dc_av_slot *dc_av_lookup(dc_av_cache *c, OP *addr) {
+    size_t idx;
+    if (!c->slots) return NULL;
+    idx = ((size_t)addr >> 4) & c->mask;
+    for (;;) {
+        dc_av_slot *s = &c->slots[idx];
+        if (!s->addr)        return NULL;
+        if (s->addr == addr) return s;
+        idx = (idx + 1) & c->mask;
+    }
+}
+
+static dc_av_slot *dc_av_insert(dc_av_cache *c, OP *addr,
+                                 OP *op_next, AV *av) {
+    size_t idx;
+    dc_av_slot *s;
+
+    if (!c->slots) dc_av_cache_init(c);
+
+    if (c->count * 100 >= c->capacity * DC_AV_CACHE_LOAD_PCT)
+        dc_av_grow(c);
+
+    idx = ((size_t)addr >> 4) & c->mask;
+    for (;;) {
+        s = &c->slots[idx];
+        if (!s->addr) break;
+        idx = (idx + 1) & c->mask;
+    }
+
+    s->addr    = addr;
+    s->op_next = op_next;
+    s->av      = av;
+    c->count++;
+    return s;
+}
+
+static void dc_av_grow(dc_av_cache *c) {
+    dc_av_slot *old_slots = c->slots;
+    size_t      old_cap   = c->capacity;
+    size_t      i;
+
+    c->capacity *= 2;
+    c->mask      = c->capacity - 1;
+    c->count     = 0;
+    Newxz(c->slots, c->capacity, dc_av_slot);
+
+    for (i = 0; i < old_cap; i++) {
+        dc_av_slot *old = &old_slots[i];
+        if (old->addr)
+            dc_av_insert(c, old->addr, old->op_next, old->av);
+    }
+    Safefree(old_slots);
+}
+
 #if CAN_PROFILE
 
 static void cover_time(pTHX_ const char *key)
@@ -698,13 +788,24 @@ static void add_branch(pTHX_ OP *op, int br) {
     AV  *branches;
     SV **count;
     int  c;
-    SV **tmp = hv_fetch(MY_CXT.branches, get_key(op), KEY_SZ, 1);
+    dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
 
-    if (SvROK(*tmp)) {
-        branches = (AV *) SvRV(*tmp);
+    if (slot && slot->op_next == op->op_next) {
+        branches = slot->av;
     } else {
-        *tmp = newRV_inc((SV*) (branches = newAV()));
-        av_unshift(branches, 2);
+        SV **tmp = hv_fetch(MY_CXT.branches, get_key(op), KEY_SZ, 1);
+        if (SvROK(*tmp)) {
+            branches = (AV *) SvRV(*tmp);
+        } else {
+            *tmp = newRV_inc((SV*) (branches = newAV()));
+            av_unshift(branches, 2);
+        }
+        if (slot) {
+            slot->op_next = op->op_next;
+            slot->av      = branches;
+        } else {
+            dc_av_insert(&MY_CXT.av_cache, op, op->op_next, branches);
+        }
     }
 
     count = av_fetch(branches, br, 1);
@@ -717,12 +818,29 @@ static AV *get_conditional_array(pTHX_ OP *op) {
     dMY_CXT;
 
     AV  *conds;
-    SV **cref = hv_fetch(MY_CXT.conditions, get_key(op), KEY_SZ, 1);
+    dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
 
-    if (SvROK(*cref))
-        conds = (AV *) SvRV(*cref);
-    else
-        *cref = newRV_inc((SV*) (conds = newAV()));
+    if (slot) {
+        if (slot->op_next == op->op_next)
+            return slot->av;
+        /* Slab reuse: update slot in place below */
+    }
+
+    /* Slow path: hv_fetch */
+    {
+        SV **cref = hv_fetch(MY_CXT.conditions, get_key(op), KEY_SZ, 1);
+        if (SvROK(*cref))
+            conds = (AV *) SvRV(*cref);
+        else
+            *cref = newRV_inc((SV*) (conds = newAV()));
+    }
+
+    if (slot) {
+        slot->op_next = op->op_next;
+        slot->av      = conds;
+    } else {
+        dc_av_insert(&MY_CXT.av_cache, op, op->op_next, conds);
+    }
 
     return conds;
 }
@@ -1407,6 +1525,7 @@ static void initialise(pTHX) {
 
         MY_CXT.profiling_key_valid = 0;
         Zero(&MY_CXT.stmt_cache, 1, dc_stmt_cache);
+        Zero(&MY_CXT.av_cache, 1, dc_av_cache);
         MY_CXT.module              = newSVpv("", 0);
         MY_CXT.lastfile            = newSVpvn("", 1);
         MY_CXT.lastfile_ptr        = NULL;
