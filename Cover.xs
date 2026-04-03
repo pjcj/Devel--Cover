@@ -61,20 +61,22 @@ struct unique {         /* Well, we'll be fairly unlucky if it's not */
  * program).  Uses open addressing with linear probing, keyed by the raw op
  * pointer.
  *
- * On a cache hit, two checks guard against slab reuse: op_next and op_identity
- * (a hash of op_next, op_sibling, type, flags, and private). The identity hash
- * is also used for key reconstruction at flush time.
+ * On a cache hit, two checks guard against slab reuse: op_next and the CopFILE
+ * pointer.  This is sufficient because cover_current_statement is only called
+ * for NEXTSTATE/DBSTATE ops.  op_identity and fileinfohash are stored for key
+ * reconstruction at flush time but are not checked on the hot path.
  *
  * Cached counts are flushed into the Perl statements HV when the coverage() XS
  * function is called (i.e. at report time).
  */
 
 typedef struct {
-  OP     *addr;         /* key: op address (NULL = empty slot)    */
-  OP     *op_next;      /* slab reuse guard: o->op_next at insert */
-  size_t  op_identity;  /* slab reuse guard; also flush-time key  */
-  size_t  fileinfohash; /* for struct unique key at flush time    */
-  IV      stmt_count;   /* accumulated statement count            */
+  OP         *addr;         /* key: op address (NULL = empty slot)    */
+  OP         *op_next;      /* slab reuse guard: o->op_next at insert */
+  const char *cop_file;     /* slab reuse guard: CopFILE at insert    */
+  size_t      op_identity;  /* for struct unique key at flush time    */
+  size_t      fileinfohash; /* for struct unique key at flush time    */
+  IV          stmt_count;   /* accumulated statement count            */
 } dc_stmt_slot;
 
 typedef struct {
@@ -474,9 +476,9 @@ static dc_stmt_slot *dc_stmt_lookup(dc_stmt_cache *c, OP *addr) {
  * Insert a new entry.  Caller must ensure addr is not already present.  Returns
  * the new slot with stmt_count = 0.
  */
-static dc_stmt_slot *dc_stmt_insert(dc_stmt_cache *c, OP *addr,
-                                    OP *op_next, size_t op_identity,
-                                    size_t fileinfohash) {
+static dc_stmt_slot *dc_stmt_insert(
+    dc_stmt_cache *c, OP *addr, OP *op_next, const char *cop_file,
+    size_t op_identity, size_t fileinfohash) {
   size_t idx;
   dc_stmt_slot *s;
 
@@ -495,6 +497,7 @@ static dc_stmt_slot *dc_stmt_insert(dc_stmt_cache *c, OP *addr,
 
   s->addr         = addr;
   s->op_next      = op_next;
+  s->cop_file     = cop_file;
   s->op_identity  = op_identity;
   s->fileinfohash = fileinfohash;
   s->stmt_count   = 0;
@@ -515,8 +518,8 @@ static void dc_stmt_grow(dc_stmt_cache *c) {
   for (i = 0; i < old_cap; i++) {
     dc_stmt_slot *old = &old_slots[i];
     if (old->addr) {
-      dc_stmt_slot *s = dc_stmt_insert(c, old->addr,
-        old->op_next, old->op_identity, old->fileinfohash);
+      dc_stmt_slot *s = dc_stmt_insert(c, old->addr, old->op_next,
+        old->cop_file, old->op_identity, old->fileinfohash);
       s->stmt_count = old->stmt_count;
     }
   }
@@ -780,12 +783,14 @@ static void cover_current_statement(pTHX) {
     dc_stmt_slot *slot = dc_stmt_lookup(&MY_CXT.stmt_cache, PL_op);
     if (slot) {
       /*
-       * Address found - check op_next and op_identity as slab reuse guards.
-       * op_next alone can false-hit when eval op trees with identical structure
-       * are allocated at the same slab addresses.
+       * Address found - check op_next and CopFILE as slab reuse
+       * guards. Structurally identical eval'd modules at reused slab addresses
+       * share op_next (and op_identity), but have different CopFILE
+       * pointers. cover_current_statement is only called for NEXTSTATE/DBSTATE
+       * ops, so CopFILE is always valid.
        */
-      size_t identity = hash_op_identity(PL_op);
-      if (slot->op_next == PL_op->op_next && slot->op_identity == identity) {
+      if (slot->op_next == PL_op->op_next
+          && slot->cop_file == CopFILE((COP *)PL_op)) {
         slot->stmt_count++;
         return;
       }
@@ -802,29 +807,21 @@ static void cover_current_statement(pTHX) {
         existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
         sv_setiv(*sv, existing + slot->stmt_count);
       }
-      slot->op_next     = PL_op->op_next;
-      slot->op_identity = identity;
-      slot->fileinfohash =
-        (PL_op->op_type == OP_NEXTSTATE
-        || PL_op->op_type == OP_DBSTATE)
-        ? fnv1a_hash_file_line(
-            CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
-        : 0;
+      slot->op_next      = PL_op->op_next;
+      slot->cop_file     = CopFILE((COP *)PL_op);
+      slot->op_identity  = hash_op_identity(PL_op);
+      slot->fileinfohash = fnv1a_hash_file_line(
+        CopFILE((COP *)PL_op), CopLINE((COP *)PL_op));
       slot->stmt_count = 1;
       return;
     }
 
     /* Cache miss: insert and count the first execution */
     {
-      size_t identity = hash_op_identity(PL_op);
-      size_t filehash =
-        (PL_op->op_type == OP_NEXTSTATE
-        || PL_op->op_type == OP_DBSTATE)
-        ? fnv1a_hash_file_line(
-            CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
-        : 0;
+      const char *cop_file = CopFILE((COP *)PL_op);
       dc_stmt_slot *s = dc_stmt_insert(&MY_CXT.stmt_cache,
-        PL_op, PL_op->op_next, identity, filehash);
+        PL_op, PL_op->op_next, cop_file, hash_op_identity(PL_op),
+        fnv1a_hash_file_line(cop_file, CopLINE((COP *)PL_op)));
       s->stmt_count = 1;
     }
   }
