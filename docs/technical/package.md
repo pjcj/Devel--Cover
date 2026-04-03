@@ -73,7 +73,7 @@ if ($nnnext && $name ne "null") {
 ```
 
 A `B::COP` with `name="null"` is always an optimised-away `ex-nextstate`. Its
-runtime `op_next` may be valid, but the op itself is never dispatched, so it
+runtime `op_next` may be valid, but the op itself is never despatched, so it
 must not be registered as a coverable statement.
 
 ## Bare `package` Inside a Block
