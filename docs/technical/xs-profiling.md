@@ -1,34 +1,35 @@
 # Profiling XS Runtime Overhead
 
 This document explains how to profile the C-level runtime overhead of
-Devel::Cover's XS code. The techniques here measure where time is
-spent *during test execution* (the instrumented op dispatch loop), not
-the END-time Perl processing (DB writes, deparsing, report generation).
+Devel::Cover's XS code. The techniques here measure where time is spent *during
+test execution* (the instrumented op dispatch loop), not the END-time Perl
+processing (DB writes, deparsing, report generation).
 
 ## Prerequisites
 
-- macOS (for the `sample` command; see [Other Platforms](#other-platforms)
-  for Linux alternatives)
+- macOS (for the `sample` command; see [Other Platforms](#other-platforms) for
+  Linux alternatives)
 - A non-trivial benchmark workload (the Gedcom test suite works well)
 - Devel::NYTProf (optional, for Perl-level END-time profiling)
 
 ## Build with debug symbols
 
-The `sample` tool needs DWARF symbols to map instruction addresses back
-to C function names. Build Cover.bundle with `-g`:
+The `sample` tool needs DWARF symbols to map instruction addresses back to C
+function names. Build Cover.bundle with `-g`:
 
 ```bash
 make OPTIMIZE="-O2 -g"
 ```
 
-This keeps optimisation on (so the profile reflects real performance)
-while adding the symbol tables needed for profiling.
+This keeps optimisation on (so the profile reflects real performance) while
+adding the symbol tables needed for profiling.
 
 ## Choose a benchmark
 
-The Gedcom genealogy library provides a good workload - it exercises
-many ops across a realistic codebase. The benchmark lives in
-`tmp/runs/Gedcom-1.22/` and uses the `royal.ged` data file.
+The Gedcom genealogy library provides a good workload - it exercises many ops
+across a realistic codebase. The benchmark lives in `tmp/runs/Gedcom-1.22/` and
+uses the `royal.ged` data file. This can be created with
+`dc cpan-module Gedcom`.
 
 ```bash
 cd tmp/runs/Gedcom-1.22
@@ -63,8 +64,8 @@ time perl $DC -MDevel::Cover=-silent,1,-db,/tmp/dc_bench_db -Mblib -e '
 '
 ```
 
-The difference is the total overhead. In March 2026 this was 0.12s vs
-0.92s (before optimisation) and 0.12s vs 0.52s (after hotspot #1).
+The difference is the total overhead. In March 2026 this was 0.12s vs 0.92s
+(before optimisation) and 0.12s vs 0.52s (after hotspot #1).
 
 ## Sampling with macOS `sample`
 
@@ -79,7 +80,7 @@ perl $DC -MDevel::Cover=-silent,1,-db,/tmp/dc_bench_db -Mblib -e '
     $ged->validate;
     $ged->resolve_xrefs;
   }
-' > /dev/null 2>/dev/null &
+' >/dev/null 2>/dev/null &
 PID=$!
 sleep 0.3
 sample "$PID" 5 -file /tmp/dc_sample.txt
@@ -91,20 +92,20 @@ Key points:
 - `sleep 0.3` gives the process time to start before sampling begins
 - `sample "$PID" 5` samples for 5 seconds at 1ms intervals
 - `-file /tmp/dc_sample.txt` saves the output for analysis
-- The 20-iteration loop ensures the process runs long enough for
-  sampling to capture runtime behaviour rather than just startup/shutdown
+- The 20-iteration loop ensures the process runs long enough for sampling to
+  capture runtime behaviour rather than just startup/shutdown
 
 ### Timing the sleep
 
-If the process finishes before `sample` attaches, increase the
-iteration count. If `sample` captures mostly END-time processing,
-increase iterations or reduce the sample duration. The goal is to
-capture the `Perl_runops_standard` loop, not the cleanup phase.
+If the process finishes before `sample` attaches, increase the iteration count.
+If `sample` captures mostly END-time processing, increase iterations or reduce
+the sample duration. The goal is to capture the `Perl_runops_standard` loop, not
+the cleanup phase.
 
 ## Analysing the sample output
 
-The `sample` tool produces a hierarchical call tree. Each line shows a
-sample count and a function name:
+The `sample` tool produces a hierarchical call tree. Each line shows a sample
+count and a function name:
 
 ```text
 +     ! 513 dc_nextstate  (in Cover.bundle) + 240
@@ -112,14 +113,14 @@ sample count and a function name:
         +     ! : | 245 cover_time.cold.1  (in Cover.bundle) + 48
 ```
 
-Child entries are *subsets* of their parent, not additions. In this
-example, 498 of the 513 `dc_nextstate` samples went into `cover_time`,
-and 245 of those 498 went into the cold path at offset +48.
+Child entries are *subsets* of their parent, not additions. In this example, 498
+of the 513 `dc_nextstate` samples went into `cover_time`, and 245 of those 498
+went into the cold path at offset +48.
 
 ### Aggregation script
 
-To get a flat breakdown of all Cover.bundle functions, extracting
-leaf-only samples (self-time, excluding time spent in callees):
+To get a flat breakdown of all Cover.bundle functions, extracting leaf-only
+samples (self-time, excluding time spent in callees):
 
 ```bash
 perl -0777 -ne '
@@ -171,15 +172,14 @@ grep -E '^\s+\+\s+!\s+\d+\s+dc_' /tmp/dc_sample.txt
 grep -c 'cover_' /tmp/dc_sample.txt
 ```
 
-The hierarchical view is essential for understanding *where within a
-function* the time is spent - the `+ offset` value on each line
-corresponds to an instruction offset, and the child entries show which
-callees dominate.
+The hierarchical view is essential for understanding *where within a function*
+the time is spent - the `+ offset` value on each line corresponds to an
+instruction offset, and the child entries show which callees dominate.
 
 ## Perl-level profiling with NYTProf
 
-For profiling the END-time Perl code (DB writes, deparsing, report
-generation), use Devel::NYTProf:
+For profiling the END-time Perl code (DB writes, deparsing, report generation),
+use Devel::NYTProf:
 
 ```bash
 cd tmp/runs/Gedcom-1.22
@@ -194,25 +194,30 @@ perl $DC -MDevel::Cover=-silent,1,-db,/tmp/dc_bench_db \
 nytprofhtml
 ```
 
-NYTProf cannot see inside XS/C functions, so it is only useful for
-Perl-side costs. For the XS runtime, use `sample` as described above.
+NYTProf cannot see inside XS/C functions, so it is only useful for Perl-side
+costs. For the XS runtime, use `sample` as described above.
 
 ## Interpreting results
 
 ### Architecture of the XS runtime
 
-The XS code replaces Perl's op dispatch functions with instrumented
-versions:
+The XS code replaces Perl's op dispatch functions with instrumented versions:
 
 | Original op  | Replacement  | What it covers        |
 | ------------ | ------------ | --------------------- |
 | pp_nextstate | dc_nextstate | statement + time      |
-| pp_and       | dc_and       | branch/condition      |
-| pp_or        | dc_or        | branch/condition      |
-| pp_dor       | dc_dor       | branch/condition      |
-| pp_cond_expr | dc_cond_expr | branch/condition      |
-| pp_entersub  | dc_entersub  | subroutine            |
+| pp_dbstate   | dc_dbstate   | statement (debugger)  |
 | pp_padrange  | dc_padrange  | statement (multi-pad) |
+| pp_entersub  | dc_entersub  | subroutine            |
+| pp_and       | dc_and       | branch/condition      |
+| pp_andassign | dc_andassign | branch/condition      |
+| pp_or        | dc_or        | branch/condition      |
+| pp_orassign  | dc_orassign  | branch/condition      |
+| pp_dor       | dc_dor       | branch/condition      |
+| pp_dorassign | dc_dorassign | branch/condition      |
+| pp_cond_expr | dc_cond_expr | branch/condition      |
+| pp_require   | dc_require   | file tracking         |
+| pp_exec      | dc_exec      | exec tracking         |
 
 Each replacement op follows the same pattern:
 
@@ -224,20 +229,24 @@ Each replacement op follows the same pattern:
 
 The main cost centres in the XS runtime are:
 
-- **get_key / fnv1a_hash_file_line** - computing the unique key for
-  each op (hashes the filename bytes and line number)
-- **cover_time** - gettimeofday + hash lookup + arithmetic (only when
-  time coverage is enabled)
-- **cover_statement** - hash lookup + counter increment
-- **cover_logop / get_conditional_array / add_conditional** - condition
-  tracking with hash lookups
-- **check_if_collecting** - strcmp/strncmp filename matching
-- **Perl_hv_common / SipHash** - Perl's hash implementation, called
-  from all the above via hv_fetch with KEY_SZ-byte keys
+- **get_key / hash_op_identity / fnv1a_hash_file_line** - computing the unique
+  key for each op (hashes OP fields and file+line)
+- **dc_stmt_cache / dc_av_cache** - C-level open-addressing caches that bypass
+  get_key + hv_fetch for ~95% of repeat hits; a cache miss falls through to the
+  full path
+- **cover_time** - gettimeofday + hash lookup + arithmetic (only when time
+  coverage is enabled)
+- **cover_statement** - hash lookup + counter increment (on cache miss)
+- **cover_logop / get_conditional_array / add_conditional** - condition tracking
+  with hash lookups (on cache miss)
+- **check_if_collecting** - CopFILE pointer comparison on the fast path; falls
+  back to strcmp and the Perl-level use_file callback on a file change
+- **Perl_hv_common / SipHash** - Perl's hash implementation, called via hv_fetch
+  with KEY_SZ-byte keys (on cache miss or flush)
 
-When optimising, focus on the functions with the highest *self-time*
-(leaf samples). Inclusive counts tell you where time flows, but
-self-time tells you where the CPU is actually stalled.
+When optimising, focus on the functions with the highest *self-time* (leaf
+samples). Inclusive counts tell you where time flows, but self-time tells you
+where the CPU is actually stalled.
 
 ## Other platforms
 
@@ -256,20 +265,19 @@ perf report --no-children --sort=dso,symbol
 perf report --children --sort=dso,symbol
 ```
 
-The analysis approach is the same - look for Cover.so functions with
-high self-time.
+The analysis approach is the same - look for Cover.so functions with high
+self-time.
 
 ### Instruments (macOS)
 
-Xcode's Instruments app provides a GUI alternative to `sample` with
-flame graphs and timeline views. Use the "Time Profiler" instrument,
-attach to the running benchmark process, and filter by the Cover.bundle
-module.
+Xcode's Instruments app provides a GUI alternative to `sample` with flame graphs
+and timeline views. Use the "Time Profiler" instrument, attach to the running
+benchmark process, and filter by the Cover.bundle module.
 
-## Example profile (March 2026, post-hotspot #1)
+## Example profile (March 2026, early in GH-422)
 
-After eliminating snprintf from get_key() and deduplicating get_key()
-calls per statement, the profile showed:
+After eliminating snprintf from get_key() and deduplicating get_key() calls per
+statement, but *before* the caching and struct-shrink work, the profile showed:
 
 | Area                     | % of DC overhead | Dominant cost         |
 | ------------------------ | ---------------- | --------------------- |
@@ -280,5 +288,11 @@ calls per statement, the profile showed:
 | cover_statement          | 10%              | hv_fetch, sv_setiv    |
 | op handler overhead      | 7%               | dc_and, dc_or self    |
 
-Total overhead at this point: ~0.40s on the Gedcom benchmark (down from
-0.80s before hotspot #1).
+Total overhead at this point: ~0.40s on the Gedcom benchmark (down from 0.80s
+before the first hotspot fix).
+
+Subsequent optimisations on the same branch (struct unique shrink, CopFILE
+pointer cache, dc_stmt_cache, dc_av_cache) reduced the overhead further.
+Re-profile with the current code to get up-to-date numbers - the distribution
+will have shifted as the caches now absorb most of the get_key and hv_fetch
+cost.
