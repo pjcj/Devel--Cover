@@ -61,9 +61,9 @@ struct unique {         /* Well, we'll be fairly unlucky if it's not */
  * program).  Uses open addressing with linear probing, keyed by the raw op
  * pointer.
  *
- * On a cache hit, only one pointer comparison (op_next) is needed as a
- * slab-reuse guard; the full identity hash is stored solely for key
- * reconstruction at flush time.
+ * On a cache hit, two checks guard against slab reuse: op_next and op_identity
+ * (a hash of op_next, op_sibling, type, flags, and private). The identity hash
+ * is also used for key reconstruction at flush time.
  *
  * Cached counts are flushed into the Perl statements HV when the coverage() XS
  * function is called (i.e. at report time).
@@ -98,9 +98,10 @@ typedef struct {
  */
 
 typedef struct {
-  OP  *addr;      /* key: op address (NULL = empty slot) */
-  OP  *op_next;   /* slab reuse guard                    */
-  AV  *av;        /* cached AV pointer                   */
+  OP     *addr;         /* key: op address (NULL = empty slot)    */
+  OP     *op_next;      /* slab reuse guard: o->op_next at insert */
+  size_t  op_identity;  /* slab reuse guard: hash_op_identity     */
+  AV     *av;           /* cached AV pointer                      */
 } dc_av_slot;
 
 typedef struct {
@@ -574,7 +575,8 @@ static dc_av_slot *dc_av_lookup(dc_av_cache *c, OP *addr) {
 }
 
 static dc_av_slot *dc_av_insert(dc_av_cache *c, OP *addr,
-                                OP *op_next, AV *av) {
+                                OP *op_next, size_t op_identity,
+                                AV *av) {
   size_t idx;
   dc_av_slot *s;
 
@@ -590,9 +592,10 @@ static dc_av_slot *dc_av_insert(dc_av_cache *c, OP *addr,
     idx = (idx + 1) & c->mask;
   }
 
-  s->addr    = addr;
-  s->op_next = op_next;
-  s->av      = av;
+  s->addr        = addr;
+  s->op_next     = op_next;
+  s->op_identity = op_identity;
+  s->av          = av;
   c->count++;
   return s;
 }
@@ -610,7 +613,7 @@ static void dc_av_grow(dc_av_cache *c) {
   for (i = 0; i < old_cap; i++) {
     dc_av_slot *old = &old_slots[i];
     if (old->addr)
-      dc_av_insert(c, old->addr, old->op_next, old->av);
+      dc_av_insert(c, old->addr, old->op_next, old->op_identity, old->av);
   }
   Safefree(old_slots);
 }
@@ -741,10 +744,12 @@ static void cover_current_statement(pTHX) {
     dc_stmt_slot *slot = dc_stmt_lookup(&MY_CXT.stmt_cache, PL_op);
     if (slot) {
       /*
-       * Address found - check op_next as slab reuse guard. Two different
-       * ops at the same address with the same op_next is unlikely.
+       * Address found - check op_next and op_identity as slab reuse guards.
+       * op_next alone can false-hit when eval op trees with identical structure
+       * are allocated at the same slab addresses.
        */
-      if (slot->op_next == PL_op->op_next) {
+      size_t identity = hash_op_identity(PL_op);
+      if (slot->op_next == PL_op->op_next && slot->op_identity == identity) {
         slot->stmt_count++;
         return;
       }
@@ -762,7 +767,7 @@ static void cover_current_statement(pTHX) {
         sv_setiv(*sv, existing + slot->stmt_count);
       }
       slot->op_next     = PL_op->op_next;
-      slot->op_identity = hash_op_identity(PL_op);
+      slot->op_identity = identity;
       slot->fileinfohash =
         (PL_op->op_type == OP_NEXTSTATE
         || PL_op->op_type == OP_DBSTATE)
@@ -795,9 +800,11 @@ static void add_branch(pTHX_ OP *op, int br) {
   AV  *branches;
   SV **count;
   int  c;
+  size_t identity;
   dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
 
-  if (slot && slot->op_next == op->op_next) {
+  identity = hash_op_identity(op);
+  if (slot && slot->op_next == op->op_next && slot->op_identity == identity) {
     branches = slot->av;
   } else {
     SV **tmp = hv_fetch(MY_CXT.branches, get_key(op), KEY_SZ, 1);
@@ -808,10 +815,11 @@ static void add_branch(pTHX_ OP *op, int br) {
       av_unshift(branches, 2);
     }
     if (slot) {
-      slot->op_next = op->op_next;
-      slot->av      = branches;
+      slot->op_next     = op->op_next;
+      slot->op_identity = identity;
+      slot->av          = branches;
     } else {
-      dc_av_insert(&MY_CXT.av_cache, op, op->op_next, branches);
+      dc_av_insert(&MY_CXT.av_cache, op, op->op_next, identity, branches);
     }
   }
 
@@ -825,10 +833,11 @@ static AV *get_conditional_array(pTHX_ OP *op) {
   dMY_CXT;
 
   AV  *conds;
+  size_t identity = hash_op_identity(op);
   dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
 
   if (slot) {
-    if (slot->op_next == op->op_next)
+    if (slot->op_next == op->op_next && slot->op_identity == identity)
       return slot->av;
     /* Slab reuse: update slot in place below */
   }
@@ -843,10 +852,11 @@ static AV *get_conditional_array(pTHX_ OP *op) {
   }
 
   if (slot) {
-    slot->op_next = op->op_next;
-    slot->av      = conds;
+    slot->op_next     = op->op_next;
+    slot->op_identity = identity;
+    slot->av          = conds;
   } else {
-    dc_av_insert(&MY_CXT.av_cache, op, op->op_next, conds);
+    dc_av_insert(&MY_CXT.av_cache, op, op->op_next, identity, conds);
   }
 
   return conds;
