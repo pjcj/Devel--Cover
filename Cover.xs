@@ -61,20 +61,22 @@ struct unique {         /* Well, we'll be fairly unlucky if it's not */
  * program).  Uses open addressing with linear probing, keyed by the raw op
  * pointer.
  *
- * On a cache hit, only one pointer comparison (op_next) is needed as a
- * slab-reuse guard; the full identity hash is stored solely for key
- * reconstruction at flush time.
+ * On a cache hit, two checks guard against slab reuse: op_next and the CopFILE
+ * pointer.  This is sufficient because cover_current_statement is only called
+ * for NEXTSTATE/DBSTATE ops.  op_identity and fileinfohash are stored for key
+ * reconstruction at flush time but are not checked on the hot path.
  *
  * Cached counts are flushed into the Perl statements HV when the coverage() XS
  * function is called (i.e. at report time).
  */
 
 typedef struct {
-  OP     *addr;         /* key: op address (NULL = empty slot)    */
-  OP     *op_next;      /* slab reuse guard: o->op_next at insert */
-  size_t  op_identity;  /* for struct unique key at flush time    */
-  size_t  fileinfohash; /* for struct unique key at flush time    */
-  IV      stmt_count;   /* accumulated statement count            */
+  OP         *addr;         /* key: op address (NULL = empty slot)    */
+  OP         *op_next;      /* slab reuse guard: o->op_next at insert */
+  const char *cop_file;     /* slab reuse guard: CopFILE at insert    */
+  size_t      op_identity;  /* for struct unique key at flush time    */
+  size_t      fileinfohash; /* for struct unique key at flush time    */
+  IV          stmt_count;   /* accumulated statement count            */
 } dc_stmt_slot;
 
 typedef struct {
@@ -98,9 +100,10 @@ typedef struct {
  */
 
 typedef struct {
-  OP  *addr;      /* key: op address (NULL = empty slot) */
-  OP  *op_next;   /* slab reuse guard                    */
-  AV  *av;        /* cached AV pointer                   */
+  OP     *addr;         /* key: op address (NULL = empty slot)    */
+  OP     *op_next;      /* slab reuse guard: o->op_next at insert */
+  size_t  op_identity;  /* slab reuse guard: hash_op_identity     */
+  AV     *av;           /* cached AV pointer                      */
 } dc_av_slot;
 
 typedef struct {
@@ -473,9 +476,9 @@ static dc_stmt_slot *dc_stmt_lookup(dc_stmt_cache *c, OP *addr) {
  * Insert a new entry.  Caller must ensure addr is not already present.  Returns
  * the new slot with stmt_count = 0.
  */
-static dc_stmt_slot *dc_stmt_insert(dc_stmt_cache *c, OP *addr,
-                                    OP *op_next, size_t op_identity,
-                                    size_t fileinfohash) {
+static dc_stmt_slot *dc_stmt_insert(
+    dc_stmt_cache *c, OP *addr, OP *op_next, const char *cop_file,
+    size_t op_identity, size_t fileinfohash) {
   size_t idx;
   dc_stmt_slot *s;
 
@@ -494,6 +497,7 @@ static dc_stmt_slot *dc_stmt_insert(dc_stmt_cache *c, OP *addr,
 
   s->addr         = addr;
   s->op_next      = op_next;
+  s->cop_file     = cop_file;
   s->op_identity  = op_identity;
   s->fileinfohash = fileinfohash;
   s->stmt_count   = 0;
@@ -514,8 +518,8 @@ static void dc_stmt_grow(dc_stmt_cache *c) {
   for (i = 0; i < old_cap; i++) {
     dc_stmt_slot *old = &old_slots[i];
     if (old->addr) {
-      dc_stmt_slot *s = dc_stmt_insert(c, old->addr,
-        old->op_next, old->op_identity, old->fileinfohash);
+      dc_stmt_slot *s = dc_stmt_insert(c, old->addr, old->op_next,
+        old->cop_file, old->op_identity, old->fileinfohash);
       s->stmt_count = old->stmt_count;
     }
   }
@@ -574,7 +578,8 @@ static dc_av_slot *dc_av_lookup(dc_av_cache *c, OP *addr) {
 }
 
 static dc_av_slot *dc_av_insert(dc_av_cache *c, OP *addr,
-                                OP *op_next, AV *av) {
+                                OP *op_next, size_t op_identity,
+                                AV *av) {
   size_t idx;
   dc_av_slot *s;
 
@@ -590,9 +595,10 @@ static dc_av_slot *dc_av_insert(dc_av_cache *c, OP *addr,
     idx = (idx + 1) & c->mask;
   }
 
-  s->addr    = addr;
-  s->op_next = op_next;
-  s->av      = av;
+  s->addr        = addr;
+  s->op_next     = op_next;
+  s->op_identity = op_identity;
+  s->av          = av;
   c->count++;
   return s;
 }
@@ -610,9 +616,45 @@ static void dc_av_grow(dc_av_cache *c) {
   for (i = 0; i < old_cap; i++) {
     dc_av_slot *old = &old_slots[i];
     if (old->addr)
-      dc_av_insert(c, old->addr, old->op_next, old->av);
+      dc_av_insert(c, old->addr, old->op_next, old->op_identity, old->av);
   }
   Safefree(old_slots);
+}
+
+/*
+ * Fetch (or create) the AV for an op from the av_cache, falling back to
+ * hv_fetch on the given backing HV on a cache miss.  If the AV is newly
+ * created, pre-extend it with init_slots empty entries (0 = no extension).
+ */
+static AV *dc_av_cached_fetch(pTHX_ dc_av_cache *cache, HV *backing_hv,
+                              OP *op, size_t identity, int init_slots) {
+  AV         *av;
+  dc_av_slot *slot = dc_av_lookup(cache, op);
+
+  if (slot && slot->op_next == op->op_next && slot->op_identity == identity)
+    return slot->av;
+
+  /* Slow path: hv_fetch */
+  {
+    SV **svp = hv_fetch(backing_hv, get_key(op), KEY_SZ, 1);
+    if (SvROK(*svp)) {
+      av = (AV *) SvRV(*svp);
+    } else {
+      *svp = newRV_inc((SV*) (av = newAV()));
+      if (init_slots)
+        av_unshift(av, init_slots);
+    }
+  }
+
+  if (slot) {
+    slot->op_next     = op->op_next;
+    slot->op_identity = identity;
+    slot->av          = av;
+  } else {
+    dc_av_insert(cache, op, op->op_next, identity, av);
+  }
+
+  return av;
 }
 
 #if CAN_PROFILE
@@ -741,10 +783,14 @@ static void cover_current_statement(pTHX) {
     dc_stmt_slot *slot = dc_stmt_lookup(&MY_CXT.stmt_cache, PL_op);
     if (slot) {
       /*
-       * Address found - check op_next as slab reuse guard. Two different
-       * ops at the same address with the same op_next is unlikely.
+       * Address found - check op_next and CopFILE as slab reuse
+       * guards. Structurally identical eval'd modules at reused slab addresses
+       * share op_next (and op_identity), but have different CopFILE
+       * pointers. cover_current_statement is only called for NEXTSTATE/DBSTATE
+       * ops, so CopFILE is always valid.
        */
-      if (slot->op_next == PL_op->op_next) {
+      if (slot->op_next == PL_op->op_next
+          && slot->cop_file == CopFILE((COP *)PL_op)) {
         slot->stmt_count++;
         return;
       }
@@ -761,29 +807,21 @@ static void cover_current_statement(pTHX) {
         existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
         sv_setiv(*sv, existing + slot->stmt_count);
       }
-      slot->op_next     = PL_op->op_next;
-      slot->op_identity = hash_op_identity(PL_op);
-      slot->fileinfohash =
-        (PL_op->op_type == OP_NEXTSTATE
-        || PL_op->op_type == OP_DBSTATE)
-        ? fnv1a_hash_file_line(
-            CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
-        : 0;
+      slot->op_next      = PL_op->op_next;
+      slot->cop_file     = CopFILE((COP *)PL_op);
+      slot->op_identity  = hash_op_identity(PL_op);
+      slot->fileinfohash = fnv1a_hash_file_line(
+        CopFILE((COP *)PL_op), CopLINE((COP *)PL_op));
       slot->stmt_count = 1;
       return;
     }
 
     /* Cache miss: insert and count the first execution */
     {
-      size_t identity = hash_op_identity(PL_op);
-      size_t filehash =
-        (PL_op->op_type == OP_NEXTSTATE
-        || PL_op->op_type == OP_DBSTATE)
-        ? fnv1a_hash_file_line(
-            CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
-        : 0;
+      const char *cop_file = CopFILE((COP *)PL_op);
       dc_stmt_slot *s = dc_stmt_insert(&MY_CXT.stmt_cache,
-        PL_op, PL_op->op_next, identity, filehash);
+        PL_op, PL_op->op_next, cop_file, hash_op_identity(PL_op),
+        fnv1a_hash_file_line(cop_file, CopLINE((COP *)PL_op)));
       s->stmt_count = 1;
     }
   }
@@ -791,65 +829,18 @@ static void cover_current_statement(pTHX) {
 
 static void add_branch(pTHX_ OP *op, int br) {
   dMY_CXT;
-
-  AV  *branches;
-  SV **count;
-  int  c;
-  dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
-
-  if (slot && slot->op_next == op->op_next) {
-    branches = slot->av;
-  } else {
-    SV **tmp = hv_fetch(MY_CXT.branches, get_key(op), KEY_SZ, 1);
-    if (SvROK(*tmp)) {
-      branches = (AV *) SvRV(*tmp);
-    } else {
-      *tmp = newRV_inc((SV*) (branches = newAV()));
-      av_unshift(branches, 2);
-    }
-    if (slot) {
-      slot->op_next = op->op_next;
-      slot->av      = branches;
-    } else {
-      dc_av_insert(&MY_CXT.av_cache, op, op->op_next, branches);
-    }
-  }
-
-  count = av_fetch(branches, br, 1);
-  c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
+  AV  *branches = dc_av_cached_fetch(aTHX_ &MY_CXT.av_cache, MY_CXT.branches,
+                                     op, hash_op_identity(op), 2);
+  SV **count    = av_fetch(branches, br, 1);
+  int  c        = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
   sv_setiv(*count, c);
   NDEB(D(L, "Adding branch making %d at %p\n", c, op));
 }
 
 static AV *get_conditional_array(pTHX_ OP *op) {
   dMY_CXT;
-
-  AV  *conds;
-  dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
-
-  if (slot) {
-    if (slot->op_next == op->op_next)
-      return slot->av;
-    /* Slab reuse: update slot in place below */
-  }
-
-  /* Slow path: hv_fetch */
-  {
-    SV **cref = hv_fetch(MY_CXT.conditions, get_key(op), KEY_SZ, 1);
-    if (SvROK(*cref))
-      conds = (AV *) SvRV(*cref);
-    else
-      *cref = newRV_inc((SV*) (conds = newAV()));
-  }
-
-  if (slot) {
-    slot->op_next = op->op_next;
-    slot->av      = conds;
-  } else {
-    dc_av_insert(&MY_CXT.av_cache, op, op->op_next, conds);
-  }
-
-  return conds;
+  return dc_av_cached_fetch(aTHX_ &MY_CXT.av_cache, MY_CXT.conditions, op,
+                            hash_op_identity(op), 0);
 }
 
 static void set_conditional(pTHX_ OP *op, int cond, int value) {
