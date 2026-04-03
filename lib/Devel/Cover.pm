@@ -307,7 +307,9 @@ sub _init_coverage {
     }
     delete $Coverage{$_} unless length;
   }
-  %Coverage         = (all => 1) unless keys %Coverage;
+  unless (keys %Coverage) {
+    %Coverage = map { $_ => 1 } grep $_ ne "time", keys %Criteria;
+  }
   %Coverage_options = %Coverage;
 }
 
@@ -1453,7 +1455,7 @@ In this example, Devel::Cover will be operating in silent mode.
                         if blib directory exists, false otherwise)
   -coverage criterion - Turn on coverage for the specified criterion.  Criteria
                         include statement, branch, condition, path, subroutine,
-                        pod, time, all and none (default all available)
+                        pod, time, all and none (default all except time)
   -db cover_db        - Store results in coverage db (default ./cover_db)
   -dir path           - Directory in which coverage will be collected (default
                         cwd)
