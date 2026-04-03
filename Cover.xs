@@ -47,14 +47,71 @@ extern "C" {
 # define CAN_PROFILE 0
 #endif
 
-struct unique {  /* Well, we'll be fairly unlucky if it's not */
-    OP *addr,
-        op;
-    /* include hashed file location information, where available (cops) */
-    size_t fileinfohash;
+struct unique {          /* Well, we'll be fairly unlucky if it's not */
+    OP    *addr;         /* op address                                */
+    size_t op_identity;  /* hash of meaningful OP fields              */
+    size_t fileinfohash; /* hashed file location or 0                 */
 };
 
 #define KEY_SZ sizeof(struct unique)
+
+/*
+ * C-level cache mapping OP * -> statement count.  Avoids the full
+ * get_key + hv_fetch path for repeat statement executions (~95% of
+ * all hits in a typical program).  Uses open addressing with linear
+ * probing, keyed by the raw op pointer.
+ *
+ * On a cache hit, only one pointer comparison (op_next) is needed as
+ * a slab-reuse guard; the full identity hash is stored solely for key
+ * reconstruction at flush time.
+ *
+ * Cached counts are flushed into the Perl statements HV when the
+ * coverage() XS function is called (i.e. at report time).
+ */
+
+typedef struct {
+    OP     *addr;         /* key: op address (NULL = empty slot)    */
+    OP     *op_next;      /* slab reuse guard: o->op_next at insert */
+    size_t  op_identity;  /* for struct unique key at flush time    */
+    size_t  fileinfohash; /* for struct unique key at flush time    */
+    IV      stmt_count;   /* accumulated statement count            */
+} dc_stmt_slot;
+
+typedef struct {
+    dc_stmt_slot *slots;
+    size_t        capacity; /* always power of 2                    */
+    size_t        count;    /* occupied slots                       */
+    size_t        mask;     /* capacity - 1                         */
+} dc_stmt_cache;
+
+#define DC_STMT_CACHE_INIT_CAP 1024
+#define DC_STMT_CACHE_LOAD_PCT 70
+
+/*
+ * C-level cache mapping OP * -> AV * for condition and branch arrays.
+ * Avoids the get_key + hv_fetch path on repeat executions.  Unlike the
+ * statement cache, no flush is needed: the cached AV pointer IS the
+ * authoritative object living in the conditions or branches HV.
+ *
+ * The same cache serves both condition and branch ops because the two
+ * sets are disjoint (logops vs OP_COND_EXPR).
+ */
+
+typedef struct {
+    OP  *addr;      /* key: op address (NULL = empty slot) */
+    OP  *op_next;   /* slab reuse guard                    */
+    AV  *av;        /* cached AV pointer                   */
+} dc_av_slot;
+
+typedef struct {
+    dc_av_slot *slots;
+    size_t      capacity; /* always power of 2 */
+    size_t      count;    /* occupied slots     */
+    size_t      mask;     /* capacity - 1       */
+} dc_av_cache;
+
+#define DC_AV_CACHE_INIT_CAP 256
+#define DC_AV_CACHE_LOAD_PCT 70
 
 typedef struct {
     unsigned      covering;
@@ -73,10 +130,13 @@ typedef struct {
     bool          profiling_key_valid;
     SV           *module,
                  *lastfile;
+    char         *lastfile_ptr;  /* cached CopFILE pointer */
     int           tid;
     int           replace_ops;
     /* - fix up whatever is broken with module_relative on Windows here */
 
+    dc_stmt_cache stmt_cache;
+    dc_av_cache   av_cache;
     Perl_ppaddr_t ppaddr[MAXO];
 } my_cxt_t;
 
@@ -109,9 +169,10 @@ extern "C" {
 #endif
 
 /* op->op_sibling is deprecated on new perls, but the OpSIBLING macro doesn't
-   exist on older perls. We don't need to check for PERL_OP_PARENT here
-   because if PERL_OP_PARENT was set, and we needed to check op_moresib,
-   we would already have this macro. */
+ * exist on older perls. We don't need to check for PERL_OP_PARENT here because
+ * if PERL_OP_PARENT was set, and we needed to check op_moresib, we would
+ * already have this macro.
+ */
 #ifndef OpSIBLING
 #define OpSIBLING(o) (0 + (o)->op_sibling)
 #endif
@@ -186,36 +247,64 @@ static int cpu() {
  *   authors deliberately took no steps to patent the FNV algorithm. Therefore
  *   it is safe to say that the FNV authors have no patent claims on the FNV
  *   algorithm as published.
- *
-*/
+ */
 
-/* Fowler/Noll/Vo (FNV) hash function, variant 1a */
-static size_t fnv1a_hash(const char* cp)
-{
+/* Fowler/Noll/Vo (FNV) hash function, variant 1a
+ * Hash filename bytes and line number directly, avoiding snprintf.
+ */
+static size_t fnv1a_hash_file_line(const char *file, long line) {
     size_t hash = 0x811c9dc5;
-    while (*cp) {
-        hash ^= (unsigned char) *cp++;
+    const unsigned char *p;
+    size_t i;
+    while (*file) {
+        hash ^= (unsigned char)*file++;
+        hash *= 0x01000193;
+    }
+    p = (const unsigned char *)&line;
+    for (i = 0; i < sizeof(line); i++) {
+        hash ^= p[i];
         hash *= 0x01000193;
     }
     return hash;
 }
 
-#define FILEINFOSZ 1024
+/* Fast fingerprint of the OP fields that distinguish one op from
+ * another at the same address (slab reuse guard).  Replaces copying
+ * the full 40-byte OP struct and zeroing two fields.  Only needs
+ * to be collision-resistant enough that two unrelated ops sharing
+ * an address produce different values; fileinfohash provides a
+ * second check for COPs.
+ *
+ * The old code copied the entire OP struct (40 bytes), then zeroed
+ * op_ppaddr (we replace it during instrumentation) and op_targ
+ * (can change at runtime).  That left 20 meaningful bytes:
+ * op_next (8), op_sibling/op_sibparent (8), and the type/flags bitfields (4).
+ * This function mixes those same fields into a single size_t.
+ *
+ * 0x00000100000001B3 is the FNV-1a 64-bit prime.  It is used here
+ * as a mixing multiplier rather than as part of a true FNV-1a hash
+ * - its sparse-high / dense-low bit pattern spreads input bits
+ * well across the result.
+ */
+static size_t hash_op_identity(const OP *o) {
+    size_t h = (size_t)o->op_next;
+    h ^= (size_t)OpSIBLING(o) * 0x00000100000001B3ULL;
+    h ^= ((size_t)o->op_type << 16)
+       |  ((size_t)o->op_flags << 8)
+       |   (size_t)o->op_private;
+    h *= 0x00000100000001B3ULL;
+    return h;
+}
 
 static char *get_key(OP *o) {
     static struct unique uniq;
-    static char mybuf[FILEINFOSZ];
 
-    uniq.addr          = o;
-    uniq.op            = *o;
-    uniq.op.op_ppaddr  = 0;  /* we mess with this field */
-    uniq.op.op_targ    = 0;  /* might change            */
+    uniq.addr        = o;
+    uniq.op_identity = hash_op_identity(o);
     if (o->op_type == OP_NEXTSTATE || o->op_type == OP_DBSTATE) {
         /* cop, has file location information */
-        char *file = CopFILE((COP *)o);
-        long  line = CopLINE((COP *)o);
-        snprintf(mybuf, FILEINFOSZ - 1, "%s:%ld", file, line);
-        uniq.fileinfohash = fnv1a_hash(mybuf);
+        uniq.fileinfohash = fnv1a_hash_file_line(
+            CopFILE((COP *)o), CopLINE((COP *)o));
     } else {
         /* no file location information available */
         uniq.fileinfohash = 0;
@@ -264,51 +353,65 @@ static int check_if_collecting(pTHX_ COP *cop) {
     int tainted = PL_tainted;
 #endif
     char *file = CopFILE(cop);
-    int in_re_eval = strnEQ(file, "(reeval ", 8);
     NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, (long)CopLINE(cop)));
-    if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file)) {
-        int found = 0;
-        if (MY_CXT.files) {
-            SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
-            if (f) {
-                MY_CXT.collecting_here = SvIV(*f);
-                found = 1;
-                NDEB(D(L, "File: %s:%ld [%d]\n",
-                           file, (long)CopLINE(cop), MY_CXT.collecting_here));
+
+    /* Fast path: same CopFILE pointer as last time means same file.  Skip the
+     * SV unpack, strcmp, and reeval check.
+     */
+    if (file != MY_CXT.lastfile_ptr) {
+        if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file)) {
+            int found = 0;
+            if (MY_CXT.files) {
+                SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
+                if (f) {
+                    MY_CXT.collecting_here = SvIV(*f);
+                    found = 1;
+                    NDEB(D(L, "File: %s:%ld [%d]\n",
+                               file, (long)CopLINE(cop),
+                               MY_CXT.collecting_here));
+                }
             }
+
+            if (!found && MY_CXT.replace_ops
+                    && !strnEQ(file, "(reeval ", 8)) {
+                dSP;
+                int count;
+                SV *rv;
+
+                ENTER;
+                SAVETMPS;
+
+                PUSHMARK(SP);
+                XPUSHs(sv_2mortal(newSVpv(file, 0)));
+                PUTBACK;
+
+                count = call_pv("Devel::Cover::use_file", G_SCALAR);
+
+                SPAGAIN;
+
+                if (count != 1)
+                    croak("use_file returned %d values\n", count);
+
+                rv = POPs;
+                MY_CXT.collecting_here = SvTRUE(rv) ? 1 : 0;
+
+                NDEB(D(L, "-- %s - %d\n", file,
+                          MY_CXT.collecting_here));
+
+                PUTBACK;
+                FREETMPS;
+                LEAVE;
+            }
+
+            sv_setpv(MY_CXT.lastfile, file);
         }
 
-        if (!found && MY_CXT.replace_ops && !in_re_eval) {
-            dSP;
-            int count;
-            SV *rv;
-
-            ENTER;
-            SAVETMPS;
-
-            PUSHMARK(SP);
-            XPUSHs(sv_2mortal(newSVpv(file, 0)));
-            PUTBACK;
-
-            count = call_pv("Devel::Cover::use_file", G_SCALAR);
-
-            SPAGAIN;
-
-            if (count != 1)
-                croak("use_file returned %d values\n", count);
-
-            rv = POPs;
-            MY_CXT.collecting_here = SvTRUE(rv) ? 1 : 0;
-
-            NDEB(D(L, "-- %s - %d\n", file, MY_CXT.collecting_here));
-
-            PUTBACK;
-            FREETMPS;
-            LEAVE;
-        }
-
-        sv_setpv(MY_CXT.lastfile, file);
+        /* Update pointer even when strings match, so a new pointer for the same
+         * file gets the fast path next time.
+         */
+        MY_CXT.lastfile_ptr = file;
     }
+
     NDEB(D(L, "%s - %d\n",
               SvPV_nolen(MY_CXT.lastfile), MY_CXT.collecting_here));
 
@@ -340,9 +443,177 @@ static int check_if_collecting(pTHX_ COP *cop) {
     return MY_CXT.collecting_here;
 }
 
+static void dc_stmt_cache_init(dc_stmt_cache *c) {
+    c->capacity = DC_STMT_CACHE_INIT_CAP;
+    c->count    = 0;
+    c->mask     = c->capacity - 1;
+    Newxz(c->slots, c->capacity, dc_stmt_slot);
+}
+
+static void dc_stmt_grow(dc_stmt_cache *c);
+
+/* Look up by address.  Returns the slot if found (caller must check op_next for
+ * slab reuse), or NULL if not in the cache.
+ */
+static dc_stmt_slot *dc_stmt_lookup(dc_stmt_cache *c, OP *addr) {
+    size_t idx;
+    if (!c->slots) return NULL;
+    idx = ((size_t)addr >> 4) & c->mask;
+    for (;;) {
+        dc_stmt_slot *s = &c->slots[idx];
+        if (!s->addr)        return NULL;  /* empty = not found */
+        if (s->addr == addr) return s;     /* found             */
+        idx = (idx + 1) & c->mask;
+    }
+}
+
+/* Insert a new entry.  Caller must ensure addr is not already present.  Returns
+ * the new slot with stmt_count = 0.
+ */
+static dc_stmt_slot *dc_stmt_insert(dc_stmt_cache *c, OP *addr,
+                                     OP *op_next, size_t op_identity,
+                                     size_t fileinfohash) {
+    size_t idx;
+    dc_stmt_slot *s;
+
+    if (!c->slots) dc_stmt_cache_init(c);
+
+    /* Grow if above load factor */
+    if (c->count * 100 >= c->capacity * DC_STMT_CACHE_LOAD_PCT)
+        dc_stmt_grow(c);
+
+    idx = ((size_t)addr >> 4) & c->mask;
+    for (;;) {
+        s = &c->slots[idx];
+        if (!s->addr) break;  /* found empty slot */
+        idx = (idx + 1) & c->mask;
+    }
+
+    s->addr         = addr;
+    s->op_next      = op_next;
+    s->op_identity  = op_identity;
+    s->fileinfohash = fileinfohash;
+    s->stmt_count   = 0;
+    c->count++;
+    return s;
+}
+
+static void dc_stmt_grow(dc_stmt_cache *c) {
+    dc_stmt_slot *old_slots = c->slots;
+    size_t        old_cap   = c->capacity;
+    size_t        i;
+
+    c->capacity *= 2;
+    c->mask      = c->capacity - 1;
+    c->count     = 0;
+    Newxz(c->slots, c->capacity, dc_stmt_slot);
+
+    for (i = 0; i < old_cap; i++) {
+        dc_stmt_slot *old = &old_slots[i];
+        if (old->addr) {
+            dc_stmt_slot *s = dc_stmt_insert(c, old->addr,
+                old->op_next, old->op_identity, old->fileinfohash);
+            s->stmt_count = old->stmt_count;
+        }
+    }
+    Safefree(old_slots);
+}
+
+/* Flush all cached counts into the Perl statements HV, then zero the cached
+ * counts.  The cache structure stays intact so that subsequent executions still
+ * get cache hits.
+ */
+static void dc_stmt_cache_flush(pTHX_ dc_stmt_cache *c, HV *statements) {
+    size_t i;
+
+    if (!c->slots) return;
+
+    for (i = 0; i < c->capacity; i++) {
+        dc_stmt_slot *s = &c->slots[i];
+        if (s->addr && s->stmt_count) {
+            SV **sv;
+            IV   existing;
+
+            /* Reconstruct the struct unique key from cached fields */
+            struct unique uniq;
+            uniq.addr         = s->addr;
+            uniq.op_identity  = s->op_identity;
+            uniq.fileinfohash = s->fileinfohash;
+
+            sv = hv_fetch(statements, (char *)&uniq, KEY_SZ, 1);
+            existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
+            sv_setiv(*sv, existing + s->stmt_count);
+            s->stmt_count = 0;
+        }
+    }
+}
+
+static void dc_av_cache_init(dc_av_cache *c) {
+    c->capacity = DC_AV_CACHE_INIT_CAP;
+    c->count    = 0;
+    c->mask     = c->capacity - 1;
+    Newxz(c->slots, c->capacity, dc_av_slot);
+}
+
+static void dc_av_grow(dc_av_cache *c);
+
+static dc_av_slot *dc_av_lookup(dc_av_cache *c, OP *addr) {
+    size_t idx;
+    if (!c->slots) return NULL;
+    idx = ((size_t)addr >> 4) & c->mask;
+    for (;;) {
+        dc_av_slot *s = &c->slots[idx];
+        if (!s->addr)        return NULL;
+        if (s->addr == addr) return s;
+        idx = (idx + 1) & c->mask;
+    }
+}
+
+static dc_av_slot *dc_av_insert(dc_av_cache *c, OP *addr,
+                                 OP *op_next, AV *av) {
+    size_t idx;
+    dc_av_slot *s;
+
+    if (!c->slots) dc_av_cache_init(c);
+
+    if (c->count * 100 >= c->capacity * DC_AV_CACHE_LOAD_PCT)
+        dc_av_grow(c);
+
+    idx = ((size_t)addr >> 4) & c->mask;
+    for (;;) {
+        s = &c->slots[idx];
+        if (!s->addr) break;
+        idx = (idx + 1) & c->mask;
+    }
+
+    s->addr    = addr;
+    s->op_next = op_next;
+    s->av      = av;
+    c->count++;
+    return s;
+}
+
+static void dc_av_grow(dc_av_cache *c) {
+    dc_av_slot *old_slots = c->slots;
+    size_t      old_cap   = c->capacity;
+    size_t      i;
+
+    c->capacity *= 2;
+    c->mask      = c->capacity - 1;
+    c->count     = 0;
+    Newxz(c->slots, c->capacity, dc_av_slot);
+
+    for (i = 0; i < old_cap; i++) {
+        dc_av_slot *old = &old_slots[i];
+        if (old->addr)
+            dc_av_insert(c, old->addr, old->op_next, old->av);
+    }
+    Safefree(old_slots);
+}
+
 #if CAN_PROFILE
 
-static void cover_time(pTHX)
+static void cover_time(pTHX_ const char *key)
 {
     dMY_CXT;
     SV **count;
@@ -366,8 +637,8 @@ static void cover_time(pTHX)
 #endif
             sv_setnv(*count, c);
         }
-        if (PL_op) {
-            memcpy(MY_CXT.profiling_key, get_key(PL_op), KEY_SZ);
+        if (key) {
+            memcpy(MY_CXT.profiling_key, key, KEY_SZ);
             MY_CXT.profiling_key_valid = 1;
         } else {
             MY_CXT.profiling_key_valid = 0;
@@ -383,8 +654,7 @@ static int collecting_here(pTHX) {
     if (MY_CXT.collecting_here) return 1;
 
 #if CAN_PROFILE
-    cover_time(aTHX);
-    MY_CXT.profiling_key_valid = 0;
+    cover_time(aTHX_ NULL);
 #endif
 
     NDEB(D(L, "op %p is %s\n", PL_op, OP_NAME(PL_op)));
@@ -426,16 +696,14 @@ static void call_report(pTHX) {
     SPAGAIN;
 }
 
-static void cover_statement(pTHX_ OP *op) {
+static void cover_statement(pTHX_ OP *op, const char *ch) {
     dMY_CXT;
 
-    char *ch;
     SV  **count;
     IV    c;
 
     if (!collecting(Statement)) return;
 
-    ch    = get_key(op);
     count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
     c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
 
@@ -446,11 +714,72 @@ static void cover_statement(pTHX_ OP *op) {
 }
 
 static void cover_current_statement(pTHX) {
+    dMY_CXT;
+
 #if CAN_PROFILE
-    cover_time(aTHX);
+    /* When time coverage is enabled we need the full key for the profiling_key
+     * bookkeeping, so bypass the cache entirely.
+     */
+    if (collecting(Time)) {
+        const char *ch = get_key(PL_op);
+        cover_time(aTHX_ ch);
+        cover_statement(aTHX_ PL_op, ch);
+        return;
+    }
 #endif
 
-    cover_statement(aTHX_ PL_op);
+    if (!collecting(Statement)) return;
+
+    /* Fast path: C-level statement cache (time coverage is off) */
+    {
+        dc_stmt_slot *slot = dc_stmt_lookup(&MY_CXT.stmt_cache, PL_op);
+        if (slot) {
+            /* Address found - check op_next as slab reuse guard. Two different
+             * ops at the same address with the same op_next is unlikely.
+             */
+            if (slot->op_next == PL_op->op_next) {
+                slot->stmt_count++;
+                return;
+            }
+            /* Slab reuse: flush stale count, update slot in place */
+            if (slot->stmt_count) {
+                struct unique uniq;
+                SV **sv;
+                IV   existing;
+                uniq.addr         = slot->addr;
+                uniq.op_identity  = slot->op_identity;
+                uniq.fileinfohash = slot->fileinfohash;
+                sv = hv_fetch(MY_CXT.statements,
+                              (char *)&uniq, KEY_SZ, 1);
+                existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
+                sv_setiv(*sv, existing + slot->stmt_count);
+            }
+            slot->op_next     = PL_op->op_next;
+            slot->op_identity = hash_op_identity(PL_op);
+            slot->fileinfohash =
+                (PL_op->op_type == OP_NEXTSTATE
+              || PL_op->op_type == OP_DBSTATE)
+                ? fnv1a_hash_file_line(
+                      CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
+                : 0;
+            slot->stmt_count = 1;
+            return;
+        }
+
+        /* Cache miss: insert and count the first execution */
+        {
+            size_t identity = hash_op_identity(PL_op);
+            size_t filehash =
+                (PL_op->op_type == OP_NEXTSTATE
+              || PL_op->op_type == OP_DBSTATE)
+                ? fnv1a_hash_file_line(
+                      CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
+                : 0;
+            dc_stmt_slot *s = dc_stmt_insert(&MY_CXT.stmt_cache,
+                PL_op, PL_op->op_next, identity, filehash);
+            s->stmt_count = 1;
+        }
+    }
 }
 
 static void add_branch(pTHX_ OP *op, int br) {
@@ -459,13 +788,24 @@ static void add_branch(pTHX_ OP *op, int br) {
     AV  *branches;
     SV **count;
     int  c;
-    SV **tmp = hv_fetch(MY_CXT.branches, get_key(op), KEY_SZ, 1);
+    dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
 
-    if (SvROK(*tmp)) {
-        branches = (AV *) SvRV(*tmp);
+    if (slot && slot->op_next == op->op_next) {
+        branches = slot->av;
     } else {
-        *tmp = newRV_inc((SV*) (branches = newAV()));
-        av_unshift(branches, 2);
+        SV **tmp = hv_fetch(MY_CXT.branches, get_key(op), KEY_SZ, 1);
+        if (SvROK(*tmp)) {
+            branches = (AV *) SvRV(*tmp);
+        } else {
+            *tmp = newRV_inc((SV*) (branches = newAV()));
+            av_unshift(branches, 2);
+        }
+        if (slot) {
+            slot->op_next = op->op_next;
+            slot->av      = branches;
+        } else {
+            dc_av_insert(&MY_CXT.av_cache, op, op->op_next, branches);
+        }
     }
 
     count = av_fetch(branches, br, 1);
@@ -478,12 +818,29 @@ static AV *get_conditional_array(pTHX_ OP *op) {
     dMY_CXT;
 
     AV  *conds;
-    SV **cref = hv_fetch(MY_CXT.conditions, get_key(op), KEY_SZ, 1);
+    dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
 
-    if (SvROK(*cref))
-        conds = (AV *) SvRV(*cref);
-    else
-        *cref = newRV_inc((SV*) (conds = newAV()));
+    if (slot) {
+        if (slot->op_next == op->op_next)
+            return slot->av;
+        /* Slab reuse: update slot in place below */
+    }
+
+    /* Slow path: hv_fetch */
+    {
+        SV **cref = hv_fetch(MY_CXT.conditions, get_key(op), KEY_SZ, 1);
+        if (SvROK(*cref))
+            conds = (AV *) SvRV(*cref);
+        else
+            *cref = newRV_inc((SV*) (conds = newAV()));
+    }
+
+    if (slot) {
+        slot->op_next = op->op_next;
+        slot->av      = conds;
+    } else {
+        dc_av_insert(&MY_CXT.av_cache, op, op->op_next, conds);
+    }
 
     return conds;
 }
@@ -960,7 +1317,7 @@ static void cover_padrange(pTHX) {
     orig = OpSIBLING(PL_op);
     while (orig && orig != next) {
         if (orig->op_type == OP_NEXTSTATE) {
-            cover_statement(aTHX_ orig);
+            cover_statement(aTHX_ orig, get_key(orig));
         }
         orig = orig->op_next;
     }
@@ -1167,8 +1524,11 @@ static void initialise(pTHX) {
 #endif
 
         MY_CXT.profiling_key_valid = 0;
+        Zero(&MY_CXT.stmt_cache, 1, dc_stmt_cache);
+        Zero(&MY_CXT.av_cache, 1, dc_av_cache);
         MY_CXT.module              = newSVpv("", 0);
         MY_CXT.lastfile            = newSVpvn("", 1);
+        MY_CXT.lastfile_ptr        = NULL;
         MY_CXT.covering            = All;
         MY_CXT.tid                 = tid++;
 
@@ -1270,7 +1630,7 @@ static int runops_cover(pTHX) {
     }
 
 #if CAN_PROFILE
-    cover_time(aTHX);
+    cover_time(aTHX_ NULL);
 #endif
 
     MY_CXT.collecting_here = 1;
@@ -1474,6 +1834,8 @@ coverage(final)
         dMY_CXT;
     CODE:
         NDEB(D(L, "Getting coverage %d\n", final));
+        if (MY_CXT.statements)
+            dc_stmt_cache_flush(aTHX_ &MY_CXT.stmt_cache, MY_CXT.statements);
         if (final) finalise_conditions(aTHX);
         if (MY_CXT.cover)
             RETVAL = newRV_inc((SV*) MY_CXT.cover);
