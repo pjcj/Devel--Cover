@@ -104,6 +104,7 @@ typedef struct {
     bool          profiling_key_valid;
     SV           *module,
                  *lastfile;
+    char         *lastfile_ptr;  /* cached CopFILE pointer */
     int           tid;
     int           replace_ops;
     /* - fix up whatever is broken with module_relative on Windows here */
@@ -325,51 +326,65 @@ static int check_if_collecting(pTHX_ COP *cop) {
     int tainted = PL_tainted;
 #endif
     char *file = CopFILE(cop);
-    int in_re_eval = strnEQ(file, "(reeval ", 8);
     NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, (long)CopLINE(cop)));
-    if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file)) {
-        int found = 0;
-        if (MY_CXT.files) {
-            SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
-            if (f) {
-                MY_CXT.collecting_here = SvIV(*f);
-                found = 1;
-                NDEB(D(L, "File: %s:%ld [%d]\n",
-                           file, (long)CopLINE(cop), MY_CXT.collecting_here));
+
+    /* Fast path: same CopFILE pointer as last time means same file.  Skip the
+     * SV unpack, strcmp, and reeval check.
+     */
+    if (file != MY_CXT.lastfile_ptr) {
+        if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file)) {
+            int found = 0;
+            if (MY_CXT.files) {
+                SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
+                if (f) {
+                    MY_CXT.collecting_here = SvIV(*f);
+                    found = 1;
+                    NDEB(D(L, "File: %s:%ld [%d]\n",
+                               file, (long)CopLINE(cop),
+                               MY_CXT.collecting_here));
+                }
             }
+
+            if (!found && MY_CXT.replace_ops
+                    && !strnEQ(file, "(reeval ", 8)) {
+                dSP;
+                int count;
+                SV *rv;
+
+                ENTER;
+                SAVETMPS;
+
+                PUSHMARK(SP);
+                XPUSHs(sv_2mortal(newSVpv(file, 0)));
+                PUTBACK;
+
+                count = call_pv("Devel::Cover::use_file", G_SCALAR);
+
+                SPAGAIN;
+
+                if (count != 1)
+                    croak("use_file returned %d values\n", count);
+
+                rv = POPs;
+                MY_CXT.collecting_here = SvTRUE(rv) ? 1 : 0;
+
+                NDEB(D(L, "-- %s - %d\n", file,
+                          MY_CXT.collecting_here));
+
+                PUTBACK;
+                FREETMPS;
+                LEAVE;
+            }
+
+            sv_setpv(MY_CXT.lastfile, file);
         }
 
-        if (!found && MY_CXT.replace_ops && !in_re_eval) {
-            dSP;
-            int count;
-            SV *rv;
-
-            ENTER;
-            SAVETMPS;
-
-            PUSHMARK(SP);
-            XPUSHs(sv_2mortal(newSVpv(file, 0)));
-            PUTBACK;
-
-            count = call_pv("Devel::Cover::use_file", G_SCALAR);
-
-            SPAGAIN;
-
-            if (count != 1)
-                croak("use_file returned %d values\n", count);
-
-            rv = POPs;
-            MY_CXT.collecting_here = SvTRUE(rv) ? 1 : 0;
-
-            NDEB(D(L, "-- %s - %d\n", file, MY_CXT.collecting_here));
-
-            PUTBACK;
-            FREETMPS;
-            LEAVE;
-        }
-
-        sv_setpv(MY_CXT.lastfile, file);
+        /* Update pointer even when strings match, so a new pointer for the same
+         * file gets the fast path next time.
+         */
+        MY_CXT.lastfile_ptr = file;
     }
+
     NDEB(D(L, "%s - %d\n",
               SvPV_nolen(MY_CXT.lastfile), MY_CXT.collecting_here));
 
@@ -1394,6 +1409,7 @@ static void initialise(pTHX) {
         Zero(&MY_CXT.stmt_cache, 1, dc_stmt_cache);
         MY_CXT.module              = newSVpv("", 0);
         MY_CXT.lastfile            = newSVpvn("", 1);
+        MY_CXT.lastfile_ptr        = NULL;
         MY_CXT.covering            = All;
         MY_CXT.tid                 = tid++;
 
