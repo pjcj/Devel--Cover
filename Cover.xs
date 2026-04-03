@@ -278,7 +278,7 @@ static size_t fnv1a_hash_file_line(const char *file, long line) {
  * The old code copied the entire OP struct (40 bytes), then zeroed
  * op_ppaddr (we replace it during instrumentation) and op_targ
  * (can change at runtime).  That left 20 meaningful bytes:
- * op_next (8), op_sibparent (8), and the type/flags bitfields (4).
+ * op_next (8), op_sibling/op_sibparent (8), and the type/flags bitfields (4).
  * This function mixes those same fields into a single size_t.
  *
  * 0x00000100000001B3 is the FNV-1a 64-bit prime.  It is used here
@@ -288,7 +288,7 @@ static size_t fnv1a_hash_file_line(const char *file, long line) {
  */
 static size_t hash_op_identity(const OP *o) {
     size_t h = (size_t)o->op_next;
-    h ^= (size_t)o->op_sibparent * 0x00000100000001B3ULL;
+    h ^= (size_t)OpSIBLING(o) * 0x00000100000001B3ULL;
     h ^= ((size_t)o->op_type << 16)
        |  ((size_t)o->op_flags << 8)
        |   (size_t)o->op_private;
