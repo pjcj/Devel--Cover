@@ -47,97 +47,97 @@ extern "C" {
 # define CAN_PROFILE 0
 #endif
 
-struct unique {          /* Well, we'll be fairly unlucky if it's not */
-    OP    *addr;         /* op address                                */
-    size_t op_identity;  /* hash of meaningful OP fields              */
-    size_t fileinfohash; /* hashed file location or 0                 */
+struct unique {         /* Well, we'll be fairly unlucky if it's not */
+  OP    *addr;          /* op address                                */
+  size_t op_identity;   /* hash of meaningful OP fields              */
+  size_t fileinfohash;  /* hashed file location or 0                 */
 };
 
 #define KEY_SZ sizeof(struct unique)
 
 /*
- * C-level cache mapping OP * -> statement count.  Avoids the full
- * get_key + hv_fetch path for repeat statement executions (~95% of
- * all hits in a typical program).  Uses open addressing with linear
- * probing, keyed by the raw op pointer.
+ * C-level cache mapping OP * -> statement count.  Avoids the full get_key +
+ * hv_fetch path for repeat statement executions (~95% of all hits in a typical
+ * program).  Uses open addressing with linear probing, keyed by the raw op
+ * pointer.
  *
- * On a cache hit, only one pointer comparison (op_next) is needed as
- * a slab-reuse guard; the full identity hash is stored solely for key
+ * On a cache hit, only one pointer comparison (op_next) is needed as a
+ * slab-reuse guard; the full identity hash is stored solely for key
  * reconstruction at flush time.
  *
- * Cached counts are flushed into the Perl statements HV when the
- * coverage() XS function is called (i.e. at report time).
+ * Cached counts are flushed into the Perl statements HV when the coverage() XS
+ * function is called (i.e. at report time).
  */
 
 typedef struct {
-    OP     *addr;         /* key: op address (NULL = empty slot)    */
-    OP     *op_next;      /* slab reuse guard: o->op_next at insert */
-    size_t  op_identity;  /* for struct unique key at flush time    */
-    size_t  fileinfohash; /* for struct unique key at flush time    */
-    IV      stmt_count;   /* accumulated statement count            */
+  OP     *addr;         /* key: op address (NULL = empty slot)    */
+  OP     *op_next;      /* slab reuse guard: o->op_next at insert */
+  size_t  op_identity;  /* for struct unique key at flush time    */
+  size_t  fileinfohash; /* for struct unique key at flush time    */
+  IV      stmt_count;   /* accumulated statement count            */
 } dc_stmt_slot;
 
 typedef struct {
-    dc_stmt_slot *slots;
-    size_t        capacity; /* always power of 2                    */
-    size_t        count;    /* occupied slots                       */
-    size_t        mask;     /* capacity - 1                         */
+  dc_stmt_slot *slots;
+  size_t        capacity; /* always power of 2                    */
+  size_t        count;    /* occupied slots                       */
+  size_t        mask;     /* capacity - 1                         */
 } dc_stmt_cache;
 
 #define DC_STMT_CACHE_INIT_CAP 1024
 #define DC_STMT_CACHE_LOAD_PCT 70
 
 /*
- * C-level cache mapping OP * -> AV * for condition and branch arrays.
- * Avoids the get_key + hv_fetch path on repeat executions.  Unlike the
- * statement cache, no flush is needed: the cached AV pointer IS the
- * authoritative object living in the conditions or branches HV.
+ * C-level cache mapping OP * -> AV * for condition and branch arrays. Avoids
+ * the get_key + hv_fetch path on repeat executions.  Unlike the statement
+ * cache, no flush is needed: the cached AV pointer IS the authoritative object
+ * living in the conditions or branches HV.
  *
- * The same cache serves both condition and branch ops because the two
- * sets are disjoint (logops vs OP_COND_EXPR).
+ * The same cache serves both condition and branch ops because the two sets are
+ * disjoint (logops vs OP_COND_EXPR).
  */
 
 typedef struct {
-    OP  *addr;      /* key: op address (NULL = empty slot) */
-    OP  *op_next;   /* slab reuse guard                    */
-    AV  *av;        /* cached AV pointer                   */
+  OP  *addr;      /* key: op address (NULL = empty slot) */
+  OP  *op_next;   /* slab reuse guard                    */
+  AV  *av;        /* cached AV pointer                   */
 } dc_av_slot;
 
 typedef struct {
-    dc_av_slot *slots;
-    size_t      capacity; /* always power of 2 */
-    size_t      count;    /* occupied slots     */
-    size_t      mask;     /* capacity - 1       */
+  dc_av_slot *slots;
+  size_t      capacity; /* always power of 2 */
+  size_t      count;    /* occupied slots     */
+  size_t      mask;     /* capacity - 1       */
 } dc_av_cache;
 
 #define DC_AV_CACHE_INIT_CAP 256
 #define DC_AV_CACHE_LOAD_PCT 70
 
 typedef struct {
-    unsigned      covering;
-    int           collecting_here;
-    HV           *cover,
-                 *statements,
-                 *branches,
-                 *conditions,
+  unsigned      covering;
+  int           collecting_here;
+  HV           *cover,
+               *statements,
+               *branches,
+               *conditions,
 #if CAN_PROFILE
-                 *times,
+               *times,
 #endif
-                 *modules,
-                 *files;
-    AV           *ends;
-    char          profiling_key[KEY_SZ];
-    bool          profiling_key_valid;
-    SV           *module,
-                 *lastfile;
-    char         *lastfile_ptr;  /* cached CopFILE pointer */
-    int           tid;
-    int           replace_ops;
-    /* - fix up whatever is broken with module_relative on Windows here */
+               *modules,
+               *files;
+  AV           *ends;
+  char          profiling_key[KEY_SZ];
+  bool          profiling_key_valid;
+  SV           *module,
+               *lastfile;
+  char         *lastfile_ptr;  /* cached CopFILE pointer */
+  int           tid;
+  int           replace_ops;
+  /* - fix up whatever is broken with module_relative on Windows here */
 
-    dc_stmt_cache stmt_cache;
-    dc_av_cache   av_cache;
-    Perl_ppaddr_t ppaddr[MAXO];
+  dc_stmt_cache stmt_cache;
+  dc_av_cache   av_cache;
+  Perl_ppaddr_t ppaddr[MAXO];
 } my_cxt_t;
 
 #ifdef USE_ITHREADS
@@ -168,7 +168,8 @@ extern "C" {
 }
 #endif
 
-/* op->op_sibling is deprecated on new perls, but the OpSIBLING macro doesn't
+/*
+ * op->op_sibling is deprecated on new perls, but the OpSIBLING macro doesn't
  * exist on older perls. We don't need to check for PERL_OP_PARENT here because
  * if PERL_OP_PARENT was set, and we needed to check op_moresib, we would
  * already have this macro.
@@ -179,26 +180,26 @@ extern "C" {
 
 static double get_elapsed() {
 #ifdef WIN32
-    dTHX;
+  dTHX;
 #endif
-    struct timeval time;
-    double   e;
+  struct timeval time;
+  double   e;
 
-    gettimeofday(&time, NULL);
-    e = time.tv_sec * 1e6 + time.tv_usec;
+  gettimeofday(&time, NULL);
+  e = time.tv_sec * 1e6 + time.tv_usec;
 
-    return e;
+  return e;
 }
 
 static double elapsed() {
-    static double p;
-           double e, t;
+  static double p;
+         double e, t;
 
-    t = get_elapsed();
-    e = t - p;
-    p = t;
+  t = get_elapsed();
+  e = t - p;
+  p = t;
 
-    return e;
+  return e;
 }
 
 #elif defined HAS_TIMES
@@ -213,24 +214,24 @@ static double elapsed() {
 
 static int cpu() {
 #ifdef WIN32
-    dTHX;
+  dTHX;
 #endif
-    static struct tms time;
-    static int        utime = 0,
-                      stime = 0;
-    int               e;
+  static struct tms time;
+  static int        utime = 0,
+                    stime = 0;
+  int               e;
 
 #ifndef VMS
-    (void)PerlProc_times(&time);
+  (void)PerlProc_times(&time);
 #else
-    (void)PerlProc_times((tbuffer_t *)&time);
+  (void)PerlProc_times((tbuffer_t *)&time);
 #endif
 
-    e = time.tms_utime - utime + time.tms_stime - stime;
-    utime = time.tms_utime;
-    stime = time.tms_stime;
+  e = time.tms_utime - utime + time.tms_stime - stime;
+  utime = time.tms_utime;
+  stime = time.tms_stime;
 
-    return e / HZ;
+  return e / HZ;
 }
 
 #endif /* HAS_GETTIMEOFDAY */
@@ -240,1468 +241,1467 @@ static int cpu() {
  * https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
  * http://www.isthe.com/chongo/tech/comp/fnv/index.html#public_domain
  *
- *   FNV hash algorithms and source code have been released into the
- *   public domain. The authors of the FNV algorithm took deliberate
- *   steps to disclose the algorithm in a public forum soon after it was
- *   invented. More than a year passed after this public disclosure and the
- *   authors deliberately took no steps to patent the FNV algorithm. Therefore
- *   it is safe to say that the FNV authors have no patent claims on the FNV
- *   algorithm as published.
+ * FNV hash algorithms and source code have been released into the public
+ * domain. The authors of the FNV algorithm took deliberate steps to disclose
+ * the algorithm in a public forum soon after it was invented. More than a year
+ * passed after this public disclosure and the authors deliberately took no
+ * steps to patent the FNV algorithm. Therefore it is safe to say that the FNV
+ * authors have no patent claims on the FNV algorithm as published.
  */
 
-/* Fowler/Noll/Vo (FNV) hash function, variant 1a
+/*
+ * Fowler/Noll/Vo (FNV) hash function, variant 1a
  * Hash filename bytes and line number directly, avoiding snprintf.
  */
 static size_t fnv1a_hash_file_line(const char *file, long line) {
-    size_t hash = 0x811c9dc5;
-    const unsigned char *p;
-    size_t i;
-    while (*file) {
-        hash ^= (unsigned char)*file++;
-        hash *= 0x01000193;
-    }
-    p = (const unsigned char *)&line;
-    for (i = 0; i < sizeof(line); i++) {
-        hash ^= p[i];
-        hash *= 0x01000193;
-    }
-    return hash;
+  size_t hash = 0x811c9dc5;
+  const unsigned char *p;
+  size_t i;
+  while (*file) {
+    hash ^= (unsigned char)*file++;
+    hash *= 0x01000193;
+  }
+  p = (const unsigned char *)&line;
+  for (i = 0; i < sizeof(line); i++) {
+    hash ^= p[i];
+    hash *= 0x01000193;
+  }
+  return hash;
 }
 
-/* Fast fingerprint of the OP fields that distinguish one op from
- * another at the same address (slab reuse guard).  Replaces copying
- * the full 40-byte OP struct and zeroing two fields.  Only needs
- * to be collision-resistant enough that two unrelated ops sharing
- * an address produce different values; fileinfohash provides a
- * second check for COPs.
+/*
+ * Fast fingerprint of the OP fields that distinguish one op from another at the
+ * same address (slab reuse guard).  Replaces copying the full 40-byte OP struct
+ * and zeroing two fields.  Only needs to be collision-resistant enough that two
+ * unrelated ops sharing an address produce different values; fileinfohash
+ * provides a second check for COPs.
  *
- * The old code copied the entire OP struct (40 bytes), then zeroed
- * op_ppaddr (we replace it during instrumentation) and op_targ
- * (can change at runtime).  That left 20 meaningful bytes:
- * op_next (8), op_sibling/op_sibparent (8), and the type/flags bitfields (4).
- * This function mixes those same fields into a single size_t.
+ * The old code copied the entire OP struct (40 bytes), then zeroed op_ppaddr
+ * (we replace it during instrumentation) and op_targ (can change at runtime).
+ * That left 20 meaningful bytes: op_next (8), op_sibling/op_sibparent (8), and
+ * the type/flags bitfields (4). This function mixes those same fields into a
+ * single size_t.
  *
- * 0x00000100000001B3 is the FNV-1a 64-bit prime.  It is used here
- * as a mixing multiplier rather than as part of a true FNV-1a hash
- * - its sparse-high / dense-low bit pattern spreads input bits
- * well across the result.
+ * 0x00000100000001B3 is the FNV-1a 64-bit prime.  It is used here as a mixing
+ * multiplier rather than as part of a true FNV-1a hash
+ * - its sparse-high / dense-low bit pattern spreads input bits well across the
+ *   result.
  */
 static size_t hash_op_identity(const OP *o) {
-    size_t h = (size_t)o->op_next;
-    h ^= (size_t)OpSIBLING(o) * 0x00000100000001B3ULL;
-    h ^= ((size_t)o->op_type << 16)
-       |  ((size_t)o->op_flags << 8)
-       |   (size_t)o->op_private;
-    h *= 0x00000100000001B3ULL;
-    return h;
+  size_t h = (size_t)o->op_next;
+  h ^= (size_t)OpSIBLING(o) * 0x00000100000001B3ULL;
+  h ^= ((size_t)o->op_type << 16)
+     |  ((size_t)o->op_flags << 8)
+     |   (size_t)o->op_private;
+  h *= 0x00000100000001B3ULL;
+  return h;
 }
 
 static char *get_key(OP *o) {
-    static struct unique uniq;
+  static struct unique uniq;
 
-    uniq.addr        = o;
-    uniq.op_identity = hash_op_identity(o);
-    if (o->op_type == OP_NEXTSTATE || o->op_type == OP_DBSTATE) {
-        /* cop, has file location information */
-        uniq.fileinfohash = fnv1a_hash_file_line(
-            CopFILE((COP *)o), CopLINE((COP *)o));
-    } else {
-        /* no file location information available */
-        uniq.fileinfohash = 0;
-    }
+  uniq.addr        = o;
+  uniq.op_identity = hash_op_identity(o);
+  if (o->op_type == OP_NEXTSTATE || o->op_type == OP_DBSTATE) {
+    /* cop, has file location information */
+    uniq.fileinfohash = fnv1a_hash_file_line(
+      CopFILE((COP *)o), CopLINE((COP *)o));
+  } else {
+    /* no file location information available */
+    uniq.fileinfohash = 0;
+  }
 
-    return (char *)&uniq;
+  return (char *)&uniq;
 }
 
 static char *hex_key(char *key) {
-    static char hk[KEY_SZ * 2 + 1];
-    size_t c;
-    for (c = 0; c < KEY_SZ; c++) {
-        NDEB(D(L, "%zu of %zu, <%02X> at %p\n",
-               c, KEY_SZ, (unsigned char)key[c], hk + c * 2));
-        sprintf(hk + c * 2, "%02X", (unsigned char)key[c]);
-    }
-    hk[c * 2] = 0;
-    return hk;
+  static char hk[KEY_SZ * 2 + 1];
+  size_t c;
+  for (c = 0; c < KEY_SZ; c++) {
+    NDEB(D(L, "%zu of %zu, <%02X> at %p\n",
+           c, KEY_SZ, (unsigned char)key[c], hk + c * 2));
+    sprintf(hk + c * 2, "%02X", (unsigned char)key[c]);
+  }
+  hk[c * 2] = 0;
+  return hk;
 }
 
 static void set_firsts_if_needed(pTHX) {
-    SV *init = (SV *)get_cv("Devel::Cover::first_init", 0);
-    SV *end  = (SV *)get_cv("Devel::Cover::first_end",  0);
-    NDEB(svdump(end));
-    if (PL_initav && av_len(PL_initav) >= 0)
-    {
-        SV **cv = av_fetch(PL_initav, 0, 0);
-        if (*cv != init) {
-            av_unshift(PL_initav, 1);
-            av_store(PL_initav, 0, init);
-        }
+  SV *init = (SV *)get_cv("Devel::Cover::first_init", 0);
+  SV *end  = (SV *)get_cv("Devel::Cover::first_end",  0);
+  NDEB(svdump(end));
+  if (PL_initav && av_len(PL_initav) >= 0)
+  {
+    SV **cv = av_fetch(PL_initav, 0, 0);
+    if (*cv != init) {
+      av_unshift(PL_initav, 1);
+      av_store(PL_initav, 0, init);
     }
-    if (PL_endav && av_len(PL_endav) >= 0) {
-        SV **cv = av_fetch(PL_endav, 0, 0);
-        if (*cv != end) {
-            av_unshift(PL_endav, 1);
-            av_store(PL_endav, 0, end);
-        }
+  }
+  if (PL_endav && av_len(PL_endav) >= 0) {
+    SV **cv = av_fetch(PL_endav, 0, 0);
+    if (*cv != end) {
+      av_unshift(PL_endav, 1);
+      av_store(PL_endav, 0, end);
     }
+  }
 }
 
 static int check_if_collecting(pTHX_ COP *cop) {
-    dMY_CXT;
+  dMY_CXT;
 
 #if !NO_TAINT_SUPPORT
-    int tainted = PL_tainted;
+  int tainted = PL_tainted;
 #endif
-    char *file = CopFILE(cop);
-    NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, (long)CopLINE(cop)));
+  char *file = CopFILE(cop);
+  NDEB(D(L, "check_if_collecting at: %s:%ld\n", file, (long)CopLINE(cop)));
 
-    /* Fast path: same CopFILE pointer as last time means same file.  Skip the
-     * SV unpack, strcmp, and reeval check.
+  /*
+   * Fast path: same CopFILE pointer as last time means same file.  Skip the
+   * SV unpack, strcmp, and reeval check.
+   */
+  if (file != MY_CXT.lastfile_ptr) {
+    if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file)) {
+      int found = 0;
+      if (MY_CXT.files) {
+        SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
+        if (f) {
+          MY_CXT.collecting_here = SvIV(*f);
+          found = 1;
+          NDEB(D(L, "File: %s:%ld [%d]\n",
+                 file, (long)CopLINE(cop), MY_CXT.collecting_here));
+        }
+      }
+
+      if (!found && MY_CXT.replace_ops
+          && !strnEQ(file, "(reeval ", 8)) {
+        dSP;
+        int count;
+        SV *rv;
+
+        ENTER;
+        SAVETMPS;
+
+        PUSHMARK(SP);
+        XPUSHs(sv_2mortal(newSVpv(file, 0)));
+        PUTBACK;
+
+        count = call_pv("Devel::Cover::use_file", G_SCALAR);
+
+        SPAGAIN;
+
+        if (count != 1)
+          croak("use_file returned %d values\n", count);
+
+        rv = POPs;
+        MY_CXT.collecting_here = SvTRUE(rv) ? 1 : 0;
+
+        NDEB(D(L, "-- %s - %d\n", file, MY_CXT.collecting_here));
+
+        PUTBACK;
+        FREETMPS;
+        LEAVE;
+      }
+
+      sv_setpv(MY_CXT.lastfile, file);
+    }
+
+    /*
+     * Update pointer even when strings match, so a new pointer for the same
+     * file gets the fast path next time.
      */
-    if (file != MY_CXT.lastfile_ptr) {
-        if (file && strNE(SvPV_nolen(MY_CXT.lastfile), file)) {
-            int found = 0;
-            if (MY_CXT.files) {
-                SV **f = hv_fetch(MY_CXT.files, file, strlen(file), 0);
-                if (f) {
-                    MY_CXT.collecting_here = SvIV(*f);
-                    found = 1;
-                    NDEB(D(L, "File: %s:%ld [%d]\n",
-                               file, (long)CopLINE(cop),
-                               MY_CXT.collecting_here));
-                }
-            }
+    MY_CXT.lastfile_ptr = file;
+  }
 
-            if (!found && MY_CXT.replace_ops
-                    && !strnEQ(file, "(reeval ", 8)) {
-                dSP;
-                int count;
-                SV *rv;
+  NDEB(D(L, "%s - %d\n", SvPV_nolen(MY_CXT.lastfile), MY_CXT.collecting_here));
 
-                ENTER;
-                SAVETMPS;
-
-                PUSHMARK(SP);
-                XPUSHs(sv_2mortal(newSVpv(file, 0)));
-                PUTBACK;
-
-                count = call_pv("Devel::Cover::use_file", G_SCALAR);
-
-                SPAGAIN;
-
-                if (count != 1)
-                    croak("use_file returned %d values\n", count);
-
-                rv = POPs;
-                MY_CXT.collecting_here = SvTRUE(rv) ? 1 : 0;
-
-                NDEB(D(L, "-- %s - %d\n", file,
-                          MY_CXT.collecting_here));
-
-                PUTBACK;
-                FREETMPS;
-                LEAVE;
-            }
-
-            sv_setpv(MY_CXT.lastfile, file);
+  if (SvTRUE(MY_CXT.module)) {
+    STRLEN mlen,
+           flen = strlen(file);
+    char  *m    = SvPV(MY_CXT.module, mlen);
+    if (flen >= mlen && strnEQ(m, file + flen - mlen, mlen)) {
+      SV **dir = hv_fetch(MY_CXT.modules, file, strlen(file), 1);
+      if (!SvROK(*dir)) {
+        SV *cwd = newSV(0);
+        AV *d   = newAV();
+        *dir = newRV_inc((SV*) d);
+        av_push(d, newSVsv(MY_CXT.module));
+        if (getcwd_sv(cwd)) {
+          av_push(d, newSVsv(cwd));
+          NDEB(D(L, "require %s as %s from %s\n", m, file, SvPV_nolen(cwd)));
         }
-
-        /* Update pointer even when strings match, so a new pointer for the same
-         * file gets the fast path next time.
-         */
-        MY_CXT.lastfile_ptr = file;
+      }
     }
-
-    NDEB(D(L, "%s - %d\n",
-              SvPV_nolen(MY_CXT.lastfile), MY_CXT.collecting_here));
-
-    if (SvTRUE(MY_CXT.module)) {
-        STRLEN mlen,
-               flen = strlen(file);
-        char  *m    = SvPV(MY_CXT.module, mlen);
-        if (flen >= mlen && strnEQ(m, file + flen - mlen, mlen)) {
-            SV **dir = hv_fetch(MY_CXT.modules, file, strlen(file), 1);
-            if (!SvROK(*dir)) {
-                SV *cwd = newSV(0);
-                AV *d   = newAV();
-                *dir = newRV_inc((SV*) d);
-                av_push(d, newSVsv(MY_CXT.module));
-                if (getcwd_sv(cwd)) {
-                    av_push(d, newSVsv(cwd));
-                    NDEB(D(L, "require %s as %s from %s\n",
-                              m, file, SvPV_nolen(cwd)));
-                }
-            }
-        }
-        sv_setpv(MY_CXT.module, "");
-        set_firsts_if_needed(aTHX);
-    }
+    sv_setpv(MY_CXT.module, "");
+    set_firsts_if_needed(aTHX);
+  }
 
 #if !NO_TAINT_SUPPORT
-    PL_tainted = tainted;
+  PL_tainted = tainted;
 #endif
-    return MY_CXT.collecting_here;
+  return MY_CXT.collecting_here;
 }
 
 static void dc_stmt_cache_init(dc_stmt_cache *c) {
-    c->capacity = DC_STMT_CACHE_INIT_CAP;
-    c->count    = 0;
-    c->mask     = c->capacity - 1;
-    Newxz(c->slots, c->capacity, dc_stmt_slot);
+  c->capacity = DC_STMT_CACHE_INIT_CAP;
+  c->count    = 0;
+  c->mask     = c->capacity - 1;
+  Newxz(c->slots, c->capacity, dc_stmt_slot);
 }
 
 static void dc_stmt_grow(dc_stmt_cache *c);
 
-/* Look up by address.  Returns the slot if found (caller must check op_next for
+/*
+ * Look up by address.  Returns the slot if found (caller must check op_next for
  * slab reuse), or NULL if not in the cache.
  */
 static dc_stmt_slot *dc_stmt_lookup(dc_stmt_cache *c, OP *addr) {
-    size_t idx;
-    if (!c->slots) return NULL;
-    idx = ((size_t)addr >> 4) & c->mask;
-    for (;;) {
-        dc_stmt_slot *s = &c->slots[idx];
-        if (!s->addr)        return NULL;  /* empty = not found */
-        if (s->addr == addr) return s;     /* found             */
-        idx = (idx + 1) & c->mask;
-    }
+  size_t idx;
+  if (!c->slots) return NULL;
+  idx = ((size_t)addr >> 4) & c->mask;
+  for (;;) {
+    dc_stmt_slot *s = &c->slots[idx];
+    if (!s->addr)        return NULL;  /* empty = not found */
+    if (s->addr == addr) return s;     /* found             */
+    idx = (idx + 1) & c->mask;
+  }
 }
 
-/* Insert a new entry.  Caller must ensure addr is not already present.  Returns
+/*
+ * Insert a new entry.  Caller must ensure addr is not already present.  Returns
  * the new slot with stmt_count = 0.
  */
 static dc_stmt_slot *dc_stmt_insert(dc_stmt_cache *c, OP *addr,
-                                     OP *op_next, size_t op_identity,
-                                     size_t fileinfohash) {
-    size_t idx;
-    dc_stmt_slot *s;
+                                    OP *op_next, size_t op_identity,
+                                    size_t fileinfohash) {
+  size_t idx;
+  dc_stmt_slot *s;
 
-    if (!c->slots) dc_stmt_cache_init(c);
+  if (!c->slots) dc_stmt_cache_init(c);
 
-    /* Grow if above load factor */
-    if (c->count * 100 >= c->capacity * DC_STMT_CACHE_LOAD_PCT)
-        dc_stmt_grow(c);
+  /* Grow if above load factor */
+  if (c->count * 100 >= c->capacity * DC_STMT_CACHE_LOAD_PCT)
+    dc_stmt_grow(c);
 
-    idx = ((size_t)addr >> 4) & c->mask;
-    for (;;) {
-        s = &c->slots[idx];
-        if (!s->addr) break;  /* found empty slot */
-        idx = (idx + 1) & c->mask;
-    }
+  idx = ((size_t)addr >> 4) & c->mask;
+  for (;;) {
+    s = &c->slots[idx];
+    if (!s->addr) break;  /* found empty slot */
+    idx = (idx + 1) & c->mask;
+  }
 
-    s->addr         = addr;
-    s->op_next      = op_next;
-    s->op_identity  = op_identity;
-    s->fileinfohash = fileinfohash;
-    s->stmt_count   = 0;
-    c->count++;
-    return s;
+  s->addr         = addr;
+  s->op_next      = op_next;
+  s->op_identity  = op_identity;
+  s->fileinfohash = fileinfohash;
+  s->stmt_count   = 0;
+  c->count++;
+  return s;
 }
 
 static void dc_stmt_grow(dc_stmt_cache *c) {
-    dc_stmt_slot *old_slots = c->slots;
-    size_t        old_cap   = c->capacity;
-    size_t        i;
+  dc_stmt_slot *old_slots = c->slots;
+  size_t        old_cap   = c->capacity;
+  size_t        i;
 
-    c->capacity *= 2;
-    c->mask      = c->capacity - 1;
-    c->count     = 0;
-    Newxz(c->slots, c->capacity, dc_stmt_slot);
+  c->capacity *= 2;
+  c->mask      = c->capacity - 1;
+  c->count     = 0;
+  Newxz(c->slots, c->capacity, dc_stmt_slot);
 
-    for (i = 0; i < old_cap; i++) {
-        dc_stmt_slot *old = &old_slots[i];
-        if (old->addr) {
-            dc_stmt_slot *s = dc_stmt_insert(c, old->addr,
-                old->op_next, old->op_identity, old->fileinfohash);
-            s->stmt_count = old->stmt_count;
-        }
+  for (i = 0; i < old_cap; i++) {
+    dc_stmt_slot *old = &old_slots[i];
+    if (old->addr) {
+      dc_stmt_slot *s = dc_stmt_insert(c, old->addr,
+        old->op_next, old->op_identity, old->fileinfohash);
+      s->stmt_count = old->stmt_count;
     }
-    Safefree(old_slots);
+  }
+  Safefree(old_slots);
 }
 
-/* Flush all cached counts into the Perl statements HV, then zero the cached
+/*
+ * Flush all cached counts into the Perl statements HV, then zero the cached
  * counts.  The cache structure stays intact so that subsequent executions still
  * get cache hits.
  */
 static void dc_stmt_cache_flush(pTHX_ dc_stmt_cache *c, HV *statements) {
-    size_t i;
+  size_t i;
 
-    if (!c->slots) return;
+  if (!c->slots) return;
 
-    for (i = 0; i < c->capacity; i++) {
-        dc_stmt_slot *s = &c->slots[i];
-        if (s->addr && s->stmt_count) {
-            SV **sv;
-            IV   existing;
+  for (i = 0; i < c->capacity; i++) {
+    dc_stmt_slot *s = &c->slots[i];
+    if (s->addr && s->stmt_count) {
+      SV **sv;
+      IV   existing;
 
-            /* Reconstruct the struct unique key from cached fields */
-            struct unique uniq;
-            uniq.addr         = s->addr;
-            uniq.op_identity  = s->op_identity;
-            uniq.fileinfohash = s->fileinfohash;
+      /* Reconstruct the struct unique key from cached fields */
+      struct unique uniq;
+      uniq.addr         = s->addr;
+      uniq.op_identity  = s->op_identity;
+      uniq.fileinfohash = s->fileinfohash;
 
-            sv = hv_fetch(statements, (char *)&uniq, KEY_SZ, 1);
-            existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
-            sv_setiv(*sv, existing + s->stmt_count);
-            s->stmt_count = 0;
-        }
+      sv = hv_fetch(statements, (char *)&uniq, KEY_SZ, 1);
+      existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
+      sv_setiv(*sv, existing + s->stmt_count);
+      s->stmt_count = 0;
     }
+  }
 }
 
 static void dc_av_cache_init(dc_av_cache *c) {
-    c->capacity = DC_AV_CACHE_INIT_CAP;
-    c->count    = 0;
-    c->mask     = c->capacity - 1;
-    Newxz(c->slots, c->capacity, dc_av_slot);
+  c->capacity = DC_AV_CACHE_INIT_CAP;
+  c->count    = 0;
+  c->mask     = c->capacity - 1;
+  Newxz(c->slots, c->capacity, dc_av_slot);
 }
 
 static void dc_av_grow(dc_av_cache *c);
 
 static dc_av_slot *dc_av_lookup(dc_av_cache *c, OP *addr) {
-    size_t idx;
-    if (!c->slots) return NULL;
-    idx = ((size_t)addr >> 4) & c->mask;
-    for (;;) {
-        dc_av_slot *s = &c->slots[idx];
-        if (!s->addr)        return NULL;
-        if (s->addr == addr) return s;
-        idx = (idx + 1) & c->mask;
-    }
+  size_t idx;
+  if (!c->slots) return NULL;
+  idx = ((size_t)addr >> 4) & c->mask;
+  for (;;) {
+    dc_av_slot *s = &c->slots[idx];
+    if (!s->addr)        return NULL;
+    if (s->addr == addr) return s;
+    idx = (idx + 1) & c->mask;
+  }
 }
 
 static dc_av_slot *dc_av_insert(dc_av_cache *c, OP *addr,
-                                 OP *op_next, AV *av) {
-    size_t idx;
-    dc_av_slot *s;
+                                OP *op_next, AV *av) {
+  size_t idx;
+  dc_av_slot *s;
 
-    if (!c->slots) dc_av_cache_init(c);
+  if (!c->slots) dc_av_cache_init(c);
 
-    if (c->count * 100 >= c->capacity * DC_AV_CACHE_LOAD_PCT)
-        dc_av_grow(c);
+  if (c->count * 100 >= c->capacity * DC_AV_CACHE_LOAD_PCT)
+    dc_av_grow(c);
 
-    idx = ((size_t)addr >> 4) & c->mask;
-    for (;;) {
-        s = &c->slots[idx];
-        if (!s->addr) break;
-        idx = (idx + 1) & c->mask;
-    }
+  idx = ((size_t)addr >> 4) & c->mask;
+  for (;;) {
+    s = &c->slots[idx];
+    if (!s->addr) break;
+    idx = (idx + 1) & c->mask;
+  }
 
-    s->addr    = addr;
-    s->op_next = op_next;
-    s->av      = av;
-    c->count++;
-    return s;
+  s->addr    = addr;
+  s->op_next = op_next;
+  s->av      = av;
+  c->count++;
+  return s;
 }
 
 static void dc_av_grow(dc_av_cache *c) {
-    dc_av_slot *old_slots = c->slots;
-    size_t      old_cap   = c->capacity;
-    size_t      i;
+  dc_av_slot *old_slots = c->slots;
+  size_t      old_cap   = c->capacity;
+  size_t      i;
 
-    c->capacity *= 2;
-    c->mask      = c->capacity - 1;
-    c->count     = 0;
-    Newxz(c->slots, c->capacity, dc_av_slot);
+  c->capacity *= 2;
+  c->mask      = c->capacity - 1;
+  c->count     = 0;
+  Newxz(c->slots, c->capacity, dc_av_slot);
 
-    for (i = 0; i < old_cap; i++) {
-        dc_av_slot *old = &old_slots[i];
-        if (old->addr)
-            dc_av_insert(c, old->addr, old->op_next, old->av);
-    }
-    Safefree(old_slots);
+  for (i = 0; i < old_cap; i++) {
+    dc_av_slot *old = &old_slots[i];
+    if (old->addr)
+      dc_av_insert(c, old->addr, old->op_next, old->av);
+  }
+  Safefree(old_slots);
 }
 
 #if CAN_PROFILE
 
 static void cover_time(pTHX_ const char *key)
 {
-    dMY_CXT;
-    SV **count;
-    NV   c;
+  dMY_CXT;
+  SV **count;
+  NV   c;
 
-    if (collecting(Time)) {
-        /*
-         * Profiling information is stored against MY_CXT.profiling_key,
-         * the key for the op we have just run
-         */
+  if (collecting(Time)) {
+    /*
+     * Profiling information is stored against MY_CXT.profiling_key,
+     * the key for the op we have just run
+     */
 
-        NDEB(D(L, "Cop at %p, op at %p\n", PL_curcop, PL_op));
+    NDEB(D(L, "Cop at %p, op at %p\n", PL_curcop, PL_op));
 
-        if (MY_CXT.profiling_key_valid) {
-            count = hv_fetch(MY_CXT.times, MY_CXT.profiling_key, KEY_SZ, 1);
-            c     = (SvTRUE(*count) ? SvNV(*count) : 0) +
+    if (MY_CXT.profiling_key_valid) {
+      count = hv_fetch(MY_CXT.times, MY_CXT.profiling_key, KEY_SZ, 1);
+      c     = (SvTRUE(*count) ? SvNV(*count) : 0) +
 #if defined HAS_GETTIMEOFDAY
-                    elapsed();
+          elapsed();
 #else
-                    cpu();
+          cpu();
 #endif
-            sv_setnv(*count, c);
-        }
-        if (key) {
-            memcpy(MY_CXT.profiling_key, key, KEY_SZ);
-            MY_CXT.profiling_key_valid = 1;
-        } else {
-            MY_CXT.profiling_key_valid = 0;
-        }
+      sv_setnv(*count, c);
     }
+    if (key) {
+      memcpy(MY_CXT.profiling_key, key, KEY_SZ);
+      MY_CXT.profiling_key_valid = 1;
+    } else {
+      MY_CXT.profiling_key_valid = 0;
+    }
+  }
 }
 
 #endif
 
 static int collecting_here(pTHX) {
-    dMY_CXT;
+  dMY_CXT;
 
-    if (MY_CXT.collecting_here) return 1;
+  if (MY_CXT.collecting_here) return 1;
 
 #if CAN_PROFILE
-    cover_time(aTHX_ NULL);
+  cover_time(aTHX_ NULL);
 #endif
 
-    NDEB(D(L, "op %p is %s\n", PL_op, OP_NAME(PL_op)));
-    if (hv_exists(Return_ops, get_key(PL_op), KEY_SZ))
-        return MY_CXT.collecting_here = 1;
-    else
-        return 0;
+  NDEB(D(L, "op %p is %s\n", PL_op, OP_NAME(PL_op)));
+  if (hv_exists(Return_ops, get_key(PL_op), KEY_SZ))
+    return MY_CXT.collecting_here = 1;
+  else
+    return 0;
 }
 
 static void store_return(pTHX) {
-    dMY_CXT;
+  dMY_CXT;
 
-    /*
-     * If we are jumping somewhere we might not be collecting
-     * coverage there, so store where we will be coming back to
-     * so we can turn on coverage straight away.  We need to
-     * store more than one return op because a non collecting
-     * sub may call back to a collecting sub.
-     */
+  /*
+   * If we are jumping somewhere we might not be collecting
+   * coverage there, so store where we will be coming back to
+   * so we can turn on coverage straight away.  We need to
+   * store more than one return op because a non collecting
+   * sub may call back to a collecting sub.
+   */
 
-    if (MY_CXT.collecting_here && PL_op->op_next) {
-        (void)hv_fetch(Return_ops, get_key(PL_op->op_next), KEY_SZ, 1);
-        NDEB(D(L, "adding return op %p\n", PL_op->op_next));
-    }
+  if (MY_CXT.collecting_here && PL_op->op_next) {
+    (void)hv_fetch(Return_ops, get_key(PL_op->op_next), KEY_SZ, 1);
+    NDEB(D(L, "adding return op %p\n", PL_op->op_next));
+  }
 }
 
 static void store_module(pTHX) {
-    dMY_CXT;
-    dSP;
+  dMY_CXT;
+  dSP;
 
-    SvSetSV_nosteal(MY_CXT.module, (SV*)newSVpv(SvPV_nolen(TOPs), 0));
-    NDEB(D(L, "require %s\n", SvPV_nolen(MY_CXT.module)));
+  SvSetSV_nosteal(MY_CXT.module, (SV*)newSVpv(SvPV_nolen(TOPs), 0));
+  NDEB(D(L, "require %s\n", SvPV_nolen(MY_CXT.module)));
 }
 
 static void call_report(pTHX) {
-    dSP;
-    PUSHMARK(SP);
-    call_pv("Devel::Cover::report", G_VOID|G_DISCARD|G_EVAL);
-    SPAGAIN;
+  dSP;
+  PUSHMARK(SP);
+  call_pv("Devel::Cover::report", G_VOID|G_DISCARD|G_EVAL);
+  SPAGAIN;
 }
 
 static void cover_statement(pTHX_ OP *op, const char *ch) {
-    dMY_CXT;
+  dMY_CXT;
 
-    SV  **count;
-    IV    c;
+  SV  **count;
+  IV    c;
 
-    if (!collecting(Statement)) return;
+  if (!collecting(Statement)) return;
 
-    count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
-    c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
+  count = hv_fetch(MY_CXT.statements, ch, KEY_SZ, 1);
+  c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
 
-    NDEB(D(L, "Statement: %s:%ld\n", CopFILE(cCOPx(op)), (long)CopLINE(cCOPx(op))));
+  NDEB(D(L, "Statement: %s:%ld\n",
+         CopFILE(cCOPx(op)), (long)CopLINE(cCOPx(op))));
 
-    sv_setiv(*count, c);
-    NDEB(op_dump(op));
+  sv_setiv(*count, c);
+  NDEB(op_dump(op));
 }
 
 static void cover_current_statement(pTHX) {
-    dMY_CXT;
+  dMY_CXT;
 
 #if CAN_PROFILE
-    /* When time coverage is enabled we need the full key for the profiling_key
-     * bookkeeping, so bypass the cache entirely.
-     */
-    if (collecting(Time)) {
-        const char *ch = get_key(PL_op);
-        cover_time(aTHX_ ch);
-        cover_statement(aTHX_ PL_op, ch);
-        return;
-    }
+  /*
+   * When time coverage is enabled we need the full key for the profiling_key
+   * bookkeeping, so bypass the cache entirely.
+   */
+  if (collecting(Time)) {
+    const char *ch = get_key(PL_op);
+    cover_time(aTHX_ ch);
+    cover_statement(aTHX_ PL_op, ch);
+    return;
+  }
 #endif
 
-    if (!collecting(Statement)) return;
+  if (!collecting(Statement)) return;
 
-    /* Fast path: C-level statement cache (time coverage is off) */
-    {
-        dc_stmt_slot *slot = dc_stmt_lookup(&MY_CXT.stmt_cache, PL_op);
-        if (slot) {
-            /* Address found - check op_next as slab reuse guard. Two different
-             * ops at the same address with the same op_next is unlikely.
-             */
-            if (slot->op_next == PL_op->op_next) {
-                slot->stmt_count++;
-                return;
-            }
-            /* Slab reuse: flush stale count, update slot in place */
-            if (slot->stmt_count) {
-                struct unique uniq;
-                SV **sv;
-                IV   existing;
-                uniq.addr         = slot->addr;
-                uniq.op_identity  = slot->op_identity;
-                uniq.fileinfohash = slot->fileinfohash;
-                sv = hv_fetch(MY_CXT.statements,
-                              (char *)&uniq, KEY_SZ, 1);
-                existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
-                sv_setiv(*sv, existing + slot->stmt_count);
-            }
-            slot->op_next     = PL_op->op_next;
-            slot->op_identity = hash_op_identity(PL_op);
-            slot->fileinfohash =
-                (PL_op->op_type == OP_NEXTSTATE
-              || PL_op->op_type == OP_DBSTATE)
-                ? fnv1a_hash_file_line(
-                      CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
-                : 0;
-            slot->stmt_count = 1;
-            return;
-        }
-
-        /* Cache miss: insert and count the first execution */
-        {
-            size_t identity = hash_op_identity(PL_op);
-            size_t filehash =
-                (PL_op->op_type == OP_NEXTSTATE
-              || PL_op->op_type == OP_DBSTATE)
-                ? fnv1a_hash_file_line(
-                      CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
-                : 0;
-            dc_stmt_slot *s = dc_stmt_insert(&MY_CXT.stmt_cache,
-                PL_op, PL_op->op_next, identity, filehash);
-            s->stmt_count = 1;
-        }
+  /* Fast path: C-level statement cache (time coverage is off) */
+  {
+    dc_stmt_slot *slot = dc_stmt_lookup(&MY_CXT.stmt_cache, PL_op);
+    if (slot) {
+      /*
+       * Address found - check op_next as slab reuse guard. Two different
+       * ops at the same address with the same op_next is unlikely.
+       */
+      if (slot->op_next == PL_op->op_next) {
+        slot->stmt_count++;
+        return;
+      }
+      /* Slab reuse: flush stale count, update slot in place */
+      if (slot->stmt_count) {
+        struct unique uniq;
+        SV **sv;
+        IV   existing;
+        uniq.addr         = slot->addr;
+        uniq.op_identity  = slot->op_identity;
+        uniq.fileinfohash = slot->fileinfohash;
+        sv = hv_fetch(MY_CXT.statements,
+                      (char *)&uniq, KEY_SZ, 1);
+        existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
+        sv_setiv(*sv, existing + slot->stmt_count);
+      }
+      slot->op_next     = PL_op->op_next;
+      slot->op_identity = hash_op_identity(PL_op);
+      slot->fileinfohash =
+        (PL_op->op_type == OP_NEXTSTATE
+        || PL_op->op_type == OP_DBSTATE)
+        ? fnv1a_hash_file_line(
+            CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
+        : 0;
+      slot->stmt_count = 1;
+      return;
     }
+
+    /* Cache miss: insert and count the first execution */
+    {
+      size_t identity = hash_op_identity(PL_op);
+      size_t filehash =
+        (PL_op->op_type == OP_NEXTSTATE
+        || PL_op->op_type == OP_DBSTATE)
+        ? fnv1a_hash_file_line(
+            CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
+        : 0;
+      dc_stmt_slot *s = dc_stmt_insert(&MY_CXT.stmt_cache,
+        PL_op, PL_op->op_next, identity, filehash);
+      s->stmt_count = 1;
+    }
+  }
 }
 
 static void add_branch(pTHX_ OP *op, int br) {
-    dMY_CXT;
+  dMY_CXT;
 
-    AV  *branches;
-    SV **count;
-    int  c;
-    dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
+  AV  *branches;
+  SV **count;
+  int  c;
+  dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
 
-    if (slot && slot->op_next == op->op_next) {
-        branches = slot->av;
+  if (slot && slot->op_next == op->op_next) {
+    branches = slot->av;
+  } else {
+    SV **tmp = hv_fetch(MY_CXT.branches, get_key(op), KEY_SZ, 1);
+    if (SvROK(*tmp)) {
+      branches = (AV *) SvRV(*tmp);
     } else {
-        SV **tmp = hv_fetch(MY_CXT.branches, get_key(op), KEY_SZ, 1);
-        if (SvROK(*tmp)) {
-            branches = (AV *) SvRV(*tmp);
-        } else {
-            *tmp = newRV_inc((SV*) (branches = newAV()));
-            av_unshift(branches, 2);
-        }
-        if (slot) {
-            slot->op_next = op->op_next;
-            slot->av      = branches;
-        } else {
-            dc_av_insert(&MY_CXT.av_cache, op, op->op_next, branches);
-        }
+      *tmp = newRV_inc((SV*) (branches = newAV()));
+      av_unshift(branches, 2);
     }
+    if (slot) {
+      slot->op_next = op->op_next;
+      slot->av      = branches;
+    } else {
+      dc_av_insert(&MY_CXT.av_cache, op, op->op_next, branches);
+    }
+  }
 
-    count = av_fetch(branches, br, 1);
-    c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
-    sv_setiv(*count, c);
-    NDEB(D(L, "Adding branch making %d at %p\n", c, op));
+  count = av_fetch(branches, br, 1);
+  c     = SvTRUE(*count) ? SvIV(*count) + 1 : 1;
+  sv_setiv(*count, c);
+  NDEB(D(L, "Adding branch making %d at %p\n", c, op));
 }
 
 static AV *get_conditional_array(pTHX_ OP *op) {
-    dMY_CXT;
+  dMY_CXT;
 
-    AV  *conds;
-    dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
+  AV  *conds;
+  dc_av_slot *slot = dc_av_lookup(&MY_CXT.av_cache, op);
 
-    if (slot) {
-        if (slot->op_next == op->op_next)
-            return slot->av;
-        /* Slab reuse: update slot in place below */
-    }
+  if (slot) {
+    if (slot->op_next == op->op_next)
+      return slot->av;
+    /* Slab reuse: update slot in place below */
+  }
 
-    /* Slow path: hv_fetch */
-    {
-        SV **cref = hv_fetch(MY_CXT.conditions, get_key(op), KEY_SZ, 1);
-        if (SvROK(*cref))
-            conds = (AV *) SvRV(*cref);
-        else
-            *cref = newRV_inc((SV*) (conds = newAV()));
-    }
+  /* Slow path: hv_fetch */
+  {
+    SV **cref = hv_fetch(MY_CXT.conditions, get_key(op), KEY_SZ, 1);
+    if (SvROK(*cref))
+      conds = (AV *) SvRV(*cref);
+    else
+      *cref = newRV_inc((SV*) (conds = newAV()));
+  }
 
-    if (slot) {
-        slot->op_next = op->op_next;
-        slot->av      = conds;
-    } else {
-        dc_av_insert(&MY_CXT.av_cache, op, op->op_next, conds);
-    }
+  if (slot) {
+    slot->op_next = op->op_next;
+    slot->av      = conds;
+  } else {
+    dc_av_insert(&MY_CXT.av_cache, op, op->op_next, conds);
+  }
 
-    return conds;
+  return conds;
 }
 
 static void set_conditional(pTHX_ OP *op, int cond, int value) {
-    /*
-     * The conditional array is composed of six elements:
-     *
-     * 0 - 1 iff we are in an xor and the first operand was true
-     * 1 - not short circuited - second operand is false
-     * 2 - not short circuited - second operand is true
-     * 3 - short circuited, or for xor second operand is false
-     * 4 - for xor second operand is true
-     * 5 - 1 iff we are in void context
-     */
+  /*
+   * The conditional array is composed of six elements:
+   *
+   * 0 - 1 iff we are in an xor and the first operand was true
+   * 1 - not short circuited - second operand is false
+   * 2 - not short circuited - second operand is true
+   * 3 - short circuited, or for xor second operand is false
+   * 4 - for xor second operand is true
+   * 5 - 1 iff we are in void context
+   */
 
-    SV **count = av_fetch(get_conditional_array(aTHX_ op), cond, 1);
-    sv_setiv(*count, value);
-    NDEB(D(L, "Setting %d conditional to %d at %p\n", cond, value, op));
+  SV **count = av_fetch(get_conditional_array(aTHX_ op), cond, 1);
+  sv_setiv(*count, value);
+  NDEB(D(L, "Setting %d conditional to %d at %p\n", cond, value, op));
 }
 
 static void add_conditional(pTHX_ OP *op, int cond) {
-    SV **count = av_fetch(get_conditional_array(aTHX_ op), cond, 1);
-    int true_ish = (op->op_type == OP_DOR || op->op_type == OP_DORASSIGN)
-      ? SvOK(*count) : SvTRUE(*count);
-    int  c     = true_ish ? SvIV(*count) + 1 : 1;
-    sv_setiv(*count, c);
-    NDEB(D(L, "Adding %d conditional making %d at %p\n", cond, c, op));
+  SV **count = av_fetch(get_conditional_array(aTHX_ op), cond, 1);
+  int true_ish = (op->op_type == OP_DOR || op->op_type == OP_DORASSIGN)
+    ? SvOK(*count) : SvTRUE(*count);
+  int  c     = true_ish ? SvIV(*count) + 1 : 1;
+  sv_setiv(*count, c);
+  NDEB(D(L, "Adding %d conditional making %d at %p\n", cond, c, op));
 }
 
 #ifdef USE_ITHREADS
 static AV *get_conds(pTHX_ AV *conds) {
-    dMY_CXT;
+  dMY_CXT;
 
-    AV    *thrconds;
-    HV    *threads;
-    SV    *tid,
-         **cref;
-    char  *t;
+  AV   *thrconds;
+  HV   *threads;
+  SV   *tid,
+      **cref;
+  char *t;
 
-    if (av_exists(conds, 2)) {
-        SV **cref = av_fetch(conds, 2, 0);
-        threads = (HV *) *cref;
-    } else {
-        threads = newHV();
-        HvSHAREKEYS_off(threads);
-        av_store(conds, 2, (SV *)threads);
-    }
+  if (av_exists(conds, 2)) {
+    SV **cref = av_fetch(conds, 2, 0);
+    threads = (HV *) *cref;
+  } else {
+    threads = newHV();
+    HvSHAREKEYS_off(threads);
+    av_store(conds, 2, (SV *)threads);
+  }
 
-    tid = newSViv(MY_CXT.tid);
+  tid = newSViv(MY_CXT.tid);
 
-    t = SvPV_nolen(tid);
-    cref = hv_fetch(threads, t, strlen(t), 1);
+  t = SvPV_nolen(tid);
+  cref = hv_fetch(threads, t, strlen(t), 1);
 
-    if (SvROK(*cref))
-        thrconds = (AV *)SvRV(*cref);
-    else
-        *cref = newRV_inc((SV*) (thrconds = newAV()));
+  if (SvROK(*cref))
+    thrconds = (AV *)SvRV(*cref);
+  else
+    *cref = newRV_inc((SV*) (thrconds = newAV()));
 
-    return thrconds;
+  return thrconds;
 }
 #endif
 
 static void add_condition(pTHX_ SV *cond_ref, int value) {
-    int   final       = !value;
-    AV   *conds       = (AV *)                 SvRV(cond_ref);
-    OP   *next        = INT2PTR(OP *,          SvIV(*av_fetch(conds, 0, 0)));
-    OP *(*addr)(pTHX) = INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1, 0)));
-    I32   i;
+  int   final       = !value;
+  AV   *conds       = (AV *)                 SvRV(cond_ref);
+  OP   *next        = INT2PTR(OP *,          SvIV(*av_fetch(conds, 0, 0)));
+  OP *(*addr)(pTHX) = INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1, 0)));
+  I32   i;
 
-    if (!final && next != PL_op)
-        croak("next (%p) does not match PL_op (%p)", next, PL_op);
+  if (!final && next != PL_op)
+    croak("next (%p) does not match PL_op (%p)", next, PL_op);
 
 #ifdef USE_ITHREADS
-    i = 0;
+  i = 0;
+  conds = get_conds(aTHX_ conds);
+#else
+  i = 2;
+#endif
+  NDEB(D(L, "Looking through %zd conditionals at %p\n",
+         av_len(conds) - 1, PL_op));
+  for (; i <= av_len(conds); i++) {
+    OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
+    SV **count = av_fetch(get_conditional_array(aTHX_ op), 0, 1);
+    int true_ish = (op->op_type == OP_DOR || op->op_type == OP_DORASSIGN)
+      ? SvOK(*count) : SvTRUE(*count);
+    int type  = true_ish ? SvIV(*count) : 0;
+    sv_setiv(*count, 0);
+
+    /* Check if we have come from an xor with a true first op */
+    if (final)     value  = 1;
+    if (type == 1) value += 2;
+
+    NDEB(D(L, "Found %p (trueish=%d): %d, %d\n", op, true_ish, type, value));
+    add_conditional(aTHX_ op, value);
+  }
+
+#ifdef USE_ITHREADS
+  i = -1;
+#else
+  i = 1;
+#endif
+  while (av_len(conds) > i) av_pop(conds);
+
+  NDEB(svdump(conds));
+  NDEB(D(L, "addr is %p, next is %p, PL_op is %p, length is %zd final is %d\n",
+         addr, next, PL_op, av_len(conds), final));
+  if (!final) next->op_ppaddr = addr;
+}
+
+static void dump_conditions(pTHX) {
+  HE *e;
+
+  MUTEX_LOCK(&DC_mutex);
+  hv_iterinit(Pending_conditionals);
+  PDEB(D(L, "Pending_conditionals:\n"));
+
+  while ((e = hv_iternext(Pending_conditionals))) {
+    I32   len;
+    char *key         = hv_iterkey(e, &len);
+    SV   *cond_ref    = hv_iterval(Pending_conditionals, e);
+    AV   *conds       = (AV *)                 SvRV(cond_ref);
+    OP   *next        = INT2PTR(OP *,          SvIV(*av_fetch(conds, 0,0)));
+    OP *(*addr)(pTHX) = INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1,0)));
+    I32   i;
+
+#ifdef USE_ITHREADS
+    i = 0;  /* TODO - this can't be right */
     conds = get_conds(aTHX_ conds);
 #else
     i = 2;
 #endif
-    NDEB(D(L, "Looking through %zd conditionals at %p\n",
-           av_len(conds) - 1, PL_op));
+
+    PDEB(D(L, "  %s: op %p, next %p (%ld)\n",
+           hex_key(key), next, addr, (long)av_len(conds) - 1));
+
     for (; i <= av_len(conds); i++) {
-        OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
-        SV **count = av_fetch(get_conditional_array(aTHX_ op), 0, 1);
-        int true_ish = (op->op_type == OP_DOR || op->op_type == OP_DORASSIGN)
-          ? SvOK(*count) : SvTRUE(*count);
-        int  type  = true_ish ? SvIV(*count) : 0;
-        sv_setiv(*count, 0);
+      OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
+      SV **count = av_fetch(get_conditional_array(aTHX_ op), 0, 1);
+      int  type  = SvTRUE(*count) ? SvIV(*count) : 0;
+      sv_setiv(*count, 0);
 
-        /* Check if we have come from an xor with a true first op */
-        if (final)     value  = 1;
-        if (type == 1) value += 2;
-
-        NDEB(D(L, "Found %p (trueish=%d): %d, %d\n", op, true_ish, type, value));
-        add_conditional(aTHX_ op, value);
+      PDEB(D(L, "    %2d: %p, %d\n", i - 2, op, type));
     }
-
-#ifdef USE_ITHREADS
-    i = -1;
-#else
-    i = 1;
-#endif
-    while (av_len(conds) > i) av_pop(conds);
-
-    NDEB(svdump(conds));
-    NDEB(D(L, "addr is %p, next is %p, PL_op is %p, length is %zd final is %d\n",
-              addr, next, PL_op, av_len(conds), final));
-    if (!final) next->op_ppaddr = addr;
+  }
+  MUTEX_UNLOCK(&DC_mutex);
 }
 
-static void dump_conditions(pTHX) {
-    HE *e;
-
-    MUTEX_LOCK(&DC_mutex);
-    hv_iterinit(Pending_conditionals);
-    PDEB(D(L, "Pending_conditionals:\n"));
-
-    while ((e = hv_iternext(Pending_conditionals))) {
-        I32   len;
-        char *key         = hv_iterkey(e, &len);
-        SV   *cond_ref    = hv_iterval(Pending_conditionals, e);
-        AV   *conds       = (AV *)                 SvRV(cond_ref);
-        OP   *next        = INT2PTR(OP *,          SvIV(*av_fetch(conds, 0,0)));
-        OP *(*addr)(pTHX) = INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1,0)));
-        I32   i;
-
-#ifdef USE_ITHREADS
-        i = 0;  /* TODO - this can't be right */
-        conds = get_conds(aTHX_ conds);
-#else
-        i = 2;
-#endif
-
-        PDEB(D(L, "  %s: op %p, next %p (%ld)\n",
-               hex_key(key), next, addr, (long)av_len(conds) - 1));
-
-        for (; i <= av_len(conds); i++) {
-            OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
-            SV **count = av_fetch(get_conditional_array(aTHX_ op), 0, 1);
-            int  type  = SvTRUE(*count) ? SvIV(*count) : 0;
-            sv_setiv(*count, 0);
-
-            PDEB(D(L, "    %2d: %p, %d\n", i - 2, op, type));
-        }
-    }
-    MUTEX_UNLOCK(&DC_mutex);
-}
-
-/* For if ($a || $b) and unless ($a && $b), rpeep skips past a few
- * logops and messes with Devel::Cover
+/*
+ * For if ($a || $b) and unless ($a && $b), rpeep skips past a few logops and
+ * messes with Devel::Cover
  *
  * This function will find the skipped op if there is one
  */
 static OP *find_skipped_conditional(pTHX_ OP *o) {
-    OP *right,
-       *next;
+  OP *right,
+     *next;
 
-    if (o->op_type != OP_OR && o->op_type != OP_AND)
-        return NULL;
+  if (o->op_type != OP_OR && o->op_type != OP_AND)
+    return NULL;
 
-    /* Get to the end of the "a || b || c" block */
-    right = OpSIBLING(cLOGOP->op_first);
-    while (right && OpSIBLING(cLOGOPx(right)))
-        right = OpSIBLING(cLOGOPx(right));
+  /* Get to the end of the "a || b || c" block */
+  right = OpSIBLING(cLOGOP->op_first);
+  while (right && OpSIBLING(cLOGOPx(right)))
+    right = OpSIBLING(cLOGOPx(right));
 
-    if (!right)
-        return NULL;
+  if (!right)
+    return NULL;
 
-    next = right->op_next;
-    while (next && next->op_type == OP_NULL)
-        next = next->op_next;
+  next = right->op_next;
+  while (next && next->op_type == OP_NULL)
+    next = next->op_next;
 
-    if (!next)
-        return NULL;
+  if (!next)
+    return NULL;
 
-    if (o == next)
-        return NULL;
+  if (o == next)
+    return NULL;
 
-    if (next->op_type != OP_OR && next->op_type != OP_AND)
-        return NULL;
+  if (next->op_type != OP_OR && next->op_type != OP_AND)
+    return NULL;
 
-    /* if ($a || $b) or unless ($a && $b) */
-    if (o->op_type == next->op_type)
-        return NULL;
+  /* if ($a || $b) or unless ($a && $b) */
+  if (o->op_type == next->op_type)
+    return NULL;
 
-    if ((next->op_flags & OPf_WANT) != OPf_WANT_VOID)
-        return NULL;
+  if ((next->op_flags & OPf_WANT) != OPf_WANT_VOID)
+    return NULL;
 
-    if (!cLOGOPx(next)->op_other || !o->op_next)
-        return NULL;
+  if (!cLOGOPx(next)->op_other || !o->op_next)
+    return NULL;
 
-    if (cLOGOPx(next)->op_other != o->op_next)
-        return NULL;
+  if (cLOGOPx(next)->op_other != o->op_next)
+    return NULL;
 
-    return next;
+  return next;
 }
 
 /* NOTE: caller must protect get_condition* calls by locking DC_mutex */
 static OP *get_condition(pTHX) {
-    SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
-    if (pc && SvROK(*pc)) {
-        dSP;
-        int true_ish;
-        NDEB(D(L, "get_condition from %p, %p: %p (%s)\n",
-                  PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
-        /* dump_conditions(aTHX); */
-        NDEB(svdump(Pending_conditionals));
-        true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
-          ? SvOK(TOPs) : SvTRUE(TOPs);
-        NDEB(D(L, "   get_condition true_ish=%d\n", true_ish));
-        add_condition(aTHX_ *pc, true_ish ? 2 : 1);
-    } else {
-        PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
-                  PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
-        dump_conditions(aTHX);
-        NDEB(svdump(Pending_conditionals));
-        exit(1);
-    }
-    return PL_op;
+  SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
+  if (pc && SvROK(*pc)) {
+    dSP;
+    int true_ish;
+    NDEB(D(L, "get_condition from %p, %p: %p (%s)\n",
+          PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
+    /* dump_conditions(aTHX); */
+    NDEB(svdump(Pending_conditionals));
+    true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
+      ? SvOK(TOPs) : SvTRUE(TOPs);
+    NDEB(D(L, "   get_condition true_ish=%d\n", true_ish));
+    add_condition(aTHX_ *pc, true_ish ? 2 : 1);
+  } else {
+    PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
+           PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
+    dump_conditions(aTHX);
+    NDEB(svdump(Pending_conditionals));
+    exit(1);
+  }
+  return PL_op;
 }
 static OP *get_condition_dor(pTHX) {
-    SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
-    if (pc && SvROK(*pc)) {
-        dSP;
-        int true_ish;
-        NDEB(D(L, "get_condition_dor from %p, %p: %p (%s)\n",
-                  PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
-        /* dump_conditions(aTHX); */
-        NDEB(svdump(Pending_conditionals));
-        true_ish = SvOK(TOPs);
-        NDEB(D(L, "   get_condition_dor true_ish=%d\n", true_ish));
-        add_condition(aTHX_ *pc, true_ish ? 2 : 1);
-    } else {
-        PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
-                  PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
-        dump_conditions(aTHX);
-        NDEB(svdump(Pending_conditionals));
-        exit(1);
-    }
-    return PL_op;
+  SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
+  if (pc && SvROK(*pc)) {
+    dSP;
+    int true_ish;
+    NDEB(D(L, "get_condition_dor from %p, %p: %p (%s)\n",
+           PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
+    /* dump_conditions(aTHX); */
+    NDEB(svdump(Pending_conditionals));
+    true_ish = SvOK(TOPs);
+    NDEB(D(L, "   get_condition_dor true_ish=%d\n", true_ish));
+    add_condition(aTHX_ *pc, true_ish ? 2 : 1);
+  } else {
+    PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
+           PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
+    dump_conditions(aTHX);
+    NDEB(svdump(Pending_conditionals));
+    exit(1);
+  }
+  return PL_op;
 }
 
 static void finalise_conditions(pTHX) {
-    /*
-     * Our algorithm for conditions relies on ending up at a particular
-     * op which we use to call get_condition().  It's possible that we
-     * never get to that op; for example we might return out of a sub.
-     * This causes us to lose coverage information.
-     *
-     * This function is called after the program has been run in order
-     * to collect that lost information.
-     */
+  /*
+   * Our algorithm for conditions relies on ending up at a particular op which
+   * we use to call get_condition().  It's possible that we never get to that
+   * op; for example we might return out of a sub. This causes us to lose
+   * coverage information.
+   *
+   * This function is called after the program has been run in order to collect
+   * that lost information.
+   */
 
-    HE *e;
+  HE *e;
 
-    NDEB(D(L, "finalise_conditions\n"));
-    /* dump_conditions(aTHX); */
-    NDEB(svdump(Pending_conditionals));
+  NDEB(D(L, "finalise_conditions\n"));
+  /* dump_conditions(aTHX); */
+  NDEB(svdump(Pending_conditionals));
 
-    MUTEX_LOCK(&DC_mutex);
-    hv_iterinit(Pending_conditionals);
+  MUTEX_LOCK(&DC_mutex);
+  hv_iterinit(Pending_conditionals);
 
-    while ((e = hv_iternext(Pending_conditionals)))
-        add_condition(aTHX_ hv_iterval(Pending_conditionals, e), 0);
-    MUTEX_UNLOCK(&DC_mutex);
+  while ((e = hv_iternext(Pending_conditionals)))
+    add_condition(aTHX_ hv_iterval(Pending_conditionals, e), 0);
+  MUTEX_UNLOCK(&DC_mutex);
 }
 
 static void cover_cond(pTHX)
 {
-    dMY_CXT;
-    if (collecting(Branch)) {
-        dSP;
-        int val = SvTRUE(TOPs);
-        add_branch(aTHX_ PL_op, !val);
-    }
+  dMY_CXT;
+  if (collecting(Branch)) {
+    dSP;
+    int val = SvTRUE(TOPs);
+    add_branch(aTHX_ PL_op, !val);
+  }
 }
 
 static void cover_logop(pTHX) {
-    /*
-     * For OP_AND, if the first operand is false, we have short
-     * circuited the second, otherwise the value of the op is the
-     * value of the second operand.
-     *
-     * For OP_OR, if the first operand is true, we have short circuited
-     * the second, otherwise the value of the op is the value of the
-     * second operand.
-     *
-     * We check the value of the first operand by simply looking on the
-     * stack.  To check the second operand it is necessary to note the
-     * location of the next op after this logop.  When we get there, we
-     * look at the stack and store the coverage information indexed to
-     * this op.
-     *
-     * This scheme also works for OP_XOR with a small modification
-     * because it doesn't short circuit.  See the comment below.
-     *
-     * To find out when we get to the next op we change the op_ppaddr to
-     * point to get_condition(), which will do the necessary work and
-     * then reset and run the original op_ppaddr.  We also store
-     * information in the Pending_conditionals hash.  This is keyed on
-     * the op and the value is an array, the first element of which is
-     * the op we are messing with, the second element of which is the
-     * op_ppaddr we overwrote, and the subsequent elements are the ops
-     * about which we are collecting the condition coverage information.
-     * Note that an op may be collecting condition coverage information
-     * about a number of conditions.
-     */
+  /*
+   * For OP_AND, if the first operand is false, we have short circuited the
+   * second, otherwise the value of the op is the value of the second operand.
+   *
+   * For OP_OR, if the first operand is true, we have short circuited the
+   * second, otherwise the value of the op is the value of the second operand.
+   *
+   * We check the value of the first operand by simply looking on the stack.  To
+   * check the second operand it is necessary to note the location of the next
+   * op after this logop.  When we get there, we look at the stack and store the
+   * coverage information indexed to this op.
+   *
+   * This scheme also works for OP_XOR with a small modification because it
+   * doesn't short circuit.  See the comment below.
+   *
+   * To find out when we get to the next op we change the op_ppaddr to point to
+   * get_condition(), which will do the necessary work and then reset and run
+   * the original op_ppaddr.  We also store information in the
+   * Pending_conditionals hash.  This is keyed on the op and the value is an
+   * array, the first element of which is the op we are messing with, the second
+   * element of which is the op_ppaddr we overwrote, and the subsequent elements
+   * are the ops about which we are collecting the condition coverage
+   * information. Note that an op may be collecting condition coverage
+   * information about a number of conditions.
+   */
 
-    dMY_CXT;
+  dMY_CXT;
 
-    NDEB(D(L, "logop() at %p\n", PL_op));
+  NDEB(D(L, "logop() at %p\n", PL_op));
+  NDEB(op_dump(PL_op));
+
+  if (!collecting(Condition))
+    return;
+
+  if (cLOGOP->op_first->op_type == OP_ITER) {
+    /* loop - ignore it for now */
+  } else {
+    dSP;
+
+    int leftval_true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
+      ? SvOK(TOPs) : SvTRUE(TOPs);
+    /* We don't count X= as void context because we care about the value
+     * of the RHS */
+    int void_context = GIMME_V == G_VOID &&
+                       PL_op->op_type != OP_DORASSIGN &&
+                       PL_op->op_type != OP_ANDASSIGN &&
+                       PL_op->op_type != OP_ORASSIGN;
+    NDEB(D(L, "leftval_true_ish: %d, void_context: %d at %p\n",
+           leftval_true_ish, void_context, PL_op));
     NDEB(op_dump(PL_op));
 
-    if (!collecting(Condition))
-        return;
+    set_conditional(aTHX_ PL_op, 5, void_context);
 
-    if (cLOGOP->op_first->op_type == OP_ITER) {
-        /* loop - ignore it for now */
-    } else {
-        dSP;
+    if ((PL_op->op_type == OP_AND       &&  leftval_true_ish) ||
+        (PL_op->op_type == OP_ANDASSIGN &&  leftval_true_ish) ||
+        (PL_op->op_type == OP_OR        && !leftval_true_ish) ||
+        (PL_op->op_type == OP_ORASSIGN  && !leftval_true_ish) ||
+        (PL_op->op_type == OP_DOR       && !leftval_true_ish) ||
+        (PL_op->op_type == OP_DORASSIGN && !leftval_true_ish) ||
+        (PL_op->op_type == OP_XOR)) {
+      /* no short circuit */
 
-        int leftval_true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
-          ? SvOK(TOPs) : SvTRUE(TOPs);
-        /* We don't count X= as void context because we care about the value
-         * of the RHS */
-        int void_context = GIMME_V == G_VOID &&
-                           PL_op->op_type != OP_DORASSIGN &&
-                           PL_op->op_type != OP_ANDASSIGN &&
-                           PL_op->op_type != OP_ORASSIGN;
-        NDEB(D(L, "leftval_true_ish: %d, void_context: %d at %p\n",
-                  leftval_true_ish, void_context, PL_op));
+      OP *right = OpSIBLING(cLOGOP->op_first);
+
+      NDEB(op_dump(right));
+
+      if (void_context                ||
+          right->op_type == OP_NEXT   ||
+          right->op_type == OP_LAST   ||
+          right->op_type == OP_REDO   ||
+          right->op_type == OP_GOTO   ||
+          right->op_type == OP_RETURN ||
+          right->op_type == OP_DIE) {
+        /*
+         * If we are in void context, or the right side of the op is a branch,
+         * we don't care what its value is - it won't be returning one.  We're
+         * just glad to be here, so we chalk up success.
+         */
+
+        NDEB(D(L, "Add conditional 2\n"));
+        add_conditional(aTHX_ PL_op, 2);
+      } else {
+        char *ch;
+        AV   *conds;
+        SV  **cref,
+             *cond;
+        OP   *next;
+
+        if (PL_op->op_type == OP_XOR && leftval_true_ish) {
+          /*
+           * This is an xor.  It does not short circuit.  We have just executed
+           * the first op.  When we get to next we will have already done the
+           * xor, so we can work out what the value of the second op was.
+           *
+           * We set a flag in the first element of the array to say that we had
+           * a true value from the first op.
+           */
+
+          set_conditional(aTHX_ PL_op, 0, 1);
+        }
+
+        NDEB(D(L, "Getting next\n"));
+        next = (PL_op->op_type == OP_XOR)
+          ? PL_op->op_next
+          : right->op_next;
+        while (next && next->op_type == OP_NULL)
+          next = next->op_next;
+        if (!next) return;  /* in fold_constants */
         NDEB(op_dump(PL_op));
+        NDEB(op_dump(next));
 
-        set_conditional(aTHX_ PL_op, 5, void_context);
+        ch   = get_key(next);
+        MUTEX_LOCK(&DC_mutex);
+        cref = hv_fetch(Pending_conditionals, ch, KEY_SZ, 1);
 
-        if ((PL_op->op_type == OP_AND       &&  leftval_true_ish)     ||
-            (PL_op->op_type == OP_ANDASSIGN &&  leftval_true_ish)     ||
-            (PL_op->op_type == OP_OR        && !leftval_true_ish)     ||
-            (PL_op->op_type == OP_ORASSIGN  && !leftval_true_ish)     ||
-            (PL_op->op_type == OP_DOR       && !leftval_true_ish) ||
-            (PL_op->op_type == OP_DORASSIGN && !leftval_true_ish) ||
-            (PL_op->op_type == OP_XOR)) {
-            /* no short circuit */
+        if (SvROK(*cref))
+          conds = (AV *)SvRV(*cref);
+        else
+          *cref = newRV_inc((SV*) (conds = newAV()));
 
-            OP *right = OpSIBLING(cLOGOP->op_first);
-
-            NDEB(op_dump(right));
-
-            if (void_context                ||
-                right->op_type == OP_NEXT   ||
-                right->op_type == OP_LAST   ||
-                right->op_type == OP_REDO   ||
-                right->op_type == OP_GOTO   ||
-                right->op_type == OP_RETURN ||
-                right->op_type == OP_DIE) {
-                /*
-                 * If we are in void context, or the right side of the op is a
-                 * branch, we don't care what its value is - it won't be
-                 * returning one.  We're just glad to be here, so we chalk up
-                 * success.
-                 */
-
-                NDEB(D(L, "Add conditional 2\n"));
-                add_conditional(aTHX_ PL_op, 2);
-            } else {
-                char *ch;
-                AV   *conds;
-                SV  **cref,
-                     *cond;
-                OP   *next;
-
-                if (PL_op->op_type == OP_XOR && leftval_true_ish) {
-                    /*
-                     * This is an xor.  It does not short circuit.  We
-                     * have just executed the first op.  When we get to
-                     * next we will have already done the xor, so we can
-                     * work out what the value of the second op was.
-                     *
-                     * We set a flag in the first element of the array
-                     * to say that we had a true value from the first
-                     * op.
-                     */
-
-                    set_conditional(aTHX_ PL_op, 0, 1);
-                }
-
-                NDEB(D(L, "Getting next\n"));
-                next = (PL_op->op_type == OP_XOR)
-                    ? PL_op->op_next
-                    : right->op_next;
-                while (next && next->op_type == OP_NULL)
-                    next = next->op_next;
-                if (!next) return;  /* in fold_constants */
-                NDEB(op_dump(PL_op));
-                NDEB(op_dump(next));
-
-                ch   = get_key(next);
-                MUTEX_LOCK(&DC_mutex);
-                cref = hv_fetch(Pending_conditionals, ch, KEY_SZ, 1);
-
-                if (SvROK(*cref))
-                    conds = (AV *)SvRV(*cref);
-                else
-                    *cref = newRV_inc((SV*) (conds = newAV()));
-
-                if (av_len(conds) < 0) {
-                    av_push(conds, newSViv(PTR2IV(next)));
-                    av_push(conds, newSViv(PTR2IV(next->op_ppaddr)));
-                }
+        if (av_len(conds) < 0) {
+          av_push(conds, newSViv(PTR2IV(next)));
+          av_push(conds, newSViv(PTR2IV(next->op_ppaddr)));
+        }
 
 #ifdef USE_ITHREADS
-                conds = get_conds(aTHX_ conds);
+        conds = get_conds(aTHX_ conds);
 #endif
 
-                cond = newSViv(PTR2IV(PL_op));
-                av_push(conds, cond);
+        cond = newSViv(PTR2IV(PL_op));
+        av_push(conds, cond);
 
-                NDEB(D(L, "Adding conditional %p (%s) "
-                          "making %zd at %p (%s), ppaddr: %p\n",
-                       next, PL_op_name[next->op_targ], av_len(conds) - 1,
-                       PL_op, hex_key(ch), next->op_ppaddr));
-                /* dump_conditions(aTHX); */
-                NDEB(svdump(Pending_conditionals));
-                NDEB(op_dump(PL_op));
-                NDEB(op_dump(next));
+        NDEB(D(L, "Adding conditional %p (%s) "
+               "making %zd at %p (%s), ppaddr: %p\n",
+               next, PL_op_name[next->op_targ], av_len(conds) - 1,
+               PL_op, hex_key(ch), next->op_ppaddr));
+        /* dump_conditions(aTHX); */
+        NDEB(svdump(Pending_conditionals));
+        NDEB(op_dump(PL_op));
+        NDEB(op_dump(next));
 
-                next->op_ppaddr = (next->op_type == OP_NEXTSTATE && (
-                  PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN))
-                  ? get_condition_dor : get_condition;
-                MUTEX_UNLOCK(&DC_mutex);
-            }
-        } else {
-            /* short circuit */
-            OP *up = OpSIBLING(cLOGOP->op_first)->op_next;
-            OP *skipped;
+        next->op_ppaddr = (next->op_type == OP_NEXTSTATE && (
+          PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN))
+          ? get_condition_dor : get_condition;
+        MUTEX_UNLOCK(&DC_mutex);
+      }
+    } else {
+      /* short circuit */
+      OP *up = OpSIBLING(cLOGOP->op_first)->op_next;
+      OP *skipped;
 
-            while (up && up->op_type == PL_op->op_type) {
-                NDEB(D(L, "Considering adding %p (%s) -> (%p) "
-                                        "from %p (%s) -> (%p)\n",
-                       up, PL_op_name[up->op_type], up->op_next,
-                       PL_op, PL_op_name[PL_op->op_type], PL_op->op_next));
-                add_conditional(aTHX_ up, 3);
-                if (up->op_next == PL_op->op_next)
-                    break;
-                up = OpSIBLING(cLOGOPx(up)->op_first)->op_next;
-            }
-            add_conditional(aTHX_ PL_op, 3);
+      while (up && up->op_type == PL_op->op_type) {
+        NDEB(D(L, "Considering adding %p (%s) -> (%p) from %p (%s) -> (%p)\n",
+               up, PL_op_name[up->op_type], up->op_next,
+               PL_op, PL_op_name[PL_op->op_type], PL_op->op_next));
+        add_conditional(aTHX_ up, 3);
+        if (up->op_next == PL_op->op_next)
+          break;
+        up = OpSIBLING(cLOGOPx(up)->op_first)->op_next;
+      }
+      add_conditional(aTHX_ PL_op, 3);
 
-            skipped = PL_op;
-            while ((skipped = find_skipped_conditional(aTHX_ skipped)) != NULL)
-                add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
-        }
+      skipped = PL_op;
+      while ((skipped = find_skipped_conditional(aTHX_ skipped)) != NULL)
+        add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
     }
+  }
 }
 
-/* A sequence of variable declarations may have been optimized
- * to a single OP_PADRANGE. The original sequence may span multiple lines,
- * but only the first line has been marked as covered for now.
- * Mark other OP_NEXTSTATE inside the original sequence of statements.
+/*
+ * A sequence of variable declarations may have been optimized to a single
+ * OP_PADRANGE. The original sequence may span multiple lines, but only the
+ * first line has been marked as covered for now. Mark other OP_NEXTSTATE inside
+ * the original sequence of statements.
  */
 static void cover_padrange(pTHX) {
-    dMY_CXT;
-    OP *next,
-       *orig;
-    if (!collecting(Statement)) return;
-    next = PL_op->op_next;
-    orig = OpSIBLING(PL_op);
+  dMY_CXT;
+  OP *next,
+     *orig;
+  if (!collecting(Statement)) return;
+  next = PL_op->op_next;
+  orig = OpSIBLING(PL_op);
 
-    /* Ignore padrange preparing subroutine call */
-    while (orig && orig != next) {
-        if (orig->op_type == OP_ENTERSUB) return;
-        orig = orig->op_next;
+  /* Ignore padrange preparing subroutine call */
+  while (orig && orig != next) {
+    if (orig->op_type == OP_ENTERSUB) return;
+    orig = orig->op_next;
+  }
+  orig = OpSIBLING(PL_op);
+  while (orig && orig != next) {
+    if (orig->op_type == OP_NEXTSTATE) {
+      cover_statement(aTHX_ orig, get_key(orig));
     }
-    orig = OpSIBLING(PL_op);
-    while (orig && orig != next) {
-        if (orig->op_type == OP_NEXTSTATE) {
-            cover_statement(aTHX_ orig, get_key(orig));
-        }
-        orig = orig->op_next;
-    }
+    orig = orig->op_next;
+  }
 }
 
 static OP *dc_padrange(pTHX) {
-    dMY_CXT;
-    check_if_collecting(aTHX_ PL_curcop);
-    NDEB(D(L, "dc_padrange() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering) cover_padrange(aTHX);
-    return MY_CXT.ppaddr[OP_PADRANGE](aTHX);
+  dMY_CXT;
+  check_if_collecting(aTHX_ PL_curcop);
+  NDEB(D(L, "dc_padrange() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering) cover_padrange(aTHX);
+  return MY_CXT.ppaddr[OP_PADRANGE](aTHX);
 }
 
 static OP *dc_nextstate(pTHX) {
-    dMY_CXT;
-    NDEB(D(L, "dc_nextstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering) check_if_collecting(aTHX_ cCOP);
-    if (collecting_here(aTHX)) cover_current_statement(aTHX);
-    return MY_CXT.ppaddr[OP_NEXTSTATE](aTHX);
+  dMY_CXT;
+  NDEB(D(L, "dc_nextstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering) check_if_collecting(aTHX_ cCOP);
+  if (collecting_here(aTHX)) cover_current_statement(aTHX);
+  return MY_CXT.ppaddr[OP_NEXTSTATE](aTHX);
 }
 
 static OP *dc_dbstate(pTHX) {
-    dMY_CXT;
-    NDEB(D(L, "dc_dbstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering) check_if_collecting(aTHX_ cCOP);
-    if (collecting_here(aTHX)) cover_current_statement(aTHX);
-    return MY_CXT.ppaddr[OP_DBSTATE](aTHX);
+  dMY_CXT;
+  NDEB(D(L, "dc_dbstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering) check_if_collecting(aTHX_ cCOP);
+  if (collecting_here(aTHX)) cover_current_statement(aTHX);
+  return MY_CXT.ppaddr[OP_DBSTATE](aTHX);
 }
 
 static OP *dc_entersub(pTHX) {
-    dMY_CXT;
-    NDEB(D(L, "dc_entersub() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering) store_return(aTHX);
-    return MY_CXT.ppaddr[OP_ENTERSUB](aTHX);
+  dMY_CXT;
+  NDEB(D(L, "dc_entersub() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering) store_return(aTHX);
+  return MY_CXT.ppaddr[OP_ENTERSUB](aTHX);
 }
 
 static OP *dc_cond_expr(pTHX) {
-    dMY_CXT;
-    check_if_collecting(aTHX_ PL_curcop);
-    NDEB(D(L, "dc_cond_expr() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering && collecting_here(aTHX)) cover_cond(aTHX);
-    return MY_CXT.ppaddr[OP_COND_EXPR](aTHX);
+  dMY_CXT;
+  check_if_collecting(aTHX_ PL_curcop);
+  NDEB(D(L, "dc_cond_expr() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering && collecting_here(aTHX)) cover_cond(aTHX);
+  return MY_CXT.ppaddr[OP_COND_EXPR](aTHX);
 }
 
 static OP *dc_and(pTHX) {
-    dMY_CXT;
-    NDEB(D(L, "dc_and() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    check_if_collecting(aTHX_ PL_curcop);
-    NDEB(D(L, "dc_and() at %p (%d)\n", PL_curcop, collecting_here(aTHX)));
-    NDEB(D(L, "PL_curcop: %s:%ld\n", CopFILE(PL_curcop), (long)CopLINE(PL_curcop)));
-    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return MY_CXT.ppaddr[OP_AND](aTHX);
+  dMY_CXT;
+  NDEB(D(L, "dc_and() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  check_if_collecting(aTHX_ PL_curcop);
+  NDEB(D(L, "dc_and() at %p (%d)\n", PL_curcop, collecting_here(aTHX)));
+  NDEB(D(L, "PL_curcop: %s:%ld\n",
+         CopFILE(PL_curcop), (long)CopLINE(PL_curcop)));
+  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+  return MY_CXT.ppaddr[OP_AND](aTHX);
 }
 
 static OP *dc_andassign(pTHX) {
-    dMY_CXT;
-    check_if_collecting(aTHX_ PL_curcop);
-    NDEB(D(L, "dc_andassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return MY_CXT.ppaddr[OP_ANDASSIGN](aTHX);
+  dMY_CXT;
+  check_if_collecting(aTHX_ PL_curcop);
+  NDEB(D(L, "dc_andassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+  return MY_CXT.ppaddr[OP_ANDASSIGN](aTHX);
 }
 
 static OP *dc_or(pTHX) {
-    dMY_CXT;
-    check_if_collecting(aTHX_ PL_curcop);
-    NDEB(D(L, "dc_or() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return MY_CXT.ppaddr[OP_OR](aTHX);
+  dMY_CXT;
+  check_if_collecting(aTHX_ PL_curcop);
+  NDEB(D(L, "dc_or() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+  return MY_CXT.ppaddr[OP_OR](aTHX);
 }
 
 static OP *dc_orassign(pTHX) {
-    dMY_CXT;
-    check_if_collecting(aTHX_ PL_curcop);
-    NDEB(D(L, "dc_orassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return MY_CXT.ppaddr[OP_ORASSIGN](aTHX);
+  dMY_CXT;
+  check_if_collecting(aTHX_ PL_curcop);
+  NDEB(D(L, "dc_orassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+  return MY_CXT.ppaddr[OP_ORASSIGN](aTHX);
 }
 
 static OP *dc_dor(pTHX) {
-    dMY_CXT;
-    check_if_collecting(aTHX_ PL_curcop);
-    NDEB(D(L, "dc_dor() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return MY_CXT.ppaddr[OP_DOR](aTHX);
+  dMY_CXT;
+  check_if_collecting(aTHX_ PL_curcop);
+  NDEB(D(L, "dc_dor() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+  return MY_CXT.ppaddr[OP_DOR](aTHX);
 }
 
 static OP *dc_dorassign(pTHX) {
-    dMY_CXT;
-    check_if_collecting(aTHX_ PL_curcop);
-    NDEB(D(L, "dc_dorassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return MY_CXT.ppaddr[OP_DORASSIGN](aTHX);
+  dMY_CXT;
+  check_if_collecting(aTHX_ PL_curcop);
+  NDEB(D(L, "dc_dorassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+  return MY_CXT.ppaddr[OP_DORASSIGN](aTHX);
 }
 
 OP *dc_xor(pTHX) {
-    dMY_CXT;
-    check_if_collecting(aTHX_ PL_curcop);
-    NDEB(D(L, "dc_xor() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-    return MY_CXT.ppaddr[OP_XOR](aTHX);
+  dMY_CXT;
+  check_if_collecting(aTHX_ PL_curcop);
+  NDEB(D(L, "dc_xor() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+  return MY_CXT.ppaddr[OP_XOR](aTHX);
 }
 
 static OP *dc_require(pTHX) {
-    dMY_CXT;
-    NDEB(D(L, "dc_require() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering && collecting_here(aTHX)) store_module(aTHX);
-    return MY_CXT.ppaddr[OP_REQUIRE](aTHX);
+  dMY_CXT;
+  NDEB(D(L, "dc_require() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering && collecting_here(aTHX)) store_module(aTHX);
+  return MY_CXT.ppaddr[OP_REQUIRE](aTHX);
 }
 
 static OP *dc_exec(pTHX) {
-    dMY_CXT;
-    NDEB(D(L, "dc_exec() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-    if (MY_CXT.covering && collecting_here(aTHX)) call_report(aTHX);
-    return MY_CXT.ppaddr[OP_EXEC](aTHX);
+  dMY_CXT;
+  NDEB(D(L, "dc_exec() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering && collecting_here(aTHX)) call_report(aTHX);
+  return MY_CXT.ppaddr[OP_EXEC](aTHX);
 }
 
 static void replace_ops (pTHX) {
-    dMY_CXT;
-    int i;
-    NDEB(D(L, "initialising replace_ops\n"));
-    for (i = 0; i < MAXO; i++)
-        MY_CXT.ppaddr[i] = PL_ppaddr[i];
+  dMY_CXT;
+  int i;
+  NDEB(D(L, "initialising replace_ops\n"));
+  for (i = 0; i < MAXO; i++)
+    MY_CXT.ppaddr[i] = PL_ppaddr[i];
 
-    PL_ppaddr[OP_NEXTSTATE] = dc_nextstate;
-    PL_ppaddr[OP_DBSTATE]   = dc_dbstate;
-    PL_ppaddr[OP_ENTERSUB]  = dc_entersub;
-    PL_ppaddr[OP_PADRANGE]  = dc_padrange;
-    PL_ppaddr[OP_COND_EXPR] = dc_cond_expr;
-    PL_ppaddr[OP_AND]       = dc_and;
-    PL_ppaddr[OP_ANDASSIGN] = dc_andassign;
-    PL_ppaddr[OP_OR]        = dc_or;
-    PL_ppaddr[OP_ORASSIGN]  = dc_orassign;
-    PL_ppaddr[OP_DOR]       = dc_dor;
-    PL_ppaddr[OP_DORASSIGN] = dc_dorassign;
-    PL_ppaddr[OP_XOR]       = dc_xor;
-    PL_ppaddr[OP_REQUIRE]   = dc_require;
-    PL_ppaddr[OP_EXEC]      = dc_exec;
+  PL_ppaddr[OP_NEXTSTATE] = dc_nextstate;
+  PL_ppaddr[OP_DBSTATE]   = dc_dbstate;
+  PL_ppaddr[OP_ENTERSUB]  = dc_entersub;
+  PL_ppaddr[OP_PADRANGE]  = dc_padrange;
+  PL_ppaddr[OP_COND_EXPR] = dc_cond_expr;
+  PL_ppaddr[OP_AND]       = dc_and;
+  PL_ppaddr[OP_ANDASSIGN] = dc_andassign;
+  PL_ppaddr[OP_OR]        = dc_or;
+  PL_ppaddr[OP_ORASSIGN]  = dc_orassign;
+  PL_ppaddr[OP_DOR]       = dc_dor;
+  PL_ppaddr[OP_DORASSIGN] = dc_dorassign;
+  PL_ppaddr[OP_XOR]       = dc_xor;
+  PL_ppaddr[OP_REQUIRE]   = dc_require;
+  PL_ppaddr[OP_EXEC]      = dc_exec;
 }
 
 static void initialise(pTHX) {
-    dMY_CXT;
+  dMY_CXT;
 
-    NDEB(D(L, "initialising\n"));
+  NDEB(D(L, "initialising\n"));
 
-    MUTEX_LOCK(&DC_mutex);
-    if (!Pending_conditionals) {
-        Pending_conditionals = newHV();
+  MUTEX_LOCK(&DC_mutex);
+  if (!Pending_conditionals) {
+    Pending_conditionals = newHV();
 #ifdef USE_ITHREADS
-        HvSHAREKEYS_off(Pending_conditionals);
+    HvSHAREKEYS_off(Pending_conditionals);
 #endif
-    }
-    if (!Return_ops) {
-        Return_ops = newHV();
+  }
+  if (!Return_ops) {
+    Return_ops = newHV();
 #ifdef USE_ITHREADS
-        HvSHAREKEYS_off(Return_ops);
+    HvSHAREKEYS_off(Return_ops);
 #endif
-    }
-    MUTEX_UNLOCK(&DC_mutex);
+  }
+  MUTEX_UNLOCK(&DC_mutex);
 
-    MY_CXT.collecting_here = 1;
+  MY_CXT.collecting_here = 1;
 
-    if (!MY_CXT.covering) {
-        /* TODO - this probably leaks all over the place */
+  if (!MY_CXT.covering) {
+    /* TODO - this probably leaks all over the place */
 
-        SV **tmp;
+    SV **tmp;
 
-        MY_CXT.cover      = newHV();
+    MY_CXT.cover      = newHV();
 #ifdef USE_ITHREADS
-        HvSHAREKEYS_off(MY_CXT.cover);
+    HvSHAREKEYS_off(MY_CXT.cover);
 #endif
 
-        tmp               = hv_fetch(MY_CXT.cover, "statement", 9, 1);
-        MY_CXT.statements = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.statements);
+    tmp               = hv_fetch(MY_CXT.cover, "statement", 9, 1);
+    MY_CXT.statements = newHV();
+    *tmp              = newRV_inc((SV*) MY_CXT.statements);
 
-        tmp               = hv_fetch(MY_CXT.cover, "branch",    6, 1);
-        MY_CXT.branches   = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.branches);
+    tmp               = hv_fetch(MY_CXT.cover, "branch",    6, 1);
+    MY_CXT.branches   = newHV();
+    *tmp              = newRV_inc((SV*) MY_CXT.branches);
 
-        tmp               = hv_fetch(MY_CXT.cover, "condition", 9, 1);
-        MY_CXT.conditions = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.conditions);
+    tmp               = hv_fetch(MY_CXT.cover, "condition", 9, 1);
+    MY_CXT.conditions = newHV();
+    *tmp              = newRV_inc((SV*) MY_CXT.conditions);
 
 #if CAN_PROFILE
-        tmp               = hv_fetch(MY_CXT.cover, "time",      4, 1);
-        MY_CXT.times      = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.times);
+    tmp               = hv_fetch(MY_CXT.cover, "time",      4, 1);
+    MY_CXT.times      = newHV();
+    *tmp              = newRV_inc((SV*) MY_CXT.times);
 #endif
 
-        tmp               = hv_fetch(MY_CXT.cover, "module",    6, 1);
-        MY_CXT.modules    = newHV();
-        *tmp              = newRV_inc((SV*) MY_CXT.modules);
+    tmp               = hv_fetch(MY_CXT.cover, "module",    6, 1);
+    MY_CXT.modules    = newHV();
+    *tmp              = newRV_inc((SV*) MY_CXT.modules);
 
-        MY_CXT.files      = get_hv("Devel::Cover::Files", FALSE);
+    MY_CXT.files      = get_hv("Devel::Cover::Files", FALSE);
 
 #ifdef USE_ITHREADS
-        HvSHAREKEYS_off(MY_CXT.statements);
-        HvSHAREKEYS_off(MY_CXT.branches);
-        HvSHAREKEYS_off(MY_CXT.conditions);
+    HvSHAREKEYS_off(MY_CXT.statements);
+    HvSHAREKEYS_off(MY_CXT.branches);
+    HvSHAREKEYS_off(MY_CXT.conditions);
 #if CAN_PROFILE
-        HvSHAREKEYS_off(MY_CXT.times);
+    HvSHAREKEYS_off(MY_CXT.times);
 #endif
-        HvSHAREKEYS_off(MY_CXT.modules);
+    HvSHAREKEYS_off(MY_CXT.modules);
 #endif
 
-        MY_CXT.profiling_key_valid = 0;
-        Zero(&MY_CXT.stmt_cache, 1, dc_stmt_cache);
-        Zero(&MY_CXT.av_cache, 1, dc_av_cache);
-        MY_CXT.module              = newSVpv("", 0);
-        MY_CXT.lastfile            = newSVpvn("", 1);
-        MY_CXT.lastfile_ptr        = NULL;
-        MY_CXT.covering            = All;
-        MY_CXT.tid                 = tid++;
+    MY_CXT.profiling_key_valid = 0;
+    Zero(&MY_CXT.stmt_cache, 1, dc_stmt_cache);
+    Zero(&MY_CXT.av_cache, 1, dc_av_cache);
+    MY_CXT.module              = newSVpv("", 0);
+    MY_CXT.lastfile            = newSVpvn("", 1);
+    MY_CXT.lastfile_ptr        = NULL;
+    MY_CXT.covering            = All;
+    MY_CXT.tid                 = tid++;
 
-        MY_CXT.replace_ops = SvTRUE(get_sv("Devel::Cover::Replace_ops", FALSE));
-        NDEB(D(L, "running with Replace_ops as %d\n", MY_CXT.replace_ops));
-    }
+    MY_CXT.replace_ops = SvTRUE(get_sv("Devel::Cover::Replace_ops", FALSE));
+    NDEB(D(L, "running with Replace_ops as %d\n", MY_CXT.replace_ops));
+  }
 }
 
 static int runops_cover(pTHX) {
-    dMY_CXT;
+  dMY_CXT;
 
-    NDEB(D(L, "entering runops_cover\n"));
+  NDEB(D(L, "entering runops_cover\n"));
 
 #if defined HAS_GETTIMEOFDAY
-    elapsed();
+  elapsed();
 #elif defined HAS_TIMES
-    cpu();
+  cpu();
 #endif
 
-    for (;;) {
-        NDEB(D(L, "running func %p from %p (%s)\n",
-               PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
+  for (;;) {
+    NDEB(D(L, "running func %p from %p (%s)\n",
+           PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
 
-        if (!MY_CXT.covering)
-            goto call_fptr;
+    if (!MY_CXT.covering)
+      goto call_fptr;
 
-        /* Nothing to collect when we've hijacked the ppaddr */
-        {
-            int hijacked;
-            MUTEX_LOCK(&DC_mutex);
-            hijacked = PL_op->op_ppaddr == get_condition;
-            MUTEX_UNLOCK(&DC_mutex);
-            if (hijacked)
-                goto call_fptr;
-        }
-
-        /* Check to see whether we are interested in this file */
-
-        if (PL_op->op_type == OP_NEXTSTATE)
-            check_if_collecting(aTHX_ cCOP);
-        else if (PL_op->op_type == OP_ENTERSUB)
-            store_return(aTHX);
-
-        if (!collecting_here(aTHX))
-            goto call_fptr;
-
-        /*
-         * We are about the run the op PL_op, so we'll collect
-         * information for it now
-         */
-
-        switch (PL_op->op_type) {
-            case OP_NEXTSTATE:
-            case OP_DBSTATE: {
-                cover_current_statement(aTHX);
-                break;
-            }
-
-            case OP_PADRANGE: {
-                cover_padrange(aTHX);
-                break;
-            }
-
-            case OP_COND_EXPR: {
-                cover_cond(aTHX);
-                break;
-            }
-
-            case OP_AND:
-            case OP_ANDASSIGN:
-            case OP_OR:
-            case OP_ORASSIGN:
-            case OP_DOR:
-            case OP_DORASSIGN:
-            case OP_XOR: {
-                cover_logop(aTHX);
-                break;
-            }
-
-            case OP_REQUIRE: {
-                store_module(aTHX);
-                break;
-            }
-
-            case OP_EXEC: {
-                call_report(aTHX);
-                break;
-            }
-
-            default:
-                ;  /* IBM's xlC compiler on AIX is very picky */
-        }
-
-        call_fptr:
-        if (!(PL_op = PL_op->op_ppaddr(aTHX)))
-            break;
-
-        PERL_ASYNC_CHECK();
+    /* Nothing to collect when we've hijacked the ppaddr */
+    {
+      int hijacked;
+      MUTEX_LOCK(&DC_mutex);
+      hijacked = PL_op->op_ppaddr == get_condition;
+      MUTEX_UNLOCK(&DC_mutex);
+      if (hijacked)
+        goto call_fptr;
     }
 
+    /* Check to see whether we are interested in this file */
+
+    if (PL_op->op_type == OP_NEXTSTATE)
+      check_if_collecting(aTHX_ cCOP);
+    else if (PL_op->op_type == OP_ENTERSUB)
+      store_return(aTHX);
+
+    if (!collecting_here(aTHX))
+      goto call_fptr;
+
+    /*
+     * We are about the run the op PL_op, so we'll collect information for it
+     * now
+     */
+
+    switch (PL_op->op_type) {
+      case OP_NEXTSTATE:
+      case OP_DBSTATE: {
+        cover_current_statement(aTHX);
+        break;
+      }
+
+      case OP_PADRANGE: {
+        cover_padrange(aTHX);
+        break;
+      }
+
+      case OP_COND_EXPR: {
+        cover_cond(aTHX);
+        break;
+      }
+
+      case OP_AND:
+      case OP_ANDASSIGN:
+      case OP_OR:
+      case OP_ORASSIGN:
+      case OP_DOR:
+      case OP_DORASSIGN:
+      case OP_XOR: {
+        cover_logop(aTHX);
+        break;
+      }
+
+      case OP_REQUIRE: {
+        store_module(aTHX);
+        break;
+      }
+
+      case OP_EXEC: {
+        call_report(aTHX);
+        break;
+      }
+
+      default:
+        ;  /* IBM's xlC compiler on AIX is very picky */
+    }
+
+    call_fptr:
+    if (!(PL_op = PL_op->op_ppaddr(aTHX)))
+      break;
+
+    PERL_ASYNC_CHECK();
+  }
+
 #if CAN_PROFILE
-    cover_time(aTHX_ NULL);
+  cover_time(aTHX_ NULL);
 #endif
 
-    MY_CXT.collecting_here = 1;
+  MY_CXT.collecting_here = 1;
 
-    NDEB(D(L, "exiting runops_cover\n"));
+  NDEB(D(L, "exiting runops_cover\n"));
 
-    TAINT_NOT;
-    return 0;
+  TAINT_NOT;
+  return 0;
 }
 
 static int runops_orig(pTHX) {
-    NDEB(D(L, "entering runops_orig\n"));
+  NDEB(D(L, "entering runops_orig\n"));
 
-    while ((PL_op = PL_op->op_ppaddr(aTHX))) {
-        PERL_ASYNC_CHECK();
-    }
+  while ((PL_op = PL_op->op_ppaddr(aTHX))) {
+    PERL_ASYNC_CHECK();
+  }
 
-    NDEB(D(L, "exiting runops_orig\n"));
+  NDEB(D(L, "exiting runops_orig\n"));
 
-    TAINT_NOT;
-    return 0;
+  TAINT_NOT;
+  return 0;
 }
 
 #if defined DO_RUNOPS_TRACE
 static int runops_trace(pTHX) {
-    PDEB(D(L, "entering runops_trace\n"));
+  PDEB(D(L, "entering runops_trace\n"));
 
-    for (;;) {
-        PDEB(D(L, "running func %p from %p (%s)\n",
-               PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
+  for (;;) {
+    PDEB(D(L, "running func %p from %p (%s)\n",
+           PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
 
-        if (!(PL_op = PL_op->op_ppaddr(aTHX)))
-            break;
+    if (!(PL_op = PL_op->op_ppaddr(aTHX)))
+      break;
 
-        PERL_ASYNC_CHECK();
-    }
+    PERL_ASYNC_CHECK();
+  }
 
-    PDEB(D(L, "exiting runops_trace\n"));
+  PDEB(D(L, "exiting runops_trace\n"));
 
-    TAINT_NOT;
-    return 0;
+  TAINT_NOT;
+  return 0;
 }
 #endif
 
 static char *svclassnames[] = {
-    "B::NULL",
-    "B::IV",
-    "B::NV",
-    "B::RV",
-    "B::PV",
-    "B::PVIV",
-    "B::PVNV",
-    "B::PVMG",
-    "B::BM",
-    "B::GV",
-    "B::PVLV",
-    "B::AV",
-    "B::HV",
-    "B::CV",
-    "B::FM",
-    "B::IO",
+  "B::NULL",
+  "B::IV",
+  "B::NV",
+  "B::RV",
+  "B::PV",
+  "B::PVIV",
+  "B::PVNV",
+  "B::PVMG",
+  "B::BM",
+  "B::GV",
+  "B::PVLV",
+  "B::AV",
+  "B::HV",
+  "B::CV",
+  "B::FM",
+  "B::IO",
 };
 
 static SV *make_sv_object(pTHX_ SV *arg, SV *sv) {
-    IV    iv;
-    char *type;
+  IV    iv;
+  char *type;
 
-    iv = PTR2IV(sv);
-    type = svclassnames[SvTYPE(sv)];
-    sv_setiv(newSVrv(arg, type), iv);
-    return arg;
+  iv = PTR2IV(sv);
+  type = svclassnames[SvTYPE(sv)];
+  sv_setiv(newSVrv(arg, type), iv);
+  return arg;
 }
 
 
@@ -1715,228 +1715,227 @@ PROTOTYPES: ENABLE
 
 void
 set_criteria(flag)
-        unsigned flag
-    PREINIT:
-        dMY_CXT;
-    PPCODE:
-        MY_CXT.covering = flag;
-        /* fprintf(stderr, "Cover set to %d\n", flag); */
-        if (MY_CXT.replace_ops) return;
-        PL_runops = MY_CXT.covering ? runops_cover : runops_orig;
+    unsigned flag
+  PREINIT:
+    dMY_CXT;
+  PPCODE:
+    MY_CXT.covering = flag;
+    if (MY_CXT.replace_ops) return;
+    PL_runops = MY_CXT.covering ? runops_cover : runops_orig;
 
 void
 add_criteria(flag)
-        unsigned flag
-    PREINIT:
-        dMY_CXT;
-    PPCODE:
-        MY_CXT.covering |= flag;
-        if (MY_CXT.replace_ops) return;
-        PL_runops = MY_CXT.covering ? runops_cover : runops_orig;
+    unsigned flag
+  PREINIT:
+    dMY_CXT;
+  PPCODE:
+    MY_CXT.covering |= flag;
+    if (MY_CXT.replace_ops) return;
+    PL_runops = MY_CXT.covering ? runops_cover : runops_orig;
 
 void
 remove_criteria(flag)
-        unsigned flag
-    PREINIT:
-        dMY_CXT;
-    PPCODE:
-        MY_CXT.covering &= ~flag;
-        if (MY_CXT.replace_ops) return;
-        PL_runops = MY_CXT.covering ? runops_cover : runops_orig;
+    unsigned flag
+  PREINIT:
+    dMY_CXT;
+  PPCODE:
+    MY_CXT.covering &= ~flag;
+    if (MY_CXT.replace_ops) return;
+    PL_runops = MY_CXT.covering ? runops_cover : runops_orig;
 
 unsigned
 get_criteria()
-    PREINIT:
-        dMY_CXT;
-    CODE:
-        RETVAL = MY_CXT.covering;
-    OUTPUT:
-        RETVAL
+  PREINIT:
+    dMY_CXT;
+  CODE:
+    RETVAL = MY_CXT.covering;
+  OUTPUT:
+    RETVAL
 
 unsigned
 coverage_none()
-    CODE:
-        RETVAL = None;
-    OUTPUT:
-        RETVAL
+  CODE:
+    RETVAL = None;
+  OUTPUT:
+    RETVAL
 
 unsigned
 coverage_statement()
-    CODE:
-        RETVAL = Statement;
-    OUTPUT:
-        RETVAL
+  CODE:
+    RETVAL = Statement;
+  OUTPUT:
+    RETVAL
 
 unsigned
 coverage_branch()
-    CODE:
-        RETVAL = Branch;
-    OUTPUT:
-        RETVAL
+  CODE:
+    RETVAL = Branch;
+  OUTPUT:
+    RETVAL
 
 unsigned
 coverage_condition()
-    CODE:
-        RETVAL = Condition;
-    OUTPUT:
-        RETVAL
+  CODE:
+    RETVAL = Condition;
+  OUTPUT:
+    RETVAL
 
 unsigned
 coverage_subroutine()
-    CODE:
-        RETVAL = Subroutine;
-    OUTPUT:
-        RETVAL
+  CODE:
+    RETVAL = Subroutine;
+  OUTPUT:
+    RETVAL
 
 unsigned
 coverage_path()
-    CODE:
-        RETVAL = Path;
-    OUTPUT:
-        RETVAL
+  CODE:
+    RETVAL = Path;
+  OUTPUT:
+    RETVAL
 
 unsigned
 coverage_pod()
-    CODE:
-        RETVAL = Pod;
-    OUTPUT:
-        RETVAL
+  CODE:
+    RETVAL = Pod;
+  OUTPUT:
+    RETVAL
 
 unsigned
 coverage_time()
-    CODE:
-        RETVAL = Time;
-    OUTPUT:
-        RETVAL
+  CODE:
+    RETVAL = Time;
+  OUTPUT:
+    RETVAL
 
 unsigned
 coverage_all()
-    CODE:
-        RETVAL = All;
-    OUTPUT:
-        RETVAL
+  CODE:
+    RETVAL = All;
+  OUTPUT:
+    RETVAL
 
 double
 get_elapsed()
-    CODE:
+  CODE:
 #ifdef HAS_GETTIMEOFDAY
-        RETVAL = get_elapsed();
+    RETVAL = get_elapsed();
 #else
-        RETVAL = 0;
+    RETVAL = 0;
 #endif
-    OUTPUT:
-        RETVAL
+  OUTPUT:
+    RETVAL
 
 SV *
 coverage(final)
-        unsigned final
-    PREINIT:
-        dMY_CXT;
-    CODE:
-        NDEB(D(L, "Getting coverage %d\n", final));
-        if (MY_CXT.statements)
-            dc_stmt_cache_flush(aTHX_ &MY_CXT.stmt_cache, MY_CXT.statements);
-        if (final) finalise_conditions(aTHX);
-        if (MY_CXT.cover)
-            RETVAL = newRV_inc((SV*) MY_CXT.cover);
-        else
-            RETVAL = &PL_sv_undef;
-    OUTPUT:
-        RETVAL
+    unsigned final
+  PREINIT:
+    dMY_CXT;
+  CODE:
+    NDEB(D(L, "Getting coverage %d\n", final));
+    if (MY_CXT.statements)
+      dc_stmt_cache_flush(aTHX_ &MY_CXT.stmt_cache, MY_CXT.statements);
+    if (final) finalise_conditions(aTHX);
+    if (MY_CXT.cover)
+      RETVAL = newRV_inc((SV*) MY_CXT.cover);
+    else
+      RETVAL = &PL_sv_undef;
+  OUTPUT:
+    RETVAL
 
 SV *
 get_key(o)
-        B::OP o
-    CODE:
-        RETVAL = newSV(KEY_SZ + 1);
-        sv_setpvn(RETVAL, get_key(o), KEY_SZ);
-    OUTPUT:
-        RETVAL
+    B::OP o
+  CODE:
+    RETVAL = newSV(KEY_SZ + 1);
+    sv_setpvn(RETVAL, get_key(o), KEY_SZ);
+  OUTPUT:
+    RETVAL
 
 void
 set_first_init_and_end()
-    PPCODE:
-        set_firsts_if_needed(aTHX);
+  PPCODE:
+    set_firsts_if_needed(aTHX);
 
 void
 collect_inits()
-    PREINIT:
-        dMY_CXT;
-    PPCODE:
-        int i;
-        if (!MY_CXT.ends) MY_CXT.ends = newAV();
-        NDEB(svdump(MY_CXT.ends));
-        if (PL_initav)
-            for (i = 0; i <= av_len(PL_initav); i++) {
-                SV **cv = av_fetch(PL_initav, i, 0);
-                SvREFCNT_inc(*cv);
-                av_push(MY_CXT.ends, *cv);
-            }
+  PREINIT:
+    dMY_CXT;
+  PPCODE:
+    int i;
+    if (!MY_CXT.ends) MY_CXT.ends = newAV();
+    NDEB(svdump(MY_CXT.ends));
+    if (PL_initav)
+      for (i = 0; i <= av_len(PL_initav); i++) {
+        SV **cv = av_fetch(PL_initav, i, 0);
+        SvREFCNT_inc(*cv);
+        av_push(MY_CXT.ends, *cv);
+      }
 
 void
 set_last_end()
-    PREINIT:
-        dMY_CXT;
-    PPCODE:
-        int i;
-        SV *end = (SV *)get_cv("last_end", 0);
-        av_push(PL_endav, end);
-        NDEB(svdump(end));
-        if (!MY_CXT.ends) MY_CXT.ends = newAV();
-        if (PL_endav)
-            for (i = 0; i <= av_len(PL_endav); i++) {
-                SV **cv = av_fetch(PL_endav, i, 0);
-                SvREFCNT_inc(*cv);
-                av_push(MY_CXT.ends, *cv);
-            }
+  PREINIT:
+    dMY_CXT;
+  PPCODE:
+    int i;
+    SV *end = (SV *)get_cv("last_end", 0);
+    av_push(PL_endav, end);
+    NDEB(svdump(end));
+    if (!MY_CXT.ends) MY_CXT.ends = newAV();
+    if (PL_endav)
+      for (i = 0; i <= av_len(PL_endav); i++) {
+        SV **cv = av_fetch(PL_endav, i, 0);
+        SvREFCNT_inc(*cv);
+        av_push(MY_CXT.ends, *cv);
+      }
 
 B::AV
 get_ends()
-    PREINIT:
-        dMY_CXT;
-    CODE:
-        if (!MY_CXT.ends) MY_CXT.ends = newAV();  /* TODO: how? */
-            RETVAL = MY_CXT.ends;
-    OUTPUT:
-        RETVAL
+  PREINIT:
+    dMY_CXT;
+  CODE:
+    if (!MY_CXT.ends) MY_CXT.ends = newAV();  /* TODO: how? */
+      RETVAL = MY_CXT.ends;
+  OUTPUT:
+    RETVAL
 
 void
 adjust_blocks(stash)
-        HV *stash
-    PPCODE:
+    HV *stash
+  PPCODE:
 #if PERL_VERSION >= 38
-        if (HvHasAUX(stash) && HvAUX(stash)->xhv_aux_flags & HvAUXf_IS_CLASS) {
-            AV *blocks = HvAUX(stash)->xhv_class_adjust_blocks;
-            if (blocks) {
-                SSize_t i;
-                for (i = 0; i <= AvFILL(blocks); i++) {
-                    CV *cv = (CV *)AvARRAY(blocks)[i];
-                    if (cv && (SV *)cv != &PL_sv_undef)
-                        XPUSHs(sv_2mortal(newRV_inc((SV *)cv)));
-                }
-            }
+    if (HvHasAUX(stash) && HvAUX(stash)->xhv_aux_flags & HvAUXf_IS_CLASS) {
+      AV *blocks = HvAUX(stash)->xhv_class_adjust_blocks;
+      if (blocks) {
+        SSize_t i;
+        for (i = 0; i <= AvFILL(blocks); i++) {
+          CV *cv = (CV *)AvARRAY(blocks)[i];
+          if (cv && (SV *)cv != &PL_sv_undef)
+            XPUSHs(sv_2mortal(newRV_inc((SV *)cv)));
         }
+      }
+    }
 #endif
 
 BOOT:
-    {
-        MY_CXT_INIT;
+  {
+    MY_CXT_INIT;
 #ifdef USE_ITHREADS
-        MUTEX_INIT(&DC_mutex);
+    MUTEX_INIT(&DC_mutex);
 #endif
-        initialise(aTHX);
-        if (MY_CXT.replace_ops) {
-            replace_ops(aTHX);
+    initialise(aTHX);
+    if (MY_CXT.replace_ops) {
+      replace_ops(aTHX);
 #if defined HAS_GETTIMEOFDAY
-            elapsed();
+      elapsed();
 #elif defined HAS_TIMES
-            cpu();
+      cpu();
 #endif
 #if defined DO_RUNOPS_TRACE
-            PL_runops = runops_trace;
+      PL_runops = runops_trace;
 #endif
-        } else {
-            PL_runops = runops_cover;
-        }
-        PL_savebegin = TRUE;
+    } else {
+      PL_runops = runops_cover;
     }
+    PL_savebegin = TRUE;
+  }
