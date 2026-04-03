@@ -47,13 +47,45 @@ extern "C" {
 # define CAN_PROFILE 0
 #endif
 
-struct unique {  /* Well, we'll be fairly unlucky if it's not */
-    OP    *addr;          /* op address                               */
-    size_t op_identity;   /* hash of meaningful OP fields             */
-    size_t fileinfohash;  /* hashed file location (cops) or 0        */
+struct unique {          /* Well, we'll be fairly unlucky if it's not */
+    OP    *addr;         /* op address                                */
+    size_t op_identity;  /* hash of meaningful OP fields              */
+    size_t fileinfohash; /* hashed file location or 0                 */
 };
 
 #define KEY_SZ sizeof(struct unique)
+
+/*
+ * C-level cache mapping OP * -> statement count.  Avoids the full
+ * get_key + hv_fetch path for repeat statement executions (~95% of
+ * all hits in a typical program).  Uses open addressing with linear
+ * probing, keyed by the raw op pointer.
+ *
+ * On a cache hit, only one pointer comparison (op_next) is needed as
+ * a slab-reuse guard; the full identity hash is stored solely for key
+ * reconstruction at flush time.
+ *
+ * Cached counts are flushed into the Perl statements HV when the
+ * coverage() XS function is called (i.e. at report time).
+ */
+
+typedef struct {
+    OP     *addr;         /* key: op address (NULL = empty slot)    */
+    OP     *op_next;      /* slab reuse guard: o->op_next at insert */
+    size_t  op_identity;  /* for struct unique key at flush time    */
+    size_t  fileinfohash; /* for struct unique key at flush time    */
+    IV      stmt_count;   /* accumulated statement count            */
+} dc_stmt_slot;
+
+typedef struct {
+    dc_stmt_slot *slots;
+    size_t        capacity; /* always power of 2                    */
+    size_t        count;    /* occupied slots                       */
+    size_t        mask;     /* capacity - 1                         */
+} dc_stmt_cache;
+
+#define DC_STMT_CACHE_INIT_CAP 1024
+#define DC_STMT_CACHE_LOAD_PCT 70
 
 typedef struct {
     unsigned      covering;
@@ -76,6 +108,7 @@ typedef struct {
     int           replace_ops;
     /* - fix up whatever is broken with module_relative on Windows here */
 
+    dc_stmt_cache stmt_cache;
     Perl_ppaddr_t ppaddr[MAXO];
 } my_cxt_t;
 
@@ -108,9 +141,10 @@ extern "C" {
 #endif
 
 /* op->op_sibling is deprecated on new perls, but the OpSIBLING macro doesn't
-   exist on older perls. We don't need to check for PERL_OP_PARENT here
-   because if PERL_OP_PARENT was set, and we needed to check op_moresib,
-   we would already have this macro. */
+ * exist on older perls. We don't need to check for PERL_OP_PARENT here because
+ * if PERL_OP_PARENT was set, and we needed to check op_moresib, we would
+ * already have this macro.
+ */
 #ifndef OpSIBLING
 #define OpSIBLING(o) (0 + (o)->op_sibling)
 #endif
@@ -185,11 +219,11 @@ static int cpu() {
  *   authors deliberately took no steps to patent the FNV algorithm. Therefore
  *   it is safe to say that the FNV authors have no patent claims on the FNV
  *   algorithm as published.
- *
-*/
+ */
 
 /* Fowler/Noll/Vo (FNV) hash function, variant 1a
- * Hash filename bytes and line number directly, avoiding snprintf. */
+ * Hash filename bytes and line number directly, avoiding snprintf.
+ */
 static size_t fnv1a_hash_file_line(const char *file, long line) {
     size_t hash = 0x811c9dc5;
     const unsigned char *p;
@@ -222,7 +256,8 @@ static size_t fnv1a_hash_file_line(const char *file, long line) {
  * 0x00000100000001B3 is the FNV-1a 64-bit prime.  It is used here
  * as a mixing multiplier rather than as part of a true FNV-1a hash
  * - its sparse-high / dense-low bit pattern spreads input bits
- * well across the result. */
+ * well across the result.
+ */
 static size_t hash_op_identity(const OP *o) {
     size_t h = (size_t)o->op_next;
     h ^= (size_t)o->op_sibparent * 0x00000100000001B3ULL;
@@ -366,6 +401,111 @@ static int check_if_collecting(pTHX_ COP *cop) {
     return MY_CXT.collecting_here;
 }
 
+static void dc_stmt_cache_init(dc_stmt_cache *c) {
+    c->capacity = DC_STMT_CACHE_INIT_CAP;
+    c->count    = 0;
+    c->mask     = c->capacity - 1;
+    Newxz(c->slots, c->capacity, dc_stmt_slot);
+}
+
+static void dc_stmt_grow(dc_stmt_cache *c);
+
+/* Look up by address.  Returns the slot if found (caller must check op_next for
+ * slab reuse), or NULL if not in the cache.
+ */
+static dc_stmt_slot *dc_stmt_lookup(dc_stmt_cache *c, OP *addr) {
+    size_t idx;
+    if (!c->slots) return NULL;
+    idx = ((size_t)addr >> 4) & c->mask;
+    for (;;) {
+        dc_stmt_slot *s = &c->slots[idx];
+        if (!s->addr)        return NULL;  /* empty = not found */
+        if (s->addr == addr) return s;     /* found             */
+        idx = (idx + 1) & c->mask;
+    }
+}
+
+/* Insert a new entry.  Caller must ensure addr is not already present.  Returns
+ * the new slot with stmt_count = 0.
+ */
+static dc_stmt_slot *dc_stmt_insert(dc_stmt_cache *c, OP *addr,
+                                     OP *op_next, size_t op_identity,
+                                     size_t fileinfohash) {
+    size_t idx;
+    dc_stmt_slot *s;
+
+    if (!c->slots) dc_stmt_cache_init(c);
+
+    /* Grow if above load factor */
+    if (c->count * 100 >= c->capacity * DC_STMT_CACHE_LOAD_PCT)
+        dc_stmt_grow(c);
+
+    idx = ((size_t)addr >> 4) & c->mask;
+    for (;;) {
+        s = &c->slots[idx];
+        if (!s->addr) break;  /* found empty slot */
+        idx = (idx + 1) & c->mask;
+    }
+
+    s->addr         = addr;
+    s->op_next      = op_next;
+    s->op_identity  = op_identity;
+    s->fileinfohash = fileinfohash;
+    s->stmt_count   = 0;
+    c->count++;
+    return s;
+}
+
+static void dc_stmt_grow(dc_stmt_cache *c) {
+    dc_stmt_slot *old_slots = c->slots;
+    size_t        old_cap   = c->capacity;
+    size_t        i;
+
+    c->capacity *= 2;
+    c->mask      = c->capacity - 1;
+    c->count     = 0;
+    Newxz(c->slots, c->capacity, dc_stmt_slot);
+
+    for (i = 0; i < old_cap; i++) {
+        dc_stmt_slot *old = &old_slots[i];
+        if (old->addr) {
+            dc_stmt_slot *s = dc_stmt_insert(c, old->addr,
+                old->op_next, old->op_identity, old->fileinfohash);
+            s->stmt_count = old->stmt_count;
+        }
+    }
+    Safefree(old_slots);
+}
+
+/* Flush all cached counts into the Perl statements HV, then zero the cached
+ * counts.  The cache structure stays intact so that subsequent executions still
+ * get cache hits.
+ */
+static void dc_stmt_cache_flush(pTHX_ dc_stmt_cache *c, HV *statements) {
+    size_t i;
+
+    if (!c->slots) return;
+
+    for (i = 0; i < c->capacity; i++) {
+        dc_stmt_slot *s = &c->slots[i];
+        if (s->addr && s->stmt_count) {
+            SV **sv;
+            IV   existing;
+
+            /* Reconstruct the struct unique key from cached fields */
+            struct unique uniq;
+            uniq.addr         = s->addr;
+            uniq.op_identity  = s->op_identity;
+            uniq.fileinfohash = s->fileinfohash;
+
+            sv = hv_fetch(statements, (char *)&uniq, KEY_SZ, 1);
+            existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
+            sv_setiv(*sv, existing + s->stmt_count);
+            s->stmt_count = 0;
+        }
+    }
+}
+
 #if CAN_PROFILE
 
 static void cover_time(pTHX_ const char *key)
@@ -469,11 +609,72 @@ static void cover_statement(pTHX_ OP *op, const char *ch) {
 }
 
 static void cover_current_statement(pTHX) {
-    const char *ch = get_key(PL_op);
+    dMY_CXT;
+
 #if CAN_PROFILE
-    cover_time(aTHX_ ch);
+    /* When time coverage is enabled we need the full key for the profiling_key
+     * bookkeeping, so bypass the cache entirely.
+     */
+    if (collecting(Time)) {
+        const char *ch = get_key(PL_op);
+        cover_time(aTHX_ ch);
+        cover_statement(aTHX_ PL_op, ch);
+        return;
+    }
 #endif
-    cover_statement(aTHX_ PL_op, ch);
+
+    if (!collecting(Statement)) return;
+
+    /* Fast path: C-level statement cache (time coverage is off) */
+    {
+        dc_stmt_slot *slot = dc_stmt_lookup(&MY_CXT.stmt_cache, PL_op);
+        if (slot) {
+            /* Address found - check op_next as slab reuse guard. Two different
+             * ops at the same address with the same op_next is unlikely.
+             */
+            if (slot->op_next == PL_op->op_next) {
+                slot->stmt_count++;
+                return;
+            }
+            /* Slab reuse: flush stale count, update slot in place */
+            if (slot->stmt_count) {
+                struct unique uniq;
+                SV **sv;
+                IV   existing;
+                uniq.addr         = slot->addr;
+                uniq.op_identity  = slot->op_identity;
+                uniq.fileinfohash = slot->fileinfohash;
+                sv = hv_fetch(MY_CXT.statements,
+                              (char *)&uniq, KEY_SZ, 1);
+                existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
+                sv_setiv(*sv, existing + slot->stmt_count);
+            }
+            slot->op_next     = PL_op->op_next;
+            slot->op_identity = hash_op_identity(PL_op);
+            slot->fileinfohash =
+                (PL_op->op_type == OP_NEXTSTATE
+              || PL_op->op_type == OP_DBSTATE)
+                ? fnv1a_hash_file_line(
+                      CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
+                : 0;
+            slot->stmt_count = 1;
+            return;
+        }
+
+        /* Cache miss: insert and count the first execution */
+        {
+            size_t identity = hash_op_identity(PL_op);
+            size_t filehash =
+                (PL_op->op_type == OP_NEXTSTATE
+              || PL_op->op_type == OP_DBSTATE)
+                ? fnv1a_hash_file_line(
+                      CopFILE((COP *)PL_op), CopLINE((COP *)PL_op))
+                : 0;
+            dc_stmt_slot *s = dc_stmt_insert(&MY_CXT.stmt_cache,
+                PL_op, PL_op->op_next, identity, filehash);
+            s->stmt_count = 1;
+        }
+    }
 }
 
 static void add_branch(pTHX_ OP *op, int br) {
@@ -1190,6 +1391,7 @@ static void initialise(pTHX) {
 #endif
 
         MY_CXT.profiling_key_valid = 0;
+        Zero(&MY_CXT.stmt_cache, 1, dc_stmt_cache);
         MY_CXT.module              = newSVpv("", 0);
         MY_CXT.lastfile            = newSVpvn("", 1);
         MY_CXT.covering            = All;
@@ -1497,6 +1699,8 @@ coverage(final)
         dMY_CXT;
     CODE:
         NDEB(D(L, "Getting coverage %d\n", final));
+        if (MY_CXT.statements)
+            dc_stmt_cache_flush(aTHX_ &MY_CXT.stmt_cache, MY_CXT.statements);
         if (final) finalise_conditions(aTHX);
         if (MY_CXT.cover)
             RETVAL = newRV_inc((SV*) MY_CXT.cover);
