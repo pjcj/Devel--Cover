@@ -106,8 +106,8 @@ typedef struct {
 typedef struct {
   dc_av_slot *slots;
   size_t      capacity; /* always power of 2 */
-  size_t      count;    /* occupied slots     */
-  size_t      mask;     /* capacity - 1       */
+  size_t      count;    /* occupied slots    */
+  size_t      mask;     /* capacity - 1      */
 } dc_av_cache;
 
 #define DC_AV_CACHE_INIT_CAP 256
@@ -137,6 +137,8 @@ typedef struct {
 
   dc_stmt_cache stmt_cache;
   dc_av_cache   av_cache;
+  AV           *deferred_conditionals; /* sort-block conditions
+                                        * awaiting resolution */
   Perl_ppaddr_t ppaddr[MAXO];
 } my_cxt_t;
 
@@ -1124,6 +1126,24 @@ static void cover_cond(pTHX)
   }
 }
 
+/*
+ * Resolve conditions deferred from sort blocks.  The stack top holds the sort
+ * comparator's final value - the right operand of the outermost || whose
+ * right->op_next was NULL.
+ */
+static void resolve_deferred_conditionals(pTHX_ AV *dc, I32 base) {
+  if (av_len(dc) >= base) {
+    dSP;
+    int true_ish = SvTRUE(TOPs);
+    while (av_len(dc) >= base) {
+      SV *sv = av_pop(dc);
+      OP *cond_op = INT2PTR(OP *, SvIV(sv));
+      add_conditional(aTHX_ cond_op, true_ish ? 2 : 1);
+      SvREFCNT_dec(sv);
+    }
+  }
+}
+
 static void cover_logop(pTHX) {
   /*
    * For OP_AND, if the first operand is false, we have short circuited the
@@ -1232,7 +1252,15 @@ static void cover_logop(pTHX) {
           : right->op_next;
         while (next && next->op_type == OP_NULL)
           next = next->op_next;
-        if (!next) return;  /* in fold_constants */
+        if (!next) {
+          /*
+           * Sort block (or fold_constants): right->op_next is NULL so we can't
+           * hijack it.  Defer resolution to runops exit where the stack top
+           * holds the right operand's value.
+           */
+          av_push(MY_CXT.deferred_conditionals, newSViv(PTR2IV(PL_op)));
+          return;
+        }
         NDEB(op_dump(PL_op));
         NDEB(op_dump(next));
 
@@ -1526,6 +1554,7 @@ static void initialise(pTHX) {
     MY_CXT.profiling_key_valid = 0;
     Zero(&MY_CXT.stmt_cache, 1, dc_stmt_cache);
     Zero(&MY_CXT.av_cache, 1, dc_av_cache);
+    MY_CXT.deferred_conditionals      = newAV();
     MY_CXT.module              = newSVpv("", 0);
     MY_CXT.lastfile            = newSVpvn("", 1);
     MY_CXT.lastfile_ptr        = NULL;
@@ -1539,6 +1568,7 @@ static void initialise(pTHX) {
 
 static int runops_cover(pTHX) {
   dMY_CXT;
+  I32 deferred_base = av_len(MY_CXT.deferred_conditionals) + 1;
 
   NDEB(D(L, "entering runops_cover\n"));
 
@@ -1623,8 +1653,11 @@ static int runops_cover(pTHX) {
     }
 
     call_fptr:
-    if (!(PL_op = PL_op->op_ppaddr(aTHX)))
+    if (!(PL_op = PL_op->op_ppaddr(aTHX))) {
+      resolve_deferred_conditionals(aTHX_
+        MY_CXT.deferred_conditionals, deferred_base);
       break;
+    }
 
     PERL_ASYNC_CHECK();
   }
@@ -1642,11 +1675,17 @@ static int runops_cover(pTHX) {
 }
 
 static int runops_orig(pTHX) {
+  dMY_CXT;
+  I32 deferred_base = av_len(MY_CXT.deferred_conditionals) + 1;
+
   NDEB(D(L, "entering runops_orig\n"));
 
   while ((PL_op = PL_op->op_ppaddr(aTHX))) {
     PERL_ASYNC_CHECK();
   }
+
+  resolve_deferred_conditionals(aTHX_
+    MY_CXT.deferred_conditionals, deferred_base);
 
   NDEB(D(L, "exiting runops_orig\n"));
 
@@ -1926,6 +1965,7 @@ BOOT:
     initialise(aTHX);
     if (MY_CXT.replace_ops) {
       replace_ops(aTHX);
+      PL_runops = runops_orig;
 #if defined HAS_GETTIMEOFDAY
       elapsed();
 #elif defined HAS_TIMES

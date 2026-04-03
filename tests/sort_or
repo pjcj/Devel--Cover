@@ -1,0 +1,61 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+# Case 1: all equal counts - <=> always returns 0, || never short-circuits
+my @equal = (
+  { val => "Alpha", cnt => 2 },
+  { val => "alpha", cnt => 2 },
+  { val => "ALPHA", cnt => 2 },
+);
+my @r1 = sort { $b->{cnt} <=> $a->{cnt} || $a->{val} cmp $b->{val} } @equal;
+
+# Case 2: mixed counts - <=> returns both 0 and non-zero
+my @mixed = (
+  { val => "Alpha", cnt => 2 },
+  { val => "alpha", cnt => 2 },
+  { val => "ALPHA", cnt => 1 },
+);
+my @r2 = sort { $b->{cnt} <=> $a->{cnt} || $a->{val} cmp $b->{val} } @mixed;
+
+# Case 3: same logic but with ternary instead of ||
+my @r3 = sort {
+  my $r = $b->{cnt} <=> $a->{cnt};
+  $r ? $r : $a->{val} cmp $b->{val}
+} @mixed;
+
+# Case 4: nested sort - inner sort with || inside outer sort with ||
+my @outer = (
+  { key => 2, inner => [ { a => 1, b => "y" }, { a => 1, b => "x" } ] },
+  { key => 2, inner => [ { a => 3, b => "b" }, { a => 3, b => "a" } ] },
+);
+my @r4 = sort {
+  $a->{key} <=> $b->{key}
+    || (sort { $a->{a} <=> $b->{a} || $a->{b} cmp $b->{b} } @{$a->{inner}})[0]{b}
+       cmp
+       (sort { $a->{a} <=> $b->{a} || $a->{b} cmp $b->{b} } @{$b->{inner}})[0]{b}
+} @outer;
+
+# Case 5: exception in sort comparator via function call - the deferred
+# entry from the || is pushed but the die bypasses runops loop exit.
+# The stale entry must not corrupt subsequent sorts (tests deferred_base).
+sub boom { die "bail" }
+eval {
+  my @r5 = sort {
+    $b->{cnt} <=> $a->{cnt} || boom()
+  } @equal;
+};
+
+# Case 6: sort after exception - verify deferred state is clean
+my @r6 = sort { $b->{cnt} <=> $a->{cnt} || $a->{val} cmp $b->{val} } @mixed;
+
+# Case 7: low-precedence 'or' - same OP_OR opcode as ||
+my @r7 = sort { $b->{cnt} <=> $a->{cnt} or $a->{val} cmp $b->{val} } @mixed;
