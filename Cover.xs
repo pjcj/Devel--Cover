@@ -48,10 +48,9 @@ extern "C" {
 #endif
 
 struct unique {  /* Well, we'll be fairly unlucky if it's not */
-    OP *addr,
-        op;
-    /* include hashed file location information, where available (cops) */
-    size_t fileinfohash;
+    OP    *addr;          /* op address                               */
+    size_t op_identity;   /* hash of meaningful OP fields             */
+    size_t fileinfohash;  /* hashed file location (cops) or 0        */
 };
 
 #define KEY_SZ sizeof(struct unique)
@@ -207,13 +206,38 @@ static size_t fnv1a_hash_file_line(const char *file, long line) {
     return hash;
 }
 
+/* Fast fingerprint of the OP fields that distinguish one op from
+ * another at the same address (slab reuse guard).  Replaces copying
+ * the full 40-byte OP struct and zeroing two fields.  Only needs
+ * to be collision-resistant enough that two unrelated ops sharing
+ * an address produce different values; fileinfohash provides a
+ * second check for COPs.
+ *
+ * The old code copied the entire OP struct (40 bytes), then zeroed
+ * op_ppaddr (we replace it during instrumentation) and op_targ
+ * (can change at runtime).  That left 20 meaningful bytes:
+ * op_next (8), op_sibparent (8), and the type/flags bitfields (4).
+ * This function mixes those same fields into a single size_t.
+ *
+ * 0x00000100000001B3 is the FNV-1a 64-bit prime.  It is used here
+ * as a mixing multiplier rather than as part of a true FNV-1a hash
+ * - its sparse-high / dense-low bit pattern spreads input bits
+ * well across the result. */
+static size_t hash_op_identity(const OP *o) {
+    size_t h = (size_t)o->op_next;
+    h ^= (size_t)o->op_sibparent * 0x00000100000001B3ULL;
+    h ^= ((size_t)o->op_type << 16)
+       |  ((size_t)o->op_flags << 8)
+       |   (size_t)o->op_private;
+    h *= 0x00000100000001B3ULL;
+    return h;
+}
+
 static char *get_key(OP *o) {
     static struct unique uniq;
 
-    uniq.addr          = o;
-    uniq.op            = *o;
-    uniq.op.op_ppaddr  = 0;  /* we mess with this field */
-    uniq.op.op_targ    = 0;  /* might change            */
+    uniq.addr        = o;
+    uniq.op_identity = hash_op_identity(o);
     if (o->op_type == OP_NEXTSTATE || o->op_type == OP_DBSTATE) {
         /* cop, has file location information */
         uniq.fileinfohash = fnv1a_hash_file_line(
