@@ -2,7 +2,7 @@
 
 This document explains how to profile the C-level runtime overhead of
 Devel::Cover's XS code. The techniques here measure where time is spent *during
-test execution* (the instrumented op dispatch loop), not the END-time Perl
+test execution* (the instrumented op despatch loop), not the END-time Perl
 processing (DB writes, deparsing, report generation).
 
 ## Prerequisites
@@ -201,7 +201,7 @@ costs. For the XS runtime, use `sample` as described above.
 
 ### Architecture of the XS runtime
 
-The XS code replaces Perl's op dispatch functions with instrumented versions:
+The XS code replaces Perl's op despatch functions with instrumented versions:
 
 | Original op  | Replacement  | What it covers        |
 | ------------ | ------------ | --------------------- |
