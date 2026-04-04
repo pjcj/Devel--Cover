@@ -1259,11 +1259,13 @@ sub _get_cover_deparse ($cv, $root) {
 # --- XS op tree walker path ---
 
 my $Shared_deparse;
+my $Current_cop;
 
 sub _deparse_expr ($cv, $op, $cx, $use_dumper = 1) {
   $Shared_deparse ||= B::Deparse->new;
   $Shared_deparse->{curcv} = $cv;
-  require Data::Dumper if $use_dumper;
+  $Shared_deparse->pragmata($Current_cop) if $Current_cop;
+  require Data::Dumper                    if $use_dumper;
   local $Shared_deparse->{use_dumper} = $use_dumper;
   my $text = eval { local $^W; $Shared_deparse->deparse($op, $cx) };
   defined $text ? $text : ""
@@ -1289,16 +1291,34 @@ sub _walk_statement ($op, $type) {
   if ($type eq "null_statement") {
     my $class = B::class($op);
     return if $class eq "NULL";
+    # Skip ex-nextstates inside cond_expr/elsif condition lineseqs -
+    # these are dead COPs from the compiler's scope creation, not real
+    # source statements.  Still update $File/$Line/$Current_cop so
+    # that condition coverage for ops in this scope gets the right
+    # line attribution.
+    my $p = eval { $op->parent };
+    if ($p && $$p && $p->name eq "lineseq") {
+      my $gp = eval { $p->parent };
+      if ($gp && $$gp && ($gp->name eq "cond_expr" || $Seen{cond_expr}{$$gp})) {
+        bless $op, "B::COP";
+        get_location($op);
+        $Current_cop = $op;
+        bless $op, "B::$class";
+        return;
+      }
+    }
     bless $op, "B::COP";
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
     bless $op, "B::$class";
   } else {
+    $Current_cop = $op;
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
   }
 }
 
 sub _walk_cond_expr ($cv, $op) {
   return unless $Collect && $Coverage{branch};
+  return if $Seen{cond_expr}{$$op};
   local ($File, $Line) = ($File, $Line);
   my $cond  = $op->first;
   my $true  = $cond->sibling;
@@ -1331,7 +1351,8 @@ sub _walk_cond_expr ($cv, $op) {
     my $text = _deparse_expr($cv, $cond, 1, 0);
     add_branch_cover($op, "if", "if ($text) { }", $File, $Line);
     while (B::class($false) ne "NULL" && is_ifelse_cont($false)) {
-      my $newop   = $false->first;
+      my $newop = $false->first;
+      $Seen{cond_expr}{$$newop} = 1;
       my $newcond = $newop->first;
       my $newtrue = $newcond->sibling;
       if ($newcond->name eq "lineseq") {
@@ -1367,12 +1388,25 @@ sub _logop_parent_cx ($op, $highprec, $lowprec, $nested = 0) {
     }
     if ($parent && $$parent) {
       my $pname = $parent->name;
-      # return deparsee its argument at cx=6 (expression context)
+      # return deparses its argument at cx=6 (expression context)
       return $highprec || $lowprec if $pname eq "return";
+      # cond_expr deparses its condition at cx=1
+      return 1 if $pname eq "cond_expr";
+      # lineseq inside cond_expr/elsif-wrapper condition is cx=1.
+      # The last elsif arm compiles to and/or instead of cond_expr;
+      # those wrappers are tracked in %Seen{cond_expr}.
+      if ($pname eq "lineseq") {
+        my $gp = eval { $parent->parent };
+        if ($gp && $$gp) {
+          my $gpname = $gp->name;
+          return 1 if $gpname eq "cond_expr";
+          return 1 if $Seen{cond_expr}{$$gp};
+        }
+        return 0;
+      }
       # Block-level parents - cx=0 (statement level)
       return 0
-        if $pname eq "lineseq"
-        || $pname eq "scope"
+        if $pname eq "scope"
         || $pname eq "leave"
         || $pname eq "leavesub"
         || $pname eq "leavetry"
@@ -1389,6 +1423,13 @@ sub _logop_parent_cx ($op, $highprec, $lowprec, $nested = 0) {
 ## no critic (ProhibitExcessComplexity)
 sub _walk_logop ($cv, $op, $nested = 0) {
   return unless $Collect;
+  return if $Seen{cond_expr}{$$op};
+  # Skip while/until loop conditions (and → null* → leaveloop)
+  my $_p = eval { $op->parent };
+  if ($_p && $$_p) {
+    $_p = eval { $_p->parent } while $_p && $$_p && $_p->name eq "null";
+    return if $_p && $$_p && $_p->name eq "leaveloop";
+  }
   my $name   = $op->name;
   my $params = $Logop_params{$name} || return;
   my ($lowop, $lowprec, $highop, $highprec, $blockname) = @$params;
