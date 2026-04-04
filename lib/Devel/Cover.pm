@@ -1224,16 +1224,15 @@ sub _add_subroutine_structure ($cv, $start) {
 }
 
 sub get_cover ($cv, $root = undef) {
-  my $deparse = B::Deparse->new;
-
-  $deparse->{curcv} = $cv;
-
   ($Sub_name, my $start) = sub_info($cv);
 
   get_location($start) if $start;
   return unless _want_cover_for();
 
   _add_subroutine_structure($cv, $start);
+
+  my $deparse = B::Deparse->new;
+  $deparse->{curcv} = $cv;
 
   no warnings "redefine";
 
