@@ -1580,7 +1580,8 @@ static int runops_cover(pTHX) {
     {
       int hijacked;
       MUTEX_LOCK(&DC_mutex);
-      hijacked = PL_op->op_ppaddr == get_condition;
+      hijacked = PL_op->op_ppaddr == get_condition
+              || PL_op->op_ppaddr == get_condition_dor;
       MUTEX_UNLOCK(&DC_mutex);
       if (hijacked)
         goto call_fptr;
