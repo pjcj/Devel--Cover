@@ -1417,10 +1417,15 @@ sub _logop_parent_cx ($op, $highprec, $lowprec, $nested = 0) {
         || $pname eq "sort";
     }
   }
-  # Fallback when parent info unavailable: nested flag, then OPf_WANT
-  return 1 if $nested;
+  # Fallback when parent info unavailable (Perl < 5.26): combine
+  # OPf_WANT with $nested.  VOID/NONE always means statement-level
+  # (cx=0) even when the XS walker's in_logop flag is set, because
+  # the in_logop flag crosses scope boundaries but B::Deparse resets
+  # cx at each scope.  SCALAR+ means expression context - use $nested
+  # to choose low-prec (cx=1) vs high-prec.
   my $want = $op->flags & OPf_WANT;
-  $want >= B::OPf_WANT_SCALAR ? $highprec || $lowprec : 0
+  return 0 unless $want >= B::OPf_WANT_SCALAR;
+  $nested ? 1 : $highprec || $lowprec
 }
 
 ## no critic (ProhibitExcessComplexity)
@@ -1498,7 +1503,7 @@ sub _walk_logassignop ($cv, $op) {
 
 sub _walk_xor ($cv, $op) {
   return unless $Collect && $Coverage{condition};
-  return unless $] >= 5.041012;
+  return unless $] >= 5.040000;
   return if $Seen{condition}{$$op}++;
   my $left   = $op->first;
   my $right  = $op->last;
