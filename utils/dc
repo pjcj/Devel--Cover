@@ -342,6 +342,8 @@ recipe_all-gold() {
   local fn="${1:-}"
   if [[ -n "$fn" ]]; then
     rm -f "test_output/cover/${fn}."*
+  else
+    rm -f test_output/cover/*
   fi
   ./utils/all_versions make gold "TEST=$fn"
 }
