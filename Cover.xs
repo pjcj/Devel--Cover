@@ -1738,6 +1738,139 @@ static SV *make_sv_object(pTHX_ SV *arg, SV *sv) {
 
 typedef OP *B__OP;
 typedef AV *B__AV;
+typedef CV *B__CV;
+
+/* Op class names for creating properly blessed B:: objects */
+static const char * const dc_opclassnames[] = {
+  "B::NULL",
+  "B::OP",
+  "B::UNOP",
+  "B::BINOP",
+  "B::LOGOP",
+  "B::LISTOP",
+  "B::PMOP",
+  "B::SVOP",
+  "B::PADOP",
+  "B::PVOP",
+  "B::LOOP",
+  "B::COP",
+  "B::METHOP",
+  "B::UNOP_AUX"
+};
+
+/* Create a blessed B::OP-subclass SV wrapping an OP pointer */
+static SV *dc_make_op_sv(pTHX_ OP *o) {
+  SV *sv = newSV(0);
+  sv_setiv(newSVrv(sv, dc_opclassnames[op_class(o)]), PTR2IV(o));
+  return sv;
+}
+
+/* Create a blessed B::CV SV wrapping a CV pointer */
+static SV *dc_make_cv_sv(pTHX_ CV *cv) {
+  SV *sv = newSV(0);
+  sv_setiv(newSVrv(sv, "B::CV"), PTR2IV(cv));
+  return sv;
+}
+
+/* Call the Perl walk callback: callback->(op, type, cv) */
+static void dc_walk_callback(pTHX_ OP *op, SV *callback,
+                             const char *type, CV *cv) {
+  dSP;
+  ENTER; SAVETMPS;
+  PUSHMARK(SP);
+  XPUSHs(sv_2mortal(dc_make_op_sv(aTHX_ op)));
+  XPUSHs(sv_2mortal(newSVpv(type, 0)));
+  XPUSHs(sv_2mortal(dc_make_cv_sv(aTHX_ cv)));
+  PUTBACK;
+  call_sv(callback, G_DISCARD);
+  FREETMPS; LEAVE;
+}
+
+/* Recursive depth-first op tree walker.
+ * Identifies coverage-relevant ops and calls back to Perl.
+ * in_logop tracks nesting depth inside logops for cx context. */
+static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv,
+                          int in_logop) {
+  OP *kid;
+
+  if (!op) return;
+
+  switch (op->op_type) {
+    case OP_NEXTSTATE:
+    case OP_DBSTATE:
+      dc_walk_callback(aTHX_ op, callback, "statement", cv);
+      break;
+
+    case OP_COND_EXPR:
+      dc_walk_callback(aTHX_ op, callback, "cond_expr", cv);
+      break;
+
+    case OP_AND:
+    case OP_OR:
+    case OP_DOR:
+      /* Skip loop-internal logops (e.g. AND inside for) */
+      if (cLOGOPx(op)->op_first->op_type != OP_ITER) {
+        dc_walk_callback(aTHX_ op, callback,
+                         in_logop ? "logop_nested" : "logop", cv);
+        /* Recurse with in_logop set so nested logops get cx > 0 */
+        if (op->op_flags & OPf_KIDS) {
+          for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid))
+            dc_walk_ops_r(aTHX_ kid, callback, cv, 1);
+        }
+        return;
+      }
+      break;
+
+    case OP_ANDASSIGN:
+    case OP_ORASSIGN:
+    case OP_DORASSIGN:
+      dc_walk_callback(aTHX_ op, callback, "logassignop", cv);
+      break;
+
+    case OP_XOR:
+      dc_walk_callback(aTHX_ op, callback, "xor", cv);
+      break;
+
+    case OP_NULL:
+      if (op->op_targ == OP_NEXTSTATE || op->op_targ == OP_DBSTATE) {
+        /* Skip dead end-of-block ex-nextstates (closing braces,
+           comment-only files).  These have no sibling in the tree
+           because they're the last child of their parent lineseq. */
+        if (OpSIBLING(op)) {
+          dc_walk_callback(aTHX_ op, callback, "null_statement", cv);
+        }
+      }
+      break;
+
+    default:
+      break;
+  }
+
+  /* Recurse into children */
+  if (op->op_flags & OPf_KIDS) {
+    for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
+      dc_walk_ops_r(aTHX_ kid, callback, cv, in_logop);
+    }
+  }
+
+  /* Handle PMOP special children (regex replacement trees) */
+  if (op->op_type == OP_SUBST) {
+    PMOP *pm = cPMOPx(op);
+#ifdef USE_ITHREADS
+    if (pm->op_pmstashstartu.op_pmreplstart)
+      dc_walk_ops_r(aTHX_ pm->op_pmstashstartu.op_pmreplstart,
+                    callback, cv, in_logop);
+#else
+    if (pm->op_pmreplrootu.op_pmreplroot)
+      dc_walk_ops_r(aTHX_ pm->op_pmreplrootu.op_pmreplroot,
+                    callback, cv, in_logop);
+#endif
+  }
+}
+
+static void dc_walk_ops(pTHX_ OP *op, SV *callback, CV *cv) {
+  dc_walk_ops_r(aTHX_ op, callback, cv, 0);
+}
 
 
 MODULE = Devel::Cover PACKAGE = Devel::Cover
@@ -1947,6 +2080,14 @@ adjust_blocks(stash)
       }
     }
 #endif
+
+void
+walk_ops(root_op, callback, cv)
+    B::OP root_op
+    SV   *callback
+    B::CV cv
+  CODE:
+    dc_walk_ops(aTHX_ root_op, callback, cv);
 
 BOOT:
   {

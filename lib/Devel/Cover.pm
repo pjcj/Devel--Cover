@@ -26,7 +26,7 @@ use Devel::Cover::Inc         ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use B          qw( main_cv main_root OPf_SPECIAL ppname walksymtable );
+use B          qw( main_cv main_root OPf_SPECIAL OPf_WANT ppname walksymtable );
 use B::Deparse ();
 
 # OPpSTATEMENT (added in 5.43.8) authoritatively distinguishes statement-form
@@ -160,6 +160,8 @@ BEGIN {
   @Ignore  = ("/Devel/Cover[./]") unless $Self_cover = $ENV{DEVEL_COVER_SELF};
   $^P     |= 0x004 | 0x100;  # save source lines; evals report file info
 }
+
+my $Use_deparse = $ENV{DEVEL_COVER_USE_DEPARSE};
 
 sub version    { $VERSION }
 sub has_select { scalar @Select_re }
@@ -1231,6 +1233,14 @@ sub get_cover ($cv, $root = undef) {
 
   _add_subroutine_structure($cv, $start);
 
+  if ($Use_deparse) {
+    _get_cover_deparse($cv, $root);
+  } else {
+    _get_cover_walk($cv, $root);
+  }
+}
+
+sub _get_cover_deparse ($cv, $root) {
   my $deparse = B::Deparse->new;
   $deparse->{curcv} = $cv;
 
@@ -1243,9 +1253,239 @@ sub get_cover ($cv, $root = undef) {
   local *B::Deparse::const_dumper = \&const_dumper;
   local *B::Deparse::const        = \&const if $Original{const};
 
-  my $de = $root ? $deparse->deparse($root, 0) : $deparse->deparse_sub($cv, 0);
+  $root ? $deparse->deparse($root, 0) : $deparse->deparse_sub($cv, 0);
+}
 
-  $de
+# --- XS op tree walker path ---
+
+my $Shared_deparse;
+
+sub _deparse_expr ($cv, $op, $cx, $use_dumper = 1) {
+  $Shared_deparse ||= B::Deparse->new;
+  $Shared_deparse->{curcv} = $cv;
+  require Data::Dumper if $use_dumper;
+  local $Shared_deparse->{use_dumper} = $use_dumper;
+  my $text = eval { local $^W; $Shared_deparse->deparse($op, $cx) };
+  defined $text ? $text : ""
+}
+
+my %Logop_params = (
+  and => [ "and", 3, "&&", 11, "if" ],
+  or  => [ "or",  2, "||", 10, "unless" ],
+  dor => [ "//",  10 ],
+);
+
+sub _walk_statement ($op, $type) {
+  # Guard: skip statements with no real successors (trailing closing
+  # braces, comment-only files, etc.)
+  my $nnnext = "";
+  eval {
+    my $next  = $op->next;
+    my $nnext = $next && $next->next;
+    $nnnext = $nnext && $nnext->next;
+  };
+  return unless $nnnext;
+
+  if ($type eq "null_statement") {
+    my $class = B::class($op);
+    return if $class eq "NULL";
+    bless $op, "B::COP";
+    add_statement_cover($op) unless $Seen{statement}{$$op}++;
+    bless $op, "B::$class";
+  } else {
+    add_statement_cover($op) unless $Seen{statement}{$$op}++;
+  }
+}
+
+sub _walk_cond_expr ($cv, $op) {
+  return unless $Collect && $Coverage{branch};
+  local ($File, $Line) = ($File, $Line);
+  my $cond  = $op->first;
+  my $true  = $cond->sibling;
+  my $false = $true->sibling;
+
+  if (
+       Has_op_statement
+    && B::class($false) eq "NULL"
+    && !($op->flags & OPf_SPECIAL)
+  ) {
+    ($true, $false) = ($false, $true);
+  }
+
+  my $is_statement;
+  if (Has_op_statement) {
+    $is_statement = $op->private & OPpSTATEMENT();
+  } else {
+    $is_statement = (
+           B::class($false) eq "NULL"
+        || $false->name eq "null"
+        || ( (is_scope($true) && $true->name ne "null")
+          && (is_scope($false) || is_ifelse_cont($false)))
+    );
+  }
+
+  if (!$is_statement) {
+    my $text = _deparse_expr($cv, $cond, 8, 0);
+    add_branch_cover($op, "if", "$text ? :", $File, $Line);
+  } else {
+    my $text = _deparse_expr($cv, $cond, 1, 0);
+    add_branch_cover($op, "if", "if ($text) { }", $File, $Line);
+    while (B::class($false) ne "NULL" && is_ifelse_cont($false)) {
+      my $newop   = $false->first;
+      my $newcond = $newop->first;
+      my $newtrue = $newcond->sibling;
+      if ($newcond->name eq "lineseq") {
+        $newcond = $newcond->first->sibling;
+      }
+      $false = $newtrue->sibling;
+      my $newtext = _deparse_expr($cv, $newcond, 1, 0);
+      add_branch_cover($newop, "elsif", "elsif ($newtext) { }", $File, $Line);
+    }
+  }
+}
+
+# Determine cx for a logop by walking up the parent chain.
+# B::Deparse determines cx from the deparsing call chain, not from
+# OPf_WANT. The two diverge for return (want=NONE but cx=6 in deparse)
+# and sort/map/grep blocks (want=SCALAR but cx=0 in deparse).
+# The $nested flag (from the XS walker's in_logop tracking) is used as
+# a fallback when $op->parent is unavailable (Perl < 5.22).
+## no critic (ProhibitExcessComplexity)
+sub _logop_parent_cx ($op, $highprec, $lowprec, $nested = 0) {
+  my $parent = eval { $op->parent };
+  if ($parent && $$parent) {
+    # Skip null/ex-ops, but stop at block boundaries (ex-scope,
+    # ex-leave*) since those indicate statement-level context.
+    while ($$parent && $parent->name eq "null") {
+      if (my $targ = $parent->targ) {
+        my $tname = ppname($targ);
+        return 0                     if $tname =~ /^pp_(?:scope|leave)/;
+        return $highprec || $lowprec if $tname eq "pp_return";
+      }
+      $parent = eval { $parent->parent };
+      last unless $parent && $$parent;
+    }
+    if ($parent && $$parent) {
+      my $pname = $parent->name;
+      # return deparsee its argument at cx=6 (expression context)
+      return $highprec || $lowprec if $pname eq "return";
+      # Block-level parents - cx=0 (statement level)
+      return 0
+        if $pname eq "lineseq"
+        || $pname eq "scope"
+        || $pname eq "leave"
+        || $pname eq "leavesub"
+        || $pname eq "leavetry"
+        || $pname eq "leaveloop"
+        || $pname eq "sort";
+    }
+  }
+  # Fallback when parent info unavailable: nested flag, then OPf_WANT
+  return 1 if $nested;
+  my $want = $op->flags & OPf_WANT;
+  $want >= B::OPf_WANT_SCALAR ? $highprec || $lowprec : 0
+}
+
+## no critic (ProhibitExcessComplexity)
+sub _walk_logop ($cv, $op, $nested = 0) {
+  return unless $Collect;
+  my $name   = $op->name;
+  my $params = $Logop_params{$name} || return;
+  my ($lowop, $lowprec, $highop, $highprec, $blockname) = @$params;
+
+  my $left  = $op->first;
+  my $right = $op->first->sibling;
+  my ($file, $line) = ($File, $Line);
+
+  # Determine precedence context to match B::Deparse behaviour.
+  # Always consult the parent chain when available - the XS walker's
+  # in_logop nesting can cross block boundaries (e.g. sort block inside
+  # a || expression), but B::Deparse resets cx at each block scope.
+  my $cx = _logop_parent_cx($op, $highprec, $lowprec, $nested);
+
+  if ($blockname && $cx < 1) {
+    $Shared_deparse ||= B::Deparse->new;
+    $blockname        = $Shared_deparse->keyword($blockname);
+  } else {
+    $blockname = undef if $cx >= 1;
+  }
+
+  $Shared_deparse ||= B::Deparse->new;
+  my ($is_statement, $is_branch)
+    = _classify_op($Shared_deparse, $op, $cx, $blockname);
+
+  if ($is_statement && is_scope($right)) {
+    my $l = _deparse_expr($cv, $left, 1, 1);
+    add_branch_cover($op, $lowop, "$blockname ($l)", $file, $line)
+      unless $Seen{branch}{$$op}++;
+  } elsif ($is_statement) {
+    my $l = _deparse_expr($cv, $left, 1, 1);
+    add_branch_cover($op, $lowop, "$blockname $l", $file, $line)
+      unless $Seen{branch}{$$op}++;
+  } elsif ($cx > $lowprec && $highop) {
+    my $l = _deparse_expr($cv, $left,  $highprec, 0);
+    my $r = _deparse_expr($cv, $right, $highprec, 0);
+    add_condition_cover($op, $highop, $l, $r) unless $Seen{condition}{$$op}++;
+  } else {
+    my $l = _deparse_expr($cv, $left,  $lowprec);
+    my $r = _deparse_expr($cv, $right, $lowprec);
+    if ($is_branch) {
+      add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
+        unless $Seen{branch}{$$op}++;
+    } else {
+      add_condition_cover($op, $lowop, $l, $r) unless $Seen{condition}{$$op}++;
+    }
+  }
+}
+
+my %Logassign_opname
+  = (andassign => "&&=", orassign => "||=", dorassign => "//=");
+
+sub _walk_logassignop ($cv, $op) {
+  return unless $Collect && $Coverage{condition};
+  my $opname = $Logassign_opname{ $op->name } || return;
+  my $left   = $op->first;
+  my $right  = $op->first->sibling->first;               # skip sassign
+  my $l      = _deparse_expr($cv, $left,  7);
+  my $r      = _deparse_expr($cv, $right, 7);
+
+  add_condition_cover($op, $opname, $l, $r);
+}
+
+sub _walk_xor ($cv, $op) {
+  return unless $Collect && $Coverage{condition};
+  return unless $] >= 5.041012;
+  return if $Seen{condition}{$$op}++;
+  my $left   = $op->first;
+  my $right  = $op->last;
+  my $want   = $op->flags & OPf_WANT;
+  my $opname = $want >= B::OPf_WANT_SCALAR ? "^^" : "xor";
+  my $l      = _deparse_expr($cv, $left,  0);
+  my $r      = _deparse_expr($cv, $right, 0);
+
+  add_condition_cover($op, $opname, $l, $r);
+}
+
+sub _get_cover_walk ($cv, $root) {
+  my $op = $root || $cv->ROOT;
+  return unless $$op;
+  walk_ops(
+    $op,
+    sub ($op, $type, $cv_ref) {
+      if ($type eq "statement" || $type eq "null_statement") {
+        _walk_statement($op, $type);
+      } elsif ($type eq "cond_expr") {
+        _walk_cond_expr($cv_ref, $op);
+      } elsif ($type eq "logop" || $type eq "logop_nested") {
+        _walk_logop($cv_ref, $op, $type eq "logop_nested");
+      } elsif ($type eq "logassignop") {
+        _walk_logassignop($cv_ref, $op);
+      } elsif ($type eq "xor") {
+        _walk_xor($cv_ref, $op);
+      }
+    },
+    $cv,
+  );
 }
 
 sub _report_progress ($msg, $code, @items) {
