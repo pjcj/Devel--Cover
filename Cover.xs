@@ -1745,9 +1745,15 @@ typedef CV *B__CV;
    available on Perl 5.26+, so provide a fallback using PL_opargs. */
 static const char *dc_op_classname(pTHX_ const OP *o) {
   if (!o || !o->op_type) {
-    if (o && (o->op_flags & OPf_KIDS))
+    if (!o) return "B::NULL";
+    /* Null ops that were originally nextstate/dbstate are still COPs
+       in memory - B::Deparse's pp_null dispatches to pp_nextstate
+       which needs COP methods like stashpv and warnings. */
+    if (o->op_targ == OP_NEXTSTATE || o->op_targ == OP_DBSTATE)
+      return "B::COP";
+    if (o->op_flags & OPf_KIDS)
       return "B::UNOP";
-    return o ? "B::OP" : "B::NULL";
+    return "B::OP";
   }
   switch (PL_opargs[o->op_type] & OA_CLASS_MASK) {
     case OA_BASEOP:        return "B::OP";
