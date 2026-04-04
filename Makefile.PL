@@ -481,7 +481,7 @@ key_test :
 \t \$(PERL) utils/all_versions --key make t
 
 all_gold :
-\t \$(PERL) utils/create_all_gold \$(TEST)
+\t dc all-gold \$(TEST)
 
 all_build_perl :
 \t dc all-versions --build
@@ -526,7 +526,7 @@ self_cover : _self_cover_reports
       . "\t \@\$(SC_PERL) -MDevel::Cover"
       . "=-db,$sc_tests{$_},"
       . "\$(SC_OPTS) $_\n",
-      sort keys %sc_tests),
+      sort keys %sc_tests,),
 
     "_self_cover_reports : @{[map qq(report_$_), @reports]}\n",
 

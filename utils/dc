@@ -51,6 +51,8 @@ Options:
   -v, --verbose                        Verbose output
 
 Development:
+  all-gold [test]                      Regenerate golden results across all Perl
+                                       versions.
   all-versions <cmd>                   Run a command across all Perl versions.
   build-and-test-all                   Clean build and run all tests.
   cpan-module <module>                 Download a CPAN module and run its tests
@@ -334,6 +336,16 @@ recipe_install-dc-dev-perl() {
   local version="${1:?No version specified}"
   install_perl dc-dev "$version"
   install_development_dependencies
+}
+
+recipe_all-gold() {
+  local fn="${1:-}"
+  if [[ -n "$fn" ]]; then
+    rm -f "test_output/cover/${fn}."*
+  else
+    rm -f test_output/cover/*
+  fi
+  ./utils/all_versions make gold "TEST=$fn"
 }
 
 recipe_all-versions() {
