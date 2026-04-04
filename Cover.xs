@@ -42,9 +42,9 @@ extern "C" {
 #define All        0xffffffff
 
 #if defined HAS_GETTIMEOFDAY || defined HAS_TIMES
-# define CAN_PROFILE 1
+#define CAN_PROFILE 1
 #else
-# define CAN_PROFILE 0
+#define CAN_PROFILE 0
 #endif
 
 struct unique {         /* Well, we'll be fairly unlucky if it's not */
@@ -1580,7 +1580,8 @@ static int runops_cover(pTHX) {
     {
       int hijacked;
       MUTEX_LOCK(&DC_mutex);
-      hijacked = PL_op->op_ppaddr == get_condition;
+      hijacked = PL_op->op_ppaddr == get_condition
+              || PL_op->op_ppaddr == get_condition_dor;
       MUTEX_UNLOCK(&DC_mutex);
       if (hijacked)
         goto call_fptr;
