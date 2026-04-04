@@ -1305,7 +1305,8 @@ sub _walk_statement ($op, $type) {
         bless $op, "B::COP";
         get_location($op);
         $Current_cop = $op;
-        bless $op, "B::$class";
+        # Leave blessed as B::COP - pragmata() needs COP methods.
+        # The SV is mortal (from the XS callback) so this is safe.
         return;
       }
     }
