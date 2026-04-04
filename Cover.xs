@@ -1741,27 +1741,47 @@ typedef AV *B__AV;
 typedef CV *B__CV;
 
 /* Op class names for creating properly blessed B:: objects */
-static const char * const dc_opclassnames[] = {
-  "B::NULL",
-  "B::OP",
-  "B::UNOP",
-  "B::BINOP",
-  "B::LOGOP",
-  "B::LISTOP",
-  "B::PMOP",
-  "B::SVOP",
-  "B::PADOP",
-  "B::PVOP",
-  "B::LOOP",
-  "B::COP",
-  "B::METHOP",
-  "B::UNOP_AUX"
-};
+/* Determine the B:: class name for an OP.  op_class() is only
+   available on Perl 5.26+, so provide a fallback using PL_opargs. */
+static const char *dc_op_classname(pTHX_ const OP *o) {
+  if (!o || !o->op_type) {
+    if (o && (o->op_flags & OPf_KIDS))
+      return "B::UNOP";
+    return o ? "B::OP" : "B::NULL";
+  }
+  switch (PL_opargs[o->op_type] & OA_CLASS_MASK) {
+    case OA_BASEOP:        return "B::OP";
+    case OA_UNOP:          return "B::UNOP";
+    case OA_BINOP:         return "B::BINOP";
+    case OA_LOGOP:         return "B::LOGOP";
+    case OA_LISTOP:        return "B::LISTOP";
+    case OA_PMOP:          return "B::PMOP";
+    case OA_SVOP:          return "B::SVOP";
+    case OA_PADOP:         return "B::PADOP";
+    case OA_LOOP:          return "B::LOOP";
+    case OA_COP:           return "B::COP";
+    case OA_PVOP_OR_SVOP:
+#ifdef USE_ITHREADS
+                           return "B::PADOP";
+#else
+                           return "B::SVOP";
+#endif
+    case OA_BASEOP_OR_UNOP:
+      return (o->op_flags & OPf_KIDS) ? "B::UNOP" : "B::OP";
+    case OA_FILESTATOP:
+      return (o->op_flags & OPf_KIDS) ? "B::UNOP" : "B::SVOP";
+    case OA_LOOPEXOP:
+      if (o->op_flags & OPf_STACKED) return "B::UNOP";
+      if (o->op_flags & OPf_SPECIAL) return "B::OP";
+      return "B::SVOP";
+    default:               return "B::OP";
+  }
+}
 
 /* Create a blessed B::OP-subclass SV wrapping an OP pointer */
 static SV *dc_make_op_sv(pTHX_ OP *o) {
   SV *sv = newSV(0);
-  sv_setiv(newSVrv(sv, dc_opclassnames[op_class(o)]), PTR2IV(o));
+  sv_setiv(newSVrv(sv, dc_op_classname(aTHX_ o)), PTR2IV(o));
   return sv;
 }
 
