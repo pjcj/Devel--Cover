@@ -1261,10 +1261,12 @@ sub _get_cover_deparse ($cv, $root) {
 my $Shared_deparse;
 my $Current_cop;
 
+my $Has_pragmata = B::Deparse->can("pragmata");
+
 sub _deparse_expr ($cv, $op, $cx, $use_dumper = 1) {
   $Shared_deparse ||= B::Deparse->new;
   $Shared_deparse->{curcv} = $cv;
-  $Shared_deparse->pragmata($Current_cop) if $Current_cop;
+  $Shared_deparse->pragmata($Current_cop) if $Has_pragmata && $Current_cop;
   require Data::Dumper                    if $use_dumper;
   local $Shared_deparse->{use_dumper} = $use_dumper;
   my $text = eval { local $^W; $Shared_deparse->deparse($op, $cx) };
