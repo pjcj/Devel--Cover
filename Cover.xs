@@ -42,9 +42,9 @@ extern "C" {
 #define All        0xffffffff
 
 #if defined HAS_GETTIMEOFDAY || defined HAS_TIMES
-# define CAN_PROFILE 1
+#define CAN_PROFILE 1
 #else
-# define CAN_PROFILE 0
+#define CAN_PROFILE 0
 #endif
 
 struct unique {         /* Well, we'll be fairly unlucky if it's not */
