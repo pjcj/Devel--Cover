@@ -1740,15 +1740,18 @@ typedef OP *B__OP;
 typedef AV *B__AV;
 typedef CV *B__CV;
 
-/* Op class names for creating properly blessed B:: objects */
-/* Determine the B:: class name for an OP.  op_class() is only
-   available on Perl 5.26+, so provide a fallback using PL_opargs. */
+/* Op class names for creating properly blessed B:: objects
+ * Determine the B:: class name for an OP.  op_class() is only available on Perl
+ * 5.26+, so provide a fallback using PL_opargs.
+ */
 static const char *dc_op_classname(pTHX_ const OP *o) {
   if (!o || !o->op_type) {
     if (!o) return "B::NULL";
-    /* Null ops that were originally nextstate/dbstate are still COPs
-       in memory - B::Deparse's pp_null dispatches to pp_nextstate
-       which needs COP methods like stashpv and warnings. */
+    /*
+     * Null ops that were originally nextstate/dbstate are still COPs in memory
+     * - B::Deparse's pp_null dispatches to pp_nextstate which needs COP methods
+     *   like stashpv and warnings.
+     */
     if (o->op_targ == OP_NEXTSTATE || o->op_targ == OP_DBSTATE)
       return "B::COP";
     if (o->op_flags & OPf_KIDS)
@@ -1815,18 +1818,17 @@ static void dc_walk_callback(pTHX_ OP *op, SV *callback,
 /* Store a child→parent mapping in the parent map */
 static void dc_store_parent(pTHX_ HV *parent_map, OP *child, OP *parent) {
   char key[24];
-  STRLEN keylen = (STRLEN)snprintf(key, sizeof(key),
-                                   "%" IVdf, PTR2IV(child));
-  hv_store(parent_map, key, keylen,
-           dc_make_op_sv(aTHX_ parent), 0);
+  STRLEN keylen = (STRLEN)snprintf(key, sizeof(key), "%" IVdf, PTR2IV(child));
+  hv_store(parent_map, key, keylen, dc_make_op_sv(aTHX_ parent), 0);
 }
 
-/* Recursive depth-first op tree walker.
+/*
+ * Recursive depth-first op tree walker.
  * Identifies coverage-relevant ops and calls back to Perl.
  * Populates parent_map with child→parent mappings so Perl callbacks
- * can walk the parent chain on all Perl versions (not just 5.26+). */
-static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv,
-                          HV *parent_map) {
+ * can walk the parent chain on all Perl versions (not just 5.26+).
+ */
+static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv, HV *parent_map) {
   OP *kid;
 
   if (!op) return;
@@ -1861,9 +1863,11 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv,
 
     case OP_NULL:
       if (op->op_targ == OP_NEXTSTATE || op->op_targ == OP_DBSTATE) {
-        /* Skip dead end-of-block ex-nextstates (closing braces,
-           comment-only files).  These have no sibling in the tree
-           because they're the last child of their parent lineseq. */
+        /*
+         * Skip dead end-of-block ex-nextstates (closing braces, comment-only
+         * files).  These have no sibling in the tree because they're the last
+         * child of their parent lineseq.
+         */
         if (OpSIBLING(op))
           dc_walk_callback(aTHX_ op, callback, "null_statement", cv);
       }
@@ -1902,8 +1906,7 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv,
   }
 }
 
-static void dc_walk_ops(pTHX_ OP *op, SV *callback, CV *cv,
-                        HV *parent_map) {
+static void dc_walk_ops(pTHX_ OP *op, SV *callback, CV *cv, HV *parent_map) {
   hv_clear(parent_map);
   dc_walk_ops_r(aTHX_ op, callback, cv, parent_map);
 }
