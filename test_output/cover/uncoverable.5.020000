@@ -1,5 +1,4 @@
 Reading database from ...
-Unknown type true found parsing uncoverable condition at tests/uncoverable:52
 2 unmatched uncoverable comments not found at end of tests/uncoverable
 
 
@@ -85,21 +84,22 @@ line  err   stmt   bran   cond    sub   code
 47                                      # uncoverable branch false count:1
 48                                      # uncoverable branch true  count:2
 49                                      # uncoverable branch false count:2
-50                                      # uncoverable condition left  count:1,2
-51                                      # uncoverable condition right count:1..2
-52                                      # uncoverable condition true  count:2
-53                                      # uncoverable condition false count:2
-54             1   - 50   - 33          if ($x > 0 && $y > 0) {
-                   -  0   -  0          
-55             1                            $y++;
-56                                      } elsif ($x < 2 && $y < 0) {
-57            -0                            $y++; # uncoverable statement
-58                                      } else {
-59            -0                            $y++; # uncoverable statement
-60                                      }
-61                                      
-62                                      # uncoverable statement
-63                                      # uncoverable subroutine
+50                                      # uncoverable condition left
+51                                      # uncoverable condition right
+52             1   - 50   - 33          if ($x > 0 && $y > 0) {
+                   -  0                 
+53             1                            $y++;
+54                                      # uncoverable condition left
+55                                      # uncoverable condition right
+56                                      # uncoverable condition false
+57                        -  0          } elsif ($x < 2 && $y < 0) {
+58            -0                            $y++; # uncoverable statement
+59                                      } else {
+60            -0                            $y++; # uncoverable statement
+61                                      }
+62                                      
+63                                      # uncoverable statement
+64                                      # uncoverable subroutine
 
 
 Branches
@@ -109,7 +109,7 @@ line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 18          - 50     -0      1   if ($x and not $y)
 27          - 50     -0      1   if (not $x and $y)
-54          - 50      1     -0   if ($x > 0 and $y > 0) { }
+52          - 50      1     -0   if ($x > 0 and $y > 0) { }
             -  0     -0     -0   elsif ($x < 2 and $y < 0) { }
 
 
@@ -122,8 +122,8 @@ line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
 18          - 33     -0      1     -0   $x and not $y
 27          - 33      1     -0     -0   not $x and $y
-54          - 33     -0     -0      1   $x > 0 and $y > 0
-            -  0     -0     -0     -0   $x < 2 and $y < 0
+52          - 33     -0     -0      1   $x > 0 and $y > 0
+57          -  0     -0     -0     -0   $x < 2 and $y < 0
 
 
 Uncovered Subroutines

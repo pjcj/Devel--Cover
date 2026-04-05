@@ -4,8 +4,8 @@ Reading database from ...
 --------------- ------ ------ ------ ------ ------
 File              stmt   bran   cond    sub  total
 --------------- ------ ------ ------ ------ ------
-tests/padrange2  100.0   50.0    n/a  100.0   90.9
-Total            100.0   50.0    n/a  100.0   90.9
+tests/padrange2  100.0   50.0    n/a  100.0   92.8
+Total            100.0   50.0    n/a  100.0   92.8
 --------------- ------ ------ ------ ------ ------
 
 
@@ -30,6 +30,11 @@ line  err   stmt   bran   cond    sub   code
 6     ***      1   * 50                 if (my @x = 'foo' =~ m/(.)/) {
 7                                       } else {
 8                                       }
+9                                       
+10             1                        my %h = (a => 1, b => 2);
+11             1                        while (my ($k, $v) = each %h) {
+12             2                          print "$k $v\n";
+13                                      }
 
 
 Branches
@@ -37,7 +42,7 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-6     ***     50      1      0   if ((XXX) = 'foo' =~ /(.)/) { }
+6     ***     50      1      0   if (() = 'foo' =~ /(.)/) { }
 
 
 Covered Subroutines

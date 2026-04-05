@@ -62,9 +62,9 @@ xor 4 conditions
 
 line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------ ------   ----
-23           100      3      6      1      2   $y xor $z
-25    ***     50      9      3      0      0   $i xor $y
-26    ***     50      0      0      9      3   $j xor $y
+23           100      3      6      1      2   $y ^^ $z
+25    ***     50      9      3      0      0   $i ^^ $y
+26    ***     50      0      0      9      3   $j ^^ $y
 
 
 Covered Subroutines

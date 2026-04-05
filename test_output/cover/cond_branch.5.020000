@@ -64,13 +64,13 @@ line  err   stmt   bran   cond    sub   code
 40    ***      4   * 50                         $y ? $x[9]++  : $x[10]++;
 41             4    100                         $z ? $x[11]++ : $x[12]++;
 42                                      
-43    ***      4   * 50   * 33                  if ($y) {
-      ***          * 50   * 66          
+43    ***      4   * 50                         if ($y) {
+      ***          * 50                 
                     100                 
 44    ***     *0                                    $x[13]++;
-45                                              } elsif ($y && $z) {
+45    ***                 * 33                  } elsif ($y && $z) {
 46    ***     *0                                    $x[14]++;
-47                                              } elsif ($y || $z) {
+47    ***                 * 66                  } elsif ($y || $z) {
 48             2                                    $x[15]++;
 49                                              } else {
 50             2                                    $x[16]++;
@@ -343,17 +343,17 @@ line  err   stmt   bran   cond    sub   code
 297            1                        my ($a, $b) = (0, 1);
 298                                     
 299   ***      1   * 50   * 33          if ($a && $b) {
-      ***          * 50   * 33          
-      ***          * 50   * 50          
+      ***          * 50                 
+      ***          * 50                 
 300   ***     *0                            print "path 1\n";
-301                                     } elsif (!$a && !$b) {
+301   ***                 * 33          } elsif (!$a && !$b) {
 302   ***     *0                            print "path 2\n";
-303                                     } elsif ($b || 0) {
+303   ***                 * 50          } elsif ($b || 0) {
 304            1                            print "path 3\n";
 305   ***      1   * 50   * 33              if (!$b || $a) {
-      ***          * 50   * 33          
+      ***          * 50                 
 306   ***     *0                                print "path 4\n";
-307                                         } elsif (!$a && $b) {
+307   ***                 * 33              } elsif (!$a && $b) {
 308            1                                print "path 5\n";
 309                                         }
 310                                     }
@@ -426,11 +426,11 @@ and 3 conditions
 line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
 17    ***     33      4      0      0   $y and $z
-43    ***     33      4      0      0   $y and $z
+45    ***     33      4      0      0   $y and $z
 53    ***     33      4      0      0   $y and $z
       ***     33      4      0      0   $y and $z
 299   ***     33      1      0      0   $a and $b
-305   ***     33      0      0      1   not $a and $b
+307   ***     33      0      0      1   not $a and $b
 
 or 2 conditions
 
@@ -442,15 +442,15 @@ line  err      %      l     !l   expr
 263          100      8      2   $x++ || (redo)
 271          100      4      2   $x || (goto GR)
 280          100      4      4   $x || die()
-299   ***     50      1      0   $b or 0
+303   ***     50      1      0   $b or 0
 
 or 3 conditions
 
 line  err      %      l  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------   ----
 22    ***     66      0      2      2   $y or $z
-43    ***     66      0      2      2   $y or $z
-299   ***     33      0      1      0   $a || $b
+47    ***     66      0      2      2   $y or $z
+301   ***     33      0      1      0   $a || $b
 305   ***     33      0      0      1   not $b or $a
 
 xor 4 conditions

@@ -98,15 +98,15 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-19    ***     50      2      0   unless $b->{"cnt"} <=> $a->{"cnt"}
-27           100      1      2   unless $b->{"cnt"} <=> $a->{"cnt"}
+19    ***     50      2      0   unless $main::b->{"cnt"} <=> $main::a->{"cnt"}
+27           100      1      2   unless $main::b->{"cnt"} <=> $main::a->{"cnt"}
 33           100      2      1   $r ? :
-42    ***     50      1      0   unless $a->{"a"} <=> $b->{"a"}
-44    ***     50      1      0   unless $a->{"a"} <=> $b->{"a"}
-45    ***     50      1      0   unless $a->{"key"} <=> $b->{"key"}
-53    ***      0      0      0   unless $b->{"cnt"} <=> $a->{"cnt"}
-58           100      1      2   unless $b->{"cnt"} <=> $a->{"cnt"}
-61           100      1      2   unless $b->{"cnt"} <=> $a->{"cnt"}
+42    ***     50      1      0   unless $main::a->{"a"} <=> $main::b->{"a"}
+44    ***     50      1      0   unless $main::a->{"a"} <=> $main::b->{"a"}
+45    ***     50      1      0   unless $main::a->{"key"} <=> $main::b->{"key"}
+53    ***      0      0      0   unless $main::b->{"cnt"} <=> $main::a->{"cnt"}
+58           100      1      2   unless $main::b->{"cnt"} <=> $main::a->{"cnt"}
+61           100      1      2   unless $main::b->{"cnt"} <=> $main::a->{"cnt"}
 
 
 Covered Subroutines
