@@ -1738,6 +1738,178 @@ static SV *make_sv_object(pTHX_ SV *arg, SV *sv) {
 
 typedef OP *B__OP;
 typedef AV *B__AV;
+typedef CV *B__CV;
+
+/* Op class names for creating properly blessed B:: objects
+ * Determine the B:: class name for an OP.  op_class() is only available on Perl
+ * 5.26+, so provide a fallback using PL_opargs.
+ */
+static const char *dc_op_classname(pTHX_ const OP *o) {
+  if (!o || !o->op_type) {
+    if (!o) return "B::NULL";
+    /*
+     * Null ops that were originally nextstate/dbstate are still COPs in memory
+     * - B::Deparse's pp_null dispatches to pp_nextstate which needs COP methods
+     *   like stashpv and warnings.
+     */
+    if (o->op_targ == OP_NEXTSTATE || o->op_targ == OP_DBSTATE)
+      return "B::COP";
+    if (o->op_flags & OPf_KIDS)
+      return "B::UNOP";
+    return "B::OP";
+  }
+  switch (PL_opargs[o->op_type] & OA_CLASS_MASK) {
+    case OA_BASEOP:        return "B::OP";
+    case OA_UNOP:          return "B::UNOP";
+    case OA_BINOP:         return "B::BINOP";
+    case OA_LOGOP:         return "B::LOGOP";
+    case OA_LISTOP:        return "B::LISTOP";
+    case OA_PMOP:          return "B::PMOP";
+    case OA_SVOP:          return "B::SVOP";
+    case OA_PADOP:         return "B::PADOP";
+    case OA_LOOP:          return "B::LOOP";
+    case OA_COP:           return "B::COP";
+    case OA_PVOP_OR_SVOP:
+#ifdef USE_ITHREADS
+                           return "B::PADOP";
+#else
+                           return "B::SVOP";
+#endif
+    case OA_BASEOP_OR_UNOP:
+      return (o->op_flags & OPf_KIDS) ? "B::UNOP" : "B::OP";
+    case OA_FILESTATOP:
+      return (o->op_flags & OPf_KIDS) ? "B::UNOP" : "B::SVOP";
+    case OA_LOOPEXOP:
+      if (o->op_flags & OPf_STACKED) return "B::UNOP";
+      if (o->op_flags & OPf_SPECIAL) return "B::OP";
+      return "B::SVOP";
+    default:               return "B::OP";
+  }
+}
+
+/* Create a blessed B::OP-subclass SV wrapping an OP pointer */
+static SV *dc_make_op_sv(pTHX_ OP *o) {
+  SV *sv = newSV(0);
+  sv_setiv(newSVrv(sv, dc_op_classname(aTHX_ o)), PTR2IV(o));
+  return sv;
+}
+
+/* Create a blessed B::CV SV wrapping a CV pointer */
+static SV *dc_make_cv_sv(pTHX_ CV *cv) {
+  SV *sv = newSV(0);
+  sv_setiv(newSVrv(sv, "B::CV"), PTR2IV(cv));
+  return sv;
+}
+
+/* Call the Perl walk callback: callback->(op, type, cv) */
+static void dc_walk_callback(pTHX_ OP *op, SV *callback,
+                             const char *type, CV *cv) {
+  dSP;
+  ENTER; SAVETMPS;
+  PUSHMARK(SP);
+  XPUSHs(sv_2mortal(dc_make_op_sv(aTHX_ op)));
+  XPUSHs(sv_2mortal(newSVpv(type, 0)));
+  XPUSHs(sv_2mortal(dc_make_cv_sv(aTHX_ cv)));
+  PUTBACK;
+  call_sv(callback, G_DISCARD);
+  FREETMPS; LEAVE;
+}
+
+/* Store a child→parent mapping in the parent map */
+static void dc_store_parent(pTHX_ HV *parent_map, OP *child, OP *parent) {
+  char key[24];
+  STRLEN keylen = (STRLEN)snprintf(key, sizeof(key), "%" IVdf, PTR2IV(child));
+  hv_store(parent_map, key, keylen, dc_make_op_sv(aTHX_ parent), 0);
+}
+
+/*
+ * Recursive depth-first op tree walker.
+ * Identifies coverage-relevant ops and calls back to Perl.
+ * Populates parent_map with child→parent mappings so Perl callbacks
+ * can walk the parent chain on all Perl versions (not just 5.26+).
+ */
+static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv, HV *parent_map) {
+  OP *kid;
+
+  if (!op) return;
+
+  switch (op->op_type) {
+    case OP_NEXTSTATE:
+    case OP_DBSTATE:
+      dc_walk_callback(aTHX_ op, callback, "statement", cv);
+      break;
+
+    case OP_COND_EXPR:
+      dc_walk_callback(aTHX_ op, callback, "cond_expr", cv);
+      break;
+
+    case OP_AND:
+    case OP_OR:
+    case OP_DOR:
+      /* Skip loop-internal logops (e.g. AND inside for) */
+      if (cLOGOPx(op)->op_first->op_type != OP_ITER)
+        dc_walk_callback(aTHX_ op, callback, "logop", cv);
+      break;
+
+    case OP_ANDASSIGN:
+    case OP_ORASSIGN:
+    case OP_DORASSIGN:
+      dc_walk_callback(aTHX_ op, callback, "logassignop", cv);
+      break;
+
+    case OP_XOR:
+      dc_walk_callback(aTHX_ op, callback, "xor", cv);
+      break;
+
+    case OP_NULL:
+      if (op->op_targ == OP_NEXTSTATE || op->op_targ == OP_DBSTATE) {
+        /*
+         * Skip dead end-of-block ex-nextstates (closing braces, comment-only
+         * files).  These have no sibling in the tree because they're the last
+         * child of their parent lineseq.
+         */
+        if (OpSIBLING(op))
+          dc_walk_callback(aTHX_ op, callback, "null_statement", cv);
+      }
+      break;
+
+    default:
+      break;
+  }
+
+  /* Recurse into children, storing parent mappings */
+  if (op->op_flags & OPf_KIDS) {
+    for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
+      dc_store_parent(aTHX_ parent_map, kid, op);
+      dc_walk_ops_r(aTHX_ kid, callback, cv, parent_map);
+    }
+  }
+
+  /* Handle PMOP special children (regex replacement trees) */
+  if (op->op_type == OP_SUBST) {
+    PMOP *pm = cPMOPx(op);
+#ifdef USE_ITHREADS
+    if (pm->op_pmstashstartu.op_pmreplstart) {
+      dc_store_parent(aTHX_ parent_map,
+                      pm->op_pmstashstartu.op_pmreplstart, op);
+      dc_walk_ops_r(aTHX_ pm->op_pmstashstartu.op_pmreplstart,
+                    callback, cv, parent_map);
+    }
+#else
+    if (pm->op_pmreplrootu.op_pmreplroot) {
+      dc_store_parent(aTHX_ parent_map,
+                      pm->op_pmreplrootu.op_pmreplroot, op);
+      dc_walk_ops_r(aTHX_ pm->op_pmreplrootu.op_pmreplroot,
+                    callback, cv, parent_map);
+    }
+#endif
+  }
+}
+
+static void dc_walk_ops(pTHX_ OP *op, SV *callback, CV *cv, HV *parent_map) {
+  hv_clear(parent_map);
+  dc_walk_ops_r(aTHX_ op, callback, cv, parent_map);
+}
 
 
 MODULE = Devel::Cover PACKAGE = Devel::Cover
@@ -1947,6 +2119,18 @@ adjust_blocks(stash)
       }
     }
 #endif
+
+void
+walk_ops(root_op, callback, cv, parent_map_ref)
+    B::OP root_op
+    SV   *callback
+    B::CV cv
+    SV   *parent_map_ref
+  CODE:
+    if (!SvROK(parent_map_ref) || SvTYPE(SvRV(parent_map_ref)) != SVt_PVHV)
+      croak("parent_map must be a hash reference");
+    dc_walk_ops(aTHX_ root_op, callback, cv,
+                (HV *)SvRV(parent_map_ref));
 
 BOOT:
   {

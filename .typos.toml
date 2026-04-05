@@ -3,6 +3,7 @@
   ignore-hidden = false
 
 [default.extend-words]
+  aassign = "aassign"
   thr = "thr"
 
 [default.extend-identifiers]

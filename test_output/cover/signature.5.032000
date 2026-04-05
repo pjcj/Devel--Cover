@@ -4,8 +4,8 @@ Reading database from ...
 --------------- ------ ------ ------ ------ ------
 File              stmt   bran   cond    sub  total
 --------------- ------ ------ ------ ------ ------
-tests/signature  100.0   50.0    n/a  100.0   95.8
-Total            100.0   50.0    n/a  100.0   95.8
+tests/signature  100.0   50.0    n/a  100.0   94.4
+Total            100.0   50.0    n/a  100.0   94.4
 --------------- ------ ------ ------ ------ ------
 
 
@@ -40,12 +40,6 @@ line  err   stmt   bran   cond    sub   code
                1                        
 16                                      
 17             1                    1   sub xx ($p, $q, $r, $s = 6, @t) {
-               1                        
-               1                        
-               1                        
-               1                        
-               1                        
-               1                        
 18             1                            $p + $q + $r + $s + @t
 19                                      }
 20                                      
