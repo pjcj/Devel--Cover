@@ -129,7 +129,7 @@ line  err      %   true  false   branch
 36    ***     50      0     11   unless $y or $x[0]++
 40    ***     50     11      0   unless $z
 47    ***     50      0     11   if ($z) { }
-80    ***     50     11      0   if exists &main::cond_dor
+80    ***     50     11      0   if exists &cond_dor
 
 
 Conditions
@@ -150,7 +150,9 @@ line  err      %      l     !l   expr
 69           100     10      1   $x[11] ||= \$y
 70           100     10      1   $x[12] ||= \*STDIO
 71           100     10      1   $x[13] ||= sub {
-	1;
+	use warnings;
+use strict;
+1;
 }
 
 72           100     10      1   $x[14] ||= *foo{"SCALAR"}

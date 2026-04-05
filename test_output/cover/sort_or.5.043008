@@ -98,15 +98,15 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-19    ***     50      2      0   $main::b->{'cnt'} <=> $main::a->{'cnt'} or $main::a->{'val'} cmp $main::b->{'val'}
-27           100      1      2   $main::b->{'cnt'} <=> $main::a->{'cnt'} or $main::a->{'val'} cmp $main::b->{'val'}
+19    ***     50      2      0   $main::b->{"cnt"} <=> $main::a->{"cnt"} or $main::a->{"val"} cmp $main::b->{"val"}
+27           100      1      2   $main::b->{"cnt"} <=> $main::a->{"cnt"} or $main::a->{"val"} cmp $main::b->{"val"}
 33           100      2      1   $r ? :
-42    ***     50      1      0   $main::a->{'a'} <=> $main::b->{'a'} or $main::a->{'b'} cmp $main::b->{'b'}
-44    ***     50      1      0   $main::a->{'a'} <=> $main::b->{'a'} or $main::a->{'b'} cmp $main::b->{'b'}
-45    ***     50      1      0   $main::a->{'key'} <=> $main::b->{'key'} or +(sort {$main::a->{'a'} <=> $main::b->{'a'} or $main::a->{'b'} cmp $main::b->{'b'};} @{$$a{"inner"};})[0]->{'b'} cmp +(sort {$main::a->{'a'} <=> $main::b->{'a'} or $main::a->{'b'} cmp $main::b->{'b'};} @{$$b{"inner"};})[0]->{'b'}
-53    ***      0      0      0   $main::b->{'cnt'} <=> $main::a->{'cnt'} or boom()
-58           100      1      2   $main::b->{'cnt'} <=> $main::a->{'cnt'} or $main::a->{'val'} cmp $main::b->{'val'}
-61           100      1      2   $main::b->{'cnt'} <=> $main::a->{'cnt'} or $main::a->{'val'} cmp $main::b->{'val'}
+42    ***     50      1      0   $main::a->{"a"} <=> $main::b->{"a"} or $main::a->{"b"} cmp $main::b->{"b"}
+44    ***     50      1      0   $main::a->{"a"} <=> $main::b->{"a"} or $main::a->{"b"} cmp $main::b->{"b"}
+45    ***     50      1      0   $main::a->{"key"} <=> $main::b->{"key"} or +(sort {$main::a->{"a"} <=> $main::b->{"a"} or $main::a->{"b"} cmp $main::b->{"b"};} @{$$a{"inner"};})[0]->{"b"} cmp +(sort {$main::a->{"a"} <=> $main::b->{"a"} or $main::a->{"b"} cmp $main::b->{"b"};} @{$$b{"inner"};})[0]->{"b"}
+53    ***      0      0      0   $main::b->{"cnt"} <=> $main::a->{"cnt"} or boom()
+58           100      1      2   $main::b->{"cnt"} <=> $main::a->{"cnt"} or $main::a->{"val"} cmp $main::b->{"val"}
+61           100      1      2   $main::b->{"cnt"} <=> $main::a->{"cnt"} or $main::a->{"val"} cmp $main::b->{"val"}
 
 
 Covered Subroutines
