@@ -894,6 +894,14 @@ my %Original;
     $Original{binop}        = \&B::Deparse::binop;
     $Original{const_dumper} = \&B::Deparse::const_dumper;
     $Original{const}        = \&B::Deparse::const if defined &B::Deparse::const;
+
+    # B::Deparse has no pp_padrange - it handles padrange through lineseq
+    # sequencing, never via direct dispatch.  When we call deparse() on
+    # individual ops whose subtree contains a padrange, AUTOLOAD fires
+    # with "unexpected OP_PADRANGE".  Return "" so the surrounding op
+    # (aassign, entersub, etc.) still deparses correctly.
+    *B::Deparse::pp_padrange = sub { "" }
+      unless defined &B::Deparse::pp_padrange;
   }
 
   sub const_dumper (@o) {

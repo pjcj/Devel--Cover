@@ -6,3 +6,8 @@ use warnings;
 if (my @x = 'foo' =~ m/(.)/) {
 } else {
 }
+
+my %h = (a => 1, b => 2);
+while (my ($k, $v) = each %h) {
+  print "$k $v\n";
+}
