@@ -1812,11 +1812,21 @@ static void dc_walk_callback(pTHX_ OP *op, SV *callback,
   FREETMPS; LEAVE;
 }
 
+/* Store a child→parent mapping in the parent map */
+static void dc_store_parent(pTHX_ HV *parent_map, OP *child, OP *parent) {
+  char key[24];
+  STRLEN keylen = (STRLEN)snprintf(key, sizeof(key),
+                                   "%" IVdf, PTR2IV(child));
+  hv_store(parent_map, key, keylen,
+           dc_make_op_sv(aTHX_ parent), 0);
+}
+
 /* Recursive depth-first op tree walker.
  * Identifies coverage-relevant ops and calls back to Perl.
- * in_logop tracks nesting depth inside logops for cx context. */
+ * Populates parent_map with child→parent mappings so Perl callbacks
+ * can walk the parent chain on all Perl versions (not just 5.26+). */
 static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv,
-                          int in_logop) {
+                          HV *parent_map) {
   OP *kid;
 
   if (!op) return;
@@ -1835,16 +1845,8 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv,
     case OP_OR:
     case OP_DOR:
       /* Skip loop-internal logops (e.g. AND inside for) */
-      if (cLOGOPx(op)->op_first->op_type != OP_ITER) {
-        dc_walk_callback(aTHX_ op, callback,
-                         in_logop ? "logop_nested" : "logop", cv);
-        /* Recurse with in_logop set so nested logops get cx > 0 */
-        if (op->op_flags & OPf_KIDS) {
-          for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid))
-            dc_walk_ops_r(aTHX_ kid, callback, cv, 1);
-        }
-        return;
-      }
+      if (cLOGOPx(op)->op_first->op_type != OP_ITER)
+        dc_walk_callback(aTHX_ op, callback, "logop", cv);
       break;
 
     case OP_ANDASSIGN:
@@ -1862,9 +1864,8 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv,
         /* Skip dead end-of-block ex-nextstates (closing braces,
            comment-only files).  These have no sibling in the tree
            because they're the last child of their parent lineseq. */
-        if (OpSIBLING(op)) {
+        if (OpSIBLING(op))
           dc_walk_callback(aTHX_ op, callback, "null_statement", cv);
-        }
       }
       break;
 
@@ -1872,10 +1873,11 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv,
       break;
   }
 
-  /* Recurse into children */
+  /* Recurse into children, storing parent mappings */
   if (op->op_flags & OPf_KIDS) {
     for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
-      dc_walk_ops_r(aTHX_ kid, callback, cv, in_logop);
+      dc_store_parent(aTHX_ parent_map, kid, op);
+      dc_walk_ops_r(aTHX_ kid, callback, cv, parent_map);
     }
   }
 
@@ -1883,19 +1885,27 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv,
   if (op->op_type == OP_SUBST) {
     PMOP *pm = cPMOPx(op);
 #ifdef USE_ITHREADS
-    if (pm->op_pmstashstartu.op_pmreplstart)
+    if (pm->op_pmstashstartu.op_pmreplstart) {
+      dc_store_parent(aTHX_ parent_map,
+                      pm->op_pmstashstartu.op_pmreplstart, op);
       dc_walk_ops_r(aTHX_ pm->op_pmstashstartu.op_pmreplstart,
-                    callback, cv, in_logop);
+                    callback, cv, parent_map);
+    }
 #else
-    if (pm->op_pmreplrootu.op_pmreplroot)
+    if (pm->op_pmreplrootu.op_pmreplroot) {
+      dc_store_parent(aTHX_ parent_map,
+                      pm->op_pmreplrootu.op_pmreplroot, op);
       dc_walk_ops_r(aTHX_ pm->op_pmreplrootu.op_pmreplroot,
-                    callback, cv, in_logop);
+                    callback, cv, parent_map);
+    }
 #endif
   }
 }
 
-static void dc_walk_ops(pTHX_ OP *op, SV *callback, CV *cv) {
-  dc_walk_ops_r(aTHX_ op, callback, cv, 0);
+static void dc_walk_ops(pTHX_ OP *op, SV *callback, CV *cv,
+                        HV *parent_map) {
+  hv_clear(parent_map);
+  dc_walk_ops_r(aTHX_ op, callback, cv, parent_map);
 }
 
 
@@ -2108,12 +2118,16 @@ adjust_blocks(stash)
 #endif
 
 void
-walk_ops(root_op, callback, cv)
+walk_ops(root_op, callback, cv, parent_map_ref)
     B::OP root_op
     SV   *callback
     B::CV cv
+    SV   *parent_map_ref
   CODE:
-    dc_walk_ops(aTHX_ root_op, callback, cv);
+    if (!SvROK(parent_map_ref) || SvTYPE(SvRV(parent_map_ref)) != SVt_PVHV)
+      croak("parent_map must be a hash reference");
+    dc_walk_ops(aTHX_ root_op, callback, cv,
+                (HV *)SvRV(parent_map_ref));
 
 BOOT:
   {

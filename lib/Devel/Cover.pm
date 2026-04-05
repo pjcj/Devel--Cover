@@ -26,7 +26,7 @@ use Devel::Cover::Inc         ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use B          qw( main_cv main_root OPf_SPECIAL OPf_WANT ppname walksymtable );
+use B qw( main_cv main_root OPf_KIDS OPf_SPECIAL OPf_WANT ppname walksymtable );
 use B::Deparse ();
 
 # OPpSTATEMENT (added in 5.43.8) authoritatively distinguishes statement-form
@@ -632,6 +632,9 @@ sub check_files {
 }
 
 my %Seen;
+my %Parent_map;
+
+sub _op_parent ($op) { $Parent_map{$$op} }
 
 sub report {
   local $@;
@@ -1270,7 +1273,7 @@ sub _deparse_expr ($cv, $op, $cx, $use_dumper = 1) {
   require Data::Dumper                    if $use_dumper;
   local $Shared_deparse->{use_dumper} = $use_dumper;
   my $text = eval { local $^W; $Shared_deparse->deparse($op, $cx) };
-  defined $text ? $text : ""
+  defined $text ? $text =~ s/\x08//gr : ""  # strip B::Deparse unindent markers
 }
 
 my %Logop_params = (
@@ -1279,6 +1282,7 @@ my %Logop_params = (
   dor => [ "//",  10 ],
 );
 
+## no critic (ProhibitExcessComplexity)
 sub _walk_statement ($op, $type) {
   # Guard: skip statements with no real successors (trailing closing
   # braces, comment-only files, etc.)
@@ -1298,9 +1302,9 @@ sub _walk_statement ($op, $type) {
     # source statements.  Still update $File/$Line/$Current_cop so
     # that condition coverage for ops in this scope gets the right
     # line attribution.
-    my $p = eval { $op->parent };
+    my $p = _op_parent($op);
     if ($p && $$p && $p->name eq "lineseq") {
-      my $gp = eval { $p->parent };
+      my $gp = _op_parent($p);
       if ($gp && $$gp && ($gp->name eq "cond_expr" || $Seen{cond_expr}{$$gp})) {
         bless $op, "B::COP";
         get_location($op);
@@ -1314,6 +1318,29 @@ sub _walk_statement ($op, $type) {
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
     bless $op, "B::$class";
   } else {
+    # Skip nextstates inside signature argcheck blocks unless they
+    # precede a default value.  Plain param assignments and argcheck
+    # are bookkeeping; defaults are real conditional code.
+    # Two optree layouts:
+    #   5.38+:  nextstate → argelem(OPf_KIDS) → argdefelem
+    #   5.43.4+: nextstate → null(OPf_KIDS) → paramtest
+    my $p = _op_parent($op);
+    if ($p && $$p && $p->name eq "lineseq") {
+      my $gp = _op_parent($p);
+      if (
+           $gp
+        && $$gp
+        && $gp->name eq "null"
+        && ppname($gp->targ) eq "pp_argcheck"
+      ) {
+        my $sib = $op->sibling;
+        return
+             unless $sib
+          && $$sib
+          && ($sib->flags & OPf_KIDS)
+          && $sib->first->name =~ /^(?:argdefelem|paramtest)$/;
+      }
+    }
     $Current_cop = $op;
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
   }
@@ -1372,70 +1399,66 @@ sub _walk_cond_expr ($cv, $op) {
 # B::Deparse determines cx from the deparsing call chain, not from
 # OPf_WANT. The two diverge for return (want=NONE but cx=6 in deparse)
 # and sort/map/grep blocks (want=SCALAR but cx=0 in deparse).
-# The $nested flag (from the XS walker's in_logop tracking) is used as
-# a fallback when $op->parent is unavailable (Perl < 5.22).
+# The parent map (built by the XS walker) provides parent lookups on
+# all Perl versions, not just 5.26+.
 ## no critic (ProhibitExcessComplexity)
-sub _logop_parent_cx ($op, $highprec, $lowprec, $nested = 0) {
-  my $parent = eval { $op->parent };
-  if ($parent && $$parent) {
-    # Skip null/ex-ops, but stop at block boundaries (ex-scope,
-    # ex-leave*) since those indicate statement-level context.
-    while ($$parent && $parent->name eq "null") {
-      if (my $targ = $parent->targ) {
-        my $tname = ppname($targ);
-        return 0                     if $tname =~ /^pp_(?:scope|leave)/;
-        return $highprec || $lowprec if $tname eq "pp_return";
-      }
-      $parent = eval { $parent->parent };
-      last unless $parent && $$parent;
+sub _logop_parent_cx ($op, $highprec, $lowprec) {
+  my $parent = _op_parent($op);
+  return 0 unless $parent && $$parent;
+  # Skip null/ex-ops, but stop at block boundaries (ex-scope,
+  # ex-leave*) since those indicate statement-level context.
+  while ($$parent && $parent->name eq "null") {
+    if (my $targ = $parent->targ) {
+      my $tname = ppname($targ);
+      return 0                     if $tname =~ /^pp_(?:scope|leave)/;
+      return $highprec || $lowprec if $tname eq "pp_return";
     }
-    if ($parent && $$parent) {
-      my $pname = $parent->name;
-      # return deparses its argument at cx=6 (expression context)
-      return $highprec || $lowprec if $pname eq "return";
-      # cond_expr deparses its condition at cx=1
-      return 1 if $pname eq "cond_expr";
-      # lineseq inside cond_expr/elsif-wrapper condition is cx=1.
-      # The last elsif arm compiles to and/or instead of cond_expr;
-      # those wrappers are tracked in %Seen{cond_expr}.
-      if ($pname eq "lineseq") {
-        my $gp = eval { $parent->parent };
-        if ($gp && $$gp) {
-          my $gpname = $gp->name;
-          return 1 if $gpname eq "cond_expr";
-          return 1 if $Seen{cond_expr}{$$gp};
-        }
-        return 0;
-      }
-      # Block-level parents - cx=0 (statement level)
-      return 0
-        if $pname eq "scope"
-        || $pname eq "leave"
-        || $pname eq "leavesub"
-        || $pname eq "leavetry"
-        || $pname eq "leaveloop"
-        || $pname eq "sort";
-    }
+    $parent = _op_parent($parent);
+    last unless $parent && $$parent;
   }
-  # Fallback when parent info unavailable (Perl < 5.26): combine
-  # OPf_WANT with $nested.  VOID/NONE always means statement-level
-  # (cx=0) even when the XS walker's in_logop flag is set, because
-  # the in_logop flag crosses scope boundaries but B::Deparse resets
-  # cx at each scope.  SCALAR+ means expression context - use $nested
-  # to choose low-prec (cx=1) vs high-prec.
+  if ($parent && $$parent) {
+    my $pname = $parent->name;
+    return $highprec || $lowprec if $pname eq "return";
+    return 1                     if $pname eq "cond_expr";
+    # lineseq inside cond_expr/elsif-wrapper condition is cx=1.
+    # The last elsif arm compiles to and/or instead of cond_expr;
+    # those wrappers are tracked in %Seen{cond_expr}.
+    if ($pname eq "lineseq") {
+      my $gp = _op_parent($parent);
+      if ($gp && $$gp) {
+        return 1 if $gp->name eq "cond_expr";
+        return 1 if $Seen{cond_expr}{$$gp};
+      }
+      return 0;
+    }
+    return 0
+      if $pname eq "scope"
+      || $pname eq "leave"
+      || $pname eq "leavesub"
+      || $pname eq "leavetry"
+      || $pname eq "leaveloop"
+      || $pname eq "sort";
+    # Nested logop (e.g. inner && in "$a && $b || $c") - B::Deparse
+    # recurses into logop children at cx=1 (low-prec expression).
+    return 1 if $pname eq "and" || $pname eq "or" || $pname eq "dor";
+  }
+  # Fallback for unrecognised parent structures (e.g. nested logops
+  # where the optimizer has eliminated cond_expr): use OPf_WANT.
+  # The parent map handles sort/return/leaveloop on all versions,
+  # so this only fires for genuinely ambiguous cases.
   my $want = $op->flags & OPf_WANT;
   return 0 unless $want >= B::OPf_WANT_SCALAR;
-  $nested ? 1 : $highprec || $lowprec
+  $highprec || $lowprec
 }
 
 ## no critic (ProhibitExcessComplexity)
-sub _walk_logop ($cv, $op, $nested = 0) {
+sub _walk_logop ($cv, $op) {
   return unless $Collect;
   return if $Seen{cond_expr}{$$op};
   # Skip while/until loop conditions (and → null* → leaveloop)
-  my $_p = eval { $op->parent };
+  my $_p = _op_parent($op);
   if ($_p && $$_p) {
-    $_p = eval { $_p->parent } while $_p && $$_p && $_p->name eq "null";
+    $_p = _op_parent($_p) while $_p && $$_p && $_p->name eq "null";
     return if $_p && $$_p && $_p->name eq "leaveloop";
   }
   my $name   = $op->name;
@@ -1450,7 +1473,7 @@ sub _walk_logop ($cv, $op, $nested = 0) {
   # Always consult the parent chain when available - the XS walker's
   # in_logop nesting can cross block boundaries (e.g. sort block inside
   # a || expression), but B::Deparse resets cx at each block scope.
-  my $cx = _logop_parent_cx($op, $highprec, $lowprec, $nested);
+  my $cx = _logop_parent_cx($op, $highprec, $lowprec);
 
   if ($blockname && $cx < 1) {
     $Shared_deparse ||= B::Deparse->new;
@@ -1503,14 +1526,13 @@ sub _walk_logassignop ($cv, $op) {
 
 sub _walk_xor ($cv, $op) {
   return unless $Collect && $Coverage{condition};
-  return unless $] >= 5.040000;
   return if $Seen{condition}{$$op}++;
   my $left   = $op->first;
   my $right  = $op->last;
-  my $want   = $op->flags & OPf_WANT;
-  my $opname = $want >= B::OPf_WANT_SCALAR ? "^^" : "xor";
-  my $l      = _deparse_expr($cv, $left,  0);
-  my $r      = _deparse_expr($cv, $right, 0);
+  my $cx     = _logop_parent_cx($op, 10, 2);
+  my $opname = ($] >= 5.040000 && $cx > 2) ? "^^" : "xor";
+  my $l      = _deparse_expr($cv, $left,  $cx);
+  my $r      = _deparse_expr($cv, $right, $cx);
 
   add_condition_cover($op, $opname, $l, $r);
 }
@@ -1525,8 +1547,8 @@ sub _get_cover_walk ($cv, $root) {
         _walk_statement($op, $type);
       } elsif ($type eq "cond_expr") {
         _walk_cond_expr($cv_ref, $op);
-      } elsif ($type eq "logop" || $type eq "logop_nested") {
-        _walk_logop($cv_ref, $op, $type eq "logop_nested");
+      } elsif ($type eq "logop") {
+        _walk_logop($cv_ref, $op);
       } elsif ($type eq "logassignop") {
         _walk_logassignop($cv_ref, $op);
       } elsif ($type eq "xor") {
@@ -1534,6 +1556,7 @@ sub _get_cover_walk ($cv, $root) {
       }
     },
     $cv,
+    \%Parent_map,
   );
 }
 
