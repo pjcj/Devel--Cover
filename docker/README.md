@@ -1,8 +1,8 @@
 # Devel::Cover Docker Infrastructure
 
 This directory contains the Docker infrastructure for running cpancover, the
-service that generates code coverage reports for CPAN modules. The system uses
-a layered Docker architecture to build and run coverage analysis in isolated
+service that generates code coverage reports for CPAN modules. The system uses a
+layered Docker architecture to build and run coverage analysis in isolated
 containers.
 
 ## Architecture Overview
@@ -78,13 +78,13 @@ via `dc`:
 
 ```bash
 # Using dc (recommended - inherits environment settings)
-dc -e dev docker-build              # Development build
-dc docker-build                     # Production build
-dc -e dev docker-build --no-cache   # Force clean rebuild
+dc -e dev docker-build            # Development build
+dc docker-build                   # Production build
+dc -e dev docker-build --no-cache # Force clean rebuild
 
 # Using BUILD directly
-docker/BUILD -e dev                 # Development build
-docker/BUILD                        # Production build
+docker/BUILD -e dev # Development build
+docker/BUILD        # Production build
 docker/BUILD --user myuser --perl 5.40.2 --no-cache --nopush
 
 # Access shell in specific container
@@ -105,9 +105,9 @@ docker/BUILD devel-cover-dc-shell
 ## Image Versioning
 
 Production builds of `pjcj/cpancover` are tagged with a combined date and git
-SHA, for example `2026-02-15-1430-c1213eac`. The `:latest` tag is always
-updated alongside the versioned tag, so pulling `:latest` gives you the most
-recent build while every previous build remains addressable.
+SHA, for example `2026-02-15-1430-c1213eac`. The `:latest` tag is always updated
+alongside the versioned tag, so pulling `:latest` gives you the most recent
+build while every previous build remains addressable.
 
 ### Tag format
 
@@ -129,9 +129,9 @@ dc docker-show-tags
 Prune old versioned tags, keeping the most recent:
 
 ```bash
-dc docker-prune-tags        # keep the 20 most recent (default)
-dc docker-prune-tags 10     # keep the 10 most recent
-dc -d docker-prune-tags     # dry run — list what would be deleted
+dc docker-prune-tags    # keep the 20 most recent (default)
+dc docker-prune-tags 10 # keep the 10 most recent
+dc -d docker-prune-tags # dry run — list what would be deleted
 ```
 
 The `latest` tag is never deleted. Two environment variables are required:
@@ -421,8 +421,8 @@ with a known stable module:
 
 ```bash
 # Quick test with default module (Perl-Critic-PJCJ)
-dc -e dev cpancover-test                 # Direct execution
-dc -e dev cpancover-controller-test      # Via controller container
+dc -e dev cpancover-test            # Direct execution
+dc -e dev cpancover-controller-test # Via controller container
 ```
 
 To test with custom modules, set `CPANCOVER_TEST_MODULES`:
@@ -449,7 +449,7 @@ CPANCOVER_TEST_MODULES="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz" \
 
 The system supports two environments configured via `--env`:
 
-#### Development Environment (`--env=dev`)
+#### Development Environment (`--env dev`)
 
 - Uses local source code from working directory
 - Staging directory: `~/cover/staging_dev`
@@ -457,7 +457,7 @@ The system supports two environments configured via `--env`:
 - No automatic pushing to Docker Hub
 - Builds using `docker/devel-cover-local`
 
-#### Production Environment (`--env=prod`)
+#### Production Environment (`--env prod`)
 
 - Clones from GitHub repository
 - Staging directory: `~/cover/staging` (symlinked to `/cover/staging` in
@@ -562,8 +562,8 @@ dc cpancover-docker-rm
 
 #### Production Image Updates
 
-The production image must be built on the production server (or a machine
-with matching architecture) to avoid platform mismatches.
+The production image must be built on the production server (or a machine with
+matching architecture) to avoid platform mismatches.
 
 ```bash
 # 1. Build and test locally (dev environment)
@@ -583,14 +583,14 @@ dc cpancover-controller-run
 
 ```bash
 # Create a custom module list
-cat > modules.txt << EOF
+cat >modules.txt <<EOF
 DBI
 Mojolicious
 Moose
 EOF
 
 # Run coverage on custom list (direct execution from host)
-dc cpancover < modules.txt
+dc cpancover <modules.txt
 
 # Or use module file option (direct execution from host)
 dc cpancover --module_file=modules.txt
@@ -599,7 +599,7 @@ dc cpancover --module_file=modules.txt
 # First copy modules.txt to staging, then:
 dc cpancover-controller-shell
 # Inside container:
-dc cpancover < /remote_staging/modules.txt
+dc cpancover </remote_staging/modules.txt
 ```
 
 ### Performance Tuning
@@ -713,7 +713,7 @@ For automated testing in CI:
 # Build specific module and check coverage
 dc -e dev cpancover-build-module Your::Module
 if [[ -f ~/cover/staging_dev/Your-Module/cover.json ]]; then
-    jq .summary.Total ~/cover/staging_dev/Your-Module/cover.json
+  jq .summary.Total ~/cover/staging_dev/Your-Module/cover.json
 fi
 ```
 
