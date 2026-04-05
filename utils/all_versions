@@ -154,15 +154,22 @@ sub write_status (
 }
 
 sub get_options {
-  die "Bad option"
-    unless GetOptions(
-      $Options,
-      qw(
-        bail!           build! dry_run! force!
-        ignore_failure! key!   list!    silent!
-        version=s
-      ),
-    );
+  die "Bad option" unless GetOptions(
+    $Options,
+    #<<<
+    qw(
+      bail!
+      build!
+      dry_run!
+      force!
+      ignore_failure!
+      key!
+      list!
+      silent!
+      version=s
+    ),
+    #>>>
+  );
 
   $Options->{version} = [
     map { ($_, "$_-thr") }
