@@ -34,9 +34,9 @@ line  err   stmt   bran   cond    sub   code
 14                                      
 15                                      sub t3 {
 16             1                    1       for my $x (0, 1, 2) {
-17    ***      3   * 50    100                  last if $x && $x == 2 && $x == 2 && $x == 2;
+17    ***      3   * 50   * 66                  last if $x && $x == 2 && $x == 2 && $x == 2;
       ***                 * 66          
-      ***                 * 66          
+                           100          
 18                                          }
 19                                      }
 20                                      
@@ -64,9 +64,9 @@ line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
 5            100      1      1      1   $x and $x == 2
 11           100      1      1      1   $x and $x == 2
-17           100      1      1      1   $x and $x == 2
-      ***     66      2      0      1   $x and $x == 2 and $x == 2
-      ***     66      1      0      1   $x and $x == 2 and $x == 2 and $x == 2
+17    ***     66      1      0      1   ($x and $x == 2 and $x == 2) and $x == 2
+      ***     66      2      0      1   ($x and $x == 2) and $x == 2
+             100      1      1      1   $x and $x == 2
 
 
 Covered Subroutines
