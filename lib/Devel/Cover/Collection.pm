@@ -699,7 +699,16 @@ $Templates{module_by_start} = <<'EOT';
 
 <h2>Distributions - [% module_start %]</h2>
 
+[% crit_w = 76 / col_headers.size %]
 <table>
+<colgroup>
+<col style="width:12%">
+<col style="width:7%">
+<col style="width:5%">
+[% FOREACH h = col_headers %]
+<col style="width:[% crit_w %]%">
+[% END %]
+</colgroup>
 
   [% IF modules.$module_start %]
     <tr>

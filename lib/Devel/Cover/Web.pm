@@ -561,7 +561,7 @@ a:visited { color: var(--link-visited); }
 
 .cov-bar {
   display: inline-block;
-  width: 50px;
+  width: 40px;
   height: 8px;
   background: var(--cov-none-border);
   border-radius: 4px;
@@ -577,6 +577,8 @@ a:visited { color: var(--link-visited); }
   background: var(--cov-full-border);
   border-radius: 4px;
 }
+
+.name-short { display: none; }
 CSS
 
 our $Crisp_theme_js = <<'JS';
@@ -608,6 +610,8 @@ table {
   border-collapse: collapse;
   margin: 0 0 24px;
   font-size: var(--font-size-small);
+  table-layout: fixed;
+  width: 100%;
 }
 
 th, td {
@@ -619,9 +623,10 @@ th, td {
 th {
   background: var(--header-bg);
   font-weight: 600;
-  white-space: nowrap;
   color: var(--fg);
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 td {
@@ -639,16 +644,16 @@ tr:hover td:not(.c0):not(.c1):not(.c2):not(.c3) {
 td.c0, td.c1, td.c2, td.c3 {
   border-color: var(--border);
   white-space: nowrap;
+  text-align: center;
 }
 
-.name-short { display: none; }
-
-@media (max-width: 1000px) {
+@media (max-width: 850px) {
   td.c0, td.c1, td.c2, td.c3 {
     white-space: normal;
   }
   td .cov-bar {
     display: block;
+    width: 100%;
     margin-left: 0;
     margin-top: 2px;
   }
