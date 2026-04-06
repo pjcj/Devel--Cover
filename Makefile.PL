@@ -22,7 +22,7 @@ use version             ();
 local $| = 1;
 
 my $Version  = "1.52";
-my $Latest_t = "v5.42.1";
+my $Latest_t = "v5.42.2";
 my $Author   = 'paul@pjcj.net';
 my $Inc_str  = do {
   my %inc

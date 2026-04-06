@@ -21,8 +21,7 @@ Replace `<version>` throughout with the new version number (e.g. `5.42.1`).
 
 04. Update `$Latest_t` in `Makefile.PL`
 
-    - Change the version string to the new version in Perl's internal numeric
-      format, e.g. `"5.042001"` for Perl 5.42.1
+    - Change the version string to the new version in the format "v5.42.1"
 
 05. Update the default Perl version in `docker/BUILD`
 
