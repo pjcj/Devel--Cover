@@ -55,6 +55,9 @@ Development:
                                        versions.  Multiple tests may be given.
   all-versions <cmd>                   Run a command across all Perl versions.
   build-and-test-all                   Clean build and run all tests.
+  cpan-collection <module> ...         Download CPAN modules and run their tests
+                                       under coverage, producing a combined
+                                       collection report.
   cpan-module <module>                 Download a CPAN module and run its tests
                                        under coverage.
   dc-cover                             Combined self-coverage for lib and report
@@ -1066,6 +1069,17 @@ recipe_showcase() {
   "$PERL" "$srcdir/showcase" "${args[@]:?No report specified}"
 }
 
+# Strip CPAN dist extensions: .tar.gz, .tgz, .tar.bz2, .tar.xz, .zip
+cpan_distdir() {
+  local dist="$1"
+  dist=${dist%.tar.gz}
+  dist=${dist%.tgz}
+  dist=${dist%.tar.bz2}
+  dist=${dist%.tar.xz}
+  dist=${dist%.zip}
+  echo "$dist"
+}
+
 cpan_module() {
   local module="${1:?No module specified}"
   local dc_root
@@ -1082,8 +1096,9 @@ cpan_module() {
   info=$(cpanm --info "$module") ||
     pf "Can't find module: $module"
 
-  local dist=${info##*/}        # e.g. Gedcom-1.22.tar.gz
-  local distdir=${dist%.tar.gz} # e.g. Gedcom-1.22
+  local dist=${info##*/}
+  local distdir
+  distdir=$(cpan_distdir "$dist")
 
   if [[ -d "$distdir" ]] && ! ((force)); then
     pi "Using existing $workdir/$distdir (use --force to re-download)"
@@ -1093,7 +1108,7 @@ cpan_module() {
     local url="https://cpan.metacpan.org/authors/id"
     url+="/${author:0:1}/${author:0:2}/$info"
     curl -sL "$url" -o "$dist"
-    tar xzf "$dist"
+    tar xf "$dist"
     rm "$dist"
   fi
 
@@ -1125,6 +1140,153 @@ cpan_module() {
 
 recipe_cpan-module() {
   cpan_module "${args[@]:?No module specified}"
+}
+
+cpan_collection_module() {
+  local module="${1:?No module specified}"
+  local results_dir="${2:?No results_dir specified}"
+  local dc_root="${3:?No dc_root specified}"
+  local cpan_info="${4:?No cpan info specified}"
+  local workdir="$dc_root/tmp/collection/work"
+
+  local dist=${cpan_info##*/}
+  local distdir
+  distdir=$(cpan_distdir "$dist")
+
+  # Skip if already covered (unless --force)
+  if [[ -f "$results_dir/$distdir/cover.json" ]] && ! ((force)); then
+    pi "Already covered: $distdir (use --force to re-run)"
+    return 0
+  fi
+
+  pi "Running coverage on CPAN module: $module"
+
+  mkdir -p "$workdir"
+  cd "$workdir" || pf "Can't cd to $workdir"
+
+  if [[ -d "$distdir" ]] && ! ((force)); then
+    pi "Using existing $workdir/$distdir (use --force to re-download)"
+  else
+    rm -rf "$distdir"
+    local author=${cpan_info%%/*}
+    local url="https://cpan.metacpan.org/authors/id"
+    url+="/${author:0:1}/${author:0:2}/$cpan_info"
+    curl -sL "$url" -o "$dist"
+    tar xf "$dist"
+    rm "$dist"
+  fi
+
+  cd "$distdir" || pf "Can't cd to $distdir"
+
+  # Install dependencies into a local directory (not system-wide)
+  local locallib="$workdir/$distdir/local"
+  pi "Installing dependencies to $locallib"
+  cpanm -n -L "$locallib" --installdeps .
+
+  # Build (with local deps visible)
+  local saved_perl5lib="${PERL5LIB:-}"
+  local saved_cover_opts="${DEVEL_COVER_TEST_OPTS:-}"
+  local saved_cover_options="${DEVEL_COVER_OPTIONS:-}"
+  export PERL5LIB="$locallib/lib/perl5${saved_perl5lib:+:$saved_perl5lib}"
+  pi "Building $module"
+  if [[ -f Makefile.PL ]]; then
+    perl Makefile.PL && make
+  elif [[ -f Build.PL ]]; then
+    perl Build.PL && ./Build
+  else
+    pf "No Makefile.PL or Build.PL found"
+  fi
+
+  # Run tests with coverage using local Devel::Cover, ignoring deps
+  pi "Running tests with coverage (local Devel::Cover)"
+  export DEVEL_COVER_OPTIONS="-ignore,^local/"
+  export DEVEL_COVER_TEST_OPTS="-Mblib=$dc_root"
+  local cover_cmd=(perl "-Mblib=$dc_root" "$dc_root/bin/cover")
+  "${cover_cmd[@]}" -test -report html_crisp \
+    -outputfile index.html || true
+  "${cover_cmd[@]}" -report json -nosummary || true
+
+  # Move results to collection results_dir
+  if [[ -d cover_db ]]; then
+    rm -f cover_db/structure/*.lock
+    mkdir -p "$results_dir"
+    rm -rf "${results_dir:?}/$distdir"
+    mv cover_db "$results_dir/$distdir"
+    pi "Results stored: $results_dir/$distdir"
+  else
+    pw "No cover_db produced for $module"
+  fi
+
+  # Restore environment so state doesn't leak between modules
+  export PERL5LIB="$saved_perl5lib"
+  export DEVEL_COVER_TEST_OPTS="$saved_cover_opts"
+  export DEVEL_COVER_OPTIONS="$saved_cover_options"
+}
+
+cpan_collection_serve() {
+  local results_dir="${1:?No results_dir specified}"
+  local port="${2:-8080}"
+  local www_dir="$results_dir/../www"
+  local latest="$www_dir/latest"
+  mkdir -p "$www_dir"
+  ln -sfn "$results_dir" "$latest"
+  local caddyfile
+  caddyfile="$(mktemp)"
+  cat >"$caddyfile" <<EOF
+:${port} {
+  root * $www_dir
+  redir / /latest/ 301
+  file_server browse
+}
+EOF
+  trap 'rm -f "$caddyfile"; cleanup' EXIT
+  local url="http://localhost:$port/latest/"
+  pi "Serving collection at $url"
+  (sleep 1 && open "$url" 2>/dev/null) &
+  caddy run --adapter caddyfile --config "$caddyfile"
+}
+
+cpan_collection() {
+  local dc_root
+  dc_root=$(cd "$srcdir/.." && pwd)
+  local results_dir="$dc_root/tmp/collection/results"
+
+  local modules=("$@")
+  local distdirs=()
+
+  # Resolve all modules up front (single cpanm --info call per module)
+  local infos=()
+  for module in "${modules[@]}"; do
+    local info
+    info=$(cpanm --info "$module") ||
+      pf "Can't find module: $module"
+    infos+=("$info")
+    local dist=${info##*/}
+    distdirs+=("$(cpan_distdir "$dist")")
+  done
+
+  for i in "${!modules[@]}"; do
+    cpan_collection_module "${modules[$i]}" "$results_dir" "$dc_root" \
+      "${infos[$i]}"
+  done
+
+  # Generate collection report via Collection.pm's generate_html
+  pi "Generating collection report"
+  perl "-Mblib=$dc_root" "$dc_root/bin/cpancover" \
+    --nobuild --generate_html --results_dir "$results_dir"
+
+  pi "Collection report: $results_dir/index.html"
+  pi "Module reports:"
+  for i in "${!modules[@]}"; do
+    [[ -d "$results_dir/${distdirs[$i]}" ]] &&
+      pi "  ${distdirs[$i]}: $results_dir/${distdirs[$i]}/index.html"
+  done
+
+  cpan_collection_serve "$results_dir"
+}
+
+recipe_cpan-collection() {
+  cpan_collection "${args[@]:?No modules specified}"
 }
 
 run_recipe() {
