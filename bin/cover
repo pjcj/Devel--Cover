@@ -409,7 +409,7 @@ sub manage_dbs ($dbname, $test_result) {
   my $db = Devel::Cover::DB->new(
     db               => $dbname,
     prefer_lib       => $Options->{prefer_lib},
-    uncoverable_file => $Options->{uncoverable_file}
+    uncoverable_file => $Options->{uncoverable_file},
   );
   $db = $db->merge_runs;
   scan_select_dirs($db);
@@ -629,7 +629,7 @@ reports may be available if they've been installed from external packages.
 
 =over 4
 
-=item html|html_minimal (default)
+=item html|html_crisp (default)
 
 HTML reporting. Percentage thresholds are colour-coded and configurable
 via -report_c0 <integer>, -report_c1 <integer> and -report_c2 <integer>.:
@@ -638,6 +638,11 @@ via -report_c0 <integer>, -report_c1 <integer> and -report_c2 <integer>.:
     |   ..   |   ..   |   ..   |
        <c0      <c1      <c2   c3
        red     yellow   orange green
+
+=item html_minimal
+
+Minimal HTML reporting. Percentage thresholds are colour-coded and
+configurable.
 
 =item html_basic
 
