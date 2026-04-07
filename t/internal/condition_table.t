@@ -496,6 +496,74 @@ sub test_labels_boolean_with_subexpr () {
     "labels: boolean with sub-expr expands to leaf labels";
 }
 
+# short_expr: operator structure with letters
+sub test_short_expr_simple () {
+  my @conditions = (mock_condition(
+    "Condition_and_3",
+    [ 1, 0, 1 ],
+    { type => "and_3", left => '$a', op => "&&", right => '$b' },
+  ));
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is $tables[0]->short_expr, "A && B", "short_expr: simple and_3";
+}
+
+sub test_short_expr_composite () {
+  my @conditions = (
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 0, 1 ],
+      { type => "and_3", left => '$b', op => "&&", right => '$c' },
+    ),
+    mock_condition(
+      "Condition_or_3",
+      [ 1, 1, 1 ],
+      { type => "or_3", left => '$a', op => "||", right => '$b && $c' },
+    ),
+  );
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is $tables[0]->short_expr, "A || B && C", "short_expr: composite or/and";
+}
+
+sub test_short_expr_deep_chain () {
+  my @conditions = (
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 1, 1 ],
+      { type => "and_3", left => '$a', op => "&&", right => '$b' },
+    ),
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 0, 1 ],
+      { type => "and_3", left => '$a && $b', op => "&&", right => '$c' },
+    ),
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 1, 0 ], {
+        type  => "and_3",
+        left  => '$a && $b && $c',
+        op    => "&&",
+        right => '$d',
+      },
+    ),
+  );
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is $tables[0]->short_expr, "A && B && C && D", "short_expr: deep chain";
+}
+
+sub test_short_expr_boolean () {
+  my @conditions = (mock_condition(
+    "Condition_or_2",
+    [ 1, 1 ],
+    { type => "or_2", left => '$a', op => "||", right => "0" },
+  ));
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is $tables[0]->short_expr, "A", "short_expr: boolean";
+}
+
 sub main () {
   test_single_and3;
   test_single_or3;
@@ -514,6 +582,10 @@ sub main () {
   test_labels_deep_chain;
   test_labels_boolean;
   test_labels_boolean_with_subexpr;
+  test_short_expr_simple;
+  test_short_expr_composite;
+  test_short_expr_deep_chain;
+  test_short_expr_boolean;
   done_testing;
 }
 

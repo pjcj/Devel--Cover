@@ -31,9 +31,10 @@ package Devel::Cover::Condition_table::Table {
     bless \%args, $class
   }
 
-  sub expr   ($self) { $self->{expr} }
-  sub labels ($self) { $self->{labels}->@* }
-  sub rows   ($self) { $self->{rows}->@* }
+  sub expr       ($self) { $self->{expr} }
+  sub short_expr ($self) { $self->{short_expr} }
+  sub labels     ($self) { $self->{labels}->@* }
+  sub rows       ($self) { $self->{rows}->@* }
 }
 
 package Devel::Cover::Condition_table;
@@ -127,6 +128,26 @@ sub _build_rows ($condition, $expr_map) {
   @rows
 }
 
+sub _build_short_expr ($condition, $expr_map, $counter) {
+  my $info       = $condition->[1];
+  my $type       = $info->{type};
+  my $left_cond  = $expr_map->{ $info->{left} };
+  my $right_cond = $expr_map->{ $info->{right} };
+
+  my $left
+    = $left_cond
+    ? _build_short_expr($left_cond, $expr_map, $counter)
+    : chr ord("A") + $$counter++;
+
+  return $left if $type =~ /^(?:and|or)_2$/;
+
+  my $right
+    = $right_cond
+    ? _build_short_expr($right_cond, $expr_map, $counter)
+    : chr ord("A") + $$counter++;
+  "$left $info->{op} $right"
+}
+
 sub _build_labels ($condition, $expr_map) {
   my $info       = $condition->[1];
   my $type       = $info->{type};
@@ -157,10 +178,12 @@ sub for_line ($class, $conditions) {
     $is_child{ $info->{right} } = 1 if $expr_map{ $info->{right} };
 
   } map {
+    my $counter = 0;
     Devel::Cover::Condition_table::Table->new(
-      expr   => _expr($_),
-      labels => [ _build_labels($_, \%expr_map) ],
-      rows   => [ _build_rows($_, \%expr_map) ],
+      expr       => _expr($_),
+      short_expr => _build_short_expr($_, \%expr_map, \$counter),
+      labels     => [ _build_labels($_, \%expr_map) ],
+      rows       => [ _build_rows($_, \%expr_map) ],
     )
     } grep {
       !$is_child{ _expr($_) }

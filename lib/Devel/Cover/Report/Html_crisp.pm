@@ -215,10 +215,11 @@ sub _line_truth_tables ($f, $n) {
     my @labels  = $_->labels;
     my @headers = map { chr ord("A") + $_ } 0 .. $#labels;
     {
-      expr    => encode_entities($_->expr),
-      rows    => \@rows,
-      headers => \@headers,
-      legend  => [
+      expr       => encode_entities($_->expr),
+      short_expr => encode_entities($_->short_expr),
+      rows       => \@rows,
+      headers    => \@headers,
+      legend     => [
         map { {
           letter => $headers[$_], label => encode_entities($labels[$_]), } }
           0 .. $#labels
@@ -1068,14 +1069,9 @@ td.chevron {
 .detail .c3 { background: var(--exec-covered); }
 
 .tt-legend {
-  margin-top: 4px;
+  margin: 4px 0;
   font-size: var(--font-size-small);
   color: var(--fg-muted);
-}
-
-.tt-legend-item {
-  display: inline-block;
-  margin-right: 12px;
 }
 
 /* --- Minimap --- */
@@ -2151,8 +2147,17 @@ branch[% IF line.branches.size > 1 %]es[% END %]
 [% FOREACH tt = line.truth_tables %]
 <div class="detail">
 <span class="detail-heading">
-Condition: [% tt.expr %]
+Condition: [% tt.short_expr %]
 </span>
+[% IF tt.legend.size > 0 %]
+<div class="tt-legend">
+[% FOREACH item = tt.legend %]
+<div class="tt-legend-item">
+<strong>[% item.letter %]</strong> = [% item.label %]
+</div>
+[% END %]
+</div>
+[% END %]
 <table>
 <tr>
 [% FOREACH h = tt.headers %]<th>[% h %]</th>[% END %]
@@ -2165,15 +2170,6 @@ Condition: [% tt.expr %]
 </tr>
 [% END %]
 </table>
-[% IF tt.legend.size > 0 %]
-<div class="tt-legend">
-[% FOREACH item = tt.legend %]
-<span class="tt-legend-item">
-<strong>[% item.letter %]</strong> = [% item.label %]
-</span>
-[% END %]
-</div>
-[% END %]
 </div>
 [% END %]
 [% END %]
