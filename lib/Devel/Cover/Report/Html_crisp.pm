@@ -20,9 +20,9 @@ BEGIN {
 
 use Devel::Cover::Html_Common  ## no perlimports
   qw( launch highlight $Have_highlighter );
-use Devel::Cover::Web qw( $Crisp_base_css $Crisp_theme_js );
-use Devel::Cover::Truth_Table;  ## no perlimports
-use Devel::Cover::Inc ();
+use Devel::Cover::Web             qw( $Crisp_base_css $Crisp_theme_js );
+use Devel::Cover::Condition_table ();  ## no perlimports
+use Devel::Cover::Inc             ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
@@ -204,21 +204,27 @@ sub _line_branches ($f, $n) {
 sub _line_truth_tables ($f, $n) {
   my $conditions = $f->condition or return;
   my $loc        = $conditions->location($n);
-  return unless $loc && @$loc && @$loc <= 16;
+  return unless $loc && @$loc;
   grep { $_->{rows}->@* } map {
-    my ($tt, $expr) = @$_;
     my @rows = map { {
-      inputs  => [ $_->inputs ],
+      inputs  => $_->inputs,
       result  => $_->result,
       covered => $_->covered,
       class   => $_->covered ? "c3" : "c0",
-    } } @$tt;
+    } } $_->rows;
+    my @labels  = $_->labels;
+    my @headers = map { chr ord("A") + $_ } 0 .. $#labels;
     {
-      expr    => encode_entities($expr),
+      expr    => encode_entities($_->expr),
       rows    => \@rows,
-      headers => [ map { chr ord("A") + $_ } 0 .. $rows[0]{inputs}->$#* ],
+      headers => \@headers,
+      legend  => [
+        map { {
+          letter => $headers[$_], label => encode_entities($labels[$_]), } }
+          0 .. $#labels
+      ],
     }
-  } $conditions->truth_table($n)
+  } Devel::Cover::Condition_table->for_line($loc)
 }
 
 sub _exec_class ($count) {
@@ -1060,6 +1066,17 @@ td.chevron {
 .detail th { background: var(--header-bg); }
 .detail .c0 { background: var(--exec-none); }
 .detail .c3 { background: var(--exec-covered); }
+
+.tt-legend {
+  margin-top: 4px;
+  font-size: var(--font-size-small);
+  color: var(--fg-muted);
+}
+
+.tt-legend-item {
+  display: inline-block;
+  margin-right: 12px;
+}
 
 /* --- Minimap --- */
 
@@ -2148,6 +2165,15 @@ Condition: [% tt.expr %]
 </tr>
 [% END %]
 </table>
+[% IF tt.legend.size > 0 %]
+<div class="tt-legend">
+[% FOREACH item = tt.legend %]
+<span class="tt-legend-item">
+<strong>[% item.letter %]</strong> = [% item.label %]
+</span>
+[% END %]
+</div>
+[% END %]
 </div>
 [% END %]
 [% END %]
