@@ -84,17 +84,17 @@ sub _expand_operand ($val, $sub_rows) {
   } @$sub_rows
 }
 
-sub _build_rows ($condition, $expr_map) {
+sub _build_rows ($condition, $find) {
   my $type = $condition->[1]{type};
   my $spec = $Primitive{$type} or return;
   my @prim = _make_rows($spec, _hits($condition));
 
-  my $left_cond  = $expr_map->{ $condition->[1]{left} };
-  my $right_cond = $expr_map->{ $condition->[1]{right} };
+  my $info       = $condition->[1];
+  my $left_cond  = $find->($info->{left_addr},  $info->{left});
+  my $right_cond = $find->($info->{right_addr}, $info->{right});
 
-  my $left_rows = $left_cond ? [ _build_rows($left_cond, $expr_map) ] : undef;
-  my $right_rows
-    = $right_cond ? [ _build_rows($right_cond, $expr_map) ] : undef;
+  my $left_rows  = $left_cond  ? [ _build_rows($left_cond, $find) ]  : undef;
+  my $right_rows = $right_cond ? [ _build_rows($right_cond, $find) ] : undef;
 
   my @rows;
 
@@ -128,38 +128,38 @@ sub _build_rows ($condition, $expr_map) {
   @rows
 }
 
-sub _build_short_expr ($condition, $expr_map, $counter) {
+sub _build_short_expr ($condition, $find, $counter) {
   my $info       = $condition->[1];
   my $type       = $info->{type};
-  my $left_cond  = $expr_map->{ $info->{left} };
-  my $right_cond = $expr_map->{ $info->{right} };
+  my $left_cond  = $find->($info->{left_addr},  $info->{left});
+  my $right_cond = $find->($info->{right_addr}, $info->{right});
 
   my $left
     = $left_cond
-    ? _build_short_expr($left_cond, $expr_map, $counter)
+    ? _build_short_expr($left_cond, $find, $counter)
     : chr ord("A") + $$counter++;
 
   return $left if $type =~ /^(?:and|or)_2$/;
 
   my $right
     = $right_cond
-    ? _build_short_expr($right_cond, $expr_map, $counter)
+    ? _build_short_expr($right_cond, $find, $counter)
     : chr ord("A") + $$counter++;
   "$left $info->{op} $right"
 }
 
-sub _build_labels ($condition, $expr_map) {
+sub _build_labels ($condition, $find) {
   my $info       = $condition->[1];
   my $type       = $info->{type};
-  my $left_cond  = $expr_map->{ $info->{left} };
-  my $right_cond = $expr_map->{ $info->{right} };
+  my $left_cond  = $find->($info->{left_addr},  $info->{left});
+  my $right_cond = $find->($info->{right_addr}, $info->{right});
 
   my @labels;
 
   push @labels,
-    $left_cond ? _build_labels($left_cond, $expr_map) : $info->{left};
+    $left_cond ? _build_labels($left_cond, $find) : $info->{left};
   push @labels,
-    $right_cond ? _build_labels($right_cond, $expr_map) : $info->{right}
+    $right_cond ? _build_labels($right_cond, $find) : $info->{right}
     if $type !~ /^(?:and|or)_2$/;
   @labels
 }
@@ -170,20 +170,34 @@ sub for_line ($class, $conditions) {
   my %expr_map;
   $expr_map{ _expr($_) } = $_ for @$conditions;
 
+  my %addr_map;
+  for my $c (@$conditions) {
+    my $a = $c->[1]{addr};
+    $addr_map{$a} = $c if defined $a;
+  }
+
+  # Prefer addr-based lookup, fall back to string matching
+  my $find = sub ($addr, $str) {
+    (defined $addr && $addr_map{$addr}) || $expr_map{$str}
+  };
+
   # Find roots: conditions not referenced as another's operand
   my %is_child;
   for my $c (@$conditions) {
     my $info = $c->[1];
-    $is_child{ $info->{left} }  = 1 if $expr_map{ $info->{left} };
-    $is_child{ $info->{right} } = 1 if $expr_map{ $info->{right} };
+    for my $side (qw( left right )) {
+      my $found = $find->($info->{"${side}_addr"}, $info->{$side});
+      $is_child{ _expr($found) } = 1 if $found;
+    }
+  }
 
-  } map {
+  map {
     my $counter = 0;
     Devel::Cover::Condition_table::Table->new(
       expr       => _expr($_),
-      short_expr => _build_short_expr($_, \%expr_map, \$counter),
-      labels     => [ _build_labels($_, \%expr_map) ],
-      rows       => [ _build_rows($_, \%expr_map) ],
+      short_expr => _build_short_expr($_, $find, \$counter),
+      labels     => [ _build_labels($_, $find) ],
+      rows       => [ _build_rows($_, $find) ],
     )
     } grep {
       !$is_child{ _expr($_) }
