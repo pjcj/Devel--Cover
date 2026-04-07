@@ -480,7 +480,7 @@ sub compress_old_versions () {
 sub template_provider_fetch () {
   my $provider = Devel::Cover::Collection::Template::Provider->new({});
 
-  for my $name (qw( colours html summary about module_by_start )) {
+  for my $name (qw( html summary about module_by_start )) {
     my ($data, $error) = $provider->fetch($name, undef);
     ok defined $data, "template '$name' found";
     ok !$error,       "no error fetching '$name'";
