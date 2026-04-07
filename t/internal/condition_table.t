@@ -564,6 +564,232 @@ sub test_short_expr_boolean () {
   is $tables[0]->short_expr, "A", "short_expr: boolean";
 }
 
+# Nested mixed operators: @a == 1 || (@a == 2 && $b && $c)
+# produces three conditions that should merge into one 4-variable
+# table. The metadata left/right fields must match _expr() output
+# of child conditions (no spurious parentheses).
+sub test_nested_mixed_operators () {
+  my @conditions = (
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 1, 1 ],
+      { type => "and_3", left => '@a == 2', op => "and", right => '$b' },
+    ),
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 0, 1 ], {
+        type  => "and_3",
+        left  => '@a == 2 and $b',
+        op    => "and",
+        right => '$c',
+      },
+    ),
+    mock_condition(
+      "Condition_or_3",
+      [ 0, 0, 1 ], {
+        type  => "or_3",
+        left  => '@a == 1',
+        op    => "or",
+        right => '@a == 2 and $b and $c',
+      },
+    ),
+  );
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is @tables, 1, "nested: produces one merged table";
+
+  my $t = $tables[0];
+  is $t->short_expr, "A or B and C and D",
+    "nested: short_expr has four variables";
+  is_deeply [ $t->labels ], [ '@a == 1', '@a == 2', '$b', '$c' ],
+    "nested: labels resolve through tree";
+
+  my @rows = $t->rows;
+  is @rows, 5, "nested: merged table has five rows";
+}
+
+# Extra addr fields in metadata should be ignored when not used for
+# linking.  This is a baseline test to confirm no regression.
+sub test_addr_fields_passthrough () {
+  my @conditions = (mock_condition(
+    "Condition_and_3",
+    [ 1, 0, 1 ],
+    {
+      type      => "and_3",
+      left      => '$a',
+      op        => "&&",
+      right     => '$b',
+      addr      => 100,
+      left_addr => 200,
+      right_addr => 300,
+    },
+  ));
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is @tables, 1, "addr passthrough: one table";
+  is $tables[0]->expr, '$a && $b', "addr passthrough: expr unchanged";
+
+  my @rows = sort { "@{$a->inputs}" cmp "@{$b->inputs}" } $tables[0]->rows;
+  is @rows, 3, "addr passthrough: three rows";
+  ok $rows[0]->covered,  "addr passthrough: row 0 covered";
+  ok !$rows[1]->covered, "addr passthrough: row 1 not covered";
+  ok $rows[2]->covered,  "addr passthrough: row 2 covered";
+}
+
+# Addr-based linking: parent's right string is deliberately wrong but
+# right_addr matches child's addr.  Tree linking should still work.
+sub test_addr_linking () {
+  my @conditions = (
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 0, 1 ],
+      {
+        type => "and_3", left => '$b', op => "&&", right => '$c',
+        addr => 42,
+      },
+    ),
+    mock_condition(
+      "Condition_or_3",
+      [ 1, 1, 0 ],
+      {
+        type       => "or_3",
+        left       => '$a',
+        op         => "||",
+        right      => "MISMATCH",
+        addr       => 99,
+        right_addr => 42,
+      },
+    ),
+  );
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is @tables, 1, "addr linking: one merged table";
+  is $tables[0]->short_expr, "A || B && C",
+    "addr linking: short_expr shows merged tree";
+  is_deeply [ $tables[0]->labels ], [ '$a', '$b', '$c' ],
+    "addr linking: labels from child condition";
+}
+
+# Deep chain with addr linking: string left values are wrong but
+# left_addr values chain correctly.
+sub test_addr_linking_deep_chain () {
+  my @conditions = (
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 1, 1 ],
+      {
+        type => "and_3", left => '$a', op => "&&", right => '$b',
+        addr => 10,
+      },
+    ),
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 0, 1 ],
+      {
+        type      => "and_3",
+        left      => "WRONG1",
+        op        => "&&",
+        right     => '$c',
+        addr      => 20,
+        left_addr => 10,
+      },
+    ),
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 1, 0 ],
+      {
+        type      => "and_3",
+        left      => "WRONG2",
+        op        => "&&",
+        right     => '$d',
+        addr      => 30,
+        left_addr => 20,
+      },
+    ),
+  );
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is @tables, 1, "addr deep chain: one table";
+  is_deeply [ $tables[0]->labels ], [ '$a', '$b', '$c', '$d' ],
+    "addr deep chain: four leaf labels";
+  is $tables[0]->short_expr, "A && B && C && D",
+    "addr deep chain: short_expr";
+
+  my @rows = $tables[0]->rows;
+  is @rows, 5, "addr deep chain: five rows";
+}
+
+# Fallback to string matching when addr fields are absent.
+sub test_addr_fallback_to_string () {
+  my @conditions = (
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 0, 1 ],
+      { type => "and_3", left => '$b', op => "&&", right => '$c' },
+    ),
+    mock_condition(
+      "Condition_or_3",
+      [ 1, 1, 0 ],
+      {
+        type       => "or_3",
+        left       => '$a',
+        op         => "||",
+        right      => '$b && $c',
+        right_addr => undef,
+      },
+    ),
+  );
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is @tables, 1, "addr fallback: string match still works";
+  is_deeply [ $tables[0]->labels ], [ '$a', '$b', '$c' ],
+    "addr fallback: labels from string-matched child";
+}
+
+# Addr takes priority over conflicting string match.
+sub test_addr_overrides_string () {
+  my @conditions = (
+    # X: addr 10, _expr = "$b && $c"
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 0, 1 ],
+      {
+        type => "and_3", left => '$b', op => "&&", right => '$c',
+        addr => 10,
+      },
+    ),
+    # Y: addr 20, _expr = "$d && $e" (matches parent's right by string)
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 1, 0 ],
+      {
+        type => "and_3", left => '$d', op => "&&", right => '$e',
+        addr => 20,
+      },
+    ),
+    # Parent: right string matches Y, but right_addr points to X
+    mock_condition(
+      "Condition_or_3",
+      [ 0, 1, 1 ],
+      {
+        type       => "or_3",
+        left       => '$a',
+        op         => "||",
+        right      => '$d && $e',
+        addr       => 30,
+        right_addr => 10,
+      },
+    ),
+  );
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+
+  # Parent should link to X (addr 10), not Y (addr 20, string match)
+  my ($root) = grep { $_->expr =~ /\|\|/ } @tables;
+  is_deeply [ $root->labels ], [ '$a', '$b', '$c' ],
+    "addr priority: links to addr match, not string match";
+}
+
 sub main () {
   test_single_and3;
   test_single_or3;
@@ -586,6 +812,12 @@ sub main () {
   test_short_expr_composite;
   test_short_expr_deep_chain;
   test_short_expr_boolean;
+  test_nested_mixed_operators;
+  test_addr_fields_passthrough;
+  test_addr_linking;
+  test_addr_linking_deep_chain;
+  test_addr_fallback_to_string;
+  test_addr_overrides_string;
   done_testing;
 }
 
