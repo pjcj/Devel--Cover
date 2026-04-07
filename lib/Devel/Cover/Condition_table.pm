@@ -72,15 +72,17 @@ sub _expr ($condition) {
   join " ", $condition->[1]->@{ qw( left op right ) }
 }
 
-sub _expand_operand ($val, $sub_rows) {
+sub _expand_operand ($val, $sub_rows, $negated = 0) {
   unless ($sub_rows) {
     return ([ [$val], 1 ])
   }
   if ($val eq "X") {
     my $width = $sub_rows->[0]->inputs->@*;
     return ([ [ ("X") x $width ], 1 ])
-  } map { [ $_->inputs, $_->covered ] } grep {
-    $_->result == $val
+  }
+  my $match = $negated ? 1 - $val : $val;
+  map { [ $_->inputs, $_->covered ] } grep {
+    $_->result == $match
   } @$sub_rows
 }
 
@@ -96,12 +98,15 @@ sub _build_rows ($condition, $find) {
   my $left_rows  = $left_cond  ? [ _build_rows($left_cond, $find) ]  : undef;
   my $right_rows = $right_cond ? [ _build_rows($right_cond, $find) ] : undef;
 
+  my $left_neg  = $info->{left_negated}  || 0;
+  my $right_neg = $info->{right_negated} || 0;
+
   my @rows;
 
   for my $row (@prim) {
     my @inputs = $row->inputs->@*;
     if (@inputs == 1) {
-      my @left_exp = _expand_operand($inputs[0], $left_rows);
+      my @left_exp = _expand_operand($inputs[0], $left_rows, $left_neg);
       for my $le (@left_exp) {
         push @rows,
           Devel::Cover::Condition_table::Row->new(
@@ -111,8 +116,8 @@ sub _build_rows ($condition, $find) {
           );
       }
     } else {
-      my @left_exp  = _expand_operand($inputs[0], $left_rows);
-      my @right_exp = _expand_operand($inputs[1], $right_rows);
+      my @left_exp  = _expand_operand($inputs[0], $left_rows,  $left_neg);
+      my @right_exp = _expand_operand($inputs[1], $right_rows, $right_neg);
       for my $le (@left_exp) {
         for my $re (@right_exp) {
           push @rows,
@@ -138,6 +143,7 @@ sub _build_short_expr ($condition, $find, $counter) {
     = $left_cond
     ? _build_short_expr($left_cond, $find, $counter)
     : chr ord("A") + $$counter++;
+  $left = "not($left)" if $info->{left_negated};
 
   return $left if $type =~ /^(?:and|or)_2$/;
 
@@ -145,6 +151,7 @@ sub _build_short_expr ($condition, $find, $counter) {
     = $right_cond
     ? _build_short_expr($right_cond, $find, $counter)
     : chr ord("A") + $$counter++;
+  $right = "not($right)" if $info->{right_negated};
   "$left $info->{op} $right"
 }
 
