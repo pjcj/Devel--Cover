@@ -54,6 +54,8 @@ my %Primitive = (
   xor_4 => \@Xor4_spec,
 );
 
+my %Is_boolean = (and_2 => 1, or_2 => 1);
+
 sub _hits ($condition) {
   map { defined && $_ > 0 ? 1 : 0 } $condition->[0]->@*
 }
@@ -86,16 +88,21 @@ sub _expand_operand ($val, $sub_rows, $negated = 0) {
   } @$sub_rows
 }
 
+sub _resolve_children ($condition, $find) {
+  my $info       = $condition->[1];
+  my $left_cond  = $find->($info->{left_addr},  $info->{left});
+  my $right_cond = $find->($info->{right_addr}, $info->{right});
+  ($info, $left_cond, $right_cond)
+}
+
 sub _build_rows ($condition, $find) {
   my $type = $condition->[1]{type};
   my $spec = $Primitive{$type} or return;
   my @prim = _make_rows($spec, _hits($condition));
 
-  my $info       = $condition->[1];
-  my $left_cond  = $find->($info->{left_addr},  $info->{left});
-  my $right_cond = $find->($info->{right_addr}, $info->{right});
+  my ($info, $left_cond, $right_cond) = _resolve_children($condition, $find);
 
-  my $left_rows  = $left_cond  ? [ _build_rows($left_cond, $find) ]  : undef;
+  my $left_rows  = $left_cond  ? [ _build_rows($left_cond,  $find) ] : undef;
   my $right_rows = $right_cond ? [ _build_rows($right_cond, $find) ] : undef;
 
   my $left_neg  = $info->{left_negated}  || 0;
@@ -134,10 +141,8 @@ sub _build_rows ($condition, $find) {
 }
 
 sub _build_short_expr ($condition, $find, $counter) {
-  my $info       = $condition->[1];
-  my $type       = $info->{type};
-  my $left_cond  = $find->($info->{left_addr},  $info->{left});
-  my $right_cond = $find->($info->{right_addr}, $info->{right});
+  my ($info, $left_cond, $right_cond) = _resolve_children($condition, $find);
+  my $type = $info->{type};
 
   my $left
     = $left_cond
@@ -145,7 +150,7 @@ sub _build_short_expr ($condition, $find, $counter) {
     : chr ord("A") + $$counter++;
   $left = "not($left)" if $info->{left_negated};
 
-  return $left if $type =~ /^(?:and|or)_2$/;
+  return $left if $Is_boolean{$type};
 
   my $right
     = $right_cond
@@ -156,18 +161,14 @@ sub _build_short_expr ($condition, $find, $counter) {
 }
 
 sub _build_labels ($condition, $find) {
-  my $info       = $condition->[1];
-  my $type       = $info->{type};
-  my $left_cond  = $find->($info->{left_addr},  $info->{left});
-  my $right_cond = $find->($info->{right_addr}, $info->{right});
+  my ($info, $left_cond, $right_cond) = _resolve_children($condition, $find);
+  my $type = $info->{type};
 
   my @labels;
 
-  push @labels,
-    $left_cond ? _build_labels($left_cond, $find) : $info->{left};
-  push @labels,
-    $right_cond ? _build_labels($right_cond, $find) : $info->{right}
-    if $type !~ /^(?:and|or)_2$/;
+  push @labels, $left_cond ? _build_labels($left_cond, $find) : $info->{left};
+  push @labels, $right_cond ? _build_labels($right_cond, $find) : $info->{right}
+    unless $Is_boolean{$type};
   @labels
 }
 
@@ -196,9 +197,8 @@ sub for_line ($class, $conditions) {
       my $found = $find->($info->{"${side}_addr"}, $info->{$side});
       $is_child{ _expr($found) } = 1 if $found;
     }
-  }
 
-  map {
+  } map {
     my $counter = 0;
     Devel::Cover::Condition_table::Table->new(
       expr       => _expr($_),

@@ -651,6 +651,13 @@ sub _skip_to_condop ($op) {
   ($op, $negated)
 }
 
+# Resolve a child op to its condition address and negation flag.
+sub _resolve_child_op ($child_op) {
+  return unless $child_op;
+  my ($op, $negated) = _skip_to_condop($child_op);
+  ($op ? $$op : undef, $negated || undef)
+}
+
 sub report {
   local $@;
   eval { _report() };
@@ -877,8 +884,8 @@ sub add_condition_cover (
     die qq(Unknown type "$type" for conditional);
   }
 
-  my ($lo, $ln) = $left_op  ? _skip_to_condop($left_op)  : ();
-  my ($ro, $rn) = $right_op ? _skip_to_condop($right_op) : ();
+  my ($la, $ln) = _resolve_child_op($left_op);
+  my ($ra, $rn) = _resolve_child_op($right_op);
 
   my $structure = {
     type          => "${type}_${count}",
@@ -886,10 +893,10 @@ sub add_condition_cover (
     left          => $left,
     right         => $right,
     addr          => $$op,
-    left_addr     => $lo ? $$lo : undef,
-    right_addr    => $ro ? $$ro : undef,
-    left_negated  => $ln || undef,
-    right_negated => $rn || undef,
+    left_addr     => $la,
+    right_addr    => $ra,
+    left_negated  => $ln,
+    right_negated => $rn,
   };
 
   my ($n, $new) = $Structure->add_count("condition");
