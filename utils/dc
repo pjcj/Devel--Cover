@@ -1011,7 +1011,7 @@ dc_cover_lib() {
     "-MDevel::Cover=-select,$select,-db,$db,-merge,1" \
     t/internal/static.t
   if ((launch)); then
-    $Dc_cover_perl bin/cover "$db" -report html_crisp -launch
+    $Dc_cover_perl bin/cover "$db" -report html -launch
   fi
 }
 
@@ -1035,7 +1035,7 @@ dc_cover_reports() {
     -report html_crisp -report text -report json
 
   if ((launch)); then
-    $Dc_cover_perl bin/cover "$db" -report html_crisp -launch
+    $Dc_cover_perl bin/cover "$db" -report html -launch
   fi
 }
 
@@ -1049,7 +1049,7 @@ dc_cover() {
   $Dc_cover_perl bin/cover \
     dc_cover_lib_db dc_cover_reports_db \
     -write "$db"
-  $Dc_cover_perl bin/cover "$db" -report html_crisp -launch
+  $Dc_cover_perl bin/cover "$db" -report html -launch
 }
 
 recipe_dc-cover-lib() {
@@ -1133,7 +1133,7 @@ cpan_module() {
   # Run tests with coverage using local Devel::Cover
   pi "Running tests with coverage (local Devel::Cover)"
   export DEVEL_COVER_TEST_OPTS="-Mblib=$dc_root"
-  perl "-Mblib=$dc_root" "$dc_root/bin/cover" -test -report html_crisp -launch
+  perl "-Mblib=$dc_root" "$dc_root/bin/cover" -test -report html -launch
 
   pi "Done. Results in: $(pwd)/cover_db"
 }
