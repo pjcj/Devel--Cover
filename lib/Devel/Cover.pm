@@ -638,15 +638,17 @@ sub _op_parent ($op) { $Parent_map{$$op} }
 
 # Walk down through wrapper ops (null, not, scope, etc.) to find
 # the logop underneath that would have its own condition entry.
-# Used when computing left_addr/right_addr for condition linking.
+# Returns ($op, $negated) where $negated counts not ops traversed.
 my %Is_condition_op = map { $_ => 1 } qw( and or dor xor );
 
 sub _skip_to_condop ($op) {
+  my $negated = 0;
   while ($op && $$op && !$Is_condition_op{ $op->name }) {
     last unless $op->flags & OPf_KIDS;
+    $negated ^= 1 if $op->name eq "not";
     $op = $op->first;
   }
-  $op
+  ($op, $negated)
 }
 
 sub report {
@@ -871,17 +873,19 @@ sub add_condition_cover ($op, $strop, $left, $right, $left_op = undef, $right_op
     die qq(Unknown type "$type" for conditional);
   }
 
-  my $lo = $left_op  && _skip_to_condop($left_op);
-  my $ro = $right_op && _skip_to_condop($right_op);
+  my ($lo, $ln) = $left_op  ? _skip_to_condop($left_op)  : ();
+  my ($ro, $rn) = $right_op ? _skip_to_condop($right_op) : ();
 
   my $structure = {
-    type       => "${type}_${count}",
-    op         => $strop,
-    left       => $left,
-    right      => $right,
-    addr       => $$op,
-    left_addr  => $lo ? $$lo : undef,
-    right_addr => $ro ? $$ro : undef,
+    type          => "${type}_${count}",
+    op            => $strop,
+    left          => $left,
+    right         => $right,
+    addr          => $$op,
+    left_addr     => $lo ? $$lo : undef,
+    right_addr    => $ro ? $$ro : undef,
+    left_negated  => $ln || undef,
+    right_negated => $rn || undef,
   };
 
   my ($n, $new) = $Structure->add_count("condition");

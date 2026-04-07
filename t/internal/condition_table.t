@@ -790,6 +790,76 @@ sub test_addr_overrides_string () {
     "addr priority: links to addr match, not string match";
 }
 
+# Negated sub-expression: $a || not($b && $c)
+# The compiler can transform !X && !Y into not(X || Y) via DeMorgan.
+# The right operand of the outer or is negated, so when the outer or
+# sees right=1, it means not(and_result)=1, i.e. and_result=0.
+# _expand_operand must invert $val for negated sub-expressions.
+#
+# or_3 spec:  [1,X]->1, [0,1]->1, [0,0]->0
+# and_3 spec: [0,X]->0, [1,0]->0, [1,1]->1
+#
+# Correct expansion with right_negated:
+#   A=1 B=X C=X -> 1  (left=1, right=X)
+#   A=0 B=0 C=X -> 1  (left=0, right=1 -> need and=0 -> B=0)
+#   A=0 B=1 C=0 -> 1  (left=0, right=1 -> need and=0 -> B=1,C=0)
+#   A=0 B=1 C=1 -> 0  (left=0, right=0 -> need and=1 -> B=1,C=1)
+sub test_negated_subexpr () {
+  my @conditions = (
+    mock_condition(
+      "Condition_and_3",
+      [ 1, 0, 1 ],
+      {
+        type => "and_3", left => '$b', op => "&&", right => '$c',
+        addr => 42,
+      },
+    ),
+    mock_condition(
+      "Condition_or_3",
+      [ 1, 1, 1 ],
+      {
+        type          => "or_3",
+        left          => '$a',
+        op            => "||",
+        right         => 'not($b && $c)',
+        addr          => 99,
+        right_addr    => 42,
+        right_negated => 1,
+      },
+    ),
+  );
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is @tables, 1, "negated: one merged table";
+
+  my $t = $tables[0];
+  is $t->short_expr, 'A || not(B && C)',
+    "negated: heading shows not(...)";
+
+  my @rows = sort { "@{$a->inputs}" cmp "@{$b->inputs}" } $t->rows;
+  is @rows, 4, "negated: four rows";
+
+  # A=0 B=0 C=X -> 1 (not(and=0)=1, or: left=0,right=1 -> 1)
+  is_deeply $rows[0]->inputs, [ 0, 0, "X" ], "neg row 0 inputs";
+  is $rows[0]->result, 1, "neg row 0 result";
+  ok $rows[0]->covered, "neg row 0 covered";
+
+  # A=0 B=1 C=0 -> 1 (not(and=0)=1, or: left=0,right=1 -> 1)
+  is_deeply $rows[1]->inputs, [ 0, 1, 0 ], "neg row 1 inputs";
+  is $rows[1]->result, 1, "neg row 1 result";
+  ok !$rows[1]->covered, "neg row 1 not covered (and path l&&!r not hit)";
+
+  # A=0 B=1 C=1 -> 0 (not(and=1)=0, or: left=0,right=0 -> 0)
+  is_deeply $rows[2]->inputs, [ 0, 1, 1 ], "neg row 2 inputs";
+  is $rows[2]->result, 0, "neg row 2 result";
+  ok $rows[2]->covered, "neg row 2 covered";
+
+  # A=1 B=X C=X -> 1 (or: left=1 -> 1)
+  is_deeply $rows[3]->inputs, [ 1, "X", "X" ], "neg row 3 inputs";
+  is $rows[3]->result, 1, "neg row 3 result";
+  ok $rows[3]->covered, "neg row 3 covered";
+}
+
 sub main () {
   test_single_and3;
   test_single_or3;
@@ -818,6 +888,7 @@ sub main () {
   test_addr_linking_deep_chain;
   test_addr_fallback_to_string;
   test_addr_overrides_string;
+  test_negated_subexpr;
   done_testing;
 }
 
