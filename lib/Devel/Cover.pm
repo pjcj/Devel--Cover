@@ -646,7 +646,7 @@ sub _skip_to_condop ($op) {
   while ($op && $$op && !$Is_condition_op{ $op->name }) {
     last unless $op->flags & OPf_KIDS;
     $negated ^= 1 if $op->name eq "not";
-    $op = $op->first;
+    $op       = $op->first;
   }
   ($op, $negated)
 }
@@ -842,7 +842,11 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
   }
 }
 
-sub add_condition_cover ($op, $strop, $left, $right, $left_op = undef, $right_op = undef) {
+sub add_condition_cover (
+  $op, $strop, $left, $right,
+  $left_op = undef,
+  $right_op = undef,
+) {
   return unless $Collect && $Coverage{condition};
 
   my $key  = get_key($op);
@@ -1102,7 +1106,7 @@ my %Original;
   ) {
     my $left  = $op->first;
     my $right = $op->first->sibling;
-    my ($file, $line) = ($File, $Line);
+    my ($file, $line)        = ($File, $Line);
     my ($left_op, $right_op) = ($left, $right);
 
     $blockname &&= $self->keyword($blockname);
@@ -1300,30 +1304,31 @@ my $Current_cop;
 
 my $Has_pragmata = B::Deparse->can("pragmata");
 
-sub _deparse_expr ($cv, $op, $cx, $use_dumper = 1) {
+sub _with_deparse ($cv, $use_dumper, $code) {
   $Shared_deparse ||= B::Deparse->new;
   $Shared_deparse->{curcv} = $cv;
   $Shared_deparse->pragmata($Current_cop) if $Has_pragmata && $Current_cop;
   require Data::Dumper                    if $use_dumper;
   local $Shared_deparse->{use_dumper} = $use_dumper;
-  my $text = eval { local $^W; $Shared_deparse->deparse($op, $cx) };
+  my $text = eval { local $^W; $code->() };
   defined $text ? $text =~ s/\x08//gr : ""  # strip B::Deparse unindent markers
+}
+
+sub _deparse_expr ($cv, $op, $cx, $use_dumper = 1) {
+  _with_deparse($cv, $use_dumper, sub { $Shared_deparse->deparse($op, $cx) })
 }
 
 # Like _deparse_expr but uses B::Deparse's deparse_binop_left to avoid
 # spurious parentheses when left-associative same-precedence ops nest
 # (e.g. the inner && in "$a && $b && $c").
 sub _deparse_binop_left ($cv, $op, $child, $prec, $use_dumper = 1) {
-  $Shared_deparse ||= B::Deparse->new;
-  $Shared_deparse->{curcv} = $cv;
-  $Shared_deparse->pragmata($Current_cop) if $Has_pragmata && $Current_cop;
-  require Data::Dumper                    if $use_dumper;
-  local $Shared_deparse->{use_dumper} = $use_dumper;
-  my $text = eval {
-    local $^W;
-    $Shared_deparse->deparse_binop_left($op, $child, $prec)
-  };
-  defined $text ? $text =~ s/\x08//gr : ""
+  _with_deparse(
+    $cv,
+    $use_dumper,
+    sub {
+      $Shared_deparse->deparse_binop_left($op, $child, $prec)
+    },
+  )
 }
 
 my %Logop_params = (
