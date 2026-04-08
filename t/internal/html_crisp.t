@@ -20,12 +20,10 @@ use File::Spec ();
 use Test::More import => [ qw( done_testing is like ok plan ) ];
 use Devel::Cover::Test::Showcase qw( create_cover_db run_cover setup_lib_dir );
 
-for my $mod (qw( HTML::Entities Template )) {
-  eval "require $mod; 1" or do {
-    plan skip_all => "$mod not available";
-    exit;
-  };
-}
+eval "require HTML::Entities; 1" or do {
+  plan skip_all => "HTML::Entities not available";
+  exit;
+};
 
 sub _slurp ($path) {
   open my $fh, "<", $path or die "Cannot read $path: $!";
