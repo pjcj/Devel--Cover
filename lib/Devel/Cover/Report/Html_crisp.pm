@@ -679,7 +679,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 
 .help-panel .help-close:hover { color: var(--fg); }
 
-/* --- Common prefix --- */
+/* Common prefix */
 
 .common-prefix {
   display: inline-flex;
@@ -703,7 +703,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   color: var(--fg);
 }
 
-/* --- Worst files --- */
+/* Worst files */
 
 .worst-files {
   margin-bottom: 24px;
@@ -737,7 +737,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 
 .worst-item a { color: inherit; }
 
-/* --- Filter bar --- */
+/* Filter bar */
 
 .filter-bar {
   display: flex;
@@ -773,7 +773,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   gap: 4px;
 }
 
-/* --- File table --- */
+/* File table */
 
 .file-table {
   width: 100%;
@@ -891,7 +891,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   padding-left: 24px !important;
 }
 
-/* --- Untested files --- */
+/* Untested files */
 
 tr.untested td { opacity: 0.7; }
 tr.untested td .has-tip::after { opacity: 0; }
@@ -949,7 +949,7 @@ tr.dir-file td:first-child a {
 .untested-page .source-table { opacity: 0.7; }
 .untested-page .exec-0 { background: var(--untested-bar); }
 
-/* --- Source view --- */
+/* Source view */
 
 .source-table {
   width: 100%;
@@ -1017,7 +1017,7 @@ td.chevron {
   color: var(--fg-muted);
 }
 
-/* --- Syntax highlighting (PPI::HTML) --- */
+/* Syntax highlighting (PPI::HTML) */
 
 .comment { color: var(--syn-comment); font-style: italic; }
 .keyword { color: var(--syn-keyword); }
@@ -1032,7 +1032,7 @@ td.chevron {
 .magic { color: var(--syn-magic); }
 .word { color: var(--fg); }
 
-/* --- Inline detail sections --- */
+/* Inline detail sections */
 
 .has-detail { cursor: pointer; }
 .has-detail:hover { background: var(--bg-alt); }
@@ -1074,7 +1074,7 @@ td.chevron {
   color: var(--fg-muted);
 }
 
-/* --- Minimap --- */
+/* Minimap */
 
 .minimap {
   position: fixed;
@@ -1089,7 +1089,7 @@ td.chevron {
 
 .minimap canvas { display: block; }
 
-/* --- Distribution bar --- */
+/* Distribution bar */
 
 .dist-bar {
   display: flex;
@@ -1134,7 +1134,7 @@ td.chevron {
 .dist-legend .leg-c3::before { background: var(--cov-full-border); }
 .dist-legend .leg-untested::before { background: var(--untested-bar); }
 
-/* --- Nav links --- */
+/* Nav links */
 
 .file-nav {
   display: flex;
@@ -1155,7 +1155,7 @@ td.chevron {
   text-align: right;
 }
 
-/* --- Footer --- */
+/* Footer */
 
 CSS
 
@@ -1164,7 +1164,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
 (function() {
   "use strict";
 
-  /* --- Per-report localStorage helpers --- */
+  /* Per-report localStorage helpers */
   var body = document.body;
   var rid = body.getAttribute("data-report-id") || "";
   var fileCount = parseInt(body.getAttribute("data-file-count") || "0", 10);
@@ -1177,7 +1177,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
     localStorage.setItem("dc:" + rid + ":" + key, val);
   }
 
-  /* --- Help overlay --- */
+  /* Help overlay */
   var helpOverlay = document.querySelector(".help-overlay");
   var helpBtn = document.querySelector(".help-toggle");
   if (helpOverlay) {
@@ -1202,7 +1202,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
     });
   }
 
-  /* --- Index page table (sort, filter, group) --- */
+  /* Index page table (sort, filter, group) */
   var table = document.querySelector(".file-table");
   if (table) {
     var headers = table.querySelectorAll("th[data-sort]");
@@ -1211,7 +1211,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
     var hideCovered = document.querySelector(".hide-covered");
     var groupToggle = document.querySelector(".group-toggle");
 
-    /* --- Read persisted state --- */
+    /* Read persisted state */
     var sortCol = rget("sort-col", "risk");
     var sortDir = rget("sort-dir", "desc");
 
@@ -1228,7 +1228,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
     if (groupToggle)
       groupToggle.checked = isGrouped;
 
-    /* --- Render: applies grouping, sort, filter in order --- */
+    /* Render: applies grouping, sort, filter in order */
     function render() {
       var grouped = groupToggle && groupToggle.checked;
       var filterText = filterInput ? filterInput.value : "";
@@ -1351,7 +1351,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
       }
     }
 
-    /* --- Save state and re-render on changes --- */
+    /* Save state and re-render on changes */
     headers.forEach(function(h) {
       h.addEventListener("click", function() {
         var col = h.getAttribute("data-sort");
@@ -1411,7 +1411,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
     render();
   }
 
-  /* --- Truncated filename tooltip --- */
+  /* Truncated filename tooltip */
   var fileH1 = document.querySelector(".header h1");
   if (fileH1) {
     function updateH1Title() {
@@ -1424,7 +1424,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
     window.addEventListener("resize", updateH1Title);
   }
 
-  /* --- Line detail expand/collapse (source view) --- */
+  /* Line detail expand/collapse (source view) */
   var sourceTable = document.querySelector(".source-table");
   if (sourceTable) {
     var details = sourceTable.querySelectorAll(".line-detail");
@@ -1447,7 +1447,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
       }
     );
 
-    /* --- Badge criterion filter --- */
+    /* Badge criterion filter */
     var badges = document.querySelectorAll(
       ".header .stat-badge[data-criterion]");
     var activeCriterion = null;
@@ -1509,7 +1509,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
       });
     });
 
-    /* --- Keyboard navigation --- */
+    /* Keyboard navigation */
     var uncovered = document.querySelectorAll(
       "tr[data-cov='0'], tr[data-cov='2']");
     var currentIdx = -1;
@@ -1581,7 +1581,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
       }
     });
 
-    /* --- Scroll minimap --- */
+    /* Scroll minimap */
     var minimap = document.querySelector(".minimap");
     if (minimap) {
       var canvas = document.createElement("canvas");
