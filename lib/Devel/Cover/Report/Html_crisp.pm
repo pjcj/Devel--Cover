@@ -17,14 +17,13 @@ our $VERSION;
 BEGIN {
   # VERSION
 }
-
-use Devel::Cover::Html_Common  ## no perlimports
-  qw( launch highlight $Have_highlighter );
-use Devel::Cover::Web             qw( $Crisp_base_css $Crisp_theme_js );
-use Devel::Cover::Condition_table ();  ## no perlimports
-use Devel::Cover::Inc             ();
-
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
+
+## no perlimports
+use Devel::Cover::Html_Common qw( $Have_highlighter highlight launch );
+use Devel::Cover::Web             qw( $Crisp_base_css $Crisp_theme_js );
+use Devel::Cover::Condition_table ();
+use Devel::Cover::Inc             ();
 
 use Devel::Cover::Path qw( common_prefix );
 
