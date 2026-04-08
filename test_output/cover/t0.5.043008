@@ -69,7 +69,7 @@ Branches
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 18    ***     50     11      0   $y and ++$x[1]
-21           100     10      1   ($y and $x[0]++) and ++$x[1]
+21           100     10      1   $y and $x[0]++ and ++$x[1]
 25    ***     50     11      0   if $y
 32    ***     50     11      0   if ($y) { }
 
