@@ -24,14 +24,13 @@ use Devel::Cover::Html_Common qw( $Have_highlighter highlight launch );
 use Devel::Cover::Web             qw( $Crisp_base_css $Crisp_theme_js );
 use Devel::Cover::Condition_table ();
 use Devel::Cover::Inc             ();
+use Devel::Cover::Path            qw( common_prefix );
 
-use Devel::Cover::Path qw( common_prefix );
-
-use HTML::Entities qw( encode_entities );
-use Getopt::Long   qw( GetOptions );
-use Template 2.00  ();
 use File::Path     qw( mkpath );
+use Getopt::Long   qw( GetOptions );
+use HTML::Entities qw( encode_entities );
 use List::Util     qw( any );
+use Template 2.00  ();
 
 my $Template;
 my %R;
