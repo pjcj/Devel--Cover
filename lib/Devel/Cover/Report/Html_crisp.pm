@@ -928,13 +928,6 @@ sub build_untested_source_lines ($file) {
   \@lines
 }
 
-sub write_asset ($dir, $name, $content) {
-  my $path = "$dir/$name";
-  open my $fh, ">", $path or die "Can't open $path: $!\n";
-  print $fh $content;
-  close $fh or die "Can't close $path: $!\n";
-}
-
 sub write_file ($path, $content) {
   open my $fh, ">", $path or die "Can't open $path: $!\n";
   print $fh $content;
@@ -1073,8 +1066,8 @@ sub report ($pkg, $db, $options) {
   my $assets = "$outdir/assets";
   mkpath($assets) unless -d $assets;
 
-  write_asset($assets, "style.css", $Assets{css});
-  write_asset($assets, "app.js",    $Assets{js});
+  write_file("$assets/style.css", $Assets{css});
+  write_file("$assets/app.js",    $Assets{js});
 
   my @file_data = build_file_data;
 
