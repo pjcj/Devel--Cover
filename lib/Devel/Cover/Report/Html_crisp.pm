@@ -173,8 +173,7 @@ sub render_dist_bar ($dist) {
     next unless $dist->{$key};
     my $w = $dist->{$key} / $dt * 100;
     $o .= <<HTML;
-<div class="dist-bar-seg has-tip"
-  style="width:${w}%; background:var($var)"
+<div class="dist-bar-seg has-tip" style="width:${w}%; background:var($var)"
   data-tip="$tip"></div>
 HTML
   }
@@ -214,10 +213,12 @@ sub render_index ($file_data, $total, $dist) {
     [ 0 .. ($#$file_data > 4 ? 4 : $#$file_data) ]
     : ();
 
-  my $o
-    = qq(<div class="header">\n<div class="header-inner">\n)
-    . "<h1>Coverage Report</h1>\n"
-    . qq(<div class="header-stats">\n);
+  my $o = <<HTML;
+<div class="header">
+<div class="header-inner">
+<h1>Coverage Report</h1>
+<div class="header-stats">
+HTML
 
   for my $c ($R{criteria}->@*) {
     next unless $total->{$c}{pc};
@@ -296,10 +297,13 @@ HTML
   for my $c ($R{criteria}->@*) {
     $o .= qq(<th data-sort="$c">@{[ crit_name($c) ]}</th>\n);
   }
-  $o
-    .= qq(<th data-sort="total">@{[ crit_name('total') ]}</th>\n)
-    . qq(<th data-sort="risk">risk</th>\n)
-    . "</tr>\n</thead>\n<tbody>\n";
+  $o .= <<HTML;
+<th data-sort="total">@{[ crit_name('total') ]}</th>
+<th data-sort="risk">risk</th>
+</tr>
+</thead>
+<tbody>
+HTML
 
   for my $g (@groups) {
     $o .= qq(<tr class="dir-header" data-dir="$g->{dir}">\n)
@@ -359,11 +363,12 @@ HTML
 <tr><th>Branch</th><th>True</th><th>False</th><th>Total</th></tr>
 HTML
     for my $b ($line->{branches}->@*) {
-      $o
-        .= "<tr><td>$b->{text}</td>"
-        . qq(<td class="$b->{true_class}">$b->{true_count}</td>)
-        . qq(<td class="$b->{false_class}">$b->{false_count}</td>)
-        . "<td>$b->{total_count}</td></tr>\n";
+      $o .= <<HTML;
+<tr><td>$b->{text}</td>
+<td class="$b->{true_class}">$b->{true_count}</td>
+<td class="$b->{false_class}">$b->{false_count}</td>
+<td>$b->{total_count}</td></tr>
+HTML
     }
     $o .= "</table>\n</div>\n";
   }
@@ -461,13 +466,14 @@ sub render_source_line ($line) {
 sub render_file_page ($fd, $lines, $total, $prev_file, $next_file) {
   my $o = $fd->{uncompiled} ? qq(<div class="untested-page">\n) : "";
 
-  $o
-    .= qq(<div class="header">\n<div class="header-inner">\n)
-    . "<h1>$fd->{short}\n"
-    . ($fd->{uncompiled} ? untested_badge() . "\n" : "")
-    . "</h1>\n"
-    . qq(<div class="header-stats">\n)
-    . qq(<span class="filter-label">filter:</span>\n);
+  $o .= <<HTML;
+<div class="header">
+<div class="header-inner">
+<h1>$fd->{short}
+@{[ $fd->{uncompiled} ? untested_badge() : "" ]}</h1>
+<div class="header-stats">
+<span class="filter-label">filter:</span>
+HTML
 
   for my $c ($R{criteria}->@*) {
     my $s = $total->{$c};
@@ -481,8 +487,7 @@ HTML
       my $cls = $s->{class} || "stat-na";
       my $pct = $s->{pc} . ($s->{pc} ne "n/a" ? "%" : "");
       $o .= <<HTML;
-<span class="stat-badge $cls has-tip"
-  data-tip="$s->{covered} / $s->{total}"
+<span class="stat-badge $cls has-tip" data-tip="$s->{covered} / $s->{total}"
   data-criterion="$c">
 @{[ crit_name($c) ]} $pct</span>
 HTML
@@ -491,11 +496,9 @@ HTML
 
   if ($fd->{uncompiled}) {
     $o .= <<HTML;
-<span class="stat-badge untested-stat has-tip"
-  data-tip="total: 0">
+<span class="stat-badge untested-stat has-tip" data-tip="total: 0">
 @{[ crit_name("total") ]} 0.0%</span>
-<span class="stat-badge stat-risk has-tip"
-  data-tip="risk: 0">risk 0</span>
+<span class="stat-badge stat-risk has-tip" data-tip="risk: 0">risk 0</span>
 HTML
   } else {
     my $tt = $total->{total};
@@ -507,8 +510,7 @@ HTML
 HTML
     }
     $o .= <<HTML;
-<span class="stat-badge stat-risk risk-hover has-tip"
-  data-tip="risk score">
+<span class="stat-badge stat-risk risk-hover has-tip" data-tip="risk score">
 risk $fd->{risk} @{[ risk_tip($fd) ]}</span>
 HTML
   }
@@ -603,11 +605,7 @@ sub oclass ($o, $criterion) {
 }
 
 sub fmt_pc ($pc) {
-  return "n/a" unless defined $pc;
-  my $x = sprintf "%5.2f", $pc;
-  chop $x;
-  $x =~ s/^\s+//;
-  $x
+  defined $pc ? (sprintf "%5.2f", $pc) =~ s/.\z//r =~ s/^\s+//r : "n/a"
 }
 
 sub get_summary ($file, $criterion) {
