@@ -861,9 +861,9 @@ sub build_source_lines ($file) {
   }
 
   my @lines;
-  my $linen = 1;
-  line: while (defined(my $l = shift @all_lines)) {
-    my $n = $linen++;
+  my $n = 0;
+  for my $l (@all_lines) {
+    $n++;
     chomp $l;
 
     my %line = (number => $n, text => length $l ? $l : "&nbsp;");
@@ -899,7 +899,7 @@ sub build_source_lines ($file) {
     $line{errors} = join ",", @errors if @errors;
 
     push @lines, \%line;
-    last line if $l =~ /^__(END|DATA)__/;
+    last if $l =~ /^__(END|DATA)__/;
   }
 
   \@lines
@@ -916,9 +916,9 @@ sub build_untested_source_lines ($file) {
   }
 
   my @lines;
-  my $linen = 1;
-  while (defined(my $l = shift @all_lines)) {
-    my $n = $linen++;
+  my $n = 0;
+  for my $l (@all_lines) {
+    $n++;
     chomp $l;
     my %line = (number => $n, text => length $l ? $l : "&nbsp;");
     push @lines, \%line;
