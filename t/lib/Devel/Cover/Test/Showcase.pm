@@ -13,7 +13,7 @@ use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
 use Exporter qw( import );
-our @EXPORT_OK = qw( create_cover_db run_cover setup_lib_dir );
+our @EXPORT_OK = qw( create_cover_db run_cover setup_lib_dir slurp );
 
 use Cwd            qw( realpath );
 use File::Basename qw( dirname );
@@ -23,6 +23,13 @@ use File::Temp     qw( tempdir );
 
 my $Root  = realpath(File::Spec->catdir(dirname(__FILE__), (("..") x 5)));
 my $Cover = File::Spec->catfile($Root, "bin", "cover");
+
+sub slurp ($path) {
+  open my $fh, "<", $path or die "Cannot read $path: $!";
+  my $content = do { local $/; <$fh> };
+  close $fh or die "Cannot close $path: $!";
+  $content
+}
 
 sub run_cover (@args) {
   local $ENV{DEVEL_COVER_SELF};
@@ -207,19 +214,19 @@ sub setup_lib_dir () {
   for my $side (qw( Covered Uncovered )) {
     _write_module(
       File::Spec->catfile($libdir, $side, "Calc.pm"), "${side}::Calc",
-      $Calc_body
+      $Calc_body,
     );
     _write_module(
       File::Spec->catfile($libdir, $side, "Full.pm"), "${side}::Full",
-      $Full_body
+      $Full_body,
     );
     _write_module(
       File::Spec->catfile($libdir, $side, "Trivial.pm"), "${side}::Trivial",
-      $Trivial_body
+      $Trivial_body,
     );
     _write_module(
       File::Spec->catfile($libdir, $side, "Utils.pm"), "${side}::Utils",
-      $Utils_body
+      $Utils_body,
     );
   }
 
@@ -228,7 +235,7 @@ sub setup_lib_dir () {
   make_path($blib);
   _write_module(
     File::Spec->catfile($blib, "BlibMod.pm"),
-    "BlibMod", "sub x { 1 }\n"
+    "BlibMod", "sub x { 1 }\n",
   );
 
   # non-pm file - should be excluded
@@ -300,7 +307,7 @@ Devel::Cover::Test::Showcase - fixture library for Devel::Cover showcase
 =head1 SYNOPSIS
 
  use Devel::Cover::Test::Showcase qw(
-   setup_lib_dir create_cover_db run_cover
+   setup_lib_dir create_cover_db run_cover slurp
  );
 
  my ($tmpdir, $libdir) = setup_lib_dir;
@@ -363,6 +370,12 @@ Run C<bin/cover> with the given arguments, using the current C<$^X> and the blib
 paths so that the development version of Devel::Cover is
 used. C<DEVEL_COVER_SELF> is temporarily cleared to avoid self-coverage
 interference.
+
+=head2 slurp
+
+ my $content = slurp($path);
+
+Read and return the entire contents of the file at C<$path>.
 
 =head1 FIXTURE MODULES
 
