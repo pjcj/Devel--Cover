@@ -19,19 +19,13 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use File::Spec ();
 use Test::More import => [ qw( done_testing is like ok plan ) ];
 use Devel::Cover::Report::Html_crisp ();
-use Devel::Cover::Test::Showcase qw( create_cover_db run_cover setup_lib_dir );
+use Devel::Cover::Test::Showcase
+  qw( create_cover_db run_cover setup_lib_dir slurp );
 
 eval "require HTML::Entities; 1" or do {
   plan skip_all => "HTML::Entities not available";
   exit;
 };
-
-sub _slurp ($path) {
-  open my $fh, "<", $path or die "Cannot read $path: $!";
-  my $content = do { local $/; <$fh> };
-  close $fh or die "Cannot close $path: $!";
-  $content
-}
 
 # Normalise HTML for comparison: strip leading/trailing whitespace
 # per line, collapse runs of blank lines, trim the result.
@@ -63,7 +57,7 @@ sub _setup () {
 
   for my $file (glob "$Outdir/*.html") {
     (my $name = $file) =~ s{.*/}{};
-    $Golden{$name} = _slurp($file);
+    $Golden{$name} = slurp($file);
   }
 }
 

@@ -85,14 +85,13 @@ sub untested_badge () {
 }
 
 sub risk_tip ($f) {
-  my $risk = sprintf "%d", $f->{risk};
   <<HTML
 <table class="risk-tip">
 <tr><td>Branch errors</td><td>$f->{risk_branch}</td></tr>
 <tr><td>Condition errors</td><td>$f->{risk_cond}</td></tr>
 <tr><td>Coverage gap</td><td>$f->{risk_gap}%</td></tr>
 <tr class="risk-total"><td>Risk</td>
-<td>$risk</td></tr>
+<td>$f->{risk}</td></tr>
 </table>
 HTML
 }
@@ -125,7 +124,6 @@ sub file_row ($f, $dir) {
     ? qq(<a href="$f->{link}">$f->{basename}</a>)
     : $f->{basename};
   my $badge = $f->{uncompiled} ? untested_badge() . "\n" : "";
-  my $risk  = sprintf "%d", $f->{risk};
 
   my $o = <<HTML;
 <tr class="$cls"
@@ -141,7 +139,7 @@ HTML
   $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort});
   $o .= <<HTML;
 <td data-value="$f->{risk}" class="risk-hover">
-$risk
+$f->{risk}
 @{[ risk_tip($f) ]}</td>
 </tr>
 HTML
@@ -158,12 +156,11 @@ sub render_worst_files ($worst) {
     my $name
       = $f->{exists} ? qq(<a href="$f->{link}">$f->{short}</a>) : $f->{short};
     my $badge = $f->{uncompiled} ? untested_badge() . "\n" : "";
-    my $risk  = sprintf "%d", $f->{risk};
     $o .= <<HTML;
 <div class="worst-item
   $cls">
 $name
-$badge<strong class="risk-hover">$risk
+$badge<strong class="risk-hover">$f->{risk}
 @{[ risk_tip($f) ]}</strong>
 </div>
 HTML
@@ -551,11 +548,10 @@ HTML
 </span>
 HTML
     }
-    my $risk = sprintf "%d", $fd->{risk};
     $o .= <<HTML;
 <span class="stat-badge stat-risk risk-hover has-tip"
       data-tip="risk score">
-risk $risk
+risk $fd->{risk}
 @{[ risk_tip($fd) ]}</span>
 HTML
   }
@@ -679,7 +675,7 @@ sub add_risk ($f, $risk_parts) {
   my $gap  = 100 - ($pc eq "n/a" ? 0 : $pc);
   my $berr = $risk_parts->{branch}    || 0;
   my $cerr = $risk_parts->{condition} || 0;
-  $f->{risk}        = $berr + $cerr + $gap;
+  $f->{risk}        = int($berr + $cerr + $gap);
   $f->{risk_branch} = $berr;
   $f->{risk_cond}   = $cerr;
   $f->{risk_gap}    = sprintf "%.0f", $gap;
