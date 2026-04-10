@@ -1,0 +1,62 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# Branch coverage for block-form loop conditions.
+# See GH-449.
+
+use strict;
+use warnings;
+
+# while - true and false branches
+my $I = 0;
+while ($I < 3) {
+  $I++;
+}
+
+# until - true and false branches
+my $J = 0;
+until ($J >= 3) {
+  $J++;
+}
+
+# C-style for - true and false branches
+my $Sum = 0;
+for (my $k = 0; $k < 3; $k++) {
+  $Sum += $k;
+}
+
+# while that is never entered (false branch only)
+my $Never = 0;
+while ($Never) {
+  $Never++;
+}
+
+# until that is never entered (true branch only)
+my $Always = 1;
+until ($Always) {
+  $Always--;
+}
+
+# compound condition - branch and condition coverage
+my $X     = 1;
+my $Y     = 1;
+my $Count = 0;
+while ($X && $Y) {
+  $Count++;
+  $Y = 0 if $Count >= 2;
+}
+
+die "i: $I"           unless $I == 3;
+die "j: $J"           unless $J == 3;
+die "sum: $Sum"       unless $Sum == 3;
+die "never: $Never"   unless $Never == 0;
+die "always: $Always" unless $Always == 1;
+die "count: $Count"   unless $Count == 2;
+die "x: $X"           unless $X == 1;
+die "y: $Y"           unless $Y == 0;

@@ -1517,12 +1517,6 @@ sub _logop_parent_cx ($op, $highprec, $lowprec) {
 sub _walk_logop ($cv, $op) {
   return unless $Collect;
   return if $Seen{cond_expr}{$$op};
-  # Skip while/until loop conditions (and → null* → leaveloop)
-  my $_p = _op_parent($op);
-  if ($_p && $$_p) {
-    $_p = _op_parent($_p) while $_p && $$_p && $_p->name eq "null";
-    return if $_p && $$_p && $_p->name eq "leaveloop";
-  }
   my $name   = $op->name;
   my $params = $Logop_params{$name} || return;
   my ($lowop, $lowprec, $highop, $highprec, $blockname) = @$params;
@@ -1544,9 +1538,22 @@ sub _walk_logop ($cv, $op) {
     $blockname = undef if $cx >= 1;
   }
 
+  # Loop conditions (and -> null* -> leaveloop) are always branches in statement
+  # form, regardless of OPpSTATEMENT.
+  my $is_loop_cond = 0;
+  {
+    my $_p = _op_parent($op);
+    if ($_p && $$_p) {
+      $_p           = _op_parent($_p) while $_p && $$_p && $_p->name eq "null";
+      $is_loop_cond = 1 if $_p && $$_p && $_p->name eq "leaveloop";
+    }
+  }
+
   $Shared_deparse ||= B::Deparse->new;
   my ($is_statement, $is_branch)
-    = _classify_op($Shared_deparse, $op, $cx, $blockname);
+    = $is_loop_cond
+    ? (1, 1)
+    : _classify_op($Shared_deparse, $op, $cx, $blockname);
 
   if ($is_statement && is_scope($right)) {
     my $l = _deparse_expr($cv, $left, 1, 1);
