@@ -1,0 +1,97 @@
+Reading database from ...
+
+
+-------------------- ------ ------ ------ ------ ------
+File                   stmt   bran   cond    sub  total
+-------------------- ------ ------ ------ ------ ------
+tests/loop_condition   92.3   50.0    n/a  100.0   81.5
+Total                  92.3   50.0    n/a  100.0   81.5
+-------------------- ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/loop_condition
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # https://pjcj.net
+9                                       
+10                                      # Branch coverage for block-form loop conditions.
+11                                      # See GH-449.
+12                                      
+13             1                    1   use strict;
+               1                        
+               1                        
+14             1                    1   use warnings;
+               1                        
+               1                        
+15                                      
+16                                      # while - true and false branches
+17             1                        my $I = 0;
+18             1                        while ($I < 3) {
+19             3                          $I++;
+20                                      }
+21                                      
+22                                      # until - true and false branches
+23             1                        my $J = 0;
+24             1                        until ($J >= 3) {
+25             3                          $J++;
+26                                      }
+27                                      
+28                                      # C-style for - true and false branches
+29             1                        my $Sum = 0;
+30             1                        for (my $k = 0; $k < 3; $k++) {
+31             3                          $Sum += $k;
+32                                      }
+33                                      
+34                                      # while that is never entered (false branch only)
+35             1                        my $Never = 0;
+36             1                        while ($Never) {
+37    ***     *0                          $Never++;
+38                                      }
+39                                      
+40                                      # until that is never entered (true branch only)
+41             1                        my $Always = 1;
+42             1                        until ($Always) {
+43    ***     *0                          $Always--;
+44                                      }
+45                                      
+46    ***      1   * 50                 die "i: $I"           unless $I == 3;
+47    ***      1   * 50                 die "j: $J"           unless $J == 3;
+48    ***      1   * 50                 die "sum: $Sum"       unless $Sum == 3;
+49    ***      1   * 50                 die "never: $Never"   unless $Never == 0;
+50    ***      1   * 50                 die "always: $Always" unless $Always == 1;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+46    ***     50      0      1   unless $I == 3
+47    ***     50      0      1   unless $J == 3
+48    ***     50      0      1   unless $Sum == 3
+49    ***     50      0      1   unless $Never == 0
+50    ***     50      0      1   unless $Always == 1
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count Location               
+---------- ----- -----------------------
+BEGIN          1 tests/loop_condition:13
+BEGIN          1 tests/loop_condition:14
+
+
