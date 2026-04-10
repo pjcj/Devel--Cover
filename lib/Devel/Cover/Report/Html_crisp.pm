@@ -20,8 +20,8 @@ BEGIN {
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 ## no perlimports
-use Devel::Cover::Html_Common qw( $Have_highlighter highlight launch );
-use Devel::Cover::Web             qw( $Crisp_base_css $Crisp_theme_js );
+use Devel::Cover::Html_Common     qw( $Have_highlighter highlight launch );
+use Devel::Cover::Web             qw( $Cov $Crisp_base_css $Crisp_theme_js );
 use Devel::Cover::Condition_table ();
 use Devel::Cover::Inc             ();
 use Devel::Cover::Path            qw( common_prefix );
@@ -891,16 +891,17 @@ sub get_options ($self, $opt) {
     unless GetOptions($opt->{option}, qw( noppihtml noperltidy outputfile=s ));
 }
 
+sub _favicon ($level) {
+  my %map = (c0 => "none", c1 => "low", c2 => "good", c3 => "full");
+  $Cov->{light}{ $map{$level} // "full" }{border} =~ s/^#/%23/r
+}
+
 sub set_favicon_colour () {
   my $t  = get_summary("Total", "total");
   my $pc = $t->{pc};
   $pc = 0 if !defined $pc || $pc eq "n/a";
   my $cl = class($pc, $pc < 100 ? 1 : 0, "total");
-  $R{favicon_colour}
-    = $cl eq "c0" ? "%23e53935"
-    : $cl eq "c1" ? "%23f9a825"
-    : $cl eq "c2" ? "%2343a047"
-    :               "%232e7d32";
+  $R{favicon_colour} = _favicon($cl);
 }
 
 sub totals_for ($file) {
@@ -1003,7 +1004,7 @@ sub report ($pkg, $db, $options) {
     },
     threshold      => $Threshold,
     have_ppi       => eval { require PPI; 1 } ? 1 : 0,
-    favicon_colour => "%232e7d32",
+    favicon_colour => _favicon("c3"),
     report_id      => $options->{outputdir},
     file_count     => 0 + $options->{file}->@*,
   );
