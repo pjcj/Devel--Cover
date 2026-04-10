@@ -18,21 +18,13 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use File::Spec ();
 use Test::More import => [ qw( done_testing is like ok plan ) ];
-use Devel::Cover::Test::Showcase qw( create_cover_db run_cover setup_lib_dir );
+use Devel::Cover::Test::Showcase
+  qw( create_cover_db run_cover setup_lib_dir slurp );
 
-for my $mod (qw( HTML::Entities Template )) {
-  eval "require $mod; 1" or do {
-    plan skip_all => "$mod not available";
-    exit;
-  };
-}
-
-sub _slurp ($path) {
-  open my $fh, "<", $path or die "Cannot read $path: $!";
-  my $content = do { local $/; <$fh> };
-  close $fh or die "Cannot close $path: $!";
-  $content
-}
+eval "require HTML::Entities; 1" or do {
+  plan skip_all => "HTML::Entities not available";
+  exit;
+};
 
 # Html_crisp report for a db with --select_dir:
 # - All four modules appear in the summary index
@@ -54,7 +46,7 @@ sub test_html_crisp_report () {
   my $index = File::Spec->catfile($outdir, "coverage.html");
   ok -e $index, "coverage.html was generated";
 
-  my $content = _slurp($index);
+  my $content = slurp($index);
 
   # All eight modules appear in the index
   like $content, qr/Covered\/Calc\.pm/,      "Covered/Calc.pm in index";
@@ -94,7 +86,7 @@ sub test_html_crisp_report () {
 
   # Untested detail pages contain the untested badge.
   my $uncov_page = (grep /Uncovered-Calc-pm\.html$/, @detail_pages)[0];
-  my $uncov_html = _slurp($uncov_page);
+  my $uncov_html = slurp($uncov_page);
   like $uncov_html, qr/untested-badge/,
     "untested detail page has badge";
   like $uncov_html, qr/untested-page/,
