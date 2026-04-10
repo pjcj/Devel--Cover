@@ -693,7 +693,7 @@ Results are published as HTML pages and JSON data.</p>
 
 <h3>Links</h3>
 
-<div class="about-links">
+<div class="az-nav">
 <a href="https://github.com/pjcj/Devel--Cover">Source code on GitHub</a>
 <a href="https://metacpan.org/release/Devel-Cover">Devel::Cover on
 MetaCPAN</a>
