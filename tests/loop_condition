@@ -43,8 +43,20 @@ until ($Always) {
   $Always--;
 }
 
+# compound condition - branch and condition coverage
+my $X     = 1;
+my $Y     = 1;
+my $Count = 0;
+while ($X && $Y) {
+  $Count++;
+  $Y = 0 if $Count >= 2;
+}
+
 die "i: $I"           unless $I == 3;
 die "j: $J"           unless $J == 3;
 die "sum: $Sum"       unless $Sum == 3;
 die "never: $Never"   unless $Never == 0;
 die "always: $Always" unless $Always == 1;
+die "count: $Count"   unless $Count == 2;
+die "x: $X"           unless $X == 1;
+die "y: $Y"           unless $Y == 0;
