@@ -591,7 +591,7 @@ HTML
 
 sub class ($pc, $err, $criterion) {
   return "" if $criterion && $criterion eq "time";
-  return "" unless defined $pc && $pc =~ /\A[0-9.]+\z/;
+  return "na" unless defined $pc && $pc =~ /\A[0-9.]+\z/;
   no warnings "uninitialized";
      !$err                   ? "c3"
     : $pc < $Threshold->{c0} ? "c0"
@@ -610,7 +610,7 @@ sub fmt_pc ($pc) {
 
 sub get_summary ($file, $criterion) {
   my $part = $R{db}->summary($file);
-  return { pc => "n/a", class => "", covered => 0, total => 0, error => 0 }
+  return { pc => "n/a", class => "na", covered => 0, total => 0, error => 0 }
     unless exists $part->{$criterion};
   my $c = $part->{$criterion};
   {
