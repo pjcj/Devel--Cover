@@ -583,7 +583,7 @@ sub file_nav ($prev_file, $next_file) {
   <<HTML
 <div class="file-nav">
 <span>$prev</span>
-<span><a href="coverage.html">&uarr; Summary</a></span>
+<span><a href="$R{options}{option}{outputfile}">&uarr; Summary</a></span>
 <span>$next</span>
 </div>
 HTML
