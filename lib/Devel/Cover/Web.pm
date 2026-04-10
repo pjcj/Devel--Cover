@@ -18,7 +18,51 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 use Exporter qw( import );
 
-our @EXPORT_OK = qw( write_file $Crisp_base_css $Crisp_theme_js );
+our @EXPORT_OK = qw( write_file $Cov $Crisp_base_css $Crisp_theme_js );
+
+our $Cov = {
+  light => {
+    none => { bg => "#ffcccc", border => "#dd0000", fg => "#990000" },
+    low  => { bg => "#f0d4e8", border => "#b04080", fg => "#802050" },
+    good => { bg => "#d0e4f8", border => "#2070c0", fg => "#104080" },
+    full => { bg => "#b0f0b0", border => "#008800", fg => "#005500" },
+  },
+  dark => {
+    none => { bg => "#501010", border => "#ff4444", fg => "#ffcccc" },
+    low  => { bg => "#401050", border => "#e070b0", fg => "#f0c0e0" },
+    good => { bg => "#102850", border => "#60a0f0", fg => "#a0c8ff" },
+    full => { bg => "#0a400a", border => "#44dd44", fg => "#bbffbb" },
+  },
+};
+
+sub _hex_rgb ($hex) {
+  map { hex } $hex =~ /[0-9a-f]{2}/gi
+}
+
+sub _rgb_hex (@rgb) {
+  sprintf "#%02x%02x%02x", @rgb
+}
+
+sub _mix ($c1, $c2, $ratio) {
+  my @a = _hex_rgb($c1);
+  my @b = _hex_rgb($c2);
+  _rgb_hex(map { int($a[$_] * $ratio + $b[$_] * (1 - $ratio) + 0.5) } 0 .. 2)
+}
+
+sub _cov_vars ($theme, $indent) {
+  my $c  = $Cov->{$theme};
+  my $bg = $theme eq "light" ? "#ffffff" : "#000000";
+  my $r  = $theme eq "light" ? 0.45      : 0.35;
+  join "", (
+    map {
+      my $n = $_;
+      map "$indent--cov-$n-$_: $c->{$n}{$_};\n", qw( bg border fg )
+    } qw( none low good full )
+    ),
+    "\n", "${indent}--exec-none: " . _mix($c->{none}{border}, $bg, $r) . ";\n",
+    "${indent}--exec-partial: " . _mix($c->{low}{border},  $bg, $r) . ";\n",
+    "${indent}--exec-covered: " . _mix($c->{full}{border}, $bg, $r) . ";\n",
+}
 
 my %Files;
 
@@ -195,18 +239,7 @@ our $Crisp_base_css = <<'CSS';
   --prefix-border: #a0bcd8;
   --prefix-label: #4a6f96;
 
-  --cov-none-bg: #fcc;
-  --cov-none-border: #d00;
-  --cov-none-fg: #900;
-  --cov-low-bg: #ffe0b0;
-  --cov-low-border: #e08000;
-  --cov-low-fg: #7a4000;
-  --cov-good-bg: #fffab0;
-  --cov-good-border: #bba000;
-  --cov-good-fg: #665800;
-  --cov-full-bg: #b0f0b0;
-  --cov-full-border: #080;
-  --cov-full-fg: #050;
+  /*COV:light:  */
 
   --untested-bar: #bbb;
   --untested-badge-bg: #e0eaf4;
@@ -217,10 +250,6 @@ our $Crisp_base_css = <<'CSS';
 
   --tip-bg: #1a1a1a;
   --tip-fg: #ffffff;
-
-  --exec-none: #f09090;
-  --exec-partial: #e8d840;
-  --exec-covered: #70c870;
 
   --bg: #ffffff;
   --bg-alt: #e8ecf0;
@@ -257,18 +286,7 @@ our $Crisp_base_css = <<'CSS';
     --prefix-border: #3a6090;
     --prefix-label: #80b0e0;
 
-    --cov-none-bg: #501010;
-    --cov-none-border: #f44;
-    --cov-none-fg: #fcc;
-    --cov-low-bg: #503008;
-    --cov-low-border: #f0a030;
-    --cov-low-fg: #ffe0a0;
-    --cov-good-bg: #585808;
-    --cov-good-border: #ffe030;
-    --cov-good-fg: #ffffb0;
-    --cov-full-bg: #0a400a;
-    --cov-full-border: #4d4;
-    --cov-full-fg: #bfb;
+    /*COV:dark:    */
 
     --untested-bar: #555;
     --untested-badge-bg: #1a2a3d;
@@ -279,10 +297,6 @@ our $Crisp_base_css = <<'CSS';
 
     --tip-bg: #bbb;
     --tip-fg: #1a1a1a;
-
-    --exec-none: #801818;
-    --exec-partial: #686000;
-    --exec-covered: #1a6828;
 
     --bg: #1a1a1a;
     --bg-alt: #242424;
@@ -311,18 +325,7 @@ html[data-theme="dark"] {
   --prefix-border: #3a6090;
   --prefix-label: #80b0e0;
 
-  --cov-none-bg: #501010;
-  --cov-none-border: #f44;
-  --cov-none-fg: #fcc;
-  --cov-low-bg: #503008;
-  --cov-low-border: #f0a030;
-  --cov-low-fg: #ffe0a0;
-  --cov-good-bg: #404008;
-  --cov-good-border: #e0d020;
-  --cov-good-fg: #fffa90;
-  --cov-full-bg: #0a400a;
-  --cov-full-border: #4d4;
-  --cov-full-fg: #bfb;
+  /*COV:dark:  */
 
   --untested-bar: #555;
   --untested-badge-bg: #1a2a3d;
@@ -333,10 +336,6 @@ html[data-theme="dark"] {
 
   --tip-bg: #e0e0e0;
   --tip-fg: #1a1a1a;
-
-  --exec-none: #801818;
-  --exec-partial: #686000;
-  --exec-covered: #1a6828;
 
   --bg: #1a1a1a;
   --bg-alt: #242424;
@@ -364,18 +363,7 @@ html[data-theme="light"] {
   --prefix-border: #a0bcd8;
   --prefix-label: #4a6f96;
 
-  --cov-none-bg: #fcc;
-  --cov-none-border: #d00;
-  --cov-none-fg: #900;
-  --cov-low-bg: #ffe0b0;
-  --cov-low-border: #e08000;
-  --cov-low-fg: #7a4000;
-  --cov-good-bg: #fffab0;
-  --cov-good-border: #bba000;
-  --cov-good-fg: #665800;
-  --cov-full-bg: #b0f0b0;
-  --cov-full-border: #080;
-  --cov-full-fg: #050;
+  /*COV:light:  */
 
   --untested-bar: #bbb;
   --untested-badge-bg: #e0eaf4;
@@ -386,10 +374,6 @@ html[data-theme="light"] {
 
   --tip-bg: #1a1a1a;
   --tip-fg: #ffffff;
-
-  --exec-none: #f09090;
-  --exec-partial: #e8d840;
-  --exec-covered: #70c870;
 
   --bg: #ffffff;
   --bg-alt: #e8ecf0;
@@ -580,6 +564,8 @@ a:visited { color: var(--link-visited); }
 
 .name-short { display: none; }
 CSS
+
+$Crisp_base_css =~ s{/\*COV:(\w+):(\s+)\*/}{_cov_vars($1, $2)}ge;
 
 our $Crisp_theme_js = <<'JS';
 /* Devel::Cover theme toggle */
