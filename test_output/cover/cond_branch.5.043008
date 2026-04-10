@@ -379,8 +379,8 @@ line  err      %   true  false   branch
 43    ***     50      0      4   if ($y) { }
       ***     50      0      4   elsif ($y and $z) { }
              100      2      2   elsif ($y or $z) { }
-53    ***     50      0      4   ($y and $z) and ++$x[17]
-      ***     50      0      4   ($y and $z) and ++$x[18]
+53    ***     50      0      4   $y and $z and ++$x[17]
+      ***     50      0      4   $y and $z and ++$x[18]
 59           100      1      1   $y or next
 64           100      1      1   $y or next
 69           100      1      1   $y and next

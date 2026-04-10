@@ -997,7 +997,7 @@ Dc_cover_perl="perl -Iblib/lib -Iblib/arch"
 
 dc_cover_lib() {
   local db="dc_cover_lib_db"
-  local select="Devel/Cover/(DB/Structure|Path|Static)"
+  local select="Devel/Cover/(Condition_table|DB/Structure|Path|Static)"
   local launch="${1:-1}"
 
   rm -rf "$db"
@@ -1010,6 +1010,9 @@ dc_cover_lib() {
   $Dc_cover_perl \
     "-MDevel::Cover=-select,$select,-db,$db,-merge,1" \
     t/internal/static.t
+  $Dc_cover_perl \
+    "-MDevel::Cover=-select,$select,-db,$db,-merge,1" \
+    t/internal/condition_table.t
   if ((launch)); then
     $Dc_cover_perl bin/cover "$db" -report html -launch
   fi

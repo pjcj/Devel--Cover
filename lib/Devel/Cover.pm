@@ -636,6 +636,28 @@ my %Parent_map;
 
 sub _op_parent ($op) { $Parent_map{$$op} }
 
+# Walk down through wrapper ops (null, not, scope, etc.) to find
+# the logop underneath that would have its own condition entry.
+# Returns ($op, $negated) where $negated counts not ops traversed.
+my %Is_condition_op = map { $_ => 1 } qw( and or dor xor );
+
+sub _skip_to_condop ($op) {
+  my $negated = 0;
+  while ($op && $$op && !$Is_condition_op{ $op->name }) {
+    last unless $op->flags & OPf_KIDS;
+    $negated ^= 1 if $op->name eq "not";
+    $op       = $op->first;
+  }
+  ($op, $negated)
+}
+
+# Resolve a child op to its condition address and negation flag.
+sub _resolve_child_op ($child_op) {
+  return unless $child_op;
+  my ($op, $negated) = _skip_to_condop($child_op);
+  ($op ? $$op : undef, $negated || undef)
+}
+
 sub report {
   local $@;
   eval { _report() };
@@ -827,7 +849,11 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
   }
 }
 
-sub add_condition_cover ($op, $strop, $left, $right) {
+sub add_condition_cover (
+  $op, $strop, $left, $right,
+  $left_op = undef,
+  $right_op = undef,
+) {
   return unless $Collect && $Coverage{condition};
 
   my $key  = get_key($op);
@@ -858,11 +884,19 @@ sub add_condition_cover ($op, $strop, $left, $right) {
     die qq(Unknown type "$type" for conditional);
   }
 
+  my ($la, $ln) = _resolve_child_op($left_op);
+  my ($ra, $rn) = _resolve_child_op($right_op);
+
   my $structure = {
-    type  => "${type}_${count}",
-    op    => $strop,
-    left  => $left,
-    right => $right,
+    type          => "${type}_${count}",
+    op            => $strop,
+    left          => $left,
+    right         => $right,
+    addr          => $$op,
+    left_addr     => $la,
+    right_addr    => $ra,
+    left_negated  => $ln,
+    right_negated => $rn,
   };
 
   my ($n, $new) = $Structure->add_count("condition");
@@ -1079,7 +1113,8 @@ my %Original;
   ) {
     my $left  = $op->first;
     my $right = $op->first->sibling;
-    my ($file, $line) = ($File, $Line);
+    my ($file, $line)        = ($File, $Line);
+    my ($left_op, $right_op) = ($left, $right);
 
     $blockname &&= $self->keyword($blockname);
 
@@ -1106,7 +1141,7 @@ my %Original;
         $left  = $self->deparse_binop_left($op, $left, $highprec);
         $right = $self->deparse_binop_right($op, $right, $highprec);
       }
-      add_condition_cover($op, $highop, $left, $right)
+      add_condition_cover($op, $highop, $left, $right, $left_op, $right_op)
         unless $Seen{condition}{$$op}++;
       return $self->maybe_parens("$left $highop $right", $cx, $highprec)
     } else {
@@ -1117,7 +1152,7 @@ my %Original;
         add_branch_cover($op, $lowop, "$left $lowop $right", $file, $line)
           unless $Seen{branch}{$$op}++;
       } else {
-        add_condition_cover($op, $lowop, $left, $right)
+        add_condition_cover($op, $lowop, $left, $right, $left_op, $right_op)
           unless $Seen{condition}{$$op}++;
       }
       return $self->maybe_parens("$left $lowop $right", $cx, $lowprec)
@@ -1127,9 +1162,10 @@ my %Original;
   sub logassignop ($self, $op, $cx, $opname) {
     my $left  = $op->first;
     my $right = $op->first->sibling->first;  # skip sassign
+    my ($left_op, $right_op) = ($left, $right);
     $left  = $self->deparse($left,  7);
     $right = $self->deparse($right, 7);
-    add_condition_cover($op, $opname, $left, $right);
+    add_condition_cover($op, $opname, $left, $right, $left_op, $right_op);
     return $self->maybe_parens("$left $opname $right", $cx, 7);
   }
 
@@ -1141,12 +1177,13 @@ my %Original;
     ) {
       my $left  = $op->first;
       my $right = $op->last;
+      my ($left_op, $right_op) = ($left, $right);
       {
         local $Collect;
         $left  = $self->deparse_binop_left($op, $left, $prec);
         $right = $self->deparse_binop_right($op, $right, $prec);
       }
-      add_condition_cover($op, $opname, $left, $right);
+      add_condition_cover($op, $opname, $left, $right, $left_op, $right_op);
     }
     $Original{binop}->($self, $op, $cx, $opname, $prec, $flags)
   }
@@ -1274,14 +1311,31 @@ my $Current_cop;
 
 my $Has_pragmata = B::Deparse->can("pragmata");
 
-sub _deparse_expr ($cv, $op, $cx, $use_dumper = 1) {
+sub _with_deparse ($cv, $use_dumper, $code) {
   $Shared_deparse ||= B::Deparse->new;
   $Shared_deparse->{curcv} = $cv;
   $Shared_deparse->pragmata($Current_cop) if $Has_pragmata && $Current_cop;
   require Data::Dumper                    if $use_dumper;
   local $Shared_deparse->{use_dumper} = $use_dumper;
-  my $text = eval { local $^W; $Shared_deparse->deparse($op, $cx) };
+  my $text = eval { local $^W; $code->() };
   defined $text ? $text =~ s/\x08//gr : ""  # strip B::Deparse unindent markers
+}
+
+sub _deparse_expr ($cv, $op, $cx, $use_dumper = 1) {
+  _with_deparse($cv, $use_dumper, sub { $Shared_deparse->deparse($op, $cx) })
+}
+
+# Like _deparse_expr but uses B::Deparse's deparse_binop_left to avoid
+# spurious parentheses when left-associative same-precedence ops nest
+# (e.g. the inner && in "$a && $b && $c").
+sub _deparse_binop_left ($cv, $op, $child, $prec, $use_dumper = 1) {
+  _with_deparse(
+    $cv,
+    $use_dumper,
+    sub {
+      $Shared_deparse->deparse_binop_left($op, $child, $prec)
+    },
+  )
 }
 
 my %Logop_params = (
@@ -1503,17 +1557,19 @@ sub _walk_logop ($cv, $op) {
     add_branch_cover($op, $lowop, "$blockname $l", $file, $line)
       unless $Seen{branch}{$$op}++;
   } elsif ($cx > $lowprec && $highop) {
-    my $l = _deparse_expr($cv, $left,  $highprec, 0);
+    my $l = _deparse_binop_left($cv, $op, $left, $highprec, 0);
     my $r = _deparse_expr($cv, $right, $highprec, 0);
-    add_condition_cover($op, $highop, $l, $r) unless $Seen{condition}{$$op}++;
+    add_condition_cover($op, $highop, $l, $r, $left, $right)
+      unless $Seen{condition}{$$op}++;
   } else {
-    my $l = _deparse_expr($cv, $left,  $lowprec);
+    my $l = _deparse_binop_left($cv, $op, $left, $lowprec);
     my $r = _deparse_expr($cv, $right, $lowprec);
     if ($is_branch) {
       add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
         unless $Seen{branch}{$$op}++;
     } else {
-      add_condition_cover($op, $lowop, $l, $r) unless $Seen{condition}{$$op}++;
+      add_condition_cover($op, $lowop, $l, $r, $left, $right)
+        unless $Seen{condition}{$$op}++;
     }
   }
 }
@@ -1529,7 +1585,7 @@ sub _walk_logassignop ($cv, $op) {
   my $l      = _deparse_expr($cv, $left,  7);
   my $r      = _deparse_expr($cv, $right, 7);
 
-  add_condition_cover($op, $opname, $l, $r);
+  add_condition_cover($op, $opname, $l, $r, $left, $right);
 }
 
 sub _walk_xor ($cv, $op) {
@@ -1542,7 +1598,7 @@ sub _walk_xor ($cv, $op) {
   my $l      = _deparse_expr($cv, $left,  $cx);
   my $r      = _deparse_expr($cv, $right, $cx);
 
-  add_condition_cover($op, $opname, $l, $r);
+  add_condition_cover($op, $opname, $l, $r, $left, $right);
 }
 
 sub _get_cover_walk ($cv, $root) {
