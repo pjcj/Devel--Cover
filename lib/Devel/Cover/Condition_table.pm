@@ -197,8 +197,9 @@ sub for_line ($class, $conditions) {
       my $found = $find->($info->{"${side}_addr"}, $info->{$side});
       $is_child{ _expr($found) } = 1 if $found;
     }
+  }  ##
 
-  } map {
+  map {
     my $counter = 0;
     Devel::Cover::Condition_table::Table->new(
       expr       => _expr($_),

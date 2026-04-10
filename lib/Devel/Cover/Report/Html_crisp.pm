@@ -797,10 +797,8 @@ sub line_partial ($line, $bd, $tts, $sd) {
   $line->{partial} = 1 if $p;
 }
 
-sub build_source_lines ($file) {
-  my $f = $R{db}->cover->file($file);
-
-  open my $fh, "<", $file or warn("Unable to open $file: $!\n"), return [];
+sub read_source ($file) {
+  open my $fh, "<", $file or warn("Unable to open $file: $!\n"), return;
   my @all_lines = <$fh>;
   close $fh or die "Can't close $file: $!\n";
 
@@ -808,6 +806,13 @@ sub build_source_lines ($file) {
     my @hl = highlight($R{options}{option}, @all_lines);
     @all_lines = @hl if @hl;
   }
+  @all_lines
+}
+
+sub build_source_lines ($file) {
+  my $f = $R{db}->cover->file($file);
+
+  my @all_lines = read_source($file) or return [];
 
   my @lines;
   my $n = 0;
@@ -855,14 +860,7 @@ sub build_source_lines ($file) {
 }
 
 sub build_untested_source_lines ($file) {
-  open my $fh, "<", $file or warn("Unable to open $file: $!\n"), return [];
-  my @all_lines = <$fh>;
-  close $fh or die "Can't close $file: $!\n";
-
-  if ($Have_highlighter) {
-    my @hl = highlight($R{options}{option}, @all_lines);
-    @all_lines = @hl if @hl;
-  }
+  my @all_lines = read_source($file) or return [];
 
   my @lines;
   my $n = 0;
@@ -892,9 +890,9 @@ sub get_options ($self, $opt) {
     unless GetOptions($opt->{option}, qw( noppihtml noperltidy outputfile=s ));
 }
 
-sub _favicon ($level) {
-  my %map = (c0 => "none", c1 => "low", c2 => "good", c3 => "full");
-  $Cov->{light}{ $map{$level} // "full" }{border} =~ s/^#/%23/r
+sub favicon ($level) {
+  state $map = { c0 => "none", c1 => "low", c2 => "good", c3 => "full" };
+  $Cov->{light}{ $map->{$level} // "full" }{border} =~ s/^#/%23/r
 }
 
 sub set_favicon_colour () {
@@ -902,7 +900,7 @@ sub set_favicon_colour () {
   my $pc = $t->{pc};
   $pc = 0 if !defined $pc || $pc eq "n/a";
   my $cl = class($pc, $pc < 100 ? 1 : 0, "total");
-  $R{favicon_colour} = _favicon($cl);
+  $R{favicon_colour} = favicon($cl);
 }
 
 sub totals_for ($file) {
@@ -1001,7 +999,7 @@ sub report ($pkg, $db, $options) {
     },
     threshold      => $Threshold,
     have_ppi       => eval { require PPI; 1 } ? 1 : 0,
-    favicon_colour => _favicon("c3"),
+    favicon_colour => favicon("c3"),
     report_id      => $options->{outputdir},
     file_count     => 0 + $options->{file}->@*,
   );
