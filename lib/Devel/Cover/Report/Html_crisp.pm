@@ -228,9 +228,9 @@ HTML
   $o .= stat_badge("total", $tt) if ($tt->{pc} // "n/a") ne "n/a";
 
   $o .= <<HTML;
-</div>
 <button class="help-toggle" aria-label="Help">?</button>
 <button class="theme-toggle" aria-label="Toggle dark mode">&#x263e;</button>
+</div>
 </div>
 </div>
 
@@ -516,9 +516,9 @@ HTML
   }
 
   $o .= <<HTML;
-</div>
 <button class="help-toggle" aria-label="Help">?</button>
 <button class="theme-toggle" aria-label="Toggle dark mode">&#x263e;</button>
+</div>
 </div>
 </div>
 
