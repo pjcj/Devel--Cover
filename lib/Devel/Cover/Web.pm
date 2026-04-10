@@ -693,7 +693,6 @@ ul {
 }
 
 .az-nav a {
-  display: inline-block;
   padding: 4px 10px;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -721,28 +720,6 @@ ul {
 
 .about-key td:last-child {
   text-align: left;
-}
-
-.about-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0 24px;
-}
-
-.about-links a {
-  display: inline-block;
-  padding: 6px 14px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg-alt);
-  font-weight: 600;
-  font-size: var(--font-size-small);
-}
-
-.about-links a:hover {
-  background: var(--header-bg);
-  text-decoration: none;
 }
 CSS
 
