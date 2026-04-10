@@ -30,6 +30,7 @@ use File::Path     qw( mkpath );
 use Getopt::Long   qw( GetOptions );
 use HTML::Entities qw( encode_entities );
 use List::Util     qw( any );
+use POSIX          qw( strftime );
 our %R;
 my %Assets;
 
@@ -971,13 +972,9 @@ sub report ($pkg, $db, $options) {
   my $run   = $db->{runs}{$fname};
 
   %R = (
-    module => { name => $run->name, version => $run->version },
-    db     => $db,
-    date   => do {
-      my @t = localtime;
-      sprintf "%04d-%02d-%02d %02d:%02d:%02d", $t[5] + 1900, $t[4] + 1,
-        $t[3], $t[2], $t[1], $t[0]
-    },
+    module   => { name => $run->name, version => $run->version },
+    db       => $db,
+    date     => strftime("%Y-%m-%d %H:%M:%S %z", localtime),
     perl_v   => $^V,
     os       => $^O,
     options  => $options,
