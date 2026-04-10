@@ -608,8 +608,8 @@ Coverage information from
 <a href="https://metacpan.org/module/Devel::Cover">Devel::Cover</a>
 by <a href="https://pjcj.net">Paul Johnson</a>.
 Please report problems to the
-<a href="https://github.com/pjcj/Devel--Cover/issues">issue tracker</a>.
-<a href="http://cpancover.com/latest/about.html">About</a> the project.
+<a href="https://github.com/pjcj/Devel--Cover/issues">bug tracker</a>.
+<a href="/[% subdir %]about.html">About</a> the project.
 This server generously donated by
 <a href="https://www.bytemark.co.uk">Bytemark</a>.
 </footer>
@@ -648,7 +648,7 @@ Results are published as HTML pages and JSON data.</p>
 
 <h3>Coverage key</h3>
 
-<table>
+<table class="about-key">
 <thead>
 <tr>
   <th>Coverage</th>
@@ -657,19 +657,35 @@ Results are published as HTML pages and JSON data.</p>
 </thead>
 <tbody>
 <tr>
-  <td class="c3">100%</td>
+  <td class="c3">100%
+    <span class="cov-bar">
+    <span class="cov-bar-fill" style="width:100%"></span>
+    </span>
+  </td>
   <td>Full coverage</td>
 </tr>
 <tr>
-  <td class="c2">90 - 99%</td>
+  <td class="c2">90 - 99%
+    <span class="cov-bar">
+    <span class="cov-bar-fill" style="width:95%"></span>
+    </span>
+  </td>
   <td>Good coverage</td>
 </tr>
 <tr>
-  <td class="c1">75 - 89%</td>
+  <td class="c1">75 - 89%
+    <span class="cov-bar">
+    <span class="cov-bar-fill" style="width:82%"></span>
+    </span>
+  </td>
   <td>Partial coverage</td>
 </tr>
 <tr>
-  <td class="c0">&lt; 75%</td>
+  <td class="c0">&lt; 75%
+    <span class="cov-bar">
+    <span class="cov-bar-fill" style="width:50%"></span>
+    </span>
+  </td>
   <td>Low coverage</td>
 </tr>
 </tbody>
@@ -677,19 +693,11 @@ Results are published as HTML pages and JSON data.</p>
 
 <h3>Links</h3>
 
-<ul>
-<li>
+<div class="about-links">
 <a href="https://github.com/pjcj/Devel--Cover">Source code on GitHub</a>
-</li>
-<li>
 <a href="https://metacpan.org/release/Devel-Cover">Devel::Cover on
 MetaCPAN</a>
-</li>
-<li>
-<a href="https://pjcj.net/devel-cover/projects.html">Open projects and
-contributions</a>
-</li>
-</ul>
+</div>
 
 [% END %]
 EOT
