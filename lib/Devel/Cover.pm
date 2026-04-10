@@ -1517,12 +1517,6 @@ sub _logop_parent_cx ($op, $highprec, $lowprec) {
 sub _walk_logop ($cv, $op) {
   return unless $Collect;
   return if $Seen{cond_expr}{$$op};
-  # Skip while/until loop conditions (and → null* → leaveloop)
-  my $_p = _op_parent($op);
-  if ($_p && $$_p) {
-    $_p = _op_parent($_p) while $_p && $$_p && $_p->name eq "null";
-    return if $_p && $$_p && $_p->name eq "leaveloop";
-  }
   my $name   = $op->name;
   my $params = $Logop_params{$name} || return;
   my ($lowop, $lowprec, $highop, $highprec, $blockname) = @$params;
