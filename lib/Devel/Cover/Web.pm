@@ -495,6 +495,11 @@ a:visited { color: var(--link-visited); }
   border-color: var(--cov-full-border);
   color: var(--cov-full-fg);
 }
+.na {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--fg-muted);
+}
 
 /* Main content */
 
