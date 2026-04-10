@@ -23,15 +23,15 @@ our @EXPORT_OK = qw( write_file $Cov $Crisp_base_css $Crisp_theme_js );
 our $Cov = {
   light => {
     none => { bg => "#ffcccc", border => "#dd0000", fg => "#990000" },
-    low  => { bg => "#f0d4e8", border => "#b04080", fg => "#802050" },
-    good => { bg => "#d0e4f8", border => "#2070c0", fg => "#104080" },
+    low  => { bg => "#fce8c8", border => "#c08820", fg => "#7a5810" },
+    good => { bg => "#c8e4f0", border => "#2080a8", fg => "#104860" },
     full => { bg => "#b0f0b0", border => "#008800", fg => "#005500" },
   },
   dark => {
-    none => { bg => "#501010", border => "#ff4444", fg => "#ffcccc" },
-    low  => { bg => "#401050", border => "#e070b0", fg => "#f0c0e0" },
-    good => { bg => "#102850", border => "#60a0f0", fg => "#a0c8ff" },
-    full => { bg => "#0a400a", border => "#44dd44", fg => "#bbffbb" },
+    none => { bg => "#5c2020", border => "#ff4444", fg => "#ffcccc" },
+    low  => { bg => "#523c14", border => "#e0a830", fg => "#f0d888" },
+    good => { bg => "#1a4858", border => "#48c0e0", fg => "#98d8f0" },
+    full => { bg => "#1a5a1a", border => "#44dd44", fg => "#bbffbb" },
   },
 };
 
