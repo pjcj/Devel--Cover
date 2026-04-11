@@ -1470,21 +1470,46 @@ sub _walk_cond_expr ($cv, $op) {
 # and sort/map/grep blocks (want=SCALAR but cx=0 in deparse).
 # The parent map (built by the XS walker) provides parent lookups on
 # all Perl versions, not just 5.26+.
-## no critic (ProhibitExcessComplexity)
+# Walk through null/ex-ops, stopping at block boundaries.
+# Returns ($parent, $early_cx) - $early_cx is defined if a
+# boundary was hit and the caller should return that value.
+sub _skip_null_parents ($parent, $highprec, $lowprec) {
+  while ($$parent && $parent->name eq "null") {
+    if (my $targ = $parent->targ) {
+      my $tname = ppname($targ);
+      return ($parent, 0) if $tname =~ /^pp_(?:scope|leave)/;
+      return ($parent, $highprec || $lowprec) if $tname eq "pp_return";
+    }
+    $parent = _op_parent($parent);
+    last unless $parent && $$parent;
+  }
+  ($parent, undef)
+}
+
+# Determine cx for a logop whose parent is a lineseq.
+# Returns 1 if the lineseq is inside a cond_expr/elsif wrapper, 0
+# otherwise.
+sub _lineseq_parent_cx ($parent) {
+  my $gp = _op_parent($parent);
+  return 0 unless $gp && $$gp;
+  return 1 if $gp->name eq "cond_expr";
+  return 1 if $Seen{cond_expr}{$$gp};
+  0
+}
+
+# Determine cx for a logop by walking up the parent chain.
+# B::Deparse determines cx from the deparsing call chain, not from
+# OPf_WANT. The two diverge for return (want=NONE but cx=6 in deparse)
+# and sort/map/grep blocks (want=SCALAR but cx=0 in deparse).
+# The parent map (built by the XS walker) provides parent lookups on
+# all Perl versions, not just 5.26+.
 sub _logop_parent_cx ($op, $highprec, $lowprec) {
   my $parent = _op_parent($op);
   return 0 unless $parent && $$parent;
   # Skip null/ex-ops, but stop at block boundaries (ex-scope,
   # ex-leave*) since those indicate statement-level context.
-  while ($$parent && $parent->name eq "null") {
-    if (my $targ = $parent->targ) {
-      my $tname = ppname($targ);
-      return 0                     if $tname =~ /^pp_(?:scope|leave)/;
-      return $highprec || $lowprec if $tname eq "pp_return";
-    }
-    $parent = _op_parent($parent);
-    last unless $parent && $$parent;
-  }
+  ($parent, my $early) = _skip_null_parents($parent, $highprec, $lowprec);
+  return $early if defined $early;
   if ($parent && $$parent) {
     my $pname = $parent->name;
     return $highprec || $lowprec if $pname eq "return";
@@ -1492,24 +1517,11 @@ sub _logop_parent_cx ($op, $highprec, $lowprec) {
     # lineseq inside cond_expr/elsif-wrapper condition is cx=1.
     # The last elsif arm compiles to and/or instead of cond_expr;
     # those wrappers are tracked in %Seen{cond_expr}.
-    if ($pname eq "lineseq") {
-      my $gp = _op_parent($parent);
-      if ($gp && $$gp) {
-        return 1 if $gp->name eq "cond_expr";
-        return 1 if $Seen{cond_expr}{$$gp};
-      }
-      return 0;
-    }
-    return 0
-      if $pname eq "scope"
-      || $pname eq "leave"
-      || $pname eq "leavesub"
-      || $pname eq "leavetry"
-      || $pname eq "leaveloop"
-      || $pname eq "sort";
+    return _lineseq_parent_cx($parent) if $pname eq "lineseq";
+    return 0 if $pname =~ /^(?:scope|leave(?:sub|try|loop)?|sort)$/;
     # Nested logop (e.g. inner && in "$a && $b || $c") - B::Deparse
     # recurses into logop children at cx=1 (low-prec expression).
-    return 1 if $pname eq "and" || $pname eq "or" || $pname eq "dor";
+    return 1 if $pname =~ /^(?:and|or|dor)$/;
   }
   # Fallback for unrecognised parent structures (e.g. nested logops
   # where the optimizer has eliminated cond_expr): use OPf_WANT.
