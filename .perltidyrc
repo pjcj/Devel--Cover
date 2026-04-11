@@ -14,7 +14,6 @@
 --space-signature-paren=2              # space before signature parentheses
 --keyword-paren-inner-tightness=0      # space inside keyword parentheses
 --keyword-paren-inner-tightness-list="qw"  # only for qw
---qw-as-function                       # format inside qw
 --break-open-compact-parens=*          # always leave parens open
 
 --space-backslash-quote=0              # no space between backslash and quote
@@ -54,7 +53,6 @@
 --delete-trailing-commas               # delete trailing commas
 --delete-weld-interfering-commas       # delete commas that interfere with welds
 
---multiple-token-tightness=q*          # no space in [qw( and friends
 --trim-pod                             # trim POD trailing whitespace
 --delete-interbracket-arrows           # delete arrows between brackets
 
