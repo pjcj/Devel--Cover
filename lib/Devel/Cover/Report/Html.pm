@@ -7,12 +7,14 @@
 
 package Devel::Cover::Report::Html;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use base "Devel::Cover::Report::Html_crisp";
+use parent "Devel::Cover::Report::Html_crisp";
 
 1;
 
