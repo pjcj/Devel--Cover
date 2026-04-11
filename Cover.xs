@@ -1846,8 +1846,9 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv, HV *parent_map) {
     case OP_AND:
     case OP_OR:
     case OP_DOR:
-      /* Skip loop-internal logops (e.g. AND inside for) */
-      if (cLOGOPx(op)->op_first->op_type != OP_ITER)
+      if (cLOGOPx(op)->op_first->op_type == OP_ITER)
+        dc_walk_callback(aTHX_ op, callback, "iter", cv);
+      else
         dc_walk_callback(aTHX_ op, callback, "logop", cv);
       break;
 
