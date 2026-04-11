@@ -288,7 +288,7 @@ sub _init_db {
     die "Can't mkdir $DB as EUID $>: $err" unless -d $DB;
   }
   chmod 0777, $DB if $Loose_perms;
-  $DB = $1 if abs_path($DB) =~ /(.*)/;  ## no critic (CaptureWithoutTest)
+  ($DB) = abs_path($DB) =~ /(.*)/;
   Devel::Cover::DB->delete($DB) unless $Merge;
 }
 
