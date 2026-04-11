@@ -288,7 +288,7 @@ sub _init_db {
     die "Can't mkdir $DB as EUID $>: $err" unless -d $DB;
   }
   chmod 0777, $DB if $Loose_perms;
-  $DB = $1 if abs_path($DB) =~ /(.*)/;  ## no critic (CaptureWithoutTest)
+  ($DB) = abs_path($DB) =~ /(.*)/;
   Devel::Cover::DB->delete($DB) unless $Merge;
 }
 
@@ -1344,7 +1344,34 @@ my %Logop_params = (
   dor => [ "//",  10 ],
 );
 
-## no critic (ProhibitExcessComplexity)
+# Check if a null-statement op is inside a cond_expr/elsif condition
+# lineseq (a dead COP from the compiler's scope creation).
+sub _in_cond_expr_scope ($op) {
+  my $p = _op_parent($op);
+  return unless $p && $$p && $p->name eq "lineseq";
+  my $gp = _op_parent($p);
+  $gp && $$gp && ($gp->name eq "cond_expr" || $Seen{cond_expr}{$$gp})
+}
+
+# Check if a nextstate op is inside a signature argcheck block without
+# a default-value sibling (i.e. plain param bookkeeping to skip).
+sub _in_signature_argcheck ($op) {
+  my $p = _op_parent($op);
+  return unless $p && $$p && $p->name eq "lineseq";
+  my $gp = _op_parent($p);
+  return
+       unless $gp
+    && $$gp
+    && $gp->name eq "null"
+    && ppname($gp->targ) eq "pp_argcheck";
+  # Inside argcheck - skip unless sibling is a default-value op.
+  my $sib = $op->sibling;
+  !(   $sib
+    && $$sib
+    && ($sib->flags & OPf_KIDS)
+    && $sib->first->name =~ /^(?:argdefelem|paramtest)$/)
+}
+
 sub _walk_statement ($op, $type) {
   # Guard: skip statements with no real successors (trailing closing
   # braces, comment-only files, etc.)
@@ -1364,17 +1391,13 @@ sub _walk_statement ($op, $type) {
     # source statements.  Still update $File/$Line/$Current_cop so
     # that condition coverage for ops in this scope gets the right
     # line attribution.
-    my $p = _op_parent($op);
-    if ($p && $$p && $p->name eq "lineseq") {
-      my $gp = _op_parent($p);
-      if ($gp && $$gp && ($gp->name eq "cond_expr" || $Seen{cond_expr}{$$gp})) {
-        bless $op, "B::COP";
-        get_location($op);
-        $Current_cop = $op;
-        # Leave blessed as B::COP - pragmata() needs COP methods.
-        # The SV is mortal (from the XS callback) so this is safe.
-        return;
-      }
+    if (_in_cond_expr_scope($op)) {
+      bless $op, "B::COP";
+      get_location($op);
+      $Current_cop = $op;
+      # Leave blessed as B::COP - pragmata() needs COP methods.
+      # The SV is mortal (from the XS callback) so this is safe.
+      return;
     }
     bless $op, "B::COP";
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
@@ -1386,23 +1409,7 @@ sub _walk_statement ($op, $type) {
     # Two optree layouts:
     #   5.38+:  nextstate → argelem(OPf_KIDS) → argdefelem
     #   5.43.4+: nextstate → null(OPf_KIDS) → paramtest
-    my $p = _op_parent($op);
-    if ($p && $$p && $p->name eq "lineseq") {
-      my $gp = _op_parent($p);
-      if (
-           $gp
-        && $$gp
-        && $gp->name eq "null"
-        && ppname($gp->targ) eq "pp_argcheck"
-      ) {
-        my $sib = $op->sibling;
-        return
-             unless $sib
-          && $$sib
-          && ($sib->flags & OPf_KIDS)
-          && $sib->first->name =~ /^(?:argdefelem|paramtest)$/;
-      }
-    }
+    return if _in_signature_argcheck($op);
     $Current_cop = $op;
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
   }
@@ -1463,21 +1470,46 @@ sub _walk_cond_expr ($cv, $op) {
 # and sort/map/grep blocks (want=SCALAR but cx=0 in deparse).
 # The parent map (built by the XS walker) provides parent lookups on
 # all Perl versions, not just 5.26+.
-## no critic (ProhibitExcessComplexity)
+# Walk through null/ex-ops, stopping at block boundaries.
+# Returns ($parent, $early_cx) - $early_cx is defined if a
+# boundary was hit and the caller should return that value.
+sub _skip_null_parents ($parent, $highprec, $lowprec) {
+  while ($$parent && $parent->name eq "null") {
+    if (my $targ = $parent->targ) {
+      my $tname = ppname($targ);
+      return ($parent, 0) if $tname =~ /^pp_(?:scope|leave)/;
+      return ($parent, $highprec || $lowprec) if $tname eq "pp_return";
+    }
+    $parent = _op_parent($parent);
+    last unless $parent && $$parent;
+  }
+  ($parent, undef)
+}
+
+# Determine cx for a logop whose parent is a lineseq.
+# Returns 1 if the lineseq is inside a cond_expr/elsif wrapper, 0
+# otherwise.
+sub _lineseq_parent_cx ($parent) {
+  my $gp = _op_parent($parent);
+  return 0 unless $gp && $$gp;
+  return 1 if $gp->name eq "cond_expr";
+  return 1 if $Seen{cond_expr}{$$gp};
+  0
+}
+
+# Determine cx for a logop by walking up the parent chain.
+# B::Deparse determines cx from the deparsing call chain, not from
+# OPf_WANT. The two diverge for return (want=NONE but cx=6 in deparse)
+# and sort/map/grep blocks (want=SCALAR but cx=0 in deparse).
+# The parent map (built by the XS walker) provides parent lookups on
+# all Perl versions, not just 5.26+.
 sub _logop_parent_cx ($op, $highprec, $lowprec) {
   my $parent = _op_parent($op);
   return 0 unless $parent && $$parent;
   # Skip null/ex-ops, but stop at block boundaries (ex-scope,
   # ex-leave*) since those indicate statement-level context.
-  while ($$parent && $parent->name eq "null") {
-    if (my $targ = $parent->targ) {
-      my $tname = ppname($targ);
-      return 0                     if $tname =~ /^pp_(?:scope|leave)/;
-      return $highprec || $lowprec if $tname eq "pp_return";
-    }
-    $parent = _op_parent($parent);
-    last unless $parent && $$parent;
-  }
+  ($parent, my $early) = _skip_null_parents($parent, $highprec, $lowprec);
+  return $early if defined $early;
   if ($parent && $$parent) {
     my $pname = $parent->name;
     return $highprec || $lowprec if $pname eq "return";
@@ -1485,24 +1517,11 @@ sub _logop_parent_cx ($op, $highprec, $lowprec) {
     # lineseq inside cond_expr/elsif-wrapper condition is cx=1.
     # The last elsif arm compiles to and/or instead of cond_expr;
     # those wrappers are tracked in %Seen{cond_expr}.
-    if ($pname eq "lineseq") {
-      my $gp = _op_parent($parent);
-      if ($gp && $$gp) {
-        return 1 if $gp->name eq "cond_expr";
-        return 1 if $Seen{cond_expr}{$$gp};
-      }
-      return 0;
-    }
-    return 0
-      if $pname eq "scope"
-      || $pname eq "leave"
-      || $pname eq "leavesub"
-      || $pname eq "leavetry"
-      || $pname eq "leaveloop"
-      || $pname eq "sort";
+    return _lineseq_parent_cx($parent) if $pname eq "lineseq";
+    return 0 if $pname =~ /^(?:scope|leave(?:sub|try|loop)?|sort)$/;
     # Nested logop (e.g. inner && in "$a && $b || $c") - B::Deparse
     # recurses into logop children at cx=1 (low-prec expression).
-    return 1 if $pname eq "and" || $pname eq "or" || $pname eq "dor";
+    return 1 if $pname =~ /^(?:and|or|dor)$/;
   }
   # Fallback for unrecognised parent structures (e.g. nested logops
   # where the optimizer has eliminated cond_expr): use OPf_WANT.
@@ -1513,7 +1532,25 @@ sub _logop_parent_cx ($op, $highprec, $lowprec) {
   $highprec || $lowprec
 }
 
-## no critic (ProhibitExcessComplexity)
+# Check if a logop is a loop condition (and -> null* -> leaveloop).
+sub _is_loop_condition ($op) {
+  my $p = _op_parent($op);
+  return unless $p && $$p;
+  $p = _op_parent($p) while $p && $$p && $p->name eq "null";
+  $p && $$p && $p->name eq "leaveloop"
+}
+
+# Resolve a blockname to its keyword form for statement-level logops,
+# or clear it for expression-level.
+sub _resolve_blockname ($blockname, $cx) {
+  return undef if $cx >= 1;
+  if ($blockname) {
+    $Shared_deparse ||= B::Deparse->new;
+    return $Shared_deparse->keyword($blockname);
+  }
+  $blockname
+}
+
 sub _walk_logop ($cv, $op) {
   return unless $Collect;
   return if $Seen{cond_expr}{$$op};
@@ -1530,38 +1567,20 @@ sub _walk_logop ($cv, $op) {
   # in_logop nesting can cross block boundaries (e.g. sort block inside
   # a || expression), but B::Deparse resets cx at each block scope.
   my $cx = _logop_parent_cx($op, $highprec, $lowprec);
+  $blockname = _resolve_blockname($blockname, $cx);
 
-  if ($blockname && $cx < 1) {
-    $Shared_deparse ||= B::Deparse->new;
-    $blockname        = $Shared_deparse->keyword($blockname);
-  } else {
-    $blockname = undef if $cx >= 1;
-  }
-
-  # Loop conditions (and -> null* -> leaveloop) are always branches in statement
-  # form, regardless of OPpSTATEMENT.
-  my $is_loop_cond = 0;
-  {
-    my $_p = _op_parent($op);
-    if ($_p && $$_p) {
-      $_p           = _op_parent($_p) while $_p && $$_p && $_p->name eq "null";
-      $is_loop_cond = 1 if $_p && $$_p && $_p->name eq "leaveloop";
-    }
-  }
-
+  # Loop conditions (and -> null* -> leaveloop) are always branches in
+  # statement form, regardless of OPpSTATEMENT.
   $Shared_deparse ||= B::Deparse->new;
   my ($is_statement, $is_branch)
-    = $is_loop_cond
+    = _is_loop_condition($op)
     ? (1, 1)
     : _classify_op($Shared_deparse, $op, $cx, $blockname);
 
-  if ($is_statement && is_scope($right)) {
-    my $l = _deparse_expr($cv, $left, 1, 1);
-    add_branch_cover($op, $lowop, "$blockname ($l)", $file, $line)
-      unless $Seen{branch}{$$op}++;
-  } elsif ($is_statement) {
-    my $l = _deparse_expr($cv, $left, 1, 1);
-    add_branch_cover($op, $lowop, "$blockname $l", $file, $line)
+  if ($is_statement) {
+    my $l    = _deparse_expr($cv, $left, 1, 1);
+    my $text = is_scope($right) ? "$blockname ($l)" : "$blockname $l";
+    add_branch_cover($op, $lowop, $text, $file, $line)
       unless $Seen{branch}{$$op}++;
   } elsif ($cx > $lowprec && $highop) {
     my $l = _deparse_binop_left($cv, $op, $left, $highprec, 0);
