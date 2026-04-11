@@ -1532,7 +1532,25 @@ sub _logop_parent_cx ($op, $highprec, $lowprec) {
   $highprec || $lowprec
 }
 
-## no critic (ProhibitExcessComplexity)
+# Check if a logop is a loop condition (and -> null* -> leaveloop).
+sub _is_loop_condition ($op) {
+  my $p = _op_parent($op);
+  return unless $p && $$p;
+  $p = _op_parent($p) while $p && $$p && $p->name eq "null";
+  $p && $$p && $p->name eq "leaveloop"
+}
+
+# Resolve a blockname to its keyword form for statement-level logops,
+# or clear it for expression-level.
+sub _resolve_blockname ($blockname, $cx) {
+  return undef if $cx >= 1;
+  if ($blockname) {
+    $Shared_deparse ||= B::Deparse->new;
+    return $Shared_deparse->keyword($blockname);
+  }
+  $blockname
+}
+
 sub _walk_logop ($cv, $op) {
   return unless $Collect;
   return if $Seen{cond_expr}{$$op};
@@ -1549,38 +1567,20 @@ sub _walk_logop ($cv, $op) {
   # in_logop nesting can cross block boundaries (e.g. sort block inside
   # a || expression), but B::Deparse resets cx at each block scope.
   my $cx = _logop_parent_cx($op, $highprec, $lowprec);
+  $blockname = _resolve_blockname($blockname, $cx);
 
-  if ($blockname && $cx < 1) {
-    $Shared_deparse ||= B::Deparse->new;
-    $blockname        = $Shared_deparse->keyword($blockname);
-  } else {
-    $blockname = undef if $cx >= 1;
-  }
-
-  # Loop conditions (and -> null* -> leaveloop) are always branches in statement
-  # form, regardless of OPpSTATEMENT.
-  my $is_loop_cond = 0;
-  {
-    my $_p = _op_parent($op);
-    if ($_p && $$_p) {
-      $_p           = _op_parent($_p) while $_p && $$_p && $_p->name eq "null";
-      $is_loop_cond = 1 if $_p && $$_p && $_p->name eq "leaveloop";
-    }
-  }
-
+  # Loop conditions (and -> null* -> leaveloop) are always branches in
+  # statement form, regardless of OPpSTATEMENT.
   $Shared_deparse ||= B::Deparse->new;
   my ($is_statement, $is_branch)
-    = $is_loop_cond
+    = _is_loop_condition($op)
     ? (1, 1)
     : _classify_op($Shared_deparse, $op, $cx, $blockname);
 
-  if ($is_statement && is_scope($right)) {
-    my $l = _deparse_expr($cv, $left, 1, 1);
-    add_branch_cover($op, $lowop, "$blockname ($l)", $file, $line)
-      unless $Seen{branch}{$$op}++;
-  } elsif ($is_statement) {
-    my $l = _deparse_expr($cv, $left, 1, 1);
-    add_branch_cover($op, $lowop, "$blockname $l", $file, $line)
+  if ($is_statement) {
+    my $l    = _deparse_expr($cv, $left, 1, 1);
+    my $text = is_scope($right) ? "$blockname ($l)" : "$blockname $l";
+    add_branch_cover($op, $lowop, $text, $file, $line)
       unless $Seen{branch}{$$op}++;
   } elsif ($cx > $lowprec && $highop) {
     my $l = _deparse_binop_left($cv, $op, $left, $highprec, 0);
