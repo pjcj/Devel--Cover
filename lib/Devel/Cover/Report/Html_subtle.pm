@@ -365,7 +365,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use base "Template::Provider";
+use parent "Template::Provider";
 
 my %Templates;
 
