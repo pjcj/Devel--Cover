@@ -1344,7 +1344,34 @@ my %Logop_params = (
   dor => [ "//",  10 ],
 );
 
-## no critic (ProhibitExcessComplexity)
+# Check if a null-statement op is inside a cond_expr/elsif condition
+# lineseq (a dead COP from the compiler's scope creation).
+sub _in_cond_expr_scope ($op) {
+  my $p = _op_parent($op);
+  return unless $p && $$p && $p->name eq "lineseq";
+  my $gp = _op_parent($p);
+  $gp && $$gp && ($gp->name eq "cond_expr" || $Seen{cond_expr}{$$gp})
+}
+
+# Check if a nextstate op is inside a signature argcheck block without
+# a default-value sibling (i.e. plain param bookkeeping to skip).
+sub _in_signature_argcheck ($op) {
+  my $p = _op_parent($op);
+  return unless $p && $$p && $p->name eq "lineseq";
+  my $gp = _op_parent($p);
+  return
+       unless $gp
+    && $$gp
+    && $gp->name eq "null"
+    && ppname($gp->targ) eq "pp_argcheck";
+  # Inside argcheck - skip unless sibling is a default-value op.
+  my $sib = $op->sibling;
+  !(   $sib
+    && $$sib
+    && ($sib->flags & OPf_KIDS)
+    && $sib->first->name =~ /^(?:argdefelem|paramtest)$/)
+}
+
 sub _walk_statement ($op, $type) {
   # Guard: skip statements with no real successors (trailing closing
   # braces, comment-only files, etc.)
@@ -1364,17 +1391,13 @@ sub _walk_statement ($op, $type) {
     # source statements.  Still update $File/$Line/$Current_cop so
     # that condition coverage for ops in this scope gets the right
     # line attribution.
-    my $p = _op_parent($op);
-    if ($p && $$p && $p->name eq "lineseq") {
-      my $gp = _op_parent($p);
-      if ($gp && $$gp && ($gp->name eq "cond_expr" || $Seen{cond_expr}{$$gp})) {
-        bless $op, "B::COP";
-        get_location($op);
-        $Current_cop = $op;
-        # Leave blessed as B::COP - pragmata() needs COP methods.
-        # The SV is mortal (from the XS callback) so this is safe.
-        return;
-      }
+    if (_in_cond_expr_scope($op)) {
+      bless $op, "B::COP";
+      get_location($op);
+      $Current_cop = $op;
+      # Leave blessed as B::COP - pragmata() needs COP methods.
+      # The SV is mortal (from the XS callback) so this is safe.
+      return;
     }
     bless $op, "B::COP";
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
@@ -1386,23 +1409,7 @@ sub _walk_statement ($op, $type) {
     # Two optree layouts:
     #   5.38+:  nextstate → argelem(OPf_KIDS) → argdefelem
     #   5.43.4+: nextstate → null(OPf_KIDS) → paramtest
-    my $p = _op_parent($op);
-    if ($p && $$p && $p->name eq "lineseq") {
-      my $gp = _op_parent($p);
-      if (
-           $gp
-        && $$gp
-        && $gp->name eq "null"
-        && ppname($gp->targ) eq "pp_argcheck"
-      ) {
-        my $sib = $op->sibling;
-        return
-             unless $sib
-          && $$sib
-          && ($sib->flags & OPf_KIDS)
-          && $sib->first->name =~ /^(?:argdefelem|paramtest)$/;
-      }
-    }
+    return if _in_signature_argcheck($op);
     $Current_cop = $op;
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
   }
