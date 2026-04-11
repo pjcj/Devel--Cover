@@ -1,6 +1,6 @@
 package Devel::Cover::Html_Common;
 
-use strict;
+use 5.20.0;
 use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
@@ -22,9 +22,7 @@ BEGIN {
   $Have_highlighter = $Have_ppi || $Have_perltidy;
 }
 
-sub launch {
-  my ($package, $opt) = @_;
-
+sub launch ($package, $opt) {
   my $outfile = "$opt->{outputdir}/$opt->{option}{outputfile}";
   if (eval { require Browser::Open }) {
     Browser::Open::open_browser($outfile);
@@ -39,7 +37,7 @@ sub _highlight_ppi (@all_lines) {
   my $highlight = PPI::HTML->new(line_numbers => 1);
   my $pretty    = $highlight->html($document);
 
-  my $split = qq(<span class="line_number">);
+  my $split = '<span class="line_number">';
 
   no warnings "uninitialized";
 
@@ -69,7 +67,7 @@ sub _highlight_perltidy (@all_lines) {
     destination => \@coloured,
     argv        => "-html -pre -nopod2html",
     stderr      => \$stderr,
-    errorfile   => \$errorfile
+    errorfile   => \$errorfile,
   );
   shift @coloured;
   pop @coloured;
