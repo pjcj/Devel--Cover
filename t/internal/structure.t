@@ -824,7 +824,7 @@ sub main () {
   test_get_end_lines;
   test_end_line_write_read;
   test_set_subroutine_returns_sub_id;
-  done_testing;
 }
 
 main;
+done_testing;
