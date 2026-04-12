@@ -56,10 +56,8 @@ sub run_cover ($label, $script_content) {
 # script's file digest.
 sub cover_complexity ($label, $script_content) {
   my ($db, $script) = run_cover($label, $script_content);
-
   my $st = Devel::Cover::DB::Structure->new(base => $db);
   $st->read_all;
-
   $st->get_complexity(md5_file($script))
 }
 
@@ -76,7 +74,7 @@ sub cover_complexity ($label, $script_content) {
 # Line 8: sub ternary      - one cond_expr (?:)
 # Line 9: sub with_foreach - one foreach loop (iter)
 
-my $Cc = cover_complexity("cc_basic", <<'PERL');
+my $Cc_script = <<'PERL';
 use strict;
 use warnings;
 
@@ -95,36 +93,23 @@ ternary(1);
 with_foreach("a", "b");
 PERL
 
-ok defined $Cc, "complexity data present in structure";
+sub test_cc_counting () {
+  my $cc = cover_complexity("cc_basic", $Cc_script);
 
-is $Cc->{4}{linear}[0],       1, "linear: CC = 1";
-is $Cc->{5}{one_if}[0],       2, "one if: CC = 2";
-is $Cc->{6}{elsif_two}[0],    3, "if/elsif: CC = 3";
-is $Cc->{7}{with_and}[0],     2, "&&: CC = 2";
-is $Cc->{8}{ternary}[0],      2, "ternary: CC = 2";
-is $Cc->{9}{with_foreach}[0], 2, "foreach: CC = 2";
+  ok defined $cc, "complexity data present in structure";
+
+  is $cc->{4}{linear}[0],       1, "linear: CC = 1";
+  is $cc->{5}{one_if}[0],       2, "one if: CC = 2";
+  is $cc->{6}{elsif_two}[0],    3, "if/elsif: CC = 3";
+  is $cc->{7}{with_and}[0],     2, "&&: CC = 2";
+  is $cc->{8}{ternary}[0],      2, "ternary: CC = 2";
+  is $cc->{9}{with_foreach}[0], 2, "foreach: CC = 2";
+}
 
 # Summary aggregation tests
 # Reuse the same test script layout (6 subs: CC = 1, 2, 3, 2, 2, 2).
-{
-  my ($db_path, $script) = run_cover("cc_summary", <<'PERL');
-use strict;
-use warnings;
-
-sub linear       { 42 }
-sub one_if       { if ($_[0]) { return 1 } return 0 }
-sub elsif_two    { if ($_[0] > 0) { 1 } elsif ($_[0] < 0) { -1 } else { 0 } }
-sub with_and     { $_[0] && $_[1] }
-sub ternary      { $_[0] ? 1 : 0 }
-sub with_foreach { my $s; foreach my $x (@_) { $s .= $x } $s }
-
-linear();
-one_if(1);
-elsif_two(1);
-with_and(1, 1);
-ternary(1);
-with_foreach("a", "b");
-PERL
+sub test_summary_aggregation () {
+  my ($db_path, $script) = run_cover("cc_summary", $Cc_script);
 
   my $st = Devel::Cover::DB::Structure->new(base => $db_path);
   $st->read_all;
@@ -169,7 +154,7 @@ PERL
 # 10: (blank)
 # 11: oneliner();
 # 12: multiline();
-{
+sub test_end_lines () {
   my ($db_path, $script) = run_cover("cc_endline", <<'PERL');
 use strict;
 use warnings;
@@ -196,4 +181,11 @@ PERL
     "multi-line sub: end_line = last statement line";
 }
 
+sub main () {
+  test_cc_counting;
+  test_summary_aggregation;
+  test_end_lines;
+}
+
+main;
 done_testing;
