@@ -1660,6 +1660,8 @@ sub _get_cover_walk ($cv, $root) {
         _walk_xor($cv_ref, $op);
       } elsif ($type eq "iter") {
         $decisions++;
+      } elsif ($type eq "argdefelem") {
+        $decisions++;
       }
     },
     $cv,

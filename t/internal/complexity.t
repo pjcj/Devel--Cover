@@ -93,6 +93,32 @@ ternary(1);
 with_foreach("a", "b");
 PERL
 
+# Signature script for testing argdefelem CC counting.
+# Line numbers:
+# 1: use 5.20.0;
+# 2: use warnings;
+# 3: use feature "signatures";
+# 4: no warnings "experimental::signatures";
+# 5: (blank)
+# 6: sub with_default         - CC=2: 1 argdefelem
+# 7: sub with_default_cond    - CC=3: 1 argdefelem + 1 logop (||)
+# 8: (blank)
+# 9: with_default();
+# 10: with_default_cond();
+
+my $Sig_script = <<'PERL';
+use 5.20.0;
+use warnings;
+use feature "signatures";
+no warnings "experimental::signatures";
+
+sub with_default ($x = 42) { $x }
+sub with_default_cond ($x = $ENV{X} || 1) { $x }
+
+with_default();
+with_default_cond();
+PERL
+
 sub test_cc_counting () {
   my $cc = cover_complexity("cc_basic", $Cc_script);
 
@@ -182,10 +208,24 @@ PERL
     "multi-line sub: end_line = last statement line";
 }
 
+# Signature default CC tests.
+# Verifies argdefelem ops count as CC decision points, and that
+# conditions inside defaults (logops, cond_exprs) stack correctly.
+sub test_signature_cc () {
+  my $cc = cover_complexity("cc_sig", $Sig_script);
+
+  ok defined $cc, "signature: complexity data present";
+
+  is $cc->{6}{with_default}[0], 2, "signature default: CC = 2 (1 argdefelem)";
+  is $cc->{7}{with_default_cond}[0], 3,
+    "signature default with ||: CC = 3 (1 argdefelem + 1 logop)";
+}
+
 sub main () {
   test_cc_counting;
   test_summary_aggregation;
   test_end_lines;
+  test_signature_cc;
 }
 
 main;
