@@ -302,38 +302,94 @@ sub summary ($self, $file, $criterion = undef, $part = undef) {
   $c && defined $part ? $c->{$part} : $c
 }
 
+sub _sub_coverage ($file_obj, $start, $end) {
+  my ($covered, $total) = (0, 0);
+  for my $name (qw( statement branch condition )) {
+    my $crit = $file_obj->{$name} or next;
+    for my $line ($start .. $end) {
+      my $loc = $crit->{$line} or next;
+      for my $obj (@$loc) {
+        my $t = $obj->total;
+        $total   += $t;
+        $covered += $t - $obj->error;
+      }
+    }
+  }
+  $total ? 100 * $covered / $total : 100
+}
+
+sub _crap ($cc, $cov_pct) {
+  $cc**2 * (1 - $cov_pct / 100)**3 + $cc
+}
+
 sub summarise_complexity ($self, $s, $files) {
-  my $st          = $self->{_structure} or return;
-  my $total_sum   = 0;
-  my $total_count = 0;
-  my $total_max   = 0;
+  my $st = $self->{_structure} or return;
+  my ($total_sum,      $total_count,      $total_max)      = (0, 0, 0);
+  my ($crap_total_sum, $crap_total_count, $crap_total_max) = (0, 0, 0);
   for my $file (@$files) {
-    my $digest = $self->cover->get($file)->{meta}{digest};
+    my $file_obj = $self->cover->get($file);
+    my $digest   = $file_obj->{meta}{digest};
     next unless $digest;
-    my $cc_hash = $st->get_complexity($digest) or next;
-    my ($max, $sum, $count) = (0, 0, 0);
-    for my $line_data (values %$cc_hash) {
-      for my $sub_data (values %$line_data) {
-        for my $cc (@$sub_data) {
+    my $cc_hash  = $st->get_complexity($digest) or next;
+    my $end_hash = $st->get_end_lines($digest) || {};
+    my ($max, $sum, $count)                = (0, 0, 0);
+    my ($crap_max, $crap_sum, $crap_count) = (0, 0, 0);
+    my @subs;
+
+    for my $line (sort { $a <=> $b } keys %$cc_hash) {
+      for my $sub_name (sort keys %{ $cc_hash->{$line} }) {
+        my $cc_arr  = $cc_hash->{$line}{$sub_name};
+        my $end_arr = $end_hash->{$line}{$sub_name} // [];
+        for my $scount (0 .. $#$cc_arr) {
+          my $cc = $cc_arr->[$scount];
           next unless defined $cc;
           $max  = $cc if $cc > $max;
           $sum += $cc;
           $count++;
+          my $end  = $end_arr->[$scount] // $line;
+          my $cov  = _sub_coverage($file_obj, $line, $end);
+          my $crap = _crap($cc, $cov);
+          $crap_max  = $crap if $crap > $crap_max;
+          $crap_sum += $crap;
+          $crap_count++;
+          push @subs, {
+              name => $sub_name,
+              line => $line + 0,
+              cc   => $cc,
+              cov  => $cov,
+              crap => $crap,
+            };
         }
       }
     }
     next unless $count;
     $s->{$file}{complexity}
       = { max => $max, mean => $sum / $count, count => $count };
-    $total_max    = $max if $max > $total_max;
-    $total_sum   += $sum;
-    $total_count += $count;
+    $s->{$file}{crap} = {
+      max   => $crap_max,
+      mean  => $crap_sum / $crap_count,
+      count => $crap_count,
+      subs  => \@subs,
+    };
+    $total_max         = $max if $max > $total_max;
+    $total_sum        += $sum;
+    $total_count      += $count;
+    $crap_total_max    = $crap_max if $crap_max > $crap_total_max;
+    $crap_total_sum   += $crap_sum;
+    $crap_total_count += $crap_count;
   }
   if ($total_count) {
     $s->{Total}{complexity} = {
       max   => $total_max,
       mean  => $total_sum / $total_count,
       count => $total_count,
+    };
+  }
+  if ($crap_total_count) {
+    $s->{Total}{crap} = {
+      max   => $crap_total_max,
+      mean  => $crap_total_sum / $crap_total_count,
+      count => $crap_total_count,
     };
   }
 }

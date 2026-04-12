@@ -119,6 +119,36 @@ with_default();
 with_default_cond();
 PERL
 
+# CRAP scoring test script.
+# Line layout:
+# 1: use strict;
+# 2: use warnings;
+# 3: (blank)
+# 4: sub fully_covered     - CC=1, all stmts executed
+# 5: sub uncalled           - CC=1, no stmts executed
+# 6: sub partial_branch {   - CC=2, only true branch taken
+# 7:     if ($_[0]) { return 1 }
+# 8:     return 0;
+# 9: }
+# 10: (blank)
+# 11: fully_covered();
+# 12: partial_branch(1);
+
+my $Crap_script = <<'PERL';
+use strict;
+use warnings;
+
+sub fully_covered { 42 }
+sub uncalled      { 42 }
+sub partial_branch {
+    if ($_[0]) { return 1 }
+    return 0;
+}
+
+fully_covered();
+partial_branch(1);
+PERL
+
 sub test_cc_counting () {
   my $cc = cover_complexity("cc_basic", $Cc_script);
 
@@ -221,11 +251,74 @@ sub test_signature_cc () {
     "signature default with ||: CC = 3 (1 argdefelem + 1 logop)";
 }
 
+# CRAP (Change Risk Anti-Patterns) scoring tests.
+# Verifies that summarise_complexity computes per-sub combined
+# coverage and CRAP scores alongside existing complexity aggregation.
+sub test_crap_scoring () {
+  my ($db_path, $script) = run_cover("cc_crap", $Crap_script);
+
+  my $st = Devel::Cover::DB::Structure->new(base => $db_path);
+  $st->read_all;
+
+  my $db = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  $db->set_structure($st);
+  $db->calculate_summary(
+    statement  => 1,
+    branch     => 1,
+    condition  => 1,
+    subroutine => 1,
+  );
+
+  my ($file) = grep /cc_crap\.pl$/, keys $db->{summary}->%*;
+  ok defined $file, "crap: summary contains cover file";
+
+  my $crap = $db->{summary}{$file}{crap};
+  ok defined $crap, "crap: file summary has crap entry";
+
+  ok exists $crap->{max},   "crap: has max";
+  ok exists $crap->{mean},  "crap: has mean";
+  ok exists $crap->{count}, "crap: has count";
+  ok exists $crap->{subs},  "crap: has subs";
+
+  # Build lookup by sub name for easier assertions.
+  my %by_name = map { $_->{name} => $_ } $crap->{subs}->@*;
+
+  # fully_covered: CC=1, cov=100%, CRAP = 1^2*(1-1)^3 + 1 = 1
+  my $fc = $by_name{fully_covered};
+  ok defined $fc, "crap: fully_covered present";
+  is $fc->{cc},   1,   "crap: fully_covered CC = 1";
+  is $fc->{cov},  100, "crap: fully_covered cov = 100";
+  is $fc->{crap}, 1,   "crap: fully_covered CRAP = 1";
+
+  # uncalled: CC=1, cov=0%, CRAP = 1^2*(1-0)^3 + 1 = 2
+  my $uc = $by_name{uncalled};
+  ok defined $uc, "crap: uncalled present";
+  is $uc->{cc},   1, "crap: uncalled CC = 1";
+  is $uc->{cov},  0, "crap: uncalled cov = 0";
+  is $uc->{crap}, 2, "crap: uncalled CRAP = 2";
+
+  # partial_branch: CC=2, partial coverage.
+  # Bounds: cov=100% => CRAP=2, cov=0% => CRAP=6.
+  my $pb = $by_name{partial_branch};
+  ok defined $pb, "crap: partial_branch present";
+  is $pb->{cc}, 2, "crap: partial_branch CC = 2";
+  ok $pb->{crap} > 2, "crap: partial_branch CRAP > CC";
+  ok $pb->{crap} < 6, "crap: partial_branch CRAP < CC^2+CC";
+
+  # Total aggregation
+  my $ts = $db->{summary}{Total}{crap};
+  ok defined $ts,         "crap: Total has crap entry";
+  ok exists $ts->{max},   "crap: Total has max";
+  ok exists $ts->{mean},  "crap: Total has mean";
+  ok exists $ts->{count}, "crap: Total has count";
+}
+
 sub main () {
   test_cc_counting;
   test_summary_aggregation;
   test_end_lines;
   test_signature_cc;
+  test_crap_scoring;
 }
 
 main;
