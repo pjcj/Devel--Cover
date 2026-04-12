@@ -139,6 +139,18 @@ sub get_complexity ($self, $digest) {
   return
 }
 
+sub set_end_line ($self, $sub_id, $end_line) {
+  my ($file, $line, $sub_name, $scount) = @$sub_id;
+  $self->{f}{$file}{end_line}{$line}{$sub_name}[$scount] = $end_line;
+}
+
+sub get_end_lines ($self, $digest) {
+  for my $fval (values $self->{f}->%*) {
+    return $fval->{end_line} if $fval->{digest} eq $digest;
+  }
+  return
+}
+
 sub store_counts ($self, $file) {
   $self->{count}{$_}{$file} = $self->{f}{$file}{start}{-1}{__COVER__}[0]{$_}
     = $self->get_count($file, $_)

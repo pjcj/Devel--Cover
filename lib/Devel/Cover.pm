@@ -1283,14 +1283,17 @@ sub get_cover ($cv, $root = undef) {
 
   my $sub_id = _add_subroutine_structure($cv, $start);
 
-  my $cc;
+  my ($cc, $end_line);
   if ($Use_deparse) {
     _get_cover_deparse($cv, $root);
   } else {
-    $cc = _get_cover_walk($cv, $root);
+    ($cc, $end_line) = _get_cover_walk($cv, $root);
   }
 
-  $Structure->set_complexity($sub_id, $cc) if $sub_id && defined $cc;
+  if ($sub_id && defined $cc) {
+    $Structure->set_complexity($sub_id, $cc);
+    $Structure->set_end_line($sub_id, $end_line) if defined $end_line;
+  }
 }
 
 sub _get_cover_deparse ($cv, $root) {
@@ -1636,11 +1639,13 @@ sub _get_cover_walk ($cv, $root) {
   my $op = $root || $cv->ROOT;
   return unless $$op;
   my $decisions = 0;
+  my $max_line  = $Line // 0;
   walk_ops(
     $op,
     sub ($op, $type, $cv_ref) {
       if ($type eq "statement" || $type eq "null_statement") {
         _walk_statement($op, $type);
+        $max_line = $Line if defined $Line && $Line > $max_line;
       } elsif ($type eq "cond_expr") {
         $decisions++;
         _walk_cond_expr($cv_ref, $op);
@@ -1660,7 +1665,7 @@ sub _get_cover_walk ($cv, $root) {
     $cv,
     \%Parent_map,
   );
-  $decisions + 1
+  ($decisions + 1, $max_line)
 }
 
 sub _report_progress ($msg, $code, @items) {
