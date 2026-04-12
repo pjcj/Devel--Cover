@@ -302,6 +302,42 @@ sub summary ($self, $file, $criterion = undef, $part = undef) {
   $c && defined $part ? $c->{$part} : $c
 }
 
+sub summarise_complexity ($self, $s, $files) {
+  my $st          = $self->{_structure} or return;
+  my $total_sum   = 0;
+  my $total_count = 0;
+  my $total_max   = 0;
+  for my $file (@$files) {
+    my $digest = $self->cover->get($file)->{meta}{digest};
+    next unless $digest;
+    my $cc_hash = $st->get_complexity($digest) or next;
+    my ($max, $sum, $count) = (0, 0, 0);
+    for my $line_data (values %$cc_hash) {
+      for my $sub_data (values %$line_data) {
+        for my $cc (@$sub_data) {
+          next unless defined $cc;
+          $max  = $cc if $cc > $max;
+          $sum += $cc;
+          $count++;
+        }
+      }
+    }
+    next unless $count;
+    $s->{$file}{complexity}
+      = { max => $max, mean => $sum / $count, count => $count };
+    $total_max    = $max if $max > $total_max;
+    $total_sum   += $sum;
+    $total_count += $count;
+  }
+  if ($total_count) {
+    $s->{Total}{complexity} = {
+      max   => $total_max,
+      mean  => $total_sum / $total_count,
+      count => $total_count,
+    };
+  }
+}
+
 sub calculate_summary ($self, %options) {
   return if exists $self->{summary} && !$options{force};
   my $s = $self->{summary} = {};
@@ -327,6 +363,8 @@ sub calculate_summary ($self, %options) {
     $c->calculate_percentage($self, $t->{$criterion});
   }
   Devel::Cover::Criterion->calculate_percentage($self, $t->{total});
+
+  $self->summarise_complexity($s, \@files);
 }
 
 sub trimmed_file ($f, $len) {
@@ -681,10 +719,10 @@ sub objectify_cover ($self) {
     }
 
     my $classes = {
-      Cover     => [ qw( files     file ) ],
-      File      => [ qw( criteria  criterion ) ],
-      Criterion => [ qw( locations location ) ],
-      Location  => [ qw( data      datum ) ],
+      Cover     => [qw( files     file )],
+      File      => [qw( criteria  criterion )],
+      Criterion => [qw( locations location )],
+      Location  => [qw( data      datum )],
     };
     my $base = "Devel::Cover::DB::Base";
     while (my ($class, $functions) = each %$classes) {
@@ -745,6 +783,7 @@ sub _cover_file (
     $ff = $file unless -e $ff;
   }
   my $cf = $cover->{ $digests->{$digest} ||= $ff } ||= {};
+  $cf->{meta}{digest} = $digest;
 
   while (my ($criterion, $fc) = each %$f) {
     my $get = "get_$criterion";
@@ -791,7 +830,7 @@ sub cover ($self) {
     while (my ($file, $f) = each %$count) {
       $self->_cover_file(
         $file, $f, $r, $st, $cover,
-        $uncoverable, \%digests, \%files, \%warned
+        $uncoverable, \%digests, \%files, \%warned,
       );
     }
   }
