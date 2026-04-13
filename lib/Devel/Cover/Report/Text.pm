@@ -222,7 +222,7 @@ sub _gather_subs ($dfile, $pods, $display_name, $crap_lookup) {
 
       my $info = $crap_lookup->{"$location\0$s"};
       my $cc   = defined $info ? $info->{cc}                    : "";
-      my $cr   = defined $info ? sprintf("%.1f", $info->{crap}) : "";
+      my $cr   = defined $info ? sprintf("%.1f", $info->{slop}) : "";
 
       $maxw{h}  = length $h  if length $h > $maxw{h};
       $maxw{c}  = length $c  if length $c > $maxw{c};
@@ -258,7 +258,7 @@ sub print_subroutines ($db, $file, $options, $short) {
     say ucfirst($type),            " Subroutines";
     say "-" x (12 + length $type), "\n";
     printf $tpl, "Subroutine", "Count", $pods ? "Pod" : (),
-      $has_crap ? ("CC", "CRAP") : (), "Location";
+      $has_crap ? ("CC", "SLOP") : (), "Location";
     printf $tpl, "-" x $maxw->{s}, "-" x $maxw->{c},
       $pods ? "-" x $maxw->{p} : (),
       $has_crap ? ("-" x $maxw->{cc}, "-" x $maxw->{cr}) : (), "-" x $maxw->{h};
@@ -397,7 +397,7 @@ summary data for C<$file>.  Returns an empty hashref when no CRAP data exists.
 
 Walk the subroutine and pod coverage data for a file, returning a hashref of
 covered/uncovered sub entries and a hashref of column widths for formatting.
-When C<$crap_lookup> is non-empty, CC and CRAP values are included in each
+When C<$crap_lookup> is non-empty, CC and SLOP values are included in each
 entry.
 
 =head1 SEE ALSO
