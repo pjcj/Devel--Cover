@@ -626,7 +626,9 @@ sub oclass ($o, $criterion) {
 }
 
 sub fmt_pc ($pc) {
-  defined $pc ? (sprintf "%5.2f", $pc) =~ s/.\z//r =~ s/^\s+//r : "n/a"
+  defined $pc
+    ? (sprintf "%5.2f", $pc) =~ s/.\z//r =~ s/^\s+//r =~ s/^100\.0$/100/r
+    : "n/a"
 }
 
 sub get_summary ($file, $criterion) {
