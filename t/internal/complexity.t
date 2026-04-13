@@ -255,7 +255,7 @@ sub test_signature_cc () {
 # CRAP (Change Risk Anti-Patterns) scoring tests.
 # Verifies that summarise_complexity computes per-sub combined
 # coverage and CRAP scores alongside existing complexity aggregation.
-sub test_crap_scoring () {
+sub test_slop_scoring () {
   my ($db_path, $script) = run_cover("cc_crap", $Crap_script);
 
   my $st = Devel::Cover::DB::Structure->new(base => $db_path);
@@ -271,59 +271,59 @@ sub test_crap_scoring () {
   );
 
   my ($file) = grep /cc_crap\.pl$/, keys $db->{summary}->%*;
-  ok defined $file, "crap: summary contains cover file";
+  ok defined $file, "slop: summary contains cover file";
 
-  my $crap = $db->{summary}{$file}{crap};
-  ok defined $crap, "crap: file summary has crap entry";
+  my $slop = $db->{summary}{$file}{slop};
+  ok defined $slop, "slop: file summary has slop entry";
 
-  ok exists $crap->{max},   "crap: has max";
-  ok exists $crap->{mean},  "crap: has mean";
-  ok exists $crap->{count}, "crap: has count";
-  ok exists $crap->{subs},  "crap: has subs";
+  ok exists $slop->{max},   "slop: has max";
+  ok exists $slop->{mean},  "slop: has mean";
+  ok exists $slop->{count}, "slop: has count";
+  ok exists $slop->{subs},  "slop: has subs";
 
   # Build lookup by sub name for easier assertions.
-  my %by_name = map { $_->{name} => $_ } $crap->{subs}->@*;
+  my %by_name = map { $_->{name} => $_ } $slop->{subs}->@*;
 
   # fully_covered: CC=1, cov=100%, CRAP = 1^2*(1-1)^3 + 1 = 1
   my $fc = $by_name{fully_covered};
-  ok defined $fc, "crap: fully_covered present";
-  is $fc->{cc},   1,   "crap: fully_covered CC = 1";
-  is $fc->{cov},  100, "crap: fully_covered cov = 100";
-  is $fc->{crap}, 1,   "crap: fully_covered CRAP = 1";
+  ok defined $fc, "slop: fully_covered present";
+  is $fc->{cc},   1,   "slop: fully_covered CC = 1";
+  is $fc->{cov},  100, "slop: fully_covered cov = 100";
+  is $fc->{crap}, 1,   "slop: fully_covered CRAP = 1";
   is $fc->{slop}, 0,   "slop: fully_covered SLOP = 0";
 
   # uncalled: CC=1, cov=0%, CRAP = 1^2*(1-0)^3 + 1 = 2
   my $uc = $by_name{uncalled};
-  ok defined $uc, "crap: uncalled present";
-  is $uc->{cc},   1, "crap: uncalled CC = 1";
-  is $uc->{cov},  0, "crap: uncalled cov = 0";
-  is $uc->{crap}, 2, "crap: uncalled CRAP = 2";
+  ok defined $uc, "slop: uncalled present";
+  is $uc->{cc},   1, "slop: uncalled CC = 1";
+  is $uc->{cov},  0, "slop: uncalled cov = 0";
+  is $uc->{crap}, 2, "slop: uncalled CRAP = 2";
   ok abs($uc->{slop} - log(2) * 10) < 0.01,
     "slop: uncalled SLOP = ln(2)*10";
 
   # partial_branch: CC=2, partial coverage.
   # Bounds: cov=100% => CRAP=2, cov=0% => CRAP=6.
   my $pb = $by_name{partial_branch};
-  ok defined $pb, "crap: partial_branch present";
-  is $pb->{cc}, 2, "crap: partial_branch CC = 2";
-  ok $pb->{crap} > 2, "crap: partial_branch CRAP > CC";
-  ok $pb->{crap} < 6, "crap: partial_branch CRAP < CC^2+CC";
+  ok defined $pb, "slop: partial_branch present";
+  is $pb->{cc}, 2, "slop: partial_branch CC = 2";
+  ok $pb->{crap} > 2, "slop: partial_branch CRAP > CC";
+  ok $pb->{crap} < 6, "slop: partial_branch CRAP < CC^2+CC";
   ok $pb->{slop} > 0, "slop: partial_branch SLOP > 0";
   ok $pb->{slop} > $uc->{slop},
     "slop: partial_branch SLOP > uncalled SLOP";
 
   # Total aggregation
-  my $ts = $db->{summary}{Total}{crap};
-  ok defined $ts,         "crap: Total has crap entry";
-  ok exists $ts->{max},   "crap: Total has max";
-  ok exists $ts->{mean},  "crap: Total has mean";
-  ok exists $ts->{count}, "crap: Total has count";
+  my $ts = $db->{summary}{Total}{slop};
+  ok defined $ts,         "slop: Total has slop entry";
+  ok exists $ts->{max},   "slop: Total has max";
+  ok exists $ts->{mean},  "slop: Total has mean";
+  ok exists $ts->{count}, "slop: Total has count";
 }
 
 # Text report CC/SLOP column tests.
 # Verifies that print_subroutines includes CC and SLOP columns
 # when CRAP summary data is available.
-sub test_text_report_crap () {
+sub test_text_report_slop () {
   my ($db_path, $script) = run_cover("cc_text", $Crap_script);
 
   my $st = Devel::Cover::DB::Structure->new(base => $db_path);
@@ -371,7 +371,7 @@ sub test_text_report_crap () {
 # File-level CRAP tests.
 # Verifies that summarise_complexity computes file_cc, file_cov,
 # and file_crap by treating the entire file as one sub body.
-sub test_file_level_crap () {
+sub test_file_level_slop () {
   my ($db_path, $script) = run_cover("cc_filecrap", $Crap_script);
 
   my $st = Devel::Cover::DB::Structure->new(base => $db_path);
@@ -387,43 +387,43 @@ sub test_file_level_crap () {
   );
 
   my ($file) = grep /cc_filecrap\.pl$/, keys $db->{summary}->%*;
-  ok defined $file, "filecrap: summary contains cover file";
+  ok defined $file, "fileslop: summary contains cover file";
 
-  my $crap = $db->{summary}{$file}{crap};
-  ok defined $crap, "filecrap: file summary has crap entry";
+  my $slop = $db->{summary}{$file}{slop};
+  ok defined $slop, "fileslop: file summary has slop entry";
 
   # file_cc = sum of per-sub CCs - count + 1
-  ok exists $crap->{file_cc}, "filecrap: has file_cc";
+  ok exists $slop->{file_cc}, "fileslop: has file_cc";
   my $expected_cc_sum = 0;
-  $expected_cc_sum += $_->{cc} for $crap->{subs}->@*;
-  is $crap->{file_cc}, $expected_cc_sum - $crap->{count} + 1,
-    "filecrap: file_cc = sum(cc) - count + 1";
+  $expected_cc_sum += $_->{cc} for $slop->{subs}->@*;
+  is $slop->{file_cc}, $expected_cc_sum - $slop->{count} + 1,
+    "fileslop: file_cc = sum(cc) - count + 1";
 
   # file_cov: combined stmt+branch+condition coverage
-  ok exists $crap->{file_cov}, "filecrap: has file_cov";
-  ok $crap->{file_cov} >= 0 && $crap->{file_cov} <= 100,
-    "filecrap: file_cov is 0..100";
+  ok exists $slop->{file_cov}, "fileslop: has file_cov";
+  ok $slop->{file_cov} >= 0 && $slop->{file_cov} <= 100,
+    "fileslop: file_cov is 0..100";
 
   # file_crap: CRAP formula applied to file-level inputs
-  ok exists $crap->{file_crap}, "filecrap: has file_crap";
-  my $cc  = $crap->{file_cc};
-  my $cov = $crap->{file_cov};
+  ok exists $slop->{file_crap}, "fileslop: has file_crap";
+  my $cc  = $slop->{file_cc};
+  my $cov = $slop->{file_cov};
   my $expected_crap = $cc**2 * (1 - $cov / 100)**3 + $cc;
-  is $crap->{file_crap}, $expected_crap,
-    "filecrap: file_crap matches CRAP formula";
+  is $slop->{file_crap}, $expected_crap,
+    "fileslop: file_crap matches CRAP formula";
 
   # file_slop: ln(file_crap) * 10
-  ok exists $crap->{file_slop}, "filecrap: has file_slop";
+  ok exists $slop->{file_slop}, "fileslop: has file_slop";
   my $expected_slop
-    = $crap->{file_crap} > 1 ? log($crap->{file_crap}) * 10 : 0;
-  ok abs($crap->{file_slop} - $expected_slop) < 0.01,
-    "filecrap: file_slop = log(file_crap) * 10";
+    = $slop->{file_crap} > 1 ? log($slop->{file_crap}) * 10 : 0;
+  ok abs($slop->{file_slop} - $expected_slop) < 0.01,
+    "fileslop: file_slop = log(file_crap) * 10";
 
   # Total aggregation
-  my $ts = $db->{summary}{Total}{crap};
-  ok defined $ts, "filecrap: Total has crap entry";
-  ok exists $ts->{file_crap}, "filecrap: Total has file_crap";
-  ok exists $ts->{file_slop}, "filecrap: Total has file_slop";
+  my $ts = $db->{summary}{Total}{slop};
+  ok defined $ts, "fileslop: Total has slop entry";
+  ok exists $ts->{file_crap}, "fileslop: Total has file_crap";
+  ok exists $ts->{file_slop}, "fileslop: Total has file_slop";
 }
 
 sub main () {
@@ -431,9 +431,9 @@ sub main () {
   test_summary_aggregation;
   test_end_lines;
   test_signature_cc;
-  test_crap_scoring;
-  test_text_report_crap;
-  test_file_level_crap;
+  test_slop_scoring;
+  test_text_report_slop;
+  test_file_level_slop;
 }
 
 main;

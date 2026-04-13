@@ -84,9 +84,9 @@ sub untested_badge () {
   qq(<span class="untested-badge$tip"$data>untested</span>)
 }
 
-sub crap_tip ($f) {
+sub slop_tip ($f) {
   my $o = <<HTML;
-<table class="crap-tip">
+<table class="slop-tip">
 <tr><td>File CC</td><td>$f->{file_cc}</td></tr>
 <tr><td>Combined cov</td><td>$f->{file_cov}%</td></tr>
 HTML
@@ -94,7 +94,7 @@ HTML
     $o .= qq(<tr><td>$_->{name}</td><td>$_->{crap}</td></tr>\n);
   }
   $o .= <<HTML;
-<tr class="crap-total"><td>CRAP</td><td>$f->{file_crap}</td></tr>
+<tr class="slop-total"><td>CRAP</td><td>$f->{file_crap}</td></tr>
 </table>
 HTML
   $o
@@ -137,8 +137,8 @@ HTML
   }
   $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort});
   $o .= <<HTML;
-<td data-value="$f->{file_slop}" class="crap-hover">
-$f->{file_slop} @{[ crap_tip($f) ]}</td>
+<td data-value="$f->{file_slop}" class="slop-hover">
+$f->{file_slop} @{[ slop_tip($f) ]}</td>
 </tr>
 HTML
   $o
@@ -154,12 +154,12 @@ sub render_worst_files ($worst) {
     my $name
       = $f->{exists} ? qq(<a href="$f->{link}">$f->{short}</a>) : $f->{short};
     my $badge = $f->{uncompiled} ? untested_badge() . "\n" : "";
-    my $tip   = crap_tip($f);
+    my $tip   = slop_tip($f);
     my $slop  = $f->{file_slop};
 
     $o .= <<HTML;
 <div class="worst-item $cls">
-  $name $badge<strong class="crap-hover">$slop $tip</strong>
+  $name $badge<strong class="slop-hover">$slop $tip</strong>
 </div>
 HTML
   }
@@ -295,7 +295,7 @@ HTML
 HTML
 
   my $ncrit  = $R{criteria}->@*;
-  my $ncols  = $ncrit + 2;       # criteria + total + crap
+  my $ncols  = $ncrit + 2;       # criteria + total + slop
   my $crit_w = 70 / $ncols;
   $o
     .= qq(<table class="file-table">\n<colgroup>\n)
@@ -519,7 +519,7 @@ HTML
     $o .= <<HTML;
 <span class="stat-badge untested-stat has-tip" data-tip="total: 0">
 @{[ crit_name("total") ]} 0.0%</span>
-<span class="stat-badge stat-crap has-tip" data-tip="SLOP: 0">SLOP 0</span>
+<span class="stat-badge stat-slop has-tip" data-tip="SLOP: 0">SLOP 0</span>
 HTML
   } else {
     my $tt = $total->{total};
@@ -531,8 +531,8 @@ HTML
 HTML
     }
     $o .= <<HTML;
-<span class="stat-badge stat-crap crap-hover has-tip" data-tip="SLOP score">
-SLOP $fd->{file_slop} @{[ crap_tip($fd) ]}</span>
+<span class="stat-badge stat-slop slop-hover has-tip" data-tip="SLOP score">
+SLOP $fd->{file_slop} @{[ slop_tip($fd) ]}</span>
 HTML
   }
 
@@ -645,15 +645,15 @@ sub get_summary ($file, $criterion) {
   }
 }
 
-sub add_crap ($f, $file) {
-  my $crap_data = $R{db}->summary($file, "crap");
-  if ($crap_data && defined $crap_data->{file_crap}) {
-    $f->{file_crap} = sprintf "%.1f", $crap_data->{file_crap};
-    $f->{file_slop} = sprintf "%.1f", $crap_data->{file_slop} // 0;
-    $f->{file_cc}   = $crap_data->{file_cc};
-    $f->{file_cov}  = sprintf "%.0f", $crap_data->{file_cov};
+sub add_slop ($f, $file) {
+  my $slop_data = $R{db}->summary($file, "slop");
+  if ($slop_data && defined $slop_data->{file_crap}) {
+    $f->{file_crap} = sprintf "%.1f", $slop_data->{file_crap};
+    $f->{file_slop} = sprintf "%.1f", $slop_data->{file_slop} // 0;
+    $f->{file_cc}   = $slop_data->{file_cc};
+    $f->{file_cov}  = sprintf "%.0f", $slop_data->{file_cov};
     my @sorted = sort { $b->{crap} <=> $a->{crap} } grep defined $_->{crap},
-      @{ $crap_data->{subs} || [] };
+      @{ $slop_data->{subs} || [] };
     $f->{worst_subs}
       = [ map { { name => $_->{name}, crap => sprintf "%.1f", $_->{crap} } }
         @sorted[ 0 .. ($#sorted > 2 ? 2 : $#sorted) ] ];
@@ -698,7 +698,7 @@ sub build_one_file ($file) {
   my $pc = $total->{pc} // "n/a";
   $f{total_pc}   = $pc;
   $f{total_sort} = $pc eq "n/a" ? -1 : $pc;
-  add_crap(\%f, $file);
+  add_slop(\%f, $file);
   \%f
 }
 
@@ -742,7 +742,7 @@ sub line_subroutines ($f, $n) {
   my $subs = $f->subroutine or return;
   my $loc  = $subs->location($n);
   return unless $loc && @$loc;
-  my $cl = $R{crap_subs} || {};
+  my $cl = $R{slop_subs} || {};
   map { {
     name    => encode_entities($_->name),
     covered => $_->covered,
@@ -971,9 +971,9 @@ sub generate_index ($outdir, $options, $file_data, $total, $dist) {
   write_file($html, render_index($file_data, $total, $dist));
 }
 
-sub _build_crap_subs ($file) {
-  my $crap_data = $R{db}->summary($file, "crap") or return {};
-  my $subs      = $crap_data->{subs}             or return {};
+sub _build_slop_subs ($file) {
+  my $slop_data = $R{db}->summary($file, "slop") or return {};
+  my $subs      = $slop_data->{subs}             or return {};
   my %lookup;
   $lookup{ $_->{line} . "\0" . $_->{name} } = $_ for @$subs;
   \%lookup
@@ -984,7 +984,7 @@ sub generate_file_pages ($outdir, $file_data) {
     my $fd = $file_data->[$idx];
     next unless $fd->{exists};
     my $file = $fd->{name};
-    $R{crap_subs} = _build_crap_subs($file);
+    $R{slop_subs} = _build_slop_subs($file);
     my $lines
       = $fd->{uncompiled}
       ? build_untested_source_lines($file)
@@ -1003,7 +1003,7 @@ sub generate_file_pages ($outdir, $file_data) {
       "$outdir/$fd->{link}",
       render_file_page($fd, $lines, \%file_total, $prev, $next),
     );
-    delete $R{crap_subs};
+    delete $R{slop_subs};
   }
 }
 
@@ -1140,7 +1140,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   border-color: var(--border);
   color: var(--fg-muted);
 }
-.stat-crap {
+.stat-slop {
   background: var(--prefix-bg);
   border-color: var(--prefix-border);
   color: var(--fg);
@@ -1378,12 +1378,12 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 .file-table .sort-asc::after { content: " \25b2"; }
 .file-table .sort-desc::after { content: " \25bc"; }
 
-.crap-hover {
+.slop-hover {
   position: relative;
   cursor: default;
 }
-.crap-hover:hover { z-index: 30; }
-.crap-tip {
+.slop-hover:hover { z-index: 30; }
+.slop-tip {
   display: none;
   position: absolute;
   bottom: 100%;
@@ -1400,14 +1400,14 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   border-collapse: collapse;
   pointer-events: none;
 }
-.crap-hover:hover .crap-tip { display: table; }
-.crap-tip td {
+.slop-hover:hover .slop-tip { display: table; }
+.slop-tip td {
   padding: 1px 6px;
   font-variant-numeric: tabular-nums;
 }
-.crap-tip td:first-child { text-align: left; }
-.crap-tip td:last-child { text-align: right; }
-.crap-tip .crap-total td {
+.slop-tip td:first-child { text-align: left; }
+.slop-tip td:last-child { text-align: right; }
+.slop-tip .slop-total td {
   border-top: 1px solid var(--tip-fg);
   font-weight: 600;
 }
@@ -1418,7 +1418,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   margin-top: 4px;
 }
 
-.header .crap-tip {
+.header .slop-tip {
   bottom: auto;
   top: 100%;
   margin-top: 4px;

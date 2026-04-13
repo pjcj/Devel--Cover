@@ -387,7 +387,7 @@ sub summarise_complexity ($self, $s, $files) {
     my $file_cov  = _file_coverage($s->{$file});
     my $file_crap = _crap($file_cc, $file_cov);
     my $file_slop = _slop($file_crap);
-    $s->{$file}{crap} = {
+    $s->{$file}{slop} = {
       max       => $crap_max,
       mean      => $crap_sum / $crap_count,
       count     => $crap_count,
@@ -415,7 +415,7 @@ sub summarise_complexity ($self, $s, $files) {
     };
   }
   if ($crap_total_count) {
-    $s->{Total}{crap} = {
+    $s->{Total}{slop} = {
       max       => $crap_total_max,
       mean      => $crap_total_sum / $crap_total_count,
       count     => $crap_total_count,

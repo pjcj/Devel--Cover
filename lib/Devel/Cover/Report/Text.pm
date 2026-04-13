@@ -197,15 +197,15 @@ sub print_conditions ($db, $file, $) {
   say "";
 }
 
-sub _crap_lookup ($db, $file) {
-  my $crap = $db->{summary}{$file}{crap} or return {};
-  my $subs = $crap->{subs}               or return {};
+sub _slop_lookup ($db, $file) {
+  my $slop = $db->{summary}{$file}{slop} or return {};
+  my $subs = $slop->{subs}               or return {};
   my %lookup;
   $lookup{ $_->{line} . "\0" . $_->{name} } = $_ for @$subs;
   \%lookup
 }
 
-sub _gather_subs ($dfile, $pods, $display_name, $crap_lookup) {
+sub _gather_subs ($dfile, $pods, $display_name, $slop_lookup) {
   my $subs = $dfile->subroutine or return;
   my %maxw = (h => 8, c => 5, p => 3, s => 10, cc => 3, cr => 5);
   my %by_type;
@@ -220,7 +220,7 @@ sub _gather_subs ($dfile, $pods, $display_name, $crap_lookup) {
       my $p = $e ? ($e->uncoverable ? "-" : "") . $e->covered : "";
       my $s = $sub->name;
 
-      my $info = $crap_lookup->{"$location\0$s"};
+      my $info = $slop_lookup->{"$location\0$s"};
       my $cc   = defined $info ? $info->{cc}                    : "";
       my $cr   = defined $info ? sprintf("%.1f", $info->{slop}) : "";
 
@@ -242,32 +242,32 @@ sub _gather_subs ($dfile, $pods, $display_name, $crap_lookup) {
 sub print_subroutines ($db, $file, $options, $short) {
   my $dfile = $db->cover->file($file);
   my $pods  = $options->{show}{pod} && $dfile->pod;
-  my $cl    = _crap_lookup($db, $file);
+  my $cl    = _slop_lookup($db, $file);
 
   my ($by_type, $maxw) = _gather_subs($dfile, $pods, $short->{$file}, $cl);
   return unless $by_type;
 
-  my $has_crap = %$cl;
+  my $has_slop = %$cl;
   my $tpl      = "%-$maxw->{s}s %$maxw->{c}s ";
   $tpl .= "%$maxw->{p}s "  if $pods;
-  $tpl .= "%$maxw->{cc}s " if $has_crap;
-  $tpl .= "%$maxw->{cr}s " if $has_crap;
+  $tpl .= "%$maxw->{cc}s " if $has_slop;
+  $tpl .= "%$maxw->{cr}s " if $has_slop;
   $tpl .= "%-$maxw->{h}s\n";
 
   for my $type (sort keys %$by_type) {
     say ucfirst($type),            " Subroutines";
     say "-" x (12 + length $type), "\n";
     printf $tpl, "Subroutine", "Count", $pods ? "Pod" : (),
-      $has_crap ? ("CC", "SLOP") : (), "Location";
+      $has_slop ? ("CC", "SLOP") : (), "Location";
     printf $tpl, "-" x $maxw->{s}, "-" x $maxw->{c},
       $pods ? "-" x $maxw->{p} : (),
-      $has_crap ? ("-" x $maxw->{cc}, "-" x $maxw->{cr}) : (), "-" x $maxw->{h};
+      $has_slop ? ("-" x $maxw->{cc}, "-" x $maxw->{cr}) : (), "-" x $maxw->{h};
 
     for my $s (sort keys $by_type->{$type}->%*) {
       for (sort { $a->[-1] cmp $b->[-1] } $by_type->{$type}{$s}->@*) {
         my @row = @$_;
-        unless ($has_crap) {
-          # Remove the CC and CRAP slots (after count/pod, before location)
+        unless ($has_slop) {
+          # Remove the CC and SLOP slots (after count/pod, before location)
           my $loc = pop @row;
           splice @row, -2;
           push @row, $loc;
@@ -388,16 +388,16 @@ Print one or more output lines for source line C<$n> with text C<$l>. Multiple
 output lines are produced when a single source line has several coverage points
 (e.g. chained conditions).
 
-=head2 _crap_lookup ($db, $file)
+=head2 _slop_lookup ($db, $file)
 
-Build a lookup hash mapping C<"$line\0$name"> to CRAP sub detail from the
-summary data for C<$file>.  Returns an empty hashref when no CRAP data exists.
+Build a lookup hash mapping C<"$line\0$name"> to SLOP sub detail from the
+summary data for C<$file>.  Returns an empty hashref when no SLOP data exists.
 
-=head2 _gather_subs ($dfile, $pods, $display_name, $crap_lookup)
+=head2 _gather_subs ($dfile, $pods, $display_name, $slop_lookup)
 
 Walk the subroutine and pod coverage data for a file, returning a hashref of
 covered/uncovered sub entries and a hashref of column widths for formatting.
-When C<$crap_lookup> is non-empty, CC and SLOP values are included in each
+When C<$slop_lookup> is non-empty, CC and SLOP values are included in each
 entry.
 
 =head1 SEE ALSO
