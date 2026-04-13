@@ -336,7 +336,7 @@ HTML
   )
 }
 
-sub crap_class ($slop) {
+sub slop_class ($slop) {
   return "" unless defined $slop;
   $slop < 16 ? "c3" : $slop < 34 ? "c2" : $slop < 41 ? "c1" : "c0"
 }
@@ -349,7 +349,7 @@ sub render_line_detail ($line) {
       my $status  = $s->{covered} ? "called" : "not called";
       my $cc_info = "";
       if (defined $s->{cc}) {
-        my $cls  = crap_class($s->{slop});
+        my $cls  = slop_class($s->{slop});
         my $slop = sprintf "%.1f", $s->{slop} // 0;
         $cc_info = qq( <span class="$cls">CC=$s->{cc} SLOP=$slop</span>);
       }
