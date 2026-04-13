@@ -17,7 +17,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Spec ();
-use Test::More import => [ qw( done_testing is like ok plan ) ];
+use Test::More import => [ qw( done_testing is like ok plan unlike ) ];
 use Devel::Cover::Report::Html_crisp ();
 use Devel::Cover::Test::Showcase
   qw( create_cover_db run_cover setup_lib_dir slurp );
@@ -120,7 +120,9 @@ sub test_render_index () {
   like $got, qr/class="worst-files"/,     "has worst files";
   like $got, qr/class="dist-bar"/,        "has distribution bar";
   like $got, qr/class="filter-bar"/,      "has filter bar";
-  like $got, qr/data-sort="risk"/,        "has risk column";
+  like $got, qr/data-sort="crap"/,        "has CRAP column";
+  unlike $got, qr/data-sort="risk"/,      "no risk column";
+  like $got, qr/Highest CRAP/,            "worst files heading";
   like $got, qr/Covered\/Calc\.pm/,       "Covered/Calc.pm present";
   like $got, qr/Covered\/Full\.pm/,       "Covered/Full.pm present";
   like $got, qr/Uncovered\/Calc\.pm/,     "Uncovered/Calc.pm present";
