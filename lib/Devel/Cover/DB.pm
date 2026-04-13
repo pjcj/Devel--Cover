@@ -322,6 +322,10 @@ sub _crap ($cc, $cov_pct) {
   $cc**2 * (1 - $cov_pct / 100)**3 + $cc
 }
 
+sub _slop ($crap) {
+  $crap > 1 ? log($crap) * 10 : 0
+}
+
 sub _file_coverage ($s_file) {
   my ($covered, $total) = (0, 0);
   for my $name (qw( statement branch condition )) {
@@ -337,6 +341,8 @@ sub summarise_complexity ($self, $s, $files) {
   my ($total_sum, $total_count, $total_max)                = (0, 0, 0);
   my ($crap_total_sum, $crap_total_count, $crap_total_max) = (0, 0, 0);
   my ($fcrap_total_sum, $fcrap_total_count)                = (0, 0);
+  my $fslop_total_sum = 0;
+
   for my $file (@$files) {
     my $file_obj = $self->cover->get($file);
     my $digest   = $file_obj->{meta}{digest};
@@ -369,6 +375,7 @@ sub summarise_complexity ($self, $s, $files) {
               cc   => $cc,
               cov  => $cov,
               crap => $crap,
+              slop => _slop($crap),
             };
         }
       }
@@ -379,6 +386,7 @@ sub summarise_complexity ($self, $s, $files) {
     my $file_cc   = $sum - $count + 1;
     my $file_cov  = _file_coverage($s->{$file});
     my $file_crap = _crap($file_cc, $file_cov);
+    my $file_slop = _slop($file_crap);
     $s->{$file}{crap} = {
       max       => $crap_max,
       mean      => $crap_sum / $crap_count,
@@ -387,8 +395,10 @@ sub summarise_complexity ($self, $s, $files) {
       file_cc   => $file_cc,
       file_cov  => $file_cov,
       file_crap => $file_crap,
+      file_slop => $file_slop,
     };
     $fcrap_total_sum += $file_crap;
+    $fslop_total_sum += $file_slop;
     $fcrap_total_count++;
     $total_max         = $max if $max > $total_max;
     $total_sum        += $sum;
@@ -409,8 +419,9 @@ sub summarise_complexity ($self, $s, $files) {
       max       => $crap_total_max,
       mean      => $crap_total_sum / $crap_total_count,
       count     => $crap_total_count,
-      file_crap => $fcrap_total_count
-      ? $fcrap_total_sum / $fcrap_total_count
+      file_crap => $fcrap_total_count ? $fcrap_total_sum / $fcrap_total_count
+      : 0,
+      file_slop => $fcrap_total_count ? $fslop_total_sum / $fcrap_total_count
       : 0,
     };
   }

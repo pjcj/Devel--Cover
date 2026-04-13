@@ -290,6 +290,7 @@ sub test_crap_scoring () {
   is $fc->{cc},   1,   "crap: fully_covered CC = 1";
   is $fc->{cov},  100, "crap: fully_covered cov = 100";
   is $fc->{crap}, 1,   "crap: fully_covered CRAP = 1";
+  is $fc->{slop}, 0,   "slop: fully_covered SLOP = 0";
 
   # uncalled: CC=1, cov=0%, CRAP = 1^2*(1-0)^3 + 1 = 2
   my $uc = $by_name{uncalled};
@@ -297,6 +298,8 @@ sub test_crap_scoring () {
   is $uc->{cc},   1, "crap: uncalled CC = 1";
   is $uc->{cov},  0, "crap: uncalled cov = 0";
   is $uc->{crap}, 2, "crap: uncalled CRAP = 2";
+  ok abs($uc->{slop} - log(2) * 10) < 0.01,
+    "slop: uncalled SLOP = ln(2)*10";
 
   # partial_branch: CC=2, partial coverage.
   # Bounds: cov=100% => CRAP=2, cov=0% => CRAP=6.
@@ -305,6 +308,9 @@ sub test_crap_scoring () {
   is $pb->{cc}, 2, "crap: partial_branch CC = 2";
   ok $pb->{crap} > 2, "crap: partial_branch CRAP > CC";
   ok $pb->{crap} < 6, "crap: partial_branch CRAP < CC^2+CC";
+  ok $pb->{slop} > 0, "slop: partial_branch SLOP > 0";
+  ok $pb->{slop} > $uc->{slop},
+    "slop: partial_branch SLOP > uncalled SLOP";
 
   # Total aggregation
   my $ts = $db->{summary}{Total}{crap};
@@ -314,8 +320,8 @@ sub test_crap_scoring () {
   ok exists $ts->{count}, "crap: Total has count";
 }
 
-# Text report CC/CRAP column tests.
-# Verifies that print_subroutines includes CC and CRAP columns
+# Text report CC/SLOP column tests.
+# Verifies that print_subroutines includes CC and SLOP columns
 # when CRAP summary data is available.
 sub test_text_report_crap () {
   my ($db_path, $script) = run_cover("cc_text", $Crap_script);
@@ -345,21 +351,21 @@ sub test_text_report_crap () {
     close $fh or die "Cannot close scalar ref: $!";
   }
 
-  # Header should contain CC and CRAP columns.
-  like $output, qr/^\s*Subroutine\b.*\bCC\b.*\bCRAP\b/m,
-    "text: header contains CC and CRAP columns";
+  # Header should contain CC and SLOP columns.
+  like $output, qr/^\s*Subroutine\b.*\bCC\b.*\bSLOP\b/m,
+    "text: header contains CC and SLOP columns";
 
-  # fully_covered: CC=1, CRAP=1.0
-  like $output, qr/fully_covered\s+\d+\s+1\s+1\.0\b/,
-    "text: fully_covered has CC=1 CRAP=1.0";
+  # fully_covered: CC=1, SLOP=0.0 (CRAP=1, ln(1)*10=0)
+  like $output, qr/fully_covered\s+\d+\s+1\s+0\.0\b/,
+    "text: fully_covered has CC=1 SLOP=0.0";
 
-  # uncalled: CC=1, CRAP=2.0
-  like $output, qr/uncalled\s+\d+\s+1\s+2\.0\b/,
-    "text: uncalled has CC=1 CRAP=2.0";
+  # uncalled: CC=1, SLOP=6.9 (CRAP=2, ln(2)*10=6.93)
+  like $output, qr/uncalled\s+\d+\s+1\s+6\.9\b/,
+    "text: uncalled has CC=1 SLOP=6.9";
 
-  # partial_branch: CC=2, CRAP between 2 and 6
+  # partial_branch: CC=2, SLOP > 6.9
   like $output, qr/partial_branch\s+\d+\s+2\s+\d+\.\d/,
-    "text: partial_branch has CC=2 and a CRAP score";
+    "text: partial_branch has CC=2 and a SLOP score";
 }
 
 # File-level CRAP tests.
@@ -406,10 +412,18 @@ sub test_file_level_crap () {
   is $crap->{file_crap}, $expected_crap,
     "filecrap: file_crap matches CRAP formula";
 
+  # file_slop: ln(file_crap) * 10
+  ok exists $crap->{file_slop}, "filecrap: has file_slop";
+  my $expected_slop
+    = $crap->{file_crap} > 1 ? log($crap->{file_crap}) * 10 : 0;
+  ok abs($crap->{file_slop} - $expected_slop) < 0.01,
+    "filecrap: file_slop = log(file_crap) * 10";
+
   # Total aggregation
   my $ts = $db->{summary}{Total}{crap};
   ok defined $ts, "filecrap: Total has crap entry";
   ok exists $ts->{file_crap}, "filecrap: Total has file_crap";
+  ok exists $ts->{file_slop}, "filecrap: Total has file_slop";
 }
 
 sub main () {
