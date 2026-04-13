@@ -322,10 +322,21 @@ sub _crap ($cc, $cov_pct) {
   $cc**2 * (1 - $cov_pct / 100)**3 + $cc
 }
 
+sub _file_coverage ($s_file) {
+  my ($covered, $total) = (0, 0);
+  for my $name (qw( statement branch condition )) {
+    my $c = $s_file->{$name} or next;
+    $total   += $c->{total} || 0;
+    $covered += ($c->{total} || 0) - ($c->{error} || 0);
+  }
+  $total ? 100 * $covered / $total : 100
+}
+
 sub summarise_complexity ($self, $s, $files) {
   my $st = $self->{_structure} or return;
-  my ($total_sum,      $total_count,      $total_max)      = (0, 0, 0);
+  my ($total_sum, $total_count, $total_max)                = (0, 0, 0);
   my ($crap_total_sum, $crap_total_count, $crap_total_max) = (0, 0, 0);
+  my ($fcrap_total_sum, $fcrap_total_count)                = (0, 0);
   for my $file (@$files) {
     my $file_obj = $self->cover->get($file);
     my $digest   = $file_obj->{meta}{digest};
@@ -365,12 +376,20 @@ sub summarise_complexity ($self, $s, $files) {
     next unless $count;
     $s->{$file}{complexity}
       = { max => $max, mean => $sum / $count, count => $count };
+    my $file_cc   = $sum - $count + 1;
+    my $file_cov  = _file_coverage($s->{$file});
+    my $file_crap = _crap($file_cc, $file_cov);
     $s->{$file}{crap} = {
-      max   => $crap_max,
-      mean  => $crap_sum / $crap_count,
-      count => $crap_count,
-      subs  => \@subs,
+      max       => $crap_max,
+      mean      => $crap_sum / $crap_count,
+      count     => $crap_count,
+      subs      => \@subs,
+      file_cc   => $file_cc,
+      file_cov  => $file_cov,
+      file_crap => $file_crap,
     };
+    $fcrap_total_sum += $file_crap;
+    $fcrap_total_count++;
     $total_max         = $max if $max > $total_max;
     $total_sum        += $sum;
     $total_count      += $count;
@@ -387,9 +406,12 @@ sub summarise_complexity ($self, $s, $files) {
   }
   if ($crap_total_count) {
     $s->{Total}{crap} = {
-      max   => $crap_total_max,
-      mean  => $crap_total_sum / $crap_total_count,
-      count => $crap_total_count,
+      max       => $crap_total_max,
+      mean      => $crap_total_sum / $crap_total_count,
+      count     => $crap_total_count,
+      file_crap => $fcrap_total_count
+      ? $fcrap_total_sum / $fcrap_total_count
+      : 0,
     };
   }
 }
