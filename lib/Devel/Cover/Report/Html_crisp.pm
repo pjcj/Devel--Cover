@@ -85,17 +85,28 @@ sub untested_badge () {
 }
 
 sub slop_tip ($f) {
-  my $o = <<HTML;
-<table class="slop-tip">
-<tr><td>File CC</td><td>$f->{file_cc}</td></tr>
-<tr><td>Combined cov</td><td>$f->{file_cov}%</td></tr>
+  my $cov_cls = pc_class($f->{file_cov});
+  my $o       = <<HTML;
+<div class="slop-tip">
+<dl class="slop-tip-metrics">
+<dt>CC</dt><dd>$f->{file_cc}</dd>
+<dt>Cov</dt><dd class="$cov_cls">$f->{file_cov}%</dd>
+</dl>
 HTML
-  for ($f->{worst_subs}->@*) {
-    $o .= qq(<tr><td>$_->{name}</td><td>$_->{crap}</td></tr>\n);
+  if ($f->{worst_subs}->@*) {
+    $o .= qq(<dl class="slop-tip-subs">\n);
+    for ($f->{worst_subs}->@*) {
+      my $cls = slop_class($_->{slop});
+      $o .= qq(<dt>$_->{name}</dt><dd class="$cls">$_->{crap}</dd>\n);
+    }
+    $o .= "</dl>\n";
   }
   $o .= <<HTML;
-<tr class="slop-total"><td>CRAP</td><td>$f->{file_crap}</td></tr>
-</table>
+<div class="slop-tip-total">
+<span class="slop-tip-label">CRAP</span>
+<span class="slop-tip-value">$f->{file_crap}</span>
+</div>
+</div>
 HTML
   $o
 }
@@ -339,6 +350,14 @@ HTML
 sub slop_class ($slop) {
   return "" unless defined $slop;
   $slop < 16 ? "c3" : $slop < 34 ? "c2" : $slop < 41 ? "c1" : "c0"
+}
+
+sub pc_class ($pc) {
+  !defined $pc                ? ""
+    : $pc >= 100              ? "c3"
+    : $pc >= $Threshold->{c1} ? "c2"
+    : $pc >= $Threshold->{c0} ? "c1"
+    : "c0"
 }
 
 sub render_line_detail ($line) {
@@ -654,9 +673,13 @@ sub add_slop ($f, $file) {
     $f->{file_cov}  = sprintf "%.0f", $slop_data->{file_cov};
     my @sorted = sort { $b->{crap} <=> $a->{crap} } grep defined $_->{crap},
       @{ $slop_data->{subs} || [] };
-    $f->{worst_subs}
-      = [ map { { name => $_->{name}, crap => sprintf "%.1f", $_->{crap} } }
-        @sorted[ 0 .. ($#sorted > 2 ? 2 : $#sorted) ] ];
+    $f->{worst_subs} = [
+      map { {
+        name => $_->{name},
+        crap => sprintf("%.1f", $_->{crap}),
+        slop => $_->{slop},
+      } } @sorted[ 0 .. ($#sorted > 2 ? 2 : $#sorted) ]
+    ];
   } else {
     $f->{file_crap}  = 0;
     $f->{file_slop}  = 0;
@@ -1389,28 +1412,56 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 4px;
   font-size: 13px;
   font-weight: normal;
   white-space: nowrap;
-  background: var(--tip-bg);
-  color: var(--tip-fg);
+  background: var(--tip-glass-bg);
+  color: var(--tip-glass-fg);
+  border: 1px solid var(--tip-glass-border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 30;
-  border-collapse: collapse;
   pointer-events: none;
 }
-.slop-hover:hover .slop-tip { display: table; }
-.slop-tip td {
-  padding: 1px 6px;
+.slop-hover:hover .slop-tip { display: block; }
+
+.slop-tip dl {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 1px 12px;
+  margin: 0;
   font-variant-numeric: tabular-nums;
 }
-.slop-tip td:first-child { text-align: left; }
-.slop-tip td:last-child { text-align: right; }
-.slop-tip .slop-total td {
-  border-top: 1px solid var(--tip-fg);
-  font-weight: 600;
+.slop-tip dt { text-align: left; }
+.slop-tip dd { text-align: right; margin: 0; }
+
+.slop-tip-subs {
+  border-top: 1px solid var(--tip-glass-sep);
+  margin-top: 4px !important;
+  padding-top: 4px;
 }
+
+.slop-tip-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--tip-glass-sep);
+  margin-top: 4px;
+  padding-top: 4px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.slop-tip .c0,
+.slop-tip .c1,
+.slop-tip .c2,
+.slop-tip .c3 { background: transparent; }
+.slop-tip .c0 { color: var(--tip-c0); }
+.slop-tip .c1 { color: var(--tip-c1); }
+.slop-tip .c2 { color: var(--tip-c2); }
+.slop-tip .c3 { color: var(--tip-c3); }
 
 .header .has-tip::after {
   bottom: auto;

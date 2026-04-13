@@ -250,6 +250,14 @@ our $Crisp_base_css = <<'CSS';
 
   --tip-bg: #1a1a1a;
   --tip-fg: #ffffff;
+  --tip-glass-bg: rgba(255, 255, 255, 0.92);
+  --tip-glass-fg: #1a1a1a;
+  --tip-glass-border: rgba(0, 0, 0, 0.12);
+  --tip-glass-sep: rgba(0, 0, 0, 0.2);
+  --tip-c0: #dd0000;
+  --tip-c1: #c08820;
+  --tip-c2: #2080a8;
+  --tip-c3: #008800;
 
   --bg: #ffffff;
   --bg-alt: #e8ecf0;
@@ -297,6 +305,14 @@ our $Crisp_base_css = <<'CSS';
 
     --tip-bg: #bbb;
     --tip-fg: #1a1a1a;
+    --tip-glass-bg: rgba(20, 20, 20, 0.92);
+    --tip-glass-fg: #e0e0e0;
+    --tip-glass-border: rgba(255, 255, 255, 0.12);
+    --tip-glass-sep: rgba(255, 255, 255, 0.2);
+    --tip-c0: #ff4444;
+    --tip-c1: #e0a830;
+    --tip-c2: #48c0e0;
+    --tip-c3: #44dd44;
 
     --bg: #1a1a1a;
     --bg-alt: #242424;
@@ -336,6 +352,14 @@ html[data-theme="dark"] {
 
   --tip-bg: #e0e0e0;
   --tip-fg: #1a1a1a;
+  --tip-glass-bg: rgba(20, 20, 20, 0.92);
+  --tip-glass-fg: #e0e0e0;
+  --tip-glass-border: rgba(255, 255, 255, 0.12);
+  --tip-glass-sep: rgba(255, 255, 255, 0.2);
+  --tip-c0: #ff4444;
+  --tip-c1: #e0a830;
+  --tip-c2: #48c0e0;
+  --tip-c3: #44dd44;
 
   --bg: #1a1a1a;
   --bg-alt: #242424;
@@ -374,6 +398,14 @@ html[data-theme="light"] {
 
   --tip-bg: #1a1a1a;
   --tip-fg: #ffffff;
+  --tip-glass-bg: rgba(255, 255, 255, 0.92);
+  --tip-glass-fg: #1a1a1a;
+  --tip-glass-border: rgba(0, 0, 0, 0.12);
+  --tip-glass-sep: rgba(0, 0, 0, 0.2);
+  --tip-c0: #dd0000;
+  --tip-c1: #c08820;
+  --tip-c2: #2080a8;
+  --tip-c3: #008800;
 
   --bg: #ffffff;
   --bg-alt: #e8ecf0;
