@@ -197,9 +197,17 @@ sub print_conditions ($db, $file, $) {
   say "";
 }
 
-sub _gather_subs ($dfile, $pods, $display_name) {
+sub _crap_lookup ($db, $file) {
+  my $crap = $db->{summary}{$file}{crap} or return {};
+  my $subs = $crap->{subs}               or return {};
+  my %lookup;
+  $lookup{ $_->{line} . "\0" . $_->{name} } = $_ for @$subs;
+  \%lookup
+}
+
+sub _gather_subs ($dfile, $pods, $display_name, $crap_lookup) {
   my $subs = $dfile->subroutine or return;
-  my %maxw = (h => 8, c => 5, p => 3, s => 10);
+  my %maxw = (h => 8, c => 5, p => 3, s => 10, cc => 3, cr => 5);
   my %by_type;
 
   for my $location ($subs->items) {
@@ -212,13 +220,19 @@ sub _gather_subs ($dfile, $pods, $display_name) {
       my $p = $e ? ($e->uncoverable ? "-" : "") . $e->covered : "";
       my $s = $sub->name;
 
-      $maxw{h} = length $h if length $h > $maxw{h};
-      $maxw{c} = length $c if length $c > $maxw{c};
-      $maxw{p} = length $p if $p && length $p > $maxw{p};
-      $maxw{s} = length $s if length $s > $maxw{s};
+      my $info = $crap_lookup->{"$location\0$s"};
+      my $cc   = defined $info ? $info->{cc}                    : "";
+      my $cr   = defined $info ? sprintf("%.1f", $info->{crap}) : "";
+
+      $maxw{h}  = length $h  if length $h > $maxw{h};
+      $maxw{c}  = length $c  if length $c > $maxw{c};
+      $maxw{p}  = length $p  if $p && length $p > $maxw{p};
+      $maxw{s}  = length $s  if length $s > $maxw{s};
+      $maxw{cc} = length $cc if length $cc > $maxw{cc};
+      $maxw{cr} = length $cr if length $cr > $maxw{cr};
 
       my $type = $sub->covered ? "covered" : "uncovered";
-      push $by_type{$type}{$s}->@*, [ $c, $pods ? $p : (), $h ];
+      push $by_type{$type}{$s}->@*, [ $c, $pods ? $p : (), $cc, $cr, $h ];
     }
   }
 
@@ -228,24 +242,38 @@ sub _gather_subs ($dfile, $pods, $display_name) {
 sub print_subroutines ($db, $file, $options, $short) {
   my $dfile = $db->cover->file($file);
   my $pods  = $options->{show}{pod} && $dfile->pod;
+  my $cl    = _crap_lookup($db, $file);
 
-  my ($by_type, $maxw) = _gather_subs($dfile, $pods, $short->{$file});
+  my ($by_type, $maxw) = _gather_subs($dfile, $pods, $short->{$file}, $cl);
   return unless $by_type;
 
-  my $tpl = "%-$maxw->{s}s %$maxw->{c}s ";
-  $tpl .= "%$maxw->{p}s " if $pods;
+  my $has_crap = %$cl;
+  my $tpl      = "%-$maxw->{s}s %$maxw->{c}s ";
+  $tpl .= "%$maxw->{p}s "  if $pods;
+  $tpl .= "%$maxw->{cc}s " if $has_crap;
+  $tpl .= "%$maxw->{cr}s " if $has_crap;
   $tpl .= "%-$maxw->{h}s\n";
 
   for my $type (sort keys %$by_type) {
     say ucfirst($type),            " Subroutines";
     say "-" x (12 + length $type), "\n";
-    printf $tpl, "Subroutine", "Count", $pods ? "Pod" : (), "Location";
+    printf $tpl, "Subroutine", "Count", $pods ? "Pod" : (),
+      $has_crap ? ("CC", "CRAP") : (), "Location";
     printf $tpl, "-" x $maxw->{s}, "-" x $maxw->{c},
-      $pods ? "-" x $maxw->{p} : (), "-" x $maxw->{h};
+      $pods ? "-" x $maxw->{p} : (),
+      $has_crap ? ("-" x $maxw->{cc}, "-" x $maxw->{cr}) : (), "-" x $maxw->{h};
 
     for my $s (sort keys $by_type->{$type}->%*) {
-      printf $tpl, $s, @$_
-        for sort { $a->[-1] cmp $b->[-1] } $by_type->{$type}{$s}->@*;
+      for (sort { $a->[-1] cmp $b->[-1] } $by_type->{$type}{$s}->@*) {
+        my @row = @$_;
+        unless ($has_crap) {
+          # Remove the CC and CRAP slots (after count/pod, before location)
+          my $loc = pop @row;
+          splice @row, -2;
+          push @row, $loc;
+        }
+        printf $tpl, $s, @row;
+      }
     }
     say "";
   }
@@ -360,10 +388,17 @@ Print one or more output lines for source line C<$n> with text C<$l>. Multiple
 output lines are produced when a single source line has several coverage points
 (e.g. chained conditions).
 
-=head2 _gather_subs ($dfile, $pods, $display_name)
+=head2 _crap_lookup ($db, $file)
+
+Build a lookup hash mapping C<"$line\0$name"> to CRAP sub detail from the
+summary data for C<$file>.  Returns an empty hashref when no CRAP data exists.
+
+=head2 _gather_subs ($dfile, $pods, $display_name, $crap_lookup)
 
 Walk the subroutine and pod coverage data for a file, returning a hashref of
 covered/uncovered sub entries and a hashref of column widths for formatting.
+When C<$crap_lookup> is non-empty, CC and CRAP values are included in each
+entry.
 
 =head1 SEE ALSO
 
