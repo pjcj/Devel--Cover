@@ -137,29 +137,29 @@ HTML
   }
   $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort});
   $o .= <<HTML;
-<td data-value="$f->{file_crap}" class="crap-hover">
-$f->{file_crap} @{[ crap_tip($f) ]}</td>
+<td data-value="$f->{file_slop}" class="crap-hover">
+$f->{file_slop} @{[ crap_tip($f) ]}</td>
 </tr>
 HTML
   $o
 }
 
 sub render_worst_files ($worst) {
-  return "" unless @$worst && $worst->[0]{file_crap} > 0;
-  my $o = qq(<div class="worst-files">\n<h2>Highest CRAP</h2>\n)
+  return "" unless @$worst && $worst->[0]{file_slop} > 0;
+  my $o = qq(<div class="worst-files">\n<h2>Highest SLOP</h2>\n)
     . qq(<div class="worst-list">\n);
   for my $f (@$worst) {
-    next if $f->{file_crap} == 0;
+    next if $f->{file_slop} == 0;
     my $cls = $f->{uncompiled} ? "untested-worst" : $f->{total}{class};
     my $name
       = $f->{exists} ? qq(<a href="$f->{link}">$f->{short}</a>) : $f->{short};
     my $badge = $f->{uncompiled} ? untested_badge() . "\n" : "";
     my $tip   = crap_tip($f);
-    my $crap  = $f->{file_crap};
+    my $slop  = $f->{file_slop};
 
     $o .= <<HTML;
 <div class="worst-item $cls">
-  $name $badge<strong class="crap-hover">$crap $tip</strong>
+  $name $badge<strong class="crap-hover">$slop $tip</strong>
 </div>
 HTML
   }
@@ -218,7 +218,7 @@ sub render_index ($file_data, $total, $dist) {
   my @groups = build_dir_groups($file_data);
   my @worst
     = @$file_data
-    ? (sort { $b->{file_crap} <=> $a->{file_crap} } @$file_data)
+    ? (sort { $b->{file_slop} <=> $a->{file_slop} } @$file_data)
     [ 0 .. ($#$file_data > 4 ? 4 : $#$file_data) ]
     : ();
 
@@ -256,9 +256,10 @@ Toggle "Hide 100% covered" to focus on incomplete files.</dd>
 <dt>Grouping</dt>
 <dd>Toggle "Group by directory" to organise files into
 collapsible groups. Click a directory row to collapse it.</dd>
-<dt>CRAP</dt>
-<dd>File-level CRAP (Change Risk Anti-Patterns) score. Hover for
-a breakdown: file CC, combined coverage, and worst subs.</dd>
+<dt>SLOP</dt>
+<dd>Scaled Likelihood Of Problems - a log-scaled CRAP score
+compressed to a 0-100 range. Hover for a breakdown: file CC,
+combined coverage, worst subs, and the raw CRAP score.</dd>
 <dt>Tooltips</dt>
 <dd>Hover any badge or coverage cell for covered/total counts.</dd>
 </dl>
@@ -308,7 +309,7 @@ HTML
   }
   $o .= <<HTML;
 <th data-sort="total">@{[ crit_name('total') ]}</th>
-<th data-sort="crap">CRAP</th>
+<th data-sort="slop">SLOP</th>
 </tr>
 </thead>
 <tbody>
@@ -335,9 +336,9 @@ HTML
   )
 }
 
-sub crap_class ($crap) {
-  return "" unless defined $crap;
-  $crap < 5 ? "c3" : $crap < 30 ? "c2" : $crap < 60 ? "c1" : "c0"
+sub crap_class ($slop) {
+  return "" unless defined $slop;
+  $slop < 16 ? "c3" : $slop < 34 ? "c2" : $slop < 41 ? "c1" : "c0"
 }
 
 sub render_line_detail ($line) {
@@ -348,9 +349,9 @@ sub render_line_detail ($line) {
       my $status  = $s->{covered} ? "called" : "not called";
       my $cc_info = "";
       if (defined $s->{cc}) {
-        my $cls  = crap_class($s->{crap});
-        my $crap = sprintf "%.1f", $s->{crap};
-        $cc_info = qq( <span class="$cls">CC=$s->{cc} CRAP=$crap</span>);
+        my $cls  = crap_class($s->{slop});
+        my $slop = sprintf "%.1f", $s->{slop} // 0;
+        $cc_info = qq( <span class="$cls">CC=$s->{cc} SLOP=$slop</span>);
       }
       $o .= <<HTML;
 <div class="detail">
@@ -518,7 +519,7 @@ HTML
     $o .= <<HTML;
 <span class="stat-badge untested-stat has-tip" data-tip="total: 0">
 @{[ crit_name("total") ]} 0.0%</span>
-<span class="stat-badge stat-crap has-tip" data-tip="CRAP: 0">CRAP 0</span>
+<span class="stat-badge stat-crap has-tip" data-tip="SLOP: 0">SLOP 0</span>
 HTML
   } else {
     my $tt = $total->{total};
@@ -530,8 +531,8 @@ HTML
 HTML
     }
     $o .= <<HTML;
-<span class="stat-badge stat-crap crap-hover has-tip" data-tip="CRAP score">
-CRAP $fd->{file_crap} @{[ crap_tip($fd) ]}</span>
+<span class="stat-badge stat-crap crap-hover has-tip" data-tip="SLOP score">
+SLOP $fd->{file_slop} @{[ crap_tip($fd) ]}</span>
 HTML
   }
 
@@ -557,7 +558,7 @@ condition, or subroutine detail.</dd>
 <dd>The strip on the right shows coverage at a glance. Click to
 jump to that line.</dd>
 <dt>Tooltips</dt>
-<dd>Hover badges for covered/total counts. Hover CRAP for a
+<dd>Hover badges for covered/total counts. Hover SLOP for a
 breakdown.</dd>
 <dt>Keyboard</dt>
 <dd><kbd>j</kbd> / <kbd>k</kbd> next/prev uncovered line
@@ -646,6 +647,7 @@ sub add_crap ($f, $file) {
   my $crap_data = $R{db}->summary($file, "crap");
   if ($crap_data && defined $crap_data->{file_crap}) {
     $f->{file_crap} = sprintf "%.1f", $crap_data->{file_crap};
+    $f->{file_slop} = sprintf "%.1f", $crap_data->{file_slop} // 0;
     $f->{file_cc}   = $crap_data->{file_cc};
     $f->{file_cov}  = sprintf "%.0f", $crap_data->{file_cov};
     my @sorted = sort { $b->{crap} <=> $a->{crap} } grep defined $_->{crap},
@@ -655,6 +657,7 @@ sub add_crap ($f, $file) {
         @sorted[ 0 .. ($#sorted > 2 ? 2 : $#sorted) ] ];
   } else {
     $f->{file_crap}  = 0;
+    $f->{file_slop}  = 0;
     $f->{file_cc}    = 0;
     $f->{file_cov}   = 0;
     $f->{worst_subs} = [];
@@ -703,7 +706,7 @@ sub build_file_data () {
     my $f = build_one_file($file);
     push @file_data, $f if $f;
   } sort {
-         ($b->{file_crap} || 0)   <=> ($a->{file_crap} || 0)
+         ($b->{file_slop} || 0)   <=> ($a->{file_slop} || 0)
       || ($a->{total_sort} // -1) <=> ($b->{total_sort} // -1)
       || $a->{name} cmp $b->{name}
   } @file_data
@@ -744,6 +747,7 @@ sub line_subroutines ($f, $n) {
     class   => oclass($_, "subroutine"),
     cc      => ($cl->{ "$n\0" . $_->name } // {})->{cc},
     crap    => ($cl->{ "$n\0" . $_->name } // {})->{crap},
+    slop    => ($cl->{ "$n\0" . $_->name } // {})->{slop},
   } } @$loc
 }
 
@@ -1762,7 +1766,8 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
     var groupToggle = document.querySelector(".group-toggle");
 
     /* Read persisted state */
-    var sortCol = rget("sort-col", "crap");
+    var sortCol = rget("sort-col", "slop");
+    if (sortCol === "crap") { sortCol = "slop"; rset("sort-col", "slop"); }
     var sortDir = rget("sort-dir", "desc");
 
     var defaultGrouped = fileCount > 30;
