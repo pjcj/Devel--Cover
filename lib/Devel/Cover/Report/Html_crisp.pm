@@ -84,15 +84,20 @@ sub untested_badge () {
   qq(<span class="untested-badge$tip"$data>untested</span>)
 }
 
-sub risk_tip ($f) {
-  <<HTML
-<table class="risk-tip">
-<tr><td>Branch errors</td><td>$f->{risk_branch}</td></tr>
-<tr><td>Condition errors</td><td>$f->{risk_cond}</td></tr>
-<tr><td>Coverage gap</td><td>$f->{risk_gap}%</td></tr>
-<tr class="risk-total"><td>Risk</td><td>$f->{risk}</td></tr>
+sub crap_tip ($f) {
+  my $o = <<HTML;
+<table class="crap-tip">
+<tr><td>File CC</td><td>$f->{file_cc}</td></tr>
+<tr><td>Combined cov</td><td>$f->{file_cov}%</td></tr>
+HTML
+  for ($f->{worst_subs}->@*) {
+    $o .= qq(<tr><td>$_->{name}</td><td>$_->{crap}</td></tr>\n);
+  }
+  $o .= <<HTML;
+<tr class="crap-total"><td>CRAP</td><td>$f->{file_crap}</td></tr>
 </table>
 HTML
+  $o
 }
 
 sub cov_bar ($pc, $uncompiled) {
@@ -132,26 +137,29 @@ HTML
   }
   $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort});
   $o .= <<HTML;
-<td data-value="$f->{risk}" class="risk-hover">
-$f->{risk} @{[ risk_tip($f) ]}</td>
+<td data-value="$f->{file_crap}" class="crap-hover">
+$f->{file_crap} @{[ crap_tip($f) ]}</td>
 </tr>
 HTML
   $o
 }
 
 sub render_worst_files ($worst) {
-  return "" unless @$worst && $worst->[0]{risk} > 0;
-  my $o = qq(<div class="worst-files">\n<h2>Highest risk</h2>\n)
+  return "" unless @$worst && $worst->[0]{file_crap} > 0;
+  my $o = qq(<div class="worst-files">\n<h2>Highest CRAP</h2>\n)
     . qq(<div class="worst-list">\n);
   for my $f (@$worst) {
-    next if $f->{risk} == 0;
+    next if $f->{file_crap} == 0;
     my $cls = $f->{uncompiled} ? "untested-worst" : $f->{total}{class};
     my $name
       = $f->{exists} ? qq(<a href="$f->{link}">$f->{short}</a>) : $f->{short};
     my $badge = $f->{uncompiled} ? untested_badge() . "\n" : "";
+    my $tip   = crap_tip($f);
+    my $crap  = $f->{file_crap};
+
     $o .= <<HTML;
 <div class="worst-item $cls">
-  $name $badge<strong class="risk-hover">$f->{risk} @{[ risk_tip($f) ]}</strong>
+  $name $badge<strong class="crap-hover">$crap $tip</strong>
 </div>
 HTML
   }
@@ -210,7 +218,7 @@ sub render_index ($file_data, $total, $dist) {
   my @groups = build_dir_groups($file_data);
   my @worst
     = @$file_data
-    ? (sort { $b->{risk} <=> $a->{risk} } @$file_data)
+    ? (sort { $b->{file_crap} <=> $a->{file_crap} } @$file_data)
     [ 0 .. ($#$file_data > 4 ? 4 : $#$file_data) ]
     : ();
 
@@ -248,9 +256,9 @@ Toggle "Hide 100% covered" to focus on incomplete files.</dd>
 <dt>Grouping</dt>
 <dd>Toggle "Group by directory" to organise files into
 collapsible groups. Click a directory row to collapse it.</dd>
-<dt>Risk</dt>
-<dd>Hover the risk column for a breakdown: branch errors +
-condition errors + coverage gap.</dd>
+<dt>CRAP</dt>
+<dd>File-level CRAP (Change Risk Anti-Patterns) score. Hover for
+a breakdown: file CC, combined coverage, and worst subs.</dd>
 <dt>Tooltips</dt>
 <dd>Hover any badge or coverage cell for covered/total counts.</dd>
 </dl>
@@ -286,7 +294,7 @@ HTML
 HTML
 
   my $ncrit  = $R{criteria}->@*;
-  my $ncols  = $ncrit + 2;       # criteria + total + risk
+  my $ncols  = $ncrit + 2;       # criteria + total + crap
   my $crit_w = 70 / $ncols;
   $o
     .= qq(<table class="file-table">\n<colgroup>\n)
@@ -300,7 +308,7 @@ HTML
   }
   $o .= <<HTML;
 <th data-sort="total">@{[ crit_name('total') ]}</th>
-<th data-sort="risk">risk</th>
+<th data-sort="crap">CRAP</th>
 </tr>
 </thead>
 <tbody>
@@ -327,16 +335,27 @@ HTML
   )
 }
 
+sub crap_class ($crap) {
+  return "" unless defined $crap;
+  $crap < 5 ? "c3" : $crap < 30 ? "c2" : $crap < 60 ? "c1" : "c0"
+}
+
 sub render_line_detail ($line) {
   my $o = qq(<tr class="line-detail"><td colspan="4">\n);
 
   if ($line->{subroutines}) {
     for my $s ($line->{subroutines}->@*) {
-      my $status = $s->{covered} ? "called" : "not called";
+      my $status  = $s->{covered} ? "called" : "not called";
+      my $cc_info = "";
+      if (defined $s->{cc}) {
+        my $cls  = crap_class($s->{crap});
+        my $crap = sprintf "%.1f", $s->{crap};
+        $cc_info = qq( <span class="$cls">CC=$s->{cc} CRAP=$crap</span>);
+      }
       $o .= <<HTML;
 <div class="detail">
 <span class="detail-heading">Subroutine</span>
-<span class="$s->{class}">$s->{name}: $status</span>
+<span class="$s->{class}">$s->{name}: $status$cc_info</span>
 </div>
 HTML
     }
@@ -383,7 +402,7 @@ HTML
       if ($tt->{legend} && $tt->{legend}->@*) {
         $o .= qq(<div class="tt-legend">\n);
         for my $item ($tt->{legend}->@*) {
-          $o .= qq(<div class="tt-legend-item">)
+          $o .= '<div class="tt-legend-item">'
             . qq(<strong>$item->{letter}</strong> = $item->{label}</div>\n);
         }
         $o .= "</div>\n";
@@ -499,7 +518,7 @@ HTML
     $o .= <<HTML;
 <span class="stat-badge untested-stat has-tip" data-tip="total: 0">
 @{[ crit_name("total") ]} 0.0%</span>
-<span class="stat-badge stat-risk has-tip" data-tip="risk: 0">risk 0</span>
+<span class="stat-badge stat-crap has-tip" data-tip="CRAP: 0">CRAP 0</span>
 HTML
   } else {
     my $tt = $total->{total};
@@ -511,8 +530,8 @@ HTML
 HTML
     }
     $o .= <<HTML;
-<span class="stat-badge stat-risk risk-hover has-tip" data-tip="risk score">
-risk $fd->{risk} @{[ risk_tip($fd) ]}</span>
+<span class="stat-badge stat-crap crap-hover has-tip" data-tip="CRAP score">
+CRAP $fd->{file_crap} @{[ crap_tip($fd) ]}</span>
 HTML
   }
 
@@ -538,7 +557,7 @@ condition, or subroutine detail.</dd>
 <dd>The strip on the right shows coverage at a glance. Click to
 jump to that line.</dd>
 <dt>Tooltips</dt>
-<dd>Hover badges for covered/total counts. Hover risk for a
+<dd>Hover badges for covered/total counts. Hover CRAP for a
 breakdown.</dd>
 <dt>Keyboard</dt>
 <dd><kbd>j</kbd> / <kbd>k</kbd> next/prev uncovered line
@@ -623,16 +642,23 @@ sub get_summary ($file, $criterion) {
   }
 }
 
-sub add_risk ($f, $risk_parts) {
-  my $pc   = $f->{total_pc};
-  my $gap  = 100 - ($pc eq "n/a" ? 0 : $pc);
-  my $berr = $risk_parts->{branch}    || 0;
-  my $cerr = $risk_parts->{condition} || 0;
-  $f->{risk}        = int($berr + $cerr + $gap);
-  $f->{risk_branch} = $berr;
-  $f->{risk_cond}   = $cerr;
-  $f->{risk_gap}    = sprintf "%.0f", $gap;
-  $f->{risk_gap_pc} = $pc;
+sub add_crap ($f, $file) {
+  my $crap_data = $R{db}->summary($file, "crap");
+  if ($crap_data && defined $crap_data->{file_crap}) {
+    $f->{file_crap} = sprintf "%.1f", $crap_data->{file_crap};
+    $f->{file_cc}   = $crap_data->{file_cc};
+    $f->{file_cov}  = sprintf "%.0f", $crap_data->{file_cov};
+    my @sorted = sort { $b->{crap} <=> $a->{crap} } grep defined $_->{crap},
+      @{ $crap_data->{subs} || [] };
+    $f->{worst_subs}
+      = [ map { { name => $_->{name}, crap => sprintf "%.1f", $_->{crap} } }
+        @sorted[ 0 .. ($#sorted > 2 ? 2 : $#sorted) ] ];
+  } else {
+    $f->{file_crap}  = 0;
+    $f->{file_cc}    = 0;
+    $f->{file_cov}   = 0;
+    $f->{worst_subs} = [];
+  }
 }
 
 sub build_one_file ($file) {
@@ -652,14 +678,11 @@ sub build_one_file ($file) {
     criteria   => {},
   );
 
-  my %risk_parts;
-
   for my $c ($R{showing}->@*) {
     my $s = get_summary($file, $c);
     $s->{class}      = "c0"  if $uncompiled && $s->{pc} eq "n/a";
     $s->{pc}         = "0.0" if $uncompiled && $s->{pc} eq "n/a";
     $f{criteria}{$c} = $s;
-    $risk_parts{$c}  = $s->{error} || 0 if $c =~ /^(?:branch|condition)$/;
   }
   my $total = get_summary($file, "total");
   if ($uncompiled && $total->{pc} eq "n/a") {
@@ -670,7 +693,7 @@ sub build_one_file ($file) {
   my $pc = $total->{pc} // "n/a";
   $f{total_pc}   = $pc;
   $f{total_sort} = $pc eq "n/a" ? -1 : $pc;
-  add_risk(\%f, \%risk_parts);
+  add_crap(\%f, $file);
   \%f
 }
 
@@ -680,7 +703,7 @@ sub build_file_data () {
     my $f = build_one_file($file);
     push @file_data, $f if $f;
   } sort {
-         ($b->{risk} || 0) <=> ($a->{risk} || 0)
+         ($b->{file_crap} || 0)   <=> ($a->{file_crap} || 0)
       || ($a->{total_sort} // -1) <=> ($b->{total_sort} // -1)
       || $a->{name} cmp $b->{name}
   } @file_data
@@ -714,10 +737,13 @@ sub line_subroutines ($f, $n) {
   my $subs = $f->subroutine or return;
   my $loc  = $subs->location($n);
   return unless $loc && @$loc;
+  my $cl = $R{crap_subs} || {};
   map { {
     name    => encode_entities($_->name),
     covered => $_->covered,
     class   => oclass($_, "subroutine"),
+    cc      => ($cl->{ "$n\0" . $_->name } // {})->{cc},
+    crap    => ($cl->{ "$n\0" . $_->name } // {})->{crap},
   } } @$loc
 }
 
@@ -939,11 +965,20 @@ sub generate_index ($outdir, $options, $file_data, $total, $dist) {
   write_file($html, render_index($file_data, $total, $dist));
 }
 
+sub _build_crap_subs ($file) {
+  my $crap_data = $R{db}->summary($file, "crap") or return {};
+  my $subs      = $crap_data->{subs}             or return {};
+  my %lookup;
+  $lookup{ $_->{line} . "\0" . $_->{name} } = $_ for @$subs;
+  \%lookup
+}
+
 sub generate_file_pages ($outdir, $file_data) {
   for my $idx (0 .. $#$file_data) {
     my $fd = $file_data->[$idx];
     next unless $fd->{exists};
     my $file = $fd->{name};
+    $R{crap_subs} = _build_crap_subs($file);
     my $lines
       = $fd->{uncompiled}
       ? build_untested_source_lines($file)
@@ -962,6 +997,7 @@ sub generate_file_pages ($outdir, $file_data) {
       "$outdir/$fd->{link}",
       render_file_page($fd, $lines, \%file_total, $prev, $next),
     );
+    delete $R{crap_subs};
   }
 }
 
@@ -1098,7 +1134,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   border-color: var(--border);
   color: var(--fg-muted);
 }
-.stat-risk {
+.stat-crap {
   background: var(--prefix-bg);
   border-color: var(--prefix-border);
   color: var(--fg);
@@ -1336,12 +1372,12 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 .file-table .sort-asc::after { content: " \25b2"; }
 .file-table .sort-desc::after { content: " \25bc"; }
 
-.risk-hover {
+.crap-hover {
   position: relative;
   cursor: default;
 }
-.risk-hover:hover { z-index: 30; }
-.risk-tip {
+.crap-hover:hover { z-index: 30; }
+.crap-tip {
   display: none;
   position: absolute;
   bottom: 100%;
@@ -1358,14 +1394,14 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   border-collapse: collapse;
   pointer-events: none;
 }
-.risk-hover:hover .risk-tip { display: table; }
-.risk-tip td {
+.crap-hover:hover .crap-tip { display: table; }
+.crap-tip td {
   padding: 1px 6px;
   font-variant-numeric: tabular-nums;
 }
-.risk-tip td:first-child { text-align: left; }
-.risk-tip td:last-child { text-align: right; }
-.risk-tip .risk-total td {
+.crap-tip td:first-child { text-align: left; }
+.crap-tip td:last-child { text-align: right; }
+.crap-tip .crap-total td {
   border-top: 1px solid var(--tip-fg);
   font-weight: 600;
 }
@@ -1376,7 +1412,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   margin-top: 4px;
 }
 
-.header .risk-tip {
+.header .crap-tip {
   bottom: auto;
   top: 100%;
   margin-top: 4px;
@@ -1726,7 +1762,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
     var groupToggle = document.querySelector(".group-toggle");
 
     /* Read persisted state */
-    var sortCol = rget("sort-col", "risk");
+    var sortCol = rget("sort-col", "crap");
     var sortDir = rget("sort-dir", "desc");
 
     var defaultGrouped = fileCount > 30;
