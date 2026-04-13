@@ -83,7 +83,7 @@ sub get_options () {
     unless GetOptions(
       $Options,  # Store the options in the Options hash.
       "write:s" => sub ($, $val) {
-        @$Options{ qw( write summary ) } = ($val, 0)
+        @$Options{qw( write summary )} = ($val, 0)
       },
       #<<<
       qw(
@@ -475,6 +475,8 @@ sub manage_dbs ($dbname, $test_result) {
   $Options->{show}        = { map { $_ => 1 } $Options->{coverage}->@* };
   $Options->{show}{total} = 1 if keys %{ $Options->{show} };
 
+  $read_structure->();
+  $db->set_structure($structure);
   $db->calculate_summary(map { $_ => 1 } $Options->{coverage}->@*);
 
   print "\n\n" unless $Options->{silent};
