@@ -106,10 +106,10 @@ line  err      %     !l  l&&!r   l&&r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count Location         
----------- ----- -----------------
-BEGIN          1 tests/cond_and:10
-BEGIN          1 tests/cond_and:11
-pas           11 tests/cond_and:50
+Subroutine Count  CC  CRAP Location         
+---------- ----- --- ----- -----------------
+BEGIN          1   1   1.0 tests/cond_and:10
+BEGIN          1   1   1.0 tests/cond_and:11
+pas           11   2   2.1 tests/cond_and:50
 
 

@@ -89,20 +89,20 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location      
----------- ----- --------------
-BEGIN          1 tests/eval1:10
-BEGIN          1 tests/eval1:11
-BEGIN          1 tests/eval1:13
-e              3 tests/eval1:17
-f              2 tests/eval1:24
-h              3 tests/eval1:24
+Subroutine Count  CC  CRAP Location      
+---------- ----- --- ----- --------------
+BEGIN          1   1   1.0 tests/eval1:10
+BEGIN          1   1   1.0 tests/eval1:11
+BEGIN          1   2   2.0 tests/eval1:13
+e              3   1   1.0 tests/eval1:17
+f              2   1   1.0 tests/eval1:24
+h              3   1   1.0 tests/eval1:24
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location      
----------- ----- --------------
-g              0 tests/eval1:24
+Subroutine Count  CC  CRAP Location      
+---------- ----- --- ----- --------------
+g              0   1   1.0 tests/eval1:24
 
 

@@ -50,9 +50,9 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location
----------- ----- --------
-E2             1 E2.pm:12
+Subroutine Count  CC  CRAP Location
+---------- ----- --- ----- --------
+E2             1   1   1.0 E2.pm:12
 
 
 E3.pm
@@ -77,9 +77,9 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location
----------- ----- --------
-E3             2 E3.pm:12
+Subroutine Count  CC  CRAP Location
+---------- ----- --- ----- --------
+E3             2   1   1.0 E3.pm:12
 
 
 E4.pm
@@ -104,9 +104,9 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location
----------- ----- --------
-E4             1 E4.pm:12
+Subroutine Count  CC  CRAP Location
+---------- ----- --- ----- --------
+E4             1   1   1.0 E4.pm:12
 
 
 eval_merge_0
@@ -139,11 +139,11 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location       
----------- ----- ---------------
-BEGIN          1 eval_merge_0:10
-BEGIN          1 eval_merge_0:12
-BEGIN          1 eval_merge_0:13
+Subroutine Count  CC  CRAP Location       
+---------- ----- --- ----- ---------------
+BEGIN          1   1   1.0 eval_merge_0:10
+BEGIN          1   1   1.0 eval_merge_0:12
+BEGIN          1   1   1.0 eval_merge_0:13
 
 
 eval_merge_1
@@ -176,10 +176,10 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location       
----------- ----- ---------------
-BEGIN          1 eval_merge_1:10
-BEGIN          1 eval_merge_1:12
-BEGIN          1 eval_merge_1:13
+Subroutine Count  CC  CRAP Location       
+---------- ----- --- ----- ---------------
+BEGIN          1   1   1.0 eval_merge_1:10
+BEGIN          1   1   1.0 eval_merge_1:12
+BEGIN          1   1   1.0 eval_merge_1:13
 
 

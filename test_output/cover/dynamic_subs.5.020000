@@ -96,23 +96,23 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location             
----------- ----- ---------------------
-AUTOLOAD       3 tests/dynamic_subs:41
-BEGIN          1 tests/dynamic_subs:31
-BEGIN          1 tests/dynamic_subs:43
-__ANON__       5 tests/dynamic_subs:16
-__ANON__       2 tests/dynamic_subs:33
-__ANON__       3 tests/dynamic_subs:46
-__ANON__       2 tests/dynamic_subs:50
-gen            4 tests/dynamic_subs:14
+Subroutine Count  CC  CRAP Location             
+---------- ----- --- ----- ---------------------
+AUTOLOAD       3   2   2.0 tests/dynamic_subs:41
+BEGIN          1   1   1.0 tests/dynamic_subs:31
+BEGIN          1   1   1.0 tests/dynamic_subs:43
+__ANON__       5   2   2.1 tests/dynamic_subs:16
+__ANON__       2   1   1.0 tests/dynamic_subs:33
+__ANON__       3   1   1.0 tests/dynamic_subs:46
+__ANON__       2   1   1.0 tests/dynamic_subs:50
+gen            4   1   1.0 tests/dynamic_subs:14
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location             
----------- ----- ---------------------
-empty          0 tests/dynamic_subs:11
-unused         0 tests/dynamic_subs:10
+Subroutine Count  CC  CRAP Location             
+---------- ----- --- ----- ---------------------
+empty          0   1   1.0 tests/dynamic_subs:11
+unused         0   1   2.0 tests/dynamic_subs:10
 
 

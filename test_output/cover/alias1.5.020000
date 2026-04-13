@@ -66,12 +66,12 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location    
----------- ----- ------------
-BEGIN          1 Alias1.pm:10
-BEGIN          1 Alias1.pm:11
-BEGIN          1 Alias1.pm:13
-is_3digits     2 Alias1.pm:19
+Subroutine Count  CC  CRAP Location    
+---------- ----- --- ----- ------------
+BEGIN          1   1   1.0 Alias1.pm:10
+BEGIN          1   1   1.0 Alias1.pm:11
+BEGIN          1   1   1.0 Alias1.pm:13
+is_3digits     2   2   2.0 Alias1.pm:19
 
 
 alias1
@@ -109,11 +109,11 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location 
----------- ----- ---------
-BEGIN          1 alias1:10
-BEGIN          1 alias1:11
-BEGIN          1 alias1:12
-BEGIN          1 alias1:14
+Subroutine Count  CC  CRAP Location 
+---------- ----- --- ----- ---------
+BEGIN          1   1   1.0 alias1:10
+BEGIN          1   1   1.0 alias1:11
+BEGIN          1   1   1.0 alias1:12
+BEGIN          1   1   1.0 alias1:14
 
 

@@ -52,9 +52,9 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine     Count Location              
--------------- ----- ----------------------
-BEGIN              1 tests/recursive_sub:10
-recursive_func     4 tests/recursive_sub:14
+Subroutine     Count  CC  CRAP Location              
+-------------- ----- --- ----- ----------------------
+BEGIN              1   1   1.0 tests/recursive_sub:10
+recursive_func     4   2   2.0 tests/recursive_sub:14
 
 

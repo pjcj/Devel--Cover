@@ -48,17 +48,17 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location        
----------- ----- ----------------
-BEGIN          1 tests/deparse:10
-BEGIN          1 tests/deparse:11
-BEGIN          1 tests/deparse:13
+Subroutine Count  CC  CRAP Location        
+---------- ----- --- ----- ----------------
+BEGIN          1   1   1.0 tests/deparse:10
+BEGIN          1   1   1.0 tests/deparse:11
+BEGIN          1   1   1.0 tests/deparse:13
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location        
----------- ----- ----------------
-__ANON__       0 tests/deparse:16
+Subroutine Count  CC  CRAP Location        
+---------- ----- --- ----- ----------------
+__ANON__       0   1   2.0 tests/deparse:16
 
 

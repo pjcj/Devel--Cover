@@ -471,28 +471,28 @@ line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count Location             
----------- ----- ---------------------
-BEGIN          1 tests/cond_branch:10 
-BEGIN          1 tests/cond_branch:11 
-BEGIN          1 tests/cond_branch:112
-BEGIN          1 tests/cond_branch:118
-BEGIN          1 tests/cond_branch:149
-BEGIN          1 tests/cond_branch:156
-BEGIN          1 tests/cond_branch:202
-BEGIN          1 tests/cond_branch:211
-BEGIN          1 tests/cond_branch:229
-BEGIN          1 tests/cond_branch:79 
-BEGIN          1 tests/cond_branch:85 
-__ANON__       4 tests/cond_branch:219
-__ANON__       4 tests/cond_branch:224
-__ANON__       4 tests/cond_branch:230
-__ANON__       4 tests/cond_branch:235
-__ANON__       4 tests/cond_branch:240
-__ANON__       4 tests/cond_branch:245
-__ANON__       4 tests/cond_branch:253
-__ANON__       4 tests/cond_branch:261
-__ANON__       4 tests/cond_branch:269
-__ANON__       4 tests/cond_branch:278
+Subroutine Count  CC  CRAP Location             
+---------- ----- --- ----- ---------------------
+BEGIN          1   1   1.0 tests/cond_branch:10 
+BEGIN          1   1   1.0 tests/cond_branch:11 
+BEGIN          1   1   1.0 tests/cond_branch:112
+BEGIN          1   1   1.0 tests/cond_branch:118
+BEGIN          1   1   1.0 tests/cond_branch:149
+BEGIN          1   1   1.0 tests/cond_branch:156
+BEGIN          1   1   1.0 tests/cond_branch:202
+BEGIN          1   1   1.0 tests/cond_branch:211
+BEGIN          1   1   1.0 tests/cond_branch:229
+BEGIN          1   1   1.0 tests/cond_branch:79 
+BEGIN          1   1   1.0 tests/cond_branch:85 
+__ANON__       4   2   2.0 tests/cond_branch:219
+__ANON__       4   2   2.0 tests/cond_branch:224
+__ANON__       4   2   4.3 tests/cond_branch:230
+__ANON__       4   2   2.0 tests/cond_branch:235
+__ANON__       4   2   2.0 tests/cond_branch:240
+__ANON__       4   3   3.0 tests/cond_branch:245
+__ANON__       4   3   3.0 tests/cond_branch:253
+__ANON__       4   3   3.0 tests/cond_branch:261
+__ANON__       4   3   3.0 tests/cond_branch:269
+__ANON__       4   3   3.0 tests/cond_branch:278
 
 

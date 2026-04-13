@@ -80,20 +80,20 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine   Count Location     
------------- ----- -------------
-BEGIN            1 tests/sort:3 
-BEGIN            1 tests/sort:30
-GetAlgorithm     1 tests/sort:19
-backwards        6 tests/sort:11
-fail             1 tests/sort:37
-xyz              8 tests/sort:42
+Subroutine   Count  CC  CRAP Location     
+------------ ----- --- ----- -------------
+BEGIN            1   1   1.0 tests/sort:3 
+BEGIN            1   1   1.0 tests/sort:30
+GetAlgorithm     1   1   1.0 tests/sort:19
+backwards        6   1   1.0 tests/sort:11
+fail             1   1   1.0 tests/sort:37
+xyz              8   1   1.0 tests/sort:42
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine   Count Location     
------------- ----- -------------
-forwards         0 tests/sort:15
+Subroutine   Count  CC  CRAP Location     
+------------ ----- --- ----- -------------
+forwards         0   1   2.0 tests/sort:15
 
 

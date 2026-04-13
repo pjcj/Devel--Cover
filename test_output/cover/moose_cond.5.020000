@@ -74,11 +74,11 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count Location           
----------- ----- -------------------
-BEGIN          1 tests/moose_cond:13
-BEGIN          1 tests/moose_cond:14
-BEGIN          1 tests/moose_cond:18
-wagh           2 tests/moose_cond:30
+Subroutine Count  CC  CRAP Location           
+---------- ----- --- ----- -------------------
+BEGIN          1   1   1.0 tests/moose_cond:13
+BEGIN          1   1   1.0 tests/moose_cond:14
+BEGIN          1   1   1.0 tests/moose_cond:18
+wagh           2   3   3.0 tests/moose_cond:30
 
 

@@ -60,11 +60,11 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location           
----------- ----- -------------------
-BEGIN          1 tests/overloaded:18
-new            1 tests/overloaded:17
-num            2 tests/overloaded:19
-str            2 tests/overloaded:20
+Subroutine Count  CC  CRAP Location           
+---------- ----- --- ----- -------------------
+BEGIN          1   1   1.0 tests/overloaded:18
+new            1   1   1.0 tests/overloaded:17
+num            2   1   1.0 tests/overloaded:19
+str            2   1   1.0 tests/overloaded:20
 
 

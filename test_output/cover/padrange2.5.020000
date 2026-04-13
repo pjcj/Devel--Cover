@@ -49,9 +49,9 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location         
----------- ----- -----------------
-BEGIN          1 tests/padrange2:3
-BEGIN          1 tests/padrange2:4
+Subroutine Count  CC  CRAP Location         
+---------- ----- --- ----- -----------------
+BEGIN          1   1   1.0 tests/padrange2:3
+BEGIN          1   1   1.0 tests/padrange2:4
 
 

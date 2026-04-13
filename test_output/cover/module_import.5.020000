@@ -41,9 +41,9 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location           
----------- ----- -------------------
-import         1 Module_import.pm:11
+Subroutine Count  CC  CRAP Location           
+---------- ----- --- ----- -------------------
+import         1   1   1.0 Module_import.pm:11
 
 
 module_import
@@ -68,9 +68,9 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location        
----------- ----- ----------------
-BEGIN          1 module_import:10
-BEGIN          1 module_import:12
+Subroutine Count  CC  CRAP Location        
+---------- ----- --- ----- ----------------
+BEGIN          1   1   1.0 module_import:10
+BEGIN          1   1   1.0 module_import:12
 
 
