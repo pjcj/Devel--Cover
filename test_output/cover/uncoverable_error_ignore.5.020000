@@ -101,9 +101,9 @@ line  err      %     !l  l&&!r   l&&r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location                         
+Subroutine Count  CC  SLOP Location                         
 ---------- ----- --- ----- ---------------------------------
-main           1   8   8.7 tests/uncoverable_error_ignore:19
-usub          -1   1   1.0 tests/uncoverable_error_ignore:15
+main           1   8  21.7 tests/uncoverable_error_ignore:19
+usub          -1   1   0.0 tests/uncoverable_error_ignore:15
 
 

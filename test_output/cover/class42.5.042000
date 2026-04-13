@@ -118,29 +118,29 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine   Count  CC  CRAP Location        
+Subroutine   Count  CC  SLOP Location        
 ------------ ----- --- ----- ----------------
-BEGIN            1   1   1.0 tests/class42:13
-BEGIN            1   1   1.0 tests/class42:14
-BEGIN            1   1   1.0 tests/class42:15
-__ANON__         2   1   1.0 tests/class42:23
-__ANON__         1   1   1.0 tests/class42:40
-_private         1   1   1.0 tests/class42:35
-call_private     1   1   1.0 tests/class42:38
-get_anon         1   1   1.0 tests/class42:40
-greet            2   2   2.0 tests/class42:29
-is_loud          1   2   2.1 tests/class42:33
-main             1  13  17.6 tests/class42:49
-name             2   1   1.0 tests/class42:25
-speak            2   1   1.0 tests/class42:26
-speak            1   1   1.0 tests/class42:44
+BEGIN            1   1   0.0 tests/class42:13
+BEGIN            1   1   0.0 tests/class42:14
+BEGIN            1   1   0.0 tests/class42:15
+__ANON__         2   1   0.0 tests/class42:23
+__ANON__         1   1   0.0 tests/class42:40
+_private         1   1   0.0 tests/class42:35
+call_private     1   1   0.0 tests/class42:38
+get_anon         1   1   0.0 tests/class42:40
+greet            2   2   6.9 tests/class42:29
+is_loud          1   2   7.6 tests/class42:33
+main             1  13  28.7 tests/class42:49
+name             2   1   0.0 tests/class42:25
+speak            2   1   0.0 tests/class42:26
+speak            1   1   0.0 tests/class42:44
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine   Count  CC  CRAP Location        
+Subroutine   Count  CC  SLOP Location        
 ------------ ----- --- ----- ----------------
-unused           0   1   2.0 tests/class42:27
-unused_dog       0   1   2.0 tests/class42:45
+unused           0   1   6.9 tests/class42:27
+unused_dog       0   1   6.9 tests/class42:45
 
 

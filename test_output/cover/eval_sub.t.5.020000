@@ -90,10 +90,10 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location      
+Subroutine Count  CC  SLOP Location      
 ---------- ----- --- ----- --------------
-BEGIN          4   1   1.0 tests/eval3:10
-s1             3   1   1.0 tests/eval3:14
-s3             4   1   1.0 tests/eval3:18
+BEGIN          4   1   0.0 tests/eval3:10
+s1             3   1   0.0 tests/eval3:14
+s3             4   1   0.0 tests/eval3:18
 
 

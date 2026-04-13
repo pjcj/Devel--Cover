@@ -82,12 +82,12 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine             Count  CC  CRAP Location         
+Subroutine             Count  CC  SLOP Location         
 ---------------------- ----- --- ----- -----------------
-BEGIN                      1   1   1.0 tests/readonly:13
-BEGIN                      1   1   1.0 tests/readonly:14
-BEGIN                      1   1   1.0 tests/readonly:16
-test_posix_regexp          1   3   3.0 tests/readonly:34
-test_readonly_coverage     1   3   3.0 tests/readonly:23
+BEGIN                      1   1   0.0 tests/readonly:13
+BEGIN                      1   1   0.0 tests/readonly:14
+BEGIN                      1   1   0.0 tests/readonly:16
+test_posix_regexp          1   3  11.0 tests/readonly:34
+test_readonly_coverage     1   3  11.0 tests/readonly:23
 
 

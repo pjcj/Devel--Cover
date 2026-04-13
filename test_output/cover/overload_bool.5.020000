@@ -73,17 +73,17 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location              
+Subroutine Count  CC  SLOP Location              
 ---------- ----- --- ----- ----------------------
-BEGIN          1   1   1.1 tests/overload_bool:13
+BEGIN          1   1   0.6 tests/overload_bool:13
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  CRAP Location              
+Subroutine Count  CC  SLOP Location              
 ---------- ----- --- ----- ----------------------
-__ANON__       0   1   2.0 tests/overload_bool:12
-__ANON__       0   1   1.1 tests/overload_bool:13
-render         0   1   2.0 tests/overload_bool:16
+__ANON__       0   1   6.9 tests/overload_bool:12
+__ANON__       0   1   0.6 tests/overload_bool:13
+render         0   1   6.9 tests/overload_bool:16
 
 

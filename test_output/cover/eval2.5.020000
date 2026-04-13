@@ -42,9 +42,9 @@ line  err   stmt   bran   cond    sub   code
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  CRAP Location
+Subroutine Count  CC  SLOP Location
 ---------- ----- --- ----- --------
-E3             0   1   2.0 E3.pm:12
+E3             0   1   6.9 E3.pm:12
 
 
 E4.pm
@@ -69,9 +69,9 @@ line  err   stmt   bran   cond    sub   code
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  CRAP Location
+Subroutine Count  CC  SLOP Location
 ---------- ----- --- ----- --------
-E4             0   1   2.0 E4.pm:12
+E4             0   1   6.9 E4.pm:12
 
 
 eval2
@@ -132,10 +132,10 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location
+Subroutine Count  CC  SLOP Location
 ---------- ----- --- ----- --------
-BEGIN          1   1   1.0 eval2:10
-BEGIN          1   1   1.0 eval2:16
-BEGIN          1   1   1.0 eval2:18
+BEGIN          1   1   0.0 eval2:10
+BEGIN          1   1   0.0 eval2:16
+BEGIN          1   1   0.0 eval2:18
 
 

@@ -41,9 +41,9 @@ line  err   stmt   bran   cond    sub   code
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  CRAP Location
+Subroutine Count  CC  SLOP Location
 ---------- ----- --- ----- --------
-E2             0   1   2.0 E2.pm:12
+E2             0   1   6.9 E2.pm:12
 
 
 require
@@ -78,9 +78,9 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location  
+Subroutine Count  CC  SLOP Location  
 ---------- ----- --- ----- ----------
-BEGIN          1   2   2.0 require:10
-BEGIN          1   1   1.0 require:11
+BEGIN          1   2   7.1 require:10
+BEGIN          1   1   0.0 require:11
 
 

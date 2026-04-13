@@ -51,8 +51,8 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location     
+Subroutine Count  CC  SLOP Location     
 ---------- ----- --- ----- -------------
-main           1   3   3.3 tests/skip:11
+main           1   3  12.0 tests/skip:11
 
 

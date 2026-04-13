@@ -62,18 +62,18 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location     
+Subroutine Count  CC  SLOP Location     
 ---------- ----- --- ----- -------------
-zz            11   1   1.0 Module1.pm:29
+zz            11   1   0.0 Module1.pm:29
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  CRAP Location     
+Subroutine Count  CC  SLOP Location     
 ---------- ----- --- ----- -------------
-_aa            0   1   2.0 Module1.pm:14
-xx             0   1   2.0 Module1.pm:20
-yy             0   1   2.0 Module1.pm:25
+_aa            0   1   6.9 Module1.pm:14
+xx             0   1   6.9 Module1.pm:20
+yy             0   1   6.9 Module1.pm:25
 
 
 module1
@@ -132,12 +132,12 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location  
+Subroutine Count  CC  SLOP Location  
 ---------- ----- --- ----- ----------
-BEGIN          1   1   1.0 module1:12
-BEGIN          1   1   1.0 module1:13
-BEGIN          1   1   1.0 module1:15
-BEGIN          1   1   1.0 module1:17
-xx            11   1   1.0 module1:22
+BEGIN          1   1   0.0 module1:12
+BEGIN          1   1   0.0 module1:13
+BEGIN          1   1   0.0 module1:15
+BEGIN          1   1   0.0 module1:17
+xx            11   1   0.0 module1:22
 
 
