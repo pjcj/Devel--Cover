@@ -152,6 +152,22 @@ sub test_render_file_page () {
   like $got, qr/class="src/,           "file: has source column";
 }
 
+sub test_tooltip_structure () {
+  my $got = $Golden{"coverage.html"};
+
+  # New dl-based tooltip structure
+  like $got, qr/class="slop-tip"/,         "tooltip: has slop-tip";
+  like $got, qr/class="slop-tip-metrics"/, "tooltip: has metrics section";
+  like $got, qr/class="slop-tip-subs"/,    "tooltip: has subs section";
+  like $got, qr/class="slop-tip-total"/,   "tooltip: has total section";
+
+  # Colour coding inside tooltips
+  like $got, qr/slop-tip-metrics.*?class="c[0-3]"/s,
+    "tooltip: coverage value has colour class";
+  like $got, qr/slop-tip-subs.*?class="c[0-3]"/s,
+    "tooltip: sub entry has colour class";
+}
+
 sub test_render_untested_page () {
   my ($untested) = grep /Uncovered-Calc/, keys %Golden;
   ok defined $untested, "golden untested file page exists";
@@ -168,6 +184,7 @@ sub main () {
   test_render_layout;
   test_render_index;
   test_render_file_page;
+  test_tooltip_structure;
   test_render_untested_page;
   done_testing;
 }
