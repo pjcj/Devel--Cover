@@ -179,19 +179,19 @@ line  err      %      l  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location  
+Subroutine Count  CC  SLOP Location  
 ---------- ----- --- ----- ----------
-BEGIN          1   1   1.0 cond_or:13
-BEGIN          1   1   1.0 cond_or:14
-BEGIN          1   1   1.0 cond_or:24
+BEGIN          1   1   0.0 cond_or:13
+BEGIN          1   1   0.0 cond_or:14
+BEGIN          1   1   0.0 cond_or:24
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  CRAP Location  
+Subroutine Count  CC  SLOP Location  
 ---------- ----- --- ----- ----------
-__ANON__       0   1   1.0 cond_or:71
-__ANON__       0   2   3.7 cond_or:81
+__ANON__       0   1   0.2 cond_or:71
+__ANON__       0   2  13.0 cond_or:81
 
 
 cond_or.pl
@@ -276,10 +276,10 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location     
+Subroutine Count  CC  SLOP Location     
 ---------- ----- --- ----- -------------
-BEGIN          1   1   1.0 cond_or.pl:10
-BEGIN          1   1   1.0 cond_or.pl:11
-cond_dor      11  21  30.5 cond_or.pl:14
+BEGIN          1   1   0.0 cond_or.pl:10
+BEGIN          1   1   0.0 cond_or.pl:11
+cond_dor      11  21  34.2 cond_or.pl:14
 
 

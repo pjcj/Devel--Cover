@@ -161,9 +161,9 @@ line  err      %      l  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location               
+Subroutine Count  CC  SLOP Location               
 ---------- ----- --- ----- -----------------------
-BEGIN          1   1   1.0 tests/cond_or_interp:26
-BEGIN          1   1   1.0 tests/cond_or_interp:27
+BEGIN          1   1   0.0 tests/cond_or_interp:26
+BEGIN          1   1   0.0 tests/cond_or_interp:27
 
 

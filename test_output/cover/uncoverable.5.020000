@@ -129,8 +129,8 @@ line  err      %     !l  l&&!r   l&&r   expr
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  CRAP Location            
+Subroutine Count  CC  SLOP Location            
 ---------- ----- --- ----- --------------------
-z             -0   1   1.0 tests/uncoverable:44
+z             -0   1   0.0 tests/uncoverable:44
 
 

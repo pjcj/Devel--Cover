@@ -23,46 +23,46 @@ Finish: ...
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Pod  CC  CRAP Location     
+Subroutine Count Pod  CC  SLOP Location     
 ---------- ----- --- --- ----- -------------
-_aa            0       1   2.0 Module1.pm:14
-xx             0       1   2.0 Module1.pm:20
-yy             0   1   1   2.0 Module1.pm:25
-zz             0   0   1   2.0 Module1.pm:29
+_aa            0       1   6.9 Module1.pm:14
+xx             0       1   6.9 Module1.pm:20
+yy             0   1   1   6.9 Module1.pm:25
+zz             0   0   1   6.9 Module1.pm:29
 
 
 Covered Subroutines
 -------------------
 
-Subroutine Count Pod  CC  CRAP Location    
+Subroutine Count Pod  CC  SLOP Location    
 ---------- ----- --- --- ----- ------------
-BEGIN          1       1   1.0 PodMod.pm:10
+BEGIN          1       1   0.0 PodMod.pm:10
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Pod  CC  CRAP Location    
+Subroutine Count Pod  CC  SLOP Location    
 ---------- ----- --- --- ----- ------------
-vv             0   1   1   2.0 PodMod.pm:12
-ww             0   0   1   2.0 PodMod.pm:13
-yy             0   0   1   2.0 PodMod.pm:14
+vv             0   1   1   6.9 PodMod.pm:12
+ww             0   0   1   6.9 PodMod.pm:13
+yy             0   0   1   6.9 PodMod.pm:14
 
 
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location   
+Subroutine Count  CC  SLOP Location   
 ---------- ----- --- ----- -----------
-BEGIN          1   1   1.0 pod_nocp:14
-BEGIN          1   1   1.0 pod_nocp:15
-BEGIN          1   1   1.0 pod_nocp:17
-BEGIN          1   1   1.0 pod_nocp:19
+BEGIN          1   1   0.0 pod_nocp:14
+BEGIN          1   1   0.0 pod_nocp:15
+BEGIN          1   1   0.0 pod_nocp:17
+BEGIN          1   1   0.0 pod_nocp:19
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  CRAP Location   
+Subroutine Count  CC  SLOP Location   
 ---------- ----- --- ----- -----------
-xx             0   1   2.0 pod_nocp:24
+xx             0   1   6.9 pod_nocp:24
 
 

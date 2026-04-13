@@ -58,10 +58,10 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location              
+Subroutine Count  CC  SLOP Location              
 ---------- ----- --- ----- ----------------------
-BEGIN          1   1   1.0 tests/default_param:10
-BEGIN          1   1   1.0 tests/default_param:11
-p              2   4   4.0 tests/default_param:14
+BEGIN          1   1   0.0 tests/default_param:10
+BEGIN          1   1   0.0 tests/default_param:11
+p              2   4  13.9 tests/default_param:14
 
 

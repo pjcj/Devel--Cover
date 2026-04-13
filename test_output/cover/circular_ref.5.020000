@@ -42,16 +42,16 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location            
+Subroutine Count  CC  SLOP Location            
 ---------- ----- --- ----- --------------------
-BEGIN          1   1   1.0 tests/circular_ref:4
-BEGIN          1   1   1.0 tests/circular_ref:5
+BEGIN          1   1   0.0 tests/circular_ref:4
+BEGIN          1   1   0.0 tests/circular_ref:5
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  CRAP Location            
+Subroutine Count  CC  SLOP Location            
 ---------- ----- --- ----- --------------------
-f              0   2   6.0 tests/circular_ref:8
+f              0   2  17.9 tests/circular_ref:8
 
 

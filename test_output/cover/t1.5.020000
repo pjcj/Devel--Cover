@@ -46,10 +46,10 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  CRAP Location   
+Subroutine Count  CC  SLOP Location   
 ---------- ----- --- ----- -----------
-BEGIN          1   1   1.0 tests/t1:10
-BEGIN          1   1   1.0 tests/t1:11
-xx             1   1   1.0 tests/t1:16
+BEGIN          1   1   0.0 tests/t1:10
+BEGIN          1   1   0.0 tests/t1:11
+xx             1   1   0.0 tests/t1:16
 
 

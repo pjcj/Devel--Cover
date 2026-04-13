@@ -53,8 +53,8 @@ line  err      %   true  false   branch
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  CRAP Location         
+Subroutine Count  CC  SLOP Location         
 ---------- ----- --- ----- -----------------
-__ANON__       0   1   2.0 tests/exec_die:18
+__ANON__       0   1   6.9 tests/exec_die:18
 
 
