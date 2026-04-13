@@ -51,9 +51,9 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location             
----------- ----- ---------------------
-__ANON__       2 tests/redefine_sub:15
-s1             2 tests/redefine_sub:4 
+Subroutine Count  CC  CRAP Location             
+---------- ----- --- ----- ---------------------
+__ANON__       2   1   1.0 tests/redefine_sub:15
+s1             2   2   2.0 tests/redefine_sub:4 
 
 

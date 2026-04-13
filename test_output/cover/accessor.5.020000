@@ -38,11 +38,11 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location           
----------- ----- -------------------
-BEGIN          1 Accessor_maker.pm:4
-__ANON__       4 Accessor_maker.pm:5
-import         1 Accessor_maker.pm:5
+Subroutine Count  CC  CRAP Location           
+---------- ----- --- ----- -------------------
+BEGIN          1   1   1.0 Accessor_maker.pm:4
+__ANON__       4   1   1.0 Accessor_maker.pm:5
+import         1   1   1.0 Accessor_maker.pm:5
 
 
 accessor
@@ -90,11 +90,11 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location   
----------- ----- -----------
-BEGIN          1 accessor:4 
-BEGIN          1 accessor:7 
-new            2 accessor:2 
-test           2 accessor:13
+Subroutine Count  CC  CRAP Location   
+---------- ----- --- ----- -----------
+BEGIN          1   1   1.0 accessor:4 
+BEGIN          1   1   1.0 accessor:7 
+new            2   1   1.0 accessor:2 
+test           2   3   3.0 accessor:13
 
 

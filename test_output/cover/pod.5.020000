@@ -23,46 +23,46 @@ Finish: ...
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Pod Location     
----------- ----- --- -------------
-_aa            0     Module1.pm:14
-xx             0     Module1.pm:20
-yy             0   1 Module1.pm:25
-zz             0   0 Module1.pm:29
+Subroutine Count Pod  CC  CRAP Location     
+---------- ----- --- --- ----- -------------
+_aa            0       1   2.0 Module1.pm:14
+xx             0       1   2.0 Module1.pm:20
+yy             0   1   1   2.0 Module1.pm:25
+zz             0   0   1   2.0 Module1.pm:29
 
 
 Covered Subroutines
 -------------------
 
-Subroutine Count Pod Location    
----------- ----- --- ------------
-BEGIN          1     PodMod.pm:10
+Subroutine Count Pod  CC  CRAP Location    
+---------- ----- --- --- ----- ------------
+BEGIN          1       1   1.0 PodMod.pm:10
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Pod Location    
----------- ----- --- ------------
-vv             0   1 PodMod.pm:12
-ww             0   0 PodMod.pm:13
-yy             0   1 PodMod.pm:14
+Subroutine Count Pod  CC  CRAP Location    
+---------- ----- --- --- ----- ------------
+vv             0   1   1   2.0 PodMod.pm:12
+ww             0   0   1   2.0 PodMod.pm:13
+yy             0   1   1   2.0 PodMod.pm:14
 
 
 Covered Subroutines
 -------------------
 
-Subroutine Count Location
----------- ----- --------
-BEGIN          1 pod:14  
-BEGIN          1 pod:15  
-BEGIN          1 pod:17  
-BEGIN          1 pod:19  
+Subroutine Count  CC  CRAP Location
+---------- ----- --- ----- --------
+BEGIN          1   1   1.0 pod:14  
+BEGIN          1   1   1.0 pod:15  
+BEGIN          1   1   1.0 pod:17  
+BEGIN          1   1   1.0 pod:19  
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location
----------- ----- --------
-xx             0 pod:24  
+Subroutine Count  CC  CRAP Location
+---------- ----- --- ----- --------
+xx             0   1   2.0 pod:24  
 
 

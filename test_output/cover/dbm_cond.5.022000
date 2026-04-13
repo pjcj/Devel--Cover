@@ -93,13 +93,13 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location         
----------- ----- -----------------
-BEGIN          1 tests/dbm_cond:13
-BEGIN          1 tests/dbm_cond:14
-BEGIN          1 tests/dbm_cond:16
-BEGIN          1 tests/dbm_cond:18
-testdbm        2 tests/dbm_cond:26
-testh          2 tests/dbm_cond:36
+Subroutine Count  CC  CRAP Location         
+---------- ----- --- ----- -----------------
+BEGIN          1   1   1.0 tests/dbm_cond:13
+BEGIN          1   1   1.0 tests/dbm_cond:14
+BEGIN          1   1   1.0 tests/dbm_cond:16
+BEGIN          1   1   1.0 tests/dbm_cond:18
+testdbm        2   2   2.0 tests/dbm_cond:26
+testh          2   2   2.0 tests/dbm_cond:36
 
 
