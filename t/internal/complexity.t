@@ -20,12 +20,13 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use Digest::MD5 ();
 use File::Spec  ();
 use File::Temp  qw( tempdir );
-use Test::More import => [qw( done_testing is ok )];
+use Test::More import => [qw( done_testing is like ok )];
 
 my $Root = Cwd::cwd();
 
 use Devel::Cover::DB            ();
 use Devel::Cover::DB::Structure ();
+use Devel::Cover::Report::Text  ();
 
 my $Tmpdir = tempdir(CLEANUP => 1);
 
@@ -313,12 +314,112 @@ sub test_crap_scoring () {
   ok exists $ts->{count}, "crap: Total has count";
 }
 
+# Text report CC/CRAP column tests.
+# Verifies that print_subroutines includes CC and CRAP columns
+# when CRAP summary data is available.
+sub test_text_report_crap () {
+  my ($db_path, $script) = run_cover("cc_text", $Crap_script);
+
+  my $st = Devel::Cover::DB::Structure->new(base => $db_path);
+  $st->read_all;
+
+  my $db = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  $db->set_structure($st);
+  $db->calculate_summary(
+    statement  => 1,
+    branch     => 1,
+    condition  => 1,
+    subroutine => 1,
+  );
+
+  my @files = $db->cover->items;
+  my $options
+    = { show => { subroutine => 1 }, file => \@files, annotations => [] };
+
+  # Capture the report output.
+  my $output;
+  {
+    open my $fh, ">", \$output or die "Cannot open scalar ref: $!";
+    local *STDOUT = $fh;
+    Devel::Cover::Report::Text->report($db, $options);
+    close $fh or die "Cannot close scalar ref: $!";
+  }
+
+  # Header should contain CC and CRAP columns.
+  like $output, qr/^\s*Subroutine\b.*\bCC\b.*\bCRAP\b/m,
+    "text: header contains CC and CRAP columns";
+
+  # fully_covered: CC=1, CRAP=1.0
+  like $output, qr/fully_covered\s+\d+\s+1\s+1\.0\b/,
+    "text: fully_covered has CC=1 CRAP=1.0";
+
+  # uncalled: CC=1, CRAP=2.0
+  like $output, qr/uncalled\s+\d+\s+1\s+2\.0\b/,
+    "text: uncalled has CC=1 CRAP=2.0";
+
+  # partial_branch: CC=2, CRAP between 2 and 6
+  like $output, qr/partial_branch\s+\d+\s+2\s+\d+\.\d/,
+    "text: partial_branch has CC=2 and a CRAP score";
+}
+
+# File-level CRAP tests.
+# Verifies that summarise_complexity computes file_cc, file_cov,
+# and file_crap by treating the entire file as one sub body.
+sub test_file_level_crap () {
+  my ($db_path, $script) = run_cover("cc_filecrap", $Crap_script);
+
+  my $st = Devel::Cover::DB::Structure->new(base => $db_path);
+  $st->read_all;
+
+  my $db = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  $db->set_structure($st);
+  $db->calculate_summary(
+    statement  => 1,
+    branch     => 1,
+    condition  => 1,
+    subroutine => 1,
+  );
+
+  my ($file) = grep /cc_filecrap\.pl$/, keys $db->{summary}->%*;
+  ok defined $file, "filecrap: summary contains cover file";
+
+  my $crap = $db->{summary}{$file}{crap};
+  ok defined $crap, "filecrap: file summary has crap entry";
+
+  # file_cc = sum of per-sub CCs - count + 1
+  ok exists $crap->{file_cc}, "filecrap: has file_cc";
+  my $expected_cc_sum = 0;
+  $expected_cc_sum += $_->{cc} for $crap->{subs}->@*;
+  is $crap->{file_cc}, $expected_cc_sum - $crap->{count} + 1,
+    "filecrap: file_cc = sum(cc) - count + 1";
+
+  # file_cov: combined stmt+branch+condition coverage
+  ok exists $crap->{file_cov}, "filecrap: has file_cov";
+  ok $crap->{file_cov} >= 0 && $crap->{file_cov} <= 100,
+    "filecrap: file_cov is 0..100";
+
+  # file_crap: CRAP formula applied to file-level inputs
+  ok exists $crap->{file_crap}, "filecrap: has file_crap";
+  my $cc  = $crap->{file_cc};
+  my $cov = $crap->{file_cov};
+  my $expected_crap = $cc**2 * (1 - $cov / 100)**3 + $cc;
+  is $crap->{file_crap}, $expected_crap,
+    "filecrap: file_crap matches CRAP formula";
+
+  # Total aggregation
+  my $ts = $db->{summary}{Total}{crap};
+  ok defined $ts, "filecrap: Total has crap entry";
+  ok exists $ts->{file_crap}, "filecrap: Total has file_crap";
+}
+
 sub main () {
   test_cc_counting;
   test_summary_aggregation;
   test_end_lines;
   test_signature_cc;
   test_crap_scoring;
+  test_text_report_crap;
+  test_file_level_crap;
 }
 
 main;
