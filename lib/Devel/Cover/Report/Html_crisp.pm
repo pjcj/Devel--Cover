@@ -333,12 +333,10 @@ HTML
     $o .= qq(<tr class="dir-header" data-dir="$g->{dir}">\n)
       . "<td>$g->{dir}</td>\n";
     for my $c ($R{criteria}->@*) {
-      $o .= "<td></td>\n";
+      $o .= cov_cell($g->{criteria}{$c}, 0);
     }
-    $o
-      .= qq(<td class="$g->{class}">\n$g->{pc}\n)
-      . cov_bar($g->{pc} // "n/a", 0)
-      . "</td>\n<td></td>\n</tr>\n";
+    $o .= cov_cell($g->{total}, 0);
+    $o .= "<td></td>\n</tr>\n";
     $o .= file_row($_, $g->{dir}) for $g->{files}->@*;
   }
   $o .= "</tbody>\n</table>\n\n</div>\n";
@@ -739,6 +737,17 @@ sub build_file_data () {
   } @file_data
 }
 
+sub _dir_summary ($s) {
+  my $pc
+    = $s->{total} ? sprintf("%.1f", 100 * $s->{covered} / $s->{total}) : "n/a";
+  {
+    pc      => $pc,
+    covered => $s->{covered},
+    total   => $s->{total},
+    class   => class($pc, ($pc eq "n/a" || $pc < 100) ? 1 : 0, undef),
+  }
+}
+
 sub build_dir_groups ($file_data) {
   my (%dirs, %dir_stats);
   for my $f (@$file_data) {
@@ -748,17 +757,22 @@ sub build_dir_groups ($file_data) {
     my $t = $f->{total};
     $s->{covered} += $t->{covered} || 0;
     $s->{total}   += $t->{total}   || 0;
+    for my $c ($R{criteria}->@*) {
+      my $cs = $dir_stats{$d}{$c} ||= { covered => 0, total => 0 };
+      my $fc = $f->{criteria}{$c} // next;
+      $cs->{covered} += $fc->{covered} || 0;
+      $cs->{total}   += $fc->{total}   || 0;
+    }
   } map {
-    my $s = $dir_stats{$_};
-    my $pc
-      = $s->{total}
-      ? sprintf("%.1f", 100 * $s->{covered} / $s->{total})
-      : "n/a";
+    my $s  = $dir_stats{$_};
+    my $ts = _dir_summary($s);
     {
-      dir   => $_ || "(root)",
-      pc    => $pc,
-      class => class($pc, ($pc eq "n/a" || $pc < 100) ? 1 : 0, "total"),
-      files => $dirs{$_},
+      dir      => $_ || "(root)",
+      pc       => $ts->{pc},
+      class    => $ts->{class},
+      total    => $ts,
+      criteria => { map { $_ => _dir_summary($s->{$_}) } $R{criteria}->@* },
+      files    => $dirs{$_},
     }
   } sort keys %dirs
 }
