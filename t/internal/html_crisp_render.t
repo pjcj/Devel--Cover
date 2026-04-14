@@ -159,8 +159,9 @@ sub test_render_file_page () {
 sub test_tooltip_structure () {
   my $got = $Golden{"coverage.html"};
 
-  # New dl-based tooltip structure
-  like $got, qr/class="slop-tip"/,         "tooltip: has slop-tip";
+  # Unified glass tooltip system
+  like $got, qr/class="glass-tip slop-detail"/,
+    "tooltip: has glass-tip slop-detail";
   like $got, qr/class="slop-tip-metrics"/, "tooltip: has metrics section";
   like $got, qr/class="slop-tip-subs"/,    "tooltip: has subs section";
   like $got, qr/class="slop-tip-total"/,   "tooltip: has total section";
@@ -170,6 +171,22 @@ sub test_tooltip_structure () {
     "tooltip: coverage value has colour class";
   like $got, qr/slop-tip-subs.*?class="c[0-3]"/s,
     "tooltip: sub entry has colour class";
+}
+
+sub test_glass_tooltips () {
+  my $index = $Golden{"coverage.html"};
+
+  # Single tooltip mechanism: tip-hover + glass-tip child
+  like $index,   qr/class="[^"]*tip-hover/, "glass: has tip-hover class";
+  like $index,   qr/class="glass-tip"/,     "glass: has glass-tip child";
+  unlike $index, qr/class="[^"]*has-tip/,   "glass: no has-tip class";
+  unlike $index, qr/data-tip="/,            "glass: no data-tip attributes";
+
+  # File page SLOP badge uses tip-hover
+  my ($covered) = grep /Covered-Calc/, keys %Golden;
+  my $file_page = $Golden{$covered};
+  like $file_page,   qr/stat-slop tip-hover/, "glass: SLOP badge has tip-hover";
+  unlike $file_page, qr/slop-hover/,          "glass: no slop-hover class";
 }
 
 sub test_render_untested_page () {
@@ -189,6 +206,7 @@ sub main () {
   test_render_index;
   test_render_file_page;
   test_tooltip_structure;
+  test_glass_tooltips;
   test_render_untested_page;
   done_testing;
 }

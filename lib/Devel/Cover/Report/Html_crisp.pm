@@ -78,16 +78,19 @@ HTML
 }
 
 sub untested_badge () {
-  my $tip = $R{have_ppi} ? "" : " has-tip";
-  my $data
-    = $R{have_ppi} ? "" : ' data-tip="Install PPI for coverage estimates"';
-  qq(<span class="untested-badge$tip"$data>untested</span>)
+  my $cls = $R{have_ppi} ? "" : " tip-hover";
+  my $tip = $R{have_ppi} ? "" : glass_tip("Install PPI for coverage estimates");
+  qq(<span class="untested-badge$cls">untested $tip</span>)
+}
+
+sub glass_tip ($text) {
+  qq(<span class="glass-tip">$text</span>)
 }
 
 sub slop_tip ($f) {
   my $cov_cls = pc_class($f->{file_cov});
   my $o       = <<HTML;
-<div class="slop-tip">
+<div class="glass-tip slop-detail">
 <dl class="slop-tip-metrics">
 <dt>CC</dt><dd>$f->{file_cc}</dd>
 <dt>Cov</dt><dd class="$cov_cls">$f->{file_cov}%</dd>
@@ -124,9 +127,9 @@ sub cov_bar ($pc, $uncompiled) {
 sub cov_cell ($s, $uncompiled, $data_value = undef) {
   my $dv = $data_value // ($s->{pc} eq "n/a" ? -1 : $s->{pc});
   <<HTML
-<td class="$s->{class} has-tip"
-  data-value="$dv" data-tip="$s->{covered} / $s->{total}">
-$s->{pc} @{[ cov_bar($s->{pc}, $uncompiled) ]}</td>
+<td class="$s->{class} tip-hover" data-value="$dv">
+$s->{pc} @{[ cov_bar($s->{pc}, $uncompiled) ]}
+@{[ glass_tip("$s->{covered} / $s->{total}") ]}</td>
 HTML
 }
 
@@ -148,7 +151,7 @@ HTML
   }
   $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort});
   $o .= <<HTML;
-<td data-value="$f->{file_slop}" class="slop-hover">
+<td data-value="$f->{file_slop}" class="tip-hover">
 $f->{file_slop} @{[ slop_tip($f) ]}</td>
 </tr>
 HTML
@@ -170,7 +173,7 @@ sub render_worst_files ($worst) {
 
     $o .= <<HTML;
 <div class="worst-item $cls">
-  $name $badge<strong class="slop-hover">$slop $tip</strong>
+  $name $badge<strong class="tip-hover">$slop $tip</strong>
 </div>
 HTML
   }
@@ -193,8 +196,8 @@ sub render_dist_bar ($dist) {
     next unless $dist->{$key};
     my $w = $dist->{$key} / $dt * 100;
     $o .= <<HTML;
-<div class="dist-bar-seg has-tip" style="width:${w}%; background:var($var)"
-  data-tip="$tip"></div>
+<div class="dist-bar-seg tip-hover" style="width:${w}%; background:var($var)">
+@{[ glass_tip($tip) ]}</div>
 HTML
   }
   $o .= "</div>\n";
@@ -218,10 +221,10 @@ sub stat_badge ($c, $s) {
   my $pct = $s->{pc};
   my $suf = $pct ne "n/a" ? "%" : "";
   <<HTML
-<span class="stat-badge $s->{class} has-tip"
-  data-tip="$s->{covered} / $s->{total}">
+<span class="stat-badge $s->{class} tip-hover">
 <span class="badge-label">@{[ crit_name($c) ]} $pct$suf</span>
-@{[ cov_bar($pct, 0) ]}</span>
+@{[ cov_bar($pct, 0) ]}
+@{[ glass_tip("$s->{covered} / $s->{total}") ]}</span>
 HTML
 }
 
@@ -519,38 +522,37 @@ HTML
     my $s = $total->{$c};
     if ($fd->{uncompiled}) {
       $o .= <<HTML;
-<span class="stat-badge untested-stat has-tip"
-  data-tip="$c: 0" data-criterion="$c">
-@{[ crit_name($c) ]} 0.0%</span>
+<span class="stat-badge untested-stat tip-hover" data-criterion="$c">
+@{[ crit_name($c) ]} 0.0% @{[ glass_tip("$c: 0") ]}</span>
 HTML
     } else {
       my $cls = $s->{class} || "stat-na";
       my $pct = $s->{pc} . ($s->{pc} ne "n/a" ? "%" : "");
       $o .= <<HTML;
-<span class="stat-badge $cls has-tip" data-tip="$s->{covered} / $s->{total}"
-  data-criterion="$c">
-@{[ crit_name($c) ]} $pct</span>
+<span class="stat-badge $cls tip-hover" data-criterion="$c">
+@{[ crit_name($c) ]} $pct @{[ glass_tip("$s->{covered} / $s->{total}") ]}</span>
 HTML
     }
   }
 
   if ($fd->{uncompiled}) {
     $o .= <<HTML;
-<span class="stat-badge untested-stat has-tip" data-tip="total: 0">
-@{[ crit_name("total") ]} 0.0%</span>
-<span class="stat-badge stat-slop has-tip" data-tip="SLOP: 0">SLOP 0</span>
+<span class="stat-badge untested-stat tip-hover">
+@{[ crit_name("total") ]} 0.0% @{[ glass_tip("total: 0") ]}</span>
+<span class="stat-badge stat-slop tip-hover">
+SLOP 0 @{[ glass_tip("SLOP: 0") ]}</span>
 HTML
   } else {
     my $tt = $total->{total};
     if (($tt->{pc} // "n/a") ne "n/a") {
       $o .= <<HTML;
-<span class="stat-badge $tt->{class} has-tip"
-  data-tip="$tt->{covered} / $tt->{total}">
-@{[ crit_name("total") ]} $tt->{pc}%</span>
+<span class="stat-badge $tt->{class} tip-hover">
+@{[ crit_name("total") ]} $tt->{pc}%
+@{[ glass_tip("$tt->{covered} / $tt->{total}") ]}</span>
 HTML
     }
     $o .= <<HTML;
-<span class="stat-badge stat-slop slop-hover has-tip" data-tip="SLOP score">
+<span class="stat-badge stat-slop tip-hover">
 SLOP $fd->{file_slop} @{[ slop_tip($fd) ]}</span>
 HTML
   }
@@ -1401,41 +1403,21 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 .file-table .sort-asc::after { content: " \25b2"; }
 .file-table .sort-desc::after { content: " \25bc"; }
 
-.slop-hover {
-  position: relative;
-  cursor: default;
-}
-.slop-hover:hover { z-index: 30; }
-.slop-tip {
-  display: none;
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+/* SLOP detail tooltip overrides */
+.glass-tip.slop-detail {
   padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 13px;
   font-weight: normal;
-  white-space: nowrap;
-  background: var(--tip-glass-bg);
-  color: var(--tip-glass-fg);
-  border: 1px solid var(--tip-glass-border);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 30;
-  pointer-events: none;
 }
-.slop-hover:hover .slop-tip { display: block; }
 
-.slop-tip dl {
+.slop-detail dl {
   display: grid;
   grid-template-columns: auto auto;
   gap: 1px 12px;
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
-.slop-tip dt { text-align: left; }
-.slop-tip dd { text-align: right; margin: 0; }
+.slop-detail dt { text-align: left; }
+.slop-detail dd { text-align: right; margin: 0; }
 
 .slop-tip-subs {
   border-top: 1px solid var(--tip-glass-sep);
@@ -1454,22 +1436,17 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   font-variant-numeric: tabular-nums;
 }
 
-.slop-tip .c0,
-.slop-tip .c1,
-.slop-tip .c2,
-.slop-tip .c3 { background: transparent; }
-.slop-tip .c0 { color: var(--tip-c0); }
-.slop-tip .c1 { color: var(--tip-c1); }
-.slop-tip .c2 { color: var(--tip-c2); }
-.slop-tip .c3 { color: var(--tip-c3); }
+.slop-detail .c0,
+.slop-detail .c1,
+.slop-detail .c2,
+.slop-detail .c3 { background: transparent; }
+.slop-detail .c0 { color: var(--tip-c0); }
+.slop-detail .c1 { color: var(--tip-c1); }
+.slop-detail .c2 { color: var(--tip-c2); }
+.slop-detail .c3 { color: var(--tip-c3); }
 
-.header .has-tip::after {
-  bottom: auto;
-  top: 100%;
-  margin-top: 4px;
-}
-
-.header .slop-tip {
+/* Header: tooltips below */
+.header .glass-tip {
   bottom: auto;
   top: 100%;
   margin-top: 4px;
@@ -1501,9 +1478,11 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 /* Untested files */
 
 tr.untested td { opacity: 0.7; }
-tr.untested td .has-tip::after { opacity: 0; }
+tr.untested td .glass-tip { display: none !important; }
 tr.untested td:hover { opacity: 1; }
-tr.untested td:hover .has-tip:hover::after { opacity: 1; }
+tr.untested td:hover .tip-hover:hover > .glass-tip {
+  display: block !important;
+}
 
 .cov-bar-untested {
   display: inline-block;
