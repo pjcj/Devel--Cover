@@ -10,6 +10,7 @@
 --no-outdent-long-comments             # don't outdent long comments
 
 --paren-tightness=2                    # keep parentheses tight
+--square-bracket-tightness=2           # keep square brackets tight
 --space-prototype-paren=2              # space before prototype parentheses
 --space-signature-paren=2              # space before signature parentheses
 --keyword-paren-inner-tightness=0      # space inside keyword parentheses
@@ -48,7 +49,7 @@
 --novalign-if-unless                   # vertically align if and unless
 
 --delete-repeated-commas               # delete repeated commas
---want-trailing-commas="(m [m {m"      # trailing commas in multiline lists
+--want-trailing-commas="(b [b {b"      # trailing commas in bare lists
 --add-trailing-commas                  # add trailing commas
 --delete-trailing-commas               # delete trailing commas
 --delete-weld-interfering-commas       # delete commas that interfere with welds
