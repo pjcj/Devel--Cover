@@ -126,7 +126,7 @@ sub test_render_index () {
   like $got,   qr/class="filter-bar"/,      "has filter bar";
   like $got,   qr/data-sort="slop"/,        "has SLOP column";
   unlike $got, qr/data-sort="risk"/,        "no risk column";
-  like $got,   qr/Highest SLOP/,            "worst files heading";
+  like $got,   qr/Top SLOP/,                "worst files heading";
   like $got,   qr/Covered\/Calc\.pm/,       "Covered/Calc.pm present";
   like $got,   qr/Covered\/Full\.pm/,       "Covered/Full.pm present";
   like $got,   qr/Uncovered\/Calc\.pm/,     "Uncovered/Calc.pm present";

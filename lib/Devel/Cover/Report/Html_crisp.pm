@@ -160,8 +160,7 @@ HTML
 
 sub render_worst_files ($worst) {
   return "" unless @$worst && $worst->[0]{file_slop} > 0;
-  my $o = qq(<div class="worst-files">\n<h2>Highest SLOP</h2>\n)
-    . qq(<div class="worst-list">\n);
+  my $o = qq(<div class="worst-files">\n<h2>Top SLOP</h2>\n);
   for my $f (@$worst) {
     next if $f->{file_slop} == 0;
     my $cls = $f->{uncompiled} ? "untested-worst" : $f->{total}{class};
@@ -177,7 +176,7 @@ sub render_worst_files ($worst) {
 </div>
 HTML
   }
-  $o .= "</div>\n</div>\n";
+  $o .= "</div>\n";
   $o
 }
 
@@ -186,11 +185,11 @@ sub render_dist_bar ($dist) {
   return "" unless $dt > 0;
   my $o = qq(<div class="dist-bar">\n);
   for my $seg (
-    [ c0       => "--cov-none-border", $dist->{tip_c0} ],
-    [ c1       => "--cov-low-border",  $dist->{tip_c1} ],
-    [ c2       => "--cov-good-border", $dist->{tip_c2} ],
-    [ c3       => "--cov-full-border", $dist->{tip_c3} ],
-    [ untested => "--untested-bar",    $dist->{tip_untested} ],
+    [c0       => "--cov-none-border", $dist->{tip_c0}],
+    [c1       => "--cov-low-border",  $dist->{tip_c1}],
+    [c2       => "--cov-good-border", $dist->{tip_c2}],
+    [c3       => "--cov-full-border", $dist->{tip_c3}],
+    [untested => "--untested-bar",    $dist->{tip_untested}],
   ) {
     my ($key, $var, $tip) = @$seg;
     next unless $dist->{$key};
@@ -233,7 +232,7 @@ sub render_index ($file_data, $total, $dist) {
   my @worst
     = @$file_data
     ? (sort { $b->{file_slop} <=> $a->{file_slop} } @$file_data)
-    [ 0 .. ($#$file_data > 4 ? 4 : $#$file_data) ]
+    [0 .. ($#$file_data > 4 ? 4 : $#$file_data)]
     : ();
 
   my $o = <<HTML;
@@ -694,7 +693,7 @@ sub add_slop ($f, $file) {
         name => $_->{name},
         crap => sprintf("%.1f", $_->{crap}),
         slop => $_->{slop},
-      } } @sorted[ 0 .. ($#sorted > 2 ? 2 : $#sorted) ]
+      } } @sorted[0 .. ($#sorted > 2 ? 2 : $#sorted)]
     ];
   } else {
     $f->{file_crap}  = 0;
@@ -864,7 +863,7 @@ sub line_truth_tables ($f, $n) {
       headers    => \@headers,
       legend     => [
         map { {
-          letter => $headers[$_], label => encode_entities($labels[$_]), } }
+          letter => $headers[$_], label => encode_entities($labels[$_]) } }
           0 .. $#labels
       ],
     }
@@ -1062,8 +1061,8 @@ sub generate_file_pages ($outdir, $file_data) {
       )
       : totals_for($file);
 
-    my $prev = $idx > 0            ? $file_data->[ $idx - 1 ] : undef;
-    my $next = $idx < $#$file_data ? $file_data->[ $idx + 1 ] : undef;
+    my $prev = $idx > 0            ? $file_data->[$idx - 1] : undef;
+    my $next = $idx < $#$file_data ? $file_data->[$idx + 1] : undef;
 
     write_file(
       "$outdir/$fd->{link}",
@@ -1085,10 +1084,9 @@ sub report ($pkg, $db, $options) {
     os       => $^O,
     options  => $options,
     version  => $VERSION,
-    showing  => [ grep $options->{show}{$_}, $db->criteria ],
-    criteria =>
-      [ grep $_ ne "time", grep $options->{show}{$_}, $db->criteria ],
-    headers => [
+    showing  => [grep $options->{show}{$_}, $db->criteria],
+    criteria => [grep $_ ne "time", grep $options->{show}{$_}, $db->criteria],
+    headers  => [
       map  { ($db->criteria_short)[$_] }
       grep { $options->{show}{ ($db->criteria)[$_] } }
         (0 .. $db->criteria - 1)
@@ -1330,6 +1328,11 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 /* Worst files */
 
 .worst-files {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  overflow: hidden;
   margin-bottom: 24px;
 }
 
@@ -1338,15 +1341,8 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  margin: 0 0 8px 0;
+  margin: 0;
   color: var(--fg-muted);
-}
-
-.worst-list {
-  display: flex;
-  gap: 8px;
-  flex-wrap: nowrap;
-  overflow: hidden;
 }
 
 .worst-item {
