@@ -1471,8 +1471,13 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   user-select: none;
 }
 
-.dir-header td:first-child {
+.dir-header td {
+  background: var(--bg-alt);
+  border-top: 6px solid var(--bg);
   font-weight: 600;
+}
+
+.dir-header td:first-child {
   color: var(--fg-muted);
 }
 
