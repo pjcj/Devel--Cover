@@ -421,6 +421,22 @@ sub test_file_level_slop () {
   ok defined $ts,             "fileslop: Total has slop entry";
   ok exists $ts->{file_crap}, "fileslop: Total has file_crap";
   ok exists $ts->{file_slop}, "fileslop: Total has file_slop";
+
+  # Module-level SLOP (whole-codebase CRAP)
+  ok exists $ts->{module_cc},   "fileslop: Total has module_cc";
+  ok exists $ts->{module_cov},  "fileslop: Total has module_cov";
+  ok exists $ts->{module_crap}, "fileslop: Total has module_crap";
+  ok exists $ts->{module_slop}, "fileslop: Total has module_slop";
+  ok $ts->{module_cc} > 0,      "fileslop: module_cc > 0";
+  my $mcc = $ts->{module_cc};
+  my $mcv = $ts->{module_cov};
+  my $expected_mcrap = $mcc**2 * (1 - $mcv / 100)**3 + $mcc;
+  is $ts->{module_crap}, $expected_mcrap,
+    "fileslop: module_crap matches CRAP formula";
+  my $expected_mslop
+    = $ts->{module_crap} > 1 ? log($ts->{module_crap}) * 10 : 0;
+  ok abs($ts->{module_slop} - $expected_mslop) < 0.01,
+    "fileslop: module_slop = log(module_crap) * 10";
 }
 
 sub test_dir_level_slop () {
