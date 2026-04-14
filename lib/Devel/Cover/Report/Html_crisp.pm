@@ -88,7 +88,7 @@ sub glass_tip ($text) {
 }
 
 sub slop_tip ($f) {
-  my $cov_cls = pc_class($f->{file_cov});
+  my $cov_cls = class($f->{file_cov}, $f->{file_cov} < 100, "total");
   my $o       = <<HTML;
 <div class="glass-tip slop-detail">
 <dl class="slop-tip-metrics">
@@ -366,14 +366,6 @@ HTML
 sub slop_class ($slop) {
   return "" unless defined $slop;
   $slop < 16 ? "c3" : $slop < 34 ? "c2" : $slop < 41 ? "c1" : "c0"
-}
-
-sub pc_class ($pc) {
-  !defined $pc                ? ""
-    : $pc >= 100              ? "c3"
-    : $pc >= $Threshold->{c1} ? "c2"
-    : $pc >= $Threshold->{c0} ? "c1"
-    : "c0"
 }
 
 sub render_line_detail ($line) {
@@ -665,10 +657,9 @@ sub fmt_pc ($pc) {
     : "n/a"
 }
 
-sub get_summary ($file, $criterion) {
-  my $part = $R{db}->summary($file);
+sub _format_criterion ($part, $criterion) {
   return { pc => "n/a", class => "na", covered => 0, total => 0, error => 0 }
-    unless exists $part->{$criterion};
+    unless $part && exists $part->{$criterion};
   my $c = $part->{$criterion};
   {
     pc      => fmt_pc($c->{percentage}),
@@ -679,8 +670,11 @@ sub get_summary ($file, $criterion) {
   }
 }
 
-sub add_slop ($f, $file) {
-  my $slop_data = $R{db}->summary($file, "slop");
+sub get_summary ($file, $criterion) {
+  _format_criterion($R{db}->summary($file), $criterion)
+}
+
+sub _apply_slop ($f, $slop_data) {
   if ($slop_data && defined $slop_data->{file_crap}) {
     $f->{file_crap} = sprintf "%.1f", $slop_data->{file_crap};
     $f->{file_slop} = sprintf "%.1f", $slop_data->{file_slop} // 0;
@@ -736,7 +730,7 @@ sub build_one_file ($file) {
   my $pc = $total->{pc} // "n/a";
   $f{total_pc}   = $pc;
   $f{total_sort} = $pc eq "n/a" ? -1 : $pc;
-  add_slop(\%f, $file);
+  _apply_slop(\%f, $R{db}->summary($file, "slop"));
   \%f
 }
 
@@ -753,34 +747,7 @@ sub build_file_data () {
 }
 
 sub get_dir_summary ($dir, $criterion) {
-  my $part = $R{db}->dir_summary($dir);
-  return { pc => "n/a", class => "na", covered => 0, total => 0, error => 0 }
-    unless $part && exists $part->{$criterion};
-  my $c = $part->{$criterion};
-  {
-    pc      => fmt_pc($c->{percentage}),
-    class   => class($c->{percentage}, $c->{error}, $criterion),
-    covered => $c->{covered} || 0,
-    total   => $c->{total}   || 0,
-    error   => $c->{error}   || 0,
-  }
-}
-
-sub add_dir_slop ($f, $dir) {
-  my $slop_data = $R{db}->dir_summary($dir, "slop");
-  if ($slop_data && defined $slop_data->{file_crap}) {
-    $f->{file_crap}  = sprintf "%.1f", $slop_data->{file_crap};
-    $f->{file_slop}  = sprintf "%.1f", $slop_data->{file_slop} // 0;
-    $f->{file_cc}    = $slop_data->{file_cc};
-    $f->{file_cov}   = sprintf "%.0f", $slop_data->{file_cov};
-    $f->{worst_subs} = [];
-  } else {
-    $f->{file_crap}  = 0;
-    $f->{file_slop}  = 0;
-    $f->{file_cc}    = 0;
-    $f->{file_cov}   = 0;
-    $f->{worst_subs} = [];
-  }
+  _format_criterion($R{db}->dir_summary($dir), $criterion)
 }
 
 sub build_dir_groups ($file_data) {
@@ -798,7 +765,7 @@ sub build_dir_groups ($file_data) {
     };
     $g->{pc}    = $g->{total}{pc};
     $g->{class} = $g->{total}{class};
-    add_dir_slop($g, $dir);
+    _apply_slop($g, $R{db}->dir_summary($dir, "slop"));
     $g;
   } sort keys %dirs
 }
@@ -1036,20 +1003,12 @@ sub generate_index ($outdir, $options, $file_data, $total, $dist) {
   write_file($html, render_index($file_data, $total, $dist));
 }
 
-sub _build_slop_subs ($file) {
-  my $slop_data = $R{db}->summary($file, "slop") or return {};
-  my $subs      = $slop_data->{subs}             or return {};
-  my %lookup;
-  $lookup{ $_->{line} . "\0" . $_->{name} } = $_ for @$subs;
-  \%lookup
-}
-
 sub generate_file_pages ($outdir, $file_data) {
   for my $idx (0 .. $#$file_data) {
     my $fd = $file_data->[$idx];
     next unless $fd->{exists};
     my $file = $fd->{name};
-    $R{slop_subs} = _build_slop_subs($file);
+    $R{slop_subs} = $R{db}->slop_sub_lookup($file);
     my $lines
       = $fd->{uncompiled}
       ? build_untested_source_lines($file)
