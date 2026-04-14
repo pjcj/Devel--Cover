@@ -253,16 +253,11 @@ HTML
   my $ms = $R{db}->summary("Total", "slop");
   if ($ms && defined $ms->{module_slop}) {
     my $sv  = sprintf "%.1f", $ms->{module_slop};
-    my $sc  = slop_class($ms->{module_slop});
-    my $bar = 100 - $sv;
-    $bar = 0   if $bar < 0;
-    $bar = 100 if $bar > 100;
     my $tip = sprintf "CC %d &middot; cov %.0f%% &middot; CRAP %.1f",
       $ms->{module_cc}, $ms->{module_cov}, $ms->{module_crap};
     $o .= <<HTML;
-<span class="stat-badge $sc tip-hover">
+<span class="stat-badge tip-hover">
 <span class="badge-label">slop $sv</span>
-@{[ cov_bar($bar, 0) ]}
 @{[ glass_tip($tip) ]}</span>
 HTML
   }
