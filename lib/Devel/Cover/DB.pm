@@ -492,6 +492,10 @@ sub summarise_complexity ($self, $s, $files) {
     };
   }
   if ($crap_total_count) {
+    my $module_cc   = $total_sum - $total_count + 1;
+    my $module_cov  = _file_coverage($s->{Total});
+    my $module_crap = _crap($module_cc, $module_cov);
+    my $module_slop = _slop($module_crap);
     $s->{Total}{slop} = {
       max       => $crap_total_max,
       mean      => $crap_total_sum / $crap_total_count,
@@ -500,6 +504,10 @@ sub summarise_complexity ($self, $s, $files) {
       : 0,
       file_slop => $fcrap_total_count ? $fslop_total_sum / $fcrap_total_count
       : 0,
+      module_cc   => $module_cc,
+      module_cov  => $module_cov,
+      module_crap => $module_crap,
+      module_slop => $module_slop,
     };
   }
 

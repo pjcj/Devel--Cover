@@ -195,6 +195,14 @@ sub test_dir_row_slop () {
     "dir row: has SLOP tooltip";
 }
 
+sub test_module_slop_badge () {
+  my $got = $Golden{"coverage.html"};
+  like $got, qr/stat-badge.*?slop\b/s,
+    "header: has SLOP stat badge";
+  like $got, qr/slop.*?help-toggle/s,
+    "header: SLOP badge before help button";
+}
+
 sub test_render_untested_page () {
   my ($untested) = grep /Uncovered-Calc/, keys %Golden;
   ok defined $untested, "golden untested file page exists";
@@ -214,6 +222,7 @@ sub main () {
   test_tooltip_structure;
   test_glass_tooltips;
   test_dir_row_slop;
+  test_module_slop_badge;
   test_render_untested_page;
   done_testing;
 }
