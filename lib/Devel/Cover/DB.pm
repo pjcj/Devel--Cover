@@ -1059,7 +1059,13 @@ sub AUTOLOAD {
   goto &$func
 }
 
-1
+"
+You seen the glory and the shame
+Beauty and the pain
+Weakness and the strength
+Waiting for the fame
+Don't you think you ought to give it all you got?
+"
 
 __END__
 
@@ -1084,16 +1090,256 @@ This module provides access to a database of code coverage information.
 
 =head2 new
 
- my $db = Devel::Cover::DB->new(db => "my_coverage_db");
+  my $db = Devel::Cover::DB->new(db => "my_coverage_db");
 
-Constructs the DB from the specified database.
+Construct a DB from the specified database directory. If the directory contains
+a valid database file it is read automatically.
+
+=head2 criteria
+
+  my @c = $db->criteria;
+
+Return the list of coverage criteria names (e.g. C<statement>, C<branch>,
+C<condition>, ...).
+
+=head2 criteria_short
+
+  my @c = $db->criteria_short;
+
+Return the abbreviated criteria names (e.g. C<stmt>, C<bran>, C<cond>, ...).
+
+=head2 all_criteria
+
+  my @c = $db->all_criteria;
+
+Like L</criteria> but includes C<total>.
+
+=head2 all_criteria_short
+
+  my @c = $db->all_criteria_short;
+
+Like L</criteria_short> but includes C<total>.
+
+=head2 files
+
+  my @f = $db->files;
+
+Return the list of extra files registered with the database (e.g. uncompiled
+files added via the C<files> option).
+
+=head2 read
+
+  $db->read($file);
+
+Read a serialised database from C<$file>. Populates C<runs> and
+C<files>. Returns C<$self>.
+
+=head2 write
+
+  $db->write; $db->write($db_path);
+
+Write the database to disk. If C<$db_path> is given it overrides the current
+C<db> attribute. Also writes the structure if one is attached. Returns C<$self>.
+
+=head2 delete
+
+  $db->delete; $db->delete($db_path);
+
+Remove all contents of the database directory. Returns C<$self>.
+
+=head2 clean
+
+  $db->clean;
+
+Remove stale C<.lock> files from the database directory.
+
+=head2 merge_runs
+
+  $db->merge_runs;
+
+Merge individual run files from C<< $db/runs/ >> into the main database, write
+the merged result, and delete the run files. Handles changed-file detection: if
+a file's digest differs between runs the old coverage is discarded. Returns
+C<$self>.
+
+=head2 validate_db
+
+  $db->validate_db;
+
+Warn to STDERR if the database directory looks invalid. Returns C<$self>.
+
+=head2 exists
+
+  my $bool = $db->exists;
+
+Return true if the database directory exists on disk.
+
+=head2 is_valid
+
+  my $valid = $db->is_valid;
+
+Return true if the database is valid (or looks valid - the check is
+intentionally lax).
+
+=head2 collected
+
+  my @criteria = $db->collected;
+
+Return the sorted list of criteria that were actually collected during coverage
+runs.
+
+=head2 merge
+
+  $db->merge($other_db);
+
+Merge run and collection data from C<$other_db> into C<$self>. Detects changed
+files by comparing digests across runs.
+
+=head2 summary
+
+  my $all  = $db->summary($file);
+  my $crit = $db->summary($file, "statement");
+  my $val  = $db->summary($file, "statement", "percentage");
+
+Access the summary hash for C<$file>. With one argument returns the entire file
+summary. With two, the summary for a single criterion. With three, a specific
+part of that criterion's summary.
+
+=head2 dir_summary
+
+  my $all  = $db->dir_summary($dir);
+  my $crit = $db->dir_summary($dir, "statement");
+
+Access the directory-level summary hash for C<$dir>. Populated by
+L</summarise_complexity> during L</calculate_summary>.
+
+=head2 slop_sub_lookup
+
+  my $lookup = $db->slop_sub_lookup($file);
+
+Return a hashref mapping C<"$line\0$name"> to per-subroutine SLOP detail from
+the summary data for C<$file>. Returns an empty hashref when no SLOP data
+exists.
+
+=head2 summarise_complexity
+
+  $db->summarise_complexity($summary, \@files);
+
+Compute per-file, per-directory, and total complexity and SLOP scores, storing
+results into the C<$summary> hash. Called automatically by
+L</calculate_summary>.
+
+=head2 calculate_summary
+
+  $db->calculate_summary(statement => 1, branch => 1);
+
+Calculate coverage summaries for all files, filtered by the criteria given as
+true-valued keys. Populates C<< $db->{summary} >> and triggers
+L</summarise_complexity>.
+
+=head2 trimmed_file
+
+  my $short = Devel::Cover::DB::trimmed_file($filename, $max_len);
+
+Truncate C<$filename> to C<$max_len> characters, replacing the leading portion
+with C<...> if necessary. This is a plain function, not a method.
+
+=head2 print_summary
+
+  $db->print_summary; $db->print_summary(\@files, \@criteria, \%opts);
+
+Print a tabular coverage summary to STDOUT. If C<@files> or C<@criteria> are
+given they restrict the output.
+
+=head2 add_statement
+
+  $db->add_statement($cc, $sc, $fc, $uc);
+
+Merge statement coverage counts from a single run into the accumulated cover
+hash. C<$cc> is the accumulated hash, C<$sc> the structure, C<$fc> the run
+counts, and C<$uc> uncoverable data.
+
+=head2 add_time
+
+  $db->add_time($cc, $sc, $fc, $);
+
+Merge time coverage data. Same interface as L</add_statement> but accumulates
+into scalar references.
+
+=head2 add_branch
+
+  $db->add_branch($cc, $sc, $fc, $uc);
+
+Merge branch coverage counts. Handles multi-valued branch data (true/false/else
+counts).
+
+=head2 add_subroutine
+
+  $db->add_subroutine($cc, $sc, $fc, $uc);
+
+Merge subroutine coverage counts.
+
+=head2 add_condition
+
+Alias for L</add_branch>.
+
+=head2 add_pod
+
+Alias for L</add_subroutine>.
+
+=head2 uncoverable_files
+
+  my @files = $db->uncoverable_files;
+
+Return the list of C<.uncoverable> files to consult, including any specified via
+the C<uncoverable_file> option, the local C<.uncoverable>, and
+C<~/.uncoverable>.
+
+=head2 uncoverable
+
+  my $uc = $db->uncoverable;
+
+Read all C<.uncoverable> files and return a hashref of uncoverable data keyed by
+file digest, criterion, line number, and count.
+
+=head2 add_uncoverable
+
+  $db->add_uncoverable(\@adds);
+
+Append entries to the first uncoverable file.
+
+=head2 delete_uncoverable
+
+  $db->delete_uncoverable(\@deletes);
+
+Remove entries from the uncoverable file. Currently unimplemented.
+
+=head2 clean_uncoverable
+
+  $db->clean_uncoverable;
+
+Clean up the uncoverable file. Currently unimplemented.
+
+=head2 uncoverable_comments
+
+  $db->uncoverable_comments($uncoverable, $file, $digest);
+
+Scan C<$file> for C<# uncoverable> comments and merge them into the
+C<$uncoverable> hash under C<$digest>.
+
+=head2 objectify_cover
+
+  $db->objectify_cover;
+
+Bless the raw cover hash into the appropriate C<Devel::Cover::DB::*> classes so
+that the OO accessors work.
 
 =head2 cover
 
- my $cover = $db->cover;
+  my $cover = $db->cover;
 
-Returns a Devel::Cover::DB::Cover object.  From here all the coverage
-data may be accessed.
+Return a L<Devel::Cover::DB::Cover> object. From here all the coverage data may
+be accessed.
 
   my $cover = $db->cover;
   for my $file ($cover->items) {
@@ -1110,11 +1356,11 @@ data may be accessed.
   }
 
 Data for different criteria will be in different formats, so that will need
-special handling.  This is not yet documented so your best bet for now is to
-look at some of the simpler reports and/or the source.
+special handling. This is not yet documented so your best bet for now is to look
+at some of the simpler reports and/or the source.
 
 The methods in the above example are actually aliases for methods in
-Devel::Cover::DB::Base (the base class for all Devel::Cover::DB::* classes):
+Devel::Cover::DB::Base (the base class for all C<Devel::Cover::DB::*> classes):
 
 =over
 
@@ -1130,13 +1376,28 @@ Devel::Cover::DB::Criterion->location, and Devel::Cover::DB::Location->datum
 
 =back
 
-Instead of calling $file->criterion("x") you can also call $file->x.
+Instead of calling C<< $file->criterion("x") >> you can also call
+C<< $file->x >>.
 
-=head2 is_valid
+=head2 run_keys
 
- my $valid = $db->is_valid;
+  my @keys = $db->run_keys;
 
-Returns true if $db is valid (or looks valid, the function is too lax).
+Return run identifiers sorted by start time (most recent first).
+
+=head2 runs
+
+  my @runs = $db->runs;
+
+Return L<Devel::Cover::DB::Run> objects sorted by start time (most recent
+first).
+
+=head2 set_structure
+
+  $db->set_structure($struct);
+
+Attach a L<Devel::Cover::DB::Structure> object for use by
+L</summarise_complexity>.
 
 =head1 SEE ALSO
 
