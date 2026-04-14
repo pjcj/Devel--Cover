@@ -165,7 +165,7 @@ sub print_conditions ($db, $file, $) {
   for my $location (sort { $a <=> $b } $conditions->items) {
     my %seen;
     for my $c ($conditions->location($location)->@*) {
-      push $r{ $c->type }->@*, [ $c, $seen{ $c->type }++ ? "" : $location ];
+      push $r{ $c->type }->@*, [$c, $seen{ $c->type }++ ? "" : $location];
     }
   }
 
@@ -197,18 +197,17 @@ sub print_conditions ($db, $file, $) {
   say "";
 }
 
-sub _slop_lookup ($db, $file) {
-  my $slop = $db->{summary}{$file}{slop} or return {};
-  my $subs = $slop->{subs}               or return {};
-  my %lookup;
-  $lookup{ $_->{line} . "\0" . $_->{name} } = $_ for @$subs;
-  \%lookup
+sub _update_maxw ($maxw, %vals) {
+  for my $k (keys %vals) {
+    $maxw->{$k} = length $vals{$k} if length $vals{$k} > $maxw->{$k};
+  }
 }
 
 sub _gather_subs ($dfile, $pods, $display_name, $slop_lookup) {
   my $subs = $dfile->subroutine or return;
   my %maxw = (h => 8, c => 5, p => 3, s => 10, cc => 3, cr => 5);
   my %by_type;
+  my $has_slop = %$slop_lookup;
 
   for my $location ($subs->items) {
     my $l = $subs->location($location);
@@ -224,15 +223,12 @@ sub _gather_subs ($dfile, $pods, $display_name, $slop_lookup) {
       my $cc   = defined $info ? $info->{cc}                    : "";
       my $cr   = defined $info ? sprintf("%.1f", $info->{slop}) : "";
 
-      $maxw{h}  = length $h  if length $h > $maxw{h};
-      $maxw{c}  = length $c  if length $c > $maxw{c};
-      $maxw{p}  = length $p  if $p && length $p > $maxw{p};
-      $maxw{s}  = length $s  if length $s > $maxw{s};
-      $maxw{cc} = length $cc if length $cc > $maxw{cc};
-      $maxw{cr} = length $cr if length $cr > $maxw{cr};
+      _update_maxw(\%maxw, h => $h, c => $c, s => $s, cc => $cc, cr => $cr);
+      $maxw{p} = length $p if $p && length $p > $maxw{p};
 
       my $type = $sub->covered ? "covered" : "uncovered";
-      push $by_type{$type}{$s}->@*, [ $c, $pods ? $p : (), $cc, $cr, $h ];
+      push $by_type{$type}{$s}->@*,
+        [$c, $pods ? $p : (), $has_slop ? ($cc, $cr) : (), $h];
     }
   }
 
@@ -242,7 +238,7 @@ sub _gather_subs ($dfile, $pods, $display_name, $slop_lookup) {
 sub print_subroutines ($db, $file, $options, $short) {
   my $dfile = $db->cover->file($file);
   my $pods  = $options->{show}{pod} && $dfile->pod;
-  my $cl    = _slop_lookup($db, $file);
+  my $cl    = $db->slop_sub_lookup($file);
 
   my ($by_type, $maxw) = _gather_subs($dfile, $pods, $short->{$file}, $cl);
   return unless $by_type;
@@ -264,16 +260,8 @@ sub print_subroutines ($db, $file, $options, $short) {
       $has_slop ? ("-" x $maxw->{cc}, "-" x $maxw->{cr}) : (), "-" x $maxw->{h};
 
     for my $s (sort keys $by_type->{$type}->%*) {
-      for (sort { $a->[-1] cmp $b->[-1] } $by_type->{$type}{$s}->@*) {
-        my @row = @$_;
-        unless ($has_slop) {
-          # Remove the CC and SLOP slots (after count/pod, before location)
-          my $loc = pop @row;
-          splice @row, -2;
-          push @row, $loc;
-        }
-        printf $tpl, $s, @row;
-      }
+      printf $tpl, $s, @$_
+        for sort { $a->[-1] cmp $b->[-1] } $by_type->{$type}{$s}->@*;
     }
     say "";
   }
@@ -388,10 +376,10 @@ Print one or more output lines for source line C<$n> with text C<$l>. Multiple
 output lines are produced when a single source line has several coverage points
 (e.g. chained conditions).
 
-=head2 _slop_lookup ($db, $file)
+=head2 _update_maxw ($maxw, %vals)
 
-Build a lookup hash mapping C<"$line\0$name"> to SLOP sub detail from the
-summary data for C<$file>.  Returns an empty hashref when no SLOP data exists.
+Update column-width hash C<$maxw> in place: for each key in C<%vals>, set
+C<< $maxw->{$k} >> to the value's length if it exceeds the current maximum.
 
 =head2 _gather_subs ($dfile, $pods, $display_name, $slop_lookup)
 

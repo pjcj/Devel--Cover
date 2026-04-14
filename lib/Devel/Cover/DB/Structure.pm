@@ -124,7 +124,7 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
       for $self->criteria;
   }
 
-  [ $file, $line, $sub_name, $scount ]
+  [$file, $line, $sub_name, $scount]
 }
 
 sub set_complexity ($self, $sub_id, $cc) {
@@ -132,11 +132,19 @@ sub set_complexity ($self, $sub_id, $cc) {
   $self->{f}{$file}{complexity}{$line}{$sub_name}[$scount] = $cc;
 }
 
-sub get_complexity ($self, $digest) {
+sub _file_by_digest ($self, $digest) {
+  if (my $files = $self->{digests}{$digest}) {
+    return $self->{f}{ $files->[0] };
+  }
   for my $fval (values $self->{f}->%*) {
-    return $fval->{complexity} if $fval->{digest} eq $digest;
+    return $fval if $fval->{digest} eq $digest;
   }
   return
+}
+
+sub get_complexity ($self, $digest) {
+  my $fval = $self->_file_by_digest($digest) or return;
+  $fval->{complexity}
 }
 
 sub set_end_line ($self, $sub_id, $end_line) {
@@ -145,10 +153,8 @@ sub set_end_line ($self, $sub_id, $end_line) {
 }
 
 sub get_end_lines ($self, $digest) {
-  for my $fval (values $self->{f}->%*) {
-    return $fval->{end_line} if $fval->{digest} eq $digest;
-  }
-  return
+  my $fval = $self->_file_by_digest($digest) or return;
+  $fval->{end_line}
 }
 
 sub store_counts ($self, $file) {
@@ -241,6 +247,7 @@ sub read ($self, $digest) {
     # structure database on disk.
   } elsif ($d eq $s->{digest}) {
     $self->{f}{ $s->{file} } = $s;
+    push $self->{digests}{$d}->@*, $s->{file};
   } else {
     print STDERR "Devel::Cover: Deleting old coverage ",
       "for changed file $s->{file}\n"

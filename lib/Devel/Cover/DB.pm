@@ -67,8 +67,8 @@ sub new ($class, %o) {
     %o,
   };
 
-  $self->{all_criteria}         = [ $self->{criteria}->@*,       "total" ];
-  $self->{all_criteria_short}   = [ $self->{criteria_short}->@*, "total" ];
+  $self->{all_criteria}         = [$self->{criteria}->@*,       "total"];
+  $self->{all_criteria_short}   = [$self->{criteria_short}->@*, "total"];
   $self->{base}               ||= $self->{db};
   bless $self, $class;
 
@@ -308,6 +308,12 @@ sub dir_summary ($self, $dir, $criterion = undef) {
   $d->{$criterion}
 }
 
+sub slop_sub_lookup ($self, $file) {
+  my $slop = $self->summary($file, "slop") or return {};
+  my $subs = $slop->{subs}                 or return {};
+  +{ map { ("$_->{line}\0$_->{name}" => $_) } @$subs }
+}
+
 sub _sub_coverage ($file_obj, $start, $end) {
   my ($covered, $total) = (0, 0);
   for my $name (qw( statement branch condition )) {
@@ -348,8 +354,8 @@ sub _file_dir ($file) {
 }
 
 sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
-  my ($max,      $sum,      $count)      = (0, 0, 0);
-  my ($crap_max, $crap_sum, $crap_count) = (0, 0, 0);
+  my ($max, $sum, $count) = (0, 0, 0);
+  my ($crap_max, $crap_sum) = (0, 0);
   my @subs;
 
   for my $line (sort { $a <=> $b } keys %$cc_hash) {
@@ -367,7 +373,6 @@ sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
         my $crap = _crap($cc, $cov);
         $crap_max  = $crap if $crap > $crap_max;
         $crap_sum += $crap;
-        $crap_count++;
         push @subs, {
             name => $sub_name,
             line => $line + 0,
@@ -382,13 +387,12 @@ sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
 
   return unless $count;
   {
-    max        => $max,
-    sum        => $sum,
-    count      => $count,
-    crap_max   => $crap_max,
-    crap_sum   => $crap_sum,
-    crap_count => $crap_count,
-    subs       => \@subs,
+    max      => $max,
+    sum      => $sum,
+    count    => $count,
+    crap_max => $crap_max,
+    crap_sum => $crap_sum,
+    subs     => \@subs,
   }
 }
 
@@ -430,9 +434,9 @@ sub _summarise_dir_complexity ($self, $s, $dir_files, $dir_stats) {
 
 sub summarise_complexity ($self, $s, $files) {
   my $st = $self->{_structure} or return;
-  my ($total_sum, $total_count, $total_max)                = (0, 0, 0);
-  my ($crap_total_sum, $crap_total_count, $crap_total_max) = (0, 0, 0);
-  my ($fcrap_total_sum, $fcrap_total_count)                = (0, 0);
+  my ($total_sum, $total_count, $total_max) = (0, 0, 0);
+  my ($crap_total_sum, $crap_total_max)     = (0, 0);
+  my ($fcrap_total_sum, $fcrap_total_cnt)   = (0, 0);
   my $fslop_total_sum = 0;
   my %dir_stats;
   my %dir_files;
@@ -461,8 +465,8 @@ sub summarise_complexity ($self, $s, $files) {
     my $file_slop = _slop($file_crap);
     $s->{$file}{slop} = {
       max       => $d->{crap_max},
-      mean      => $d->{crap_sum} / $d->{crap_count},
-      count     => $d->{crap_count},
+      mean      => $d->{crap_sum} / $count,
+      count     => $count,
       subs      => $d->{subs},
       file_cc   => $file_cc,
       file_cov  => $file_cov,
@@ -476,13 +480,12 @@ sub summarise_complexity ($self, $s, $files) {
 
     $fcrap_total_sum += $file_crap;
     $fslop_total_sum += $file_slop;
-    $fcrap_total_count++;
-    $total_max         = $max if $max > $total_max;
-    $total_sum        += $sum;
-    $total_count      += $count;
-    $crap_total_max    = $d->{crap_max} if $d->{crap_max} > $crap_total_max;
-    $crap_total_sum   += $d->{crap_sum};
-    $crap_total_count += $d->{crap_count};
+    $fcrap_total_cnt++;
+    $total_max       = $max if $max > $total_max;
+    $total_sum      += $sum;
+    $total_count    += $count;
+    $crap_total_max  = $d->{crap_max} if $d->{crap_max} > $crap_total_max;
+    $crap_total_sum += $d->{crap_sum};
   }
   if ($total_count) {
     $s->{Total}{complexity} = {
@@ -491,19 +494,17 @@ sub summarise_complexity ($self, $s, $files) {
       count => $total_count,
     };
   }
-  if ($crap_total_count) {
+  if ($total_count) {
     my $module_cc   = $total_sum - $total_count + 1;
     my $module_cov  = _file_coverage($s->{Total});
     my $module_crap = _crap($module_cc, $module_cov);
     my $module_slop = _slop($module_crap);
     $s->{Total}{slop} = {
-      max       => $crap_total_max,
-      mean      => $crap_total_sum / $crap_total_count,
-      count     => $crap_total_count,
-      file_crap => $fcrap_total_count ? $fcrap_total_sum / $fcrap_total_count
-      : 0,
-      file_slop => $fcrap_total_count ? $fslop_total_sum / $fcrap_total_count
-      : 0,
+      max         => $crap_total_max,
+      mean        => $crap_total_sum / $total_count,
+      count       => $total_count,
+      file_crap   => $fcrap_total_cnt ? $fcrap_total_sum / $fcrap_total_cnt : 0,
+      file_slop   => $fcrap_total_cnt ? $fslop_total_sum / $fcrap_total_cnt : 0,
       module_cc   => $module_cc,
       module_cov  => $module_cov,
       module_crap => $module_crap,
@@ -659,9 +660,9 @@ sub add_branch ($self, $cc, $sc, $fc, $uc) {
       $a->[0][2] += $fc->[$i][2] if exists $fc->[$i][2];
       $a->[0][3] += $fc->[$i][3] if exists $fc->[$i][3];
     } else {
-      $cc->{$l}[$n] = [ $fc->[$i], $sc->[$i][1] ];
+      $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
     }
-    $cc->{$l}[$n][2][ $_->[0] ] ||= $_->[1] for @{ $uc->{$l}[$n] };
+    $cc->{$l}[$n][2][$_->[0]] ||= $_->[1] for @{ $uc->{$l}[$n] };
   }
 }
 
@@ -684,7 +685,7 @@ sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
       no warnings "uninitialized";
       $a->[0] += $fc->[$i];
     } else {
-      $cc->{$l}[$n] = [ $fc->[$i], $sc->[$i][1] ];
+      $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
     }
     $cc->{$l}[$n][2] ||= $uc->{$l}[$n][0][1];
   }
@@ -717,7 +718,7 @@ sub uncoverable ($self) {
     while (<$f>) {
       chomp;
       my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $_, 7;
-      push $u->{$file}{$crit}{$line}[$count]->@*, [ $type, $class, $note ];
+      push $u->{$file}{$crit}{$line}[$count]->@*, [$type, $class, $note];
     }
   }
 
@@ -832,7 +833,7 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
       for my $c (@counts) {
         # no warnings "uninitialized";
         # warn "pushing $criterion, $c - 1, $type, $class, $note";
-        push @waiting, [ $criterion, $c - 1, $type, $class, $note ];
+        push @waiting, [$criterion, $c - 1, $type, $class, $note];
       }
 
       next unless $code =~ /\S/;
@@ -842,7 +843,7 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
     while (my $w = shift @waiting) {
       my ($criterion, $count, $type, $class, $note) = @$w;
       push $uncoverable->{$digest}{$criterion}{$.}[$count]->@*,
-        [ $type, $class, $note ];
+        [$type, $class, $note];
     }
   }
   close $fh or warn "Devel::Cover: Can't close $file: $!\n";
@@ -1021,7 +1022,7 @@ sub cover ($self) {
       my $counts = Devel::Cover::Static::count_criteria($file);
       $self->{cover}{$file}
         = bless {
-          meta => { uncompiled => 1, ($counts ? (counts => $counts) : ()) }, },
+          meta => { uncompiled => 1, ($counts ? (counts => $counts) : ()) } },
         "Devel::Cover::DB::File";
     }
   }
@@ -1070,10 +1071,10 @@ Devel::Cover::DB - Code coverage metrics for Perl
 
 =head1 SYNOPSIS
 
- use Devel::Cover::DB;
+  use Devel::Cover::DB;
 
- my $db = Devel::Cover::DB->new(db => "my_coverage_db");
- $db->print_summary([$file1, $file2], ["statement", "pod"]);
+  my $db = Devel::Cover::DB->new(db => "my_coverage_db");
+  $db->print_summary([$file1, $file2], ["statement", "pod"]);
 
 =head1 DESCRIPTION
 
@@ -1094,19 +1095,19 @@ Constructs the DB from the specified database.
 Returns a Devel::Cover::DB::Cover object.  From here all the coverage
 data may be accessed.
 
- my $cover = $db->cover;
- for my $file ($cover->items) {
-     print "$file\n";
-     my $f = $cover->file($file);
-     for my $criterion ($f->items) {
-         print "  $criterion\n";
-         my $c = $f->criterion($criterion);
-         for my $location ($c->items) {
-             my $l = $c->location($location);
-             print "    $location @$l\n";
-         }
-     }
- }
+  my $cover = $db->cover;
+  for my $file ($cover->items) {
+    print "$file\n";
+    my $f = $cover->file($file);
+    for my $criterion ($f->items) {
+      print "  $criterion\n";
+      my $c = $f->criterion($criterion);
+      for my $location ($c->items) {
+        my $l = $c->location($location);
+        print "    $location @$l\n";
+      }
+    }
+  }
 
 Data for different criteria will be in different formats, so that will need
 special handling.  This is not yet documented so your best bet for now is to
