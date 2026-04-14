@@ -17,10 +17,14 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Spec ();
-use Test::More import => [ qw( done_testing is like ok plan unlike ) ];
+use Test::More import => [qw( done_testing is like ok plan unlike )];
 use Devel::Cover::Report::Html_crisp ();
-use Devel::Cover::Test::Showcase
-  qw( create_cover_db run_cover setup_lib_dir slurp );
+use Devel::Cover::Test::Showcase     qw(
+  create_cover_db
+  run_cover
+  setup_lib_dir
+  slurp
+);
 
 eval "require HTML::Entities; 1" or do {
   plan skip_all => "HTML::Entities not available";
@@ -114,23 +118,23 @@ sub test_render_index () {
 
   # Structural checks on the golden TT output - these will be
   # re-run against _render_index output once it replaces TT.
-  like $got, qr/<!DOCTYPE html>/,         "has doctype";
-  like $got, qr/<title>Coverage Summary/, "has summary title";
-  like $got, qr/class="file-table"/,      "has file table";
-  like $got, qr/class="worst-files"/,     "has worst files";
-  like $got, qr/class="dist-bar"/,        "has distribution bar";
-  like $got, qr/class="filter-bar"/,      "has filter bar";
-  like $got, qr/data-sort="slop"/,        "has SLOP column";
-  unlike $got, qr/data-sort="risk"/,      "no risk column";
-  like $got, qr/Highest SLOP/,            "worst files heading";
-  like $got, qr/Covered\/Calc\.pm/,       "Covered/Calc.pm present";
-  like $got, qr/Covered\/Full\.pm/,       "Covered/Full.pm present";
-  like $got, qr/Uncovered\/Calc\.pm/,     "Uncovered/Calc.pm present";
-  like $got, qr/Uncovered\/Full\.pm/,     "Uncovered/Full.pm present";
-  like $got, qr/untested-badge/,          "has untested badge";
-  like $got, qr/class="help-overlay"/,    "has help overlay";
-  like $got, qr/class="footer"/,          "has footer";
-  like $got, qr/Devel::Cover/,            "footer mentions Devel::Cover";
+  like $got,   qr/<!DOCTYPE html>/,         "has doctype";
+  like $got,   qr/<title>Coverage Summary/, "has summary title";
+  like $got,   qr/class="file-table"/,      "has file table";
+  like $got,   qr/class="worst-files"/,     "has worst files";
+  like $got,   qr/class="dist-bar"/,        "has distribution bar";
+  like $got,   qr/class="filter-bar"/,      "has filter bar";
+  like $got,   qr/data-sort="slop"/,        "has SLOP column";
+  unlike $got, qr/data-sort="risk"/,        "no risk column";
+  like $got,   qr/Highest SLOP/,            "worst files heading";
+  like $got,   qr/Covered\/Calc\.pm/,       "Covered/Calc.pm present";
+  like $got,   qr/Covered\/Full\.pm/,       "Covered/Full.pm present";
+  like $got,   qr/Uncovered\/Calc\.pm/,     "Uncovered/Calc.pm present";
+  like $got,   qr/Uncovered\/Full\.pm/,     "Uncovered/Full.pm present";
+  like $got,   qr/untested-badge/,          "has untested badge";
+  like $got,   qr/class="help-overlay"/,    "has help overlay";
+  like $got,   qr/class="footer"/,          "has footer";
+  like $got,   qr/Devel::Cover/,            "footer mentions Devel::Cover";
 }
 
 sub test_render_file_page () {
