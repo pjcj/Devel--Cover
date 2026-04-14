@@ -336,7 +336,11 @@ HTML
       $o .= cov_cell($g->{criteria}{$c}, 0);
     }
     $o .= cov_cell($g->{total}, 0);
-    $o .= "<td></td>\n</tr>\n";
+    $o .= <<HTML;
+<td data-value="$g->{file_slop}" class="tip-hover">
+$g->{file_slop} @{[ slop_tip($g) ]}</td>
+</tr>
+HTML
     $o .= file_row($_, $g->{dir}) for $g->{files}->@*;
   }
   $o .= "</tbody>\n</table>\n\n</div>\n";
@@ -737,43 +741,54 @@ sub build_file_data () {
   } @file_data
 }
 
-sub _dir_summary ($s) {
-  my $pc
-    = $s->{total} ? sprintf("%.1f", 100 * $s->{covered} / $s->{total}) : "n/a";
+sub get_dir_summary ($dir, $criterion) {
+  my $part = $R{db}->dir_summary($dir);
+  return { pc => "n/a", class => "na", covered => 0, total => 0, error => 0 }
+    unless $part && exists $part->{$criterion};
+  my $c = $part->{$criterion};
   {
-    pc      => $pc,
-    covered => $s->{covered},
-    total   => $s->{total},
-    class   => class($pc, ($pc eq "n/a" || $pc < 100) ? 1 : 0, undef),
+    pc      => fmt_pc($c->{percentage}),
+    class   => class($c->{percentage}, $c->{error}, $criterion),
+    covered => $c->{covered} || 0,
+    total   => $c->{total}   || 0,
+    error   => $c->{error}   || 0,
+  }
+}
+
+sub add_dir_slop ($f, $dir) {
+  my $slop_data = $R{db}->dir_summary($dir, "slop");
+  if ($slop_data && defined $slop_data->{file_crap}) {
+    $f->{file_crap}  = sprintf "%.1f", $slop_data->{file_crap};
+    $f->{file_slop}  = sprintf "%.1f", $slop_data->{file_slop} // 0;
+    $f->{file_cc}    = $slop_data->{file_cc};
+    $f->{file_cov}   = sprintf "%.0f", $slop_data->{file_cov};
+    $f->{worst_subs} = [];
+  } else {
+    $f->{file_crap}  = 0;
+    $f->{file_slop}  = 0;
+    $f->{file_cc}    = 0;
+    $f->{file_cov}   = 0;
+    $f->{worst_subs} = [];
   }
 }
 
 sub build_dir_groups ($file_data) {
-  my (%dirs, %dir_stats);
-  for my $f (@$file_data) {
-    my $d = $f->{dir};
-    push $dirs{$d}->@*, $f;
-    my $s = $dir_stats{$d} ||= { covered => 0, total => 0 };
-    my $t = $f->{total};
-    $s->{covered} += $t->{covered} || 0;
-    $s->{total}   += $t->{total}   || 0;
-    for my $c ($R{criteria}->@*) {
-      my $cs = $dir_stats{$d}{$c} ||= { covered => 0, total => 0 };
-      my $fc = $f->{criteria}{$c} // next;
-      $cs->{covered} += $fc->{covered} || 0;
-      $cs->{total}   += $fc->{total}   || 0;
-    }
-  } map {
-    my $s  = $dir_stats{$_};
-    my $ts = _dir_summary($s);
-    {
-      dir      => $_ || "(root)",
-      pc       => $ts->{pc},
-      class    => $ts->{class},
-      total    => $ts,
-      criteria => { map { $_ => _dir_summary($s->{$_}) } $R{criteria}->@* },
-      files    => $dirs{$_},
-    }
+  my %dirs;
+  push $dirs{ $_->{dir} }->@*, $_ for @$file_data;
+  map {
+    my $dir = $_;
+    my $g   = {
+      dir      => $dir || "(root)",
+      dir_key  => $dir,
+      total    => get_dir_summary($dir, "total"),
+      criteria =>
+        { map { $_ => get_dir_summary($dir, $_) } $R{criteria}->@* },
+      files => $dirs{$dir},
+    };
+    $g->{pc}    = $g->{total}{pc};
+    $g->{class} = $g->{total}{class};
+    add_dir_slop($g, $dir);
+    $g;
   } sort keys %dirs
 }
 

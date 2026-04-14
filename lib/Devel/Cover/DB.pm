@@ -302,6 +302,12 @@ sub summary ($self, $file, $criterion = undef, $part = undef) {
   $c && defined $part ? $c->{$part} : $c
 }
 
+sub dir_summary ($self, $dir, $criterion = undef) {
+  my $d = $self->{dir_summary}{$dir};
+  return $d unless $d && defined $criterion;
+  $d->{$criterion}
+}
+
 sub _sub_coverage ($file_obj, $start, $end) {
   my ($covered, $total) = (0, 0);
   for my $name (qw( statement branch condition )) {
@@ -336,12 +342,104 @@ sub _file_coverage ($s_file) {
   $total ? 100 * $covered / $total : 100
 }
 
+sub _file_dir ($file) {
+  my $dir = $file =~ s|/[^/]+$||r;
+  $dir eq $file ? "" : $dir
+}
+
+sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
+  my ($max,      $sum,      $count)      = (0, 0, 0);
+  my ($crap_max, $crap_sum, $crap_count) = (0, 0, 0);
+  my @subs;
+
+  for my $line (sort { $a <=> $b } keys %$cc_hash) {
+    for my $sub_name (sort keys %{ $cc_hash->{$line} }) {
+      my $cc_arr  = $cc_hash->{$line}{$sub_name};
+      my $end_arr = $end_hash->{$line}{$sub_name} // [];
+      for my $scount (0 .. $#$cc_arr) {
+        my $cc = $cc_arr->[$scount];
+        next unless defined $cc;
+        $max  = $cc if $cc > $max;
+        $sum += $cc;
+        $count++;
+        my $end  = $end_arr->[$scount] // $line;
+        my $cov  = _sub_coverage($file_obj, $line, $end);
+        my $crap = _crap($cc, $cov);
+        $crap_max  = $crap if $crap > $crap_max;
+        $crap_sum += $crap;
+        $crap_count++;
+        push @subs, {
+            name => $sub_name,
+            line => $line + 0,
+            cc   => $cc,
+            cov  => $cov,
+            crap => $crap,
+            slop => _slop($crap),
+          };
+      }
+    }
+  }
+
+  return unless $count;
+  {
+    max        => $max,
+    sum        => $sum,
+    count      => $count,
+    crap_max   => $crap_max,
+    crap_sum   => $crap_sum,
+    crap_count => $crap_count,
+    subs       => \@subs,
+  }
+}
+
+sub _summarise_dir_complexity ($self, $s, $dir_files, $dir_stats) {
+  my $ds_hash = $self->{dir_summary} = {};
+  for my $dir (keys %$dir_files) {
+    my $d = $ds_hash->{$dir} = {};
+    for my $criterion (qw( statement branch condition total )) {
+      my ($covered, $total, $error) = (0, 0, 0);
+      for my $f ($dir_files->{$dir}->@*) {
+        my $c = $s->{$f}{$criterion} or next;
+        $covered += $c->{covered} || 0;
+        $total   += $c->{total}   || 0;
+        $error   += $c->{error}   || 0;
+      }
+      $d->{$criterion} = {
+        covered    => $covered,
+        total      => $total,
+        error      => $error,
+        percentage => $total ? 100 - $error * 100 / $total : 100,
+      };
+    }
+
+    my $ds = $dir_stats->{$dir};
+    if ($ds && $ds->{cc_count}) {
+      my $dir_cc   = $ds->{cc_sum} - $ds->{cc_count} + 1;
+      my $dir_cov  = _file_coverage($d);
+      my $dir_crap = _crap($dir_cc, $dir_cov);
+      my $dir_slop = _slop($dir_crap);
+      $d->{slop} = {
+        file_cc   => $dir_cc,
+        file_cov  => $dir_cov,
+        file_crap => $dir_crap,
+        file_slop => $dir_slop,
+      };
+    }
+  }
+}
+
 sub summarise_complexity ($self, $s, $files) {
   my $st = $self->{_structure} or return;
   my ($total_sum, $total_count, $total_max)                = (0, 0, 0);
   my ($crap_total_sum, $crap_total_count, $crap_total_max) = (0, 0, 0);
   my ($fcrap_total_sum, $fcrap_total_count)                = (0, 0);
   my $fslop_total_sum = 0;
+  my %dir_stats;
+  my %dir_files;
+
+  for my $file (@$files) {
+    push $dir_files{ _file_dir($file) }->@*, $file;
+  }
 
   for my $file (@$files) {
     my $file_obj = $self->cover->get($file);
@@ -349,38 +447,12 @@ sub summarise_complexity ($self, $s, $files) {
     next unless $digest;
     my $cc_hash  = $st->get_complexity($digest) or next;
     my $end_hash = $st->get_end_lines($digest) || {};
-    my ($max, $sum, $count)                = (0, 0, 0);
-    my ($crap_max, $crap_sum, $crap_count) = (0, 0, 0);
-    my @subs;
+    my $d        = _file_cc_data($file_obj, $cc_hash, $end_hash) or next;
 
-    for my $line (sort { $a <=> $b } keys %$cc_hash) {
-      for my $sub_name (sort keys %{ $cc_hash->{$line} }) {
-        my $cc_arr  = $cc_hash->{$line}{$sub_name};
-        my $end_arr = $end_hash->{$line}{$sub_name} // [];
-        for my $scount (0 .. $#$cc_arr) {
-          my $cc = $cc_arr->[$scount];
-          next unless defined $cc;
-          $max  = $cc if $cc > $max;
-          $sum += $cc;
-          $count++;
-          my $end  = $end_arr->[$scount] // $line;
-          my $cov  = _sub_coverage($file_obj, $line, $end);
-          my $crap = _crap($cc, $cov);
-          $crap_max  = $crap if $crap > $crap_max;
-          $crap_sum += $crap;
-          $crap_count++;
-          push @subs, {
-              name => $sub_name,
-              line => $line + 0,
-              cc   => $cc,
-              cov  => $cov,
-              crap => $crap,
-              slop => _slop($crap),
-            };
-        }
-      }
-    }
-    next unless $count;
+    my $max   = $d->{max};
+    my $sum   = $d->{sum};
+    my $count = $d->{count};
+
     $s->{$file}{complexity}
       = { max => $max, mean => $sum / $count, count => $count };
     my $file_cc   = $sum - $count + 1;
@@ -388,24 +460,29 @@ sub summarise_complexity ($self, $s, $files) {
     my $file_crap = _crap($file_cc, $file_cov);
     my $file_slop = _slop($file_crap);
     $s->{$file}{slop} = {
-      max       => $crap_max,
-      mean      => $crap_sum / $crap_count,
-      count     => $crap_count,
-      subs      => \@subs,
+      max       => $d->{crap_max},
+      mean      => $d->{crap_sum} / $d->{crap_count},
+      count     => $d->{crap_count},
+      subs      => $d->{subs},
       file_cc   => $file_cc,
       file_cov  => $file_cov,
       file_crap => $file_crap,
       file_slop => $file_slop,
     };
+    my $dir = _file_dir($file);
+    my $ds  = $dir_stats{$dir} ||= { cc_sum => 0, cc_count => 0 };
+    $ds->{cc_sum}   += $sum;
+    $ds->{cc_count} += $count;
+
     $fcrap_total_sum += $file_crap;
     $fslop_total_sum += $file_slop;
     $fcrap_total_count++;
     $total_max         = $max if $max > $total_max;
     $total_sum        += $sum;
     $total_count      += $count;
-    $crap_total_max    = $crap_max if $crap_max > $crap_total_max;
-    $crap_total_sum   += $crap_sum;
-    $crap_total_count += $crap_count;
+    $crap_total_max    = $d->{crap_max} if $d->{crap_max} > $crap_total_max;
+    $crap_total_sum   += $d->{crap_sum};
+    $crap_total_count += $d->{crap_count};
   }
   if ($total_count) {
     $s->{Total}{complexity} = {
@@ -425,6 +502,8 @@ sub summarise_complexity ($self, $s, $files) {
       : 0,
     };
   }
+
+  $self->_summarise_dir_complexity($s, \%dir_files, \%dir_stats);
 }
 
 sub calculate_summary ($self, %options) {
@@ -844,6 +923,7 @@ sub objectify_cover ($self) {
 }
 
 sub _file_digest ($r, $file) {
+  no warnings "once";
   my $digest = $r->{digests}{$file};
   return $digest if $digest;
   print STDERR "Devel::Cover: Can't find digest for $file\n"
@@ -895,9 +975,10 @@ sub cover ($self) {
   my %files;    # processed files
   my $cover       = $self->{cover} = {};
   my $uncoverable = {};
-  require Devel::Cover::DB::Structure;
-  my $st = $self->{_structure}
-    // Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
+  my $st          = $self->{_structure} // do {
+    require Devel::Cover::DB::Structure;  ## no perlimports
+    Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
+  };
 
   # Sometimes the start value is undefined.  It's not yet clear why, but it
   # probably has something to do with the code under test forking.  We'll

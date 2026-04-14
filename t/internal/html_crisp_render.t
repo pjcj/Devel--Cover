@@ -189,6 +189,12 @@ sub test_glass_tooltips () {
   unlike $file_page, qr/slop-hover/,          "glass: no slop-hover class";
 }
 
+sub test_dir_row_slop () {
+  my $got = $Golden{"coverage.html"};
+  like $got, qr/dir-header.*?tip-hover.*?slop-detail/s,
+    "dir row: has SLOP tooltip";
+}
+
 sub test_render_untested_page () {
   my ($untested) = grep /Uncovered-Calc/, keys %Golden;
   ok defined $untested, "golden untested file page exists";
@@ -207,6 +213,7 @@ sub main () {
   test_render_file_page;
   test_tooltip_structure;
   test_glass_tooltips;
+  test_dir_row_slop;
   test_render_untested_page;
   done_testing;
 }
