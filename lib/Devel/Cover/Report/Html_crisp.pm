@@ -256,7 +256,7 @@ HTML
     my $tip = sprintf "CC %d &middot; cov %.0f%% &middot; CRAP %.1f",
       $ms->{module_cc}, $ms->{module_cov}, $ms->{module_crap};
     $o .= <<HTML;
-<span class="stat-badge tip-hover">
+<span class="stat-badge stat-slop tip-hover">
 <span class="badge-label">slop $sv</span>
 @{[ glass_tip($tip) ]}</span>
 HTML
@@ -1189,6 +1189,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   .name-full  { display: none !important; }
   .name-short { display: inline !important; }
   .stat-badge { width: 140px; }
+  .stat-slop  { width: auto; }
 }
 
 /* Narrow: stack pills vertically */
@@ -1210,6 +1211,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   background: var(--prefix-bg);
   border-color: var(--prefix-border);
   color: var(--fg);
+  width: auto;
 }
 .stat-badge[data-criterion] {
   cursor: pointer;
