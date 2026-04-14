@@ -298,19 +298,17 @@ sub test_slop_scoring () {
   is $uc->{cc},   1, "slop: uncalled CC = 1";
   is $uc->{cov},  0, "slop: uncalled cov = 0";
   is $uc->{crap}, 2, "slop: uncalled CRAP = 2";
-  ok abs($uc->{slop} - log(2) * 10) < 0.01,
-    "slop: uncalled SLOP = ln(2)*10";
+  ok abs($uc->{slop} - log(2) * 10) < 0.01, "slop: uncalled SLOP = ln(2)*10";
 
   # partial_branch: CC=2, partial coverage.
   # Bounds: cov=100% => CRAP=2, cov=0% => CRAP=6.
   my $pb = $by_name{partial_branch};
   ok defined $pb, "slop: partial_branch present";
   is $pb->{cc}, 2, "slop: partial_branch CC = 2";
-  ok $pb->{crap} > 2, "slop: partial_branch CRAP > CC";
-  ok $pb->{crap} < 6, "slop: partial_branch CRAP < CC^2+CC";
-  ok $pb->{slop} > 0, "slop: partial_branch SLOP > 0";
-  ok $pb->{slop} > $uc->{slop},
-    "slop: partial_branch SLOP > uncalled SLOP";
+  ok $pb->{crap} > 2,           "slop: partial_branch CRAP > CC";
+  ok $pb->{crap} < 6,           "slop: partial_branch CRAP < CC^2+CC";
+  ok $pb->{slop} > 0,           "slop: partial_branch SLOP > 0";
+  ok $pb->{slop} > $uc->{slop}, "slop: partial_branch SLOP > uncalled SLOP";
 
   # Total aggregation
   my $ts = $db->{summary}{Total}{slop};
@@ -406,24 +404,74 @@ sub test_file_level_slop () {
 
   # file_crap: CRAP formula applied to file-level inputs
   ok exists $slop->{file_crap}, "fileslop: has file_crap";
-  my $cc  = $slop->{file_cc};
-  my $cov = $slop->{file_cov};
+  my $cc            = $slop->{file_cc};
+  my $cov           = $slop->{file_cov};
   my $expected_crap = $cc**2 * (1 - $cov / 100)**3 + $cc;
   is $slop->{file_crap}, $expected_crap,
     "fileslop: file_crap matches CRAP formula";
 
   # file_slop: ln(file_crap) * 10
   ok exists $slop->{file_slop}, "fileslop: has file_slop";
-  my $expected_slop
-    = $slop->{file_crap} > 1 ? log($slop->{file_crap}) * 10 : 0;
+  my $expected_slop = $slop->{file_crap} > 1 ? log($slop->{file_crap}) * 10 : 0;
   ok abs($slop->{file_slop} - $expected_slop) < 0.01,
     "fileslop: file_slop = log(file_crap) * 10";
 
   # Total aggregation
   my $ts = $db->{summary}{Total}{slop};
-  ok defined $ts, "fileslop: Total has slop entry";
+  ok defined $ts,             "fileslop: Total has slop entry";
   ok exists $ts->{file_crap}, "fileslop: Total has file_crap";
   ok exists $ts->{file_slop}, "fileslop: Total has file_slop";
+}
+
+sub test_dir_level_slop () {
+  my ($db_path, $script) = run_cover("cc_dirslop", $Crap_script);
+
+  my $st = Devel::Cover::DB::Structure->new(base => $db_path);
+  $st->read_all;
+
+  my $db = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  $db->set_structure($st);
+  $db->calculate_summary(
+    statement  => 1,
+    branch     => 1,
+    condition  => 1,
+    subroutine => 1,
+  );
+
+  # Directory summary should exist for the script's parent dir
+  my ($file) = grep /cc_dirslop\.pl$/, keys $db->{summary}->%*;
+  ok defined $file, "dirslop: file found in summary";
+  (my $dir = $file) =~ s|/[^/]+$||;
+  my $ds = $db->dir_summary($dir);
+  ok defined $ds, "dirslop: dir summary exists";
+
+  # Per-criterion aggregation
+  for my $c (qw( statement branch condition total )) {
+    ok exists $ds->{$c},           "dirslop: has $c";
+    ok defined $ds->{$c}{covered}, "dirslop: $c has covered";
+    ok defined $ds->{$c}{total},   "dirslop: $c has total";
+  }
+
+  # SLOP entry
+  my $slop = $ds->{slop};
+  ok defined $slop,             "dirslop: has slop entry";
+  ok exists $slop->{file_cc},   "dirslop: has file_cc";
+  ok exists $slop->{file_cov},  "dirslop: has file_cov";
+  ok exists $slop->{file_crap}, "dirslop: has file_crap";
+  ok exists $slop->{file_slop}, "dirslop: has file_slop";
+
+  # dir_cc should equal the single file's file_cc (one file
+  # in the directory)
+  my $file_slop = $db->{summary}{$file}{slop};
+  is $slop->{file_cc}, $file_slop->{file_cc},
+    "dirslop: dir cc matches single file cc";
+
+  # CRAP formula
+  my $cc            = $slop->{file_cc};
+  my $cov           = $slop->{file_cov};
+  my $expected_crap = $cc**2 * (1 - $cov / 100)**3 + $cc;
+  is $slop->{file_crap}, $expected_crap,
+    "dirslop: dir crap matches CRAP formula";
 }
 
 sub main () {
@@ -434,6 +482,7 @@ sub main () {
   test_slop_scoring;
   test_text_report_slop;
   test_file_level_slop;
+  test_dir_level_slop;
 }
 
 main;
