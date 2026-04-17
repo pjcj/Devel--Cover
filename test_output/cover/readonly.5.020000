@@ -1,12 +1,12 @@
 Reading database from ...
 
 
--------------- ------ ------ ------ ------ ------
-File             stmt   bran   cond    sub  total
--------------- ------ ------ ------ ------ ------
-tests/readonly  100.0  100.0    n/a  100.0  100.0
-Total           100.0  100.0    n/a  100.0  100.0
--------------- ------ ------ ------ ------ ------
+-------------- ------ ------ ------ ------ ------ ------
+File             stmt   bran   cond    sub  total   slop
+-------------- ------ ------ ------ ------ ------ ------
+tests/readonly  100.0  100.0    n/a  100.0  100.0   16.1
+Total           100.0  100.0    n/a  100.0  100.0   16.1
+-------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,21 @@ Start: ...
 Finish: ...
 
 tests/readonly
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 5 100.0  5.0 16.1
+
+Worst Subroutines
+-----------------
+
+Subroutine             CC SLOP  Location         
+---------------------- -- ----  -----------------
+test_readonly_coverage  3 11.0  tests/readonly:23
+test_posix_regexp       3 11.0  tests/readonly:34
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

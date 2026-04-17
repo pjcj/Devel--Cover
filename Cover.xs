@@ -1867,7 +1867,7 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv, HV *parent_map) {
       dc_walk_callback(aTHX_ op, callback, "argdefelem", cv);
       break;
 #endif
-#if PERL_VERSION >= 43
+#if PERL_VERSION > 43 || (PERL_VERSION == 43 && PERL_SUBVERSION >= 3)
     case OP_PARAMTEST:
       dc_walk_callback(aTHX_ op, callback, "argdefelem", cv);
       break;

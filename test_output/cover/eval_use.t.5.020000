@@ -4,15 +4,15 @@ Reading database from ...
 
 Common prefix: tests/
 
------ ------ ------ ------ ------ ------
-File    stmt   bran   cond    sub  total
------ ------ ------ ------ ------ ------
-E2.pm    0.0    n/a    n/a    0.0    0.0
-E3.pm    0.0    n/a    n/a    0.0    0.0
-E4.pm    0.0    n/a    n/a    0.0    0.0
-eval2  100.0  100.0  100.0  100.0  100.0
-Total   88.4  100.0  100.0   57.1   85.3
------ ------ ------ ------ ------ ------
+----- ------ ------ ------ ------ ------ ------
+File    stmt   bran   cond    sub  total   slop
+----- ------ ------ ------ ------ ------ ------
+E2.pm    0.0    n/a    n/a    0.0    0.0    6.9
+E3.pm    0.0    n/a    n/a    0.0    0.0    6.9
+E4.pm    0.0    n/a    n/a    0.0    0.0    6.9
+eval2  100.0  100.0  100.0  100.0  100.0    0.0
+Total   88.4  100.0  100.0   57.1   85.3    0.0
+----- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -38,8 +38,30 @@ Perl version: ...
 OS: ...
 Start: ...
 Finish: ...
+
+Module Summary
+--------------
+
+Files CC  Cov CRAP SLOP
+----- -- ---- ---- ----
+    4  1 91.2  1.0  0.0
+
 
 E2.pm
+
+File Summary
+------------
+
+CC Cov CRAP SLOP
+-- --- ---- ----
+ 1 0.0  2.0  6.9
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location
+---------- -- ----  --------
+E2          1  6.9  E2.pm:12
 
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
@@ -68,6 +90,20 @@ E2             0   1   6.9 E2.pm:12
 
 E3.pm
 
+File Summary
+------------
+
+CC Cov CRAP SLOP
+-- --- ---- ----
+ 1 0.0  2.0  6.9
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location
+---------- -- ----  --------
+E3          1  6.9  E3.pm:12
+
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
 2                                       
@@ -95,6 +131,20 @@ E3             0   1   6.9 E3.pm:12
 
 E4.pm
 
+File Summary
+------------
+
+CC Cov CRAP SLOP
+-- --- ---- ----
+ 1 0.0  2.0  6.9
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location
+---------- -- ----  --------
+E4          1  6.9  E4.pm:12
+
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
 2                                       
@@ -121,6 +171,13 @@ E4             0   1   6.9 E4.pm:12
 
 
 eval2
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

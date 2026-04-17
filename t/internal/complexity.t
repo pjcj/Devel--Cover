@@ -20,7 +20,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use Digest::MD5 ();
 use File::Spec  ();
 use File::Temp  qw( tempdir );
-use Test::More import => [qw( done_testing is like ok )];
+use Test::More import => [qw( done_testing is like ok unlike )];
 
 my $Root = Cwd::cwd();
 
@@ -240,21 +240,25 @@ PERL
 }
 
 # Signature default CC tests.
-# Verifies argdefelem ops count as CC decision points, and that
-# conditions inside defaults (logops, cond_exprs) stack correctly.
+# Verifies argdefelem ops count as CC decision points, and that conditions
+# inside defaults (logops, cond_exprs) stack correctly. Before 5.26, signatures
+# compiled into cond_expr + or guard ops rather than a single argdefelem, adding
+# an extra decision point.
 sub test_signature_cc () {
   my $cc = cover_complexity("cc_sig", $Sig_script);
 
   ok defined $cc, "signature: complexity data present";
 
-  is $cc->{6}{with_default}[0], 2, "signature default: CC = 2 (1 argdefelem)";
-  is $cc->{7}{with_default_cond}[0], 3,
-    "signature default with ||: CC = 3 (1 argdefelem + 1 logop)";
+  my $extra = $] < 5.026 ? 1 : 0;
+  is $cc->{6}{with_default}[0], 2 + $extra,
+    "signature default: CC = " . (2 + $extra);
+  is $cc->{7}{with_default_cond}[0], 3 + $extra,
+    "signature default with ||: CC = " . (3 + $extra);
 }
 
 # CRAP (Change Risk Anti-Patterns) scoring tests.
-# Verifies that summarise_complexity computes per-sub combined
-# coverage and CRAP scores alongside existing complexity aggregation.
+# Verifies that summarise_complexity computes per-sub combined coverage and CRAP
+# scores alongside existing complexity aggregation.
 sub test_slop_scoring () {
   my ($db_path, $script) = run_cover("cc_crap", $Crap_script);
 
@@ -428,8 +432,8 @@ sub test_file_level_slop () {
   ok exists $ts->{module_crap}, "fileslop: Total has module_crap";
   ok exists $ts->{module_slop}, "fileslop: Total has module_slop";
   ok $ts->{module_cc} > 0,      "fileslop: module_cc > 0";
-  my $mcc = $ts->{module_cc};
-  my $mcv = $ts->{module_cov};
+  my $mcc            = $ts->{module_cc};
+  my $mcv            = $ts->{module_cov};
   my $expected_mcrap = $mcc**2 * (1 - $mcv / 100)**3 + $mcc;
   is $ts->{module_crap}, $expected_mcrap,
     "fileslop: module_crap matches CRAP formula";
@@ -476,8 +480,7 @@ sub test_dir_level_slop () {
   ok exists $slop->{file_crap}, "dirslop: has file_crap";
   ok exists $slop->{file_slop}, "dirslop: has file_slop";
 
-  # dir_cc should equal the single file's file_cc (one file
-  # in the directory)
+  # dir_cc should equal the single file's file_cc (one file in the directory)
   my $file_slop = $db->{summary}{$file}{slop};
   is $slop->{file_cc}, $file_slop->{file_cc},
     "dirslop: dir cc matches single file cc";
@@ -490,6 +493,212 @@ sub test_dir_level_slop () {
     "dirslop: dir crap matches CRAP formula";
 }
 
+# Helper: run the text report against a fresh db built from Crap_script and
+# return the captured stdout, with full show options enabled.
+sub _text_report_for ($label, $script = $Crap_script, @coverage) {
+  my ($db_path, $script_path) = run_cover($label, $script);
+  my $st = Devel::Cover::DB::Structure->new(base => $db_path);
+  $st->read_all;
+  my $db = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  $db->set_structure($st);
+  @coverage = qw( statement branch condition subroutine ) unless @coverage;
+  $db->calculate_summary(map { $_ => 1 } @coverage);
+
+  my @files   = $db->cover->items;
+  my $options = {
+    show        => { map { $_ => 1 } @coverage },
+    file        => \@files,
+    annotations => [],
+  };
+
+  my $output;
+  open my $fh, ">", \$output or die "Cannot open scalar ref: $!";
+  local *STDOUT = $fh;
+  Devel::Cover::Report::Text->report($db, $options);
+  close $fh or die "Cannot close scalar ref: $!";
+  $output
+}
+
+# Per-file SLOP banner tests.
+# Verifies the text report emits a per-file banner showing
+# CC / Coverage / CRAP / SLOP, plus a worst-subs digest.
+sub test_text_file_banner () {
+  my $output = _text_report_for("tx_banner");
+
+  like $output, qr/^File Summary\b/m, "banner: File Summary heading present";
+  like $output, qr/\bCC\b.*\bCov\b.*\bCRAP\b.*\bSLOP\b/,
+    "banner: metrics table header";
+  like $output, qr/^\s*\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s*$/m,
+    "banner: metrics table data row";
+
+  like $output, qr/^Worst Subroutines\b/m,
+    "banner: Worst Subroutines heading present";
+  like $output, qr/\bSubroutine\b.*\bCC\b.*\bSLOP\b.*\bLocation\b/,
+    "banner: worst-subs table header";
+  like $output, qr/\bpartial_branch\b.*\d+\s+\d+\.\d+\s+\S*tx_banner\.pl:\d+/,
+    "banner: partial_branch appears in worst-subs with CC/SLOP/location";
+}
+
+# Run a two-file coverage session by having the main script require a sibling
+# .pm; return the db path and both script paths.
+sub run_cover_two_files ($label, $split_dirs = 0) {
+  my $base = File::Spec->catdir($Tmpdir, $label);
+  mkdir $base;
+  my $helper_dir = $split_dirs ? File::Spec->catdir($base, "sub") : $base;
+  mkdir $helper_dir if $split_dirs;
+  my $db     = File::Spec->catdir($base, "db");
+  my $helper = File::Spec->catfile($helper_dir, "Helper.pm");
+  my $main   = File::Spec->catfile($base,       "main.pl");
+
+  open my $hfh, ">", $helper or die $!;
+  print $hfh <<'PERL';
+package Helper;
+use strict;
+use warnings;
+
+sub risky {
+  my ($x) = @_;
+  if ($x) { return 1 }
+  return 0;
+}
+
+sub safe { 42 }
+
+1;
+PERL
+  close $hfh or die "Can't close $helper: $!";
+
+  open my $mfh, ">", $main or die $!;
+  print $mfh <<"PERL";
+use strict;
+use warnings;
+use lib '$helper_dir';
+use Helper;
+
+Helper::safe();
+PERL
+  close $mfh or die "Can't close $main: $!";
+
+  my @inc = map { "-I$_" } "$Root/blib/arch", "$Root/blib/lib", "$Root/lib";
+  system($^X, @inc, "-MDevel::Cover=-db,$db,-silent,1", $main) == 0
+    or die "Failed two-file cover run: $?";
+
+  ($db, $main, $helper)
+}
+
+sub _multi_file_report ($label, $split_dirs = 0) {
+  my ($db_path, $main, $helper) = run_cover_two_files($label, $split_dirs);
+  my $st = Devel::Cover::DB::Structure->new(base => $db_path);
+  $st->read_all;
+  my $db = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  $db->set_structure($st);
+  my @coverage = qw( statement branch condition subroutine );
+  $db->calculate_summary(map { $_ => 1 } @coverage);
+
+  my @files   = $db->cover->items;
+  my $options = {
+    show        => { map { $_ => 1 } @coverage },
+    file        => \@files,
+    annotations => [],
+  };
+
+  my $output;
+  open my $fh, ">", \$output or die $!;
+  local *STDOUT = $fh;
+  Devel::Cover::Report::Text->report($db, $options);
+  close $fh or die $!;
+  $output
+}
+
+# Module-level SLOP block tests.
+# Verifies the text report emits a Module Summary block at the top when more
+# than one file is reported.
+sub test_text_module_block () {
+  my $output = _multi_file_report("tx_module");
+
+  like $output, qr/^Module Summary\b/m,
+    "module: Module Summary heading present";
+  like $output, qr/\bFiles\b.*\bCC\b.*\bCov\b.*\bCRAP\b.*\bSLOP\b/,
+    "module: metrics table header";
+  like $output, qr/^\s*\d+\s+\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s*$/m,
+    "module: metrics table data row";
+
+  # The Module Summary block should appear before the first File Summary.
+  my $mod_pos  = index $output, "Module Summary";
+  my $file_pos = index $output, "File Summary";
+  ok $mod_pos >= 0 && $file_pos >= 0 && $mod_pos < $file_pos,
+    "module: appears before per-file banners";
+}
+
+# Directory SLOP block tests.
+# Verifies the text report emits a Directory Summary table at the end
+# when more than one directory spans the reported files.
+sub test_text_dir_block () {
+  my $output = _multi_file_report("tx_dir", 1);
+
+  like $output, qr/^Directory Summary\b/m,
+    "dir: Directory Summary heading present";
+  like $output, qr/\bDirectory\b.*\bCC\b.*\bCov\b.*\bCRAP\b.*\bSLOP\b/,
+    "dir: table header present";
+
+  # Directory block should appear after the last File Summary.
+  my $dir_pos   = index $output, "Directory Summary";
+  my $last_fsum = rindex $output, "File Summary";
+  ok $dir_pos >= 0 && $last_fsum >= 0 && $dir_pos > $last_fsum,
+    "dir: appears after per-file banners";
+}
+
+# When a report spans a single directory, no Directory Summary block.
+sub test_text_dir_block_suppressed () {
+  my $output = _multi_file_report("tx_dir_single", 0);
+  unlike $output, qr/^Directory Summary\b/m,
+    "dir: suppressed when only one directory in report";
+}
+
+# print_summary SLOP column tests.
+# Verifies that DB::print_summary emits a slop column after the criteria
+# columns, with per-file file_slop and Total module_slop.
+sub test_print_summary_slop () {
+  my ($db_path, $script) = run_cover("ps_slop", $Crap_script);
+
+  my $st = Devel::Cover::DB::Structure->new(base => $db_path);
+  $st->read_all;
+
+  my $db = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  $db->set_structure($st);
+
+  my $output;
+  {
+    open my $fh, ">", \$output or die "Cannot open scalar ref: $!";
+    local *STDOUT = $fh;
+    local $ENV{DEVEL_COVER_TEST_SUITE} = 1;
+    $db->print_summary(
+      undef,
+      [qw( statement branch condition subroutine )],
+      { force => 1 },
+    );
+    close $fh or die "Cannot close scalar ref: $!";
+  }
+
+  like $output, qr/\bslop\b/, "summary: header contains slop column";
+
+  my ($file_row) = $output =~ /^(\S*ps_slop\.pl\s.+)$/m;
+  ok defined $file_row, "summary: file row found";
+  my @file_cols = split " ", $file_row // "";
+  is @file_cols, 7,
+    "summary: file row has name + 5 criteria + slop (7 cols)";
+  like $file_cols[-1], qr/^\d+\.\d$/,
+    "summary: file row slop column is numeric";
+
+  my ($total_row) = $output =~ /^(Total\s.+)$/m;
+  ok defined $total_row, "summary: Total row found";
+  my @total_cols = split " ", $total_row // "";
+  is @total_cols, 7,
+    "summary: Total row has label + 5 criteria + slop (7 cols)";
+  like $total_cols[-1], qr/^\d+\.\d$/,
+    "summary: Total row slop column is numeric";
+}
+
 sub main () {
   test_cc_counting;
   test_summary_aggregation;
@@ -499,6 +708,11 @@ sub main () {
   test_text_report_slop;
   test_file_level_slop;
   test_dir_level_slop;
+  test_print_summary_slop;
+  test_text_file_banner;
+  test_text_module_block;
+  test_text_dir_block;
+  test_text_dir_block_suppressed;
 }
 
 main;

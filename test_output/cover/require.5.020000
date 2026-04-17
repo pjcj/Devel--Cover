@@ -4,13 +4,13 @@ Reading database from ...
 
 Common prefix: tests/
 
-------- ------ ------ ------ ------ ------
-File      stmt   bran   cond    sub  total
-------- ------ ------ ------ ------ ------
-E2.pm      0.0    n/a    n/a    0.0    0.0
-require  100.0   50.0    n/a  100.0   90.9
-Total     87.5   50.0    n/a   66.6   76.9
-------- ------ ------ ------ ------ ------
+------- ------ ------ ------ ------ ------ ------
+File      stmt   bran   cond    sub  total   slop
+------- ------ ------ ------ ------ ------ ------
+E2.pm      0.0    n/a    n/a    0.0    0.0    6.9
+require  100.0   50.0    n/a  100.0   90.9    7.0
+Total     87.5   50.0    n/a   66.6   76.9    7.1
+------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -19,7 +19,29 @@ OS: ...
 Start: ...
 Finish: ...
 
+Module Summary
+--------------
+
+Files CC  Cov CRAP SLOP
+----- -- ---- ---- ----
+    2  2 80.0  2.0  7.1
+
+
 E2.pm
+
+File Summary
+------------
+
+CC Cov CRAP SLOP
+-- --- ---- ----
+ 1 0.0  2.0  6.9
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location
+---------- -- ----  --------
+E2          1  6.9  E2.pm:12
 
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
@@ -47,6 +69,20 @@ E2             0   1   6.9 E2.pm:12
 
 
 require
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 2 88.9  2.0  7.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location  
+---------- -- ----  ----------
+BEGIN       2  7.1  require:10
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

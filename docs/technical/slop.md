@@ -457,10 +457,28 @@ reducing complexity both lower the score.
 
 ## Report Display
 
+### Summary (`cover -summary`)
+
+An always-on `slop` column appears after the `total` column, showing
+per-file `file_slop` and, for the Total row, `module_slop`. Formatting:
+`%5.1f` for numeric values; `-` when the file is uncompiled without PPI
+(data unknown); `n/a` when the file has no coverable subs.
+
 ### Text report
 
-CC and SLOP columns appear in the subroutine detail section, showing per-sub
-values alongside the subroutine name and line number.
+CC and SLOP columns appear in the covered/uncovered subroutine tables
+alongside call counts and source location.
+
+Each file section opens with a `File Summary` one-row table of
+`CC`, `Cov`, `CRAP`, and `SLOP`, followed by a `Worst Subroutines`
+digest listing the top three subroutines by CRAP (subs with zero SLOP are
+omitted). The banner is suppressed when the file has no SLOP data.
+
+When the report spans more than one file, a `Module Summary` one-row
+table at the top shows `Files`, `CC`, `Cov`, `CRAP`, and `SLOP`. When the
+report spans more than one directory, a `Directory Summary` table at the
+end lists each directory's CC, coverage, CRAP and SLOP, sorted by SLOP
+descending.
 
 ### Html_crisp report
 

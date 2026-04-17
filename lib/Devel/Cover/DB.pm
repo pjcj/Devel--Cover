@@ -359,7 +359,7 @@ sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
   my @subs;
 
   for my $line (sort { $a <=> $b } keys %$cc_hash) {
-    for my $sub_name (sort keys %{ $cc_hash->{$line} }) {
+    for my $sub_name (sort keys $cc_hash->{$line}->%*) {
       my $cc_arr  = $cc_hash->{$line}{$sub_name};
       my $end_arr = $end_hash->{$line}{$sub_name} // [];
       for my $scount (0 .. $#$cc_arr) {
@@ -432,12 +432,116 @@ sub _summarise_dir_complexity ($self, $s, $dir_files, $dir_stats) {
   }
 }
 
+sub _uncompiled_cc_data ($sub_data) {
+  my ($max, $sum, $count) = (0, 0, 0);
+  my ($crap_max, $crap_sum) = (0, 0);
+  my @subs;
+  for my $sd (@$sub_data) {
+    my $cc   = $sd->{cc};
+    my $cov  = 0;
+    my $crap = _crap($cc, $cov);
+    $max  = $cc if $cc > $max;
+    $sum += $cc;
+    $count++;
+    $crap_max  = $crap if $crap > $crap_max;
+    $crap_sum += $crap;
+    push @subs, {
+        name => $sd->{name},
+        line => $sd->{line} + 0,
+        cc   => $cc,
+        cov  => $cov,
+        crap => $crap,
+        slop => _slop($crap),
+      };
+  }
+
+  return unless $count;
+  {
+    max      => $max,
+    sum      => $sum,
+    count    => $count,
+    crap_max => $crap_max,
+    crap_sum => $crap_sum,
+    subs     => \@subs,
+  }
+}
+
+sub _compiled_cc_data ($self, $st, $file_obj) {
+  my $digest   = $file_obj->{meta}{digest}    or return;
+  my $cc_hash  = $st->get_complexity($digest) or return;
+  my $end_hash = $st->get_end_lines($digest) || {};
+  _file_cc_data($file_obj, $cc_hash, $end_hash)
+}
+
+sub _record_file_complexity ($s, $file, $d, $dir_stats, $totals) {
+  my $count = $d->{count};
+  $s->{$file}{complexity}
+    = { max => $d->{max}, mean => $d->{sum} / $count, count => $count };
+  my $file_cc   = $d->{sum} - $count + 1;
+  my $file_cov  = _file_coverage($s->{$file});
+  my $file_crap = _crap($file_cc, $file_cov);
+  my $file_slop = _slop($file_crap);
+  $s->{$file}{slop} = {
+    max       => $d->{crap_max},
+    mean      => $d->{crap_sum} / $count,
+    count     => $count,
+    subs      => $d->{subs},
+    file_cc   => $file_cc,
+    file_cov  => $file_cov,
+    file_crap => $file_crap,
+    file_slop => $file_slop,
+  };
+
+  my $ds = $dir_stats->{ _file_dir($file) } ||= { cc_sum => 0, cc_count => 0 };
+  $ds->{cc_sum}   += $d->{sum};
+  $ds->{cc_count} += $count;
+
+  $totals->{fcrap_sum} += $file_crap;
+  $totals->{fslop_sum} += $file_slop;
+  $totals->{fcrap_cnt}++;
+  $totals->{max}       = $d->{max} if $d->{max} > $totals->{max};
+  $totals->{sum}      += $d->{sum};
+  $totals->{count}    += $count;
+  $totals->{crap_max}  = $d->{crap_max} if $d->{crap_max} > $totals->{crap_max};
+  $totals->{crap_sum} += $d->{crap_sum};
+}
+
+sub _record_total_complexity ($s, $totals) {
+  return unless $totals->{count};
+  $s->{Total}{complexity} = {
+    max   => $totals->{max},
+    mean  => $totals->{sum} / $totals->{count},
+    count => $totals->{count},
+  };
+  my $module_cc   = $totals->{sum} - $totals->{count} + 1;
+  my $module_cov  = _file_coverage($s->{Total});
+  my $module_crap = _crap($module_cc, $module_cov);
+  my $cnt         = $totals->{fcrap_cnt};
+  $s->{Total}{slop} = {
+    max         => $totals->{crap_max},
+    mean        => $totals->{crap_sum} / $totals->{count},
+    count       => $totals->{count},
+    file_crap   => $cnt ? $totals->{fcrap_sum} / $cnt : 0,
+    file_slop   => $cnt ? $totals->{fslop_sum} / $cnt : 0,
+    module_cc   => $module_cc,
+    module_cov  => $module_cov,
+    module_crap => $module_crap,
+    module_slop => _slop($module_crap),
+  };
+}
+
 sub summarise_complexity ($self, $s, $files) {
-  my $st = $self->{_structure} or return;
-  my ($total_sum, $total_count, $total_max) = (0, 0, 0);
-  my ($crap_total_sum, $crap_total_max)     = (0, 0);
-  my ($fcrap_total_sum, $fcrap_total_cnt)   = (0, 0);
-  my $fslop_total_sum = 0;
+  my $st     = $self->{_structure};
+  my %totals = (
+    max       => 0,
+    sum       => 0,
+    count     => 0,
+    crap_max  => 0,
+    crap_sum  => 0,
+    fcrap_sum => 0,
+    fslop_sum => 0,
+    fcrap_cnt => 0,
+  );
   my %dir_stats;
   my %dir_files;
 
@@ -447,71 +551,15 @@ sub summarise_complexity ($self, $s, $files) {
 
   for my $file (@$files) {
     my $file_obj = $self->cover->get($file);
-    my $digest   = $file_obj->{meta}{digest};
-    next unless $digest;
-    my $cc_hash  = $st->get_complexity($digest) or next;
-    my $end_hash = $st->get_end_lines($digest) || {};
-    my $d        = _file_cc_data($file_obj, $cc_hash, $end_hash) or next;
-
-    my $max   = $d->{max};
-    my $sum   = $d->{sum};
-    my $count = $d->{count};
-
-    $s->{$file}{complexity}
-      = { max => $max, mean => $sum / $count, count => $count };
-    my $file_cc   = $sum - $count + 1;
-    my $file_cov  = _file_coverage($s->{$file});
-    my $file_crap = _crap($file_cc, $file_cov);
-    my $file_slop = _slop($file_crap);
-    $s->{$file}{slop} = {
-      max       => $d->{crap_max},
-      mean      => $d->{crap_sum} / $count,
-      count     => $count,
-      subs      => $d->{subs},
-      file_cc   => $file_cc,
-      file_cov  => $file_cov,
-      file_crap => $file_crap,
-      file_slop => $file_slop,
-    };
-    my $dir = _file_dir($file);
-    my $ds  = $dir_stats{$dir} ||= { cc_sum => 0, cc_count => 0 };
-    $ds->{cc_sum}   += $sum;
-    $ds->{cc_count} += $count;
-
-    $fcrap_total_sum += $file_crap;
-    $fslop_total_sum += $file_slop;
-    $fcrap_total_cnt++;
-    $total_max       = $max if $max > $total_max;
-    $total_sum      += $sum;
-    $total_count    += $count;
-    $crap_total_max  = $d->{crap_max} if $d->{crap_max} > $crap_total_max;
-    $crap_total_sum += $d->{crap_sum};
-  }
-  if ($total_count) {
-    $s->{Total}{complexity} = {
-      max   => $total_max,
-      mean  => $total_sum / $total_count,
-      count => $total_count,
-    };
-  }
-  if ($total_count) {
-    my $module_cc   = $total_sum - $total_count + 1;
-    my $module_cov  = _file_coverage($s->{Total});
-    my $module_crap = _crap($module_cc, $module_cov);
-    my $module_slop = _slop($module_crap);
-    $s->{Total}{slop} = {
-      max         => $crap_total_max,
-      mean        => $crap_total_sum / $total_count,
-      count       => $total_count,
-      file_crap   => $fcrap_total_cnt ? $fcrap_total_sum / $fcrap_total_cnt : 0,
-      file_slop   => $fcrap_total_cnt ? $fslop_total_sum / $fcrap_total_cnt : 0,
-      module_cc   => $module_cc,
-      module_cov  => $module_cov,
-      module_crap => $module_crap,
-      module_slop => $module_slop,
-    };
+    my $d
+      = $file_obj->{meta}{uncompiled}
+      ? _uncompiled_cc_data($file_obj->{meta}{subs} || [])
+      : $st ? _compiled_cc_data($self, $st, $file_obj)
+      :       undef;
+    _record_file_complexity($s, $file, $d, \%dir_stats, \%totals) if $d;
   }
 
+  _record_total_complexity($s, \%totals);
   $self->_summarise_dir_complexity($s, \%dir_files, \%dir_stats);
 }
 
@@ -549,6 +597,24 @@ sub trimmed_file ($f, $len) {
   $f
 }
 
+sub _format_summary_pct ($options, $part, $criterion) {
+  return "n/a" unless $options->{$criterion} && exists $part->{$criterion};
+  my $x = sprintf "%5.2f", $part->{$criterion}{percentage};
+  chop $x;
+  $x
+}
+
+sub _format_summary_slop ($self, $file, $part, $have_ppi) {
+  my $slop = $part->{slop};
+  if ($slop) {
+    my $v = $file eq "Total" ? $slop->{module_slop} : $slop->{file_slop};
+    return sprintf "%5.1f", $v if defined $v;
+  }
+  return "n/a" if $file eq "Total";
+  my $uncompiled = $self->cover->file($file)->{meta}{uncompiled};
+  $uncompiled && !$have_ppi ? "-" : "n/a"
+}
+
 sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
   my %crit    = map { $_ => 1 } $self->collected;
   my %options = $criteria ? map { $_ => 1 } grep $crit{$_}, @$criteria : %crit;
@@ -559,15 +625,7 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
   $options{files} = $files if $files && @$files;
   $self->calculate_summary(%options, %$opts);
 
-  my $format = sub ($part, $criterion) {
-    $options{$criterion} && exists $part->{$criterion}
-      ? do {
-        my $x = sprintf "%5.2f", $part->{$criterion}{percentage};
-        chop $x;
-        $x
-      }
-      : "n/a"
-  };
+  my $have_ppi = eval { require PPI; 1 };
 
   my $s     = $self->{summary};
   my @files = (grep($_ ne "Total", sort keys %$s), "Total");
@@ -581,38 +639,47 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
     = !$ENV{DEVEL_COVER_TEST_SUITE}
     && $Has_term_size
     && -t STDOUT ? (Term::Size::chars(\*STDOUT))[0] : 80;
-  my $fw = $width - $n * 7 - 3;
+  my $nc = $n + 1;               # criterion columns plus slop
+  my $fw = $width - $nc * 7 - 3;
 
   $fw = $max if $max < $fw;
 
   no warnings "uninitialized";
-  my $fmt = "%-${fw}s" . " %6s" x $n . "\n";
+  my $fmt = "%-${fw}s" . " %6s" x $nc . "\n";
 
   printf STDOUT "\nCommon prefix: %s\n\n", $prefix if $prefix;
-  printf STDOUT $fmt,                      "-" x $fw, ("------") x $n;
-  printf STDOUT $fmt, "File", map $self->{all_criteria_short}[$_],
-    grep $options{ $self->{all_criteria}[$_] }, 0 .. $self->{all_criteria}->$#*;
-  printf STDOUT $fmt, "-" x $fw, ("------") x $n;
+  printf STDOUT $fmt,                      "-" x $fw, ("------") x $nc;
+  printf STDOUT $fmt, "File", (
+      map $self->{all_criteria_short}[$_],
+      grep $options{ $self->{all_criteria}[$_] },
+      0 .. $self->{all_criteria}->$#*,
+    ),
+    "slop";
+  printf STDOUT $fmt, "-" x $fw, ("------") x $nc;
 
   my $has_uncompiled;
   for my $file (@files) {
     my $uncompiled
       = $file ne "Total" && $self->cover->file($file)->{meta}{uncompiled};
     $has_uncompiled ||= $uncompiled;
+    my $no_data = $uncompiled && !$have_ppi;
     printf STDOUT $fmt, trimmed_file($short->{$file}, $fw),
-      $uncompiled
-      ? ("n/a") x $n
+      $no_data
+      ? ("-") x $nc
       : (
-        map $format->($s->{$file}, $_),
-        grep $options{$_},
-        $self->{all_criteria}->@*,
+        (
+          map _format_summary_pct(\%options, $s->{$file}, $_),
+          grep $options{$_},
+          $self->{all_criteria}->@*,
+        ),
+        $self->_format_summary_slop($file, $s->{$file}, $have_ppi),
       );
   }
 
-  printf STDOUT $fmt, "-" x $fw, ("------") x $n;
-  if ($has_uncompiled && !eval { require PPI; 1 }) {
+  printf STDOUT $fmt, "-" x $fw, ("------") x $nc;
+  if ($has_uncompiled && !$have_ppi) {
     printf STDOUT "\n%s\n",
-      "n/a: install PPI for estimated coverage of untested files";
+      "-: install PPI for estimated coverage of untested files";
   }
   print STDOUT "\n\n";
 }
@@ -662,7 +729,7 @@ sub add_branch ($self, $cc, $sc, $fc, $uc) {
     } else {
       $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
     }
-    $cc->{$l}[$n][2][$_->[0]] ||= $_->[1] for @{ $uc->{$l}[$n] };
+    $cc->{$l}[$n][2][$_->[0]] ||= $_->[1] for $uc->{$l}[$n]->@*;
   }
 }
 
@@ -1020,9 +1087,14 @@ sub cover ($self) {
     for my $file ($self->{files}->@*) {
       next if exists $self->{cover}{$file};
       my $counts = Devel::Cover::Static::count_criteria($file);
-      $self->{cover}{$file}
-        = bless {
-          meta => { uncompiled => 1, ($counts ? (counts => $counts) : ()) } },
+      my $subs   = Devel::Cover::Static::per_sub_complexity($file);
+      $self->{cover}{$file} = bless {
+        meta => {
+          uncompiled => 1,
+          ($counts ? (counts => $counts) : ()),
+          ($subs   ? (subs   => $subs)   : ()),
+        },
+        },
         "Devel::Cover::DB::File";
     }
   }

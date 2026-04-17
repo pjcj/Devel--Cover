@@ -72,36 +72,41 @@ sub _count_statements ($doc, $includes, $compounds) {
   $simple + $compound_headers + $include_stmts
 }
 
-sub _count_branches ($doc, $compounds) {
-  my @decisions;
+sub _count_decisions ($node) {
+  my $compounds = $node->find("PPI::Statement::Compound") || [];
+  my $decisions = 0;
   for my $c (@$compounds) {
     my $type = $c->type // "";
     if ($type =~ /^(?:if|unless)$/) {
-      push @decisions, $c;
+      $decisions++;
       my $elsifs = $c->find(sub {
         $_[1]->isa("PPI::Token::Word") && $_[1]->content eq "elsif"
       }) || [];
-      push @decisions, @$elsifs;
+      $decisions += @$elsifs;
     }
   }
 
   # Ternary operators
-  my $ternaries = $doc->find(sub {
+  my $ternaries = $node->find(sub {
     $_[1]->isa("PPI::Token::Operator") && $_[1]->content eq "?"
   }) || [];
-  push @decisions, @$ternaries;
+  $decisions += @$ternaries;
 
   # Statement modifiers: postfix if/unless
-  my $modifiers = $doc->find(sub {
+  my $modifiers = $node->find(sub {
     return 0 unless $_[1]->isa("PPI::Token::Word");
     my $w = $_[1]->content;
     return 0 unless $w =~ /^(?:if|unless)$/;
     my $p = $_[1]->parent or return 0;
     !$p->isa("PPI::Statement::Compound")
   }) || [];
-  push @decisions, @$modifiers;
+  $decisions += @$modifiers;
 
-  @decisions * 2
+  $decisions
+}
+
+sub _count_branches ($doc, $compounds) {
+  _count_decisions($doc) * 2
 }
 
 sub _has_const_rhs ($op) {
@@ -175,6 +180,32 @@ sub count_criteria ($file) {
   }
 }
 
+sub per_sub_complexity ($file) {
+  return unless $Have_ppi;
+  my $doc = PPI::Document->new($file) or return;
+
+  my $named_subs = $doc->find(sub {
+    $_[1]->isa("PPI::Statement::Sub") && $_[1]->name
+  }) || [];
+
+  my @subs;
+  for my $sub (@$named_subs) {
+    my $block = $sub->block or next;
+    push @subs, {
+        name => $sub->name,
+        line => $sub->line_number,
+        cc   => _count_decisions($block) + 1,
+      };
+  }
+
+  my $includes = $doc->find("PPI::Statement::Include") || [];
+  for my $inc (@$includes) {
+    push @subs, { name => "BEGIN", line => $inc->line_number, cc => 1 };
+  }
+
+  \@subs
+}
+
 "
 Winter, spring, summer, or fall
 All you have to do is call
@@ -213,8 +244,7 @@ Returns C<undef> if PPI is not installed or the file cannot be parsed.
 
 =item count_criteria($file)
 
-The sole public entry point. Parses C<$file> with PPI and returns a hashref of
-estimated coverable counts:
+Parses C<$file> with PPI and returns a hashref of estimated coverable counts:
 
   {
     statement  => $n,
@@ -243,6 +273,22 @@ B<Subroutines> count named subs plus one BEGIN per C<use>/C<require>.
 B<Pod> counts named subroutines (the number of subs that should have
 documentation).
 
+=item per_sub_complexity($file)
+
+Parses C<$file> with PPI and returns an arrayref of per-subroutine cyclomatic
+complexity data:
+
+  [
+    { name => "sub_name", line => $n, cc => $cc },
+    ...
+  ]
+
+Named subroutines have their CC computed as the number of decision points within
+the sub's block plus one. Each C<use>/C<require> is included as a BEGIN entry
+with CC=1. Forward declarations (no block) are skipped.
+
+Returns C<undef> if PPI is unavailable or the file fails to parse.
+
 =back
 
 =head1 PRIVATE SUBROUTINES
@@ -265,10 +311,16 @@ statement, not the inner expression separately.
 Counts executable statements: simple statements, compound headers, and an
 estimated three markers per C<use>/C<require>.
 
+=item _count_decisions($node)
+
+Counts decision points within a PPI node (document or block): if/unless compound
+statements, elsif clauses, ternary operators, and postfix if/unless modifiers.
+Used by both C<_count_branches> and C<per_sub_complexity>.
+
 =item _count_branches($doc, $compounds)
 
-Counts branch outcomes from if/unless blocks, elsif clauses, ternary operators,
-and postfix if/unless modifiers. Each decision contributes two outcomes.
+Counts branch outcomes by delegating to C<_count_decisions> and doubling. Each
+decision contributes two outcomes.
 
 =item _count_conditions($doc)
 

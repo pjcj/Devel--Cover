@@ -1,12 +1,12 @@
 Reading database from ...
 
 
------------------- ------ ------ ------ ------ ------
-File                 stmt   bran   cond    sub  total
------------------- ------ ------ ------ ------ ------
-tests/dynamic_subs   97.2   75.0    n/a   80.0   92.0
-Total                97.2   75.0    n/a   80.0   92.0
------------------- ------ ------ ------ ------ ------
+------------------ ------ ------ ------ ------ ------ ------
+File                 stmt   bran   cond    sub  total   slop
+------------------ ------ ------ ------ ------ ------ ------
+tests/dynamic_subs   97.2   75.0    n/a   80.0   92.0   11.0
+Total                97.2   75.0    n/a   80.0   92.0   11.0
+------------------ ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,22 @@ Start: ...
 Finish: ...
 
 tests/dynamic_subs
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 3 95.0  3.0 11.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location             
+---------- -- ----  ---------------------
+__ANON__    2  7.2  tests/dynamic_subs:16
+unused      1  6.9  tests/dynamic_subs:10
+AUTOLOAD    2  6.9  tests/dynamic_subs:41
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

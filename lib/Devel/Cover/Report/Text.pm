@@ -90,6 +90,149 @@ sub _print_line ($fmt, $db, $options, $file, $n, $l, %criteria) {
   }
 }
 
+sub _file_dir ($file) {
+  my $dir = $file =~ s|/[^/]+$||r;
+  $dir eq $file ? "" : $dir
+}
+
+sub print_dir_block ($db, $files, $prefix) {
+  return unless @$files > 1;
+  my %seen;
+  my @dirs = grep !$seen{$_}++, map _file_dir($_), @$files;
+  return unless @dirs > 1;
+
+  my @rows;
+  for my $dir (@dirs) {
+    my $slop = $db->dir_summary($dir, "slop") or return;
+    my $display
+      = $prefix && $dir =~ /^\Q$prefix\E(.*)/ ? ($1 || ".") : ($dir || ".");
+    push @rows, {
+        dir      => $display,
+        cc       => $slop->{file_cc},
+        cov      => sprintf("%.1f", $slop->{file_cov}),
+        crap     => sprintf("%.1f", $slop->{file_crap}),
+        slop     => sprintf("%.1f", $slop->{file_slop}),
+        sort_key => $slop->{file_slop},
+      };
+  }
+
+  @rows = sort { $b->{sort_key} <=> $a->{sort_key} } @rows;
+
+  my %maxw = (d => 9, cc => 2, cv => 3, cr => 4, s => 4);
+  for my $r (@rows) {
+    _update_maxw(
+      \%maxw,
+      d  => $r->{dir},
+      cc => $r->{cc},
+      cv => $r->{cov},
+      cr => $r->{crap},
+      s  => $r->{slop},
+    );
+  }
+
+  say "Directory Summary";
+  say "-----------------\n";
+  my $tpl = "%-$maxw{d}s %$maxw{cc}s %$maxw{cv}s %$maxw{cr}s %$maxw{s}s\n";
+  printf $tpl, "Directory", "CC", "Cov", "CRAP", "SLOP";
+  printf $tpl, "-" x $maxw{d}, "-" x $maxw{cc}, "-" x $maxw{cv},
+    "-" x $maxw{cr}, "-" x $maxw{s};
+  printf $tpl, $_->{dir}, $_->{cc}, $_->{cov}, $_->{crap}, $_->{slop} for @rows;
+  say "";
+}
+
+sub _print_stat_table ($heading, $headers, $values) {
+  my @widths = map {
+        length($headers->[$_]) > length($values->[$_])
+      ? length $headers->[$_]
+      : length $values->[$_]
+  } 0 .. $#$headers;
+  my $tpl = join(" ", map "%${_}s", @widths) . "\n";
+
+  say $heading;
+  say "-" x length($heading), "\n";
+  printf $tpl, @$headers;
+  printf $tpl, map "-" x $_, @widths;
+  printf $tpl, @$values;
+  say "";
+}
+
+sub print_module_banner ($db, $files) {
+  return unless @$files > 1;
+  my $slop = $db->summary("Total", "slop");
+  return unless $slop && defined $slop->{module_slop};
+
+  _print_stat_table(
+    "Module Summary",
+    [qw( Files CC Cov CRAP SLOP )],
+    [
+      scalar @$files,
+      $slop->{module_cc},
+      sprintf("%.1f", $slop->{module_cov}),
+      sprintf("%.1f", $slop->{module_crap}),
+      sprintf("%.1f", $slop->{module_slop}),
+    ],
+  );
+  say "";
+}
+
+sub _worst_subs_rows ($subs, $display_name, $limit = 3) {
+  my @sorted = sort {
+         $b->{crap} <=> $a->{crap}
+      || $a->{line} <=> $b->{line}
+      || $a->{name} cmp $b->{name}
+  } @$subs;
+  my $top = $#sorted > $limit - 1 ? $limit - 1 : $#sorted;
+  map {
+    +{
+      name => $_->{name},
+      cc   => $_->{cc},
+      slop => sprintf("%.1f", $_->{slop} // 0),
+      loc  => "$display_name:$_->{line}",
+    }
+  } @sorted[0 .. $top]
+}
+
+sub print_file_banner ($db, $file, $short) {
+  say "$short->{$file}\n";
+
+  my $slop = $db->summary($file, "slop");
+  return unless $slop && defined $slop->{file_slop};
+
+  _print_stat_table(
+    "File Summary",
+    [qw( CC Cov CRAP SLOP )],
+    [
+      $slop->{file_cc},
+      sprintf("%.1f", $slop->{file_cov}),
+      sprintf("%.1f", $slop->{file_crap}),
+      sprintf("%.1f", $slop->{file_slop}),
+    ],
+  );
+
+  my @subs = grep $_->{slop} > 0, ($slop->{subs} || [])->@*;
+  return unless @subs;
+
+  my @rows = _worst_subs_rows(\@subs, $short->{$file});
+  my %maxw = (n => 10, cc => 2, s => 4, l => 8);
+  for my $r (@rows) {
+    _update_maxw(
+      \%maxw,
+      n  => $r->{name},
+      cc => $r->{cc},
+      s  => $r->{slop},
+      l  => $r->{loc},
+    );
+  }
+
+  say "Worst Subroutines";
+  say "-----------------\n";
+  my $tpl = "%-$maxw{n}s %$maxw{cc}s %$maxw{s}s  %-$maxw{l}s\n";
+  printf $tpl, "Subroutine",   "CC",            "SLOP",         "Location";
+  printf $tpl, "-" x $maxw{n}, "-" x $maxw{cc}, "-" x $maxw{s}, "-" x $maxw{l};
+  printf $tpl, $_->{name},     $_->{cc},        $_->{slop}, $_->{loc} for @rows;
+  say "";
+}
+
 sub print_runs ($db, $) {
   for my $r (sort { $a->{start} <=> $b->{start} } $db->runs) {
     say "Run:          ", $r->run;
@@ -104,7 +247,6 @@ sub print_runs ($db, $) {
 sub print_statement ($db, $file, $options, $short) {
   my $cover = $db->cover;
 
-  say "$short->{$file}\n";
   my $f = $cover->file($file);
 
   my ($fmt, @args) = _build_header_format($db, $options);
@@ -274,8 +416,11 @@ sub report ($, $db, $options) {
   my ($prefix, $short) = common_prefix(@files);
 
   print_runs($db, $options);
+  my @reported_files = grep !$db->cover->file($_)->{meta}{uncompiled}, @files;
+  print_module_banner($db, \@reported_files);
   for my $file (@files) {
     next if $db->cover->file($file)->{meta}{uncompiled};
+    print_file_banner($db, $file, $short);
     print_statement($db, $file, $options, $short)
       if $options->{show}{statement};
     print_branches($db, $file, $options)   if $options->{show}{branch};
@@ -283,6 +428,7 @@ sub report ($, $db, $options) {
     print_subroutines($db, $file, $options, $short)
       if $options->{show}{subroutine} || $options->{show}{pod};
   }
+  print_dir_block($db, \@reported_files, $prefix);
 }
 
 "
