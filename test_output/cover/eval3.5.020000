@@ -1,12 +1,12 @@
 Reading database from ...
 
 
------------ ------ ------ ------ ------ ------
-File          stmt   bran   cond    sub  total
------------ ------ ------ ------ ------ ------
-tests/eval3   89.4   50.0   50.0  100.0   80.0
-Total         89.4   50.0   50.0  100.0   80.0
------------ ------ ------ ------ ------ ------
+----------- ------ ------ ------ ------ ------ ------
+File          stmt   bran   cond    sub  total   slop
+----------- ------ ------ ------ ------ ------ ------
+tests/eval3   89.4   50.0   50.0  100.0   80.0    0.1
+Total         89.4   50.0   50.0  100.0   80.0    0.1
+----------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,21 @@ Start: ...
 Finish: ...
 
 tests/eval3
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 1 77.8  1.0  0.1
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location      
+---------- -- ----  --------------
+s2          1  0.0  tests/eval3:16
+s3          1  0.0  tests/eval3:18
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

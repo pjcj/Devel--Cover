@@ -1,12 +1,12 @@
 Reading database from ...
 
 
--------------- ------ ------ ------ ------ ------
-File             stmt   bran   cond    sub  total
--------------- ------ ------ ------ ------ ------
-tests/moo_cond  100.0  100.0    n/a  100.0  100.0
-Total           100.0  100.0    n/a  100.0  100.0
--------------- ------ ------ ------ ------ ------
+-------------- ------ ------ ------ ------ ------ ------
+File             stmt   bran   cond    sub  total   slop
+-------------- ------ ------ ------ ------ ------ ------
+tests/moo_cond  100.0  100.0    n/a  100.0  100.0   11.0
+Total           100.0  100.0    n/a  100.0  100.0   11.0
+-------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,20 @@ Start: ...
 Finish: ...
 
 tests/moo_cond
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 3 100.0  3.0 11.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location         
+---------- -- ----  -----------------
+trigger     3 11.0  tests/moo_cond:27
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

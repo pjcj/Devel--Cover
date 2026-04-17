@@ -4,16 +4,16 @@ Reading database from ...
 
 Common prefix: tests/
 
------------- ------ ------ ------ ------ ------
-File           stmt   bran   cond    sub  total
------------- ------ ------ ------ ------ ------
-E2.pm         100.0    n/a    n/a  100.0  100.0
-E3.pm         100.0    n/a    n/a  100.0  100.0
-E4.pm         100.0    n/a    n/a  100.0  100.0
-eval_merge_0  100.0    n/a    n/a  100.0  100.0
-eval_merge_1  100.0    n/a    n/a  100.0  100.0
-Total         100.0    n/a    n/a  100.0  100.0
------------- ------ ------ ------ ------ ------
+------------ ------ ------ ------ ------ ------ ------
+File           stmt   bran   cond    sub  total   slop
+------------ ------ ------ ------ ------ ------ ------
+E2.pm         100.0    n/a    n/a  100.0  100.0    0.0
+E3.pm         100.0    n/a    n/a  100.0  100.0    0.0
+E4.pm         100.0    n/a    n/a  100.0  100.0    0.0
+eval_merge_0  100.0    n/a    n/a  100.0  100.0    0.0
+eval_merge_1  100.0    n/a    n/a  100.0  100.0    0.0
+Total         100.0    n/a    n/a  100.0  100.0    0.0
+------------ ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -27,8 +27,23 @@ Perl version: ...
 OS: ...
 Start: ...
 Finish: ...
+
+Module Summary
+--------------
+
+Files CC   Cov CRAP SLOP
+----- -- ----- ---- ----
+    5  1 100.0  1.0  0.0
+
 
 E2.pm
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
@@ -57,6 +72,13 @@ E2             1   1   0.0 E2.pm:12
 
 E3.pm
 
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
+
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
 2                                       
@@ -84,6 +106,13 @@ E3             2   1   0.0 E3.pm:12
 
 E4.pm
 
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
+
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
 2                                       
@@ -110,6 +139,13 @@ E4             1   1   0.0 E4.pm:12
 
 
 eval_merge_0
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -147,6 +183,13 @@ BEGIN          1   1   0.0 eval_merge_0:13
 
 
 eval_merge_1
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

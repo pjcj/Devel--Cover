@@ -4,13 +4,13 @@ Reading database from ...
 
 Common prefix: tests/
 
----------------- ------ ------ ------ ------ ------
-File               stmt   bran   cond    sub  total
----------------- ------ ------ ------ ------ ------
-Module_import.pm  100.0    n/a    n/a  100.0  100.0
-module_relative   100.0    n/a    n/a  100.0  100.0
-Total             100.0    n/a    n/a  100.0  100.0
----------------- ------ ------ ------ ------ ------
+---------------- ------ ------ ------ ------ ------ ------
+File               stmt   bran   cond    sub  total   slop
+---------------- ------ ------ ------ ------ ------ ------
+Module_import.pm  100.0    n/a    n/a  100.0  100.0    0.0
+module_relative   100.0    n/a    n/a  100.0  100.0    0.0
+Total             100.0    n/a    n/a  100.0  100.0    0.0
+---------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -19,7 +19,22 @@ OS: ...
 Start: ...
 Finish: ...
 
+Module Summary
+--------------
+
+Files CC   Cov CRAP SLOP
+----- -- ----- ---- ----
+    2  1 100.0  1.0  0.0
+
+
 Module_import.pm
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2002-2026, Paul Johnson (paul@pjcj.net)
@@ -47,6 +62,13 @@ import         1   1   0.0 Module_import.pm:11
 
 
 module_relative
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

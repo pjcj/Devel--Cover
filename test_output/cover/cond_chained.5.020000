@@ -1,12 +1,12 @@
 Reading database from ...
 
 
------------------- ------ ------ ------ ------ ------
-File                 stmt   bran   cond    sub  total
------------------- ------ ------ ------ ------ ------
-tests/cond_chained  100.0   83.3   86.6  100.0   90.9
-Total               100.0   83.3   86.6  100.0   90.9
------------------- ------ ------ ------ ------ ------
+------------------ ------ ------ ------ ------ ------ ------
+File                 stmt   bran   cond    sub  total   slop
+------------------ ------ ------ ------ ------ ------ ------
+tests/cond_chained  100.0   83.3   86.6  100.0   90.9   25.0
+Total               100.0   83.3   86.6  100.0   90.9   25.0
+------------------ ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,22 @@ Start: ...
 Finish: ...
 
 tests/cond_chained
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+12 90.0 12.1 25.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location             
+---------- -- ----  ---------------------
+t3          6 18.6  tests/cond_chained:16
+t1          4 13.9  tests/cond_chained:4 
+t2          4 13.9  tests/cond_chained:10
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

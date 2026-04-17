@@ -1,12 +1,12 @@
 Reading database from ...
 
 
--------- ------ ------ ------ ------ ------
-File       stmt   bran   cond    sub  total
--------- ------ ------ ------ ------ ------
-tests/t1  100.0    n/a    n/a  100.0  100.0
-Total     100.0    n/a    n/a  100.0  100.0
--------- ------ ------ ------ ------ ------
+-------- ------ ------ ------ ------ ------ ------
+File       stmt   bran   cond    sub  total   slop
+-------- ------ ------ ------ ------ ------ ------
+tests/t1  100.0    n/a    n/a  100.0  100.0    0.0
+Total     100.0    n/a    n/a  100.0  100.0    0.0
+-------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,13 @@ Start: ...
 Finish: ...
 
 tests/t1
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

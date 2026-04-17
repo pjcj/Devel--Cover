@@ -31,17 +31,6 @@ eval "require HTML::Entities; 1" or do {
   exit;
 };
 
-# Normalise HTML for comparison: strip leading/trailing whitespace
-# per line, collapse runs of blank lines, trim the result.
-sub _normalise ($html) {
-  $html =~ s/^[ \t]+//gm;
-  $html =~ s/[ \t]+$//gm;
-  $html =~ s/\n{3,}/\n\n/g;
-  $html =~ s/\A\s+//;
-  $html =~ s/\s+\z//;
-  $html
-}
-
 # Shared state populated by _setup
 my ($Tmpdir, $Libdir, $Outdir);
 my %Golden;
@@ -197,10 +186,8 @@ sub test_dir_row_slop () {
 
 sub test_module_slop_badge () {
   my $got = $Golden{"coverage.html"};
-  like $got, qr/stat-badge.*?slop\b/s,
-    "header: has SLOP stat badge";
-  like $got, qr/slop.*?help-toggle/s,
-    "header: SLOP badge before help button";
+  like $got, qr/stat-badge.*?slop\b/s, "header: has SLOP stat badge";
+  like $got, qr/slop.*?help-toggle/s,  "header: SLOP badge before help button";
 }
 
 sub test_render_untested_page () {
@@ -210,6 +197,56 @@ sub test_render_untested_page () {
 
   like $got, qr/untested-page/,  "untested: has dimmed wrapper";
   like $got, qr/untested-badge/, "untested: has badge";
+}
+
+sub _cov_cell ($s, $uncompiled, $have_ppi) {
+  no warnings "once";
+  local %Devel::Cover::Report::Html_crisp::R = (have_ppi => $have_ppi);
+  Devel::Cover::Report::Html_crisp::cov_cell($s, $uncompiled)
+}
+
+sub test_cov_cell_tooltips () {
+  my $covered
+    = _cov_cell({ pc => "50.0", class => "c1", covered => 5, total => 10 }, 0,
+      1);
+  like $covered, qr/class="c1 tip-hover"/, "covered cell: tip-hover";
+  like $covered, qr/glass-tip">5 \/ 10</,  "covered cell: glass-tip 5 / 10";
+
+  my $na
+    = _cov_cell({ pc => "n/a", class => "na", covered => 0, total => 0 }, 0, 1,
+    );
+  like $na, qr/class="na tip-hover"/, "tested n/a cell: tip-hover kept";
+  like $na, qr/glass-tip">0 \/ 0</,   "tested n/a cell: glass-tip 0 / 0 kept";
+
+  my $unc_ppi
+    = _cov_cell({ pc => "0", class => "c0", covered => 0, total => 5 }, 1, 1);
+  like $unc_ppi, qr/class="c0 tip-hover"/, "untested with PPI: tip-hover";
+  like $unc_ppi, qr/glass-tip">0 \/ 5</,   "untested with PPI: glass-tip 0 / 5";
+
+  my $unc_no_ppi
+    = _cov_cell({ pc => "-", class => "na", covered => 0, total => 0 }, 1, 0);
+  unlike $unc_no_ppi, qr/tip-hover/, "untested without PPI: no tip-hover class";
+  unlike $unc_no_ppi, qr/glass-tip/, "untested without PPI: no glass-tip";
+}
+
+sub test_untested_badge_tooltip () {
+  no warnings "once";
+
+  {
+    local %Devel::Cover::Report::Html_crisp::R = (have_ppi => 1);
+    my $got = Devel::Cover::Report::Html_crisp::untested_badge();
+    unlike $got, qr/tip-hover/, "untested badge with PPI: no tip-hover";
+    unlike $got, qr/glass-tip/, "untested badge with PPI: no glass-tip";
+  }
+
+  {
+    local %Devel::Cover::Report::Html_crisp::R = (have_ppi => 0);
+    my $got = Devel::Cover::Report::Html_crisp::untested_badge();
+    like $got, qr/class="untested-badge tip-hover"/,
+      "untested badge without PPI: tip-hover";
+    like $got, qr/glass-tip">Install PPI for coverage estimates</,
+      "untested badge without PPI: install-PPI tooltip";
+  }
 }
 
 sub main () {
@@ -224,6 +261,8 @@ sub main () {
   test_dir_row_slop;
   test_module_slop_badge;
   test_render_untested_page;
+  test_cov_cell_tooltips;
+  test_untested_badge_tooltip;
   done_testing;
 }
 

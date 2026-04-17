@@ -1,12 +1,12 @@
 Reading database from ...
 
 
-------------- ------ ------ ------ ------ ------
-File            stmt   bran   cond    sub  total
-------------- ------ ------ ------ ------ ------
-tests/class38   94.5   50.0    n/a   85.7   81.1
-Total           94.5   50.0    n/a   85.7   81.1
-------------- ------ ------ ------ ------ ------
+------------- ------ ------ ------ ------ ------ ------
+File            stmt   bran   cond    sub  total   slop
+------------- ------ ------ ------ ------ ------ ------
+tests/class38   94.5   50.0    n/a   85.7   81.1   24.8
+Total           94.5   50.0    n/a   85.7   81.1   24.8
+------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,22 @@ Start: ...
 Finish: ...
 
 tests/class38
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+11 80.0 12.0 24.8
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location        
+---------- -- ----  ----------------
+main        9 24.1  tests/class38:44
+is_loud     2  7.6  tests/class38:33
+unused      1  6.9  tests/class38:27
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

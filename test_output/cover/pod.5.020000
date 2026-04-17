@@ -4,14 +4,14 @@ Reading database from ...
 
 Common prefix: tests/
 
----------- ------ ------
-File          pod  total
----------- ------ ------
-Module1.pm   50.0   50.0
-PodMod.pm    66.6   66.6
-pod           n/a    n/a
-Total        60.0   60.0
----------- ------ ------
+---------- ------ ------ ------
+File          pod  total   slop
+---------- ------ ------ ------
+Module1.pm   50.0   50.0    0.0
+PodMod.pm    66.6   66.6    0.0
+pod           n/a    n/a    0.0
+Total        60.0   60.0    0.0
+---------- ------ ------ ------
 
 
 Run: ...
@@ -19,6 +19,32 @@ Perl version: ...
 OS: ...
 Start: ...
 Finish: ...
+
+Module Summary
+--------------
+
+Files CC   Cov CRAP SLOP
+----- -- ----- ---- ----
+    3  1 100.0  1.0  0.0
+
+
+Module1.pm
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location     
+---------- -- ----  -------------
+_aa         1  6.9  Module1.pm:14
+xx          1  6.9  Module1.pm:20
+yy          1  6.9  Module1.pm:25
 
 Uncovered Subroutines
 ---------------------
@@ -30,6 +56,24 @@ xx             0       1   6.9 Module1.pm:20
 yy             0   1   1   6.9 Module1.pm:25
 zz             0   0   1   6.9 Module1.pm:29
 
+
+PodMod.pm
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location    
+---------- -- ----  ------------
+vv          1  6.9  PodMod.pm:12
+ww          1  6.9  PodMod.pm:13
+yy          1  6.9  PodMod.pm:14
 
 Covered Subroutines
 -------------------
@@ -47,6 +91,22 @@ vv             0   1   1   6.9 PodMod.pm:12
 ww             0   0   1   6.9 PodMod.pm:13
 yy             0   1   1   6.9 PodMod.pm:14
 
+
+pod
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location
+---------- -- ----  --------
+xx          1  6.9  pod:24  
 
 Covered Subroutines
 -------------------

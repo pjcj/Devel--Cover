@@ -1,12 +1,12 @@
 Reading database from ...
 
 
-------------------- ------ ------ ------ ------ ------
-File                  stmt   bran   cond    sub  total
-------------------- ------ ------ ------ ------ ------
-tests/default_param  100.0    n/a  100.0  100.0  100.0
-Total                100.0    n/a  100.0  100.0  100.0
-------------------- ------ ------ ------ ------ ------
+------------------- ------ ------ ------ ------ ------ ------
+File                  stmt   bran   cond    sub  total   slop
+------------------- ------ ------ ------ ------ ------ ------
+tests/default_param  100.0    n/a  100.0  100.0  100.0   13.9
+Total                100.0    n/a  100.0  100.0  100.0   13.9
+------------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,20 @@ Start: ...
 Finish: ...
 
 tests/default_param
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 4 100.0  4.0 13.9
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location              
+---------- -- ----  ----------------------
+p           4 13.9  tests/default_param:14
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl

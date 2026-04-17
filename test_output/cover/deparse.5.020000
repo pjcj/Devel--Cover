@@ -1,12 +1,12 @@
 Reading database from ...
 
 
-------------- ------ ------ ------ ------ ------
-File            stmt   bran   cond    sub  total
-------------- ------ ------ ------ ------ ------
-tests/deparse   91.6    n/a    n/a   75.0   87.5
-Total           91.6    n/a    n/a   75.0   87.5
-------------- ------ ------ ------ ------ ------
+------------- ------ ------ ------ ------ ------ ------
+File            stmt   bran   cond    sub  total   slop
+------------- ------ ------ ------ ------ ------ ------
+tests/deparse   91.6    n/a    n/a   75.0   87.5    0.0
+Total           91.6    n/a    n/a   75.0   87.5    0.0
+------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,20 @@ Start: ...
 Finish: ...
 
 tests/deparse
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 1 91.7  1.0  0.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location        
+---------- -- ----  ----------------
+__ANON__    1  6.9  tests/deparse:16
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl -l

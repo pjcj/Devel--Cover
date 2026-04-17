@@ -87,7 +87,10 @@ sub glass_tip ($text) {
   qq(<span class="glass-tip">$text</span>)
 }
 
+sub is_na ($v) { !defined $v || $v eq "n/a" || $v eq "-" }
+
 sub slop_tip ($f) {
+  return "" if is_na($f->{file_slop});
   my $cov_cls = class($f->{file_cov}, $f->{file_cov} < 100, "total");
   my $o       = <<HTML;
 <div class="glass-tip slop-detail">
@@ -115,7 +118,7 @@ HTML
 }
 
 sub cov_bar ($pc, $uncompiled) {
-  return "" if $pc eq "n/a";
+  return "" if is_na($pc);
   my $bar = $uncompiled ? "cov-bar-untested" : "cov-bar";
   my $fill
     = $uncompiled
@@ -125,11 +128,14 @@ sub cov_bar ($pc, $uncompiled) {
 }
 
 sub cov_cell ($s, $uncompiled, $data_value = undef) {
-  my $dv = $data_value // ($s->{pc} eq "n/a" ? -1 : $s->{pc});
+  my $dv      = $data_value // (is_na($s->{pc}) ? -1 : $s->{pc});
+  my $no_data = $uncompiled && !$R{have_ppi};
+  my $cls = $no_data ? $s->{class} : "$s->{class} tip-hover";
+  my $tip = $no_data ? ""          : glass_tip("$s->{covered} / $s->{total}");
   <<HTML
-<td class="$s->{class} tip-hover" data-value="$dv">
+<td class="$cls" data-value="$dv">
 $s->{pc} @{[ cov_bar($s->{pc}, $uncompiled) ]}
-@{[ glass_tip("$s->{covered} / $s->{total}") ]}</td>
+$tip</td>
 HTML
 }
 
@@ -150,19 +156,29 @@ HTML
     $o .= cov_cell($f->{criteria}{$c}, $f->{uncompiled});
   }
   $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort});
-  $o .= <<HTML;
-<td data-value="$f->{file_slop}" class="tip-hover">
-$f->{file_slop} @{[ slop_tip($f) ]}</td>
-</tr>
-HTML
+  $o .= slop_cell($f);
+  $o .= "</tr>\n";
   $o
 }
 
+sub slop_cell ($f) {
+  my $slop = $f->{file_slop};
+  my $na   = is_na($slop);
+  my $dv   = $na ? -1   : $slop;
+  my $cls  = $na ? "na" : "tip-hover";
+  <<HTML
+<td data-value="$dv" class="$cls">
+$slop @{[ slop_tip($f) ]}</td>
+HTML
+}
+
+sub _numeric_slop ($f) { is_na($f->{file_slop}) ? 0 : $f->{file_slop} }
+
 sub render_worst_files ($worst) {
-  return "" unless @$worst && $worst->[0]{file_slop} > 0;
+  return "" unless @$worst && _numeric_slop($worst->[0]) > 0;
   my $o = qq(<div class="worst-files">\n<h2>Top SLOP</h2>\n);
   for my $f (@$worst) {
-    next if $f->{file_slop} == 0;
+    next if _numeric_slop($f) == 0;
     my $cls = $f->{uncompiled} ? "untested-worst" : $f->{total}{class};
     my $name
       = $f->{exists} ? qq(<a href="$f->{link}">$f->{short}</a>) : $f->{short};
@@ -218,7 +234,7 @@ HTML
 
 sub stat_badge ($c, $s) {
   my $pct = $s->{pc};
-  my $suf = $pct ne "n/a" ? "%" : "";
+  my $suf = is_na($pct) ? "" : "%";
   <<HTML
 <span class="stat-badge $s->{class} tip-hover">
 <span class="badge-label">@{[ crit_name($c) ]} $pct$suf</span>
@@ -231,7 +247,7 @@ sub render_index ($file_data, $total, $dist) {
   my @groups = build_dir_groups($file_data);
   my @worst
     = @$file_data
-    ? (sort { $b->{file_slop} <=> $a->{file_slop} } @$file_data)
+    ? (sort { _numeric_slop($b) <=> _numeric_slop($a) } @$file_data)
     [0 .. ($#$file_data > 4 ? 4 : $#$file_data)]
     : ();
 
@@ -247,7 +263,7 @@ HTML
     $o .= stat_badge($c, $total->{$c});
   }
   my $tt = $total->{total};
-  $o .= stat_badge("total", $tt) if ($tt->{pc} // "n/a") ne "n/a";
+  $o .= stat_badge("total", $tt) unless is_na($tt->{pc});
 
   my $ms = $R{db}->summary("Total", "slop");
   if ($ms && defined $ms->{module_slop}) {
@@ -347,11 +363,8 @@ HTML
       $o .= cov_cell($g->{criteria}{$c}, 0);
     }
     $o .= cov_cell($g->{total}, 0);
-    $o .= <<HTML;
-<td data-value="$g->{file_slop}" class="tip-hover">
-$g->{file_slop} @{[ slop_tip($g) ]}</td>
-</tr>
-HTML
+    $o .= slop_cell($g);
+    $o .= "</tr>\n";
     $o .= file_row($_, $g->{dir}) for $g->{files}->@*;
   }
   $o .= "</tbody>\n</table>\n\n</div>\n";
@@ -524,43 +537,33 @@ sub render_file_page ($fd, $lines, $total, $prev_file, $next_file) {
 HTML
 
   for my $c ($R{criteria}->@*) {
-    my $s = $total->{$c};
-    if ($fd->{uncompiled}) {
-      $o .= <<HTML;
-<span class="stat-badge untested-stat tip-hover" data-criterion="$c">
-@{[ crit_name($c) ]} 0.0% @{[ glass_tip("$c: 0") ]}</span>
-HTML
-    } else {
-      my $cls = $s->{class} || "stat-na";
-      my $pct = $s->{pc} . ($s->{pc} ne "n/a" ? "%" : "");
-      $o .= <<HTML;
+    my $s   = $total->{$c};
+    my $cls = $fd->{uncompiled} ? "untested-stat" : ($s->{class} || "stat-na");
+    my $suf = is_na($s->{pc})   ? ""              : "%";
+    $o .= <<HTML;
 <span class="stat-badge $cls tip-hover" data-criterion="$c">
-@{[ crit_name($c) ]} $pct @{[ glass_tip("$s->{covered} / $s->{total}") ]}</span>
+<span class="badge-label">@{[ crit_name($c) ]} $s->{pc}$suf</span>
+@{[ cov_bar($s->{pc}, $fd->{uncompiled}) ]}
+@{[ glass_tip("$s->{covered} / $s->{total}") ]}</span>
 HTML
-    }
   }
 
-  if ($fd->{uncompiled}) {
+  my $tt = $total->{total};
+  unless (is_na($tt->{pc})) {
+    my $tt_cls = $fd->{uncompiled} ? "untested-stat" : $tt->{class};
     $o .= <<HTML;
-<span class="stat-badge untested-stat tip-hover">
-@{[ crit_name("total") ]} 0.0% @{[ glass_tip("total: 0") ]}</span>
-<span class="stat-badge stat-slop tip-hover">
-SLOP 0 @{[ glass_tip("SLOP: 0") ]}</span>
-HTML
-  } else {
-    my $tt = $total->{total};
-    if (($tt->{pc} // "n/a") ne "n/a") {
-      $o .= <<HTML;
-<span class="stat-badge $tt->{class} tip-hover">
-@{[ crit_name("total") ]} $tt->{pc}%
+<span class="stat-badge $tt_cls tip-hover">
+<span class="badge-label">@{[ crit_name("total") ]} $tt->{pc}%</span>
+@{[ cov_bar($tt->{pc}, $fd->{uncompiled}) ]}
 @{[ glass_tip("$tt->{covered} / $tt->{total}") ]}</span>
 HTML
-    }
-    $o .= <<HTML;
-<span class="stat-badge stat-slop tip-hover">
-SLOP $fd->{file_slop} @{[ slop_tip($fd) ]}</span>
-HTML
   }
+  my $sl     = $fd->{file_slop};
+  my $sl_tip = is_na($sl) ? "" : slop_tip($fd);
+  $o .= <<HTML;
+<span class="stat-badge stat-slop tip-hover">
+SLOP $sl $sl_tip</span>
+HTML
 
   $o .= <<HTML;
 <button class="help-toggle" aria-label="Help">?</button>
@@ -689,6 +692,12 @@ sub _apply_slop ($f, $slop_data) {
         slop => $_->{slop},
       } } @sorted[0 .. ($#sorted > 2 ? 2 : $#sorted)]
     ];
+  } elsif ($f->{uncompiled}) {
+    $f->{file_crap}  = "-";
+    $f->{file_slop}  = "-";
+    $f->{file_cc}    = "-";
+    $f->{file_cov}   = "-";
+    $f->{worst_subs} = [];
   } else {
     $f->{file_crap}  = 0;
     $f->{file_slop}  = 0;
@@ -715,21 +724,18 @@ sub build_one_file ($file) {
     criteria   => {},
   );
 
+  my $no_data = $uncompiled && !$R{have_ppi};
+  my $na      = sub { {
+    pc => "-", class => "na", covered => 0, total => 0, error => 0 } };
+
   for my $c ($R{showing}->@*) {
-    my $s = get_summary($file, $c);
-    $s->{class}      = "c0"  if $uncompiled && $s->{pc} eq "n/a";
-    $s->{pc}         = "0.0" if $uncompiled && $s->{pc} eq "n/a";
-    $f{criteria}{$c} = $s;
+    $f{criteria}{$c} = $no_data ? $na->() : get_summary($file, $c);
   }
-  my $total = get_summary($file, "total");
-  if ($uncompiled && $total->{pc} eq "n/a") {
-    $total->{class} = "c0";
-    $total->{pc}    = "0.0";
-  }
+  my $total = $no_data ? $na->() : get_summary($file, "total");
   $f{total} = $total;
-  my $pc = $total->{pc} // "n/a";
+  my $pc = $total->{pc} // "-";
   $f{total_pc}   = $pc;
-  $f{total_sort} = $pc eq "n/a" ? -1 : $pc;
+  $f{total_sort} = is_na($pc) ? -1 : $pc;
   _apply_slop(\%f, $R{db}->summary($file, "slop"));
   \%f
 }
@@ -740,7 +746,7 @@ sub build_file_data () {
     my $f = build_one_file($file);
     push @file_data, $f if $f;
   } sort {
-         ($b->{file_slop} || 0)   <=> ($a->{file_slop} || 0)
+         _numeric_slop($b) <=> _numeric_slop($a)
       || ($a->{total_sort} // -1) <=> ($b->{total_sort} // -1)
       || $a->{name} cmp $b->{name}
   } @file_data
@@ -949,7 +955,7 @@ sub get_options ($self, $opt) {
   $opt->{option}{outputfile} = "coverage.html";
   $opt->{option}{restrict}   = 1;
   $Threshold->{$_}           = $opt->{"report_$_"}
-    for grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
+    for grep defined $opt->{"report_$_"}, qw( c0 c1 c2 );
   die "Invalid command line options"
     unless GetOptions($opt->{option}, qw( noppihtml noperltidy outputfile=s ));
 }
@@ -962,7 +968,7 @@ sub favicon ($level) {
 sub set_favicon_colour () {
   my $t  = get_summary("Total", "total");
   my $pc = $t->{pc};
-  $pc = 0 if !defined $pc || $pc eq "n/a";
+  $pc = 0 if is_na($pc);
   my $cl = class($pc, $pc < 100 ? 1 : 0, "total");
   $R{favicon_colour} = favicon($cl);
 }
@@ -1483,7 +1489,10 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 tr.untested td { opacity: 0.7; }
 tr.untested td .glass-tip { display: none !important; }
 tr.untested td:hover { opacity: 1; }
-tr.untested td:hover .tip-hover:hover > .glass-tip {
+tr.untested td.tip-hover:hover > .glass-tip {
+  display: block !important;
+}
+tr.untested td .untested-badge.tip-hover:hover > .glass-tip {
   display: block !important;
 }
 
