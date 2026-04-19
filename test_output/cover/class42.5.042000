@@ -1,12 +1,12 @@
 Reading database from ...
 
 
-------------- ------ ------ ------ ------ ------
-File            stmt   bran   cond    sub  total
-------------- ------ ------ ------ ------ ------
-tests/class42   95.4   50.0    n/a   87.5   80.2
-Total           95.4   50.0    n/a   87.5   80.2
-------------- ------ ------ ------ ------ ------
+------------- ------ ------ ------ ------ ------ ------
+File            stmt   bran   cond    sub  total   slop
+------------- ------ ------ ------ ------ ------ ------
+tests/class42   95.4   50.0    n/a   87.5   80.2   28.5
+Total           95.4   50.0    n/a   87.5   80.2   28.5
+------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,22 @@ Start: ...
 Finish: ...
 
 tests/class42
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+15 78.6 17.2 28.5
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location        
+---------- -- ----  ----------------
+main       13 28.7  tests/class42:49
+is_loud     2  7.6  tests/class42:33
+unused      1  6.9  tests/class42:27
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -118,29 +134,29 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine   Count Location        
------------- ----- ----------------
-BEGIN            1 tests/class42:13
-BEGIN            1 tests/class42:14
-BEGIN            1 tests/class42:15
-__ANON__         2 tests/class42:23
-__ANON__         1 tests/class42:40
-_private         1 tests/class42:35
-call_private     1 tests/class42:38
-get_anon         1 tests/class42:40
-greet            2 tests/class42:29
-is_loud          1 tests/class42:33
-main             1 tests/class42:49
-name             2 tests/class42:25
-speak            2 tests/class42:26
-speak            1 tests/class42:44
+Subroutine   Count  CC  SLOP Location        
+------------ ----- --- ----- ----------------
+BEGIN            1   1   0.0 tests/class42:13
+BEGIN            1   1   0.0 tests/class42:14
+BEGIN            1   1   0.0 tests/class42:15
+__ANON__         2   1   0.0 tests/class42:23
+__ANON__         1   1   0.0 tests/class42:40
+_private         1   1   0.0 tests/class42:35
+call_private     1   1   0.0 tests/class42:38
+get_anon         1   1   0.0 tests/class42:40
+greet            2   2   6.9 tests/class42:29
+is_loud          1   2   7.6 tests/class42:33
+main             1  13  28.7 tests/class42:49
+name             2   1   0.0 tests/class42:25
+speak            2   1   0.0 tests/class42:26
+speak            1   1   0.0 tests/class42:44
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine   Count Location        
------------- ----- ----------------
-unused           0 tests/class42:27
-unused_dog       0 tests/class42:45
+Subroutine   Count  CC  SLOP Location        
+------------ ----- --- ----- ----------------
+unused           0   1   6.9 tests/class42:27
+unused_dog       0   1   6.9 tests/class42:45
 
 

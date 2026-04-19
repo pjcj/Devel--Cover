@@ -1,12 +1,12 @@
 Reading database from ...
 
 
----------------- ------ ------ ------ ------ ------
-File               stmt   bran   cond    sub  total
----------------- ------ ------ ------ ------ ------
-tests/moose_cond  100.0    n/a   75.0  100.0   96.1
-Total             100.0    n/a   75.0  100.0   96.1
----------------- ------ ------ ------ ------ ------
+---------------- ------ ------ ------ ------ ------ ------
+File               stmt   bran   cond    sub  total   slop
+---------------- ------ ------ ------ ------ ------ ------
+tests/moose_cond  100.0    n/a   75.0  100.0   96.1   11.0
+Total             100.0    n/a   75.0  100.0   96.1   11.0
+---------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,20 @@ Start: ...
 Finish: ...
 
 tests/moose_cond
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 3 95.5  3.0 11.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location           
+---------- -- ----  -------------------
+wagh        3 11.1  tests/moose_cond:30
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -74,11 +88,11 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count Location           
----------- ----- -------------------
-BEGIN          1 tests/moose_cond:13
-BEGIN          1 tests/moose_cond:14
-BEGIN          1 tests/moose_cond:18
-wagh           2 tests/moose_cond:30
+Subroutine Count  CC  SLOP Location           
+---------- ----- --- ----- -------------------
+BEGIN          1   1   0.0 tests/moose_cond:13
+BEGIN          1   1   0.0 tests/moose_cond:14
+BEGIN          1   1   0.0 tests/moose_cond:18
+wagh           2   3  11.1 tests/moose_cond:30
 
 

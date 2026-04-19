@@ -248,8 +248,14 @@ our $Crisp_base_css = <<'CSS';
   --untested-worst-bg: #e8e8e8;
   --untested-worst-fg: #666;
 
-  --tip-bg: #1a1a1a;
-  --tip-fg: #ffffff;
+  --tip-glass-bg: rgba(255, 255, 255, 0.92);
+  --tip-glass-fg: #1a1a1a;
+  --tip-glass-border: rgba(0, 0, 0, 0.12);
+  --tip-glass-sep: rgba(0, 0, 0, 0.2);
+  --tip-c0: #dd0000;
+  --tip-c1: #c08820;
+  --tip-c2: #2080a8;
+  --tip-c3: #008800;
 
   --bg: #ffffff;
   --bg-alt: #e8ecf0;
@@ -295,8 +301,14 @@ our $Crisp_base_css = <<'CSS';
     --untested-worst-bg: #333;
     --untested-worst-fg: #bbb;
 
-    --tip-bg: #bbb;
-    --tip-fg: #1a1a1a;
+    --tip-glass-bg: rgba(20, 20, 20, 0.92);
+    --tip-glass-fg: #e0e0e0;
+    --tip-glass-border: rgba(255, 255, 255, 0.12);
+    --tip-glass-sep: rgba(255, 255, 255, 0.2);
+    --tip-c0: #ff4444;
+    --tip-c1: #e0a830;
+    --tip-c2: #48c0e0;
+    --tip-c3: #44dd44;
 
     --bg: #1a1a1a;
     --bg-alt: #242424;
@@ -334,8 +346,14 @@ html[data-theme="dark"] {
   --untested-worst-bg: #333;
   --untested-worst-fg: #bbb;
 
-  --tip-bg: #e0e0e0;
-  --tip-fg: #1a1a1a;
+  --tip-glass-bg: rgba(20, 20, 20, 0.92);
+  --tip-glass-fg: #e0e0e0;
+  --tip-glass-border: rgba(255, 255, 255, 0.12);
+  --tip-glass-sep: rgba(255, 255, 255, 0.2);
+  --tip-c0: #ff4444;
+  --tip-c1: #e0a830;
+  --tip-c2: #48c0e0;
+  --tip-c3: #44dd44;
 
   --bg: #1a1a1a;
   --bg-alt: #242424;
@@ -372,8 +390,14 @@ html[data-theme="light"] {
   --untested-worst-bg: #e8e8e8;
   --untested-worst-fg: #666;
 
-  --tip-bg: #1a1a1a;
-  --tip-fg: #ffffff;
+  --tip-glass-bg: rgba(255, 255, 255, 0.92);
+  --tip-glass-fg: #1a1a1a;
+  --tip-glass-border: rgba(0, 0, 0, 0.12);
+  --tip-glass-sep: rgba(0, 0, 0, 0.2);
+  --tip-c0: #dd0000;
+  --tip-c1: #c08820;
+  --tip-c2: #2080a8;
+  --tip-c3: #008800;
 
   --bg: #ffffff;
   --bg-alt: #e8ecf0;
@@ -518,15 +542,16 @@ a:visited { color: var(--link-visited); }
   margin-top: 24px;
 }
 
-/* Cell tooltips */
+/* Glass tooltips */
 
-.has-tip {
+.tip-hover {
   position: relative;
   cursor: default;
 }
+.tip-hover:hover { z-index: 30; }
 
-.has-tip::after {
-  content: attr(data-tip);
+.glass-tip {
+  display: none;
   position: absolute;
   bottom: 100%;
   left: 50%;
@@ -536,15 +561,16 @@ a:visited { color: var(--link-visited); }
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
-  background: var(--tip-bg);
-  color: var(--tip-fg);
+  background: var(--tip-glass-bg);
+  color: var(--tip-glass-fg);
+  border: 1px solid var(--tip-glass-border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 30;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  z-index: 20;
 }
 
-.has-tip:hover::after { opacity: 1; }
+.tip-hover:hover > .glass-tip { display: block; }
 
 /* Coverage bar */
 

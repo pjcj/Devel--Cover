@@ -1,12 +1,12 @@
 Reading database from ...
 
 
------------ ------ ------ ------ ------ ------
-File          stmt   bran   cond    sub  total
------------ ------ ------ ------ ------ ------
-tests/eval1   96.1   50.0    n/a   85.7   91.4
-Total         96.1   50.0    n/a   85.7   91.4
------------ ------ ------ ------ ------ ------
+----------- ------ ------ ------ ------ ------ ------
+File          stmt   bran   cond    sub  total   slop
+----------- ------ ------ ------ ------ ------ ------
+tests/eval1   96.1   50.0    n/a   85.7   91.4    6.9
+Total         96.1   50.0    n/a   85.7   91.4    6.9
+----------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,22 @@ Start: ...
 Finish: ...
 
 tests/eval1
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 2 92.9  2.0  6.9
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location      
+---------- -- ----  --------------
+BEGIN       2  7.1  tests/eval1:13
+f           1  0.1  tests/eval1:24
+g           1  0.1  tests/eval1:24
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -89,20 +105,20 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location      
----------- ----- --------------
-BEGIN          1 tests/eval1:10
-BEGIN          1 tests/eval1:11
-BEGIN          1 tests/eval1:13
-e              3 tests/eval1:17
-f              2 tests/eval1:24
-h              3 tests/eval1:24
+Subroutine Count  CC  SLOP Location      
+---------- ----- --- ----- --------------
+BEGIN          1   1   0.0 tests/eval1:10
+BEGIN          1   1   0.0 tests/eval1:11
+BEGIN          1   2   7.1 tests/eval1:13
+e              3   1   0.0 tests/eval1:17
+f              2   1   0.1 tests/eval1:24
+h              3   1   0.1 tests/eval1:24
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location      
----------- ----- --------------
-g              0 tests/eval1:24
+Subroutine Count  CC  SLOP Location      
+---------- ----- --- ----- --------------
+g              0   1   0.1 tests/eval1:24
 
 

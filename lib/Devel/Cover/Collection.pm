@@ -752,8 +752,7 @@ $Templates{module_by_start} = <<'EOT';
       </td>
       [% FOREACH criterion = criteria %]
         [% pc = vals.$m.$criterion.pc %]
-        <td class="[%- vals.$m.$criterion.class %] has-tip"
-          data-tip="[%- vals.$m.$criterion.details -%]">
+        <td class="[%- vals.$m.$criterion.class %] tip-hover">
           [% pc %]
           [% IF pc != 'n/a' %]
           <span class="cov-bar">
@@ -761,6 +760,7 @@ $Templates{module_by_start} = <<'EOT';
             style="width:[% pc %]%"></span>
           </span>
           [% END %]
+          <span class="glass-tip">[%- vals.$m.$criterion.details -%]</span>
         </td>
       [% END %]
     </tr>

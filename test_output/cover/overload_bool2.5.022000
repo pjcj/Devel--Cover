@@ -1,12 +1,12 @@
 Reading database from ...
 
 
--------------------- ------ ------ ------ ------ ------
-File                   stmt   bran   cond    sub  total
--------------------- ------ ------ ------ ------ ------
-tests/overload_bool2  100.0    n/a    n/a  100.0  100.0
-Total                 100.0    n/a    n/a  100.0  100.0
--------------------- ------ ------ ------ ------ ------
+-------------------- ------ ------ ------ ------ ------ ------
+File                   stmt   bran   cond    sub  total   slop
+-------------------- ------ ------ ------ ------ ------ ------
+tests/overload_bool2  100.0    n/a    n/a  100.0  100.0    0.0
+Total                 100.0    n/a    n/a  100.0  100.0    0.0
+-------------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,13 @@ Start: ...
 Finish: ...
 
 tests/overload_bool2
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -54,11 +61,11 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location               
----------- ----- -----------------------
-BEGIN          1 tests/overload_bool2:10
-BEGIN          1 tests/overload_bool2:11
-BEGIN          1 tests/overload_bool2:16
-meh            3 tests/overload_bool2:18
+Subroutine Count  CC  SLOP Location               
+---------- ----- --- ----- -----------------------
+BEGIN          1   1   0.0 tests/overload_bool2:10
+BEGIN          1   1   0.0 tests/overload_bool2:11
+BEGIN          1   1   0.0 tests/overload_bool2:16
+meh            3   1   0.0 tests/overload_bool2:18
 
 

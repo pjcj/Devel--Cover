@@ -1846,8 +1846,9 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv, HV *parent_map) {
     case OP_AND:
     case OP_OR:
     case OP_DOR:
-      /* Skip loop-internal logops (e.g. AND inside for) */
-      if (cLOGOPx(op)->op_first->op_type != OP_ITER)
+      if (cLOGOPx(op)->op_first->op_type == OP_ITER)
+        dc_walk_callback(aTHX_ op, callback, "iter", cv);
+      else
         dc_walk_callback(aTHX_ op, callback, "logop", cv);
       break;
 
@@ -1860,6 +1861,17 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv, HV *parent_map) {
     case OP_XOR:
       dc_walk_callback(aTHX_ op, callback, "xor", cv);
       break;
+
+#if PERL_VERSION >= 26
+    case OP_ARGDEFELEM:
+      dc_walk_callback(aTHX_ op, callback, "argdefelem", cv);
+      break;
+#endif
+#if PERL_VERSION > 43 || (PERL_VERSION == 43 && PERL_SUBVERSION >= 3)
+    case OP_PARAMTEST:
+      dc_walk_callback(aTHX_ op, callback, "argdefelem", cv);
+      break;
+#endif
 
     case OP_NULL:
       if (op->op_targ == OP_NEXTSTATE || op->op_targ == OP_DBSTATE) {

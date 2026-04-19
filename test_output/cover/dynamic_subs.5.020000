@@ -1,12 +1,12 @@
 Reading database from ...
 
 
------------------- ------ ------ ------ ------ ------
-File                 stmt   bran   cond    sub  total
------------------- ------ ------ ------ ------ ------
-tests/dynamic_subs   97.2   75.0    n/a   80.0   92.0
-Total                97.2   75.0    n/a   80.0   92.0
------------------- ------ ------ ------ ------ ------
+------------------ ------ ------ ------ ------ ------ ------
+File                 stmt   bran   cond    sub  total   slop
+------------------ ------ ------ ------ ------ ------ ------
+tests/dynamic_subs   97.2   75.0    n/a   80.0   92.0   11.0
+Total                97.2   75.0    n/a   80.0   92.0   11.0
+------------------ ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,22 @@ Start: ...
 Finish: ...
 
 tests/dynamic_subs
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 3 95.0  3.0 11.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location             
+---------- -- ----  ---------------------
+__ANON__    2  7.2  tests/dynamic_subs:16
+unused      1  6.9  tests/dynamic_subs:10
+AUTOLOAD    2  6.9  tests/dynamic_subs:41
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -96,23 +112,23 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location             
----------- ----- ---------------------
-AUTOLOAD       3 tests/dynamic_subs:41
-BEGIN          1 tests/dynamic_subs:31
-BEGIN          1 tests/dynamic_subs:43
-__ANON__       5 tests/dynamic_subs:16
-__ANON__       2 tests/dynamic_subs:33
-__ANON__       3 tests/dynamic_subs:46
-__ANON__       2 tests/dynamic_subs:50
-gen            4 tests/dynamic_subs:14
+Subroutine Count  CC  SLOP Location             
+---------- ----- --- ----- ---------------------
+AUTOLOAD       3   2   6.9 tests/dynamic_subs:41
+BEGIN          1   1   0.0 tests/dynamic_subs:31
+BEGIN          1   1   0.0 tests/dynamic_subs:43
+__ANON__       5   2   7.2 tests/dynamic_subs:16
+__ANON__       2   1   0.0 tests/dynamic_subs:33
+__ANON__       3   1   0.0 tests/dynamic_subs:46
+__ANON__       2   1   0.0 tests/dynamic_subs:50
+gen            4   1   0.0 tests/dynamic_subs:14
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location             
----------- ----- ---------------------
-empty          0 tests/dynamic_subs:11
-unused         0 tests/dynamic_subs:10
+Subroutine Count  CC  SLOP Location             
+---------- ----- --- ----- ---------------------
+empty          0   1   0.0 tests/dynamic_subs:11
+unused         0   1   6.9 tests/dynamic_subs:10
 
 

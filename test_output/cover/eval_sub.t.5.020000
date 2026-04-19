@@ -1,12 +1,12 @@
 Reading database from ...
 
 
------------ ------ ------ ------ ------ ------
-File          stmt   bran   cond    sub  total
------------ ------ ------ ------ ------ ------
-tests/eval3  100.0  100.0  100.0  100.0  100.0
-Total        100.0  100.0  100.0  100.0  100.0
------------ ------ ------ ------ ------ ------
+----------- ------ ------ ------ ------ ------ ------
+File          stmt   bran   cond    sub  total   slop
+----------- ------ ------ ------ ------ ------ ------
+tests/eval3  100.0  100.0  100.0  100.0  100.0    0.0
+Total        100.0  100.0  100.0  100.0  100.0    0.0
+----------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -34,6 +34,13 @@ Start: ...
 Finish: ...
 
 tests/eval3
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -90,10 +97,10 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count Location      
----------- ----- --------------
-BEGIN          4 tests/eval3:10
-s1             3 tests/eval3:14
-s3             4 tests/eval3:18
+Subroutine Count  CC  SLOP Location      
+---------- ----- --- ----- --------------
+BEGIN          4   1   0.0 tests/eval3:10
+s1             3   1   0.0 tests/eval3:14
+s3             4   1   0.0 tests/eval3:18
 
 

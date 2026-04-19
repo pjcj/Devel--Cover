@@ -1,12 +1,12 @@
 Reading database from ...
 
 
--------------- ------ ------ ------ ------ ------
-File             stmt   bran   cond    sub  total
--------------- ------ ------ ------ ------ ------
-tests/exec_die   50.0   50.0    n/a    0.0   45.4
-Total            50.0   50.0    n/a    0.0   45.4
--------------- ------ ------ ------ ------ ------
+-------------- ------ ------ ------ ------ ------ ------
+File             stmt   bran   cond    sub  total   slop
+-------------- ------ ------ ------ ------ ------ ------
+tests/exec_die   50.0   50.0    n/a    0.0   45.4    1.2
+Total            50.0   50.0    n/a    0.0   45.4    1.2
+-------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,20 @@ Start: ...
 Finish: ...
 
 tests/exec_die
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 1 50.0  1.1  1.2
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location         
+---------- -- ----  -----------------
+__ANON__    1  6.9  tests/exec_die:18
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -53,8 +67,8 @@ line  err      %   true  false   branch
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location         
----------- ----- -----------------
-__ANON__       0 tests/exec_die:18
+Subroutine Count  CC  SLOP Location         
+---------- ----- --- ----- -----------------
+__ANON__       0   1   6.9 tests/exec_die:18
 
 

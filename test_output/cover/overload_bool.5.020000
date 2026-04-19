@@ -1,12 +1,12 @@
 Reading database from ...
 
 
-------------------- ------ ------ ------ ------ ------
-File                  stmt   bran   cond    sub  total
-------------------- ------ ------ ------ ------ ------
-tests/overload_bool   69.2   50.0   50.0   25.0   56.5
-Total                 69.2   50.0   50.0   25.0   56.5
-------------------- ------ ------ ------ ------ ------
+------------------- ------ ------ ------ ------ ------ ------
+File                  stmt   bran   cond    sub  total   slop
+------------------- ------ ------ ------ ------ ------ ------
+tests/overload_bool   69.2   50.0   50.0   25.0   56.5    0.5
+Total                 69.2   50.0   50.0   25.0   56.5    0.5
+------------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,22 @@ Start: ...
 Finish: ...
 
 tests/overload_bool
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 1 63.2  1.1  0.5
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location              
+---------- -- ----  ----------------------
+__ANON__    1  6.9  tests/overload_bool:12
+render      1  6.9  tests/overload_bool:16
+BEGIN       1  0.6  tests/overload_bool:13
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -73,17 +89,17 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count Location              
----------- ----- ----------------------
-BEGIN          1 tests/overload_bool:13
+Subroutine Count  CC  SLOP Location              
+---------- ----- --- ----- ----------------------
+BEGIN          1   1   0.6 tests/overload_bool:13
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location              
----------- ----- ----------------------
-__ANON__       0 tests/overload_bool:12
-__ANON__       0 tests/overload_bool:13
-render         0 tests/overload_bool:16
+Subroutine Count  CC  SLOP Location              
+---------- ----- --- ----- ----------------------
+__ANON__       0   1   6.9 tests/overload_bool:12
+__ANON__       0   1   0.6 tests/overload_bool:13
+render         0   1   6.9 tests/overload_bool:16
 
 

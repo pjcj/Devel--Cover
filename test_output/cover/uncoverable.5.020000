@@ -2,12 +2,12 @@ Reading database from ...
 2 unmatched uncoverable comments not found at end of tests/uncoverable
 
 
------------------ ------ ------ ------ ------ ------
-File                stmt   bran   cond    sub  total
------------------ ------ ------ ------ ------ ------
-tests/uncoverable  100.0  100.0  100.0  100.0  100.0
-Total              100.0  100.0  100.0  100.0  100.0
------------------ ------ ------ ------ ------ ------
+----------------- ------ ------ ------ ------ ------ ------
+File                stmt   bran   cond    sub  total   slop
+----------------- ------ ------ ------ ------ ------ ------
+tests/uncoverable  100.0  100.0  100.0  100.0  100.0    0.0
+Total              100.0  100.0  100.0  100.0  100.0    0.0
+----------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -17,6 +17,13 @@ Start: ...
 Finish: ...
 
 tests/uncoverable
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -129,8 +136,8 @@ line  err      %     !l  l&&!r   l&&r   expr
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location            
----------- ----- --------------------
-z             -0 tests/uncoverable:44
+Subroutine Count  CC  SLOP Location            
+---------- ----- --- ----- --------------------
+z             -0   1   0.0 tests/uncoverable:44
 
 

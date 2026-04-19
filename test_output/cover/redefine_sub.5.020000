@@ -1,12 +1,12 @@
 Reading database from ...
 
 
------------------- ------ ------ ------ ------ ------
-File                 stmt   bran   cond    sub  total
------------------- ------ ------ ------ ------ ------
-tests/redefine_sub  100.0  100.0    n/a  100.0  100.0
-Total               100.0  100.0    n/a  100.0  100.0
------------------- ------ ------ ------ ------ ------
+------------------ ------ ------ ------ ------ ------ ------
+File                 stmt   bran   cond    sub  total   slop
+------------------ ------ ------ ------ ------ ------ ------
+tests/redefine_sub  100.0  100.0    n/a  100.0  100.0    6.9
+Total               100.0  100.0    n/a  100.0  100.0    6.9
+------------------ ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,20 @@ Start: ...
 Finish: ...
 
 tests/redefine_sub
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 2 100.0  2.0  6.9
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location            
+---------- -- ----  --------------------
+s1          2  6.9  tests/redefine_sub:4
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -51,9 +65,9 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location             
----------- ----- ---------------------
-__ANON__       2 tests/redefine_sub:15
-s1             2 tests/redefine_sub:4 
+Subroutine Count  CC  SLOP Location             
+---------- ----- --- ----- ---------------------
+__ANON__       2   1   0.0 tests/redefine_sub:15
+s1             2   2   6.9 tests/redefine_sub:4 
 
 

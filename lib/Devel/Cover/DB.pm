@@ -67,8 +67,8 @@ sub new ($class, %o) {
     %o,
   };
 
-  $self->{all_criteria}         = [ $self->{criteria}->@*,       "total" ];
-  $self->{all_criteria_short}   = [ $self->{criteria_short}->@*, "total" ];
+  $self->{all_criteria}         = [$self->{criteria}->@*,       "total"];
+  $self->{all_criteria_short}   = [$self->{criteria_short}->@*, "total"];
   $self->{base}               ||= $self->{db};
   bless $self, $class;
 
@@ -302,6 +302,267 @@ sub summary ($self, $file, $criterion = undef, $part = undef) {
   $c && defined $part ? $c->{$part} : $c
 }
 
+sub dir_summary ($self, $dir, $criterion = undef) {
+  my $d = $self->{dir_summary}{$dir};
+  return $d unless $d && defined $criterion;
+  $d->{$criterion}
+}
+
+sub slop_sub_lookup ($self, $file) {
+  my $slop = $self->summary($file, "slop") or return {};
+  my $subs = $slop->{subs}                 or return {};
+  +{ map { ("$_->{line}\0$_->{name}" => $_) } @$subs }
+}
+
+sub _sub_coverage ($file_obj, $start, $end) {
+  my ($covered, $total) = (0, 0);
+  for my $name (qw( statement branch condition )) {
+    my $crit = $file_obj->{$name} or next;
+    for my $line ($start .. $end) {
+      my $loc = $crit->{$line} or next;
+      for my $obj (@$loc) {
+        my $t = $obj->total;
+        $total   += $t;
+        $covered += $t - $obj->error;
+      }
+    }
+  }
+  $total ? 100 * $covered / $total : 100
+}
+
+sub _crap ($cc, $cov_pct) {
+  $cc**2 * (1 - $cov_pct / 100)**3 + $cc
+}
+
+sub _slop ($crap) {
+  $crap > 1 ? log($crap) * 10 : 0
+}
+
+sub _file_coverage ($s_file) {
+  my ($covered, $total) = (0, 0);
+  for my $name (qw( statement branch condition )) {
+    my $c = $s_file->{$name} or next;
+    $total   += $c->{total} || 0;
+    $covered += ($c->{total} || 0) - ($c->{error} || 0);
+  }
+  $total ? 100 * $covered / $total : 100
+}
+
+sub _file_dir ($file) {
+  my $dir = $file =~ s|/[^/]+$||r;
+  $dir eq $file ? "" : $dir
+}
+
+sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
+  my ($max, $sum, $count) = (0, 0, 0);
+  my ($crap_max, $crap_sum) = (0, 0);
+  my @subs;
+
+  for my $line (sort { $a <=> $b } keys %$cc_hash) {
+    for my $sub_name (sort keys $cc_hash->{$line}->%*) {
+      my $cc_arr  = $cc_hash->{$line}{$sub_name};
+      my $end_arr = $end_hash->{$line}{$sub_name} // [];
+      for my $scount (0 .. $#$cc_arr) {
+        my $cc = $cc_arr->[$scount];
+        next unless defined $cc;
+        $max  = $cc if $cc > $max;
+        $sum += $cc;
+        $count++;
+        my $end  = $end_arr->[$scount] // $line;
+        my $cov  = _sub_coverage($file_obj, $line, $end);
+        my $crap = _crap($cc, $cov);
+        $crap_max  = $crap if $crap > $crap_max;
+        $crap_sum += $crap;
+        push @subs, {
+            name => $sub_name,
+            line => $line + 0,
+            cc   => $cc,
+            cov  => $cov,
+            crap => $crap,
+            slop => _slop($crap),
+          };
+      }
+    }
+  }
+
+  return unless $count;
+  {
+    max      => $max,
+    sum      => $sum,
+    count    => $count,
+    crap_max => $crap_max,
+    crap_sum => $crap_sum,
+    subs     => \@subs,
+  }
+}
+
+sub _summarise_dir_complexity ($self, $s, $dir_files, $dir_stats) {
+  my $ds_hash = $self->{dir_summary} = {};
+  for my $dir (keys %$dir_files) {
+    my $d = $ds_hash->{$dir} = {};
+    for my $criterion (qw( statement branch condition total )) {
+      my ($covered, $total, $error) = (0, 0, 0);
+      for my $f ($dir_files->{$dir}->@*) {
+        my $c = $s->{$f}{$criterion} or next;
+        $covered += $c->{covered} || 0;
+        $total   += $c->{total}   || 0;
+        $error   += $c->{error}   || 0;
+      }
+      $d->{$criterion} = {
+        covered    => $covered,
+        total      => $total,
+        error      => $error,
+        percentage => $total ? 100 - $error * 100 / $total : 100,
+      };
+    }
+
+    my $ds = $dir_stats->{$dir};
+    if ($ds && $ds->{cc_count}) {
+      my $dir_cc   = $ds->{cc_sum} - $ds->{cc_count} + 1;
+      my $dir_cov  = _file_coverage($d);
+      my $dir_crap = _crap($dir_cc, $dir_cov);
+      my $dir_slop = _slop($dir_crap);
+      $d->{slop} = {
+        file_cc   => $dir_cc,
+        file_cov  => $dir_cov,
+        file_crap => $dir_crap,
+        file_slop => $dir_slop,
+      };
+    }
+  }
+}
+
+sub _uncompiled_cc_data ($sub_data) {
+  my ($max, $sum, $count) = (0, 0, 0);
+  my ($crap_max, $crap_sum) = (0, 0);
+  my @subs;
+  for my $sd (@$sub_data) {
+    my $cc   = $sd->{cc};
+    my $cov  = 0;
+    my $crap = _crap($cc, $cov);
+    $max  = $cc if $cc > $max;
+    $sum += $cc;
+    $count++;
+    $crap_max  = $crap if $crap > $crap_max;
+    $crap_sum += $crap;
+    push @subs, {
+        name => $sd->{name},
+        line => $sd->{line} + 0,
+        cc   => $cc,
+        cov  => $cov,
+        crap => $crap,
+        slop => _slop($crap),
+      };
+  }
+
+  return unless $count;
+  {
+    max      => $max,
+    sum      => $sum,
+    count    => $count,
+    crap_max => $crap_max,
+    crap_sum => $crap_sum,
+    subs     => \@subs,
+  }
+}
+
+sub _compiled_cc_data ($self, $st, $file_obj) {
+  my $digest   = $file_obj->{meta}{digest}    or return;
+  my $cc_hash  = $st->get_complexity($digest) or return;
+  my $end_hash = $st->get_end_lines($digest) || {};
+  _file_cc_data($file_obj, $cc_hash, $end_hash)
+}
+
+sub _record_file_complexity ($s, $file, $d, $dir_stats, $totals) {
+  my $count = $d->{count};
+  $s->{$file}{complexity}
+    = { max => $d->{max}, mean => $d->{sum} / $count, count => $count };
+  my $file_cc   = $d->{sum} - $count + 1;
+  my $file_cov  = _file_coverage($s->{$file});
+  my $file_crap = _crap($file_cc, $file_cov);
+  my $file_slop = _slop($file_crap);
+  $s->{$file}{slop} = {
+    max       => $d->{crap_max},
+    mean      => $d->{crap_sum} / $count,
+    count     => $count,
+    subs      => $d->{subs},
+    file_cc   => $file_cc,
+    file_cov  => $file_cov,
+    file_crap => $file_crap,
+    file_slop => $file_slop,
+  };
+
+  my $ds = $dir_stats->{ _file_dir($file) } ||= { cc_sum => 0, cc_count => 0 };
+  $ds->{cc_sum}   += $d->{sum};
+  $ds->{cc_count} += $count;
+
+  $totals->{fcrap_sum} += $file_crap;
+  $totals->{fslop_sum} += $file_slop;
+  $totals->{fcrap_cnt}++;
+  $totals->{max}       = $d->{max} if $d->{max} > $totals->{max};
+  $totals->{sum}      += $d->{sum};
+  $totals->{count}    += $count;
+  $totals->{crap_max}  = $d->{crap_max} if $d->{crap_max} > $totals->{crap_max};
+  $totals->{crap_sum} += $d->{crap_sum};
+}
+
+sub _record_total_complexity ($s, $totals) {
+  return unless $totals->{count};
+  $s->{Total}{complexity} = {
+    max   => $totals->{max},
+    mean  => $totals->{sum} / $totals->{count},
+    count => $totals->{count},
+  };
+  my $module_cc   = $totals->{sum} - $totals->{count} + 1;
+  my $module_cov  = _file_coverage($s->{Total});
+  my $module_crap = _crap($module_cc, $module_cov);
+  my $cnt         = $totals->{fcrap_cnt};
+  $s->{Total}{slop} = {
+    max         => $totals->{crap_max},
+    mean        => $totals->{crap_sum} / $totals->{count},
+    count       => $totals->{count},
+    file_crap   => $cnt ? $totals->{fcrap_sum} / $cnt : 0,
+    file_slop   => $cnt ? $totals->{fslop_sum} / $cnt : 0,
+    module_cc   => $module_cc,
+    module_cov  => $module_cov,
+    module_crap => $module_crap,
+    module_slop => _slop($module_crap),
+  };
+}
+
+sub summarise_complexity ($self, $s, $files) {
+  my $st     = $self->{_structure};
+  my %totals = (
+    max       => 0,
+    sum       => 0,
+    count     => 0,
+    crap_max  => 0,
+    crap_sum  => 0,
+    fcrap_sum => 0,
+    fslop_sum => 0,
+    fcrap_cnt => 0,
+  );
+  my %dir_stats;
+  my %dir_files;
+
+  for my $file (@$files) {
+    push $dir_files{ _file_dir($file) }->@*, $file;
+  }
+
+  for my $file (@$files) {
+    my $file_obj = $self->cover->get($file);
+    my $d
+      = $file_obj->{meta}{uncompiled}
+      ? _uncompiled_cc_data($file_obj->{meta}{subs} || [])
+      : $st ? _compiled_cc_data($self, $st, $file_obj)
+      :       undef;
+    _record_file_complexity($s, $file, $d, \%dir_stats, \%totals) if $d;
+  }
+
+  _record_total_complexity($s, \%totals);
+  $self->_summarise_dir_complexity($s, \%dir_files, \%dir_stats);
+}
+
 sub calculate_summary ($self, %options) {
   return if exists $self->{summary} && !$options{force};
   my $s = $self->{summary} = {};
@@ -327,11 +588,31 @@ sub calculate_summary ($self, %options) {
     $c->calculate_percentage($self, $t->{$criterion});
   }
   Devel::Cover::Criterion->calculate_percentage($self, $t->{total});
+
+  $self->summarise_complexity($s, \@files);
 }
 
 sub trimmed_file ($f, $len) {
   substr $f, 0, 3 - $len, "..." if length $f > $len;
   $f
+}
+
+sub _format_summary_pct ($options, $part, $criterion) {
+  return "n/a" unless $options->{$criterion} && exists $part->{$criterion};
+  my $x = sprintf "%5.2f", $part->{$criterion}{percentage};
+  chop $x;
+  $x
+}
+
+sub _format_summary_slop ($self, $file, $part, $have_ppi) {
+  my $slop = $part->{slop};
+  if ($slop) {
+    my $v = $file eq "Total" ? $slop->{module_slop} : $slop->{file_slop};
+    return sprintf "%5.1f", $v if defined $v;
+  }
+  return "n/a" if $file eq "Total";
+  my $uncompiled = $self->cover->file($file)->{meta}{uncompiled};
+  $uncompiled && !$have_ppi ? "-" : "n/a"
 }
 
 sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
@@ -344,15 +625,7 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
   $options{files} = $files if $files && @$files;
   $self->calculate_summary(%options, %$opts);
 
-  my $format = sub ($part, $criterion) {
-    $options{$criterion} && exists $part->{$criterion}
-      ? do {
-        my $x = sprintf "%5.2f", $part->{$criterion}{percentage};
-        chop $x;
-        $x
-      }
-      : "n/a"
-  };
+  my $have_ppi = eval { require PPI; 1 };
 
   my $s     = $self->{summary};
   my @files = (grep($_ ne "Total", sort keys %$s), "Total");
@@ -366,38 +639,47 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
     = !$ENV{DEVEL_COVER_TEST_SUITE}
     && $Has_term_size
     && -t STDOUT ? (Term::Size::chars(\*STDOUT))[0] : 80;
-  my $fw = $width - $n * 7 - 3;
+  my $nc = $n + 1;               # criterion columns plus slop
+  my $fw = $width - $nc * 7 - 3;
 
   $fw = $max if $max < $fw;
 
   no warnings "uninitialized";
-  my $fmt = "%-${fw}s" . " %6s" x $n . "\n";
+  my $fmt = "%-${fw}s" . " %6s" x $nc . "\n";
 
   printf STDOUT "\nCommon prefix: %s\n\n", $prefix if $prefix;
-  printf STDOUT $fmt,                      "-" x $fw, ("------") x $n;
-  printf STDOUT $fmt, "File", map $self->{all_criteria_short}[$_],
-    grep $options{ $self->{all_criteria}[$_] }, 0 .. $self->{all_criteria}->$#*;
-  printf STDOUT $fmt, "-" x $fw, ("------") x $n;
+  printf STDOUT $fmt,                      "-" x $fw, ("------") x $nc;
+  printf STDOUT $fmt, "File", (
+      map $self->{all_criteria_short}[$_],
+      grep $options{ $self->{all_criteria}[$_] },
+      0 .. $self->{all_criteria}->$#*,
+    ),
+    "slop";
+  printf STDOUT $fmt, "-" x $fw, ("------") x $nc;
 
   my $has_uncompiled;
   for my $file (@files) {
     my $uncompiled
       = $file ne "Total" && $self->cover->file($file)->{meta}{uncompiled};
     $has_uncompiled ||= $uncompiled;
+    my $no_data = $uncompiled && !$have_ppi;
     printf STDOUT $fmt, trimmed_file($short->{$file}, $fw),
-      $uncompiled
-      ? ("n/a") x $n
+      $no_data
+      ? ("-") x $nc
       : (
-        map $format->($s->{$file}, $_),
-        grep $options{$_},
-        $self->{all_criteria}->@*,
+        (
+          map _format_summary_pct(\%options, $s->{$file}, $_),
+          grep $options{$_},
+          $self->{all_criteria}->@*,
+        ),
+        $self->_format_summary_slop($file, $s->{$file}, $have_ppi),
       );
   }
 
-  printf STDOUT $fmt, "-" x $fw, ("------") x $n;
-  if ($has_uncompiled && !eval { require PPI; 1 }) {
+  printf STDOUT $fmt, "-" x $fw, ("------") x $nc;
+  if ($has_uncompiled && !$have_ppi) {
     printf STDOUT "\n%s\n",
-      "n/a: install PPI for estimated coverage of untested files";
+      "-: install PPI for estimated coverage of untested files";
   }
   print STDOUT "\n\n";
 }
@@ -445,9 +727,9 @@ sub add_branch ($self, $cc, $sc, $fc, $uc) {
       $a->[0][2] += $fc->[$i][2] if exists $fc->[$i][2];
       $a->[0][3] += $fc->[$i][3] if exists $fc->[$i][3];
     } else {
-      $cc->{$l}[$n] = [ $fc->[$i], $sc->[$i][1] ];
+      $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
     }
-    $cc->{$l}[$n][2][ $_->[0] ] ||= $_->[1] for @{ $uc->{$l}[$n] };
+    $cc->{$l}[$n][2][$_->[0]] ||= $_->[1] for $uc->{$l}[$n]->@*;
   }
 }
 
@@ -470,7 +752,7 @@ sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
       no warnings "uninitialized";
       $a->[0] += $fc->[$i];
     } else {
-      $cc->{$l}[$n] = [ $fc->[$i], $sc->[$i][1] ];
+      $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
     }
     $cc->{$l}[$n][2] ||= $uc->{$l}[$n][0][1];
   }
@@ -503,7 +785,7 @@ sub uncoverable ($self) {
     while (<$f>) {
       chomp;
       my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $_, 7;
-      push $u->{$file}{$crit}{$line}[$count]->@*, [ $type, $class, $note ];
+      push $u->{$file}{$crit}{$line}[$count]->@*, [$type, $class, $note];
     }
   }
 
@@ -618,7 +900,7 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
       for my $c (@counts) {
         # no warnings "uninitialized";
         # warn "pushing $criterion, $c - 1, $type, $class, $note";
-        push @waiting, [ $criterion, $c - 1, $type, $class, $note ];
+        push @waiting, [$criterion, $c - 1, $type, $class, $note];
       }
 
       next unless $code =~ /\S/;
@@ -628,7 +910,7 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
     while (my $w = shift @waiting) {
       my ($criterion, $count, $type, $class, $note) = @$w;
       push $uncoverable->{$digest}{$criterion}{$.}[$count]->@*,
-        [ $type, $class, $note ];
+        [$type, $class, $note];
     }
   }
   close $fh or warn "Devel::Cover: Can't close $file: $!\n";
@@ -681,10 +963,10 @@ sub objectify_cover ($self) {
     }
 
     my $classes = {
-      Cover     => [ qw( files     file ) ],
-      File      => [ qw( criteria  criterion ) ],
-      Criterion => [ qw( locations location ) ],
-      Location  => [ qw( data      datum ) ],
+      Cover     => [qw( files     file )],
+      File      => [qw( criteria  criterion )],
+      Criterion => [qw( locations location )],
+      Location  => [qw( data      datum )],
     };
     my $base = "Devel::Cover::DB::Base";
     while (my ($class, $functions) = each %$classes) {
@@ -717,6 +999,7 @@ sub objectify_cover ($self) {
 }
 
 sub _file_digest ($r, $file) {
+  no warnings "once";
   my $digest = $r->{digests}{$file};
   return $digest if $digest;
   print STDERR "Devel::Cover: Can't find digest for $file\n"
@@ -745,6 +1028,7 @@ sub _cover_file (
     $ff = $file unless -e $ff;
   }
   my $cf = $cover->{ $digests->{$digest} ||= $ff } ||= {};
+  $cf->{meta}{digest} = $digest;
 
   while (my ($criterion, $fc) = each %$f) {
     my $get = "get_$criterion";
@@ -767,9 +1051,10 @@ sub cover ($self) {
   my %files;    # processed files
   my $cover       = $self->{cover} = {};
   my $uncoverable = {};
-  require Devel::Cover::DB::Structure;
-  my $st = $self->{_structure}
-    // Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
+  my $st          = $self->{_structure} // do {
+    require Devel::Cover::DB::Structure;  ## no perlimports
+    Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
+  };
 
   # Sometimes the start value is undefined.  It's not yet clear why, but it
   # probably has something to do with the code under test forking.  We'll
@@ -791,7 +1076,7 @@ sub cover ($self) {
     while (my ($file, $f) = each %$count) {
       $self->_cover_file(
         $file, $f, $r, $st, $cover,
-        $uncoverable, \%digests, \%files, \%warned
+        $uncoverable, \%digests, \%files, \%warned,
       );
     }
   }
@@ -802,9 +1087,14 @@ sub cover ($self) {
     for my $file ($self->{files}->@*) {
       next if exists $self->{cover}{$file};
       my $counts = Devel::Cover::Static::count_criteria($file);
-      $self->{cover}{$file}
-        = bless {
-          meta => { uncompiled => 1, ($counts ? (counts => $counts) : ()) }, },
+      my $subs   = Devel::Cover::Static::per_sub_complexity($file);
+      $self->{cover}{$file} = bless {
+        meta => {
+          uncompiled => 1,
+          ($counts ? (counts => $counts) : ()),
+          ($subs   ? (subs   => $subs)   : ()),
+        },
+        },
         "Devel::Cover::DB::File";
     }
   }
@@ -841,7 +1131,13 @@ sub AUTOLOAD {
   goto &$func
 }
 
-1
+"
+You seen the glory and the shame
+Beauty and the pain
+Weakness and the strength
+Waiting for the fame
+Don't you think you ought to give it all you got?
+"
 
 __END__
 
@@ -853,10 +1149,10 @@ Devel::Cover::DB - Code coverage metrics for Perl
 
 =head1 SYNOPSIS
 
- use Devel::Cover::DB;
+  use Devel::Cover::DB;
 
- my $db = Devel::Cover::DB->new(db => "my_coverage_db");
- $db->print_summary([$file1, $file2], ["statement", "pod"]);
+  my $db = Devel::Cover::DB->new(db => "my_coverage_db");
+  $db->print_summary([$file1, $file2], ["statement", "pod"]);
 
 =head1 DESCRIPTION
 
@@ -866,37 +1162,277 @@ This module provides access to a database of code coverage information.
 
 =head2 new
 
- my $db = Devel::Cover::DB->new(db => "my_coverage_db");
+  my $db = Devel::Cover::DB->new(db => "my_coverage_db");
 
-Constructs the DB from the specified database.
+Construct a DB from the specified database directory. If the directory contains
+a valid database file it is read automatically.
+
+=head2 criteria
+
+  my @c = $db->criteria;
+
+Return the list of coverage criteria names (e.g. C<statement>, C<branch>,
+C<condition>, ...).
+
+=head2 criteria_short
+
+  my @c = $db->criteria_short;
+
+Return the abbreviated criteria names (e.g. C<stmt>, C<bran>, C<cond>, ...).
+
+=head2 all_criteria
+
+  my @c = $db->all_criteria;
+
+Like L</criteria> but includes C<total>.
+
+=head2 all_criteria_short
+
+  my @c = $db->all_criteria_short;
+
+Like L</criteria_short> but includes C<total>.
+
+=head2 files
+
+  my @f = $db->files;
+
+Return the list of extra files registered with the database (e.g. uncompiled
+files added via the C<files> option).
+
+=head2 read
+
+  $db->read($file);
+
+Read a serialised database from C<$file>. Populates C<runs> and
+C<files>. Returns C<$self>.
+
+=head2 write
+
+  $db->write; $db->write($db_path);
+
+Write the database to disk. If C<$db_path> is given it overrides the current
+C<db> attribute. Also writes the structure if one is attached. Returns C<$self>.
+
+=head2 delete
+
+  $db->delete; $db->delete($db_path);
+
+Remove all contents of the database directory. Returns C<$self>.
+
+=head2 clean
+
+  $db->clean;
+
+Remove stale C<.lock> files from the database directory.
+
+=head2 merge_runs
+
+  $db->merge_runs;
+
+Merge individual run files from C<< $db/runs/ >> into the main database, write
+the merged result, and delete the run files. Handles changed-file detection: if
+a file's digest differs between runs the old coverage is discarded. Returns
+C<$self>.
+
+=head2 validate_db
+
+  $db->validate_db;
+
+Warn to STDERR if the database directory looks invalid. Returns C<$self>.
+
+=head2 exists
+
+  my $bool = $db->exists;
+
+Return true if the database directory exists on disk.
+
+=head2 is_valid
+
+  my $valid = $db->is_valid;
+
+Return true if the database is valid (or looks valid - the check is
+intentionally lax).
+
+=head2 collected
+
+  my @criteria = $db->collected;
+
+Return the sorted list of criteria that were actually collected during coverage
+runs.
+
+=head2 merge
+
+  $db->merge($other_db);
+
+Merge run and collection data from C<$other_db> into C<$self>. Detects changed
+files by comparing digests across runs.
+
+=head2 summary
+
+  my $all  = $db->summary($file);
+  my $crit = $db->summary($file, "statement");
+  my $val  = $db->summary($file, "statement", "percentage");
+
+Access the summary hash for C<$file>. With one argument returns the entire file
+summary. With two, the summary for a single criterion. With three, a specific
+part of that criterion's summary.
+
+=head2 dir_summary
+
+  my $all  = $db->dir_summary($dir);
+  my $crit = $db->dir_summary($dir, "statement");
+
+Access the directory-level summary hash for C<$dir>. Populated by
+L</summarise_complexity> during L</calculate_summary>.
+
+=head2 slop_sub_lookup
+
+  my $lookup = $db->slop_sub_lookup($file);
+
+Return a hashref mapping C<"$line\0$name"> to per-subroutine SLOP detail from
+the summary data for C<$file>. Returns an empty hashref when no SLOP data
+exists.
+
+=head2 summarise_complexity
+
+  $db->summarise_complexity($summary, \@files);
+
+Compute per-file, per-directory, and total complexity and SLOP scores, storing
+results into the C<$summary> hash. Called automatically by
+L</calculate_summary>.
+
+=head2 calculate_summary
+
+  $db->calculate_summary(statement => 1, branch => 1);
+
+Calculate coverage summaries for all files, filtered by the criteria given as
+true-valued keys. Populates C<< $db->{summary} >> and triggers
+L</summarise_complexity>.
+
+=head2 trimmed_file
+
+  my $short = Devel::Cover::DB::trimmed_file($filename, $max_len);
+
+Truncate C<$filename> to C<$max_len> characters, replacing the leading portion
+with C<...> if necessary. This is a plain function, not a method.
+
+=head2 print_summary
+
+  $db->print_summary; $db->print_summary(\@files, \@criteria, \%opts);
+
+Print a tabular coverage summary to STDOUT. If C<@files> or C<@criteria> are
+given they restrict the output.
+
+=head2 add_statement
+
+  $db->add_statement($cc, $sc, $fc, $uc);
+
+Merge statement coverage counts from a single run into the accumulated cover
+hash. C<$cc> is the accumulated hash, C<$sc> the structure, C<$fc> the run
+counts, and C<$uc> uncoverable data.
+
+=head2 add_time
+
+  $db->add_time($cc, $sc, $fc, $);
+
+Merge time coverage data. Same interface as L</add_statement> but accumulates
+into scalar references.
+
+=head2 add_branch
+
+  $db->add_branch($cc, $sc, $fc, $uc);
+
+Merge branch coverage counts. Handles multi-valued branch data (true/false/else
+counts).
+
+=head2 add_subroutine
+
+  $db->add_subroutine($cc, $sc, $fc, $uc);
+
+Merge subroutine coverage counts.
+
+=head2 add_condition
+
+Alias for L</add_branch>.
+
+=head2 add_pod
+
+Alias for L</add_subroutine>.
+
+=head2 uncoverable_files
+
+  my @files = $db->uncoverable_files;
+
+Return the list of C<.uncoverable> files to consult, including any specified via
+the C<uncoverable_file> option, the local C<.uncoverable>, and
+C<~/.uncoverable>.
+
+=head2 uncoverable
+
+  my $uc = $db->uncoverable;
+
+Read all C<.uncoverable> files and return a hashref of uncoverable data keyed by
+file digest, criterion, line number, and count.
+
+=head2 add_uncoverable
+
+  $db->add_uncoverable(\@adds);
+
+Append entries to the first uncoverable file.
+
+=head2 delete_uncoverable
+
+  $db->delete_uncoverable(\@deletes);
+
+Remove entries from the uncoverable file. Currently unimplemented.
+
+=head2 clean_uncoverable
+
+  $db->clean_uncoverable;
+
+Clean up the uncoverable file. Currently unimplemented.
+
+=head2 uncoverable_comments
+
+  $db->uncoverable_comments($uncoverable, $file, $digest);
+
+Scan C<$file> for C<# uncoverable> comments and merge them into the
+C<$uncoverable> hash under C<$digest>.
+
+=head2 objectify_cover
+
+  $db->objectify_cover;
+
+Bless the raw cover hash into the appropriate C<Devel::Cover::DB::*> classes so
+that the OO accessors work.
 
 =head2 cover
 
- my $cover = $db->cover;
+  my $cover = $db->cover;
 
-Returns a Devel::Cover::DB::Cover object.  From here all the coverage
-data may be accessed.
+Return a L<Devel::Cover::DB::Cover> object. From here all the coverage data may
+be accessed.
 
- my $cover = $db->cover;
- for my $file ($cover->items) {
-     print "$file\n";
-     my $f = $cover->file($file);
-     for my $criterion ($f->items) {
-         print "  $criterion\n";
-         my $c = $f->criterion($criterion);
-         for my $location ($c->items) {
-             my $l = $c->location($location);
-             print "    $location @$l\n";
-         }
-     }
- }
+  my $cover = $db->cover;
+  for my $file ($cover->items) {
+    print "$file\n";
+    my $f = $cover->file($file);
+    for my $criterion ($f->items) {
+      print "  $criterion\n";
+      my $c = $f->criterion($criterion);
+      for my $location ($c->items) {
+        my $l = $c->location($location);
+        print "    $location @$l\n";
+      }
+    }
+  }
 
 Data for different criteria will be in different formats, so that will need
-special handling.  This is not yet documented so your best bet for now is to
-look at some of the simpler reports and/or the source.
+special handling. This is not yet documented so your best bet for now is to look
+at some of the simpler reports and/or the source.
 
 The methods in the above example are actually aliases for methods in
-Devel::Cover::DB::Base (the base class for all Devel::Cover::DB::* classes):
+Devel::Cover::DB::Base (the base class for all C<Devel::Cover::DB::*> classes):
 
 =over
 
@@ -912,13 +1448,28 @@ Devel::Cover::DB::Criterion->location, and Devel::Cover::DB::Location->datum
 
 =back
 
-Instead of calling $file->criterion("x") you can also call $file->x.
+Instead of calling C<< $file->criterion("x") >> you can also call
+C<< $file->x >>.
 
-=head2 is_valid
+=head2 run_keys
 
- my $valid = $db->is_valid;
+  my @keys = $db->run_keys;
 
-Returns true if $db is valid (or looks valid, the function is too lax).
+Return run identifiers sorted by start time (most recent first).
+
+=head2 runs
+
+  my @runs = $db->runs;
+
+Return L<Devel::Cover::DB::Run> objects sorted by start time (most recent
+first).
+
+=head2 set_structure
+
+  $db->set_structure($struct);
+
+Attach a L<Devel::Cover::DB::Structure> object for use by
+L</summarise_complexity>.
 
 =head1 SEE ALSO
 

@@ -2,12 +2,12 @@ Reading database from ...
 Devel::Cover: Deleting old coverage for changed file tests/change
 
 
------------- ------ ------ ------ ------ ------
-File           stmt   bran   cond    sub  total
------------- ------ ------ ------ ------ ------
-tests/change  100.0    n/a    n/a  100.0  100.0
-Total         100.0    n/a    n/a  100.0  100.0
------------- ------ ------ ------ ------ ------
+------------ ------ ------ ------ ------ ------ ------
+File           stmt   bran   cond    sub  total   slop
+------------ ------ ------ ------ ------ ------ ------
+tests/change  100.0    n/a    n/a  100.0  100.0    0.0
+Total         100.0    n/a    n/a  100.0  100.0    0.0
+------------ ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -23,6 +23,13 @@ Start: ...
 Finish: ...
 
 tests/change
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -45,8 +52,8 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location       
----------- ----- ---------------
-new_sub        1 tests/change:12
+Subroutine Count  CC  SLOP Location       
+---------- ----- --- ----- ---------------
+new_sub        1   1   0.0 tests/change:12
 
 

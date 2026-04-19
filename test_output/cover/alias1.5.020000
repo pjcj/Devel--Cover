@@ -4,13 +4,13 @@ Reading database from ...
 
 Common prefix: tests/
 
---------- ------ ------ ------ ------ ------
-File        stmt   bran   cond    sub  total
---------- ------ ------ ------ ------ ------
-Alias1.pm  100.0  100.0    n/a  100.0  100.0
-alias1     100.0    n/a    n/a  100.0  100.0
-Total      100.0  100.0    n/a  100.0  100.0
---------- ------ ------ ------ ------ ------
+--------- ------ ------ ------ ------ ------ ------
+File        stmt   bran   cond    sub  total   slop
+--------- ------ ------ ------ ------ ------ ------
+Alias1.pm  100.0  100.0    n/a  100.0  100.0    6.9
+alias1     100.0    n/a    n/a  100.0  100.0    0.0
+Total      100.0  100.0    n/a  100.0  100.0    6.9
+--------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -19,7 +19,29 @@ OS: ...
 Start: ...
 Finish: ...
 
+Module Summary
+--------------
+
+Files CC   Cov CRAP SLOP
+----- -- ----- ---- ----
+    2  2 100.0  2.0  6.9
+
+
 Alias1.pm
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 2 100.0  2.0  6.9
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location    
+---------- -- ----  ------------
+is_3digits  2  6.9  Alias1.pm:19
 
 line  err   stmt   bran   cond    sub   code
 1                                       # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
@@ -66,15 +88,22 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location    
----------- ----- ------------
-BEGIN          1 Alias1.pm:10
-BEGIN          1 Alias1.pm:11
-BEGIN          1 Alias1.pm:13
-is_3digits     2 Alias1.pm:19
+Subroutine Count  CC  SLOP Location    
+---------- ----- --- ----- ------------
+BEGIN          1   1   0.0 Alias1.pm:10
+BEGIN          1   1   0.0 Alias1.pm:11
+BEGIN          1   1   0.0 Alias1.pm:13
+is_3digits     2   2   6.9 Alias1.pm:19
 
 
 alias1
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -109,11 +138,11 @@ line  err   stmt   bran   cond    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count Location 
----------- ----- ---------
-BEGIN          1 alias1:10
-BEGIN          1 alias1:11
-BEGIN          1 alias1:12
-BEGIN          1 alias1:14
+Subroutine Count  CC  SLOP Location 
+---------- ----- --- ----- ---------
+BEGIN          1   1   0.0 alias1:10
+BEGIN          1   1   0.0 alias1:11
+BEGIN          1   1   0.0 alias1:12
+BEGIN          1   1   0.0 alias1:14
 
 

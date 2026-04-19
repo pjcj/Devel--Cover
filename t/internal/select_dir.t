@@ -16,7 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [ qw( done_testing is is_deeply like ok ) ];
+use Test::More import => [qw( done_testing is is_deeply like ok )];
 
 eval "use Test::Differences";
 my $Has_test_diff = $INC{"Test/Differences.pm"};
@@ -24,8 +24,12 @@ my $Has_test_diff = $INC{"Test/Differences.pm"};
 use File::Path qw( make_path );
 use File::Spec ();
 
-use Devel::Cover::DB              ();
-use Devel::Cover::Test::Showcase  qw( create_cover_db run_cover setup_lib_dir );
+use Devel::Cover::DB             ();
+use Devel::Cover::Test::Showcase qw(
+  create_cover_db
+  run_cover
+  setup_lib_dir
+);
 
 sub have_ppi () { eval { require PPI; 1 } }
 
@@ -34,7 +38,7 @@ sub have_ppi () { eval { require PPI; 1 } }
 sub _uncovered_summary ($out) { [
   sort map {
     my ($file, $rest) = /(Uncovered\/\w+\.pm)\s+(.*)/;
-    my @vals = ($rest =~ /([\d.]+|n\/a)/g);
+    my @vals = ($rest =~ /([\d.]+|n\/a|-)/g);
     join "  ", $file, @vals
   } grep /Uncovered\//,
   split /\n/,
@@ -91,6 +95,16 @@ sub test_uncompiled_in_cover () {
     ok $file_obj->{meta}{counts}{subroutine}, "subroutine count is non-zero";
     ok $file_obj->{meta}{counts}{branch},     "branch count is non-zero";
     ok $file_obj->{meta}{counts}{condition},  "condition count is non-zero";
+
+    my $subs = $file_obj->{meta}{subs};
+    ok $subs,      "per-sub complexity present when PPI available";
+    ok @$subs > 0, "at least one sub entry";
+    for my $s (@$subs) {
+      ok exists $s->{name}, "sub entry has name";
+      ok exists $s->{line}, "sub entry has line";
+      ok exists $s->{cc},   "sub entry has cc";
+      ok $s->{cc} >= 1,     "CC >= 1 for $s->{name}";
+    }
   } else {
     ok !$file_obj->{meta}{counts}, "no counts without PPI";
   }
@@ -105,19 +119,26 @@ sub test_text_report () {
   my ($out, $exit) = run_cover(
     "--select_dir", $libdir,
     map({ ("-coverage", $_) } qw( statement branch condition subroutine )),
-    "--report", "text", "--silent", $cover_db
+    "--report", "text", "--silent", $cover_db,
   );
 
   is $exit, 0, "cover --report text exits 0";
   like $out, qr/Covered\/Calc\.pm/, "Covered/Calc.pm in report";
 
   my $got      = _uncovered_summary($out);
-  my $expected = [
-    "Uncovered/Calc.pm  n/a  n/a  n/a  n/a  n/a",
-    "Uncovered/Full.pm  n/a  n/a  n/a  n/a  n/a",
-    "Uncovered/Trivial.pm  n/a  n/a  n/a  n/a  n/a",
-    "Uncovered/Utils.pm  n/a  n/a  n/a  n/a  n/a",
-  ];
+  my $expected = have_ppi()
+    ? [
+      "Uncovered/Calc.pm  0.0  0.0  0.0  0.0  0.0  24.8",
+      "Uncovered/Full.pm  0.0  0.0  0.0  0.0  0.0  37.4",
+      "Uncovered/Trivial.pm  0.0  n/a  n/a  0.0  0.0  6.9",
+      "Uncovered/Utils.pm  0.0  0.0  n/a  0.0  0.0  17.9",
+    ]
+    : [
+      "Uncovered/Calc.pm  -  -  -  -  -  -",
+      "Uncovered/Full.pm  -  -  -  -  -  -",
+      "Uncovered/Trivial.pm  -  -  -  -  -  -",
+      "Uncovered/Utils.pm  -  -  -  -  -  -",
+    ];
   if ($Has_test_diff) {
     eq_or_diff($got, $expected, "uncovered file summary");
   } else {

@@ -679,7 +679,7 @@ EOM
 }
 
 sub _report {
-  local @SIG{ qw( __DIE__ __WARN__ ) };
+  local @SIG{qw( __DIE__ __WARN__ )};
 
   $Run{finish} = get_elapsed() / 1e6;
 
@@ -1256,6 +1256,7 @@ sub _want_cover_for {
 sub _add_subroutine_structure ($cv, $start) {
   return unless $start;
   no warnings "uninitialized";
+  my $sub_id;
   if (
        $File eq $Structure->get_file
     && $Line == $Structure->get_line
@@ -1266,11 +1267,12 @@ sub _add_subroutine_structure ($cv, $start) {
     # TODO - multiple anonymous subs on the same line
   } else {
     my $count = $Sub_count->{$File}{$Line}{$Sub_name}++;
-    $Structure->set_subroutine($Sub_name, $File, $Line, $count);
+    $sub_id = $Structure->set_subroutine($Sub_name, $File, $Line, $count);
     add_subroutine_cover($start)
       if $Coverage{subroutine} || $Coverage{pod};  # pod requires subs
   }
   _add_pod_cover($cv) if $Pod && $Coverage{pod};
+  $sub_id
 }
 
 sub get_cover ($cv, $root = undef) {
@@ -1279,12 +1281,18 @@ sub get_cover ($cv, $root = undef) {
   get_location($start) if $start;
   return unless _want_cover_for();
 
-  _add_subroutine_structure($cv, $start);
+  my $sub_id = _add_subroutine_structure($cv, $start);
 
+  my ($cc, $end_line);
   if ($Use_deparse) {
     _get_cover_deparse($cv, $root);
   } else {
-    _get_cover_walk($cv, $root);
+    ($cc, $end_line) = _get_cover_walk($cv, $root);
+  }
+
+  if ($sub_id && defined $cc) {
+    $Structure->set_complexity($sub_id, $cc);
+    $Structure->set_end_line($sub_id, $end_line) if defined $end_line;
   }
 }
 
@@ -1630,24 +1638,36 @@ sub _walk_xor ($cv, $op) {
 sub _get_cover_walk ($cv, $root) {
   my $op = $root || $cv->ROOT;
   return unless $$op;
+  my $decisions = 0;
+  my $max_line  = $Line // 0;
   walk_ops(
     $op,
     sub ($op, $type, $cv_ref) {
       if ($type eq "statement" || $type eq "null_statement") {
         _walk_statement($op, $type);
+        $max_line = $Line if defined $Line && $Line > $max_line;
       } elsif ($type eq "cond_expr") {
+        $decisions++;
         _walk_cond_expr($cv_ref, $op);
       } elsif ($type eq "logop") {
+        $decisions++;
         _walk_logop($cv_ref, $op);
       } elsif ($type eq "logassignop") {
+        $decisions++;
         _walk_logassignop($cv_ref, $op);
       } elsif ($type eq "xor") {
+        $decisions++;
         _walk_xor($cv_ref, $op);
+      } elsif ($type eq "iter") {
+        $decisions++;
+      } elsif ($type eq "argdefelem") {
+        $decisions++;
       }
     },
     $cv,
     \%Parent_map,
   );
+  ($decisions + 1, $max_line)
 }
 
 sub _report_progress ($msg, $code, @items) {
