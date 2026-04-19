@@ -105,7 +105,7 @@ sub _count_decisions ($node) {
   $decisions
 }
 
-sub _count_branches ($doc, $compounds) {
+sub _count_branches ($doc) {
   _count_decisions($doc) * 2
 }
 
@@ -173,7 +173,7 @@ sub count_criteria ($file) {
 
   +{
     statement  => _count_statements($doc, $includes, $compounds),
-    branch     => _count_branches($doc, $compounds),
+    branch     => _count_branches($doc),
     condition  => _count_conditions($doc),
     subroutine => _count_subroutines($doc, $includes),
     pod        => _count_pod($doc),
@@ -317,7 +317,7 @@ Counts decision points within a PPI node (document or block): if/unless compound
 statements, elsif clauses, ternary operators, and postfix if/unless modifiers.
 Used by both C<_count_branches> and C<per_sub_complexity>.
 
-=item _count_branches($doc, $compounds)
+=item _count_branches($doc)
 
 Counts branch outcomes by delegating to C<_count_decisions> and doubling. Each
 decision contributes two outcomes.
