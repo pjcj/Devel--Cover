@@ -1,12 +1,12 @@
 Reading database from ...
 
 
--------------------- ------ ------ ------ ------ ------
-File                   stmt   bran   cond    sub  total
--------------------- ------ ------ ------ ------ ------
-tests/cond_or_interp  100.0  100.0   83.6  100.0   90.9
-Total                 100.0  100.0   83.6  100.0   90.9
--------------------- ------ ------ ------ ------ ------
+-------------------- ------ ------ ------ ------ ------ ------
+File                   stmt   bran   cond    sub  total   slop
+-------------------- ------ ------ ------ ------ ------ ------
+tests/cond_or_interp  100.0  100.0   83.6  100.0   90.9    0.0
+Total                 100.0  100.0   83.6  100.0   90.9    0.0
+-------------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,13 @@ Start: ...
 Finish: ...
 
 tests/cond_or_interp
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 1 90.7  1.0  0.0
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -161,9 +168,9 @@ line  err      %      l  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count Location               
----------- ----- -----------------------
-BEGIN          1 tests/cond_or_interp:26
-BEGIN          1 tests/cond_or_interp:27
+Subroutine Count  CC  SLOP Location               
+---------- ----- --- ----- -----------------------
+BEGIN          1   1   0.0 tests/cond_or_interp:26
+BEGIN          1   1   0.0 tests/cond_or_interp:27
 
 

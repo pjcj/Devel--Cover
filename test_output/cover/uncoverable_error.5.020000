@@ -1,12 +1,12 @@
 Reading database from ...
 
 
------------------------ ------ ------ ------ ------ ------
-File                      stmt   bran   cond    sub  total
------------------------ ------ ------ ------ ------ ------
-tests/uncoverable_error   82.3   70.0   83.3  100.0   80.0
-Total                     82.3   70.0   83.3  100.0   80.0
------------------------ ------ ------ ------ ------ ------
+----------------------- ------ ------ ------ ------ ------ ------
+File                      stmt   bran   cond    sub  total   slop
+----------------------- ------ ------ ------ ------ ------ ------
+tests/uncoverable_error   82.3   70.0   83.3  100.0   80.0   21.5
+Total                     82.3   70.0   83.3  100.0   80.0   21.5
+----------------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,20 @@ Start: ...
 Finish: ...
 
 tests/uncoverable_error
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 8 78.8  8.6 21.5
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location                  
+---------- -- ----  --------------------------
+main        8 21.7  tests/uncoverable_error:17
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -101,9 +115,9 @@ line  err      %     !l  l&&!r   l&&r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count Location                  
----------- ----- --------------------------
-main           1 tests/uncoverable_error:17
-usub          -1 tests/uncoverable_error:13
+Subroutine Count  CC  SLOP Location                  
+---------- ----- --- ----- --------------------------
+main           1   8  21.7 tests/uncoverable_error:17
+usub          -1   1   0.0 tests/uncoverable_error:13
 
 

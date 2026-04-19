@@ -1,12 +1,12 @@
 Reading database from ...
 
 
------------------------ ------ ------ ------ ------ ------
-File                      stmt   bran   cond    sub  total
------------------------ ------ ------ ------ ------ ------
-tests/module_statements   75.8   50.0    n/a   66.6   72.5
-Total                     75.8   50.0    n/a   66.6   72.5
------------------------ ------ ------ ------ ------ ------
+----------------------- ------ ------ ------ ------ ------ ------
+File                      stmt   bran   cond    sub  total   slop
+----------------------- ------ ------ ------ ------ ------ ------
+tests/module_statements   75.8   50.0    n/a   66.6   72.5    0.2
+Total                     75.8   50.0    n/a   66.6   72.5    0.2
+----------------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,22 @@ Start: ...
 Finish: ...
 
 tests/module_statements
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 1 74.2  1.0  0.2
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location                  
+---------- -- ----  --------------------------
+_aa         1  6.9  tests/module_statements:40
+xx          1  6.9  tests/module_statements:46
+yy          1  6.9  tests/module_statements:51
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -100,22 +116,22 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location                  
----------- ----- --------------------------
-BEGIN          1 tests/module_statements:12
-BEGIN          1 tests/module_statements:13
-BEGIN          1 tests/module_statements:15
-BEGIN          1 tests/module_statements:17
-xx            11 tests/module_statements:22
-zz            11 tests/module_statements:55
+Subroutine Count  CC  SLOP Location                  
+---------- ----- --- ----- --------------------------
+BEGIN          1   1   0.0 tests/module_statements:12
+BEGIN          1   1   0.0 tests/module_statements:13
+BEGIN          1   1   0.0 tests/module_statements:15
+BEGIN          1   1   0.0 tests/module_statements:17
+xx            11   1   0.0 tests/module_statements:22
+zz            11   1   0.0 tests/module_statements:55
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location                  
----------- ----- --------------------------
-_aa            0 tests/module_statements:40
-xx             0 tests/module_statements:46
-yy             0 tests/module_statements:51
+Subroutine Count  CC  SLOP Location                  
+---------- ----- --- ----- --------------------------
+_aa            0   1   6.9 tests/module_statements:40
+xx             0   1   6.9 tests/module_statements:46
+yy             0   1   6.9 tests/module_statements:51
 
 

@@ -17,7 +17,7 @@ use lib $FindBin::Bin, qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Spec ();
 use File::Temp qw( tempdir );
-use Test::More import => [ qw( done_testing is ok plan ) ];
+use Test::More import => [qw( done_testing is ok plan )];
 
 eval { require PPI; 1 } or do {
   plan skip_all => "PPI not available";
@@ -36,9 +36,9 @@ sub write_file ($name, $content) {
   $path
 }
 
-# Minimal module: package, use strict/warnings, one sub with two
-# statements. DC would count: 6 include stmts (3 per use) + 1
-# compound header (none) + 2 simple stmts = 8 total.
+# Minimal module: package, use strict/warnings, one sub with two statements. DC
+# would count: 6 include stmts (3 per use) + 1 compound header (none) + 2 simple
+# stmts = 8 total.
 sub test_minimal () {
   my $file = write_file("Minimal.pm", <<'EOPERL');
 package Minimal;
@@ -261,6 +261,89 @@ sub test_missing_file () {
   ok !defined $counts, "missing file: returns undef";
 }
 
+# Per-sub cyclomatic complexity: CC = decisions_in_block + 1.
+sub test_per_sub_complexity () {
+  my $file = write_file("PerSub.pm", <<'EOPERL');
+package PerSub;
+use strict;
+use warnings;
+
+sub linear {
+  my $x = shift;
+  return $x + 1;
+}
+
+sub branchy {
+  my $x = shift;
+  if ($x > 10) {
+    return "big";
+  } elsif ($x > 0) {
+    return "small";
+  } else {
+    return "non-positive";
+  }
+}
+
+sub with_ternary {
+  my $x = shift;
+  return $x > 0 ? "pos" : "non-pos";
+}
+
+sub with_postfix {
+  my $x = shift;
+  return "zero" if $x == 0;
+  return $x;
+}
+
+1
+EOPERL
+
+  my $subs = Devel::Cover::Static::per_sub_complexity($file);
+  ok defined $subs, "per_sub: returns data";
+  is ref $subs, "ARRAY", "per_sub: returns arrayref";
+
+  my %by_name = map { $_->{name} => $_ } grep $_->{name} ne "BEGIN", @$subs;
+
+  # 2 BEGINs (use strict, use warnings) with CC=1 each
+  my @begins = grep { $_->{name} eq "BEGIN" } @$subs;
+  is scalar @begins, 2, "per_sub: 2 BEGIN entries";
+  is $_->{cc},       1, "per_sub: BEGIN CC=1" for @begins;
+
+  is $by_name{linear}{cc},       1, "per_sub: linear CC=1";
+  is $by_name{branchy}{cc},      3, "per_sub: branchy CC=3";
+  is $by_name{with_ternary}{cc}, 2, "per_sub: with_ternary CC=2";
+  is $by_name{with_postfix}{cc}, 2, "per_sub: with_postfix CC=2";
+
+  # Line numbers are present and sensible
+  ok $by_name{linear}{line} > 0, "per_sub: linear has line number";
+  ok $by_name{branchy}{line} > $by_name{linear}{line},
+    "per_sub: branchy comes after linear";
+}
+
+# Forward declarations (no block) should be skipped.
+sub test_per_sub_forward () {
+  my $file = write_file("Forward.pm", <<'EOPERL');
+package Forward;
+use strict;
+
+sub declared;
+sub implemented { 42 }
+
+1
+EOPERL
+
+  my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+  my %by_name = map { $_->{name} => $_ } @$subs;
+  ok !exists $by_name{declared}, "per_sub: forward decl skipped";
+  is $by_name{implemented}{cc}, 1, "per_sub: implemented CC=1";
+}
+
+# Nonexistent file returns undef.
+sub test_per_sub_missing () {
+  my $subs = Devel::Cover::Static::per_sub_complexity("/nonexistent/file.pm");
+  ok !defined $subs, "per_sub: missing file returns undef";
+}
+
 sub main () {
   test_minimal;
   test_branches;
@@ -268,6 +351,9 @@ sub main () {
   test_conditions;
   test_pod;
   test_missing_file;
+  test_per_sub_complexity;
+  test_per_sub_forward;
+  test_per_sub_missing;
   done_testing;
 }
 

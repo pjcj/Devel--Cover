@@ -4,13 +4,13 @@ Reading database from ...
 
 Common prefix: tests/
 
----------- ------ ------ ------ ------ ------
-File         stmt   bran   cond    sub  total
----------- ------ ------ ------ ------ ------
-cond_or      89.4   33.3   63.3   60.0   70.0
-cond_or.pl  100.0    n/a   57.5  100.0   75.7
-Total        92.8   33.3   61.0   75.0   71.9
----------- ------ ------ ------ ------ ------
+---------- ------ ------ ------ ------ ------ ------
+File         stmt   bran   cond    sub  total   slop
+---------- ------ ------ ------ ------ ------ ------
+cond_or      89.4   33.3   63.3   60.0   70.0    7.4
+cond_or.pl  100.0    n/a   57.5  100.0   75.7   33.4
+Total        92.8   33.3   61.0   75.0   71.9   34.9
+---------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -19,7 +19,30 @@ OS: ...
 Start: ...
 Finish: ...
 
+Module Summary
+--------------
+
+Files CC  Cov CRAP SLOP
+----- -- ---- ---- ----
+    2 22 71.8 32.9 34.9
+
+
 cond_or
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 2 70.4  2.1  7.4
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location  
+---------- -- ----  ----------
+__ANON__    2 13.0  cond_or:81
+__ANON__    1  0.6  cond_or:71
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -177,22 +200,36 @@ line  err      %      l  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count Location  
----------- ----- ----------
-BEGIN          1 cond_or:13
-BEGIN          1 cond_or:14
-BEGIN          1 cond_or:24
+Subroutine Count  CC  SLOP Location  
+---------- ----- --- ----- ----------
+BEGIN          1   1   0.0 cond_or:13
+BEGIN          1   1   0.0 cond_or:14
+BEGIN          1   1   0.0 cond_or:24
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location  
----------- ----- ----------
-__ANON__       0 cond_or:71
-__ANON__       0 cond_or:81
+Subroutine Count  CC  SLOP Location  
+---------- ----- --- ----- ----------
+__ANON__       0   1   0.6 cond_or:71
+__ANON__       0   2  13.0 cond_or:81
 
 
 cond_or.pl
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+21 74.6 28.2 33.4
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location     
+---------- -- ----  -------------
+cond_dor   21 34.2  cond_or.pl:14
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -274,10 +311,10 @@ line  err      %      l     !l   expr
 Covered Subroutines
 -------------------
 
-Subroutine Count Location     
----------- ----- -------------
-BEGIN          1 cond_or.pl:10
-BEGIN          1 cond_or.pl:11
-cond_dor      11 cond_or.pl:14
+Subroutine Count  CC  SLOP Location     
+---------- ----- --- ----- -------------
+BEGIN          1   1   0.0 cond_or.pl:10
+BEGIN          1   1   0.0 cond_or.pl:11
+cond_dor      11  21  34.2 cond_or.pl:14
 
 

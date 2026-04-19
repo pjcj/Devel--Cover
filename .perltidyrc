@@ -10,11 +10,11 @@
 --no-outdent-long-comments             # don't outdent long comments
 
 --paren-tightness=2                    # keep parentheses tight
+--square-bracket-tightness=2           # keep square brackets tight
 --space-prototype-paren=2              # space before prototype parentheses
 --space-signature-paren=2              # space before signature parentheses
 --keyword-paren-inner-tightness=0      # space inside keyword parentheses
 --keyword-paren-inner-tightness-list="qw"  # only for qw
---qw-as-function                       # format inside qw
 --break-open-compact-parens=*          # always leave parens open
 
 --space-backslash-quote=0              # no space between backslash and quote
@@ -49,12 +49,11 @@
 --novalign-if-unless                   # vertically align if and unless
 
 --delete-repeated-commas               # delete repeated commas
---want-trailing-commas="(m [m {m"      # trailing commas in multiline lists
+--want-trailing-commas="(b [b {b"      # trailing commas in bare lists
 --add-trailing-commas                  # add trailing commas
 --delete-trailing-commas               # delete trailing commas
 --delete-weld-interfering-commas       # delete commas that interfere with welds
 
---multiple-token-tightness=q*          # no space in [qw( and friends
 --trim-pod                             # trim POD trailing whitespace
 --delete-interbracket-arrows           # delete arrows between brackets
 

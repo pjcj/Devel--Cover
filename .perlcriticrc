@@ -28,7 +28,7 @@ color-severity-lowest = cyan
 
 
 # Map blocks should have a single statement.
-[BuiltinFunctions::ProhibitComplexMappings]
+[-BuiltinFunctions::ProhibitComplexMappings]
 # set_themes                         = complexity core maintenance pbp
 # add_themes                         =
 # severity                           = 3

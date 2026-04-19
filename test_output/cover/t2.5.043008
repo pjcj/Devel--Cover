@@ -1,12 +1,12 @@
 Reading database from ...
 
 
--------- ------ ------ ------ ------ ------
-File       stmt   bran   cond    sub  total
--------- ------ ------ ------ ------ ------
-tests/t2   93.7   50.0    n/a  100.0   84.0
-Total      93.7   50.0    n/a  100.0   84.0
--------- ------ ------ ------ ------ ------
+-------- ------ ------ ------ ------ ------ ------
+File       stmt   bran   cond    sub  total   slop
+-------- ------ ------ ------ ------ ------ ------
+tests/t2   93.7   50.0    n/a  100.0   84.0    0.1
+Total      93.7   50.0    n/a  100.0   84.0    0.1
+-------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,13 @@ Start: ...
 Finish: ...
 
 tests/t2
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 1 81.8  1.0  0.1
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -72,10 +79,10 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location   
----------- ----- -----------
-BEGIN          1 tests/t2:10
-BEGIN          1 tests/t2:11
-xx            11 tests/t2:16
+Subroutine Count  CC  SLOP Location   
+---------- ----- --- ----- -----------
+BEGIN          1   1   0.0 tests/t2:10
+BEGIN          1   1   0.0 tests/t2:11
+xx            11   1   0.0 tests/t2:16
 
 

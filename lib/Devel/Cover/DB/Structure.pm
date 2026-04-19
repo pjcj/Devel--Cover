@@ -82,8 +82,7 @@ sub add_count ($self, $criterion) {
 }
 
 sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
-  @$self{ qw( sub_name file line scount ) }
-    = ($sub_name, $file, $line, $scount);
+  @$self{qw( sub_name file line scount )} = ($sub_name, $file, $line, $scount);
 
   # When new code is added at runtime, via a string eval in some guise, we need
   # information about where structure information for the subroutine is.  This
@@ -124,6 +123,38 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
       = $self->get_count($file, $_)
       for $self->criteria;
   }
+
+  [$file, $line, $sub_name, $scount]
+}
+
+sub set_complexity ($self, $sub_id, $cc) {
+  my ($file, $line, $sub_name, $scount) = @$sub_id;
+  $self->{f}{$file}{complexity}{$line}{$sub_name}[$scount] = $cc;
+}
+
+sub _file_by_digest ($self, $digest) {
+  if (my $files = $self->{digests}{$digest}) {
+    return $self->{f}{ $files->[0] };
+  }
+  for my $fval (values $self->{f}->%*) {
+    return $fval if $fval->{digest} eq $digest;
+  }
+  return
+}
+
+sub get_complexity ($self, $digest) {
+  my $fval = $self->_file_by_digest($digest) or return;
+  $fval->{complexity}
+}
+
+sub set_end_line ($self, $sub_id, $end_line) {
+  my ($file, $line, $sub_name, $scount) = @$sub_id;
+  $self->{f}{$file}{end_line}{$line}{$sub_name}[$scount] = $end_line;
+}
+
+sub get_end_lines ($self, $digest) {
+  my $fval = $self->_file_by_digest($digest) or return;
+  $fval->{end_line}
 }
 
 sub store_counts ($self, $file) {
@@ -216,6 +247,7 @@ sub read ($self, $digest) {
     # structure database on disk.
   } elsif ($d eq $s->{digest}) {
     $self->{f}{ $s->{file} } = $s;
+    push $self->{digests}{$d}->@*, $s->{file};
   } else {
     print STDERR "Devel::Cover: Deleting old coverage ",
       "for changed file $s->{file}\n"
@@ -340,6 +372,25 @@ disambiguates multiple subroutines with the same name on the same line
 Handles three cases: reusing existing structure, adding a new subroutine to a
 reused structure (e.g. a conditional C<< eval "use M" >>), and recording a
 subroutine in a new structure.
+
+Returns a sub_id arrayref C<[$file, $line, $sub_name, $scount]> suitable for
+passing to L</set_complexity>.
+
+=head2 set_complexity ($sub_id, $cc)
+
+ $struct->set_complexity($sub_id, 5);
+
+Store cyclomatic complexity C<$cc> for a subroutine identified by C<$sub_id>
+(as returned by L</set_subroutine>).  The value is stored at
+C<< $self-E<gt>{f}{$file}{complexity}{$line}{$sub_name}[$scount] >>.
+
+=head2 get_complexity ($digest)
+
+ my $complexity = $struct->get_complexity($digest);
+
+Return the complexity hash for the file matching C<$digest>, or C<undef> if no
+file matches.  The returned hash is keyed by line number, then subroutine name,
+with an arrayref of CC values indexed by C<$scount>.
 
 =head2 store_counts ($file)
 

@@ -1,12 +1,12 @@
 Reading database from ...
 
 
-------------- ------ ------ ------ ------ ------
-File            stmt   bran   cond    sub  total
-------------- ------ ------ ------ ------ ------
-tests/class38   94.5   50.0    n/a   85.7   81.1
-Total           94.5   50.0    n/a   85.7   81.1
-------------- ------ ------ ------ ------ ------
+------------- ------ ------ ------ ------ ------ ------
+File            stmt   bran   cond    sub  total   slop
+------------- ------ ------ ------ ------ ------ ------
+tests/class38   94.5   50.0    n/a   85.7   81.1   24.8
+Total           94.5   50.0    n/a   85.7   81.1   24.8
+------------- ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -16,6 +16,22 @@ Start: ...
 Finish: ...
 
 tests/class38
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+11 80.0 12.0 24.8
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location        
+---------- -- ----  ----------------
+main        9 24.1  tests/class38:44
+is_loud     2  7.6  tests/class38:33
+unused      1  6.9  tests/class38:27
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -104,27 +120,27 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count Location        
----------- ----- ----------------
-BEGIN          1 tests/class38:13
-BEGIN          1 tests/class38:14
-BEGIN          1 tests/class38:15
-__ANON__       2 tests/class38:23
-__ANON__       1 tests/class38:35
-get_anon       1 tests/class38:35
-greet          2 tests/class38:29
-is_loud        1 tests/class38:33
-main           1 tests/class38:44
-name           2 tests/class38:25
-speak          2 tests/class38:26
-speak          1 tests/class38:39
+Subroutine Count  CC  SLOP Location        
+---------- ----- --- ----- ----------------
+BEGIN          1   1   0.0 tests/class38:13
+BEGIN          1   1   0.0 tests/class38:14
+BEGIN          1   1   0.0 tests/class38:15
+__ANON__       2   1   0.0 tests/class38:23
+__ANON__       1   1   0.0 tests/class38:35
+get_anon       1   1   0.0 tests/class38:35
+greet          2   2   6.9 tests/class38:29
+is_loud        1   2   7.6 tests/class38:33
+main           1   9  24.1 tests/class38:44
+name           2   1   0.0 tests/class38:25
+speak          2   1   0.0 tests/class38:26
+speak          1   1   0.0 tests/class38:39
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Location        
----------- ----- ----------------
-unused         0 tests/class38:27
-unused_dog     0 tests/class38:40
+Subroutine Count  CC  SLOP Location        
+---------- ----- --- ----- ----------------
+unused         0   1   6.9 tests/class38:27
+unused_dog     0   1   6.9 tests/class38:40
 
 

@@ -17,26 +17,19 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Spec ();
-use Test::More import => [ qw( done_testing is like ok plan ) ];
+use Test::More import => [qw( done_testing is like ok plan unlike )];
 use Devel::Cover::Report::Html_crisp ();
-use Devel::Cover::Test::Showcase
-  qw( create_cover_db run_cover setup_lib_dir slurp );
+use Devel::Cover::Test::Showcase     qw(
+  create_cover_db
+  run_cover
+  setup_lib_dir
+  slurp
+);
 
 eval "require HTML::Entities; 1" or do {
   plan skip_all => "HTML::Entities not available";
   exit;
 };
-
-# Normalise HTML for comparison: strip leading/trailing whitespace
-# per line, collapse runs of blank lines, trim the result.
-sub _normalise ($html) {
-  $html =~ s/^[ \t]+//gm;
-  $html =~ s/[ \t]+$//gm;
-  $html =~ s/\n{3,}/\n\n/g;
-  $html =~ s/\A\s+//;
-  $html =~ s/\s+\z//;
-  $html
-}
 
 # Shared state populated by _setup
 my ($Tmpdir, $Libdir, $Outdir);
@@ -114,21 +107,23 @@ sub test_render_index () {
 
   # Structural checks on the golden TT output - these will be
   # re-run against _render_index output once it replaces TT.
-  like $got, qr/<!DOCTYPE html>/,         "has doctype";
-  like $got, qr/<title>Coverage Summary/, "has summary title";
-  like $got, qr/class="file-table"/,      "has file table";
-  like $got, qr/class="worst-files"/,     "has worst files";
-  like $got, qr/class="dist-bar"/,        "has distribution bar";
-  like $got, qr/class="filter-bar"/,      "has filter bar";
-  like $got, qr/data-sort="risk"/,        "has risk column";
-  like $got, qr/Covered\/Calc\.pm/,       "Covered/Calc.pm present";
-  like $got, qr/Covered\/Full\.pm/,       "Covered/Full.pm present";
-  like $got, qr/Uncovered\/Calc\.pm/,     "Uncovered/Calc.pm present";
-  like $got, qr/Uncovered\/Full\.pm/,     "Uncovered/Full.pm present";
-  like $got, qr/untested-badge/,          "has untested badge";
-  like $got, qr/class="help-overlay"/,    "has help overlay";
-  like $got, qr/class="footer"/,          "has footer";
-  like $got, qr/Devel::Cover/,            "footer mentions Devel::Cover";
+  like $got,   qr/<!DOCTYPE html>/,         "has doctype";
+  like $got,   qr/<title>Coverage Summary/, "has summary title";
+  like $got,   qr/class="file-table"/,      "has file table";
+  like $got,   qr/class="worst-files"/,     "has worst files";
+  like $got,   qr/class="dist-bar"/,        "has distribution bar";
+  like $got,   qr/class="filter-bar"/,      "has filter bar";
+  like $got,   qr/data-sort="slop"/,        "has SLOP column";
+  unlike $got, qr/data-sort="risk"/,        "no risk column";
+  like $got,   qr/Top SLOP/,                "worst files heading";
+  like $got,   qr/Covered\/Calc\.pm/,       "Covered/Calc.pm present";
+  like $got,   qr/Covered\/Full\.pm/,       "Covered/Full.pm present";
+  like $got,   qr/Uncovered\/Calc\.pm/,     "Uncovered/Calc.pm present";
+  like $got,   qr/Uncovered\/Full\.pm/,     "Uncovered/Full.pm present";
+  like $got,   qr/untested-badge/,          "has untested badge";
+  like $got,   qr/class="help-overlay"/,    "has help overlay";
+  like $got,   qr/class="footer"/,          "has footer";
+  like $got,   qr/Devel::Cover/,            "footer mentions Devel::Cover";
 }
 
 sub test_render_file_page () {
@@ -150,6 +145,51 @@ sub test_render_file_page () {
   like $got, qr/class="src/,           "file: has source column";
 }
 
+sub test_tooltip_structure () {
+  my $got = $Golden{"coverage.html"};
+
+  # Unified glass tooltip system
+  like $got, qr/class="glass-tip slop-detail"/,
+    "tooltip: has glass-tip slop-detail";
+  like $got, qr/class="slop-tip-metrics"/, "tooltip: has metrics section";
+  like $got, qr/class="slop-tip-subs"/,    "tooltip: has subs section";
+  like $got, qr/class="slop-tip-total"/,   "tooltip: has total section";
+
+  # Colour coding inside tooltips
+  like $got, qr/slop-tip-metrics.*?class="c[0-3]"/s,
+    "tooltip: coverage value has colour class";
+  like $got, qr/slop-tip-subs.*?class="c[0-3]"/s,
+    "tooltip: sub entry has colour class";
+}
+
+sub test_glass_tooltips () {
+  my $index = $Golden{"coverage.html"};
+
+  # Single tooltip mechanism: tip-hover + glass-tip child
+  like $index,   qr/class="[^"]*tip-hover/, "glass: has tip-hover class";
+  like $index,   qr/class="glass-tip"/,     "glass: has glass-tip child";
+  unlike $index, qr/class="[^"]*has-tip/,   "glass: no has-tip class";
+  unlike $index, qr/data-tip="/,            "glass: no data-tip attributes";
+
+  # File page SLOP badge uses tip-hover
+  my ($covered) = grep /Covered-Calc/, keys %Golden;
+  my $file_page = $Golden{$covered};
+  like $file_page,   qr/stat-slop tip-hover/, "glass: SLOP badge has tip-hover";
+  unlike $file_page, qr/slop-hover/,          "glass: no slop-hover class";
+}
+
+sub test_dir_row_slop () {
+  my $got = $Golden{"coverage.html"};
+  like $got, qr/dir-header.*?tip-hover.*?slop-detail/s,
+    "dir row: has SLOP tooltip";
+}
+
+sub test_module_slop_badge () {
+  my $got = $Golden{"coverage.html"};
+  like $got, qr/stat-badge.*?slop\b/s, "header: has SLOP stat badge";
+  like $got, qr/slop.*?help-toggle/s,  "header: SLOP badge before help button";
+}
+
 sub test_render_untested_page () {
   my ($untested) = grep /Uncovered-Calc/, keys %Golden;
   ok defined $untested, "golden untested file page exists";
@@ -159,6 +199,56 @@ sub test_render_untested_page () {
   like $got, qr/untested-badge/, "untested: has badge";
 }
 
+sub _cov_cell ($s, $uncompiled, $have_ppi) {
+  no warnings "once";
+  local %Devel::Cover::Report::Html_crisp::R = (have_ppi => $have_ppi);
+  Devel::Cover::Report::Html_crisp::cov_cell($s, $uncompiled)
+}
+
+sub test_cov_cell_tooltips () {
+  my $covered
+    = _cov_cell({ pc => "50.0", class => "c1", covered => 5, total => 10 }, 0,
+      1);
+  like $covered, qr/class="c1 tip-hover"/, "covered cell: tip-hover";
+  like $covered, qr/glass-tip">5 \/ 10</,  "covered cell: glass-tip 5 / 10";
+
+  my $na
+    = _cov_cell({ pc => "n/a", class => "na", covered => 0, total => 0 }, 0, 1,
+    );
+  like $na, qr/class="na tip-hover"/, "tested n/a cell: tip-hover kept";
+  like $na, qr/glass-tip">0 \/ 0</,   "tested n/a cell: glass-tip 0 / 0 kept";
+
+  my $unc_ppi
+    = _cov_cell({ pc => "0", class => "c0", covered => 0, total => 5 }, 1, 1);
+  like $unc_ppi, qr/class="c0 tip-hover"/, "untested with PPI: tip-hover";
+  like $unc_ppi, qr/glass-tip">0 \/ 5</,   "untested with PPI: glass-tip 0 / 5";
+
+  my $unc_no_ppi
+    = _cov_cell({ pc => "-", class => "na", covered => 0, total => 0 }, 1, 0);
+  unlike $unc_no_ppi, qr/tip-hover/, "untested without PPI: no tip-hover class";
+  unlike $unc_no_ppi, qr/glass-tip/, "untested without PPI: no glass-tip";
+}
+
+sub test_untested_badge_tooltip () {
+  no warnings "once";
+
+  {
+    local %Devel::Cover::Report::Html_crisp::R = (have_ppi => 1);
+    my $got = Devel::Cover::Report::Html_crisp::untested_badge();
+    unlike $got, qr/tip-hover/, "untested badge with PPI: no tip-hover";
+    unlike $got, qr/glass-tip/, "untested badge with PPI: no glass-tip";
+  }
+
+  {
+    local %Devel::Cover::Report::Html_crisp::R = (have_ppi => 0);
+    my $got = Devel::Cover::Report::Html_crisp::untested_badge();
+    like $got, qr/class="untested-badge tip-hover"/,
+      "untested badge without PPI: tip-hover";
+    like $got, qr/glass-tip">Install PPI for coverage estimates</,
+      "untested badge without PPI: install-PPI tooltip";
+  }
+}
+
 sub main () {
   _setup;
   ok keys %Golden > 0, "golden output captured";
@@ -166,7 +256,13 @@ sub main () {
   test_render_layout;
   test_render_index;
   test_render_file_page;
+  test_tooltip_structure;
+  test_glass_tooltips;
+  test_dir_row_slop;
+  test_module_slop_badge;
   test_render_untested_page;
+  test_cov_cell_tooltips;
+  test_untested_badge_tooltip;
   done_testing;
 }
 

@@ -20,7 +20,7 @@ use Digest::MD5 ();
 use File::Path  qw( make_path );
 use File::Spec  ();
 use File::Temp  qw( tempdir );
-use Test::More import => [ qw( done_testing is is_deeply like ok pass ) ];
+use Test::More import => [qw( done_testing is is_deeply like ok pass )];
 
 use Devel::Cover::DB::Structure ();
 
@@ -42,6 +42,7 @@ sub md5_file ($path) {
 
 {
   no feature "signatures";
+
   sub capture_stderr (&) {
     my ($code) = @_;
     my $stderr = "";
@@ -113,7 +114,7 @@ sub test_criteria () {
   my $st = Devel::Cover::DB::Structure->new;
   $st->add_criteria("statement", "branch");
   my @c = sort $st->criteria;
-  is_deeply \@c, [ qw( branch statement ) ], "criteria: round-trip";
+  is_deeply \@c, [qw( branch statement )], "criteria: round-trip";
 }
 
 sub test_delete_file () {
@@ -655,6 +656,120 @@ sub test_digest_dash_e () {
   is $stderr, "", "digest -e: suppresses warning for -e";
 }
 
+sub test_set_complexity () {
+  my $file = write_source("setcc.pm", "package SetCC;\nsub mysub {}\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+
+  my $sub_id = [ $file, 10, "mysub", 0 ];
+  $st->set_complexity($sub_id, 5);
+
+  is $st->{f}{$file}{complexity}{10}{mysub}[0], 5,
+    "set_complexity: stores CC at correct key";
+}
+
+sub test_set_complexity_multiple_subs () {
+  my $file
+    = write_source("setcc2.pm", "package SetCC2;\nsub a {}\nsub b {}\n1\n");
+  my $st = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+
+  $st->set_complexity([ $file, 10, "sub_a", 0 ], 3);
+  $st->set_complexity([ $file, 20, "sub_b", 0 ], 7);
+
+  is $st->{f}{$file}{complexity}{10}{sub_a}[0], 3,
+    "set_complexity multi: first sub has correct CC";
+  is $st->{f}{$file}{complexity}{20}{sub_b}[0], 7,
+    "set_complexity multi: second sub has correct CC";
+}
+
+sub test_complexity_write_read () {
+  my $base = fresh_base("cc_write_read");
+  my $file = write_source("ccwr.pm", "package CCWR;\nsub f {}\n1\n");
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->set_file($file);
+  $st->set_complexity([ $file, 5, "f", 0 ], 4);
+  $st->write($base);
+
+  my $st2 = Devel::Cover::DB::Structure->new(base => $base);
+  $st2->read_all;
+
+  is $st2->{f}{$file}{complexity}{5}{f}[0], 4,
+    "complexity write/read: survives round-trip";
+}
+
+sub test_get_complexity () {
+  my $file   = write_source("getcc.pm", "package GetCC;\nsub g {}\n1\n");
+  my $digest = md5_file($file);
+  my $st     = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->set_complexity([ $file, 8, "g", 0 ], 6);
+
+  my $got = $st->get_complexity($digest);
+  is_deeply $got, { 8 => { g => [6] } }, "get_complexity: retrieves by digest";
+
+  my $miss = $st->get_complexity("nonexistent_digest");
+  ok !defined $miss, "get_complexity: returns undef for unknown digest";
+}
+
+sub test_set_end_line () {
+  my $file = write_source("setend.pm", "package SetEnd;\nsub f {}\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+
+  my $sub_id = [ $file, 10, "f", 0 ];
+  $st->set_end_line($sub_id, 25);
+
+  is $st->{f}{$file}{end_line}{10}{f}[0], 25,
+    "set_end_line: stores end line at correct key";
+}
+
+sub test_get_end_lines () {
+  my $file   = write_source("getend.pm", "package GetEnd;\nsub g {}\n1\n");
+  my $digest = md5_file($file);
+  my $st     = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->set_end_line([ $file, 8, "g", 0 ], 20);
+
+  my $got = $st->get_end_lines($digest);
+  is_deeply $got, { 8 => { g => [20] } }, "get_end_lines: retrieves by digest";
+
+  my $miss = $st->get_end_lines("nonexistent_digest");
+  ok !defined $miss, "get_end_lines: returns undef for unknown digest";
+}
+
+sub test_end_line_write_read () {
+  my $base = fresh_base("end_write_read");
+  my $file = write_source("endwr.pm", "package EndWR;\nsub f {}\n1\n");
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->set_file($file);
+  $st->set_end_line([ $file, 5, "f", 0 ], 15);
+  $st->write($base);
+
+  my $st2 = Devel::Cover::DB::Structure->new(base => $base);
+  $st2->read_all;
+
+  is $st2->{f}{$file}{end_line}{5}{f}[0], 15,
+    "end_line write/read: survives round-trip";
+}
+
+sub test_set_subroutine_returns_sub_id () {
+  my $file = write_source("subid.pm", "package SubId;\nsub h {}\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->add_criteria("statement");
+  $st->add_count("statement");
+
+  my $sub_id = $st->set_subroutine("h", $file, 15, 0);
+  is_deeply $sub_id, [ $file, 15, "h", 0 ], "set_subroutine: returns sub_id";
+
+  $st->set_complexity($sub_id, 9);
+  is $st->{f}{$file}{complexity}{15}{h}[0], 9,
+    "set_subroutine + set_complexity: end-to-end via sub_id";
+}
+
 sub main () {
   test_new;
   test_digest;
@@ -701,7 +816,15 @@ sub main () {
   test_write_no_digest_self_cover_no_match;
   test_autoload_no_criterion;
   test_digest_dash_e;
-  done_testing;
+  test_set_complexity;
+  test_set_complexity_multiple_subs;
+  test_complexity_write_read;
+  test_get_complexity;
+  test_set_end_line;
+  test_get_end_lines;
+  test_end_line_write_read;
+  test_set_subroutine_returns_sub_id;
 }
 
 main;
+done_testing;

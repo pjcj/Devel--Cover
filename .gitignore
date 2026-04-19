@@ -38,3 +38,4 @@ Devel-Cover-*
 callgrind.out.*
 staging/
 queue.db
+.claude/plans/

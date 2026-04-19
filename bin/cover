@@ -83,7 +83,7 @@ sub get_options () {
     unless GetOptions(
       $Options,  # Store the options in the Options hash.
       "write:s" => sub ($, $val) {
-        @$Options{ qw( write summary ) } = ($val, 0)
+        @$Options{qw( write summary )} = ($val, 0)
       },
       #<<<
       qw(
@@ -391,7 +391,7 @@ sub scan_select_dirs ($db) {
     File::Find::find({ wanted => $wanted, no_chdir => 1 }, $dir);
   }
 
-  $db->{files} = [ sort @files ];
+  $db->{files} = [sort @files];
   $db->write($db->{db});
   print "Added ", scalar @files, " file(s) from --select_dir\n"
     unless $Options->{silent};
@@ -471,10 +471,12 @@ sub manage_dbs ($dbname, $test_result) {
 
   exit $test_result unless $Options->{summary} || $Options->{report}->@*;
 
-  $Options->{coverage}    = [ $db->collected ] unless $Options->{coverage}->@*;
+  $Options->{coverage}    = [$db->collected] unless $Options->{coverage}->@*;
   $Options->{show}        = { map { $_ => 1 } $Options->{coverage}->@* };
   $Options->{show}{total} = 1 if keys %{ $Options->{show} };
 
+  $read_structure->();
+  $db->set_structure($structure);
   $db->calculate_summary(map { $_ => 1 } $Options->{coverage}->@*);
 
   print "\n\n" unless $Options->{silent};
