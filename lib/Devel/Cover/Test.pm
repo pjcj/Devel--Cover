@@ -15,7 +15,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 # VERSION
 
 use Carp qw( croak );
-use Test::More import => [ qw( is pass plan ) ];
+use Test::More import => [qw( is pass plan )];
 
 use Devel::Cover::Inc ();
 
@@ -350,7 +350,12 @@ sub create_gold ($self) {
   1
 }
 
-1
+"
+And as we sit here alone
+Looking for a reason to go on
+It's so clear that all we have now
+Are our thoughts of yesterday
+"
 
 __END__
 
