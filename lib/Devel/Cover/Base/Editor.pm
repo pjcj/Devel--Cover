@@ -14,13 +14,14 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
+use Devel::Cover::Log qw( dcinfo );
 use Template 2.00 ();
 
 sub report ($pkg, $db, $options) {
   my $template = Template->new({
     LOAD_TEMPLATES => [
       Devel::Cover::Base::Editor::Template::Provider->new({
-        editor_class => $pkg, })
+        editor_class => $pkg })
     ],
   });
 
@@ -44,15 +45,15 @@ sub report ($pkg, $db, $options) {
     },
     version => $pkg->VERSION,
     files   =>
-      [ grep !$db->cover->file($_)->{meta}{uncompiled}, $options->{file}->@* ],
+      [grep !$db->cover->file($_)->{meta}{uncompiled}, $options->{file}->@*],
     cover => $db->cover,
-    types => [ grep $_ ne "time", keys $options->{show}->%* ],
+    types => [grep $_ ne "time", keys $options->{show}->%*],
   };
 
   my $out = "$options->{outputdir}/$options->{outputfile}";
   $template->process($pkg->template_name, $vars, $out) or die $template->error;
 
-  print $pkg->output_message($out) . "\n" unless $options->{silent};
+  dcinfo $pkg->output_message($out);
 }
 
 sub template_name  { die "Subclass must implement template_name" }
