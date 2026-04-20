@@ -598,7 +598,7 @@ breakdown.</dd>
 &middot; <kbd>s</kbd> <kbd>b</kbd> <kbd>c</kbd> <kbd>u</kbd>
 <kbd>p</kbd> <kbd>t</kbd> toggle filter for
 stmt / bran / cond / sub / pod / total
-&middot; <kbd>[</kbd> / <kbd>]</kbd> prev/next file
+&middot; <kbd>h</kbd> / <kbd>l</kbd> prev/next file
 &middot; <kbd>?</kbd> toggle this help</dd>
 </dl>
 </div>
@@ -2175,11 +2175,11 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
       else if (e.key === "Enter" && currentRow) {
         toggleDetail(currentRow);
       }
-      else if (e.key === "[") {
+      else if (e.key === "h") {
         var prev = document.querySelector(".nav-prev");
         if (prev) window.location = prev.href;
       }
-      else if (e.key === "]") {
+      else if (e.key === "l") {
         var next = document.querySelector(".nav-next");
         if (next) window.location = next.href;
       }

@@ -205,6 +205,18 @@ sub test_total_badge_filter () {
     "app.js: applyFilter special-cases total";
 }
 
+sub test_file_nav_keys () {
+  my ($covered) = grep /Covered-Calc/, keys %Golden;
+  my $file_page = $Golden{$covered};
+  like $file_page, qr/<kbd>h<\/kbd> \/ <kbd>l<\/kbd> prev\/next file/,
+    "file: help mentions h/l for file nav";
+  unlike $file_page, qr/<kbd>\[<\/kbd>/, "file: help no longer mentions [";
+
+  my $app_js = slurp(File::Spec->catfile($Outdir, "assets", "app.js"));
+  like $app_js, qr/e\.key\s*===\s*"h"/, "app.js: h key handled";
+  like $app_js, qr/e\.key\s*===\s*"l"/, "app.js: l key handled";
+}
+
 sub test_render_untested_page () {
   my ($untested) = grep /Uncovered-Calc/, keys %Golden;
   ok defined $untested, "golden untested file page exists";
@@ -276,6 +288,7 @@ sub main () {
   test_dir_row_slop;
   test_module_slop_badge;
   test_total_badge_filter;
+  test_file_nav_keys;
   test_render_untested_page;
   test_cov_cell_tooltips;
   test_untested_badge_tooltip;
