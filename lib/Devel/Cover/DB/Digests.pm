@@ -13,6 +13,7 @@ use warnings;
 # VERSION
 
 use Devel::Cover::DB::IO;
+use Devel::Cover::Log qw( dcinfo );
 
 my $File = "digests";
 
@@ -65,8 +66,7 @@ sub canonical_file {
   if ($digest) {
     my $dfile = $self->get($digest);
     if ($dfile && $dfile ne $file) {
-      print STDERR "Devel::Cover: Adding coverage for $file to $dfile\n"
-        unless $Devel::Cover::Silent;
+      dcinfo "Adding coverage for $file to $dfile";
       $cfile = $dfile;
     } else {
       $self->set($file, $digest);

@@ -18,6 +18,7 @@ use List::Util  qw( any );
 
 use Devel::Cover::DB     ();
 use Devel::Cover::DB::IO ();
+use Devel::Cover::Log    qw( dcinfo );
 
 # VERSION
 our $AUTOLOAD;
@@ -169,11 +170,8 @@ sub digest ($self, $file) {
     binmode $fh;
     $digest = Digest::MD5->new->addfile($fh)->hexdigest;
   } else {
-    print STDERR "Devel::Cover: Warning: can't open $file "
-      . "for MD5 digest: $!\n"
-      unless lc $file eq "-e"
-      or $Devel::Cover::Silent
-      or $file =~ $Devel::Cover::DB::Ignore_filenames;
+    dcinfo "Warning: can't open $file for MD5 digest: $!"
+      unless lc $file eq "-e" or $file =~ $Devel::Cover::DB::Ignore_filenames;
   }
   $digest
 }
@@ -203,9 +201,8 @@ sub write ($self, $dir) {
     my $digest = $self->{f}{$file}{digest};
     $digest = $1 if defined $digest && $digest =~ /(.*)/;  # ie tainting
     unless ($digest) {
-      print STDERR "Can't find digest for $file"
-        unless $Devel::Cover::Silent
-        || $file =~ $Devel::Cover::DB::Ignore_filenames
+      dcinfo "Can't find digest for $file"
+        unless $file =~ $Devel::Cover::DB::Ignore_filenames
         || ($Devel::Cover::Self_cover && $file =~ "/Devel/Cover[./]");
       next;
     }
@@ -215,17 +212,13 @@ sub write ($self, $dir) {
     my $io = Devel::Cover::DB::IO->new;
     $io->write($self->{f}{$file}, $df_temp);               # unless -e $df;
     unless (rename $df_temp, $df_final) {
-      unless ($Devel::Cover::Silent) {
-        if (-e $df_final) {
-          print STDERR "Can't rename $df_temp to $df_final "
-            . "(which exists): $!";
-        } else {
-          print STDERR "Can't rename $df_temp to $df_final: $!";
-        }
+      if (-e $df_final) {
+        dcinfo "Can't rename $df_temp to $df_final (which exists): $!";
+      } else {
+        dcinfo "Can't rename $df_temp to $df_final: $!";
       }
       unless (unlink $df_temp) {
-        print STDERR "Can't remove $df_temp after failed rename: $!"
-          unless $Devel::Cover::Silent;
+        dcinfo "Can't remove $df_temp after failed rename: $!";
       }
     }
   }
@@ -249,12 +242,9 @@ sub read ($self, $digest) {
     $self->{f}{ $s->{file} } = $s;
     push $self->{digests}{$d}->@*, $s->{file};
   } else {
-    print STDERR "Devel::Cover: Deleting old coverage ",
-      "for changed file $s->{file}\n"
-      unless $Devel::Cover::Silent;
+    dcinfo "Deleting old coverage for changed file $s->{file}";
     unless (unlink $file) {
-      print STDERR "Devel::Cover: can't delete $file: $!\n"
-        unless $Devel::Cover::Silent;
+      dcinfo "can't delete $file: $!";
     }
   }
   $self

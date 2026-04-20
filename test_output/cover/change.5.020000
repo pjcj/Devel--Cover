@@ -1,7 +1,5 @@
-Reading database from ...
-Devel::Cover: Deleting old coverage for changed file tests/change
-
-
+cover: Reading database from ...
+cover: Deleting old coverage for changed file tests/change
 ------------ ------ ------ ------ ------ ------ ------
 File           stmt   bran   cond    sub  total   slop
 ------------ ------ ------ ------ ------ ------ ------

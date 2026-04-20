@@ -24,6 +24,7 @@ use Devel::Cover::Html_Common     qw( $Have_highlighter highlight launch );
 use Devel::Cover::Web             qw( $Cov $Crisp_base_css $Crisp_theme_js );
 use Devel::Cover::Condition_table ();
 use Devel::Cover::Inc             ();
+use Devel::Cover::Log             qw( dcinfo );
 use Devel::Cover::Path            qw( common_prefix );
 
 use File::Path     qw( mkpath );
@@ -1108,7 +1109,7 @@ sub report ($pkg, $db, $options) {
   generate_file_pages($outdir, \@file_data);
 
   my $html = "$outdir/$options->{option}{outputfile}";
-  print "HTML output written to $html\n" unless $options->{silent};
+  dcinfo "HTML output written to $html";
 }
 
 $Assets{css} = $Crisp_base_css . <<'CSS';

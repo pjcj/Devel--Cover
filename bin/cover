@@ -20,6 +20,7 @@ BEGIN {
 
 use Devel::Cover::DB  ();
 use Devel::Cover::Inc ();
+use Devel::Cover::Log qw( dcerror dcinfo );
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
@@ -67,13 +68,13 @@ sub check_self_coverage () {
     && $INC{"Devel/Cover.pm"}
     && !Devel::Cover::has_select()
   ) {
-    my $err = "$0 shouldn't be run with coverage turned on.\n";
+    my $err = "$0 shouldn't be run with coverage turned on.";
     eval {
       require POSIX;
-      print STDERR $err;
+      dcerror $err;
       POSIX::_exit(1);
     };
-    die $err;
+    die "$err\n";
   }
 }
 
@@ -181,7 +182,7 @@ sub check_options () {
       my $format = "Devel::Cover::Report::\u$report";
       eval "use $format";
       if ($@) {
-        print "Error: $report is not a recognised output format\n$@\n\n";
+        dcerror "$report is not a recognised output format\n$@";
         ()
       } else {
         $report
@@ -199,7 +200,7 @@ sub check_options () {
     my $annotation = "Devel::Cover::Annotation::\u$a";
     eval "use $annotation";
     if ($@) {
-      print "Error: $a is not a recognised annotation\n\n$@";
+      dcerror "$a is not a recognised annotation\n$@";
       exit 1;
     }
     my $ann = $annotation->new;
@@ -229,11 +230,10 @@ sub delete_db (@dbs) {
   for my $del (@dbs) {
     my $db = Devel::Cover::DB->new(db => $del);
     unless ($db->is_valid) {
-      print "Devel::Cover: $del is an invalid database - ignoring\n"
-        unless $Options->{silent};
+      dcinfo "$del is an invalid database - ignoring";
       next;
     }
-    print "Deleting database $del\n" if $db->exists && !$Options->{silent};
+    dcinfo "Deleting database $del" if $db->exists;
     $db->delete;
     rmtree($del);
   }
@@ -320,7 +320,7 @@ sub do_test ($dbname) {
     File::Find::find({ wanted => $xs, no_chdir => 0 }, ".");
   }
   # print STDERR "$_: $ENV{$_}\n" for qw(PERL5OPT HARNESS_PERL_SWITCHES);
-  print STDERR "cover: running $test\n";
+  dcinfo "running $test";
   my $test_result = system $test;
   $test_result >>= 8;
 }
@@ -343,7 +343,7 @@ sub do_gcov ($dbname) {
     $gcov_flags .= "r" if $Options->{relative_only};
     my @args = $Options->{gcov_chdir} ? () : ("-o", $File::Find::dir);
     my @c    = ("gcov", $gcov_flags, @args, $name);
-    print STDERR "cover: running @c\n";
+    dcinfo "running @c";
     system @c;
   };
   File::Find::find({ wanted => $gc, no_chdir => !$Options->{gcov_chdir} }, ".");
@@ -368,7 +368,8 @@ sub do_gcov ($dbname) {
 
     # print STDERR "cover: test [$o]\n";
     my @c = ($^X, @opts, $gcov2perl, "-db", $dbname, @gc);
-    print STDERR "cover: running @c\n";
+    push @c, "-silent" if $Options->{silent};
+    dcinfo "running @c";
     system @c;
   }
 }
@@ -385,7 +386,7 @@ sub scan_select_dirs ($db) {
 
   for my $dir ($Options->{select_dir}->@*) {
     unless (-d $dir) {
-      warn "cover: --select_dir directory does not exist: $dir\n";
+      dcerror "--select_dir directory does not exist: $dir";
       next;
     }
     File::Find::find({ wanted => $wanted, no_chdir => 1 }, $dir);
@@ -393,19 +394,17 @@ sub scan_select_dirs ($db) {
 
   $db->{files} = [sort @files];
   $db->write($db->{db});
-  print "Added ", scalar @files, " file(s) from --select_dir\n"
-    unless $Options->{silent};
+  dcinfo "Added " . (scalar @files) . " file(s) from --select_dir";
   unless (eval { require PPI; 1 }) {
-    print "PPI is not installed. Coverage estimates for untested"
+    dcinfo "PPI is not installed. Coverage estimates for untested"
       . " files are unavailable.\n"
-      . "Install PPI from CPAN for per-criteria counts.\n"
-      unless $Options->{silent};
+      . "Install PPI from CPAN for per-criteria counts.";
   }
 }
 
 sub manage_dbs ($dbname, $test_result) {
 
-  print "Reading database from $dbname\n" unless $Options->{silent};
+  dcinfo "Reading database from $dbname";
   my $db = Devel::Cover::DB->new(
     db               => $dbname,
     prefer_lib       => $Options->{prefer_lib},
@@ -433,7 +432,7 @@ sub manage_dbs ($dbname, $test_result) {
 
   for my $merge (@ARGV) {
     $read_structure->();
-    print "Merging database from $merge\n" unless $Options->{silent};
+    dcinfo "Merging database from $merge";
     my $mdb = Devel::Cover::DB->new(db => $merge);
     $mdb = $mdb->merge_runs;
     $db->merge($mdb);
@@ -461,7 +460,7 @@ sub manage_dbs ($dbname, $test_result) {
 
   if (exists $Options->{write}) {
     $dbname = $Options->{write} if length $Options->{write};
-    print "Writing database to $dbname\n" unless $Options->{silent};
+    dcinfo "Writing database to $dbname";
     $db->write($dbname);
     $read_structure->();
     $structure->write($dbname);
@@ -478,8 +477,6 @@ sub manage_dbs ($dbname, $test_result) {
   $read_structure->();
   $db->set_structure($structure);
   $db->calculate_summary(map { $_ => 1 } $Options->{coverage}->@*);
-
-  print "\n\n" unless $Options->{silent};
 
   $db
 }
@@ -523,8 +520,7 @@ sub run_reports ($db, $argv) {
       if ($format->can("launch")) {
         $format->launch($options);
       } else {
-        print STDERR "The launch option is not available for the ",
-          "$report report.\n"
+        dcerror "The launch option is not available for the $report report.";
       }
     }
   }
