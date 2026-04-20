@@ -553,7 +553,7 @@ HTML
   unless (is_na($tt->{pc})) {
     my $tt_cls = $fd->{uncompiled} ? "untested-stat" : $tt->{class};
     $o .= <<HTML;
-<span class="stat-badge $tt_cls tip-hover">
+<span class="stat-badge $tt_cls tip-hover" data-criterion="total">
 <span class="badge-label">@{[ crit_name("total") ]} $tt->{pc}%</span>
 @{[ cov_bar($tt->{pc}, $fd->{uncompiled}) ]}
 @{[ glass_tip("$tt->{covered} / $tt->{total}") ]}</span>
@@ -580,7 +580,8 @@ HTML
 <dl>
 <dt>Filter badges</dt>
 <dd>Click a criterion badge (stmt, bran, etc.) to expand all
-lines with errors of that type. Click again to close.</dd>
+lines with errors of that type. Click the total badge to expand every
+line that has any error. Click again to close.</dd>
 <dt>Line details</dt>
 <dd>Click any line with a &#x25b6; chevron to expand branch,
 condition, or subroutine detail.</dd>
@@ -595,8 +596,9 @@ breakdown.</dd>
 (or open detail when filtered)
 &middot; <kbd>Enter</kbd> toggle detail on current line
 &middot; <kbd>s</kbd> <kbd>b</kbd> <kbd>c</kbd> <kbd>u</kbd>
-<kbd>p</kbd> toggle filter for stmt / bran / cond / sub / pod
-&middot; <kbd>[</kbd> / <kbd>]</kbd> prev/next file
+<kbd>p</kbd> <kbd>t</kbd> toggle filter for
+stmt / bran / cond / sub / pod / total
+&middot; <kbd>h</kbd> / <kbd>l</kbd> prev/next file
 &middot; <kbd>?</kbd> toggle this help</dd>
 </dl>
 </div>
@@ -2079,7 +2081,9 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
           if (!d || !d.classList.contains("line-detail"))
             return;
           var errors = row.getAttribute("data-errors") || "";
-          var match = errors.split(",").indexOf(crit) >= 0;
+          var match = crit === "total"
+            ? errors.length > 0
+            : errors.split(",").indexOf(crit) >= 0;
           d.hidden = !match;
           var ch = row.querySelector("td.chevron");
           if (ch) ch.textContent = match ? "\u25bc" : "\u25b6";
@@ -2141,7 +2145,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
 
     var badgeKeys = {
       s: "statement", b: "branch", c: "condition",
-      u: "subroutine", p: "pod"
+      u: "subroutine", p: "pod", t: "total"
     };
 
     document.addEventListener("keydown", function(e) {
@@ -2171,11 +2175,11 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
       else if (e.key === "Enter" && currentRow) {
         toggleDetail(currentRow);
       }
-      else if (e.key === "[") {
+      else if (e.key === "h") {
         var prev = document.querySelector(".nav-prev");
         if (prev) window.location = prev.href;
       }
-      else if (e.key === "]") {
+      else if (e.key === "l") {
         var next = document.querySelector(".nav-next");
         if (next) window.location = next.href;
       }
