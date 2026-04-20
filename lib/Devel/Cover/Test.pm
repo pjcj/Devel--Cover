@@ -174,19 +174,19 @@ sub _normalise_line ($self, $get_line) {
     $_ = scalar $get_line->();
     $_ = "" unless defined;
     print STDERR $_ if $self->{debug};
-    redo            if /^Devel::Cover: merging run/;
+    redo            if /^cover: merging /;
     redo            if /^Set up gcc environment/;
     if (/Can't opendir\(.+\): No such file or directory/) {
       scalar $get_line->();
       redo;
     }
-    s/^(Reading database from ).*/$1/;
+    s/^(cover: Reading database from ).*/$1/;
     s|(__ANON__\[) .* (/tests/ \w+ : \d+ \])|$1$2|x;
     s/(Subroutine) +(Location)/$1 $2/;
     s/-+/-/;
     s/^ \.\.\. .* - \d+ \. \d+ \/*(\S+)\s*/$1/x;
     s/.* Devel \/ Cover \/*(\S+)\s*/$1/x;
-    s/^(Devel::Cover: merging run).*/$1/;
+    s/^(cover: merging ).*/$1/;
     s/^(Run: ).*/$1/;
     s/^(OS: ).*/$1/;
     s/^(Perl version: ).*/$1/;
@@ -285,10 +285,10 @@ sub _capture_cover_output ($self, $cover_com, $new_gold) {
   open my $cover_fh, "-|", "$cover_com 2>&1" or die "Cannot run $cover_com: $!";
   my $ng = "";
   while (my $l = <$cover_fh>) {
-    next if $l =~ /^Devel::Cover: merging run/;
+    next if $l =~ /^cover: merging /;
     $l =~ s/^($_: ).*$/$1.../
       for "Run", "Perl version", "OS", "Start", "Finish";
-    $l =~ s/^(Reading database from ).*$/$1.../;
+    $l =~ s/^(cover: Reading database from ).*$/$1.../;
     print STDERR $l if $self->{debug};
     print $gold_fh $l;
     $ng .= $l;

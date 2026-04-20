@@ -13,6 +13,7 @@ use warnings;
 # VERSION
 
 use Devel::Cover::DB::IO::JSON;
+use Devel::Cover::Log qw( dcinfo );
 # use Devel::Cover::Dumper;  # For debugging
 
 sub add_runs {
@@ -34,10 +35,12 @@ sub report {
 
   my $json = { runs => add_runs($db), summary => $db->{summary} };
   # print "JSON: ", Dumper $json;
-  print "JSON sent to $options->{outputdir}/cover.json\n";
 
-  my $io = Devel::Cover::DB::IO::JSON->new(options => "pretty");
-  $io->write($json, "$options->{outputdir}/cover.json");
+  my $path = "$options->{outputdir}/cover.json";
+  my $io   = Devel::Cover::DB::IO::JSON->new(options => "pretty");
+  $io->write($json, $path);
+
+  dcinfo "JSON output written to $path";
 }
 
 1

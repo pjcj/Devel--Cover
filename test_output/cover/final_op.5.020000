@@ -1,7 +1,5 @@
-Reading database from ...
-Devel::Cover: Can't find digest for tests/final_op
-
-
+cover: Reading database from ...
+cover: Can't find digest for tests/final_op
 ----- ------ ------ ------ ------ ------ ------
 File    stmt   bran   cond    sub  total   slop
 ----- ------ ------ ------ ------ ------ ------

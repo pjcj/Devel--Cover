@@ -21,6 +21,7 @@ BEGIN {
 use Devel::Cover::Html_Common  ## no perlimports
   qw( launch highlight $Have_highlighter );
 use Devel::Cover::Inc ();
+use Devel::Cover::Log qw( dcinfo );
 use Devel::Cover::Web qw( write_file );
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
@@ -367,7 +368,7 @@ sub report ($pkg, $db, $options) {
   }
 
   my $html = print_summary;
-  print "HTML output written to $html\n" unless $options->{silent};
+  dcinfo "HTML output written to $html";
 }
 
 1;

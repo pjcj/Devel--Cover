@@ -8,6 +8,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 use HTML::Entities            qw( encode_entities );
 use Getopt::Long              qw( GetOptions );
 use Devel::Cover::Html_Common qw( launch );          ## no perlimports
+use Devel::Cover::Log         qw( dcinfo );
 use Devel::Cover::Truth_Table ();
 
 our $VERSION;
@@ -607,7 +608,7 @@ END_HTML
   print $fh "</table>\n</body>\n</html>\n";
   close $fh or warn "Unable to close '$outfile' [$!]";
 
-  print "HTML output written to $outfile\n" unless $options->{silent};
+  dcinfo "HTML output written to $outfile";
 }
 
 sub get_options ($self, $opt) {
@@ -646,8 +647,6 @@ sub report ($pkg, $db, $opt) {
     }
   }
   print_summary_report($db, $opt);
-
-  print "done.\n" unless $opt->{silent};
 }
 
 ## no critic (Documentation::RequirePodAtEnd)

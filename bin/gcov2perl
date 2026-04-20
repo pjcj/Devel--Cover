@@ -15,12 +15,15 @@ no warnings qw( experimental::signatures experimental::postderef );
 
 # VERSION
 
-use Devel::Cover::DB ();
+use Devel::Cover::DB  ();
+use Devel::Cover::Log qw( dcerror dcinfo );
 
 use File::Path   qw( mkpath );
 use File::Spec   ();
 use Getopt::Long qw( GetOptions );
 use Pod::Usage   qw( pod2usage );
+
+$Devel::Cover::Log::Prefix = "gcov2perl";
 
 my $Options = { db => "cover_db" };
 
@@ -28,8 +31,9 @@ sub get_options () {
   die "Bad option"
     unless GetOptions(
       $Options,  # Store the options in the Options hash
-      qw( db=s help|h! info|i! version|v! )
+      qw( db=s help|h! info|i! silent! version|v! )
     );
+  $Devel::Cover::Silent = 1 if $Options->{silent};
   print "$0 version " . __PACKAGE__->VERSION . "\n" and exit 0
     if $Options->{version};
   pod2usage(-exitval => 0, -verbose => 0) if $Options->{help};
@@ -66,7 +70,7 @@ sub add_cover ($file) {
     }
     unless (defined $run{digests}{$f}) {
       unless (-f $f) {
-        warn "no source $f found for $file\n";
+        dcerror "no source $f found for $file";
         close $fh or die "Can't close $file: $!\n";
         return;
       }
@@ -105,8 +109,9 @@ sub add_cover ($file) {
         $structure->add_branch($f, [ $line, { text => $text } ]);
         push $run{count}{$f}{branch}->@*, \@branches;
       } else {
-        warn "gcov2perl: Warning: ignoring branch with ", scalar @branches,
-          " targets at $f:$line $text\n";
+        dcinfo "Warning: ignoring branch with "
+          . scalar @branches
+          . " targets at $f:$line $text";
       }
       redo gcov_line;  # process the line after the branch data
     }
@@ -127,7 +132,7 @@ sub add_cover ($file) {
 
   $cover->{db} = $db;
 
-  print STDOUT "gcov2perl: Writing coverage database to $db\n";
+  dcinfo "Writing coverage database to $db";
   $cover->write;
 }
 
