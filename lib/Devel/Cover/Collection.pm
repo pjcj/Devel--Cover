@@ -57,7 +57,7 @@ class Devel::Cover::Collection {
   ADJUST {
     # Apply defaults (equivalent to BUILDARGS)
     $build_dirs  //= [];
-    $cpan_dir    //= [ grep -d, glob "~/.cpan ~/.local/share/.cpan" ];
+    $cpan_dir    //= [grep -d, glob "~/.cpan ~/.local/share/.cpan"];
     $docker      //= "docker";
     $dryrun      //= 0;
     $env         //= "prod";
@@ -65,7 +65,7 @@ class Devel::Cover::Collection {
     $local       //= 0;
     $modules     //= [];
     $output_file //= "index.html";
-    $report      //= "html_basic";
+    $report      //= "html";
     $timeout     //= $ENV{CPANCOVER_TIMEOUT} // 30 * 60;  # half an hour
     $verbose     //= 0;
     $workers     //= 0;
@@ -284,7 +284,7 @@ class Devel::Cover::Collection {
     write_file(($self->made_res_dir)[0], "collection.js");
     my $template = Template->new({
       LOAD_TEMPLATES =>
-        [ Devel::Cover::Collection::Template::Provider->new({}) ],
+        [Devel::Cover::Collection::Template::Provider->new({})],
     });
     $template->process("summary", $vars, $f) or die $template->error;
     for my $start (sort keys $vars->{modules}->%*) {
@@ -348,13 +348,13 @@ class Devel::Cover::Collection {
       vals    => {},
       subdir  => "latest/",
       headers =>
-        [ grep !/path|time/, @Devel::Cover::DB::Criteria_short, "total" ],
-      criteria => [ grep !/path|time/, @Devel::Cover::DB::Criteria, "total" ],
+        [grep !/path|time/, @Devel::Cover::DB::Criteria_short, "total"],
+      criteria    => [grep !/path|time/, @Devel::Cover::DB::Criteria, "total"],
       col_headers => do {
         my @f = (grep(!/path|time/, @Devel::Cover::DB::Criteria), "total");
         my @s
           = (grep(!/path|time/, @Devel::Cover::DB::Criteria_short), "total");
-        [ map { { full => ucfirst($f[$_]), short => $s[$_] } } 0 .. $#f ]
+        [map { { full => ucfirst($f[$_]), short => $s[$_] } } 0 .. $#f]
       },
     };
 
@@ -534,7 +534,7 @@ class Devel::Cover::Collection {
           say "$d failed";
         }
       },
-      do { my %m; [ sort grep !$m{$_}++, @$modules ] },
+      do { my %m; [sort grep !$m{$_}++, @$modules] },
     );
   }
 

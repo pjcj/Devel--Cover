@@ -29,7 +29,7 @@ sub constructor_defaults () {
   is $c->force,         0,            "force defaults to 0";
   is $c->local,         0,            "local defaults to 0";
   is $c->output_file,   "index.html", "output_file defaults to 'index.html'";
-  is $c->report,        "html_basic", "report defaults to 'html_basic'";
+  is $c->report,        "html",       "report defaults to 'html'";
   is $c->timeout,       30 * 60,      "timeout defaults to 1800 (30 minutes)";
   is $c->verbose,       0,            "verbose defaults to 0";
   is $c->workers,       0,            "workers defaults to 0";
