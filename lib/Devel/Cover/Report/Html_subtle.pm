@@ -7,6 +7,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 # VERSION
 
 use Devel::Cover::Html_Common qw( launch );  ## no perlimports
+use Devel::Cover::Log         qw( dcinfo );
 use Devel::Cover::Truth_Table;               ## no perlimports
 
 use Getopt::Long   qw( GetOptions );
@@ -328,7 +329,7 @@ sub print_summary ($db, $options) {
   my $html = "$options->{outputdir}/$options->{option}{outputfile}";
   $Template->process("summary", $vars, $html) or die $Template->error;
 
-  print "HTML output written to $html\n" unless $options->{silent};
+  dcinfo "HTML output written to $html";
 }
 
 # Entry point for printing HTML reports

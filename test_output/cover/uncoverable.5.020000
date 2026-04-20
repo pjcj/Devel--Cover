@@ -1,7 +1,5 @@
-Reading database from ...
+cover: Reading database from ...
 2 unmatched uncoverable comments not found at end of tests/uncoverable
-
-
 ----------------- ------ ------ ------ ------ ------ ------
 File                stmt   bran   cond    sub  total   slop
 ----------------- ------ ------ ------ ------ ------ ------

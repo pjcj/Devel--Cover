@@ -17,6 +17,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 use Devel::Cover::Criterion ();
 use Devel::Cover::DB::File  ();
 use Devel::Cover::DB::IO    ();
+use Devel::Cover::Log       qw( dcinfo );
 
 use Carp         qw( carp croak );
 use File::Find   qw( find );
@@ -181,8 +182,7 @@ sub validate_db ($self) {
   # die if the db is invalid.
 
   # just warn for now
-  print STDERR "Devel::Cover: $self->{db} is an invalid database\n"
-    unless $self->is_valid;
+  dcinfo "$self->{db} is an invalid database" unless $self->is_valid;
 
   $self
 }
@@ -221,9 +221,7 @@ sub merge ($self, $from) {
           && $run->{digests}{$file} ne $digest
         ) {
           # File has changed.  Delete old coverage instead of merging.
-          print STDOUT "Devel::Cover: Deleting old coverage for ",
-            "changed file $file\n"
-            unless $Devel::Cover::Silent;
+          dcinfo "Deleting old coverage for changed file $file";
           delete $run->{digests}{$file};
           delete $run->{count}{$file};
           delete $run->{vec}{$file};
@@ -780,8 +778,7 @@ sub uncoverable ($self) {
 
   for my $file ($self->uncoverable_files) {
     open my $f, "<", $file or next;
-    print STDOUT "Reading uncoverable information from $file\n"
-      unless $Devel::Cover::Silent;
+    dcinfo "Reading uncoverable information from $file";
     while (<$f>) {
       chomp;
       my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $_, 7;
@@ -1002,9 +999,8 @@ sub _file_digest ($r, $file) {
   no warnings "once";
   my $digest = $r->{digests}{$file};
   return $digest if $digest;
-  print STDERR "Devel::Cover: Can't find digest for $file\n"
-    unless $Devel::Cover::Silent
-    || $file =~ $Devel::Cover::DB::Ignore_filenames
+  dcinfo "Can't find digest for $file"
+    unless $file =~ $Devel::Cover::DB::Ignore_filenames
     || ($Devel::Cover::Self_cover && $file =~ "/Devel/Cover[./]");
   undef
 }
@@ -1015,8 +1011,7 @@ sub _cover_file (
 ) {
   my $digest = _file_digest($r, $file) or return;
 
-  print STDERR "Devel::Cover: merging data for $file ",
-    "into $digests->{$digest}\n"
+  dcinfo "merging data for $file into $digests->{$digest}"
     if !$files->{$file}++ && $digests->{$digest};
 
   $self->uncoverable_comments($uncoverable, $file, $digest)
@@ -1033,8 +1028,7 @@ sub _cover_file (
   while (my ($criterion, $fc) = each %$f) {
     my $get = "get_$criterion";
     my $sc  = $st->$get($digest) or do {
-      print STDERR "Devel::Cover: Warning: can't locate ",
-        "structure for $criterion in $file\n"
+      dcinfo "Warning: can't locate structure for $criterion in $file"
         unless $warned->{$file}{$criterion}++;
       next;
     };
