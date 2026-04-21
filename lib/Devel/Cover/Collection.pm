@@ -177,6 +177,16 @@ class Devel::Cover::Collection {
       @$cpan_dir;
   }
 
+  method filter_build_dirs_to_targets {
+    my %target = map { (s|.*/||r =~ s/${Dist_ext_re}$//r) => 1 } @$modules;
+    $build_dirs = [
+      grep {
+        my $name = (s|.*/||r) =~ s/-\d+$//r;
+        $target{$name};
+      } @$build_dirs
+    ];
+  }
+
   method made_res_dir ($sub_dir = undef) {
     my $d = $results_dir // die "No results dir";
     $d .= "/$sub_dir" if defined $sub_dir;
@@ -462,6 +472,7 @@ class Devel::Cover::Collection {
     $self->process_module_file;
     $self->build_modules;
     $self->add_build_dirs;
+    $self->filter_build_dirs_to_targets;
     $self->run_all;
   }
 
@@ -989,12 +1000,23 @@ true, uses the C<-f> flag.
 Scans the CPAN directories for build directories and adds them to
 C<build_dirs>.
 
+=head3 filter_build_dirs_to_targets
+
+  $collection->filter_build_dirs_to_targets;
+
+Reduces C<build_dirs> to those entries whose basename (with the trailing
+C<< -<n> >> CPAN counter stripped) matches a distdir name derived from
+C<modules>. Used after C<add_build_dirs> so that dependency build
+directories pulled in by C<cpan -Ti> are not covered alongside the target
+distribution.
+
 =head3 local_build
 
   $collection->local_build;
 
 Orchestrates a complete local build workflow: processes the module file,
-builds modules, adds build directories, and runs coverage on all.
+builds modules, adds build directories, filters them to the target
+distributions, and runs coverage on all.
 
 =head2 Coverage Operations
 

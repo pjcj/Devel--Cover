@@ -477,6 +477,57 @@ sub compress_old_versions () {
     "recent version 0.8 is kept";
 }
 
+sub filter_build_dirs_to_targets () {
+  my $c = Devel::Cover::Collection->new(
+    modules => [
+      "P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz",
+      "A/AU/AUTHOR/My-Module-1.23.tar.gz",
+    ],
+  );
+  $c->_set_build_dirs([
+    "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
+    "/home/x/.cpan/build/My-Module-1.23-3",
+    "/home/x/.cpan/build/PPI-1.280-0",
+    "/home/x/.cpan/build/Test-Deep-1.204-1",
+  ]);
+  $c->filter_build_dirs_to_targets;
+  is $c->build_dirs,
+    [
+    "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
+    "/home/x/.cpan/build/My-Module-1.23-3",
+    ],
+    "filter keeps only build dirs that match a target distdir";
+
+  my $c2 = Devel::Cover::Collection->new(
+    modules => ["T/TA/TAR/Target-1.0.tar.gz"],
+  );
+  $c2->_set_build_dirs([
+    "/cpan/build/Target-1.0-0",
+    "/cpan/build/Target-1.0-1",
+    "/cpan/build/Target-1.0-2",
+  ]);
+  $c2->filter_build_dirs_to_targets;
+  is $c2->build_dirs,
+    [
+    "/cpan/build/Target-1.0-0",
+    "/cpan/build/Target-1.0-1",
+    "/cpan/build/Target-1.0-2",
+    ],
+    "filter keeps all reinstall attempts of the same target";
+
+  my $c3 = Devel::Cover::Collection->new;
+  $c3->_set_build_dirs(["/cpan/build/Random-1.0-0"]);
+  $c3->filter_build_dirs_to_targets;
+  is $c3->build_dirs, [], "filter empties build_dirs when modules is empty";
+
+  my $c4 = Devel::Cover::Collection->new(
+    modules => ["A/AU/AUTHOR/Foo-1.0.tar.gz"],
+  );
+  $c4->_set_build_dirs([]);
+  $c4->filter_build_dirs_to_targets;
+  is $c4->build_dirs, [], "filter is a no-op on empty build_dirs";
+}
+
 sub template_provider_fetch () {
   my $provider = Devel::Cover::Collection::Template::Provider->new({});
 
@@ -521,6 +572,7 @@ sub main () {
     coverage_class_method
     write_json
     compress_old_versions
+    filter_build_dirs_to_targets
     template_provider_fetch
   );
   #>>>
