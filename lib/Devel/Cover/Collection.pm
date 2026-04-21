@@ -490,6 +490,7 @@ class Devel::Cover::Collection {
     # say "modules: ", Dumper $modules;
 
     my @cmd = ($self->dc_file, "--env", $env);
+    push @cmd, "--results_dir", $results_dir if defined $results_dir;
     push @cmd, "--verbose" if $verbose;
     my @command = (@cmd, "cpancover-docker-module");
     my @res     = iterate_as_array(
