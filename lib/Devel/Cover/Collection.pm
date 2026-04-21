@@ -142,8 +142,8 @@ class Devel::Cover::Collection {
   method fsys  (@a) { $self->_sys(4e4, @a) // die "Can't run @a" }
   method fbsys (@a) { $self->_sys(0,   @a) // die "Can't run @a" }
 
-  method add_modules     (@o) { push $modules->@*, @o }
-  method set_modules     (@o) { $modules->@* = @o }
+  method add_modules     (@o) { push @$modules, @o }
+  method set_modules     (@o) { @$modules = @o }
   method set_module_file ($f) { $self->_set_module_file($f) }
 
   method process_module_file {
@@ -160,7 +160,7 @@ class Devel::Cover::Collection {
     my @command = qw( cpan -Ti );
     push @command, "-f" if $force;
     my %m;
-    for my $module (sort grep !$m{$_}++, $modules->@*) {
+    for my $module (sort grep !$m{$_}++, @$modules) {
       say "Building $module";
       my $output = $self->fsys(@command, $module);
       say $output;
@@ -173,8 +173,8 @@ class Devel::Cover::Collection {
       my @files = glob $d;
       @files
     };
-    push $build_dirs->@*, grep { !$exists->() } grep -d,
-      map glob("$_/build/*"), $cpan_dir->@*;
+    push @$build_dirs, grep { !$exists->() } grep -d, map glob("$_/build/*"),
+      @$cpan_dir;
   }
 
   method made_res_dir ($sub_dir = undef) {
@@ -312,7 +312,7 @@ class Devel::Cover::Collection {
     my $re  = qr/^\w-\w\w-\w+-(.*)/;
     my $ext = qr/($Dist_ext_re)/;
     my $ts  = qr/--\d{10,11}\.\d{6}\.out\.gz$/;
-    for my $f ($mods->@*) {
+    for my $f (@$mods) {
       my ($module) = $f =~ /${re}${ext}${ts}/ or next;
       next if $vars->{vals}{$module}{log};
       $vars->{vals}{$module}{log} = $f;
