@@ -671,6 +671,32 @@ sub next_rebuild_batch_method () {
     "next_rebuild_batch falls back to __failed__ mtime when no cover.json";
 }
 
+sub status_tracking_rebuild_mode () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir, rebuild => 1);
+
+  mkdir "$dir/Foo-1.0" or die "Can't mkdir: $!";
+  ok !$c->is_covered("Foo-1.0"),
+    "is_covered false in rebuild mode when dir exists but not rebuilt";
+  $c->set_rebuilt("Foo-1.0");
+  ok $c->is_covered("Foo-1.0"),
+    "is_covered true in rebuild mode when dir exists and rebuilt";
+
+  $c->set_failed("Bar-2.0");
+  ok !$c->is_failed("Bar-2.0"),
+    "is_failed false in rebuild mode when marker exists but not rebuilt";
+  $c->set_rebuilt("Bar-2.0");
+  ok $c->is_failed("Bar-2.0"),
+    "is_failed true in rebuild mode when marker exists and rebuilt";
+
+  my $c2 = Devel::Cover::Collection->new(results_dir => $dir, rebuild => 0);
+  ok $c2->is_covered("Foo-1.0"),
+    "is_covered ignores rebuilt flag when not in rebuild mode";
+  ok $c2->is_failed("Bar-2.0"),
+    "is_failed ignores rebuilt flag when not in rebuild mode";
+}
+
 sub template_provider_fetch () {
   my $provider = Devel::Cover::Collection::Template::Provider->new({});
 
@@ -721,6 +747,7 @@ sub main () {
     known_distdirs_method
     all_rebuilt_method
     next_rebuild_batch_method
+    status_tracking_rebuild_mode
     template_provider_fetch
   );
   #>>>
