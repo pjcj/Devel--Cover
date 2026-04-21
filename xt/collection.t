@@ -54,7 +54,7 @@ sub constructor_with_args () {
     report      => "html_minimal",
     timeout     => 600,
     verbose     => 1,
-    workers     => 4
+    workers     => 4,
   );
   is $c->bin_dir,     "/usr/bin",     "bin_dir set via constructor";
   is $c->results_dir, "/tmp/results", "results_dir set via constructor";
@@ -92,8 +92,8 @@ sub rwp_accessors () {
   my $c = Devel::Cover::Collection->new;
   is $c->build_dirs, [], "rwp accessor build_dirs readable";
   ok $c->can("_set_build_dirs"), "rwp accessor build_dirs has _set_build_dirs";
-  $c->_set_build_dirs([ "/dir1", "/dir2" ]);
-  is $c->build_dirs, [ "/dir1", "/dir2" ],
+  $c->_set_build_dirs(["/dir1", "/dir2"]);
+  is $c->build_dirs, ["/dir1", "/dir2"],
     "rwp accessor build_dirs settable via _set_build_dirs";
   is $c->modules, [], "rwp accessor modules readable";
   ok $c->can("_set_modules"), "rwp accessor modules has _set_modules";
@@ -114,18 +114,18 @@ sub add_modules () {
   $c->add_modules("Foo::Bar");
   is $c->modules, ["Foo::Bar"], "add_modules adds single module";
   $c->add_modules("Baz::Qux", "Quux::Corge");
-  is $c->modules, [ "Foo::Bar", "Baz::Qux", "Quux::Corge" ],
+  is $c->modules, ["Foo::Bar", "Baz::Qux", "Quux::Corge"],
     "add_modules adds multiple modules";
 }
 
 sub set_modules () {
   my $c = Devel::Cover::Collection->new;
   $c->add_modules("Foo::Bar", "Baz::Qux");
-  is $c->modules, [ "Foo::Bar", "Baz::Qux" ], "modules populated";
+  is $c->modules, ["Foo::Bar", "Baz::Qux"], "modules populated";
   $c->set_modules("New::Module");
   is $c->modules, ["New::Module"], "set_modules replaces all modules";
   $c->set_modules("A", "B", "C");
-  is $c->modules, [ "A", "B", "C" ], "set_modules with multiple modules";
+  is $c->modules, ["A", "B", "C"], "set_modules with multiple modules";
 }
 
 sub set_module_file () {
@@ -141,7 +141,7 @@ sub process_module_file () {
   my $dir  = tempdir(CLEANUP => 1);
   my $file = "$dir/modules.txt";
   open my $fh, ">", $file or die "Can't write $file: $!";
-  print $fh <<~'EOT';
+  print $fh <<~TEXT;
     # Comment line
     Foo::Bar
       # Indented comment
@@ -149,12 +149,12 @@ sub process_module_file () {
 
     # Empty lines above
     Quux::Corge
-    EOT
+    TEXT
   close $fh or die "Can't close $file: $!";
 
   my $c = Devel::Cover::Collection->new(module_file => $file);
   $c->process_module_file;
-  is $c->modules, [ "Foo::Bar", "Baz::Qux", "Quux::Corge" ],
+  is $c->modules, ["Foo::Bar", "Baz::Qux", "Quux::Corge"],
     "process_module_file filters comments and blank lines";
 
   my $c2 = Devel::Cover::Collection->new;
@@ -168,8 +168,7 @@ sub process_module_file () {
   my $c4 = Devel::Cover::Collection->new(module_file => $file);
   $c4->add_modules("Existing::Module");
   $c4->process_module_file;
-  is $c4->modules,
-    [ "Existing::Module", "Foo::Bar", "Baz::Qux", "Quux::Corge" ],
+  is $c4->modules, ["Existing::Module", "Foo::Bar", "Baz::Qux", "Quux::Corge"],
     "process_module_file appends to existing modules";
 }
 
@@ -444,10 +443,8 @@ sub compress_old_versions () {
   for my $v (@versions) {
     my $mod_dir = "$dir/Net-RDAP-$v->{ver}";
     mkdir $mod_dir or die "Can't mkdir $mod_dir: $!";
-    my $cover
-      = { runs =>
-        [ { name => "Net-RDAP", version => $v->{ver}, start => $v->{start} } ],
-      };
+    my $cover = { runs =>
+      [{ name => "Net-RDAP", version => $v->{ver}, start => $v->{start} }] };
     open my $fh, ">", "$mod_dir/cover.json" or die "Can't write: $!";
     print $fh $json->encode($cover);
     close $fh or die "Can't close: $!";
@@ -457,10 +454,10 @@ sub compress_old_versions () {
 
   my $outfile = "$dir/compress_output.txt";
   {
-    open my $saved, ">&", STDOUT or die "Can't dup STDOUT: $!";
-    open STDOUT, ">", $outfile  or die "Can't redirect STDOUT: $!";
+    open my $saved, ">&", STDOUT   or die "Can't dup STDOUT: $!";
+    open STDOUT,    ">",  $outfile or die "Can't redirect STDOUT: $!";
     $c->compress_old_versions(3);
-    open STDOUT, ">&", $saved   or die "Can't restore STDOUT: $!";
+    open STDOUT, ">&", $saved or die "Can't restore STDOUT: $!";
   }
   open my $ofh, "<", $outfile or die "Can't read $outfile: $!";
   my $output = do { local $/; <$ofh> };
@@ -478,12 +475,10 @@ sub compress_old_versions () {
 }
 
 sub filter_build_dirs_to_targets () {
-  my $c = Devel::Cover::Collection->new(
-    modules => [
-      "P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz",
-      "A/AU/AUTHOR/My-Module-1.23.tar.gz",
-    ],
-  );
+  my $c = Devel::Cover::Collection->new(modules => [
+    "P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz",
+    "A/AU/AUTHOR/My-Module-1.23.tar.gz",
+  ]);
   $c->_set_build_dirs([
     "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
     "/home/x/.cpan/build/My-Module-1.23-3",
@@ -491,27 +486,22 @@ sub filter_build_dirs_to_targets () {
     "/home/x/.cpan/build/Test-Deep-1.204-1",
   ]);
   $c->filter_build_dirs_to_targets;
-  is $c->build_dirs,
-    [
-    "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
-    "/home/x/.cpan/build/My-Module-1.23-3",
+  is $c->build_dirs, [
+      "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
+      "/home/x/.cpan/build/My-Module-1.23-3",
     ],
     "filter keeps only build dirs that match a target distdir";
 
-  my $c2 = Devel::Cover::Collection->new(
-    modules => ["T/TA/TAR/Target-1.0.tar.gz"],
-  );
+  my $c2
+    = Devel::Cover::Collection->new(modules => ["T/TA/TAR/Target-1.0.tar.gz"]);
   $c2->_set_build_dirs([
-    "/cpan/build/Target-1.0-0",
-    "/cpan/build/Target-1.0-1",
+    "/cpan/build/Target-1.0-0", "/cpan/build/Target-1.0-1",
     "/cpan/build/Target-1.0-2",
   ]);
   $c2->filter_build_dirs_to_targets;
-  is $c2->build_dirs,
-    [
-    "/cpan/build/Target-1.0-0",
-    "/cpan/build/Target-1.0-1",
-    "/cpan/build/Target-1.0-2",
+  is $c2->build_dirs, [
+      "/cpan/build/Target-1.0-0", "/cpan/build/Target-1.0-1",
+      "/cpan/build/Target-1.0-2",
     ],
     "filter keeps all reinstall attempts of the same target";
 
@@ -520,9 +510,8 @@ sub filter_build_dirs_to_targets () {
   $c3->filter_build_dirs_to_targets;
   is $c3->build_dirs, [], "filter empties build_dirs when modules is empty";
 
-  my $c4 = Devel::Cover::Collection->new(
-    modules => ["A/AU/AUTHOR/Foo-1.0.tar.gz"],
-  );
+  my $c4
+    = Devel::Cover::Collection->new(modules => ["A/AU/AUTHOR/Foo-1.0.tar.gz"]);
   $c4->_set_build_dirs([]);
   $c4->filter_build_dirs_to_targets;
   is $c4->build_dirs, [], "filter is a no-op on empty build_dirs";
