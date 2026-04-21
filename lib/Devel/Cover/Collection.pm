@@ -92,7 +92,6 @@ class Devel::Cover::Collection {
     # system @command; return ".";
     local $_;  # while (<$fh>) below would clobber caller's $_
     my ($output1, $output2) = ("", "");
-    $output1 = "dc -> @command\n" if $verbose;
     my $max = 4e4;
     # say "Setting alarm for $timeout seconds";
     my $ok = 0;
@@ -230,10 +229,11 @@ class Devel::Cover::Collection {
     } else {
       @cmd = ($^X, $bin_dir . "/cover");
     }
-    $output .= $self->fbsys(
-      @cmd, "--test", "--report", $report, "--outputfile", $output_file
-    );
-    $output .= $self->fsys(@cmd, "-report", "json", "-nosummary");
+    my @test_cmd
+      = (@cmd, "--test", "--report", $report, "--outputfile", $output_file);
+    $output .= "dc -> @test_cmd\n" . $self->fbsys(@test_cmd);
+    my @json_cmd = (@cmd, "-report", "json", "-nosummary");
+    $output .= "dc -> @json_cmd\n" . $self->fsys(@json_cmd);
 
     # TODO - option to merge DB with existing one
     # TODO - portability
