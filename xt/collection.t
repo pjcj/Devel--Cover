@@ -344,9 +344,10 @@ sub sys_timeout () {
 
 sub sys_verbose_output () {
   skip_all "alarm not available on Windows" if $Is_win32;
-  my $c      = Devel::Cover::Collection->new(verbose => 1, timeout => 10);
-  my $output = $c->sys("true");
-  like $output, qr/dc -> true/, "sys includes command prefix in verbose mode";
+  my $c = Devel::Cover::Collection->new(verbose => 1, timeout => 10);
+  my $output = $c->bsys("printf", "result\\n");
+  unlike $output, qr/dc -> /, "verbose mode does not prefix captured output";
+  is $output, "result\n", "captured output is only the command's stdout";
 }
 
 sub bsys_multiline_output () {
