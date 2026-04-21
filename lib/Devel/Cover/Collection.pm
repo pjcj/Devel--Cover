@@ -554,10 +554,45 @@ class Devel::Cover::Collection {
   }
 
   method cpan_path_for ($distdir) {
-    my $bare = $distdir =~ s/-\d[\d.]*$//r;
-    my $out  = $self->bsys("cpanm", "--info", $bare);
+    # The log filename format records the CPAN path directly:
+    # "A-AU-AUTHOR-Dist-Name-1.23.tar.gz--<timestamp>.out.gz". Parse it
+    # instead of asking cpanm, which wants module names (Foo::Bar) not
+    # distribution names (Foo-Bar) and so fails for most real distdirs.
+    #
+    # Legacy caveat: older cpancover runs covered a dist's deps too and
+    # wrote the *target's* .log_ref into every dep distdir. Validate the
+    # distribution name in the log matches this distdir before trusting
+    # it; otherwise fall through to cpanm.
+    my $log = $self->_log_name_for($distdir);
+    if (
+      defined $log && $log =~ m{\A(.)-(..)-([^-]+)-(\Q$distdir\E\.tar\.gz)--}
+    ) {
+      return "$1/$2/$3/$4";
+    }
+
+    # Fall back to cpanm with the module name, stripping any trailing
+    # version (including "-v1.2.3" forms).
+    my $bare   = $distdir =~ s/-v?\d[\d.]*\z//r;
+    my $module = $bare    =~ s/-/::/gr;
+    my $out    = $self->bsys("cpanm", "--info", $module);
     chomp $out;
     length $out ? $out : undef
+  }
+
+  method _log_name_for ($distdir) {
+    return undef unless defined $results_dir && -d $results_dir;
+    my $log_ref = "$results_dir/$distdir/.log_ref";
+    if (open my $fh, "<", $log_ref) {
+      my $line = <$fh>;
+      close $fh or warn "Can't close $log_ref: $!";
+      chomp $line  if defined $line;
+      return $line if defined $line && length $line;
+    }
+    my @matches = glob "$results_dir/*-$distdir.tar.gz--*.out.gz";
+    return undef unless @matches;
+    my $newest = (sort { (stat $b)[9] <=> (stat $a)[9] } @matches)[0];
+    $newest =~ s{\A.*/}{};
+    $newest
   }
 
   method rebuild_pass {

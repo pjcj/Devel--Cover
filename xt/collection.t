@@ -700,26 +700,83 @@ sub status_tracking_rebuild_mode () {
 
 sub cpan_path_for_method () {
   skip_all "uses fsys which requires alarm" if $Is_win32;
+
+  # Mimic real cpanm: it only accepts module names (Foo::Bar), not
+  # distribution names (Foo-Bar). Reject distribution form so we catch
+  # regressions where the caller forgets to translate dashes to colons.
   my $bin = tempdir(CLEANUP => 1);
   open my $fh, ">", "$bin/cpanm" or die "Can't write stub: $!";
   print $fh <<~'BASH';
     #!/bin/sh
     case "$2" in
-      Ghost) exit 1 ;;
-      *) echo "AUTHOR/$2-9.99.tar.gz" ;;
+      *::*)
+        mod=$2
+        dist=${mod//::/-}
+        echo "AUTHOR/${dist}-9.99.tar.gz"
+        ;;
+      *) exit 1 ;;
     esac
     BASH
   close $fh or die;
   chmod 0755, "$bin/cpanm" or die;
   local $ENV{PATH} = "$bin:$ENV{PATH}";
 
-  my $c = Devel::Cover::Collection->new;
-  is $c->cpan_path_for("Foo-Bar-1.23"), "AUTHOR/Foo-Bar-9.99.tar.gz",
-    "cpan_path_for resolves live distdir to CPAN path";
+  # Prefer .log_ref when present.
+  my $dir = tempdir(CLEANUP => 1);
+  mkdir "$dir/Foo-Bar-1.23" or die;
+  open my $lref, ">", "$dir/Foo-Bar-1.23/.log_ref" or die;
+  print $lref "A-AU-AUTHOR-Foo-Bar-1.23.tar.gz--1234567890.123.out.gz\n";
+  close $lref or die;
+  my $c = Devel::Cover::Collection->new(results_dir => $dir);
+  is $c->cpan_path_for("Foo-Bar-1.23"), "A/AU/AUTHOR/Foo-Bar-1.23.tar.gz",
+    "cpan_path_for prefers .log_ref when available";
+
+  # Fall back to top-level log filename for failed entries (no distdir).
+  open my $log, ">", "$dir/B-BA-BAZ-Only-Log-2.00.tar.gz--111.222.out.gz"
+    or die;
+  close $log or die;
+  is $c->cpan_path_for("Only-Log-2.00"),
+    "B/BA/BAZ/Only-Log-2.00.tar.gz",
+    "cpan_path_for parses top-level log filename when no .log_ref";
+
+  # Legacy bug: a dep distdir may carry the target's .log_ref. Don't
+  # trust a .log_ref whose dist name does not match the distdir -
+  # otherwise we would reinstall the wrong distribution. Fall through
+  # to cpanm instead (which here resolves Leaked::Dep, matching the
+  # distdir) rather than returning "Unrelated-Target" from the leak.
+  mkdir "$dir/Leaked-Dep-9.99" or die;
+  open my $leak, ">", "$dir/Leaked-Dep-9.99/.log_ref" or die;
+  print $leak "X-XY-XYZZY-Unrelated-Target-1.00.tar.gz--1.2.out.gz\n";
+  close $leak or die;
+  is $c->cpan_path_for("Leaked-Dep-9.99"), "AUTHOR/Leaked-Dep-9.99.tar.gz",
+    "cpan_path_for ignores mismatched .log_ref and falls back to cpanm";
+
+  # Fall back to cpanm --info with the dash->colon module name when no
+  # log file is available (first-time coverage of a new distdir).
+  my $c2 = Devel::Cover::Collection->new(results_dir => tempdir(CLEANUP => 1));
+  is $c2->cpan_path_for("Fresh-Dist-1.00"),
+    "AUTHOR/Fresh-Dist-9.99.tar.gz",
+    "cpan_path_for falls back to cpanm --info with module name";
+
+  # Strip both "-1.23" and "-v0.2.4" style version suffixes.
+  is $c2->cpan_path_for("V-Prefixed-v0.2.4"),
+    "AUTHOR/V-Prefixed-9.99.tar.gz",
+    "cpan_path_for strips v-prefixed version suffix";
 
   local $SIG{__WARN__} = sub { };
-  is $c->cpan_path_for("Ghost-0.0"), undef,
-    "cpan_path_for returns undef when cpanm --info fails";
+  is $c2->cpan_path_for("Ghost-0.0"), undef,
+    "cpan_path_for returns undef when no log and cpanm fails";
+
+  # Verbose mode must not leak the "dc -> ..." trace into the return.
+  my $v = Devel::Cover::Collection->new(
+    results_dir => tempdir(CLEANUP => 1), verbose => 1);
+  open my $saved, ">&", \*STDERR or die "dup STDERR: $!";
+  close STDERR;
+  open STDERR, ">", \my $err or die "redirect STDERR: $!";
+  my $path = $v->cpan_path_for("Clean-Path-1.00");
+  open STDERR, ">&", $saved or die "restore STDERR: $!";
+  is $path, "AUTHOR/Clean-Path-9.99.tar.gz",
+    "cpan_path_for in verbose mode returns clean path (no trace prefix)";
 }
 
 sub write_status_method () {
