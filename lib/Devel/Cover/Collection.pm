@@ -50,25 +50,31 @@ class Devel::Cover::Collection {
   field $modules     :param :reader = undef;
   field $module_file :param :reader = undef;
 
+  # rebuild state
+  field $rebuild       :param :reader = undef;
+  field $rebuild_batch :param :reader = undef;
+
   # rw attributes (custom accessors for Moo compatibility)
   field $dir  :param = undef;
   field $file :param = undef;
 
   ADJUST {
     # Apply defaults (equivalent to BUILDARGS)
-    $build_dirs  //= [];
-    $cpan_dir    //= [grep -d, glob "~/.cpan ~/.local/share/.cpan"];
-    $docker      //= "docker";
-    $dryrun      //= 0;
-    $env         //= "prod";
-    $force       //= 0;
-    $local       //= 0;
-    $modules     //= [];
-    $output_file //= "index.html";
-    $report      //= "html";
-    $timeout     //= $ENV{CPANCOVER_TIMEOUT} // 30 * 60;  # half an hour
-    $verbose     //= 0;
-    $workers     //= 0;
+    $build_dirs    //= [];
+    $cpan_dir      //= [grep -d, glob "~/.cpan ~/.local/share/.cpan"];
+    $docker        //= "docker";
+    $dryrun        //= 0;
+    $env           //= "prod";
+    $force         //= 0;
+    $local         //= 0;
+    $modules       //= [];
+    $output_file   //= "index.html";
+    $rebuild       //= 0;
+    $rebuild_batch //= 100;
+    $report        //= "html";
+    $timeout       //= $ENV{CPANCOVER_TIMEOUT} // 30 * 60;  # half an hour
+    $verbose       //= 0;
+    $workers       //= 0;
     $ENV{CPANCOVER_TIMEOUT} = $timeout;
   }
 
@@ -84,6 +90,7 @@ class Devel::Cover::Collection {
   # display $non_buffered characters, then buffer
   method _sys ($non_buffered, @command) {
     # system @command; return ".";
+    local $_;  # while (<$fh>) below would clobber caller's $_
     my ($output1, $output2) = ("", "");
     $output1 = "dc -> @command\n" if $verbose;
     my $max = 4e4;
@@ -488,6 +495,56 @@ class Devel::Cover::Collection {
     open my $fh, ">", $ff or return warn "Can't open $ff: $!";
     print $fh scalar localtime;
     close $fh or warn "Can't close $ff: $!";
+  }
+
+  method rebuilt_dir { ($self->made_res_dir("__rebuilt__"))[0] }
+  method rebuilt_file ($d) { $self->rebuilt_dir . "/$d" }
+  method is_rebuilt   ($d) { -e $self->rebuilt_file($d) }
+
+  method set_rebuilt ($d) {
+    my $rf = $self->rebuilt_file($d);
+    open my $fh, ">", $rf or return warn "Can't open $rf: $!";
+    print $fh scalar localtime;
+    close $fh or warn "Can't close $rf: $!";
+  }
+
+  method unflag_all_rebuilt { $self->fsys("rm", "-rf", $self->rebuilt_dir) }
+
+  method known_distdirs {
+    my %seen;
+    if (defined $results_dir && -d $results_dir) {
+      opendir my $dh, $results_dir or die "Can't opendir $results_dir: $!";
+      for my $e (readdir $dh) {
+        next          if $e =~ /^\./ || $e =~ /^__/;
+        $seen{$e} = 1 if -e "$results_dir/$e/cover.json";
+      }
+      closedir $dh or warn "Can't closedir $results_dir: $!";
+    }
+    my $fd = $self->failed_dir;
+    opendir my $dh, $fd or die "Can't opendir $fd: $!";
+    for my $e (readdir $dh) {
+      next if $e =~ /^\./;
+      $seen{$e} = 1;
+    }
+    closedir $dh or warn "Can't closedir $fd: $!";
+    sort keys %seen
+  }
+
+  method all_rebuilt {
+    $self->is_rebuilt($_) or return 0 for $self->known_distdirs;
+    1
+  }
+
+  method next_rebuild_batch {
+    return () if $rebuild_batch <= 0;
+    my @pending  = grep !$self->is_rebuilt($_), $self->known_distdirs;
+    my @decorate = map {
+      my $cover = $self->covered_dir($_) . "/cover.json";
+      my $mtime = (stat $cover)[9] // (stat $self->failed_file($_))[9] // 0;
+      [$_, $mtime]
+    } @pending;
+    my @sorted = map $_->[0], sort { $a->[1] <=> $b->[1] } @decorate;
+    @sorted > $rebuild_batch ? @sorted[0 .. $rebuild_batch - 1] : @sorted
   }
 
   method dc_file {
@@ -918,6 +975,18 @@ Docker command to use. Default: 'docker'.
 
 Boolean. If true, run in local mode without Docker. Default: 0.
 
+=head3 rebuild
+
+Boolean. If true, cpancover is running in rebuild mode: already-covered
+distributions are reprocessed so their results reflect the current
+Devel::Cover and the current default report. Default: 0.
+
+=head3 rebuild_batch
+
+Maximum number of distdirs returned by C<next_rebuild_batch> in a single
+call. C<0> disables the rebuild pass (C<next_rebuild_batch> returns an
+empty list). Default: 100.
+
 =head2 Read-Write-Private Attributes
 
 These attributes have public readers but private setters. Use the provided
@@ -1102,6 +1171,71 @@ Marks a module as successfully covered (removes any failure marker).
 
 Marks a module as failed by creating a timestamp file in the failed
 directory.
+
+=head2 Rebuild State
+
+Rebuild state mirrors the failure-tracking family above, but is used to
+drive gradual regeneration of already-covered distributions when the
+Devel::Cover version or default report has changed. State is persisted on
+disk under C<< $results_dir/__rebuilt__/ >>, parallel to C<__failed__>.
+
+=head3 rebuilt_dir
+
+  my $path = $collection->rebuilt_dir;
+
+Returns the path to the directory containing rebuild markers, creating
+it if necessary.
+
+=head3 rebuilt_file ($module_dir)
+
+  my $path = $collection->rebuilt_file($module_dir);
+
+Returns the path to the rebuild marker file for a distdir.
+
+=head3 is_rebuilt ($module_dir)
+
+  if ($collection->is_rebuilt($module_dir)) { ... }
+
+Returns true if the distdir has been flagged as rebuilt in this cycle.
+
+=head3 set_rebuilt ($module_dir)
+
+  $collection->set_rebuilt($module_dir);
+
+Marks a distdir as rebuilt by writing a timestamp file in the rebuilt
+directory. Called on any outcome (success or failure) in rebuild mode so
+the entry does not get retried before the cycle completes.
+
+=head3 unflag_all_rebuilt
+
+  $collection->unflag_all_rebuilt;
+
+Removes the rebuilt directory and all its markers. Called at the end of
+a rebuild cycle once every known distdir has been processed.
+
+=head3 known_distdirs
+
+  my @d = $collection->known_distdirs;
+
+Returns the union of distdirs with a C<cover.json> under C<$results_dir>
+and distdirs named by markers under C<__failed__/>. Used to define the
+rebuild queue.
+
+=head3 all_rebuilt
+
+  if ($collection->all_rebuilt) { ... }
+
+Returns true if every entry in C<known_distdirs> has a rebuild marker
+(or if C<known_distdirs> is empty).
+
+=head3 next_rebuild_batch
+
+  my @batch = $collection->next_rebuild_batch;
+
+Returns up to C<rebuild_batch> distdirs that have not yet been rebuilt,
+oldest first by the mtime of their C<cover.json> (or their C<__failed__/>
+marker when no cover.json exists). Returns an empty list when
+C<rebuild_batch> is not positive.
 
 =head2 Path Methods
 

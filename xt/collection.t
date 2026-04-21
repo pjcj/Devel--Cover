@@ -29,6 +29,8 @@ sub constructor_defaults () {
   is $c->force,         0,            "force defaults to 0";
   is $c->local,         0,            "local defaults to 0";
   is $c->output_file,   "index.html", "output_file defaults to 'index.html'";
+  is $c->rebuild,       0,            "rebuild defaults to 0";
+  is $c->rebuild_batch, 100,          "rebuild_batch defaults to 100";
   is $c->report,        "html",       "report defaults to 'html'";
   is $c->timeout,       30 * 60,      "timeout defaults to 1800 (30 minutes)";
   is $c->verbose,       0,            "verbose defaults to 0";
@@ -43,18 +45,20 @@ sub constructor_defaults () {
 
 sub constructor_with_args () {
   my $c = Devel::Cover::Collection->new(
-    bin_dir     => "/usr/bin",
-    results_dir => "/tmp/results",
-    docker      => "podman",
-    dryrun      => 1,
-    env         => "dev",
-    force       => 1,
-    local       => 1,
-    output_file => "report.html",
-    report      => "html_minimal",
-    timeout     => 600,
-    verbose     => 1,
-    workers     => 4,
+    bin_dir       => "/usr/bin",
+    results_dir   => "/tmp/results",
+    docker        => "podman",
+    dryrun        => 1,
+    env           => "dev",
+    force         => 1,
+    local         => 1,
+    output_file   => "report.html",
+    rebuild       => 1,
+    rebuild_batch => 25,
+    report        => "html_minimal",
+    timeout       => 600,
+    verbose       => 1,
+    workers       => 4,
   );
   is $c->bin_dir,     "/usr/bin",     "bin_dir set via constructor";
   is $c->results_dir, "/tmp/results", "results_dir set via constructor";
@@ -64,10 +68,12 @@ sub constructor_with_args () {
   is $c->force,       1,              "force overridden via constructor";
   is $c->local,       1,              "local overridden via constructor";
   is $c->output_file, "report.html",  "output_file overridden via constructor";
-  is $c->report,      "html_minimal", "report overridden via constructor";
-  is $c->timeout,     600,            "timeout overridden via constructor";
-  is $c->verbose,     1,              "verbose overridden via constructor";
-  is $c->workers,     4,              "workers overridden via constructor";
+  is $c->rebuild,     1,              "rebuild overridden via constructor";
+  is $c->rebuild_batch, 25,             "rebuild_batch overridden";
+  is $c->report,        "html_minimal", "report overridden via constructor";
+  is $c->timeout,       600,            "timeout overridden via constructor";
+  is $c->verbose,       1,              "verbose overridden via constructor";
+  is $c->workers,       4,              "workers overridden via constructor";
 }
 
 sub ro_accessors () {
@@ -517,6 +523,154 @@ sub filter_build_dirs_to_targets () {
   is $c4->build_dirs, [], "filter is a no-op on empty build_dirs";
 }
 
+sub rebuilt_markers () {
+  skip_all
+    "rebuilt_dir uses fsys which requires alarm (not available on Windows)"
+    if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+
+  is $c->rebuilt_dir, "$dir/__rebuilt__", "rebuilt_dir path";
+  ok -d $c->rebuilt_dir, "rebuilt_dir creates directory";
+  is $c->rebuilt_file("Foo-1.0"), "$dir/__rebuilt__/Foo-1.0",
+    "rebuilt_file returns path in __rebuilt__ dir";
+
+  ok !$c->is_rebuilt("Foo-1.0"), "is_rebuilt false when no marker";
+  $c->set_rebuilt("Foo-1.0");
+  ok $c->is_rebuilt("Foo-1.0"),      "is_rebuilt true after set_rebuilt";
+  ok -e $c->rebuilt_file("Foo-1.0"), "set_rebuilt writes marker file";
+
+  open my $fh, "<", $c->rebuilt_file("Foo-1.0") or die "Can't read marker: $!";
+  my $content = do { local $/; <$fh> };
+  close $fh or die "Can't close marker: $!";
+  like $content, qr/\w{3} \w{3} +\d+ \d+:\d+:\d+ \d{4}/,
+    "set_rebuilt writes timestamp";
+}
+
+sub unflag_all_rebuilt_method () {
+  skip_all "unflag_all_rebuilt uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+
+  $c->set_rebuilt("A-1.0");
+  $c->set_rebuilt("B-2.0");
+  ok $c->is_rebuilt("A-1.0"), "A-1.0 flagged before unflag";
+  ok $c->is_rebuilt("B-2.0"), "B-2.0 flagged before unflag";
+
+  $c->unflag_all_rebuilt;
+  ok !-d "$dir/__rebuilt__",   "unflag_all_rebuilt removes the directory";
+  ok !$c->is_rebuilt("A-1.0"), "is_rebuilt false after unflag";
+  ok !$c->is_rebuilt("B-2.0"), "is_rebuilt false after unflag";
+}
+
+sub known_distdirs_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+
+  mkdir "$dir/Alpha-1.0" or die "Can't mkdir: $!";
+  open my $fh1, ">", "$dir/Alpha-1.0/cover.json" or die;
+  print $fh1 "{}";
+  close $fh1 or die;
+
+  mkdir "$dir/NoCover-1.0" or die "Can't mkdir: $!";
+
+  $c->set_failed("Bravo-2.0");
+
+  mkdir "$dir/Charlie-3.0" or die "Can't mkdir: $!";
+  open my $fh2, ">", "$dir/Charlie-3.0/cover.json" or die;
+  print $fh2 "{}";
+  close $fh2 or die;
+  $c->set_failed("Charlie-3.0");
+
+  my @d = $c->known_distdirs;
+  is \@d, ["Alpha-1.0", "Bravo-2.0", "Charlie-3.0"],
+    "known_distdirs: cover.json dirs + __failed__ markers, deduped, sorted";
+}
+
+sub all_rebuilt_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+
+  ok $c->all_rebuilt, "all_rebuilt true when no distdirs known";
+
+  mkdir "$dir/Alpha-1.0" or die "Can't mkdir: $!";
+  open my $fh, ">", "$dir/Alpha-1.0/cover.json" or die;
+  print $fh "{}";
+  close $fh or die;
+  $c->set_failed("Bravo-2.0");
+
+  ok !$c->all_rebuilt, "all_rebuilt false with no flags";
+  $c->set_rebuilt("Alpha-1.0");
+  ok !$c->all_rebuilt, "all_rebuilt false with partial flags";
+  $c->set_rebuilt("Bravo-2.0");
+  ok $c->all_rebuilt, "all_rebuilt true when every entry flagged";
+}
+
+sub make_cpanm_stub ($bin) {
+  open my $fh, ">", "$bin/cpanm" or die "Can't write cpanm stub: $!";
+  print $fh qq(#!/bin/sh\necho "AUTHOR/\$2-1.0.tar.gz"\n);
+  close $fh or die "Can't close cpanm stub: $!";
+  chmod 0755, "$bin/cpanm" or die "Can't chmod cpanm stub: $!";
+}
+
+sub next_rebuild_batch_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $bin = tempdir(CLEANUP => 1);
+  make_cpanm_stub($bin);
+  local $ENV{PATH} = "$bin:$ENV{PATH}";
+
+  my $c
+    = Devel::Cover::Collection->new(results_dir => $dir, rebuild_batch => 2);
+
+  for my $spec (
+    ["Alpha-1.0",   100],
+    ["Bravo-2.0",   200],
+    ["Charlie-3.0", 300],
+    ["Delta-4.0",   400],
+  ) {
+    my ($d, $mtime) = @$spec;
+    mkdir "$dir/$d" or die "Can't mkdir: $!";
+    my $cover = "$dir/$d/cover.json";
+    open my $fh, ">", $cover or die "Can't write: $!";
+    print $fh "{}";
+    close $fh or die;
+    utime $mtime, $mtime, $cover or die "Can't utime: $!";
+  }
+
+  is [$c->next_rebuild_batch], ["Alpha-1.0", "Bravo-2.0"],
+    "next_rebuild_batch returns oldest first, limited to rebuild_batch";
+
+  $c->set_rebuilt("Alpha-1.0");
+  is [$c->next_rebuild_batch], ["Bravo-2.0", "Charlie-3.0"],
+    "next_rebuild_batch excludes already-rebuilt entries";
+
+  $c->set_rebuilt($_) for qw( Bravo-2.0 Charlie-3.0 Delta-4.0 );
+  is [$c->next_rebuild_batch], [],
+    "next_rebuild_batch returns empty when all rebuilt";
+
+  my $c0
+    = Devel::Cover::Collection->new(results_dir => $dir, rebuild_batch => 0);
+  is [$c0->next_rebuild_batch], [],
+    "next_rebuild_batch returns empty when rebuild_batch is 0";
+
+  my $dir2 = tempdir(CLEANUP => 1);
+  my $c2
+    = Devel::Cover::Collection->new(results_dir => $dir2, rebuild_batch => 10);
+  $c2->set_failed("Foo-1.0");
+  utime 50, 50, $c2->failed_file("Foo-1.0") or die "utime: $!";
+  mkdir "$dir2/Bar-2.0" or die;
+  open my $fh, ">", "$dir2/Bar-2.0/cover.json" or die;
+  print $fh "{}";
+  close $fh or die;
+  utime 1000, 1000, "$dir2/Bar-2.0/cover.json" or die;
+
+  is [$c2->next_rebuild_batch], ["Foo-1.0", "Bar-2.0"],
+    "next_rebuild_batch falls back to __failed__ mtime when no cover.json";
+}
+
 sub template_provider_fetch () {
   my $provider = Devel::Cover::Collection::Template::Provider->new({});
 
@@ -562,6 +716,11 @@ sub main () {
     write_json
     compress_old_versions
     filter_build_dirs_to_targets
+    rebuilt_markers
+    unflag_all_rebuilt_method
+    known_distdirs_method
+    all_rebuilt_method
+    next_rebuild_batch_method
     template_provider_fetch
   );
   #>>>
