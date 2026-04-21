@@ -600,6 +600,7 @@ class Devel::Cover::Collection {
     $self->process_module_file;
     # say "modules: ", Dumper $modules;
 
+    local $ENV{CPANCOVER_REBUILD} = 1 if $rebuild;
     my @cmd = ($self->dc_file, "--env", $env);
     push @cmd, "--results_dir", $results_dir if defined $results_dir;
     push @cmd, "--verbose" if $verbose;

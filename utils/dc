@@ -636,10 +636,14 @@ recipe_cpancover-docker-module() {
       chown -R "$(id -un):$(id -gn)" "$local_staging"
       cd "$local_staging"/* || exit
       for f in *; do
-        if [[ -d $f && ! -d "$staging/$f" ]]; then
-          echo "$log_name.out.gz" >"$f/.log_ref"
-          mv "$f" "$staging"
+        [[ -d $f ]] || continue
+        if [[ -n "${CPANCOVER_REBUILD:-}" ]]; then
+          rm -rf "${staging:?}/$f"
+        elif [[ -d "$staging/$f" ]]; then
+          continue
         fi
+        echo "$log_name.out.gz" >"$f/.log_ref"
+        mv "$f" "$staging"
       done
       rm -r "$local_staging"
     fi
@@ -647,6 +651,13 @@ recipe_cpancover-docker-module() {
     pi "module timed out after ${module_timeout}s, killing container: $module"
     $docker logs "$name" | tee "$staging/$log_name.out" 2>/dev/null || true
     $docker kill "$name" >/dev/null 2>&1 || true
+    if [[ -n "${CPANCOVER_REBUILD:-}" ]]; then
+      local bare
+      bare=$(cpan_distdir "${module##*/}")
+      if [[ -d "$staging/$bare" ]]; then
+        echo "$log_name.out.gz" >"$staging/$bare/.log_ref"
+      fi
+    fi
   fi
   $docker rm "$name" >/dev/null 2>&1 || true
 }
