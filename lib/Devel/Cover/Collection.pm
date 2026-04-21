@@ -486,8 +486,14 @@ class Devel::Cover::Collection {
   method failed_dir { ($self->made_res_dir("__failed__"))[0] }
   method covered_dir ($d) { $results_dir . "/$d" }
   method failed_file ($d) { $self->failed_dir . "/$d" }
-  method is_covered  ($d) { -d $self->covered_dir($d) }
-  method is_failed   ($d) { -e $self->failed_file($d) }
+
+  method is_covered ($d) {
+    -d $self->covered_dir($d) && (!$rebuild || $self->is_rebuilt($d))
+  }
+
+  method is_failed ($d) {
+    -e $self->failed_file($d) && (!$rebuild || $self->is_rebuilt($d))
+  }
   method set_covered ($d) { unlink $self->failed_file($d) }
 
   method set_failed ($d) {
@@ -594,13 +600,14 @@ class Devel::Cover::Collection {
           say "Killed docker container $name";
         }
 
-        if ($self->is_covered($d)) {
+        if (-d $self->covered_dir($d)) {
           $self->set_covered($d);
           say "$d done";
         } else {
           $self->set_failed($d);
           say "$d failed";
         }
+        $self->set_rebuilt($d) if $rebuild;
       },
       do { my %m; [sort grep !$m{$_}++, @$modules] },
     );
@@ -1152,12 +1159,17 @@ modules.
   if ($collection->is_covered($module_dir)) { ... }
 
 Returns true if coverage results exist for the given module directory.
+In rebuild mode (C<$rebuild> is true), also requires that the distdir
+has been flagged as rebuilt this cycle; already-covered but not-yet-
+rebuilt distdirs return false so C<cover_modules> will re-process them.
 
 =head3 is_failed
 
   if ($collection->is_failed($module_dir)) { ... }
 
-Returns true if the module has been marked as failed.
+Returns true if the module has been marked as failed. In rebuild mode,
+requires the distdir to have been flagged as rebuilt this cycle for
+the same reason as C<is_covered>.
 
 =head3 set_covered
 
