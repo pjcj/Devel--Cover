@@ -98,6 +98,10 @@ cpancover:
   cpancover-latest                     List the latest CPAN modules to process.
   cpancover-run-loop                   Run build cycles in a loop (10 min
                                        interval).
+  cpancover-run-loop-rebuild           Regenerate every already-covered
+                                       distribution in batches (CPANCOVER_
+                                       REBUILD_BATCH, default 100), then
+                                       fall through to the normal run loop.
   cpancover-run-once                   Fetch latest modules and run one build
                                        cycle.
   cpancover-serve [port]               Serve results locally via Caddy (default
@@ -876,11 +880,36 @@ recipe_cpancover-generate-html() {
   cpancover_generate_html
 }
 
+cpancover_distdir_count() {
+  mkdir -p "$results_dir"
+  find "$results_dir" -maxdepth 1 -mindepth 1 -type d ! -name '__*' |
+    wc -l
+}
+
+cpancover_status_value() {
+  local key="$1"
+  local f="$results_dir/.cpancover_status"
+  [[ -f $f ]] || {
+    echo 0
+    return
+  }
+  local val
+  val=$(awk -F= -v k="$key" '$1 == k { print $2 }' "$f")
+  echo "${val:-0}"
+}
+
 cpancover_build() {
   pi "Starting cpancover build at $(date) on $(nice_cpus) cpus"
   cpancover_docker_rm
+  local before after
+  before=$(cpancover_distdir_count)
   run_cpancover --build
-  cpancover_generate_html
+  after=$(cpancover_distdir_count)
+  if ((after != before)); then
+    cpancover_generate_html
+  else
+    pi "No new distdirs; skipping HTML regeneration"
+  fi
   pi "Finished cpancover build at $(date)"
 }
 
@@ -905,6 +934,44 @@ recipe_cpancover-run-once() {
 
 recipe_cpancover-run-loop() {
   cpancover_run_loop
+}
+
+# Rebuild every already-covered distribution on the site with the current
+# Devel::Cover and default report, processing new CPAN releases in parallel.
+# When every known distdir has been rebuilt, clear the __rebuilt__ markers
+# and fall through to the normal cpancover_run_loop.
+cpancover_run_loop_rebuild() {
+  local batch="${CPANCOVER_REBUILD_BATCH:-100}"
+  pi "Starting cpancover rebuild loop at $(date), batch=$batch"
+
+  run_cpancover --nobuild --generate_html
+
+  while true; do
+    cpancover_docker_rm
+
+    cpancover_latest | run_cpancover --build --rebuild --rebuild_batch 0
+    local new
+    new=$(cpancover_status_value new_count)
+    ((new > 0)) && run_cpancover --nobuild --generate_html
+
+    run_cpancover --nobuild --rebuild --rebuild_batch "$batch"
+    local rebuilt
+    rebuilt=$(cpancover_status_value rebuilt_count)
+    ((rebuilt > 0)) && run_cpancover --nobuild --generate_html
+
+    if [[ $(cpancover_status_value all_rebuilt) == 1 ]]; then
+      pi "Rebuild complete; clearing __rebuilt__ markers"
+      rm -rf "${results_dir:?}/__rebuilt__"
+      break
+    fi
+  done
+
+  pi "Falling through to normal cpancover_run_loop"
+  cpancover_run_loop
+}
+
+recipe_cpancover-run-loop-rebuild() {
+  cpancover_run_loop_rebuild
 }
 
 recipe_cpancover-controller-run() {
