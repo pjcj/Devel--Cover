@@ -697,6 +697,81 @@ sub status_tracking_rebuild_mode () {
     "is_failed ignores rebuilt flag when not in rebuild mode";
 }
 
+sub cpan_path_for_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $bin = tempdir(CLEANUP => 1);
+  open my $fh, ">", "$bin/cpanm" or die "Can't write stub: $!";
+  print $fh <<~'BASH';
+    #!/bin/sh
+    case "$2" in
+      Ghost) exit 1 ;;
+      *) echo "AUTHOR/$2-9.99.tar.gz" ;;
+    esac
+    BASH
+  close $fh or die;
+  chmod 0755, "$bin/cpanm" or die;
+  local $ENV{PATH} = "$bin:$ENV{PATH}";
+
+  my $c = Devel::Cover::Collection->new;
+  is $c->cpan_path_for("Foo-Bar-1.23"), "AUTHOR/Foo-Bar-9.99.tar.gz",
+    "cpan_path_for resolves live distdir to CPAN path";
+
+  local $SIG{__WARN__} = sub { };
+  is $c->cpan_path_for("Ghost-0.0"), undef,
+    "cpan_path_for returns undef when cpanm --info fails";
+}
+
+sub write_status_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+
+  $c->write_status(new_count => 4, rebuilt_count => 100, all_rebuilt => 0);
+
+  my $f = "$dir/.cpancover_status";
+  ok -e $f, "write_status creates .cpancover_status";
+  open my $fh, "<", $f or die "Can't read $f: $!";
+  my $content = do { local $/; <$fh> };
+  close $fh or die;
+  is $content, "all_rebuilt=0\nnew_count=4\nrebuilt_count=100\n",
+    "write_status writes sorted key=value lines";
+}
+
+sub rebuild_pass_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(
+    results_dir   => $dir,
+    rebuild       => 1,
+    rebuild_batch => 10,
+  );
+  is $c->rebuild_pass, 0, "rebuild_pass returns 0 when queue is empty";
+
+  # Queue a distdir, but make cpanm --info fail so cpan_path_for returns
+  # undef and rebuild_pass short-circuits without invoking cover_modules.
+  # (cover_modules spawns docker-in-docker, which is out of scope for a
+  # unit test.)
+  my $bin = tempdir(CLEANUP => 1);
+  open my $fh, ">", "$bin/cpanm" or die "Can't write stub: $!";
+  print $fh qq(#!/bin/sh\nexit 1\n);
+  close $fh or die;
+  chmod 0755, "$bin/cpanm" or die;
+  local $ENV{PATH}     = "$bin:$ENV{PATH}";
+  local $SIG{__WARN__} = sub { };
+
+  mkdir "$dir/Foo-1.0" or die;
+  open my $f, ">", "$dir/Foo-1.0/cover.json" or die;
+  print $f "{}";
+  close $f or die;
+  $c->set_failed("Foo-1.0");
+
+  is $c->rebuild_pass, 0,
+    "rebuild_pass returns 0 when every cpan_path_for lookup fails";
+  ok !-d "$dir/Foo-1.0", "defunct distdir purged by rebuild_pass";
+  ok !-e $c->failed_file("Foo-1.0"),
+    "defunct distdir's __failed__ marker purged";
+}
+
 sub template_provider_fetch () {
   my $provider = Devel::Cover::Collection::Template::Provider->new({});
 
@@ -748,6 +823,9 @@ sub main () {
     all_rebuilt_method
     next_rebuild_batch_method
     status_tracking_rebuild_mode
+    cpan_path_for_method
+    write_status_method
+    rebuild_pass_method
     template_provider_fetch
   );
   #>>>

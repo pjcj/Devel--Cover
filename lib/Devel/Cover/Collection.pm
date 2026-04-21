@@ -553,6 +553,43 @@ class Devel::Cover::Collection {
     @sorted > $rebuild_batch ? @sorted[0 .. $rebuild_batch - 1] : @sorted
   }
 
+  method cpan_path_for ($distdir) {
+    my $bare = $distdir =~ s/-\d[\d.]*$//r;
+    my $out  = $self->bsys("cpanm", "--info", $bare);
+    chomp $out;
+    length $out ? $out : undef
+  }
+
+  method rebuild_pass {
+    my @candidates = $self->next_rebuild_batch;
+    return 0 unless @candidates;
+    my @paths;
+    for my $d (@candidates) {
+      if (defined(my $path = $self->cpan_path_for($d))) {
+        push @paths, $path;
+      } else {
+        say "Purging defunct $d";
+        $self->sys("rm", "-rf", $self->covered_dir($d));
+        unlink $self->failed_file($d);
+        unlink $self->rebuilt_file($d);
+      }
+    }
+    return 0 unless @paths;
+    $self->set_modules(@paths);
+    $self->cover_modules;
+    scalar @paths
+  }
+
+  method write_status (%counts) {
+    my ($rdir) = $self->made_res_dir;
+    my $f = "$rdir/.cpancover_status";
+    open my $fh, ">", $f or return warn "Can't open $f: $!";
+    for my $k (sort keys %counts) {
+      print $fh "$k=$counts{$k}\n";
+    }
+    close $fh or warn "Can't close $f: $!";
+  }
+
   method dc_file {
     my $d = "";
     $d = "/dc/" if $local && -d "/dc";
@@ -1248,6 +1285,43 @@ Returns up to C<rebuild_batch> distdirs that have not yet been rebuilt,
 oldest first by the mtime of their C<cover.json> (or their C<__failed__/>
 marker when no cover.json exists). Returns an empty list when
 C<rebuild_batch> is not positive.
+
+=head3 cpan_path_for ($distdir)
+
+  my $path = $collection->cpan_path_for("Foo-Bar-1.23");
+
+Maps a distdir back to a CPAN release path (e.g. C<< AUTHOR/Foo-Bar-
+1.23.tar.gz >>) by running C<cpanm --info> on the bare distribution
+name. Returns undef when the lookup fails. Used by C<rebuild_pass> to
+feed distdirs from C<next_rebuild_batch> into C<cover_modules>, which
+expects CPAN paths rather than distdirs.
+
+=head3 rebuild_pass
+
+  my $n = $collection->rebuild_pass;
+
+Runs one batch of the rebuild queue: pulls distdirs from
+C<next_rebuild_batch>, resolves each to a CPAN path via
+C<cpan_path_for>, sets C<modules> to the resulting list, and invokes
+C<cover_modules>. A distdir whose lookup fails is treated as no longer
+on CPAN and purged: the distdir itself, its C<__failed__/> marker, and
+its C<__rebuilt__/> marker are all removed. Returns the number of
+modules fed to C<cover_modules> (zero if the queue is empty or every
+lookup failed). Intended to be called from the rebuild loop recipe in
+C<utils/dc>.
+
+=head3 write_status (%counts)
+
+  $collection->write_status(
+    new_count     => 4,
+    rebuilt_count => 100,
+    all_rebuilt   => 0,
+  );
+
+Writes a one-line-per-key C<key=value> file at
+C<< $results_dir/.cpancover_status >>. The rebuild loop recipe reads
+this file between passes to decide whether to regenerate the top-level
+HTML and whether the rebuild cycle has finished.
 
 =head2 Path Methods
 
