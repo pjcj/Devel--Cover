@@ -629,12 +629,14 @@ class Devel::Cover::Collection {
 
   method write_status (%counts) {
     my ($rdir) = $self->made_res_dir;
-    my $f = "$rdir/.cpancover_status";
-    open my $fh, ">", $f or return warn "Can't open $f: $!";
+    my $f      = "$rdir/.cpancover_status";
+    my $tmp    = "$f.tmp.$$";
+    open my $fh, ">", $tmp or return warn "Can't open $tmp: $!";
     for my $k (sort keys %counts) {
       print $fh "$k=$counts{$k}\n";
     }
-    close $fh or warn "Can't close $f: $!";
+    close $fh or return warn "Can't close $tmp: $!";
+    rename $tmp, $f or warn "Can't rename $tmp to $f: $!";
   }
 
   method dc_file {
