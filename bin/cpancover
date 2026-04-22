@@ -223,7 +223,7 @@ The following command line options are supported:
   --rebuild_batch         - how many distdirs per rebuild pass  (100)
   --redo_cpancover_html   - don't set default modules           (off)
   --redo_html             - force html generation for modules   (off)
-  --report                - report to use                       (html_basic)
+  --report                - report to use                       (html)
 
 =head1 DETAILS
 
