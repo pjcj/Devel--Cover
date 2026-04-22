@@ -340,14 +340,19 @@ class Devel::Cover::Collection {
     $n = 0;
     for my $module (keys $vars->{vals}->%*) {
       next if $vars->{vals}{$module}{log};
-      my $ref = "$d/$module/.log_ref";
-      open my $fh, "<", $ref or next;
-      chomp(my $log = <$fh>);
-      close $fh or warn "Can't close $ref: $!";
-      $vars->{vals}{$module}{log} = $log if length $log;
-      print "-"                          if !($n++ % 1000) && !$verbose;
+      my $log = $self->_read_log_ref($d, $module) // next;
+      $vars->{vals}{$module}{log} = $log;
+      print "-" if !($n++ % 1000) && !$verbose;
     }
     say "";
+  }
+
+  method _read_log_ref ($dir, $distdir) {
+    my $ref = "$dir/$distdir/.log_ref";
+    open my $fh, "<", $ref or return undef;
+    chomp(my $line = <$fh>);
+    close $fh or warn "Can't close $ref: $!";
+    defined $line && length $line ? $line : undef
   }
 
   method generate_html {
@@ -581,12 +586,8 @@ class Devel::Cover::Collection {
 
   method _log_name_for ($distdir) {
     return undef unless defined $results_dir && -d $results_dir;
-    my $log_ref = "$results_dir/$distdir/.log_ref";
-    if (open my $fh, "<", $log_ref) {
-      my $line = <$fh>;
-      close $fh or warn "Can't close $log_ref: $!";
-      chomp $line  if defined $line;
-      return $line if defined $line && length $line;
+    if (defined(my $log = $self->_read_log_ref($results_dir, $distdir))) {
+      return $log;
     }
     my @matches = glob "$results_dir/*-$distdir.tar.gz--*.out.gz";
     return undef unless @matches;
