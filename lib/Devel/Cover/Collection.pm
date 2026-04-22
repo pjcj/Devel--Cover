@@ -50,13 +50,14 @@ class Devel::Cover::Collection {
   field $modules     :param :reader = undef;
   field $module_file :param :reader = undef;
 
-  # rebuild state
   field $rebuild       :param :reader = undef;
   field $rebuild_batch :param :reader = undef;
 
   # rw attributes (custom accessors for Moo compatibility)
   field $dir  :param = undef;
   field $file :param = undef;
+
+  field $_log_index_cache;
 
   ADJUST {
     # Apply defaults (equivalent to BUILDARGS)
@@ -584,15 +585,25 @@ class Devel::Cover::Collection {
     length $out ? $out : undef
   }
 
+  method _log_index {
+    $_log_index_cache //= do {
+      opendir my $dh, $results_dir or die "Can't opendir $results_dir: $!";
+      my @names = grep /\.tar\.gz--.*\.out\.gz\z/, readdir $dh;
+      closedir $dh or warn "Can't closedir $results_dir: $!";
+      \@names
+    };
+  }
+
   method _log_name_for ($distdir) {
     return undef unless defined $results_dir && -d $results_dir;
     if (defined(my $log = $self->_read_log_ref($results_dir, $distdir))) {
       return $log;
     }
-    my @matches = glob "$results_dir/*-$distdir.tar.gz--*.out.gz";
+    my @matches = grep /-\Q$distdir\E\.tar\.gz--/, $self->_log_index->@*;
     return undef unless @matches;
-    my $newest = (sort { (stat $b)[9] <=> (stat $a)[9] } @matches)[0];
-    $newest =~ s{\A.*/}{};
+    my $newest
+      = (sort { (stat "$results_dir/$b")[9] <=> (stat "$results_dir/$a")[9] }
+        @matches)[0];
     $newest
   }
 
