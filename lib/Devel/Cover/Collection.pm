@@ -1033,7 +1033,7 @@ Filename for the main output file. Default: 'index.html'.
 
 =head3 report
 
-Report format to generate. Default: 'html_basic'.
+Report format to generate. Default: 'html'.
 
 =head3 timeout
 
