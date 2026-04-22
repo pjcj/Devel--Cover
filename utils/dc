@@ -98,6 +98,9 @@ cpancover:
   cpancover-latest                     List the latest CPAN modules to process.
   cpancover-run-loop                   Run build cycles in a loop (10 min
                                        interval).
+  cpancover-rebuild-batch              Run one rebuild pass at CPANCOVER_
+                                       REBUILD_BATCH and regenerate HTML
+                                       (smoke test before run-loop-rebuild).
   cpancover-run-loop-rebuild           Regenerate every already-covered
                                        distribution in batches (CPANCOVER_
                                        REBUILD_BATCH, default 100), then
@@ -111,10 +114,17 @@ cpancover:
   cpancover-uncompress-dir <subdir>    Decompress a results subdirectory.
 
 cpancover (Docker):
+  cpancover-controller-rebuild-batch   Start a controller container running one
+                                       rebuild pass (CPANCOVER_REBUILD_BATCH,
+                                       default 100) and regenerate HTML.
   cpancover-controller-run             Start a controller container running the
                                        build loop.
   cpancover-controller-run-once        Start a controller container for one
                                        build cycle.
+  cpancover-controller-run-rebuild     Start a controller container running the
+                                       rebuild loop (CPANCOVER_REBUILD_BATCH,
+                                       default 100), then fall through to the
+                                       normal run loop.
   cpancover-controller-shell           Open a shell in a controller container.
   cpancover-controller-test            Run a test module via the controller
                                        pipeline.
@@ -1013,6 +1023,16 @@ recipe_cpancover-run-loop-rebuild() {
   cpancover_run_loop_rebuild
 }
 
+# Run a single rebuild pass at CPANCOVER_REBUILD_BATCH (default 100) and
+# regenerate HTML. Intended for production smoke tests before kicking off
+# the long-running cpancover-controller-run-rebuild.
+recipe_cpancover-rebuild-batch() {
+  local v=
+  ((verbose)) && v=--verbose
+  run_cpancover $v --nobuild --rebuild \
+    --rebuild_batch "${CPANCOVER_REBUILD_BATCH:-100}" --generate_html
+}
+
 recipe_cpancover-controller-run() {
   local o=(--env "$env")
   ((verbose)) && o+=("--verbose")
@@ -1023,6 +1043,18 @@ recipe_cpancover-controller-run-once() {
   local o=(--env "$env")
   ((verbose)) && o+=("--verbose")
   cpancover_controller_command controller dc "${o[@]}" cpancover-run-once
+}
+
+recipe_cpancover-controller-run-rebuild() {
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  cpancover_controller_command controller dc "${o[@]}" cpancover-run-loop-rebuild
+}
+
+recipe_cpancover-controller-rebuild-batch() {
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  cpancover_controller_command controller dc "${o[@]}" cpancover-rebuild-batch
 }
 
 # Default test module - small, stable, predictable

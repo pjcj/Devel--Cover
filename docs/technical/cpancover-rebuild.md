@@ -127,3 +127,69 @@ Because the recipe clears `__rebuilt__/` at the end of a cycle, a
 subsequent invocation of `dc cpancover-run-loop-rebuild` starts a
 fresh cycle over the entire site. There is no auto-detection of stale
 Devel::Cover versions; rebuild cycles are explicit operator actions.
+
+## Running on cpancover.com
+
+The production deploy sequence, assuming `/cover/dc` is a checkout of
+the branch you want to deploy and you have shell access on the
+cpancover.com host. Everything runs on cpancover.com itself; the image
+is built locally and pushed to Docker Hub from the same host.
+
+### 1. Build and push the new Docker image
+
+```sh
+cd /cover/dc
+dc docker-build -e prod
+```
+
+Builds `pjcj/cpancover:<timestamp>-<sha>` and `pjcj/cpancover:latest`,
+tags both locally, and pushes to Docker Hub.
+
+### 2. Stop the running controller
+
+```sh
+dc cpancover-docker-kill
+dc cpancover-docker-rm
+```
+
+### 3. Verify with a small batch
+
+```sh
+CPANCOVER_REBUILD_BATCH=5 dc cpancover-controller-rebuild-batch
+```
+
+Runs exactly one rebuild pass and the post-batch HTML regeneration,
+then exits. Inspect the site and
+`/cover/staging/.cpancover_status`:
+
+```sh
+cat /cover/staging/.cpancover_status
+# new_count=0
+# rebuilt_count=5
+# all_rebuilt=0
+```
+
+Repeat with the same batch size until you're confident nothing is
+going wrong.
+
+### 4. Start the full rebuild loop
+
+```sh
+dc cpancover-controller-run-rebuild
+```
+
+Long-running. Reads `CPANCOVER_REBUILD_BATCH` once at startup
+(default 100), then runs batches until `all_rebuilt=1`, at which
+point it clears `__rebuilt__/` and falls through to the perpetual
+`cpancover-run-loop`.
+
+### 5. If something goes wrong mid-rebuild
+
+```sh
+dc cpancover-docker-kill   # stop the controller and any module containers
+dc cpancover-docker-rm     # clean up
+```
+
+`__rebuilt__/` markers are preserved, so a subsequent
+`dc cpancover-controller-run-rebuild` resumes from where the previous
+run left off. No distdir is rebuilt twice in the same cycle.
