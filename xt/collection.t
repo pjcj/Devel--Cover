@@ -902,6 +902,36 @@ sub rebuild_pass_method () {
   ok !-d "$dir/Foo-1.0", "defunct distdir purged by rebuild_pass";
   ok !-e $c->failed_file("Foo-1.0"),
     "defunct distdir's __failed__ marker purged";
+
+  # Happy path: cpan_path_for succeeds for every candidate, so
+  # rebuild_pass should feed the resolved paths to cover_modules and
+  # return the count. Stub cover_modules so we don't spawn docker.
+  my $hdir = tempdir(CLEANUP => 1);
+  my $hbin = tempdir(CLEANUP => 1);
+  make_cpanm_stub($hbin);
+  local $ENV{PATH} = "$hbin:$ENV{PATH}";
+
+  my $hc = Devel::Cover::Collection->new(
+    results_dir   => $hdir,
+    rebuild       => 1,
+    rebuild_batch => 10,
+  );
+
+  for my $d (qw( Alpha-1.0 Bravo-2.0 )) {
+    mkdir "$hdir/$d" or die;
+    open my $cfh, ">", "$hdir/$d/cover.json" or die;
+    print $cfh "{}";
+    close $cfh or die;
+  }
+
+  my $called = 0;
+  no warnings "redefine";
+  local *Devel::Cover::Collection::cover_modules = sub { $called++ };
+
+  is $hc->rebuild_pass, 2, "rebuild_pass returns count of resolved modules";
+  is $called,           1, "cover_modules called once per pass";
+  is $hc->modules, ["AUTHOR/Alpha-1.0.tar.gz", "AUTHOR/Bravo-1.0.tar.gz"],
+    "rebuild_pass sets modules to resolved paths";
 }
 
 sub template_provider_fetch () {
