@@ -128,7 +128,7 @@ sub main {
     my $cp = newcp;
     $cp->set_module_file($Options->{module_file});
     $cp->cover_modules;
-    $counts{new_count} = ($counts{new_count} // 0) + $cp->modules->@*;
+    $counts{new_count} += $cp->modules->@*;
   }
 
   if ($Options->{build}) {
@@ -148,7 +148,7 @@ sub main {
       $cp = newcp;
     }
     $cp->cover_modules;
-    $counts{new_count} = ($counts{new_count} // 0) + $cp->modules->@*;
+    $counts{new_count} += $cp->modules->@*;
   }
 
   if ($Options->{rebuild}) {
