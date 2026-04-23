@@ -151,14 +151,10 @@ sub main {
     $counts{new_count} = ($counts{new_count} // 0) + $cp->modules->@*;
   }
 
-  if ($Options->{rebuild} && $Options->{rebuild_batch}) {
-    my $cp = newcp;
-    $counts{rebuilt_count} = $cp->rebuild_pass;
-  }
-
   if ($Options->{rebuild}) {
     my $cp = newcp;
-    $counts{all_rebuilt} = $cp->all_rebuilt ? 1 : 0;
+    $counts{rebuilt_count} = $cp->rebuild_pass if $Options->{rebuild_batch};
+    $counts{all_rebuilt}   = $cp->all_rebuilt ? 1 : 0;
     $cp->write_status(%counts);
   }
 
