@@ -700,6 +700,8 @@ class Devel::Cover::Collection {
           say "Killed docker container $name";
         }
 
+        # Don't use is_covered here: in rebuild mode it also requires
+        # the __rebuilt__ marker, which we're about to write below.
         if (-d $self->covered_dir($d)) {
           $self->set_covered($d);
           say "$d done";
