@@ -571,7 +571,8 @@ class Devel::Cover::Collection {
     # it; otherwise fall through to cpanm.
     my $log = $self->_log_name_for($distdir);
     if (
-      defined $log && $log =~ m{\A(.)-(..)-([^-]+)-(\Q$distdir\E\.tar\.gz)--}
+      defined $log
+      && $log =~ m{\A(.)-(..)-([^-]+)-(\Q$distdir\E${Dist_ext_re})--}
     ) {
       return "$1/$2/$3/$4";
     }
@@ -592,7 +593,8 @@ class Devel::Cover::Collection {
       opendir my $dh, $results_dir or die "Can't opendir $results_dir: $!";
       my %by_distdir;
       for my $name (readdir $dh) {
-        next unless $name =~ /\A\w-\w\w-\w+-(.+?)\.tar\.gz--.*\.out\.gz\z/;
+        next
+          unless $name =~ /\A\w-\w\w-\w+-(.+?)${Dist_ext_re}--.*\.out\.gz\z/;
         push $by_distdir{$1}->@*, $name;
       }
       closedir $dh or warn "Can't closedir $results_dir: $!";

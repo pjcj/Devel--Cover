@@ -621,6 +621,13 @@ sub touch_empty_file ($path) {
   close $fh or die "Can't close $path: $!";
 }
 
+sub write_log_ref ($distdir_path, $contents) {
+  mkdir $distdir_path or die "Can't mkdir $distdir_path: $!";
+  open my $fh, ">", "$distdir_path/.log_ref" or die "Can't write .log_ref: $!";
+  print $fh $contents;
+  close $fh or die "Can't close .log_ref: $!";
+}
+
 sub next_rebuild_batch_method () {
   skip_all "uses fsys which requires alarm" if $Is_win32;
   my $dir = tempdir(CLEANUP => 1);
@@ -780,6 +787,21 @@ sub cpan_path_for_method () {
   # Strip both "-1.23" and "-v0.2.4" style version suffixes.
   is $c2->cpan_path_for("V-Prefixed-v0.2.4"), "AUTHOR/V-Prefixed-9.99.tar.gz",
     "cpan_path_for strips v-prefixed version suffix";
+
+  # Non-tar.gz CPAN distributions must be parsed from the log filename
+  # just like .tar.gz ones; otherwise they fall through to cpanm and
+  # incur an extra network call per rebuild candidate.
+  my $edir = tempdir(CLEANUP => 1);
+  my $ec   = Devel::Cover::Collection->new(results_dir => $edir);
+  write_log_ref(
+    "$edir/Tgz-Dist-1.00", "T-TG-TGZER-Tgz-Dist-1.00.tgz--111.222.out.gz\n"
+  );
+  is $ec->cpan_path_for("Tgz-Dist-1.00"), "T/TG/TGZER/Tgz-Dist-1.00.tgz",
+    "cpan_path_for parses .tgz from .log_ref";
+
+  touch_empty_file("$edir/Z-ZI-ZIPPER-Zip-Dist-2.00.zip--333.out.gz");
+  is $ec->cpan_path_for("Zip-Dist-2.00"), "Z/ZI/ZIPPER/Zip-Dist-2.00.zip",
+    "cpan_path_for parses .zip from top-level log filename";
 
   local $SIG{__WARN__} = sub { };
   is $c2->cpan_path_for("Ghost-0.0"), undef,
