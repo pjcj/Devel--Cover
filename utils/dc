@@ -672,12 +672,12 @@ recipe_cpancover-docker-module() {
       return 1
     fi
 
-    chmod -R 755 "$local_staging" \
-      || pw "chmod dirs failed for $local_staging; continuing"
-    find "$local_staging" -type f -exec chmod 644 {} \; \
-      || pw "chmod files failed for $local_staging; continuing"
-    chown -R "$(id -un):$(id -gn)" "$local_staging" \
-      || pw "chown failed for $local_staging; continuing"
+    chmod -R 755 "$local_staging" ||
+      pw "chmod dirs failed for $local_staging; continuing"
+    find "$local_staging" -type f -exec chmod 644 {} \; ||
+      pw "chmod files failed for $local_staging; continuing"
+    chown -R "$(id -un):$(id -gn)" "$local_staging" ||
+      pw "chown failed for $local_staging; continuing"
 
     local seen=0
     local f base
