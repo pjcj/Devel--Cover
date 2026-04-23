@@ -739,6 +739,25 @@ sub cpan_path_for_method () {
     "B/BA/BAZ/Only-Log-2.00.tar.gz",
     "cpan_path_for parses top-level log filename when no .log_ref";
 
+  # Multiple top-level logs for the same distdir: pick the newest by
+  # mtime so repeated runs settle on the most recent coverage. Use a
+  # fresh results_dir so the log index cache starts empty and sees both
+  # files.
+  my $mdir = tempdir(CLEANUP => 1);
+  my $old  = "$mdir/A-AU-OLDAUTH-Multi-1.0.tar.gz--111.out.gz";
+  my $new  = "$mdir/A-AU-NEWAUTH-Multi-1.0.tar.gz--222.out.gz";
+  for my $f ($old, $new) {
+    open my $lh, ">", $f or die;
+    close $lh or die;
+  }
+  my $now = time;
+  utime $now - 100, $now - 100, $old or die "utime $old: $!";
+  utime $now,       $now,       $new or die "utime $new: $!";
+  my $cm = Devel::Cover::Collection->new(results_dir => $mdir);
+  is $cm->cpan_path_for("Multi-1.0"),
+    "A/AU/NEWAUTH/Multi-1.0.tar.gz",
+    "cpan_path_for picks newest log when multiple match distdir";
+
   # Legacy bug: a dep distdir may carry the target's .log_ref. Don't
   # trust a .log_ref whose dist name does not match the distdir -
   # otherwise we would reinstall the wrong distribution. Fall through
