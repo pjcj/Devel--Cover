@@ -586,11 +586,17 @@ class Devel::Cover::Collection {
   }
 
   method _log_index {
+    # Index log filenames by distdir so per-distdir lookups are O(1).
+    # Filename format: A-AU-AUTHOR-Distdir-Name-1.23.tar.gz--<ts>.out.gz
     $_log_index_cache //= do {
       opendir my $dh, $results_dir or die "Can't opendir $results_dir: $!";
-      my @names = grep /\.tar\.gz--.*\.out\.gz\z/, readdir $dh;
+      my %by_distdir;
+      for my $name (readdir $dh) {
+        next unless $name =~ /\A\w-\w\w-\w+-(.+?)\.tar\.gz--.*\.out\.gz\z/;
+        push $by_distdir{$1}->@*, $name;
+      }
       closedir $dh or warn "Can't closedir $results_dir: $!";
-      \@names
+      \%by_distdir
     };
   }
 
@@ -599,12 +605,10 @@ class Devel::Cover::Collection {
     if (defined(my $log = $self->_read_log_ref($results_dir, $distdir))) {
       return $log;
     }
-    my @matches = grep /-\Q$distdir\E\.tar\.gz--/, $self->_log_index->@*;
-    return undef unless @matches;
-    my $newest
-      = (sort { (stat "$results_dir/$b")[9] <=> (stat "$results_dir/$a")[9] }
-        @matches)[0];
-    $newest
+    my $matches = $self->_log_index->{$distdir} // return undef;
+    return $matches->[0] if @$matches == 1;
+    (sort { (stat "$results_dir/$b")[9] <=> (stat "$results_dir/$a")[9] }
+        @$matches)[0]
   }
 
   method rebuild_pass {
