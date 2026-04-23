@@ -34,7 +34,9 @@ my $Options = {
   local_build           => 0,
   modules               => [],
   output_file           => "index.html",
-  report                => "html_basic",
+  rebuild               => 0,
+  rebuild_batch         => 100,
+  report                => "html",
   results_dir           => cwd(),
   timeout               => undef,
   verbose               => 0,
@@ -61,6 +63,8 @@ sub get_options {
       module_file=s
       modules=s
       output_file=s
+      rebuild!
+      rebuild_batch=i
       report=s
       results_dir=s
       timeout=i
@@ -88,6 +92,8 @@ sub newcp {
       local
       modules
       output_file
+      rebuild
+      rebuild_batch
       report
       results_dir
       timeout
@@ -116,30 +122,40 @@ sub main {
     return;
   }
 
+  my %counts;
+
   if ($Options->{module_file}) {
     my $cp = newcp;
     $cp->set_module_file($Options->{module_file});
     $cp->cover_modules;
+    $counts{new_count} += $cp->modules->@*;
   }
 
   if ($Options->{build}) {
+    my $cp;
     if (@ARGV) {
-      my $cp = newcp;
+      $cp = newcp;
       $cp->set_modules(@ARGV);
-      $cp->cover_modules;
     } elsif (!-t STDIN) {
       my @modules;
       while (<>) {
         chomp;
         push @modules, split;
       }
-      my $cp = newcp;
+      $cp = newcp;
       $cp->set_modules(@modules);
-      $cp->cover_modules;
     } else {
-      my $cp = newcp;
-      $cp->cover_modules;
+      $cp = newcp;
     }
+    $cp->cover_modules;
+    $counts{new_count} += $cp->modules->@*;
+  }
+
+  if ($Options->{rebuild}) {
+    my $cp = newcp;
+    $counts{rebuilt_count} = $cp->rebuild_pass if $Options->{rebuild_batch};
+    $counts{all_rebuilt}   = $cp->all_rebuilt ? 1 : 0;
+    $cp->write_status(%counts);
   }
 
   if ($Options->{generate_html}) {
@@ -176,6 +192,7 @@ cpancover - report coverage statistics on CPAN modules
             --compress_old_versions number_to_keep
             --local
             --local_build
+            --rebuild --rebuild_batch n
 
 =head1 DESCRIPTION
 
@@ -198,9 +215,11 @@ The following command line options are supported:
   --modules               - modules to use                      (all in $dir)
   --outputdir             - where to store output               ($directory)
   --outputfile            - top level index                     (coverage.html)
+  --rebuild               - rebuild already-covered modules     (off)
+  --rebuild_batch         - how many distdirs per rebuild pass  (100)
   --redo_cpancover_html   - don't set default modules           (off)
   --redo_html             - force html generation for modules   (off)
-  --report                - report to use                       (html_basic)
+  --report                - report to use                       (html)
 
 =head1 DETAILS
 

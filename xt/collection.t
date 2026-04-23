@@ -29,7 +29,9 @@ sub constructor_defaults () {
   is $c->force,         0,            "force defaults to 0";
   is $c->local,         0,            "local defaults to 0";
   is $c->output_file,   "index.html", "output_file defaults to 'index.html'";
-  is $c->report,        "html_basic", "report defaults to 'html_basic'";
+  is $c->rebuild,       0,            "rebuild defaults to 0";
+  is $c->rebuild_batch, 100,          "rebuild_batch defaults to 100";
+  is $c->report,        "html",       "report defaults to 'html'";
   is $c->timeout,       30 * 60,      "timeout defaults to 1800 (30 minutes)";
   is $c->verbose,       0,            "verbose defaults to 0";
   is $c->workers,       0,            "workers defaults to 0";
@@ -43,18 +45,20 @@ sub constructor_defaults () {
 
 sub constructor_with_args () {
   my $c = Devel::Cover::Collection->new(
-    bin_dir     => "/usr/bin",
-    results_dir => "/tmp/results",
-    docker      => "podman",
-    dryrun      => 1,
-    env         => "dev",
-    force       => 1,
-    local       => 1,
-    output_file => "report.html",
-    report      => "html_minimal",
-    timeout     => 600,
-    verbose     => 1,
-    workers     => 4
+    bin_dir       => "/usr/bin",
+    results_dir   => "/tmp/results",
+    docker        => "podman",
+    dryrun        => 1,
+    env           => "dev",
+    force         => 1,
+    local         => 1,
+    output_file   => "report.html",
+    rebuild       => 1,
+    rebuild_batch => 25,
+    report        => "html_minimal",
+    timeout       => 600,
+    verbose       => 1,
+    workers       => 4,
   );
   is $c->bin_dir,     "/usr/bin",     "bin_dir set via constructor";
   is $c->results_dir, "/tmp/results", "results_dir set via constructor";
@@ -64,10 +68,12 @@ sub constructor_with_args () {
   is $c->force,       1,              "force overridden via constructor";
   is $c->local,       1,              "local overridden via constructor";
   is $c->output_file, "report.html",  "output_file overridden via constructor";
-  is $c->report,      "html_minimal", "report overridden via constructor";
-  is $c->timeout,     600,            "timeout overridden via constructor";
-  is $c->verbose,     1,              "verbose overridden via constructor";
-  is $c->workers,     4,              "workers overridden via constructor";
+  is $c->rebuild,     1,              "rebuild overridden via constructor";
+  is $c->rebuild_batch, 25,             "rebuild_batch overridden";
+  is $c->report,        "html_minimal", "report overridden via constructor";
+  is $c->timeout,       600,            "timeout overridden via constructor";
+  is $c->verbose,       1,              "verbose overridden via constructor";
+  is $c->workers,       4,              "workers overridden via constructor";
 }
 
 sub ro_accessors () {
@@ -92,8 +98,8 @@ sub rwp_accessors () {
   my $c = Devel::Cover::Collection->new;
   is $c->build_dirs, [], "rwp accessor build_dirs readable";
   ok $c->can("_set_build_dirs"), "rwp accessor build_dirs has _set_build_dirs";
-  $c->_set_build_dirs([ "/dir1", "/dir2" ]);
-  is $c->build_dirs, [ "/dir1", "/dir2" ],
+  $c->_set_build_dirs(["/dir1", "/dir2"]);
+  is $c->build_dirs, ["/dir1", "/dir2"],
     "rwp accessor build_dirs settable via _set_build_dirs";
   is $c->modules, [], "rwp accessor modules readable";
   ok $c->can("_set_modules"), "rwp accessor modules has _set_modules";
@@ -114,18 +120,18 @@ sub add_modules () {
   $c->add_modules("Foo::Bar");
   is $c->modules, ["Foo::Bar"], "add_modules adds single module";
   $c->add_modules("Baz::Qux", "Quux::Corge");
-  is $c->modules, [ "Foo::Bar", "Baz::Qux", "Quux::Corge" ],
+  is $c->modules, ["Foo::Bar", "Baz::Qux", "Quux::Corge"],
     "add_modules adds multiple modules";
 }
 
 sub set_modules () {
   my $c = Devel::Cover::Collection->new;
   $c->add_modules("Foo::Bar", "Baz::Qux");
-  is $c->modules, [ "Foo::Bar", "Baz::Qux" ], "modules populated";
+  is $c->modules, ["Foo::Bar", "Baz::Qux"], "modules populated";
   $c->set_modules("New::Module");
   is $c->modules, ["New::Module"], "set_modules replaces all modules";
   $c->set_modules("A", "B", "C");
-  is $c->modules, [ "A", "B", "C" ], "set_modules with multiple modules";
+  is $c->modules, ["A", "B", "C"], "set_modules with multiple modules";
 }
 
 sub set_module_file () {
@@ -141,7 +147,7 @@ sub process_module_file () {
   my $dir  = tempdir(CLEANUP => 1);
   my $file = "$dir/modules.txt";
   open my $fh, ">", $file or die "Can't write $file: $!";
-  print $fh <<~'EOT';
+  print $fh <<~TEXT;
     # Comment line
     Foo::Bar
       # Indented comment
@@ -149,12 +155,12 @@ sub process_module_file () {
 
     # Empty lines above
     Quux::Corge
-    EOT
+    TEXT
   close $fh or die "Can't close $file: $!";
 
   my $c = Devel::Cover::Collection->new(module_file => $file);
   $c->process_module_file;
-  is $c->modules, [ "Foo::Bar", "Baz::Qux", "Quux::Corge" ],
+  is $c->modules, ["Foo::Bar", "Baz::Qux", "Quux::Corge"],
     "process_module_file filters comments and blank lines";
 
   my $c2 = Devel::Cover::Collection->new;
@@ -168,8 +174,7 @@ sub process_module_file () {
   my $c4 = Devel::Cover::Collection->new(module_file => $file);
   $c4->add_modules("Existing::Module");
   $c4->process_module_file;
-  is $c4->modules,
-    [ "Existing::Module", "Foo::Bar", "Baz::Qux", "Quux::Corge" ],
+  is $c4->modules, ["Existing::Module", "Foo::Bar", "Baz::Qux", "Quux::Corge"],
     "process_module_file appends to existing modules";
 }
 
@@ -194,6 +199,17 @@ sub made_res_dir () {
   my $c2 = Devel::Cover::Collection->new;
   eval { $c2->made_res_dir };
   like $@, qr/No results dir/, "made_res_dir dies without results_dir";
+
+  # rebuild_pass triggers hundreds of failed_dir/rebuilt_dir calls per
+  # batch; each was forking mkdir -p. After the first creation the
+  # method should be a no-op so repeated calls don't refork.
+  my $cdir = tempdir(CLEANUP => 1);
+  my $cc   = Devel::Cover::Collection->new(results_dir => $cdir);
+  $cc->made_res_dir("cached");
+  rmdir "$cdir/cached" or die "Can't rmdir: $!";
+  my ($cpath) = $cc->made_res_dir("cached");
+  is $cpath, "$cdir/cached", "cached made_res_dir returns the same path";
+  ok !-d $cpath, "cached made_res_dir does not refork mkdir";
 }
 
 sub path_methods () {
@@ -340,8 +356,9 @@ sub sys_timeout () {
 sub sys_verbose_output () {
   skip_all "alarm not available on Windows" if $Is_win32;
   my $c      = Devel::Cover::Collection->new(verbose => 1, timeout => 10);
-  my $output = $c->sys("true");
-  like $output, qr/dc -> true/, "sys includes command prefix in verbose mode";
+  my $output = $c->bsys("printf", "result\\n");
+  unlike $output, qr/dc -> /, "verbose mode does not prefix captured output";
+  is $output, "result\n", "captured output is only the command's stdout";
 }
 
 sub bsys_multiline_output () {
@@ -444,10 +461,8 @@ sub compress_old_versions () {
   for my $v (@versions) {
     my $mod_dir = "$dir/Net-RDAP-$v->{ver}";
     mkdir $mod_dir or die "Can't mkdir $mod_dir: $!";
-    my $cover
-      = { runs =>
-        [ { name => "Net-RDAP", version => $v->{ver}, start => $v->{start} } ],
-      };
+    my $cover = { runs =>
+      [{ name => "Net-RDAP", version => $v->{ver}, start => $v->{start} }] };
     open my $fh, ">", "$mod_dir/cover.json" or die "Can't write: $!";
     print $fh $json->encode($cover);
     close $fh or die "Can't close: $!";
@@ -457,10 +472,10 @@ sub compress_old_versions () {
 
   my $outfile = "$dir/compress_output.txt";
   {
-    open my $saved, ">&", STDOUT or die "Can't dup STDOUT: $!";
-    open STDOUT, ">", $outfile  or die "Can't redirect STDOUT: $!";
+    open my $saved, ">&", STDOUT   or die "Can't dup STDOUT: $!";
+    open STDOUT,    ">",  $outfile or die "Can't redirect STDOUT: $!";
     $c->compress_old_versions(3);
-    open STDOUT, ">&", $saved   or die "Can't restore STDOUT: $!";
+    open STDOUT, ">&", $saved or die "Can't restore STDOUT: $!";
   }
   open my $ofh, "<", $outfile or die "Can't read $outfile: $!";
   my $output = do { local $/; <$ofh> };
@@ -475,6 +490,448 @@ sub compress_old_versions () {
     "recent version 0.9 is kept";
   unlike $output, qr/^compressing Net-RDAP-0\.8$/m,
     "recent version 0.8 is kept";
+}
+
+sub filter_build_dirs_to_targets () {
+  my $c = Devel::Cover::Collection->new(modules => [
+    "P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz",
+    "A/AU/AUTHOR/My-Module-1.23.tar.gz",
+  ]);
+  $c->_set_build_dirs([
+    "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
+    "/home/x/.cpan/build/My-Module-1.23-3",
+    "/home/x/.cpan/build/PPI-1.280-0",
+    "/home/x/.cpan/build/Test-Deep-1.204-1",
+  ]);
+  $c->filter_build_dirs_to_targets;
+  is $c->build_dirs, [
+      "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
+      "/home/x/.cpan/build/My-Module-1.23-3",
+    ],
+    "filter keeps only build dirs that match a target distdir";
+
+  my $c2
+    = Devel::Cover::Collection->new(modules => ["T/TA/TAR/Target-1.0.tar.gz"]);
+  $c2->_set_build_dirs([
+    "/cpan/build/Target-1.0-0", "/cpan/build/Target-1.0-1",
+    "/cpan/build/Target-1.0-2",
+  ]);
+  $c2->filter_build_dirs_to_targets;
+  is $c2->build_dirs, [
+      "/cpan/build/Target-1.0-0", "/cpan/build/Target-1.0-1",
+      "/cpan/build/Target-1.0-2",
+    ],
+    "filter keeps all reinstall attempts of the same target";
+
+  my $c3 = Devel::Cover::Collection->new;
+  $c3->_set_build_dirs(["/cpan/build/Random-1.0-0"]);
+  $c3->filter_build_dirs_to_targets;
+  is $c3->build_dirs, [], "filter empties build_dirs when modules is empty";
+
+  my $c4
+    = Devel::Cover::Collection->new(modules => ["A/AU/AUTHOR/Foo-1.0.tar.gz"]);
+  $c4->_set_build_dirs([]);
+  $c4->filter_build_dirs_to_targets;
+  is $c4->build_dirs, [], "filter is a no-op on empty build_dirs";
+}
+
+sub rebuilt_markers () {
+  skip_all
+    "rebuilt_dir uses fsys which requires alarm (not available on Windows)"
+    if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+
+  is $c->rebuilt_dir, "$dir/__rebuilt__", "rebuilt_dir path";
+  ok -d $c->rebuilt_dir, "rebuilt_dir creates directory";
+  is $c->rebuilt_file("Foo-1.0"), "$dir/__rebuilt__/Foo-1.0",
+    "rebuilt_file returns path in __rebuilt__ dir";
+
+  ok !$c->is_rebuilt("Foo-1.0"), "is_rebuilt false when no marker";
+  $c->set_rebuilt("Foo-1.0");
+  ok $c->is_rebuilt("Foo-1.0"),      "is_rebuilt true after set_rebuilt";
+  ok -e $c->rebuilt_file("Foo-1.0"), "set_rebuilt writes marker file";
+
+  open my $fh, "<", $c->rebuilt_file("Foo-1.0") or die "Can't read marker: $!";
+  my $content = do { local $/; <$fh> };
+  close $fh or die "Can't close marker: $!";
+  like $content, qr/\w{3} \w{3} +\d+ \d+:\d+:\d+ \d{4}/,
+    "set_rebuilt writes timestamp";
+}
+
+sub unflag_all_rebuilt_method () {
+  skip_all "unflag_all_rebuilt uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+
+  $c->set_rebuilt("A-1.0");
+  $c->set_rebuilt("B-2.0");
+  ok $c->is_rebuilt("A-1.0"), "A-1.0 flagged before unflag";
+  ok $c->is_rebuilt("B-2.0"), "B-2.0 flagged before unflag";
+
+  $c->unflag_all_rebuilt;
+  ok !-d "$dir/__rebuilt__",   "unflag_all_rebuilt removes the directory";
+  ok !$c->is_rebuilt("A-1.0"), "is_rebuilt false after unflag";
+  ok !$c->is_rebuilt("B-2.0"), "is_rebuilt false after unflag";
+
+  # made_res_dir caches successful creations; unflag must invalidate
+  # its entry so a subsequent set_rebuilt recreates __rebuilt__/.
+  $c->set_rebuilt("C-3.0");
+  ok -d "$dir/__rebuilt__",   "rebuilt dir recreated on next set_rebuilt";
+  ok $c->is_rebuilt("C-3.0"), "set_rebuilt works after unflag";
+}
+
+sub known_distdirs_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+
+  mkdir "$dir/Alpha-1.0" or die "Can't mkdir: $!";
+  open my $fh1, ">", "$dir/Alpha-1.0/cover.json" or die;
+  print $fh1 "{}";
+  close $fh1 or die;
+
+  mkdir "$dir/NoCover-1.0" or die "Can't mkdir: $!";
+
+  $c->set_failed("Bravo-2.0");
+
+  mkdir "$dir/Charlie-3.0" or die "Can't mkdir: $!";
+  open my $fh2, ">", "$dir/Charlie-3.0/cover.json" or die;
+  print $fh2 "{}";
+  close $fh2 or die;
+  $c->set_failed("Charlie-3.0");
+
+  my @d = $c->known_distdirs;
+  is \@d, ["Alpha-1.0", "Bravo-2.0", "Charlie-3.0"],
+    "known_distdirs: cover.json dirs + __failed__ markers, deduped, sorted";
+}
+
+sub all_rebuilt_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+
+  ok $c->all_rebuilt, "all_rebuilt true when no distdirs known";
+
+  mkdir "$dir/Alpha-1.0" or die "Can't mkdir: $!";
+  open my $fh, ">", "$dir/Alpha-1.0/cover.json" or die;
+  print $fh "{}";
+  close $fh or die;
+  $c->set_failed("Bravo-2.0");
+
+  ok !$c->all_rebuilt, "all_rebuilt false with no flags";
+  $c->set_rebuilt("Alpha-1.0");
+  ok !$c->all_rebuilt, "all_rebuilt false with partial flags";
+  $c->set_rebuilt("Bravo-2.0");
+  ok $c->all_rebuilt, "all_rebuilt true when every entry flagged";
+}
+
+sub make_cpanm_stub ($bin) {
+  open my $fh, ">", "$bin/cpanm" or die "Can't write cpanm stub: $!";
+  print $fh qq(#!/bin/sh\necho "AUTHOR/\$2-1.0.tar.gz"\n);
+  close $fh or die "Can't close cpanm stub: $!";
+  chmod 0755, "$bin/cpanm" or die "Can't chmod cpanm stub: $!";
+}
+
+sub touch_empty_file ($path) {
+  open my $fh, ">", $path or die "Can't touch $path: $!";
+  close $fh or die "Can't close $path: $!";
+}
+
+sub write_log_ref ($distdir_path, $contents) {
+  mkdir $distdir_path or die "Can't mkdir $distdir_path: $!";
+  open my $fh, ">", "$distdir_path/.log_ref" or die "Can't write .log_ref: $!";
+  print $fh $contents;
+  close $fh or die "Can't close .log_ref: $!";
+}
+
+sub next_rebuild_batch_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $bin = tempdir(CLEANUP => 1);
+  make_cpanm_stub($bin);
+  local $ENV{PATH} = "$bin:$ENV{PATH}";
+
+  my $c
+    = Devel::Cover::Collection->new(results_dir => $dir, rebuild_batch => 2);
+
+  for my $spec (
+    ["Alpha-1.0",   100],
+    ["Bravo-2.0",   200],
+    ["Charlie-3.0", 300],
+    ["Delta-4.0",   400],
+  ) {
+    my ($d, $mtime) = @$spec;
+    mkdir "$dir/$d" or die "Can't mkdir: $!";
+    my $cover = "$dir/$d/cover.json";
+    open my $fh, ">", $cover or die "Can't write: $!";
+    print $fh "{}";
+    close $fh or die;
+    utime $mtime, $mtime, $cover or die "Can't utime: $!";
+  }
+
+  is [$c->next_rebuild_batch], ["Alpha-1.0", "Bravo-2.0"],
+    "next_rebuild_batch returns oldest first, limited to rebuild_batch";
+
+  $c->set_rebuilt("Alpha-1.0");
+  is [$c->next_rebuild_batch], ["Bravo-2.0", "Charlie-3.0"],
+    "next_rebuild_batch excludes already-rebuilt entries";
+
+  $c->set_rebuilt($_) for qw( Bravo-2.0 Charlie-3.0 Delta-4.0 );
+  is [$c->next_rebuild_batch], [],
+    "next_rebuild_batch returns empty when all rebuilt";
+
+  my $c0
+    = Devel::Cover::Collection->new(results_dir => $dir, rebuild_batch => 0);
+  is [$c0->next_rebuild_batch], [],
+    "next_rebuild_batch returns empty when rebuild_batch is 0";
+
+  my $dir2 = tempdir(CLEANUP => 1);
+  my $c2
+    = Devel::Cover::Collection->new(results_dir => $dir2, rebuild_batch => 10);
+  $c2->set_failed("Foo-1.0");
+  utime 50, 50, $c2->failed_file("Foo-1.0") or die "utime: $!";
+  mkdir "$dir2/Bar-2.0" or die;
+  open my $fh, ">", "$dir2/Bar-2.0/cover.json" or die;
+  print $fh "{}";
+  close $fh or die;
+  utime 1000, 1000, "$dir2/Bar-2.0/cover.json" or die;
+
+  is [$c2->next_rebuild_batch], ["Foo-1.0", "Bar-2.0"],
+    "next_rebuild_batch falls back to __failed__ mtime when no cover.json";
+}
+
+sub status_tracking_rebuild_mode () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir, rebuild => 1);
+
+  mkdir "$dir/Foo-1.0" or die "Can't mkdir: $!";
+  ok !$c->is_covered("Foo-1.0"),
+    "is_covered false in rebuild mode when dir exists but not rebuilt";
+  $c->set_rebuilt("Foo-1.0");
+  ok $c->is_covered("Foo-1.0"),
+    "is_covered true in rebuild mode when dir exists and rebuilt";
+
+  $c->set_failed("Bar-2.0");
+  ok !$c->is_failed("Bar-2.0"),
+    "is_failed false in rebuild mode when marker exists but not rebuilt";
+  $c->set_rebuilt("Bar-2.0");
+  ok $c->is_failed("Bar-2.0"),
+    "is_failed true in rebuild mode when marker exists and rebuilt";
+
+  my $c2 = Devel::Cover::Collection->new(results_dir => $dir, rebuild => 0);
+  ok $c2->is_covered("Foo-1.0"),
+    "is_covered ignores rebuilt flag when not in rebuild mode";
+  ok $c2->is_failed("Bar-2.0"),
+    "is_failed ignores rebuilt flag when not in rebuild mode";
+}
+
+sub cpan_path_for_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+
+  # Mimic real cpanm: it only accepts module names (Foo::Bar), not
+  # distribution names (Foo-Bar). Reject distribution form so we catch
+  # regressions where the caller forgets to translate dashes to colons.
+  my $bin = tempdir(CLEANUP => 1);
+  open my $fh, ">", "$bin/cpanm" or die "Can't write stub: $!";
+  print $fh <<~'BASH';
+    #!/bin/sh
+    case "$2" in
+      *::*)
+        mod=$2
+        dist=${mod//::/-}
+        echo "AUTHOR/${dist}-9.99.tar.gz"
+        ;;
+      *) exit 1 ;;
+    esac
+    BASH
+  close $fh or die;
+  chmod 0755, "$bin/cpanm" or die;
+  local $ENV{PATH} = "$bin:$ENV{PATH}";
+
+  # Prefer .log_ref when present.
+  my $dir = tempdir(CLEANUP => 1);
+  mkdir "$dir/Foo-Bar-1.23" or die;
+  open my $lref, ">", "$dir/Foo-Bar-1.23/.log_ref" or die;
+  print $lref "A-AU-AUTHOR-Foo-Bar-1.23.tar.gz--1234567890.123.out.gz\n";
+  close $lref or die;
+  my $c = Devel::Cover::Collection->new(results_dir => $dir);
+  is $c->cpan_path_for("Foo-Bar-1.23"), "A/AU/AUTHOR/Foo-Bar-1.23.tar.gz",
+    "cpan_path_for prefers .log_ref when available";
+
+  # Fall back to top-level log filename for failed entries (no distdir).
+  open my $log, ">", "$dir/Q-QU-QUX-Only-Log-2.00.tar.gz--111.222.out.gz"
+    or die;
+  close $log or die;
+  is $c->cpan_path_for("Only-Log-2.00"), "Q/QU/QUX/Only-Log-2.00.tar.gz",
+    "cpan_path_for parses top-level log filename when no .log_ref";
+
+  # Multiple top-level logs for the same distdir: pick the newest by
+  # mtime so repeated runs settle on the most recent coverage. Use a
+  # fresh results_dir so the log index cache starts empty and sees both
+  # files.
+  my $mdir = tempdir(CLEANUP => 1);
+  my $old  = "$mdir/A-AU-OLDAUTH-Multi-1.0.tar.gz--111.out.gz";
+  my $new  = "$mdir/A-AU-NEWAUTH-Multi-1.0.tar.gz--222.out.gz";
+  touch_empty_file($old);
+  touch_empty_file($new);
+  my $now = time;
+  utime $now - 100, $now - 100, $old or die "utime $old: $!";
+  utime $now,       $now,       $new or die "utime $new: $!";
+  my $cm = Devel::Cover::Collection->new(results_dir => $mdir);
+  is $cm->cpan_path_for("Multi-1.0"), "A/AU/NEWAUTH/Multi-1.0.tar.gz",
+    "cpan_path_for picks newest log when multiple match distdir";
+
+  # Legacy bug: a dep distdir may carry the target's .log_ref. Don't
+  # trust a .log_ref whose dist name does not match the distdir -
+  # otherwise we would reinstall the wrong distribution. Fall through
+  # to cpanm instead (which here resolves Leaked::Dep, matching the
+  # distdir) rather than returning "Unrelated-Target" from the leak.
+  mkdir "$dir/Leaked-Dep-9.99" or die;
+  open my $leak, ">", "$dir/Leaked-Dep-9.99/.log_ref" or die;
+  print $leak "X-XY-XYZZY-Unrelated-Target-1.00.tar.gz--1.2.out.gz\n";
+  close $leak or die;
+  is $c->cpan_path_for("Leaked-Dep-9.99"), "AUTHOR/Leaked-Dep-9.99.tar.gz",
+    "cpan_path_for ignores mismatched .log_ref and falls back to cpanm";
+
+  # Fall back to cpanm --info with the dash->colon module name when no
+  # log file is available (first-time coverage of a new distdir).
+  my $c2 = Devel::Cover::Collection->new(results_dir => tempdir(CLEANUP => 1));
+  is $c2->cpan_path_for("Fresh-Dist-1.00"), "AUTHOR/Fresh-Dist-9.99.tar.gz",
+    "cpan_path_for falls back to cpanm --info with module name";
+
+  # Strip both "-1.23" and "-v0.2.4" style version suffixes.
+  is $c2->cpan_path_for("V-Prefixed-v0.2.4"), "AUTHOR/V-Prefixed-9.99.tar.gz",
+    "cpan_path_for strips v-prefixed version suffix";
+
+  # Non-tar.gz CPAN distributions must be parsed from the log filename
+  # just like .tar.gz ones; otherwise they fall through to cpanm and
+  # incur an extra network call per rebuild candidate.
+  my $edir = tempdir(CLEANUP => 1);
+  my $ec   = Devel::Cover::Collection->new(results_dir => $edir);
+  write_log_ref(
+    "$edir/Tgz-Dist-1.00", "T-TG-TGZER-Tgz-Dist-1.00.tgz--111.222.out.gz\n"
+  );
+  is $ec->cpan_path_for("Tgz-Dist-1.00"), "T/TG/TGZER/Tgz-Dist-1.00.tgz",
+    "cpan_path_for parses .tgz from .log_ref";
+
+  touch_empty_file("$edir/Z-ZI-ZIPPER-Zip-Dist-2.00.zip--333.out.gz");
+  is $ec->cpan_path_for("Zip-Dist-2.00"), "Z/ZI/ZIPPER/Zip-Dist-2.00.zip",
+    "cpan_path_for parses .zip from top-level log filename";
+
+  local $SIG{__WARN__} = sub { };
+  is $c2->cpan_path_for("Ghost-0.0"), undef,
+    "cpan_path_for returns undef when no log and cpanm fails";
+
+  # Verbose mode must not leak the "dc -> ..." trace into the return.
+  my $v = Devel::Cover::Collection->new(
+    results_dir => tempdir(CLEANUP => 1),
+    verbose     => 1,
+  );
+  open my $saved, ">&", \*STDERR or die "dup STDERR: $!";
+  close STDERR or die "close STDERR: $!";
+  open STDERR, ">", \my $err or die "redirect STDERR: $!";
+  my $path = $v->cpan_path_for("Clean-Path-1.00");
+  open STDERR, ">&", $saved or die "restore STDERR: $!";
+  is $path, "AUTHOR/Clean-Path-9.99.tar.gz",
+    "cpan_path_for in verbose mode returns clean path (no trace prefix)";
+}
+
+sub write_status_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(results_dir => $dir);
+
+  $c->write_status(new_count => 4, rebuilt_count => 100, all_rebuilt => 0);
+
+  my $f = "$dir/.cpancover_status";
+  ok -e $f, "write_status creates .cpancover_status";
+  open my $fh, "<", $f or die "Can't read $f: $!";
+  my $content = do { local $/; <$fh> };
+  close $fh or die;
+  is $content, "all_rebuilt=0\nnew_count=4\nrebuilt_count=100\n",
+    "write_status writes sorted key=value lines";
+
+  # When rename fails (here: status path is occupied by a non-empty
+  # directory), the temp file must not be left behind to clutter
+  # $results_dir and confuse the next caller.
+  my $bdir    = tempdir(CLEANUP => 1);
+  my $bc      = Devel::Cover::Collection->new(results_dir => $bdir);
+  my $blocker = "$bdir/.cpancover_status";
+  mkdir $blocker          or die "Can't mkdir $blocker: $!";
+  mkdir "$blocker/subdir" or die "Can't mkdir $blocker/subdir: $!";
+  local $SIG{__WARN__} = sub { };
+  $bc->write_status(new_count => 1);
+  opendir my $dh, $bdir or die "Can't opendir $bdir: $!";
+  my @leftovers = grep /\A\.cpancover_status\.tmp\./, readdir $dh;
+  closedir $dh or die;
+  is \@leftovers, [], "write_status cleans up tmp file on rename failure";
+}
+
+sub rebuild_pass_method () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(
+    results_dir   => $dir,
+    rebuild       => 1,
+    rebuild_batch => 10,
+  );
+  is $c->rebuild_pass, 0, "rebuild_pass returns 0 when queue is empty";
+
+  # Queue a distdir, but make cpanm --info fail so cpan_path_for returns
+  # undef and rebuild_pass short-circuits without invoking cover_modules.
+  # (cover_modules spawns docker-in-docker, which is out of scope for a
+  # unit test.)
+  my $bin = tempdir(CLEANUP => 1);
+  open my $fh, ">", "$bin/cpanm" or die "Can't write stub: $!";
+  print $fh "#!/bin/sh\nexit 1\n";
+  close $fh or die;
+  chmod 0755, "$bin/cpanm" or die;
+  local $ENV{PATH}     = "$bin:$ENV{PATH}";
+  local $SIG{__WARN__} = sub { };
+
+  mkdir "$dir/Foo-1.0" or die;
+  open my $f, ">", "$dir/Foo-1.0/cover.json" or die;
+  print $f "{}";
+  close $f or die;
+  $c->set_failed("Foo-1.0");
+
+  is $c->rebuild_pass, 0,
+    "rebuild_pass returns 0 when every cpan_path_for lookup fails";
+  ok !-d "$dir/Foo-1.0", "defunct distdir purged by rebuild_pass";
+  ok !-e $c->failed_file("Foo-1.0"),
+    "defunct distdir's __failed__ marker purged";
+
+  # Happy path: cpan_path_for succeeds for every candidate, so
+  # rebuild_pass should feed the resolved paths to cover_modules and
+  # return the count. Stub cover_modules so we don't spawn docker.
+  my $hdir = tempdir(CLEANUP => 1);
+  my $hbin = tempdir(CLEANUP => 1);
+  make_cpanm_stub($hbin);
+  local $ENV{PATH} = "$hbin:$ENV{PATH}";
+
+  my $hc = Devel::Cover::Collection->new(
+    results_dir   => $hdir,
+    rebuild       => 1,
+    rebuild_batch => 10,
+  );
+
+  for my $d (qw( Alpha-1.0 Bravo-2.0 )) {
+    mkdir "$hdir/$d" or die;
+    open my $cfh, ">", "$hdir/$d/cover.json" or die;
+    print $cfh "{}";
+    close $cfh or die;
+  }
+
+  my $called = 0;
+  no warnings "redefine";
+  local *Devel::Cover::Collection::cover_modules = sub { $called++ };
+
+  is $hc->rebuild_pass, 2, "rebuild_pass returns count of resolved modules";
+  is $called,           1, "cover_modules called once per pass";
+  is $hc->modules, ["AUTHOR/Alpha-1.0.tar.gz", "AUTHOR/Bravo-1.0.tar.gz"],
+    "rebuild_pass sets modules to resolved paths";
 }
 
 sub template_provider_fetch () {
@@ -521,6 +978,16 @@ sub main () {
     coverage_class_method
     write_json
     compress_old_versions
+    filter_build_dirs_to_targets
+    rebuilt_markers
+    unflag_all_rebuilt_method
+    known_distdirs_method
+    all_rebuilt_method
+    next_rebuild_batch_method
+    status_tracking_rebuild_mode
+    cpan_path_for_method
+    write_status_method
+    rebuild_pass_method
     template_provider_fetch
   );
   #>>>
