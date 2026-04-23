@@ -648,8 +648,8 @@ class Devel::Cover::Collection {
     for my $k (sort keys %counts) {
       print $fh "$k=$counts{$k}\n";
     }
-    close $fh or return warn "Can't close $tmp: $!";
-    rename $tmp, $f or warn "Can't rename $tmp to $f: $!";
+    close $fh or do { unlink $tmp; return warn "Can't close $tmp: $!" };
+    rename $tmp, $f or do { unlink $tmp; warn "Can't rename $tmp to $f: $!" };
   }
 
   method dc_file {

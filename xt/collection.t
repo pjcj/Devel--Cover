@@ -852,6 +852,21 @@ sub write_status_method () {
   close $fh or die;
   is $content, "all_rebuilt=0\nnew_count=4\nrebuilt_count=100\n",
     "write_status writes sorted key=value lines";
+
+  # When rename fails (here: status path is occupied by a non-empty
+  # directory), the temp file must not be left behind to clutter
+  # $results_dir and confuse the next caller.
+  my $bdir    = tempdir(CLEANUP => 1);
+  my $bc      = Devel::Cover::Collection->new(results_dir => $bdir);
+  my $blocker = "$bdir/.cpancover_status";
+  mkdir $blocker          or die "Can't mkdir $blocker: $!";
+  mkdir "$blocker/subdir" or die "Can't mkdir $blocker/subdir: $!";
+  local $SIG{__WARN__} = sub { };
+  $bc->write_status(new_count => 1);
+  opendir my $dh, $bdir or die "Can't opendir $bdir: $!";
+  my @leftovers = grep /\A\.cpancover_status\.tmp\./, readdir $dh;
+  closedir $dh or die;
+  is \@leftovers, [], "write_status cleans up tmp file on rename failure";
 }
 
 sub rebuild_pass_method () {
