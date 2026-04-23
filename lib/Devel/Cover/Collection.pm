@@ -58,6 +58,7 @@ class Devel::Cover::Collection {
   field $file :param = undef;
 
   field $_log_index_cache;
+  field $_made_dirs = {};
 
   ADJUST {
     # Apply defaults (equivalent to BUILDARGS)
@@ -197,7 +198,9 @@ class Devel::Cover::Collection {
   method made_res_dir ($sub_dir = undef) {
     my $d = $results_dir // die "No results dir";
     $d .= "/$sub_dir" if defined $sub_dir;
+    return ($d, "") if $_made_dirs->{$d};
     my $output = $self->fsys("mkdir", "-p", $d);
+    $_made_dirs->{$d} = 1;
     $d, $output
   }
 
@@ -520,7 +523,11 @@ class Devel::Cover::Collection {
     $self->_write_timestamp_marker($self->rebuilt_file($d))
   }
 
-  method unflag_all_rebuilt { $self->fsys("rm", "-rf", $self->rebuilt_dir) }
+  method unflag_all_rebuilt {
+    my $d = $self->rebuilt_dir;
+    $self->fsys("rm", "-rf", $d);
+    delete $_made_dirs->{$d};
+  }
 
   method known_distdirs {
     my %seen;

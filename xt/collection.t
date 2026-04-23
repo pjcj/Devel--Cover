@@ -199,6 +199,17 @@ sub made_res_dir () {
   my $c2 = Devel::Cover::Collection->new;
   eval { $c2->made_res_dir };
   like $@, qr/No results dir/, "made_res_dir dies without results_dir";
+
+  # rebuild_pass triggers hundreds of failed_dir/rebuilt_dir calls per
+  # batch; each was forking mkdir -p. After the first creation the
+  # method should be a no-op so repeated calls don't refork.
+  my $cdir = tempdir(CLEANUP => 1);
+  my $cc   = Devel::Cover::Collection->new(results_dir => $cdir);
+  $cc->made_res_dir("cached");
+  rmdir "$cdir/cached" or die "Can't rmdir: $!";
+  my ($cpath) = $cc->made_res_dir("cached");
+  is $cpath, "$cdir/cached", "cached made_res_dir returns the same path";
+  ok !-d $cpath, "cached made_res_dir does not refork mkdir";
 }
 
 sub path_methods () {
@@ -562,6 +573,12 @@ sub unflag_all_rebuilt_method () {
   ok !-d "$dir/__rebuilt__",   "unflag_all_rebuilt removes the directory";
   ok !$c->is_rebuilt("A-1.0"), "is_rebuilt false after unflag";
   ok !$c->is_rebuilt("B-2.0"), "is_rebuilt false after unflag";
+
+  # made_res_dir caches successful creations; unflag must invalidate
+  # its entry so a subsequent set_rebuilt recreates __rebuilt__/.
+  $c->set_rebuilt("C-3.0");
+  ok -d "$dir/__rebuilt__",   "rebuilt dir recreated on next set_rebuilt";
+  ok $c->is_rebuilt("C-3.0"), "set_rebuilt works after unflag";
 }
 
 sub known_distdirs_method () {
