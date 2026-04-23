@@ -32,6 +32,7 @@ RUN mkdir -p /root/.cpan/CPAN                                               && \
       '}; 1;'                                                                  \
       > /root/.cpan/CPAN/MyConfig.pm                                        && \
     cpan -Ti                                                                   \
+      App::cpanminus                                                           \
       CPAN::DistnameInfo                                                       \
       CPAN::Releases::Latest                                                   \
       Digest::MD5                                                              \

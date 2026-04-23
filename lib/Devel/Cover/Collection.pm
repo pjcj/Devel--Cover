@@ -50,25 +50,33 @@ class Devel::Cover::Collection {
   field $modules     :param :reader = undef;
   field $module_file :param :reader = undef;
 
+  field $rebuild       :param :reader = undef;
+  field $rebuild_batch :param :reader = undef;
+
   # rw attributes (custom accessors for Moo compatibility)
   field $dir  :param = undef;
   field $file :param = undef;
 
+  field $_log_index_cache;
+  field $_made_dirs = {};
+
   ADJUST {
     # Apply defaults (equivalent to BUILDARGS)
-    $build_dirs  //= [];
-    $cpan_dir    //= [ grep -d, glob "~/.cpan ~/.local/share/.cpan" ];
-    $docker      //= "docker";
-    $dryrun      //= 0;
-    $env         //= "prod";
-    $force       //= 0;
-    $local       //= 0;
-    $modules     //= [];
-    $output_file //= "index.html";
-    $report      //= "html_basic";
-    $timeout     //= $ENV{CPANCOVER_TIMEOUT} // 30 * 60;  # half an hour
-    $verbose     //= 0;
-    $workers     //= 0;
+    $build_dirs    //= [];
+    $cpan_dir      //= [grep -d, glob "~/.cpan ~/.local/share/.cpan"];
+    $docker        //= "docker";
+    $dryrun        //= 0;
+    $env           //= "prod";
+    $force         //= 0;
+    $local         //= 0;
+    $modules       //= [];
+    $output_file   //= "index.html";
+    $rebuild       //= 0;
+    $rebuild_batch //= 100;
+    $report        //= "html";
+    $timeout       //= $ENV{CPANCOVER_TIMEOUT} // 30 * 60;  # half an hour
+    $verbose       //= 0;
+    $workers       //= 0;
     $ENV{CPANCOVER_TIMEOUT} = $timeout;
   }
 
@@ -84,8 +92,8 @@ class Devel::Cover::Collection {
   # display $non_buffered characters, then buffer
   method _sys ($non_buffered, @command) {
     # system @command; return ".";
+    local $_;  # while (<$fh>) below would clobber caller's $_
     my ($output1, $output2) = ("", "");
-    $output1 = "dc -> @command\n" if $verbose;
     my $max = 4e4;
     # say "Setting alarm for $timeout seconds";
     my $ok = 0;
@@ -142,8 +150,8 @@ class Devel::Cover::Collection {
   method fsys  (@a) { $self->_sys(4e4, @a) // die "Can't run @a" }
   method fbsys (@a) { $self->_sys(0,   @a) // die "Can't run @a" }
 
-  method add_modules     (@o) { push $modules->@*, @o }
-  method set_modules     (@o) { $modules->@* = @o }
+  method add_modules     (@o) { push @$modules, @o }
+  method set_modules     (@o) { @$modules = @o }
   method set_module_file ($f) { $self->_set_module_file($f) }
 
   method process_module_file {
@@ -160,7 +168,7 @@ class Devel::Cover::Collection {
     my @command = qw( cpan -Ti );
     push @command, "-f" if $force;
     my %m;
-    for my $module (sort grep !$m{$_}++, $modules->@*) {
+    for my $module (sort grep !$m{$_}++, @$modules) {
       say "Building $module";
       my $output = $self->fsys(@command, $module);
       say $output;
@@ -173,14 +181,26 @@ class Devel::Cover::Collection {
       my @files = glob $d;
       @files
     };
-    push $build_dirs->@*, grep { !$exists->() } grep -d,
-      map glob("$_/build/*"), $cpan_dir->@*;
+    push @$build_dirs, grep { !$exists->() } grep -d, map glob("$_/build/*"),
+      @$cpan_dir;
+  }
+
+  method filter_build_dirs_to_targets {
+    my %target = map { (s|.*/||r =~ s/${Dist_ext_re}$//r) => 1 } @$modules;
+    $build_dirs = [
+      grep {
+        my $name = (s|.*/||r) =~ s/-\d+$//r;
+        $target{$name};
+      } @$build_dirs
+    ];
   }
 
   method made_res_dir ($sub_dir = undef) {
     my $d = $results_dir // die "No results dir";
     $d .= "/$sub_dir" if defined $sub_dir;
+    return ($d, "") if $_made_dirs->{$d};
     my $output = $self->fsys("mkdir", "-p", $d);
+    $_made_dirs->{$d} = 1;
     $d, $output
   }
 
@@ -213,10 +233,11 @@ class Devel::Cover::Collection {
     } else {
       @cmd = ($^X, $bin_dir . "/cover");
     }
-    $output .= $self->fbsys(
-      @cmd, "--test", "--report", $report, "--outputfile", $output_file
-    );
-    $output .= $self->fsys(@cmd, "-report", "json", "-nosummary");
+    my @test_cmd
+      = (@cmd, "--test", "--report", $report, "--outputfile", $output_file);
+    $output .= "dc -> @test_cmd\n" . $self->fbsys(@test_cmd);
+    my @json_cmd = (@cmd, "-report", "json", "-nosummary");
+    $output .= "dc -> @json_cmd\n" . $self->fsys(@json_cmd);
 
     # TODO - option to merge DB with existing one
     # TODO - portability
@@ -284,7 +305,7 @@ class Devel::Cover::Collection {
     write_file(($self->made_res_dir)[0], "collection.js");
     my $template = Template->new({
       LOAD_TEMPLATES =>
-        [ Devel::Cover::Collection::Template::Provider->new({}) ],
+        [Devel::Cover::Collection::Template::Provider->new({})],
     });
     $template->process("summary", $vars, $f) or die $template->error;
     for my $start (sort keys $vars->{modules}->%*) {
@@ -312,7 +333,7 @@ class Devel::Cover::Collection {
     my $re  = qr/^\w-\w\w-\w+-(.*)/;
     my $ext = qr/($Dist_ext_re)/;
     my $ts  = qr/--\d{10,11}\.\d{6}\.out\.gz$/;
-    for my $f ($mods->@*) {
+    for my $f (@$mods) {
       my ($module) = $f =~ /${re}${ext}${ts}/ or next;
       next if $vars->{vals}{$module}{log};
       $vars->{vals}{$module}{log} = $f;
@@ -323,14 +344,19 @@ class Devel::Cover::Collection {
     $n = 0;
     for my $module (keys $vars->{vals}->%*) {
       next if $vars->{vals}{$module}{log};
-      my $ref = "$d/$module/.log_ref";
-      open my $fh, "<", $ref or next;
-      chomp(my $log = <$fh>);
-      close $fh or warn "Can't close $ref: $!";
-      $vars->{vals}{$module}{log} = $log if length $log;
-      print "-"                          if !($n++ % 1000) && !$verbose;
+      my $log = $self->_read_log_ref($d, $module) // next;
+      $vars->{vals}{$module}{log} = $log;
+      print "-" if !($n++ % 1000) && !$verbose;
     }
     say "";
+  }
+
+  method _read_log_ref ($dir, $distdir) {
+    my $ref = "$dir/$distdir/.log_ref";
+    open my $fh, "<", $ref or return undef;
+    chomp(my $line = <$fh>);
+    close $fh or warn "Can't close $ref: $!";
+    defined $line && length $line ? $line : undef
   }
 
   method generate_html {
@@ -348,13 +374,13 @@ class Devel::Cover::Collection {
       vals    => {},
       subdir  => "latest/",
       headers =>
-        [ grep !/path|time/, @Devel::Cover::DB::Criteria_short, "total" ],
-      criteria => [ grep !/path|time/, @Devel::Cover::DB::Criteria, "total" ],
+        [grep !/path|time/, @Devel::Cover::DB::Criteria_short, "total"],
+      criteria    => [grep !/path|time/, @Devel::Cover::DB::Criteria, "total"],
       col_headers => do {
         my @f = (grep(!/path|time/, @Devel::Cover::DB::Criteria), "total");
         my @s
           = (grep(!/path|time/, @Devel::Cover::DB::Criteria_short), "total");
-        [ map { { full => ucfirst($f[$_]), short => $s[$_] } } 0 .. $#f ]
+        [map { { full => ucfirst($f[$_]), short => $s[$_] } } 0 .. $#f]
       },
     };
 
@@ -462,21 +488,168 @@ class Devel::Cover::Collection {
     $self->process_module_file;
     $self->build_modules;
     $self->add_build_dirs;
+    $self->filter_build_dirs_to_targets;
     $self->run_all;
   }
 
   method failed_dir { ($self->made_res_dir("__failed__"))[0] }
   method covered_dir ($d) { $results_dir . "/$d" }
   method failed_file ($d) { $self->failed_dir . "/$d" }
-  method is_covered  ($d) { -d $self->covered_dir($d) }
-  method is_failed   ($d) { -e $self->failed_file($d) }
+
+  method is_covered ($d) {
+    -d $self->covered_dir($d) && (!$rebuild || $self->is_rebuilt($d))
+  }
+
+  method is_failed ($d) {
+    -e $self->failed_file($d) && (!$rebuild || $self->is_rebuilt($d))
+  }
   method set_covered ($d) { unlink $self->failed_file($d) }
 
-  method set_failed ($d) {
-    my $ff = $self->failed_file($d);
-    open my $fh, ">", $ff or return warn "Can't open $ff: $!";
+  method _write_timestamp_marker ($path) {
+    open my $fh, ">", $path or return warn "Can't open $path: $!";
     print $fh scalar localtime;
-    close $fh or warn "Can't close $ff: $!";
+    close $fh or warn "Can't close $path: $!";
+  }
+
+  method set_failed ($d) {
+    $self->_write_timestamp_marker($self->failed_file($d))
+  }
+
+  method rebuilt_dir { ($self->made_res_dir("__rebuilt__"))[0] }
+  method rebuilt_file ($d) { $self->rebuilt_dir . "/$d" }
+  method is_rebuilt   ($d) { -e $self->rebuilt_file($d) }
+
+  method set_rebuilt ($d) {
+    $self->_write_timestamp_marker($self->rebuilt_file($d))
+  }
+
+  method unflag_all_rebuilt {
+    my $d = $self->rebuilt_dir;
+    $self->fsys("rm", "-rf", $d);
+    delete $_made_dirs->{$d};
+  }
+
+  method known_distdirs {
+    my %seen;
+    if (defined $results_dir && -d $results_dir) {
+      opendir my $dh, $results_dir or die "Can't opendir $results_dir: $!";
+      for my $e (readdir $dh) {
+        next          if $e =~ /^\./ || $e =~ /^__/;
+        $seen{$e} = 1 if -e "$results_dir/$e/cover.json";
+      }
+      closedir $dh or warn "Can't closedir $results_dir: $!";
+    }
+    my $fd = $self->failed_dir;
+    opendir my $dh, $fd or die "Can't opendir $fd: $!";
+    for my $e (readdir $dh) {
+      next if $e =~ /^\./;
+      $seen{$e} = 1;
+    }
+    closedir $dh or warn "Can't closedir $fd: $!";
+    sort keys %seen
+  }
+
+  method all_rebuilt {
+    $self->is_rebuilt($_) or return 0 for $self->known_distdirs;
+    1
+  }
+
+  method next_rebuild_batch {
+    return () if $rebuild_batch <= 0;
+    my @pending  = grep !$self->is_rebuilt($_), $self->known_distdirs;
+    my @decorate = map {
+      my $cover = $self->covered_dir($_) . "/cover.json";
+      my $mtime = (stat $cover)[9] // (stat $self->failed_file($_))[9] // 0;
+      [$_, $mtime]
+    } @pending;
+    my @sorted = map $_->[0], sort { $a->[1] <=> $b->[1] } @decorate;
+    @sorted > $rebuild_batch ? @sorted[0 .. $rebuild_batch - 1] : @sorted
+  }
+
+  method cpan_path_for ($distdir) {
+    # The log filename format records the CPAN path directly:
+    # "A-AU-AUTHOR-Dist-Name-1.23.tar.gz--<timestamp>.out.gz". Parse it
+    # instead of asking cpanm, which wants module names (Foo::Bar) not
+    # distribution names (Foo-Bar) and so fails for most real distdirs.
+    #
+    # Legacy caveat: older cpancover runs covered a dist's deps too and
+    # wrote the *target's* .log_ref into every dep distdir. Validate the
+    # distribution name in the log matches this distdir before trusting
+    # it; otherwise fall through to cpanm.
+    my $log = $self->_log_name_for($distdir);
+    if (
+      defined $log
+      && $log =~ m{\A(.)-(..)-([^-]+)-(\Q$distdir\E${Dist_ext_re})--}
+    ) {
+      return "$1/$2/$3/$4";
+    }
+
+    # Fall back to cpanm with the module name, stripping any trailing
+    # version (including "-v1.2.3" forms).
+    my $bare   = $distdir =~ s/-v?\d[\d.]*\z//r;
+    my $module = $bare    =~ s/-/::/gr;
+    my $out    = $self->bsys("cpanm", "--info", $module);
+    chomp $out;
+    length $out ? $out : undef
+  }
+
+  method _log_index {
+    # Index log filenames by distdir so per-distdir lookups are O(1).
+    # Filename format: A-AU-AUTHOR-Distdir-Name-1.23.tar.gz--<ts>.out.gz
+    $_log_index_cache //= do {
+      opendir my $dh, $results_dir or die "Can't opendir $results_dir: $!";
+      my %by_distdir;
+      for my $name (readdir $dh) {
+        next
+          unless $name =~ /\A\w-\w\w-\w+-(.+?)${Dist_ext_re}--.*\.out\.gz\z/;
+        push $by_distdir{$1}->@*, $name;
+      }
+      closedir $dh or warn "Can't closedir $results_dir: $!";
+      \%by_distdir
+    };
+  }
+
+  method _log_name_for ($distdir) {
+    return undef unless defined $results_dir && -d $results_dir;
+    if (defined(my $log = $self->_read_log_ref($results_dir, $distdir))) {
+      return $log;
+    }
+    my $matches = $self->_log_index->{$distdir} // return undef;
+    return $matches->[0] if @$matches == 1;
+    (sort { (stat "$results_dir/$b")[9] <=> (stat "$results_dir/$a")[9] }
+        @$matches)[0]
+  }
+
+  method rebuild_pass {
+    my @candidates = $self->next_rebuild_batch;
+    return 0 unless @candidates;
+    my @paths;
+    for my $d (@candidates) {
+      if (defined(my $path = $self->cpan_path_for($d))) {
+        push @paths, $path;
+      } else {
+        say "Purging defunct $d";
+        $self->sys("rm", "-rf", $self->covered_dir($d));
+        unlink $self->failed_file($d);
+        unlink $self->rebuilt_file($d);
+      }
+    }
+    return 0 unless @paths;
+    $self->set_modules(@paths);
+    $self->cover_modules;
+    scalar @paths
+  }
+
+  method write_status (%counts) {
+    my ($rdir) = $self->made_res_dir;
+    my $f      = "$rdir/.cpancover_status";
+    my $tmp    = "$f.tmp.$$";
+    open my $fh, ">", $tmp or return warn "Can't open $tmp: $!";
+    for my $k (sort keys %counts) {
+      print $fh "$k=$counts{$k}\n";
+    }
+    close $fh or do { unlink $tmp; return warn "Can't close $tmp: $!" };
+    rename $tmp, $f or do { unlink $tmp; warn "Can't rename $tmp to $f: $!" };
   }
 
   method dc_file {
@@ -489,6 +662,7 @@ class Devel::Cover::Collection {
     $self->process_module_file;
     # say "modules: ", Dumper $modules;
 
+    local $ENV{CPANCOVER_REBUILD} = 1 if $rebuild;
     my @cmd = ($self->dc_file, "--env", $env);
     push @cmd, "--results_dir", $results_dir if defined $results_dir;
     push @cmd, "--verbose" if $verbose;
@@ -526,15 +700,18 @@ class Devel::Cover::Collection {
           say "Killed docker container $name";
         }
 
-        if ($self->is_covered($d)) {
+        # Don't use is_covered here: in rebuild mode it also requires
+        # the __rebuilt__ marker, which we're about to write below.
+        if (-d $self->covered_dir($d)) {
           $self->set_covered($d);
           say "$d done";
         } else {
           $self->set_failed($d);
           say "$d failed";
         }
+        $self->set_rebuilt($d) if $rebuild;
       },
-      do { my %m; [ sort grep !$m{$_}++, @$modules ] },
+      do { my %m; [sort grep !$m{$_}++, @$modules] },
     );
   }
 
@@ -885,7 +1062,7 @@ Filename for the main output file. Default: 'index.html'.
 
 =head3 report
 
-Report format to generate. Default: 'html_basic'.
+Report format to generate. Default: 'html'.
 
 =head3 timeout
 
@@ -906,6 +1083,18 @@ Docker command to use. Default: 'docker'.
 =head3 local
 
 Boolean. If true, run in local mode without Docker. Default: 0.
+
+=head3 rebuild
+
+Boolean. If true, cpancover is running in rebuild mode: already-covered
+distributions are reprocessed so their results reflect the current
+Devel::Cover and the current default report. Default: 0.
+
+=head3 rebuild_batch
+
+Maximum number of distdirs returned by C<next_rebuild_batch> in a single
+call. C<0> disables the rebuild pass (C<next_rebuild_batch> returns an
+empty list). Default: 100.
 
 =head2 Read-Write-Private Attributes
 
@@ -989,12 +1178,23 @@ true, uses the C<-f> flag.
 Scans the CPAN directories for build directories and adds them to
 C<build_dirs>.
 
+=head3 filter_build_dirs_to_targets
+
+  $collection->filter_build_dirs_to_targets;
+
+Reduces C<build_dirs> to those entries whose basename (with the trailing
+C<< -<n> >> CPAN counter stripped) matches a distdir name derived from
+C<modules>. Used after C<add_build_dirs> so that dependency build
+directories pulled in by C<cpan -Ti> are not covered alongside the target
+distribution.
+
 =head3 local_build
 
   $collection->local_build;
 
 Orchestrates a complete local build workflow: processes the module file,
-builds modules, adds build directories, and runs coverage on all.
+builds modules, adds build directories, filters them to the target
+distributions, and runs coverage on all.
 
 =head2 Coverage Operations
 
@@ -1061,12 +1261,17 @@ modules.
   if ($collection->is_covered($module_dir)) { ... }
 
 Returns true if coverage results exist for the given module directory.
+In rebuild mode (C<$rebuild> is true), also requires that the distdir
+has been flagged as rebuilt this cycle; already-covered but not-yet-
+rebuilt distdirs return false so C<cover_modules> will re-process them.
 
 =head3 is_failed
 
   if ($collection->is_failed($module_dir)) { ... }
 
-Returns true if the module has been marked as failed.
+Returns true if the module has been marked as failed. In rebuild mode,
+requires the distdir to have been flagged as rebuilt this cycle for
+the same reason as C<is_covered>.
 
 =head3 set_covered
 
@@ -1080,6 +1285,108 @@ Marks a module as successfully covered (removes any failure marker).
 
 Marks a module as failed by creating a timestamp file in the failed
 directory.
+
+=head2 Rebuild State
+
+Rebuild state mirrors the failure-tracking family above, but is used to
+drive gradual regeneration of already-covered distributions when the
+Devel::Cover version or default report has changed. State is persisted on
+disk under C<< $results_dir/__rebuilt__/ >>, parallel to C<__failed__>.
+
+=head3 rebuilt_dir
+
+  my $path = $collection->rebuilt_dir;
+
+Returns the path to the directory containing rebuild markers, creating
+it if necessary.
+
+=head3 rebuilt_file ($module_dir)
+
+  my $path = $collection->rebuilt_file($module_dir);
+
+Returns the path to the rebuild marker file for a distdir.
+
+=head3 is_rebuilt ($module_dir)
+
+  if ($collection->is_rebuilt($module_dir)) { ... }
+
+Returns true if the distdir has been flagged as rebuilt in this cycle.
+
+=head3 set_rebuilt ($module_dir)
+
+  $collection->set_rebuilt($module_dir);
+
+Marks a distdir as rebuilt by writing a timestamp file in the rebuilt
+directory. Called on any outcome (success or failure) in rebuild mode so
+the entry does not get retried before the cycle completes.
+
+=head3 unflag_all_rebuilt
+
+  $collection->unflag_all_rebuilt;
+
+Removes the rebuilt directory and all its markers. Called at the end of
+a rebuild cycle once every known distdir has been processed.
+
+=head3 known_distdirs
+
+  my @d = $collection->known_distdirs;
+
+Returns the union of distdirs with a C<cover.json> under C<$results_dir>
+and distdirs named by markers under C<__failed__/>. Used to define the
+rebuild queue.
+
+=head3 all_rebuilt
+
+  if ($collection->all_rebuilt) { ... }
+
+Returns true if every entry in C<known_distdirs> has a rebuild marker
+(or if C<known_distdirs> is empty).
+
+=head3 next_rebuild_batch
+
+  my @batch = $collection->next_rebuild_batch;
+
+Returns up to C<rebuild_batch> distdirs that have not yet been rebuilt,
+oldest first by the mtime of their C<cover.json> (or their C<__failed__/>
+marker when no cover.json exists). Returns an empty list when
+C<rebuild_batch> is not positive.
+
+=head3 cpan_path_for ($distdir)
+
+  my $path = $collection->cpan_path_for("Foo-Bar-1.23");
+
+Maps a distdir back to a CPAN release path (e.g. C<< AUTHOR/Foo-Bar-
+1.23.tar.gz >>) by running C<cpanm --info> on the bare distribution
+name. Returns undef when the lookup fails. Used by C<rebuild_pass> to
+feed distdirs from C<next_rebuild_batch> into C<cover_modules>, which
+expects CPAN paths rather than distdirs.
+
+=head3 rebuild_pass
+
+  my $n = $collection->rebuild_pass;
+
+Runs one batch of the rebuild queue: pulls distdirs from
+C<next_rebuild_batch>, resolves each to a CPAN path via
+C<cpan_path_for>, sets C<modules> to the resulting list, and invokes
+C<cover_modules>. A distdir whose lookup fails is treated as no longer
+on CPAN and purged: the distdir itself, its C<__failed__/> marker, and
+its C<__rebuilt__/> marker are all removed. Returns the number of
+modules fed to C<cover_modules> (zero if the queue is empty or every
+lookup failed). Intended to be called from the rebuild loop recipe in
+C<utils/dc>.
+
+=head3 write_status (%counts)
+
+  $collection->write_status(
+    new_count     => 4,
+    rebuilt_count => 100,
+    all_rebuilt   => 0,
+  );
+
+Writes a one-line-per-key C<key=value> file at
+C<< $results_dir/.cpancover_status >>. The rebuild loop recipe reads
+this file between passes to decide whether to regenerate the top-level
+HTML and whether the rebuild cycle has finished.
 
 =head2 Path Methods
 

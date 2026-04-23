@@ -98,6 +98,13 @@ cpancover:
   cpancover-latest                     List the latest CPAN modules to process.
   cpancover-run-loop                   Run build cycles in a loop (10 min
                                        interval).
+  cpancover-rebuild-batch              Run one rebuild pass at CPANCOVER_
+                                       REBUILD_BATCH and regenerate HTML
+                                       (smoke test before run-loop-rebuild).
+  cpancover-run-loop-rebuild           Regenerate every already-covered
+                                       distribution in batches (CPANCOVER_
+                                       REBUILD_BATCH, default 100), then
+                                       fall through to the normal run loop.
   cpancover-run-once                   Fetch latest modules and run one build
                                        cycle.
   cpancover-serve [port]               Serve results locally via Caddy (default
@@ -107,10 +114,17 @@ cpancover:
   cpancover-uncompress-dir <subdir>    Decompress a results subdirectory.
 
 cpancover (Docker):
+  cpancover-controller-rebuild-batch   Start a controller container running one
+                                       rebuild pass (CPANCOVER_REBUILD_BATCH,
+                                       default 100) and regenerate HTML.
   cpancover-controller-run             Start a controller container running the
                                        build loop.
   cpancover-controller-run-once        Start a controller container for one
                                        build cycle.
+  cpancover-controller-run-rebuild     Start a controller container running the
+                                       rebuild loop (CPANCOVER_REBUILD_BATCH,
+                                       default 100), then fall through to the
+                                       normal run loop.
   cpancover-controller-shell           Open a shell in a controller container.
   cpancover-controller-test            Run a test module via the controller
                                        pipeline.
@@ -625,28 +639,78 @@ recipe_cpancover-docker-module() {
     "$docker_image" \
     dc $v cpancover-build-module "$module")
   ((verbose)) && pi "container is $container"
+
+  local log_file="$staging/$log_name.out"
+  local local_staging="$staging/$name"
+
   if timeout "$module_timeout" "$docker" wait "$name" >/dev/null 2>&1; then
-    $docker logs "$name" | tee "$staging/$log_name.out"
-    local_staging="$staging/$name"
-    mkdir -p "$local_staging"
-    $docker cp "$name:/root/cover/staging" "$local_staging"
-    if [[ -d $local_staging ]]; then
-      chmod -R 755 "$local_staging"
-      find "$local_staging" -type f -exec chmod 644 {} \;
-      chown -R "$(id -un):$(id -gn)" "$local_staging"
-      cd "$local_staging"/* || exit
-      for f in *; do
-        if [[ -d $f && ! -d "$staging/$f" ]]; then
-          echo "$log_name.out.gz" >"$f/.log_ref"
-          mv "$f" "$staging"
-        fi
-      done
-      rm -r "$local_staging"
+    if ! $docker logs "$name" >"$log_file" 2>&1; then
+      pe "docker logs failed for $name"
     fi
+    if ((verbose)); then
+      cat "$log_file" 2>/dev/null || true
+    fi
+
+    mkdir -p "$local_staging"
+    if ! $docker cp "$name:/root/cover/staging" "$local_staging" 2>>"$log_file"; then
+      pe "docker cp failed for $name; see $log_file"
+      rm -rf "$local_staging"
+      $docker rm "$name" >/dev/null 2>&1 || true
+      return 1
+    fi
+
+    local copy_src="$local_staging/staging"
+    if [[ ! -d $copy_src ]]; then
+      pe "docker cp produced no $copy_src for $module"
+      {
+        echo "[dc] docker cp produced no $copy_src"
+        echo "[dc] local_staging contents:"
+        ls -laR "$local_staging" 2>&1 || true
+      } >>"$log_file"
+      rm -rf "$local_staging"
+      $docker rm "$name" >/dev/null 2>&1 || true
+      return 1
+    fi
+
+    chmod -R 755 "$local_staging" ||
+      pw "chmod dirs failed for $local_staging; continuing"
+    find "$local_staging" -type f -exec chmod 644 {} \; ||
+      pw "chmod files failed for $local_staging; continuing"
+    chown -R "$(id -un):$(id -gn)" "$local_staging" ||
+      pw "chown failed for $local_staging; continuing"
+
+    local seen=0
+    local f base
+    for f in "$copy_src"/*; do
+      [[ -d $f ]] || continue
+      ((++seen))
+      base=$(basename "$f")
+      if [[ -n "${CPANCOVER_REBUILD:-}" ]]; then
+        rm -rf "${staging:?}/$base"
+      elif [[ -d "$staging/$base" ]]; then
+        continue
+      fi
+      echo "$log_name.out.gz" >"$f/.log_ref"
+      mv "$f" "$staging"
+    done
+
+    if ((seen == 0)); then
+      pw "container produced no distdirs in $copy_src for $module"
+      echo "[dc] container produced no distdirs in $copy_src" >>"$log_file"
+    fi
+
+    rm -r "$local_staging"
   else
     pi "module timed out after ${module_timeout}s, killing container: $module"
-    $docker logs "$name" | tee "$staging/$log_name.out" 2>/dev/null || true
+    $docker logs "$name" >"$log_file" 2>&1 || true
     $docker kill "$name" >/dev/null 2>&1 || true
+    if [[ -n "${CPANCOVER_REBUILD:-}" ]]; then
+      local bare
+      bare=$(cpan_distdir "${module##*/}")
+      if [[ -d "$staging/$bare" ]]; then
+        echo "$log_name.out.gz" >"$staging/$bare/.log_ref"
+      fi
+    fi
   fi
   $docker rm "$name" >/dev/null 2>&1 || true
 }
@@ -865,11 +929,36 @@ recipe_cpancover-generate-html() {
   cpancover_generate_html
 }
 
+cpancover_distdir_count() {
+  mkdir -p "$results_dir"
+  find "$results_dir" -maxdepth 1 -mindepth 1 -type d ! -name '__*' |
+    wc -l
+}
+
+cpancover_status_value() {
+  local key="$1"
+  local f="$results_dir/.cpancover_status"
+  [[ -f $f ]] || {
+    echo 0
+    return
+  }
+  local val
+  val=$(awk -F= -v k="$key" '$1 == k { print $2 }' "$f")
+  echo "${val:-0}"
+}
+
 cpancover_build() {
   pi "Starting cpancover build at $(date) on $(nice_cpus) cpus"
   cpancover_docker_rm
+  local before after
+  before=$(cpancover_distdir_count)
   run_cpancover --build
-  cpancover_generate_html
+  after=$(cpancover_distdir_count)
+  if ((after != before)); then
+    cpancover_generate_html
+  else
+    pi "No new distdirs; skipping HTML regeneration"
+  fi
   pi "Finished cpancover build at $(date)"
 }
 
@@ -896,6 +985,54 @@ recipe_cpancover-run-loop() {
   cpancover_run_loop
 }
 
+# Rebuild every already-covered distribution on the site with the current
+# Devel::Cover and default report, processing new CPAN releases in parallel.
+# When every known distdir has been rebuilt, clear the __rebuilt__ markers
+# and fall through to the normal cpancover_run_loop.
+cpancover_run_loop_rebuild() {
+  local batch="${CPANCOVER_REBUILD_BATCH:-100}"
+  pi "Starting cpancover rebuild loop at $(date), batch=$batch"
+
+  run_cpancover --nobuild --generate_html
+
+  while true; do
+    cpancover_docker_rm
+
+    cpancover_latest | run_cpancover --build --rebuild --rebuild_batch 0
+    local new
+    new=$(cpancover_status_value new_count)
+    ((new > 0)) && run_cpancover --nobuild --generate_html
+
+    run_cpancover --nobuild --rebuild --rebuild_batch "$batch"
+    local rebuilt
+    rebuilt=$(cpancover_status_value rebuilt_count)
+    ((rebuilt > 0)) && run_cpancover --nobuild --generate_html
+
+    if [[ $(cpancover_status_value all_rebuilt) == 1 ]]; then
+      pi "Rebuild complete; clearing __rebuilt__ markers"
+      rm -rf "${results_dir:?}/__rebuilt__"
+      break
+    fi
+  done
+
+  pi "Falling through to normal cpancover_run_loop"
+  cpancover_run_loop
+}
+
+recipe_cpancover-run-loop-rebuild() {
+  cpancover_run_loop_rebuild
+}
+
+# Run a single rebuild pass at CPANCOVER_REBUILD_BATCH (default 100) and
+# regenerate HTML. Intended for production smoke tests before kicking off
+# the long-running cpancover-controller-run-rebuild.
+recipe_cpancover-rebuild-batch() {
+  local v=
+  ((verbose)) && v=--verbose
+  run_cpancover $v --nobuild --rebuild \
+    --rebuild_batch "${CPANCOVER_REBUILD_BATCH:-100}" --generate_html
+}
+
 recipe_cpancover-controller-run() {
   local o=(--env "$env")
   ((verbose)) && o+=("--verbose")
@@ -906,6 +1043,18 @@ recipe_cpancover-controller-run-once() {
   local o=(--env "$env")
   ((verbose)) && o+=("--verbose")
   cpancover_controller_command controller dc "${o[@]}" cpancover-run-once
+}
+
+recipe_cpancover-controller-run-rebuild() {
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  cpancover_controller_command controller dc "${o[@]}" cpancover-run-loop-rebuild
+}
+
+recipe_cpancover-controller-rebuild-batch() {
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  cpancover_controller_command controller dc "${o[@]}" cpancover-rebuild-batch
 }
 
 # Default test module - small, stable, predictable
