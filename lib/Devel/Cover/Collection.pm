@@ -502,11 +502,14 @@ class Devel::Cover::Collection {
   }
   method set_covered ($d) { unlink $self->failed_file($d) }
 
-  method set_failed ($d) {
-    my $ff = $self->failed_file($d);
-    open my $fh, ">", $ff or return warn "Can't open $ff: $!";
+  method _write_timestamp_marker ($path) {
+    open my $fh, ">", $path or return warn "Can't open $path: $!";
     print $fh scalar localtime;
-    close $fh or warn "Can't close $ff: $!";
+    close $fh or warn "Can't close $path: $!";
+  }
+
+  method set_failed ($d) {
+    $self->_write_timestamp_marker($self->failed_file($d))
   }
 
   method rebuilt_dir { ($self->made_res_dir("__rebuilt__"))[0] }
@@ -514,10 +517,7 @@ class Devel::Cover::Collection {
   method is_rebuilt   ($d) { -e $self->rebuilt_file($d) }
 
   method set_rebuilt ($d) {
-    my $rf = $self->rebuilt_file($d);
-    open my $fh, ">", $rf or return warn "Can't open $rf: $!";
-    print $fh scalar localtime;
-    close $fh or warn "Can't close $rf: $!";
+    $self->_write_timestamp_marker($self->rebuilt_file($d))
   }
 
   method unflag_all_rebuilt { $self->fsys("rm", "-rf", $self->rebuilt_dir) }
