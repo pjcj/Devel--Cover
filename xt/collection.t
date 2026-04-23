@@ -344,7 +344,7 @@ sub sys_timeout () {
 
 sub sys_verbose_output () {
   skip_all "alarm not available on Windows" if $Is_win32;
-  my $c = Devel::Cover::Collection->new(verbose => 1, timeout => 10);
+  my $c      = Devel::Cover::Collection->new(verbose => 1, timeout => 10);
   my $output = $c->bsys("printf", "result\\n");
   unlike $output, qr/dc -> /, "verbose mode does not prefix captured output";
   is $output, "result\n", "captured output is only the command's stdout";
@@ -616,6 +616,11 @@ sub make_cpanm_stub ($bin) {
   chmod 0755, "$bin/cpanm" or die "Can't chmod cpanm stub: $!";
 }
 
+sub touch_empty_file ($path) {
+  open my $fh, ">", $path or die "Can't touch $path: $!";
+  close $fh or die "Can't close $path: $!";
+}
+
 sub next_rebuild_batch_method () {
   skip_all "uses fsys which requires alarm" if $Is_win32;
   my $dir = tempdir(CLEANUP => 1);
@@ -732,11 +737,10 @@ sub cpan_path_for_method () {
     "cpan_path_for prefers .log_ref when available";
 
   # Fall back to top-level log filename for failed entries (no distdir).
-  open my $log, ">", "$dir/B-BA-BAZ-Only-Log-2.00.tar.gz--111.222.out.gz"
+  open my $log, ">", "$dir/Q-QU-QUX-Only-Log-2.00.tar.gz--111.222.out.gz"
     or die;
   close $log or die;
-  is $c->cpan_path_for("Only-Log-2.00"),
-    "B/BA/BAZ/Only-Log-2.00.tar.gz",
+  is $c->cpan_path_for("Only-Log-2.00"), "Q/QU/QUX/Only-Log-2.00.tar.gz",
     "cpan_path_for parses top-level log filename when no .log_ref";
 
   # Multiple top-level logs for the same distdir: pick the newest by
@@ -746,16 +750,13 @@ sub cpan_path_for_method () {
   my $mdir = tempdir(CLEANUP => 1);
   my $old  = "$mdir/A-AU-OLDAUTH-Multi-1.0.tar.gz--111.out.gz";
   my $new  = "$mdir/A-AU-NEWAUTH-Multi-1.0.tar.gz--222.out.gz";
-  for my $f ($old, $new) {
-    open my $lh, ">", $f or die;
-    close $lh or die;
-  }
+  touch_empty_file($old);
+  touch_empty_file($new);
   my $now = time;
   utime $now - 100, $now - 100, $old or die "utime $old: $!";
   utime $now,       $now,       $new or die "utime $new: $!";
   my $cm = Devel::Cover::Collection->new(results_dir => $mdir);
-  is $cm->cpan_path_for("Multi-1.0"),
-    "A/AU/NEWAUTH/Multi-1.0.tar.gz",
+  is $cm->cpan_path_for("Multi-1.0"), "A/AU/NEWAUTH/Multi-1.0.tar.gz",
     "cpan_path_for picks newest log when multiple match distdir";
 
   # Legacy bug: a dep distdir may carry the target's .log_ref. Don't
@@ -773,13 +774,11 @@ sub cpan_path_for_method () {
   # Fall back to cpanm --info with the dash->colon module name when no
   # log file is available (first-time coverage of a new distdir).
   my $c2 = Devel::Cover::Collection->new(results_dir => tempdir(CLEANUP => 1));
-  is $c2->cpan_path_for("Fresh-Dist-1.00"),
-    "AUTHOR/Fresh-Dist-9.99.tar.gz",
+  is $c2->cpan_path_for("Fresh-Dist-1.00"), "AUTHOR/Fresh-Dist-9.99.tar.gz",
     "cpan_path_for falls back to cpanm --info with module name";
 
   # Strip both "-1.23" and "-v0.2.4" style version suffixes.
-  is $c2->cpan_path_for("V-Prefixed-v0.2.4"),
-    "AUTHOR/V-Prefixed-9.99.tar.gz",
+  is $c2->cpan_path_for("V-Prefixed-v0.2.4"), "AUTHOR/V-Prefixed-9.99.tar.gz",
     "cpan_path_for strips v-prefixed version suffix";
 
   local $SIG{__WARN__} = sub { };
@@ -788,9 +787,11 @@ sub cpan_path_for_method () {
 
   # Verbose mode must not leak the "dc -> ..." trace into the return.
   my $v = Devel::Cover::Collection->new(
-    results_dir => tempdir(CLEANUP => 1), verbose => 1);
+    results_dir => tempdir(CLEANUP => 1),
+    verbose     => 1,
+  );
   open my $saved, ">&", \*STDERR or die "dup STDERR: $!";
-  close STDERR;
+  close STDERR or die "close STDERR: $!";
   open STDERR, ">", \my $err or die "redirect STDERR: $!";
   my $path = $v->cpan_path_for("Clean-Path-1.00");
   open STDERR, ">&", $saved or die "restore STDERR: $!";
@@ -830,7 +831,7 @@ sub rebuild_pass_method () {
   # unit test.)
   my $bin = tempdir(CLEANUP => 1);
   open my $fh, ">", "$bin/cpanm" or die "Can't write stub: $!";
-  print $fh qq(#!/bin/sh\nexit 1\n);
+  print $fh "#!/bin/sh\nexit 1\n";
   close $fh or die;
   chmod 0755, "$bin/cpanm" or die;
   local $ENV{PATH}     = "$bin:$ENV{PATH}";
