@@ -437,7 +437,7 @@ sub get_coverage {
     }
 
     my $inc;
-    $inc ||= $file =~ $_ for @Inc_re;
+    $inc ||= $file =~ $_ for grep defined, @Inc_re;
     if ($inc && ($^O eq "MSWin32" || $^O eq "cygwin")) {
       # Windows' Cwd::_win32_cwd() calls eval which will recurse back
       # here if we call abs_path, so we just assume it's normalised.
@@ -463,6 +463,7 @@ sub get_coverage {
 }
 
 sub get_location ($op) {
+  return if ${^GLOBAL_PHASE} eq "DESTRUCT";
   return unless $op->can("file");  # How does this happen?
   $File = $op->file;
   $Line = $op->line;
@@ -483,6 +484,8 @@ sub get_location ($op) {
 }
 
 sub use_file ($file) {
+  return 0 if ${^GLOBAL_PHASE} eq "DESTRUCT";
+
   state $find_filename = qr/
     (?:^\(eval\s \d+\)\[(.+):\d+\])      |
     (?:^\(eval\sin\s\w+\)\s(.+))         |
@@ -508,8 +511,10 @@ sub use_file ($file) {
 
   my $f = normalised_file($file);
 
-  for (@Select_re)          { return $Files{$file} = 1 if $f =~ $_ }
-  for (@Ignore_re, @Inc_re) { return $Files{$file} = 0 if $f =~ $_ }
+  for (grep defined, @Select_re) { return $Files{$file} = 1 if $f =~ $_ }
+  for (grep defined, @Ignore_re, @Inc_re) {
+    return $Files{$file} = 0 if $f =~ $_;
+  }
 
   $Files{$file} = -e $file ? 1 : 0;
   print STDERR __PACKAGE__ . qq(: Can't find file "$file": ignored.\n)
@@ -621,7 +626,7 @@ sub check_files {
   };
 
   @Cvs = map $_->[0],
-    sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] } map [ $_, $l->($_) ],
+    sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] } map [$_, $l->($_)],
     grep !$seen_cv{$$_}++, values %Cvs;
 
   # Hack to bump up the refcount of the subs.  If we don't do this then the
@@ -697,7 +702,7 @@ sub _report {
   $Run{collected} = \@collected;
   require Devel::Cover::DB::Structure;
   $Structure = Devel::Cover::DB::Structure->new(base => $DB,
-    loose_perms => $Loose_perms,);
+    loose_perms => $Loose_perms);
   $Structure->read_all;
   $Structure->add_criteria(@collected);
 
@@ -784,7 +789,7 @@ sub add_subroutine_cover ($op) {
   my $key = get_key($op);
   my $val = $Coverage->{statement}{$key} || 0;
   my ($n, $new) = $Structure->add_count("subroutine");
-  $Structure->add_subroutine($File, [ $Line, $Sub_name ]) if $new;
+  $Structure->add_subroutine($File, [$Line, $Sub_name]) if $new;
   $Run{count}{$File}{subroutine}[$n] += $val;
   my $vec = $Run{vec}{$File}{subroutine};
   vec($vec->{vec}, $n, 1) = $val ? 1 : 0;
@@ -832,13 +837,13 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
     # elsif => no subsequent elsifs or elses
     # True path taken if not short circuited.
     # False path taken if short circuited.
-    $c = [ $c->[1] + $c->[2], $c->[3] ];
+    $c = [$c->[1] + $c->[2], $c->[3]];
   } else {
-    $c = $Coverage->{branch}{$key} || [ 0, 0 ];
+    $c = $Coverage->{branch}{$key} || [0, 0];
   }
 
   my ($n, $new) = $Structure->add_count("branch");
-  $Structure->add_branch($file, [ $line, { text => $text } ]) if $new;
+  $Structure->add_branch($file, [$line, { text => $text }]) if $new;
   my $ccount = $Run{count}{$file};
   if (exists $ccount->{branch}[$n]) {
     $ccount->{branch}[$n][$_] += $c->[$_] for 0 .. $#$c;
@@ -870,15 +875,15 @@ sub add_condition_cover (
   if ($type eq "or" || $type eq "and") {
     my $r = $op->first->sibling;
     if ($c->[5] || _is_const_right($r)) {
-      $c     = [ $c->[3], $c->[1] + $c->[2] ];
+      $c     = [$c->[3], $c->[1] + $c->[2]];
       $count = 2;
     } else {
-      @$c    = $c->@[ $type eq "or" ? (3, 2, 1) : (3, 1, 2) ];
+      @$c    = $c->@[$type eq "or" ? (3, 2, 1) : (3, 1, 2)];
       $count = 3;
     }
   } elsif ($type eq "xor") {
     # !l&&!r  l&&!r  l&&r  !l&&r
-    @$c    = $c->@[ 3, 2, 4, 1 ];
+    @$c    = $c->@[3, 2, 4, 1];
     $count = 4;
   } else {
     die qq(Unknown type "$type" for conditional);
@@ -900,7 +905,7 @@ sub add_condition_cover (
   };
 
   my ($n, $new) = $Structure->add_count("condition");
-  $Structure->add_condition($File, [ $Line, $structure ]) if $new;
+  $Structure->add_condition($File, [$Line, $structure]) if $new;
   my $ccount = $Run{count}{$File};
   if (exists $ccount->{condition}[$n]) {
     $ccount->{condition}[$n][$_] += $c->[$_] for 0 .. $#$c;
@@ -1232,7 +1237,7 @@ sub _add_pod_cover ($cv) {
   return unless defined $covered;
 
   my ($n, $new) = $Structure->add_count("pod");
-  $Structure->add_pod($File, [ $Line, $Sub_name ]) if $new;
+  $Structure->add_pod($File, [$Line, $Sub_name]) if $new;
   $Run{count}{$File}{pod}[$n] += $covered;
   my $vec = $Run{vec}{$File}{pod};
   vec($vec->{vec}, $n, 1) = $covered ? 1 : 0;
@@ -1240,12 +1245,14 @@ sub _add_pod_cover ($cv) {
 }
 
 sub _want_cover_for {
+  return if ${^GLOBAL_PHASE} eq "DESTRUCT";
   return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK
   return if length $File && !use_file($File);
   if (!$Self_cover_run && $File =~ /Devel\/Cover/) {
     # Allow partial self-coverage: if -select patterns are active and this DC
     # module matches one, let it through for instrumentation.
-    return unless @Select_re && List::Util::any { $File =~ $_ } @Select_re;
+    return unless @Select_re && List::Util::any { defined && $File =~ $_ }
+    @Select_re;
   }
   return if $Self_cover_run && $File !~ /Devel\/Cover/;
   return
@@ -1347,9 +1354,9 @@ sub _deparse_binop_left ($cv, $op, $child, $prec, $use_dumper = 1) {
 }
 
 my %Logop_params = (
-  and => [ "and", 3, "&&", 11, "if" ],
-  or  => [ "or",  2, "||", 10, "unless" ],
-  dor => [ "//",  10 ],
+  and => ["and", 3, "&&", 11, "if"],
+  or  => ["or",  2, "||", 10, "unless"],
+  dor => ["//",  10],
 );
 
 # Check if a null-statement op is inside a cond_expr/elsif condition
