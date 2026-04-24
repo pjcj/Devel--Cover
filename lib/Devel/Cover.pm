@@ -463,6 +463,7 @@ sub get_coverage {
 }
 
 sub get_location ($op) {
+  return if ${^GLOBAL_PHASE} eq "DESTRUCT";
   return unless $op->can("file");  # How does this happen?
   $File = $op->file;
   $Line = $op->line;
@@ -483,6 +484,8 @@ sub get_location ($op) {
 }
 
 sub use_file ($file) {
+  return 0 if ${^GLOBAL_PHASE} eq "DESTRUCT";
+
   state $find_filename = qr/
     (?:^\(eval\s \d+\)\[(.+):\d+\])      |
     (?:^\(eval\sin\s\w+\)\s(.+))         |
@@ -1242,6 +1245,7 @@ sub _add_pod_cover ($cv) {
 }
 
 sub _want_cover_for {
+  return if ${^GLOBAL_PHASE} eq "DESTRUCT";
   return unless defined $Sub_name;  # Only happens within Safe.pm, AFAIK
   return if length $File && !use_file($File);
   if (!$Self_cover_run && $File =~ /Devel\/Cover/) {
