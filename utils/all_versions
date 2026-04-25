@@ -117,14 +117,14 @@ sub write_status (
   print $fh "# all_versions Run Status\n\n";
   print $fh "## Summary\n\n";
   print $fh format_table(
-    [ "Field", "Value" ],
+    ["Field", "Value"],
     [
-      [ "Status",   "**$status**" ],
-      [ "Started",  $timestamp ],
-      [ "Duration", format_duration($elapsed) ],
-      [ "Command",  "`$command`" ],
-      [ "Passed",   @$passed . "/$total" ],
-      [ "Failed",   @$failed . "/$total" ],
+      ["Status",   "**$status**"],
+      ["Started",  $timestamp],
+      ["Duration", format_duration($elapsed)],
+      ["Command",  "`$command`"],
+      ["Passed",   @$passed . "/$total"],
+      ["Failed",   @$failed . "/$total"],
     ],
   );
   print $fh "\n";
@@ -132,8 +132,8 @@ sub write_status (
   if (@$passed) {
     print $fh "## Passed Versions\n\n";
     print $fh format_table(
-      [ "Version",                                  "Duration" ],
-      [ map [ $_, format_duration($timing->{$_}) ], @$passed ],
+      ["Version",                                "Duration"],
+      [map [$_, format_duration($timing->{$_})], @$passed],
     );
     print $fh "\n";
   }
@@ -141,9 +141,9 @@ sub write_status (
   if (@$failed) {
     print $fh "## Failed Versions\n\n";
     print $fh format_table(
-      [ "Version", "Duration", "Log" ],
+      ["Version", "Duration", "Log"],
       [
-        map [ $_, format_duration($timing->{$_}), "[$_.log]($_.log)" ],
+        map [$_, format_duration($timing->{$_}), "[$_.log]($_.log)"],
         @$failed,
       ],
     );
@@ -193,7 +193,7 @@ sub get_options {
   ] unless $Options->{version}->@*;
   if ($Options->{key}) {
     $Options->{version}
-      = [ qw( 5.20.0 5.28.0 5.38.0 5.40.0 5.42.2 5.42.2-thr 5.43.9 ) ];
+      = [qw( 5.20.0 5.28.0 5.38.0 5.40.0 5.42.2 5.42.2-thr 5.43.9 )];
   }
   $Options->{version} = [
     grep {
@@ -324,7 +324,7 @@ sub build {
     sub ($i, $v) {
       _build_versions($v);
     },
-    [ grep !/-thr/, $Options->{version}->@* ],
+    [grep !/-thr/, $Options->{version}->@*],
   );
   exit;
 }
