@@ -99,42 +99,49 @@ sub check_line_endings ($msg) {
   for my $m (@$msg) {
     if ($m =~ /\015\012$/) {
       $m =~ s/\015\012$//;
-      push @Errors, [ "Line $n has windows line endings (CR LF)", $m ];
+      push @Errors, ["Line $n has windows line endings (CR LF)", $m];
     }
     $n++;
   }
 }
 
+sub check_subject ($l, $main, $merge, $skip) {
+  push @Errors, ["Line 1 is longer than 50 characters", $l]
+    if !$skip && length $l > 50;
+  push @Errors, ["Line 1 should not reference ticket id", $l]
+    if !$skip && $l =~ /[-#]\w?(?:\d{3,})/;
+  push @Errors,
+    ["Merge should reference ticket rather than full branch name", $l]
+    if !$main && $merge && $l !~ /'[A-Z]{2,8}-\d+'/;
+  my $start = substr($l, 0, 1) // "";
+  push @Errors, ["Line 1 does not start with an expected character", $l]
+    if $start !~ /\w/;
+  push @Errors, ["Line 1 does not start with a capital letter", $l]
+    if !$skip && $start eq lc $start;
+  my $verb = $l =~ $Blocklist ? "does" : $l =~ /^\w+ing\b/ ? "might" : "";
+  push @Errors, ["Line 1 $verb not use imperative present tense", $l]
+    if !$skip && $verb;
+  push @Errors, ["Line 1 needs changing from the commit template", $l]
+    if $l =~ /Capitalised, short description/;
+}
+
 sub check_beginning ($msg) {
   return unless @$msg;
 
-  my $main  = on_main;
-  my $l     = shift @$msg;
-  my $merge = $l =~ /^Merge branch /;
-  push @Errors, [ "Line 1 is longer than 50 characters", $l ]
-    if !$merge && length $l > 50;
-  push @Errors, [ "Line 1 should not reference ticket id", $l ]
-    if !$merge && $l =~ /[-#]\w?(?:\d{3,})/;
-  push @Errors,
-    [ "Merge should reference ticket rather than full branch name", $l ]
-    if !$main && $merge && $l !~ /'[A-Z]{2,8}-\d+'/;
-  my $start = substr($l, 0, 1) // "";
-  push @Errors, [ "Line 1 does not start with an expected character", $l ]
-    if $start !~ /\w/;
-  push @Errors, [ "Line 1 does not start with a capital letter", $l ]
-    if $start eq lc $start;
-  my $verb = $l =~ $Blocklist ? "does" : $l =~ /^\w+ing\b/ ? "might" : "";
-  push @Errors, [ "Line 1 $verb not use imperative present tense", $l ]
-    if $verb;
-  push @Errors, [ "Line 1 needs changing from the commit template", $l ]
-    if $l =~ /Capitalised, short description/;
+  my $main       = on_main;
+  my $l          = shift @$msg;
+  my $merge      = $l =~ /^Merge /;
+  my $autosquash = $l =~ /^(?:fixup|squash|amend)! /;
+  my $skip       = $merge || $autosquash;
+
+  check_subject($l, $main, $merge, $skip);
 
   my $l2 = $msg->[0] // "";
-  push @Errors, [ "Line 2 is not empty", $l2 ] if !$merge && length $l2;
+  push @Errors, ["Line 2 is not empty", $l2] if !$skip && length $l2;
 
   my $l3 = $msg->[1] // "";
-  push @Errors, [ "Line 3 does not reference ticket id", $l3 ]
-    if !$main && !$merge && $l3 !~ /^Ticket [A-Z]{2,8}-\d+$/;
+  push @Errors, ["Line 3 does not reference ticket id", $l3]
+    if !$main && !$skip && $l3 !~ /^Ticket [A-Z]{2,8}-\d+$/;
 }
 
 sub check_end ($msg) {
@@ -144,7 +151,7 @@ sub check_end ($msg) {
     last if $m eq "# ------------------------ >8 ------------------------";
     last if $m =~ /^# interactive rebase in progress; onto/;
     next if $m =~ /^#/;
-    push @Errors, [ "Line $n is longer than 72 characters", $m ]
+    push @Errors, ["Line $n is longer than 72 characters", $m]
       if length $m > 72;
     $n++;
   }
