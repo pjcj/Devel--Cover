@@ -650,8 +650,12 @@ sub _skip_to_condop ($op) {
   my $negated = 0;
   while ($op && $$op && !$Is_condition_op{ $op->name }) {
     last unless $op->flags & OPf_KIDS;
+    # OP_CUSTOM is a value-producing operator, not a wrapper.  B blesses
+    # unregistered custom ops as plain B::OP regardless of their actual shape,
+    # so calling ->first would die.  Stop here.
+    last if $op->name eq "custom";
     $negated ^= 1 if $op->name eq "not";
-    $op       = $op->first;
+    $op = $op->first;
   }
   ($op, $negated)
 }
@@ -941,6 +945,13 @@ my %Original;
     # (aassign, entersub, etc.) still deparses correctly.
     *B::Deparse::pp_padrange = sub { "" }
       unless defined &B::Deparse::pp_padrange;
+
+    # B::Deparse has no pp_custom - custom infix ops registered by XS modules
+    # (e.g. Syntax::Operator::In) all dispatch through here. AUTOLOAD's default
+    # behaviour warns and returns "XXX"; emit a quieter placeholder so
+    # branch/condition labels stay readable.
+    *B::Deparse::pp_custom = sub { "<custom op>" }
+      unless defined &B::Deparse::pp_custom;
   }
 
   sub const_dumper (@o) {

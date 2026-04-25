@@ -1745,6 +1745,7 @@ typedef CV *B__CV;
  * 5.26+, so provide a fallback using PL_opargs.
  */
 static const char *dc_op_classname(pTHX_ const OP *o) {
+  U32 oa;
   if (!o || !o->op_type) {
     if (!o) return "B::NULL";
     /*
@@ -1758,7 +1759,26 @@ static const char *dc_op_classname(pTHX_ const OP *o) {
       return "B::UNOP";
     return "B::OP";
   }
-  switch (PL_opargs[o->op_type] & OA_CLASS_MASK) {
+  if (o->op_type == OP_CUSTOM) {
+    /*
+     * PL_opargs[OP_CUSTOM] does not record a class - the structural shape is
+     * set by the registering XS module.  On 5.26+ op_class() consults the
+     * registered XOP, but many CPAN modules (e.g. Syntax::Operator::In) never
+     * register one, so op_class() returns OA_BASEOP even for ops that were
+     * allocated as UNOP/BINOP and have OPf_KIDS set.  Fall back to OPf_KIDS in
+     * that case so ->first/->sibling work in the walker.
+     */
+#if PERL_VERSION >= 26
+    oa = op_class(o);
+    if (oa == OA_BASEOP && (o->op_flags & OPf_KIDS))
+      oa = OA_UNOP;
+#else
+    oa = (o->op_flags & OPf_KIDS) ? OA_UNOP : OA_BASEOP;
+#endif
+  } else {
+    oa = PL_opargs[o->op_type] & OA_CLASS_MASK;
+  }
+  switch (oa) {
     case OA_BASEOP:        return "B::OP";
     case OA_UNOP:          return "B::UNOP";
     case OA_BINOP:         return "B::BINOP";
