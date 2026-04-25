@@ -8,6 +8,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 # VERSION
 
 use Devel::Cover::DB::IO::JSON;
+use Devel::Cover::Log qw( dcinfo );
 
 sub _runs ($db) {
   my @runs;
@@ -26,10 +27,10 @@ sub _statements ($f) {
     my @entries;
     for my $s ($criterion->location($line)->@*) {
       push @entries, {
-        covered     => $s->covered     + 0,
-        uncoverable => $s->uncoverable ? 1 : 0,
-        error       => $s->error       ? 1 : 0,
-      };
+          covered     => $s->covered + 0,
+          uncoverable => $s->uncoverable ? 1 : 0,
+          error       => $s->error       ? 1 : 0,
+        };
     }
     $out{$line} = \@entries;
   }
@@ -43,11 +44,12 @@ sub _branches ($f) {
     my @entries;
     for my $b ($criterion->location($line)->@*) {
       push @entries, {
-        text        => $b->text,
-        covered     => [ map { $b->covered($_)     + 0 } 0 .. $b->total - 1 ],
-        uncoverable => [ map { $b->uncoverable($_) ? 1 : 0 } 0 .. $b->total - 1 ],
-        error       => $b->error ? 1 : 0,
-      };
+          text        => $b->text,
+          covered     => [map { $b->covered($_) + 0 } 0 .. $b->total - 1],
+          uncoverable =>
+          [map { $b->uncoverable($_) ? 1 : 0 } 0 .. $b->total - 1],
+          error => $b->error ? 1 : 0,
+        };
     }
     $out{$line} = \@entries;
   }
@@ -61,13 +63,14 @@ sub _conditions ($f) {
     my @entries;
     for my $c ($criterion->location($line)->@*) {
       push @entries, {
-        type        => $c->type,
-        text        => $c->text,
-        headers     => $c->headers,
-        covered     => [ map { $c->covered($_)     + 0 } 0 .. $c->total - 1 ],
-        uncoverable => [ map { $c->uncoverable($_) ? 1 : 0 } 0 .. $c->total - 1 ],
-        error       => $c->error ? 1 : 0,
-      };
+          type        => $c->type,
+          text        => $c->text,
+          headers     => $c->headers,
+          covered     => [map { $c->covered($_) + 0 } 0 .. $c->total - 1],
+          uncoverable =>
+          [map { $c->uncoverable($_) ? 1 : 0 } 0 .. $c->total - 1],
+          error => $c->error ? 1 : 0,
+        };
     }
     $out{$line} = \@entries;
   }
@@ -81,11 +84,11 @@ sub _subroutines ($f) {
     my @entries;
     for my $s ($criterion->location($line)->@*) {
       push @entries, {
-        name        => $s->name,
-        covered     => $s->covered     + 0,
-        uncoverable => $s->uncoverable ? 1 : 0,
-        error       => $s->error       ? 1 : 0,
-      };
+          name        => $s->name,
+          covered     => $s->covered + 0,
+          uncoverable => $s->uncoverable ? 1 : 0,
+          error       => $s->error       ? 1 : 0,
+        };
     }
     $out{$line} = \@entries;
   }
@@ -99,10 +102,10 @@ sub _pod ($f) {
     my @entries;
     for my $p ($criterion->location($line)->@*) {
       push @entries, {
-        covered     => $p->covered     + 0,
-        uncoverable => $p->uncoverable ? 1 : 0,
-        error       => $p->error       ? 1 : 0,
-      };
+          covered     => $p->covered + 0,
+          uncoverable => $p->uncoverable ? 1 : 0,
+          error       => $p->error       ? 1 : 0,
+        };
     }
     $out{$line} = \@entries;
   }
@@ -110,7 +113,8 @@ sub _pod ($f) {
 }
 
 sub report ($pkg, $db, $options) {
-  my %sum_options = map { $_ => 1 } grep !/path|time/, $db->all_criteria, "force";
+  my %sum_options = map { $_ => 1 } grep !/path|time/, $db->all_criteria,
+    "force";
   $db->calculate_summary(%sum_options);
 
   my %files;
@@ -127,17 +131,14 @@ sub report ($pkg, $db, $options) {
     };
   }
 
-  my $data = {
-    runs    => _runs($db),
-    summary => $db->{summary},
-    files   => \%files,
-  };
+  my $data
+    = { runs => _runs($db), summary => $db->{summary}, files => \%files };
 
   my $outfile = "$options->{outputdir}/cover_detailed.json";
-  print "JSON detail sent to $outfile\n";
-
-  my $io = Devel::Cover::DB::IO::JSON->new(options => "pretty");
+  my $io      = Devel::Cover::DB::IO::JSON->new(options => "pretty");
   $io->write($data, $outfile);
+
+  dcinfo "JSON output written to $outfile";
 }
 
 1
@@ -200,12 +201,14 @@ Example structure:
  {
    "runs": [ { "run": "...", "perl": "5.38.0", ... } ],
    "summary": {
-     "Total":          { "statement": { "covered": 95, "total": 100, ... }, ... },
+     "Total":          { "statement": { "covered": 95, "total": 100,
+                                         ... }, ... },
      "lib/Foo/Bar.pm": { "statement": { ... }, ... }
    },
    "files": {
      "lib/Foo/Bar.pm": {
-       "statements":  { "10": [ { "covered": 5, "uncoverable": 0, "error": 0 } ] },
+       "statements":  { "10": [ { "covered": 5, "uncoverable": 0,
+                                  "error": 0 } ] },
        "branches":    { "17": [ { "text": "if $x", "covered": [3,0],
                                   "uncoverable": [0,0], "error": 1 } ] },
        "conditions":  { "30": [ { "type": "and_2", "text": "$x && $y",
