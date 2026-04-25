@@ -1,0 +1,91 @@
+cover: Reading database from ...
+--------------- ------ ------ ------ ------ ------ ------
+File              stmt   bran   cond    sub  total   slop
+--------------- ------ ------ ------ ------ ------ ------
+tests/custom_op   91.6   50.0   33.3  100.0   76.1    0.2
+Total             91.6   50.0   33.3  100.0   76.1    0.2
+--------------- ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/custom_op
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 1 73.7  1.0  0.2
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       
+3                                       # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                       
+5                                       # This software is free.  It is licensed under the same terms as Perl itself.
+6                                       
+7                                       # The latest version of this software should be available from my homepage:
+8                                       # https://pjcj.net
+9                                       
+10                                      # __COVER__ skip_test $] < 5.038
+11                                      # __COVER__ skip_reason custom infix operators require 5.38+
+12                                      # __COVER__ skip_test eval "use Syntax::Operator::In"; $@
+13                                      # __COVER__ skip_reason Syntax::Operator::In not installed
+14                                      
+15             1                    1   use 5.38.0;
+               1                        
+16             1                    1   use Syntax::Operator::In;
+               1                        
+               1                        
+17                                      
+18                                      # Custom op outside any branch context.
+19             1                        my $v = "ok" in:eq qw( ja yes ok );
+20             1                        my $w = "no" in:eq qw( ja yes ok );
+21                                      
+22                                      # Custom op as the condition of an if - exercises _skip_to_condop.
+23    ***      1   * 50                 if ($v in:eq qw( ja yes ok )) {
+24    ***     *0                          $v = 1;
+25                                      }
+26                                      
+27                                      # Custom op as the condition of an unless - exercises the false path.
+28    ***      1   * 50                 unless ($w in:eq qw( ja yes ok )) {
+29             1                          $w = 0;
+30                                      }
+31                                      
+32                                      # Custom op as an operand of && - exercises _walk_logop.
+33    ***      1          * 33          my $r = ($v in:eq qw( 1 )) && ($w in:eq qw( 0 ));
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+23    ***     50      0      1   if (<custom op>)
+28    ***     50      1      0   unless (<custom op>)
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+33    ***     33      0      0      1   <custom op> && <custom op>
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SLOP Location          
+---------- ----- --- ----- ------------------
+BEGIN          1   1   0.0 tests/custom_op:15
+BEGIN          1   1   0.0 tests/custom_op:16
+
+
