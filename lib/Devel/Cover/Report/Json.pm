@@ -7,17 +7,17 @@
 
 package Devel::Cover::Report::Json;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
 use Devel::Cover::DB::IO::JSON;
 use Devel::Cover::Log qw( dcinfo );
-# use Devel::Cover::Dumper;  # For debugging
 
-sub add_runs {
-  my ($db) = @_;
+sub add_runs ($db) {
   my @runs;
   for my $r (sort { $a->{start} <=> $b->{start} } $db->runs) {
     push @runs,
@@ -27,14 +27,11 @@ sub add_runs {
   \@runs
 }
 
-sub report {
-  my ($pkg, $db, $options) = @_;
-
+sub report ($pkg, $db, $options) {
   my %options = map { $_ => 1 } grep !/path|time/, $db->all_criteria, "force";
   $db->calculate_summary(%options);
 
   my $json = { runs => add_runs($db), summary => $db->{summary} };
-  # print "JSON: ", Dumper $json;
 
   my $path = "$options->{outputdir}/cover.json";
   my $io   = Devel::Cover::DB::IO::JSON->new(options => "pretty");
