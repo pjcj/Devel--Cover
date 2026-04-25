@@ -394,7 +394,7 @@ sub scan_select_dirs ($db) {
 
   $db->{files} = [sort @files];
   $db->write($db->{db});
-  dcinfo "Added " . (scalar @files) . " file(s) from --select_dir";
+  dcinfo "Added " . @files . " file(s) from --select_dir";
   unless (eval { require PPI; 1 }) {
     dcinfo "PPI is not installed. Coverage estimates for untested"
       . " files are unavailable.\n"

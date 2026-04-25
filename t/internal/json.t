@@ -94,12 +94,12 @@ sub test_json_detailed_report () {
   ok defined $branch->{text}, "branch has text";
   isa_ok $branch->{covered},     "ARRAY", "branch covered";
   isa_ok $branch->{uncoverable}, "ARRAY", "branch uncoverable";
-  is scalar $branch->{covered}->@*, scalar $branch->{uncoverable}->@*,
+  is $branch->{covered}->@*, $branch->{uncoverable}->@*,
     "covered and uncoverable arrays have matching length";
 
   # Truth tables: Calc.pm has `$x && $y` in sub check.  Even when not
   # exercised the truth table is generated (with covered: 0 rows).
-  my $tt_line = first { @{ $f->{condition_truth_tables}{$_} } }
+  my $tt_line = first { $f->{condition_truth_tables}{$_}->@* }
     keys $f->{condition_truth_tables}->%*;
   ok $tt_line, "at least one line has a truth table"
     or do { done_testing; return };
@@ -107,7 +107,7 @@ sub test_json_detailed_report () {
   ok defined $tt->{expr},       "truth table has expr";
   ok defined $tt->{percentage}, "truth table has percentage";
   isa_ok $tt->{rows}, "ARRAY", "truth table rows";
-  ok @{ $tt->{rows} } >= 1, "truth table has at least one row";
+  ok $tt->{rows}->@* >= 1, "truth table has at least one row";
   my $row = $tt->{rows}[0];
   isa_ok $row->{inputs}, "ARRAY", "row inputs";
   ok defined $row->{result},  "row has result";
