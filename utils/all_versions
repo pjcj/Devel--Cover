@@ -262,6 +262,9 @@ sub _mods ($v, $n) {
   push @mods, "Perl::Tidy" if !$s || $s % 2;
   push @mods, "PPI::HTML"  if !$s || !($s % 2);
 
+  push @mods, "Syntax::Operator::In"
+    if $v !~ /-thr/ && $version >= version->parse("5.38.0");
+
   @mods
 }
 
