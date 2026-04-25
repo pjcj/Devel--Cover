@@ -27,7 +27,7 @@ my $Author   = 'paul@pjcj.net';
 my $Inc_str  = do {
   my %inc
     = map { -d () ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () } @INC;
-  my $dumper = Data::Dumper->new([ [ sort keys %inc ] ]);
+  my $dumper = Data::Dumper->new([[sort keys %inc]]);
   $dumper->Indent(1)->Terse(1);
   $dumper->Sortkeys(1) if $dumper->can("Sortkeys");
   chomp(my $str = $dumper->Dump);
@@ -332,7 +332,7 @@ my $Opts = {
   MIN_PERL_VERSION => "5.020",
   ABSTRACT_FROM    => "lib/Devel/Cover.pm",
   DIR              => [],
-  EXE_FILES        => [ map "bin/$_", qw( cover gcov2perl cpancover ) ],
+  EXE_FILES        => [map "bin/$_", qw( cover gcov2perl cpancover )],
   PERL_MALLOC_OK   => 1,
   PREREQ_PM        => {
     "Storable"       => 0,
@@ -379,6 +379,8 @@ sub MY::postamble {
     html_crisp
     html_minimal
     html_subtle
+    json
+    json_summary
     sort
     text
     text2
@@ -526,7 +528,7 @@ self_cover : _self_cover_reports
       . "\t \@\$(SC_PERL) -MDevel::Cover"
       . "=-db,$sc_tests{$_},"
       . "\$(SC_OPTS) $_\n",
-      sort keys %sc_tests,),
+      sort keys %sc_tests),
 
     "_self_cover_reports : @{[map qq(report_$_), @reports]}\n",
 

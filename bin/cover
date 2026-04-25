@@ -394,7 +394,7 @@ sub scan_select_dirs ($db) {
 
   $db->{files} = [sort @files];
   $db->write($db->{db});
-  dcinfo "Added " . (scalar @files) . " file(s) from --select_dir";
+  dcinfo "Added " . @files . " file(s) from --select_dir";
   unless (eval { require PPI; 1 }) {
     dcinfo "PPI is not installed. Coverage estimates for untested"
       . " files are unavailable.\n"
@@ -566,14 +566,16 @@ Report coverage statistics in a variety of formats.
 The summary option produces a short textual summary.  Other reports are
 available by using the report option.
 
-The following reports are currently available:
+The following is a partial list of reports currently available:
 
- html        - detailed HTML reports  (default)
- html_basic  - detailed HTML reports with syntax highlighting
- text        - detailed textual summary
- compilation - output in a format similar to Perl errors
- json        - output in a JSON format
- vim         - show coverage information in vim gutter
+ html         - detailed HTML report  (default)
+ html_basic   - elder HTML report with separate condition data
+ text         - detailed textual summary
+ compilation  - output in a format similar to Perl errors
+ json         - detailed JSON output with per-line coverage data
+ json_summary - per-file/total summary in JSON (cpancover badge feed)
+ vim          - show coverage information in vim gutter
+ nvim         - show coverage information in nvim gutter
 
 =head1 OPTIONS
 
@@ -660,7 +662,14 @@ coverage is missing.
 
 =item json
 
-A report in JSON format.
+A detailed JSON report containing per-line, per-criterion coverage data
+(statements, branches, conditions, condition truth tables, subroutines, pod)
+plus per-file metadata.  See L<Devel::Cover::Report::Json>.
+
+=item json_summary
+
+A summary JSON report with per-file and total figures only - the feed used by
+cpancover to generate badges.  See L<Devel::Cover::Report::Json_summary>.
 
 =item vim
 
