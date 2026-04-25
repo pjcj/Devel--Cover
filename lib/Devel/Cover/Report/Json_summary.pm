@@ -1,0 +1,82 @@
+# Copyright 2014-2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+package Devel::Cover::Report::Json_summary;
+
+use 5.20.0;
+use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
+
+# VERSION
+
+use Devel::Cover::DB::IO::JSON;
+use Devel::Cover::Log qw( dcinfo );
+
+sub add_runs ($db) {
+  my @runs;
+  for my $r (sort { $a->{start} <=> $b->{start} } $db->runs) {
+    push @runs,
+      { map { $_ => $r->$_ }
+        qw( run perl OS dir name version abstract start finish ) };
+  }
+  \@runs
+}
+
+sub report ($pkg, $db, $options) {
+  my %options = map { $_ => 1 } grep !/path|time/, $db->all_criteria, "force";
+  $db->calculate_summary(%options);
+
+  my $json = { runs => add_runs($db), summary => $db->{summary} };
+
+  my $path = "$options->{outputdir}/cover.json";
+  my $io   = Devel::Cover::DB::IO::JSON->new(options => "pretty");
+  $io->write($json, $path);
+
+  dcinfo "JSON output written to $path";
+}
+
+1
+
+__END__
+
+=encoding utf8
+
+=head1 NAME
+
+Devel::Cover::Report::Json_summary - Summary JSON backend for Devel::Cover
+
+=head1 SYNOPSIS
+
+ cover -report json_summary
+
+=head1 DESCRIPTION
+
+This module provides summary-only JSON output for coverage data,
+suitable for generating coverage badges and aggregate metrics.  The
+output contains per-file and total coverage percentages by criterion,
+but no per-line detail.  It is the format consumed by L<cpancover>.
+
+For full per-line, per-criterion coverage detail see
+L<Devel::Cover::Report::Json>.
+
+It is designed to be called from the C<cover> program.
+
+=head1 SEE ALSO
+
+L<Devel::Cover>, L<Devel::Cover::Report::Json>
+
+=head1 LICENCE
+
+Copyright 2014-2026, Paul Johnson (paul@pjcj.net)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+https://pjcj.net
+
+=cut
