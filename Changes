@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- *** BREAKING *** New detailed `json` reporter; existing summary
+  reporter renamed to `json_summary` (Ricardo Signes) (GH-419)
 - Add cpancover-docker-pull recipe (GH-377)
 - Fix spelling: led (Josh Soref) (GH-368)
 

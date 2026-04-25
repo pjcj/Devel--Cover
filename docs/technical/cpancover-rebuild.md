@@ -29,7 +29,8 @@ requires the existing results to be regenerated.
 All state lives under `$results_dir`:
 
 - `<distdir>/` - coverage results for a distribution. Presence of `cover.json`
-  marks the distdir as covered.
+  (the summary feed produced by the `json_summary` reporter) marks the distdir
+  as covered.
 - `__failed__/<distdir>` - timestamp file marking a distribution that failed to
   build. Left in place across rebuild cycles so the site still shows "last
   known" results.
