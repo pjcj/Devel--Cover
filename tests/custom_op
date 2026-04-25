@@ -1,0 +1,33 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# __COVER__ skip_test $] < 5.038
+# __COVER__ skip_reason custom infix operators require 5.38+
+# __COVER__ skip_test eval "use Syntax::Operator::In"; $@
+# __COVER__ skip_reason Syntax::Operator::In not installed
+
+use 5.38.0;
+use Syntax::Operator::In;
+
+# Custom op outside any branch context.
+my $v = "ok" in:eq qw( ja yes ok );
+my $w = "no" in:eq qw( ja yes ok );
+
+# Custom op as the condition of an if - exercises _skip_to_condop.
+if ($v in:eq qw( ja yes ok )) {
+  $v = 1;
+}
+
+# Custom op as the condition of an unless - exercises the false path.
+unless ($w in:eq qw( ja yes ok )) {
+  $w = 0;
+}
+
+# Custom op as an operand of && - exercises _walk_logop.
+my $r = ($v in:eq qw( 1 )) && ($w in:eq qw( 0 ));
