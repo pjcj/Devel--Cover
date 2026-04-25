@@ -379,6 +379,8 @@ sub MY::postamble {
     html_crisp
     html_minimal
     html_subtle
+    json
+    json_summary
     sort
     text
     text2
