@@ -10,6 +10,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Inc          ();
 use Devel::Cover::Log          qw( dcinfo );
+use Devel::Cover::Truth_Table  ();
 use Getopt::Long               qw( GetOptions );
 
 sub _runs ($db) {
