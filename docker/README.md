@@ -253,7 +253,7 @@ Coverage results are organized as:
 ```text
 ~/cover/staging/
 ├── Module-Name-1.00/
-│   ├── cover.json        # Coverage database (JSON)
+│   ├── cover.json        # Per-module summary feed (json_summary report)
 │   ├── index.html        # Module coverage report
 │   ├── structure/        # Coverage structure data
 │   └── ...               # Per-file coverage reports
