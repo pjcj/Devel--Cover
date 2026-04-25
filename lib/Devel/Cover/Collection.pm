@@ -236,7 +236,7 @@ class Devel::Cover::Collection {
     my @test_cmd
       = (@cmd, "--test", "--report", $report, "--outputfile", $output_file);
     $output .= "dc -> @test_cmd\n" . $self->fbsys(@test_cmd);
-    my @json_cmd = (@cmd, "-report", "json", "-nosummary");
+    my @json_cmd = (@cmd, "-report", "json_summary", "-nosummary");
     $output .= "dc -> @json_cmd\n" . $self->fsys(@json_cmd);
 
     # TODO - option to merge DB with existing one

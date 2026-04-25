@@ -1184,7 +1184,7 @@ dc_cover_reports() {
   # Run report generation under self-coverage
   $Dc_cover_perl \
     "-MDevel::Cover=-select,$select,-db,$db,-merge,0" bin/cover "$input_db" \
-    -report html_crisp -report text -report json
+    -report html_crisp -report text -report json_summary
 
   if ((launch)); then
     $Dc_cover_perl bin/cover "$db" -report html -launch
@@ -1356,7 +1356,7 @@ cpan_collection_module() {
   local cover_cmd=(perl "-Mblib=$dc_root" "$dc_root/bin/cover")
   "${cover_cmd[@]}" -test -report html_crisp \
     -outputfile index.html || true
-  "${cover_cmd[@]}" -report json -nosummary || true
+  "${cover_cmd[@]}" -report json_summary -nosummary || true
 
   # Move results to collection results_dir
   if [[ -d cover_db ]]; then
