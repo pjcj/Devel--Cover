@@ -1271,13 +1271,13 @@ cpan_module() {
   pi "Installing dependencies to $locallib"
   cpanm -n -L "$locallib" --installdeps .
 
-  # Build (with local deps visible)
-  pi "Building $module"
+  # Don't pre-build: a stale .o would suppress XS coverage in cover -test.
+  pi "Configuring $module"
   export PERL5LIB="$locallib/lib/perl5${PERL5LIB:+:$PERL5LIB}"
   if [[ -f Makefile.PL ]]; then
-    perl Makefile.PL && make
+    perl Makefile.PL
   elif [[ -f Build.PL ]]; then
-    perl Build.PL && ./Build
+    perl Build.PL
   else
     pf "No Makefile.PL or Build.PL found"
   fi
@@ -1335,16 +1335,16 @@ cpan_collection_module() {
   pi "Installing dependencies to $locallib"
   cpanm -n -L "$locallib" --installdeps .
 
-  # Build (with local deps visible)
+  # Don't pre-build: a stale .o would suppress XS coverage in cover -test.
   local saved_perl5lib="${PERL5LIB:-}"
   local saved_cover_opts="${DEVEL_COVER_TEST_OPTS:-}"
   local saved_cover_options="${DEVEL_COVER_OPTIONS:-}"
   export PERL5LIB="$locallib/lib/perl5${saved_perl5lib:+:$saved_perl5lib}"
-  pi "Building $module"
+  pi "Configuring $module"
   if [[ -f Makefile.PL ]]; then
-    perl Makefile.PL && make
+    perl Makefile.PL
   elif [[ -f Build.PL ]]; then
-    perl Build.PL && ./Build
+    perl Build.PL
   else
     pf "No Makefile.PL or Build.PL found"
   fi
