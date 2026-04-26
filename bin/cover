@@ -325,10 +325,37 @@ sub do_test ($dbname) {
   $test_result >>= 8;
 }
 
+sub run_gcov ($name, $dir, $gc, $seen) {
+  my $gcov_flags = "-abc";
+  $gcov_flags .= "r" if $Options->{relative_only};
+  my @args = $Options->{gcov_chdir} ? () : ("-o", $dir);
+  my @c    = ("gcov", $gcov_flags, @args, $name);
+  dcinfo "running @c";
+  my $cwd = $Options->{gcov_chdir} ? $dir : ".";
+  open my $fh, "-|", @c or do {
+    dcerror "cannot run @c: $!";
+    return;
+  };
+  while (my $line = <$fh>) {
+    print $line;
+    next unless $line =~ /^Creating '([^']+)'\s*$/;
+    my $path = $cwd eq "." ? $1 : "$cwd/$1";
+    $path =~ s{^\./}{};
+    push $gc->@*, $path unless $seen->{$path}++;
+  }
+  close $fh or dcinfo "gcov exited non-zero (exit $?)";
+}
+
 sub do_gcov ($dbname) {
   return unless $Options->{gcov};
+  my @gc;
+  my %seen;
   my $gc = sub () {
     return unless /\.(xs|cc?|hh?)$/;
+    # Without gcov_chdir, gcov runs from our cwd and can only read sources
+    # there.  Skip anything in a subdirectory: trying to gcov it produces a
+    # noisy error and a useless stub .gcov that contaminates this run.
+    return if !$Options->{gcov_chdir} && $File::Find::dir ne ".";
     for my $re ($Options->{ignore_re}->@*) {
       return if /$re/;
     }
@@ -339,23 +366,21 @@ sub do_gcov ($dbname) {
     my $graph_file = $_;
     $graph_file =~ s{\.\w+$}{.gcno};
     return unless -e $graph_file;
-    my $gcov_flags = "-abc";
-    $gcov_flags .= "r" if $Options->{relative_only};
-    my @args = $Options->{gcov_chdir} ? () : ("-o", $File::Find::dir);
-    my @c    = ("gcov", $gcov_flags, @args, $name);
-    dcinfo "running @c";
-    system @c;
+
+    # Capture gcov stdout to learn exactly which .gcov files this run
+    # produced; walking the tree afterwards picks up stale artefacts from
+    # unrelated builds (e.g. tmp/runs/<dist>/) that we don't own.
+    run_gcov($name, $File::Find::dir, \@gc, \%seen);
   };
   File::Find::find({ wanted => $gc, no_chdir => !$Options->{gcov_chdir} }, ".");
-  my @gc;
-  my $gp = sub () {
-    return unless /\.gcov$/;
+
+  # Drop .c/.h .gcov entries when the matching .xs.gcov is also present
+  # (xsubpp produces both, with the same coverage).
+  @gc = grep {
     my $xs = $_;
-    return if $xs =~ s/\.(cc?|hh?)\.gcov$/.xs.gcov/ && -e $xs;
-    s/^\.\///;
-    push @gc, $_;
-  };
-  File::Find::find({ wanted => $gp, no_chdir => 1 }, ".");
+    !($xs =~ s/\.(cc?|hh?)\.gcov$/.xs.gcov/ && -e $xs);
+  } @gc;
+
   if (@gc) {
     # Find the right gcov2perl based on this current script
     require Cwd;
