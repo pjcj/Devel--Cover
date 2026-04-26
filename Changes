@@ -3,6 +3,9 @@ Devel::Cover history
 {{$NEXT}}
 - *** BREAKING *** New detailed `json` reporter; existing summary
   reporter renamed to `json_summary` (Ricardo Signes) (GH-419)
+- *** BREAKING *** cover no longer walks the whole tree for .gcov
+  files; it consumes only those produced by its own gcov runs.  XS
+  sources outside cwd are skipped unless -gcov_chdir is set.
 - Add cpancover-docker-pull recipe (GH-377)
 - Fix spelling: led (Josh Soref) (GH-368)
 
