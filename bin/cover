@@ -47,7 +47,7 @@ my $Options = {
   launch                   => 0,
   make                     => $Config{make},
   prefer_lib               => 0,
-  relative_only            => 0,
+  relative_only            => 1,
   report                   => [],
   report_c0                => 75,
   report_c1                => 90,
@@ -621,7 +621,7 @@ The following command line options are supported:
  -ignore filename      - don't report on the file           (default none)
  -select_re RE         - append to REs of files to select   (default none)
  -ignore_re RE         - append to REs of files to ignore   (default none)
- -relative_only        - for XS, ignore absolute paths      (default off)
+ -relative_only        - for XS, ignore absolute paths      (default on)
  -gcov_chdir           - for XS, run gcov in subdirs        (default off)
  -write [db]           - write the merged database          (default off)
  -delete               - drop database(s)                   (default off)
@@ -755,6 +755,15 @@ you are using gcc of course.  If you are using the C<-test> option will be
 turned on by default. If you have XS code in subdirectories, you will
 probably need to add the C<-gcov_chdir> option since gcov seems to work
 better with that.
+
+By default the C<-relative_only> option is enabled, which passes C<-r> to gcov
+so that source files reached via absolute paths (typically Perl's own CORE
+headers such as F<sv_inline.h>, F<inline.h>, and F<perlstatic.h>) are omitted
+from the coverage report.  These files are inlined into XS code and their
+coverage figures are rarely meaningful to the XS author.  As a second line of
+defence, C<gcov2perl> also skips any C<.gcov> whose source resolves into the
+Perl CORE directory.  Pass C<-no-relative_only> to C<cover>, or C<-no-skip-core>
+to C<gcov2perl>, to include this data.
 
 The C<-prefer_lib> option tells Devel::Cover to report on files in the lib
 directory even if they were used from the blib directory.
