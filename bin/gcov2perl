@@ -18,6 +18,7 @@ no warnings qw( experimental::signatures experimental::postderef );
 use Devel::Cover::DB  ();
 use Devel::Cover::Log qw( dcerror dcinfo );
 
+use Config;
 use File::Path   qw( mkpath );
 use File::Spec   ();
 use Getopt::Long qw( GetOptions );
@@ -25,19 +26,43 @@ use Pod::Usage   qw( pod2usage );
 
 $Devel::Cover::Log::Prefix = "gcov2perl";
 
-my $Options = { db => "cover_db" };
+my $Options = { db => "cover_db", skip_core => 1 };
 
 sub get_options () {
   die "Bad option"
     unless GetOptions(
       $Options,  # Store the options in the Options hash
-      qw( db=s help|h! info|i! silent! version|v! ),
+      qw( db=s help|h! info|i! silent! skip_core|skip-core! version|v! ),
     );
   $Devel::Cover::Silent = 1 if $Options->{silent};
   print "$0 version " . __PACKAGE__->VERSION . "\n" and exit 0
     if $Options->{version};
   pod2usage(-exitval => 0, -verbose => 0) if $Options->{help};
   pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
+}
+
+sub core_dir () {
+  state $dir
+    = File::Spec->canonpath(File::Spec->catdir($Config{archlibexp}, "CORE"));
+  $dir;
+}
+
+sub is_core_path ($path) {
+  my $abs   = File::Spec->canonpath(File::Spec->rel2abs($path));
+  my @parts = File::Spec->splitdir($abs);
+  my @core  = File::Spec->splitdir(core_dir);
+  return 0 if @parts <= @core;
+  for my $i (0 .. $#core) {
+    return 0 if $parts[$i] ne $core[$i];
+  }
+  1;
+}
+
+sub resolve_source ($source, $dir) {
+  my $f = $source;
+  $f = File::Spec->abs2rel(File::Spec->catfile($dir, $f))
+    unless File::Spec->file_name_is_absolute($f);
+  $f;
 }
 
 sub add_cover ($file) {
@@ -64,9 +89,12 @@ sub add_cover ($file) {
   gcov_line: while (my $gcov_text = <$fh>) {
     # print "Processing line [$gcov_text]\n";
     if ($gcov_text =~ /^[^:]+:[^:]+:Source:(.*)$/) {
-      $f = $1;
-      $f = File::Spec->abs2rel(File::Spec->catfile($dir, $f))
-        unless File::Spec->file_name_is_absolute($f);
+      $f = resolve_source($1, $dir);
+      if ($Options->{skip_core} && is_core_path($f)) {
+        dcinfo "skipping Perl CORE source $f from $file";
+        close $fh or die "Can't close $file: $!\n";
+        return;
+      }
     }
     unless (defined $run{digests}{$f}) {
       unless (-f $f) {
@@ -164,11 +192,18 @@ Convert gcov files to Devel::Cover databases.
 The following command line options are supported:
 
   -db database    - specify the database to use
-  -silent         - suppress informational messages (default off)
+  -silent         - suppress informational messages          (default off)
+  -no-skip-core   - include Perl CORE headers in coverage    (default off)
 
   -h -help        - show help
   -i -info        - show documentation
   -v -version     - show version
+
+By default, C<gcov2perl> skips any C<.gcov> file whose source resolves into
+the Perl CORE directory (e.g. F<sv_inline.h>, F<inline.h>, F<perlstatic.h>).
+These files are inlined into XS code and produce coverage data that is rarely
+of interest to the XS author.  Pass C<-no-skip-core> to override and include
+them.
 
 =head1 DETAILS
 
