@@ -55,11 +55,13 @@ Development:
                                        versions.  Multiple tests may be given.
   all-versions <cmd>                   Run a command across all Perl versions.
   build-and-test-all                   Clean build and run all tests.
-  cpan-collection <module> ...         Download CPAN modules and run their tests
-                                       under coverage, producing a combined
-                                       collection report.
-  cpan-module <module>                 Download a CPAN module and run its tests
-                                       under coverage.
+  cpan-collection <module> ... [-- args]
+                                       Download CPAN modules and run their tests
+                                       under coverage.  Args after "--" pass
+                                       through to "cover -test" for each module.
+  cpan-module <module> [args]          Download a CPAN module and run its tests
+                                       under coverage.  Trailing args pass
+                                       through to "cover" (eg -j 9, -no-launch).
   dc-cover                             Combined self-coverage for lib and report
                                        modules.
   dc-cover-lib                         Self-coverage for library modules (Path,
@@ -1234,6 +1236,8 @@ cpan_distdir() {
 
 cpan_module() {
   local module="${1:?No module specified}"
+  shift
+  local cover_args=("$@")
   local dc_root
   dc_root=$(cd "$srcdir/.." && pwd)
   local workdir="$dc_root/tmp/runs"
@@ -1282,10 +1286,13 @@ cpan_module() {
     pf "No Makefile.PL or Build.PL found"
   fi
 
-  # Run tests with coverage using local Devel::Cover
+  # Run tests with coverage using local Devel::Cover.  Trailing args from the
+  # recipe invocation pass through to `cover -test`, so users can append
+  # options such as `-j 9`, `-no-launch`, `-coverage statement`, etc.
   pi "Running tests with coverage (local Devel::Cover)"
   export DEVEL_COVER_TEST_OPTS="-Mblib=$dc_root"
-  perl "-Mblib=$dc_root" "$dc_root/bin/cover" -test -report html -launch
+  perl "-Mblib=$dc_root" "$dc_root/bin/cover" -test -report html -launch \
+    ${cover_args[@]:+"${cover_args[@]}"}
 
   pi "Done. Results in: $(pwd)/cover_db"
 }
@@ -1299,6 +1306,8 @@ cpan_collection_module() {
   local results_dir="${2:?No results_dir specified}"
   local dc_root="${3:?No dc_root specified}"
   local cpan_info="${4:?No cpan info specified}"
+  shift 4
+  local cover_args=("$@")
   local workdir="$dc_root/tmp/collection/work"
 
   local dist=${cpan_info##*/}
@@ -1354,8 +1363,8 @@ cpan_collection_module() {
   export DEVEL_COVER_OPTIONS="-ignore,^local/"
   export DEVEL_COVER_TEST_OPTS="-Mblib=$dc_root"
   local cover_cmd=(perl "-Mblib=$dc_root" "$dc_root/bin/cover")
-  "${cover_cmd[@]}" -test -report html_crisp \
-    -outputfile index.html || true
+  "${cover_cmd[@]}" -test -report html_crisp -outputfile index.html \
+    ${cover_args[@]:+"${cover_args[@]}"} || true
   "${cover_cmd[@]}" -report json_summary -nosummary || true
 
   # Move results to collection results_dir
@@ -1403,7 +1412,20 @@ cpan_collection() {
   dc_root=$(cd "$srcdir/.." && pwd)
   local results_dir="$dc_root/tmp/collection/results"
 
-  local modules=("$@")
+  # Split args at `--`: leading args are module names, trailing args pass
+  # through to each per-module `cover -test` invocation.
+  local modules=() cover_args=() seen_sep=0
+  local arg
+  for arg in "$@"; do
+    if ((seen_sep)); then
+      cover_args+=("$arg")
+    elif [[ "$arg" == "--" ]]; then
+      seen_sep=1
+    else
+      modules+=("$arg")
+    fi
+  done
+  ((${#modules[@]})) || pf "No modules specified"
   local distdirs=()
 
   # Resolve all modules up front (single cpanm --info call per module)
@@ -1419,7 +1441,7 @@ cpan_collection() {
 
   for i in "${!modules[@]}"; do
     cpan_collection_module "${modules[$i]}" "$results_dir" "$dc_root" \
-      "${infos[$i]}"
+      "${infos[$i]}" ${cover_args[@]:+"${cover_args[@]}"}
   done
 
   # Generate collection report via Collection.pm's generate_html
