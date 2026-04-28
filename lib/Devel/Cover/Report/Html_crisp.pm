@@ -84,11 +84,8 @@ sub untested_badge () {
   qq(<span class="untested-badge$cls">untested $tip</span>)
 }
 
-sub glass_tip ($text) {
-  qq(<span class="glass-tip">$text</span>)
-}
-
-sub is_na ($v) { !defined $v || $v eq "n/a" || $v eq "-" }
+sub glass_tip ($text) { qq(<span class="glass-tip">$text</span>) }
+sub is_na     ($v)    { !defined $v || $v eq "n/a" || $v eq "-" }
 
 sub slop_tip ($f) {
   return "" if is_na($f->{file_slop});
