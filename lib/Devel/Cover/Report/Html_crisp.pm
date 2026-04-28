@@ -30,7 +30,7 @@ use Devel::Cover::Path            qw( common_prefix );
 use File::Path     qw( mkpath );
 use Getopt::Long   qw( GetOptions );
 use HTML::Entities qw( encode_entities );
-use List::Util     qw( any );
+use List::Util     qw( any first );
 use POSIX          qw( strftime );
 our %R;
 my %Assets;
@@ -84,11 +84,8 @@ sub untested_badge () {
   qq(<span class="untested-badge$cls">untested $tip</span>)
 }
 
-sub glass_tip ($text) {
-  qq(<span class="glass-tip">$text</span>)
-}
-
-sub is_na ($v) { !defined $v || $v eq "n/a" || $v eq "-" }
+sub glass_tip ($text) { qq(<span class="glass-tip">$text</span>) }
+sub is_na     ($v)    { !defined $v || $v eq "n/a" || $v eq "-" }
 
 sub slop_tip ($f) {
   return "" if is_na($f->{file_slop});
@@ -128,16 +125,17 @@ sub cov_bar ($pc, $uncompiled) {
   qq(<span class="$bar">\n$fill</span>\n)
 }
 
-sub cov_cell ($s, $uncompiled, $data_value = undef) {
+sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef) {
   my $dv      = $data_value // (is_na($s->{pc}) ? -1 : $s->{pc});
   my $no_data = $uncompiled && !$R{have_ppi};
-  my $cls = $no_data ? $s->{class} : "$s->{class} tip-hover";
-  my $tip = $no_data ? ""          : glass_tip("$s->{covered} / $s->{total}");
-  <<HTML
-<td class="$cls" data-value="$dv">
-$s->{pc} @{[ cov_bar($s->{pc}, $uncompiled) ]}
-$tip</td>
-HTML
+  my $no_tip  = $no_data || ($s->{total} // 0) == 0;
+  my $cls   = $no_tip ? $s->{class} : "$s->{class} tip-hover";
+  my $tip   = $no_tip ? ""          : glass_tip("$s->{covered} / $s->{total}");
+  my $bar   = cov_bar($s->{pc}, $uncompiled);
+  my $inner = "$s->{pc} $bar";
+
+  $inner = qq(<a class="cell-link" href="$link">$inner</a>) if $link;
+  qq(<td class="$cls" data-value="$dv">$inner $tip</td>)
 }
 
 sub file_row ($f, $dir) {
@@ -146,7 +144,8 @@ sub file_row ($f, $dir) {
     = $f->{exists}
     ? qq(<a href="$f->{link}">$f->{basename}</a>)
     : $f->{basename};
-  my $badge = $f->{uncompiled} ? untested_badge() . "\n" : "";
+  my $badge    = $f->{uncompiled} ? untested_badge() . "\n" : "";
+  my $linkable = $f->{exists} && !$f->{uncompiled};
 
   my $o = <<HTML;
 <tr class="$cls" data-dir="$dir">
@@ -154,22 +153,26 @@ sub file_row ($f, $dir) {
 HTML
 
   for my $c ($R{criteria}->@*) {
-    $o .= cov_cell($f->{criteria}{$c}, $f->{uncompiled});
+    my $link = $linkable ? "$f->{link}#filter=$c" : undef;
+    $o .= cov_cell($f->{criteria}{$c}, $f->{uncompiled}, undef, $link);
   }
-  $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort});
-  $o .= slop_cell($f);
+  my $total_link = $linkable ? "$f->{link}#filter=total" : undef;
+  $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort}, $total_link);
+  $o .= slop_cell($f, $linkable ? $f->{link} : undef);
   $o .= "</tr>\n";
   $o
 }
 
-sub slop_cell ($f) {
-  my $slop = $f->{file_slop};
-  my $na   = is_na($slop);
-  my $dv   = $na ? -1   : $slop;
-  my $cls  = $na ? "na" : "tip-hover";
+sub slop_cell ($f, $link = undef) {
+  my $slop  = $f->{file_slop};
+  my $na    = is_na($slop);
+  my $dv    = $na   ? -1   : $slop;
+  my $cls   = $na   ? "na" : "tip-hover";
+  my $value = $link ? qq(<a class="cell-link" href="$link">$slop</a>) : $slop;
+
   <<HTML
 <td data-value="$dv" class="$cls">
-$slop @{[ slop_tip($f) ]}</td>
+$value @{[ slop_tip($f) ]}</td>
 HTML
 }
 
@@ -234,13 +237,17 @@ HTML
 }
 
 sub stat_badge ($c, $s) {
-  my $pct = $s->{pc};
-  my $suf = is_na($pct) ? "" : "%";
+  my $pct    = $s->{pc};
+  my $suf    = is_na($pct) ? "" : "%";
+  my $no_tip = ($s->{total} // 0) == 0;
+  my $cls    = $no_tip ? $s->{class} : "$s->{class} tip-hover";
+  my $tip    = $no_tip ? ""          : glass_tip("$s->{covered} / $s->{total}");
+
   <<HTML
-<span class="stat-badge $s->{class} tip-hover">
+<span class="stat-badge $cls">
 <span class="badge-label">@{[ crit_name($c) ]} $pct$suf</span>
 @{[ cov_bar($pct, 0) ]}
-@{[ glass_tip("$s->{covered} / $s->{total}") ]}</span>
+$tip</span>
 HTML
 }
 
@@ -304,6 +311,9 @@ compressed to a 0-100 range. Hover for a breakdown: file CC,
 combined coverage, worst subs, and the raw CRAP score.</dd>
 <dt>Tooltips</dt>
 <dd>Hover any badge or coverage cell for covered/total counts.</dd>
+<dt>Cell click</dt>
+<dd>Click a coverage cell to open the file with that criterion
+filter active. Click a SLOP cell to open the file at the top.</dd>
 </dl>
 </div>
 </div>
@@ -358,13 +368,18 @@ HTML
 HTML
 
   for my $g (@groups) {
+    my $t = first { $_->{exists} && !$_->{uncompiled} } $g->{files}->@*;
     $o .= qq(<tr class="dir-header" data-dir="$g->{dir}">\n)
       . "<td>$g->{dir}</td>\n";
     for my $c ($R{criteria}->@*) {
-      $o .= cov_cell($g->{criteria}{$c}, 0);
+      $o .= cov_cell(
+        $g->{criteria}{$c},
+        0, undef, $t ? "$t->{link}#filter=$c" : undef,
+      );
     }
-    $o .= cov_cell($g->{total}, 0);
-    $o .= slop_cell($g);
+    $o .= cov_cell($g->{total}, 0, undef,
+      $t ? "$t->{link}#filter=total" : undef);
+    $o .= slop_cell($g, $t ? $t->{link} : undef);
     $o .= "</tr>\n";
     $o .= file_row($_, $g->{dir}) for $g->{files}->@*;
   }
@@ -538,14 +553,18 @@ sub render_file_page ($fd, $lines, $total, $prev_file, $next_file) {
 HTML
 
   for my $c ($R{criteria}->@*) {
-    my $s   = $total->{$c};
-    my $cls = $fd->{uncompiled} ? "untested-stat" : ($s->{class} || "stat-na");
-    my $suf = is_na($s->{pc})   ? ""              : "%";
+    my $s    = $total->{$c};
+    my $base = $fd->{uncompiled} ? "untested-stat" : ($s->{class} || "stat-na");
+    my $suf  = is_na($s->{pc})   ? ""              : "%";
+    my $no_tip = ($s->{total} // 0) == 0;
+    my $cls    = $no_tip ? $base : "$base tip-hover";
+    my $tip    = $no_tip ? ""    : glass_tip("$s->{covered} / $s->{total}");
+
     $o .= <<HTML;
-<span class="stat-badge $cls tip-hover" data-criterion="$c">
+<span class="stat-badge $cls" data-criterion="$c">
 <span class="badge-label">@{[ crit_name($c) ]} $s->{pc}$suf</span>
 @{[ cov_bar($s->{pc}, $fd->{uncompiled}) ]}
-@{[ glass_tip("$s->{covered} / $s->{total}") ]}</span>
+$tip</span>
 HTML
   }
 
@@ -1404,6 +1423,15 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 
 .file-table td:first-child { text-align: left; }
 
+.file-table .cell-link {
+  display: block;
+  margin: -4px -10px;
+  padding: 4px 10px;
+  color: inherit;
+  text-decoration: none;
+}
+.file-table .cell-link:hover { opacity: 0.85; }
+
 .file-table tr { transition: background 0.15s ease; }
 .file-table tr:hover { background: var(--bg-alt); }
 
@@ -1999,6 +2027,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
 
     /* Directory collapse/expand */
     tbody.addEventListener("click", function(e) {
+      if (e.target.closest(".cell-link")) return;
       var dh = e.target.closest(".dir-header");
       if (!dh) return;
       var collapsed = dh.classList.toggle("collapsed");
@@ -2057,6 +2086,15 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
     var detailIdx = -1;
     var currentRow = null;
 
+    function syncHash(crit) {
+      var base = location.pathname + location.search;
+      var target = crit ? base + "#filter=" + crit : base;
+      if (location.href.replace(location.origin, "") !==
+          target.replace(location.origin, "")) {
+        history.replaceState(null, "", target);
+      }
+    }
+
     function clearFilter() {
       activeCriterion = null;
       detailIdx = -1;
@@ -2067,6 +2105,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
       badges.forEach(function(b) {
         b.classList.remove("badge-active");
       });
+      syncHash(null);
     }
 
     function applyFilter(crit) {
@@ -2096,6 +2135,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
         currentRow = first.previousElementSibling || first;
         scrollHighlight(currentRow);
       }
+      syncHash(crit);
     }
 
     function toggleFilter(crit) {
@@ -2112,6 +2152,18 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
         toggleFilter(badge.getAttribute("data-criterion"));
       });
     });
+
+    /* Apply filter from URL hash on load */
+    var hashMatch = (location.hash || "").match(/^#filter=([a-z]+)$/i);
+    if (hashMatch) {
+      var hashCrit = hashMatch[1];
+      for (var hi = 0; hi < badges.length; hi++) {
+        if (badges[hi].getAttribute("data-criterion") === hashCrit) {
+          toggleFilter(hashCrit);
+          break;
+        }
+      }
+    }
 
     /* Keyboard navigation */
     var uncovered = document.querySelectorAll(
@@ -2270,8 +2322,8 @@ This module provides a modern HTML reporting mechanism for coverage data. It
 generates a single-page dashboard with file listing and per-file source views
 with inline branch, condition, and subroutine detail.
 
-Features include dark mode support, keyboard navigation, sortable columns, and
-inline condition truth tables.
+Features include dark mode support, keyboard navigation, sortable columns,
+inline condition truth tables, and deep-linkable filters.
 
 It is designed to be called from the C<cover> program.  It will add syntax
 highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
