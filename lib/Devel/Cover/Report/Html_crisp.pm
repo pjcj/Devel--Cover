@@ -131,8 +131,9 @@ sub cov_bar ($pc, $uncompiled) {
 sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef) {
   my $dv      = $data_value // (is_na($s->{pc}) ? -1 : $s->{pc});
   my $no_data = $uncompiled && !$R{have_ppi};
-  my $cls   = $no_data ? $s->{class} : "$s->{class} tip-hover";
-  my $tip   = $no_data ? ""          : glass_tip("$s->{covered} / $s->{total}");
+  my $no_tip  = $no_data || ($s->{total} // 0) == 0;
+  my $cls   = $no_tip ? $s->{class} : "$s->{class} tip-hover";
+  my $tip   = $no_tip ? ""          : glass_tip("$s->{covered} / $s->{total}");
   my $bar   = cov_bar($s->{pc}, $uncompiled);
   my $inner = "$s->{pc} $bar";
 
@@ -239,13 +240,17 @@ HTML
 }
 
 sub stat_badge ($c, $s) {
-  my $pct = $s->{pc};
-  my $suf = is_na($pct) ? "" : "%";
+  my $pct    = $s->{pc};
+  my $suf    = is_na($pct) ? "" : "%";
+  my $no_tip = ($s->{total} // 0) == 0;
+  my $cls    = $no_tip ? $s->{class} : "$s->{class} tip-hover";
+  my $tip    = $no_tip ? ""          : glass_tip("$s->{covered} / $s->{total}");
+
   <<HTML
-<span class="stat-badge $s->{class} tip-hover">
+<span class="stat-badge $cls">
 <span class="badge-label">@{[ crit_name($c) ]} $pct$suf</span>
 @{[ cov_bar($pct, 0) ]}
-@{[ glass_tip("$s->{covered} / $s->{total}") ]}</span>
+$tip</span>
 HTML
 }
 
@@ -551,14 +556,18 @@ sub render_file_page ($fd, $lines, $total, $prev_file, $next_file) {
 HTML
 
   for my $c ($R{criteria}->@*) {
-    my $s   = $total->{$c};
-    my $cls = $fd->{uncompiled} ? "untested-stat" : ($s->{class} || "stat-na");
-    my $suf = is_na($s->{pc})   ? ""              : "%";
+    my $s    = $total->{$c};
+    my $base = $fd->{uncompiled} ? "untested-stat" : ($s->{class} || "stat-na");
+    my $suf  = is_na($s->{pc})   ? ""              : "%";
+    my $no_tip = ($s->{total} // 0) == 0;
+    my $cls    = $no_tip ? $base : "$base tip-hover";
+    my $tip    = $no_tip ? ""    : glass_tip("$s->{covered} / $s->{total}");
+
     $o .= <<HTML;
-<span class="stat-badge $cls tip-hover" data-criterion="$c">
+<span class="stat-badge $cls" data-criterion="$c">
 <span class="badge-label">@{[ crit_name($c) ]} $s->{pc}$suf</span>
 @{[ cov_bar($s->{pc}, $fd->{uncompiled}) ]}
-@{[ glass_tip("$s->{covered} / $s->{total}") ]}</span>
+$tip</span>
 HTML
   }
 
