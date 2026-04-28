@@ -1177,12 +1177,15 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   .stat-slop  { width: auto; }
 }
 
-/* Narrow: stack pills vertically */
+/* Narrow: wrap badges onto multiple lines, right-aligned. max-width clamps the
+(flex-shrink: 0) container to its parent so wrap actually engages instead of
+overflowing. */
 @container (max-width: 1200px) {
   .header-stats {
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 6px;
+    max-width: 100%;
   }
 }
 
