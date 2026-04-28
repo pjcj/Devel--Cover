@@ -52,6 +52,7 @@ sub _setup () {
     (my $name = $file) =~ s{.*/}{};
     $Golden{$name} = slurp($file);
   }
+  ok keys %Golden, "golden output captured";
 }
 
 sub test_crit_name () {
@@ -226,10 +227,12 @@ sub test_render_untested_page () {
   like $got, qr/untested-badge/, "untested: has badge";
 }
 
-sub _cov_cell ($s, $uncompiled, $have_ppi) {
+sub _cov_cell ($s, $uncompiled, $have_ppi, %opts) {
   no warnings "once";
   local %Devel::Cover::Report::Html_crisp::R = (have_ppi => $have_ppi);
-  Devel::Cover::Report::Html_crisp::cov_cell($s, $uncompiled)
+  Devel::Cover::Report::Html_crisp::cov_cell(
+    $s, $uncompiled, $opts{data_value}, $opts{link},
+  )
 }
 
 sub test_cov_cell_tooltips () {
@@ -242,8 +245,10 @@ sub test_cov_cell_tooltips () {
   my $na
     = _cov_cell({ pc => "n/a", class => "na", covered => 0, total => 0 }, 0, 1,
     );
-  like $na, qr/class="na tip-hover"/, "tested n/a cell: tip-hover kept";
-  like $na, qr/glass-tip">0 \/ 0</,   "tested n/a cell: glass-tip 0 / 0 kept";
+  unlike $na, qr/tip-hover/,
+    "tested n/a cell: no tip-hover (0/0 uninformative)";
+  unlike $na, qr/glass-tip/,
+    "tested n/a cell: no glass-tip (0/0 uninformative)";
 
   my $unc_ppi
     = _cov_cell({ pc => "0", class => "c0", covered => 0, total => 5 }, 1, 1);
@@ -254,6 +259,93 @@ sub test_cov_cell_tooltips () {
     = _cov_cell({ pc => "-", class => "na", covered => 0, total => 0 }, 1, 0);
   unlike $unc_no_ppi, qr/tip-hover/, "untested without PPI: no tip-hover class";
   unlike $unc_no_ppi, qr/glass-tip/, "untested without PPI: no glass-tip";
+}
+
+sub test_cov_cell_link () {
+  my $no_link
+    = _cov_cell({ pc => "75.0", class => "c2", covered => 3, total => 4 }, 0,
+      1);
+  unlike $no_link, qr/<a class="cell-link"/, "no link: no anchor";
+
+  my $with_link = _cov_cell(
+    { pc => "75.0", class => "c2", covered => 3, total => 4 },
+    0, 1, link => "tests-foo.html#filter=condition",
+  );
+  like $with_link,
+    qr{<a class="cell-link" href="tests-foo\.html#filter=condition">},
+    "with link: anchor has correct href";
+  like $with_link, qr/<a class="cell-link"[^>]*>75\.0/,
+    "with link: anchor wraps the percent value";
+}
+
+sub test_slop_cell_link () {
+  no warnings "once";
+  local %Devel::Cover::Report::Html_crisp::R = ();
+
+  my $f = {
+    file_slop  => "33.4",
+    file_crap  => "12.5",
+    file_cc    => 5,
+    file_cov   => 80,
+    worst_subs => [],
+  };
+
+  my $no_link = Devel::Cover::Report::Html_crisp::slop_cell($f);
+  unlike $no_link, qr/<a class="cell-link"/, "slop no link: no anchor";
+
+  my $with_link
+    = Devel::Cover::Report::Html_crisp::slop_cell($f, "tests-foo.html");
+  like $with_link, qr{<a class="cell-link" href="tests-foo\.html">33\.4</a>},
+    "slop with link: anchor wraps slop value (no filter hash)";
+}
+
+sub test_stat_badge_no_tip_when_empty () {
+  no warnings "once";
+  local %Devel::Cover::Report::Html_crisp::R = (
+    full  => { statement => "Statement", total => "total" },
+    short => { statement => "stmt",      total => "total" },
+  );
+
+  my $empty = Devel::Cover::Report::Html_crisp::stat_badge(
+    "statement", { pc => "n/a", class => "na", covered => 0, total => 0 },
+  );
+  unlike $empty, qr/tip-hover/, "stat_badge: no tip-hover when total = 0";
+  unlike $empty, qr/glass-tip/, "stat_badge: no glass-tip when total = 0";
+
+  my $real = Devel::Cover::Report::Html_crisp::stat_badge(
+    "statement", { pc => "75.0", class => "c2", covered => 3, total => 4 },
+  );
+  like $real, qr/tip-hover/,         "stat_badge: tip-hover when total > 0";
+  like $real, qr{glass-tip">3 / 4<}, "stat_badge: glass-tip with counts";
+}
+
+sub test_index_filter_links () {
+  my $got = $Golden{"coverage.html"};
+  like $got, qr{cell-link" href="[^"]*#filter=statement"},
+    "index: statement cell links with #filter=statement";
+  like $got, qr{cell-link" href="[^"]*#filter=total"},
+    "index: total cell links with #filter=total";
+  like $got, qr{cell-link" href="[^"]*\.html">},
+    "index: SLOP cell links to file without #filter";
+}
+
+sub test_dir_header_links () {
+  my $got = $Golden{"coverage.html"};
+  my ($dir_block) = $got =~ m{(<tr class="dir-header".*?</tr>)}s;
+  ok defined $dir_block, "dir-header row found in golden index";
+  like $dir_block, qr/cell-link/,
+    "dir-header: cells wrapped in cell-link anchors";
+  like $dir_block, qr/#filter=/,
+    "dir-header: cell-link hrefs include filter hash";
+}
+
+sub test_app_js_hash_filter () {
+  my $app_js = slurp(File::Spec->catfile($Outdir, "assets", "app.js"));
+  like $app_js, qr/syncHash/,              "app.js: syncHash helper present";
+  like $app_js, qr/history\.replaceState/, "app.js: uses replaceState";
+  like $app_js, qr/#filter=/,              "app.js: filter hash referenced";
+  like $app_js, qr/location\.hash/,        "app.js: reads location.hash";
+  like $app_js, qr/cell-link/, "app.js: index click handler aware of cell-link";
 }
 
 sub test_untested_badge_tooltip () {
@@ -278,7 +370,6 @@ sub test_untested_badge_tooltip () {
 
 sub main () {
   _setup;
-  ok keys %Golden > 0, "golden output captured";
   test_crit_name;
   test_render_layout;
   test_render_index;
@@ -291,6 +382,12 @@ sub main () {
   test_file_nav_keys;
   test_render_untested_page;
   test_cov_cell_tooltips;
+  test_cov_cell_link;
+  test_slop_cell_link;
+  test_stat_badge_no_tip_when_empty;
+  test_index_filter_links;
+  test_dir_header_links;
+  test_app_js_hash_filter;
   test_untested_badge_tooltip;
   done_testing;
 }
