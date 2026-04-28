@@ -52,6 +52,7 @@ sub _setup () {
     (my $name = $file) =~ s{.*/}{};
     $Golden{$name} = slurp($file);
   }
+  ok keys %Golden, "golden output captured";
 }
 
 sub test_crit_name () {
@@ -369,7 +370,6 @@ sub test_untested_badge_tooltip () {
 
 sub main () {
   _setup;
-  ok keys %Golden > 0, "golden output captured";
   test_crit_name;
   test_render_layout;
   test_render_index;
