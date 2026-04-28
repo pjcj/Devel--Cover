@@ -244,8 +244,10 @@ sub test_cov_cell_tooltips () {
   my $na
     = _cov_cell({ pc => "n/a", class => "na", covered => 0, total => 0 }, 0, 1,
     );
-  like $na, qr/class="na tip-hover"/, "tested n/a cell: tip-hover kept";
-  like $na, qr/glass-tip">0 \/ 0</,   "tested n/a cell: glass-tip 0 / 0 kept";
+  unlike $na, qr/tip-hover/,
+    "tested n/a cell: no tip-hover (0/0 uninformative)";
+  unlike $na, qr/glass-tip/,
+    "tested n/a cell: no glass-tip (0/0 uninformative)";
 
   my $unc_ppi
     = _cov_cell({ pc => "0", class => "c0", covered => 0, total => 5 }, 1, 1);
@@ -294,6 +296,26 @@ sub test_slop_cell_link () {
     = Devel::Cover::Report::Html_crisp::slop_cell($f, "tests-foo.html");
   like $with_link, qr{<a class="cell-link" href="tests-foo\.html">33\.4</a>},
     "slop with link: anchor wraps slop value (no filter hash)";
+}
+
+sub test_stat_badge_no_tip_when_empty () {
+  no warnings "once";
+  local %Devel::Cover::Report::Html_crisp::R = (
+    full  => { statement => "Statement", total => "total" },
+    short => { statement => "stmt",      total => "total" },
+  );
+
+  my $empty = Devel::Cover::Report::Html_crisp::stat_badge(
+    "statement", { pc => "n/a", class => "na", covered => 0, total => 0 },
+  );
+  unlike $empty, qr/tip-hover/, "stat_badge: no tip-hover when total = 0";
+  unlike $empty, qr/glass-tip/, "stat_badge: no glass-tip when total = 0";
+
+  my $real = Devel::Cover::Report::Html_crisp::stat_badge(
+    "statement", { pc => "75.0", class => "c2", covered => 3, total => 4 },
+  );
+  like $real, qr/tip-hover/,         "stat_badge: tip-hover when total > 0";
+  like $real, qr{glass-tip">3 / 4<}, "stat_badge: glass-tip with counts";
 }
 
 sub test_index_filter_links () {
@@ -362,6 +384,7 @@ sub main () {
   test_cov_cell_tooltips;
   test_cov_cell_link;
   test_slop_cell_link;
+  test_stat_badge_no_tip_when_empty;
   test_index_filter_links;
   test_dir_header_links;
   test_app_js_hash_filter;
