@@ -2159,7 +2159,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
       var hashCrit = hashMatch[1];
       for (var hi = 0; hi < badges.length; hi++) {
         if (badges[hi].getAttribute("data-criterion") === hashCrit) {
-          applyFilter(hashCrit);
+          toggleFilter(hashCrit);
           break;
         }
       }
