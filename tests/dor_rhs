@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+# __COVER__ criteria statement branch condition subroutine
+
+use strict;
+
+sub scalar_rhs
+{
+    my $a;
+    my $b = 1;
+
+    $a // $b
+}
+
+sub hash_rhs
+{
+    my $a;
+    my %b = (x => 1);
+
+    $a // $b{x}
+}
+
+sub array_rhs
+{
+    my $a;
+    my @b = (1);
+
+    $a // $b[0]
+}
+
+die "scalar failed" unless scalar_rhs();
+die "hash failed"   unless hash_rhs();
+die "array failed"  unless array_rhs();
