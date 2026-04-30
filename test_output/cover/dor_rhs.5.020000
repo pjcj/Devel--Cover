@@ -1,0 +1,103 @@
+cover: Reading database from ...
+------------- ------ ------ ------ ------ ------ ------
+File            stmt   bran   cond    sub  total   slop
+------------- ------ ------ ------ ------ ------ ------
+tests/dor_rhs  100.0   50.0   33.3  100.0   73.5   14.9
+Total          100.0   50.0   33.3  100.0   73.5   14.9
+------------- ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/dor_rhs
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 4 70.0  4.4 14.9
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location        
+---------- -- ----  ----------------
+scalar_rhs  2  7.6  tests/dor_rhs:8 
+hash_rhs    2  7.6  tests/dor_rhs:16
+array_rhs   2  7.6  tests/dor_rhs:24
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/env perl
+2                                       # __COVER__ criteria statement branch condition subroutine
+3                                       
+4              1                    1   use strict;
+               1                        
+               1                        
+5                                       
+6                                       sub scalar_rhs
+7                                       {
+8              1                    1       my $a;
+9              1                            my $b = 1;
+10                                      
+11    ***      1          * 33              $a // $b
+12                                      }
+13                                      
+14                                      sub hash_rhs
+15                                      {
+16             1                    1       my $a;
+17             1                            my %b = (x => 1);
+18                                      
+19    ***      1          * 33              $a // $b{x}
+20                                      }
+21                                      
+22                                      sub array_rhs
+23                                      {
+24             1                    1       my $a;
+25             1                            my @b = (1);
+26                                      
+27    ***      1          * 33              $a // $b[0]
+28                                      }
+29                                      
+30    ***      1   * 50                 die "scalar failed" unless scalar_rhs();
+31    ***      1   * 50                 die "hash failed"   unless hash_rhs();
+32    ***      1   * 50                 die "array failed"  unless array_rhs();
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+30    ***     50      0      1   unless scalar_rhs()
+31    ***     50      0      1   unless hash_rhs()
+32    ***     50      0      1   unless array_rhs()
+
+
+Conditions
+----------
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+11    ***     33      0      1      0   $a // $b
+19    ***     33      0      1      0   $a // $b{"x"}
+27    ***     33      0      1      0   $a // $b[0]
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SLOP Location        
+---------- ----- --- ----- ----------------
+BEGIN          1   1   0.0 tests/dor_rhs:4 
+array_rhs      1   2   7.6 tests/dor_rhs:24
+hash_rhs       1   2   7.6 tests/dor_rhs:16
+scalar_rhs     1   2   7.6 tests/dor_rhs:8 
+
+
