@@ -1037,6 +1037,29 @@ static OP *find_skipped_conditional(pTHX_ OP *o) {
   return next;
 }
 
+/*
+ * Some RHS value ops are hidden under an optimised OP_NULL wrapper in
+ * the static tree.
+ *
+ * The wrapper itself is not on the runtime path, so its op_next can
+ * point somewhere structural (i.e. the surrounding lineseq) rather than
+ * to the op that follows the evaluated RHS.
+ */
+static OP *unwrap_condition_rhs(OP *right) {
+  while (
+    right                       &&
+    right->op_type == OP_NULL   &&
+   (right->op_flags & OPf_KIDS) &&
+   (right->op_targ == OP_AELEM || right->op_targ == OP_HELEM)
+  ) {
+    OP *kid = cUNOPx(right)->op_first;
+    if (!kid) break;
+    right = kid;
+  }
+
+  return right;
+}
+
 /* NOTE: caller must protect get_condition* calls by locking DC_mutex */
 static OP *get_condition(pTHX) {
   SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
@@ -1198,7 +1221,12 @@ static void cover_logop(pTHX) {
         (PL_op->op_type == OP_XOR)) {
       /* no short circuit */
 
-      OP *right = OpSIBLING(cLOGOP->op_first);
+      OP *right = unwrap_condition_rhs(OpSIBLING(cLOGOP->op_first));
+
+      /* If we failed to find a RHS op, give up
+       * on condition tracking for this op */
+      if (!right)
+        return;
 
       NDEB(op_dump(right));
 
