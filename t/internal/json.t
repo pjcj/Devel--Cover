@@ -32,9 +32,9 @@ eval "require JSON::MaybeXS; 1" or do {
 };
 
 # The new `json` report emits full per-line detail (statements, branches,
-# conditions, condition_truth_tables, subroutines, pod) plus per-file meta
-# and a top-level devel_cover_version.  It is the supersedes-everything feed
-# requested in GH-418.
+# conditions, condition_truth_tables, mcdc, subroutines, pod) plus per-file
+# meta and a top-level devel_cover_version.  It is the supersedes-everything
+# feed requested in GH-418.
 sub test_json_detailed_report () {
   my ($tmpdir, $libdir) = setup_lib_dir;
   my $cover_db = create_cover_db($tmpdir, $libdir);
@@ -80,6 +80,7 @@ sub test_json_detailed_report () {
   isa_ok $f->{branches},               "HASH", "branches";
   isa_ok $f->{conditions},             "HASH", "conditions";
   isa_ok $f->{condition_truth_tables}, "HASH", "condition_truth_tables";
+  isa_ok $f->{mcdc},                   "HASH", "mcdc";
   isa_ok $f->{subroutines},            "HASH", "subroutines";
 
   # At least one statement was actually covered.
@@ -112,6 +113,20 @@ sub test_json_detailed_report () {
   isa_ok $row->{inputs}, "ARRAY", "row inputs";
   ok defined $row->{result},  "row has result";
   ok defined $row->{covered}, "row has covered";
+
+  # MC/DC: Calc.pm has `$x && $y` in sub check.  The analyser produces a
+  # per-decision record with text, labels, covered (per-column 1/0), and
+  # error.
+  my $mcdc_line = first { $f->{mcdc}{$_}->@* } keys $f->{mcdc}->%*;
+  ok $mcdc_line, "at least one line has mcdc data"
+    or do { done_testing; return };
+  my $m = $f->{mcdc}{$mcdc_line}[0];
+  ok defined $m->{text}, "mcdc has text";
+  isa_ok $m->{labels},  "ARRAY", "mcdc labels";
+  isa_ok $m->{covered}, "ARRAY", "mcdc covered";
+  is $m->{labels}->@*, $m->{covered}->@*,
+    "labels and covered arrays have matching length";
+  ok defined $m->{error}, "mcdc has error";
 }
 
 # json_summary should NOT have a files key - this protects against accidental
