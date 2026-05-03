@@ -65,7 +65,7 @@ sub get_summary ($file, $criterion) {
 
   my $cr = $criterion eq "pod" ? "subroutine" : $criterion;
   return $vals
-    if $cr !~ /^(?:branch|condition|subroutine)$/
+    if $cr !~ /^(?:branch|condition|mcdc|subroutine)$/
     || !exists $R{filenames}{$file};
   return $vals if $R{uncompiled}{$file};
   $vals->{link} = "$R{filenames}{$file}--$cr.html";
@@ -248,6 +248,42 @@ sub print_conditions () {
   $Template->process("conditions", $vars, $html) or die $Template->error;
 }
 
+sub print_mcdc () {
+  my $mcdc = $R{db}->cover->file($R{file})->mcdc;
+  return unless $mcdc;
+
+  my @decisions;
+  for my $location (sort { $a <=> $b } $mcdc->items) {
+    my $count = 0;
+    for my $m ($mcdc->location($location)->@*) {
+      $count++;
+      my $text = $m->text;
+      ($text) = highlight($R{options}{option}, $text) if $Have_highlighter;
+      my @vals   = $m->values;
+      my @labels = $m->labels->@*;
+
+      push @decisions, {
+          number     => $count == 1 ? $location : "",
+          percentage => $m->percentage,
+          class      => class($m->percentage, $m->error, "mcdc"),
+          atomics    => [
+            map +{
+              label => encode_entities($labels[$_] // ""),
+              class => $vals[$_] ? "c3" : "c0",
+            },
+            0 .. $#vals,
+          ],
+          text => $text,
+        };
+    }
+  }
+
+  my $vars = { R => \%R, decisions => \@decisions };
+
+  my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--mcdc.html";
+  $Template->process("mcdc", $vars, $html) or die $Template->error;
+}
+
 sub print_subroutines () {
   my $subroutines = $R{db}->cover->file($R{file})->subroutine;
   return unless $subroutines;
@@ -365,6 +401,7 @@ sub report ($pkg, $db, $options) {
     unless ($R{uncompiled}{$_}) {
       print_branches    if $show->{branch};
       print_conditions  if $show->{condition};
+      print_mcdc        if $show->{mcdc};
       print_subroutines if $show->{subroutine} || $show->{pod};
     }
   }
@@ -690,6 +727,41 @@ $Templates{conditions} = <<'HTML';
     [% END %]
   </table>
 [% END %]
+
+[% END %]
+HTML
+
+$Templates{mcdc} = <<'HTML';
+[% WRAPPER html %]
+
+<h1> MC/DC Coverage </h1>
+
+[% PROCESS header criteria = [ "mcdc" ] %]
+
+<table>
+  <tr>
+    <th> line </th>
+    <th> % </th>
+    <th> atomics </th>
+    <th> decision </th>
+  </tr>
+
+  [% FOREACH decision = decisions %]
+    <tr>
+      <td class="h">
+        <a href="[% R.file_link %]#[% decision.number %]">
+          [% decision.number %]</a>
+      </td>
+      <td class="[% decision.class %]"> [% decision.percentage %] </td>
+      <td>
+        [% FOREACH atom = decision.atomics %]
+          <span class="[% atom.class %]"> [% atom.label %] </span>
+        [% END %]
+      </td>
+      <td class="s"> [% decision.text %] </td>
+    </tr>
+  [% END %]
+</table>
 
 [% END %]
 HTML
