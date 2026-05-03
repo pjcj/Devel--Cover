@@ -72,19 +72,34 @@ sub get_showing_headers ($db, $options) {
 sub truth_table (@args) {
   return if @args > 16;
   my @lops;
-  my $n = 0;
-  for my $c (@args) {
+  for my $i (0 .. $#args) {
+    my $c   = $args[$i];
     my $op  = $c->[1]{type};
     my @hit = map { defined() && $_ > 0 ? 1 : 0 } $c->[0]->@*;
     @hit = reverse @hit if $op =~ /^or_[23]$/;
-    my $t = {
-      tt   => Devel::Cover::Truth_Table->new_primitive($op, @hit),
-      cvg  => $c->[1],
-      expr => join " ",
-      $c->[1]->@{qw( left op right )},
-    };
-    push @lops, $t;
-  } map { [$_->{tt}->sort, $_->{expr}] } merge_lineops(@lops)
+    push @lops, {
+        tt   => Devel::Cover::Truth_Table->new_primitive($op, @hit),
+        cvg  => $c->[1],
+        expr => join(" ", $c->[1]->@{qw( left op right )}),
+        idx  => $i,
+      };
+  }
+
+  my @merged = merge_lineops(@lops);
+
+  # Override per-row covered from runtime-observed input vectors.
+  # merge_lineops preserves the surviving root op's idx through merges,
+  # so $args[$idx][3] gives the observed-vector hash for that root.
+  for my $op (@merged) {
+    my $obs = $args[$op->{idx}][3];
+    next unless $obs && %$obs;
+    for my $row ($op->{tt}->@*) {
+      my $key = join "|", $row->inputs;
+      $row->{covered} = $obs->{$key} ? 1 : 0;
+    }
+  }
+
+  return map { [$_->{tt}->sort, $_->{expr}] } @merged;
 }
 
 # Merge multiple conditional expressions into composite truth tables

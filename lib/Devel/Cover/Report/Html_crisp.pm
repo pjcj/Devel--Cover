@@ -863,6 +863,7 @@ sub line_truth_tables ($f, $n) {
   my $conditions = $f->condition or return;
   my $loc        = $conditions->location($n);
   return unless $loc && @$loc;
+  my @observed = map { $_->[3] } @$loc;
   grep { $_->{rows}->@* } map {
     my @rows = map { {
       inputs  => $_->inputs,
@@ -883,7 +884,7 @@ sub line_truth_tables ($f, $n) {
           0 .. $#labels
       ],
     }
-  } Devel::Cover::Condition_table->for_line($loc)
+  } Devel::Cover::Condition_table->for_line($loc, \@observed)
 }
 
 sub line_mcdc ($f, $n) {

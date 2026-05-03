@@ -18,8 +18,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use File::Spec ();
 use Test::More import => [qw( done_testing is like ok plan unlike )];
-use Devel::Cover::Branch             ();
-use Devel::Cover::Mcdc               ();
+use Devel::Cover::Mcdc               ();  ## no perlimports
 use Devel::Cover::Report::Html_crisp ();
 use Devel::Cover::Test::Showcase     qw(
   create_cover_db
@@ -350,6 +349,62 @@ sub test_app_js_hash_filter () {
   like $app_js, qr/cell-link/, "app.js: index click handler aware of cell-link";
 }
 
+{
+
+  package MockFile;
+  sub new       ($class, $cond) { bless { cond => $cond }, $class }
+  sub condition ($self)         { $self->{cond} }
+}
+
+{
+
+  package MockCriterion;
+  sub new      ($class, $by_line) { bless $by_line, $class }
+  sub location ($self, $n)        { $self->{$n} }
+}
+
+sub _mock_cond ($class, $hits, $info, $observed = undef) {
+  bless [$hits, $info, undef, $observed], "Devel::Cover::$class"
+}
+
+# When the runtime recorded only a subset of input vectors, the synthesised
+# truth-table rows that were never executed must render as covered=0 in the
+# Html_crisp truth-table view, matching the MC/DC view.  This covers
+# Html_crisp::line_truth_tables passing the observed-vectors slot through
+# to Condition_table::for_line.
+sub test_truth_tables_pass_observed_vectors () {
+  my @cond = (
+    _mock_cond(
+      "Condition_and_3",
+      [1, 1, 1],
+      { type => "and_3", left => '$a', op => "&&", right => '$b' },
+    ),
+    _mock_cond(
+      "Condition_or_3",
+      [1, 1, 1],
+      { type    => "or_3", left    => '$a && $b', op => "||",   right => '$c' },
+      { "1|1|X" => 1,      "1|0|1" => 1,          "0|X|1" => 1, "0|X|0" => 1 },
+    ),
+  );
+  my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
+
+  my @tts = Devel::Cover::Report::Html_crisp::line_truth_tables($f, 7);
+  is @tts, 1, "single composite table from worked-example shape";
+
+  my %covered;
+  for my $row ($tts[0]{rows}->@*) {
+    $covered{ join "|", $row->{inputs}->@* } = $row->{covered} ? 1 : 0;
+  }
+
+  is $covered{"1|1|X"}, 1, "observed (1,1,X) covered";
+  is $covered{"1|0|1"}, 1, "observed (1,0,1) covered";
+  is $covered{"0|X|1"}, 1, "observed (0,X,1) covered";
+  is $covered{"0|X|0"}, 1, "observed (0,X,0) covered";
+
+  ok exists $covered{"1|0|0"}, "phantom (1,0,0) row rendered";
+  is $covered{"1|0|0"}, 0, "phantom (1,0,0) not covered";
+}
+
 sub test_class_accepts_criterion_percentage () {
   my $b = bless [[0, 1], { text => "" }], "Devel::Cover::Branch";
   my $m = bless [[0, 1], { text => "", labels => ["a", "b"] }],
@@ -357,8 +412,8 @@ sub test_class_accepts_criterion_percentage () {
 
   is Devel::Cover::Report::Html_crisp::class($b->percentage, $b->error,
     "branch"), "c0", "class accepts Branch->percentage at 50%";
-  is Devel::Cover::Report::Html_crisp::class($m->percentage, $m->error,
-    "mcdc"), "c0", "class accepts Mcdc->percentage at 50%";
+  is Devel::Cover::Report::Html_crisp::class($m->percentage, $m->error, "mcdc"),
+    "c0", "class accepts Mcdc->percentage at 50%";
 }
 
 sub test_untested_badge_tooltip () {
@@ -401,6 +456,7 @@ sub main () {
   test_index_filter_links;
   test_dir_header_links;
   test_app_js_hash_filter;
+  test_truth_tables_pass_observed_vectors;
   test_class_accepts_criterion_percentage;
   test_untested_badge_tooltip;
   done_testing;
