@@ -18,6 +18,8 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use File::Spec ();
 use Test::More import => [qw( done_testing is like ok plan unlike )];
+use Devel::Cover::Branch             ();
+use Devel::Cover::Mcdc               ();
 use Devel::Cover::Report::Html_crisp ();
 use Devel::Cover::Test::Showcase     qw(
   create_cover_db
@@ -348,6 +350,17 @@ sub test_app_js_hash_filter () {
   like $app_js, qr/cell-link/, "app.js: index click handler aware of cell-link";
 }
 
+sub test_class_accepts_criterion_percentage () {
+  my $b = bless [[0, 1], { text => "" }], "Devel::Cover::Branch";
+  my $m = bless [[0, 1], { text => "", labels => ["a", "b"] }],
+    "Devel::Cover::Mcdc";
+
+  is Devel::Cover::Report::Html_crisp::class($b->percentage, $b->error,
+    "branch"), "c0", "class accepts Branch->percentage at 50%";
+  is Devel::Cover::Report::Html_crisp::class($m->percentage, $m->error,
+    "mcdc"), "c0", "class accepts Mcdc->percentage at 50%";
+}
+
 sub test_untested_badge_tooltip () {
   no warnings "once";
 
@@ -388,6 +401,7 @@ sub main () {
   test_index_filter_links;
   test_dir_header_links;
   test_app_js_hash_filter;
+  test_class_accepts_criterion_percentage;
   test_untested_badge_tooltip;
   done_testing;
 }
