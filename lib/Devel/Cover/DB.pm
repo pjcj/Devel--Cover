@@ -758,8 +758,37 @@ sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
 
 {
   no warnings "once";
-  *add_condition = \&add_branch;
-  *add_pod       = \&add_subroutine;
+  *add_pod = \&add_subroutine;
+}
+
+# Same merge as add_branch, plus an optional per-file decision-inputs
+# arrayref (parallel to $fc, indexed by flat per-file ordinal).  When a
+# condition's flat ordinal carries observed-vector data, it is attached
+# to the condition entry's third slot for later use by _derive_mcdc.
+sub add_condition ($self, $cc, $sc, $fc, $uc, $di = undef) {
+  my %line;
+  for my $i (0 .. $#$fc) {
+    my $l = $sc->[$i][0] // do {
+      warn "Devel::Cover: ignoring extra condition\n";
+      return;
+    };
+    my $n = $line{$l}++;
+    no warnings "uninitialized";
+    if (my $a = $cc->{$l}[$n]) {
+      $a->[0][0] += $fc->[$i][0];
+      $a->[0][1] += $fc->[$i][1];
+      $a->[0][2] += $fc->[$i][2] if exists $fc->[$i][2];
+      $a->[0][3] += $fc->[$i][3] if exists $fc->[$i][3];
+    } else {
+      $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
+    }
+    $cc->{$l}[$n][2][$_->[0]] ||= $_->[1] for $uc->{$l}[$n]->@*;
+
+    if (my $obs = $di && $di->[$i]) {
+      my $merged = $cc->{$l}[$n][3] //= {};
+      $merged->{$_} += $obs->{$_} for keys %$obs;
+    }
+  }
 }
 
 sub uncoverable_files ($self) {
@@ -995,6 +1024,33 @@ sub objectify_cover ($self) {
   }
 }
 
+sub _derive_mcdc ($self, $cover) {
+  require Devel::Cover::Condition_table;
+  require Devel::Cover::Mcdc::Analyser;
+
+  for my $cf (values %$cover) {
+    my $cc = $cf->{condition} or next;
+    next if exists $cf->{mcdc};
+
+    my %mcdc;
+    for my $line (keys %$cc) {
+      my $loc = $cc->{$line};
+      next unless $loc && @$loc;
+      my @observed = map { $_->[3] } @$loc;
+      my @tables   = Devel::Cover::Condition_table->for_line($loc, \@observed);
+      for my $table (@tables) {
+        my $r        = Devel::Cover::Mcdc::Analyser->analyse($table);
+        my $total    = $r->{total};
+        my $pairs    = $r->{pairs};
+        my @coverage = map { exists $pairs->{$_} ? 1 : 0 } 0 .. $total - 1;
+        push $mcdc{$line}->@*,
+          [\@coverage, { text => $table->expr, labels => [$table->labels] }];
+      }
+    }
+    $cf->{mcdc} = \%mcdc if %mcdc;
+  }
+}
+
 sub _file_digest ($r, $file) {
   no warnings "once";
   my $digest = $r->{digests}{$file};
@@ -1034,7 +1090,15 @@ sub _cover_file (
     };
     my $cc  = $cf->{$criterion} ||= {};
     my $add = "add_$criterion";
-    $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
+    if ($criterion eq "condition") {
+      $self->$add(
+        $cc, $sc, $fc,
+        $uncoverable->{$digest}{$criterion},
+        $r->{decision_inputs}{$file},
+      );
+    } else {
+      $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
+    }
   }
 }
 
@@ -1074,6 +1138,8 @@ sub cover ($self) {
       );
     }
   }
+
+  $self->_derive_mcdc($cover) if exists $self->{collected}{mcdc};
 
   $self->objectify_cover;
   if ($self->{files}->@*) {
