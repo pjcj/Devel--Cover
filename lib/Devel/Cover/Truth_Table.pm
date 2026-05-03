@@ -62,18 +62,7 @@ sub truth_table {
   }
 
   my @merged = merge_lineops(@lops);
-
-  # Override per-row covered from runtime-observed input vectors.
-  # merge_lineops preserves the surviving root op's idx through merges,
-  # so $c->[$idx][3] gives the observed-vector hash for that root.
-  for my $op (@merged) {
-    my $obs = $c->[$op->{idx}][3];
-    next unless $obs && %$obs;
-    for my $row (@{ $op->{tt} }) {
-      my $key = join "|", $row->inputs;
-      $row->{covered} = $obs->{$key} ? 1 : 0;
-    }
-  }
+  Devel::Cover::Truth_Table::apply_observed_vectors(\@merged, $c);
 
   return map { [$_->{tt}->sort, $_->{expr}] } @merged;
 }
@@ -193,6 +182,23 @@ package Devel::Cover::Truth_Table;
 use warnings;
 use strict;
 # VERSION
+
+# Override merged-truth-table row coverage from runtime-observed input vectors.
+# merge_lineops preserves the surviving root op's idx through merges, so
+# $conditions->[$idx][3] gives the observed-vector hash for that root.
+# Synthesised rows not in the observed set stay rendered with covered=0 so the
+# truth table still draws.
+sub apply_observed_vectors {
+  my ($merged, $conditions) = @_;
+  for my $op (@$merged) {
+    my $obs = $conditions->[$op->{idx}][3];
+    next unless $obs && %$obs;
+    for my $row (@{ $op->{tt} }) {
+      my $key = join "|", $row->inputs;
+      $row->{covered} = $obs->{$key} ? 1 : 0;
+    }
+  }
+}
 
 #-------------------------------------------------------------------------------
 # Subroutine : new()
