@@ -14,8 +14,8 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Devel::Cover::DB::IO::JSON;
-use Devel::Cover::Log qw( dcinfo );
+use Devel::Cover::DB::IO::JSON ();
+use Devel::Cover::Log          qw( dcinfo );
 
 sub add_runs ($db) {
   my @runs;
@@ -28,7 +28,7 @@ sub add_runs ($db) {
 }
 
 sub report ($pkg, $db, $options) {
-  my %options = map { $_ => 1 } grep !/path|time/, $db->all_criteria, "force";
+  my %options = map { $_ => 1 } grep !/time/, $db->all_criteria, "force";
   $db->calculate_summary(%options);
 
   my $json = { runs => add_runs($db), summary => $db->{summary} };
@@ -56,10 +56,10 @@ Devel::Cover::Report::Json_summary - Summary JSON backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides summary-only JSON output for coverage data,
-suitable for generating coverage badges and aggregate metrics.  The
-output contains per-file and total coverage percentages by criterion,
-but no per-line detail.  It is the format consumed by L<cpancover>.
+This module provides summary-only JSON output for coverage data, suitable for
+generating coverage badges and aggregate metrics.  The output contains per-file
+and total coverage percentages by criterion, but no per-line detail.  It is the
+format consumed by L<cpancover>.
 
 For full per-line, per-criterion coverage detail see
 L<Devel::Cover::Report::Json>.
