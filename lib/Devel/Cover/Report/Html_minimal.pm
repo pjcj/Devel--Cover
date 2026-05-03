@@ -86,18 +86,7 @@ sub truth_table (@args) {
   }
 
   my @merged = merge_lineops(@lops);
-
-  # Override per-row covered from runtime-observed input vectors.
-  # merge_lineops preserves the surviving root op's idx through merges,
-  # so $args[$idx][3] gives the observed-vector hash for that root.
-  for my $op (@merged) {
-    my $obs = $args[$op->{idx}][3];
-    next unless $obs && %$obs;
-    for my $row ($op->{tt}->@*) {
-      my $key = join "|", $row->inputs;
-      $row->{covered} = $obs->{$key} ? 1 : 0;
-    }
-  }
+  Devel::Cover::Truth_Table::apply_observed_vectors(\@merged, \@args);
 
   return map { [$_->{tt}->sort, $_->{expr}] } @merged;
 }
