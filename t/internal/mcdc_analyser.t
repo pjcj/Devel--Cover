@@ -168,6 +168,21 @@ sub test_masking_does_not_fire_when_uncoupled () {
   is $r->{satisfied}, 0, "uncoupled: masking never fires";
 }
 
+# Condition_table::for_line places X-rows ahead of concrete rows, so
+# `_concrete_differs` and `_sca_agrees` only see X as their first argument
+# in normal runs.  This synthetic ordering puts the X-row second and
+# exercises the X short-circuit on the second argument in both helpers.
+sub test_x_as_second_argument () {
+  my $table = build_synthetic_table(
+    '$a && $b',
+    ['$a',                              '$b'],
+    [{ inputs => [1, 1], result => 1 }, { inputs => [0, "X"], result => 0 }],
+  );
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is $r->{total},     2, "x-second: 2 atomics";
+  is $r->{satisfied}, 1, 'x-second: $a satisfied via X agreeing with 1';
+}
+
 # missing is empty when every atomic has been demonstrated.
 sub test_missing_empty_when_all_satisfied () {
   my $r = Devel::Cover::Mcdc::Analyser->analyse(build_and_table([1, 1, 1]));
@@ -273,6 +288,7 @@ sub main () {
   test_or_concrete_only_pair;
   test_masking_fires_when_coupled;
   test_masking_does_not_fire_when_uncoupled;
+  test_x_as_second_argument;
   test_missing_empty_when_all_satisfied;
   test_missing_lists_unsatisfied_columns;
   test_missing_lists_all_columns;
