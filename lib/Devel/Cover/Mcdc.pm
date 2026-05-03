@@ -24,7 +24,7 @@ sub criterion ($self) { "mcdc" }
 
 sub percentage ($self) {
   my $t = $self->total;
-  sprintf "%3d", $t ? $self->covered / $t * 100 : 0
+  $t ? int($self->covered / $t * 100) : 0
 }
 
 "

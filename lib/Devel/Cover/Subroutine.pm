@@ -7,20 +7,22 @@
 
 package Devel::Cover::Subroutine;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
 use base "Devel::Cover::Criterion";
 
-sub uncoverable { $_[0][2] }
-sub covered     { $_[0][0] }
-sub total       { 1 }
-sub percentage  { $_[0][0] ? 100 : 0 }
-sub error       { $_[0]->simple_error }
-sub name        { $_[0][1] }
-sub criterion   { "subroutine" }
+sub uncoverable ($self) { $self->[2] }
+sub covered     ($self) { $self->[0] }
+sub total       ($self) { 1 }
+sub percentage  ($self) { $self->[0] ? 100 : 0 }
+sub error       ($self) { $self->simple_error }
+sub name        ($self) { $self->[1] }
+sub criterion   ($self) { "subroutine" }
 
 1
 

@@ -22,6 +22,7 @@ sub _print_criteria_value ($o, $c) {
 
 sub _format_value ($o, $c) {
   my $value = _print_criteria_value($o, $c);
+  $value = sprintf "%3d", $value if $c !~ /statement|sub|pod|time/;
   $value = "-$value" if $o->uncoverable;
   $value = "*$value" if $o->error;
   $value
@@ -285,7 +286,7 @@ sub print_branches ($db, $file, $) {
     my $n = 0;
     for my $b ($branches->location($location)->@*) {
       printf $tpl, $n ? "" : $location, $b->error ? "***" : "",
-        ($b->uncoverable ? "-" : "") . $b->percentage,
+        ($b->uncoverable ? "-" : "") . sprintf("%3d", $b->percentage),
         (map { ($b->uncoverable($_) ? "-" : "") . ($b->covered($_) || 0) }
           0 .. $b->total - 1), $b->text;
       $n++;
@@ -329,7 +330,7 @@ sub print_conditions ($db, $file, $) {
         printf $tpl, "-----", "---", ("------") x ($nh + 1), "----";
       }
       printf $tpl, $location, $c->error ? "***" : "",
-        ($c->uncoverable ? "-" : "") . $c->percentage,
+        ($c->uncoverable ? "-" : "") . sprintf("%3d", $c->percentage),
         (map { ($c->uncoverable($_) ? "-" : "") . ($c->covered($_) || 0) }
           0 .. $c->total - 1), $c->text;
     }
