@@ -188,6 +188,60 @@ sub test_missing_lists_all_columns () {
     "and !l only: missing lists both columns";
 }
 
+# Worked-example regression: nested `($is_owner && $unlocked) || $is_admin`
+# exercised with the four tests listed in `docs/technical/mcdc.md`.  Hits both
+# sub-decisions in full (inner [1,1,1], outer [1,1,1]).  The four observed
+# combined inputs (T,T,X), (T,F,T), (F,X,T), (F,X,F) demonstrate SCA
+# independence pairs for `$is_owner` and `$is_admin`, leaving `$unlocked` as
+# the only atomic without a pair.  SCA MC/DC: 2/3 satisfied, missing
+# `$unlocked`.  Without observed-vectors, `Condition_table::for_line`
+# synthesises composite rows by cross-product, producing a phantom (T,F,F)
+# covered=1 row that lets the analyser build a spurious pair for `$unlocked`.
+# Threading observed-vectors through is what blocks the phantom: rows are
+# marked covered iff their input vector was actually executed.
+sub test_no_phantom_rows_in_worked_example () {
+  my @conditions = (
+    mock_condition(
+      "Condition_and_3",
+      [1, 1, 1], {
+        type  => "and_3",
+        left  => '$is_owner',
+        op    => "&&",
+        right => '$unlocked',
+      },
+    ),
+    mock_condition(
+      "Condition_or_3",
+      [1, 1, 1], {
+        type  => "or_3",
+        left  => '$is_owner && $unlocked',
+        op    => "||",
+        right => '$is_admin',
+      },
+    ),
+  );
+  # Outer || is the root (index 1); decision_inputs is populated only at
+  # root entries.
+  my @observed = (
+    undef,
+    {
+      "1|1|X" => 1,    # (T,T,X) - $is_admin not evaluated
+      "1|0|1" => 1,    # (T,F,T)
+      "0|X|1" => 1,    # (F,X,T) - $unlocked not evaluated
+      "0|X|0" => 1,    # (F,X,F)
+    },
+  );
+  my ($table) = Devel::Cover::Condition_table->for_line(
+    \@conditions, \@observed,
+  );
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is $r->{total},     3, "worked example: 3 atomics";
+  is $r->{satisfied}, 2,
+    'worked example: $is_owner and $is_admin satisfied via SCA pairs';
+  is_deeply $r->{missing}, ['$unlocked'],
+    'worked example: $unlocked is the only atomic missing a pair';
+}
+
 # Coupled labels appear in their column order, including duplicates, so the
 # total / satisfied / missing accounts stay consistent at the column level.
 # Both $a columns are held at 1, so neither has a variation pair.
@@ -223,6 +277,7 @@ sub main () {
   test_missing_lists_unsatisfied_columns;
   test_missing_lists_all_columns;
   test_missing_preserves_coupled_columns;
+  test_no_phantom_rows_in_worked_example;
   done_testing;
 }
 
