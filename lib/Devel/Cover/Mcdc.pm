@@ -16,11 +16,19 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 use base "Devel::Cover::Criterion";
 
-sub covered   ($self) { scalar grep $_, $self->[0]->@* }
-sub total     ($self) { scalar $self->[0]->@* }
-sub values    ($self) { $self->[0]->@* }
-sub text      ($self) { $self->[1]{text} }
-sub criterion ($self) { "mcdc" }
+sub covered     ($self)             { scalar grep $_, $self->[0]->@* }
+sub total       ($self)             { scalar $self->[0]->@* }
+sub values      ($self)             { $self->[0]->@* }
+sub text        ($self)             { $self->[1]{text} }
+sub labels      ($self)             { $self->[1]{labels} // [] }
+sub criterion   ($self)             { "mcdc" }
+sub uncoverable ($self, $i = undef) { 0 }
+
+sub missing ($self) {
+  my $cov = $self->[0];
+  my $lab = $self->labels;
+  [map $lab->[$_], grep !$cov->[$_], 0 .. $#$cov]
+}
 
 sub percentage ($self) {
   my $t = $self->total;
