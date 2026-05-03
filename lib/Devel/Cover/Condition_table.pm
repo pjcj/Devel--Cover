@@ -40,11 +40,10 @@ package Devel::Cover::Condition_table::Table {
 package Devel::Cover::Condition_table;
 
 # Truth table specs: each entry is [inputs, result].
-my @Boolean_spec = ([ [0], 0 ], [ [1], 1 ]);
-my @And3_spec    = ([ [ 0, "X" ], 0 ], [ [ 1, 0 ], 0 ], [ [ 1, 1 ], 1 ]);
-my @Or3_spec     = ([ [ 1, "X" ], 1 ], [ [ 0, 1 ], 1 ], [ [ 0, 0 ], 0 ]);
-my @Xor4_spec
-  = ([ [ 0, 0 ], 0 ], [ [ 0, 1 ], 1 ], [ [ 1, 0 ], 1 ], [ [ 1, 1 ], 0 ]);
+my @Boolean_spec = ([[0], 0], [[1], 1]);
+my @And3_spec    = ([[0, "X"], 0], [[1, 0], 0], [[1, 1], 1]);
+my @Or3_spec     = ([[1, "X"], 1], [[0, 1], 1], [[0, 0], 0]);
+my @Xor4_spec    = ([[0, 0], 0], [[0, 1], 1], [[1, 0], 1], [[1, 1], 0]);
 
 my %Primitive = (
   and_2 => \@Boolean_spec,
@@ -71,19 +70,19 @@ sub _make_rows ($spec, @hits) {
 }
 
 sub _expr ($condition) {
-  join " ", $condition->[1]->@{ qw( left op right ) }
+  join " ", $condition->[1]->@{qw( left op right )}
 }
 
 sub _expand_operand ($val, $sub_rows, $negated = 0) {
   unless ($sub_rows) {
-    return ([ [$val], 1 ])
+    return ([[$val], 1])
   }
   if ($val eq "X") {
     my $width = $sub_rows->[0]->inputs->@*;
-    return ([ [ ("X") x $width ], 1 ])
+    return ([[("X") x $width], 1])
   }
   my $match = $negated ? 1 - $val : $val;
-  map { [ $_->inputs, $_->covered ] } grep {
+  map { [$_->inputs, $_->covered] } grep {
     $_->result == $match
   } @$sub_rows
 }
@@ -102,8 +101,8 @@ sub _build_rows ($condition, $find) {
 
   my ($info, $left_cond, $right_cond) = _resolve_children($condition, $find);
 
-  my $left_rows  = $left_cond  ? [ _build_rows($left_cond,  $find) ] : undef;
-  my $right_rows = $right_cond ? [ _build_rows($right_cond, $find) ] : undef;
+  my $left_rows  = $left_cond  ? [_build_rows($left_cond,  $find)] : undef;
+  my $right_rows = $right_cond ? [_build_rows($right_cond, $find)] : undef;
 
   my $left_neg  = $info->{left_negated}  || 0;
   my $right_neg = $info->{right_negated} || 0;
@@ -129,7 +128,7 @@ sub _build_rows ($condition, $find) {
         for my $re (@right_exp) {
           push @rows,
             Devel::Cover::Condition_table::Row->new(
-              inputs  => [ $le->[0]->@*, $re->[0]->@* ],
+              inputs  => [$le->[0]->@*, $re->[0]->@*],
               result  => $row->result,
               covered => $row->covered && $le->[1] && $re->[1],
             );
@@ -172,7 +171,7 @@ sub _build_labels ($condition, $find) {
   @labels
 }
 
-sub for_line ($class, $conditions) {
+sub for_line ($class, $conditions, $observed = undef) {
   return if @$conditions > 16;
 
   my %expr_map;
@@ -197,19 +196,36 @@ sub for_line ($class, $conditions) {
       my $found = $find->($info->{"${side}_addr"}, $info->{$side});
       $is_child{ _expr($found) } = 1 if $found;
     }
-  }  ##
+  }
 
-  map {
+  my @tables;
+  for my $i (0 .. $#$conditions) {
+    my $c = $conditions->[$i];
+    next if $is_child{ _expr($c) };
+
+    my @rows = _build_rows($c, $find);
+    my $obs  = $observed && $observed->[$i];
+    if ($obs && %$obs) {
+      # Observed-vector data overrides synthesis: rows are covered iff
+      # their input vector matches an observed key.  Synthesised rows
+      # not in the observed set stay rendered with covered=0 so the
+      # truth table still draws.
+      for my $row (@rows) {
+        my $key = join "|", $row->inputs->@*;
+        $row->{covered} = $obs->{$key} ? 1 : 0;
+      }
+    }
+
     my $counter = 0;
-    Devel::Cover::Condition_table::Table->new(
-      expr       => _expr($_),
-      short_expr => _build_short_expr($_, $find, \$counter),
-      labels     => [ _build_labels($_, $find) ],
-      rows       => [ _build_rows($_, $find) ],
-    )
-    } grep {
-      !$is_child{ _expr($_) }
-    } @$conditions
+    push @tables,
+      Devel::Cover::Condition_table::Table->new(
+        expr       => _expr($c),
+        short_expr => _build_short_expr($c, $find, \$counter),
+        labels     => [_build_labels($c, $find)],
+        rows       => \@rows,
+      );
+  }
+  @tables
 }
 
 1
