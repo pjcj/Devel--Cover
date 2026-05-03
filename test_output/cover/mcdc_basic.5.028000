@@ -1,0 +1,184 @@
+cover: Reading database from ...
+---------------- ------ ------ ------ ------ ------ ------ ------
+File               stmt   bran   cond   mcdc    sub  total   slop
+---------------- ------ ------ ------ ------ ------ ------ ------
+tests/mcdc_basic  100.0    n/a   96.3   93.3  100.0   97.8   23.0
+Total             100.0    n/a   96.3   93.3  100.0   97.8   23.0
+---------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/mcdc_basic
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+10 98.5 10.0 23.0
+
+Worst Subroutines
+-----------------
+
+Subroutine  CC SLOP  Location           
+----------- -- ----  -------------------
+chained_and  3 11.0  tests/mcdc_basic:24
+chained_or   3 11.0  tests/mcdc_basic:29
+nested       3 11.0  tests/mcdc_basic:39
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13                                             sub and_decision {
+14             3                           3     my ($p, $q) = @_;
+15             3           100    100            return $p && $q;
+16                                             }
+17                                             
+18                                             sub or_decision {
+19             2                           2     my ($p, $q) = @_;
+20    ***      2          * 66   * 50            return $p || $q;
+21                                             }
+22                                             
+23                                             sub chained_and {
+24             4                           4     my ($p, $q, $r) = @_;
+25             4           100    100            return $p && $q && $r;
+                           100                 
+26                                             }
+27                                             
+28                                             sub chained_or {
+29             4                           4     my ($p, $q, $r) = @_;
+30             4           100    100            return $p || $q || $r;
+                           100                 
+31                                             }
+32                                             
+33                                             sub negated_and {
+34             3                           3     my ($p, $q) = @_;
+35             3           100    100            return !$p && $q;
+36                                             }
+37                                             
+38                                             sub nested {
+39             5                           5     my ($a, $b, $c) = @_;
+40             5           100    100            return ($a && $b) || $c;
+                           100                 
+41                                             }
+42                                             
+43                                             sub main {
+44                                               # Calls are pushed into @r so each decision is exercised in non-void
+45                                               # context.  In void context the runtime collapses the right operand's
+46                                               # truth value into the short-circuit count, leaving MC/DC nothing to
+47                                               # analyse for the right atomic.
+48             1                           1     my @r;
+49                                             
+50                                               # 2-input && hits all three short-circuit rows; MC/DC satisfied.
+51             1                                 push @r, and_decision(1, 1);
+52             1                                 push @r, and_decision(1, 0);
+53             1                                 push @r, and_decision(0, 1);
+54                                             
+55                                               # 2-input || hits two of the three short-circuit rows; the (F,T)
+56                                               # row is omitted, so the right atomic has no independence pair.
+57             1                                 push @r, or_decision(1, 0);
+58             1                                 push @r, or_decision(0, 0);
+59                                             
+60                                               # 3-input chained && hits all four short-circuit rows; the $p pair
+61                                               # matches (F,X,X) against (T,T,T), exercising X compatibility
+62                                               # across two columns at once.
+63             1                                 push @r, chained_and(1, 1, 1);
+64             1                                 push @r, chained_and(1, 1, 0);
+65             1                                 push @r, chained_and(1, 0, 0);
+66             1                                 push @r, chained_and(0, 0, 0);
+67                                             
+68                                               # 3-input chained || hits all four short-circuit rows.
+69             1                                 push @r, chained_or(1, 0, 0);
+70             1                                 push @r, chained_or(0, 1, 0);
+71             1                                 push @r, chained_or(0, 0, 1);
+72             1                                 push @r, chained_or(0, 0, 0);
+73                                             
+74                                               # Leading negation: exercises GH-446 address-based child linking
+75                                               # so the underlying atomic is $p, not the negated value.
+76             1                                 push @r, negated_and(0, 1);
+77             1                                 push @r, negated_and(0, 0);
+78             1                                 push @r, negated_and(1, 0);
+79                                             
+80                                               # Mixed-precedence (A && B) || C - the worked-example shape from
+81                                               # docs/technical/mcdc.md.
+82             1                                 push @r, nested(1, 1, 0);
+83             1                                 push @r, nested(1, 0, 0);
+84             1                                 push @r, nested(0, 0, 1);
+85             1                                 push @r, nested(1, 0, 1);
+86             1                                 push @r, nested(0, 0, 0);
+87                                             }
+88                                             
+89             1                               main();
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+15           100      1      1      1   $p && $q
+25           100      2      1      1   $p && $q && $r
+             100      1      1      2   $p and $q
+35           100      1      1      1   !$p && $q
+40           100      2      2      1   $a and $b
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+20    ***     66      1      0      1   $p || $q
+30           100      2      1      1   $p || $q || $r
+             100      1      1      2   $p or $q
+40           100      1      2      2   $a && $b || $c
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+15           100    2    2                          $p && $q
+20    ***     50    1    2   $q                     $p || $q
+25           100    3    3                          $p && $q && $r
+30           100    3    3                          $p || $q || $r
+35           100    2    2                          !$p && $q
+40           100    3    3                          $a && $b || $c
+
+
+Covered Subroutines
+-------------------
+
+Subroutine   Count  CC  SLOP Location           
+------------ ----- --- ----- -------------------
+BEGIN            1   1   0.0 tests/mcdc_basic:10
+BEGIN            1   1   0.0 tests/mcdc_basic:11
+and_decision     3   2   6.9 tests/mcdc_basic:14
+chained_and      4   3  11.0 tests/mcdc_basic:24
+chained_or       4   3  11.0 tests/mcdc_basic:29
+main             1   1   0.0 tests/mcdc_basic:48
+negated_and      3   2   6.9 tests/mcdc_basic:34
+nested           5   3  11.0 tests/mcdc_basic:39
+or_decision      2   2   7.1 tests/mcdc_basic:19
+
+

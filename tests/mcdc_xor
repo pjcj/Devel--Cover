@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+sub xor_decision {
+  my ($p, $q) = @_;
+  return ($p xor $q);
+}
+
+sub main {
+  # Calls are pushed into @r so each decision is exercised in non-void
+  # context; MC/DC for a void-context boolean has no result to analyse.
+  my @r;
+
+  # xor does not short-circuit, so the truth table has all four rows.
+  # MC/DC is satisfied with any three rows; observing all four also gives
+  # 100% expression coverage.
+  push @r, xor_decision(0, 0);
+  push @r, xor_decision(0, 1);
+  push @r, xor_decision(1, 0);
+  push @r, xor_decision(1, 1);
+}
+
+main();
