@@ -183,7 +183,8 @@ function M.set_background(bg)
     vim.api.nvim_set_hl(0, "cov_" .. type_name, new_hl)
 
     -- Get existing highlight and create new options table for error coverage
-    local err_hl = vim.api.nvim_get_hl(0, { name = "cov_" .. type_name .. "_error" })
+    local err_hl =
+      vim.api.nvim_get_hl(0, { name = "cov_" .. type_name .. "_error" })
     local new_err_hl = {
       fg = err_hl.fg,
       bg = bg,
@@ -194,7 +195,7 @@ function M.set_background(bg)
     vim.api.nvim_set_hl(0, "cov_" .. type_name .. "_error", new_err_hl)
   end
 
-  -- Redefine all signs with updated texthl (no numhl to avoid affecting line numbers)
+  -- Redefine all signs with updated texthl (no numhl to avoid line numbers)
   for _, type_name in ipairs(types) do
     -- Normal coverage sign
     vim.fn.sign_define(type_name, {
@@ -234,7 +235,9 @@ local types = {
     [%- FOREACH loc = criteria.items.nsort -%]
         [%- cov = 0 -%]
         [%- FOREACH l = criteria.location("$loc") -%]
-            [%- IF error ? l.error : l.covered -%] [% loc -%],[%- cov = 1; LAST; END -%]
+            [%- IF error ? l.error : l.covered -%]
+                [% loc -%],[%- cov = 1; LAST -%]
+            [%- END -%]
         [%- LAST IF cov; END -%]
     [%- END -%]
       },
@@ -243,7 +246,10 @@ local types = {
 local coverage = {
 [% FOREACH file = files %]
   ["[% file %]"] = {
-[%- FOREACH type = types; criterion(file, type, 0); criterion(file, type, 1); END %]
+[%- FOREACH type = types -%]
+[%- criterion(file, type, 0) -%]
+[%- criterion(file, type, 1) -%]
+[%- END %]
   },
 [% END %]
 }
@@ -339,8 +345,11 @@ local function add_coverage_signs(filename)
             goto continue
           end
 
-          -- Place the sign with buffer number instead of filename for better reliability
-          local success, err = pcall(vim.fn.sign_place, id, config.sign_group, type_name, bufnr, { lnum = line, priority = config.sign_priority })
+          -- Place the sign with buffer number for better reliability
+          local success, err = pcall(
+            vim.fn.sign_place, id, config.sign_group, type_name, bufnr,
+            { lnum = line, priority = config.sign_priority }
+          )
           if not success then
             print("Warning: Failed to place coverage sign: " .. err)
           end
@@ -362,8 +371,8 @@ vim.api.nvim_create_user_command("Uncov", function()
   del_coverage_signs(vim.fn.expand("%:p"))
 end, {})
 
--- Clear all existing Devel::Cover signs from all buffers when loading new coverage data
--- This ensures old signs don't persist when coverage.lua is reloaded
+-- Clear all existing Devel::Cover signs from all buffers on reload
+-- Ensures old signs don't persist when coverage.lua is reloaded
 local function clear_all_coverage_signs()
   -- Get all existing signs in the Devel::Cover group across all buffers
   vim.fn.sign_unplace(config.sign_group)
@@ -456,19 +465,19 @@ init.lua or init.vim file before loading the coverage script.
 
 Available configuration variables:
 
- vim.g.devel_cover_fg         -- Foreground color for covered lines (default: "Green")
- vim.g.devel_cover_error_fg   -- Foreground color for uncovered lines (default: "Red")
- vim.g.devel_cover_bg         -- Background color for covered lines (default: nil)
- vim.g.devel_cover_error_bg   -- Background color for uncovered lines (default: nil)
- vim.g.devel_cover_valid_bg   -- Background when coverage is current (default: nil)
- vim.g.devel_cover_old_bg     -- Background when coverage is old (default: nil)
- vim.g.devel_cover_cterm      -- Terminal styling (default: "bold")
- vim.g.devel_cover_gui        -- GUI styling (default: "bold")
- vim.g.devel_cover_linehl     -- Line highlight group for covered (default: "cov")
- vim.g.devel_cover_linehl_error -- Line highlight group for errors (default: "err")
- vim.g.devel_cover_signs      -- Custom sign text table
- vim.g.devel_cover_sign_group -- Sign group name for dedicated column (default: "DevelCover")
- vim.g.devel_cover_sign_priority -- Sign priority within group (default: 10)
+ vim.g.devel_cover_fg            -- Covered foreground (default: "Green")
+ vim.g.devel_cover_error_fg      -- Uncovered foreground (default: "Red")
+ vim.g.devel_cover_bg            -- Covered background (default: nil)
+ vim.g.devel_cover_error_bg      -- Uncovered background (default: nil)
+ vim.g.devel_cover_valid_bg      -- Current-coverage background (default: nil)
+ vim.g.devel_cover_old_bg        -- Old-coverage background (default: nil)
+ vim.g.devel_cover_cterm         -- Terminal styling (default: "bold")
+ vim.g.devel_cover_gui           -- GUI styling (default: "bold")
+ vim.g.devel_cover_linehl        -- Covered line highlight (default: "cov")
+ vim.g.devel_cover_linehl_error  -- Error line highlight (default: "err")
+ vim.g.devel_cover_signs         -- Custom sign text table
+ vim.g.devel_cover_sign_group    -- Sign group name (default: "DevelCover")
+ vim.g.devel_cover_sign_priority -- Sign priority (default: 10)
 
 Example configuration for solarized theme in init.lua:
 
@@ -516,7 +525,7 @@ Example configuration for solarized theme in init.lua:
  vim.g.devel_cover_sign_group = "DevelCover"  -- Creates its own column
 
  -- You can also configure the sign column appearance
- vim.o.signcolumn = "yes:2"  -- Show 2 sign columns (1 for diagnostics, 1 for coverage)
+ vim.o.signcolumn = "yes:2"  -- 2 sign columns (1 diagnostics, 1 coverage)
 
 Alternative: You can still override via devel-cover.lua in your config directory
 for more complex customizations
