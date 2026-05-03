@@ -1,0 +1,46 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# Demonstrates the asymmetry MC/DC was invented to catch.  This is the
+# four-test worked example from docs/technical/mcdc.md: the decision
+# `($is_owner && $unlocked) || $is_admin` exercised with four inputs.
+# Those inputs achieve 100% statement, branch, and condition coverage
+# (every row of both the outer `or_3` and inner `and_3` truth tables is
+# observed) but only $is_admin has an independence pair, so MC/DC drops
+# to 33%.  As the design doc explains, adding a fifth test `(T,T,F)`
+# would lift MC/DC to 100% and also catch a misplaced-negation bug
+# that the four-test condition-coverage set lets through silently.
+#
+# This fixture exists to lock in that asymmetry as a permanent
+# regression test.  If a future change to the analyser ever makes
+# MC/DC track condition coverage exactly, this fixture's golden will
+# diverge and force the question to be answered.
+
+use strict;
+use warnings;
+
+sub may_edit {
+  my ($is_owner, $unlocked, $is_admin) = @_;
+  return ($is_owner && $unlocked) || $is_admin;
+}
+
+sub main {
+  my @r;
+
+  # The four-test set from docs/technical/mcdc.md "Tests achieving 100%
+  # statement, branch, and condition coverage".  Hits every row of both
+  # the outer `or_3` and inner `and_3` truth tables, but leaves
+  # $is_owner and $unlocked without independence pairs.
+  push @r, may_edit(1, 1, 1);
+  push @r, may_edit(1, 0, 1);
+  push @r, may_edit(0, 0, 1);
+  push @r, may_edit(0, 0, 0);
+}
+
+main();
