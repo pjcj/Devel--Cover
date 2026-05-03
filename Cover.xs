@@ -2796,7 +2796,7 @@ walk_ops(root_op, callback, cv, parent_map_ref)
                 (HV *)SvRV(parent_map_ref));
 
 SV *
-_decision_meta(addr, cv)
+decision_meta(addr, cv)
     IV    addr
     B::CV cv
   PREINIT:
