@@ -16,7 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [qw( done_testing is isnt ok subtest )];
+use Test::More import => [qw( done_testing is isnt ok plan subtest )];
 
 use B           ();
 use XSLoader   ();
@@ -24,24 +24,6 @@ use XSLoader   ();
 # Load just the XS - skip Devel::Cover->import so no DB directory is created.
 require Devel::Cover;
 XSLoader::load("Devel::Cover");
-
-# Recursively descend an op tree and return the first op whose name matches.
-sub find_op ($op, $name) {
-  return $op if $op->name eq $name;
-  return                              unless $op->flags & B::OPf_KIDS();
-  return                              if $op->name eq "custom";
-  for (my $kid = $op->first; $$kid; $kid = $kid->sibling) {
-    my $found = find_op($kid, $name);
-    return $found if $found;
-  }
-  return;
-}
-
-sub meta_for_sub ($code, $opname) {
-  my $cv  = B::svref_2object($code);
-  my $op  = find_op($cv->ROOT, $opname) or die "no $opname op found";
-  Devel::Cover::_decision_meta($$op, $cv);
-}
 
 # Find every op of $name under $root, returned in depth-first encounter order.
 sub find_all_ops ($op, $name, $found = []) {
@@ -52,6 +34,22 @@ sub find_all_ops ($op, $name, $found = []) {
     find_all_ops($kid, $name, $found);
   }
   return $found;
+}
+
+# Return the user-code logop matching $name.  Signatures on Perl < 5.28 expand
+# to extra `or` ops at the top of the optree for argument-count checks, so
+# depth-first first-match returns the wrong op.  The user's logop is always
+# emitted last, after the signature setup, so taking the final entry in the
+# depth-first list yields the user-code op.
+sub find_user_op ($root, $name) {
+  my $found = find_all_ops($root, $name);
+  $found->[-1];
+}
+
+sub meta_for_sub ($code, $opname) {
+  my $cv  = B::svref_2object($code);
+  my $op  = find_user_op($cv->ROOT, $opname) or die "no $opname op found";
+  Devel::Cover::_decision_meta($$op, $cv);
 }
 
 subtest "two-leaf and: simple root" => sub {
@@ -66,6 +64,7 @@ subtest "two-leaf and: simple root" => sub {
 };
 
 subtest 'multiconcat right with truthy literal: $p && "foo $q"' => sub {
+  plan skip_all => "OP_MULTICONCAT requires Perl >= 5.28" if $] < 5.028;
   my $sub  = sub ($p, $q) { my $r = $p && "foo $q"; $r };
   my $meta = meta_for_sub($sub, "and");
 
@@ -91,7 +90,7 @@ subtest 'nested mixed-precedence: ($a && $b) || ($c && $d)' => sub {
   my $sub = sub ($a, $b, $c, $d) { my $r = ($a && $b) || ($c && $d); $r };
   my $cv  = B::svref_2object($sub);
 
-  my $or  = find_op($cv->ROOT, "or") or die "no or op";
+  my $or = find_user_op($cv->ROOT, "or") or die "no or op";
   my $and_ops = find_all_ops($cv->ROOT, "and");
   is scalar @$and_ops, 2, "two AND ops in optree";
 
@@ -120,6 +119,44 @@ subtest 'nested mixed-precedence: ($a && $b) || ($c && $d)' => sub {
   is $right_meta->{leaf_col_left},  2,    "inner-right && left col 2";
   is $right_meta->{leaf_col_right}, 3,    "inner-right && right col 3";
   is $right_meta->{root_addr}, $$or,      "inner-right && root_addr is outer ||";
+};
+
+# Signatures on Perl < 5.28 expand to extra `or` ops in the prologue for
+# argument-count handling.  These should be analysed as their own width-2 roots,
+# isolated from the user's decision: pairwise root-finding must not mistake a
+# signature `or` for the parent of a user logop, and the user's `||` must remain
+# a width-4 root.
+subtest "signature-generated logops are isolated roots" => sub {
+  my $sub = sub ($a, $b, $c, $d) { my $r = ($a && $b) || ($c && $d); $r };
+  my $cv  = B::svref_2object($sub);
+
+  my $or_ops  = find_all_ops($cv->ROOT, "or");
+  my $and_ops = find_all_ops($cv->ROOT, "and");
+
+  my $user_or = $or_ops->[-1];
+  ok scalar(@$or_ops) >= 1, "at least one or op present";
+  is scalar @$and_ops, 2, "two and ops (all user-code on every Perl)";
+
+  for my $i (0 .. $#$or_ops - 1) {
+    my $sig    = $or_ops->[$i];
+    my $m      = Devel::Cover::_decision_meta($$sig, $cv);
+    my $reason = "signature or [$i]";
+    is $m->{is_root},   1,        "$reason: own root";
+    is $m->{root_addr}, $$sig,    "$reason: root_addr points to itself";
+    isnt $m->{root_addr}, $$user_or,
+      "$reason: distinct from user || root";
+  }
+
+  my $um = Devel::Cover::_decision_meta($$user_or, $cv);
+  is $um->{width},     4,         "user || width unaffected by signature ops";
+  is $um->{is_root},   1,         "user || still root";
+  is $um->{root_addr}, $$user_or, "user || root_addr points to itself";
+
+  for my $a (@$and_ops) {
+    my $am = Devel::Cover::_decision_meta($$a, $cv);
+    is $am->{root_addr}, $$user_or,
+      "inner && root_addr is user ||, not a signature or";
+  }
 };
 
 done_testing;
