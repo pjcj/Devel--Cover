@@ -14,6 +14,75 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
+sub _is_x ($v) { defined $v && $v eq "X" }
+
+sub _concrete_differs ($a, $b) {
+  return 0 if _is_x($a) || _is_x($b);
+  $a != $b
+}
+
+sub _sca_agrees ($a, $b) {
+  return 1 if _is_x($a) || _is_x($b);
+  $a == $b
+}
+
+sub _find_pair ($col, $rows, $ncols, $coupled = undef) {
+  for my $i (0 .. $#$rows) {
+    for my $j ($i + 1 .. $#$rows) {
+      my $a = $rows->[$i];
+      my $b = $rows->[$j];
+      next if $a->result == $b->result;
+      my ($ai, $bi) = ($a->inputs, $b->inputs);
+      next unless _concrete_differs($ai->[$col], $bi->[$col]);
+
+      my $ok = 1;
+      for my $k (0 .. $ncols - 1) {
+        next if $k == $col;
+        next if $coupled && $coupled->[$k];
+        unless (_sca_agrees($ai->[$k], $bi->[$k])) {
+          $ok = 0;
+          last;
+        }
+      }
+      return [$i, $j] if $ok;
+    }
+  }
+  undef
+}
+
+sub analyse ($class, $table) {
+  my @labels = $table->labels;
+  my @rows   = grep $_->covered, $table->rows;
+  my $ncols  = @labels;
+
+  my %label_count;
+  $label_count{$_}++ for @labels;
+
+  my %pairs;
+  my @missing;
+
+  for my $col (0 .. $#labels) {
+    my $found = _find_pair($col, \@rows, $ncols);
+    if (!$found && $label_count{ $labels[$col] } > 1) {
+      my @coupled = map $labels[$_] eq $labels[$col], 0 .. $#labels;
+      $found = _find_pair($col, \@rows, $ncols, \@coupled);
+    }
+
+    if ($found) {
+      $pairs{$col} = $found;
+    } else {
+      push @missing, $labels[$col];
+    }
+  }
+
+  {
+    total     => $ncols,
+    satisfied => scalar keys %pairs,
+    pairs     => \%pairs,
+    missing   => \@missing,
+  }
+}
+
 "
 Maybe the sun's light will be dim
 And it won't matter anyhow
