@@ -14,6 +14,19 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
+use base "Devel::Cover::Criterion";
+
+sub covered   ($self) { scalar grep $_, $self->[0]->@* }
+sub total     ($self) { scalar $self->[0]->@* }
+sub values    ($self) { $self->[0]->@* }
+sub text      ($self) { $self->[1]{text} }
+sub criterion ($self) { "mcdc" }
+
+sub percentage ($self) {
+  my $t = $self->total;
+  sprintf "%3d", $t ? $self->covered / $t * 100 : 0
+}
+
 "
 The answer, my friend, is blowin' in the wind
 The answer is blowin' in the wind
