@@ -81,10 +81,10 @@ sub truth_table (@args) {
       tt   => Devel::Cover::Truth_Table->new_primitive($op, @hit),
       cvg  => $c->[1],
       expr => join " ",
-      $c->[1]->@{ qw( left op right ) },
+      $c->[1]->@{qw( left op right )},
     };
     push @lops, $t;
-  } map { [ $_->{tt}->sort, $_->{expr} ] } merge_lineops(@lops)
+  } map { [$_->{tt}->sort, $_->{expr}] } merge_lineops(@lops)
 }
 
 # Merge multiple conditional expressions into composite truth tables
@@ -338,7 +338,7 @@ sub print_file_report ($db, $fin, $opt) {
     $db->{summary}{$fin}{total}{percentage},
     $db->{summary}{$fin}{total}{error}, $db,
   );
-  print_th($out, [ "line", @$th, "code" ]);
+  print_th($out, ["line", @$th, "code"]);
 
   my $autoloader = 0;
   while (my $sloc = <$in>) {
@@ -418,7 +418,7 @@ sub print_branch_report ($db, $file, $opt) {
     $db->{summary}{$file}{branch}{percentage},
     $db->{summary}{$file}{branch}{error}, $db,
   );
-  print_th($out, [ "line", "%", "coverage", "branch" ], { coverage => 2 });
+  print_th($out, ["line", "%", "coverage", "branch"], { coverage => 2 });
 
   my $fmt
     = '<tr><td class="h">%s</td>'
@@ -455,7 +455,7 @@ sub print_condition_report ($db, $file, $opt) {
     $db->{summary}{$file}{condition}{percentage},
     $db->{summary}{$file}{condition}{error}, $db,
   );
-  print_th($out, [ "line", "%", "coverage", "condition" ]);
+  print_th($out, ["line", "%", "coverage", "condition"]);
 
   my $fmt
     = '<tr><td class="h">%s</td>'
@@ -491,7 +491,7 @@ sub print_sub_report ($db, $file, $opt) {
     $db->{summary}{$file}{subroutine}{percentage},
     $db->{summary}{$file}{subroutine}{error}, $db,
   );
-  print_th($out, [ "line", "subroutine" ]);
+  print_th($out, ["line", "subroutine"]);
 
   my $fmt
     = '<tr><td class="h">%s</td>'
@@ -564,7 +564,7 @@ sub print_summary_report ($db, $options) {
 <div><br/></div>
 <table>
 END_HTML
-  print_th($fh, [ "file", @$th, "total" ]);
+  print_th($fh, ["file", @$th, "total"]);
 
   my @files = (grep($db->{summary}{$_}, $options->{file}->@*), "Total");
 
@@ -617,14 +617,12 @@ sub get_options ($self, $opt) {
   $opt->{option}{summarytitle} = "Coverage Summary";
   $Threshold->{$_}             = $opt->{"report_$_"}
     for grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
-  die "Invalid command line options"
-    unless GetOptions(
-      $opt->{option},
-      qw(
-        data!    outputfile=s pod!        summarytitle=s
-        unified! report_c0=s  report_c1=s report_c2=s
-      ),
-    );
+  die "Invalid command line options" unless GetOptions(
+    $opt->{option}, qw(
+      data!    outputfile=s pod!        summarytitle=s
+      unified! report_c0=s  report_c1=s report_c2=s
+    ),
+  );
 }
 
 # Entry point for printing HTML reports

@@ -948,8 +948,8 @@ $Templates{module_by_start} = <<'EOT';
 EOT
 
 "
-We have normality, I repeat we have normality.
-Anything you still can't cope with is therefore your own problem.
+Is a dream a lie if it don't come true
+Or is it something worse?
 "
 
 __END__
