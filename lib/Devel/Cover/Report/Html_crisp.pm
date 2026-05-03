@@ -476,7 +476,27 @@ HTML
     }
   }
 
+  $o .= render_mcdc_detail($line->{mcdc}) if $line->{mcdc};
+
   $o .= "</td></tr>\n";
+  $o
+}
+
+sub render_mcdc_detail ($mcdc) {
+  my $o = "";
+  for my $m (@$mcdc) {
+    my $summary = "$m->{percentage}% ($m->{covered}/$m->{total})";
+    $o .= <<HTML;
+<div class="detail mcdc-detail">
+<span class="detail-heading">MC/DC: $m->{text}</span>
+<span class="mcdc-summary $m->{class}">$summary</span>
+<div class="mcdc-atomics">
+HTML
+    for my $a ($m->{atomics}->@*) {
+      $o .= qq(<span class="mcdc-pill $a->{class}">$a->{label}</span>\n);
+    }
+    $o .= "</div>\n</div>\n";
+  }
   $o
 }
 
@@ -505,6 +525,7 @@ sub render_source_line ($line) {
   my $has_detail
     = $line->{branches}
     || $line->{truth_tables}
+    || $line->{mcdc}
     || $line->{subroutines}
     || $line->{pod};
 
@@ -614,9 +635,9 @@ breakdown.</dd>
 <dd><kbd>j</kbd> / <kbd>k</kbd> next/prev uncovered line
 (or open detail when filtered)
 &middot; <kbd>Enter</kbd> toggle detail on current line
-&middot; <kbd>s</kbd> <kbd>b</kbd> <kbd>c</kbd> <kbd>u</kbd>
-<kbd>p</kbd> <kbd>t</kbd> toggle filter for
-stmt / bran / cond / sub / pod / total
+&middot; <kbd>s</kbd> <kbd>b</kbd> <kbd>c</kbd> <kbd>m</kbd>
+<kbd>u</kbd> <kbd>p</kbd> <kbd>t</kbd> toggle filter for
+stmt / bran / cond / mcdc / sub / pod / total
 &middot; <kbd>h</kbd> / <kbd>l</kbd> prev/next file
 &middot; <kbd>?</kbd> toggle this help</dd>
 </dl>
@@ -865,6 +886,32 @@ sub line_truth_tables ($f, $n) {
   } Devel::Cover::Condition_table->for_line($loc)
 }
 
+sub line_mcdc ($f, $n) {
+  my $mcdc = $f->mcdc or return;
+  my $loc  = $mcdc->location($n);
+  return unless $loc && @$loc;
+  map {
+    my $m      = $_;
+    my @vals   = $m->values;
+    my @labels = $m->labels->@*;
+    {
+      text       => encode_entities($m->text),
+      percentage => $m->percentage,
+      covered    => $m->covered,
+      total      => $m->total,
+      error      => $m->error,
+      class      => class($m->percentage, $m->error, "mcdc"),
+      atomics    => [
+        map { {
+          label   => encode_entities($labels[$_] // ""),
+          covered => $vals[$_] ? 1    : 0,
+          class   => $vals[$_] ? "c3" : "c0",
+        } } 0 .. $#vals
+      ],
+    }
+  } @$loc
+}
+
 sub exec_class ($count) {
   defined $count && $count > 0 ? "exec-covered" : "exec-0"
 }
@@ -879,12 +926,13 @@ sub line_statement ($f, $n, $line) {
   $line->{exec_class}  = exec_class($s->covered);
 }
 
-sub line_partial ($line, $bd, $tts, $sd) {
+sub line_partial ($line, $bd, $tts, $sd, $md) {
   return unless defined $line->{count} && $line->{count} > 0;
   my $p;
   $p ||= any { $_->{true_count} == 0 || $_->{false_count} == 0 } @$bd;
   $p ||= any { any { !$_->{covered} } $_->{rows}->@* } @$tts;
   $p ||= any { !$_->{covered} } @$sd;
+  $p ||= any { $_->{error} } @$md;
   $p ||= $line->{pod_uncovered};
   $line->{partial} = 1 if $p;
 }
@@ -922,6 +970,9 @@ sub build_source_lines ($file) {
     my @tts = line_truth_tables($f, $n);
     $line{truth_tables} = \@tts if @tts;
 
+    my @md = line_mcdc($f, $n);
+    $line{mcdc} = \@md if @md;
+
     my @sd = line_subroutines($f, $n);
     $line{subroutines} = \@sd if @sd;
 
@@ -931,7 +982,7 @@ sub build_source_lines ($file) {
       $line{pod_uncovered} = 1 if any { !$_->{covered} } @pd;
     }
 
-    line_partial(\%line, \@bd, \@tts, \@sd);
+    line_partial(\%line, \@bd, \@tts, \@sd, \@md);
 
     my @errors;
     push @errors, "branch"
@@ -940,6 +991,7 @@ sub build_source_lines ($file) {
       any { !$_->{covered} }
         $_->{rows}->@*
     } @tts;
+    push @errors, "mcdc"       if any { $_->{error} } @md;
     push @errors, "subroutine" if any { !$_->{covered} } @sd;
     push @errors, "pod"        if $line{pod_uncovered};
     $line{errors} = join ",", @errors if @errors;
@@ -1706,6 +1758,31 @@ td.chevron {
   color: var(--fg-muted);
 }
 
+.mcdc-summary {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mcdc-atomics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.mcdc-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px solid;
+  border-radius: 12px;
+  font-family: var(--font-code);
+  font-size: var(--font-size-small);
+}
+
 /* Minimap */
 
 .minimap {
@@ -2199,7 +2276,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
     }
 
     var badgeKeys = {
-      s: "statement", b: "branch", c: "condition",
+      s: "statement", b: "branch", c: "condition", m: "mcdc",
       u: "subroutine", p: "pod", t: "total"
     };
 
