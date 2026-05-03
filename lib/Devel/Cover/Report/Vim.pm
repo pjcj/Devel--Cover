@@ -54,6 +54,12 @@ $Templates{vim} = <<'EOT';
 
 [% END %]
 
+" Reset 'cpoptions' to vim default so line continuation (`\` at start of
+" line) works regardless of the user's current setting.  Restored at the
+" end of the script.
+let s:save_cpo = &cpo
+set cpo&vim
+
 highlight cov_pod              ctermfg=Green cterm=bold gui=bold guifg=Green
 highlight cov_pod_error        ctermfg=Red   cterm=bold gui=bold guifg=Red
 highlight cov_subroutine       ctermfg=Green cterm=bold gui=bold guifg=Green
@@ -252,6 +258,9 @@ augroup devel-cover
 augroup end
 
 Cov
+
+let &cpo = s:save_cpo
+unlet s:save_cpo
 EOT
 
 1
