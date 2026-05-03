@@ -36,7 +36,7 @@ extern "C" {
 #define Branch     0x00000002
 #define Condition  0x00000004
 #define Subroutine 0x00000008
-#define Path       0x00000010
+#define Mcdc       0x00000010
 #define Pod        0x00000020
 #define Time       0x00000040
 #define All        0xffffffff
@@ -2023,9 +2023,9 @@ coverage_subroutine()
     RETVAL
 
 unsigned
-coverage_path()
+coverage_mcdc()
   CODE:
-    RETVAL = Path;
+    RETVAL = Mcdc;
   OUTPUT:
     RETVAL
 

@@ -374,12 +374,12 @@ class Devel::Cover::Collection {
       vals    => {},
       subdir  => "latest/",
       headers =>
-        [grep !/path|time/, @Devel::Cover::DB::Criteria_short, "total"],
-      criteria    => [grep !/path|time/, @Devel::Cover::DB::Criteria, "total"],
+        [grep !/mcdc|time/, @Devel::Cover::DB::Criteria_short, "total"],
+      criteria    => [grep !/mcdc|time/, @Devel::Cover::DB::Criteria, "total"],
       col_headers => do {
-        my @f = (grep(!/path|time/, @Devel::Cover::DB::Criteria), "total");
+        my @f = (grep(!/mcdc|time/, @Devel::Cover::DB::Criteria), "total");
         my @s
-          = (grep(!/path|time/, @Devel::Cover::DB::Criteria_short), "total");
+          = (grep(!/mcdc|time/, @Devel::Cover::DB::Criteria_short), "total");
         [map { { full => ucfirst($f[$_]), short => $s[$_] } } 0 .. $#f]
       },
     };

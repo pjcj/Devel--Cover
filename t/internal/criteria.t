@@ -14,13 +14,13 @@ is Devel::Cover::get_coverage(),
 
 Devel::Cover::set_coverage("all");
 is Devel::Cover::get_coverage(),
-   "branch condition path pod statement subroutine time",
+   "branch condition mcdc pod statement subroutine time",
    "Set coverage to all fills coverage";
 
-Devel::Cover::remove_coverage("path");
+Devel::Cover::remove_coverage("mcdc");
 is Devel::Cover::get_coverage(),
    "branch condition pod statement subroutine time",
-   "Removing path coverage works";
+   "Removing mcdc coverage works";
 
 {
     my $warning;
