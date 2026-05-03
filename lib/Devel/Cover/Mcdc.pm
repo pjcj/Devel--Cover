@@ -76,11 +76,33 @@ See L<Devel::Cover::Tutorial/2.5 Modified condition/decision coverage> for an
 introduction to the metric and a worked example, and
 L<Devel::Cover::Mcdc::Analyser> for the per-decision analyser this class wraps.
 
+=head1 USAGE
+
+MC/DC is part of the default coverage set, so the usual invocations include
+it without any extra flags:
+
+ cover -test
+
+To request MC/DC alongside a narrower selection, name both C<condition> and
+C<mcdc> on the command line:
+
+ cover -coverage condition,mcdc -test
+
+MC/DC is derived from the condition truth tables collected at runtime.
+C<condition> must therefore be active at collection time; selecting C<mcdc>
+alone leaves no condition data to analyse and produces an empty MC/DC
+report.
+
+Reports show MC/DC in two places: a per-file C<mcdc> percentage column in
+the summary, and a per-decision detail block listing each atomic condition
+whose independence pair was missing.
+
 =head1 SEE ALSO
 
  Devel::Cover::Criterion
  Devel::Cover::Mcdc::Analyser
  Devel::Cover::Condition_table
+ cover
 
 =head1 METHODS
 
