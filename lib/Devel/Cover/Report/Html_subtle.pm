@@ -74,6 +74,14 @@ sub _build_criterion_metrics ($c, $metric, $file_data, $file, $line_num) {
     } else {
       push @p, { text => "expression contains > 16 terms: ignored" };
     }
+  } elsif ($c eq "mcdc") {
+    while (my $o = shift $metric->{$c}->@*) {
+      push @p, {
+          text  => sprintf("%.0f", $o->percentage),
+          class => cvg_class($o->percentage),
+          link  => "$Filenames{$file}--mcdc.html#line$line_num",
+        };
+    }
   } elsif ($c eq "subroutine") {
     while (my $o = shift $metric->{$c}->@*) {
       push @p, {
@@ -231,6 +239,48 @@ sub print_conditions ($db, $file, $options) {
   $Template->process("conditions", $vars, $html) or die $Template->error;
 }
 
+# Print MC/DC coverage report for a file
+sub print_mcdc ($db, $file, $options) {
+  my $mcdc = $db->cover->file($file)->mcdc;
+  return unless $mcdc;
+
+  my @data;
+  for my $location (sort { $a <=> $b } $mcdc->items) {
+    for my $m ($mcdc->location($location)->@*) {
+      my @vals   = $m->values;
+      my @labels = $m->labels->@*;
+
+      my $atomics = join " ",
+          map qq(<span class="@{[ $vals[$_] ? "covered" : "uncovered" ]}">)
+        . encode_entities($labels[$_] // "")
+        . "</span>", 0 .. $#vals;
+
+      push @data, {
+          line       => $location,
+          ref        => "line$location",
+          percentage => sprintf("%.0f", $m->percentage),
+          class      => cvg_class($m->percentage),
+          decision   => encode_entities($m->text),
+          atomics    => $atomics,
+        };
+    }
+  }
+
+  my $vars = {
+    title      => "MC/DC Coverage: $file",
+    file       => $file,
+    percentage => sprintf("%.1f", $db->{summary}{$file}{mcdc}{percentage}),
+    class      => cvg_class($db->{summary}{$file}{mcdc}{percentage}),
+    headers    => ["line", "%", "atomics", "decision"],
+    decisions  => \@data,
+    perlver    => $Perlver,  # should come from db
+    platform   => $^O,       # should come from db
+  };
+
+  my $html = "$options->{outputdir}/$Filenames{$file}--mcdc.html";
+  $Template->process("mcdc", $vars, $html) or die $Template->error;
+}
+
 # Print subroutine coverage report for a file
 sub print_subroutines ($db, $file, $options) {
   my $subroutines = $db->cover->file($file)->subroutine;
@@ -301,6 +351,8 @@ sub print_summary ($db, $options) {
           } elsif ($criterion eq "condition") {
             $vals->{$file}{$criterion}{link}
               = "$Filenames{$file}--condition.html";
+          } elsif ($criterion eq "mcdc") {
+            $vals->{$file}{$criterion}{link} = "$Filenames{$file}--mcdc.html";
           } elsif ($criterion eq "subroutine") {
             $vals->{$file}{$criterion}{link}
               = "$Filenames{$file}--subroutine.html";
@@ -350,6 +402,7 @@ sub report ($pkg, $db, $options) {
     unless ($db->cover->file($file)->{meta}{uncompiled}) {
       print_branches($db, $file, $options)    if $options->{show}{branch};
       print_conditions($db, $file, $options)  if $options->{show}{condition};
+      print_mcdc($db, $file, $options)        if $options->{show}{mcdc};
       print_subroutines($db, $file, $options) if $options->{show}{subroutine};
     }
   }
@@ -553,6 +606,56 @@ $Templates{conditions} = <<'HTML';
       </div></td>
       <td>
         <code>[% cond.condition %]</code>
+      </td>
+    </tr>
+  [% END %]
+
+</table>
+
+[% END %]
+HTML
+
+$Templates{mcdc} = <<'HTML';
+[% WRAPPER html %]
+
+<h1>MC/DC Coverage</h1>
+<table>
+  <tr>
+    <td class="header" align="right">File:</td>
+    <td>[% file %]</td>
+  </tr>
+  <tr>
+    <td class="header" align="right">Coverage:</td>
+    <td class="[% class %]">[% percentage %]%</td>
+  </tr>
+  <tr>
+    <td class="header" align="right">Perl version:</td>
+    <td>[% perlver %]</td>
+  </tr>
+  <tr>
+    <td class="header" align="right">Platform:</td>
+    <td>[% platform %]</td>
+  </tr>
+</table>
+<div><br></br></div>
+<table>
+  <tr>
+    [% FOREACH header = headers %]
+      <th class="header"> [% header %] </th>
+    [% END %]
+  </tr>
+
+  [% FOREACH d = decisions %]
+    <tr valign="top">
+      <td align="center" class="header"><a id="[% d.ref %]">
+        [% d.line %]
+      </a></td>
+      <td align="center" class="[% d.class %]">
+        [% d.percentage %]
+      </td>
+      <td><div>[% d.atomics %]</div></td>
+      <td>
+        <code>[% d.decision %]</code>
       </td>
     </tr>
   [% END %]
