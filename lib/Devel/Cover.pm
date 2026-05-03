@@ -177,7 +177,6 @@ sub has_select { scalar @Select_re }
     my @coverage = get_coverage();
     %Coverage = map { $_ => 1 } @coverage;
 
-    delete $Coverage{mcdc};  # not done yet
     my $nopod = "";
     if (!$Pod && exists $Coverage{pod}) {
       delete $Coverage{pod};  # Pod::Coverage unavailable
@@ -745,6 +744,7 @@ sub _filter_cover_files {
     unless (use_file($file)) {
       delete $Run{count}{$file};
       delete $Run{vec}{$file};
+      delete $Run{decision_inputs}{$file};
       $Structure->delete_file($file);
       next;
     }
@@ -918,6 +918,15 @@ sub add_condition_cover (
     my $vec = $Run{vec}{$File}{condition};
     vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
   }
+
+  _record_decision_inputs($key, $n);
+}
+
+sub _record_decision_inputs ($key, $n) {
+  return unless $Coverage{mcdc};
+  my $vectors = $Coverage->{decision_inputs}{$key} or return;
+  my $di      = $Run{decision_inputs}{$File}[$n] //= {};
+  $di->{$_} += $vectors->{$_} for keys %$vectors;
 }
 
 {
