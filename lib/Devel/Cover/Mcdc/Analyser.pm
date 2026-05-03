@@ -28,12 +28,15 @@ sub _sca_agrees ($a, $b) {
 
 sub _find_pair ($col, $rows, $ncols, $coupled = undef) {
   for my $i (0 .. $#$rows) {
+    my $a   = $rows->[$i];
+    my $ar  = $a->result;
+    my $ai  = $a->inputs;
+    my $aic = $ai->[$col];
     for my $j ($i + 1 .. $#$rows) {
-      my $a = $rows->[$i];
       my $b = $rows->[$j];
-      next if $a->result == $b->result;
-      my ($ai, $bi) = ($a->inputs, $b->inputs);
-      next unless _concrete_differs($ai->[$col], $bi->[$col]);
+      next if $ar == $b->result;
+      my $bi = $b->inputs;
+      next unless _concrete_differs($aic, $bi->[$col]);
 
       my $ok = 1;
       for my $k (0 .. $ncols - 1) {
