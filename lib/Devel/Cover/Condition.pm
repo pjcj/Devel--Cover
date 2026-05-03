@@ -7,19 +7,26 @@
 
 package Devel::Cover::Condition;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
 use base "Devel::Cover::Branch";
+use Carp ();
 
-sub pad       { $_[0][0][$_] ||= 0 for 0 .. $_[0]->count - 1 }
-sub text      { "$_[0][1]{left} $_[0][1]{op} $_[0][1]{right}" }
-sub type      { $_[0][1]{type} }
-sub count     { require Carp; Carp::confess("count() must be overridden") }
-sub headers   { require Carp; Carp::confess("headers() must be overridden") }
-sub criterion { "condition" }
+sub pad ($self) { $self->[0][$_] ||= 0 for 0 .. $self->count - 1 }
+
+sub text ($self) {
+  "$self->[1]{left} $self->[1]{op} $self->[1]{right}";
+}
+
+sub type      ($self) { $self->[1]{type} }
+sub criterion ($self) { "condition" }
+sub count     ($self) { Carp::confess("count() must be overridden") }
+sub headers   ($self) { Carp::confess("headers() must be overridden") }
 
 1
 

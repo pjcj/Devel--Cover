@@ -44,19 +44,18 @@ sub test_covered_zero () {
 
 sub test_percentage_full () {
   my $m = mcdc([1, 1]);
-  is $m->percentage, "100", "100% when every column satisfied";
+  is $m->percentage, 100, "100% when every column satisfied";
 }
 
 sub test_percentage_zero () {
   my $m = mcdc([0, 0]);
-  is $m->percentage, "  0", "0% when nothing satisfied";
+  is $m->percentage, 0, "0% when nothing satisfied";
 }
 
-# 2/3 = 66.67 -> sprintf "%3d" truncates to 66, matching Branch.pm's
-# rounding.
+# 2/3 = 66.67 -> int() truncates to 66, matching Branch.pm's rounding.
 sub test_percentage_truncates () {
   my $m = mcdc([1, 1, 0]);
-  is $m->percentage, " 66", "percentage truncates toward zero";
+  is $m->percentage, 66, "percentage truncates toward zero";
 }
 
 sub test_criterion_name () {
