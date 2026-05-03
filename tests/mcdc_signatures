@@ -1,0 +1,50 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# Subroutine signatures (introduced experimentally in 5.20.0) compile to
+# extra logops in the optree prologue for argument-count handling.  This
+# fixture exercises MC/DC through subs declared with signatures so the
+# per-CV walker is exercised against an optree that mixes signature
+# logops with user logops.  The walker must isolate the two: signature
+# ops are their own roots, and the user's decision metadata (root,
+# width, column indices) must not be perturbed.
+
+use 5.20.0;
+use warnings;
+use feature qw( signatures );
+no warnings qw( experimental::signatures );
+
+sub and_decision ($p, $q)         { $p && $q }
+sub or_decision  ($p, $q)         { $p         || $q }
+sub nested       ($a, $b, $c, $d) { ($a && $b) || ($c && $d) }
+
+sub main {
+  my @r;
+
+  # 2-input && hits all three short-circuit rows.
+  push @r, and_decision(1, 1);
+  push @r, and_decision(1, 0);
+  push @r, and_decision(0, 1);
+
+  # 2-input || hits all three short-circuit rows.
+  push @r, or_decision(1, 0);
+  push @r, or_decision(0, 1);
+  push @r, or_decision(0, 0);
+
+  # Mixed-precedence ($a && $b) || ($c && $d): four atomics under one
+  # decision root.  Exercises the per-CV optree walk's pairwise root
+  # finder, which must identify the outer || as the root and not be
+  # confused by the signature-generated or ops.
+  push @r, nested(1, 1, 0, 0);
+  push @r, nested(1, 0, 1, 1);
+  push @r, nested(0, 0, 1, 0);
+  push @r, nested(0, 0, 0, 0);
+}
+
+main();
