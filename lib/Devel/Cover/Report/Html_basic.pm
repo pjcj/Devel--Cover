@@ -152,7 +152,7 @@ sub print_file () {
       my ($cov_entries, $cov_more)
         = _build_coverage_criteria($criteria, $n, $count);
 
-      $line->{criteria} = [ @$ann_entries, @$cov_entries ];
+      $line->{criteria} = [@$ann_entries, @$cov_entries];
       $more = $cov_more;
 
       push @lines, $line;
@@ -233,12 +233,14 @@ sub print_conditions () {
     }
   }
 
+  #<<<
   my @types = map {
-    name      => do { my $n = $_; $n =~ s/_/ /g; $n },
-      headers => [ map { encode_entities($_) }
-        ($r->{$_}[0]{condition}->headers || [])->@* ],
-      conditions => $r->{$_},
+    name    => s/_/ /gr,
+    headers =>
+      [map encode_entities($_), ($r->{$_}[0]{condition}->headers || [])->@*],
+    conditions => $r->{$_},
   }, sort keys %$r;
+  #>>>
 
   my $vars = { R => \%R, types => \@types };
 
@@ -283,7 +285,7 @@ sub print_subroutines () {
 sub print_summary () {
   my $vars = {
     R     => \%R,
-    files => [ "Total", grep $R{db}->summary($_), $R{options}{file}->@* ],
+    files => ["Total", grep $R{db}->summary($_), $R{options}{file}->@*],
   };
 
   my $html = "$R{options}{outputdir}/$R{options}{option}{outputfile}";
@@ -306,7 +308,7 @@ sub get_options ($self, $opt) {
 sub report ($pkg, $db, $options) {
   $Template = Template->new({
     LOAD_TEMPLATES =>
-      [ Devel::Cover::Report::Html_basic::Template::Provider->new({}) ],
+      [Devel::Cover::Report::Html_basic::Template::Provider->new({})],
   });
 
   my $le = sub ($v) { ($v > 0   ? "<" : "=") . " $v" };
@@ -327,7 +329,7 @@ sub report ($pkg, $db, $options) {
     os      => $^O,
     options => $options,
     version => $VERSION,
-    showing => [ grep $options->{show}{$_}, $db->criteria ],
+    showing => [grep $options->{show}{$_}, $db->criteria],
     headers => [
       map  { ($db->criteria_short)[$_] }
       grep { $options->{show}{ ($db->criteria)[$_] } }

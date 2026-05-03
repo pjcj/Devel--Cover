@@ -221,7 +221,7 @@ sub print_conditions ($db, $file, $options) {
     percentage =>
       sprintf("%.1f", $db->{summary}{$file}{condition}{percentage}),
     class      => cvg_class($db->{summary}{$file}{condition}{percentage}),
-    headers    => [ "line", "%", "coverage", "condition" ],
+    headers    => ["line", "%", "coverage", "condition"],
     conditions => \@data,
     perlver    => $Perlver,  # should come from db
     platform   => $^O,       # should come from db
@@ -255,7 +255,7 @@ sub print_subroutines ($db, $file, $options) {
     percentage =>
       sprintf("%.1f", $db->{summary}{$file}{subroutine}{percentage}),
     class       => cvg_class($db->{summary}{$file}{subroutine}{percentage}),
-    subroutines => [ sort { $a->{name} cmp $b->{name} } @data ],
+    subroutines => [sort { $a->{name} cmp $b->{name} } @data],
     perlver     => $Perlver,  # should come from db
     platform    => $^O,       # should come from db
   };
@@ -336,7 +336,7 @@ sub print_summary ($db, $options) {
 sub report ($pkg, $db, $options) {
   $Template = Template->new({
     LOAD_TEMPLATES =>
-      [ Devel::Cover::Report::Html_subtle::Template::Provider->new({}) ],
+      [Devel::Cover::Report::Html_subtle::Template::Provider->new({})],
   });
 
   %Filenames
