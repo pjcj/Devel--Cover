@@ -14,18 +14,24 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Devel::Cover::Statement       ();
-use Devel::Cover::Branch          ();
-use Devel::Cover::Condition       ();
-use Devel::Cover::Condition_or_2  ();
-use Devel::Cover::Condition_or_3  ();
-use Devel::Cover::Condition_and_2 ();
-use Devel::Cover::Condition_and_3 ();
-use Devel::Cover::Condition_xor_4 ();
-use Devel::Cover::Subroutine      ();
-use Devel::Cover::Mcdc            ();
-use Devel::Cover::Time            ();
-use Devel::Cover::Pod             ();
+for my $class (qw(
+  Statement
+  Branch
+  Condition
+  Condition_or_2
+  Condition_or_3
+  Condition_and_2
+  Condition_and_3
+  Condition_xor_4
+  Mcdc
+  Subroutine
+  Pod
+  Time
+))
+{
+  eval "require Devel::Cover::$class; 1"
+    or die "Failed to load Devel::Cover::$class: $@";
+}
 
 sub coverage    ($self) { $self->[0] }
 sub information ($self) { $self->[1] }
