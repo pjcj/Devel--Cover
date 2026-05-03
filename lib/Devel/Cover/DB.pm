@@ -32,8 +32,8 @@ my $Has_term_size = eval { require Term::Size };
 my $DB = "cover.15";                    # Version of the database
 
 @Devel::Cover::DB::Criteria
-  = (qw( statement branch path condition subroutine pod time ));
-@Devel::Cover::DB::Criteria_short   = (qw( stmt bran path cond sub pod time ));
+  = (qw( statement branch condition mcdc subroutine pod time ));
+@Devel::Cover::DB::Criteria_short   = (qw( stmt bran cond mcdc sub pod time ));
 $Devel::Cover::DB::Ignore_filenames = qr/   # Used by Devel::Cover
   (?: [\/\\]lib[\/\\](?:Storable|POSIX).pm$ )
   | # Moose

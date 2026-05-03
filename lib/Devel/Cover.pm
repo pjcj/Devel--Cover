@@ -177,7 +177,7 @@ sub has_select { scalar @Select_re }
     my @coverage = get_coverage();
     %Coverage = map { $_ => 1 } @coverage;
 
-    delete $Coverage{path};  # not done yet
+    delete $Coverage{mcdc};  # not done yet
     my $nopod = "";
     if (!$Pod && exists $Coverage{pod}) {
       delete $Coverage{pod};  # Pod::Coverage unavailable
@@ -1893,7 +1893,7 @@ In this example, Devel::Cover will be operating in silent mode.
   -blib               - "use blib" and ignore files matching \bt/ (default true
                         if blib directory exists, false otherwise)
   -coverage criterion - Turn on coverage for the specified criterion.  Criteria
-                        include statement, branch, condition, path, subroutine,
+                        include statement, branch, condition, mcdc, subroutine,
                         pod, time, all and none (default all except time)
   -db cover_db        - Store results in coverage db (default ./cover_db)
   -dir path           - Directory in which coverage will be collected (default
