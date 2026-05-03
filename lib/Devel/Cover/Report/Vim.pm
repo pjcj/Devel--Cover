@@ -70,6 +70,8 @@ highlight cov_branch           ctermfg=Green cterm=bold gui=bold guifg=Green
 highlight cov_branch_error     ctermfg=Red   cterm=bold gui=bold guifg=Red
 highlight cov_condition        ctermfg=Green cterm=bold gui=bold guifg=Green
 highlight cov_condition_error  ctermfg=Red   cterm=bold gui=bold guifg=Red
+highlight cov_mcdc             ctermfg=Green cterm=bold gui=bold guifg=Green
+highlight cov_mcdc_error       ctermfg=Red   cterm=bold gui=bold guifg=Red
 
 sign define pod              linehl=cov texthl=cov_pod              text=P
 sign define pod_error        linehl=err texthl=cov_pod_error        text=P
@@ -81,6 +83,8 @@ sign define branch           linehl=cov texthl=cov_branch           text=B
 sign define branch_error     linehl=err texthl=cov_branch_error     text=B
 sign define condition        linehl=cov texthl=cov_condition        text=C
 sign define condition_error  linehl=err texthl=cov_condition_error  text=C
+sign define mcdc             linehl=cov texthl=cov_mcdc             text=M
+sign define mcdc_error       linehl=err texthl=cov_mcdc_error       text=M
 
 function! CoverageOld(filename)
 endfunction
@@ -101,7 +105,8 @@ endfunction
 "  let s:bg_valid = "#073642"
 "  let s:bg_old   = "#342a2a"
 "
-"  let s:types = [ "pod", "subroutine", "statement", "branch", "condition", ]
+"  let s:types = [ "pod", "subroutine", "statement",
+"    \ "branch", "condition", "mcdc", ]
 "
 "  for s:type in s:types
 "    exe "highlight cov_" . s:type
@@ -318,7 +323,8 @@ local configuration file ~/.vim/local/devel-cover.vim:
  let s:bg_valid = "#073642"
  let s:bg_old   = "#342a2a"
 
- let s:types = [ "pod", "subroutine", "statement", "branch", "condition", ]
+ let s:types = [ "pod", "subroutine", "statement",
+   \ "branch", "condition", "mcdc", ]
 
  for s:type in s:types
    exe "highlight cov_" . s:type

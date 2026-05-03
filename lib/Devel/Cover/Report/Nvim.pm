@@ -72,7 +72,8 @@ local config = {
     subroutine = "R ",
     statement = "S ",
     branch = "B ",
-    condition = "C "
+    condition = "C ",
+    mcdc = "M "
   },
 
   -- Line highlight groups
@@ -90,7 +91,8 @@ local config = {
 
 -- Build highlight group definitions dynamically
 local function create_highlight_groups()
-  local types = { "pod", "subroutine", "statement", "branch", "condition" }
+  local types =
+    { "pod", "subroutine", "statement", "branch", "condition", "mcdc" }
 
   for _, type_name in ipairs(types) do
     -- Normal coverage highlight
@@ -128,7 +130,8 @@ end
 
 -- Build sign definitions dynamically
 local function create_sign_definitions()
-  local types = { "pod", "subroutine", "statement", "branch", "condition" }
+  local types =
+    { "pod", "subroutine", "statement", "branch", "condition", "mcdc" }
 
   for _, type_name in ipairs(types) do
     -- Normal coverage sign
@@ -167,7 +170,8 @@ end
 
 -- Helper function to set background colors for all coverage types
 function M.set_background(bg)
-  local types = { "pod", "subroutine", "statement", "branch", "condition" }
+  local types =
+    { "pod", "subroutine", "statement", "branch", "condition", "mcdc" }
 
   -- Update highlight groups for coverage sign characters with new background
   for _, type_name in ipairs(types) do
@@ -497,7 +501,8 @@ Example configuration for solarized theme in init.lua:
    subroutine = "R ",
    statement = "· ",  -- Subtle dot for statements (most common)
    branch = "B ",
-   condition = "C "
+   condition = "C ",
+   mcdc = "M "
  }
 
  -- Or for a minimal look that relies purely on colors
@@ -508,7 +513,8 @@ Example configuration for solarized theme in init.lua:
    subroutine = "  ",
    statement = "│ ",  -- Thin vertical bar (unobtrusive)
    branch = "  ",
-   condition = "  "
+   condition = "  ",
+   mcdc = "  "
  }
 
  -- Or use subtle Unicode characters
@@ -517,7 +523,8 @@ Example configuration for solarized theme in init.lua:
    subroutine = "ƒ ",
    statement = "• ",  -- Small bullet (unobtrusive)
    branch = "» ",
-   condition = "? "
+   condition = "? ",
+   mcdc = "◇ "
  }
 
  -- For a dedicated coverage column (recommended)
