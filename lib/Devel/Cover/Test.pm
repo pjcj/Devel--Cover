@@ -78,7 +78,7 @@ sub new ($class, $test, %params) {
   croak "No test specified" unless $test;
 
   my $criteria
-    = delete $params{criteria} || "statement branch condition subroutine";
+    = delete $params{criteria} || "statement branch condition mcdc subroutine";
 
   eval "use Test::Differences";
   my $differences = $INC{"Test/Differences.pm"};
@@ -370,7 +370,7 @@ Devel::Cover::Test - Internal module for testing
   use Devel::Cover::Test;
 
   my $test = Devel::Cover::Test->new("my_test",
-    criteria => "statement branch condition subroutine",
+    criteria => "statement branch condition mcdc subroutine",
   );
   $test->run_test;
 

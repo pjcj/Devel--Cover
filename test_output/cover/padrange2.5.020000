@@ -1,10 +1,10 @@
 cover: Reading database from ...
---------------- ------ ------ ------ ------ ------ ------
-File              stmt   bran   cond    sub  total   slop
---------------- ------ ------ ------ ------ ------ ------
-tests/padrange2  100.0   75.0    n/a  100.0   93.7    0.0
-Total            100.0   75.0    n/a  100.0   93.7    0.0
---------------- ------ ------ ------ ------ ------ ------
+--------------- ------ ------ ------ ------ ------ ------ ------
+File              stmt   bran   cond   mcdc    sub  total   slop
+--------------- ------ ------ ------ ------ ------ ------ ------
+tests/padrange2  100.0   75.0    n/a    n/a  100.0   93.7    0.0
+Total            100.0   75.0    n/a    n/a  100.0   93.7    0.0
+--------------- ------ ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -22,24 +22,24 @@ CC  Cov CRAP SLOP
 -- ---- ---- ----
  1 92.9  1.0  0.0
 
-line  err   stmt   bran   cond    sub   code
-1                                       #!/usr/bin/perl
-2                                       
-3              1                    1   use strict;
-               1                        
-               1                        
-4              1                    1   use warnings;
-               1                        
-               1                        
-5                                       
-6     ***      1   * 50                 if (my @x = 'foo' =~ m/(.)/) {
-7                                       } else {
-8                                       }
-9                                       
-10             1                        my %h = (a => 1, b => 2);
-11             1    100                 while (my ($k, $v) = each %h) {
-12             2                          print "$k $v\n";
-13                                      }
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3              1                           1   use strict;
+               1                               
+               1                               
+4              1                           1   use warnings;
+               1                               
+               1                               
+5                                              
+6     ***      1   * 50                        if (my @x = 'foo' =~ m/(.)/) {
+7                                              } else {
+8                                              }
+9                                              
+10             1                               my %h = (a => 1, b => 2);
+11             1    100                        while (my ($k, $v) = each %h) {
+12             2                                 print "$k $v\n";
+13                                             }
 
 
 Branches
