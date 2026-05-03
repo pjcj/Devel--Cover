@@ -7,76 +7,69 @@
 
 package Devel::Cover::Criterion;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Devel::Cover::Statement;
-use Devel::Cover::Branch;
-use Devel::Cover::Condition;
-use Devel::Cover::Condition_or_2;
-use Devel::Cover::Condition_or_3;
-use Devel::Cover::Condition_and_2;
-use Devel::Cover::Condition_and_3;
-use Devel::Cover::Condition_xor_4;
-use Devel::Cover::Subroutine;
-use Devel::Cover::Time;
-use Devel::Cover::Pod;
+use Devel::Cover::Statement       ();
+use Devel::Cover::Branch          ();
+use Devel::Cover::Condition       ();
+use Devel::Cover::Condition_or_2  ();
+use Devel::Cover::Condition_or_3  ();
+use Devel::Cover::Condition_and_2 ();
+use Devel::Cover::Condition_and_3 ();
+use Devel::Cover::Condition_xor_4 ();
+use Devel::Cover::Subroutine      ();
+use Devel::Cover::Mcdc            ();
+use Devel::Cover::Time            ();
+use Devel::Cover::Pod             ();
 
-sub coverage    { $_[0][0] }
-sub information { $_[0][1] }
+sub coverage    ($self) { $self->[0] }
+sub information ($self) { $self->[1] }
 
-sub uncoverable { "n/a" }
-sub covered     { "n/a" }
-sub total       { "n/a" }
-sub percentage  { "n/a" }
-sub error       { "n/a" }
-sub text        { "n/a" }
-sub values      { [ $_[0]->covered ] }
+sub uncoverable ($self) { "n/a" }
+sub covered     ($self) { "n/a" }
+sub total       ($self) { "n/a" }
+sub percentage  ($self) { "n/a" }
+sub error       ($self) { "n/a" }
+sub text        ($self) { "n/a" }
+sub values      ($self) { [$self->covered] }
 
-sub criterion {
+sub criterion ($self) {
   require Carp;
   Carp::confess("criterion() must be overridden")
 }
 
-sub err_chk {
-  my $self = shift;
-  my ($covered, $uncoverable) = @_;
+sub err_chk ($self, $covered, $uncoverable) {
   no warnings qw( once uninitialized );
   $Devel::Cover::Ignore_covered_err || $uncoverable eq "ignore_covered_err"
     ? !($covered || $uncoverable)
     : !($covered xor $uncoverable)
 }
 
-sub simple_error {
-  my $self = shift;
+sub simple_error ($self) {
   $self->err_chk($self->covered, $self->uncoverable)
 }
 
-sub calculate_percentage {
-  my $class = shift;
-  my ($db, $s) = @_;
+sub calculate_percentage ($class, $db, $s) {
   return unless $s;
   my $errors = $s->{error} || 0;
   $s->{percentage} = $s->{total} ? 100 - $errors * 100 / $s->{total} : 100;
 }
 
-sub aggregate {
-  my ($self, $s, $file, $keyword, $t) = @_;
-
+sub aggregate ($self, $s, $file, $keyword, $t) {
   my $name = $self->criterion;
-  $t = int($t);
+  $t                            = int $t;
   $s->{$file}{$name}{$keyword} += $t;
   $s->{$file}{total}{$keyword} += $t;
   $s->{Total}{$name}{$keyword} += $t;
   $s->{Total}{total}{$keyword} += $t;
 }
 
-sub calculate_summary {
-  my $self = shift;
-  my ($db, $file) = @_;
-
+sub calculate_summary ($self, $db, $file) {
   my $s = $db->{summary};
   $self->aggregate($s, $file, "total",       $self->total);
   $self->aggregate($s, $file, "uncoverable", 1) if $self->uncoverable;
