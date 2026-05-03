@@ -27,6 +27,15 @@ sub percentage ($self) {
   $t ? int($self->covered / $t * 100) : 0
 }
 
+sub error ($self) { $self->total - $self->covered }
+
+sub calculate_summary ($self, $db, $file) {
+  my $s = $db->{summary};
+  $self->aggregate($s, $file, "total",   $self->total);
+  $self->aggregate($s, $file, "covered", $self->covered);
+  $self->aggregate($s, $file, "error",   $self->error);
+}
+
 "
 The answer, my friend, is blowin' in the wind
 The answer is blowin' in the wind
