@@ -369,17 +369,15 @@ class Devel::Cover::Collection {
     say "\n\nWriting collection output to $f ...";
 
     my $vars = {
-      title   => "Coverage report",
-      modules => {},
-      vals    => {},
-      subdir  => "latest/",
-      headers =>
-        [grep !/mcdc|time/, @Devel::Cover::DB::Criteria_short, "total"],
-      criteria    => [grep !/mcdc|time/, @Devel::Cover::DB::Criteria, "total"],
+      title       => "Coverage report",
+      modules     => {},
+      vals        => {},
+      subdir      => "latest/",
+      headers     => [grep !/time/, @Devel::Cover::DB::Criteria_short, "total"],
+      criteria    => [grep !/time/, @Devel::Cover::DB::Criteria,       "total"],
       col_headers => do {
-        my @f = (grep(!/mcdc|time/, @Devel::Cover::DB::Criteria), "total");
-        my @s
-          = (grep(!/mcdc|time/, @Devel::Cover::DB::Criteria_short), "total");
+        my @f = (grep(!/time/, @Devel::Cover::DB::Criteria),       "total");
+        my @s = (grep(!/time/, @Devel::Cover::DB::Criteria_short), "total");
         [map { { full => ucfirst($f[$_]), short => $s[$_] } } 0 .. $#f]
       },
     };
