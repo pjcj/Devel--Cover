@@ -397,6 +397,73 @@ sub slop_class ($slop) {
   $slop < 16 ? "c3" : $slop < 34 ? "c2" : $slop < 41 ? "c1" : "c0"
 }
 
+sub _summary_text ($covered, $total) {
+  return "" unless $total;
+  my $pc  = int(100 * $covered / $total);
+  my $cls = class($pc, $covered != $total, "condition");
+  qq(<span class="summary-text $cls">$pc%)
+    . qq(<span class="count">$covered/$total</span></span>)
+}
+
+sub _render_cond_cells ($line) {
+  my $cells = $line->{condition_cells} or return "";
+  my ($cov, $tot) = (0, 0);
+  for my $cell (@$cells) {
+    for my $part ($cell->{parts}->@*) {
+      $tot++;
+      $cov++ if ($part->{class} // "") ne "c0";
+    }
+  }
+  my $o
+    = qq(<div class="detail cond-cells">\n)
+    . '<div class="head"><span>Condition</span>'
+    . _summary_text($cov, $tot)
+    . qq(</div>\n<div class="body">\n);
+  for my $cell (@$cells) {
+    $o .= qq(<div class="item">\n);
+    $o .= qq(<div class="expr">$cell->{text}</div>\n)
+      if length($cell->{text} // "");
+    $o .= "<table>\n<tr>";
+    $o .= "<th>$_</th>" for $cell->{headers}->@*;
+    $o .= "</tr>\n<tr>";
+    for my $part ($cell->{parts}->@*) {
+      $o .= qq(<td class="$part->{class}">$part->{count}</td>);
+    }
+    $o .= "</tr>\n</table>\n</div>\n";
+  }
+  $o . "</div>\n</div>\n"
+}
+
+sub _render_truth_tables ($line) {
+  my $tts = $line->{truth_tables} or return "";
+  my $o   = "";
+  for my $tt (@$tts) {
+    my $tot = $tt->{rows}->@*;
+    my $cov = grep $_->{covered}, $tt->{rows}->@*;
+    $o
+      .= qq(<div class="detail decision-vectors">\n)
+      . '<div class="head"><span>Truth table</span>'
+      . _summary_text($cov, $tot)
+      . qq(</div>\n<div class="body">\n)
+      . qq(<div class="expr">$tt->{short_expr}</div>\n);
+    if ($tt->{legend} && $tt->{legend}->@*) {
+      $o .= '<div class="tt-legend">';
+      $o .= "<strong>$_->{letter}</strong>= $_->{label}" for $tt->{legend}->@*;
+      $o .= "</div>\n";
+    }
+    $o .= "<table>\n<tr>";
+    $o .= "<th>$_</th>" for $tt->{headers}->@*;
+    $o .= "<th>result</th></tr>\n";
+    for my $row ($tt->{rows}->@*) {
+      $o .= qq(<tr class="$row->{class}">);
+      $o .= "<td>$_</td>" for $row->{inputs}->@*;
+      $o .= "<td>$row->{result}</td></tr>\n";
+    }
+    $o .= "</table>\n</div>\n</div>\n";
+  }
+  $o
+}
+
 sub render_line_detail ($line) {
   my $o = qq(<tr class="line-detail"><td colspan="4">\n);
 
@@ -450,33 +517,9 @@ HTML
     $o .= "</table>\n</div>\n";
   }
 
-  if ($line->{truth_tables}) {
-    for my $tt ($line->{truth_tables}->@*) {
-      $o .= <<HTML;
-<div class="detail">
-<span class="detail-heading">Condition: $tt->{short_expr}</span>
-HTML
-      if ($tt->{legend} && $tt->{legend}->@*) {
-        $o .= qq(<div class="tt-legend">\n);
-        for my $item ($tt->{legend}->@*) {
-          $o .= '<div class="tt-legend-item">'
-            . qq(<strong>$item->{letter}</strong> = $item->{label}</div>\n);
-        }
-        $o .= "</div>\n";
-      }
-      $o .= "<table>\n<tr>\n";
-      $o .= "<th>$_</th>" for $tt->{headers}->@*;
-      $o .= "<th>result</th>\n</tr>\n";
-      for my $row ($tt->{rows}->@*) {
-        $o .= qq(<tr class="$row->{class}">);
-        $o .= "<td>$_</td>" for $row->{inputs}->@*;
-        $o .= "<td>$row->{result}</td></tr>\n";
-      }
-      $o .= "</table>\n</div>\n";
-    }
-  }
-
+  $o .= _render_cond_cells($line);
   $o .= render_mcdc_detail($line->{mcdc}) if $line->{mcdc};
+  $o .= _render_truth_tables($line);
 
   $o .= "</td></tr>\n";
   $o
@@ -485,17 +528,17 @@ HTML
 sub render_mcdc_detail ($mcdc) {
   my $o = "";
   for my $m (@$mcdc) {
-    my $summary = "$m->{percentage}% ($m->{covered}/$m->{total})";
-    $o .= <<HTML;
-<div class="detail mcdc-detail">
-<span class="detail-heading">MC/DC: $m->{text}</span>
-<span class="mcdc-summary $m->{class}">$summary</span>
-<div class="mcdc-atomics">
-HTML
+    $o
+      .= qq(<div class="detail mcdc-detail">\n)
+      . '<div class="head"><span>MC/DC</span>'
+      . _summary_text($m->{covered}, $m->{total})
+      . qq(</div>\n<div class="body">\n)
+      . qq(<div class="expr">$m->{text}</div>\n)
+      . qq(<div class="mcdc-atomics">\n);
     for my $a ($m->{atomics}->@*) {
       $o .= qq(<span class="mcdc-pill $a->{class}">$a->{label}</span>\n);
     }
-    $o .= "</div>\n</div>\n";
+    $o .= "</div>\n</div>\n</div>\n";
   }
   $o
 }
@@ -524,6 +567,7 @@ sub render_source_line ($line) {
     && ($line->{count_class} // "") eq "c0";
   my $has_detail
     = $line->{branches}
+    || $line->{condition_cells}
     || $line->{truth_tables}
     || $line->{mcdc}
     || $line->{subroutines}
@@ -859,6 +903,32 @@ sub line_branches ($f, $n) {
   } @$loc
 }
 
+sub line_condition_cells ($f, $n) {
+  my $conditions = $f->condition or return;
+  my $loc        = $conditions->location($n);
+  return unless $loc && @$loc;
+  map {
+    my $c    = $_;
+    my $text = $c->text;
+    if ($Have_highlighter) {
+      ($text) = highlight($R{options}{option}, $text);
+    } else {
+      $text = encode_entities($text);
+    }
+    {
+      type    => $c->type,
+      text    => $text,
+      headers => [map encode_entities($_), ($c->headers // [])->@*],
+      parts   => [
+        map { {
+          count => $c->value($_),
+          class => class($c->value($_), $c->error($_), "condition"),
+        } } 0 .. $c->total - 1
+      ],
+    }
+  } @$loc
+}
+
 sub line_truth_tables ($f, $n) {
   my $conditions = $f->condition or return;
   my $loc        = $conditions->location($n);
@@ -927,11 +997,11 @@ sub line_statement ($f, $n, $line) {
   $line->{exec_class}  = exec_class($s->covered);
 }
 
-sub line_partial ($line, $bd, $tts, $sd, $md) {
+sub line_partial ($line, $bd, $cd, $tts, $sd, $md) {
   return unless defined $line->{count} && $line->{count} > 0;
   my $p;
   $p ||= any { $_->{true_count} == 0 || $_->{false_count} == 0 } @$bd;
-  $p ||= any { any { !$_->{covered} } $_->{rows}->@* } @$tts;
+  $p ||= any { any { ($_->{class} // "") eq "c0" } $_->{parts}->@* } @$cd;
   $p ||= any { !$_->{covered} } @$sd;
   $p ||= any { $_->{error} } @$md;
   $p ||= $line->{pod_uncovered};
@@ -968,6 +1038,9 @@ sub build_source_lines ($file) {
     my @bd = line_branches($f, $n);
     $line{branches} = \@bd if @bd;
 
+    my @cd = line_condition_cells($f, $n);
+    $line{condition_cells} = \@cd if @cd;
+
     my @tts = line_truth_tables($f, $n);
     $line{truth_tables} = \@tts if @tts;
 
@@ -983,7 +1056,7 @@ sub build_source_lines ($file) {
       $line{pod_uncovered} = 1 if any { !$_->{covered} } @pd;
     }
 
-    line_partial(\%line, \@bd, \@tts, \@sd, \@md);
+    line_partial(\%line, \@bd, \@cd, \@tts, \@sd, \@md);
 
     my @errors;
     push @errors, "branch"
@@ -1753,19 +1826,77 @@ td.chevron {
 .detail .c0 { background: var(--exec-none); }
 .detail .c3 { background: var(--exec-covered); }
 
+.detail.cond-cells { border-left: 3px solid var(--exec-covered); }
+.detail.mcdc-detail { border-left: 3px solid var(--header-bg); }
+.detail.decision-vectors { border-left: 3px solid var(--border); }
+
+.detail .head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.72em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  margin-bottom: 6px;
+}
+
+.detail .head .summary-text {
+  background: transparent;
+  font-family: var(--font-code);
+  font-size: 1.15em;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.detail .head .summary-text.c3 { color: var(--tip-c3); }
+.detail .head .summary-text.c2 { color: var(--tip-c2); }
+.detail .head .summary-text.c1 { color: var(--tip-c1); }
+.detail .head .summary-text.c0 { color: var(--tip-c0); }
+.detail .head .summary-text .count {
+  margin-left: 12px;
+  color: var(--fg-muted);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail .body {
+  padding-left: 24px;
+  font-family: var(--font-code);
+}
+
+.detail .body > .item + .item { margin-top: 12px; }
+
+.detail .body .expr {
+  margin-bottom: 4px;
+  color: var(--fg);
+}
+
+.detail .body table { margin-top: 4px; }
+
 .tt-legend {
   margin: 4px 0;
   font-size: var(--font-size-small);
   color: var(--fg-muted);
 }
+.tt-legend strong {
+  color: var(--fg);
+  font-weight: 600;
+  margin-left: 12px;
+}
+.tt-legend strong:first-child { margin-left: 0; }
 
 .mcdc-summary {
   display: inline-block;
-  margin-left: 8px;
   padding: 1px 8px;
   border: 1px solid;
   border-radius: 4px;
+  font-family: var(--font-code);
+  font-size: var(--font-size-small);
   font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .mcdc-atomics {
