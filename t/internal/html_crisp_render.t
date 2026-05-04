@@ -405,6 +405,197 @@ sub test_truth_tables_pass_observed_vectors () {
   is $covered{"1|0|0"}, 0, "phantom (1,0,0) not covered";
 }
 
+# Panel 1 of the per-line detail block: per-logop cells aligned with the
+# headline cond % (one cell per truth-value slot, classes from the condition's
+# value/error pair).  Covers line_condition_cells data shape and the rendered
+# wrapper class.
+sub test_condition_cells_panel () {
+  my @cond = (_mock_cond(
+    "Condition_or_3",
+    [1, 1, 0],
+    { type => "or_3", left => '$x', op => "||", right => '$y' },
+  ));
+  my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
+
+  my @cells = Devel::Cover::Report::Html_crisp::line_condition_cells($f, 7);
+  is @cells,          1,      "single condition cells entry";
+  is $cells[0]{type}, "or_3", "cells: type recorded";
+  like $cells[0]{text}, qr/\$x.*\$y/, "cells: sub-expression recorded";
+  is $cells[0]{headers}->@*,     3,    "cells: three headers";
+  is $cells[0]{headers}[0],      "l",  "cells: header 0 is 'l'";
+  is $cells[0]{parts}->@*,       3,    "cells: three parts";
+  is $cells[0]{parts}[0]{class}, "c3", "cells: covered cell c3";
+  is $cells[0]{parts}[2]{class}, "c0", "cells: uncovered cell c0";
+  is $cells[0]{parts}[2]{count}, 0,    "cells: uncovered count is 0";
+
+  my $line = { count => 1, condition_cells => \@cells };
+  my $html = Devel::Cover::Report::Html_crisp::render_line_detail($line);
+  like $html, qr{<div class="detail cond-cells">},
+    "cells: single panel wrapper class";
+  my ($expr) = $html =~ m{<div class="expr">(.*?)</div>}s;
+  ok defined $expr, "cells: sub-expression div rendered";
+  (my $expr_text = $expr // "") =~ s/<[^>]+>//g;  # strip highlighter markup
+  $expr_text =~ s/&nbsp;/ /g;
+  like $expr_text, qr{\$x.*\|\|.*\$y},
+    "cells: sub-expression mentions left, op, right";
+  like $html, qr{<th>l</th>},            "cells: header 'l' rendered";
+  like $html, qr{<td class="c3">1</td>}, "cells: covered cell rendered c3";
+  like $html, qr{<td class="c0">0</td>}, "cells: uncovered cell rendered c0";
+}
+
+# A line with several conditions (typically outer + inner logop) renders one
+# wrapper, one heading, and one table per logop with the operator as the
+# table caption.
+sub test_condition_cells_panel_merges_conditions () {
+  my @cond = (
+    _mock_cond(
+      "Condition_or_3",
+      [1, 1, 1],
+      { type => "or_3", left => '$a && $b', op => "||", right => '$c' },
+    ),
+    _mock_cond(
+      "Condition_and_3",
+      [1, 1, 1],
+      { type => "and_3", left => '$a', op => "&&", right => '$b' },
+    ),
+  );
+  my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
+
+  my @cells = Devel::Cover::Report::Html_crisp::line_condition_cells($f, 7);
+  is @cells, 2, "two condition cells entries";
+
+  my $line     = { count => 1, condition_cells => \@cells };
+  my $html     = Devel::Cover::Report::Html_crisp::render_line_detail($line);
+  my @wrappers = $html =~ m{<div class="detail cond-cells">}g;
+  is @wrappers, 1, "merged: single wrapper for the whole line";
+  my @headings = $html =~ m{<div class="head"><span>Condition</span>}g;
+  is @headings, 1, "merged: single panel heading";
+  my @tables = $html =~ m{<table>}g;
+  is @tables, 2, "merged: one table per logop";
+  my @exprs = $html =~ m{<div class="expr">(.*?)</div>}gs;
+  is @exprs, 2, "merged: one sub-expression div per logop";
+  my @stripped = map {
+    (my $t = $_) =~ s/<[^>]+>//g;
+    $t           =~ s/&nbsp;/ /g;
+    $t           =~ s/&amp;/&/g;
+    $t
+  } @exprs;
+  like $stripped[0], qr{\$a.*&&.*\$b.*\|\|.*\$c},
+    "merged: outer sub-expression shows full text";
+  like $stripped[1], qr{\$a.*&&.*\$b},
+    "merged: inner sub-expression shows operator and operands";
+}
+
+# Panel 2 of the per-line detail block: the merged truth table moves from a
+# `Condition: <expr>` heading to a `Decision input vectors: <expr>` heading
+# wrapped in a distinguishing class.
+sub test_decision_vectors_panel_heading () {
+  my $line = {
+    count        => 1,
+    truth_tables => [{
+      expr       => "A &amp;&amp; B",
+      short_expr => "A &amp;&amp; B",
+      headers    => [qw( A B )],
+      legend     => [],
+      rows       =>
+        [{ inputs => [1, 1], result => 1, covered => 1, class => "c3" }],
+    }],
+  };
+
+  my $html = Devel::Cover::Report::Html_crisp::render_line_detail($line);
+  like $html, qr{<div class="detail decision-vectors">},
+    "vectors: panel wrapper class";
+  like $html, qr{<div class="head"><span>Truth table</span>},
+    "vectors: smallcaps heading rendered";
+  like $html, qr{<span class="summary-text c3">100%},
+    "vectors: heading carries summary % (100% all rows green)";
+  like $html, qr{<div class="expr">A &amp;&amp; B</div>},
+    "vectors: sub-expression rendered as div in body";
+  unlike $html, qr{Condition: A &amp;&amp; B},
+    "vectors: old `Condition:` heading removed";
+  unlike $html, qr{Decision input vectors:},
+    "vectors: design-doc phrasing not used in heading";
+}
+
+# All three panels (cells, mcdc, vectors) render in order after the branches
+# block.  Cells and MC/DC sit alongside the headline `cond %` / `mcdc %`
+# numbers; the strict-row vectors view is the supplementary audit detail and
+# trails behind.
+sub test_panels_render_in_order () {
+  my $line = {
+    count    => 5,
+    branches => [{
+      true_count  => 1,
+      false_count => 1,
+      total_count => 2,
+      true_class  => "c3",
+      false_class => "c3",
+      text        => "if (x)",
+    }],
+    condition_cells => [{
+      type    => "and_3",
+      text    => '$x &amp;&amp; $y',
+      headers => [qw( l !l&amp;&amp;r l&amp;&amp;!r )],
+      parts   => [
+        { count => 1, class => "c3" },
+        { count => 0, class => "c0" },
+        { count => 1, class => "c3" },
+      ],
+    }],
+    truth_tables => [{
+      expr       => "A &amp;&amp; B",
+      short_expr => "A &amp;&amp; B",
+      headers    => [qw( A B )],
+      legend     => [],
+      rows       =>
+        [{ inputs => [1, 1], result => 1, covered => 1, class => "c3" }],
+    }],
+    mcdc => [{
+      text       => "decision",
+      percentage => 100,
+      covered    => 2,
+      total      => 2,
+      error      => 0,
+      class      => "c3",
+      atomics    => [{ label => "x", covered => 1, class => "c3" }],
+    }],
+  };
+
+  my $html     = Devel::Cover::Report::Html_crisp::render_line_detail($line);
+  my $branches = index $html, "Branch:";
+  my $cells    = index $html, "cond-cells";
+  my $vectors  = index $html, "decision-vectors";
+  my $mcdc     = index $html, "mcdc-detail";
+
+  ok $branches >= 0,     "order: branches block present";
+  ok $cells > $branches, "order: cells after branches";
+  ok $mcdc > $cells,     "order: mcdc after cells";
+  ok $vectors > $mcdc,   "order: vectors after mcdc";
+}
+
+# `partial` follows the per-logop cells / branches / mcdc
+# headline numbers, not row coverage in the merged truth table.  An unobserved
+# synthesised row alone must not flag the line partial; an uncovered condition
+# cell must.
+sub test_line_partial_ignores_tt_rows () {
+  my %only_tts = (count => 5);
+  my @tts
+    = ({ rows => [{ covered => 1 }, { covered => 1 }, { covered => 0 }] });
+  Devel::Cover::Report::Html_crisp::line_partial(
+    \%only_tts, [], [], \@tts, [], [],
+  );
+  ok !$only_tts{partial},
+    "partial: unobserved tt rows alone do not mark partial";
+
+  my %with_cell = (count => 5);
+  my @cells
+    = ({ parts => [{ class => "c3" }, { class => "c0" }, { class => "c3" }] });
+  Devel::Cover::Report::Html_crisp::line_partial(
+    \%with_cell, [], \@cells, [], [], [],
+  );
+  ok $with_cell{partial}, "partial: c0 condition cell flags line partial";
+}
+
 sub test_class_accepts_criterion_percentage () {
   my $b = bless [[0, 1], { text => "" }], "Devel::Cover::Branch";
   my $m = bless [[0, 1], { text => "", labels => ["a", "b"] }],
@@ -457,6 +648,11 @@ sub main () {
   test_dir_header_links;
   test_app_js_hash_filter;
   test_truth_tables_pass_observed_vectors;
+  test_condition_cells_panel;
+  test_condition_cells_panel_merges_conditions;
+  test_decision_vectors_panel_heading;
+  test_panels_render_in_order;
+  test_line_partial_ignores_tt_rows;
   test_class_accepts_criterion_percentage;
   test_untested_badge_tooltip;
   done_testing;
