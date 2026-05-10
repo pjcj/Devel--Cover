@@ -7,6 +7,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
+use List::Util qw( max );
 use Devel::Cover::Truth_Table;
 use Devel::Cover::Path qw( common_prefix );
 
@@ -56,14 +57,6 @@ sub get_metrics ($db, $options, $file_data, $line) {
     }
   }
   %m
-}
-
-sub max (@nums) {
-  my $m = shift @nums;
-  for my $n (@nums) {
-    $m = $n if $n > $m;
-  }
-  $m
 }
 
 sub print_file ($db, $file, $options, $short) {
