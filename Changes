@@ -1,17 +1,19 @@
 Devel::Cover history
 
 {{$NEXT}}
-- *** BREAKING *** New detailed `json` reporter; existing summary
-  reporter renamed to `json_summary` (Ricardo Signes) (GH-419)
-- *** BREAKING *** cover no longer walks the whole tree for .gcov
-  files; it consumes only those produced by its own gcov runs.  XS
-  sources outside cwd are skipped unless -gcov_chdir is set.
-- Exclude Perl CORE headers from XS coverage by default; cover
-  -relative_only now defaults on and gcov2perl skips CORE sources
-  (GH-344)
-- Add Modified Condition/Decision Coverage (MC/DC) criterion, included
-  in the default coverage set; the cross-criterion total percentage may
-  decrease for code where MC/DC trails condition coverage (GH-478)
+- *** BREAKING *** New detailed `json` reporter; existing summary reporter
+  renamed to `json_summary` (Ricardo Signes) (GH-419)
+- *** BREAKING *** cover no longer walks the whole tree for .gcov files; it
+  consumes only those produced by its own gcov runs.  XS sources outside cwd are
+  skipped unless -gcov_chdir is set.
+- Exclude Perl CORE headers from XS coverage by default; cover -relative_only
+  now defaults on and gcov2perl skips CORE sources (GH-344)
+- Add Modified Condition/Decision Coverage (MC/DC) criterion, included in the
+  default coverage set; the cross-criterion total percentage may decrease for
+  code where MC/DC trails condition coverage (GH-478)
+- Merge per-decision observed input-vector counts across runs when combining
+  cover_db data, so MC/DC analysis sees the full set of observed vectors after
+  merging multiple runs (GH-478)
 - Add cpancover-docker-pull recipe (GH-377)
 - Fix spelling: led (Josh Soref) (GH-368)
 

@@ -140,11 +140,42 @@ PERL
   ok !$di, "decision_inputs absent when mcdc not selected";
 }
 
+sub test_add_condition_cross_run_merge () {
+  my $db = bless {}, "Devel::Cover::DB";
+  my $cc = {};
+  my $sc = [[42, { type => "or_3" }]];
+  my $uc = { 42 => [[]] };
+
+  $db->add_condition($cc, $sc, [[1, 0, 2]], $uc, [{ "1|1" => 1, "1|0" => 2 }]);
+  $db->add_condition($cc, $sc, [[3, 4, 0]], $uc, [{ "1|1" => 5, "0|X" => 7 }]);
+
+  is_deeply $cc->{42}[0][0], [4, 4, 2],
+    "hit counts sum across runs (slots 0-2)";
+
+  is_deeply $cc->{42}[0][3], { "1|1" => 6, "1|0" => 2, "0|X" => 7 },
+    "observed-vector counts merged: shared key sums, new keys appended";
+}
+
+sub test_add_condition_xor_four_slot_merge () {
+  my $db = bless {}, "Devel::Cover::DB";
+  my $cc = {};
+  my $sc = [[7, { type => "xor_4" }]];
+  my $uc = { 7 => [[]] };
+
+  $db->add_condition($cc, $sc, [[1, 2, 3, 4]], $uc);
+  $db->add_condition($cc, $sc, [[5, 6, 7, 8]], $uc);
+
+  is_deeply $cc->{7}[0][0], [6, 8, 10, 12],
+    "xor four-slot hit counts (slots 0-3) sum across runs";
+}
+
 sub main () {
   subtest "simple two-leaf and"    => \&test_simple_and;
   subtest "worked example"         => \&test_worked_example;
   subtest "repeated observation"   => \&test_repeated_observation;
   subtest "no inputs without mcdc" => \&test_no_inputs_without_mcdc;
+  subtest "cross-run merge"        => \&test_add_condition_cross_run_merge;
+  subtest "xor four-slot merge"    => \&test_add_condition_xor_four_slot_merge;
 
   done_testing;
 }
