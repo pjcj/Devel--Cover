@@ -939,7 +939,6 @@ static AV *get_conds(pTHX_ AV *conds) {
 }
 #endif
 
-/* MC/DC decision-context helpers - definitions live further down */
 static HV      *dc_lookup_or_build_decision_meta(pTHX_ OP *op, CV *cv);
 static IV       dc_meta_iv(pTHX_ HV *meta, const char *key, I32 keylen);
 static dc_dctx *dc_stack_find_root(pTHX_ OP *root_addr);
@@ -1764,12 +1763,8 @@ static void cover_logop(pTHX) {
     set_conditional(aTHX_ PL_op, 5, void_context);
 
     /*
-     * MC/DC decision-context maintenance.  Look up the metadata for this
-     * logop, push a fresh DC for the enclosing decision root if none is
-     * already in flight, and write the left operand's value into the
-     * appropriate column if this logop's left is a leaf.  void_context
-     * decisions are skipped because the right value is never observed,
-     * so the row in the truth table cannot be filled in.
+     * Skip MC/DC bookkeeping in void context: the right value is never
+     * observed, so the row in the truth table cannot be filled in.
      */
     if (!void_context && collecting(Mcdc)) {
       HV *meta = dc_lookup_or_build_decision_meta(aTHX_ PL_op,
