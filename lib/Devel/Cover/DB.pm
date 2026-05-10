@@ -761,10 +761,23 @@ sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
   *add_pod = \&add_subroutine;
 }
 
-# Same merge as add_branch, plus an optional per-file decision-inputs
-# arrayref (parallel to $fc, indexed by flat per-file ordinal).  When a
-# condition's flat ordinal carries observed-vector data, it is attached
-# to the condition entry's third slot for later use by _derive_mcdc.
+# Same merge as add_branch, plus an optional per-file decision-inputs arrayref
+# (parallel to $fc, indexed by flat per-file ordinal).  When a condition's flat
+# ordinal carries observed-vector data, it is merged into the condition entry's
+# slot 3 for later use by _derive_mcdc.
+#
+# Slot layout for a condition entry $cc->{$line}[$n]:
+#   [0] [false_count, true_count, ...]  hit counts (from add_branch)
+#   [1] structure ref (op, type, addr, etc.)
+#   [2] uncoverable flags arrayref
+#   [3] observed-vector hash { "v0|v1|...|vN" => count, ... }
+#
+# Slot 3 readers: _derive_mcdc (DB.pm), Truth_Table::apply_observed_vectors,
+# Condition_table::for_line, Html_crisp::line_truth_tables.
+#
+# TODO: route slot 3 access through an observed_vectors($entry) accessor (or a
+# SLOT_OBSERVED_VECTORS constant) so the magic 3 isn't repeated at each call
+# site.
 sub add_condition ($self, $cc, $sc, $fc, $uc, $di = undef) {
   my %line;
   for my $i (0 .. $#$fc) {
