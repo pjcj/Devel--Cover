@@ -139,6 +139,13 @@ typedef struct {
 #define DC_VECTOR_TRUE  1
 #define DC_VECTOR_X     2
 
+/*
+ * Matches Devel::Cover::Condition_table::for_line's 16-atomic cap on the Perl
+ * side; decisions wider than this are not rendered as truth tables and cannot
+ * contribute to MC/DC, so we do not record input vectors for them.
+ */
+#define DC_MAX_DECISION_WIDTH 16
+
 typedef struct {
   unsigned      covering;
   int           collecting_here;
@@ -1615,41 +1622,43 @@ static void dc_stack_pop(pTHX) {
  */
 static void dc_snapshot(pTHX_ dc_dctx *d) {
   dMY_CXT;
-  HV  *vectors;
-  SV **slot;
-  char buf[256];
-  int  pos = 0,
-       i;
 
   if (!d || !MY_CXT.decision_inputs) return;
-
-  for (i = 0; i < d->width; i++) {
-    if (i > 0) {
-      if (pos + 1 >= (int)sizeof(buf)) return;
-      buf[pos++] = '|';
-    }
-    if (pos + 1 >= (int)sizeof(buf)) return;
-    if      (d->vector[i] == DC_VECTOR_FALSE) buf[pos++] = '0';
-    else if (d->vector[i] == DC_VECTOR_TRUE)  buf[pos++] = '1';
-    else                                      buf[pos++] = 'X';
-  }
-
-  slot = hv_fetch(MY_CXT.decision_inputs, get_key(d->root_addr), KEY_SZ, 1);
-  if (slot && SvROK(*slot)) {
-    vectors = (HV *)SvRV(*slot);
-  } else {
-    vectors = newHV();
-#ifdef USE_ITHREADS
-    HvSHAREKEYS_off(vectors);
-#endif
-    *slot = newRV_noinc((SV *)vectors);
-  }
+  if (d->width <= 0 || d->width > DC_MAX_DECISION_WIDTH) return;
 
   {
-    SV **vc = hv_fetch(vectors, buf, pos, 1);
-    if (vc) {
-      int c = SvOK(*vc) ? SvIV(*vc) + 1 : 1;
-      sv_setiv(*vc, c);
+    /* Key is "v0|v1|...|v(width-1)": width chars + (width - 1) separators.
+     * hv_fetch takes an explicit length so no terminator is written. */
+    char  buf[DC_MAX_DECISION_WIDTH * 2 - 1];
+    HV   *vectors;
+    SV  **slot;
+    int   pos = 0,
+          i;
+
+    for (i = 0; i < d->width; i++) {
+      if (i > 0) buf[pos++] = '|';
+      if      (d->vector[i] == DC_VECTOR_FALSE) buf[pos++] = '0';
+      else if (d->vector[i] == DC_VECTOR_TRUE)  buf[pos++] = '1';
+      else                                      buf[pos++] = 'X';
+    }
+
+    slot = hv_fetch(MY_CXT.decision_inputs, get_key(d->root_addr), KEY_SZ, 1);
+    if (slot && SvROK(*slot)) {
+      vectors = (HV *)SvRV(*slot);
+    } else {
+      vectors = newHV();
+#ifdef USE_ITHREADS
+      HvSHAREKEYS_off(vectors);
+#endif
+      *slot = newRV_noinc((SV *)vectors);
+    }
+
+    {
+      SV **vc = hv_fetch(vectors, buf, pos, 1);
+      if (vc) {
+        int c = SvOK(*vc) ? SvIV(*vc) + 1 : 1;
+        sv_setiv(*vc, c);
+      }
     }
   }
 }
