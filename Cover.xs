@@ -1760,6 +1760,12 @@ static void cover_logop(pTHX) {
            leftval_true_ish, void_context, PL_op));
     NDEB(op_dump(PL_op));
 
+    /*
+     * Slot 5 is the void-context flag, read by add_condition_cover in
+     * Devel::Cover when finalising or/and decisions to collapse a
+     * never-observed right operand to count=2.  It is not MC/DC-specific
+     * and so runs whenever Condition is collected.
+     */
     set_conditional(aTHX_ PL_op, 5, void_context);
 
     /*
