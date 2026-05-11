@@ -198,12 +198,11 @@ sub _condition_report ($coverage) {
 
 sub _mcdc_report ($coverage) {
   map {
-    my $m   = $_;
-    my $pct = $m->total ? int($m->covered / $m->total * 100) : 0;
+    my $pct = $_->percentage;
     {
       percentage => $pct,
-      class      => pclass($pct, $m->error),
-      title      => sprintf("%d / %d", $m->covered, $m->total),
+      class      => pclass($pct, $_->error),
+      title      => sprintf("%d / %d", $_->covered, $_->total),
     }
   } $coverage->{mcdc}->@*
 }
@@ -522,11 +521,13 @@ sub print_mcdc_report ($db, $file, $opt) {
     for my $m (@$loc) {
       my @vals   = $m->values;
       my @labels = $m->labels->@*;
-      my $pct    = $m->total ? int($m->covered / $m->total * 100) : 0;
+      my @cls    = bclass(@vals);
+      my $pct    = $m->percentage;
       my $pills  = join " ",
-          map qq(<span class="@{[$vals[$_] ? "c3" : "c0"]}">)
+          map qq(<span class="$cls[$_]">)
         . escape_HTML($labels[$_] // "")
         . "</span>", 0 .. $#vals;
+
       printf $out $fmt, $n++ > 0 ? "" : qq(<a id="L$line">$line</a>),
         pclass($pct, $m->error), $pct, "<div>$pills</div>",
         escape_HTML($m->text);
