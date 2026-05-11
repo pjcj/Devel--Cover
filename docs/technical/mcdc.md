@@ -1,11 +1,8 @@
 # Modified Condition/Decision Coverage (MC/DC)
 
 This document describes Modified Condition/Decision Coverage (MC/DC), how it
-relates to Devel::Cover's existing condition coverage, and what would be needed
-to add it as a new criterion.
-
-MC/DC is **not currently implemented**. This document captures the design work
-so the feature can be picked up later.
+relates to Devel::Cover's existing condition coverage, and how it is implemented
+as a separate criterion.
 
 ## Overview
 
@@ -222,10 +219,10 @@ to disagree.
 `xor` and `^^` do not short-circuit; their truth tables have all four rows
 fully populated.
 
-## What already exists
+## Shared runtime infrastructure
 
-The runtime data and structural machinery for MC/DC are already collected by
-Devel::Cover for condition coverage:
+MC/DC reuses the data and structural machinery Devel::Cover already collects for
+condition coverage:
 
 1. **Per-logop truth value collection** in `Cover.xs`'s `cover_logop`. See
    `docs/technical/branches_and_conditions.md` for the layout of the
@@ -253,11 +250,12 @@ Devel::Cover for condition coverage:
    GH-446, so `not($a) && $b` and parenthesised forms link correctly to their
    parent decision.
 
-4. **Reporter integration** in `Html_minimal`, `Html_subtle`, `Html_crisp`,
-   `Text2`, and `Json` already renders the composite tables.
+4. **Reporter rendering** of the composite tables in `Html_minimal`,
+   `Html_subtle`, `Html_crisp`, `Text2`, and `Json`.
 
-The gap is the MC/DC analysis itself, plus a criterion class to compute a
-percentage and flag missing pairs.
+MC/DC adds the analysis on top of this shared base, a criterion class to compute
+a percentage and flag missing pairs, and the per-execution input- vector
+recorder needed for audit-grade results.
 
 ## Design choice: parallel criterion, shared runtime data
 
@@ -326,14 +324,15 @@ obtained via `make self_cover`. `Mcdc::Analyser` is loaded lazily from
 `DB.pm:_derive_mcdc` and is covered by `make dc_cover_lib`. See
 `docs/technical/self-coverage.md`.
 
-## What would need to be added
+## Implementation
 
-### MC/DC analyser
+### Analyser
 
-Given a `Condition_table::Table` (rows of `inputs[], result, covered`),
-compute MC/DC pairs. Hybrid MC/DC tries unique-cause first and falls back
-to masking only when unique-cause is impossible because the condition is
-coupled (appears more than once in the decision).
+`lib/Devel/Cover/Mcdc/Analyser.pm` takes a `Condition_table::Table` (rows of
+`inputs[], result, covered`) and computes MC/DC pairs. The hybrid algorithm
+tries unique-cause first and falls back to masking only when unique-cause is
+impossible because the condition is coupled (appears more than once in the
+decision):
 
 ```text
 for each column c (atomic condition):
@@ -362,61 +361,46 @@ for each column c (atomic condition):
 coverage = satisfied_columns / total_columns
 ```
 
-A new module, perhaps `lib/Devel/Cover/Mcdc/Analyser.pm`, hosting this
-algorithm.
-
 ### Criterion class
 
-`lib/Devel/Cover/Mcdc.pm`, modelled on `Branch.pm`, storing per-decision
-counters: total atomic conditions, satisfied conditions, and the missing
-pairs.
+`lib/Devel/Cover/Mcdc.pm`, modelled on `Branch.pm`, stores per-decision
+counters: total atomic conditions, satisfied conditions, and the missing labels.
 
 ### Wiring
 
-- Add `mcdc` to `@Devel::Cover::DB::Criteria` and `@Criteria_short` in
+- `mcdc` is a member of `@Devel::Cover::DB::Criteria` and `@Criteria_short` in
   `lib/Devel/Cover/DB.pm`.
-- Add a `Mcdc` flag bit in `Cover.xs` and a `coverage_mcdc()` XS function.
-- Derive MC/DC from existing condition truth tables at report time; no
-  new runtime collection.
-- Accept `-coverage mcdc` in `bin/cover`.
+- A `Mcdc` flag bit and a `coverage_mcdc()` XS function live in `Cover.xs`.
+- `DB.pm::_derive_mcdc` runs the analyser against condition truth tables during
+  `cover()` before `objectify_cover`.
+- `bin/cover` accepts `-coverage mcdc` and documents it in POD.
 
 ### Report integration
 
-Reuse the truth-table renderers; add an MC/DC summary column and a per-
-decision indicator of which atomic conditions lack independence pairs.
+Each reporter renders an MC/DC summary column and, in detail views, lists which
+atomic conditions lack independence pairs. The HTML reporters share the
+per-atomic pill rendering; `Html_crisp` additionally splits the per- line detail
+block into three internally-consistent panels (per-logop cells, MC/DC pills,
+composite truth table) so each panel matches one headline percentage.
 
 ### Tests
 
-New tests in `tests/` exercising different decision shapes: `mcdc_basic`,
-`mcdc_chained_and`, `mcdc_or`, `mcdc_xor`, `mcdc_constant_right`,
-`mcdc_negation`, `mcdc_nested`. Each test should include enough test data to
-demonstrate both satisfied and missing pairs.
+`tests/mcdc_basic` covers the standard short-circuit shapes (`&&`, `||`,
+chained, leading negation, and the mixed-precedence worked example).
+`tests/mcdc_xor`, `tests/mcdc_constant_right`, `tests/mcdc_demo`, and
+`tests/mcdc_signatures` exercise the distinct code paths. Internal tests live
+under `t/internal/mcdc_*` and `t/internal/decision_*`.
 
 ### Documentation
 
-- This document.
-- A user-facing entry in `Tutorial.pod`.
-- A `Changes` entry.
-
-## Cost / value summary
-
-- New code: 800-1500 lines.
-- Test code: 400-700 lines.
-- Calendar: 1-2 weeks for someone familiar with the codebase.
-- Maintenance burden: low. The runtime instrumentation does not change; only
-  Perl-side analysis is added.
+This document, plus a user-facing section 2.5 in `Tutorial.pod`, USAGE POD in
+`Devel::Cover::Mcdc`, and a `Changes` entry.
 
 ## Limitations
 
-- Decisions with more than 16 atomic conditions are skipped today by
+- Decisions with more than 16 atomic conditions are skipped by
   `Condition_table::for_line`; MC/DC inherits that limit. The bound exists
   because the truth table size grows as 2^N and becomes unwieldy.
-
-- Aggregate (count > 0) data suffices when "row was observed at least
-  once" semantics are accepted, which is the common reading and matches
-  most tools and DO-178C audit guidance. Strictly proving that two
-  *specific* test runs differ in a single condition would require per-
-  execution recording, a substantial XS change.
 
 - Coupled conditions (the same atomic appearing more than once in a
   decision) are handled by hybrid's masking fallback. The fallback is
@@ -437,4 +421,4 @@ demonstrate both satisfied and missing pairs.
 - ISO 26262 (2018). *Road vehicles - Functional safety*.
 - See also: `docs/technical/branches_and_conditions.md` for the underlying
   condition-coverage data layout, and `lib/Devel/Cover/Condition_table.pm`
-  for the composite truth-table builder MC/DC would build on.
+  for the composite truth-table builder MC/DC builds on.
