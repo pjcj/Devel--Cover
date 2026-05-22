@@ -23,6 +23,7 @@ BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 use Devel::Cover::Html_Common     qw( $Have_highlighter highlight launch );
 use Devel::Cover::Web             qw( $Cov $Crisp_base_css $Crisp_theme_js );
 use Devel::Cover::Condition_table ();
+use Devel::Cover::DB              ();
 use Devel::Cover::Inc             ();
 use Devel::Cover::Log             qw( dcinfo );
 use Devel::Cover::Path            qw( common_prefix );
@@ -933,7 +934,7 @@ sub line_truth_tables ($f, $n) {
   my $conditions = $f->condition or return;
   my $loc        = $conditions->location($n);
   return unless $loc && @$loc;
-  my @observed = map { $_->[3] } @$loc;
+  my @observed = map Devel::Cover::DB::observed_vectors($_), @$loc;
   grep { $_->{rows}->@* } map {
     my @rows = map { {
       inputs  => $_->inputs,

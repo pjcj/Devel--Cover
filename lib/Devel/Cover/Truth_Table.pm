@@ -184,14 +184,15 @@ use strict;
 # VERSION
 
 # Override merged-truth-table row coverage from runtime-observed input vectors.
-# merge_lineops preserves the surviving root op's idx through merges, so
-# $conditions->[$idx][3] gives the observed-vector hash for that root.
+# merge_lineops preserves the surviving root op's idx through merges, so the
+# observed-vector slot of $conditions->[$idx] applies to that root.
 # Synthesised rows not in the observed set stay rendered with covered=0 so the
 # truth table still draws.
 sub apply_observed_vectors {
   my ($merged, $conditions) = @_;
+  require Devel::Cover::DB;
   for my $op (@$merged) {
-    my $obs = $conditions->[$op->{idx}][3];
+    my $obs = Devel::Cover::DB::observed_vectors($conditions->[$op->{idx}]);
     next unless $obs && %$obs;
     for my $row (@{ $op->{tt} }) {
       my $key = join "|", $row->inputs;
