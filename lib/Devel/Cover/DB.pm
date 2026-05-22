@@ -761,23 +761,18 @@ sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
   *add_pod = \&add_subroutine;
 }
 
-# Same merge as add_branch, plus an optional per-file decision-inputs arrayref
-# (parallel to $fc, indexed by flat per-file ordinal).  When a condition's flat
-# ordinal carries observed-vector data, it is merged into the condition entry's
-# slot 3 for later use by _derive_mcdc.
-#
 # Slot layout for a condition entry $cc->{$line}[$n]:
 #   [0] [false_count, true_count, ...]  hit counts (from add_branch)
 #   [1] structure ref (op, type, addr, etc.)
 #   [2] uncoverable flags arrayref
-#   [3] observed-vector hash { "v0|v1|...|vN" => count, ... }
-#
-# Slot 3 readers: _derive_mcdc (DB.pm), Truth_Table::apply_observed_vectors,
-# Condition_table::for_line, Html_crisp::line_truth_tables.
-#
-# TODO: route slot 3 access through an observed_vectors($entry) accessor (or a
-# SLOT_OBSERVED_VECTORS constant) so the magic 3 isn't repeated at each call
-# site.
+#   [3] observed-vector hash { "v0|v1|...|vN" => count, ... } - access via
+#       observed_vectors() below.
+sub observed_vectors ($entry) { $entry->[3] }
+
+# Same merge as add_branch, plus an optional per-file decision-inputs arrayref
+# (parallel to $fc, indexed by flat per-file ordinal).  When a condition's flat
+# ordinal carries observed-vector data, it is merged into the condition entry's
+# observed-vector slot for later use by _derive_mcdc.
 sub add_condition ($self, $cc, $sc, $fc, $uc, $di = undef) {
   my %line;
   for my $i (0 .. $#$fc) {
@@ -1049,7 +1044,7 @@ sub _derive_mcdc ($self, $cover) {
     for my $line (keys %$cc) {
       my $loc = $cc->{$line};
       next unless $loc && @$loc;
-      my @observed = map { $_->[3] } @$loc;
+      my @observed = map observed_vectors($_), @$loc;
       my @tables   = Devel::Cover::Condition_table->for_line($loc, \@observed);
       for my $table (@tables) {
         my $r        = Devel::Cover::Mcdc::Analyser->analyse($table);
@@ -1426,7 +1421,20 @@ Merge subroutine coverage counts.
 
 =head2 add_condition
 
-Alias for L</add_branch>.
+  $db->add_condition($cc, $sc, $fc, $uc);
+  $db->add_condition($cc, $sc, $fc, $uc, $di);
+
+Merge condition coverage counts. The four-argument form behaves as
+L</add_branch>. The optional fifth argument C<$di> is an arrayref of
+per-condition observed input-vector hashes (parallel to C<$fc>) and is merged
+into each condition entry's observed-vector slot for later use by the MC/DC
+analyser; see L</observed_vectors>.
+
+=head2 observed_vectors
+
+  my $obs = Devel::Cover::DB::observed_vectors($entry);
+
+Return the observed-vector hash recorded on a condition entry (or undef).
 
 =head2 add_pod
 
