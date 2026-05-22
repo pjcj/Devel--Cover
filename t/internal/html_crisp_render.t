@@ -370,8 +370,8 @@ sub _mock_cond ($class, $hits, $info, $observed = undef) {
 # When the runtime recorded only a subset of input vectors, the synthesised
 # truth-table rows that were never executed must render as covered=0 in the
 # Html_crisp truth-table view, matching the MC/DC view.  This covers
-# Html_crisp::line_truth_tables passing the observed-vectors slot through
-# to Condition_table::for_line.
+# Html_crisp::line_truth_tables passing the observed-vectors slot through to
+# Condition_table::for_line.
 sub test_truth_tables_pass_observed_vectors () {
   my @cond = (
     _mock_cond(
@@ -389,7 +389,7 @@ sub test_truth_tables_pass_observed_vectors () {
   my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
 
   my @tts = Devel::Cover::Report::Html_crisp::line_truth_tables($f, 7);
-  is @tts, 1, "single composite table from worked-example shape";
+  is @tts, 1, "single composite table from worked example";
 
   my %covered;
   for my $row ($tts[0]{rows}->@*) {
@@ -407,7 +407,7 @@ sub test_truth_tables_pass_observed_vectors () {
 
 # Panel 1 of the per-line detail block: per-logop cells aligned with the
 # headline cond % (one cell per truth-value slot, classes from the condition's
-# value/error pair).  Covers line_condition_cells data shape and the rendered
+# value/error pair).  Covers line_condition_cells data layout and the rendered
 # wrapper class.
 sub test_condition_cells_panel () {
   my @cond = (_mock_cond(
@@ -444,8 +444,8 @@ sub test_condition_cells_panel () {
 }
 
 # A line with several conditions (typically outer + inner logop) renders one
-# wrapper, one heading, and one table per logop with the operator as the
-# table caption.
+# wrapper, one heading, and one table per logop with the operator as the table
+# caption.
 sub test_condition_cells_panel_merges_conditions () {
   my @cond = (
     _mock_cond(
@@ -573,10 +573,9 @@ sub test_panels_render_in_order () {
   ok $vectors > $mcdc,   "order: vectors after mcdc";
 }
 
-# `partial` follows the per-logop cells / branches / mcdc
-# headline numbers, not row coverage in the merged truth table.  An unobserved
-# synthesised row alone must not flag the line partial; an uncovered condition
-# cell must.
+# `partial` follows the per-logop cells / branches / mcdc headline numbers, not
+# row coverage in the merged truth table.  An unobserved synthesised row alone
+# must not flag the line partial; an uncovered condition cell must.
 sub test_line_partial_ignores_tt_rows () {
   my %only_tts = (count => 5);
   my @tts

@@ -58,7 +58,7 @@ Hybrid closes that loophole by preferring unique-cause where possible.
 
 ## A worked example
 
-The decision `(A && B) || C` is a small canonical MC/DC shape: easy to trace
+The decision `(A && B) || C` is a small canonical MC/DC example: easy to trace
 by hand, but structurally rich enough that condition coverage and MC/DC
 diverge. The example below uses that decision dressed up as an article-
 editing controller; the dressing is illustrative for this document, while
@@ -385,7 +385,7 @@ composite truth table) so each panel matches one headline percentage.
 
 ### Tests
 
-`tests/mcdc_basic` covers the standard short-circuit shapes (`&&`, `||`,
+`tests/mcdc_basic` covers the standard short-circuit forms (`&&`, `||`,
 chained, leading negation, and the mixed-precedence worked example).
 `tests/mcdc_xor`, `tests/mcdc_constant_right`, `tests/mcdc_demo`, and
 `tests/mcdc_signatures` exercise the distinct code paths. Internal tests live
