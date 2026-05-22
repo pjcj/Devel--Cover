@@ -18,7 +18,7 @@ no warnings qw( experimental::signatures experimental::postderef );
 use Devel::Cover::DB  ();
 use Devel::Cover::Log qw( dcerror dcinfo );
 
-use Config;
+use Config       qw( %Config );
 use File::Path   qw( mkpath );
 use File::Spec   ();
 use Getopt::Long qw( GetOptions );
