@@ -14,7 +14,7 @@
 # (every row of both the outer `or_3` and inner `and_3` truth tables is
 # observed) but $unlocked has no short-circuit-aware independence
 # pair, so MC/DC drops to 66.6%.  Adding a fifth test `(T,F,F)` would
-# lift MC/DC to 100% and catch the misplaced-negation bug shown in
+# take MC/DC to 100% and catch the misplaced-negation bug shown in
 # the design doc that the four-test condition-coverage set hides.
 #
 # This fixture exists to lock in that asymmetry as a permanent

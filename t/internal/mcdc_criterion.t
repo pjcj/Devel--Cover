@@ -18,11 +18,11 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use Test::More import => [qw( done_testing is is_deeply )];
 
-use Devel::Cover::Mcdc ();
+use Devel::Cover::Mcdc ();  ## no perlimports
 
-# An Mcdc instance is a blessed arrayref [coverage, info] matching
-# Branch.pm's shape.  coverage is per-column 1/0 (satisfied / missing),
-# one entry per atomic column in the decision.
+# An Mcdc instance is a blessed arrayref [coverage, info] matching Branch.pm's
+# layout.  coverage is per-column 1/0 (satisfied / missing), one entry per
+# atomic column in the decision.
 sub mcdc ($coverage, $text = '$a && $b') {
   bless [$coverage, { text => $text }], "Devel::Cover::Mcdc"
 }

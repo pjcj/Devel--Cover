@@ -49,7 +49,7 @@ sub build_or_table ($hits) {
   $table
 }
 
-sub test_api_shape () {
+sub test_api_keys () {
   my $table  = build_and_table([1, 1, 1]);
   my $result = Devel::Cover::Mcdc::Analyser->analyse($table);
 
@@ -169,9 +169,9 @@ sub test_masking_does_not_fire_when_uncoupled () {
 }
 
 # Condition_table::for_line places X-rows ahead of concrete rows, so
-# `_concrete_differs` and `_sca_agrees` only see X as their first argument
-# in normal runs.  This synthetic ordering puts the X-row second and
-# exercises the X short-circuit on the second argument in both helpers.
+# `_concrete_differs` and `_sca_agrees` only see X as their first argument in
+# normal runs.  This synthetic ordering puts the X-row second and exercises the
+# X short-circuit on the second argument in both helpers.
 sub test_x_as_second_argument () {
   my $table = build_synthetic_table(
     '$a && $b',
@@ -207,13 +207,13 @@ sub test_missing_lists_all_columns () {
 # exercised with the four tests listed in `docs/technical/mcdc.md`.  Hits both
 # sub-decisions in full (inner [1,1,1], outer [1,1,1]).  The four observed
 # combined inputs (T,T,X), (T,F,T), (F,X,T), (F,X,F) demonstrate SCA
-# independence pairs for `$is_owner` and `$is_admin`, leaving `$unlocked` as
-# the only atomic without a pair.  SCA MC/DC: 2/3 satisfied, missing
-# `$unlocked`.  Without observed-vectors, `Condition_table::for_line`
-# synthesises composite rows by cross-product, producing a phantom (T,F,F)
-# covered=1 row that lets the analyser build a spurious pair for `$unlocked`.
-# Threading observed-vectors through is what blocks the phantom: rows are
-# marked covered iff their input vector was actually executed.
+# independence pairs for `$is_owner` and `$is_admin`, leaving `$unlocked` as the
+# only atomic without a pair.  SCA MC/DC: 2/3 satisfied, missing `$unlocked`.
+# Without observed-vectors, `Condition_table::for_line` synthesises composite
+# rows by cross-product, producing a phantom (T,F,F) covered=1 row that lets the
+# analyser build a spurious pair for `$unlocked`. Passing observed-vectors in
+# is what blocks the phantom: rows are marked covered iff their input vector
+# was actually executed.
 sub test_no_phantom_rows_in_worked_example () {
   my @conditions = (
     mock_condition(
@@ -235,22 +235,20 @@ sub test_no_phantom_rows_in_worked_example () {
       },
     ),
   );
-  # Outer || is the root (index 1); decision_inputs is populated only at
-  # root entries.
+  # Outer || is the root (index 1); decision_inputs is populated only at root
+  # entries.
   my @observed = (
-    undef,
-    {
-      "1|1|X" => 1,    # (T,T,X) - $is_admin not evaluated
-      "1|0|1" => 1,    # (T,F,T)
-      "0|X|1" => 1,    # (F,X,T) - $unlocked not evaluated
-      "0|X|0" => 1,    # (F,X,F)
+    undef, {
+      "1|1|X" => 1,  # (T,T,X) - $is_admin not evaluated
+      "1|0|1" => 1,  # (T,F,T)
+      "0|X|1" => 1,  # (F,X,T) - $unlocked not evaluated
+      "0|X|0" => 1,  # (F,X,F)
     },
   );
-  my ($table) = Devel::Cover::Condition_table->for_line(
-    \@conditions, \@observed,
-  );
+  my ($table)
+    = Devel::Cover::Condition_table->for_line(\@conditions, \@observed);
   my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
-  is $r->{total},     3, "worked example: 3 atomics";
+  is $r->{total}, 3, "worked example: 3 atomics";
   is $r->{satisfied}, 2,
     'worked example: $is_owner and $is_admin satisfied via SCA pairs';
   is_deeply $r->{missing}, ['$unlocked'],
@@ -277,7 +275,7 @@ sub test_missing_preserves_coupled_columns () {
 }
 
 sub main () {
-  test_api_shape;
+  test_api_keys;
   test_and_satisfying;
   test_and_missing;
   test_or_satisfying;

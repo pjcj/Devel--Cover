@@ -23,11 +23,11 @@ sub _mock_cond ($class, $hits, $info, $observed = undef) {
   bless [$hits, $info, undef, $observed], "Devel::Cover::$class"
 }
 
-# Worked-example shape `($a && $b) || $c` with the four observed input
-# vectors from docs/technical/mcdc.md.  Cross-product synthesis produces
-# five composite rows; one is the (1,0,0) phantom that no test executed.
-# After observed-vector override the phantom must render covered=0 so
-# the truth-table view agrees with the MC/DC view.
+# Worked example `($a && $b) || $c` with the four observed input vectors from
+# docs/technical/mcdc.md.  Cross-product synthesis produces five composite rows;
+# one is the (1,0,0) phantom that no test executed. After observed-vector
+# override the phantom must render covered=0 so the truth-table view agrees with
+# the MC/DC view.
 sub test_truth_table_honours_observed_vectors () {
   my @cond = (
     _mock_cond(
@@ -44,7 +44,7 @@ sub test_truth_table_honours_observed_vectors () {
   );
 
   my @tts = Devel::Cover::Report::Html_minimal::truth_table(@cond);
-  is @tts, 1, "single composite truth table from worked-example shape";
+  is @tts, 1, "single composite truth table from worked example";
 
   my ($tt, $expr) = $tts[0]->@*;
   is $expr, '$a && $b || $c', "composite expression label";

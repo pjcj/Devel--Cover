@@ -20,8 +20,8 @@ use Test::More import => [qw( done_testing is ok )];
 use Devel::Cover::Truth_Table ();
 
 # Mock criterion responding to ->get($line); subclasses
-# Devel::Cover::DB::Criterion so $self->truth_table($line) dispatches
-# to the method defined in Truth_Table.pm.
+# Devel::Cover::DB::Criterion so $self->truth_table($line) dispatches to the
+# method defined in Truth_Table.pm.
 {
 
   package MockCriterion;
@@ -34,12 +34,11 @@ sub _mock_cond ($class, $hits, $info, $observed = undef) {
   bless [$hits, $info, undef, $observed], "Devel::Cover::$class"
 }
 
-# Worked-example shape `($a && $b) || $c` with all logop hits and the
-# four observed input vectors from docs/technical/mcdc.md.  Synthesis
-# produces five composite rows; one of them - (1,0,0) - is a cross-
-# product phantom that no test actually executed.  After observed-
-# vector override the phantom must render covered=0 so the truth-table
-# view agrees with the MC/DC view.
+# Worked example `($a && $b) || $c` with all logop hits and the four observed
+# input vectors from docs/technical/mcdc.md.  Synthesis produces five composite
+# rows; one of them - (1,0,0) - is a cross- product phantom that no test
+# actually executed.  After observed- vector override the phantom must render
+# covered=0 so the truth-table view agrees with the MC/DC view.
 sub test_truth_table_honours_observed_vectors () {
   my @cond = (
     _mock_cond(
@@ -57,7 +56,7 @@ sub test_truth_table_honours_observed_vectors () {
 
   my $crit = MockCriterion->new({ 7 => \@cond });
   my @tts  = $crit->truth_table(7);
-  is @tts, 1, "single composite truth table from worked-example shape";
+  is @tts, 1, "single composite truth table from worked example";
 
   my ($tt, $expr) = $tts[0]->@*;
   is $expr, '$a && $b || $c', "composite expression label";
