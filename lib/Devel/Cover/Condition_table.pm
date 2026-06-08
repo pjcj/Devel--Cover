@@ -210,10 +210,22 @@ sub for_line ($class, $conditions, $observed = undef) {
       # their input vector matches an observed key.  Synthesised rows
       # not in the observed set stay rendered with covered=0 so the
       # truth table still draws.
-      for my $row (@rows) {
-        my $key = join "|", $row->inputs->@*;
-        $row->{covered} = $obs->{$key} ? 1 : 0;
+      #
+      # A constant right operand (e.g. `$x // {}`) collapses the table to
+      # fewer inputs than the runtime recorded for the uncollapsed
+      # expression, so an observed vector can carry more columns than a
+      # row.  The collapse always drops the trailing right operand, leaving
+      # the left subtree, so project each observed vector onto the surviving
+      # leading columns before matching.  When the dimensions already agree
+      # the projection is a no-op.
+      my $width = @rows ? $rows[0]->inputs->@* : 0;
+      my %seen;
+      for my $key (keys %$obs) {
+        next unless $obs->{$key};
+        my @v = split /\|/, $key, -1;
+        $seen{ join "|", @v[0 .. $width - 1] } = 1;
       }
+      $_->{covered} = $seen{ join "|", $_->inputs->@* } ? 1 : 0 for @rows;
     }
 
     my $counter = 0;

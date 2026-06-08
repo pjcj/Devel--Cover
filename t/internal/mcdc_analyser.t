@@ -274,8 +274,93 @@ sub test_missing_preserves_coupled_columns () {
     'coupled: both $a columns listed in column order';
 }
 
+# Regression: a defined-or (or any logop) with a constant right operand
+# collapses to a 2-outcome boolean table (or_2) whose rows carry a SINGLE input
+# (the left operand): [0] and [1].  But the runtime records decision-input
+# vectors for the UNCOLLAPSED expression, so on some perls (e.g. 5.28) the
+# observed vectors are two-element - "1|X" (left short-circuits, right not
+# evaluated) and "0|1" (left false, constant right) - matching neither
+# one-element row.  for_line then marks every row uncovered and MC/DC reports
+# 0% even though both outcomes were exercised (condition coverage sees both).
+#
+# Models `$x // {}` run with the left both defined (18x) and undef (2x).  With
+# both outcomes exercised the single atomic must be satisfied; the dimension
+# mismatch between observed vectors and collapsed rows must not lose coverage.
+sub test_const_right_collapsed_observed_vectors () {
+  my @conditions = (mock_condition(
+    "Condition_or_2", [18, 2],
+    { type => "or_2", left => '$x', op => "//", right => "{}" },
+  ));
+  # As recorded by the runtime for the uncollapsed `//`: two-element vectors.
+  my @observed = ({ "1|X" => 18, "0|1" => 2 });
+  my ($table)
+    = Devel::Cover::Condition_table->for_line(\@conditions, \@observed);
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is $r->{total},     1, "const-right collapse: 1 atomic";
+  is $r->{satisfied}, 1, "const-right collapse: left atomic satisfied";
+  is_deeply $r->{missing}, [],
+    "const-right collapse: nothing missing when both outcomes exercised";
+}
+
+# The const-right collapse is operator-general: `||` (and `&&`, `or`, `and`)
+# collapse the same way as `//`.  Models `$x || 0` with the left true (short-
+# circuit, right not evaluated -> "1|X") and false (right `0` evaluated ->
+# "0|0").  Same two-element-vs-one-element mismatch as the `//` case; the single
+# atomic must still be satisfied.
+sub test_const_right_or_operator () {
+  my @conditions = (mock_condition(
+    "Condition_or_2", [12, 4],
+    { type => "or_2", left => '$x', op => "||", right => "0" },
+  ));
+  my @observed = ({ "1|X" => 12, "0|0" => 4 });
+  my ($table)
+    = Devel::Cover::Condition_table->for_line(\@conditions, \@observed);
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is $r->{total},     1, "const-right ||: 1 atomic";
+  is $r->{satisfied}, 1, "const-right ||: left atomic satisfied";
+  is_deeply $r->{missing}, [], "const-right ||: nothing missing";
+}
+
+# Const-right collapse with a COMPOUND left operand: `($a && $b) // {}`.  The
+# outer `//` collapses to a boolean table, but its left is itself a decision, so
+# the rows expand back to the two atomics $a and $b - they are two-element
+# (`0|X`, `1|0`, `1|1`).  The runtime records three-element vectors for the
+# uncollapsed expression ($a, $b, and the un-skipped constant right).  The
+# reconciliation must drop only the trailing constant column, keeping BOTH left
+# operands - a projection that merely took the first element would key these
+# rows wrongly and lose $b.  Exercises $a && $b in full so both atomics earn a
+# pair.
+sub test_const_right_compound_left_observed_vectors () {
+  my @conditions = (
+    mock_condition(
+      "Condition_and_3",
+      [1, 1, 1],
+      { type => "and_3", left => '$a', op => "&&", right => '$b' },
+    ),
+    mock_condition(
+      "Condition_or_2", [16, 4],
+      { type => "or_2", left => '$a && $b', op => "//", right => "{}" },
+    ),
+  );
+  # Three-element vectors, as a non-skipping perl records for `($a && $b) // {}`:
+  #   1|1|X  $a true, $b true  -> left defined, right not evaluated
+  #   1|0|X  $a true, $b false -> left defined (false), right not evaluated
+  #   0|X|X  $a false          -> left defined (false), right not evaluated
+  my @observed = (undef, { "1|1|X" => 8, "1|0|X" => 5, "0|X|X" => 3 });
+  my ($table)
+    = Devel::Cover::Condition_table->for_line(\@conditions, \@observed);
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is $r->{total},     2, "compound left: 2 atomics";
+  is $r->{satisfied}, 2, "compound left: both atomics satisfied";
+  is_deeply $r->{missing}, [],
+    "compound left: nothing missing, trailing const column dropped";
+}
+
 sub main () {
   test_api_keys;
+  test_const_right_collapsed_observed_vectors;
+  test_const_right_or_operator;
+  test_const_right_compound_left_observed_vectors;
   test_and_satisfying;
   test_and_missing;
   test_or_satisfying;
