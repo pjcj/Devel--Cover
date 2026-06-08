@@ -2,8 +2,8 @@ cover: Reading database from ...
 ----------------- ------ ------ ------ ------ ------ ------ ------
 File                stmt   bran   cond   mcdc    sub  total   slop
 ----------------- ------ ------ ------ ------ ------ ------ ------
-tests/cond_branch   90.2   79.3   32.9   13.0  100.0   69.5   30.0
-Total               90.2   79.3   32.9   13.0  100.0   69.5   30.0
+tests/cond_branch   90.2   79.3   32.9   19.5  100.0   70.1   30.0
+Total               90.2   79.3   32.9   19.5  100.0   70.1   30.0
 ----------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -291,12 +291,12 @@ line  err   stmt   bran   cond   mcdc    sub   code
 232                                                },
 233                                            
 234                                                sub {
-235   ***      4           100   *  0      4           my $x = shift || return;
+235            4           100    100      4           my $x = shift || return;
 236            2                                       $x[45]++;
 237                                                },
 238                                            
 239                                                sub {
-240   ***      4           100   *  0      4           my $x = shift && return;
+240            4           100    100      4           my $x = shift && return;
 241            2                                       $x[46]++;
 242                                                },
 243                                            
@@ -336,7 +336,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 277                                                sub {
 278            4                           4           my $x = shift;
 279            4                                       for my $y (1 .. 2) {
-280   ***      8           100   *  0                      eval { my $z = $x || die };
+280            8           100    100                      eval { my $z = $x || die };
                8                               
 281            8                                           $x[51]++;
 282                                                    }
@@ -502,13 +502,13 @@ line  err      %  cov  tot   missing                expr
 203   ***      0    0    2   my $w = $z, redo       my $w = $z xor redo
 212   ***      0    0    2   my $w = !$z, redo      my $w = !$z xor redo
 230   ***      0    0    2   shift(), return        shift() xor return
-235   ***      0    0    1   shift()                shift() || (return)
-240   ***      0    0    1   shift()                shift() && (return)
+235          100    1    1                          shift() || (return)
+240          100    1    1                          shift() && (return)
 247          100    1    1                          $x || (last)
 255          100    1    1                          $x || (next)
 263          100    1    1                          $x++ || (redo)
 271          100    1    1                          $x || (goto GR)
-280   ***      0    0    1   $x                     $x || die()
+280          100    1    1                          $x || die()
 299   ***      0    0    2   $a, $b                 $a and $b
 301   ***      0    0    2   $a, $b                 $a || $b
 303   ***      0    0    1   $b                     $b or 0

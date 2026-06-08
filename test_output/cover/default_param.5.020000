@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------- ------ ------ ------ ------ ------ ------ ------
 File                  stmt   bran   cond   mcdc    sub  total   slop
 ------------------- ------ ------ ------ ------ ------ ------ ------
-tests/default_param  100.0    n/a  100.0   33.3  100.0   90.9   13.9
-Total                100.0    n/a  100.0   33.3  100.0   90.9   13.9
+tests/default_param  100.0    n/a  100.0  100.0  100.0  100.0   13.9
+Total                100.0    n/a  100.0  100.0  100.0  100.0   13.9
 ------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -48,8 +48,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 12                                             
 13                                             sub p {
 14             2           100    100      2       my $x = shift || 11;
-15    ***      2           100   *  0              my $y = shift || [];
-16    ***      2           100   *  0              my $z = shift || {};
+15             2           100    100              my $y = shift || [];
+16             2           100    100              my $z = shift || {};
 17                                             }
 18                                             
 19             1                               p $_, $_, $_ for 0, 1;
@@ -73,8 +73,8 @@ MC/DC
 line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
 14           100    1    1                          shift() || 11
-15    ***      0    0    1   shift()                shift() || []
-16    ***      0    0    1   shift()                shift() || {}
+15           100    1    1                          shift() || []
+16           100    1    1                          shift() || {}
 
 
 Covered Subroutines
