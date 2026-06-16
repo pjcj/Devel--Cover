@@ -1060,9 +1060,12 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
         my $decision
           = [\@coverage, { text => $table->expr, labels => [$table->labels] }];
 
-        if (my $uncov = _mcdc_uncoverable($unc, $line, $n, $total)) {
-          $decision->[2] = $uncov;
-        }
+        # Merge explicit "# uncoverable mcdc" markers with conditions the
+        # analyser excused because their only pair needs an uncoverable row.
+        my @uncov = (_mcdc_uncoverable($unc, $line, $n, $total) // [])->@*;
+        $uncov[$_] ||= 1 for keys $r->{uncoverable}->%*;
+        $decision->[2] = \@uncov if @uncov;
+
         push $mcdc{$line}->@*, $decision;
       }
     }

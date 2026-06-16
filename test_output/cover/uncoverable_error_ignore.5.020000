@@ -2,8 +2,8 @@ cover: Reading database from ...
 ---------------------------- ------ ------ ------ ------ ------ ------ ------
 File                           stmt   bran   cond   mcdc    sub  total   slop
 ---------------------------- ------ ------ ------ ------ ------ ------ ------
-.../uncoverable_error_ignore   82.3   80.0   66.6   25.0  100.0   74.3   21.5
-Total                          82.3   80.0   66.6   25.0  100.0   74.3   21.5
+.../uncoverable_error_ignore   82.3   80.0   66.6   50.0  100.0   76.9   21.5
+Total                          82.3   80.0   66.6   50.0  100.0   76.9   21.5
 ---------------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -72,7 +72,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 40                                                     # uncoverable branch false
 41                                                     # uncoverable condition left
 42                                                     # uncoverable condition right
-43    ***      2   -100   - 66   * 50                  if ($x > 0 && $y > 0) {
+43             2   -100   - 66   - 50                  if ($x > 0 && $y > 0) {
 44             1                                           $y = 4;
 45                                                     } else {
 46             1                                           $y++;
@@ -116,7 +116,7 @@ MC/DC
 line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
 34    ***      0    0    2   $x > 0, $y > 0         $x > 0 and $y > 0
-43    ***     50    1    2   $x > 0                 $x > 0 and $y > 0
+43            50    1    2                          $x > 0 and $y > 0
 
 
 Covered Subroutines
