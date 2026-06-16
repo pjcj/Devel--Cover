@@ -855,7 +855,6 @@ sub uncoverable ($self) {
     $u->{ $df->hexdigest } = delete $u->{$file};
   }
 
-  print STDERR Dumper $u;
   $u
 }
 
