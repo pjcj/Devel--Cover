@@ -123,9 +123,10 @@ sub test_or_concrete_only_pair () {
 sub build_synthetic_table ($expr, $labels, $rows) {
   my @row_objects = map {
     Devel::Cover::Condition_table::Row->new(
-      inputs  => $_->{inputs},
-      result  => $_->{result},
-      covered => $_->{covered} // 1,
+      inputs      => $_->{inputs},
+      result      => $_->{result},
+      covered     => $_->{covered}     // 1,
+      uncoverable => $_->{uncoverable} // 0,
     )
   } @$rows;
   Devel::Cover::Condition_table::Table->new(
@@ -356,8 +357,43 @@ sub test_const_right_compound_left_observed_vectors () {
     "compound left: nothing missing, trailing const column dropped";
 }
 
+# A column whose only independence pair needs an uncoverable row is excused
+# rather than reported as missing.  Here $b's pair needs the l&&!r row, which is
+# uncoverable, so $b is excused while $a is satisfied by a covered pair.
+sub test_uncoverable_row_excuses_column () {
+  my $table = build_synthetic_table(
+    '$a && $b',
+    ['$a', '$b'],
+    [
+      { inputs => [0, "X"], result => 0, covered => 1 },
+      { inputs => [1, 0],   result => 0, covered => 0, uncoverable => 1 },
+      { inputs => [1, 1],   result => 1, covered => 1 },
+    ],
+  );
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is $r->{satisfied}, 1, "excused: a satisfied via covered pair";
+  ok $r->{uncoverable}{1}, "excused: b column excused by uncoverable row";
+  is_deeply $r->{missing}, [], "excused: b not listed as missing";
+}
+
+# When no pair exists even with uncoverable rows allowed, the column stays
+# missing rather than being excused.
+sub test_no_pair_even_with_uncoverable_stays_missing () {
+  my $table = build_synthetic_table(
+    '$a && $b',
+    ['$a', '$b'],
+    [{ inputs => [1, 1], result => 1, covered => 1 }],
+  );
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is_deeply $r->{missing}, ['$a', '$b'], "missing when no pair is possible";
+  is_deeply $r->{uncoverable}, {},
+    "nothing excused without an uncoverable pair";
+}
+
 sub main () {
   test_api_keys;
+  test_uncoverable_row_excuses_column;
+  test_no_pair_even_with_uncoverable_stays_missing;
   test_const_right_collapsed_observed_vectors;
   test_const_right_or_operator;
   test_const_right_compound_left_observed_vectors;

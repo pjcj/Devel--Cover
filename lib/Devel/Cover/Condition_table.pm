@@ -20,9 +20,10 @@ package Devel::Cover::Condition_table::Row {
     bless \%args, $class
   }
 
-  sub inputs  ($self) { $self->{inputs} }
-  sub result  ($self) { $self->{result} }
-  sub covered ($self) { $self->{covered} }
+  sub inputs      ($self) { $self->{inputs} }
+  sub result      ($self) { $self->{result} }
+  sub covered     ($self) { $self->{covered} }
+  sub uncoverable ($self) { $self->{uncoverable} }
 }
 
 package Devel::Cover::Condition_table::Table {
@@ -59,14 +60,23 @@ sub _hits ($condition) {
   map { defined && $_ > 0 ? 1 : 0 } $condition->[0]->@*
 }
 
-sub _make_rows ($spec, @hits) {
+sub _make_rows ($spec, $hits, $unc) {
+  my @hits = @$hits;
+  my @unc  = @$unc;
   map {
     Devel::Cover::Condition_table::Row->new(
-      inputs  => $_->[0],
-      result  => $_->[1],
-      covered => shift @hits,
+      inputs      => $_->[0],
+      result      => $_->[1],
+      covered     => shift @hits,
+      uncoverable => shift @unc,
     )
   } @$spec
+}
+
+# Per-spec-row uncoverable flags from the condition's "# uncoverable condition"
+# markers, which align positionally with the outcome (and so spec-row) order.
+sub _uncov ($condition) {
+  map $_ ? 1 : 0, ($condition->[2] // [])->@*
 }
 
 sub _expr ($condition) {
@@ -97,9 +107,15 @@ sub _resolve_children ($condition, $find) {
 sub _build_rows ($condition, $find) {
   my $type = $condition->[1]{type};
   my $spec = $Primitive{$type} or return;
-  my @prim = _make_rows($spec, _hits($condition));
 
   my ($info, $left_cond, $right_cond) = _resolve_children($condition, $find);
+
+  # The positional uncoverable mapping holds only for a leaf primitive.  When an
+  # operand is itself a decision its rows expand, so the flags are not applied
+  # here; compound decisions are handled separately.
+  my @hits = _hits($condition);
+  my @unc  = $left_cond || $right_cond ? (0) x @hits : _uncov($condition);
+  my @prim = _make_rows($spec, \@hits, \@unc);
 
   my $left_rows  = $left_cond  ? [_build_rows($left_cond,  $find)] : undef;
   my $right_rows = $right_cond ? [_build_rows($right_cond, $find)] : undef;
@@ -116,9 +132,10 @@ sub _build_rows ($condition, $find) {
       for my $le (@left_exp) {
         push @rows,
           Devel::Cover::Condition_table::Row->new(
-            inputs  => $le->[0],
-            result  => $row->result,
-            covered => $row->covered && $le->[1],
+            inputs      => $le->[0],
+            result      => $row->result,
+            covered     => $row->covered && $le->[1],
+            uncoverable => $row->uncoverable,
           );
       }
     } else {
@@ -128,9 +145,10 @@ sub _build_rows ($condition, $find) {
         for my $re (@right_exp) {
           push @rows,
             Devel::Cover::Condition_table::Row->new(
-              inputs  => [$le->[0]->@*, $re->[0]->@*],
-              result  => $row->result,
-              covered => $row->covered && $le->[1] && $re->[1],
+              inputs      => [$le->[0]->@*, $re->[0]->@*],
+              result      => $row->result,
+              covered     => $row->covered && $le->[1] && $re->[1],
+              uncoverable => $row->uncoverable,
             );
         }
       }

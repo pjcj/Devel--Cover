@@ -53,36 +53,50 @@ sub _find_pair ($col, $rows, $ncols, $coupled = undef) {
   undef
 }
 
+sub _pair ($col, $rows, $labels, $label_count) {
+  my $ncols = @$labels;
+  my $found = _find_pair($col, $rows, $ncols);
+  if (!$found && $label_count->{ $labels->[$col] } > 1) {
+    my @coupled = map $_ eq $labels->[$col], @$labels;
+    $found = _find_pair($col, $rows, $ncols, \@coupled);
+  }
+  $found
+}
+
 sub analyse ($class, $table) {
   my @labels = $table->labels;
   my @rows   = grep $_->covered, $table->rows;
-  my $ncols  = @labels;
+  my @avail  = grep { $_->covered || $_->uncoverable } $table->rows;
 
   my %label_count;
   $label_count{$_}++ for @labels;
 
   my %pairs;
+  my %uncoverable;
   my @missing;
 
   for my $col (0 .. $#labels) {
-    my $found = _find_pair($col, \@rows, $ncols);
-    if (!$found && $label_count{ $labels[$col] } > 1) {
-      my @coupled = map $labels[$_] eq $labels[$col], 0 .. $#labels;
-      $found = _find_pair($col, \@rows, $ncols, \@coupled);
+    if (my $found = _pair($col, \@rows, \@labels, \%label_count)) {
+      $pairs{$col} = $found;
+      next;
     }
 
-    if ($found) {
-      $pairs{$col} = $found;
+    # No pair among covered rows.  If one exists once uncoverable rows are
+    # allowed, the column can never be demonstrated, so it is excused rather
+    # than counted missing.
+    if (_pair($col, \@avail, \@labels, \%label_count)) {
+      $uncoverable{$col} = 1;
     } else {
       push @missing, $labels[$col];
     }
   }
 
   {
-    total     => $ncols,
-    satisfied => scalar keys %pairs,
-    pairs     => \%pairs,
-    missing   => \@missing,
+    total       => scalar @labels,
+    satisfied   => scalar keys %pairs,
+    pairs       => \%pairs,
+    missing     => \@missing,
+    uncoverable => \%uncoverable,
   }
 }
 

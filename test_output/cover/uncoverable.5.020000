@@ -3,8 +3,8 @@ cover: Reading database from ...
 ----------------- ------ ------ ------ ------ ------ ------ ------
 File                stmt   bran   cond   mcdc    sub  total   slop
 ----------------- ------ ------ ------ ------ ------ ------ ------
-tests/uncoverable  100.0  100.0  100.0    0.0  100.0   86.6    0.0
-Total              100.0  100.0  100.0    0.0  100.0   86.6    0.0
+tests/uncoverable  100.0  100.0  100.0  100.0  100.0  100.0    0.0
+Total              100.0  100.0  100.0  100.0  100.0  100.0    0.0
 ----------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -41,7 +41,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 15                                             # uncoverable branch true
 16                                             # uncoverable condition left
 17                                             # uncoverable condition false
-18    ***      1   - 50   - 33   *  0          if ($x && !$y) {
+18             1   - 50   - 33   -  0          if ($x && !$y) {
 19            -0                                   $x++;  # uncoverable statement
 20                                                 # uncoverable statement
 21            -0                                   z();
@@ -50,7 +50,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 24                                             # uncoverable branch true
 25                                             # uncoverable condition right
 26                                             # uncoverable condition false
-27    ***      1   - 50   - 33   *  0          if (!$x && $y) {
+27             1   - 50   - 33   -  0          if (!$x && $y) {
 28                                                 # uncoverable statement count:1
 29                                                 # uncoverable statement count:2
 30            -0                                   b(); b();
@@ -91,13 +91,13 @@ line  err   stmt   bran   cond   mcdc    sub   code
 49                                             # uncoverable branch false count:2
 50                                             # uncoverable condition left
 51                                             # uncoverable condition right
-52    ***      1   - 50   - 33   *  0          if ($x > 0 && $y > 0) {
+52             1   - 50   - 33   -  0          if ($x > 0 && $y > 0) {
                    -  0                        
 53             1                                   $y++;
 54                                             # uncoverable condition left
 55                                             # uncoverable condition right
 56                                             # uncoverable condition false
-57    ***                 -  0   *  0          } elsif ($x < 2 && $y < 0) {
+57                        -  0   -  0          } elsif ($x < 2 && $y < 0) {
 58            -0                                   $y++; # uncoverable statement
 59                                             } else {
 60            -0                                   $y++; # uncoverable statement
@@ -136,10 +136,10 @@ MC/DC
 
 line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
-18    ***      0    0    2   $x, not $y             $x and not $y
-27    ***      0    0    2   not $x, $y             not $x and $y
-52    ***      0    0    2   $x > 0, $y > 0         $x > 0 and $y > 0
-57    ***      0    0    2   $x < 2, $y < 0         $x < 2 and $y < 0
+18             0    0    2                          $x and not $y
+27             0    0    2                          not $x and $y
+52             0    0    2                          $x > 0 and $y > 0
+57             0    0    2                          $x < 2 and $y < 0
 
 
 Uncovered Subroutines

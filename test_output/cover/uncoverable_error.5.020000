@@ -2,8 +2,8 @@ cover: Reading database from ...
 ----------------------- ------ ------ ------ ------ ------ ------ ------
 File                      stmt   bran   cond   mcdc    sub  total   slop
 ----------------------- ------ ------ ------ ------ ------ ------ ------
-tests/uncoverable_error   82.3   70.0   83.3   25.0  100.0   74.3   21.5
-Total                     82.3   70.0   83.3   25.0  100.0   74.3   21.5
+tests/uncoverable_error   82.3   70.0   83.3  100.0  100.0   82.0   21.5
+Total                     82.3   70.0   83.3  100.0  100.0   82.0   21.5
 ----------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -63,7 +63,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 31                                                 # uncoverable condition left
 32                                                 # uncoverable condition right class:ignore_covered_err
 33                                                 # uncoverable condition false
-34    ***      1   - 50   - 33   *  0              if ($x > 0 && $y > 0) {
+34             1   - 50   - 33   -  0              if ($x > 0 && $y > 0) {
 35                                                     # uncoverable statement
 36            -0                                       $y = 1;
 37                                                 }
@@ -72,7 +72,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 40                                                     # uncoverable branch false
 41                                                     # uncoverable condition left
 42                                                     # uncoverable condition right
-43    ***      2  *-100  *- 66   * 50                  if ($x > 0 && $y > 0) {
+43    ***      2  *-100  *- 66   - 50                  if ($x > 0 && $y > 0) {
 44             1                                           $y = 4;
 45                                                     } else {
 46             1                                           $y++;
@@ -115,8 +115,8 @@ MC/DC
 
 line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
-34    ***      0    0    2   $x > 0, $y > 0         $x > 0 and $y > 0
-43    ***     50    1    2   $x > 0                 $x > 0 and $y > 0
+34             0    0    2                          $x > 0 and $y > 0
+43            50    1    2                          $x > 0 and $y > 0
 
 
 Covered Subroutines
