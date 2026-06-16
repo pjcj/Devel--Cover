@@ -922,6 +922,7 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
           }
         }
       }
+
       # e.g.: count:1 | count:2,5 | count:1,4..7
       my $c = qr/\d+(?:\.\.\d+)?/;
       $count = $1 if $info =~ /count:($c(?:,$c)*)/;
@@ -929,6 +930,8 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
         $count;
       if ($info =~ /class:(\w+)/) { $class = $1 }
       if ($info =~ /note:(.+)/)   { $note  = $1 }
+      # mcdc atomic condition N (1-based)
+      if ($info =~ /pair:(\d+)/) { $type = $1 - 1 }
 
       for my $c (@counts) {
         # no warnings "uninitialized";
@@ -1031,7 +1034,7 @@ sub objectify_cover ($self) {
   }
 }
 
-sub _derive_mcdc ($self, $cover) {
+sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
   require Devel::Cover::Condition_table;
   require Devel::Cover::Mcdc::Analyser;
 
@@ -1039,23 +1042,49 @@ sub _derive_mcdc ($self, $cover) {
     my $cc = $cf->{condition} or next;
     next if exists $cf->{mcdc};
 
+    my $digest = $cf->{meta}{digest};
+    my $unc    = $digest && $uncoverable->{$digest}{mcdc};
+
     my %mcdc;
     for my $line (keys %$cc) {
       my $loc = $cc->{$line};
       next unless $loc && @$loc;
       my @observed = map observed_vectors($_), @$loc;
       my @tables   = Devel::Cover::Condition_table->for_line($loc, \@observed);
-      for my $table (@tables) {
+      for my $n (0 .. $#tables) {
+        my $table    = $tables[$n];
         my $r        = Devel::Cover::Mcdc::Analyser->analyse($table);
         my $total    = $r->{total};
         my $pairs    = $r->{pairs};
         my @coverage = map { exists $pairs->{$_} ? 1 : 0 } 0 .. $total - 1;
-        push $mcdc{$line}->@*,
-          [\@coverage, { text => $table->expr, labels => [$table->labels] }];
+        my $decision
+          = [\@coverage, { text => $table->expr, labels => [$table->labels] }];
+
+        if (my $uncov = _mcdc_uncoverable($unc, $line, $n, $total)) {
+          $decision->[2] = $uncov;
+        }
+        push $mcdc{$line}->@*, $decision;
       }
     }
     $cf->{mcdc} = \%mcdc if %mcdc;
   }
+}
+
+# Per-column uncoverable vector for one mcdc decision, or undef if unmarked. A
+# marker with a column marks that condition; one without marks every column.
+sub _mcdc_uncoverable ($unc, $line, $n, $total) {
+  my $marks = $unc && $unc->{$line}[$n] or return undef;
+  my @uncov;
+  for my $mark (@$marks) {
+    my ($col, $class) = @$mark;
+    my $flag = $class || 1;
+    if (defined $col) {
+      $uncov[$col] = $flag;
+    } else {
+      $uncov[$_] = $flag for 0 .. $total - 1;
+    }
+  }
+  \@uncov
 }
 
 sub _file_digest ($r, $file) {
@@ -1146,7 +1175,7 @@ sub cover ($self) {
     }
   }
 
-  $self->_derive_mcdc($cover) if exists $self->{collected}{mcdc};
+  $self->_derive_mcdc($cover, $uncoverable) if exists $self->{collected}{mcdc};
 
   $self->objectify_cover;
   if ($self->{files}->@*) {

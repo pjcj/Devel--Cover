@@ -2103,6 +2103,26 @@ examples) but C<xor> conditionals are not properly handled yet.
 As for branches, the "count" value may be used for either conditions in elsif
 conditionals, or for complex conditions.
 
+=head3 MC/DC
+
+An MC/DC decision can be uncoverable when an atomic condition's independence
+pair can never be formed, for example the right operand of C<//> in C<< $x //=
+$default >> when C<$default> is always defined.
+
+A bare comment marks every atomic condition of the decision uncoverable:
+
+  # uncoverable mcdc
+  $x //= $default;
+
+The "pair" attribute marks a single atomic condition by its position (1-based,
+in the order the report lists them), leaving the rest counted as normal:
+
+  # uncoverable mcdc pair:2
+  $x = $a || $b || $c;
+
+As for conditions, the "count" value selects between several decisions on one
+line.
+
 =head3 Subroutines
 
 A subroutine should be marked as uncoverable at the point where the first
