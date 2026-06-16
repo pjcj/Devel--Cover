@@ -1,20 +1,48 @@
 Devel::Cover history
 
 {{$NEXT}}
-- *** BREAKING *** New detailed `json` reporter; existing summary reporter
-  renamed to `json_summary` (Ricardo Signes) (GH-419)
-- *** BREAKING *** cover no longer walks the whole tree for .gcov files; it
-  consumes only those produced by its own gcov runs.  XS sources outside cwd are
-  skipped unless -gcov_chdir is set.
-- Exclude Perl CORE headers from XS coverage by default; cover -relative_only
-  now defaults on and gcov2perl skips CORE sources (GH-344)
-- Add Modified Condition/Decision Coverage (MC/DC) criterion, included in the
-  default coverage set; the cross-criterion total percentage may decrease for
-  code where MC/DC trails condition coverage (GH-478)
-- Merge per-decision observed input-vector counts across runs when combining
-  cover_db data, so MC/DC analysis sees the full set of observed vectors after
-  merging multiple runs (GH-478)
+- BREAKING: Add MC/DC (Modified Condition/Decision Coverage) to the default
+  set - total percentage may drop where MC/DC trails condition coverage (GH-478)
+- BREAKING: Html_crisp is now the default HTML report, with risk display,
+  common-prefix stripping and deep-linked coverage cells (GH-444, GH-402)
+- BREAKING: New detailed `json` reporter - existing summary reporter renamed to
+  `json_summary` (Ricardo Signes) (GH-419)
+- Add -select_dir to report completely untested files found by scanning a
+  directory for .pm and .pl files (Nicholas Clark) (GH-335)
+- BREAKING: Replace inaccurate condition truth tables with a correct tree-based
+  implementation - condition coverage results may change (GH-446)
+- BREAKING: Add branch coverage for while, until and C-style for loop conditions
+  (GH-449)
+- Add SLOP (Scaled Likelihood Of Problems) risk scoring to reports (GH-448)
+- BREAKING: Exclude Perl CORE headers from XS coverage - -relative_only now
+  defaults on and gcov2perl skips CORE sources (rwfranks) (GH-344)
+- BREAKING: cover consumes only its own .gcov files, not the whole tree - XS
+  sources outside cwd are skipped unless -gcov_chdir is set (GH-344)
+- Speed up runtime coverage collection (GH-422)
+- Speed up END-phase coverage processing (GH-434)
+- Support Perl 5.42.1 and other newly released versions (GH-394, GH-438)
+- Suppress "Deleting old coverage for changed file" in silent mode
+  (martinvonwittich) (GH-329)
+- Fix class-feature methods being ignored on Perl 5.38+ (John Karr) (GH-330)
+- Fix coverage with custom infix operators such as Syntax::Operator::In (Erik
+  Huelsmann) (GH-453)
+- Fix unreachable !l&&!r for // and || with interpolated string RHS (GH-403)
+- Record branch/condition coverage for || in sort blocks (GH-426)
+- Fix statement cache false hit on op slab reuse in sequential evals (GH-428)
+- Recognise get_condition_dor hijacked ops in runops_cover (GH-430)
+- Avoid uninitialized $_ warnings during global destruction (GH-464)
+- Rework cpancover.com modules with the latest Devel::Cover and Collection UI
+  (GH-461)
+- Fix cpancover-docker-module copy-out failing silently on macOS (GH-462)
+- Fix cpancover compress removing the latest release via numeric version
+  comparison (GH-409)
+- Add -jobs option to run tests in parallel (Gábor Szabó) (GH-457)
+- Add cpan-module recipe to dc (GH-420)
 - Add cpancover-docker-pull recipe (GH-377)
+- Add coverage testing for Devel::Cover's own modules without self-cover
+  (GH-410)
+- Get self-cover working again (GH-401)
+- Fix intermittent "can't locate structure" warning in merge tests (GH-397)
 - Fix spelling: led (Josh Soref) (GH-368)
 
 1.52 - 7 March 2026
