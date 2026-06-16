@@ -1,0 +1,41 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+# A // whose right operand is an always-defined variable: neither atomic
+# condition's independence pair can be formed, so the whole decision is
+# uncoverable for MC/DC.  A bare marker covers every column.
+sub dor_default {
+  my ($h, $k, $val) = @_;
+  # uncoverable mcdc
+  return $h->{$k} //= $val;
+}
+
+# $a && $b where the left operand is always true: its pair can never be formed,
+# but the right operand's can.  pair:1 marks only the left column.
+sub left_always_true {
+  my ($b) = @_;
+  my $always = 1;
+  # uncoverable mcdc pair:1
+  return $always && $b;
+}
+
+sub main {
+  # Push results so each decision runs in non-void context.
+  my @r;
+  my %h;
+  push @r, dor_default(\%h, "a", 1);  # left undef  -> assigns
+  push @r, dor_default(\%h, "a", 1);  # left defined -> skips
+  push @r, left_always_true(1);
+  push @r, left_always_true(0);
+}
+
+main();

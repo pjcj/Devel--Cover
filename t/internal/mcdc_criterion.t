@@ -20,11 +20,13 @@ use Test::More import => [qw( done_testing is is_deeply )];
 
 use Devel::Cover::Mcdc ();  ## no perlimports
 
-# An Mcdc instance is a blessed arrayref [coverage, info] matching Branch.pm's
-# layout.  coverage is per-column 1/0 (satisfied / missing), one entry per
-# atomic column in the decision.
-sub mcdc ($coverage, $text = '$a && $b') {
-  bless [$coverage, { text => $text }], "Devel::Cover::Mcdc"
+# An Mcdc instance is a blessed arrayref [coverage, info, uncoverable] like
+# Branch.pm: per-column 1/0 coverage and a parallel uncoverable flag.
+sub mcdc (
+  $coverage, $text = '$a && $b', $uncoverable = undef, $labels = undef
+) {
+  bless [$coverage, { text => $text, labels => $labels }, $uncoverable],
+    "Devel::Cover::Mcdc"
 }
 
 sub test_total_counts_columns () {
@@ -73,6 +75,41 @@ sub test_values () {
   is_deeply [$m->values], [1, 0, 1], "values returns the per-column list";
 }
 
+sub test_uncoverable_per_column () {
+  my $m = mcdc([0, 0], '$a // $b', [0, 1]);
+  is $m->uncoverable(0), 0, "uncoverable(i) false for unmarked column";
+  is $m->uncoverable(1), 1, "uncoverable(i) true for marked column";
+  is $m->uncoverable,    1, "uncoverable() counts marked columns";
+}
+
+sub test_uncoverable_absent () {
+  my $m = mcdc([1, 0]);
+  is $m->uncoverable, 0, "uncoverable() zero when no markers present";
+}
+
+sub test_error_excuses_marked_missing () {
+  # Column 0 missing and unmarked -> error; column 1 missing but marked
+  # uncoverable -> excused.
+  my $m = mcdc([0, 0], '$a // $b', [0, 1]);
+  is $m->error, 1, "only the unmarked missing column counts as an error";
+}
+
+sub test_error_flags_covered_but_marked () {
+  # A column that is covered yet marked uncoverable is a mismatch.
+  my $m = mcdc([1, 1], '$a // $b', [0, 1]);
+  is $m->error, 1, "a covered column marked uncoverable is an error";
+}
+
+sub test_fully_marked_decision_has_no_error () {
+  my $m = mcdc([0, 0], '$a // $b', [1, 1]);
+  is $m->error, 0, "a wholly uncoverable decision reports no error";
+}
+
+sub test_missing_excludes_marked () {
+  my $m = mcdc([0, 0], '$a // $b', [0, 1], ['$a', '$b']);
+  is_deeply $m->missing, ['$a'], "missing omits columns marked uncoverable";
+}
+
 sub main () {
   test_total_counts_columns;
   test_covered_counts_satisfied_columns;
@@ -83,6 +120,12 @@ sub main () {
   test_criterion_name;
   test_text;
   test_values;
+  test_uncoverable_per_column;
+  test_uncoverable_absent;
+  test_error_excuses_marked_missing;
+  test_error_flags_covered_but_marked;
+  test_fully_marked_decision_has_no_error;
+  test_missing_excludes_marked;
   done_testing;
 }
 

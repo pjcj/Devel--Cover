@@ -16,18 +16,25 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 use base "Devel::Cover::Criterion";
 
-sub covered     ($self)             { scalar grep $_, $self->[0]->@* }
-sub total       ($self)             { scalar $self->[0]->@* }
-sub values      ($self)             { $self->[0]->@* }
-sub text        ($self)             { $self->[1]{text} }
-sub labels      ($self)             { $self->[1]{labels} // [] }
-sub criterion   ($self)             { "mcdc" }
-sub uncoverable ($self, $i = undef) { 0 }
+sub total     ($self) { scalar $self->[0]->@* }
+sub values    ($self) { $self->[0]->@* }
+sub text      ($self) { $self->[1]{text} }
+sub labels    ($self) { $self->[1]{labels} // [] }
+sub criterion ($self) { "mcdc" }
+
+sub covered ($self, $i = undef) {
+  defined $i ? $self->[0][$i] : scalar grep $_, $self->[0]->@*
+}
+
+sub uncoverable ($self, $i = undef) {
+  defined $i ? $self->[2][$i] : scalar grep $_, ($self->[2] // [])->@*
+}
 
 sub missing ($self) {
   my $cov = $self->[0];
+  my $unc = $self->[2] // [];
   my $lab = $self->labels;
-  [map $lab->[$_], grep !$cov->[$_], 0 .. $#$cov]
+  [map $lab->[$_], grep !$cov->[$_] && !$unc->[$_], 0 .. $#$cov]
 }
 
 sub percentage ($self) {
@@ -35,13 +42,22 @@ sub percentage ($self) {
   $t ? int($self->covered / $t * 100) : 0
 }
 
-sub error ($self) { $self->total - $self->covered }
+sub error ($self, $c = undef) {
+  return $self->err_chk($self->covered($c), $self->uncoverable($c))
+    if defined $c;
+  my $e = 0;
+  for my $i (0 .. $self->total - 1) {
+    $e++ if $self->err_chk($self->covered($i), $self->uncoverable($i));
+  }
+  $e
+}
 
 sub calculate_summary ($self, $db, $file) {
   my $s = $db->{summary};
-  $self->aggregate($s, $file, "total",   $self->total);
-  $self->aggregate($s, $file, "covered", $self->covered);
-  $self->aggregate($s, $file, "error",   $self->error);
+  $self->aggregate($s, $file, "total",       $self->total);
+  $self->aggregate($s, $file, "uncoverable", $self->uncoverable);
+  $self->aggregate($s, $file, "covered",     $self->covered);
+  $self->aggregate($s, $file, "error",       $self->error);
 }
 
 "
