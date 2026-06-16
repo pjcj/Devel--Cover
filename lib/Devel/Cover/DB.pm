@@ -860,7 +860,7 @@ sub uncoverable ($self) {
 
 sub add_uncoverable ($self, $adds) {
   for my $add (@$adds) {
-    my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $_, 7;
+    my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $add, 7;
     my ($uncoverable_file) = $self->uncoverable_files;
 
     open my $f, "<", $file or do {
