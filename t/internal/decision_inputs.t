@@ -25,9 +25,17 @@ use File::Spec ();
 use File::Temp qw( tempdir );
 use Test::More import => [qw( done_testing is is_deeply ok subtest )];
 
-use Devel::Cover::DB ();
+use Devel::Cover::DB   ();
+use Devel::Cover::Mcdc ();
 
 my $Tmpdir = tempdir(CLEANUP => 1);
+
+# A mock condition entry matching the structure Devel::Cover produces:
+#   [0] hit counts per outcome, [1] {type, left, op, right}, [2] uncoverable
+#   markers per outcome.
+sub mock_condition ($class, $hits, $info, $unc = undef) {
+  bless [$hits, $info, $unc], "Devel::Cover::$class"
+}
 
 sub write_script ($name, $content) {
   my $path = File::Spec->catfile($Tmpdir, $name);
@@ -166,6 +174,42 @@ PERL
   ok $decision->error, "MC/DC error flagged, not a false 100%";
 }
 
+# The analyser derives its uncoverable set from the synthesised rows.  For an
+# unproven table those rows are the evidence we distrust, so a column the
+# analyser excused must not be silently excused in the derived MC/DC result;
+# only explicit "# uncoverable mcdc" markers may excuse one there.
+sub test_unproven_ignores_derived_uncoverable () {
+  my $db = bless {}, "Devel::Cover::DB";
+
+  # Worked example $a || ($b && $c): a compound decision, so unproven without
+  # observed vectors.  The inner "# uncoverable condition" marker lets the
+  # analyser excuse $c through the synthesised rows.
+  my @conditions = (
+    mock_condition(
+      "Condition_and_3",
+      [1, 0, 1],
+      { type => "and_3", left => '$b', op => "&&", right => '$c' },
+      [0, 1, 0],
+    ),
+    mock_condition(
+      "Condition_or_3",
+      [1, 1, 1],
+      { type => "or_3", left => '$a', op => "||", right => '$b && $c' },
+    ),
+  );
+
+  my $cover
+    = { f1 => { condition => { 10 => \@conditions }, meta => { digest => "d" } }
+    };
+  $db->_derive_mcdc($cover);
+
+  my $decision = bless $cover->{f1}{mcdc}{10}[0], "Devel::Cover::Mcdc";
+  is $decision->covered, 0, "unproven table claims no MC/DC coverage";
+  ok !$decision->uncoverable, "no atomic excused from an unproven table";
+  is_deeply $decision->missing, ['$a', '$b', '$c'],
+    "every atomic of an unproven table is reported missing";
+}
+
 sub test_add_condition_cross_run_merge () {
   my $db = bless {}, "Devel::Cover::DB";
   my $cc = {};
@@ -202,6 +246,8 @@ sub main () {
   subtest "no inputs without mcdc" => \&test_no_inputs_without_mcdc;
   subtest "void compound no false coverage" =>
     \&test_void_compound_no_false_coverage;
+  subtest "unproven ignores derived uncoverable" =>
+    \&test_unproven_ignores_derived_uncoverable;
   subtest "cross-run merge"     => \&test_add_condition_cross_run_merge;
   subtest "xor four-slot merge" => \&test_add_condition_xor_four_slot_merge;
 

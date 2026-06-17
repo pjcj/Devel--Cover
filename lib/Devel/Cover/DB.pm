@@ -1067,8 +1067,11 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
 
         # Merge explicit "# uncoverable mcdc" markers with conditions the
         # analyser excused because their only pair needs an uncoverable row.
+        # The analyser's set is derived from the table's rows, so trust it only
+        # for a proven table; for an unproven one the rows are the evidence we
+        # distrust, leaving the explicit markers as the only excuse.
         my @uncov = (_mcdc_uncoverable($unc, $line, $n, $total) // [])->@*;
-        $uncov[$_] ||= 1 for keys $r->{uncoverable}->%*;
+        $uncov[$_] ||= 1 for $table->proven ? keys $r->{uncoverable}->%* : ();
         $decision->[2] = \@uncov if @uncov;
 
         push $mcdc{$line}->@*, $decision;
