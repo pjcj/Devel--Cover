@@ -842,7 +842,7 @@ file_lexical_variable_exemptions = DB
 global_variables = [A-Z][a-z0-9_]*
 
 # Global variable names that are exempt from capitalization rules.  The values here are regexes that will be surrounded by \A and \z.
-global_variable_exemptions = VERSION ISA EXPORT(?:_OK)? EXPORT_TAGS AUTOLOAD ENV SIG self
+global_variable_exemptions = VERSION ISA EXPORT(?:_OK)? EXPORT_TAGS AUTOLOAD ENV SIG self TODO
 
 # How constant names should be capitalized.  Valid values are :single_case, :all_lower, :all_upper, :starts_with_lower, :starts_with_upper, :no_restriction, or a regex.
 # constants = :all_upper
