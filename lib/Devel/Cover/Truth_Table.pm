@@ -185,18 +185,22 @@ use strict;
 
 # Override merged-truth-table row coverage from runtime-observed input vectors.
 # merge_lineops preserves the surviving root op's idx through merges, so the
-# observed-vector slot of $conditions->[$idx] applies to that root.
-# Synthesised rows not in the observed set stay rendered with covered=0 so the
-# truth table still draws.
+# observed-vector slot of $conditions->[$idx] applies to that root.  The shared
+# overlay projects each observed key onto the row width, so a constant right
+# operand that collapses the table still matches.  A compound decision (>= 3
+# atomics) with no observed vectors is an unverified cross-product synthesis, so
+# its rows render uncovered rather than trusting the synthesised coverage.
 sub apply_observed_vectors {
   my ($merged, $conditions) = @_;
   require Devel::Cover::DB;
+  require Devel::Cover::Condition_table;
   for my $op (@$merged) {
-    my $obs = Devel::Cover::DB::observed_vectors($conditions->[$op->{idx}]);
-    next unless $obs && %$obs;
-    for my $row (@{ $op->{tt} }) {
-      my $key = join "|", $row->inputs;
-      $row->{covered} = $obs->{$key} ? 1 : 0;
+    my $obs  = Devel::Cover::DB::observed_vectors($conditions->[$op->{idx}]);
+    my @rows = @{ $op->{tt} };
+    if ($obs && %$obs) {
+      Devel::Cover::Condition_table::apply_observed_vectors(\@rows, $obs);
+    } elsif (@rows && @{ $rows[0]{inputs} } >= 3) {
+      $_->{covered} = 0 for @rows;
     }
   }
 }

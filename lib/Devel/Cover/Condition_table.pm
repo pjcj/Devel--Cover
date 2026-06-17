@@ -207,15 +207,19 @@ sub _build_labels ($condition, $find) {
 # trailing right operand, leaving the left subtree, so project each observed
 # vector onto the surviving leading columns before matching.  When the
 # dimensions already agree the projection is a no-op.
-sub _apply_observed_vectors ($rows, $obs) {
-  my $width = @$rows ? $rows->[0]->inputs->@* : 0;
+#
+# Operates on the row's `inputs` arrayref and `covered` slots, so it serves both
+# this module's rows and the Truth_Table reporters' rows, which share that
+# layout.
+sub apply_observed_vectors ($rows, $obs) {
+  my $width = @$rows ? $rows->[0]{inputs}->@* : 0;
   my %seen;
   for my $key (keys %$obs) {
     next unless $obs->{$key};
     my @v = split /\|/, $key, -1;
     $seen{ join "|", @v[0 .. $width - 1] } = 1;
   }
-  $_->{covered} = $seen{ join "|", $_->inputs->@* } ? 1 : 0 for @$rows;
+  $_->{covered} = $seen{ join "|", $_->{inputs}->@* } ? 1 : 0 for @$rows;
 }
 
 sub for_line ($class, $conditions, $observed = undef) {
@@ -255,7 +259,7 @@ sub for_line ($class, $conditions, $observed = undef) {
     my $obs     = $observed && $observed->[$i];
     my $applied = $obs      && %$obs ? 1 : 0;
 
-    _apply_observed_vectors(\@rows, $obs) if $applied;
+    apply_observed_vectors(\@rows, $obs) if $applied;
 
     my $counter = 0;
     push @tables,
