@@ -140,6 +140,32 @@ PERL
   ok !$di, "decision_inputs absent when mcdc not selected";
 }
 
+# A compound decision in void/boolean context records no observed vectors;
+# synthesis must not then fabricate a false 100% MC/DC.
+sub test_void_compound_no_false_coverage () {
+  my $script = write_script("void_compound.pl", <<'PERL');
+sub decision {
+  my ($a, $b, $c, $d) = @_;
+  if (($a && $b) || ($c && $d)) { return 1 }
+  return 0;
+}
+decision(1, 1, 0, 0);
+decision(0, 0, 0, 0);
+decision(0, 0, 1, 1);
+decision(1, 0, 1, 0);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "void_compound");
+  my $mcdc = $db->cover->file($path)->{mcdc};
+  ok $mcdc, "mcdc derived for void compound decision";
+
+  my ($decision) = grep $_->total >= 3, map @$_, values %$mcdc;
+  ok $decision, "found the compound decision";
+  is $decision->total,   4, "four atomics";
+  is $decision->covered, 0, "synthesised compound claims no MC/DC coverage";
+  ok $decision->error, "MC/DC error flagged, not a false 100%";
+}
+
 sub test_add_condition_cross_run_merge () {
   my $db = bless {}, "Devel::Cover::DB";
   my $cc = {};
@@ -174,8 +200,10 @@ sub main () {
   subtest "worked example"         => \&test_worked_example;
   subtest "repeated observation"   => \&test_repeated_observation;
   subtest "no inputs without mcdc" => \&test_no_inputs_without_mcdc;
-  subtest "cross-run merge"        => \&test_add_condition_cross_run_merge;
-  subtest "xor four-slot merge"    => \&test_add_condition_xor_four_slot_merge;
+  subtest "void compound no false coverage" =>
+    \&test_void_compound_no_false_coverage;
+  subtest "cross-run merge"     => \&test_add_condition_cross_run_merge;
+  subtest "xor four-slot merge" => \&test_add_condition_xor_four_slot_merge;
 
   done_testing;
 }

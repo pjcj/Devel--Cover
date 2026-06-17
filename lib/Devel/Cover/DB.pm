@@ -1052,11 +1052,16 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
       my @observed = map observed_vectors($_), @$loc;
       my @tables   = Devel::Cover::Condition_table->for_line($loc, \@observed);
       for my $n (0 .. $#tables) {
-        my $table    = $tables[$n];
-        my $r        = Devel::Cover::Mcdc::Analyser->analyse($table);
-        my $total    = $r->{total};
-        my $pairs    = $r->{pairs};
-        my @coverage = map { exists $pairs->{$_} ? 1 : 0 } 0 .. $total - 1;
+        my $table = $tables[$n];
+        my $r     = Devel::Cover::Mcdc::Analyser->analyse($table);
+        my $total = $r->{total};
+        my $pairs = $r->{pairs};
+        # An unproven table's rows are an unverified synthesis, so claim no
+        # MC/DC for it.
+        my @coverage
+          = $table->proven
+          ? map { exists $pairs->{$_} ? 1 : 0 } 0 .. $total - 1
+          : (0) x $total;
         my $decision
           = [\@coverage, { text => $table->expr, labels => [$table->labels] }];
 
