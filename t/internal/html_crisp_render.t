@@ -372,6 +372,32 @@ sub _mock_cond ($class, $hits, $info, $observed = undef) {
 # Html_crisp truth-table view, matching the MC/DC view.  This covers
 # Html_crisp::line_truth_tables passing the observed-vectors slot through to
 # Condition_table::for_line.
+# A compound decision with no observed vectors is an unverified synthesis, so
+# its truth-table rows must render uncovered rather than the synthesised green
+# that would contradict the MC/DC panel reporting 0%.
+sub test_truth_tables_unproven_rows_uncovered () {
+  my @cond = (
+    _mock_cond(
+      "Condition_and_3",
+      [1, 1, 1],
+      { type => "and_3", left => '$a', op => "&&", right => '$b' },
+    ),
+    _mock_cond(
+      "Condition_or_3",
+      [1, 1, 1],
+      { type => "or_3", left => '$a && $b', op => "||", right => '$c' },
+    ),
+  );
+  my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
+
+  my @tts = Devel::Cover::Report::Html_crisp::line_truth_tables($f, 7);
+  is @tts, 1, "single composite table without observed vectors";
+
+  my @rows = $tts[0]{rows}->@*;
+  ok !(grep $_->{covered}, @rows), "unproven compound rows render uncovered";
+  ok !(grep $_->{class} eq "c3", @rows), "no covered colour on unproven rows";
+}
+
 sub test_truth_tables_pass_observed_vectors () {
   my @cond = (
     _mock_cond(
@@ -646,6 +672,7 @@ sub main () {
   test_index_filter_links;
   test_dir_header_links;
   test_app_js_hash_filter;
+  test_truth_tables_unproven_rows_uncovered;
   test_truth_tables_pass_observed_vectors;
   test_condition_cells_panel;
   test_condition_cells_panel_merges_conditions;

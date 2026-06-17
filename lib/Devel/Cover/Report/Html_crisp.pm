@@ -936,12 +936,16 @@ sub line_truth_tables ($f, $n) {
   return unless $loc && @$loc;
   my @observed = map Devel::Cover::DB::observed_vectors($_), @$loc;
   grep { $_->{rows}->@* } map {
-    my @rows = map { {
-      inputs  => $_->inputs,
-      result  => $_->result,
-      covered => $_->covered,
-      class   => $_->covered ? "c3" : "c0",
-    } } $_->rows;
+    my $proven = $_->proven;
+    my @rows   = map {
+      my $covered = $proven && $_->covered;
+      {
+        inputs  => $_->inputs,
+        result  => $_->result,
+        covered => $covered,
+        class   => $covered ? "c3" : "c0",
+      }
+    } $_->rows;
     my @labels  = $_->labels;
     my @headers = map { chr ord("A") + $_ } 0 .. $#labels;
     {
