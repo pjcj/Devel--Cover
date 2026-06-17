@@ -63,8 +63,34 @@ sub test_truth_table_honours_observed_vectors () {
   is $covered{"1|0|0"}, 0, "phantom (1,0,0) not covered";
 }
 
+# A compound decision (>= 3 atomics) with no observed vectors is an unverified
+# cross-product synthesis, so the minimal reporter must render none of its rows
+# covered, agreeing with Html_crisp on void/boolean-context compound decisions.
+sub test_void_compound_renders_uncovered () {
+  my @cond = (
+    _mock_cond(
+      "Condition_and_3",
+      [1, 1, 1],
+      { type => "and_3", left => '$a', op => "&&", right => '$b' },
+    ),
+    _mock_cond(
+      "Condition_or_3",
+      [1, 1, 1],
+      { type => "or_3", left => '$a && $b', op => "||", right => '$c' },
+    ),
+  );
+
+  my @tts = Devel::Cover::Report::Html_minimal::truth_table(@cond);
+  my ($tt) = $tts[0]->@*;
+
+  my @covered = map { $_->covered ? 1 : 0 } @$tt;
+  ok !(grep { $_ } @covered),
+    "unproven compound rows render uncovered without observed vectors";
+}
+
 sub main () {
   test_truth_table_honours_observed_vectors;
+  test_void_compound_renders_uncovered;
   done_testing;
 }
 

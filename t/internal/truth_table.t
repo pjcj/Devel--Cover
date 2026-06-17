@@ -75,8 +75,58 @@ sub test_truth_table_honours_observed_vectors () {
   is $covered{"1|0|0"}, 0, "phantom (1,0,0) not covered";
 }
 
+# A compound decision (>= 3 atomics) with no observed vectors is an unverified
+# cross-product synthesis, so none of its rows may render covered.  This is the
+# Truth_Table-path analog of Condition_table's unproven tables, keeping the
+# Truth_Table reporters consistent with Html_crisp.
+sub test_void_compound_renders_uncovered () {
+  my @cond = (
+    _mock_cond(
+      "Condition_and_3",
+      [1, 1, 1],
+      { type => "and_3", left => '$a', op => "&&", right => '$b' },
+    ),
+    _mock_cond(
+      "Condition_or_3",
+      [1, 1, 1],
+      { type => "or_3", left => '$a && $b', op => "||", right => '$c' },
+    ),
+  );
+
+  my $crit = MockCriterion->new({ 7 => \@cond });
+  my @tts  = $crit->truth_table(7);
+  my ($tt) = $tts[0]->@*;
+
+  my @covered = map { $_->covered ? 1 : 0 } @$tt;
+  ok !(grep { $_ } @covered),
+    "unproven compound rows render uncovered without observed vectors";
+}
+
+# A constant right operand collapses the table to fewer inputs than the runtime
+# recorded for the uncollapsed expression, so observed keys are wider than the
+# rows.  The overlay must project each key onto the surviving leading columns
+# before matching, agreeing with the Condition_table path (mcdc_analyser.t).
+sub test_projects_const_right_observed_vectors () {
+  my @cond = (_mock_cond(
+    "Condition_or_2", [18, 2],
+    { type  => "or_2", left  => '$x', op => "//", right => "{}" },
+    { "1|X" => 18,     "0|1" => 2 },
+  ));
+
+  my $crit = MockCriterion->new({ 5 => \@cond });
+  my @tts  = $crit->truth_table(5);
+  my ($tt) = $tts[0]->@*;
+
+  my %covered;
+  $covered{ join "|", $_->inputs } = $_->covered ? 1 : 0 for @$tt;
+  is $covered{"1"}, 1, "observed 1|X projects onto row 1";
+  is $covered{"0"}, 1, "observed 0|1 projects onto row 0";
+}
+
 sub main () {
   test_truth_table_honours_observed_vectors;
+  test_void_compound_renders_uncovered;
+  test_projects_const_right_observed_vectors;
   done_testing;
 }
 
