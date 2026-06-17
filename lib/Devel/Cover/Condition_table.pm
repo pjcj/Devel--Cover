@@ -83,16 +83,19 @@ sub _expr ($condition) {
   join " ", $condition->[1]->@{qw( left op right )}
 }
 
+# Each expansion is [inputs, covered, uncoverable].  A leaf operand or a
+# short-circuited (X) operand contributes no sub-decision row, so it is never
+# uncoverable in its own right.
 sub _expand_operand ($val, $sub_rows, $negated = 0) {
   unless ($sub_rows) {
-    return ([[$val], 1])
+    return ([[$val], 1, 0])
   }
   if ($val eq "X") {
     my $width = $sub_rows->[0]->inputs->@*;
-    return ([[("X") x $width], 1])
+    return ([[("X") x $width], 1, 0])
   }
   my $match = $negated ? 1 - $val : $val;
-  map { [$_->inputs, $_->covered] } grep {
+  map { [$_->inputs, $_->covered, $_->uncoverable] } grep {
     $_->result == $match
   } @$sub_rows
 }
@@ -110,12 +113,10 @@ sub _build_rows ($condition, $find) {
 
   my ($info, $left_cond, $right_cond) = _resolve_children($condition, $find);
 
-  # The positional uncoverable mapping holds only for a leaf primitive.  When an
-  # operand is itself a decision its rows expand, so the flags are not applied
-  # here; compound decisions are handled separately.
+  # This operator's own per-outcome uncoverable markers map positionally onto
+  # its spec rows, and propagate to the combined rows expanded from them below.
   my @hits = _hits($condition);
-  my @unc  = $left_cond || $right_cond ? (0) x @hits : _uncov($condition);
-  my @prim = _make_rows($spec, \@hits, \@unc);
+  my @prim = _make_rows($spec, \@hits, [_uncov($condition)]);
 
   my $left_rows  = $left_cond  ? [_build_rows($left_cond,  $find)] : undef;
   my $right_rows = $right_cond ? [_build_rows($right_cond, $find)] : undef;
@@ -135,7 +136,7 @@ sub _build_rows ($condition, $find) {
             inputs      => $le->[0],
             result      => $row->result,
             covered     => $row->covered && $le->[1],
-            uncoverable => $row->uncoverable,
+            uncoverable => $row->uncoverable || $le->[2],
           );
       }
     } else {
@@ -148,7 +149,7 @@ sub _build_rows ($condition, $find) {
               inputs      => [$le->[0]->@*, $re->[0]->@*],
               result      => $row->result,
               covered     => $row->covered && $le->[1] && $re->[1],
-              uncoverable => $row->uncoverable,
+              uncoverable => $row->uncoverable || $le->[2] || $re->[2],
             );
         }
       }

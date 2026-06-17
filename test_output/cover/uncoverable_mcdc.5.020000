@@ -2,8 +2,8 @@ cover: Reading database from ...
 ---------------------- ------ ------ ------ ------ ------ ------ ------
 File                     stmt   bran   cond   mcdc    sub  total   slop
 ---------------------- ------ ------ ------ ------ ------ ------ ------
-tests/uncoverable_mcdc  100.0    n/a   66.6  100.0  100.0   93.7   11.0
-Total                   100.0    n/a   66.6  100.0  100.0   93.7   11.0
+tests/uncoverable_mcdc  100.0    n/a   83.3  100.0  100.0   95.8   16.1
+Total                   100.0    n/a   83.3  100.0  100.0   95.8   16.1
 ---------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,13 +20,14 @@ File Summary
 
 CC  Cov CRAP SLOP
 -- ---- ---- ----
- 3 91.3  3.0 11.0
+ 5 94.3  5.0 16.1
 
 Worst Subroutines
 -----------------
 
 Subroutine       CC SLOP  Location                 
 ---------------- -- ----  -------------------------
+compound_inner    3 11.0  tests/uncoverable_mcdc:37
 dor_default       2  7.1  tests/uncoverable_mcdc:17
 left_always_true  2  7.0  tests/uncoverable_mcdc:25
 
@@ -65,17 +66,33 @@ line  err   stmt   bran   cond   mcdc    sub   code
 28    ***      2          * 66   - 50            return $always && $b;
 29                                             }
 30                                             
-31                                             sub main {
-32                                               # Push results so each decision runs in non-void context.
-33             1                           1     my @r;
-34                                               my %h;
-35             1                                 push @r, dor_default(\%h, "a", 1);  # left undef  -> assigns
-36             1                                 push @r, dor_default(\%h, "a", 1);  # left defined -> skips
-37             1                                 push @r, left_always_true(1);
-38             1                                 push @r, left_always_true(0);
-39                                             }
-40                                             
-41             1                               main();
+31                                             # $a && $b && $c is a compound decision, parsed ($a && $b) && $c.  $b is held
+32                                             # true, so the inner $a && !$b outcome - the row $b's MC/DC independence pair
+33                                             # needs - can never occur.  The plain condition marker on that inner outcome
+34                                             # (count:2 selects the inner $a && $b) now also excuses $b for MC/DC, derived
+35                                             # from the compound truth table with no separate "# uncoverable mcdc" needed.
+36                                             sub compound_inner {
+37             3                           3     my ($a, $c) = @_;
+38             3                                 my $b = 1;
+39                                               # uncoverable condition right count:2
+40             3           100   - 66            return $a && $b && $c;
+                          - 66                 
+41                                             }
+42                                             
+43                                             sub main {
+44                                               # Push results so each decision runs in non-void context.
+45             1                           1     my @r;
+46                                               my %h;
+47             1                                 push @r, dor_default(\%h, "a", 1);  # left undef  -> assigns
+48             1                                 push @r, dor_default(\%h, "a", 1);  # left defined -> skips
+49             1                                 push @r, left_always_true(1);
+50             1                                 push @r, left_always_true(0);
+51             1                                 push @r, compound_inner(0, 0);  # a false
+52             1                                 push @r, compound_inner(1, 0);  # a true, c false
+53             1                                 push @r, compound_inner(1, 1);  # all true
+54                                             }
+55                                             
+56             1                               main();
 
 
 Conditions
@@ -86,6 +103,8 @@ and 3 conditions
 line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
 28    ***     66      0      1      1   $always && $b
+40           100      1      1      1   $a && $b && $c
+            - 66      1     -0      2   $a and $b
 
 or 3 conditions
 
@@ -101,6 +120,7 @@ line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
 19             0    0    2                          $$h{$k} //= $val
 28            50    1    2                          $always && $b
+40            66    2    3                          $a && $b && $c
 
 
 Covered Subroutines
@@ -110,8 +130,9 @@ Subroutine       Count  CC  SLOP Location
 ---------------- ----- --- ----- -------------------------
 BEGIN                1   1   0.0 tests/uncoverable_mcdc:10
 BEGIN                1   1   0.0 tests/uncoverable_mcdc:11
+compound_inner       3   3  11.0 tests/uncoverable_mcdc:37
 dor_default          2   2   7.1 tests/uncoverable_mcdc:17
 left_always_true     2   2   7.0 tests/uncoverable_mcdc:25
-main                 1   1   0.0 tests/uncoverable_mcdc:33
+main                 1   1   0.0 tests/uncoverable_mcdc:45
 
 

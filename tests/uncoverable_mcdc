@@ -28,6 +28,18 @@ sub left_always_true {
   return $always && $b;
 }
 
+# $a && $b && $c is a compound decision, parsed ($a && $b) && $c.  $b is held
+# true, so the inner $a && !$b outcome - the row $b's MC/DC independence pair
+# needs - can never occur.  The plain condition marker on that inner outcome
+# (count:2 selects the inner $a && $b) now also excuses $b for MC/DC, derived
+# from the compound truth table with no separate "# uncoverable mcdc" needed.
+sub compound_inner {
+  my ($a, $c) = @_;
+  my $b = 1;
+  # uncoverable condition right count:2
+  return $a && $b && $c;
+}
+
 sub main {
   # Push results so each decision runs in non-void context.
   my @r;
@@ -36,6 +48,9 @@ sub main {
   push @r, dor_default(\%h, "a", 1);  # left defined -> skips
   push @r, left_always_true(1);
   push @r, left_always_true(0);
+  push @r, compound_inner(0, 0);  # a false
+  push @r, compound_inner(1, 0);  # a true, c false
+  push @r, compound_inner(1, 1);  # all true
 }
 
 main();
