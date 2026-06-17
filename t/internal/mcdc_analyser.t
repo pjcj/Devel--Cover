@@ -390,9 +390,87 @@ sub test_no_pair_even_with_uncoverable_stays_missing () {
     "nothing excused without an uncoverable pair";
 }
 
+# Like mock_condition but carrying an uncoverable arrayref ([2]).
+sub mock_condition_unc ($class, $hits, $info, $unc) {
+  bless [$hits, $info, $unc], "Devel::Cover::$class"
+}
+
+# A compound decision `$a && $b && $c`, parsed `($a && $b) && $c`.  $inner_unc
+# and $outer_unc are the per-outcome uncoverable arrayrefs ([2]) for the two
+# conditions, or undef.  The inner condition is addressed so the outer can
+# reference it as its left operand.  $observed, if given, sets which combined
+# rows count as covered, as the runtime would record them.
+sub build_and3_compound ($inner_unc, $outer_unc, $observed = undef) {
+  my $inner = mock_condition_unc(
+    "Condition_and_3",
+    [1, 1, 1],
+    { type => "and_3", left => '$a', op => "&&", right => '$b', addr => 1 },
+    $inner_unc,
+  );
+  my $outer = mock_condition_unc(
+    "Condition_and_3",
+    [1, 1, 1], {
+      type      => "and_3",
+      left      => '$a && $b',
+      left_addr => 1,
+      op        => "&&",
+      right     => '$c',
+    },
+    $outer_unc,
+  );
+  my ($table)
+    = Devel::Cover::Condition_table->for_line([$inner, $outer], $observed);
+  $table
+}
+
+# Map a built table's rows to "input-vector => uncoverable (0/1)".
+sub uncoverable_by_inputs ($table) {
+  my %u;
+  $u{ join "|", $_->inputs->@* } = $_->uncoverable ? 1 : 0 for $table->rows;
+  \%u
+}
+
+# A leaf operand's uncoverable outcome propagates through the outer operator's
+# row expansion.  Marking the inner `$a && !$b` outcome (index 1) uncoverable
+# makes the combined `1|0|X` row - the only one built from that inner row -
+# uncoverable, and no other.
+sub test_compound_inner_uncoverable_propagates () {
+  my $u = uncoverable_by_inputs(build_and3_compound([0, 1, 0], undef));
+  is $u->{"1|0|X"}, 1, "inner marker: combined 1|0|X uncoverable";
+  is_deeply [grep $u->{$_}, sort keys %$u], ["1|0|X"],
+    "inner marker: only that row is uncoverable";
+}
+
+# The outer operator's own uncoverable outcome propagates to the combined rows
+# it produces.  Marking the outer `(...) && !$c` outcome (index 1) uncoverable
+# makes the combined `1|1|0` row uncoverable, and no other.
+sub test_compound_outer_uncoverable_propagates () {
+  my $u = uncoverable_by_inputs(build_and3_compound(undef, [0, 1, 0]));
+  is $u->{"1|1|0"}, 1, "outer marker: combined 1|1|0 uncoverable";
+  is_deeply [grep $u->{$_}, sort keys %$u], ["1|1|0"],
+    "outer marker: only that row is uncoverable";
+}
+
+# End to end through the analyser: a leaf marker on a compound decision excuses
+# the dependent column.  $a && $b && $c is exercised so $a and $c earn covered
+# pairs, but $b's only independence pair needs the inner-marked `1|0|X` row, so
+# $b is excused rather than reported missing.
+sub test_compound_uncoverable_excuses_column () {
+  my @observed = (undef, { "0|X|X" => 1, "1|1|0" => 1, "1|1|1" => 1 });
+  my $table    = build_and3_compound([0, 1, 0], undef, \@observed);
+  my $r        = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is $r->{total},     3, "compound excuse: 3 atomics";
+  is $r->{satisfied}, 2, 'compound excuse: $a and $c satisfied';
+  ok $r->{uncoverable}{1}, 'compound excuse: $b excused by uncoverable row';
+  is_deeply $r->{missing}, [], "compound excuse: nothing missing";
+}
+
 sub main () {
   test_api_keys;
   test_uncoverable_row_excuses_column;
+  test_compound_inner_uncoverable_propagates;
+  test_compound_outer_uncoverable_propagates;
+  test_compound_uncoverable_excuses_column;
   test_no_pair_even_with_uncoverable_stays_missing;
   test_const_right_collapsed_observed_vectors;
   test_const_right_or_operator;
