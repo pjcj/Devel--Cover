@@ -1078,7 +1078,51 @@ sub test_negated_subexpr () {
   ok $rows[3]->covered, "neg row 3 covered";
 }
 
+# A single logop's per-outcome hit counts ARE its observed inputs, so its
+# synthesised rows are trustworthy even with no observed vectors.
+sub test_proven_single_logop () {
+  my @conditions = (mock_condition(
+    "Condition_and_3",
+    [1, 0, 1],
+    { type => "and_3", left => '$a', op => "&&", right => '$b' },
+  ));
+  my ($t) = Devel::Cover::Condition_table->for_line(\@conditions);
+  ok $t->proven, "single logop is proven without observed vectors";
+}
+
+# Worked-example shape: $a || ($b && $c).  Without observed vectors the
+# composite rows are a synthesised cross-product whose co-occurrence was never
+# demonstrated, so the table is not proven.
+sub _worked_example_conditions () { (
+  mock_condition(
+    "Condition_and_3",
+    [1, 0, 1],
+    { type => "and_3", left => '$b', op => "&&", right => '$c' },
+  ),
+  mock_condition(
+    "Condition_or_3",
+    [1, 1, 1],
+    { type => "or_3", left => '$a', op => "||", right => '$b && $c' },
+  ),
+) }
+
+sub test_proven_compound_synthesised () {
+  my @conditions = _worked_example_conditions;
+  my ($t) = Devel::Cover::Condition_table->for_line(\@conditions);
+  ok !$t->proven, "compound decision is not proven without observed vectors";
+}
+
+sub test_proven_compound_observed () {
+  my @conditions = _worked_example_conditions;
+  my @observed   = (undef, { "1|X|X" => 1, "0|1|1" => 1, "0|0|X" => 1 });
+  my ($t) = Devel::Cover::Condition_table->for_line(\@conditions, \@observed);
+  ok $t->proven, "compound decision is proven once observed vectors apply";
+}
+
 sub main () {
+  test_proven_single_logop;
+  test_proven_compound_synthesised;
+  test_proven_compound_observed;
   test_single_and3;
   test_single_or3;
   test_single_and2;

@@ -36,6 +36,13 @@ package Devel::Cover::Condition_table::Table {
   sub short_expr ($self) { $self->{short_expr} }
   sub labels     ($self) { $self->{labels}->@* }
   sub rows       ($self) { $self->{rows}->@* }
+
+  # True unless the rows are an unverified synthesis: a compound decision
+  # (>= 3 atomics, so >= 2 logops) with no observed vectors.  Its row coverage
+  # is a cross-product whose co-occurrence was never demonstrated, so neither
+  # MC/DC nor the truth-table display may treat those rows as covered.  A single
+  # logop is exact from its hit counts, and observed vectors are real.
+  sub proven ($self) { $self->{proven} }
 }
 
 package Devel::Cover::Condition_table;
@@ -190,6 +197,27 @@ sub _build_labels ($condition, $find) {
   @labels
 }
 
+# Observed-vector data overrides synthesis: rows are covered iff their input
+# vector matches an observed key.  Synthesised rows not in the observed set stay
+# rendered with covered=0 so the truth table still draws.
+#
+# A constant right operand (e.g. `$x // {}`) collapses the table to fewer inputs
+# than the runtime recorded for the uncollapsed expression, so an observed
+# vector can carry more columns than a row.  The collapse always drops the
+# trailing right operand, leaving the left subtree, so project each observed
+# vector onto the surviving leading columns before matching.  When the
+# dimensions already agree the projection is a no-op.
+sub _apply_observed_vectors ($rows, $obs) {
+  my $width = @$rows ? $rows->[0]->inputs->@* : 0;
+  my %seen;
+  for my $key (keys %$obs) {
+    next unless $obs->{$key};
+    my @v = split /\|/, $key, -1;
+    $seen{ join "|", @v[0 .. $width - 1] } = 1;
+  }
+  $_->{covered} = $seen{ join "|", $_->inputs->@* } ? 1 : 0 for @$rows;
+}
+
 sub for_line ($class, $conditions, $observed = undef) {
   return if @$conditions > 16;
 
@@ -222,38 +250,21 @@ sub for_line ($class, $conditions, $observed = undef) {
     my $c = $conditions->[$i];
     next if $is_child{ _expr($c) };
 
-    my @rows = _build_rows($c, $find);
-    my $obs  = $observed && $observed->[$i];
-    if ($obs && %$obs) {
-      # Observed-vector data overrides synthesis: rows are covered iff
-      # their input vector matches an observed key.  Synthesised rows
-      # not in the observed set stay rendered with covered=0 so the
-      # truth table still draws.
-      #
-      # A constant right operand (e.g. `$x // {}`) collapses the table to
-      # fewer inputs than the runtime recorded for the uncollapsed
-      # expression, so an observed vector can carry more columns than a
-      # row.  The collapse always drops the trailing right operand, leaving
-      # the left subtree, so project each observed vector onto the surviving
-      # leading columns before matching.  When the dimensions already agree
-      # the projection is a no-op.
-      my $width = @rows ? $rows[0]->inputs->@* : 0;
-      my %seen;
-      for my $key (keys %$obs) {
-        next unless $obs->{$key};
-        my @v = split /\|/, $key, -1;
-        $seen{ join "|", @v[0 .. $width - 1] } = 1;
-      }
-      $_->{covered} = $seen{ join "|", $_->inputs->@* } ? 1 : 0 for @rows;
-    }
+    my @rows    = _build_rows($c, $find);
+    my @labels  = _build_labels($c, $find);
+    my $obs     = $observed && $observed->[$i];
+    my $applied = $obs      && %$obs ? 1 : 0;
+
+    _apply_observed_vectors(\@rows, $obs) if $applied;
 
     my $counter = 0;
     push @tables,
       Devel::Cover::Condition_table::Table->new(
         expr       => _expr($c),
         short_expr => _build_short_expr($c, $find, \$counter),
-        labels     => [_build_labels($c, $find)],
+        labels     => \@labels,
         rows       => \@rows,
+        proven     => @labels < 3 || $applied ? 1 : 0,
       );
   }
   @tables
