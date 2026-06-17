@@ -37,10 +37,10 @@ sub main {
   push @r, or_decision(0, 1);
   push @r, or_decision(0, 0);
 
-  # Mixed-precedence ($a && $b) || ($c && $d): four atomics under one
-  # decision root.  Exercises the per-CV optree walk's pairwise root
-  # finder, which must identify the outer || as the root and not be
-  # confused by the signature-generated or ops.
+  # Mixed-precedence ($a && $b) || ($c && $d).  Both outer-|| operands
+  # are compound, so the outer || is not recorded; MC/DC measures the
+  # two inner && logops as separate tables (see mcdc.md Limitations),
+  # while the per-CV walk stays isolated from the signature or ops.
   push @r, nested(1, 1, 0, 0);
   push @r, nested(1, 0, 1, 1);
   push @r, nested(0, 0, 1, 0);

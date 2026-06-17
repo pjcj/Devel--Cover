@@ -49,6 +49,11 @@ expressions like `$a && (!$a || $b)` are tautologies that almost never
 survive review. So for typical Perl code hybrid behaves like unique-cause,
 while remaining well-defined for the unusual cases.
 
+In the current implementation coupling does not reach the analyser at all.
+Decisions are recorded per logop (see Limitations), so repeated atomics end
+up in separate truth tables and the masking fallback is never triggered by
+real code. It remains as defensive code rather than an active path.
+
 Pure masking is over-permissive in a short-circuit language: any execution
 where the left operand short-circuits masks every condition on the right,
 so under loose masking rules a `(F,F,F)` test against `(A && B) || C`
@@ -191,6 +196,11 @@ that is not itself nested inside another logop of compatible type:
   decision; the inner `&&` is part of it.
 - `($a && $b) ? $x : $y` - the `cond_expr` is the decision; `$a && $b` is
   its sole condition (composed of two atomic conditions).
+
+One case departs from this. A logop whose two operands are themselves
+logops is not currently recorded, so a decision such as
+`(A && B) || (C && D)` is measured as its inner logops rather than as a
+single whole (see Limitations).
 
 ### Atomic conditions
 
@@ -402,11 +412,26 @@ This document, plus a user-facing section 2.5 in `Tutorial.pod`, USAGE POD in
   `Condition_table::for_line`; MC/DC inherits that limit. The bound exists
   because the truth table size grows as 2^N and becomes unwieldy.
 
+- A decision whose outer operator joins two compound operands (for
+  example `(A && B) || (C && D)`) is not recorded as one decision.
+  Devel::Cover's condition-coverage recording does not capture a logop
+  when both its operands are themselves logops, so MC/DC sees only the
+  inner logops and builds one truth table per inner logop rather than a
+  unified table over all atomic conditions. This predates MC/DC and
+  affects condition coverage too. A consequence is that a fault in the
+  unrecorded outer operator is invisible to both condition and MC/DC
+  coverage.
+
 - Coupled conditions (the same atomic appearing more than once in a
-  decision) are handled by hybrid's masking fallback. The fallback is
-  well-defined but reduces to demonstrating short-circuit-induced
-  masking rather than direct causal independence; this corner is the
-  most actively debated part of the metric in the literature.
+  decision) would be handled by hybrid's masking fallback, but in
+  practice no coupled truth table is ever built. The decomposition above
+  places repeated atomics in separate tables, so the masking fallback in
+  `Mcdc::Analyser` is unreachable from real Perl and is exercised only by
+  unit tests. It stays as defensive code for the day the recording
+  limitation is removed. Were coupling to arise, the fallback reduces to
+  demonstrating short-circuit-induced masking rather than direct causal
+  independence; this corner is the most actively debated part of the
+  metric in the literature.
 
 ## References
 

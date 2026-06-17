@@ -92,10 +92,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 37             1                                 push @r, or_decision(0, 1);
 38             1                                 push @r, or_decision(0, 0);
 39                                             
-40                                               # Mixed-precedence ($a && $b) || ($c && $d): four atomics under one
-41                                               # decision root.  Exercises the per-CV optree walk's pairwise root
-42                                               # finder, which must identify the outer || as the root and not be
-43                                               # confused by the signature-generated or ops.
+40                                               # Mixed-precedence ($a && $b) || ($c && $d).  Both outer-|| operands
+41                                               # are compound, so the outer || is not recorded; MC/DC measures the
+42                                               # two inner && logops as separate tables (see mcdc.md Limitations),
+43                                               # while the per-CV walk stays isolated from the signature or ops.
 44             1                                 push @r, nested(1, 1, 0, 0);
 45             1                                 push @r, nested(1, 0, 1, 1);
 46             1                                 push @r, nested(0, 0, 1, 0);
