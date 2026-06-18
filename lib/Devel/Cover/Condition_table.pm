@@ -107,6 +107,18 @@ sub _expand_operand ($val, $sub_rows, $negated = 0) {
   } @$sub_rows
 }
 
+# A logop recorded in void context collapses to its boolean 2-count form, but
+# the recorded structure keeps both operands.  Promote a void-collapsed node
+# back to its 3-count form so MC/DC rebuilds the full decision; the rebuilt
+# table has no observed vectors and so is reported unproven (honest 0%, never a
+# false pass).  A const-right collapse is a real boolean and is left alone.
+sub _effective_type ($condition) {
+  my $info = $condition->[1];
+  my $type = $info->{type};
+  $type =~ s/_2\z/_3/ if $info->{void_collapsed};
+  $type
+}
+
 sub _resolve_children ($condition, $find) {
   my $info       = $condition->[1];
   my $left_cond  = $find->($info->{left_addr},  $info->{left});
@@ -115,7 +127,7 @@ sub _resolve_children ($condition, $find) {
 }
 
 sub _build_rows ($condition, $find) {
-  my $type = $condition->[1]{type};
+  my $type = _effective_type($condition);
   my $spec = $Primitive{$type} or return;
 
   my ($info, $left_cond, $right_cond) = _resolve_children($condition, $find);
@@ -167,7 +179,7 @@ sub _build_rows ($condition, $find) {
 
 sub _build_short_expr ($condition, $find, $counter) {
   my ($info, $left_cond, $right_cond) = _resolve_children($condition, $find);
-  my $type = $info->{type};
+  my $type = _effective_type($condition);
 
   my $left
     = $left_cond
@@ -187,7 +199,7 @@ sub _build_short_expr ($condition, $find, $counter) {
 
 sub _build_labels ($condition, $find) {
   my ($info, $left_cond, $right_cond) = _resolve_children($condition, $find);
-  my $type = $info->{type};
+  my $type = _effective_type($condition);
 
   my @labels;
 

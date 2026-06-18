@@ -117,18 +117,22 @@ for my $op (sort keys %Decision) {
   subtest "context parity: $op ($Decision{$op})" => sub {
     my $reference = table_structure($op, "scalar_assign");
 
-    # Reference: scalar assignment records exactly one unified table.  Passes
-    # today; establishes the correct target the other contexts must reach.
+    # Reference: scalar assignment records exactly one unified table, the
+    # target the other contexts must reach.
     is @$reference, 1, "scalar-assignment records a single unified table";
 
-    # The fix target: return contexts must record the identical structure.
-    # Known-failing until the Phase 2 recorder fix - see header.
-    {
-      local $TODO = "option-4 Phase 2: a logop running void is collapsed / "
-        . "its MC/DC vectors skipped, so the outer decision is not recorded";
+    # Explicit return: the void-collapsed outer logop is recorded (as the
+    # degenerate form) and MC/DC rebuilds it to the full structure.
+    is_deeply table_structure($op, "explicit_return"), $reference,
+      "explicit return records the same table as scalar assignment";
 
-      is_deeply table_structure($op, "explicit_return"), $reference,
-        "explicit return records the same table as scalar assignment";
+    # Implicit return (last statement): the outer logop feeds leavesub
+    # directly, so in void context it is never recorded at all - the inner
+    # logops surface as separate roots and the decision cannot be rebuilt.
+    # Recording the absent outer logop needs an XS recorder change.
+    {
+      local $TODO = "implicit return: the void outer logop feeds leavesub "
+        . "directly and is never recorded";
 
       is_deeply table_structure($op, "implicit_return"), $reference,
         "implicit return records the same table as scalar assignment";

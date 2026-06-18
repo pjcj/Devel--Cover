@@ -858,6 +858,29 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
   }
 }
 
+# Reorder the raw condition counts into truth-table order and return
+# (counts, operand-count, void-collapsed-flag).  An or/and collapses to its
+# 2-count form in void context or with a constant right operand; a genuine
+# (non-constant) right operand collapsed in void context is flagged so MC/DC
+# can rebuild the full decision.
+sub _condition_counts ($c, $type, $op) {
+  no warnings "uninitialized";
+
+  if ($type eq "or" || $type eq "and") {
+    my $const = _is_const_right($op->first->sibling);
+    return ([$c->[3], $c->[1] + $c->[2]], 2, $c->[5] && !$const ? 1 : 0)
+      if $c->[5] || $const;
+    @$c = $c->@[$type eq "or" ? (3, 2, 1) : (3, 1, 2)];
+    return ($c, 3, 0);
+  }
+  if ($type eq "xor") {
+    # !l&&!r  l&&!r  l&&r  !l&&r
+    @$c = $c->@[3, 2, 4, 1];
+    return ($c, 4, 0);
+  }
+  die qq(Unknown type "$type" for conditional);
+}
+
 sub add_condition_cover (
   $op, $strop, $left, $right,
   $left_op = undef,
@@ -870,28 +893,8 @@ sub add_condition_cover (
   $type =~ s/assign$//;
   $type = "or" if $type eq "dor";
 
-  my $c = $Coverage->{condition}{$key};
-
-  no warnings "uninitialized";
-
-  my $count;
-
-  if ($type eq "or" || $type eq "and") {
-    my $r = $op->first->sibling;
-    if ($c->[5] || _is_const_right($r)) {
-      $c     = [$c->[3], $c->[1] + $c->[2]];
-      $count = 2;
-    } else {
-      @$c    = $c->@[$type eq "or" ? (3, 2, 1) : (3, 1, 2)];
-      $count = 3;
-    }
-  } elsif ($type eq "xor") {
-    # !l&&!r  l&&!r  l&&r  !l&&r
-    @$c    = $c->@[3, 2, 4, 1];
-    $count = 4;
-  } else {
-    die qq(Unknown type "$type" for conditional);
-  }
+  my ($c, $count, $void_collapsed)
+    = _condition_counts($Coverage->{condition}{$key}, $type, $op);
 
   my ($la, $ln) = _resolve_child_op($left_op);
   my ($ra, $rn) = _resolve_child_op($right_op);
@@ -906,9 +909,11 @@ sub add_condition_cover (
     right_addr    => $ra,
     left_negated  => $ln,
     right_negated => $rn,
+    $void_collapsed ? (void_collapsed => 1) : (),
   };
 
   my ($n, $new) = $Structure->add_count("condition");
+
   $Structure->add_condition($File, [$Line, $structure]) if $new;
   my $ccount = $Run{count}{$File};
   if (exists $ccount->{condition}[$n]) {
