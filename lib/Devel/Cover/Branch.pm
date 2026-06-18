@@ -7,47 +7,49 @@
 
 package Devel::Cover::Branch;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
 use base "Devel::Cover::Criterion";
 
-sub pad {
-  my $self = shift;
-  $self->[0] = [ 0, 0 ] unless $self->[0] && @{ $self->[0] };
-}
-sub uncoverable { @_ > 1 ? $_[0][2][ $_[1] ] : scalar grep $_, @{ $_[0][2] } }
-sub covered     { @_ > 1 ? $_[0][0][ $_[1] ] : scalar grep $_, @{ $_[0][0] } }
-sub total       { scalar @{ $_[0][0] } }
-sub value       { $_[0][0][ $_[1] ] }
-sub values      { @{ $_[0][0] } }
-sub text        { $_[0][1]{text} }
-sub criterion   { "branch" }
-
-sub percentage {
-  my $t = $_[0]->total;
-  sprintf "%3d", $t ? $_[0]->covered / $t * 100 : 0
+sub pad ($self) {
+  $self->[0] = [0, 0] unless $self->[0] && $self->[0]->@*;
 }
 
-sub error {
-  my $self = shift;
-  if (@_) {
-    my $c = shift;
-    return $self->err_chk($self->covered($c), $self->uncoverable($c));
-  }
+sub uncoverable ($self, $i = undef) {
+  defined $i ? $self->[2][$i] : scalar grep $_, $self->[2]->@*;
+}
+
+sub covered ($self, $i = undef) {
+  defined $i ? $self->[0][$i] : scalar grep $_, $self->[0]->@*;
+}
+
+sub total     ($self)     { scalar $self->[0]->@* }
+sub value     ($self, $i) { $self->[0][$i] }
+sub values    ($self)     { $self->[0]->@* }
+sub text      ($self)     { $self->[1]{text} }
+sub criterion ($self)     { "branch" }
+
+sub percentage ($self) {
+  my $t = $self->total;
+  $t ? int($self->covered / $t * 100) : 0;
+}
+
+sub error ($self, $c = undef) {
+  return $self->err_chk($self->covered($c), $self->uncoverable($c))
+    if defined $c;
   my $e = 0;
-  for my $c (0 .. $#{ $self->[0] }) {
-    $e++ if $self->err_chk($self->covered($c), $self->uncoverable($c));
+  for my $i (0 .. $self->total - 1) {
+    $e++ if $self->err_chk($self->covered($i), $self->uncoverable($i));
   }
-  $e
+  $e;
 }
 
-sub calculate_summary {
-  my $self = shift;
-  my ($db, $file) = @_;
-
+sub calculate_summary ($self, $db, $file) {
   my $s = $db->{summary};
   $self->pad;
 

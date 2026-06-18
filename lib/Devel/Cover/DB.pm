@@ -32,8 +32,8 @@ my $Has_term_size = eval { require Term::Size };
 my $DB = "cover.15";                    # Version of the database
 
 @Devel::Cover::DB::Criteria
-  = (qw( statement branch path condition subroutine pod time ));
-@Devel::Cover::DB::Criteria_short   = (qw( stmt bran path cond sub pod time ));
+  = (qw( statement branch condition mcdc subroutine pod time ));
+@Devel::Cover::DB::Criteria_short   = (qw( stmt bran cond mcdc sub pod time ));
 $Devel::Cover::DB::Ignore_filenames = qr/   # Used by Devel::Cover
   (?: [\/\\]lib[\/\\](?:Storable|POSIX).pm$ )
   | # Moose
@@ -758,8 +758,45 @@ sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
 
 {
   no warnings "once";
-  *add_condition = \&add_branch;
-  *add_pod       = \&add_subroutine;
+  *add_pod = \&add_subroutine;
+}
+
+# Slot layout for a condition entry $cc->{$line}[$n]:
+#   [0] [false_count, true_count, ...]  hit counts (from add_branch)
+#   [1] structure ref (op, type, addr, etc.)
+#   [2] uncoverable flags arrayref
+#   [3] observed-vector hash { "v0|v1|...|vN" => count, ... } - access via
+#       observed_vectors() below.
+sub observed_vectors ($entry) { $entry->[3] }
+
+# Same merge as add_branch, plus an optional per-file decision-inputs arrayref
+# (parallel to $fc, indexed by flat per-file ordinal).  When a condition's flat
+# ordinal carries observed-vector data, it is merged into the condition entry's
+# observed-vector slot for later use by _derive_mcdc.
+sub add_condition ($self, $cc, $sc, $fc, $uc, $di = undef) {
+  my %line;
+  for my $i (0 .. $#$fc) {
+    my $l = $sc->[$i][0] // do {
+      warn "Devel::Cover: ignoring extra condition\n";
+      return;
+    };
+    my $n = $line{$l}++;
+    no warnings "uninitialized";
+    if (my $a = $cc->{$l}[$n]) {
+      $a->[0][0] += $fc->[$i][0];
+      $a->[0][1] += $fc->[$i][1];
+      $a->[0][2] += $fc->[$i][2] if exists $fc->[$i][2];
+      $a->[0][3] += $fc->[$i][3] if exists $fc->[$i][3];
+    } else {
+      $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
+    }
+    $cc->{$l}[$n][2][$_->[0]] ||= $_->[1] for $uc->{$l}[$n]->@*;
+
+    if (my $obs = $di && $di->[$i]) {
+      my $merged = $cc->{$l}[$n][3] //= {};
+      $merged->{$_} += $obs->{$_} for keys %$obs;
+    }
+  }
 }
 
 sub uncoverable_files ($self) {
@@ -818,13 +855,12 @@ sub uncoverable ($self) {
     $u->{ $df->hexdigest } = delete $u->{$file};
   }
 
-  print STDERR Dumper $u;
   $u
 }
 
 sub add_uncoverable ($self, $adds) {
   for my $add (@$adds) {
-    my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $_, 7;
+    my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $add, 7;
     my ($uncoverable_file) = $self->uncoverable_files;
 
     open my $f, "<", $file or do {
@@ -886,6 +922,7 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
           }
         }
       }
+
       # e.g.: count:1 | count:2,5 | count:1,4..7
       my $c = qr/\d+(?:\.\.\d+)?/;
       $count = $1 if $info =~ /count:($c(?:,$c)*)/;
@@ -893,6 +930,8 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
         $count;
       if ($info =~ /class:(\w+)/) { $class = $1 }
       if ($info =~ /note:(.+)/)   { $note  = $1 }
+      # mcdc atomic condition N (1-based)
+      if ($info =~ /pair:(\d+)/) { $type = $1 - 1 }
 
       for my $c (@counts) {
         # no warnings "uninitialized";
@@ -995,6 +1034,81 @@ sub objectify_cover ($self) {
   }
 }
 
+sub _derive_mcdc ($self, $cover, $uncoverable = {}, $st = undef) {
+  require Devel::Cover::Condition_table;
+  require Devel::Cover::Mcdc::Analyser;
+
+  for my $cf (values %$cover) {
+    my $cc = $cf->{condition} or next;
+    next if exists $cf->{mcdc};
+
+    my $digest = $cf->{meta}{digest};
+    my $unc    = $digest && $uncoverable->{$digest}{mcdc};
+
+    # Merge compound decision roots, with their observed vectors, as synthetic
+    # condition entries; see L</Compound decision roots>.
+    my %roots;
+    my $decisions = $st && $digest ? $st->get_mcdc_decision($digest) : undef;
+    my $inputs    = delete $cf->{mcdc_decision_inputs};
+    my $i         = 0;
+    for my $d ($decisions ? @$decisions : ()) {
+      my ($line, $structure, $counts) = @$d;
+      my $obs = $inputs && $inputs->[$i++];
+      push $roots{$line}->@*, [$counts, $structure, undef, $obs];
+    }
+
+    my %mcdc;
+    for my $line (keys %$cc) {
+      my @loc      = ($cc->{$line}->@*, ($roots{$line} // [])->@*) or next;
+      my @observed = map observed_vectors($_), @loc;
+      my @tables   = Devel::Cover::Condition_table->for_line(\@loc, \@observed);
+      for my $n (0 .. $#tables) {
+        my $table = $tables[$n];
+        my $r     = Devel::Cover::Mcdc::Analyser->analyse($table);
+        my $total = $r->{total};
+        my $pairs = $r->{pairs};
+        # An unproven table's rows are an unverified synthesis, so claim no
+        # MC/DC for it.
+        my @coverage
+          = $table->proven
+          ? map { exists $pairs->{$_} ? 1 : 0 } 0 .. $total - 1
+          : (0) x $total;
+        my $decision
+          = [\@coverage, { text => $table->expr, labels => [$table->labels] }];
+
+        # Merge explicit "# uncoverable mcdc" markers with conditions the
+        # analyser excused because their only pair needs an uncoverable row.
+        # The analyser's set is derived from the table's rows, so trust it only
+        # for a proven table; for an unproven one the rows are the evidence we
+        # distrust, leaving the explicit markers as the only excuse.
+        my @uncov = (_mcdc_uncoverable($unc, $line, $n, $total) // [])->@*;
+        $uncov[$_] ||= 1 for $table->proven ? keys $r->{uncoverable}->%* : ();
+        $decision->[2] = \@uncov if @uncov;
+
+        push $mcdc{$line}->@*, $decision;
+      }
+    }
+    $cf->{mcdc} = \%mcdc if %mcdc;
+  }
+}
+
+# Per-column uncoverable vector for one mcdc decision, or undef if unmarked. A
+# marker with a column marks that condition; one without marks every column.
+sub _mcdc_uncoverable ($unc, $line, $n, $total) {
+  my $marks = $unc && $unc->{$line}[$n] or return undef;
+  my @uncov;
+  for my $mark (@$marks) {
+    my ($col, $class) = @$mark;
+    my $flag = $class || 1;
+    if (defined $col) {
+      $uncov[$col] = $flag;
+    } else {
+      $uncov[$_] = $flag for 0 .. $total - 1;
+    }
+  }
+  \@uncov
+}
+
 sub _file_digest ($r, $file) {
   no warnings "once";
   my $digest = $r->{digests}{$file};
@@ -1034,7 +1148,25 @@ sub _cover_file (
     };
     my $cc  = $cf->{$criterion} ||= {};
     my $add = "add_$criterion";
-    $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
+    if ($criterion eq "condition") {
+      $self->$add(
+        $cc, $sc, $fc,
+        $uncoverable->{$digest}{$criterion},
+        $r->{decision_inputs}{$file},
+      );
+    } else {
+      $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
+    }
+  }
+
+  # Accumulate decision-root observed vectors across runs for _derive_mcdc.
+  if (my $mdi = $r->{mcdc_decision_inputs}{$file}) {
+    my $acc = $cf->{mcdc_decision_inputs} //= [];
+    for my $i (0 .. $#$mdi) {
+      my $obs    = $mdi->[$i] or next;
+      my $merged = $acc->[$i] //= {};
+      $merged->{$_} += $obs->{$_} for keys %$obs;
+    }
   }
 }
 
@@ -1074,6 +1206,9 @@ sub cover ($self) {
       );
     }
   }
+
+  $self->_derive_mcdc($cover, $uncoverable, $st)
+    if exists $self->{collected}{mcdc};
 
   $self->objectify_cover;
   if ($self->{files}->@*) {
@@ -1347,7 +1482,48 @@ Merge subroutine coverage counts.
 
 =head2 add_condition
 
-Alias for L</add_branch>.
+  $db->add_condition($cc, $sc, $fc, $uc);
+  $db->add_condition($cc, $sc, $fc, $uc, $di);
+
+Merge condition coverage counts. The four-argument form behaves as
+L</add_branch>. The optional fifth argument C<$di> is an arrayref of
+per-condition observed input-vector hashes (parallel to C<$fc>) and is merged
+into each condition entry's observed-vector slot for later use by the MC/DC
+analyser; see L</observed_vectors>.
+
+=head2 observed_vectors
+
+  my $obs = Devel::Cover::DB::observed_vectors($entry);
+
+Return the observed-vector hash recorded on a condition entry (or undef).
+
+=head2 Compound decision roots
+
+A statement-level logop whose value is discarded - the last statement of a sub,
+an implicit return - is recorded as a branch, not a condition. The MC/DC
+derivation builds its truth tables from the condition structure, so it has no
+entry to unify such a logop's operands under and would instead measure each
+operand as a separate table.
+
+When the logop is a compound decision (its right operand is itself a logop)
+Devel::Cover records its decision structure separately, under the
+C<mcdc_decision> key of the file structure, keyed away from condition and branch
+coverage so neither criterion's output moves. C<_derive_mcdc> merges these roots
+into the per-line condition list as synthetic entries, letting
+L<Devel::Cover::Condition_table/for_line> rebuild the single unified table.
+
+The decision structure is recorded once per file (a reuse guard skips it on
+later runs over the same source), while the root's observed input vectors are
+recorded per run in C<< $run->{mcdc_decision_inputs} >>, keyed by the decision's
+walk ordinal, and accumulated across runs. C<_derive_mcdc> attaches the
+accumulated vectors to the synthetic entry's observed-vector slot, so a root
+exercised in value context reports proven MC/DC coverage rather than an unproven
+synthesis. A root evaluated only in void context never observes its right
+operand and so stays honestly unproven.
+
+Control-flow logops - C<if>/C<while> bodies, C<or die>, C<and $x++> - have a
+block, statement, or side-effect right operand rather than a nested decision, so
+they are excluded and only genuine boolean decisions are recorded.
 
 =head2 add_pod
 

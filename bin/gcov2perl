@@ -18,7 +18,7 @@ no warnings qw( experimental::signatures experimental::postderef );
 use Devel::Cover::DB  ();
 use Devel::Cover::Log qw( dcerror dcinfo );
 
-use Config;
+use Config       qw( %Config );
 use File::Path   qw( mkpath );
 use File::Spec   ();
 use Getopt::Long qw( GetOptions );
@@ -35,10 +35,11 @@ sub get_options () {
       qw( db=s help|h! info|i! silent! skip_core|skip-core! version|v! ),
     );
   $Devel::Cover::Silent = 1 if $Options->{silent};
-  print "$0 version " . __PACKAGE__->VERSION . "\n" and exit 0
-    if $Options->{version};
+  # jscpd:ignore-start
+  say "$0 version " . __PACKAGE__->VERSION and exit 0 if $Options->{version};
   pod2usage(-exitval => 0, -verbose => 0) if $Options->{help};
   pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
+  # jscpd:ignore-end
 }
 
 sub core_dir () {

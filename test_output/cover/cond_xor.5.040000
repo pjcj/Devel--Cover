@@ -1,10 +1,10 @@
 cover: Reading database from ...
--------------- ------ ------ ------ ------ ------ ------
-File             stmt   bran   cond    sub  total   slop
--------------- ------ ------ ------ ------ ------ ------
-tests/cond_xor  100.0    n/a   66.6  100.0   86.2    0.0
-Total           100.0    n/a   66.6  100.0   86.2    0.0
--------------- ------ ------ ------ ------ ------ ------
+-------------- ------ ------ ------ ------ ------ ------ ------
+File             stmt   bran   cond   mcdc    sub  total   slop
+-------------- ------ ------ ------ ------ ------ ------ ------
+tests/cond_xor  100.0    n/a   66.6   66.6  100.0   82.8    0.0
+Total           100.0    n/a   66.6   66.6  100.0   82.8    0.0
+-------------- ------ ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -22,36 +22,36 @@ CC  Cov CRAP SLOP
 -- ---- ---- ----
  1 85.2  1.0  0.0
 
-line  err   stmt   bran   cond    sub   code
-1                                       #!/usr/bin/perl
-2                                       
-3                                       # Copyright 2002-2026, Paul Johnson (paul@pjcj.net)
-4                                       
-5                                       # This software is free.  It is licensed under the same terms as Perl itself.
-6                                       
-7                                       # The latest version of this software should be available from my homepage:
-8                                       # https://pjcj.net
-9                                       
-10             1                    1   use strict;
-               1                        
-               1                        
-11             1                    1   use warnings;
-               1                        
-               1                        
-12                                      
-13             1                        my $i = 1;
-14             1                        my $j = 0;
-15                                      
-16             1                        for my $y (0, 1, 1, 1) {
-17             4                            for my $z (0, 0, 1) {
-18            12                                my $x = $y ^ $z;
-19            12           100                  $x = ($y xor $z);
-20                                      
-21    ***     12          * 50                  my $p = ($i xor $y);
-22    ***     12          * 50                  $p = ($j xor $y);
-23            12                                $p ^= $y;
-24                                          }
-25                                      }
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2002-2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13             1                               my $i = 1;
+14             1                               my $j = 0;
+15                                             
+16             1                               for my $y (0, 1, 1, 1) {
+17             4                                   for my $z (0, 0, 1) {
+18            12                                       my $x = $y ^ $z;
+19            12           100    100                  $x = ($y xor $z);
+20                                             
+21    ***     12          * 50   * 50                  my $p = ($i xor $y);
+22    ***     12          * 50   * 50                  $p = ($j xor $y);
+23            12                                       $p ^= $y;
+24                                                 }
+25                                             }
 
 
 Conditions
@@ -64,6 +64,16 @@ line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
 19           100      3      6      1      2   $y ^^ $z
 21    ***     50      9      3      0      0   $i ^^ $y
 22    ***     50      0      0      9      3   $j ^^ $y
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+19           100    2    2                          $y ^^ $z
+21    ***     50    1    2   $i                     $i ^^ $y
+22    ***     50    1    2   $j                     $j ^^ $y
 
 
 Covered Subroutines

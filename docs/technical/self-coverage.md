@@ -41,7 +41,7 @@ compiled before instrumentation activates:
 - `Devel::Cover::DB::File`
 - `Devel::Cover::DB::IO`
 - `Devel::Cover::Criterion` and all subclasses (Statement, Branch, Condition
-  variants, Subroutine, Time, Pod)
+  variants, Subroutine, Time, Pod, Mcdc)
 - `Devel::Cover::Dumper`
 - `Devel::Cover::Inc`
 
@@ -55,6 +55,8 @@ instrumentation is active:
 **Library modules** (tested by `t/internal/`):
 
 - `Devel::Cover::DB::Structure` - abstract structure of source files
+- `Devel::Cover::Mcdc::Analyser` - MC/DC pair analyser (lazily required by
+  `DB.pm:_derive_mcdc` at report time)
 - `Devel::Cover::Path` - path shortening for reports
 - `Devel::Cover::Static` - static analysis of uncovered files
 
@@ -97,9 +99,10 @@ Equivalent Makefile targets: `make dc_cover_lib`, `make dc_cover_reports`,
 
 ### How dc-cover-lib Works
 
-Runs `t/internal/path.t` and `t/internal/static.t` under `-MDevel::Cover` with
-`-select` matching only the modules under test. Only Path.pm and Static.pm
-appear in the coverage report.
+Runs the relevant `t/internal/*.t` tests (currently `structure.t`, `path.t`,
+`static.t`, `condition_table.t`, `mcdc_analyser.t`) under `-MDevel::Cover` with
+`-select` matching only the modules under test. Only the selected library
+modules appear in the coverage report.
 
 ### How dc-cover-reports Works
 

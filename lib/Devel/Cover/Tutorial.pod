@@ -150,6 +150,53 @@ should also be covered:
 Expression coverage is also known as condition, condition-decision and
 multiple decision coverage.
 
+=head2 2.5 Modified condition/decision coverage
+
+Modified Condition/Decision Coverage (MC/DC) strengthens expression
+coverage.  Expression coverage is satisfied once each atomic condition
+has been observed both true and false; that turns out to be weaker than
+it sounds.  A test set can hit every row of the truth table while leaving
+plenty of single-fault bugs - misplaced negations, swapped operands,
+dropped clauses - free to slip through.
+
+MC/DC asks for more.  For each atomic condition C in a decision, the
+test suite must contain a pair of executions where C's truth value
+differs between the two, every other condition is held compatibly (same
+value, or masked by short-circuit), and the decision's overall outcome
+differs as a result.  This demonstrates that each input independently
+affects the decision's result.
+
+MC/DC is mandated by DO-178B/C Level A (avionics) and recommended by
+ISO 26262 ASIL C/D (automotive) and IEC 61508 SIL 3/4 (industrial
+functional safety).
+
+A worked example.  Consider a permission check that allows editing when
+the user owns an unlocked article, or when they are an administrator:
+
+  sub may_edit ($is_owner, $unlocked, $is_admin) {
+    return ($is_owner && $unlocked) || $is_admin;
+  }
+
+A misplaced C<!> turns it into:
+
+  sub may_edit_buggy ($is_owner, $unlocked, $is_admin) {
+    return ($is_owner && !$unlocked) || $is_admin;
+  }
+
+Owners can now only edit locked articles.  The four tests C<(T,T,T)>,
+C<(T,F,T)>, C<(F,F,T)>, C<(F,F,F)> together give 100% statement, branch
+and expression coverage, and they pass against both implementations - so
+the bug is invisible to those metrics.
+
+MC/DC additionally requires a pair of tests that flips C<$unlocked>
+while holding C<$is_owner> and C<$is_admin> compatibly.  The smallest
+such pair is C<(T,T,F)> and C<(T,F,F)>.  Neither is in the four-test
+set above; adding C<(T,T,F)> exposes the bug, because the correct
+implementation returns true (the user owns the unlocked article) while
+the buggy one returns false.
+
+100% MC/DC usually implies 100% expression coverage, but not always.
+
 =head2 3.0 Other considerations
 
 In order to get people to actually use code coverage it needs to be

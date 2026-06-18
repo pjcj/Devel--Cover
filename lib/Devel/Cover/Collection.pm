@@ -369,17 +369,15 @@ class Devel::Cover::Collection {
     say "\n\nWriting collection output to $f ...";
 
     my $vars = {
-      title   => "Coverage report",
-      modules => {},
-      vals    => {},
-      subdir  => "latest/",
-      headers =>
-        [grep !/path|time/, @Devel::Cover::DB::Criteria_short, "total"],
-      criteria    => [grep !/path|time/, @Devel::Cover::DB::Criteria, "total"],
+      title       => "Coverage report",
+      modules     => {},
+      vals        => {},
+      subdir      => "latest/",
+      headers     => [grep !/time/, @Devel::Cover::DB::Criteria_short, "total"],
+      criteria    => [grep !/time/, @Devel::Cover::DB::Criteria,       "total"],
       col_headers => do {
-        my @f = (grep(!/path|time/, @Devel::Cover::DB::Criteria), "total");
-        my @s
-          = (grep(!/path|time/, @Devel::Cover::DB::Criteria_short), "total");
+        my @f = (grep(!/time/, @Devel::Cover::DB::Criteria),       "total");
+        my @s = (grep(!/time/, @Devel::Cover::DB::Criteria_short), "total");
         [map { { full => ucfirst($f[$_]), short => $s[$_] } } 0 .. $#f]
       },
     };
@@ -950,8 +948,8 @@ $Templates{module_by_start} = <<'EOT';
 EOT
 
 "
-We have normality, I repeat we have normality.
-Anything you still can't cope with is therefore your own problem.
+Is a dream a lie if it don't come true
+Or is it something worse?
 "
 
 __END__

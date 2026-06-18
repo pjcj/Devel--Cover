@@ -7,30 +7,27 @@
 
 package Devel::Cover::Time;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
 use base "Devel::Cover::Criterion";
 
-sub uncoverable { 0 }
-sub covered     { ${ $_[0] } }
-sub total       { 1 }
-sub percentage  { ${ $_[0] } ? 100 : 0 }
-sub error       { 0 }
+sub uncoverable ($self) { 0 }
+sub covered     ($self) { $$self }
+sub total       ($self) { 1 }
+sub percentage  ($self) { $$self ? 100 : 0 }
+sub error       ($self) { 0 }
 
-sub calculate_summary {
-  my $self = shift;
-  my ($db, $file) = @_;
-
+sub calculate_summary ($self, $db, $file) {
   $db->{summary}{$file}{time}{total} += $$self;
   $db->{summary}{Total}{time}{total} += $$self;
 }
 
-sub calculate_percentage {
-  my $class = shift;
-  my ($db, $s) = @_;
+sub calculate_percentage ($class, $db, $s) {
   my $t = $db->{summary}{Total}{time}{total};
   $s->{percentage} = $t ? $s->{total} * 100 / $t : 100;
 }

@@ -1,0 +1,89 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+sub and_decision {
+  my ($p, $q) = @_;
+  return $p && $q;
+}
+
+sub or_decision {
+  my ($p, $q) = @_;
+  return $p || $q;
+}
+
+sub chained_and {
+  my ($p, $q, $r) = @_;
+  return $p && $q && $r;
+}
+
+sub chained_or {
+  my ($p, $q, $r) = @_;
+  return $p || $q || $r;
+}
+
+sub negated_and {
+  my ($p, $q) = @_;
+  return !$p && $q;
+}
+
+sub nested {
+  my ($a, $b, $c) = @_;
+  return ($a && $b) || $c;
+}
+
+sub main {
+  # Calls are pushed into @r so each decision is exercised in non-void
+  # context.  In void context the runtime collapses the right operand's
+  # truth value into the short-circuit count, leaving MC/DC nothing to
+  # analyse for the right atomic.
+  my @r;
+
+  # 2-input && hits all three short-circuit rows; MC/DC satisfied.
+  push @r, and_decision(1, 1);
+  push @r, and_decision(1, 0);
+  push @r, and_decision(0, 1);
+
+  # 2-input || hits two of the three short-circuit rows; the (F,T)
+  # row is omitted, so the right atomic has no independence pair.
+  push @r, or_decision(1, 0);
+  push @r, or_decision(0, 0);
+
+  # 3-input chained && hits all four short-circuit rows; the $p pair
+  # matches (F,X,X) against (T,T,T), exercising X compatibility
+  # across two columns at once.
+  push @r, chained_and(1, 1, 1);
+  push @r, chained_and(1, 1, 0);
+  push @r, chained_and(1, 0, 0);
+  push @r, chained_and(0, 0, 0);
+
+  # 3-input chained || hits all four short-circuit rows.
+  push @r, chained_or(1, 0, 0);
+  push @r, chained_or(0, 1, 0);
+  push @r, chained_or(0, 0, 1);
+  push @r, chained_or(0, 0, 0);
+
+  # Leading negation: exercises GH-446 address-based child linking
+  # so the underlying atomic is $p, not the negated value.
+  push @r, negated_and(0, 1);
+  push @r, negated_and(0, 0);
+  push @r, negated_and(1, 0);
+
+  # Mixed-precedence (A && B) || C - the worked-example shape from
+  # docs/technical/mcdc.md.
+  push @r, nested(1, 1, 0);
+  push @r, nested(1, 0, 0);
+  push @r, nested(0, 0, 1);
+  push @r, nested(1, 0, 1);
+  push @r, nested(0, 0, 0);
+}
+
+main();
