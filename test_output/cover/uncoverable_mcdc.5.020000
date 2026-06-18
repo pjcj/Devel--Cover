@@ -1,0 +1,138 @@
+cover: Reading database from ...
+---------------------- ------ ------ ------ ------ ------ ------ ------
+File                     stmt   bran   cond   mcdc    sub  total   slop
+---------------------- ------ ------ ------ ------ ------ ------ ------
+tests/uncoverable_mcdc  100.0    n/a   83.3  100.0  100.0   95.8   16.1
+Total                   100.0    n/a   83.3  100.0  100.0   95.8   16.1
+---------------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/uncoverable_mcdc
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+ 5 94.3  5.0 16.1
+
+Worst Subroutines
+-----------------
+
+Subroutine       CC SLOP  Location                 
+---------------- -- ----  -------------------------
+compound_inner    3 11.0  tests/uncoverable_mcdc:37
+dor_default       2  7.1  tests/uncoverable_mcdc:17
+left_always_true  2  7.0  tests/uncoverable_mcdc:25
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13                                             # A // whose right operand is an always-defined variable: neither atomic
+14                                             # condition's independence pair can be formed, so the whole decision is
+15                                             # uncoverable for MC/DC.  A bare marker covers every column.
+16                                             sub dor_default {
+17             2                           2     my ($h, $k, $val) = @_;
+18                                               # uncoverable mcdc
+19    ***      2          * 66   -  0            return $h->{$k} //= $val;
+20                                             }
+21                                             
+22                                             # $a && $b where the left operand is always true: its pair can never be formed,
+23                                             # but the right operand's can.  pair:1 marks only the left column.
+24                                             sub left_always_true {
+25             2                           2     my ($b) = @_;
+26             2                                 my $always = 1;
+27                                               # uncoverable mcdc pair:1
+28    ***      2          * 66   - 50            return $always && $b;
+29                                             }
+30                                             
+31                                             # $a && $b && $c is a compound decision, parsed ($a && $b) && $c.  $b is held
+32                                             # true, so the inner $a && !$b outcome - the row $b's MC/DC independence pair
+33                                             # needs - can never occur.  The plain condition marker on that inner outcome
+34                                             # (count:2 selects the inner $a && $b) now also excuses $b for MC/DC, derived
+35                                             # from the compound truth table with no separate "# uncoverable mcdc" needed.
+36                                             sub compound_inner {
+37             3                           3     my ($a, $c) = @_;
+38             3                                 my $b = 1;
+39                                               # uncoverable condition right count:2
+40             3           100   - 66            return $a && $b && $c;
+                          - 66                 
+41                                             }
+42                                             
+43                                             sub main {
+44                                               # Push results so each decision runs in non-void context.
+45             1                           1     my @r;
+46                                               my %h;
+47             1                                 push @r, dor_default(\%h, "a", 1);  # left undef  -> assigns
+48             1                                 push @r, dor_default(\%h, "a", 1);  # left defined -> skips
+49             1                                 push @r, left_always_true(1);
+50             1                                 push @r, left_always_true(0);
+51             1                                 push @r, compound_inner(0, 0);  # a false
+52             1                                 push @r, compound_inner(1, 0);  # a true, c false
+53             1                                 push @r, compound_inner(1, 1);  # all true
+54                                             }
+55                                             
+56             1                               main();
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+28    ***     66      0      1      1   $always && $b
+40           100      1      1      1   $a && $b && $c
+            - 66      1     -0      2   $a and $b
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+19    ***     66      1      1      0   $$h{$k} //= $val
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+19             0    0    2                          $$h{$k} //= $val
+28            50    1    2                          $always && $b
+40            66    2    3                          $a && $b && $c
+
+
+Covered Subroutines
+-------------------
+
+Subroutine       Count  CC  SLOP Location                 
+---------------- ----- --- ----- -------------------------
+BEGIN                1   1   0.0 tests/uncoverable_mcdc:10
+BEGIN                1   1   0.0 tests/uncoverable_mcdc:11
+compound_inner       3   3  11.0 tests/uncoverable_mcdc:37
+dor_default          2   2   7.1 tests/uncoverable_mcdc:17
+left_always_true     2   2   7.0 tests/uncoverable_mcdc:25
+main                 1   1   0.0 tests/uncoverable_mcdc:45
+
+

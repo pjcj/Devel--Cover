@@ -1,0 +1,120 @@
+cover: Reading database from ...
+--------------- ------ ------ ------ ------ ------ ------ ------
+File              stmt   bran   cond   mcdc    sub  total   slop
+--------------- ------ ------ ------ ------ ------ ------ ------
+tests/mcdc_demo  100.0    n/a  100.0   66.6  100.0   96.3   11.0
+Total            100.0    n/a  100.0   66.6  100.0   96.3   11.0
+--------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/mcdc_demo
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 3 100.0  3.0 11.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SLOP  Location          
+---------- -- ----  ------------------
+may_edit    3 11.0  tests/mcdc_demo:29
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # Demonstrates the asymmetry MC/DC was invented to catch.  This is the
+11                                             # four-test worked example from docs/technical/mcdc.md: the decision
+12                                             # `($is_owner && $unlocked) || $is_admin` exercised with four inputs.
+13                                             # Those inputs achieve 100% statement, branch, and condition coverage
+14                                             # (every row of both the outer `or_3` and inner `and_3` truth tables is
+15                                             # observed) but $unlocked has no short-circuit-aware independence
+16                                             # pair, so MC/DC drops to 66.6%.  Adding a fifth test `(T,F,F)` would
+17                                             # take MC/DC to 100% and catch the misplaced-negation bug shown in
+18                                             # the design doc that the four-test condition-coverage set hides.
+19                                             #
+20                                             # This fixture exists to lock in that asymmetry as a permanent
+21                                             # regression test.  If a future change to the analyser ever makes
+22                                             # MC/DC track condition coverage exactly, this fixture's golden will
+23                                             # diverge and force the question to be answered.
+24                                             
+25             1                           1   use strict;
+               1                               
+               1                               
+26             1                           1   use warnings;
+               1                               
+               1                               
+27                                             
+28                                             sub may_edit {
+29             4                           4     my ($is_owner, $unlocked, $is_admin) = @_;
+30    ***      4           100   * 66            return ($is_owner && $unlocked) || $is_admin;
+                           100                 
+31                                             }
+32                                             
+33                                             sub main {
+34             1                           1     my @r;
+35                                             
+36                                               # The four-test set from docs/technical/mcdc.md "Tests achieving 100%
+37                                               # statement, branch, and condition coverage".  Hits every row of both
+38                                               # the outer `or_3` and inner `and_3` truth tables, but leaves
+39                                               # $is_owner and $unlocked without independence pairs.
+40             1                                 push @r, may_edit(1, 1, 1);
+41             1                                 push @r, may_edit(1, 0, 1);
+42             1                                 push @r, may_edit(0, 0, 1);
+43             1                                 push @r, may_edit(0, 0, 0);
+44                                             }
+45                                             
+46             1                               main();
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+30           100      2      1      1   $is_owner and $unlocked
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+30           100      1      2      1   $is_owner && $unlocked || $is_admin
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+30    ***     66    2    3   $unlocked              $is_owner && $unlocked || $is_admin
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SLOP Location          
+---------- ----- --- ----- ------------------
+BEGIN          1   1   0.0 tests/mcdc_demo:25
+BEGIN          1   1   0.0 tests/mcdc_demo:26
+main           1   1   0.0 tests/mcdc_demo:34
+may_edit       4   3  11.0 tests/mcdc_demo:29
+
+

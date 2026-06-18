@@ -22,6 +22,7 @@ sub _print_criteria_value ($o, $c) {
 
 sub _format_value ($o, $c) {
   my $value = _print_criteria_value($o, $c);
+  $value = sprintf "%3d", $value if $c !~ /statement|sub|pod|time/;
   $value = "-$value" if $o->uncoverable;
   $value = "*$value" if $o->error;
   $value
@@ -285,7 +286,7 @@ sub print_branches ($db, $file, $) {
     my $n = 0;
     for my $b ($branches->location($location)->@*) {
       printf $tpl, $n ? "" : $location, $b->error ? "***" : "",
-        ($b->uncoverable ? "-" : "") . $b->percentage,
+        ($b->uncoverable ? "-" : "") . sprintf("%3d", $b->percentage),
         (map { ($b->uncoverable($_) ? "-" : "") . ($b->covered($_) || 0) }
           0 .. $b->total - 1), $b->text;
       $n++;
@@ -329,7 +330,7 @@ sub print_conditions ($db, $file, $) {
         printf $tpl, "-----", "---", ("------") x ($nh + 1), "----";
       }
       printf $tpl, $location, $c->error ? "***" : "",
-        ($c->uncoverable ? "-" : "") . $c->percentage,
+        ($c->uncoverable ? "-" : "") . sprintf("%3d", $c->percentage),
         (map { ($c->uncoverable($_) ? "-" : "") . ($c->covered($_) || 0) }
           0 .. $c->total - 1), $c->text;
     }
@@ -337,6 +338,29 @@ sub print_conditions ($db, $file, $) {
   }
 
   say "";
+}
+
+sub print_mcdc ($db, $file, $) {
+  my $mcdc = $db->cover->file($file)->mcdc;
+  return unless $mcdc;
+
+  say "MC/DC";
+  say "-----\n";
+
+  my $tpl = "%-5s %3s %6s %4s %4s   %-20s   %s\n";
+  printf $tpl, "line",  "err", "%",      "cov",  "tot",  "missing", "expr";
+  printf $tpl, "-----", "---", "------", "----", "----", "-" x 20,  "----";
+
+  for my $location (sort { $a <=> $b } $mcdc->items) {
+    my $n = 0;
+    for my $m ($mcdc->location($location)->@*) {
+      printf $tpl, $n ? "" : $location, $m->error ? "***" : "", $m->percentage,
+        $m->covered, $m->total, join(", ", $m->missing->@*), $m->text;
+      $n++;
+    }
+  }
+
+  say "\n";
 }
 
 sub _update_maxw ($maxw, %vals) {
@@ -425,6 +449,7 @@ sub report ($, $db, $options) {
       if $options->{show}{statement};
     print_branches($db, $file, $options)   if $options->{show}{branch};
     print_conditions($db, $file, $options) if $options->{show}{condition};
+    print_mcdc($db, $file, $options)       if $options->{show}{mcdc};
     print_subroutines($db, $file, $options, $short)
       if $options->{show}{subroutine} || $options->{show}{pod};
   }
@@ -488,6 +513,12 @@ percentage for each branch point.
 
 Print condition coverage tables for C<$file>, grouped by condition type (and,
 or, xor).
+
+=head2 print_mcdc ($db, $file, $options)
+
+Print the MC/DC table for C<$file>: per-decision satisfaction percentage,
+covered/total atomic counts, the labels of any unsatisfied atomics, and the
+decision's source text.
 
 =head2 print_subroutines ($db, $file, $options, $short)
 

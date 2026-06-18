@@ -177,7 +177,6 @@ sub has_select { scalar @Select_re }
     my @coverage = get_coverage();
     %Coverage = map { $_ => 1 } @coverage;
 
-    delete $Coverage{path};  # not done yet
     my $nopod = "";
     if (!$Pod && exists $Coverage{pod}) {
       delete $Coverage{pod};  # Pod::Coverage unavailable
@@ -745,6 +744,8 @@ sub _filter_cover_files {
     unless (use_file($file)) {
       delete $Run{count}{$file};
       delete $Run{vec}{$file};
+      delete $Run{decision_inputs}{$file};
+      delete $Run{mcdc_decision_inputs}{$file};
       $Structure->delete_file($file);
       next;
     }
@@ -858,40 +859,37 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
   }
 }
 
-sub add_condition_cover (
-  $op, $strop, $left, $right,
-  $left_op = undef,
-  $right_op = undef,
-) {
-  return unless $Collect && $Coverage{condition};
+# Reorder the raw condition counts into truth-table order and return
+# (counts, operand-count, void-collapsed-flag).  An or/and collapses to its
+# 2-count form in void context or with a constant right operand; a genuine
+# (non-constant) right operand collapsed in void context is flagged so MC/DC
+# can rebuild the full decision.
+sub _condition_counts ($c, $type, $op) {
+  no warnings "uninitialized";
 
+  if ($type eq "or" || $type eq "and") {
+    my $const = _is_const_right($op->first->sibling);
+    return ([$c->[3], $c->[1] + $c->[2]], 2, $c->[5] && !$const ? 1 : 0)
+      if $c->[5] || $const;
+    @$c = $c->@[$type eq "or" ? (3, 2, 1) : (3, 1, 2)];
+    return ($c, 3, 0);
+  }
+  if ($type eq "xor") {
+    # !l&&!r  l&&!r  l&&r  !l&&r
+    @$c = $c->@[3, 2, 4, 1];
+    return ($c, 4, 0);
+  }
+  die qq(Unknown type "$type" for conditional);
+}
+
+sub _condition_structure ($op, $strop, $left, $right, $left_op, $right_op) {
   my $key  = get_key($op);
   my $type = $op->name;
   $type =~ s/assign$//;
   $type = "or" if $type eq "dor";
 
-  my $c = $Coverage->{condition}{$key};
-
-  no warnings "uninitialized";
-
-  my $count;
-
-  if ($type eq "or" || $type eq "and") {
-    my $r = $op->first->sibling;
-    if ($c->[5] || _is_const_right($r)) {
-      $c     = [$c->[3], $c->[1] + $c->[2]];
-      $count = 2;
-    } else {
-      @$c    = $c->@[$type eq "or" ? (3, 2, 1) : (3, 1, 2)];
-      $count = 3;
-    }
-  } elsif ($type eq "xor") {
-    # !l&&!r  l&&!r  l&&r  !l&&r
-    @$c    = $c->@[3, 2, 4, 1];
-    $count = 4;
-  } else {
-    die qq(Unknown type "$type" for conditional);
-  }
+  my ($c, $count, $void_collapsed)
+    = _condition_counts($Coverage->{condition}{$key}, $type, $op);
 
   my ($la, $ln) = _resolve_child_op($left_op);
   my ($ra, $rn) = _resolve_child_op($right_op);
@@ -906,9 +904,24 @@ sub add_condition_cover (
     right_addr    => $ra,
     left_negated  => $ln,
     right_negated => $rn,
+    $void_collapsed ? (void_collapsed => 1) : (),
   };
 
+  ($key, $structure, $c)
+}
+
+sub add_condition_cover (
+  $op, $strop, $left, $right,
+  $left_op = undef,
+  $right_op = undef,
+) {
+  return unless $Collect && $Coverage{condition};
+
+  my ($key, $structure, $c)
+    = _condition_structure($op, $strop, $left, $right, $left_op, $right_op);
+
   my ($n, $new) = $Structure->add_count("condition");
+
   $Structure->add_condition($File, [$Line, $structure]) if $new;
   my $ccount = $Run{count}{$File};
   if (exists $ccount->{condition}[$n]) {
@@ -918,6 +931,15 @@ sub add_condition_cover (
     my $vec = $Run{vec}{$File}{condition};
     vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
   }
+
+  _record_decision_inputs($key, $n);
+}
+
+sub _record_decision_inputs ($key, $n) {
+  return unless $Coverage{mcdc};
+  my $vectors = $Coverage->{decision_inputs}{$key} or return;
+  my $di      = $Run{decision_inputs}{$File}[$n] //= {};
+  $di->{$_} += $vectors->{$_} for keys %$vectors;
 }
 
 {
@@ -1577,6 +1599,39 @@ sub _resolve_blockname ($blockname, $cx) {
   $blockname
 }
 
+# True if the operand is itself a logop, through null/not wrappers only.
+sub _operand_is_decision ($op) {
+  while ($op && $$op && ($op->name eq "null" || $op->name eq "not")) {
+    return 0 unless $op->flags & OPf_KIDS;
+    $op = $op->first;
+  }
+  $op && $$op && $Is_condition_op{ $op->name } ? 1 : 0
+}
+
+# Record a branch-classified compound logop's decision structure for MC/DC.  The
+# right-operand-is-logop test excludes control-flow logops (if/while bodies, "or
+# die").  See L<Devel::Cover::DB/Compound decision roots>.
+sub _record_mcdc_decision ($cv, $op, $strop, $left_op, $right_op, $prec) {
+  return unless $Collect && $Coverage{mcdc};
+  return if $Seen{mcdc_decision}{$$op}++;
+  return unless _operand_is_decision($right_op);
+
+  my $left  = _deparse_expr($cv, $left_op,  $prec);
+  my $right = _deparse_expr($cv, $right_op, $prec);
+  my ($key, $structure, $c)
+    = _condition_structure($op, $strop, $left, $right, $left_op, $right_op);
+  my ($n, $new) = $Structure->add_count("mcdc_decision");
+  $Structure->add_mcdc_decision($File, [$Line, $structure, $c]) if $new;
+  _record_mcdc_inputs($key, $n);
+}
+
+# Decision-root analogue of _record_decision_inputs.
+sub _record_mcdc_inputs ($key, $n) {
+  my $vectors = $Coverage->{decision_inputs}{$key} or return;
+  my $di      = $Run{mcdc_decision_inputs}{$File}[$n] //= {};
+  $di->{$_} += $vectors->{$_} for keys %$vectors;
+}
+
 sub _walk_logop ($cv, $op) {
   return unless $Collect;
   return if $Seen{cond_expr}{$$op};
@@ -1608,6 +1663,7 @@ sub _walk_logop ($cv, $op) {
     my $text = is_scope($right) ? "$blockname ($l)" : "$blockname $l";
     add_branch_cover($op, $lowop, $text, $file, $line)
       unless $Seen{branch}{$$op}++;
+    _record_mcdc_decision($cv, $op, $highop // $lowop, $left, $right, $lowprec);
   } elsif ($cx > $lowprec && $highop) {
     my $l = _deparse_binop_left($cv, $op, $left, $highprec, 0);
     my $r = _deparse_expr($cv, $right, $highprec, 0);
@@ -1619,6 +1675,10 @@ sub _walk_logop ($cv, $op) {
     if ($is_branch) {
       add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
         unless $Seen{branch}{$$op}++;
+      _record_mcdc_decision(
+        $cv,   $op,    $highop // $lowop,
+        $left, $right, $lowprec,
+      );
     } else {
       add_condition_cover($op, $lowop, $l, $r, $left, $right)
         unless $Seen{condition}{$$op}++;
@@ -1893,7 +1953,7 @@ In this example, Devel::Cover will be operating in silent mode.
   -blib               - "use blib" and ignore files matching \bt/ (default true
                         if blib directory exists, false otherwise)
   -coverage criterion - Turn on coverage for the specified criterion.  Criteria
-                        include statement, branch, condition, path, subroutine,
+                        include statement, branch, condition, mcdc, subroutine,
                         pod, time, all and none (default all except time)
   -db cover_db        - Store results in coverage db (default ./cover_db)
   -dir path           - Directory in which coverage will be collected (default
@@ -2093,6 +2153,26 @@ examples) but C<xor> conditionals are not properly handled yet.
 
 As for branches, the "count" value may be used for either conditions in elsif
 conditionals, or for complex conditions.
+
+=head3 MC/DC
+
+An MC/DC decision can be uncoverable when an atomic condition's independence
+pair can never be formed, for example the right operand of C<//> in C<< $x //=
+$default >> when C<$default> is always defined.
+
+A bare comment marks every atomic condition of the decision uncoverable:
+
+  # uncoverable mcdc
+  $x //= $default;
+
+The "pair" attribute marks a single atomic condition by its position (1-based,
+in the order the report lists them), leaving the rest counted as normal:
+
+  # uncoverable mcdc pair:2
+  $x = $a || $b || $c;
+
+As for conditions, the "count" value selects between several decisions on one
+line.
 
 =head3 Subroutines
 

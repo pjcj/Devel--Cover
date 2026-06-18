@@ -7,82 +7,63 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Devel::Cover::DB;
+use List::Util qw( max );
 use Devel::Cover::Truth_Table;
 use Devel::Cover::Path qw( common_prefix );
 
-my %format = (
+my %Format = (
   line       => "%4s ",
   err        => "%3s ",
   statement  => "%4s ",
   branch     => "%-6s ",
   condition  => "%-24s ",
+  mcdc       => "%6s ",
   subroutine => "%4s ",
   pod        => "%4s ",
   time       => "%6s ",
   code       => "| %s\n",
 );
 
-#-------------------------------------------------------------------------------
-# Subroutine : headers()
-# Purpose    : Determine field headers for report.
-# Notes      :
-#-------------------------------------------------------------------------------
-sub headers {
-  my ($db, $options) = @_;
+sub headers ($db, $options) {
   my ($fmt, @data);
 
-  for (qw/line err/) {
-    $fmt .= $format{$_};
+  for (qw( line err )) {
+    $fmt .= $Format{$_};
     push @data, $_;
   }
 
   my %cr;
   @cr{ $db->criteria } = $db->criteria_short;
-  foreach my $c ($db->criteria) {
+  for my $c ($db->criteria) {
     next unless $options->{show}{$c};
-    $fmt .= $format{$c};
+    $fmt .= $Format{$c};
     push @data, $cr{$c};
   }
-  $fmt .= $format{code};
-  push @data, 'code';
+  $fmt .= $Format{code};
+  push @data, "code";
 
-  return $fmt, @data;
+  ($fmt, @data)
 }
 
-#-------------------------------------------------------------------------------
-# Subroutine : get_metrics()
-# Purpose    : Determine which metrics to include in report.
-# Notes      :
-#-------------------------------------------------------------------------------
-sub get_metrics {
-  my ($db, $options, $file_data, $line) = @_;
+sub get_metrics ($db, $options, $file_data, $line) {
   my %m;
 
-  for my $c ($db->criteria) {  # find all metrics available in db
-    next unless $options->{show}{$c};  # skip those we don't want in report
-    my $criterion = $file_data->$c();  # check if metric collected for this file
-    if ($criterion) {                  # if it exists...
-      my $li = $criterion->location($line)
-        ;  #   get the metric info for the current line
-      $m{$c} = $li ? [@$li] : undef;  #   and stash it
+  for my $c ($db->criteria) {
+    next unless $options->{show}{$c};
+    my $criterion = $file_data->$c;
+    if ($criterion) {
+      my $li = $criterion->location($line);
+      $m{$c} = $li ? [@$li] : undef;
     }
   }
-  return %m;
+  %m
 }
 
-#-------------------------------------------------------------------------------
-# Subroutine : print_file()
-# Purpose    : Print report for file.
-# Notes      :
-#-------------------------------------------------------------------------------
-sub print_file {
-  my ($db, $file, $options, $short) = @_;
-
-  open(F, '<', $file) or warn("Unable to open '$file' [$!]\n"), return;
+sub print_file ($db, $file, $options, $short) {
+  open my $fh, "<", $file or warn "Unable to open '$file' [$!]\n" and return;
 
   my $display = $short->{$file};
-  my $pct     = sprintf("%.1f%%", $db->{summary}{$file}{total}{percentage});
+  my $pct     = sprintf "%.1f%%", $db->{summary}{$file}{total}{percentage};
   my $pver    = $^V->stringify;
   print <<EOT;
 #         File: $display
@@ -92,81 +73,62 @@ sub print_file {
 
 EOT
 
-  my ($fmt, @out) = headers($db, $options);
-  printf $fmt, @out;
+  my ($fmt, @hdr) = headers($db, $options);
+  printf $fmt, @hdr;
 
   my $file_data = $db->cover->file($file);
-  while (my $line = <F>) {
+  while (my $line = <$fh>) {
     chomp $line;
 
     my $error;
     my %metric = get_metrics($db, $options, $file_data, $.);
-    my @out    = ([$.], ['']);
+    my @row    = ([$.], [""]);
 
-    foreach my $c ($db->criteria) {
+    for my $c ($db->criteria) {
       next unless $options->{show}{$c};
-      push(@out, []), next unless $metric{$c};
+      push(@row, []), next unless $metric{$c};
 
       my $value = [];
-      if ($c eq 'branch') {
+      if ($c eq "branch") {
         @$value   = $file_data->branch->branch_coverage($.);
         $error  ||= $file_data->branch->error($.);
-      } elsif ($c eq 'condition') {
-        @$value = map { $_->[0]->text } $file_data->condition->truth_table($.);
+      } elsif ($c eq "condition") {
+        @$value   = map $_->[0]->text, $file_data->condition->truth_table($.);
         $error  ||= $file_data->condition->error($.);
       } else {
-        while (my $o = shift @{ $metric{$c} }) {
+        for my $o ($metric{$c}->@*) {
           push @$value,
             ($c =~ /statement|pod|time/) ? $o->covered : $o->percentage;
           $error ||= $o->error;
         }
       }
-      push @out, $value;
+      push @row, $value;
     }
 
-    $out[1] = ['***'] if $error;  # flag missing coverage
-    push @out, [$line];
+    $row[1] = ["***"] if $error;
+    push @row, [$line];
 
-    foreach my $i (0 .. max(map { $#$_ } @out)) {
-      no warnings 'uninitialized';
-      printf $fmt, map { $_->[$i] } @out;
+    for my $i (0 .. max(map $#$_, @row)) {
+      no warnings "uninitialized";
+      printf $fmt, map $_->[$i], @row;
     }
 
     last if $line =~ /^__(END|DATA)__/;
   }
-  close F or die "Unable to close '$file' [$!]";
+  close $fh or die "Unable to close '$file' [$!]";
   print "\n\n";
 }
 
-#-------------------------------------------------------------------------------
-# Subroutine : max()
-# Purpose    : Return the maximum from a list of numbers.
-# Notes      :
-#-------------------------------------------------------------------------------
-sub max {
-  my $max = shift;
-  foreach (@_) {
-    $max = $_ if $_ > $max;
-  }
-  return $max;
-}
-
-#-------------------------------------------------------------------------------
-# Subroutine : report()
-# Purpose    : Entry point for creating textual reports.
-# Notes      :
-#-------------------------------------------------------------------------------
-sub report {
-  my ($pkg, $db, $options) = @_;
+sub report ($pkg, $db, $options) {
   my @files = $options->{file}->@*;
   my ($prefix, $short) = common_prefix(@files);
-  foreach my $file (@files) {
+  for my $file (@files) {
     next if $db->cover->file($file)->{meta}{uncompiled};
     print_file($db, $file, $options, $short);
   }
 }
 
-1;
+1
 
 __END__
 
@@ -174,7 +136,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Report::Test2 - Text backend for Devel::Cover
+Devel::Cover::Report::Text2 - Text backend for Devel::Cover
 
 =head1 SYNOPSIS
 
@@ -182,12 +144,24 @@ Devel::Cover::Report::Test2 - Text backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a textual reporting mechanism for coverage data.
-It is designed to be called from the C<cover> program.
+This module provides a textual reporting mechanism for coverage data. It is
+designed to be called from the C<cover> program.
+
+Unlike L<Devel::Cover::Report::Text>, which produces a per-file summary followed
+by separate detail tables for each criterion, this reporter prints the source
+file itself with per-line coverage columns prepended to every line.  The columns
+are configurable per criterion via the C<%Format> hash inside this module.
+
+Use C<text2> when you want to read the source while seeing coverage data inline
+against each line - useful for auditing a specific file or stepping through it
+by hand.  Use C<text> when you want aggregated tables: scan which files are
+weakest, then drill into the per-criterion detail blocks (Branch, Condition,
+MC/DC, Subroutines) for the missing pieces.
 
 =head1 SEE ALSO
 
  Devel::Cover
+ Devel::Cover::Report::Text
 
 =head1 LICENCE
 

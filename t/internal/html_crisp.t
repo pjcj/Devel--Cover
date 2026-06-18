@@ -156,6 +156,24 @@ sub test_html_crisp_report () {
   like $css,
     qr{tr\.untested td \.untested-badge\.tip-hover:hover\s*>\s*\.glass-tip},
     "CSS rule enables hover tooltip on untested badge";
+
+  # Three-panel structure on per-line detail blocks: per-logop cells matching
+  # the cond % headline, the merged truth table relabelled as decision input
+  # vectors, and the existing MC/DC pill row.
+  my $covered_full = (grep /Covered-Full-pm\.html$/, glob "$outdir/*.html")[0];
+  ok defined $covered_full, "Covered/Full.pm detail page exists";
+  my $full_html = slurp($covered_full);
+  like $full_html, qr/class="detail cond-cells"/,
+    "html_crisp: cond-cells panel rendered on a covered file";
+  like $full_html, qr{<div class="head"><span>Truth table</span>},
+    "html_crisp: truth-table panel smallcaps heading rendered";
+  like $full_html, qr{<span class="summary-text c[0-3]">\d+%},
+    "html_crisp: truth-table panel carries summary %";
+  like $full_html, qr/class="detail decision-vectors"/,
+    "html_crisp: vectors panel wrapper class rendered";
+  like $css, qr/\.cond-cells\b/, "html_crisp: cond-cells CSS rule present";
+  like $css, qr/\.decision-vectors\b/,
+    "html_crisp: decision-vectors CSS rule present";
 }
 
 sub main () {

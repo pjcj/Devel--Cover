@@ -72,19 +72,23 @@ sub get_showing_headers ($db, $options) {
 sub truth_table (@args) {
   return if @args > 16;
   my @lops;
-  my $n = 0;
-  for my $c (@args) {
+  for my $i (0 .. $#args) {
+    my $c   = $args[$i];
     my $op  = $c->[1]{type};
     my @hit = map { defined() && $_ > 0 ? 1 : 0 } $c->[0]->@*;
     @hit = reverse @hit if $op =~ /^or_[23]$/;
-    my $t = {
-      tt   => Devel::Cover::Truth_Table->new_primitive($op, @hit),
-      cvg  => $c->[1],
-      expr => join " ",
-      $c->[1]->@{ qw( left op right ) },
-    };
-    push @lops, $t;
-  } map { [ $_->{tt}->sort, $_->{expr} ] } merge_lineops(@lops)
+    push @lops, {
+        tt   => Devel::Cover::Truth_Table->new_primitive($op, @hit),
+        cvg  => $c->[1],
+        expr => join(" ", $c->[1]->@{qw( left op right )}),
+        idx  => $i,
+      };
+  }
+
+  my @merged = merge_lineops(@lops);
+  Devel::Cover::Truth_Table::apply_observed_vectors(\@merged, \@args);
+
+  return map { [$_->{tt}->sort, $_->{expr}] } @merged;
 }
 
 # Merge multiple conditional expressions into composite truth tables
@@ -152,6 +156,7 @@ sub pclass ($p, $e) {
 sub get_coverage_report ($type, $data) {
   return _branch_report($data)    if $type eq "branch";
   return _condition_report($data) if $type eq "condition";
+  return _mcdc_report($data)      if $type eq "mcdc";
   return _time_report($data)      if $type eq "time";
   _count_report($type, $data)
 }
@@ -189,6 +194,17 @@ sub _condition_report ($coverage) {
     class      => pclass($_->[0]->percentage, $_->[0]->error),
     string     => $_->[0]->html(bclass(0, 1)),
   } } @tables
+}
+
+sub _mcdc_report ($coverage) {
+  map {
+    my $pct = $_->percentage;
+    {
+      percentage => $pct,
+      class      => pclass($pct, $_->error),
+      title      => sprintf("%d / %d", $_->covered, $_->total),
+    }
+  } $coverage->{mcdc}->@*
 }
 
 sub _time_report ($coverage) {
@@ -303,7 +319,7 @@ sub _render_coverage_cells ($out, $fin, $opt, $show, $metric) {
         print $out "<div>", $m->{string}, "</div>";
       } else {
         my $link;
-        if ($c =~ /^(?:branch|condition|subroutine)$/) {
+        if ($c =~ /^(?:branch|condition|mcdc|subroutine)$/) {
           $link = get_link($fin, $c, $.);
         }
 
@@ -338,7 +354,7 @@ sub print_file_report ($db, $fin, $opt) {
     $db->{summary}{$fin}{total}{percentage},
     $db->{summary}{$fin}{total}{error}, $db,
   );
-  print_th($out, [ "line", @$th, "code" ]);
+  print_th($out, ["line", @$th, "code"]);
 
   my $autoloader = 0;
   while (my $sloc = <$in>) {
@@ -418,7 +434,7 @@ sub print_branch_report ($db, $file, $opt) {
     $db->{summary}{$file}{branch}{percentage},
     $db->{summary}{$file}{branch}{error}, $db,
   );
-  print_th($out, [ "line", "%", "coverage", "branch" ], { coverage => 2 });
+  print_th($out, ["line", "%", "coverage", "branch"], { coverage => 2 });
 
   my $fmt
     = '<tr><td class="h">%s</td>'
@@ -455,7 +471,7 @@ sub print_condition_report ($db, $file, $opt) {
     $db->{summary}{$file}{condition}{percentage},
     $db->{summary}{$file}{condition}{error}, $db,
   );
-  print_th($out, [ "line", "%", "coverage", "condition" ]);
+  print_th($out, ["line", "%", "coverage", "condition"]);
 
   my $fmt
     = '<tr><td class="h">%s</td>'
@@ -470,6 +486,51 @@ sub print_condition_report ($db, $file, $opt) {
       printf $out $fmt, $n++ > 0 ? "" : qq(<a id="L$line">$line</a>),
         pclass($x->[0]->percentage, $x->[0]->error), $x->[0]->percentage,
         "<div>" . $x->[0]->html(bclass(0, 1)) . "</div>", escape_HTML($x->[1]);
+    }
+  }
+  print $out "</table>\n</body>\n</html>\n";
+  close $out or warn "Can't close file '$fout' [$!]";
+}
+
+# Print MC/DC coverage report for a file
+sub print_mcdc_report ($db, $file, $opt) {
+  my $data = $db->cover->file($file)->mcdc;
+  return unless $data;
+
+  my $fout = "$opt->{outputdir}/$Filenames{$file}--mcdc.html";
+  open my $out, ">", $fout or warn("Can't open file '$fout' [$!]\n"), return;
+
+  print_html_header($out, "MC/DC Coverage: $file");
+  print_summary(
+    $out, "MC/DC Coverage",
+    $file,
+    $db->{summary}{$file}{mcdc}{percentage},
+    $db->{summary}{$file}{mcdc}{error}, $db,
+  );
+  print_th($out, ["line", "%", "atomics", "decision"]);
+
+  my $fmt
+    = '<tr><td class="h">%s</td>'
+    . '<td class="%s">%.0f</td>'
+    . "<td>%s</td>"
+    . qq(<td class="s">%s</td></tr>\n);
+
+  for my $line (sort { $a <=> $b } $data->items) {
+    my $loc = $data->location($line);
+    my $n   = 0;
+    for my $m (@$loc) {
+      my @vals   = $m->values;
+      my @labels = $m->labels->@*;
+      my @cls    = bclass(@vals);
+      my $pct    = $m->percentage;
+      my $pills  = join " ",
+          map qq(<span class="$cls[$_]">)
+        . escape_HTML($labels[$_] // "")
+        . "</span>", 0 .. $#vals;
+
+      printf $out $fmt, $n++ > 0 ? "" : qq(<a id="L$line">$line</a>),
+        pclass($pct, $m->error), $pct, "<div>$pills</div>",
+        escape_HTML($m->text);
     }
   }
   print $out "</table>\n</body>\n</html>\n";
@@ -491,7 +552,7 @@ sub print_sub_report ($db, $file, $opt) {
     $db->{summary}{$file}{subroutine}{percentage},
     $db->{summary}{$file}{subroutine}{error}, $db,
   );
-  print_th($out, [ "line", "subroutine" ]);
+  print_th($out, ["line", "subroutine"]);
 
   my $fmt
     = '<tr><td class="h">%s</td>'
@@ -564,7 +625,7 @@ sub print_summary_report ($db, $options) {
 <div><br/></div>
 <table>
 END_HTML
-  print_th($fh, [ "file", @$th, "total" ]);
+  print_th($fh, ["file", @$th, "total"]);
 
   my @files = (grep($db->{summary}{$_}, $options->{file}->@*), "Total");
 
@@ -591,7 +652,7 @@ END_HTML
       } else {
         $class = sprintf ' class="%s"', pclass($pc, $summary->{$c}{error});
         $popup = sprintf ' title="%s"', $c . ": " . $summary->{$c}{ratio};
-        if (!$uncompiled && $c =~ /^(?:branch|condition|subroutine)$/) {
+        if (!$uncompiled && $c =~ /^(?:branch|condition|mcdc|subroutine)$/) {
           $link = get_link($file, $c);
         }
       }
@@ -617,14 +678,12 @@ sub get_options ($self, $opt) {
   $opt->{option}{summarytitle} = "Coverage Summary";
   $Threshold->{$_}             = $opt->{"report_$_"}
     for grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
-  die "Invalid command line options"
-    unless GetOptions(
-      $opt->{option},
-      qw(
-        data!    outputfile=s pod!        summarytitle=s
-        unified! report_c0=s  report_c1=s report_c2=s
-      ),
-    );
+  die "Invalid command line options" unless GetOptions(
+    $opt->{option}, qw(
+      data!    outputfile=s pod!        summarytitle=s
+      unified! report_c0=s  report_c1=s report_c2=s
+    ),
+  );
 }
 
 # Entry point for printing HTML reports
@@ -643,6 +702,7 @@ sub report ($pkg, $db, $opt) {
     ) {
       print_branch_report($db, $file, $opt)    if $opt->{show}{branch};
       print_condition_report($db, $file, $opt) if $opt->{show}{condition};
+      print_mcdc_report($db, $file, $opt)      if $opt->{show}{mcdc};
       print_sub_report($db, $file, $opt)       if $opt->{show}{subroutine};
     }
   }

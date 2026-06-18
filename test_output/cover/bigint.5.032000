@@ -1,10 +1,10 @@
 cover: Reading database from ...
------------- ------ ------ ------ ------ ------ ------
-File           stmt   bran   cond    sub  total   slop
------------- ------ ------ ------ ------ ------ ------
-tests/bigint  100.0   50.0    n/a  100.0   93.7    0.0
-Total         100.0   50.0    n/a  100.0   93.7    0.0
------------- ------ ------ ------ ------ ------ ------
+------------ ------ ------ ------ ------ ------ ------ ------
+File           stmt   bran   cond   mcdc    sub  total   slop
+------------ ------ ------ ------ ------ ------ ------ ------
+tests/bigint  100.0   50.0    n/a    n/a  100.0   93.7    0.0
+Total         100.0   50.0    n/a    n/a  100.0   93.7    0.0
+------------ ------ ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -22,32 +22,32 @@ CC  Cov CRAP SLOP
 -- ---- ---- ----
  1 92.3  1.0  0.0
 
-line  err   stmt   bran   cond    sub   code
-1                                       #!/usr/bin/perl
-2                                       
-3                                       # Copyright 2012-2026, Paul Johnson (paul@pjcj.net)
-4                                       
-5                                       # This software is free.  It is licensed under the same terms as Perl itself.
-6                                       
-7                                       # The latest version of this software should be available from my homepage:
-8                                       # https://pjcj.net
-9                                       
-10                                      # __COVER__ skip_test $] < 5.032
-11                                      # __COVER__ skip_reason Too fragile below 5.32
-12                                      
-13             1                    1   use strict;
-               1                        
-               1                        
-14             1                    1   use warnings;
-               1                        
-               1                        
-15                                      
-16             1                    1   use Math::BigInt ":constant";
-               1                        
-               1                        
-17                                      
-18             1                        my $x = 1;
-19    ***      1   * 50                 print $x if 1 >= $x;
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2012-2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # __COVER__ skip_test $] < 5.032
+11                                             # __COVER__ skip_reason Too fragile below 5.32
+12                                             
+13             1                           1   use strict;
+               1                               
+               1                               
+14             1                           1   use warnings;
+               1                               
+               1                               
+15                                             
+16             1                           1   use Math::BigInt ":constant";
+               1                               
+               1                               
+17                                             
+18             1                               my $x = 1;
+19    ***      1   * 50                        print $x if 1 >= $x;
 
 
 Branches

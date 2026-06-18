@@ -36,7 +36,7 @@ extern "C" {
 #define Branch     0x00000002
 #define Condition  0x00000004
 #define Subroutine 0x00000008
-#define Path       0x00000010
+#define Mcdc       0x00000010
 #define Pod        0x00000020
 #define Time       0x00000040
 #define All        0xffffffff
@@ -116,6 +116,36 @@ typedef struct {
 #define DC_AV_CACHE_INIT_CAP 256
 #define DC_AV_CACHE_LOAD_PCT 70
 
+/*
+ * Per-decision input vector recorded at runtime.  One entry on the DC stack
+ * per active (not yet resolved) decision root.  vector[i] holds 0 (false),
+ * 1 (true) or 2 (X / not yet observed) for column i.  Slots start as X and
+ * are filled in as leaves resolve; columns under a short-circuited subtree
+ * stay X.
+ */
+typedef struct {
+  OP   *root_addr;
+  int   width;
+  int  *vector;
+} dc_dctx;
+
+typedef struct {
+  dc_dctx *items;
+  int      count;
+  int      capacity;
+} dc_stack_t;
+
+#define DC_VECTOR_FALSE 0
+#define DC_VECTOR_TRUE  1
+#define DC_VECTOR_X     2
+
+/*
+ * Matches Devel::Cover::Condition_table::for_line's 16-atomic cap on the Perl
+ * side; decisions wider than this are not rendered as truth tables and cannot
+ * contribute to MC/DC, so we do not record input vectors for them.
+ */
+#define DC_MAX_DECISION_WIDTH 16
+
 typedef struct {
   unsigned      covering;
   int           collecting_here;
@@ -142,6 +172,20 @@ typedef struct {
   dc_av_cache   av_cache;
   AV           *deferred_conditionals; /* sort-block conditions
                                         * awaiting resolution */
+  HV           *decision_meta;         /* op pointer bytes -> meta HV ref;
+                                        * used by MC/DC to record decision
+                                        * topology and column indices */
+  HV           *decision_walked_cvs;   /* CV pointer bytes -> 1; marks
+                                        * CVs whose logops have been
+                                        * scanned into decision_meta */
+  HV           *decision_inputs;       /* op key (KEY_SZ) ->
+                                        * HV { vector_key -> count };
+                                        * one entry per decision root
+                                        * recording the observed combined
+                                        * input vectors for MC/DC */
+  dc_stack_t    dc_stack;              /* active decisions awaiting
+                                        * resolution; top entry is the
+                                        * decision currently being filled */
   Perl_ppaddr_t ppaddr[MAXO];
 } my_cxt_t;
 
@@ -902,7 +946,15 @@ static AV *get_conds(pTHX_ AV *conds) {
 }
 #endif
 
+static HV      *dc_lookup_or_build_decision_meta(pTHX_ OP *op, CV *cv);
+static IV       dc_meta_iv(pTHX_ HV *meta, const char *key, I32 keylen);
+static dc_dctx *dc_stack_find_root(pTHX_ OP *root_addr);
+static dc_dctx *dc_stack_top(pTHX);
+static void     dc_stack_pop(pTHX);
+static void     dc_snapshot(pTHX_ dc_dctx *d);
+
 static void add_condition(pTHX_ SV *cond_ref, int value) {
+  dMY_CXT;
   int   final       = !value;
   AV   *conds       = (AV *)                 SvRV(cond_ref);
   OP   *next        = INT2PTR(OP *,          SvIV(*av_fetch(conds, 0, 0)));
@@ -934,6 +986,48 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
 
     NDEB(D(L, "Found %p (trueish=%d): %d, %d\n", op, true_ish, type, value));
     add_conditional(aTHX_ op, value);
+
+    /*
+     * MC/DC: write the right operand's value into this logop's leaf column.
+     * value: 1 = right false, 2 = right true, 3/4 = xor-with-true-left.
+     */
+    if (!final && collecting(Mcdc)) {
+      HV *m = dc_lookup_or_build_decision_meta(aTHX_ op, find_runcv(NULL));
+      if (m) {
+        OP      *root_addr =
+          INT2PTR(OP *, dc_meta_iv(aTHX_ m, "root_addr", 9));
+        int      leaf_right = dc_meta_iv(aTHX_ m, "leaf_col_right", 14);
+        dc_dctx *d          = dc_stack_find_root(aTHX_ root_addr);
+        int      right_val  = (value == 2 || value == 4)
+                                ? DC_VECTOR_TRUE
+                                : DC_VECTOR_FALSE;
+
+        if (d && leaf_right >= 0 && leaf_right < d->width)
+          d->vector[leaf_right] = right_val;
+      }
+    }
+  }
+
+  /* Snapshot roots after every leaf is written, so order does not matter. */
+  if (!final && collecting(Mcdc)) {
+#ifdef USE_ITHREADS
+    i = 0;
+#else
+    i = 2;
+#endif
+    for (; i <= av_len(conds); i++) {
+      OP *op = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
+      HV *m  = dc_lookup_or_build_decision_meta(aTHX_ op, find_runcv(NULL));
+      if (m && dc_meta_iv(aTHX_ m, "is_root", 7) == 1) {
+        OP *root_addr =
+          INT2PTR(OP *, dc_meta_iv(aTHX_ m, "root_addr", 9));
+        dc_dctx *d = dc_stack_find_root(aTHX_ root_addr);
+        if (d) {
+          dc_snapshot(aTHX_ d);
+          if (dc_stack_top(aTHX) == d) dc_stack_pop(aTHX);
+        }
+      }
+    }
   }
 
 #ifdef USE_ITHREADS
@@ -1135,6 +1229,505 @@ static void resolve_deferred_conditionals(pTHX_ AV *dc, I32 base) {
   }
 }
 
+/*
+ * MC/DC decision metadata.
+ *
+ * Each logical decision in a Perl source line maps to a tree of logops rooted
+ * at the outermost short-circuit / xor op.  The analyser at report time needs
+ * to know, for any logop in the tree, (1) which root it belongs to, (2) how
+ * many atomic-condition columns the decision has, and (3) which column each
+ * leaf operand of this op writes to.  We compute that on first encounter and
+ * cache it in MY_CXT.decision_meta keyed by op pointer bytes.
+ */
+
+static int dc_is_logop_type(I32 op_type) {
+  return op_type == OP_AND ||
+         op_type == OP_OR  ||
+         op_type == OP_DOR ||
+         op_type == OP_XOR;
+}
+
+/*
+ * Walk down through wrapper ops (null, not, scope, etc.) until we hit a logop
+ * or a leaf.  Mirrors Devel::Cover::_skip_to_condop in lib/Devel/Cover.pm so
+ * the runtime walk and the deparse-time walk agree on what "the same decision"
+ * means.
+ */
+static OP *dc_skip_to_condop(pTHX_ OP *op) {
+  while (op) {
+    if (dc_is_logop_type(op->op_type)) break;
+    if (!(op->op_flags & OPf_KIDS))    break;
+    if (op->op_type == OP_CUSTOM)      break;
+    op = cUNOPx(op)->op_first;
+  }
+  return op;
+}
+
+/*
+ * Mirror of Cover.pm's _is_const_right: a logop's operand whose truth value
+ * is fixed at compile time, or which terminates evaluation (return / die /
+ * etc.).  These do not contribute an MC/DC column - they cannot vary - so
+ * Condition_table omits them from atomic-condition labels.  The XS-side
+ * column count must match for observed-vector keys to align with the
+ * Condition_table's row inputs.
+ */
+static int dc_is_const_leaf(pTHX_ OP *op) {
+  const char *n;
+  if (!op) return 0;
+  if (op->op_type == OP_SASSIGN) op = cUNOPx(op)->op_first;
+  n = PL_op_name[op->op_type];
+  return strEQ(n, "const")     || strEQ(n, "refgen")    ||
+         strEQ(n, "srefgen")   || strEQ(n, "gelem")     ||
+         strEQ(n, "die")       || strEQ(n, "undef")     ||
+         strEQ(n, "bless")     || strEQ(n, "anonlist")  ||
+         strEQ(n, "anonhash")  || strEQ(n, "emptyavhv") ||
+         strEQ(n, "scalar")    || strEQ(n, "return")    ||
+         strEQ(n, "last")      || strEQ(n, "next")      ||
+         strEQ(n, "redo")      || strEQ(n, "goto")      ||
+         strEQ(n, "exec")      || strEQ(n, "exit")      ||
+         strEQ(n, "warn");
+}
+
+/*
+ * Mirror of Cover.pm's _is_const_right multiconcat arm: an OP_MULTICONCAT
+ * right operand whose literal text is truthy makes the whole concatenation
+ * truthy regardless of its variable inputs, so add_condition_cover collapses
+ * the logop to a 2-count form and Condition_table renders one column.  The
+ * column walker must agree, otherwise observed-vector keys recorded for
+ * patterns like $p && "foo $q" are wider than the table they are matched
+ * against.  Walks past sassign for parity with _is_const_right.
+ */
+static int dc_is_multiconcat_truthy(pTHX_ OP *op) {
+#if PERL_VERSION >= 28
+  UNOP_AUX_item *aux;
+  char          *p;
+  SSize_t        len;
+
+  if (!op) return 0;
+  if (op->op_type == OP_SASSIGN) op = cUNOPx(op)->op_first;
+  if (!op || op->op_type != OP_MULTICONCAT) return 0;
+
+  aux = cUNOP_AUXx(op)->op_aux;
+  p   = aux[PERL_MULTICONCAT_IX_PLAIN_PV].pv;
+  len = aux[PERL_MULTICONCAT_IX_PLAIN_LEN].ssize;
+  if (!p) {
+    p   = aux[PERL_MULTICONCAT_IX_UTF8_PV].pv;
+    len = aux[PERL_MULTICONCAT_IX_UTF8_LEN].ssize;
+  }
+  if (!p || len <= 0) return 0;
+  /* Perl truthiness: "0" is the only non-empty falsy string. */
+  if (len == 1 && p[0] == '0') return 0;
+  return 1;
+#else
+  PERL_UNUSED_ARG(op);
+  return 0;
+#endif
+}
+
+/*
+ * Recursively collect every logop reachable under op into the AV.  Skips an
+ * OP_AND that wraps OP_ITER (foreach loop conditional, not a decision).
+ */
+static void dc_collect_logops_r(pTHX_ OP *op, AV *logops) {
+  OP *kid;
+
+  if (!op) return;
+
+  if (dc_is_logop_type(op->op_type)) {
+    OP *first = cLOGOPx(op)->op_first;
+    if (!(op->op_type == OP_AND && first && first->op_type == OP_ITER))
+      av_push(logops, newSViv(PTR2IV(op)));
+  }
+
+  if (op->op_flags & OPf_KIDS)
+    for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid))
+      dc_collect_logops_r(aTHX_ kid, logops);
+
+  if (op->op_type == OP_SUBST) {
+    PMOP *pm = cPMOPx(op);
+#ifdef USE_ITHREADS
+    if (pm->op_pmstashstartu.op_pmreplstart)
+      dc_collect_logops_r(aTHX_ pm->op_pmstashstartu.op_pmreplstart, logops);
+#else
+    if (pm->op_pmreplrootu.op_pmreplroot)
+      dc_collect_logops_r(aTHX_ pm->op_pmreplrootu.op_pmreplroot, logops);
+#endif
+  }
+}
+
+/*
+ * Return the operand of a logop after walking down through wrapper ops.
+ * side 0 = left, side 1 = right.
+ */
+static OP *dc_skipped_operand(pTHX_ OP *op, int side) {
+  OP *first = cLOGOPx(op)->op_first;
+  return dc_skip_to_condop(aTHX_ side == 0 ? first : OpSIBLING(first));
+}
+
+/*
+ * Cache keys for decision_meta are raw OP* pointer bytes, which Perl
+ * recycles when optree slabs are freed and reused.  Each entry stashes
+ * the OP's op_next and op_type at insertion; this helper checks them
+ * against the current OP so stale entries can be detected and dropped.
+ */
+static int dc_meta_guard_ok(pTHX_ HV *meta, OP *op) {
+  SV **next_slot = hv_fetch(meta, "_guard_op_next", 14, 0);
+  SV **type_slot = hv_fetch(meta, "_guard_op_type", 14, 0);
+  return next_slot && type_slot
+      && SvIV(*next_slot) == PTR2IV(op->op_next)
+      && SvIV(*type_slot) == (IV)op->op_type;
+}
+
+/*
+ * Look up or create the meta HV for an OP, evicting any stale entry
+ * whose guard fields no longer match the current OP.
+ */
+static HV *dc_meta_entry(pTHX_ HV *cache, OP *op) {
+  SV **slot = hv_fetch(cache, (const char *)&op, sizeof(OP *), 0);
+  HV  *meta;
+
+  if (slot && SvROK(*slot)) {
+    HV *cached = (HV *)SvRV(*slot);
+    if (dc_meta_guard_ok(aTHX_ cached, op)) return cached;
+    hv_delete(cache, (const char *)&op, sizeof(OP *), G_DISCARD);
+  }
+
+  meta = newHV();
+  (void)hv_stores(meta, "addr",           newSViv(PTR2IV(op)));
+  (void)hv_stores(meta, "_guard_op_next", newSViv(PTR2IV(op->op_next)));
+  (void)hv_stores(meta, "_guard_op_type", newSViv((IV)op->op_type));
+  hv_store(cache, (const char *)&op, sizeof(OP *),
+           newRV_noinc((SV *)meta), 0);
+  return meta;
+}
+
+/*
+ * Walk the decision tree rooted at op, populating leaf_col_left/right,
+ * is_root, and root_addr for every logop encountered.  Returns the next
+ * column index after this subtree's leaves.
+ */
+static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
+                                int next_col) {
+  HV *meta      = dc_meta_entry(aTHX_ cache, op);
+  OP *first     = cLOGOPx(op)->op_first;
+  OP *raw_right = first ? OpSIBLING(first) : NULL;
+  OP *left_op   = dc_skipped_operand(aTHX_ op, 0);
+  OP *right_op  = dc_skipped_operand(aTHX_ op, 1);
+  int left_col, right_col;
+
+  if (left_op && dc_is_logop_type(left_op->op_type)) {
+    next_col = dc_enumerate_columns(aTHX_ cache, left_op, root, next_col);
+    left_col = -1;
+  } else if (left_op && dc_is_const_leaf(aTHX_ left_op)) {
+    left_col = -1;
+  } else {
+    left_col = next_col++;
+  }
+
+  if (dc_is_multiconcat_truthy(aTHX_ raw_right)) {
+    right_col = -1;
+  } else if (right_op && dc_is_logop_type(right_op->op_type)) {
+    next_col = dc_enumerate_columns(aTHX_ cache, right_op, root, next_col);
+    right_col = -1;
+  } else if (right_op && dc_is_const_leaf(aTHX_ right_op)) {
+    right_col = -1;
+  } else {
+    right_col = next_col++;
+  }
+
+  (void)hv_stores(meta, "is_root",        newSViv(op == root ? 1 : 0));
+  (void)hv_stores(meta, "root_addr",      newSViv(PTR2IV(root)));
+  (void)hv_stores(meta, "leaf_col_left",  newSViv(left_col));
+  (void)hv_stores(meta, "leaf_col_right", newSViv(right_col));
+
+  return next_col;
+}
+
+/*
+ * Walk a CV's optree once and populate decision_meta for every logop in it.
+ * Cached by CV pointer in MY_CXT.decision_walked_cvs to avoid re-walking.
+ *
+ * Roots are identified by an O(N^2) pairwise check: a logop L is non-root
+ * iff some other logop Q has L as one of its skipped operands.  N is the
+ * number of logops in a single CV, so the quadratic factor is small.
+ *
+ * The pairwise check avoids needing op_sibparent / OP_PARENT, which is only
+ * reliable on Perl 5.22+.  When the project's minimum Perl version is raised
+ * to 5.22, replace the O(N^2) scan with a parent-chain walk via
+ * op_sibparent: from each logop, walk up siblings to the head of the
+ * sibling chain, then op_sibparent gives the parent op directly.
+ */
+static void dc_walk_cv_decisions(pTHX_ CV *cv) {
+  dMY_CXT;
+  HV     *cache  = MY_CXT.decision_meta;
+  HV     *walked = MY_CXT.decision_walked_cvs;
+  AV     *logops;
+  SSize_t i, n;
+  SV    **walked_slot;
+  IV      cv_root_iv;
+
+  if (!cv || !cache || !walked || !CvROOT(cv)) return;
+  cv_root_iv  = PTR2IV(CvROOT(cv));
+  walked_slot = hv_fetch(walked, (const char *)&cv, sizeof(CV *), 0);
+  /*
+   * CV pointer bytes are recycled when CVs are freed (eval-string CVs,
+   * anonymous closures).  Compare the cached CvROOT to the current one
+   * to detect recycling; on mismatch fall through and re-walk so the
+   * fresh optree's logops repopulate decision_meta.
+   */
+  if (walked_slot && SvIOK(*walked_slot) && SvIV(*walked_slot) == cv_root_iv)
+    return;
+  hv_store(walked, (const char *)&cv, sizeof(CV *), newSViv(cv_root_iv), 0);
+
+  logops = (AV *)sv_2mortal((SV *)newAV());
+  dc_collect_logops_r(aTHX_ CvROOT(cv), logops);
+
+  n = av_len(logops) + 1;
+  for (i = 0; i < n; i++) {
+    OP     *lop = INT2PTR(OP *, SvIV(*av_fetch(logops, i, 0)));
+    int     is_root = 1;
+    SSize_t j;
+
+    for (j = 0; j < n; j++) {
+      OP *Q;
+      if (j == i) continue;
+      Q = INT2PTR(OP *, SvIV(*av_fetch(logops, j, 0)));
+      if (dc_skipped_operand(aTHX_ Q, 0) == lop
+          || dc_skipped_operand(aTHX_ Q, 1) == lop) {
+        is_root = 0;
+        break;
+      }
+    }
+
+    if (is_root) {
+      int width = dc_enumerate_columns(aTHX_ cache, lop, lop, 0);
+      HV *meta  = dc_meta_entry(aTHX_ cache, lop);
+      (void)hv_stores(meta, "width", newSViv(width));
+    }
+  }
+
+  /* Propagate width from each root to its descendants. */
+  for (i = 0; i < n; i++) {
+    OP   *lop       = INT2PTR(OP *, SvIV(*av_fetch(logops, i, 0)));
+    HV   *meta      = dc_meta_entry(aTHX_ cache, lop);
+    SV  **root_slot = hv_fetch(meta, "root_addr", 9, 0);
+    OP   *root;
+    HV   *root_meta;
+    SV  **width_slot;
+
+    if (!root_slot) continue;
+    root = INT2PTR(OP *, SvIV(*root_slot));
+    if (root == lop) continue;
+    root_meta  = dc_meta_entry(aTHX_ cache, root);
+    width_slot = hv_fetch(root_meta, "width", 5, 0);
+    if (width_slot)
+      (void)hv_stores(meta, "width", newSViv(SvIV(*width_slot)));
+  }
+}
+
+/*
+ * Look up or build decision metadata for a logop.  Returns the cached HV
+ * (not a fresh ref); caller must wrap in an RV before exposing to Perl.
+ * Returns NULL when op is not a logop.
+ *
+ * Walks the entire CV on first encounter so nested decisions are populated
+ * with their correct root and column indices.
+ */
+static HV *dc_lookup_or_build_decision_meta(pTHX_ OP *op, CV *cv) {
+  dMY_CXT;
+  HV  *cache = MY_CXT.decision_meta;
+  SV **slot;
+  HV  *cached;
+
+  if (!cache || !op || !dc_is_logop_type(op->op_type)) return NULL;
+
+  slot = hv_fetch(cache, (const char *)&op, sizeof(OP *), 0);
+  if (slot && SvROK(*slot)) {
+    cached = (HV *)SvRV(*slot);
+    if (dc_meta_guard_ok(aTHX_ cached, op)) return cached;
+    hv_delete(cache, (const char *)&op, sizeof(OP *), G_DISCARD);
+  }
+
+  if (cv) {
+    dc_walk_cv_decisions(aTHX_ cv);
+    slot = hv_fetch(cache, (const char *)&op, sizeof(OP *), 0);
+    if (slot && SvROK(*slot)) {
+      cached = (HV *)SvRV(*slot);
+      if (dc_meta_guard_ok(aTHX_ cached, op)) return cached;
+    }
+  }
+
+  return NULL;
+}
+
+/*
+ * MC/DC decision-context (DC) stack.
+ *
+ * The stack records every decision currently in flight.  A decision is in
+ * flight from the firing of its first (deepest-left) logop through to the
+ * point at which its root logop's right operand resolves.  Inner logops
+ * write into the active root's vector via their leaf_col_left /
+ * leaf_col_right indices; columns under a short-circuited subtree remain
+ * X (DC_VECTOR_X).
+ *
+ * Ordinary nested-decision execution observes strict stack discipline: the
+ * outer root pushes when its leftmost leaf logop fires, inner logops update
+ * the same DC, and the outer root pops on resolution.  Sub-calls inside a
+ * decision push their own decisions on top because their root_addr differs;
+ * those decisions resolve before control returns to the outer.
+ */
+static IV dc_meta_iv(pTHX_ HV *meta, const char *key, I32 keylen) {
+  SV **slot = hv_fetch(meta, key, keylen, 0);
+  return slot ? SvIV(*slot) : -1;
+}
+
+static dc_dctx *dc_stack_top(pTHX) {
+  dMY_CXT;
+  return MY_CXT.dc_stack.count
+    ? &MY_CXT.dc_stack.items[MY_CXT.dc_stack.count - 1]
+    : NULL;
+}
+
+static dc_dctx *dc_stack_find_root(pTHX_ OP *root_addr) {
+  dMY_CXT;
+  int i;
+  for (i = MY_CXT.dc_stack.count - 1; i >= 0; i--)
+    if (MY_CXT.dc_stack.items[i].root_addr == root_addr)
+      return &MY_CXT.dc_stack.items[i];
+  return NULL;
+}
+
+static dc_dctx *dc_stack_push(pTHX_ OP *root_addr, int width) {
+  dMY_CXT;
+  dc_dctx *d;
+  int      i;
+
+  if (MY_CXT.dc_stack.count >= MY_CXT.dc_stack.capacity) {
+    int new_cap = MY_CXT.dc_stack.capacity ? MY_CXT.dc_stack.capacity * 2 : 8;
+    Renew(MY_CXT.dc_stack.items, new_cap, dc_dctx);
+    MY_CXT.dc_stack.capacity = new_cap;
+  }
+
+  d = &MY_CXT.dc_stack.items[MY_CXT.dc_stack.count++];
+  d->root_addr = root_addr;
+  d->width     = width;
+  Newx(d->vector, width > 0 ? width : 1, int);
+  for (i = 0; i < width; i++) d->vector[i] = DC_VECTOR_X;
+  return d;
+}
+
+static void dc_stack_pop(pTHX) {
+  dMY_CXT;
+  if (MY_CXT.dc_stack.count) {
+    MY_CXT.dc_stack.count--;
+    Safefree(MY_CXT.dc_stack.items[MY_CXT.dc_stack.count].vector);
+    MY_CXT.dc_stack.items[MY_CXT.dc_stack.count].vector = NULL;
+  }
+}
+
+/*
+ * Snapshot the active vector under root_addr into MY_CXT.decision_inputs,
+ * keyed by get_key(root_addr) and then by the textual vector key
+ * "v0|v1|...|vN" with X for unset positions.  Increments the count of times
+ * this vector was observed.
+ */
+static void dc_snapshot(pTHX_ dc_dctx *d) {
+  dMY_CXT;
+
+  if (!d || !MY_CXT.decision_inputs) return;
+  if (d->width <= 0 || d->width > DC_MAX_DECISION_WIDTH) return;
+
+  {
+    /* Key is "v0|v1|...|v(width-1)": width chars + (width - 1) separators.
+     * hv_fetch takes an explicit length so no terminator is written. */
+    char  buf[DC_MAX_DECISION_WIDTH * 2 - 1];
+    HV   *vectors;
+    SV  **slot;
+    int   pos = 0,
+          i;
+
+    for (i = 0; i < d->width; i++) {
+      if (i > 0) buf[pos++] = '|';
+      if      (d->vector[i] == DC_VECTOR_FALSE) buf[pos++] = '0';
+      else if (d->vector[i] == DC_VECTOR_TRUE)  buf[pos++] = '1';
+      else                                      buf[pos++] = 'X';
+    }
+
+    slot = hv_fetch(MY_CXT.decision_inputs, get_key(d->root_addr), KEY_SZ, 1);
+    if (slot && SvROK(*slot)) {
+      vectors = (HV *)SvRV(*slot);
+    } else {
+      vectors = newHV();
+#ifdef USE_ITHREADS
+      HvSHAREKEYS_off(vectors);
+#endif
+      *slot = newRV_noinc((SV *)vectors);
+    }
+
+    {
+      SV **vc = hv_fetch(vectors, buf, pos, 1);
+      if (vc) {
+        int c = SvOK(*vc) ? SvIV(*vc) + 1 : 1;
+        sv_setiv(*vc, c);
+      }
+    }
+  }
+}
+
+/*
+ * Snapshot+pop the active DC if PL_op's short-circuit completes the
+ * decision.  SC at PL_op completes the decision when PL_op is the
+ * decision root, OR when SC propagates up a same-type chain of logops
+ * that reaches the root - Perl's runtime threads chained same-type SCs
+ * in one shot, so the outer logops' cover_logop never fires.
+ */
+static void dc_snapshot_on_short_circuit(pTHX) {
+  dMY_CXT;
+  HV *meta;
+  OP *root_addr;
+  OP *cur;
+
+  if (!collecting(Mcdc)) return;
+
+  meta = dc_lookup_or_build_decision_meta(aTHX_ PL_op, find_runcv(NULL));
+  if (!meta) return;
+
+  root_addr = INT2PTR(OP *, dc_meta_iv(aTHX_ meta, "root_addr", 9));
+  cur       = PL_op;
+
+  while (cur) {
+    if (cur == root_addr) {
+      dc_dctx *top = dc_stack_top(aTHX);
+      if (top && top->root_addr == cur) {
+        dc_snapshot(aTHX_ top);
+        dc_stack_pop(aTHX);
+      }
+      return;
+    }
+    {
+      OP *sib = OpSIBLING(cLOGOPx(cur)->op_first);
+      OP *up;
+      if (!sib) return;
+      up = sib->op_next;
+      if (!up || up->op_type != PL_op->op_type) return;
+      cur = up;
+    }
+  }
+}
+
+/*
+ * Drain any DCs left over at program end (early return / die / exit out of
+ * a decision).  Each is snapshotted in its current partial state so the
+ * observation is not lost.
+ */
+static void finalise_decisions(pTHX) {
+  dMY_CXT;
+  while (MY_CXT.dc_stack.count) {
+    dc_snapshot(aTHX_ &MY_CXT.dc_stack.items[MY_CXT.dc_stack.count - 1]);
+    dc_stack_pop(aTHX);
+  }
+}
+
 static void cover_logop(pTHX) {
   /*
    * For OP_AND, if the first operand is false, we have short circuited the
@@ -1187,7 +1780,36 @@ static void cover_logop(pTHX) {
            leftval_true_ish, void_context, PL_op));
     NDEB(op_dump(PL_op));
 
+    /*
+     * Slot 5 is the void-context flag, read by add_condition_cover in
+     * Devel::Cover when finalising or/and decisions to collapse a
+     * never-observed right operand to count=2.  It is not MC/DC-specific
+     * and so runs whenever Condition is collected.
+     */
     set_conditional(aTHX_ PL_op, 5, void_context);
+
+    /*
+     * Skip MC/DC bookkeeping in void context: the right value is never
+     * observed, so the row in the truth table cannot be filled in.
+     */
+    if (!void_context && collecting(Mcdc)) {
+      HV *meta = dc_lookup_or_build_decision_meta(aTHX_ PL_op,
+                                                  find_runcv(NULL));
+      if (meta) {
+        OP      *root_addr =
+          INT2PTR(OP *, dc_meta_iv(aTHX_ meta, "root_addr", 9));
+        int      width     = dc_meta_iv(aTHX_ meta, "width",         5);
+        int      leaf_left = dc_meta_iv(aTHX_ meta, "leaf_col_left", 13);
+        dc_dctx *d         = dc_stack_find_root(aTHX_ root_addr);
+
+        if (!d && width > 0)
+          d = dc_stack_push(aTHX_ root_addr, width);
+
+        if (d && leaf_left >= 0 && leaf_left < d->width)
+          d->vector[leaf_left] = leftval_true_ish ? DC_VECTOR_TRUE
+                                                  : DC_VECTOR_FALSE;
+      }
+    }
 
     if ((PL_op->op_type == OP_AND       &&  leftval_true_ish) ||
         (PL_op->op_type == OP_ANDASSIGN &&  leftval_true_ish) ||
@@ -1217,6 +1839,13 @@ static void cover_logop(pTHX) {
 
         NDEB(D(L, "Add conditional 2\n"));
         add_conditional(aTHX_ PL_op, 2);
+
+        /*
+         * For MC/DC: the right operand's value will not be observed, so its
+         * column stays X.  Snapshot+pop if this op (or a same-type chained
+         * outer reachable from it) is the decision root.
+         */
+        dc_snapshot_on_short_circuit(aTHX);
       } else {
         char *ch;
         AV   *conds;
@@ -1241,7 +1870,8 @@ static void cover_logop(pTHX) {
         next = (PL_op->op_type == OP_XOR)
           ? PL_op->op_next
           : right->op_next;
-        while (next && next->op_type == OP_NULL)
+        while (next &&
+               (next->op_type == OP_NULL || next->op_type == OP_LINESEQ))
           next = next->op_next;
         if (!next) {
           /*
@@ -1309,6 +1939,14 @@ static void cover_logop(pTHX) {
       skipped = PL_op;
       while ((skipped = find_skipped_conditional(aTHX_ skipped)) != NULL)
         add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
+
+      /*
+       * For MC/DC: short-circuit means columns under this op's right
+       * subtree stay X (their initial state).  Snapshot+pop if this op
+       * (or a same-type chained outer reachable from it) is the
+       * decision root.
+       */
+      dc_snapshot_on_short_circuit(aTHX);
     }
   }
 }
@@ -1520,6 +2158,10 @@ static void initialise(pTHX) {
     MY_CXT.conditions = newHV();
     *tmp              = newRV_inc((SV*) MY_CXT.conditions);
 
+    tmp                    = hv_fetch(MY_CXT.cover, "decision_inputs", 15, 1);
+    MY_CXT.decision_inputs = newHV();
+    *tmp                   = newRV_inc((SV*) MY_CXT.decision_inputs);
+
 #if CAN_PROFILE
     tmp               = hv_fetch(MY_CXT.cover, "time",      4, 1);
     MY_CXT.times      = newHV();
@@ -1536,6 +2178,7 @@ static void initialise(pTHX) {
     HvSHAREKEYS_off(MY_CXT.statements);
     HvSHAREKEYS_off(MY_CXT.branches);
     HvSHAREKEYS_off(MY_CXT.conditions);
+    HvSHAREKEYS_off(MY_CXT.decision_inputs);
 #if CAN_PROFILE
     HvSHAREKEYS_off(MY_CXT.times);
 #endif
@@ -1545,7 +2188,14 @@ static void initialise(pTHX) {
     MY_CXT.profiling_key_valid = 0;
     Zero(&MY_CXT.stmt_cache, 1, dc_stmt_cache);
     Zero(&MY_CXT.av_cache, 1, dc_av_cache);
+    Zero(&MY_CXT.dc_stack,  1, dc_stack_t);
     MY_CXT.deferred_conditionals      = newAV();
+    MY_CXT.decision_meta              = newHV();
+    MY_CXT.decision_walked_cvs        = newHV();
+#ifdef USE_ITHREADS
+    HvSHAREKEYS_off(MY_CXT.decision_meta);
+    HvSHAREKEYS_off(MY_CXT.decision_walked_cvs);
+#endif
     MY_CXT.module              = newSVpv("", 0);
     MY_CXT.lastfile            = newSVpvn("", 1);
     MY_CXT.lastfile_ptr        = NULL;
@@ -2023,9 +2673,9 @@ coverage_subroutine()
     RETVAL
 
 unsigned
-coverage_path()
+coverage_mcdc()
   CODE:
-    RETVAL = Path;
+    RETVAL = Mcdc;
   OUTPUT:
     RETVAL
 
@@ -2070,7 +2720,10 @@ coverage(final)
     NDEB(D(L, "Getting coverage %d\n", final));
     if (MY_CXT.statements)
       dc_stmt_cache_flush(aTHX_ &MY_CXT.stmt_cache, MY_CXT.statements);
-    if (final) finalise_conditions(aTHX);
+    if (final) {
+      finalise_conditions(aTHX);
+      finalise_decisions(aTHX);
+    }
     if (MY_CXT.cover)
       RETVAL = newRV_inc((SV*) MY_CXT.cover);
     else
@@ -2163,6 +2816,18 @@ walk_ops(root_op, callback, cv, parent_map_ref)
       croak("parent_map must be a hash reference");
     dc_walk_ops(aTHX_ root_op, callback, cv,
                 (HV *)SvRV(parent_map_ref));
+
+SV *
+decision_meta(addr, cv)
+    IV    addr
+    B::CV cv
+  PREINIT:
+    HV *meta;
+  CODE:
+    meta = dc_lookup_or_build_decision_meta(aTHX_ INT2PTR(OP *, addr), cv);
+    RETVAL = meta ? newRV_inc((SV *)meta) : &PL_sv_undef;
+  OUTPUT:
+    RETVAL
 
 BOOT:
   {

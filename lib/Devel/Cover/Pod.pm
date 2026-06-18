@@ -7,8 +7,10 @@
 
 package Devel::Cover::Pod;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
@@ -16,24 +18,21 @@ use base "Devel::Cover::Criterion";
 
 BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
 
-sub uncoverable { $_[0][2] }
-sub covered     { $_[0][0] ? 1 : 0 }
-sub total       { 1 }
-sub percentage  { $_[0][0] ? 100 : 0 }
-sub error       { $_[0]->simple_error }
-sub criterion   { "pod" }
+sub uncoverable ($self) { $self->[2] }
+sub covered     ($self) { $self->[0] ? 1 : 0 }
+sub total       ($self) { 1 }
+sub percentage  ($self) { $self->[0] ? 100 : 0 }
+sub error       ($self) { $self->simple_error }
+sub criterion   ($self) { "pod" }
 
-sub calculate_summary {
-  my $self = shift;
-  my ($db, $file) = @_;
-
+sub calculate_summary ($self, $db, $file) {
   return unless $INC{"Pod/Coverage.pm"};
 
   my $s = $db->{summary};
 
-  $self->aggregate($s, $file, 'total',   $self->total);
-  $self->aggregate($s, $file, 'covered', 1) if $self->covered;
-  $self->aggregate($s, $file, 'error',   $self->error);
+  $self->aggregate($s, $file, "total",   $self->total);
+  $self->aggregate($s, $file, "covered", 1) if $self->covered;
+  $self->aggregate($s, $file, "error",   $self->error);
 }
 
 1

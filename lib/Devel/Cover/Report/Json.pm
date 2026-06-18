@@ -116,6 +116,24 @@ sub _condition_truth_tables ($f) {
   \%out
 }
 
+sub _mcdc ($f) {
+  my $criterion = $f->mcdc or return undef;
+  my %out;
+  for my $line (sort { $a <=> $b } $criterion->items) {
+    my @entries;
+    for my $m ($criterion->location($line)->@*) {
+      push @entries, {
+          text    => $m->text,
+          labels  => $m->labels,
+          covered => [map $_ + 0, $m->values],
+          error   => $m->error ? 1 : 0,
+        };
+    }
+    $out{$line} = \@entries;
+  }
+  \%out
+}
+
 sub _subroutines ($f) {
   my $criterion = $f->subroutine or return undef;
   my %out;
@@ -168,8 +186,7 @@ sub get_options ($self, $opt) {
 }
 
 sub report ($pkg, $db, $options) {
-  my %sum_options = map { $_ => 1 } grep !/path|time/, $db->all_criteria,
-    "force";
+  my %sum_options = map { $_ => 1 } grep !/time/, $db->all_criteria, "force";
   $db->calculate_summary(%sum_options);
 
   my %files;
@@ -182,6 +199,7 @@ sub report ($pkg, $db, $options) {
       $entry->{conditions} = _conditions($f) if $options->{show}{condition};
       $entry->{condition_truth_tables} = _condition_truth_tables($f)
         if $options->{show}{condition};
+      $entry->{mcdc}        = _mcdc($f)        if $options->{show}{mcdc};
       $entry->{subroutines} = _subroutines($f) if $options->{show}{subroutine};
       $entry->{pod}         = _pod($f)         if $options->{show}{pod};
       $entry->{time}        = _time($f)        if $options->{show}{time};
@@ -274,8 +292,8 @@ present) and per-criterion sub-objects when the corresponding criterion was
 selected and the file was compiled.
 
 The per-criterion keys are: C<statements>, C<branches>, C<conditions>,
-C<condition_truth_tables>, C<subroutines>, C<pod>, C<time>.  Within each
-criterion, keys are source line numbers and values are arrays of coverage
+C<condition_truth_tables>, C<mcdc>, C<subroutines>, C<pod>, C<time>.  Within
+each criterion, keys are source line numbers and values are arrays of coverage
 objects for that line.
 
 =back
@@ -306,6 +324,9 @@ Example structure:
           "30": [ { "expr": "$x && $y", "percentage": 50,
                     "rows": [ { "inputs": [0,0], "result": 0,
                                 "covered": 1 } ] } ] },
+        "mcdc":        { "30": [ { "text": "$x && $y",
+                                    "labels": ["$x","$y"],
+                                    "covered": [1,0], "error": 1 } ] },
         "subroutines": { "50": [ { "name": "frob", "covered": 0,
                                     "uncoverable": 0, "error": 1 } ] },
         "pod":         { "60": [ { "covered": 0, "uncoverable": 0,

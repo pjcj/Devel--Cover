@@ -1,0 +1,49 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+sub and_const_true {
+  my ($p) = @_;
+  return $p && 1;
+}
+
+sub or_const_false {
+  my ($p) = @_;
+  return $p || 0;
+}
+
+sub dor_const_href {
+  my ($x) = @_;
+  return $x // {};
+}
+
+sub main {
+  # Calls are pushed into @r so each decision is exercised in non-void
+  # context; MC/DC for a void-context boolean has no result to analyse.
+  my @r;
+
+  # Constant on the right of && and ||. The constant operand is never an
+  # independence-pair candidate (it cannot vary), so the analyser must
+  # handle it without trying to find a pair.
+  push @r, and_const_true(1);
+  push @r, and_const_true(0);
+  push @r, or_const_false(1);
+  push @r, or_const_false(0);
+
+  # Reference constant on the right of //. The runtime can record an
+  # observed input vector wider than the collapsed boolean table (the
+  # uncollapsed {} keeps its column on some perls), so MC/DC must still
+  # credit the left operand once both outcomes are exercised.
+  push @r, dor_const_href(undef);
+  push @r, dor_const_href(1);
+}
+
+main();

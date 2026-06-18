@@ -1,0 +1,129 @@
+cover: Reading database from ...
+------------------------- ------ ------ ------ ------ ------ ------ ------
+File                        stmt   bran   cond   mcdc    sub  total   slop
+------------------------- ------ ------ ------ ------ ------ ------ ------
+tests/mcdc_constant_right  100.0    n/a  100.0  100.0  100.0  100.0   13.9
+Total                      100.0    n/a  100.0  100.0  100.0  100.0   13.9
+------------------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/mcdc_constant_right
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 4 100.0  4.0 13.9
+
+Worst Subroutines
+-----------------
+
+Subroutine     CC SLOP  Location                    
+-------------- -- ----  ----------------------------
+and_const_true  2  6.9  tests/mcdc_constant_right:14
+or_const_false  2  6.9  tests/mcdc_constant_right:19
+dor_const_href  2  6.9  tests/mcdc_constant_right:24
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13                                             sub and_const_true {
+14             2                           2     my ($p) = @_;
+15             2           100    100            return $p && 1;
+16                                             }
+17                                             
+18                                             sub or_const_false {
+19             2                           2     my ($p) = @_;
+20             2           100    100            return $p || 0;
+21                                             }
+22                                             
+23                                             sub dor_const_href {
+24             2                           2     my ($x) = @_;
+25             2           100    100            return $x // {};
+26                                             }
+27                                             
+28                                             sub main {
+29                                               # Calls are pushed into @r so each decision is exercised in non-void
+30                                               # context; MC/DC for a void-context boolean has no result to analyse.
+31             1                           1     my @r;
+32                                             
+33                                               # Constant on the right of && and ||. The constant operand is never an
+34                                               # independence-pair candidate (it cannot vary), so the analyser must
+35                                               # handle it without trying to find a pair.
+36             1                                 push @r, and_const_true(1);
+37             1                                 push @r, and_const_true(0);
+38             1                                 push @r, or_const_false(1);
+39             1                                 push @r, or_const_false(0);
+40                                             
+41                                               # Reference constant on the right of //. The runtime can record an
+42                                               # observed input vector wider than the collapsed boolean table (the
+43                                               # uncollapsed {} keeps its column on some perls), so MC/DC must still
+44                                               # credit the left operand once both outcomes are exercised.
+45             1                                 push @r, dor_const_href(undef);
+46             1                                 push @r, dor_const_href(1);
+47                                             }
+48                                             
+49             1                               main();
+
+
+Conditions
+----------
+
+and 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+15           100      1      1   $p && 1
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+20           100      1      1   $p || 0
+25           100      1      1   $x // {}
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+15           100    1    1                          $p && 1
+20           100    1    1                          $p || 0
+25           100    1    1                          $x // {}
+
+
+Covered Subroutines
+-------------------
+
+Subroutine     Count  CC  SLOP Location                    
+-------------- ----- --- ----- ----------------------------
+BEGIN              1   1   0.0 tests/mcdc_constant_right:10
+BEGIN              1   1   0.0 tests/mcdc_constant_right:11
+and_const_true     2   2   6.9 tests/mcdc_constant_right:14
+dor_const_href     2   2   6.9 tests/mcdc_constant_right:24
+main               1   1   0.0 tests/mcdc_constant_right:31
+or_const_false     2   2   6.9 tests/mcdc_constant_right:19
+
+

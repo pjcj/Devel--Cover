@@ -1,0 +1,152 @@
+cover: Reading database from ...
+--------------------- ------ ------ ------ ------ ------ ------ ------
+File                    stmt   bran   cond   mcdc    sub  total   slop
+--------------------- ------ ------ ------ ------ ------ ------ ------
+tests/mcdc_signatures  100.0  100.0  100.0   25.0  100.0   95.3   17.9
+Total                  100.0  100.0  100.0   25.0  100.0   95.3   17.9
+--------------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/mcdc_signatures
+
+File Summary
+------------
+
+CC   Cov CRAP SLOP
+-- ----- ---- ----
+ 6 100.0  6.0 17.9
+
+Worst Subroutines
+-----------------
+
+Subroutine   CC SLOP  Location                
+------------ -- ----  ------------------------
+nested        4 13.9  tests/mcdc_signatures:25
+and_decision  2  6.9  tests/mcdc_signatures:23
+or_decision   2  6.9  tests/mcdc_signatures:24
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # Subroutine signatures (introduced experimentally in 5.20.0) compile to
+11                                             # extra logops in the optree prologue for argument-count handling.  This
+12                                             # fixture exercises MC/DC through subs declared with signatures so the
+13                                             # per-CV walker is exercised against an optree that mixes signature
+14                                             # logops with user logops.  The walker must isolate the two: signature
+15                                             # ops are their own roots, and the user's decision metadata (root,
+16                                             # width, column indices) must not be perturbed.
+17                                             
+18             1                           1   use 5.20.0;
+               1                               
+19             1                           1   use warnings;
+               1                               
+               1                               
+20             1                           1   use feature qw( signatures );
+               1                               
+               1                               
+21             1                           1   no warnings qw( experimental::signatures );
+               1                               
+               1                               
+22                                             
+23             3    100                    3   sub and_decision ($p, $q)         { $p && $q }
+               3                               
+               3                               
+               3                               
+               3                               
+24             3    100                    3   sub or_decision  ($p, $q)         { $p         || $q }
+               3                               
+               3                               
+               3                               
+               3                               
+25    ***      4    100    100   * 25      4   sub nested       ($a, $b, $c, $d) { ($a && $b) || ($c && $d) }
+               4           100                 
+               4                               
+               4                               
+               4                               
+               4                               
+               4                               
+26                                             
+27                                             sub main {
+28             1                           1     my @r;
+29                                             
+30                                               # 2-input && hits all three short-circuit rows.
+31             1                                 push @r, and_decision(1, 1);
+32             1                                 push @r, and_decision(1, 0);
+33             1                                 push @r, and_decision(0, 1);
+34                                             
+35                                               # 2-input || hits all three short-circuit rows.
+36             1                                 push @r, or_decision(1, 0);
+37             1                                 push @r, or_decision(0, 1);
+38             1                                 push @r, or_decision(0, 0);
+39                                             
+40                                               # Mixed-precedence ($a && $b) || ($c && $d).  The statement-level outer ||
+41                                               # is recorded as a branch but its decision structure is kept, so MC/DC
+42                                               # measures the unified four-condition decision.  Called for its value, the
+43                                               # decision's input vectors are observed, so MC/DC is proven (these four calls
+44                                               # achieve it partially).  The per-CV walk stays clear of signature ops.
+45             1                                 push @r, nested(1, 1, 0, 0);
+46             1                                 push @r, nested(1, 0, 1, 1);
+47             1                                 push @r, nested(0, 0, 1, 0);
+48             1                                 push @r, nested(0, 0, 0, 0);
+49                                             }
+50                                             
+51             1                               main();
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+23           100      2      1   if $p
+24           100      2      1   unless $p
+25           100      3      1   unless $a and $b
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+25           100      2      1      1   $a and $b
+             100      1      1      1   $c and $d
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+25    ***     25    1    4   $b, $c, $d             $a and $b || $c and $d
+
+
+Covered Subroutines
+-------------------
+
+Subroutine   Count  CC  SLOP Location                
+------------ ----- --- ----- ------------------------
+BEGIN            1   1   0.0 tests/mcdc_signatures:18
+BEGIN            1   1   0.0 tests/mcdc_signatures:19
+BEGIN            1   1   0.0 tests/mcdc_signatures:20
+BEGIN            1   1   0.0 tests/mcdc_signatures:21
+and_decision     3   2   6.9 tests/mcdc_signatures:23
+main             1   1   0.0 tests/mcdc_signatures:28
+nested           4   4  13.9 tests/mcdc_signatures:25
+or_decision      3   2   6.9 tests/mcdc_signatures:24
+
+

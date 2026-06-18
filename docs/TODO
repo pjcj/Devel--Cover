@@ -4,7 +4,6 @@
   - Threads support - at least for some coverage criteria
   - Test analysis
   - Profiling and speedups
-  - Collect data for path coverage
   - Mutation coverage
   - Regular Expression coverage
   - Indicate how to increase coverage?

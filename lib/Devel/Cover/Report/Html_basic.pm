@@ -65,7 +65,7 @@ sub get_summary ($file, $criterion) {
 
   my $cr = $criterion eq "pod" ? "subroutine" : $criterion;
   return $vals
-    if $cr !~ /^(?:branch|condition|subroutine)$/
+    if $cr !~ /^(?:branch|condition|mcdc|subroutine)$/
     || !exists $R{filenames}{$file};
   return $vals if $R{uncompiled}{$file};
   $vals->{link} = "$R{filenames}{$file}--$cr.html";
@@ -152,7 +152,7 @@ sub print_file () {
       my ($cov_entries, $cov_more)
         = _build_coverage_criteria($criteria, $n, $count);
 
-      $line->{criteria} = [ @$ann_entries, @$cov_entries ];
+      $line->{criteria} = [@$ann_entries, @$cov_entries];
       $more = $cov_more;
 
       push @lines, $line;
@@ -233,17 +233,55 @@ sub print_conditions () {
     }
   }
 
+  #<<<
   my @types = map {
-    name      => do { my $n = $_; $n =~ s/_/ /g; $n },
-      headers => [ map { encode_entities($_) }
-        ($r->{$_}[0]{condition}->headers || [])->@* ],
-      conditions => $r->{$_},
+    name    => s/_/ /gr,
+    headers =>
+      [map encode_entities($_), ($r->{$_}[0]{condition}->headers || [])->@*],
+    conditions => $r->{$_},
   }, sort keys %$r;
+  #>>>
 
   my $vars = { R => \%R, types => \@types };
 
   my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--condition.html";
   $Template->process("conditions", $vars, $html) or die $Template->error;
+}
+
+sub print_mcdc () {
+  my $mcdc = $R{db}->cover->file($R{file})->mcdc;
+  return unless $mcdc;
+
+  my @decisions;
+  for my $location (sort { $a <=> $b } $mcdc->items) {
+    my $count = 0;
+    for my $m ($mcdc->location($location)->@*) {
+      $count++;
+      my $text = $m->text;
+      ($text) = highlight($R{options}{option}, $text) if $Have_highlighter;
+      my @vals   = $m->values;
+      my @labels = $m->labels->@*;
+
+      push @decisions, {
+          number     => $count == 1 ? $location : "",
+          percentage => $m->percentage,
+          class      => class($m->percentage, $m->error, "mcdc"),
+          atomics    => [
+            map +{
+              label => encode_entities($labels[$_] // ""),
+              class => $vals[$_] ? "c3" : "c0",
+            },
+            0 .. $#vals,
+          ],
+          text => $text,
+        };
+    }
+  }
+
+  my $vars = { R => \%R, decisions => \@decisions };
+
+  my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--mcdc.html";
+  $Template->process("mcdc", $vars, $html) or die $Template->error;
 }
 
 sub print_subroutines () {
@@ -283,7 +321,7 @@ sub print_subroutines () {
 sub print_summary () {
   my $vars = {
     R     => \%R,
-    files => [ "Total", grep $R{db}->summary($_), $R{options}{file}->@* ],
+    files => ["Total", grep $R{db}->summary($_), $R{options}{file}->@*],
   };
 
   my $html = "$R{options}{outputdir}/$R{options}{option}{outputfile}";
@@ -306,7 +344,7 @@ sub get_options ($self, $opt) {
 sub report ($pkg, $db, $options) {
   $Template = Template->new({
     LOAD_TEMPLATES =>
-      [ Devel::Cover::Report::Html_basic::Template::Provider->new({}) ],
+      [Devel::Cover::Report::Html_basic::Template::Provider->new({})],
   });
 
   my $le = sub ($v) { ($v > 0   ? "<" : "=") . " $v" };
@@ -327,7 +365,7 @@ sub report ($pkg, $db, $options) {
     os      => $^O,
     options => $options,
     version => $VERSION,
-    showing => [ grep $options->{show}{$_}, $db->criteria ],
+    showing => [grep $options->{show}{$_}, $db->criteria],
     headers => [
       map  { ($db->criteria_short)[$_] }
       grep { $options->{show}{ ($db->criteria)[$_] } }
@@ -363,6 +401,7 @@ sub report ($pkg, $db, $options) {
     unless ($R{uncompiled}{$_}) {
       print_branches    if $show->{branch};
       print_conditions  if $show->{condition};
+      print_mcdc        if $show->{mcdc};
       print_subroutines if $show->{subroutine} || $show->{pod};
     }
   }
@@ -688,6 +727,41 @@ $Templates{conditions} = <<'HTML';
     [% END %]
   </table>
 [% END %]
+
+[% END %]
+HTML
+
+$Templates{mcdc} = <<'HTML';
+[% WRAPPER html %]
+
+<h1> MC/DC Coverage </h1>
+
+[% PROCESS header criteria = [ "mcdc" ] %]
+
+<table>
+  <tr>
+    <th> line </th>
+    <th> % </th>
+    <th> atomics </th>
+    <th> decision </th>
+  </tr>
+
+  [% FOREACH decision = decisions %]
+    <tr>
+      <td class="h">
+        <a href="[% R.file_link %]#[% decision.number %]">
+          [% decision.number %]</a>
+      </td>
+      <td class="[% decision.class %]"> [% decision.percentage %] </td>
+      <td>
+        [% FOREACH atom = decision.atomics %]
+          <span class="[% atom.class %]"> [% atom.label %] </span>
+        [% END %]
+      </td>
+      <td class="s"> [% decision.text %] </td>
+    </tr>
+  [% END %]
+</table>
 
 [% END %]
 HTML

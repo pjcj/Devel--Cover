@@ -48,18 +48,23 @@ sub truth_table {
   return if @$c > 16;  # Too big - can't get any useful info anyway.
 
   my @lops;
-  foreach my $c (@$c) {
-    my $op  = $c->[1]{type};
-    my @hit = map { defined() && $_ > 0 ? 1 : 0 } @{ $c->[0] };
+  for my $i (0 .. $#$c) {
+    my $cond = $c->[$i];
+    my $op   = $cond->[1]{type};
+    my @hit  = map { defined() && $_ > 0 ? 1 : 0 } @{ $cond->[0] };
     @hit = reverse @hit if $op =~ /^or_[23]$/;
-    my $t = {
-      tt   => Devel::Cover::Truth_Table->new_primitive($op, @hit),
-      cvg  => $c->[1],
-      expr => join(' ', @{ $c->[1] }{qw/left op right/}),
-    };
-    push(@lops, $t);
+    push @lops, {
+        tt   => Devel::Cover::Truth_Table->new_primitive($op, @hit),
+        cvg  => $cond->[1],
+        expr => join(' ', @{ $cond->[1] }{qw/left op right/}),
+        idx  => $i,
+      };
   }
-  return map { [ $_->{tt}->sort, $_->{expr} ] } merge_lineops(@lops);
+
+  my @merged = merge_lineops(@lops);
+  Devel::Cover::Truth_Table::apply_observed_vectors(\@merged, $c);
+
+  return map { [$_->{tt}->sort, $_->{expr}] } @merged;
 }
 
 #-------------------------------------------------------------------------------
@@ -146,13 +151,13 @@ sub rightcol {
 sub leftelems {
   my $self = shift;
   my $n    = $#{ $self->{inputs} };
-  return @{ $self->{inputs} }[ 0 .. $n - 1 ];
+  return @{ $self->{inputs} }[0 .. $n - 1];
 }
 
 sub rightelems {
   my $self = shift;
   my $n    = $#{ $self->{inputs} };
-  return @{ $self->{inputs} }[ 1 .. $n ];
+  return @{ $self->{inputs} }[1 .. $n];
 }
 
 sub string {
@@ -177,6 +182,28 @@ package Devel::Cover::Truth_Table;
 use warnings;
 use strict;
 # VERSION
+
+# Override merged-truth-table row coverage from runtime-observed input vectors.
+# merge_lineops preserves the surviving root op's idx through merges, so the
+# observed-vector slot of $conditions->[$idx] applies to that root.  The shared
+# overlay projects each observed key onto the row width, so a constant right
+# operand that collapses the table still matches.  A compound decision (>= 3
+# atomics) with no observed vectors is an unverified cross-product synthesis, so
+# its rows render uncovered rather than trusting the synthesised coverage.
+sub apply_observed_vectors {
+  my ($merged, $conditions) = @_;
+  require Devel::Cover::DB;
+  require Devel::Cover::Condition_table;
+  for my $op (@$merged) {
+    my $obs  = Devel::Cover::DB::observed_vectors($conditions->[$op->{idx}]);
+    my @rows = @{ $op->{tt} };
+    if ($obs && %$obs) {
+      Devel::Cover::Condition_table::apply_observed_vectors(\@rows, $obs);
+    } elsif (@rows && @{ $rows[0]{inputs} } >= 3) {
+      $_->{covered} = 0 for @rows;
+    }
+  }
+}
 
 #-------------------------------------------------------------------------------
 # Subroutine : new()
@@ -256,33 +283,33 @@ sub percentage {
 #
 sub and_tt {
   return (
-    Devel::Cover::Truth_Table::Row->new([ 0, 'X' ], 0, shift),
-    Devel::Cover::Truth_Table::Row->new([ 1, 0 ],   0, shift),
-    Devel::Cover::Truth_Table::Row->new([ 1, 1 ],   1, shift)
+    Devel::Cover::Truth_Table::Row->new([0, 'X'], 0, shift),
+    Devel::Cover::Truth_Table::Row->new([1, 0],   0, shift),
+    Devel::Cover::Truth_Table::Row->new([1, 1],   1, shift),
   );
 }
 
 sub or_tt {
   return (
-    Devel::Cover::Truth_Table::Row->new([ 0, 0 ],   0, shift),
-    Devel::Cover::Truth_Table::Row->new([ 0, 1 ],   1, shift),
-    Devel::Cover::Truth_Table::Row->new([ 1, 'X' ], 1, shift)
+    Devel::Cover::Truth_Table::Row->new([0, 0],   0, shift),
+    Devel::Cover::Truth_Table::Row->new([0, 1],   1, shift),
+    Devel::Cover::Truth_Table::Row->new([1, 'X'], 1, shift),
   );
 }
 
 sub xor_tt {
   return (
-    Devel::Cover::Truth_Table::Row->new([ 0, 0 ], 0, shift),
-    Devel::Cover::Truth_Table::Row->new([ 0, 1 ], 1, shift),
-    Devel::Cover::Truth_Table::Row->new([ 1, 0 ], 1, shift),
-    Devel::Cover::Truth_Table::Row->new([ 1, 1 ], 0, shift)
+    Devel::Cover::Truth_Table::Row->new([0, 0], 0, shift),
+    Devel::Cover::Truth_Table::Row->new([0, 1], 1, shift),
+    Devel::Cover::Truth_Table::Row->new([1, 0], 1, shift),
+    Devel::Cover::Truth_Table::Row->new([1, 1], 0, shift),
   );
 }
 
 sub boolean_tt {
   return (
     Devel::Cover::Truth_Table::Row->new([0], 0, shift),
-    Devel::Cover::Truth_Table::Row->new([1], 1, shift)
+    Devel::Cover::Truth_Table::Row->new([1], 1, shift),
   );
 }
 
@@ -340,7 +367,7 @@ sub html {
 
   my $c = 0;
   foreach (@$self) {
-    my $class = $class[ !$_->error($c++) || $_->covered ];
+    my $class = $class[!$_->error($c++) || $_->covered];
     $html .= qq'<tr align="center"><td class="$class">';
     $html .= join(qq'</td><td class="$class">', $_->inputs, $_->result);
     $html .= "</td></tr>";
@@ -410,7 +437,7 @@ sub right_merge {
   my ($tt1, $tt2) = @_;
 
   # find the rows of tt2 that have a result of false/true
-  my @merge = ([ grep { !$_->result } @$tt2 ], [ grep { $_->result } @$tt2 ]);
+  my @merge = ([grep { !$_->result } @$tt2], [grep { $_->result } @$tt2]);
   # if the rightmost column of tt1 is 'X', we don't care what the
   # input from tt2 was
   my @dontcare = map { 'X' } $tt2->[0]->inputs;
@@ -421,21 +448,21 @@ sub right_merge {
       push(
         @tt,
         Devel::Cover::Truth_Table::Row->new(
-          [ $row1->leftelems, @dontcare ],
-          $row1->result, $row1->covered
-        )
+          [$row1->leftelems, @dontcare],
+          $row1->result, $row1->covered,
+        ),
       );
     } else {
       # expand value from tt1 with rows from tt2 that result in
       # that value
-      foreach my $row2 (@{ $merge[ $row1->rightcol ] }) {
+      foreach my $row2 (@{ $merge[$row1->rightcol] }) {
         push(
           @tt,
           Devel::Cover::Truth_Table::Row->new(
-            [ $row1->leftelems, $row2->inputs ],
+            [$row1->leftelems, $row2->inputs],
             $row1->result,
-            $row1->covered && $row2->covered
-          )
+            $row1->covered && $row2->covered,
+          ),
         );
       }
     }
@@ -452,21 +479,21 @@ sub left_merge {
   my ($tt1, $tt2) = @_;
 
   # find the rows of tt2 that have a result of false/true
-  my @merge = ([ grep { !$_->result } @$tt2 ], [ grep { $_->result } @$tt2 ]);
+  my @merge = ([grep { !$_->result } @$tt2], [grep { $_->result } @$tt2]);
 
   my @tt;
   foreach my $row1 (@$tt1) {
     my $rightmatters = grep { $_ ne 'X' } $row1->rightelems;
-    foreach my $row2 (@{ $merge[ $row1->leftcol ] }) {
+    foreach my $row2 (@{ $merge[$row1->leftcol] }) {
       # expand value from tt1 with rows from tt2 that result in
       # that value
       push(
         @tt,
         Devel::Cover::Truth_Table::Row->new(
-          [ $row2->inputs, $row1->rightelems ],
+          [$row2->inputs, $row1->rightelems],
           $row1->result,
-          ($rightmatters) ? $row1->covered && $row2->covered : $row2->covered
-        )
+          ($rightmatters) ? $row1->covered && $row2->covered : $row2->covered,
+        ),
       );
     }
   }
