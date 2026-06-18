@@ -215,6 +215,20 @@ plenv shell dc-5.38.0
 PLENV_VERSION=dc-5.38.0 make out TEST=empty_else
 ```
 
+**IMPORTANT - rebuild before testing under another version**:
+`perl Makefile.PL` bakes the running Perl's path into the generated Makefile.
+A bare `PLENV_VERSION=X make` (or `make gold`, or a test run) then builds and
+runs against whatever Perl the *last* `perl Makefile.PL` used, not `X`. This
+silently produces results for the wrong version, which can look like a genuine
+version-dependent difference. Always regenerate the Makefile for the target
+version first:
+
+```bash
+PLENV_VERSION=dc-5.38.0 sh -c 'perl Makefile.PL && make'
+```
+
+then run the `PLENV_VERSION=dc-5.38.0 make ...` command you wanted.
+
 **Multi-Version Testing**:
 
 ```bash
