@@ -1045,13 +1045,16 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}, $st = undef) {
     my $digest = $cf->{meta}{digest};
     my $unc    = $digest && $uncoverable->{$digest}{mcdc};
 
-    # Merge any recorded compound decision roots as synthetic condition entries
-    # so for_line unifies them; see L</Compound decision roots>.
+    # Merge compound decision roots, with their observed vectors, as synthetic
+    # condition entries; see L</Compound decision roots>.
     my %roots;
     my $decisions = $st && $digest ? $st->get_mcdc_decision($digest) : undef;
+    my $inputs    = delete $cf->{mcdc_decision_inputs};
+    my $i         = 0;
     for my $d ($decisions ? @$decisions : ()) {
       my ($line, $structure, $counts) = @$d;
-      push $roots{$line}->@*, [$counts, $structure];
+      my $obs = $inputs && $inputs->[$i++];
+      push $roots{$line}->@*, [$counts, $structure, undef, $obs];
     }
 
     my %mcdc;
@@ -1153,6 +1156,16 @@ sub _cover_file (
       );
     } else {
       $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
+    }
+  }
+
+  # Accumulate decision-root observed vectors across runs for _derive_mcdc.
+  if (my $mdi = $r->{mcdc_decision_inputs}{$file}) {
+    my $acc = $cf->{mcdc_decision_inputs} //= [];
+    for my $i (0 .. $#$mdi) {
+      my $obs    = $mdi->[$i] or next;
+      my $merged = $acc->[$i] //= {};
+      $merged->{$_} += $obs->{$_} for keys %$obs;
     }
   }
 }
@@ -1498,6 +1511,15 @@ C<mcdc_decision> key of the file structure, keyed away from condition and branch
 coverage so neither criterion's output moves. C<_derive_mcdc> merges these roots
 into the per-line condition list as synthetic entries, letting
 L<Devel::Cover::Condition_table/for_line> rebuild the single unified table.
+
+The decision structure is recorded once per file (a reuse guard skips it on
+later runs over the same source), while the root's observed input vectors are
+recorded per run in C<< $run->{mcdc_decision_inputs} >>, keyed by the decision's
+walk ordinal, and accumulated across runs. C<_derive_mcdc> attaches the
+accumulated vectors to the synthetic entry's observed-vector slot, so a root
+exercised in value context reports proven MC/DC coverage rather than an unproven
+synthesis. A root evaluated only in void context never observes its right
+operand and so stays honestly unproven.
 
 Control-flow logops - C<if>/C<while> bodies, C<or die>, C<and $x++> - have a
 block, statement, or side-effect right operand rather than a nested decision, so

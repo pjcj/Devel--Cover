@@ -2,8 +2,8 @@ cover: Reading database from ...
 --------------------- ------ ------ ------ ------ ------ ------ ------
 File                    stmt   bran   cond   mcdc    sub  total   slop
 --------------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_signatures  100.0  100.0  100.0    0.0  100.0   93.7   17.9
-Total                  100.0  100.0  100.0    0.0  100.0   93.7   17.9
+tests/mcdc_signatures  100.0  100.0  100.0   25.0  100.0   95.3   17.9
+Total                  100.0  100.0  100.0   25.0  100.0   95.3   17.9
 --------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -71,7 +71,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
                3                               
                3                               
                3                               
-25    ***      4    100    100   *  0      4   sub nested       ($a, $b, $c, $d) { ($a && $b) || ($c && $d) }
+25    ***      4    100    100   * 25      4   sub nested       ($a, $b, $c, $d) { ($a && $b) || ($c && $d) }
                4           100                 
                4                               
                4                               
@@ -94,15 +94,16 @@ line  err   stmt   bran   cond   mcdc    sub   code
 39                                             
 40                                               # Mixed-precedence ($a && $b) || ($c && $d).  The statement-level outer ||
 41                                               # is recorded as a branch but its decision structure is kept, so MC/DC
-42                                               # measures the unified four-condition decision (unproven here - these four
-43                                               # calls do not achieve MC/DC).  The per-CV walk stays clear of signature ops.
-44             1                                 push @r, nested(1, 1, 0, 0);
-45             1                                 push @r, nested(1, 0, 1, 1);
-46             1                                 push @r, nested(0, 0, 1, 0);
-47             1                                 push @r, nested(0, 0, 0, 0);
-48                                             }
-49                                             
-50             1                               main();
+42                                               # measures the unified four-condition decision.  Called for its value, the
+43                                               # decision's input vectors are observed, so MC/DC is proven (these four calls
+44                                               # achieve it partially).  The per-CV walk stays clear of signature ops.
+45             1                                 push @r, nested(1, 1, 0, 0);
+46             1                                 push @r, nested(1, 0, 1, 1);
+47             1                                 push @r, nested(0, 0, 1, 0);
+48             1                                 push @r, nested(0, 0, 0, 0);
+49                                             }
+50                                             
+51             1                               main();
 
 
 Branches
@@ -131,7 +132,7 @@ MC/DC
 
 line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
-25    ***      0    0    4   $a, $b, $c, $d         $a and $b || $c and $d
+25    ***     25    1    4   $b, $c, $d             $a and $b || $c and $d
 
 
 Covered Subroutines
