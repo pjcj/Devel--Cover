@@ -881,13 +881,7 @@ sub _condition_counts ($c, $type, $op) {
   die qq(Unknown type "$type" for conditional);
 }
 
-sub add_condition_cover (
-  $op, $strop, $left, $right,
-  $left_op = undef,
-  $right_op = undef,
-) {
-  return unless $Collect && $Coverage{condition};
-
+sub _condition_structure ($op, $strop, $left, $right, $left_op, $right_op) {
   my $key  = get_key($op);
   my $type = $op->name;
   $type =~ s/assign$//;
@@ -911,6 +905,19 @@ sub add_condition_cover (
     right_negated => $rn,
     $void_collapsed ? (void_collapsed => 1) : (),
   };
+
+  ($key, $structure, $c)
+}
+
+sub add_condition_cover (
+  $op, $strop, $left, $right,
+  $left_op = undef,
+  $right_op = undef,
+) {
+  return unless $Collect && $Coverage{condition};
+
+  my ($key, $structure, $c)
+    = _condition_structure($op, $strop, $left, $right, $left_op, $right_op);
 
   my ($n, $new) = $Structure->add_count("condition");
 
@@ -1591,6 +1598,30 @@ sub _resolve_blockname ($blockname, $cx) {
   $blockname
 }
 
+# True if the operand is itself a logop, through null/not wrappers only.
+sub _operand_is_decision ($op) {
+  while ($op && $$op && ($op->name eq "null" || $op->name eq "not")) {
+    return 0 unless $op->flags & OPf_KIDS;
+    $op = $op->first;
+  }
+  $op && $$op && $Is_condition_op{ $op->name } ? 1 : 0
+}
+
+# Record a branch-classified compound logop's decision structure for MC/DC.  The
+# right-operand-is-logop test excludes control-flow logops (if/while bodies, "or
+# die").  See L<Devel::Cover::DB/Compound decision roots>.
+sub _record_mcdc_decision ($cv, $op, $strop, $left_op, $right_op, $prec) {
+  return unless $Collect && $Coverage{mcdc};
+  return if $Seen{mcdc_decision}{$$op}++;
+  return unless _operand_is_decision($right_op);
+
+  my $left  = _deparse_expr($cv, $left_op,  $prec);
+  my $right = _deparse_expr($cv, $right_op, $prec);
+  my (undef, $structure, $c)
+    = _condition_structure($op, $strop, $left, $right, $left_op, $right_op);
+  $Structure->add_mcdc_decision($File, [$Line, $structure, $c]);
+}
+
 sub _walk_logop ($cv, $op) {
   return unless $Collect;
   return if $Seen{cond_expr}{$$op};
@@ -1622,6 +1653,7 @@ sub _walk_logop ($cv, $op) {
     my $text = is_scope($right) ? "$blockname ($l)" : "$blockname $l";
     add_branch_cover($op, $lowop, $text, $file, $line)
       unless $Seen{branch}{$$op}++;
+    _record_mcdc_decision($cv, $op, $highop // $lowop, $left, $right, $lowprec);
   } elsif ($cx > $lowprec && $highop) {
     my $l = _deparse_binop_left($cv, $op, $left, $highprec, 0);
     my $r = _deparse_expr($cv, $right, $highprec, 0);
@@ -1633,6 +1665,10 @@ sub _walk_logop ($cv, $op) {
     if ($is_branch) {
       add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
         unless $Seen{branch}{$$op}++;
+      _record_mcdc_decision(
+        $cv,   $op,    $highop // $lowop,
+        $left, $right, $lowprec,
+      );
     } else {
       add_condition_cover($op, $lowop, $l, $r, $left, $right)
         unless $Seen{condition}{$$op}++;

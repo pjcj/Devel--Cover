@@ -2,8 +2,8 @@ cover: Reading database from ...
 --------------------- ------ ------ ------ ------ ------ ------ ------
 File                    stmt   bran   cond   mcdc    sub  total   slop
 --------------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_signatures  100.0  100.0  100.0  100.0  100.0  100.0   17.9
-Total                  100.0  100.0  100.0  100.0  100.0  100.0   17.9
+tests/mcdc_signatures  100.0  100.0  100.0    0.0  100.0   93.7   17.9
+Total                  100.0  100.0  100.0    0.0  100.0   93.7   17.9
 --------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -71,8 +71,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
                3                               
                3                               
                3                               
-25             4    100    100    100      4   sub nested       ($a, $b, $c, $d) { ($a && $b) || ($c && $d) }
-               4           100    100          
+25    ***      4    100    100   *  0      4   sub nested       ($a, $b, $c, $d) { ($a && $b) || ($c && $d) }
+               4           100                 
                4                               
                4                               
                4                               
@@ -92,10 +92,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 37             1                                 push @r, or_decision(0, 1);
 38             1                                 push @r, or_decision(0, 0);
 39                                             
-40                                               # Mixed-precedence ($a && $b) || ($c && $d).  Both outer-|| operands
-41                                               # are compound, so the outer || is not recorded; MC/DC measures the
-42                                               # two inner && logops as separate tables (see mcdc.md Limitations),
-43                                               # while the per-CV walk stays isolated from the signature or ops.
+40                                               # Mixed-precedence ($a && $b) || ($c && $d).  The statement-level outer ||
+41                                               # is recorded as a branch but its decision structure is kept, so MC/DC
+42                                               # measures the unified four-condition decision (unproven here - these four
+43                                               # calls do not achieve MC/DC).  The per-CV walk stays clear of signature ops.
 44             1                                 push @r, nested(1, 1, 0, 0);
 45             1                                 push @r, nested(1, 0, 1, 1);
 46             1                                 push @r, nested(0, 0, 1, 0);
@@ -131,8 +131,7 @@ MC/DC
 
 line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
-25           100    2    2                          $a and $b
-             100    2    2                          $c and $d
+25    ***      0    0    4   $a, $b, $c, $d         $a and $b || $c and $d
 
 
 Covered Subroutines
