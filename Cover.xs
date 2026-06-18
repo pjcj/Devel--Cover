@@ -988,13 +988,8 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
     add_conditional(aTHX_ op, value);
 
     /*
-     * MC/DC right-operand resolution.  value here mirrors what
-     * add_conditional just consumed: 1 = right was false, 2 = right was
-     * true, 3/4 = the xor-with-true-left variants of those.  Write the
-     * right operand's value into this logop's leaf column (if it is a
-     * leaf), and snapshot+pop when this op is the decision root.  The
-     * !final guard skips this in the program-end drain because there is
-     * no genuine right value to record then.
+     * MC/DC: write the right operand's value into this logop's leaf column.
+     * value: 1 = right false, 2 = right true, 3/4 = xor-with-true-left.
      */
     if (!final && collecting(Mcdc)) {
       HV *m = dc_lookup_or_build_decision_meta(aTHX_ op, find_runcv(NULL));
@@ -1002,7 +997,6 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
         OP      *root_addr =
           INT2PTR(OP *, dc_meta_iv(aTHX_ m, "root_addr", 9));
         int      leaf_right = dc_meta_iv(aTHX_ m, "leaf_col_right", 14);
-        int      is_root    = dc_meta_iv(aTHX_ m, "is_root",         7);
         dc_dctx *d          = dc_stack_find_root(aTHX_ root_addr);
         int      right_val  = (value == 2 || value == 4)
                                 ? DC_VECTOR_TRUE
@@ -1010,8 +1004,25 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
 
         if (d && leaf_right >= 0 && leaf_right < d->width)
           d->vector[leaf_right] = right_val;
+      }
+    }
+  }
 
-        if (d && is_root == 1) {
+  /* Snapshot roots after every leaf is written, so order does not matter. */
+  if (!final && collecting(Mcdc)) {
+#ifdef USE_ITHREADS
+    i = 0;
+#else
+    i = 2;
+#endif
+    for (; i <= av_len(conds); i++) {
+      OP *op = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
+      HV *m  = dc_lookup_or_build_decision_meta(aTHX_ op, find_runcv(NULL));
+      if (m && dc_meta_iv(aTHX_ m, "is_root", 7) == 1) {
+        OP *root_addr =
+          INT2PTR(OP *, dc_meta_iv(aTHX_ m, "root_addr", 9));
+        dc_dctx *d = dc_stack_find_root(aTHX_ root_addr);
+        if (d) {
           dc_snapshot(aTHX_ d);
           if (dc_stack_top(aTHX) == d) dc_stack_pop(aTHX);
         }
@@ -1859,7 +1870,8 @@ static void cover_logop(pTHX) {
         next = (PL_op->op_type == OP_XOR)
           ? PL_op->op_next
           : right->op_next;
-        while (next && next->op_type == OP_NULL)
+        while (next &&
+               (next->op_type == OP_NULL || next->op_type == OP_LINESEQ))
           next = next->op_next;
         if (!next) {
           /*

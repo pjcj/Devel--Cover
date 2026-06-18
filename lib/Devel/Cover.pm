@@ -745,6 +745,7 @@ sub _filter_cover_files {
       delete $Run{count}{$file};
       delete $Run{vec}{$file};
       delete $Run{decision_inputs}{$file};
+      delete $Run{mcdc_decision_inputs}{$file};
       $Structure->delete_file($file);
       next;
     }
@@ -1617,9 +1618,18 @@ sub _record_mcdc_decision ($cv, $op, $strop, $left_op, $right_op, $prec) {
 
   my $left  = _deparse_expr($cv, $left_op,  $prec);
   my $right = _deparse_expr($cv, $right_op, $prec);
-  my (undef, $structure, $c)
+  my ($key, $structure, $c)
     = _condition_structure($op, $strop, $left, $right, $left_op, $right_op);
-  $Structure->add_mcdc_decision($File, [$Line, $structure, $c]);
+  my ($n, $new) = $Structure->add_count("mcdc_decision");
+  $Structure->add_mcdc_decision($File, [$Line, $structure, $c]) if $new;
+  _record_mcdc_inputs($key, $n);
+}
+
+# Decision-root analogue of _record_decision_inputs.
+sub _record_mcdc_inputs ($key, $n) {
+  my $vectors = $Coverage->{decision_inputs}{$key} or return;
+  my $di      = $Run{mcdc_decision_inputs}{$File}[$n] //= {};
+  $di->{$_} += $vectors->{$_} for keys %$vectors;
 }
 
 sub _walk_logop ($cv, $op) {
