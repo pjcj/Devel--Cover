@@ -13,17 +13,14 @@
 # unified table over all its atomic conditions; this test asserts that the
 # explicit-return and implicit-return (last-statement) forms record the SAME
 # table structure.  The driver calls the sub in void context, so the return
-# forms evaluate the decision in void context - that is the real variable
-# under test, not the return keyword (option-4 Phase 1 finding, recorded in
-# llm/plans/GH-478-mcdc/phase1_root_cause.md).
+# forms evaluate the decision in void context - that is the real variable under
+# test, not the return keyword.
 #
-# Today they do not match: a logop that runs void is collapsed to a degenerate
-# narrow table and its MC/DC vectors are skipped, so explicit return yields one
-# narrow table and implicit return decomposes into separate per-logop tables.
-# The differential assertions are therefore wrapped in a TODO block until void
-# compound decisions record their full structure (Phase 2).  The reference
-# assertions (scalar-assignment records one unified table) pass today and
-# establish the correct target.
+# All three contexts now match.  Explicit return records the outer logop as a
+# condition in the collapsed void form, which MC/DC promotes back to the full
+# structure.  Implicit return records the outer logop as a branch, whose decision
+# structure is kept separately so MC/DC rebuilds the same unified table; see
+# L<Devel::Cover::DB/Compound decision roots>.
 
 use 5.20.0;
 use warnings;
@@ -37,7 +34,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use Cwd        qw( abs_path );
 use File::Spec ();
 use File::Temp qw( tempdir );
-use Test::More import => [qw( done_testing is is_deeply subtest $TODO )];
+use Test::More import => [qw( done_testing is is_deeply subtest )];
 
 use Devel::Cover::DB ();
 
@@ -126,17 +123,10 @@ for my $op (sort keys %Decision) {
     is_deeply table_structure($op, "explicit_return"), $reference,
       "explicit return records the same table as scalar assignment";
 
-    # Implicit return (last statement): the outer logop feeds leavesub
-    # directly, so in void context it is never recorded at all - the inner
-    # logops surface as separate roots and the decision cannot be rebuilt.
-    # Recording the absent outer logop needs an XS recorder change.
-    {
-      local $TODO = "implicit return: the void outer logop feeds leavesub "
-        . "directly and is never recorded";
-
-      is_deeply table_structure($op, "implicit_return"), $reference,
-        "implicit return records the same table as scalar assignment";
-    }
+    # Implicit return (last statement): the outer logop is recorded as a branch,
+    # but its decision structure is kept so MC/DC rebuilds the unified table.
+    is_deeply table_structure($op, "implicit_return"), $reference,
+      "implicit return records the same table as scalar assignment";
   };
 }
 

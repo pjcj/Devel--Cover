@@ -1034,7 +1034,7 @@ sub objectify_cover ($self) {
   }
 }
 
-sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
+sub _derive_mcdc ($self, $cover, $uncoverable = {}, $st = undef) {
   require Devel::Cover::Condition_table;
   require Devel::Cover::Mcdc::Analyser;
 
@@ -1045,12 +1045,20 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
     my $digest = $cf->{meta}{digest};
     my $unc    = $digest && $uncoverable->{$digest}{mcdc};
 
+    # Merge any recorded compound decision roots as synthetic condition entries
+    # so for_line unifies them; see L</Compound decision roots>.
+    my %roots;
+    my $decisions = $st && $digest ? $st->get_mcdc_decision($digest) : undef;
+    for my $d ($decisions ? @$decisions : ()) {
+      my ($line, $structure, $counts) = @$d;
+      push $roots{$line}->@*, [$counts, $structure];
+    }
+
     my %mcdc;
     for my $line (keys %$cc) {
-      my $loc = $cc->{$line};
-      next unless $loc && @$loc;
-      my @observed = map observed_vectors($_), @$loc;
-      my @tables   = Devel::Cover::Condition_table->for_line($loc, \@observed);
+      my @loc      = ($cc->{$line}->@*, ($roots{$line} // [])->@*) or next;
+      my @observed = map observed_vectors($_), @loc;
+      my @tables   = Devel::Cover::Condition_table->for_line(\@loc, \@observed);
       for my $n (0 .. $#tables) {
         my $table = $tables[$n];
         my $r     = Devel::Cover::Mcdc::Analyser->analyse($table);
@@ -1186,7 +1194,8 @@ sub cover ($self) {
     }
   }
 
-  $self->_derive_mcdc($cover, $uncoverable) if exists $self->{collected}{mcdc};
+  $self->_derive_mcdc($cover, $uncoverable, $st)
+    if exists $self->{collected}{mcdc};
 
   $self->objectify_cover;
   if ($self->{files}->@*) {
@@ -1474,6 +1483,25 @@ analyser; see L</observed_vectors>.
   my $obs = Devel::Cover::DB::observed_vectors($entry);
 
 Return the observed-vector hash recorded on a condition entry (or undef).
+
+=head2 Compound decision roots
+
+A statement-level logop whose value is discarded - the last statement of a sub,
+an implicit return - is recorded as a branch, not a condition. The MC/DC
+derivation builds its truth tables from the condition structure, so it has no
+entry to unify such a logop's operands under and would instead measure each
+operand as a separate table.
+
+When the logop is a compound decision (its right operand is itself a logop)
+Devel::Cover records its decision structure separately, under the
+C<mcdc_decision> key of the file structure, keyed away from condition and branch
+coverage so neither criterion's output moves. C<_derive_mcdc> merges these roots
+into the per-line condition list as synthetic entries, letting
+L<Devel::Cover::Condition_table/for_line> rebuild the single unified table.
+
+Control-flow logops - C<if>/C<while> bodies, C<or die>, C<and $x++> - have a
+block, statement, or side-effect right operand rather than a nested decision, so
+they are excluded and only genuine boolean decisions are recorded.
 
 =head2 add_pod
 
