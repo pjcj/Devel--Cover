@@ -192,9 +192,11 @@ itself nested inside another logop of compatible type:
 - `($a && $b) ? $x : $y` - the `cond_expr` is the decision; `$a && $b` is its
   sole condition (composed of two atomic conditions).
 
-One case departs from this. A logop whose two operands are themselves logops is
-not currently recorded, so a decision such as `(A && B) || (C && D)` is measured
-as its inner logops rather than as a single whole (see Limitations).
+Statement level has a wrinkle. A logop whose value is discarded - a sub's last
+statement, an implicit return - is recorded as a decision only when its right
+operand is itself a decision, as in `(A && B) || (C && D)`. When the right
+operand is not a decision, such as `(A && B) || $c`, the outer operator stays a
+branch (see Limitations).
 
 ### Atomic conditions
 
@@ -402,22 +404,19 @@ USAGE POD in `Devel::Cover::Mcdc`, and a `Changes` entry.
   `Condition_table::for_line`; MC/DC inherits that limit. The bound exists
   because the truth table size grows as 2^N and becomes unwieldy.
 
-- A decision whose outer operator joins two compound operands (for example
-  `(A && B) || (C && D)`) is not recorded as one decision. Devel::Cover's
-  condition-coverage recording does not capture a logop when both its operands
-  are themselves logops, so MC/DC sees only the inner logops and builds one
-  truth table per inner logop rather than a unified table over all atomic
-  conditions. This predates MC/DC and affects condition coverage too. A
-  consequence is that a fault in the unrecorded outer operator is invisible to
-  both condition and MC/DC coverage.
+- A statement-level logop whose value is discarded records its outer operator as
+  a decision only when its right operand is itself a decision. So
+  `(A && B) || (C && D)` is recorded as one unified table, but `(A && B) || $c`
+  is not - the outer `||` stays a branch, and an `||` versus `&&` fault in it is
+  invisible to condition and MC/DC coverage. The outer is left as a branch
+  because a left-only-compound join is optree-identical to a statement modifier
+  (`$c unless A && B`) and cannot be told apart. In value context the outer is
+  always recorded, so this affects statement-level forms only.
 
 - Coupled conditions (the same atomic condition appearing more than once in a
-  decision) would be handled by hybrid's masking fallback, but in practice no
-  coupled truth table is ever built. The decomposition above places repeated
-  atomic conditions in separate tables, so the masking fallback in
-  `Mcdc::Analyser` is unreachable from real Perl and is exercised only by unit
-  tests. It stays as defensive code for the day the recording limitation is
-  removed. Were coupling to arise, the fallback reduces to demonstrating
+  decision, such as `($a && $b) || ($a && $c)`) are placed in a single table.
+  Unique-cause is impossible under coupling, so such a decision reaches hybrid's
+  masking fallback in `Mcdc::Analyser`, which reduces to demonstrating
   short-circuit-induced masking rather than direct causal independence; this
   corner is the most actively debated part of the metric in the literature.
 
