@@ -118,7 +118,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 77             1                                 push @r, negated_and(0, 0);
 78             1                                 push @r, negated_and(1, 0);
 79                                             
-80                                               # Mixed-precedence (A && B) || C - the worked-example shape from
+80                                               # Mixed-precedence (A && B) || C - the worked example from
 81                                               # docs/technical/mcdc.md.
 82             1                                 push @r, nested(1, 1, 0);
 83             1                                 push @r, nested(1, 0, 0);

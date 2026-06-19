@@ -1500,16 +1500,33 @@ Return the observed-vector hash recorded on a condition entry (or undef).
 =head2 Compound decision roots
 
 A statement-level logop whose value is discarded - the last statement of a sub,
-an implicit return - is recorded as a branch, not a condition. The MC/DC
-derivation builds its truth tables from the condition structure, so it has no
-entry to unify such a logop's operands under and would instead measure each
-operand as a separate table.
+an implicit return - is recorded as a branch. The MC/DC derivation builds its
+truth tables from the condition structure, so without a condition entry it would
+measure each operand as a separate table instead of unifying the logop's
+operands under one.
 
-When the logop is a compound decision (its right operand is itself a logop)
-Devel::Cover records its decision structure separately, under the
-C<mcdc_decision> key of the file structure, keyed away from condition and branch
-coverage so neither criterion's output moves. C<_derive_mcdc> merges these roots
-into the per-line condition list as synthetic entries, letting
+When such a logop joins two decisions (its right operand is itself a logop) it
+is also recorded as a condition, exactly as in value context, so the joining
+operator is observed by condition and MC/DC coverage and a C<||> versus C<&&>
+fault is visible. Without this only the inner logops get tables and the outer
+operator has no representation. The trigger tests the B<right> operand
+alone: a statement modifier C<< ACTION if COND >> compiles to the same op as a
+genuine C<< COND && ACTION >> join, so a left-only-compound join cannot be told
+apart from control flow and is left as a branch, where its operator is still
+visible in the C<if>/C<unless> text. Void context is honoured through the
+runtime collapse flag, so a logop evaluated only in void context never observes
+its right operand and stays honestly unproven.
+
+Control-flow logops - C<if>/C<while> bodies, C<or die>, C<and $x++> - have a
+block, statement, or side-effect right operand rather than a nested decision, so
+they are excluded and only genuine boolean decisions are recorded.
+
+A logop classified as a branch but not in statement form (a discarded
+expression such as C<< $y && $x++ >>) is not recorded as a condition. Its
+decision structure is instead recorded separately, under the C<mcdc_decision>
+key of the file structure, keyed away from condition and branch coverage so
+neither criterion's output moves. C<_derive_mcdc> merges these roots into the
+per-line condition list as synthetic entries, letting
 L<Devel::Cover::Condition_table/for_line> rebuild the single unified table.
 
 The decision structure is recorded once per file (a reuse guard skips it on
@@ -1518,12 +1535,7 @@ recorded per run in C<< $run->{mcdc_decision_inputs} >>, keyed by the decision's
 walk ordinal, and accumulated across runs. C<_derive_mcdc> attaches the
 accumulated vectors to the synthetic entry's observed-vector slot, so a root
 exercised in value context reports proven MC/DC coverage rather than an unproven
-synthesis. A root evaluated only in void context never observes its right
-operand and so stays honestly unproven.
-
-Control-flow logops - C<if>/C<while> bodies, C<or die>, C<and $x++> - have a
-block, statement, or side-effect right operand rather than a nested decision, so
-they are excluded and only genuine boolean decisions are recorded.
+synthesis.
 
 =head2 add_pod
 

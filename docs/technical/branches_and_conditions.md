@@ -361,6 +361,16 @@ The XS layer's void-context detection already handles this at the data
 level (recording only 2 outcomes when in void context), so the Perl
 layer's classification aligns with what the runtime actually measured.
 
+### Statement-level compound joins
+
+A statement-level logop stays a branch, but when its right operand is
+itself a decision, the outer operator is additionally recorded as a
+condition, so the join is visible to condition and MC/DC coverage. An
+example is a sub's last statement `($a && $b) || ($c && $d)`. See the
+`Compound decision roots` section of `Devel::Cover::DB` and
+`docs/technical/mcdc.md` for the details and the left-only-compound
+exception.
+
 ## Examples
 
 ### Branch: `$y && $x++` at statement level

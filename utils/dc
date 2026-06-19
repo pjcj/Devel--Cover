@@ -450,7 +450,7 @@ recipe_docker-build() {
 
 # docker push authenticates via `docker login` credentials stored in
 # ~/.docker/config.json. The Docker Hub *web API* (hub.docker.com/v2),
-# used for listing and deleting tags, has its own auth — POST username +
+# used for listing and deleting tags, has its own auth - POST username +
 # PAT to /v2/users/login to obtain a JWT. The CLI credentials cannot be
 # reused for this.
 #

@@ -52,7 +52,7 @@ sub test_json_detailed_report () {
 
   my $json = JSON::MaybeXS->new(utf8 => 1)->decode(slurp($path));
 
-  # Top-level shape.
+  # Top-level structure.
   like $json->{devel_cover_version}, qr/^\d+\.\d+/,
     "devel_cover_version looks like a version number";
   isa_ok $json->{runs},    "ARRAY", "runs";
@@ -88,7 +88,7 @@ sub test_json_detailed_report () {
     map { $f->{statements}{$_}->@* } keys $f->{statements}->%*;
   ok $covered_stmt, "at least one statement has covered > 0";
 
-  # Branch entries match the documented shape.
+  # Branch entries match the documented structure.
   my $first_branch_line = (sort { $a <=> $b } keys $f->{branches}->%*)[0];
   ok defined $first_branch_line, "branches has at least one line";
   my $branch = $f->{branches}{$first_branch_line}[0];

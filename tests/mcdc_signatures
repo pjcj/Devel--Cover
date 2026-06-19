@@ -38,10 +38,11 @@ sub main {
   push @r, or_decision(0, 0);
 
   # Mixed-precedence ($a && $b) || ($c && $d).  The statement-level outer ||
-  # is recorded as a branch but its decision structure is kept, so MC/DC
-  # measures the unified four-condition decision.  Called for its value, the
-  # decision's input vectors are observed, so MC/DC is proven (these four calls
-  # achieve it partially).  The per-CV walk stays clear of signature ops.
+  # joins two compound operands, so it is recorded as a condition (alongside
+  # the branch) and MC/DC measures the unified four-condition decision.  Called
+  # for its value, the decision's input vectors are observed, so MC/DC is proven
+  # (these four calls achieve it partially).  The per-CV walk stays clear of
+  # signature ops.
   push @r, nested(1, 1, 0, 0);
   push @r, nested(1, 0, 1, 1);
   push @r, nested(0, 0, 1, 0);

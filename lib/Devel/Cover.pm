@@ -26,7 +26,15 @@ use Devel::Cover::Inc         ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use B qw( main_cv main_root OPf_KIDS OPf_SPECIAL OPf_WANT ppname walksymtable );
+use B qw(
+  main_cv
+  main_root
+  OPf_KIDS
+  OPf_SPECIAL
+  OPf_WANT
+  ppname
+  walksymtable
+);
 use B::Deparse ();
 
 # OPpSTATEMENT (added in 5.43.8) authoritatively distinguishes statement-form
@@ -650,8 +658,8 @@ sub _skip_to_condop ($op) {
   while ($op && $$op && !$Is_condition_op{ $op->name }) {
     last unless $op->flags & OPf_KIDS;
     # OP_CUSTOM is a value-producing operator, not a wrapper.  B blesses
-    # unregistered custom ops as plain B::OP regardless of their actual shape,
-    # so calling ->first would die.  Stop here.
+    # unregistered custom ops as plain B::OP regardless of their real
+    # structure, so calling ->first would die.  Stop here.
     last if $op->name eq "custom";
     $negated ^= 1 if $op->name eq "not";
     $op = $op->first;
@@ -1038,8 +1046,8 @@ my %Original;
 
     # Since 5.43.2 empty if{} blocks may be optimised away, leaving only 2
     # children.  OPf_SPECIAL unset means the true block was removed; swap so
-    # $false holds the else/elsif content. Gated on Has_op_statement because
-    # the old heuristic cannot safely handle the swapped state.
+    # $false holds the else/elsif content.  Guarded by Has_op_statement
+    # because the old heuristic cannot safely handle the swapped state.
     if (
          Has_op_statement
       && B::class($false) eq "NULL"
@@ -1352,7 +1360,7 @@ sub _get_cover_deparse ($cv, $root) {
   $root ? $deparse->deparse($root, 0) : $deparse->deparse_sub($cv, 0);
 }
 
-# --- XS op tree walker path ---
+# XS op tree walker path
 
 my $Shared_deparse;
 my $Current_cop;
@@ -1571,10 +1579,8 @@ sub _logop_parent_cx ($op, $highprec, $lowprec) {
     # recurses into logop children at cx=1 (low-prec expression).
     return 1 if $pname =~ /^(?:and|or|dor)$/;
   }
-  # Fallback for unrecognised parent structures (e.g. nested logops
-  # where the optimizer has eliminated cond_expr): use OPf_WANT.
-  # The parent map handles sort/return/leaveloop on all versions,
-  # so this only fires for genuinely ambiguous cases.
+  # Fallback for unrecognised parents (e.g. nested logops where the
+  # optimiser eliminated cond_expr): use OPf_WANT.
   my $want = $op->flags & OPf_WANT;
   return 0 unless $want >= B::OPf_WANT_SCALAR;
   $highprec || $lowprec
@@ -1608,9 +1614,8 @@ sub _operand_is_decision ($op) {
   $op && $$op && $Is_condition_op{ $op->name } ? 1 : 0
 }
 
-# Record a branch-classified compound logop's decision structure for MC/DC.  The
-# right-operand-is-logop test excludes control-flow logops (if/while bodies, "or
-# die").  See L<Devel::Cover::DB/Compound decision roots>.
+# Record a branch-classified compound logop as an MC/DC decision root.  See
+# L<Devel::Cover::DB/Compound decision roots>.
 sub _record_mcdc_decision ($cv, $op, $strop, $left_op, $right_op, $prec) {
   return unless $Collect && $Coverage{mcdc};
   return if $Seen{mcdc_decision}{$$op}++;
@@ -1632,6 +1637,15 @@ sub _record_mcdc_inputs ($key, $n) {
   $di->{$_} += $vectors->{$_} for keys %$vectors;
 }
 
+sub _record_logop_condition (
+  $cv, $op, $strop, $left, $right, $prec, $use_dumper = 1,
+) {
+  my $l = _deparse_binop_left($cv, $op, $left, $prec, $use_dumper);
+  my $r = _deparse_expr($cv, $right, $prec, $use_dumper);
+  add_condition_cover($op, $strop, $l, $r, $left, $right)
+    unless $Seen{condition}{$$op}++;
+}
+
 sub _walk_logop ($cv, $op) {
   return unless $Collect;
   return if $Seen{cond_expr}{$$op};
@@ -1643,15 +1657,12 @@ sub _walk_logop ($cv, $op) {
   my $right = $op->first->sibling;
   my ($file, $line) = ($File, $Line);
 
-  # Determine precedence context to match B::Deparse behaviour.
-  # Always consult the parent chain when available - the XS walker's
-  # in_logop nesting can cross block boundaries (e.g. sort block inside
-  # a || expression), but B::Deparse resets cx at each block scope.
+  # Match B::Deparse, which resets the precedence context at each block
+  # scope; the XS walker's in_logop nesting can cross block boundaries.
   my $cx = _logop_parent_cx($op, $highprec, $lowprec);
   $blockname = _resolve_blockname($blockname, $cx);
 
-  # Loop conditions (and -> null* -> leaveloop) are always branches in
-  # statement form, regardless of OPpSTATEMENT.
+  # Loop conditions are always branches, regardless of OPpSTATEMENT.
   $Shared_deparse ||= B::Deparse->new;
   my ($is_statement, $is_branch)
     = _is_loop_condition($op)
@@ -1663,26 +1674,22 @@ sub _walk_logop ($cv, $op) {
     my $text = is_scope($right) ? "$blockname ($l)" : "$blockname $l";
     add_branch_cover($op, $lowop, $text, $file, $line)
       unless $Seen{branch}{$$op}++;
-    _record_mcdc_decision($cv, $op, $highop // $lowop, $left, $right, $lowprec);
+
+    # See L<Devel::Cover::DB/Compound decision roots>.
+    _record_logop_condition(
+      $cv, $op, $highop // $lowop,
+      $left, $right, $highprec // $lowprec, 0,
+    ) if _operand_is_decision($right);
   } elsif ($cx > $lowprec && $highop) {
-    my $l = _deparse_binop_left($cv, $op, $left, $highprec, 0);
-    my $r = _deparse_expr($cv, $right, $highprec, 0);
-    add_condition_cover($op, $highop, $l, $r, $left, $right)
-      unless $Seen{condition}{$$op}++;
-  } else {
+    _record_logop_condition($cv, $op, $highop, $left, $right, $highprec, 0);
+  } elsif ($is_branch) {
     my $l = _deparse_binop_left($cv, $op, $left, $lowprec);
     my $r = _deparse_expr($cv, $right, $lowprec);
-    if ($is_branch) {
-      add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
-        unless $Seen{branch}{$$op}++;
-      _record_mcdc_decision(
-        $cv,   $op,    $highop // $lowop,
-        $left, $right, $lowprec,
-      );
-    } else {
-      add_condition_cover($op, $lowop, $l, $r, $left, $right)
-        unless $Seen{condition}{$$op}++;
-    }
+    add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
+      unless $Seen{branch}{$$op}++;
+    _record_mcdc_decision($cv, $op, $highop // $lowop, $left, $right, $lowprec);
+  } else {
+    _record_logop_condition($cv, $op, $lowop, $left, $right, $lowprec);
   }
 }
 
