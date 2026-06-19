@@ -12,8 +12,7 @@
 # logops get condition tables, the joining operator has no representation, and
 # an outer-operator fault (|| vs &&) is invisible to condition coverage.  These
 # tests run on bare statement-level sub bodies (the context that triggers the
-# drop) but call the subs in non-void context so the right operand's value is
-# observed.
+# drop) and assert which logops are recorded as conditions.
 
 use 5.20.0;
 use warnings;
