@@ -77,7 +77,7 @@ sub main {
   push @r, negated_and(0, 0);
   push @r, negated_and(1, 0);
 
-  # Mixed-precedence (A && B) || C - the worked-example shape from
+  # Mixed-precedence (A && B) || C - the worked example from
   # docs/technical/mcdc.md.
   push @r, nested(1, 1, 0);
   push @r, nested(1, 0, 0);
