@@ -57,9 +57,9 @@ sub _pair ($col, $rows, $labels, $label_count) {
   my $ncols = @$labels;
   my $found = _find_pair($col, $rows, $ncols);
 
-  # Masking fallback for coupled atomics - unreachable from real Perl,
-  # which records decisions per logop so repeated atomics never share a
-  # table (see docs/technical/mcdc.md).  Kept for unit tests / defence.
+  # Masking fallback for coupled atomics: when an atomic condition repeats in a
+  # decision (e.g. ($a && $b) || ($a && $c)), unique-cause cannot pair it, so
+  # retry allowing the coupled occurrences to vary (see docs/technical/mcdc.md).
   if (!$found && $label_count->{ $labels->[$col] } > 1) {
     my @coupled = map $_ eq $labels->[$col], @$labels;
     $found = _find_pair($col, $rows, $ncols, \@coupled);
