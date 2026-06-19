@@ -26,7 +26,15 @@ use Devel::Cover::Inc         ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use B qw( main_cv main_root OPf_KIDS OPf_SPECIAL OPf_WANT ppname walksymtable );
+use B qw(
+  main_cv
+  main_root
+  OPf_KIDS
+  OPf_SPECIAL
+  OPf_WANT
+  ppname
+  walksymtable
+);
 use B::Deparse ();
 
 # OPpSTATEMENT (added in 5.43.8) authoritatively distinguishes statement-form
