@@ -1632,6 +1632,15 @@ sub _record_mcdc_inputs ($key, $n) {
   $di->{$_} += $vectors->{$_} for keys %$vectors;
 }
 
+sub _record_logop_condition (
+  $cv, $op, $strop, $left, $right, $prec, $use_dumper = 1,
+) {
+  my $l = _deparse_binop_left($cv, $op, $left, $prec, $use_dumper);
+  my $r = _deparse_expr($cv, $right, $prec, $use_dumper);
+  add_condition_cover($op, $strop, $l, $r, $left, $right)
+    unless $Seen{condition}{$$op}++;
+}
+
 sub _walk_logop ($cv, $op) {
   return unless $Collect;
   return if $Seen{cond_expr}{$$op};
@@ -1663,26 +1672,22 @@ sub _walk_logop ($cv, $op) {
     my $text = is_scope($right) ? "$blockname ($l)" : "$blockname $l";
     add_branch_cover($op, $lowop, $text, $file, $line)
       unless $Seen{branch}{$$op}++;
-    _record_mcdc_decision($cv, $op, $highop // $lowop, $left, $right, $lowprec);
+
+    # See L<Devel::Cover::DB/Compound decision roots>.
+    _record_logop_condition(
+      $cv, $op, $highop // $lowop,
+      $left, $right, $highprec // $lowprec, 0,
+    ) if _operand_is_decision($right);
   } elsif ($cx > $lowprec && $highop) {
-    my $l = _deparse_binop_left($cv, $op, $left, $highprec, 0);
-    my $r = _deparse_expr($cv, $right, $highprec, 0);
-    add_condition_cover($op, $highop, $l, $r, $left, $right)
-      unless $Seen{condition}{$$op}++;
-  } else {
+    _record_logop_condition($cv, $op, $highop, $left, $right, $highprec, 0);
+  } elsif ($is_branch) {
     my $l = _deparse_binop_left($cv, $op, $left, $lowprec);
     my $r = _deparse_expr($cv, $right, $lowprec);
-    if ($is_branch) {
-      add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
-        unless $Seen{branch}{$$op}++;
-      _record_mcdc_decision(
-        $cv,   $op,    $highop // $lowop,
-        $left, $right, $lowprec,
-      );
-    } else {
-      add_condition_cover($op, $lowop, $l, $r, $left, $right)
-        unless $Seen{condition}{$$op}++;
-    }
+    add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
+      unless $Seen{branch}{$$op}++;
+    _record_mcdc_decision($cv, $op, $highop // $lowop, $left, $right, $lowprec);
+  } else {
+    _record_logop_condition($cv, $op, $lowop, $left, $right, $lowprec);
   }
 }
 

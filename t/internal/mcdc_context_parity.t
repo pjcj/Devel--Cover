@@ -16,10 +16,10 @@
 # forms evaluate the decision in void context - that is the real variable under
 # test, not the return keyword.
 #
-# All three contexts now match.  Explicit return records the outer logop as a
-# condition in the collapsed void form, which MC/DC promotes back to the full
-# structure.  Implicit return records the outer logop as a branch, whose decision
-# structure is kept separately so MC/DC rebuilds the same unified table; see
+# All three contexts now match.  A statement-level logop joining compound
+# operands is recorded as a condition (in the collapsed void form, which MC/DC
+# promotes back to the full structure), exactly as in value context, so all
+# three contexts record the same unified table; see
 # L<Devel::Cover::DB/Compound decision roots>.
 
 use 5.20.0;
@@ -123,8 +123,8 @@ for my $op (sort keys %Decision) {
     is_deeply table_structure($op, "explicit_return"), $reference,
       "explicit return records the same table as scalar assignment";
 
-    # Implicit return (last statement): the outer logop is recorded as a branch,
-    # but its decision structure is kept so MC/DC rebuilds the unified table.
+    # Implicit return (last statement): the outer logop is recorded as a
+    # condition (alongside the branch), so MC/DC rebuilds the same table.
     is_deeply table_structure($op, "implicit_return"), $reference,
       "implicit return records the same table as scalar assignment";
   };
