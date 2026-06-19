@@ -1090,7 +1090,7 @@ sub test_proven_single_logop () {
   ok $t->proven, "single logop is proven without observed vectors";
 }
 
-# Worked-example shape: $a || ($b && $c).  Without observed vectors the
+# Worked example: $a || ($b && $c).  Without observed vectors the
 # composite rows are a synthesised cross-product whose co-occurrence was never
 # demonstrated, so the table is not proven.
 sub _worked_example_conditions () { (

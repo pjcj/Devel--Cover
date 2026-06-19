@@ -131,7 +131,7 @@ Prune old versioned tags, keeping the most recent:
 ```bash
 dc docker-prune-tags    # keep the 20 most recent (default)
 dc docker-prune-tags 10 # keep the 10 most recent
-dc -d docker-prune-tags # dry run — list what would be deleted
+dc -d docker-prune-tags # dry run - list what would be deleted
 ```
 
 The `latest` tag is never deleted. Two environment variables are required:
