@@ -30,11 +30,6 @@ use Test::More import => [qw( diag done_testing is isnt ok )];
 
 use Devel::Cover::DB ();
 
-# Use a deterministic DB format so the test does not depend on which
-# serialisation backend happens to be installed.  The child run inherits this
-# via %ENV, so it writes the same format we read here.
-BEGIN { $ENV{DEVEL_COVER_DB_FORMAT} = "JSON" }
-
 my $Tmpdir = tempdir(CLEANUP => 1);
 
 # Bare statement-level sub bodies (the context that triggers the drop), called
