@@ -34,7 +34,7 @@ sub AUTOLOAD {  ## no critic (RequireArgUnpacking) - goto needs @_ intact
   my ($function, $criterion) = $func =~ /^(add|get)_(.*)/;
   croak "Undefined subroutine $func called"
     unless $criterion && any { $_ eq $criterion } @Devel::Cover::DB::Criteria,
-    qw( sub_name file line mcdc_decision );
+    qw( sub_name file line );
   no strict "refs";
   if ($function eq "get") {
     my $c = $criterion eq "time" ? "statement" : $criterion;

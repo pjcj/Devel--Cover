@@ -1034,7 +1034,7 @@ sub objectify_cover ($self) {
   }
 }
 
-sub _derive_mcdc ($self, $cover, $uncoverable = {}, $st = undef) {
+sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
   require Devel::Cover::Condition_table;
   require Devel::Cover::Mcdc::Analyser;
 
@@ -1045,21 +1045,9 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}, $st = undef) {
     my $digest = $cf->{meta}{digest};
     my $unc    = $digest && $uncoverable->{$digest}{mcdc};
 
-    # Merge compound decision roots, with their observed vectors, as synthetic
-    # condition entries; see L</Compound decision roots>.
-    my %roots;
-    my $decisions = $st && $digest ? $st->get_mcdc_decision($digest) : undef;
-    my $inputs    = delete $cf->{mcdc_decision_inputs};
-    my $i         = 0;
-    for my $d ($decisions ? @$decisions : ()) {
-      my ($line, $structure, $counts) = @$d;
-      my $obs = $inputs && $inputs->[$i++];
-      push $roots{$line}->@*, [$counts, $structure, undef, $obs];
-    }
-
     my %mcdc;
     for my $line (keys %$cc) {
-      my @loc      = ($cc->{$line}->@*, ($roots{$line} // [])->@*) or next;
+      my @loc      = $cc->{$line}->@* or next;
       my @observed = map observed_vectors($_), @loc;
       my @tables   = Devel::Cover::Condition_table->for_line(\@loc, \@observed);
       for my $n (0 .. $#tables) {
@@ -1158,16 +1146,6 @@ sub _cover_file (
       $self->$add($cc, $sc, $fc, $uncoverable->{$digest}{$criterion});
     }
   }
-
-  # Accumulate decision-root observed vectors across runs for _derive_mcdc.
-  if (my $mdi = $r->{mcdc_decision_inputs}{$file}) {
-    my $acc = $cf->{mcdc_decision_inputs} //= [];
-    for my $i (0 .. $#$mdi) {
-      my $obs    = $mdi->[$i] or next;
-      my $merged = $acc->[$i] //= {};
-      $merged->{$_} += $obs->{$_} for keys %$obs;
-    }
-  }
 }
 
 sub cover ($self) {
@@ -1207,8 +1185,7 @@ sub cover ($self) {
     }
   }
 
-  $self->_derive_mcdc($cover, $uncoverable, $st)
-    if exists $self->{collected}{mcdc};
+  $self->_derive_mcdc($cover, $uncoverable) if exists $self->{collected}{mcdc};
 
   $self->objectify_cover;
   if ($self->{files}->@*) {
@@ -1521,21 +1498,12 @@ Control-flow logops - C<if>/C<while> bodies, C<or die>, C<and $x++> - have a
 block, statement, or side-effect right operand rather than a nested decision, so
 they are excluded and only genuine boolean decisions are recorded.
 
-A logop classified as a branch but not in statement form (a discarded
-expression such as C<< $y && $x++ >>) is not recorded as a condition. Its
-decision structure is instead recorded separately, under the C<mcdc_decision>
-key of the file structure, keyed away from condition and branch coverage so
-neither criterion's output moves. C<_derive_mcdc> merges these roots into the
-per-line condition list as synthetic entries, letting
-L<Devel::Cover::Condition_table/for_line> rebuild the single unified table.
-
-The decision structure is recorded once per file (a reuse guard skips it on
-later runs over the same source), while the root's observed input vectors are
-recorded per run in C<< $run->{mcdc_decision_inputs} >>, keyed by the decision's
-walk ordinal, and accumulated across runs. C<_derive_mcdc> attaches the
-accumulated vectors to the synthetic entry's observed-vector slot, so a root
-exercised in value context reports proven MC/DC coverage rather than an unproven
-synthesis.
+Which arm performs the recording depends on the Perl version, though the
+recorded result is the same. A statement-level expression-form join such as
+C<< COND && ACTION >> is indistinguishable from a statement modifier to the
+pre-5.43.8 B::Deparse heuristic, so it is classified as a statement and recorded
+in that arm. From 5.43.8 C<OPpSTATEMENT> reports it as expression-form, so it is
+classified as a branch and the same recording is applied in the branch arm.
 
 =head2 add_pod
 

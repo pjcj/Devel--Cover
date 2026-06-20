@@ -30,11 +30,6 @@ use Test::More import => [qw( diag done_testing is isnt ok )];
 
 use Devel::Cover::DB ();
 
-# Use a deterministic DB format so the test does not depend on which
-# serialisation backend happens to be installed.  The child run inherits this
-# via %ENV, so it writes the same format we read here.
-BEGIN { $ENV{DEVEL_COVER_DB_FORMAT} = "JSON" }
-
 my $Tmpdir = tempdir(CLEANUP => 1);
 
 # Bare statement-level sub bodies (the context that triggers the drop), called
@@ -47,6 +42,7 @@ sub or_and    { my ($a, $b, $c, $d) = @_; ($a or $b) and ($c or $d) }  # OR_AND
 sub left_only { my ($a, $b, $c) = @_; ($a && $b) || $c }  # LEFT_ONLY
 sub or_flow   { my ($a, $b) = @_; ($a && $b) or return 0; 1 }  # OR_FLOW
 sub dor_join  { my ($a, $b, $x) = @_; $x // ($a && $b) }  # DOR_JOIN
+sub not_join  { my ($a, $b, $x) = @_; $x // !($a && $b) }  # NOT_JOIN
 for my $v (
   [0, 0, 0, 0], [1, 0, 0, 0], [1, 1, 0, 0], [0, 1, 0, 0],
   [0, 0, 1, 0], [0, 0, 1, 1], [0, 1, 1, 1], [1, 1, 1, 1],
@@ -57,13 +53,14 @@ for my $v (
   push @r, left_only(@$v);
   push @r, or_flow(@$v);
   push @r, dor_join(@$v);
+  push @r, not_join(@$v);
 }
 PERL
 
 # Shared state populated by _setup
 my ($Cover,     $Path,    $Cond);
 my ($Or_or,     $And_and, $Or_and);
-my ($Left_only, $Or_flow, $Dor_join);
+my ($Left_only, $Or_flow, $Dor_join, $Not_join);
 
 sub write_script ($name, $content) {
   my $path = File::Spec->catfile($Tmpdir, $name);
@@ -129,6 +126,7 @@ sub _setup () {
   $Left_only = $Cond->{ line_with($Source, "# LEFT_ONLY") } // [];
   $Or_flow   = $Cond->{ line_with($Source, "# OR_FLOW") }   // [];
   $Dor_join  = $Cond->{ line_with($Source, "# DOR_JOIN") }  // [];
+  $Not_join  = $Cond->{ line_with($Source, "# NOT_JOIN") }  // [];
 }
 
 # The outer || joining (a && b) and (c && d) must be recorded.
@@ -179,6 +177,14 @@ sub test_dor_join_recorded () {
     or diag "recorded: ", join " ; ", map "$_->{type}=$_->{text}", @$Dor_join;
 }
 
+# A negated decision right operand is still a decision, so the outer // joining
+# $x and !($a && $b) is recorded - this exercises the not-traversal.
+sub test_not_wrapped_join_recorded () {
+  my @or = grep $_->{type} =~ /^or/, @$Not_join;
+  ok @or, '$x // !($a && $b): outer // with negated decision recorded'
+    or diag "recorded: ", join " ; ", map "$_->{type}=$_->{text}", @$Not_join;
+}
+
 sub types ($conds) { sort map $_->{type}, @$conds }
 
 # The whole point: an outer-operator fault must be detectable.  || and &&
@@ -197,6 +203,7 @@ sub main () {
   test_left_compound_stays_branch;
   test_control_flow_stays_branch;
   test_dor_join_recorded;
+  test_not_wrapped_join_recorded;
   done_testing;
 }
 
