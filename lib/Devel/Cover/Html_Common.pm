@@ -65,7 +65,7 @@ sub _highlight_perltidy (@all_lines) {
   Perl::Tidy::perltidy(
     source      => \@all_lines,
     destination => \@coloured,
-    argv        => "-html -pre -nopod2html",
+    argv        => "-html -pre -nopod2html -npro",
     stderr      => \$stderr,
     errorfile   => \$errorfile,
   );
