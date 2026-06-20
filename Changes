@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Remove the original B::Deparse coverage collection path and the
+  DEVEL_COVER_USE_DEPARSE toggle - the XS op walker is now the only collector
+  (GH-488)
 - BREAKING: Add MC/DC (Modified Condition/Decision Coverage) to the default
   set - total percentage may drop where MC/DC trails condition coverage (GH-478)
 - BREAKING: Html_crisp is now the default HTML report, with risk display,
