@@ -70,7 +70,8 @@ as part of a larger expression:
 ### Compound assignment operators
 
 `&&=`, `||=`, and `//=` are always condition coverage. They are handled
-by `logassignop`, which unconditionally calls `add_condition_cover`.
+by `_walk_logassignop`, which unconditionally calls
+`add_condition_cover`.
 
 ### The `xor` operator
 
@@ -79,41 +80,48 @@ outcomes: `l&&r`, `l&&!r`, `!l&&r`, `!l&&!r`.
 
 ## How Classification Works in Code
 
-### `logop` - the `&&`/`||`/`and`/`or` handler
+The XS op walker (`walk_ops` in `Cover.xs`, driven from
+`_get_cover_walk`) visits every op in a sub and dispatches each logical
+op to a handler in `lib/Devel/Cover.pm` by type: `logop`,
+`logassignop`, `xor`, and `cond_expr`. The handlers below decide which
+metric to register. They use `B::Deparse` only to render the text label
+for the report (`_deparse_expr`), not to drive the walk.
 
-The `logop` function in `lib/Devel/Cover.pm` is the monkey-patched
-replacement for `B::Deparse::logop`. It receives a context parameter
-`$cx` and an optional `$blockname` (`"if"` for `and` ops, `"unless"`
-for `or` ops).
+### `_walk_logop` - the `&&`/`||`/`and`/`or` handler
 
-The function has four branches that determine both the deparse format
-and the coverage type:
+`_walk_logop` looks up the op's parameters from `%Logop_params` (the
+operator strings, their precedences, and the `$blockname` keyword:
+`"if"` for `and` ops, `"unless"` for `or` ops). It derives the context
+`$cx` from the parent chain (`_logop_parent_cx`) rather than from a
+deparsing call stack.
+
+It has four arms that determine both the label and the coverage type:
 
 ```text
-Case 1: $is_statement && is_scope($right)
-        -> deparse: "if ($left) { $right }"
-        -> BRANCH coverage
+Arm 1: $is_statement
+       -> label: "if ($left)" or "if $left"
+       -> BRANCH coverage (plus compound-join condition)
 
-Case 2: $is_statement && ...
-        -> deparse: "$right if $left"
-        -> BRANCH coverage
+Arm 2: $cx > $lowprec && $highop
+       -> label: "$left && $right"
+       -> CONDITION coverage
 
-Case 3: $cx > $lowprec && $highop
-        -> deparse: "$left && $right"
-        -> CONDITION coverage
+Arm 3: $is_branch (expression-form at statement level, 5.43.8+)
+       -> label: "$left and $right"
+       -> BRANCH coverage (plus compound-join condition)
 
-Case 4: else
-        -> deparse: "$left and $right"
-        -> BRANCH if $is_branch, CONDITION otherwise
+Arm 4: else
+       -> label: "$left and $right"
+       -> CONDITION coverage
 ```
 
-Two variables control the split:
+`_classify_op` computes the two control variables:
 
-- **`$is_statement`** determines deparse format (statement modifier
-  vs expression form). On 5.43.8+ it reflects `OPpSTATEMENT` only.
-  On older Perls it uses B::Deparse's heuristic.
+- **`$is_statement`** selects the label format (statement modifier vs
+  expression form). On 5.43.8+ it reflects `OPpSTATEMENT` only. On
+  older Perls it uses B::Deparse's heuristic.
 
-- **`$is_branch`** determines coverage classification. It is true
+- **`$is_branch`** selects the coverage classification. It is true
   whenever `$is_statement` is true, and also for statement-level
   expression-form logops (`$cx < 1 && $blockname`).
 
@@ -127,19 +135,26 @@ my $is_branch = $is_statement || ($cx < 1 && $blockname);
 ```
 
 On 5.43.8+, this separation means expression-form logops at statement
-level (e.g. `$y && $x++`) fall through to case 4, where they get
-expression-form labels (`$y and ++$x[5]`) but are still classified as
-branch coverage because `$is_branch` is true. On older Perls,
-`$is_statement` and `$is_branch` are always equal (both use the same
-heuristic), so cases 1/2 handle all statement-level logops with
-statement-modifier labels (`if $y`).
+level (e.g. `$y && $x++`) take arm 3, where they get expression-form
+labels (`$y and ++$x[5]`) but are still classified as branch coverage
+because `$is_branch` is true. On older Perls, `$is_statement` and
+`$is_branch` are always equal (both use the same heuristic), so arm 1
+handles all statement-level logops with statement-modifier labels
+(`if $y`).
 
 The `$cx < 1` test means we are at statement level (the return value
 is discarded). `$blockname` being set means the op has a
 statement-form keyword (`if`/`unless`). Together they identify logops
-that are semantically branches.
+that are semantically branches. Both branch arms also record a
+compound-join condition when the right operand is itself a decision
+(`_record_compound_join`); see the `Compound decision roots` section of
+`Devel::Cover::DB`.
 
-### `_cover_cond_expr` - the `?:` / `if-else` handler
+Loop conditions (`while`/`until`/C-style `for`) are forced to branch
+coverage regardless of `OPpSTATEMENT`, detected by `_is_loop_condition`
+walking up to a `leaveloop` parent.
+
+### `_walk_cond_expr` - the `?:` / `if-else` handler
 
 The `cond_expr` op covers both ternary expressions and if/else
 statements. Both forms always get **branch** coverage - the
@@ -151,19 +166,19 @@ statements. Both forms always get **branch** coverage - the
 On 5.43.8+, `OPpSTATEMENT` determines the label. On older Perls, the
 heuristic examines the structure of the true and false blocks.
 
-### `logassignop` - the `&&=`/`||=`/`//=` handler
+### `_walk_logassignop` - the `&&=`/`||=`/`//=` handler
 
 Always calls `add_condition_cover`. These are value-producing
 operations (they assign the result), so condition coverage is
 appropriate.
 
-### `binop` - the `^^` handler (5.42+)
+### `_walk_xor` - the `xor`/`^^` handler (5.42+)
 
-Perl 5.42 added `^^` as the high-precedence form of `xor`. Unlike
-`xor` (which is an `OP_XOR` logop handled by the runtime's
-`cover_logop`), `^^` compiles as a `binop`. The monkey-patched
-`binop` function intercepts `^^` (and `xor` from 5.42+) and calls
-`add_condition_cover` before delegating to the original `binop`.
+`xor` and its high-precedence form `^^` (5.42+) both compile to
+`OP_XOR`. The walker dispatches both to `_walk_xor`, which calls
+`add_condition_cover`. The label is rendered as `^^` when the op is
+used at high precedence (`$cx > 2`) and `xor` otherwise. The raw
+4-outcome counts come from the runtime (`dc_xor` / `cover_logop`).
 
 ## Runtime Data Collection (Cover.xs)
 
@@ -326,12 +341,12 @@ operator.
 
 ### Where OPpSTATEMENT is used
 
-1. **`logop`**: determines deparse format (statement modifier vs
-   expression). A separate `$is_branch` variable combines
-   `$is_statement` with `$cx < 1 && $blockname` to also classify
-   statement-level expression-form logops as branches.
+1. **`_classify_op`** (used by `_walk_logop`): selects the label
+   format (statement modifier vs expression). A separate `$is_branch`
+   variable combines `$is_statement` with `$cx < 1 && $blockname` to
+   also classify statement-level expression-form logops as branches.
 
-2. **`_cover_cond_expr`**: determines whether to label as
+2. **`_walk_cond_expr`**: determines whether to label as
    `"if ($cond) { }"` (with elsif walking) or `"$cond ? :"`. Both
    forms are always branch coverage.
 
@@ -349,7 +364,7 @@ value of `$x++` is irrelevant. Branch coverage with a simple
 true/false outcome is the appropriate metric.
 
 On 5.43.8+, because `$is_statement` only reflects `OPpSTATEMENT`, the
-expression-form logop falls through to case 4 of `logop` and gets an
+expression-form logop takes arm 3 of `_walk_logop` and gets an
 expression-form label (`$y and ++$x[5]`). The `$is_branch` variable
 ensures it is still classified as branch coverage despite not being in
 statement form.
