@@ -954,19 +954,8 @@ sub _record_decision_inputs ($key, $n) {
   *is_scope       = \&B::Deparse::is_scope;
   *is_state       = \&B::Deparse::is_state;
   *is_ifelse_cont = \&B::Deparse::is_ifelse_cont;
-}
-
-my %Original;
-{
 
   BEGIN {
-    $Original{deparse}      = \&B::Deparse::deparse;
-    $Original{logop}        = \&B::Deparse::logop;
-    $Original{logassignop}  = \&B::Deparse::logassignop;
-    $Original{binop}        = \&B::Deparse::binop;
-    $Original{const_dumper} = \&B::Deparse::const_dumper;
-    $Original{const}        = \&B::Deparse::const if defined &B::Deparse::const;
-
     # B::Deparse has no pp_padrange - it handles padrange through lineseq
     # sequencing, never via direct dispatch.  When we call deparse() on
     # individual ops whose subtree contains a padrange, AUTOLOAD fires
@@ -981,6 +970,19 @@ my %Original;
     # branch/condition labels stay readable.
     *B::Deparse::pp_custom = sub { "<custom op>" }
       unless defined &B::Deparse::pp_custom;
+  }
+}
+
+my %Original;
+{
+
+  BEGIN {
+    $Original{deparse}      = \&B::Deparse::deparse;
+    $Original{logop}        = \&B::Deparse::logop;
+    $Original{logassignop}  = \&B::Deparse::logassignop;
+    $Original{binop}        = \&B::Deparse::binop;
+    $Original{const_dumper} = \&B::Deparse::const_dumper;
+    $Original{const}        = \&B::Deparse::const if defined &B::Deparse::const;
   }
 
   sub const_dumper (@o) {
@@ -1131,23 +1133,6 @@ my %Original;
     }
 
     $deparse
-  }
-
-  sub _classify_op ($self, $op, $cx, $blockname) {
-    # $is_statement: controls deparse format (statement modifier vs
-    # expression). On 5.43.8+ uses OPpSTATEMENT; on older Perls uses
-    # B::Deparse's heuristic.
-    my $is_statement
-      = Has_op_statement() ? $op->private & OPpSTATEMENT() : $cx < 1
-      && $blockname
-      && $self->{expand} < 7;
-
-    # $is_branch: controls coverage classification. Statement-level
-    # expression logops (e.g. $y && $x++) are branches where the return
-    # value is discarded, even though they aren't in statement form.
-    my $is_branch = $is_statement || ($cx < 1 && $blockname);
-
-    ($is_statement, $is_branch)
   }
 
   sub logop (
@@ -1626,6 +1611,23 @@ sub _record_logop_condition (
 sub _record_compound_join ($cv, $op, $strop, $left, $right, $prec) {
   return unless _operand_is_decision($right);
   _record_logop_condition($cv, $op, $strop, $left, $right, $prec, 0);
+}
+
+sub _classify_op ($self, $op, $cx, $blockname) {
+  # $is_statement: controls deparse format (statement modifier vs
+  # expression). On 5.43.8+ uses OPpSTATEMENT; on older Perls uses
+  # B::Deparse's heuristic.
+  my $is_statement
+    = Has_op_statement() ? $op->private & OPpSTATEMENT() : $cx < 1
+    && $blockname
+    && $self->{expand} < 7;
+
+  # $is_branch: controls coverage classification. Statement-level
+  # expression logops (e.g. $y && $x++) are branches where the return
+  # value is discarded, even though they aren't in statement form.
+  my $is_branch = $is_statement || ($cx < 1 && $blockname);
+
+  ($is_statement, $is_branch)
 }
 
 sub _walk_logop ($cv, $op) {
