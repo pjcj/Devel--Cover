@@ -928,7 +928,6 @@ static AV *get_conds(pTHX_ AV *conds) {
     threads = (HV *) *cref;
   } else {
     threads = newHV();
-    HvSHAREKEYS_off(threads);
     av_store(conds, 2, (SV *)threads);
   }
 
@@ -2119,15 +2118,11 @@ static void initialise(pTHX) {
   MUTEX_LOCK(&DC_mutex);
   if (!Pending_conditionals) {
     Pending_conditionals = newHV();
-#ifdef USE_ITHREADS
     HvSHAREKEYS_off(Pending_conditionals);
-#endif
   }
   if (!Return_ops) {
     Return_ops = newHV();
-#ifdef USE_ITHREADS
     HvSHAREKEYS_off(Return_ops);
-#endif
   }
   MUTEX_UNLOCK(&DC_mutex);
 
@@ -2139,9 +2134,6 @@ static void initialise(pTHX) {
     SV **tmp;
 
     MY_CXT.cover      = newHV();
-#ifdef USE_ITHREADS
-    HvSHAREKEYS_off(MY_CXT.cover);
-#endif
 
     tmp               = hv_fetch(MY_CXT.cover, "statement", 9, 1);
     MY_CXT.statements = newHV();
@@ -2171,7 +2163,6 @@ static void initialise(pTHX) {
 
     MY_CXT.files      = get_hv("Devel::Cover::Files", FALSE);
 
-#ifdef USE_ITHREADS
     HvSHAREKEYS_off(MY_CXT.statements);
     HvSHAREKEYS_off(MY_CXT.branches);
     HvSHAREKEYS_off(MY_CXT.conditions);
@@ -2180,7 +2171,6 @@ static void initialise(pTHX) {
     HvSHAREKEYS_off(MY_CXT.times);
 #endif
     HvSHAREKEYS_off(MY_CXT.modules);
-#endif
 
     MY_CXT.profiling_key_valid = 0;
     Zero(&MY_CXT.stmt_cache, 1, dc_stmt_cache);
@@ -2189,10 +2179,8 @@ static void initialise(pTHX) {
     MY_CXT.deferred_conditionals      = newAV();
     MY_CXT.decision_meta              = newHV();
     MY_CXT.decision_walked_cvs        = newHV();
-#ifdef USE_ITHREADS
     HvSHAREKEYS_off(MY_CXT.decision_meta);
     HvSHAREKEYS_off(MY_CXT.decision_walked_cvs);
-#endif
     MY_CXT.module              = newSVpv("", 0);
     MY_CXT.lastfile            = newSVpvn("", 1);
     MY_CXT.lastfile_ptr        = NULL;
