@@ -1658,9 +1658,6 @@ static void dc_snapshot(pTHX_ dc_dctx *d) {
       vectors = (HV *)SvRV(*slot);
     } else {
       vectors = newHV();
-#ifdef USE_ITHREADS
-      HvSHAREKEYS_off(vectors);
-#endif
       *slot = newRV_noinc((SV *)vectors);
     }
 
