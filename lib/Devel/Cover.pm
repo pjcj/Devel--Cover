@@ -1683,11 +1683,25 @@ sub _walk_logop ($cv, $op) {
   } elsif ($cx > $lowprec && $highop) {
     _record_logop_condition($cv, $op, $highop, $left, $right, $highprec, 0);
   } elsif ($is_branch) {
+    # From 5.43.8 OPpSTATEMENT routes statement-level expression-form joins
+    # here rather than the $is_statement arm above.
     my $l = _deparse_binop_left($cv, $op, $left, $lowprec);
     my $r = _deparse_expr($cv, $right, $lowprec);
     add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
       unless $Seen{branch}{$$op}++;
-    _record_mcdc_decision($cv, $op, $highop // $lowop, $left, $right, $lowprec);
+
+    # See L<Devel::Cover::DB/Compound decision roots>.
+    if (_operand_is_decision($right)) {
+      _record_logop_condition(
+        $cv, $op, $highop // $lowop,
+        $left, $right, $highprec // $lowprec, 0,
+      );
+    } else {
+      _record_mcdc_decision(
+        $cv,   $op,    $highop // $lowop,
+        $left, $right, $lowprec,
+      );
+    }
   } else {
     _record_logop_condition($cv, $op, $lowop, $left, $right, $lowprec);
   }

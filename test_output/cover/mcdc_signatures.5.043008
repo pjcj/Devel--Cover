@@ -2,8 +2,8 @@ cover: Reading database from ...
 --------------------- ------ ------ ------ ------ ------ ------ ------
 File                    stmt   bran   cond   mcdc    sub  total   slop
 --------------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_signatures  100.0  100.0  100.0   25.0  100.0   94.0   17.9
-Total                  100.0  100.0  100.0   25.0  100.0   94.0   17.9
+tests/mcdc_signatures  100.0  100.0  100.0   25.0  100.0   94.3   17.9
+Total                  100.0  100.0  100.0   25.0  100.0   94.3   17.9
 --------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -65,6 +65,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 24             3    100                    3   sub or_decision  ($p, $q)         { $p         || $q }
 25    ***      4    100    100   * 25      4   sub nested       ($a, $b, $c, $d) { ($a && $b) || ($c && $d) }
                            100                 
+                           100                 
 26                                             
 27                                             sub main {
 28             1                           1     my @r;
@@ -114,13 +115,19 @@ line  err      %     !l  l&&!r   l&&r   expr
 25           100      2      1      1   $a and $b
              100      1      1      1   $c and $d
 
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+25           100      1      1      2   $a && $b || $c && $d
+
 
 MC/DC
 -----
 
 line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
-25    ***     25    1    4   $b, $c, $d             $a and $b || $c and $d
+25    ***     25    1    4   $b, $c, $d             $a && $b || $c && $d
 
 
 Covered Subroutines
