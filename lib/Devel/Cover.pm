@@ -753,7 +753,6 @@ sub _filter_cover_files {
       delete $Run{count}{$file};
       delete $Run{vec}{$file};
       delete $Run{decision_inputs}{$file};
-      delete $Run{mcdc_decision_inputs}{$file};
       $Structure->delete_file($file);
       next;
     }
@@ -1614,29 +1613,6 @@ sub _operand_is_decision ($op) {
   $op && $$op && $Is_condition_op{ $op->name } ? 1 : 0
 }
 
-# Record a branch-classified compound logop as an MC/DC decision root.  See
-# L<Devel::Cover::DB/Compound decision roots>.
-sub _record_mcdc_decision ($cv, $op, $strop, $left_op, $right_op, $prec) {
-  return unless $Collect && $Coverage{mcdc};
-  return if $Seen{mcdc_decision}{$$op}++;
-  return unless _operand_is_decision($right_op);
-
-  my $left  = _deparse_expr($cv, $left_op,  $prec);
-  my $right = _deparse_expr($cv, $right_op, $prec);
-  my ($key, $structure, $c)
-    = _condition_structure($op, $strop, $left, $right, $left_op, $right_op);
-  my ($n, $new) = $Structure->add_count("mcdc_decision");
-  $Structure->add_mcdc_decision($File, [$Line, $structure, $c]) if $new;
-  _record_mcdc_inputs($key, $n);
-}
-
-# Decision-root analogue of _record_decision_inputs.
-sub _record_mcdc_inputs ($key, $n) {
-  my $vectors = $Coverage->{decision_inputs}{$key} or return;
-  my $di      = $Run{mcdc_decision_inputs}{$File}[$n] //= {};
-  $di->{$_} += $vectors->{$_} for keys %$vectors;
-}
-
 sub _record_logop_condition (
   $cv, $op, $strop, $left, $right, $prec, $use_dumper = 1,
 ) {
@@ -1644,6 +1620,12 @@ sub _record_logop_condition (
   my $r = _deparse_expr($cv, $right, $prec, $use_dumper);
   add_condition_cover($op, $strop, $l, $r, $left, $right)
     unless $Seen{condition}{$$op}++;
+}
+
+# See L<Devel::Cover::DB/Compound decision roots>.
+sub _record_compound_join ($cv, $op, $strop, $left, $right, $prec) {
+  return unless _operand_is_decision($right);
+  _record_logop_condition($cv, $op, $strop, $left, $right, $prec, 0);
 }
 
 sub _walk_logop ($cv, $op) {
@@ -1674,12 +1656,10 @@ sub _walk_logop ($cv, $op) {
     my $text = is_scope($right) ? "$blockname ($l)" : "$blockname $l";
     add_branch_cover($op, $lowop, $text, $file, $line)
       unless $Seen{branch}{$$op}++;
-
-    # See L<Devel::Cover::DB/Compound decision roots>.
-    _record_logop_condition(
-      $cv, $op, $highop // $lowop,
-      $left, $right, $highprec // $lowprec, 0,
-    ) if _operand_is_decision($right);
+    _record_compound_join(
+      $cv,   $op,    $highop   // $lowop,
+      $left, $right, $highprec // $lowprec,
+    );
   } elsif ($cx > $lowprec && $highop) {
     _record_logop_condition($cv, $op, $highop, $left, $right, $highprec, 0);
   } elsif ($is_branch) {
@@ -1689,19 +1669,10 @@ sub _walk_logop ($cv, $op) {
     my $r = _deparse_expr($cv, $right, $lowprec);
     add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
       unless $Seen{branch}{$$op}++;
-
-    # See L<Devel::Cover::DB/Compound decision roots>.
-    if (_operand_is_decision($right)) {
-      _record_logop_condition(
-        $cv, $op, $highop // $lowop,
-        $left, $right, $highprec // $lowprec, 0,
-      );
-    } else {
-      _record_mcdc_decision(
-        $cv,   $op,    $highop // $lowop,
-        $left, $right, $lowprec,
-      );
-    }
+    _record_compound_join(
+      $cv,   $op,    $highop   // $lowop,
+      $left, $right, $highprec // $lowprec,
+    );
   } else {
     _record_logop_condition($cv, $op, $lowop, $left, $right, $lowprec);
   }
