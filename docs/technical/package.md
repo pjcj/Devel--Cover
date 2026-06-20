@@ -53,36 +53,50 @@ is therefore never visited at runtime.
 
 ## The Phantom Statement
 
-Devel::Cover's `deparse` hook processes every op that `B::Deparse` visits,
-including the unreachable `ex-nextstate`. The hook identifies `B::COP` ops and
-uses a three-hop `->next` chain (`$nnnext`) as a heuristic to detect whether the
-op is part of real executable code. Because the `ex-nextstate`'s `op_next` still
-points to `leaveloop` (a real op), `$nnnext` is truthy and the heuristic passes
-even though the op itself is never executed.
+The XS op walker (`dc_walk_ops_r` in `Cover.xs`) visits the optree
+structurally, so it reaches optimised-away `ex-nextstate` ops as children of
+their `lineseq`. An `ex-nextstate` is an `OP_NULL` whose `op_targ` records the
+original `OP_NEXTSTATE`/`OP_DBSTATE`. The most common one sits on the line of a
+closing `}` whose `nextstate` the optimiser nullified.
 
-Without a guard, `add_statement_cover` would be called for this op, registering
+If such an op were registered as a statement, `add_statement_cover` would record
 a statement at the `}` line that the runtime `dc_nextstate` hook can never
-count. The result is a false `*0` (uncovered statement) on the closing brace.
+count, producing a false `*0` (uncovered statement) on the closing brace.
 
-The guard in the `deparse` hook excludes `B::COP` ops whose name is `"null"`:
+The walker filters these in two places. First, the XS layer only emits a
+`null_statement` for an `ex-nextstate` that still has a sibling. A dead
+end-of-block `ex-nextstate` is the last child of its `lineseq`, so it has none
+and is skipped outright:
 
-```perl
-if ($nnnext && $name ne "null") {
-  add_statement_cover($op) unless $Seen{statement}{$$op}++;
-}
+```c
+case OP_NULL:
+  if (op->op_targ == OP_NEXTSTATE || op->op_targ == OP_DBSTATE) {
+    if (OpSIBLING(op))
+      dc_walk_callback(aTHX_ op, callback, "null_statement", cv);
+  }
+  break;
 ```
 
-A `B::COP` with `name="null"` is always an optimised-away `ex-nextstate`. Its
-runtime `op_next` may be valid, but the op itself is never despatched, so it
-must not be registered as a coverable statement.
+Second, `_walk_statement` applies a three-hop `->next` guard (`$nnnext`) so any
+statement op with no real successors is skipped before `add_statement_cover`
+runs:
+
+```perl
+my $nnnext = "";
+eval {
+  my $next  = $op->next;
+  my $nnext = $next && $next->next;
+  $nnnext = $nnext && $nnext->next;
+};
+return unless $nnnext;
+```
 
 ## Bare `package` Inside a Block
 
-A bare `package Pkg;` statement generates a `nextstate` in the enclosing scope.
-When it is immediately followed by another statement (such as `use overload` or
-a `sub` declaration), the optimiser nullifies the `package` nextstate - the same
-`ex-nextstate` pattern as above. The same `name ne "null"` guard prevents a
-false `*0` from appearing on the `package Pkg;` line.
+A bare `package Pkg;` statement followed immediately by another statement (such
+as `use overload` or a `sub` declaration) has its `nextstate` nullified by the
+optimiser, the same `ex-nextstate` pattern as above. The structural walk and the
+`$nnnext` guard keep a false `*0` from appearing on the `package Pkg;` line.
 
 ## What Is Tracked
 
