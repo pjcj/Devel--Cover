@@ -1521,6 +1521,13 @@ Control-flow logops - C<if>/C<while> bodies, C<or die>, C<and $x++> - have a
 block, statement, or side-effect right operand rather than a nested decision, so
 they are excluded and only genuine boolean decisions are recorded.
 
+Which arm performs the recording depends on the Perl version, though the
+recorded result is the same. A statement-level expression-form join such as
+C<< COND && ACTION >> is indistinguishable from a statement modifier to the
+pre-5.43.8 B::Deparse heuristic, so it is classified as a statement and recorded
+in that arm. From 5.43.8 C<OPpSTATEMENT> reports it as expression-form, so it is
+classified as a branch and the same recording is applied in the branch arm.
+
 A logop classified as a branch but not in statement form (a discarded
 expression such as C<< $y && $x++ >>) is not recorded as a condition. Its
 decision structure is instead recorded separately, under the C<mcdc_decision>
