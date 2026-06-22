@@ -1,0 +1,192 @@
+cover: Reading database from ...
+------------- ------ ------ ------ ------ ------ ------
+File            stmt   bran   cond    sub  total   slop
+------------- ------ ------ ------ ------ ------ ------
+tests/dor_rhs  100.0   50.0   33.3  100.0   70.3   28.4
+Total          100.0   50.0   33.3  100.0   70.3   28.4
+------------- ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/dor_rhs
+
+File Summary
+------------
+
+CC  Cov CRAP SLOP
+-- ---- ---- ----
+12 67.0 17.2 28.4
+
+Worst Subroutines
+-----------------
+
+Subroutine     CC SLOP  Location        
+-------------- -- ----  ----------------
+chained_rhs     3 13.3  tests/dor_rhs:82
+glob_hash_rhs   2  8.1  tests/dor_rhs:35
+glob_array_rhs  2  8.1  tests/dor_rhs:42
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/env perl
+2                                       # __COVER__ criteria statement branch condition subroutine
+3                                       
+4              1                    1   use strict;
+               1                        
+               1                        
+5                                       
+6              1                        our %gh = (x => 1);
+7              1                        our @ga = (1);
+8                                       
+9                                       sub scalar_rhs
+10                                      {
+11             1                    1       my $a;
+12             1                            my $b = 1;
+13                                      
+14    ***      1          * 33              $a // $b
+15                                      }
+16                                      
+17                                      sub hash_rhs
+18                                      {
+19             1                    1       my $a;
+20             1                            my %b = (x => 1);
+21                                      
+22    ***      1          * 33              $a // $b{x}
+23                                      }
+24                                      
+25                                      sub array_rhs
+26                                      {
+27             1                    1       my $a;
+28             1                            my @b = (1);
+29                                      
+30    ***      1          * 33              $a // $b[0]
+31                                      }
+32                                      
+33                                      sub glob_hash_rhs
+34                                      {
+35             1                    1       my $a;
+36                                      
+37    ***      1          * 33              $a // $gh{x}
+38                                      }
+39                                      
+40                                      sub glob_array_rhs
+41                                      {
+42             1                    1       my $a;
+43                                      
+44    ***      1          * 33              $a // $ga[0]
+45                                      }
+46                                      
+47                                      sub href_rhs
+48                                      {
+49             1                    1       my $a;
+50             1                            my $h = { x => 1 };
+51                                      
+52    ***      1          * 33              $a // $h->{x}
+53                                      }
+54                                      
+55                                      sub aref_rhs
+56                                      {
+57             1                    1       my $a;
+58             1                            my $r = [ 1 ];
+59                                      
+60    ***      1          * 33              $a // $r->[0]
+61                                      }
+62                                      
+63                                      sub nested_rhs
+64                                      {
+65             1                    1       my $a;
+66             1                            my $h = { y => { z => 1 } };
+67                                      
+68    ***      1          * 33              $a // $h->{y}{z}
+69                                      }
+70                                      
+71                                      sub var_key_rhs
+72                                      {
+73             1                    1       my $a;
+74             1                            my %b = (k => 1);
+75             1                            my $k = "k";
+76                                      
+77    ***      1          * 33              $a // $b{$k}
+78                                      }
+79                                      
+80                                      sub chained_rhs
+81                                      {
+82             1                    1       my $a;
+83                                          my $c;
+84             1                            my %b = (x => 1);
+85                                      
+86    ***      1          * 33              $c // $a // $b{x}
+      ***                 * 33          
+87                                      }
+88                                      
+89    ***      1   * 50                 die "scalar failed"     unless scalar_rhs();
+90    ***      1   * 50                 die "hash failed"       unless hash_rhs();
+91    ***      1   * 50                 die "array failed"      unless array_rhs();
+92    ***      1   * 50                 die "glob hash failed"  unless glob_hash_rhs();
+93    ***      1   * 50                 die "glob array failed" unless glob_array_rhs();
+94    ***      1   * 50                 die "href failed"       unless href_rhs();
+95    ***      1   * 50                 die "aref failed"       unless aref_rhs();
+96    ***      1   * 50                 die "nested failed"     unless nested_rhs();
+97    ***      1   * 50                 die "var key failed"    unless var_key_rhs();
+98    ***      1   * 50                 die "chained failed"    unless chained_rhs();
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+89    ***     50      0      1   unless scalar_rhs()
+90    ***     50      0      1   unless hash_rhs()
+91    ***     50      0      1   unless array_rhs()
+92    ***     50      0      1   unless glob_hash_rhs()
+93    ***     50      0      1   unless glob_array_rhs()
+94    ***     50      0      1   unless href_rhs()
+95    ***     50      0      1   unless aref_rhs()
+96    ***     50      0      1   unless nested_rhs()
+97    ***     50      0      1   unless var_key_rhs()
+98    ***     50      0      1   unless chained_rhs()
+
+
+Conditions
+----------
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+14    ***     33      0      1      0   $a // $b
+22    ***     33      0      1      0   $a // $b{"x"}
+30    ***     33      0      1      0   $a // $b[0]
+37    ***     33      0      1      0   $a // $gh{"x"}
+44    ***     33      0      1      0   $a // $ga[0]
+52    ***     33      0      1      0   $a // $$h{"x"}
+60    ***     33      0      1      0   $a // $$r[0]
+68    ***     33      0      1      0   $a // $$h{"y"}{"z"}
+77    ***     33      0      1      0   $a // $b{$k}
+86    ***     33      0      1      0   ($c // $a) // $b{"x"}
+      ***     33      0      0      1   $c // $a
+
+
+Covered Subroutines
+-------------------
+
+Subroutine     Count  CC  SLOP Location        
+-------------- ----- --- ----- ----------------
+BEGIN              1   1   0.0 tests/dor_rhs:4 
+aref_rhs           1   2   7.6 tests/dor_rhs:57
+array_rhs          1   2   7.6 tests/dor_rhs:27
+chained_rhs        1   3  13.3 tests/dor_rhs:82
+glob_array_rhs     1   2   8.1 tests/dor_rhs:42
+glob_hash_rhs      1   2   8.1 tests/dor_rhs:35
+hash_rhs           1   2   7.6 tests/dor_rhs:19
+href_rhs           1   2   7.6 tests/dor_rhs:49
+nested_rhs         1   2   7.6 tests/dor_rhs:65
+scalar_rhs         1   2   7.6 tests/dor_rhs:11
+var_key_rhs        1   2   7.4 tests/dor_rhs:73
+
+
