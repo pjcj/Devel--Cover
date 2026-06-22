@@ -55,8 +55,8 @@ line  err   stmt   bran   cond    sub   code
 19             1                    1       my $a;
 20             1                            my %b = (x => 1);
 21                                      
-22    ***      1          * 33              $a // $b{x}
-23                                      }
+22                                          $a // $b{x}
+23    ***      1          * 33          }
 24                                      
 25                                      sub array_rhs
 26                                      {
@@ -70,8 +70,8 @@ line  err   stmt   bran   cond    sub   code
 34                                      {
 35             1                    1       my $a;
 36                                      
-37    ***      1          * 33              $a // $gh{x}
-38                                      }
+37                                          $a // $gh{x}
+38    ***      1          * 33          }
 39                                      
 40                                      sub glob_array_rhs
 41                                      {
@@ -85,8 +85,8 @@ line  err   stmt   bran   cond    sub   code
 49             1                    1       my $a;
 50             1                            my $h = { x => 1 };
 51                                      
-52    ***      1          * 33              $a // $h->{x}
-53                                      }
+52                                          $a // $h->{x}
+53    ***      1          * 33          }
 54                                      
 55                                      sub aref_rhs
 56                                      {
@@ -101,8 +101,8 @@ line  err   stmt   bran   cond    sub   code
 65             1                    1       my $a;
 66             1                            my $h = { y => { z => 1 } };
 67                                      
-68    ***      1          * 33              $a // $h->{y}{z}
-69                                      }
+68                                          $a // $h->{y}{z}
+69    ***      1          * 33          }
 70                                      
 71                                      sub var_key_rhs
 72                                      {
@@ -119,9 +119,9 @@ line  err   stmt   bran   cond    sub   code
 83                                          my $c;
 84             1                            my %b = (x => 1);
 85                                      
-86    ***      1          * 33              $c // $a // $b{x}
+86                                          $c // $a // $b{x}
+87    ***      1          * 33          }
       ***                 * 33          
-87                                      }
 88                                      
 89    ***      1   * 50                 die "scalar failed"     unless scalar_rhs();
 90    ***      1   * 50                 die "hash failed"       unless hash_rhs();
@@ -160,15 +160,15 @@ or 3 conditions
 line  err      %      l  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------   ----
 14    ***     33      0      1      0   $a // $b
-22    ***     33      0      1      0   $a // $b{"x"}
+23    ***     33      0      1      0   $a // $b{"x"}
 30    ***     33      0      1      0   $a // $b[0]
-37    ***     33      0      1      0   $a // $gh{"x"}
-44    ***     33      0      1      0   $a // $ga[0]
-52    ***     33      0      1      0   $a // $$h{"x"}
-60    ***     33      0      1      0   $a // $$r[0]
-68    ***     33      0      1      0   $a // $$h{"y"}{"z"}
+38    ***     33      0      1      0   $a // $main::gh{"x"}
+44    ***     33      0      1      0   $a // $main::ga[0]
+53    ***     33      0      1      0   $a // $h->{"x"}
+60    ***     33      0      1      0   $a // $r->[0]
+69    ***     33      0      1      0   $a // $h->{"y"}{"z"}
 77    ***     33      0      1      0   $a // $b{$k}
-86    ***     33      0      1      0   ($c // $a) // $b{"x"}
+87    ***     33      0      1      0   ($c // $a) // $b{"x"}
       ***     33      0      0      1   $c // $a
 
 

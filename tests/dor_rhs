@@ -3,6 +3,9 @@
 
 use strict;
 
+our %gh = (x => 1);
+our @ga = (1);
+
 sub scalar_rhs
 {
     my $a;
@@ -27,6 +30,69 @@ sub array_rhs
     $a // $b[0]
 }
 
-die "scalar failed" unless scalar_rhs();
-die "hash failed"   unless hash_rhs();
-die "array failed"  unless array_rhs();
+sub glob_hash_rhs
+{
+    my $a;
+
+    $a // $gh{x}
+}
+
+sub glob_array_rhs
+{
+    my $a;
+
+    $a // $ga[0]
+}
+
+sub href_rhs
+{
+    my $a;
+    my $h = { x => 1 };
+
+    $a // $h->{x}
+}
+
+sub aref_rhs
+{
+    my $a;
+    my $r = [ 1 ];
+
+    $a // $r->[0]
+}
+
+sub nested_rhs
+{
+    my $a;
+    my $h = { y => { z => 1 } };
+
+    $a // $h->{y}{z}
+}
+
+sub var_key_rhs
+{
+    my $a;
+    my %b = (k => 1);
+    my $k = "k";
+
+    $a // $b{$k}
+}
+
+sub chained_rhs
+{
+    my $a;
+    my $c;
+    my %b = (x => 1);
+
+    $c // $a // $b{x}
+}
+
+die "scalar failed"     unless scalar_rhs();
+die "hash failed"       unless hash_rhs();
+die "array failed"      unless array_rhs();
+die "glob hash failed"  unless glob_hash_rhs();
+die "glob array failed" unless glob_array_rhs();
+die "href failed"       unless href_rhs();
+die "aref failed"       unless aref_rhs();
+die "nested failed"     unless nested_rhs();
+die "var key failed"    unless var_key_rhs();
+die "chained failed"    unless chained_rhs();
