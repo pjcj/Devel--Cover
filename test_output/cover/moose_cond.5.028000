@@ -1,6 +1,6 @@
 cover: Reading database from ...
 ---------------- ------ ------ ------ ------ ------ ------ ------
-File               stmt   bran   cond   mcdc    sub  total   slop
+File               stmt   bran   cond   mcdc    sub  total   scar
 ---------------- ------ ------ ------ ------ ------ ------ ------
 tests/moose_cond  100.0    n/a   75.0   50.0  100.0   92.8   11.0
 Total             100.0    n/a   75.0   50.0  100.0   92.8   11.0
@@ -18,14 +18,14 @@ tests/moose_cond
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
  3 95.5  3.0 11.0
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location           
+Subroutine CC SCAR  Location           
 ---------- -- ----  -------------------
 wagh        3 11.1  tests/moose_cond:30
 
@@ -95,7 +95,7 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location           
+Subroutine Count  CC  SCAR Location           
 ---------- ----- --- ----- -------------------
 BEGIN          1   1   0.0 tests/moose_cond:13
 BEGIN          1   1   0.0 tests/moose_cond:14

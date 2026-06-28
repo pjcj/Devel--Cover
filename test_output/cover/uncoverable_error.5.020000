@@ -1,6 +1,6 @@
 cover: Reading database from ...
 ----------------------- ------ ------ ------ ------ ------ ------ ------
-File                      stmt   bran   cond   mcdc    sub  total   slop
+File                      stmt   bran   cond   mcdc    sub  total   scar
 ----------------------- ------ ------ ------ ------ ------ ------ ------
 tests/uncoverable_error   82.3   70.0   83.3  100.0  100.0   82.0   21.5
 Total                     82.3   70.0   83.3  100.0  100.0   82.0   21.5
@@ -18,14 +18,14 @@ tests/uncoverable_error
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
  8 78.8  8.6 21.5
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location                  
+Subroutine CC SCAR  Location                  
 ---------- -- ----  --------------------------
 main        8 21.7  tests/uncoverable_error:17
 
@@ -122,7 +122,7 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location                  
+Subroutine Count  CC  SCAR Location                  
 ---------- ----- --- ----- --------------------------
 main           1   8  21.7 tests/uncoverable_error:17
 usub          -1   1   0.0 tests/uncoverable_error:13

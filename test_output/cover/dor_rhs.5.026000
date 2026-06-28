@@ -1,6 +1,6 @@
 cover: Reading database from ...
 ------------- ------ ------ ------ ------ ------ ------
-File            stmt   bran   cond    sub  total   slop
+File            stmt   bran   cond    sub  total   scar
 ------------- ------ ------ ------ ------ ------ ------
 tests/dor_rhs  100.0   50.0   33.3  100.0   70.3   28.4
 Total          100.0   50.0   33.3  100.0   70.3   28.4
@@ -18,14 +18,14 @@ tests/dor_rhs
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
 12 67.0 17.2 28.4
 
 Worst Subroutines
 -----------------
 
-Subroutine     CC SLOP  Location        
+Subroutine     CC SCAR  Location        
 -------------- -- ----  ----------------
 chained_rhs     3 13.3  tests/dor_rhs:82
 glob_hash_rhs   2  8.1  tests/dor_rhs:35
@@ -175,7 +175,7 @@ line  err      %      l  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine     Count  CC  SLOP Location        
+Subroutine     Count  CC  SCAR Location        
 -------------- ----- --- ----- ----------------
 BEGIN              1   1   0.0 tests/dor_rhs:4 
 aref_rhs           1   2   7.6 tests/dor_rhs:57

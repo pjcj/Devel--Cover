@@ -1,6 +1,6 @@
 cover: Reading database from ...
 ------------------- ------ ------ ------ ------ ------ ------ ------
-File                  stmt   bran   cond   mcdc    sub  total   slop
+File                  stmt   bran   cond   mcdc    sub  total   scar
 ------------------- ------ ------ ------ ------ ------ ------ ------
 tests/overload_bool   69.2   50.0   50.0    0.0   25.0   52.0    0.5
 Total                 69.2   50.0   50.0    0.0   25.0   52.0    0.5
@@ -18,14 +18,14 @@ tests/overload_bool
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
  1 63.2  1.1  0.5
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location              
+Subroutine CC SCAR  Location              
 ---------- -- ----  ----------------------
 __ANON__    1  6.9  tests/overload_bool:12
 render      1  6.9  tests/overload_bool:16
@@ -96,14 +96,14 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location              
+Subroutine Count  CC  SCAR Location              
 ---------- ----- --- ----- ----------------------
 BEGIN          1   1   0.6 tests/overload_bool:13
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SLOP Location              
+Subroutine Count  CC  SCAR Location              
 ---------- ----- --- ----- ----------------------
 __ANON__       0   1   6.9 tests/overload_bool:12
 __ANON__       0   1   0.6 tests/overload_bool:13

@@ -3,7 +3,7 @@ cover: Reading database from ...
 Common prefix: tests/
 
 ---------- ------ ------ ------ ------ ------ ------ ------
-File         stmt   bran   cond   mcdc    sub  total   slop
+File         stmt   bran   cond   mcdc    sub  total   scar
 ---------- ------ ------ ------ ------ ------ ------ ------
 E2.pm       100.0    n/a    n/a    n/a  100.0  100.0    0.0
 E3.pm       100.0    n/a    n/a    n/a  100.0  100.0    0.0
@@ -28,7 +28,7 @@ Finish: ...
 Module Summary
 --------------
 
-Files CC   Cov CRAP SLOP
+Files CC   Cov CRAP SCAR
 ----- -- ----- ---- ----
     4  1 100.0  1.0  0.0
 
@@ -38,7 +38,7 @@ E2.pm
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  1 100.0  1.0  0.0
 
@@ -62,7 +62,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location
+Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- --------
 E2             1   1   0.0 E2.pm:12
 
@@ -72,7 +72,7 @@ E3.pm
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  1 100.0  1.0  0.0
 
@@ -96,7 +96,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location
+Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- --------
 E3             2   1   0.0 E3.pm:12
 
@@ -106,7 +106,7 @@ E4.pm
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  1 100.0  1.0  0.0
 
@@ -130,7 +130,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location
+Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- --------
 E4             1   1   0.0 E4.pm:12
 
@@ -140,7 +140,7 @@ eval_merge
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  1 100.0  1.0  0.0
 
@@ -215,7 +215,7 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location     
+Subroutine Count  CC  SCAR Location     
 ---------- ----- --- ----- -------------
 BEGIN          2   1   0.0 eval_merge:10
 BEGIN          1   1   0.0 eval_merge:15

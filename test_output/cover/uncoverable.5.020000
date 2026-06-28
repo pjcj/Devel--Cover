@@ -1,7 +1,7 @@
 cover: Reading database from ...
 2 unmatched uncoverable comments not found at end of tests/uncoverable
 ----------------- ------ ------ ------ ------ ------ ------ ------
-File                stmt   bran   cond   mcdc    sub  total   slop
+File                stmt   bran   cond   mcdc    sub  total   scar
 ----------------- ------ ------ ------ ------ ------ ------ ------
 tests/uncoverable  100.0  100.0  100.0  100.0  100.0  100.0    0.0
 Total              100.0  100.0  100.0  100.0  100.0  100.0    0.0
@@ -19,7 +19,7 @@ tests/uncoverable
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  1 100.0  1.0  0.0
 
@@ -145,7 +145,7 @@ line  err      %  cov  tot   missing                expr
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SLOP Location            
+Subroutine Count  CC  SCAR Location            
 ---------- ----- --- ----- --------------------
 z             -0   1   0.0 tests/uncoverable:44
 

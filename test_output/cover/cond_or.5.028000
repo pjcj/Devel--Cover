@@ -3,7 +3,7 @@ cover: Reading database from ...
 Common prefix: tests/
 
 ---------- ------ ------ ------ ------ ------ ------ ------
-File         stmt   bran   cond   mcdc    sub  total   slop
+File         stmt   bran   cond   mcdc    sub  total   scar
 ---------- ------ ------ ------ ------ ------ ------ ------
 cond_or      89.4   33.3   64.4   38.2   60.0   64.1    7.4
 cond_or.pl  100.0    n/a   57.5   15.0  100.0   62.2   33.4
@@ -20,7 +20,7 @@ Finish: ...
 Module Summary
 --------------
 
-Files CC  Cov CRAP SLOP
+Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
     2 22 72.1 32.5 34.8
 
@@ -30,14 +30,14 @@ cond_or
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
  2 70.9  2.1  7.4
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location  
+Subroutine CC SCAR  Location  
 ---------- -- ----  ----------
 __ANON__    2 13.0  cond_or:81
 __ANON__    1  0.2  cond_or:71
@@ -233,7 +233,7 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location  
+Subroutine Count  CC  SCAR Location  
 ---------- ----- --- ----- ----------
 BEGIN          1   1   0.0 cond_or:13
 BEGIN          1   1   0.0 cond_or:14
@@ -242,7 +242,7 @@ BEGIN          1   1   0.0 cond_or:24
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SLOP Location  
+Subroutine Count  CC  SCAR Location  
 ---------- ----- --- ----- ----------
 __ANON__       0   1   0.2 cond_or:71
 __ANON__       0   2  13.0 cond_or:81
@@ -253,14 +253,14 @@ cond_or.pl
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
 21 74.6 28.2 33.4
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location     
+Subroutine CC SCAR  Location     
 ---------- -- ----  -------------
 cond_dor   21 34.2  cond_or.pl:14
 
@@ -371,7 +371,7 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location     
+Subroutine Count  CC  SCAR Location     
 ---------- ----- --- ----- -------------
 BEGIN          1   1   0.0 cond_or.pl:10
 BEGIN          1   1   0.0 cond_or.pl:11
