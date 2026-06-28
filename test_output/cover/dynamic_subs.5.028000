@@ -1,6 +1,6 @@
 cover: Reading database from ...
 ------------------ ------ ------ ------ ------ ------ ------ ------
-File                 stmt   bran   cond   mcdc    sub  total   slop
+File                 stmt   bran   cond   mcdc    sub  total   scar
 ------------------ ------ ------ ------ ------ ------ ------ ------
 tests/dynamic_subs   97.2   75.0    n/a    n/a   80.0   92.0   11.0
 Total                97.2   75.0    n/a    n/a   80.0   92.0   11.0
@@ -18,14 +18,14 @@ tests/dynamic_subs
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
  3 95.0  3.0 11.0
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location             
+Subroutine CC SCAR  Location             
 ---------- -- ----  ---------------------
 __ANON__    2  7.2  tests/dynamic_subs:16
 unused      1  6.9  tests/dynamic_subs:10
@@ -110,7 +110,7 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location             
+Subroutine Count  CC  SCAR Location             
 ---------- ----- --- ----- ---------------------
 AUTOLOAD       3   2   6.9 tests/dynamic_subs:41
 BEGIN          1   1   0.0 tests/dynamic_subs:31
@@ -124,7 +124,7 @@ gen            4   1   0.0 tests/dynamic_subs:14
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SLOP Location             
+Subroutine Count  CC  SCAR Location             
 ---------- ----- --- ----- ---------------------
 empty          0   1   0.0 tests/dynamic_subs:11
 unused         0   1   6.9 tests/dynamic_subs:10

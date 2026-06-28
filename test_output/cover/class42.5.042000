@@ -1,6 +1,6 @@
 cover: Reading database from ...
 ------------- ------ ------ ------ ------ ------ ------ ------
-File            stmt   bran   cond   mcdc    sub  total   slop
+File            stmt   bran   cond   mcdc    sub  total   scar
 ------------- ------ ------ ------ ------ ------ ------ ------
 tests/class42   95.4   50.0    n/a    n/a   87.5   80.2   28.5
 Total           95.4   50.0    n/a    n/a   87.5   80.2   28.5
@@ -18,14 +18,14 @@ tests/class42
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
 15 78.6 17.2 28.5
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location        
+Subroutine CC SCAR  Location        
 ---------- -- ----  ----------------
 main       13 28.7  tests/class42:49
 is_loud     2  7.6  tests/class42:33
@@ -132,7 +132,7 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine   Count  CC  SLOP Location        
+Subroutine   Count  CC  SCAR Location        
 ------------ ----- --- ----- ----------------
 BEGIN            1   1   0.0 tests/class42:13
 BEGIN            1   1   0.0 tests/class42:14
@@ -152,7 +152,7 @@ speak            1   1   0.0 tests/class42:44
 Uncovered Subroutines
 ---------------------
 
-Subroutine   Count  CC  SLOP Location        
+Subroutine   Count  CC  SCAR Location        
 ------------ ----- --- ----- ----------------
 unused           0   1   6.9 tests/class42:27
 unused_dog       0   1   6.9 tests/class42:45

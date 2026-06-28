@@ -3,7 +3,7 @@ cover: Reading database from ...
 Common prefix: tests/
 
 ----- ------ ------ ------ ------ ------ ------ ------
-File    stmt   bran   cond   mcdc    sub  total   slop
+File    stmt   bran   cond   mcdc    sub  total   scar
 ----- ------ ------ ------ ------ ------ ------ ------
 E2.pm    0.0    n/a    n/a    n/a    0.0    0.0    6.9
 E3.pm    0.0    n/a    n/a    n/a    0.0    0.0    6.9
@@ -40,7 +40,7 @@ Finish: ...
 Module Summary
 --------------
 
-Files CC  Cov CRAP SLOP
+Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
     4  1 91.2  1.0  0.0
 
@@ -50,14 +50,14 @@ E2.pm
 File Summary
 ------------
 
-CC Cov CRAP SLOP
+CC Cov CRAP SCAR
 -- --- ---- ----
  1 0.0  2.0  6.9
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location
+Subroutine CC SCAR  Location
 ---------- -- ----  --------
 E2          1  6.9  E2.pm:12
 
@@ -81,7 +81,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SLOP Location
+Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- --------
 E2             0   1   6.9 E2.pm:12
 
@@ -91,14 +91,14 @@ E3.pm
 File Summary
 ------------
 
-CC Cov CRAP SLOP
+CC Cov CRAP SCAR
 -- --- ---- ----
  1 0.0  2.0  6.9
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location
+Subroutine CC SCAR  Location
 ---------- -- ----  --------
 E3          1  6.9  E3.pm:12
 
@@ -122,7 +122,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SLOP Location
+Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- --------
 E3             0   1   6.9 E3.pm:12
 
@@ -132,14 +132,14 @@ E4.pm
 File Summary
 ------------
 
-CC Cov CRAP SLOP
+CC Cov CRAP SCAR
 -- --- ---- ----
  1 0.0  2.0  6.9
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location
+Subroutine CC SCAR  Location
 ---------- -- ----  --------
 E4          1  6.9  E4.pm:12
 
@@ -163,7 +163,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SLOP Location
+Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- --------
 E4             0   1   6.9 E4.pm:12
 
@@ -173,7 +173,7 @@ eval2
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  1 100.0  1.0  0.0
 
@@ -244,7 +244,7 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location
+Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- --------
 BEGIN          4   1   0.0 eval2:10
 BEGIN          2   1   0.0 eval2:14

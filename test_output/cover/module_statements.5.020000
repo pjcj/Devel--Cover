@@ -1,6 +1,6 @@
 cover: Reading database from ...
 ----------------------- ------ ------ ------ ------ ------ ------ ------
-File                      stmt   bran   cond   mcdc    sub  total   slop
+File                      stmt   bran   cond   mcdc    sub  total   scar
 ----------------------- ------ ------ ------ ------ ------ ------ ------
 tests/module_statements   75.8   50.0    n/a    n/a   66.6   72.5    0.2
 Total                     75.8   50.0    n/a    n/a   66.6   72.5    0.2
@@ -18,14 +18,14 @@ tests/module_statements
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
  1 74.2  1.0  0.2
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location                  
+Subroutine CC SCAR  Location                  
 ---------- -- ----  --------------------------
 _aa         1  6.9  tests/module_statements:40
 xx          1  6.9  tests/module_statements:46
@@ -114,7 +114,7 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location                  
+Subroutine Count  CC  SCAR Location                  
 ---------- ----- --- ----- --------------------------
 BEGIN          1   1   0.0 tests/module_statements:12
 BEGIN          1   1   0.0 tests/module_statements:13
@@ -126,7 +126,7 @@ zz            11   1   0.0 tests/module_statements:55
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SLOP Location                  
+Subroutine Count  CC  SCAR Location                  
 ---------- ----- --- ----- --------------------------
 _aa            0   1   6.9 tests/module_statements:40
 xx             0   1   6.9 tests/module_statements:46

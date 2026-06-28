@@ -3,7 +3,7 @@ cover: Reading database from ...
 Common prefix: tests/
 
 ---------- ------ ------ ------ ------ ------ ------ ------
-File         stmt   bran   cond   mcdc    sub  total   slop
+File         stmt   bran   cond   mcdc    sub  total   scar
 ---------- ------ ------ ------ ------ ------ ------ ------
 Module2.pm   25.0    n/a    n/a    n/a   25.0   25.0    3.5
 module2      94.7   50.0    n/a    n/a  100.0   92.3    0.0
@@ -20,7 +20,7 @@ Finish: ...
 Module Summary
 --------------
 
-Files CC  Cov CRAP SLOP
+Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
     2  1 72.4  1.0  0.2
 
@@ -30,14 +30,14 @@ Module2.pm
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
  1 25.0  1.4  3.5
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location     
+Subroutine CC SCAR  Location     
 ---------- -- ----  -------------
 _aa         1  6.9  Module2.pm:14
 _xx         1  6.9  Module2.pm:20
@@ -84,14 +84,14 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location     
+Subroutine Count  CC  SCAR Location     
 ---------- ----- --- ----- -------------
 zz            11   1   0.0 Module2.pm:29
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SLOP Location     
+Subroutine Count  CC  SCAR Location     
 ---------- ----- --- ----- -------------
 _aa            0   1   6.9 Module2.pm:14
 _xx            0   1   6.9 Module2.pm:20
@@ -103,7 +103,7 @@ module2
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
  1 90.5  1.0  0.0
 
@@ -161,7 +161,7 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location  
+Subroutine Count  CC  SCAR Location  
 ---------- ----- --- ----- ----------
 BEGIN          1   1   0.0 module2:12
 BEGIN          1   1   0.0 module2:13

@@ -16,7 +16,7 @@ Devel::Cover history
   implementation - condition coverage results may change (GH-446)
 - BREAKING: Add branch coverage for while, until and C-style for loop conditions
   (GH-449)
-- Add SLOP (Scaled Likelihood Of Problems) risk scoring to reports (GH-448)
+- Add SCAR (Scaled Complexity And Risk) risk scoring to reports (GH-448)
 - BREAKING: Exclude Perl CORE headers from XS coverage - -relative_only now
   defaults on and gcov2perl skips CORE sources (rwfranks) (GH-344)
 - BREAKING: cover consumes only its own .gcov files, not the whole tree - XS

@@ -1,7 +1,7 @@
 cover: Reading database from ...
 cover: Can't find digest for tests/final_op
 ----- ------ ------ ------ ------ ------ ------ ------
-File    stmt   bran   cond   mcdc    sub  total   slop
+File    stmt   bran   cond   mcdc    sub  total   scar
 ----- ------ ------ ------ ------ ------ ------ ------
 Total    n/a    n/a    n/a    n/a    n/a    n/a    n/a
 ----- ------ ------ ------ ------ ------ ------ ------

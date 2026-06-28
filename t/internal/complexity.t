@@ -259,7 +259,7 @@ sub test_signature_cc () {
 # CRAP (Change Risk Anti-Patterns) scoring tests.
 # Verifies that summarise_complexity computes per-sub combined coverage and CRAP
 # scores alongside existing complexity aggregation.
-sub test_slop_scoring () {
+sub test_scar_scoring () {
   my ($db_path, $script) = run_cover("cc_crap", $Crap_script);
 
   my $st = Devel::Cover::DB::Structure->new(base => $db_path);
@@ -275,57 +275,57 @@ sub test_slop_scoring () {
   );
 
   my ($file) = grep /cc_crap\.pl$/, keys $db->{summary}->%*;
-  ok defined $file, "slop: summary contains cover file";
+  ok defined $file, "scar: summary contains cover file";
 
-  my $slop = $db->{summary}{$file}{slop};
-  ok defined $slop, "slop: file summary has slop entry";
+  my $scar = $db->{summary}{$file}{scar};
+  ok defined $scar, "scar: file summary has scar entry";
 
-  ok exists $slop->{max},   "slop: has max";
-  ok exists $slop->{mean},  "slop: has mean";
-  ok exists $slop->{count}, "slop: has count";
-  ok exists $slop->{subs},  "slop: has subs";
+  ok exists $scar->{max},   "scar: has max";
+  ok exists $scar->{mean},  "scar: has mean";
+  ok exists $scar->{count}, "scar: has count";
+  ok exists $scar->{subs},  "scar: has subs";
 
   # Build lookup by sub name for easier assertions.
-  my %by_name = map { $_->{name} => $_ } $slop->{subs}->@*;
+  my %by_name = map { $_->{name} => $_ } $scar->{subs}->@*;
 
   # fully_covered: CC=1, cov=100%, CRAP = 1^2*(1-1)^3 + 1 = 1
   my $fc = $by_name{fully_covered};
-  ok defined $fc, "slop: fully_covered present";
-  is $fc->{cc},   1,   "slop: fully_covered CC = 1";
-  is $fc->{cov},  100, "slop: fully_covered cov = 100";
-  is $fc->{crap}, 1,   "slop: fully_covered CRAP = 1";
-  is $fc->{slop}, 0,   "slop: fully_covered SLOP = 0";
+  ok defined $fc, "scar: fully_covered present";
+  is $fc->{cc},   1,   "scar: fully_covered CC = 1";
+  is $fc->{cov},  100, "scar: fully_covered cov = 100";
+  is $fc->{crap}, 1,   "scar: fully_covered CRAP = 1";
+  is $fc->{scar}, 0,   "scar: fully_covered SCAR = 0";
 
   # uncalled: CC=1, cov=0%, CRAP = 1^2*(1-0)^3 + 1 = 2
   my $uc = $by_name{uncalled};
-  ok defined $uc, "slop: uncalled present";
-  is $uc->{cc},   1, "slop: uncalled CC = 1";
-  is $uc->{cov},  0, "slop: uncalled cov = 0";
-  is $uc->{crap}, 2, "slop: uncalled CRAP = 2";
-  ok abs($uc->{slop} - log(2) * 10) < 0.01, "slop: uncalled SLOP = ln(2)*10";
+  ok defined $uc, "scar: uncalled present";
+  is $uc->{cc},   1, "scar: uncalled CC = 1";
+  is $uc->{cov},  0, "scar: uncalled cov = 0";
+  is $uc->{crap}, 2, "scar: uncalled CRAP = 2";
+  ok abs($uc->{scar} - log(2) * 10) < 0.01, "scar: uncalled SCAR = ln(2)*10";
 
   # partial_branch: CC=2, partial coverage.
   # Bounds: cov=100% => CRAP=2, cov=0% => CRAP=6.
   my $pb = $by_name{partial_branch};
-  ok defined $pb, "slop: partial_branch present";
-  is $pb->{cc}, 2, "slop: partial_branch CC = 2";
-  ok $pb->{crap} > 2,           "slop: partial_branch CRAP > CC";
-  ok $pb->{crap} < 6,           "slop: partial_branch CRAP < CC^2+CC";
-  ok $pb->{slop} > 0,           "slop: partial_branch SLOP > 0";
-  ok $pb->{slop} > $uc->{slop}, "slop: partial_branch SLOP > uncalled SLOP";
+  ok defined $pb, "scar: partial_branch present";
+  is $pb->{cc}, 2, "scar: partial_branch CC = 2";
+  ok $pb->{crap} > 2,           "scar: partial_branch CRAP > CC";
+  ok $pb->{crap} < 6,           "scar: partial_branch CRAP < CC^2+CC";
+  ok $pb->{scar} > 0,           "scar: partial_branch SCAR > 0";
+  ok $pb->{scar} > $uc->{scar}, "scar: partial_branch SCAR > uncalled SCAR";
 
   # Total aggregation
-  my $ts = $db->{summary}{Total}{slop};
-  ok defined $ts,         "slop: Total has slop entry";
-  ok exists $ts->{max},   "slop: Total has max";
-  ok exists $ts->{mean},  "slop: Total has mean";
-  ok exists $ts->{count}, "slop: Total has count";
+  my $ts = $db->{summary}{Total}{scar};
+  ok defined $ts,         "scar: Total has scar entry";
+  ok exists $ts->{max},   "scar: Total has max";
+  ok exists $ts->{mean},  "scar: Total has mean";
+  ok exists $ts->{count}, "scar: Total has count";
 }
 
-# Text report CC/SLOP column tests.
-# Verifies that print_subroutines includes CC and SLOP columns
+# Text report CC/SCAR column tests.
+# Verifies that print_subroutines includes CC and SCAR columns
 # when CRAP summary data is available.
-sub test_text_report_slop () {
+sub test_text_report_scar () {
   my ($db_path, $script) = run_cover("cc_text", $Crap_script);
 
   my $st = Devel::Cover::DB::Structure->new(base => $db_path);
@@ -353,27 +353,27 @@ sub test_text_report_slop () {
     close $fh or die "Cannot close scalar ref: $!";
   }
 
-  # Header should contain CC and SLOP columns.
-  like $output, qr/^\s*Subroutine\b.*\bCC\b.*\bSLOP\b/m,
-    "text: header contains CC and SLOP columns";
+  # Header should contain CC and SCAR columns.
+  like $output, qr/^\s*Subroutine\b.*\bCC\b.*\bSCAR\b/m,
+    "text: header contains CC and SCAR columns";
 
-  # fully_covered: CC=1, SLOP=0.0 (CRAP=1, ln(1)*10=0)
+  # fully_covered: CC=1, SCAR=0.0 (CRAP=1, ln(1)*10=0)
   like $output, qr/fully_covered\s+\d+\s+1\s+0\.0\b/,
-    "text: fully_covered has CC=1 SLOP=0.0";
+    "text: fully_covered has CC=1 SCAR=0.0";
 
-  # uncalled: CC=1, SLOP=6.9 (CRAP=2, ln(2)*10=6.93)
+  # uncalled: CC=1, SCAR=6.9 (CRAP=2, ln(2)*10=6.93)
   like $output, qr/uncalled\s+\d+\s+1\s+6\.9\b/,
-    "text: uncalled has CC=1 SLOP=6.9";
+    "text: uncalled has CC=1 SCAR=6.9";
 
-  # partial_branch: CC=2, SLOP > 6.9
+  # partial_branch: CC=2, SCAR > 6.9
   like $output, qr/partial_branch\s+\d+\s+2\s+\d+\.\d/,
-    "text: partial_branch has CC=2 and a SLOP score";
+    "text: partial_branch has CC=2 and a SCAR score";
 }
 
 # File-level CRAP tests.
 # Verifies that summarise_complexity computes file_cc, file_cov,
 # and file_crap by treating the entire file as one sub body.
-sub test_file_level_slop () {
+sub test_file_level_scar () {
   my ($db_path, $script) = run_cover("cc_filecrap", $Crap_script);
 
   my $st = Devel::Cover::DB::Structure->new(base => $db_path);
@@ -389,62 +389,62 @@ sub test_file_level_slop () {
   );
 
   my ($file) = grep /cc_filecrap\.pl$/, keys $db->{summary}->%*;
-  ok defined $file, "fileslop: summary contains cover file";
+  ok defined $file, "filescar: summary contains cover file";
 
-  my $slop = $db->{summary}{$file}{slop};
-  ok defined $slop, "fileslop: file summary has slop entry";
+  my $scar = $db->{summary}{$file}{scar};
+  ok defined $scar, "filescar: file summary has scar entry";
 
   # file_cc = sum of per-sub CCs - count + 1
-  ok exists $slop->{file_cc}, "fileslop: has file_cc";
+  ok exists $scar->{file_cc}, "filescar: has file_cc";
   my $expected_cc_sum = 0;
-  $expected_cc_sum += $_->{cc} for $slop->{subs}->@*;
-  is $slop->{file_cc}, $expected_cc_sum - $slop->{count} + 1,
-    "fileslop: file_cc = sum(cc) - count + 1";
+  $expected_cc_sum += $_->{cc} for $scar->{subs}->@*;
+  is $scar->{file_cc}, $expected_cc_sum - $scar->{count} + 1,
+    "filescar: file_cc = sum(cc) - count + 1";
 
   # file_cov: combined stmt+branch+condition coverage
-  ok exists $slop->{file_cov}, "fileslop: has file_cov";
-  ok $slop->{file_cov} >= 0 && $slop->{file_cov} <= 100,
-    "fileslop: file_cov is 0..100";
+  ok exists $scar->{file_cov}, "filescar: has file_cov";
+  ok $scar->{file_cov} >= 0 && $scar->{file_cov} <= 100,
+    "filescar: file_cov is 0..100";
 
   # file_crap: CRAP formula applied to file-level inputs
-  ok exists $slop->{file_crap}, "fileslop: has file_crap";
-  my $cc            = $slop->{file_cc};
-  my $cov           = $slop->{file_cov};
+  ok exists $scar->{file_crap}, "filescar: has file_crap";
+  my $cc            = $scar->{file_cc};
+  my $cov           = $scar->{file_cov};
   my $expected_crap = $cc**2 * (1 - $cov / 100)**3 + $cc;
-  is $slop->{file_crap}, $expected_crap,
-    "fileslop: file_crap matches CRAP formula";
+  is $scar->{file_crap}, $expected_crap,
+    "filescar: file_crap matches CRAP formula";
 
-  # file_slop: ln(file_crap) * 10
-  ok exists $slop->{file_slop}, "fileslop: has file_slop";
-  my $expected_slop = $slop->{file_crap} > 1 ? log($slop->{file_crap}) * 10 : 0;
-  ok abs($slop->{file_slop} - $expected_slop) < 0.01,
-    "fileslop: file_slop = log(file_crap) * 10";
+  # file_scar: ln(file_crap) * 10
+  ok exists $scar->{file_scar}, "filescar: has file_scar";
+  my $expected_scar = $scar->{file_crap} > 1 ? log($scar->{file_crap}) * 10 : 0;
+  ok abs($scar->{file_scar} - $expected_scar) < 0.01,
+    "filescar: file_scar = log(file_crap) * 10";
 
   # Total aggregation
-  my $ts = $db->{summary}{Total}{slop};
-  ok defined $ts,             "fileslop: Total has slop entry";
-  ok exists $ts->{file_crap}, "fileslop: Total has file_crap";
-  ok exists $ts->{file_slop}, "fileslop: Total has file_slop";
+  my $ts = $db->{summary}{Total}{scar};
+  ok defined $ts,             "filescar: Total has scar entry";
+  ok exists $ts->{file_crap}, "filescar: Total has file_crap";
+  ok exists $ts->{file_scar}, "filescar: Total has file_scar";
 
-  # Module-level SLOP (whole-codebase CRAP)
-  ok exists $ts->{module_cc},   "fileslop: Total has module_cc";
-  ok exists $ts->{module_cov},  "fileslop: Total has module_cov";
-  ok exists $ts->{module_crap}, "fileslop: Total has module_crap";
-  ok exists $ts->{module_slop}, "fileslop: Total has module_slop";
-  ok $ts->{module_cc} > 0,      "fileslop: module_cc > 0";
+  # Module-level SCAR (whole-codebase CRAP)
+  ok exists $ts->{module_cc},   "filescar: Total has module_cc";
+  ok exists $ts->{module_cov},  "filescar: Total has module_cov";
+  ok exists $ts->{module_crap}, "filescar: Total has module_crap";
+  ok exists $ts->{module_scar}, "filescar: Total has module_scar";
+  ok $ts->{module_cc} > 0,      "filescar: module_cc > 0";
   my $mcc            = $ts->{module_cc};
   my $mcv            = $ts->{module_cov};
   my $expected_mcrap = $mcc**2 * (1 - $mcv / 100)**3 + $mcc;
   is $ts->{module_crap}, $expected_mcrap,
-    "fileslop: module_crap matches CRAP formula";
-  my $expected_mslop
+    "filescar: module_crap matches CRAP formula";
+  my $expected_mscar
     = $ts->{module_crap} > 1 ? log($ts->{module_crap}) * 10 : 0;
-  ok abs($ts->{module_slop} - $expected_mslop) < 0.01,
-    "fileslop: module_slop = log(module_crap) * 10";
+  ok abs($ts->{module_scar} - $expected_mscar) < 0.01,
+    "filescar: module_scar = log(module_crap) * 10";
 }
 
-sub test_dir_level_slop () {
-  my ($db_path, $script) = run_cover("cc_dirslop", $Crap_script);
+sub test_dir_level_scar () {
+  my ($db_path, $script) = run_cover("cc_dirscar", $Crap_script);
 
   my $st = Devel::Cover::DB::Structure->new(base => $db_path);
   $st->read_all;
@@ -459,38 +459,38 @@ sub test_dir_level_slop () {
   );
 
   # Directory summary should exist for the script's parent dir
-  my ($file) = grep /cc_dirslop\.pl$/, keys $db->{summary}->%*;
-  ok defined $file, "dirslop: file found in summary";
+  my ($file) = grep /cc_dirscar\.pl$/, keys $db->{summary}->%*;
+  ok defined $file, "dirscar: file found in summary";
   (my $dir = $file) =~ s|/[^/]+$||;
   my $ds = $db->dir_summary($dir);
-  ok defined $ds, "dirslop: dir summary exists";
+  ok defined $ds, "dirscar: dir summary exists";
 
   # Per-criterion aggregation
   for my $c (qw( statement branch condition total )) {
-    ok exists $ds->{$c},           "dirslop: has $c";
-    ok defined $ds->{$c}{covered}, "dirslop: $c has covered";
-    ok defined $ds->{$c}{total},   "dirslop: $c has total";
+    ok exists $ds->{$c},           "dirscar: has $c";
+    ok defined $ds->{$c}{covered}, "dirscar: $c has covered";
+    ok defined $ds->{$c}{total},   "dirscar: $c has total";
   }
 
-  # SLOP entry
-  my $slop = $ds->{slop};
-  ok defined $slop,             "dirslop: has slop entry";
-  ok exists $slop->{file_cc},   "dirslop: has file_cc";
-  ok exists $slop->{file_cov},  "dirslop: has file_cov";
-  ok exists $slop->{file_crap}, "dirslop: has file_crap";
-  ok exists $slop->{file_slop}, "dirslop: has file_slop";
+  # SCAR entry
+  my $scar = $ds->{scar};
+  ok defined $scar,             "dirscar: has scar entry";
+  ok exists $scar->{file_cc},   "dirscar: has file_cc";
+  ok exists $scar->{file_cov},  "dirscar: has file_cov";
+  ok exists $scar->{file_crap}, "dirscar: has file_crap";
+  ok exists $scar->{file_scar}, "dirscar: has file_scar";
 
   # dir_cc should equal the single file's file_cc (one file in the directory)
-  my $file_slop = $db->{summary}{$file}{slop};
-  is $slop->{file_cc}, $file_slop->{file_cc},
-    "dirslop: dir cc matches single file cc";
+  my $file_scar = $db->{summary}{$file}{scar};
+  is $scar->{file_cc}, $file_scar->{file_cc},
+    "dirscar: dir cc matches single file cc";
 
   # CRAP formula
-  my $cc            = $slop->{file_cc};
-  my $cov           = $slop->{file_cov};
+  my $cc            = $scar->{file_cc};
+  my $cov           = $scar->{file_cov};
   my $expected_crap = $cc**2 * (1 - $cov / 100)**3 + $cc;
-  is $slop->{file_crap}, $expected_crap,
-    "dirslop: dir crap matches CRAP formula";
+  is $scar->{file_crap}, $expected_crap,
+    "dirscar: dir crap matches CRAP formula";
 }
 
 # Helper: run the text report against a fresh db built from Crap_script and
@@ -519,24 +519,24 @@ sub _text_report_for ($label, $script = $Crap_script, @coverage) {
   $output
 }
 
-# Per-file SLOP banner tests.
+# Per-file SCAR banner tests.
 # Verifies the text report emits a per-file banner showing
-# CC / Coverage / CRAP / SLOP, plus a worst-subs digest.
+# CC / Coverage / CRAP / SCAR, plus a worst-subs digest.
 sub test_text_file_banner () {
   my $output = _text_report_for("tx_banner");
 
   like $output, qr/^File Summary\b/m, "banner: File Summary heading present";
-  like $output, qr/\bCC\b.*\bCov\b.*\bCRAP\b.*\bSLOP\b/,
+  like $output, qr/\bCC\b.*\bCov\b.*\bCRAP\b.*\bSCAR\b/,
     "banner: metrics table header";
   like $output, qr/^\s*\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s*$/m,
     "banner: metrics table data row";
 
   like $output, qr/^Worst Subroutines\b/m,
     "banner: Worst Subroutines heading present";
-  like $output, qr/\bSubroutine\b.*\bCC\b.*\bSLOP\b.*\bLocation\b/,
+  like $output, qr/\bSubroutine\b.*\bCC\b.*\bSCAR\b.*\bLocation\b/,
     "banner: worst-subs table header";
   like $output, qr/\bpartial_branch\b.*\d+\s+\d+\.\d+\s+\S*tx_banner\.pl:\d+/,
-    "banner: partial_branch appears in worst-subs with CC/SLOP/location";
+    "banner: partial_branch appears in worst-subs with CC/SCAR/location";
 }
 
 # Run a two-file coverage session by having the main script require a sibling
@@ -610,7 +610,7 @@ sub _multi_file_report ($label, $split_dirs = 0) {
   $output
 }
 
-# Module-level SLOP block tests.
+# Module-level SCAR block tests.
 # Verifies the text report emits a Module Summary block at the top when more
 # than one file is reported.
 sub test_text_module_block () {
@@ -618,7 +618,7 @@ sub test_text_module_block () {
 
   like $output, qr/^Module Summary\b/m,
     "module: Module Summary heading present";
-  like $output, qr/\bFiles\b.*\bCC\b.*\bCov\b.*\bCRAP\b.*\bSLOP\b/,
+  like $output, qr/\bFiles\b.*\bCC\b.*\bCov\b.*\bCRAP\b.*\bSCAR\b/,
     "module: metrics table header";
   like $output, qr/^\s*\d+\s+\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s*$/m,
     "module: metrics table data row";
@@ -630,7 +630,7 @@ sub test_text_module_block () {
     "module: appears before per-file banners";
 }
 
-# Directory SLOP block tests.
+# Directory SCAR block tests.
 # Verifies the text report emits a Directory Summary table at the end
 # when more than one directory spans the reported files.
 sub test_text_dir_block () {
@@ -638,7 +638,7 @@ sub test_text_dir_block () {
 
   like $output, qr/^Directory Summary\b/m,
     "dir: Directory Summary heading present";
-  like $output, qr/\bDirectory\b.*\bCC\b.*\bCov\b.*\bCRAP\b.*\bSLOP\b/,
+  like $output, qr/\bDirectory\b.*\bCC\b.*\bCov\b.*\bCRAP\b.*\bSCAR\b/,
     "dir: table header present";
 
   # Directory block should appear after the last File Summary.
@@ -655,11 +655,11 @@ sub test_text_dir_block_suppressed () {
     "dir: suppressed when only one directory in report";
 }
 
-# print_summary SLOP column tests.
-# Verifies that DB::print_summary emits a slop column after the criteria
-# columns, with per-file file_slop and Total module_slop.
-sub test_print_summary_slop () {
-  my ($db_path, $script) = run_cover("ps_slop", $Crap_script);
+# print_summary SCAR column tests.
+# Verifies that DB::print_summary emits a scar column after the criteria
+# columns, with per-file file_scar and Total module_scar.
+sub test_print_summary_scar () {
+  my ($db_path, $script) = run_cover("ps_scar", $Crap_script);
 
   my $st = Devel::Cover::DB::Structure->new(base => $db_path);
   $st->read_all;
@@ -680,23 +680,23 @@ sub test_print_summary_slop () {
     close $fh or die "Cannot close scalar ref: $!";
   }
 
-  like $output, qr/\bslop\b/, "summary: header contains slop column";
+  like $output, qr/\bscar\b/, "summary: header contains scar column";
 
-  my ($file_row) = $output =~ /^(\S*ps_slop\.pl\s.+)$/m;
+  my ($file_row) = $output =~ /^(\S*ps_scar\.pl\s.+)$/m;
   ok defined $file_row, "summary: file row found";
   my @file_cols = split " ", $file_row // "";
   is @file_cols, 7,
-    "summary: file row has name + 5 criteria + slop (7 cols)";
+    "summary: file row has name + 5 criteria + scar (7 cols)";
   like $file_cols[-1], qr/^\d+\.\d$/,
-    "summary: file row slop column is numeric";
+    "summary: file row scar column is numeric";
 
   my ($total_row) = $output =~ /^(Total\s.+)$/m;
   ok defined $total_row, "summary: Total row found";
   my @total_cols = split " ", $total_row // "";
   is @total_cols, 7,
-    "summary: Total row has label + 5 criteria + slop (7 cols)";
+    "summary: Total row has label + 5 criteria + scar (7 cols)";
   like $total_cols[-1], qr/^\d+\.\d$/,
-    "summary: Total row slop column is numeric";
+    "summary: Total row scar column is numeric";
 }
 
 sub main () {
@@ -704,11 +704,11 @@ sub main () {
   test_summary_aggregation;
   test_end_lines;
   test_signature_cc;
-  test_slop_scoring;
-  test_text_report_slop;
-  test_file_level_slop;
-  test_dir_level_slop;
-  test_print_summary_slop;
+  test_scar_scoring;
+  test_text_report_scar;
+  test_file_level_scar;
+  test_dir_level_scar;
+  test_print_summary_scar;
   test_text_file_banner;
   test_text_module_block;
   test_text_dir_block;
