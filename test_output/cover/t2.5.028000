@@ -1,6 +1,6 @@
 cover: Reading database from ...
 -------- ------ ------ ------ ------ ------ ------ ------
-File       stmt   bran   cond   mcdc    sub  total   slop
+File       stmt   bran   cond   mcdc    sub  total   scar
 -------- ------ ------ ------ ------ ------ ------ ------
 tests/t2   93.7   50.0    n/a    n/a  100.0   84.0    0.1
 Total      93.7   50.0    n/a    n/a  100.0   84.0    0.1
@@ -18,7 +18,7 @@ tests/t2
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
  1 81.8  1.0  0.1
 
@@ -77,7 +77,7 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location   
+Subroutine Count  CC  SCAR Location   
 ---------- ----- --- ----- -----------
 BEGIN          1   1   0.0 tests/t2:10
 BEGIN          1   1   0.0 tests/t2:11

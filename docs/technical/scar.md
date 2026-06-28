@@ -1,6 +1,6 @@
-# SLOP: Scaled Likelihood Of Problems
+# SCAR: Scaled Complexity And Risk
 
-SLOP is Devel::Cover's risk-scoring metric. It combines cyclomatic complexity
+SCAR is Devel::Cover's risk-scoring metric. It combines cyclomatic complexity
 and code coverage into a single number that answers: "where should I spend my
 testing effort?" This document records the research, the decisions, and the
 design.
@@ -103,7 +103,7 @@ PHPUnit and NDepend are the two most prominent implementations.
 
 ## Options Considered
 
-Seven approaches were evaluated before settling on CRAP + SLOP:
+Seven approaches were evaluated before settling on CRAP + SCAR:
 
 ### Option 1: Missed count
 
@@ -168,7 +168,7 @@ a CPAN distribution and is a significant new feature beyond a formula change.
 
 \* lcov uses missed count for sorting but does not call it "risk".
 
-## Why CRAP, and Why SLOP
+## Why CRAP, and Why SCAR
 
 CRAP was the clear winner: it is the only published, peer-reviewed, widely
 adopted coverage-based risk formula. It required cyclomatic complexity, which
@@ -181,25 +181,27 @@ scores 2,550. Even moderate codebases can produce scores in the tens or even
 hundreds of thousands. This makes it difficult to scan a table and quickly
 assess relative risk.
 
-SLOP compresses this range using a natural logarithm:
+SCAR compresses this range using a natural logarithm:
 
 ```text
-slop = crap > 1 ? ln(crap) * 10 : 0
+scar = crap > 1 ? ln(crap) * 10 : 0
 ```
 
 This maps the CRAP range of approximately 1-20,000 to roughly 0-100. Each +10
-SLOP represents approximately 2.7x worse CRAP (one e-fold). The standard CRAP
-threshold of 30 maps to SLOP ~34.
+SCAR represents approximately 2.7x worse CRAP (one e-fold). The standard CRAP
+threshold of 30 maps to SCAR ~34.
 
-The name "Scaled Likelihood Of Problems" was chosen to:
+The name "Scaled Complexity And Risk" was chosen to:
 
-- Describe what it measures (likelihood of problems, scaled for readability)
-- Be memorable and slightly irreverent (like CRAP itself)
+- Describe what it measures (complexity and the coverage-gap risk that drives
+  it, scaled for readability)
+- Be memorable and slightly irreverent (like CRAP itself), while a scar is an
+  apt image: a visible mark of damage, which is just what the metric points to
 - Distinguish it from raw CRAP in reports and documentation
 
 ### Display strategy
 
-SLOP is the primary displayed value in all reports. Raw CRAP remains accessible
+SCAR is the primary displayed value in all reports. Raw CRAP remains accessible
 in Html_crisp tooltips for users who want the standard metric. This gives the
 best of both worlds: a scannable, bounded number in the table, with the
 published metric one hover away.
@@ -208,7 +210,7 @@ published metric one hover away.
 
 Risk scoring is computed in `DB::calculate_summary` (via `summarise_complexity`)
 rather than in individual reporters. This means all reporters and CLI tools get
-SLOP data for free without duplicating the formula. The DB layer gains an
+SCAR data for free without duplicating the formula. The DB layer gains an
 opinion about what "risk" means, but the alternative - each reporter computing
 its own risk - leads to duplication and divergence. A shared utility module was
 considered but adds indirection for no practical benefit when there is exactly
@@ -377,14 +379,14 @@ At 100% coverage, CRAP equals CC (complexity alone). At 0% coverage, CRAP equals
 CC^2 + CC. The cubic exponent on the coverage gap makes the penalty steep: going
 from 90% to 80% coverage hurts much more than going from 50% to 40%.
 
-### SLOP
+### SCAR
 
 ```text
-slop = crap > 1 ? ln(crap) * 10 : 0
+scar = crap > 1 ? ln(crap) * 10 : 0
 ```
 
 The minimum possible CRAP score is 1 (a subroutine with CC=1 at 100% coverage:
-1^2 * 0^3 + 1 = 1). Since ln(1) = 0, SLOP is zero for a perfect score. The `> 1`
+1^2 * 0^3 + 1 = 1). Since ln(1) = 0, SCAR is zero for a perfect score. The `> 1`
 guard makes this explicit and avoids any floating-point edge cases near the
 boundary. The factor of 10 scales the range to roughly 0-100.
 
@@ -412,18 +414,18 @@ weaker than full basis path coverage. A subroutine with no coverable points
 
 ## Colour Thresholds
 
-The `slop_class` function maps SLOP values to the existing c0-c3 CSS classes
+The `scar_class` function maps SCAR values to the existing c0-c3 CSS classes
 used throughout Devel::Cover for coverage colouring. The thresholds are
 log-transforms of established CRAP boundaries:
 
-| SLOP range | CSS class | CRAP equivalent | Meaning        |
+| SCAR range | CSS class | CRAP equivalent | Meaning        |
 | ---------- | --------- | --------------- | -------------- |
 | < 16       | c3        | < 5             | Low risk       |
 | 16-34      | c2        | 5-30            | Moderate risk  |
 | 34-41      | c1        | 30-60           | High risk      |
 | >= 41      | c0        | >= 60           | Very high risk |
 
-The CRAP threshold of 30 (the accepted "unacceptable" boundary) maps to SLOP
+The CRAP threshold of 30 (the accepted "unacceptable" boundary) maps to SCAR
 ~34, sitting at the c2/c1 boundary.
 
 ## Aggregation Levels
@@ -441,7 +443,7 @@ File CC is computed as `sum(sub CCs) - count + 1`. The subtraction avoids
 double-counting the base paths: if a file has three subroutines with CC 3, 5,
 and 2, the file CC is `(3+5+2) - 3 + 1 = 8` rather than `10`. File coverage is
 the combined statement+branch+condition coverage from the summary. File CRAP and
-SLOP follow from these.
+SCAR follow from these.
 
 ### Per-directory
 
@@ -459,36 +461,36 @@ reducing complexity both lower the score.
 
 ### Summary (`cover -summary`)
 
-An always-on `slop` column appears after the `total` column, showing
-per-file `file_slop` and, for the Total row, `module_slop`. Formatting:
+An always-on `scar` column appears after the `total` column, showing
+per-file `file_scar` and, for the Total row, `module_scar`. Formatting:
 `%5.1f` for numeric values; `-` when the file is uncompiled without PPI
 (data unknown); `n/a` when the file has no coverable subs.
 
 ### Text report
 
-CC and SLOP columns appear in the covered/uncovered subroutine tables
+CC and SCAR columns appear in the covered/uncovered subroutine tables
 alongside call counts and source location.
 
 Each file section opens with a `File Summary` one-row table of
-`CC`, `Cov`, `CRAP`, and `SLOP`, followed by a `Worst Subroutines`
-digest listing the top three subroutines by CRAP (subs with zero SLOP are
-omitted). The banner is suppressed when the file has no SLOP data.
+`CC`, `Cov`, `CRAP`, and `SCAR`, followed by a `Worst Subroutines`
+digest listing the top three subroutines by CRAP (subs with zero SCAR are
+omitted). The banner is suppressed when the file has no SCAR data.
 
 When the report spans more than one file, a `Module Summary` one-row
-table at the top shows `Files`, `CC`, `Cov`, `CRAP`, and `SLOP`. When the
+table at the top shows `Files`, `CC`, `Cov`, `CRAP`, and `SCAR`. When the
 report spans more than one directory, a `Directory Summary` table at the
-end lists each directory's CC, coverage, CRAP and SLOP, sorted by SLOP
+end lists each directory's CC, coverage, CRAP and SCAR, sorted by SCAR
 descending.
 
 ### Html_crisp report
 
-- **Index page**: SLOP column in the file table, sortable. Tooltips show a
-  frosted-glass popup with the top SLOP subroutines and their raw CRAP scores.
-- **Top SLOP section**: Highlights the highest-SLOP files with inline pills.
+- **Index page**: SCAR column in the file table, sortable. Tooltips show a
+  frosted-glass popup with the top SCAR subroutines and their raw CRAP scores.
+- **Top SCAR section**: Highlights the highest-SCAR files with inline pills.
 - **Module badge**: A neutral stat-badge in the header showing the module-level
-  SLOP score.
-- **Directory rows**: Directory total rows include SLOP with tooltips.
-- **File pages**: Per-line SLOP detail in the subroutine section.
+  SCAR score.
+- **Directory rows**: Directory total rows include SCAR with tooltips.
+- **File pages**: Per-line SCAR detail in the subroutine section.
 
 ## Key Files
 
@@ -496,9 +498,9 @@ descending.
 | -------------------------------------- | -------------------------------- |
 | `lib/Devel/Cover.pm`                   | CC counting in `_get_cover_walk` |
 | `Cover.xs`                             | XS walker callbacks              |
-| `lib/Devel/Cover/DB.pm`                | CRAP/SLOP formulae, aggregation  |
+| `lib/Devel/Cover/DB.pm`                | CRAP/SCAR formulae, aggregation  |
 | `lib/Devel/Cover/DB/Structure.pm`      | CC and end-line storage          |
-| `lib/Devel/Cover/Report/Text.pm`       | Text report CC/SLOP columns      |
+| `lib/Devel/Cover/Report/Text.pm`       | Text report CC/SCAR columns      |
 | `lib/Devel/Cover/Report/Html_crisp.pm` | HTML report, tooltips            |
 | `lib/Devel/Cover/Web.pm`               | Shared CSS and tooltip base      |
 | `bin/cover`                            | Structure wiring in `manage_dbs` |

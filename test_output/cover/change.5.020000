@@ -1,7 +1,7 @@
 cover: Reading database from ...
 cover: Deleting old coverage for changed file tests/change
 ------------ ------ ------ ------ ------ ------ ------ ------
-File           stmt   bran   cond   mcdc    sub  total   slop
+File           stmt   bran   cond   mcdc    sub  total   scar
 ------------ ------ ------ ------ ------ ------ ------ ------
 tests/change  100.0    n/a    n/a    n/a  100.0  100.0    0.0
 Total         100.0    n/a    n/a    n/a  100.0  100.0    0.0
@@ -25,7 +25,7 @@ tests/change
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  1 100.0  1.0  0.0
 
@@ -50,7 +50,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location       
+Subroutine Count  CC  SCAR Location       
 ---------- ----- --- ----- ---------------
 new_sub        1   1   0.0 tests/change:12
 

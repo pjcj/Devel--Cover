@@ -72,14 +72,14 @@ sub test_html_crisp_report () {
     like $content, qr/Uncovered\/Utils\.pm.*?\b0\.0\b/s,
       "0.0 shown for Uncovered/Utils.pm (PPI estimates)";
 
-    # SLOP tooltip and numeric value for untested files
-    like $content, qr/Uncovered\/Calc\.pm.*?slop-detail/s,
-      "SLOP tooltip present for Uncovered/Calc.pm";
-    like $content, qr/Uncovered\/Calc\.pm.*?slop-tip-subs/s,
-      "SLOP tooltip has worst subs for Uncovered/Calc.pm";
-    # The SLOP cell should have a numeric data-value, not -1
+    # SCAR tooltip and numeric value for untested files
+    like $content, qr/Uncovered\/Calc\.pm.*?scar-detail/s,
+      "SCAR tooltip present for Uncovered/Calc.pm";
+    like $content, qr/Uncovered\/Calc\.pm.*?scar-tip-subs/s,
+      "SCAR tooltip has worst subs for Uncovered/Calc.pm";
+    # The SCAR cell should have a numeric data-value, not -1
     like $content, qr/Uncovered\/Calc\.pm.*?class="tip-hover"[^>]*>\s*[\d.]+/s,
-      "SLOP cell has numeric value for Uncovered/Calc.pm";
+      "SCAR cell has numeric value for Uncovered/Calc.pm";
   } else {
     like $content, qr/Uncovered\/Calc\.pm.*?<td[^>]*>\s*-\s/s,
       "- shown for Uncovered/Calc.pm (no PPI)";

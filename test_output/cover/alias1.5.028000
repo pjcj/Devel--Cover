@@ -3,7 +3,7 @@ cover: Reading database from ...
 Common prefix: tests/
 
 --------- ------ ------ ------ ------ ------ ------ ------
-File        stmt   bran   cond   mcdc    sub  total   slop
+File        stmt   bran   cond   mcdc    sub  total   scar
 --------- ------ ------ ------ ------ ------ ------ ------
 Alias1.pm  100.0  100.0    n/a    n/a  100.0  100.0    6.9
 alias1     100.0    n/a    n/a    n/a  100.0  100.0    0.0
@@ -20,7 +20,7 @@ Finish: ...
 Module Summary
 --------------
 
-Files CC   Cov CRAP SLOP
+Files CC   Cov CRAP SCAR
 ----- -- ----- ---- ----
     2  2 100.0  2.0  6.9
 
@@ -30,14 +30,14 @@ Alias1.pm
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  2 100.0  2.0  6.9
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location    
+Subroutine CC SCAR  Location    
 ---------- -- ----  ------------
 is_3digits  2  6.9  Alias1.pm:19
 
@@ -86,7 +86,7 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location    
+Subroutine Count  CC  SCAR Location    
 ---------- ----- --- ----- ------------
 BEGIN          1   1   0.0 Alias1.pm:10
 BEGIN          1   1   0.0 Alias1.pm:11
@@ -99,7 +99,7 @@ alias1
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  1 100.0  1.0  0.0
 
@@ -136,7 +136,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location 
+Subroutine Count  CC  SCAR Location 
 ---------- ----- --- ----- ---------
 BEGIN          1   1   0.0 alias1:10
 BEGIN          1   1   0.0 alias1:11

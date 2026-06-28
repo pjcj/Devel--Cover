@@ -306,9 +306,9 @@ sub dir_summary ($self, $dir, $criterion = undef) {
   $d->{$criterion}
 }
 
-sub slop_sub_lookup ($self, $file) {
-  my $slop = $self->summary($file, "slop") or return {};
-  my $subs = $slop->{subs}                 or return {};
+sub scar_sub_lookup ($self, $file) {
+  my $scar = $self->summary($file, "scar") or return {};
+  my $subs = $scar->{subs}                 or return {};
   +{ map { ("$_->{line}\0$_->{name}" => $_) } @$subs }
 }
 
@@ -332,7 +332,7 @@ sub _crap ($cc, $cov_pct) {
   $cc**2 * (1 - $cov_pct / 100)**3 + $cc
 }
 
-sub _slop ($crap) {
+sub _scar ($crap) {
   $crap > 1 ? log($crap) * 10 : 0
 }
 
@@ -377,7 +377,7 @@ sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
             cc   => $cc,
             cov  => $cov,
             crap => $crap,
-            slop => _slop($crap),
+            scar => _scar($crap),
           };
       }
     }
@@ -419,12 +419,12 @@ sub _summarise_dir_complexity ($self, $s, $dir_files, $dir_stats) {
       my $dir_cc   = $ds->{cc_sum} - $ds->{cc_count} + 1;
       my $dir_cov  = _file_coverage($d);
       my $dir_crap = _crap($dir_cc, $dir_cov);
-      my $dir_slop = _slop($dir_crap);
-      $d->{slop} = {
+      my $dir_scar = _scar($dir_crap);
+      $d->{scar} = {
         file_cc   => $dir_cc,
         file_cov  => $dir_cov,
         file_crap => $dir_crap,
-        file_slop => $dir_slop,
+        file_scar => $dir_scar,
       };
     }
   }
@@ -449,7 +449,7 @@ sub _uncompiled_cc_data ($sub_data) {
         cc   => $cc,
         cov  => $cov,
         crap => $crap,
-        slop => _slop($crap),
+        scar => _scar($crap),
       };
   }
 
@@ -478,8 +478,8 @@ sub _record_file_complexity ($s, $file, $d, $dir_stats, $totals) {
   my $file_cc   = $d->{sum} - $count + 1;
   my $file_cov  = _file_coverage($s->{$file});
   my $file_crap = _crap($file_cc, $file_cov);
-  my $file_slop = _slop($file_crap);
-  $s->{$file}{slop} = {
+  my $file_scar = _scar($file_crap);
+  $s->{$file}{scar} = {
     max       => $d->{crap_max},
     mean      => $d->{crap_sum} / $count,
     count     => $count,
@@ -487,7 +487,7 @@ sub _record_file_complexity ($s, $file, $d, $dir_stats, $totals) {
     file_cc   => $file_cc,
     file_cov  => $file_cov,
     file_crap => $file_crap,
-    file_slop => $file_slop,
+    file_scar => $file_scar,
   };
 
   my $ds = $dir_stats->{ _file_dir($file) } ||= { cc_sum => 0, cc_count => 0 };
@@ -495,7 +495,7 @@ sub _record_file_complexity ($s, $file, $d, $dir_stats, $totals) {
   $ds->{cc_count} += $count;
 
   $totals->{fcrap_sum} += $file_crap;
-  $totals->{fslop_sum} += $file_slop;
+  $totals->{fscar_sum} += $file_scar;
   $totals->{fcrap_cnt}++;
   $totals->{max}       = $d->{max} if $d->{max} > $totals->{max};
   $totals->{sum}      += $d->{sum};
@@ -515,16 +515,16 @@ sub _record_total_complexity ($s, $totals) {
   my $module_cov  = _file_coverage($s->{Total});
   my $module_crap = _crap($module_cc, $module_cov);
   my $cnt         = $totals->{fcrap_cnt};
-  $s->{Total}{slop} = {
+  $s->{Total}{scar} = {
     max         => $totals->{crap_max},
     mean        => $totals->{crap_sum} / $totals->{count},
     count       => $totals->{count},
     file_crap   => $cnt ? $totals->{fcrap_sum} / $cnt : 0,
-    file_slop   => $cnt ? $totals->{fslop_sum} / $cnt : 0,
+    file_scar   => $cnt ? $totals->{fscar_sum} / $cnt : 0,
     module_cc   => $module_cc,
     module_cov  => $module_cov,
     module_crap => $module_crap,
-    module_slop => _slop($module_crap),
+    module_scar => _scar($module_crap),
   };
 }
 
@@ -537,7 +537,7 @@ sub summarise_complexity ($self, $s, $files) {
     crap_max  => 0,
     crap_sum  => 0,
     fcrap_sum => 0,
-    fslop_sum => 0,
+    fscar_sum => 0,
     fcrap_cnt => 0,
   );
   my %dir_stats;
@@ -602,10 +602,10 @@ sub _format_summary_pct ($options, $part, $criterion) {
   $x
 }
 
-sub _format_summary_slop ($self, $file, $part, $have_ppi) {
-  my $slop = $part->{slop};
-  if ($slop) {
-    my $v = $file eq "Total" ? $slop->{module_slop} : $slop->{file_slop};
+sub _format_summary_scar ($self, $file, $part, $have_ppi) {
+  my $scar = $part->{scar};
+  if ($scar) {
+    my $v = $file eq "Total" ? $scar->{module_scar} : $scar->{file_scar};
     return sprintf "%5.1f", $v if defined $v;
   }
   return "n/a" if $file eq "Total";
@@ -637,7 +637,7 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
     = !$ENV{DEVEL_COVER_TEST_SUITE}
     && $Has_term_size
     && -t STDOUT ? (Term::Size::chars(\*STDOUT))[0] : 80;
-  my $nc = $n + 1;               # criterion columns plus slop
+  my $nc = $n + 1;               # criterion columns plus scar
   my $fw = $width - $nc * 7 - 3;
 
   $fw = $max if $max < $fw;
@@ -652,7 +652,7 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
       grep $options{ $self->{all_criteria}[$_] },
       0 .. $self->{all_criteria}->$#*,
     ),
-    "slop";
+    "scar";
   printf STDOUT $fmt, "-" x $fw, ("------") x $nc;
 
   my $has_uncompiled;
@@ -670,7 +670,7 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
           grep $options{$_},
           $self->{all_criteria}->@*,
         ),
-        $self->_format_summary_slop($file, $s->{$file}, $have_ppi),
+        $self->_format_summary_scar($file, $s->{$file}, $have_ppi),
       );
   }
 
@@ -1391,19 +1391,19 @@ part of that criterion's summary.
 Access the directory-level summary hash for C<$dir>. Populated by
 L</summarise_complexity> during L</calculate_summary>.
 
-=head2 slop_sub_lookup
+=head2 scar_sub_lookup
 
-  my $lookup = $db->slop_sub_lookup($file);
+  my $lookup = $db->scar_sub_lookup($file);
 
-Return a hashref mapping C<"$line\0$name"> to per-subroutine SLOP detail from
-the summary data for C<$file>. Returns an empty hashref when no SLOP data
+Return a hashref mapping C<"$line\0$name"> to per-subroutine SCAR detail from
+the summary data for C<$file>. Returns an empty hashref when no SCAR data
 exists.
 
 =head2 summarise_complexity
 
   $db->summarise_complexity($summary, \@files);
 
-Compute per-file, per-directory, and total complexity and SLOP scores, storing
+Compute per-file, per-directory, and total complexity and SCAR scores, storing
 results into the C<$summary> hash. Called automatically by
 L</calculate_summary>.
 

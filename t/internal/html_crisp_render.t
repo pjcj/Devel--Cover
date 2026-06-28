@@ -115,9 +115,9 @@ sub test_render_index () {
   like $got,   qr/class="worst-files"/,     "has worst files";
   like $got,   qr/class="dist-bar"/,        "has distribution bar";
   like $got,   qr/class="filter-bar"/,      "has filter bar";
-  like $got,   qr/data-sort="slop"/,        "has SLOP column";
+  like $got,   qr/data-sort="scar"/,        "has SCAR column";
   unlike $got, qr/data-sort="risk"/,        "no risk column";
-  like $got,   qr/Top SLOP/,                "worst files heading";
+  like $got,   qr/Top SCAR/,                "worst files heading";
   like $got,   qr/Covered\/Calc\.pm/,       "Covered/Calc.pm present";
   like $got,   qr/Covered\/Full\.pm/,       "Covered/Full.pm present";
   like $got,   qr/Uncovered\/Calc\.pm/,     "Uncovered/Calc.pm present";
@@ -151,16 +151,16 @@ sub test_tooltip_structure () {
   my $got = $Golden{"coverage.html"};
 
   # Unified glass tooltip system
-  like $got, qr/class="glass-tip slop-detail"/,
-    "tooltip: has glass-tip slop-detail";
-  like $got, qr/class="slop-tip-metrics"/, "tooltip: has metrics section";
-  like $got, qr/class="slop-tip-subs"/,    "tooltip: has subs section";
-  like $got, qr/class="slop-tip-total"/,   "tooltip: has total section";
+  like $got, qr/class="glass-tip scar-detail"/,
+    "tooltip: has glass-tip scar-detail";
+  like $got, qr/class="scar-tip-metrics"/, "tooltip: has metrics section";
+  like $got, qr/class="scar-tip-subs"/,    "tooltip: has subs section";
+  like $got, qr/class="scar-tip-total"/,   "tooltip: has total section";
 
   # Colour coding inside tooltips
-  like $got, qr/slop-tip-metrics.*?class="c[0-3]"/s,
+  like $got, qr/scar-tip-metrics.*?class="c[0-3]"/s,
     "tooltip: coverage value has colour class";
-  like $got, qr/slop-tip-subs.*?class="c[0-3]"/s,
+  like $got, qr/scar-tip-subs.*?class="c[0-3]"/s,
     "tooltip: sub entry has colour class";
 }
 
@@ -173,23 +173,23 @@ sub test_glass_tooltips () {
   unlike $index, qr/class="[^"]*has-tip/,   "glass: no has-tip class";
   unlike $index, qr/data-tip="/,            "glass: no data-tip attributes";
 
-  # File page SLOP badge uses tip-hover
+  # File page SCAR badge uses tip-hover
   my ($covered) = grep /Covered-Calc/, keys %Golden;
   my $file_page = $Golden{$covered};
-  like $file_page,   qr/stat-slop tip-hover/, "glass: SLOP badge has tip-hover";
-  unlike $file_page, qr/slop-hover/,          "glass: no slop-hover class";
+  like $file_page,   qr/stat-scar tip-hover/, "glass: SCAR badge has tip-hover";
+  unlike $file_page, qr/scar-hover/,          "glass: no scar-hover class";
 }
 
-sub test_dir_row_slop () {
+sub test_dir_row_scar () {
   my $got = $Golden{"coverage.html"};
-  like $got, qr/dir-header.*?tip-hover.*?slop-detail/s,
-    "dir row: has SLOP tooltip";
+  like $got, qr/dir-header.*?tip-hover.*?scar-detail/s,
+    "dir row: has SCAR tooltip";
 }
 
-sub test_module_slop_badge () {
+sub test_module_scar_badge () {
   my $got = $Golden{"coverage.html"};
-  like $got, qr/stat-badge.*?slop\b/s, "header: has SLOP stat badge";
-  like $got, qr/slop.*?help-toggle/s,  "header: SLOP badge before help button";
+  like $got, qr/stat-badge.*?scar\b/s, "header: has SCAR stat badge";
+  like $got, qr/scar.*?help-toggle/s,  "header: SCAR badge before help button";
 }
 
 sub test_total_badge_filter () {
@@ -279,25 +279,25 @@ sub test_cov_cell_link () {
     "with link: anchor wraps the percent value";
 }
 
-sub test_slop_cell_link () {
+sub test_scar_cell_link () {
   no warnings "once";
   local %Devel::Cover::Report::Html_crisp::R = ();
 
   my $f = {
-    file_slop  => "33.4",
+    file_scar  => "33.4",
     file_crap  => "12.5",
     file_cc    => 5,
     file_cov   => 80,
     worst_subs => [],
   };
 
-  my $no_link = Devel::Cover::Report::Html_crisp::slop_cell($f);
-  unlike $no_link, qr/<a class="cell-link"/, "slop no link: no anchor";
+  my $no_link = Devel::Cover::Report::Html_crisp::scar_cell($f);
+  unlike $no_link, qr/<a class="cell-link"/, "scar no link: no anchor";
 
   my $with_link
-    = Devel::Cover::Report::Html_crisp::slop_cell($f, "tests-foo.html");
+    = Devel::Cover::Report::Html_crisp::scar_cell($f, "tests-foo.html");
   like $with_link, qr{<a class="cell-link" href="tests-foo\.html">33\.4</a>},
-    "slop with link: anchor wraps slop value (no filter hash)";
+    "scar with link: anchor wraps scar value (no filter hash)";
 }
 
 sub test_stat_badge_no_tip_when_empty () {
@@ -327,7 +327,7 @@ sub test_index_filter_links () {
   like $got, qr{cell-link" href="[^"]*#filter=total"},
     "index: total cell links with #filter=total";
   like $got, qr{cell-link" href="[^"]*\.html">},
-    "index: SLOP cell links to file without #filter";
+    "index: SCAR cell links to file without #filter";
 }
 
 sub test_dir_header_links () {
@@ -660,14 +660,14 @@ sub main () {
   test_render_file_page;
   test_tooltip_structure;
   test_glass_tooltips;
-  test_dir_row_slop;
-  test_module_slop_badge;
+  test_dir_row_scar;
+  test_module_scar_badge;
   test_total_badge_filter;
   test_file_nav_keys;
   test_render_untested_page;
   test_cov_cell_tooltips;
   test_cov_cell_link;
-  test_slop_cell_link;
+  test_scar_cell_link;
   test_stat_badge_no_tip_when_empty;
   test_index_filter_links;
   test_dir_header_links;

@@ -88,28 +88,28 @@ sub untested_badge () {
 sub glass_tip ($text) { qq(<span class="glass-tip">$text</span>) }
 sub is_na     ($v)    { !defined $v || $v eq "n/a" || $v eq "-" }
 
-sub slop_tip ($f) {
-  return "" if is_na($f->{file_slop});
+sub scar_tip ($f) {
+  return "" if is_na($f->{file_scar});
   my $cov_cls = class($f->{file_cov}, $f->{file_cov} < 100, "total");
   my $o       = <<HTML;
-<div class="glass-tip slop-detail">
-<dl class="slop-tip-metrics">
+<div class="glass-tip scar-detail">
+<dl class="scar-tip-metrics">
 <dt>CC</dt><dd>$f->{file_cc}</dd>
 <dt>Cov</dt><dd class="$cov_cls">$f->{file_cov}%</dd>
 </dl>
 HTML
   if ($f->{worst_subs}->@*) {
-    $o .= qq(<dl class="slop-tip-subs">\n);
+    $o .= qq(<dl class="scar-tip-subs">\n);
     for ($f->{worst_subs}->@*) {
-      my $cls = slop_class($_->{slop});
+      my $cls = scar_class($_->{scar});
       $o .= qq(<dt>$_->{name}</dt><dd class="$cls">$_->{crap}</dd>\n);
     }
     $o .= "</dl>\n";
   }
   $o .= <<HTML;
-<div class="slop-tip-total">
-<span class="slop-tip-label">CRAP</span>
-<span class="slop-tip-value">$f->{file_crap}</span>
+<div class="scar-tip-total">
+<span class="scar-tip-label">CRAP</span>
+<span class="scar-tip-value">$f->{file_crap}</span>
 </div>
 </div>
 HTML
@@ -159,41 +159,41 @@ HTML
   }
   my $total_link = $linkable ? "$f->{link}#filter=total" : undef;
   $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort}, $total_link);
-  $o .= slop_cell($f, $linkable ? $f->{link} : undef);
+  $o .= scar_cell($f, $linkable ? $f->{link} : undef);
   $o .= "</tr>\n";
   $o
 }
 
-sub slop_cell ($f, $link = undef) {
-  my $slop  = $f->{file_slop};
-  my $na    = is_na($slop);
-  my $dv    = $na   ? -1   : $slop;
+sub scar_cell ($f, $link = undef) {
+  my $scar  = $f->{file_scar};
+  my $na    = is_na($scar);
+  my $dv    = $na   ? -1   : $scar;
   my $cls   = $na   ? "na" : "tip-hover";
-  my $value = $link ? qq(<a class="cell-link" href="$link">$slop</a>) : $slop;
+  my $value = $link ? qq(<a class="cell-link" href="$link">$scar</a>) : $scar;
 
   <<HTML
 <td data-value="$dv" class="$cls">
-$value @{[ slop_tip($f) ]}</td>
+$value @{[ scar_tip($f) ]}</td>
 HTML
 }
 
-sub _numeric_slop ($f) { is_na($f->{file_slop}) ? 0 : $f->{file_slop} }
+sub _numeric_scar ($f) { is_na($f->{file_scar}) ? 0 : $f->{file_scar} }
 
 sub render_worst_files ($worst) {
-  return "" unless @$worst && _numeric_slop($worst->[0]) > 0;
-  my $o = qq(<div class="worst-files">\n<h2>Top SLOP</h2>\n);
+  return "" unless @$worst && _numeric_scar($worst->[0]) > 0;
+  my $o = qq(<div class="worst-files">\n<h2>Top SCAR</h2>\n);
   for my $f (@$worst) {
-    next if _numeric_slop($f) == 0;
+    next if _numeric_scar($f) == 0;
     my $cls = $f->{uncompiled} ? "untested-worst" : $f->{total}{class};
     my $name
       = $f->{exists} ? qq(<a href="$f->{link}">$f->{short}</a>) : $f->{short};
     my $badge = $f->{uncompiled} ? untested_badge() . "\n" : "";
-    my $tip   = slop_tip($f);
-    my $slop  = $f->{file_slop};
+    my $tip   = scar_tip($f);
+    my $scar  = $f->{file_scar};
 
     $o .= <<HTML;
 <div class="worst-item $cls">
-  $name $badge<strong class="tip-hover">$slop $tip</strong>
+  $name $badge<strong class="tip-hover">$scar $tip</strong>
 </div>
 HTML
   }
@@ -256,7 +256,7 @@ sub render_index ($file_data, $total, $dist) {
   my @groups = build_dir_groups($file_data);
   my @worst
     = @$file_data
-    ? (sort { _numeric_slop($b) <=> _numeric_slop($a) } @$file_data)
+    ? (sort { _numeric_scar($b) <=> _numeric_scar($a) } @$file_data)
     [0 .. ($#$file_data > 4 ? 4 : $#$file_data)]
     : ();
 
@@ -274,14 +274,14 @@ HTML
   my $tt = $total->{total};
   $o .= stat_badge("total", $tt) unless is_na($tt->{pc});
 
-  my $ms = $R{db}->summary("Total", "slop");
-  if ($ms && defined $ms->{module_slop}) {
-    my $sv  = sprintf "%.1f", $ms->{module_slop};
+  my $ms = $R{db}->summary("Total", "scar");
+  if ($ms && defined $ms->{module_scar}) {
+    my $sv  = sprintf "%.1f", $ms->{module_scar};
     my $tip = sprintf "CC %d &middot; cov %.0f%% &middot; CRAP %.1f",
       $ms->{module_cc}, $ms->{module_cov}, $ms->{module_crap};
     $o .= <<HTML;
-<span class="stat-badge stat-slop tip-hover">
-<span class="badge-label">slop $sv</span>
+<span class="stat-badge stat-scar tip-hover">
+<span class="badge-label">scar $sv</span>
 @{[ glass_tip($tip) ]}</span>
 HTML
   }
@@ -306,15 +306,15 @@ Toggle "Hide 100% covered" to focus on incomplete files.</dd>
 <dt>Grouping</dt>
 <dd>Toggle "Group by directory" to organise files into
 collapsible groups. Click a directory row to collapse it.</dd>
-<dt>SLOP</dt>
-<dd>Scaled Likelihood Of Problems - a log-scaled CRAP score
+<dt>SCAR</dt>
+<dd>Scaled Complexity And Risk - a log-scaled CRAP score
 compressed to a 0-100 range. Hover for a breakdown: file CC,
 combined coverage, worst subs, and the raw CRAP score.</dd>
 <dt>Tooltips</dt>
 <dd>Hover any badge or coverage cell for covered/total counts.</dd>
 <dt>Cell click</dt>
 <dd>Click a coverage cell to open the file with that criterion
-filter active. Click a SLOP cell to open the file at the top.</dd>
+filter active. Click a SCAR cell to open the file at the top.</dd>
 </dl>
 </div>
 </div>
@@ -348,7 +348,7 @@ HTML
 HTML
 
   my $ncrit  = $R{criteria}->@*;
-  my $ncols  = $ncrit + 2;       # criteria + total + slop
+  my $ncols  = $ncrit + 2;       # criteria + total + scar
   my $crit_w = 70 / $ncols;
   $o
     .= qq(<table class="file-table">\n<colgroup>\n)
@@ -362,7 +362,7 @@ HTML
   }
   $o .= <<HTML;
 <th data-sort="total">@{[ crit_name('total') ]}</th>
-<th data-sort="slop">SLOP</th>
+<th data-sort="scar">SCAR</th>
 </tr>
 </thead>
 <tbody>
@@ -380,7 +380,7 @@ HTML
     }
     $o .= cov_cell($g->{total}, 0, undef,
       $t ? "$t->{link}#filter=total" : undef);
-    $o .= slop_cell($g, $t ? $t->{link} : undef);
+    $o .= scar_cell($g, $t ? $t->{link} : undef);
     $o .= "</tr>\n";
     $o .= file_row($_, $g->{dir}) for $g->{files}->@*;
   }
@@ -393,9 +393,9 @@ HTML
   )
 }
 
-sub slop_class ($slop) {
-  return "" unless defined $slop;
-  $slop < 16 ? "c3" : $slop < 34 ? "c2" : $slop < 41 ? "c1" : "c0"
+sub scar_class ($scar) {
+  return "" unless defined $scar;
+  $scar < 16 ? "c3" : $scar < 34 ? "c2" : $scar < 41 ? "c1" : "c0"
 }
 
 sub _summary_text ($covered, $total) {
@@ -473,9 +473,9 @@ sub render_line_detail ($line) {
       my $status  = $s->{covered} ? "called" : "not called";
       my $cc_info = "";
       if (defined $s->{cc}) {
-        my $cls  = slop_class($s->{slop});
-        my $slop = sprintf "%.1f", $s->{slop} // 0;
-        $cc_info = qq( <span class="$cls">CC=$s->{cc} SLOP=$slop</span>);
+        my $cls  = scar_class($s->{scar});
+        my $scar = sprintf "%.1f", $s->{scar} // 0;
+        $cc_info = qq( <span class="$cls">CC=$s->{cc} SCAR=$scar</span>);
       }
       $o .= <<HTML;
 <div class="detail">
@@ -644,11 +644,11 @@ HTML
 @{[ glass_tip("$tt->{covered} / $tt->{total}") ]}</span>
 HTML
   }
-  my $sl     = $fd->{file_slop};
-  my $sl_tip = is_na($sl) ? "" : slop_tip($fd);
+  my $sl     = $fd->{file_scar};
+  my $sl_tip = is_na($sl) ? "" : scar_tip($fd);
   $o .= <<HTML;
-<span class="stat-badge stat-slop tip-hover">
-SLOP $sl $sl_tip</span>
+<span class="stat-badge stat-scar tip-hover">
+SCAR $sl $sl_tip</span>
 HTML
 
   $o .= <<HTML;
@@ -674,7 +674,7 @@ condition, or subroutine detail.</dd>
 <dd>The strip on the right shows coverage at a glance. Click to
 jump to that line.</dd>
 <dt>Tooltips</dt>
-<dd>Hover badges for covered/total counts. Hover SLOP for a
+<dd>Hover badges for covered/total counts. Hover SCAR for a
 breakdown.</dd>
 <dt>Keyboard</dt>
 <dd><kbd>j</kbd> / <kbd>k</kbd> next/prev uncovered line
@@ -765,30 +765,30 @@ sub get_summary ($file, $criterion) {
   _format_criterion($R{db}->summary($file), $criterion)
 }
 
-sub _apply_slop ($f, $slop_data) {
-  if ($slop_data && defined $slop_data->{file_crap}) {
-    $f->{file_crap} = sprintf "%.1f", $slop_data->{file_crap};
-    $f->{file_slop} = sprintf "%.1f", $slop_data->{file_slop} // 0;
-    $f->{file_cc}   = $slop_data->{file_cc};
-    $f->{file_cov}  = sprintf "%.0f", $slop_data->{file_cov};
+sub _apply_scar ($f, $scar_data) {
+  if ($scar_data && defined $scar_data->{file_crap}) {
+    $f->{file_crap} = sprintf "%.1f", $scar_data->{file_crap};
+    $f->{file_scar} = sprintf "%.1f", $scar_data->{file_scar} // 0;
+    $f->{file_cc}   = $scar_data->{file_cc};
+    $f->{file_cov}  = sprintf "%.0f", $scar_data->{file_cov};
     my @sorted = sort { $b->{crap} <=> $a->{crap} } grep defined $_->{crap},
-      @{ $slop_data->{subs} || [] };
+      @{ $scar_data->{subs} || [] };
     $f->{worst_subs} = [
       map { {
         name => $_->{name},
         crap => sprintf("%.1f", $_->{crap}),
-        slop => $_->{slop},
+        scar => $_->{scar},
       } } @sorted[0 .. ($#sorted > 2 ? 2 : $#sorted)]
     ];
   } elsif ($f->{uncompiled}) {
     $f->{file_crap}  = "-";
-    $f->{file_slop}  = "-";
+    $f->{file_scar}  = "-";
     $f->{file_cc}    = "-";
     $f->{file_cov}   = "-";
     $f->{worst_subs} = [];
   } else {
     $f->{file_crap}  = 0;
-    $f->{file_slop}  = 0;
+    $f->{file_scar}  = 0;
     $f->{file_cc}    = 0;
     $f->{file_cov}   = 0;
     $f->{worst_subs} = [];
@@ -824,7 +824,7 @@ sub build_one_file ($file) {
   my $pc = $total->{pc} // "-";
   $f{total_pc}   = $pc;
   $f{total_sort} = is_na($pc) ? -1 : $pc;
-  _apply_slop(\%f, $R{db}->summary($file, "slop"));
+  _apply_scar(\%f, $R{db}->summary($file, "scar"));
   \%f
 }
 
@@ -834,7 +834,7 @@ sub build_file_data () {
     my $f = build_one_file($file);
     push @file_data, $f if $f;
   } sort {
-         _numeric_slop($b) <=> _numeric_slop($a)
+         _numeric_scar($b) <=> _numeric_scar($a)
       || ($a->{total_sort} // -1) <=> ($b->{total_sort} // -1)
       || $a->{name} cmp $b->{name}
   } @file_data
@@ -859,7 +859,7 @@ sub build_dir_groups ($file_data) {
     };
     $g->{pc}    = $g->{total}{pc};
     $g->{class} = $g->{total}{class};
-    _apply_slop($g, $R{db}->dir_summary($dir, "slop"));
+    _apply_scar($g, $R{db}->dir_summary($dir, "scar"));
     $g;
   } sort keys %dirs
 }
@@ -868,14 +868,14 @@ sub line_subroutines ($f, $n) {
   my $subs = $f->subroutine or return;
   my $loc  = $subs->location($n);
   return unless $loc && @$loc;
-  my $cl = $R{slop_subs} || {};
+  my $cl = $R{scar_subs} || {};
   map { {
     name    => encode_entities($_->name),
     covered => $_->covered,
     class   => oclass($_, "subroutine"),
     cc      => ($cl->{ "$n\0" . $_->name } // {})->{cc},
     crap    => ($cl->{ "$n\0" . $_->name } // {})->{crap},
-    slop    => ($cl->{ "$n\0" . $_->name } // {})->{slop},
+    scar    => ($cl->{ "$n\0" . $_->name } // {})->{scar},
   } } @$loc
 }
 
@@ -1167,7 +1167,7 @@ sub generate_file_pages ($outdir, $file_data) {
     my $fd = $file_data->[$idx];
     next unless $fd->{exists};
     my $file = $fd->{name};
-    $R{slop_subs} = $R{db}->slop_sub_lookup($file);
+    $R{scar_subs} = $R{db}->scar_sub_lookup($file);
     my $lines
       = $fd->{uncompiled}
       ? build_untested_source_lines($file)
@@ -1186,7 +1186,7 @@ sub generate_file_pages ($outdir, $file_data) {
       "$outdir/$fd->{link}",
       render_file_page($fd, $lines, \%file_total, $prev, $next),
     );
-    delete $R{slop_subs};
+    delete $R{scar_subs};
   }
 }
 
@@ -1305,7 +1305,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   .name-full  { display: none !important; }
   .name-short { display: inline !important; }
   .stat-badge { width: 140px; }
-  .stat-slop  { width: auto; }
+  .stat-scar  { width: auto; }
 }
 
 /* Narrow: wrap badges onto multiple lines, right-aligned. max-width clamps the
@@ -1326,7 +1326,7 @@ overflowing. */
   border-color: var(--border);
   color: var(--fg-muted);
 }
-.stat-slop {
+.stat-scar {
   background: var(--prefix-bg);
   border-color: var(--prefix-border);
   color: var(--fg);
@@ -1572,29 +1572,29 @@ overflowing. */
 .file-table .sort-asc::after { content: " \25b2"; }
 .file-table .sort-desc::after { content: " \25bc"; }
 
-/* SLOP detail tooltip overrides */
-.glass-tip.slop-detail {
+/* SCAR detail tooltip overrides */
+.glass-tip.scar-detail {
   padding: 8px 12px;
   font-weight: normal;
 }
 
-.slop-detail dl {
+.scar-detail dl {
   display: grid;
   grid-template-columns: auto auto;
   gap: 1px 12px;
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
-.slop-detail dt { text-align: left; }
-.slop-detail dd { text-align: right; margin: 0; }
+.scar-detail dt { text-align: left; }
+.scar-detail dd { text-align: right; margin: 0; }
 
-.slop-tip-subs {
+.scar-tip-subs {
   border-top: 1px solid var(--tip-glass-sep);
   margin-top: 4px !important;
   padding-top: 4px;
 }
 
-.slop-tip-total {
+.scar-tip-total {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -1605,14 +1605,14 @@ overflowing. */
   font-variant-numeric: tabular-nums;
 }
 
-.slop-detail .c0,
-.slop-detail .c1,
-.slop-detail .c2,
-.slop-detail .c3 { background: transparent; }
-.slop-detail .c0 { color: var(--tip-c0); }
-.slop-detail .c1 { color: var(--tip-c1); }
-.slop-detail .c2 { color: var(--tip-c2); }
-.slop-detail .c3 { color: var(--tip-c3); }
+.scar-detail .c0,
+.scar-detail .c1,
+.scar-detail .c2,
+.scar-detail .c3 { background: transparent; }
+.scar-detail .c0 { color: var(--tip-c0); }
+.scar-detail .c1 { color: var(--tip-c1); }
+.scar-detail .c2 { color: var(--tip-c2); }
+.scar-detail .c3 { color: var(--tip-c3); }
 
 /* Header: tooltips below */
 .header .glass-tip {
@@ -2058,8 +2058,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
     var groupToggle = document.querySelector(".group-toggle");
 
     /* Read persisted state */
-    var sortCol = rget("sort-col", "slop");
-    if (sortCol === "crap") { sortCol = "slop"; rset("sort-col", "slop"); }
+    var sortCol = rget("sort-col", "scar");
     var sortDir = rget("sort-dir", "desc");
 
     var defaultGrouped = fileCount > 30;
