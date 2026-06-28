@@ -1,6 +1,6 @@
 cover: Reading database from ...
 --------- ------ ------ ------ ------ ------ ------ ------
-File        stmt   bran   cond   mcdc    sub  total   slop
+File        stmt   bran   cond   mcdc    sub  total   scar
 --------- ------ ------ ------ ------ ------ ------ ------
 tests/and   63.6   50.0   33.3    0.0    n/a   36.9    n/a
 Total       63.6   50.0   33.3    0.0    n/a   36.9    n/a

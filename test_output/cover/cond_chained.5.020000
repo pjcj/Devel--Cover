@@ -1,6 +1,6 @@
 cover: Reading database from ...
 ------------------ ------ ------ ------ ------ ------ ------ ------
-File                 stmt   bran   cond   mcdc    sub  total   slop
+File                 stmt   bran   cond   mcdc    sub  total   scar
 ------------------ ------ ------ ------ ------ ------ ------ ------
 tests/cond_chained  100.0   83.3   86.6   50.0  100.0   82.9   25.0
 Total               100.0   83.3   86.6   50.0  100.0   82.9   25.0
@@ -18,14 +18,14 @@ tests/cond_chained
 File Summary
 ------------
 
-CC  Cov CRAP SLOP
+CC  Cov CRAP SCAR
 -- ---- ---- ----
 12 90.0 12.1 25.0
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location             
+Subroutine CC SCAR  Location             
 ---------- -- ----  ---------------------
 t3          6 18.6  tests/cond_chained:16
 t1          4 13.9  tests/cond_chained:4 
@@ -96,7 +96,7 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location             
+Subroutine Count  CC  SCAR Location             
 ---------- ----- --- ----- ---------------------
 t1             1   4  13.9 tests/cond_chained:4 
 t2             1   4  13.9 tests/cond_chained:10

@@ -104,16 +104,16 @@ sub print_dir_block ($db, $files, $prefix) {
 
   my @rows;
   for my $dir (@dirs) {
-    my $slop = $db->dir_summary($dir, "slop") or return;
+    my $scar = $db->dir_summary($dir, "scar") or return;
     my $display
       = $prefix && $dir =~ /^\Q$prefix\E(.*)/ ? ($1 || ".") : ($dir || ".");
     push @rows, {
         dir      => $display,
-        cc       => $slop->{file_cc},
-        cov      => sprintf("%.1f", $slop->{file_cov}),
-        crap     => sprintf("%.1f", $slop->{file_crap}),
-        slop     => sprintf("%.1f", $slop->{file_slop}),
-        sort_key => $slop->{file_slop},
+        cc       => $scar->{file_cc},
+        cov      => sprintf("%.1f", $scar->{file_cov}),
+        crap     => sprintf("%.1f", $scar->{file_crap}),
+        scar     => sprintf("%.1f", $scar->{file_scar}),
+        sort_key => $scar->{file_scar},
       };
   }
 
@@ -127,17 +127,17 @@ sub print_dir_block ($db, $files, $prefix) {
       cc => $r->{cc},
       cv => $r->{cov},
       cr => $r->{crap},
-      s  => $r->{slop},
+      s  => $r->{scar},
     );
   }
 
   say "Directory Summary";
   say "-----------------\n";
   my $tpl = "%-$maxw{d}s %$maxw{cc}s %$maxw{cv}s %$maxw{cr}s %$maxw{s}s\n";
-  printf $tpl, "Directory", "CC", "Cov", "CRAP", "SLOP";
+  printf $tpl, "Directory", "CC", "Cov", "CRAP", "SCAR";
   printf $tpl, "-" x $maxw{d}, "-" x $maxw{cc}, "-" x $maxw{cv},
     "-" x $maxw{cr}, "-" x $maxw{s};
-  printf $tpl, $_->{dir}, $_->{cc}, $_->{cov}, $_->{crap}, $_->{slop} for @rows;
+  printf $tpl, $_->{dir}, $_->{cc}, $_->{cov}, $_->{crap}, $_->{scar} for @rows;
   say "";
 }
 
@@ -159,18 +159,18 @@ sub _print_stat_table ($heading, $headers, $values) {
 
 sub print_module_banner ($db, $files) {
   return unless @$files > 1;
-  my $slop = $db->summary("Total", "slop");
-  return unless $slop && defined $slop->{module_slop};
+  my $scar = $db->summary("Total", "scar");
+  return unless $scar && defined $scar->{module_scar};
 
   _print_stat_table(
     "Module Summary",
-    [qw( Files CC Cov CRAP SLOP )],
+    [qw( Files CC Cov CRAP SCAR )],
     [
       scalar @$files,
-      $slop->{module_cc},
-      sprintf("%.1f", $slop->{module_cov}),
-      sprintf("%.1f", $slop->{module_crap}),
-      sprintf("%.1f", $slop->{module_slop}),
+      $scar->{module_cc},
+      sprintf("%.1f", $scar->{module_cov}),
+      sprintf("%.1f", $scar->{module_crap}),
+      sprintf("%.1f", $scar->{module_scar}),
     ],
   );
   say "";
@@ -187,7 +187,7 @@ sub _worst_subs_rows ($subs, $display_name, $limit = 3) {
     +{
       name => $_->{name},
       cc   => $_->{cc},
-      slop => sprintf("%.1f", $_->{slop} // 0),
+      scar => sprintf("%.1f", $_->{scar} // 0),
       loc  => "$display_name:$_->{line}",
     }
   } @sorted[0 .. $top]
@@ -196,21 +196,21 @@ sub _worst_subs_rows ($subs, $display_name, $limit = 3) {
 sub print_file_banner ($db, $file, $short) {
   say "$short->{$file}\n";
 
-  my $slop = $db->summary($file, "slop");
-  return unless $slop && defined $slop->{file_slop};
+  my $scar = $db->summary($file, "scar");
+  return unless $scar && defined $scar->{file_scar};
 
   _print_stat_table(
     "File Summary",
-    [qw( CC Cov CRAP SLOP )],
+    [qw( CC Cov CRAP SCAR )],
     [
-      $slop->{file_cc},
-      sprintf("%.1f", $slop->{file_cov}),
-      sprintf("%.1f", $slop->{file_crap}),
-      sprintf("%.1f", $slop->{file_slop}),
+      $scar->{file_cc},
+      sprintf("%.1f", $scar->{file_cov}),
+      sprintf("%.1f", $scar->{file_crap}),
+      sprintf("%.1f", $scar->{file_scar}),
     ],
   );
 
-  my @subs = grep $_->{slop} > 0, ($slop->{subs} || [])->@*;
+  my @subs = grep $_->{scar} > 0, ($scar->{subs} || [])->@*;
   return unless @subs;
 
   my @rows = _worst_subs_rows(\@subs, $short->{$file});
@@ -220,7 +220,7 @@ sub print_file_banner ($db, $file, $short) {
       \%maxw,
       n  => $r->{name},
       cc => $r->{cc},
-      s  => $r->{slop},
+      s  => $r->{scar},
       l  => $r->{loc},
     );
   }
@@ -228,9 +228,9 @@ sub print_file_banner ($db, $file, $short) {
   say "Worst Subroutines";
   say "-----------------\n";
   my $tpl = "%-$maxw{n}s %$maxw{cc}s %$maxw{s}s  %-$maxw{l}s\n";
-  printf $tpl, "Subroutine",   "CC",            "SLOP",         "Location";
+  printf $tpl, "Subroutine",   "CC",            "SCAR",         "Location";
   printf $tpl, "-" x $maxw{n}, "-" x $maxw{cc}, "-" x $maxw{s}, "-" x $maxw{l};
-  printf $tpl, $_->{name},     $_->{cc},        $_->{slop}, $_->{loc} for @rows;
+  printf $tpl, $_->{name},     $_->{cc},        $_->{scar}, $_->{loc} for @rows;
   say "";
 }
 
@@ -369,11 +369,11 @@ sub _update_maxw ($maxw, %vals) {
   }
 }
 
-sub _gather_subs ($dfile, $pods, $display_name, $slop_lookup) {
+sub _gather_subs ($dfile, $pods, $display_name, $scar_lookup) {
   my $subs = $dfile->subroutine or return;
   my %maxw = (h => 8, c => 5, p => 3, s => 10, cc => 3, cr => 5);
   my %by_type;
-  my $has_slop = %$slop_lookup;
+  my $has_scar = %$scar_lookup;
 
   for my $location ($subs->items) {
     my $l = $subs->location($location);
@@ -385,16 +385,16 @@ sub _gather_subs ($dfile, $pods, $display_name, $slop_lookup) {
       my $p = $e ? ($e->uncoverable ? "-" : "") . $e->covered : "";
       my $s = $sub->name;
 
-      my $info = $slop_lookup->{"$location\0$s"};
+      my $info = $scar_lookup->{"$location\0$s"};
       my $cc   = defined $info ? $info->{cc}                    : "";
-      my $cr   = defined $info ? sprintf("%.1f", $info->{slop}) : "";
+      my $cr   = defined $info ? sprintf("%.1f", $info->{scar}) : "";
 
       _update_maxw(\%maxw, h => $h, c => $c, s => $s, cc => $cc, cr => $cr);
       $maxw{p} = length $p if $p && length $p > $maxw{p};
 
       my $type = $sub->covered ? "covered" : "uncovered";
       push $by_type{$type}{$s}->@*,
-        [$c, $pods ? $p : (), $has_slop ? ($cc, $cr) : (), $h];
+        [$c, $pods ? $p : (), $has_scar ? ($cc, $cr) : (), $h];
     }
   }
 
@@ -404,26 +404,26 @@ sub _gather_subs ($dfile, $pods, $display_name, $slop_lookup) {
 sub print_subroutines ($db, $file, $options, $short) {
   my $dfile = $db->cover->file($file);
   my $pods  = $options->{show}{pod} && $dfile->pod;
-  my $cl    = $db->slop_sub_lookup($file);
+  my $cl    = $db->scar_sub_lookup($file);
 
   my ($by_type, $maxw) = _gather_subs($dfile, $pods, $short->{$file}, $cl);
   return unless $by_type;
 
-  my $has_slop = %$cl;
+  my $has_scar = %$cl;
   my $tpl      = "%-$maxw->{s}s %$maxw->{c}s ";
   $tpl .= "%$maxw->{p}s "  if $pods;
-  $tpl .= "%$maxw->{cc}s " if $has_slop;
-  $tpl .= "%$maxw->{cr}s " if $has_slop;
+  $tpl .= "%$maxw->{cc}s " if $has_scar;
+  $tpl .= "%$maxw->{cr}s " if $has_scar;
   $tpl .= "%-$maxw->{h}s\n";
 
   for my $type (sort keys %$by_type) {
     say ucfirst($type),            " Subroutines";
     say "-" x (12 + length $type), "\n";
     printf $tpl, "Subroutine", "Count", $pods ? "Pod" : (),
-      $has_slop ? ("CC", "SLOP") : (), "Location";
+      $has_scar ? ("CC", "SCAR") : (), "Location";
     printf $tpl, "-" x $maxw->{s}, "-" x $maxw->{c},
       $pods ? "-" x $maxw->{p} : (),
-      $has_slop ? ("-" x $maxw->{cc}, "-" x $maxw->{cr}) : (), "-" x $maxw->{h};
+      $has_scar ? ("-" x $maxw->{cc}, "-" x $maxw->{cr}) : (), "-" x $maxw->{h};
 
     for my $s (sort keys $by_type->{$type}->%*) {
       printf $tpl, $s, @$_
@@ -558,11 +558,11 @@ output lines are produced when a single source line has several coverage points
 Update column-width hash C<$maxw> in place: for each key in C<%vals>, set
 C<< $maxw->{$k} >> to the value's length if it exceeds the current maximum.
 
-=head2 _gather_subs ($dfile, $pods, $display_name, $slop_lookup)
+=head2 _gather_subs ($dfile, $pods, $display_name, $scar_lookup)
 
 Walk the subroutine and pod coverage data for a file, returning a hashref of
 covered/uncovered sub entries and a hashref of column widths for formatting.
-When C<$slop_lookup> is non-empty, CC and SLOP values are included in each
+When C<$scar_lookup> is non-empty, CC and SCAR values are included in each
 entry.
 
 =head1 SEE ALSO

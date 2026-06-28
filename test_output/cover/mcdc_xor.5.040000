@@ -1,6 +1,6 @@
 cover: Reading database from ...
 -------------- ------ ------ ------ ------ ------ ------ ------
-File             stmt   bran   cond   mcdc    sub  total   slop
+File             stmt   bran   cond   mcdc    sub  total   scar
 -------------- ------ ------ ------ ------ ------ ------ ------
 tests/mcdc_xor  100.0    n/a  100.0  100.0  100.0  100.0    6.9
 Total           100.0    n/a  100.0  100.0  100.0  100.0    6.9
@@ -18,14 +18,14 @@ tests/mcdc_xor
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  2 100.0  2.0  6.9
 
 Worst Subroutines
 -----------------
 
-Subroutine   CC SLOP  Location         
+Subroutine   CC SCAR  Location         
 ------------ -- ----  -----------------
 xor_decision  2  6.9  tests/mcdc_xor:14
 
@@ -89,7 +89,7 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine   Count  CC  SLOP Location         
+Subroutine   Count  CC  SCAR Location         
 ------------ ----- --- ----- -----------------
 BEGIN            1   1   0.0 tests/mcdc_xor:10
 BEGIN            1   1   0.0 tests/mcdc_xor:11

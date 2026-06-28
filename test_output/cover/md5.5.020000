@@ -1,7 +1,7 @@
 cover: Reading database from ...
 cover: Deleting old coverage for changed file tests/md5
 --------- ------ ------ ------ ------ ------ ------ ------
-File        stmt   bran   cond   mcdc    sub  total   slop
+File        stmt   bran   cond   mcdc    sub  total   scar
 --------- ------ ------ ------ ------ ------ ------ ------
 tests/md5  100.0    n/a    n/a    n/a    n/a  100.0    n/a
 Total      100.0    n/a    n/a    n/a    n/a  100.0    n/a

@@ -3,7 +3,7 @@ cover: Reading database from ...
 Common prefix: tests/
 
 ----------------- ------ ------ ------ ------ ------ ------ ------
-File                stmt   bran   cond   mcdc    sub  total   slop
+File                stmt   bran   cond   mcdc    sub  total   scar
 ----------------- ------ ------ ------ ------ ------ ------ ------
 Accessor_maker.pm  100.0    n/a    n/a    n/a  100.0  100.0    0.0
 accessor           100.0  100.0    n/a    n/a  100.0  100.0   11.0
@@ -20,7 +20,7 @@ Finish: ...
 Module Summary
 --------------
 
-Files CC   Cov CRAP SLOP
+Files CC   Cov CRAP SCAR
 ----- -- ----- ---- ----
     2  3 100.0  3.0 11.0
 
@@ -30,7 +30,7 @@ Accessor_maker.pm
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  1 100.0  1.0  0.0
 
@@ -51,7 +51,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location           
+Subroutine Count  CC  SCAR Location           
 ---------- ----- --- ----- -------------------
 BEGIN          1   1   0.0 Accessor_maker.pm:4
 __ANON__       4   1   0.0 Accessor_maker.pm:5
@@ -63,14 +63,14 @@ accessor
 File Summary
 ------------
 
-CC   Cov CRAP SLOP
+CC   Cov CRAP SCAR
 -- ----- ---- ----
  3 100.0  3.0 11.0
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SLOP  Location   
+Subroutine CC SCAR  Location   
 ---------- -- ----  -----------
 test        3 11.0  accessor:13
 
@@ -117,7 +117,7 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SLOP Location   
+Subroutine Count  CC  SCAR Location   
 ---------- ----- --- ----- -----------
 BEGIN          1   1   0.0 accessor:4 
 BEGIN          1   1   0.0 accessor:7 
