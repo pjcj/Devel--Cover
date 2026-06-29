@@ -168,7 +168,8 @@ sub scar_cell ($f, $link = undef) {
   my $scar  = $f->{file_scar};
   my $na    = is_na($scar);
   my $dv    = $na   ? -1   : $scar;
-  my $cls   = $na   ? "na" : "tip-hover";
+  my $sc    = $na   ? "na" : "scar-" . scar_class($scar);
+  my $cls   = $na   ? "na" : "scar-val $sc tip-hover";
   my $value = $link ? qq(<a class="cell-link" href="$link">$scar</a>) : $scar;
 
   <<HTML
@@ -184,7 +185,7 @@ sub render_worst_files ($worst) {
   my $o = qq(<div class="worst-files">\n<h2>Top SCAR</h2>\n);
   for my $f (@$worst) {
     next if _numeric_scar($f) == 0;
-    my $cls = $f->{uncompiled} ? "untested-worst" : $f->{total}{class};
+    my $cls = "scar-" . scar_class($f->{file_scar});
     my $name
       = $f->{exists} ? qq(<a href="$f->{link}">$f->{short}</a>) : $f->{short};
     my $badge = $f->{uncompiled} ? untested_badge() . "\n" : "";
@@ -277,11 +278,12 @@ HTML
   my $ms = $R{db}->summary("Total", "scar");
   if ($ms && defined $ms->{module_scar}) {
     my $sv  = sprintf "%.1f", $ms->{module_scar};
+    my $sc  = "scar-" . scar_class($ms->{module_scar});
     my $tip = sprintf "CC %d &middot; cov %.0f%% &middot; CRAP %.1f",
       $ms->{module_cc}, $ms->{module_cov}, $ms->{module_crap};
     $o .= <<HTML;
 <span class="stat-badge stat-scar tip-hover">
-<span class="badge-label">scar $sv</span>
+<span class="badge-label">scar <span class="$sc">$sv</span></span>
 @{[ glass_tip($tip) ]}</span>
 HTML
   }
@@ -645,10 +647,13 @@ HTML
 HTML
   }
   my $sl     = $fd->{file_scar};
-  my $sl_tip = is_na($sl) ? "" : scar_tip($fd);
+  my $sl_na  = is_na($sl);
+  my $sl_tip = $sl_na ? "" : scar_tip($fd);
+  my $sl_val
+    = $sl_na ? $sl : qq(<span class="scar-@{[ scar_class($sl) ]}">$sl</span>);
   $o .= <<HTML;
 <span class="stat-badge stat-scar tip-hover">
-SCAR $sl $sl_tip</span>
+SCAR $sl_val $sl_tip</span>
 HTML
 
   $o .= <<HTML;
@@ -1565,6 +1570,18 @@ overflowing. */
   text-decoration: none;
 }
 .file-table .cell-link:hover { opacity: 0.85; }
+
+/* SCAR colouring: coloured text/outline by risk, never a full fill */
+td.scar-val { font-weight: 600; }
+.scar-c0 { color: var(--tip-c0); }
+.scar-c1 { color: var(--tip-c1); }
+.scar-c2 { color: var(--tip-c2); }
+.scar-c3 { color: var(--tip-c3); }
+
+.worst-item.scar-c0 { border-color: var(--tip-c0); }
+.worst-item.scar-c1 { border-color: var(--tip-c1); }
+.worst-item.scar-c2 { border-color: var(--tip-c2); }
+.worst-item.scar-c3 { border-color: var(--tip-c3); }
 
 .file-table tr { transition: background 0.15s ease; }
 .file-table tr:hover { background: var(--bg-alt); }
