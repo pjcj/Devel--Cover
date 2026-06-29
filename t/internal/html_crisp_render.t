@@ -178,6 +178,8 @@ sub test_glass_tooltips () {
   my $file_page = $Golden{$covered};
   like $file_page,   qr/stat-scar tip-hover/, "glass: SCAR badge has tip-hover";
   unlike $file_page, qr/scar-hover/,          "glass: no scar-hover class";
+  like $file_page, qr/SCAR <span class="scar-c[0-3]">/,
+    "file: SCAR badge number coloured by its own value";
 }
 
 sub test_dir_row_scar () {
@@ -190,6 +192,8 @@ sub test_module_scar_badge () {
   my $got = $Golden{"coverage.html"};
   like $got, qr/stat-badge.*?scar\b/s, "header: has SCAR stat badge";
   like $got, qr/scar.*?help-toggle/s,  "header: SCAR badge before help button";
+  like $got, qr/scar <span class="scar-c[0-3]">/,
+    "header: SCAR badge number coloured by its own value";
 }
 
 sub test_total_badge_filter () {
@@ -293,11 +297,53 @@ sub test_scar_cell_link () {
 
   my $no_link = Devel::Cover::Report::Html_crisp::scar_cell($f);
   unlike $no_link, qr/<a class="cell-link"/, "scar no link: no anchor";
+  like $no_link, qr/<td data-value="33\.4" class="scar-val scar-c2 tip-hover">/,
+    "scar cell coloured by its own value (33.4 -> scar-c2, text only)";
 
   my $with_link
     = Devel::Cover::Report::Html_crisp::scar_cell($f, "tests-foo.html");
   like $with_link, qr{<a class="cell-link" href="tests-foo\.html">33\.4</a>},
     "scar with link: anchor wraps scar value (no filter hash)";
+}
+
+sub test_render_worst_files_colour () {
+  my $worst = [{
+    file_scar  => "50",
+    file_crap  => "60",
+    file_cc    => 10,
+    file_cov   => 95,
+    short      => "Hot/Spot.pm",
+    exists     => 0,
+    uncompiled => 0,
+    worst_subs => [],
+    total      => { class => "c3" },
+  }];
+
+  my $got = Devel::Cover::Report::Html_crisp::render_worst_files($worst);
+  like $got, qr/class="worst-item scar-c0"/,
+    "worst item outlined by scar value (50 -> scar-c0)";
+  unlike $got, qr/worst-item scar-c3/,
+    "worst item not coloured by total coverage";
+}
+
+sub test_render_worst_files_untested_colour () {
+  my $worst = [{
+    file_scar  => "37.4",
+    file_crap  => "40",
+    file_cc    => 8,
+    file_cov   => 0,
+    short      => "Uncovered/Full.pm",
+    exists     => 0,
+    uncompiled => 1,
+    worst_subs => [],
+    total      => { class => "c0" },
+  }];
+
+  my $got = Devel::Cover::Report::Html_crisp::render_worst_files($worst);
+  like $got, qr/class="worst-item scar-c1"/,
+    "untested worst item outlined by scar value (37.4 -> scar-c1)";
+  unlike $got, qr/untested-worst/,
+    "untested worst item no longer greyed by untested state";
 }
 
 sub test_stat_badge_no_tip_when_empty () {
@@ -668,6 +714,8 @@ sub main () {
   test_cov_cell_tooltips;
   test_cov_cell_link;
   test_scar_cell_link;
+  test_render_worst_files_colour;
+  test_render_worst_files_untested_colour;
   test_stat_badge_no_tip_when_empty;
   test_index_filter_links;
   test_dir_header_links;
