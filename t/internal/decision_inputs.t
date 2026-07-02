@@ -296,6 +296,42 @@ PERL
     "each comparator invocation records its own vector";
 }
 
+# A short-circuit deep in a chain resolves the whole decision in one
+# jump.  The recorder must still snapshot the vector when the chain's
+# operands are element accesses, whose optree roots are nulled ops, and
+# when the cascade spans more than two logops.
+sub test_chain_cascades_record_short_circuits () {
+  my $script = write_script("chain_cascade.pl", <<'PERL');
+sub h3 { my %h = @_; my $r = $h{a} || $h{b} || $h{c}; $r }
+h3(a => 1, b => 0, c => 0);
+h3(a => 0, b => 1, c => 0);
+h3(a => 0, b => 0, c => 1);
+h3(a => 0, b => 0, c => 0);
+sub l4 { my ($a, $b, $c, $d) = @_; my $r = $a || $b || $c || $d; $r }
+l4(1, 0, 0, 0);
+sub a5 { my @v = @_; my $r = $v[0] || $v[1] || $v[2] || $v[3] || $v[4]; $r }
+a5(1, 0, 0, 0, 0);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "chain_cascade");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for chain_cascade";
+
+  my %by_width;
+  for my $d (grep defined, @$di) {
+    my @cols = split /\|/, (keys %$d)[0];
+    $by_width{ 0 + @cols } = $d;
+  }
+
+  is_deeply $by_width{3},
+    { "1|X|X" => 1, "0|1|X" => 1, "0|0|1" => 1, "0|0|0" => 1 },
+    "hash-element chain records a vector at every short-circuit depth";
+  is_deeply $by_width{4}, { "1|X|X|X" => 1 },
+    "lexical chain records a two-level cascaded short-circuit";
+  is_deeply $by_width{5}, { "1|X|X|X|X" => 1 },
+    "array-element chain records a three-level cascaded short-circuit";
+}
+
 sub test_add_condition_cross_run_merge () {
   my $db = bless {}, "Devel::Cover::DB";
   my $cc = {};
@@ -342,6 +378,8 @@ sub main () {
     \&test_abandoned_inner_frame_not_double_counted;
   subtest "sort block records per invocation" =>
     \&test_sort_block_records_per_invocation;
+  subtest "chain cascades record short circuits" =>
+    \&test_chain_cascades_record_short_circuits;
   subtest "cross-run merge"     => \&test_add_condition_cross_run_merge;
   subtest "xor four-slot merge" => \&test_add_condition_xor_four_slot_merge;
 
