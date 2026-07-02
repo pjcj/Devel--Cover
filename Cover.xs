@@ -1771,6 +1771,17 @@ static void dc_snapshot(pTHX_ dc_dctx *d) {
 }
 
 /*
+ * Nulled ops are not executed but may sit in an op_next chain (e.g. the
+ * nulled tree root of an element access); step to the op that actually
+ * runs.
+ */
+static OP *skip_nulled_ops(OP *o) {
+  while (o && (o->op_type == OP_NULL || o->op_type == OP_LINESEQ))
+    o = o->op_next;
+  return o;
+}
+
+/*
  * Snapshot+pop the active DC if PL_op's short-circuit completes the
  * decision.  SC at PL_op completes the decision when PL_op is the
  * decision root, OR when SC propagates up a same-type chain of logops
@@ -1807,7 +1818,7 @@ static void dc_snapshot_on_short_circuit(pTHX) {
       OP *sib = OpSIBLING(cLOGOPx(cur)->op_first);
       OP *up;
       if (!sib) return;
-      up = sib->op_next;
+      up = skip_nulled_ops(sib->op_next);
       if (!up || up->op_type != PL_op->op_type) return;
       cur = up;
     }
@@ -2035,7 +2046,7 @@ static void cover_logop(pTHX) {
       }
     } else {
       /* short circuit */
-      OP *up = OpSIBLING(cLOGOP->op_first)->op_next;
+      OP *up = skip_nulled_ops(OpSIBLING(cLOGOP->op_first)->op_next);
       OP *skipped;
 
       while (up && up->op_type == PL_op->op_type) {
@@ -2043,9 +2054,7 @@ static void cover_logop(pTHX) {
                up, PL_op_name[up->op_type], up->op_next,
                PL_op, PL_op_name[PL_op->op_type], PL_op->op_next));
         add_conditional(aTHX_ up, 3);
-        if (up->op_next == PL_op->op_next)
-          break;
-        up = OpSIBLING(cLOGOPx(up)->op_first)->op_next;
+        up = skip_nulled_ops(OpSIBLING(cLOGOPx(up)->op_first)->op_next);
       }
       add_conditional(aTHX_ PL_op, 3);
 

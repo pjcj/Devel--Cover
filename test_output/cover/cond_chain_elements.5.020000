@@ -1,0 +1,137 @@
+cover: Reading database from ...
+------------------------- ------ ------ ------ ------ ------ ------ ------
+File                        stmt   bran   cond   mcdc    sub  total   scar
+------------------------- ------ ------ ------ ------ ------ ------ ------
+tests/cond_chain_elements  100.0    n/a   70.8   27.2  100.0   77.2   22.2
+Total                      100.0    n/a   70.8   27.2  100.0   77.2   22.2
+------------------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/cond_chain_elements
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 9 85.7  9.2 22.2
+
+Worst Subroutines
+-----------------
+
+Subroutine    CC SCAR  Location                    
+------------- -- ----  ----------------------------
+array_chain    4 15.2  tests/cond_chain_elements:26
+lexical_chain  4 14.5  tests/cond_chain_elements:32
+hash_chain     3 11.0  tests/cond_chain_elements:20
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # Cascaded short-circuits through chains of logops.  A short-circuit deep
+11                                             # in a chain resolves the whole decision in one jump; every skipped logop
+12                                             # must be marked short-circuited and the MC/DC vector recorded, including
+13                                             # when the operands are element accesses whose optree roots are nulled
+14                                             # ops.
+15                                             
+16             1                           1   use strict;
+               1                               
+               1                               
+17             1                           1   use warnings;
+               1                               
+               1                               
+18                                             
+19                                             sub hash_chain {
+20             4                           4     my %h = @_;
+21             4           100    100            my $r = $h{a} || $h{b} || $h{c};
+                           100                 
+22             4                                 $r
+23                                             }
+24                                             
+25                                             sub array_chain {
+26             2                           2     my @v = @_;
+27    ***      2          * 33   *  0            my $r = $v[0] || $v[1] || $v[2] || $v[3];
+      ***                 * 66                 
+      ***                 * 66                 
+28             2                                 $r
+29                                             }
+30                                             
+31                                             sub lexical_chain {
+32             2                           2     my ($a, $b, $c, $d) = @_;
+33    ***      2          * 66   *  0            my $r = $a || $b || $c || $d;
+      ***                 * 66                 
+      ***                 * 66                 
+34             2                                 $r
+35                                             }
+36                                             
+37                                             sub main {
+38             1                           1     my @r;
+39                                             
+40             1                                 push @r, hash_chain(a => 1, b => 0, c => 0);
+41             1                                 push @r, hash_chain(a => 0, b => 1, c => 0);
+42             1                                 push @r, hash_chain(a => 0, b => 0, c => 1);
+43             1                                 push @r, hash_chain(a => 0, b => 0, c => 0);
+44                                             
+45             1                                 push @r, array_chain(1, 0, 0, 0);
+46             1                                 push @r, array_chain(0, 0, 1, 0);
+47                                             
+48             1                                 push @r, lexical_chain(1, 0, 0, 0);
+49             1                                 push @r, lexical_chain(0, 0, 0, 1);
+50                                             }
+51                                             
+52             1                               main();
+
+
+Conditions
+----------
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+21           100      2      1      1   $h{'a'} || $h{'b'} || $h{'c'}
+             100      1      1      2   $h{"a"} or $h{"b"}
+27    ***     33      2      0      0   $v[0] || $v[1] || $v[2] || $v[3]
+      ***     66      1      1      0   $v[0] or $v[1] or $v[2]
+      ***     66      1      0      1   $v[0] or $v[1]
+33    ***     66      1      1      0   $a || $b || $c || $d
+      ***     66      1      0      1   $a or $b or $c
+      ***     66      1      0      1   $a or $b
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+21           100    3    3                          $h{'a'} || $h{'b'} || $h{'c'}
+27    ***      0    0    4   $v[0], $v[1], $v[2], $v[3]   $v[0] || $v[1] || $v[2] || $v[3]
+33    ***      0    0    4   $a, $b, $c, $d         $a || $b || $c || $d
+
+
+Covered Subroutines
+-------------------
+
+Subroutine    Count  CC  SCAR Location                    
+------------- ----- --- ----- ----------------------------
+BEGIN             1   1   0.0 tests/cond_chain_elements:16
+BEGIN             1   1   0.0 tests/cond_chain_elements:17
+array_chain       2   4  15.2 tests/cond_chain_elements:26
+hash_chain        4   3  11.0 tests/cond_chain_elements:20
+lexical_chain     2   4  14.5 tests/cond_chain_elements:32
+main              1   1   0.0 tests/cond_chain_elements:38
+
+

@@ -307,7 +307,10 @@ records each decision's input vector at runtime: a small stack
 `add_condition` write each leaf's observed truth value into the current vector,
 and snapshot it into `MY_CXT.decision_inputs` on short-circuit-at-root, on the
 same-type chain reaching the root, or - for decisions ending a sort comparator -
-per invocation from `resolve_deferred_conditionals`. Each evaluation of a
+per invocation from `resolve_deferred_conditionals`. The chain walk follows
+each right operand's `op_next`, stepping through nulled ops (the tree roots of
+element accesses, which are not executed but whose `op_next` still leads on) to
+reach the enclosing logop. Each evaluation of a
 decision gets its own frame: the decision's entry logop (the first to fire on
 every evaluation) always pushes a fresh one, so recursive invocations record
 separately. Frames record `cxstack_ix` at push; a frame abandoned by a

@@ -1,0 +1,52 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# Cascaded short-circuits through chains of logops.  A short-circuit deep
+# in a chain resolves the whole decision in one jump; every skipped logop
+# must be marked short-circuited and the MC/DC vector recorded, including
+# when the operands are element accesses whose optree roots are nulled
+# ops.
+
+use strict;
+use warnings;
+
+sub hash_chain {
+  my %h = @_;
+  my $r = $h{a} || $h{b} || $h{c};
+  $r
+}
+
+sub array_chain {
+  my @v = @_;
+  my $r = $v[0] || $v[1] || $v[2] || $v[3];
+  $r
+}
+
+sub lexical_chain {
+  my ($a, $b, $c, $d) = @_;
+  my $r = $a || $b || $c || $d;
+  $r
+}
+
+sub main {
+  my @r;
+
+  push @r, hash_chain(a => 1, b => 0, c => 0);
+  push @r, hash_chain(a => 0, b => 1, c => 0);
+  push @r, hash_chain(a => 0, b => 0, c => 1);
+  push @r, hash_chain(a => 0, b => 0, c => 0);
+
+  push @r, array_chain(1, 0, 0, 0);
+  push @r, array_chain(0, 0, 1, 0);
+
+  push @r, lexical_chain(1, 0, 0, 0);
+  push @r, lexical_chain(0, 0, 0, 1);
+}
+
+main();
