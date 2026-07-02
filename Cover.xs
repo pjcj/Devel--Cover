@@ -1949,7 +1949,7 @@ static void cover_logop(pTHX) {
 }
 
 /*
- * A sequence of variable declarations may have been optimized to a single
+ * A sequence of variable declarations may have been optimised to a single
  * OP_PADRANGE. The original sequence may span multiple lines, but only the
  * first line has been marked as covered for now. Mark other OP_NEXTSTATE inside
  * the original sequence of statements.

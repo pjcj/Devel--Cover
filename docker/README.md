@@ -248,7 +248,7 @@ The controller container:
 
 ## Results Management
 
-Coverage results are organized as:
+Coverage results are organised as:
 
 ```text
 ~/cover/staging/

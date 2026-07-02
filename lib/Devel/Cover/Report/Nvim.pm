@@ -58,7 +58,7 @@ local M = {}
 
 -- Configuration defaults - can be overridden via vim.g variables
 local config = {
-  -- Colors
+  -- Colours
   cover_fg = vim.g.devel_cover_fg or "Green",
   error_fg = vim.g.devel_cover_error_fg or "Red",
   cover_bg = vim.g.devel_cover_bg or nil,
@@ -66,7 +66,7 @@ local config = {
   valid_bg = vim.g.devel_cover_valid_bg or nil,
   old_bg = vim.g.devel_cover_old_bg or nil,
 
-  -- Sign text - can be customized
+  -- Sign text - can be customised
   signs = vim.g.devel_cover_signs or {
     pod = "P ",
     subroutine = "R ",
@@ -168,7 +168,7 @@ function M.coverage_valid(filename)
   end
 end
 
--- Helper function to set background colors for all coverage types
+-- Helper function to set background colours for all coverage types
 function M.set_background(bg)
   local types =
     { "pod", "subroutine", "statement", "branch", "condition", "mcdc" }
@@ -464,8 +464,8 @@ If the coverage for the file being displayed is out of date the function
 called coverage_old() is called and passed the name of the file.  Similarly,
 for current coverage data file coverage_valid() is called.
 
-Colors and signs can be customized using global vim variables. Set these in your
-init.lua or init.vim file before loading the coverage script.
+Colours and signs can be customised using global vim variables. Set these in
+your init.lua or init.vim file before loading the coverage script.
 
 Available configuration variables:
 
@@ -485,7 +485,7 @@ Available configuration variables:
 
 Example configuration for solarized theme in init.lua:
 
- -- Set colors before loading coverage
+ -- Set colours before loading coverage
  vim.g.devel_cover_fg = "#859900"        -- solarized green
  vim.g.devel_cover_error_fg = "#dc322f"  -- solarized red
  vim.g.devel_cover_valid_bg = "#073642"  -- solarized base02
@@ -495,7 +495,7 @@ Example configuration for solarized theme in init.lua:
 
  -- Custom sign characters (optional)
  -- Note: The same character is used for both covered/uncovered
- -- The difference is shown through fg/bg colors defined above
+ -- The difference is shown through fg/bg colours defined above
  vim.g.devel_cover_signs = {
    pod = "P ",
    subroutine = "R ",
@@ -505,7 +505,7 @@ Example configuration for solarized theme in init.lua:
    mcdc = "M "
  }
 
- -- Or for a minimal look that relies purely on colors
+ -- Or for a minimal look that relies purely on colours
  vim.g.devel_cover_bg = "#002b36"        -- dark for covered
  vim.g.devel_cover_error_bg = "#2d1616"  -- dark red for uncovered
  vim.g.devel_cover_signs = {
