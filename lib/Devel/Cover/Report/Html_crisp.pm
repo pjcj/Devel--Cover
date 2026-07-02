@@ -1714,12 +1714,6 @@ tr.dir-file td:first-child a {
   border: 1px solid var(--untested-badge-border);
 }
 
-.untested-worst {
-  background: var(--untested-worst-bg);
-  border-color: var(--untested-bar);
-  color: var(--untested-worst-fg);
-}
-
 .untested-stat {
   background: var(--untested-worst-bg);
   border-color: var(--untested-bar);
