@@ -1,0 +1,153 @@
+cover: Reading database from ...
+------------------- ------ ------ ------ ------ ------ ------ ------
+File                  stmt   bran   cond   mcdc    sub  total   scar
+------------------- ------ ------ ------ ------ ------ ------ ------
+tests/mcdc_nonlocal  100.0   50.0   66.6   14.2  100.0   78.9   19.6
+Total                100.0   50.0   66.6   14.2  100.0   78.9   19.6
+------------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/mcdc_nonlocal
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 7 86.0  7.1 19.6
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location              
+----------------- -- ----  ----------------------
+dies_mid_decision  4 14.6  tests/mcdc_nonlocal:23
+sorted             3 11.3  tests/mcdc_nonlocal:42
+recurse            2  7.0  tests/mcdc_nonlocal:31
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # Non-local exits, recursion and sort blocks through the MC/DC recorder.
+11                                             # Each decision must record one accurate input vector per completed
+12                                             # evaluation and nothing for abandoned ones.
+13                                             
+14             1                           1   use strict;
+               1                               
+               1                               
+15             1                           1   use warnings;
+               1                               
+               1                               
+16                                             
+17             1                           1   sub boom { die "boom\n" }
+18                                             
+19                                             # A die out of the right operand abandons the evaluation; the following
+20                                             # short-circuiting call must record its own honest vector, not one
+21                                             # contaminated by the aborted evaluation's column values.
+22                                             sub dies_mid_decision {
+23             2                           2     my ($p, $q) = @_;
+24    ***      2   * 50   * 66   *  0            my $r = ($p && $q && boom()) ? 1 : 0;
+      ***                 * 66                 
+25             1                                 $r
+26                                             }
+27                                             
+28                                             # Recursion through the same decision: the outer and inner invocations
+29                                             # must each record their own vector.
+30                                             sub recurse {
+31             2                           2     my ($n) = @_;
+32    ***      2          * 66   *  0            my $v = ($n <= 0) || recurse($n - 1);
+33             2                                 $v
+34                                             }
+35                                             
+36                                             # A decision ending a sort comparator resolves via the deferred path once
+37                                             # per comparator invocation.  The ternary keeps the || classified as a
+38                                             # condition rather than a statement-level branch.
+39             1                               my $Numeric = 1;
+40                                             
+41                                             sub sorted {
+42             3                           3     my @l = @_;
+43    ***      3   * 50   * 66   * 50            my @s = sort { $Numeric ? ($a <=> $b) || ($a cmp $b) : 0 } @l;
+               3                               
+44                                               @s
+45             3                               }
+46                                             
+47                                             sub main {
+48             1                           1     eval { dies_mid_decision(1, 1) };
+               1                               
+49             1                                 dies_mid_decision(0, 1);
+50                                             
+51             1                                 my $x = recurse(1);
+52                                             
+53             1                                 my @r;
+54             1                                 push @r, sorted(1, 1);
+55             1                                 push @r, sorted(1, 1);
+56             1                                 push @r, sorted(2, 1);
+57                                             }
+58                                             
+59             1                               main();
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+24    ***     50      0      1   $p && $q && boom() ? :
+43    ***     50      3      0   $Numeric ? :
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+24    ***     66      1      1      0   $p and $q and boom()
+      ***     66      1      0      1   $p and $q
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+32    ***     66      1      1      0   $n <= 0 || recurse($n - 1)
+43    ***     66      1      0      2   $a <=> $b or $a cmp $b
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+24    ***      0    0    3   $p, $q, boom()         $p and $q and boom()
+32    ***      0    0    2   $n <= 0, recurse($n - 1)   $n <= 0 || recurse($n - 1)
+43    ***     50    1    2   $a cmp $b              $a <=> $b or $a cmp $b
+
+
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location              
+----------------- ----- --- ----- ----------------------
+BEGIN                 1   1   0.0 tests/mcdc_nonlocal:14
+BEGIN                 1   1   0.0 tests/mcdc_nonlocal:15
+boom                  1   1   0.0 tests/mcdc_nonlocal:17
+dies_mid_decision     2   4  14.6 tests/mcdc_nonlocal:23
+main                  1   1   0.0 tests/mcdc_nonlocal:48
+recurse               2   2   7.0 tests/mcdc_nonlocal:31
+sorted                3   3  11.3 tests/mcdc_nonlocal:42
+
+

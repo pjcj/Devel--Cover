@@ -1,0 +1,59 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# Non-local exits, recursion and sort blocks through the MC/DC recorder.
+# Each decision must record one accurate input vector per completed
+# evaluation and nothing for abandoned ones.
+
+use strict;
+use warnings;
+
+sub boom { die "boom\n" }
+
+# A die out of the right operand abandons the evaluation; the following
+# short-circuiting call must record its own honest vector, not one
+# contaminated by the aborted evaluation's column values.
+sub dies_mid_decision {
+  my ($p, $q) = @_;
+  my $r = ($p && $q && boom()) ? 1 : 0;
+  $r
+}
+
+# Recursion through the same decision: the outer and inner invocations
+# must each record their own vector.
+sub recurse {
+  my ($n) = @_;
+  my $v = ($n <= 0) || recurse($n - 1);
+  $v
+}
+
+# A decision ending a sort comparator resolves via the deferred path once
+# per comparator invocation.  The ternary keeps the || classified as a
+# condition rather than a statement-level branch.
+my $Numeric = 1;
+
+sub sorted {
+  my @l = @_;
+  my @s = sort { $Numeric ? ($a <=> $b) || ($a cmp $b) : 0 } @l;
+  @s
+}
+
+sub main {
+  eval { dies_mid_decision(1, 1) };
+  dies_mid_decision(0, 1);
+
+  my $x = recurse(1);
+
+  my @r;
+  push @r, sorted(1, 1);
+  push @r, sorted(1, 1);
+  push @r, sorted(2, 1);
+}
+
+main();
