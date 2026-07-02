@@ -39,7 +39,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 7                                              # The latest version of this software should be available from my homepage:
 8                                              # https://pjcj.net
 9                                              
-10                                             # Test for empty else blocks optimized away by Perl 5.43.4+
+10                                             # Test for empty else blocks optimised away by Perl 5.43.4+
 11                                             # See GH-362 and Perl PR #23367
 12                                             
 13             1                           1   use strict;

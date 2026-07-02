@@ -1674,8 +1674,9 @@ static void dc_snapshot(pTHX_ dc_dctx *d) {
  * Snapshot+pop the active DC if PL_op's short-circuit completes the
  * decision.  SC at PL_op completes the decision when PL_op is the
  * decision root, OR when SC propagates up a same-type chain of logops
- * that reaches the root - Perl's runtime threads chained same-type SCs
- * in one shot, so the outer logops' cover_logop never fires.
+ * that reaches the root - Perl's runtime takes chained same-type
+ * short-circuits in one jump, so the outer logops' cover_logop never
+ * fires.
  */
 static void dc_snapshot_on_short_circuit(pTHX) {
   dMY_CXT;
@@ -1948,7 +1949,7 @@ static void cover_logop(pTHX) {
 }
 
 /*
- * A sequence of variable declarations may have been optimized to a single
+ * A sequence of variable declarations may have been optimised to a single
  * OP_PADRANGE. The original sequence may span multiple lines, but only the
  * first line has been marked as covered for now. Mark other OP_NEXTSTATE inside
  * the original sequence of statements.
@@ -2396,7 +2397,7 @@ static const char *dc_op_classname(pTHX_ const OP *o) {
   }
   if (o->op_type == OP_CUSTOM) {
     /*
-     * PL_opargs[OP_CUSTOM] does not record a class - the structural shape is
+     * PL_opargs[OP_CUSTOM] does not record a class - the op structure is
      * set by the registering XS module.  On 5.26+ op_class() consults the
      * registered XOP, but many CPAN modules (e.g. Syntax::Operator::In) never
      * register one, so op_class() returns OA_BASEOP even for ops that were

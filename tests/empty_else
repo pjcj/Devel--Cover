@@ -7,7 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-# Test for empty else blocks optimized away by Perl 5.43.4+
+# Test for empty else blocks optimised away by Perl 5.43.4+
 # See GH-362 and Perl PR #23367
 
 use strict;

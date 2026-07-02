@@ -109,7 +109,7 @@ make dist
 
 ### Testing Requirements
 
-- Tests must use Test:More system (not Test2 as it is not core)
+- Tests must use Test::More system (not Test2 as it is not core)
 - All new code requires tests in the `t/` directory
 - Tests should be run with `yath` test runner
 - Coverage verification using Devel::Cover with JSON reports

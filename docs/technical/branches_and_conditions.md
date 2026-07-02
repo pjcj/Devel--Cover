@@ -334,7 +334,7 @@ BEGIN {
 ```
 
 The constant sub `Has_op_statement` is a compile-time-foldable boolean
-that gates all OPpSTATEMENT checks. It must be called with explicit
+that guards all OPpSTATEMENT checks. It must be called with explicit
 parentheses (`Has_op_statement()`) because on Perl 5.20 the bare form
 `Has_op_statement ?` is parsed as the deprecated match-once `?PATTERN?`
 operator.

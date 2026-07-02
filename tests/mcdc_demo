@@ -19,8 +19,8 @@
 #
 # This fixture exists to lock in that asymmetry as a permanent
 # regression test.  If a future change to the analyser ever makes
-# MC/DC track condition coverage exactly, this fixture's golden will
-# diverge and force the question to be answered.
+# MC/DC track condition coverage exactly, this fixture's golden file
+# will diverge and force the question to be answered.
 
 use strict;
 use warnings;

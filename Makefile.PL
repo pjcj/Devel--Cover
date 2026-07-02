@@ -495,7 +495,7 @@ precommit_all :
 \t pre-commit run --all-files
 
 lint : precommit_all
-\
+
 lint_changes : precommit
 
 dc_cover_lib : pure_all

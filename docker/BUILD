@@ -212,7 +212,7 @@ build() {
   if ((push)); then
     if ! docker push "$user/$image:$tag" ||
        ! docker push "$user/$image:latest"; then
-      pe "Push failed — are you logged in to Docker Hub?"
+      pe "Push failed - are you logged in to Docker Hub?"
       pe "Run: docker login"
       return 1
     fi

@@ -65,7 +65,7 @@ by preferring unique-cause where possible.
 
 The decision `(A && B) || C` is a small canonical MC/DC example: easy to trace
 by hand, but structurally rich enough that condition coverage and MC/DC diverge.
-The example below uses that decision dressed up as an article- editing
+The example below uses that decision dressed up as an article-editing
 controller; the dressing is illustrative for this document, while the underlying
 logical pattern is the kind used in the standard tutorials (Hayhurst et al.
 2001).

@@ -86,7 +86,7 @@ my $Common_css = <<'EOF';
  * future runs from overwriting it.
  */
 
-/* Note: default values use the color-safe web palette. */
+/* Note: default values use the colour-safe web palette. */
 
 body {
   font-family: sans-serif;

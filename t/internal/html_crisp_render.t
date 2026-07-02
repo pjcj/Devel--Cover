@@ -36,7 +36,7 @@ eval "require HTML::Entities; 1" or do {
 my ($Tmpdir, $Libdir, $Outdir);
 my %Golden;
 
-# Generate golden TT output via run_cover (external process).
+# Generate golden report output via run_cover (external process).
 sub _setup () {
   return if $Tmpdir;
   ($Tmpdir, $Libdir) = setup_lib_dir;
@@ -47,7 +47,7 @@ sub _setup () {
     "--select_dir", $Libdir, "--report", "html_crisp",
     "--outputdir",  $Outdir, "--silent", $cover_db,
   );
-  die "TT report generation failed (exit $exit):\n$out\n" if $exit;
+  die "Report generation failed (exit $exit):\n$out\n" if $exit;
 
   for my $file (glob "$Outdir/*.html") {
     (my $name = $file) =~ s{.*/}{};
@@ -67,11 +67,11 @@ sub test_crit_name () {
   is $got,
     '<span class="name-full">Statement</span>'
     . '<span class="name-short">stmt</span>',
-    "_crit_name(statement) produces correct spans";
+    "crit_name(statement) produces correct spans";
 
   my $got_total = Devel::Cover::Report::Html_crisp::crit_name("total");
-  like $got_total, qr/name-full.*total/,  "_crit_name(total) has full span";
-  like $got_total, qr/name-short.*total/, "_crit_name(total) has short span";
+  like $got_total, qr/name-full.*total/,  "crit_name(total) has full span";
+  like $got_total, qr/name-short.*total/, "crit_name(total) has short span";
 }
 
 sub test_render_layout () {
