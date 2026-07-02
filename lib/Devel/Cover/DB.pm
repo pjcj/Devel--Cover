@@ -889,13 +889,47 @@ sub delete_uncoverable ($self, $deletes) {
 sub clean_uncoverable ($self) {
 }
 
-sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
-  my $cr    = join "|", $self->{all_criteria}->@*;
-  my $uc    = qr/(.*)# uncoverable ($cr)(.*)/;  # regex for uncoverable comments
+sub _uncoverable_details ($criterion, $info, $file, $line) {
   my %types = (
     branch    => { true => 0, false => 1 },
     condition => { left => 0, right => 1, false => 2 },
   );
+  my ($count, $class, $note, $type) = (1, "default", "");
+
+  if ($criterion eq "branch" || $criterion eq "condition") {
+    if ($info =~ /^\s*(\w+)(?:\s|$)/) {
+      my $t = $1;
+      $type = $types{$criterion}{$t};
+      unless (defined $type) {
+        warn "Unknown type $t found parsing "
+          . "uncoverable $criterion at $file:$line\n";
+        $type = 999;  # partly magic number
+      }
+    }
+  }
+
+  # e.g.: count:1 | count:2,5 | count:1,4..7
+  my $c = qr/\d+(?:\.\.\d+)?/;
+  if ($info =~ /count:($c(?:,$c)*)/) { $count = $1 }
+  my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/, $count;
+  if ($info =~ /class:(\w+)/) { $class = $1 }
+  if ($info =~ /note:(.+)/)   { $note  = $1 }
+  # mcdc atomic condition N (1-based)
+  if ($info =~ /pair:(\d+)/) {
+    if ($1) { $type = $1 - 1 }
+    else {
+      warn "Invalid pair:$1 (pairs are numbered from 1) parsing "
+        . "uncoverable $criterion at $file:$line\n";
+      return;
+    }
+  }
+
+  (\@counts, $type, $class, $note)
+}
+
+sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
+  my $cr = join "|", $self->{all_criteria}->@*;
+  my $uc = qr/(.*)# uncoverable ($cr)(.*)/;  # regex for uncoverable comments
 
   # Look for uncoverable comments
   open my $fh, "<", $file or do {
@@ -909,31 +943,10 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
     next unless /$uc/ || @waiting;
     if ($2) {
       my ($code, $criterion, $info) = ($1, $2, $3);
-      my ($count, $class, $note, $type) = (1, "default", "");
+      my ($counts, $type, $class, $note)
+        = _uncoverable_details($criterion, $info, $file, $.);
 
-      if ($criterion eq "branch" || $criterion eq "condition") {
-        if ($info =~ /^\s*(\w+)(?:\s|$)/) {
-          my $t = $1;
-          $type = $types{$criterion}{$t};
-          unless (defined $type) {
-            warn "Unknown type $t found parsing "
-              . "uncoverable $criterion at $file:$.\n";
-            $type = 999;  # partly magic number
-          }
-        }
-      }
-
-      # e.g.: count:1 | count:2,5 | count:1,4..7
-      my $c = qr/\d+(?:\.\.\d+)?/;
-      $count = $1 if $info =~ /count:($c(?:,$c)*)/;
-      my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/,
-        $count;
-      if ($info =~ /class:(\w+)/) { $class = $1 }
-      if ($info =~ /note:(.+)/)   { $note  = $1 }
-      # mcdc atomic condition N (1-based)
-      if ($info =~ /pair:(\d+)/) { $type = $1 - 1 }
-
-      for my $c (@counts) {
+      for my $c (($counts // [])->@*) {
         # no warnings "uninitialized";
         # warn "pushing $criterion, $c - 1, $type, $class, $note";
         push @waiting, [$criterion, $c - 1, $type, $class, $note];
@@ -1038,7 +1051,7 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
   require Devel::Cover::Condition_table;
   require Devel::Cover::Mcdc::Analyser;
 
-  for my $cf (values %$cover) {
+  while (my ($file, $cf) = each %$cover) {
     my $cc = $cf->{condition} or next;
     next if exists $cf->{mcdc};
 
@@ -1069,7 +1082,8 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
         # The analyser's set is derived from the table's rows, so trust it only
         # for a proven table; for an unproven one the rows are the evidence we
         # distrust, leaving the explicit markers as the only excuse.
-        my @uncov = (_mcdc_uncoverable($unc, $line, $n, $total) // [])->@*;
+        my @uncov
+          = (_mcdc_uncoverable($unc, $file, $line, $n, $total) // [])->@*;
         $uncov[$_] ||= 1 for $table->proven ? keys $r->{uncoverable}->%* : ();
         $decision->[2] = \@uncov if @uncov;
 
@@ -1082,16 +1096,20 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
 
 # Per-column uncoverable vector for one mcdc decision, or undef if unmarked. A
 # marker with a column marks that condition; one without marks every column.
-sub _mcdc_uncoverable ($unc, $line, $n, $total) {
+sub _mcdc_uncoverable ($unc, $file, $line, $n, $total) {
   my $marks = $unc && $unc->{$line}[$n] or return undef;
   my @uncov;
   for my $mark (@$marks) {
     my ($col, $class) = @$mark;
     my $flag = $class || 1;
-    if (defined $col) {
+    if (!defined $col) {
+      $uncov[$_] = $flag for 0 .. $total - 1;
+    } elsif ($col >= 0 && $col < $total) {
       $uncov[$col] = $flag;
     } else {
-      $uncov[$_] = $flag for 0 .. $total - 1;
+      warn "Ignoring uncoverable mcdc pair:"
+        . ($col + 1)
+        . " out of range (1..$total) at $file:$line\n";
     }
   }
   \@uncov
