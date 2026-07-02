@@ -136,8 +136,8 @@ dc -d docker-prune-tags # dry run - list what would be deleted
 
 The `latest` tag is never deleted. Two environment variables are required:
 
-- `HUB_USERNAME` — your Docker Hub username
-- `HUB_TOKEN` — a Personal Access Token (PAT)
+- `HUB_USERNAME` - your Docker Hub username
+- `HUB_TOKEN` - a Personal Access Token (PAT)
 
 These are needed because tag deletion uses the Docker Hub web API, which
 authenticates separately from `docker push` (which uses `docker login`
