@@ -276,7 +276,7 @@ benchmark process, and filter by the Cover.bundle module.
 
 ## Example profile (March 2026, early in GH-422)
 
-After eliminating snprintf from get_key() and deduplicating get_key() calls per
+After eliminating snprintf from get_key() and computing get_key() once per
 statement, but *before* the caching and struct-shrink work, the profile showed:
 
 | Area                     | % of DC overhead | Dominant cost         |
