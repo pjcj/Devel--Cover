@@ -210,6 +210,92 @@ sub test_unproven_ignores_derived_uncoverable () {
     "every atomic of an unproven table is reported missing";
 }
 
+# The recorder must record one accurate vector per completed evaluation
+# and nothing for abandoned ones.  A die out of a decision abandons its
+# frame; the next execution must not inherit the aborted execution's
+# column values.
+sub test_die_discards_abandoned_evaluation () {
+  my $script = write_script("die_mid_decision.pl", <<'PERL');
+sub f { die "boom" }
+sub d { my ($a, $b) = @_; my $r = ($a && $b && f()) ? 1 : 0; $r }
+eval { d(1, 1) };
+d(0, 1);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "die_mid_decision");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for die_mid_decision";
+
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "one decision recorded";
+  is_deeply $recorded[0], { "0|X|X" => 1 },
+    "aborted evaluation records nothing; completed one is not contaminated";
+}
+
+# Recursion through the same decision must record one vector per
+# invocation, not merge the inner invocation into the outer's frame.
+sub test_recursion_records_each_invocation () {
+  my $script = write_script("recursive_decision.pl", <<'PERL');
+sub r { my ($n) = @_; my $v = ($n <= 0) || r($n - 1); $v }
+my $x = r(1);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "recursive_decision");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for recursive_decision";
+
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "one decision recorded";
+  is_deeply $recorded[0], { "0|1" => 1, "1|X" => 1 },
+    "outer and inner invocations each record their own vector";
+}
+
+# A decision resolving while an abandoned inner frame is still on the
+# stack must be counted once, and the abandoned frame must record
+# nothing.
+sub test_abandoned_inner_frame_not_double_counted () {
+  my $script = write_script("abandoned_inner.pl", <<'PERL');
+sub f { die "x" }
+sub d { my ($a, $b) = @_; my $r = $a || eval { my $v = $b && f(); $v }; $r }
+d(0, 1);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "abandoned_inner");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for abandoned_inner";
+
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "only the completed outer decision is recorded";
+  is_deeply $recorded[0], { "0|0" => 1 }, "outer vector counted exactly once";
+}
+
+# A decision ending a sort comparator resolves via the deferred path;
+# each comparator invocation must record its own vector rather than
+# blending values across invocations.  The ternary keeps the || classified
+# as a condition rather than a statement-level branch.
+sub test_sort_block_records_per_invocation () {
+  my $script = write_script("sort_block.pl", <<'PERL');
+my $numeric = 1;
+sub srt {
+  my @l = @_;
+  my @s = sort { $numeric ? ($a <=> $b) || ($a cmp $b) : 0 } @l;
+  @s
+}
+srt(1, 1);
+srt(1, 1);
+srt(2, 1);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "sort_block");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for sort_block";
+
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "one decision recorded";
+  is_deeply $recorded[0], { "0|0" => 2, "1|X" => 1 },
+    "each comparator invocation records its own vector";
+}
+
 sub test_add_condition_cross_run_merge () {
   my $db = bless {}, "Devel::Cover::DB";
   my $cc = {};
@@ -248,6 +334,14 @@ sub main () {
     \&test_void_compound_no_false_coverage;
   subtest "unproven ignores derived uncoverable" =>
     \&test_unproven_ignores_derived_uncoverable;
+  subtest "die discards abandoned evaluation" =>
+    \&test_die_discards_abandoned_evaluation;
+  subtest "recursion records each invocation" =>
+    \&test_recursion_records_each_invocation;
+  subtest "abandoned inner frame not double counted" =>
+    \&test_abandoned_inner_frame_not_double_counted;
+  subtest "sort block records per invocation" =>
+    \&test_sort_block_records_per_invocation;
   subtest "cross-run merge"     => \&test_add_condition_cross_run_merge;
   subtest "xor four-slot merge" => \&test_add_condition_xor_four_slot_merge;
 

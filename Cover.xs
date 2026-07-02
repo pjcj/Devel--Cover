@@ -122,11 +122,20 @@ typedef struct {
  * 1 (true) or 2 (X / not yet observed) for column i.  Slots start as X and
  * are filled in as leaves resolve; columns under a short-circuited subtree
  * stay X.
+ *
+ * cx_ix is cxstack_ix at push time.  A non-local exit (die, goto, last)
+ * out of a decision leaves its frame on the stack; such a frame is
+ * detected as stale because its cx_ix is deeper than the current context,
+ * and is discarded rather than recorded - an abandoned evaluation must
+ * record nothing.  cx_ix also separates recursive invocations of the same
+ * decision: an outer invocation's frame has a shallower cx_ix and so is
+ * kept when the inner invocation pushes its own frame.
  */
 typedef struct {
   OP   *root_addr;
   int   width;
   int  *vector;
+  I32   cx_ix;
 } dc_dctx;
 
 typedef struct {
@@ -950,6 +959,7 @@ static IV       dc_meta_iv(pTHX_ HV *meta, const char *key, I32 keylen);
 static dc_dctx *dc_stack_find_root(pTHX_ OP *root_addr);
 static dc_dctx *dc_stack_top(pTHX);
 static void     dc_stack_pop(pTHX);
+static void     dc_stack_discard_stale(pTHX);
 static void     dc_snapshot(pTHX_ dc_dctx *d);
 
 static void add_condition(pTHX_ SV *cond_ref, int value) {
@@ -991,7 +1001,9 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
      * value: 1 = right false, 2 = right true, 3/4 = xor-with-true-left.
      */
     if (!final && collecting(Mcdc)) {
-      HV *m = dc_lookup_or_build_decision_meta(aTHX_ op, find_runcv(NULL));
+      HV *m;
+      dc_stack_discard_stale(aTHX);
+      m = dc_lookup_or_build_decision_meta(aTHX_ op, find_runcv(NULL));
       if (m) {
         OP      *root_addr =
           INT2PTR(OP *, dc_meta_iv(aTHX_ m, "root_addr", 9));
@@ -1214,11 +1226,52 @@ static void cover_cond(pTHX)
  * Resolve conditions deferred from sort blocks.  The stack top holds the sort
  * comparator's final value - the right operand of the outermost || whose
  * right->op_next was NULL.
+ *
+ * MC/DC resolution mirrors add_condition: write each deferred logop's
+ * right-operand leaf column, then snapshot and pop the decision roots.
+ * This runs once per comparator invocation (each comparison runs in its
+ * own runops loop), so each invocation records its own vector.
  */
 static void resolve_deferred_conditionals(pTHX_ AV *dc, I32 base) {
+  dMY_CXT;
   if (av_len(dc) >= base) {
     dSP;
     int true_ish = SvTRUE(TOPs);
+
+    if (collecting(Mcdc)) {
+      I32 i;
+      dc_stack_discard_stale(aTHX);
+
+      for (i = base; i <= av_len(dc); i++) {
+        OP *op = INT2PTR(OP *, SvIV(*av_fetch(dc, i, 0)));
+        HV *m  = dc_lookup_or_build_decision_meta(aTHX_ op, find_runcv(NULL));
+        if (m) {
+          OP      *root_addr  =
+            INT2PTR(OP *, dc_meta_iv(aTHX_ m, "root_addr", 9));
+          int      leaf_right = dc_meta_iv(aTHX_ m, "leaf_col_right", 14);
+          dc_dctx *d          = dc_stack_find_root(aTHX_ root_addr);
+
+          if (d && leaf_right >= 0 && leaf_right < d->width)
+            d->vector[leaf_right] = true_ish ? DC_VECTOR_TRUE
+                                             : DC_VECTOR_FALSE;
+        }
+      }
+
+      for (i = base; i <= av_len(dc); i++) {
+        OP *op = INT2PTR(OP *, SvIV(*av_fetch(dc, i, 0)));
+        HV *m  = dc_lookup_or_build_decision_meta(aTHX_ op, find_runcv(NULL));
+        if (m && dc_meta_iv(aTHX_ m, "is_root", 7) == 1) {
+          OP *root_addr =
+            INT2PTR(OP *, dc_meta_iv(aTHX_ m, "root_addr", 9));
+          dc_dctx *d = dc_stack_find_root(aTHX_ root_addr);
+          if (d) {
+            dc_snapshot(aTHX_ d);
+            if (dc_stack_top(aTHX) == d) dc_stack_pop(aTHX);
+          }
+        }
+      }
+    }
+
     while (av_len(dc) >= base) {
       SV *sv = av_pop(dc);
       OP *cond_op = INT2PTR(OP *, SvIV(sv));
@@ -1501,7 +1554,21 @@ static void dc_walk_cv_decisions(pTHX_ CV *cv) {
     if (is_root) {
       int width = dc_enumerate_columns(aTHX_ cache, lop, lop, 0);
       HV *meta  = dc_meta_entry(aTHX_ cache, lop);
+      OP *entry = lop,
+         *left;
       (void)hv_stores(meta, "width", newSViv(width));
+
+      /*
+       * Mark the decision's entry logop: the deepest logop on the left
+       * operand chain, and so the first logop to fire on every evaluation
+       * of the decision.  Its firing marks the start of a fresh
+       * evaluation, which always gets a fresh DC frame.
+       */
+      while ((left = dc_skipped_operand(aTHX_ entry, 0))
+             && dc_is_logop_type(left->op_type))
+        entry = left;
+      (void)hv_stores(dc_meta_entry(aTHX_ cache, entry), "is_entry",
+                      newSViv(1));
     }
   }
 
@@ -1574,6 +1641,13 @@ static HV *dc_lookup_or_build_decision_meta(pTHX_ OP *op, CV *cv) {
  * the same DC, and the outer root pops on resolution.  Sub-calls inside a
  * decision push their own decisions on top because their root_addr differs;
  * those decisions resolve before control returns to the outer.
+ *
+ * Non-local exits break that discipline: a frame whose evaluation was
+ * abandoned stays on the stack.  Every entry point into the stack first
+ * discards stale frames (cx_ix deeper than the current context), and a
+ * decision's entry logop - the first logop to fire on every evaluation -
+ * always pushes a fresh frame, removing any leftover frame for the same
+ * root at the same or deeper context depth.
  */
 static IV dc_meta_iv(pTHX_ HV *meta, const char *key, I32 keylen) {
   SV **slot = hv_fetch(meta, key, keylen, 0);
@@ -1610,6 +1684,7 @@ static dc_dctx *dc_stack_push(pTHX_ OP *root_addr, int width) {
   d = &MY_CXT.dc_stack.items[MY_CXT.dc_stack.count++];
   d->root_addr = root_addr;
   d->width     = width;
+  d->cx_ix     = cxstack_ix;
   Newx(d->vector, width > 0 ? width : 1, int);
   for (i = 0; i < width; i++) d->vector[i] = DC_VECTOR_X;
   return d;
@@ -1622,6 +1697,31 @@ static void dc_stack_pop(pTHX) {
     Safefree(MY_CXT.dc_stack.items[MY_CXT.dc_stack.count].vector);
     MY_CXT.dc_stack.items[MY_CXT.dc_stack.count].vector = NULL;
   }
+}
+
+/* Remove a frame from anywhere in the stack, closing the gap. */
+static void dc_stack_remove(pTHX_ dc_dctx *d) {
+  dMY_CXT;
+  int idx = (int)(d - MY_CXT.dc_stack.items);
+  if (idx < 0 || idx >= MY_CXT.dc_stack.count) return;
+  Safefree(d->vector);
+  Move(&MY_CXT.dc_stack.items[idx + 1], &MY_CXT.dc_stack.items[idx],
+       MY_CXT.dc_stack.count - idx - 1, dc_dctx);
+  MY_CXT.dc_stack.count--;
+}
+
+/*
+ * Discard frames abandoned by a non-local exit: any frame pushed in a
+ * context deeper than the current one belongs to an evaluation that no
+ * longer exists.  Such frames always form the top of the stack at the
+ * moment they become detectable, so popping from the top suffices.
+ */
+static void dc_stack_discard_stale(pTHX) {
+  dMY_CXT;
+  while (MY_CXT.dc_stack.count
+         && MY_CXT.dc_stack.items[MY_CXT.dc_stack.count - 1].cx_ix
+            > cxstack_ix)
+    dc_stack_pop(aTHX);
 }
 
 /*
@@ -1692,6 +1792,8 @@ static void dc_snapshot_on_short_circuit(pTHX) {
   root_addr = INT2PTR(OP *, dc_meta_iv(aTHX_ meta, "root_addr", 9));
   cur       = PL_op;
 
+  dc_stack_discard_stale(aTHX);
+
   while (cur) {
     if (cur == root_addr) {
       dc_dctx *top = dc_stack_top(aTHX);
@@ -1713,16 +1815,15 @@ static void dc_snapshot_on_short_circuit(pTHX) {
 }
 
 /*
- * Drain any DCs left over at program end (early return / die / exit out of
- * a decision).  Each is snapshotted in its current partial state so the
- * observation is not lost.
+ * Discard any DCs left over at program end.  A frame still on the stack
+ * here belongs to an evaluation that never completed (die / exit / goto
+ * out of a decision); recording its partial vector would fabricate an
+ * observation no execution produced.
  */
 static void finalise_decisions(pTHX) {
   dMY_CXT;
-  while (MY_CXT.dc_stack.count) {
-    dc_snapshot(aTHX_ &MY_CXT.dc_stack.items[MY_CXT.dc_stack.count - 1]);
+  while (MY_CXT.dc_stack.count)
     dc_stack_pop(aTHX);
-  }
 }
 
 static void cover_logop(pTHX) {
@@ -1797,10 +1898,25 @@ static void cover_logop(pTHX) {
           INT2PTR(OP *, dc_meta_iv(aTHX_ meta, "root_addr", 9));
         int      width     = dc_meta_iv(aTHX_ meta, "width",         5);
         int      leaf_left = dc_meta_iv(aTHX_ meta, "leaf_col_left", 13);
-        dc_dctx *d         = dc_stack_find_root(aTHX_ root_addr);
+        int      is_entry  = dc_meta_iv(aTHX_ meta, "is_entry",      8) == 1;
+        dc_dctx *d;
 
-        if (!d && width > 0)
+        dc_stack_discard_stale(aTHX);
+        d = dc_stack_find_root(aTHX_ root_addr);
+
+        if (is_entry && width > 0) {
+          /*
+           * A fresh evaluation of this decision starts here.  A leftover
+           * frame at the same or deeper context depth was abandoned by a
+           * non-local exit - discard it.  A shallower frame belongs to an
+           * outer invocation still in flight (recursion) and is kept; the
+           * fresh frame shadows it until resolution.
+           */
+          if (d && d->cx_ix >= cxstack_ix) dc_stack_remove(aTHX_ d);
           d = dc_stack_push(aTHX_ root_addr, width);
+        } else if (!d && width > 0) {
+          d = dc_stack_push(aTHX_ root_addr, width);
+        }
 
         if (d && leaf_left >= 0 && leaf_left < d->width)
           d->vector[leaf_left] = leftval_true_ish ? DC_VECTOR_TRUE
