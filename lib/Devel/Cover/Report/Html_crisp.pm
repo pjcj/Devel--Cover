@@ -2055,7 +2055,7 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
       var tag = e.target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.key === "Escape" && !helpOverlay.hidden) hideHelp();
-      else if (e.key === "?" && helpOverlay.hidden) showHelp();
+      else if (e.key === "?") helpOverlay.hidden ? showHelp() : hideHelp();
     });
   }
 
