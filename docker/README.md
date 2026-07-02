@@ -293,7 +293,7 @@ This provides:
 
 ## Troubleshooting
 
-### Common Issues
+### Common Problems
 
 1. **Docker permission errors**
 
@@ -334,7 +334,7 @@ This provides:
    dc -e dev cpancover-docker-rm
    ```
 
-4. **Disk space issues**
+4. **Disk space problems**
 
    - Regular cleanup: `docker system prune`
    - Compress old results: `utils/dc cpancover-compress`
@@ -632,7 +632,7 @@ docker run -it --rm pjcj/cpancover_dev /bin/bash
 # Then inside container:
 dc -v cpancover-build-module Failed::Module
 
-# 4. Check CPAN installation issues
+# 4. Check CPAN installation problems
 docker run -it --rm pjcj/cpancover_dev cpan -Ti Failed::Module
 ```
 
@@ -667,7 +667,7 @@ find ~/cover/staging -type f -size +10M -not -name "*.gz"
    docker build -t test/base docker/devel-cover-base
    ```
 
-3. **Debugging Perl Issues**
+3. **Debugging Perl Problems**
 
    ```bash
    # Check Perl configuration in container
