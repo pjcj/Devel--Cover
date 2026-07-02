@@ -29,23 +29,11 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Cwd        qw( abs_path );
-use File::Spec ();
-use File::Temp qw( tempdir );
 use Test::More import => [qw( done_testing is ok subtest )];
 
-use Devel::Cover::DB ();
+use Devel::Cover::Test::Internal qw( write_script run_under_cover );
 
-my $Tmpdir   = tempdir(CLEANUP => 1);
 my $Decision = '($a && $b) || ($c && $d)';
-
-sub write_script ($name, $content) {
-  my $path = File::Spec->catfile($Tmpdir, $name);
-  open my $fh, ">", $path or die "Cannot write $path: $!";
-  print $fh $content;
-  close $fh or die "Cannot close $path: $!";
-  $path
-}
 
 # Drive the decision in $context over the input tuples in @$tuples, $runs times
 # into one coverage database, then return its single MC/DC table's covered and
@@ -63,25 +51,14 @@ my \$sink;
 \$sink = decision(\@\$_) for ($list);
 PERL
 
-  my $label    = "${context}_${runs}_" . $Call++;
-  my $script   = write_script("$label.pl", $code);
-  my $cover_db = File::Spec->catdir($Tmpdir, "db_$label");
-  my $abs      = abs_path($Tmpdir);
+  my $label  = "${context}_${runs}_" . $Call++;
+  my $script = write_script("$label.pl", $code);
+  my ($db, $path);
   for (1 .. $runs) {
-    my @cmd = (
-      $^X,
-      "-Iblib/lib",
-      "-Iblib/arch",
-      "-MDevel::Cover=-db,$cover_db,-silent,1,"
-        . "-coverage,condition,-coverage,mcdc,+select,$abs",
-      $script,
-    );
-    system(@cmd) == 0 or die "Failed to run under Devel::Cover: @cmd";
+    ($db, $path)
+      = run_under_cover($script, $label, criteria => [qw( condition mcdc )]);
   }
-
-  my $db = Devel::Cover::DB->new(db => $cover_db);
-  $db->merge_runs;
-  my $mcdc = $db->cover->file(abs_path($script))->{mcdc} // {};
+  my $mcdc = $db->cover->file($path)->{mcdc} // {};
 
   my @tables = map $_->@*, values %$mcdc;
   is @tables, 1, "$context ($runs run) records a single unified table";

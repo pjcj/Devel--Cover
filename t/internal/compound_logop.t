@@ -23,14 +23,9 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Cwd        qw( abs_path );
-use File::Spec ();
-use File::Temp qw( tempdir );
 use Test::More import => [qw( diag done_testing is isnt ok )];
 
-use Devel::Cover::DB ();
-
-my $Tmpdir = tempdir(CLEANUP => 1);
+use Devel::Cover::Test::Internal qw( write_script run_under_cover );
 
 # Bare statement-level sub bodies (the context that triggers the drop), called
 # in non-void context so the right operand's value is observed.
@@ -62,32 +57,6 @@ my ($Cover,     $Path,    $Cond);
 my ($Or_or,     $And_and, $Or_and);
 my ($Left_only, $Or_flow, $Dor_join, $Not_join);
 
-sub write_script ($name, $content) {
-  my $path = File::Spec->catfile($Tmpdir, $name);
-  open my $fh, ">", $path or die "Cannot write $path: $!";
-  print $fh $content;
-  close $fh or die "Cannot close $path: $!";
-  $path
-}
-
-sub run_under_cover ($script, $label, @criteria) {
-  my $cover_db   = File::Spec->catdir($Tmpdir, "cover_db_$label");
-  my $abs_tmpdir = abs_path($Tmpdir);
-  my $coverage   = @criteria ? "-coverage," . join(",", @criteria) . "," : "";
-  my @cmd        = (
-    $^X, "-Iblib/lib", "-Iblib/arch",
-    "-MDevel::Cover=-db,$cover_db,-silent,1,${coverage}+select,$abs_tmpdir",
-    $script,
-  );
-  system(@cmd) == 0 or die "Failed to run script under Devel::Cover: @cmd";
-
-  my $db = Devel::Cover::DB->new(db => $cover_db);
-  $db->merge_runs;
-  # Devel::Cover resolves symlinks (e.g. /tmp -> /private/tmp on macOS)
-  my $real_path = abs_path($script);
-  ($db->cover, $real_path)
-}
-
 # Return { line => [ { type => ..., text => ... }, ... ] } for every recorded
 # condition in the file.
 sub conditions_for ($cover, $file) {
@@ -116,7 +85,9 @@ sub line_with ($content, $tag) {
 sub _setup () {
   return if $Cover;
   my $prog = write_script("compound_logop.pl", $Source);
-  ($Cover, $Path) = run_under_cover($prog, "compound_logop", "condition");
+  my ($db, $path)
+    = run_under_cover($prog, "compound_logop", criteria => ["condition"]);
+  ($Cover, $Path) = ($db->cover, $path);
   $Cond = conditions_for($Cover, $Path);
 
   $Or_or   = $Cond->{ line_with($Source, "# OR_OR") }   // [];

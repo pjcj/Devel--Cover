@@ -23,40 +23,9 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Cwd        qw( abs_path );
-use File::Spec ();
-use File::Temp qw( tempdir );
 use Test::More import => [qw( done_testing is is_deeply ok subtest )];
 
-use Devel::Cover::DB ();
-
-my $Tmpdir = tempdir(CLEANUP => 1);
-
-sub write_script ($name, $content) {
-  my $path = File::Spec->catfile($Tmpdir, $name);
-  open my $fh, ">", $path or die "Cannot write $path: $!";
-  print $fh $content;
-  close $fh or die "Cannot close $path: $!";
-  $path
-}
-
-sub run_under_cover ($script, $label) {
-  my $cover_db   = File::Spec->catdir($Tmpdir, "cover_db_$label");
-  my $abs_tmpdir = abs_path($Tmpdir);
-  my @cmd        = (
-    $^X,
-    "-Iblib/lib",
-    "-Iblib/arch",
-    "-MDevel::Cover=-db,$cover_db,-silent,1,"
-      . "-coverage,condition,+select,$abs_tmpdir",
-    $script,
-  );
-  system(@cmd) == 0 or die "Failed to run script under Devel::Cover: @cmd";
-
-  my $db = Devel::Cover::DB->new(db => $cover_db);
-  $db->merge_runs;
-  ($db->cover, abs_path($script))
-}
+use Devel::Cover::Test::Internal qw( write_script run_under_cover );
 
 # Condition hit counts for a line, outermost record first.  Records come
 # back in outermost-first order but the text is the stable identity, so
@@ -79,8 +48,9 @@ sub decide { my ($a, $b, $c, $d) = @_; my $r = $a || $b || $c || $d; $r }
 decide(1, 0, 0, 0);
 PERL
 
-  my ($cover, $path) = run_under_cover($script, "lex_chain");
-  is_deeply values_for($cover, $path, 1), [[1, 0, 0], [1, 0, 0], [1, 0, 0]],
+  my ($db, $path)
+    = run_under_cover($script, "lex_chain", criteria => ["condition"]);
+  is_deeply values_for($db->cover, $path, 1), [[1, 0, 0], [1, 0, 0], [1, 0, 0]],
     "every logop in the chain is marked short-circuited";
 }
 
@@ -93,8 +63,9 @@ sub decide { my %h = @_; my $r = $h{a} || $h{b} || $h{c}; $r }
 decide(a => 1, b => 0, c => 0);
 PERL
 
-  my ($cover, $path) = run_under_cover($script, "element_chain");
-  is_deeply values_for($cover, $path, 1), [[1, 0, 0], [1, 0, 0]],
+  my ($db, $path)
+    = run_under_cover($script, "element_chain", criteria => ["condition"]);
+  is_deeply values_for($db->cover, $path, 1), [[1, 0, 0], [1, 0, 0]],
     "both logops marked short-circuited through nulled operands";
 }
 
@@ -106,8 +77,9 @@ sub decide { my %h = @_; my $r = $h{a} || $h{b} || $h{c}; $r }
 decide(a => 0, b => 1, c => 0);
 PERL
 
-  my ($cover, $path) = run_under_cover($script, "root_sc");
-  is_deeply values_for($cover, $path, 1), [[1, 0, 0], [0, 1, 0]],
+  my ($db, $path)
+    = run_under_cover($script, "root_sc", criteria => ["condition"]);
+  is_deeply values_for($db->cover, $path, 1), [[1, 0, 0], [0, 1, 0]],
     "outer marked short-circuited once, inner marked fully evaluated";
 }
 

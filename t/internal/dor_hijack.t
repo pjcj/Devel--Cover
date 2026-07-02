@@ -27,52 +27,15 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Cwd        qw( abs_path );
-use File::Spec ();
-use File::Temp qw( tempdir );
-use Test::More import => [ qw( done_testing is ok ) ];
+use Test::More import => [qw( done_testing is ok )];
 
-use Devel::Cover::DB ();
-
-my $Tmpdir = tempdir(CLEANUP => 1);
-
-sub write_script ($name, $content) {
-  my $path = File::Spec->catfile($Tmpdir, $name);
-  open my $fh, ">", $path or die "Cannot write $path: $!";
-  print $fh $content;
-  close $fh or die "Cannot close $path: $!";
-  $path
-}
-
-# Run a script under Devel::Cover with runops_cover (replace_ops off), then
-# return ($cover, $real_path) where $real_path is the absolute symlink-resolved
-# path that Devel::Cover stores for the script.
-sub run_under_cover ($script, $label) {
-  my $cover_db   = File::Spec->catdir($Tmpdir, "cover_db_$label");
-  my $abs_tmpdir = abs_path($Tmpdir);
-  my @cmd        = (
-    $^X,
-    "-Iblib/lib",
-    "-Iblib/arch",
-    "-MDevel::Cover=-db,$cover_db,-silent,1,-replace_ops,0"
-      . ",+select,$abs_tmpdir",
-    $script,
-  );
-  system(@cmd) == 0 or die "Failed to run script under Devel::Cover: @cmd";
-
-  my $db = Devel::Cover::DB->new(db => $cover_db);
-  $db->merge_runs;
-  my $cover = $db->cover;
-
-  # Devel::Cover resolves symlinks (e.g. /tmp -> /private/tmp on macOS)
-  my $real_path = abs_path($script);
-  ($cover, $real_path)
-}
+use Devel::Cover::Test::Internal qw( write_script run_under_cover );
 
 sub check_stmt_count ($label, $code, $line, $expected) {
   my $script = write_script("$label.pl", $code);
-  my ($cover, $path) = run_under_cover($script, $label);
-  my $file = $cover->file($path);
+  my ($db, $path)
+    = run_under_cover($script, $label, options => ["-replace_ops,0"]);
+  my $file = $db->cover->file($path);
   ok $file, "$label: coverage data found";
 
   my $stmts = $file->criterion("statement");
