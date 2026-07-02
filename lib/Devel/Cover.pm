@@ -1234,12 +1234,6 @@ sub _walk_cond_expr ($cv, $op) {
   }
 }
 
-# Determine cx for a logop by walking up the parent chain.
-# B::Deparse determines cx from the deparsing call chain, not from
-# OPf_WANT. The two diverge for return (want=NONE but cx=6 in deparse)
-# and sort/map/grep blocks (want=SCALAR but cx=0 in deparse).
-# The parent map (built by the XS walker) provides parent lookups on
-# all Perl versions, not just 5.26+.
 # Walk through null/ex-ops, stopping at block boundaries.
 # Returns ($parent, $early_cx) - $early_cx is defined if a
 # boundary was hit and the caller should return that value.
@@ -1372,7 +1366,7 @@ sub _walk_logop ($cv, $op) {
   my ($file, $line) = ($File, $Line);
 
   # Match B::Deparse, which resets the precedence context at each block
-  # scope; the XS walker's in_logop nesting can cross block boundaries.
+  # scope.
   my $cx = _logop_parent_cx($op, $highprec, $lowprec);
   $blockname = _resolve_blockname($blockname, $cx);
 
