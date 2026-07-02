@@ -1889,6 +1889,10 @@ in the order the report lists them), leaving the rest counted as normal:
   # uncoverable mcdc pair:2
   $x = $a || $b || $c;
 
+An invalid position warns and the marker is ignored: C<pair:0> when the
+comment is parsed, and a position greater than the number of atomic conditions
+in the decision when the report is generated.
+
 As for conditions, the "count" value selects between several decisions on one
 line.
 
