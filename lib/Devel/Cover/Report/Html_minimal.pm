@@ -296,7 +296,7 @@ sub escape_HTML ($text) {  ## no critic (NamingConventions::Capitalization)
   # Do not allow FF in text
   $text =~ tr/\x0c//d;
 
-  # IE doesn't honor "white-space: pre" CSS
+  # IE doesn't honour "white-space: pre" CSS
   my @text = split m/\n/ => $text;
   for (@text) {
     # Expand all tabs to spaces

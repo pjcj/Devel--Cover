@@ -132,7 +132,7 @@ sub print_file ($db, $file, $options) {
     my %metric = get_metrics($db, $options, $file_data, $.);
     my $line   = { number => $., text => encode_entities($l), metrics => [] };
     $line->{text} =~ s/\t/        /g;
-    $line->{text} =~ s/\s/&nbsp;/g;   # IE doesn't honor "white-space: pre" CSS
+    $line->{text} =~ s/\s/&nbsp;/g;   # IE doesn't honour "white-space: pre" CSS
 
     for my $c ($db->criteria) {
       next unless $options->{show}{$c};
