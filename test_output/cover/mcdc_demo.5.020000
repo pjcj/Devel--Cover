@@ -51,8 +51,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 19                                             #
 20                                             # This fixture exists to lock in that asymmetry as a permanent
 21                                             # regression test.  If a future change to the analyser ever makes
-22                                             # MC/DC track condition coverage exactly, this fixture's golden will
-23                                             # diverge and force the question to be answered.
+22                                             # MC/DC track condition coverage exactly, this fixture's golden file
+23                                             # will diverge and force the question to be answered.
 24                                             
 25             1                           1   use strict;
                1                               

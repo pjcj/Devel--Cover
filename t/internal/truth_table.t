@@ -36,8 +36,8 @@ sub _mock_cond ($class, $hits, $info, $observed = undef) {
 
 # Worked example `($a && $b) || $c` with all logop hits and the four observed
 # input vectors from docs/technical/mcdc.md.  Synthesis produces five composite
-# rows; one of them - (1,0,0) - is a cross- product phantom that no test
-# actually executed.  After observed- vector override the phantom must render
+# rows; one of them - (1,0,0) - is a cross-product phantom that no test
+# actually executed.  After observed-vector override the phantom must render
 # covered=0 so the truth-table view agrees with the MC/DC view.
 sub test_truth_table_honours_observed_vectors () {
   my @cond = (
@@ -77,7 +77,7 @@ sub test_truth_table_honours_observed_vectors () {
 
 # A compound decision (>= 3 atomics) with no observed vectors is an unverified
 # cross-product synthesis, so none of its rows may render covered.  This is the
-# Truth_Table-path analog of Condition_table's unproven tables, keeping the
+# Truth_Table-path analogue of Condition_table's unproven tables, keeping the
 # Truth_Table reporters consistent with Html_crisp.
 sub test_void_compound_renders_uncovered () {
   my @cond = (
