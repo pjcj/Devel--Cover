@@ -183,6 +183,11 @@ sub has_select { scalar @Select_re }
     my @coverage = get_coverage();
     %Coverage = map { $_ => 1 } @coverage;
 
+    warn __PACKAGE__
+      . ": mcdc coverage requires condition coverage; "
+      . "no mcdc data will be collected.\n"
+      if $Coverage{mcdc} && !$Coverage{condition} && !$Silent;
+
     my $nopod = "";
     if (!$Pod && exists $Coverage{pod}) {
       delete $Coverage{pod};  # Pod::Coverage unavailable
