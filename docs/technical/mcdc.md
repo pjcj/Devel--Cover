@@ -400,9 +400,9 @@ percentage.
 
 `tests/mcdc_basic` covers the standard short-circuit forms (`&&`, `||`, chained,
 leading negation, and the mixed-precedence worked example). `tests/mcdc_xor`,
-`tests/mcdc_constant_right`, `tests/mcdc_demo`, and `tests/mcdc_signatures`
-exercise the distinct code paths. Internal tests live under `t/internal/mcdc_*`
-and `t/internal/decision_*`.
+`tests/mcdc_constant_right`, `tests/mcdc_demo`, `tests/mcdc_signatures`, and
+`tests/mcdc_wide` exercise the distinct code paths. Internal tests live under
+`t/internal/mcdc_*` and `t/internal/decision_*`.
 
 ### Documentation
 
@@ -423,7 +423,8 @@ USAGE POD in `Devel::Cover::Mcdc`, and a `Changes` entry.
   bound exists because the truth table size grows as 2^N and becomes
   unwieldy. The remedy is to split the decision with an intermediate
   variable, which needs no extra test cases, preserves short-circuiting, and
-  lets every condition be analysed.
+  lets every condition be analysed. `tests/mcdc_wide` covers the behaviour
+  end to end.
 
 - A statement-level logop whose value is discarded records its outer operator as
   a decision only when its right operand is itself a decision. So

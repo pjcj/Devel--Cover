@@ -1,0 +1,209 @@
+cover: Reading database from ...
+cover: MC/DC decision at tests/mcdc_wide:23 has 18 conditions, exceeding the analysis limit of 16
+cover: MC/DC decision at tests/mcdc_wide:41 has 17 conditions, exceeding the analysis limit of 16
+--------------- ------ ------ ------ ------ ------ ------ ------
+File              stmt   bran   cond   mcdc    sub  total   scar
+--------------- ------ ------ ------ ------ ------ ------ ------
+tests/mcdc_wide  100.0    n/a   68.5   10.2  100.0   61.3   40.4
+Total            100.0    n/a   68.5   10.2  100.0   61.3   40.4
+--------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/mcdc_wide
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+36 74.8 56.7 40.4
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SCAR  Location          
+---------- -- ----  ------------------
+wide       18 33.4  tests/mcdc_wide:22
+mixed      18 32.6  tests/mcdc_wide:40
+narrow      2  6.9  tests/mcdc_wide:31
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13                                             # A decision with more than 16 conditions exceeds the MC/DC analysis limit
+14                                             # and must count as 0 of its width with an error flag and note, rather than
+15                                             # being silently excluded and inflating the file percentage.  The narrow
+16                                             # decisions here are fully exercised, so without the limit handling the file
+17                                             # would read mcdc 100.0.
+18                                             
+19                                             # An 18-condition chain: unanalysed, 0/18.  A statement has one COP, so the
+20                                             # wrapped decision's conditions are all keyed to its first line.
+21                                             sub wide {
+22             2                           2     my @v = @_;
+23    ***      2          * 66   *  0            my $r = $v[0] || $v[1] || $v[2] || $v[3] || $v[4] || $v[5] || $v[6]
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+24                                                 || $v[7] || $v[8] || $v[9] || $v[10] || $v[11] || $v[12] || $v[13]
+25                                                 || $v[14] || $v[15] || $v[16] || $v[17];
+26             2                                 $r
+27                                             }
+28                                             
+29                                             # A fully exercised 2-condition decision: MC/DC satisfied.
+30                                             sub narrow {
+31             3                           3     my ($p, $q) = @_;
+32             3           100    100            my $r = $p && $q;
+33             3                                 $r
+34                                             }
+35                                             
+36                                             # A 17-condition decision and a 2-condition decision on the same line: the
+37                                             # limit is per decision, not per line, so only the wide one is unanalysed.
+38                                             # Both statements start on one line so their conditions share a line key.
+39                                             sub mixed {
+40             3                           3     my ($p, $q, @v) = @_;
+41             3           100    100            my $s = $p && $q; my $r = $v[0] || $v[1] || $v[2] || $v[3] || $v[4]
+      ***      3          * 66   *  0          
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+      ***                 * 66                 
+42                                                 || $v[5] || $v[6] || $v[7] || $v[8] || $v[9] || $v[10] || $v[11]
+43                                                 || $v[12] || $v[13] || $v[14] || $v[15] || $v[16];
+44             3                                 ($r, $s)
+45                                             }
+46                                             
+47                                             sub main {
+48             1                           1     my @r;
+49                                             
+50             1                                 push @r, narrow(1, 1);
+51             1                                 push @r, narrow(1, 0);
+52             1                                 push @r, narrow(0, 1);
+53                                             
+54             1                                 push @r, wide((0) x 18);
+55             1                                 push @r, wide(1, (0) x 17);
+56                                             
+57             1                                 push @r, mixed(1, 1, (0) x 17);
+58             1                                 push @r, mixed(1, 0, (0) x 17);
+59             1                                 push @r, mixed(0, 1, 1, (0) x 16);
+60                                             }
+61                                             
+62             1                               main();
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+32           100      1      1      1   $p && $q
+41           100      1      1      1   $p && $q
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+23    ***     66      1      0      1   $v[0] || $v[1] || $v[2] || $v[3] || $v[4] || $v[5] || $v[6] || $v[7] || $v[8] || $v[9] || $v[10] || $v[11] || $v[12] || $v[13] || $v[14] || $v[15] || $v[16] || $v[17]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10] or $v[11] or $v[12] or $v[13] or $v[14] or $v[15] or $v[16]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10] or $v[11] or $v[12] or $v[13] or $v[14] or $v[15]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10] or $v[11] or $v[12] or $v[13] or $v[14]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10] or $v[11] or $v[12] or $v[13]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10] or $v[11] or $v[12]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10] or $v[11]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3] or $v[4]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2] or $v[3]
+      ***     66      1      0      1   $v[0] or $v[1] or $v[2]
+      ***     66      1      0      1   $v[0] or $v[1]
+41    ***     66      1      0      2   $v[0] || $v[1] || $v[2] || $v[3] || $v[4] || $v[5] || $v[6] || $v[7] || $v[8] || $v[9] || $v[10] || $v[11] || $v[12] || $v[13] || $v[14] || $v[15] || $v[16]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10] or $v[11] or $v[12] or $v[13] or $v[14] or $v[15]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10] or $v[11] or $v[12] or $v[13] or $v[14]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10] or $v[11] or $v[12] or $v[13]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10] or $v[11] or $v[12]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10] or $v[11]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9] or $v[10]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8] or $v[9]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7] or $v[8]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6] or $v[7]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5] or $v[6]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4] or $v[5]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3] or $v[4]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2] or $v[3]
+      ***     66      1      0      2   $v[0] or $v[1] or $v[2]
+      ***     66      1      0      2   $v[0] or $v[1]
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+23    ***      0    0   18   too many conditions    $v[0] || $v[1] || $v[2] || $v[3] || $v[4] || $v[5] || $v[6] || $v[7] || $v[8] || $v[9] || $v[10] || $v[11] || $v[12] || $v[13] || $v[14] || $v[15] || $v[16] || $v[17]
+32           100    2    2                          $p && $q
+41           100    2    2                          $p && $q
+      ***      0    0   17   too many conditions    $v[0] || $v[1] || $v[2] || $v[3] || $v[4] || $v[5] || $v[6] || $v[7] || $v[8] || $v[9] || $v[10] || $v[11] || $v[12] || $v[13] || $v[14] || $v[15] || $v[16]
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location          
+---------- ----- --- ----- ------------------
+BEGIN          1   1   0.0 tests/mcdc_wide:10
+BEGIN          1   1   0.0 tests/mcdc_wide:11
+main           1   1   0.0 tests/mcdc_wide:48
+mixed          3  18  32.6 tests/mcdc_wide:40
+narrow         3   2   6.9 tests/mcdc_wide:31
+wide           2  18  33.4 tests/mcdc_wide:22
+
+
