@@ -31,14 +31,9 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Cwd        qw( abs_path );
-use File::Spec ();
-use File::Temp qw( tempdir );
 use Test::More import => [qw( done_testing is is_deeply subtest )];
 
-use Devel::Cover::DB ();
-
-my $Tmpdir = tempdir(CLEANUP => 1);
+use Devel::Cover::Test::Internal qw( write_script run_under_cover );
 
 # Decisions under test.  Each is a genuine multi-condition decision; D1-D3 have
 # four atomic positions (D3 is coupled, reusing $a), D4 is a three-condition
@@ -57,32 +52,6 @@ my %Context = (
   implicit_return => sub ($expr) { "$expr" },
 );
 
-sub write_script ($name, $content) {
-  my $path = File::Spec->catfile($Tmpdir, $name);
-  open my $fh, ">", $path or die "Cannot write $path: $!";
-  print $fh $content;
-  close $fh or die "Cannot close $path: $!";
-  $path
-}
-
-sub run_under_cover ($script, $label) {
-  my $cover_db   = File::Spec->catdir($Tmpdir, "cover_db_$label");
-  my $abs_tmpdir = abs_path($Tmpdir);
-  my @cmd        = (
-    $^X,
-    "-Iblib/lib",
-    "-Iblib/arch",
-    "-MDevel::Cover=-db,$cover_db,-silent,1,"
-      . "-coverage,condition,-coverage,mcdc,+select,$abs_tmpdir",
-    $script,
-  );
-  system(@cmd) == 0 or die "Failed to run script under Devel::Cover: @cmd";
-
-  my $db = Devel::Cover::DB->new(db => $cover_db);
-  $db->merge_runs;
-  ($db, abs_path($script))
-}
-
 # Drive a single decision in a single context across all 16 input tuples, then
 # return its recorded MC/DC table structure as a sorted list of label counts -
 # one entry per recorded table.  A unified four-condition decision yields [4];
@@ -98,7 +67,11 @@ for my \$v (0 .. 15) {
 PERL
 
   my $label = "${op}_${context}";
-  my ($db, $path) = run_under_cover(write_script("$label.pl", $code), $label);
+  my ($db, $path) = run_under_cover(
+    write_script("$label.pl", $code),
+    $label,
+    criteria => [qw( condition mcdc )],
+  );
   my $mcdc = $db->cover->file($path)->{mcdc} // {};
 
   my @counts;
