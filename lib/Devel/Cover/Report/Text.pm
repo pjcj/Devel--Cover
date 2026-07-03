@@ -356,7 +356,8 @@ sub print_mcdc ($db, $file, $) {
     for my $m ($mcdc->location($location)->@*) {
       my $missing = $m->unanalysed ? "too many conditions" : join ", ",
         $m->missing->@*;
-      printf $tpl, $n ? "" : $location, $m->error ? "***" : "", $m->percentage,
+      printf $tpl, $n ? "" : $location, $m->error ? "***" : "",
+        ($m->uncoverable ? "-" : "") . sprintf("%3d", $m->percentage),
         $m->covered, $m->total, $missing, $m->text;
       $n++;
     }
