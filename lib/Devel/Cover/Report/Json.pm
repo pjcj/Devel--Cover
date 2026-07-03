@@ -130,10 +130,12 @@ sub _mcdc ($f) {
     my @entries;
     for my $m ($criterion->location($line)->@*) {
       push @entries, {
-          text    => $m->text,
-          labels  => $m->labels,
-          covered => [map $_ + 0, $m->values],
-          error   => $m->error ? 1 : 0,
+          text        => $m->text,
+          labels      => $m->labels,
+          covered     => [map $_ + 0, $m->values],
+          uncoverable =>
+          [map { $m->uncoverable($_) ? 1 : 0 } 0 .. $m->total - 1],
+          error => $m->error ? 1 : 0,
           $m->unanalysed ? (unanalysed => 1) : (),
         };
     }
@@ -339,7 +341,8 @@ Example structure:
                                 "covered": 1 } ] } ] },
         "mcdc":        { "30": [ { "text": "$x && $y",
                                     "labels": ["$x","$y"],
-                                    "covered": [1,0], "error": 1 } ] },
+                                    "covered": [1,0], "uncoverable": [0,0],
+                                    "error": 1 } ] },
         "subroutines": { "50": [ { "name": "frob", "covered": 0,
                                     "uncoverable": 0, "error": 1 } ] },
         "pod":         { "60": [ { "covered": 0, "uncoverable": 0,
