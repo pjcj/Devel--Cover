@@ -22,6 +22,9 @@ sub text      ($self) { $self->[1]{text} }
 sub labels    ($self) { $self->[1]{labels} // [] }
 sub criterion ($self) { "mcdc" }
 
+# True for a decision too wide to analyse; see LIMITATIONS below
+sub unanalysed ($self) { $self->[1]{unanalysed} ? 1 : 0 }
+
 sub covered ($self, $i = undef) {
   defined $i ? $self->[0][$i] : scalar grep $_, $self->[0]->@*
 }
@@ -112,6 +115,25 @@ report.
 Reports show MC/DC in two places: a per-file C<mcdc> percentage column in
 the summary, and a per-decision detail block listing each atomic condition
 whose independence pair was missing.
+
+=head1 LIMITATIONS
+
+A decision with more than 16 conditions exceeds the analysis limit.  Such a
+decision counts as 0 of its width in the percentages and appears in reports
+with an error flag and a "too many conditions" note in place of the
+missing-conditions list.  Generating a report warns, naming the file and
+line; C<-silent> suppresses the warning.  Any C<# uncoverable mcdc> markers
+on such a decision are ignored.
+
+The remedy is to split the decision with an intermediate variable:
+
+ my $r = $c1 || $c2 || ... || $c17 || $c18;          # too wide
+
+ my $left = $c1 || $c2 || ... || $c9;                # analysed
+ my $r    = $left || $c10 || ... || $c18;            # analysed
+
+The split form needs no extra test cases, preserves short-circuiting, and
+lets every condition be analysed.
 
 =head1 SEE ALSO
 

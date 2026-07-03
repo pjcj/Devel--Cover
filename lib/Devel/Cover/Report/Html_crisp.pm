@@ -536,12 +536,17 @@ sub render_mcdc_detail ($mcdc) {
       . '<div class="head"><span>MC/DC</span>'
       . _summary_text($m->{covered}, $m->{total})
       . qq(</div>\n<div class="body">\n)
-      . qq(<div class="expr">$m->{text}</div>\n)
-      . qq(<div class="mcdc-atomics">\n);
-    for my $a ($m->{atomics}->@*) {
-      $o .= qq(<span class="mcdc-pill $a->{class}">$a->{label}</span>\n);
+      . qq(<div class="expr">$m->{text}</div>\n);
+    if ($m->{unanalysed}) {
+      $o .= qq(<div class="mcdc-note">too many conditions</div>\n);
+    } else {
+      $o .= qq(<div class="mcdc-atomics">\n);
+      for my $a ($m->{atomics}->@*) {
+        $o .= qq(<span class="mcdc-pill $a->{class}">$a->{label}</span>\n);
+      }
+      $o .= "</div>\n";
     }
-    $o .= "</div>\n</div>\n</div>\n";
+    $o .= "</div>\n</div>\n";
   }
   $o
 }
@@ -981,8 +986,11 @@ sub line_mcdc ($f, $n) {
       covered    => $m->covered,
       total      => $m->total,
       error      => $m->error,
+      unanalysed => $m->unanalysed,
       class      => class($m->percentage, $m->error, "mcdc"),
-      atomics    => [
+      atomics    => $m->unanalysed
+      ? []
+      : [
         map { {
           label   => encode_entities($labels[$_] // ""),
           covered => $vals[$_] ? 1    : 0,
@@ -1929,6 +1937,13 @@ td.chevron {
   border-radius: 12px;
   font-family: var(--font-code);
   font-size: var(--font-size-small);
+}
+
+.mcdc-note {
+  margin-top: 6px;
+  font-size: var(--font-size-small);
+  font-style: italic;
+  color: var(--fg-muted);
 }
 
 /* Minimap */

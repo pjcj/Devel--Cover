@@ -411,9 +411,19 @@ USAGE POD in `Devel::Cover::Mcdc`, and a `Changes` entry.
 
 ## Limitations
 
-- Decisions with more than 16 atomic conditions are skipped by
-  `Condition_table::for_line`; MC/DC inherits that limit. The bound exists
-  because the truth table size grows as 2^N and becomes unwieldy.
+- Decisions with more than 16 atomic conditions are not analysed. The limit
+  is per decision, enforced on both sides: `Condition_table::for_line`
+  (`$Max_width`) returns a `too_wide` stub table with labels but no rows, and
+  the XS recorder (`DC_MAX_DECISION_WIDTH`) records no input vectors for such
+  decisions. `DB::_derive_mcdc` reports the decision as 0 of its width with an
+  `unanalysed` flag, warns at report time naming the file and line (silenced
+  by `-silent`), and ignores any `# uncoverable mcdc` markers on it, with a
+  warning of its own. Reporters show "too many conditions" in place of the
+  missing-conditions list, and the JSON report carries `"unanalysed": 1`. The
+  bound exists because the truth table size grows as 2^N and becomes
+  unwieldy. The remedy is to split the decision with an intermediate
+  variable, which needs no extra test cases, preserves short-circuiting, and
+  lets every condition be analysed.
 
 - A statement-level logop whose value is discarded records its outer operator as
   a decision only when its right operand is itself a decision. So

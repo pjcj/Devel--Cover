@@ -80,6 +80,11 @@ sub print_mcdc ($db, $file, $) {
   for my $location (sort { $a <=> $b } $mcdc->items) {
     for my $m ($mcdc->location($location)->@*) {
       next unless $m->error;
+      if ($m->unanalysed) {
+        print "Unanalysed MC/DC decision (too many conditions) ",
+          "at $file line $location: ", $m->text, "\n";
+        next;
+      }
       print "Uncovered MC/DC pair (", join(", ", $m->missing->@*),
         ") at $file line $location: ", $m->text, "\n";
     }

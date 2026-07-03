@@ -110,6 +110,17 @@ sub test_missing_excludes_marked () {
   is_deeply $m->missing, ['$a'], "missing omits columns marked uncoverable";
 }
 
+sub test_unanalysed_flag () {
+  my $m = bless [[0, 0], { text => '$a && $b', unanalysed => 1 }],
+    "Devel::Cover::Mcdc";
+  is $m->unanalysed, 1, "unanalysed true when flagged";
+}
+
+sub test_unanalysed_default () {
+  my $m = mcdc([1, 0]);
+  is $m->unanalysed, 0, "unanalysed false when not flagged";
+}
+
 sub main () {
   test_total_counts_columns;
   test_covered_counts_satisfied_columns;
@@ -126,6 +137,8 @@ sub main () {
   test_error_flags_covered_but_marked;
   test_fully_marked_decision_has_no_error;
   test_missing_excludes_marked;
+  test_unanalysed_flag;
+  test_unanalysed_default;
   done_testing;
 }
 

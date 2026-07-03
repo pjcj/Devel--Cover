@@ -1051,7 +1051,9 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
   require Devel::Cover::Condition_table;
   require Devel::Cover::Mcdc::Analyser;
 
-  while (my ($file, $cf) = each %$cover) {
+  # Sorted iteration keeps the too-wide warnings deterministic
+  for my $file (sort keys %$cover) {
+    my $cf = $cover->{$file};
     my $cc = $cf->{condition} or next;
     next if exists $cf->{mcdc};
 
@@ -1059,12 +1061,29 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
     my $unc    = $digest && $uncoverable->{$digest}{mcdc};
 
     my %mcdc;
-    for my $line (keys %$cc) {
+    for my $line (sort { $a <=> $b } keys %$cc) {
       my @loc      = $cc->{$line}->@* or next;
       my @observed = map observed_vectors($_), @loc;
       my @tables   = Devel::Cover::Condition_table->for_line(\@loc, \@observed);
       for my $n (0 .. $#tables) {
         my $table = $tables[$n];
+
+        # Too wide to analyse: 0 of its width, flagged, warned about here
+        if ($table->too_wide) {
+          my @labels = $table->labels;
+          my $limit  = Devel::Cover::Condition_table->max_width;
+          dcwarn "MC/DC decision at $file:$line has " . @labels
+            . " conditions, exceeding the analysis limit of $limit";
+          dcwarn "Ignoring uncoverable mcdc at $file:$line: "
+            . "the decision exceeds the analysis limit"
+            if $unc && $unc->{$line}[$n];
+          push $mcdc{$line}->@*, [
+              [(0) x @labels],
+              { text => $table->expr, labels => \@labels, unanalysed => 1 },
+            ];
+          next;
+        }
+
         my $r     = Devel::Cover::Mcdc::Analyser->analyse($table);
         my $total = $r->{total};
         my $pairs = $r->{pairs};
