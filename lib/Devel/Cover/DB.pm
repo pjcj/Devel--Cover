@@ -17,7 +17,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 use Devel::Cover::Criterion ();
 use Devel::Cover::DB::File  ();
 use Devel::Cover::DB::IO    ();
-use Devel::Cover::Log       qw( dcinfo );
+use Devel::Cover::Log       qw( dcinfo dcwarn );
 
 use Carp         qw( carp croak );
 use File::Find   qw( find );
@@ -918,8 +918,8 @@ sub _uncoverable_details ($criterion, $info, $file, $line) {
   if ($info =~ /pair:(\d+)/) {
     if ($1) { $type = $1 - 1 }
     else {
-      warn "Invalid pair:$1 (pairs are numbered from 1) parsing "
-        . "uncoverable $criterion at $file:$line\n";
+      dcwarn "Invalid pair:$1 (pairs are numbered from 1) parsing "
+        . "uncoverable $criterion at $file:$line";
       return;
     }
   }
@@ -1107,9 +1107,9 @@ sub _mcdc_uncoverable ($unc, $file, $line, $n, $total) {
     } elsif ($col >= 0 && $col < $total) {
       $uncov[$col] = $flag;
     } else {
-      warn "Ignoring uncoverable mcdc pair:"
+      dcwarn "Ignoring uncoverable mcdc pair:"
         . ($col + 1)
-        . " out of range (1..$total) at $file:$line\n";
+        . " out of range (1..$total) at $file:$line";
     }
   }
   \@uncov

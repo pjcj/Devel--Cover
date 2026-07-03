@@ -9,6 +9,7 @@
 
 # "# uncoverable mcdc pair:N" is 1-based.  pair:0 and columns past the
 # decision's width must warn and be ignored, never abort the report (GH-496).
+# The warnings go through dcwarn, so -silent suppresses them.
 
 use 5.20.0;
 use warnings;
@@ -27,17 +28,34 @@ use Devel::Cover::DB ();
 
 my $Tmpdir = tempdir(CLEANUP => 1);
 
+{
+  no feature "signatures";
+
+  # Warnings go to STDERR via dcwarn, not through perl's warn.
+  sub warnings_from (&) {
+    my ($code) = @_;
+    my $err = "";
+    open my $save_err, ">&", \*STDERR or die "Cannot dup STDERR: $!";
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">", \$err or die "Cannot redirect STDERR: $!";
+    $code->();
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">&", $save_err or die "Cannot restore STDERR: $!";
+    [split /(?<=\n)/, $err]
+  }
+}
+
 sub parse_comments ($source) {
   my $path = File::Spec->catfile($Tmpdir, "source.pl");
   open my $fh, ">", $path or die "Cannot write $path: $!";
   print $fh $source;
   close $fh or die "Cannot close $path: $!";
 
-  my $unc = {};
-  my @warnings;
-  local $SIG{__WARN__} = sub { push @warnings, $_[0] };
-  Devel::Cover::DB->new->uncoverable_comments($unc, $path, "digest");
-  ($unc, \@warnings, $path)
+  my $unc      = {};
+  my $warnings = warnings_from {
+    Devel::Cover::DB->new->uncoverable_comments($unc, $path, "digest");
+  };
+  ($unc, $warnings, $path)
 }
 
 sub test_pair_zero_is_rejected () {
@@ -64,14 +82,15 @@ PERL
 }
 
 sub mcdc_uncoverable ($marks, $total) {
-  my @warnings;
-  local $SIG{__WARN__} = sub { push @warnings, $_[0] };
-  my $uncov = do {
+  my $uncov;
+  my $warnings = warnings_from {
+    $uncov = do {
 
-    package Devel::Cover::DB;
-    _mcdc_uncoverable({ 7 => [$marks] }, "source.pl", 7, 0, $total)
+      package Devel::Cover::DB;
+      _mcdc_uncoverable({ 7 => [$marks] }, "source.pl", 7, 0, $total)
+    };
   };
-  ($uncov, \@warnings)
+  ($uncov, $warnings)
 }
 
 sub test_out_of_range_column_warns () {
@@ -94,10 +113,30 @@ sub test_bare_marker_marks_all_columns () {
   is_deeply $uncov, ["default", "default"], "bare marker: every column marked";
 }
 
+sub test_pair_zero_warning_respects_silent () {
+  local $Devel::Cover::Silent = 1;
+  my ($unc, $warnings) = parse_comments(<<'PERL');
+my ($a, $b) = (1, 1);
+# uncoverable mcdc pair:0
+my $r = $a && $b;
+PERL
+  is @$warnings, 0, "pair:0 silent: no warning";
+  ok !exists $unc->{digest}{mcdc}, "pair:0 silent: marker still ignored";
+}
+
+sub test_out_of_range_warning_respects_silent () {
+  local $Devel::Cover::Silent = 1;
+  my ($uncov, $warnings) = mcdc_uncoverable([[5, "default", ""]], 2);
+  is @$warnings, 0, "out of range silent: no warning";
+  ok !(grep defined, @$uncov), "out of range silent: no column marked";
+}
+
 test_pair_zero_is_rejected;
 test_pair_one_is_recorded;
 test_out_of_range_column_warns;
 test_negative_column_warns;
 test_bare_marker_marks_all_columns;
+test_pair_zero_warning_respects_silent;
+test_out_of_range_warning_respects_silent;
 
 done_testing;
