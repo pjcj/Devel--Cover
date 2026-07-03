@@ -701,8 +701,8 @@ coverage is missing.
 =item json
 
 A detailed JSON report containing per-line, per-criterion coverage data
-(statements, branches, conditions, condition truth tables, subroutines, pod)
-plus per-file metadata.  See L<Devel::Cover::Report::Json>.
+(statements, branches, conditions, condition truth tables, mcdc, subroutines,
+pod) plus per-file metadata.  See L<Devel::Cover::Report::Json>.
 
 =item json_summary
 
@@ -740,14 +740,14 @@ multiple times.
 
 Specify C<-coverage> options to report on specific criteria.  By default all
 available information on all criteria in all files will be reported. Available
-coverage options are statement, branch, condition, mcdc, subroutine, pod, and
-default (which equates to all available options).  The C<mcdc> criterion reports
-Modified Condition/Decision Coverage and is derived from the condition truth
-tables, so collecting C<condition> is a prerequisite. However, if you know you
-only want coverage information for certain criteria it is better to only collect
-data for those criteria in the first place by specifying them at that point.
-This will make the data collection and reporting processes faster and less
-memory intensive.  See the documentation for L<Devel::Cover> for more
+coverage options are statement, branch, condition, mcdc, subroutine, pod, time,
+and default (which equates to all available options).  The C<mcdc> criterion
+reports Modified Condition/Decision Coverage and is derived from the condition
+truth tables, so collecting C<condition> is a prerequisite.  However, if you
+know you only want coverage information for certain criteria it is better to
+only collect data for those criteria in the first place by specifying them at
+that point.  This will make the data collection and reporting processes faster
+and less memory intensive.  See the documentation for L<Devel::Cover> for more
 information.
 
 If you want all *except* some criteria, then you can say something like

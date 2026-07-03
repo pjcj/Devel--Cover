@@ -183,6 +183,11 @@ sub has_select { scalar @Select_re }
     my @coverage = get_coverage();
     %Coverage = map { $_ => 1 } @coverage;
 
+    warn __PACKAGE__
+      . ": mcdc coverage requires condition coverage; "
+      . "no mcdc data will be collected.\n"
+      if $Coverage{mcdc} && !$Coverage{condition} && !$Silent;
+
     my $nopod = "";
     if (!$Pod && exists $Coverage{pod}) {
       delete $Coverage{pod};  # Pod::Coverage unavailable
@@ -1552,8 +1557,8 @@ measure of quality.
 Devel::Cover is now quite stable and provides many of the features to be
 expected in a useful coverage tool.
 
-Statement, branch, condition, subroutine, and pod coverage information is
-reported.  Statement and subroutine coverage data should be accurate.  Branch
+Statement, branch, condition, MC/DC, subroutine, and pod coverage information
+is reported.  Statement and subroutine coverage data should be accurate.  Branch
 and condition coverage data should be mostly accurate too, although not always
 what one might initially expect.  Pod coverage comes from L<Pod::Coverage>. If
 L<Pod::Coverage::CountParents> is available it will be used instead.

@@ -89,7 +89,8 @@ C<error>) for reporting.
 
 MC/DC is a parallel criterion alongside C<condition>.  It derives from the
 condition truth tables already collected by the existing runtime
-instrumentation, so no new XS data collection is required.
+instrumentation, supplemented by a per-execution input-vector recorder in the
+XS runtime; no condition collection is duplicated.
 
 See L<Devel::Cover::Tutorial/2.5 Modified condition/decision coverage> for an
 introduction to the metric and a worked example, and
@@ -109,8 +110,8 @@ C<mcdc> on the command line:
 
 MC/DC is derived from the condition truth tables collected at runtime.
 C<condition> must therefore be active at collection time; selecting C<mcdc>
-alone leaves no condition data to analyse and produces an empty MC/DC
-report.
+alone warns at startup, leaves no condition data to analyse and produces an
+empty MC/DC report.
 
 Reports show MC/DC in two places: a per-file C<mcdc> percentage column in
 the summary, and a per-decision detail block listing each atomic condition
@@ -134,6 +135,17 @@ The remedy is to split the decision with an intermediate variable:
 
 The split form needs no extra test cases, preserves short-circuiting, and
 lets every condition be analysed.
+
+A decision evaluated in void context records only its boolean outcome, so its
+truth table cannot be verified against observed input vectors and it is
+reported as 0% MC/DC even when the tests exercise every combination.  This
+includes a decision returned as a sub's last expression when every call to
+the sub discards the result.
+
+A statement-level logop whose value is discarded is recorded as a decision
+only when its right operand is itself a decision: C<($a && $b) || ($c && $d)>
+is analysed, but in C<($a && $b) || $c> the outer C<||> stays a branch.  In
+value context the outer operator is always recorded.
 
 =head1 SEE ALSO
 
