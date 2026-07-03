@@ -1,0 +1,129 @@
+cover: Reading database from ...
+------------------ ------ ------ ------ ------ ------ ------ ------
+File                 stmt   bran   cond   mcdc    sub  total   scar
+------------------ ------ ------ ------ ------ ------ ------ ------
+tests/mcdc_coupled  100.0    n/a   88.8   75.0  100.0   92.3   19.5
+Total               100.0    n/a   88.8   75.0  100.0   92.3   19.5
+------------------ ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/mcdc_coupled
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 7 94.9  7.0 19.5
+
+Worst Subroutines
+-----------------
+
+Subroutine      CC SCAR  Location             
+--------------- -- ----  ---------------------
+coupled_partial  4 14.0  tests/mcdc_coupled:27
+coupled          4 13.9  tests/mcdc_coupled:19
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13                                             # A coupled decision - the same atomic condition appearing more than once -
+14                                             # builds a single table whose repeated columns unique-cause can never
+15                                             # demonstrate, so crediting them exercises hybrid's masking fallback.
+16                                             
+17                                             # Fully exercised: the masking fallback finds pairs for both $a columns.
+18                                             sub coupled {
+19             4                           4     my ($a, $b, $c) = @_;
+20             4           100    100            my $r = ($a && $b) || ($a && $c);
+                           100                 
+                           100                 
+21             4                                 $r
+22                                             }
+23                                             
+24                                             # Never called with a false $a: both coupled columns stay missing while
+25                                             # $b and $c are satisfied.
+26                                             sub coupled_partial {
+27             3                           3     my ($a, $b, $c) = @_;
+28    ***      3           100   * 50            my $r = ($a && $b) || ($a && $c);
+      ***                 * 66                 
+      ***                 * 66                 
+29             3                                 $r
+30                                             }
+31                                             
+32                                             sub main {
+33             1                           1     my @r;
+34                                             
+35             1                                 push @r, coupled(1, 1, 0);
+36             1                                 push @r, coupled(1, 0, 1);
+37             1                                 push @r, coupled(1, 0, 0);
+38             1                                 push @r, coupled(0, 0, 0);
+39                                             
+40             1                                 push @r, coupled_partial(1, 1, 0);
+41             1                                 push @r, coupled_partial(1, 0, 1);
+42             1                                 push @r, coupled_partial(1, 0, 0);
+43                                             }
+44                                             
+45             1                               main();
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+20           100      1      2      1   $a and $b
+             100      1      1      1   $a and $c
+28    ***     66      0      2      1   $a and $b
+      ***     66      0      1      1   $a and $c
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+20           100      1      1      2   $a && $b || $a && $c
+28           100      1      1      1   $a && $b || $a && $c
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+20           100    4    4                          $a && $b || $a && $c
+28    ***     50    2    4   $a, $a                 $a && $b || $a && $c
+
+
+Covered Subroutines
+-------------------
+
+Subroutine      Count  CC  SCAR Location             
+--------------- ----- --- ----- ---------------------
+BEGIN               1   1   0.0 tests/mcdc_coupled:10
+BEGIN               1   1   0.0 tests/mcdc_coupled:11
+coupled             4   4  13.9 tests/mcdc_coupled:19
+coupled_partial     3   4  14.0 tests/mcdc_coupled:27
+main                1   1   0.0 tests/mcdc_coupled:33
+
+
