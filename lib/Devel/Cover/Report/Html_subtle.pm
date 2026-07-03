@@ -250,7 +250,7 @@ sub print_mcdc ($db, $file, $options) {
       my @vals   = $m->values;
       my @labels = $m->labels->@*;
 
-      my $atomics = join " ",
+      my $atomics = $m->unanalysed ? "<em>too many conditions</em>" : join " ",
           map qq(<span class="@{[ $vals[$_] ? "covered" : "uncovered" ]}">)
         . encode_entities($labels[$_] // "")
         . "</span>", 0 .. $#vals;

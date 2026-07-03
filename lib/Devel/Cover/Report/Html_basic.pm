@@ -266,7 +266,10 @@ sub print_mcdc () {
           number     => $count == 1 ? $location : "",
           percentage => $m->percentage,
           class      => class($m->percentage, $m->error, "mcdc"),
-          atomics    => [
+          note       => $m->unanalysed ? "too many conditions" : "",
+          atomics    => $m->unanalysed
+          ? []
+          : [
             map +{
               label => encode_entities($labels[$_] // ""),
               class => $vals[$_] ? "c3" : "c0",
@@ -754,8 +757,12 @@ $Templates{mcdc} = <<'HTML';
       </td>
       <td class="[% decision.class %]"> [% decision.percentage %] </td>
       <td>
-        [% FOREACH atom = decision.atomics %]
-          <span class="[% atom.class %]"> [% atom.label %] </span>
+        [% IF decision.note %]
+          <em> [% decision.note %] </em>
+        [% ELSE %]
+          [% FOREACH atom = decision.atomics %]
+            <span class="[% atom.class %]"> [% atom.label %] </span>
+          [% END %]
         [% END %]
       </td>
       <td class="s"> [% decision.text %] </td>

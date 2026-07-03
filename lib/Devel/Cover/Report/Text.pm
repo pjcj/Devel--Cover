@@ -354,8 +354,10 @@ sub print_mcdc ($db, $file, $) {
   for my $location (sort { $a <=> $b } $mcdc->items) {
     my $n = 0;
     for my $m ($mcdc->location($location)->@*) {
+      my $missing = $m->unanalysed ? "too many conditions" : join ", ",
+        $m->missing->@*;
       printf $tpl, $n ? "" : $location, $m->error ? "***" : "", $m->percentage,
-        $m->covered, $m->total, join(", ", $m->missing->@*), $m->text;
+        $m->covered, $m->total, $missing, $m->text;
       $n++;
     }
   }

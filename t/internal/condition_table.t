@@ -314,18 +314,90 @@ sub test_independent_conditions () {
   is_deeply \@exprs, ['$a && $b', '$x || $y'], "both expressions present";
 }
 
-# > 16 conditions returns empty list
-sub test_too_many_conditions () {
-  my @conditions = map {
-    mock_condition(
-      "Condition_and_3",
-      [1, 1, 1],
-      { type => "and_3", left => "\$a$_", op => "&&", right => "\$b$_" },
-    )
-  } 1 .. 17;
+# Chain of $n atomics ($x1 && $x2 && ... && $xn): n-1 and_3 records whose
+# left strings accumulate, matching how Devel::Cover records a chain.
+sub chain_conditions ($n, $prefix) {
+  my @atoms = map "\$$prefix$_", 1 .. $n;
+  my @conditions;
+  my $left = $atoms[0];
+  for my $i (1 .. $n - 1) {
+    push @conditions,
+      mock_condition(
+        "Condition_and_3",
+        [1, 1, 1],
+        { type => "and_3", left => $left, op => "&&", right => $atoms[$i] },
+      );
+    $left = "$left && $atoms[$i]";
+  }
+  @conditions
+}
+
+# A decision with more than 16 atomic conditions is too wide to analyse:
+# for_line returns a stub table flagged too_wide, with labels (so consumers
+# know the width) but no rows.
+sub test_too_wide_decision () {
+  my @conditions = chain_conditions(17, "a");
 
   my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
-  is @tables, 0, "> 16 conditions returns empty";
+  is @tables, 1, "too wide: one table";
+
+  my $t = $tables[0];
+  ok $t->too_wide, "too wide: flagged";
+  ok !$t->proven,  "too wide: not proven";
+
+  my @rows = $t->rows;
+  is @rows, 0, "too wide: no rows";
+
+  my @labels = $t->labels;
+  is @labels,  17, "too wide: labels carry the width";
+  is $t->expr, join(" && ", map "\$a$_", 1 .. 17), "too wide: expr text";
+}
+
+# Exactly 16 atomic conditions is within the limit.
+sub test_exactly_16_atomics () {
+  my @conditions = chain_conditions(16, "a");
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is @tables, 1, "16 atomics: one table";
+  ok !$tables[0]->too_wide, "16 atomics: not too wide";
+
+  my @labels = $tables[0]->labels;
+  is @labels, 16, "16 atomics: all labels present";
+
+  my @rows = $tables[0]->rows;
+  is @rows, 17, "16 atomics: rows built";
+}
+
+# The cap is per decision, not per line: two 10-atomic decisions sharing a
+# line (18 condition records, more than the old per-line cap) must both be
+# analysed.
+sub test_two_decisions_one_line () {
+  my @conditions = (chain_conditions(10, "a"), chain_conditions(10, "b"));
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is @tables, 2, "two decisions on one line: two tables";
+  for my $t (@tables) {
+    ok !$t->too_wide, "decision @{[$t->expr]} not too wide";
+    my @rows = $t->rows;
+    is @rows, 11, "decision @{[$t->expr]} rows built";
+  }
+}
+
+# A too-wide decision and a narrow one on the same line: only the wide one
+# becomes a stub.
+sub test_wide_and_narrow_one_line () {
+  my @conditions = (chain_conditions(17, "a"), chain_conditions(2, "b"));
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is @tables, 2, "wide+narrow: two tables";
+
+  my ($wide)   = grep { $_->too_wide } @tables;
+  my ($narrow) = grep { !$_->too_wide } @tables;
+  ok $wide,   "wide+narrow: wide table flagged";
+  ok $narrow, "wide+narrow: narrow table analysed";
+
+  my @rows = $narrow ? $narrow->rows : ();
+  is @rows, 3, "wide+narrow: narrow rows built";
 }
 
 # undef in hit counts (Devel::Cover can produce these)
@@ -1131,7 +1203,10 @@ sub main () {
   test_composite_or_and;
   test_deep_and_chain;
   test_independent_conditions;
-  test_too_many_conditions;
+  test_too_wide_decision;
+  test_exactly_16_atomics;
+  test_two_decisions_one_line;
+  test_wide_and_narrow_one_line;
   test_undef_hits;
   test_unknown_type;
   test_single_input_with_subexpr;

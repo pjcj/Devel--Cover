@@ -18,7 +18,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use Test::More import => [qw( done_testing is )];
 
-use Devel::Cover::Log qw( dcerror dcinfo dcprogress );
+use Devel::Cover::Log qw( dcerror dcinfo dcprogress dcwarn );
 
 {
   no feature "signatures";
@@ -69,6 +69,20 @@ sub test_dcerror_not_silenced () {
   is $err, "cover: oops\n", "dcerror silent: still emitted - not guarded";
 }
 
+sub test_dcwarn_writes_to_stderr () {
+  local $Devel::Cover::Silent = 0;
+  my ($out, $err) = capture { dcwarn "beware" };
+  is $out, "",                "dcwarn: nothing on STDOUT";
+  is $err, "cover: beware\n", "dcwarn: prefixed message on STDERR";
+}
+
+sub test_dcwarn_silenced () {
+  local $Devel::Cover::Silent = 1;
+  my ($out, $err) = capture { dcwarn "beware" };
+  is $out, "", "dcwarn silent: nothing on STDOUT";
+  is $err, "", "dcwarn silent: nothing on STDERR";
+}
+
 sub test_dcprogress_writes_to_stderr () {
   local $Devel::Cover::Silent = 0;
   my ($out, $err) = capture { dcprogress "step 1" };
@@ -109,6 +123,8 @@ test_dcinfo_writes_to_stderr;
 test_dcinfo_silenced;
 test_dcerror_writes_to_stderr;
 test_dcerror_not_silenced;
+test_dcwarn_writes_to_stderr;
+test_dcwarn_silenced;
 test_dcprogress_writes_to_stderr;
 test_dcprogress_silenced;
 test_prefix_override;

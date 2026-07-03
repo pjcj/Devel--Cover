@@ -1,0 +1,62 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+# A decision with more than 16 conditions exceeds the MC/DC analysis limit
+# and must count as 0 of its width with an error flag and note, rather than
+# being silently excluded and inflating the file percentage.  The narrow
+# decisions here are fully exercised, so without the limit handling the file
+# would read mcdc 100.0.
+
+# An 18-condition chain: unanalysed, 0/18.  A statement has one COP, so the
+# wrapped decision's conditions are all keyed to its first line.
+sub wide {
+  my @v = @_;
+  my $r = $v[0] || $v[1] || $v[2] || $v[3] || $v[4] || $v[5] || $v[6]
+    || $v[7] || $v[8] || $v[9] || $v[10] || $v[11] || $v[12] || $v[13]
+    || $v[14] || $v[15] || $v[16] || $v[17];
+  $r
+}
+
+# A fully exercised 2-condition decision: MC/DC satisfied.
+sub narrow {
+  my ($p, $q) = @_;
+  my $r = $p && $q;
+  $r
+}
+
+# A 17-condition decision and a 2-condition decision on the same line: the
+# limit is per decision, not per line, so only the wide one is unanalysed.
+# Both statements start on one line so their conditions share a line key.
+sub mixed {
+  my ($p, $q, @v) = @_;
+  my $s = $p && $q; my $r = $v[0] || $v[1] || $v[2] || $v[3] || $v[4]
+    || $v[5] || $v[6] || $v[7] || $v[8] || $v[9] || $v[10] || $v[11]
+    || $v[12] || $v[13] || $v[14] || $v[15] || $v[16];
+  ($r, $s)
+}
+
+sub main {
+  my @r;
+
+  push @r, narrow(1, 1);
+  push @r, narrow(1, 0);
+  push @r, narrow(0, 1);
+
+  push @r, wide((0) x 18);
+  push @r, wide(1, (0) x 17);
+
+  push @r, mixed(1, 1, (0) x 17);
+  push @r, mixed(1, 0, (0) x 17);
+  push @r, mixed(0, 1, 1, (0) x 16);
+}
+
+main();

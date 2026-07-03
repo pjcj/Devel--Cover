@@ -22,9 +22,9 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use Test::More import => [qw( done_testing is is_deeply ok subtest )];
 
-use Devel::Cover::DB             ();
-use Devel::Cover::Mcdc           ();
-use Devel::Cover::Test::Internal qw( write_script run_under_cover );
+use Devel::Cover::DB             ();  ## no perlimports
+use Devel::Cover::Mcdc           ();  ## no perlimports
+use Devel::Cover::Test::Internal qw( run_under_cover write_script );
 
 # A mock condition entry matching the structure Devel::Cover produces:
 #   [0] hit counts per outcome, [1] {type, left, op, right}, [2] uncoverable
@@ -304,6 +304,29 @@ PERL
     "array-element chain records a three-level cascaded short-circuit";
 }
 
+# A decision wider than the analysis limit records no input vectors;
+# a narrow decision alongside it is unaffected.
+sub test_too_wide_decision_records_nothing () {
+  my @vars   = map "\$v$_", 1 .. 17;
+  my $args   = join ", ", ("1") x 17;
+  my $script = write_script("too_wide.pl", <<PERL);
+sub wide { my (@{[ join ", ", @vars ]}) = \@_; my \$r = @{[
+  join " && ", @vars ]}; \$r }
+wide($args);
+sub two { my (\$p, \$q) = \@_; my \$r = \$p && \$q; \$r }
+two(1, 0);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "too_wide");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for too_wide";
+
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "only the narrow decision records vectors";
+  is_deeply $recorded[0], { "1|0" => 1 },
+    "the narrow decision's vector is unaffected";
+}
+
 sub test_add_condition_cross_run_merge () {
   my $db = bless {}, "Devel::Cover::DB";
   my $cc = {};
@@ -352,6 +375,8 @@ sub main () {
     \&test_sort_block_records_per_invocation;
   subtest "chain cascades record short circuits" =>
     \&test_chain_cascades_record_short_circuits;
+  subtest "too-wide decision records nothing" =>
+    \&test_too_wide_decision_records_nothing;
   subtest "cross-run merge"     => \&test_add_condition_cross_run_merge;
   subtest "xor four-slot merge" => \&test_add_condition_xor_four_slot_merge;
 

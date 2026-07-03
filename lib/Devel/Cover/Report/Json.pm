@@ -134,6 +134,7 @@ sub _mcdc ($f) {
           labels  => $m->labels,
           covered => [map $_ + 0, $m->values],
           error   => $m->error ? 1 : 0,
+          $m->unanalysed ? (unanalysed => 1) : (),
         };
     }
     $out{$line} = \@entries;
@@ -302,6 +303,11 @@ The per-criterion keys are: C<statements>, C<branches>, C<conditions>,
 C<condition_truth_tables>, C<mcdc>, C<subroutines>, C<pod>, C<time>.  Within
 each criterion, keys are source line numbers and values are arrays of coverage
 objects for that line.
+
+An C<mcdc> entry for a decision too wide to analyse (more conditions than the
+per-decision limit) carries C<"unanalysed": 1>; its C<covered> array is all
+zeroes.  The key is absent for analysed decisions, distinguishing "too wide
+to analyse" from "untested".
 
 =back
 

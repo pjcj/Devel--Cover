@@ -444,6 +444,51 @@ sub test_truth_tables_unproven_rows_uncovered () {
   ok !(grep $_->{class} eq "c3", @rows), "no covered colour on unproven rows";
 }
 
+# A too-wide decision (more atomics than the analysis limit) produces a stub
+# table with no rows; the truth-table panel must skip it cleanly, without
+# rendering an empty table or warning on its undefined short_expr.
+sub test_truth_tables_skip_too_wide () {
+  my @cond;
+  my $left = '$v1';
+  for my $i (2 .. 17) {
+    push @cond,
+      _mock_cond(
+        "Condition_or_3",
+        [1, 1, 1],
+        { type => "or_3", left => $left, op => "||", right => "\$v$i" },
+      );
+    $left = "$left || \$v$i";
+  }
+  my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
+
+  my @warnings;
+  local $SIG{__WARN__} = sub { push @warnings, $_[0] };
+  my @tts = Devel::Cover::Report::Html_crisp::line_truth_tables($f, 7);
+  is @tts,      0, "too-wide decision renders no truth table";
+  is @warnings, 0, "no warnings from the stub table";
+}
+
+sub test_mcdc_detail_unanalysed_note () {
+  my $line = {
+    count => 1,
+    mcdc  => [{
+      text       => "wide decision",
+      percentage => 0,
+      covered    => 0,
+      total      => 18,
+      error      => 1,
+      class      => "c0",
+      unanalysed => 1,
+      atomics    => [],
+    }],
+  };
+
+  my $html = Devel::Cover::Report::Html_crisp::render_line_detail($line);
+  like $html, qr/too many conditions/,
+    "unanalysed: note rendered in place of pills";
+  unlike $html, qr/mcdc-pill/, "unanalysed: no atomic pills";
+}
+
 sub test_truth_tables_pass_observed_vectors () {
   my @cond = (
     _mock_cond(
@@ -721,6 +766,8 @@ sub main () {
   test_dir_header_links;
   test_app_js_hash_filter;
   test_truth_tables_unproven_rows_uncovered;
+  test_truth_tables_skip_too_wide;
+  test_mcdc_detail_unanalysed_note;
   test_truth_tables_pass_observed_vectors;
   test_condition_cells_panel;
   test_condition_cells_panel_merges_conditions;

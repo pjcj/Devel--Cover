@@ -523,7 +523,7 @@ sub print_mcdc_report ($db, $file, $opt) {
       my @labels = $m->labels->@*;
       my @cls    = bclass(@vals);
       my $pct    = $m->percentage;
-      my $pills  = join " ",
+      my $pills  = $m->unanalysed ? "<em>too many conditions</em>" : join " ",
           map qq(<span class="$cls[$_]">)
         . escape_HTML($labels[$_] // "")
         . "</span>", 0 .. $#vals;

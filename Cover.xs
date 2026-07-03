@@ -149,9 +149,8 @@ typedef struct {
 #define DC_VECTOR_X     2
 
 /*
- * Matches Devel::Cover::Condition_table::for_line's 16-atomic cap on the Perl
- * side; decisions wider than this are not rendered as truth tables and cannot
- * contribute to MC/DC, so we do not record input vectors for them.
+ * Per-decision analysis limit; matches $Max_width in Condition_table.
+ * Wider decisions record no input vectors - see docs/technical/mcdc.md.
  */
 #define DC_MAX_DECISION_WIDTH 16
 
@@ -1877,7 +1876,8 @@ static void cover_logop(pTHX) {
   } else {
     dSP;
 
-    int leftval_true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
+    int leftval_true_ish = (PL_op->op_type == OP_DOR ||
+                            PL_op->op_type == OP_DORASSIGN)
       ? SvOK(TOPs) : SvTRUE(TOPs);
     /* We don't count X= as void context because we care about the value
      * of the RHS */
@@ -1911,6 +1911,9 @@ static void cover_logop(pTHX) {
         int      leaf_left = dc_meta_iv(aTHX_ meta, "leaf_col_left", 13);
         int      is_entry  = dc_meta_iv(aTHX_ meta, "is_entry",      8) == 1;
         dc_dctx *d;
+
+        /* A too-wide decision records nothing - never push a frame */
+        if (width > DC_MAX_DECISION_WIDTH) width = 0;
 
         dc_stack_discard_stale(aTHX);
         d = dc_stack_find_root(aTHX_ root_addr);
