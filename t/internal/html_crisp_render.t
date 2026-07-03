@@ -386,6 +386,16 @@ sub test_dir_header_links () {
     "dir-header: cell-link hrefs include filter hash";
 }
 
+# The index header and badges must name the criterion "MC/DC", matching the
+# detail panel, not the ucfirst package-ish "Mcdc".
+sub test_mcdc_full_name () {
+  my $got = $Golden{"coverage.html"};
+  like $got, qr|<span class="name-full">MC/DC</span>|,
+    "index header uses MC/DC";
+  unlike $got, qr|<span class="name-full">Mcdc</span>|,
+    "index header does not use Mcdc";
+}
+
 sub test_app_js_hash_filter () {
   my $app_js = slurp(File::Spec->catfile($Outdir, "assets", "app.js"));
   like $app_js, qr/syncHash/,              "app.js: syncHash helper present";
@@ -785,6 +795,7 @@ sub main () {
   test_index_filter_links;
   test_dir_header_links;
   test_app_js_hash_filter;
+  test_mcdc_full_name;
   test_truth_tables_unproven_rows_uncovered;
   test_truth_tables_skip_too_wide;
   test_mcdc_detail_unanalysed_note;

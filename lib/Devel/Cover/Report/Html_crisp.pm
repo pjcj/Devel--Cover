@@ -1227,7 +1227,7 @@ sub report ($pkg, $db, $options) {
     },
     full => do {
       my @c = $db->criteria;
-      +{ (map { $_ => ucfirst } @c), total => "total" }
+      +{ (map { $_ => ucfirst } @c), mcdc => "MC/DC", total => "total" }
     },
     filenames => {
       map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } $options->{file}->@*
