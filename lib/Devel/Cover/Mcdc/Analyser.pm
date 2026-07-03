@@ -68,11 +68,13 @@ sub _pair ($col, $rows, $labels, $label_count) {
 }
 
 sub analyse ($class, $table) {
-  my @labels = $table->labels;
-  my @rows   = grep $_->covered, $table->rows;
-  my @avail  = grep { $_->covered || $_->uncoverable } $table->rows;
+  my @labels     = $table->labels;
+  my @rows       = grep $_->covered,      $table->rows;
+  my @achievable = grep !$_->uncoverable, $table->rows;
+  my @avail      = grep { $_->covered || $_->uncoverable } $table->rows;
 
   my %label_count;
+
   $label_count{$_}++ for @labels;
 
   my %pairs;
@@ -85,10 +87,12 @@ sub analyse ($class, $table) {
       next;
     }
 
-    # No pair among covered rows.  If one exists once uncoverable rows are
-    # allowed, the column can never be demonstrated, so it is excused rather
-    # than counted missing.
-    if (_pair($col, \@avail, \@labels, \%label_count)) {
+    # No pair among covered rows.  A pair among achievable rows is a test gap.
+    # Only a column whose sole pairs need uncoverable rows is excused (see
+    # DESCRIPTION).
+    if (_pair($col, \@achievable, \@labels, \%label_count)) {
+      push @missing, $labels[$col];
+    } elsif (_pair($col, \@avail, \@labels, \%label_count)) {
       $uncoverable{$col} = 1;
     } else {
       push @missing, $labels[$col];
@@ -128,13 +132,40 @@ Devel::Cover::Mcdc::Analyser - MC/DC pair analyser
 
 =head1 DESCRIPTION
 
-Given a L<Devel::Cover::Condition_table::Table> for a single decision, computes
-Modified Condition/Decision Coverage (MC/DC) pairs for each atomic condition.
+Given a table from L<Devel::Cover::Condition_table> for a single decision,
+computes Modified Condition/Decision Coverage (MC/DC) pairs for each atomic
+condition.
 
 The analyser implements hybrid MC/DC: a unique-cause first pass followed by a
 masking fallback for coupled conditions (the same atomic condition appearing
 more than once in a decision).  In typical Perl code, where coupling is rare,
 hybrid behaves like unique-cause.
+
+Each atomic condition is classified against the table's rows in tiers:
+
+=over 4
+
+=item 1
+
+A pair among covered rows: satisfied.
+
+=item 2
+
+Otherwise, a pair among achievable rows (those not marked uncoverable):
+missing - a test gap the user can close.
+
+=item 3
+
+Otherwise, a pair once uncoverable rows are admitted: excused - every route to
+demonstrating the condition's independence needs a row the user has asserted
+cannot occur.  This covers a decision that never executed with every outcome
+marked uncoverable, such as code inside a branch that can never be taken.
+
+=item 4
+
+Otherwise: missing - the condition can never flip the decision's result.
+
+=back
 
 C<analyse> returns a hashref with keys:
 
@@ -156,6 +187,10 @@ was found.
 =item C<missing>
 
 Arrayref of atomic conditions whose independence pair was not demonstrated.
+
+=item C<uncoverable>
+
+Hashref keyed by excused column index (tier 3 above).
 
 =back
 

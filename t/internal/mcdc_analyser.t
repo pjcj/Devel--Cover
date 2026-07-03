@@ -466,6 +466,82 @@ sub test_compound_uncoverable_excuses_column () {
   is_deeply $r->{missing}, [], "compound excuse: nothing missing";
 }
 
+# A column whose independence pair is achievable with more tests must stay
+# missing even when another pair exists through an uncoverable row.  Covered
+# (0,0) plus uncoverable (1,0) would pair $a, but the achievable rows (0,1)
+# and (1,1) also pair it, so it is a test gap, not an excuse.
+sub test_achievable_pair_stays_missing () {
+  my $table = build_synthetic_table(
+    '$a xor $b',
+    ['$a', '$b'],
+    [
+      { inputs => [0, 0], result => 0 },
+      { inputs => [1, 0], result => 1, covered => 0, uncoverable => 1 },
+      { inputs => [0, 1], result => 1, covered => 0 },
+      { inputs => [1, 1], result => 0, covered => 0 },
+    ],
+  );
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is_deeply $r->{missing}, ['$a', '$b'],
+    "achievable pair: both columns are test gaps";
+  is_deeply $r->{uncoverable}, {}, "achievable pair: nothing excused";
+}
+
+# The achievable probe uses the same masking fallback as the covered probe: a
+# coupled column pairable among achievable rows stays missing even though an
+# uncoverable row could also pair it.
+sub test_coupled_achievable_pair_stays_missing () {
+  my $table = build_synthetic_table(
+    '($a && $b) || ($a && $c)',
+    ['$a', '$b', '$a'],
+    [
+      { inputs => [1, 1, 1], result => 1 },
+      { inputs => [0, 1, 0], result => 0, covered => 0 },
+      { inputs => [0, 1, 1], result => 0, covered => 0, uncoverable => 1 },
+    ],
+  );
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is_deeply $r->{missing}, ['$a', '$b', '$a'],
+    "coupled achievable: all columns are test gaps";
+  is_deeply $r->{uncoverable}, {}, "coupled achievable: nothing excused";
+}
+
+# A pair formed from an uncoverable row and an achievable-but-untested row
+# excuses nothing: the achievable row is still a test to write.  Once it is
+# covered the column becomes excused (test_uncoverable_row_excuses_column).
+sub test_uncoverable_pair_needs_covered_row () {
+  my $table = build_synthetic_table(
+    '$a && $b',
+    ['$a', '$b'],
+    [
+      { inputs => [0, "X"], result => 0 },
+      { inputs => [1, 0],   result => 0, covered => 0, uncoverable => 1 },
+      { inputs => [1, 1],   result => 1, covered => 0 },
+    ],
+  );
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is_deeply $r->{missing}, ['$a', '$b'],
+    "mixed pair: both columns still missing";
+  is_deeply $r->{uncoverable}, {}, "mixed pair: nothing excused";
+}
+
+# A decision that never executed with every outcome marked uncoverable - code
+# inside a branch that cannot be taken - is fully excused, not missing.
+sub test_all_uncoverable_never_run_stays_excused () {
+  my @conditions = (mock_condition_unc(
+    "Condition_and_3",
+    [0, 0, 0],
+    { type => "and_3", left => '$a', op => "&&", right => '$b' },
+    [1, 1, 1],
+  ));
+  my ($table) = Devel::Cover::Condition_table->for_line(\@conditions);
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is $r->{satisfied}, 0, "never run: nothing satisfied";
+  is_deeply $r->{missing}, [], "never run: nothing missing";
+  is_deeply [sort keys $r->{uncoverable}->%*], [0, 1],
+    "never run: both columns excused";
+}
+
 sub main () {
   test_api_keys;
   test_uncoverable_row_excuses_column;
@@ -473,6 +549,10 @@ sub main () {
   test_compound_outer_uncoverable_propagates;
   test_compound_uncoverable_excuses_column;
   test_no_pair_even_with_uncoverable_stays_missing;
+  test_achievable_pair_stays_missing;
+  test_coupled_achievable_pair_stays_missing;
+  test_uncoverable_pair_needs_covered_row;
+  test_all_uncoverable_never_run_stays_excused;
   test_const_right_collapsed_observed_vectors;
   test_const_right_or_operator;
   test_const_right_compound_left_observed_vectors;
