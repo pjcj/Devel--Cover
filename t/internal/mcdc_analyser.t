@@ -118,8 +118,8 @@ sub test_or_concrete_only_pair () {
 }
 
 # Build a Condition_table::Table directly from synthetic rows.  Used to test
-# coupled-condition behaviour: real Condition_table construction does not
-# normally produce label collisions, but the analyser must still handle them.
+# coupled-condition behaviour: a coupled decision such as
+# ($a && $b) || ($a && $c) builds one table with a repeated label.
 sub build_synthetic_table ($expr, $labels, $rows) {
   my @row_objects = map {
     Devel::Cover::Condition_table::Row->new(
@@ -343,7 +343,8 @@ sub test_const_right_compound_left_observed_vectors () {
       { type => "or_2", left => '$a && $b', op => "//", right => "{}" },
     ),
   );
-  # Three-element vectors, as a non-skipping perl records for `($a && $b) // {}`:
+  # Three-element vectors, as a non-skipping perl records for
+  # `($a && $b) // {}`:
   #   1|1|X  $a true, $b true  -> left defined, right not evaluated
   #   1|0|X  $a true, $b false -> left defined (false), right not evaluated
   #   0|X|X  $a false          -> left defined (false), right not evaluated

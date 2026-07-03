@@ -49,10 +49,11 @@ like `$a && (!$a || $b)` are tautologies that almost never survive review. So
 for typical Perl code hybrid behaves like unique-cause, while remaining
 well-defined for the unusual cases.
 
-In the current implementation coupling does not reach the analyser at all.
-Decisions are recorded per logop (see Limitations), so repeated atomic
-conditions end up in separate truth tables and the masking fallback is never
-triggered by real code. It remains as defensive code rather than an active path.
+Coupling does reach the analyser. A coupled decision such as
+`($a && $b) || ($a && $c)` is recorded as a single table with a repeated `$a`
+column, and unique-cause can never demonstrate a repeated column, so the
+masking fallback is a live, necessary path for such decisions (see
+Limitations).
 
 Pure masking is over-permissive in a short-circuit language: any execution where
 the left operand short-circuits masks every condition on the right, so under
