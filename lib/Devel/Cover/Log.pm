@@ -19,7 +19,7 @@ use Exporter          qw( import );
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-our @EXPORT_OK = qw( dcinfo dcerror dcprogress );
+our @EXPORT_OK = qw( dcinfo dcerror dcprogress dcwarn );
 our $Prefix    = "cover";
 
 sub dcinfo ($msg) {
@@ -28,6 +28,11 @@ sub dcinfo ($msg) {
 }
 
 sub dcerror ($msg) {
+  print STDERR "$Prefix: $msg\n";
+}
+
+sub dcwarn ($msg) {
+  return if $Devel::Cover::Silent;
   print STDERR "$Prefix: $msg\n";
 }
 
@@ -48,10 +53,11 @@ Devel::Cover::Log - Centralised diagnostic output for Devel::Cover
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Log qw( dcinfo dcerror dcprogress );
+ use Devel::Cover::Log qw( dcinfo dcerror dcprogress dcwarn );
 
  dcinfo "Reading database from $dbname";
  dcerror "Unrecognised output format: $fmt";
+ dcwarn "Ignoring malformed uncoverable comment at $file:$line";
  dcprogress "Rendering $n of $total";
 
  # Tools other than C<cover> can override the prefix:
@@ -79,6 +85,11 @@ C<$Devel::Cover::Silent> is true.
 =item dcerror($msg)
 
 Error message.  Never silenced: errors are always reported.
+
+=item dcwarn($msg)
+
+Warning about a problem in the input or configuration; the requested output
+is still produced.  Silenced when C<$Devel::Cover::Silent> is true.
 
 =item dcprogress($msg)
 
