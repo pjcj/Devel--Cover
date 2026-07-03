@@ -1893,6 +1893,16 @@ An invalid position warns and the marker is ignored: C<pair:0> when the
 comment is parsed, and a position greater than the number of atomic conditions
 in the decision when the report is generated.
 
+Condition markers also feed MC/DC: an atomic condition is excused
+automatically when every route to demonstrating its independence needs a truth
+table row built from an outcome marked C<uncoverable condition>.  Use those
+markers when a particular outcome cannot occur, for example an error state
+that cannot be simulated.  If a pair could still be formed from rows not
+marked uncoverable, the atomic condition is reported missing - a test gap, not
+an excuse.  For a decision that can never execute at all, such as code inside
+a branch that can never be taken, mark the whole decision with the bare
+C<uncoverable mcdc> comment.
+
 As for conditions, the "count" value selects between several decisions on one
 line.
 
