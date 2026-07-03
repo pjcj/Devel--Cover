@@ -1,0 +1,45 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+# A coupled decision - the same atomic condition appearing more than once -
+# builds a single table whose repeated columns unique-cause can never
+# demonstrate, so crediting them exercises hybrid's masking fallback.
+
+# Fully exercised: the masking fallback finds pairs for both $a columns.
+sub coupled {
+  my ($a, $b, $c) = @_;
+  my $r = ($a && $b) || ($a && $c);
+  $r
+}
+
+# Never called with a false $a: both coupled columns stay missing while
+# $b and $c are satisfied.
+sub coupled_partial {
+  my ($a, $b, $c) = @_;
+  my $r = ($a && $b) || ($a && $c);
+  $r
+}
+
+sub main {
+  my @r;
+
+  push @r, coupled(1, 1, 0);
+  push @r, coupled(1, 0, 1);
+  push @r, coupled(1, 0, 0);
+  push @r, coupled(0, 0, 0);
+
+  push @r, coupled_partial(1, 1, 0);
+  push @r, coupled_partial(1, 0, 1);
+  push @r, coupled_partial(1, 0, 0);
+}
+
+main();

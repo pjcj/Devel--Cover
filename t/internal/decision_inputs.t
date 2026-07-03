@@ -86,6 +86,32 @@ PERL
     "four distinct observed vectors, no phantom (1,0,0)";
 }
 
+sub test_coupled_decision_vectors () {
+  my $script = write_script("coupled.pl", <<'PERL');
+my @r;
+sub coupled {
+  my ($a, $b, $c) = @_;
+  push @r, ($a && $b) || ($a && $c);
+}
+coupled(1, 1, 0);
+coupled(1, 0, 1);
+coupled(1, 0, 0);
+coupled(0, 0, 0);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "coupled");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for coupled decision";
+
+  # One root, four columns ($a, $b, $a, $c)
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "exactly one root recorded (outer ||)";
+
+  is_deeply $recorded[0],
+    { "1|1|X|X" => 1, "1|0|1|1" => 1, "1|0|1|0" => 1, "0|X|0|X" => 1 },
+    "coupled columns agree within every observed vector";
+}
+
 sub test_repeated_observation () {
   my $script = write_script("repeated.pl", <<'PERL');
 my @r;
@@ -359,6 +385,7 @@ sub test_add_condition_xor_four_slot_merge () {
 sub main () {
   subtest "simple two-leaf and"    => \&test_simple_and;
   subtest "worked example"         => \&test_worked_example;
+  subtest "coupled decision"       => \&test_coupled_decision_vectors;
   subtest "repeated observation"   => \&test_repeated_observation;
   subtest "no inputs without mcdc" => \&test_no_inputs_without_mcdc;
   subtest "void compound no false coverage" =>

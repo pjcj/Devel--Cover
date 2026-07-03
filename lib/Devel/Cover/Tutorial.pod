@@ -189,13 +189,17 @@ and expression coverage, and they pass against both implementations - so
 the bug is invisible to those metrics.
 
 MC/DC additionally requires a pair of tests that flips C<$unlocked>
-while holding C<$is_owner> and C<$is_admin> compatibly.  The smallest
-such pair is C<(T,T,F)> and C<(T,F,F)>.  Neither is in the four-test
-set above; adding C<(T,T,F)> exposes the bug, because the correct
-implementation returns true (the user owns the unlocked article) while
-the buggy one returns false.
+while holding C<$is_owner> and C<$is_admin> compatibly.  The first
+test, C<(T,T,T)>, already provides the true side: the left operand is
+true, so C<$is_admin> is never evaluated and is masked.  The false side
+needs C<$is_owner> true with a false outcome, forcing C<(T,F,F)>.  That
+test is not in the four-test set above; adding it exposes the bug,
+because the correct implementation returns false (the article is
+locked, no admin override) while the buggy one returns true.
 
 100% MC/DC usually implies 100% expression coverage, but not always.
+The same example is worked through in full, table by table, in
+F<docs/technical/mcdc.md> in the distribution.
 
 =head2 3.0 Other considerations
 
