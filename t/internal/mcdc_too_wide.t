@@ -42,7 +42,7 @@ use Devel::Cover::Test::Internal qw( write_script run_under_cover );
 
 my @Vars = map "\$v$_", 1 .. 18;
 my $Decl = "my (" . join(", ", @Vars) . ") = (0) x 18;";
-my $Wide = "my \$r = " . join(" || ", @Vars) . ";";
+my $Wide = 'my $r = ' . join(" || ", @Vars) . ";";
 
 # The narrow decision is fully exercised, so without the fix the file-level
 # percentage would read 100 while the wide decision is silently excluded.
@@ -78,8 +78,8 @@ sub test_wide_decision_reported_unanalysed () {
 
   ok $wide, "wide decision present in mcdc data";
   is $wide->covered, 0, "wide decision counts 0 of its width";
-  ok $wide->error,       "wide decision carries an error flag";
-  ok $wide->unanalysed,  "wide decision flagged unanalysed";
+  ok $wide->error,      "wide decision carries an error flag";
+  ok $wide->unanalysed, "wide decision flagged unanalysed";
   is $wide->text, join(" || ", @Vars), "wide decision text preserved";
 
   ok $narrow, "narrow decision on the same file still analysed";
@@ -140,6 +140,12 @@ sub pill_re ($report, $var) {
   $re{$report}
 }
 
+sub run_cover (@args) {
+  my $cmd = join " ", $^X, "-Iblib/lib", "-Iblib/arch", "bin/cover", @args,
+    "2>&1";
+  `$cmd`
+}
+
 my %Needs_template = (html_basic => 1, html_subtle => 1);
 
 sub test_html_reports_note_limit () {
@@ -151,8 +157,9 @@ sub test_html_reports_note_limit () {
         return;
       }
       my $outdir = "$db->{db}/$report";
-      my $out    = `$^X -Iblib/lib -Iblib/arch bin/cover -report $report \\
-        -silent -outputdir $outdir $db->{db} 2>&1`;
+      my $out    = run_cover(
+        "-report", $report, "-silent", "-outputdir", $outdir, $db->{db}
+      );
       is $? >> 8, 0, "cover -report $report exits 0";
       my $all = join "", map slurp($_), glob "$outdir/*.html";
       like $all, qr/too many conditions/, "$report notes the limit";
@@ -165,8 +172,7 @@ sub test_html_reports_note_limit () {
 }
 
 sub run_report ($db, $report) {
-  my $out = `$^X -Iblib/lib -Iblib/arch bin/cover -report $report -silent \\
-    $db->{db} 2>&1`;
+  my $out = run_cover("-report", $report, "-silent", $db->{db});
   is $? >> 8, 0, "cover -report $report exits 0";
   $out
 }
@@ -183,7 +189,7 @@ sub test_text_report_notes_limit () {
 sub test_compilation_report_notes_limit () {
   my ($db, $path) = run_wide("too_wide_comp", "$Narrow$Decl\n$Wide\n");
   my $out = run_report($db, "compilation");
-  my $re = qr|Unanalysed MC/DC decision \(too many conditions\)|;
+  my $re  = qr|Unanalysed MC/DC decision \(too many conditions\)|;
   like $out, qr/$re at .* line $Wide_line:/,
     "compilation report emits an unanalysed line";
   unlike $out, qr|Uncovered MC/DC pair \(\$v1|,
@@ -201,20 +207,20 @@ sub test_json_report_carries_flag () {
     };
     my ($db, $path) = run_wide("too_wide_json", "$Narrow$Decl\n$Wide\n");
     my $outdir = "$db->{db}/json";
-    my $out    = `$^X -Iblib/lib -Iblib/arch bin/cover -report json \\
-      -silent -outputdir $outdir $db->{db} 2>&1`;
+    my $out    = run_cover("-report", "json", "-silent", "-outputdir", $outdir,
+      $db->{db});
     is $? >> 8, 0, "cover -report json exits 0";
 
-    my $json = JSON::MaybeXS->new(utf8 => 1)
-      ->decode(slurp("$outdir/cover.json"));
-    my ($f)  = grep { $_->{mcdc} } values $json->{files}->%*;
+    my $json
+      = JSON::MaybeXS->new(utf8 => 1)->decode(slurp("$outdir/cover.json"));
+    my ($f) = grep { $_->{mcdc} } values $json->{files}->%*;
     ok $f, "json has a file with mcdc data";
-    my @decisions = map { $_->@* } values $f->{mcdc}->%*;
+    my @decisions = map  { $_->@* } values $f->{mcdc}->%*;
     my ($wide)    = grep { $_->{covered}->@* == 18 } @decisions;
     my ($narrow)  = grep { $_->{covered}->@* == 2 } @decisions;
-    ok $wide, "wide decision present in json";
+    ok $wide,               "wide decision present in json";
     ok $wide->{unanalysed}, "wide decision flagged unanalysed in json";
-    ok $narrow, "narrow decision present in json";
+    ok $narrow,             "narrow decision present in json";
     ok !exists $narrow->{unanalysed},
       "narrow decision carries no unanalysed key";
   };
