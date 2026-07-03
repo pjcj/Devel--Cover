@@ -1032,11 +1032,8 @@ sub read_source ($file) {
   my @all_lines = <$fh>;
   close $fh or die "Can't close $file: $!\n";
 
-  if ($Have_highlighter) {
-    my @hl = highlight($R{options}{option}, @all_lines);
-    @all_lines = @hl if @hl;
-  }
-  @all_lines
+  my @hl = $Have_highlighter ? highlight($R{options}{option}, @all_lines) : ();
+  @hl ? @hl : map encode_entities($_), @all_lines
 }
 
 sub build_source_lines ($file) {
