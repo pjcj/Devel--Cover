@@ -86,10 +86,10 @@ line  err      %     !l  l&&!r   l&&r   expr
 MC/DC
 -----
 
-line  err      %  cov  tot   missing                expr
------ --- ------ ---- ----   --------------------   ----
-5            100    2    2                          $x and $x == 2
-11           100    2    2                          $x and $x == 2
+line  err      %  cov  tot   missing                         expr
+----- --- ------ ---- ----   -----------------------------   ----
+5            100    2    2                                   $x and $x == 2
+11           100    2    2                                   $x and $x == 2
 17    ***      0    0    4   $x, $x == 2, $x == 2, $x == 2   $x and $x == 2 and $x == 2 and $x == 2
 
 

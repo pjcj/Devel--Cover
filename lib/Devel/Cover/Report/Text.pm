@@ -347,20 +347,28 @@ sub print_mcdc ($db, $file, $) {
   say "MC/DC";
   say "-----\n";
 
-  my $tpl = "%-5s %3s %6s %4s %4s   %-20s   %s\n";
-  printf $tpl, "line",  "err", "%",      "cov",  "tot",  "missing", "expr";
-  printf $tpl, "-----", "---", "------", "----", "----", "-" x 20,  "----";
-
+  my @rows;
   for my $location (sort { $a <=> $b } $mcdc->items) {
     my $n = 0;
     for my $m ($mcdc->location($location)->@*) {
       my $missing = $m->unanalysed ? "too many conditions" : join ", ",
         $m->missing->@*;
-      printf $tpl, $n ? "" : $location, $m->error ? "***" : "",
-        ($m->uncoverable ? "-" : "") . sprintf("%3d", $m->percentage),
-        $m->covered, $m->total, $missing, $m->text;
-      $n++;
+      push @rows, [$n++ ? "" : $location, $m, $missing];
     }
+  }
+
+  my $w = 20;
+  for (@rows) { $w = length $_->[2] if length $_->[2] > $w }
+
+  my $tpl = "%-5s %3s %6s %4s %4s   %-${w}s   %s\n";
+  printf $tpl, "line",  "err", "%",      "cov",  "tot",  "missing", "expr";
+  printf $tpl, "-----", "---", "------", "----", "----", "-" x $w,  "----";
+
+  for my $r (@rows) {
+    my ($location, $m, $missing) = @$r;
+    printf $tpl, $location, $m->error ? "***" : "",
+      ($m->uncoverable ? "-" : "") . sprintf("%3d", $m->percentage),
+      $m->covered, $m->total, $missing, $m->text;
   }
 
   say "\n";
