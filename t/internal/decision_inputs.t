@@ -20,15 +20,16 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [qw( done_testing is is_deeply ok subtest )];
+use Test::More import => [qw( done_testing is is_deeply ok subtest unlike )];
 
 use Devel::Cover::DB             ();  ## no perlimports
 use Devel::Cover::Mcdc           ();  ## no perlimports
 use Devel::Cover::Test::Internal qw( run_under_cover write_script );
 
 # A mock condition entry matching the structure Devel::Cover produces:
-#   [0] hit counts per outcome, [1] {type, left, op, right}, [2] uncoverable
-#   markers per outcome.
+#   [0] hit counts per outcome
+#   [1] {type, left, op, right}
+#   [2] uncoverable markers per outcome.
 sub mock_condition ($class, $hits, $info, $unc = undef) {
   bless [$hits, $info, $unc], "Devel::Cover::$class"
 }
@@ -76,8 +77,8 @@ PERL
   my $di = decision_inputs_for($db, $path);
   ok $di, "decision_inputs present for worked example";
 
-  # Find the entry recording the outer || root (3 columns; 4 distinct
-  # observed vectors).  Inner && entries have no decision_inputs.
+  # Find the entry recording the outer || root (3 columns; 4 distinct observed
+  # vectors).  Inner && entries have no decision_inputs.
   my @recorded = grep defined, @$di;
   is @recorded, 1, "exactly one root recorded (outer ||)";
 
@@ -110,6 +111,32 @@ PERL
   is_deeply $recorded[0],
     { "1|1|X|X" => 1, "1|0|1|1" => 1, "1|0|1|0" => 1, "0|X|0|X" => 1 },
     "coupled columns agree within every observed vector";
+}
+
+# On perls that do not fold a constant left operand (5.28-era), the recorder
+# must still give it a column: the table always does, and a width disagreement
+# surfaces as a short-vector warning at derivation time.
+sub test_left_constant_width_parity () {
+  my $script = write_script("left_const.pl", <<'PERL');
+sub f { my ($b) = @_; my $r = (undef // $b) && 1; $r }
+f(1);
+f(0);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "left_const");
+
+  my $err = "";
+  {
+    open my $save, ">&", \*STDERR or die "Cannot dup STDERR: $!";
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">", \$err or die "Cannot redirect STDERR: $!";
+    $db->cover;
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">&", $save or die "Cannot restore STDERR: $!";
+  }
+
+  unlike $err, qr|Ignoring short MC/DC vector|,
+    "recorded vectors are as wide as the table";
 }
 
 sub test_repeated_observation () {
@@ -208,10 +235,9 @@ sub test_unproven_ignores_derived_uncoverable () {
     "every atomic of an unproven table is reported missing";
 }
 
-# The recorder must record one accurate vector per completed evaluation
-# and nothing for abandoned ones.  A die out of a decision abandons its
-# frame; the next execution must not inherit the aborted execution's
-# column values.
+# The recorder must record one accurate vector per completed evaluation and
+# nothing for abandoned ones.  A die out of a decision abandons its frame; the
+# next execution must not inherit the aborted execution's column values.
 sub test_die_discards_abandoned_evaluation () {
   my $script = write_script("die_mid_decision.pl", <<'PERL');
 sub f { die "boom" }
@@ -230,8 +256,8 @@ PERL
     "aborted evaluation records nothing; completed one is not contaminated";
 }
 
-# Recursion through the same decision must record one vector per
-# invocation, not merge the inner invocation into the outer's frame.
+# Recursion through the same decision must record one vector per invocation, not
+# merge the inner invocation into the outer's frame.
 sub test_recursion_records_each_invocation () {
   my $script = write_script("recursive_decision.pl", <<'PERL');
 sub r { my ($n) = @_; my $v = ($n <= 0) || r($n - 1); $v }
@@ -248,9 +274,8 @@ PERL
     "outer and inner invocations each record their own vector";
 }
 
-# A decision resolving while an abandoned inner frame is still on the
-# stack must be counted once, and the abandoned frame must record
-# nothing.
+# A decision resolving while an abandoned inner frame is still on the stack must
+# be counted once, and the abandoned frame must record nothing.
 sub test_abandoned_inner_frame_not_double_counted () {
   my $script = write_script("abandoned_inner.pl", <<'PERL');
 sub f { die "x" }
@@ -267,10 +292,10 @@ PERL
   is_deeply $recorded[0], { "0|0" => 1 }, "outer vector counted exactly once";
 }
 
-# A decision ending a sort comparator resolves via the deferred path;
-# each comparator invocation must record its own vector rather than
-# blending values across invocations.  The ternary keeps the || classified
-# as a condition rather than a statement-level branch.
+# A decision ending a sort comparator resolves via the deferred path; each
+# comparator invocation must record its own vector rather than blending values
+# across invocations.  The ternary keeps the || classified as a condition rather
+# than a statement-level branch.
 sub test_sort_block_records_per_invocation () {
   my $script = write_script("sort_block.pl", <<'PERL');
 my $numeric = 1;
@@ -294,10 +319,10 @@ PERL
     "each comparator invocation records its own vector";
 }
 
-# A short-circuit deep in a chain resolves the whole decision in one
-# jump.  The recorder must still snapshot the vector when the chain's
-# operands are element accesses, whose optree roots are nulled ops, and
-# when the cascade spans more than two logops.
+# A short-circuit deep in a chain resolves the whole decision in one jump.  The
+# recorder must still snapshot the vector when the chain's operands are element
+# accesses, whose optree roots are nulled ops, and when the cascade spans more
+# than two logops.
 sub test_chain_cascades_record_short_circuits () {
   my $script = write_script("chain_cascade.pl", <<'PERL');
 sub h3 { my %h = @_; my $r = $h{a} || $h{b} || $h{c}; $r }
@@ -330,8 +355,8 @@ PERL
     "array-element chain records a three-level cascaded short-circuit";
 }
 
-# A decision wider than the analysis limit records no input vectors;
-# a narrow decision alongside it is unaffected.
+# A decision wider than the analysis limit records no input vectors; a narrow
+# decision alongside it is unaffected.
 sub test_too_wide_decision_records_nothing () {
   my @vars   = map "\$v$_", 1 .. 17;
   my $args   = join ", ", ("1") x 17;
@@ -383,11 +408,12 @@ sub test_add_condition_xor_four_slot_merge () {
 }
 
 sub main () {
-  subtest "simple two-leaf and"    => \&test_simple_and;
-  subtest "worked example"         => \&test_worked_example;
-  subtest "coupled decision"       => \&test_coupled_decision_vectors;
-  subtest "repeated observation"   => \&test_repeated_observation;
-  subtest "no inputs without mcdc" => \&test_no_inputs_without_mcdc;
+  subtest "simple two-leaf and"        => \&test_simple_and;
+  subtest "worked example"             => \&test_worked_example;
+  subtest "coupled decision"           => \&test_coupled_decision_vectors;
+  subtest "left constant width parity" => \&test_left_constant_width_parity;
+  subtest "repeated observation"       => \&test_repeated_observation;
+  subtest "no inputs without mcdc"     => \&test_no_inputs_without_mcdc;
   subtest "void compound no false coverage" =>
     \&test_void_compound_no_false_coverage;
   subtest "unproven ignores derived uncoverable" =>

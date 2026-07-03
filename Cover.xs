@@ -1466,10 +1466,10 @@ static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
   OP *right_op  = dc_skipped_operand(aTHX_ op, 1);
   int left_col, right_col;
 
+  /* A constant left operand keeps its column: _build_labels always gives the
+   * left operand one, and the widths must agree */
   if (left_op && dc_is_logop_type(left_op->op_type)) {
     next_col = dc_enumerate_columns(aTHX_ cache, left_op, root, next_col);
-    left_col = -1;
-  } else if (left_op && dc_is_const_leaf(aTHX_ left_op)) {
     left_col = -1;
   } else {
     left_col = next_col++;
