@@ -988,14 +988,15 @@ sub line_mcdc ($f, $n) {
       error      => $m->error,
       unanalysed => $m->unanalysed,
       class      => class($m->percentage, $m->error, "mcdc"),
-      atomics    => $m->unanalysed
-      ? []
-      : [
-        map { {
-          label   => encode_entities($labels[$_] // ""),
-          covered => $vals[$_] ? 1    : 0,
-          class   => $vals[$_] ? "c3" : "c0",
-        } } 0 .. $#vals
+      atomics    => $m->unanalysed ? [] : [
+        map {
+          my $unc = $m->uncoverable($_);
+          {
+            label   => encode_entities(($unc ? "-" : "") . ($labels[$_] // "")),
+            covered => $vals[$_]         ? 1    : 0,
+            class   => $vals[$_] || $unc ? "c3" : "c0",
+          }
+        } 0 .. $#vals
       ],
     }
   } @$loc

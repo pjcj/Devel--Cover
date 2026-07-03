@@ -263,21 +263,22 @@ sub print_mcdc () {
       my @labels = $m->labels->@*;
 
       push @decisions, {
-          number     => $count == 1 ? $location : "",
-          percentage => $m->percentage,
-          class      => class($m->percentage, $m->error, "mcdc"),
-          note       => $m->unanalysed ? "too many conditions" : "",
-          atomics    => $m->unanalysed
-          ? []
-          : [
-            map +{
-              label => encode_entities($labels[$_] // ""),
-              class => $vals[$_] ? "c3" : "c0",
-            },
-            0 .. $#vals,
-          ],
-          text => $text,
-        };
+        number     => $count == 1 ? $location : "",
+        percentage => $m->percentage,
+        class      => class($m->percentage, $m->error, "mcdc"),
+        note       => $m->unanalysed ? "too many conditions" : "",
+        atomics    => $m->unanalysed ? []                    : [
+          map {
+            my $unc = $m->uncoverable($_);
+            +{
+              label =>
+                encode_entities(($unc ? "-" : "") . ($labels[$_] // "")),
+              class => $vals[$_] || $unc ? "c3" : "c0",
+            }
+          } 0 .. $#vals,
+        ],
+        text => $text,
+      };
     }
   }
 
