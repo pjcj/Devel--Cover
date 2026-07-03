@@ -489,6 +489,26 @@ sub test_mcdc_detail_unanalysed_note () {
   unlike $html, qr/mcdc-pill/, "unanalysed: no atomic pills";
 }
 
+# A decision whose missing column is excused by an uncoverable marker has
+# error 0, so the panel badge must show the covered class even though
+# covered != total, agreeing with the source row's class.
+sub test_mcdc_detail_excused_badge () {
+  my $html = Devel::Cover::Report::Html_crisp::render_mcdc_detail([{
+    text       => '$always &amp;&amp; $b',
+    percentage => 50,
+    covered    => 1,
+    total      => 2,
+    error      => 0,
+    unanalysed => 0,
+    atomics    => [
+      { label => '-$always', covered => 0, class => "c3" },
+      { label => '$b',       covered => 1, class => "c3" },
+    ],
+  }]);
+  like $html,   qr|summary-text c3|, "excused decision: badge class is c3";
+  unlike $html, qr|summary-text c0|, "excused decision: no error badge";
+}
+
 sub test_truth_tables_pass_observed_vectors () {
   my @cond = (
     _mock_cond(
@@ -768,6 +788,7 @@ sub main () {
   test_truth_tables_unproven_rows_uncovered;
   test_truth_tables_skip_too_wide;
   test_mcdc_detail_unanalysed_note;
+  test_mcdc_detail_excused_badge;
   test_truth_tables_pass_observed_vectors;
   test_condition_cells_panel;
   test_condition_cells_panel_merges_conditions;

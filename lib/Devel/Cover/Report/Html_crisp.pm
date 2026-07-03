@@ -400,10 +400,10 @@ sub scar_class ($scar) {
   $scar < 16 ? "c3" : $scar < 34 ? "c2" : $scar < 41 ? "c1" : "c0"
 }
 
-sub _summary_text ($covered, $total) {
+sub _summary_text ($covered, $total, $error = undef, $criterion = "condition") {
   return "" unless $total;
   my $pc  = int(100 * $covered / $total);
-  my $cls = class($pc, $covered != $total, "condition");
+  my $cls = class($pc, $error // $covered != $total, $criterion);
   qq(<span class="summary-text $cls">$pc%)
     . qq(<span class="count">$covered/$total</span></span>)
 }
@@ -534,7 +534,7 @@ sub render_mcdc_detail ($mcdc) {
     $o
       .= qq(<div class="detail mcdc-detail">\n)
       . '<div class="head"><span>MC/DC</span>'
-      . _summary_text($m->{covered}, $m->{total})
+      . _summary_text($m->{covered}, $m->{total}, $m->{error}, "mcdc")
       . qq(</div>\n<div class="body">\n)
       . qq(<div class="expr">$m->{text}</div>\n);
     if ($m->{unanalysed}) {
