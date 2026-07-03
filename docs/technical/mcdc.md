@@ -256,8 +256,9 @@ condition coverage:
    so `not($a) && $b` and parenthesised forms link correctly to their parent
    decision.
 
-4. **Reporter rendering** of the composite tables in `Html_minimal`,
-   `Html_subtle`, `Html_crisp`, `Text2`, and `Json`.
+4. **Reporter rendering** of the composite tables in `Html_crisp`, the only
+   reporter that consumes `Condition_table`; the other reporters still render
+   per-logop condition tables via the legacy `Truth_Table`.
 
 MC/DC adds the analysis on top of this shared base, a criterion class to compute
 a percentage and flag missing pairs, and the per-execution input-vector recorder
@@ -273,7 +274,9 @@ interface is separate:
 
 - `mcdc` is a distinct entry in `@Devel::Cover::DB::Criteria`.
 - A separate flag bit selects it in `Cover.xs`.
-- `cover -coverage mcdc` enables it independently of `-coverage condition`.
+- `cover -coverage mcdc` selects it by name, although `condition` must also be
+  collected: MC/DC derives from the condition truth tables, and selecting
+  `mcdc` alone warns at startup and collects nothing (see Limitations).
 - Reports show MC/DC as its own column with its own percentage.
 
 The reasoning:
@@ -285,8 +288,8 @@ The reasoning:
   MC/DC opt-in.
 - Existing CI thresholds on condition coverage do not silently change meaning
   when MC/DC is added.
-- Industry tools (gcov `--mcdc`, LDRA, VectorCAST) report MC/DC as a separate
-  metric alongside condition coverage.
+- Industry tools (gcov `--conditions`, llvm-cov `--show-mcdc`, LDRA,
+  VectorCAST) report MC/DC as a separate metric alongside condition coverage.
 
 ## Per-decision input-vector recording
 
@@ -296,11 +299,13 @@ composite decisions. The composite truth table for
 rows and the outer `||`'s rows: every cross-product row is marked covered iff
 each sub-decision's row was hit at least once. But the cross-product mixes rows
 from different test executions. The misplaced-negation bug in the worked example
-survives synthesis-only analysis - the buggy implementation hits the inner `&&`
-row `(1,0)` on Test 2 and the outer `||` row `(0,X,0)` on Test 4, which the
-cross-product synthesises into a phantom `(T,F,F)` row that no test actually
-executed. The analyser, seeing the phantom row as covered, then reports the
-buggy implementation as MC/DC-satisfied.
+survives synthesis-only analysis. In the buggy implementation the inner `&&` is
+`($is_owner && !$unlocked)`: Test 1 hits its `(1,0)` row (`$is_owner` true,
+`!$unlocked` false) and Test 4 hits the outer `||`'s `(0,X,0)` row, and the
+cross-product joins them into a phantom `(T,T,F)` row (in input terms, with
+result F) that no test actually executed. Pairing that phantom with Test 2's
+observed `(T,F,X)` (result T) demonstrates `$unlocked`'s independence, so the
+analyser reports the buggy implementation as MC/DC-satisfied.
 
 Audit-grade MC/DC therefore needs per-execution combined-input data. `Cover.xs`
 records each decision's input vector at runtime: a small stack
@@ -329,6 +334,12 @@ observed-vector hashes; when present, each synthesised row is marked `covered=1`
 iff its input vector matches an observed key. Synthesised rows the runtime never
 executed keep `covered=0` so the truth-table renderer still draws them - users
 see the unobserved combinations as "rendered but not hit" rather than vanishing.
+
+A compound table whose rows remain an unverified synthesis - no observed
+vectors were applied - is marked unproven, and `DB::_derive_mcdc` zeroes its
+MC/DC coverage: an honest 0%, never a false pass. Void-context decisions are
+rebuilt without observed vectors and so always report unproven. The precise
+`proven` rule is specified in the `Devel::Cover::Condition_table` POD.
 
 The runtime recorder requires `Devel::Cover::Mcdc` to be loaded as a criterion
 subclass during Devel::Cover's bootstrap (via `Criterion.pm`'s runtime require
@@ -411,6 +422,10 @@ MC/DC is documented here, with a user-facing section 2.5 in `Tutorial.pod`,
 USAGE POD in `Devel::Cover::Mcdc`, and a `Changes` entry.
 
 ## Limitations
+
+- MC/DC derives from the condition truth tables, so `condition` must be
+  collected for `mcdc` to produce data. Selecting `mcdc` without `condition`
+  warns at startup and produces an empty MC/DC report.
 
 - Decisions with more than 16 atomic conditions are not analysed. The limit
   is per decision, enforced on both sides: `Condition_table::for_line`
