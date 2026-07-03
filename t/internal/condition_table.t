@@ -349,7 +349,7 @@ sub test_too_wide_decision () {
   is @rows, 0, "too wide: no rows";
 
   my @labels = $t->labels;
-  is @labels, 17, "too wide: labels carry the width";
+  is @labels,  17, "too wide: labels carry the width";
   is $t->expr, join(" && ", map "\$a$_", 1 .. 17), "too wide: expr text";
 }
 

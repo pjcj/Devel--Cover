@@ -108,8 +108,8 @@ articles.
 These four tests achieve:
 
 - 100% statement coverage.
-- 100% branch coverage (the outer decision goes both ways: tests 1-3 → T; test 4
-  → F).
+- 100% branch coverage (the outer decision goes both ways: tests 1-3 → T;
+  test 4 → F).
 - 100% condition coverage. Between them the four tests cover every row of the
   outer `||`'s `or_3` table (`l`, `!l && r`, `!l && !r`) and every row of the
   inner `&&`'s `and_3` table (`l && r`, `l && !r`, `!l`).

@@ -22,9 +22,9 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use Test::More import => [qw( done_testing is is_deeply ok subtest )];
 
-use Devel::Cover::DB             ();
-use Devel::Cover::Mcdc           ();
-use Devel::Cover::Test::Internal qw( write_script run_under_cover );
+use Devel::Cover::DB             ();  ## no perlimports
+use Devel::Cover::Mcdc           ();  ## no perlimports
+use Devel::Cover::Test::Internal qw( run_under_cover write_script );
 
 # A mock condition entry matching the structure Devel::Cover produces:
 #   [0] hit counts per outcome, [1] {type, left, op, right}, [2] uncoverable
@@ -307,8 +307,8 @@ PERL
 # A decision wider than the analysis limit records no input vectors;
 # a narrow decision alongside it is unaffected.
 sub test_too_wide_decision_records_nothing () {
-  my @vars = map "\$v$_", 1 .. 17;
-  my $args = join ", ", ("1") x 17;
+  my @vars   = map "\$v$_", 1 .. 17;
+  my $args   = join ", ", ("1") x 17;
   my $script = write_script("too_wide.pl", <<PERL);
 sub wide { my (@{[ join ", ", @vars ]}) = \@_; my \$r = @{[
   join " && ", @vars ]}; \$r }

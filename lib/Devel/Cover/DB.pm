@@ -25,11 +25,9 @@ use File::Path   qw( rmtree );
 use List::Util   qw( any );
 use Scalar::Util qw( blessed reftype );
 
-use Devel::Cover::Dumper qw( Dumper );  # For debugging
-
 my $Has_term_size = eval { require Term::Size };
 
-my $DB = "cover.15";                    # Version of the database
+my $DB = "cover.15";  # Version of the database
 
 @Devel::Cover::DB::Criteria
   = (qw( statement branch condition mcdc subroutine pod time ));

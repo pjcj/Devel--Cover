@@ -22,7 +22,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use Test::More import => [qw( done_testing is like ok subtest unlike )];
 
-use Devel::Cover::Test::Internal qw( write_script run_under_cover );
+use Devel::Cover::Test::Internal qw( run_under_cover write_script );
 
 {
   no feature "signatures";

@@ -1876,7 +1876,8 @@ static void cover_logop(pTHX) {
   } else {
     dSP;
 
-    int leftval_true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
+    int leftval_true_ish = (PL_op->op_type == OP_DOR ||
+                            PL_op->op_type == OP_DORASSIGN)
       ? SvOK(TOPs) : SvTRUE(TOPs);
     /* We don't count X= as void context because we care about the value
      * of the RHS */
