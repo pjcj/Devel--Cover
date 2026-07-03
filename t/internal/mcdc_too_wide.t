@@ -140,19 +140,27 @@ sub pill_re ($report, $var) {
   $re{$report}
 }
 
+my %Needs_template = (html_basic => 1, html_subtle => 1);
+
 sub test_html_reports_note_limit () {
   my ($db, $path) = run_wide("too_wide_html", "$Narrow$Decl\n$Wide\n");
   for my $report (qw( html_basic html_minimal html_subtle html_crisp )) {
-    my $outdir = "$db->{db}/$report";
-    my $out    = `$^X -Iblib/lib -Iblib/arch bin/cover -report $report \\
-      -silent -outputdir $outdir $db->{db} 2>&1`;
-    is $? >> 8, 0, "cover -report $report exits 0";
-    my $all = join "", map slurp($_), glob "$outdir/*.html";
-    like $all, qr/too many conditions/, "$report notes the limit";
-    like $all, pill_re($report, '$x'),
-      "$report renders the narrow decision's pills";
-    unlike $all, pill_re($report, '$v5'),
-      "$report renders no atomic pill for the wide decision";
+    subtest $report => sub {
+      if ($Needs_template{$report} && !eval { require Template; 1 }) {
+        Test::More::plan(skip_all => "Template not available");
+        return;
+      }
+      my $outdir = "$db->{db}/$report";
+      my $out    = `$^X -Iblib/lib -Iblib/arch bin/cover -report $report \\
+        -silent -outputdir $outdir $db->{db} 2>&1`;
+      is $? >> 8, 0, "cover -report $report exits 0";
+      my $all = join "", map slurp($_), glob "$outdir/*.html";
+      like $all, qr/too many conditions/, "$report notes the limit";
+      like $all, pill_re($report, '$x'),
+        "$report renders the narrow decision's pills";
+      unlike $all, pill_re($report, '$v5'),
+        "$report renders no atomic pill for the wide decision";
+    };
   }
 }
 
