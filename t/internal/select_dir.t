@@ -59,13 +59,17 @@ sub test_scan () {
   my $db    = Devel::Cover::DB->new(db => $cover_db);
   my @files = sort $db->files;
 
-  is @files, 8, "exactly eight files found";
+  is @files, 12, "exactly twelve files found";
   ok grep(/Covered\/Calc\.pm$/,      @files), "Covered/Calc.pm in files";
   ok grep(/Covered\/Full\.pm$/,      @files), "Covered/Full.pm in files";
+  ok grep(/Covered\/Logic\.pm$/,     @files), "Covered/Logic.pm in files";
+  ok grep(/Covered\/Markers\.pm$/,   @files), "Covered/Markers.pm in files";
   ok grep(/Covered\/Trivial\.pm$/,   @files), "Covered/Trivial.pm in files";
   ok grep(/Covered\/Utils\.pm$/,     @files), "Covered/Utils.pm in files";
   ok grep(/Uncovered\/Calc\.pm$/,    @files), "Uncovered/Calc.pm in files";
   ok grep(/Uncovered\/Full\.pm$/,    @files), "Uncovered/Full.pm in files";
+  ok grep(/Uncovered\/Logic\.pm$/,   @files), "Uncovered/Logic.pm in files";
+  ok grep(/Uncovered\/Markers\.pm$/, @files), "Uncovered/Markers.pm in files";
   ok grep(/Uncovered\/Trivial\.pm$/, @files), "Uncovered/Trivial.pm in files";
   ok grep(/Uncovered\/Utils\.pm$/,   @files), "Uncovered/Utils.pm in files";
   ok !grep(/blib/,                   @files), "blib files excluded";
@@ -130,12 +134,16 @@ sub test_text_report () {
     ? [
       "Uncovered/Calc.pm  0.0  0.0  0.0  0.0  0.0  24.8",
       "Uncovered/Full.pm  0.0  0.0  0.0  0.0  0.0  37.4",
+      "Uncovered/Logic.pm  0.0  0.0  0.0  0.0  0.0  24.8",
+      "Uncovered/Markers.pm  0.0  0.0  0.0  0.0  0.0  17.9",
       "Uncovered/Trivial.pm  0.0  n/a  n/a  0.0  0.0  6.9",
       "Uncovered/Utils.pm  0.0  0.0  n/a  0.0  0.0  17.9",
     ]
     : [
       "Uncovered/Calc.pm  -  -  -  -  -  -",
       "Uncovered/Full.pm  -  -  -  -  -  -",
+      "Uncovered/Logic.pm  -  -  -  -  -  -",
+      "Uncovered/Markers.pm  -  -  -  -  -  -",
       "Uncovered/Trivial.pm  -  -  -  -  -  -",
       "Uncovered/Utils.pm  -  -  -  -  -  -",
     ];

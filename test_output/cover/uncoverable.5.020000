@@ -136,10 +136,10 @@ MC/DC
 
 line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
-18             0    0    2                          $x and not $y
-27             0    0    2                          not $x and $y
-52             0    0    2                          $x > 0 and $y > 0
-57             0    0    2                          $x < 2 and $y < 0
+18          -  0    0    2                          $x and not $y
+27          -  0    0    2                          not $x and $y
+52          -  0    0    2                          $x > 0 and $y > 0
+57          -  0    0    2                          $x < 2 and $y < 0
 
 
 Uncovered Subroutines

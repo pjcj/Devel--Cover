@@ -521,11 +521,12 @@ sub print_mcdc_report ($db, $file, $opt) {
     for my $m (@$loc) {
       my @vals   = $m->values;
       my @labels = $m->labels->@*;
-      my @cls    = bclass(@vals);
+      my @unc    = map $m->uncoverable($_), 0 .. $#vals;
+      my @cls    = map bclass($vals[$_] || $unc[$_]), 0 .. $#vals;
       my $pct    = $m->percentage;
       my $pills  = $m->unanalysed ? "<em>too many conditions</em>" : join " ",
           map qq(<span class="$cls[$_]">)
-        . escape_HTML($labels[$_] // "")
+        . escape_HTML(($unc[$_] ? "-" : "") . ($labels[$_] // ""))
         . "</span>", 0 .. $#vals;
 
       printf $out $fmt, $n++ > 0 ? "" : qq(<a id="L$line">$line</a>),

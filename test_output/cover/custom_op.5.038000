@@ -83,8 +83,8 @@ line  err      %     !l  l&&!r   l&&r   expr
 MC/DC
 -----
 
-line  err      %  cov  tot   missing                expr
------ --- ------ ---- ----   --------------------   ----
+line  err      %  cov  tot   missing                    expr
+----- --- ------ ---- ----   ------------------------   ----
 33    ***      0    0    2   <custom op>, <custom op>   <custom op> && <custom op>
 
 

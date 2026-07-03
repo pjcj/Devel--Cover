@@ -400,10 +400,10 @@ sub scar_class ($scar) {
   $scar < 16 ? "c3" : $scar < 34 ? "c2" : $scar < 41 ? "c1" : "c0"
 }
 
-sub _summary_text ($covered, $total) {
+sub _summary_text ($covered, $total, $error = undef, $criterion = "condition") {
   return "" unless $total;
   my $pc  = int(100 * $covered / $total);
-  my $cls = class($pc, $covered != $total, "condition");
+  my $cls = class($pc, $error // $covered != $total, $criterion);
   qq(<span class="summary-text $cls">$pc%)
     . qq(<span class="count">$covered/$total</span></span>)
 }
@@ -534,7 +534,7 @@ sub render_mcdc_detail ($mcdc) {
     $o
       .= qq(<div class="detail mcdc-detail">\n)
       . '<div class="head"><span>MC/DC</span>'
-      . _summary_text($m->{covered}, $m->{total})
+      . _summary_text($m->{covered}, $m->{total}, $m->{error}, "mcdc")
       . qq(</div>\n<div class="body">\n)
       . qq(<div class="expr">$m->{text}</div>\n);
     if ($m->{unanalysed}) {
@@ -988,14 +988,15 @@ sub line_mcdc ($f, $n) {
       error      => $m->error,
       unanalysed => $m->unanalysed,
       class      => class($m->percentage, $m->error, "mcdc"),
-      atomics    => $m->unanalysed
-      ? []
-      : [
-        map { {
-          label   => encode_entities($labels[$_] // ""),
-          covered => $vals[$_] ? 1    : 0,
-          class   => $vals[$_] ? "c3" : "c0",
-        } } 0 .. $#vals
+      atomics    => $m->unanalysed ? [] : [
+        map {
+          my $unc = $m->uncoverable($_);
+          {
+            label   => encode_entities(($unc ? "-" : "") . ($labels[$_] // "")),
+            covered => $vals[$_]         ? 1    : 0,
+            class   => $vals[$_] || $unc ? "c3" : "c0",
+          }
+        } 0 .. $#vals
       ],
     }
   } @$loc
@@ -1031,11 +1032,8 @@ sub read_source ($file) {
   my @all_lines = <$fh>;
   close $fh or die "Can't close $file: $!\n";
 
-  if ($Have_highlighter) {
-    my @hl = highlight($R{options}{option}, @all_lines);
-    @all_lines = @hl if @hl;
-  }
-  @all_lines
+  my @hl = $Have_highlighter ? highlight($R{options}{option}, @all_lines) : ();
+  @hl ? @hl : map encode_entities($_), @all_lines
 }
 
 sub build_source_lines ($file) {
@@ -1229,7 +1227,7 @@ sub report ($pkg, $db, $options) {
     },
     full => do {
       my @c = $db->criteria;
-      +{ (map { $_ => ucfirst } @c), total => "total" }
+      +{ (map { $_ => ucfirst } @c), mcdc => "MC/DC", total => "total" }
     },
     filenames => {
       map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } $options->{file}->@*

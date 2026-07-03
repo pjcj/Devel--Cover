@@ -118,9 +118,9 @@ MC/DC
 
 line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
-19             0    0    2                          $h->{$k} //= $val
-28            50    1    2                          $always && $b
-40            66    2    3                          $a && $b && $c
+19          -  0    0    2                          $h->{$k} //= $val
+28          - 50    1    2                          $always && $b
+40          - 66    2    3                          $a && $b && $c
 
 
 Covered Subroutines

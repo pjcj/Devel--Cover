@@ -166,26 +166,26 @@ line  err      %      l  !l&&r !l&&!r   expr
 MC/DC
 -----
 
-line  err      %  cov  tot   missing                expr
------ --- ------ ---- ----   --------------------   ----
-43           100    1    1                          $or_lhs || 'literal'
-46    ***      0    0    2   $or_lhs, "value $v end"   $or_lhs || "value $v end"
-47    ***      0    0    2   $or_lhs, "value $v"    $or_lhs || "value $v"
-51           100    2    2                          $or_lhs || "0$v$v$v"
-54           100    2    2                          $or_lhs || "$v$v$v"
-57           100    2    2                          $or_lhs || "$v$v"
-60           100    2    2                          $or_lhs || "$v"
-63           100    1    1                          $dor_lhs // "literal"
+line  err      %  cov  tot   missing                    expr
+----- --- ------ ---- ----   ------------------------   ----
+43           100    1    1                              $or_lhs || 'literal'
+46    ***      0    0    2   $or_lhs, "value $v end"    $or_lhs || "value $v end"
+47    ***      0    0    2   $or_lhs, "value $v"        $or_lhs || "value $v"
+51           100    2    2                              $or_lhs || "0$v$v$v"
+54           100    2    2                              $or_lhs || "$v$v$v"
+57           100    2    2                              $or_lhs || "$v$v"
+60           100    2    2                              $or_lhs || "$v"
+63           100    1    1                              $dor_lhs // "literal"
 66    ***      0    0    2   $dor_lhs, "value $v end"   $dor_lhs // "value $v end"
-67    ***      0    0    2   $dor_lhs, "value $v"   $dor_lhs // "value $v"
-70           100    2    2                          $dor_lhs // "$v$v$v"
-73           100    2    2                          $dor_lhs // "$v$v"
-76           100    2    2                          $dor_lhs // "$v"
-79    ***      0    0    2   $Arr[0], "value $v end"   $Arr[0] ||= "value $v end"
-82    ***      0    0    2   $Arr[1], "value $v end"   $Arr[1] //= "value $v end"
-85           100    1    1                          $or_lhs || warn("expected\n")
-90    ***      0    0    1   $true                  $true || exit 1
-91    ***      0    0    1   $true                  $true || exec('true')
+67    ***      0    0    2   $dor_lhs, "value $v"       $dor_lhs // "value $v"
+70           100    2    2                              $dor_lhs // "$v$v$v"
+73           100    2    2                              $dor_lhs // "$v$v"
+76           100    2    2                              $dor_lhs // "$v"
+79    ***      0    0    2   $Arr[0], "value $v end"    $Arr[0] ||= "value $v end"
+82    ***      0    0    2   $Arr[1], "value $v end"    $Arr[1] //= "value $v end"
+85           100    1    1                              $or_lhs || warn("expected\n")
+90    ***      0    0    1   $true                      $true || exit 1
+91    ***      0    0    1   $true                      $true || exec('true')
 
 
 Covered Subroutines

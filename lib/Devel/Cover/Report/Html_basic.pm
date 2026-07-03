@@ -116,6 +116,11 @@ sub _add_uncovered_links ($lines) {
   }
 }
 
+sub _highlight_text ($text) {
+  my @html = $Have_highlighter ? highlight($R{options}{option}, $text) : ();
+  @html ? $html[0] : encode_entities($text)
+}
+
 sub print_file () {
   my @lines;
   my $f = $R{db}->cover->file($R{file});
@@ -123,7 +128,8 @@ sub print_file () {
   open my $fh, "<", $R{file} or warn("Unable to open $R{file}: $!\n"), return;
   my @all_lines = <$fh>;
 
-  @all_lines = highlight($R{options}{option}, @all_lines) if $Have_highlighter;
+  my @hl = $Have_highlighter ? highlight($R{options}{option}, @all_lines) : ();
+  @all_lines = @hl ? @hl : map encode_entities($_), @all_lines;
 
   my $linen = 1;
   line: while (defined(my $l = shift @all_lines)) {
@@ -183,8 +189,7 @@ sub print_branches () {
     my $count = 0;
     for my $b ($branches->location($location)->@*) {
       $count++;
-      my $text = $b->text;
-      ($text) = highlight($R{options}{option}, $text) if $Have_highlighter;
+      my $text = _highlight_text($b->text);
 
       push @branches, {
         number => $count == 1 ? $location : "",
@@ -215,8 +220,7 @@ sub print_conditions () {
     my $count = {};
     for my $c ($conditions->location($location)->@*) {
       $count->{ $c->type }++;
-      my $text = $c->text;
-      ($text) = highlight($R{options}{option}, $text) if $Have_highlighter;
+      my $text = _highlight_text($c->text);
 
       push $r->{ $c->type }->@*, {
         number    => $count->{ $c->type } == 1 ? $location : "",
@@ -257,27 +261,28 @@ sub print_mcdc () {
     my $count = 0;
     for my $m ($mcdc->location($location)->@*) {
       $count++;
-      my $text = $m->text;
-      ($text) = highlight($R{options}{option}, $text) if $Have_highlighter;
+      my $text   = _highlight_text($m->text);
       my @vals   = $m->values;
       my @labels = $m->labels->@*;
 
       push @decisions, {
-          number     => $count == 1 ? $location : "",
-          percentage => $m->percentage,
-          class      => class($m->percentage, $m->error, "mcdc"),
-          note       => $m->unanalysed ? "too many conditions" : "",
-          atomics    => $m->unanalysed
-          ? []
-          : [
-            map +{
-              label => encode_entities($labels[$_] // ""),
-              class => $vals[$_] ? "c3" : "c0",
-            },
-            0 .. $#vals,
-          ],
-          text => $text,
-        };
+        number     => $count == 1 ? $location : "",
+        ref        => "$location-$count",
+        percentage => $m->percentage,
+        class      => class($m->percentage, $m->error, "mcdc"),
+        note       => $m->unanalysed ? "too many conditions" : "",
+        atomics    => $m->unanalysed ? []                    : [
+          map {
+            my $unc = $m->uncoverable($_);
+            +{
+              label =>
+                encode_entities(($unc ? "-" : "") . ($labels[$_] // "")),
+              class => $vals[$_] || $unc ? "c3" : "c0",
+            }
+          } 0 .. $#vals,
+        ],
+        text => $text,
+      };
     }
   }
 
@@ -750,6 +755,7 @@ $Templates{mcdc} = <<'HTML';
   </tr>
 
   [% FOREACH decision = decisions %]
+    <a name="[% decision.ref %]"> </a>
     <tr>
       <td class="h">
         <a href="[% R.file_link %]#[% decision.number %]">

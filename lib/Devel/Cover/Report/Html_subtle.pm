@@ -251,9 +251,12 @@ sub print_mcdc ($db, $file, $options) {
       my @labels = $m->labels->@*;
 
       my $atomics = $m->unanalysed ? "<em>too many conditions</em>" : join " ",
-          map qq(<span class="@{[ $vals[$_] ? "covered" : "uncovered" ]}">)
-        . encode_entities($labels[$_] // "")
-        . "</span>", 0 .. $#vals;
+        map {
+          my $unc = $m->uncoverable($_);
+          qq(<span class="@{[ $vals[$_] || $unc ? "covered" : "uncovered" ]}">)
+          . encode_entities(($unc ? "-" : "") . ($labels[$_] // ""))
+          . "</span>"
+        } 0 .. $#vals;
 
       push @data, {
           line       => $location,

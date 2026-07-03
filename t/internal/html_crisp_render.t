@@ -386,6 +386,16 @@ sub test_dir_header_links () {
     "dir-header: cell-link hrefs include filter hash";
 }
 
+# The index header and badges must name the criterion "MC/DC", matching the
+# detail panel, not the ucfirst package-ish "Mcdc".
+sub test_mcdc_full_name () {
+  my $got = $Golden{"coverage.html"};
+  like $got, qr|<span class="name-full">MC/DC</span>|,
+    "index header uses MC/DC";
+  unlike $got, qr|<span class="name-full">Mcdc</span>|,
+    "index header does not use Mcdc";
+}
+
 sub test_app_js_hash_filter () {
   my $app_js = slurp(File::Spec->catfile($Outdir, "assets", "app.js"));
   like $app_js, qr/syncHash/,              "app.js: syncHash helper present";
@@ -487,6 +497,26 @@ sub test_mcdc_detail_unanalysed_note () {
   like $html, qr/too many conditions/,
     "unanalysed: note rendered in place of pills";
   unlike $html, qr/mcdc-pill/, "unanalysed: no atomic pills";
+}
+
+# A decision whose missing column is excused by an uncoverable marker has
+# error 0, so the panel badge must show the covered class even though
+# covered != total, agreeing with the source row's class.
+sub test_mcdc_detail_excused_badge () {
+  my $html = Devel::Cover::Report::Html_crisp::render_mcdc_detail([{
+    text       => '$always &amp;&amp; $b',
+    percentage => 50,
+    covered    => 1,
+    total      => 2,
+    error      => 0,
+    unanalysed => 0,
+    atomics    => [
+      { label => '-$always', covered => 0, class => "c3" },
+      { label => '$b',       covered => 1, class => "c3" },
+    ],
+  }]);
+  like $html,   qr|summary-text c3|, "excused decision: badge class is c3";
+  unlike $html, qr|summary-text c0|, "excused decision: no error badge";
 }
 
 sub test_truth_tables_pass_observed_vectors () {
@@ -765,9 +795,11 @@ sub main () {
   test_index_filter_links;
   test_dir_header_links;
   test_app_js_hash_filter;
+  test_mcdc_full_name;
   test_truth_tables_unproven_rows_uncovered;
   test_truth_tables_skip_too_wide;
   test_mcdc_detail_unanalysed_note;
+  test_mcdc_detail_excused_badge;
   test_truth_tables_pass_observed_vectors;
   test_condition_cells_panel;
   test_condition_cells_panel_merges_conditions;

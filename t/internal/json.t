@@ -126,6 +126,9 @@ sub test_json_detailed_report () {
   isa_ok $m->{covered}, "ARRAY", "mcdc covered";
   is $m->{labels}->@*, $m->{covered}->@*,
     "labels and covered arrays have matching length";
+  isa_ok $m->{uncoverable}, "ARRAY", "mcdc uncoverable";
+  is $m->{uncoverable}->@*, $m->{covered}->@*,
+    "mcdc covered and uncoverable arrays have matching length";
   ok defined $m->{error}, "mcdc has error";
 }
 

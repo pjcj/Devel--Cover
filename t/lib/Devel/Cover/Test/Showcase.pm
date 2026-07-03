@@ -175,6 +175,112 @@ my $Full_body = <<'BODY' =~ s/^  //gmr;
   }
 BODY
 
+my $Logic_body = <<'BODY' =~ s/^  //gmr;
+  =head2 grant
+
+  Decide whether access is granted.
+
+  =cut
+
+  sub grant {
+    my ($owner, $unlocked, $admin) = @_;
+    my $ok = ($owner && $unlocked) || $admin;
+    return $ok;
+  }
+
+  =head2 reuse
+
+  A decision reusing a condition on both sides.
+
+  =cut
+
+  sub reuse {
+    my ($a, $b, $c) = @_;
+    my $r = ($a && $b) || ($a && $c);
+    return $r;
+  }
+
+  =head2 pick
+
+  Return the first defined value, or a default.
+
+  =cut
+
+  sub pick {
+    my ($primary, $backup) = @_;
+    my $v = $primary // $backup // "none";
+    return $v;
+  }
+
+  sub either {
+    my ($a, $b) = @_;
+    my $x = ($a xor $b);
+    return $x;
+  }
+
+  sub any_flag {
+    my @f = @_;
+    my $any
+      = $f[0] || $f[1] || $f[2]  || $f[3]  || $f[4]  || $f[5]  || $f[6]
+      || $f[7] || $f[8] || $f[9] || $f[10] || $f[11] || $f[12] || $f[13]
+      || $f[14] || $f[15] || $f[16];
+    return $any;
+  }
+
+  sub find {
+    my ($target, @items) = @_;
+    my $found;
+    for my $item (@items) {
+      next unless defined $item;
+      if ($item eq $target) {
+        $found = $item;
+        last;
+      }
+    }
+    return $found;
+  }
+BODY
+
+my $Markers_body = <<'BODY' =~ s/^  //gmr;
+  =head2 fetch
+
+  Fetch a cached value, populating the default on first use.
+
+  =cut
+
+  sub fetch {
+    my ($cache, $key, $default) = @_;
+    # uncoverable mcdc
+    return $cache->{$key} //= $default;
+  }
+
+  =head2 audit
+
+  Record a value, guarding against an impossible state.
+
+  =cut
+
+  sub audit {
+    my ($value) = @_;
+    my $active = 1;
+    # uncoverable condition left
+    # uncoverable mcdc pair:1
+    my $ok = $active && $value;
+    # uncoverable branch true
+    if (!$active) {
+      # uncoverable statement
+      die "audit while inactive";
+    }
+    return $ok;
+  }
+
+  sub emergency_stop {
+    # uncoverable subroutine
+    # uncoverable statement
+    die "emergency stop";
+  }
+BODY
+
 my $Trivial_body = <<'BODY' =~ s/^  //gmr;
   =head2 id
 
@@ -221,6 +327,14 @@ sub setup_lib_dir () {
       $Full_body,
     );
     _write_module(
+      File::Spec->catfile($libdir, $side, "Logic.pm"), "${side}::Logic",
+      $Logic_body,
+    );
+    _write_module(
+      File::Spec->catfile($libdir, $side, "Markers.pm"), "${side}::Markers",
+      $Markers_body,
+    );
+    _write_module(
       File::Spec->catfile($libdir, $side, "Trivial.pm"), "${side}::Trivial",
       $Trivial_body,
     );
@@ -262,9 +376,28 @@ sub create_cover_db ($tmpdir, $libdir) {
   my $oneliner = join " ", split /\n/, <<ONELINER =~ s/^  //gmr;
   use Covered::Calc;
   use Covered::Full;
+  use Covered::Logic;
+  use Covered::Markers;
   use Covered::Trivial;
   use Covered::Utils;
   Covered::Calc::add(1, 2);
+  Covered::Logic::grant(1, 1, 0);
+  Covered::Logic::grant(0, 0, 1);
+  Covered::Logic::grant(0, 0, 0);
+  Covered::Logic::reuse(1, 1, 0);
+  Covered::Logic::reuse(1, 0, 1);
+  Covered::Logic::reuse(0, 0, 0);
+  Covered::Logic::pick(undef, q(backup));
+  Covered::Logic::pick(q(main), q(backup));
+  Covered::Logic::either(1, 0);
+  Covered::Logic::any_flag(1);
+  Covered::Logic::any_flag(0, 0, 1);
+  Covered::Logic::find(q(b), q(a), undef, q(b));
+  my %c;
+  Covered::Markers::fetch(\\%c, q(k), 1);
+  Covered::Markers::fetch(\\%c, q(k), 2);
+  Covered::Markers::audit(1);
+  Covered::Markers::audit(0);
   Covered::Utils::greet(q(world));
   Covered::Utils::upper(q(hi));
   Covered::Full::double(5);
@@ -284,7 +417,7 @@ ONELINER
   my $cmd
     = "$^X -Iblib/lib -Iblib/arch -I$libdir"
     . " -MDevel::Cover=-db,$cover_db,-silent,1,-merge,0,-select,$select"
-    . qq[ -e "$oneliner" 2>&1];
+    . qq( -e "$oneliner" 2>&1);
   my $out = `$cmd`;
   die "Failed to create cover_db:\n$out\n" if $?;
 
@@ -326,10 +459,12 @@ for showcasing and testing Devel::Cover features.  It is used by the
 C<utils/showcase> script (via C<make showcase_*> targets) and by the internal
 test suite.
 
-L</setup_lib_dir> creates a temporary directory tree containing eight small
-modules - four under C<Covered::> and four identical copies under C<Uncovered::>
+L</setup_lib_dir> creates a temporary directory tree containing twelve small
+modules - six under C<Covered::> and six identical copies under C<Uncovered::>
 - that exercise a range of coverage criteria: statements, branches
-(if/elsif/else, ternary), conditions (C<&&>, C<||>), subroutines, and pod.
+(if/elsif/else, ternary, postfix, loop control), conditions (C<&&>, C<||>,
+C<//>, C<xor>), MC/DC (compound, coupled and too-wide decisions), uncoverable
+markers, subroutines, and pod.
 
 L</create_cover_db> runs the C<Covered::> modules under Devel::Cover to produce
 a coverage database.  The C<Uncovered::> modules are never loaded, so they
@@ -343,8 +478,8 @@ All functions are exported on request via L<Exporter>.
 
  my ($tmpdir, $libdir) = setup_lib_dir;
 
-Create a temporary directory tree containing eight fixture modules: four under
-C<Covered::> and four identical copies under C<Uncovered::>.  Also creates a
+Create a temporary directory tree containing twelve fixture modules: six under
+C<Covered::> and six identical copies under C<Uncovered::>.  Also creates a
 C<blib/lib/BlibMod.pm> (to test blib exclusion) and a C<README.txt> (to test
 non-Perl file exclusion).
 
@@ -388,6 +523,15 @@ namespaces, with identical source:
 
 =item B<Full> - branches, ternaries, conditions, nine subs (including a private
 C<_helper>), full pod coverage
+
+=item B<Logic> - MC/DC decisions: a compound decision, a coupled decision
+reusing a condition on both sides, chained C<//> with a constant default,
+C<xor>, a 17-condition decision too wide to analyse, and a loop with postfix
+C<unless> and C<last>
+
+=item B<Markers> - uncoverable markers for statement, branch, condition,
+subroutine and mcdc (bare and C<pair:N>), so excused entries show in every
+reporter
 
 =item B<Trivial> - single sub, no branches or conditions
 

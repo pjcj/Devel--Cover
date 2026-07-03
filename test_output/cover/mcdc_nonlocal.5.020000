@@ -130,11 +130,11 @@ line  err      %      l  !l&&r !l&&!r   expr
 MC/DC
 -----
 
-line  err      %  cov  tot   missing                expr
------ --- ------ ---- ----   --------------------   ----
-24    ***      0    0    3   $p, $q, boom()         $p and $q and boom()
+line  err      %  cov  tot   missing                    expr
+----- --- ------ ---- ----   ------------------------   ----
+24    ***      0    0    3   $p, $q, boom()             $p and $q and boom()
 32    ***      0    0    2   $n <= 0, recurse($n - 1)   $n <= 0 || recurse($n - 1)
-43    ***     50    1    2   $a cmp $b              $a <=> $b or $a cmp $b
+43    ***     50    1    2   $a cmp $b                  $a <=> $b or $a cmp $b
 
 
 Covered Subroutines
