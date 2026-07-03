@@ -34,9 +34,11 @@ sub run_covered ($label, @parts) {
   my $script  = write_script("$label.pl", 'my $r = 1 && 0;' . "\n");
   my $db      = File::Spec->catdir($Tmpdir, "db_$label");
   my $errfile = File::Spec->catfile($Tmpdir, "err_$label");
+  my $devnull = File::Spec->devnull;
   my $cmd     = join " ", $^X, "-Iblib/lib", "-Iblib/arch",
-    "-MDevel::Cover=" . join(",", "-db,$db", @parts), $script, ">/dev/null",
+    "-MDevel::Cover=" . join(",", "-db,$db", @parts), $script, ">$devnull",
     "2>$errfile";
+
   system($cmd) == 0 or die "Failed to run: $cmd";
   open my $fh, "<", $errfile or die "Cannot read $errfile: $!";
   my $err = do { local $/; <$fh> };
