@@ -16,7 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [qw( done_testing is is_deeply ok )];
+use Test::More import => [qw( done_testing is is_deeply like ok unlike )];
 
 use Devel::Cover::Condition_table ();
 
@@ -314,8 +314,8 @@ sub test_independent_conditions () {
   is_deeply \@exprs, ['$a && $b', '$x || $y'], "both expressions present";
 }
 
-# Chain of $n atomics ($x1 && $x2 && ... && $xn): n-1 and_3 records whose
-# left strings accumulate, matching how Devel::Cover records a chain.
+# Chain of $n atomics ($x1 && $x2 && ... && $xn): n-1 and_3 records whose left
+# strings accumulate, matching how Devel::Cover records a chain.
 sub chain_conditions ($n, $prefix) {
   my @atoms = map "\$$prefix$_", 1 .. $n;
   my @conditions;
@@ -333,8 +333,8 @@ sub chain_conditions ($n, $prefix) {
 }
 
 # A decision with more than 16 atomic conditions is too wide to analyse:
-# for_line returns a stub table flagged too_wide, with labels (so consumers
-# know the width) but no rows.
+# for_line returns a stub table flagged too_wide, with labels (so consumers know
+# the width) but no rows.
 sub test_too_wide_decision () {
   my @conditions = chain_conditions(17, "a");
 
@@ -368,9 +368,8 @@ sub test_exactly_16_atomics () {
   is @rows, 17, "16 atomics: rows built";
 }
 
-# The cap is per decision, not per line: two 10-atomic decisions sharing a
-# line (18 condition records, more than the old per-line cap) must both be
-# analysed.
+# The cap is per decision, not per line: two 10-atomic decisions sharing a line
+# (18 condition records, more than the old per-line cap) must both be analysed.
 sub test_two_decisions_one_line () {
   my @conditions = (chain_conditions(10, "a"), chain_conditions(10, "b"));
 
@@ -953,6 +952,40 @@ sub test_observed_vectors_xor () {
   is $covered{"1|1"}, 0, "xor: unobserved (1,1) not covered";
 }
 
+# A recorded vector narrower than the rows means the recorder and the table
+# disagreed about columns.  Such a key must be skipped with a warning naming the
+# vector, not wipe the valid keys' coverage or leak uninitialized-value
+# warnings.
+sub test_short_observed_vector_ignored () {
+  my @conditions = (mock_condition(
+    "Condition_and_3",
+    [1, 1, 1],
+    { type => "and_3", left => '$a', op => "&&", right => '$b' },
+  ));
+
+  my @observed = ({ "1|1" => 1, "0|X" => 1, "1" => 1 });
+
+  my $err = "";
+  my ($t) = do {
+    open my $save, ">&", \*STDERR or die "Cannot dup STDERR: $!";
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">", \$err or die "Cannot redirect STDERR: $!";
+    my @r = Devel::Cover::Condition_table->for_line(\@conditions, \@observed);
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">&", $save or die "Cannot restore STDERR: $!";
+    @r
+  };
+
+  my %covered;
+  $covered{ join "|", $_->inputs->@* } = $_->covered ? 1 : 0 for $t->rows;
+
+  is $covered{"1|1"}, 1, "short key: valid observed key still covers its row";
+  is $covered{"0|X"}, 1, "short key: short-circuit key still covers its row";
+  unlike $err, qr/[Uu]ninitialized/, "short key: no uninitialized warnings";
+  like $err, qr|Ignoring short MC/DC vector "1" for \$a && \$b|,
+    "short key: warning names the vector and the expression";
+}
+
 # Deep chain $a && $b && $c && $d: three logops, four atomics, five synthesised
 # rows.  Observe only the all-true and outermost-false vectors; the three
 # intermediate short-circuit rows must read covered=0.
@@ -1162,9 +1195,9 @@ sub test_proven_single_logop () {
   ok $t->proven, "single logop is proven without observed vectors";
 }
 
-# Worked example: $a || ($b && $c).  Without observed vectors the
-# composite rows are a synthesised cross-product whose co-occurrence was never
-# demonstrated, so the table is not proven.
+# Worked example: $a || ($b && $c).  Without observed vectors the composite rows
+# are a synthesised cross-product whose co-occurrence was never demonstrated, so
+# the table is not proven.
 sub _worked_example_conditions () { (
   mock_condition(
     "Condition_and_3",
@@ -1227,6 +1260,7 @@ sub main () {
   test_addr_overrides_string;
   test_observed_vectors_override_synthesis;
   test_observed_vectors_xor;
+  test_short_observed_vector_ignored;
   test_observed_vectors_deep_chain;
   test_observed_vectors_mixed_chain;
   test_observed_vectors_indexed_at_root;
