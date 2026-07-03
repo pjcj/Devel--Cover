@@ -267,6 +267,7 @@ sub print_mcdc () {
 
       push @decisions, {
         number     => $count == 1 ? $location : "",
+        ref        => "$location-$count",
         percentage => $m->percentage,
         class      => class($m->percentage, $m->error, "mcdc"),
         note       => $m->unanalysed ? "too many conditions" : "",
@@ -754,6 +755,7 @@ $Templates{mcdc} = <<'HTML';
   </tr>
 
   [% FOREACH decision = decisions %]
+    <a name="[% decision.ref %]"> </a>
     <tr>
       <td class="h">
         <a href="[% R.file_link %]#[% decision.number %]">

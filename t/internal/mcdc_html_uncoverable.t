@@ -99,6 +99,8 @@ sub test_html_basic ($tmpdir, $cover_db) {
     "html_basic: excused pill has - prefix and covered class";
   like $html, qr|class="c3">\s*\$b\s*</span>|,
     "html_basic: covered pill unchanged";
+  like $html, qr|<a name="9-1">|,
+    "html_basic: row anchor matches the file-page link";
 }
 
 sub test_html_subtle ($tmpdir, $cover_db) {
