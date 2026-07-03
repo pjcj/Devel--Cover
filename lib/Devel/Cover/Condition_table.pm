@@ -43,6 +43,9 @@ package Devel::Cover::Condition_table::Table {
   # MC/DC nor the truth-table display may treat those rows as covered.  A single
   # logop is exact from its hit counts, and observed vectors are real.
   sub proven ($self) { $self->{proven} }
+
+  # A stub for a decision wider than the analysis limit: labels but no rows
+  sub too_wide ($self) { $self->{too_wide} }
 }
 
 package Devel::Cover::Condition_table;
@@ -62,6 +65,11 @@ my %Primitive = (
 );
 
 my %Is_boolean = (and_2 => 1, or_2 => 1);
+
+# Per-decision analysis limit; matches DC_MAX_DECISION_WIDTH in Cover.xs
+my $Max_width = 16;
+
+sub max_width ($class) { $Max_width }
 
 sub _hits ($condition) {
   map { defined && $_ > 0 ? 1 : 0 } $condition->[0]->@*
@@ -235,8 +243,6 @@ sub apply_observed_vectors ($rows, $obs) {
 }
 
 sub for_line ($class, $conditions, $observed = undef) {
-  return if @$conditions > 16;
-
   my %expr_map;
   $expr_map{ _expr($_) } = $_ for @$conditions;
 
@@ -266,8 +272,20 @@ sub for_line ($class, $conditions, $observed = undef) {
     my $c = $conditions->[$i];
     next if $is_child{ _expr($c) };
 
+    my @labels = _build_labels($c, $find);
+    if (@labels > $Max_width) {
+      push @tables,
+        Devel::Cover::Condition_table::Table->new(
+          expr     => _expr($c),
+          labels   => \@labels,
+          rows     => [],
+          proven   => 0,
+          too_wide => 1,
+        );
+      next;
+    }
+
     my @rows    = _build_rows($c, $find);
-    my @labels  = _build_labels($c, $find);
     my $obs     = $observed && $observed->[$i];
     my $applied = $obs      && %$obs ? 1 : 0;
 
@@ -320,10 +338,15 @@ expected results, and coverage status.
 
 =head1 METHODS
 
-=head2 for_line ($conditions)
+=head2 for_line ($conditions, $observed)
 
-Class method. Takes an arrayref of condition objects for a line.
-Returns a list of Table objects.
+Class method. Takes an arrayref of condition objects for a line and an
+optional arrayref of observed input-vector hashes indexed parallel to the
+conditions. Returns a list of Table objects, one per decision on the line.
+
+A decision with more than 16 atomic conditions is not analysed: its Table
+is a stub with C<too_wide> true, carrying the expression and labels but no
+rows.
 
 =head1 SEE ALSO
 
