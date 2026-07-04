@@ -590,6 +590,24 @@ sub test_condition_cells_and2_headers () {
   is $cells[0]{parts}[1]{count}, 0,    "and_2 asym: count 0 under l";
 }
 
+# A compound line's outer cells table is captioned with the whole expression,
+# so which operator its columns describe is not obvious.  The decision's own
+# operator is marked; operators inside compound operands are not.
+sub test_condition_cells_op_marked () {
+  my @cond = (_mock_cond(
+    "Condition_or_3",
+    [1, 1, 0],
+    { type => "or_3", left => '$x && $y', op => "||", right => '$z' },
+  ));
+  my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
+
+  my @cells = Devel::Cover::Report::Html_crisp::line_condition_cells($f, 7);
+  like $cells[0]{text}, qr{\$x.*<span class="cond-op">\|\|</span>.*\$z}s,
+    "cells: the decision's own operator is marked";
+  unlike $cells[0]{text}, qr{cond-op">(?:&amp;&amp;|&&)<}s,
+    "cells: the operator inside the left operand is not marked";
+}
+
 # Panel 1 of the per-line detail block: per-logop cells aligned with the
 # headline cond % (one cell per truth-value slot, classes from the condition's
 # value/error pair).  Covers line_condition_cells data layout and the rendered
@@ -841,6 +859,7 @@ sub main () {
   test_truth_tables_pass_observed_vectors;
   test_truth_tables_or2_asymmetric;
   test_condition_cells_and2_headers;
+  test_condition_cells_op_marked;
   test_condition_cells_panel;
   test_condition_cells_panel_merges_conditions;
   test_decision_vectors_panel_heading;
