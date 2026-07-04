@@ -689,6 +689,35 @@ sub test_condition_cells_panel_merges_conditions () {
     "merged: inner sub-expression shows operator and operands";
 }
 
+# An inline condition expression must read left-op-right on one line for every
+# highlighter and for none.  Perl::Tidy fragments used to carry a trailing
+# newline, splitting the operands wherever Perl::Tidy stood in for PPI::HTML.
+sub test_condition_cells_highlighters () {
+  my @cond = (_mock_cond(
+    "Condition_or_3",
+    [1, 1, 0],
+    { type => "or_3", left => '$x', op => "||", right => '$y' },
+  ));
+  my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
+
+  my @modes = (
+    ["neither",    0, {}],
+    ["PPI::HTML",  1, { noperltidy => 1 }],
+    ["Perl::Tidy", 1, { noppihtml  => 1 }],
+  );
+
+  for my $mode (@modes) {
+    my ($name, $have, $option) = @$mode;
+    no warnings "once";
+    local $Devel::Cover::Html_Common::Have_highlighter = $have;
+    local $Devel::Cover::Report::Html_crisp::R{options}{option} = $option;
+    my ($cell) = Devel::Cover::Report::Html_crisp::line_condition_cells($f, 7);
+    like $cell->{text}, qr/\$x.*\|\|.*\$y/,
+      "$name: operands and operator inline";
+    unlike $cell->{text}, qr/\n/, "$name: no embedded newline";
+  }
+}
+
 # Panel 2 of the per-line detail block: the merged truth table moves from a
 # `Condition: <expr>` heading to a `Decision input vectors: <expr>` heading
 # wrapped in a distinguishing class.
@@ -862,6 +891,7 @@ sub main () {
   test_condition_cells_op_marked;
   test_condition_cells_panel;
   test_condition_cells_panel_merges_conditions;
+  test_condition_cells_highlighters;
   test_decision_vectors_panel_heading;
   test_panels_render_in_order;
   test_line_partial_ignores_tt_rows;

@@ -917,7 +917,10 @@ sub line_branches ($f, $n) {
 sub _cond_fragment ($s) {
   if ($Have_highlighter) {
     my ($h) = highlight($R{options}{option}, $s);
-    return $h if defined $h;
+    if (defined $h) {
+      chomp $h;
+      return $h;
+    }
   }
   encode_entities($s)
 }
