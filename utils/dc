@@ -358,7 +358,7 @@ recipe_install-dc-dev-perl() {
 }
 
 recipe_all-gold() {
-  if [[ $# -gt 0 ]]; then
+  if [[ -n "$*" ]]; then
     for fn in "$@"; do
       rm -f "test_output/cover/${fn}."*
     done
