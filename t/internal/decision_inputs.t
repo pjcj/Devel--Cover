@@ -60,6 +60,65 @@ PERL
     "vectors and counts: (1,1), (1,0), and two short-circuits to (0,X)";
 }
 
+# xor evaluates both operands, so the recorder sees the right operand on
+# the stack at the logop and the decision result at the next op.  The
+# vector must still record the actual (left, right) values.  The calls are
+# asymmetric: with all four combinations the wrong mapping is a
+# permutation of the right one and the test would pass regardless.
+sub test_xor_vectors () {
+  my $script = write_script("xor_vectors.pl", <<'PERL');
+my @r;
+sub either { my ($p, $q) = @_; push @r, ($p xor $q) }
+either(1, 0);
+either(1, 1);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "xor_vectors");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for xor";
+
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "one decision recorded";
+  is_deeply $recorded[0], { "1|0" => 1, "1|1" => 1 },
+    "xor vectors record the operand values, not the result";
+}
+
+sub test_xor_compound_left () {
+  my $script = write_script("xor_compound_left.pl", <<'PERL');
+my @r;
+sub f { my ($p, $q, $s) = @_; push @r, (($p && $q) xor $s) }
+f(1, 1, 0);
+f(1, 0, 1);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "xor_compound_left");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for compound-left xor";
+
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "one root recorded (the xor)";
+  is_deeply $recorded[0], { "1|1|0" => 1, "1|0|1" => 1 },
+    "compound-left xor records the right operand, not the result";
+}
+
+sub test_xor_compound_right () {
+  my $script = write_script("xor_compound_right.pl", <<'PERL');
+my @r;
+sub f { my ($p, $q, $s) = @_; push @r, ($p xor ($q && $s)) }
+f(1, 1, 0);
+f(0, 1, 1);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "xor_compound_right");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for compound-right xor";
+
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "one root recorded (the xor)";
+  is_deeply $recorded[0], { "1|1|0" => 1, "0|1|1" => 1 },
+    "compound-right xor records the left operand, not the result";
+}
+
 sub test_worked_example () {
   my $script = write_script("worked.pl", <<'PERL');
 my @r;
@@ -409,6 +468,9 @@ sub test_add_condition_xor_four_slot_merge () {
 
 sub main () {
   subtest "simple two-leaf and"        => \&test_simple_and;
+  subtest "xor vectors"                => \&test_xor_vectors;
+  subtest "xor compound left"          => \&test_xor_compound_left;
+  subtest "xor compound right"         => \&test_xor_compound_right;
   subtest "worked example"             => \&test_worked_example;
   subtest "coupled decision"           => \&test_coupled_decision_vectors;
   subtest "left constant width parity" => \&test_left_constant_width_parity;
