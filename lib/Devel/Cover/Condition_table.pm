@@ -44,11 +44,12 @@ package Devel::Cover::Condition_table::Table {
 
 package Devel::Cover::Condition_table;
 
-# Truth table specs: each entry is [inputs, result].
+# Truth table specs: each entry is [inputs, result], in stored hit order
+# (the Condition_*::headers order).
 my @Boolean_spec = ([[0], 0], [[1], 1]);
 my @And3_spec    = ([[0, "X"], 0], [[1, 0], 0], [[1, 1], 1]);
 my @Or3_spec     = ([[1, "X"], 1], [[0, 1], 1], [[0, 0], 0]);
-my @Xor4_spec    = ([[0, 0], 0], [[0, 1], 1], [[1, 0], 1], [[1, 1], 0]);
+my @Xor4_spec    = ([[1, 1], 0], [[1, 0], 1], [[0, 1], 1], [[0, 0], 0]);
 
 my %Primitive = (
   and_2 => \@Boolean_spec,

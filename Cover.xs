@@ -899,12 +899,16 @@ static void set_conditional(pTHX_ OP *op, int cond, int value) {
   /*
    * The conditional array is composed of six elements:
    *
-   * 0 - 1 iff we are in an xor and the first operand was true
+   * 0 - 1 iff we are in an xor and the right operand was true
    * 1 - not short circuited - second operand is false
    * 2 - not short circuited - second operand is true
-   * 3 - short circuited, or for xor second operand is false
-   * 4 - for xor second operand is true
+   * 3 - short circuited, or for xor right operand true, result false
+   * 4 - for xor right operand true, result true
    * 5 - 1 iff we are in void context
+   *
+   * xor does not short circuit, so the value observed at the next op is
+   * the decision result rather than the right operand; slots 1 and 2
+   * carry a false right operand with a false or true result.
    */
 
   SV **count = av_fetch(get_conditional_array(aTHX_ op), cond, 1);
@@ -988,7 +992,7 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
     int type  = true_ish ? SvIV(*count) : 0;
     sv_setiv(*count, 0);
 
-    /* Check if we have come from an xor with a true first op */
+    /* Check if we have come from an xor with a true right operand */
     if (final)     value  = 1;
     if (type == 1) value += 2;
 
@@ -996,8 +1000,12 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
     add_conditional(aTHX_ op, value);
 
     /*
-     * MC/DC: write the right operand's value into this logop's leaf column.
-     * value: 1 = right false, 2 = right true, 3/4 = xor-with-true-left.
+     * MC/DC: write this logop's leaf column(s).  For and/or the observed
+     * value is the right operand: 1 = false, 2 = true.  For xor it is the
+     * decision result and the +2 flag records a true right operand, so
+     * both operands are recovered: right = value >= 3, left = right xor
+     * result.  The left column is written here because at the xor op the
+     * stack top was the right operand, not the left.
      */
     if (!final && collecting(Mcdc)) {
       HV *m;
@@ -1011,6 +1019,17 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
         int      right_val  = (value == 2 || value == 4)
                                 ? DC_VECTOR_TRUE
                                 : DC_VECTOR_FALSE;
+
+        if (op->op_type == OP_XOR) {
+          int leaf_left = dc_meta_iv(aTHX_ m, "leaf_col_left", 13);
+          int right     = value >= 3;
+          int result    = value == 2 || value == 4;
+
+          right_val = right ? DC_VECTOR_TRUE : DC_VECTOR_FALSE;
+          if (d && leaf_left >= 0 && leaf_left < d->width)
+            d->vector[leaf_left] = right != result ? DC_VECTOR_TRUE
+                                                   : DC_VECTOR_FALSE;
+        }
 
         if (d && leaf_right >= 0 && leaf_right < d->width)
           d->vector[leaf_right] = right_val;
@@ -1558,14 +1577,28 @@ static void dc_walk_cv_decisions(pTHX_ CV *cv) {
       (void)hv_stores(meta, "width", newSViv(width));
 
       /*
-       * Mark the decision's entry logop: the deepest logop on the left
-       * operand chain, and so the first logop to fire on every evaluation
-       * of the decision.  Its firing marks the start of a fresh
-       * evaluation, which always gets a fresh DC frame.
+       * Mark the decision's entry logop: the first logop to fire on every
+       * evaluation of the decision.  Its firing marks the start of a
+       * fresh evaluation, which always gets a fresh DC frame.  For and/or
+       * that is the deepest logop on the left operand chain.  An xor only
+       * fires after evaluating both operands, so with a plain left
+       * operand the first logop to fire sits in its right subtree.
        */
-      while ((left = dc_skipped_operand(aTHX_ entry, 0))
-             && dc_is_logop_type(left->op_type))
-        entry = left;
+      for (;;) {
+        left = dc_skipped_operand(aTHX_ entry, 0);
+        if (left && dc_is_logop_type(left->op_type)) {
+          entry = left;
+          continue;
+        }
+        if (entry->op_type == OP_XOR) {
+          OP *right = dc_skipped_operand(aTHX_ entry, 1);
+          if (right && dc_is_logop_type(right->op_type)) {
+            entry = right;
+            continue;
+          }
+        }
+        break;
+      }
       (void)hv_stores(dc_meta_entry(aTHX_ cache, entry), "is_entry",
                       newSViv(1));
     }
@@ -1932,7 +1965,12 @@ static void cover_logop(pTHX) {
           d = dc_stack_push(aTHX_ root_addr, width);
         }
 
-        if (d && leaf_left >= 0 && leaf_left < d->width)
+        /*
+         * For xor the stack top here is the right operand, not the left;
+         * the left column is written when the result is observed.
+         */
+        if (d && leaf_left >= 0 && leaf_left < d->width &&
+            PL_op->op_type != OP_XOR)
           d->vector[leaf_left] = leftval_true_ish ? DC_VECTOR_TRUE
                                                   : DC_VECTOR_FALSE;
       }
@@ -1982,12 +2020,10 @@ static void cover_logop(pTHX) {
 
         if (PL_op->op_type == OP_XOR && leftval_true_ish) {
           /*
-           * This is an xor.  It does not short circuit.  We have just executed
-           * the first op.  When we get to next we will have already done the
-           * xor, so we can work out what the value of the second op was.
-           *
-           * We set a flag in the first element of the array to say that we had
-           * a true value from the first op.
+           * This is an xor.  It does not short circuit, so both operands
+           * have been evaluated and the top of the stack is the right
+           * operand.  At next the stack holds the xor result, so we flag
+           * a true right operand here to recover both operands there.
            */
 
           set_conditional(aTHX_ PL_op, 0, 1);

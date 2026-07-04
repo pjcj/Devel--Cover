@@ -102,6 +102,28 @@ sub test_void_compound_renders_uncovered () {
     "unproven compound rows render uncovered without observed vectors";
 }
 
+# xor hits are stored in headers order (l&&r, l&&!r, !l&&r, !l&&!r) and,
+# unlike or, are not reversed before the table is built, so the rows must be
+# declared in that order.  Only (1,0) was exercised here.
+sub test_xor_row_pairing () {
+  my @cond = (_mock_cond(
+    "Condition_xor_4",
+    [0, 1, 0, 0],
+    { type => "xor_4", left => '$a', op => "xor", right => '$b' },
+  ));
+
+  my $crit = MockCriterion->new({ 3 => \@cond });
+  my @tts  = $crit->truth_table(3);
+  my ($tt) = $tts[0]->@*;
+
+  my %covered;
+  $covered{ join "|", $_->inputs } = $_->covered ? 1 : 0 for @$tt;
+  is $covered{"1|0"}, 1, "xor: exercised (1,0) covered";
+  is $covered{"0|1"}, 0, "xor: complement (0,1) not covered";
+  is $covered{"1|1"}, 0, "xor: (1,1) not covered";
+  is $covered{"0|0"}, 0, "xor: (0,0) not covered";
+}
+
 # A constant right operand collapses the table to fewer inputs than the runtime
 # recorded for the uncollapsed expression, so observed keys are wider than the
 # rows.  The overlay must project each key onto the surviving leading columns
@@ -126,6 +148,7 @@ sub test_projects_const_right_observed_vectors () {
 sub main () {
   test_truth_table_honours_observed_vectors;
   test_void_compound_renders_uncovered;
+  test_xor_row_pairing;
   test_projects_const_right_observed_vectors;
   done_testing;
 }
