@@ -431,7 +431,7 @@ Conditions
 
 and 2 conditions
 
-line  err      %      l     !l   expr
+line  err      %     !l      l   expr
 ----- --- ------ ------ ------   ----
 240          100      2      2   shift() && (return)
 

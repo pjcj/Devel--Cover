@@ -552,6 +552,62 @@ sub test_truth_tables_pass_observed_vectors () {
   is $covered{"1|0|0"}, 0, "phantom (1,0,0) not covered";
 }
 
+# or_2 stores its hits short-circuit first (l, !l), so with only the l
+# outcome exercised the truth-table view must colour row (1), not its
+# complement.  Symmetric hits cannot catch a reversed row mapping.
+sub test_truth_tables_or2_asymmetric () {
+  my @cond = (_mock_cond(
+    "Condition_or_2", [1, 0],
+    { type => "or_2", left => '$x', op => "||", right => "0" },
+  ));
+  my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
+
+  my @tts = Devel::Cover::Report::Html_crisp::line_truth_tables($f, 7);
+  is @tts, 1, "or_2 asym: single truth table";
+
+  my %row = map { $_->{inputs}[0] => $_ } $tts[0]{rows}->@*;
+  ok $row{1}{covered}, "or_2 asym: row (1) covered";
+  is $row{1}{class}, "c3", "or_2 asym: row (1) class c3";
+  ok !$row{0}{covered}, "or_2 asym: row (0) not covered";
+  is $row{0}{class}, "c0", "or_2 asym: row (0) class c0";
+}
+
+# and_2 stores its hits short-circuit first (!l, l) and the cells pair each
+# stored count with its header positionally, so with only the !l outcome
+# exercised the covered count must sit under the "!l" header.
+sub test_condition_cells_and2_headers () {
+  my @cond = (_mock_cond(
+    "Condition_and_2", [1, 0],
+    { type => "and_2", left => '$x', op => "&&", right => "1" },
+  ));
+  my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
+
+  my @cells = Devel::Cover::Report::Html_crisp::line_condition_cells($f, 7);
+  is @cells,                     1,    "and_2 asym: single cells entry";
+  is $cells[0]{headers}[0],      "!l", "and_2 asym: header 0 is !l";
+  is $cells[0]{headers}[1],      "l",  "and_2 asym: header 1 is l";
+  is $cells[0]{parts}[0]{count}, 1,    "and_2 asym: count 1 under !l";
+  is $cells[0]{parts}[1]{count}, 0,    "and_2 asym: count 0 under l";
+}
+
+# A compound line's outer cells table is captioned with the whole expression,
+# so which operator its columns describe is not obvious.  The decision's own
+# operator is marked; operators inside compound operands are not.
+sub test_condition_cells_op_marked () {
+  my @cond = (_mock_cond(
+    "Condition_or_3",
+    [1, 1, 0],
+    { type => "or_3", left => '$x && $y', op => "||", right => '$z' },
+  ));
+  my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
+
+  my @cells = Devel::Cover::Report::Html_crisp::line_condition_cells($f, 7);
+  like $cells[0]{text}, qr{\$x.*<span class="cond-op">\|\|</span>.*\$z}s,
+    "cells: the decision's own operator is marked";
+  unlike $cells[0]{text}, qr{cond-op">(?:&amp;&amp;|&&)<}s,
+    "cells: the operator inside the left operand is not marked";
+}
+
 # Panel 1 of the per-line detail block: per-logop cells aligned with the
 # headline cond % (one cell per truth-value slot, classes from the condition's
 # value/error pair).  Covers line_condition_cells data layout and the rendered
@@ -801,6 +857,9 @@ sub main () {
   test_mcdc_detail_unanalysed_note;
   test_mcdc_detail_excused_badge;
   test_truth_tables_pass_observed_vectors;
+  test_truth_tables_or2_asymmetric;
+  test_condition_cells_and2_headers;
+  test_condition_cells_op_marked;
   test_condition_cells_panel;
   test_condition_cells_panel_merges_conditions;
   test_decision_vectors_panel_heading;

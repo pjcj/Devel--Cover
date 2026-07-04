@@ -914,21 +914,33 @@ sub line_branches ($f, $n) {
   } @$loc
 }
 
+sub _cond_fragment ($s) {
+  if ($Have_highlighter) {
+    my ($h) = highlight($R{options}{option}, $s);
+    return $h if defined $h;
+  }
+  encode_entities($s)
+}
+
+# Mark the decision's own operator, distinguishing it from those in operands
+sub _cond_expr ($c) {
+  my ($left, $op, $right) = $c->[1]->@{qw( left op right )};
+  _cond_fragment($left)
+    . ' <span class="cond-op">'
+    . encode_entities($op)
+    . "</span> "
+    . _cond_fragment($right)
+}
+
 sub line_condition_cells ($f, $n) {
   my $conditions = $f->condition or return;
   my $loc        = $conditions->location($n);
   return unless $loc && @$loc;
   map {
-    my $c    = $_;
-    my $text = $c->text;
-    if ($Have_highlighter) {
-      ($text) = highlight($R{options}{option}, $text);
-    } else {
-      $text = encode_entities($text);
-    }
+    my $c = $_;
     {
       type    => $c->type,
-      text    => $text,
+      text    => _cond_expr($c),
       headers => [map encode_entities($_), ($c->headers // [])->@*],
       parts   => [
         map { {
@@ -1893,6 +1905,14 @@ td.chevron {
 .detail .body .expr {
   margin-bottom: 4px;
   color: var(--fg);
+}
+
+.detail .body .expr .cond-op {
+  font-weight: 700;
+  color: var(--cond-op-fg);
+  background: var(--cond-op-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
 }
 
 .detail .body table { margin-top: 4px; }

@@ -18,6 +18,8 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use Test::More import => [qw( done_testing is is_deeply like ok unlike )];
 
+use Devel::Cover::Condition_and_2 ();
+use Devel::Cover::Condition_or_2  ();
 use Devel::Cover::Condition_table ();
 
 # Build a mock condition object: blessed arrayref matching the structure that
@@ -132,6 +134,49 @@ sub test_single_or2 () {
   is @rows, 2, "or_2 has two rows";
   ok $rows[0]->covered, "or_2 row 0 covered";
   ok $rows[1]->covered, "or_2 row 1 covered";
+}
+
+# or_2 with asymmetric hits: stored order is short-circuit first (l, !l),
+# so hits [1, 0] mean only l was exercised and only row (1) is covered.
+# The symmetric hits above cannot detect a reversed row mapping; these can.
+sub test_single_or2_asymmetric () {
+  my @conditions = (mock_condition(
+    "Condition_or_2", [1, 0],
+    { type => "or_2", left => '$a', op => "||", right => "0" },
+  ));
+
+  my ($t) = Devel::Cover::Condition_table->for_line(\@conditions);
+  my @rows = sort { "@{$a->inputs}" cmp "@{$b->inputs}" } $t->rows;
+
+  is_deeply $rows[0]->inputs, [0], "or_2 asym: row (0) inputs";
+  is $rows[0]->result, 0, "or_2 asym: row (0) result";
+  ok !$rows[0]->covered, "or_2 asym: row (0) not covered";
+
+  is_deeply $rows[1]->inputs, [1], "or_2 asym: row (1) inputs";
+  is $rows[1]->result, 1, "or_2 asym: row (1) result";
+  ok $rows[1]->covered, "or_2 asym: row (1) covered";
+}
+
+# The 2-count types store hits short-circuit first, rows come back in
+# stored hit order, and headers claim that same order, so row $i's input
+# must match header $i: !l is input 0, l is input 1.
+sub test_boolean_headers_match_row_order () {
+  my %ops       = (and_2 => "&&", or_2 => "||");
+  my %input_for = ("!l"  => 0,    "l"  => 1);
+  for my $type (sort keys %ops) {
+    my $class      = "Condition_$type";
+    my @conditions = (mock_condition(
+      $class, [1, 0],
+      { type => $type, left => '$a', op => $ops{$type}, right => "1" },
+    ));
+    my ($t)     = Devel::Cover::Condition_table->for_line(\@conditions);
+    my @rows    = $t->rows;
+    my $headers = "Devel::Cover::$class"->headers;
+    for my $i (0, 1) {
+      is $rows[$i]->inputs->[0], $input_for{ $headers->[$i] },
+        qq($type row $i matches header "$headers->[$i]");
+    }
+  }
 }
 
 # xor_4: $a xor $b (4 paths)
@@ -1252,6 +1297,8 @@ sub main () {
   test_single_or3;
   test_single_and2;
   test_single_or2;
+  test_single_or2_asymmetric;
+  test_boolean_headers_match_row_order;
   test_single_xor4;
   test_single_xor4_asymmetric;
   test_composite_or_and;

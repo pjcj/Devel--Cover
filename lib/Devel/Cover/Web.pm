@@ -263,6 +263,8 @@ our $Crisp_base_css = <<'CSS';
   --fg-muted: #6c757d;
   --border: #dee2e6;
   --link: #1565c0;
+  --cond-op-bg: #c2dcf7;
+  --cond-op-fg: #0d47a1;
   --link-visited: #4a148c;
   --header-bg: #f5f5f5;
 
@@ -316,6 +318,8 @@ our $Crisp_base_css = <<'CSS';
     --fg-muted: #9e9e9e;
     --border: #424242;
     --link: #64b5f6;
+    --cond-op-bg: #2a4a72;
+    --cond-op-fg: #90caf9;
     --link-visited: #ce93d8;
     --header-bg: #2a2a2a;
 
@@ -361,6 +365,8 @@ html[data-theme="dark"] {
   --fg-muted: #9e9e9e;
   --border: #424242;
   --link: #64b5f6;
+  --cond-op-bg: #2a4a72;
+  --cond-op-fg: #90caf9;
   --link-visited: #ce93d8;
   --header-bg: #2a2a2a;
 
@@ -405,6 +411,8 @@ html[data-theme="light"] {
   --fg-muted: #6c757d;
   --border: #dee2e6;
   --link: #1565c0;
+  --cond-op-bg: #c2dcf7;
+  --cond-op-fg: #0d47a1;
   --link-visited: #4a148c;
   --header-bg: #f5f5f5;
 
