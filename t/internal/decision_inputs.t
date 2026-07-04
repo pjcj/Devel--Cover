@@ -294,6 +294,36 @@ sub test_unproven_ignores_derived_uncoverable () {
     "every atomic of an unproven table is reported missing";
 }
 
+# A file whose mcdc slot already exists must be skipped, leaving the existing
+# entry untouched, while files without one are still derived.
+sub test_derive_skips_existing_mcdc () {
+  my $db = bless {}, "Devel::Cover::DB";
+
+  my $conditions = sub { [
+    mock_condition(
+      "Condition_and_3",
+      [1, 1, 1],
+      { type => "and_3", left => '$a', op => "&&", right => '$b' },
+    ),
+  ] };
+  my $existing = { 99 => "sentinel" };
+  my $cover    = {
+    done => {
+      condition => { 10 => $conditions->() },
+      mcdc      => $existing,
+      meta      => { digest => "d1" },
+    },
+    fresh =>
+      { condition => { 10 => $conditions->() }, meta => { digest => "d2" } },
+  };
+  $db->_derive_mcdc($cover);
+
+  is $cover->{done}{mcdc}, $existing, "existing mcdc entry is left in place";
+  is_deeply $cover->{done}{mcdc}, { 99 => "sentinel" },
+    "existing mcdc content is untouched";
+  ok $cover->{fresh}{mcdc}{10}, "file without mcdc is still derived";
+}
+
 # The recorder must record one accurate vector per completed evaluation and
 # nothing for abandoned ones.  A die out of a decision abandons its frame; the
 # next execution must not inherit the aborted execution's column values.
@@ -480,6 +510,7 @@ sub main () {
     \&test_void_compound_no_false_coverage;
   subtest "unproven ignores derived uncoverable" =>
     \&test_unproven_ignores_derived_uncoverable;
+  subtest "derivation skips existing mcdc" => \&test_derive_skips_existing_mcdc;
   subtest "die discards abandoned evaluation" =>
     \&test_die_discards_abandoned_evaluation;
   subtest "recursion records each invocation" =>

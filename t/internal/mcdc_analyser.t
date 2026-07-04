@@ -75,6 +75,8 @@ sub test_and_satisfying () {
   my $r = Devel::Cover::Mcdc::Analyser->analyse(build_and_table([1, 1, 1]));
   is $r->{total},     2, "and full: 2 atomics";
   is $r->{satisfied}, 2, "and full: both atomics satisfied";
+  is_deeply $r->{pairs}, { 0 => [0, 2], 1 => [1, 2] },
+    'and full: $a pairs rows !l/l&&r, $b pairs rows l&&!r/l&&r';
 }
 
 sub test_and_missing () {
@@ -570,6 +572,16 @@ sub test_uncoverable_pair_needs_covered_row () {
   is_deeply $r->{uncoverable}, {}, "mixed pair: nothing excused";
 }
 
+# A decision that never executed and carries no uncoverable markers is all
+# test gap: nothing satisfied, every column missing, nothing excused.
+sub test_never_run_unmarked_all_missing () {
+  my $r = Devel::Cover::Mcdc::Analyser->analyse(build_and_table([0, 0, 0]));
+  is $r->{satisfied}, 0, "never run unmarked: nothing satisfied";
+  is_deeply $r->{missing}, ['$a', '$b'],
+    "never run unmarked: both columns missing";
+  is_deeply $r->{uncoverable}, {}, "never run unmarked: nothing excused";
+}
+
 # A decision that never executed with every outcome marked uncoverable - code
 # inside a branch that cannot be taken - is fully excused, not missing.
 sub test_all_uncoverable_never_run_stays_excused () {
@@ -597,6 +609,7 @@ sub main () {
   test_achievable_pair_stays_missing;
   test_coupled_achievable_pair_stays_missing;
   test_uncoverable_pair_needs_covered_row;
+  test_never_run_unmarked_all_missing;
   test_all_uncoverable_never_run_stays_excused;
   test_const_right_collapsed_observed_vectors;
   test_const_right_or_operator;

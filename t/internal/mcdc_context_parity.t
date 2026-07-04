@@ -54,9 +54,10 @@ my %Context = (
 
 # Drive a single decision in a single context across all 16 input tuples, then
 # return its recorded MC/DC table structure as a sorted list of label counts -
-# one entry per recorded table.  A unified four-condition decision yields [4];
-# a decision split into two tables yields, say, [1, 2].
-sub table_structure ($op, $context) {
+# one entry per recorded table - together with the summed covered and total
+# counts.  A unified four-condition decision yields structure [4]; a decision
+# split into two tables yields, say, [1, 2].
+sub table_coverage ($op, $context) {
   my $expr = $Decision{$op};
   my $body = $Context{$context}->($expr);
   my $code = <<PERL;
@@ -74,32 +75,54 @@ PERL
   );
   my $mcdc = $db->cover->file($path)->{mcdc} // {};
 
-  my @counts;
+  my (@counts, $covered, $total);
   for my $line (keys %$mcdc) {
     for my $decision ($mcdc->{$line}->@*) {
       push @counts, scalar $decision->labels->@*;
+      $covered += $decision->covered;
+      $total   += $decision->total;
     }
   }
-  [sort { $a <=> $b } @counts]
+  {
+    structure => [sort { $a <=> $b } @counts],
+    covered   => $covered // 0,
+    total     => $total   // 0,
+  }
 }
 
 for my $op (sort keys %Decision) {
   subtest "context parity: $op ($Decision{$op})" => sub {
-    my $reference = table_structure($op, "scalar_assign");
+    my $reference = table_coverage($op, "scalar_assign");
 
     # Reference: scalar assignment records exactly one unified table, the
-    # target the other contexts must reach.
-    is @$reference, 1, "scalar-assignment records a single unified table";
+    # target the other contexts must reach, and proves every atomic.
+    is $reference->{structure}->@*, 1,
+      "scalar-assignment records a single unified table";
+    is $reference->{covered}, $reference->{total},
+      "scalar assignment proves every atomic";
 
     # Explicit return: the void-collapsed outer logop is recorded (as the
-    # degenerate form) and MC/DC rebuilds it to the full structure.
-    is_deeply table_structure($op, "explicit_return"), $reference,
+    # degenerate form) and MC/DC rebuilds it to the full structure.  In void
+    # context the decision's input vectors cannot be observed, so it stays
+    # unproven.
+    my $explicit = table_coverage($op, "explicit_return");
+    is_deeply $explicit->{structure}, $reference->{structure},
       "explicit return records the same table as scalar assignment";
+    is $explicit->{total}, $reference->{total},
+      "explicit return reports the same total";
+    is $explicit->{covered}, 0,
+      "explicit return in void context stays unproven";
 
     # Implicit return (last statement): the outer logop is recorded as a
-    # condition (alongside the branch), so MC/DC rebuilds the same table.
-    is_deeply table_structure($op, "implicit_return"), $reference,
+    # condition (alongside the branch), so MC/DC rebuilds the same table,
+    # equally unproven in void context.
+    my $implicit = table_coverage($op, "implicit_return");
+    is_deeply $implicit->{structure}, $reference->{structure},
       "implicit return records the same table as scalar assignment";
+    is $implicit->{total}, $reference->{total},
+      "implicit return reports the same total";
+    is $implicit->{covered}, 0,
+      "implicit return in void context stays unproven";
   };
 }
 

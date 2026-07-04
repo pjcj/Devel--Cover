@@ -2,8 +2,8 @@ cover: Reading database from ...
 --------------------- ------ ------ ------ ------ ------ ------ ------
 File                    stmt   bran   cond   mcdc    sub  total   scar
 --------------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_signatures  100.0   66.6  100.0   25.0  100.0   89.0   24.9
-Total                  100.0   66.6  100.0   25.0  100.0   89.0   24.9
+tests/mcdc_signatures  100.0   66.6  100.0   62.5  100.0   89.8   30.1
+Total                  100.0   66.6  100.0   62.5  100.0   89.8   30.1
 --------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,16 +20,16 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-12 91.4 12.1 24.9
+20 90.9 20.3 30.1
 
 Worst Subroutines
 -----------------
 
-Subroutine   CC SCAR  Location                
------------- -- ----  ------------------------
-nested        6 18.0  tests/mcdc_signatures:25
-and_decision  4 14.0  tests/mcdc_signatures:23
-or_decision   4 14.0  tests/mcdc_signatures:24
+Subroutine  CC SCAR  Location                
+----------- -- ----  ------------------------
+nested       6 18.0  tests/mcdc_signatures:25
+default_or   5 16.2  tests/mcdc_signatures:27
+default_and  5 16.2  tests/mcdc_signatures:28
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -82,32 +82,60 @@ line  err   stmt   bran   cond   mcdc    sub   code
                4                               
                4                               
 26                                             
-27                                             sub main {
-28             1                           1     my @r;
+27    ***      4   * 50    100    100      4   sub default_or  ($p, $q, $r = $p || $q) { $r }
+      ***      4   * 50                        
+               4    100                        
+               4                               
+               4                               
+               4                               
+               4                               
+28    ***      4   * 50    100    100      4   sub default_and ($p, $q, $r = $p && $q) { $r }
+      ***      4   * 50                        
+               4    100                        
+               4                               
+               4                               
+               4                               
+               4                               
 29                                             
-30                                               # 2-input && hits all three short-circuit rows.
-31             1                                 push @r, and_decision(1, 1);
-32             1                                 push @r, and_decision(1, 0);
-33             1                                 push @r, and_decision(0, 1);
-34                                             
-35                                               # 2-input || hits all three short-circuit rows.
-36             1                                 push @r, or_decision(1, 0);
-37             1                                 push @r, or_decision(0, 1);
-38             1                                 push @r, or_decision(0, 0);
-39                                             
-40                                               # Mixed-precedence ($a && $b) || ($c && $d).  The statement-level outer ||
-41                                               # joins two compound operands, so it is recorded as a condition (alongside
-42                                               # the branch) and MC/DC measures the unified four-condition decision.  Called
-43                                               # for its value, the decision's input vectors are observed, so MC/DC is proven
-44                                               # (these four calls achieve it partially).  The per-CV walk stays clear of
-45                                               # signature ops.
-46             1                                 push @r, nested(1, 1, 0, 0);
-47             1                                 push @r, nested(1, 0, 1, 1);
-48             1                                 push @r, nested(0, 0, 1, 0);
-49             1                                 push @r, nested(0, 0, 0, 0);
-50                                             }
-51                                             
-52             1                               main();
+30                                             sub main {
+31             1                           1     my @r;
+32                                             
+33                                               # 2-input && hits all three short-circuit rows.
+34             1                                 push @r, and_decision(1, 1);
+35             1                                 push @r, and_decision(1, 0);
+36             1                                 push @r, and_decision(0, 1);
+37                                             
+38                                               # 2-input || hits all three short-circuit rows.
+39             1                                 push @r, or_decision(1, 0);
+40             1                                 push @r, or_decision(0, 1);
+41             1                                 push @r, or_decision(0, 0);
+42                                             
+43                                               # Mixed-precedence ($a && $b) || ($c && $d).  The statement-level outer ||
+44                                               # joins two compound operands, so it is recorded as a condition (alongside
+45                                               # the branch) and MC/DC measures the unified four-condition decision.  Called
+46                                               # for its value, the decision's input vectors are observed, so MC/DC is proven
+47                                               # (these four calls achieve it partially).  The per-CV walk stays clear of
+48                                               # signature ops.
+49             1                                 push @r, nested(1, 1, 0, 0);
+50             1                                 push @r, nested(1, 0, 1, 1);
+51             1                                 push @r, nested(0, 0, 1, 0);
+52             1                                 push @r, nested(0, 0, 0, 0);
+53                                             
+54                                               # A logop in a signature default expression is a user decision, measured
+55                                               # and proven like any other despite sitting in the signature prologue
+56                                               # among the argument-count logops.  The two-argument calls hit every row
+57                                               # of each default; the three-argument calls skip the default entirely.
+58             1                                 push @r, default_or(1, 0);
+59             1                                 push @r, default_or(0, 1);
+60             1                                 push @r, default_or(0, 0);
+61             1                                 push @r, default_or(0, 0, 1);
+62             1                                 push @r, default_and(1, 1);
+63             1                                 push @r, default_and(1, 0);
+64             1                                 push @r, default_and(0, 1);
+65             1                                 push @r, default_and(0, 0, 1);
+66                                             }
+67                                             
+68             1                               main();
 
 
 Branches
@@ -124,6 +152,12 @@ line  err      %   true  false   branch
 25    ***     50      0      4   unless @_ <= 4
       ***     50      0      4   unless @_ >= 4
              100      3      1   unless $a and $b
+27    ***     50      0      4   unless @_ <= 3
+      ***     50      0      4   unless @_ >= 2
+             100      1      3   if (@_ >= 3) { }
+28    ***     50      0      4   unless @_ <= 3
+      ***     50      0      4   unless @_ >= 2
+             100      1      3   if (@_ >= 3) { }
 
 
 Conditions
@@ -135,12 +169,14 @@ line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
 25           100      2      1      1   $a and $b
              100      1      1      1   $c and $d
+28           100      1      1      1   $p and $q
 
 or 3 conditions
 
 line  err      %      l  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------   ----
 25           100      1      1      2   $a && $b || $c && $d
+27           100      1      1      1   $p or $q
 
 
 MC/DC
@@ -149,6 +185,8 @@ MC/DC
 line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
 25    ***     25    1    4   $b, $c, $d             $a && $b || $c && $d
+27           100    2    2                          $p or $q
+28           100    2    2                          $p and $q
 
 
 Covered Subroutines
@@ -161,7 +199,9 @@ BEGIN            1   1   0.0 tests/mcdc_signatures:19
 BEGIN            1   1   0.0 tests/mcdc_signatures:20
 BEGIN            1   1   0.0 tests/mcdc_signatures:21
 and_decision     3   4  14.0 tests/mcdc_signatures:23
-main             1   1   0.0 tests/mcdc_signatures:28
+default_and      4   5  16.2 tests/mcdc_signatures:28
+default_or       4   5  16.2 tests/mcdc_signatures:27
+main             1   1   0.0 tests/mcdc_signatures:31
 nested           4   6  18.0 tests/mcdc_signatures:25
 or_decision      3   4  14.0 tests/mcdc_signatures:24
 

@@ -125,22 +125,38 @@ sub cover_command ($self) {
   $self->perl . " ./bin/cover $self->{cover_parameters}"
 }
 
-sub _get_right_version ($td, $test) {
+sub _gold_location ($self) {
+  ("./test_output/cover", $self->{golden_test} || $self->{test})
+}
+
+sub _gold_versions ($td, $test) {
   opendir my $dh, $td or die "Can't opendir $td: $!";
   my @versions
     = sort { $a <=> $b } map { /^$test\.(5\.\d+)$/ ? $1 : () } readdir $dh;
   closedir $dh or die "Can't closedir $td: $!";
+  @versions
+}
+
+sub _get_right_version ($td, $test) {
   my $v = "5.0";
-  for (@versions) {
+  for (_gold_versions($td, $test)) {
     last if $_ > $];
     $v = $_;
   }
   $v
 }
 
+sub _previous_gold_version ($td, $test) {
+  my $v = "5.0";
+  for (_gold_versions($td, $test)) {
+    last if $_ >= $];
+    $v = $_;
+  }
+  $v
+}
+
 sub cover_gold ($self) {
-  my $td   = "./test_output/cover";
-  my $test = $self->{golden_test} || $self->{test};
+  my ($td, $test) = $self->_gold_location;
   my $v
     = exists $ENV{DEVEL_COVER_GOLDEN_VERSION}
     ? $ENV{DEVEL_COVER_GOLDEN_VERSION}
@@ -298,19 +314,20 @@ sub _capture_cover_output ($self, $cover_com, $new_gold) {
   $ng
 }
 
-sub _compare_with_existing_gold ($self, $gold, $new_gold, $ng, $v) {
-  print STDERR "gv is $v and this is $]\n"                 if $self->{debug};
-  print STDERR "gold is $gold and new_gold is $new_gold\n" if $self->{debug};
-  return if $v eq "0" || $v eq $];
+sub _prune_redundant_gold ($self, $td, $test, $new_gold, $ng) {
+  my $prev = _previous_gold_version($td, $test);
+  print STDERR "previous version is $prev and this is $]\n" if $self->{debug};
+  return                                                    if $prev eq "5.0";
 
+  my $gold = "$td/$test.$prev";
   open my $gold_fh, "<", $gold or die "Cannot open $gold: $!";
   my $g = do { local $/; <$gold_fh> };
   close $gold_fh or die "Cannot close $gold: $!";
 
   print STDERR "checking $new_gold against $gold\n" if $self->{debug};
   if ($ng eq $g) {
-    print STDERR "matches $v";
-    unlink $new_gold;
+    print STDERR "matches $prev";
+    unlink $new_gold or die "Cannot unlink $new_gold: $!";
   } else {
     print STDERR "new";
   }
@@ -321,9 +338,8 @@ sub create_gold ($self) {
   # there on 5.20.0
   return if $self->{criteria} =~ /\bpod\b/ && $] != 5.020000;
 
-  my ($base, $v) = $self->cover_gold;
-  my $gold     = "$base.$v";
-  my $new_gold = "$base.$]";
+  my ($td, $test) = $self->_gold_location;
+  my $new_gold = "$td/$test.$]";
 
   unless (-e $new_gold) {
     open my $g, ">", $new_gold or die "Can't open $new_gold: $!";
@@ -343,7 +359,7 @@ sub create_gold ($self) {
   print STDERR "Running cover [$cover_com]\n" if $self->{debug};
 
   my $ng = $self->_capture_cover_output($cover_com, $new_gold);
-  $self->_compare_with_existing_gold($gold, $new_gold, $ng, $v);
+  $self->_prune_redundant_gold($td, $test, $new_gold, $ng);
 
   $self->{end}->() if $self->{end};
 

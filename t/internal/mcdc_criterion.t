@@ -16,7 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [qw( done_testing is is_deeply )];
+use Test::More import => [qw( done_testing is is_deeply ok )];
 
 use Devel::Cover::Mcdc ();  ## no perlimports
 
@@ -58,6 +58,11 @@ sub test_percentage_zero () {
 sub test_percentage_truncates () {
   my $m = mcdc([1, 1, 0]);
   is $m->percentage, 66, "percentage truncates toward zero";
+}
+
+sub test_percentage_no_columns () {
+  my $m = mcdc([]);
+  is $m->percentage, 0, "0% when the decision has no columns";
 }
 
 sub test_criterion_name () {
@@ -105,9 +110,37 @@ sub test_fully_marked_decision_has_no_error () {
   is $m->error, 0, "a wholly uncoverable decision reports no error";
 }
 
+sub test_error_per_column () {
+  my $m = mcdc([1, 0, 0], '$a && $b && $c', [0, 0, 1]);
+  ok !$m->error(0), "error(i) false for a covered column";
+  ok $m->error(1),  "error(i) true for an unmarked missing column";
+  ok !$m->error(2), "error(i) false for a marked missing column";
+
+  my $marked = mcdc([1, 1], '$a // $b', [0, 1]);
+  ok $marked->error(1), "error(i) true for a covered column marked uncoverable";
+}
+
 sub test_missing_excludes_marked () {
   my $m = mcdc([0, 0], '$a // $b', [0, 1], ['$a', '$b']);
   is_deeply $m->missing, ['$a'], "missing omits columns marked uncoverable";
+}
+
+sub test_labels_fallback () {
+  my $m = mcdc([1, 0]);
+  is_deeply $m->labels, [], "labels falls back to an empty arrayref";
+}
+
+# Unlike the base Criterion 0/1 aggregation, Mcdc aggregates per-column counts.
+sub test_calculate_summary_aggregates_columns () {
+  my $m  = mcdc([1, 1, 0, 0], '$a && $b && $c && $d', [0, 0, 0, 1]);
+  my $db = { summary => {} };
+  $m->calculate_summary($db, "file.pl");
+  my $counts = { total => 4, covered => 2, uncoverable => 1, error => 1 };
+  is_deeply $db->{summary}, {
+      "file.pl" => { mcdc => $counts, total => $counts },
+      Total     => { mcdc => $counts, total => $counts },
+    },
+    "calculate_summary aggregates per-column counts";
 }
 
 sub test_unanalysed_flag () {
@@ -128,6 +161,7 @@ sub main () {
   test_percentage_full;
   test_percentage_zero;
   test_percentage_truncates;
+  test_percentage_no_columns;
   test_criterion_name;
   test_text;
   test_values;
@@ -136,7 +170,10 @@ sub main () {
   test_error_excuses_marked_missing;
   test_error_flags_covered_but_marked;
   test_fully_marked_decision_has_no_error;
+  test_error_per_column;
   test_missing_excludes_marked;
+  test_labels_fallback;
+  test_calculate_summary_aggregates_columns;
   test_unanalysed_flag;
   test_unanalysed_default;
   done_testing;
