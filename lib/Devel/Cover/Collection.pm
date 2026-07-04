@@ -987,7 +987,7 @@ $Templates{module_by_start} = <<'EOT';
     <tr>
       <td>
         [% IF vals.$m.link %]
-          <a href="[% root %][%- vals.$m.link -%]">
+          <a href="[% root %][%- vals.$m.link | html -%]">
             [% (module.name || module.module) | html %]
           </a>
         [% ELSE %]
@@ -1003,7 +1003,7 @@ $Templates{module_by_start} = <<'EOT';
       </td>
       <td>
         [% IF vals.$m.log %]
-          <a href="[% root %][% vals.$m.log %]">&para;</a>
+          <a href="[% root %][% vals.$m.log | html %]">&para;</a>
         [% END %]
       </td>
       [% FOREACH criterion = criteria %]

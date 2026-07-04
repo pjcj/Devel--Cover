@@ -37,6 +37,12 @@ eval "require Devel::Cover::Collection; 1" or do {
 # may contain markup characters and must be escaped before being written.
 my $Meta = "x<MARK>&";
 
+# The index and log links are built from the distribution directory and log
+# file names.  They land in a double-quoted href attribute, so an embedded
+# quote would end the attribute early.  They must be escaped too.
+my $Link_meta = '/x"><MARK>/index.html';
+my $Log_meta  = 'a-bc-x"><MARK>-1--1234567890.123456.out.gz';
+
 sub render_index () {
   my $template = Template->new({
     LOAD_TEMPLATES => [Devel::Cover::Collection::Template::Provider->new({})],
@@ -49,10 +55,14 @@ sub render_index () {
     criteria     => [],
     col_headers  => [{ full => "Total", short => "total" }],
     modules      => {
-      E =>
-        [{ module => "Test-1.0", name => $Meta, version => "1.0$Meta" }],
+      E => [{
+        module  => "Test-1.0",
+        name    => $Meta,
+        version => "1.0$Meta",
+      }],
     },
-    vals => { "Test-1.0" => {} },
+    vals =>
+      { "Test-1.0" => { link => $Link_meta, log => $Log_meta } },
   };
 
   my $out = "";
@@ -62,8 +72,11 @@ sub render_index () {
 
 sub main () {
   my $html = render_index;
-  unlike $html, qr|<MARK>|, "collection index does not emit raw module metadata";
-  like $html,   qr|&lt;MARK&gt;|, "collection index escapes module metadata";
+  unlike $html, qr|<MARK>|,
+    "collection index does not emit raw module metadata";
+  like $html, qr|&lt;MARK&gt;|, "collection index escapes module metadata";
+  unlike $html, qr|"><MARK>|, "collection index link stays in the attribute";
+  like $html,   qr|&quot;|, "collection index escapes the quote in href links";
 
   done_testing;
 }
