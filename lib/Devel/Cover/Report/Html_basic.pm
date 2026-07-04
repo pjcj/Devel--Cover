@@ -452,7 +452,7 @@ https://pjcj.net
   <script type="text/javascript" src="common.js"></script>
   <script type="text/javascript" src="css.js"></script>
   <script type="text/javascript" src="standardista-table-sorting.js"></script>
-  <title> [% title || "Coverage Summary" %] </title>
+  <title> [% (title || "Coverage Summary") | html %] </title>
 </head>
 <body>
   [% content %]
@@ -463,7 +463,7 @@ HTML
 $Templates{header} = <<'HTML';
 <table>
   <tr>
-    <th colspan="4">[% R.file %]</th>
+    <th colspan="4">[% R.file | html %]</th>
   </tr>
   <tr class="hblank"><td class="dblank"></td></tr>
   <tr>
@@ -499,7 +499,7 @@ $Templates{summary} = <<'HTML';
 <table>
   <tr>
     <td class="sh" align="right">Module</td>
-    <td class="sv" align="left" colspan="4">[% R.module.name %]</td>
+    <td class="sv" align="left" colspan="4">[% R.module.name | html %]</td>
   </tr>
   <tr>
     <td class="sh" align="right">Version</td>
@@ -577,12 +577,12 @@ function filter_files(filter_by) {
 
   <tfoot>
   [% FOREACH file = files %]
-    <tr align="center" valign="top" class="[% file %]">
+    <tr align="center" valign="top" class="[% file | html %]">
       <td align="left">
         [% IF R.exists.$file %]
-          <a href="[% R.filenames.$file %].html"> [% file %] </a>
+          <a href="[% R.filenames.$file %].html"> [% file | html %] </a>
         [% ELSE %]
-          [% file %]
+          [% file | html %]
         [% END %]
         [% IF R.uncompiled.$file %] <em>(untested)</em>[% END %]
       </td>
@@ -809,7 +809,7 @@ $Templates{subroutines} = <<'HTML';
       [% IF R.options.show.pod %]
         <td class="[% sub.pclass %]"> [% sub.pod %] </td>
       [% END %]
-      <td> [% sub.name %] </td>
+      <td> [% sub.name | html %] </td>
     </tr>
   [% END %]
 </table>

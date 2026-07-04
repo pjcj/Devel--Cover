@@ -49,7 +49,7 @@ sub crit_name ($c) {
 
 sub render_layout (%args) {
   my $asset_prefix = $args{asset_prefix} // "";
-  my $title        = $args{title} || "Coverage Report";
+  my $title        = encode_entities($args{title} || "Coverage Report");
   my $content      = $args{content} // "";
   <<HTML
 <!DOCTYPE html>
@@ -107,8 +107,9 @@ HTML
   if ($f->{worst_subs}->@*) {
     $o .= qq(<dl class="scar-tip-subs">\n);
     for ($f->{worst_subs}->@*) {
-      my $cls = scar_class($_->{scar});
-      $o .= qq(<dt>$_->{name}</dt><dd class="$cls">$_->{crap}</dd>\n);
+      my $cls  = scar_class($_->{scar});
+      my $name = encode_entities($_->{name});
+      $o .= qq(<dt>$name</dt><dd class="$cls">$_->{crap}</dd>\n);
     }
     $o .= "</dl>\n";
   }
@@ -146,17 +147,17 @@ sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef) {
 }
 
 sub file_row ($f, $dir) {
-  my $cls = "dir-file" . ($f->{uncompiled} ? " untested" : "");
-  my $name
-    = $f->{exists}
-    ? qq(<a href="$f->{link}">$f->{basename}</a>)
-    : $f->{basename};
-  my $badge    = $f->{uncompiled} ? untested_badge() . "\n" : "";
+  my $cls      = "dir-file" . ($f->{uncompiled} ? " untested" : "");
+  my $base     = encode_entities($f->{basename});
+  my $name     = $f->{exists}     ? qq(<a href="$f->{link}">$base</a>) : $base;
+  my $badge    = $f->{uncompiled} ? untested_badge() . "\n"            : "";
   my $linkable = $f->{exists} && !$f->{uncompiled};
 
-  my $o = <<HTML;
-<tr class="$cls" data-dir="$dir">
-<td data-value="$f->{short}">$name $badge</td>
+  my $edir   = encode_entities($dir);
+  my $eshort = encode_entities($f->{short});
+  my $o      = <<HTML;
+<tr class="$cls" data-dir="$edir">
+<td data-value="$eshort">$name $badge</td>
 HTML
 
   for my $c ($R{criteria}->@*) {
@@ -191,10 +192,10 @@ sub render_worst_files ($worst) {
   my $o = qq(<div class="worst-files">\n<h2>Top SCAR</h2>\n);
   for my $f (@$worst) {
     next if _numeric_scar($f) == 0;
-    my $cls = "scar-" . scar_class($f->{file_scar});
-    my $name
-      = $f->{exists} ? qq(<a href="$f->{link}">$f->{short}</a>) : $f->{short};
-    my $badge = $f->{uncompiled} ? untested_badge() . "\n" : "";
+    my $cls   = "scar-" . scar_class($f->{file_scar});
+    my $short = encode_entities($f->{short});
+    my $name  = $f->{exists}     ? qq(<a href="$f->{link}">$short</a>) : $short;
+    my $badge = $f->{uncompiled} ? untested_badge() . "\n"             : "";
     my $tip   = scar_tip($f);
     my $scar  = $f->{file_scar};
 
@@ -386,8 +387,8 @@ HTML
 HTML
 
   for my $g (@groups) {
-    $o .= qq(<tr class="dir-header" data-dir="$g->{dir}">\n)
-      . "<td>$g->{dir}</td>\n";
+    my $edir = encode_entities($g->{dir});
+    $o .= qq(<tr class="dir-header" data-dir="$edir">\n) . "<td>$edir</td>\n";
     $o .= cov_cell($g->{criteria}{$_}, 0) for $R{criteria}->@*;
     $o .= cov_cell($g->{total},        0);
     $o .= scar_cell($g);
@@ -622,12 +623,13 @@ sub render_source_line ($line) {
 }
 
 sub render_file_page ($fd, $lines, $total, $prev_file, $next_file) {
-  my $o = $fd->{uncompiled} ? qq(<div class="untested-page">\n) : "";
+  my $o     = $fd->{uncompiled} ? qq(<div class="untested-page">\n) : "";
+  my $short = encode_entities($fd->{short});
 
   $o .= <<HTML;
 <div class="header">
 <div class="header-inner">
-<h1>$fd->{short}
+<h1>$short
 @{[ $fd->{uncompiled} ? untested_badge() : "" ]}</h1>
 <div class="header-stats">
 <span class="filter-label">filter:</span>
@@ -713,7 +715,7 @@ HTML
   $o .= file_nav($prev_file, $next_file);
   $o .= <<HTML;
 <div class="minimap"></div>
-<table class="source-table" role="table" aria-label="Coverage for $fd->{short}">
+<table class="source-table" role="table" aria-label="Coverage for $short">
 HTML
 
   $o .= render_source_line($_) for @$lines;
@@ -729,12 +731,12 @@ sub file_nav ($prev_file, $next_file) {
   my $prev
     = $prev_file
     ? qq(<a href="$prev_file->{link}" class="nav-prev">)
-    . "&laquo; $prev_file->{short}</a>"
+    . "&laquo; @{[ encode_entities($prev_file->{short}) ]}</a>"
     : "";
   my $next
     = $next_file
     ? qq(<a href="$next_file->{link}" class="nav-next">)
-    . "$next_file->{short} &raquo;</a>"
+    . "@{[ encode_entities($next_file->{short}) ]} &raquo;</a>"
     : "";
   <<HTML
 <div class="file-nav">

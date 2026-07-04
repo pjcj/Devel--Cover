@@ -224,6 +224,7 @@ sub print_stylesheet ($db, $options) {
 # Print the HTML document header
 sub print_html_header ($fh, $title) {
   my $version = $VERSION . $Devel::Cover::Inc::Dev;
+  $title = encode_entities($title);
   print $fh <<"END_HTML";
 <!DOCTYPE html
      PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
@@ -251,6 +252,7 @@ END_HTML
 sub print_summary ($fh, $title, $file, $raw_pct, $err, $db) {
   my $percent = sprintf "%.1f", $raw_pct || 0;
   my $class   = pclass($percent, $err);
+  $file = encode_entities($file);
 
   print $fh <<"END_HTML";
 <body>
@@ -659,11 +661,12 @@ END_HTML
       = $file ne "Total" && $db->cover->file($file)->{meta}{uncompiled};
     my $summary = get_summary_for_file($db, $file, $show);
 
-    my $url = get_link($file);
+    my $url  = get_link($file);
+    my $name = encode_entities($file);
     if ($url) {
-      print $fh '<tr><td align="left">' . qq(<a href="$url">$file</a>);
+      print $fh '<tr><td align="left">' . qq(<a href="$url">$name</a>);
     } else {
-      print $fh qq(<tr><td align="left">$file);
+      print $fh qq(<tr><td align="left">$name);
     }
     print $fh " <em>(untested)</em>" if $uncompiled;
     print $fh "</td>";

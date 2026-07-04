@@ -469,7 +469,7 @@ https://pjcj.net
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"></meta>
   <meta http-equiv="Content-Language" content="en-us"></meta>
   <link rel="stylesheet" type="text/css" href="cover.css"></link>
-  <title> [% title %] </title>
+  <title> [% title | html %] </title>
 </head>
 <body>
   [% content %]
@@ -506,9 +506,9 @@ $Templates{summary} = <<'HTML';
     <tr align="center" valign="top">
     <td align="left">
     [% IF file_exists.$file %]
-      <a href="[%- filenames.$file -%].html"> [% file %] </a>
+      <a href="[%- filenames.$file -%].html"> [% file | html %] </a>
     [% ELSE %]
-      [% file %]
+      [% file | html %]
     [% END %]
     [% IF uncompiled.$file %] <em>(untested)</em>[% END %]
     </td>
@@ -544,7 +544,7 @@ $Templates{branches} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">File:</td>
-    <td>[% file %]</td>
+    <td>[% file | html %]</td>
   </tr>
   <tr>
     <td class="header" align="right">Coverage:</td>
@@ -599,7 +599,7 @@ $Templates{conditions} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">File:</td>
-    <td>[% file %]</td>
+    <td>[% file | html %]</td>
   </tr>
   <tr>
     <td class="header" align="right">Coverage:</td>
@@ -651,7 +651,7 @@ $Templates{mcdc} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">File:</td>
-    <td>[% file %]</td>
+    <td>[% file | html %]</td>
   </tr>
   <tr>
     <td class="header" align="right">Coverage:</td>
@@ -701,7 +701,7 @@ $Templates{subroutines} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">File:</td>
-    <td>[% file %]</td>
+    <td>[% file | html %]</td>
   </tr>
   <tr>
     <td class="header" align="right">Coverage:</td>
@@ -726,7 +726,7 @@ $Templates{subroutines} = <<'HTML';
   [% FOREACH sub = subroutines %]
     <tr align="center" valign="top">
       <td class="[% sub.class %]">
-        <a id="[% sub.ref %]"> [% sub.name %] </a>
+        <a id="[% sub.ref %]"> [% sub.name | html %] </a>
       </td>
       <td> [% sub.line %] </td>
     </tr>
@@ -744,7 +744,7 @@ $Templates{file} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">File:</td>
-    <td>[% file %]</td>
+    <td>[% file | html %]</td>
   </tr>
   <tr>
     <td class="header" align="right">Coverage:</td>

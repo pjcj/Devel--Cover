@@ -44,9 +44,9 @@ sub decide {
 1;
 PERL
 
-# When no syntax highlighter runs (none installed, or both disabled), the
-# raw source and coverage text fall back to the page unhighlighted; they
-# must be entity-escaped, not emitted raw.
+# When no syntax highlighter runs (none installed, or both disabled) the
+# source and coverage text reach the page unhighlighted, so they must still
+# be escaped.
 sub _setup () {
   my $tmpdir = realpath(tempdir(CLEANUP => 1));
   my $libdir = File::Spec->catdir($tmpdir, "lib");
@@ -71,18 +71,22 @@ sub _setup () {
   ($tmpdir, $cover_db)
 }
 
-sub _report ($tmpdir, $cover_db, $report) {
+sub _report ($tmpdir, $cover_db, $report, @extra) {
   my $outdir = File::Spec->catdir($tmpdir, $report);
   my ($out, $exit) = run_cover(
-    "--report", $report,      "--outputdir", $outdir,
-    "--silent", "-noppihtml", "-noperltidy", $cover_db,
+    "--report", $report, "--outputdir", $outdir,
+    "--silent", @extra,  $cover_db,
   );
   is $exit, 0, "cover --report $report exits 0" or diag $out;
   $outdir
 }
 
+# Disable syntax highlighting so raw source falls back unhighlighted.  Only the
+# html_basic and html_crisp backends accept these options.
+my @No_highlight = qw( -noppihtml -noperltidy );
+
 sub test_html_basic ($tmpdir, $cover_db) {
-  my $outdir = _report($tmpdir, $cover_db, "html_basic");
+  my $outdir = _report($tmpdir, $cover_db, "html_basic", @No_highlight);
 
   my ($file_page) = grep !m|/coverage\.html$| && !/--\w+\.html$/,
     glob "$outdir/*.html";
@@ -101,7 +105,7 @@ sub test_html_basic ($tmpdir, $cover_db) {
 }
 
 sub test_html_crisp ($tmpdir, $cover_db) {
-  my $outdir      = _report($tmpdir, $cover_db, "html_crisp");
+  my $outdir      = _report($tmpdir, $cover_db, "html_crisp", @No_highlight);
   my ($file_page) = grep !m|/coverage\.html$|, glob "$outdir/*.html";
   my $html        = slurp($file_page);
   unlike $html, qr|<script>xss|, "html_crisp: file page escapes raw source";
@@ -109,10 +113,77 @@ sub test_html_crisp ($tmpdir, $cover_db) {
     "html_crisp: file page contains escaped source";
 }
 
+# The covered file name reaches the report title, headings and links, and may
+# contain markup characters, so it must be escaped there too and not only in
+# the source body.  Windows file names cannot contain < > " so this is
+# exercised on Unix only.
+my $Meta = 'x<MARK>"&';
+
+sub _setup_named_file () {
+  my $tmpdir = realpath(tempdir(CLEANUP => 1));
+  my $script = File::Spec->catfile($tmpdir, "$Meta.pl");
+  open my $fh, ">", $script or die "Cannot write $script: $!";
+  print $fh <<'PERL';
+sub run {
+  my $n = shift;
+  if ($n > 0) {
+    return "positive";
+  }
+  return "non-positive";
+}
+run(1);
+run(-1);
+PERL
+  close $fh or die "Cannot close $script: $!";
+
+  my $cover_db = File::Spec->catdir($tmpdir, "cover_db");
+  local $ENV{DEVEL_COVER_SELF};
+  delete $ENV{DEVEL_COVER_SELF};
+  my @cmd = (
+    $^X, "-Iblib/lib", "-Iblib/arch",
+    "-MDevel::Cover=-db,$cover_db,-silent,1,-merge,0", $script,
+  );
+  system(@cmd) == 0 or die "Failed to create cover_db (status $?)";
+
+  ($tmpdir, $cover_db)
+}
+
+sub test_filename_escaped ($report, $tmpdir, $cover_db) {
+  my $outdir = _report($tmpdir, $cover_db, $report);
+  my $html   = join "\n", map slurp($_), glob "$outdir/*.html";
+  unlike $html, qr|<MARK>|, "$report: raw file name metacharacters not emitted";
+  like $html, qr|&lt;MARK&gt;|, "$report: file name metacharacters are escaped";
+}
+
+# The SCAR tooltip in the crisp report emits sub names, so escape them too.
+sub test_crisp_scar_tip () {
+  require Devel::Cover::Report::Html_crisp;
+  my $tip = Devel::Cover::Report::Html_crisp::scar_tip({
+    file_scar  => "5.0",
+    file_cov   => 50,
+    file_cc    => 3,
+    file_crap  => 7.0,
+    worst_subs => [{ name => "x<MARK>", crap => "9.0", scar => 20 }],
+  });
+  unlike $tip, qr|<MARK>|, "html_crisp: scar tip does not emit raw sub name";
+  like $tip,   qr|&lt;MARK&gt;|, "html_crisp: scar tip escapes sub name";
+}
+
 sub main () {
   my ($tmpdir, $cover_db) = _setup;
   test_html_basic($tmpdir, $cover_db) if $Have_template;
   test_html_crisp($tmpdir, $cover_db);
+
+  test_crisp_scar_tip;
+
+  unless ($^O eq "MSWin32") {
+    my ($t, $db) = _setup_named_file;
+    test_filename_escaped("html_crisp",   $t, $db);
+    test_filename_escaped("html_minimal", $t, $db);
+    test_filename_escaped("html_basic",   $t, $db) if $Have_template;
+    test_filename_escaped("html_subtle",  $t, $db) if $Have_template;
+  }
+
   done_testing;
 }
 
