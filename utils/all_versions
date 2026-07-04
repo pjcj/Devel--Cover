@@ -193,8 +193,9 @@ sub get_options {
       #>>>
   ] unless $Options->{version}->@*;
   if ($Options->{key}) {
-    $Options->{version}
-      = [qw( 5.20.0 5.28.0 5.38.0 5.40.0 5.42.2 5.42.2-thr 5.43.11 )];
+    $Options->{version} = [qw(
+      5.20.0 5.28.3 5.38.5 5.40.4 5.42.0-thr 5.42.2 5.42.2-thr 5.43.11
+    )];
   }
   $Options->{version} = [
     grep {
