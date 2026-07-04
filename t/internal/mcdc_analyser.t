@@ -75,6 +75,8 @@ sub test_and_satisfying () {
   my $r = Devel::Cover::Mcdc::Analyser->analyse(build_and_table([1, 1, 1]));
   is $r->{total},     2, "and full: 2 atomics";
   is $r->{satisfied}, 2, "and full: both atomics satisfied";
+  is_deeply $r->{pairs}, { 0 => [0, 2], 1 => [1, 2] },
+    'and full: $a pairs rows !l/l&&r, $b pairs rows l&&!r/l&&r';
 }
 
 sub test_and_missing () {
