@@ -155,6 +155,63 @@ sub test_filename_escaped ($report, $tmpdir, $cover_db) {
   like $html, qr|&lt;MARK&gt;|, "$report: file name metacharacters are escaped";
 }
 
+# The module name and version reach the coverage summary page from the covered
+# distribution's MYMETA.json (or its directory name), so they may contain
+# markup characters and must be escaped on the summary page too.
+my $Have_cpan_meta = eval "require CPAN::Meta; 1";
+
+sub _setup_meta () {
+  my $tmpdir = realpath(tempdir(CLEANUP => 1));
+  my $libdir = File::Spec->catdir($tmpdir, "lib");
+  make_path($libdir);
+
+  my $path = File::Spec->catfile($libdir, "Fixture.pm");
+  open my $fh, ">", $path or die "Cannot write $path: $!";
+  print $fh $Fixture;
+  close $fh or die "Cannot close $path: $!";
+
+  my $meta = File::Spec->catfile($tmpdir, "MYMETA.json");
+  open my $mh, ">", $meta or die "Cannot write $meta: $!";
+  print $mh <<'JSON';
+{
+   "name" : "x<MARK>&",
+   "version" : "1.0 x<MARK>&",
+   "abstract" : "test",
+   "dynamic_config" : 0,
+   "generated_by" : "test",
+   "license" : ["perl_5"],
+   "meta-spec" : { "version" : 2 },
+   "release_status" : "stable"
+}
+JSON
+  close $mh or die "Cannot close $meta: $!";
+
+  my $cover_db = File::Spec->catdir($tmpdir, "cover_db");
+  local $ENV{DEVEL_COVER_SELF};
+  delete $ENV{DEVEL_COVER_SELF};
+  my @cmd = (
+    $^X,
+    "-Iblib/lib",
+    "-Iblib/arch",
+    "-I$libdir",
+    "-MDevel::Cover=-db,$cover_db,-dir,$tmpdir,-silent,1,-merge,0",
+    "-e",
+    "use Fixture; Fixture::decide(1, 1)",
+  );
+  system(@cmd) == 0 or die "Failed to create cover_db (status $?)";
+
+  ($tmpdir, $cover_db)
+}
+
+sub test_meta_escaped ($tmpdir, $cover_db) {
+  my $outdir = _report($tmpdir, $cover_db, "html_basic");
+  my $html   = slurp(File::Spec->catfile($outdir, "coverage.html"));
+  unlike $html, qr|<MARK>|,
+    "html_basic: summary page does not emit raw module metadata";
+  like $html, qr|&lt;MARK&gt;|,
+    "html_basic: summary page escapes module metadata";
+}
+
 # The SCAR tooltip in the crisp report emits sub names, so escape them too.
 sub test_crisp_scar_tip () {
   require Devel::Cover::Report::Html_crisp;
@@ -173,6 +230,11 @@ sub main () {
   my ($tmpdir, $cover_db) = _setup;
   test_html_basic($tmpdir, $cover_db) if $Have_template;
   test_html_crisp($tmpdir, $cover_db);
+
+  if ($Have_template && $Have_cpan_meta) {
+    my ($t, $db) = _setup_meta;
+    test_meta_escaped($t, $db);
+  }
 
   test_crisp_scar_tip;
 

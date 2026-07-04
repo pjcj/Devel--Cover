@@ -503,7 +503,7 @@ $Templates{summary} = <<'HTML';
   </tr>
   <tr>
     <td class="sh" align="right">Version</td>
-    <td class="sv" align="left" colspan="4">[% R.module.version %]</td>
+    <td class="sv" align="left" colspan="4">[% R.module.version | html %]</td>
   </tr>
   <tr>
     <td class="sh" align="right">Database:</td>
