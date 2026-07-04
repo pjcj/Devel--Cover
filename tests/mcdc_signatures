@@ -24,6 +24,9 @@ sub and_decision ($p, $q)         { $p && $q }
 sub or_decision  ($p, $q)         { $p         || $q }
 sub nested       ($a, $b, $c, $d) { ($a && $b) || ($c && $d) }
 
+sub default_or  ($p, $q, $r = $p || $q) { $r }
+sub default_and ($p, $q, $r = $p && $q) { $r }
+
 sub main {
   my @r;
 
@@ -47,6 +50,19 @@ sub main {
   push @r, nested(1, 0, 1, 1);
   push @r, nested(0, 0, 1, 0);
   push @r, nested(0, 0, 0, 0);
+
+  # A logop in a signature default expression is a user decision, measured
+  # and proven like any other despite sitting in the signature prologue
+  # among the argument-count logops.  The two-argument calls hit every row
+  # of each default; the three-argument calls skip the default entirely.
+  push @r, default_or(1, 0);
+  push @r, default_or(0, 1);
+  push @r, default_or(0, 0);
+  push @r, default_or(0, 0, 1);
+  push @r, default_and(1, 1);
+  push @r, default_and(1, 0);
+  push @r, default_and(0, 1);
+  push @r, default_and(0, 0, 1);
 }
 
 main();
