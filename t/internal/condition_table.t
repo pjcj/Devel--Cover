@@ -134,6 +134,27 @@ sub test_single_or2 () {
   ok $rows[1]->covered, "or_2 row 1 covered";
 }
 
+# or_2 with asymmetric hits: stored order is short-circuit first (l, !l),
+# so hits [1, 0] mean only l was exercised and only row (1) is covered.
+# The symmetric hits above cannot detect a reversed row mapping; these can.
+sub test_single_or2_asymmetric () {
+  my @conditions = (mock_condition(
+    "Condition_or_2", [1, 0],
+    { type => "or_2", left => '$a', op => "||", right => "0" },
+  ));
+
+  my ($t) = Devel::Cover::Condition_table->for_line(\@conditions);
+  my @rows = sort { "@{$a->inputs}" cmp "@{$b->inputs}" } $t->rows;
+
+  is_deeply $rows[0]->inputs, [0], "or_2 asym: row (0) inputs";
+  is $rows[0]->result, 0, "or_2 asym: row (0) result";
+  ok !$rows[0]->covered, "or_2 asym: row (0) not covered";
+
+  is_deeply $rows[1]->inputs, [1], "or_2 asym: row (1) inputs";
+  is $rows[1]->result, 1, "or_2 asym: row (1) result";
+  ok $rows[1]->covered, "or_2 asym: row (1) covered";
+}
+
 # xor_4: $a xor $b (4 paths)
 sub test_single_xor4 () {
   my @conditions = (mock_condition(
@@ -1252,6 +1273,7 @@ sub main () {
   test_single_or3;
   test_single_and2;
   test_single_or2;
+  test_single_or2_asymmetric;
   test_single_xor4;
   test_single_xor4_asymmetric;
   test_composite_or_and;
