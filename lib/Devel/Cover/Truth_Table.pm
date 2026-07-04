@@ -297,12 +297,14 @@ sub or_tt {
   );
 }
 
+# Rows in stored hit order (the Condition_xor_4::headers order); xor hits,
+# unlike or hits, are not reversed by the callers.
 sub xor_tt {
   return (
-    Devel::Cover::Truth_Table::Row->new([0, 0], 0, shift),
-    Devel::Cover::Truth_Table::Row->new([0, 1], 1, shift),
-    Devel::Cover::Truth_Table::Row->new([1, 0], 1, shift),
     Devel::Cover::Truth_Table::Row->new([1, 1], 0, shift),
+    Devel::Cover::Truth_Table::Row->new([1, 0], 1, shift),
+    Devel::Cover::Truth_Table::Row->new([0, 1], 1, shift),
+    Devel::Cover::Truth_Table::Row->new([0, 0], 0, shift),
   );
 }
 
