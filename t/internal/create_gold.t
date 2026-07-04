@@ -22,6 +22,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
+use File::Spec ();
 use File::Temp qw( tempdir );
 use Test::More import => [qw( done_testing is ok )];
 
@@ -40,6 +41,14 @@ sub write_gold ($dir, $test, $version, $content = "") {
   print $fh $content;
   close $fh or die "Cannot close $path: $!";
   $path
+}
+
+# _prune_redundant_gold reports matches/new on STDERR, only noise here
+sub prune_quietly ($tester, @args) {
+  open my $save, ">&", \*STDERR            or die "Cannot dup STDERR: $!";
+  open STDERR,   ">",  File::Spec->devnull or die "Cannot redirect STDERR: $!";
+  $tester->_prune_redundant_gold(@args);
+  open STDERR, ">&", $save or die "Cannot restore STDERR: $!";
 }
 
 is Devel::Cover::Test::_previous_gold_version(tempdir(CLEANUP => 1), "t"),
@@ -69,7 +78,7 @@ my $Tester = Devel::Cover::Test->new("dummy");
   my $dir = tempdir(CLEANUP => 1);
   write_gold($dir, "g", $Below, "SAME\n");
   my $new = write_gold($dir, "g", $Current, "SAME\n");
-  $Tester->_prune_redundant_gold($dir, "g", $new, "SAME\n");
+  prune_quietly($Tester, $dir, "g", $new, "SAME\n");
   ok !-e $new, "redundant current-version golden deleted";
 }
 
@@ -77,14 +86,14 @@ my $Tester = Devel::Cover::Test->new("dummy");
   my $dir = tempdir(CLEANUP => 1);
   write_gold($dir, "g", $Below, "OLD\n");
   my $new = write_gold($dir, "g", $Current, "NEW\n");
-  $Tester->_prune_redundant_gold($dir, "g", $new, "NEW\n");
+  prune_quietly($Tester, $dir, "g", $new, "NEW\n");
   ok -e $new, "differing current-version golden kept";
 }
 
 {
   my $dir = tempdir(CLEANUP => 1);
   my $new = write_gold($dir, "g", $Current, "BASE\n");
-  $Tester->_prune_redundant_gold($dir, "g", $new, "BASE\n");
+  prune_quietly($Tester, $dir, "g", $new, "BASE\n");
   ok -e $new, "baseline golden with no earlier version kept";
 }
 
