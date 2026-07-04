@@ -572,6 +572,24 @@ sub test_truth_tables_or2_asymmetric () {
   is $row{0}{class}, "c0", "or_2 asym: row (0) class c0";
 }
 
+# and_2 stores its hits short-circuit first (!l, l) and the cells pair each
+# stored count with its header positionally, so with only the !l outcome
+# exercised the covered count must sit under the "!l" header.
+sub test_condition_cells_and2_headers () {
+  my @cond = (_mock_cond(
+    "Condition_and_2", [1, 0],
+    { type => "and_2", left => '$x', op => "&&", right => "1" },
+  ));
+  my $f = MockFile->new(MockCriterion->new({ 7 => \@cond }));
+
+  my @cells = Devel::Cover::Report::Html_crisp::line_condition_cells($f, 7);
+  is @cells,                     1,    "and_2 asym: single cells entry";
+  is $cells[0]{headers}[0],      "!l", "and_2 asym: header 0 is !l";
+  is $cells[0]{headers}[1],      "l",  "and_2 asym: header 1 is l";
+  is $cells[0]{parts}[0]{count}, 1,    "and_2 asym: count 1 under !l";
+  is $cells[0]{parts}[1]{count}, 0,    "and_2 asym: count 0 under l";
+}
+
 # Panel 1 of the per-line detail block: per-logop cells aligned with the
 # headline cond % (one cell per truth-value slot, classes from the condition's
 # value/error pair).  Covers line_condition_cells data layout and the rendered
@@ -822,6 +840,7 @@ sub main () {
   test_mcdc_detail_excused_badge;
   test_truth_tables_pass_observed_vectors;
   test_truth_tables_or2_asymmetric;
+  test_condition_cells_and2_headers;
   test_condition_cells_panel;
   test_condition_cells_panel_merges_conditions;
   test_decision_vectors_panel_heading;

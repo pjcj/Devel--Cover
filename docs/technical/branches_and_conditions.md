@@ -280,7 +280,7 @@ false):
 control flow op like `next`, `die`, `return`):
 
 ```perl
-# Columns: l, !l
+# Columns: short-circuit count first: !l, l for and; l, !l for or
 $c = [ $c->[3], $c->[1] + $c->[2] ];
 ```
 
@@ -307,7 +307,7 @@ class in `lib/Devel/Cover/`:
 
 | Class             | Operator | Outcomes | Headers                |
 | ----------------- | -------- | -------- | ---------------------- |
-| `Condition_and_2` | and/&&   | 2        | `l`, `!l`              |
+| `Condition_and_2` | and/&&   | 2        | `!l`, `l`              |
 | `Condition_and_3` | and/&&   | 3        | `!l`, `l&&!r`, `l&&r`  |
 | `Condition_or_2`  | or/\|\|  | 2        | `l`, `!l`              |
 | `Condition_or_3`  | or/\|\|  | 3        | `l`, `!l&&r`, `!l&&!r` |
