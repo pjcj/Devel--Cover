@@ -169,6 +169,26 @@ sub test_single_xor4 () {
   ok !$rows[3]->covered, "xor row 3 not covered";
 }
 
+# xor_4 with asymmetric hits: only l&&!r exercised.  Hits are stored in
+# headers order (l&&r, l&&!r, !l&&r, !l&&!r), so only row (1,0) is covered.
+# The palindromic hits above cannot detect a reversed row mapping; these can.
+sub test_single_xor4_asymmetric () {
+  my @conditions = (mock_condition(
+    "Condition_xor_4",
+    [0, 1, 0, 0],
+    { type => "xor_4", left => '$a', op => "xor", right => '$b' },
+  ));
+
+  my ($t) = Devel::Cover::Condition_table->for_line(\@conditions);
+
+  my @rows = sort { "@{$a->inputs}" cmp "@{$b->inputs}" } $t->rows;
+
+  ok !$rows[0]->covered, "xor asym: (0,0) not covered";
+  ok !$rows[1]->covered, "xor asym: (0,1) not covered";
+  ok $rows[2]->covered,  "xor asym: (1,0) covered";
+  ok !$rows[3]->covered, "xor asym: (1,1) not covered";
+}
+
 # Composite: $a || $b && $c
 # Two conditions on the same line:
 #   and_3: left=$b, op=&&, right=$c  (expr = "$b && $c")
@@ -1233,6 +1253,7 @@ sub main () {
   test_single_and2;
   test_single_or2;
   test_single_xor4;
+  test_single_xor4_asymmetric;
   test_composite_or_and;
   test_deep_and_chain;
   test_independent_conditions;

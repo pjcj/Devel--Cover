@@ -49,6 +49,17 @@ sub build_or_table ($hits) {
   $table
 }
 
+# $a xor $b: hits in headers order, so index 0 = l&&r (A=T, B=T),
+# 1 = l&&!r (A=T, B=F), 2 = !l&&r (A=F, B=T), 3 = !l&&!r (A=F, B=F).
+sub build_xor_table ($hits) {
+  my @conditions = (mock_condition(
+    "Condition_xor_4", $hits,
+    { type => "xor_4", left => '$a', op => "xor", right => '$b' },
+  ));
+  my ($table) = Devel::Cover::Condition_table->for_line(\@conditions);
+  $table
+}
+
 sub test_api_keys () {
   my $table  = build_and_table([1, 1, 1]);
   my $result = Devel::Cover::Mcdc::Analyser->analyse($table);
@@ -82,6 +93,40 @@ sub test_or_missing () {
   my $r = Devel::Cover::Mcdc::Analyser->analyse(build_or_table([0, 0, 1]));
   is $r->{total},     2, "or !l&&!r only: 2 atomics";
   is $r->{satisfied}, 0, "or !l&&!r only: neither atomic satisfied";
+}
+
+# xor never short-circuits, so every covered row is concrete and flipping
+# either input always flips the result: all four rows satisfy both atomics.
+sub test_xor_satisfying () {
+  my $r = Devel::Cover::Mcdc::Analyser->analyse(build_xor_table([1, 1, 1, 1]));
+  is $r->{total},     2, "xor full: 2 atomics";
+  is $r->{satisfied}, 2, "xor full: both atomics satisfied";
+}
+
+# Rows (1,1) and (1,0): B varies with A held, so B is satisfied; A is only
+# ever seen true, so it is not.
+sub test_xor_partial () {
+  my $r = Devel::Cover::Mcdc::Analyser->analyse(build_xor_table([1, 1, 0, 0]));
+  is $r->{total},     2, "xor l&&r + l&&!r: 2 atomics";
+  is $r->{satisfied}, 1, "xor l&&r + l&&!r: only B satisfied";
+  is_deeply $r->{missing}, ['$a'], "xor l&&r + l&&!r: A missing";
+}
+
+# Rows (1,1) and (0,0) differ in both columns, so no pair demonstrates
+# either atomic's independent effect.
+sub test_xor_no_pairs () {
+  my $r = Devel::Cover::Mcdc::Analyser->analyse(build_xor_table([1, 0, 0, 1]));
+  is $r->{total},     2, "xor l&&r + !l&&!r: 2 atomics";
+  is $r->{satisfied}, 0, "xor l&&r + !l&&!r: neither atomic satisfied";
+  is_deeply $r->{missing}, ['$a', '$b'], "xor l&&r + !l&&!r: both missing";
+}
+
+# Three rows (1,1), (1,0), (0,1) already pair both atomics: (1,1)/(0,1)
+# varies A alone and (1,1)/(1,0) varies B alone.
+sub test_xor_three_rows_satisfy () {
+  my $r = Devel::Cover::Mcdc::Analyser->analyse(build_xor_table([1, 1, 1, 0]));
+  is $r->{total},     2, "xor three rows: 2 atomics";
+  is $r->{satisfied}, 2, "xor three rows: both atomics satisfied";
 }
 
 # Rows [0, X] and [1, 1]: A varies, B is X vs 1.  Under short-circuit-aware
@@ -560,6 +605,10 @@ sub main () {
   test_and_missing;
   test_or_satisfying;
   test_or_missing;
+  test_xor_satisfying;
+  test_xor_partial;
+  test_xor_no_pairs;
+  test_xor_three_rows_satisfy;
   test_and_x_pairs_with_concrete;
   test_or_x_pairs_with_concrete;
   test_and_concrete_only_pair;
