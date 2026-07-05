@@ -180,13 +180,18 @@ sub check_options () {
   $Options->{report} = [
     grep {
       my $report = $_;
-      my $format = "Devel::Cover::Report::\u$report";
-      eval "use $format";
-      if ($@) {
-        dcerror "$report is not a recognised output format\n$@";
+      if ($report !~ /^\w+$/) {
+        dcerror "$report is not a recognised output format\n";
         ()
       } else {
-        $report
+        my $format = "Devel::Cover::Report::\u$report";
+        eval "use $format";
+        if ($@) {
+          dcerror "$report is not a recognised output format\n$@";
+          ()
+        } else {
+          $report
+        }
       }
     } $Options->{report}->@*
   ];
@@ -198,6 +203,10 @@ sub check_options () {
 
   $Options->{annotations} = [];
   for my $ann ($Options->{annotation}->@*) {
+    if ($ann !~ /^\w+$/) {
+      dcerror "$ann is not a recognised annotation\n";
+      exit 1;
+    }
     my $annotation = "Devel::Cover::Annotation::\u$ann";
     eval "use $annotation";
     if ($@) {
