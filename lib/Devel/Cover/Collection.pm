@@ -271,7 +271,7 @@ class Devel::Cover::Collection {
         # TODO - option to merge DB with existing one
         # TODO - portability
         $output .= $self->fsys("rm", "-rf", $rdir);
-        $output .= `rm -f $db/structure/*.lock`;
+        $output .= $self->fsys("rm", "-f",  glob "$db/structure/*.lock");
         $output .= $self->fsys("mv", $db,   $rdir);
         $output .= $self->fsys("rm", "-rf", $db);
       };
@@ -532,8 +532,8 @@ class Devel::Cover::Collection {
         my $archive = "$v->{dir}.tar.xz";
         my @cmd1
           = ($self->dc_file, "-r", $parent, "cpancover-uncompress-dir", $s);
-        my @cmd2 = ("bash", "-c",  "tar cf - -C $parent $s | xz -z > $archive");
-        my @cmd3 = ("rm",   "-rf", $v->{dir});
+        my @cmd2 = ("tar", "cJf", $archive, "-C", $parent, "--", $s);
+        my @cmd3 = ("rm",  "-rf", $v->{dir});
 
         if ($dryrun) {
           say for "compressing $s", "@cmd1", "@cmd2", "@cmd3";
