@@ -202,6 +202,15 @@ HTML
   $o
 }
 
+sub dist_range ($cl) {
+  my $t = $Threshold;
+      $cl eq "c0"    ? "&lt; $t->{c0}%"
+    : $cl eq "c1"    ? "$t->{c0}-$t->{c1}%"
+    : $cl eq "c2"    ? "$t->{c1}-$t->{c2}%"
+    : $t->{c2} < 100 ? "$t->{c2}-100%"
+    :                  "100%"
+}
+
 sub render_dist_bar ($dist) {
   my $dt = $dist->{dist_total} // 0;
   return "" unless $dt > 0;
@@ -222,17 +231,17 @@ sub render_dist_bar ($dist) {
 HTML
   }
   $o .= "</div>\n";
-  my $t = $R{threshold};
+  my $c3 = $Threshold->{c2} < 100 ? dist_range("c3") : "at 100%";
   my $untested
     = $dist->{untested}
     ? qq(<span class="leg-untested">$dist->{untested} untested</span>\n)
     : "";
   $o .= <<HTML;
 <div class="dist-legend">
-<span class="leg-c0">$dist->{c0} &lt; $t->{c0}%</span>
-<span class="leg-c1">$dist->{c1} $t->{c0}-$t->{c1}%</span>
-<span class="leg-c2">$dist->{c2} $t->{c1}-100%</span>
-<span class="leg-c3">$dist->{c3} at 100%</span>
+<span class="leg-c0">$dist->{c0} @{[ dist_range("c0") ]}</span>
+<span class="leg-c1">$dist->{c1} @{[ dist_range("c1") ]}</span>
+<span class="leg-c2">$dist->{c2} @{[ dist_range("c2") ]}</span>
+<span class="leg-c3">$dist->{c3} $c3</span>
 $untested</div>
 HTML
   $o
@@ -1174,11 +1183,8 @@ sub coverage_distribution ($file_data) {
   $dist{dist_total} = @$file_data || 1;
 
   my $pl = sub ($n) { $n == 1 ? "file" : "files" };
-  my $t  = $Threshold;
-  $dist{tip_c0} = "$dist{c0} ${\$pl->($dist{c0})}" . " &lt; $t->{c0}%";
-  $dist{tip_c1} = "$dist{c1} ${\$pl->($dist{c1})}" . " $t->{c0}-$t->{c1}%";
-  $dist{tip_c2} = "$dist{c2} ${\$pl->($dist{c2})}" . " $t->{c1}-100%";
-  $dist{tip_c3} = "$dist{c3} ${\$pl->($dist{c3})}" . " 100%";
+  $dist{"tip_$_"} = "$dist{$_} ${\$pl->($dist{$_})} ${\dist_range($_)}"
+    for qw( c0 c1 c2 c3 );
   $dist{tip_untested} = "$dist{untested} untested ${\$pl->($dist{untested})}";
   %dist
 }
@@ -1247,7 +1253,6 @@ sub report ($pkg, $db, $options) {
     filenames => {
       map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } $options->{file}->@*
     },
-    threshold      => $Threshold,
     have_ppi       => eval { require PPI; 1 } ? 1 : 0,
     favicon_colour => favicon("c3"),
     report_id      => $options->{outputdir},
