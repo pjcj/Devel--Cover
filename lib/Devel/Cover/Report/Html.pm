@@ -16,7 +16,12 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 use parent "Devel::Cover::Report::Html_crisp";
 
-1;
+"
+Lasciami gridare
+rinnegare il cielo
+prendere a sassate
+tutti i sogni ancora in volo
+"
 
 __END__
 
@@ -32,10 +37,9 @@ Devel::Cover::Report::Html - HTML backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a HTML reporting mechanism for coverage data.  It
-is designed to be called from the C<cover> program.  This is an empty
-class derived from the default HTML output module,
-Devel::Cover::Report::Html_crisp.
+This module provides a HTML reporting mechanism for coverage data.  It is
+designed to be called from the C<cover> program.  This is an empty class derived
+from the default HTML output module, Devel::Cover::Report::Html_crisp.
 
 =head1 SEE ALSO
 
