@@ -17,7 +17,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Spec ();
-use Test::More import => [qw( done_testing is like ok plan unlike )];
+use Test::More import => [qw( diag done_testing is like ok plan unlike )];
 use Devel::Cover::Mcdc               ();  ## no perlimports
 use Devel::Cover::Report::Html_crisp ();
 use Devel::Cover::Test::Showcase     qw(
@@ -33,19 +33,19 @@ eval "require HTML::Entities; 1" or do {
 };
 
 # Shared state populated by _setup
-my ($Tmpdir, $Libdir, $Outdir);
+my ($Tmpdir, $Libdir, $Outdir, $Cover_db);
 my %Golden;
 
 # Generate golden report output via run_cover (external process).
 sub _setup () {
   return if $Tmpdir;
   ($Tmpdir, $Libdir) = setup_lib_dir;
-  my $cover_db = create_cover_db($Tmpdir, $Libdir);
-  $Outdir = File::Spec->catdir($Tmpdir, "html");
+  $Cover_db = create_cover_db($Tmpdir, $Libdir);
+  $Outdir   = File::Spec->catdir($Tmpdir, "html");
 
   my ($out, $exit) = run_cover(
     "--select_dir", $Libdir, "--report", "html_crisp",
-    "--outputdir",  $Outdir, "--silent", $cover_db,
+    "--outputdir",  $Outdir, "--silent", $Cover_db,
   );
   die "Report generation failed (exit $exit):\n$out\n" if $exit;
 
@@ -126,6 +126,29 @@ sub test_render_index () {
   like $got,   qr/class="help-overlay"/,    "has help overlay";
   like $got,   qr/class="footer"/,          "has footer";
   like $got,   qr/Devel::Cover/,            "footer mentions Devel::Cover";
+}
+
+sub test_dist_legend_custom_thresholds () {
+  like $Golden{"coverage.html"}, qr/at 100%/,
+    "default thresholds: legend shows at 100%";
+
+  my $outdir = File::Spec->catdir($Tmpdir, "html_thresholds");
+  my ($out, $exit) = run_cover(
+    "--select_dir", $Libdir,       "--report", "html_crisp",
+    "--outputdir",  $outdir,       "--silent", "--report_c0",
+    25,             "--report_c1", 50,         "--report_c2",
+    75,             $Cover_db,
+  );
+  is $exit, 0, "custom threshold report generated" or diag $out;
+
+  my $html = slurp("$outdir/coverage.html");
+  like $html,   qr/leg-c0">\d+ &lt; 25%/, "legend c0 below c0 threshold";
+  like $html,   qr/leg-c1">\d+ 25-50%/,   "legend c1 range c0 to c1";
+  like $html,   qr/leg-c2">\d+ 50-75%/,   "legend c2 range c1 to c2";
+  like $html,   qr/leg-c3">\d+ 75-100%/,  "legend c3 range c2 to 100";
+  unlike $html, qr/at 100%/,        "no 'at 100%' label when c2 is below 100";
+  like $html,   qr/files? 50-75%/,  "bar tooltip c2 range c1 to c2";
+  like $html,   qr/files? 75-100%/, "bar tooltip c3 range c2 to 100";
 }
 
 sub test_render_file_page () {
@@ -863,6 +886,7 @@ sub main () {
   test_crit_name;
   test_render_layout;
   test_render_index;
+  test_dist_legend_custom_thresholds;
   test_render_file_page;
   test_tooltip_structure;
   test_glass_tooltips;
