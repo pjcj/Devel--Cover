@@ -1514,6 +1514,21 @@ static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
 }
 
 /*
+ * A statically void and/or whose right operand is not itself a decision is
+ * the joining logop of an if/unless/while statement or statement modifier.
+ * Condition coverage treats it as a branch, so it is not a decision root
+ * and must not de-root the condition chain on its left, which is the real
+ * decision.
+ */
+static int dc_is_branch_logop(pTHX_ OP *op) {
+  OP *right;
+  if (op->op_type != OP_AND && op->op_type != OP_OR) return 0;
+  if ((op->op_flags & OPf_WANT) != OPf_WANT_VOID) return 0;
+  right = dc_skipped_operand(aTHX_ op, 1);
+  return !(right && dc_is_logop_type(right->op_type));
+}
+
+/*
  * Walk a CV's optree once and populate decision_meta for every logop in it.
  * Cached by CV pointer in MY_CXT.decision_walked_cvs to avoid re-walking.
  *
@@ -1555,13 +1570,14 @@ static void dc_walk_cv_decisions(pTHX_ CV *cv) {
   n = av_len(logops) + 1;
   for (i = 0; i < n; i++) {
     OP     *lop = INT2PTR(OP *, SvIV(*av_fetch(logops, i, 0)));
-    int     is_root = 1;
+    int     is_root = !dc_is_branch_logop(aTHX_ lop);
     SSize_t j;
 
-    for (j = 0; j < n; j++) {
+    for (j = 0; is_root && j < n; j++) {
       OP *Q;
       if (j == i) continue;
       Q = INT2PTR(OP *, SvIV(*av_fetch(logops, j, 0)));
+      if (dc_is_branch_logop(aTHX_ Q)) continue;
       if (dc_skipped_operand(aTHX_ Q, 0) == lop
           || dc_skipped_operand(aTHX_ Q, 1) == lop) {
         is_root = 0;
