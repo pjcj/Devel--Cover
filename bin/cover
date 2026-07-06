@@ -685,7 +685,7 @@ configurable.
 =item html_basic
 
 HTML reporting with syntax highlighting if L<PPI::HTML> or L<Perl::Tidy>
-module is detected. Like html|html_minimal reporting, percentage thresholds
+module is detected. Like the other HTML reports, percentage thresholds
 are colour-coded and configurable.
 
 =item text
