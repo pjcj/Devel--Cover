@@ -232,14 +232,14 @@ PERL
   ok !$di, "decision_inputs absent when mcdc not selected";
 }
 
-# A compound decision in void/boolean context records no observed vectors;
-# synthesis must not then fabricate a false 100% MC/DC.
+# A compound decision whose value is discarded is rebuilt without observed
+# vectors; synthesis must not then fabricate a false 100% MC/DC.
 sub test_void_compound_no_false_coverage () {
   my $script = write_script("void_compound.pl", <<'PERL');
 sub decision {
   my ($a, $b, $c, $d) = @_;
-  if (($a && $b) || ($c && $d)) { return 1 }
-  return 0;
+  ($a && $b) || ($c && $d);
+  return;
 }
 decision(1, 1, 0, 0);
 decision(0, 0, 0, 0);
@@ -467,6 +467,68 @@ PERL
     "the narrow decision's vector is unaffected";
 }
 
+# The condition of an if/unless statement is joined to its body by a void
+# statement-level logop which condition coverage treats as a branch.  The
+# chain itself is the decision and must record vectors under its own root.
+sub test_unless_statement_chain () {
+  my $script = write_script("unless_chain.pl", <<'PERL');
+sub check { my ($p, $q, $r) = @_; return "no" unless $p && $q && $r; "yes" }
+check(0, 0, 0);
+check(1, 0, 0);
+check(1, 1, 0);
+check(1, 1, 1);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "unless_chain");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for unless chain";
+
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "one decision recorded";
+  is_deeply $recorded[0],
+    { "0|X|X" => 1, "1|0|X" => 1, "1|1|0" => 1, "1|1|1" => 1 },
+    "unless condition records full per-execution vectors";
+}
+
+sub test_if_statement_chain () {
+  my $script = write_script("if_chain.pl", <<'PERL');
+sub check { my ($p, $q, $r) = @_; if ($p && $q && $r) { return "yes" } "no" }
+check(0, 0, 0);
+check(1, 0, 0);
+check(1, 1, 0);
+check(1, 1, 1);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "if_chain");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for if chain";
+
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "one decision recorded";
+  is_deeply $recorded[0],
+    { "0|X|X" => 1, "1|0|X" => 1, "1|1|0" => 1, "1|1|1" => 1 },
+    "if condition records full per-execution vectors";
+}
+
+sub test_while_statement_chain () {
+  my $script = write_script("while_chain.pl", <<'PERL');
+sub drain { my ($p, $q) = @_; my $n = 3; while ($p && $q && $n) { $n-- } $n }
+drain(1, 1);
+drain(1, 0);
+drain(0, 0);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "while_chain");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for while chain";
+
+  my @recorded = grep defined, @$di;
+  is @recorded, 1, "one decision recorded";
+  is_deeply $recorded[0],
+    { "0|X|X" => 1, "1|0|X" => 1, "1|1|0" => 1, "1|1|1" => 3 },
+    "while condition records a vector per loop test";
+}
+
 sub test_add_condition_cross_run_merge () {
   my $db = bless {}, "Devel::Cover::DB";
   my $cc = {};
@@ -523,8 +585,11 @@ sub main () {
     \&test_chain_cascades_record_short_circuits;
   subtest "too-wide decision records nothing" =>
     \&test_too_wide_decision_records_nothing;
-  subtest "cross-run merge"     => \&test_add_condition_cross_run_merge;
-  subtest "xor four-slot merge" => \&test_add_condition_xor_four_slot_merge;
+  subtest "unless statement chain" => \&test_unless_statement_chain;
+  subtest "if statement chain"     => \&test_if_statement_chain;
+  subtest "while statement chain"  => \&test_while_statement_chain;
+  subtest "cross-run merge"        => \&test_add_condition_cross_run_merge;
+  subtest "xor four-slot merge"    => \&test_add_condition_xor_four_slot_merge;
 
   done_testing;
 }

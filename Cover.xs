@@ -958,6 +958,7 @@ static AV *get_conds(pTHX_ AV *conds) {
 #endif
 
 static HV      *dc_lookup_or_build_decision_meta(pTHX_ OP *op, CV *cv);
+static int      dc_is_branch_logop(pTHX_ OP *op);
 static IV       dc_meta_iv(pTHX_ HV *meta, const char *key, I32 keylen);
 static dc_dctx *dc_stack_find_root(pTHX_ OP *root_addr);
 static dc_dctx *dc_stack_top(pTHX);
@@ -1405,7 +1406,8 @@ static void dc_collect_logops_r(pTHX_ OP *op, AV *logops) {
 
   if (dc_is_logop_type(op->op_type)) {
     OP *first = cLOGOPx(op)->op_first;
-    if (!(op->op_type == OP_AND && first && first->op_type == OP_ITER))
+    if (!(op->op_type == OP_AND && first && first->op_type == OP_ITER)
+        && !dc_is_branch_logop(aTHX_ op))
       av_push(logops, newSViv(PTR2IV(op)));
   }
 
@@ -1511,6 +1513,21 @@ static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
   (void)hv_stores(meta, "leaf_col_right", newSViv(right_col));
 
   return next_col;
+}
+
+/*
+ * A statically void and/or whose right operand is not itself a decision is
+ * the joining logop of an if/unless/while statement or statement modifier.
+ * Condition coverage treats it as a branch, so it is not a decision root
+ * and must not de-root the condition chain on its left, which is the real
+ * decision.
+ */
+static int dc_is_branch_logop(pTHX_ OP *op) {
+  OP *right;
+  if (op->op_type != OP_AND && op->op_type != OP_OR) return 0;
+  if ((op->op_flags & OPf_WANT) != OPf_WANT_VOID) return 0;
+  right = dc_skipped_operand(aTHX_ op, 1);
+  return !(right && dc_is_logop_type(right->op_type));
 }
 
 /*
