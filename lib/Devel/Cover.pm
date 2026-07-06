@@ -529,9 +529,7 @@ sub use_file ($file) {
   $file = autosplit_parent($file);
 
   return $Files{$file} if exists $Files{$file};
-  return 0
-    if $file =~ /\(eval \d+\)/
-    || $file =~ /^\.\.[\/\\]\.\.[\/\\]lib[\/\\](?:Storable|POSIX).pm$/;
+  return 0             if $file =~ /\(eval \d+\)/;
 
   my $f = normalised_file($file);
 

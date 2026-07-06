@@ -33,8 +33,7 @@ my $DB = "cover.15";  # Version of the database
   = (qw( statement branch condition mcdc subroutine pod time ));
 @Devel::Cover::DB::Criteria_short   = (qw( stmt bran cond mcdc sub pod time ));
 $Devel::Cover::DB::Ignore_filenames = qr/   # Used by Devel::Cover
-  (?: [\/\\]lib[\/\\](?:Storable|POSIX).pm$ )
-  | # Moose
+  # Moose
   (?:
     (?:
       reader | writer | constructor | destructor | accessor |

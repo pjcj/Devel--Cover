@@ -596,7 +596,7 @@ sub test_destroy () {
 
 sub test_digest_ignored_file () {
   my $st     = Devel::Cover::DB::Structure->new;
-  my $ignore = "/some/lib/Storable.pm";
+  my $ignore = "/loader/0x123abc/Some/Module.pm";
   my $stderr = capture_stderr {
     my $d = $st->digest($ignore);
     ok !defined $d, "digest ignored: returns undef"
@@ -619,7 +619,7 @@ sub test_write_no_digest_ignored () {
   my $base = fresh_base("no_digest_ign");
 
   my $st = Devel::Cover::DB::Structure->new(base => $base);
-  $st->{f}{"/some/lib/POSIX.pm"} = { data => 1 };
+  $st->{f}{"/loader/0x123abc/Some/Module.pm"} = { data => 1 };
 
   my $stderr = capture_stderr { $st->write($base) };
   is $stderr, "", "write no digest ignored: no warning for ignored file";
