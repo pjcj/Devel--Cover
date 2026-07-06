@@ -395,7 +395,13 @@ sub _summarise_dir_complexity ($self, $s, $dir_files, $dir_stats) {
   my $ds_hash = $self->{dir_summary} = {};
   for my $dir (keys %$dir_files) {
     my $d = $ds_hash->{$dir} = {};
-    for my $criterion (qw( statement branch condition total )) {
+    my %criteria;
+    for my $f ($dir_files->{$dir}->@*) {
+      my $fs = $s->{$f} or next;
+      $criteria{$_}++ for keys %$fs;
+    }
+    delete @criteria{qw( complexity scar time )};
+    for my $criterion (sort keys %criteria) {
       my ($covered, $total, $error) = (0, 0, 0);
       for my $f ($dir_files->{$dir}->@*) {
         my $c = $s->{$f}{$criterion} or next;

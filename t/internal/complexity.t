@@ -466,11 +466,14 @@ sub test_dir_level_scar () {
   ok defined $ds, "dirscar: dir summary exists";
 
   # Per-criterion aggregation
-  for my $c (qw( statement branch condition total )) {
+  for my $c (qw( statement branch subroutine total )) {
     ok exists $ds->{$c},           "dirscar: has $c";
     ok defined $ds->{$c}{covered}, "dirscar: $c has covered";
     ok defined $ds->{$c}{total},   "dirscar: $c has total";
   }
+
+  # No entry is fabricated for criteria with no data
+  ok !exists $ds->{condition}, "dirscar: no condition entry without data";
 
   # SCAR entry
   my $scar = $ds->{scar};
@@ -685,8 +688,7 @@ sub test_print_summary_scar () {
   my ($file_row) = $output =~ /^(\S*ps_scar\.pl\s.+)$/m;
   ok defined $file_row, "summary: file row found";
   my @file_cols = split " ", $file_row // "";
-  is @file_cols, 7,
-    "summary: file row has name + 5 criteria + scar (7 cols)";
+  is @file_cols, 7, "summary: file row has name + 5 criteria + scar (7 cols)";
   like $file_cols[-1], qr/^\d+\.\d$/,
     "summary: file row scar column is numeric";
 
