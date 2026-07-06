@@ -420,6 +420,20 @@ sub get_coverage {
   return wantarray ? @names : "@names";
 }
 
+# strip AutoSplit's #line suffix and resolve stale blib paths via %INC
+sub autosplit_parent ($file) {
+  return $file unless $file =~ s/ \(autosplit into (.*)\)$//;
+  my $al = $1;
+  return $file if -e $file;
+  my ($key) = $file =~ m{^blib/(?:lib|arch)/(.*)};
+  return $file unless defined $key;
+  my $pm = $INC{$key};
+  return $file unless defined $pm && !ref $pm && $pm =~ /\Q$key\E$/;
+  my $root = substr $pm, 0, length($pm) - length $key;
+  $al =~ s{^blib/(?:lib|arch)/}{};
+  -e "$root$al" ? $pm : $file
+}
+
 {
 
   my %File_cache;
@@ -435,7 +449,7 @@ sub get_coverage {
     $Normalising = 1;
 
     my $f = $file;
-    $file =~ s/ \(autosplit into .*\)$//;
+    $file = autosplit_parent($file);
     $file =~ s/^\(eval in .*\) //;
     if (
          exists coverage(0)->{module}
@@ -512,12 +526,10 @@ sub use_file ($file) {
 
   # just don't call your filenames 0
   while ($file =~ $find_filename) { $file = $1 || $2 || $3 || $4 }
-  $file =~ s/ \(autosplit into .*\)$//;
+  $file = autosplit_parent($file);
 
   return $Files{$file} if exists $Files{$file};
-  return 0
-    if $file =~ /\(eval \d+\)/
-    || $file =~ /^\.\.[\/\\]\.\.[\/\\]lib[\/\\](?:Storable|POSIX).pm$/;
+  return 0             if $file =~ /\(eval \d+\)/;
 
   my $f = normalised_file($file);
 

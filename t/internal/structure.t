@@ -133,7 +133,7 @@ sub test_write_read () {
   my $st = Devel::Cover::DB::Structure->new(base => $base);
   $st->add_criteria("statement");
   $st->set_file($file);
-  $st->{f}{$file}{statement} = [ [ $file, 1 ] ];
+  $st->{f}{$file}{statement} = [[$file, 1]];
   $st->write($base);
 
   # Read it back into a fresh object
@@ -142,7 +142,7 @@ sub test_write_read () {
 
   ok exists $st2->{f}{$file}, "write/read: file entry present";
   is $st2->{f}{$file}{digest}, $digest, "write/read: digest preserved";
-  is_deeply $st2->{f}{$file}{statement}, [ [ $file, 1 ] ],
+  is_deeply $st2->{f}{$file}{statement}, [[$file, 1]],
     "write/read: data preserved";
 }
 
@@ -216,10 +216,10 @@ sub test_read_all_no_dir () {
 
 sub test_merge () {
   my $st1 = Devel::Cover::DB::Structure->new;
-  $st1->{f}{"/a.pm"} = { digest => "aaa", statement => [ [ "/a.pm", 1 ] ] };
+  $st1->{f}{"/a.pm"} = { digest => "aaa", statement => [["/a.pm", 1]] };
 
   my $st2 = Devel::Cover::DB::Structure->new;
-  $st2->{f}{"/b.pm"} = { digest => "bbb", statement => [ [ "/b.pm", 2 ] ] };
+  $st2->{f}{"/b.pm"} = { digest => "bbb", statement => [["/b.pm", 2]] };
 
   $st1->merge($st2);
   ok exists $st1->{f}{"/a.pm"}, "merge: original entry retained";
@@ -234,17 +234,17 @@ sub test_autoload_add_get () {
   $st->add_criteria("statement", "branch", "subroutine");
 
   # add_statement should push data into {f}{$file}{statement}
-  $st->add_statement($file, [ $file, 10 ]);
-  $st->add_statement($file, [ $file, 20 ]);
-  is_deeply $st->{f}{$file}{statement}, [ [ $file, 10 ], [ $file, 20 ] ],
+  $st->add_statement($file, [$file, 10]);
+  $st->add_statement($file, [$file, 20]);
+  is_deeply $st->{f}{$file}{statement}, [[$file, 10], [$file, 20]],
     "autoload add: add_statement pushes entries";
 
-  $st->add_branch($file, [ $file, 15, { text => "if block" } ]);
-  is_deeply $st->{f}{$file}{branch}, [ [ $file, 15, { text => "if block" } ] ],
+  $st->add_branch($file, [$file, 15, { text => "if block" }]);
+  is_deeply $st->{f}{$file}{branch}, [[$file, 15, { text => "if block" }]],
     "autoload add: add_branch pushes entry";
 
-  $st->add_subroutine($file, [ $file, 5 ]);
-  is_deeply $st->{f}{$file}{subroutine}, [ [ $file, 5 ] ],
+  $st->add_subroutine($file, [$file, 5]);
+  is_deeply $st->{f}{$file}{subroutine}, [[$file, 5]],
     "autoload add: add_subroutine pushes entry";
 }
 
@@ -255,10 +255,10 @@ sub test_autoload_get_by_digest () {
   $st->set_file($file);
   $st->add_criteria("statement");
 
-  $st->add_statement($file, [ $file, 1 ]);
+  $st->add_statement($file, [$file, 1]);
 
   my $got = $st->get_statement($digest);
-  is_deeply $got, [ [ $file, 1 ] ],
+  is_deeply $got, [[$file, 1]],
     "autoload get: get_statement retrieves by digest";
 
   my $miss = $st->get_statement("nonexistent_digest");
@@ -326,7 +326,7 @@ sub test_reuse () {
 
   ok !$st->reuse("/new.pm"), "reuse: false for unknown file";
 
-  $st->{f}{"/old.pm"}{start}{-1}{__COVER__} = [ { statement => 5 } ];
+  $st->{f}{"/old.pm"}{start}{-1}{__COVER__} = [{ statement => 5 }];
   ok $st->reuse("/old.pm"), "reuse: true when __COVER__ start exists";
 }
 
@@ -428,10 +428,10 @@ sub test_autoload_get_time () {
   $st->set_file($file);
 
   # time criterion maps to statement internally
-  $st->{f}{$file}{statement} = [ [ $file, 1 ] ];
+  $st->{f}{$file}{statement} = [[$file, 1]];
 
   my $got = $st->get_time($digest);
-  is_deeply $got, [ [ $file, 1 ] ], "autoload get_time: maps to statement data";
+  is_deeply $got, [[$file, 1]], "autoload get_time: maps to statement data";
 }
 
 sub test_set_file_missing () {
@@ -481,8 +481,8 @@ sub test_set_subroutine_reuse_existing () {
   $st->add_criteria("statement");
 
   # Set up a reusable structure with __COVER__ and an existing sub
-  $st->{f}{$file}{start}{-1}{__COVER__} = [ { statement => 0 } ];
-  $st->{f}{$file}{start}{10}{oldsub}    = [ { statement => 5 } ];
+  $st->{f}{$file}{start}{-1}{__COVER__} = [{ statement => 0 }];
+  $st->{f}{$file}{start}{10}{oldsub}    = [{ statement => 5 }];
 
   $st->set_subroutine("oldsub", $file, 10, 0);
 
@@ -498,7 +498,7 @@ sub test_set_subroutine_reuse_additional_first () {
   $st->add_criteria("statement");
 
   # Set up reusable structure but without the sub we'll request
-  $st->{f}{$file}{start}{-1}{__COVER__} = [ { statement => 10 } ];
+  $st->{f}{$file}{start}{-1}{__COVER__} = [{ statement => 10 }];
 
   $st->set_subroutine("newsub", $file, 20, 0);
 
@@ -515,7 +515,7 @@ sub test_set_subroutine_reuse_additional_repeat () {
   $st->add_criteria("statement");
 
   # Set up reusable structure without the sub
-  $st->{f}{$file}{start}{-1}{__COVER__} = [ { statement => 10 } ];
+  $st->{f}{$file}{start}{-1}{__COVER__} = [{ statement => 10 }];
   # Simulate that we've already seen an additional sub in this file
   $st->{additional_count}{statement}{$file} = 1;
 
@@ -548,7 +548,7 @@ sub test_add_count_reuse_not_additional () {
   $st->add_criteria("statement");
 
   # Set up reuse so the || branch in add_count is tested
-  $st->{f}{$file}{start}{-1}{__COVER__} = [ { statement => 0 } ];
+  $st->{f}{$file}{start}{-1}{__COVER__} = [{ statement => 0 }];
   $st->{additional} = 0;
 
   my ($n, $new) = $st->add_count("statement");
@@ -596,7 +596,7 @@ sub test_destroy () {
 
 sub test_digest_ignored_file () {
   my $st     = Devel::Cover::DB::Structure->new;
-  my $ignore = "/some/lib/Storable.pm";
+  my $ignore = "/loader/0x123abc/Some/Module.pm";
   my $stderr = capture_stderr {
     my $d = $st->digest($ignore);
     ok !defined $d, "digest ignored: returns undef"
@@ -619,7 +619,7 @@ sub test_write_no_digest_ignored () {
   my $base = fresh_base("no_digest_ign");
 
   my $st = Devel::Cover::DB::Structure->new(base => $base);
-  $st->{f}{"/some/lib/POSIX.pm"} = { data => 1 };
+  $st->{f}{"/loader/0x123abc/Some/Module.pm"} = { data => 1 };
 
   my $stderr = capture_stderr { $st->write($base) };
   is $stderr, "", "write no digest ignored: no warning for ignored file";
@@ -661,7 +661,7 @@ sub test_set_complexity () {
   my $st   = Devel::Cover::DB::Structure->new;
   $st->set_file($file);
 
-  my $sub_id = [ $file, 10, "mysub", 0 ];
+  my $sub_id = [$file, 10, "mysub", 0];
   $st->set_complexity($sub_id, 5);
 
   is $st->{f}{$file}{complexity}{10}{mysub}[0], 5,
@@ -674,8 +674,8 @@ sub test_set_complexity_multiple_subs () {
   my $st = Devel::Cover::DB::Structure->new;
   $st->set_file($file);
 
-  $st->set_complexity([ $file, 10, "sub_a", 0 ], 3);
-  $st->set_complexity([ $file, 20, "sub_b", 0 ], 7);
+  $st->set_complexity([$file, 10, "sub_a", 0], 3);
+  $st->set_complexity([$file, 20, "sub_b", 0], 7);
 
   is $st->{f}{$file}{complexity}{10}{sub_a}[0], 3,
     "set_complexity multi: first sub has correct CC";
@@ -689,7 +689,7 @@ sub test_complexity_write_read () {
 
   my $st = Devel::Cover::DB::Structure->new(base => $base);
   $st->set_file($file);
-  $st->set_complexity([ $file, 5, "f", 0 ], 4);
+  $st->set_complexity([$file, 5, "f", 0], 4);
   $st->write($base);
 
   my $st2 = Devel::Cover::DB::Structure->new(base => $base);
@@ -704,7 +704,7 @@ sub test_get_complexity () {
   my $digest = md5_file($file);
   my $st     = Devel::Cover::DB::Structure->new;
   $st->set_file($file);
-  $st->set_complexity([ $file, 8, "g", 0 ], 6);
+  $st->set_complexity([$file, 8, "g", 0], 6);
 
   my $got = $st->get_complexity($digest);
   is_deeply $got, { 8 => { g => [6] } }, "get_complexity: retrieves by digest";
@@ -718,7 +718,7 @@ sub test_set_end_line () {
   my $st   = Devel::Cover::DB::Structure->new;
   $st->set_file($file);
 
-  my $sub_id = [ $file, 10, "f", 0 ];
+  my $sub_id = [$file, 10, "f", 0];
   $st->set_end_line($sub_id, 25);
 
   is $st->{f}{$file}{end_line}{10}{f}[0], 25,
@@ -730,7 +730,7 @@ sub test_get_end_lines () {
   my $digest = md5_file($file);
   my $st     = Devel::Cover::DB::Structure->new;
   $st->set_file($file);
-  $st->set_end_line([ $file, 8, "g", 0 ], 20);
+  $st->set_end_line([$file, 8, "g", 0], 20);
 
   my $got = $st->get_end_lines($digest);
   is_deeply $got, { 8 => { g => [20] } }, "get_end_lines: retrieves by digest";
@@ -745,7 +745,7 @@ sub test_end_line_write_read () {
 
   my $st = Devel::Cover::DB::Structure->new(base => $base);
   $st->set_file($file);
-  $st->set_end_line([ $file, 5, "f", 0 ], 15);
+  $st->set_end_line([$file, 5, "f", 0], 15);
   $st->write($base);
 
   my $st2 = Devel::Cover::DB::Structure->new(base => $base);
@@ -763,7 +763,7 @@ sub test_set_subroutine_returns_sub_id () {
   $st->add_count("statement");
 
   my $sub_id = $st->set_subroutine("h", $file, 15, 0);
-  is_deeply $sub_id, [ $file, 15, "h", 0 ], "set_subroutine: returns sub_id";
+  is_deeply $sub_id, [$file, 15, "h", 0], "set_subroutine: returns sub_id";
 
   $st->set_complexity($sub_id, 9);
   is $st->{f}{$file}{complexity}{15}{h}[0], 9,
