@@ -1,0 +1,5 @@
+# Index created by AutoSplit for blib/lib/Autoloader_stale.pm
+#    (file acts as timestamp)
+package Autoloader_stale;
+sub stale ;
+1;
