@@ -30,6 +30,26 @@ eval "require HTML::Entities; 1" or do {
   exit;
 };
 
+# Directory header rows show real aggregates and no links to files.
+sub test_dir_header_rows ($content) {
+  my @rows = $content =~ m{(<tr class="dir-header".*?</tr>)}gs;
+  is @rows, 2, "index has two dir-header rows";
+
+  for my $row (@rows) {
+    my ($dir) = $row =~ m{data-dir="([^"]+)"};
+    unlike $row, qr/cell-link/, "$dir dir-header row has no links";
+  }
+
+  my ($covered) = grep m{data-dir="Covered"}, @rows;
+  ok $covered, "Covered dir-header row present";
+  unlike $covered, qr/class="na"/,
+    "Covered dir row has aggregates for all criteria";
+  like $covered, qr{<dt>CC</dt><dd>[1-9]},
+    "Covered dir row SCAR tooltip has non-zero CC";
+  unlike $covered, qr/data-value="0" class="scar-val/,
+    "Covered dir row SCAR is not a bare 0";
+}
+
 # Html_crisp report for a db with --select_dir:
 # - All four modules appear in the summary index
 # - Uncovered modules have no per-file detail pages
@@ -51,6 +71,8 @@ sub test_html_crisp_report () {
   ok -e $index, "coverage.html was generated";
 
   my $content = slurp($index);
+
+  test_dir_header_rows($content);
 
   # All eight modules appear in the index
   like $content, qr/Covered\/Calc\.pm/,      "Covered/Calc.pm in index";

@@ -31,7 +31,7 @@ use Devel::Cover::Path            qw( common_prefix );
 use File::Path     qw( mkpath );
 use Getopt::Long   qw( GetOptions );
 use HTML::Entities qw( encode_entities );
-use List::Util     qw( any first );
+use List::Util     qw( any );
 use POSIX          qw( strftime );
 our %R;
 my %Assets;
@@ -380,18 +380,11 @@ HTML
 HTML
 
   for my $g (@groups) {
-    my $t = first { $_->{exists} && !$_->{uncompiled} } $g->{files}->@*;
     $o .= qq(<tr class="dir-header" data-dir="$g->{dir}">\n)
       . "<td>$g->{dir}</td>\n";
-    for my $c ($R{criteria}->@*) {
-      $o .= cov_cell(
-        $g->{criteria}{$c},
-        0, undef, $t ? "$t->{link}#filter=$c" : undef,
-      );
-    }
-    $o .= cov_cell($g->{total}, 0, undef,
-      $t ? "$t->{link}#filter=total" : undef);
-    $o .= scar_cell($g, $t ? $t->{link} : undef);
+    $o .= cov_cell($g->{criteria}{$_}, 0) for $R{criteria}->@*;
+    $o .= cov_cell($g->{total},        0);
+    $o .= scar_cell($g);
     $o .= "</tr>\n";
     $o .= file_row($_, $g->{dir}) for $g->{files}->@*;
   }
@@ -784,6 +777,11 @@ sub get_summary ($file, $criterion) {
   _format_criterion($R{db}->summary($file), $criterion)
 }
 
+sub _na_scar ($f) {
+  $f->{$_} = "-" for qw( file_crap file_scar file_cc file_cov );
+  $f->{worst_subs} = [];
+}
+
 sub _apply_scar ($f, $scar_data) {
   if ($scar_data && defined $scar_data->{file_crap}) {
     $f->{file_crap} = sprintf "%.1f", $scar_data->{file_crap};
@@ -800,11 +798,7 @@ sub _apply_scar ($f, $scar_data) {
       } } @sorted[0 .. ($#sorted > 2 ? 2 : $#sorted)]
     ];
   } elsif ($f->{uncompiled}) {
-    $f->{file_crap}  = "-";
-    $f->{file_scar}  = "-";
-    $f->{file_cc}    = "-";
-    $f->{file_cov}   = "-";
-    $f->{worst_subs} = [];
+    _na_scar($f);
   } else {
     $f->{file_crap}  = 0;
     $f->{file_scar}  = 0;
@@ -825,6 +819,7 @@ sub build_one_file ($file) {
     name       => $file,
     basename   => $basename,
     dir        => $dir,
+    db_dir     => $dir,
     link       => "$R{filenames}{$file}.html",
     exists     => -e $file,
     uncompiled => $uncompiled,
@@ -867,18 +862,20 @@ sub build_dir_groups ($file_data) {
   my %dirs;
   push $dirs{ $_->{dir} }->@*, $_ for @$file_data;
   map {
-    my $dir = $_;
-    my $g   = {
+    my $dir    = $_;
+    my $db_dir = $dirs{$dir}[0]{db_dir};
+    my $g      = {
       dir      => $dir || "(root)",
       dir_key  => $dir,
-      total    => get_dir_summary($dir, "total"),
+      total    => get_dir_summary($db_dir, "total"),
       criteria =>
-        { map { $_ => get_dir_summary($dir, $_) } $R{criteria}->@* },
+        { map { $_ => get_dir_summary($db_dir, $_) } $R{criteria}->@* },
       files => $dirs{$dir},
     };
     $g->{pc}    = $g->{total}{pc};
     $g->{class} = $g->{total}{class};
-    _apply_scar($g, $R{db}->dir_summary($dir, "scar"));
+    my $scar = $R{db}->dir_summary($db_dir, "scar");
+    $scar ? _apply_scar($g, $scar) : _na_scar($g);
     $g;
   } sort keys %dirs
 }
@@ -2295,7 +2292,6 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
 
     /* Directory collapse/expand */
     tbody.addEventListener("click", function(e) {
-      if (e.target.closest(".cell-link")) return;
       var dh = e.target.closest(".dir-header");
       if (!dh) return;
       var collapsed = dh.classList.toggle("collapsed");

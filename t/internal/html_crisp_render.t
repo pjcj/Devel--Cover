@@ -399,14 +399,55 @@ sub test_index_filter_links () {
     "index: SCAR cell links to file without #filter";
 }
 
-sub test_dir_header_links () {
+sub test_dir_header_no_links () {
   my $got = $Golden{"coverage.html"};
   my ($dir_block) = $got =~ m{(<tr class="dir-header".*?</tr>)}s;
   ok defined $dir_block, "dir-header row found in golden index";
-  like $dir_block, qr/cell-link/,
-    "dir-header: cells wrapped in cell-link anchors";
-  like $dir_block, qr/#filter=/,
-    "dir-header: cell-link hrefs include filter hash";
+  unlike $dir_block, qr/cell-link/, "dir-header: cells have no links";
+  unlike $dir_block, qr/<a /,       "dir-header: no anchors at all";
+}
+
+sub test_build_dir_groups () {
+  no warnings "once";
+
+  my $db = bless {
+    dir_summary => {
+      "/full/lib/Covered" => {
+        statement =>
+          { covered => 5, total => 10, error => 5, percentage => 50 },
+        total => { covered => 5, total => 10, error => 5, percentage => 50 },
+        scar  => {
+          file_cc   => 3,
+          file_cov  => 50,
+          file_crap => 6.4,
+          file_scar => 18.5,
+          subs      => [],
+        },
+      },
+    },
+    },
+    "Devel::Cover::DB";
+
+  local %Devel::Cover::Report::Html_crisp::R
+    = (db => $db, criteria => ["statement"]);
+
+  my $files = [
+    { dir => "Covered",   db_dir => "/full/lib/Covered",   name => "a" },
+    { dir => "Uncovered", db_dir => "/full/lib/Uncovered", name => "b" },
+  ];
+  my @groups = Devel::Cover::Report::Html_crisp::build_dir_groups($files);
+  is @groups, 2, "two directory groups built";
+
+  my ($cov, $uncov) = @groups;
+  is $cov->{dir}, "Covered", "groups sorted by display dir";
+  is $cov->{criteria}{statement}{pc}, "50.0",
+    "aggregate looked up by full directory, not shortened dir";
+  is $cov->{pc},        "50.0", "group total aggregated";
+  is $cov->{file_scar}, "18.5", "group SCAR aggregated";
+
+  is $uncov->{total}{pc}, "n/a", "no data: total shows n/a";
+  is $uncov->{file_scar}, "-",   "no data: SCAR shows n/a, not 0";
+  is $uncov->{file_crap}, "-",   "no data: CRAP shows n/a";
 }
 
 # The index header and badges must name the criterion "MC/DC", matching the
@@ -425,7 +466,6 @@ sub test_app_js_hash_filter () {
   like $app_js, qr/history\.replaceState/, "app.js: uses replaceState";
   like $app_js, qr/#filter=/,              "app.js: filter hash referenced";
   like $app_js, qr/location\.hash/,        "app.js: reads location.hash";
-  like $app_js, qr/cell-link/, "app.js: index click handler aware of cell-link";
 }
 
 {
@@ -902,7 +942,8 @@ sub main () {
   test_render_worst_files_untested_colour;
   test_stat_badge_no_tip_when_empty;
   test_index_filter_links;
-  test_dir_header_links;
+  test_dir_header_no_links;
+  test_build_dir_groups;
   test_app_js_hash_filter;
   test_mcdc_full_name;
   test_truth_tables_unproven_rows_uncovered;
