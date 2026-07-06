@@ -126,7 +126,7 @@ subtest 'nested mixed-precedence: ($a && $b) || ($c && $d)' => sub {
 # isolated from the user's decision: pairwise root-finding must not mistake a
 # signature `or` for the parent of a user logop, and the user's `||` must remain
 # a width-4 root.
-subtest "signature-generated logops are isolated roots" => sub {
+subtest "signature-generated logops are excluded" => sub {
   my $sub = sub ($a, $b, $c, $d) { my $r = ($a && $b) || ($c && $d); $r };
   my $cv  = B::svref_2object($sub);
 
@@ -137,13 +137,11 @@ subtest "signature-generated logops are isolated roots" => sub {
   ok @$or_ops >= 1, "at least one or op present";
   is @$and_ops, 2, "two and ops (all user-code on every Perl)";
 
+  # A signature argument-count check is a void or with a die on its right,
+  # which is the branch form, so it gets no decision meta at all.
   for my $i (0 .. $#$or_ops - 1) {
-    my $sig    = $or_ops->[$i];
-    my $m      = Devel::Cover::decision_meta($$sig, $cv);
-    my $reason = "signature or [$i]";
-    is $m->{is_root},     1,         "$reason: own root";
-    is $m->{root_addr},   $$sig,     "$reason: root_addr points to itself";
-    isnt $m->{root_addr}, $$user_or, "$reason: distinct from user || root";
+    my $m = Devel::Cover::decision_meta(${ $or_ops->[$i] }, $cv);
+    is $m, undef, "signature or [$i]: branch-style, no decision meta";
   }
 
   my $um = Devel::Cover::decision_meta($$user_or, $cv);

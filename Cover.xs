@@ -958,6 +958,7 @@ static AV *get_conds(pTHX_ AV *conds) {
 #endif
 
 static HV      *dc_lookup_or_build_decision_meta(pTHX_ OP *op, CV *cv);
+static int      dc_is_branch_logop(pTHX_ OP *op);
 static IV       dc_meta_iv(pTHX_ HV *meta, const char *key, I32 keylen);
 static dc_dctx *dc_stack_find_root(pTHX_ OP *root_addr);
 static dc_dctx *dc_stack_top(pTHX);
@@ -1405,7 +1406,8 @@ static void dc_collect_logops_r(pTHX_ OP *op, AV *logops) {
 
   if (dc_is_logop_type(op->op_type)) {
     OP *first = cLOGOPx(op)->op_first;
-    if (!(op->op_type == OP_AND && first && first->op_type == OP_ITER))
+    if (!(op->op_type == OP_AND && first && first->op_type == OP_ITER)
+        && !dc_is_branch_logop(aTHX_ op))
       av_push(logops, newSViv(PTR2IV(op)));
   }
 
@@ -1570,14 +1572,13 @@ static void dc_walk_cv_decisions(pTHX_ CV *cv) {
   n = av_len(logops) + 1;
   for (i = 0; i < n; i++) {
     OP     *lop = INT2PTR(OP *, SvIV(*av_fetch(logops, i, 0)));
-    int     is_root = !dc_is_branch_logop(aTHX_ lop);
+    int     is_root = 1;
     SSize_t j;
 
-    for (j = 0; is_root && j < n; j++) {
+    for (j = 0; j < n; j++) {
       OP *Q;
       if (j == i) continue;
       Q = INT2PTR(OP *, SvIV(*av_fetch(logops, j, 0)));
-      if (dc_is_branch_logop(aTHX_ Q)) continue;
       if (dc_skipped_operand(aTHX_ Q, 0) == lop
           || dc_skipped_operand(aTHX_ Q, 1) == lop) {
         is_root = 0;
