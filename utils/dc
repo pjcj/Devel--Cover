@@ -95,8 +95,9 @@ cpancover:
   cpancover-compress-new               Compress only new results directories.
   cpancover-compress-old-versions [n]  Compress old dist versions, keeping n
                                        latest (default 3).
-  cpancover-generate-html              Generate HTML reports, compress results,
-                                       and update JSON.
+  cpancover-generate-html              Generate HTML reports and update JSON;
+                                       compress results only when CPANCOVER_
+                                       COMPRESS is set.
   cpancover-latest                     List the latest CPAN modules to process.
   cpancover-run-loop                   Run build cycles in a loop (10 min
                                        interval).
@@ -631,11 +632,24 @@ recipe_cpancover-docker-shell() {
     "$docker_image" /bin/bash
 }
 
+cpancover_compression_enabled() {
+  [[ -n "${CPANCOVER_COMPRESS:-}" ]]
+}
+
+cpancover_clean_dir() {
+  local dir="$1"
+  rm -rf "$dir/runs" "$dir/structure"
+  rm -f "$dir"/digests "$dir"/digests.gz "$dir"/cover.[0-9]* \
+    "$dir"/cover.[0-9]*.gz "$dir"/*.lock "$dir"/*.lock.gz
+}
+
 recipe_cpancover-docker-module() {
   local module="${1:?No module specified}"
   local name="${2:?No name specified}"
   local staging="${3:-$results_dir}"
   local module_timeout="${CPANCOVER_TIMEOUT:-1800}" # half an hour
+  local log_ext=out
+  cpancover_compression_enabled && log_ext=out.gz
 
   local log_name="$name"
   name=$(docker_name "$name")
@@ -700,7 +714,8 @@ recipe_cpancover-docker-module() {
       elif [[ -d "$staging/$base" ]]; then
         continue
       fi
-      echo "$log_name.out.gz" >"$f/.log_ref"
+      cpancover_clean_dir "$f"
+      echo "$log_name.$log_ext" >"$f/.log_ref"
       mv "$f" "$staging"
     done
 
@@ -718,7 +733,7 @@ recipe_cpancover-docker-module() {
       local bare
       bare=$(cpan_distdir "${module##*/}")
       if [[ -d "$staging/$bare" ]]; then
-        echo "$log_name.out.gz" >"$staging/$bare/.log_ref"
+        echo "$log_name.$log_ext" >"$staging/$bare/.log_ref"
       fi
     fi
   fi
@@ -730,9 +745,7 @@ cpancover_compress_dir() {
   shift 3 2>/dev/null || shift $#
   local exclude=("$@")
 
-  rm -rf "$dir/runs" "$dir/structure"
-  rm -f "$dir"/digests "$dir"/digests.gz "$dir"/cover.[0-9]* \
-    "$dir"/cover.[0-9]*.gz "$dir"/*.lock "$dir"/*.lock.gz
+  cpancover_clean_dir "$dir"
 
   local find_args=("$dir" -maxdepth 1
     -type f -not -name '*.gz' -not -name '*.xz' -not -name '*.json'
@@ -763,20 +776,22 @@ cpancover_compress_dir() {
   fi
 }
 
+cpancover_remove_stale_gz() {
+  # stale .gz files would shadow freshly generated files via precompressed gzip
+  rm -f "$results_dir"/about.html.gz "$results_dir"/index.html.gz \
+    "$results_dir"/collection.css.gz "$results_dir"/collection.js.gz \
+    "$results_dir"/cpancover.json.gz \
+    "$results_dir"/dist/*.gz
+}
+
 cpancover_compress_dirs() {
   local only_new="$1"
   local max_jobs="${CPANCOVER_COMPRESS_JOBS:-$(nice_cpus)}"
   local jobs=0 dir name prefix
 
-  rm -f "$results_dir"/about.html.gz "$results_dir"/index.html.gz \
-    "$results_dir"/collection.css.gz "$results_dir"/collection.js.gz \
-    "$results_dir"/cpancover.json.gz
+  cpancover_remove_stale_gz
   cpancover_compress_dir "$results_dir" "" "top-level: " \
     about.html index.html collection.css collection.js
-
-  # dist/ contains generated HTML that must be served uncompressed;
-  # delete stale .gz files so Caddy serves the fresh versions.
-  rm -f "$results_dir"/dist/*.gz
 
   for dir in "$results_dir"/*/; do
     [[ -d "$dir" ]] || continue
@@ -927,11 +942,17 @@ cpancover_generate_html() {
   pi "Generating HTML at $(date)"
   cpancover_compress_old_versions
   run_cpancover --generate_html
-  cpancover_compress_new
-  local json=$results_dir/cpancover.json
-  local tmp=$json-tmp-$$.gz
-  pi "Compressing $json"
-  pigz <"$json" >"$tmp" && mv "$tmp" "$json.gz"
+  if cpancover_compression_enabled; then
+    cpancover_compress_new
+    local json=$results_dir/cpancover.json
+    local tmp=$json-tmp-$$.gz
+    pi "Compressing $json"
+    pigz <"$json" >"$tmp" && mv "$tmp" "$json.gz"
+  else
+    cpancover_remove_stale_gz
+    # DB::IO leaves .lock sidecars; the compress walk used to strip them
+    find "$results_dir" -maxdepth 2 -name '*.lock' -delete
+  fi
   pi "Done"
 }
 

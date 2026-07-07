@@ -331,11 +331,11 @@ class Devel::Cover::Collection {
   }
 
   method resolve_log_links ($d, $mods, $vars) {
-    # Match top-level .out.gz log files to modules
+    # Match top-level .out/.out.gz log files to modules
     my $n   = 0;
     my $re  = qr/^\w-\w\w-\w+-(.*)/;
     my $ext = qr/($Dist_ext_re)/;
-    my $ts  = qr/--\d{10,11}\.\d{6}\.out\.gz$/;
+    my $ts  = qr/--\d{10,11}\.\d{6}\.out(?:\.gz)?$/;
     for my $f (@$mods) {
       my ($module) = $f =~ /${re}${ext}${ts}/ or next;
       next if $vars->{vals}{$module}{log};
@@ -568,7 +568,7 @@ class Devel::Cover::Collection {
 
   method cpan_path_for ($distdir) {
     # The log filename format records the CPAN path directly:
-    # "A-AU-AUTHOR-Dist-Name-1.23.tar.gz--<timestamp>.out.gz". Parse it
+    # "A-AU-AUTHOR-Dist-Name-1.23.tar.gz--<timestamp>.out[.gz]". Parse it
     # instead of asking cpanm, which wants module names (Foo::Bar) not
     # distribution names (Foo-Bar) and so fails for most real distdirs.
     #
@@ -595,13 +595,14 @@ class Devel::Cover::Collection {
 
   method _log_index {
     # Index log filenames by distdir so per-distdir lookups are O(1).
-    # Filename format: A-AU-AUTHOR-Distdir-Name-1.23.tar.gz--<ts>.out.gz
+    # Filename format: A-AU-AUTHOR-Distdir-Name-1.23.tar.gz--<ts>.out[.gz]
     $_log_index_cache //= do {
       opendir my $dh, $results_dir or die "Can't opendir $results_dir: $!";
       my %by_distdir;
       for my $name (readdir $dh) {
         next
-          unless $name =~ /\A\w-\w\w-\w+-(.+?)${Dist_ext_re}--.*\.out\.gz\z/;
+          unless $name
+          =~ /\A\w-\w\w-\w+-(.+?)${Dist_ext_re}--.*\.out(?:\.gz)?\z/;
         push $by_distdir{$1}->@*, $name;
       }
       closedir $dh or warn "Can't closedir $results_dir: $!";
