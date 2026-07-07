@@ -783,6 +783,19 @@ sub cpan_path_for_method () {
   is $cm->cpan_path_for("Multi-1.0"), "A/AU/NEWAUTH/Multi-1.0.tar.gz",
     "cpan_path_for picks newest log when multiple match distdir";
 
+  # Logs are only compressed when CPANCOVER_COMPRESS is set, so plain
+  # .out names must be indexed and parsed just like .out.gz ones.
+  my $udir = tempdir(CLEANUP => 1);
+  my $uc   = Devel::Cover::Collection->new(results_dir => $udir);
+  touch_empty_file("$udir/U-UN-UNZIP-Plain-Log-3.00.tar.gz--444.555.out");
+  is $uc->cpan_path_for("Plain-Log-3.00"), "U/UN/UNZIP/Plain-Log-3.00.tar.gz",
+    "cpan_path_for parses uncompressed top-level log filename";
+  write_log_ref(
+    "$udir/Plain-Ref-4.00", "P-PL-PLAIN-Plain-Ref-4.00.tar.gz--666.777.out\n"
+  );
+  is $uc->cpan_path_for("Plain-Ref-4.00"), "P/PL/PLAIN/Plain-Ref-4.00.tar.gz",
+    "cpan_path_for parses uncompressed log name from .log_ref";
+
   # Legacy bug: a dep distdir may carry the target's .log_ref. Don't
   # trust a .log_ref whose dist name does not match the distdir -
   # otherwise we would reinstall the wrong distribution. Fall through

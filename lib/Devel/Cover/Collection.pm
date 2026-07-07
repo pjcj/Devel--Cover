@@ -331,11 +331,11 @@ class Devel::Cover::Collection {
   }
 
   method resolve_log_links ($d, $mods, $vars) {
-    # Match top-level .out.gz log files to modules
+    # Match top-level .out/.out.gz log files to modules
     my $n   = 0;
     my $re  = qr/^\w-\w\w-\w+-(.*)/;
     my $ext = qr/($Dist_ext_re)/;
-    my $ts  = qr/--\d{10,11}\.\d{6}\.out\.gz$/;
+    my $ts  = qr/--\d{10,11}\.\d{6}\.out(?:\.gz)?$/;
     for my $f (@$mods) {
       my ($module) = $f =~ /${re}${ext}${ts}/ or next;
       next if $vars->{vals}{$module}{log};
@@ -568,7 +568,7 @@ class Devel::Cover::Collection {
 
   method cpan_path_for ($distdir) {
     # The log filename format records the CPAN path directly:
-    # "A-AU-AUTHOR-Dist-Name-1.23.tar.gz--<timestamp>.out.gz". Parse it
+    # "A-AU-AUTHOR-Dist-Name-1.23.tar.gz--<timestamp>.out[.gz]". Parse it
     # instead of asking cpanm, which wants module names (Foo::Bar) not
     # distribution names (Foo-Bar) and so fails for most real distdirs.
     #
@@ -579,14 +579,14 @@ class Devel::Cover::Collection {
     my $log = $self->_log_name_for($distdir);
     if (
       defined $log
-      && $log =~ m{\A(.)-(..)-([^-]+)-(\Q$distdir\E${Dist_ext_re})--}
+      && $log =~ m{^(.)-(..)-([^-]+)-(\Q$distdir\E${Dist_ext_re})--}
     ) {
       return "$1/$2/$3/$4";
     }
 
     # Fall back to cpanm with the module name, stripping any trailing
     # version (including "-v1.2.3" forms).
-    my $bare   = $distdir =~ s/-v?\d[\d.]*\z//r;
+    my $bare   = $distdir =~ s/-v?\d[\d.]*$//r;
     my $module = $bare    =~ s/-/::/gr;
     my $out    = $self->bsys("cpanm", "--info", $module);
     chomp $out;
@@ -595,13 +595,13 @@ class Devel::Cover::Collection {
 
   method _log_index {
     # Index log filenames by distdir so per-distdir lookups are O(1).
-    # Filename format: A-AU-AUTHOR-Distdir-Name-1.23.tar.gz--<ts>.out.gz
+    # Filename format: A-AU-AUTHOR-Distdir-Name-1.23.tar.gz--<ts>.out[.gz]
     $_log_index_cache //= do {
       opendir my $dh, $results_dir or die "Can't opendir $results_dir: $!";
       my %by_distdir;
       for my $name (readdir $dh) {
         next
-          unless $name =~ /\A\w-\w\w-\w+-(.+?)${Dist_ext_re}--.*\.out\.gz\z/;
+          unless $name =~ /^\w-\w\w-\w+-(.+?)${Dist_ext_re}--.*\.out(?:\.gz)?$/;
         push $by_distdir{$1}->@*, $name;
       }
       closedir $dh or warn "Can't closedir $results_dir: $!";
