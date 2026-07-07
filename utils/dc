@@ -133,9 +133,11 @@ cpancover (Docker):
   cpancover-docker-kill                Kill running cpancover containers.
   cpancover-docker-module <mod> <name> Build coverage for a module in Docker
                                        (called by Collection.pm).
+  cpancover-docker-prune               Prune unused Docker data (manual
+                                       maintenance).
   cpancover-docker-ps                  List running cpancover containers.
   cpancover-docker-pull                Pull the latest cpancover Docker image.
-  cpancover-docker-rm                  Remove cpancover containers and prune.
+  cpancover-docker-rm                  Remove cpancover containers.
   cpancover-docker-rm-image            Stop containers and remove the Docker
                                        image.
   cpancover-docker-shell               Open a shell in a cpancover container.
@@ -422,11 +424,14 @@ recipe_cpancover-docker-kill() {
 
 cpancover_docker_rm() {
   cpancover_docker_ps_ids | xargs -r "$docker" rm -f
-  $docker system prune --force
 }
 
 recipe_cpancover-docker-rm() {
   cpancover_docker_rm
+}
+
+recipe_cpancover-docker-prune() {
+  $docker system prune --force
 }
 
 recipe_cpancover-docker-rm-image() {
