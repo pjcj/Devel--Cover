@@ -24,6 +24,8 @@ use Test::More import => [qw( done_testing like plan unlike )];
 
 BEGIN {
   plan skip_all => "Devel::Cover::Collection requires Perl 5.42" if $] < 5.042;
+  plan skip_all => "Devel::Cover::Collection is not portable to Windows"
+    if $^O eq "MSWin32";
   for my $module (qw( Template Parallel::Iterator JSON::MaybeXS )) {
     plan skip_all => "$module required for this test"
       unless eval "require $module; 1";
