@@ -579,14 +579,14 @@ class Devel::Cover::Collection {
     my $log = $self->_log_name_for($distdir);
     if (
       defined $log
-      && $log =~ m{\A(.)-(..)-([^-]+)-(\Q$distdir\E${Dist_ext_re})--}
+      && $log =~ m{^(.)-(..)-([^-]+)-(\Q$distdir\E${Dist_ext_re})--}
     ) {
       return "$1/$2/$3/$4";
     }
 
     # Fall back to cpanm with the module name, stripping any trailing
     # version (including "-v1.2.3" forms).
-    my $bare   = $distdir =~ s/-v?\d[\d.]*\z//r;
+    my $bare   = $distdir =~ s/-v?\d[\d.]*$//r;
     my $module = $bare    =~ s/-/::/gr;
     my $out    = $self->bsys("cpanm", "--info", $module);
     chomp $out;
@@ -601,8 +601,7 @@ class Devel::Cover::Collection {
       my %by_distdir;
       for my $name (readdir $dh) {
         next
-          unless $name
-          =~ /\A\w-\w\w-\w+-(.+?)${Dist_ext_re}--.*\.out(?:\.gz)?\z/;
+          unless $name =~ /^\w-\w\w-\w+-(.+?)${Dist_ext_re}--.*\.out(?:\.gz)?$/;
         push $by_distdir{$1}->@*, $name;
       }
       closedir $dh or warn "Can't closedir $results_dir: $!";
