@@ -404,8 +404,8 @@ recipe_cpancover() {
 }
 
 cpancover_docker_ps() {
-  local name="${docker_image//[^a-zA-Z0-9_.]/-}"
-  $docker ps -a | tail -n +2 | grep "$name-" | grep -vw "$(hostname)"
+  $docker ps -a --filter "label=cpancover.env=$env" |
+    tail -n +2 | grep -vw "$(hostname)"
 }
 
 recipe_cpancover-docker-ps() {
@@ -607,6 +607,7 @@ cpancover_controller_command() {
     --mount "type=bind,source=$sock,target=$sock" \
     --mount "type=bind,source=$results_dir,target=/remote_staging" \
     ${env_flags[@]:+"${env_flags[@]}"} \
+    --label "cpancover.env=$env" \
     --rm=false --memory=1g --name="$(docker_name "$name")" \
     "$docker_image" "${cmd[@]}"
 }
@@ -620,6 +621,7 @@ recipe_cpancover-docker-shell() {
   mkdir -p "$staging"
   $docker run -it \
     --mount type=bind,source="$staging",target=/remote_staging \
+    --label "cpancover.env=$env" \
     --rm=false --memory=1g --name="$(docker_name docker)" \
     "$docker_image" /bin/bash
 }
@@ -637,6 +639,7 @@ recipe_cpancover-docker-module() {
   local v=
   ((verbose)) && v=--verbose
   container=$($docker run -d \
+    --label "cpancover.env=$env" \
     --rm=false --memory=1g --name="$name" \
     "$docker_image" \
     dc $v cpancover-build-module "$module")
