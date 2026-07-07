@@ -840,6 +840,8 @@ cpancover_serve() {
 :${port} {
   root * $www_dir
   redir / /latest/ 301
+  @logs path *.out
+  header @logs Content-Type "text/plain; charset=utf-8"
   file_server {
     precompressed gzip
   }
@@ -861,6 +863,8 @@ cpancover.com, www.cpancover.com {
   root * $www_dir
   redir / /latest/ 301
   encode zstd gzip
+  @logs path *.out
+  header @logs Content-Type "text/plain; charset=utf-8"
   file_server {
     precompressed gzip
   }
