@@ -307,7 +307,10 @@ class Devel::Cover::Collection {
       LOAD_TEMPLATES =>
         [Devel::Cover::Collection::Template::Provider->new({})],
     });
+    $vars->{root} = "";
     $template->process("summary", $vars, $f) or die $template->error;
+    $vars->{root} = "../";
+
     for my $start (sort keys $vars->{modules}->%*) {
       $vars->{module_start} = $start;
       my $dist = "$d/dist/$start.html";
@@ -318,7 +321,7 @@ class Devel::Cover::Collection {
     my $about_f = "$d/about.html";
     say "\nWriting about page to $about_f ...";
 
-    $template->process("about", { subdir => "latest/" }, $about_f)
+    $template->process("about", { root => "" }, $about_f)
       or die $template->error;
 
     # print Dumper $vars;
@@ -372,7 +375,6 @@ class Devel::Cover::Collection {
       title       => "Coverage report",
       modules     => {},
       vals        => {},
-      subdir      => "latest/",
       headers     => [grep !/time/, @Devel::Cover::DB::Criteria_short, "total"],
       criteria    => [grep !/time/, @Devel::Cover::DB::Criteria,       "total"],
       col_headers => do {
@@ -410,7 +412,7 @@ class Devel::Cover::Collection {
 
       my $m = $vars->{vals}{$module} = {};
       $m->{module} = $mod;
-      $m->{link}   = "/$module/index.html"
+      $m->{link}   = "$module/index.html"
         if $json->{summary}{Total}{total}{total};
 
       for my $criterion ($vars->{criteria}->@*) {
@@ -760,7 +762,7 @@ https://pjcj.net
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="/[% subdir %]collection.css">
+<link rel="stylesheet" href="[% root %]collection.css">
 <link rel="icon" href="data:image/svg+xml,
   <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>
   <circle cx='8' cy='8' r='7' fill='%232e7d32'/>
@@ -785,11 +787,11 @@ Coverage information from
 by <a href="https://pjcj.net">Paul Johnson</a>.
 Please report problems to the
 <a href="https://github.com/pjcj/Devel--Cover/issues">bug tracker</a>.
-<a href="/[% subdir %]about.html">About</a> the project.
+<a href="[% root %]about.html">About</a> the project.
 This server generously donated by
 <a href="https://www.bytemark.co.uk">Bytemark</a>.
 </footer>
-<script src="/[% subdir %]collection.js" defer></script>
+<script src="[% root %]collection.js" defer></script>
 </body>
 </html>
 EOT
@@ -913,7 +915,7 @@ $Templates{module_by_start} = <<'EOT';
     <tr>
       <td>
         [% IF vals.$m.link %]
-          <a href="/[% subdir %][%- vals.$m.link -%]">
+          <a href="[% root %][%- vals.$m.link -%]">
             [% module.name || module.module %]
           </a>
         [% ELSE %]
@@ -923,7 +925,7 @@ $Templates{module_by_start} = <<'EOT';
       <td>[% module.version %]</td>
       <td>
         [% IF vals.$m.log %]
-          <a href="/[% subdir %][% vals.$m.log %]">&para;</a>
+          <a href="[% root %][% vals.$m.log %]">&para;</a>
         [% END %]
       </td>
       [% FOREACH criterion = criteria %]
