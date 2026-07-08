@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# HARNESS-DURATION-LONG
 
 # Copyright 2026, Paul Johnson (paul@pjcj.net)
 
@@ -106,9 +107,10 @@ sub make_docker_stub ($bin) {
         echo db >"$dest/staging/$dist/cover.14"
         echo x >"$dest/staging/$dist/digests"
         echo x >"$dest/staging/$dist/x.lock"
-        printf '%s%s\n' \
+        printf '%s%s%s\n' \
           '{"runs":[{"name":"Foo-Bar","version":"1.00","dir":"/tmp/x"}],' \
-          '"summary":{"Total":{"total":{"percentage":85.5,"covered":10,"total":12}}}}' \
+          '"summary":{"Total":' \
+          '{"total":{"percentage":85.5,"covered":10,"total":12}}}}' \
           >"$dest/staging/$dist/cover.json"
         echo html >"$dest/staging/$dist/index.html"
         ;;
@@ -217,7 +219,7 @@ sub rebuild_batch_cleanup () {
     for "Foo-Bar-1.00", "__rebuilt__";
   my $criterion = '{"percentage":85.5,"covered":10,"total":12}';
   write_file("$dir/Foo-Bar-1.00/cover.json",
-        qq({"runs":[{"name":"Foo-Bar","version":"1.00","dir":"/tmp/x"}],)
+        '{"runs":[{"name":"Foo-Bar","version":"1.00","dir":"/tmp/x"}],'
       . qq("summary":{"Total":{"total":$criterion,"statement":$criterion}}}));
   write_file("$dir/Foo-Bar-1.00/index.html",  "html\n");
   write_file("$dir/__rebuilt__/Foo-Bar-1.00", "1234567890\n");
@@ -229,7 +231,7 @@ sub rebuild_batch_cleanup () {
 
   ok -s "$dir/index.html",     "rebuild batch regenerates the index";
   ok !-e "$dir/index.html.gz", "stale top-level .gz removed";
-  my @locks = (glob("$dir/*.lock"), glob("$dir/*/*.lock"));
+  my @locks = map glob, "$dir/*.lock", "$dir/*/*.lock";
   is \@locks, [], "no lock sidecars remain";
 }
 
@@ -263,7 +265,7 @@ sub rebuild_module_recipe () {
   isnt slurp("$dir/__rebuilt__/Foo-Bar-1.00"), "1234567890\n",
     "rebuilt marker is rewritten";
   ok -s "$dir/index.html", "HTML is regenerated";
-  my @locks = (glob("$dir/*.lock"), glob("$dir/*/*.lock"));
+  my @locks = map glob, "$dir/*.lock", "$dir/*/*.lock";
   is \@locks, [], "no lock sidecars remain";
 }
 
