@@ -338,8 +338,17 @@ class Devel::Cover::Collection {
   }
 
   method resolve_log_links ($d, $mods, $vars) {
-    # Match top-level .out/.out.gz log files to modules
-    my $n   = 0;
+    # Prefer .log_ref: it names the log of the build that produced the
+    # current distdir contents, and covers modules built as dependencies
+    my $n = 0;
+    for my $module (keys $vars->{vals}->%*) {
+      my $log = $self->_read_log_ref($d, $module) // next;
+      $vars->{vals}{$module}{log} = $log if -e "$d/$log";
+      print "-" if !($n++ % 1000) && !$verbose;
+    }
+
+    # Fallback: match top-level .out/.out.gz log files by name
+    $n = 0;
     my $re  = qr/^\w-\w\w-\w+-(.*)/;
     my $ext = qr/($Dist_ext_re)/;
     my $ts  = qr/--\d{10,11}\.\d{6}\.out(?:\.gz)?$/;
@@ -347,15 +356,6 @@ class Devel::Cover::Collection {
       my ($module) = $f =~ /${re}${ext}${ts}/ or next;
       next if $vars->{vals}{$module}{log};
       $vars->{vals}{$module}{log} = $f;
-      print "-" if !($n++ % 1000) && !$verbose;
-    }
-
-    # Fallback: .log_ref for modules built as dependencies
-    $n = 0;
-    for my $module (keys $vars->{vals}->%*) {
-      next if $vars->{vals}{$module}{log};
-      my $log = $self->_read_log_ref($d, $module) // next;
-      $vars->{vals}{$module}{log} = $log;
       print "-" if !($n++ % 1000) && !$verbose;
     }
     say "";
