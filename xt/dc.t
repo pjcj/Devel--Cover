@@ -16,8 +16,9 @@ skip_all "dc recipes are not portable to Windows" if $^O eq "MSWin32";
 skip_all "utils/dc not found" unless -x "utils/dc";
 skip_all "pigz required" if system "pigz --version >/dev/null 2>&1";
 
-my $Dc  = "utils/dc";
-my $Log = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--1234567890.123456.out";
+my $Dc     = "utils/dc";
+my $Log    = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--1234567890.123456.out";
+my $Log_gz = "P-PJ-PJCJ-Baz-Qux-2.00.tar.gz--1234567891.123456.out";
 
 sub dc (@args) {
   my $cmd = join " ", $Dc, @args;
@@ -174,12 +175,65 @@ sub docker_module_timeout_log_ref () {
   is @tmp, 0, "no tmp files remain";
 }
 
+sub make_seed_source ($src) {
+  mkdir "$src/$_"
+    or die "Can't mkdir $src/$_: $!"
+    for "Foo-Bar-1.00", "__failed__", "__rebuilt__", "dist";
+  write_file("$src/Foo-Bar-1.00/cover.json",  "{}\n");
+  write_file("$src/Foo-Bar-1.00/index.html",  "html\n");
+  write_file("$src/Foo-Bar-1.00/.log_ref",    "$Log\n");
+  write_file("$src/Foo-Bar-1.00/x.lock",      "lock\n");
+  write_file("$src/__failed__/Bad-Dist-0.01", "1234567890\n");
+  write_file("$src/__rebuilt__/Foo-Bar-1.00", "1234567890\n");
+  write_file("$src/$Log",                     "log\n");
+  write_file("$src/$Log_gz.gz",               "gzlog\n");
+  write_file("$src/index.html",               "top\n");
+  write_file("$src/index.html.gz",            "stale\n");
+  write_file("$src/cpancover.json",           "{}\n");
+  write_file("$src/.cpancover_status",        "modules=1\n");
+  write_file("$src/dist/F.html",              "html\n");
+  write_file("$src/dist/F.html.gz",           "stale\n");
+}
+
+sub inode ($path) { (stat $path)[1] }
+
+sub seed_recipe () {
+  my $base = tempdir(CLEANUP => 1);
+  my $src  = "$base/src";
+  my $dest = "$base/dest";
+  mkdir $src or die "Can't mkdir $src: $!";
+  make_seed_source($src);
+
+  dc("cpancover-seed", $src, $dest);
+
+  is slurp("$dest/Foo-Bar-1.00/index.html"), "html\n", "dist dir seeded";
+  is inode("$dest/Foo-Bar-1.00/index.html"),
+    inode("$src/Foo-Bar-1.00/index.html"), "dist files are hardlinked";
+  is slurp("$dest/Foo-Bar-1.00/.log_ref"), "$Log\n", ".log_ref seeded";
+  ok -e "$dest/__failed__/Bad-Dist-0.01", "failed markers seeded";
+  is slurp("$dest/$Log"),       "log\n",            "top-level log seeded";
+  is inode("$dest/$Log"),       inode("$src/$Log"), "logs are hardlinked";
+  is slurp("$dest/$Log_gz.gz"), "gzlog\n",          "compressed log seeded";
+
+  ok !-e "$dest/__rebuilt__",         "rebuilt markers excluded";
+  ok !-e "$dest/dist",                "dist pages excluded";
+  ok !-e "$dest/index.html",          "top-level index excluded";
+  ok !-e "$dest/index.html.gz",       "stale top-level .gz excluded";
+  ok !-e "$dest/cpancover.json",      "top-level json excluded";
+  ok !-e "$dest/.cpancover_status",   "status file excluded";
+  ok !-e "$dest/Foo-Bar-1.00/x.lock", "lock files excluded";
+
+  my $rc = system "$Dc cpancover-seed $src $dest >/dev/null 2>&1";
+  ok $rc != 0, "seeding over an existing destination fails";
+}
+
 sub main () {
   my @tests = qw(
     compress_recipe
     uncompress_recipe
     docker_module_log_ref
     docker_module_timeout_log_ref
+    seed_recipe
   );
   for my $test (@tests) {
     no strict qw( refs );
