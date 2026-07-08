@@ -9,7 +9,7 @@
 
 use 5.42.0;
 
-use Test2::V0  qw( done_testing is ok skip_all subtest );
+use Test2::V0  qw( done_testing is like ok skip_all subtest );
 use File::Temp qw( tempdir );
 
 skip_all "dc recipes are not portable to Windows" if $^O eq "MSWin32";
@@ -94,6 +94,7 @@ sub make_docker_stub ($bin) {
     #!/bin/sh
     cmd="$1"
     shift
+    echo "$cmd" >>"${STUB_CALLS:-/dev/null}"
     case "$cmd" in
       run) echo fake-container ;;
       logs) echo "fake build log" ;;
@@ -173,6 +174,37 @@ sub docker_module_timeout_log_ref () {
     "hardlinked copy keeps the old content";
   my @tmp = glob "$distdir/.log_ref.tmp.*";
   is @tmp, 0, "no tmp files remain";
+}
+
+sub force_retries_failed_only () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+  my $module = "P/PJ/PJCJ/Foo-Bar-1.00.tar.gz";
+  my $work   = tempdir(CLEANUP => 1);
+
+  my $covered = tempdir(CLEANUP => 1);
+
+  mkdir "$covered/Foo-Bar-1.00" or die "Can't mkdir $covered/Foo-Bar-1.00: $!";
+  write_file("$covered/Foo-Bar-1.00/cover.json", "{}\n");
+  {
+    local $ENV{STUB_CALLS} = "$work/covered.calls";
+    dc("-f", "-r", $covered, "cpancover", "--build", $module);
+  }
+  ok !-e "$work/covered.calls", "no docker build for a covered dist";
+
+  my $failed = tempdir(CLEANUP => 1);
+  mkdir "$failed/__failed__" or die "Can't mkdir $failed/__failed__: $!";
+  write_file("$failed/__failed__/Foo-Bar-1.00", "1234567890\n");
+  {
+    local $ENV{STUB_CALLS} = "$work/failed.calls";
+    dc("-f", "-r", $failed, "cpancover", "--build", $module);
+  }
+  like slurp("$work/failed.calls"), qr/\brun\b/,
+    "forced build retries a failed dist";
+  ok -e "$failed/Foo-Bar-1.00/cover.json", "retried dist is ingested";
 }
 
 sub rebuild_batch_cleanup () {
@@ -256,6 +288,7 @@ sub main () {
     uncompress_recipe
     docker_module_log_ref
     docker_module_timeout_log_ref
+    force_retries_failed_only
     rebuild_batch_cleanup
     seed_recipe
   );

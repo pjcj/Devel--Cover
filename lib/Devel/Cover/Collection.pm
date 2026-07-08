@@ -681,9 +681,10 @@ class Devel::Cover::Collection {
         my (undef, $module) = @_;
         my $d = $module =~ s|.*/||r =~ s/${Dist_ext_re}$//r;
         if ($self->is_covered($d)) {
+          # replacing an existing distdir is the rebuild machinery's job
           $self->set_covered($d);
           say "$module already covered" if $verbose;
-          return unless $force;
+          return;
         } elsif ($self->is_failed($d)) {
           say "$module already failed" if $verbose;
           return unless $force;
@@ -1060,8 +1061,10 @@ Environment identifier (e.g., 'prod', 'dev'). Default: 'prod'.
 
 =head3 force
 
-Boolean. If true, re-run coverage even for already-covered modules.
-Default: 0.
+Boolean. If true, retry modules which previously failed to build, and
+re-run coverage for build directories which have already been analysed.
+Covered modules are never rebuilt this way; that is the job of the
+rebuild machinery. Default: 0.
 
 =head3 output_file
 
