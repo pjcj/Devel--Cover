@@ -34,8 +34,12 @@ sub _read ($self, $file, $reader) {
 
 sub _write ($self, $file, $writer) {
   my $lock_fh = $self->_lock($file, LOCK_EX);
-  unlink $file;
-  $writer->();
+  my $tmp     = "$file.tmp.$$";
+  eval { $writer->($tmp); 1 } or do { my $e = $@; unlink $tmp; die $e };
+  rename $tmp, $file or do {
+    unlink $tmp;
+    die "Can't rename $tmp to $file: $!\n";
+  };
   $self
 }
 
@@ -54,10 +58,10 @@ sub read_fh ($self, $file, $reader) {
 sub write_fh ($self, $file, $writer) {
   $self->_write(
     $file,
-    sub {
-      open my $fh, ">", $file or die "Can't open $file: $!\n";
+    sub ($tmp) {
+      open my $fh, ">", $tmp or die "Can't open $tmp: $!\n";
       $writer->($fh);
-      close $fh or die "Can't close $file: $!\n";
+      close $fh or die "Can't close $tmp: $!\n";
     },
   )
 }

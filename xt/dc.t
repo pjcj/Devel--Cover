@@ -96,6 +96,7 @@ sub make_docker_stub ($bin) {
     case "$cmd" in
       run) echo fake-container ;;
       logs) echo "fake build log" ;;
+      wait) sleep "${STUB_WAIT_SLEEP:-0}" ;;
       cp)
         dest="$2"
         dist="$STUB_DISTDIR"
@@ -143,11 +144,42 @@ sub docker_module_log_ref () {
     ".log_ref records .out.gz when compression is on";
 }
 
+sub docker_module_timeout_log_ref () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}              = "$bin:$ENV{PATH}";
+  local $ENV{STUB_WAIT_SLEEP}   = 3;
+  local $ENV{CPANCOVER_TIMEOUT} = 1;
+  local $ENV{CPANCOVER_REBUILD} = 1;
+
+  my $log     = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
+  my $staging = tempdir(CLEANUP => 1);
+  my $distdir = "$staging/Foo-Bar-1.00";
+
+  mkdir $distdir or die "Can't mkdir $distdir: $!";
+  write_file("$distdir/.log_ref", "old\n");
+  link "$distdir/.log_ref", "$distdir/.log_ref.seeded"
+    or skip_all "hardlinks not supported";
+
+  dc(
+    "-r", $staging, "cpancover-docker-module", "Foo-Bar-1.00.tar.gz", $log,
+    $staging,
+  );
+
+  is slurp("$distdir/.log_ref"), "$log.out\n", "timeout path rewrites .log_ref";
+  is slurp("$distdir/.log_ref.seeded"), "old\n",
+    "hardlinked copy keeps the old content";
+  my @tmp = glob "$distdir/.log_ref.tmp.*";
+  is @tmp, 0, "no tmp files remain";
+}
+
 sub main () {
   my @tests = qw(
     compress_recipe
     uncompress_recipe
     docker_module_log_ref
+    docker_module_timeout_log_ref
   );
   for my $test (@tests) {
     no strict qw( refs );

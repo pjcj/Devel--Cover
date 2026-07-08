@@ -733,7 +733,8 @@ recipe_cpancover-docker-module() {
       local bare
       bare=$(cpan_distdir "${module##*/}")
       if [[ -d "$staging/$bare" ]]; then
-        echo "$log_name.$log_ext" >"$staging/$bare/.log_ref"
+        echo "$log_name.$log_ext" >"$staging/$bare/.log_ref.tmp.$$"
+        mv "$staging/$bare/.log_ref.tmp.$$" "$staging/$bare/.log_ref"
       fi
     fi
   fi
