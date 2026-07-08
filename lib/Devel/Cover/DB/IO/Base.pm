@@ -7,46 +7,39 @@
 
 package Devel::Cover::DB::IO::Base;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
-use Fcntl ":flock";
+use Fcntl qw( LOCK_EX LOCK_SH );
 
 # VERSION
 
-sub new {
-  my $class = shift;
-  bless {@_}, $class
+sub new ($class, @args) {
+  bless {@args}, $class
 }
 
-sub _lock {
-  my $self = shift;
-  my ($file, $type) = @_;
+sub _lock ($self, $file, $type) {
   my $lock = "$file.lock";
   open my $fh, "+>>", $lock or die "Can't open $lock: $!\n";
   flock $fh, $type or die "Can't lock $lock: $!\n";
   $fh
 }
 
-sub _read {
-  my $self = shift;
-  my ($file, $reader) = @_;
+sub _read ($self, $file, $reader) {
   my $lock_fh = $self->_lock($file, LOCK_SH);
   $reader->()
 }
 
-sub _write {
-  my $self = shift;
-  my ($file, $writer) = @_;
+sub _write ($self, $file, $writer) {
   my $lock_fh = $self->_lock($file, LOCK_EX);
   unlink $file;
   $writer->();
   $self
 }
 
-sub _read_fh {
-  my $self = shift;
-  my ($file, $reader) = @_;
+sub read_fh ($self, $file, $reader) {
   $self->_read(
     $file,
     sub {
@@ -54,20 +47,18 @@ sub _read_fh {
       my $data = $reader->($fh);
       close $fh or die "Can't close $file: $!\n";
       $data
-    }
+    },
   )
 }
 
-sub _write_fh {
-  my $self = shift;
-  my ($file, $writer) = @_;
+sub write_fh ($self, $file, $writer) {
   $self->_write(
     $file,
     sub {
       open my $fh, ">", $file or die "Can't open $file: $!\n";
       $writer->($fh);
       close $fh or die "Can't close $file: $!\n";
-    }
+    },
   )
 }
 
@@ -97,6 +88,16 @@ This module is a base class for IO routines for Devel::Cover::DB.
 L<Devel::Cover>
 
 =head1 METHODS
+
+=head2 read_fh ($file, $reader)
+
+Call C<$reader> with a filehandle open for reading C<$file>, holding a shared
+lock, and return its result.
+
+=head2 write_fh ($file, $writer)
+
+Call C<$writer> with a filehandle to write the data for C<$file>, holding an
+exclusive lock.
 
 =head1 LICENCE
 

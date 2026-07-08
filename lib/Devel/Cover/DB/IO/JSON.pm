@@ -7,8 +7,10 @@
 
 package Devel::Cover::DB::IO::JSON;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 use base "Devel::Cover::DB::IO::Base";
 
@@ -16,44 +18,40 @@ use JSON::MaybeXS ();
 
 # VERSION
 
-sub new {
-  my $class = shift;
-  my %args  = @_;
-  my $json  = JSON::MaybeXS->new(utf8 => 1, allow_blessed => 1);
+sub new ($class, %args) {
+  my $json = JSON::MaybeXS->new(utf8 => 1, allow_blessed => 1);
   $json->ascii->pretty->canonical
     if exists $args{options} && $args{options} =~ /\bpretty\b/i;
   my $self = $class->SUPER::new(%args, json => $json);
   bless $self, $class
 }
 
-sub read {
-  my $self = shift;
-  my ($file) = @_;
-  $self->_read_fh(
+sub read ($self, $file) {
+  $self->read_fh(
     $file,
-    sub {
-      my ($fh) = @_;
+    sub ($fh) {
       local $/;
       my $data = eval { $self->{json}->decode(<$fh>) };
       die "Can't read $file with ", (ref $self->{json}), ": $@" if $@;
       $data
-    }
+    },
   )
 }
 
-sub write {
-  my $self = shift;
-  my ($data, $file) = @_;
-  $self->_write_fh(
+sub write ($self, $data, $file) {
+  $self->write_fh(
     $file,
-    sub {
-      my ($fh) = @_;
+    sub ($fh) {
       print $fh $self->{json}->encode($data);
-    }
+    },
   )
 }
 
-1
+"
+Oh, and that's all I heard about Brenda and Eddie
+Can't tell you more 'cause I told you already
+And here we are waving Brenda and Eddie goodbye
+"
 
 __END__
 
