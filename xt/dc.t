@@ -175,6 +175,29 @@ sub docker_module_timeout_log_ref () {
   is @tmp, 0, "no tmp files remain";
 }
 
+sub rebuild_batch_cleanup () {
+  my $dir = tempdir(CLEANUP => 1);
+  mkdir "$dir/$_"
+    or die "Can't mkdir $dir/$_: $!"
+    for "Foo-Bar-1.00", "__rebuilt__";
+  my $criterion = '{"percentage":85.5,"covered":10,"total":12}';
+  write_file("$dir/Foo-Bar-1.00/cover.json",
+        qq({"runs":[{"name":"Foo-Bar","version":"1.00","dir":"/tmp/x"}],)
+      . qq("summary":{"Total":{"total":$criterion,"statement":$criterion}}}));
+  write_file("$dir/Foo-Bar-1.00/index.html",  "html\n");
+  write_file("$dir/__rebuilt__/Foo-Bar-1.00", "1234567890\n");
+  write_file("$dir/$Log",                     "log\n");
+  write_file("$dir/index.html.gz",            "stale\n");
+
+  delete local $ENV{CPANCOVER_COMPRESS};
+  dc("-r", $dir, "cpancover-rebuild-batch");
+
+  ok -s "$dir/index.html",     "rebuild batch regenerates the index";
+  ok !-e "$dir/index.html.gz", "stale top-level .gz removed";
+  my @locks = (glob("$dir/*.lock"), glob("$dir/*/*.lock"));
+  is \@locks, [], "no lock sidecars remain";
+}
+
 sub make_seed_source ($src) {
   mkdir "$src/$_"
     or die "Can't mkdir $src/$_: $!"
@@ -233,6 +256,7 @@ sub main () {
     uncompress_recipe
     docker_module_log_ref
     docker_module_timeout_log_ref
+    rebuild_batch_cleanup
     seed_recipe
   );
   for my $test (@tests) {

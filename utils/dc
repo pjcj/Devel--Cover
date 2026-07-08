@@ -1049,7 +1049,7 @@ cpancover_run_loop_rebuild() {
   local batch="${CPANCOVER_REBUILD_BATCH:-100}"
   pi "Starting cpancover rebuild loop at $(date), batch=$batch"
 
-  run_cpancover --nobuild --generate_html
+  cpancover_generate_html
 
   while true; do
     cpancover_docker_rm
@@ -1057,12 +1057,12 @@ cpancover_run_loop_rebuild() {
     cpancover_latest | run_cpancover --build --rebuild --rebuild_batch 0
     local new
     new=$(cpancover_status_value new_count)
-    ((new > 0)) && run_cpancover --nobuild --generate_html
+    ((new > 0)) && cpancover_generate_html
 
     run_cpancover --nobuild --rebuild --rebuild_batch "$batch"
     local rebuilt
     rebuilt=$(cpancover_status_value rebuilt_count)
-    ((rebuilt > 0)) && run_cpancover --nobuild --generate_html
+    ((rebuilt > 0)) && cpancover_generate_html
 
     if [[ $(cpancover_status_value all_rebuilt) == 1 ]]; then
       pi "Rebuild complete; clearing __rebuilt__ markers"
@@ -1086,7 +1086,8 @@ recipe_cpancover-rebuild-batch() {
   local v=
   ((verbose)) && v=--verbose
   run_cpancover $v --nobuild --rebuild \
-    --rebuild_batch "${CPANCOVER_REBUILD_BATCH:-100}" --generate_html
+    --rebuild_batch "${CPANCOVER_REBUILD_BATCH:-100}"
+  cpancover_generate_html
 }
 
 recipe_cpancover-controller-run() {
