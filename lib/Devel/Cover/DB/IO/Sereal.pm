@@ -7,53 +7,57 @@
 
 package Devel::Cover::DB::IO::Sereal;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 use base "Devel::Cover::DB::IO::Base";
 
-use Sereal::Decoder;
-use Sereal::Encoder;
+use Sereal::Decoder ();
+use Sereal::Encoder ();
 
 # VERSION
 
 my ($Decoder, $Encoder);
 
-sub new {
-  my $class = shift;
-  my $self  = $class->SUPER::new(@_);
+sub new ($class, @args) {
+  my $self = $class->SUPER::new(@args);
   bless $self, $class
 }
 
-sub read {
-  my $self = shift;
-  my ($file) = @_;
-  $self->_read_fh(
+sub read ($self, $file) {
+  $self->read_fh(
     $file,
-    sub {
-      my ($fh) = @_;
+    sub ($fh) {
       local $/;
       my $data
         = eval { ($Decoder ||= Sereal::Decoder->new({}))->decode(<$fh>) };
       die "Can't read $file with Sereal: $@" if $@;
       $data
-    }
+    },
   )
 }
 
-sub write {
-  my $self = shift;
-  my ($data, $file) = @_;
-  $self->_write_fh(
+sub write ($self, $data, $file) {
+  $self->write_fh(
     $file,
-    sub {
-      my ($fh) = @_;
+    sub ($fh) {
       print $fh ($Encoder ||= Sereal::Encoder->new({}))->encode($data);
-    }
+    },
   )
 }
 
-1
+"
+Norman and Norma had three lovely daughters
+Nadia, Nora and Neive
+The firm Norma worked at wouldn't take her back
+After maternity leave
+They dreamt of Majorca, but couldn't afford to go
+On Norman's salary
+So they went to Cromer, got double pneumonia
+And Norma remembered when she used to say
+"
 
 __END__
 

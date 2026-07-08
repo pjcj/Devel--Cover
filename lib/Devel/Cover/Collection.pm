@@ -297,6 +297,15 @@ class Devel::Cover::Collection {
       : "c3"
   }
 
+  method _process_template ($template, $name, $vars, $file) {
+    my $tmp = "$file.tmp.$$";
+    $template->process($name, $vars, $tmp) or die $template->error;
+    rename $tmp, $file or do {
+      unlink $tmp;
+      die "Can't rename $tmp to $file: $!\n";
+    };
+  }
+
   method write_summary ($vars) {
     my $d = $self->dir;
     my $f = $self->file;
@@ -308,21 +317,19 @@ class Devel::Cover::Collection {
         [Devel::Cover::Collection::Template::Provider->new({})],
     });
     $vars->{root} = "";
-    $template->process("summary", $vars, $f) or die $template->error;
+    $self->_process_template($template, "summary", $vars, $f);
     $vars->{root} = "../";
 
     for my $start (sort keys $vars->{modules}->%*) {
       $vars->{module_start} = $start;
       my $dist = "$d/dist/$start.html";
-      $template->process("module_by_start", $vars, $dist)
-        or die $template->error;
+      $self->_process_template($template, "module_by_start", $vars, $dist);
     }
 
     my $about_f = "$d/about.html";
     say "\nWriting about page to $about_f ...";
 
-    $template->process("about", { root => "" }, $about_f)
-      or die $template->error;
+    $self->_process_template($template, "about", { root => "" }, $about_f);
 
     # print Dumper $vars;
     $self->write_json($vars);

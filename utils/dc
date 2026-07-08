@@ -110,6 +110,9 @@ cpancover:
                                        fall through to the normal run loop.
   cpancover-run-once                   Fetch latest modules and run one build
                                        cycle.
+  cpancover-seed <src> <dest>          Seed a new results tree from an existing
+                                       one using hardlinks (dist dirs, failed
+                                       markers, and build logs only).
   cpancover-serve [port]               Serve results locally via Caddy (default
                                        port 8080).
   cpancover-test                       Run a test module through the full build
@@ -733,7 +736,8 @@ recipe_cpancover-docker-module() {
       local bare
       bare=$(cpan_distdir "${module##*/}")
       if [[ -d "$staging/$bare" ]]; then
-        echo "$log_name.$log_ext" >"$staging/$bare/.log_ref"
+        echo "$log_name.$log_ext" >"$staging/$bare/.log_ref.tmp.$$"
+        mv "$staging/$bare/.log_ref.tmp.$$" "$staging/$bare/.log_ref"
       fi
     fi
   fi
@@ -931,6 +935,23 @@ recipe_cpancover-uncompress-dir() {
   find "$results_dir/$subdir/" -name __failed__ -prune -o \
     -type f -name '*.gz' \
     -exec gzip -df {} \;
+}
+
+recipe_cpancover-seed() {
+  local src="${1:?No source directory specified}"
+  local dest="${2:?No destination directory specified}"
+  [[ -d $src ]] || pf "No such directory: $src"
+  [[ -e $dest ]] && pf "Destination already exists: $dest"
+
+  pi "Seeding $dest from $src"
+  mkdir -p "$dest"
+  cp -al "$src/." "$dest"
+  rm -rf "$dest/dist" "$dest/__rebuilt__"
+  # keep only the build logs at the top level
+  find "$dest" -maxdepth 1 -type f \
+    ! -name '*.out' ! -name '*.out.gz' -delete
+  find "$dest" -name '*.lock' -delete
+  pi "Done"
 }
 
 cpancover_compress_old_versions() {

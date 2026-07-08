@@ -7,34 +7,48 @@
 
 package Devel::Cover::DB::IO::Storable;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 use base "Devel::Cover::DB::IO::Base";
 
-use Storable;
+use Storable ();
 
 # VERSION
 
-sub new {
-  my $class = shift;
-  my $self  = $class->SUPER::new(@_);
+sub new ($class, @args) {
+  my $self = $class->SUPER::new(@args);
   bless $self, $class
 }
 
-sub read {
-  my $self = shift;
-  my ($file) = @_;
-  $self->_read($file, sub { Storable::retrieve($file) })
+sub read ($self, $file) {
+  $self->read_fh(
+    $file,
+    sub ($fh) {
+      binmode $fh;
+      Storable::fd_retrieve($fh)
+    },
+  )
 }
 
-sub write {
-  my $self = shift;
-  my ($data, $file) = @_;
-  $self->_write($file, sub { Storable::nstore($data, $file) })
+sub write ($self, $data, $file) {
+  $self->write_fh(
+    $file,
+    sub ($fh) {
+      binmode $fh;
+      Storable::nstore_fd($data, $fh);
+    },
+  )
 }
 
-1
+"
+Oh I, I believe in magic and I believe in dreams
+Until I heard the thunder rumble
+I saw the mountains crumble
+Then came the circus, so I followed its parade
+"
 
 __END__
 

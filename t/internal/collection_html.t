@@ -12,7 +12,7 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
-use FindBin ();
+use FindBin ();  ## no perlimports
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
@@ -20,7 +20,7 @@ use Cwd        qw( getcwd );
 use File::Path qw( make_path );
 use File::Temp ();
 use JSON::PP   ();
-use Test::More import => [qw( done_testing like plan unlike )];
+use Test::More import => [qw( done_testing is like plan unlike )];
 
 BEGIN {
   plan skip_all => "Devel::Cover::Collection requires Perl 5.42" if $] < 5.042;
@@ -32,7 +32,7 @@ BEGIN {
   }
 }
 
-require Devel::Cover::Collection;
+use Devel::Cover::Collection ();
 
 my $Dist  = "Foo-Bar-1.00";
 my $Log   = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--1234567890.123456.out.gz";
@@ -65,10 +65,19 @@ sub write_dist ($dir, $dist, $name, $version, $log) {
   write_file("$dir/$log",             "log\n");
 }
 
+sub seed_page ($dir, $file) {
+  write_file("$dir/$file", "old");
+  link "$dir/$file", "$dir/$file.seeded"
+    or plan skip_all => "hardlinks not supported";
+}
+
 sub setup_results_dir {
   my $dir = File::Temp->newdir;
   write_dist($dir, $Dist,  "Foo-Bar", "1.00", $Log);
   write_dist($dir, $Dist2, "Baz-Qux", "2.00", $Log2);
+
+  make_path("$dir/dist");
+  seed_page($dir, $_) for qw( index.html dist/F.html about.html );
 
   $dir
 }
@@ -111,5 +120,11 @@ like $Page{dist}, qr{href="\.\./\Q$Dist\E/index\.html"},
 like $Page{dist}, qr{href="\.\./\Q$Log\E"}, "dist page links build log";
 like $Page{dist_b}, qr{href="\.\./\Q$Log2\E"},
   "dist page links uncompressed build log";
+
+for my $f (qw( index.html dist/F.html about.html )) {
+  is slurp("$Dir/$f.seeded"), "old", "$f is written atomically";
+}
+my @Tmp = map glob, "$Dir/*.tmp.*", "$Dir/dist/*.tmp.*";
+is @Tmp, 0, "no tmp files remain";
 
 done_testing;

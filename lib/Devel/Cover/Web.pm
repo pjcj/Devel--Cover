@@ -72,9 +72,14 @@ sub write_file ($directory, $file) {
   for my $f (@files) {
     my $contents = $Files{$f} // next;
     my $path     = "$directory/$f";
-    open my $fh, ">", $path or die "Can't open $path: $!\n";
+    my $tmp      = "$path.tmp.$$";
+    open my $fh, ">", $tmp or die "Can't open $tmp: $!\n";
     print $fh $contents;
-    close $fh or die "Can't close $path: $!\n";
+    close $fh or die "Can't close $tmp: $!\n";
+    rename $tmp, $path or do {
+      unlink $tmp;
+      die "Can't rename $tmp to $path: $!\n";
+    };
   }
 }
 
@@ -1483,7 +1488,14 @@ function standardistaTableSortingInit() {
 addEvent(window, 'load', standardistaTableSortingInit)
 EOF
 
-1
+"
+Every day, every night
+In that all old familiar light
+You hang up when I call you at home
+And I try to get through
+And I try to talk to you
+But there's something stopping me from getting through
+"
 
 __END__
 
