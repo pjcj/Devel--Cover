@@ -126,6 +126,9 @@ cpancover (Docker):
   cpancover-controller-rebuild-batch   Start a controller container running one
                                        rebuild pass (CPANCOVER_REBUILD_BATCH,
                                        default 100) and regenerate HTML.
+  cpancover-controller-rebuild-module <module>
+                                       Rebuild one module via a controller
+                                       container and regenerate HTML.
   cpancover-controller-run             Start a controller container running the
                                        build loop.
   cpancover-controller-run-once        Start a controller container for one
@@ -1131,6 +1134,14 @@ recipe_cpancover-controller-rebuild-batch() {
   local o=(--env "$env")
   ((verbose)) && o+=("--verbose")
   cpancover_controller_command controller dc "${o[@]}" cpancover-rebuild-batch
+}
+
+recipe_cpancover-controller-rebuild-module() {
+  local module="${1:?No module specified}"
+  local o=(--env "$env")
+  ((verbose)) && o+=("--verbose")
+  cpancover_controller_command controller \
+    dc "${o[@]}" cpancover-rebuild-module "$module"
 }
 
 # Default test module - small, stable, predictable
