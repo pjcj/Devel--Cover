@@ -95,7 +95,7 @@ sub make_docker_stub ($bin) {
     #!/bin/sh
     cmd="$1"
     shift
-    echo "$cmd" >>"${STUB_CALLS:-/dev/null}"
+    echo "$cmd $*" >>"${STUB_CALLS:-/dev/null}"
     case "$cmd" in
       run) echo fake-container ;;
       logs) echo "fake build log" ;;
@@ -269,6 +269,29 @@ sub rebuild_module_recipe () {
   is \@locks, [], "no lock sidecars remain";
 }
 
+sub controller_rebuild_module_recipe () {
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH} = "$bin:$ENV{PATH}";
+  my $module = "P/PJ/PJCJ/Foo-Bar-1.00.tar.gz";
+  my $work   = tempdir(CLEANUP => 1);
+  my $dir    = tempdir(CLEANUP => 1);
+
+  {
+    local $ENV{STUB_CALLS} = "$work/calls";
+    dc("-e", "dev", "-r", $dir, "cpancover-controller-rebuild-module", $module,
+    );
+  }
+
+  my $calls = slurp("$work/calls");
+  like $calls, qr{\brun\b.* pjcj/cpancover_dev }, "runs the dev image";
+  like $calls, qr{--label cpancover\.env=dev},    "container is labelled";
+  like $calls, qr{source=\Q$dir\E,target=/remote_staging},
+    "results dir is mounted";
+  like $calls, qr{ dc --env dev cpancover-rebuild-module \Q$module\E},
+    "runs the inner rebuild-module recipe";
+}
+
 sub make_seed_source ($src) {
   mkdir "$src/$_"
     or die "Can't mkdir $src/$_: $!"
@@ -330,6 +353,7 @@ sub main () {
     force_retries_failed_only
     rebuild_batch_cleanup
     rebuild_module_recipe
+    controller_rebuild_module_recipe
     seed_recipe
   );
   for my $test (@tests) {
