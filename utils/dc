@@ -104,6 +104,9 @@ cpancover:
   cpancover-rebuild-batch              Run one rebuild pass at CPANCOVER_
                                        REBUILD_BATCH and regenerate HTML
                                        (smoke test before run-loop-rebuild).
+  cpancover-rebuild-module <module>    Rebuild one module (CPAN path, e.g.
+                                       P/PJ/PJCJ/Foo-1.00.tar.gz) and
+                                       regenerate HTML.
   cpancover-run-loop-rebuild           Regenerate every already-covered
                                        distribution in batches (CPANCOVER_
                                        REBUILD_BATCH, default 100), then
@@ -1049,7 +1052,7 @@ cpancover_run_loop_rebuild() {
   local batch="${CPANCOVER_REBUILD_BATCH:-100}"
   pi "Starting cpancover rebuild loop at $(date), batch=$batch"
 
-  run_cpancover --nobuild --generate_html
+  cpancover_generate_html
 
   while true; do
     cpancover_docker_rm
@@ -1057,12 +1060,12 @@ cpancover_run_loop_rebuild() {
     cpancover_latest | run_cpancover --build --rebuild --rebuild_batch 0
     local new
     new=$(cpancover_status_value new_count)
-    ((new > 0)) && run_cpancover --nobuild --generate_html
+    ((new > 0)) && cpancover_generate_html
 
     run_cpancover --nobuild --rebuild --rebuild_batch "$batch"
     local rebuilt
     rebuilt=$(cpancover_status_value rebuilt_count)
-    ((rebuilt > 0)) && run_cpancover --nobuild --generate_html
+    ((rebuilt > 0)) && cpancover_generate_html
 
     if [[ $(cpancover_status_value all_rebuilt) == 1 ]]; then
       pi "Rebuild complete; clearing __rebuilt__ markers"
@@ -1086,7 +1089,24 @@ recipe_cpancover-rebuild-batch() {
   local v=
   ((verbose)) && v=--verbose
   run_cpancover $v --nobuild --rebuild \
-    --rebuild_batch "${CPANCOVER_REBUILD_BATCH:-100}" --generate_html
+    --rebuild_batch "${CPANCOVER_REBUILD_BATCH:-100}"
+  cpancover_generate_html
+}
+
+# Rebuild a single named module and regenerate HTML. Removing the
+# __rebuilt__ marker first lets rebuild mode pick the module up even
+# mid-cycle; --force retries it if it previously failed. Dependency
+# distdirs built in the same container are replaced too, but only the
+# named module gets a fresh __rebuilt__ marker.
+recipe_cpancover-rebuild-module() {
+  local module="${1:?No module specified}"
+  local v=
+  ((verbose)) && v=--verbose
+  local bare
+  bare=$(cpan_distdir "${module##*/}")
+  rm -f "$results_dir/__rebuilt__/$bare"
+  echo "$module" | run_cpancover $v --build --rebuild --rebuild_batch 0 --force
+  cpancover_generate_html
 }
 
 recipe_cpancover-controller-run() {

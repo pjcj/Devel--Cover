@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# HARNESS-DURATION-LONG
 
 # Copyright 2026, Paul Johnson (paul@pjcj.net)
 
@@ -9,7 +10,7 @@
 
 use 5.42.0;
 
-use Test2::V0  qw( done_testing is ok skip_all subtest );
+use Test2::V0  qw( done_testing is isnt like ok skip_all subtest );
 use File::Temp qw( tempdir );
 
 skip_all "dc recipes are not portable to Windows" if $^O eq "MSWin32";
@@ -94,6 +95,7 @@ sub make_docker_stub ($bin) {
     #!/bin/sh
     cmd="$1"
     shift
+    echo "$cmd" >>"${STUB_CALLS:-/dev/null}"
     case "$cmd" in
       run) echo fake-container ;;
       logs) echo "fake build log" ;;
@@ -105,7 +107,11 @@ sub make_docker_stub ($bin) {
         echo db >"$dest/staging/$dist/cover.14"
         echo x >"$dest/staging/$dist/digests"
         echo x >"$dest/staging/$dist/x.lock"
-        echo '{}' >"$dest/staging/$dist/cover.json"
+        printf '%s%s%s\n' \
+          '{"runs":[{"name":"Foo-Bar","version":"1.00","dir":"/tmp/x"}],' \
+          '"summary":{"Total":' \
+          '{"total":{"percentage":85.5,"covered":10,"total":12}}}}' \
+          >"$dest/staging/$dist/cover.json"
         echo html >"$dest/staging/$dist/index.html"
         ;;
     esac
@@ -175,6 +181,94 @@ sub docker_module_timeout_log_ref () {
   is @tmp, 0, "no tmp files remain";
 }
 
+sub force_retries_failed_only () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+  my $module = "P/PJ/PJCJ/Foo-Bar-1.00.tar.gz";
+  my $work   = tempdir(CLEANUP => 1);
+
+  my $covered = tempdir(CLEANUP => 1);
+
+  mkdir "$covered/Foo-Bar-1.00" or die "Can't mkdir $covered/Foo-Bar-1.00: $!";
+  write_file("$covered/Foo-Bar-1.00/cover.json", "{}\n");
+  {
+    local $ENV{STUB_CALLS} = "$work/covered.calls";
+    dc("-f", "-r", $covered, "cpancover", "--build", $module);
+  }
+  ok !-e "$work/covered.calls", "no docker build for a covered dist";
+
+  my $failed = tempdir(CLEANUP => 1);
+  mkdir "$failed/__failed__" or die "Can't mkdir $failed/__failed__: $!";
+  write_file("$failed/__failed__/Foo-Bar-1.00", "1234567890\n");
+  {
+    local $ENV{STUB_CALLS} = "$work/failed.calls";
+    dc("-f", "-r", $failed, "cpancover", "--build", $module);
+  }
+  like slurp("$work/failed.calls"), qr/\brun\b/,
+    "forced build retries a failed dist";
+  ok -e "$failed/Foo-Bar-1.00/cover.json", "retried dist is ingested";
+}
+
+sub rebuild_batch_cleanup () {
+  my $dir = tempdir(CLEANUP => 1);
+  mkdir "$dir/$_"
+    or die "Can't mkdir $dir/$_: $!"
+    for "Foo-Bar-1.00", "__rebuilt__";
+  my $criterion = '{"percentage":85.5,"covered":10,"total":12}';
+  write_file("$dir/Foo-Bar-1.00/cover.json",
+        '{"runs":[{"name":"Foo-Bar","version":"1.00","dir":"/tmp/x"}],'
+      . qq("summary":{"Total":{"total":$criterion,"statement":$criterion}}}));
+  write_file("$dir/Foo-Bar-1.00/index.html",  "html\n");
+  write_file("$dir/__rebuilt__/Foo-Bar-1.00", "1234567890\n");
+  write_file("$dir/$Log",                     "log\n");
+  write_file("$dir/index.html.gz",            "stale\n");
+
+  delete local $ENV{CPANCOVER_COMPRESS};
+  dc("-r", $dir, "cpancover-rebuild-batch");
+
+  ok -s "$dir/index.html",     "rebuild batch regenerates the index";
+  ok !-e "$dir/index.html.gz", "stale top-level .gz removed";
+  my @locks = map glob, "$dir/*.lock", "$dir/*/*.lock";
+  is \@locks, [], "no lock sidecars remain";
+}
+
+sub rebuild_module_recipe () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+  my $module = "P/PJ/PJCJ/Foo-Bar-1.00.tar.gz";
+  my $work   = tempdir(CLEANUP => 1);
+
+  my $dir = tempdir(CLEANUP => 1);
+
+  mkdir "$dir/$_"
+    or die "Can't mkdir $dir/$_: $!"
+    for "Foo-Bar-1.00", "__rebuilt__";
+  write_file("$dir/Foo-Bar-1.00/cover.json",  "{}\n");
+  write_file("$dir/Foo-Bar-1.00/index.html",  "old\n");
+  write_file("$dir/__rebuilt__/Foo-Bar-1.00", "1234567890\n");
+  write_file("$dir/$Log",                     "log\n");
+
+  delete local $ENV{CPANCOVER_COMPRESS};
+  {
+    local $ENV{STUB_CALLS} = "$work/calls";
+    dc("-r", $dir, "cpancover-rebuild-module", $module);
+  }
+
+  like slurp("$work/calls"), qr/\brun\b/, "rebuild launches a docker build";
+  is slurp("$dir/Foo-Bar-1.00/index.html"), "html\n", "distdir is replaced";
+  isnt slurp("$dir/__rebuilt__/Foo-Bar-1.00"), "1234567890\n",
+    "rebuilt marker is rewritten";
+  ok -s "$dir/index.html", "HTML is regenerated";
+  my @locks = map glob, "$dir/*.lock", "$dir/*/*.lock";
+  is \@locks, [], "no lock sidecars remain";
+}
+
 sub make_seed_source ($src) {
   mkdir "$src/$_"
     or die "Can't mkdir $src/$_: $!"
@@ -233,6 +327,9 @@ sub main () {
     uncompress_recipe
     docker_module_log_ref
     docker_module_timeout_log_ref
+    force_retries_failed_only
+    rebuild_batch_cleanup
+    rebuild_module_recipe
     seed_recipe
   );
   for my $test (@tests) {

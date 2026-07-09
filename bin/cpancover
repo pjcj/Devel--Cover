@@ -208,7 +208,7 @@ The following command line options are supported:
   --compress_old_versions - compress data older than n versions (3)
   --directory             - location of the modules             ($cwd)
   --dryrun                - don't execute (for some commands)   (off)
-  --force                 - recollect coverage                  (off)
+  --force                 - retry failed builds                 (off)
   --generate_html         - generate html                       (off)
   --local                 - use local (uninstalled) code        (off)
   --local_build           - build coveraage for all the modules (off)
