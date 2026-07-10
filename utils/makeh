@@ -7,12 +7,34 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
+
+sub cover_lines ($file) {
+  open my $fh, "<", $file or die "Cannot open $file: $!";
+  join "", grep /__COVER__/, <$fh>
+}
 
 my $Command = {
-  strip_criterion => sub {
-    my ($command, $criterion, $file) = @_;
+  test_options => sub ($command, $file) {
+    my $l   = cover_lines($file);
+    my ($c) = $l =~ /__COVER__\s+criteria\s+(.*)/;
+    ($c ||= "all") =~ s/\s+/,/g;
+    my $p = $l =~ /__COVER__\s+test_parameters\s+(.*)/ ? "$1," : "";
+    print "$p-coverage,$c";
+  },
+  cover_parameters => sub ($command, $file) {
+    my $l = cover_lines($file);
+    my $u
+      = $l =~ /__COVER__\s+uncoverable_file\s+(.*)/
+      ? "-uncoverable_file $1"
+      : "";
+    my $p = $l =~ /__COVER__\s+cover_parameters\s+(.*)/ ? $1 : "";
+    print "$u $p";
+  },
+  strip_criterion => sub ($command, $criterion, $file) {
     my $t;
     local ($^I, @ARGV) = (".bak", $file);
     while (<>) {
@@ -23,10 +45,10 @@ my $Command = {
         and length > $t;
       print;
     }
-  }
+  },
 };
 
-sub main {
+sub main () {
   my ($command) = @ARGV;
   die "No such command: $command" unless $Command->{$command};
   $Command->{$command}->(@ARGV)
