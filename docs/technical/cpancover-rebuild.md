@@ -96,11 +96,11 @@ At the end of the rebuild cycle the recipe:
   so version compression still kicks in when the new version supersedes enough
   old versions.
 - **Log retention**: every rebuild run produces a fresh `<log_name>.out` in
-  `$results_dir`, compressed to `.out.gz` only when `CPANCOVER_COMPRESS` is
-  set. Failed rebuilds refresh the existing `<distdir>/.log_ref` to point at
-  the new log, so users clicking "log" on a failing distribution see the most
-  recent failure rather than a stale one from months ago. Old log files
-  accumulate until the normal log-retention policy reaps them.
+  `$results_dir`, compressed to `.out.gz` only when `CPANCOVER_COMPRESS` is set.
+  Failed rebuilds refresh the existing `<distdir>/.log_ref` to point at the new
+  log, so users clicking "log" on a failing distribution see the most recent
+  failure rather than a stale one from months ago. Old log files accumulate
+  until the normal log-retention policy reaps them.
 - **`is_covered` / `is_failed` semantics change in rebuild mode**: a distdir
   counts as "done" only if it has both been processed and flagged rebuilt this
   cycle. Outside rebuild mode the methods behave as before.

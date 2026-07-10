@@ -118,10 +118,9 @@ make dist
 
 ### Core Modules
 
-Modules loaded at bootstrap (before instrumentation activates) cannot be
-covered without `DEVEL_COVER_SELF`. Late-loaded modules (reports, Path,
-Static, etc.) can be covered using `-select` - see
-`docs/technical/self-coverage.md`.
+Modules loaded at bootstrap (before instrumentation activates) cannot be covered
+without `DEVEL_COVER_SELF`. Late-loaded modules (reports, Path, Static, etc.)
+can be covered using `-select` - see `docs/technical/self-coverage.md`.
 
 **Coverage Collection**:
 
@@ -215,11 +214,11 @@ plenv shell dc-5.38.0
 PLENV_VERSION=dc-5.38.0 make out TEST=empty_else
 ```
 
-**IMPORTANT - rebuild before testing under another version**:
-`perl Makefile.PL` bakes the running Perl's path into the generated Makefile.
-A bare `PLENV_VERSION=X make` (or `make gold`, or a test run) then builds and
-runs against whatever Perl the *last* `perl Makefile.PL` used, not `X`. This
-silently produces results for the wrong version, which can look like a genuine
+**IMPORTANT - rebuild before testing under another version**: `perl Makefile.PL`
+bakes the running Perl's path into the generated Makefile. A bare
+`PLENV_VERSION=X make` (or `make gold`, or a test run) then builds and runs
+against whatever Perl the *last* `perl Makefile.PL` used, not `X`. This silently
+produces results for the wrong version, which can look like a genuine
 version-dependent difference. Always regenerate the Makefile for the target
 version first:
 

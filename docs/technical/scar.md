@@ -461,26 +461,25 @@ reducing complexity both lower the score.
 
 ### Summary (`cover -summary`)
 
-An always-on `scar` column appears after the `total` column, showing
-per-file `file_scar` and, for the Total row, `module_scar`. Formatting:
-`%5.1f` for numeric values; `-` when the file is uncompiled without PPI
-(data unknown); `n/a` when the file has no coverable subs.
+An always-on `scar` column appears after the `total` column, showing per-file
+`file_scar` and, for the Total row, `module_scar`. Formatting: `%5.1f` for
+numeric values; `-` when the file is uncompiled without PPI (data unknown);
+`n/a` when the file has no coverable subs.
 
 ### Text report
 
-CC and SCAR columns appear in the covered/uncovered subroutine tables
-alongside call counts and source location.
+CC and SCAR columns appear in the covered/uncovered subroutine tables alongside
+call counts and source location.
 
-Each file section opens with a `File Summary` one-row table of
-`CC`, `Cov`, `CRAP`, and `SCAR`, followed by a `Worst Subroutines`
-digest listing the top three subroutines by CRAP (subs with zero SCAR are
-omitted). The banner is suppressed when the file has no SCAR data.
+Each file section opens with a `File Summary` one-row table of `CC`, `Cov`,
+`CRAP`, and `SCAR`, followed by a `Worst Subroutines` digest listing the top
+three subroutines by CRAP (subs with zero SCAR are omitted). The banner is
+suppressed when the file has no SCAR data.
 
-When the report spans more than one file, a `Module Summary` one-row
-table at the top shows `Files`, `CC`, `Cov`, `CRAP`, and `SCAR`. When the
-report spans more than one directory, a `Directory Summary` table at the
-end lists each directory's CC, coverage, CRAP and SCAR, sorted by SCAR
-descending.
+When the report spans more than one file, a `Module Summary` one-row table at
+the top shows `Files`, `CC`, `Cov`, `CRAP`, and `SCAR`. When the report spans
+more than one directory, a `Directory Summary` table at the end lists each
+directory's CC, coverage, CRAP and SCAR, sorted by SCAR descending.
 
 ### Html_crisp report
 

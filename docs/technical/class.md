@@ -99,15 +99,15 @@ produce independent coverage entries.
 
 ## Test Cases
 
-Three test files cover the class feature, one per Perl release that added
-new constructs:
+Three test files cover the class feature, one per Perl release that added new
+constructs:
 
-- `tests/class38` (5.38+): `class`, `field :param`, `method`, `ADJUST`,
-  `:isa`, anonymous methods, methods with signatures, branch coverage.
-- `tests/class40` (5.40+): extends class38 with `:reader` field attributes
-  and their auto-generated accessors.
+- `tests/class38` (5.38+): `class`, `field :param`, `method`, `ADJUST`, `:isa`,
+  anonymous methods, methods with signatures, branch coverage.
+- `tests/class40` (5.40+): extends class38 with `:reader` field attributes and
+  their auto-generated accessors.
 - `tests/class42` (5.42+): extends class40 with `:writer` field attributes,
   `my method` (lexical/private methods), and `method call_private`.
 
-The golden output files in `test_output/cover/` serve as regression tests
-for all three.
+The golden output files in `test_output/cover/` serve as regression tests for
+all three.
