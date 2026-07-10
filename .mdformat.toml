@@ -1,1 +1,4 @@
 number = true
+# Wrap prose to 80 cols. mdformat owns line length here, so markdownlint MD013
+# is turned off (it would only ever fire on lines mdformat cannot break).
+wrap = 80
