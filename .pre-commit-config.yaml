@@ -6,7 +6,7 @@ fail_fast: false  # Allow all checks to run even if one fails
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files
         args: [ --maxkb=600 ]
@@ -37,34 +37,35 @@ repos:
             \.png$  |
             \.ico$
           )
+      # Shell/bash scripts, detected by type and shebang.
       - id: shellcheck
         args: [ -a ]
         exclude: \.autoenv\.zsh$
 
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.35.1
+    rev: v1.38.0
     hooks:
       - id: yamllint
         args: [ --config-file=.yamllint ]
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.44.0
+    rev: v0.49.0
     hooks:
       - id: markdownlint
 
   - repo: https://github.com/hadolint/hadolint
-    rev: v2.13.1-beta
+    rev: v2.14.0
     hooks:
       - id: hadolint
 
   - repo: https://github.com/crate-ci/typos
-    rev: v1.42.0
+    rev: v1.47.2
     hooks:
       - id: typos
         args: [ --force-exclude ]
 
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.22
+    rev: 1.0.0
     hooks:
       - id: mdformat
         args: [ --number ]
@@ -72,6 +73,7 @@ repos:
         additional_dependencies:
           - mdformat-gfm
           - mdformat-frontmatter
+          - mdformat-wikilink
 
   - repo: local
     hooks:
@@ -98,3 +100,5 @@ repos:
         language: node
         entry: jscpd
         pass_filenames: false
+        additional_dependencies:
+          - jscpd@5.0.11
