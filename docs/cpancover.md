@@ -2,8 +2,8 @@
 
 ## Overview
 
-Cpancover requires a bourne shell, plenv, and docker, as well as a recent
-perl. The code requires Perl 5.42.0.
+Cpancover requires a bourne shell, plenv, and docker, as well as a recent perl.
+The code requires Perl 5.42.0.
 
 ## Docker
 

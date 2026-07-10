@@ -51,9 +51,8 @@ well-defined for the unusual cases.
 
 Coupling does reach the analyser. A coupled decision such as
 `($a && $b) || ($a && $c)` is recorded as a single table with a repeated `$a`
-column, and unique-cause can never demonstrate a repeated column, so the
-masking fallback is a live, necessary path for such decisions (see
-Limitations).
+column, and unique-cause can never demonstrate a repeated column, so the masking
+fallback is a live, necessary path for such decisions (see Limitations).
 
 Pure masking is over-permissive in a short-circuit language: any execution where
 the left operand short-circuits masks every condition on the right, so under
@@ -109,8 +108,8 @@ articles.
 These four tests achieve:
 
 - 100% statement coverage.
-- 100% branch coverage (the outer decision goes both ways: tests 1-3 → T;
-  test 4 → F).
+- 100% branch coverage (the outer decision goes both ways: tests 1-3 → T; test 4
+  → F).
 - 100% condition coverage. Between them the four tests cover every row of the
   outer `||`'s `or_3` table (`l`, `!l && r`, `!l && !r`) and every row of the
   inner `&&`'s `and_3` table (`l && r`, `l && !r`, `!l`).
@@ -275,8 +274,8 @@ interface is separate:
 - `mcdc` is a distinct entry in `@Devel::Cover::DB::Criteria`.
 - A separate flag bit selects it in `Cover.xs`.
 - `cover -coverage mcdc` selects it by name, although `condition` must also be
-  collected: MC/DC derives from the condition truth tables, and selecting
-  `mcdc` alone warns at startup and collects nothing (see Limitations).
+  collected: MC/DC derives from the condition truth tables, and selecting `mcdc`
+  alone warns at startup and collects nothing (see Limitations).
 - Reports show MC/DC as its own column with its own percentage.
 
 The reasoning:
@@ -288,8 +287,8 @@ The reasoning:
   MC/DC opt-in.
 - Existing CI thresholds on condition coverage do not silently change meaning
   when MC/DC is added.
-- Industry tools (gcov `--conditions`, llvm-cov `--show-mcdc`, LDRA,
-  VectorCAST) report MC/DC as a separate metric alongside condition coverage.
+- Industry tools (gcov `--conditions`, llvm-cov `--show-mcdc`, LDRA, VectorCAST)
+  report MC/DC as a separate metric alongside condition coverage.
 
 ## Per-decision input-vector recording
 
@@ -313,31 +312,31 @@ records each decision's input vector at runtime: a small stack
 `add_condition` write each leaf's observed truth value into the current vector,
 and snapshot it into `MY_CXT.decision_inputs` on short-circuit-at-root, on the
 same-type chain reaching the root, or - for decisions ending a sort comparator -
-per invocation from `resolve_deferred_conditionals`. The chain walk follows
-each right operand's `op_next`, stepping through nulled ops (the tree roots of
+per invocation from `resolve_deferred_conditionals`. The chain walk follows each
+right operand's `op_next`, stepping through nulled ops (the tree roots of
 element accesses, which are not executed but whose `op_next` still leads on) to
-reach the enclosing logop. Each evaluation of a
-decision gets its own frame: the decision's entry logop (the first to fire on
-every evaluation) always pushes a fresh one, so recursive invocations record
-separately. Frames record `cxstack_ix` at push; a frame abandoned by a
-non-local exit (`die`, `goto`, `last`) is detected by its now-too-deep context
-depth and discarded without recording - an abandoned evaluation must record
-nothing, since a partial vector would fabricate an observation no execution
-produced. Column metadata (which logop is a decision root, which leaf
-maps to which column index) is computed lazily on first encounter of each CV by
-walking the optree from `CvROOT`. The walk uses `op_first` / `OpSIBLING` chains
-rather than `op_sibparent` to preserve the 5.20 minimum (`op_sibparent`
-requires `PERL_OP_PARENT`, added in 5.22 and made default in 5.26).
+reach the enclosing logop. Each evaluation of a decision gets its own frame: the
+decision's entry logop (the first to fire on every evaluation) always pushes a
+fresh one, so recursive invocations record separately. Frames record
+`cxstack_ix` at push; a frame abandoned by a non-local exit (`die`, `goto`,
+`last`) is detected by its now-too-deep context depth and discarded without
+recording - an abandoned evaluation must record nothing, since a partial vector
+would fabricate an observation no execution produced. Column metadata (which
+logop is a decision root, which leaf maps to which column index) is computed
+lazily on first encounter of each CV by walking the optree from `CvROOT`. The
+walk uses `op_first` / `OpSIBLING` chains rather than `op_sibparent` to preserve
+the 5.20 minimum (`op_sibparent` requires `PERL_OP_PARENT`, added in 5.22 and
+made default in 5.26).
 
 Root identification must agree with condition coverage on what "the decision"
 is. The joining logop of an `if`, `unless` or `while` statement or statement
 modifier - a statically void `and`/`or` whose right operand is not itself a
 decision - is treated as a branch by condition coverage, so the walk
 (`dc_is_branch_logop`) excludes it: it is not a decision root and does not
-de-root the condition chain on its left, which is the real decision and
-records vectors under its own root. Without this exclusion the vectors would
-be keyed by an op that is never finalised as a condition and would be lost,
-leaving statement-context compound decisions permanently unproven.
+de-root the condition chain on its left, which is the real decision and records
+vectors under its own root. Without this exclusion the vectors would be keyed by
+an op that is never finalised as a condition and would be lost, leaving
+statement-context compound decisions permanently unproven.
 
 `Condition_table::for_line` accepts an optional parallel array of
 observed-vector hashes; when present, each synthesised row is marked `covered=1`
@@ -345,11 +344,11 @@ iff its input vector matches an observed key. Synthesised rows the runtime never
 executed keep `covered=0` so the truth-table renderer still draws them - users
 see the unobserved combinations as "rendered but not hit" rather than vanishing.
 
-A compound table whose rows remain an unverified synthesis - no observed
-vectors were applied - is marked unproven, and `DB::_derive_mcdc` zeroes its
-MC/DC coverage: an honest 0%, never a false pass. Void-context decisions are
-rebuilt without observed vectors and so always report unproven. The precise
-`proven` rule is specified in the `Devel::Cover::Condition_table` POD.
+A compound table whose rows remain an unverified synthesis - no observed vectors
+were applied - is marked unproven, and `DB::_derive_mcdc` zeroes its MC/DC
+coverage: an honest 0%, never a false pass. Void-context decisions are rebuilt
+without observed vectors and so always report unproven. The precise `proven`
+rule is specified in the `Devel::Cover::Condition_table` POD.
 
 The runtime recorder requires `Devel::Cover::Mcdc` to be loaded as a criterion
 subclass during Devel::Cover's bootstrap (via `Criterion.pm`'s runtime require
@@ -437,20 +436,19 @@ USAGE POD in `Devel::Cover::Mcdc`, and a `Changes` entry.
   collected for `mcdc` to produce data. Selecting `mcdc` without `condition`
   warns at startup and produces an empty MC/DC report.
 
-- Decisions with more than 16 atomic conditions are not analysed. The limit
-  is per decision, enforced on both sides: `Condition_table::for_line`
+- Decisions with more than 16 atomic conditions are not analysed. The limit is
+  per decision, enforced on both sides: `Condition_table::for_line`
   (`$Max_width`) returns a `too_wide` stub table with labels but no rows, and
   the XS recorder (`DC_MAX_DECISION_WIDTH`) records no input vectors for such
   decisions. `DB::_derive_mcdc` reports the decision as 0 of its width with an
-  `unanalysed` flag, warns at report time naming the file and line (silenced
-  by `-silent`), and ignores any `# uncoverable mcdc` markers on it, with a
-  warning of its own. Reporters show "too many conditions" in place of the
+  `unanalysed` flag, warns at report time naming the file and line (silenced by
+  `-silent`), and ignores any `# uncoverable mcdc` markers on it, with a warning
+  of its own. Reporters show "too many conditions" in place of the
   missing-conditions list, and the JSON report carries `"unanalysed": 1`. The
-  bound exists because the truth table size grows as 2^N and becomes
-  unwieldy. The remedy is to split the decision with an intermediate
-  variable, which needs no extra test cases, preserves short-circuiting, and
-  lets every condition be analysed. `tests/mcdc_wide` covers the behaviour
-  end to end.
+  bound exists because the truth table size grows as 2^N and becomes unwieldy.
+  The remedy is to split the decision with an intermediate variable, which needs
+  no extra test cases, preserves short-circuiting, and lets every condition be
+  analysed. `tests/mcdc_wide` covers the behaviour end to end.
 
 - A statement-level logop whose value is discarded records its outer operator as
   a decision only when its right operand is itself a decision. So

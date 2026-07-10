@@ -2,11 +2,11 @@
 
 ## Source Code
 
-The source code can be found in the [primary
-repository](https://github.com/pjcj/Devel--Cover). This is also the place to
-file bug reports and send pull requests. There are still some old bug reports in
-RT which are described in [a
-ticket](https://github.com/pjcj/Devel--Cover/issues/35).
+The source code can be found in the
+[primary repository](https://github.com/pjcj/Devel--Cover). This is also the
+place to file bug reports and send pull requests. There are still some old bug
+reports in RT which are described in
+[a ticket](https://github.com/pjcj/Devel--Cover/issues/35).
 
 I welcome all contributions, be they in the form of code, bug reports,
 suggestions, documentation, discussion or anything else. In general, and as with
@@ -51,8 +51,8 @@ The `e2e` files get generated from `tests` by `perl Makefile.PL`.
 
 ## HTML report generation
 
-Devel::Cover::Web contains a number of static files that are saved when a
-report is generated:
+Devel::Cover::Web contains a number of static files that are saved when a report
+is generated:
 
 - cover.css
 - common.js
