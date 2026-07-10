@@ -1,4 +1,8 @@
 ---
 default: true
-MD013: { stern: true }
+# Line length is owned by mdformat (wrap = 80); don't double-check width here.
+MD013: false
+# Emphasis marker style is owned by mdformat, which uses `_` for emphasis nested
+# inside `**` to avoid ambiguity; don't enforce a single marker here.
+MD049: false
 MD024: { siblings_only: true }

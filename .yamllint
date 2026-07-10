@@ -2,8 +2,16 @@
 extends: default
 
 rules:
-  braces: { min-spaces-inside: 1, max-spaces-inside: 1 }
-  brackets: { min-spaces-inside: 1, max-spaces-inside: 1 }
+  braces:
+    min-spaces-inside: 1
+    max-spaces-inside: 1
+    min-spaces-inside-empty: 0
+    max-spaces-inside-empty: 0
+  brackets:
+    min-spaces-inside: 1
+    max-spaces-inside: 1
+    min-spaces-inside-empty: 0
+    max-spaces-inside-empty: 0
   comments:
     level: error
   comments-indentation: disable
@@ -11,3 +19,4 @@ rules:
     level: error
   truthy:
     level: error
+    check-keys: false

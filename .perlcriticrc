@@ -9,7 +9,11 @@ allow-unsafe = 1
 # top = 0
 verbose = %f:%l:%c [%p] %m - %e\n
 # include =
-# exclude =
+# Perl::Critic::Freenode is an obsolete compatibility shim whose policies
+# subclass the Perl::Critic::Community ones. With both installed, every
+# Community policy runs twice and reports duplicate violations. Drop the
+# Freenode-namespace duplicates so only the Community policies apply.
+exclude = Freenode
 # single-policy =
 # theme =
 color-severity-highest = red
@@ -694,6 +698,7 @@ max_mccabe = 3
 # set_themes                         = bugs core
 # add_themes                         =
 # severity                           = 4
+severity                           = 1
 # maximum_violations_per_document    = 1
 
 # Don't require programs to contain a package statement.
@@ -1321,7 +1326,7 @@ severity                           = 1
 
 
 # Long chains of method calls indicate tightly coupled code.
-[ValuesAndExpressions::ProhibitLongChainsOfMethodCalls]
+[-ValuesAndExpressions::ProhibitLongChainsOfMethodCalls]
 # set_themes                         = core maintenance
 # add_themes                         =
 # severity                           = 2
