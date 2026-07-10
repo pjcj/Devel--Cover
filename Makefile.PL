@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-## no critic (ProhibitLongLines)
 
 # Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 
@@ -409,10 +408,14 @@ TAINT =
 COVER_OPTIONS =
 PERL5OPT =
 
-_run : pure_all
-\t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-merge,0,`\$(PERL) -e '\$\$l = qx|grep __COVER__ \$\$ARGV[0]|; \$\$l =~ /__COVER__\\s+criteria\\s+(.*)/; (\$\$c = \$\$1 || "all") =~ s/\\s+/,/g; \$\$p = "\$\$1," if \$\$l =~ /__COVER__\\s+test_parameters\\s+(.*)/; print "\$\$p-coverage,\$\$c"' tests/\$(TEST)`,\$(COVER_OPTIONS) tests/\$(TEST)
+TEST_OPTIONS = \$(PERL) utils/makeh test_options tests/\$(TEST)
 
-COVER_PARAMETERS = \$(PERL) -e '\$\$l = qx|grep __COVER__ \$\$ARGV[0]|; \$\$u = "-uncoverable_file \$\$1" if \$\$l =~ /__COVER__\\s+uncoverable_file\\s+(.*)/; (\$\$p) = \$\$l =~ /__COVER__\\s+cover_parameters\\s+(.*)/; print "\$\$u \$\$p"' tests/\$(TEST)
+_run : pure_all
+\t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch \\
+\t   -MDevel::Cover=-merge,0,`\$(TEST_OPTIONS)`,\$(COVER_OPTIONS) \\
+\t   tests/\$(TEST)
+
+COVER_PARAMETERS = \$(PERL) utils/makeh cover_parameters tests/\$(TEST)
 
 html : _run
 \t \$(PERL) -Mblib bin/cover `\$(COVER_PARAMETERS)` -report html
@@ -430,14 +433,19 @@ text : out
 \t \$(PAGER) \$(TEST).out
 
 wrun : pure_all
-\t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch -MDevel::Cover=-ignore,blib,-merge,0 tests/\$(TEST)
+\t \$(PERL) \$(TAINT) -Iblib/lib -Iblib/arch \\
+\t   -MDevel::Cover=-ignore,blib,-merge,0 tests/\$(TEST)
 
 prove : pure_all
-\t \$(PERL) -Iutils -MDevel::Cover::BuildUtils=prove_command -le '\$\$c = prove_command and print \$\$c and system \$\$c'
+\t \$(PERL) -Iutils -MDevel::Cover::BuildUtils=prove_command \\
+\t   -le '\$\$c = prove_command and print \$\$c and system \$\$c'
+
+NICE_CPUS = \$(PERL) -Iutils -MDevel::Cover::BuildUtils=nice_cpus \\
+\t -e 'print nice_cpus'
 
 t : pure_all
 \t \$(PERL) -Mblib bin/cover -delete
-\t exec make test HARNESS_OPTIONS=j`\$(PERL) -Iutils -MDevel::Cover::BuildUtils=nice_cpus -e 'print nice_cpus'`:c HARNESS_TIMER=1
+\t exec make test HARNESS_OPTIONS=j`\$(NICE_CPUS)`:c HARNESS_TIMER=1
 
 no_replace_ops_t : pure_all
 \t DEVEL_COVER_OPTIONS=-replace_ops,0 exec make t
