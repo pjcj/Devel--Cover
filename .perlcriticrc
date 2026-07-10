@@ -492,8 +492,9 @@ only_in_void_context = 1
 # maximum_violations_per_document    = no_limit
 
 
+# Joining readline is clear and fine for the small files we deal with.
 # Use `local $/ = undef' or Path::Tiny instead of joined readline.
-[InputOutput::ProhibitJoinedReadline]
+[-InputOutput::ProhibitJoinedReadline]
 # set_themes                         = core pbp performance
 # add_themes                         =
 # severity                           = 3
