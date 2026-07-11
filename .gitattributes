@@ -1,0 +1,3 @@
+# Golden files are byte-for-byte expected test output, including trailing
+# whitespace, so exempt them from git's whitespace checks.
+test_output/** -whitespace

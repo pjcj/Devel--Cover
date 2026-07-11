@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 # Git prepare-commit-msg hook to help create commit messages according to our
-# standards. Automatically installed by Makefile.PL
+# standards.
 
 use 5.28.0;
 use warnings;

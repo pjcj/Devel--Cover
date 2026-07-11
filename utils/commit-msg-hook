@@ -1,7 +1,6 @@
 #!/usr/bin/env perl
 
 # Git commit message hook to check for some of our standards.
-# Automatically installed by Makefile.PL
 
 use 5.28.0;
 use warnings;

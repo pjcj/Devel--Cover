@@ -1,0 +1,81 @@
+#!/usr/bin/env perl
+
+use v5.20.0;
+use strict;
+use warnings;
+use feature      qw( signatures );
+use experimental qw( signatures );
+
+sub is_perl ($file) {
+  return 1 if $file =~ /\.(?:pm|pl|t|psgi)\z/;
+  open my $fh, "<", $file or return;
+  my $first = <$fh> // "";
+  $first =~ /\A#!.*\bperl\b/
+}
+
+sub check_tidy ($files) {
+  my $status = 0;
+  for my $file (@$files) {
+    my $tidied = qx(perltidy --profile=.perltidyrc -st \Q$file\E 2>/dev/null);
+    open my $fh, "<", $file or next;
+    my $source = do { local $/; <$fh> };
+    next if $tidied eq $source;
+    say "Not tidy: $file";
+    $status = 1;
+  }
+  $status
+}
+
+sub main () {
+  my $mode = shift @ARGV // "";
+  $mode =~ /\A(?:tidy|critic)\z/
+    or die "usage: perl-hook tidy|critic file ...\n";
+
+  my @perl = grep is_perl($_), @ARGV;
+  exit 0 unless @perl;
+
+  if ($mode eq "critic") {
+    exec "perl", "-Ilib", "-S", "perlcritic", "--profile", ".perlcriticrc",
+      @perl
+      or die "exec perlcritic failed: $!\n";
+  }
+  exit check_tidy(\@perl);
+}
+
+main();
+
+__END__
+
+=head1 NAME
+
+perl-hook - run Perl checks on the Perl files among the given files
+
+=head1 SYNOPSIS
+
+  utils/perl-hook tidy file ...
+  utils/perl-hook critic file ...
+
+=head1 DESCRIPTION
+
+A pre-commit helper which selects the Perl files from its arguments and
+runs the requested check on them.  A file is Perl if its name ends in
+C<.pm>, C<.pl>, C<.t> or C<.psgi>, or if its first line is a perl shebang.
+This catches extensionless scripts wherever they live, without depending
+on the executable bit, and can never match files written in another
+language.
+
+C<tidy> reports files whose C<perltidy> output differs from their content.
+C<critic> runs C<perlcritic> with the repository lib in C<@INC> so a
+distribution providing its own policies is checked with the working-tree
+code.  Both modes exit non-zero if any file fails.
+
+=head1 AUTHOR
+
+Paul Johnson <paul@pjcj.net>
+
+=head1 LICENCE
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut

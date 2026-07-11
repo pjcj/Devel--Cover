@@ -2,23 +2,23 @@
 
 ## Code coverage metrics for Perl
 
-This module provides code coverage metrics for Perl.  Code coverage metrics
-describe how thoroughly tests exercise code.  By using Devel::Cover you can
+This module provides code coverage metrics for Perl. Code coverage metrics
+describe how thoroughly tests exercise code. By using Devel::Cover you can
 discover areas of code not exercised by your tests and determine which tests to
-create to increase coverage.  Code coverage can be considered an indirect
-measure of quality.
+create to increase coverage. Code coverage can be considered an indirect measure
+of quality.
 
 Devel::Cover is now quite stable and provides many of the features to be
 expected in a useful coverage tool.
 
-Statement, branch, condition, MC/DC, subroutine, and pod coverage information
-is reported.  Statement and subroutine coverage data should be accurate.  Branch
-and condition coverage data should be mostly accurate too, although not always
-what one might initially expect.  Pod coverage comes from Pod::Coverage.  If
+Statement, branch, condition, MC/DC, subroutine, and pod coverage information is
+reported. Statement and subroutine coverage data should be accurate. Branch and
+condition coverage data should be mostly accurate too, although not always what
+one might initially expect. Pod coverage comes from Pod::Coverage. If
 Pod::Coverage::CountParents is available it will be used instead.
 
-The `cover` program can be used to generate coverage reports.  Devel::Cover
-ships with a number of reports including various types of HTML output, textual
+The `cover` program can be used to generate coverage reports. Devel::Cover ships
+with a number of reports including various types of HTML output, textual
 reports, a report to display missing coverage in the same format as compilation
 errors and a report to display coverage information within the Vim editor.
 
@@ -28,25 +28,25 @@ Some annotation modules are shipped with Devel::Cover and you can easily create
 your own.
 
 The `gcov2perl` program can be used to convert gcov files to `Devel::Cover`
-databases.  This allows you to display your C or XS code coverage together with
+databases. This allows you to display your C or XS code coverage together with
 your Perl coverage, or to use any of the Devel::Cover reports to display your C
 coverage data.
 
 Code coverage data are collected by replacing perl ops with functions which
-count how many times the ops are executed.  These data are then mapped back to
-reality using the B compiler modules.  There is also a statement profiling
-facility which should not be relied on.  For proper profiling use
-[Devel::NYTProf](https://metacpan.org/pod/Devel::NYTProf).  Previous versions
-of Devel::Cover collected coverage data by replacing perl's runops function.
-It is still possible to switch to that mode of operation, but this now gets
-little testing and will probably be removed soon.  You probably don't care
-about any of this.
+count how many times the ops are executed. These data are then mapped back to
+reality using the B compiler modules. There is also a statement profiling
+facility which should not be relied on. For proper profiling use
+[Devel::NYTProf](https://metacpan.org/pod/Devel::NYTProf). Previous versions of
+Devel::Cover collected coverage data by replacing perl's runops function. It is
+still possible to switch to that mode of operation, but this now gets little
+testing and will probably be removed soon. You probably don't care about any of
+this.
 
 The most appropriate mailing list on which to discuss this module would be
 [perl-qa](https://lists.perl.org/list/perl-qa.html).
 
 The Devel::Cover repository can be found on
-[github](https://github.com/pjcj/Devel--Cover).  This is also where problems
+[github](https://github.com/pjcj/Devel--Cover). This is also where problems
 should be reported.
 
 To get coverage for an uninstalled module:
