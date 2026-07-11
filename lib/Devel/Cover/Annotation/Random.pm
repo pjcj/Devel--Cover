@@ -7,68 +7,50 @@
 
 package Devel::Cover::Annotation::Random;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Getopt::Long;
+use Getopt::Long qw( GetOptions );
 
-sub new {
-  my $class = shift;
-  bless {@_}, $class
-}
+sub new ($class, @args) { bless {@args}, $class }
 
-sub get_options {
-  my ($self, $opt) = @_;
+sub get_options ($self, $opt) {
   $self->{count} = 1;
   die "Bad option" unless GetOptions(
     $self, qw(
       count=s
-    )
+    ),
   );
 }
 
-sub count {
-  my $self = shift;
-  $self->{count}
-}
+sub count  ($self)              { $self->{count} }
+sub header ($self, $annotation) { "rnd$annotation" }
+sub width  ($self, $annotation) { length $self->header($annotation) }
 
-sub header {
-  my $self = shift;
-  my ($annotation) = @_;
-  "rnd$annotation"
-}
-
-sub width {
-  my $self = shift;
-  my ($annotation) = @_;
-  length $self->header($annotation)
-}
-
-sub text {
-  my $self = shift;
-  my ($file, $line, $annotation) = @_;
+sub text ($self, $file, $line, $annotation) {
   return "" unless $line;
   $self->{annotation}{$file}[$line][$annotation] = int rand 10
     unless defined $self->{annotation}{$file}[$line][$annotation];
   $self->{annotation}{$file}[$line][$annotation]
 }
 
-sub error {
-  my $self = shift;
-  my ($file, $line, $annotation) = @_;
+sub error ($self, $file, $line, $annotation) {
   !$self->text($file, $line, $annotation)
 }
 
-sub class {
-  my $self = shift;
-  my ($file, $line, $annotation) = @_;
+sub class ($self, $file, $line, $annotation) {
   return "" unless $line;
   "c" . int(($self->text($file, $line, $annotation) + 2) / 3)
 }
 
-1
+"
+I don't know what to do, and I'm always in the dark
+We're living in a powder keg and giving off sparks
+"
 
 __END__
 
