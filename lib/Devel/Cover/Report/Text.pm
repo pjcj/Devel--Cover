@@ -32,9 +32,9 @@ sub _build_header_format ($db, $options) {
   my $fmt  = "%-5s %3s ";
   my @args = ("line", "err");
   for my $ann ($options->{annotations}->@*) {
-    for my $a (0 .. $ann->count - 1) {
-      $fmt .= "%-" . $ann->width($a) . "s ";
-      push @args, $ann->header($a);
+    for my $i (0 .. $ann->count - 1) {
+      $fmt .= "%-" . $ann->width($i) . "s ";
+      push @args, $ann->header($i);
     }
   }
   my %cr;
@@ -69,9 +69,9 @@ sub _print_line ($fmt, $db, $options, $file, $n, $l, %criteria) {
     my $error = 0;
 
     for my $ann ($options->{annotations}->@*) {
-      for my $a (0 .. $ann->count - 1) {
-        push @out, substr $ann->text($file, $n, $a), 0, $ann->width($a);
-        $error ||= $ann->error($file, $n, $a);
+      for my $i (0 .. $ann->count - 1) {
+        push @out, substr $ann->text($file, $n, $i), 0, $ann->width($i);
+        $error ||= $ann->error($file, $n, $i);
       }
     }
 
@@ -284,11 +284,11 @@ sub print_branches ($db, $file, $) {
 
   for my $location (sort { $a <=> $b } $branches->items) {
     my $n = 0;
-    for my $b ($branches->location($location)->@*) {
-      printf $tpl, $n ? "" : $location, $b->error ? "***" : "",
-        ($b->uncoverable ? "-" : "") . sprintf("%3d", $b->percentage),
-        (map { ($b->uncoverable($_) ? "-" : "") . ($b->covered($_) || 0) }
-          0 .. $b->total - 1), $b->text;
+    for my $br ($branches->location($location)->@*) {
+      printf $tpl, $n ? "" : $location, $br->error ? "***" : "",
+        ($br->uncoverable ? "-" : "") . sprintf("%3d", $br->percentage),
+        (map { ($br->uncoverable($_) ? "-" : "") . ($br->covered($_) || 0) }
+          0 .. $br->total - 1), $br->text;
       $n++;
     }
   }

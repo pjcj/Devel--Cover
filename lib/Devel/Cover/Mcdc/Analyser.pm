@@ -16,26 +16,26 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 sub _is_x ($v) { defined $v && $v eq "X" }
 
-sub _concrete_differs ($a, $b) {
-  return 0 if _is_x($a) || _is_x($b);
-  $a != $b
+sub _concrete_differs ($x, $y) {
+  return 0 if _is_x($x) || _is_x($y);
+  $x != $y
 }
 
-sub _sca_agrees ($a, $b) {
-  return 1 if _is_x($a) || _is_x($b);
-  $a == $b
+sub _sca_agrees ($x, $y) {
+  return 1 if _is_x($x) || _is_x($y);
+  $x == $y
 }
 
 sub _find_pair ($col, $rows, $ncols, $coupled = undef) {
   for my $i (0 .. $#$rows) {
-    my $a   = $rows->[$i];
-    my $ar  = $a->result;
-    my $ai  = $a->inputs;
-    my $aic = $ai->[$col];
+    my $row_a = $rows->[$i];
+    my $ar    = $row_a->result;
+    my $ai    = $row_a->inputs;
+    my $aic   = $ai->[$col];
     for my $j ($i + 1 .. $#$rows) {
-      my $b = $rows->[$j];
-      next if $ar == $b->result;
-      my $bi = $b->inputs;
+      my $row_b = $rows->[$j];
+      next if $ar == $row_b->result;
+      my $bi = $row_b->inputs;
       next unless _concrete_differs($aic, $bi->[$col]);
 
       my $ok = 1;

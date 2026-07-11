@@ -20,18 +20,20 @@ use B::Concise   qw( set_style add_callback );
 my %Style = (
   "terse" => [
     "(?(#label =>\n)?)(*(    )*)#class (#addr) #name <#cover> (?([#targ])?) "
-      . "#svclass~(?((#svaddr))?)~#svval~(?(label \"#coplabel\")?)\n",
+      . qq[#svclass~(?((#svaddr))?)~#svval~(?(label "#coplabel")?)\n],
     "(*(    )*)goto #class (#addr)\n",
     "#class pp_#name",
   ],
   "concise" => [
     "#hyphseq2 #addr10 #cover12 (*(   (x( ;)x))*)<#classsym> "
-      . "#exname#arg(?([#targarglife])?)~#flags(?(/#private)?)(x(;~->#next)x)\n",
+      . "#exname#arg(?([#targarglife])?)~#flags(?(/#private)?)"
+      . "(x(;~->#next)x)\n",
     "  (*(    )*)     goto #seq\n",
     "(?(<#seq>)?)#exname#arg(?([#targarglife])?)",
   ],
   "debug" => [
-    "#class (#addr)\n\tcover\t\t#cover\n\top_next\t\t#nextaddr\n\top_sibling\t#sibaddr\n\t"
+    "#class (#addr)\n\tcover\t\t#cover\n\top_next\t\t#nextaddr\n"
+      . "\top_sibling\t#sibaddr\n\t"
       . "op_ppaddr\tPL_ppaddr[OP_#NAME]\n\top_type\t\t#typenum\n\top_seq\t\t"
       . "#seqnum\n\top_flags\t#flagval\n\top_private\t#privval\n"
       . "(?(\top_first\t#firstaddr\n)?)(?(\top_last\t\t#lastaddr\n)?)"
@@ -57,12 +59,12 @@ sub import {
     my $key = Devel::Cover::get_key($op);
     # print Dumper Devel::Cover::coverage unless $d++;
     if ($h->{seq}) {
-      my ($s, $b, $c)
+      my ($st, $br, $cd)
         = map Devel::Cover::coverage($final ? $final-- : 0)->{$_}{$key},
         qw(statement branch condition);
       local $" = ",";
       no warnings "uninitialized";
-      $h->{cover} = $s ? "s[$s]" : $b ? "b[@$b]" : $c ? "c[@$c]" : "";
+      $h->{cover} = $st ? "s[$st]" : $br ? "b[@$br]" : $cd ? "c[@$cd]" : "";
     } else {
       $h->{cover} = "";
     }
