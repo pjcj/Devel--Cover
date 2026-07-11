@@ -20,21 +20,21 @@ use List::Util qw( any min );
 our @EXPORT_OK = qw( common_prefix );
 
 sub common_prefix (@files) {
-  my @paths = grep { $_ ne "Total" } @files;
+  my @paths = grep $_ ne "Total", @files;
   return ("", { map { $_ => $_ } @files }) if @paths < 2;
 
-  my @split = map { [ split m|/| ] } @paths;
-  my $min   = min(map { scalar @$_ } @split);
+  my @split = map { [split m|/|] } @paths;
+  my $min   = min(map scalar @$_, @split);
 
   # stop before the last component - it is the filename, not a directory
   my $limit  = $min - 1;
   my $shared = 0;
   for my $i (0 .. $limit - 1) {
-    last if any { $_->[$i] ne $split[0][$i] } @split[ 1 .. $#split ];
+    last if any { $_->[$i] ne $split[0][$i] } @split[1 .. $#split];
     $shared++;
   }
 
-  my $prefix = join("/", $split[0]->@[ 0 .. $shared - 1 ]) . "/";
+  my $prefix = join("/", $split[0]->@[0 .. $shared - 1]) . "/";
 
   # bare "/" or empty is not a meaningful prefix
   return ("", { map { $_ => $_ } @files }) if $shared < 1 || $prefix eq "/";
