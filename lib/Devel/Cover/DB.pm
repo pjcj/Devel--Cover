@@ -819,9 +819,9 @@ sub uncoverable ($self) {
   for my $file ($self->uncoverable_files) {
     open my $f, "<", $file or next;
     dcinfo "Reading uncoverable information from $file";
-    while (<$f>) {
-      chomp;
-      my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $_, 7;
+    while (my $l = <$f>) {
+      chomp $l;
+      my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $l, 7;
       push $u->{$file}{$crit}{$line}[$count]->@*, [$type, $class, $note];
     }
   }
@@ -835,9 +835,9 @@ sub uncoverable ($self) {
     my $df = Digest::MD5->new;  # MD5 digest of the file
     my %dl;                     # maps MD5 digests of lines to line numbers
     my $ln = 0;                 # line number
-    while (<$fh>) {
-      $dl{ Digest::MD5->new->add($_)->hexdigest } = ++$ln;
-      $df->add($_);
+    while (my $l = <$fh>) {
+      $dl{ Digest::MD5->new->add($l)->hexdigest } = ++$ln;
+      $df->add($l);
     }
     close $fh or warn "Devel::Cover: Can't close $file: $!\n";
     my $f = $u->{$file};
@@ -870,13 +870,14 @@ sub add_uncoverable ($self, $adds) {
       warn "Devel::Cover: Can't open $file: $!";
       next;
     };
-    while (<$f>) {
-      last if $. == $line;
+    my $found;
+    while (my $l = <$f>) {
+      if ($. == $line) { $found = $l; last }
     }
-    if (defined) {
+    if (defined $found) {
       open my $u, ">>", $uncoverable_file
         or die "Devel::Cover: Can't open $uncoverable_file: $!\n";
-      my $dl = Digest::MD5->new->add($_)->hexdigest;
+      my $dl = Digest::MD5->new->add($found)->hexdigest;
       print $u "$file $crit $dl $count $type $class $note\n";
     } else {
       warn "Devel::Cover: Can't find line $line in $file.  ",
@@ -941,9 +942,9 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
     return;
   };
   my @waiting;
-  while (<$fh>) {
-    chomp;
-    next unless /$uc/ || @waiting;
+  while (my $l = <$fh>) {
+    chomp $l;
+    next unless $l =~ /$uc/ || @waiting;
     if ($2) {
       my ($code, $criterion, $info) = ($1, $2, $3);
       my ($counts, $type, $class, $note)
@@ -983,9 +984,10 @@ sub objectify_cover ($self) {
     bless $self->{cover}, "Devel::Cover::DB::Cover";
     for my $file (values $self->{cover}->%*) {
       bless $file, "Devel::Cover::DB::File";
-      while (my ($crit, $criterion) = each %$file) {
+      for my $crit (keys %$file) {
         next if $crit eq "meta";  # ignore meta data
-        my $class = "Devel::Cover::" . ucfirst lc $crit;
+        my $criterion = $file->{$crit};
+        my $class     = "Devel::Cover::" . ucfirst lc $crit;
         bless $criterion, "Devel::Cover::DB::Criterion";
         for my $line (values %$criterion) {
           for my $o (@$line) {
@@ -1021,8 +1023,9 @@ sub objectify_cover ($self) {
       Location  => [qw( data      datum )],
     };
     my $base = "Devel::Cover::DB::Base";
-    while (my ($class, $functions) = each %$classes) {
-      my $c = "Devel::Cover::DB::$class";
+    for my $class (keys %$classes) {
+      my $functions = $classes->{$class};
+      my $c         = "Devel::Cover::DB::$class";
       no strict "refs";
       @{"${c}::ISA"}             = $base;
       *{"${c}::$functions->[0]"} = \&{"${base}::values"};
@@ -1167,7 +1170,8 @@ sub _cover_file (
   my $cf = $cover->{ $digests->{$digest} ||= $ff } ||= {};
   $cf->{meta}{digest} = $digest;
 
-  while (my ($criterion, $fc) = each %$f) {
+  for my $criterion (sort keys %$f) {
+    my $fc  = $f->{$criterion};
     my $get = "get_$criterion";
     my $sc  = $st->$get($digest) or do {
       dcinfo "Warning: can't locate structure for $criterion in $file"
@@ -1176,6 +1180,7 @@ sub _cover_file (
     };
     my $cc  = $cf->{$criterion} ||= {};
     my $add = "add_$criterion";
+
     if ($criterion eq "condition") {
       $self->$add(
         $cc, $sc, $fc,
@@ -1217,10 +1222,11 @@ sub cover ($self) {
     $self->{collected}->@{ $r->{collected}->@* } = ();
     $st->add_criteria($r->{collected}->@*);
     my $count = $r->{count};
-    while (my ($file, $f) = each %$count) {
+    for my $file (sort keys %$count) {
       $self->_cover_file(
-        $file, $f, $r, $st, $cover,
-        $uncoverable, \%digests, \%files, \%warned,
+        $file,     $count->{$file}, $r,
+        $st,       $cover,          $uncoverable,
+        \%digests, \%files,         \%warned,
       );
     }
   }
