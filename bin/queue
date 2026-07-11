@@ -82,8 +82,8 @@ package Devel::Cover::Queue::Commands::monitor {
             say STDERR "PING"  if $Debug;
             return $tx->finish if $waiting;
             $waiting = 1;
-            $tx->send([ 1, 0, 0, 0, Mojo::WebSocket::WS_PING, "" ])
-          }
+            $tx->send([1, 0, 0, 0, Mojo::WebSocket::WS_PING, ""])
+          },
         );
 
         $tx->on(
@@ -91,9 +91,9 @@ package Devel::Cover::Queue::Commands::monitor {
             Mojo::IOLoop->remove($pinger);
             say STDERR "FINISH" if $Debug;
             Mojo::IOLoop->timer(1 => sub { $command->connect });
-          }
+          },
         );
-      }
+      },
     );
   }
 }
@@ -140,7 +140,7 @@ app->minion->add_task(
     $app->visit_latest_releases(
       sub ($, $r) {
         return if $app->release_covered($r->distinfo->distvname);
-        $minion->enqueue(run_cover => [ $r->path ]);
+        $minion->enqueue(run_cover => [$r->path]);
       }
     );
   }
@@ -174,8 +174,7 @@ app->minion->add_task(
     say STDERR $output if $Debug;
 
     if ($job->app->release_covered($release)) {
-      $job->finish({
-        command => $command, message => "$file was processed", });
+      $job->finish({ command => $command, message => "$file was processed" });
     } else {
       $job->fail({
         command => $command,
@@ -183,7 +182,7 @@ app->minion->add_task(
         output  => $output,
       });
     }
-  }
+  },
 );
 
 app->start;
