@@ -105,17 +105,17 @@ class Devel::Cover::Collection {
         my $printed = 0;
         local $SIG{ALRM} = sub { die "alarm\n" };
         alarm $timeout;
-        while (<$fh>) {
-          # print "got: $_";
+        while (my $l = <$fh>) {
+          # print "got: $l";
           # say "printed $printed of $non_buffered";
           if ($printed < $non_buffered) {
-            print;
+            print $l;
             say "Devel::Cover: buffering ..."
-              if ($printed += length) >= $non_buffered;
+              if ($printed += length $l) >= $non_buffered;
           } elsif (length $output2) {
-            $output2 = substr $output2 . $_, $max * -.1, $max * .1;
+            $output2 = substr $output2 . $l, $max * -.1, $max * .1;
           } else {
-            $output1 .= $_;
+            $output1 .= $l;
             if (length $output1 > $max * .9) {
               $output1 = substr $output1, 0, $max * .9;
               $output2 = "\n";

@@ -411,13 +411,13 @@ sub add_coverage    (@o) { add_criteria(cover_names_to_val(@o)) }
 sub remove_coverage (@o) { remove_criteria(cover_names_to_val(@o)) }
 
 sub get_coverage {
-  return unless defined wantarray;
+  return unless defined wantarray;  ## no critic (Wantarray)
   my @names;
   my $val = get_criteria();
   for my $c (sort keys %Criteria) {
     push @names, $c if $val & $Criteria{$c};
   }
-  return wantarray ? @names : "@names";
+  return wantarray ? @names : "@names";  ## no critic (Wantarray)
 }
 
 # strip AutoSplit's #line suffix and resolve stale blib paths via %INC

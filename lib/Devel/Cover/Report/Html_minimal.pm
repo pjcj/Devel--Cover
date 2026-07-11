@@ -140,7 +140,7 @@ my $Threshold = { c0 => 75, c1 => 90, c2 => 100 };
 # Determine the CSS class based on boolean coverage
 sub bclass (@vals) {
   my @c = map { $_ ? $Class[-1] : $Class[0] } @vals;
-  wantarray ? @c : $c[0]
+  wantarray ? @c : $c[0]  ## no critic (Wantarray)
 }
 
 # Determine the CSS class based on percent covered
@@ -390,7 +390,7 @@ sub print_file_report ($db, $fin, $opt) {
           . qq(<td class="s"><pre>$sloc</pre>)
           . qq(</td></tr>\n);
       } else {
-        1 while (<$in> !~ /^=cut/);
+        while (my $pod = <$in>) { last if $pod =~ /^=cut/ }
       }
       next;
     }

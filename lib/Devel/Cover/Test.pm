@@ -35,8 +35,8 @@ sub test_file_parameters ($self) {
 sub get_params ($self) {
   my $test = $self->test_file;
   if (open my $fh, "<", $test) {
-    while (<$fh>) {
-      push $self->{$1}->@*, $2 if /__COVER__\s+(\w+)\s+(.*)/;
+    while (my $l = <$fh>) {
+      push $self->{$1}->@*, $2 if $l =~ /__COVER__\s+(\w+)\s+(.*)/;
     }
     close $fh or die "Cannot close $test: $!";
   }
@@ -172,9 +172,9 @@ sub run_command ($self, $command) {
 
   open my $fh, "-|", "$command 2>&1" or die "Cannot run $command: $!";
   my @lines;
-  while (<$fh>) {
-    push @lines, $_;
-    print STDERR if $self->{debug};
+  while (my $l = <$fh>) {
+    push @lines, $l;
+    print STDERR $l if $self->{debug};
   }
   if (!close $fh) {
     die "Cannot close $command: $!" if $!;

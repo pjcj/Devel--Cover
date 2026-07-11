@@ -1095,7 +1095,8 @@ skip_object = 1
 
 
 # Don't write `sub my_function (@@) {}'.
-[Subroutines::ProhibitSubroutinePrototypes]
+# We only use prototypes for deliberate block-taking (&) helpers.
+[-Subroutines::ProhibitSubroutinePrototypes]
 # set_themes                         = bugs certrec core pbp
 # add_themes                         =
 # severity                           = 5
@@ -1616,3 +1617,7 @@ allow = %ENV %SIG $> $0 $|
 # rest of the discouraged-module list stays enforced.
 [Community::DiscouragedModules]
 allowed_modules = FindBin
+
+# Misparses sub definitions named after builtins (e.g. `sub values ($self)`)
+# as autoderef calls.
+[-Community::DeprecatedFeatures]
