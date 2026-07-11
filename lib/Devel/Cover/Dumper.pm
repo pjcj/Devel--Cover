@@ -10,27 +10,30 @@
 package  # Private module
   Devel::Cover::Dumper;
 
-use strict qw( vars subs );  # no refs
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
 sub import {
+  no strict "refs";
   my $caller = caller;
   if (defined &{"${caller}::Dumper"} && \&{"${caller}::Dumper"} != \&Dumper) {
     require Carp;
     Carp::croak("Data::Dumper previously imported.  "
-        . "Use Devel::Cover::Dumper instead.");
+      . "Use Devel::Cover::Dumper instead.");
   }
   *{"${caller}::Dumper"} = \&Dumper;
 }
 
-sub Dumper {
+sub Dumper (@args) {  ## no critic (Capitalization)
   require Data::Dumper;
   no warnings "once";
   local $Data::Dumper::Indent   = 1;
   local $Data::Dumper::Sortkeys = 1;
-  Data::Dumper::Dumper(@_);
+  Data::Dumper::Dumper(@args);
 }
 
 1

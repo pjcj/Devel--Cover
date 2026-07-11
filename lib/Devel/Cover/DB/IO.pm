@@ -7,8 +7,10 @@
 
 package Devel::Cover::DB::IO;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
@@ -16,14 +18,12 @@ my $Format;
 
 BEGIN {
   $Format = "Sereal"   if eval "use Sereal::Decoder; use Sereal::Encoder; 1";
-  $Format = "JSON"     if !$Format and eval { require JSON::MaybeXS; 1 };
-  $Format = "Storable" if !$Format and eval "use Storable; 1";
+  $Format = "JSON"     if !$Format && eval { require JSON::MaybeXS; 1 };
+  $Format = "Storable" if !$Format && eval "use Storable; 1";
   die "Can't load either JSON or Storable" unless $Format;
 }
 
-sub new {
-  my $class = shift;
-
+sub new ($class, @args) {
   my $format = $ENV{DEVEL_COVER_DB_FORMAT} || $Format;
   ($format) = $format =~ /(.*)/;  # die tainting
   die "Devel::Cover: Unrecognised DB format: $format"
@@ -32,7 +32,7 @@ sub new {
   $class .= "::$format";
   eval "use $class; 1" or die "Devel::Cover: $@";
 
-  $class->new(options => $ENV{DEVEL_COVER_IO_OPTIONS} || "", @_)
+  $class->new(options => $ENV{DEVEL_COVER_IO_OPTIONS} || "", @args)
 }
 
 1

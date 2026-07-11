@@ -7,8 +7,10 @@
 
 package Devel::Cover::DB::Digests;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
@@ -17,9 +19,8 @@ use Devel::Cover::Log qw( dcinfo );
 
 my $File = "digests";
 
-sub new {
-  my $class = shift;
-  my $self  = { digests => {}, @_ };
+sub new ($class, @args) {
+  my $self = { digests => {}, @args };
 
   die "No db specified" unless $self->{db};
   $self->{file} = "$self->{db}/$File";
@@ -29,36 +30,27 @@ sub new {
   $self
 }
 
-sub read {
-  my $self = shift;
-  my $io   = Devel::Cover::DB::IO->new;
+sub read ($self) {
+  my $io = Devel::Cover::DB::IO->new;
   $self->{digests} = $io->read($self->{file}) if -e $self->{file};
   $self
 }
 
-sub write {
-  my $self = shift;
-  my $io   = Devel::Cover::DB::IO->new;
+sub write ($self) {
+  my $io = Devel::Cover::DB::IO->new;
   $io->write($self->{digests}, $self->{file});
   $self
 }
 
-sub get {
-  my $self = shift;
-  my ($digest) = @_;
+sub get ($self, $digest) {
   $self->{digests}{$digest}
 }
 
-sub set {
-  my $self = shift;
-  my ($file, $digest) = @_;
+sub set ($self, $file, $digest) {
   $self->{digests}{$digest} = $file;
 }
 
-sub canonical_file {
-  my $self = shift;
-  my ($file) = @_;
-
+sub canonical_file ($self, $file) {
   my $cfile = $file;
   require Devel::Cover::DB::Structure;
   my $digest = Devel::Cover::DB::Structure->digest($file);

@@ -7,29 +7,27 @@
 
 package Devel::Cover::Annotation::Git;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Getopt::Long;
+use Getopt::Long qw( GetOptions );
 
-sub new {
-  my $class        = shift;
+sub new ($class, @args) {
   my $annotate_arg = $ENV{DEVEL_COVER_GIT_ANNOTATE} || "";
   my $self         = {
     annotations => [qw( version author date )],
     command     => "git blame --porcelain $annotate_arg [[file]]",
-    @_,
+    @args,
   };
 
   bless $self, $class
 }
 
-sub get_annotations {
-  my $self = shift;
-  my ($file) = @_;
-
+sub get_annotations ($self, $file) {
   return if exists $self->{_annotations}{$file};
   my $annotations = $self->{_annotations}{$file} = [];
 
@@ -50,65 +48,48 @@ sub get_annotations {
     }
 
     if ($start == 1) {
-      $annotation[0] = substr $1, 0, 8 if /$line =~ ^(\w+)/;
+      $annotation[0] = substr $1, 0, 8 if $line =~ /^(\w+)/;
       $start = 0;
     } else {
-      $annotation[1] = $1           if $line =~ /^author (.*)/;
-      $annotation[2] = localtime $1 if $line =~ /^author-time (.*)/;
+      $annotation[1] = $1 if $line =~ /^author (.*)/;
+      if ($line =~ /^author-time (.*)/) { $annotation[2] = localtime $1 }
     }
   }
   close $c or warn "cover: Failed running $command: $!\n"
 }
 
-sub get_options {
-  my ($self, $opt) = @_;
-  $self->{$_} = 1 for @{ $self->{annotations} };
+sub get_options ($self, $opt) {
+  $self->{$_} = 1 for $self->{annotations}->@*;
   die "Bad option" unless GetOptions(
     $self, qw(
       author
       command=s
       date
       version
-    )
+    ),
   );
 }
 
-sub count {
-  my $self = shift;
+sub count ($self) {
   $self->{author} + $self->{date} + $self->{version}
 }
 
-sub header {
-  my $self = shift;
-  my ($annotation) = @_;
+sub header ($self, $annotation) {
   $self->{annotations}[$annotation]
 }
 
-sub width {
-  my $self = shift;
-  my ($annotation) = @_;
+sub width ($self, $annotation) {
   (8, 16, 24)[$annotation]
 }
 
-sub text {
-  my $self = shift;
-  my ($file, $line, $annotation) = @_;
+sub text ($self, $file, $line, $annotation) {
   return "" unless $line;
   $self->get_annotations($file);
-  $self->{_annotations}{$file}[ $line - 1 ][$annotation]
+  $self->{_annotations}{$file}[$line - 1][$annotation]
 }
 
-sub error {
-  my $self = shift;
-  my ($file, $line, $annotation) = @_;
-  0
-}
-
-sub class {
-  my $self = shift;
-  my ($file, $line, $annotation) = @_;
-  ""
-}
+sub error ($self, $file, $line, $annotation) { 0 }
+sub class ($self, $file, $line, $annotation) { "" }
 
 1
 
