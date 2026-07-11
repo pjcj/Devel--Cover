@@ -314,9 +314,12 @@ install_dependencies() {
 
 install_development_dependencies() {
   get_cpm
+  # No UUID: 0.38 hangs in XS boot on macOS and Test2 prefers it if present
   $cpm install --workers="$(nice_cpus)" --global \
     Dist::Zilla Perl::Critic Perl::Tidy App::perlimports \
-    Archive::Tar::Wrapper Perl::Critic::PJCJ App::Yath UUID
+    Archive::Tar::Wrapper Perl::Critic::PJCJ App::Yath \
+    Perl::Critic::Moose Perl::Critic::Community \
+    Perl::Critic::Policy::ValuesAndExpressions::ProhibitSingleArgArraySlice
   plenv rehash
   dzil authordeps --missing |
     xargs "$cpm" install --workers="$(nice_cpus)" --global
