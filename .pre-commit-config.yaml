@@ -139,6 +139,13 @@ repos:
         additional_dependencies:
           - jscpd@5.0.11
 
+      - id: fmt-commit-msg
+        name: reflow commit message
+        description: Reflow the commit message body to 72 columns
+        language: system
+        entry: utils/fmt-commit-msg
+        stages: [ commit-msg ]
+
       - id: commit-msg
         name: commit message style
         description: Check the commit message against house style
