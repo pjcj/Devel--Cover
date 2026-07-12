@@ -53,7 +53,7 @@ sub meta_for_sub ($code, $opname) {
 }
 
 subtest "two-leaf and: simple root" => sub {
-  my $sub  = sub ($a, $b) { my $r = $a && $b; $r };
+  my $sub  = sub ($x, $y) { my $r = $x && $y; $r };
   my $meta = meta_for_sub($sub, "and");
 
   ok $meta, "decision meta returned";
@@ -86,8 +86,8 @@ subtest 'multiconcat right with falsy literal: $p && "0$q"' => sub {
   isnt $meta->{leaf_col_right}, -1, "right is not const (falsy literal)";
 };
 
-subtest 'nested mixed-precedence: ($a && $b) || ($c && $d)' => sub {
-  my $sub = sub ($a, $b, $c, $d) { my $r = ($a && $b) || ($c && $d); $r };
+subtest 'nested mixed-precedence: ($w && $x) || ($y && $z)' => sub {
+  my $sub = sub ($w, $x, $y, $z) { my $r = ($w && $x) || ($y && $z); $r };
   my $cv  = B::svref_2object($sub);
 
   my $or      = find_user_op($cv->ROOT, "or") or die "no or op";
@@ -127,7 +127,7 @@ subtest 'nested mixed-precedence: ($a && $b) || ($c && $d)' => sub {
 # signature `or` for the parent of a user logop, and the user's `||` must remain
 # a width-4 root.
 subtest "signature-generated logops are excluded" => sub {
-  my $sub = sub ($a, $b, $c, $d) { my $r = ($a && $b) || ($c && $d); $r };
+  my $sub = sub ($w, $x, $y, $z) { my $r = ($w && $x) || ($y && $z); $r };
   my $cv  = B::svref_2object($sub);
 
   my $or_ops  = find_all_ops($cv->ROOT, "or");
@@ -149,8 +149,8 @@ subtest "signature-generated logops are excluded" => sub {
   is $um->{is_root},   1,         "user || still root";
   is $um->{root_addr}, $$user_or, "user || root_addr points to itself";
 
-  for my $a (@$and_ops) {
-    my $am = Devel::Cover::decision_meta($$a, $cv);
+  for my $and (@$and_ops) {
+    my $am = Devel::Cover::decision_meta($$and, $cv);
     is $am->{root_addr}, $$user_or,
       "inner && root_addr is user ||, not a signature or";
   }

@@ -891,12 +891,14 @@ sub test_line_partial_ignores_tt_rows () {
 }
 
 sub test_class_accepts_criterion_percentage () {
-  my $b = bless [[0, 1], { text => "" }], "Devel::Cover::Branch";
-  my $m = bless [[0, 1], { text => "", labels => ["a", "b"] }],
+  my $br = bless [[0, 1], { text => "" }], "Devel::Cover::Branch";
+  my $m  = bless [[0, 1], { text => "", labels => ["a", "b"] }],
     "Devel::Cover::Mcdc";
 
-  is Devel::Cover::Report::Html_crisp::class($b->percentage, $b->error,
-    "branch"), "c0", "class accepts Branch->percentage at 50%";
+  is Devel::Cover::Report::Html_crisp::class(
+    $br->percentage, $br->error, "branch"
+    ),
+    "c0", "class accepts Branch->percentage at 50%";
   is Devel::Cover::Report::Html_crisp::class($m->percentage, $m->error, "mcdc"),
     "c0", "class accepts Mcdc->percentage at 50%";
 }

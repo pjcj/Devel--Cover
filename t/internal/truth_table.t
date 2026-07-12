@@ -25,7 +25,7 @@ use Devel::Cover::Truth_Table ();
 {
 
   package MockCriterion;
-  our @ISA = ("Devel::Cover::DB::Criterion");
+  use parent qw( -norequire Devel::Cover::DB::Criterion );
   sub new ($class, $by_line) { bless $by_line, $class }
   sub get ($self, $line)     { $self->{$line} }
 }

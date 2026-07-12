@@ -76,10 +76,10 @@ sub get_summary ($file, $criterion) {
 sub _build_annotations ($n) {
   my @entries;
   for my $ann ($R{options}{annotations}->@*) {
-    for my $a (0 .. $ann->count - 1) {
-      my $text = $ann->text($R{file}, $n, $a);
+    for my $i (0 .. $ann->count - 1) {
+      my $text = $ann->text($R{file}, $n, $i);
       $text = "&nbsp;" unless $text && length $text;
-      push @entries, { text => $text, class => $ann->class($R{file}, $n, $a) };
+      push @entries, { text => $text, class => $ann->class($R{file}, $n, $i) };
     }
   }
   \@entries
@@ -187,18 +187,18 @@ sub print_branches () {
   my @branches;
   for my $location (sort { $a <=> $b } $branches->items) {
     my $count = 0;
-    for my $b ($branches->location($location)->@*) {
+    for my $br ($branches->location($location)->@*) {
       $count++;
-      my $text = _highlight_text($b->text);
+      my $text = _highlight_text($br->text);
 
       push @branches, {
         number => $count == 1 ? $location : "",
         parts  => [
           map {
-            text    => $b->value($_),
-              class => class($b->value($_), $b->error($_), "branch")
+            text    => $br->value($_),
+              class => class($br->value($_), $br->error($_), "branch")
           },
-          0 .. $b->total - 1,
+          0 .. $br->total - 1,
         ],
         text => $text,
       };
@@ -380,7 +380,7 @@ sub report ($pkg, $db, $options) {
         (0 .. $db->criteria - 1)
     ],
     annotations => [
-      map { my $a = $_; map $a->header($_), 0 .. $a->count - 1 }
+      map { my $ann = $_; map $ann->header($_), 0 .. $ann->count - 1 }
         $options->{annotations}->@*
     ],
     filenames => {

@@ -1,41 +1,68 @@
+# Editor, patch and OS noise
+*~
 *.org
+*.orig
 *.bak
 *.sw?
-*.tdy
-*~
 ._*
+*.patch
+*.rej
 .DS_Store
-tmp/
-llm
 
+# Ctags index
 tags*
-.perl-version
+
+# Logs and scratch space
+*.log
+/tmp
+
+# Distribution archives
+*.tgz
+*.tar.gz
+*.tar.bz2
+
+# Local CPAN install (cpm/cpanm -L local) and build cruft
+/local
+/.cpanm/
+
+# Local Perl version (plenv/perlbrew) - personal to a checkout
+/.perl-version
+
+# Perl build, coverage, and tidy droppings
+.build/
+cover_db*/
+*.tdy
+
+# Local secrets and environment overrides
+/.env
+*.key
+
+# LLM working files, plans, and environment notes
+/llm
+
+# Project-specific: nested test scratch (template only anchors /tmp at root)
+tmp/
+
+# Project-specific: XS, build and MakeMaker artefacts
 Cover.bs
 Cover.c
 Cover.o
-Makefile
-Makefile.old
-blib/
-.build/
-README
-cover_db*/
-dc_cover*/
-t/e2e/
-lib/Devel/Cover/Inc.pm
-pm_to_blib
-*.out
-*.tar.bz2
-*.tar.gz
-*.patch
-*.orig
-*.rej
-MYMETA.*
 Cover.def
 dll.base
 dll.exp
+Makefile
+Makefile.old
+pm_to_blib
+blib/
+MYMETA.*
+lib/Devel/Cover/Inc.pm
+README
+
+# Project-specific: coverage, e2e, and distribution artefacts
+dc_cover*/
+t/e2e/
+queue.db
+callgrind.out.*
+*.out
 Devel-Cover-*
 !*/Devel-Cover-*
-callgrind.out.*
-staging/
-queue.db
-.claude/plans/

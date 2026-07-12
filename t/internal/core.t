@@ -16,7 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [ qw( done_testing is ) ];
+use Test::More import => [qw( done_testing is )];
 
 use Cwd        qw( abs_path );
 use File::Spec ();
@@ -31,7 +31,7 @@ sub test_contained_paths_removed () {
     map {
       my $p = "t/internal/inc_filter/$_";
       map { $_, lcfirst } abs_path($p), File::Spec->rel2abs($p)
-    } qw( cwd cwd/lib cwd_lib )
+    } qw( cwd cwd/lib cwd_lib ),
   );
 
   is grep(/cwd_lib/, @inc), 4, "cwd_lib was left in the array four times";

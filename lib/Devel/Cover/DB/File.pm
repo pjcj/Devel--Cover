@@ -7,8 +7,10 @@
 
 package Devel::Cover::DB::File;
 
-use strict;
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
@@ -16,10 +18,7 @@ use Devel::Cover::Criterion;
 
 use Devel::Cover::Dumper;
 
-sub calculate_summary {
-  my $self = shift;
-  my ($db, $file, $options) = @_;
-
+sub calculate_summary ($self, $db, $file, $options) {
   my $s = $db->{summary}{$file} ||= {};
   if ($self->{meta}{uncompiled}) {
     my $counts = $self->{meta}{counts} // return;
@@ -27,13 +26,10 @@ sub calculate_summary {
     for my $c (keys %$counts) {
       next unless $options->{$c};
       next unless $counts->{$c};  # skip criteria with nothing to cover
-      $s->{$c} = {
-        covered => 0,
-        total   => $counts->{$c},
-        error   => $counts->{$c},
-      };
+      $s->{$c}
+        = { covered => 0, total => $counts->{$c}, error => $counts->{$c} };
       for my $k (qw( total covered error )) {
-        $s->{total}{$k}         += $s->{$c}{$k};
+        $s->{total}{$k}        += $s->{$c}{$k};
         $t->{Total}{$c}{$k}    += $s->{$c}{$k};
         $t->{Total}{total}{$k} += $s->{$c}{$k};
       }
@@ -51,9 +47,7 @@ sub calculate_summary {
   }
 }
 
-sub calculate_percentage {
-  my $self = shift;
-  my ($db, $s) = @_;
+sub calculate_percentage ($self, $db, $s) {
   if ($self->{meta}{uncompiled}) {
     my $counts = $self->{meta}{counts} // return;
     for my $c (keys %$counts) {

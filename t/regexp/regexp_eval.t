@@ -1,5 +1,17 @@
-use strict;
+#!/usr/bin/perl
+
+# Copyright 2010-2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use 5.20.0;
 use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
+
 use Test::More tests => 1;
 
 # This tests against what is basically a perl bug. When evaluating
@@ -23,10 +35,10 @@ use Test::More tests => 1;
 # a hack similar to the aforementioned commit in Cover.xs so we
 # continue to work on perls older than 5.13.6.
 
-'x' =~ m{ (?: ((??{ 'x' })) )? }x;
+"x" =~ m{ (?: ((??{ 'x' })) )? }x;
 
 # on debugging perls we'd already have hit an assertion failure
-# here. We don't do "pass 'no assertion fail'" tho. I don't know if
+# here. We don't do "pass 'no assertion fail'" though. I don't know if
 # that might mess up $1 for the next test. We also have to use $1
 # instead of capturing in a lexical, as that tends to fail rather
 # differently.
@@ -37,4 +49,4 @@ use Test::More tests => 1;
 # garbage, (parts of) some random constants from the perl interpreter,
 # or segfaults completely when invoking the get magic on it.
 
-is $1, 'x';
+is $1, "x", "regexp eval works";  ## no critic (ProhibitCaptureWithoutTest)

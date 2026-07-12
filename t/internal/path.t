@@ -16,7 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [ qw( done_testing is is_deeply ) ];
+use Test::More import => [qw( done_testing is is_deeply )];
 
 use Devel::Cover::Path qw( common_prefix );
 

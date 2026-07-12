@@ -148,7 +148,8 @@ sub get_options () {
   }
 
   # expand abbreviations
-  while (my ($abbr, $full) = each %coverage_abbrev) {
+  for my $abbr (keys %coverage_abbrev) {
+    my $full = $coverage_abbrev{$abbr};
     $options_coverage{$full} = delete $options_coverage{$abbr}
       if $options_coverage{$abbr};
     $options_coverage{"-$full"} = delete $options_coverage{"-$abbr"}
@@ -198,16 +199,16 @@ sub check_options () {
     && !exists $Options->{write};
 
   $Options->{annotations} = [];
-  for my $a ($Options->{annotation}->@*) {
-    my $annotation = "Devel::Cover::Annotation::\u$a";
+  for my $ann ($Options->{annotation}->@*) {
+    my $annotation = "Devel::Cover::Annotation::\u$ann";
     eval "use $annotation";
     if ($@) {
-      dcerror "$a is not a recognised annotation\n$@";
+      dcerror "$ann is not a recognised annotation\n$@";
       exit 1;
     }
-    my $ann = $annotation->new;
-    $ann->get_options($Options) if $ann->can("get_options");
-    push $Options->{annotations}->@*, $ann;
+    my $ann_obj = $annotation->new;
+    $ann_obj->get_options($Options) if $ann_obj->can("get_options");
+    push $Options->{annotations}->@*, $ann_obj;
   }
 
   say "$0 version $VERSION" and exit 0 if $Options->{version};

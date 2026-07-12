@@ -12,7 +12,6 @@
 cache = false # setting this to true is discouraged
 ignore_modules = [
   "Class::XSAccessor",
-  "Devel::Cover::Truth_Table",
   "DynaLoader",
   "namespace::clean",
 ]

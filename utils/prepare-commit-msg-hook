@@ -1,29 +1,28 @@
 #!/usr/bin/env perl
 
 # Git prepare-commit-msg hook to help create commit messages according to our
-# standards. Automatically installed by Makefile.PL
+# standards.
 
-use 5.28.0;
+use v5.26.0;
 use warnings;
-use warnings FATAL => qw( utf8 recursion );
+use warnings FATAL => qw( recursion );
 use experimental "signatures";
-use open ":encoding(UTF-8)";
 use feature "unicode_strings";
+
+use Cwd            qw( abs_path );
+use File::Basename qw( dirname );
+use lib dirname(abs_path(__FILE__)) . "/lib";
+use GitHook qw( get_current_branch on_main ticket_re );
 
 $|++;
 
-sub get_current_branch {
-  my $branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null` // "";
-  chomp $branch;
-  $branch
-}
+my $Ticket_re = ticket_re;
 
-sub on_main    { get_current_branch eq "main" }
-sub get_ticket { get_current_branch =~ /^([A-Z]{2,8}-\d+)/ ? $1 : "GH-XXXXX" }
+sub get_ticket () { get_current_branch =~ /^($Ticket_re)/ ? $1 : "GH-XXXXX" }
 
-sub main {
+sub main () {
   my ($file, $type) = @ARGV;
-  $type //= "";
+  $type //= $ENV{PRE_COMMIT_COMMIT_MSG_SOURCE} // "";
 
   return 0 if $type !~ /^(?:|message|template|merge)$/;
 
@@ -36,7 +35,7 @@ sub main {
     chomp $line;
 
     if ($type eq "merge") {
-      $line =~ s/^(Merge branch ')([A-Z]{2,8}-\d+).*/$1$2'/;
+      $line =~ s/^(Merge branch ')($Ticket_re).*/$1$2'/;
       say "" if $. == 2 && $line ne "";
     } else {
       if (!$main) {
@@ -47,7 +46,7 @@ sub main {
         }
         if ($. == 3 && !$seen_ticket) {
           $seen_ticket = 1;
-          unless ($line =~ /^Ticket [A-Z]{2,8}-\d+$/) {
+          unless ($line =~ /^Ticket $Ticket_re$/) {
             say "Ticket $ticket\n";
           }
         }

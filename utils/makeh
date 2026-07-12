@@ -14,7 +14,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 sub cover_lines ($file) {
   open my $fh, "<", $file or die "Cannot open $file: $!";
-  join "", grep /__COVER__/, <$fh>
+  join "", grep /__COVER__/, <$fh>  ## no critic (ProhibitJoinedReadline)
 }
 
 my $Command = {
@@ -37,13 +37,13 @@ my $Command = {
   strip_criterion => sub ($command, $criterion, $file) {
     my $t;
     local ($^I, @ARGV) = (".bak", $file);
-    while (<>) {
-      $t = index($_, "$criterion   code") - 3 if !defined $t || $t < 0;
-      substr $_, $t, 7, ""
-        if /^line  err   stmt/ .. /^--------/
+    while (my $line = <>) {
+      $t = index($line, "$criterion   code") - 3 if !defined $t || $t < 0;
+      substr $line, $t, 7, ""
+        if $line =~ /^line  err   stmt/ .. $line =~ /^--------/
         and $t > -1
-        and length > $t;
-      print;
+        and length($line) > $t;
+      print $line;
     }
   },
 };

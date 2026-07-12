@@ -314,9 +314,12 @@ install_dependencies() {
 
 install_development_dependencies() {
   get_cpm
+  # No UUID: 0.38 hangs in XS boot on macOS and Test2 prefers it if present
   $cpm install --workers="$(nice_cpus)" --global \
     Dist::Zilla Perl::Critic Perl::Tidy App::perlimports \
-    Archive::Tar::Wrapper Perl::Critic::PJCJ App::Yath UUID
+    Archive::Tar::Wrapper Perl::Critic::PJCJ App::Yath \
+    Perl::Critic::Moose Perl::Critic::Community \
+    Perl::Critic::Policy::ValuesAndExpressions::ProhibitSingleArgArraySlice
   plenv rehash
   dzil authordeps --missing |
     xargs "$cpm" install --workers="$(nice_cpus)" --global
@@ -370,7 +373,7 @@ recipe_install-dc-dev-perl() {
 }
 
 recipe_all-gold() {
-  if [[ -n "$*" ]]; then
+  if [[ -n $* ]]; then
     for fn in "$@"; do
       rm -f "test_output/cover/${fn}."*
     done
@@ -478,7 +481,7 @@ Docker_hub_repo="pjcj/cpancover"
 
 # Authenticate with Docker Hub and print a JWT.
 docker_hub_auth() {
-  if [[ -z "${HUB_USERNAME:-}" || -z "${HUB_TOKEN:-}" ]]; then
+  if [[ -z ${HUB_USERNAME:-} || -z ${HUB_TOKEN:-} ]]; then
     pf "HUB_USERNAME and HUB_TOKEN environment variables are required"
   fi
 
@@ -488,7 +491,7 @@ docker_hub_auth() {
     -d "{\"username\":\"$HUB_USERNAME\",\"password\":\"$HUB_TOKEN\"}" |
     perl -MJSON::PP -e 'print decode_json(do { local $/; <STDIN> })->{token}')
 
-  if [[ -z "$token" ]]; then
+  if [[ -z $token ]]; then
     pf "Failed to authenticate with Docker Hub"
   fi
 
@@ -503,7 +506,7 @@ docker_hub_fetch_tags() {
 
   local base="https://hub.docker.com/v2/repositories"
   local url="$base/$Docker_hub_repo/tags?page_size=100"
-  while [[ -n "$url" && "$url" != "null" ]]; do
+  while [[ -n $url && $url != "null" ]]; do
     local response
     response=$(curl -sf "$url" -H "Authorization: Bearer $Hub_token")
     local parsed
@@ -517,8 +520,8 @@ docker_hub_fetch_tags() {
       print $d->{next} // "null", "\n";
     ')
     while IFS= read -r t; do
-      [[ "$t" == "---NEXT---" ]] && break
-      [[ -n "$t" ]] && Hub_tags+=("$t")
+      [[ $t == "---NEXT---" ]] && break
+      [[ -n $t ]] && Hub_tags+=("$t")
     done <<<"$parsed"
     url=$(tail -1 <<<"$parsed")
   done
@@ -550,7 +553,7 @@ docker_prune_tags() {
     return
   fi
 
-  local to_delete=("${Hub_tags[@]:$keep}")
+  local to_delete=("${Hub_tags[@]:keep}")
 
   pi "Deleting ${#to_delete[@]} old tags (keeping $keep)"
 
@@ -576,9 +579,9 @@ recipe_docker-prune-tags() {
 }
 
 cpancover_latest() {
-  if [[ -n "${CPANCOVER_TEST_MODULES:-}" ]]; then
+  if [[ -n ${CPANCOVER_TEST_MODULES:-} ]]; then
     echo "$CPANCOVER_TEST_MODULES"
-  elif [[ -n "${CPANCOVER_TEST_REGEX:-}" ]]; then
+  elif [[ -n ${CPANCOVER_TEST_REGEX:-} ]]; then
     run_cpancover --latest | grep -E "$CPANCOVER_TEST_REGEX"
   else
     run_cpancover --latest
@@ -642,7 +645,7 @@ recipe_cpancover-docker-shell() {
 }
 
 cpancover_compression_enabled() {
-  [[ -n "${CPANCOVER_COMPRESS:-}" ]]
+  [[ -n ${CPANCOVER_COMPRESS:-} ]]
 }
 
 cpancover_clean_dir() {
@@ -718,7 +721,7 @@ recipe_cpancover-docker-module() {
       [[ -d $f ]] || continue
       ((++seen))
       base=$(basename "$f")
-      if [[ -n "${CPANCOVER_REBUILD:-}" ]]; then
+      if [[ -n ${CPANCOVER_REBUILD:-} ]]; then
         rm -rf "${staging:?}/$base"
       elif [[ -d "$staging/$base" ]]; then
         continue
@@ -738,7 +741,7 @@ recipe_cpancover-docker-module() {
     pi "module timed out after ${module_timeout}s, killing container: $module"
     $docker logs "$name" >"$log_file" 2>&1 || true
     $docker kill "$name" >/dev/null 2>&1 || true
-    if [[ -n "${CPANCOVER_REBUILD:-}" ]]; then
+    if [[ -n ${CPANCOVER_REBUILD:-} ]]; then
       local bare
       bare=$(cpan_distdir "${module##*/}")
       if [[ -d "$staging/$bare" ]]; then
@@ -769,19 +772,19 @@ cpancover_compress_dir() {
     find "${find_args[@]}" -print0 | xargs -0 pigz -f9
   fi
 
-  [[ -n "$do_sidecars" ]] || return 0
+  [[ -n $do_sidecars ]] || return 0
 
   local marker="$dir/virtual_unzipped" created=false gzfile basefile
   for gzfile in "$dir"/*.gz; do
-    [[ -f "$gzfile" ]] || continue
-    [[ -f "$marker" ]] || touch "$marker"
+    [[ -f $gzfile ]] || continue
+    [[ -f $marker ]] || touch "$marker"
     basefile="${gzfile%.gz}"
-    if [[ ! -e "$basefile" ]]; then
+    if [[ ! -e $basefile ]]; then
       ln "$marker" "$basefile"
       created=true
     fi
   done
-  if [[ "$created" == true ]]; then
+  if [[ $created == true ]]; then
     pi "${prefix}created sidecars"
   fi
 }
@@ -804,10 +807,10 @@ cpancover_compress_dirs() {
     about.html index.html collection.css collection.js
 
   for dir in "$results_dir"/*/; do
-    [[ -d "$dir" ]] || continue
+    [[ -d $dir ]] || continue
     name="$(basename "$dir")"
-    [[ "$name" == __failed__ || "$name" == dist ]] && continue
-    [[ "$only_new" == true && -f "$dir/virtual_unzipped" ]] && continue
+    [[ $name == __failed__ || $name == dist ]] && continue
+    [[ $only_new == true && -f "$dir/virtual_unzipped" ]] && continue
     printf -v prefix "%-40.40s " "$name"
     cpancover_compress_dir "$dir" sidecars "$prefix" &
     ((++jobs >= max_jobs)) && {
@@ -840,7 +843,7 @@ cpancover_serve() {
   local www_dir="$results_dir/../www_${env}"
   local latest="$www_dir/latest"
   mkdir -p "$www_dir"
-  if [[ ! -L "$latest" ]]; then
+  if [[ ! -L $latest ]]; then
     ln -s "$results_dir" "$latest"
   fi
   local port="${1:-8080}"
@@ -1189,7 +1192,7 @@ generate_gcov_fixtures() {
   pushd "$fixtures_dir" >/dev/null
 
   for fixture in *.c.fixture; do
-    [[ -f "$fixture" ]] || continue
+    [[ -f $fixture ]] || continue
     local src="${fixture%.fixture}"
     local base="${src%.c}"
     pi "Processing $fixture"
@@ -1345,7 +1348,7 @@ cpan_module() {
   local distdir
   distdir=$(cpan_distdir "$dist")
 
-  if [[ -d "$distdir" ]] && ! ((force)); then
+  if [[ -d $distdir ]] && ! ((force)); then
     pi "Using existing $workdir/$distdir (use --force to re-download)"
   else
     rm -rf "$distdir"
@@ -1414,7 +1417,7 @@ cpan_collection_module() {
   mkdir -p "$workdir"
   cd "$workdir" || pf "Can't cd to $workdir"
 
-  if [[ -d "$distdir" ]] && ! ((force)); then
+  if [[ -d $distdir ]] && ! ((force)); then
     pi "Using existing $workdir/$distdir (use --force to re-download)"
   else
     rm -rf "$distdir"
@@ -1508,7 +1511,7 @@ cpan_collection() {
   for arg in "$@"; do
     if ((seen_sep)); then
       cover_args+=("$arg")
-    elif [[ "$arg" == "--" ]]; then
+    elif [[ $arg == "--" ]]; then
       seen_sep=1
     else
       modules+=("$arg")

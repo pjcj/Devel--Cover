@@ -1,0 +1,164 @@
+#!/usr/bin/env perl
+
+# Reflow a git commit message body to 72 columns.
+# Preserves the subject line, recognises bullet and numbered lists, and
+# passes comment lines and everything below the scissors marker through
+# unchanged.
+#
+# Formatting rules (matching Vim's gq with formatoptions=tcrqnljp):
+#   - Wrap body paragraphs at 72 columns
+#   - Recognise list prefixes (- * + and 1. 2) etc.) and indent
+#     continuation lines to align with the text after the prefix
+#   - Blank lines separate paragraphs
+#   - Don't break a line after a single-character word
+#
+# Run as a git commit-msg hook (edits each file argument in place) or as a
+# filter (reads stdin, writes stdout) for use from an editor.
+#
+# Usage: fmt-commit-msg [file ...]
+
+use v5.26.0;
+use warnings;
+use experimental "signatures";
+
+my $Width = 72;
+
+sub is_list_item ($line) { $line =~ /^\s*(?:[-*+]|\d+[.)])\s/ }
+
+sub reflow ($out, @pl) {
+  # Detect prefix: bullet/number or plain leading whitespace
+  my ($prefix, $text);
+  if ($pl[0] =~ /^(\s*(?:[-*+]|\d+[.)])\s+)(.*)/) {
+    ($prefix, $text) = ($1, $2);
+  } elsif ($pl[0] =~ /^(\s+)(.*)/) {
+    ($prefix, $text) = ($1, $2);
+  } else {
+    ($prefix, $text) = ("", $pl[0]);
+  }
+
+  my $indent = " " x length $prefix;
+
+  # Join continuation lines, stripping their indentation
+  for my $i (1 .. $#pl) {
+    (my $l = $pl[$i]) =~ s/^\s+//;
+    $text .= " $l";
+  }
+  $text =~ s/\s+/ /g;
+  $text =~ s/^\s+|\s+$//g;
+
+  # Prefix with no text
+  unless (length $text) {
+    push @$out, $prefix =~ s/\s+$//r;
+    return;
+  }
+
+  # Word wrap
+  my @words = split /\s+/, $text;
+  my $cur   = $prefix . shift @words;
+
+  for my $word (@words) {
+    if (length("$cur $word") <= $Width) {
+      $cur .= " $word";
+    } else {
+      # Don't break after a single-character word (Vim's 'p' flag)
+      my ($last) = $cur =~ /(\S+)$/;
+      if (
+           defined $last
+        && length($last) == 1
+        && (my $prev = $cur) =~ s/\s+\S+$//
+      ) {
+        # Break before the single-character word if that leaves content
+        if ($prev =~ /\S/) {
+          push @$out, $prev;
+          $cur = $indent . $last . " $word";
+        } else {
+          $cur .= " $word";
+        }
+      } else {
+        push @$out, $cur;
+        $cur = $indent . $word;
+      }
+    }
+  }
+
+  push @$out, $cur;
+}
+
+sub flush ($out, $para) {
+  reflow($out, @$para) if @$para;
+  @$para = ();
+}
+
+sub format_message (@lines) {
+  my @out;
+  return @out unless @lines;
+  chomp @lines;
+
+  # Subject line - pass through unchanged
+  push @out, shift @lines;
+
+  # Blank line after subject - pass through
+  push @out, shift @lines if @lines && $lines[0] =~ /^\s*$/;
+
+  my @para;
+  my $verbatim = 0;
+
+  for my $line (@lines) {
+    if ($verbatim) {
+      push @out, $line;
+      next;
+    }
+
+    # Scissors line - pass through remainder verbatim
+    if ($line =~ /^#.*>8/) {
+      flush(\@out, \@para);
+      $verbatim = 1;
+      push @out, $line;
+      next;
+    }
+
+    # Comment lines - pass through
+    if ($line =~ /^#/) {
+      flush(\@out, \@para);
+      push @out, $line;
+      next;
+    }
+
+    # Blank line - paragraph boundary
+    if ($line =~ /^\s*$/) {
+      flush(\@out, \@para);
+      push @out, "";
+      next;
+    }
+
+    # New list item starts a new paragraph
+    flush(\@out, \@para) if @para && is_list_item($line);
+    push @para, $line;
+  }
+
+  flush(\@out, \@para);
+  @out
+}
+
+sub reflow_file ($file) {
+  open my $in, "<", $file or die "Can't read $file: $!\n";
+  my @lines = <$in>;
+  close $in or die "Can't close $file: $!\n";
+
+  my @out = format_message(@lines);
+
+  open my $fh, ">", $file or die "Can't write $file: $!\n";
+  print {$fh} "$_\n" for @out;
+  close $fh or die "Can't close $file: $!\n";
+}
+
+sub main () {
+  if (@ARGV) {
+    reflow_file($_) for @ARGV;
+  } else {
+    print "$_\n" for format_message(<>);
+  }
+  0
+}
+
+exit main

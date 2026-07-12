@@ -40,7 +40,6 @@ color-severity-lowest = cyan
 
 # The maximum number of statements to allow within a map block.
 # Minimum value 1. No maximum.
-max_statements = 5
 
 
 # Use 4-argument `substr' instead of writing `substr($foo, 2, 6) = $bar'.
@@ -52,7 +51,7 @@ max_statements = 5
 
 
 # Forbid $b before $a in sort blocks.
-[BuiltinFunctions::ProhibitReverseSortBlock]
+[-BuiltinFunctions::ProhibitReverseSortBlock]
 # set_themes                         = core cosmetic pbp
 # add_themes                         =
 # severity                           = 1
@@ -76,6 +75,7 @@ max_statements = 5
 
 
 # Write `eval { my $foo; bar($foo) }' instead of `eval "my $foo; bar($foo);"'.
+# Used deliberately for dependency probing and compile-phase tricks.
 [-BuiltinFunctions::ProhibitStringyEval]
 # set_themes                         = bugs certrule core pbp
 # add_themes                         =
@@ -110,7 +110,7 @@ allow_includes = 1
 # maximum_violations_per_document    = no_limit
 
 
-# Don't pass $_ to built-in functions that assume it, or to most filetest operators.
+# Don't pass $_ to built-in functions that assume it, or to most file test operators.
 [BuiltinFunctions::ProhibitUselessTopic]
 # set_themes                         = core
 # add_themes                         =
@@ -175,7 +175,7 @@ allow_includes = 1
 
 
 # Employ `use parent' instead of `@ISA'.
-[-ClassHierarchies::ProhibitExplicitISA]
+[ClassHierarchies::ProhibitExplicitISA]
 # set_themes                         = certrec core maintenance pbp
 # add_themes                         =
 # severity                           = 3
@@ -316,6 +316,8 @@ max_elsif = 10
 
 
 # Don't use operators like `not', `!~', and `le' within `until' and `unless'.
+# The hardcoded operator list treats all comparisons (> < >= <=) as negative,
+# which is too broad for a codebase that uses unless deliberately.
 [-ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions]
 # set_themes                         = core maintenance pbp
 # add_themes                         =
@@ -485,6 +487,7 @@ only_in_void_context = 1
 
 
 # Use prompt() instead of -t.
+# We use -t on specific handles for width, colour and pipe detection.
 [-InputOutput::ProhibitInteractiveTest]
 # set_themes                         = bugs certrule core pbp
 # add_themes                         =
@@ -492,9 +495,8 @@ only_in_void_context = 1
 # maximum_violations_per_document    = no_limit
 
 
-# Joining readline is clear and fine for the small files we deal with.
 # Use `local $/ = undef' or Path::Tiny instead of joined readline.
-[-InputOutput::ProhibitJoinedReadline]
+[InputOutput::ProhibitJoinedReadline]
 # set_themes                         = core pbp performance
 # add_themes                         =
 # severity                           = 3
@@ -699,7 +701,6 @@ max_mccabe = 3
 # set_themes                         = bugs core
 # add_themes                         =
 # severity                           = 4
-severity                           = 1
 # maximum_violations_per_document    = 1
 
 # Don't require programs to contain a package statement.
@@ -734,7 +735,7 @@ severity                           = 1
 
 
 # Use DEMOLISH instead of DESTROY
-# [Moose::ProhibitDESTROYMethod]
+[Moose::ProhibitDESTROYMethod]
 # set_themes                         = bugs moose
 # add_themes                         =
 # severity                           = 3
@@ -746,7 +747,7 @@ severity                           = 1
 
 
 # Avoid lazy_build
-# [-Moose::ProhibitLazyBuild]
+[-Moose::ProhibitLazyBuild]
 # set_themes                         = bugs moose
 # add_themes                         =
 # severity                           = 2
@@ -758,7 +759,7 @@ severity                           = 1
 
 
 # Require role composition
-# [Moose::ProhibitMultipleWiths]
+[Moose::ProhibitMultipleWiths]
 # set_themes                         = bugs moose roles
 # add_themes                         =
 # severity                           = 4
@@ -770,7 +771,7 @@ severity                           = 1
 
 
 # Don't override Moose's standard constructors.
-# [Moose::ProhibitNewMethod]
+[Moose::ProhibitNewMethod]
 # set_themes                         = bugs moose
 # add_themes                         =
 # severity                           = 4
@@ -782,7 +783,7 @@ severity                           = 1
 
 
 # Require removing implementation details from you packages.
-# [Moose::RequireCleanNamespace]
+[Moose::RequireCleanNamespace]
 # set_themes                         = maintenance moose
 # add_themes                         =
 # severity                           = 3
@@ -796,7 +797,7 @@ severity                           = 1
 
 
 # Ensure that you've made your Moose code fast
-# [Moose::RequireMakeImmutable]
+[Moose::RequireMakeImmutable]
 # set_themes                         = moose performance
 # add_themes                         =
 # severity                           = 3
@@ -1094,6 +1095,7 @@ skip_object = 1
 
 
 # Don't write `sub my_function (@@) {}'.
+# We only use prototypes for deliberate block-taking (&) helpers.
 [-Subroutines::ProhibitSubroutinePrototypes]
 # set_themes                         = bugs certrec core pbp
 # add_themes                         =
@@ -1490,6 +1492,7 @@ severity                           = 1
 
 
 # Use `my' instead of `local', except when you have to.
+# The collection engine dynamically scopes its package globals.
 [-Variables::ProhibitLocalVars]
 # set_themes                         = core maintenance pbp
 # add_themes                         =
@@ -1606,5 +1609,16 @@ allow = %ENV %SIG $> $0 $|
 # maximum_violations_per_document    = no_limit
 
 
+[ValuesAndExpressions::ProhibitSingleArgArraySlice]
 [ValuesAndExpressions::RequireConsistentQuoting]
 [CodeLayout::ProhibitLongLines]
+allow_lines_matching = ^\s*package\s+
+
+# FindBin is core and appropriate for test bootstrapping; allow it while the
+# rest of the discouraged-module list stays enforced.
+[Community::DiscouragedModules]
+allowed_modules = FindBin
+
+# Misparses sub definitions named after builtins (e.g. `sub values ($self)`)
+# as autoderef calls.
+[-Community::DeprecatedFeatures]

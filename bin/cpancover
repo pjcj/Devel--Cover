@@ -138,9 +138,9 @@ sub main {
       $cp->set_modules(@ARGV);
     } elsif (!-t STDIN) {
       my @modules;
-      while (<>) {
-        chomp;
-        push @modules, split;
+      while (my $l = <>) {
+        chomp $l;
+        push @modules, split " ", $l;
       }
       $cp = newcp;
       $cp->set_modules(@modules);

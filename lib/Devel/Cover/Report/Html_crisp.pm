@@ -789,7 +789,7 @@ sub _apply_scar ($f, $scar_data) {
     $f->{file_cc}   = $scar_data->{file_cc};
     $f->{file_cov}  = sprintf "%.0f", $scar_data->{file_cov};
     my @sorted = sort { $b->{crap} <=> $a->{crap} } grep defined $_->{crap},
-      @{ $scar_data->{subs} || [] };
+      ($scar_data->{subs} || [])->@*;
     $f->{worst_subs} = [
       map { {
         name => $_->{name},
@@ -848,9 +848,9 @@ sub build_file_data () {
     my $f = build_one_file($file);
     push @file_data, $f if $f;
   } sort {
-         _numeric_scar($b) <=> _numeric_scar($a)
+         _numeric_scar($b)        <=> _numeric_scar($a)
       || ($a->{total_sort} // -1) <=> ($b->{total_sort} // -1)
-      || $a->{name} cmp $b->{name}
+      || $a->{name}               cmp $b->{name}
   } @file_data
 }
 
@@ -966,7 +966,7 @@ sub line_truth_tables ($f, $n) {
   my $loc        = $conditions->location($n);
   return unless $loc && @$loc;
   my @observed = map Devel::Cover::DB::observed_vectors($_), @$loc;
-  grep { $_->{rows}->@* } map {
+  grep $_->{rows}->@*, map {
     my $proven = $_->proven;
     my @rows   = map {
       my $covered = $proven && $_->covered;

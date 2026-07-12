@@ -9,7 +9,7 @@ PATH=$(tidy "$dc_home/utils:$PATH")
 export PATH
 
 # shellcheck disable=SC2034,SC2207,SC3030,SC3043
-if [[ -n "$ZSH_VERSION" ]]; then
+if [[ -n $ZSH_VERSION ]]; then
   _dc() {
     local -a o
     o=($(utils/dc options))

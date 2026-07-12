@@ -1,0 +1,188 @@
+#!/usr/bin/env perl
+
+use v5.26.0;
+use strict;
+use warnings;
+use feature      qw( signatures );
+use experimental qw( signatures );
+
+use File::Basename qw( dirname );
+use File::Temp     qw( tempfile );
+
+my $Unreadable = 0;
+
+sub is_perl ($file) {
+  return 1 if $file =~ /\.(?:pm|pl|t|psgi)\z/;
+  my $fh;
+  unless (open $fh, "<", $file) {
+    warn "Cannot read $file: $!\n";
+    $Unreadable = 1;
+    return 0;
+  }
+  my $first = <$fh> // "";
+  $first =~ /\A#!.*\bperl\b/
+}
+
+sub tidy_source ($source) {
+  require Perl::Tidy;
+  my $tidied = "";
+  my $error  = eval {
+    Perl::Tidy::perltidy(
+      source      => \$source,
+      destination => \$tidied,
+      stderr      => \my $stderr,
+      errorfile   => \my $errors,
+      perltidyrc  => ".perltidyrc",
+      argv        => [],
+    )
+  };
+  return if !defined $error || $error;
+  $tidied
+}
+
+sub check_tidy ($files) {
+  my $status = 0;
+  for my $file (@$files) {
+    my $fh;
+    unless (open $fh, "<", $file) {
+      say "Cannot read $file: $!";
+      $status = 1;
+      next;
+    }
+    my $source = do { local $/; <$fh> };
+    my $tidied = tidy_source($source);
+    unless (defined $tidied) {
+      say "perltidy failed: $file";
+      $status = 1;
+      next;
+    }
+    next if $tidied eq $source;
+    say "Not tidy: $file";
+    $status = 1;
+  }
+  $status
+}
+
+sub write_atomic ($file, $content, $mode) {
+  my ($out, $temp)
+    = eval { tempfile("perl-hook-XXXXXX", DIR => dirname($file), UNLINK => 0) };
+  unless ($out) {
+    say "Cannot create temporary file for $file: $@";
+    return 0;
+  }
+  my $ok = print {$out} $content;
+  $ok &&= close $out;
+  $ok &&= chmod $mode, $temp;
+  $ok &&= rename $temp, $file;
+  return 1 if $ok;
+  my $error = $!;
+  unlink $temp;
+  say "Cannot write $file: $error";
+  0
+}
+
+sub format_files ($files) {
+  my $status = 0;
+  for my $file (@$files) {
+    my $fh;
+    unless (open $fh, "<", $file) {
+      say "Cannot read $file: $!";
+      $status = 1;
+      next;
+    }
+    my $source = do { local $/; <$fh> };
+    my $mode   = (stat $fh)[2] & 07777;
+    my $tidied = tidy_source($source);
+    unless (defined $tidied) {
+      say "perltidy failed: $file";
+      $status = 1;
+      next;
+    }
+    next if $tidied eq $source;
+    $status = 1 unless write_atomic($file, $tidied, $mode);
+  }
+  $status
+}
+
+sub main () {
+  my $mode = shift @ARGV // "";
+  $mode =~ /\A(?:tidy|critic|list|format)\z/
+    or die "usage: perl-hook tidy|critic|list|format file ...\n";
+
+  my @perl = grep is_perl($_), @ARGV;
+  exit $Unreadable unless @perl;
+
+  if ($mode eq "list") {
+    say for @perl;
+    exit $Unreadable;
+  }
+  if ($mode eq "critic") {
+    my @cmd = (
+      "perl",      "-Ilib",         "-S", "perlcritic",
+      "--profile", ".perlcriticrc", @perl,
+    );
+    unless ($Unreadable) {
+      exec @cmd or die "exec perlcritic failed: $!\n";
+    }
+    my $rc = system @cmd;
+    die "run perlcritic failed: $!\n" if $rc == -1;
+    my $status = ($rc >> 8) || 1;
+    exit $status;
+  }
+  if ($mode eq "format") {
+    my $status = format_files(\@perl) || $Unreadable;
+    exit $status;
+  }
+  my $status = check_tidy(\@perl) || $Unreadable;
+  exit $status;
+}
+
+main();
+
+__END__
+
+=head1 NAME
+
+perl-hook - run Perl checks on the Perl files among the given files
+
+=head1 SYNOPSIS
+
+  utils/perl-hook tidy file ...
+  utils/perl-hook critic file ...
+  utils/perl-hook list file ...
+  utils/perl-hook format file ...
+
+=head1 DESCRIPTION
+
+A pre-commit helper which selects the Perl files from its arguments and
+runs the requested check on them.  A file is Perl if its name ends in
+C<.pm>, C<.pl>, C<.t> or C<.psgi>, or if its first line is a perl shebang.
+This catches extensionless scripts wherever they live, without depending
+on the executable bit, and can never match files written in another
+language.
+
+C<tidy> reports files whose C<perltidy> output differs from their content.
+It uses the L<Perl::Tidy> module in this process rather than spawning one
+C<perltidy> process per file, which keeps the check fast at repo scale.
+C<critic> runs C<perlcritic> with the repository lib in C<@INC> so a
+distribution providing its own policies is checked with the working-tree
+code.  Both modes exit non-zero if any file fails.  C<list> prints the
+selected Perl files, one per line, so other tools can share this
+selection instead of defining their own.  C<format> rewrites each file in
+place using the same L<Perl::Tidy> invocation as C<tidy>, so a file
+written by C<format> always passes the C<tidy> check.
+
+A candidate that cannot be read is reported on STDERR, treated as not
+Perl, and makes the hook exit non-zero once the remaining files have
+been checked.
+
+=head1 AUTHOR
+
+Paul Johnson <paul@pjcj.net>
+
+=head1 LICENCE
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut
