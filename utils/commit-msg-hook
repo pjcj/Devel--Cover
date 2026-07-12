@@ -2,16 +2,23 @@
 
 # Git commit message hook to check for some of our standards.
 
-use 5.28.0;
+use v5.26.0;
 use warnings;
-use warnings FATAL => qw( utf8 recursion );
+use warnings FATAL => qw( recursion );
+use utf8;
 use experimental "signatures";
-use open ":encoding(UTF-8)";
 use feature "unicode_strings";
+
+use Encode         ();
+use Cwd            qw( abs_path );
+use File::Basename qw( dirname );
+use lib dirname(abs_path(__FILE__)) . "/lib";
+use GitHook qw( on_main ticket_re );
 
 my $Version = "1.00";
 
 $|++;
+binmode STDOUT, ":encoding(UTF-8)";
 
 #<<<
 my @Blocklist = (qw(
@@ -83,15 +90,8 @@ my @Blocklist = (qw(
 
 my $Blocklist = join "|", @Blocklist;
 $Blocklist = qr/^(?:$Blocklist)\b/i;
+my $Ticket_re = ticket_re;
 my @Errors;
-
-sub get_current_branch {
-  my $branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null` // "";
-  chomp $branch;
-  $branch
-}
-
-sub on_main { get_current_branch eq "main" }
 
 sub check_line_endings ($msg) {
   my $n = 1;
@@ -111,7 +111,7 @@ sub check_subject ($l, $main, $merge, $skip) {
     if !$skip && $l =~ /[-#]\w?(?:\d{3,})/;
   push @Errors,
     ["Merge should reference ticket rather than full branch name", $l]
-    if !$main && $merge && $l !~ /'[A-Z]{2,8}-\d+'/;
+    if !$main && $merge && $l !~ /'$Ticket_re'/;
   my $start = substr($l, 0, 1) // "";
   push @Errors, ["Line 1 does not start with an expected character", $l]
     if $start !~ /\w/;
@@ -140,7 +140,7 @@ sub check_beginning ($msg) {
 
   my $l3 = $msg->[1] // "";
   push @Errors, ["Line 3 does not reference ticket id", $l3]
-    if !$main && !$skip && $l3 !~ /^Ticket [A-Z]{2,8}-\d+$/;
+    if !$main && !$skip && $l3 !~ /^Ticket $Ticket_re$/;
 }
 
 sub check_end ($msg) {
@@ -157,33 +157,48 @@ sub check_end ($msg) {
 }
 
 sub process_msg ($msg) {
-  push @Errors, ["Empty commit message"] unless @$msg;
+  push @Errors, ["Empty commit message", ""] unless @$msg;
   check_line_endings($msg);
   chomp @$msg;
   check_beginning($msg);
   check_end($msg);
 }
 
-sub main {
+sub read_msg ($file) {
+  open my $fh, "<:raw", $file or die "Can't open $file: $!";
+  my $bytes = do { local $/; <$fh> }
+    // "";
+  close $fh or die "Can't close $file: $!";
+  my $text = eval {
+    Encode::decode("UTF-8", $bytes, Encode::FB_CROAK | Encode::LEAVE_SRC)
+  };
+  unless (defined $text) {
+    push @Errors, ["Commit message is not valid UTF-8", ""];
+    $text = Encode::decode("UTF-8", $bytes, Encode::FB_DEFAULT);
+  }
+  split /^/m, $text
+}
+
+sub main () {
   my ($file) = @ARGV;
   # say STDERR "commit-msg hook: [$file]";
 
-  open my $fh, "<", $file or die "Can't open $file: $!";
-  my @msg = <$fh>;
-  close $fh or die "Can't close $file: $!";
+  my @msg = read_msg($file);
   process_msg(\@msg);
 
   return 0 unless @Errors;
 
-  say "Errors found:";
   my $max = 0;
   for my $e (@Errors) { $max = length $e->[0] if length $e->[0] > $max }
-  for my $e (@Errors) { printf "%-${max}s: «%s»\n", @$e }
+  my $report = join "", "Errors found:\n",
+    map { sprintf "%-${max}s: «%s»\n", @$_ } @Errors;
+  print $report;  # captured by pre-commit, shown on failure
 
-  print "Force commit? [y/N] ";
-  open my $in, "<", "/dev/tty" or die "Can't open tty";
-  my $force = <$in> // "";
-  close $in or die "Can't close tty";
+  open my $tty, "+<", "/dev/tty" or return 1;  # no terminal: decline
+  binmode $tty, ":encoding(UTF-8)";
+  print $tty $report, "Force commit? [y/N] ";
+  my $force = <$tty> // "";
+  close $tty or die "Can't close tty";
   $force =~ /^y/i ? 0 : 1
 }
 
