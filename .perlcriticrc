@@ -1612,6 +1612,7 @@ allow = %ENV %SIG $> $0 $|
 [ValuesAndExpressions::ProhibitSingleArgArraySlice]
 [ValuesAndExpressions::RequireConsistentQuoting]
 [CodeLayout::ProhibitLongLines]
+allow_lines_matching = ^\s*package\s+
 
 # FindBin is core and appropriate for test bootstrapping; allow it while the
 # rest of the discouraged-module list stays enforced.
