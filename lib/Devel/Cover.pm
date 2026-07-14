@@ -259,7 +259,7 @@ sub _parse_options ($o, $blib) {
     "-subs_only"   => \$Subs_only,
     "-replace_ops" => \$Replace_ops,
   );
-  my %list_opt = ("ignore" => \@Ignore, "inc" => \@Inc, "select" => \@Select);
+  my %list_opt = (ignore => \@Ignore, inc => \@Inc, select => \@Select);
 
   @Inc    = () if "@$o" =~ /-inc /;
   @Ignore = () if "@$o" =~ /-ignore /;
