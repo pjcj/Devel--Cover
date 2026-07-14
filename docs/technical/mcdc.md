@@ -330,13 +330,20 @@ made default in 5.26).
 
 Root identification must agree with condition coverage on what "the decision"
 is. The joining logop of an `if`, `unless` or `while` statement or statement
-modifier - a statically void `and`/`or` whose right operand is not itself a
+modifier - a statement-level `and`/`or` whose right operand is not itself a
 decision - is treated as a branch by condition coverage, so the walk
 (`dc_is_branch_logop`) excludes it: it is not a decision root and does not
 de-root the condition chain on its left, which is the real decision and records
 vectors under its own root. Without this exclusion the vectors would be keyed by
 an op that is never finalised as a condition and would be lost, leaving
-statement-context compound decisions permanently unproven.
+statement-context compound decisions permanently unproven. Statement level means
+compile-time void context, or unknown context outside expression position.
+Unknown context arises where the context depends on the caller - a sub's bare
+final expression and the operands of a `return` compile identically - so the
+collection walk tracks expression position down the tree (`dc_kid_expr_ctx`).
+Under `return`, `cond_expr` or another logop the Perl-side walk classifies the
+join as an expression, and everywhere else a context-unknown join is a branch
+(GH-549).
 
 `Condition_table::for_line` accepts an optional parallel array of
 observed-vector hashes; when present, each synthesised row is marked `covered=1`
