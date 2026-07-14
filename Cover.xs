@@ -958,7 +958,7 @@ static AV *get_conds(pTHX_ AV *conds) {
 #endif
 
 static HV      *dc_lookup_or_build_decision_meta(pTHX_ OP *op, CV *cv);
-static int      dc_is_branch_logop(pTHX_ OP *op);
+static int      dc_is_branch_logop(pTHX_ OP *op, int expr_ctx);
 static IV       dc_meta_iv(pTHX_ HV *meta, const char *key, I32 keylen);
 static dc_dctx *dc_stack_find_root(pTHX_ OP *root_addr);
 static dc_dctx *dc_stack_top(pTHX);
@@ -1396,33 +1396,60 @@ static int dc_is_multiconcat_truthy(pTHX_ OP *op) {
 }
 
 /*
+ * Compute the expression-context flag passed to op's kids, mirroring the
+ * Perl-side _logop_parent_cx classification.  A kid is in expression
+ * position under return, cond_expr, or another logop.  A plain null is
+ * transparent, and everything else is statement position.
+ */
+static int dc_kid_expr_ctx(OP *op, int expr_ctx) {
+  switch (op->op_type) {
+  case OP_RETURN:
+  case OP_COND_EXPR:
+  case OP_AND:
+  case OP_OR:
+  case OP_DOR:
+    return 1;
+  case OP_NULL:
+    if (op->op_targ == OP_RETURN) return 1;
+    if (op->op_targ == OP_SCOPE || op->op_targ == OP_LEAVE) return 0;
+    return expr_ctx;
+  default:
+    return 0;
+  }
+}
+
+/*
  * Recursively collect every logop reachable under op into the AV.  Skips an
  * OP_AND that wraps OP_ITER (foreach loop conditional, not a decision).
+ * expr_ctx is true when op is in expression position.
  */
-static void dc_collect_logops_r(pTHX_ OP *op, AV *logops) {
+static void dc_collect_logops_r(pTHX_ OP *op, AV *logops, int expr_ctx) {
   OP *kid;
+  int kid_ctx;
 
   if (!op) return;
 
   if (dc_is_logop_type(op->op_type)) {
     OP *first = cLOGOPx(op)->op_first;
     if (!(op->op_type == OP_AND && first && first->op_type == OP_ITER)
-        && !dc_is_branch_logop(aTHX_ op))
+        && !dc_is_branch_logop(aTHX_ op, expr_ctx))
       av_push(logops, newSViv(PTR2IV(op)));
   }
 
+  kid_ctx = dc_kid_expr_ctx(op, expr_ctx);
   if (op->op_flags & OPf_KIDS)
     for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid))
-      dc_collect_logops_r(aTHX_ kid, logops);
+      dc_collect_logops_r(aTHX_ kid, logops, kid_ctx);
 
   if (op->op_type == OP_SUBST) {
     PMOP *pm = cPMOPx(op);
 #ifdef USE_ITHREADS
     if (pm->op_pmstashstartu.op_pmreplstart)
-      dc_collect_logops_r(aTHX_ pm->op_pmstashstartu.op_pmreplstart, logops);
+      dc_collect_logops_r(aTHX_ pm->op_pmstashstartu.op_pmreplstart, logops,
+                          0);
 #else
     if (pm->op_pmreplrootu.op_pmreplroot)
-      dc_collect_logops_r(aTHX_ pm->op_pmreplrootu.op_pmreplroot, logops);
+      dc_collect_logops_r(aTHX_ pm->op_pmreplrootu.op_pmreplroot, logops, 0);
 #endif
   }
 }
@@ -1516,16 +1543,20 @@ static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
 }
 
 /*
- * A statically void and/or whose right operand is not itself a decision is
+ * A statement-level and/or whose right operand is not itself a decision is
  * the joining logop of an if/unless/while statement or statement modifier.
  * Condition coverage treats it as a branch, so it is not a decision root
  * and must not de-root the condition chain on its left, which is the real
- * decision.
+ * decision.  Statement level means compile-time void context, or unknown
+ * context (a block-final expression) outside expression position - the
+ * Perl-side walk classifies those as branches too.
  */
-static int dc_is_branch_logop(pTHX_ OP *op) {
+static int dc_is_branch_logop(pTHX_ OP *op, int expr_ctx) {
   OP *right;
+  int want;
   if (op->op_type != OP_AND && op->op_type != OP_OR) return 0;
-  if ((op->op_flags & OPf_WANT) != OPf_WANT_VOID) return 0;
+  want = op->op_flags & OPf_WANT;
+  if (want != OPf_WANT_VOID && (want != 0 || expr_ctx)) return 0;
   right = dc_skipped_operand(aTHX_ op, 1);
   return !(right && dc_is_logop_type(right->op_type));
 }
@@ -1567,7 +1598,7 @@ static void dc_walk_cv_decisions(pTHX_ CV *cv) {
   hv_store(walked, (const char *)&cv, sizeof(CV *), newSViv(cv_root_iv), 0);
 
   logops = (AV *)sv_2mortal((SV *)newAV());
-  dc_collect_logops_r(aTHX_ CvROOT(cv), logops);
+  dc_collect_logops_r(aTHX_ CvROOT(cv), logops, 0);
 
   n = av_len(logops) + 1;
   for (i = 0; i < n; i++) {

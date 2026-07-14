@@ -1,0 +1,102 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+# A logop chain as a sub's bare final expression under a ||/&& join
+# registered an MC/DC decision the runtime keyed elsewhere, so it could
+# never collect.  See GH-549.
+
+sub bare_or {
+  my ($p, $q) = @_;
+  $p || $q;
+}
+
+sub bare_and {
+  my ($p, $q, $r) = @_;
+  $p && $q && $r;
+}
+
+sub bare_dor2 {
+  my ($p, $q, $r) = @_;
+  $p // $q || $r;
+}
+
+sub bare_dor3 {
+  my ($p, $q, $s, $r) = @_;
+  $p // $q // $s || $r;
+}
+
+sub ret_dor2 {
+  my ($p, $q, $r) = @_;
+  return $p // $q || $r;
+}
+
+sub ret_dor3 {
+  my ($p, $q, $s, $r) = @_;
+  return $p // $q // $s || $r;
+}
+
+sub main {
+  # Calls are pushed into @r so each decision is exercised in non-void
+  # context.
+  my @r;
+
+  # Bare final || - a branch on both sides, no MC/DC entry.
+  push @r, bare_or(1, 0);
+  push @r, bare_or(0, 1);
+  push @r, bare_or(0, 0);
+
+  # Bare final && chain - the top join is a branch; the inner $p && $q
+  # is the registered decision.
+  push @r, bare_and(1, 1, 1);
+  push @r, bare_and(1, 1, 0);
+  push @r, bare_and(1, 0, 0);
+  push @r, bare_and(0, 0, 0);
+
+  # Width-2 inner chain under a bare final || join.
+  push @r, bare_dor2(1,     undef, 0);
+  push @r, bare_dor2(0,     undef, 1);
+  push @r, bare_dor2(undef, 1,     0);
+  push @r, bare_dor2(undef, 0,     1);
+  push @r, bare_dor2(undef, undef, 1);
+  push @r, bare_dor2(undef, undef, 0);
+
+  # Width-3 inner chain under a bare final || join - the unearnable
+  # 0/3 before the fix.
+  push @r, bare_dor3(1,     undef, undef, 0);
+  push @r, bare_dor3(0,     undef, undef, 1);
+  push @r, bare_dor3(undef, 1,     undef, 0);
+  push @r, bare_dor3(undef, 0,     undef, 1);
+  push @r, bare_dor3(undef, undef, 1,     0);
+  push @r, bare_dor3(undef, undef, 0,     1);
+  push @r, bare_dor3(undef, undef, undef, 1);
+  push @r, bare_dor3(undef, undef, undef, 0);
+
+  # Explicit return controls - expression context, where the walk and
+  # the runtime already agreed.
+  push @r, ret_dor2(1,     undef, 0);
+  push @r, ret_dor2(0,     undef, 1);
+  push @r, ret_dor2(undef, 1,     0);
+  push @r, ret_dor2(undef, 0,     1);
+  push @r, ret_dor2(undef, undef, 1);
+  push @r, ret_dor2(undef, undef, 0);
+
+  push @r, ret_dor3(1,     undef, undef, 0);
+  push @r, ret_dor3(0,     undef, undef, 1);
+  push @r, ret_dor3(undef, 1,     undef, 0);
+  push @r, ret_dor3(undef, 0,     undef, 1);
+  push @r, ret_dor3(undef, undef, 1,     0);
+  push @r, ret_dor3(undef, undef, 0,     1);
+  push @r, ret_dor3(undef, undef, undef, 1);
+  push @r, ret_dor3(undef, undef, undef, 0);
+}
+
+main();
