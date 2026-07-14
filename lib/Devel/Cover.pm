@@ -216,23 +216,17 @@ EOM
   CHECK { check }
 }
 
-{
-  my $run_end = 0;
-
-  sub first_end {
-    set_last_end() unless $run_end++
-  }
-
-  my $run_init = 0;
-
-  sub first_init {
-    collect_inits() unless $run_init++
-  }
+sub first_end {
+  state $run_end = 0;
+  set_last_end() unless $run_end++
 }
 
-sub last_end {
-  report() if $Initialised;
+sub first_init {
+  state $run_init = 0;
+  collect_inits() unless $run_init++
 }
+
+sub last_end { report() if $Initialised }
 
 {
   no warnings "void";  # avoid "Too late to run ... block" warning
