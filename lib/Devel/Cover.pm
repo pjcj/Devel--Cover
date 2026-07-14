@@ -172,46 +172,45 @@ BEGIN {
 sub version    { $VERSION }
 sub has_select { scalar @Select_re }
 
-{
+sub check {
+  return unless $Initialised;
 
-  sub check {
-    return unless $Initialised;
+  check_files();
 
-    check_files();
+  set_coverage(keys %Coverage);
+  my @coverage = get_coverage();
+  %Coverage = map { $_ => 1 } @coverage;
 
-    set_coverage(keys %Coverage);
-    my @coverage = get_coverage();
-    %Coverage = map { $_ => 1 } @coverage;
+  warn __PACKAGE__
+    . ": mcdc coverage requires condition coverage; "
+    . "no mcdc data will be collected.\n"
+    if $Coverage{mcdc} && !$Coverage{condition} && !$Silent;
 
-    warn __PACKAGE__
-      . ": mcdc coverage requires condition coverage; "
-      . "no mcdc data will be collected.\n"
-      if $Coverage{mcdc} && !$Coverage{condition} && !$Silent;
-
-    my $nopod = "";
-    if (!$Pod && exists $Coverage{pod}) {
-      delete $Coverage{pod};  # Pod::Coverage unavailable
-      $nopod = <<EOM;
+  my $nopod = "";
+  if (!$Pod && exists $Coverage{pod}) {
+    delete $Coverage{pod};  # Pod::Coverage unavailable
+    $nopod = <<EOM;
     Pod coverage is unavailable.  Please install Pod::Coverage from CPAN.
 EOM
-    }
-
-    set_coverage(keys %Coverage);
-    @coverage = get_coverage();
-    my $last = pop @coverage || "";
-
-    print OUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
-      join(", ", @coverage), @coverage ? " and " : "", "$last.\n", $nopod,
-      $Subs_only     ? "    Collecting for subroutines only.\n" : "",
-      $ENV{MOD_PERL} ? "    Collecting under $ENV{MOD_PERL}\n"  : "",
-      "Selecting packages matching:", join("\n    ", "", @Select), "\n",
-      "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
-      "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
-      unless $Silent;
-
-    populate_run();
   }
 
+  set_coverage(keys %Coverage);
+  @coverage = get_coverage();
+  my $last = pop @coverage || "";
+
+  print OUT __PACKAGE__, " $VERSION: Collecting coverage data for ",
+    join(", ", @coverage), @coverage ? " and " : "", "$last.\n", $nopod,
+    $Subs_only     ? "    Collecting for subroutines only.\n" : "",
+    $ENV{MOD_PERL} ? "    Collecting under $ENV{MOD_PERL}\n"  : "",
+    "Selecting packages matching:", join("\n    ", "", @Select), "\n",
+    "Ignoring packages matching:",  join("\n    ", "", @Ignore), "\n",
+    "Ignoring packages in:",        join("\n    ", "", @Inc),    "\n"
+    unless $Silent;
+
+  populate_run();
+}
+
+{
   no warnings "void";  # avoid "Too late to run CHECK block" warning
   CHECK { check }
 }
