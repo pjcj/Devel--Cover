@@ -190,10 +190,13 @@ sub is_valid ($self) {
   return 1 if !-e $self->{db};
   return 1 if -e "$self->{db}/$DB";
   opendir my $dir, $self->{db} or return 0;
-  my $ignore = join "|", qw( runs structure debuglog digests .AppleDouble );
+  my $ignore = join "|", map quotemeta,
+    qw( runs structure digests .AppleDouble );
   for my $file (readdir $dir) {
     next if $file eq "." || $file eq "..";
-    next if $file =~ /(?:$ignore)|(?:\.lock)$/ && -e "$self->{db}/$file";
+    next
+      if $file =~ /^(?:$ignore)$|\.lock$|^(?:$ignore|cover\.\d+)\.tmp\.\d+$/
+      && -e "$self->{db}/$file";
     warn "found $file in $self->{db}";
     return 0;
   }
