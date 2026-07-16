@@ -262,11 +262,9 @@ local cov_time = [% cov_time %]
 
 -- Find coverage data for a given filename
 local function coverage_for(filename)
-  local fn_len = string.len(filename)
   for cf, _ in pairs(coverage) do
     local f = string.gsub(cf, "^blib/", "")
-    local match_pos = string.find(filename, f .. "$")
-    if match_pos and match_pos <= fn_len then
+    if #f > 0 and string.sub(filename, -#f) == f then
       return coverage[cf]
     end
   end
