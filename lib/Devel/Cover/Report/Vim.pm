@@ -181,7 +181,7 @@ function! s:coverage_for(filename)
   let s:fn_len = strlen(a:filename)
   for s:cf in keys(s:coverage)
     let s:f = substitute(s:cf, "^blib/", "", "")
-    let s:match_pos = match(a:filename, s:f . "$")
+    let s:match_pos = match(a:filename, '\V' . escape(s:f, '\') . '\$')
     if s:match_pos >= 0 && s:match_pos < s:fn_len
       return s:coverage[s:cf]
     endif
