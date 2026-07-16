@@ -142,10 +142,11 @@ sub clean ($self) {
   my $rm_lock = sub {
     return unless /\.lock$/;
     open my $fh, "+<", $_ or return;
-    if (flock $fh, LOCK_EX | LOCK_NB) {
-      unlink or dcinfo "Can't unlink lock file $_: $!";
-    }
+    # Windows can't unlink an open file, so end the probe before unlinking
+    my $free = flock $fh, LOCK_EX | LOCK_NB;
     close $fh or dcinfo "Can't close lock file $_: $!";
+    return unless $free;
+    unlink or dcinfo "Can't unlink lock file $_: $!";
   };
   find($rm_lock, $self->{db});
 }
