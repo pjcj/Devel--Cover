@@ -15,7 +15,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 # VERSION
 
 use Devel::Cover::DB::IO;
-use Devel::Cover::Log qw( dcinfo );
+use Devel::Cover::Log qw( dcinfo dcwarn );
 
 my $File = "digests";
 
@@ -32,7 +32,16 @@ sub new ($class, @args) {
 
 sub read ($self) {
   my $io = Devel::Cover::DB::IO->new;
-  $self->{digests} = $io->read($self->{file}) if -e $self->{file};
+  if (-e $self->{file}) {
+    # The file is only a cache, so never die because of it
+    my $digests = eval { $io->read($self->{file}) };
+    if ($@ || !$digests) {
+      chomp(my $err = $@ || "no data");
+      dcwarn "Ignoring unreadable digests file $self->{file}: $err";
+      $digests = {};
+    }
+    $self->{digests} = $digests;
+  }
   $self
 }
 
