@@ -151,12 +151,34 @@ sub clean ($self) {
   find($rm_lock, $self->{db});
 }
 
+sub _lock_db ($self) {
+  my $lock = "$self->{db}/merge.lock";
+  open my $fh, "+>>", $lock or die "Can't open $lock: $!\n";
+  flock $fh, LOCK_EX or die "Can't lock $lock: $!\n";
+  $fh
+}
+
 sub merge_runs ($self) {
   my $db = $self->{db};
   return $self unless length $db;
+  return $self unless -d "$db/runs";
+
+  # released when the handle goes out of scope, swept later by clean
+  my $lock_fh = $self->_lock_db;
+
+  # another process may have merged and written since we were constructed
+  my $file = "$db/$DB";
+  $self->read($file) if -e $file;
+
   opendir my $dir, "$db/runs" or return $self;
-  my @runs = map "$db/runs/$_", grep !/^\.\.?/, readdir $dir;
+  my @entries = grep { $_ ne "." && $_ ne ".." } readdir $dir;
   closedir $dir or die "Can't closedir $db/runs: $!";
+
+  # leftovers from an interrupted merge are already in the db - just remove
+  my @stale = map "$db/runs/$_", grep /^\.merged\./, @entries;
+  rmtree(\@stale) if @stale;
+
+  my @runs = map "$db/runs/$_", grep !/^\./, @entries;
 
   $self->{changed_files} = {};
 
@@ -169,8 +191,24 @@ sub merge_runs ($self) {
     $self->merge($r);
   }
 
-  $self->write($db) if @runs;
-  rmtree(\@runs);
+  if (@runs) {
+    my @aside;
+    for my $run (@runs) {
+      (my $to = $run) =~ s|([^/]+)$|.merged.$$.$1|;
+      if (rename $run, $to) {
+        push @aside, $to;
+      } else {
+        dcwarn "Can't rename $run to $to: $!";
+        push @aside, $run;
+      }
+    }
+    $self->write($db);
+    my $err;
+    rmtree(@aside, { error => \$err });
+    dcwarn "Can't remove merged runs: " . join ", ",
+      map { join ": ", %$_ } @$err
+      if $err && @$err;
+  }
 
   if (keys $self->{changed_files}->%*) {
     require Devel::Cover::DB::Structure;
@@ -1404,6 +1442,13 @@ Merge individual run files from C<< $db/runs/ >> into the main database, write
 the merged result, and delete the run files. Handles changed-file detection: if
 a file's digest differs between runs the old coverage is discarded. Returns
 C<$self>.
+
+The whole sequence is serialised via an exclusive flock on C<merge.lock> in
+the database directory, so concurrent merges cannot double-count runs. The
+lock file persists after release and is swept by C<clean> once free. Before
+being written, merged runs are renamed to hidden C<.merged.*> siblings, so a
+merge interrupted between the write and the removal of its runs cannot merge
+them again. Such leftovers are removed on the next call.
 
 =head2 validate_db
 
