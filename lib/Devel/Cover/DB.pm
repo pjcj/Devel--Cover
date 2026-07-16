@@ -21,6 +21,7 @@ use Devel::Cover::Log       qw( dcinfo dcwarn );
 
 use Carp         qw( carp croak );
 use Digest::MD5  ();
+use Fcntl        qw( :flock );
 use File::Find   qw( find );
 use File::Path   qw( rmtree );
 use List::Util   qw( any );
@@ -137,8 +138,16 @@ sub delete ($self, $db = undef) {
 }
 
 sub clean ($self) {
-  # remove all lock files
-  my $rm_lock = sub { unlink if /\.lock$/ };
+  # remove lock files nobody currently holds
+  my $rm_lock = sub {
+    return unless /\.lock$/;
+    open my $fh, "+<", $_ or return;
+    # Windows can't unlink an open file, so end the probe before unlinking
+    my $free = flock $fh, LOCK_EX | LOCK_NB;
+    close $fh or dcinfo "Can't close lock file $_: $!";
+    return unless $free;
+    unlink or dcinfo "Can't unlink lock file $_: $!";
+  };
   find($rm_lock, $self->{db});
 }
 
@@ -1384,7 +1393,8 @@ not look like a coverage database. Returns C<$self>.
 
   $db->clean;
 
-Remove stale C<.lock> files from the database directory.
+Remove stale C<.lock> files from the database directory. Lock files
+currently held by live processes are left in place.
 
 =head2 merge_runs
 
