@@ -1,0 +1,65 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+sub and_const_first {
+  my ($x, $y) = @_;
+  my $n;
+  if ($x and "A" eq $y) { $n = 1 }
+  $n;
+}
+
+sub and_const_last {
+  my ($x, $y) = @_;
+  my $n;
+  if ($x and $y eq "A") { $n = 1 }
+  $n;
+}
+
+sub or_const_first {
+  my ($x, $y) = @_;
+  my $n;
+  if ($x or "A" eq $y) { $n = 1 }
+  $n;
+}
+
+sub and_const_ref {
+  my ($sth) = @_;
+  my $n;
+  if ($sth->{stmt}{NAME} and "ARRAY" eq ref $sth->{stmt}{NAME}) { $n = 1 }
+  $n;
+}
+
+sub main {
+  # A constant on the left of a comparison (Yoda style) is still a
+  # variable condition; only an operand which is itself constant-like
+  # loses its MC/DC column.  The runtime column walker must not descend
+  # into the operand's first leaf when deciding that.
+  my @r;
+
+  push @r, and_const_first(1, "A");
+  push @r, and_const_first(0, "A");
+  push @r, and_const_first(1, "B");
+
+  push @r, and_const_last(1, "A");
+  push @r, and_const_last(0, "A");
+  push @r, and_const_last(1, "B");
+
+  push @r, or_const_first(0, "A");
+  push @r, or_const_first(1, "A");
+  push @r, or_const_first(0, "B");
+
+  push @r, and_const_ref({ stmt => { NAME => [1] } });
+  push @r, and_const_ref({ stmt => { NAME => 0 } });
+  push @r, and_const_ref({ stmt => { NAME => "x" } });
+}
+
+main();

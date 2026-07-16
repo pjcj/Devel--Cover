@@ -1528,7 +1528,7 @@ static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
   } else if (right_op && dc_is_logop_type(right_op->op_type)) {
     next_col = dc_enumerate_columns(aTHX_ cache, right_op, root, next_col);
     right_col = -1;
-  } else if (right_op && dc_is_const_leaf(aTHX_ right_op)) {
+  } else if (raw_right && dc_is_const_leaf(aTHX_ raw_right)) {
     right_col = -1;
   } else {
     right_col = next_col++;
