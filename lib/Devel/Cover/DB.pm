@@ -122,6 +122,10 @@ sub delete ($self, $db = undef) {
 
   return $self unless -d $db;
 
+  my $dbo = ref $self ? $self : bless { db => $db }, $self;
+  croak "Devel::Cover: $db is not a coverage database - not deleting"
+    unless $dbo->is_valid;
+
   # TODO - just delete the directory?
   opendir my $dir, $db or die "Can't opendir $db: $!";
   my @files = map "$db/$_", map /(.*)/ && $1, grep !/^\.\.?/, readdir $dir;
@@ -1372,7 +1376,8 @@ C<db> attribute. Also writes the structure if one is attached. Returns C<$self>.
 
   $db->delete; $db->delete($db_path);
 
-Remove all contents of the database directory. Returns C<$self>.
+Remove all contents of the database directory. Croaks if the directory does
+not look like a coverage database. Returns C<$self>.
 
 =head2 clean
 
