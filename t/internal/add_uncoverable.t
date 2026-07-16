@@ -89,11 +89,13 @@ sub test_uncoverable_round_trip () {
   };
   is $err, "", "uncoverable: works without caller loading Digest::MD5";
 
+  # Read in text mode, matching how uncoverable() digests the file
   my $file_digest = do {
     open my $fh, "<", $src or die "Cannot open $src: $!";
-    binmode $fh;
     require Digest::MD5;
-    Digest::MD5->new->addfile($fh)->hexdigest
+    my $md5 = Digest::MD5->new;
+    while (my $l = <$fh>) { $md5->add($l) }
+    $md5->hexdigest
   };
   ok exists $u->{$file_digest}{branch}{2},
     "uncoverable: entry keyed by file digest and line number";
