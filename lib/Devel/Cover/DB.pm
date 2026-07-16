@@ -20,6 +20,7 @@ use Devel::Cover::DB::IO    ();
 use Devel::Cover::Log       qw( dcinfo dcwarn );
 
 use Carp         qw( carp croak );
+use Digest::MD5  ();
 use File::Find   qw( find );
 use File::Path   qw( rmtree );
 use List::Util   qw( any );
