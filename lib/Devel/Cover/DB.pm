@@ -122,6 +122,10 @@ sub delete ($self, $db = undef) {
 
   return $self unless -d $db;
 
+  my $dbo = ref $self ? $self : bless { db => $db }, $self;
+  croak "Devel::Cover: $db is not a coverage database - not deleting"
+    unless $dbo->is_valid;
+
   # TODO - just delete the directory?
   opendir my $dir, $db or die "Can't opendir $db: $!";
   my @files = map "$db/$_", map /(.*)/ && $1, grep !/^\.\.?/, readdir $dir;
@@ -190,10 +194,13 @@ sub is_valid ($self) {
   return 1 if !-e $self->{db};
   return 1 if -e "$self->{db}/$DB";
   opendir my $dir, $self->{db} or return 0;
-  my $ignore = join "|", qw( runs structure debuglog digests .AppleDouble );
+  my $ignore = join "|", map quotemeta,
+    qw( runs structure digests .AppleDouble );
   for my $file (readdir $dir) {
     next if $file eq "." || $file eq "..";
-    next if $file =~ /(?:$ignore)|(?:\.lock)$/ && -e "$self->{db}/$file";
+    next
+      if $file =~ /^(?:$ignore)$|\.lock$|^(?:$ignore|cover\.\d+)\.tmp\.\d+$/
+      && -e "$self->{db}/$file";
     warn "found $file in $self->{db}";
     return 0;
   }
@@ -1369,7 +1376,8 @@ C<db> attribute. Also writes the structure if one is attached. Returns C<$self>.
 
   $db->delete; $db->delete($db_path);
 
-Remove all contents of the database directory. Returns C<$self>.
+Remove all contents of the database directory. Croaks if the directory does
+not look like a coverage database. Returns C<$self>.
 
 =head2 clean
 
