@@ -1,0 +1,163 @@
+cover: Reading database from ...
+------------------- ------ ------ ------ ------ ------ ------ ------
+File                  stmt   bran   cond   mcdc    sub  total   scar
+------------------- ------ ------ ------ ------ ------ ------ ------
+tests/mcdc_const_eq  100.0  100.0  100.0  100.0  100.0  100.0   22.0
+Total                100.0  100.0  100.0  100.0  100.0  100.0   22.0
+------------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/mcdc_const_eq
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+ 9 100.0  9.0 22.0
+
+Worst Subroutines
+-----------------
+
+Subroutine      CC SCAR  Location              
+--------------- -- ----  ----------------------
+and_const_first  3 11.0  tests/mcdc_const_eq:14
+and_const_last   3 11.0  tests/mcdc_const_eq:21
+or_const_first   3 11.0  tests/mcdc_const_eq:28
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13                                             sub and_const_first {
+14             3                           3     my ($x, $y) = @_;
+15             3                                 my $n;
+16             3    100    100    100            if ($x and "A" eq $y) { $n = 1 }
+               1                               
+17             3                                 $n;
+18                                             }
+19                                             
+20                                             sub and_const_last {
+21             3                           3     my ($x, $y) = @_;
+22             3                                 my $n;
+23             3    100    100    100            if ($x and $y eq "A") { $n = 1 }
+               1                               
+24             3                                 $n;
+25                                             }
+26                                             
+27                                             sub or_const_first {
+28             3                           3     my ($x, $y) = @_;
+29             3                                 my $n;
+30             3    100    100    100            if ($x or "A" eq $y) { $n = 1 }
+               2                               
+31             3                                 $n;
+32                                             }
+33                                             
+34                                             sub and_const_ref {
+35             3                           3     my ($sth) = @_;
+36             3                                 my $n;
+37             3    100    100    100            if ($sth->{stmt}{NAME} and "ARRAY" eq ref $sth->{stmt}{NAME}) { $n = 1 }
+               1                               
+38             3                                 $n;
+39                                             }
+40                                             
+41                                             sub main {
+42                                               # A constant on the left of a comparison (Yoda style) is still a
+43                                               # variable condition; only an operand which is itself constant-like
+44                                               # loses its MC/DC column.  The runtime column walker must not descend
+45                                               # into the operand's first leaf when deciding that.
+46             1                           1     my @r;
+47                                             
+48             1                                 push @r, and_const_first(1, "A");
+49             1                                 push @r, and_const_first(0, "A");
+50             1                                 push @r, and_const_first(1, "B");
+51                                             
+52             1                                 push @r, and_const_last(1, "A");
+53             1                                 push @r, and_const_last(0, "A");
+54             1                                 push @r, and_const_last(1, "B");
+55                                             
+56             1                                 push @r, or_const_first(0, "A");
+57             1                                 push @r, or_const_first(1, "A");
+58             1                                 push @r, or_const_first(0, "B");
+59                                             
+60             1                                 push @r, and_const_ref({ stmt => { NAME => [1] } });
+61             1                                 push @r, and_const_ref({ stmt => { NAME => 0 } });
+62             1                                 push @r, and_const_ref({ stmt => { NAME => "x" } });
+63                                             }
+64                                             
+65             1                               main();
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+16           100      1      2   if ($x and "A" eq $y)
+23           100      1      2   if ($x and $y eq "A")
+30           100      2      1   if ($x or "A" eq $y)
+37           100      1      2   if ($$sth{"stmt"}{"NAME"} and "ARRAY" eq ref $$sth{"stmt"}{"NAME"})
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+16           100      1      1      1   $x and "A" eq $y
+23           100      1      1      1   $x and $y eq "A"
+37           100      1      1      1   $$sth{"stmt"}{"NAME"} and "ARRAY" eq ref $$sth{"stmt"}{"NAME"}
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+30           100      1      1      1   $x or "A" eq $y
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+16           100    2    2                          $x and "A" eq $y
+23           100    2    2                          $x and $y eq "A"
+30           100    2    2                          $x or "A" eq $y
+37           100    2    2                          $$sth{"stmt"}{"NAME"} and "ARRAY" eq ref $$sth{"stmt"}{"NAME"}
+
+
+Covered Subroutines
+-------------------
+
+Subroutine      Count  CC  SCAR Location              
+--------------- ----- --- ----- ----------------------
+BEGIN               1   1   0.0 tests/mcdc_const_eq:10
+BEGIN               1   1   0.0 tests/mcdc_const_eq:11
+and_const_first     3   3  11.0 tests/mcdc_const_eq:14
+and_const_last      3   3  11.0 tests/mcdc_const_eq:21
+and_const_ref       3   3  11.0 tests/mcdc_const_eq:35
+main                1   1   0.0 tests/mcdc_const_eq:46
+or_const_first      3   3  11.0 tests/mcdc_const_eq:28
+
+
