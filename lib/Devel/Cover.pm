@@ -696,9 +696,11 @@ $@
 
 EOM
   }
-  return unless $Self_cover;
-  $Self_cover_run = 1;
-  _report();
+  if ($Self_cover) {
+    $Self_cover_run = 1;
+    _report();
+  }
+  release_require_trees();
 }
 
 sub _report {
@@ -745,6 +747,26 @@ sub _report {
     );
   }
   get_cover_progress("CV", @Cvs);
+  unless ($Subs_only) {
+    # Top-level optrees of required files, kept alive by the leaveeval
+    # hook.  Their eval CVs have no ROOT so the root op rides alongside,
+    # as with main_cv/main_root.  There is no set_subroutine call for
+    # top-level code, so establish the structure's file context here or
+    # the per-file counters would run against the wrong file.
+    my @require_trees = get_require_trees();
+    _report_progress(
+      "getting require file coverage",
+      sub ($tree) {
+        my ($cv, $root, $file) = @$tree;
+        local ($File, $Line) = (normalised_file($file), 0);
+        return unless use_file($File);
+        my $digest = $Structure->set_file($File);
+        $Run{digests}{$File} ||= $digest;
+        get_cover($cv, $root);
+      },
+      @require_trees,
+    ) if @require_trees;
+  }
 
   _filter_cover_files();
   _write_coverage_db();

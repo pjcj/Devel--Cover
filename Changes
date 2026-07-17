@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Collect coverage for top-level statements, branches and conditions in
+  required modules by keeping their optrees alive until report time - such
+  code was previously absent from reports entirely (GH-51)
 - Remove the original B::Deparse coverage collection path and the
   DEVEL_COVER_USE_DEPARSE toggle - the XS op walker is now the only collector
   (GH-488)

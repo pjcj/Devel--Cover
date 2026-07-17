@@ -5,11 +5,11 @@ Common prefix: tests/
 ----- ------ ------ ------ ------ ------ ------ ------
 File    stmt   bran   cond   mcdc    sub  total   scar
 ----- ------ ------ ------ ------ ------ ------ ------
-E2.pm    0.0    n/a    n/a    n/a    0.0    0.0    6.9
-E3.pm    0.0    n/a    n/a    n/a    0.0    0.0    6.9
-E4.pm    0.0    n/a    n/a    n/a    0.0    0.0    6.9
+E2.pm   66.6    n/a    n/a    n/a    0.0   50.0    0.4
+E3.pm   66.6    n/a    n/a    n/a    0.0   50.0    0.4
+E4.pm   66.6    n/a    n/a    n/a    0.0   50.0    0.4
 eval2  100.0  100.0  100.0  100.0  100.0  100.0    0.0
-Total   88.4  100.0  100.0  100.0   57.1   85.7    0.0
+Total   90.6  100.0  100.0  100.0   57.1   87.5    0.0
 ----- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -42,7 +42,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    4  1 91.2  1.0  0.0
+    4  1 92.5  1.0  0.0
 
 
 E2.pm
@@ -50,9 +50,9 @@ E2.pm
 File Summary
 ------------
 
-CC Cov CRAP SCAR
--- --- ---- ----
- 1 0.0  2.0  6.9
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 1 66.7  1.0  0.4
 
 Worst Subroutines
 -----------------
@@ -71,11 +71,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 7                                              
 8                                              package E2;
 9                                              
-10                                             print "E2\n";
+10             2                               print "E2\n";
 11                                             
 12    ***     *0                          *0   sub E2 { print "E2::E2\n" }
 13                                             
-14                                             1
+14             2                               1
 
 
 Uncovered Subroutines
@@ -91,9 +91,9 @@ E3.pm
 File Summary
 ------------
 
-CC Cov CRAP SCAR
--- --- ---- ----
- 1 0.0  2.0  6.9
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 1 66.7  1.0  0.4
 
 Worst Subroutines
 -----------------
@@ -112,11 +112,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 7                                              
 8                                              package E3;
 9                                              
-10                                             print "E3\n";
+10             2                               print "E3\n";
 11                                             
 12    ***     *0                          *0   sub E3 { print "E3::E3\n" }
 13                                             
-14                                             1
+14             2                               1
 
 
 Uncovered Subroutines
@@ -132,9 +132,9 @@ E4.pm
 File Summary
 ------------
 
-CC Cov CRAP SCAR
--- --- ---- ----
- 1 0.0  2.0  6.9
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 1 66.7  1.0  0.4
 
 Worst Subroutines
 -----------------
@@ -153,11 +153,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 7                                              
 8                                              package E4;
 9                                              
-10                                             print "E4\n";
+10             3                               print "E4\n";
 11                                             
 12    ***     *0                          *0   sub E4 { print "E4::E4\n" }
 13                                             
-14                                             1
+14             3                               1
 
 
 Uncovered Subroutines

@@ -167,6 +167,9 @@ typedef struct {
                *modules,
                *files;
   AV           *ends;
+  AV           *require_trees;       /* [CV ref, root op addr] pairs for
+                                      * require optrees kept alive past
+                                      * their SAVEFREEOP */
   char          profiling_key[KEY_SZ];
   bool          profiling_key_valid;
   SV           *module,
@@ -2294,6 +2297,51 @@ static OP *dc_require(pTHX) {
   return MY_CXT.ppaddr[OP_REQUIRE](aTHX);
 }
 
+/*
+ * Keep a required file's top-level optree alive past the SAVEFREEOP
+ * scheduled by doeval_compile so it can be walked at report time.  At the
+ * leaveeval op of a require, PL_op is the root of the file's top-level
+ * optree (PL_eval_root at compile time).  The eval CV never owns these
+ * ops (CvROOT is NULL), so we bump the root's own refcount - op_free from
+ * the scope unwind then just decrements it - and take a reference to the
+ * CV, whose pad holds the file's lexicals for deparsing.  See
+ * docs/technical/require-toplevel-coverage.md.
+ */
+static void capture_require_tree(pTHX) {
+  dMY_CXT;
+  PERL_CONTEXT *cx;
+  CV           *cv;
+  AV           *pair;
+
+  if (cxstack_ix < 0) return;
+  cx = &cxstack[cxstack_ix];
+  if (CxTYPE(cx) != CXt_EVAL || CxOLD_OP_TYPE(cx) != OP_REQUIRE) return;
+  if (!check_if_collecting(aTHX_ PL_curcop)) return;
+
+  cv = cx->blk_eval.cv;
+  if (!cv) return;
+
+  OP_REFCNT_LOCK;
+  (void)OpREFCNT_inc(PL_op);
+  OP_REFCNT_UNLOCK;
+
+  NDEB(D(L, "capturing require tree at %p for %s\n",
+         PL_op, CopFILE(PL_curcop)));
+
+  pair = newAV();
+  av_push(pair, newRV_inc((SV *)cv));
+  av_push(pair, newSViv(PTR2IV(PL_op)));
+  av_push(pair, newSVpv(CopFILE(PL_curcop), 0));
+  av_push(MY_CXT.require_trees, newRV_noinc((SV *)pair));
+}
+
+static OP *dc_leaveeval(pTHX) {
+  dMY_CXT;
+  NDEB(D(L, "dc_leaveeval() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering && collecting_here(aTHX)) capture_require_tree(aTHX);
+  return MY_CXT.ppaddr[OP_LEAVEEVAL](aTHX);
+}
+
 static OP *dc_exec(pTHX) {
   dMY_CXT;
   NDEB(D(L, "dc_exec() at %p (%d)\n", PL_op, collecting_here(aTHX)));
@@ -2321,6 +2369,7 @@ static void replace_ops (pTHX) {
   PL_ppaddr[OP_DORASSIGN] = dc_dorassign;
   PL_ppaddr[OP_XOR]       = dc_xor;
   PL_ppaddr[OP_REQUIRE]   = dc_require;
+  PL_ppaddr[OP_LEAVEEVAL] = dc_leaveeval;
   PL_ppaddr[OP_EXEC]      = dc_exec;
 }
 
@@ -2395,6 +2444,7 @@ static void initialise(pTHX) {
     MY_CXT.decision_walked_cvs        = newHV();
     HvSHAREKEYS_off(MY_CXT.decision_meta);
     HvSHAREKEYS_off(MY_CXT.decision_walked_cvs);
+    MY_CXT.require_trees       = newAV();
     MY_CXT.module              = newSVpv("", 0);
     MY_CXT.lastfile            = newSVpvn("", 1);
     MY_CXT.lastfile_ptr        = NULL;
@@ -2481,6 +2531,11 @@ static int runops_cover(pTHX) {
 
       case OP_REQUIRE: {
         store_module(aTHX);
+        break;
+      }
+
+      case OP_LEAVEEVAL: {
+        capture_require_tree(aTHX);
         break;
       }
 
@@ -2985,6 +3040,57 @@ get_ends()
       RETVAL = MY_CXT.ends;
   OUTPUT:
     RETVAL
+
+void
+get_require_trees()
+  PREINIT:
+    dMY_CXT;
+  PPCODE:
+    int i;
+    if (MY_CXT.require_trees)
+      for (i = 0; i <= av_len(MY_CXT.require_trees); i++) {
+        SV **pairref = av_fetch(MY_CXT.require_trees, i, 0);
+        AV  *pair, *ret;
+        SV **cvrv, **opiv, **file;
+        if (!pairref || !SvROK(*pairref)) continue;
+        pair = (AV *)SvRV(*pairref);
+        cvrv = av_fetch(pair, 0, 0);
+        opiv = av_fetch(pair, 1, 0);
+        file = av_fetch(pair, 2, 0);
+        if (!cvrv || !opiv || !file) continue;
+        ret = newAV();
+        av_push(ret, dc_make_cv_sv(aTHX_ (CV *)SvRV(*cvrv)));
+        av_push(ret, dc_make_op_sv(aTHX_ INT2PTR(OP *, SvIV(*opiv))));
+        av_push(ret, newSVsv(*file));
+        XPUSHs(sv_2mortal(newRV_noinc((SV *)ret)));
+      }
+
+void
+release_require_trees()
+  PREINIT:
+    dMY_CXT;
+  PPCODE:
+    int i;
+    if (MY_CXT.require_trees) {
+      /*
+       * Null the current pad around op_free, as cv_undef does - pad ops
+       * free their pad slots against PL_comppad, which by report time
+       * belongs to some unrelated (or already freed) CV
+       */
+      ENTER;
+      SAVECOMPPAD();
+      PL_comppad = NULL;
+      PL_curpad  = NULL;
+      for (i = 0; i <= av_len(MY_CXT.require_trees); i++) {
+        SV **pairref = av_fetch(MY_CXT.require_trees, i, 0);
+        SV **opiv;
+        if (!pairref || !SvROK(*pairref)) continue;
+        opiv = av_fetch((AV *)SvRV(*pairref), 1, 0);
+        if (opiv) op_free(INT2PTR(OP *, SvIV(*opiv)));
+      }
+      LEAVE;
+      av_clear(MY_CXT.require_trees);
+    }
 
 void
 adjust_blocks(stash)

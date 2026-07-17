@@ -47,7 +47,7 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-10    ***     50      1      0   unless defined &Taint::X
+10    ***     50      1      0   unless defined &X
 
 
 taint

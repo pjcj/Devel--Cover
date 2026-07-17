@@ -45,11 +45,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 7                                              
 8                                              package E2;
 9                                              
-10                                             print "E2\n";
+10             1                               print "E2\n";
 11                                             
 12             1                           1   sub E2 { print "E2::E2\n" }
 13                                             
-14                                             1
+14             1                               1
 
 
 Covered Subroutines
@@ -79,11 +79,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 7                                              
 8                                              package E3;
 9                                              
-10                                             print "E3\n";
+10             1                               print "E3\n";
 11                                             
 12             1                           1   sub E3 { print "E3::E3\n" }
 13                                             
-14                                             1
+14             1                               1
 
 
 Covered Subroutines
