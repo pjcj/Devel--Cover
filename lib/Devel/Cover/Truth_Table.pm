@@ -243,7 +243,6 @@ sub new_primitive {
 #-------------------------------------------------------------------------------
 sub error {
   my $self = shift;
-  if (@_) { print "[[[", $self->[shift]->error, "]]]\n"; die }
   return $self->[shift]->error if @_;
   foreach (@$self) {
     return 1 if $_->error;
