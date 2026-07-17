@@ -947,6 +947,7 @@ static AV *get_conds(pTHX_ AV *conds) {
 
   t = SvPV_nolen(tid);
   cref = hv_fetch(threads, t, strlen(t), 1);
+  SvREFCNT_dec(tid);
 
   if (SvROK(*cref))
     thrconds = (AV *)SvRV(*cref);
