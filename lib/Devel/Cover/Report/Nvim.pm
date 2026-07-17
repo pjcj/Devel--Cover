@@ -447,11 +447,12 @@ that line.
 
 The signs are as follows:
 
- P - Pod coverage
  S - Statement coverage
- R - Subroutine coverage
  B - Branch coverage
  C - Condition coverage
+ M - MC/DC coverage
+ R - Subroutine coverage
+ P - Pod coverage
 
 The last of the criteria, in the order given above, is the one which is
 displayed.  Correctly covered criteria are shown in green.  Incorrectly

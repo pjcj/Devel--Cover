@@ -14,8 +14,9 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
+use Devel::Cover::DB  ();
 use Devel::Cover::Log qw( dcinfo );
-use Template 2.00 ();
+use Template 2.00     ();
 
 sub report ($pkg, $db, $options) {
   my $template = Template->new({
@@ -47,7 +48,8 @@ sub report ($pkg, $db, $options) {
     files   =>
       [grep !$db->cover->file($_)->{meta}{uncompiled}, $options->{file}->@*],
     cover => $db->cover,
-    types => [grep $_ ne "time" && $_ ne "total", keys $options->{show}->%*],
+    types =>
+      [grep $options->{show}{$_} && $_ ne "time", @Devel::Cover::DB::Criteria],
   };
 
   my $out = "$options->{outputdir}/$options->{outputfile}";
