@@ -985,7 +985,7 @@ sub _parse_pod_options {
   if (ref $Coverage_options{pod}) {
     my $p;
     for ($Coverage_options{pod}->@*) {
-      if (/^package|(?:also_)?private|trustme|pod_from|nocp$/) {
+      if (/^(?:package|(?:also_)?private|trustme|pod_from|nocp)$/) {
         $opts{ $p = $_ } = [];
       } elsif ($p) {
         push $opts{$p}->@*, $_;
