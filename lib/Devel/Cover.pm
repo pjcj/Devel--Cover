@@ -869,7 +869,7 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
   } else {
     $ccount->{branch}[$n] = $c;
     my $vec = $Run{vec}{$File}{branch};
-    vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
+    vec($vec->{vec}, $vec->{size}++, 1) = ($_ ||= 0) ? 1 : 0 for @$c;
   }
 }
 
@@ -943,7 +943,7 @@ sub add_condition_cover (
   } else {
     $ccount->{condition}[$n] = $c;
     my $vec = $Run{vec}{$File}{condition};
-    vec($vec->{vec}, $vec->{size}++, 1) = $_ ||= 0 ? 1 : 0 for @$c;
+    vec($vec->{vec}, $vec->{size}++, 1) = ($_ ||= 0) ? 1 : 0 for @$c;
   }
 
   _record_decision_inputs($key, $n);
