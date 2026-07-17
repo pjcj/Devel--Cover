@@ -46,7 +46,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 17                                             
-18             3                           3       sub meh { 1 }
+18             2                           2       sub meh { 1 }
 19                                             }
 20                                             
 21             1                               my $string = "hi";
@@ -64,6 +64,6 @@ Subroutine Count  CC  SCAR Location
 BEGIN          1   1   0.0 tests/overload_bool2:10
 BEGIN          1   1   0.0 tests/overload_bool2:11
 BEGIN          1   1   0.0 tests/overload_bool2:16
-meh            3   1   0.0 tests/overload_bool2:18
+meh            2   1   0.0 tests/overload_bool2:18
 
 
