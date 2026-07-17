@@ -54,11 +54,20 @@ sub entries ($path) {
   @entries
 }
 
+sub warnings_from ($code) {
+  my @warnings;
+  local $SIG{__WARN__} = sub { push @warnings, @_ };
+  $code->();
+  join "", @warnings
+}
+
 sub test_class_method_refuses_foreign_directory () {
-  my $path = dir_with("precious.txt");
-  eval { Devel::Cover::DB->delete($path) };
+  my $path     = dir_with("precious.txt");
+  my $warnings = warnings_from sub { eval { Devel::Cover::DB->delete($path) } };
   like $@, qr/not a coverage database/,
     "delete: class method refuses a foreign directory";
+  like $warnings, qr/found precious\.txt/,
+    "delete: class method names the unexpected file";
   ok -s File::Spec->catfile($path, "precious.txt"),
     "delete: class method leaves the contents alone";
 }
@@ -67,18 +76,22 @@ sub test_instance_method_refuses_foreign_directory () {
   my $path = dir_with("precious.txt");
   my $db   = Devel::Cover::DB->new;
   $db->{db} = $path;
-  eval { $db->delete };
+  my $warnings = warnings_from sub { eval { $db->delete } };
   like $@, qr/not a coverage database/,
     "delete: instance method refuses a foreign directory";
+  like $warnings, qr/found precious\.txt/,
+    "delete: instance method names the unexpected file";
   ok -s File::Spec->catfile($path, "precious.txt"),
     "delete: instance method leaves the contents alone";
 }
 
 sub test_substring_names_also_refused () {
-  my $path = dir_with(qw( test_runs/ test_runs/file.txt ));
-  eval { Devel::Cover::DB->delete($path) };
+  my $path     = dir_with(qw( test_runs/ test_runs/file.txt ));
+  my $warnings = warnings_from sub { eval { Devel::Cover::DB->delete($path) } };
   like $@, qr/not a coverage database/,
     "delete: refuses a directory whose entries merely contain 'runs'";
+  like $warnings, qr/found test_runs/,
+    "delete: names the substring-named entry";
   ok -s File::Spec->catfile($path, "test_runs", "file.txt"),
     "delete: the substring-named contents survive";
 }
@@ -105,9 +118,11 @@ sub test_no_db_croaks () {
 sub test_init_db_call_site () {
   my $path = dir_with("precious.txt");
   my @inc  = map "-I$_", qw( lib blib/lib blib/arch );
-  my $exit = system $^X, @inc, "-MDevel::Cover=-db,$path,-merge,0,-silent,1",
-    "-e1";
-  isnt $exit, 0, "delete: -merge,0 against a foreign directory aborts";
+  my $cmd  = join " ", $^X, @inc, "-MDevel::Cover=-db,$path,-merge,0,-silent,1",
+    "-e1", "2>&1";
+  my $out = `$cmd`;
+  isnt $?, 0, "delete: -merge,0 against a foreign directory aborts";
+  like $out, qr/not a coverage database/, "delete: -merge,0 explains why";
   ok -s File::Spec->catfile($path, "precious.txt"),
     "delete: -merge,0 leaves the foreign directory alone";
 }
