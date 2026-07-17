@@ -16,13 +16,18 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [qw( diag done_testing is like unlike )];
+use Test::More import => [qw( diag done_testing is like plan unlike )];
 use Devel::Cover::Test::Showcase qw(
   create_cover_db
   run_cover
   setup_lib_dir
   slurp
 );
+
+eval "require Template; 1" or do {
+  plan skip_all => "Template not available";
+  exit;
+};
 
 # Stored file keys must be matched as literal text, not as Vim regexes
 sub test_vim_report_literal_matching () {

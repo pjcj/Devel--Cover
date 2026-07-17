@@ -16,7 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [qw( diag done_testing is is_deeply ok )];
+use Test::More import => [qw( diag done_testing is is_deeply ok plan )];
 use Devel::Cover::DB             ();
 use Devel::Cover::Test::Showcase qw(
   create_cover_db
@@ -24,6 +24,11 @@ use Devel::Cover::Test::Showcase qw(
   setup_lib_dir
   slurp
 );
+
+eval "require Template; 1" or do {
+  plan skip_all => "Template not available";
+  exit;
+};
 
 sub types_from_vim_report ($cover_db, $libdir, $seed) {
   local $ENV{PERL_HASH_SEED}    = $seed;

@@ -17,7 +17,8 @@ use Cwd        qw( getcwd );
 use File::Spec ();
 use File::Temp qw( tempdir );
 
-use Test::More import => [qw( done_testing is isnt like note plan unlike )];
+use Test::More import =>
+  [qw( done_testing is isnt like note plan skip unlike )];
 
 my $Project   = getcwd;
 my $Cover     = File::Spec->catfile($Project, "bin", "cover");
@@ -75,7 +76,11 @@ sub main () {
     ($ENV{PERL5LIB} // ());
 
   build_db;
-  test_report_annotation_combination;
+  SKIP: {
+    skip "JSON::MaybeXS not available", 2
+      unless eval { require JSON::MaybeXS; 1 };
+    test_report_annotation_combination;
+  }
   test_unknown_option_rejected;
   done_testing;
 }
