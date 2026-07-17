@@ -16,7 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [qw( diag done_testing is like unlike )];
+use Test::More import => [qw( diag done_testing is like ok unlike )];
 use Devel::Cover::Test::Showcase qw(
   create_cover_db
   run_cover
@@ -43,8 +43,22 @@ sub test_nvim_report_literal_matching () {
   like $lua, qr/\Q$literal\E/, "file matching uses a literal suffix comparison";
 }
 
+# The template's sign_priority default and the POD's documented one must agree
+sub test_sign_priority_default_documented () {
+  require Devel::Cover::Report::Nvim;
+  my $src = slurp($INC{"Devel/Cover/Report/Nvim.pm"});
+  my ($code_default)
+    = $src =~ /sign_priority = vim\.g\.devel_cover_sign_priority or (\d+),/;
+  my ($pod_default)
+    = $src =~ /devel_cover_sign_priority -- Sign priority \(default: (\d+)\)/;
+  ok defined $code_default, "template sign_priority default found";
+  ok defined $pod_default,  "POD sign_priority default found";
+  is $pod_default, $code_default, "POD documents the template default";
+}
+
 sub main () {
   test_nvim_report_literal_matching;
+  test_sign_priority_default_documented;
   done_testing;
 }
 

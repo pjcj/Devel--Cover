@@ -479,7 +479,7 @@ Available configuration variables:
  vim.g.devel_cover_linehl_error  -- Error line highlight (default: "err")
  vim.g.devel_cover_signs         -- Custom sign text table
  vim.g.devel_cover_sign_group    -- Sign group name (default: "DevelCover")
- vim.g.devel_cover_sign_priority -- Sign priority (default: 10)
+ vim.g.devel_cover_sign_priority -- Sign priority (default: 1)
 
 Example configuration for solarized theme in init.lua:
 
