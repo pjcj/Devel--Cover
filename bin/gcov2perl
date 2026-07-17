@@ -74,7 +74,7 @@ sub add_cover ($file) {
   $f =~ s/.gcov$//;
 
   my %run;
-  $run{collected} = ["statement"];
+  $run{collected} = ["statement", "branch"];
   $run{start}     = $run{finish} = time;
   require Devel::Cover::DB::Structure;
   my $structure = Devel::Cover::DB::Structure->new;

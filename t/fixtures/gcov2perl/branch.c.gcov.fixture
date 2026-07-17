@@ -1,0 +1,16 @@
+        -:    0:Source:branch.c
+        -:    0:Graph:branch-branch.gcno
+        -:    0:Data:branch-branch.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:/* vim: set ft=c: */
+        -:    2:/* Branch test file for gcov2perl */
+        -:    3:
+        1:    4:int f(int x) {
+        1:    5:    if (x) {
+branch  0 taken 1
+branch  1 taken 0
+        1:    6:        return 0;
+        -:    7:    }
+    #####:    8:    return 1;
+        1:    9:}

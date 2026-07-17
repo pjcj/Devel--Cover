@@ -13,22 +13,24 @@ use File::Copy     qw( copy );
 use File::Spec     ();
 use File::Temp     qw( tempdir );
 
+use Devel::Cover::DB::IO ();
+
 my $Test_dir = dirname(__FILE__);
 my $Root     = File::Spec->catdir($Test_dir, "..", "..");
 my $Bin      = File::Spec->catfile($Root, "bin", "gcov2perl");
 my $Fixtures = File::Spec->catdir($Root, "t", "fixtures", "gcov2perl");
 
-sub setup () {
+sub setup ($stem) {
   my $tmpdir = tempdir(CLEANUP => 1);
 
   copy(
-    File::Spec->catfile($Fixtures, "simple.c.fixture"),
-    File::Spec->catfile($tmpdir,   "simple.c"),
-  ) or die "Failed to copy simple.c.fixture: $!";
+    File::Spec->catfile($Fixtures, "$stem.c.fixture"),
+    File::Spec->catfile($tmpdir,   "$stem.c"),
+  ) or die "Failed to copy $stem.c.fixture: $!";
   copy(
-    File::Spec->catfile($Fixtures, "simple.c.gcov.fixture"),
-    File::Spec->catfile($tmpdir,   "simple.c.gcov"),
-  ) or die "Failed to copy simple.c.gcov.fixture: $!";
+    File::Spec->catfile($Fixtures, "$stem.c.gcov.fixture"),
+    File::Spec->catfile($tmpdir,   "$stem.c.gcov"),
+  ) or die "Failed to copy $stem.c.gcov.fixture: $!";
 
   $tmpdir
 }
@@ -104,10 +106,44 @@ sub test_skip_core ($tmpdir) {
     "runs directory created for CORE source with -no-skip-core";
 }
 
+# Read the collected criteria list from the single run that gcov2perl wrote.
+# gcov2perl writes a run but does not merge it into the top-level database, so
+# read the run file directly rather than through Devel::Cover::DB.
+sub run_collected ($db_dir) {
+  my $runs_dir = File::Spec->catdir($db_dir, "runs");
+  opendir my $dh, $runs_dir or die "Cannot open $runs_dir: $!";
+  my ($run) = grep !/^\./, readdir $dh;
+  closedir $dh;
+
+  my $run_dir = File::Spec->catdir($runs_dir, $run);
+  opendir my $rh, $run_dir or die "Cannot open $run_dir: $!";
+  my ($file) = grep !/^\./ && !/\.lock$/, readdir $rh;
+  closedir $rh;
+
+  my $data
+    = Devel::Cover::DB::IO->new->read(File::Spec->catfile($run_dir, $file));
+  [map $data->{runs}{$_}{collected}->@*, keys $data->{runs}->%*]
+}
+
+sub test_branch_collected ($tmpdir) {
+  my $gcov_file = File::Spec->catfile($tmpdir, "branch.c.gcov");
+  my $db_dir    = File::Spec->catdir($tmpdir, "cover_db");
+  my ($exit_code, $output) = run_gcov2perl($db_dir, $gcov_file);
+
+  is $exit_code, 0, "gcov2perl exits successfully on branch fixture";
+  like $output, qr/Writing coverage database/,
+    "gcov2perl writes database for branch fixture";
+
+  my $collected = run_collected($db_dir);
+  ok scalar(grep $_ eq "branch", @$collected),
+    "branch is advertised in collected criteria";
+}
+
 sub main () {
-  my $tmpdir = setup;
+  my $tmpdir = setup("simple");
   test_gcov2perl($tmpdir);
   test_skip_core($tmpdir);
+  test_branch_collected(setup("branch"));
   done_testing;
 }
 
