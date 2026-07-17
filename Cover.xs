@@ -472,7 +472,7 @@ static int check_if_collecting(pTHX_ COP *cop) {
 
   NDEB(D(L, "%s - %d\n", SvPV_nolen(MY_CXT.lastfile), MY_CXT.collecting_here));
 
-  if (SvTRUE(MY_CXT.module)) {
+  if (file && SvTRUE(MY_CXT.module)) {
     STRLEN mlen,
            flen = strlen(file);
     char  *m    = SvPV(MY_CXT.module, mlen);
