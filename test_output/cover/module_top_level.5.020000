@@ -5,9 +5,9 @@ Common prefix: tests/
 ------------------- ------ ------ ------ ------ ------ ------ ------
 File                  stmt   bran   cond   mcdc    sub  total   scar
 ------------------- ------ ------ ------ ------ ------ ------ ------
-Module_top_level.pm   88.8   50.0    n/a    n/a  100.0   83.3    0.1
+Module_top_level.pm   85.7   50.0    n/a    n/a   83.3   82.7    0.1
 module_top_level     100.0    n/a    n/a    n/a  100.0  100.0    0.0
-Total                 95.4   50.0    n/a    n/a  100.0   93.1    0.0
+Total                 91.6   50.0    n/a    n/a   90.0   89.5    0.0
 ------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -22,7 +22,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    2  1 91.7  1.0  0.0
+    2  1 89.5  1.0  0.0
 
 
 Module_top_level.pm
@@ -32,7 +32,14 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 81.8  1.0  0.1
+ 1 82.6  1.0  0.1
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SCAR  Location              
+---------- -- ----  ----------------------
+__ANON__    1  6.9  Module_top_level.pm:27
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
@@ -55,9 +62,33 @@ line  err   stmt   bran   cond   mcdc    sub   code
 18    ***     *0                                 $count = 0;
 19                                             }
 20                                             
-21             1                           1   sub get_count { $count }
-22                                             
-23             1                               1
+21                                             my $add = sub {
+22             1                           1     my ($x, $y) = @_;
+23             1                                 $x + $y
+24             1                               };
+25                                             
+26                                             my $unused = sub {
+27    ***     *0                          *0     my ($x) = @_;
+28    ***     *0                                 $x * 2
+29             1                               };
+30                                             
+31                                             my $outer = sub {
+32                                               my $inner = sub {
+33                                                 my ($x) = @_;
+34                                                 $x + 1
+35             1                           1     };
+36                                               my $inner_unused = sub {
+37                                                 my ($x) = @_;
+38                                                 $x - 1
+39             1                                 };
+40             1                                 $inner->(2)
+41             1                               };
+42                                             
+43             1                           1   sub get_count { $count }
+44             1                           1   sub add       { $add->(1, 2) }
+45             1                           1   sub run_outer { $outer->() }
+46                                             
+47             1                               1
 
 
 Branches
@@ -73,7 +104,18 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location              
 ---------- ----- --- ----- ----------------------
-get_count      1   1   0.0 Module_top_level.pm:21
+__ANON__       1   1   0.0 Module_top_level.pm:22
+__ANON__       1   1   0.0 Module_top_level.pm:35
+add            1   1   0.0 Module_top_level.pm:44
+get_count      1   1   0.0 Module_top_level.pm:43
+run_outer      1   1   0.0 Module_top_level.pm:45
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count  CC  SCAR Location              
+---------- ----- --- ----- ----------------------
+__ANON__       0   1   6.9 Module_top_level.pm:27
 
 
 module_top_level
@@ -97,27 +139,31 @@ line  err   stmt   bran   cond   mcdc    sub   code
 9                                              
 10                                             # The top-level statements in Module_top_level.pm run inside the eval CV
 11                                             # created by the require, and perl frees that op tree as soon as the
-12                                             # require completes.  Devel::Cover cannot walk those ops at END time, so
-13                                             # the module's top-level statements, branches and conditions are missing
-14                                             # from the coverage - they do not even appear as uncovered.  The golden
-15                                             # results record this deficiency.
-16                                             
-17             1                           1   use strict;
+12                                             # require completes.  Devel::Cover keeps the tree alive from its
+13                                             # leaveeval hook and walks it at report time, so the module's top-level
+14                                             # statements, branches and conditions are covered, and file-scope anon
+15                                             # subs are found through the eval CV's pad.  The anon sub nested inside
+16                                             # another anon sub remains invisible - nothing recurses into the pads of
+17                                             # anonymous CVs - and the golden results record that deficiency.
+18                                             
+19             1                           1   use strict;
                1                               
                1                               
-18             1                           1   use warnings;
-               1                               
-               1                               
-19                                             
-20             1                           1   use lib "tests";
+20             1                           1   use warnings;
                1                               
                1                               
 21                                             
-22             1                           1   use Module_top_level;
+22             1                           1   use lib "tests";
                1                               
                1                               
 23                                             
-24             1                               print "count: ", Module_top_level::get_count(), "\n";
+24             1                           1   use Module_top_level;
+               1                               
+               1                               
+25                                             
+26             1                               print "count: ",     Module_top_level::get_count(), "\n";
+27             1                               print "add: ",       Module_top_level::add(),       "\n";
+28             1                               print "run_outer: ", Module_top_level::run_outer(), "\n";
 
 
 Covered Subroutines
@@ -125,9 +171,9 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location           
 ---------- ----- --- ----- -------------------
-BEGIN          1   1   0.0 module_top_level:17
-BEGIN          1   1   0.0 module_top_level:18
+BEGIN          1   1   0.0 module_top_level:19
 BEGIN          1   1   0.0 module_top_level:20
 BEGIN          1   1   0.0 module_top_level:22
+BEGIN          1   1   0.0 module_top_level:24
 
 

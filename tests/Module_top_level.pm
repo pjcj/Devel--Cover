@@ -18,6 +18,30 @@ if ($count > 2) {
   $count = 0;
 }
 
+my $add = sub {
+  my ($x, $y) = @_;
+  $x + $y
+};
+
+my $unused = sub {
+  my ($x) = @_;
+  $x * 2
+};
+
+my $outer = sub {
+  my $inner = sub {
+    my ($x) = @_;
+    $x + 1
+  };
+  my $inner_unused = sub {
+    my ($x) = @_;
+    $x - 1
+  };
+  $inner->(2)
+};
+
 sub get_count { $count }
+sub add       { $add->(1, 2) }
+sub run_outer { $outer->() }
 
 1

@@ -9,10 +9,12 @@
 
 # The top-level statements in Module_top_level.pm run inside the eval CV
 # created by the require, and perl frees that op tree as soon as the
-# require completes.  Devel::Cover cannot walk those ops at END time, so
-# the module's top-level statements, branches and conditions are missing
-# from the coverage - they do not even appear as uncovered.  The golden
-# results record this deficiency.
+# require completes.  Devel::Cover keeps the tree alive from its
+# leaveeval hook and walks it at report time, so the module's top-level
+# statements, branches and conditions are covered, and file-scope anon
+# subs are found through the eval CV's pad.  The anon sub nested inside
+# another anon sub remains invisible - nothing recurses into the pads of
+# anonymous CVs - and the golden results record that deficiency.
 
 use strict;
 use warnings;
@@ -21,4 +23,6 @@ use lib "tests";
 
 use Module_top_level;
 
-print "count: ", Module_top_level::get_count(), "\n";
+print "count: ",     Module_top_level::get_count(), "\n";
+print "add: ",       Module_top_level::add(),       "\n";
+print "run_outer: ", Module_top_level::run_outer(), "\n";
