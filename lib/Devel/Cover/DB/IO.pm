@@ -23,16 +23,48 @@ BEGIN {
   die "Can't load either JSON or Storable" unless $Format;
 }
 
-sub new ($class, @args) {
-  my $format = $ENV{DEVEL_COVER_DB_FORMAT} || $Format;
+my %Backend;
+
+sub _backend ($format) {
+  $Backend{$format} //= do {
+    my $class = "Devel::Cover::DB::IO::$format";
+    eval "use $class; 1"
+      or die "Devel::Cover: the database needs the $format backend: $@";
+    $class
+  }
+}
+
+sub new ($class, %args) {
+  $args{options} //= $ENV{DEVEL_COVER_IO_OPTIONS} || "";
+
+  my $arg_format = delete $args{format};
+  my $format     = $ENV{DEVEL_COVER_DB_FORMAT} || $arg_format || $Format;
   ($format) = $format =~ /(.*)/;  # die tainting
   die "Devel::Cover: Unrecognised DB format: $format"
     unless $format =~ /^(?:Storable|JSON|Sereal)$/;
 
-  $class .= "::$format";
-  eval "use $class; 1" or die "Devel::Cover: $@";
+  bless { format => $format, args => \%args }, $class
+}
 
-  $class->new(options => $ENV{DEVEL_COVER_IO_OPTIONS} || "", @args)
+sub _sniff_format ($file) {
+  open my $fh, "<", $file or return undef;
+  binmode $fh;
+  read $fh, my $magic, 4;
+  close $fh or return undef;
+  return undef unless defined $magic;
+  return "Sereal"   if $magic =~ /^=(?:srl|\xF3rl)/;
+  return "Storable" if $magic =~ /^pst0/;
+  return "JSON"     if $magic =~ /^\s*[\[{]/;
+  undef
+}
+
+sub read ($self, $file) {
+  my $format = _sniff_format($file) // $self->{format};
+  _backend($format)->new($self->{args}->%*)->read($file)
+}
+
+sub write ($self, $data, $file) {
+  _backend($self->{format})->new($self->{args}->%*)->write($data, $file)
 }
 
 1
@@ -67,13 +99,18 @@ This module provides IO routines for Devel::Cover::DB.
 
  my $io = Devel::Cover::DB::IO->new(format => "JSON");
 
-Constructs the IO object.
+Constructs the IO object.  The write format is taken from the
+C<DEVEL_COVER_DB_FORMAT> environment variable if set, then from the C<format>
+argument, then from whichever backend is available (Sereal, JSON, Storable,
+in that order).
 
 =head2 read
 
  my $data = $io->read($file);
 
-Returns a perl data structure representing the data read from $file.
+Returns a perl data structure representing the data read from $file.  The
+format of the file on disk is detected from its content, so a database
+written under a different configuration can still be read.
 
 =head2 write
 
