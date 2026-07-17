@@ -12,6 +12,7 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
+use Config     qw( %Config );
 use Cwd        qw( getcwd );
 use File::Spec ();
 use File::Temp qw( tempdir );
@@ -53,9 +54,9 @@ sub run_cover (@args) {
 
 sub test_report_annotation_combination () {
   my ($rc, $out) = run_cover(
-    "-silent", "-report", "json", "-outputfile",
-    File::Spec->catfile($Tmpdir, "out.json"),
-    "-annotation", "random", "-count", 3,
+    "-silent",  "-report",     "json",   "-outputfile",
+    "out.json", "-annotation", "random", "-count",
+    3,
   );
   is $rc, 0, "report and annotation option sets don't collide";
   unlike $out, qr/Unknown option|Bad option|Invalid command line options/,
@@ -70,7 +71,7 @@ sub test_unknown_option_rejected () {
 }
 
 sub main () {
-  local $ENV{PERL5LIB} = join ":", $Blib_lib, $Blib_arch,
+  local $ENV{PERL5LIB} = join $Config{path_sep}, $Blib_lib, $Blib_arch,
     ($ENV{PERL5LIB} // ());
 
   build_db;
