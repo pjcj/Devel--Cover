@@ -138,9 +138,9 @@ PROG
   ok $branch && $branch->location(4), "top-level branch is collected";
 }
 
-# An anonymous sub defined at file scope.  Its prototype CV lives in the
-# pad of the file's eval CV, so it is invisible today for the same
-# reason as the top-level statements (the original reports in GH #51).
+# Anonymous subs defined at file scope.  Their prototype CVs live in the
+# pad of the file's eval CV, which the leaveeval hook keeps alive, so
+# the require-tree walk covers them from there.
 sub test_anon_sub () {
   my $f = covered_file("TopAnon", <<'PERL', <<'PROG', "3\n") or return;
 package TopAnon;
@@ -148,6 +148,11 @@ package TopAnon;
 my $add = sub {
   my ($x, $y) = @_;
   $x + $y
+};
+
+my $unused = sub {
+  my ($x) = @_;
+  $x * 2
 };
 
 sub call_add { $add->(1, 2) }
@@ -159,15 +164,18 @@ print TopAnon::call_add(), "\n";
 PROG
 
   my $stmt = $f->statement;
-  ok $stmt->location(8), "named sub calling the anon sub is covered";
+  ok $stmt->location(13), "named sub calling the anon sub is covered";
   # The assignment statement is attributed to the closing line of the
   # anon sub because its body resets the parser's statement-start line
   ok $stmt->location(6), "anon sub assignment statement is collected";
 
-  {
-    local our $TODO = "file-scope anon sub bodies need a pad walk (GH #51)";
-    ok $stmt->location(4), "file-scope anon sub body is collected";
-  }
+  my $l = $stmt->location(4);
+  ok $l, "file-scope anon sub body is collected";
+  is $l && $l->[0]->covered, 1, "and has a count";
+
+  my $u = $stmt->location(9);
+  ok $u, "uncalled anon sub body is collected";
+  is $u && $u->[0]->covered, 0, "and is reported as uncovered";
 }
 
 sub main () {

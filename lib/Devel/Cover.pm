@@ -555,20 +555,21 @@ sub check_file ($cv) {
   $use
 }
 
+sub pad_cvs ($cv) {
+  return
+       unless $cv->can("PADLIST")
+    && $cv->PADLIST->can("ARRAY")
+    && $cv->PADLIST->ARRAY
+    && $cv->PADLIST->ARRAY->can("ARRAY");
+  grep ref eq "B::CV" && check_file($_), $cv->PADLIST->ARRAY->ARRAY
+}
+
 sub B::GV::find_cv ($gv) {
   my $cv = $gv->CV;
   return unless $$cv;
 
   $Cvs{$cv} ||= $cv if check_file($cv);
-  if (
-       $cv->can("PADLIST")
-    && $cv->PADLIST->can("ARRAY")
-    && $cv->PADLIST->ARRAY
-    && $cv->PADLIST->ARRAY->can("ARRAY")
-  ) {
-    $Cvs{$_} ||= $_
-      for grep ref eq "B::CV" && check_file($_), $cv->PADLIST->ARRAY->ARRAY;
-  }
+  $Cvs{$_}  ||= $_ for pad_cvs($cv);
 }
 
 sub sub_info ($cv) {
@@ -763,6 +764,8 @@ sub _report {
         my $digest = $Structure->set_file($File);
         $Run{digests}{$File} ||= $digest;
         get_cover($cv, $root);
+        # File-scope anon subs keep their prototype CVs in the eval CV's pad
+        get_cover($_) for pad_cvs($cv);
       },
       @require_trees,
     ) if @require_trees;
