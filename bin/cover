@@ -315,7 +315,7 @@ sub do_test ($dbname) {
     for $Options->{select_re}->@*, map quotemeta, map glob,
     $Options->{select}->@*;
 
-  $Options->{$_} = [] for qw( ignore ignoring select select_re );
+  $Options->{$_} = [] for qw( ignore ignore_re select select_re );
   $Options->{report} = ["html"] unless $Options->{report}->@*;
 
   my $opts = join " ", grep $_, $ENV{DEVEL_COVER_TEST_OPTS},
