@@ -1,0 +1,24 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# The top-level statements in Module_top_level.pm run inside the eval CV
+# created by the require, and perl frees that op tree as soon as the
+# require completes.  Devel::Cover cannot walk those ops at END time, so
+# the module's top-level statements, branches and conditions are missing
+# from the coverage - they do not even appear as uncovered.  The golden
+# results record this deficiency.
+
+use strict;
+use warnings;
+
+use lib "tests";
+
+use Module_top_level;
+
+print "count: ", Module_top_level::get_count(), "\n";
