@@ -13,6 +13,9 @@ Replace `<version>` throughout with the new version number (e.g. `5.42.1`).
 02. Add the new version to `utils/all_versions`
 
     - Add `<version>` to the appropriate place in the version list
+    - Update the hard-coded `-key` shortlist in `get_options` so it still covers
+      the newest stable version (threaded and non-threaded) and the newest
+      development version
 
 03. Build all `dc-*` versions for multi-version testing
 
