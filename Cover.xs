@@ -2437,7 +2437,7 @@ static int runops_cover(pTHX) {
 
     /* Check to see whether we are interested in this file */
 
-    if (PL_op->op_type == OP_NEXTSTATE)
+    if (PL_op->op_type == OP_NEXTSTATE || PL_op->op_type == OP_DBSTATE)
       check_if_collecting(aTHX_ cCOP);
     else if (PL_op->op_type == OP_ENTERSUB)
       store_return(aTHX);
