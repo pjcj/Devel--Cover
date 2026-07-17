@@ -392,14 +392,14 @@ static void set_firsts_if_needed(pTHX) {
     SV **cv = av_fetch(PL_initav, 0, 0);
     if (*cv != init) {
       av_unshift(PL_initav, 1);
-      av_store(PL_initav, 0, init);
+      av_store(PL_initav, 0, SvREFCNT_inc(init));
     }
   }
   if (PL_endav && av_len(PL_endav) >= 0) {
     SV **cv = av_fetch(PL_endav, 0, 0);
     if (*cv != end) {
       av_unshift(PL_endav, 1);
-      av_store(PL_endav, 0, end);
+      av_store(PL_endav, 0, SvREFCNT_inc(end));
     }
   }
 }
@@ -2965,7 +2965,7 @@ set_last_end()
   PPCODE:
     int i;
     SV *end = (SV *)get_cv("last_end", 0);
-    av_push(PL_endav, end);
+    av_push(PL_endav, SvREFCNT_inc(end));
     NDEB(svdump(end));
     if (!MY_CXT.ends) MY_CXT.ends = newAV();
     if (PL_endav)
