@@ -31,7 +31,15 @@ my $unused = sub {
 my $outer = sub {
   my $inner = sub {
     my ($x) = @_;
-    $x + 1
+    my $inner_inner = sub {
+      my ($y) = @_;
+      my $inner_inner_inner = sub {
+        my ($z) = @_;
+        $z * 2
+      };
+      $inner_inner_inner->($y) + 1
+    };
+    $inner_inner->($x) + 1
   };
   my $inner_unused = sub {
     my ($x) = @_;
