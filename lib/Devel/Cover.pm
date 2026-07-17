@@ -261,17 +261,16 @@ sub _parse_options ($o, $blib) {
   );
   my %list_opt = (ignore => \@Ignore, inc => \@Inc, select => \@Select);
 
-  @Inc    = () if "@$o" =~ /-inc /;
-  @Ignore = () if "@$o" =~ /-ignore /;
-  @Select = () if "@$o" =~ /-select /;
+  my %reset;
   while (@$o) {
     local $_ = shift @$o;
     if (my $ref = $scalar_opt{$_}) {
       $$ref = shift @$o;
     } elsif (/^-coverage/) {
       $Coverage{ +shift @$o } = 1 while @$o && $o->[0] !~ /^[-+]/;
-    } elsif (/^[-+](\w+)/ && $list_opt{$1}) {
-      push $list_opt{$1}->@*, shift @$o while @$o && $o->[0] !~ /^[-+]/;
+    } elsif (/^([-+])(\w+)/ && $list_opt{$2}) {
+      $list_opt{$2}->@* = () if $1 eq "-" && !$reset{$2}++;
+      push $list_opt{$2}->@*, shift @$o while @$o && $o->[0] !~ /^[-+]/;
     } else {
       warn __PACKAGE__ . ": Unknown option $_ ignored\n";
     }
