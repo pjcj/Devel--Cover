@@ -27,14 +27,24 @@ sub new ($class, @args) {
   bless $self, $class
 }
 
+sub _shell_quote ($file) {
+  if ($^O eq "MSWin32") {
+    $file =~ s/"/""/g;
+    return qq("$file");
+  }
+  $file =~ s/'/'\\''/g;
+  "'$file'"
+}
+
 sub get_annotations ($self, $file) {
   return if exists $self->{_annotations}{$file};
   my $annotations = $self->{_annotations}{$file} = [];
 
   print "cover: Getting git annotation information for $file\n";
 
+  my $quoted  = _shell_quote($file);
   my $command = $self->{command};
-  $command =~ s/\[\[file\]\]/$file/g;
+  $command =~ s/\[\[file\]\]/$quoted/g;
   # print "Running [$command]\n";
   open my $c, "-|", $command or warn("cover: Can't run $command: $!\n"), return;
   my @annotation;
