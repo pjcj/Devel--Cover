@@ -18,7 +18,7 @@ use List::Util  qw( any );
 
 use Devel::Cover::DB     ();
 use Devel::Cover::DB::IO ();
-use Devel::Cover::Log    qw( dcinfo );
+use Devel::Cover::Log    qw( dcinfo dcwarn );
 
 # VERSION
 our $AUTOLOAD;
@@ -230,7 +230,9 @@ sub read ($self, $digest) {
   my $s    = eval { $io->read($file) };
 
   if ($@ || !$s) {
-    die $@;
+    chomp(my $err = $@ || "no data");
+    dcwarn "can't read structure file $file: $err";
+    return $self;
   }
   my $d = $self->digest($s->{file});
   if (!$d) {
@@ -413,7 +415,9 @@ rename to avoid partial writes.
  $struct->read($digest);
 
 Load structure for C<$digest> from disk.  If the source file has changed since
-the structure was written, the stale entry is deleted. Returns C<$self>.
+the structure was written, the stale entry is deleted. An unreadable structure
+file is skipped with a warning, costing only that file's detail. Returns
+C<$self>.
 
 =head2 read_all
 
