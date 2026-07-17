@@ -392,14 +392,14 @@ static void set_firsts_if_needed(pTHX) {
     SV **cv = av_fetch(PL_initav, 0, 0);
     if (*cv != init) {
       av_unshift(PL_initav, 1);
-      av_store(PL_initav, 0, init);
+      av_store(PL_initav, 0, SvREFCNT_inc(init));
     }
   }
   if (PL_endav && av_len(PL_endav) >= 0) {
     SV **cv = av_fetch(PL_endav, 0, 0);
     if (*cv != end) {
       av_unshift(PL_endav, 1);
-      av_store(PL_endav, 0, end);
+      av_store(PL_endav, 0, SvREFCNT_inc(end));
     }
   }
 }
@@ -472,7 +472,7 @@ static int check_if_collecting(pTHX_ COP *cop) {
 
   NDEB(D(L, "%s - %d\n", SvPV_nolen(MY_CXT.lastfile), MY_CXT.collecting_here));
 
-  if (SvTRUE(MY_CXT.module)) {
+  if (file && SvTRUE(MY_CXT.module)) {
     STRLEN mlen,
            flen = strlen(file);
     char  *m    = SvPV(MY_CXT.module, mlen);
@@ -783,7 +783,7 @@ static void store_module(pTHX) {
   dMY_CXT;
   dSP;
 
-  SvSetSV_nosteal(MY_CXT.module, (SV*)newSVpv(SvPV_nolen(TOPs), 0));
+  sv_setpv(MY_CXT.module, SvPV_nolen(TOPs));
   NDEB(D(L, "require %s\n", SvPV_nolen(MY_CXT.module)));
 }
 
@@ -947,6 +947,7 @@ static AV *get_conds(pTHX_ AV *conds) {
 
   t = SvPV_nolen(tid);
   cref = hv_fetch(threads, t, strlen(t), 1);
+  SvREFCNT_dec(tid);
 
   if (SvROK(*cref))
     thrconds = (AV *)SvRV(*cref);
@@ -1065,7 +1066,7 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
 #else
   i = 1;
 #endif
-  while (av_len(conds) > i) av_pop(conds);
+  while (av_len(conds) > i) SvREFCNT_dec(av_pop(conds));
 
   NDEB(svdump(conds));
   NDEB(D(L, "addr is %p, next is %p, PL_op is %p, length is %zd final is %d\n",
@@ -2437,7 +2438,7 @@ static int runops_cover(pTHX) {
 
     /* Check to see whether we are interested in this file */
 
-    if (PL_op->op_type == OP_NEXTSTATE)
+    if (PL_op->op_type == OP_NEXTSTATE || PL_op->op_type == OP_DBSTATE)
       check_if_collecting(aTHX_ cCOP);
     else if (PL_op->op_type == OP_ENTERSUB)
       store_return(aTHX);
@@ -2965,7 +2966,7 @@ set_last_end()
   PPCODE:
     int i;
     SV *end = (SV *)get_cv("last_end", 0);
-    av_push(PL_endav, end);
+    av_push(PL_endav, SvREFCNT_inc(end));
     NDEB(svdump(end));
     if (!MY_CXT.ends) MY_CXT.ends = newAV();
     if (PL_endav)
@@ -3034,6 +3035,7 @@ BOOT:
     MUTEX_INIT(&DC_mutex);
 #endif
     initialise(aTHX);
+    /* Deliberately replaces any prior runops loop - loops cannot chain */
     if (MY_CXT.replace_ops) {
       replace_ops(aTHX);
       PL_runops = runops_orig;
