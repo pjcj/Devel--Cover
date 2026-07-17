@@ -344,6 +344,75 @@ sub test_per_sub_missing () {
   ok !defined $subs, "per_sub: missing file returns undef";
 }
 
+# Nested if with elsif: the elsif belongs to the inner if only and must not
+# also be counted by the enclosing if.
+sub test_nested_elsif () {
+  my $file = write_file("Nested.pm", <<'EOPERL');
+package Nested;
+use strict;
+use warnings;
+
+sub outer {
+  my ($x, $y, $z) = @_;
+  if ($x) {
+    if ($y) {
+      return "y";
+    } elsif ($z) {
+      return "z";
+    }
+  }
+  return "none";
+}
+
+1
+EOPERL
+
+  my $counts = Devel::Cover::Static::count_criteria($file);
+  ok defined $counts, "nested elsif: returns counts";
+
+  # outer if + inner if + one elsif = 3 decisions => 6 outcomes
+  is $counts->{branch}, 6, "nested elsif: 6 outcomes (3 decisions x 2)";
+
+  my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+  my %by_name = map { $_->{name} => $_ } grep $_->{name} ne "BEGIN", @$subs;
+  is $by_name{outer}{cc}, 4, "nested elsif: outer CC = 4 (3 decisions + 1)";
+}
+
+# Triple nesting: a single elsif must be counted exactly once however deeply
+# its if is nested.
+sub test_triple_nested_elsif () {
+  my $file = write_file("Triple.pm", <<'EOPERL');
+package Triple;
+use strict;
+use warnings;
+
+sub deep {
+  my ($a, $b, $c, $d) = @_;
+  if ($a) {
+    if ($b) {
+      if ($c) {
+        return 1;
+      } elsif ($d) {
+        return 2;
+      }
+    }
+  }
+  return 0;
+}
+
+1
+EOPERL
+
+  my $counts = Devel::Cover::Static::count_criteria($file);
+
+  # three ifs + one elsif = 4 decisions => 8 outcomes
+  is $counts->{branch}, 8, "triple nested: 8 outcomes (4 decisions x 2)";
+
+  my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+  my %by_name = map { $_->{name} => $_ } grep $_->{name} ne "BEGIN", @$subs;
+  is $by_name{deep}{cc}, 5, "triple nested: deep CC = 5 (4 decisions + 1)";
+}
+
 sub main () {
   test_minimal;
   test_branches;
@@ -354,6 +423,8 @@ sub main () {
   test_per_sub_complexity;
   test_per_sub_forward;
   test_per_sub_missing;
+  test_nested_elsif;
+  test_triple_nested_elsif;
   done_testing;
 }
 

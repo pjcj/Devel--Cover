@@ -80,7 +80,9 @@ sub _count_decisions ($node) {
     if ($type =~ /^(?:if|unless)$/) {
       $decisions++;
       my $elsifs = $c->find(sub {
-        $_[1]->isa("PPI::Token::Word") && $_[1]->content eq "elsif"
+        $_[1]->isa("PPI::Token::Word")
+          && $_[1]->content eq "elsif"
+          && $_[1]->parent == $c
       }) || [];
       $decisions += @$elsifs;
     }
