@@ -182,17 +182,15 @@ cpancover - report coverage statistics on CPAN modules
 =head1 SYNOPSIS
 
   cpancover --help --info --version
-            --collect --redo_cpancover_html --redo_html --force --dryrun
-            --modules module_name
-            --results_dir /path/to/dir
-            --outputdir /path/to/dir
-            --outputfile filename.html
+            --build --generate_html --rebuild --rebuild_batch n
+            --latest --local --local_build
+            --modules module_name --module_file file
+            --results_dir /path/to/dir --output_file filename.html
             --report report_name
-            --generate_html
             --compress_old_versions number_to_keep
-            --local
-            --local_build
-            --rebuild --rebuild_batch n
+            --force --dryrun --verbose
+            --workers n --timeout seconds
+            --bin_dir /path --docker command --env name
 
 =head1 DESCRIPTION
 
@@ -204,22 +202,27 @@ The following command line options are supported:
   -i --info               - show documentation
   -v --version            - show version
 
-  --collect               - collect coverage from modules       (on)
-  --compress_old_versions - compress data older than n versions (3)
-  --directory             - location of the modules             ($cwd)
+  --bin_dir               - location of the cover binaries     ($0 dir)
+  --build                 - collect coverage from modules       (on)
+  --compress_old_versions - compress data older than n versions (0)
+  --docker                - docker command to use               (docker)
   --dryrun                - don't execute (for some commands)   (off)
-  --force                 - retry failed builds                 (off)
+  --env                   - collection environment              (prod)
+  --force                 - recollect coverage                  (off)
   --generate_html         - generate html                       (off)
+  --latest                - process latest CPAN releases        (off)
   --local                 - use local (uninstalled) code        (off)
-  --local_build           - build coveraage for all the modules (off)
-  --modules               - modules to use                      (all in $dir)
-  --outputdir             - where to store output               ($directory)
-  --outputfile            - top level index                     (coverage.html)
-  --rebuild               - rebuild already-covered modules     (off)
-  --rebuild_batch         - how many distdirs per rebuild pass  (100)
-  --redo_cpancover_html   - don't set default modules           (off)
-  --redo_html             - force html generation for modules   (off)
-  --report                - report to use                       (html)
+  --local_build           - build coverage for all the modules  (off)
+  --module_file           - read module list from a file        (none)
+  --modules               - modules to use                (all in results_dir)
+  --output_file           - top level index                     (index.html)
+  --rebuild               - rebuild already-covered modules      (off)
+  --rebuild_batch         - how many distdirs per rebuild pass   (100)
+  --report                - report to use                        (html)
+  --results_dir           - where to store output               ($cwd)
+  --timeout               - per-distribution timeout in seconds  (1800)
+  --verbose               - verbose output                       (off)
+  --workers               - number of parallel workers           (0)
 
 =head1 DETAILS
 
