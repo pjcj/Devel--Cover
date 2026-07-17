@@ -123,7 +123,6 @@ sub get_options () {
       )
       #>>>
     );
-  Getopt::Long::Configure("nopass_through");
   $Options->{report} = ["html"]
     if !$Options->{report}->@* && !exists $Options->{write};
 
@@ -215,16 +214,19 @@ sub check_options () {
   pod2usage(-exitval => 0, -verbose => 1) if $Options->{help};
   pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
 
-  # This is a bit of a hack but it basically works.  It's possible to specify
-  # multiple reports and they arew run at the end.  This is why we need to store
-  # @argv, and restore it for each report to be able to provess the options.
-  # But we need to remove report options from @ARGV so we can see what's left
-  # and use that to get the cover_db name.  So just take the first report and
-  # process its options here.
-  my $options = dclone($Options);
-  my $report  = $Options->{report}[0] or return;
-  my $format  = "Devel::Cover::Report::\u$report";
-  $format->get_options($options) if $format->can("get_options");
+  # Strip every report's options from @ARGV, as the annotation loop above
+  # did, so only the database names remain.  Everything runs under
+  # pass_through, so each consumer ignores options it does not own.
+  for my $report ($Options->{report}->@*) {
+    my $format = "Devel::Cover::Report::\u$report";
+    $format->get_options(dclone($Options)) if $format->can("get_options");
+  }
+
+  # Anything left starting with "-" is unknown to every consumer.
+  if (my @unknown = grep /^-/, @ARGV) {
+    dcerror "Unknown option: $_" for @unknown;
+    exit 1;
+  }
 
   \@argv
 }
