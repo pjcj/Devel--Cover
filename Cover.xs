@@ -1065,7 +1065,7 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
 #else
   i = 1;
 #endif
-  while (av_len(conds) > i) av_pop(conds);
+  while (av_len(conds) > i) SvREFCNT_dec(av_pop(conds));
 
   NDEB(svdump(conds));
   NDEB(D(L, "addr is %p, next is %p, PL_op is %p, length is %zd final is %d\n",
