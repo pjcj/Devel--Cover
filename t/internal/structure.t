@@ -555,18 +555,61 @@ sub test_add_count_reuse_not_additional () {
   ok !$new, "add_count reuse not additional: new is false";
 }
 
-sub test_read_corrupt () {
-  my $base = fresh_base("read_corrupt");
-
-  # Write a corrupt file into the structure directory
-  my $corrupt = "$base/structure/deadbeef0123456789abcdef01234567";
+sub write_corrupt_structure ($base, $digest) {
+  my $corrupt = "$base/structure/$digest";
   open my $fh, ">", $corrupt or die "Cannot write $corrupt: $!";
   print $fh "this is not valid serialised data";
   close $fh or die "Cannot close $corrupt: $!";
+  $corrupt
+}
+
+sub test_read_corrupt () {
+  my $base = fresh_base("read_corrupt");
+  my $corrupt
+    = write_corrupt_structure($base, "deadbeef0123456789abcdef01234567");
+
+  my $st     = Devel::Cover::DB::Structure->new(base => $base);
+  my $stderr = capture_stderr {
+    my $ok = eval { $st->read_all; 1 };
+    ok $ok, "read corrupt: does not die"
+  };
+  like $stderr, qr/can't read structure file/,
+    "read corrupt: warns about the file";
+  ok !$st->{f},   "read corrupt: nothing loaded from corrupt file";
+  ok -e $corrupt, "read corrupt: corrupt file left in place";
+}
+
+sub test_read_corrupt_keeps_valid () {
+  my $base = fresh_base("read_corrupt_kv");
+  my $file = write_source("corrupt_kv.pm", "package CorruptKV;\n1\n");
 
   my $st = Devel::Cover::DB::Structure->new(base => $base);
-  my $ok = eval { $st->read_all; 1 };
-  ok !$ok, "read corrupt: dies on corrupt data";
+  $st->add_criteria("statement");
+  $st->set_file($file);
+  $st->{f}{$file}{statement} = [[$file, 1]];
+  $st->write($base);
+
+  my $corrupt
+    = write_corrupt_structure($base, "deadbeef0123456789abcdef01234567");
+
+  my $st2    = Devel::Cover::DB::Structure->new(base => $base);
+  my $stderr = capture_stderr { $st2->read_all };
+  ok exists $st2->{f}{$file}, "corrupt keeps valid: valid entry loaded";
+  like $stderr, qr/can't read structure file \Q$corrupt\E/,
+    "corrupt keeps valid: warning names the corrupt file";
+}
+
+sub test_read_corrupt_silent () {
+  local $Devel::Cover::Silent = 1;
+  my $base = fresh_base("read_corrupt_s");
+  write_corrupt_structure($base, "deadbeef0123456789abcdef01234567");
+
+  my $st     = Devel::Cover::DB::Structure->new(base => $base);
+  my $stderr = capture_stderr {
+    my $ok = eval { $st->read_all; 1 };
+    ok $ok, "read corrupt silent: does not die"
+  };
+  is $stderr, "", "read corrupt silent: no warning";
 }
 
 sub test_read_source_deleted () {
@@ -808,6 +851,8 @@ sub main () {
   test_add_count_with_additional;
   test_add_count_reuse_not_additional;
   test_read_corrupt;
+  test_read_corrupt_keeps_valid;
+  test_read_corrupt_silent;
   test_read_source_deleted;
   test_destroy;
   test_digest_ignored_file;
