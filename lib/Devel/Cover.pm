@@ -555,13 +555,17 @@ sub check_file ($cv) {
   $use
 }
 
-sub pad_cvs ($cv) {
+# The seen hash stops loops from self-referential pad entries
+sub pad_cvs ($cv, $seen = {}) {
+  $seen->{$$cv}++;
   return
        unless $cv->can("PADLIST")
     && $cv->PADLIST->can("ARRAY")
     && $cv->PADLIST->ARRAY
     && $cv->PADLIST->ARRAY->can("ARRAY");
-  grep ref eq "B::CV" && check_file($_), $cv->PADLIST->ARRAY->ARRAY
+  my @cvs = grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
+    $cv->PADLIST->ARRAY->ARRAY;
+  (@cvs, map pad_cvs($_, $seen), @cvs)
 }
 
 sub B::GV::find_cv ($gv) {
@@ -605,7 +609,7 @@ sub sub_info ($cv) {
 }
 
 sub add_cvs {
-  $Cvs{$_} ||= $_ for grep check_file($_), B::main_cv->PADLIST->ARRAY->ARRAY;
+  $Cvs{$_} ||= $_ for pad_cvs(B::main_cv);
 }
 
 sub check_files {

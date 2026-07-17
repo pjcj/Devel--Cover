@@ -142,7 +142,7 @@ PROG
 # pad of the file's eval CV, which the leaveeval hook keeps alive, so
 # the require-tree walk covers them from there.
 sub test_anon_sub () {
-  my $f = covered_file("TopAnon", <<'PERL', <<'PROG', "3\n") or return;
+  my $f = covered_file("TopAnon", <<'PERL', <<'PROG', "3\n7\n") or return;
 package TopAnon;
 
 my $add = sub {
@@ -155,16 +155,30 @@ my $unused = sub {
   $x * 2
 };
 
-sub call_add { $add->(1, 2) }
+my $outer = sub {
+  my $inner = sub {
+    my ($x) = @_;
+    my $inner_inner = sub {
+      my ($y) = @_;
+      $y * 3
+    };
+    $inner_inner->($x) + 1
+  };
+  $inner->(2)
+};
+
+sub call_add  { $add->(1, 2) }
+sub run_outer { $outer->() }
 
 1;
 PERL
 use TopAnon;
-print TopAnon::call_add(), "\n";
+print TopAnon::call_add(),  "\n";
+print TopAnon::run_outer(), "\n";
 PROG
 
   my $stmt = $f->statement;
-  ok $stmt->location(13), "named sub calling the anon sub is covered";
+  ok $stmt->location(25), "named sub calling the anon sub is covered";
   # The assignment statement is attributed to the closing line of the
   # anon sub because its body resets the parser's statement-start line
   ok $stmt->location(6), "anon sub assignment statement is collected";
@@ -176,6 +190,12 @@ PROG
   my $u = $stmt->location(9);
   ok $u, "uncalled anon sub body is collected";
   is $u && $u->[0]->covered, 0, "and is reported as uncovered";
+
+  for my $line (15, 17, 20) {
+    my $n = $stmt->location($line);
+    ok $n, "nested anon sub statement on line $line is collected";
+    is $n && $n->[0]->covered, 1, "and has a count";
+  }
 }
 
 sub main () {

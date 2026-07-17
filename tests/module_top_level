@@ -11,10 +11,9 @@
 # created by the require, and perl frees that op tree as soon as the
 # require completes.  Devel::Cover keeps the tree alive from its
 # leaveeval hook and walks it at report time, so the module's top-level
-# statements, branches and conditions are covered, and file-scope anon
-# subs are found through the eval CV's pad.  The anon sub nested inside
-# another anon sub remains invisible - nothing recurses into the pads of
-# anonymous CVs - and the golden results record that deficiency.
+# statements, branches and conditions are covered.  Anon subs keep
+# their prototype CVs in the pad of the CV enclosing them, so a
+# recursive pad walk from the eval CV finds them at any depth.
 
 use strict;
 use warnings;

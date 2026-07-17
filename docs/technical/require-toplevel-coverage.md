@@ -149,12 +149,12 @@ String evals that perform a `use` or `require` are covered by this mechanism
 too, since the inner require gets its own eval context. Plain string eval
 optrees are still not retained.
 
-Anonymous subs defined at file scope keep their prototype CVs in the husk CV's
-pad, so the require-tree walk also walks that pad (with `pad_cvs`, shared with
-`B::GV::find_cv`) and covers each CV it finds there. This goes one level deep,
-matching the behaviour for named subs everywhere else - an anonymous sub nested
-inside another anonymous sub is not found in any code, required or not, since
-nothing recurses into the pads of the anonymous CVs themselves.
+Anonymous subs keep their prototype CVs in the pad of the CV enclosing them, so
+the require-tree walk also walks the husk CV's pad (with `pad_cvs`, shared with
+`B::GV::find_cv` and `add_cvs`) and covers each CV it finds there. The walk is
+recursive, finding anonymous subs nested inside other anonymous subs at any
+depth, and keeps a seen hash because a pad entry can refer back to its own CV (a
+recursive lexical sub, for instance).
 
 Option A remains the supported long-term path. Once a released perl can keep
 require optrees itself, the leaveeval hook can be dropped for those perls.
