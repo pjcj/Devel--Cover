@@ -11,6 +11,7 @@
 use 5.42.0;
 
 use Test2::V0  qw( done_testing is isnt like ok skip_all subtest );
+use Config     qw( %Config );
 use File::Temp qw( tempdir );
 
 skip_all "dc recipes are not portable to Windows" if $^O eq "MSWin32";
@@ -212,6 +213,27 @@ sub force_retries_failed_only () {
   ok -e "$failed/Foo-Bar-1.00/cover.json", "retried dist is ingested";
 }
 
+sub cpancover_leaves_build_alone () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bundle = "blib/arch/auto/Devel/Cover/Cover.$Config{dlext}";
+  skip_all "build artefacts missing - run after `make`" unless -f $bundle;
+
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+  my $module  = "P/PJ/PJCJ/Foo-Bar-1.00.tar.gz";
+  my $covered = tempdir(CLEANUP => 1);
+  mkdir "$covered/Foo-Bar-1.00" or die "Can't mkdir $covered/Foo-Bar-1.00: $!";
+  write_file("$covered/Foo-Bar-1.00/cover.json", "{}\n");
+
+  my @before = (stat $bundle)[1, 9];
+  dc("-r", $covered, "cpancover", "--build", $module);
+  my @after = (stat $bundle)[1, 9];
+
+  is \@after, \@before, "cpancover does not rebuild an up-to-date checkout";
+}
+
 sub rebuild_batch_cleanup () {
   my $dir = tempdir(CLEANUP => 1);
   mkdir "$dir/$_"
@@ -351,6 +373,7 @@ sub main () {
     docker_module_log_ref
     docker_module_timeout_log_ref
     force_retries_failed_only
+    cpancover_leaves_build_alone
     rebuild_batch_cleanup
     rebuild_module_recipe
     controller_rebuild_module_recipe

@@ -13,6 +13,9 @@ Replace `<version>` throughout with the new version number (e.g. `5.42.1`).
 02. Add the new version to `utils/all_versions`
 
     - Add `<version>` to the appropriate place in the version list
+    - Update the hard-coded `-key` shortlist in `get_options` so it still covers
+      the newest stable version (threaded and non-threaded) and the newest
+      development version
 
 03. Build all `dc-*` versions for multi-version testing
 
@@ -27,27 +30,33 @@ Replace `<version>` throughout with the new version number (e.g. `5.42.1`).
 
     - Change the `perl=` line near the top of the file
 
-06. Regenerate the build
+06. Update the CI matrix in `.github/workflows/ci.yml`
+
+    - Add the new version to the ubuntu matrix and move the threaded entry to it
+    - CI uses `shogo82148/actions-setup-perl`, which must support the new
+      version first
+
+07. Regenerate the build
 
     - `perl Makefile.PL && make`
 
-07. Generate golden results for all versions
+08. Generate golden results for all versions
 
     - `make all_gold`
     - This may be a no-op if the new version produces identical output
 
-08. Run tests across all versions to verify
+09. Run tests across all versions to verify
 
     - `make all_test`
 
-09. **On `cpancover.com`**: install the new Perl for the cpancover
+10. **On `cpancover.com`**: install the new Perl for the cpancover
     infrastructure
 
     - `dc install-cpancover-perl <version>`
     - This is a separate plenv installation named `cpancover`, used by the
       cpancover orchestration code on the production server
 
-10. **On `cpancover.com`**: rebuild and push the cpancover Docker images
+11. **On `cpancover.com`**: rebuild and push the cpancover Docker images
 
     - `dc docker-build`
     - See `docs/cpancover.md` and `docker/README.md` for full details on the
