@@ -3034,6 +3034,7 @@ BOOT:
     MUTEX_INIT(&DC_mutex);
 #endif
     initialise(aTHX);
+    /* Deliberately replaces any prior runops loop - loops cannot chain */
     if (MY_CXT.replace_ops) {
       replace_ops(aTHX);
       PL_runops = runops_orig;
