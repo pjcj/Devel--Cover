@@ -83,6 +83,7 @@ sub test_uncoverable_round_trip () {
   $db->add_uncoverable(["$src branch 2 0 0 default note-two"]);
 
   my $u;
+  local $Devel::Cover::Silent = 1;  # keep dcinfo quiet
   my $err = do {
     local $@;
     eval { $u = $db->uncoverable; 1 } ? "" : $@
