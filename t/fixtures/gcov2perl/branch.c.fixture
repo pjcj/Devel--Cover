@@ -1,0 +1,9 @@
+/* vim: set ft=c: */
+/* Branch test file for gcov2perl */
+
+int f(int x) {
+    if (x) {
+        return 0;
+    }
+    return 1;
+}
