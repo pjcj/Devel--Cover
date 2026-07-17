@@ -24,7 +24,7 @@ T_SV_OBJ
 
 OUTPUT
 T_OP_OBJ
-    sv_setiv(newSVrv($arg, cc_opclassname(aTHX_ (OP*)$var)), PTR2IV($var));
+    sv_setiv(newSVrv($arg, dc_op_classname(aTHX_ (OP*)$var)), PTR2IV($var));
 
 T_SV_OBJ
     make_sv_object(aTHX_ ($arg), (SV*)($var));
