@@ -407,6 +407,37 @@ static void set_firsts_if_needed(pTHX) {
   }
 }
 
+/* Ask Devel::Cover::use_file whether we want to collect from FILE.  The
+   require-tree capture uses this under -replace_ops 0, where check_if_collecting
+   never consults use_file itself. */
+static int file_wanted(pTHX_ const char *file) {
+  dSP;
+  int count, wanted;
+  SV *rv;
+
+  if (!file) return 0;
+
+  ENTER;
+  SAVETMPS;
+  PUSHMARK(SP);
+  XPUSHs(sv_2mortal(newSVpv(file, 0)));
+  PUTBACK;
+
+  count = call_pv("Devel::Cover::use_file", G_SCALAR);
+
+  SPAGAIN;
+  if (count != 1)
+    croak("use_file returned %d values\n", count);
+  rv     = POPs;
+  wanted = SvTRUE(rv) ? 1 : 0;
+  PUTBACK;
+
+  FREETMPS;
+  LEAVE;
+
+  return wanted;
+}
+
 static int check_if_collecting(pTHX_ COP *cop) {
   dMY_CXT;
 
@@ -2349,6 +2380,12 @@ static void capture_tree_from_cx(pTHX_ PERL_CONTEXT *cx, OP *root) {
   if (!cop) cop = PL_curcop;
 
   if (!check_if_collecting(aTHX_ cop)) return;
+
+  /* check_if_collecting only consults use_file when ops are replaced.  Under
+     -replace_ops 0 it leaves the collecting flag at whatever the last file set,
+     so filter the file here or every required tree is retained until report
+     only to be dropped by use_file. */
+  if (!MY_CXT.replace_ops && !file_wanted(aTHX_ CopFILE(cop))) return;
 
   OP_REFCNT_LOCK;
   (void)OpREFCNT_inc(root);

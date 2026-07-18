@@ -122,7 +122,12 @@ Devel::Cover now does:
   accepts the file. It takes `OpREFCNT_inc` on `PL_op` (which at that moment is
   `PL_eval_root`, the root of the file's top-level tree), takes a reference to
   the husk CV from `cx->blk_eval.cv` for deparse context, and stashes CV, root
-  address and `CopFILE(PL_curcop)` in `MY_CXT.require_trees`,
+  address and `CopFILE(PL_curcop)` in `MY_CXT.require_trees`. Under
+  `-replace_ops 0` the capture consults `use_file` for the file itself, because
+  `check_if_collecting` only calls `use_file` when ops are replaced and
+  otherwise leaves its cached flag at whatever the last file set, which would
+  retain every required file's tree until report only to be dropped by
+  `use_file` there,
 - `dc_return` hooks `PL_ppaddr[OP_RETURN]` for the same reason, since a
   top-level `return` makes `pp_return` unwind the eval and tail-call
   `pp_leaveeval` directly without dispatching the leaveeval op. It mirrors

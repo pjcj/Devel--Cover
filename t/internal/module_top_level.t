@@ -437,6 +437,61 @@ PROG
   ok $subs->location(3), "named sub is collected under -subs_only";
 }
 
+# Under -replace_ops 0 the collecting flag keeps whatever the last file set
+# rather than consulting use_file, so without a filter at capture time every
+# required file's optree is retained until report, only to be dropped by
+# use_file there.  Run a program that requires a selected and an unselected
+# module and report which files' trees are still held, read from
+# get_require_trees before report.
+sub retained_require_files (@opts) {
+  my $tmpdir = realpath(tempdir(CLEANUP => 1));
+  my %write  = (
+    File::Spec->catfile($tmpdir, "Sel.pm") =>
+      "package Sel;\nmy \$x = 1;\n1;\n",
+    File::Spec->catfile($tmpdir, "Unsel.pm") =>
+      "package Unsel;\nmy \$y = 1;\n1;\n",
+    File::Spec->catfile($tmpdir, "prog.pl") => <<'PROG',
+require Sel;
+require Unsel;
+my %seen;
+for (Devel::Cover::get_require_trees()) {
+  (my $base = $_->[2]) =~ s{.*[/\\]}{};
+  $seen{$base}++;
+}
+print "REQTREES:", join(",", sort keys %seen), "\n";
+PROG
+  );
+  for my $path (sort keys %write) {
+    open my $fh, ">", $path or die "Cannot write $path: $!";
+    print $fh $write{$path};
+    close $fh or die "Cannot close $path: $!";
+  }
+  my $prog     = File::Spec->catfile($tmpdir, "prog.pl");
+  my $cover_db = File::Spec->catdir($tmpdir, "cover_db");
+  local $ENV{DEVEL_COVER_SELF};
+  delete $ENV{DEVEL_COVER_SELF};
+  my $opts = join "", @opts;
+  my $cmd
+    = "$^X -Iblib/lib -Iblib/arch -I$tmpdir"
+    . " -MDevel::Cover=-db,$cover_db,-silent,1,-merge,0"
+    . ",-select,Sel,-ignore,.$opts"
+    . " $prog 2>&1";
+  my $out = `$cmd`;
+  my ($line) = $out =~ /^REQTREES:(.*)$/m;
+  diag $out unless defined $line;
+  +{ map { $_ => 1 } split /,/, $line // "" }
+}
+
+# With ops replaced (the default) use_file is consulted for every new file,
+# so only the selected module's tree is retained.  With -replace_ops 0 the
+# capture path must apply the same filter itself, or unselected trees pile up.
+sub test_replace_ops_off_drops_unselected () {
+  my $held = retained_require_files(",-replace_ops,0");
+  ok $held->{"Sel.pm"}, "selected module tree is retained under -replace_ops 0";
+  ok !$held->{"Unsel.pm"},
+    "unselected module tree is not retained under -replace_ops 0";
+}
+
 sub main () {
   test_full_execution;
   test_partial_execution;
@@ -449,6 +504,7 @@ sub main () {
   test_enclosing_sub;
   test_do_file;
   test_subs_only_anon;
+  test_replace_ops_off_drops_unselected;
   done_testing;
 }
 
