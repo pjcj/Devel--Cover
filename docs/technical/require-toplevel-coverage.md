@@ -156,10 +156,16 @@ optrees are still not retained.
 
 Anonymous subs keep their prototype CVs in the pad of the CV enclosing them, so
 the require-tree walk also walks the husk CV's pad (with `pad_cvs`, shared with
-`B::GV::find_cv` and `add_cvs`) and covers each CV it finds there. The walk is
-recursive, finding anonymous subs nested inside other anonymous subs at any
-depth, and keeps a seen hash because a pad entry can refer back to its own CV (a
-recursive lexical sub, for instance).
+`B::GV::find_cv`, `add_cvs` and the `BEGIN`/`CHECK`/`INIT`/`END` block walk) and
+covers each CV it finds there. The walk is recursive, finding anonymous subs
+nested inside other anonymous subs at any depth, and keeps a seen hash because a
+pad entry can refer back to its own CV (a recursive lexical sub, for instance).
+
+An anonymous sub defined inside a `BEGIN`/`CHECK`/`INIT`/`END` block lives only
+in that block's own pad, not in the enclosing file's pad, so `special_block_cvs`
+gathers those block CVs and their pads are walked too. Without this such an anon
+runs but appears in no report and the file can wrongly claim full subroutine
+coverage.
 
 Option A remains the supported long-term path. Once a released perl can keep
 require optrees itself, the leaveeval hook can be dropped for those perls.

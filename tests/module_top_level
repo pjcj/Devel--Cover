@@ -25,3 +25,4 @@ use Module_top_level;
 print "count: ",     Module_top_level::get_count(), "\n";
 print "add: ",       Module_top_level::add(),       "\n";
 print "run_outer: ", Module_top_level::run_outer(), "\n";
+print "run_begin: ", Module_top_level::run_begin(), "\n";

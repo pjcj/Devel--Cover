@@ -688,6 +688,21 @@ sub _resolve_child_op ($child_op) {
   ($op ? $$op : undef, $negated || undef)
 }
 
+# The CVs of every BEGIN/CHECK/INIT/END block, for a pad walk
+sub special_block_cvs {
+  my @avs = B::begin_av();
+  push @avs, B::check_av() if exists &B::check_av;
+  push @avs, get_ends();
+  map $_->isa("B::AV") ? $_->ARRAY : (), @avs
+}
+
+# Feed pad-only anon subs into %Cvs before check_files snapshots @Cvs
+sub _seed_pad_cvs (@require_trees) {
+  $Cvs{$_} ||= $_ for map pad_cvs($_->[0]), @require_trees;
+  return if $Subs_only;
+  $Cvs{$_} ||= $_ for map pad_cvs($_), special_block_cvs();
+}
+
 sub report {
   local $@;
   eval { _report() };
@@ -745,12 +760,7 @@ sub _report {
   $latest_tree{ $_->[2] } = $_ for @require_trees;
   @require_trees          = grep $latest_tree{ $_->[2] } == $_, @require_trees;
 
-  # Feed the file-scope anon subs into %Cvs before check_files snapshots
-  # @Cvs.  A capture-free anon installed via a glob is the same source sub
-  # as its husk-pad prototype, so the %seen_cv pass and anon merge must see
-  # both together to record it once, rather than walking the pad separately
-  # in the require closure and listing the sub twice.
-  $Cvs{$_} ||= $_ for map pad_cvs($_->[0]), @require_trees;
+  _seed_pad_cvs(@require_trees);
 
   check_files();
 

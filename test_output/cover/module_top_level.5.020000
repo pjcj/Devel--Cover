@@ -5,9 +5,9 @@ Common prefix: tests/
 ------------------- ------ ------ ------ ------ ------ ------ ------
 File                  stmt   bran   cond   mcdc    sub  total   scar
 ------------------- ------ ------ ------ ------ ------ ------ ------
-Module_top_level.pm   83.8   50.0    n/a    n/a   80.0   81.4    0.1
+Module_top_level.pm   86.1   50.0    n/a    n/a   84.6   84.3    0.0
 module_top_level     100.0    n/a    n/a    n/a  100.0  100.0    0.0
-Total                 89.1   50.0    n/a    n/a   85.7   87.1    0.0
+Total                 90.3   50.0    n/a    n/a   88.2   88.7    0.0
 ------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -22,7 +22,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    2  1 87.5  1.0  0.0
+    2  1 88.9  1.0  0.0
 
 
 Module_top_level.pm
@@ -32,16 +32,16 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 81.8  1.0  0.1
+ 1 84.2  1.0  0.0
 
 Worst Subroutines
 -----------------
 
 Subroutine CC SCAR  Location              
 ---------- -- ----  ----------------------
-__ANON__    1  6.9  Module_top_level.pm:27
-__ANON__    1  6.9  Module_top_level.pm:45
-__ANON__    1  0.6  Module_top_level.pm:43
+__ANON__    1  6.9  Module_top_level.pm:36
+__ANON__    1  6.9  Module_top_level.pm:54
+__ANON__    1  0.6  Module_top_level.pm:52
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
@@ -53,55 +53,65 @@ line  err   stmt   bran   cond   mcdc    sub   code
 7                                              
 8                                              package Module_top_level;
 9                                              
-10             1                               my $count = 0;
-11             1                               $count = $count + 1;
-12             1                               for my $i (1 .. 3) {
-13             3                                 $count += $i;
-14                                             }
-15    ***      1   * 50                        if ($count > 2) {
-16             1                                 $count *= 2;
-17                                             } else {
-18    ***     *0                                 $count = 0;
-19                                             }
-20                                             
-21                                             my $add = sub {
-22             1                           1     my ($x, $y) = @_;
-23             1                                 $x + $y
-24             1                               };
-25                                             
-26                                             my $unused = sub {
-27    ***     *0                          *0     my ($x) = @_;
-28    ***     *0                                 $x * 2
-29             1                               };
-30                                             
-31                                             my $outer = sub {
-32                                               my $inner = sub {
-33             1                           1       my ($x) = @_;
-34                                                 my $inner_inner = sub {
-35             1                           1         my ($y) = @_;
-36                                                   my $inner_inner_inner = sub {
-37             1                           1           my ($z) = @_;
-38             1                                       $z * 2
-39             1                                     };
-40             1                                     $inner_inner_inner->($y) + 1
-41             1                                   };
-42             1                                   $inner_inner->($x) + 1
-43             1                           1     };
-44                                               my $inner_unused = sub {
-45    ***     *0                          *0       my ($x) = @_;
-46    ***     *0                                   $x - 1
-47             1                                 };
-48             1                                 $inner->(2)
-49             1                               };
-50                                             
-51             1                           1   sub get_count { $count }
-52             1                           1   sub add       { $add->(1, 2) }
-53             1                           1   sub run_outer { $outer->() }
-54                                             
-55                                             # Exit via a top-level return.  pp_return unwinds the require's eval
-56                                             # context and tail-calls pp_leaveeval directly, so the leaveeval op never
-57                                             # runs and the return hook must capture the tree instead.
-58             1                               return 1
+10                                             # An anon in a BEGIN block's pad is reachable only through that pad
+11             1                               my $begin_anon;
+12                                             BEGIN {
+13                                               $begin_anon = sub {
+14             1                           1       my ($x) = @_;
+15             1                                   $x + 100
+16             1                           1     };
+17                                             }
+18                                             
+19             1                               my $count = 0;
+20             1                               $count = $count + 1;
+21             1                               for my $i (1 .. 3) {
+22             3                                 $count += $i;
+23                                             }
+24    ***      1   * 50                        if ($count > 2) {
+25             1                                 $count *= 2;
+26                                             } else {
+27    ***     *0                                 $count = 0;
+28                                             }
+29                                             
+30                                             my $add = sub {
+31             1                           1     my ($x, $y) = @_;
+32             1                                 $x + $y
+33             1                               };
+34                                             
+35                                             my $unused = sub {
+36    ***     *0                          *0     my ($x) = @_;
+37    ***     *0                                 $x * 2
+38             1                               };
+39                                             
+40                                             my $outer = sub {
+41                                               my $inner = sub {
+42             1                           1       my ($x) = @_;
+43                                                 my $inner_inner = sub {
+44             1                           1         my ($y) = @_;
+45                                                   my $inner_inner_inner = sub {
+46             1                           1           my ($z) = @_;
+47             1                                       $z * 2
+48             1                                     };
+49             1                                     $inner_inner_inner->($y) + 1
+50             1                                   };
+51             1                                   $inner_inner->($x) + 1
+52             1                           1     };
+53                                               my $inner_unused = sub {
+54    ***     *0                          *0       my ($x) = @_;
+55    ***     *0                                   $x - 1
+56             1                                 };
+57             1                                 $inner->(2)
+58             1                               };
+59                                             
+60             1                           1   sub get_count { $count }
+61             1                           1   sub add       { $add->(1, 2) }
+62             1                           1   sub run_outer { $outer->() }
+63             1                           1   sub run_begin { $begin_anon->(5) }
+64                                             
+65                                             # Exit via a top-level return.  pp_return unwinds the require's eval
+66                                             # context and tail-calls pp_leaveeval directly, so the leaveeval op never
+67                                             # runs and the return hook must capture the tree instead.
+68             1                               return 1
 
 
 Branches
@@ -109,7 +119,7 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-15    ***     50      1      0   if ($count > 2) { }
+24    ***     50      1      0   if ($count > 2) { }
 
 
 Covered Subroutines
@@ -117,22 +127,25 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location              
 ---------- ----- --- ----- ----------------------
-__ANON__       1   1   0.0 Module_top_level.pm:22
-__ANON__       1   1   0.0 Module_top_level.pm:33
-__ANON__       1   1   0.0 Module_top_level.pm:35
-__ANON__       1   1   0.0 Module_top_level.pm:37
-__ANON__       1   1   0.6 Module_top_level.pm:43
-add            1   1   0.0 Module_top_level.pm:52
-get_count      1   1   0.0 Module_top_level.pm:51
-run_outer      1   1   0.0 Module_top_level.pm:53
+BEGIN          1   1   0.0 Module_top_level.pm:16
+__ANON__       1   1   0.0 Module_top_level.pm:14
+__ANON__       1   1   0.0 Module_top_level.pm:31
+__ANON__       1   1   0.0 Module_top_level.pm:42
+__ANON__       1   1   0.0 Module_top_level.pm:44
+__ANON__       1   1   0.0 Module_top_level.pm:46
+__ANON__       1   1   0.6 Module_top_level.pm:52
+add            1   1   0.0 Module_top_level.pm:61
+get_count      1   1   0.0 Module_top_level.pm:60
+run_begin      1   1   0.0 Module_top_level.pm:63
+run_outer      1   1   0.0 Module_top_level.pm:62
 
 Uncovered Subroutines
 ---------------------
 
 Subroutine Count  CC  SCAR Location              
 ---------- ----- --- ----- ----------------------
-__ANON__       0   1   6.9 Module_top_level.pm:27
-__ANON__       0   1   6.9 Module_top_level.pm:45
+__ANON__       0   1   6.9 Module_top_level.pm:36
+__ANON__       0   1   6.9 Module_top_level.pm:54
 
 
 module_top_level
@@ -180,6 +193,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 25             1                               print "count: ",     Module_top_level::get_count(), "\n";
 26             1                               print "add: ",       Module_top_level::add(),       "\n";
 27             1                               print "run_outer: ", Module_top_level::run_outer(), "\n";
+28             1                               print "run_begin: ", Module_top_level::run_begin(), "\n";
 
 
 Covered Subroutines

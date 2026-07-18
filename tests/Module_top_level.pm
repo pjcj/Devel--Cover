@@ -7,6 +7,15 @@
 
 package Module_top_level;
 
+# An anon in a BEGIN block's pad is reachable only through that pad
+my $begin_anon;
+BEGIN {
+  $begin_anon = sub {
+    my ($x) = @_;
+    $x + 100
+  };
+}
+
 my $count = 0;
 $count = $count + 1;
 for my $i (1 .. 3) {
@@ -51,6 +60,7 @@ my $outer = sub {
 sub get_count { $count }
 sub add       { $add->(1, 2) }
 sub run_outer { $outer->() }
+sub run_begin { $begin_anon->(5) }
 
 # Exit via a top-level return.  pp_return unwinds the require's eval
 # context and tail-calls pp_leaveeval directly, so the leaveeval op never
