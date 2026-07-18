@@ -2341,7 +2341,10 @@ static void capture_require_tree(pTHX) {
 static OP *dc_leaveeval(pTHX) {
   dMY_CXT;
   NDEB(D(L, "dc_leaveeval() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering && collecting_here(aTHX)) capture_require_tree(aTHX);
+  /* Do not veto on the cached collecting_here flag - a selected file ending
+     with a require of an unselected file leaves it stale false.
+     capture_require_tree refreshes it with check_if_collecting itself. */
+  if (MY_CXT.covering) capture_require_tree(aTHX);
   return MY_CXT.ppaddr[OP_LEAVEEVAL](aTHX);
 }
 

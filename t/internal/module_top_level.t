@@ -17,6 +17,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use Cwd        qw( realpath );
+use File::Path qw( make_path );
 use File::Spec ();
 use File::Temp qw( tempdir );
 use Test::More import => [qw( diag done_testing is ok )];
@@ -32,14 +33,17 @@ use Devel::Cover::DB ();
 
 # Write a module and a program using it, run the program under coverage
 # and return the cover object for the module's file.
-sub covered_file ($name, $module, $program, $expect) {
+sub covered_file ($name, $module, $program, $expect, $extra = {}) {
   my $tmpdir = realpath(tempdir(CLEANUP => 1));
 
   my %write = (
     File::Spec->catfile($tmpdir, "$name.pm") => $module,
     File::Spec->catfile($tmpdir, "prog.pl")  => $program,
+    map { File::Spec->catfile($tmpdir, split m{/}) => $extra->{$_} }
+      keys %$extra,
   );
   for my $path (sort keys %write) {
+    make_path((File::Spec->splitpath($path))[1]);
     open my $fh, ">", $path or die "Cannot write $path: $!";
     print $fh $write{$path};
     close $fh or die "Cannot close $path: $!";
@@ -198,10 +202,42 @@ PROG
   }
 }
 
+# A selected module whose final top-level statement is a require of an
+# unselected file.  The inner file's cops leave the cached collecting flag
+# false, so the leaveeval hook must refresh it rather than trust the cache,
+# otherwise the whole selected tree is lost.
+sub test_require_unselected_last () {
+  my $f = covered_file(
+    "TopReq", <<'PERL', <<'PROG', "done\n",
+package TopReq;
+
+my $x = 1;
+$x = $x + 1;
+
+require Unselected::Helper;
+PERL
+use TopReq;
+print "done\n";
+PROG
+    { "Unselected/Helper.pm" => <<'DEP' });
+package Unselected::Helper;
+my $y = 5;
+1;
+DEP
+
+  my $stmt = $f->statement;
+  for my $line (3, 4, 6) {
+    my $l = $stmt->location($line);
+    ok $l, "top-level statement on line $line is collected";
+    is $l && $l->[0]->covered, 1, "and has a count";
+  }
+}
+
 sub main () {
   test_full_execution;
   test_partial_execution;
   test_anon_sub;
+  test_require_unselected_last;
   done_testing;
 }
 
