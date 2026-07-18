@@ -2298,6 +2298,25 @@ static OP *dc_require(pTHX) {
 }
 
 /*
+ * Find the first COP (nextstate/dbstate) of an optree by depth-first
+ * descent.  Named and anonymous subs keep their bodies in their own CvROOT,
+ * so this never leaves the top-level tree - the COP it returns is the file's
+ * first executed statement, which names the file the tree belongs to.
+ */
+static COP *first_cop(pTHX_ OP *o) {
+  OP *kid;
+  if (!o) return NULL;
+  if (o->op_type == OP_NEXTSTATE || o->op_type == OP_DBSTATE)
+    return (COP *)o;
+  if (o->op_flags & OPf_KIDS)
+    for (kid = cUNOPx(o)->op_first; kid; kid = OpSIBLING(kid)) {
+      COP *cop = first_cop(aTHX_ kid);
+      if (cop) return cop;
+    }
+  return NULL;
+}
+
+/*
  * Keep a required file's top-level optree alive past the SAVEFREEOP
  * scheduled by doeval_compile so it can be walked at report time.  The
  * root is the root of the file's top-level optree (PL_eval_root at compile
@@ -2310,6 +2329,7 @@ static void capture_tree_from_cx(pTHX_ PERL_CONTEXT *cx, OP *root) {
   dMY_CXT;
   CV *cv;
   AV *pair;
+  COP *cop;
 
   if (!root) return;
   if (CxTYPE(cx) != CXt_EVAL || CxOLD_OP_TYPE(cx) != OP_REQUIRE) return;
@@ -2319,19 +2339,26 @@ static void capture_tree_from_cx(pTHX_ PERL_CONTEXT *cx, OP *root) {
   cv = cx->blk_eval.cv;
   if (!cv) return;
 
-  if (!check_if_collecting(aTHX_ PL_curcop)) return;
+  /* Identify the tree by its own first COP, not PL_curcop.  The last
+     statement executed can sit under a #line directive naming another file,
+     which would make the collecting check consult that file and drop the
+     tree, and would file the whole tree under the fake name at report time. */
+  cop = first_cop(aTHX_ root);
+  if (!cop) cop = PL_curcop;
+
+  if (!check_if_collecting(aTHX_ cop)) return;
 
   OP_REFCNT_LOCK;
   (void)OpREFCNT_inc(root);
   OP_REFCNT_UNLOCK;
 
   NDEB(D(L, "capturing require tree at %p for %s\n",
-         root, CopFILE(PL_curcop)));
+         root, CopFILE(cop)));
 
   pair = newAV();
   av_push(pair, newRV_inc((SV *)cv));
   av_push(pair, newSViv(PTR2IV(root)));
-  av_push(pair, newSVpv(CopFILE(PL_curcop), 0));
+  av_push(pair, newSVpv(CopFILE(cop), 0));
   av_push(MY_CXT.require_trees, newRV_noinc((SV *)pair));
 }
 

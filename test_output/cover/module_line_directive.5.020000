@@ -1,0 +1,134 @@
+cover: Reading database from ...
+
+Common prefix: tests/
+
+------------------------ ------ ------ ------ ------ ------ ------ ------
+File                       stmt   bran   cond   mcdc    sub  total   scar
+------------------------ ------ ------ ------ ------ ------ ------ ------
+Module_line_directive.pm  100.0   50.0    n/a    n/a  100.0   87.5    0.0
+module_line_directive     100.0    n/a    n/a    n/a  100.0  100.0    0.0
+Total                     100.0   50.0    n/a    n/a  100.0   96.0    0.0
+------------------------ ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+Module Summary
+--------------
+
+Files CC  Cov CRAP SCAR
+----- -- ---- ---- ----
+    2  1 95.0  1.0  0.0
+
+
+Module_line_directive.pm
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 1 85.7  1.0  0.0
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+2                                              
+3                                              # This software is free.  It is licensed under the same terms as Perl itself.
+4                                              
+5                                              # The latest version of this software should be available from my homepage:
+6                                              # https://pjcj.net
+7                                              
+8                                              package Module_line_directive;
+9                                              
+10             1                               my $count = 0;
+11             1                               $count = $count + 1;
+12    ***      1   * 50                        if ($count > 0) {
+13             1                                 $count = $count + 10;
+14                                             }
+15                                             
+16             1                           1   sub get_count { $count }
+17                                             
+18                                             # The module exits under a #line directive naming another file, as Template
+19                                             # Toolkit's generated parsers do.  The require-tree capture identifies the
+20                                             # tree by its own first cop, not the last statement executed, so the
+21                                             # top-level statements above stay covered even though the last cop is filed
+22                                             # elsewhere.  This return belongs to Parser.yp and is filtered from the
+23                                             # report.
+24                                             #line 500 "Parser.yp"
+25                                             return 1
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+12    ***     50      1      0   if ($count > 0)
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location                   
+---------- ----- --- ----- ---------------------------
+get_count      1   1   0.0 Module_line_directive.pm:16
+
+
+module_line_directive
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # The final top-level statement of Module_line_directive.pm sits under a
+11                                             # #line directive naming another file, so the last cop executed during the
+12                                             # require is filed elsewhere.  Devel::Cover captures the require tree by its
+13                                             # own first cop, so the module's top-level statements stay covered rather
+14                                             # than the whole tree being dropped.
+15                                             
+16             1                           1   use strict;
+               1                               
+               1                               
+17             1                           1   use warnings;
+               1                               
+               1                               
+18                                             
+19             1                           1   use lib "tests";
+               1                               
+               1                               
+20                                             
+21             1                           1   use Module_line_directive;
+               1                               
+               1                               
+22                                             
+23             1                               print "count: ", Module_line_directive::get_count(), "\n";
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location                
+---------- ----- --- ----- ------------------------
+BEGIN          1   1   0.0 module_line_directive:16
+BEGIN          1   1   0.0 module_line_directive:17
+BEGIN          1   1   0.0 module_line_directive:19
+BEGIN          1   1   0.0 module_line_directive:21
+
+

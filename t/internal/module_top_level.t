@@ -318,6 +318,32 @@ PROG
   }
 }
 
+# A module whose final top-level statement sits under a #line directive
+# naming another file.  The capture must identify the tree by its own
+# first COP, not by PL_curcop (the last statement executed), otherwise the
+# collecting check consults the fake file, rejects the whole tree and every
+# top-level statement is lost.
+sub test_trailing_line_directive () {
+  my $f = covered_file("TopLine", <<'PERL', <<'PROG', "2\n") or return;
+package TopLine;
+my $x = 1;
+$x = $x + 1;
+sub val { $x }
+#line 100 "Phantom.yp"
+$x;
+PERL
+use TopLine;
+print TopLine::val(), "\n";
+PROG
+
+  my $stmt = $f->statement;
+  for my $line (2, 3) {
+    my $l = $stmt->location($line);
+    ok $l, "top-level statement on line $line is collected";
+    is $l && $l->[0]->covered, 1, "and has a count";
+  }
+}
+
 sub main () {
   test_full_execution;
   test_partial_execution;
@@ -326,6 +352,7 @@ sub main () {
   test_glob_anon_single_record;
   test_reload_single_record;
   test_top_level_return;
+  test_trailing_line_directive;
   done_testing;
 }
 

@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# The final top-level statement of Module_line_directive.pm sits under a
+# #line directive naming another file, so the last cop executed during the
+# require is filed elsewhere.  Devel::Cover captures the require tree by its
+# own first cop, so the module's top-level statements stay covered rather
+# than the whole tree being dropped.
+
+use strict;
+use warnings;
+
+use lib "tests";
+
+use Module_line_directive;
+
+print "count: ", Module_line_directive::get_count(), "\n";
