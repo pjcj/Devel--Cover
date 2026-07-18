@@ -542,13 +542,18 @@ sub use_file ($file) {
   $Files{$file}
 }
 
+# A sub body may open with prologue ops before its first real statement:
+# a methstart op for a class method, and an introcv/clonecv pair for each
+# my sub it encloses.  None carry file information, so skip them.
+my %Prologue_op = map { $_ => 1 } qw( methstart introcv clonecv );
+
 sub check_file ($cv) {
   return unless ref($cv) eq "B::CV";
 
   my $op = $cv->START;
-  # Methods defined with the class feature start with a methstart op;
-  # advance past it to reach the nextstate op that has file information.
-  $op = $op->next if ref($op) eq "B::UNOP_AUX" && $op->name eq "methstart";
+  # Advance past any prologue ops to reach the nextstate op with the file.
+  $op = $op->next
+    while ref($op) && $op->can("name") && $Prologue_op{ $op->name };
   return unless ref($op) eq "B::COP";
 
   my $file = $op->file;
@@ -600,6 +605,20 @@ sub sub_info ($cv) {
       $start = $lineseq->first;
       # methods defined with the class feature start with a methstart op
       $start = $start->sibling if $start->name eq "methstart";
+      # a sub enclosing a my sub wraps its introcv/clonecv prologue in a
+      # nested lineseq before the first statement; step past it to the
+      # sibling that holds the real first statement.  Identify the prologue
+      # by its leading introcv/clonecv so ordinary nested blocks, which
+      # start with a nextstate, are left alone.
+      if (
+           $start->name eq "lineseq"
+        && $start->can("first")
+        && $start->first->can("name")
+        && $Prologue_op{ $start->first->name }
+      ) {
+        my $sibling = $start->sibling;
+        $start = $sibling if ref $sibling && $sibling->can("name");
+      }
       # signatures
       if ($start->name eq "null" && $start->can("first")) {
         my $lineseq2 = $start->first;

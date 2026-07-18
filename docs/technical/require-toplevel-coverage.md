@@ -175,11 +175,20 @@ would otherwise be recorded twice, once from the value slot and once from
 `PROTOCV`. `check_files` keeps only the first CV seen for each start op, so it
 is recorded once.
 
-One case is still missed. A sub that itself encloses a lexical sub compiles with
-an `introcv`/`clonecv` prologue, so its start op is not the nextstate that
-`check_file` and `sub_info` expect, and that enclosing sub is dropped from the
-report along with any lexical sub reachable only through it. This is a separate,
-pre-existing gap, not specific to required files, so it is left for its own fix.
+A sub that itself encloses a lexical sub compiles with an `introcv`/`clonecv`
+prologue before its first statement, one `clonecv` per enclosed `my sub` and a
+`methstart` before them for a class method. In execution order that prologue
+displaces the nextstate op `check_file` looks for, and in tree order it sits in
+a nested lineseq wrapping the real first statement rather than that statement's
+nextstate, which is what `sub_info` expects. So `check_file` steps past the
+prologue ops to the first `COP`, and `sub_info` steps past a leading `methstart`
+and then a nested prologue lineseq (identified by its own leading
+`introcv`/`clonecv`, so ordinary nested blocks are left alone) to reach the
+first statement. Without this the enclosing sub is dropped from the report with
+any lexical sub reachable only through it, and the file can wrongly claim full
+subroutine coverage. This gap is not specific to required files. The enclosing
+sub is covered from 5.20, while each enclosed `my sub` still needs `PROTOCV` and
+so stays invisible before 5.22.
 
 An anonymous sub defined inside a `BEGIN`/`CHECK`/`INIT`/`END` block lives only
 in that block's own pad, not in the enclosing file's pad, so `special_block_cvs`

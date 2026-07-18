@@ -344,6 +344,43 @@ PROG
   }
 }
 
+# A sub that lexically encloses a my sub compiles with an introcv/clonecv
+# prologue before its first statement, so its START is not the nextstate
+# COP that check_file expects and its ROOT->first->first is a nested
+# lineseq wrapping the prologue rather than the first statement's COP.
+# Both check_file and sub_info must step past the prologue, otherwise the
+# enclosing sub is dropped from coverage entirely along with its body.
+sub test_enclosing_sub () {
+  my $f = covered_file("TopEnclosing", <<'PERL', <<'PROG', "25\n") or return;
+package TopEnclosing;
+use feature 'lexical_subs';
+no warnings 'experimental::lexical_subs';
+
+sub with_mysub {
+  my sub inner { my $x = shift; $x + 5 }
+  inner(shift)
+}
+
+1;
+PERL
+use TopEnclosing;
+print TopEnclosing::with_mysub(20), "\n";
+PROG
+
+  # A sub is anchored at its first executable statement, which for the
+  # enclosing sub is the inner(shift) call on line 7, not the declaration
+  my $subs = $f->subroutine;
+  my $sub  = $subs->location(7);
+  ok $sub, "enclosing sub with_mysub is collected";
+  is $sub && $sub->[0]->name,    "with_mysub", "and is the enclosing sub";
+  is $sub && $sub->[0]->covered, 1,            "and is reported as covered";
+
+  my $stmt = $f->statement;
+  my $body = $stmt->location(7);
+  ok $body, "enclosing sub body statement is collected";
+  is $body && $body->[0]->covered, 1, "and has a count";
+}
+
 sub main () {
   test_full_execution;
   test_partial_execution;
@@ -353,6 +390,7 @@ sub main () {
   test_reload_single_record;
   test_top_level_return;
   test_trailing_line_directive;
+  test_enclosing_sub;
   done_testing;
 }
 
