@@ -233,11 +233,73 @@ DEP
   }
 }
 
+# A file-scope anon sub installed into a glob is reachable both from the
+# symbol table (as a named glob slot) and from the husk pad.  Feeding the
+# husk pad CVs through @Cvs before check_files lets the normal anon merge
+# collapse the two records, so the sub is reported once, not twice.  The
+# interleaved named subs push the two walks apart, which is what defeated
+# the merge when the pad was walked separately in the require closure.
+sub test_glob_anon_single_record () {
+  my $f = covered_file("TopGlob", <<'PERL', <<'PROG', "pos\n1\n2\n") or return;
+package TopGlob;
+
+sub named_one { 1 }
+
+*handler = sub {
+  my $x = shift;
+  $x > 0 ? "pos" : "neg";
+};
+
+sub named_two { 2 }
+
+1;
+PERL
+use TopGlob;
+print TopGlob::handler(5), "\n";
+print TopGlob::named_one(), "\n";
+print TopGlob::named_two(), "\n";
+PROG
+
+  my $subs = $f->subroutine;
+  my $anon = $subs->location(6);
+  ok $anon, "glob-installed anon sub is collected";
+  is scalar @$anon, 1, "and is recorded exactly once, not duplicated";
+  is $anon && $anon->[0]->name, "__ANON__", "the record is the anon sub";
+}
+
+# A module required, dropped from %INC and required again captures one
+# tree per compilation.  Each tree's ops have distinct addresses, so
+# without per-file suppression every top-level statement is recorded once
+# per compilation.  Keeping only the latest tree collapses them to one row.
+sub test_reload_single_record () {
+  my $f = covered_file("TopReload", <<'PERL', <<'PROG', "2\n") or return;
+package TopReload;
+my $x = 1;
+$x = $x + 1;
+sub val { $x }
+1;
+PERL
+require TopReload;
+delete $INC{"TopReload.pm"};
+require TopReload;
+print TopReload::val(), "\n";
+PROG
+
+  my $stmt = $f->statement;
+  for my $line (2, 3, 5) {
+    my $l = $stmt->location($line);
+    ok $l, "top-level statement on line $line is collected";
+    is scalar @$l, 1, "and is recorded once despite the reload";
+  }
+}
+
 sub main () {
   test_full_execution;
   test_partial_execution;
   test_anon_sub;
   test_require_unselected_last;
+  test_glob_anon_single_record;
+  test_reload_single_record;
   done_testing;
 }
 

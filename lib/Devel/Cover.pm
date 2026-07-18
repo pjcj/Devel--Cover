@@ -733,6 +733,23 @@ sub _report {
 
   $Coverage = coverage(1) || die "No coverage data available.\n";
 
+  # Required files keep their top-level optrees alive via the leaveeval
+  # hook.  A file required more than once (e.g. after delete $INC{...})
+  # captures one tree per compilation, each with distinct op addresses that
+  # %Seen cannot collapse, so keep only the most recent tree per file and
+  # every top-level statement and branch is recorded once.
+  my @require_trees = $Subs_only ? () : get_require_trees();
+  my %latest_tree;
+  $latest_tree{ $_->[2] } = $_ for @require_trees;
+  @require_trees          = grep $latest_tree{ $_->[2] } == $_, @require_trees;
+
+  # Feed the file-scope anon subs into %Cvs before check_files snapshots
+  # @Cvs.  A capture-free anon installed via a glob is the same source sub
+  # as its husk-pad prototype, so the %seen_cv pass and anon merge must see
+  # both together to record it once, rather than walking the pad separately
+  # in the require closure and listing the sub twice.
+  $Cvs{$_} ||= $_ for map pad_cvs($_->[0]), @require_trees;
+
   check_files();
 
   unless ($Subs_only) {
@@ -753,12 +770,11 @@ sub _report {
   }
   get_cover_progress("CV", @Cvs);
   unless ($Subs_only) {
-    # Top-level optrees of required files, kept alive by the leaveeval
-    # hook.  Their eval CVs have no ROOT so the root op rides alongside,
-    # as with main_cv/main_root.  There is no set_subroutine call for
-    # top-level code, so establish the structure's file context here or
-    # the per-file counters would run against the wrong file.
-    my @require_trees = get_require_trees();
+    # The eval CVs have no ROOT so the root op rides alongside, as with
+    # main_cv/main_root.  There is no set_subroutine call for top-level
+    # code, so establish the structure's file context here or the per-file
+    # counters would run against the wrong file.  The file-scope anon subs
+    # were already covered via @Cvs above.
     _report_progress(
       "getting require file coverage",
       sub ($tree) {
@@ -768,8 +784,6 @@ sub _report {
         my $digest = $Structure->set_file($File);
         $Run{digests}{$File} ||= $digest;
         get_cover($cv, $root);
-        # File-scope anon subs keep their prototype CVs in the eval CV's pad
-        get_cover($_) for pad_cvs($cv);
       },
       @require_trees,
     ) if @require_trees;
