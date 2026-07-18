@@ -2299,22 +2299,19 @@ static OP *dc_require(pTHX) {
 
 /*
  * Keep a required file's top-level optree alive past the SAVEFREEOP
- * scheduled by doeval_compile so it can be walked at report time.  At the
- * leaveeval op of a require, PL_op is the root of the file's top-level
- * optree (PL_eval_root at compile time).  The eval CV never owns these
- * ops (CvROOT is NULL), so we bump the root's own refcount - op_free from
- * the scope unwind then just decrements it - and take a reference to the
- * CV, whose pad holds the file's lexicals for deparsing.  See
- * docs/technical/require-toplevel-coverage.md.
+ * scheduled by doeval_compile so it can be walked at report time.  The
+ * root is the root of the file's top-level optree (PL_eval_root at compile
+ * time).  The eval CV never owns these ops (CvROOT is NULL), so we bump the
+ * root's own refcount - op_free from the scope unwind then just decrements
+ * it - and take a reference to the CV, whose pad holds the file's lexicals
+ * for deparsing.  See docs/technical/require-toplevel-coverage.md.
  */
-static void capture_require_tree(pTHX) {
+static void capture_tree_from_cx(pTHX_ PERL_CONTEXT *cx, OP *root) {
   dMY_CXT;
-  PERL_CONTEXT *cx;
-  CV           *cv;
-  AV           *pair;
+  CV *cv;
+  AV *pair;
 
-  if (cxstack_ix < 0) return;
-  cx = &cxstack[cxstack_ix];
+  if (!root) return;
   if (CxTYPE(cx) != CXt_EVAL || CxOLD_OP_TYPE(cx) != OP_REQUIRE) return;
 
   /* Read cv before check_if_collecting, which may call back into Perl and
@@ -2325,17 +2322,59 @@ static void capture_require_tree(pTHX) {
   if (!check_if_collecting(aTHX_ PL_curcop)) return;
 
   OP_REFCNT_LOCK;
-  (void)OpREFCNT_inc(PL_op);
+  (void)OpREFCNT_inc(root);
   OP_REFCNT_UNLOCK;
 
   NDEB(D(L, "capturing require tree at %p for %s\n",
-         PL_op, CopFILE(PL_curcop)));
+         root, CopFILE(PL_curcop)));
 
   pair = newAV();
   av_push(pair, newRV_inc((SV *)cv));
-  av_push(pair, newSViv(PTR2IV(PL_op)));
+  av_push(pair, newSViv(PTR2IV(root)));
   av_push(pair, newSVpv(CopFILE(PL_curcop), 0));
   av_push(MY_CXT.require_trees, newRV_noinc((SV *)pair));
+}
+
+/* At the leaveeval op of a require, PL_op is the eval root. */
+static void capture_require_tree(pTHX) {
+  if (cxstack_ix < 0) return;
+  capture_tree_from_cx(aTHX_ &cxstack[cxstack_ix], PL_op);
+}
+
+/*
+ * A top-level return in a required file makes pp_return unwind the eval
+ * context and tail-call pp_leaveeval directly, so the OP_LEAVEEVAL op is
+ * never dispatched and neither leaveeval hook fires.  Mirror dopoptosub_at
+ * to find the context pp_return will unwind to, and if it is a require
+ * capture its root, still PL_eval_root here, before pp_return frees it.
+ * capture_tree_from_cx captures only requires, so a plain eval block or
+ * string eval found first is rejected there rather than needing the
+ * version-dependent try-block test dopoptosub_at uses.
+ */
+static void capture_require_return(pTHX) {
+  I32 i;
+  for (i = cxstack_ix; i >= 0; i--) {
+    PERL_CONTEXT *cx = &cxstack[i];
+    switch (CxTYPE(cx)) {
+      case CXt_SUB:
+        if (cx->cx_type & CXp_SUB_RE_FAKE) continue;
+        return;
+      case CXt_EVAL:
+        capture_tree_from_cx(aTHX_ cx, PL_eval_root);
+        return;
+      case CXt_FORMAT:
+        return;
+      default:
+        continue;
+    }
+  }
+}
+
+static OP *dc_return(pTHX) {
+  dMY_CXT;
+  NDEB(D(L, "dc_return() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering) capture_require_return(aTHX);
+  return MY_CXT.ppaddr[OP_RETURN](aTHX);
 }
 
 static OP *dc_leaveeval(pTHX) {
@@ -2343,7 +2382,7 @@ static OP *dc_leaveeval(pTHX) {
   NDEB(D(L, "dc_leaveeval() at %p (%d)\n", PL_op, collecting_here(aTHX)));
   /* Do not veto on the cached collecting_here flag - a selected file ending
      with a require of an unselected file leaves it stale false.
-     capture_require_tree refreshes it with check_if_collecting itself. */
+     capture_tree_from_cx refreshes it with check_if_collecting itself. */
   if (MY_CXT.covering) capture_require_tree(aTHX);
   return MY_CXT.ppaddr[OP_LEAVEEVAL](aTHX);
 }
@@ -2376,6 +2415,7 @@ static void replace_ops (pTHX) {
   PL_ppaddr[OP_XOR]       = dc_xor;
   PL_ppaddr[OP_REQUIRE]   = dc_require;
   PL_ppaddr[OP_LEAVEEVAL] = dc_leaveeval;
+  PL_ppaddr[OP_RETURN]    = dc_return;
   PL_ppaddr[OP_EXEC]      = dc_exec;
 }
 
@@ -2542,6 +2582,11 @@ static int runops_cover(pTHX) {
 
       case OP_LEAVEEVAL: {
         capture_require_tree(aTHX);
+        break;
+      }
+
+      case OP_RETURN: {
+        capture_require_return(aTHX);
         break;
       }
 

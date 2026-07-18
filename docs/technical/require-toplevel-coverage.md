@@ -124,6 +124,11 @@ Devel::Cover now does:
   root of the file's top-level tree), takes a reference to the husk CV from
   `cx->blk_eval.cv` for deparse context, and stashes CV, root address and
   `CopFILE(PL_curcop)` in `MY_CXT.require_trees`,
+- `dc_return` hooks `PL_ppaddr[OP_RETURN]` for the same reason, since a
+  top-level `return` makes `pp_return` unwind the eval and tail-call
+  `pp_leaveeval` directly without dispatching the leaveeval op. It mirrors
+  `dopoptosub_at` to find the context being unwound and captures the tree from
+  `PL_eval_root` when that context is a require,
 - the scheduled `SAVEFREEOP` then only decrements the refcount,
 - at report time `_report` fetches the triples via `get_require_trees` and walks
   each with `get_cover($cv, $root)`, exactly as `main_cv`/`main_root` is walked.
@@ -139,11 +144,11 @@ Devel::Cover now does:
 This needs no core change and works back to 5.20, threaded and unthreaded, at
 the cost of holding the trees in memory for the run, which is what Option A does
 too. It relies on `PL_op` being the eval root inside the leaveeval pp hook, on
-the refcount semantics of `op_free`, and on the husk CV's pad remaining valid,
-none of which are documented guarantees. It also misses requires that die part
-way through, where `pp_leaveeval` never runs, though those trees are freed
-during the die unwinding anyway, so nothing can be done about them without core
-support.
+`PL_eval_root` being that root at a top-level return, on the refcount semantics
+of `op_free`, and on the husk CV's pad remaining valid, none of which are
+documented guarantees. It also misses requires that die part way through, where
+`pp_leaveeval` never runs, though those trees are freed during the die unwinding
+anyway, so nothing can be done about them without core support.
 
 String evals that perform a `use` or `require` are covered by this mechanism
 too, since the inner require gets its own eval context. Plain string eval

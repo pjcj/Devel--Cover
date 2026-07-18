@@ -293,6 +293,31 @@ PROG
   }
 }
 
+# A module whose top-level code exits with a return.  pp_return unwinds
+# the require's eval context and tail-calls pp_leaveeval directly, so the
+# leaveeval op is never dispatched and the leaveeval hook cannot fire.  The
+# return hook captures the tree from the unwind path instead, so the
+# top-level statements are covered like any other.
+sub test_top_level_return () {
+  my $f = covered_file("TopReturn", <<'PERL', <<'PROG', "2\n") or return;
+package TopReturn;
+my $x = 1;
+$x = $x + 1;
+sub val { $x }
+return 1;
+PERL
+use TopReturn;
+print TopReturn::val(), "\n";
+PROG
+
+  my $stmt = $f->statement;
+  for my $line (2, 3, 5) {
+    my $l = $stmt->location($line);
+    ok $l, "top-level statement on line $line is collected";
+    is $l && $l->[0]->covered, 1, "and has a count";
+  }
+}
+
 sub main () {
   test_full_execution;
   test_partial_execution;
@@ -300,6 +325,7 @@ sub main () {
   test_require_unselected_last;
   test_glob_anon_single_record;
   test_reload_single_record;
+  test_top_level_return;
   done_testing;
 }
 

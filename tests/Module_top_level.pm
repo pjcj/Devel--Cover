@@ -52,4 +52,7 @@ sub get_count { $count }
 sub add       { $add->(1, 2) }
 sub run_outer { $outer->() }
 
-1
+# Exit via a top-level return.  pp_return unwinds the require's eval
+# context and tail-calls pp_leaveeval directly, so the leaveeval op never
+# runs and the return hook must capture the tree instead.
+return 1

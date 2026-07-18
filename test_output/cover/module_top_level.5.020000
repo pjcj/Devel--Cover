@@ -98,7 +98,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 52             1                           1   sub add       { $add->(1, 2) }
 53             1                           1   sub run_outer { $outer->() }
 54                                             
-55             1                               1
+55                                             # Exit via a top-level return.  pp_return unwinds the require's eval
+56                                             # context and tail-calls pp_leaveeval directly, so the leaveeval op never
+57                                             # runs and the return hook must capture the tree instead.
+58             1                               return 1
 
 
 Branches
