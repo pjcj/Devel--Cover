@@ -522,6 +522,8 @@ sub use_file ($file) {
 
   return $Files{$file} if exists $Files{$file};
   return 0             if $file =~ /\(eval \d+\)/;
+  # AutoSplit index files are machine-generated, never real source
+  return 0 if $file =~ /autosplit\.ix$/;
 
   my $f = normalised_file($file);
 

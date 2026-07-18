@@ -2,14 +2,13 @@ cover: Reading database from ...
 
 Common prefix: tests/
 
----------------------------- ------ ------ ------ ------ ------ ------ ------
-File                           stmt   bran   cond   mcdc    sub  total   scar
----------------------------- ------ ------ ------ ------ ------ ------ ------
-Autoloader_stale.pm           100.0    n/a    n/a    n/a  100.0  100.0    0.0
-...loader_stale/autosplit.ix  100.0    n/a    n/a    n/a    n/a  100.0    n/a
-autoloader_stale              100.0    n/a    n/a    n/a  100.0  100.0    0.0
-Total                         100.0    n/a    n/a    n/a  100.0  100.0    0.0
----------------------------- ------ ------ ------ ------ ------ ------ ------
+------------------- ------ ------ ------ ------ ------ ------ ------
+File                  stmt   bran   cond   mcdc    sub  total   scar
+------------------- ------ ------ ------ ------ ------ ------ ------
+Autoloader_stale.pm  100.0    n/a    n/a    n/a  100.0  100.0    0.0
+autoloader_stale     100.0    n/a    n/a    n/a  100.0  100.0    0.0
+Total                100.0    n/a    n/a    n/a  100.0  100.0    0.0
+------------------- ------ ------ ------ ------ ------ ------ ------
 
 
 Run: ...
@@ -23,7 +22,7 @@ Module Summary
 
 Files CC   Cov CRAP SCAR
 ----- -- ----- ---- ----
-    3  1 100.0  1.0  0.0
+    2  1 100.0  1.0  0.0
 
 
 Autoloader_stale.pm
@@ -79,16 +78,6 @@ BEGIN          1   1   0.0 Autoloader_stale.pm:13
 BEGIN          1   1   0.0 Autoloader_stale.pm:15
 loaded         1   1   0.0 Autoloader_stale.pm:17
 stale          1   1   0.0 Autoloader_stale.pm:23
-
-
-auto/Autoloader_stale/autosplit.ix
-
-line  err   stmt   bran   cond   mcdc    sub   code
-1                                              # Index created by AutoSplit for blib/lib/Autoloader_stale.pm
-2                                              #    (file acts as timestamp)
-3                                              package Autoloader_stale;
-4                                              sub stale ;
-5              1                               1;
 
 
 autoloader_stale
