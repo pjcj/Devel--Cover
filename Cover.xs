@@ -2316,10 +2316,13 @@ static void capture_require_tree(pTHX) {
   if (cxstack_ix < 0) return;
   cx = &cxstack[cxstack_ix];
   if (CxTYPE(cx) != CXt_EVAL || CxOLD_OP_TYPE(cx) != OP_REQUIRE) return;
-  if (!check_if_collecting(aTHX_ PL_curcop)) return;
 
+  /* Read cv before check_if_collecting, which may call back into Perl and
+     realloc cxstack, leaving cx dangling. */
   cv = cx->blk_eval.cv;
   if (!cv) return;
+
+  if (!check_if_collecting(aTHX_ PL_curcop)) return;
 
   OP_REFCNT_LOCK;
   (void)OpREFCNT_inc(PL_op);
