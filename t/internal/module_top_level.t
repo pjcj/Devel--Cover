@@ -43,7 +43,11 @@ sub covered_file ($name, $module, $program, $expect, $extra = {}) {
       keys %$extra,
   );
   for my $path (sort keys %write) {
-    make_path((File::Spec->splitpath($path))[1]);
+    # keep the volume (splitpath drops it into a separate element) so the
+    # directory is created on the right drive under Windows, not just its
+    # path relative to the current one
+    my ($vol, $dirs) = File::Spec->splitpath($path);
+    make_path(File::Spec->catpath($vol, $dirs, ""));
     open my $fh, ">", $path or die "Cannot write $path: $!";
     print $fh $write{$path};
     close $fh or die "Cannot close $path: $!";
