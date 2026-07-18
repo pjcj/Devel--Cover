@@ -7,11 +7,10 @@ uncovered. They are simply absent from the coverage structure, which inflates
 the reported percentages. A module whose subs are fully exercised reports 100%
 statement coverage even if half its top-level code never ran.
 
-The tests `t/internal/module_top_level.t` and `tests/module_top_level`
-demonstrate the problem. The golden results for `module_top_level` show
-`Module_top_level.pm` at 100% with every top-level line blank. The same
-deficiency has been baked into the golden results of `module1` and friends for
-years (lines 10 and 11 of `Module1.pm`).
+The tests `t/internal/module_top_level.t` and `tests/module_require` guard
+against this. Before the fix the golden results showed `Module_top_level.pm` at
+100% with every top-level line blank, the same deficiency that sat in the golden
+results of `module1` and friends for years (lines 10 and 11 of `Module1.pm`).
 
 ## Why the data is lost
 

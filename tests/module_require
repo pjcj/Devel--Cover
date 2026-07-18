@@ -1,0 +1,43 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# Coverage of code required from other files.  The top-level statements of
+# each module run inside the eval CV the require creates, and perl frees
+# that op tree as soon as the require completes.  Devel::Cover keeps the
+# tree alive from its leaveeval hook and walks it at report time, so the
+# module's top-level statements, branches, conditions and subs are covered.
+# Each module here exercises a different part of that machinery:
+#   Module_top_level     - top-level statements, branches and nested anon subs
+#   Module_lexical_sub    - a my sub reached through its prototype CV (5.22+)
+#   Module_line_directive - a final statement under a #line naming another file
+#   Module_enclosing_sub  - subs that enclose a my sub (introcv/clonecv prologue)
+
+use strict;
+use warnings;
+
+use lib "tests";
+
+use Module_top_level;
+use Module_lexical_sub;
+use Module_line_directive;
+use Module_enclosing_sub;
+
+print "count: ",      Module_top_level::get_count(),      "\n";
+print "add: ",        Module_top_level::add(),            "\n";
+print "run_outer: ",  Module_top_level::run_outer(),      "\n";
+print "run_begin: ",  Module_top_level::run_begin(),      "\n";
+
+print "get: ",        Module_lexical_sub::get(),          "\n";
+
+print "line count: ", Module_line_directive::get_count(), "\n";
+
+print "named_enc:  ", Module_enclosing_sub::named_enc(20),  "\n";
+print "run_anon:   ", Module_enclosing_sub::run_anon(20),   "\n";
+print "nested_enc: ", Module_enclosing_sub::nested_enc(20), "\n";
+print "plain:      ", Module_enclosing_sub::plain(10),      "\n";
