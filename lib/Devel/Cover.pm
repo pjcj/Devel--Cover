@@ -567,6 +567,12 @@ sub pad_cvs ($cv, $seen = {}) {
     && $cv->PADLIST->ARRAY->can("ARRAY");
   my @cvs = grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
     $cv->PADLIST->ARRAY->ARRAY;
+  # A my sub keeps its prototype in the padname's PROTOCV (5.22+), not the
+  # value slot, which is empty once its scope has exited
+  my $names = $cv->PADLIST->ARRAYelt(0);
+  push @cvs, grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
+    map ref && $_->can("PROTOCV") ? $_->PROTOCV : (), $names->ARRAY
+    if $names && $names->can("ARRAY");
   (@cvs, map pad_cvs($_, $seen), @cvs)
 }
 
@@ -643,11 +649,16 @@ sub check_files {
     }
     $line = 0  unless defined $line;
     $name = "" unless defined $name;
-    ($line, $name)
+    ($line, $name, $start ? $$start : 0)
   };
 
+  # A capture-free lexical sub shares its optree between clone and
+  # prototype, so both carry the same start op.  Keep one, or the sub is
+  # recorded twice - once from a value slot and once from a PROTOCV.
+  my %seen_start;
   @Cvs = map $_->[0],
-    sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] } map [$_, $l->($_)],
+    sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] }
+    grep { !$_->[3] || !$seen_start{ $_->[3] }++ } map [$_, $l->($_)],
     grep !$seen_cv{$$_}++, values %Cvs;
 
   # Hack to bump up the refcount of the subs.  If we don't do this then the

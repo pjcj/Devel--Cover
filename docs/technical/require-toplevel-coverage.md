@@ -159,7 +159,27 @@ the require-tree walk also walks the husk CV's pad (with `pad_cvs`, shared with
 `B::GV::find_cv`, `add_cvs` and the `BEGIN`/`CHECK`/`INIT`/`END` block walk) and
 covers each CV it finds there. The walk is recursive, finding anonymous subs
 nested inside other anonymous subs at any depth, and keeps a seen hash because a
-pad entry can refer back to its own CV (a recursive lexical sub, for instance).
+pad entry can refer back to its own CV.
+
+A lexical sub (`my sub`) is different. Once its scope has exited, its pad value
+slot no longer holds a usable CV, so the value walk cannot see it. Its live
+prototype lives in the padname's `PROTOCV` instead, which `pad_cvs` reads from
+the padname list. `PROTOCV` exists from 5.22, so on 5.20 a `my sub` at a
+required file's top level runs but stays invisible and the file can wrongly
+claim full subroutine coverage there.
+
+A capture-free lexical sub shares one optree between its prototype and its
+clones, so both carry the same start op. When a clone is reachable through a
+value slot too (a `my method` called from an ordinary method, say), the sub
+would otherwise be recorded twice, once from the value slot and once from
+`PROTOCV`. `check_files` keeps only the first CV seen for each start op, so it
+is recorded once.
+
+One case is still missed. A sub that itself encloses a lexical sub compiles with
+an `introcv`/`clonecv` prologue, so its start op is not the nextstate that
+`check_file` and `sub_info` expect, and that enclosing sub is dropped from the
+report along with any lexical sub reachable only through it. This is a separate,
+pre-existing gap, not specific to required files, so it is left for its own fix.
 
 An anonymous sub defined inside a `BEGIN`/`CHECK`/`INIT`/`END` block lives only
 in that block's own pad, not in the enclosing file's pad, so `special_block_cvs`
