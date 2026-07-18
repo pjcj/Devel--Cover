@@ -1,11 +1,11 @@
 # Missing Coverage for Top-Level Module Statements
 
-When a module is loaded with `require` or `use`, Devel::Cover collects no
-coverage at all for the statements, branches and conditions in the module's
-top-level code (the code outside any subroutine). The lines are not reported as
-uncovered. They are simply absent from the coverage structure, which inflates
-the reported percentages. A module whose subs are fully exercised reports 100%
-statement coverage even if half its top-level code never ran.
+When a module is loaded with `require`, `use` or `do FILE`, Devel::Cover
+collects no coverage at all for the statements, branches and conditions in the
+module's top-level code (the code outside any subroutine). The lines are not
+reported as uncovered. They are simply absent from the coverage structure, which
+inflates the reported percentages. A module whose subs are fully exercised
+reports 100% statement coverage even if half its top-level code never ran.
 
 The tests `t/internal/module_top_level.t` and `tests/module_require` guard
 against this. Before the fix the golden results showed `Module_top_level.pm` at
@@ -118,11 +118,11 @@ Devel::Cover now does:
 - `dc_leaveeval` hooks `PL_ppaddr[OP_LEAVEEVAL]` in `replace_ops`, with the same
   capture in the `runops_cover` loop for `-replace_ops 0`,
 - `capture_require_tree` fires when the current context is `CXt_EVAL` with
-  `CxOLD_OP_TYPE == OP_REQUIRE` and `check_if_collecting` accepts the file. It
-  takes `OpREFCNT_inc` on `PL_op` (which at that moment is `PL_eval_root`, the
-  root of the file's top-level tree), takes a reference to the husk CV from
-  `cx->blk_eval.cv` for deparse context, and stashes CV, root address and
-  `CopFILE(PL_curcop)` in `MY_CXT.require_trees`,
+  `CxOLD_OP_TYPE` being `OP_REQUIRE` or `OP_DOFILE` and `check_if_collecting`
+  accepts the file. It takes `OpREFCNT_inc` on `PL_op` (which at that moment is
+  `PL_eval_root`, the root of the file's top-level tree), takes a reference to
+  the husk CV from `cx->blk_eval.cv` for deparse context, and stashes CV, root
+  address and `CopFILE(PL_curcop)` in `MY_CXT.require_trees`,
 - `dc_return` hooks `PL_ppaddr[OP_RETURN]` for the same reason, since a
   top-level `return` makes `pp_return` unwind the eval and tail-call
   `pp_leaveeval` directly without dispatching the leaveeval op. It mirrors
@@ -148,6 +148,14 @@ of `op_free`, and on the husk CV's pad remaining valid, none of which are
 documented guarantees. It also misses requires that die part way through, where
 `pp_leaveeval` never runs, though those trees are freed during the die unwinding
 anyway, so nothing can be done about them without core support.
+
+A file loaded with `do FILE` is captured the same way. `do FILE` compiles and
+runs the file in an eval context just as `require` does, but leaves
+`CxOLD_OP_TYPE` as `OP_DOFILE`, so the capture guard accepts that op type too.
+Unlike `require`, `do` re-runs the file on every call rather than consulting
+`%INC`, so a file loaded repeatedly captures one tree per run. `_report` keeps
+only the most recent tree per file, exactly as it does for a reloaded require,
+so each top-level statement is recorded once.
 
 String evals that perform a `use` or `require` are covered by this mechanism
 too, since the inner require gets its own eval context. Plain string eval

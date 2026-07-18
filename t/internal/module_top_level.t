@@ -385,6 +385,35 @@ PROG
   is $body && $body->[0]->covered, 1, "and has a count";
 }
 
+# A file loaded with do FILE rather than require or use.  do pushes an
+# OP_DOFILE eval context, not OP_REQUIRE, so the capture guard must accept
+# it too, otherwise the whole top-level tree is freed unrecorded and only
+# subs with their own CvROOT survive.
+sub test_do_file () {
+  my $f = covered_file("TopDo", <<'PERL', <<'PROG', "11\n") or return;
+package TopDo;
+my $count = 0;
+$count = $count + 1;
+if ($count > 0) {
+  $count = $count + 10;
+}
+sub val { $count }
+1;
+PERL
+do "TopDo.pm";
+print TopDo::val(), "\n";
+PROG
+
+  my $stmt = $f->statement;
+  for my $line (2, 3, 4, 5) {
+    my $l = $stmt->location($line);
+    ok $l, "do-loaded top-level statement on line $line is collected";
+    is $l && $l->[0]->covered, 1, "and has a count";
+  }
+  my $branch = $f->branch;
+  ok $branch && $branch->location(4), "do-loaded top-level branch is collected";
+}
+
 sub main () {
   test_full_execution;
   test_partial_execution;
@@ -395,6 +424,7 @@ sub main () {
   test_top_level_return;
   test_trailing_line_directive;
   test_enclosing_sub;
+  test_do_file;
   done_testing;
 }
 

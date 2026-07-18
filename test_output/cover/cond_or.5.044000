@@ -6,8 +6,8 @@ Common prefix: tests/
 File         stmt   bran   cond   mcdc    sub  total   scar
 ---------- ------ ------ ------ ------ ------ ------ ------
 cond_or      89.4   33.3   63.3   34.2   60.0   62.8    7.4
-cond_or.pl  100.0    n/a   57.5   15.0  100.0   62.2   33.4
-Total        92.8   33.3   61.0   27.2   75.0   62.6   34.9
+cond_or.pl  100.0    n/a   57.5   15.0  100.0   62.6   33.3
+Total        92.9   33.3   61.0   27.2   75.0   62.7   34.9
 ---------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -22,7 +22,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    2 22 71.8 32.9 34.9
+    2 22 71.9 32.7 34.9
 
 
 cond_or
@@ -258,7 +258,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-21 74.6 28.2 33.4
+21 75.0 27.9 33.3
 
 Worst Subroutines
 -----------------
@@ -312,7 +312,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 38    ***     11          * 50   *  0              $x->[22]   = $x->[22] // 1;
 39                                             }
 40                                             
-41                                             1;
+41             1                               1;
 
 
 Conditions

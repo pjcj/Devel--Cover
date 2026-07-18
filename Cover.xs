@@ -2317,13 +2317,13 @@ static COP *first_cop(pTHX_ OP *o) {
 }
 
 /*
- * Keep a required file's top-level optree alive past the SAVEFREEOP
- * scheduled by doeval_compile so it can be walked at report time.  The
- * root is the root of the file's top-level optree (PL_eval_root at compile
- * time).  The eval CV never owns these ops (CvROOT is NULL), so we bump the
- * root's own refcount - op_free from the scope unwind then just decrements
- * it - and take a reference to the CV, whose pad holds the file's lexicals
- * for deparsing.  See docs/technical/require-toplevel-coverage.md.
+ * Keep a required or do-loaded file's top-level optree alive past the
+ * SAVEFREEOP scheduled by doeval_compile so it can be walked at report time.
+ * The root is the root of the file's top-level optree (PL_eval_root at
+ * compile time).  The eval CV never owns these ops (CvROOT is NULL), so we
+ * bump the root's own refcount - op_free from the scope unwind then just
+ * decrements it - and take a reference to the CV, whose pad holds the file's
+ * lexicals for deparsing.  See docs/technical/require-toplevel-coverage.md.
  */
 static void capture_tree_from_cx(pTHX_ PERL_CONTEXT *cx, OP *root) {
   dMY_CXT;
@@ -2332,7 +2332,9 @@ static void capture_tree_from_cx(pTHX_ PERL_CONTEXT *cx, OP *root) {
   COP *cop;
 
   if (!root) return;
-  if (CxTYPE(cx) != CXt_EVAL || CxOLD_OP_TYPE(cx) != OP_REQUIRE) return;
+  if (CxTYPE(cx) != CXt_EVAL) return;
+  if (CxOLD_OP_TYPE(cx) != OP_REQUIRE && CxOLD_OP_TYPE(cx) != OP_DOFILE)
+    return;
 
   /* Read cv before check_if_collecting, which may call back into Perl and
      realloc cxstack, leaving cx dangling. */
