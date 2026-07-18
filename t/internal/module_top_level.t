@@ -33,7 +33,7 @@ use Devel::Cover::DB ();
 
 # Write a module and a program using it, run the program under coverage
 # and return the cover object for the module's file.
-sub covered_file ($name, $module, $program, $expect, $extra = {}) {
+sub covered_file ($name, $module, $program, $expect, $extra = {}, $opts = "") {
   my $tmpdir = realpath(tempdir(CLEANUP => 1));
 
   my %write = (
@@ -60,7 +60,7 @@ sub covered_file ($name, $module, $program, $expect, $extra = {}) {
   my $cmd
     = "$^X -Iblib/lib -Iblib/arch -I$tmpdir"
     . " -MDevel::Cover=-db,$cover_db,-silent,1,-merge,0"
-    . ",-select,$name,-ignore,."
+    . ",-select,$name,-ignore,.$opts"
     . " $prog 2>&1";
   my $out = `$cmd`;
   is $?,   0,       "$name: covered run exits 0" or diag $out;
@@ -414,6 +414,29 @@ PROG
   ok $branch && $branch->location(4), "do-loaded top-level branch is collected";
 }
 
+# Under -subs_only Devel::Cover collects only subroutine coverage.  A
+# file-scope anon sub of a required module is a subroutine body and must be
+# reported like a main-program anon sub, so the require-tree pad walk has to
+# run under -subs_only rather than being skipped with the top-level walk.
+sub test_subs_only_anon () {
+  my $f = covered_file("TopSubs",
+    <<'PERL', <<'PROG', "10\n", {}, ",-subs_only,1") or return;
+package TopSubs;
+my $anon = sub { my $x = shift; $x * 2 };
+sub named { $anon->(shift) }
+1;
+PERL
+use TopSubs;
+print TopSubs::named(5), "\n";
+PROG
+
+  my $subs = $f->subroutine;
+  my $anon = $subs->location(2);
+  ok $anon, "file-scope anon sub is collected under -subs_only";
+  is $anon && $anon->[0]->name, "__ANON__", "and is the anon sub";
+  ok $subs->location(3), "named sub is collected under -subs_only";
+}
+
 sub main () {
   test_full_execution;
   test_partial_execution;
@@ -425,6 +448,7 @@ sub main () {
   test_trailing_line_directive;
   test_enclosing_sub;
   test_do_file;
+  test_subs_only_anon;
   done_testing;
 }
 

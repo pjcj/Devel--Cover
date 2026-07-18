@@ -168,6 +168,12 @@ covers each CV it finds there. The walk is recursive, finding anonymous subs
 nested inside other anonymous subs at any depth, and keeps a seen hash because a
 pad entry can refer back to its own CV.
 
+A file-scope anonymous sub is a subroutine body, so it is reported under
+`-subs_only` like a main-program anonymous sub. The husk pad walk therefore
+seeds those CVs into the sub-coverage set under `-subs_only`, while the
+top-level statement, branch and condition walk stays skipped as it is for any
+other code.
+
 A lexical sub (`my sub`) is different. Once its scope has exited, its pad value
 slot no longer holds a usable CV, so the value walk cannot see it. Its live
 prototype lives in the padname's `PROTOCV` instead, which `pad_cvs` reads from

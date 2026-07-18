@@ -788,7 +788,7 @@ sub _report {
   # captures one tree per compilation, each with distinct op addresses that
   # %Seen cannot collapse, so keep only the most recent tree per file and
   # every top-level statement and branch is recorded once.
-  my @require_trees = $Subs_only ? () : get_require_trees();
+  my @require_trees = get_require_trees();
   my %latest_tree;
   $latest_tree{ $_->[2] } = $_ for @require_trees;
   @require_trees          = grep $latest_tree{ $_->[2] } == $_, @require_trees;
