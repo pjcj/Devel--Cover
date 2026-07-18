@@ -26,7 +26,10 @@ use Devel::Cover::Inc         ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use B qw(
+# OPpSTATEMENT is imported conditionally in the BEGIN below (5.43.8+ only), so
+# the ## no perlimports keeps perlimports from adding it back to this list
+use B  ## no perlimports
+  qw(
   main_cv
   main_root
   OPf_KIDS
@@ -34,7 +37,7 @@ use B qw(
   OPf_WANT
   ppname
   walksymtable
-);
+  );
 use B::Deparse ();
 
 # OPpSTATEMENT (added in 5.43.8) authoritatively distinguishes statement-form
