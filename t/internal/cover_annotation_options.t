@@ -36,7 +36,7 @@ my $Db     = File::Spec->catdir($Tmpdir, "cover_db");
 sub build_db () {
   my $script = File::Spec->catfile($Tmpdir, "covered.pl");
   open my $fh, ">", $script or die "open $script: $!";
-  print {$fh} "my \$x = 0;\n\$x++ for 1 .. 3;\n";
+  print $fh "my \$x = 0;\n\$x++ for 1 .. 3;\n";
   close $fh or die "close $script: $!";
 
   my @cmd = (
