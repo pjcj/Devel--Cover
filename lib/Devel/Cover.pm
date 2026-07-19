@@ -35,6 +35,7 @@ use B  ## no perlimports
   OPf_KIDS
   OPf_SPECIAL
   OPf_WANT
+  SVf_ROK
   ppname
   walksymtable
   );
@@ -566,14 +567,55 @@ sub check_file ($cv) {
   $use
 }
 
+# A sub recovered through a reference is only wanted if it is a genuine named
+# sub.  An anon, or an internal clone with a generated name (Moose's ":around"
+# modifier CV, a pragma's BEGIN block), shares its body with a sub already
+# found the normal way and would otherwise be recorded a second time.
+sub recoverable_sub ($cv) {
+  my $gv = $cv->GV;
+  return 0 unless ref $gv && !$gv->isa("B::SPECIAL");
+  my $name = $gv->NAME;
+  defined $name
+    && $name =~ /^\w+$/
+    && $name ne "__ANON__"
+    && $name !~ /^(?:BEGIN|END|INIT|CHECK|UNITCHECK)$/
+}
+
+# Collect the named subs reachable from a pad slot by following a reference:
+# directly to a CV, or one level deep through a plain array or hash the sub
+# closes over.  That is where a method modifier keeps the original sub it
+# replaced in the symbol table, so without this its body is dropped from
+# coverage.  Descent stops after one container so a wrapper's own deeper
+# machinery is not reached; blessed containers are not descended, so a sub
+# closing over an object does not drag its whole graph in, and $seen guards a
+# cyclic structure.
+sub ref_cvs ($sv, $seen, $depth = 1) {
+  my $r = ref $sv or return ();
+  if ($r ne "B::AV" && $r ne "B::HV") {
+    return ()
+      unless $sv->can("FLAGS") && $sv->can("RV") && ($sv->FLAGS & SVf_ROK);
+    $sv = $sv->RV;
+    $r  = ref $sv;
+    return recoverable_sub($sv) ? $sv : () if $r eq "B::CV";
+    return () unless $r eq "B::AV" || $r eq "B::HV";
+  }
+  return () unless $depth;
+  return () if $sv->can("SvSTASH") && ref($sv->SvSTASH) ne "B::SPECIAL";
+  return () if $seen->{$$sv}++;
+  my @elems = $r eq "B::AV" ? $sv->ARRAY : do { my %h = $sv->ARRAY; values %h };
+  map ref_cvs($_, $seen, $depth - 1), @elems
+}
+
 # The seen hash stops loops from self-referential pad entries
 sub pad_cvs ($cv, $seen = {}) {
   $seen->{$$cv}++;
   my $padlist = $cv->can("PADLIST") ? $cv->PADLIST : undef;
   my $array   = $padlist && $padlist->can("ARRAY") ? $padlist->ARRAY : undef;
   return unless $array && $array->can("ARRAY");
+  # A slot holding a CV directly is an anon prototype; a slot holding a
+  # reference may lead to a named sub swapped out of its glob by a wrapper
   my @cvs = grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
-    $array->ARRAY;
+    map ref eq "B::CV" ? $_ : ref_cvs($_, $seen), $array->ARRAY;
   # A my sub keeps its prototype in the padname's PROTOCV (5.22+), not the
   # value slot, which is empty once its scope has exited
   my $names = $padlist->ARRAYelt(0);
