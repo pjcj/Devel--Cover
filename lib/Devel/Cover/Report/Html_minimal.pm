@@ -8,7 +8,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 use HTML::Entities qw( encode_entities );
 use Getopt::Long   qw( GetOptions );
 use Devel::Cover::Html_Common  ## no perlimports
-  qw( launch coverage_class default_thresholds );
+  qw( launch coverage_class default_thresholds unique_filenames );
 use Devel::Cover::Log         qw( dcinfo );
 use Devel::Cover::Truth_Table ();
 
@@ -688,9 +688,7 @@ sub get_options ($self, $opt) {
 # Entry point for printing HTML reports
 sub report ($pkg, $db, $opt) {
   my @files = $opt->{file}->@*;
-  %Filenames = map {
-    $_ => do { (my $f = $_) =~ s/\W/-/g; $f }
-  } @files;
+  %Filenames = unique_filenames(@files)->%*;
 
   print_stylesheet($db, $opt);
   for my $file (@files) {

@@ -7,7 +7,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 # VERSION
 
 use Devel::Cover::Html_Common  ## no perlimports
-  qw( launch coverage_class default_thresholds );
+  qw( launch coverage_class default_thresholds unique_filenames );
 use Devel::Cover::Log qw( dcinfo );
 use Devel::Cover::Truth_Table;  ## no perlimports
 
@@ -402,8 +402,7 @@ sub report ($pkg, $db, $options) {
       [Devel::Cover::Report::Html_subtle::Template::Provider->new({})],
   });
 
-  %Filenames
-    = map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } $options->{file}->@*;
+  %Filenames   = unique_filenames($options->{file}->@*)->%*;
   %File_exists = map { $_ => -e } $options->{file}->@*;
 
   print_stylesheet($db, $options);

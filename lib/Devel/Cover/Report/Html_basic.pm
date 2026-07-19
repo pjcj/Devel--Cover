@@ -19,7 +19,8 @@ BEGIN {
 }
 
 use Devel::Cover::Html_Common  ## no perlimports
-  qw( launch highlight $Have_highlighter coverage_class default_thresholds );
+  qw( launch highlight $Have_highlighter
+  coverage_class default_thresholds unique_filenames );
 use Devel::Cover::Inc ();
 use Devel::Cover::Log qw( dcinfo );
 use Devel::Cover::Web qw( write_file );
@@ -378,9 +379,7 @@ sub report ($pkg, $db, $options) {
       map { my $ann = $_; map $ann->header($_), 0 .. $ann->count - 1 }
         $options->{annotations}->@*
     ],
-    filenames => {
-      map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } $options->{file}->@*
-    },
+    filenames  => unique_filenames($options->{file}->@*),
     exists     => { map { $_ => -e } $options->{file}->@* },
     uncompiled => {
       map { $_ => ($db->cover->file($_)->{meta}{uncompiled} ? 1 : 0) }

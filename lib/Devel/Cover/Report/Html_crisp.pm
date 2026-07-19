@@ -20,8 +20,10 @@ BEGIN {
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 ## no perlimports
-use Devel::Cover::Html_Common
-  qw( $Have_highlighter highlight launch coverage_class default_thresholds );
+use Devel::Cover::Html_Common qw(
+  $Have_highlighter highlight launch
+  coverage_class default_thresholds unique_filenames
+);
 use Devel::Cover::Web             qw( $Cov $Crisp_base_css $Crisp_theme_js );
 use Devel::Cover::Condition_table ();
 use Devel::Cover::DB              ();
@@ -1243,9 +1245,7 @@ sub report ($pkg, $db, $options) {
       my @c = $db->criteria;
       +{ (map { $_ => ucfirst } @c), mcdc => "MC/DC", total => "total" }
     },
-    filenames => {
-      map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } $options->{file}->@*
-    },
+    filenames      => unique_filenames($options->{file}->@*),
     have_ppi       => eval { require PPI; 1 } ? 1 : 0,
     favicon_colour => favicon("c3"),
     report_id      => $options->{outputdir},
