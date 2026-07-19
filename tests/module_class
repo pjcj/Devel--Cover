@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# __COVER__ skip_test $] < 5.038
+# __COVER__ skip_reason class feature not available before 5.38
+
+# A class defined in a required module.  Its ADJUST block and field
+# initialisers are top-level class code, retained via the require tree and
+# covered like any other file-scope code, and its uncalled method is reported
+# as uncovered rather than omitted.
+
+use strict;
+use warnings;
+
+use lib "tests";
+
+use Class_animal;
+
+my $a = Animal->new(name => "cat", sound => "meow");
+
+print $a->name,  "\n";
+print $a->speak, "\n";

@@ -167,6 +167,9 @@ typedef struct {
                *modules,
                *files;
   AV           *ends;
+  AV           *require_trees;       /* [CV ref, root op addr] pairs for
+                                      * require optrees kept alive past
+                                      * their SAVEFREEOP */
   char          profiling_key[KEY_SZ];
   bool          profiling_key_valid;
   SV           *module,
@@ -402,6 +405,37 @@ static void set_firsts_if_needed(pTHX) {
       av_store(PL_endav, 0, SvREFCNT_inc(end));
     }
   }
+}
+
+/* Ask Devel::Cover::use_file whether we want to collect from FILE.  The
+   require-tree capture uses this under -replace_ops 0, where check_if_collecting
+   never consults use_file itself. */
+static int file_wanted(pTHX_ const char *file) {
+  dSP;
+  int count, wanted;
+  SV *rv;
+
+  if (!file) return 0;
+
+  ENTER;
+  SAVETMPS;
+  PUSHMARK(SP);
+  XPUSHs(sv_2mortal(newSVpv(file, 0)));
+  PUTBACK;
+
+  count = call_pv("Devel::Cover::use_file", G_SCALAR);
+
+  SPAGAIN;
+  if (count != 1)
+    croak("use_file returned %d values\n", count);
+  rv     = POPs;
+  wanted = SvTRUE(rv) ? 1 : 0;
+  PUTBACK;
+
+  FREETMPS;
+  LEAVE;
+
+  return wanted;
 }
 
 static int check_if_collecting(pTHX_ COP *cop) {
@@ -2294,6 +2328,131 @@ static OP *dc_require(pTHX) {
   return MY_CXT.ppaddr[OP_REQUIRE](aTHX);
 }
 
+/*
+ * Find the first COP (nextstate/dbstate) of an optree by depth-first
+ * descent.  Named and anonymous subs keep their bodies in their own CvROOT,
+ * so this never leaves the top-level tree - the COP it returns is the file's
+ * first executed statement, which names the file the tree belongs to.
+ */
+static COP *first_cop(pTHX_ OP *o) {
+  OP *kid;
+  if (!o) return NULL;
+  if (o->op_type == OP_NEXTSTATE || o->op_type == OP_DBSTATE)
+    return (COP *)o;
+  if (o->op_flags & OPf_KIDS)
+    for (kid = cUNOPx(o)->op_first; kid; kid = OpSIBLING(kid)) {
+      COP *cop = first_cop(aTHX_ kid);
+      if (cop) return cop;
+    }
+  return NULL;
+}
+
+/*
+ * Keep a required or do-loaded file's top-level optree alive past the
+ * SAVEFREEOP scheduled by doeval_compile so it can be walked at report time.
+ * The root is the root of the file's top-level optree (PL_eval_root at
+ * compile time).  The eval CV never owns these ops (CvROOT is NULL), so we
+ * bump the root's own refcount - op_free from the scope unwind then just
+ * decrements it - and take a reference to the CV, whose pad holds the file's
+ * lexicals for deparsing.  See docs/technical/require-toplevel-coverage.md.
+ */
+static void capture_tree_from_cx(pTHX_ PERL_CONTEXT *cx, OP *root) {
+  dMY_CXT;
+  CV *cv;
+  AV *pair;
+  COP *cop;
+
+  if (!root) return;
+  if (CxTYPE(cx) != CXt_EVAL) return;
+  if (CxOLD_OP_TYPE(cx) != OP_REQUIRE && CxOLD_OP_TYPE(cx) != OP_DOFILE)
+    return;
+
+  /* Read cv before check_if_collecting, which may call back into Perl and
+     realloc cxstack, leaving cx dangling. */
+  cv = cx->blk_eval.cv;
+  if (!cv) return;
+
+  /* Identify the tree by its own first COP, not PL_curcop.  The last
+     statement executed can sit under a #line directive naming another file,
+     which would make the collecting check consult that file and drop the
+     tree, and would file the whole tree under the fake name at report time. */
+  cop = first_cop(aTHX_ root);
+  if (!cop) cop = PL_curcop;
+
+  if (!check_if_collecting(aTHX_ cop)) return;
+
+  /* check_if_collecting only consults use_file when ops are replaced.  Under
+     -replace_ops 0 it leaves the collecting flag at whatever the last file set,
+     so filter the file here or every required tree is retained until report
+     only to be dropped by use_file. */
+  if (!MY_CXT.replace_ops && !file_wanted(aTHX_ CopFILE(cop))) return;
+
+  OP_REFCNT_LOCK;
+  (void)OpREFCNT_inc(root);
+  OP_REFCNT_UNLOCK;
+
+  NDEB(D(L, "capturing require tree at %p for %s\n",
+         root, CopFILE(cop)));
+
+  pair = newAV();
+  av_push(pair, newRV_inc((SV *)cv));
+  av_push(pair, newSViv(PTR2IV(root)));
+  av_push(pair, newSVpv(CopFILE(cop), 0));
+  av_push(MY_CXT.require_trees, newRV_noinc((SV *)pair));
+}
+
+/* At the leaveeval op of a require, PL_op is the eval root. */
+static void capture_require_tree(pTHX) {
+  if (cxstack_ix < 0) return;
+  capture_tree_from_cx(aTHX_ &cxstack[cxstack_ix], PL_op);
+}
+
+/*
+ * A top-level return in a required file makes pp_return unwind the eval
+ * context and tail-call pp_leaveeval directly, so the OP_LEAVEEVAL op is
+ * never dispatched and neither leaveeval hook fires.  Mirror dopoptosub_at
+ * to find the context pp_return will unwind to, and if it is a require
+ * capture its root, still PL_eval_root here, before pp_return frees it.
+ * capture_tree_from_cx captures only requires, so a plain eval block or
+ * string eval found first is rejected there rather than needing the
+ * version-dependent try-block test dopoptosub_at uses.
+ */
+static void capture_require_return(pTHX) {
+  I32 i;
+  for (i = cxstack_ix; i >= 0; i--) {
+    PERL_CONTEXT *cx = &cxstack[i];
+    switch (CxTYPE(cx)) {
+      case CXt_SUB:
+        if (cx->cx_type & CXp_SUB_RE_FAKE) continue;
+        return;
+      case CXt_EVAL:
+        capture_tree_from_cx(aTHX_ cx, PL_eval_root);
+        return;
+      case CXt_FORMAT:
+        return;
+      default:
+        continue;
+    }
+  }
+}
+
+static OP *dc_return(pTHX) {
+  dMY_CXT;
+  NDEB(D(L, "dc_return() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  if (MY_CXT.covering) capture_require_return(aTHX);
+  return MY_CXT.ppaddr[OP_RETURN](aTHX);
+}
+
+static OP *dc_leaveeval(pTHX) {
+  dMY_CXT;
+  NDEB(D(L, "dc_leaveeval() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  /* Do not veto on the cached collecting_here flag - a selected file ending
+     with a require of an unselected file leaves it stale false.
+     capture_tree_from_cx refreshes it with check_if_collecting itself. */
+  if (MY_CXT.covering) capture_require_tree(aTHX);
+  return MY_CXT.ppaddr[OP_LEAVEEVAL](aTHX);
+}
+
 static OP *dc_exec(pTHX) {
   dMY_CXT;
   NDEB(D(L, "dc_exec() at %p (%d)\n", PL_op, collecting_here(aTHX)));
@@ -2321,6 +2480,8 @@ static void replace_ops (pTHX) {
   PL_ppaddr[OP_DORASSIGN] = dc_dorassign;
   PL_ppaddr[OP_XOR]       = dc_xor;
   PL_ppaddr[OP_REQUIRE]   = dc_require;
+  PL_ppaddr[OP_LEAVEEVAL] = dc_leaveeval;
+  PL_ppaddr[OP_RETURN]    = dc_return;
   PL_ppaddr[OP_EXEC]      = dc_exec;
 }
 
@@ -2395,6 +2556,7 @@ static void initialise(pTHX) {
     MY_CXT.decision_walked_cvs        = newHV();
     HvSHAREKEYS_off(MY_CXT.decision_meta);
     HvSHAREKEYS_off(MY_CXT.decision_walked_cvs);
+    MY_CXT.require_trees       = newAV();
     MY_CXT.module              = newSVpv("", 0);
     MY_CXT.lastfile            = newSVpvn("", 1);
     MY_CXT.lastfile_ptr        = NULL;
@@ -2481,6 +2643,16 @@ static int runops_cover(pTHX) {
 
       case OP_REQUIRE: {
         store_module(aTHX);
+        break;
+      }
+
+      case OP_LEAVEEVAL: {
+        capture_require_tree(aTHX);
+        break;
+      }
+
+      case OP_RETURN: {
+        capture_require_return(aTHX);
         break;
       }
 
@@ -2985,6 +3157,57 @@ get_ends()
       RETVAL = MY_CXT.ends;
   OUTPUT:
     RETVAL
+
+void
+get_require_trees()
+  PREINIT:
+    dMY_CXT;
+  PPCODE:
+    int i;
+    if (MY_CXT.require_trees)
+      for (i = 0; i <= av_len(MY_CXT.require_trees); i++) {
+        SV **pairref = av_fetch(MY_CXT.require_trees, i, 0);
+        AV  *pair, *ret;
+        SV **cvrv, **opiv, **file;
+        if (!pairref || !SvROK(*pairref)) continue;
+        pair = (AV *)SvRV(*pairref);
+        cvrv = av_fetch(pair, 0, 0);
+        opiv = av_fetch(pair, 1, 0);
+        file = av_fetch(pair, 2, 0);
+        if (!cvrv || !opiv || !file) continue;
+        ret = newAV();
+        av_push(ret, dc_make_cv_sv(aTHX_ (CV *)SvRV(*cvrv)));
+        av_push(ret, dc_make_op_sv(aTHX_ INT2PTR(OP *, SvIV(*opiv))));
+        av_push(ret, newSVsv(*file));
+        XPUSHs(sv_2mortal(newRV_noinc((SV *)ret)));
+      }
+
+void
+release_require_trees()
+  PREINIT:
+    dMY_CXT;
+  PPCODE:
+    int i;
+    if (MY_CXT.require_trees) {
+      /*
+       * Null the current pad around op_free, as cv_undef does - pad ops
+       * free their pad slots against PL_comppad, which by report time
+       * belongs to some unrelated (or already freed) CV
+       */
+      ENTER;
+      SAVECOMPPAD();
+      PL_comppad = NULL;
+      PL_curpad  = NULL;
+      for (i = 0; i <= av_len(MY_CXT.require_trees); i++) {
+        SV **pairref = av_fetch(MY_CXT.require_trees, i, 0);
+        SV **opiv;
+        if (!pairref || !SvROK(*pairref)) continue;
+        opiv = av_fetch((AV *)SvRV(*pairref), 1, 0);
+        if (opiv) op_free(INT2PTR(OP *, SvIV(*opiv)));
+      }
+      LEAVE;
+      av_clear(MY_CXT.require_trees);
+    }
 
 void
 adjust_blocks(stash)

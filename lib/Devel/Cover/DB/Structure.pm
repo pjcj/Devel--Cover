@@ -181,7 +181,8 @@ sub set_file ($self, $file) {
   my $digest = $self->digest($file);
   if ($digest) {
     $self->{f}{$file}{digest} = $digest;
-    push $self->{digests}{$digest}->@*, $file;
+    push $self->{digests}{$digest}->@*, $file
+      unless any { $_ eq $file } ($self->{digests}{$digest} // [])->@*;
   }
   $digest
 }

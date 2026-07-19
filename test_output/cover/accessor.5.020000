@@ -45,7 +45,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                           1   
                1                               
 6                                              }
-7                                              1;
+7              1                               1;
 
 
 Covered Subroutines

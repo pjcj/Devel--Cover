@@ -5,9 +5,9 @@ Common prefix: tests/
 ------- ------ ------ ------ ------ ------ ------ ------
 File      stmt   bran   cond   mcdc    sub  total   scar
 ------- ------ ------ ------ ------ ------ ------ ------
-E2.pm      0.0    n/a    n/a    n/a    0.0    0.0    6.9
+E2.pm     66.6    n/a    n/a    n/a    0.0   50.0    0.4
 require  100.0   50.0    n/a    n/a  100.0   90.9    7.0
-Total     87.5   50.0    n/a    n/a   66.6   76.9    7.1
+Total     90.0   50.0    n/a    n/a   66.6   80.0    7.0
 ------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -22,7 +22,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    2  2 80.0  2.0  7.1
+    2  2 83.3  2.0  7.0
 
 
 E2.pm
@@ -30,9 +30,9 @@ E2.pm
 File Summary
 ------------
 
-CC Cov CRAP SCAR
--- --- ---- ----
- 1 0.0  2.0  6.9
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 1 66.7  1.0  0.4
 
 Worst Subroutines
 -----------------
@@ -51,11 +51,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 7                                              
 8                                              package E2;
 9                                              
-10                                             print "E2\n";
+10             1                               print "E2\n";
 11                                             
 12    ***     *0                          *0   sub E2 { print "E2::E2\n" }
 13                                             
-14                                             1
+14             1                               1
 
 
 Uncovered Subroutines

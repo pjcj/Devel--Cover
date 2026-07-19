@@ -26,7 +26,10 @@ use Devel::Cover::Inc         ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use B qw(
+# OPpSTATEMENT is imported conditionally in the BEGIN below (5.43.8+ only), so
+# the ## no perlimports keeps perlimports from adding it back to this list
+use B  ## no perlimports
+  qw(
   main_cv
   main_root
   OPf_KIDS
@@ -34,7 +37,7 @@ use B qw(
   OPf_WANT
   ppname
   walksymtable
-);
+  );
 use B::Deparse ();
 
 # OPpSTATEMENT (added in 5.43.8) authoritatively distinguishes statement-form
@@ -522,6 +525,8 @@ sub use_file ($file) {
 
   return $Files{$file} if exists $Files{$file};
   return 0             if $file =~ /\(eval \d+\)/;
+  # AutoSplit index files are machine-generated, never real source
+  return 0 if $file =~ /autosplit\.ix$/;
 
   my $f = normalised_file($file);
 
@@ -540,13 +545,18 @@ sub use_file ($file) {
   $Files{$file}
 }
 
+# A sub body may open with prologue ops before its first real statement:
+# a methstart op for a class method, and an introcv/clonecv pair for each
+# my sub it encloses.  None carry file information, so skip them.
+my %Prologue_op = map { $_ => 1 } qw( methstart introcv clonecv );
+
 sub check_file ($cv) {
   return unless ref($cv) eq "B::CV";
 
   my $op = $cv->START;
-  # Methods defined with the class feature start with a methstart op;
-  # advance past it to reach the nextstate op that has file information.
-  $op = $op->next if ref($op) eq "B::UNOP_AUX" && $op->name eq "methstart";
+  # Advance past any prologue ops to reach the nextstate op with the file.
+  $op = $op->next
+    while ref($op) && $op->can("name") && $Prologue_op{ $op->name };
   return unless ref($op) eq "B::COP";
 
   my $file = $op->file;
@@ -555,20 +565,31 @@ sub check_file ($cv) {
   $use
 }
 
+# The seen hash stops loops from self-referential pad entries
+sub pad_cvs ($cv, $seen = {}) {
+  $seen->{$$cv}++;
+  return
+       unless $cv->can("PADLIST")
+    && $cv->PADLIST->can("ARRAY")
+    && $cv->PADLIST->ARRAY
+    && $cv->PADLIST->ARRAY->can("ARRAY");
+  my @cvs = grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
+    $cv->PADLIST->ARRAY->ARRAY;
+  # A my sub keeps its prototype in the padname's PROTOCV (5.22+), not the
+  # value slot, which is empty once its scope has exited
+  my $names = $cv->PADLIST->ARRAYelt(0);
+  push @cvs, grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
+    map ref && $_->can("PROTOCV") ? $_->PROTOCV : (), $names->ARRAY
+    if $names && $names->can("ARRAY");
+  (@cvs, map pad_cvs($_, $seen), @cvs)
+}
+
 sub B::GV::find_cv ($gv) {
   my $cv = $gv->CV;
   return unless $$cv;
 
   $Cvs{$cv} ||= $cv if check_file($cv);
-  if (
-       $cv->can("PADLIST")
-    && $cv->PADLIST->can("ARRAY")
-    && $cv->PADLIST->ARRAY
-    && $cv->PADLIST->ARRAY->can("ARRAY")
-  ) {
-    $Cvs{$_} ||= $_
-      for grep ref eq "B::CV" && check_file($_), $cv->PADLIST->ARRAY->ARRAY;
-  }
+  $Cvs{$_}  ||= $_ for pad_cvs($cv);
 }
 
 sub sub_info ($cv) {
@@ -587,6 +608,20 @@ sub sub_info ($cv) {
       $start = $lineseq->first;
       # methods defined with the class feature start with a methstart op
       $start = $start->sibling if $start->name eq "methstart";
+      # a sub enclosing a my sub wraps its introcv/clonecv prologue in a
+      # nested lineseq before the first statement; step past it to the
+      # sibling that holds the real first statement.  Identify the prologue
+      # by its leading introcv/clonecv so ordinary nested blocks, which
+      # start with a nextstate, are left alone.
+      if (
+           $start->name eq "lineseq"
+        && $start->can("first")
+        && $start->first->can("name")
+        && $Prologue_op{ $start->first->name }
+      ) {
+        my $sibling = $start->sibling;
+        $start = $sibling if ref $sibling && $sibling->can("name");
+      }
       # signatures
       if ($start->name eq "null" && $start->can("first")) {
         my $lineseq2 = $start->first;
@@ -604,7 +639,7 @@ sub sub_info ($cv) {
 }
 
 sub add_cvs {
-  $Cvs{$_} ||= $_ for grep check_file($_), B::main_cv->PADLIST->ARRAY->ARRAY;
+  $Cvs{$_} ||= $_ for pad_cvs(B::main_cv);
 }
 
 sub check_files {
@@ -636,11 +671,16 @@ sub check_files {
     }
     $line = 0  unless defined $line;
     $name = "" unless defined $name;
-    ($line, $name)
+    ($line, $name, $start ? $$start : 0)
   };
 
+  # A capture-free lexical sub shares its optree between clone and
+  # prototype, so both carry the same start op.  Keep one, or the sub is
+  # recorded twice - once from a value slot and once from a PROTOCV.
+  my %seen_start;
   @Cvs = map $_->[0],
-    sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] } map [$_, $l->($_)],
+    sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] }
+    grep { !$_->[3] || !$seen_start{ $_->[3] }++ } map [$_, $l->($_)],
     grep !$seen_cv{$$_}++, values %Cvs;
 
   # Hack to bump up the refcount of the subs.  If we don't do this then the
@@ -681,6 +721,21 @@ sub _resolve_child_op ($child_op) {
   ($op ? $$op : undef, $negated || undef)
 }
 
+# The CVs of every BEGIN/CHECK/INIT/END block, for a pad walk
+sub special_block_cvs {
+  my @avs = B::begin_av();
+  push @avs, B::check_av() if exists &B::check_av;
+  push @avs, get_ends();
+  map $_->isa("B::AV") ? $_->ARRAY : (), @avs
+}
+
+# Feed pad-only anon subs into %Cvs before check_files snapshots @Cvs
+sub _seed_pad_cvs (@require_trees) {
+  $Cvs{$_} ||= $_ for map pad_cvs($_->[0]), @require_trees;
+  return if $Subs_only;
+  $Cvs{$_} ||= $_ for map pad_cvs($_), special_block_cvs();
+}
+
 sub report {
   local $@;
   eval { _report() };
@@ -696,9 +751,11 @@ $@
 
 EOM
   }
-  return unless $Self_cover;
-  $Self_cover_run = 1;
-  _report();
+  if ($Self_cover) {
+    $Self_cover_run = 1;
+    _report();
+  }
+  release_require_trees();
 }
 
 sub _report {
@@ -726,6 +783,18 @@ sub _report {
 
   $Coverage = coverage(1) || die "No coverage data available.\n";
 
+  # Required files keep their top-level optrees alive via the leaveeval
+  # hook.  A file required more than once (e.g. after delete $INC{...})
+  # captures one tree per compilation, each with distinct op addresses that
+  # %Seen cannot collapse, so keep only the most recent tree per file and
+  # every top-level statement and branch is recorded once.
+  my @require_trees = get_require_trees();
+  my %latest_tree;
+  $latest_tree{ $_->[2] } = $_ for @require_trees;
+  @require_trees          = grep $latest_tree{ $_->[2] } == $_, @require_trees;
+
+  _seed_pad_cvs(@require_trees);
+
   check_files();
 
   unless ($Subs_only) {
@@ -745,6 +814,25 @@ sub _report {
     );
   }
   get_cover_progress("CV", @Cvs);
+  unless ($Subs_only) {
+    # The eval CVs have no ROOT so the root op rides alongside, as with
+    # main_cv/main_root.  There is no set_subroutine call for top-level
+    # code, so establish the structure's file context here or the per-file
+    # counters would run against the wrong file.  The file-scope anon subs
+    # were already covered via @Cvs above.
+    _report_progress(
+      "getting require file coverage",
+      sub ($tree) {
+        my ($cv, $root, $file) = @$tree;
+        local ($File, $Line) = (normalised_file($file), 0);
+        return unless use_file($File);
+        my $digest = $Structure->set_file($File);
+        $Run{digests}{$File} ||= $digest;
+        get_cover($cv, $root);
+      },
+      @require_trees,
+    ) if @require_trees;
+  }
 
   _filter_cover_files();
   _write_coverage_db();

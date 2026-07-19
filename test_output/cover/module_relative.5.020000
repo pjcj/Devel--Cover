@@ -48,7 +48,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 11             1                           1     print "Module_import\n";
 12                                             }
 13                                             
-14                                             1
+14             1                               1
 
 
 Covered Subroutines

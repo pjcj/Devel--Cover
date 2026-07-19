@@ -1,0 +1,154 @@
+cover: Reading database from ...
+
+Common prefix: tests/
+
+--------------- ------ ------ ------ ------ ------ ------ ------
+File              stmt   bran   cond   mcdc    sub  total   scar
+--------------- ------ ------ ------ ------ ------ ------ ------
+Class_animal.pm   93.7    n/a    n/a    n/a   85.7   91.3    0.0
+module_class     100.0    n/a    n/a    n/a  100.0  100.0    0.0
+Total             96.7    n/a    n/a    n/a   90.9   95.2    0.0
+--------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+Module Summary
+--------------
+
+Files CC  Cov CRAP SCAR
+----- -- ---- ---- ----
+    2  1 96.8  1.0  0.0
+
+
+Class_animal.pm
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 1 93.8  1.0  0.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SCAR  Location          
+---------- -- ----  ------------------
+unused      1  6.9  Class_animal.pm:21
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+2                                              
+3                                              # This software is free.  It is licensed under the same terms as Perl itself.
+4                                              
+5                                              # The latest version of this software should be available from my homepage:
+6                                              # https://pjcj.net
+7                                              
+8                                              package Class_animal;
+9              1                           1   use 5.38.0;
+               1                               
+10             1                           1   use feature "class";
+               1                               
+               1                               
+11             1                           1   no warnings "experimental::class";
+               1                               
+               1                               
+12                                             
+13             1                               class Animal {
+14             1                                 field $name :param;
+15             1                                 field $sound :param = "...";
+16                                             
+17             1                           1     ADJUST { $name = ucfirst $name }
+18                                             
+19             1                           1     method name   { $name }
+20             1                           1     method speak  { "$name says $sound" }
+21    ***     *0                          *0     method unused { "never called" }
+22                                             }
+23                                             
+24             1                               1;
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location          
+---------- ----- --- ----- ------------------
+BEGIN          1   1   0.0 Class_animal.pm:10
+BEGIN          1   1   0.0 Class_animal.pm:11
+BEGIN          1   1   0.0 Class_animal.pm:9 
+__ANON__       1   1   0.0 Class_animal.pm:17
+name           1   1   0.0 Class_animal.pm:19
+speak          1   1   0.0 Class_animal.pm:20
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count  CC  SCAR Location          
+---------- ----- --- ----- ------------------
+unused         0   1   6.9 Class_animal.pm:21
+
+
+module_class
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # __COVER__ skip_test $] < 5.038
+11                                             # __COVER__ skip_reason class feature not available before 5.38
+12                                             
+13                                             # A class defined in a required module.  Its ADJUST block and field
+14                                             # initialisers are top-level class code, retained via the require tree and
+15                                             # covered like any other file-scope code, and its uncalled method is reported
+16                                             # as uncovered rather than omitted.
+17                                             
+18             1                           1   use strict;
+               1                               
+               1                               
+19             1                           1   use warnings;
+               1                               
+               1                               
+20                                             
+21             1                           1   use lib "tests";
+               1                               
+               1                               
+22                                             
+23             1                           1   use Class_animal;
+               1                               
+               1                               
+24                                             
+25             1                               my $a = Animal->new(name => "cat", sound => "meow");
+26                                             
+27             1                               print $a->name,  "\n";
+28             1                               print $a->speak, "\n";
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location       
+---------- ----- --- ----- ---------------
+BEGIN          1   1   0.0 module_class:18
+BEGIN          1   1   0.0 module_class:19
+BEGIN          1   1   0.0 module_class:21
+BEGIN          1   1   0.0 module_class:23
+
+
