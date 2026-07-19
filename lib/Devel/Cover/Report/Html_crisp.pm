@@ -20,7 +20,8 @@ BEGIN {
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 ## no perlimports
-use Devel::Cover::Html_Common     qw( $Have_highlighter highlight launch );
+use Devel::Cover::Html_Common
+  qw( $Have_highlighter highlight launch coverage_class default_thresholds );
 use Devel::Cover::Web             qw( $Cov $Crisp_base_css $Crisp_theme_js );
 use Devel::Cover::Condition_table ();
 use Devel::Cover::DB              ();
@@ -36,7 +37,7 @@ use POSIX          qw( strftime );
 our %R;
 my %Assets;
 
-my $Threshold = { c0 => 75, c1 => 90, c2 => 100 };
+my $Threshold = default_thresholds;
 
 sub crit_name ($c) {
   qq(<span class="name-full">$R{full}{$c}</span>)
@@ -742,12 +743,7 @@ HTML
 sub class ($pc, $err, $criterion) {
   return "" if $criterion && $criterion eq "time";
   return "na" unless defined $pc && $pc =~ /\A[0-9.]+\z/;
-  no warnings "uninitialized";
-     !$err                   ? "c3"
-    : $pc < $Threshold->{c0} ? "c0"
-    : $pc < $Threshold->{c1} ? "c1"
-    : $pc < $Threshold->{c2} ? "c2"
-    :                          "c3"
+  !$err ? "c3" : coverage_class($pc, $Threshold)
 }
 
 sub oclass ($o, $criterion) {

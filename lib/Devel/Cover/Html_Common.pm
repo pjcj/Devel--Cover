@@ -9,7 +9,8 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 use Exporter qw( import );
 
-our @EXPORT_OK = qw( launch highlight $Have_highlighter );
+our @EXPORT_OK
+  = qw( launch highlight $Have_highlighter coverage_class default_thresholds );
 
 our $Have_highlighter;
 my ($Have_ppi, $Have_perltidy);
@@ -20,6 +21,14 @@ BEGIN {
   eval "use Perl::Tidy";
   $Have_perltidy    = !$@;
   $Have_highlighter = $Have_ppi || $Have_perltidy;
+}
+
+sub default_thresholds () { { c0 => 75, c1 => 90, c2 => 100 } }
+
+sub coverage_class ($pc, $t = undef) {
+  $t //= default_thresholds;
+  return "na" if !defined $pc || $pc eq "n/a";
+  $pc < $t->{c0} ? "c0" : $pc < $t->{c1} ? "c1" : $pc < $t->{c2} ? "c2" : "c3"
 }
 
 sub launch ($package, $opt) {
@@ -124,6 +133,19 @@ hash so that C<noppihtml> and C<noperltidy> flags are respected.
 =item $Have_highlighter
 
 True if PPI::HTML or Perl::Tidy is available.
+
+=item coverage_class ($percentage, $thresholds)
+
+Map a coverage percentage to a CSS band name (C<c0>, C<c1>, C<c2> or
+C<c3>). An undefined percentage or the string C<n/a> maps to C<na>. The
+optional C<$thresholds> hashref carries C<c0>, C<c1> and C<c2> cut-off
+points. It defaults to the values from C<default_thresholds> when omitted.
+
+=item default_thresholds
+
+Return a fresh hashref of the default band cut-off points (C<c0> 75,
+C<c1> 90, C<c2> 100). A new copy is returned each call so callers may
+mutate their own thresholds without affecting the defaults.
 
 =back
 

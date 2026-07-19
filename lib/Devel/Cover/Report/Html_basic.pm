@@ -19,7 +19,7 @@ BEGIN {
 }
 
 use Devel::Cover::Html_Common  ## no perlimports
-  qw( launch highlight $Have_highlighter );
+  qw( launch highlight $Have_highlighter coverage_class default_thresholds );
 use Devel::Cover::Inc ();
 use Devel::Cover::Log qw( dcinfo );
 use Devel::Cover::Web qw( write_file );
@@ -37,16 +37,11 @@ sub oclass ($o, $criterion) {
   $o ? class($o->percentage, $o->error, $criterion) : ""
 }
 
-my $Threshold = { c0 => 75, c1 => 90, c2 => 100 };
+my $Threshold = default_thresholds;
 
 sub class ($pc, $err, $criterion) {
   return "" if $criterion eq "time";
-  no warnings "uninitialized";
-     !$err                   ? "c3"
-    : $pc < $Threshold->{c0} ? "c0"
-    : $pc < $Threshold->{c1} ? "c1"
-    : $pc < $Threshold->{c2} ? "c2"
-    :                          "c3"
+  !$err ? "c3" : coverage_class($pc // 0, $Threshold)
 }
 
 sub get_summary ($file, $criterion) {

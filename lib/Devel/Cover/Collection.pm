@@ -14,6 +14,7 @@ use 5.42.0;
 use Devel::Cover::DB           ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Dumper       qw( Dumper );
+use Devel::Cover::Html_Common  ();
 use Devel::Cover::Web          qw( write_file );
 
 use JSON::MaybeXS      ();
@@ -290,11 +291,7 @@ class Devel::Cover::Collection {
   }
 
   method coverage_class ($pc) {
-        $pc eq "n/a" ? "na"
-      : $pc < 75     ? "c0"
-      : $pc < 90     ? "c1"
-      : $pc < 100    ? "c2"
-      : "c3"
+    Devel::Cover::Html_Common::coverage_class($pc)
   }
 
   method _process_template ($template, $name, $vars, $file) {
