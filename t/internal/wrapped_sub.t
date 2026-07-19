@@ -19,9 +19,12 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use Cwd        qw( realpath );
 use File::Spec ();
 use File::Temp qw( tempdir );
-use Test::More import => [qw( diag done_testing is ok )];
+use Test::More import => [qw( diag done_testing is ok $TODO )];
 
 use Devel::Cover::DB ();
+
+# Set within a TODO block for the cases the heuristic cannot yet recover
+our $TODO;
 
 # A named sub replaced in the symbol table by a wrapper survives only as a
 # reference held inside the wrapper's closure pad, no longer reachable from any
@@ -208,11 +211,98 @@ PROG
   is $l && $l->[0]->covered, 1, "and has a count";
 }
 
+# The cases below are the documented limits of the reference-following
+# heuristic (docs/technical/wrapped-sub-coverage.md).  Each original runs but
+# is not recovered, so the assertions are wrapped in a TODO block - they are
+# the red anchor for the entry-capture follow-up, and will flip to passing
+# (unexpectedly) once that lands, which is the signal to drop the TODO.
+
+# The original sits two containers deep, past the single level the heuristic
+# descends.
+sub test_deep_container_todo () {
+  my $f = covered_file("WrappedDeep", <<'PERL', <<'PROG', "21\n") or return;
+package WrappedDeep;
+
+sub original {
+  my $n = shift;
+  $n * 2;
+}
+
+my $reg = { inner => { orig => \&original } };
+*original = sub { $reg->{inner}{orig}->(shift) + 1 };
+
+1;
+PERL
+use WrappedDeep;
+print WrappedDeep::original(10), "\n";
+PROG
+
+  local $TODO = "original nested past one container is not yet recovered";
+  my $sub = $f->subroutine->location(4);
+  ok $sub, "deeply-held wrapped sub is collected";
+  is $sub && $sub->[0]->covered, 1, "and is reported as covered";
+}
+
+# The original is kept in a blessed object the wrapper closes over, which the
+# heuristic does not descend.
+sub test_blessed_holder_todo () {
+  my $f = covered_file("WrappedBlessed", <<'PERL', <<'PROG', "21\n") or return;
+package WrappedBlessed;
+
+sub original {
+  my $n = shift;
+  $n * 2;
+}
+
+my $holder = bless { orig => \&original }, "WrappedBlessed::Holder";
+*original = sub { $holder->{orig}->(shift) + 1 };
+
+1;
+PERL
+use WrappedBlessed;
+print WrappedBlessed::original(10), "\n";
+PROG
+
+  local $TODO = "original held in a blessed object is not yet recovered";
+  my $sub = $f->subroutine->location(4);
+  ok $sub, "blessed-held wrapped sub is collected";
+  is $sub && $sub->[0]->covered, 1, "and is reported as covered";
+}
+
+# The original is kept in a package variable and looked up at call time, so it
+# is in no pad the walk reaches.
+sub test_global_registry_todo () {
+  my $f = covered_file("WrappedReg", <<'PERL', <<'PROG', "21\n") or return;
+package WrappedReg;
+
+sub original {
+  my $n = shift;
+  $n * 2;
+}
+
+our %REG = (orig => \&original);
+*original = sub { $REG{orig}->(shift) + 1 };
+
+1;
+PERL
+use WrappedReg;
+print WrappedReg::original(10), "\n";
+PROG
+
+  local $TODO = "original kept in a package variable is not yet recovered";
+  my $sub = $f->subroutine->location(4);
+  ok $sub, "registry-held wrapped sub is collected";
+  is $sub && $sub->[0]->covered, 1, "and is reported as covered";
+}
+
 sub main () {
   test_glob_wrapped_sub;
   test_hash_wrapped_sub;
   test_array_wrapped_sub;
   test_moose_around_original;
+  test_deep_container_todo;
+  test_blessed_holder_todo;
+  test_global_registry_todo;
   done_testing;
 }
 
