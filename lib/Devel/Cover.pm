@@ -128,6 +128,7 @@ sub _is_const_right ($op) {
 
 our $File;                # Last filename we saw.  (localised)
 our $Line;                # Last line number we saw.  (localised)
+our $Walk_seen;           # CVs walked this check_files run.  (localised)
 our $Collect;             # Whether or not we are collecting
                           # coverage data.  We make two passes
                           # over conditions.  (localised)
@@ -568,16 +569,14 @@ sub check_file ($cv) {
 # The seen hash stops loops from self-referential pad entries
 sub pad_cvs ($cv, $seen = {}) {
   $seen->{$$cv}++;
-  return
-       unless $cv->can("PADLIST")
-    && $cv->PADLIST->can("ARRAY")
-    && $cv->PADLIST->ARRAY
-    && $cv->PADLIST->ARRAY->can("ARRAY");
+  my $padlist = $cv->can("PADLIST") ? $cv->PADLIST : undef;
+  my $array   = $padlist && $padlist->can("ARRAY") ? $padlist->ARRAY : undef;
+  return unless $array && $array->can("ARRAY");
   my @cvs = grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
-    $cv->PADLIST->ARRAY->ARRAY;
+    $array->ARRAY;
   # A my sub keeps its prototype in the padname's PROTOCV (5.22+), not the
   # value slot, which is empty once its scope has exited
-  my $names = $cv->PADLIST->ARRAYelt(0);
+  my $names = $padlist->ARRAYelt(0);
   push @cvs, grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
     map ref && $_->can("PROTOCV") ? $_->PROTOCV : (), $names->ARRAY
     if $names && $names->can("ARRAY");
@@ -588,8 +587,11 @@ sub B::GV::find_cv ($gv) {
   my $cv = $gv->CV;
   return unless $$cv;
 
+  my $seen = $Walk_seen // {};
+  return if $seen->{$$cv};
+
   $Cvs{$cv} ||= $cv if check_file($cv);
-  $Cvs{$_}  ||= $_ for pad_cvs($cv);
+  $Cvs{$_}  ||= $_ for pad_cvs($cv, $seen);
 }
 
 sub sub_info ($cv) {
@@ -638,12 +640,13 @@ sub sub_info ($cv) {
   ($name, $start)
 }
 
-sub add_cvs {
-  $Cvs{$_} ||= $_ for pad_cvs(B::main_cv);
+sub add_cvs ($seen = {}) {
+  $Cvs{$_} ||= $_ for pad_cvs(B::main_cv, $seen);
 }
 
 sub check_files {
-  add_cvs();
+  local $Walk_seen = {};
+  add_cvs($Walk_seen);
 
   my %seen_pkg;
   my %seen_cv;
