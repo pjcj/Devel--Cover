@@ -1190,9 +1190,9 @@ sub generate_index ($outdir, $options, $file_data, $total, $dist) {
 }
 
 sub generate_file_pages ($outdir, $file_data) {
-  for my $idx (0 .. $#$file_data) {
-    my $fd = $file_data->[$idx];
-    next unless $fd->{exists};
+  my @pages = grep $_->{exists}, @$file_data;
+  for my $idx (0 .. $#pages) {
+    my $fd   = $pages[$idx];
     my $file = $fd->{name};
     $R{scar_subs} = $R{db}->scar_sub_lookup($file);
     my $lines
@@ -1206,8 +1206,8 @@ sub generate_file_pages ($outdir, $file_data) {
       )
       : totals_for($file);
 
-    my $prev = $idx > 0            ? $file_data->[$idx - 1] : undef;
-    my $next = $idx < $#$file_data ? $file_data->[$idx + 1] : undef;
+    my $prev = $idx > 0       ? $pages[$idx - 1] : undef;
+    my $next = $idx < $#pages ? $pages[$idx + 1] : undef;
 
     write_file(
       "$outdir/$fd->{link}",
