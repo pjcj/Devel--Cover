@@ -437,6 +437,102 @@ PROG
   ok $subs->location(3), "named sub is collected under -subs_only";
 }
 
+# The ticket that prompted require-tree coverage (GH-51) asked specifically
+# about a Moose "around" method modifier, whose body is an anon sub defined at
+# the top level of the class.  Retaining the require tree covers that anon like
+# any other file-scope anon sub.  Moose is loaded through a variable so a
+# bareword "require Moose" does not make perlcritic treat this test as a class.
+sub test_moose_around () {
+  my $moose = "Moose.pm";
+  return unless eval { require $moose; 1 };
+  my $f = covered_file("MooseWidget", <<'PERL', <<'PROG', "10\n20\n") or return;
+package MooseWidget;
+use Moose;
+
+has count => (is => "rw", isa => "Int", default => 0);
+
+sub tick {
+  my $self = shift;
+  $self->count($self->count + 1);
+  $self->count;
+}
+
+around tick => sub {
+  my $orig   = shift;
+  my $self   = shift;
+  my $result = $self->$orig(@_);
+  $result * 10;
+};
+
+__PACKAGE__->meta->make_immutable;
+1;
+PERL
+use MooseWidget;
+my $w = MooseWidget->new;
+print $w->tick, "\n";
+print $w->tick, "\n";
+PROG
+
+  my $subs = $f->subroutine;
+  my $anon = $subs->location(13);
+  ok $anon, "around-modifier anon sub is collected";
+  is $anon && $anon->[0]->name,    "__ANON__", "and is the anon modifier";
+  is $anon && $anon->[0]->covered, 2,          "and ran on both calls";
+
+  my $stmt = $f->statement;
+  my $l    = $stmt->location(15);
+  ok $l, "around-modifier body statement is collected";
+  is $l && $l->[0]->covered, 2, "and ran twice";
+}
+
+# GH-51 also covers perl's built-in class feature.  A class in a required
+# module has its ADJUST block and field initialisers (top-level class code)
+# retained via the require tree, and its uncalled methods reported as
+# uncovered rather than omitted.
+sub test_class_feature () {
+  return if $] < 5.038;
+  my $f = covered_file("ClassAnimal",
+    <<'PERL', <<'PROG', "Cat\nCat says meow\n") or return;
+package ClassAnimal;
+use 5.38.0;
+use feature "class";
+no warnings "experimental::class";
+
+class Animal {
+  field $name  :param;
+  field $sound :param = "...";
+
+  ADJUST { $name = ucfirst $name }
+
+  method name   { $name }
+  method speak  { "$name says $sound" }
+  method unused { "never called" }
+}
+
+1;
+PERL
+require ClassAnimal;
+my $a = Animal->new(name => "cat", sound => "meow");
+print $a->name,  "\n";
+print $a->speak, "\n";
+PROG
+
+  my $subs   = $f->subroutine;
+  my $adjust = $subs->location(10);
+  ok $adjust, "ADJUST block is collected as an anon sub";
+  is $adjust && $adjust->[0]->covered, 1, "and ran once";
+
+  my $speak = $subs->location(13);
+  ok $speak, "a called method is collected";
+  is $speak && $speak->[0]->covered, 1, "and ran";
+
+  my $unused = $subs->location(14);
+  ok $unused, "an uncalled method is collected";
+  is $unused && $unused->[0]->covered, 0, "and is reported as uncovered";
+
+  ok $f->statement->location(8), "a field initialiser is collected";
+}
+
 # Under -replace_ops 0 the collecting flag keeps whatever the last file set
 # rather than consulting use_file, so without a filter at capture time every
 # required file's optree is retained until report, only to be dropped by
@@ -505,6 +601,8 @@ sub main () {
   test_do_file;
   test_subs_only_anon;
   test_replace_ops_off_drops_unselected;
+  test_moose_around;
+  test_class_feature;
   done_testing;
 }
 
