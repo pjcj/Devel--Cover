@@ -37,6 +37,8 @@ Devel::Cover history
 - Fix statement cache false hit on op slab reuse in sequential evals (GH-428)
 - Recognise get_condition_dor hijacked ops in runops_cover (GH-430)
 - Avoid uninitialized $_ warnings during global destruction (GH-464)
+- Cover self-referential regexes with `(??{...})` code blocks without
+  crashing the report (Alessandro Gorohovski) (GH-601)
 - Rework cpancover.com modules with the latest Devel::Cover and Collection UI
   (GH-461)
 - Fix cpancover-docker-module copy-out failing silently on macOS (GH-462)
