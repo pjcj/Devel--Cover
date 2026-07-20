@@ -101,7 +101,7 @@ class Devel::Cover::Collection {
     my $pid;
     eval {
       open STDIN, "<", "/dev/null" or die "Can't read /dev/null: $!";
-      $pid = open my $fh, "-|" // die "Can't fork: $!";
+      $pid = open(my $fh, "-|") // die "Can't fork: $!";
       if ($pid) {
         my $printed = 0;
         local $SIG{ALRM} = sub { die "alarm\n" };
