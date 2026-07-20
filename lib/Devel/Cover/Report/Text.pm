@@ -14,15 +14,20 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Devel::Cover::Path qw( common_prefix );
+use Devel::Cover::Criterion ();
+use Devel::Cover::Path      qw( common_prefix );
+
+sub _display_mode ($c) {
+  Devel::Cover::Criterion->criterion_class($c)->display_mode
+}
 
 sub _print_criteria_value ($o, $c) {
-  $c =~ /statement|sub|pod|time/ ? $o->covered : $o->percentage
+  _display_mode($c) eq "count" ? $o->covered : $o->percentage
 }
 
 sub _format_value ($o, $c) {
   my $value = _print_criteria_value($o, $c);
-  $value = sprintf "%3d", $value if $c !~ /statement|sub|pod|time/;
+  $value = sprintf "%3d", $value if _display_mode($c) eq "percentage";
   $value = "-$value" if $o->uncoverable;
   $value = "*$value" if $o->error;
   $value
