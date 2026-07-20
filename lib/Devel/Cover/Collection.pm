@@ -518,9 +518,12 @@ class Devel::Cover::Collection {
   method set_covered ($d) { unlink $self->failed_file($d) }
 
   method _write_timestamp_marker ($path) {
-    open my $fh, ">", $path or return warn "Can't open $path: $!";
+    my $tmp = "$path.tmp.$$";
+    open my $fh, ">", $tmp or return warn "Can't open $tmp: $!";
     print $fh scalar localtime;
-    close $fh or warn "Can't close $path: $!";
+    close $fh or do { unlink $tmp; return warn "Can't close $tmp: $!" };
+    rename $tmp, $path
+      or do { unlink $tmp; warn "Can't rename $tmp to $path: $!" };
   }
 
   method set_failed ($d) {
