@@ -78,9 +78,9 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location          
 ---------- ----- --- ----- ------------------
+BEGIN          1   1   0.0 Class_animal.pm:9 
 BEGIN          1   1   0.0 Class_animal.pm:10
 BEGIN          1   1   0.0 Class_animal.pm:11
-BEGIN          1   1   0.0 Class_animal.pm:9 
 __ANON__       1   1   0.0 Class_animal.pm:17
 name           1   1   0.0 Class_animal.pm:19
 speak          1   1   0.0 Class_animal.pm:20

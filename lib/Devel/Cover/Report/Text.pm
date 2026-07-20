@@ -391,7 +391,7 @@ sub _gather_subs ($dfile, $pods, $display_name, $scar_lookup) {
   my %by_type;
   my $has_scar = %$scar_lookup;
 
-  for my $location ($subs->items) {
+  for my $location (sort { $a <=> $b } $subs->items) {
     my $l = $subs->location($location);
     my $d = $pods && $pods->location($location);
     for my $sub (@$l) {
@@ -442,8 +442,7 @@ sub print_subroutines ($db, $file, $options, $short) {
       $has_scar ? ("-" x $maxw->{cc}, "-" x $maxw->{cr}) : (), "-" x $maxw->{h};
 
     for my $s (sort keys $by_type->{$type}->%*) {
-      printf $tpl, $s, @$_
-        for sort { $a->[-1] cmp $b->[-1] } $by_type->{$type}{$s}->@*;
+      printf $tpl, $s, @$_ for $by_type->{$type}{$s}->@*;
     }
     say "";
   }

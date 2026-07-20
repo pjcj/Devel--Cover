@@ -523,6 +523,8 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- ---------------------
 BEGIN          1   1   0.0 tests/cond_branch:10 
 BEGIN          1   1   0.0 tests/cond_branch:11 
+BEGIN          1   1   0.0 tests/cond_branch:79 
+BEGIN          1   1   0.0 tests/cond_branch:85 
 BEGIN          1   1   0.0 tests/cond_branch:112
 BEGIN          1   1   0.0 tests/cond_branch:118
 BEGIN          1   1   0.0 tests/cond_branch:149
@@ -530,8 +532,6 @@ BEGIN          1   1   0.0 tests/cond_branch:156
 BEGIN          1   1   0.0 tests/cond_branch:202
 BEGIN          1   1   0.0 tests/cond_branch:211
 BEGIN          1   1   0.0 tests/cond_branch:229
-BEGIN          1   1   0.0 tests/cond_branch:79 
-BEGIN          1   1   0.0 tests/cond_branch:85 
 __ANON__       4   2   6.9 tests/cond_branch:219
 __ANON__       4   2   6.9 tests/cond_branch:224
 __ANON__       4   2  14.6 tests/cond_branch:230
