@@ -6,9 +6,10 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Devel::Cover::Html_Common qw( launch );  ## no perlimports
-use Devel::Cover::Log         qw( dcinfo );
-use Devel::Cover::Truth_Table;               ## no perlimports
+use Devel::Cover::Html_Common  ## no perlimports
+  qw( launch coverage_class default_thresholds unique_filenames );
+use Devel::Cover::Log qw( dcinfo );
+use Devel::Cover::Truth_Table;  ## no perlimports
 
 use Getopt::Long   qw( GetOptions );
 use Template 2.00  ();
@@ -17,21 +18,28 @@ use HTML::Entities qw( encode_entities );
 my $Template;
 my %Filenames;
 my %File_exists;
-my $Perlver = join ".", map { ord } split //, $^V;
+my $Perlver    = join ".", map { ord } split //, $^V;
+my $Threshold  = default_thresholds;
+my %Class_name = (
+  na => "uncovered",
+  c0 => "uncovered",
+  c1 => "covered75",
+  c2 => "covered90",
+  c3 => "covered",
+);
 
 sub get_options ($self, $opt) {
   $opt->{option}{outputfile} = "coverage.html";
+  $Threshold->{$_} = $opt->{"report_$_"}
+    for grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
   die "Invalid command line options"
     unless GetOptions($opt->{option}, qw( outputfile=s ));
 }
 
 # Determine the CSS class for an element based on percent covered
 sub cvg_class ($pc, $err = undef) {
-  defined $err && !$err ? "covered"
-    : $pc < 75          ? "uncovered"
-    : $pc < 90          ? "covered75"
-    : $pc < 100         ? "covered90"
-    :                     "covered";
+  return "covered" if defined $err && !$err;
+  $Class_name{ coverage_class($pc // 0, $Threshold) }
 }
 
 # Determine which metrics to include in report
@@ -394,8 +402,7 @@ sub report ($pkg, $db, $options) {
       [Devel::Cover::Report::Html_subtle::Template::Provider->new({})],
   });
 
-  %Filenames
-    = map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } $options->{file}->@*;
+  %Filenames   = unique_filenames($options->{file}->@*)->%*;
   %File_exists = map { $_ => -e } $options->{file}->@*;
 
   print_stylesheet($db, $options);

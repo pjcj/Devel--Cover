@@ -20,7 +20,10 @@ BEGIN {
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 ## no perlimports
-use Devel::Cover::Html_Common     qw( $Have_highlighter highlight launch );
+use Devel::Cover::Html_Common qw(
+  $Have_highlighter highlight launch
+  coverage_class default_thresholds unique_filenames
+);
 use Devel::Cover::Web             qw( $Cov $Crisp_base_css $Crisp_theme_js );
 use Devel::Cover::Condition_table ();
 use Devel::Cover::DB              ();
@@ -36,7 +39,7 @@ use POSIX          qw( strftime );
 our %R;
 my %Assets;
 
-my $Threshold = { c0 => 75, c1 => 90, c2 => 100 };
+my $Threshold = default_thresholds;
 
 sub crit_name ($c) {
   qq(<span class="name-full">$R{full}{$c}</span>)
@@ -742,12 +745,7 @@ HTML
 sub class ($pc, $err, $criterion) {
   return "" if $criterion && $criterion eq "time";
   return "na" unless defined $pc && $pc =~ /\A[0-9.]+\z/;
-  no warnings "uninitialized";
-     !$err                   ? "c3"
-    : $pc < $Threshold->{c0} ? "c0"
-    : $pc < $Threshold->{c1} ? "c1"
-    : $pc < $Threshold->{c2} ? "c2"
-    :                          "c3"
+  !$err ? "c3" : coverage_class($pc, $Threshold)
 }
 
 sub oclass ($o, $criterion) {
@@ -1192,9 +1190,9 @@ sub generate_index ($outdir, $options, $file_data, $total, $dist) {
 }
 
 sub generate_file_pages ($outdir, $file_data) {
-  for my $idx (0 .. $#$file_data) {
-    my $fd = $file_data->[$idx];
-    next unless $fd->{exists};
+  my @pages = grep $_->{exists}, @$file_data;
+  for my $idx (0 .. $#pages) {
+    my $fd   = $pages[$idx];
     my $file = $fd->{name};
     $R{scar_subs} = $R{db}->scar_sub_lookup($file);
     my $lines
@@ -1208,8 +1206,8 @@ sub generate_file_pages ($outdir, $file_data) {
       )
       : totals_for($file);
 
-    my $prev = $idx > 0            ? $file_data->[$idx - 1] : undef;
-    my $next = $idx < $#$file_data ? $file_data->[$idx + 1] : undef;
+    my $prev = $idx > 0       ? $pages[$idx - 1] : undef;
+    my $next = $idx < $#pages ? $pages[$idx + 1] : undef;
 
     write_file(
       "$outdir/$fd->{link}",
@@ -1247,9 +1245,7 @@ sub report ($pkg, $db, $options) {
       my @c = $db->criteria;
       +{ (map { $_ => ucfirst } @c), mcdc => "MC/DC", total => "total" }
     },
-    filenames => {
-      map { $_ => do { (my $f = $_) =~ s/\W/-/g; $f } } $options->{file}->@*
-    },
+    filenames      => unique_filenames($options->{file}->@*),
     have_ppi       => eval { require PPI; 1 } ? 1 : 0,
     favicon_colour => favicon("c3"),
     report_id      => $options->{outputdir},

@@ -5,9 +5,10 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
-use HTML::Entities            qw( encode_entities );
-use Getopt::Long              qw( GetOptions );
-use Devel::Cover::Html_Common qw( launch );          ## no perlimports
+use HTML::Entities qw( encode_entities );
+use Getopt::Long   qw( GetOptions );
+use Devel::Cover::Html_Common  ## no perlimports
+  qw( launch coverage_class default_thresholds unique_filenames );
 use Devel::Cover::Log         qw( dcinfo );
 use Devel::Cover::Truth_Table ();
 
@@ -135,7 +136,7 @@ sub merge_lineops (@ops) {
 
 my %Filenames;
 my @Class     = qw( c0 c1 c2 c3 );
-my $Threshold = { c0 => 75, c1 => 90, c2 => 100 };
+my $Threshold = default_thresholds;
 
 # Determine the CSS class based on boolean coverage
 sub bclass (@vals) {
@@ -146,10 +147,7 @@ sub bclass (@vals) {
 # Determine the CSS class based on percent covered
 sub pclass ($p, $e) {
   return $Class[3] unless $e;
-  $p < $Threshold->{c0} && return $Class[0];
-  $p < $Threshold->{c1} && return $Class[1];
-  $p < $Threshold->{c2} && return $Class[2];
-  $Class[3]
+  coverage_class($p // 0, $Threshold)
 }
 
 # Dispatch to the appropriate coverage report renderer
@@ -690,9 +688,7 @@ sub get_options ($self, $opt) {
 # Entry point for printing HTML reports
 sub report ($pkg, $db, $opt) {
   my @files = $opt->{file}->@*;
-  %Filenames = map {
-    $_ => do { (my $f = $_) =~ s/\W/-/g; $f }
-  } @files;
+  %Filenames = unique_filenames(@files)->%*;
 
   print_stylesheet($db, $opt);
   for my $file (@files) {
