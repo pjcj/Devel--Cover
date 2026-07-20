@@ -26,6 +26,7 @@ use Devel::Cover::Html_Common qw(
 );
 use Devel::Cover::Web             qw( $Cov $Crisp_base_css $Crisp_theme_js );
 use Devel::Cover::Condition_table ();
+use Devel::Cover::Criterion       ();
 use Devel::Cover::DB              ();
 use Devel::Cover::Inc             ();
 use Devel::Cover::Log             qw( dcinfo );
@@ -1230,20 +1231,30 @@ sub report ($pkg, $db, $options) {
     options  => $options,
     version  => $VERSION,
     showing  => [grep $options->{show}{$_}, $db->criteria],
-    criteria => [grep $_ ne "time", grep $options->{show}{$_}, $db->criteria],
-    headers  => [
-      map  { ($db->criteria_short)[$_] }
-      grep { $options->{show}{ ($db->criteria)[$_] } }
-        (0 .. $db->criteria - 1)
+    criteria => [
+      grep Devel::Cover::Criterion->criterion_class($_)->measures_coverage,
+      grep $options->{show}{$_},
+      $db->criteria,
     ],
-    short => do {
-      my @c = $db->criteria;
-      my @s = $db->criteria_short;
-      +{ (map { $c[$_] => $s[$_] } 0 .. $#c), total => "total" }
+    headers => [
+      map Devel::Cover::Criterion->criterion_class($_)->shortname,
+      grep $options->{show}{$_},
+      $db->criteria,
+    ],
+    short => {
+      (
+        map { $_ => Devel::Cover::Criterion->criterion_class($_)->shortname }
+          $db->criteria
+      ),
+      total => "total",
     },
-    full => do {
-      my @c = $db->criteria;
-      +{ (map { $_ => ucfirst } @c), mcdc => "MC/DC", total => "total" }
+    full => {
+      (
+        map {
+          $_ => Devel::Cover::Criterion->criterion_class($_)->display_name
+        } $db->criteria
+      ),
+      total => "total",
     },
     filenames      => unique_filenames($options->{file}->@*),
     have_ppi       => eval { require PPI; 1 } ? 1 : 0,
