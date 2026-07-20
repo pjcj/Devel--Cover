@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Sort statement, subroutine and pod lines in the compilation report by line
+  number - they previously appeared in per-run hash order (GH-613)
 - Collect coverage for top-level statements, branches and conditions in
   required modules by keeping their optrees alive until report time - such
   code was previously absent from reports entirely (GH-51)
