@@ -11,6 +11,7 @@ use 5.42.0;
 
 # VERSION
 
+use Devel::Cover::Criterion    ();
 use Devel::Cover::DB           ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Dumper       qw( Dumper );
@@ -375,17 +376,24 @@ class Devel::Cover::Collection {
     $self->file($f);
     say "\n\nWriting collection output to $f ...";
 
+    my @crit = (Devel::Cover::Criterion->coverage_criteria, "total");
     my $vars = {
       title       => "Coverage report",
       modules     => {},
       vals        => {},
-      headers     => [grep !/time/, @Devel::Cover::DB::Criteria_short, "total"],
-      criteria    => [grep !/time/, @Devel::Cover::DB::Criteria,       "total"],
-      col_headers => do {
-        my @f = (grep(!/time/, @Devel::Cover::DB::Criteria),       "total");
-        my @s = (grep(!/time/, @Devel::Cover::DB::Criteria_short), "total");
-        [map { { full => ucfirst($f[$_]), short => $s[$_] } } 0 .. $#f]
-      },
+      criteria    => \@crit,
+      col_headers => [
+        map {
+          my $class
+            = $_ eq "total"
+            ? undef
+            : Devel::Cover::Criterion->criterion_class($_);
+          {
+            full  => $class ? $class->display_name : "Total",
+            short => $class ? $class->shortname    : "total",
+          }
+        } @crit
+      ],
     };
 
     opendir my $dh, $d or die "Can't opendir $d: $!";

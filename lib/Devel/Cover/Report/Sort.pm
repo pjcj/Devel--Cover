@@ -14,9 +14,13 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
+use Devel::Cover::Criterion ();
+
 sub print_sort ($db, $options) {
   my %runs;
-  my @collected = grep $_ ne "time", $options->{coverage}->@*;
+  my @collected
+    = grep Devel::Cover::Criterion->criterion_class($_)->measures_coverage,
+    $options->{coverage}->@*;
   for my $r (sort { $a->{start} <=> $b->{start} } $db->runs) {
     say "Run:          ", $r->run;
     say "Perl version: ", $r->perl;
