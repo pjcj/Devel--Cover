@@ -33,6 +33,32 @@ for my $class (qw(
     or die "Failed to load Devel::Cover::$class: $@";
 }
 
+my @Criteria = qw( statement branch condition mcdc subroutine pod time );
+
+sub criterion_names ($class) { @Criteria }
+
+sub criterion_class ($class, $name) { "Devel::Cover::" . ucfirst $name }
+
+sub coverage_criteria ($class) {
+  grep $class->criterion_class($_)->measures_coverage, @Criteria
+}
+
+sub editor_criteria ($class) {
+  grep defined $class->criterion_class($_)->sign_letter, @Criteria
+}
+
+sub shortname        ($class) { $class->criterion }
+sub display_name     ($class) { ucfirst $class->criterion }
+sub display_mode     ($class) { "percentage" }
+sub detail_criterion ($class) { undef }
+
+sub has_detail_page ($class) {
+  ($class->detail_criterion // "") eq $class->criterion
+}
+
+sub measures_coverage ($class) { 1 }
+sub sign_letter       ($class) { undef }
+
 sub coverage    ($self) { $self->[0] }
 sub information ($self) { $self->[1] }
 

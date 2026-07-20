@@ -21,6 +21,10 @@ sub covered     ($self) { $$self }
 sub total       ($self) { 1 }
 sub percentage  ($self) { $$self ? 100 : 0 }
 sub error       ($self) { 0 }
+sub criterion   ($self) { "time" }
+
+sub display_mode      ($class) { "count" }
+sub measures_coverage ($class) { 0 }
 
 sub calculate_summary ($self, $db, $file) {
   $db->{summary}{$file}{time}{total} += $$self;

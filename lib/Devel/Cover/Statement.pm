@@ -24,6 +24,10 @@ sub percentage  ($self) { $self->[0] ? 100 : 0 }
 sub error       ($self) { $self->simple_error }
 sub criterion   ($self) { "statement" }
 
+sub shortname    ($class) { "stmt" }
+sub display_mode ($class) { "count" }
+sub sign_letter  ($class) { "S" }
+
 1
 
 __END__

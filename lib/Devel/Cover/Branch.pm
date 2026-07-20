@@ -34,6 +34,10 @@ sub values    ($self)     { $self->[0]->@* }
 sub text      ($self)     { $self->[1]{text} }
 sub criterion ($self)     { "branch" }
 
+sub shortname        ($class) { "bran" }
+sub detail_criterion ($class) { "branch" }
+sub sign_letter      ($class) { "B" }
+
 sub percentage ($self) {
   my $t = $self->total;
   $t ? int($self->covered / $t * 100) : 0;

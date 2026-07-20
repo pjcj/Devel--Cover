@@ -25,8 +25,12 @@ sub text ($self) {
 
 sub type      ($self) { $self->[1]{type} }
 sub criterion ($self) { "condition" }
-sub count     ($self) { Carp::confess("count() must be overridden") }
-sub headers   ($self) { Carp::confess("headers() must be overridden") }
+
+sub shortname        ($class) { "cond" }
+sub detail_criterion ($class) { "condition" }
+sub sign_letter      ($class) { "C" }
+sub count            ($self)  { Carp::confess("count() must be overridden") }
+sub headers          ($self)  { Carp::confess("headers() must be overridden") }
 
 1
 

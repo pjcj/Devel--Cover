@@ -22,6 +22,10 @@ sub text      ($self) { $self->[1]{text} }
 sub labels    ($self) { $self->[1]{labels} // [] }
 sub criterion ($self) { "mcdc" }
 
+sub display_name     ($class) { "MC/DC" }
+sub detail_criterion ($class) { "mcdc" }
+sub sign_letter      ($class) { "M" }
+
 # True for a decision too wide to analyse; see LIMITATIONS below
 sub unanalysed ($self) { $self->[1]{unanalysed} ? 1 : 0 }
 
