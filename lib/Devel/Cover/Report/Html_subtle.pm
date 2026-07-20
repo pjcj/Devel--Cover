@@ -712,7 +712,9 @@ $Templates{subroutines} = <<'HTML';
 
   [% FOREACH sub = subroutines %]
     <tr align="center" valign="top">
-      <td class="[% sub.class %]"> <a id="[% sub.ref %]"> [% sub.name %] </td>
+      <td class="[% sub.class %]">
+        <a id="[% sub.ref %]"> [% sub.name %] </a>
+      </td>
       <td> [% sub.line %] </td>
     </tr>
   [% END %]

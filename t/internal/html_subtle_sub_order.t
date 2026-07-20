@@ -17,7 +17,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Temp qw( tempdir );
-use Test::More import => [qw( done_testing is_deeply ok plan )];
+use Test::More import => [qw( done_testing is is_deeply ok plan )];
 use Devel::Cover::Test::Showcase qw( slurp );
 
 BEGIN {
@@ -100,9 +100,13 @@ sub test_rows_sorted () {
 
   my ($page) = glob "$tmpdir/*--subroutine.html";
   ok $page, "subroutine page generated";
-  my @rows = slurp($page) =~ /<a id="line(\d+)"> (\w+) /g;
+  my $html = slurp($page);
+  my @rows = $html =~ /<a id="line(\d+)"> (\w+)/g;
   is_deeply \@rows, [3, "BEGIN", 12, "BEGIN", 7, "foo"],
     "rows sorted by name then line";
+  my $opens  = () = $html =~ /<a /g;
+  my $closes = () = $html =~ m|</a>|g;
+  is $closes, $opens, "every anchor is closed";
 }
 
 sub main () {
