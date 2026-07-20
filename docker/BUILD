@@ -209,12 +209,11 @@ build() {
   if [[ $env == dev ]]; then
     local dir=docker/devel-cover-local/src
     rm -rf $dir
-    dzil clean
-    dzil build
-    cp -a "Devel-Cover-$(make show_version)" $dir
+    mkdir -p $dir
+    git ls-files -z --cached --others --exclude-standard |
+      tar --null -cf - -T - | tar -xf - -C $dir
     docker build --no-cache -t "$user/devel-cover-dc" docker/devel-cover-local
     rm -rf $dir
-    dzil clean
   else
     docker build --no-cache --build-arg BRANCH="$src" \
       -t "$user/devel-cover-dc" docker/devel-cover-git
