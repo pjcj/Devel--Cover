@@ -125,11 +125,79 @@ Devel::Cover::Criterion - Code coverage metrics for Perl
 
 =head1 DESCRIPTION
 
-Abstract base class for all the coverage criteria.
+Abstract base class for all the coverage criteria. It also carries the
+canonical criterion list and per-criterion metadata as class methods, so
+reporters can ask about a criterion instead of hardcoding names, regexes
+and lists.
 
 =head1 SEE ALSO
 
  Devel::Cover
+
+=head1 CLASS METHODS
+
+=head2 criterion_names
+
+  my @names = Devel::Cover::Criterion->criterion_names;
+
+Return the canonical criterion names in order. The
+C<@Devel::Cover::DB::Criteria> and C<@Devel::Cover::DB::Criteria_short>
+lists derive from this metadata.
+
+=head2 criterion_class ($name)
+
+  my $class = Devel::Cover::Criterion->criterion_class("branch");
+
+Return the class implementing the named criterion.
+
+=head2 coverage_criteria
+
+Return the criterion names that measure coverage - every criterion
+except time.
+
+=head2 editor_criteria
+
+Return the criterion names shown by the editor reports, in canonical
+order. The Vim and Nvim templates place signs last-in-list-wins, so this
+order is the sign display priority.
+
+=head1 CRITERION METADATA
+
+Each criterion class answers these, overriding the base defaults.
+
+=head2 shortname
+
+The abbreviation used in summary headers and C<-coverage> options, such
+as C<stmt> or C<bran>.
+
+=head2 display_name
+
+The human-readable name, such as C<Statement> or C<MC/DC>.
+
+=head2 display_mode
+
+Either C<count> or C<percentage> - which of C<covered> and C<percentage>
+reporters display for a single value.
+
+=head2 detail_criterion
+
+The criterion name whose per-file detail page this criterion's values
+link to, or undef when there is none. Pod links to the subroutine page.
+
+=head2 has_detail_page
+
+True only when a criterion owns its own detail page - branch, condition,
+mcdc and subroutine.
+
+=head2 measures_coverage
+
+False only for time, which is timing data rather than a coverage
+criterion.
+
+=head2 sign_letter
+
+The editor sign character, such as C<S> or C<B>. Undef for time, which
+has no sign.
 
 =head1 METHODS
 

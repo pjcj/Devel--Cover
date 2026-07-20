@@ -1380,7 +1380,8 @@ a valid database file it is read automatically.
   my @c = $db->criteria;
 
 Return the list of coverage criteria names (e.g. C<statement>, C<branch>,
-C<condition>, ...).
+C<condition>, ...). The list derives from
+L<Devel::Cover::Criterion>'s metadata.
 
 =head2 criteria_short
 
