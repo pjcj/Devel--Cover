@@ -5,8 +5,9 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
-use HTML::Entities qw( encode_entities );
-use Getopt::Long   qw( GetOptions );
+use HTML::Entities          qw( encode_entities );
+use Getopt::Long            qw( GetOptions );
+use Devel::Cover::Criterion ();
 use Devel::Cover::Html_Common  ## no perlimports
   qw( launch coverage_class default_thresholds unique_filenames );
 use Devel::Cover::Log         qw( dcinfo );
@@ -317,7 +318,7 @@ sub _render_coverage_cells ($out, $fin, $opt, $show, $metric) {
         print $out "<div>", $m->{string}, "</div>";
       } else {
         my $link;
-        if ($c =~ /^(?:branch|condition|mcdc|subroutine)$/) {
+        if (Devel::Cover::Criterion->criterion_class($c)->has_detail_page) {
           $link = get_link($fin, $c, $.);
         }
 
@@ -572,6 +573,30 @@ sub print_sub_report ($db, $file, $opt) {
 }
 
 # Print the database summary report
+sub _print_summary_cell ($fh, $file, $c, $summary, $uncompiled) {
+  my $pc = $summary->{$c}{percent};
+  my ($class, $popup, $link);
+
+  my $meta
+    = $c eq "total" ? undef : Devel::Cover::Criterion->criterion_class($c);
+  if ($pc eq "n/a" || ($meta && !$meta->measures_coverage)) {
+    $class = $popup = "";
+  } else {
+    $class = sprintf ' class="%s"', pclass($pc, $summary->{$c}{error});
+    $popup = sprintf ' title="%s"', $c . ": " . $summary->{$c}{ratio};
+    if (!$uncompiled && $meta && $meta->has_detail_page) {
+      $link = get_link($file, $c);
+    }
+  }
+
+  if ($link) {
+    printf $fh "<td%s%s>" . '<a href="%s">%s</a></td>', $class, $popup, $link,
+      $pc;
+  } else {
+    printf $fh "<td%s%s>%s</td>", $class, $popup, $pc;
+  }
+}
+
 sub print_summary_report ($db, $options) {
   my $outfile = "$options->{outputdir}/$options->{option}{outputfile}";
 
@@ -642,27 +667,7 @@ END_HTML
     print $fh " <em>(untested)</em>" if $uncompiled;
     print $fh "</td>";
 
-    for my $c (@$show) {
-      my $pc = $summary->{$c}{percent};
-      my ($class, $popup, $link);
-
-      if ($pc eq "n/a" || $c eq "time") {
-        $class = $popup = "";
-      } else {
-        $class = sprintf ' class="%s"', pclass($pc, $summary->{$c}{error});
-        $popup = sprintf ' title="%s"', $c . ": " . $summary->{$c}{ratio};
-        if (!$uncompiled && $c =~ /^(?:branch|condition|mcdc|subroutine)$/) {
-          $link = get_link($file, $c);
-        }
-      }
-
-      if ($link) {
-        printf $fh "<td%s%s>" . '<a href="%s">%s</a></td>', $class, $popup,
-          $link, $pc;
-      } else {
-        printf $fh "<td%s%s>%s</td>", $class, $popup, $pc;
-      }
-    }
+    _print_summary_cell($fh, $file, $_, $summary, $uncompiled) for @$show;
     print $fh "</tr>\n";
   }
   print $fh "</table>\n</body>\n</html>\n";
