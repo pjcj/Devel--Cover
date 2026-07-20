@@ -7,7 +7,8 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use List::Util qw( max );
+use List::Util              qw( max );
+use Devel::Cover::Criterion ();
 use Devel::Cover::Truth_Table;
 use Devel::Cover::Path qw( common_prefix );
 
@@ -96,9 +97,9 @@ EOT
         @$value   = map $_->[0]->text, $file_data->condition->truth_table($.);
         $error  ||= $file_data->condition->error($.);
       } else {
+        my $mode = Devel::Cover::Criterion->criterion_class($c)->display_mode;
         for my $o ($metric{$c}->@*) {
-          push @$value,
-            ($c =~ /statement|pod|time/) ? $o->covered : $o->percentage;
+          push @$value, $mode eq "count" ? $o->covered : $o->percentage;
           $error ||= $o->error;
         }
       }
