@@ -63,13 +63,16 @@ sub setup_colliding_db () {
 
   my $cover_db = File::Spec->catdir($tmpdir, "cover_db");
   my $select   = quotemeta $libdir;
+  # Pre-double backslashes - perl's -M q() processing halves them
+  $select =~ s|\\|\\\\|g if $^O eq "MSWin32";
   local $ENV{DEVEL_COVER_SELF};
   delete $ENV{DEVEL_COVER_SELF};
+  my $prog
+    = "use X::Y; require q($dash); X::Y::in_x_slash_y(); X_Y::in_x_dash_y()";
   my $cmd
     = "$^X -Iblib/lib -Iblib/arch -I$libdir"
     . " -MDevel::Cover=-db,$cover_db,-silent,1,-merge,0,-select,$select"
-    . " -e 'use X::Y; require q($dash);"
-    . " X::Y::in_x_slash_y(); X_Y::in_x_dash_y()' 2>&1";
+    . qq( -e "$prog" 2>&1);
   my $out = `$cmd`;
   die "Failed to create cover_db:\n$out\n" if $?;
 
