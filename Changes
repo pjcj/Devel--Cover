@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Close the anchor element on html_subtle subroutine page rows (GH-619)
 - Sort the html_subtle subroutine page by name then line - same-named subs
   such as BEGIN blocks previously appeared in per-run hash order (GH-615)
 - Show subroutine call counts in the text2 report's per-line column - the
