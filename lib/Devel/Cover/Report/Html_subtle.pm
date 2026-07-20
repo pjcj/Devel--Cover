@@ -6,6 +6,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
+use Devel::Cover::Criterion ();
 use Devel::Cover::Html_Common  ## no perlimports
   qw( launch coverage_class default_thresholds unique_filenames );
 use Devel::Cover::Log qw( dcinfo );
@@ -99,13 +100,14 @@ sub _build_criterion_metrics ($c, $metric, $file_data, $file, $line_num) {
         };
     }
   } else {
+    my $meta = Devel::Cover::Criterion->criterion_class($c);
     while (my $o = shift $metric->{$c}->@*) {
       push @p, {
-          text => ($c =~ /^(?:statement|pod|time)$/)
-          ? $o->covered
-          : $o->percentage,
-          class => $c eq "time" ? undef : $o->error ? "uncovered" : "covered",
-          link  => undef,
+          text => $meta->display_mode eq "count" ? $o->covered : $o->percentage,
+          class => $meta->measures_coverage
+          ? ($o->error ? "uncovered" : "covered")
+          : undef,
+          link => undef,
         };
     }
   }
@@ -353,7 +355,11 @@ sub print_summary ($db, $options) {
         : "n/a";
 
       if ($pc ne "n/a") {
-        if ($criterion ne "time") {
+        if (
+          $criterion eq "total"
+          || Devel::Cover::Criterion->criterion_class($criterion)
+          ->measures_coverage
+        ) {
           $vals->{$file}{$criterion}{class} = cvg_class($pc);
         }
         if (!$is_uncompiled && exists $Filenames{$file}) {

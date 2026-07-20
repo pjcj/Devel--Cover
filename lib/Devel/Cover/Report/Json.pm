@@ -14,6 +14,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
+use Devel::Cover::Criterion    ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Inc          ();
 use Devel::Cover::Log          qw( dcinfo );
@@ -196,7 +197,10 @@ sub get_options ($self, $opt) {
 }
 
 sub report ($pkg, $db, $options) {
-  my %sum_options = map { $_ => 1 } grep !/time/, $db->all_criteria, "force";
+  my %sum_options = map { $_ => 1 } "force", grep {
+    $_ eq "total"
+      || Devel::Cover::Criterion->criterion_class($_)->measures_coverage
+  } $db->all_criteria;
   $db->calculate_summary(%sum_options);
 
   my %files;

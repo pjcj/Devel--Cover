@@ -24,6 +24,11 @@ sub error       ($self) { $self->simple_error }
 sub name        ($self) { $self->[1] }
 sub criterion   ($self) { "subroutine" }
 
+sub shortname        ($class) { "sub" }
+sub display_mode     ($class) { "count" }
+sub detail_criterion ($class) { "subroutine" }
+sub sign_letter      ($class) { "R" }
+
 1
 
 __END__

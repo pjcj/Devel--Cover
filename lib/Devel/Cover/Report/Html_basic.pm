@@ -21,9 +21,10 @@ BEGIN {
 use Devel::Cover::Html_Common  ## no perlimports
   qw( launch highlight $Have_highlighter
   coverage_class default_thresholds unique_filenames );
-use Devel::Cover::Inc ();
-use Devel::Cover::Log qw( dcinfo );
-use Devel::Cover::Web qw( write_file );
+use Devel::Cover::Criterion ();
+use Devel::Cover::Inc       ();
+use Devel::Cover::Log       qw( dcinfo );
+use Devel::Cover::Web       qw( write_file );
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
@@ -59,10 +60,11 @@ sub get_summary ($file, $criterion) {
   $vals->{total}   = $c->{total};
   $vals->{details} = "$vals->{covered} / $vals->{total}";
 
-  my $cr = $criterion eq "pod" ? "subroutine" : $criterion;
-  return $vals
-    if $cr !~ /^(?:branch|condition|mcdc|subroutine)$/
-    || !exists $R{filenames}{$file};
+  my $cr
+    = $criterion eq "total"
+    ? undef
+    : Devel::Cover::Criterion->criterion_class($criterion)->detail_criterion;
+  return $vals if !defined $cr || !exists $R{filenames}{$file};
   return $vals if $R{uncompiled}{$file};
   $vals->{link} = "$R{filenames}{$file}--$cr.html";
 
@@ -88,14 +90,14 @@ sub _build_coverage_criteria ($criteria, $n, $count) {
     my $o   = shift $criteria->{$c}->@*;
     $more ||= $criteria->{$c}->@*;
 
-    my $link      = $c          !~ /statement|time/;
-    my $pc        = $link && $c !~ /subroutine|pod/;
+    my $meta      = Devel::Cover::Criterion->criterion_class($c);
+    my $cr        = $meta->detail_criterion;
+    my $pc        = $meta->display_mode eq "percentage";
     my $text      = $o ? $pc ? $o->percentage : $o->covered : "&nbsp;";
     my $criterion = { text => $text, class => oclass($o, $c) };
-    my $cr        = $c eq "pod" ? "subroutine" : $c;
 
     $criterion->{link} = "$R{filenames}{$R{file}}--$cr.html#$n-$count"
-      if $o && $link;
+      if $o && defined $cr;
     push @entries, $criterion;
   }
   (\@entries, $more)

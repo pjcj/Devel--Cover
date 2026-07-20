@@ -25,6 +25,10 @@ sub percentage  ($self) { $self->[0] ? 100 : 0 }
 sub error       ($self) { $self->simple_error }
 sub criterion   ($self) { "pod" }
 
+sub display_mode     ($class) { "count" }
+sub detail_criterion ($class) { "subroutine" }
+sub sign_letter      ($class) { "P" }
+
 sub calculate_summary ($self, $db, $file) {
   return unless $INC{"Pod/Coverage.pm"};
 

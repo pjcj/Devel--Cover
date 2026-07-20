@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Show subroutine call counts in the text2 report's per-line column - the
+  column previously showed a flat 100 or 0 (GH-612)
 - Sort statement, subroutine and pod lines in the compilation report by line
   number - they previously appeared in per-run hash order (GH-613)
 - Collect coverage for top-level statements, branches and conditions in
