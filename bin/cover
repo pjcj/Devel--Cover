@@ -18,9 +18,10 @@ BEGIN {
   # VERSION
 }
 
-use Devel::Cover::DB  ();
-use Devel::Cover::Inc ();
-use Devel::Cover::Log qw( dcerror dcinfo );
+use Devel::Cover::Criterion ();
+use Devel::Cover::DB        ();
+use Devel::Cover::Inc       ();
+use Devel::Cover::Log       qw( dcerror dcinfo );
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
@@ -129,15 +130,13 @@ sub get_options () {
   # handle comma separated ops, like -coverage branch,statement
 
   # also accept them in the same format they're output
-  my %coverage_abbrev = (
-    stmt => "statement",
-    bran => "branch",
-    cond => "condition",
-    sub  => "subroutine",
-  );
+  my %coverage_abbrev = map {
+    my $short = Devel::Cover::Criterion->criterion_class($_)->shortname;
+    $short ne $_ ? ($short => $_) : ()
+  } Devel::Cover::Criterion->criterion_names;
 
-  my %coverage_allowed = map { $_ => 1 } values %coverage_abbrev, "mcdc",
-    "time", "pod";
+  my %coverage_allowed
+    = map { $_ => 1 } Devel::Cover::Criterion->criterion_names;
   my %options_coverage = map { $_ => 1 } split /,/, join ",",
     $Options->{coverage}->@*;
 
