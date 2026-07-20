@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Sort the html_subtle subroutine page by name then line - same-named subs
+  such as BEGIN blocks previously appeared in per-run hash order (GH-615)
 - Show subroutine call counts in the text2 report's per-line column - the
   column previously showed a flat 100 or 0 (GH-612)
 - Sort statement, subroutine and pod lines in the compilation report by line

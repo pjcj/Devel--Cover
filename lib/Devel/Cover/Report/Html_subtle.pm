@@ -300,7 +300,7 @@ sub print_subroutines ($db, $file, $options) {
   return unless $subroutines;
 
   my @data;
-  for my $location ($subroutines->items) {
+  for my $location (sort { $a <=> $b } $subroutines->items) {
     my $l = $subroutines->location($location);
     for my $sub (@$l) {
       push @data, {
