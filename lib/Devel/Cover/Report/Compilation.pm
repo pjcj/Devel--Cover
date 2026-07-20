@@ -19,7 +19,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 sub print_statement ($db, $file, $) {
   my $statements = $db->cover->file($file)->statement or return;
 
-  for my $location ($statements->items) {
+  for my $location (sort { $a <=> $b } $statements->items) {
     for my $statement ($statements->location($location)->@*) {
       next if $statement->covered;
       print "Uncovered statement at $file line $location\n";
@@ -94,7 +94,7 @@ sub print_mcdc ($db, $file, $) {
 sub print_subroutines ($db, $file, $) {
   my $subroutines = $db->cover->file($file)->subroutine or return;
 
-  for my $location ($subroutines->items) {
+  for my $location (sort { $a <=> $b } $subroutines->items) {
     for my $sub ($subroutines->location($location)->@*) {
       next if $sub->covered;
       print "Uncovered subroutine ", $sub->name, " at $file line $location\n";
@@ -105,7 +105,7 @@ sub print_subroutines ($db, $file, $) {
 sub print_pod ($db, $file, $) {
   my $pod = $db->cover->file($file)->pod or return;
 
-  for my $location ($pod->items) {
+  for my $location (sort { $a <=> $b } $pod->items) {
     for my $p ($pod->location($location)->@*) {
       next if $p->covered;
       print "Uncovered pod at $file line $location\n";
