@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Improve the choice of reported name for files with identical content
+  (GH-631)
 - Skip magical containers in the wrapped-sub pad walk - a sub closing over a
   reference to a tied array previously crashed the covered process (GH-629)
 - Sort same-named subs in the text report numerically by line (GH-618)
