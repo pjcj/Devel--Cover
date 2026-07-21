@@ -1296,6 +1296,7 @@ sub cover ($self) {
   my $cover       = $self->{cover} = {};
   my $uncoverable = {};
   my $st          = $self->{_structure} // do {
+    require Devel::Cover::DB::Structure;  ## no perlimports
     Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
   };
 
