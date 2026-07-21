@@ -128,7 +128,9 @@ class Devel::Cover::Collection {
         if (close $fh) {
           $ok = 1;
         } else {
-          warn "Error running @command\n";
+          my ($status, $signal) = ($? >> 8, $? & 127);
+          warn "Error running @command (exit $status"
+            . ($signal ? ", signal $signal" : "") . ")\n";
         }
       } else {
         setsid() != -1 or die "Can't start a new session: $!";
@@ -144,7 +146,9 @@ class Devel::Cover::Collection {
       my $n    = kill "-KILL", $pgrp;
       warn "killed $n processes";
     }
-    $ok ? length $output2 ? "$output1\n...\n$output2" : $output1 : undef
+    my $output = length $output2 ? "$output1\n...\n$output2" : $output1;
+    warn $output if !$ok && length $output;
+    $ok ? $output : undef
   }
 
   method sys   (@a) { $self->_sys(4e4, @a) // "" }
