@@ -71,6 +71,8 @@ sub main () {
   my $cover = Devel::Cover::DB->new(db => $db)->merge_runs->cover;
   my %item;
   @item{ $cover->items } = ();
+  # Devel::Cover records Windows paths with forward slashes
+  tr|\\|/| for $real, $alias;
   ok exists $item{$real},   "the surviving path is the canonical name";
   ok !exists $item{$alias}, "the vanished alias is not reported";
 
