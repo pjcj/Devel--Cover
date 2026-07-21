@@ -616,8 +616,8 @@ sub test_read_source_deleted () {
   my $base = fresh_base("read_deleted");
   my $file = write_source("deleted.pm", "package Deleted;\n1\n");
 
-  my $st = Devel::Cover::DB::Structure->new(base => $base);
-  $st->set_file($file);
+  my $st     = Devel::Cover::DB::Structure->new(base => $base);
+  my $digest = $st->set_file($file);
   $st->write($base);
 
   # Remove the source file so digest returns undef
@@ -627,8 +627,11 @@ sub test_read_source_deleted () {
   my $st2 = Devel::Cover::DB::Structure->new(base => $base);
   $st2->read_all;
 
-  # The !$d branch: entry not loaded, but also not deleted
-  ok !exists $st2->{f}{$file}, "read source deleted: entry not loaded";
+  # The !$d branch: the file cannot be re-read, but the stored digest still
+  # identifies the content, so the entry stays available for digest lookups
+  ok exists $st2->{f}{$file}, "read source deleted: entry kept";
+  is $st2->{f}{$file}{digest}, $digest,
+    "read source deleted: entry keeps its stored digest";
 }
 
 sub test_destroy () {

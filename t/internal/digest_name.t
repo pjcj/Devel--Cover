@@ -48,8 +48,10 @@ sub run_covered ($db, $script) {
 }
 
 sub main () {
+  # The alias sorts after the surviving path, so its name also wins the
+  # structure entry for the digest - structure writes go last-name-wins
   my $keep_dir = File::Spec->catdir($Tmpdir, "keep");
-  my $gone_dir = File::Spec->catdir($Tmpdir, "gone");
+  my $gone_dir = File::Spec->catdir($Tmpdir, "vanish");
   for my $dir ($keep_dir, $gone_dir) {
     mkdir $dir or die "Cannot mkdir $dir: $!";
   }
@@ -77,8 +79,9 @@ sub main () {
   ok !exists $item{$alias}, "the vanished alias is not reported";
 
   my $file = $cover->file($real) or return done_testing;
-  my $l    = $file->statement->location(1);
-  ok $l, "the surviving path holds the statement data";
+  my $stmt = $file->statement;
+  ok $stmt, "the surviving path holds the statement data";
+  my $l = $stmt && $stmt->location(1);
   is $l && $l->[0]->covered, 2, "with the counts of both runs merged";
 
   done_testing
