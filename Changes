@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Publish cpancover reports even when a module's tests fail under coverage -
+  such modules previously got no report at all (GH-636)
+- Kill commands that exceed the cpancover timeout - the pipeline previously
+  waited for the hung command to finish anyway (GH-636)
 - Improve the choice of reported name for files with identical content
   (GH-631)
 - Skip magical containers in the wrapped-sub pad walk - a sub closing over a
