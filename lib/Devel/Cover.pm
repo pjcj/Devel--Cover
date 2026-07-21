@@ -586,9 +586,10 @@ sub recoverable_sub ($cv) {
 # closes over.  That is where a method modifier keeps the original sub it
 # replaced in the symbol table, so without this its body is dropped from
 # coverage.  Descent stops after one container so a wrapper's own deeper
-# machinery is not reached; blessed containers are not descended, so a sub
-# closing over an object does not drag its whole graph in, and $seen guards a
-# cyclic structure.
+# machinery is not reached.  Blessed containers are not descended, so a sub
+# closing over an object does not drag its whole graph in.  Magical containers
+# are not descended, since reading a tied one would run user code.  The $seen
+# hash guards a cyclic structure.
 sub ref_cvs ($sv, $seen, $depth = 1) {
   my $r = ref $sv or return ();
   if ($r ne "B::AV" && $r ne "B::HV") {
@@ -601,6 +602,7 @@ sub ref_cvs ($sv, $seen, $depth = 1) {
   }
   return () unless $depth;
   return () if $sv->can("SvSTASH") && ref($sv->SvSTASH) ne "B::SPECIAL";
+  return () if $sv->MAGICAL;
   return () if $seen->{$$sv}++;
   my @elems = $r eq "B::AV" ? $sv->ARRAY : do { my %h = $sv->ARRAY; values %h };
   map ref_cvs($_, $seen, $depth - 1), @elems
