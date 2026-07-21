@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Skip magical containers in the wrapped-sub pad walk - a sub closing over a
+  reference to a tied array previously crashed the covered process (GH-629)
 - Sort same-named subs in the text report numerically by line (GH-618)
 - Close the anchor element on html_subtle subroutine page rows (GH-619)
 - Sort the html_subtle subroutine page by name then line - same-named subs

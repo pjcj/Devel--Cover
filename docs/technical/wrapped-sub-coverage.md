@@ -55,7 +55,10 @@ way, so recording them again would duplicate it, and because the duplicate
 shares a start op with the original the report-time dedup would pick between
 them non-deterministically. Descent also stops after one container and does not
 enter blessed containers, so a sub closing over an object does not drag the
-object's whole graph into the walk.
+object's whole graph into the walk. Magical containers are not entered either. A
+tied container's contents come from its `FETCH`, and the report-time walk must
+never run user code - and `B::AV::ARRAY` on a tied array reads the empty real
+array with the size the tie magic reports, which crashes the process.
 
 The cost is paid only when building the report, and only for subs that close
 over references. A program with no method modifiers pays effectively nothing. A
@@ -63,8 +66,8 @@ program full of them pays in proportion to the number recovered, which is the
 inherent cost of covering subs that were previously absent.
 
 The tests are in `t/internal/wrapped_sub.t`: the direct reference form, the
-hash-held and array-held forms, and a real Moose `around` modifier (skipped when
-Moose is not installed).
+hash-held and array-held forms, a wrapper closing over a reference to a tied
+array, and a real Moose `around` modifier (skipped when Moose is not installed).
 
 ## Known limitations
 

@@ -169,6 +169,47 @@ PROG
   is $sub && $sub->[0]->covered, 1, "and is reported as covered";
 }
 
+# A wrapper closing over a reference to a tied array.  Descending into a
+# tied container would run FETCH at report time, and B::AV::ARRAY walks the
+# empty real array with the magical size, crashing the process.  The walk
+# must skip tied containers and survive to report the file.
+sub test_tied_container () {
+  my $f = covered_file("WrappedTied", <<'PERL', <<'PROG', "21\n") or return;
+package WrappedTied;
+
+sub original {
+  my $n = shift;
+  $n * 2;
+}
+
+package WrappedTied::Tie;
+sub TIEARRAY  { bless {}, shift }
+sub FETCHSIZE {2}
+sub FETCH     {undef}
+
+package WrappedTied;
+my $orig = \&original;
+tie my @tied, "WrappedTied::Tie";
+my $ref = \@tied;
+*original = sub { my $keep = $ref; $orig->(shift) + 1 };
+
+1;
+PERL
+use WrappedTied;
+print WrappedTied::original(10), "\n";
+PROG
+
+  my $stmt = $f->statement;
+  for my $line (4, 5) {
+    my $l = $stmt->location($line);
+    ok $l, "statement beside a tied array on line $line is collected";
+    is $l && $l->[0]->covered, 1, "and has a count";
+  }
+  my $sub = $f->subroutine->location(4);
+  ok $sub, "the wrapped sub beside a tied array is collected";
+  is $sub && $sub->[0]->covered, 1, "and is reported as covered";
+}
+
 # The motivating case: a Moose "around" modifier.  Moose installs a
 # Class::MOP wrapper into the method glob and keeps the original method only
 # inside the wrapper's closure hash, so the original body vanishes from
@@ -299,6 +340,7 @@ sub main () {
   test_glob_wrapped_sub;
   test_hash_wrapped_sub;
   test_array_wrapped_sub;
+  test_tied_container;
   test_moose_around_original;
   test_deep_container_todo;
   test_blessed_holder_todo;
