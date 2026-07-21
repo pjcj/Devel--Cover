@@ -55,12 +55,13 @@ like $Warned, qr/exit 3/,        "warning reports the exit status";
 like $Warned, qr/STDOUT DETAIL/, "warning includes the command's stdout";
 like $Warned, qr/STDERR DETAIL/, "warning includes the command's stderr";
 
-my $Quick = Devel::Cover::Collection->new(timeout => 2);
+my $Quick = Devel::Cover::Collection->new(timeout => 1);
 ($Output, $Warned) = bsys_warnings(
   $Quick, $^X, "-e", '$| = 1; print uc("before hang"), "\n"; sleep 30'
 );
 is $Output, "", "timeout returns empty string";
 like $Warned, qr/Timed out/,   "timeout is warned";
 like $Warned, qr/BEFORE HANG/, "timeout warning includes the command's output";
+like $Warned, qr/killed [1-9]\d* process/, "timeout kills the hung command";
 
 done_testing;

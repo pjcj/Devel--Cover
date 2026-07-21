@@ -100,9 +100,11 @@ class Devel::Cover::Collection {
     # say "Setting alarm for $timeout seconds";
     my $ok = 0;
     my $pid;
+    # declared here so a timeout die doesn't close it and wait for the child
+    my $fh;
     eval {
       open STDIN, "<", "/dev/null" or die "Can't read /dev/null: $!";
-      $pid = open(my $fh, "-|") // die "Can't fork: $!";
+      $pid = open($fh, "-|") // die "Can't fork: $!";
       if ($pid) {
         my $printed = 0;
         local $SIG{ALRM} = sub { die "alarm\n" };
@@ -145,6 +147,8 @@ class Devel::Cover::Collection {
       my $pgrp = getpgrp $pid;
       my $n    = kill "-KILL", $pgrp;
       warn "killed $n processes";
+      # reap the killed child - close reports its death, which is expected
+      close $fh if $fh;                 ## no critic (RequireCheckedClose)
     }
     my $output = length $output2 ? "$output1\n...\n$output2" : $output1;
     warn $output if !$ok && length $output;
@@ -241,7 +245,8 @@ class Devel::Cover::Collection {
     }
     my @test_cmd
       = (@cmd, "--test", "--report", $report, "--outputfile", $output_file);
-    $output .= "dc -> @test_cmd\n" . $self->fbsys(@test_cmd);
+    # failing tests must not stop the report - the db is still valid
+    $output .= "dc -> @test_cmd\n" . $self->bsys(@test_cmd);
     my @json_cmd = (@cmd, "-report", "json_summary", "-nosummary");
     $output .= "dc -> @json_cmd\n" . $self->fsys(@json_cmd);
 
