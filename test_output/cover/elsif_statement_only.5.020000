@@ -1,0 +1,82 @@
+cover: Reading database from ...
+-------------------------- ------ ------ ------
+File                         stmt  total   scar
+-------------------------- ------ ------ ------
+tests/elsif_statement_only  100.0  100.0   19.5
+Total                       100.0  100.0   19.5
+-------------------------- ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/elsif_statement_only
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+ 7 100.0  7.0 19.5
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SCAR  Location                     
+---------- -- ----  -----------------------------
+with_else   4 13.9  tests/elsif_statement_only:16
+no_else     4 13.9  tests/elsif_statement_only:29
+
+line  err   stmt   code
+1                  #!/usr/bin/env perl
+2                  
+3                  # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                  
+5                  # This software is free.  It is licensed under the same terms as Perl itself.
+6                  
+7                  # The latest version of this software should be available from my homepage:
+8                  # https://pjcj.net
+9                  
+10                 # __COVER__ criteria statement
+11                 
+12             1   use strict;
+               1   
+               1   
+13             1   use warnings;
+               1   
+               1   
+14                 
+15                 sub with_else {
+16             4     my $x = shift;
+17             4     if ($x == 1) {
+18             1       return "one";
+19                   } elsif ($x == 2) {
+20             1       return "two";
+21                   } elsif ($x == 3) {
+22             1       return "three";
+23                   } else {
+24             1       return "many";
+25                   }
+26                 }
+27                 
+28                 sub no_else {
+29             4     my $x = shift;
+30             4     if ($x == 1) {
+31             1       return "one";
+32                   } elsif ($x == 2) {
+33             1       return "two";
+34                   } elsif ($x == 3) {
+35             1       return "three";
+36                   }
+37             1     return "many";
+38                 }
+39                 
+40             1   for my $x (1 .. 4) {
+41             4     with_else($x);
+42             4     no_else($x);
+43                 }
+
+
