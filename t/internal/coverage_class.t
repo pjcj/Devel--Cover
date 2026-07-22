@@ -16,10 +16,9 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [qw( done_testing is )];
+use Test::More import => [qw( done_testing is skip )];
 
-use Devel::Cover::Html_Common         qw( coverage_class default_thresholds );
-use Devel::Cover::Report::Html_subtle ();
+use Devel::Cover::Html_Common qw( coverage_class default_thresholds );
 
 sub test_default_banding () {
   is coverage_class(0),     "c0", "0% is c0";
@@ -68,6 +67,11 @@ sub test_html_subtle_honours_thresholds () {
 test_default_banding;
 test_custom_thresholds;
 test_default_thresholds_copy;
-test_html_subtle_honours_thresholds;
+
+SKIP: {
+  skip "Template not available", 5
+    unless eval { require Devel::Cover::Report::Html_subtle; 1 };
+  test_html_subtle_honours_thresholds;
+}
 
 done_testing;
