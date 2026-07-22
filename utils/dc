@@ -613,6 +613,15 @@ recipe_docker-name() {
   docker_name "${args[@]:-}"
 }
 
+cpancover_env_flags() {
+  local -n flags="$1"
+  local var value
+  flags=()
+  while IFS='=' read -r var value; do
+    flags+=(--env "$var=$value")
+  done < <(env | grep -E '^(CPANCOVER_|DEVEL_COVER_)' || true)
+}
+
 cpancover_controller_command() {
   local name="${1:?No name specified}"
   shift
@@ -622,9 +631,7 @@ cpancover_controller_command() {
   local tty_flag=""
   [[ -t 0 ]] && tty_flag="-t"
   local env_flags=()
-  while IFS='=' read -r var value; do
-    env_flags+=(--env "$var=$value")
-  done < <(env | grep -E '^(CPANCOVER_|DEVEL_COVER_)' || true)
+  cpancover_env_flags env_flags
   "$docker" run -i ${tty_flag:+"$tty_flag"} \
     --mount "type=bind,source=$sock,target=$sock" \
     --mount "type=bind,source=$results_dir,target=/remote_staging" \
@@ -673,7 +680,10 @@ recipe_cpancover-docker-module() {
   ((verbose)) && pi "module: $module"
   local v=
   ((verbose)) && v=--verbose
+  local env_flags=()
+  cpancover_env_flags env_flags
   container=$($docker run -d \
+    ${env_flags[@]:+"${env_flags[@]}"} \
     --label "cpancover.env=$env" \
     --rm=false --memory=1g --name="$name" \
     "$docker_image" \
