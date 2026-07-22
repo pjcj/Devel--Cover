@@ -670,7 +670,7 @@ recipe_cpancover-docker-module() {
   local module="${1:?No module specified}"
   local name="${2:?No name specified}"
   local staging="${3:-$results_dir}"
-  local module_timeout="${CPANCOVER_TIMEOUT:-1800}" # half an hour
+  local module_timeout="${CPANCOVER_TIMEOUT:-3600}" # an hour
   local log_ext=out
   cpancover_compression_enabled && log_ext=out.gz
 

@@ -76,7 +76,7 @@ class Devel::Cover::Collection {
     $rebuild       //= 0;
     $rebuild_batch //= 100;
     $report        //= "html";
-    $timeout       //= $ENV{CPANCOVER_TIMEOUT} // 30 * 60;  # half an hour
+    $timeout       //= $ENV{CPANCOVER_TIMEOUT} // 60 * 60;             # an hour
     $verbose       //= 0;
     $workers       //= 0;
     $ENV{CPANCOVER_TIMEOUT} = $timeout;
@@ -1093,7 +1093,7 @@ Report format to generate. Default: 'html'.
 
 =head3 timeout
 
-Timeout in seconds for coverage runs. Default: 1800 (30 minutes).
+Timeout in seconds for coverage runs. Default: 3600 (60 minutes).
 
 =head3 verbose
 
