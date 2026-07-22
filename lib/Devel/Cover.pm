@@ -1329,8 +1329,25 @@ sub _walk_statement ($op, $type) {
   }
 }
 
+sub _walk_elsif_chain ($cv, $false) {
+  while (B::class($false) ne "NULL" && is_ifelse_cont($false)) {
+    my $newop = $false->first;
+    $Seen{cond_expr}{$$newop} = 1;
+    my $newcond = $newop->first;
+    my $newtrue = $newcond->sibling;
+    if ($newcond->name eq "lineseq") {
+      $newcond = $newcond->first->sibling;
+    }
+    $false = $newtrue->sibling;
+    if ($Coverage{branch}) {
+      my $newtext = _deparse_expr($cv, $newcond, 1, 0);
+      add_branch_cover($newop, "elsif", "elsif ($newtext) { }", $File, $Line);
+    }
+  }
+}
+
 sub _walk_cond_expr ($cv, $op) {
-  return unless $Collect && $Coverage{branch};
+  return unless $Collect;
   return if $Seen{cond_expr}{$$op};
   local ($File, $Line) = ($File, $Line);
   my $cond  = $op->first;
@@ -1358,23 +1375,15 @@ sub _walk_cond_expr ($cv, $op) {
   }
 
   if (!$is_statement) {
+    return unless $Coverage{branch};
     my $text = _deparse_expr($cv, $cond, 8, 0);
     add_branch_cover($op, "if", "$text ? :", $File, $Line);
   } else {
-    my $text = _deparse_expr($cv, $cond, 1, 0);
-    add_branch_cover($op, "if", "if ($text) { }", $File, $Line);
-    while (B::class($false) ne "NULL" && is_ifelse_cont($false)) {
-      my $newop = $false->first;
-      $Seen{cond_expr}{$$newop} = 1;
-      my $newcond = $newop->first;
-      my $newtrue = $newcond->sibling;
-      if ($newcond->name eq "lineseq") {
-        $newcond = $newcond->first->sibling;
-      }
-      $false = $newtrue->sibling;
-      my $newtext = _deparse_expr($cv, $newcond, 1, 0);
-      add_branch_cover($newop, "elsif", "elsif ($newtext) { }", $File, $Line);
+    if ($Coverage{branch}) {
+      my $text = _deparse_expr($cv, $cond, 1, 0);
+      add_branch_cover($op, "if", "if ($text) { }", $File, $Line);
     }
+    _walk_elsif_chain($cv, $false);
   }
 }
 
