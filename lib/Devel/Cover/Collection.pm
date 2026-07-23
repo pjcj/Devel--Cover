@@ -16,6 +16,7 @@ use Devel::Cover::DB           ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Dumper       qw( Dumper );
 use Devel::Cover::Html_Common  ();
+use Devel::Cover::Inc          ();
 use Devel::Cover::Web          qw( write_file );
 
 use JSON::MaybeXS      ();
@@ -54,6 +55,7 @@ class Devel::Cover::Collection {
 
   field $rebuild       :param :reader = undef;
   field $rebuild_batch :param :reader = undef;
+  field $mark_rebuilt  :param :reader = undef;
 
   # rw attributes (custom accessors for Moo compatibility)
   field $dir  :param = undef;
@@ -75,6 +77,7 @@ class Devel::Cover::Collection {
     $output_file   //= "index.html";
     $rebuild       //= 0;
     $rebuild_batch //= 100;
+    $mark_rebuilt  //= 0;
     $report        //= "html";
     $timeout       //= $ENV{CPANCOVER_TIMEOUT} // 60 * 60;             # an hour
     $verbose       //= 0;
@@ -347,7 +350,10 @@ class Devel::Cover::Collection {
     my $about_f = "$d/about.html";
     say "\nWriting about page to $about_f ...";
 
-    $self->_process_template($template, "about", { root => "" }, $about_f);
+    $self->_process_template(
+      $template,                                         "about",
+      { root => "", dc_version => $vars->{dc_version} }, $about_f,
+    );
 
     # print Dumper $vars;
     $self->write_json($vars);
@@ -399,6 +405,7 @@ class Devel::Cover::Collection {
     my @crit = (Devel::Cover::Criterion->coverage_criteria, "total");
     my $vars = {
       title       => "Coverage report",
+      dc_version  => $Devel::Cover::Inc::VERSION . $Devel::Cover::Inc::Dev,
       modules     => {},
       vals        => {},
       criteria    => \@crit,
@@ -745,10 +752,12 @@ class Devel::Cover::Collection {
           $self->set_failed($d);
           say "$d failed";
         }
-        $self->set_rebuilt($d) if $rebuild;
+        $self->set_rebuilt($d) if $rebuild || $mark_rebuilt;
+        1
       },
       do { my %m; [sort grep !$m{$_}++, @$modules] },
     );
+    scalar grep $_, @res
   }
 
   method get_latest {
@@ -820,7 +829,7 @@ https://pjcj.net
 <footer class="footer">
 Coverage information from
 <a href="https://metacpan.org/module/Devel::Cover">Devel::Cover</a>
-by <a href="https://pjcj.net">Paul Johnson</a>.
+[% dc_version %] by <a href="https://pjcj.net">Paul Johnson</a>.
 Please report problems to the
 <a href="https://github.com/pjcj/Devel--Cover/issues">bug tracker</a>.
 <a href="[% root %]about.html">About</a> the project.
@@ -1134,6 +1143,13 @@ Maximum number of distdirs returned by C<next_rebuild_batch> in a single
 call. C<0> disables the rebuild pass (C<next_rebuild_batch> returns an
 empty list). Default: 100.
 
+=head3 mark_rebuilt
+
+Boolean. If true, C<cover_modules> writes a C<__rebuilt__> marker for
+each module it builds, without the rebuild-mode selection or distdir
+replacement that C<rebuild> implies. Used by the rebuild loop's latest
+pass so fresh builds are not rebuilt again by the batch pass. Default: 0.
+
 =head2 Read-Write-Private Attributes
 
 These attributes have public readers but private setters. Use the provided
@@ -1257,10 +1273,13 @@ workers if configured.
 
 =head3 cover_modules
 
-  $collection->cover_modules;
+  my $built = $collection->cover_modules;
 
 Covers all modules using Docker containers. Processes the module file,
-then runs coverage for each module in parallel.
+then runs coverage for each module in parallel. Modules whose distdir or
+failure marker already exists are skipped (in rebuild mode only when
+they also carry a C<__rebuilt__> marker). Returns the number of builds
+actually attempted.
 
 =head2 Report Generation
 

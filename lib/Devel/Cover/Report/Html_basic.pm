@@ -370,7 +370,7 @@ sub report ($pkg, $db, $options) {
     perl_v  => $^V,
     os      => $^O,
     options => $options,
-    version => $VERSION,
+    version => $VERSION . $Devel::Cover::Inc::Dev,
     showing => [grep $options->{show}{$_}, $db->criteria],
     headers => [
       map  { ($db->criteria_short)[$_] }

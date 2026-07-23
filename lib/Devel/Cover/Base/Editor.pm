@@ -16,6 +16,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 use Devel::Cover::Criterion ();
 use Devel::Cover::DB        ();
+use Devel::Cover::Inc       ();
 use Devel::Cover::Log       qw( dcinfo );
 use Template 2.00           ();
 
@@ -45,7 +46,7 @@ sub report ($pkg, $db, $options) {
       }
       int $time
     },
-    version => $pkg->VERSION,
+    version => $pkg->VERSION . $Devel::Cover::Inc::Dev,
     files   =>
       [grep !$db->cover->file($_)->{meta}{uncompiled}, $options->{file}->@*],
     cover => $db->cover,

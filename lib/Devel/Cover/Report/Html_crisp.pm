@@ -1232,7 +1232,7 @@ sub report ($pkg, $db, $options) {
     perl_v   => $^V,
     os       => $^O,
     options  => $options,
-    version  => $VERSION,
+    version  => $VERSION . $Devel::Cover::Inc::Dev,
     showing  => [grep $options->{show}{$_}, $db->criteria],
     criteria => [
       grep Devel::Cover::Criterion->criterion_class($_)->measures_coverage,

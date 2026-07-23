@@ -1077,17 +1077,20 @@ cpancover_run_loop_rebuild() {
   while true; do
     cpancover_docker_rm
 
-    cpancover_latest | run_cpancover --build --rebuild --rebuild_batch 0
+    cpancover_latest | run_cpancover --build --mark_rebuilt
     local new
     new=$(cpancover_status_value new_count)
     ((new > 0)) && cpancover_generate_html
 
     run_cpancover --nobuild --rebuild --rebuild_batch "$batch"
-    local rebuilt
+    local rebuilt all_done
     rebuilt=$(cpancover_status_value rebuilt_count)
+    # read before regenerating: only the two loop passes may write the
+    # status file, and this ordering keeps the exit test safe regardless
+    all_done=$(cpancover_status_value all_rebuilt)
     ((rebuilt > 0)) && cpancover_generate_html
 
-    if [[ $(cpancover_status_value all_rebuilt) == 1 ]]; then
+    if [[ $all_done == 1 ]]; then
       pi "Rebuild complete; clearing __rebuilt__ markers"
       rm -rf "${results_dir:?}/__rebuilt__"
       break

@@ -31,6 +31,7 @@ sub constructor_defaults () {
   is $c->output_file,   "index.html", "output_file defaults to 'index.html'";
   is $c->rebuild,       0,            "rebuild defaults to 0";
   is $c->rebuild_batch, 100,          "rebuild_batch defaults to 100";
+  is $c->mark_rebuilt,  0,            "mark_rebuilt defaults to 0";
   is $c->report,        "html",       "report defaults to 'html'";
   is $c->timeout,       60 * 60,      "timeout defaults to 3600 (60 minutes)";
   is $c->verbose,       0,            "verbose defaults to 0";
@@ -55,6 +56,7 @@ sub constructor_with_args () {
     output_file   => "report.html",
     rebuild       => 1,
     rebuild_batch => 25,
+    mark_rebuilt  => 1,
     report        => "html_minimal",
     timeout       => 600,
     verbose       => 1,
@@ -70,6 +72,7 @@ sub constructor_with_args () {
   is $c->output_file, "report.html",  "output_file overridden via constructor";
   is $c->rebuild,     1,              "rebuild overridden via constructor";
   is $c->rebuild_batch, 25,             "rebuild_batch overridden";
+  is $c->mark_rebuilt,  1,              "mark_rebuilt overridden";
   is $c->report,        "html_minimal", "report overridden via constructor";
   is $c->timeout,       600,            "timeout overridden via constructor";
   is $c->verbose,       1,              "verbose overridden via constructor";
