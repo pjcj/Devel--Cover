@@ -1219,11 +1219,12 @@ sub generate_file_pages ($outdir, $file_data) {
 }
 
 sub report ($pkg, $db, $options) {
-  my $fname = (sort keys $db->{runs}->%*)[0] or return;
-  my $run   = $db->{runs}{$fname};
+  my $fname = (sort keys $db->{runs}->%*)[0];
+  my $run   = defined $fname ? $db->{runs}{$fname} : undef;
 
   %R = (
-    module   => { name => $run->name, version => $run->version },
+    module =>
+      { name => $run && $run->name, version => $run && $run->version },
     db       => $db,
     date     => strftime("%Y-%m-%d %H:%M:%S %z", localtime),
     perl_v   => $^V,
