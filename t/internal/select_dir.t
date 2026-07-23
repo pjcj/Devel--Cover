@@ -74,6 +74,31 @@ sub test_scan () {
   ok grep(/Uncovered\/Utils\.pm$/,   @files), "Uncovered/Utils.pm in files";
   ok !grep(/blib/,                   @files), "blib files excluded";
   ok !grep(/\.txt$/,                 @files), "non-pm files excluded";
+
+  if (have_ppi) {
+    my %collected = map { $_ => 1 } $db->collected;
+    ok $collected{$_}, "$_ collected via estimates on a runless db"
+      for qw( statement branch condition subroutine pod );
+  }
+}
+
+# A blib directory given as the scan root is scanned - the blib exclusion
+# only applies below the requested directory.
+sub test_blib_root () {
+  my ($tmpdir, $libdir) = setup_lib_dir;
+  my $blibdir  = File::Spec->catdir($libdir, "blib");
+  my $cover_db = File::Spec->catdir($tmpdir, "cover_db_blib");
+  make_path($cover_db);
+
+  my ($out, $exit)
+    = run_cover("--select_dir", $blibdir, "--write", "--silent", $cover_db);
+  is $exit, 0, "cover --select_dir blib exits 0";
+
+  my $db    = Devel::Cover::DB->new(db => $cover_db);
+  my @files = sort $db->files;
+
+  is @files, 1, "exactly one file found";
+  ok grep(/BlibMod\.pm$/, @files), "BlibMod.pm in files";
 }
 
 # When $db->{files} lists a file absent from all runs, $db->cover should include
@@ -156,6 +181,7 @@ sub test_text_report () {
 
 sub main () {
   test_scan;
+  test_blib_root;
   test_uncompiled_in_cover;
   test_text_report;
   done_testing;

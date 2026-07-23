@@ -76,7 +76,7 @@ class Devel::Cover::Collection {
     $rebuild       //= 0;
     $rebuild_batch //= 100;
     $report        //= "html";
-    $timeout       //= $ENV{CPANCOVER_TIMEOUT} // 30 * 60;  # half an hour
+    $timeout       //= $ENV{CPANCOVER_TIMEOUT} // 60 * 60;             # an hour
     $verbose       //= 0;
     $workers       //= 0;
     $ENV{CPANCOVER_TIMEOUT} = $timeout;
@@ -100,9 +100,11 @@ class Devel::Cover::Collection {
     # say "Setting alarm for $timeout seconds";
     my $ok = 0;
     my $pid;
+    # declared here so a timeout die doesn't close it and wait for the child
+    my $fh;
     eval {
       open STDIN, "<", "/dev/null" or die "Can't read /dev/null: $!";
-      $pid = open(my $fh, "-|") // die "Can't fork: $!";
+      $pid = open($fh, "-|") // die "Can't fork: $!";
       if ($pid) {
         my $printed = 0;
         local $SIG{ALRM} = sub { die "alarm\n" };
@@ -128,7 +130,9 @@ class Devel::Cover::Collection {
         if (close $fh) {
           $ok = 1;
         } else {
-          warn "Error running @command\n";
+          my ($status, $signal) = ($? >> 8, $? & 127);
+          warn "Error running @command (exit $status"
+            . ($signal ? ", signal $signal" : "") . ")\n";
         }
       } else {
         setsid() != -1 or die "Can't start a new session: $!";
@@ -143,8 +147,12 @@ class Devel::Cover::Collection {
       my $pgrp = getpgrp $pid;
       my $n    = kill "-KILL", $pgrp;
       warn "killed $n processes";
+      # reap the killed child - close reports its death, which is expected
+      close $fh if $fh;                 ## no critic (RequireCheckedClose)
     }
-    $ok ? length $output2 ? "$output1\n...\n$output2" : $output1 : undef
+    my $output = length $output2 ? "$output1\n...\n$output2" : $output1;
+    warn $output if !$ok && length $output;
+    $ok ? $output : undef
   }
 
   method sys   (@a) { $self->_sys(4e4, @a) // "" }
@@ -235,20 +243,32 @@ class Devel::Cover::Collection {
     } else {
       @cmd = ($^X, $bin_dir . "/cover");
     }
-    my @test_cmd
-      = (@cmd, "--test", "--report", $report, "--outputfile", $output_file);
-    $output .= "dc -> @test_cmd\n" . $self->fbsys(@test_cmd);
-    my @json_cmd = (@cmd, "-report", "json_summary", "-nosummary");
-    $output .= "dc -> @json_cmd\n" . $self->fsys(@json_cmd);
+    my $select_dir = -d "blib" ? "blib" : -d "lib" ? "lib" : ".";
+    my @test_cmd   = (
+      @cmd,           "--test",     "--report",     $report,
+      "--outputfile", $output_file, "--select_dir", $select_dir,
+    );
+    # failing tests must not stop the report - the db is still valid
+    $output .= "dc -> @test_cmd\n" . $self->bsys(@test_cmd);
+    my $err  = do {
+      local $@;
+      eval {
+        my @json_cmd = (@cmd, "-report", "json_summary", "-nosummary");
+        $output .= "dc -> @json_cmd\n";
+        $output .= $self->fsys(@json_cmd);
 
-    # TODO - option to merge DB with existing one
-    # TODO - portability
-    $output .= $self->fsys("rm", "-rf", $rdir);
-    $output .= `rm -f $db/structure/*.lock`;
-    $output .= $self->fsys("mv", $db,   $rdir);
-    $output .= $self->fsys("rm", "-rf", $db);
+        # TODO - option to merge DB with existing one
+        # TODO - portability
+        $output .= $self->fsys("rm", "-rf", $rdir);
+        $output .= `rm -f $db/structure/*.lock`;
+        $output .= $self->fsys("mv", $db,   $rdir);
+        $output .= $self->fsys("rm", "-rf", $db);
+      };
+      $@
+    };
 
     say "\n$line\n$output$line\n";
+    die $err if $err;
   }
 
   method run_all {
@@ -518,9 +538,12 @@ class Devel::Cover::Collection {
   method set_covered ($d) { unlink $self->failed_file($d) }
 
   method _write_timestamp_marker ($path) {
-    open my $fh, ">", $path or return warn "Can't open $path: $!";
+    my $tmp = "$path.tmp.$$";
+    open my $fh, ">", $tmp or return warn "Can't open $tmp: $!";
     print $fh scalar localtime;
-    close $fh or warn "Can't close $path: $!";
+    close $fh or do { unlink $tmp; return warn "Can't close $tmp: $!" };
+    rename $tmp, $path
+      or do { unlink $tmp; warn "Can't rename $tmp to $path: $!" };
   }
 
   method set_failed ($d) {
@@ -1081,7 +1104,7 @@ Report format to generate. Default: 'html'.
 
 =head3 timeout
 
-Timeout in seconds for coverage runs. Default: 1800 (30 minutes).
+Timeout in seconds for coverage runs. Default: 3600 (60 minutes).
 
 =head3 verbose
 
@@ -1218,7 +1241,12 @@ distributions, and runs coverage on all.
   $collection->run($build_dir);
 
 Runs coverage analysis on a single build directory. Creates coverage reports
-in the results directory.
+in the results directory. The C<cover> invocation is passed C<--select_dir>
+pointing at C<blib> (falling back to C<lib>, then the build directory) so
+files no test exercised appear in the report as untested, and a distribution
+without any tests still produces a report rather than failing. If a step
+after the test run dies, the collected output is printed before the error
+propagates.
 
 =head3 run_all
 

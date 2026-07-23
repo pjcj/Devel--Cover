@@ -586,9 +586,10 @@ sub recoverable_sub ($cv) {
 # closes over.  That is where a method modifier keeps the original sub it
 # replaced in the symbol table, so without this its body is dropped from
 # coverage.  Descent stops after one container so a wrapper's own deeper
-# machinery is not reached; blessed containers are not descended, so a sub
-# closing over an object does not drag its whole graph in, and $seen guards a
-# cyclic structure.
+# machinery is not reached.  Blessed containers are not descended, so a sub
+# closing over an object does not drag its whole graph in.  Magical containers
+# are not descended, since reading a tied one would run user code.  The $seen
+# hash guards a cyclic structure.
 sub ref_cvs ($sv, $seen, $depth = 1) {
   my $r = ref $sv or return ();
   if ($r ne "B::AV" && $r ne "B::HV") {
@@ -601,6 +602,7 @@ sub ref_cvs ($sv, $seen, $depth = 1) {
   }
   return () unless $depth;
   return () if $sv->can("SvSTASH") && ref($sv->SvSTASH) ne "B::SPECIAL";
+  return () if $sv->MAGICAL;
   return () if $seen->{$$sv}++;
   my @elems = $r eq "B::AV" ? $sv->ARRAY : do { my %h = $sv->ARRAY; values %h };
   map ref_cvs($_, $seen, $depth - 1), @elems
@@ -1327,8 +1329,25 @@ sub _walk_statement ($op, $type) {
   }
 }
 
+sub _walk_elsif_chain ($cv, $false) {
+  while (B::class($false) ne "NULL" && is_ifelse_cont($false)) {
+    my $newop = $false->first;
+    $Seen{cond_expr}{$$newop} = 1;
+    my $newcond = $newop->first;
+    my $newtrue = $newcond->sibling;
+    if ($newcond->name eq "lineseq") {
+      $newcond = $newcond->first->sibling;
+    }
+    $false = $newtrue->sibling;
+    if ($Coverage{branch}) {
+      my $newtext = _deparse_expr($cv, $newcond, 1, 0);
+      add_branch_cover($newop, "elsif", "elsif ($newtext) { }", $File, $Line);
+    }
+  }
+}
+
 sub _walk_cond_expr ($cv, $op) {
-  return unless $Collect && $Coverage{branch};
+  return unless $Collect;
   return if $Seen{cond_expr}{$$op};
   local ($File, $Line) = ($File, $Line);
   my $cond  = $op->first;
@@ -1356,23 +1375,15 @@ sub _walk_cond_expr ($cv, $op) {
   }
 
   if (!$is_statement) {
+    return unless $Coverage{branch};
     my $text = _deparse_expr($cv, $cond, 8, 0);
     add_branch_cover($op, "if", "$text ? :", $File, $Line);
   } else {
-    my $text = _deparse_expr($cv, $cond, 1, 0);
-    add_branch_cover($op, "if", "if ($text) { }", $File, $Line);
-    while (B::class($false) ne "NULL" && is_ifelse_cont($false)) {
-      my $newop = $false->first;
-      $Seen{cond_expr}{$$newop} = 1;
-      my $newcond = $newop->first;
-      my $newtrue = $newcond->sibling;
-      if ($newcond->name eq "lineseq") {
-        $newcond = $newcond->first->sibling;
-      }
-      $false = $newtrue->sibling;
-      my $newtext = _deparse_expr($cv, $newcond, 1, 0);
-      add_branch_cover($newop, "elsif", "elsif ($newtext) { }", $File, $Line);
+    if ($Coverage{branch}) {
+      my $text = _deparse_expr($cv, $cond, 1, 0);
+      add_branch_cover($op, "if", "if ($text) { }", $File, $Line);
     }
+    _walk_elsif_chain($cv, $false);
   }
 }
 

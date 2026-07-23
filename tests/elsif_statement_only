@@ -1,0 +1,43 @@
+#!/usr/bin/env perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# __COVER__ criteria statement
+
+use strict;
+use warnings;
+
+sub with_else {
+  my $x = shift;
+  if ($x == 1) {
+    return "one";
+  } elsif ($x == 2) {
+    return "two";
+  } elsif ($x == 3) {
+    return "three";
+  } else {
+    return "many";
+  }
+}
+
+sub no_else {
+  my $x = shift;
+  if ($x == 1) {
+    return "one";
+  } elsif ($x == 2) {
+    return "two";
+  } elsif ($x == 3) {
+    return "three";
+  }
+  return "many";
+}
+
+for my $x (1 .. 4) {
+  with_else($x);
+  no_else($x);
+}

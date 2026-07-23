@@ -20,10 +20,12 @@ use Devel::Cover::DB::IO    ();
 use Devel::Cover::Log       qw( dcinfo dcwarn );
 
 use Carp         qw( carp croak );
+use Cwd          ();
 use Digest::MD5  ();
-use Fcntl        qw( :flock );
+use Fcntl        qw( LOCK_EX LOCK_NB );
 use File::Find   qw( find );
 use File::Path   qw( rmtree );
+use File::Spec   ();
 use List::Util   qw( any );
 use Scalar::Util qw( blessed reftype );
 
@@ -1206,23 +1208,60 @@ sub _file_digest ($r, $file) {
   undef
 }
 
+sub _lib_preferred ($self, $file) {
+  return $file unless $self->{prefer_lib};
+  my $ff = $file;
+  $ff =~ s|^blib/||;
+  -e $ff ? $ff : $file
+}
+
+# The same content can be recorded under more than one name - a copy or a
+# symlink run from a directory deleted before the report is built.  When
+# names compete for a digest, prefer a path that still exists, outside the
+# temp directory and relative to the project tree, so a vanished alias
+# cannot become the reported name and hide the real file.
+sub _choose_canonical_files ($self, $runs, $digests, $uncoverable) {
+  my %candidates;
+  for my $run (@$runs) {
+    my $r = $self->{runs}{$run};
+    next unless $r->{collected};
+    for my $file (sort keys $r->{digests}->%*) {
+      my $digest = $r->{digests}{$file} or next;
+      $candidates{$digest}{ $self->_lib_preferred($file) }++;
+    }
+  }
+
+  my $tmpdir = File::Spec->tmpdir;
+  my %tmp    = map { $_ => 1 } grep defined, $tmpdir,
+    eval { Cwd::realpath($tmpdir) };
+  my $score = sub ($file) {
+    (-e $file ? 4 : 0) + (grep(index($file, "$_/") == 0, keys %tmp) ? 0 : 2)
+      + (File::Spec->file_name_is_absolute($file) ? 0 : 1)
+  };
+  for my $digest (sort keys %candidates) {
+    my @names = sort keys $candidates{$digest}->%*;
+    next if @names < 2;
+    my ($best) = sort {
+      $score->($b) <=> $score->($a) || length $a <=> length $b || $a cmp $b
+    } @names;
+    $digests->{$digest} = $best;
+    $self->uncoverable_comments($uncoverable, $best, $digest);
+  }
+}
+
 sub _cover_file (
   $self,  $file,        $f,       $r,     $st,
   $cover, $uncoverable, $digests, $files, $warned,
 ) {
   my $digest = _file_digest($r, $file) or return;
+  my $ff     = $self->_lib_preferred($file);
 
   dcinfo "merging data for $file into $digests->{$digest}"
-    if !$files->{$file}++ && $digests->{$digest};
+    if !$files->{$file}++ && $digests->{$digest} && $digests->{$digest} ne $ff;
 
   $self->uncoverable_comments($uncoverable, $file, $digest)
     unless $digests->{$digest};
 
-  my $ff = $file;
-  if ($self->{prefer_lib}) {
-    $ff =~ s|^blib/||;
-    $ff = $file unless -e $ff;
-  }
   my $cf = $cover->{ $digests->{$digest} ||= $ff } ||= {};
   $cf->{meta}{digest} = $digest;
 
@@ -1269,6 +1308,8 @@ sub cover ($self) {
       || $b cmp $a
   } keys $self->{runs}->%*;
 
+  $self->_choose_canonical_files(\@runs, \%digests, $uncoverable);
+
   my %warned;
   for my $run (@runs) {
     last unless $st;
@@ -1296,6 +1337,9 @@ sub cover ($self) {
       next if exists $self->{cover}{$file};
       my $counts = Devel::Cover::Static::count_criteria($file);
       my $subs   = Devel::Cover::Static::per_sub_complexity($file);
+      if ($counts) {
+        $self->{collected}{$_} = undef for grep $counts->{$_}, keys %$counts;
+      }
       $self->{cover}{$file} = bless {
         meta => {
           uncompiled => 1,

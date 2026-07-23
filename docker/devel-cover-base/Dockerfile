@@ -1,5 +1,5 @@
 # hadolint ignore=DL3007
-FROM pjcj/perl-5.42.2:latest
+FROM pjcj/perl-5.44.0:latest
 
 WORKDIR /usr/local/src
 
@@ -39,6 +39,7 @@ RUN mkdir -p /root/.cpan/CPAN                                               && \
       JSON::MaybeXS                                                            \
       Parallel::Iterator                                                       \
       Pod::Coverage::CountParents                                              \
+      PPI                                                                      \
       Sereal                                                                   \
       Template                                                              && \
     rm -rf ~/.cpan/build ~/.cpan/sources/authors ~/.cpanm                      \

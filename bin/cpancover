@@ -220,7 +220,7 @@ The following command line options are supported:
   --rebuild_batch         - how many distdirs per rebuild pass   (100)
   --report                - report to use                        (html)
   --results_dir           - where to store output               ($cwd)
-  --timeout               - per-distribution timeout in seconds  (1800)
+  --timeout               - per-distribution timeout in seconds  (3600)
   --verbose               - verbose output                       (off)
   --workers               - number of parallel workers           (0)
 

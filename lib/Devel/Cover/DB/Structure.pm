@@ -134,8 +134,11 @@ sub set_complexity ($self, $sub_id, $cc) {
 }
 
 sub _file_by_digest ($self, $digest) {
-  if (my $files = $self->{digests}{$digest}) {
-    return $self->{f}{ $files->[0] };
+  # A name can be re-registered for new content, so check the entry still
+  # carries the digest asked for
+  for my $file (($self->{digests}{$digest} // [])->@*) {
+    my $fval = $self->{f}{$file};
+    return $fval if $fval && $fval->{digest} eq $digest;
   }
   for my $fval (values $self->{f}->%*) {
     return $fval if $fval->{digest} eq $digest;
@@ -237,10 +240,14 @@ sub read ($self, $digest) {
   }
   my $d = $self->digest($s->{file});
   if (!$d) {
-    # No digest implies that we can't read the file. Likely this is because it's
-    # stored with a relative path. In which case, it's not valid to assume that
-    # the file has been changed, and hence that we need to "update" the
-    # structure database on disk.
+    # No digest implies that we can't read the file - a relative path from
+    # another directory, or a deleted alias of a surviving file.  That says
+    # nothing about staleness, and the stored digest still identifies the
+    # content, so keep the entry for digest lookups rather than dropping it
+    if ($s->{digest} && !$self->{f}{ $s->{file} }) {
+      $self->{f}{ $s->{file} } = $s;
+      push $self->{digests}{ $s->{digest} }->@*, $s->{file};
+    }
   } elsif ($d eq $s->{digest}) {
     $self->{f}{ $s->{file} } = $s;
     push $self->{digests}{$d}->@*, $s->{file};
