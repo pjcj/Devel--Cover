@@ -16,6 +16,7 @@ use Devel::Cover::DB           ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Dumper       qw( Dumper );
 use Devel::Cover::Html_Common  ();
+use Devel::Cover::Inc          ();
 use Devel::Cover::Web          qw( write_file );
 
 use JSON::MaybeXS      ();
@@ -349,7 +350,10 @@ class Devel::Cover::Collection {
     my $about_f = "$d/about.html";
     say "\nWriting about page to $about_f ...";
 
-    $self->_process_template($template, "about", { root => "" }, $about_f);
+    $self->_process_template(
+      $template,                                         "about",
+      { root => "", dc_version => $vars->{dc_version} }, $about_f,
+    );
 
     # print Dumper $vars;
     $self->write_json($vars);
@@ -401,6 +405,7 @@ class Devel::Cover::Collection {
     my @crit = (Devel::Cover::Criterion->coverage_criteria, "total");
     my $vars = {
       title       => "Coverage report",
+      dc_version  => $Devel::Cover::Inc::VERSION . $Devel::Cover::Inc::Dev,
       modules     => {},
       vals        => {},
       criteria    => \@crit,
@@ -824,7 +829,7 @@ https://pjcj.net
 <footer class="footer">
 Coverage information from
 <a href="https://metacpan.org/module/Devel::Cover">Devel::Cover</a>
-by <a href="https://pjcj.net">Paul Johnson</a>.
+[% dc_version %] by <a href="https://pjcj.net">Paul Johnson</a>.
 Please report problems to the
 <a href="https://github.com/pjcj/Devel--Cover/issues">bug tracker</a>.
 <a href="[% root %]about.html">About</a> the project.

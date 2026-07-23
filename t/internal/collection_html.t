@@ -33,6 +33,7 @@ BEGIN {
 }
 
 use Devel::Cover::Collection ();
+use Devel::Cover::Inc        ();
 
 my $Dist    = "Foo-Bar-1.00";
 my $Log     = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--1234567890.123456.out.gz";
@@ -148,6 +149,12 @@ unlike $Page{dist_d}, qr{href="\.\./\Q$Ref3\E"},
   "dangling .log_ref target is not linked";
 like $Page{dist_d}, qr{href="\.\./\Q$Log_new\E"},
   "dependency dist links its target's log via .log_ref";
+
+my $Version = $Devel::Cover::Inc::VERSION . $Devel::Cover::Inc::Dev;
+for my $name (sort keys %Page) {
+  like $Page{$name}, qr{Devel::Cover</a>\s+\Q$Version\E\s+by},
+    "$name page footer shows the Devel::Cover version";
+}
 
 for my $f (qw( index.html dist/F.html about.html )) {
   is slurp("$Dir/$f.seeded"), "old", "$f is written atomically";
