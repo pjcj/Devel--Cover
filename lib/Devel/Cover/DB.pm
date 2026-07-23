@@ -1337,6 +1337,9 @@ sub cover ($self) {
       next if exists $self->{cover}{$file};
       my $counts = Devel::Cover::Static::count_criteria($file);
       my $subs   = Devel::Cover::Static::per_sub_complexity($file);
+      if ($counts) {
+        $self->{collected}{$_} = undef for grep $counts->{$_}, keys %$counts;
+      }
       $self->{cover}{$file} = bless {
         meta => {
           uncompiled => 1,

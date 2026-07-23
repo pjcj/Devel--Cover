@@ -243,21 +243,32 @@ class Devel::Cover::Collection {
     } else {
       @cmd = ($^X, $bin_dir . "/cover");
     }
-    my @test_cmd
-      = (@cmd, "--test", "--report", $report, "--outputfile", $output_file);
+    my $select_dir = -d "blib" ? "blib" : -d "lib" ? "lib" : ".";
+    my @test_cmd   = (
+      @cmd,           "--test",     "--report",     $report,
+      "--outputfile", $output_file, "--select_dir", $select_dir,
+    );
     # failing tests must not stop the report - the db is still valid
     $output .= "dc -> @test_cmd\n" . $self->bsys(@test_cmd);
-    my @json_cmd = (@cmd, "-report", "json_summary", "-nosummary");
-    $output .= "dc -> @json_cmd\n" . $self->fsys(@json_cmd);
+    my $err  = do {
+      local $@;
+      eval {
+        my @json_cmd = (@cmd, "-report", "json_summary", "-nosummary");
+        $output .= "dc -> @json_cmd\n";
+        $output .= $self->fsys(@json_cmd);
 
-    # TODO - option to merge DB with existing one
-    # TODO - portability
-    $output .= $self->fsys("rm", "-rf", $rdir);
-    $output .= `rm -f $db/structure/*.lock`;
-    $output .= $self->fsys("mv", $db,   $rdir);
-    $output .= $self->fsys("rm", "-rf", $db);
+        # TODO - option to merge DB with existing one
+        # TODO - portability
+        $output .= $self->fsys("rm", "-rf", $rdir);
+        $output .= `rm -f $db/structure/*.lock`;
+        $output .= $self->fsys("mv", $db,   $rdir);
+        $output .= $self->fsys("rm", "-rf", $db);
+      };
+      $@
+    };
 
     say "\n$line\n$output$line\n";
+    die $err if $err;
   }
 
   method run_all {
@@ -1230,7 +1241,12 @@ distributions, and runs coverage on all.
   $collection->run($build_dir);
 
 Runs coverage analysis on a single build directory. Creates coverage reports
-in the results directory.
+in the results directory. The C<cover> invocation is passed C<--select_dir>
+pointing at C<blib> (falling back to C<lib>, then the build directory) so
+files no test exercised appear in the report as untested, and a distribution
+without any tests still produces a report rather than failing. If a step
+after the test run dies, the collected output is printed before the error
+propagates.
 
 =head3 run_all
 

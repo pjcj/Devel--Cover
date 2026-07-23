@@ -39,6 +39,7 @@ RUN mkdir -p /root/.cpan/CPAN                                               && \
       JSON::MaybeXS                                                            \
       Parallel::Iterator                                                       \
       Pod::Coverage::CountParents                                              \
+      PPI                                                                      \
       Sereal                                                                   \
       Template                                                              && \
     rm -rf ~/.cpan/build ~/.cpan/sources/authors ~/.cpanm                      \

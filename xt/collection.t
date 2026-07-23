@@ -32,7 +32,7 @@ sub constructor_defaults () {
   is $c->rebuild,       0,            "rebuild defaults to 0";
   is $c->rebuild_batch, 100,          "rebuild_batch defaults to 100";
   is $c->report,        "html",       "report defaults to 'html'";
-  is $c->timeout,       30 * 60,      "timeout defaults to 1800 (30 minutes)";
+  is $c->timeout,       60 * 60,      "timeout defaults to 3600 (60 minutes)";
   is $c->verbose,       0,            "verbose defaults to 0";
   is $c->workers,       0,            "workers defaults to 0";
   is ref($c->cpan_dir), "ARRAY",      "cpan_dir is an arrayref";

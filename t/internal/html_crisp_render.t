@@ -100,7 +100,7 @@ sub test_render_layout () {
   like $got, qr/data-file-count="5"/,             "layout: file count";
   like $got, qr/<p>Hello world<\/p>/,             "layout: content";
   like $got, qr/class="footer"/,                  "layout: footer";
-  like $got, qr/1\.44 on 2026-04-08/,             "layout: version + date";
+  like $got, qr/1\.44 by .*\son 2026-04-08/s,     "layout: version + date";
 }
 
 sub test_render_index () {
@@ -109,23 +109,26 @@ sub test_render_index () {
 
   # Structural checks on the golden TT output - these will be
   # re-run against _render_index output once it replaces TT.
-  like $got,   qr/<!DOCTYPE html>/,         "has doctype";
-  like $got,   qr/<title>Coverage Summary/, "has summary title";
-  like $got,   qr/class="file-table"/,      "has file table";
-  like $got,   qr/class="worst-files"/,     "has worst files";
-  like $got,   qr/class="dist-bar"/,        "has distribution bar";
-  like $got,   qr/class="filter-bar"/,      "has filter bar";
-  like $got,   qr/data-sort="scar"/,        "has SCAR column";
-  unlike $got, qr/data-sort="risk"/,        "no risk column";
-  like $got,   qr/Top SCAR/,                "worst files heading";
-  like $got,   qr/Covered\/Calc\.pm/,       "Covered/Calc.pm present";
-  like $got,   qr/Covered\/Full\.pm/,       "Covered/Full.pm present";
-  like $got,   qr/Uncovered\/Calc\.pm/,     "Uncovered/Calc.pm present";
-  like $got,   qr/Uncovered\/Full\.pm/,     "Uncovered/Full.pm present";
-  like $got,   qr/untested-badge/,          "has untested badge";
-  like $got,   qr/class="help-overlay"/,    "has help overlay";
-  like $got,   qr/class="footer"/,          "has footer";
-  like $got,   qr/Devel::Cover/,            "footer mentions Devel::Cover";
+  like $got,   qr/<!DOCTYPE html>/,           "has doctype";
+  like $got,   qr/<title>Coverage Summary/,   "has summary title";
+  like $got,   qr/class="file-table"/,        "has file table";
+  like $got,   qr/class="worst-files"/,       "has worst files";
+  like $got,   qr/class="dist-bar"/,          "has distribution bar";
+  like $got,   qr/class="filter-bar"/,        "has filter bar";
+  like $got,   qr/data-sort="scar"/,          "has SCAR column";
+  unlike $got, qr/data-sort="risk"/,          "no risk column";
+  like $got,   qr/Top SCAR/,                  "worst files heading";
+  like $got,   qr/Covered\/Calc\.pm/,         "Covered/Calc.pm present";
+  like $got,   qr/Covered\/Full\.pm/,         "Covered/Full.pm present";
+  like $got,   qr/Uncovered\/Calc\.pm/,       "Uncovered/Calc.pm present";
+  like $got,   qr/Uncovered\/Full\.pm/,       "Uncovered/Full.pm present";
+  like $got,   qr/untested-badge/,            "has untested badge";
+  like $got,   qr/class="help-overlay"/,      "has help overlay";
+  like $got,   qr/class="footer"/,            "has footer";
+  like $got,   qr/Devel::Cover/,              "footer mentions Devel::Cover";
+  like $got,   qr/Coverage information from/, "footer attribution wording";
+  like $got, qr{<a href="https://pjcj.net">Paul Johnson</a>},
+    "footer links to author homepage";
 }
 
 sub test_dist_legend_custom_thresholds () {
