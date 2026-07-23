@@ -209,7 +209,8 @@ sub check_options () {
     push $Options->{annotations}->@*, $ann_obj;
   }
 
-  say "$0 version $VERSION" and exit 0 if $Options->{version};
+  say "$0 version $VERSION$Devel::Cover::Inc::Dev" and exit 0
+    if $Options->{version};
   pod2usage(-exitval => 0, -verbose => 1) if $Options->{help};
   pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
 

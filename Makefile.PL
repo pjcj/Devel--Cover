@@ -23,7 +23,15 @@ local $| = 1;
 my $Version  = "1.52";
 my $Latest_t = "v5.44.0";
 my $Author   = 'paul@pjcj.net';
-my $Inc_str  = do {
+
+my $Dev = do {
+  open my $f, "<", "lib/Devel/Cover.pm"
+    or die "Cannot open lib/Devel/Cover.pm: $!";
+  my $src = do { local $/; <$f> };
+  close $f or die "Cannot close lib/Devel/Cover.pm: $!";
+  $src =~ /^\s*# VERSION$/m ? "+" : ""
+};
+my $Inc_str = do {
   my %inc
     = map { -d () ? (($_ eq "." ? $_ : Cwd::abs_path($_)) => 1) : () } @INC;
   my $dumper = Data::Dumper->new([[sort keys %inc]]);
@@ -51,6 +59,7 @@ use strict;
 use warnings;
 
 our \$VERSION      = "$Version";
+our \$Dev          = "$Dev";  # "+" for a build beyond the release
 our \$Perl_version = '$]';
 our \@Inc          = \@{ $Inc_str };
 chomp (our \$Perl  = <<'EOV');  # Careful with \\\\ in the path
