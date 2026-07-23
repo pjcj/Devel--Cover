@@ -32,6 +32,7 @@ my $Options = {
   latest                => 0,
   local                 => 0,
   local_build           => 0,
+  mark_rebuilt          => 0,
   modules               => [],
   output_file           => "index.html",
   rebuild               => 0,
@@ -60,6 +61,7 @@ sub get_options {
       latest!
       local!
       local_build!
+      mark_rebuilt!
       module_file=s
       modules=s
       output_file=s
@@ -90,6 +92,7 @@ sub newcp {
       env
       force
       local
+      mark_rebuilt
       modules
       output_file
       rebuild
@@ -127,8 +130,7 @@ sub main {
   if ($Options->{module_file}) {
     my $cp = newcp;
     $cp->set_module_file($Options->{module_file});
-    $cp->cover_modules;
-    $counts{new_count} += $cp->modules->@*;
+    $counts{new_count} += $cp->cover_modules;
   }
 
   if ($Options->{build}) {
@@ -147,14 +149,16 @@ sub main {
     } else {
       $cp = newcp;
     }
-    $cp->cover_modules;
-    $counts{new_count} += $cp->modules->@*;
+    $counts{new_count} += $cp->cover_modules;
   }
 
   if ($Options->{rebuild}) {
     my $cp = newcp;
     $counts{rebuilt_count} = $cp->rebuild_pass if $Options->{rebuild_batch};
     $counts{all_rebuilt}   = $cp->all_rebuilt ? 1 : 0;
+    $cp->write_status(%counts);
+  } elsif ($Options->{mark_rebuilt}) {
+    my $cp = newcp;
     $cp->write_status(%counts);
   }
 
@@ -183,6 +187,7 @@ cpancover - report coverage statistics on CPAN modules
 
   cpancover --help --info --version
             --build --generate_html --rebuild --rebuild_batch n
+            --mark_rebuilt
             --latest --local --local_build
             --modules module_name --module_file file
             --results_dir /path/to/dir --output_file filename.html
@@ -213,6 +218,7 @@ The following command line options are supported:
   --latest                - process latest CPAN releases        (off)
   --local                 - use local (uninstalled) code        (off)
   --local_build           - build coverage for all the modules  (off)
+  --mark_rebuilt          - mark built modules as rebuilt       (off)
   --module_file           - read module list from a file        (none)
   --modules               - modules to use                (all in results_dir)
   --output_file           - top level index                     (index.html)
