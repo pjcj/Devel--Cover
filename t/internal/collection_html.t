@@ -128,6 +128,8 @@ for my $name (qw( index about )) {
     "$name page links script relatively";
   like $Page{$name}, qr{href="about\.html"},
     "$name page links about page relatively";
+  like $Page{$name}, qr{<h1><a href="index\.html">CPANCover</a></h1>},
+    "$name page header links home";
 }
 
 like $Page{index}, qr{href="dist/F\.html"}, "index links dist page";
@@ -135,6 +137,8 @@ like $Page{index}, qr{href="dist/F\.html"}, "index links dist page";
 like $Page{dist}, qr{href="\.\./collection\.css"}, "dist page links stylesheet";
 like $Page{dist}, qr{src="\.\./collection\.js"},   "dist page links script";
 like $Page{dist}, qr{href="\.\./about\.html"},     "dist page links about page";
+like $Page{dist}, qr{<h1><a href="\.\./index\.html">CPANCover</a></h1>},
+  "dist page header links home";
 like $Page{dist}, qr{href="\.\./\Q$Dist\E/index\.html"},
   "dist page links module report";
 like $Page{dist}, qr{href="\.\./\Q$Log_new\E"},

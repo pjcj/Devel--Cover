@@ -832,7 +832,7 @@ https://pjcj.net
 <body>
 <header class="header">
 <div class="header-inner">
-<h1>CPANCover</h1>
+<h1><a href="[% root %]index.html">CPANCover</a></h1>
 <div class="header-stats">
 <button class="theme-toggle" aria-label="Toggle dark mode">&#x263e;</button>
 </div>

@@ -636,6 +636,15 @@ JS
 my $Collection_extra_css = <<'CSS';
 /* Collection page styles */
 
+.header h1 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.header h1 a:hover {
+  text-decoration: underline;
+}
+
 table {
   border-collapse: collapse;
   margin: 0 0 24px;
