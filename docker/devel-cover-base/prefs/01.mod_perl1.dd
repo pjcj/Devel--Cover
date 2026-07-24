@@ -1,0 +1,5 @@
+$VAR1 = {
+  match    => { distribution => 'mod_perl-1\.' },
+  disabled => 1,
+  comment  => "mod_perl 1.x Makefile.PL prompts and loops with no tty",
+};

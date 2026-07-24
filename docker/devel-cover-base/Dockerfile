@@ -29,6 +29,7 @@ RUN mkdir -p /root/.cpan/CPAN                                               && \
       '    q(https://cpan.metacpan.org/),'                                     \
       '    q(https://www.cpan.org/),'                                          \
       '  ],'                                                                   \
+      '  prefs_dir => q(/root/.cpan/prefs),'                                   \
       '}; 1;'                                                                  \
       > /root/.cpan/CPAN/MyConfig.pm                                        && \
     cpan -Ti                                                                   \
@@ -44,3 +45,5 @@ RUN mkdir -p /root/.cpan/CPAN                                               && \
       Template                                                              && \
     rm -rf ~/.cpan/build ~/.cpan/sources/authors ~/.cpanm                      \
       ~/.local/share/.cpan/build ~/.local/share/.cpan/sources/authors
+
+COPY prefs/ /root/.cpan/prefs/
