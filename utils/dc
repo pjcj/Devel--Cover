@@ -203,8 +203,8 @@ parse_options() {
         ;;
       esac
       shift
-      if grep -q "/docker/" /proc/self/mountinfo 2>/dev/null; then
-        # we're inside a docker container so use the remote staging directory
+      if [[ -f /.dockerenv ]]; then
+        # docker creates /.dockerenv only inside a container
         results_dir=/remote_staging
       fi
       ;;
