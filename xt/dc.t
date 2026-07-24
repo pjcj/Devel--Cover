@@ -314,6 +314,25 @@ sub controller_rebuild_module_recipe () {
     "runs the inner rebuild-module recipe";
 }
 
+sub controller_staging_on_host () {
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH} = "$bin:$ENV{PATH}";
+  my $module = "P/PJ/PJCJ/Foo-Bar-1.00.tar.gz";
+  my $work   = tempdir(CLEANUP => 1);
+  my $home   = tempdir(CLEANUP => 1);
+
+  {
+    local $ENV{STUB_CALLS} = "$work/calls";
+    local $ENV{HOME}       = $home;
+    dc("-e", "dev", "cpancover-controller-rebuild-module", $module);
+  }
+
+  like slurp("$work/calls"),
+    qr{source=\Q$home\E/cover/staging_dev,target=/remote_staging},
+    "host run mounts the staging dir, even with containers running";
+}
+
 sub make_seed_source ($src) {
   mkdir "$src/$_"
     or die "Can't mkdir $src/$_: $!"
@@ -377,6 +396,7 @@ sub main () {
     rebuild_batch_cleanup
     rebuild_module_recipe
     controller_rebuild_module_recipe
+    controller_staging_on_host
     seed_recipe
   );
   for my $test (@tests) {
