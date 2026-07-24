@@ -393,6 +393,20 @@ class Devel::Cover::Collection {
     defined $line && length $line ? $line : undef
   }
 
+  method add_metacpan_links ($vars) {
+    for my $mods (values $vars->{modules}->%*) {
+      for my $mod (@$mods) {
+        my $m   = $mod->{module};
+        my $log = $vars->{vals}{$m}{log};
+        if (defined $log && $log =~ /^\w-\w\w-(\w+)-\Q$m\E${Dist_ext_re}--/) {
+          $mod->{metacpan} = "https://metacpan.org/release/$1/$m";
+        } elsif (defined $mod->{name}) {
+          $mod->{metacpan} = "https://metacpan.org/dist/$mod->{name}";
+        }
+      }
+    }
+  }
+
   method generate_html {
     my ($d) = $self->made_res_dir;
     chdir $d or die "Can't chdir $d: $!\n";
@@ -469,6 +483,7 @@ class Devel::Cover::Collection {
     }
 
     $self->resolve_log_links($d, \@mods, $vars);
+    $self->add_metacpan_links($vars);
 
     # print "vars ", Dumper $vars;
     $self->write_summary($vars);
@@ -967,7 +982,13 @@ $Templates{module_by_start} = <<'EOT';
           [% module.name || module.module %]
         [% END %]
       </td>
-      <td>[% module.version %]</td>
+      <td>
+        [% IF module.metacpan %]
+          <a href="[% module.metacpan %]">[% module.version %]</a>
+        [% ELSE %]
+          [% module.version %]
+        [% END %]
+      </td>
       <td>
         [% IF vals.$m.log %]
           <a href="[% root %][% vals.$m.log %]">&para;</a>

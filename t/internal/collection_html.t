@@ -150,6 +150,17 @@ unlike $Page{dist_d}, qr{href="\.\./\Q$Ref3\E"},
 like $Page{dist_d}, qr{href="\.\./\Q$Log_new\E"},
   "dependency dist links its target's log via .log_ref";
 
+like $Page{dist}, qr{href="https://metacpan\.org/release/PJCJ/\Q$Dist\E"},
+  "version links the metacpan release parsed from the log";
+like $Page{dist_b}, qr{href="https://metacpan\.org/release/PJCJ/\Q$Dist2\E"},
+  "version links the metacpan release for an uncompressed log";
+like $Page{dist_d}, qr{href="https://metacpan\.org/release/PJCJ/\Q$Dist3\E"},
+  "version links the metacpan release via the name-matched log";
+like $Page{dist_d}, qr{href="https://metacpan\.org/dist/Dep-Only"},
+  "dependency dist falls back to the metacpan dist link";
+unlike $Page{dist_d}, qr{href="https://metacpan\.org/release/\w+/\Q$Dist4\E"},
+  "dependency dist gets no release link from its target's log";
+
 my $Version = $Devel::Cover::Inc::VERSION . $Devel::Cover::Inc::Dev;
 for my $name (sort keys %Page) {
   like $Page{$name}, qr{Devel::Cover</a>\s+\Q$Version\E\s+by},
