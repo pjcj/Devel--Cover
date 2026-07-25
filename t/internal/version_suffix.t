@@ -69,7 +69,7 @@ sub main () {
   my ($tmpdir, $cover_db) = setup_db;
 
   for my $report (qw( html_crisp html_basic html_subtle html_minimal vim )) {
-    next if $report =~ /^html_(basic|subtle)$/ && !$have_template;
+    next if $report =~ /^(?:html_basic|html_subtle|vim)$/ && !$have_template;
 
     my $outdir = File::Spec->catdir($tmpdir, $report);
     my ($rout, $exit) = run_cover(
