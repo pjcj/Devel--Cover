@@ -70,6 +70,7 @@ sub main () {
   run_covered($db, $alias);
   remove_tree($gone_dir);
 
+  local $Devel::Cover::Silent = 1;
   my $cover = Devel::Cover::DB->new(db => $db)->merge_runs->cover;
   my %item;
   @item{ $cover->items } = ();
