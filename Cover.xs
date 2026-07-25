@@ -1897,6 +1897,29 @@ static OP *skip_nulled_ops(OP *o) {
 }
 
 /*
+ * Credit this short circuit to PL_op, to outer same-type logops taken in
+ * the same jump, and to any skipped statement logop whose own cover_logop
+ * never fires.
+ */
+static void credit_short_circuit(pTHX) {
+  OP *up = skip_nulled_ops(OpSIBLING(cLOGOP->op_first)->op_next);
+  OP *skipped;
+
+  while (up && up->op_type == PL_op->op_type) {
+    NDEB(D(L, "Considering adding %p (%s) -> (%p) from %p (%s) -> (%p)\n",
+           up, PL_op_name[up->op_type], up->op_next,
+           PL_op, PL_op_name[PL_op->op_type], PL_op->op_next));
+    add_conditional(aTHX_ up, 3);
+    up = skip_nulled_ops(OpSIBLING(cLOGOPx(up)->op_first)->op_next);
+  }
+  add_conditional(aTHX_ PL_op, 3);
+
+  skipped = PL_op;
+  while ((skipped = find_skipped_conditional(aTHX_ skipped)) != NULL)
+    add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
+}
+
+/*
  * Snapshot+pop the active DC if PL_op's short-circuit completes the
  * decision.  SC at PL_op completes the decision when PL_op is the
  * decision root, OR when SC propagates up a same-type chain of logops
@@ -1984,8 +2007,24 @@ static void cover_logop(pTHX) {
   NDEB(D(L, "logop() at %p\n", PL_op));
   NDEB(op_dump(PL_op));
 
-  if (!collecting(Condition))
+  if (!collecting(Condition)) {
+    /*
+     * Branch counts are derived from the condition slots, so record them
+     * even without condition coverage.  For branches we only need to know
+     * whether the op short circuited.
+     */
+    if (!collecting(Branch)) return;
+    if (PL_op->op_type != OP_AND && PL_op->op_type != OP_OR) return;
+    if (cLOGOP->op_first->op_type == OP_ITER) return;
+    {
+      dSP;
+      if (PL_op->op_type == OP_AND ? SvTRUE(TOPs) : !SvTRUE(TOPs))
+        add_conditional(aTHX_ PL_op, 2);
+      else
+        credit_short_circuit(aTHX);
+    }
     return;
+  }
 
   if (cLOGOP->op_first->op_type == OP_ITER) {
     /* loop - ignore it for now */
@@ -2168,21 +2207,7 @@ static void cover_logop(pTHX) {
       }
     } else {
       /* short circuit */
-      OP *up = skip_nulled_ops(OpSIBLING(cLOGOP->op_first)->op_next);
-      OP *skipped;
-
-      while (up && up->op_type == PL_op->op_type) {
-        NDEB(D(L, "Considering adding %p (%s) -> (%p) from %p (%s) -> (%p)\n",
-               up, PL_op_name[up->op_type], up->op_next,
-               PL_op, PL_op_name[PL_op->op_type], PL_op->op_next));
-        add_conditional(aTHX_ up, 3);
-        up = skip_nulled_ops(OpSIBLING(cLOGOPx(up)->op_first)->op_next);
-      }
-      add_conditional(aTHX_ PL_op, 3);
-
-      skipped = PL_op;
-      while ((skipped = find_skipped_conditional(aTHX_ skipped)) != NULL)
-        add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
+      credit_short_circuit(aTHX);
 
       /*
        * For MC/DC: short-circuit means columns under this op's right

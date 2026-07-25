@@ -218,6 +218,15 @@ Index   Meaning
    conditions that were never resolved (e.g., because of an early `return`
    before the right operand's follow-on op was reached) are collected here.
 
+6. **Branch without condition**: when branch coverage is collected without
+   condition coverage, `cover_logop` still records outcomes for `OP_AND` and
+   `OP_OR` into the condition array, because `add_branch_cover` derives branch
+   counts from it. Only whether the op short-circuited matters for branch
+   coverage, so the non-short-circuit case records index 2 immediately and never
+   installs the `get_condition` hook. A short circuit goes through
+   `credit_short_circuit`, which also credits outer same-type logops taken in
+   the same jump and any enclosing statement logop the jump skipped.
+
 ### `cover_cond` - branch data from `cond_expr`
 
 The `cond_expr` op (`?:` / `if-else`) uses a simpler mechanism. `cover_cond`
