@@ -337,7 +337,7 @@ sub import ($class, @o) {
   if ($blib) {
     eval "use blib";
     for (@INC) { ($_) = /(.*)/ if ref $_ ne "CODE" }  # Die tainting
-    push @Ignore, "^t/", '\\.t$', '^test\\.pl$';
+    push @Ignore, "^t/", "^inc/", '\\.t$', '^test\\.pl$';
   }
 
   my $ci = $^O eq "MSWin32";
@@ -1821,8 +1821,8 @@ In this example, Devel::Cover will be operating in silent mode.
 
 =head1 OPTIONS
 
-  -blib               - "use blib" and ignore files matching \bt/ (default true
-                        if blib directory exists, false otherwise)
+  -blib               - "use blib" and ignore files in t/ and inc/ (default
+                        true if blib directory exists, false otherwise)
   -coverage criterion - Turn on coverage for the specified criterion.  Criteria
                         include statement, branch, condition, mcdc, subroutine,
                         pod, time, all and none (default all except time)
