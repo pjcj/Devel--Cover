@@ -44,6 +44,7 @@ my $Dist3   = "Dangle-Ref-3.00";
 my $Log3    = "P-PJ-PJCJ-Dangle-Ref-3.00.tar.gz--1234567892.123456.out";
 my $Ref3    = "P-PJ-PJCJ-Dangle-Ref-3.00.tar.gz--9999999999.123456.out";
 my $Dist4   = "Dep-Only-4.00";
+my $Dist5   = "No-Page-5.00";
 
 sub write_file ($path, $content) {
   open my $fh, ">", $path or die "Can't open $path: $!";
@@ -59,7 +60,7 @@ sub slurp ($path) {
   $content
 }
 
-sub write_dist ($dir, $dist, $name, $version, $log = undef) {
+sub write_dist ($dir, $dist, $name, $version, $log = undef, $page = 1) {
   make_path("$dir/$dist");
 
   my $criterion = { percentage => 85.5, covered => 10, total => 12 };
@@ -68,7 +69,8 @@ sub write_dist ($dir, $dist, $name, $version, $log = undef) {
     summary => { Total => { total => $criterion, statement => $criterion } },
   };
   write_file("$dir/$dist/cover.json", JSON::PP->new->encode($cover));
-  write_file("$dir/$log",             "log\n") if defined $log;
+  write_file("$dir/$dist/index.html", "report\n") if $page;
+  write_file("$dir/$log",             "log\n")    if defined $log;
 }
 
 sub seed_page ($dir, $file) {
@@ -95,6 +97,9 @@ sub setup_results_dir {
   write_dist($dir, $Dist4, "Dep-Only", "4.00");
   write_file("$dir/$Dist4/.log_ref", "$Log_new\n");
 
+  # $Dist5 has coverage totals but its report page was never written
+  write_dist($dir, $Dist5, "No-Page", "5.00", undef, 0);
+
   make_path("$dir/dist");
   seed_page($dir, $_) for qw( index.html dist/F.html about.html );
 
@@ -113,6 +118,7 @@ my %Page = (
   dist   => slurp("$Dir/dist/F.html"),
   dist_b => slurp("$Dir/dist/B.html"),
   dist_d => slurp("$Dir/dist/D.html"),
+  dist_n => slurp("$Dir/dist/N.html"),
   about  => slurp("$Dir/about.html"),
 );
 
@@ -141,6 +147,9 @@ like $Page{dist}, qr{<h1><a href="\.\./index\.html">CPANCover</a></h1>},
   "dist page header links home";
 like $Page{dist}, qr{href="\.\./\Q$Dist\E/index\.html"},
   "dist page links module report";
+like $Page{dist_n}, qr{No-Page}, "dist without a report page is listed";
+unlike $Page{dist_n}, qr{href="\.\./\Q$Dist5\E/index\.html"},
+  "dist without a report page is not linked";
 like $Page{dist}, qr{href="\.\./\Q$Log_new\E"},
   "dist page links the log named in .log_ref";
 unlike $Page{dist}, qr{href="\.\./\Q$Log\E"},

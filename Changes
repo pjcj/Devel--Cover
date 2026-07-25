@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Mark cpancover builds failed when the report file was never written, and
+  don't link distributions whose report page is missing - a report command
+  dying part-way previously published truncated results behind a broken
+  link (GH-644)
 - Publish cpancover reports even when a module's tests fail under coverage -
   such modules previously got no report at all (GH-636)
 - Kill commands that exceed the cpancover timeout - the pipeline previously
