@@ -256,6 +256,8 @@ class Devel::Cover::Collection {
     my $err  = do {
       local $@;
       eval {
+        die "No $output_file report generated for $module\n"
+          unless -e "$db/$output_file";
         my @json_cmd = (@cmd, "-report", "json_summary", "-nosummary");
         $output .= "dc -> @json_cmd\n";
         $output .= $self->fsys(@json_cmd);
@@ -466,7 +468,7 @@ class Devel::Cover::Collection {
       my $m = $vars->{vals}{$module} = {};
       $m->{module} = $mod;
       $m->{link}   = "$module/index.html"
-        if $json->{summary}{Total}{total}{total};
+        if $json->{summary}{Total}{total}{total} && -e "$d/$module/index.html";
 
       for my $criterion ($vars->{criteria}->@*) {
         my $summary = $json->{summary}{Total}{$criterion};
@@ -1281,9 +1283,11 @@ Runs coverage analysis on a single build directory. Creates coverage reports
 in the results directory. The C<cover> invocation is passed C<--select_dir>
 pointing at C<blib> (falling back to C<lib>, then the build directory) so
 files no test exercised appear in the report as untested, and a distribution
-without any tests still produces a report rather than failing. If a step
-after the test run dies, the collected output is printed before the error
-propagates.
+without any tests still produces a report rather than failing. The report
+file is the success test. If the test run dies part-way and leaves no
+report, nothing is published and the failure propagates, even though a
+failing test suite alone does not. If a step after the test run dies, the
+collected output is printed before the error propagates.
 
 =head3 run_all
 
@@ -1309,7 +1313,8 @@ actually attempted.
   $collection->generate_html;
 
 Generates HTML coverage reports for all modules in the results directory.
-Creates an index page, per-module pages, and an about page.
+Creates an index page, per-module pages, and an about page. A module is
+only linked when its report page exists on disk.
 
 =head3 coverage_class
 

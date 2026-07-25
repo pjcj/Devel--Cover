@@ -38,9 +38,10 @@ my $Tmp = tempdir CLEANUP => 1;
 my $Bin = "$Tmp/bin";
 make_path $Bin;
 
-# A fake cover: records its arguments, --test leaves a valid cover_db but
-# reports failing tests, any report run succeeds and records that it
-# happened, or fails when FAKE_COVER_FAIL_REPORT is set
+# A fake cover: records its arguments, --test leaves a valid cover_db and
+# a report file (unless FAKE_COVER_NO_REPORT is set) but reports failing
+# tests, any report run succeeds and records that it happened, or fails
+# when FAKE_COVER_FAIL_REPORT is set
 open my $Fh, ">", "$Bin/cover" or die "Can't open $Bin/cover: $!";
 print $Fh <<'EOS';
 use strict;
@@ -53,6 +54,11 @@ if (grep $_ eq "--test", @ARGV) {
   open my $mfh, ">", "cover_db/marker" or die "Can't open marker: $!";
   print $mfh "coverage\n";
   close $mfh or die "Can't close marker: $!";
+  unless ($ENV{FAKE_COVER_NO_REPORT}) {
+    open my $ofh, ">", "cover_db/index.html" or die "Can't open report: $!";
+    print $ofh "report\n";
+    close $ofh or die "Can't close report: $!";
+  }
   print "Result: FAIL\n";
   exit 3;
 }
@@ -86,6 +92,7 @@ sub run_scenario (%opt) {
   my @warnings;
   local $SIG{__WARN__}               = sub { push @warnings, @_ };
   local $ENV{FAKE_COVER_FAIL_REPORT} = $opt{fail_report} // "";
+  local $ENV{FAKE_COVER_NO_REPORT}   = $opt{no_report}   // "";
 
   my $cwd = getcwd;
 
@@ -109,6 +116,7 @@ sub test_failing_tests_still_publish () {
   my $r = run_scenario(dirs => ["blib", "lib"]);
   is $r->{err}, "", "run survives a failing test suite";
   ok -e "$r->{rdir}/marker",           "coverage database is published";
+  ok -e "$r->{rdir}/index.html",       "report file is published";
   ok -e "$r->{rdir}/report_generated", "report generation still runs";
   like $r->{warnings}, qr/exit 3/,              "test failure is still warned";
   like $r->{args},     qr/--select_dir blib\b/, "blib preferred as select_dir";
@@ -129,8 +137,16 @@ sub test_log_survives_report_failure () {
   like $r->{stdout}, qr/json_summary/,      "report command is logged";
 }
 
+sub test_missing_report_fails () {
+  my $r = run_scenario(dirs => ["lib"], no_report => 1);
+  like $r->{err}, qr/No index\.html report/, "missing report file fails run";
+  ok !-d $r->{rdir}, "nothing is published without a report";
+  like $r->{stdout}, qr/Testing My-Module/, "collected output is still printed";
+}
+
 test_failing_tests_still_publish;
 test_select_dir_fallbacks;
 test_log_survives_report_failure;
+test_missing_report_fails;
 
 done_testing;
