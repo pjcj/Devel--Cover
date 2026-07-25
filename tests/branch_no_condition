@@ -1,0 +1,70 @@
+#!/usr/bin/env perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# __COVER__ criteria statement branch
+
+use strict;
+use warnings;
+
+my $side_effect;
+
+sub chain {
+  my $x = shift;
+  my $r;
+  if    ($x == 1) { $r = "one" }
+  elsif ($x == 2) { $r = "two" }
+  $r
+}
+
+sub plain_if {
+  my $x = shift;
+  my $r;
+  if ($x) { $r = "yes" }
+  $r
+}
+
+sub plain_unless {
+  my $x = shift;
+  my $r;
+  unless ($x) { $r = "no" }
+  $r
+}
+
+sub modifiers {
+  my $x = shift;
+  $side_effect        = "if" if $x;
+  $x and $side_effect = "and";
+  $x or $side_effect  = "or";
+}
+
+sub disjunction {
+  my ($a, $b) = @_;
+  my $r;
+  if ($a || $b) { $r = "either" }
+  $r
+}
+
+sub conjunction {
+  my ($a, $b) = @_;
+  $side_effect = "both" if $a && $b;
+}
+
+chain($_) for 1 .. 3;
+
+plain_if($_)     for 0, 1;
+plain_unless($_) for 0, 1;
+modifiers($_)    for 0, 1;
+
+disjunction(1, 0);
+disjunction(0, 1);
+disjunction(0, 0);
+
+conjunction(0, 0);
+conjunction(1, 0);
+conjunction(1, 1);

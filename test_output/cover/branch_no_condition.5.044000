@@ -1,0 +1,130 @@
+cover: Reading database from ...
+------------------------- ------ ------ ------ ------
+File                        stmt   bran  total   scar
+------------------------- ------ ------ ------ ------
+tests/branch_no_condition  100.0  100.0  100.0   24.8
+Total                      100.0  100.0  100.0   24.8
+------------------------- ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/branch_no_condition
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+12 100.0 12.0 24.8
+
+Worst Subroutines
+-----------------
+
+Subroutine  CC SCAR  Location                    
+----------- -- ----  ----------------------------
+modifiers    4 13.9  tests/branch_no_condition:40
+chain        3 11.0  tests/branch_no_condition:18
+disjunction  3 11.0  tests/branch_no_condition:47
+
+line  err   stmt   bran   code
+1                         #!/usr/bin/env perl
+2                         
+3                         # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                         
+5                         # This software is free.  It is licensed under the same terms as Perl itself.
+6                         
+7                         # The latest version of this software should be available from my homepage:
+8                         # https://pjcj.net
+9                         
+10                        # __COVER__ criteria statement branch
+11                        
+12             1          use strict;
+               1          
+               1          
+13             1          use warnings;
+               1          
+               1          
+14                        
+15             1          my $side_effect;
+16                        
+17                        sub chain {
+18             3            my $x = shift;
+19             3            my $r;
+20             3    100     if    ($x == 1) { $r = "one" }
+               1    100   
+21             1            elsif ($x == 2) { $r = "two" }
+22                          $r
+23             3          }
+24                        
+25                        sub plain_if {
+26             2            my $x = shift;
+27             2            my $r;
+28             2    100     if ($x) { $r = "yes" }
+               1          
+29                          $r
+30             2          }
+31                        
+32                        sub plain_unless {
+33             2            my $x = shift;
+34             2            my $r;
+35             2    100     unless ($x) { $r = "no" }
+               1          
+36                          $r
+37             2          }
+38                        
+39                        sub modifiers {
+40             2            my $x = shift;
+41             2    100     $side_effect        = "if" if $x;
+42             2    100     $x and $side_effect = "and";
+43             2    100     $x or $side_effect  = "or";
+44                        }
+45                        
+46                        sub disjunction {
+47             3            my ($a, $b) = @_;
+48             3            my $r;
+49             3    100     if ($a || $b) { $r = "either" }
+               2          
+50                          $r
+51             3          }
+52                        
+53                        sub conjunction {
+54             3            my ($a, $b) = @_;
+55             3    100     $side_effect = "both" if $a && $b;
+56                        }
+57                        
+58             1          chain($_) for 1 .. 3;
+59                        
+60             1          plain_if($_)     for 0, 1;
+61             1          plain_unless($_) for 0, 1;
+62             1          modifiers($_)    for 0, 1;
+63                        
+64             1          disjunction(1, 0);
+65             1          disjunction(0, 1);
+66             1          disjunction(0, 0);
+67                        
+68             1          conjunction(0, 0);
+69             1          conjunction(1, 0);
+70             1          conjunction(1, 1);
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+20           100      1      2   if ($x == 1) { }
+             100      1      1   elsif ($x == 2) { }
+28           100      1      1   if ($x)
+35           100      1      1   unless ($x)
+41           100      1      1   if $x
+42           100      1      1   $x and $side_effect = "and"
+43           100      1      1   $x or $side_effect = "or"
+49           100      2      1   if ($a or $b)
+55           100      1      2   if $a and $b
+
+
