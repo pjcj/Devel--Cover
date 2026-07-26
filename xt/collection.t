@@ -942,12 +942,49 @@ sub rebuild_pass_method () {
 
   my $called = 0;
   no warnings "redefine";
-  local *Devel::Cover::Collection::cover_modules = sub { $called++ };
+  local *Devel::Cover::Collection::cover_modules = sub { $called++; 7 };
 
-  is $hc->rebuild_pass, 2, "rebuild_pass returns count of resolved modules";
+  is $hc->rebuild_pass, 7, "rebuild_pass returns the cover_modules count";
   is $called,           1, "cover_modules called once per pass";
   is $hc->modules, ["AUTHOR/Alpha-1.0.tar.gz", "AUTHOR/Bravo-1.0.tar.gz"],
     "rebuild_pass sets modules to resolved paths";
+  ok -e $hc->rebuilt_file("Bravo-2.0"),
+    "candidate resolving to a different distdir is marked rebuilt";
+  ok !-e $hc->rebuilt_file("Alpha-1.0"),
+    "candidate resolving to itself is left for cover_modules to mark";
+}
+
+sub rebuild_pass_mismatched_candidate () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+
+  # An old release with no usable log resolves via cpanm to the current
+  # release, which is already covered and rebuilt, so cover_modules
+  # skips it silently. The old candidate must still gain a __rebuilt__
+  # marker or the same batch recurs forever and the loop never ends.
+  my $dir = tempdir(CLEANUP => 1);
+  my $bin = tempdir(CLEANUP => 1);
+  make_cpanm_stub($bin);
+  local $ENV{PATH} = "$bin:$ENV{PATH}";
+
+  my $c = Devel::Cover::Collection->new(
+    results_dir   => $dir,
+    rebuild       => 1,
+    rebuild_batch => 10,
+  );
+
+  for my $d (qw( Single-1.0 Single-2.0 )) {
+    mkdir "$dir/$d" or die;
+    open my $fh, ">", "$dir/$d/cover.json" or die;
+    print $fh "{}";
+    close $fh or die;
+  }
+  $c->set_rebuilt("Single-1.0");
+
+  is $c->rebuild_pass, 0, "rebuild_pass runs no builds for skipped candidate";
+  ok -e $c->rebuilt_file("Single-2.0"),
+    "candidate resolving to a rebuilt distdir is marked rebuilt";
+  ok $c->all_rebuilt, "all_rebuilt true once mismatched candidate is marked";
+  is [$c->next_rebuild_batch], [], "batch empty so the rebuild can finish";
 }
 
 sub template_provider_fetch () {
@@ -1004,6 +1041,7 @@ sub main () {
     cpan_path_for_method
     write_status_method
     rebuild_pass_method
+    rebuild_pass_mismatched_candidate
     template_provider_fetch
   );
   #>>>
