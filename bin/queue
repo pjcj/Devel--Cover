@@ -127,8 +127,7 @@ helper visit_latest_releases => sub ($c, $cb) {
 app->minion->add_task(
   generate_html => sub ($job) {
     my $results = $job->app->results->to_abs;
-    my $command = "dc -v -r $results cpancover-generate-html";
-    system $command;
+    system "dc", "-v", "-r", $results, "cpancover-generate-html";
   }
 );
 
@@ -168,9 +167,18 @@ app->minion->add_task(
       $release = $d->distvname;
     }
 
+    # The first two directories repeat the leading characters of the author id
+    my $author_path
+      = qr{\A([A-Z])/\1([A-Z0-9])/\1\2[A-Z0-9]*/[A-Za-z0-9][\w.+-]*\z};
+    unless ($path =~ $author_path) {
+      $job->fail({ message => "Refusing to process malformed path '$path'" });
+      return;
+    }
+
     my $results = $job->app->results->to_abs;
-    my $command = "dc -v -r $results cpancover $path";
-    my $output  = capture_merged { system $command };
+    my @command = ("dc", "-v", "-r", $results, "cpancover", $path);
+    my $command = join " ", @command;
+    my $output  = capture_merged { system @command };
     say STDERR $output if $Debug;
 
     if ($job->app->release_covered($release)) {
