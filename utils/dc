@@ -884,7 +884,9 @@ recipe_cpancover-serve() {
 }
 
 cpancover_caddyfile() {
-  local www_dir="$results_dir/../www"
+  local www_dir
+  www_dir=$("$readl" -f "$results_dir/../www" 2>/dev/null) ||
+    www_dir="$results_dir/../www"
   cat <<EOF
 cpancover.com, www.cpancover.com {
   root * $www_dir
@@ -908,10 +910,16 @@ cpancover_validated_caddyfile() {
   local tmpfile
   tmpfile="$(mktemp)"
   cpancover_caddyfile >"$tmpfile"
-  if ! caddy validate --adapter caddyfile --config "$tmpfile"; then
-    rm -f "$tmpfile"
+  caddy fmt --overwrite "$tmpfile" >&2
+  # validate with the log discarded so no root is needed for /var/log/caddy
+  local checkfile
+  checkfile="$(mktemp)"
+  sed 's|output file .*|output discard|' "$tmpfile" >"$checkfile"
+  if ! caddy validate --adapter caddyfile --config "$checkfile" >&2; then
+    rm -f "$tmpfile" "$checkfile"
     pf "Caddyfile validation failed"
   fi
+  rm -f "$checkfile"
   echo "$tmpfile"
 }
 
@@ -919,14 +927,14 @@ cpancover_configure_caddy() {
   local caddyfile="/etc/caddy/Caddyfile"
   local tmpfile
   tmpfile="$(cpancover_validated_caddyfile)"
-  trap 'rm -f "$tmpfile"' RETURN
   if diff -q "$caddyfile" "$tmpfile" >/dev/null 2>&1; then
     pi "Caddyfile is already up to date"
-    return
+  else
+    sudo install -m 644 -o root -g root "$tmpfile" "$caddyfile"
+    sudo systemctl reload caddy
+    pi "Caddyfile updated and Caddy reloaded"
   fi
-  sudo install -m 644 -o root -g root "$tmpfile" "$caddyfile"
-  sudo systemctl reload caddy
-  pi "Caddyfile updated and Caddy reloaded"
+  rm -f "$tmpfile"
 }
 
 recipe_cpancover-configure-caddy() {
@@ -937,16 +945,19 @@ cpancover_check_caddy() {
   local caddyfile="/etc/caddy/Caddyfile"
   local tmpfile
   tmpfile="$(cpancover_validated_caddyfile)"
-  trap 'rm -f "$tmpfile"' RETURN
   pi "Generated config validates OK"
-  local differ="diff -u"
-  command -v delta >/dev/null && differ="delta"
-  if diff -q "$caddyfile" "$tmpfile" >/dev/null 2>&1; then
+  if [[ ! -f $caddyfile ]]; then
+    pi "No installed Caddyfile at $caddyfile - generated config:"
+    cat "$tmpfile"
+  elif diff -q "$caddyfile" "$tmpfile" >/dev/null 2>&1; then
     pi "Caddyfile is up to date"
   else
+    local differ="diff -u"
+    command -v delta >/dev/null && differ="delta"
     pw "Caddyfile differs from generated config:"
-    $differ "$caddyfile" "$tmpfile"
+    $differ "$caddyfile" "$tmpfile" || true
   fi
+  rm -f "$tmpfile"
 }
 
 recipe_cpancover-check-caddy() {

@@ -10,8 +10,9 @@
 
 use 5.42.0;
 
-use Test2::V0  qw( done_testing is isnt like ok skip_all subtest );
+use Test2::V0  qw( diag done_testing is isnt like ok skip_all subtest unlike );
 use Config     qw( %Config );
+use Cwd        qw( realpath );
 use File::Temp qw( tempdir );
 
 skip_all "dc recipes are not portable to Windows" if $^O eq "MSWin32";
@@ -355,6 +356,83 @@ sub make_seed_source ($src) {
 
 sub inode ($path) { (stat $path)[1] }
 
+sub make_caddy_stub ($bin) {
+  write_file("$bin/caddy", <<~'SH');
+    #!/bin/sh
+    echo "$*" >>"${STUB_CALLS:-/dev/null}"
+    cmd="$1"
+    shift
+    case "$cmd" in
+      validate)
+        cfg=
+        while [ $# -gt 0 ]; do
+          [ "$1" = "--config" ] && cfg="$2"
+          shift
+        done
+        cat "$cfg" >>"${STUB_CADDY_CFG:-/dev/null}"
+        if grep -q "output file" "$cfg"; then
+          echo "mkdir /var/log/caddy: permission denied" >&2
+          exit 1
+        fi
+        ;;
+    esac
+    exit 0
+    SH
+  chmod 0755, "$bin/caddy" or die "Can't chmod caddy stub: $!";
+}
+
+sub check_caddy_recipe () {
+  my $bin = tempdir(CLEANUP => 1);
+  make_caddy_stub($bin);
+  local $ENV{PATH} = "$bin:$ENV{PATH}";
+  my $work = tempdir(CLEANUP => 1);
+  my $base = tempdir(CLEANUP => 1);
+  mkdir "$base/$_"
+    or die "Can't mkdir $base/$_: $!"
+    for "data", "data/cover", "data/cover/staging", "data/cover/www";
+  symlink "$base/data/cover", "$base/cover"
+    or die "Can't symlink $base/cover: $!";
+
+  my $out;
+  {
+    local $ENV{STUB_CALLS}     = "$work/calls";
+    local $ENV{STUB_CADDY_CFG} = "$work/cfg";
+    $out = qx($Dc -r "$base/cover/staging" cpancover-check-caddy 2>&1);
+  }
+  is $?, 0, "check-caddy succeeds without root" or diag $out;
+
+  my $cfg  = slurp("$work/cfg");
+  my $root = realpath("$base/data/cover/www");
+  like $cfg, qr{^\s*root \* \Q$root\E$}m,
+    "web root is canonicalised through symlinks";
+  like $cfg,   qr{output discard},       "validation copy discards the log";
+  unlike $cfg, qr{output file},          "validation copy has no log file";
+  like slurp("$work/calls"), qr{^fmt }m, "generated config is formatted";
+
+  unless (-e "/etc/caddy/Caddyfile") {
+    like $out, qr{no installed Caddyfile}i, "missing installed file reported";
+    like $out, qr{output file /var/log/caddy/cpancover\.com\.log},
+      "returned config keeps the real log output";
+  }
+}
+
+sub check_caddy_root_fallback () {
+  my $bin = tempdir(CLEANUP => 1);
+  make_caddy_stub($bin);
+  local $ENV{PATH} = "$bin:$ENV{PATH}";
+  my $work = tempdir(CLEANUP => 1);
+  my $base = tempdir(CLEANUP => 1);
+
+  {
+    local $ENV{STUB_CADDY_CFG} = "$work/cfg";
+    my $out = qx($Dc -r "$base/missing/staging" cpancover-check-caddy 2>&1);
+    is $?, 0, "check-caddy succeeds with a nonexistent results dir"
+      or diag $out;
+  }
+  like slurp("$work/cfg"), qr{^\s*root \* \Q$base\E/missing/staging/\.\./www$}m,
+    "web root falls back to the literal path";
+}
+
 sub seed_recipe () {
   my $base = tempdir(CLEANUP => 1);
   my $src  = "$base/src";
@@ -398,6 +476,8 @@ sub main () {
     controller_rebuild_module_recipe
     controller_staging_on_host
     seed_recipe
+    check_caddy_recipe
+    check_caddy_root_fallback
   );
   for my $test (@tests) {
     no strict qw( refs );
