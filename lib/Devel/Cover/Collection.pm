@@ -685,6 +685,11 @@ class Devel::Cover::Collection {
     my @paths;
     for my $d (@candidates) {
       if (defined(my $path = $self->cpan_path_for($d))) {
+        my $resolved = $path =~ s|.*/||r =~ s/${Dist_ext_re}$//r;
+        if ($resolved ne $d) {
+          say "Marking $d rebuilt, resolves to $resolved";
+          $self->set_rebuilt($d);
+        }
         push @paths, $path;
       } else {
         say "Purging defunct $d";
@@ -695,8 +700,7 @@ class Devel::Cover::Collection {
     }
     return 0 unless @paths;
     $self->set_modules(@paths);
-    $self->cover_modules;
-    scalar @paths
+    $self->cover_modules
   }
 
   method write_status (%counts) {
@@ -1458,10 +1462,21 @@ C<next_rebuild_batch>, resolves each to a CPAN path via
 C<cpan_path_for>, sets C<modules> to the resulting list, and invokes
 C<cover_modules>. A distdir whose lookup fails is treated as no longer
 on CPAN and purged: the distdir itself, its C<__failed__/> marker, and
-its C<__rebuilt__/> marker are all removed. Returns the number of
-modules fed to C<cover_modules> (zero if the queue is empty or every
-lookup failed). Intended to be called from the rebuild loop recipe in
-C<utils/dc>.
+its C<__rebuilt__/> marker are all removed.
+
+A candidate may resolve to a path naming a different distdir - an old
+release with no usable log resolves through C<cpanm --info> to the
+current release. Such a candidate is marked rebuilt here, because
+C<cover_modules> keys its markers on the resolved name and would
+otherwise leave the candidate pending, so the same batch would recur
+on every pass and the rebuild would never finish. The resolved path is
+still passed on so a release that has never been covered gets built.
+
+Returns the number of builds C<cover_modules> ran (zero if the queue
+is empty, every lookup failed, or every resolved release was already
+covered and rebuilt). The rebuild loop recipe in C<utils/dc> uses this
+count to decide whether the HTML needs regenerating. Intended to be
+called from that recipe.
 
 =head3 write_status (%counts)
 
