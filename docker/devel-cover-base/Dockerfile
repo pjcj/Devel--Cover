@@ -46,4 +46,21 @@ RUN mkdir -p /root/.cpan/CPAN                                               && \
     rm -rf ~/.cpan/build ~/.cpan/sources/authors ~/.cpanm                      \
       ~/.local/share/.cpan/build ~/.local/share/.cpan/sources/authors
 
+# hadolint ignore=SC2016
+RUN useradd --create-home cpancover                                         && \
+    mkdir -p /home/cpancover/.cpan/CPAN                                     && \
+    sed "s|/root/|/home/cpancover/|" /root/.cpan/CPAN/MyConfig.pm              \
+      > /home/cpancover/.cpan/CPAN/MyConfig.pm                              && \
+    chown -R cpancover:cpancover /home/cpancover/.cpan                      && \
+    perl -MConfig -MFile::Path=make_path -e                                    \
+      'my @d = grep $_, @Config{qw( installsitelib installsitearch             \
+        installsitebin )};                                                     \
+      make_path @d;                                                            \
+      system("chown", "-R", "cpancover:cpancover", @d) and die;                \
+      my $p = "$Config{installarchlib}/perllocal.pod";                         \
+      open my $fh, ">>", $p or die;                                            \
+      close $fh;                                                               \
+      system("chown", "cpancover:cpancover", $p) and die'
+
 COPY prefs/ /root/.cpan/prefs/
+COPY --chown=cpancover:cpancover prefs/ /home/cpancover/.cpan/prefs/

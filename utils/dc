@@ -689,6 +689,7 @@ recipe_cpancover-docker-module() {
     --ulimit nofile=4096 --ulimit fsize=2147483648 \
     --cap-drop=ALL --security-opt=no-new-privileges \
     --env TAR_OPTIONS=--no-same-owner \
+    --user cpancover \
     --name="$name" \
     "$docker_image" \
     dc $v cpancover-build-module "$module")
@@ -706,7 +707,8 @@ recipe_cpancover-docker-module() {
     fi
 
     mkdir -p "$local_staging"
-    if ! $docker cp "$name:/root/cover/staging" "$local_staging" 2>>"$log_file"; then
+    if ! $docker cp "$name:/home/cpancover/cover/staging" "$local_staging" \
+      2>>"$log_file"; then
       pe "docker cp failed for $name; see $log_file"
       rm -rf "$local_staging"
       $docker rm "$name" >/dev/null 2>&1 || true
