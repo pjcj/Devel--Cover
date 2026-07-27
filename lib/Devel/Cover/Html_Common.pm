@@ -7,13 +7,15 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Exporter    qw( import );
-use Digest::MD5 ();
-use Encode      ();
+use Exporter       qw( import );
+use Digest::MD5    ();
+use Encode         ();
+use HTML::Entities ();
 
 our @EXPORT_OK = qw(
   launch highlight $Have_highlighter
   coverage_class default_thresholds unique_filenames
+  decode_guess escape_html source_layer
 );
 
 our $Have_highlighter;
@@ -116,7 +118,36 @@ sub highlight ($option, @all_lines) {
   return;
 }
 
-1;
+sub decode_guess ($text) {
+  return $text unless defined $text;
+  my $chars = eval {
+    Encode::decode("UTF-8", $text, Encode::FB_CROAK | Encode::LEAVE_SRC)
+  };
+  $chars //= eval { Encode::decode("iso-8859-1", $text) };
+  $chars // $text
+}
+
+sub escape_html ($text) {
+  # The characters that must be escaped in HTML text and attribute values
+  state $unsafe = q(<>&"');
+  HTML::Entities::encode_entities(decode_guess($text), $unsafe)
+}
+
+sub source_layer ($file) {
+  open my $fh, "<", $file or return "";
+  my $bytes = do { local $/; <$fh> };
+  close $fh or return "";
+  my $utf8 = defined $bytes && eval {
+    Encode::decode("UTF-8", $bytes, Encode::FB_CROAK | Encode::LEAVE_SRC);
+    1
+  };
+  $utf8 ? ":encoding(UTF-8)" : ":encoding(iso-8859-1)"
+}
+
+"
+The sirens are screaming and the fires are howling
+Way down in the valley tonight
+"
 
 __END__
 
@@ -179,6 +210,28 @@ C<X/Y.pm> and C<X-Y.pm> can produce the same name. When two paths
 collide, the sorted-first path keeps the plain name and each later
 collider is given a stable suffix of C<--> plus the leading hex
 characters of the MD5 of its path. Non-colliding paths are unchanged.
+
+=item decode_guess ($text)
+
+Return C<$text> as a character string. Covered source files carry no
+encoding declaration the reports could trust, so this guesses. The bytes
+are decoded as strict UTF-8 when they form a valid sequence and as
+Latin-1 when they do not, a guess that cannot fail. A string that
+already contains wide characters is returned unchanged, since both
+decodes refuse it. Undefined input is returned unchanged.
+
+=item escape_html ($text)
+
+Return C<$text> decoded via C<decode_guess> with the HTML-unsafe
+characters C<< < > & " ' >> escaped as entities. Other characters,
+including non-ASCII ones, are left alone so that UTF-8 output renders
+them directly.
+
+=item source_layer ($file)
+
+Return the I/O layer with which to read the source file C<$file>, using
+the same guess as C<decode_guess>. An unreadable file yields an empty
+string so the caller's own open reports the error.
 
 =back
 

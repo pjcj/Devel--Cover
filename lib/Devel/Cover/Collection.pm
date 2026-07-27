@@ -19,11 +19,10 @@ use Devel::Cover::Html_Common  ();
 use Devel::Cover::Inc          ();
 use Devel::Cover::Web          qw( write_file );
 
-use JSON::MaybeXS      ();
-use Parallel::Iterator qw( iterate_as_array );
-use POSIX              qw( setsid );
-use Template           ();
-use Time::HiRes        qw( alarm time );
+use JSON::MaybeXS ();
+use POSIX         qw( setsid );
+use Template      ();
+use Time::HiRes   qw( alarm time );
 
 use feature "class";
 
@@ -163,6 +162,13 @@ class Devel::Cover::Collection {
   method fsys  (@a) { $self->_sys(4e4, @a) // die "Can't run @a" }
   method fbsys (@a) { $self->_sys(0,   @a) // die "Can't run @a" }
 
+  # Only the parallel paths need Parallel::Iterator, so load it on demand
+  # and leave report generation working without it
+  sub _iterate (@args) {
+    require Parallel::Iterator;
+    Parallel::Iterator::iterate_as_array(@args)
+  }
+
   method add_modules     (@o) { push @$modules, @o }
   method set_modules     (@o) { @$modules = @o }
   method set_module_file ($f) { $self->_set_module_file($f) }
@@ -265,7 +271,7 @@ class Devel::Cover::Collection {
         # TODO - option to merge DB with existing one
         # TODO - portability
         $output .= $self->fsys("rm", "-rf", $rdir);
-        $output .= `rm -f $db/structure/*.lock`;
+        $output .= $self->fsys("rm", "-f",  glob "$db/structure/*.lock");
         $output .= $self->fsys("mv", $db,   $rdir);
         $output .= $self->fsys("rm", "-rf", $db);
       };
@@ -277,7 +283,7 @@ class Devel::Cover::Collection {
   }
 
   method run_all {
-    my @res = iterate_as_array(
+    my @res = _iterate(
       { workers => $workers },
       sub {
         my (undef, $d) = @_;
@@ -526,8 +532,8 @@ class Devel::Cover::Collection {
         my $archive = "$v->{dir}.tar.xz";
         my @cmd1
           = ($self->dc_file, "-r", $parent, "cpancover-uncompress-dir", $s);
-        my @cmd2 = ("bash", "-c",  "tar cf - -C $parent $s | xz -z > $archive");
-        my @cmd3 = ("rm",   "-rf", $v->{dir});
+        my @cmd2 = ("tar", "cJf", $archive, "-C", $parent, "--", $s);
+        my @cmd3 = ("rm",  "-rf", $v->{dir});
 
         if ($dryrun) {
           say for "compressing $s", "@cmd1", "@cmd2", "@cmd3";
@@ -730,7 +736,7 @@ class Devel::Cover::Collection {
     push @cmd, "--results_dir", $results_dir if defined $results_dir;
     push @cmd, "--verbose" if $verbose;
     my @command = (@cmd, "cpancover-docker-module");
-    my @res     = iterate_as_array(
+    my @res     = _iterate(
       { workers => $workers },
       sub {
         # say "mod ", Dumper \@_;
@@ -981,23 +987,23 @@ $Templates{module_by_start} = <<'EOT';
     <tr>
       <td>
         [% IF vals.$m.link %]
-          <a href="[% root %][%- vals.$m.link -%]">
-            [% module.name || module.module %]
+          <a href="[% root %][%- vals.$m.link | html -%]">
+            [% (module.name || module.module) | html %]
           </a>
         [% ELSE %]
-          [% module.name || module.module %]
+          [% (module.name || module.module) | html %]
         [% END %]
       </td>
       <td>
         [% IF module.metacpan %]
-          <a href="[% module.metacpan %]">[% module.version %]</a>
+          <a href="[% module.metacpan | html %]">[% module.version | html %]</a>
         [% ELSE %]
-          [% module.version %]
+          [% module.version | html %]
         [% END %]
       </td>
       <td>
         [% IF vals.$m.log %]
-          <a href="[% root %][% vals.$m.log %]">&para;</a>
+          <a href="[% root %][% vals.$m.log | html %]">&para;</a>
         [% END %]
       </td>
       [% FOREACH criterion = criteria %]

@@ -16,13 +16,13 @@ BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 use Devel::Cover::Criterion ();
 use Devel::Cover::Html_Common  ## no perlimports
-  qw( launch coverage_class default_thresholds unique_filenames );
+  qw( launch coverage_class default_thresholds unique_filenames
+  escape_html source_layer );
 use Devel::Cover::Log qw( dcinfo );
 use Devel::Cover::Truth_Table;  ## no perlimports
 
-use Getopt::Long   qw( GetOptions );
-use Template 2.00  ();
-use HTML::Entities qw( encode_entities );
+use Getopt::Long  qw( GetOptions );
+use Template 2.00 ();
 
 my $Template;
 my %Filenames;
@@ -135,7 +135,8 @@ sub print_stylesheet ($db, $options) {
 
 # Print coverage overview report for a file
 sub print_file ($db, $file, $options) {
-  open my $fh, "<", $file or warn("Unable to open '$file' [$!]\n"), return;
+  open my $fh, "<" . source_layer($file), $file
+    or warn("Unable to open '$file' [$!]\n"), return;
 
   my @lines;
   my @showing = grep $options->{show}{$_}, $db->criteria;
@@ -148,7 +149,7 @@ sub print_file ($db, $file, $options) {
     chomp $l;
 
     my %metric = get_metrics($db, $options, $file_data, $.);
-    my $line   = { number => $., text => encode_entities($l), metrics => [] };
+    my $line   = { number => $., text => escape_html($l), metrics => [] };
     $line->{text} =~ s/\t/        /g;
     $line->{text} =~ s/\s/&nbsp;/g;   # IE doesn't honour "white-space: pre" CSS
 
@@ -178,7 +179,8 @@ sub print_file ($db, $file, $options) {
   };
 
   my $html = "$options->{outputdir}/$Filenames{$file}.html";
-  $Template->process("file", $vars, $html) or die $Template->error;
+  $Template->process("file", $vars, $html, { binmode => ":encoding(UTF-8)" })
+    or die $Template->error;
 }
 
 # Print branch coverage report for a file
@@ -201,7 +203,7 @@ sub print_branches ($db, $file, $options) {
             { text => "T", class => $tf[0] ? "covered" : "uncovered" },
             { text => "F", class => $tf[1] ? "covered" : "uncovered" },
           ],
-          text => encode_entities($b->text),
+          text => escape_html($b->text),
         };
     }
   }
@@ -217,7 +219,9 @@ sub print_branches ($db, $file, $options) {
   };
 
   my $html = "$options->{outputdir}/$Filenames{$file}--branch.html";
-  $Template->process("branches", $vars, $html) or die $Template->error;
+  $Template->process(
+    "branches", $vars, $html, { binmode => ":encoding(UTF-8)" }
+  ) or die $Template->error;
 }
 
 # Print condition coverage report for a file
@@ -235,7 +239,7 @@ sub print_conditions ($db, $file, $options) {
           ref        => "line$location",
           percentage => sprintf("%.0f", $c->[0]->percentage),
           class      => cvg_class($c->[0]->percentage),
-          condition  => encode_entities($c->[1]),
+          condition  => escape_html($c->[1]),
           coverage   => $c->[0]->html,
         };
     }
@@ -254,7 +258,9 @@ sub print_conditions ($db, $file, $options) {
   };
 
   my $html = "$options->{outputdir}/$Filenames{$file}--condition.html";
-  $Template->process("conditions", $vars, $html) or die $Template->error;
+  $Template->process(
+    "conditions", $vars, $html, { binmode => ":encoding(UTF-8)" }
+  ) or die $Template->error;
 }
 
 # Print MC/DC coverage report for a file
@@ -272,7 +278,7 @@ sub print_mcdc ($db, $file, $options) {
         map {
           my $unc = $m->uncoverable($_);
           qq(<span class="@{[ $vals[$_] || $unc ? "covered" : "uncovered" ]}">)
-          . encode_entities(($unc ? "-" : "") . ($labels[$_] // ""))
+          . escape_html(($unc ? "-" : "") . ($labels[$_] // ""))
           . "</span>"
         } 0 .. $#vals;
 
@@ -281,7 +287,7 @@ sub print_mcdc ($db, $file, $options) {
           ref        => "line$location",
           percentage => sprintf("%.0f", $m->percentage),
           class      => cvg_class($m->percentage),
-          decision   => encode_entities($m->text),
+          decision   => escape_html($m->text),
           atomics    => $atomics,
         };
     }
@@ -299,7 +305,8 @@ sub print_mcdc ($db, $file, $options) {
   };
 
   my $html = "$options->{outputdir}/$Filenames{$file}--mcdc.html";
-  $Template->process("mcdc", $vars, $html) or die $Template->error;
+  $Template->process("mcdc", $vars, $html, { binmode => ":encoding(UTF-8)" })
+    or die $Template->error;
 }
 
 # Print subroutine coverage report for a file
@@ -332,7 +339,9 @@ sub print_subroutines ($db, $file, $options) {
   };
 
   my $html = "$options->{outputdir}/$Filenames{$file}--subroutine.html";
-  $Template->process("subroutines", $vars, $html) or die $Template->error;
+  $Template->process(
+    "subroutines", $vars, $html, { binmode => ":encoding(UTF-8)" }
+  ) or die $Template->error;
 }
 
 # Print the database summary report
@@ -404,7 +413,8 @@ sub print_summary ($db, $options) {
   };
 
   my $html = "$options->{outputdir}/$options->{option}{outputfile}";
-  $Template->process("summary", $vars, $html) or die $Template->error;
+  $Template->process("summary", $vars, $html, { binmode => ":encoding(UTF-8)" })
+    or die $Template->error;
 
   dcinfo "HTML output written to $html";
 }
@@ -466,10 +476,10 @@ https://pjcj.net
   "https://www.w3.org/TR/xhtml-basic/xhtml-basic10.dtd">
 <html xmlns="https://www.w3.org/1999/xhtml">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"></meta>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta>
   <meta http-equiv="Content-Language" content="en-us"></meta>
   <link rel="stylesheet" type="text/css" href="cover.css"></link>
-  <title> [% title %] </title>
+  <title> [% title | html %] </title>
 </head>
 <body>
   [% content %]
@@ -506,9 +516,9 @@ $Templates{summary} = <<'HTML';
     <tr align="center" valign="top">
     <td align="left">
     [% IF file_exists.$file %]
-      <a href="[%- filenames.$file -%].html"> [% file %] </a>
+      <a href="[%- filenames.$file -%].html"> [% file | html %] </a>
     [% ELSE %]
-      [% file %]
+      [% file | html %]
     [% END %]
     [% IF uncompiled.$file %] <em>(untested)</em>[% END %]
     </td>
@@ -544,7 +554,7 @@ $Templates{branches} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">File:</td>
-    <td>[% file %]</td>
+    <td>[% file | html %]</td>
   </tr>
   <tr>
     <td class="header" align="right">Coverage:</td>
@@ -599,7 +609,7 @@ $Templates{conditions} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">File:</td>
-    <td>[% file %]</td>
+    <td>[% file | html %]</td>
   </tr>
   <tr>
     <td class="header" align="right">Coverage:</td>
@@ -651,7 +661,7 @@ $Templates{mcdc} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">File:</td>
-    <td>[% file %]</td>
+    <td>[% file | html %]</td>
   </tr>
   <tr>
     <td class="header" align="right">Coverage:</td>
@@ -701,7 +711,7 @@ $Templates{subroutines} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">File:</td>
-    <td>[% file %]</td>
+    <td>[% file | html %]</td>
   </tr>
   <tr>
     <td class="header" align="right">Coverage:</td>
@@ -726,7 +736,7 @@ $Templates{subroutines} = <<'HTML';
   [% FOREACH sub = subroutines %]
     <tr align="center" valign="top">
       <td class="[% sub.class %]">
-        <a id="[% sub.ref %]"> [% sub.name %] </a>
+        <a id="[% sub.ref %]"> [% sub.name | html %] </a>
       </td>
       <td> [% sub.line %] </td>
     </tr>
@@ -744,7 +754,7 @@ $Templates{file} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">File:</td>
-    <td>[% file %]</td>
+    <td>[% file | html %]</td>
   </tr>
   <tr>
     <td class="header" align="right">Coverage:</td>

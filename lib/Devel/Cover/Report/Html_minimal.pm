@@ -5,11 +5,11 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
-use HTML::Entities          qw( encode_entities );
 use Getopt::Long            qw( GetOptions );
 use Devel::Cover::Criterion ();
 use Devel::Cover::Html_Common  ## no perlimports
-  qw( launch coverage_class default_thresholds unique_filenames );
+  qw( launch coverage_class default_thresholds unique_filenames
+  escape_html source_layer );
 use Devel::Cover::Log         qw( dcinfo );
 use Devel::Cover::Truth_Table ();
 
@@ -224,6 +224,7 @@ sub print_stylesheet ($db, $options) {
 # Print the HTML document header
 sub print_html_header ($fh, $title) {
   my $version = $VERSION . $Devel::Cover::Inc::Dev;
+  $title = escape_html($title);
   print $fh <<"END_HTML";
 <!DOCTYPE html
      PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
@@ -251,6 +252,7 @@ END_HTML
 sub print_summary ($fh, $title, $file, $raw_pct, $err, $db) {
   my $percent = sprintf "%.1f", $raw_pct || 0;
   my $class   = pclass($percent, $err);
+  $file = escape_html($file);
 
   print $fh <<"END_HTML";
 <body>
@@ -291,7 +293,7 @@ sub get_link ($file, $type = undef, $line = undef) {
 sub escape_HTML ($text) {  ## no critic (NamingConventions::Capitalization)
   chomp $text;
 
-  $text = encode_entities($text);
+  $text = escape_html($text);
 
   # Do not allow FF in text
   $text =~ tr/\x0c//d;
@@ -341,8 +343,10 @@ sub _render_coverage_cells ($out, $fin, $opt, $show, $metric) {
 # Print coverage overview report for a file
 sub print_file_report ($db, $fin, $opt) {
   my $fout = "$opt->{outputdir}/$Filenames{$fin}.html";
-  open my $in,  "<", $fin  or warn("Can't read file '$fin' [$!]\n"),  return;
-  open my $out, ">", $fout or warn("Can't open file '$fout' [$!]\n"), return;
+  open my $in, "<" . source_layer($fin), $fin
+    or warn("Can't read file '$fin' [$!]\n"), return;
+  open my $out, ">:encoding(UTF-8)", $fout
+    or warn("Can't open file '$fout' [$!]\n"), return;
 
   my ($show, $th) = get_showing_headers($db, $opt);
   my $file_data = $db->cover->file($fin);
@@ -425,7 +429,8 @@ sub print_branch_report ($db, $file, $opt) {
   return unless $data;
 
   my $fout = "$opt->{outputdir}/$Filenames{$file}--branch.html";
-  open my $out, ">", $fout or warn("Can't open file '$fout' [$!]\n"), return;
+  open my $out, ">:encoding(UTF-8)", $fout
+    or warn("Can't open file '$fout' [$!]\n"), return;
 
   print_html_header($out, "Branch Coverage: $file");
   print_summary(
@@ -462,7 +467,8 @@ sub print_condition_report ($db, $file, $opt) {
   return unless $data;
 
   my $fout = "$opt->{outputdir}/$Filenames{$file}--condition.html";
-  open my $out, ">", $fout or warn("Can't open file '$fout' [$!]\n"), return;
+  open my $out, ">:encoding(UTF-8)", $fout
+    or warn("Can't open file '$fout' [$!]\n"), return;
 
   print_html_header($out, "Condition Coverage: $file");
   print_summary(
@@ -498,7 +504,8 @@ sub print_mcdc_report ($db, $file, $opt) {
   return unless $data;
 
   my $fout = "$opt->{outputdir}/$Filenames{$file}--mcdc.html";
-  open my $out, ">", $fout or warn("Can't open file '$fout' [$!]\n"), return;
+  open my $out, ">:encoding(UTF-8)", $fout
+    or warn("Can't open file '$fout' [$!]\n"), return;
 
   print_html_header($out, "MC/DC Coverage: $file");
   print_summary(
@@ -544,7 +551,8 @@ sub print_sub_report ($db, $file, $opt) {
   return unless $data;
 
   my $fout = "$opt->{outputdir}/$Filenames{$file}--subroutine.html";
-  open my $out, ">", $fout or warn("Can't open file '$fout' [$!]\n"), return;
+  open my $out, ">:encoding(UTF-8)", $fout
+    or warn("Can't open file '$fout' [$!]\n"), return;
 
   print_html_header($out, "Subroutine Coverage: $file");
   print_summary(
@@ -601,7 +609,7 @@ sub _print_summary_cell ($fh, $file, $c, $summary, $uncompiled) {
 sub print_summary_report ($db, $options) {
   my $outfile = "$options->{outputdir}/$options->{option}{outputfile}";
 
-  open my $fh, ">", $outfile
+  open my $fh, ">:encoding(UTF-8)", $outfile
     or warn("Unable to open file '$outfile' [$!]\n"), return;
 
   my ($show, $th) = get_showing_headers($db, $options);
@@ -659,11 +667,12 @@ END_HTML
       = $file ne "Total" && $db->cover->file($file)->{meta}{uncompiled};
     my $summary = get_summary_for_file($db, $file, $show);
 
-    my $url = get_link($file);
+    my $url  = get_link($file);
+    my $name = escape_html($file);
     if ($url) {
-      print $fh '<tr><td align="left">' . qq(<a href="$url">$file</a>);
+      print $fh '<tr><td align="left">' . qq(<a href="$url">$name</a>);
     } else {
-      print $fh qq(<tr><td align="left">$file);
+      print $fh qq(<tr><td align="left">$name);
     }
     print $fh " <em>(untested)</em>" if $uncompiled;
     print $fh "</td>";
