@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Limit each cpancover build container to the resources a build needs - CPU,
+  process count, open files, file size, Linux capabilities and privilege
+  elevation (GH-668)
 - Mark cpancover builds failed when the report file was never written, and
   don't link distributions whose report page is missing - a report command
   dying part-way previously published truncated results behind a broken

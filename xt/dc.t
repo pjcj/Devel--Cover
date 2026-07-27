@@ -183,6 +183,33 @@ sub docker_module_timeout_log_ref () {
   is @tmp, 0, "no tmp files remain";
 }
 
+sub docker_module_run_limits () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+
+  my $log     = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
+  my $staging = tempdir(CLEANUP => 1);
+  my $work    = tempdir(CLEANUP => 1);
+
+  {
+    local $ENV{STUB_CALLS} = "$work/calls";
+    dc("-r", $staging, "cpancover-docker-module", "Foo::Bar", $log, $staging);
+  }
+
+  my ($run) = grep /^run /, split /\n/, slurp("$work/calls");
+  for my $flag (
+    "--memory=1g",                      "--cpus=2",
+    "--pids-limit=512",                 "--ulimit nofile=4096",
+    "--ulimit fsize=2147483648",        "--cap-drop=ALL",
+    "--security-opt=no-new-privileges", "--env TAR_OPTIONS=--no-same-owner",
+  ) {
+    like $run, qr/ \Q$flag\E /, "module container runs with $flag";
+  }
+}
+
 sub force_retries_failed_only () {
   skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
   my $bin = tempdir(CLEANUP => 1);
@@ -469,6 +496,7 @@ sub main () {
     uncompress_recipe
     docker_module_log_ref
     docker_module_timeout_log_ref
+    docker_module_run_limits
     force_retries_failed_only
     cpancover_leaves_build_alone
     rebuild_batch_cleanup
