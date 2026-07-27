@@ -205,9 +205,14 @@ sub docker_module_run_limits () {
     "--pids-limit=512",                 "--ulimit nofile=4096",
     "--ulimit fsize=2147483648",        "--cap-drop=ALL",
     "--security-opt=no-new-privileges", "--env TAR_OPTIONS=--no-same-owner",
+    "--user cpancover",
   ) {
     like $run, qr/ \Q$flag\E /, "module container runs with $flag";
   }
+
+  my ($cp) = grep /^cp /, split /\n/, slurp("$work/calls");
+  like $cp, qr|^cp \S+:/home/cpancover/cover/staging |,
+    "results are copied from the build user's home";
 }
 
 sub force_retries_failed_only () {

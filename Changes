@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Run each cpancover build container as an ordinary user (GH-670)
 - Limit each cpancover build container to the resources a build needs - CPU,
   process count, open files, file size, Linux capabilities and privilege
   elevation (GH-668)
