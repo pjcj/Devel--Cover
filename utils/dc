@@ -685,7 +685,11 @@ recipe_cpancover-docker-module() {
   container=$($docker run -d \
     ${env_flags[@]:+"${env_flags[@]}"} \
     --label "cpancover.env=$env" \
-    --rm=false --memory=1g --name="$name" \
+    --rm=false --memory=1g --cpus=2 --pids-limit=512 \
+    --ulimit nofile=4096 --ulimit fsize=2147483648 \
+    --cap-drop=ALL --security-opt=no-new-privileges \
+    --env TAR_OPTIONS=--no-same-owner \
+    --name="$name" \
     "$docker_image" \
     dc $v cpancover-build-module "$module")
   ((verbose)) && pi "container is $container"
