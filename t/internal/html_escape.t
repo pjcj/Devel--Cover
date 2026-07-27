@@ -212,6 +212,94 @@ sub test_meta_escaped ($tmpdir, $cover_db) {
     "html_basic: summary page escapes module metadata";
 }
 
+# Source files are read as bytes and each high-bit byte escaped into its own
+# entity, so UTF-8 text such as an e-acute (0xC3 0xA9) garbles into
+# &Atilde;&copy;.  The reports must guess the source encoding (strict UTF-8,
+# falling back to Latin-1), escape only HTML-unsafe characters and write
+# UTF-8 output.  The regex string below guards the original ampersand
+# escaping problem: it must render with &amp;, never a bare ampersand.
+my $E_utf8   = "\xC3\xA9";
+my $E_latin1 = "\xE9";
+
+my $Encoded_fixture = <<'PERL';
+package Encoded;
+use strict;
+use warnings;
+
+sub greet {
+  my ($name) = @_;
+  my $re = '(?&param)?+';
+  return $name eq "bEbE" ? "yes" : $re;
+}
+
+1;
+PERL
+
+sub _setup_encoded ($e) {
+  my $tmpdir = realpath(tempdir(CLEANUP => 1));
+  my $libdir = File::Spec->catdir($tmpdir, "lib");
+  make_path($libdir);
+
+  my $path = File::Spec->catfile($libdir, "Encoded.pm");
+  open my $fh, ">", $path or die "Cannot write $path: $!";
+  print $fh $Encoded_fixture =~ s/bEbE/b${e}b$e/gr;
+  close $fh or die "Cannot close $path: $!";
+
+  my $cover_db = File::Spec->catdir($tmpdir, "cover_db");
+  local $ENV{DEVEL_COVER_SELF};
+  delete $ENV{DEVEL_COVER_SELF};
+  my @cmd = (
+    $^X, "-Iblib/lib", "-Iblib/arch", "-I$libdir",
+    "-MDevel::Cover=-db,$cover_db,-silent,1,-merge,0",
+    "-e", "use Encoded; Encoded::greet(q(x))",
+  );
+  system(@cmd) == 0 or die "Failed to create cover_db (status $?)";
+
+  ($tmpdir, $cover_db)
+}
+
+sub _all_pages ($outdir) {
+  join "\n", map slurp($_), glob "$outdir/*.html"
+}
+
+sub test_unicode_source ($report, $tmpdir, $cover_db, @extra) {
+  my $outdir = _report($tmpdir, $cover_db, $report, @extra);
+  my $html   = _all_pages($outdir);
+  like $html, qr/b\xC3\xA9b/, "$report: non-ASCII source renders as UTF-8";
+  unlike $html, qr/&Atilde;|&eacute;|&#233;|&#xe9;/i,
+    "$report: no byte-wise entities for non-ASCII source";
+  like $html, qr/\(\?&amp;param\)\?\+/,
+    "$report: ampersand in source is escaped";
+  $html
+}
+
+sub test_unicode_highlighted ($report, $tmpdir, $cover_db) {
+  my $outdir = _report($tmpdir, $cover_db, $report);
+  my $html   = _all_pages($outdir);
+  like $html, qr/b(\xC3\xA9|&eacute;|&#233;|&#xe9;)b/i,
+    "$report: highlighted non-ASCII source renders correctly";
+  unlike $html, qr/&Atilde;/,
+    "$report: highlighted source is not escaped byte-wise";
+  like $html, qr/\(\?&amp;param\)/,
+    "$report: highlighted ampersand in source is escaped";
+}
+
+sub test_decode_guess () {
+  require Devel::Cover::Html_Common;
+  my $d = \&Devel::Cover::Html_Common::decode_guess;
+  is $d->("b\xC3\xA9b\xC3\xA9"), "b\x{e9}b\x{e9}", "UTF-8 bytes are decoded";
+  is $d->("b\xE9b\xE9"),         "b\x{e9}b\x{e9}", "Latin-1 bytes are decoded";
+  my $wide = "snow \x{2603}";
+  is $d->($wide), $wide, "wide-character strings pass through";
+}
+
+sub test_latin1_source ($report, $tmpdir, $cover_db, @extra) {
+  my $outdir = _report($tmpdir, $cover_db, $report, @extra);
+  my $html   = _all_pages($outdir);
+  like $html, qr/b\xC3\xA9b/, "$report: Latin-1 source is transcoded to UTF-8";
+  unlike $html, qr/b\xE9b/,   "$report: no raw Latin-1 bytes in output";
+}
+
 # The SCAR tooltip in the crisp report emits sub names, so escape them too.
 sub test_crisp_scar_tip () {
   require Devel::Cover::Report::Html_crisp;
@@ -237,6 +325,31 @@ sub main () {
   }
 
   test_crisp_scar_tip;
+  test_decode_guess;
+
+  {
+    my ($t, $db) = _setup_encoded($E_utf8);
+    test_unicode_source("html_crisp", $t, $db, @No_highlight);
+    test_unicode_source("html_minimal", $t, $db);
+    if ($Have_template) {
+      test_unicode_source("html_basic", $t, $db, @No_highlight);
+      my $html = test_unicode_source("html_subtle", $t, $db);
+      like $html, qr/charset=utf-8/i, "html_subtle: declares a utf-8 charset";
+    }
+  }
+
+  if (eval "require PPI::HTML; 1") {
+    my ($t, $db) = _setup_encoded($E_utf8);
+    test_unicode_highlighted("html_crisp", $t, $db);
+    test_unicode_highlighted("html_basic", $t, $db) if $Have_template;
+  }
+
+  {
+    my ($t, $db) = _setup_encoded($E_latin1);
+    test_latin1_source("html_crisp",   $t, $db, @No_highlight);
+    test_latin1_source("html_minimal", $t, $db);
+    test_latin1_source("html_basic", $t, $db, @No_highlight) if $Have_template;
+  }
 
   unless ($^O eq "MSWin32") {
     my ($t, $db) = _setup_named_file;

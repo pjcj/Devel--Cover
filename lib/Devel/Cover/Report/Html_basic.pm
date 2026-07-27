@@ -20,7 +20,8 @@ BEGIN {
 
 use Devel::Cover::Html_Common  ## no perlimports
   qw( launch highlight $Have_highlighter
-  coverage_class default_thresholds unique_filenames );
+  coverage_class default_thresholds unique_filenames
+  decode_guess escape_html source_layer );
 use Devel::Cover::Criterion ();
 use Devel::Cover::Inc       ();
 use Devel::Cover::Log       qw( dcinfo );
@@ -28,9 +29,8 @@ use Devel::Cover::Web       qw( write_file );
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-use HTML::Entities qw( encode_entities );
-use Getopt::Long   qw( GetOptions );
-use Template 2.00  ();
+use Getopt::Long  qw( GetOptions );
+use Template 2.00 ();
 
 my $Template;
 my %R;
@@ -116,18 +116,19 @@ sub _add_uncovered_links ($lines) {
 
 sub _highlight_text ($text) {
   my @html = $Have_highlighter ? highlight($R{options}{option}, $text) : ();
-  @html ? $html[0] : encode_entities($text)
+  @html ? $html[0] : escape_html($text)
 }
 
 sub print_file () {
   my @lines;
   my $f = $R{db}->cover->file($R{file});
 
-  open my $fh, "<", $R{file} or warn("Unable to open $R{file}: $!\n"), return;
+  open my $fh, "<" . source_layer($R{file}), $R{file}
+    or warn("Unable to open $R{file}: $!\n"), return;
   my @all_lines = <$fh>;
 
   my @hl = $Have_highlighter ? highlight($R{options}{option}, @all_lines) : ();
-  @all_lines = @hl ? @hl : map encode_entities($_), @all_lines;
+  @all_lines = @hl ? @hl : map escape_html($_), @all_lines;
 
   my $linen = 1;
   line: while (defined(my $l = shift @all_lines)) {
@@ -175,7 +176,9 @@ sub print_file () {
 
   my $vars = { R => \%R, lines => \@lines };
 
-  $Template->process("file", $vars, $R{file_html}) or die $Template->error;
+  $Template->process(
+    "file", $vars, $R{file_html}, { binmode => ":encoding(UTF-8)" }
+  ) or die $Template->error;
 }
 
 sub print_branches () {
@@ -206,7 +209,9 @@ sub print_branches () {
   my $vars = { R => \%R, branches => \@branches };
 
   my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--branch.html";
-  $Template->process("branches", $vars, $html) or die $Template->error;
+  $Template->process(
+    "branches", $vars, $html, { binmode => ":encoding(UTF-8)" }
+  ) or die $Template->error;
 }
 
 sub print_conditions () {
@@ -239,7 +244,7 @@ sub print_conditions () {
   my @types = map {
     name    => s/_/ /gr,
     headers =>
-      [map encode_entities($_), ($r->{$_}[0]{condition}->headers || [])->@*],
+      [map escape_html($_), ($r->{$_}[0]{condition}->headers || [])->@*],
     conditions => $r->{$_},
   }, sort keys %$r;
   #>>>
@@ -247,7 +252,9 @@ sub print_conditions () {
   my $vars = { R => \%R, types => \@types };
 
   my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--condition.html";
-  $Template->process("conditions", $vars, $html) or die $Template->error;
+  $Template->process(
+    "conditions", $vars, $html, { binmode => ":encoding(UTF-8)" }
+  ) or die $Template->error;
 }
 
 sub print_mcdc () {
@@ -273,8 +280,7 @@ sub print_mcdc () {
           map {
             my $unc = $m->uncoverable($_);
             +{
-              label =>
-                encode_entities(($unc ? "-" : "") . ($labels[$_] // "")),
+              label => escape_html(($unc ? "-" : "") . ($labels[$_] // "")),
               class => $vals[$_] || $unc ? "c3" : "c0",
             }
           } 0 .. $#vals,
@@ -287,7 +293,8 @@ sub print_mcdc () {
   my $vars = { R => \%R, decisions => \@decisions };
 
   my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--mcdc.html";
-  $Template->process("mcdc", $vars, $html) or die $Template->error;
+  $Template->process("mcdc", $vars, $html, { binmode => ":encoding(UTF-8)" })
+    or die $Template->error;
 }
 
 sub print_subroutines () {
@@ -309,7 +316,7 @@ sub print_subroutines () {
       my $p = shift @p;
       push @$subs, {
           line   => $line,
-          name   => $o->name,
+          name   => decode_guess($o->name),
           count  => $s ? $o->covered              : "",
           class  => $s ? oclass($o, "subroutine") : "",
           pod    => $p ? $p->covered ? "Yes" : "No" : "n/a",
@@ -321,7 +328,9 @@ sub print_subroutines () {
   my $vars = { R => \%R, subs => $subs };
 
   my $html = "$R{options}{outputdir}/$R{filenames}{$R{file}}--subroutine.html";
-  $Template->process("subroutines", $vars, $html) or die $Template->error;
+  $Template->process(
+    "subroutines", $vars, $html, { binmode => ":encoding(UTF-8)" }
+  ) or die $Template->error;
 }
 
 sub print_summary () {
@@ -331,7 +340,8 @@ sub print_summary () {
   };
 
   my $html = "$R{options}{outputdir}/$R{options}{option}{outputfile}";
-  $Template->process("summary", $vars, $html) or die $Template->error;
+  $Template->process("summary", $vars, $html, { binmode => ":encoding(UTF-8)" })
+    or die $Template->error;
 
   $html
 }

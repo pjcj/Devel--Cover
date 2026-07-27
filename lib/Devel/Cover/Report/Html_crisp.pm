@@ -23,6 +23,7 @@ BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 use Devel::Cover::Html_Common qw(
   $Have_highlighter highlight launch
   coverage_class default_thresholds unique_filenames
+  decode_guess escape_html source_layer
 );
 use Devel::Cover::Web             qw( $Cov $Crisp_base_css $Crisp_theme_js );
 use Devel::Cover::Condition_table ();
@@ -32,11 +33,10 @@ use Devel::Cover::Inc             ();
 use Devel::Cover::Log             qw( dcinfo );
 use Devel::Cover::Path            qw( common_prefix );
 
-use File::Path     qw( mkpath );
-use Getopt::Long   qw( GetOptions );
-use HTML::Entities qw( encode_entities );
-use List::Util     qw( any );
-use POSIX          qw( strftime );
+use File::Path   qw( mkpath );
+use Getopt::Long qw( GetOptions );
+use List::Util   qw( any );
+use POSIX        qw( strftime );
 our %R;
 my %Assets;
 
@@ -49,7 +49,7 @@ sub crit_name ($c) {
 
 sub render_layout (%args) {
   my $asset_prefix = $args{asset_prefix} // "";
-  my $title        = encode_entities($args{title} || "Coverage Report");
+  my $title        = escape_html($args{title} || "Coverage Report");
   my $content      = $args{content} // "";
   <<HTML
 <!DOCTYPE html>
@@ -108,7 +108,7 @@ HTML
     $o .= qq(<dl class="scar-tip-subs">\n);
     for ($f->{worst_subs}->@*) {
       my $cls  = scar_class($_->{scar});
-      my $name = encode_entities($_->{name});
+      my $name = escape_html($_->{name});
       $o .= qq(<dt>$name</dt><dd class="$cls">$_->{crap}</dd>\n);
     }
     $o .= "</dl>\n";
@@ -148,13 +148,13 @@ sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef) {
 
 sub file_row ($f, $dir) {
   my $cls      = "dir-file" . ($f->{uncompiled} ? " untested" : "");
-  my $base     = encode_entities($f->{basename});
+  my $base     = escape_html($f->{basename});
   my $name     = $f->{exists}     ? qq(<a href="$f->{link}">$base</a>) : $base;
   my $badge    = $f->{uncompiled} ? untested_badge() . "\n"            : "";
   my $linkable = $f->{exists} && !$f->{uncompiled};
 
-  my $edir   = encode_entities($dir);
-  my $eshort = encode_entities($f->{short});
+  my $edir   = escape_html($dir);
+  my $eshort = escape_html($f->{short});
   my $o      = <<HTML;
 <tr class="$cls" data-dir="$edir">
 <td data-value="$eshort">$name $badge</td>
@@ -193,7 +193,7 @@ sub render_worst_files ($worst) {
   for my $f (@$worst) {
     next if _numeric_scar($f) == 0;
     my $cls   = "scar-" . scar_class($f->{file_scar});
-    my $short = encode_entities($f->{short});
+    my $short = escape_html($f->{short});
     my $name  = $f->{exists}     ? qq(<a href="$f->{link}">$short</a>) : $short;
     my $badge = $f->{uncompiled} ? untested_badge() . "\n"             : "";
     my $tip   = scar_tip($f);
@@ -387,7 +387,7 @@ HTML
 HTML
 
   for my $g (@groups) {
-    my $edir = encode_entities($g->{dir});
+    my $edir = escape_html($g->{dir});
     $o .= qq(<tr class="dir-header" data-dir="$edir">\n) . "<td>$edir</td>\n";
     $o .= cov_cell($g->{criteria}{$_}, 0) for $R{criteria}->@*;
     $o .= cov_cell($g->{total},        0);
@@ -624,7 +624,7 @@ sub render_source_line ($line) {
 
 sub render_file_page ($fd, $lines, $total, $prev_file, $next_file) {
   my $o     = $fd->{uncompiled} ? qq(<div class="untested-page">\n) : "";
-  my $short = encode_entities($fd->{short});
+  my $short = escape_html($fd->{short});
 
   $o .= <<HTML;
 <div class="header">
@@ -731,12 +731,12 @@ sub file_nav ($prev_file, $next_file) {
   my $prev
     = $prev_file
     ? qq(<a href="$prev_file->{link}" class="nav-prev">)
-    . "&laquo; @{[ encode_entities($prev_file->{short}) ]}</a>"
+    . "&laquo; @{[ escape_html($prev_file->{short}) ]}</a>"
     : "";
   my $next
     = $next_file
     ? qq(<a href="$next_file->{link}" class="nav-next">)
-    . "@{[ encode_entities($next_file->{short}) ]} &raquo;</a>"
+    . "@{[ escape_html($next_file->{short}) ]} &raquo;</a>"
     : "";
   <<HTML
 <div class="file-nav">
@@ -889,7 +889,7 @@ sub line_subroutines ($f, $n) {
   return unless $loc && @$loc;
   my $cl = $R{scar_subs} || {};
   map { {
-    name    => encode_entities($_->name),
+    name    => escape_html($_->name),
     covered => $_->covered,
     class   => oclass($_, "subroutine"),
     cc      => ($cl->{ "$n\0" . $_->name } // {})->{cc},
@@ -918,7 +918,7 @@ sub line_branches ($f, $n) {
       total_count => $t + $f,
       true_class  => class($t, $_->error(0), "branch"),
       false_class => class($f, $_->error(1), "branch"),
-      text        => encode_entities($_->text // ""),
+      text        => escape_html($_->text // ""),
     }
   } @$loc
 }
@@ -931,7 +931,7 @@ sub _cond_fragment ($s) {
       return $h;
     }
   }
-  encode_entities($s)
+  escape_html($s)
 }
 
 # Mark the decision's own operator, distinguishing it from those in operands
@@ -939,7 +939,7 @@ sub _cond_expr ($c) {
   my ($left, $op, $right) = $c->[1]->@{qw( left op right )};
   _cond_fragment($left)
     . ' <span class="cond-op">'
-    . encode_entities($op)
+    . escape_html($op)
     . "</span> "
     . _cond_fragment($right)
 }
@@ -953,7 +953,7 @@ sub line_condition_cells ($f, $n) {
     {
       type    => $c->type,
       text    => _cond_expr($c),
-      headers => [map encode_entities($_), ($c->headers // [])->@*],
+      headers => [map escape_html($_), ($c->headers // [])->@*],
       parts   => [
         map { {
           count => $c->value($_),
@@ -983,13 +983,12 @@ sub line_truth_tables ($f, $n) {
     my @labels  = $_->labels;
     my @headers = map { chr ord("A") + $_ } 0 .. $#labels;
     {
-      expr       => encode_entities($_->expr),
-      short_expr => encode_entities($_->short_expr),
+      expr       => escape_html($_->expr),
+      short_expr => escape_html($_->short_expr),
       rows       => \@rows,
       headers    => \@headers,
       legend     => [
-        map { {
-          letter => $headers[$_], label => encode_entities($labels[$_]) } }
+        map { { letter => $headers[$_], label => escape_html($labels[$_]) } }
           0 .. $#labels
       ],
     }
@@ -1005,7 +1004,7 @@ sub line_mcdc ($f, $n) {
     my @vals   = $m->values;
     my @labels = $m->labels->@*;
     {
-      text       => encode_entities($m->text),
+      text       => escape_html($m->text),
       percentage => $m->percentage,
       covered    => $m->covered,
       total      => $m->total,
@@ -1016,7 +1015,7 @@ sub line_mcdc ($f, $n) {
         map {
           my $unc = $m->uncoverable($_);
           {
-            label   => encode_entities(($unc ? "-" : "") . ($labels[$_] // "")),
+            label   => escape_html(($unc ? "-" : "") . ($labels[$_] // "")),
             covered => $vals[$_]         ? 1    : 0,
             class   => $vals[$_] || $unc ? "c3" : "c0",
           }
@@ -1052,12 +1051,13 @@ sub line_partial ($line, $bd, $cd, $tts, $sd, $md) {
 }
 
 sub read_source ($file) {
-  open my $fh, "<", $file or warn("Unable to open $file: $!\n"), return;
+  open my $fh, "<" . source_layer($file), $file
+    or warn("Unable to open $file: $!\n"), return;
   my @all_lines = <$fh>;
   close $fh or die "Can't close $file: $!\n";
 
   my @hl = $Have_highlighter ? highlight($R{options}{option}, @all_lines) : ();
-  @hl ? @hl : map encode_entities($_), @all_lines
+  @hl ? @hl : map escape_html($_), @all_lines
 }
 
 sub build_source_lines ($file) {
@@ -1134,7 +1134,7 @@ sub build_untested_source_lines ($file) {
 }
 
 sub write_file ($path, $content) {
-  open my $fh, ">", $path or die "Can't open $path: $!\n";
+  open my $fh, ">:encoding(UTF-8)", $path or die "Can't open $path: $!\n";
   print $fh $content;
   close $fh or die "Can't close $path: $!\n";
 }
