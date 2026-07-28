@@ -1944,6 +1944,12 @@ Example:
 
   # uncoverable branch true count:1..3 class:ignore_covered_err note:error chk
 
+An uncoverable comment on a line of its own applies to the next line of code,
+skipping any blank lines and other comments in between.  A comment which never
+finds a line of code, or which matches nothing on the line it applies to - for
+example the wrong criterion, or a count past the constructs on the line -
+triggers a warning when the report is generated.
+
 =head3 Statements
 
 The "uncoverable" comment should appear on either the same line as the
@@ -1982,15 +1988,24 @@ Both branches may be uncoverable:
 
 If there is an elsif in the branch then it can be addressed as the second
 branch on the line by using the "count" attribute.  Further elsifs are the
-third and fourth "count" value, and so on:
+third and fourth "count" value, and so on.  Every branch in the chain is
+anchored to the line of the opening if, so the comments for the whole chain
+go above that line.  Here $thing is always one, leaving five uncoverable
+branch outcomes:
 
+  # uncoverable branch false count:1
+  # uncoverable branch true count:2
   # uncoverable branch false count:2
+  # uncoverable branch true count:3
+  # uncoverable branch false count:3
   if ($thing == 1) {
     handle_thing_being_one();
   } elsif ($thing == 2) {
-    handle_thing_being_tow();
+    handle_thing_being_two();    # uncoverable statement
+  } elsif ($thing == 3) {
+    handle_thing_being_three();  # uncoverable statement
   } else {
-    die "thing can only be one or two, not $thing"; # uncoverable statement
+    die "thing is $thing";       # uncoverable statement
   }
 
 =head3 Conditions
@@ -2018,7 +2033,14 @@ C<Or> conditionals are handled in a similar fashion (TODO - provide some
 examples) but C<xor> conditionals are not properly handled yet.
 
 As for branches, the "count" value may be used for either conditions in elsif
-conditionals, or for complex conditions.
+conditionals, or for complex conditions.  Unlike branches, a condition in an
+elsif is addressed at the elsif's own line.  When one line holds several
+condition ops, count:n selects them outermost first, so for C<$a && $b && $c>
+count:1 is the outer op and count:2 the inner C<$a && $b>.  To see the
+grouping perl uses, run the expression through B::Deparse:
+
+  perl -MO=Deparse,-p -e '$a && $b && $c'
+  (($a and $b) and $c);
 
 =head3 MC/DC
 
