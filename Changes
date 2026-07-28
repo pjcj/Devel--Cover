@@ -1,6 +1,26 @@
 Devel::Cover history
 
 {{$NEXT}}
+- BREAKING: Require a type word, all or when on branch, condition and mcdc
+  uncoverable comments - a bare comment previously marked the first element
+  silently (GH-481)
+- Add an all type to uncoverable comments, marking every element of a branch,
+  condition or MC/DC decision at once (GH-481)
+- Add a when attribute to uncoverable condition comments, naming truth-table
+  rows by their operand values as the report shows them, e.g. when:0X, with
+  comma lists for several rows (GH-481)
+- Deprecate the uncoverable condition type words left, right and false -
+  using one warns and names the when replacement for the op (GH-481)
+- Attach uncoverable comments to the next line of code past blank lines and
+  other comments - they were previously discarded silently (GH-481)
+- Warn about uncoverable comments that match nothing - a wrong criterion, a
+  count past the constructs on the line, a type with no row or an unknown
+  attribute - instead of ignoring them silently (GH-481)
+- Require uncoverable to start the comment - quoted syntax in prose
+  previously created stray comments (GH-481)
+- Document uncoverable comments in full: placement for if/elsif chains, count
+  addressing of stacked ops, condition truth-table rows, and the branches of
+  unless, until and loop conditions (GH-481, GH-242)
 - Run each cpancover build container as an ordinary user (GH-670)
 - Limit each cpancover build container to the resources a build needs - CPU,
   process count, open files, file size, Linux capabilities and privilege
