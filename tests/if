@@ -22,6 +22,12 @@ unless ($x) {
     $q++
 }
 
+unless ($x) {
+  $q++
+} else {
+  $p++
+}
+
 $x = 1;
 
 if ($x) {
@@ -36,4 +42,10 @@ if ($x) {
 
 unless ($x) {
     $s++
+}
+
+unless ($x) {
+  $s++
+} else {
+  $r++
 }

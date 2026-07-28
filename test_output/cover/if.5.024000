@@ -87,11 +87,11 @@ line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 17    ***     50      0      1   if ($x)
 21    ***     50      1      0   unless ($x)
-25    ***     50      1      0   if (not $x) { }
+25    ***     50      0      1   if ($x) { }
 33    ***     50      1      0   if ($x)
 37    ***     50      1      0   if ($x) { }
 43    ***     50      0      1   unless ($x)
-47    ***     50      0      1   if (not $x) { }
+47    ***     50      1      0   if ($x) { }
 
 
 Covered Subroutines
