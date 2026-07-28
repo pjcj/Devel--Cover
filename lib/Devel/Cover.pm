@@ -2025,6 +2025,38 @@ Marking each element separately:
     die "thing is $thing";       # uncoverable statement
   }
 
+=head4 unless, until and loop conditions
+
+A block C<unless> with no C<else>, the C<if> and C<unless> statement
+modifiers, and the conditions of C<while>, C<until> and C-style C<for> loops
+all compile to plain logops and are reported as two-element branches.  The
+report renormalises the text: C<while> conditions display as C<if (...)> and
+C<until> conditions as C<unless (...)>.  In every case the "true" element
+means the guarded code ran - the C<unless> body, or an iteration of the loop
+body - and the "false" element means it did not.  For C<unless> and C<until>
+this inverts the condition as written: the body of C<unless ($x)> runs on
+its "true" branch, when C<$x> is false.
+
+  # uncoverable branch true
+  unless ($x) { something_impossible() }
+
+An C<unless>/C<else> is different, and how it is reported depends on the
+perl version.  Up to 5.22 perl negates the condition, so the report
+displays C<if (not $x)> and the "true" element is the C<unless> body
+running.  From 5.24 perl swaps the blocks instead, so the report displays
+C<if ($x)> and the "true" element is the condition being true - the
+C<else> block of the C<unless> running.  The comment addresses the C<if>
+the report shows, so the same comment marks opposite outcomes either side
+of that boundary.  This confusion is one more reason to avoid
+C<unless>/C<else> altogether.
+
+A constant condition, as in C<unless (0)>, is folded away at compile time
+and leaves no branch to mark, so a comment there warns as unmatched.
+
+A condition inside any of these, such as C<unless ($a && $b)> or C<while
+($a && $b)>, is instrumented on its own terms, with the same truth-table
+rows as anywhere else.
+
 =head3 Conditions
 
 Because Perl short-circuits boolean operations, a condition has several
