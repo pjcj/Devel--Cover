@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# __COVER__ criteria statement branch condition
+
+# Uncoverable comments on flow control: unless, while, until, C-style for
+# and statement modifiers all report their conditions as two-element
+# branches whose true element means the guarded code ran.
+
+use strict;
+use warnings;
+
+my ($t, $f) = (1, 0);
+my $r;
+
+# uncoverable branch true
+unless ($t) {
+  $r = "u1";  # uncoverable statement
+}
+
+# uncoverable branch false
+unless ($f) {
+  $r = "u2";
+}
+
+# uncoverable branch true
+# uncoverable condition when:01,00
+unless ($t || $f) {
+  $r = "u3";  # uncoverable statement
+}
+
+# uncoverable branch true
+while ($f) {
+  $r = "w1";  # uncoverable statement
+}
+
+# uncoverable branch true
+until ($t) {
+  $r = "t1";  # uncoverable statement
+}
+
+# uncoverable branch true
+for (my $i = 5; $i < 3; $i++) {
+  $r = "f1";  # uncoverable statement
+}
+
+# uncoverable branch true
+$r = "m1" unless $t;
+
+# uncoverable branch false
+$r = "m2" if $t;
