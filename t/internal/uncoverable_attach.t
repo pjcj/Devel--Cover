@@ -96,6 +96,26 @@ PERL
     "comment: comment attaches to the code line";
 }
 
+sub test_comment_after_code_is_recognised () {
+  my ($unc, $warnings) = parse_comments(<<'PERL');
+my $n = 1;
+$n++;  # uncoverable statement
+PERL
+  is @$warnings, 0, "after code: no warnings";
+  is_deeply $unc->{digest}{statement}{2}, [[[undef, "default", ""]]],
+    "after code: comment applies to its own line";
+}
+
+sub test_quoted_syntax_in_prose_is_ignored () {
+  my ($unc, $warnings) = parse_comments(<<'PERL');
+my $n = 1;
+# see the docs for "# uncoverable branch true" comments
+if ($n == 0) { }
+PERL
+  is @$warnings, 0, "prose: no warnings";
+  ok !exists $unc->{digest}{branch}, "prose: quoted syntax creates nothing";
+}
+
 sub test_trailing_annotation_warns () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
@@ -112,6 +132,8 @@ sub main () {
   test_attaches_to_next_line;
   test_skips_blank_line;
   test_skips_ordinary_comment;
+  test_comment_after_code_is_recognised;
+  test_quoted_syntax_in_prose_is_ignored;
   test_trailing_annotation_warns;
 }
 

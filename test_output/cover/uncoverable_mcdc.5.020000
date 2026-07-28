@@ -70,7 +70,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 32                                             # true, so the inner $a && !$b outcome - the row $b's MC/DC independence pair
 33                                             # needs - can never occur.  The plain condition marker on that inner outcome
 34                                             # (count:2 selects the inner $a && $b) now also excuses $b for MC/DC, derived
-35                                             # from the compound truth table with no separate uncoverable mcdc comment.
+35                                             # from the compound truth table with no separate "# uncoverable mcdc" needed.
 36                                             sub compound_inner {
 37             3                           3     my ($a, $c) = @_;
 38             3                                 my $b = 1;

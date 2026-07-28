@@ -991,7 +991,8 @@ sub _uncoverable_details ($criterion, $info, $file, $line) {
 
 sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
   my $cr = join "|", $self->{all_criteria}->@*;
-  my $uc = qr/(.*)# uncoverable ($cr)(.*)/;  # regex for uncoverable comments
+  # "uncoverable" must be the first text in the comment
+  my $uc = qr/^([^#]*)# uncoverable ($cr)(.*)/;
 
   # Look for uncoverable comments
   open my $fh, "<", $file or do {

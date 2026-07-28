@@ -32,7 +32,7 @@ sub left_always_true {
 # true, so the inner $a && !$b outcome - the row $b's MC/DC independence pair
 # needs - can never occur.  The plain condition marker on that inner outcome
 # (count:2 selects the inner $a && $b) now also excuses $b for MC/DC, derived
-# from the compound truth table with no separate uncoverable mcdc comment.
+# from the compound truth table with no separate "# uncoverable mcdc" needed.
 sub compound_inner {
   my ($a, $c) = @_;
   my $b = 1;
