@@ -1,0 +1,119 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# Uncoverable comments on their own line must attach to the next line of
+# code, skipping blank lines and ordinary comments (GH-481).  One with
+# nothing but blanks or comments after it must warn, not vanish.
+
+use 5.20.0;
+use warnings;
+use feature qw( postderef signatures );
+no warnings qw( experimental::postderef experimental::signatures );
+
+use FindBin ();
+use lib "$FindBin::Bin/../lib", $FindBin::Bin,
+  qw( ./lib ./blib/lib ./blib/arch );
+
+use File::Spec ();
+use File::Temp qw( tempdir );
+use Test::More import => [qw( done_testing is is_deeply like ok )];
+
+use Devel::Cover::DB ();
+
+my $Tmpdir = tempdir(CLEANUP => 1);
+
+{
+  no feature "signatures";
+
+  sub warnings_from (&) {
+    my ($code) = @_;
+    my $err = "";
+    open my $save_err, ">&", \*STDERR or die "Cannot dup STDERR: $!";
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">", \$err or die "Cannot redirect STDERR: $!";
+    $code->();
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">&", $save_err or die "Cannot restore STDERR: $!";
+    [split /(?<=\n)/, $err]
+  }
+}
+
+sub parse_comments ($source) {
+  my $path = File::Spec->catfile($Tmpdir, "source.pl");
+  open my $fh, ">", $path or die "Cannot write $path: $!";
+  print $fh $source;
+  close $fh or die "Cannot close $path: $!";
+
+  my $unc      = {};
+  my $warnings = warnings_from {
+    Devel::Cover::DB->new->uncoverable_comments($unc, $path, "digest");
+  };
+  ($unc, $warnings, $path)
+}
+
+sub test_attaches_to_next_line () {
+  my ($unc, $warnings) = parse_comments(<<'PERL');
+my $n = 1;
+# uncoverable branch true
+if ($n == 0) { }
+PERL
+  is @$warnings, 0, "adjacent: no warnings";
+  is_deeply $unc->{digest}{branch}{3}, [[[0, "default", ""]]],
+    "adjacent: comment attaches to the code line";
+}
+
+sub test_skips_blank_line () {
+  my ($unc, $warnings) = parse_comments(<<'PERL');
+my $n = 1;
+# uncoverable branch true
+
+if ($n == 0) { }
+PERL
+  is @$warnings, 0, "blank: no warnings";
+  ok !exists $unc->{digest}{branch}{3},
+    "blank: nothing attaches to the blank line";
+  is_deeply $unc->{digest}{branch}{4}, [[[0, "default", ""]]],
+    "blank: comment attaches to the code line";
+}
+
+sub test_skips_ordinary_comment () {
+  my ($unc, $warnings) = parse_comments(<<'PERL');
+my $n = 1;
+# uncoverable branch true
+# just an ordinary comment
+if ($n == 0) { }
+PERL
+  is @$warnings, 0, "comment: no warnings";
+  ok !exists $unc->{digest}{branch}{3},
+    "comment: nothing attaches to the comment line";
+  is_deeply $unc->{digest}{branch}{4}, [[[0, "default", ""]]],
+    "comment: comment attaches to the code line";
+}
+
+sub test_trailing_annotation_warns () {
+  my ($unc, $warnings, $path) = parse_comments(<<'PERL');
+my $n = 1;
+# uncoverable branch true
+
+PERL
+  is @$warnings, 1, "trailing: one warning";
+  like $warnings->[0], qr/unmatched uncoverable comments/,
+    "trailing: warning names the problem";
+  ok !exists $unc->{digest}{branch}, "trailing: nothing attaches";
+}
+
+sub main () {
+  test_attaches_to_next_line;
+  test_skips_blank_line;
+  test_skips_ordinary_comment;
+  test_trailing_annotation_warns;
+}
+
+main;
+done_testing;

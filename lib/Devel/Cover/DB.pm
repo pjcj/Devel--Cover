@@ -1017,7 +1017,9 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
       next unless $code =~ /\S/;
     }
 
-    # found what we are waiting for
+    # uncoverable comments wait for the next line of code
+    next if $l =~ /^\s*(?:#|$)/;
+
     while (my $w = shift @waiting) {
       my ($criterion, $count, $type, $class, $note) = @$w;
       push $uncoverable->{$digest}{$criterion}{$.}[$count]->@*,

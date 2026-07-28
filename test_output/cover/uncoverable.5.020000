@@ -41,33 +41,39 @@ line  err   stmt   bran   cond   mcdc    sub   code
 15                                             # uncoverable branch true
 16                                             # uncoverable condition left
 17                                             # uncoverable condition false
-18             1   - 50   - 33   -  0          if ($x && !$y) {
-19            -0                                   $x++;  # uncoverable statement
-20                                                 # uncoverable statement
-21            -0                                   z();
-22                                             }
-23                                             
-24                                             # uncoverable branch true
-25                                             # uncoverable condition right
-26                                             # uncoverable condition false
-27             1   - 50   - 33   -  0          if (!$x && $y) {
-28                                                 # uncoverable statement count:1
-29                                                 # uncoverable statement count:2
-30            -0                                   b(); b();
-              -0                               
-31                                             
-32                                                 # uncoverable statement count:1,2
-33            -0                                   b(); b();
-              -0                               
-34                                             
-35                                                 # uncoverable statement count:1..4
-36            -0                                   b(); b(); b(); b();
-              -0                               
-              -0                               
+18                                             
+19             1   - 50   - 33   -  0          if ($x && !$y) {
+20            -0                                   $x++;  # uncoverable statement
+21                                                 # uncoverable statement
+22            -0                                   z();
+23                                             }
+24                                             
+25                                             # uncoverable branch true
+26                                             # uncoverable condition right
+27                                             # uncoverable condition false
+28                                             
+29                                             
+30                                             # an ordinary comment between the markers
+31                                               # and the code
+32                                             
+33             1   - 50   - 33   -  0          if (!$x && $y) {
+34                                                 # uncoverable statement count:1
+35                                                 # uncoverable statement count:2
+36            -0                                   b(); b();
               -0                               
 37                                             
-38                                                 # uncoverable statement count:1,2,3..4,5..7,8,9,10..11,12
-39            -0                                   b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b();
+38                                                 # uncoverable statement count:1,2
+39            -0                                   b(); b();
+              -0                               
+40                                             
+41                                                 # uncoverable statement count:1..4
+42            -0                                   b(); b(); b(); b();
+              -0                               
+              -0                               
+              -0                               
+43                                             
+44                                                 # uncoverable statement count:1,2,3..4,5..7,8,9,10..11,12
+45            -0                                   b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b();
               -0                               
               -0                               
               -0                               
@@ -79,32 +85,32 @@ line  err   stmt   bran   cond   mcdc    sub   code
               -0                               
               -0                               
               -0                               
-40                                             }
-41                                             
-42                                             sub z {
-43                                                 # uncoverable subroutine
-44            -0                          -0       $y++; # uncoverable statement
-45                                             }
-46                                             
-47                                             # uncoverable branch false count:1
-48                                             # uncoverable branch true  count:2
-49                                             # uncoverable branch false count:2
-50                                             # uncoverable condition left
-51                                             # uncoverable condition right
-52             1   - 50   - 33   -  0          if ($x > 0 && $y > 0) {
+46                                             }
+47                                             
+48                                             sub z {
+49                                                 # uncoverable subroutine
+50            -0                          -0       $y++; # uncoverable statement
+51                                             }
+52                                             
+53                                             # uncoverable branch false count:1
+54                                             # uncoverable branch true  count:2
+55                                             # uncoverable branch false count:2
+56                                             # uncoverable condition left
+57                                             # uncoverable condition right
+58             1   - 50   - 33   -  0          if ($x > 0 && $y > 0) {
                    -  0                        
-53             1                                   $y++;
-54                                             # uncoverable condition left
-55                                             # uncoverable condition right
-56                                             # uncoverable condition false
-57                        -  0   -  0          } elsif ($x < 2 && $y < 0) {
-58            -0                                   $y++; # uncoverable statement
-59                                             } else {
-60            -0                                   $y++; # uncoverable statement
-61                                             }
-62                                             
-63                                             # uncoverable statement
-64                                             # uncoverable subroutine
+59             1                                   $y++;
+60                                             # uncoverable condition left
+61                                             # uncoverable condition right
+62                                             # uncoverable condition false
+63                        -  0   -  0          } elsif ($x < 2 && $y < 0) {
+64            -0                                   $y++; # uncoverable statement
+65                                             } else {
+66            -0                                   $y++; # uncoverable statement
+67                                             }
+68                                             
+69                                             # uncoverable statement
+70                                             # uncoverable subroutine
 
 
 Branches
@@ -112,9 +118,9 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-18          - 50     -0      1   if ($x and not $y)
-27          - 50     -0      1   if (not $x and $y)
-52          - 50      1     -0   if ($x > 0 and $y > 0) { }
+19          - 50     -0      1   if ($x and not $y)
+33          - 50     -0      1   if (not $x and $y)
+58          - 50      1     -0   if ($x > 0 and $y > 0) { }
             -  0     -0     -0   elsif ($x < 2 and $y < 0) { }
 
 
@@ -125,10 +131,10 @@ and 3 conditions
 
 line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
-18          - 33     -0      1     -0   $x and not $y
-27          - 33      1     -0     -0   not $x and $y
-52          - 33     -0     -0      1   $x > 0 and $y > 0
-57          -  0     -0     -0     -0   $x < 2 and $y < 0
+19          - 33     -0      1     -0   $x and not $y
+33          - 33      1     -0     -0   not $x and $y
+58          - 33     -0     -0      1   $x > 0 and $y > 0
+63          -  0     -0     -0     -0   $x < 2 and $y < 0
 
 
 MC/DC
@@ -136,10 +142,10 @@ MC/DC
 
 line  err      %  cov  tot   missing                expr
 ----- --- ------ ---- ----   --------------------   ----
-18          -  0    0    2                          $x and not $y
-27          -  0    0    2                          not $x and $y
-52          -  0    0    2                          $x > 0 and $y > 0
-57          -  0    0    2                          $x < 2 and $y < 0
+19          -  0    0    2                          $x and not $y
+33          -  0    0    2                          not $x and $y
+58          -  0    0    2                          $x > 0 and $y > 0
+63          -  0    0    2                          $x < 2 and $y < 0
 
 
 Uncovered Subroutines
@@ -147,6 +153,6 @@ Uncovered Subroutines
 
 Subroutine Count  CC  SCAR Location            
 ---------- ----- --- ----- --------------------
-z             -0   1   0.0 tests/uncoverable:44
+z             -0   1   0.0 tests/uncoverable:50
 
 

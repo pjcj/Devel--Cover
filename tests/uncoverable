@@ -15,6 +15,7 @@ my $y = 1;
 # uncoverable branch true
 # uncoverable condition left
 # uncoverable condition false
+
 if ($x && !$y) {
     $x++;  # uncoverable statement
     # uncoverable statement
@@ -24,6 +25,11 @@ if ($x && !$y) {
 # uncoverable branch true
 # uncoverable condition right
 # uncoverable condition false
+
+
+# an ordinary comment between the markers
+  # and the code
+
 if (!$x && $y) {
     # uncoverable statement count:1
     # uncoverable statement count:2
