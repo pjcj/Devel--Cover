@@ -13,8 +13,8 @@ my $x = 1;
 my $y = 1;
 
 # uncoverable branch true
-# uncoverable condition left
-# uncoverable condition false
+# uncoverable condition when:0X
+# uncoverable condition when:11
 
 if ($x && !$y) {
     $x++;  # uncoverable statement
@@ -23,8 +23,8 @@ if ($x && !$y) {
 }
 
 # uncoverable branch true
-# uncoverable condition right
-# uncoverable condition false
+# uncoverable condition when:10
+# uncoverable condition when:11
 
 
 # an ordinary comment between the markers
@@ -53,13 +53,13 @@ sub z {
 # uncoverable branch false count:1
 # uncoverable branch true  count:2
 # uncoverable branch false count:2
-# uncoverable condition left
-# uncoverable condition right
+# uncoverable condition when:0X
+# uncoverable condition when:10
 if ($x > 0 && $y > 0) {
     $y++;
-# uncoverable condition left
-# uncoverable condition right
-# uncoverable condition false
+  # uncoverable condition when:0X
+  # uncoverable condition when:10
+  # uncoverable condition when:11
 } elsif ($x < 2 && $y < 0) {
     $y++; # uncoverable statement
 } else {

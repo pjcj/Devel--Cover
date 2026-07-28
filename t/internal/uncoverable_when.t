@@ -109,12 +109,40 @@ PERL
   ok !$op->uncoverable($_), "no row: row @{[ $_ + 1 ]} untouched" for 0 .. 2;
 }
 
+sub test_deprecated_words_suggest_when () {
+  my ($cover, $warnings, $path) = covered_when("deprecated", <<'PERL');
+my ($t, $f) = (1, 0);
+# uncoverable condition false
+my $r = $t && $f;
+PERL
+  is @$warnings, 1, "deprecated: one warning";
+  my $dep = qr/Uncoverable condition false is deprecated/;
+  like $warnings->[0], qr/$dep - use when:11 at \Q$path\E:3/,
+    "deprecated: warning names the when: replacement for the op";
+  my $op = $cover->file($path)->criterion("condition")->location(3)->[0];
+  ok $op->uncoverable(2), "deprecated: the word still marks its row";
+}
+
+sub test_deprecated_word_without_row_warns () {
+  my ($cover, $warnings, $path) = covered_when("deprecated_no_row", <<'PERL');
+my $n = 0;
+# uncoverable condition false
+my $r = $n // 1;
+PERL
+  is @$warnings, 1, "deprecated no row: one warning";
+  like $warnings->[0],
+    qr/Uncoverable condition false does not apply at \Q$path\E:3/,
+    "deprecated no row: only the does-not-apply warning";
+}
+
 sub main () {
   test_when_patterns_parse;
   test_when_restrictions;
   test_when_reaches_the_fourth_xor_row;
   test_when_matches_the_op_rows;
   test_when_without_matching_row_warns;
+  test_deprecated_words_suggest_when;
+  test_deprecated_word_without_row_warns;
 }
 
 main;

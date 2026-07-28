@@ -74,7 +74,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 36                                             sub compound_inner {
 37             3                           3     my ($a, $c) = @_;
 38             3                                 my $b = 1;
-39                                               # uncoverable condition right count:2
+39                                               # uncoverable condition when:10 count:2
 40             3           100   - 66            return $a && $b && $c;
                           - 66                 
 41                                             }

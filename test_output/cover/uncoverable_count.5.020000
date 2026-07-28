@@ -73,21 +73,21 @@ line  err   stmt   bran   cond   code
 42                               # uncoverable branch true count:1
 43                               # uncoverable branch true count:2
 44                               # uncoverable branch false count:3
-45                               # uncoverable condition left
-46                               # uncoverable condition false
+45                               # uncoverable condition when:0X
+46                               # uncoverable condition when:11
 47             1   - 50   - 33   if ($From < $Start && $Until < $End) {
                    - 50          
                    - 50          
 48            -0                   $R = "a";  # uncoverable statement
-49                                            # uncoverable condition right count:1
-50                                            # uncoverable condition false count:1
-51                                            # uncoverable condition right count:2
-52                                            # uncoverable condition false count:2
+49                                            # uncoverable condition when:10 count:1
+50                                            # uncoverable condition when:11 count:1
+51                                            # uncoverable condition when:10 count:2
+52                                            # uncoverable condition when:11 count:2
 53                        - 33   } elsif ($From >= $Start && $From < $End && $Until >= $End) {
                           - 33   
 54            -0                   $R = "b";  # uncoverable statement
-55                                            # uncoverable condition left
-56                                            # uncoverable condition right
+55                                            # uncoverable condition when:0X
+56                                            # uncoverable condition when:10
 57                        - 33   } elsif ($From < $Start && $Until >= $End) {
 58             1                   $R = "c";
 59                               }

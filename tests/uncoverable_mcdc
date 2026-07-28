@@ -36,7 +36,7 @@ sub left_always_true {
 sub compound_inner {
   my ($a, $c) = @_;
   my $b = 1;
-  # uncoverable condition right count:2
+  # uncoverable condition when:10 count:2
   return $a && $b && $c;
 }
 

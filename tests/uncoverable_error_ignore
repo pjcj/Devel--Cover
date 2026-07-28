@@ -30,7 +30,7 @@ sub main {
 
     my $y = 0;
     # uncoverable branch true
-    # uncoverable condition right
+    # uncoverable condition when:10
     if ($x > 0 && $y > 0) {
         # uncoverable statement
         $y = 1;
@@ -38,8 +38,8 @@ sub main {
 
     while ($y < 4) {
         # uncoverable branch false
-        # uncoverable condition left
-        # uncoverable condition right
+        # uncoverable condition when:0X
+        # uncoverable condition when:10
         if ($x > 0 && $y > 0) {
             $y = 4;
         } else {

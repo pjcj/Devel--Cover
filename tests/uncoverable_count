@@ -42,18 +42,18 @@ my ($From, $Until, $Start, $End) = (5, 20, 10, 15);
 # uncoverable branch true count:1
 # uncoverable branch true count:2
 # uncoverable branch false count:3
-# uncoverable condition left
-# uncoverable condition false
+# uncoverable condition when:0X
+# uncoverable condition when:11
 if ($From < $Start && $Until < $End) {
   $R = "a";  # uncoverable statement
-             # uncoverable condition right count:1
-             # uncoverable condition false count:1
-             # uncoverable condition right count:2
-             # uncoverable condition false count:2
+             # uncoverable condition when:10 count:1
+             # uncoverable condition when:11 count:1
+             # uncoverable condition when:10 count:2
+             # uncoverable condition when:11 count:2
 } elsif ($From >= $Start && $From < $End && $Until >= $End) {
   $R = "b";  # uncoverable statement
-             # uncoverable condition left
-             # uncoverable condition right
+             # uncoverable condition when:0X
+             # uncoverable condition when:10
 } elsif ($From < $Start && $Until >= $End) {
   $R = "c";
 }

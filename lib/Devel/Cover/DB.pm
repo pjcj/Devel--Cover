@@ -771,6 +771,20 @@ sub add_time ($self, $cc, $sc, $fc, $) {
   }
 }
 
+# Condition words are deprecated and stay verbatim until the op is known;
+# branch words become element indexes at parse time
+my %Uncoverable_types = (
+  statement  => undef,
+  subroutine => undef,
+  pod        => undef,
+  branch     => { true => 0, false => 1, all => undef },
+  condition  =>
+    { left => "left", right => "right", false => "false", all => undef },
+  mcdc => { all => undef },
+);
+
+my %Condition_word_row = (left => 0, right => 1, false => 2);
+
 # An "all" comment parses to an undefined element index
 sub _flag_uncoverable ($entry, $uncoverable, $counts) {
   for my $u (($uncoverable // [])->@*) {
@@ -838,11 +852,11 @@ sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
 #       observed_vectors() below.
 sub observed_vectors ($entry) { $entry->[3] }
 
-# A "when:<inputs>" mark resolves to the row whose operand values match;
-# marks matching no row are dropped here and warned about at report time
+# A "when:<inputs>" mark resolves to the row whose operand values match, a
+# deprecated word to its fixed row; marks naming no row are dropped here
+# and warned about at report time
 sub _resolve_condition_uncoverable ($marks, $type) {
-  return $marks
-    unless $marks && any { defined $_->[0] && $_->[0] =~ /^when:/ } @$marks;
+  return $marks unless $marks && any { defined $_->[0] } @$marks;
   require Devel::Cover::Condition_table;
   my $patterns = Devel::Cover::Condition_table->input_patterns($type) // [];
   my %row;
@@ -850,9 +864,13 @@ sub _resolve_condition_uncoverable ($marks, $type) {
   [
     map {
       my ($t, @rest) = @$_;
-      defined $t && $t =~ /^when:(.+)$/s
-        ? (defined $row{$1} ? [$row{$1}, @rest] : ())
-        : $_
+      if    (!defined $t) { $_ }
+      elsif ($t =~ /^when:(.+)$/s) {
+        defined $row{$1} ? [$row{$1}, @rest] : ()
+      } else {
+        my $i = $Condition_word_row{$t};
+        defined $i && $i < @$patterns ? [$i, @rest] : ()
+      }
     } @$marks
   ]
 }
@@ -981,15 +999,6 @@ sub delete_uncoverable ($self, $deletes) {
 
 sub clean_uncoverable ($self) {
 }
-
-my %Uncoverable_types = (
-  statement  => undef,
-  subroutine => undef,
-  pod        => undef,
-  branch     => { true => 0, false => 1, all   => undef },
-  condition  => { left => 0, right => 1, false => 2, all => undef },
-  mcdc       => { all  => undef },
-);
 
 # mcdc atomic condition N (1-based)
 sub _uncoverable_pair ($criterion, $pair, $has_type, $context) {
@@ -1381,36 +1390,42 @@ sub _cover_file (
 }
 
 # A mark that names no row, e.g. "condition false" on // or an unmatched when:
-sub _uncoverable_range_warnings ($criterion, $slot, $entry, $file, $line, $n) {
+sub _uncoverable_mark_warnings ($criterion, $slot, $entry, $file, $line, $n) {
   return unless $criterion eq "branch" || $criterion eq "condition";
   my $types = $Uncoverable_types{$criterion};
   my %words
     = map { defined $types->{$_} ? ($types->{$_} => $_) : () } keys %$types;
   my $columns = $entry->[0]->@*;
-  my $suffix  = $n ? " count:" . ($n + 1) : "";
+  my $at      = "at $file:$line" . ($n ? " count:" . ($n + 1) : "");
   my $patterns;
+  my $rows = sub {
+    $patterns //= do {
+      require Devel::Cover::Condition_table;
+      Devel::Cover::Condition_table->input_patterns($entry->[1]{type}) // []
+    }
+  };
   my @warnings;
 
   for my $mark (@$slot) {
     my $type = $mark->[0];
     next unless defined $type;
-    my $desc;
+    my $text;
     if ($type =~ /^when:(.+)$/s) {
       my $pattern = $1;
-      $patterns //= do {
-        require Devel::Cover::Condition_table;
-        Devel::Cover::Condition_table->input_patterns($entry->[1]{type}) // []
-      };
-      next if any { $_ eq $pattern } @$patterns;
-      $desc = $type;
+      next if any { $_ eq $pattern } $rows->()->@*;
+      $text = "Uncoverable $criterion $type does not apply $at";
+    } elsif (defined(my $row = $Condition_word_row{$type})) {
+      my $replacement = $rows->()->[$row];
+      $text
+        = defined $replacement
+        ? "Uncoverable condition $type is deprecated"
+        . " - use when:$replacement $at"
+        : "Uncoverable condition $type does not apply $at";
     } else {
       next if $type < $columns;
-      $desc = $words{$type};
+      $text = "Uncoverable $criterion $words{$type} does not apply $at";
     }
-    push @warnings, [
-        $line, $criterion,
-        "Uncoverable $criterion $desc does not apply at $file:$line$suffix",
-      ];
+    push @warnings, [$line, $criterion, $text];
   }
   @warnings
 }
@@ -1435,7 +1450,7 @@ sub _warn_unmatched_uncoverable ($self, $cover, $uncoverable, $digests) {
           next unless $slot && @$slot;
           if ($got && defined $got->[$n]) {
             push @warnings,
-              _uncoverable_range_warnings(
+              _uncoverable_mark_warnings(
                 $criterion, $slot, $got->[$n], $file, $line, $n,
               );
             next;

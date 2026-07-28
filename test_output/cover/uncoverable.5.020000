@@ -39,8 +39,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 13             1                               my $y = 1;
 14                                             
 15                                             # uncoverable branch true
-16                                             # uncoverable condition left
-17                                             # uncoverable condition false
+16                                             # uncoverable condition when:0X
+17                                             # uncoverable condition when:11
 18                                             
 19             1   - 50   - 33   -  0          if ($x && !$y) {
 20            -0                                   $x++;  # uncoverable statement
@@ -49,8 +49,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 23                                             }
 24                                             
 25                                             # uncoverable branch true
-26                                             # uncoverable condition right
-27                                             # uncoverable condition false
+26                                             # uncoverable condition when:10
+27                                             # uncoverable condition when:11
 28                                             
 29                                             
 30                                             # an ordinary comment between the markers
@@ -95,14 +95,14 @@ line  err   stmt   bran   cond   mcdc    sub   code
 53                                             # uncoverable branch false count:1
 54                                             # uncoverable branch true  count:2
 55                                             # uncoverable branch false count:2
-56                                             # uncoverable condition left
-57                                             # uncoverable condition right
+56                                             # uncoverable condition when:0X
+57                                             # uncoverable condition when:10
 58             1   - 50   - 33   -  0          if ($x > 0 && $y > 0) {
                    -  0                        
 59             1                                   $y++;
-60                                             # uncoverable condition left
-61                                             # uncoverable condition right
-62                                             # uncoverable condition false
+60                                               # uncoverable condition when:0X
+61                                               # uncoverable condition when:10
+62                                               # uncoverable condition when:11
 63                        -  0   -  0          } elsif ($x < 2 && $y < 0) {
 64            -0                                   $y++; # uncoverable statement
 65                                             } else {

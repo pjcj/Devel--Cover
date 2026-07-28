@@ -146,7 +146,7 @@ sub test_type_in_range_is_quiet () {
     "type_in_range", <<'PERL', criteria => ["statement", "condition"]);
 my $n = 0;
 my $m = 1;
-# uncoverable condition false
+# uncoverable condition when:00
 my $r = $n || $m;
 PERL
   is @$warnings, 0, "type in range: no warnings";
