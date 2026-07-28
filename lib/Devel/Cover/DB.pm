@@ -1290,6 +1290,36 @@ sub _cover_file (
   }
 }
 
+sub _warn_unmatched_uncoverable ($self, $cover, $uncoverable, $digests) {
+  for my $digest (
+    sort { $digests->{$a} cmp $digests->{$b} } keys %$uncoverable
+  ) {
+    my $file = $digests->{$digest} or next;
+    my $cf   = $cover->{$file}     or next;
+    my $u    = $uncoverable->{$digest};
+    my @unmatched;
+    for my $criterion (sort keys %$u) {
+      next unless exists $self->{collected}{$criterion};
+      my $cc = $cf->{$criterion} // {};
+      my $cl = $u->{$criterion};
+      for my $line (keys %$cl) {
+        my $slots = $cl->{$line};
+        my $got   = $cc->{$line};
+        for my $n (0 .. $#$slots) {
+          next unless $slots->[$n] && $slots->[$n]->@*;
+          next if $got && defined $got->[$n];
+          push @unmatched, [$line, $criterion, $n];
+        }
+      }
+    }
+    for my $w (sort { $a->[0] <=> $b->[0] || $a->[1] cmp $b->[1] } @unmatched) {
+      my ($line, $criterion, $n) = @$w;
+      dcwarn "Unmatched uncoverable $criterion comment at $file:$line"
+        . ($n ? " count:" . ($n + 1) : "");
+    }
+  }
+}
+
 sub cover ($self) {
   return $self->{cover} if $self->{cover_valid};
 
@@ -1331,6 +1361,7 @@ sub cover ($self) {
   }
 
   $self->_derive_mcdc($cover, $uncoverable) if exists $self->{collected}{mcdc};
+  $self->_warn_unmatched_uncoverable($cover, $uncoverable, \%digests);
 
   $self->objectify_cover;
   if ($self->{files}->@*) {
