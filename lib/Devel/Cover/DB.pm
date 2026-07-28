@@ -771,6 +771,14 @@ sub add_time ($self, $cc, $sc, $fc, $) {
   }
 }
 
+# An "all" comment parses to an undefined element index
+sub _flag_uncoverable ($entry, $uncoverable, $counts) {
+  for my $u (($uncoverable // [])->@*) {
+    my @indexes = defined $u->[0] ? $u->[0] : (0 .. $counts->$#*);
+    $entry->[2][$_] ||= $u->[1] for @indexes;
+  }
+}
+
 sub add_branch ($self, $cc, $sc, $fc, $uc) {
   my %line;
   for my $i (0 .. $#$fc) {
@@ -788,7 +796,7 @@ sub add_branch ($self, $cc, $sc, $fc, $uc) {
     } else {
       $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
     }
-    $cc->{$l}[$n][2][$_->[0]] ||= $_->[1] for $uc->{$l}[$n]->@*;
+    _flag_uncoverable($cc->{$l}[$n], $uc->{$l}[$n], $fc->[$i]);
   }
 }
 
@@ -851,7 +859,7 @@ sub add_condition ($self, $cc, $sc, $fc, $uc, $di = undef) {
     } else {
       $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
     }
-    $cc->{$l}[$n][2][$_->[0]] ||= $_->[1] for $uc->{$l}[$n]->@*;
+    _flag_uncoverable($cc->{$l}[$n], $uc->{$l}[$n], $fc->[$i]);
 
     if (my $obs = $di && $di->[$i]) {
       my $merged = $cc->{$l}[$n][3] //= {};
@@ -953,18 +961,19 @@ sub clean_uncoverable ($self) {
 
 sub _uncoverable_details ($criterion, $info, $file, $line) {
   my %types = (
-    branch    => { true => 0, false => 1 },
-    condition => { left => 0, right => 1, false => 2 },
+    branch    => { true => 0, false => 1, all   => undef },
+    condition => { left => 0, right => 1, false => 2, all => undef },
+    mcdc      => { all  => undef },
   );
-  my ($count, $class, $note, $type) = (1, "default", "");
+  my ($count, $class, $note, $type, $has_type) = (1, "default", "");
 
-  if ($criterion eq "branch" || $criterion eq "condition") {
+  if (my $types = $types{$criterion}) {
     if ($info =~ /^\s*(\w+)(?:\s|$)/) {
-      my $t = $1;
-      $type = $types{$criterion}{$t};
-      unless (defined $type) {
-        warn "Unknown type $t found parsing "
-          . "uncoverable $criterion at $file:$line\n";
+      $has_type = 1;
+      if (exists $types->{$1}) { $type = $types->{$1} }
+      else {
+        dcwarn "Unknown type $1 found parsing "
+          . "uncoverable $criterion at $file:$line";
         $type = 999;  # partly magic number
       }
     }
@@ -978,12 +987,18 @@ sub _uncoverable_details ($criterion, $info, $file, $line) {
   if ($info =~ /note:(.+)/)   { $note  = $1 }
   # mcdc atomic condition N (1-based)
   if ($info =~ /pair:(\d+)/) {
+    $has_type = 1;
     if ($1) { $type = $1 - 1 }
     else {
       dcwarn "Invalid pair:$1 (pairs are numbered from 1) parsing "
         . "uncoverable $criterion at $file:$line";
       return;
     }
+  }
+
+  if ($types{$criterion} && !$has_type) {
+    dcwarn "Missing type parsing uncoverable $criterion at $file:$line";
+    return;
   }
 
   (\@counts, $type, $class, $note)
@@ -1029,8 +1044,8 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
   }
   close $fh or warn "Devel::Cover: Can't close $file: $!\n";
 
-  warn scalar @waiting,
-    " unmatched uncoverable comments not found at end of $file\n"
+  dcwarn scalar @waiting
+    . " unmatched uncoverable comments not found at end of $file"
     if @waiting;
 
   # TODO - read in and merge $self->uncoverable;

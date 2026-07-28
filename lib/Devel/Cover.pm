@@ -1993,6 +1993,16 @@ anchored to the line of the opening if, so the comments for the whole chain
 go above that line.  Here $thing is always one, leaving five uncoverable
 branch outcomes:
 
+The "all" type marks both elements of a branch with one comment.  It is the
+natural form for a branch that can never run at all, such as an elsif in a
+chain that is never reached, so the example below can also be written:
+
+  # uncoverable branch false count:1
+  # uncoverable branch all count:2
+  # uncoverable branch all count:3
+
+Marking each element separately:
+
   # uncoverable branch false count:1
   # uncoverable branch true count:2
   # uncoverable branch false count:2
@@ -2032,6 +2042,9 @@ conditions may be modelled thus:
 C<Or> conditionals are handled in a similar fashion (TODO - provide some
 examples) but C<xor> conditionals are not properly handled yet.
 
+The "all" type marks every outcome of the condition with one comment, which
+suits a condition that can never be evaluated at all.
+
 As for branches, the "count" value may be used for either conditions in elsif
 conditionals, or for complex conditions.  Unlike branches, a condition in an
 elsif is addressed at the elsif's own line.  When one line holds several
@@ -2048,9 +2061,9 @@ An MC/DC decision can be uncoverable when an atomic condition's independence
 pair can never be formed, for example the right operand of C<//> in C<< $x //=
 $default >> when C<$default> is always defined.
 
-A bare comment marks every atomic condition of the decision uncoverable:
+The "all" type marks every atomic condition of the decision uncoverable:
 
-  # uncoverable mcdc
+  # uncoverable mcdc all
   $x //= $default;
 
 The "pair" attribute marks a single atomic condition by its position (1-based,
