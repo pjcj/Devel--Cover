@@ -1289,6 +1289,16 @@ sub test_proven_compound_observed () {
   ok $t->proven, "compound decision is proven once observed vectors apply";
 }
 
+sub test_input_patterns () {
+  my $ip = sub ($type) { Devel::Cover::Condition_table->input_patterns($type) };
+  is_deeply $ip->("and_2"), [qw( 0 1 )],         "and_2 input patterns";
+  is_deeply $ip->("or_2"),  [qw( 1 0 )],         "or_2 input patterns";
+  is_deeply $ip->("and_3"), [qw( 0X 10 11 )],    "and_3 input patterns";
+  is_deeply $ip->("or_3"),  [qw( 1X 01 00 )],    "or_3 input patterns";
+  is_deeply $ip->("xor_4"), [qw( 11 10 01 00 )], "xor_4 input patterns";
+  is $ip->("unknown"), undef, "unknown type gives undef";
+}
+
 sub main () {
   test_proven_single_logop;
   test_proven_compound_synthesised;
@@ -1333,6 +1343,7 @@ sub main () {
   test_observed_vectors_mixed_chain;
   test_observed_vectors_indexed_at_root;
   test_negated_subexpr;
+  test_input_patterns;
   done_testing;
 }
 

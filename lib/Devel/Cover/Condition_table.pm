@@ -67,6 +67,16 @@ my $Max_width = 16;
 
 sub max_width ($class) { $Max_width }
 
+sub input_patterns ($class, $type) {
+  state $patterns = {
+    map {
+      my $t = $_;
+      ($t => [map join("", $_->[0]->@*), $Primitive{$t}->@*])
+    } keys %Primitive
+  };
+  $patterns->{$type}
+}
+
 sub _hits ($condition) {
   map { defined && $_ > 0 ? 1 : 0 } $condition->[0]->@*
 }
@@ -403,6 +413,12 @@ the expression and labels but no rows.
 
 Class method.  The per-decision analysis limit of 16 atomic conditions, matching
 C<DC_MAX_DECISION_WIDTH> in the XS recorder.
+
+=head2 input_patterns ($type)
+
+Class method.  Returns an arrayref of the input patterns for a primitive
+condition type, one string per truth-table row in stored hit order, e.g.
+C<["0X", "10", "11"]> for C<and_3>.  Returns undef for an unknown type.
 
 =head2 apply_observed_vectors ($rows, $obs, $expr)
 
