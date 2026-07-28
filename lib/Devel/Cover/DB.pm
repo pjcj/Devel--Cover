@@ -961,46 +961,71 @@ sub clean_uncoverable ($self) {
 
 sub _uncoverable_details ($criterion, $info, $file, $line) {
   my %types = (
-    branch    => { true => 0, false => 1, all   => undef },
-    condition => { left => 0, right => 1, false => 2, all => undef },
-    mcdc      => { all  => undef },
+    statement  => undef,
+    subroutine => undef,
+    pod        => undef,
+    branch     => { true => 0, false => 1, all   => undef },
+    condition  => { left => 0, right => 1, false => 2, all => undef },
+    mcdc       => { all  => undef },
   );
+  my $context = "parsing uncoverable $criterion at $file:$line";
+
+  unless (exists $types{$criterion}) {
+    dcwarn "Unsupported criterion $context";
+    return;
+  }
+  my $types = $types{$criterion};
+
   my ($count, $class, $note, $type, $has_type) = (1, "default", "");
 
-  if (my $types = $types{$criterion}) {
-    if ($info =~ /^\s*(\w+)(?:\s|$)/) {
+  if ($info =~ s/(?:^|\s)note:(.+)$//s) { $note = $1 }
+  my @words = split " ", $info;
+
+  if ($types && @words && $words[0] =~ /^\w+$/) {
+    my $word = shift @words;
+    if (exists $types->{$word}) {
       $has_type = 1;
-      if (exists $types->{$1}) { $type = $types->{$1} }
-      else {
-        dcwarn "Unknown type $1 found parsing "
-          . "uncoverable $criterion at $file:$line";
-        $type = 999;  # partly magic number
-      }
+      $type     = $types->{$word};
+    } else {
+      dcwarn "Unknown type $word $context";
+      return;
     }
   }
 
   # e.g.: count:1 | count:2,5 | count:1,4..7
   my $c = qr/\d+(?:\.\.\d+)?/;
-  if ($info =~ /count:($c(?:,$c)*)/) { $count = $1 }
-  my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/, $count;
-  if ($info =~ /class:(\w+)/) { $class = $1 }
-  if ($info =~ /note:(.+)/)   { $note  = $1 }
-  # mcdc atomic condition N (1-based)
-  if ($info =~ /pair:(\d+)/) {
-    $has_type = 1;
-    if ($1) { $type = $1 - 1 }
-    else {
-      dcwarn "Invalid pair:$1 (pairs are numbered from 1) parsing "
-        . "uncoverable $criterion at $file:$line";
-      return;
+  for my $word (@words) {
+    if ($word =~ /^count:($c(?:,$c)*)$/) { $count = $1; next }
+    if ($word =~ /^class:(\w+)$/)        { $class = $1; next }
+    if ($word =~ /^pair:(\d+)$/) {
+      # mcdc atomic condition N (1-based)
+      my $pair = $1;
+      if ($criterion ne "mcdc") {
+        dcwarn "Attribute pair applies only to mcdc $context";
+        return;
+      }
+      if ($has_type) {
+        dcwarn "Attribute pair conflicts with all $context";
+        return;
+      }
+      unless ($pair) {
+        dcwarn "Invalid pair:$pair (pairs are numbered from 1) $context";
+        return;
+      }
+      $has_type = 1;
+      $type     = $pair - 1;
+      next;
     }
-  }
-
-  if ($types{$criterion} && !$has_type) {
-    dcwarn "Missing type parsing uncoverable $criterion at $file:$line";
+    dcwarn "Invalid attribute $word $context";
     return;
   }
 
+  if ($types && !$has_type) {
+    dcwarn "Missing type $context";
+    return;
+  }
+
+  my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/, $count;
   (\@counts, $type, $class, $note)
 }
 
