@@ -128,6 +128,30 @@ PERL
     "sorted: condition warning second";
 }
 
+sub test_type_out_of_range_warns () {
+  my ($warnings, $path) = cover_warnings(
+    "type_range", <<'PERL', criteria => ["statement", "condition"]);
+my $n = 0;
+# uncoverable condition false
+my $r = $n // 1;
+PERL
+  is @$warnings, 1, "type range: one warning";
+  like $warnings->[0],
+    qr/Uncoverable condition false does not apply at \Q$path\E:3/,
+    "type range: warning names the type that has no column";
+}
+
+sub test_type_in_range_is_quiet () {
+  my ($warnings) = cover_warnings(
+    "type_in_range", <<'PERL', criteria => ["statement", "condition"]);
+my $n = 0;
+my $m = 1;
+# uncoverable condition false
+my $r = $n || $m;
+PERL
+  is @$warnings, 0, "type in range: no warnings";
+}
+
 sub test_silent_suppresses () {
   my $script = write_script("silent.pl", <<'PERL');
 my $n = 1;
@@ -151,6 +175,8 @@ sub main () {
   test_matched_comment_is_quiet;
   test_uncollected_criterion_is_quiet;
   test_warnings_are_sorted;
+  test_type_out_of_range_warns;
+  test_type_in_range_is_quiet;
   test_silent_suppresses;
 }
 

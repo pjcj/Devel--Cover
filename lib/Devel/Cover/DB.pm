@@ -959,22 +959,23 @@ sub delete_uncoverable ($self, $deletes) {
 sub clean_uncoverable ($self) {
 }
 
+my %Uncoverable_types = (
+  statement  => undef,
+  subroutine => undef,
+  pod        => undef,
+  branch     => { true => 0, false => 1, all   => undef },
+  condition  => { left => 0, right => 1, false => 2, all => undef },
+  mcdc       => { all  => undef },
+);
+
 sub _uncoverable_details ($criterion, $info, $file, $line) {
-  my %types = (
-    statement  => undef,
-    subroutine => undef,
-    pod        => undef,
-    branch     => { true => 0, false => 1, all   => undef },
-    condition  => { left => 0, right => 1, false => 2, all => undef },
-    mcdc       => { all  => undef },
-  );
   my $context = "parsing uncoverable $criterion at $file:$line";
 
-  unless (exists $types{$criterion}) {
+  unless (exists $Uncoverable_types{$criterion}) {
     dcwarn "Unsupported criterion $context";
     return;
   }
-  my $types = $types{$criterion};
+  my $types = $Uncoverable_types{$criterion};
 
   my ($count, $class, $note, $type, $has_type) = (1, "default", "");
 
@@ -1331,6 +1332,22 @@ sub _cover_file (
   }
 }
 
+# A type index past the entry's columns, e.g. "condition false" on //
+sub _uncoverable_range_warnings ($criterion, $slot, $entry, $file, $line, $n) {
+  return unless $criterion eq "branch" || $criterion eq "condition";
+  my $types = $Uncoverable_types{$criterion};
+  my %words
+    = map { defined $types->{$_} ? ($types->{$_} => $_) : () } keys %$types;
+  my $columns = $entry->[0]->@*;
+  my $suffix  = $n ? " count:" . ($n + 1) : "";
+  map [$line,
+    $criterion,
+    "Uncoverable $criterion $words{$_->[0]} does not apply"
+      . " at $file:$line$suffix",
+    ],
+    grep { defined $_->[0] && $_->[0] >= $columns } @$slot
+}
+
 sub _warn_unmatched_uncoverable ($self, $cover, $uncoverable, $digests) {
   for my $digest (
     sort { $digests->{$a} cmp $digests->{$b} } keys %$uncoverable
@@ -1338,7 +1355,7 @@ sub _warn_unmatched_uncoverable ($self, $cover, $uncoverable, $digests) {
     my $file = $digests->{$digest} or next;
     my $cf   = $cover->{$file}     or next;
     my $u    = $uncoverable->{$digest};
-    my @unmatched;
+    my @warnings;
     for my $criterion (sort keys %$u) {
       next unless exists $self->{collected}{$criterion};
       my $cc = $cf->{$criterion} // {};
@@ -1347,16 +1364,30 @@ sub _warn_unmatched_uncoverable ($self, $cover, $uncoverable, $digests) {
         my $slots = $cl->{$line};
         my $got   = $cc->{$line};
         for my $n (0 .. $#$slots) {
-          next unless $slots->[$n] && $slots->[$n]->@*;
-          next if $got && defined $got->[$n];
-          push @unmatched, [$line, $criterion, $n];
+          my $slot = $slots->[$n];
+          next unless $slot && @$slot;
+          if ($got && defined $got->[$n]) {
+            push @warnings,
+              _uncoverable_range_warnings(
+                $criterion, $slot, $got->[$n], $file, $line, $n,
+              );
+            next;
+          }
+          push @warnings, [
+              $line,
+              $criterion,
+              "Unmatched uncoverable $criterion comment at $file:$line"
+              . ($n ? " count:" . ($n + 1) : ""),
+            ];
         }
       }
     }
-    for my $w (sort { $a->[0] <=> $b->[0] || $a->[1] cmp $b->[1] } @unmatched) {
-      my ($line, $criterion, $n) = @$w;
-      dcwarn "Unmatched uncoverable $criterion comment at $file:$line"
-        . ($n ? " count:" . ($n + 1) : "");
+    for my $w (
+      sort {
+        $a->[0] <=> $b->[0] || $a->[1] cmp $b->[1] || $a->[2] cmp $b->[2]
+      } @warnings
+    ) {
+      dcwarn $w->[2];
     }
   }
 }
@@ -1369,7 +1400,6 @@ sub cover ($self) {
   my $cover       = $self->{cover} = {};
   my $uncoverable = {};
   my $st          = $self->{_structure} // do {
-    require Devel::Cover::DB::Structure;  ## no perlimports
     Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
   };
 
