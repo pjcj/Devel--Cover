@@ -838,6 +838,25 @@ sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
 #       observed_vectors() below.
 sub observed_vectors ($entry) { $entry->[3] }
 
+# A "when:<inputs>" mark resolves to the row whose operand values match;
+# marks matching no row are dropped here and warned about at report time
+sub _resolve_condition_uncoverable ($marks, $type) {
+  return $marks
+    unless $marks && any { defined $_->[0] && $_->[0] =~ /^when:/ } @$marks;
+  require Devel::Cover::Condition_table;
+  my $patterns = Devel::Cover::Condition_table->input_patterns($type) // [];
+  my %row;
+  @row{@$patterns} = 0 .. $#$patterns;
+  [
+    map {
+      my ($t, @rest) = @$_;
+      defined $t && $t =~ /^when:(.+)$/s
+        ? (defined $row{$1} ? [$row{$1}, @rest] : ())
+        : $_
+    } @$marks
+  ]
+}
+
 # Same merge as add_branch, plus an optional per-file decision-inputs arrayref
 # (parallel to $fc, indexed by flat per-file ordinal).  When a condition's flat
 # ordinal carries observed-vector data, it is merged into the condition entry's
@@ -859,7 +878,11 @@ sub add_condition ($self, $cc, $sc, $fc, $uc, $di = undef) {
     } else {
       $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
     }
-    _flag_uncoverable($cc->{$l}[$n], $uc->{$l}[$n], $fc->[$i]);
+    _flag_uncoverable(
+      $cc->{$l}[$n],
+      _resolve_condition_uncoverable($uc->{$l}[$n], $cc->{$l}[$n][1]{type}),
+      $fc->[$i],
+    );
 
     if (my $obs = $di && $di->[$i]) {
       my $merged = $cc->{$l}[$n][3] //= {};
@@ -968,6 +991,36 @@ my %Uncoverable_types = (
   mcdc       => { all  => undef },
 );
 
+# mcdc atomic condition N (1-based)
+sub _uncoverable_pair ($criterion, $pair, $has_type, $context) {
+  if ($criterion ne "mcdc") {
+    dcwarn "Attribute pair applies only to mcdc $context";
+    return;
+  }
+  if ($has_type) {
+    dcwarn "Attribute pair conflicts with all $context";
+    return;
+  }
+  unless ($pair) {
+    dcwarn "Invalid pair:$pair (pairs are numbered from 1) $context";
+    return;
+  }
+  [$pair - 1]
+}
+
+# truth-table rows by operand values, as shown in the report
+sub _uncoverable_when ($criterion, $patterns, $has_type, $context) {
+  if ($criterion ne "condition") {
+    dcwarn "Attribute when applies only to condition $context";
+    return;
+  }
+  if ($has_type) {
+    dcwarn "Attribute when conflicts with a type word $context";
+    return;
+  }
+  [map "when:" . uc, split /,/, $patterns]
+}
+
 sub _uncoverable_details ($criterion, $info, $file, $line) {
   my $context = "parsing uncoverable $criterion at $file:$line";
 
@@ -977,7 +1030,8 @@ sub _uncoverable_details ($criterion, $info, $file, $line) {
   }
   my $types = $Uncoverable_types{$criterion};
 
-  my ($count, $class, $note, $type, $has_type) = (1, "default", "");
+  my ($count, $class, $note) = (1, "default", "");
+  my (@types, $has_type);
 
   if ($info =~ s/(?:^|\s)note:(.+)$//s) { $note = $1 }
   my @words = split " ", $info;
@@ -986,7 +1040,7 @@ sub _uncoverable_details ($criterion, $info, $file, $line) {
     my $word = shift @words;
     if (exists $types->{$word}) {
       $has_type = 1;
-      $type     = $types->{$word};
+      @types    = $types->{$word};
     } else {
       dcwarn "Unknown type $word $context";
       return;
@@ -999,22 +1053,17 @@ sub _uncoverable_details ($criterion, $info, $file, $line) {
     if ($word =~ /^count:($c(?:,$c)*)$/) { $count = $1; next }
     if ($word =~ /^class:(\w+)$/)        { $class = $1; next }
     if ($word =~ /^pair:(\d+)$/) {
-      # mcdc atomic condition N (1-based)
-      my $pair = $1;
-      if ($criterion ne "mcdc") {
-        dcwarn "Attribute pair applies only to mcdc $context";
-        return;
-      }
-      if ($has_type) {
-        dcwarn "Attribute pair conflicts with all $context";
-        return;
-      }
-      unless ($pair) {
-        dcwarn "Invalid pair:$pair (pairs are numbered from 1) $context";
-        return;
-      }
+      my $pair = _uncoverable_pair($criterion, $1, $has_type, $context)
+        or return;
       $has_type = 1;
-      $type     = $pair - 1;
+      @types    = @$pair;
+      next;
+    }
+    if ($word =~ /^when:([01xX]+(?:,[01xX]+)*)$/) {
+      my $when = _uncoverable_when($criterion, $1, $has_type, $context)
+        or return;
+      $has_type = 1;
+      @types    = @$when;
       next;
     }
     dcwarn "Invalid attribute $word $context";
@@ -1025,9 +1074,10 @@ sub _uncoverable_details ($criterion, $info, $file, $line) {
     dcwarn "Missing type $context";
     return;
   }
+  @types = undef unless @types;
 
   my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/, $count;
-  (\@counts, $type, $class, $note)
+  (\@counts, \@types, $class, $note)
 }
 
 sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
@@ -1047,13 +1097,11 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
     next unless $l =~ /$uc/ || @waiting;
     if ($2) {
       my ($code, $criterion, $info) = ($1, $2, $3);
-      my ($counts, $type, $class, $note)
+      my ($counts, $types, $class, $note)
         = _uncoverable_details($criterion, $info, $file, $.);
 
       for my $c (($counts // [])->@*) {
-        # no warnings "uninitialized";
-        # warn "pushing $criterion, $c - 1, $type, $class, $note";
-        push @waiting, [$criterion, $c - 1, $type, $class, $note];
+        push @waiting, [$criterion, $c - 1, $_, $class, $note] for @$types;
       }
 
       next unless $code =~ /\S/;
@@ -1332,7 +1380,7 @@ sub _cover_file (
   }
 }
 
-# A type index past the entry's columns, e.g. "condition false" on //
+# A mark that names no row, e.g. "condition false" on // or an unmatched when:
 sub _uncoverable_range_warnings ($criterion, $slot, $entry, $file, $line, $n) {
   return unless $criterion eq "branch" || $criterion eq "condition";
   my $types = $Uncoverable_types{$criterion};
@@ -1340,12 +1388,31 @@ sub _uncoverable_range_warnings ($criterion, $slot, $entry, $file, $line, $n) {
     = map { defined $types->{$_} ? ($types->{$_} => $_) : () } keys %$types;
   my $columns = $entry->[0]->@*;
   my $suffix  = $n ? " count:" . ($n + 1) : "";
-  map [$line,
-    $criterion,
-    "Uncoverable $criterion $words{$_->[0]} does not apply"
-      . " at $file:$line$suffix",
-    ],
-    grep { defined $_->[0] && $_->[0] >= $columns } @$slot
+  my $patterns;
+  my @warnings;
+
+  for my $mark (@$slot) {
+    my $type = $mark->[0];
+    next unless defined $type;
+    my $desc;
+    if ($type =~ /^when:(.+)$/s) {
+      my $pattern = $1;
+      $patterns //= do {
+        require Devel::Cover::Condition_table;
+        Devel::Cover::Condition_table->input_patterns($entry->[1]{type}) // []
+      };
+      next if any { $_ eq $pattern } @$patterns;
+      $desc = $type;
+    } else {
+      next if $type < $columns;
+      $desc = $words{$type};
+    }
+    push @warnings, [
+        $line, $criterion,
+        "Uncoverable $criterion $desc does not apply at $file:$line$suffix",
+      ];
+  }
+  @warnings
 }
 
 sub _warn_unmatched_uncoverable ($self, $cover, $uncoverable, $digests) {
@@ -1400,6 +1467,7 @@ sub cover ($self) {
   my $cover       = $self->{cover} = {};
   my $uncoverable = {};
   my $st          = $self->{_structure} // do {
+    require Devel::Cover::DB::Structure;  ## no perlimports
     Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
   };
 
