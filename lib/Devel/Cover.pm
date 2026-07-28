@@ -1928,6 +1928,13 @@ followed by the name of the coverage criterion which is uncoverable.  There
 may then be further information depending on the nature of the uncoverable
 construct.
 
+Statements, subroutines and pod have a single outcome, so their comments need
+no further detail.  Branches, conditions and MC/DC decisions have several, so
+their comments must say which outcome is uncoverable: a type word such as
+"true" or "false", the "all" type which marks every outcome, a "when"
+pattern for conditions, or a "pair" position for MC/DC.  A comment which
+omits this, or which contains anything unrecognised, warns and is ignored.
+
 In all cases a L<class> attribute may be included in L<details>.  At present a
 single class attribute is recognised: L<ignore_covered_err>.  Normally, an
 error is flagged if code marked as L<uncoverable> is covered.  When the
@@ -1990,12 +1997,12 @@ If there is an elsif in the branch then it can be addressed as the second
 branch on the line by using the "count" attribute.  Further elsifs are the
 third and fourth "count" value, and so on.  Every branch in the chain is
 anchored to the line of the opening if, so the comments for the whole chain
-go above that line.  Here $thing is always one, leaving five uncoverable
-branch outcomes:
+go above that line.
 
 The "all" type marks both elements of a branch with one comment.  It is the
 natural form for a branch that can never run at all, such as an elsif in a
-chain that is never reached, so the example below can also be written:
+chain that is never reached.  Here $thing is always one, leaving five
+uncoverable branch outcomes:
 
   # uncoverable branch false count:1
   # uncoverable branch all count:2
@@ -2020,30 +2027,45 @@ Marking each element separately:
 
 =head3 Conditions
 
-Because of the way in which Perl short-circuits boolean operations, there are
-three ways in which such conditionals can be uncoverable.  In the case of C<
-$x && $y> for example, the left operator may never be true, the right operator
-may never be true, and the whole operation may never be false.  These
-conditions may be modelled thus:
+Because Perl short-circuits boolean operations, a condition has several
+distinct outcomes - one for each row of its truth table in the report.  A row
+is identified by the values of its operands: 0, 1 or X for an operand never
+evaluated.  The "when" attribute marks the row whose operand values match:
 
   # uncoverable branch true
-  # uncoverable condition left
-  # uncoverable condition false
+  # uncoverable condition when:0X
+  # uncoverable condition when:11
   if ($x && !$y) {
     $x++;  # uncoverable statement
   }
 
-  # uncoverable branch true
-  # uncoverable condition right
-  # uncoverable condition false
-  if (!$x && $y) {
-  }
+Here $x is always true, so the row where the left operand is false and the
+right never evaluated (0X) cannot occur, and !$y is always false, so the row
+where both operands are true (11) cannot occur either.  Several rows can be
+marked in one comment with a comma separated list:
 
-C<Or> conditionals are handled in a similar fashion (TODO - provide some
-examples) but C<xor> conditionals are not properly handled yet.
+  # uncoverable condition when:0X,11
+
+The rows for each kind of op, in report order, are:
+
+  $a && $b   0X 10 11
+  $a || $b   1X 01 00
+  $a xor $b  11 10 01 00
+
+An op whose right operand is a constant collapses to two rows holding the
+value of the left operand alone, 0 and 1 for C<&&>, or 1 and 0 for C<||> and
+C<//>.  A pattern which matches no row of the op warns when the report is
+generated.
 
 The "all" type marks every outcome of the condition with one comment, which
 suits a condition that can never be evaluated at all.
+
+The type words "left", "right" and "false" are deprecated.  They were named
+for the C<||> layout, where "left" is the row satisfied by the left operand,
+"right" the row satisfied by the right, and "false" the false outcome.  But
+they select rows by position - the first, second and third - which misleads
+elsewhere: on C<&&> "false" selects the 11 row, where the expression is
+true.  Using one warns, naming the "when" replacement for the op.
 
 As for branches, the "count" value may be used for either conditions in elsif
 conditionals, or for complex conditions.  Unlike branches, a condition in an
@@ -2072,14 +2094,14 @@ in the order the report lists them), leaving the rest counted as normal:
   # uncoverable mcdc pair:2
   $x = $a || $b || $c;
 
-An invalid position warns and the marker is ignored: C<pair:0> when the
+An invalid position warns and the comment is ignored: C<pair:0> when the
 comment is parsed, and a position greater than the number of atomic conditions
 in the decision when the report is generated.
 
-Condition markers also feed MC/DC: an atomic condition is excused
+Condition comments also feed MC/DC: an atomic condition is excused
 automatically when every route to demonstrating its independence needs a truth
 table row built from an outcome marked C<uncoverable condition>.  Use those
-markers when a particular outcome cannot occur, for example an error state
+comments when a particular outcome cannot occur, for example an error state
 that cannot be simulated.  If a pair could still be formed from rows not
 marked uncoverable, the atomic condition is reported missing - a test gap, not
 an excuse.  For a decision that can never execute at all, such as code inside
