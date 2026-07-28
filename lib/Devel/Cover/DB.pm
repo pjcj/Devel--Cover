@@ -771,6 +771,28 @@ sub add_time ($self, $cc, $sc, $fc, $) {
   }
 }
 
+# Condition words are deprecated and stay verbatim until the op is known;
+# branch words become element indexes at parse time
+my %Uncoverable_types = (
+  statement  => undef,
+  subroutine => undef,
+  pod        => undef,
+  branch     => { true => 0, false => 1, all => undef },
+  condition  =>
+    { left => "left", right => "right", false => "false", all => undef },
+  mcdc => { all => undef },
+);
+
+my %Condition_word_row = (left => 0, right => 1, false => 2);
+
+# An "all" comment parses to an undefined element index
+sub _flag_uncoverable ($entry, $uncoverable, $counts) {
+  for my $u (($uncoverable // [])->@*) {
+    my @indexes = defined $u->[0] ? $u->[0] : (0 .. $counts->$#*);
+    $entry->[2][$_] ||= $u->[1] for @indexes;
+  }
+}
+
 sub add_branch ($self, $cc, $sc, $fc, $uc) {
   my %line;
   for my $i (0 .. $#$fc) {
@@ -788,7 +810,7 @@ sub add_branch ($self, $cc, $sc, $fc, $uc) {
     } else {
       $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
     }
-    $cc->{$l}[$n][2][$_->[0]] ||= $_->[1] for $uc->{$l}[$n]->@*;
+    _flag_uncoverable($cc->{$l}[$n], $uc->{$l}[$n], $fc->[$i]);
   }
 }
 
@@ -830,6 +852,29 @@ sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
 #       observed_vectors() below.
 sub observed_vectors ($entry) { $entry->[3] }
 
+# A "when:<inputs>" mark resolves to the row whose operand values match, a
+# deprecated word to its fixed row; marks naming no row are dropped here
+# and warned about at report time
+sub _resolve_condition_uncoverable ($marks, $type) {
+  return $marks unless $marks && any { defined $_->[0] } @$marks;
+  require Devel::Cover::Condition_table;
+  my $patterns = Devel::Cover::Condition_table->input_patterns($type) // [];
+  my %row;
+  @row{@$patterns} = 0 .. $#$patterns;
+  [
+    map {
+      my ($t, @rest) = @$_;
+      if    (!defined $t) { $_ }
+      elsif ($t =~ /^when:(.+)$/s) {
+        defined $row{$1} ? [$row{$1}, @rest] : ()
+      } else {
+        my $i = $Condition_word_row{$t};
+        defined $i && $i < @$patterns ? [$i, @rest] : ()
+      }
+    } @$marks
+  ]
+}
+
 # Same merge as add_branch, plus an optional per-file decision-inputs arrayref
 # (parallel to $fc, indexed by flat per-file ordinal).  When a condition's flat
 # ordinal carries observed-vector data, it is merged into the condition entry's
@@ -851,7 +896,11 @@ sub add_condition ($self, $cc, $sc, $fc, $uc, $di = undef) {
     } else {
       $cc->{$l}[$n] = [$fc->[$i], $sc->[$i][1]];
     }
-    $cc->{$l}[$n][2][$_->[0]] ||= $_->[1] for $uc->{$l}[$n]->@*;
+    _flag_uncoverable(
+      $cc->{$l}[$n],
+      _resolve_condition_uncoverable($uc->{$l}[$n], $cc->{$l}[$n][1]{type}),
+      $fc->[$i],
+    );
 
     if (my $obs = $di && $di->[$i]) {
       my $merged = $cc->{$l}[$n][3] //= {};
@@ -951,47 +1000,99 @@ sub delete_uncoverable ($self, $deletes) {
 sub clean_uncoverable ($self) {
 }
 
-sub _uncoverable_details ($criterion, $info, $file, $line) {
-  my %types = (
-    branch    => { true => 0, false => 1 },
-    condition => { left => 0, right => 1, false => 2 },
-  );
-  my ($count, $class, $note, $type) = (1, "default", "");
+# mcdc atomic condition N (1-based)
+sub _uncoverable_pair ($criterion, $pair, $has_type, $context) {
+  if ($criterion ne "mcdc") {
+    dcwarn "Attribute pair applies only to mcdc $context";
+    return;
+  }
+  if ($has_type) {
+    dcwarn "Attribute pair conflicts with all $context";
+    return;
+  }
+  unless ($pair) {
+    dcwarn "Invalid pair:$pair (pairs are numbered from 1) $context";
+    return;
+  }
+  [$pair - 1]
+}
 
-  if ($criterion eq "branch" || $criterion eq "condition") {
-    if ($info =~ /^\s*(\w+)(?:\s|$)/) {
-      my $t = $1;
-      $type = $types{$criterion}{$t};
-      unless (defined $type) {
-        warn "Unknown type $t found parsing "
-          . "uncoverable $criterion at $file:$line\n";
-        $type = 999;  # partly magic number
-      }
+# truth-table rows by operand values, as shown in the report
+sub _uncoverable_when ($criterion, $patterns, $has_type, $context) {
+  if ($criterion ne "condition") {
+    dcwarn "Attribute when applies only to condition $context";
+    return;
+  }
+  if ($has_type) {
+    dcwarn "Attribute when conflicts with a type word $context";
+    return;
+  }
+  [map "when:" . uc, split /,/, $patterns]
+}
+
+sub _uncoverable_details ($criterion, $info, $file, $line) {
+  my $context = "parsing uncoverable $criterion at $file:$line";
+
+  unless (exists $Uncoverable_types{$criterion}) {
+    dcwarn "Unsupported criterion $context";
+    return;
+  }
+  my $types = $Uncoverable_types{$criterion};
+
+  my ($count, $class, $note) = (1, "default", "");
+  my (@types, $has_type);
+
+  if ($info =~ s/(?:^|\s)note:(.+)$//s) { $note = $1 }
+  my @words = split " ", $info;
+
+  if ($types && @words && $words[0] =~ /^\w+$/) {
+    my $word = shift @words;
+    if (exists $types->{$word}) {
+      $has_type = 1;
+      @types    = $types->{$word};
+    } else {
+      dcwarn "Unknown type $word $context";
+      return;
     }
   }
 
   # e.g.: count:1 | count:2,5 | count:1,4..7
   my $c = qr/\d+(?:\.\.\d+)?/;
-  if ($info =~ /count:($c(?:,$c)*)/) { $count = $1 }
-  my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/, $count;
-  if ($info =~ /class:(\w+)/) { $class = $1 }
-  if ($info =~ /note:(.+)/)   { $note  = $1 }
-  # mcdc atomic condition N (1-based)
-  if ($info =~ /pair:(\d+)/) {
-    if ($1) { $type = $1 - 1 }
-    else {
-      dcwarn "Invalid pair:$1 (pairs are numbered from 1) parsing "
-        . "uncoverable $criterion at $file:$line";
-      return;
+  for my $word (@words) {
+    if ($word =~ /^count:($c(?:,$c)*)$/) { $count = $1; next }
+    if ($word =~ /^class:(\w+)$/)        { $class = $1; next }
+    if ($word =~ /^pair:(\d+)$/) {
+      my $pair = _uncoverable_pair($criterion, $1, $has_type, $context)
+        or return;
+      $has_type = 1;
+      @types    = @$pair;
+      next;
     }
+    if ($word =~ /^when:([01xX]+(?:,[01xX]+)*)$/) {
+      my $when = _uncoverable_when($criterion, $1, $has_type, $context)
+        or return;
+      $has_type = 1;
+      @types    = @$when;
+      next;
+    }
+    dcwarn "Invalid attribute $word $context";
+    return;
   }
 
-  (\@counts, $type, $class, $note)
+  if ($types && !$has_type) {
+    dcwarn "Missing type $context";
+    return;
+  }
+  @types = undef unless @types;
+
+  my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/, $count;
+  (\@counts, \@types, $class, $note)
 }
 
 sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
   my $cr = join "|", $self->{all_criteria}->@*;
-  my $uc = qr/(.*)# uncoverable ($cr)(.*)/;  # regex for uncoverable comments
+  # "uncoverable" must be the first text in the comment
+  my $uc = qr/^([^#]*)# uncoverable ($cr)(.*)/;
 
   # Look for uncoverable comments
   open my $fh, "<", $file or do {
@@ -1005,19 +1106,19 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
     next unless $l =~ /$uc/ || @waiting;
     if ($2) {
       my ($code, $criterion, $info) = ($1, $2, $3);
-      my ($counts, $type, $class, $note)
+      my ($counts, $types, $class, $note)
         = _uncoverable_details($criterion, $info, $file, $.);
 
       for my $c (($counts // [])->@*) {
-        # no warnings "uninitialized";
-        # warn "pushing $criterion, $c - 1, $type, $class, $note";
-        push @waiting, [$criterion, $c - 1, $type, $class, $note];
+        push @waiting, [$criterion, $c - 1, $_, $class, $note] for @$types;
       }
 
       next unless $code =~ /\S/;
     }
 
-    # found what we are waiting for
+    # uncoverable comments wait for the next line of code
+    next if $l =~ /^\s*(?:#|$)/;
+
     while (my $w = shift @waiting) {
       my ($criterion, $count, $type, $class, $note) = @$w;
       push $uncoverable->{$digest}{$criterion}{$.}[$count]->@*,
@@ -1026,8 +1127,8 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
   }
   close $fh or warn "Devel::Cover: Can't close $file: $!\n";
 
-  warn scalar @waiting,
-    " unmatched uncoverable comments not found at end of $file\n"
+  dcwarn scalar @waiting
+    . " unmatched uncoverable comments not found at end of $file"
     if @waiting;
 
   # TODO - read in and merge $self->uncoverable;
@@ -1288,6 +1389,91 @@ sub _cover_file (
   }
 }
 
+# A mark that names no row, e.g. "condition false" on // or an unmatched when:
+sub _uncoverable_mark_warnings ($criterion, $slot, $entry, $file, $line, $n) {
+  return unless $criterion eq "branch" || $criterion eq "condition";
+  my $types = $Uncoverable_types{$criterion};
+  my %words
+    = map { defined $types->{$_} ? ($types->{$_} => $_) : () } keys %$types;
+  my $columns = $entry->[0]->@*;
+  my $at      = "at $file:$line" . ($n ? " count:" . ($n + 1) : "");
+  my $patterns;
+  my $rows = sub {
+    $patterns //= do {
+      require Devel::Cover::Condition_table;
+      Devel::Cover::Condition_table->input_patterns($entry->[1]{type}) // []
+    }
+  };
+  my @warnings;
+
+  for my $mark (@$slot) {
+    my $type = $mark->[0];
+    next unless defined $type;
+    my $text;
+    if ($type =~ /^when:(.+)$/s) {
+      my $pattern = $1;
+      next if any { $_ eq $pattern } $rows->()->@*;
+      $text = "Uncoverable $criterion $type does not apply $at";
+    } elsif (defined(my $row = $Condition_word_row{$type})) {
+      my $replacement = $rows->()->[$row];
+      $text
+        = defined $replacement
+        ? "Uncoverable condition $type is deprecated"
+        . " - use when:$replacement $at"
+        : "Uncoverable condition $type does not apply $at";
+    } else {
+      next if $type < $columns;
+      $text = "Uncoverable $criterion $words{$type} does not apply $at";
+    }
+    push @warnings, [$line, $criterion, $text];
+  }
+  @warnings
+}
+
+sub _warn_unmatched_uncoverable ($self, $cover, $uncoverable, $digests) {
+  for my $digest (
+    sort { $digests->{$a} cmp $digests->{$b} } keys %$uncoverable
+  ) {
+    my $file = $digests->{$digest} or next;
+    my $cf   = $cover->{$file}     or next;
+    my $u    = $uncoverable->{$digest};
+    my @warnings;
+    for my $criterion (sort keys %$u) {
+      next unless exists $self->{collected}{$criterion};
+      my $cc = $cf->{$criterion} // {};
+      my $cl = $u->{$criterion};
+      for my $line (keys %$cl) {
+        my $slots = $cl->{$line};
+        my $got   = $cc->{$line};
+        for my $n (0 .. $#$slots) {
+          my $slot = $slots->[$n];
+          next unless $slot && @$slot;
+          if ($got && defined $got->[$n]) {
+            push @warnings,
+              _uncoverable_mark_warnings(
+                $criterion, $slot, $got->[$n], $file, $line, $n,
+              );
+            next;
+          }
+          push @warnings, [
+              $line,
+              $criterion,
+              "Unmatched uncoverable $criterion comment at $file:$line"
+              . ($n ? " count:" . ($n + 1) : ""),
+            ];
+        }
+      }
+    }
+    for my $w (
+      sort {
+        $a->[0] <=> $b->[0] || $a->[1] cmp $b->[1] || $a->[2] cmp $b->[2]
+      } @warnings
+    ) {
+      dcwarn $w->[2];
+    }
+  }
+}
+
 sub cover ($self) {
   return $self->{cover} if $self->{cover_valid};
 
@@ -1329,6 +1515,7 @@ sub cover ($self) {
   }
 
   $self->_derive_mcdc($cover, $uncoverable) if exists $self->{collected}{mcdc};
+  $self->_warn_unmatched_uncoverable($cover, $uncoverable, \%digests);
 
   $self->objectify_cover;
   if ($self->{files}->@*) {

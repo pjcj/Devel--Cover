@@ -60,9 +60,9 @@ line  err   stmt   bran   cond   mcdc    sub   code
 28                                             
 29             1                                   my $y = 0;
 30                                                 # uncoverable branch true
-31                                                 # uncoverable condition left
-32                                                 # uncoverable condition right class:ignore_covered_err
-33                                                 # uncoverable condition false
+31                                                 # uncoverable condition when:0X
+32                                                 # uncoverable condition when:10 class:ignore_covered_err
+33                                                 # uncoverable condition when:11
 34             1   - 50   - 33   -  0              if ($x > 0 && $y > 0) {
 35                                                     # uncoverable statement
 36            -0                                       $y = 1;
@@ -70,8 +70,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 38                                             
 39             1    100                            while ($y < 4) {
 40                                                     # uncoverable branch false
-41                                                     # uncoverable condition left
-42                                                     # uncoverable condition right
+41                                                     # uncoverable condition when:0X
+42                                                     # uncoverable condition when:10
 43    ***      2  *-100  *- 66   - 50                  if ($x > 0 && $y > 0) {
 44             1                                           $y = 4;
 45                                                     } else {

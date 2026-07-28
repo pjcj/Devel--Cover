@@ -20,43 +20,9 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use File::Spec ();
-use File::Temp qw( tempdir );
 use Test::More import => [qw( done_testing is is_deeply like ok )];
 
-use Devel::Cover::DB ();
-
-my $Tmpdir = tempdir(CLEANUP => 1);
-
-{
-  no feature "signatures";
-
-  # Warnings go to STDERR via dcwarn, not through perl's warn.
-  sub warnings_from (&) {
-    my ($code) = @_;
-    my $err = "";
-    open my $save_err, ">&", \*STDERR or die "Cannot dup STDERR: $!";
-    close STDERR or die "Cannot close STDERR: $!";
-    open STDERR, ">", \$err or die "Cannot redirect STDERR: $!";
-    $code->();
-    close STDERR or die "Cannot close STDERR: $!";
-    open STDERR, ">&", $save_err or die "Cannot restore STDERR: $!";
-    [split /(?<=\n)/, $err]
-  }
-}
-
-sub parse_comments ($source) {
-  my $path = File::Spec->catfile($Tmpdir, "source.pl");
-  open my $fh, ">", $path or die "Cannot write $path: $!";
-  print $fh $source;
-  close $fh or die "Cannot close $path: $!";
-
-  my $unc      = {};
-  my $warnings = warnings_from {
-    Devel::Cover::DB->new->uncoverable_comments($unc, $path, "digest");
-  };
-  ($unc, $warnings, $path)
-}
+use Devel::Cover::Test::Internal qw( parse_comments warnings_from );
 
 sub test_pair_zero_is_rejected () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');

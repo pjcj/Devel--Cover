@@ -105,7 +105,7 @@ sub test_warning_respects_silent () {
 }
 
 sub test_uncoverable_marker_ignored_with_warning () {
-  my $source = "$Narrow$Decl\n# uncoverable mcdc\n$Wide\n";
+  my $source = "$Narrow$Decl\n# uncoverable mcdc all\n$Wide\n";
   my ($db, $path) = run_wide("too_wide_unc", $source);
   my ($err) = capture_stderr { $db->cover };
 

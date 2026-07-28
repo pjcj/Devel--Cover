@@ -13,7 +13,8 @@ use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
 use Exporter qw( import );
-our @EXPORT_OK = qw( write_script run_under_cover );
+our @EXPORT_OK
+  = qw( parse_comments run_under_cover warnings_from write_script );
 
 use Cwd        qw( abs_path );
 use File::Spec ();
@@ -30,6 +31,31 @@ sub write_script ($name, $content) {
   print $fh $content;
   close $fh or die "Cannot close $path: $!";
   $path
+}
+
+{
+  no feature "signatures";
+
+  sub warnings_from (&) {
+    my ($code) = @_;
+    my $err = "";
+    open my $save_err, ">&", \*STDERR or die "Cannot dup STDERR: $!";
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">", \$err or die "Cannot redirect STDERR: $!";
+    $code->();
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">&", $save_err or die "Cannot restore STDERR: $!";
+    [split /(?<=\n)/, $err]
+  }
+}
+
+sub parse_comments ($source) {
+  my $path     = write_script("source.pl", $source);
+  my $unc      = {};
+  my $warnings = warnings_from {
+    Devel::Cover::DB->new->uncoverable_comments($unc, $path, "digest");
+  };
+  ($unc, $warnings, $path)
 }
 
 sub run_under_cover ($script, $label, %opts) {
@@ -93,6 +119,22 @@ All functions are exported on request via L<Exporter>.
 
 Write C<$content> to a file called C<$name> in the shared temporary
 directory and return its path.
+
+=head2 warnings_from ($code)
+
+ my $warnings = warnings_from { $db->cover };
+
+Run C<$code> with STDERR captured and return an arrayref of the lines it
+wrote, keeping their trailing newlines.
+
+=head2 parse_comments ($source)
+
+ my ($unc, $warnings, $path) = parse_comments($source);
+
+Write C<$source> to a file, parse its uncoverable comments with
+L<Devel::Cover::DB/uncoverable_comments> under C<warnings_from>, and return
+the uncoverable data (keyed by the digest C<"digest">), the captured
+warnings and the file's path.
 
 =head2 run_under_cover ($script, $label, %opts)
 

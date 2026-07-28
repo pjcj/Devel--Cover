@@ -50,10 +50,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 12                                             
 13                                             # A // whose right operand is an always-defined variable: neither atomic
 14                                             # condition's independence pair can be formed, so the whole decision is
-15                                             # uncoverable for MC/DC.  A bare marker covers every column.
+15                                             # uncoverable for MC/DC.  The all type covers every column.
 16                                             sub dor_default {
 17             2                           2     my ($h, $k, $val) = @_;
-18                                               # uncoverable mcdc
+18                                               # uncoverable mcdc all
 19    ***      2          * 66   -  0            return $h->{$k} //= $val;
 20                                             }
 21                                             
@@ -74,7 +74,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 36                                             sub compound_inner {
 37             3                           3     my ($a, $c) = @_;
 38             3                                 my $b = 1;
-39                                               # uncoverable condition right count:2
+39                                               # uncoverable condition when:10 count:2
 40             3           100   - 66            return $a && $b && $c;
                           - 66                 
 41                                             }

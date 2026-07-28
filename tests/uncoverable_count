@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# __COVER__ criteria statement branch condition
+
+use strict;
+use warnings;
+
+my $R;
+
+# GH-481 - branch count:N addresses the Nth branch on the chain line, so
+# count:3 reaches the second elsif.
+
+my $N = 0;
+
+# uncoverable branch false count:1
+# uncoverable branch true count:2
+# uncoverable branch false count:2
+# uncoverable branch true count:3
+# uncoverable branch false count:3
+if ($N == 0) {
+  $R = "zero";
+} elsif ($N == 1) {
+  $R = "one";  # uncoverable statement
+} elsif ($N == 2) {
+  $R = "two";  # uncoverable statement
+} else {
+  $R = "three";  # uncoverable statement
+}
+
+# GH-242 - condition annotations anchor on the elsif's own line, and count:N
+# addresses stacked condition ops on one line, outer op first.
+
+my ($From, $Until, $Start, $End) = (5, 20, 10, 15);
+
+# uncoverable branch true count:1
+# uncoverable branch true count:2
+# uncoverable branch false count:3
+# uncoverable condition when:0X
+# uncoverable condition when:11
+if ($From < $Start && $Until < $End) {
+  $R = "a";  # uncoverable statement
+             # uncoverable condition when:10 count:1
+             # uncoverable condition when:11 count:1
+             # uncoverable condition when:10 count:2
+             # uncoverable condition when:11 count:2
+} elsif ($From >= $Start && $From < $End && $Until >= $End) {
+  $R = "b";  # uncoverable statement
+             # uncoverable condition when:0X
+             # uncoverable condition when:10
+} elsif ($From < $Start && $Until >= $End) {
+  $R = "c";
+}
+
+# Each of several if statements on one line adds its own branch, with count:N
+# walking them in textual order.
+
+my ($A, $B) = (1, 0);
+my ($X, $Y) = (0, 0);
+
+#<<<
+# uncoverable branch false count:1
+# uncoverable branch true count:2
+# uncoverable statement count:4
+if ($A) { $X = 1 } if ($B) { $Y = 1 }
+
+# uncoverable branch false count:1
+# uncoverable branch true count:2
+$X++ if $A; $Y++ if $B;
+#>>>

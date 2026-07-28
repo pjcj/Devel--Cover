@@ -12,10 +12,10 @@ use warnings;
 
 # A // whose right operand is an always-defined variable: neither atomic
 # condition's independence pair can be formed, so the whole decision is
-# uncoverable for MC/DC.  A bare marker covers every column.
+# uncoverable for MC/DC.  The all type covers every column.
 sub dor_default {
   my ($h, $k, $val) = @_;
-  # uncoverable mcdc
+  # uncoverable mcdc all
   return $h->{$k} //= $val;
 }
 
@@ -36,7 +36,7 @@ sub left_always_true {
 sub compound_inner {
   my ($a, $c) = @_;
   my $b = 1;
-  # uncoverable condition right count:2
+  # uncoverable condition when:10 count:2
   return $a && $b && $c;
 }
 
