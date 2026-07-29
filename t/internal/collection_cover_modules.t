@@ -65,7 +65,9 @@ my \$module = \$ARGV[-2];
 open my \$fh, ">>", \$ENV{STUB_LOG} or die "Can't open \$ENV{STUB_LOG}: \$!";
 print \$fh "\$module rebuild=", \$ENV{CPANCOVER_REBUILD} // "", "\\n";
 close \$fh or die "Can't close \$ENV{STUB_LOG}: \$!";
-mkdir "\$results_dir/\$dist" or die "Can't mkdir \$results_dir/\$dist: \$!";
+mkdir "\$results_dir/\$dist"
+  or -d "\$results_dir/\$dist"
+  or die "Can't mkdir \$results_dir/\$dist: \$!";
 open \$fh, ">", "\$results_dir/\$dist/cover.json" or die "Can't open: \$!";
 print \$fh "{}";
 close \$fh or die "Can't close: \$!";
@@ -73,7 +75,7 @@ EOS
 chmod 0755, "$Proj/utils/dc" or die "Can't chmod $Proj/utils/dc: $!";
 
 chdir "$Proj" or die "Can't chdir $Proj: $!";
-END { chdir "/" }  # let File::Temp remove $Proj
+END { chdir "/"; undef $Proj }  # $Proj must not be cleaned up before the chdir
 
 delete $ENV{CPANCOVER_REBUILD};
 
