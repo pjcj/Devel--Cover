@@ -26,8 +26,7 @@ use Devel::Cover::Inc         ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-# OPpSTATEMENT is imported conditionally in the BEGIN below (5.43.8+ only), so
-# the ## no perlimports keeps perlimports from adding it back to this list
+# OPpSTATEMENT is imported conditionally below - perlimports must not re-add it
 use B  ## no perlimports
   qw(
   main_cv
@@ -41,8 +40,7 @@ use B  ## no perlimports
   );
 use B::Deparse ();
 
-# OPpSTATEMENT (added in 5.43.8) authoritatively distinguishes statement-form
-# ops (if/unless/if-else) from expression-form (&&/and/?:)
+# OPpSTATEMENT (5.43.8+) distinguishes statement-form from expression-form ops
 BEGIN {
   my $v = $] >= 5.043008 ? 1 : 0;
   *Has_op_statement = sub () { $v };
@@ -56,7 +54,6 @@ use Time::HiRes ();
 use Devel::Cover::Core qw( remove_contained_paths );
 
 BEGIN {
-  # Use Pod::Coverage if it is available
   eval "use Pod::Coverage 0.06";
   # If there is any error other than a failure to locate, report it
   die $@ if $@ && $@ !~ m/Can't locate Pod\/Coverage.+pm in \@INC/;
@@ -68,8 +65,7 @@ BEGIN {
 
 my $Initialised;  # import() has been called
 
-my $Dir;                          # Directory in which coverage will be
-                                  # collected
+my $Dir;                          # Directory in which coverage is collected
 my $DB             = "cover_db";  # DB name
 my $Merge          = 1;           # Merge databases
 my $Summary        = 1;           # Output coverage summary
@@ -110,12 +106,7 @@ my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
                        emptyavhv|scalar|return|last|next|redo|goto|
                        exec|exit|warn)$/x;
 
-# Check whether the right operand of a logical op is a constant-like expression
-# whose truth value is fixed.  Unwraps sassign if present. Also handles
-# multiconcat (Perl 5.28+) with truthy literal text - the constant string is
-# element [1] of aux_list and does not depend on the CV passed.  We check
-# truthiness rather than mere non-emptiness because "0" is the one non-empty
-# string that is falsy in Perl.
+# The multiconcat string is aux_list element [1] and does not depend on the CV
 sub _is_const_right ($op) {
   my $rhs  = $op->name eq "sassign" ? $op->first : $op;
   my $name = $rhs->name;
@@ -125,20 +116,14 @@ sub _is_const_right ($op) {
   $aux[1]
 }
 
-# constant ops
-
 our $File;                # Last filename we saw.  (localised)
 our $Line;                # Last line number we saw.  (localised)
 our $Walk_seen;           # CVs walked this check_files run.  (localised)
-our $Collect;             # Whether or not we are collecting
-                          # coverage data.  We make two passes
-                          # over conditions.  (localised)
-our %Files;               # Whether we are interested in files
-                          # Used in runops function
+our $Collect;             # Whether we are collecting coverage data (localised)
+our %Files;               # Cached use_file decisions, read by the XS side
 our $Replace_ops;         # Whether we are replacing ops
 our $Silent;              # Output nothing. Can be used anywhere
-our $Ignore_covered_err;  # Don't flag an error when uncoverable
-                          # code is covered.
+our $Ignore_covered_err;  # Don't flag an error when uncoverable code runs
 our $Self_cover;          # Coverage of Devel::Cover
 
 BEGIN {
@@ -147,8 +132,7 @@ BEGIN {
     || ($ENV{PERL5OPT} || "") =~ /Devel::Cover/;
   *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 
-  # Default to the value baked in by Makefile.PL; override below if we can get
-  # the real @INC from a clean subprocess.
+  # Default to the @INC baked in by Makefile.PL, overridden below if possible
   @Inc = @Devel::Cover::Inc::Inc;
   if ($^X !~ /(?:apache2|httpd)$/ && !${^TAINT}) {
     eval {
@@ -325,8 +309,7 @@ sub _init_coverage {
 sub import ($class, @o) {
   return if $Initialised;
 
-  # Die tainting
-  # Anyone using this module can do worse things than messing with tainting
+  # Untaint - users of this module can do worse things than mess with tainting
   my $options = ($ENV{DEVEL_COVER_OPTIONS} || "") =~ /(.*)/ ? $1 : "";
   @o = (@o, split /,/, $options);
   defined or $_ = "" for @o;
@@ -417,7 +400,6 @@ sub get_coverage {
   return wantarray ? @names : "@names";  ## no critic (Wantarray)
 }
 
-# strip AutoSplit's #line suffix and resolve stale blib paths via %INC
 sub autosplit_parent ($file) {
   return $file unless $file =~ s/ \(autosplit into (.*)\)$//;
   my $al = $1;
@@ -435,9 +417,6 @@ sub autosplit_parent ($file) {
 
   my %File_cache;
 
-  # Recursion in normalised_file() is bad.  It can happen if a call from the sub
-  # evals something which wants to load a new module.  This has happened with
-  # the Storable backend.  I don't think it happens with the JSON backend.
   my $Normalising;
 
   sub normalised_file ($file) {
@@ -543,20 +522,17 @@ sub use_file ($file) {
     || $Silent
     || $file =~ $Devel::Cover::DB::Ignore_filenames;
 
-  add_cvs();  # add CVs now in case of symbol table manipulation
+  add_cvs();
   $Files{$file}
 }
 
-# A sub body may open with prologue ops before its first real statement:
-# a methstart op for a class method, and an introcv/clonecv pair for each
-# my sub it encloses.  None carry file information, so skip them.
+# Sub-body prologue ops that carry no file information
 my %Prologue_op = map { $_ => 1 } qw( methstart introcv clonecv );
 
 sub check_file ($cv) {
   return unless ref($cv) eq "B::CV";
 
   my $op = $cv->START;
-  # Advance past any prologue ops to reach the nextstate op with the file.
   $op = $op->next
     while ref($op) && $op->can("name") && $Prologue_op{ $op->name };
   return unless ref($op) eq "B::COP";
@@ -567,10 +543,6 @@ sub check_file ($cv) {
   $use
 }
 
-# A sub recovered through a reference is only wanted if it is a genuine named
-# sub.  An anon, or an internal clone with a generated name (Moose's ":around"
-# modifier CV, a pragma's BEGIN block), shares its body with a sub already
-# found the normal way and would otherwise be recorded a second time.
 sub recoverable_sub ($cv) {
   my $gv = $cv->GV;
   return 0 unless ref $gv && !$gv->isa("B::SPECIAL");
@@ -581,15 +553,6 @@ sub recoverable_sub ($cv) {
     && $name !~ /^(?:BEGIN|END|INIT|CHECK|UNITCHECK)$/
 }
 
-# Collect the named subs reachable from a pad slot by following a reference:
-# directly to a CV, or one level deep through a plain array or hash the sub
-# closes over.  That is where a method modifier keeps the original sub it
-# replaced in the symbol table, so without this its body is dropped from
-# coverage.  Descent stops after one container so a wrapper's own deeper
-# machinery is not reached.  Blessed containers are not descended, so a sub
-# closing over an object does not drag its whole graph in.  Magical containers
-# are not descended, since reading a tied one would run user code.  The $seen
-# hash guards a cyclic structure.
 sub ref_cvs ($sv, $seen, $depth = 1) {
   my $r = ref $sv or return ();
   if ($r ne "B::AV" && $r ne "B::HV") {
@@ -608,18 +571,13 @@ sub ref_cvs ($sv, $seen, $depth = 1) {
   map ref_cvs($_, $seen, $depth - 1), @elems
 }
 
-# The seen hash stops loops from self-referential pad entries
 sub pad_cvs ($cv, $seen = {}) {
   $seen->{$$cv}++;
   my $padlist = $cv->can("PADLIST") ? $cv->PADLIST : undef;
   my $array   = $padlist && $padlist->can("ARRAY") ? $padlist->ARRAY : undef;
   return unless $array && $array->can("ARRAY");
-  # A slot holding a CV directly is an anon prototype; a slot holding a
-  # reference may lead to a named sub swapped out of its glob by a wrapper
   my @cvs = grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
     map ref eq "B::CV" ? $_ : ref_cvs($_, $seen), $array->ARRAY;
-  # A my sub keeps its prototype in the padname's PROTOCV (5.22+), not the
-  # value slot, which is empty once its scope has exited
   my $names = $padlist->ARRAYelt(0);
   push @cvs, grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
     map ref && $_->can("PROTOCV") ? $_->PROTOCV : (), $names->ARRAY
@@ -654,11 +612,7 @@ sub sub_info ($cv) {
       $start = $lineseq->first;
       # methods defined with the class feature start with a methstart op
       $start = $start->sibling if $start->name eq "methstart";
-      # a sub enclosing a my sub wraps its introcv/clonecv prologue in a
-      # nested lineseq before the first statement; step past it to the
-      # sibling that holds the real first statement.  Identify the prologue
-      # by its leading introcv/clonecv so ordinary nested blocks, which
-      # start with a nextstate, are left alone.
+      # step past a my sub prologue wrapped in a nested lineseq
       if (
            $start->name eq "lineseq"
         && $start->can("first")
@@ -721,9 +675,6 @@ sub check_files {
     ($line, $name, $start ? $$start : 0)
   };
 
-  # A capture-free lexical sub shares its optree between clone and
-  # prototype, so both carry the same start op.  Keep one, or the sub is
-  # recorded twice - once from a value slot and once from a PROTOCV.
   my %seen_start;
   @Cvs = map $_->[0],
     sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] }
@@ -742,9 +693,6 @@ my %Parent_map;
 
 sub _op_parent ($op) { $Parent_map{$$op} }
 
-# Walk down through wrapper ops (null, not, scope, etc.) to find
-# the logop underneath that would have its own condition entry.
-# Returns ($op, $negated) where $negated counts not ops traversed.
 my %Is_condition_op = map { $_ => 1 } qw( and or dor xor );
 
 sub _skip_to_condop ($op) {
@@ -761,14 +709,12 @@ sub _skip_to_condop ($op) {
   ($op, $negated)
 }
 
-# Resolve a child op to its condition address and negation flag.
 sub _resolve_child_op ($child_op) {
   return unless $child_op;
   my ($op, $negated) = _skip_to_condop($child_op);
   ($op ? $$op : undef, $negated || undef)
 }
 
-# The CVs of every BEGIN/CHECK/INIT/END block, for a pad walk
 sub special_block_cvs {
   my @avs = B::begin_av();
   push @avs, B::check_av() if exists &B::check_av;
@@ -776,7 +722,6 @@ sub special_block_cvs {
   map $_->isa("B::AV") ? $_->ARRAY : (), @avs
 }
 
-# Feed pad-only anon subs into %Cvs before check_files snapshots @Cvs
 sub _seed_pad_cvs (@require_trees) {
   $Cvs{$_} ||= $_ for map pad_cvs($_->[0]), @require_trees;
   return if $Subs_only;
@@ -830,11 +775,6 @@ sub _report {
 
   $Coverage = coverage(1) || die "No coverage data available.\n";
 
-  # Required files keep their top-level optrees alive via the leaveeval
-  # hook.  A file required more than once (e.g. after delete $INC{...})
-  # captures one tree per compilation, each with distinct op addresses that
-  # %Seen cannot collapse, so keep only the most recent tree per file and
-  # every top-level statement and branch is recorded once.
   my @require_trees = get_require_trees();
   my %latest_tree;
   $latest_tree{ $_->[2] } = $_ for @require_trees;
@@ -862,11 +802,6 @@ sub _report {
   }
   get_cover_progress("CV", @Cvs);
   unless ($Subs_only) {
-    # The eval CVs have no ROOT so the root op rides alongside, as with
-    # main_cv/main_root.  There is no set_subroutine call for top-level
-    # code, so establish the structure's file context here or the per-file
-    # counters would run against the wrong file.  The file-scope anon subs
-    # were already covered via @Cvs above.
     _report_progress(
       "getting require file coverage",
       sub ($tree) {
@@ -986,11 +921,6 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
     || $type eq "or"
     || ($type eq "elsif" && !exists $Coverage->{branch}{$key})
   ) {
-    # and   => this could also be a plain if with no else or elsif
-    # or    => this could also be an unless with no else or elsif
-    # elsif => no subsequent elsifs or elses
-    # True path taken if not short circuited.
-    # False path taken if short circuited.
     $c = [$c->[1] + $c->[2], $c->[3]];
   } else {
     $c = $Coverage->{branch}{$key} || [0, 0];
@@ -1008,11 +938,6 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
   }
 }
 
-# Reorder the raw condition counts into truth-table order and return
-# (counts, operand-count, void-collapsed-flag).  An or/and collapses to its
-# 2-count form in void context or with a constant right operand; a genuine
-# (non-constant) right operand collapsed in void context is flagged so MC/DC
-# can rebuild the full decision.
 sub _condition_counts ($c, $type, $op) {
   no warnings "uninitialized";
 
@@ -1218,8 +1143,6 @@ sub get_cover ($cv, $root = undef) {
   }
 }
 
-# XS op tree walker path
-
 my $Shared_deparse;
 my $Current_cop;
 
@@ -1239,9 +1162,6 @@ sub _deparse_expr ($cv, $op, $cx, $use_dumper = 1) {
   _with_deparse($cv, $use_dumper, sub { $Shared_deparse->deparse($op, $cx) })
 }
 
-# Like _deparse_expr but uses B::Deparse's deparse_binop_left to avoid
-# spurious parentheses when left-associative same-precedence ops nest
-# (e.g. the inner && in "$a && $b && $c").
 sub _deparse_binop_left ($cv, $op, $child, $prec, $use_dumper = 1) {
   _with_deparse(
     $cv,
@@ -1258,8 +1178,6 @@ my %Logop_params = (
   dor => ["//",  10],
 );
 
-# Check if a null-statement op is inside a cond_expr/elsif condition
-# lineseq (a dead COP from the compiler's scope creation).
 sub _in_cond_expr_scope ($op) {
   my $p = _op_parent($op);
   return unless $p && $$p && $p->name eq "lineseq";
@@ -1267,8 +1185,6 @@ sub _in_cond_expr_scope ($op) {
   $gp && $$gp && ($gp->name eq "cond_expr" || $Seen{cond_expr}{$$gp})
 }
 
-# Check if a nextstate op is inside a signature argcheck block without
-# a default-value sibling (i.e. plain param bookkeeping to skip).
 sub _in_signature_argcheck ($op) {
   my $p = _op_parent($op);
   return unless $p && $$p && $p->name eq "lineseq";
@@ -1287,8 +1203,7 @@ sub _in_signature_argcheck ($op) {
 }
 
 sub _walk_statement ($op, $type) {
-  # Guard: skip statements with no real successors (trailing closing
-  # braces, comment-only files, etc.)
+  # Skip statements with no real successors (trailing braces etc.)
   my $nnnext = "";
   eval {
     my $next  = $op->next;
@@ -1300,29 +1215,18 @@ sub _walk_statement ($op, $type) {
   if ($type eq "null_statement") {
     my $class = B::class($op);
     return if $class eq "NULL";
-    # Skip ex-nextstates inside cond_expr/elsif condition lineseqs -
-    # these are dead COPs from the compiler's scope creation, not real
-    # source statements.  Still update $File/$Line/$Current_cop so
-    # that condition coverage for ops in this scope gets the right
-    # line attribution.
+    # A dead COP - record only the location for this scope's conditions
     if (_in_cond_expr_scope($op)) {
       bless $op, "B::COP";
       get_location($op);
       $Current_cop = $op;
-      # Leave blessed as B::COP - pragmata() needs COP methods.
-      # The SV is mortal (from the XS callback) so this is safe.
+      # Stays blessed as B::COP for pragmata() - safe, the SV is mortal
       return;
     }
     bless $op, "B::COP";
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
     bless $op, "B::$class";
   } else {
-    # Skip nextstates inside signature argcheck blocks unless they
-    # precede a default value.  Plain param assignments and argcheck
-    # are bookkeeping; defaults are real conditional code.
-    # Two optree layouts:
-    #   5.38+:  nextstate → argelem(OPf_KIDS) → argdefelem
-    #   5.43.4+: nextstate → null(OPf_KIDS) → paramtest
     return if _in_signature_argcheck($op);
     $Current_cop = $op;
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
@@ -1387,9 +1291,6 @@ sub _walk_cond_expr ($cv, $op) {
   }
 }
 
-# Walk through null/ex-ops, stopping at block boundaries.
-# Returns ($parent, $early_cx) - $early_cx is defined if a
-# boundary was hit and the caller should return that value.
 sub _skip_null_parents ($parent, $highprec, $lowprec) {
   while ($$parent && $parent->name eq "null") {
     if (my $targ = $parent->targ) {
@@ -1403,9 +1304,6 @@ sub _skip_null_parents ($parent, $highprec, $lowprec) {
   ($parent, undef)
 }
 
-# Determine cx for a logop whose parent is a lineseq.
-# Returns 1 if the lineseq is inside a cond_expr/elsif wrapper, 0
-# otherwise.
 sub _lineseq_parent_cx ($parent) {
   my $gp = _op_parent($parent);
   return 0 unless $gp && $$gp;
@@ -1414,40 +1312,26 @@ sub _lineseq_parent_cx ($parent) {
   0
 }
 
-# Determine cx for a logop by walking up the parent chain.
-# B::Deparse determines cx from the deparsing call chain, not from
-# OPf_WANT. The two diverge for return (want=NONE but cx=6 in deparse)
-# and sort/map/grep blocks (want=SCALAR but cx=0 in deparse).
-# The parent map (built by the XS walker) provides parent lookups on
-# all Perl versions, not just 5.26+.
 sub _logop_parent_cx ($op, $highprec, $lowprec) {
   my $parent = _op_parent($op);
   return 0 unless $parent && $$parent;
-  # Skip null/ex-ops, but stop at block boundaries (ex-scope,
-  # ex-leave*) since those indicate statement-level context.
   ($parent, my $early) = _skip_null_parents($parent, $highprec, $lowprec);
   return $early if defined $early;
   if ($parent && $$parent) {
     my $pname = $parent->name;
-    return $highprec || $lowprec if $pname eq "return";
-    return 1                     if $pname eq "cond_expr";
-    # lineseq inside cond_expr/elsif-wrapper condition is cx=1.
-    # The last elsif arm compiles to and/or instead of cond_expr;
-    # those wrappers are tracked in %Seen{cond_expr}.
+    return $highprec || $lowprec       if $pname eq "return";
+    return 1                           if $pname eq "cond_expr";
     return _lineseq_parent_cx($parent) if $pname eq "lineseq";
     return 0 if $pname =~ /^(?:scope|leave(?:sub|try|loop)?|sort)$/;
-    # Nested logop (e.g. inner && in "$a && $b || $c") - B::Deparse
-    # recurses into logop children at cx=1 (low-prec expression).
+    # B::Deparse recurses into logop children at cx=1
     return 1 if $pname =~ /^(?:and|or|dor)$/;
   }
-  # Fallback for unrecognised parents (e.g. nested logops where the
-  # optimiser eliminated cond_expr): use OPf_WANT.
+  # Fall back to OPf_WANT for unrecognised parents
   my $want = $op->flags & OPf_WANT;
   return 0 unless $want >= B::OPf_WANT_SCALAR;
   $highprec || $lowprec
 }
 
-# Check if a logop is a loop condition (and -> null* -> leaveloop).
 sub _is_loop_condition ($op) {
   my $p = _op_parent($op);
   return unless $p && $$p;
@@ -1455,8 +1339,6 @@ sub _is_loop_condition ($op) {
   $p && $$p && $p->name eq "leaveloop"
 }
 
-# Resolve a blockname to its keyword form for statement-level logops,
-# or clear it for expression-level.
 sub _resolve_blockname ($blockname, $cx) {
   return undef if $cx >= 1;
   if ($blockname) {
@@ -1466,7 +1348,6 @@ sub _resolve_blockname ($blockname, $cx) {
   $blockname
 }
 
-# True if the operand is itself a logop, through null/not wrappers only.
 sub _operand_is_decision ($op) {
   while ($op && $$op && ($op->name eq "null" || $op->name eq "not")) {
     return 0 unless $op->flags & OPf_KIDS;
@@ -1484,24 +1365,17 @@ sub _record_logop_condition (
     unless $Seen{condition}{$$op}++;
 }
 
-# See L<Devel::Cover::DB/Compound decision roots>.
 sub _record_compound_join ($cv, $op, $strop, $left, $right, $prec) {
   return unless _operand_is_decision($right);
   _record_logop_condition($cv, $op, $strop, $left, $right, $prec, 0);
 }
 
 sub _classify_op ($self, $op, $cx, $blockname) {
-  # $is_statement: controls deparse format (statement modifier vs
-  # expression). On 5.43.8+ uses OPpSTATEMENT; on older Perls uses
-  # B::Deparse's heuristic.
   my $is_statement
     = Has_op_statement() ? $op->private & OPpSTATEMENT() : $cx < 1
     && $blockname
     && $self->{expand} < 7;
 
-  # $is_branch: controls coverage classification. Statement-level
-  # expression logops (e.g. $y && $x++) are branches where the return
-  # value is discarded, even though they aren't in statement form.
   my $is_branch = $is_statement || ($cx < 1 && $blockname);
 
   ($is_statement, $is_branch)
@@ -1518,12 +1392,10 @@ sub _walk_logop ($cv, $op) {
   my $right = $op->first->sibling;
   my ($file, $line) = ($File, $Line);
 
-  # Match B::Deparse, which resets the precedence context at each block
-  # scope.
   my $cx = _logop_parent_cx($op, $highprec, $lowprec);
+
   $blockname = _resolve_blockname($blockname, $cx);
 
-  # Loop conditions are always branches, regardless of OPpSTATEMENT.
   $Shared_deparse ||= B::Deparse->new;
   my ($is_statement, $is_branch)
     = _is_loop_condition($op)
@@ -1542,8 +1414,7 @@ sub _walk_logop ($cv, $op) {
   } elsif ($cx > $lowprec && $highop) {
     _record_logop_condition($cv, $op, $highop, $left, $right, $highprec, 0);
   } elsif ($is_branch) {
-    # From 5.43.8 OPpSTATEMENT routes statement-level expression-form joins
-    # here rather than the $is_statement arm above.
+    # From 5.43.8 OPpSTATEMENT routes statement-level expression joins here
     my $l = _deparse_binop_left($cv, $op, $left, $lowprec);
     my $r = _deparse_expr($cv, $right, $lowprec);
     add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
@@ -1857,7 +1728,7 @@ compiled in, the absolute path is taken where that is safe, Windows
 separators become C</>, the C<$Dir> prefix is removed and the digest store
 is consulted so identical content is always reported under one name.
 Results are cached, and a flag stops recursion when normalising itself
-causes a module to load.
+causes a module to load, as has happened with the Storable backend.
 
 =head2 get_location ($op)
 
@@ -1877,9 +1748,10 @@ been manipulated since the last look.
 
 =head2 check_file ($cv)
 
-True when the file holding a CV's first statement is wanted.  Steps past
-prologue ops - C<methstart>, C<introcv>, C<clonecv> - which carry no file
-information.
+True when the file holding a CV's first statement is wanted.  A sub body
+may open with prologue ops that carry no file information - a
+C<methstart> for a class method, an C<introcv>/C<clonecv> pair for each
+C<my sub> it encloses - so those are stepped past.
 
 =head1 FINDING SUBROUTINES
 
@@ -1893,22 +1765,29 @@ limits.
 =head2 recoverable_sub ($cv)
 
 True for a genuine named sub found through a reference.  Anonymous subs
-and generated clones share their body with a sub already found the normal
-way and would be recorded twice.
+and internal clones with generated names - a Moose C<:around> modifier's
+CV, a pragma's C<BEGIN> block - share their body with a sub already found
+the normal way and would be recorded twice.
 
 =head2 ref_cvs ($sv, $seen, $depth = 1)
 
 Collect named subs reachable from a pad slot through a reference -
 directly to a CV, or one level deep through a plain array or hash.  That
-is where a method modifier keeps the sub it replaced.  Blessed, magical
-and deeper containers are not descended.
+is where a method modifier keeps the sub it replaced.  Descent stops
+after one container so a wrapper's own deeper machinery is not reached.
+Blessed containers are not descended, so a sub closing over an object
+does not drag its whole graph in, and magical containers are not
+descended because reading a tied one would run user code.  The seen hash
+guards against cyclic structures.
 
 =head2 pad_cvs ($cv, $seen = {})
 
 Return the CVs found in a CV's pads, recursively.  A slot holding a CV
 directly is an anonymous sub prototype, a slot holding a reference may
 lead to a wrapped named sub, and a C<my sub> keeps its prototype in the
-pad name's C<PROTOCV>.
+pad name's C<PROTOCV> (5.22+), the value slot being empty once its scope
+has exited.  The seen hash stops loops from self-referential pad
+entries.
 
 =head2 B::GV::find_cv ($gv)
 
@@ -1919,8 +1798,12 @@ everything found in its pads.
 =head2 sub_info ($cv)
 
 Return a CV's name and the COP of its first statement, stepping past
-C<methstart>, C<my sub> prologues and signature scaffolding.  Used both
-for naming subs and for sorting them.
+C<methstart>, C<my sub> prologues and signature scaffolding.  A sub
+enclosing a C<my sub> wraps its C<introcv>/C<clonecv> prologue in a
+nested C<lineseq> before the first statement.  The prologue is identified
+by its leading ops so ordinary nested blocks, which start with a
+C<nextstate>, are left alone.  Used both for naming subs and for sorting
+them.
 
 =head2 add_cvs ($seen = {})
 
@@ -1957,11 +1840,17 @@ releases the required-file op trees held by the XS side.
 =head2 _report
 
 Do the real reporting work.  Fetches the raw counts with C<coverage(1)>,
-keeps only the newest op tree per required file, seeds the pad CVs, then
-walks the main program, the special blocks, every collected CV and the
-top-level code of each required file.  Finally the collected files are
-filtered and the database is written.  Runs with the current directory set
-to C<$Dir> so relative names resolve as they did at compile time.
+seeds the pad CVs, then walks the main program, the special blocks, every
+collected CV and the top-level code of each required file.  A file
+required more than once (after C<delete $INC{...}>, say) captures one op
+tree per compilation, each with distinct op addresses that C<%Seen>
+cannot collapse, so only the newest tree per file is walked.  Top-level
+require code has no C<set_subroutine> call, so the file context is
+established explicitly before each tree or the per-file counters would
+run against the wrong file.  Finally the
+collected files are filtered and the database is written.  Runs with the
+current directory set to C<$Dir> so relative names resolve as they did at
+compile time.
 
 =head2 _filter_cover_files
 
@@ -1995,12 +1884,17 @@ C<time> criterion is active.
 
 Record a two-way branch.  For the C<and>, C<or> and final C<elsif> types
 the counts derive from the condition data, where the true path was taken
-whenever the op did not short-circuit.
+whenever the op did not short-circuit.  An C<and> may also be a plain
+C<if> with no C<else>, an C<or> an C<unless>, and the C<elsif> form
+applies when no further C<elsif> or C<else> follows.
 
 =head2 _is_const_right ($op)
 
 True when the right operand of a logical op is a constant-like expression
-with a fixed truth value.  Such an op collapses to a two-row condition
+with a fixed truth value, unwrapping an enclosing C<sassign> first.  A
+C<multiconcat> op (Perl 5.28+) counts when its literal text is truthy -
+truthy rather than merely non-empty because C<"0"> is the one non-empty
+string that is false.  Such an op collapses to a two-row condition
 counting only the left operand.
 
 =head2 _condition_counts ($c, $type, $op)
@@ -2089,7 +1983,7 @@ Deparse one op at the given precedence context.
 
 Deparse the left child of a binary op via B::Deparse's own left-operand
 path, avoiding spurious parentheses when left-associative ops of the same
-precedence nest.
+precedence nest (the inner C<&&> in C<$a && $b && $c>).
 
 =head2 _op_parent ($op)
 
@@ -2104,7 +1998,9 @@ C<elsif> - a dead COP created by the compiler, not a source statement.
 
 True for a C<nextstate> inside a signature's argument-checking block with
 no default-value sibling.  Plain parameter bookkeeping is skipped, while a
-default value is real conditional code.
+default value is real conditional code.  The default-value op is an
+C<argdefelem> under an C<argelem> from 5.38, or a C<paramtest> under a
+C<null> from 5.43.4.
 
 =head2 _walk_statement ($op, $type)
 
@@ -2135,14 +2031,18 @@ block boundaries and C<return>.
 
 Context for a logop under a C<lineseq> - expression context when the
 lineseq belongs to a C<cond_expr> or C<elsif> wrapper, statement context
-otherwise.
+otherwise.  The last C<elsif> arm compiles to a logop rather than a
+C<cond_expr>, so those wrappers are tracked in C<%Seen> and count too.
 
 =head2 _logop_parent_cx ($op, $highprec, $lowprec)
 
 Determine the precedence context for a logop by walking up the parent
 chain, mirroring how B::Deparse's own recursion would arrive at the op.
 C<OPf_WANT> alone cannot answer this, since it diverges from the deparse
-context for C<return> and for C<sort>, C<map> and C<grep> blocks.
+context for C<return> (want C<NONE>, deparse cx 6) and for C<sort>,
+C<map> and C<grep> blocks (want C<SCALAR>, deparse cx 0).  Parents the
+walk does not recognise, such as nested logops where the optimiser
+removed the C<cond_expr>, fall back to C<OPf_WANT>.
 
 =head2 _is_loop_condition ($op)
 
