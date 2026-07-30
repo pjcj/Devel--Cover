@@ -206,16 +206,34 @@ to hit, while MC/DC can still be fully satisfied.  The C<may_edit>
 example is worked through in full, table by table, in
 F<docs/technical/mcdc.md> in the distribution.
 
-=head2 2.6 These metrics in Devel::Cover
+=head2 2.6 Subroutine coverage
 
-Devel::Cover implements statement and branch coverage as described
-above.  What this tutorial calls expression coverage is the C<condition>
-criterion, and MC/DC is the C<mcdc> criterion.  Path coverage is not
-implemented.  Devel::Cover also provides subroutine coverage, which
-checks that each subroutine has been called, and pod coverage, which
-checks that each subroutine is documented.  A C<time> criterion records
-the time spent on each statement, though that is profiling rather than
-coverage.
+Subroutine coverage is simpler still than statement coverage.  A
+subroutine is covered if it has been called.  This is a weak metric,
+but it makes a good first pass - a subroutine which is never called by
+the test suite is a clear gap, and until it is exercised at all there
+is little point worrying about the finer metrics within it.
+
+100% statement coverage implies 100% subroutine coverage, provided
+every subroutine contains at least one statement.
+
+=head2 2.7 Pod coverage
+
+Pod coverage is not an execution metric at all.  A subroutine is
+covered if it is documented, which for Perl means POD.  Nothing needs
+to be run to collect it.  It is collected with the other metrics because
+the same tooling can conveniently report on it, and an undocumented
+subroutine is a similar problem to an untested one.
+
+=head2 2.8 These metrics in Devel::Cover
+
+Devel::Cover implements statement, branch, subroutine and pod coverage
+as described above.  What this tutorial calls expression coverage is
+the C<condition> criterion, and MC/DC is the C<mcdc> criterion.  Path
+coverage is not implemented.  A C<time> criterion records the time
+spent on each statement, though that is profiling rather than
+coverage and isn't terribly accurate in the current implementation.
+Use a proper profiler for accurate timing information.
 
 Code which should never run, such as the C<die> in section 2.1, can be
 marked as uncoverable so that it does not count against your coverage.
