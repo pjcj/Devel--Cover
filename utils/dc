@@ -330,7 +330,7 @@ install_development_dependencies() {
 install_test_dependencies() {
   get_cpm
   $cpm install --workers="$(nice_cpus)" --global \
-    DBM::Deep
+    DBM::Deep Syntax::Operator::In
 }
 
 recipe_install-dependencies() {
@@ -370,6 +370,7 @@ recipe_install-dc-dev-perl() {
   local version="${1:?No version specified}"
   install_perl dc-dev "$version"
   install_development_dependencies
+  install_test_dependencies
 }
 
 recipe_all-gold() {
