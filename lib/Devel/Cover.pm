@@ -26,8 +26,7 @@ use Devel::Cover::Inc         ();
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
-# OPpSTATEMENT is imported conditionally in the BEGIN below (5.43.8+ only), so
-# the ## no perlimports keeps perlimports from adding it back to this list
+# OPpSTATEMENT is imported conditionally below - perlimports must not re-add it
 use B  ## no perlimports
   qw(
   main_cv
@@ -41,8 +40,7 @@ use B  ## no perlimports
   );
 use B::Deparse ();
 
-# OPpSTATEMENT (added in 5.43.8) authoritatively distinguishes statement-form
-# ops (if/unless/if-else) from expression-form (&&/and/?:)
+# OPpSTATEMENT (5.43.8+) distinguishes statement-form from expression-form ops
 BEGIN {
   my $v = $] >= 5.043008 ? 1 : 0;
   *Has_op_statement = sub () { $v };
@@ -56,7 +54,6 @@ use Time::HiRes ();
 use Devel::Cover::Core qw( remove_contained_paths );
 
 BEGIN {
-  # Use Pod::Coverage if it is available
   eval "use Pod::Coverage 0.06";
   # If there is any error other than a failure to locate, report it
   die $@ if $@ && $@ !~ m/Can't locate Pod\/Coverage.+pm in \@INC/;
@@ -68,8 +65,7 @@ BEGIN {
 
 my $Initialised;  # import() has been called
 
-my $Dir;                          # Directory in which coverage will be
-                                  # collected
+my $Dir;                          # Directory in which coverage is collected
 my $DB             = "cover_db";  # DB name
 my $Merge          = 1;           # Merge databases
 my $Summary        = 1;           # Output coverage summary
@@ -110,12 +106,7 @@ my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
                        emptyavhv|scalar|return|last|next|redo|goto|
                        exec|exit|warn)$/x;
 
-# Check whether the right operand of a logical op is a constant-like expression
-# whose truth value is fixed.  Unwraps sassign if present. Also handles
-# multiconcat (Perl 5.28+) with truthy literal text - the constant string is
-# element [1] of aux_list and does not depend on the CV passed.  We check
-# truthiness rather than mere non-emptiness because "0" is the one non-empty
-# string that is falsy in Perl.
+# The multiconcat string is aux_list element [1] and does not depend on the CV
 sub _is_const_right ($op) {
   my $rhs  = $op->name eq "sassign" ? $op->first : $op;
   my $name = $rhs->name;
@@ -125,20 +116,14 @@ sub _is_const_right ($op) {
   $aux[1]
 }
 
-# constant ops
-
 our $File;                # Last filename we saw.  (localised)
 our $Line;                # Last line number we saw.  (localised)
 our $Walk_seen;           # CVs walked this check_files run.  (localised)
-our $Collect;             # Whether or not we are collecting
-                          # coverage data.  We make two passes
-                          # over conditions.  (localised)
-our %Files;               # Whether we are interested in files
-                          # Used in runops function
+our $Collect;             # Whether we are collecting coverage data (localised)
+our %Files;               # Cached use_file decisions, read by the XS side
 our $Replace_ops;         # Whether we are replacing ops
 our $Silent;              # Output nothing. Can be used anywhere
-our $Ignore_covered_err;  # Don't flag an error when uncoverable
-                          # code is covered.
+our $Ignore_covered_err;  # Don't flag an error when uncoverable code runs
 our $Self_cover;          # Coverage of Devel::Cover
 
 BEGIN {
@@ -147,8 +132,7 @@ BEGIN {
     || ($ENV{PERL5OPT} || "") =~ /Devel::Cover/;
   *OUT = $ENV{DEVEL_COVER_DEBUG} ? *STDERR : *STDOUT;
 
-  # Default to the value baked in by Makefile.PL; override below if we can get
-  # the real @INC from a clean subprocess.
+  # Default to the @INC baked in by Makefile.PL, overridden below if possible
   @Inc = @Devel::Cover::Inc::Inc;
   if ($^X !~ /(?:apache2|httpd)$/ && !${^TAINT}) {
     eval {
@@ -325,8 +309,7 @@ sub _init_coverage {
 sub import ($class, @o) {
   return if $Initialised;
 
-  # Die tainting
-  # Anyone using this module can do worse things than messing with tainting
+  # Untaint - users of this module can do worse things than mess with tainting
   my $options = ($ENV{DEVEL_COVER_OPTIONS} || "") =~ /(.*)/ ? $1 : "";
   @o = (@o, split /,/, $options);
   defined or $_ = "" for @o;
@@ -417,7 +400,6 @@ sub get_coverage {
   return wantarray ? @names : "@names";  ## no critic (Wantarray)
 }
 
-# strip AutoSplit's #line suffix and resolve stale blib paths via %INC
 sub autosplit_parent ($file) {
   return $file unless $file =~ s/ \(autosplit into (.*)\)$//;
   my $al = $1;
@@ -435,9 +417,6 @@ sub autosplit_parent ($file) {
 
   my %File_cache;
 
-  # Recursion in normalised_file() is bad.  It can happen if a call from the sub
-  # evals something which wants to load a new module.  This has happened with
-  # the Storable backend.  I don't think it happens with the JSON backend.
   my $Normalising;
 
   sub normalised_file ($file) {
@@ -543,20 +522,17 @@ sub use_file ($file) {
     || $Silent
     || $file =~ $Devel::Cover::DB::Ignore_filenames;
 
-  add_cvs();  # add CVs now in case of symbol table manipulation
+  add_cvs();
   $Files{$file}
 }
 
-# A sub body may open with prologue ops before its first real statement:
-# a methstart op for a class method, and an introcv/clonecv pair for each
-# my sub it encloses.  None carry file information, so skip them.
+# Sub-body prologue ops that carry no file information
 my %Prologue_op = map { $_ => 1 } qw( methstart introcv clonecv );
 
 sub check_file ($cv) {
   return unless ref($cv) eq "B::CV";
 
   my $op = $cv->START;
-  # Advance past any prologue ops to reach the nextstate op with the file.
   $op = $op->next
     while ref($op) && $op->can("name") && $Prologue_op{ $op->name };
   return unless ref($op) eq "B::COP";
@@ -567,10 +543,6 @@ sub check_file ($cv) {
   $use
 }
 
-# A sub recovered through a reference is only wanted if it is a genuine named
-# sub.  An anon, or an internal clone with a generated name (Moose's ":around"
-# modifier CV, a pragma's BEGIN block), shares its body with a sub already
-# found the normal way and would otherwise be recorded a second time.
 sub recoverable_sub ($cv) {
   my $gv = $cv->GV;
   return 0 unless ref $gv && !$gv->isa("B::SPECIAL");
@@ -581,15 +553,6 @@ sub recoverable_sub ($cv) {
     && $name !~ /^(?:BEGIN|END|INIT|CHECK|UNITCHECK)$/
 }
 
-# Collect the named subs reachable from a pad slot by following a reference:
-# directly to a CV, or one level deep through a plain array or hash the sub
-# closes over.  That is where a method modifier keeps the original sub it
-# replaced in the symbol table, so without this its body is dropped from
-# coverage.  Descent stops after one container so a wrapper's own deeper
-# machinery is not reached.  Blessed containers are not descended, so a sub
-# closing over an object does not drag its whole graph in.  Magical containers
-# are not descended, since reading a tied one would run user code.  The $seen
-# hash guards a cyclic structure.
 sub ref_cvs ($sv, $seen, $depth = 1) {
   my $r = ref $sv or return ();
   if ($r ne "B::AV" && $r ne "B::HV") {
@@ -608,18 +571,13 @@ sub ref_cvs ($sv, $seen, $depth = 1) {
   map ref_cvs($_, $seen, $depth - 1), @elems
 }
 
-# The seen hash stops loops from self-referential pad entries
 sub pad_cvs ($cv, $seen = {}) {
   $seen->{$$cv}++;
   my $padlist = $cv->can("PADLIST") ? $cv->PADLIST : undef;
   my $array   = $padlist && $padlist->can("ARRAY") ? $padlist->ARRAY : undef;
   return unless $array && $array->can("ARRAY");
-  # A slot holding a CV directly is an anon prototype; a slot holding a
-  # reference may lead to a named sub swapped out of its glob by a wrapper
   my @cvs = grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
     map ref eq "B::CV" ? $_ : ref_cvs($_, $seen), $array->ARRAY;
-  # A my sub keeps its prototype in the padname's PROTOCV (5.22+), not the
-  # value slot, which is empty once its scope has exited
   my $names = $padlist->ARRAYelt(0);
   push @cvs, grep ref eq "B::CV" && check_file($_) && !$seen->{$$_}++,
     map ref && $_->can("PROTOCV") ? $_->PROTOCV : (), $names->ARRAY
@@ -654,11 +612,7 @@ sub sub_info ($cv) {
       $start = $lineseq->first;
       # methods defined with the class feature start with a methstart op
       $start = $start->sibling if $start->name eq "methstart";
-      # a sub enclosing a my sub wraps its introcv/clonecv prologue in a
-      # nested lineseq before the first statement; step past it to the
-      # sibling that holds the real first statement.  Identify the prologue
-      # by its leading introcv/clonecv so ordinary nested blocks, which
-      # start with a nextstate, are left alone.
+      # step past a my sub prologue wrapped in a nested lineseq
       if (
            $start->name eq "lineseq"
         && $start->can("first")
@@ -721,9 +675,6 @@ sub check_files {
     ($line, $name, $start ? $$start : 0)
   };
 
-  # A capture-free lexical sub shares its optree between clone and
-  # prototype, so both carry the same start op.  Keep one, or the sub is
-  # recorded twice - once from a value slot and once from a PROTOCV.
   my %seen_start;
   @Cvs = map $_->[0],
     sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] }
@@ -742,9 +693,6 @@ my %Parent_map;
 
 sub _op_parent ($op) { $Parent_map{$$op} }
 
-# Walk down through wrapper ops (null, not, scope, etc.) to find
-# the logop underneath that would have its own condition entry.
-# Returns ($op, $negated) where $negated counts not ops traversed.
 my %Is_condition_op = map { $_ => 1 } qw( and or dor xor );
 
 sub _skip_to_condop ($op) {
@@ -761,14 +709,12 @@ sub _skip_to_condop ($op) {
   ($op, $negated)
 }
 
-# Resolve a child op to its condition address and negation flag.
 sub _resolve_child_op ($child_op) {
   return unless $child_op;
   my ($op, $negated) = _skip_to_condop($child_op);
   ($op ? $$op : undef, $negated || undef)
 }
 
-# The CVs of every BEGIN/CHECK/INIT/END block, for a pad walk
 sub special_block_cvs {
   my @avs = B::begin_av();
   push @avs, B::check_av() if exists &B::check_av;
@@ -776,7 +722,6 @@ sub special_block_cvs {
   map $_->isa("B::AV") ? $_->ARRAY : (), @avs
 }
 
-# Feed pad-only anon subs into %Cvs before check_files snapshots @Cvs
 sub _seed_pad_cvs (@require_trees) {
   $Cvs{$_} ||= $_ for map pad_cvs($_->[0]), @require_trees;
   return if $Subs_only;
@@ -830,11 +775,6 @@ sub _report {
 
   $Coverage = coverage(1) || die "No coverage data available.\n";
 
-  # Required files keep their top-level optrees alive via the leaveeval
-  # hook.  A file required more than once (e.g. after delete $INC{...})
-  # captures one tree per compilation, each with distinct op addresses that
-  # %Seen cannot collapse, so keep only the most recent tree per file and
-  # every top-level statement and branch is recorded once.
   my @require_trees = get_require_trees();
   my %latest_tree;
   $latest_tree{ $_->[2] } = $_ for @require_trees;
@@ -862,11 +802,6 @@ sub _report {
   }
   get_cover_progress("CV", @Cvs);
   unless ($Subs_only) {
-    # The eval CVs have no ROOT so the root op rides alongside, as with
-    # main_cv/main_root.  There is no set_subroutine call for top-level
-    # code, so establish the structure's file context here or the per-file
-    # counters would run against the wrong file.  The file-scope anon subs
-    # were already covered via @Cvs above.
     _report_progress(
       "getting require file coverage",
       sub ($tree) {
@@ -986,11 +921,6 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
     || $type eq "or"
     || ($type eq "elsif" && !exists $Coverage->{branch}{$key})
   ) {
-    # and   => this could also be a plain if with no else or elsif
-    # or    => this could also be an unless with no else or elsif
-    # elsif => no subsequent elsifs or elses
-    # True path taken if not short circuited.
-    # False path taken if short circuited.
     $c = [$c->[1] + $c->[2], $c->[3]];
   } else {
     $c = $Coverage->{branch}{$key} || [0, 0];
@@ -1008,11 +938,6 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
   }
 }
 
-# Reorder the raw condition counts into truth-table order and return
-# (counts, operand-count, void-collapsed-flag).  An or/and collapses to its
-# 2-count form in void context or with a constant right operand; a genuine
-# (non-constant) right operand collapsed in void context is flagged so MC/DC
-# can rebuild the full decision.
 sub _condition_counts ($c, $type, $op) {
   no warnings "uninitialized";
 
@@ -1218,8 +1143,6 @@ sub get_cover ($cv, $root = undef) {
   }
 }
 
-# XS op tree walker path
-
 my $Shared_deparse;
 my $Current_cop;
 
@@ -1239,9 +1162,6 @@ sub _deparse_expr ($cv, $op, $cx, $use_dumper = 1) {
   _with_deparse($cv, $use_dumper, sub { $Shared_deparse->deparse($op, $cx) })
 }
 
-# Like _deparse_expr but uses B::Deparse's deparse_binop_left to avoid
-# spurious parentheses when left-associative same-precedence ops nest
-# (e.g. the inner && in "$a && $b && $c").
 sub _deparse_binop_left ($cv, $op, $child, $prec, $use_dumper = 1) {
   _with_deparse(
     $cv,
@@ -1258,8 +1178,6 @@ my %Logop_params = (
   dor => ["//",  10],
 );
 
-# Check if a null-statement op is inside a cond_expr/elsif condition
-# lineseq (a dead COP from the compiler's scope creation).
 sub _in_cond_expr_scope ($op) {
   my $p = _op_parent($op);
   return unless $p && $$p && $p->name eq "lineseq";
@@ -1267,8 +1185,6 @@ sub _in_cond_expr_scope ($op) {
   $gp && $$gp && ($gp->name eq "cond_expr" || $Seen{cond_expr}{$$gp})
 }
 
-# Check if a nextstate op is inside a signature argcheck block without
-# a default-value sibling (i.e. plain param bookkeeping to skip).
 sub _in_signature_argcheck ($op) {
   my $p = _op_parent($op);
   return unless $p && $$p && $p->name eq "lineseq";
@@ -1287,8 +1203,7 @@ sub _in_signature_argcheck ($op) {
 }
 
 sub _walk_statement ($op, $type) {
-  # Guard: skip statements with no real successors (trailing closing
-  # braces, comment-only files, etc.)
+  # Skip statements with no real successors (trailing braces etc.)
   my $nnnext = "";
   eval {
     my $next  = $op->next;
@@ -1300,29 +1215,18 @@ sub _walk_statement ($op, $type) {
   if ($type eq "null_statement") {
     my $class = B::class($op);
     return if $class eq "NULL";
-    # Skip ex-nextstates inside cond_expr/elsif condition lineseqs -
-    # these are dead COPs from the compiler's scope creation, not real
-    # source statements.  Still update $File/$Line/$Current_cop so
-    # that condition coverage for ops in this scope gets the right
-    # line attribution.
+    # A dead COP - record only the location for this scope's conditions
     if (_in_cond_expr_scope($op)) {
       bless $op, "B::COP";
       get_location($op);
       $Current_cop = $op;
-      # Leave blessed as B::COP - pragmata() needs COP methods.
-      # The SV is mortal (from the XS callback) so this is safe.
+      # Stays blessed as B::COP for pragmata() - safe, the SV is mortal
       return;
     }
     bless $op, "B::COP";
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
     bless $op, "B::$class";
   } else {
-    # Skip nextstates inside signature argcheck blocks unless they
-    # precede a default value.  Plain param assignments and argcheck
-    # are bookkeeping; defaults are real conditional code.
-    # Two optree layouts:
-    #   5.38+:  nextstate → argelem(OPf_KIDS) → argdefelem
-    #   5.43.4+: nextstate → null(OPf_KIDS) → paramtest
     return if _in_signature_argcheck($op);
     $Current_cop = $op;
     add_statement_cover($op) unless $Seen{statement}{$$op}++;
@@ -1387,9 +1291,6 @@ sub _walk_cond_expr ($cv, $op) {
   }
 }
 
-# Walk through null/ex-ops, stopping at block boundaries.
-# Returns ($parent, $early_cx) - $early_cx is defined if a
-# boundary was hit and the caller should return that value.
 sub _skip_null_parents ($parent, $highprec, $lowprec) {
   while ($$parent && $parent->name eq "null") {
     if (my $targ = $parent->targ) {
@@ -1403,9 +1304,6 @@ sub _skip_null_parents ($parent, $highprec, $lowprec) {
   ($parent, undef)
 }
 
-# Determine cx for a logop whose parent is a lineseq.
-# Returns 1 if the lineseq is inside a cond_expr/elsif wrapper, 0
-# otherwise.
 sub _lineseq_parent_cx ($parent) {
   my $gp = _op_parent($parent);
   return 0 unless $gp && $$gp;
@@ -1414,40 +1312,26 @@ sub _lineseq_parent_cx ($parent) {
   0
 }
 
-# Determine cx for a logop by walking up the parent chain.
-# B::Deparse determines cx from the deparsing call chain, not from
-# OPf_WANT. The two diverge for return (want=NONE but cx=6 in deparse)
-# and sort/map/grep blocks (want=SCALAR but cx=0 in deparse).
-# The parent map (built by the XS walker) provides parent lookups on
-# all Perl versions, not just 5.26+.
 sub _logop_parent_cx ($op, $highprec, $lowprec) {
   my $parent = _op_parent($op);
   return 0 unless $parent && $$parent;
-  # Skip null/ex-ops, but stop at block boundaries (ex-scope,
-  # ex-leave*) since those indicate statement-level context.
   ($parent, my $early) = _skip_null_parents($parent, $highprec, $lowprec);
   return $early if defined $early;
   if ($parent && $$parent) {
     my $pname = $parent->name;
-    return $highprec || $lowprec if $pname eq "return";
-    return 1                     if $pname eq "cond_expr";
-    # lineseq inside cond_expr/elsif-wrapper condition is cx=1.
-    # The last elsif arm compiles to and/or instead of cond_expr;
-    # those wrappers are tracked in %Seen{cond_expr}.
+    return $highprec || $lowprec       if $pname eq "return";
+    return 1                           if $pname eq "cond_expr";
     return _lineseq_parent_cx($parent) if $pname eq "lineseq";
     return 0 if $pname =~ /^(?:scope|leave(?:sub|try|loop)?|sort)$/;
-    # Nested logop (e.g. inner && in "$a && $b || $c") - B::Deparse
-    # recurses into logop children at cx=1 (low-prec expression).
+    # B::Deparse recurses into logop children at cx=1
     return 1 if $pname =~ /^(?:and|or|dor)$/;
   }
-  # Fallback for unrecognised parents (e.g. nested logops where the
-  # optimiser eliminated cond_expr): use OPf_WANT.
+  # Fall back to OPf_WANT for unrecognised parents
   my $want = $op->flags & OPf_WANT;
   return 0 unless $want >= B::OPf_WANT_SCALAR;
   $highprec || $lowprec
 }
 
-# Check if a logop is a loop condition (and -> null* -> leaveloop).
 sub _is_loop_condition ($op) {
   my $p = _op_parent($op);
   return unless $p && $$p;
@@ -1455,8 +1339,6 @@ sub _is_loop_condition ($op) {
   $p && $$p && $p->name eq "leaveloop"
 }
 
-# Resolve a blockname to its keyword form for statement-level logops,
-# or clear it for expression-level.
 sub _resolve_blockname ($blockname, $cx) {
   return undef if $cx >= 1;
   if ($blockname) {
@@ -1466,7 +1348,6 @@ sub _resolve_blockname ($blockname, $cx) {
   $blockname
 }
 
-# True if the operand is itself a logop, through null/not wrappers only.
 sub _operand_is_decision ($op) {
   while ($op && $$op && ($op->name eq "null" || $op->name eq "not")) {
     return 0 unless $op->flags & OPf_KIDS;
@@ -1484,24 +1365,17 @@ sub _record_logop_condition (
     unless $Seen{condition}{$$op}++;
 }
 
-# See L<Devel::Cover::DB/Compound decision roots>.
 sub _record_compound_join ($cv, $op, $strop, $left, $right, $prec) {
   return unless _operand_is_decision($right);
   _record_logop_condition($cv, $op, $strop, $left, $right, $prec, 0);
 }
 
 sub _classify_op ($self, $op, $cx, $blockname) {
-  # $is_statement: controls deparse format (statement modifier vs
-  # expression). On 5.43.8+ uses OPpSTATEMENT; on older Perls uses
-  # B::Deparse's heuristic.
   my $is_statement
     = Has_op_statement() ? $op->private & OPpSTATEMENT() : $cx < 1
     && $blockname
     && $self->{expand} < 7;
 
-  # $is_branch: controls coverage classification. Statement-level
-  # expression logops (e.g. $y && $x++) are branches where the return
-  # value is discarded, even though they aren't in statement form.
   my $is_branch = $is_statement || ($cx < 1 && $blockname);
 
   ($is_statement, $is_branch)
@@ -1518,12 +1392,10 @@ sub _walk_logop ($cv, $op) {
   my $right = $op->first->sibling;
   my ($file, $line) = ($File, $Line);
 
-  # Match B::Deparse, which resets the precedence context at each block
-  # scope.
   my $cx = _logop_parent_cx($op, $highprec, $lowprec);
+
   $blockname = _resolve_blockname($blockname, $cx);
 
-  # Loop conditions are always branches, regardless of OPpSTATEMENT.
   $Shared_deparse ||= B::Deparse->new;
   my ($is_statement, $is_branch)
     = _is_loop_condition($op)
@@ -1542,8 +1414,7 @@ sub _walk_logop ($cv, $op) {
   } elsif ($cx > $lowprec && $highop) {
     _record_logop_condition($cv, $op, $highop, $left, $right, $highprec, 0);
   } elsif ($is_branch) {
-    # From 5.43.8 OPpSTATEMENT routes statement-level expression-form joins
-    # here rather than the $is_statement arm above.
+    # From 5.43.8 OPpSTATEMENT routes statement-level expression joins here
     my $l = _deparse_binop_left($cv, $op, $left, $lowprec);
     my $r = _deparse_expr($cv, $right, $lowprec);
     add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
@@ -1657,651 +1528,657 @@ __END__
 
 =head1 NAME
 
-Devel::Cover - Code coverage metrics for Perl
+Devel::Cover - Internals of the coverage collector
 
 =head1 SYNOPSIS
 
-To get coverage for an uninstalled module:
-
-  cover -test
-
-or
-
-  cover -delete
-  HARNESS_PERL_SWITCHES=-MDevel::Cover make test
-  cover
-
-or if you are using dzil (Dist::Zilla) and have installed
-L<Dist::Zilla::App::Command::cover>:
-
-  dzil cover
-
-To get coverage for an uninstalled module which uses L<Module::Build> (0.26 or
-later):
-
-  ./Build testcover
-
-If the module does not use the t/*.t framework:
-
-  PERL5OPT=-MDevel::Cover make test
-
-If you want to get coverage for a program:
-
-  perl -MDevel::Cover yourprog args
-  cover
-
-To alter default values:
-
-  perl -MDevel::Cover=-db,cover_db,-coverage,statement,time yourprog args
+  use Devel::Cover;
 
 =head1 DESCRIPTION
 
-This module provides code coverage metrics for Perl.  Code coverage metrics
-describe how thoroughly tests exercise code.  By using Devel::Cover you can
-discover areas of code not exercised by your tests and determine which tests
-to create to increase coverage.  Code coverage can be considered an indirect
-measure of quality.
-
-Devel::Cover is now quite stable and provides many of the features to be
-expected in a useful coverage tool.
-
-Statement, branch, condition, MC/DC, subroutine, and pod coverage information
-is reported.  Statement and subroutine coverage data should be accurate.  Branch
-and condition coverage data should be mostly accurate too, although not always
-what one might initially expect.  Pod coverage comes from L<Pod::Coverage>. If
-L<Pod::Coverage::CountParents> is available it will be used instead.
-
-The F<cover> program can be used to generate coverage reports.  Devel::Cover
-ships with a number of reports including various types of HTML output, textual
-reports, a report to display missing coverage in the same format as compilation
-errors and a report to display coverage information within the Vim editor.
-
-It is possible to add annotations to reports, for example you can add a column
-to an HTML report showing who last changed a line, as determined by git blame.
-Some annotation modules are shipped with Devel::Cover and you can easily
-create your own.
-
-The F<gcov2perl> program can be used to convert gcov files to C<Devel::Cover>
-databases.  This allows you to display your C or XS code coverage together
-with your Perl coverage, or to use any of the Devel::Cover reports to display
-your C coverage data.
-
-Code coverage data are collected by replacing perl ops with functions which
-count how many times the ops are executed.  These data are then mapped back to
-reality using the B compiler modules.  There is also a statement profiling
-facility which should not be relied on.  For proper profiling use
-L<Devel::NYTProf>.  Previous versions of Devel::Cover collected coverage data by
-replacing perl's runops function.  It is still possible to switch to that mode
-of operation, but this now gets little testing and will probably be removed
-soon.  You probably don't care about any of this.
-
-The most appropriate mailing list on which to discuss this module would be
-perl-qa.  See L<https://lists.perl.org/list/perl-qa.html>.
-
-The Devel::Cover repository can be found at
-L<https://github.com/pjcj/Devel--Cover>.  This is also where problems should be
-reported.
-
-=head1 REQUIREMENTS AND RECOMMENDED MODULES
-
-=head2 REQUIREMENTS
-
-=over
-
-=item * Perl 5.20.0 or greater.
-
-The latest version of Devel::Cover on which Perl 5.12 to 5.18 was supported was
-1.51.  The latest version of Devel::Cover on which Perl 5.10 was supported was
-1.38.  The latest version of Devel::Cover on which Perl 5.8 was supported was
-1.23.  Perl versions 5.6.1 and 5.6.2 were not supported after version 1.22.
-Perl versions 5.6.0 and earlier were never supported.  Using Devel::Cover with
-Perl 5.8.7 was always problematic and frequently led to crashes.
-
-Different versions of perl may give slightly different results due to changes
-in the op tree.
-
-=item * The ability to compile XS extensions.
-
-This means a working C compiler and make program at least.  If you built perl
-from source you will have these already and they will be used automatically.
-If your perl was built in some other way, for example you may have installed
-it using your Operating System's packaging mechanism, you will need to ensure
-that the appropriate tools are installed.
-
-=item * L<Storable> and L<Digest::MD5>
-
-Both are in the core in Perl 5.8.0 and above.
-
-=back
-
-=head2 OPTIONAL MODULES
-
-=over
-
-=item * L<Template>, and either L<PPI::HTML> or L<Perl::Tidy>
-
-Needed if you want syntax highlighted HTML reports.
-
-=item * L<Pod::Coverage> (0.06 or above) or L<Pod::Coverage::CountParents>
-
-One is needed if you want Pod coverage.  If L<Pod::Coverage::CountParents> is
-installed, it is preferred.
-
-=item * L<Test::More>
-
-Required if you want to run Devel::Cover's own tests.
-
-=item * L<Test::Differences>
-
-Needed if the tests fail and you would like nice output telling you why.
-
-=item * L<Template> and L<Parallel::Iterator>
-
-Needed if you want to run cpancover.
-
-=item * L<JSON::MaybeXS>
-
-JSON is used to store the coverage database if it is available. JSON::MaybeXS
-will select the best JSON backend installed.
-
-=back
-
-=head2 Use with mod_perl
-
-By adding C<use Devel::Cover;> to your mod_perl startup script, you should be
-able to collect coverage information when running under mod_perl.  You can
-also add any options you need at this point.  I would suggest adding this as
-early as possible in your startup script in order to collect as much coverage
-information as possible.
-
-Alternatively, add -MDevel::Cover to the parameters for mod_perl.
-In this example, Devel::Cover will be operating in silent mode.
-
-  PerlSwitches -MDevel::Cover=-silent,1
-
-=head1 OPTIONS
-
-  -blib               - "use blib" and ignore files in t/ and inc/ (default
-                        true if blib directory exists, false otherwise)
-  -coverage criterion - Turn on coverage for the specified criterion.  Criteria
-                        include statement, branch, condition, mcdc, subroutine,
-                        pod, time, all and none (default all except time)
-  -db cover_db        - Store results in coverage db (default ./cover_db)
-  -dir path           - Directory in which coverage will be collected (default
-                        cwd)
-  -ignore RE          - Set regular expressions for files to ignore (default
-                        "/Devel/Cover\b")
-  +ignore RE          - Append to regular expressions of files to ignore
-  -inc path           - Set prefixes of files to include (default @INC)
-  +inc path           - Append to prefixes of files to include
-  -loose_perms val    - Use loose permissions on all files and directories in
-                        the coverage db so that code changing EUID can still
-                        write coverage information (default off)
-  -merge val          - Merge databases, for multiple test benches (default on)
-  -select RE          - Set regular expressions of files to select (default
-                        none)
-  +select RE          - Append to regular expressions of files to select
-  -silent val         - Don't print informational messages (default off)
-  -subs_only val      - Only cover code in subroutine bodies (default off)
-  -replace_ops val    - Use op replacing rather than runops (default on)
-  -summary val        - Print summary information if val is true (default on)
-
-=head2 More on Coverage Options
-
-You can specify options to some coverage criteria.  At the moment only pod
-coverage takes any options.  These are the parameters which are passed into
-the L<Pod::Coverage> constructor.  The extra options are separated by dashes,
-and you may specify as many as you wish.  For example, to specify that all
-subroutines containing xx are private, call Devel::Cover with the option
--coverage,pod-also_private-xx.
-
-Or, to ignore all files in C<t/lib> as well as files ending in C<Foo.pm>:
-
-  cover -test -silent -ignore ^t/lib/,Foo.pm$
-
-Note that C<-ignore> replaces any default ignore regexes.  To preserve any
-ignore regexes which have already been set, use C<+ignore>:
-
-  cover -test -silent +ignore ^t/lib/,Foo.pm$
-
-=head1 SELECTING FILES TO COVER
-
-You may select the files for which you want to collect coverage data using the
-select, ignore and inc options.  The system uses the following procedure to
-decide whether a file will be included in coverage reports:
-
-=over
-
-=item * If the file matches a RE given as a select option, it will be
-included
-
-=item * Otherwise, if it matches a RE given as an ignore option, it won't be
-included
-
-=item * Otherwise, if it is in one of the inc directories, it won't be
-included
-
-=item * Otherwise, it will be included
-
-=back
-
-You may add to the REs to select by using +select, or you may reset the
-selections using -select.  The same principle applies to the REs to ignore.
-
-The inc directories are initially populated with the contents of perl's @INC
-array.  You may reset these directories using -inc, or add to them using +inc.
-
-Although these options take regular expressions, you should not enclose the RE
-within // or any other quoting characters.
-
-The options -coverage, [+-]select, [+-]ignore and [+-]inc can be specified
-multiple times, but they can also take multiple comma separated arguments.  In
-any case you should not add a space after the comma, unless you want the
-argument to start with that literal space.
-
-=head1 UNCOVERABLE CRITERIA
-
-Sometimes you have code which is uncoverable for some reason.  Perhaps it is
-an else clause that cannot be reached, or a check for an error condition that
-should never happen.  You can tell Devel::Cover that certain criteria are
-uncoverable and then they are not counted as errors when they are not
-exercised.  In fact, they are counted as errors if they are exercised.
-
-This feature should only be used as something of a last resort.  Ideally you
-would find some way of exercising all your code.  But if you have analysed
-your code and determined that you are not going to be able to exercise it, it
-may be better to record that fact in some formal fashion and stop Devel::Cover
-complaining about it, so that real problems are not lost in the noise.
-
-There are two ways to specify a construct as uncoverable, one invasive and one
-non-invasive.
-
-=head2 Invasive specification
-
-You can use special comments in your code to specify uncoverable criteria.
-Comments are of the form:
-
-  # uncoverable <criterion> [details]
-
-The keyword "uncoverable" must be the first text in the comment.  It should be
-followed by the name of the coverage criterion which is uncoverable.  There
-may then be further information depending on the nature of the uncoverable
-construct.
-
-Statements, subroutines and pod have a single outcome, so their comments need
-no further detail.  Branches, conditions and MC/DC decisions have several, so
-their comments must say which outcome is uncoverable: a type word such as
-"true" or "false", the "all" type which marks every outcome, a "when"
-pattern for conditions, or a "pair" position for MC/DC.  A comment which
-omits this, or which contains anything unrecognised, warns and is ignored.
-
-In all cases a L<class> attribute may be included in L<details>.  At present a
-single class attribute is recognised: L<ignore_covered_err>.  Normally, an
-error is flagged if code marked as L<uncoverable> is covered.  When the
-L<ignore_covered_err> attribute is specified then such errors will not be
-flagged.  This is a more precise method to flag such exceptions than the global
-L<-ignore_covered_err> flag to the L<cover> program.
-
-There is also a L<note> attribute which can also be included in L<details>.
-This should be the final attribute and will consume all the remaining text.
-Currently this attribute is not used, but it is intended as a form of
-documentation for the uncoverable data.
-
-Example:
-
-  # uncoverable branch true count:1..3 class:ignore_covered_err note:error chk
-
-An uncoverable comment on a line of its own applies to the next line of code,
-skipping any blank lines and other comments in between.  A comment which never
-finds a line of code, or which matches nothing on the line it applies to - for
-example the wrong criterion, or a count past the constructs on the line -
-triggers a warning when the report is generated.
-
-=head3 Statements
-
-The "uncoverable" comment should appear on either the same line as the
-statement, or on the line before it:
-
-  $impossible++;  # uncoverable statement
-  # uncoverable statement
-  it_has_all_gone_horribly_wrong();
-
-If there are multiple statements (or any other criterion) on a line you can
-specify which statement is uncoverable by using the "count" attribute,
-count:n, which indicates that the uncoverable statement is the nth statement
-on the line.
-
-  # uncoverable statement count:1
-  # uncoverable statement count:2
-  cannot_run_this(); or_this();
-
-=head3 Branches
-
-The "uncoverable" comment should specify whether the "true" or "false" branch
-is uncoverable.
-
-  # uncoverable branch true
-  if (pi == 3)
-
-Both branches may be uncoverable:
-
-  # uncoverable branch true
-  # uncoverable branch false
-  if (impossible_thing_happened_one_way()) {
-    handle_it_one_way();      # uncoverable statement
-  } else {
-    handle_it_another_way();  # uncoverable statement
-  }
-
-If there is an elsif in the branch then it can be addressed as the second
-branch on the line by using the "count" attribute.  Further elsifs are the
-third and fourth "count" value, and so on.  Every branch in the chain is
-anchored to the line of the opening if, so the comments for the whole chain
-go above that line.
-
-The "all" type marks both elements of a branch with one comment.  It is the
-natural form for a branch that can never run at all, such as an elsif in a
-chain that is never reached.  Here $thing is always one, leaving five
-uncoverable branch outcomes:
-
-  # uncoverable branch false count:1
-  # uncoverable branch all count:2
-  # uncoverable branch all count:3
-
-Marking each element separately:
-
-  # uncoverable branch false count:1
-  # uncoverable branch true count:2
-  # uncoverable branch false count:2
-  # uncoverable branch true count:3
-  # uncoverable branch false count:3
-  if ($thing == 1) {
-    handle_thing_being_one();
-  } elsif ($thing == 2) {
-    handle_thing_being_two();    # uncoverable statement
-  } elsif ($thing == 3) {
-    handle_thing_being_three();  # uncoverable statement
-  } else {
-    die "thing is $thing";       # uncoverable statement
-  }
-
-=head4 unless, until and loop conditions
-
-A block C<unless> with no C<else>, the C<if> and C<unless> statement
-modifiers, and the conditions of C<while>, C<until> and C-style C<for> loops
-all compile to plain logops and are reported as two-element branches.  The
-report renormalises the text: C<while> conditions display as C<if (...)> and
-C<until> conditions as C<unless (...)>.  In every case the "true" element
-means the guarded code ran - the C<unless> body, or an iteration of the loop
-body - and the "false" element means it did not.  For C<unless> and C<until>
-this inverts the condition as written: the body of C<unless ($x)> runs on
-its "true" branch, when C<$x> is false.
-
-  # uncoverable branch true
-  unless ($x) { something_impossible() }
-
-An C<unless>/C<else> is different, and how it is reported depends on the
-perl version.  Up to 5.22 perl negates the condition, so the report
-displays C<if (not $x)> and the "true" element is the C<unless> body
-running.  From 5.24 perl swaps the blocks instead, so the report displays
-C<if ($x)> and the "true" element is the condition being true - the
-C<else> block of the C<unless> running.  The comment addresses the C<if>
-the report shows, so the same comment marks opposite outcomes either side
-of that boundary.  This confusion is one more reason to avoid
-C<unless>/C<else> altogether.
-
-A constant condition, as in C<unless (0)>, is folded away at compile time
-and leaves no branch to mark, so a comment there warns as unmatched.
-
-A condition inside any of these, such as C<unless ($a && $b)> or C<while
-($a && $b)>, is instrumented on its own terms, with the same truth-table
-rows as anywhere else.
-
-=head3 Conditions
-
-Because Perl short-circuits boolean operations, a condition has several
-distinct outcomes - one for each row of its truth table in the report.  A row
-is identified by the values of its operands: 0, 1 or X for an operand never
-evaluated.  The "when" attribute marks the row whose operand values match:
-
-  # uncoverable branch true
-  # uncoverable condition when:0X
-  # uncoverable condition when:11
-  if ($x && !$y) {
-    $x++;  # uncoverable statement
-  }
-
-Here $x is always true, so the row where the left operand is false and the
-right never evaluated (0X) cannot occur, and !$y is always false, so the row
-where both operands are true (11) cannot occur either.  Several rows can be
-marked in one comment with a comma separated list:
-
-  # uncoverable condition when:0X,11
-
-The rows for each kind of op, in report order, are:
-
-  $a && $b   0X 10 11
-  $a || $b   1X 01 00
-  $a xor $b  11 10 01 00
-
-An op whose right operand is a constant collapses to two rows holding the
-value of the left operand alone, 0 and 1 for C<&&>, or 1 and 0 for C<||> and
-C<//>.  A pattern which matches no row of the op warns when the report is
-generated.
-
-The "all" type marks every outcome of the condition with one comment, which
-suits a condition that can never be evaluated at all.
-
-The type words "left", "right" and "false" are deprecated.  They were named
-for the C<||> layout, where "left" is the row satisfied by the left operand,
-"right" the row satisfied by the right, and "false" the false outcome.  But
-they select rows by position - the first, second and third - which misleads
-elsewhere: on C<&&> "false" selects the 11 row, where the expression is
-true.  Using one warns, naming the "when" replacement for the op.
-
-As for branches, the "count" value may be used for either conditions in elsif
-conditionals, or for complex conditions.  Unlike branches, a condition in an
-elsif is addressed at the elsif's own line.  When one line holds several
-condition ops, count:n selects them outermost first, so for C<$a && $b && $c>
-count:1 is the outer op and count:2 the inner C<$a && $b>.  To see the
-grouping perl uses, run the expression through B::Deparse:
-
-  perl -MO=Deparse,-p -e '$a && $b && $c'
-  (($a and $b) and $c);
-
-=head3 MC/DC
-
-An MC/DC decision can be uncoverable when an atomic condition's independence
-pair can never be formed, for example the right operand of C<//> in C<< $x //=
-$default >> when C<$default> is always defined.
-
-The "all" type marks every atomic condition of the decision uncoverable:
-
-  # uncoverable mcdc all
-  $x //= $default;
-
-The "pair" attribute marks a single atomic condition by its position (1-based,
-in the order the report lists them), leaving the rest counted as normal:
-
-  # uncoverable mcdc pair:2
-  $x = $a || $b || $c;
-
-An invalid position warns and the comment is ignored: C<pair:0> when the
-comment is parsed, and a position greater than the number of atomic conditions
-in the decision when the report is generated.
-
-Condition comments also feed MC/DC: an atomic condition is excused
-automatically when every route to demonstrating its independence needs a truth
-table row built from an outcome marked C<uncoverable condition>.  Use those
-comments when a particular outcome cannot occur, for example an error state
-that cannot be simulated.  If a pair could still be formed from rows not
-marked uncoverable, the atomic condition is reported missing - a test gap, not
-an excuse.  For a decision that can never execute at all, such as code inside
-a branch that can never be taken, mark the whole decision with the bare
-C<uncoverable mcdc> comment.
-
-As for conditions, the "count" value selects between several decisions on one
-line.
-
-=head3 Subroutines
-
-A subroutine should be marked as uncoverable at the point where the first
-statement is marked as uncoverable.  Ideally all other criteria in the
-subroutine would be marked as uncoverable automatically, but that isn't the
-case at the moment.
-
-  sub z {
-    # uncoverable subroutine
-    $y++; # uncoverable statement
-  }
-
-=head2 Non-invasive specification
-
-If you can't, or don't want to add coverage comments to your code, you can
-specify the uncoverable information in a separate file.  By default the files
-PWD/.uncoverable and HOME/.uncoverable are checked.  If you use the
--uncoverable_file parameter then the file you provide is checked as well as
-those two files.
-
-The interface to managing this file is the L<cover> program, and the options
-are:
-
-  -uncoverable_file
-  -add_uncoverable_point
-  -delete_uncoverable_point   **UNIMPLEMENTED**
-  -clean_uncoverable_points   **UNIMPLEMENTED**
-
-The parameter for -add_uncoverable_point is a string composed of up to seven
-space separated elements: "$file $criterion $line $count $type $class $note".
-
-The contents of the uncoverable file is the same, with one point per line.
-
-=head1 ENVIRONMENT
-
-=head2 User variables
-
-The -silent option is turned on when Devel::Cover is invoked via
-$HARNESS_PERL_SWITCHES or $PERL5OPT.  Devel::Cover tries to do the right thing
-when $MOD_PERL is set.  $DEVEL_COVER_OPTIONS is appended to any options passed
-into Devel::Cover.
-
-Note that when Devel::Cover is invoked via an environment variable, any modules
-specified on the command line, such as via the -Mmodule option, will not be
-covered.  This is because the environment variables are processed after the
-command line and any code to be covered must appear after Devel::Cover has been
-loaded.  To work around this, Devel::Cover can also be specified on the command
-line.
-
-=head2 Developer variables
-
-When running Devel::Cover's own test suite, $DEVEL_COVER_DEBUG turns on
-debugging information, $DEVEL_COVER_GOLDEN_VERSION overrides Devel::Cover's
-own idea of which golden results it should test against, and
-$DEVEL_COVER_NO_COVERAGE runs the tests without collecting coverage.
-$DEVEL_COVER_DB_FORMAT may be set to "Sereal", "JSON" or "Storable" to
-override the default choice of DB format (Sereal, then JSON if either are
-available, otherwise Storable).  $DEVEL_COVER_IO_OPTIONS provides fine-grained
-control over the DB format.  For example, setting it to "pretty" when the
-format is JSON will store the DB in a readable JSON format.  $DEVEL_COVER_CPUS
-overrides the automated detection of the number of CPUs to use in parallel
-testing.
-
-=head1 ACKNOWLEDGEMENTS
-
-Some code and ideas cribbed from:
+This document describes the internals of the main Devel::Cover module for
+people working on Devel::Cover itself.  The user documentation is in
+F<Cover.pod>, which is what C<perldoc Devel::Cover> and MetaCPAN display.
+Deeper design notes live in F<docs/technical/> in the distribution.
+
+Coverage collection runs in three phases.
 
 =over 4
 
-=item * L<Devel::OpProf>
+=item * Compile time
 
-=item * L<B::Concise>
+L</import> parses the options, creates the coverage database, boots the XS
+code in F<Cover.xs> and records which criteria to collect.  A C<CHECK>
+block then runs L</check>, which finalises the criteria and announces the
+run.
 
-=item * L<B::Deparse>
+=item * Run time
+
+The XS code counts op executions.  When it meets a new file it calls back
+into L</use_file> to ask whether the file is of interest.  The Perl side is
+otherwise idle while the program runs.
+
+=item * End of run
+
+L</report> runs from the last C<END> block.  It fetches the raw counts from
+the XS side, walks every op tree, matches ops to source constructs using
+C<B> and C<B::Deparse>, and writes the results to the coverage database.
 
 =back
+
+=head1 PACKAGE STATE
+
+The configuration set by L</import> is held in file-scoped lexicals such as
+C<$DB>, C<$Dir>, C<$Merge> and the select, ignore and inc lists, each of
+which has a compiled regular expression counterpart.  The state shared
+between phases is:
+
+=over 4
+
+=item C<%Files>
+
+The cached result of L</use_file> for each file seen.  The XS code keeps a
+direct handle on this hash and reads it on the fast path.
+
+=item C<$File>, C<$Line>
+
+The current source location while an op tree is walked.  Set by
+L</get_location> and localised wherever a walk crosses into another file.
+
+=item C<$Collect>
+
+True while the walk callbacks should record what they find.
+
+=item C<%Cvs>, C<@Cvs>, C<@Subs>
+
+C<%Cvs> accumulates every CV that should be covered, keyed by stringified
+B object.  L</check_files> flattens it into C<@Cvs>, sorted by line and
+name, and keeps a reference to each sub in C<@Subs> so the subs still
+exist at report time.
+
+=item C<$Coverage>, C<$Structure>, C<%Run>
+
+C<$Coverage> holds the raw counts fetched from the XS side at report time.
+C<$Structure> is the L<Devel::Cover::DB::Structure> being built, recording
+which constructs exist where.  C<%Run> collects everything written for
+this run - counts, bit vectors, file digests and metadata.
+
+=item C<%Seen>, C<%Parent_map>
+
+C<%Seen> stops the same op being recorded twice for a criterion.
+C<%Parent_map> maps each op's address to its parent op.  The XS walker
+fills it in, giving parent lookups on every supported Perl version.
+
+=back
+
+=head1 LIFECYCLE
+
+=head2 version
+
+Return the module version.
+
+=head2 has_select
+
+True when any C<-select> pattern is active.  F<bin/cover> uses this to
+decide whether partial self-coverage is in effect.
+
+=head2 check
+
+Run from a C<CHECK> block once the main program has compiled.  Takes a
+first pass over the symbol table with L</check_files>, drops criteria that
+cannot be collected - mcdc without condition, pod without a pod coverage
+module - prints the banner and records run metadata with L</populate_run>.
+
+=head2 first_init
+
+A one-shot hook placed at the front of the C<INIT> queue by the XS
+function C<set_first_init_and_end>.  Snapshots the C<INIT> block CVs via
+C<collect_inits> so they can be covered at report time.
+
+=head2 first_end
+
+A one-shot hook placed at the front of the C<END> queue in the same way.
+Calls C<set_last_end>, which appends L</last_end> to the C<END> queue and
+snapshots the C<END> block CVs.  C<get_ends> returns both snapshots at
+report time.
+
+=head2 last_end
+
+The final C<END> block of the program.  Calls L</report> if L</import>
+ran.
+
+=head2 CLONE
+
+Refuse to work with threads.  Perl calls this when a new thread starts,
+and it prints an apology and exits.
+
+=head1 SET-UP
+
+=head2 import ($class, @o)
+
+The entry point for C<use Devel::Cover>.  Appends any options from
+C<$DEVEL_COVER_OPTIONS>, parses them, arranges C<blib> handling, compiles
+the select, ignore and inc patterns, bootstraps the XS code and
+initialises the database and criteria.  A second call returns at once.
+Under mod_perl the C<CHECK>-time work runs here instead, since mod_perl
+compiles the module long after perl's own C<CHECK> phase.
+
+=head2 _parse_options ($o, $blib)
+
+Walk the option list, filling the scalar settings and the select, ignore
+and inc lists.  A C<-> prefix on a list option resets the list before
+adding and C<+> appends.  Unknown options warn and are skipped.
+
+=head2 _init_db
+
+Create the coverage database directory, untainting the paths, and delete
+any existing database unless merging.
+
+=head2 _init_coverage
+
+Fill C<%Criteria> with each criterion's bit value from the XS constants,
+split dash-separated criterion options such as C<pod-also_private-xx>, and
+default to every criterion except C<time> when none was requested.
+
+=head2 populate_run
+
+Record metadata for this run - operating system, perl version, start time,
+and the distribution name and version from F<MYMETA.json> or the directory
+name.
+
+=head1 CRITERIA
+
+The XS side stores the active criteria as a bit mask.  These functions
+translate between names and bits.
+
+=head2 cover_names_to_val (@names)
+
+Map criterion names to the combined bit mask, warning on unknown names.
+
+=head2 set_coverage (@names)
+
+Set the mask of criteria being collected.
+
+=head2 add_coverage (@names)
+
+Add criteria to the mask.
+
+=head2 remove_coverage (@names)
+
+Remove criteria from the mask.
+
+=head2 get_coverage
+
+Return the names of the criteria currently being collected, as a list or
+as a space-joined string in scalar context.
+
+=head1 FILE SELECTION
+
+=head2 autosplit_parent ($file)
+
+Strip the C<(autosplit into ...)> suffix AutoSplit appends to file names
+and resolve stale F<blib> paths through C<%INC>, so coverage of autoloaded
+subs is recorded against the parent module.
+
+=head2 normalised_file ($file)
+
+Return the canonical name for a file.  Eval prefixes are stripped,
+module-relative paths are resolved against the directory the module was
+compiled in, the absolute path is taken where that is safe, Windows
+separators become C</>, the C<$Dir> prefix is removed and the digest store
+is consulted so identical content is always reported under one name.
+Results are cached, and a flag stops recursion when normalising itself
+causes a module to load, as has happened with the Storable backend.
+
+=head2 get_location ($op)
+
+Set C<$File> and C<$Line> from a COP.  Eval file names of the form
+C<< (eval n)[file:line] >> resolve to the real file, and the per-file
+coverage vectors are primed the first time a file is seen.
+
+=head2 use_file ($file)
+
+Decide whether coverage should be collected for a file, caching the answer
+in C<%Files>.  Eval and autosplit wrappings are unwrapped first.  The
+select patterns are tried first, then the ignore patterns, then the inc
+directories, and an unmatched file is used if it exists.  The XS code
+calls this the first time each file is executed, so the cache matters.  It
+also refreshes the CV list via L</add_cvs> in case the symbol table has
+been manipulated since the last look.
+
+=head2 check_file ($cv)
+
+True when the file holding a CV's first statement is wanted.  A sub body
+may open with prologue ops that carry no file information - a
+C<methstart> for a class method, an C<introcv>/C<clonecv> pair for each
+C<my sub> it encloses - so those are stepped past.
+
+=head1 FINDING SUBROUTINES
+
+A sub can only be covered if its CV is found.  Most CVs are reached by
+walking the symbol table, but anonymous subs live only in pads, and a
+wrapper such as a Moose method modifier may remove a named sub from its
+glob entirely.  The pad walk recovers those.
+F<docs/technical/wrapped-sub-coverage.md> discusses the approach and its
+limits.
+
+=head2 recoverable_sub ($cv)
+
+True for a genuine named sub found through a reference.  Anonymous subs
+and internal clones with generated names - a Moose C<:around> modifier's
+CV, a pragma's C<BEGIN> block - share their body with a sub already found
+the normal way and would be recorded twice.
+
+=head2 ref_cvs ($sv, $seen, $depth = 1)
+
+Collect named subs reachable from a pad slot through a reference -
+directly to a CV, or one level deep through a plain array or hash.  That
+is where a method modifier keeps the sub it replaced.  Descent stops
+after one container so a wrapper's own deeper machinery is not reached.
+Blessed containers are not descended, so a sub closing over an object
+does not drag its whole graph in, and magical containers are not
+descended because reading a tied one would run user code.  The seen hash
+guards against cyclic structures.
+
+=head2 pad_cvs ($cv, $seen = {})
+
+Return the CVs found in a CV's pads, recursively.  A slot holding a CV
+directly is an anonymous sub prototype, a slot holding a reference may
+lead to a wrapped named sub, and a C<my sub> keeps its prototype in the
+pad name's C<PROTOCV> (5.22+), the value slot being empty once its scope
+has exited.  The seen hash stops loops from self-referential pad
+entries.
+
+=head2 B::GV::find_cv ($gv)
+
+The per-glob callback for C<B::walksymtable>, defined in the C<B::GV>
+package so the walker can call it as a method.  Records the glob's CV and
+everything found in its pads.
+
+=head2 sub_info ($cv)
+
+Return a CV's name and the COP of its first statement, stepping past
+C<methstart>, C<my sub> prologues and signature scaffolding.  A sub
+enclosing a C<my sub> wraps its C<introcv>/C<clonecv> prologue in a
+nested C<lineseq> before the first statement.  The prologue is identified
+by its leading ops so ordinary nested blocks, which start with a
+C<nextstate>, are left alone.  Used both for naming subs and for sorting
+them.
+
+=head2 add_cvs ($seen = {})
+
+Record the CVs found in the main program's pads.
+
+=head2 check_files
+
+Build C<@Cvs> afresh.  Walks the symbol table with C<B::walksymtable>,
+covering class C<ADJUST> blocks via the XS function C<adjust_blocks>, adds
+pad CVs, then sorts by line and name.  A capture-free lexical sub appears
+as both clone and prototype with the same start op, so doubles are
+dropped.  Finally C<@Subs> takes a reference to each sub so none of them
+is freed before report time.
+
+=head2 special_block_cvs
+
+Return the CVs of every C<BEGIN>, C<CHECK>, C<INIT> and C<END> block, for
+the pad walk.
+
+=head2 _seed_pad_cvs (@require_trees)
+
+Feed pad-only anonymous subs from required files' top-level code and from
+special blocks into C<%Cvs> before L</check_files> snapshots C<@Cvs>.
+
+=head1 REPORTING
+
+=head2 report
+
+The driver run from L</last_end>.  Wraps L</_report> in an eval so a
+failure while writing coverage does not change how the program exits, runs
+it a second time under self-coverage to write Devel::Cover's own data, and
+releases the required-file op trees held by the XS side.
+
+=head2 _report
+
+Do the real reporting work.  Fetches the raw counts with C<coverage(1)>,
+seeds the pad CVs, then walks the main program, the special blocks, every
+collected CV and the top-level code of each required file.  A file
+required more than once (after C<delete $INC{...}>, say) captures one op
+tree per compilation, each with distinct op addresses that C<%Seen>
+cannot collapse, so only the newest tree per file is walked.  Top-level
+require code has no C<set_subroutine> call, so the file context is
+established explicitly before each tree or the per-file counters would
+run against the wrong file.  Finally the
+collected files are filtered and the database is written.  Runs with the
+current directory set to C<$Dir> so relative names resolve as they did at
+compile time.
+
+=head2 _filter_cover_files
+
+Drop collected data for files that fail L</use_file> and store the
+per-file counts into the structure.
+
+=head2 _write_coverage_db
+
+Write this run's data under a unique subdirectory of F<runs/> in the
+database, write the file digests and print the summary.  A self-coverage
+first pass deletes its data instead, leaving only the second pass's view.
+
+=head1 RECORDING COVERAGE
+
+The C<add_*_cover> functions turn one op into a structure entry, recording
+which construct exists at which line, and a run count, recording how often
+each outcome ran.  Structure and counts are stored separately so separate
+runs can merge.  The counts are keyed by C<get_key>, which identifies the
+op in the raw XS data.
+
+=head2 add_subroutine_cover ($op)
+
+Record a subroutine as covered when its first statement ran.
+
+=head2 add_statement_cover ($op)
+
+Record a statement and its execution count, plus profiling time when the
+C<time> criterion is active.
+
+=head2 add_branch_cover ($op, $type, $text, $file, $line)
+
+Record a two-way branch.  For the C<and>, C<or> and final C<elsif> types
+the counts derive from the condition data, where the true path was taken
+whenever the op did not short-circuit.  An C<and> may also be a plain
+C<if> with no C<else>, an C<or> an C<unless>, and the C<elsif> form
+applies when no further C<elsif> or C<else> follows.
+
+=head2 _is_const_right ($op)
+
+True when the right operand of a logical op is a constant-like expression
+with a fixed truth value, unwrapping an enclosing C<sassign> first.  A
+C<multiconcat> op (Perl 5.28+) counts when its literal text is truthy -
+truthy rather than merely non-empty because C<"0"> is the one non-empty
+string that is false.  Such an op collapses to a two-row condition
+counting only the left operand.
+
+=head2 _condition_counts ($c, $type, $op)
+
+Reorder the raw XS condition counts into truth-table row order and return
+the counts, the row count and a flag marking a genuine right operand
+collapsed by void context, which MC/DC uses to rebuild the full decision.
+
+=head2 _skip_to_condop ($op)
+
+Descend through wrapper ops - C<null>, C<not>, scopes - to the logop
+underneath that has its own condition entry, counting traversed C<not>
+ops.
+
+=head2 _resolve_child_op ($child_op)
+
+Resolve a condition operand to the address of its underlying logop and a
+negation flag, for linking nested decisions.
+
+=head2 _condition_structure ($op, $strop, $left, $right, $left_op, $right_op)
+
+Build the structure entry for a condition - its type and row count, the
+deparsed operand texts, and the operand addresses and negation flags MC/DC
+needs to join nested decisions into one.
+
+=head2 add_condition_cover ($op, $strop, $left, $right, $left_op, $right_op)
+
+Record a condition's truth-table counts and, when mcdc is active, its
+evaluation vectors.
+
+=head2 _record_decision_inputs ($key, $n)
+
+Accumulate the MC/DC evaluation vectors the XS side gathered for a
+condition.
+
+=head2 _parse_pod_options
+
+Turn the dash-separated C<pod> criterion options into the argument list
+for the L<Pod::Coverage> constructor.
+
+=head2 _add_pod_cover ($cv)
+
+Ask L<Pod::Coverage> (or L<Pod::Coverage::CountParents>) whether the
+current sub is documented and record the answer against the sub's line.
+
+=head1 WALKING OP TREES
+
+L</get_cover> drives the XS walker C<walk_ops> over one CV.  The walker
+visits the interesting ops and dispatches to the C<_walk_*> callbacks
+below, which classify each op and record it through the functions above.
+Labels for the reports are produced with C<B::Deparse>, taking care to
+match the precedence context (C<cx>) B::Deparse itself would use at that
+point in a full deparse, so the text reads as it was written.
+
+=head2 _want_cover_for
+
+Decide whether the sub just located should be covered at all, filtering
+out unwanted files and keeping Devel::Cover's own modules out of ordinary
+runs while letting them through under self-coverage or an explicit
+C<-select>.
+
+=head2 _add_subroutine_structure ($cv, $start)
+
+Register the sub with the structure, distinguishing several subs on one
+line by a per-line count, and record subroutine and pod coverage.
+Instances of anonymous subs on the same line are merged.
+
+=head2 get_cover ($cv, $root = undef)
+
+Collect coverage for one CV.  The main program and the top-level code of
+required files have no C<ROOT> in their CVs, so the root op is passed
+alongside.  Cyclomatic complexity and the last line seen are recorded
+against the sub.
+
+=head2 _with_deparse ($cv, $use_dumper, $code)
+
+Run a deparsing callback against a shared C<B::Deparse> object prepared
+for the CV, with pragmata from the current COP applied where supported,
+and strip the unindent markers from the result.
+
+=head2 _deparse_expr ($cv, $op, $cx, $use_dumper = 1)
+
+Deparse one op at the given precedence context.
+
+=head2 _deparse_binop_left ($cv, $op, $child, $prec, $use_dumper = 1)
+
+Deparse the left child of a binary op via B::Deparse's own left-operand
+path, avoiding spurious parentheses when left-associative ops of the same
+precedence nest (the inner C<&&> in C<$a && $b && $c>).
+
+=head2 _op_parent ($op)
+
+Look up an op's parent in C<%Parent_map>.
+
+=head2 _in_cond_expr_scope ($op)
+
+True for a null statement inside the condition scope of a C<cond_expr> or
+C<elsif> - a dead COP created by the compiler, not a source statement.
+
+=head2 _in_signature_argcheck ($op)
+
+True for a C<nextstate> inside a signature's argument-checking block with
+no default-value sibling.  Plain parameter bookkeeping is skipped, while a
+default value is real conditional code.  The default-value op is an
+C<argdefelem> under an C<argelem> from 5.38, or a C<paramtest> under a
+C<null> from 5.43.4.
+
+=head2 _walk_statement ($op, $type)
+
+Record a statement, skipping ops with no real successors, dead COPs in
+condition scopes and signature bookkeeping.  Also keeps C<$Current_cop> up
+to date so deparsing sees the right pragmata and location.
+
+=head2 _walk_elsif_chain ($cv, $false)
+
+Follow the false arms of an C<if> statement through its C<elsif> chain,
+recording a branch for each C<elsif> condition and marking the underlying
+ops as seen so they are not recorded again as plain conditionals.
+
+=head2 _walk_cond_expr ($cv, $op)
+
+Record a C<cond_expr> - either a ternary or an C<if> statement.  On Perls
+with C<OPpSTATEMENT> the op itself says which form it is.  Older Perls
+fall back to structural heuristics in the style of B::Deparse.  Statement
+form records an C<if> branch and walks the elsif chain, expression form
+records a ternary branch.
+
+=head2 _skip_null_parents ($parent, $highprec, $lowprec)
+
+Step upwards through C<null> ops when determining context, stopping at
+block boundaries and C<return>.
+
+=head2 _lineseq_parent_cx ($parent)
+
+Context for a logop under a C<lineseq> - expression context when the
+lineseq belongs to a C<cond_expr> or C<elsif> wrapper, statement context
+otherwise.  The last C<elsif> arm compiles to a logop rather than a
+C<cond_expr>, so those wrappers are tracked in C<%Seen> and count too.
+
+=head2 _logop_parent_cx ($op, $highprec, $lowprec)
+
+Determine the precedence context for a logop by walking up the parent
+chain, mirroring how B::Deparse's own recursion would arrive at the op.
+C<OPf_WANT> alone cannot answer this, since it diverges from the deparse
+context for C<return> (want C<NONE>, deparse cx 6) and for C<sort>,
+C<map> and C<grep> blocks (want C<SCALAR>, deparse cx 0).  Parents the
+walk does not recognise, such as nested logops where the optimiser
+removed the C<cond_expr>, fall back to C<OPf_WANT>.
+
+=head2 _is_loop_condition ($op)
+
+True when a logop is the condition of a loop, which is always a branch.
+
+=head2 _resolve_blockname ($blockname, $cx)
+
+Return the keyword form of a statement-level logop's block name - C<if>
+or C<unless> - or undef in expression context.
+
+=head2 _operand_is_decision ($op)
+
+True when an operand is itself a logop, looking through C<null> and
+C<not> wrappers only.
+
+=head2 _record_logop_condition ($cv, $op, $strop, $left, $right, $prec)
+
+Deparse both operands and record the condition, once per op.
+
+=head2 _record_compound_join ($cv, $op, $strop, $left, $right, $prec)
+
+Record a statement-level join whose right operand is itself a decision,
+so a compound decision keeps its root.  See
+L<Devel::Cover::DB/Compound decision roots>.
+
+=head2 _classify_op ($self, $op, $cx, $blockname)
+
+Return whether a logop is in statement form, which controls the deparse
+format, and whether it is a branch, which controls the coverage
+classification.  A statement-level expression logop such as C<$y && $x++>
+is a branch even though it is not in statement form.
+
+=head2 _walk_logop ($cv, $op)
+
+Classify an C<and>, C<or> or C<dor> op and record it.  A statement-form
+op - an C<if> or C<unless> written as a modifier or block - is a branch.
+An expression op in a higher-precedence position is recorded as a C<&&>,
+C<||> or C<//> condition, one in statement position with a discarded
+value is a branch, and anything else is a low-precedence C<and>/C<or>
+condition.  Loop conditions are always branches.
+
+=head2 _walk_logassignop ($cv, $op)
+
+Record C<&&=>, C<||=> and C<//=> as conditions.
+
+=head2 _walk_xor ($cv, $op)
+
+Record C<xor> - and on 5.40+ C<^^> - as a four-row condition.
+
+=head2 _get_cover_walk ($cv, $root)
+
+Run the XS walker over a CV's op tree, dispatching each visited op to the
+walk callbacks.  Returns the cyclomatic complexity, counted as decisions
+plus one, and the highest line seen, used as the sub's end line.
+
+=head1 PROGRESS OUTPUT
+
+=head2 _report_progress ($msg, $code, @items)
+
+Run a callback over a list of items, printing percentage progress on a
+terminal and the time taken in any case.
+
+=head2 get_cover_progress ($type, @cvs)
+
+Run L</get_cover> over a list of CVs with progress output.
+
+=head1 XS INTERFACE
+
+F<Cover.xs> is loaded by L</import> via C<bootstrap> and provides the
+low-level machinery.  The functions used from this module are:
+
+=over 4
+
+=item C<set_criteria>, C<add_criteria>, C<remove_criteria>, C<get_criteria>
+
+Maintain the bit mask of criteria being collected.
+
+=item C<coverage_*>
+
+The bit value for each criterion, plus C<coverage_all> and
+C<coverage_none>.
+
+=item C<coverage ($final)>
+
+The raw collected data.  A true argument finalises pending data for
+reporting.
+
+=item C<get_key ($op)>
+
+The key identifying an op in the raw data.
+
+=item C<get_elapsed>
+
+Elapsed run time in microseconds.
+
+=item C<walk_ops ($root, $callback, $cv, $parent_map)>
+
+The op tree walker driving L</_get_cover_walk>, filling C<%Parent_map> as
+it goes.
+
+=item C<set_first_init_and_end>, C<collect_inits>, C<set_last_end>, C<get_ends>
+
+Bookkeeping for special blocks.  The first three arrange the hooks
+described under L</first_init>, and C<get_ends> returns the snapshotted
+C<INIT> and C<END> block CVs for coverage.
+
+=item C<get_require_trees>, C<release_require_trees>
+
+The top-level op trees of required files, kept alive by the XS
+C<leaveeval> hook so their statements can be covered, and released once
+reporting is done.
+
+=item C<adjust_blocks ($stash)>
+
+References to a class's C<ADJUST> block CVs (Perl 5.38+), which live
+outside the symbol table.
+
+=back
+
+In the other direction the XS code calls back into L</use_file> while the
+program runs, installs L</first_init>, L</first_end> and L</last_end> as
+C<INIT> and C<END> blocks, and calls L</report> directly before an C<exec>
+replaces the process.
 
 =head1 SEE ALSO
 
 =over 4
 
-=item * L<Devel::Cover::Tutorial>
+=item * L<Devel::Cover> - the user documentation
 
-=item * L<B>
+=item * F<docs/technical/> - design notes on branch and condition
+handling, MC/DC, self-coverage and more
 
-=item * L<Pod::Coverage>
-
-=back
-
-=head1 LIMITATIONS
-
-There are things that Devel::Cover can't cover.
-
-=head2 Absence of shared dependencies
-
-Perl keeps track of which modules have been loaded (to avoid reloading
-them).  Because of this, it isn't possible to get coverage for a path
-where a runtime import fails if the module being imported is one that
-Devel::Cover uses internally.  For example, suppose your program has
-this function:
-
-  sub foo {
-    eval { require Storable };
-    if ($@) {
-        carp "Can't find Storable";
-        return;
-    }
-    # ...
-  }
-
-You might write a test for the failure mode as
-
-  BEGIN { @INC = () }
-  foo();
-  # check for error message
-
-Because Devel::Cover uses Storable internally, the import will succeed
-(and the test will fail) under a coverage run.
-
-Modules used by Devel::Cover while gathering coverage:
-
-=over 4
-
-=item * L<B>
-
-=item * L<B::Deparse>
-
-=item * L<Carp>
-
-=item * L<Cwd>
-
-=item * L<Digest::MD5>
-
-=item * L<File::Path>
-
-=item * L<File::Spec>
-
-=item * L<Storable> or L<JSON::MaybeXS> (and its backend) or L<Sereal>
+=item * L<Devel::Cover::DB::Structure>
 
 =back
-
-=head2 Redefined subroutines
-
-If you redefine a subroutine you may find that the original subroutine is not
-reported on.  This is because I haven't yet found a way to locate the original
-CV.  Hints, tips or patches to resolve this will be gladly accepted.
-
-The module Test::TestCoverage uses this technique and so should not be used in
-conjunction with Devel::Cover.
-
-=head1 BUGS
-
-Almost certainly.
-
-See the BUGS file, the TODO file and the bug trackers at
-L<https://github.com/pjcj/Devel--Cover/issues?state=open> and
-L<https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover>
-
-Please report new bugs on GitHub.
 
 =head1 LICENCE
 
@@ -2309,7 +2186,7 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 
 This software is free.  It is licensed under the same terms as Perl itself.
 
-The latest version of this software should be available on CPAN and from my
-homepage: https://pjcj.net/.
+The latest version of this software should be available from my homepage:
+https://pjcj.net
 
 =cut

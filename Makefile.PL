@@ -338,7 +338,7 @@ my $Opts = {
   VERSION          => $Version,
   AUTHOR           => 'Paul Johnson <paul@pjcj.net>',
   MIN_PERL_VERSION => "5.020",
-  ABSTRACT_FROM    => "lib/Devel/Cover.pm",
+  ABSTRACT_FROM    => "lib/Devel/Cover.pod",
   DIR              => [],
   EXE_FILES        => [map "bin/$_", qw( cover gcov2perl cpancover )],
   PERL_MALLOC_OK   => 1,
@@ -373,6 +373,24 @@ sub _should_skip ($file) {
     }
   }
   0
+}
+
+{
+  # User docs go to man section 1 with the commands, technical docs stay in
+  # section 3, so Cover.pod and Cover.pm can both be Devel::Cover
+  package MY;
+
+  sub post_initialize ($self, @args) {
+    my %man1 = (
+      "lib/Devel/Cover.pod"          => "Devel::Cover",
+      "lib/Devel/Cover/Tutorial.pod" => "Devel::Cover::Tutorial",
+    );
+    for my $file (sort keys %man1) {
+      delete $self->{MAN3PODS}{$file};
+      $self->{MAN1PODS}{$file} = "\$(INST_MAN1DIR)/$man1{$file}.\$(MAN1EXT)";
+    }
+    $self->SUPER::post_initialize(@args)
+  }
 }
 
 sub MY::postamble {
