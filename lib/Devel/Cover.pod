@@ -633,12 +633,13 @@ Modules used by Devel::Cover while gathering coverage:
 
 =head2 Redefined subroutines
 
-If you redefine a subroutine you may find that the original subroutine is not
-reported on.  This is because I haven't yet found a way to locate the original
-CV.  Hints, tips or patches to resolve this will be gladly accepted.
-
-The module Test::TestCoverage uses this technique and so should not be used in
-conjunction with Devel::Cover.
+If you redefine a subroutine, the original is still reported on provided it
+was called at least once before being redefined.  Devel::Cover remembers
+each named subroutine as it is entered, so redefining or wrapping it later
+does not lose its coverage.  An original that is redefined before it ever
+runs cannot be reported on - its code is freed before any coverage could
+attach to it - so its statements are absent from the report rather than
+shown as uncovered.
 
 =head1 BUGS
 

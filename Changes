@@ -4,6 +4,9 @@ Devel::Cover history
 - Record each named sub as it is entered so subs displaced from the symbol
   table are covered wherever the wrapper keeps the original - nested
   containers, blessed holders and package variables included (GH-606)
+- Report on subs redefined at runtime, provided the original ran at least
+  once before being replaced - previously the original vanished from the
+  report (GH-606)
 - BREAKING: Require a type word, all or when on branch, condition and mcdc
   uncoverable comments - a bare comment previously marked the first element
   silently (GH-481)
