@@ -1,0 +1,77 @@
+cover: Reading database from ...
+----------------- ------ ------ ------ ------ ------ ------ ------
+File                stmt   bran   cond   mcdc    sub  total   scar
+----------------- ------ ------ ------ ------ ------ ------ ------
+tests/multiconcat  100.0   50.0    n/a    n/a  100.0   94.1    6.9
+Total              100.0   50.0    n/a    n/a  100.0   94.1    6.9
+----------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/multiconcat
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 2 92.9  2.0  6.9
+
+Worst Subroutines
+-----------------
+
+Subroutine       CC SCAR  Location            
+---------------- -- ----  --------------------
+test_multiconcat  2  7.0  tests/multiconcat:14
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/env perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13                                             sub test_multiconcat {
+14             1                           1     my ($x, $y) = ("x", 10);
+15    ***      1   * 50                          print "prefix" . $x . (defined $y ? $y : "test") . ": ";
+16             1                                 while () { return 10 }
+               1                               
+17                                             }
+18                                             
+19             1                               test_multiconcat();
+20             1                               print "\n";
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+15    ***     50      1      0   defined $y ? :
+
+
+Covered Subroutines
+-------------------
+
+Subroutine       Count  CC  SCAR Location            
+---------------- ----- --- ----- --------------------
+BEGIN                1   1   0.0 tests/multiconcat:10
+BEGIN                1   1   0.0 tests/multiconcat:11
+test_multiconcat     1   2   7.0 tests/multiconcat:14
+
+
