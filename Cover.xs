@@ -157,6 +157,8 @@ typedef struct {
 typedef struct {
   unsigned      covering;
   int           collecting_here;
+  int           classifying_file;    /* use_file call in flight - don't
+                                      * start another from its own ops */
   HV           *cover,
                *statements,
                *branches,
@@ -411,8 +413,8 @@ static void set_firsts_if_needed(pTHX) {
 }
 
 /* Ask Devel::Cover::use_file whether we want to collect from FILE.  The
-   require-tree capture uses this under -replace_ops 0, where check_if_collecting
-   never consults use_file itself. */
+   require-tree capture uses this under -replace_ops 0 to decide at capture
+   time whether a require's optree is worth keeping. */
 static int file_wanted(pTHX_ const char *file) {
   dSP;
   int count, wanted;
@@ -467,7 +469,7 @@ static int check_if_collecting(pTHX_ COP *cop) {
         }
       }
 
-      if (!found && MY_CXT.replace_ops
+      if (!found && !MY_CXT.classifying_file
           && !strnEQ(file, "(reeval ", 8)) {
         dSP;
         int count;
@@ -475,6 +477,8 @@ static int check_if_collecting(pTHX_ COP *cop) {
 
         ENTER;
         SAVETMPS;
+        SAVEINT(MY_CXT.classifying_file);
+        MY_CXT.classifying_file = 1;
 
         PUSHMARK(SP);
         XPUSHs(sv_2mortal(newSVpv(file, 0)));
@@ -2583,7 +2587,8 @@ static void initialise(pTHX) {
   }
   MUTEX_UNLOCK(&DC_mutex);
 
-  MY_CXT.collecting_here = 1;
+  MY_CXT.collecting_here   = 1;
+  MY_CXT.classifying_file  = 0;
 
   if (!MY_CXT.covering) {
     /* TODO - this probably leaks all over the place */
@@ -2691,6 +2696,15 @@ static int runops_cover(pTHX) {
       record_entered_sub(aTHX);
     }
 
+    /* Capture require optrees before the collecting veto, as dc_leaveeval
+       does - a selected file ending with a require of an unselected file
+       leaves the flag stale false, and capture_tree_from_cx checks
+       collecting itself. */
+    else if (PL_op->op_type == OP_LEAVEEVAL)
+      capture_require_tree(aTHX);
+    else if (PL_op->op_type == OP_RETURN)
+      capture_require_return(aTHX);
+
     if (!collecting_here(aTHX))
       goto call_fptr;
 
@@ -2729,16 +2743,6 @@ static int runops_cover(pTHX) {
 
       case OP_REQUIRE: {
         store_module(aTHX);
-        break;
-      }
-
-      case OP_LEAVEEVAL: {
-        capture_require_tree(aTHX);
-        break;
-      }
-
-      case OP_RETURN: {
-        capture_require_return(aTHX);
         break;
       }
 

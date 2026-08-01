@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Cover files first seen at runtime under -replace_ops 0, such as AutoLoader
+  .al subs - they were never classified so their coverage was lost (GH-683)
 - Fix coverage collection hanging when a multiconcat expression is followed
   by a loop - the padrange statement walk could run forever (GH-213)
 - Record each named sub as it is entered so subs displaced from the symbol
