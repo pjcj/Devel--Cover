@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Fix coverage collection hanging when a multiconcat expression is followed
+  by a loop - the padrange statement walk could run forever (GH-213)
 - Record each named sub as it is entered so subs displaced from the symbol
   table are covered wherever the wrapper keeps the original - nested
   containers, blessed holders and package variables included (GH-606)

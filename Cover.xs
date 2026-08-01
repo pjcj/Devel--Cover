@@ -2227,13 +2227,16 @@ static void cover_logop(pTHX) {
  * A sequence of variable declarations may have been optimised to a single
  * OP_PADRANGE. The original sequence may span multiple lines, but only the
  * first line has been marked as covered for now. Mark other OP_NEXTSTATE inside
- * the original sequence of statements.
+ * the original sequence of statements. Only a void-context padrange replaces
+ * whole statements. For any other padrange the sibling's op_next chain may
+ * never reach op_next (multiconcat rewires it), so the walk could loop forever.
  */
 static void cover_padrange(pTHX) {
   dMY_CXT;
   OP *next,
      *orig;
   if (!collecting(Statement)) return;
+  if ((PL_op->op_flags & OPf_WANT) != OPf_WANT_VOID) return;
   next = PL_op->op_next;
   orig = OpSIBLING(PL_op);
 
