@@ -728,6 +728,11 @@ sub _seed_pad_cvs (@require_trees) {
   $Cvs{$_} ||= $_ for map pad_cvs($_), special_block_cvs();
 }
 
+sub _seed_entered_subs () {
+  $Cvs{$_} ||= $_
+    for grep recoverable_sub($_) && check_file($_), get_entered_subs();
+}
+
 sub report {
   local $@;
   eval { _report() };
@@ -781,6 +786,7 @@ sub _report {
   @require_trees          = grep $latest_tree{ $_->[2] } == $_, @require_trees;
 
   _seed_pad_cvs(@require_trees);
+  _seed_entered_subs();
 
   check_files();
 
@@ -1828,6 +1834,14 @@ the pad walk.
 Feed pad-only anonymous subs from required files' top-level code and from
 special blocks into C<%Cvs> before L</check_files> snapshots C<@Cvs>.
 
+=head2 _seed_entered_subs
+
+Feed the named subs recorded by the XS C<entersub> hook into C<%Cvs>
+before L</check_files> snapshots C<@Cvs>.  These are the subs that ran but
+may no longer be reachable from the symbol table or any pad - originals
+displaced by a wrapper or freed by redefinition.  Filtered through
+L</recoverable_sub> and L</check_file> like the pad-walk recoveries.
+
 =head1 REPORTING
 
 =head2 report
@@ -2154,6 +2168,13 @@ C<INIT> and C<END> block CVs for coverage.
 The top-level op trees of required files, kept alive by the XS
 C<leaveeval> hook so their statements can be covered, and released once
 reporting is done.
+
+=item C<get_entered_subs>
+
+The named subs recorded as they were entered, as C<B::CV> objects.  The
+XS C<entersub> hook keeps a strong reference to each, so a sub displaced
+from the symbol table or freed by redefinition can still be covered.  See
+F<docs/technical/wrapped-sub-coverage.md>.
 
 =item C<adjust_blocks ($stash)>
 

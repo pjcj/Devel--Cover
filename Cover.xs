@@ -170,6 +170,9 @@ typedef struct {
   AV           *require_trees;       /* [CV ref, root op addr] pairs for
                                       * require optrees kept alive past
                                       * their SAVEFREEOP */
+  HV           *entered_subs;        /* CV pointer bytes -> RV keeping each
+                                      * entered named sub alive for the
+                                      * report-time walk */
   char          profiling_key[KEY_SZ];
   bool          profiling_key_valid;
   SV           *module,
@@ -2272,10 +2275,61 @@ static OP *dc_dbstate(pTHX) {
   return MY_CXT.ppaddr[OP_DBSTATE](aTHX);
 }
 
+/*
+ * Remember each named sub as it is entered, so the report can build
+ * structure for subs later displaced from the symbol table or freed by
+ * redefinition.  The reference is strong - a recorded CV, its optree and
+ * so its op keys stay valid until report time.  Anon and cloned CVs are
+ * skipped (their coverage comes from the pad walk, and a clone shares its
+ * start op with its prototype), as are the compile-phase blocks, whose
+ * early release must not be delayed.  See
+ * docs/technical/wrapped-sub-coverage.md.
+ */
+static void record_entered_sub(pTHX) {
+  dMY_CXT;
+  SV         *sv = *PL_stack_sp;
+  CV         *cv;
+  GV         *gv;
+  const char *name;
+  STRLEN      len;
+
+  if (!sv) return;
+  if (SvTYPE(sv) == SVt_PVCV)
+    cv = (CV *)sv;
+  else if (SvROK(sv) && SvTYPE(SvRV(sv)) == SVt_PVCV)
+    cv = (CV *)SvRV(sv);
+  else if (isGV_with_GP(sv) && GvCV((GV *)sv))
+    cv = GvCV((GV *)sv);
+  else
+    return;
+
+  if (CvISXSUB(cv) || CvANON(cv) || CvCLONED(cv) || !CvROOT(cv)) return;
+  if (hv_exists(MY_CXT.entered_subs, (char *)&cv, sizeof(CV *))) return;
+
+  gv = CvGV(cv);
+  if (!gv || !isGV_with_GP((SV *)gv)) return;
+  name = GvNAME(gv);
+  len  = GvNAMELEN(gv);
+  if (!name || !len) return;
+  if ((len == 3 && strnEQ(name, "END",       3))
+   || (len == 4 && strnEQ(name, "INIT",      4))
+   || (len == 5 && strnEQ(name, "BEGIN",     5))
+   || (len == 5 && strnEQ(name, "CHECK",     5))
+   || (len == 8 && strnEQ(name, "__ANON__",  8))
+   || (len == 9 && strnEQ(name, "UNITCHECK", 9)))
+    return;
+
+  (void)hv_store(MY_CXT.entered_subs, (char *)&cv, sizeof(CV *),
+                 newRV_inc((SV *)cv), 0);
+}
+
 static OP *dc_entersub(pTHX) {
   dMY_CXT;
   NDEB(D(L, "dc_entersub() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering) store_return(aTHX);
+  if (MY_CXT.covering) {
+    store_return(aTHX);
+    record_entered_sub(aTHX);
+  }
   return MY_CXT.ppaddr[OP_ENTERSUB](aTHX);
 }
 
@@ -2582,6 +2636,8 @@ static void initialise(pTHX) {
     HvSHAREKEYS_off(MY_CXT.decision_meta);
     HvSHAREKEYS_off(MY_CXT.decision_walked_cvs);
     MY_CXT.require_trees       = newAV();
+    MY_CXT.entered_subs        = newHV();
+    HvSHAREKEYS_off(MY_CXT.entered_subs);
     MY_CXT.module              = newSVpv("", 0);
     MY_CXT.lastfile            = newSVpvn("", 1);
     MY_CXT.lastfile_ptr        = NULL;
@@ -2627,8 +2683,10 @@ static int runops_cover(pTHX) {
 
     if (PL_op->op_type == OP_NEXTSTATE || PL_op->op_type == OP_DBSTATE)
       check_if_collecting(aTHX_ cCOP);
-    else if (PL_op->op_type == OP_ENTERSUB)
+    else if (PL_op->op_type == OP_ENTERSUB) {
       store_return(aTHX);
+      record_entered_sub(aTHX);
+    }
 
     if (!collecting_here(aTHX))
       goto call_fptr;
@@ -3232,6 +3290,21 @@ release_require_trees()
       }
       LEAVE;
       av_clear(MY_CXT.require_trees);
+    }
+
+void
+get_entered_subs()
+  PREINIT:
+    dMY_CXT;
+  PPCODE:
+    HE *he;
+    if (MY_CXT.entered_subs) {
+      hv_iterinit(MY_CXT.entered_subs);
+      while ((he = hv_iternext(MY_CXT.entered_subs))) {
+        SV *rv = HeVAL(he);
+        if (rv && SvROK(rv))
+          XPUSHs(sv_2mortal(dc_make_cv_sv(aTHX_ (CV *)SvRV(rv))));
+      }
     }
 
 void

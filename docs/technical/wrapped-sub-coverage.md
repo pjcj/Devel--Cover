@@ -69,51 +69,64 @@ The tests are in `t/internal/wrapped_sub.t`: the direct reference form, the
 hash-held and array-held forms, a wrapper closing over a reference to a tied
 array, and a real Moose `around` modifier (skipped when Moose is not installed).
 
-## Known limitations
+## Limits of the heuristic
 
-Recovery is a heuristic, not a guarantee. It finds the original only where the
-wrapper reaches it through a pad, within one plain container. It does not find
-an original that is
+The pad walk finds the original only where the wrapper reaches it through a pad,
+within one plain container. It does not find an original that is
 
 - nested two or more containers deep,
 - held inside a blessed object the wrapper closes over, or
 - kept in a package variable and looked up at call time rather than closed over
   (such an original is in no pad at all).
 
-## A route to a real guarantee
+Entry recording, below, covers all three (GH-606).
+
+## Entry recording
 
 The heuristic re-discovers subs by walking the symbol table and pads, so it is
-bound by where a sub can be reached from. A mechanism that instead remembers
-each sub as it runs would not have that bound.
+bound by where a sub can be reached from. Entry recording removes that bound by
+remembering each sub as it runs.
 
-Devel::Cover already intercepts every call through `dc_entersub` (it replaces
-`PL_ppaddr[OP_ENTERSUB]`). That hook could record the entered CV, so every sub
-that actually executes is remembered regardless of what later happens to its
-glob. A displaced original still runs - the wrapper calls it - so it would be
-recorded even in the cases the heuristic misses above (each of those originals
-does execute and is simply unreachable from the walk roots at report time). A
-sub that never runs needs no run coverage and is still reported as uncovered
-from the symbol-table walk, so entry capture is enough to close the gap for
-executed subs. At report time the recorded CVs are merged into the walk's
-results before the structure is built, and the existing subroutine, statement
-and branch machinery covers them.
+Devel::Cover intercepts every call through `dc_entersub` (it replaces
+`PL_ppaddr[OP_ENTERSUB]`; the `runops_cover` loop mirrors it under
+`-replace_ops 0`). `record_entered_sub` there records the CV about to be
+entered, so every sub that actually executes is remembered regardless of what
+later happens to its glob. A displaced original still runs - the wrapper calls
+it - so it is recorded even where the pad walk cannot reach it. A sub that never
+runs needs no run coverage and is still reported as uncovered from the
+symbol-table walk, so entry capture closes the gap for executed subs. At report
+time `get_entered_subs` hands the recorded CVs to `_seed_entered_subs`, which
+merges them into `%Cvs` - filtered through `recoverable_sub` and `check_file`
+like the pad-walk recoveries - before `check_files` snapshots `@Cvs`, and the
+existing subroutine, statement and branch machinery covers them.
 
-The reference held to each recorded CV must be weak. A weak reference does not
-raise the CV's reference count, so DESTROY timing, memory use and what stays
-alive are all unchanged - the tool must not alter the behaviour of the program
-it measures. It also degrades sensibly. When a CV is freed before the report is
-built (a closure created, called and dropped mid-run), `Scalar::Util::weaken`
-nulls the reference to `undef`, so the report step skips it rather than reading
-a freed or reused slot. Those subs ran but their optree is gone, so no structure
-can be built for them, and they are counted as dropped rather than crashing the
-report. A weak reference is safe against address reuse in a way raw address
-tracking is not.
+Only named subs are recorded: XS subs, anonymous subs, closure clones and the
+compile-phase blocks (`BEGIN` and friends) are skipped. Anonymous subs and
+clones are covered through the pad walk when they survive, a clone shares its
+start op with its prototype so recording it would add a duplicate, and the phase
+blocks' early release must not be delayed.
 
-The costs are why this is a larger change than the heuristic and belongs on its
-own branch. `dc_entersub` is on the call hot path, so recording a CV there - a
-lookup to skip ones already seen, and a weaken on first sight - is collection
-cost, the more sensitive kind, and would likely be gated behind an option. It
-holds one small weak-reference SV per distinct executed CV for the length of the
-run, and the interaction with threaded builds (weak references are
-per-interpreter) and with getting the entered CV cleanly for XS subs both need
-care. Measuring the hot-path cost is the first step before committing to it.
+The reference held to each recorded CV is strong, not weak. A weak reference
+would be nulled the moment a sub is freed, which is exactly the case that needs
+covering: a sub redefined at runtime (`*foo = sub { ... }`) frees the original
+CV on the spot, since the glob held the only reference. With a strong reference
+the original's optree survives to report time, so its structure can be built and
+its counts - keyed by op address - can never be confused with a later op reusing
+the same address. This closes the "Redefined subroutines" limitation documented
+in the user docs since GH-88, for any original that ran at least once. An
+original redefined before it ever runs is still lost: it was never entered, and
+its optree is freed before any coverage could attach.
+
+Recording named subs only keeps the observable cost contained. A named CV lives
+to the end of the run anyway except when redefined or its package is deleted, so
+holding it does not change what stays alive, and closure DESTROY timing - the
+sensitive case, see GH-118 - is untouched because closures are never recorded. A
+redefined sub's pad now survives to report time instead of being freed at
+redefinition, which is the price of reporting on it.
+
+The hot-path cost is a few flag tests per call plus one hash lookup, keyed on
+the CV pointer, for named subs already recorded. Measured on a worst-case
+microbenchmark (ten million calls of a one-line named sub under statement
+coverage, nothing else) the difference from the previous code was about two
+percent, within run-to-run noise, so recording is always on rather than behind
+an option.
