@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------- ------ ------ ------ ------ ------ ------ ------
 File            stmt   bran   cond   mcdc    sub  total   scar
 ------------- ------ ------ ------ ------ ------ ------ ------
-tests/deparse   91.6    n/a    n/a    n/a   75.0   87.5    0.0
-Total           91.6    n/a    n/a    n/a   75.0   87.5    0.0
+tests/deparse   91.6    n/a    n/a    n/a   75.0   87.5    2.2
+Total           91.6    n/a    n/a    n/a   75.0   87.5    2.2
 ------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 91.7  1.0  0.0
+ 1 91.7  1.2  2.2
 
 Worst Subroutines
 -----------------

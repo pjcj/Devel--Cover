@@ -5,9 +5,9 @@ Common prefix: tests/
 ------- ------ ------ ------ ------ ------ ------ ------
 File      stmt   bran   cond   mcdc    sub  total   scar
 ------- ------ ------ ------ ------ ------ ------ ------
-E2.pm     66.6    n/a    n/a    n/a    0.0   50.0    0.4
-require  100.0   50.0    n/a    n/a  100.0   90.9    7.0
-Total     90.0   50.0    n/a    n/a   66.6   80.0    7.0
+E2.pm     66.6    n/a    n/a    n/a    0.0   50.0    6.9
+require  100.0   50.0    n/a    n/a  100.0   90.9    5.2
+Total     90.0   50.0    n/a    n/a   66.6   80.0    5.7
 ------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -22,7 +22,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    2  2 83.3  2.0  7.0
+    2  2 83.3  1.8  5.7
 
 
 E2.pm
@@ -32,7 +32,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 66.7  1.0  0.4
+ 1 66.7  2.0  6.9
 
 Worst Subroutines
 -----------------
@@ -73,7 +73,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 2 88.9  2.0  7.0
+ 2 88.9  1.7  5.2
 
 Worst Subroutines
 -----------------

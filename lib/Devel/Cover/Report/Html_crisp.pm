@@ -292,11 +292,11 @@ HTML
   $o .= stat_badge("total", $tt) unless is_na($tt->{pc});
 
   my $ms = $R{db}->summary("Total", "scar");
-  if ($ms && defined $ms->{module_scar}) {
-    my $sv  = sprintf "%.1f", $ms->{module_scar};
-    my $sc  = "scar-" . scar_class($ms->{module_scar});
+  if ($ms && defined $ms->{file_scar}) {
+    my $sv  = sprintf "%.1f", $ms->{file_scar};
+    my $sc  = "scar-" . scar_class($ms->{file_scar});
     my $tip = sprintf "CC %d &middot; cov %.0f%% &middot; CRAP %.1f",
-      $ms->{module_cc}, $ms->{module_cov}, $ms->{module_crap};
+      $ms->{file_cc}, $ms->{file_cov}, $ms->{file_crap};
     $o .= <<HTML;
 <span class="stat-badge stat-scar tip-hover">
 <span class="badge-label">scar <span class="$sc">$sv</span></span>

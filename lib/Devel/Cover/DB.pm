@@ -408,7 +408,6 @@ sub _file_dir ($file) {
 
 sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
   my ($max, $sum, $count) = (0, 0, 0);
-  my ($crap_max, $crap_sum) = (0, 0);
   my @subs;
 
   for my $line (sort { $a <=> $b } keys %$cc_hash) {
@@ -424,8 +423,6 @@ sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
         my $end  = $end_arr->[$scount] // $line;
         my $cov  = _sub_coverage($file_obj, $line, $end);
         my $crap = _crap($cc, $cov);
-        $crap_max  = $crap if $crap > $crap_max;
-        $crap_sum += $crap;
         push @subs, {
             name => $sub_name,
             line => $line + 0,
@@ -439,14 +436,7 @@ sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
   }
 
   return unless $count;
-  {
-    max      => $max,
-    sum      => $sum,
-    count    => $count,
-    crap_max => $crap_max,
-    crap_sum => $crap_sum,
-    subs     => \@subs,
-  }
+  { max => $max, sum => $sum, count => $count, subs => \@subs }
 }
 
 sub _summarise_dir_complexity ($self, $s, $dir_files, $dir_stats) {
@@ -477,15 +467,12 @@ sub _summarise_dir_complexity ($self, $s, $dir_files, $dir_stats) {
 
     my $ds = $dir_stats->{$dir};
     if ($ds && $ds->{cc_count}) {
-      my $dir_cc   = $ds->{cc_sum} - $ds->{cc_count} + 1;
-      my $dir_cov  = _file_coverage($d);
-      my $dir_crap = _crap($dir_cc, $dir_cov);
-      my $dir_scar = _scar($dir_crap);
+      my $dir_crap = $ds->{wcrap_sum} / $ds->{cc_sum};
       $d->{scar} = {
-        file_cc   => $dir_cc,
-        file_cov  => $dir_cov,
+        file_cc   => $ds->{cc_sum} - $ds->{cc_count} + 1,
+        file_cov  => _file_coverage($d),
         file_crap => $dir_crap,
-        file_scar => $dir_scar,
+        file_scar => _scar($dir_crap),
       };
     }
   }
@@ -493,7 +480,6 @@ sub _summarise_dir_complexity ($self, $s, $dir_files, $dir_stats) {
 
 sub _uncompiled_cc_data ($sub_data) {
   my ($max, $sum, $count) = (0, 0, 0);
-  my ($crap_max, $crap_sum) = (0, 0);
   my @subs;
   for my $sd (@$sub_data) {
     my $cc   = $sd->{cc};
@@ -502,8 +488,6 @@ sub _uncompiled_cc_data ($sub_data) {
     $max  = $cc if $cc > $max;
     $sum += $cc;
     $count++;
-    $crap_max  = $crap if $crap > $crap_max;
-    $crap_sum += $crap;
     push @subs, {
         name => $sd->{name},
         line => $sd->{line} + 0,
@@ -515,14 +499,7 @@ sub _uncompiled_cc_data ($sub_data) {
   }
 
   return unless $count;
-  {
-    max      => $max,
-    sum      => $sum,
-    count    => $count,
-    crap_max => $crap_max,
-    crap_sum => $crap_sum,
-    subs     => \@subs,
-  }
+  { max => $max, sum => $sum, count => $count, subs => \@subs }
 }
 
 sub _compiled_cc_data ($self, $st, $file_obj) {
@@ -536,33 +513,28 @@ sub _record_file_complexity ($s, $file, $d, $dir_stats, $totals) {
   my $count = $d->{count};
   $s->{$file}{complexity}
     = { max => $d->{max}, mean => $d->{sum} / $count, count => $count };
-  my $file_cc   = $d->{sum} - $count + 1;
-  my $file_cov  = _file_coverage($s->{$file});
-  my $file_crap = _crap($file_cc, $file_cov);
-  my $file_scar = _scar($file_crap);
+  my $wcrap_sum = 0;
+  $wcrap_sum += $_->{cc} * $_->{crap} for $d->{subs}->@*;
+  my $file_crap = $wcrap_sum / $d->{sum};
   $s->{$file}{scar} = {
-    max       => $d->{crap_max},
-    mean      => $d->{crap_sum} / $count,
     count     => $count,
     subs      => $d->{subs},
-    file_cc   => $file_cc,
-    file_cov  => $file_cov,
+    file_cc   => $d->{sum} - $count + 1,
+    file_cov  => _file_coverage($s->{$file}),
     file_crap => $file_crap,
-    file_scar => $file_scar,
+    file_scar => _scar($file_crap),
   };
 
-  my $ds = $dir_stats->{ _file_dir($file) } ||= { cc_sum => 0, cc_count => 0 };
-  $ds->{cc_sum}   += $d->{sum};
-  $ds->{cc_count} += $count;
+  my $ds = $dir_stats->{ _file_dir($file) }
+    ||= { cc_sum => 0, cc_count => 0, wcrap_sum => 0 };
+  $ds->{cc_sum}    += $d->{sum};
+  $ds->{cc_count}  += $count;
+  $ds->{wcrap_sum} += $wcrap_sum;
 
-  $totals->{fcrap_sum} += $file_crap;
-  $totals->{fscar_sum} += $file_scar;
-  $totals->{fcrap_cnt}++;
-  $totals->{max}       = $d->{max} if $d->{max} > $totals->{max};
-  $totals->{sum}      += $d->{sum};
-  $totals->{count}    += $count;
-  $totals->{crap_max}  = $d->{crap_max} if $d->{crap_max} > $totals->{crap_max};
-  $totals->{crap_sum} += $d->{crap_sum};
+  $totals->{max}        = $d->{max} if $d->{max} > $totals->{max};
+  $totals->{sum}       += $d->{sum};
+  $totals->{count}     += $count;
+  $totals->{wcrap_sum} += $wcrap_sum;
 }
 
 sub _record_total_complexity ($s, $totals) {
@@ -572,35 +544,18 @@ sub _record_total_complexity ($s, $totals) {
     mean  => $totals->{sum} / $totals->{count},
     count => $totals->{count},
   };
-  my $module_cc   = $totals->{sum} - $totals->{count} + 1;
-  my $module_cov  = _file_coverage($s->{Total});
-  my $module_crap = _crap($module_cc, $module_cov);
-  my $cnt         = $totals->{fcrap_cnt};
+  my $crap = $totals->{wcrap_sum} / $totals->{sum};
   $s->{Total}{scar} = {
-    max         => $totals->{crap_max},
-    mean        => $totals->{crap_sum} / $totals->{count},
-    count       => $totals->{count},
-    file_crap   => $cnt ? $totals->{fcrap_sum} / $cnt : 0,
-    file_scar   => $cnt ? $totals->{fscar_sum} / $cnt : 0,
-    module_cc   => $module_cc,
-    module_cov  => $module_cov,
-    module_crap => $module_crap,
-    module_scar => _scar($module_crap),
+    file_cc   => $totals->{sum} - $totals->{count} + 1,
+    file_cov  => _file_coverage($s->{Total}),
+    file_crap => $crap,
+    file_scar => _scar($crap),
   };
 }
 
 sub summarise_complexity ($self, $s, $files) {
   my $st     = $self->{_structure};
-  my %totals = (
-    max       => 0,
-    sum       => 0,
-    count     => 0,
-    crap_max  => 0,
-    crap_sum  => 0,
-    fcrap_sum => 0,
-    fscar_sum => 0,
-    fcrap_cnt => 0,
-  );
+  my %totals = (max => 0, sum => 0, count => 0, wcrap_sum => 0);
   my %dir_stats;
   my %dir_files;
 
@@ -666,7 +621,7 @@ sub _format_summary_pct ($options, $part, $criterion) {
 sub _format_summary_scar ($self, $file, $part, $have_ppi) {
   my $scar = $part->{scar};
   if ($scar) {
-    my $v = $file eq "Total" ? $scar->{module_scar} : $scar->{file_scar};
+    my $v = $scar->{file_scar};
     return sprintf "%5.1f", $v if defined $v;
   }
   return "n/a" if $file eq "Total";
@@ -1749,6 +1704,13 @@ exists.
 Compute per-file, per-directory, and total complexity and SCAR scores, storing
 results into the C<$summary> hash. Called automatically by
 L</calculate_summary>.
+
+CRAP is computed per subroutine. Aggregate CRAP at file, directory and Total
+level is the complexity-weighted mean of the subroutines' CRAP scores,
+C<sum(cc * crap) / sum(cc)>, so every level lies on the per-sub scale and
+never scores worse than its worst child. The stored C<file_cc> is the summed
+complexity (a size measure, not part of the risk score) and C<file_cov> the
+combined coverage.
 
 =head2 calculate_summary
 

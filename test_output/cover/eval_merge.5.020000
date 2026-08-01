@@ -7,8 +7,8 @@ File         stmt   bran   cond   mcdc    sub  total   scar
 ---------- ------ ------ ------ ------ ------ ------ ------
 E2.pm       100.0    n/a    n/a    n/a  100.0  100.0    0.0
 E3.pm       100.0    n/a    n/a    n/a  100.0  100.0    0.0
-eval_merge   80.9   50.0   50.0    0.0  100.0   75.8    0.1
-Total        85.1   50.0   50.0    0.0  100.0   81.0    0.1
+eval_merge   80.9   50.0   50.0    0.0  100.0   75.8    0.0
+Total        85.1   50.0   50.0    0.0  100.0   81.0    0.0
 ---------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -23,7 +23,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    3  1 80.6  1.0  0.1
+    3  1 80.6  1.0  0.0
 
 
 E2.pm
@@ -101,7 +101,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 76.0  1.0  0.1
+ 1 76.0  1.0  0.0
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl

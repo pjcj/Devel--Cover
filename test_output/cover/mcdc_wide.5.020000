@@ -4,8 +4,8 @@ cover: MC/DC decision at tests/mcdc_wide:41 has 17 conditions, exceeding the ana
 --------------- ------ ------ ------ ------ ------ ------ ------
 File              stmt   bran   cond   mcdc    sub  total   scar
 --------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_wide  100.0    n/a   68.5   10.2  100.0   61.3   40.4
-Total            100.0    n/a   68.5   10.2  100.0   61.3   40.4
+tests/mcdc_wide  100.0    n/a   68.5   10.2  100.0   61.3   31.7
+Total            100.0    n/a   68.5   10.2  100.0   61.3   31.7
 --------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -22,7 +22,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-36 74.8 56.7 40.4
+36 74.8 23.9 31.7
 
 Worst Subroutines
 -----------------

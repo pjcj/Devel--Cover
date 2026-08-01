@@ -280,10 +280,10 @@ sub test_scar_scoring () {
   my $scar = $db->{summary}{$file}{scar};
   ok defined $scar, "scar: file summary has scar entry";
 
-  ok exists $scar->{max},   "scar: has max";
-  ok exists $scar->{mean},  "scar: has mean";
   ok exists $scar->{count}, "scar: has count";
   ok exists $scar->{subs},  "scar: has subs";
+  ok !exists $scar->{max},  "scar: no max aggregate";
+  ok !exists $scar->{mean}, "scar: no mean aggregate";
 
   # Build lookup by sub name for easier assertions.
   my %by_name = map { $_->{name} => $_ } $scar->{subs}->@*;
@@ -316,10 +316,10 @@ sub test_scar_scoring () {
 
   # Total aggregation
   my $ts = $db->{summary}{Total}{scar};
-  ok defined $ts,         "scar: Total has scar entry";
-  ok exists $ts->{max},   "scar: Total has max";
-  ok exists $ts->{mean},  "scar: Total has mean";
-  ok exists $ts->{count}, "scar: Total has count";
+  ok defined $ts,             "scar: Total has scar entry";
+  ok exists $ts->{file_scar}, "scar: Total has file_scar";
+  ok !exists $ts->{max},      "scar: Total has no max aggregate";
+  ok !exists $ts->{mean},     "scar: Total has no mean aggregate";
 }
 
 # Text report CC/SCAR column tests.
@@ -371,8 +371,8 @@ sub test_text_report_scar () {
 }
 
 # File-level CRAP tests.
-# Verifies that summarise_complexity computes file_cc, file_cov,
-# and file_crap by treating the entire file as one sub body.
+# Verifies that summarise_complexity computes file_crap as the
+# complexity-weighted mean of the per-sub CRAP scores.
 sub test_file_level_scar () {
   my ($db_path, $script) = run_cover("cc_filecrap", $Crap_script);
 
@@ -406,13 +406,21 @@ sub test_file_level_scar () {
   ok $scar->{file_cov} >= 0 && $scar->{file_cov} <= 100,
     "filescar: file_cov is 0..100";
 
-  # file_crap: CRAP formula applied to file-level inputs
+  # file_crap: complexity-weighted mean of per-sub CRAP scores
   ok exists $scar->{file_crap}, "filescar: has file_crap";
-  my $cc            = $scar->{file_cc};
-  my $cov           = $scar->{file_cov};
-  my $expected_crap = $cc**2 * (1 - $cov / 100)**3 + $cc;
-  is $scar->{file_crap}, $expected_crap,
-    "filescar: file_crap matches CRAP formula";
+  my ($wsum, $ccsum) = (0, 0);
+  for my $sub ($scar->{subs}->@*) {
+    $wsum  += $sub->{cc} * $sub->{crap};
+    $ccsum += $sub->{cc};
+  }
+  ok abs($scar->{file_crap} - $wsum / $ccsum) < 1e-9,
+    "filescar: file_crap = sum(cc * crap) / sum(cc)";
+
+  # Bounded by the subs: never worse than the worst, never better than
+  # the best
+  my @craps = sort { $a <=> $b } map $_->{crap}, $scar->{subs}->@*;
+  ok $scar->{file_crap} >= $craps[0] && $scar->{file_crap} <= $craps[-1],
+    "filescar: file_crap lies between best and worst sub CRAP";
 
   # file_scar: ln(file_crap) * 10
   ok exists $scar->{file_scar}, "filescar: has file_scar";
@@ -420,27 +428,22 @@ sub test_file_level_scar () {
   ok abs($scar->{file_scar} - $expected_scar) < 0.01,
     "filescar: file_scar = log(file_crap) * 10";
 
-  # Total aggregation
+  # Total aggregation: same definition as a file, over all subs.
+  # With a single file, the Total matches the file exactly.
   my $ts = $db->{summary}{Total}{scar};
-  ok defined $ts,             "filescar: Total has scar entry";
-  ok exists $ts->{file_crap}, "filescar: Total has file_crap";
-  ok exists $ts->{file_scar}, "filescar: Total has file_scar";
+  ok defined $ts,            "filescar: Total has scar entry";
+  ok exists $ts->{file_cc},  "filescar: Total has file_cc";
+  ok exists $ts->{file_cov}, "filescar: Total has file_cov";
+  ok abs($ts->{file_crap} - $scar->{file_crap}) < 1e-9,
+    "filescar: single-file Total crap matches file crap";
+  ok abs($ts->{file_scar} - $scar->{file_scar}) < 1e-9,
+    "filescar: single-file Total scar matches file scar";
 
-  # Module-level SCAR (whole-codebase CRAP)
-  ok exists $ts->{module_cc},   "filescar: Total has module_cc";
-  ok exists $ts->{module_cov},  "filescar: Total has module_cov";
-  ok exists $ts->{module_crap}, "filescar: Total has module_crap";
-  ok exists $ts->{module_scar}, "filescar: Total has module_scar";
-  ok $ts->{module_cc} > 0,      "filescar: module_cc > 0";
-  my $mcc            = $ts->{module_cc};
-  my $mcv            = $ts->{module_cov};
-  my $expected_mcrap = $mcc**2 * (1 - $mcv / 100)**3 + $mcc;
-  is $ts->{module_crap}, $expected_mcrap,
-    "filescar: module_crap matches CRAP formula";
-  my $expected_mscar
-    = $ts->{module_crap} > 1 ? log($ts->{module_crap}) * 10 : 0;
-  ok abs($ts->{module_scar} - $expected_mscar) < 0.01,
-    "filescar: module_scar = log(module_crap) * 10";
+  # The old whole-codebase CRAP recomputation is gone
+  ok !exists $ts->{module_cc},   "filescar: Total has no module_cc";
+  ok !exists $ts->{module_cov},  "filescar: Total has no module_cov";
+  ok !exists $ts->{module_crap}, "filescar: Total has no module_crap";
+  ok !exists $ts->{module_scar}, "filescar: Total has no module_scar";
 }
 
 sub test_dir_level_scar () {
@@ -483,17 +486,14 @@ sub test_dir_level_scar () {
   ok exists $scar->{file_crap}, "dirscar: has file_crap";
   ok exists $scar->{file_scar}, "dirscar: has file_scar";
 
-  # dir_cc should equal the single file's file_cc (one file in the directory)
+  # With one file in the directory, the dir aggregates match the file
   my $file_scar = $db->{summary}{$file}{scar};
   is $scar->{file_cc}, $file_scar->{file_cc},
     "dirscar: dir cc matches single file cc";
-
-  # CRAP formula
-  my $cc            = $scar->{file_cc};
-  my $cov           = $scar->{file_cov};
-  my $expected_crap = $cc**2 * (1 - $cov / 100)**3 + $cc;
-  is $scar->{file_crap}, $expected_crap,
-    "dirscar: dir crap matches CRAP formula";
+  ok abs($scar->{file_crap} - $file_scar->{file_crap}) < 1e-9,
+    "dirscar: single-file dir crap matches file crap";
+  ok abs($scar->{file_scar} - $file_scar->{file_scar}) < 1e-9,
+    "dirscar: single-file dir scar matches file scar";
 }
 
 # Helper: run the text report against a fresh db built from Crap_script and
@@ -589,6 +589,35 @@ PERL
   ($db, $main, $helper)
 }
 
+# Aggregate bound tests.
+# Verifies the ticket's core guarantee across a two-file db: the Total
+# score never exceeds the worst file's score.
+sub test_total_bounded_by_files () {
+  my ($db_path, $main, $helper) = run_cover_two_files("cc_bound");
+
+  my $st = Devel::Cover::DB::Structure->new(base => $db_path);
+  $st->read_all;
+
+  my $db = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  $db->set_structure($st);
+  $db->calculate_summary(
+    statement  => 1,
+    branch     => 1,
+    condition  => 1,
+    subroutine => 1,
+  );
+
+  my @file_scars = map $_->{scar}{file_scar},
+    grep { $_->{scar} } map $db->{summary}{$_}, grep $_ ne "Total",
+    keys $db->{summary}->%*;
+  ok @file_scars > 1, "bound: multiple files carry scar data";
+
+  my ($worst) = sort { $b <=> $a } @file_scars;
+  my $ts = $db->{summary}{Total}{scar};
+  ok $ts->{file_scar} <= $worst + 1e-9,
+    "bound: Total scar does not exceed the worst file";
+}
+
 sub _multi_file_report ($label, $split_dirs = 0) {
   my ($db_path, $main, $helper) = run_cover_two_files($label, $split_dirs);
   my $st = Devel::Cover::DB::Structure->new(base => $db_path);
@@ -660,7 +689,7 @@ sub test_text_dir_block_suppressed () {
 
 # print_summary SCAR column tests.
 # Verifies that DB::print_summary emits a scar column after the criteria
-# columns, with per-file file_scar and Total module_scar.
+# columns, with the same file_scar aggregate for files and Total.
 sub test_print_summary_scar () {
   my ($db_path, $script) = run_cover("ps_scar", $Crap_script);
 
@@ -710,6 +739,7 @@ sub main () {
   test_text_report_scar;
   test_file_level_scar;
   test_dir_level_scar;
+  test_total_bounded_by_files;
   test_print_summary_scar;
   test_text_file_banner;
   test_text_module_block;
