@@ -166,9 +166,18 @@ HTML
   }
   my $total_link = $linkable ? "$f->{link}#filter=total" : undef;
   $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort}, $total_link);
+  $o .= cc_cell($f);
   $o .= scar_cell($f, $linkable ? $f->{link} : undef);
   $o .= "</tr>\n";
   $o
+}
+
+sub cc_cell ($f) {
+  my $cc  = $f->{file_cc};
+  my $na  = is_na($cc);
+  my $dv  = $na ? -1   : $cc;
+  my $cls = $na ? "na" : "cc-val";
+  qq(<td data-value="$dv" class="$cls">$cc</td>\n)
 }
 
 sub scar_cell ($f, $link = undef) {
@@ -298,6 +307,10 @@ HTML
     my $tip = sprintf "CC %d &middot; cov %.0f%% &middot; CRAP %.1f",
       $ms->{file_cc}, $ms->{file_cov}, $ms->{file_crap};
     $o .= <<HTML;
+<span class="stat-badge stat-cc">
+CC $ms->{file_cc}</span>
+HTML
+    $o .= <<HTML;
 <span class="stat-badge stat-scar tip-hover">
 <span class="badge-label">scar <span class="$sc">$sv</span></span>
 @{[ glass_tip($tip) ]}</span>
@@ -324,6 +337,8 @@ Toggle "Hide 100% covered" to focus on incomplete files.</dd>
 <dt>Grouping</dt>
 <dd>Toggle "Group by directory" to organise files into
 collapsible groups. Click a directory row to collapse it.</dd>
+<dt>CC</dt>
+<dd>Cyclomatic complexity summed over the file's subroutines.</dd>
 <dt>SCAR</dt>
 <dd>Scaled Complexity And Risk - a log-scaled CRAP score
 compressed to a 0-100 range. Hover for a breakdown: file CC,
@@ -366,7 +381,7 @@ HTML
 HTML
 
   my $ncrit  = $R{criteria}->@*;
-  my $ncols  = $ncrit + 2;       # criteria + total + scar
+  my $ncols  = $ncrit + 3;       # criteria + total + cc + scar
   my $crit_w = 70 / $ncols;
   $o
     .= qq(<table class="file-table">\n<colgroup>\n)
@@ -380,6 +395,7 @@ HTML
   }
   $o .= <<HTML;
 <th data-sort="total">@{[ crit_name('total') ]}</th>
+<th data-sort="cc">CC</th>
 <th data-sort="scar">SCAR</th>
 </tr>
 </thead>
@@ -391,6 +407,7 @@ HTML
     $o .= qq(<tr class="dir-header" data-dir="$edir">\n) . "<td>$edir</td>\n";
     $o .= cov_cell($g->{criteria}{$_}, 0) for $R{criteria}->@*;
     $o .= cov_cell($g->{total},        0);
+    $o .= cc_cell($g);
     $o .= scar_cell($g);
     $o .= "</tr>\n";
     $o .= file_row($_, $g->{dir}) for $g->{files}->@*;
@@ -661,6 +678,11 @@ HTML
 @{[ glass_tip("$tt->{covered} / $tt->{total}") ]}</span>
 HTML
   }
+  my $cc = $fd->{file_cc};
+  $o .= <<HTML unless is_na($cc);
+<span class="stat-badge stat-cc">
+CC $cc</span>
+HTML
   my $sl     = $fd->{file_scar};
   my $sl_na  = is_na($sl);
   my $sl_tip = $sl_na ? "" : scar_tip($fd);
@@ -1372,6 +1394,12 @@ overflowing. */
   color: var(--fg);
   width: auto;
 }
+.stat-cc {
+  background: var(--bg-alt);
+  border-color: var(--border);
+  color: var(--fg-muted);
+  width: auto;
+}
 .stat-badge[data-criterion] {
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -1607,6 +1635,7 @@ overflowing. */
 .file-table .cell-link:hover { opacity: 0.85; }
 
 /* SCAR colouring: coloured text/outline by risk, never a full fill */
+td.cc-val   { color: var(--fg-muted); }
 td.scar-val { font-weight: 600; }
 .scar-c0 { color: var(--tip-c0); }
 .scar-c1 { color: var(--tip-c1); }

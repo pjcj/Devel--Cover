@@ -222,6 +222,32 @@ sub test_module_scar_badge () {
     "header: SCAR badge number coloured by its own value";
 }
 
+sub test_cc_column () {
+  my $got = $Golden{"coverage.html"};
+  like $got, qr{<th data-sort="cc">CC</th>\n<th data-sort="scar">SCAR</th>},
+    "index: CC column header sits before SCAR";
+  like $got, qr/<td data-value="\d+" class="cc-val">/,
+    "index: file rows carry numeric CC cells";
+  unlike $got, qr/cc-val scar-c[0-3]/, "index: CC cells are not risk-coloured";
+
+  my ($dir_row) = $got =~ m{(<tr class="dir-header".*?</tr>)}s;
+  ok defined $dir_row, "index: directory header row found";
+  like $dir_row, qr/cc-val/, "index: directory rows include a CC cell";
+
+  like $got, qr{<dt>CC</dt>\n<dd>Cyclomatic complexity},
+    "index: help describes the CC column";
+
+  like $got, qr/stat-cc">\nCC \d/, "index: header shows a project CC badge";
+  like $got, qr/stat-cc.*?stat-scar/s,
+    "index: header CC badge sits before the SCAR badge";
+
+  my ($covered) = grep /Covered-Calc/, keys %Golden;
+  my $file_page = $Golden{$covered};
+  like $file_page, qr/stat-cc.*?stat-scar/s,
+    "file: CC badge appears before the SCAR badge";
+  like $file_page, qr/stat-cc">\nCC \d/, "file: CC badge shows the file CC";
+}
+
 sub test_total_badge_filter () {
   my ($covered) = grep /Covered-Calc/, keys %Golden;
   ok defined $covered, "golden covered file page exists for total badge test";
@@ -937,6 +963,7 @@ sub main () {
   test_glass_tooltips;
   test_dir_row_scar;
   test_module_scar_badge;
+  test_cc_column;
   test_total_badge_filter;
   test_file_nav_keys;
   test_render_untested_page;
