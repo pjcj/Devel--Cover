@@ -277,6 +277,28 @@ sub test_short_name_breakpoint () {
   unlike $css, qr/max-width: 920px/, "css: fixed 920px breakpoint gone";
 }
 
+sub test_bar_drop_breakpoint () {
+  my $bp    = \&Devel::Cover::Report::Html_crisp::bar_drop_bp;
+  my @names = qw( Statement Branch Condition MC/DC Subroutine Pod total );
+  is $bp->(\@names, 60, 60), 1179, "bar_drop_bp: default criteria set";
+  is $bp->([qw( Statement Branch total )], 60, 60), 630,
+    "bar_drop_bp: short names leave the cell content binding";
+  is $bp->([qw( Uncoverability total )], 60, 60),
+    Devel::Cover::Report::Html_crisp::short_name_bp(
+      [qw( Uncoverability total )],
+      60, 60,
+    ),
+    "bar_drop_bp: a very long name makes both switches coincide";
+
+  my $css     = slurp("$Outdir/assets/style.css");
+  my ($bars)  = $css =~ /max-width: (\d+)px\) \{\n  \.file-table td/;
+  my ($names) = $css =~ /max-width: (\d+)px\) \{\n  \.file-table \.name-full/;
+  ok defined $bars,  "css: bar-drop query has a computed breakpoint";
+  ok defined $names, "css: name-switch query has a computed breakpoint";
+  ok $bars > $names, "css: bars drop before names shrink";
+  unlike $css, qr/max-width: 1150px/, "css: fixed 1150px breakpoint gone";
+}
+
 sub test_total_badge_filter () {
   my ($covered) = grep /Covered-Calc/, keys %Golden;
   ok defined $covered, "golden covered file page exists for total badge test";
@@ -995,6 +1017,7 @@ sub main () {
   test_cc_column;
   test_cc_scar_col_widths;
   test_short_name_breakpoint;
+  test_bar_drop_breakpoint;
   test_total_badge_filter;
   test_file_nav_keys;
   test_render_untested_page;

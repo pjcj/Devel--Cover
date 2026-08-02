@@ -284,10 +284,21 @@ sub col_px (@vals) {
   $px < 60 ? 60 : $px
 }
 
-sub short_name_bp ($names, $cc_w, $scar_w) {
-  my $name_w   = 24 + 7 * max map length, @$names;
+sub full_name_w ($names) { 24 + 7 * max map length, @$names }
+
+sub crit_bp ($col_w, $ncols, $cc_w, $scar_w) {
   my $page_pad = 48;
-  int(($name_w * @$names + $cc_w + $scar_w) / 0.70) + $page_pad
+  int(($col_w * $ncols + $cc_w + $scar_w) / 0.70) + $page_pad
+}
+
+sub short_name_bp ($names, $cc_w, $scar_w) {
+  crit_bp(full_name_w($names), 0 + @$names, $cc_w, $scar_w)
+}
+
+sub bar_drop_bp ($names, $cc_w, $scar_w) {
+  my $inline_cell_w = 96;
+  my $col_w         = max full_name_w($names), $inline_cell_w;
+  crit_bp($col_w, 0 + @$names, $cc_w, $scar_w)
 }
 
 sub render_index ($file_data, $total, $dist) {
@@ -1328,12 +1339,22 @@ sub report ($pkg, $db, $options) {
   my @rows = (@file_data, build_dir_groups(\@file_data));
   $R{cc_w}   = col_px(map $_->{file_cc},   @rows);
   $R{scar_w} = col_px(map $_->{file_scar}, @rows);
-  my $bp = short_name_bp(
-    [map $R{full}{$_}, $R{criteria}->@*, "total"],
-    $R{cc_w}, $R{scar_w},
-  );
+  my @names = map $R{full}{$_}, $R{criteria}->@*, "total";
+  my $bars  = bar_drop_bp(\@names, $R{cc_w}, $R{scar_w});
+  my $bp    = short_name_bp(\@names, $R{cc_w}, $R{scar_w});
 
   write_file("$assets/style.css", $Assets{css} . <<CSS);
+/* Stack the coverage bars below the numbers when cells get narrow */
+\@media (max-width: ${bars}px) {
+  .file-table td { white-space: normal; }
+  .file-table .cov-bar {
+    display: block;
+    width: 100%;
+    margin-left: 0;
+    margin-top: 2px;
+  }
+}
+
 /* Table headers: switch to short names when columns get narrow */
 \@media (max-width: ${bp}px) {
   .file-table .name-full  { display: none; }
@@ -1631,16 +1652,6 @@ overflowing. */
   padding: 4px 10px;
   text-align: center;
   white-space: nowrap;
-}
-
-@media (max-width: 1150px) {
-  .file-table td { white-space: normal; }
-  .file-table .cov-bar {
-    display: block;
-    width: 100%;
-    margin-left: 0;
-    margin-top: 2px;
-  }
 }
 
 .file-table td:first-child { text-align: left; }
