@@ -1003,7 +1003,7 @@ sub add_condition_cover (
   $Structure->add_condition($File, [$Line, $structure]) if $new;
   my $ccount = $Run{count}{$File};
   if (exists $ccount->{condition}[$n]) {
-    $ccount->{condition}[$n][$_] += $c->[$_] for 0 .. $#$c;
+    $ccount->{condition}[$n][$_] += $c->[$_] // 0 for 0 .. $#$c;
   } else {
     $ccount->{condition}[$n] = $c;
     my $vec = $Run{vec}{$File}{condition};
