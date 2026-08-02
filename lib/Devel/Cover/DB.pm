@@ -1168,7 +1168,7 @@ sub objectify_cover ($self) {
 }
 
 sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
-  require Devel::Cover::Condition_table;
+  require Devel::Cover::Condition_table;  ## no perlimports
   require Devel::Cover::Mcdc::Analyser;
 
   # Sorted iteration keeps the too-wide warnings deterministic
@@ -1355,7 +1355,7 @@ sub _uncoverable_mark_warnings ($criterion, $slot, $entry, $file, $line, $n) {
   my $patterns;
   my $rows = sub {
     $patterns //= do {
-      require Devel::Cover::Condition_table;
+      require Devel::Cover::Condition_table;  ## no perlimports
       Devel::Cover::Condition_table->input_patterns($entry->[1]{type}) // []
     }
   };

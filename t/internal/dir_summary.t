@@ -46,7 +46,8 @@ sub test_all_criteria_aggregated () {
     },
   };
   my $dir_files = { "lib/A" => ["lib/A/Foo.pm", "lib/A/Bar.pm"] };
-  my $dir_stats = { "lib/A" => { cc_sum => 6, cc_count => 3 } };
+  my $dir_stats
+    = { "lib/A" => { cc_sum => 6, cc_count => 3, wcrap_sum => 12 } };
 
   $db->_summarise_dir_complexity($s, $dir_files, $dir_stats);
 
@@ -63,7 +64,9 @@ sub test_all_criteria_aggregated () {
   is $d->{total}{covered},        23, "total aggregated";
   ok !exists $d->{time},       "time not aggregated";
   ok !exists $d->{complexity}, "complexity not treated as a criterion";
-  is $d->{scar}{file_cc}, 4, "dir SCAR computed from dir stats";
+  is $d->{scar}{file_cc},   4, "dir SCAR computed from dir stats";
+  is $d->{scar}{file_crap}, 2, "dir CRAP is complexity-weighted mean";
+  ok $d->{scar}{file_scar} > 0, "dir SCAR derived from dir CRAP";
 }
 
 sub main () {
