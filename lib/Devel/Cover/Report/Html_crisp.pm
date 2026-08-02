@@ -284,6 +284,12 @@ sub col_px (@vals) {
   $px < 60 ? 60 : $px
 }
 
+sub short_name_bp ($ncols, $cc_w, $scar_w) {
+  my $full_name_w = 100;
+  my $page_pad    = 48;
+  int(($full_name_w * $ncols + $cc_w + $scar_w) / 0.70) + $page_pad
+}
+
 sub render_index ($file_data, $total, $dist) {
   my @groups = build_dir_groups($file_data);
   my @worst
@@ -386,16 +392,13 @@ HTML
 </div>
 HTML
 
-  my $ncols  = $R{criteria}->@* + 1;
-  my @rows   = (@$file_data, @groups);
-  my $cc_w   = col_px(map $_->{file_cc},   @rows);
-  my $scar_w = col_px(map $_->{file_scar}, @rows);
+  my $ncols = $R{criteria}->@* + 1;
   $o
     .= qq(<table class="file-table">\n<colgroup>\n)
     . qq(<col style="width:30%">\n)
     . ("<col>\n" x $ncols)
-    . qq(<col style="width:${cc_w}px">\n)
-    . qq(<col style="width:${scar_w}px">\n)
+    . qq(<col style="width:$R{cc_w}px">\n)
+    . qq(<col style="width:$R{scar_w}px">\n)
     . "</colgroup>\n<thead>\n<tr>\n"
     . qq(<th data-sort="file">File</th>\n);
 
@@ -1305,9 +1308,6 @@ sub report ($pkg, $db, $options) {
   my $assets = "$outdir/assets";
   mkpath($assets) unless -d $assets;
 
-  write_file("$assets/style.css", $Assets{css});
-  write_file("$assets/app.js",    $Assets{js});
-
   my @file_data = build_file_data;
 
   my ($prefix, $short_map) = common_prefix(map { $_->{name} } @file_data);
@@ -1324,6 +1324,20 @@ sub report ($pkg, $db, $options) {
   } else {
     $_->{short} = $_->{name} for @file_data;
   }
+
+  my @rows = (@file_data, build_dir_groups(\@file_data));
+  $R{cc_w}   = col_px(map $_->{file_cc},   @rows);
+  $R{scar_w} = col_px(map $_->{file_scar}, @rows);
+  my $bp = short_name_bp($R{criteria}->@* + 1, $R{cc_w}, $R{scar_w});
+
+  write_file("$assets/style.css", $Assets{css} . <<CSS);
+/* Table headers: switch to short names when columns get narrow */
+\@media (max-width: ${bp}px) {
+  .file-table .name-full  { display: none; }
+  .file-table .name-short { display: inline; }
+}
+CSS
+  write_file("$assets/app.js", $Assets{js});
 
   my %total = totals_for("Total");
   my %dist  = coverage_distribution(\@file_data);
@@ -1363,12 +1377,6 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 
 .stat-badge .cov-bar {
   flex-shrink: 0;
-}
-
-/* Table headers: switch to short names when columns get narrow */
-@media (max-width: 920px) {
-  .file-table .name-full  { display: none; }
-  .file-table .name-short { display: inline; }
 }
 
 /* Medium: switch to short criterion names, narrower badges */

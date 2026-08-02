@@ -263,6 +263,18 @@ sub test_cc_scar_col_widths () {
   is $px->("n/a"),         60, "col_px: all n/a stays at the floor";
 }
 
+sub test_short_name_breakpoint () {
+  my $bp = \&Devel::Cover::Report::Html_crisp::short_name_bp;
+  is $bp->(7, 60, 60), 1219, "short_name_bp: seven cols with 60px extras";
+  is $bp->(6, 60, 60), 1076, "short_name_bp: six cols narrows the switch";
+  is $bp->(7, 70, 60), 1233, "short_name_bp: wider CC col raises it";
+
+  my $css = slurp("$Outdir/assets/style.css");
+  like $css, qr/\@media \(max-width: \d+px\) \{\n  \.file-table \.name-full/,
+    "css: short-name switch present with a computed breakpoint";
+  unlike $css, qr/max-width: 920px/, "css: fixed 920px breakpoint gone";
+}
+
 sub test_total_badge_filter () {
   my ($covered) = grep /Covered-Calc/, keys %Golden;
   ok defined $covered, "golden covered file page exists for total badge test";
@@ -980,6 +992,7 @@ sub main () {
   test_module_scar_badge;
   test_cc_column;
   test_cc_scar_col_widths;
+  test_short_name_breakpoint;
   test_total_badge_filter;
   test_file_nav_keys;
   test_render_untested_page;
