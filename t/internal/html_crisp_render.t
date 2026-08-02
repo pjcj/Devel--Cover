@@ -101,7 +101,7 @@ sub test_render_layout () {
   like $got, qr/data-file-count="5"/,             "layout: file count";
   like $got, qr/<p>Hello world<\/p>/,             "layout: content";
   like $got, qr/class="footer"/,                  "layout: footer";
-  like $got, qr/1\.44 by .*\son 2026-04-08/s,     "layout: version + date";
+  like $got, qr/1\.44 by .*\s\| 2026-04-08/s,     "layout: version + date";
 }
 
 sub test_render_index () {

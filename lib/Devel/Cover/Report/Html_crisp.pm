@@ -77,7 +77,7 @@ $content
 Coverage information from
 <a href="https://metacpan.org/pod/Devel::Cover">Devel::Cover</a>
 $R{version} by <a href="https://pjcj.net">Paul Johnson</a>
-on $R{date} | Perl $R{perl_v} | $R{os}
+| $R{date} | Perl $R{perl_v} | $R{os}
 </div>
 <script src="${asset_prefix}assets/app.js"></script>
 </body>
