@@ -18,8 +18,9 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use File::Spec ();
 use Test::More import => [qw( diag done_testing is like ok plan unlike )];
-use Devel::Cover::Mcdc               ();  ## no perlimports
+use Devel::Cover::Mcdc               ();                    ## no perlimports
 use Devel::Cover::Report::Html_crisp ();
+use Devel::Cover::Web                qw( $Crisp_base_css );
 use Devel::Cover::Test::Showcase     qw(
   create_cover_db
   run_cover
@@ -152,6 +153,24 @@ sub test_dist_legend_custom_thresholds () {
   unlike $html, qr/at 100%/,        "no 'at 100%' label when c2 is below 100";
   like $html,   qr/files? 50-75%/,  "bar tooltip c2 range c1 to c2";
   like $html,   qr/files? 75-100%/, "bar tooltip c3 range c2 to 100";
+}
+
+sub test_palette_css () {
+  like $Crisp_base_css,   qr/--cov-none-bg: #fdd5d1/,     "light red fill";
+  like $Crisp_base_css,   qr/--cov-low-bg: #f9dfa0/,      "light gold fill";
+  like $Crisp_base_css,   qr/--cov-good-bg: #b3ddff/,     "light blue fill";
+  like $Crisp_base_css,   qr/--cov-good-border: #2f7db1/, "light blue border";
+  like $Crisp_base_css,   qr/--cov-good-fg: #164666/,     "light blue fg";
+  like $Crisp_base_css,   qr/--cov-full-bg: #c0f1be/,     "light green fill";
+  like $Crisp_base_css,   qr/--cov-none-bg: #7e0b12/,     "dark red fill";
+  like $Crisp_base_css,   qr/--cov-low-bg: #5f4a08/,      "dark gold fill";
+  like $Crisp_base_css,   qr/--cov-good-bg: #0d527c/,     "dark blue fill";
+  like $Crisp_base_css,   qr/--cov-good-border: #64b7ef/, "dark blue border";
+  like $Crisp_base_css,   qr/--cov-good-fg: #a0d6fa/,     "dark blue fg";
+  like $Crisp_base_css,   qr/--cov-full-bg: #0c5e0e/,     "dark green fill";
+  like $Crisp_base_css,   qr/--tip-c2: #2f7db1/, "light tip-c2 matches border";
+  like $Crisp_base_css,   qr/--tip-c2: #64b7ef/, "dark tip-c2 matches border";
+  unlike $Crisp_base_css, qr/#2080a8|#48c0e0/,   "no stale blue accents";
 }
 
 sub test_render_file_page () {
@@ -1027,6 +1046,7 @@ sub main () {
   test_render_layout;
   test_render_index;
   test_dist_legend_custom_thresholds;
+  test_palette_css;
   test_render_file_page;
   test_tooltip_structure;
   test_glass_tooltips;

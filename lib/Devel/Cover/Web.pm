@@ -22,16 +22,16 @@ our @EXPORT_OK = qw( write_file $Cov $Crisp_base_css $Crisp_theme_js );
 
 our $Cov = {
   light => {
-    none => { bg => "#ffcccc", border => "#dd0000", fg => "#990000" },
-    low  => { bg => "#fce8c8", border => "#c08820", fg => "#7a5810" },
-    good => { bg => "#c8e4f0", border => "#2080a8", fg => "#104860" },
-    full => { bg => "#b0f0b0", border => "#008800", fg => "#005500" },
+    none => { bg => "#fdd5d1", border => "#dd0000", fg => "#990000" },
+    low  => { bg => "#f9dfa0", border => "#c08820", fg => "#7a5810" },
+    good => { bg => "#b3ddff", border => "#2f7db1", fg => "#164666" },
+    full => { bg => "#c0f1be", border => "#008800", fg => "#005500" },
   },
   dark => {
-    none => { bg => "#5c2020", border => "#ff4444", fg => "#ffcccc" },
-    low  => { bg => "#523c14", border => "#e0a830", fg => "#f0d888" },
-    good => { bg => "#1a4858", border => "#48c0e0", fg => "#98d8f0" },
-    full => { bg => "#1a5a1a", border => "#44dd44", fg => "#bbffbb" },
+    none => { bg => "#7e0b12", border => "#ff4444", fg => "#ffcccc" },
+    low  => { bg => "#5f4a08", border => "#e0a830", fg => "#f0d888" },
+    good => { bg => "#0d527c", border => "#64b7ef", fg => "#a0d6fa" },
+    full => { bg => "#0c5e0e", border => "#44dd44", fg => "#bbffbb" },
   },
 };
 
@@ -259,7 +259,7 @@ our $Crisp_base_css = <<'CSS';
   --tip-glass-sep: rgba(0, 0, 0, 0.2);
   --tip-c0: #dd0000;
   --tip-c1: #c08820;
-  --tip-c2: #2080a8;
+  --tip-c2: #2f7db1;
   --tip-c3: #008800;
 
   --bg: #ffffff;
@@ -314,7 +314,7 @@ our $Crisp_base_css = <<'CSS';
     --tip-glass-sep: rgba(255, 255, 255, 0.2);
     --tip-c0: #ff4444;
     --tip-c1: #e0a830;
-    --tip-c2: #48c0e0;
+    --tip-c2: #64b7ef;
     --tip-c3: #44dd44;
 
     --bg: #1a1a1a;
@@ -361,7 +361,7 @@ html[data-theme="dark"] {
   --tip-glass-sep: rgba(255, 255, 255, 0.2);
   --tip-c0: #ff4444;
   --tip-c1: #e0a830;
-  --tip-c2: #48c0e0;
+  --tip-c2: #64b7ef;
   --tip-c3: #44dd44;
 
   --bg: #1a1a1a;
@@ -407,7 +407,7 @@ html[data-theme="light"] {
   --tip-glass-sep: rgba(0, 0, 0, 0.2);
   --tip-c0: #dd0000;
   --tip-c1: #c08820;
-  --tip-c2: #2080a8;
+  --tip-c2: #2f7db1;
   --tip-c3: #008800;
 
   --bg: #ffffff;
