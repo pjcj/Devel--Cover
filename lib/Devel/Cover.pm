@@ -951,13 +951,11 @@ sub _condition_counts ($c, $type, $op) {
     my $const = _is_const_right($op->first->sibling);
     return ([$c->[3], $c->[1] + $c->[2]], 2, $c->[5] && !$const ? 1 : 0)
       if $c->[5] || $const;
-    @$c = $c->@[$type eq "or" ? (3, 2, 1) : (3, 1, 2)];
-    return ($c, 3, 0);
+    return ([$c->@[$type eq "or" ? (3, 2, 1) : (3, 1, 2)]], 3, 0);
   }
   if ($type eq "xor") {
     # !l&&!r  l&&!r  l&&r  !l&&r
-    @$c = $c->@[3, 2, 4, 1];
-    return ($c, 4, 0);
+    return ([$c->@[3, 2, 4, 1]], 4, 0);
   }
   die qq(Unknown type "$type" for conditional);
 }
@@ -1005,7 +1003,7 @@ sub add_condition_cover (
   $Structure->add_condition($File, [$Line, $structure]) if $new;
   my $ccount = $Run{count}{$File};
   if (exists $ccount->{condition}[$n]) {
-    $ccount->{condition}[$n][$_] += $c->[$_] for 0 .. $#$c;
+    $ccount->{condition}[$n][$_] += $c->[$_] // 0 for 0 .. $#$c;
   } else {
     $ccount->{condition}[$n] = $c;
     my $vec = $Run{vec}{$File}{condition};
