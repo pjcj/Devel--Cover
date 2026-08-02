@@ -904,7 +904,7 @@ https://pjcj.net
 <h1><a href="[% root %]index.html">CPANCover</a></h1>
 <div class="search">
 <input type="search" id="module-search" data-root="[% root %]"
-  placeholder="Search modules" autocomplete="off">
+  placeholder="Search distributions" autocomplete="off">
 <div class="search-results" hidden></div>
 </div>
 <div class="header-stats">

@@ -256,6 +256,8 @@ is join(",", sort @$Search),
   "search.json lists only modules with report pages";
 like $Page{index}, qr{<input[^>]*id="module-search"[^>]*data-root=""},
   "index page has the search input";
+like $Page{index}, qr{<input[^>]*placeholder="Search distributions"},
+  "search placeholder says distributions";
 like $Page{dist}, qr{<input[^>]*id="module-search"[^>]*data-root="\.\./"},
   "dist page search input carries the root prefix";
 like slurp("$Dir/collection.js"), qr{module-search},
