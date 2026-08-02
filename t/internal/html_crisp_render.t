@@ -18,8 +18,9 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use File::Spec ();
 use Test::More import => [qw( diag done_testing is like ok plan unlike )];
-use Devel::Cover::Mcdc               ();  ## no perlimports
+use Devel::Cover::Mcdc               ();                    ## no perlimports
 use Devel::Cover::Report::Html_crisp ();
+use Devel::Cover::Web                qw( $Crisp_base_css );
 use Devel::Cover::Test::Showcase     qw(
   create_cover_db
   run_cover
@@ -100,7 +101,7 @@ sub test_render_layout () {
   like $got, qr/data-file-count="5"/,             "layout: file count";
   like $got, qr/<p>Hello world<\/p>/,             "layout: content";
   like $got, qr/class="footer"/,                  "layout: footer";
-  like $got, qr/1\.44 by .*\son 2026-04-08/s,     "layout: version + date";
+  like $got, qr/1\.44 by .*\s\| 2026-04-08/s,     "layout: version + date";
 }
 
 sub test_render_index () {
@@ -145,13 +146,108 @@ sub test_dist_legend_custom_thresholds () {
   is $exit, 0, "custom threshold report generated" or diag $out;
 
   my $html = slurp("$outdir/coverage.html");
-  like $html,   qr/leg-c0">\d+ &lt; 25%/, "legend c0 below c0 threshold";
-  like $html,   qr/leg-c1">\d+ 25-50%/,   "legend c1 range c0 to c1";
-  like $html,   qr/leg-c2">\d+ 50-75%/,   "legend c2 range c1 to c2";
-  like $html,   qr/leg-c3">\d+ 75-100%/,  "legend c3 range c2 to 100";
-  unlike $html, qr/at 100%/,        "no 'at 100%' label when c2 is below 100";
-  like $html,   qr/files? 50-75%/,  "bar tooltip c2 range c1 to c2";
-  like $html,   qr/files? 75-100%/, "bar tooltip c3 range c2 to 100";
+  like $html,   qr/leg-c0">&lt; 25%/, "legend c0 below c0 threshold";
+  like $html,   qr/leg-c1">25-50%/,   "legend c1 range c0 to c1";
+  like $html,   qr/leg-c2">50-75%/,   "legend c2 range c1 to c2";
+  like $html,   qr/leg-c3">75-100%/,  "legend c3 range c2 to 100";
+  unlike $html, qr/at 100%/,          "no 'at 100%' label when c2 is below 100";
+  like $html,   qr/files? 50-75%/,    "bar tooltip c2 range c1 to c2";
+  like $html,   qr/files? 75-100%/,   "bar tooltip c3 range c2 to 100";
+}
+
+sub test_dist_bar_fill_segments () {
+  my $dist = {
+    dist_total   => 50,
+    c0           => 1,
+    c1           => 9,
+    c2           => 20,
+    c3           => 15,
+    untested     => 5,
+    tip_c0       => "1 file &lt; 75%",
+    tip_c1       => "9 files 75-90%",
+    tip_c2       => "20 files 90-100%",
+    tip_c3       => "15 files at 100%",
+    tip_untested => "5 untested files",
+  };
+  my $got = Devel::Cover::Report::Html_crisp::render_dist_bar($dist);
+
+  like $got, qr/class="dist-bar-seg seg-c1 tip-hover" style="width:18%">9\n/,
+    "segment uses fill class and carries its file count";
+  like $got, qr/class="dist-bar-seg seg-c2 tip-hover" style="width:40%">20\n/,
+    "largest segment carries its file count";
+  like $got, qr/class="dist-bar-seg seg-untested tip-hover"[^>]*>5\n/,
+    "untested segment has its own class and count";
+  like $got, qr/class="dist-bar-seg seg-c0 tip-hover" style="width:2%">\n/,
+    "count hidden when segment is below the width threshold";
+  unlike $got, qr/background:var/, "no inline accent backgrounds";
+
+  like $got, qr/leg-c0">&lt; 75%</,       "legend pill holds range only";
+  like $got, qr/leg-c3">at 100%</,        "legend c3 pill at default threshold";
+  like $got, qr/leg-untested">untested</, "untested pill without count";
+
+  $dist->{c2} = 0;
+  $got = Devel::Cover::Report::Html_crisp::render_dist_bar($dist);
+  unlike $got, qr/seg-c2/,           "zero-count tier has no segment";
+  like $got,   qr/leg-c2">90-100%</, "zero-count tier keeps its legend pill";
+}
+
+sub test_palette_css () {
+  like $Crisp_base_css,   qr/--cov-none-bg: #fdd5d1/,     "light red fill";
+  like $Crisp_base_css,   qr/--cov-low-bg: #f9dfa0/,      "light gold fill";
+  like $Crisp_base_css,   qr/--cov-good-bg: #b3ddff/,     "light blue fill";
+  like $Crisp_base_css,   qr/--cov-good-border: #2f7db1/, "light blue border";
+  like $Crisp_base_css,   qr/--cov-good-fg: #164666/,     "light blue fg";
+  like $Crisp_base_css,   qr/--cov-full-bg: #c0f1be/,     "light green fill";
+  like $Crisp_base_css,   qr/--cov-none-bg: #7e0b12/,     "dark red fill";
+  like $Crisp_base_css,   qr/--cov-low-bg: #5f4a08/,      "dark gold fill";
+  like $Crisp_base_css,   qr/--cov-good-bg: #0d527c/,     "dark blue fill";
+  like $Crisp_base_css,   qr/--cov-good-border: #64b7ef/, "dark blue border";
+  like $Crisp_base_css,   qr/--cov-good-fg: #a0d6fa/,     "dark blue fg";
+  like $Crisp_base_css,   qr/--cov-full-bg: #0c5e0e/,     "dark green fill";
+  like $Crisp_base_css,   qr/--tip-c2: #2f7db1/, "light tip-c2 matches border";
+  like $Crisp_base_css,   qr/--tip-c2: #64b7ef/, "dark tip-c2 matches border";
+  unlike $Crisp_base_css, qr/#2080a8|#48c0e0/,   "no stale blue accents";
+  unlike $Crisp_base_css, qr/--exec-/,           "no derived exec tints";
+}
+
+sub test_exec_cells_use_fills () {
+  my $css = slurp("$Outdir/assets/style.css");
+  like $css, qr/\.exec-0 \{ background: var\(--cov-none-bg\); \}/,
+    "unexecuted count cells use the none fill";
+  like $css, qr/\.exec-partial \{ background: var\(--cov-low-bg\); \}/,
+    "partial count cells use the low fill";
+  like $css, qr/\.exec-covered \{ background: var\(--cov-full-bg\); \}/,
+    "executed count cells use the full fill";
+  like $css, qr/\.detail \.c0 \{ background: var\(--cov-none-bg\); \}/,
+    "detail panel c0 cells use the none fill";
+  like $css, qr/\.detail \.c3 \{ background: var\(--cov-full-bg\); \}/,
+    "detail panel c3 cells use the full fill";
+  unlike $css, qr/var\(--exec-/, "no exec variable references remain";
+}
+
+sub test_panel_identity () {
+  my $css = slurp("$Outdir/assets/style.css");
+  my %panel
+    = (cond => "cond-cells", mcdc => "mcdc-detail", tt => "decision-vectors");
+  for my $p (sort keys %panel) {
+    my $cls  = $panel{$p};
+    my $edge = ".detail.$cls { border-left: 3px solid var(--panel-$p); }";
+    like $css, qr/\Q$edge\E/, "$cls edge uses its identity colour";
+    my $chip = ".$cls .head > span:first-child {\n"
+      . "  background: var(--panel-$p);\n  color: var(--panel-$p-fg);\n}";
+    like $css, qr/\Q$chip\E/, "$cls heading chip uses its identity colour";
+  }
+
+  like $Crisp_base_css, qr/--panel-cond: #a0bcd8/, "light condition identity";
+  like $Crisp_base_css, qr/--panel-cond-fg: #1a1a1a/, "light condition chip fg";
+  like $Crisp_base_css, qr/--panel-mcdc: #7b6daa/,    "light mcdc identity";
+  like $Crisp_base_css, qr/--panel-mcdc-fg: #ffffff/, "light mcdc chip fg";
+  like $Crisp_base_css, qr/--panel-tt: #5a9991/,   "light truth table identity";
+  like $Crisp_base_css, qr/--panel-cond: #3a6090/, "dark condition identity";
+  like $Crisp_base_css, qr/--panel-cond-fg: #e0e0e0/, "dark condition chip fg";
+  like $Crisp_base_css, qr/--panel-mcdc: #8a84b0/,    "dark mcdc identity";
+  like $Crisp_base_css, qr/--panel-mcdc-fg: #1a1a1a/, "dark mcdc chip fg";
+  like $Crisp_base_css, qr/--panel-tt: #8abab4/, "dark truth table identity";
 }
 
 sub test_render_file_page () {
@@ -1027,6 +1123,10 @@ sub main () {
   test_render_layout;
   test_render_index;
   test_dist_legend_custom_thresholds;
+  test_dist_bar_fill_segments;
+  test_palette_css;
+  test_exec_cells_use_fills;
+  test_panel_identity;
   test_render_file_page;
   test_tooltip_structure;
   test_glass_tooltips;
