@@ -528,8 +528,9 @@ class Devel::Cover::Collection {
           = ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
       }
 
-      my $s = $json->{summary}{Total}{scar};
-      if ($s && defined $s->{file_scar}) {
+      my $s      = $json->{summary}{Total}{scar};
+      my @fields = qw( file_scar file_cc file_cov file_crap );
+      if ($s && @fields == grep defined, @$s{@fields}) {
         $m->{cc}   = { val => $s->{file_cc}, class => "cc-val" };
         $m->{scar} = {
           val   => sprintf("%.1f", $s->{file_scar}),

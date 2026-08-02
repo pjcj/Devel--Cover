@@ -90,7 +90,9 @@ my $Scar
 sub setup_results_dir {
   my $dir = File::Temp->newdir;
   write_dist($dir, $Dist, "Foo-Bar", "1.00", $Log, 1, $Scar);
-  write_dist($dir, $Dist2, "Baz-Qux", "2.00", $Log2);
+
+  # $Dist2's report predates the file_cc/file_cov/file_crap summary fields
+  write_dist($dir, $Dist2, "Baz-Qux", "2.00", $Log2, 1, { file_scar => 26.6 });
 
   # $Dist was rebuilt: .log_ref names the newer log, both logs remain
   write_file("$dir/$Log_new",       "log\n");
@@ -129,8 +131,15 @@ my $Cwd = getcwd;
 my $Dir = setup_results_dir;
 
 my $Collection = Devel::Cover::Collection->new(results_dir => "$Dir");
-$Collection->generate_html;
+my @Warnings;
+{
+  local $SIG{__WARN__} = sub { push @Warnings, @_ };
+  $Collection->generate_html;
+}
 chdir $Cwd or die "Can't chdir $Cwd: $!";
+
+is grep(/uninitialized/, @Warnings), 0,
+  "generate_html emits no uninitialized warnings";
 
 my %Page = (
   index  => slurp("$Dir/index.html"),
@@ -202,7 +211,9 @@ like $Page{dist},
   qr{<td class="scar-val scar-c2 tip-hover">26\.6\s*$Tip\s*</td>},
   "dist page shows SCAR with class and tip";
 my @Na_cells = $Page{dist_b} =~ m{(<td class="na">n/a</td>)}g;
-is @Na_cells, 2, "dist without scar data shows n/a for CC and SCAR";
+is @Na_cells, 2, "dist with incomplete scar data shows n/a for CC and SCAR";
+my @Na_cells_n = $Page{dist_n} =~ m{(<td class="na">n/a</td>)}g;
+is @Na_cells_n, 2, "dist without scar data shows n/a for CC and SCAR";
 
 my $Css = slurp("$Dir/collection.css");
 like $Css, qr{td\.na[^{}]*\{[^{}]*text-align:\s*center}s,
