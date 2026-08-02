@@ -264,10 +264,12 @@ sub test_cc_scar_col_widths () {
 }
 
 sub test_short_name_breakpoint () {
-  my $bp = \&Devel::Cover::Report::Html_crisp::short_name_bp;
-  is $bp->(7, 60, 60), 1219, "short_name_bp: seven cols with 60px extras";
-  is $bp->(6, 60, 60), 1076, "short_name_bp: six cols narrows the switch";
-  is $bp->(7, 70, 60), 1233, "short_name_bp: wider CC col raises it";
+  my $bp    = \&Devel::Cover::Report::Html_crisp::short_name_bp;
+  my @names = qw( Statement Branch Condition MC/DC Subroutine Pod total );
+  is $bp->(\@names, 60, 60), 1159, "short_name_bp: default criteria set";
+  is $bp->([qw( Statement Branch total )], 60, 60), 592,
+    "short_name_bp: fewer, shorter names lower the switch";
+  is $bp->(\@names, 70, 60), 1173, "short_name_bp: wider CC col raises it";
 
   my $css = slurp("$Outdir/assets/style.css");
   like $css, qr/\@media \(max-width: \d+px\) \{\n  \.file-table \.name-full/,

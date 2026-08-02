@@ -284,10 +284,10 @@ sub col_px (@vals) {
   $px < 60 ? 60 : $px
 }
 
-sub short_name_bp ($ncols, $cc_w, $scar_w) {
-  my $full_name_w = 100;
-  my $page_pad    = 48;
-  int(($full_name_w * $ncols + $cc_w + $scar_w) / 0.70) + $page_pad
+sub short_name_bp ($names, $cc_w, $scar_w) {
+  my $name_w   = 24 + 7 * max map length, @$names;
+  my $page_pad = 48;
+  int(($name_w * @$names + $cc_w + $scar_w) / 0.70) + $page_pad
 }
 
 sub render_index ($file_data, $total, $dist) {
@@ -1328,7 +1328,10 @@ sub report ($pkg, $db, $options) {
   my @rows = (@file_data, build_dir_groups(\@file_data));
   $R{cc_w}   = col_px(map $_->{file_cc},   @rows);
   $R{scar_w} = col_px(map $_->{file_scar}, @rows);
-  my $bp = short_name_bp($R{criteria}->@* + 1, $R{cc_w}, $R{scar_w});
+  my $bp = short_name_bp(
+    [map $R{full}{$_}, $R{criteria}->@*, "total"],
+    $R{cc_w}, $R{scar_w},
+  );
 
   write_file("$assets/style.css", $Assets{css} . <<CSS);
 /* Table headers: switch to short names when columns get narrow */
