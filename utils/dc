@@ -638,7 +638,7 @@ cpancover_controller_command() {
     --mount "type=bind,source=$results_dir,target=/remote_staging" \
     ${env_flags[@]:+"${env_flags[@]}"} \
     --label "cpancover.env=$env" \
-    --rm=false --memory=1g --name="$(docker_name "$name")" \
+    --rm=false --memory=8g --name="$(docker_name "$name")" \
     "$docker_image" "${cmd[@]}"
 }
 
