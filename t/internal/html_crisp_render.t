@@ -248,6 +248,21 @@ sub test_cc_column () {
   like $file_page, qr/stat-cc">\nCC \d/, "file: CC badge shows the file CC";
 }
 
+sub test_cc_scar_col_widths () {
+  my $got = $Golden{"coverage.html"};
+  like $got, qr{<colgroup>\n<col\ style="width:30%">\n(?:<col>\n)+
+       <col\ style="width:\d+px">\n<col\ style="width:\d+px">\n</colgroup>}x,
+    "index: criteria cols unsized, CC and SCAR cols in pixels";
+  like $got, qr{<col style="width:60px">\n<col style="width:60px">},
+    "index: small fixture values hit the 60px floor";
+
+  my $px = \&Devel::Cover::Report::Html_crisp::col_px;
+  is $px->("n/a", 7, 148), 60, "col_px: short values floor at 60px";
+  is $px->(25, 123_456),   70, "col_px: six digits widen the column";
+  is $px->("159.3"),       62, "col_px: scar with decimal sized by length";
+  is $px->("n/a"),         60, "col_px: all n/a stays at the floor";
+}
+
 sub test_total_badge_filter () {
   my ($covered) = grep /Covered-Calc/, keys %Golden;
   ok defined $covered, "golden covered file page exists for total badge test";
@@ -964,6 +979,7 @@ sub main () {
   test_dir_row_scar;
   test_module_scar_badge;
   test_cc_column;
+  test_cc_scar_col_widths;
   test_total_badge_filter;
   test_file_nav_keys;
   test_render_untested_page;

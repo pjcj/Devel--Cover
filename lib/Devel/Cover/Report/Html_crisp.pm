@@ -35,7 +35,7 @@ use Devel::Cover::Path            qw( common_prefix );
 
 use File::Path   qw( mkpath );
 use Getopt::Long qw( GetOptions );
-use List::Util   qw( any );
+use List::Util   qw( any max );
 use POSIX        qw( strftime );
 our %R;
 my %Assets;
@@ -278,6 +278,12 @@ $tip</span>
 HTML
 }
 
+sub col_px (@vals) {
+  my $len = max map length, grep !is_na($_), @vals;
+  my $px  = 22 + 8 * ($len // 0);
+  $px < 60 ? 60 : $px
+}
+
 sub render_index ($file_data, $total, $dist) {
   my @groups = build_dir_groups($file_data);
   my @worst
@@ -380,13 +386,16 @@ HTML
 </div>
 HTML
 
-  my $ncrit  = $R{criteria}->@*;
-  my $ncols  = $ncrit + 3;       # criteria + total + cc + scar
-  my $crit_w = 70 / $ncols;
+  my $ncols  = $R{criteria}->@* + 1;
+  my @rows   = (@$file_data, @groups);
+  my $cc_w   = col_px(map $_->{file_cc},   @rows);
+  my $scar_w = col_px(map $_->{file_scar}, @rows);
   $o
     .= qq(<table class="file-table">\n<colgroup>\n)
     . qq(<col style="width:30%">\n)
-    . (qq(<col style="width:${crit_w}%">\n) x $ncols)
+    . ("<col>\n" x $ncols)
+    . qq(<col style="width:${cc_w}px">\n)
+    . qq(<col style="width:${scar_w}px">\n)
     . "</colgroup>\n<thead>\n<tr>\n"
     . qq(<th data-sort="file">File</th>\n);
 
