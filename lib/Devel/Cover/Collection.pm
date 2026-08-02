@@ -22,6 +22,7 @@ use JSON::MaybeXS ();
 use POSIX         qw( setsid );
 use Template      ();
 use Time::HiRes   qw( alarm time );
+use version       ();
 
 use feature "class";
 
@@ -422,6 +423,39 @@ class Devel::Cover::Collection {
     }
   }
 
+  method _newer ($va, $vb) {
+    my ($pa, $pb) = map { eval { version->parse($_) } } $va, $vb;
+    return $pa > $pb if $pa && $pb;
+    ($va // "") gt($vb // "")
+  }
+
+  method add_overview ($vars) {
+    my %latest;
+    for my $m (values $vars->{vals}->%*) {
+      my $name = $m->{module}{name} // next;
+      my $cur  = $latest{$name};
+      $latest{$name} = $m
+        if !$cur
+        || $self->_newer($m->{module}{version}, $cur->{module}{version});
+    }
+
+    my %bands;
+    $bands{ $self->coverage_class($_->{total}{pc}) }++ for values %latest;
+
+    my $count    = keys %latest;
+    my $segments = [];
+    for my $class (qw( c3 c2 c1 c0 na )) {
+      my $n   = $bands{$class} or next;
+      my $pct = 100 * $n / $count;
+      push @$segments, {
+          class => $class,
+          pct   => sprintf("%.2f", $pct),
+          label => $pct >= 4 ? $n : "",
+        };
+    }
+    $vars->{overview} = { count => $count, segments => $segments };
+  }
+
   method generate_html {
     my ($d) = $self->made_res_dir;
     chdir $d or die "Can't chdir $d: $!\n";
@@ -514,6 +548,7 @@ class Devel::Cover::Collection {
 
     $self->resolve_log_links($d, \@mods, $vars);
     $self->add_metacpan_links($vars);
+    $self->add_overview($vars);
 
     # print "vars ", Dumper $vars;
     $self->write_summary($vars);
@@ -899,6 +934,15 @@ $Templates{summary} = <<'EOT';
 [% WRAPPER html %]
 
 <h2>Distributions</h2>
+
+<p class="dist-count">[% overview.count %] distributions</p>
+<div class="dist-bar">
+[% FOREACH seg = overview.segments %]
+  <div class="dist-bar-seg [% seg.class %]" style="width: [% seg.pct %]%">
+    [%- seg.label -%]
+  </div>
+[% END %]
+</div>
 
 <p>Search for distributions by first character:</p>
 
@@ -1399,6 +1443,17 @@ modules.
 Writes C<search.json>, a sorted list of the module directories that have
 report pages. The header search on the collection pages fetches it to
 offer direct links to module reports.
+
+=head3 add_overview ($vars)
+
+  $collection->add_overview($vars);
+
+Builds the front-page overview from the collected module data: the
+distribution count and a list of coverage-band segments for the
+distribution bar. Only the latest version of each distribution counts,
+so the bar reflects the current state of CPAN. Bands with no
+distributions are omitted, and a segment too narrow to fit its count
+drops its label.
 
 =head2 Status Tracking
 

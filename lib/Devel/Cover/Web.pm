@@ -549,6 +549,34 @@ td.scar-val { font-weight: 600; }
 .scar-c2 { color: var(--tip-c2); }
 .scar-c3 { color: var(--tip-c3); }
 
+/* Coverage distribution bar */
+
+.dist-bar {
+  display: flex;
+  width: 100%;
+  height: 24px;
+  margin: 0 0 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.dist-bar-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.dist-bar-seg.c0 { background: var(--cov-none-bg); color: var(--cov-none-fg); }
+.dist-bar-seg.c1 { background: var(--cov-low-bg);  color: var(--cov-low-fg);  }
+.dist-bar-seg.c2 { background: var(--cov-good-bg); color: var(--cov-good-fg); }
+.dist-bar-seg.c3 { background: var(--cov-full-bg); color: var(--cov-full-fg); }
+.dist-bar-seg.na { background: var(--bg-alt);      color: var(--fg-muted);    }
+
 /* Main content */
 
 .content {

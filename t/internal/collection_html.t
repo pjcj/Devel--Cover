@@ -108,6 +108,17 @@ sub setup_results_dir {
   # $Dist5 has coverage totals but its report page was never written
   write_dist($dir, $Dist5, "No-Page", "5.00", undef, 0);
 
+  # An older version of $Dist, which the overview must not count
+  write_dist($dir, "Foo-Bar-0.50", "Foo-Bar", "0.50");
+
+  # A dist with no coverage percentages, for the overview's n/a band
+  make_path("$dir/Zero-Data-6.00");
+  my $empty = {
+    runs    => [{ name => "Zero-Data", version => "6.00", dir => "/tmp/x" }],
+    summary => { Total => {} },
+  };
+  write_file("$dir/Zero-Data-6.00/cover.json", JSON::PP->new->encode($empty));
+
   make_path("$dir/dist");
   seed_page($dir, $_) for qw( index.html dist/F.html about.html );
 
@@ -202,9 +213,46 @@ like $Css, qr{th[^{}]*\{[^{}]*top:\s*calc\(var\(--header-height}s,
 like slurp("$Dir/collection.js"), qr{--header-height},
   "collection.js measures the page header height";
 
+like $Page{index}, qr{<p class="dist-count">6 distributions</p>},
+  "index page counts distributions once per name";
+like $Page{index},
+  qr{<div class="dist-bar-seg c1" style="width: 83\.33%">\s*5\s*</div>},
+  "index page bar has a c1 segment counting latest versions only";
+like $Page{index},
+  qr{<div class="dist-bar-seg na" style="width: 16\.67%">\s*1\s*</div>},
+  "index page bar has an n/a segment";
+like $Page{index}, qr{dist-bar-seg c1.*dist-bar-seg na}s,
+  "bar segments run from best to worst";
+unlike $Page{index}, qr{dist-bar-seg c[023]}, "empty bands are omitted";
+like $Page{index},   qr{dist-bar.*az-nav}s,   "bar appears above the A-Z nav";
+like $Css, qr{\.dist-bar\b[^{}]*\{[^{}]*display:\s*flex}s,
+  "bar segments lay out in a row";
+like $Css,
+  qr{\.dist-bar-seg\.c1[^{}]*\{[^{}]*background:\s*var\(--cov-low-bg\)}s,
+  "bar segments use the shared coverage colours";
+
+my $Overview_vars = {
+  vals => {
+    (
+      map { ("Dist$_-1.00" => {
+        module => { name => "Dist$_", version => "1.00" },
+        total  => { pc   => "100.00" },
+      }) } 1 .. 30
+    ),
+    "Low-1.00" => {
+      module => { name => "Low", version => "1.00" },
+      total  => { pc   => "50.00" },
+    },
+  },
+};
+$Collection->add_overview($Overview_vars);
+my $Segments = $Overview_vars->{overview}{segments};
+is $Segments->[-1]{label}, "",
+  "segments too narrow for their count drop the label";
+
 my $Search = JSON::PP->new->decode(slurp("$Dir/search.json"));
 is join(",", sort @$Search),
-  "Baz-Qux-2.00,Dangle-Ref-3.00,Dep-Only-4.00,Foo-Bar-1.00",
+  "Baz-Qux-2.00,Dangle-Ref-3.00,Dep-Only-4.00,Foo-Bar-0.50,Foo-Bar-1.00",
   "search.json lists only modules with report pages";
 like $Page{index}, qr{<input[^>]*id="module-search"[^>]*data-root=""},
   "index page has the search input";
