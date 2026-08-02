@@ -35,33 +35,12 @@ our $Cov = {
   },
 };
 
-sub _hex_rgb ($hex) {
-  map { hex } $hex =~ /[0-9a-f]{2}/gi
-}
-
-sub _rgb_hex (@rgb) {
-  sprintf "#%02x%02x%02x", @rgb
-}
-
-sub _mix ($c1, $c2, $ratio) {
-  my @a = _hex_rgb($c1);
-  my @b = _hex_rgb($c2);
-  _rgb_hex(map { int($a[$_] * $ratio + $b[$_] * (1 - $ratio) + 0.5) } 0 .. 2)
-}
-
 sub _cov_vars ($theme, $indent) {
-  my $c  = $Cov->{$theme};
-  my $bg = $theme eq "light" ? "#ffffff" : "#000000";
-  my $r  = $theme eq "light" ? 0.45      : 0.35;
-  join "", (
-    map {
-      my $n = $_;
-      map "$indent--cov-$n-$_: $c->{$n}{$_};\n", qw( bg border fg )
-    } qw( none low good full )
-    ),
-    "\n", "${indent}--exec-none: " . _mix($c->{none}{border}, $bg, $r) . ";\n",
-    "${indent}--exec-partial: " . _mix($c->{low}{border},  $bg, $r) . ";\n",
-    "${indent}--exec-covered: " . _mix($c->{full}{border}, $bg, $r) . ";\n",
+  my $c = $Cov->{$theme};
+  join "", map {
+    my $n = $_;
+    map "$indent--cov-$n-$_: $c->{$n}{$_};\n", qw( bg border fg )
+  } qw( none low good full )
 }
 
 my %Files;

@@ -1866,9 +1866,9 @@ tr.dir-file td:first-child a {
   font-size: var(--font-size-small);
 }
 
-.exec-0 { background: var(--exec-none); }
-.exec-partial { background: var(--exec-partial); }
-.exec-covered { background: var(--exec-covered); }
+.exec-0 { background: var(--cov-none-bg); }
+.exec-partial { background: var(--cov-low-bg); }
+.exec-covered { background: var(--cov-full-bg); }
 
 .src {
   white-space: pre;
@@ -1943,10 +1943,10 @@ td.chevron {
 }
 
 .detail th { background: var(--header-bg); }
-.detail .c0 { background: var(--exec-none); }
-.detail .c3 { background: var(--exec-covered); }
+.detail .c0 { background: var(--cov-none-bg); }
+.detail .c3 { background: var(--cov-full-bg); }
 
-.detail.cond-cells { border-left: 3px solid var(--exec-covered); }
+.detail.cond-cells { border-left: 3px solid var(--cov-full-bg); }
 .detail.mcdc-detail { border-left: 3px solid var(--header-bg); }
 .detail.decision-vectors { border-left: 3px solid var(--border); }
 

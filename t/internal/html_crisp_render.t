@@ -207,6 +207,22 @@ sub test_palette_css () {
   like $Crisp_base_css,   qr/--tip-c2: #2f7db1/, "light tip-c2 matches border";
   like $Crisp_base_css,   qr/--tip-c2: #64b7ef/, "dark tip-c2 matches border";
   unlike $Crisp_base_css, qr/#2080a8|#48c0e0/,   "no stale blue accents";
+  unlike $Crisp_base_css, qr/--exec-/,           "no derived exec tints";
+}
+
+sub test_exec_cells_use_fills () {
+  my $css = slurp("$Outdir/assets/style.css");
+  like $css, qr/\.exec-0 \{ background: var\(--cov-none-bg\); \}/,
+    "unexecuted count cells use the none fill";
+  like $css, qr/\.exec-partial \{ background: var\(--cov-low-bg\); \}/,
+    "partial count cells use the low fill";
+  like $css, qr/\.exec-covered \{ background: var\(--cov-full-bg\); \}/,
+    "executed count cells use the full fill";
+  like $css, qr/\.detail \.c0 \{ background: var\(--cov-none-bg\); \}/,
+    "detail panel c0 cells use the none fill";
+  like $css, qr/\.detail \.c3 \{ background: var\(--cov-full-bg\); \}/,
+    "detail panel c3 cells use the full fill";
+  unlike $css, qr/var\(--exec-/, "no exec variable references remain";
 }
 
 sub test_render_file_page () {
@@ -1084,6 +1100,7 @@ sub main () {
   test_dist_legend_custom_thresholds;
   test_dist_bar_fill_segments;
   test_palette_css;
+  test_exec_cells_use_fills;
   test_render_file_page;
   test_tooltip_structure;
   test_glass_tooltips;
