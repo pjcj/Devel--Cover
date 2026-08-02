@@ -12,10 +12,9 @@ use 5.42.0;
 # VERSION
 
 use Devel::Cover::Criterion    ();
-use Devel::Cover::DB           ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Dumper       qw( Dumper );
-use Devel::Cover::Html_Common  ();
+use Devel::Cover::Html_Common  ();               ## no perlimports
 use Devel::Cover::Inc          ();
 use Devel::Cover::Web          qw( write_file );
 
