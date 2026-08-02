@@ -301,6 +301,13 @@ sub bar_drop_bp ($names, $cc_w, $scar_w) {
   crit_bp($col_w, 0 + @$names, $cc_w, $scar_w)
 }
 
+sub badge_row_bp ($n, $badge_w) {
+  my $overhead  = 285;
+  my $cc_scar_w = 160;
+  my $gaps      = ($n + 1) * 16;
+  $overhead + $n * $badge_w + $gaps + $cc_scar_w
+}
+
 sub render_index ($file_data, $total, $dist) {
   my @groups = build_dir_groups($file_data);
   my @worst
@@ -1339,11 +1346,34 @@ sub report ($pkg, $db, $options) {
   my @rows = (@file_data, build_dir_groups(\@file_data));
   $R{cc_w}   = col_px(map $_->{file_cc},   @rows);
   $R{scar_w} = col_px(map $_->{file_scar}, @rows);
-  my @names = map $R{full}{$_}, $R{criteria}->@*, "total";
-  my $bars  = bar_drop_bp(\@names, $R{cc_w}, $R{scar_w});
-  my $bp    = short_name_bp(\@names, $R{cc_w}, $R{scar_w});
+  my @names  = map $R{full}{$_}, $R{criteria}->@*, "total";
+  my $bars   = bar_drop_bp(\@names, $R{cc_w}, $R{scar_w});
+  my $bp     = short_name_bp(\@names, $R{cc_w}, $R{scar_w});
+  my $narrow = badge_row_bp(0 + @names, 180);
+  my $wrap   = badge_row_bp(0 + @names, 140);
 
   write_file("$assets/style.css", $Assets{css} . <<CSS);
+/* Medium: switch to short criterion names, narrower badges */
+\@container (max-width: ${narrow}px) {
+  .name-full  { display: none !important; }
+  .name-short { display: inline !important; }
+  .stat-badge { width: 140px; }
+  .stat-scar  { width: auto; }
+  .stat-cc    { width: auto; }
+}
+
+/* Narrow: wrap badges onto multiple lines, right-aligned. max-width clamps the
+(flex-shrink: 0) container to its parent so wrap actually engages instead of
+overflowing. */
+\@container (max-width: ${wrap}px) {
+  .header-stats {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 6px;
+    max-width: 100%;
+  }
+}
+
 /* Stack the coverage bars below the numbers when cells get narrow */
 \@media (max-width: ${bars}px) {
   .file-table td { white-space: normal; }
@@ -1401,26 +1431,6 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 
 .stat-badge .cov-bar {
   flex-shrink: 0;
-}
-
-/* Medium: switch to short criterion names, narrower badges */
-@container (max-width: 1450px) {
-  .name-full  { display: none !important; }
-  .name-short { display: inline !important; }
-  .stat-badge { width: 140px; }
-  .stat-scar  { width: auto; }
-}
-
-/* Narrow: wrap badges onto multiple lines, right-aligned. max-width clamps the
-(flex-shrink: 0) container to its parent so wrap actually engages instead of
-overflowing. */
-@container (max-width: 1200px) {
-  .header-stats {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    row-gap: 6px;
-    max-width: 100%;
-  }
 }
 
 .stat-badge:hover { opacity: 0.85; }

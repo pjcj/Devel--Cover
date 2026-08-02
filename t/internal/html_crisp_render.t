@@ -299,6 +299,24 @@ sub test_bar_drop_breakpoint () {
   unlike $css, qr/max-width: 1150px/, "css: fixed 1150px breakpoint gone";
 }
 
+sub test_badge_row_breakpoints () {
+  my $bp = \&Devel::Cover::Report::Html_crisp::badge_row_bp;
+  is $bp->(7, 180), 1833, "badge_row_bp: seven full-size badges";
+  is $bp->(7, 140), 1553, "badge_row_bp: seven narrow badges need less";
+  is $bp->(5, 180), 1441, "badge_row_bp: fewer criteria lower the switch";
+
+  my $css      = slurp("$Outdir/assets/style.css");
+  my ($narrow) = $css =~ /max-width: (\d+)px\) \{\n  \.name-full/;
+  my ($wrap)   = $css =~ /max-width: (\d+)px\) \{\n  \.header-stats/;
+  ok defined $narrow, "css: narrow-badge query has a computed threshold";
+  ok defined $wrap,   "css: badge-wrap query has a computed threshold";
+  ok $narrow > $wrap, "css: badges narrow before they wrap";
+  unlike $css, qr/max-width: 1450px/, "css: fixed 1450px threshold gone";
+  unlike $css, qr/max-width: 1200px/, "css: fixed 1200px threshold gone";
+  like $css, qr/width: 140px.*?\.stat-cc\s+\{ width: auto; \}/s,
+    "css: narrow-badge block keeps the CC pill at auto width";
+}
+
 sub test_total_badge_filter () {
   my ($covered) = grep /Covered-Calc/, keys %Golden;
   ok defined $covered, "golden covered file page exists for total badge test";
@@ -1018,6 +1036,7 @@ sub main () {
   test_cc_scar_col_widths;
   test_short_name_breakpoint;
   test_bar_drop_breakpoint;
+  test_badge_row_breakpoints;
   test_total_badge_filter;
   test_file_nav_keys;
   test_render_untested_page;
