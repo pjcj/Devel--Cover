@@ -683,7 +683,7 @@ tr:hover td:not(.c0):not(.c1):not(.c2):not(.c3) {
   background: var(--bg-alt);
 }
 
-td.c0, td.c1, td.c2, td.c3 {
+td.c0, td.c1, td.c2, td.c3, td.na {
   border-color: var(--border);
   white-space: nowrap;
   text-align: center;
