@@ -60,13 +60,18 @@ sub slurp ($path) {
   $content
 }
 
-sub write_dist ($dir, $dist, $name, $version, $log = undef, $page = 1) {
+sub write_dist (
+  $dir, $dist, $name, $version, $log = undef,
+  $page = 1, $scar = undef,
+) {
   make_path("$dir/$dist");
 
   my $criterion = { percentage => 85.5, covered => 10, total => 12 };
-  my $cover     = {
+  my $total     = { total => $criterion, statement => $criterion };
+  $total->{scar} = $scar if $scar;
+  my $cover = {
     runs    => [{ name => $name, version => $version, dir => "/tmp/x" }],
-    summary => { Total => { total => $criterion, statement => $criterion } },
+    summary => { Total => $total },
   };
   write_file("$dir/$dist/cover.json", JSON::PP->new->encode($cover));
   write_file("$dir/$dist/index.html", "report\n") if $page;
@@ -79,9 +84,12 @@ sub seed_page ($dir, $file) {
     or plan skip_all => "hardlinks not supported";
 }
 
+my $Scar
+  = { file_cc => 12, file_cov => 90, file_crap => 14.3, file_scar => 26.6 };
+
 sub setup_results_dir {
   my $dir = File::Temp->newdir;
-  write_dist($dir, $Dist,  "Foo-Bar", "1.00", $Log);
+  write_dist($dir, $Dist, "Foo-Bar", "1.00", $Log, 1, $Scar);
   write_dist($dir, $Dist2, "Baz-Qux", "2.00", $Log2);
 
   # $Dist was rebuilt: .log_ref names the newer log, both logs remain
@@ -173,6 +181,26 @@ like $Page{dist_d}, qr{href="https://metacpan\.org/dist/Dep-Only"},
   "dependency dist falls back to the metacpan dist link";
 unlike $Page{dist_d}, qr{href="https://metacpan\.org/release/\w+/\Q$Dist4\E"},
   "dependency dist gets no release link from its target's log";
+
+like $Page{dist}, qr{<th>CC</th>},                "dist page has a CC header";
+like $Page{dist}, qr{<th>SCAR</th>},              "dist page has a SCAR header";
+like $Page{dist}, qr{<td class="cc-val">12</td>}, "dist page shows CC";
+my $Tip = quotemeta
+  '<span class="glass-tip">CC 12 &middot; cov 90% &middot; CRAP 14.3</span>';
+like $Page{dist},
+  qr{<td class="scar-val scar-c2 tip-hover">26\.6\s*$Tip\s*</td>},
+  "dist page shows SCAR with class and tip";
+my @Na_cells = $Page{dist_b} =~ m{(<td class="na">n/a</td>)}g;
+is @Na_cells, 2, "dist without scar data shows n/a for CC and SCAR";
+
+my $Css = slurp("$Dir/collection.css");
+like $Css, qr{td\.na[^{}]*\{[^{}]*text-align:\s*center}s,
+  "n/a cells are centred";
+
+my $Cpancover = JSON::PP->new->decode(slurp("$Dir/cpancover.json"));
+my $Coverage  = $Cpancover->{"Foo-Bar"}{"1.00"}{coverage}{total};
+is join(",", sort keys %$Coverage), "statement,total",
+  "cpancover.json has no cc or scar keys";
 
 my $Version = $Devel::Cover::Inc::VERSION . $Devel::Cover::Inc::Dev;
 for my $name (sort keys %Page) {

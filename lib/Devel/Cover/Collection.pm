@@ -14,7 +14,7 @@ use 5.42.0;
 use Devel::Cover::Criterion    ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Dumper       qw( Dumper );
-use Devel::Cover::Html_Common  ();               ## no perlimports
+use Devel::Cover::Html_Common  qw( scar_class );  ## no perlimports
 use Devel::Cover::Inc          ();
 use Devel::Cover::Web          qw( write_file );
 
@@ -305,7 +305,7 @@ class Devel::Cover::Collection {
       if (defined $name && defined $version) {
         $results->{$name}{$version}{coverage}{total} = {
           map { $_ => $m->{$_}{pc} } grep $m->{$_}{pc} ne "n/a",
-          grep !/link|log|module/,
+          grep !/link|log|module|^(?:cc|scar)$/,
           keys %$m,
         };
       } else {
@@ -484,6 +484,21 @@ class Devel::Cover::Collection {
         $m->{$criterion}{class} = $self->coverage_class($pc);
         $m->{$criterion}{details}
           = ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
+      }
+
+      my $s = $json->{summary}{Total}{scar};
+      if ($s && defined $s->{file_scar}) {
+        $m->{cc}   = { val => $s->{file_cc}, class => "cc-val" };
+        $m->{scar} = {
+          val   => sprintf("%.1f", $s->{file_scar}),
+          class => "scar-val scar-" . scar_class($s->{file_scar}),
+          tip   => sprintf(
+            "CC %d &middot; cov %.0f%% &middot; CRAP %.1f",
+            $s->{file_cc}, $s->{file_cov}, $s->{file_crap},
+          ),
+        };
+      } else {
+        $m->{$_} = { val => "n/a", class => "na" } for qw( cc scar );
       }
 
       print "." if !($n++ % 1000) && !$verbose;
@@ -956,7 +971,7 @@ $Templates{module_by_start} = <<'EOT';
 
 <h2>Distributions - [% module_start %]</h2>
 
-[% crit_w = 76 / col_headers.size %]
+[% crit_w = 66 / col_headers.size %]
 <table>
 <colgroup>
 <col style="width:12%">
@@ -965,6 +980,8 @@ $Templates{module_by_start} = <<'EOT';
 [% FOREACH h = col_headers %]
 <col style="width:[% crit_w %]%">
 [% END %]
+<col style="width:5%">
+<col style="width:5%">
 </colgroup>
 
   [% IF modules.$module_start %]
@@ -978,6 +995,8 @@ $Templates{module_by_start} = <<'EOT';
           <span class="name-short">[% h.short %]</span>
         </th>
       [% END %]
+      <th>CC</th>
+      <th>SCAR</th>
     </tr>
   [% END %]
 
@@ -1017,6 +1036,15 @@ $Templates{module_by_start} = <<'EOT';
           [% END %]
           <span class="glass-tip">[%- vals.$m.$criterion.details -%]</span>
         </td>
+      [% END %]
+      <td class="[%- vals.$m.cc.class -%]">[%- vals.$m.cc.val -%]</td>
+      [% IF vals.$m.scar.tip %]
+        <td class="[%- vals.$m.scar.class %] tip-hover">
+          [%- vals.$m.scar.val -%]
+          <span class="glass-tip">[%- vals.$m.scar.tip -%]</span>
+        </td>
+      [% ELSE %]
+        <td class="[%- vals.$m.scar.class -%]">[%- vals.$m.scar.val -%]</td>
       [% END %]
     </tr>
   [% END %]

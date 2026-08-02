@@ -541,6 +541,14 @@ a:visited { color: var(--link-visited); }
   color: var(--fg-muted);
 }
 
+/* SCAR colouring: coloured text/outline by risk, never a full fill */
+td.cc-val   { color: var(--fg-muted); }
+td.scar-val { font-weight: 600; }
+.scar-c0 { color: var(--tip-c0); }
+.scar-c1 { color: var(--tip-c1); }
+.scar-c2 { color: var(--tip-c2); }
+.scar-c3 { color: var(--tip-c3); }
+
 /* Main content */
 
 .content {
@@ -683,7 +691,7 @@ tr:hover td:not(.c0):not(.c1):not(.c2):not(.c3) {
   background: var(--bg-alt);
 }
 
-td.c0, td.c1, td.c2, td.c3, td.na {
+td.c0, td.c1, td.c2, td.c3, td.na, td.cc-val, td.scar-val {
   border-color: var(--border);
   white-space: nowrap;
   text-align: center;
