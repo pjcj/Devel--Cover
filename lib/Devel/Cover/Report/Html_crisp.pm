@@ -22,7 +22,7 @@ BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 ## no perlimports
 use Devel::Cover::Html_Common qw(
   $Have_highlighter highlight launch
-  coverage_class default_thresholds unique_filenames
+  coverage_class default_thresholds scar_class unique_filenames
   decode_guess escape_html source_layer
 );
 use Devel::Cover::Web             qw( $Cov $Crisp_base_css $Crisp_theme_js );
@@ -448,11 +448,6 @@ HTML
     title        => "Coverage Summary",
     content      => $o,
   )
-}
-
-sub scar_class ($scar) {
-  return "" unless defined $scar;
-  $scar < 16 ? "c3" : $scar < 34 ? "c2" : $scar < 41 ? "c1" : "c0"
 }
 
 sub _summary_text ($covered, $total, $error = undef, $criterion = "condition") {
@@ -1673,14 +1668,6 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   text-decoration: none;
 }
 .file-table .cell-link:hover { opacity: 0.85; }
-
-/* SCAR colouring: coloured text/outline by risk, never a full fill */
-td.cc-val   { color: var(--fg-muted); }
-td.scar-val { font-weight: 600; }
-.scar-c0 { color: var(--tip-c0); }
-.scar-c1 { color: var(--tip-c1); }
-.scar-c2 { color: var(--tip-c2); }
-.scar-c3 { color: var(--tip-c3); }
 
 .worst-item.scar-c0 { border-color: var(--tip-c0); }
 .worst-item.scar-c1 { border-color: var(--tip-c1); }

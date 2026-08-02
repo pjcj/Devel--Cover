@@ -12,10 +12,9 @@ use 5.42.0;
 # VERSION
 
 use Devel::Cover::Criterion    ();
-use Devel::Cover::DB           ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Dumper       qw( Dumper );
-use Devel::Cover::Html_Common  ();
+use Devel::Cover::Html_Common  qw( scar_class );  ## no perlimports
 use Devel::Cover::Inc          ();
 use Devel::Cover::Web          qw( write_file );
 
@@ -23,6 +22,7 @@ use JSON::MaybeXS ();
 use POSIX         qw( setsid );
 use Template      ();
 use Time::HiRes   qw( alarm time );
+use version       ();
 
 use feature "class";
 
@@ -306,7 +306,7 @@ class Devel::Cover::Collection {
       if (defined $name && defined $version) {
         $results->{$name}{$version}{coverage}{total} = {
           map { $_ => $m->{$_}{pc} } grep $m->{$_}{pc} ne "n/a",
-          grep !/link|log|module/,
+          grep !/link|log|module|^(?:cc|scar)$/,
           keys %$m,
         };
       } else {
@@ -320,6 +320,13 @@ class Devel::Cover::Collection {
     my $f      = "$rdir/cpancover.json";
     $io->write($results, $f);
     say "Wrote json output to $f";
+  }
+
+  method write_search_index ($vars) {
+    my @names  = sort grep $vars->{vals}{$_}{link}, keys $vars->{vals}->%*;
+    my $io     = Devel::Cover::DB::IO::JSON->new;
+    my ($rdir) = $self->made_res_dir;
+    $io->write(\@names, "$rdir/search.json");
   }
 
   method coverage_class ($pc) {
@@ -365,6 +372,7 @@ class Devel::Cover::Collection {
 
     # print Dumper $vars;
     $self->write_json($vars);
+    $self->write_search_index($vars);
 
     say "Wrote collection output to $f";
   }
@@ -413,6 +421,39 @@ class Devel::Cover::Collection {
         }
       }
     }
+  }
+
+  method _newer ($va, $vb) {
+    my ($pa, $pb) = map { eval { version->parse($_) } } $va, $vb;
+    return $pa > $pb if $pa && $pb;
+    ($va // "") gt($vb // "")
+  }
+
+  method add_overview ($vars) {
+    my %latest;
+    for my $m (values $vars->{vals}->%*) {
+      my $name = $m->{module}{name} // next;
+      my $cur  = $latest{$name};
+      $latest{$name} = $m
+        if !$cur
+        || $self->_newer($m->{module}{version}, $cur->{module}{version});
+    }
+
+    my %bands;
+    $bands{ $self->coverage_class($_->{total}{pc}) }++ for values %latest;
+
+    my $count    = keys %latest;
+    my $segments = [];
+    for my $class (qw( c3 c2 c1 c0 na )) {
+      my $n   = $bands{$class} or next;
+      my $pct = 100 * $n / $count;
+      push @$segments, {
+          class => $class,
+          pct   => sprintf("%.2f", $pct),
+          label => $pct >= 4 ? $n : "",
+        };
+    }
+    $vars->{overview} = { count => $count, segments => $segments };
   }
 
   method generate_html {
@@ -487,11 +528,27 @@ class Devel::Cover::Collection {
           = ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
       }
 
+      my $s = $json->{summary}{Total}{scar};
+      if ($s && defined $s->{file_scar}) {
+        $m->{cc}   = { val => $s->{file_cc}, class => "cc-val" };
+        $m->{scar} = {
+          val   => sprintf("%.1f", $s->{file_scar}),
+          class => "scar-val scar-" . scar_class($s->{file_scar}),
+          tip   => sprintf(
+            "CC %d &middot; cov %.0f%% &middot; CRAP %.1f",
+            $s->{file_cc}, $s->{file_cov}, $s->{file_crap},
+          ),
+        };
+      } else {
+        $m->{$_} = { val => "n/a", class => "na" } for qw( cc scar );
+      }
+
       print "." if !($n++ % 1000) && !$verbose;
     }
 
     $self->resolve_log_links($d, \@mods, $vars);
     $self->add_metacpan_links($vars);
+    $self->add_overview($vars);
 
     # print "vars ", Dumper $vars;
     $self->write_summary($vars);
@@ -845,6 +902,11 @@ https://pjcj.net
 <header class="header">
 <div class="header-inner">
 <h1><a href="[% root %]index.html">CPANCover</a></h1>
+<div class="search">
+<input type="search" id="module-search" data-root="[% root %]"
+  placeholder="Search distributions" autocomplete="off">
+<div class="search-results" hidden></div>
+</div>
 <div class="header-stats">
 <button class="theme-toggle" aria-label="Toggle dark mode">&#x263e;</button>
 </div>
@@ -872,6 +934,15 @@ $Templates{summary} = <<'EOT';
 [% WRAPPER html %]
 
 <h2>Distributions</h2>
+
+<p class="dist-count">[% overview.count %] distributions</p>
+<div class="dist-bar">
+[% FOREACH seg = overview.segments %]
+  <div class="dist-bar-seg [% seg.class %]" style="width: [% seg.pct %]%">
+    [%- seg.label -%]
+  </div>
+[% END %]
+</div>
 
 <p>Search for distributions by first character:</p>
 
@@ -957,7 +1028,7 @@ $Templates{module_by_start} = <<'EOT';
 
 <h2>Distributions - [% module_start %]</h2>
 
-[% crit_w = 76 / col_headers.size %]
+[% crit_w = 66 / col_headers.size %]
 <table>
 <colgroup>
 <col style="width:12%">
@@ -966,6 +1037,8 @@ $Templates{module_by_start} = <<'EOT';
 [% FOREACH h = col_headers %]
 <col style="width:[% crit_w %]%">
 [% END %]
+<col style="width:5%">
+<col style="width:5%">
 </colgroup>
 
   [% IF modules.$module_start %]
@@ -979,6 +1052,8 @@ $Templates{module_by_start} = <<'EOT';
           <span class="name-short">[% h.short %]</span>
         </th>
       [% END %]
+      <th>CC</th>
+      <th>SCAR</th>
     </tr>
   [% END %]
 
@@ -1018,6 +1093,15 @@ $Templates{module_by_start} = <<'EOT';
           [% END %]
           <span class="glass-tip">[%- vals.$m.$criterion.details -%]</span>
         </td>
+      [% END %]
+      <td class="[%- vals.$m.cc.class -%]">[%- vals.$m.cc.val -%]</td>
+      [% IF vals.$m.scar.tip %]
+        <td class="[%- vals.$m.scar.class %] tip-hover">
+          [%- vals.$m.scar.val -%]
+          <span class="glass-tip">[%- vals.$m.scar.tip -%]</span>
+        </td>
+      [% ELSE %]
+        <td class="[%- vals.$m.scar.class -%]">[%- vals.$m.scar.val -%]</td>
       [% END %]
     </tr>
   [% END %]
@@ -1351,6 +1435,25 @@ C<generate_html>.
 
 Writes a JSON file (C<cpancover.json>) containing coverage data for all
 modules.
+
+=head3 write_search_index ($vars)
+
+  $collection->write_search_index($vars);
+
+Writes C<search.json>, a sorted list of the module directories that have
+report pages. The header search on the collection pages fetches it to
+offer direct links to module reports.
+
+=head3 add_overview ($vars)
+
+  $collection->add_overview($vars);
+
+Builds the front-page overview from the collected module data: the
+distribution count and a list of coverage-band segments for the
+distribution bar. Only the latest version of each distribution counts,
+so the bar reflects the current state of CPAN. Bands with no
+distributions are omitted, and a segment too narrow to fit its count
+drops its label.
 
 =head2 Status Tracking
 

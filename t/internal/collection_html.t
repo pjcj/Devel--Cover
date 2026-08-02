@@ -60,13 +60,18 @@ sub slurp ($path) {
   $content
 }
 
-sub write_dist ($dir, $dist, $name, $version, $log = undef, $page = 1) {
+sub write_dist (
+  $dir, $dist, $name, $version, $log = undef,
+  $page = 1, $scar = undef,
+) {
   make_path("$dir/$dist");
 
   my $criterion = { percentage => 85.5, covered => 10, total => 12 };
-  my $cover     = {
+  my $total     = { total => $criterion, statement => $criterion };
+  $total->{scar} = $scar if $scar;
+  my $cover = {
     runs    => [{ name => $name, version => $version, dir => "/tmp/x" }],
-    summary => { Total => { total => $criterion, statement => $criterion } },
+    summary => { Total => $total },
   };
   write_file("$dir/$dist/cover.json", JSON::PP->new->encode($cover));
   write_file("$dir/$dist/index.html", "report\n") if $page;
@@ -79,9 +84,12 @@ sub seed_page ($dir, $file) {
     or plan skip_all => "hardlinks not supported";
 }
 
+my $Scar
+  = { file_cc => 12, file_cov => 90, file_crap => 14.3, file_scar => 26.6 };
+
 sub setup_results_dir {
   my $dir = File::Temp->newdir;
-  write_dist($dir, $Dist,  "Foo-Bar", "1.00", $Log);
+  write_dist($dir, $Dist, "Foo-Bar", "1.00", $Log, 1, $Scar);
   write_dist($dir, $Dist2, "Baz-Qux", "2.00", $Log2);
 
   # $Dist was rebuilt: .log_ref names the newer log, both logs remain
@@ -99,6 +107,17 @@ sub setup_results_dir {
 
   # $Dist5 has coverage totals but its report page was never written
   write_dist($dir, $Dist5, "No-Page", "5.00", undef, 0);
+
+  # An older version of $Dist, which the overview must not count
+  write_dist($dir, "Foo-Bar-0.50", "Foo-Bar", "0.50");
+
+  # A dist with no coverage percentages, for the overview's n/a band
+  make_path("$dir/Zero-Data-6.00");
+  my $empty = {
+    runs    => [{ name => "Zero-Data", version => "6.00", dir => "/tmp/x" }],
+    summary => { Total => {} },
+  };
+  write_file("$dir/Zero-Data-6.00/cover.json", JSON::PP->new->encode($empty));
 
   make_path("$dir/dist");
   seed_page($dir, $_) for qw( index.html dist/F.html about.html );
@@ -173,6 +192,81 @@ like $Page{dist_d}, qr{href="https://metacpan\.org/dist/Dep-Only"},
   "dependency dist falls back to the metacpan dist link";
 unlike $Page{dist_d}, qr{href="https://metacpan\.org/release/\w+/\Q$Dist4\E"},
   "dependency dist gets no release link from its target's log";
+
+like $Page{dist}, qr{<th>CC</th>},                "dist page has a CC header";
+like $Page{dist}, qr{<th>SCAR</th>},              "dist page has a SCAR header";
+like $Page{dist}, qr{<td class="cc-val">12</td>}, "dist page shows CC";
+my $Tip = quotemeta
+  '<span class="glass-tip">CC 12 &middot; cov 90% &middot; CRAP 14.3</span>';
+like $Page{dist},
+  qr{<td class="scar-val scar-c2 tip-hover">26\.6\s*$Tip\s*</td>},
+  "dist page shows SCAR with class and tip";
+my @Na_cells = $Page{dist_b} =~ m{(<td class="na">n/a</td>)}g;
+is @Na_cells, 2, "dist without scar data shows n/a for CC and SCAR";
+
+my $Css = slurp("$Dir/collection.css");
+like $Css, qr{td\.na[^{}]*\{[^{}]*text-align:\s*center}s,
+  "n/a cells are centred";
+like $Css, qr{th[^{}]*\{[^{}]*position:\s*sticky}s, "table headers are sticky";
+like $Css, qr{th[^{}]*\{[^{}]*top:\s*calc\(var\(--header-height}s,
+  "table headers stick below the page header";
+like slurp("$Dir/collection.js"), qr{--header-height},
+  "collection.js measures the page header height";
+
+like $Page{index}, qr{<p class="dist-count">6 distributions</p>},
+  "index page counts distributions once per name";
+like $Page{index},
+  qr{<div class="dist-bar-seg c1" style="width: 83\.33%">\s*5\s*</div>},
+  "index page bar has a c1 segment counting latest versions only";
+like $Page{index},
+  qr{<div class="dist-bar-seg na" style="width: 16\.67%">\s*1\s*</div>},
+  "index page bar has an n/a segment";
+like $Page{index}, qr{dist-bar-seg c1.*dist-bar-seg na}s,
+  "bar segments run from best to worst";
+unlike $Page{index}, qr{dist-bar-seg c[023]}, "empty bands are omitted";
+like $Page{index},   qr{dist-bar.*az-nav}s,   "bar appears above the A-Z nav";
+like $Css, qr{\.dist-bar\b[^{}]*\{[^{}]*display:\s*flex}s,
+  "bar segments lay out in a row";
+like $Css,
+  qr{\.dist-bar-seg\.c1[^{}]*\{[^{}]*background:\s*var\(--cov-low-bg\)}s,
+  "bar segments use the shared coverage colours";
+
+my $Overview_vars = {
+  vals => {
+    (
+      map { ("Dist$_-1.00" => {
+        module => { name => "Dist$_", version => "1.00" },
+        total  => { pc   => "100.00" },
+      }) } 1 .. 30
+    ),
+    "Low-1.00" => {
+      module => { name => "Low", version => "1.00" },
+      total  => { pc   => "50.00" },
+    },
+  },
+};
+$Collection->add_overview($Overview_vars);
+my $Segments = $Overview_vars->{overview}{segments};
+is $Segments->[-1]{label}, "",
+  "segments too narrow for their count drop the label";
+
+my $Search = JSON::PP->new->decode(slurp("$Dir/search.json"));
+is join(",", sort @$Search),
+  "Baz-Qux-2.00,Dangle-Ref-3.00,Dep-Only-4.00,Foo-Bar-0.50,Foo-Bar-1.00",
+  "search.json lists only modules with report pages";
+like $Page{index}, qr{<input[^>]*id="module-search"[^>]*data-root=""},
+  "index page has the search input";
+like $Page{index}, qr{<input[^>]*placeholder="Search distributions"},
+  "search placeholder says distributions";
+like $Page{dist}, qr{<input[^>]*id="module-search"[^>]*data-root="\.\./"},
+  "dist page search input carries the root prefix";
+like slurp("$Dir/collection.js"), qr{module-search},
+  "collection.js wires up the search";
+
+my $Cpancover = JSON::PP->new->decode(slurp("$Dir/cpancover.json"));
+my $Coverage  = $Cpancover->{"Foo-Bar"}{"1.00"}{coverage}{total};
+is join(",", sort keys %$Coverage), "statement,total",
+  "cpancover.json has no cc or scar keys";
 
 my $Version = $Devel::Cover::Inc::VERSION . $Devel::Cover::Inc::Dev;
 for my $name (sort keys %Page) {

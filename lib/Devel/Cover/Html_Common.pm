@@ -14,7 +14,7 @@ use HTML::Entities ();
 
 our @EXPORT_OK = qw(
   launch highlight $Have_highlighter
-  coverage_class default_thresholds unique_filenames
+  coverage_class default_thresholds scar_class unique_filenames
   decode_guess escape_html source_layer
 );
 
@@ -35,6 +35,11 @@ sub coverage_class ($pc, $t = undef) {
   $t //= default_thresholds;
   return "na" if !defined $pc || $pc eq "n/a";
   $pc < $t->{c0} ? "c0" : $pc < $t->{c1} ? "c1" : $pc < $t->{c2} ? "c2" : "c3"
+}
+
+sub scar_class ($scar) {
+  return "" unless defined $scar;
+  $scar < 16 ? "c3" : $scar < 34 ? "c2" : $scar < 41 ? "c1" : "c0"
 }
 
 sub unique_filenames (@files) {
@@ -200,6 +205,12 @@ points. It defaults to the values from C<default_thresholds> when omitted.
 Return a fresh hashref of the default band cut-off points (C<c0> 75,
 C<c1> 90, C<c2> 100). A new copy is returned each call so callers may
 mutate their own thresholds without affecting the defaults.
+
+=item scar_class ($scar)
+
+Map a SCAR value to a CSS band name (C<c0>, C<c1>, C<c2> or C<c3>), with
+lower values in the better bands. An undefined value maps to the empty
+string.
 
 =item unique_filenames (@files)
 

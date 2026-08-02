@@ -541,6 +541,42 @@ a:visited { color: var(--link-visited); }
   color: var(--fg-muted);
 }
 
+/* SCAR colouring: coloured text/outline by risk, never a full fill */
+td.cc-val   { color: var(--fg-muted); }
+td.scar-val { font-weight: 600; }
+.scar-c0 { color: var(--tip-c0); }
+.scar-c1 { color: var(--tip-c1); }
+.scar-c2 { color: var(--tip-c2); }
+.scar-c3 { color: var(--tip-c3); }
+
+/* Coverage distribution bar */
+
+.dist-bar {
+  display: flex;
+  width: 100%;
+  height: 24px;
+  margin: 0 0 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.dist-bar-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.dist-bar-seg.c0 { background: var(--cov-none-bg); color: var(--cov-none-fg); }
+.dist-bar-seg.c1 { background: var(--cov-low-bg);  color: var(--cov-low-fg);  }
+.dist-bar-seg.c2 { background: var(--cov-good-bg); color: var(--cov-good-fg); }
+.dist-bar-seg.c3 { background: var(--cov-full-bg); color: var(--cov-full-fg); }
+.dist-bar-seg.na { background: var(--bg-alt);      color: var(--fg-muted);    }
+
 /* Main content */
 
 .content {
@@ -648,6 +684,10 @@ my $Collection_extra_css = <<'CSS';
   text-decoration: underline;
 }
 
+.header {
+  z-index: 20;
+}
+
 table {
   border-collapse: collapse;
   margin: 0 0 24px;
@@ -663,6 +703,9 @@ th, td {
 }
 
 th {
+  position: sticky;
+  top: calc(var(--header-height, 0px) - 2px);
+  z-index: 10;
   background: var(--header-bg);
   font-weight: 600;
   color: var(--fg);
@@ -683,7 +726,7 @@ tr:hover td:not(.c0):not(.c1):not(.c2):not(.c3) {
   background: var(--bg-alt);
 }
 
-td.c0, td.c1, td.c2, td.c3 {
+td.c0, td.c1, td.c2, td.c3, td.na, td.cc-val, td.scar-val {
   border-color: var(--border);
   white-space: nowrap;
   text-align: center;
@@ -772,11 +815,156 @@ ul {
 .about-key td:last-child {
   text-align: left;
 }
+
+/* Module search */
+
+.search {
+  position: relative;
+  margin-left: auto;
+}
+
+.search input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: var(--fg);
+  font-size: var(--font-size-small);
+  width: 180px;
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 220px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--tip-glass-bg);
+  border: 1px solid var(--tip-glass-border);
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 40;
+}
+
+.search-results a, .search-empty {
+  display: block;
+  padding: 4px 10px;
+  font-size: var(--font-size-small);
+  color: var(--tip-glass-fg);
+  white-space: nowrap;
+}
+
+.search-results a:hover, .search-results a.selected {
+  background: var(--bg-alt);
+  text-decoration: none;
+}
+
+.search-empty { color: var(--fg-muted); }
 CSS
 
+my $Collection_header_js = <<'JS';
+/* Sticky table headers stack below the page header */
+(function() {
+  var header = document.querySelector(".header");
+  if (!header) return;
+  function set() {
+    document.documentElement.style.setProperty(
+      "--header-height", header.getBoundingClientRect().height + "px");
+  }
+  set();
+  if (window.ResizeObserver) new ResizeObserver(set).observe(header);
+  else window.addEventListener("resize", set);
+})();
+JS
+
+my $Collection_search_js = <<'JS';
+/* CPANCover module search */
+(function() {
+  var input = document.getElementById("module-search");
+  if (!input) return;
+  var root = input.getAttribute("data-root") || "";
+  var box = input.parentNode.querySelector(".search-results");
+  var names = null;
+  var sel = -1;
+
+  function load() {
+    if (names) return;
+    names = [];
+    fetch(root + "search.json")
+      .then(function(r) { return r.json(); })
+      .then(function(data) { names = data; render(); });
+  }
+
+  function tier(name, q) {
+    var i = name.toLowerCase().indexOf(q);
+    if (i < 0) return -1;
+    if (i === 0) return 0;
+    return name.charAt(i - 1) === "-" ? 1 : 2;
+  }
+
+  function matches(q) {
+    var tiers = [[], [], []];
+    for (var i = 0; i < names.length; i++) {
+      var t = tier(names[i], q);
+      if (t >= 0) tiers[t].push(names[i]);
+    }
+    return tiers[0].concat(tiers[1], tiers[2]).slice(0, 10);
+  }
+
+  function render() {
+    var q = input.value.toLowerCase();
+    sel = -1;
+    box.innerHTML = "";
+    if (!q) { box.hidden = true; return; }
+    var found = matches(q);
+    if (!found.length) {
+      var d = document.createElement("div");
+      d.className = "search-empty";
+      d.textContent = "no matches";
+      box.appendChild(d);
+    }
+    found.forEach(function(name) {
+      var a = document.createElement("a");
+      a.href = root + encodeURIComponent(name) + "/index.html";
+      a.textContent = name;
+      box.appendChild(a);
+    });
+    box.hidden = false;
+  }
+
+  function move(delta) {
+    var items = box.querySelectorAll("a");
+    if (!items.length) return;
+    sel = (sel + delta + items.length) % items.length;
+    items.forEach(function(el, i) {
+      el.classList.toggle("selected", i === sel);
+    });
+  }
+
+  input.addEventListener("focus", load);
+  input.addEventListener("input", render);
+  input.addEventListener("keydown", function(e) {
+    if (e.key === "ArrowDown") { move(1); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { move(-1); e.preventDefault(); }
+    else if (e.key === "Enter") {
+      var items = box.querySelectorAll("a");
+      var target = items[sel >= 0 ? sel : 0];
+      if (target) location.href = target.href;
+    } else if (e.key === "Escape") { box.hidden = true; }
+  });
+  document.addEventListener("click", function(e) {
+    if (!e.target.closest(".search")) box.hidden = true;
+  });
+})();
+JS
+
 $Files{"collection.css"} = $Crisp_base_css . $Collection_extra_css;
-$Files{"collection.js"}  = $Crisp_theme_js;
-$Files{"cover.css"}      = $Common_css . $Extra_css;
+$Files{"collection.js"}
+  = $Crisp_theme_js . $Collection_header_js . $Collection_search_js;
+$Files{"cover.css"} = $Common_css . $Extra_css;
 
 $Files{"common.js"} = <<'EOF';
 /**
