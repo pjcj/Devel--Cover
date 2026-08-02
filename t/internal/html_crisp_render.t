@@ -222,6 +222,101 @@ sub test_module_scar_badge () {
     "header: SCAR badge number coloured by its own value";
 }
 
+sub test_cc_column () {
+  my $got = $Golden{"coverage.html"};
+  like $got, qr{<th data-sort="cc">CC</th>\n<th data-sort="scar">SCAR</th>},
+    "index: CC column header sits before SCAR";
+  like $got, qr/<td data-value="\d+" class="cc-val">/,
+    "index: file rows carry numeric CC cells";
+  unlike $got, qr/cc-val scar-c[0-3]/, "index: CC cells are not risk-coloured";
+
+  my ($dir_row) = $got =~ m{(<tr class="dir-header".*?</tr>)}s;
+  ok defined $dir_row, "index: directory header row found";
+  like $dir_row, qr/cc-val/, "index: directory rows include a CC cell";
+
+  like $got, qr{<dt>CC</dt>\n<dd>Cyclomatic complexity},
+    "index: help describes the CC column";
+
+  like $got, qr/stat-cc">\nCC \d/, "index: header shows a project CC badge";
+  like $got, qr/stat-cc.*?stat-scar/s,
+    "index: header CC badge sits before the SCAR badge";
+
+  my ($covered) = grep /Covered-Calc/, keys %Golden;
+  my $file_page = $Golden{$covered};
+  like $file_page, qr/stat-cc.*?stat-scar/s,
+    "file: CC badge appears before the SCAR badge";
+  like $file_page, qr/stat-cc">\nCC \d/, "file: CC badge shows the file CC";
+}
+
+sub test_cc_scar_col_widths () {
+  my $got = $Golden{"coverage.html"};
+  like $got, qr{<colgroup>\n<col\ style="width:30%">\n(?:<col>\n)+
+       <col\ style="width:\d+px">\n<col\ style="width:\d+px">\n</colgroup>}x,
+    "index: criteria cols unsized, CC and SCAR cols in pixels";
+  like $got, qr{<col style="width:60px">\n<col style="width:60px">},
+    "index: small fixture values hit the 60px floor";
+
+  my $px = \&Devel::Cover::Report::Html_crisp::col_px;
+  is $px->("n/a", 7, 148), 60, "col_px: short values floor at 60px";
+  is $px->(25, 123_456),   70, "col_px: six digits widen the column";
+  is $px->("159.3"),       62, "col_px: scar with decimal sized by length";
+  is $px->("n/a"),         60, "col_px: all n/a stays at the floor";
+}
+
+sub test_short_name_breakpoint () {
+  my $bp    = \&Devel::Cover::Report::Html_crisp::short_name_bp;
+  my @names = qw( Statement Branch Condition MC/DC Subroutine Pod total );
+  is $bp->(\@names, 60, 60), 1159, "short_name_bp: default criteria set";
+  is $bp->([qw( Statement Branch total )], 60, 60), 592,
+    "short_name_bp: fewer, shorter names lower the switch";
+  is $bp->(\@names, 70, 60), 1173, "short_name_bp: wider CC col raises it";
+
+  my $css = slurp("$Outdir/assets/style.css");
+  like $css, qr/\@media \(max-width: \d+px\) \{\n  \.file-table \.name-full/,
+    "css: short-name switch present with a computed breakpoint";
+  unlike $css, qr/max-width: 920px/, "css: fixed 920px breakpoint gone";
+}
+
+sub test_bar_drop_breakpoint () {
+  my $bp    = \&Devel::Cover::Report::Html_crisp::bar_drop_bp;
+  my @names = qw( Statement Branch Condition MC/DC Subroutine Pod total );
+  is $bp->(\@names, 60, 60), 1179, "bar_drop_bp: default criteria set";
+  is $bp->([qw( Statement Branch total )], 60, 60), 630,
+    "bar_drop_bp: short names leave the cell content binding";
+  is $bp->([qw( Uncoverability total )], 60, 60),
+    Devel::Cover::Report::Html_crisp::short_name_bp(
+      [qw( Uncoverability total )],
+      60, 60,
+    ),
+    "bar_drop_bp: a very long name makes both switches coincide";
+
+  my $css     = slurp("$Outdir/assets/style.css");
+  my ($bars)  = $css =~ /max-width: (\d+)px\) \{\n  \.file-table td/;
+  my ($names) = $css =~ /max-width: (\d+)px\) \{\n  \.file-table \.name-full/;
+  ok defined $bars,  "css: bar-drop query has a computed breakpoint";
+  ok defined $names, "css: name-switch query has a computed breakpoint";
+  ok $bars > $names, "css: bars drop before names shrink";
+  unlike $css, qr/max-width: 1150px/, "css: fixed 1150px breakpoint gone";
+}
+
+sub test_badge_row_breakpoints () {
+  my $bp = \&Devel::Cover::Report::Html_crisp::badge_row_bp;
+  is $bp->(7, 180), 1833, "badge_row_bp: seven full-size badges";
+  is $bp->(7, 140), 1553, "badge_row_bp: seven narrow badges need less";
+  is $bp->(5, 180), 1441, "badge_row_bp: fewer criteria lower the switch";
+
+  my $css      = slurp("$Outdir/assets/style.css");
+  my ($narrow) = $css =~ /max-width: (\d+)px\) \{\n  \.name-full/;
+  my ($wrap)   = $css =~ /max-width: (\d+)px\) \{\n  \.header-stats/;
+  ok defined $narrow, "css: narrow-badge query has a computed threshold";
+  ok defined $wrap,   "css: badge-wrap query has a computed threshold";
+  ok $narrow > $wrap, "css: badges narrow before they wrap";
+  unlike $css, qr/max-width: 1450px/, "css: fixed 1450px threshold gone";
+  unlike $css, qr/max-width: 1200px/, "css: fixed 1200px threshold gone";
+  like $css, qr/width: 140px.*?\.stat-cc\s+\{ width: auto; \}/s,
+    "css: narrow-badge block keeps the CC pill at auto width";
+}
+
 sub test_total_badge_filter () {
   my ($covered) = grep /Covered-Calc/, keys %Golden;
   ok defined $covered, "golden covered file page exists for total badge test";
@@ -937,6 +1032,11 @@ sub main () {
   test_glass_tooltips;
   test_dir_row_scar;
   test_module_scar_badge;
+  test_cc_column;
+  test_cc_scar_col_widths;
+  test_short_name_breakpoint;
+  test_bar_drop_breakpoint;
+  test_badge_row_breakpoints;
   test_total_badge_filter;
   test_file_nav_keys;
   test_render_untested_page;

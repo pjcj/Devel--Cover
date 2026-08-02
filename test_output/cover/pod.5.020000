@@ -5,10 +5,10 @@ Common prefix: tests/
 ---------- ------ ------ ------
 File          pod  total   scar
 ---------- ------ ------ ------
-Module1.pm   50.0   50.0    0.0
-PodMod.pm    66.6   66.6    0.0
-pod           n/a    n/a    0.0
-Total        60.0   60.0    0.0
+Module1.pm   50.0   50.0    6.9
+PodMod.pm    66.6   66.6    5.6
+pod           n/a    n/a    1.8
+Total        60.0   60.0    4.8
 ---------- ------ ------ ------
 
 
@@ -23,7 +23,7 @@ Module Summary
 
 Files CC   Cov CRAP SCAR
 ----- -- ----- ---- ----
-    3  1 100.0  1.0  0.0
+    3  1 100.0  1.6  4.8
 
 
 Module1.pm
@@ -33,7 +33,7 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
- 1 100.0  1.0  0.0
+ 1 100.0  2.0  6.9
 
 Worst Subroutines
 -----------------
@@ -62,7 +62,7 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
- 1 100.0  1.0  0.0
+ 1 100.0  1.8  5.6
 
 Worst Subroutines
 -----------------
@@ -97,7 +97,7 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
- 1 100.0  1.0  0.0
+ 1 100.0  1.2  1.8
 
 Worst Subroutines
 -----------------

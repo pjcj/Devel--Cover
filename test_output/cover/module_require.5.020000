@@ -8,9 +8,9 @@ File                       stmt   bran   cond   mcdc    sub  total   scar
 Module_enclosing_sub.pm   100.0    n/a    n/a    n/a  100.0  100.0    0.0
 Module_lexical_sub.pm     100.0    n/a    n/a    n/a  100.0  100.0    0.0
 Module_line_directive.pm  100.0   50.0    n/a    n/a  100.0   87.5    0.0
-Module_top_level.pm        86.1   50.0    n/a    n/a   84.6   84.3    0.0
+Module_top_level.pm        86.1   50.0    n/a    n/a   84.6   84.3    1.5
 module_require            100.0    n/a    n/a    n/a  100.0  100.0    0.0
-Total                      95.3   50.0    n/a    n/a   94.2   93.8    0.0
+Total                      95.3   50.0    n/a    n/a   94.2   93.8    0.6
 ------------------------ ------ ------ ------ ------ ------ ------ ------
 
 
@@ -25,7 +25,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    5  1 93.7  1.0  0.0
+    5  1 93.7  1.1  0.6
 
 
 Module_enclosing_sub.pm
@@ -224,7 +224,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 84.2  1.0  0.0
+ 1 84.2  1.2  1.5
 
 Worst Subroutines
 -----------------

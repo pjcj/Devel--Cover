@@ -2,8 +2,8 @@ cover: Reading database from ...
 -------- ------ ------ ------ ------ ------ ------ ------
 File       stmt   bran   cond   mcdc    sub  total   scar
 -------- ------ ------ ------ ------ ------ ------ ------
-tests/t2   93.7   50.0    n/a    n/a  100.0   84.0    0.1
-Total      93.7   50.0    n/a    n/a  100.0   84.0    0.1
+tests/t2   93.7   50.0    n/a    n/a  100.0   84.0    0.0
+Total      93.7   50.0    n/a    n/a  100.0   84.0    0.0
 -------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 81.8  1.0  0.1
+ 1 81.8  1.0  0.0
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl

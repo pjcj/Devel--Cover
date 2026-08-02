@@ -35,7 +35,7 @@ use Devel::Cover::Path            qw( common_prefix );
 
 use File::Path   qw( mkpath );
 use Getopt::Long qw( GetOptions );
-use List::Util   qw( any );
+use List::Util   qw( any max );
 use POSIX        qw( strftime );
 our %R;
 my %Assets;
@@ -166,9 +166,18 @@ HTML
   }
   my $total_link = $linkable ? "$f->{link}#filter=total" : undef;
   $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort}, $total_link);
+  $o .= cc_cell($f);
   $o .= scar_cell($f, $linkable ? $f->{link} : undef);
   $o .= "</tr>\n";
   $o
+}
+
+sub cc_cell ($f) {
+  my $cc  = $f->{file_cc};
+  my $na  = is_na($cc);
+  my $dv  = $na ? -1   : $cc;
+  my $cls = $na ? "na" : "cc-val";
+  qq(<td data-value="$dv" class="$cls">$cc</td>\n)
 }
 
 sub scar_cell ($f, $link = undef) {
@@ -269,6 +278,36 @@ $tip</span>
 HTML
 }
 
+sub col_px (@vals) {
+  my $len = max map length, grep !is_na($_), @vals;
+  my $px  = 22 + 8 * ($len // 0);
+  $px < 60 ? 60 : $px
+}
+
+sub full_name_w ($names) { 24 + 7 * max map length, @$names }
+
+sub crit_bp ($col_w, $ncols, $cc_w, $scar_w) {
+  my $page_pad = 48;
+  int(($col_w * $ncols + $cc_w + $scar_w) / 0.70) + $page_pad
+}
+
+sub short_name_bp ($names, $cc_w, $scar_w) {
+  crit_bp(full_name_w($names), 0 + @$names, $cc_w, $scar_w)
+}
+
+sub bar_drop_bp ($names, $cc_w, $scar_w) {
+  my $inline_cell_w = 96;
+  my $col_w         = max full_name_w($names), $inline_cell_w;
+  crit_bp($col_w, 0 + @$names, $cc_w, $scar_w)
+}
+
+sub badge_row_bp ($n, $badge_w) {
+  my $overhead  = 285;
+  my $cc_scar_w = 160;
+  my $gaps      = ($n + 1) * 16;
+  $overhead + $n * $badge_w + $gaps + $cc_scar_w
+}
+
 sub render_index ($file_data, $total, $dist) {
   my @groups = build_dir_groups($file_data);
   my @worst
@@ -292,11 +331,15 @@ HTML
   $o .= stat_badge("total", $tt) unless is_na($tt->{pc});
 
   my $ms = $R{db}->summary("Total", "scar");
-  if ($ms && defined $ms->{module_scar}) {
-    my $sv  = sprintf "%.1f", $ms->{module_scar};
-    my $sc  = "scar-" . scar_class($ms->{module_scar});
+  if ($ms && defined $ms->{file_scar}) {
+    my $sv  = sprintf "%.1f", $ms->{file_scar};
+    my $sc  = "scar-" . scar_class($ms->{file_scar});
     my $tip = sprintf "CC %d &middot; cov %.0f%% &middot; CRAP %.1f",
-      $ms->{module_cc}, $ms->{module_cov}, $ms->{module_crap};
+      $ms->{file_cc}, $ms->{file_cov}, $ms->{file_crap};
+    $o .= <<HTML;
+<span class="stat-badge stat-cc">
+CC $ms->{file_cc}</span>
+HTML
     $o .= <<HTML;
 <span class="stat-badge stat-scar tip-hover">
 <span class="badge-label">scar <span class="$sc">$sv</span></span>
@@ -324,6 +367,8 @@ Toggle "Hide 100% covered" to focus on incomplete files.</dd>
 <dt>Grouping</dt>
 <dd>Toggle "Group by directory" to organise files into
 collapsible groups. Click a directory row to collapse it.</dd>
+<dt>CC</dt>
+<dd>Cyclomatic complexity summed over the file's subroutines.</dd>
 <dt>SCAR</dt>
 <dd>Scaled Complexity And Risk - a log-scaled CRAP score
 compressed to a 0-100 range. Hover for a breakdown: file CC,
@@ -365,13 +410,13 @@ HTML
 </div>
 HTML
 
-  my $ncrit  = $R{criteria}->@*;
-  my $ncols  = $ncrit + 2;       # criteria + total + scar
-  my $crit_w = 70 / $ncols;
+  my $ncols = $R{criteria}->@* + 1;
   $o
     .= qq(<table class="file-table">\n<colgroup>\n)
     . qq(<col style="width:30%">\n)
-    . (qq(<col style="width:${crit_w}%">\n) x $ncols)
+    . ("<col>\n" x $ncols)
+    . qq(<col style="width:$R{cc_w}px">\n)
+    . qq(<col style="width:$R{scar_w}px">\n)
     . "</colgroup>\n<thead>\n<tr>\n"
     . qq(<th data-sort="file">File</th>\n);
 
@@ -380,6 +425,7 @@ HTML
   }
   $o .= <<HTML;
 <th data-sort="total">@{[ crit_name('total') ]}</th>
+<th data-sort="cc">CC</th>
 <th data-sort="scar">SCAR</th>
 </tr>
 </thead>
@@ -391,6 +437,7 @@ HTML
     $o .= qq(<tr class="dir-header" data-dir="$edir">\n) . "<td>$edir</td>\n";
     $o .= cov_cell($g->{criteria}{$_}, 0) for $R{criteria}->@*;
     $o .= cov_cell($g->{total},        0);
+    $o .= cc_cell($g);
     $o .= scar_cell($g);
     $o .= "</tr>\n";
     $o .= file_row($_, $g->{dir}) for $g->{files}->@*;
@@ -661,6 +708,11 @@ HTML
 @{[ glass_tip("$tt->{covered} / $tt->{total}") ]}</span>
 HTML
   }
+  my $cc = $fd->{file_cc};
+  $o .= <<HTML unless is_na($cc);
+<span class="stat-badge stat-cc">
+CC $cc</span>
+HTML
   my $sl     = $fd->{file_scar};
   my $sl_na  = is_na($sl);
   my $sl_tip = $sl_na ? "" : scar_tip($fd);
@@ -1274,9 +1326,6 @@ sub report ($pkg, $db, $options) {
   my $assets = "$outdir/assets";
   mkpath($assets) unless -d $assets;
 
-  write_file("$assets/style.css", $Assets{css});
-  write_file("$assets/app.js",    $Assets{js});
-
   my @file_data = build_file_data;
 
   my ($prefix, $short_map) = common_prefix(map { $_->{name} } @file_data);
@@ -1293,6 +1342,56 @@ sub report ($pkg, $db, $options) {
   } else {
     $_->{short} = $_->{name} for @file_data;
   }
+
+  my @rows = (@file_data, build_dir_groups(\@file_data));
+  $R{cc_w}   = col_px(map $_->{file_cc},   @rows);
+  $R{scar_w} = col_px(map $_->{file_scar}, @rows);
+  my @names  = map $R{full}{$_}, $R{criteria}->@*, "total";
+  my $bars   = bar_drop_bp(\@names, $R{cc_w}, $R{scar_w});
+  my $bp     = short_name_bp(\@names, $R{cc_w}, $R{scar_w});
+  my $narrow = badge_row_bp(0 + @names, 180);
+  my $wrap   = badge_row_bp(0 + @names, 140);
+
+  write_file("$assets/style.css", $Assets{css} . <<CSS);
+/* Medium: switch to short criterion names, narrower badges */
+\@container (max-width: ${narrow}px) {
+  .name-full  { display: none !important; }
+  .name-short { display: inline !important; }
+  .stat-badge { width: 140px; }
+  .stat-scar  { width: auto; }
+  .stat-cc    { width: auto; }
+}
+
+/* Narrow: wrap badges onto multiple lines, right-aligned. max-width clamps the
+(flex-shrink: 0) container to its parent so wrap actually engages instead of
+overflowing. */
+\@container (max-width: ${wrap}px) {
+  .header-stats {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 6px;
+    max-width: 100%;
+  }
+}
+
+/* Stack the coverage bars below the numbers when cells get narrow */
+\@media (max-width: ${bars}px) {
+  .file-table td { white-space: normal; }
+  .file-table .cov-bar {
+    display: block;
+    width: 100%;
+    margin-left: 0;
+    margin-top: 2px;
+  }
+}
+
+/* Table headers: switch to short names when columns get narrow */
+\@media (max-width: ${bp}px) {
+  .file-table .name-full  { display: none; }
+  .file-table .name-short { display: inline; }
+}
+CSS
+  write_file("$assets/app.js", $Assets{js});
 
   my %total = totals_for("Total");
   my %dist  = coverage_distribution(\@file_data);
@@ -1334,32 +1433,6 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
   flex-shrink: 0;
 }
 
-/* Table headers: switch to short names when columns get narrow */
-@media (max-width: 920px) {
-  .file-table .name-full  { display: none; }
-  .file-table .name-short { display: inline; }
-}
-
-/* Medium: switch to short criterion names, narrower badges */
-@container (max-width: 1450px) {
-  .name-full  { display: none !important; }
-  .name-short { display: inline !important; }
-  .stat-badge { width: 140px; }
-  .stat-scar  { width: auto; }
-}
-
-/* Narrow: wrap badges onto multiple lines, right-aligned. max-width clamps the
-(flex-shrink: 0) container to its parent so wrap actually engages instead of
-overflowing. */
-@container (max-width: 1200px) {
-  .header-stats {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    row-gap: 6px;
-    max-width: 100%;
-  }
-}
-
 .stat-badge:hover { opacity: 0.85; }
 .stat-na {
   background: var(--bg-alt);
@@ -1370,6 +1443,12 @@ overflowing. */
   background: var(--prefix-bg);
   border-color: var(--prefix-border);
   color: var(--fg);
+  width: auto;
+}
+.stat-cc {
+  background: var(--bg-alt);
+  border-color: var(--border);
+  color: var(--fg-muted);
   width: auto;
 }
 .stat-badge[data-criterion] {
@@ -1585,16 +1664,6 @@ overflowing. */
   white-space: nowrap;
 }
 
-@media (max-width: 1150px) {
-  .file-table td { white-space: normal; }
-  .file-table .cov-bar {
-    display: block;
-    width: 100%;
-    margin-left: 0;
-    margin-top: 2px;
-  }
-}
-
 .file-table td:first-child { text-align: left; }
 
 .file-table .cell-link {
@@ -1607,6 +1676,7 @@ overflowing. */
 .file-table .cell-link:hover { opacity: 0.85; }
 
 /* SCAR colouring: coloured text/outline by risk, never a full fill */
+td.cc-val   { color: var(--fg-muted); }
 td.scar-val { font-weight: 600; }
 .scar-c0 { color: var(--tip-c0); }
 .scar-c1 { color: var(--tip-c1); }

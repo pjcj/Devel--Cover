@@ -165,17 +165,17 @@ sub _print_stat_table ($heading, $headers, $values) {
 sub print_module_banner ($db, $files) {
   return unless @$files > 1;
   my $scar = $db->summary("Total", "scar");
-  return unless $scar && defined $scar->{module_scar};
+  return unless $scar && defined $scar->{file_scar};
 
   _print_stat_table(
     "Module Summary",
     [qw( Files CC Cov CRAP SCAR )],
     [
       scalar @$files,
-      $scar->{module_cc},
-      sprintf("%.1f", $scar->{module_cov}),
-      sprintf("%.1f", $scar->{module_crap}),
-      sprintf("%.1f", $scar->{module_scar}),
+      $scar->{file_cc},
+      sprintf("%.1f", $scar->{file_cov}),
+      sprintf("%.1f", $scar->{file_crap}),
+      sprintf("%.1f", $scar->{file_scar}),
     ],
   );
   say "";

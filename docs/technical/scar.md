@@ -437,33 +437,59 @@ levels. The aggregation strategy:
 
 The CRAP formula applied directly. This is the canonical level.
 
-### Per-file
+### Per-file, per-directory, and Total
 
-File CC is computed as `sum(sub CCs) - count + 1`. The subtraction avoids
-double-counting the base paths: if a file has three subroutines with CC 3, 5,
-and 2, the file CC is `(3+5+2) - 3 + 1 = 8` rather than `10`. File coverage is
-the combined statement+branch+condition coverage from the summary. File CRAP and
-SCAR follow from these.
+Aggregate scores do not re-apply the CRAP formula to summed complexity. An
+earlier design did (file CC = `sum(sub CCs) - count + 1`, then CRAP of that),
+and it conflated size with risk: summed CC grows with the amount of code and
+CRAP is quadratic in CC, so every level of aggregation scored worse than the one
+below it, and a large, fully covered file could never score well - its SCAR had
+a floor of `10 * ln(file CC)` even at 100% coverage.
 
-### Per-directory
+Instead, an aggregate CRAP score is the complexity-weighted mean of its
+subroutines' CRAP scores:
 
-Same approach as per-file but aggregating across all files in the directory.
+```text
+file_crap = sum(cc_i * crap_i) / sum(cc_i)
+```
 
-### Module-level (Total)
+and SCAR is derived from it as usual. Each subroutine counts in proportion to
+its cyclomatic complexity, which is its number of decision points. Equivalently,
+file CRAP is the expected CRAP of the subroutine containing a randomly chosen
+decision point in the file. Directories and the Total aggregate the same way
+over all their subroutines.
 
-Treats the entire codebase as one body. Module CC is
-`sum(all sub CCs) - total count + 1`. Module coverage is the combined coverage
-from the Total summary. This is useful as a progress tracker: the same codebase
-measured over time, so the size sensitivity is a feature. Improving coverage or
-reducing complexity both lower the score.
+Weighting by CC rather than averaging plainly stops a crowd of trivial subs from
+hiding a dangerous one. A risky sub is counted twice over - linearly through its
+weight and quadratically through its own CRAP score - so one large untested sub
+still pulls a big file into the red.
+
+This construction gives four guarantees:
+
+- The score lies on the per-sub scale, so the colour thresholds are the same at
+  every level.
+- An aggregate always sits between its best and worst child. A file is never
+  more red than its worst sub, and the Total is never more red than the worst
+  file.
+- The score is size-independent. Two codebases with the same mix of clean and
+  risky code score the same regardless of how much code they contain.
+- At 100% coverage the score falls to the complexity-weighted mean of sub
+  complexity, mirroring the behaviour of a single fully covered sub.
+
+The summary data still stores `file_cc` (summed CC, `sum - count + 1`) and
+`file_cov` (combined statement+branch+condition coverage) at every level. These
+are size and coverage measures shown alongside SCAR in reports; they are not
+inputs to the aggregate risk score. The Total uses the same `file_*` keys as
+files and directories, so the summary column, the text report's Module Summary
+and the Html_crisp header badge all show the same number.
 
 ## Report Display
 
 ### Summary (`cover -summary`)
 
-An always-on `scar` column appears after the `total` column, showing per-file
-`file_scar` and, for the Total row, `module_scar`. Formatting: `%5.1f` for
-numeric values; `-` when the file is uncompiled without PPI (data unknown);
+An always-on `scar` column appears after the `total` column, showing the
+`file_scar` aggregate for file rows and the Total row alike. Formatting: `%5.1f`
+for numeric values; `-` when the file is uncompiled without PPI (data unknown);
 `n/a` when the file has no coverable subs.
 
 ### Text report

@@ -2,8 +2,8 @@ cover: Reading database from ...
 -------------------------- ------ ------ ------
 File                         stmt  total   scar
 -------------------------- ------ ------ ------
-tests/elsif_statement_only  100.0  100.0   19.5
-Total                       100.0  100.0   19.5
+tests/elsif_statement_only  100.0  100.0   12.2
+Total                       100.0  100.0   12.2
 -------------------------- ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
- 7 100.0  7.0 19.5
+ 7 100.0  3.4 12.2
 
 Worst Subroutines
 -----------------

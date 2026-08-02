@@ -157,12 +157,12 @@ sub test_text_report () {
   my $got      = _uncovered_summary($out);
   my $expected = have_ppi()
     ? [
-      "Uncovered/Calc.pm  0.0  0.0  0.0  0.0  0.0  24.8",
-      "Uncovered/Full.pm  0.0  0.0  0.0  0.0  0.0  37.4",
-      "Uncovered/Logic.pm  0.0  0.0  0.0  0.0  0.0  24.8",
-      "Uncovered/Markers.pm  0.0  0.0  0.0  0.0  0.0  17.9",
+      "Uncovered/Calc.pm  0.0  0.0  0.0  0.0  0.0  18.4",
+      "Uncovered/Full.pm  0.0  0.0  0.0  0.0  0.0  17.2",
+      "Uncovered/Logic.pm  0.0  0.0  0.0  0.0  0.0  16.1",
+      "Uncovered/Markers.pm  0.0  0.0  0.0  0.0  0.0  12.0",
       "Uncovered/Trivial.pm  0.0  n/a  n/a  0.0  0.0  6.9",
-      "Uncovered/Utils.pm  0.0  0.0  n/a  0.0  0.0  17.9",
+      "Uncovered/Utils.pm  0.0  0.0  n/a  0.0  0.0  12.8",
     ]
     : [
       "Uncovered/Calc.pm  -  -  -  -  -  -",
