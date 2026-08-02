@@ -222,6 +222,12 @@ our $Crisp_base_css = <<'CSS';
   --prefix-bg: #e4edf6;
   --prefix-border: #a0bcd8;
   --prefix-label: #4a6f96;
+  --panel-cond: #a0bcd8;
+  --panel-cond-fg: #1a1a1a;
+  --panel-mcdc: #7b6daa;
+  --panel-mcdc-fg: #ffffff;
+  --panel-tt: #5a9991;
+  --panel-tt-fg: #1a1a1a;
 
   /*COV:light:  */
 
@@ -277,6 +283,12 @@ our $Crisp_base_css = <<'CSS';
     --prefix-bg: #1a2a3d;
     --prefix-border: #3a6090;
     --prefix-label: #80b0e0;
+    --panel-cond: #3a6090;
+    --panel-cond-fg: #e0e0e0;
+    --panel-mcdc: #8a84b0;
+    --panel-mcdc-fg: #1a1a1a;
+    --panel-tt: #8abab4;
+    --panel-tt-fg: #1a1a1a;
 
     /*COV:dark:    */
 
@@ -324,6 +336,12 @@ html[data-theme="dark"] {
   --prefix-bg: #1a2a3d;
   --prefix-border: #3a6090;
   --prefix-label: #80b0e0;
+  --panel-cond: #3a6090;
+  --panel-cond-fg: #e0e0e0;
+  --panel-mcdc: #8a84b0;
+  --panel-mcdc-fg: #1a1a1a;
+  --panel-tt: #8abab4;
+  --panel-tt-fg: #1a1a1a;
 
   /*COV:dark:  */
 
@@ -370,6 +388,12 @@ html[data-theme="light"] {
   --prefix-bg: #e4edf6;
   --prefix-border: #a0bcd8;
   --prefix-label: #4a6f96;
+  --panel-cond: #a0bcd8;
+  --panel-cond-fg: #1a1a1a;
+  --panel-mcdc: #7b6daa;
+  --panel-mcdc-fg: #ffffff;
+  --panel-tt: #5a9991;
+  --panel-tt-fg: #1a1a1a;
 
   /*COV:light:  */
 

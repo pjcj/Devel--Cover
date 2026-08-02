@@ -1946,9 +1946,31 @@ td.chevron {
 .detail .c0 { background: var(--cov-none-bg); }
 .detail .c3 { background: var(--cov-full-bg); }
 
-.detail.cond-cells { border-left: 3px solid var(--cov-full-bg); }
-.detail.mcdc-detail { border-left: 3px solid var(--header-bg); }
-.detail.decision-vectors { border-left: 3px solid var(--border); }
+.detail.cond-cells { border-left: 3px solid var(--panel-cond); }
+.detail.mcdc-detail { border-left: 3px solid var(--panel-mcdc); }
+.detail.decision-vectors { border-left: 3px solid var(--panel-tt); }
+
+.cond-cells .head > span:first-child,
+.mcdc-detail .head > span:first-child,
+.decision-vectors .head > span:first-child {
+  padding: 0 8px;
+  border-radius: 3px;
+}
+
+.cond-cells .head > span:first-child {
+  background: var(--panel-cond);
+  color: var(--panel-cond-fg);
+}
+
+.mcdc-detail .head > span:first-child {
+  background: var(--panel-mcdc);
+  color: var(--panel-mcdc-fg);
+}
+
+.decision-vectors .head > span:first-child {
+  background: var(--panel-tt);
+  color: var(--panel-tt-fg);
+}
 
 .detail .head {
   display: flex;

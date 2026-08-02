@@ -225,6 +225,31 @@ sub test_exec_cells_use_fills () {
   unlike $css, qr/var\(--exec-/, "no exec variable references remain";
 }
 
+sub test_panel_identity () {
+  my $css = slurp("$Outdir/assets/style.css");
+  my %panel
+    = (cond => "cond-cells", mcdc => "mcdc-detail", tt => "decision-vectors");
+  for my $p (sort keys %panel) {
+    my $cls  = $panel{$p};
+    my $edge = ".detail.$cls { border-left: 3px solid var(--panel-$p); }";
+    like $css, qr/\Q$edge\E/, "$cls edge uses its identity colour";
+    my $chip = ".$cls .head > span:first-child {\n"
+      . "  background: var(--panel-$p);\n  color: var(--panel-$p-fg);\n}";
+    like $css, qr/\Q$chip\E/, "$cls heading chip uses its identity colour";
+  }
+
+  like $Crisp_base_css, qr/--panel-cond: #a0bcd8/, "light condition identity";
+  like $Crisp_base_css, qr/--panel-cond-fg: #1a1a1a/, "light condition chip fg";
+  like $Crisp_base_css, qr/--panel-mcdc: #7b6daa/,    "light mcdc identity";
+  like $Crisp_base_css, qr/--panel-mcdc-fg: #ffffff/, "light mcdc chip fg";
+  like $Crisp_base_css, qr/--panel-tt: #5a9991/,   "light truth table identity";
+  like $Crisp_base_css, qr/--panel-cond: #3a6090/, "dark condition identity";
+  like $Crisp_base_css, qr/--panel-cond-fg: #e0e0e0/, "dark condition chip fg";
+  like $Crisp_base_css, qr/--panel-mcdc: #8a84b0/,    "dark mcdc identity";
+  like $Crisp_base_css, qr/--panel-mcdc-fg: #1a1a1a/, "dark mcdc chip fg";
+  like $Crisp_base_css, qr/--panel-tt: #8abab4/, "dark truth table identity";
+}
+
 sub test_render_file_page () {
   # Find a covered file page
   my ($covered) = grep /Covered-Calc/, keys %Golden;
@@ -1101,6 +1126,7 @@ sub main () {
   test_dist_bar_fill_segments;
   test_palette_css;
   test_exec_cells_use_fills;
+  test_panel_identity;
   test_render_file_page;
   test_tooltip_structure;
   test_glass_tooltips;
