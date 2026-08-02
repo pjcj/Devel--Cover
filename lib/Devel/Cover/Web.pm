@@ -656,6 +656,10 @@ my $Collection_extra_css = <<'CSS';
   text-decoration: underline;
 }
 
+.header {
+  z-index: 20;
+}
+
 table {
   border-collapse: collapse;
   margin: 0 0 24px;
@@ -671,6 +675,9 @@ th, td {
 }
 
 th {
+  position: sticky;
+  top: calc(var(--header-height, 0px) - 2px);
+  z-index: 10;
   background: var(--header-bg);
   font-weight: 600;
   color: var(--fg);
@@ -830,6 +837,21 @@ ul {
 .search-empty { color: var(--fg-muted); }
 CSS
 
+my $Collection_header_js = <<'JS';
+/* Sticky table headers stack below the page header */
+(function() {
+  var header = document.querySelector(".header");
+  if (!header) return;
+  function set() {
+    document.documentElement.style.setProperty(
+      "--header-height", header.getBoundingClientRect().height + "px");
+  }
+  set();
+  if (window.ResizeObserver) new ResizeObserver(set).observe(header);
+  else window.addEventListener("resize", set);
+})();
+JS
+
 my $Collection_search_js = <<'JS';
 /* CPANCover module search */
 (function() {
@@ -912,8 +934,9 @@ my $Collection_search_js = <<'JS';
 JS
 
 $Files{"collection.css"} = $Crisp_base_css . $Collection_extra_css;
-$Files{"collection.js"}  = $Crisp_theme_js . $Collection_search_js;
-$Files{"cover.css"}      = $Common_css . $Extra_css;
+$Files{"collection.js"}
+  = $Crisp_theme_js . $Collection_header_js . $Collection_search_js;
+$Files{"cover.css"} = $Common_css . $Extra_css;
 
 $Files{"common.js"} = <<'EOF';
 /**

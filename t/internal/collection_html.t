@@ -196,6 +196,11 @@ is @Na_cells, 2, "dist without scar data shows n/a for CC and SCAR";
 my $Css = slurp("$Dir/collection.css");
 like $Css, qr{td\.na[^{}]*\{[^{}]*text-align:\s*center}s,
   "n/a cells are centred";
+like $Css, qr{th[^{}]*\{[^{}]*position:\s*sticky}s, "table headers are sticky";
+like $Css, qr{th[^{}]*\{[^{}]*top:\s*calc\(var\(--header-height}s,
+  "table headers stick below the page header";
+like slurp("$Dir/collection.js"), qr{--header-height},
+  "collection.js measures the page header height";
 
 my $Search = JSON::PP->new->decode(slurp("$Dir/search.json"));
 is join(",", sort @$Search),
