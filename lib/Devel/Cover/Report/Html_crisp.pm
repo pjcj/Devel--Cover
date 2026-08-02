@@ -1585,7 +1585,7 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 }
 
 .worst-item {
-  padding: 6px 12px;
+  padding: 2px 8px;
   border-radius: 4px;
   border: 1px solid;
   font-size: var(--font-size-small);
