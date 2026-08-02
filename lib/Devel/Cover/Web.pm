@@ -780,10 +780,139 @@ ul {
 .about-key td:last-child {
   text-align: left;
 }
+
+/* Module search */
+
+.search {
+  position: relative;
+  margin-left: auto;
+}
+
+.search input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: var(--fg);
+  font-size: var(--font-size-small);
+  width: 180px;
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 220px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--tip-glass-bg);
+  border: 1px solid var(--tip-glass-border);
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 40;
+}
+
+.search-results a, .search-empty {
+  display: block;
+  padding: 4px 10px;
+  font-size: var(--font-size-small);
+  color: var(--tip-glass-fg);
+  white-space: nowrap;
+}
+
+.search-results a:hover, .search-results a.selected {
+  background: var(--bg-alt);
+  text-decoration: none;
+}
+
+.search-empty { color: var(--fg-muted); }
 CSS
 
+my $Collection_search_js = <<'JS';
+/* CPANCover module search */
+(function() {
+  var input = document.getElementById("module-search");
+  if (!input) return;
+  var root = input.getAttribute("data-root") || "";
+  var box = input.parentNode.querySelector(".search-results");
+  var names = null;
+  var sel = -1;
+
+  function load() {
+    if (names) return;
+    names = [];
+    fetch(root + "search.json")
+      .then(function(r) { return r.json(); })
+      .then(function(data) { names = data; render(); });
+  }
+
+  function tier(name, q) {
+    var i = name.toLowerCase().indexOf(q);
+    if (i < 0) return -1;
+    if (i === 0) return 0;
+    return name.charAt(i - 1) === "-" ? 1 : 2;
+  }
+
+  function matches(q) {
+    var tiers = [[], [], []];
+    for (var i = 0; i < names.length; i++) {
+      var t = tier(names[i], q);
+      if (t >= 0) tiers[t].push(names[i]);
+    }
+    return tiers[0].concat(tiers[1], tiers[2]).slice(0, 10);
+  }
+
+  function render() {
+    var q = input.value.toLowerCase();
+    sel = -1;
+    box.innerHTML = "";
+    if (!q) { box.hidden = true; return; }
+    var found = matches(q);
+    if (!found.length) {
+      var d = document.createElement("div");
+      d.className = "search-empty";
+      d.textContent = "no matches";
+      box.appendChild(d);
+    }
+    found.forEach(function(name) {
+      var a = document.createElement("a");
+      a.href = root + encodeURIComponent(name) + "/index.html";
+      a.textContent = name;
+      box.appendChild(a);
+    });
+    box.hidden = false;
+  }
+
+  function move(delta) {
+    var items = box.querySelectorAll("a");
+    if (!items.length) return;
+    sel = (sel + delta + items.length) % items.length;
+    items.forEach(function(el, i) {
+      el.classList.toggle("selected", i === sel);
+    });
+  }
+
+  input.addEventListener("focus", load);
+  input.addEventListener("input", render);
+  input.addEventListener("keydown", function(e) {
+    if (e.key === "ArrowDown") { move(1); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { move(-1); e.preventDefault(); }
+    else if (e.key === "Enter") {
+      var items = box.querySelectorAll("a");
+      var target = items[sel >= 0 ? sel : 0];
+      if (target) location.href = target.href;
+    } else if (e.key === "Escape") { box.hidden = true; }
+  });
+  document.addEventListener("click", function(e) {
+    if (!e.target.closest(".search")) box.hidden = true;
+  });
+})();
+JS
+
 $Files{"collection.css"} = $Crisp_base_css . $Collection_extra_css;
-$Files{"collection.js"}  = $Crisp_theme_js;
+$Files{"collection.js"}  = $Crisp_theme_js . $Collection_search_js;
 $Files{"cover.css"}      = $Common_css . $Extra_css;
 
 $Files{"common.js"} = <<'EOF';

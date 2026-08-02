@@ -321,6 +321,13 @@ class Devel::Cover::Collection {
     say "Wrote json output to $f";
   }
 
+  method write_search_index ($vars) {
+    my @names  = sort grep $vars->{vals}{$_}{link}, keys $vars->{vals}->%*;
+    my $io     = Devel::Cover::DB::IO::JSON->new;
+    my ($rdir) = $self->made_res_dir;
+    $io->write(\@names, "$rdir/search.json");
+  }
+
   method coverage_class ($pc) {
     Devel::Cover::Html_Common::coverage_class($pc)
   }
@@ -364,6 +371,7 @@ class Devel::Cover::Collection {
 
     # print Dumper $vars;
     $self->write_json($vars);
+    $self->write_search_index($vars);
 
     say "Wrote collection output to $f";
   }
@@ -859,6 +867,11 @@ https://pjcj.net
 <header class="header">
 <div class="header-inner">
 <h1><a href="[% root %]index.html">CPANCover</a></h1>
+<div class="search">
+<input type="search" id="module-search" data-root="[% root %]"
+  placeholder="Search modules" autocomplete="off">
+<div class="search-results" hidden></div>
+</div>
 <div class="header-stats">
 <button class="theme-toggle" aria-label="Toggle dark mode">&#x263e;</button>
 </div>
@@ -1378,6 +1391,14 @@ C<generate_html>.
 
 Writes a JSON file (C<cpancover.json>) containing coverage data for all
 modules.
+
+=head3 write_search_index ($vars)
+
+  $collection->write_search_index($vars);
+
+Writes C<search.json>, a sorted list of the module directories that have
+report pages. The header search on the collection pages fetches it to
+offer direct links to module reports.
 
 =head2 Status Tracking
 

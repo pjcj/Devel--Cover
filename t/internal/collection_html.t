@@ -197,6 +197,17 @@ my $Css = slurp("$Dir/collection.css");
 like $Css, qr{td\.na[^{}]*\{[^{}]*text-align:\s*center}s,
   "n/a cells are centred";
 
+my $Search = JSON::PP->new->decode(slurp("$Dir/search.json"));
+is join(",", sort @$Search),
+  "Baz-Qux-2.00,Dangle-Ref-3.00,Dep-Only-4.00,Foo-Bar-1.00",
+  "search.json lists only modules with report pages";
+like $Page{index}, qr{<input[^>]*id="module-search"[^>]*data-root=""},
+  "index page has the search input";
+like $Page{dist}, qr{<input[^>]*id="module-search"[^>]*data-root="\.\./"},
+  "dist page search input carries the root prefix";
+like slurp("$Dir/collection.js"), qr{module-search},
+  "collection.js wires up the search";
+
 my $Cpancover = JSON::PP->new->decode(slurp("$Dir/cpancover.json"));
 my $Coverage  = $Cpancover->{"Foo-Bar"}{"1.00"}{coverage}{total};
 is join(",", sort keys %$Coverage), "statement,total",
