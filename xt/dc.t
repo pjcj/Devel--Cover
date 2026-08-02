@@ -341,6 +341,8 @@ sub controller_rebuild_module_recipe () {
   my $calls = slurp("$work/calls");
   like $calls, qr{\brun\b.* pjcj/cpancover_dev }, "runs the dev image";
   like $calls, qr{--label cpancover\.env=dev},    "container is labelled";
+  like $calls, qr{--memory=8g},
+    "controller gets enough memory for HTML generation";
   like $calls, qr{source=\Q$dir\E,target=/remote_staging},
     "results dir is mounted";
   like $calls, qr{ dc --env dev cpancover-rebuild-module \Q$module\E},
