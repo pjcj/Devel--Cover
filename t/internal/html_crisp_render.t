@@ -146,13 +146,49 @@ sub test_dist_legend_custom_thresholds () {
   is $exit, 0, "custom threshold report generated" or diag $out;
 
   my $html = slurp("$outdir/coverage.html");
-  like $html,   qr/leg-c0">\d+ &lt; 25%/, "legend c0 below c0 threshold";
-  like $html,   qr/leg-c1">\d+ 25-50%/,   "legend c1 range c0 to c1";
-  like $html,   qr/leg-c2">\d+ 50-75%/,   "legend c2 range c1 to c2";
-  like $html,   qr/leg-c3">\d+ 75-100%/,  "legend c3 range c2 to 100";
-  unlike $html, qr/at 100%/,        "no 'at 100%' label when c2 is below 100";
-  like $html,   qr/files? 50-75%/,  "bar tooltip c2 range c1 to c2";
-  like $html,   qr/files? 75-100%/, "bar tooltip c3 range c2 to 100";
+  like $html,   qr/leg-c0">&lt; 25%/, "legend c0 below c0 threshold";
+  like $html,   qr/leg-c1">25-50%/,   "legend c1 range c0 to c1";
+  like $html,   qr/leg-c2">50-75%/,   "legend c2 range c1 to c2";
+  like $html,   qr/leg-c3">75-100%/,  "legend c3 range c2 to 100";
+  unlike $html, qr/at 100%/,          "no 'at 100%' label when c2 is below 100";
+  like $html,   qr/files? 50-75%/,    "bar tooltip c2 range c1 to c2";
+  like $html,   qr/files? 75-100%/,   "bar tooltip c3 range c2 to 100";
+}
+
+sub test_dist_bar_fill_segments () {
+  my $dist = {
+    dist_total   => 50,
+    c0           => 1,
+    c1           => 9,
+    c2           => 20,
+    c3           => 15,
+    untested     => 5,
+    tip_c0       => "1 file &lt; 75%",
+    tip_c1       => "9 files 75-90%",
+    tip_c2       => "20 files 90-100%",
+    tip_c3       => "15 files at 100%",
+    tip_untested => "5 untested files",
+  };
+  my $got = Devel::Cover::Report::Html_crisp::render_dist_bar($dist);
+
+  like $got, qr/class="dist-bar-seg seg-c1 tip-hover" style="width:18%">9\n/,
+    "segment uses fill class and carries its file count";
+  like $got, qr/class="dist-bar-seg seg-c2 tip-hover" style="width:40%">20\n/,
+    "largest segment carries its file count";
+  like $got, qr/class="dist-bar-seg seg-untested tip-hover"[^>]*>5\n/,
+    "untested segment has its own class and count";
+  like $got, qr/class="dist-bar-seg seg-c0 tip-hover" style="width:2%">\n/,
+    "count hidden when segment is below the width threshold";
+  unlike $got, qr/background:var/, "no inline accent backgrounds";
+
+  like $got, qr/leg-c0">&lt; 75%</,       "legend pill holds range only";
+  like $got, qr/leg-c3">at 100%</,        "legend c3 pill at default threshold";
+  like $got, qr/leg-untested">untested</, "untested pill without count";
+
+  $dist->{c2} = 0;
+  $got = Devel::Cover::Report::Html_crisp::render_dist_bar($dist);
+  unlike $got, qr/seg-c2/,           "zero-count tier has no segment";
+  like $got,   qr/leg-c2">90-100%</, "zero-count tier keeps its legend pill";
 }
 
 sub test_palette_css () {
@@ -1046,6 +1082,7 @@ sub main () {
   test_render_layout;
   test_render_index;
   test_dist_legend_custom_thresholds;
+  test_dist_bar_fill_segments;
   test_palette_css;
   test_render_file_page;
   test_tooltip_structure;

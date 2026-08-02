@@ -232,32 +232,31 @@ sub render_dist_bar ($dist) {
   return "" unless $dt > 0;
   my $o = qq(<div class="dist-bar">\n);
   for my $seg (
-    [c0       => "--cov-none-border", $dist->{tip_c0}],
-    [c1       => "--cov-low-border",  $dist->{tip_c1}],
-    [c2       => "--cov-good-border", $dist->{tip_c2}],
-    [c3       => "--cov-full-border", $dist->{tip_c3}],
-    [untested => "--untested-bar",    $dist->{tip_untested}],
+    [c0       => $dist->{tip_c0}],
+    [c1       => $dist->{tip_c1}],
+    [c2       => $dist->{tip_c2}],
+    [c3       => $dist->{tip_c3}],
+    [untested => $dist->{tip_untested}],
   ) {
-    my ($key, $var, $tip) = @$seg;
+    my ($key, $tip) = @$seg;
     next unless $dist->{$key};
     my $w = $dist->{$key} / $dt * 100;
+    my $n = $w >= 5 ? $dist->{$key} : "";
     $o .= <<HTML;
-<div class="dist-bar-seg tip-hover" style="width:${w}%; background:var($var)">
+<div class="dist-bar-seg seg-$key tip-hover" style="width:${w}%">$n
 @{[ glass_tip($tip) ]}</div>
 HTML
   }
   $o .= "</div>\n";
   my $c3 = $Threshold->{c2} < 100 ? dist_range("c3") : "at 100%";
   my $untested
-    = $dist->{untested}
-    ? qq(<span class="leg-untested">$dist->{untested} untested</span>\n)
-    : "";
+    = $dist->{untested} ? qq(<span class="leg-untested">untested</span>\n) : "";
   $o .= <<HTML;
 <div class="dist-legend">
-<span class="leg-c0">$dist->{c0} @{[ dist_range("c0") ]}</span>
-<span class="leg-c1">$dist->{c1} @{[ dist_range("c1") ]}</span>
-<span class="leg-c2">$dist->{c2} @{[ dist_range("c2") ]}</span>
-<span class="leg-c3">$dist->{c3} $c3</span>
+<span class="leg-c0">@{[ dist_range("c0") ]}</span>
+<span class="leg-c1">@{[ dist_range("c1") ]}</span>
+<span class="leg-c2">@{[ dist_range("c2") ]}</span>
+<span class="leg-c3">$c3</span>
 $untested</div>
 HTML
   $o
@@ -2070,8 +2069,8 @@ td.chevron {
 
 .dist-bar {
   display: flex;
-  height: 12px;
-  border-radius: 3px;
+  height: 20px;
+  border-radius: 10px;
   margin-bottom: 16px;
   border: 1px solid var(--border);
 }
@@ -2079,37 +2078,51 @@ td.chevron {
 .dist-bar-seg {
   height: 100%;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
-.dist-bar-seg:first-child { border-radius: 3px 0 0 3px; }
-.dist-bar-seg:last-child { border-radius: 0 3px 3px 0; }
-.dist-bar-seg:only-child { border-radius: 3px; }
+.dist-bar-seg:first-child { border-radius: 10px 0 0 10px; }
+.dist-bar-seg:last-child { border-radius: 0 10px 10px 0; }
+.dist-bar-seg:only-child { border-radius: 10px; }
 
 .dist-bar-seg:hover { opacity: 0.8; }
+
+.seg-c0 { background: var(--cov-none-bg); color: var(--cov-none-fg); }
+.seg-c1 { background: var(--cov-low-bg); color: var(--cov-low-fg); }
+.seg-c2 { background: var(--cov-good-bg); color: var(--cov-good-fg); }
+.seg-c3 { background: var(--cov-full-bg); color: var(--cov-full-fg); }
+.seg-untested { background: var(--untested-bar); color: var(--fg); }
 
 .dist-legend {
   display: flex;
   gap: 12px;
+  align-items: center;
   margin-bottom: 16px;
-  font-size: var(--font-size-small);
-  color: var(--fg-muted);
+  font-size: 11px;
 }
 
-.dist-legend span::before {
-  content: "";
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  margin-right: 4px;
-  vertical-align: middle;
+.dist-legend span {
+  padding: 1px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
-.dist-legend .leg-c0::before { background: var(--cov-none-border); }
-.dist-legend .leg-c1::before { background: var(--cov-low-border); }
-.dist-legend .leg-c2::before { background: var(--cov-good-border); }
-.dist-legend .leg-c3::before { background: var(--cov-full-border); }
-.dist-legend .leg-untested::before { background: var(--untested-bar); }
+.dist-legend .leg-c0 { background: var(--cov-none-bg);
+  color: var(--cov-none-fg); }
+.dist-legend .leg-c1 { background: var(--cov-low-bg);
+  color: var(--cov-low-fg); }
+.dist-legend .leg-c2 { background: var(--cov-good-bg);
+  color: var(--cov-good-fg); }
+.dist-legend .leg-c3 { background: var(--cov-full-bg);
+  color: var(--cov-full-fg); }
+.dist-legend .leg-untested { background: var(--untested-badge-bg);
+  color: var(--untested-badge-fg); }
 
 /* Nav links */
 
