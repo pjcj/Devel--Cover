@@ -262,9 +262,9 @@ is $Segments->[-1]{label}, "",
   "segments too narrow for their count drop the label";
 
 my $Search = JSON::PP->new->decode(slurp("$Dir/search.json"));
-is join(",", sort @$Search),
-  "Baz-Qux-2.00,Dangle-Ref-3.00,Dep-Only-4.00,Foo-Bar-0.50,Foo-Bar-1.00",
-  "search.json lists only modules with report pages";
+is join(",", @$Search),
+  "Baz-Qux-2.00,Dangle-Ref-3.00,Dep-Only-4.00,Foo-Bar-1.00,Foo-Bar-0.50",
+  "search.json lists newest versions first, report pages only";
 like $Page{index}, qr{<input[^>]*id="module-search"[^>]*data-root=""},
   "index page has the search input";
 like $Page{index}, qr{<input[^>]*placeholder="Search distributions"},

@@ -322,9 +322,22 @@ class Devel::Cover::Collection {
     say "Wrote json output to $f";
   }
 
+  method _newer ($va, $vb) {
+    my ($pa, $pb) = map { eval { version->parse($_) } } $va, $vb;
+    return $pa > $pb if $pa && $pb;
+    ($va // "") gt($vb // "")
+  }
+
   method write_search_index ($vars) {
-    my @names  = sort grep $vars->{vals}{$_}{link}, keys $vars->{vals}->%*;
-    my $io     = Devel::Cover::DB::IO::JSON->new;
+    my $v     = $vars->{vals};
+    my @names = sort {
+      my ($ma, $mb) = ($v->{$a}{module}, $v->{$b}{module});
+      ($ma->{name} // $a) cmp ($mb->{name} // $b)
+        || ($self->_newer($ma->{version}, $mb->{version}) ? -1
+          : $self->_newer($mb->{version}, $ma->{version}) ? 1
+          :                                                 $a cmp $b)
+    } grep $v->{$_}{link}, keys %$v;
+    my $io = Devel::Cover::DB::IO::JSON->new;
     my ($rdir) = $self->made_res_dir;
     $io->write(\@names, "$rdir/search.json");
   }
@@ -421,12 +434,6 @@ class Devel::Cover::Collection {
         }
       }
     }
-  }
-
-  method _newer ($va, $vb) {
-    my ($pa, $pb) = map { eval { version->parse($_) } } $va, $vb;
-    return $pa > $pb if $pa && $pb;
-    ($va // "") gt($vb // "")
   }
 
   method add_overview ($vars) {
@@ -1441,9 +1448,10 @@ modules.
 
   $collection->write_search_index($vars);
 
-Writes C<search.json>, a sorted list of the module directories that have
-report pages. The header search on the collection pages fetches it to
-offer direct links to module reports.
+Writes C<search.json>, a list of the module directories that have report
+pages, sorted by distribution name with the newest version of each
+distribution first. The header search on the collection pages fetches it
+to offer direct links to module reports.
 
 =head3 add_overview ($vars)
 
