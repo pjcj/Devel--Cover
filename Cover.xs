@@ -2407,90 +2407,22 @@ static OP *dc_cond_expr(pTHX) {
   return next;
 }
 
-/* Capture collect first - an overloaded bool can flip collecting_here */
-static OP *dc_and(pTHX) {
-  dMY_CXT;
-  OP *next;
-  int collect;
-  SSize_t depth;
-  NDEB(D(L, "dc_and() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  check_if_collecting(aTHX_ PL_curcop);
-  NDEB(D(L, "dc_and() at %p (%d)\n", PL_curcop, collecting_here(aTHX)));
-  NDEB(D(L, "PL_curcop: %s:%ld\n",
-         CopFILE(PL_curcop), (long)CopLINE(PL_curcop)));
-  collect = MY_CXT.covering && collecting_here(aTHX);
-  depth   = PL_stack_sp - PL_stack_base;
-  next    = MY_CXT.ppaddr[OP_AND](aTHX);
-  if (collect) cover_logop(aTHX_ next, depth);
-  return next;
-}
-
-static OP *dc_andassign(pTHX) {
+/*
+ * Shared wrapper for and, or and dor and their assign forms.  Capture
+ * collect first - an overloaded bool can flip collecting_here.  The
+ * depth only decides the path for the plain forms, but capturing it
+ * unconditionally is cheaper than distinguishing the op types here.
+ */
+static OP *dc_logop(pTHX) {
   dMY_CXT;
   OP *next;
   int collect;
   SSize_t depth;
   check_if_collecting(aTHX_ PL_curcop);
-  NDEB(D(L, "dc_andassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  NDEB(D(L, "dc_logop() at %p (%d)\n", PL_op, collecting_here(aTHX)));
   collect = MY_CXT.covering && collecting_here(aTHX);
   depth   = PL_stack_sp - PL_stack_base;
-  next    = MY_CXT.ppaddr[OP_ANDASSIGN](aTHX);
-  if (collect) cover_logop(aTHX_ next, depth);
-  return next;
-}
-
-static OP *dc_or(pTHX) {
-  dMY_CXT;
-  OP *next;
-  int collect;
-  SSize_t depth;
-  check_if_collecting(aTHX_ PL_curcop);
-  NDEB(D(L, "dc_or() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  collect = MY_CXT.covering && collecting_here(aTHX);
-  depth   = PL_stack_sp - PL_stack_base;
-  next    = MY_CXT.ppaddr[OP_OR](aTHX);
-  if (collect) cover_logop(aTHX_ next, depth);
-  return next;
-}
-
-static OP *dc_orassign(pTHX) {
-  dMY_CXT;
-  OP *next;
-  int collect;
-  SSize_t depth;
-  check_if_collecting(aTHX_ PL_curcop);
-  NDEB(D(L, "dc_orassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  collect = MY_CXT.covering && collecting_here(aTHX);
-  depth   = PL_stack_sp - PL_stack_base;
-  next    = MY_CXT.ppaddr[OP_ORASSIGN](aTHX);
-  if (collect) cover_logop(aTHX_ next, depth);
-  return next;
-}
-
-static OP *dc_dor(pTHX) {
-  dMY_CXT;
-  OP *next;
-  int collect;
-  SSize_t depth;
-  check_if_collecting(aTHX_ PL_curcop);
-  NDEB(D(L, "dc_dor() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  collect = MY_CXT.covering && collecting_here(aTHX);
-  depth   = PL_stack_sp - PL_stack_base;
-  next    = MY_CXT.ppaddr[OP_DOR](aTHX);
-  if (collect) cover_logop(aTHX_ next, depth);
-  return next;
-}
-
-static OP *dc_dorassign(pTHX) {
-  dMY_CXT;
-  OP *next;
-  int collect;
-  SSize_t depth;
-  check_if_collecting(aTHX_ PL_curcop);
-  NDEB(D(L, "dc_dorassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  collect = MY_CXT.covering && collecting_here(aTHX);
-  depth   = PL_stack_sp - PL_stack_base;
-  next    = MY_CXT.ppaddr[OP_DORASSIGN](aTHX);
+  next    = MY_CXT.ppaddr[PL_op->op_type](aTHX);
   if (collect) cover_logop(aTHX_ next, depth);
   return next;
 }
@@ -2654,12 +2586,12 @@ static void replace_ops (pTHX) {
   PL_ppaddr[OP_ENTERSUB]  = dc_entersub;
   PL_ppaddr[OP_PADRANGE]  = dc_padrange;
   PL_ppaddr[OP_COND_EXPR] = dc_cond_expr;
-  PL_ppaddr[OP_AND]       = dc_and;
-  PL_ppaddr[OP_ANDASSIGN] = dc_andassign;
-  PL_ppaddr[OP_OR]        = dc_or;
-  PL_ppaddr[OP_ORASSIGN]  = dc_orassign;
-  PL_ppaddr[OP_DOR]       = dc_dor;
-  PL_ppaddr[OP_DORASSIGN] = dc_dorassign;
+  PL_ppaddr[OP_AND]       = dc_logop;
+  PL_ppaddr[OP_ANDASSIGN] = dc_logop;
+  PL_ppaddr[OP_OR]        = dc_logop;
+  PL_ppaddr[OP_ORASSIGN]  = dc_logop;
+  PL_ppaddr[OP_DOR]       = dc_logop;
+  PL_ppaddr[OP_DORASSIGN] = dc_logop;
   PL_ppaddr[OP_XOR]       = dc_xor;
   PL_ppaddr[OP_REQUIRE]   = dc_require;
   PL_ppaddr[OP_LEAVEEVAL] = dc_leaveeval;
