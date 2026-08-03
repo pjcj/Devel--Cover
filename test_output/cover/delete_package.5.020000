@@ -1,0 +1,88 @@
+cover: Reading database from ...
+-------------------- ------ ------ ------ ------ ------ ------ ------
+File                   stmt   bran   cond    sub    pod  total   scar
+-------------------- ------ ------ ------ ------ ------ ------ ------
+tests/delete_package   92.3    n/a    n/a   80.0    n/a   88.8    1.8
+Total                  92.3    n/a    n/a   80.0    n/a   88.8    1.8
+-------------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/delete_package
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 1 92.3  1.2  1.8
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SCAR  Location               
+---------- -- ----  -----------------------
+__ANON__    1  6.9  tests/delete_package:30
+
+line  err   stmt   bran   cond    sub    pod   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # Test for Symbol::delete_package breaking pod coverage
+11                                             # See GH-313
+12                                             
+13                                             # __COVER__ criteria statement branch condition subroutine pod
+14                                             # __COVER__ skip_test eval "use Pod::Coverage 0.06"; $@
+15                                             # __COVER__ skip_reason Pod::Coverage unavailable
+16                                             
+17             1                    1          use strict;
+               1                               
+               1                               
+18             1                    1          use warnings;
+               1                               
+               1                               
+19                                             
+20             1                    1          use Symbol;
+               1                               
+               1                               
+21                                             
+22             1                               Symbol::delete_package("Foo");
+23                                             
+24             1                    1          sub bar { 1 }
+25                                             
+26             1                               bar();
+27                                             
+28                                             package Foo;
+29                                             
+30    ***     *0                   *0          sub foo { 2 }
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location               
+---------- ----- --- ----- -----------------------
+BEGIN          1   1   0.0 tests/delete_package:17
+BEGIN          1   1   0.0 tests/delete_package:18
+BEGIN          1   1   0.0 tests/delete_package:20
+bar            1   1   0.0 tests/delete_package:24
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count  CC  SCAR Location               
+---------- ----- --- ----- -----------------------
+__ANON__       0   1   6.9 tests/delete_package:30
+
+
