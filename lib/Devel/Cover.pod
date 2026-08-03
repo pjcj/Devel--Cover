@@ -652,9 +652,12 @@ counts any overloaded object as true there without invoking its
 overloads.  For an object whose C<bool> overload would have returned
 false, the report shows the true row for that operand.
 
-Where the program does test an operand's truth, as with the left
-operand of C<||> or C<&&>, Devel::Cover tests it again to record the
-result, so a C<bool> overload may be called twice there.
+Devel::Cover reads the truth of the left operand of C<||> or C<&&>, and
+of an C<if> or ternary condition, from the path perl took rather than
+from the value, so it makes no extra call there.  It still tests a
+value's truth itself in two places - the right operand of C<xor>, and
+the condition of an C<if>/C<else> or ternary whose branches are both
+empty - so a C<bool> overload there may run twice.
 
 =head1 BUGS
 

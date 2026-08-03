@@ -1,0 +1,70 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# Test for overloaded objects as logop left operands
+# See GH-700 and GH-175
+
+use strict;
+use warnings;
+
+my $bool_calls;
+
+package CountBool;
+use overload
+  bool => sub { $bool_calls++; ${ $_[0] } },
+  '""' => sub { "countbool" };
+sub new { my ($class, $val) = @_; bless \$val, $class }
+
+package main;
+
+sub noop { }
+
+my $true     = CountBool->new(1);
+my $false    = CountBool->new(0);
+my $expected = 0;
+
+# or - short circuit and fall through
+my $a = $true || "right";
+$expected++;
+my $b = $false || "right";
+$expected++;
+
+# and - fall through and short circuit
+my $c = $true && "right";
+$expected++;
+my $d = $false && "right";
+$expected++;
+
+# assign forms
+my $e = CountBool->new(0);
+$e ||= "right";
+$expected++;
+my $f = CountBool->new(1);
+$f &&= "right";
+$expected++;
+
+# void context
+$true || noop();
+$expected++;
+$false && noop();
+$expected++;
+noop() if $true;
+$expected++;
+
+# void context with a nulled constant right side - op_other equals op_next
+1 if $true;
+$expected++;
+1 if $false;
+$expected++;
+
+# dor tests definedness, not truth, so never calls bool
+my $g = $true // "right";
+
+# Extra bool calls under coverage make this branch take its true leg
+print "extra bool calls\n" if $bool_calls != $expected;

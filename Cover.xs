@@ -1284,12 +1284,26 @@ static void finalise_conditions(pTHX) {
   MUTEX_UNLOCK(&DC_mutex);
 }
 
-static void cover_cond(pTHX)
+/*
+ * Record the branch a cond_expr took.  This runs AFTER the op's pp
+ * function, with next_op the op it returned, and pp_cond_expr returns
+ * op_other when the condition is true, so we read the condition's truth
+ * from control flow rather than boolifying the value again.  When both
+ * branches are empty rpeep leaves op_other equal to op_next and the path
+ * cannot decide, so the caller runs this BEFORE the op with next_op NULL
+ * and we test the value as pp_cond_expr itself will.
+ */
+static void cover_cond(pTHX_ OP *next_op)
 {
   dMY_CXT;
   if (collecting(Branch)) {
-    dSP;
-    int val = SvTRUE(TOPs);
+    int val;
+    if (next_op) {
+      val = next_op == cLOGOP->op_other;
+    } else {
+      dSP;
+      val = SvTRUE(TOPs);
+    }
     add_branch(aTHX_ PL_op, !val);
   }
 }
@@ -1993,7 +2007,22 @@ static void finalise_decisions(pTHX) {
     dc_stack_pop(aTHX);
 }
 
-static void cover_logop(pTHX) {
+/*
+ * Whether the logop at PL_op continued into its right operand, given the
+ * op it returned and the stack depth before it ran.  and, or and dor pop
+ * the tested value only on that path, so depth decides - rpeep can leave
+ * op_other equal to op_next when the right side is a nulled constant.
+ * The assign forms never pop, but their right side always holds an
+ * assignment, so the returned op decides for them.
+ */
+static int logop_no_short_circuit(pTHX_ OP *next_op, SSize_t depth) {
+  if (PL_op->op_type == OP_AND || PL_op->op_type == OP_OR ||
+      PL_op->op_type == OP_DOR)
+    return PL_stack_sp - PL_stack_base < depth;
+  return next_op == cLOGOP->op_other;
+}
+
+static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
   /*
    * For OP_AND, if the first operand is false, we have short circuited the
    * second, otherwise the value of the op is the value of the second operand.
@@ -2001,13 +2030,22 @@ static void cover_logop(pTHX) {
    * For OP_OR, if the first operand is true, we have short circuited the
    * second, otherwise the value of the op is the value of the second operand.
    *
-   * We check the value of the first operand by simply looking on the stack.  To
-   * check the second operand it is necessary to note the location of the next
-   * op after this logop.  When we get there, we look at the stack and store the
-   * coverage information indexed to this op.
+   * For and, or and dor and their assign forms this runs AFTER the op's pp
+   * function, with PL_op still the logop, next_op the op it returned and
+   * depth the stack depth before it ran.  The path the pp function took
+   * encodes the first operand's truth, so we read it from control flow.
+   * Boolifying the value here instead would invoke an overloaded bool a
+   * second time.
    *
-   * This scheme also works for OP_XOR with a small modification because it
-   * doesn't short circuit.  See the comment below.
+   * For OP_XOR this runs BEFORE the pp function, with next_op NULL.  xor
+   * does not short circuit or branch, and after execution both operands
+   * are gone, so we test the second operand here at the stack top, as
+   * pp_xor itself will, and flag a true second operand so the next op can
+   * recover both operands from the result.
+   *
+   * To check the second operand we note the location of the next op after
+   * this logop.  When we get there, we look at the stack and store the
+   * coverage information indexed to this op.
    *
    * To find out when we get to the next op we change the op_ppaddr to point to
    * get_condition(), which will do the necessary work and then reset and run
@@ -2034,30 +2072,35 @@ static void cover_logop(pTHX) {
     if (!collecting(Branch)) return;
     if (PL_op->op_type != OP_AND && PL_op->op_type != OP_OR) return;
     if (cLOGOP->op_first->op_type == OP_ITER) return;
-    {
-      dSP;
-      if (PL_op->op_type == OP_AND ? SvTRUE(TOPs) : !SvTRUE(TOPs))
-        add_conditional(aTHX_ PL_op, 2);
-      else
-        credit_short_circuit(aTHX);
-    }
+    if (logop_no_short_circuit(aTHX_ next_op, depth))
+      add_conditional(aTHX_ PL_op, 2);
+    else
+      credit_short_circuit(aTHX);
     return;
   }
 
   if (cLOGOP->op_first->op_type == OP_ITER) {
     /* loop - ignore it for now */
   } else {
-    dSP;
-
-    int leftval_true_ish = (PL_op->op_type == OP_DOR ||
-                            PL_op->op_type == OP_DORASSIGN)
-      ? SvOK(TOPs) : SvTRUE(TOPs);
+    int no_short_circuit;
+    int leftval_true_ish;
     /* We don't count X= as void context because we care about the value
      * of the RHS */
     int void_context = GIMME_V == G_VOID &&
                        PL_op->op_type != OP_DORASSIGN &&
                        PL_op->op_type != OP_ANDASSIGN &&
                        PL_op->op_type != OP_ORASSIGN;
+
+    if (PL_op->op_type == OP_XOR) {
+      dSP;
+      no_short_circuit = 1;
+      leftval_true_ish = SvTRUE(TOPs);
+    } else {
+      no_short_circuit = logop_no_short_circuit(aTHX_ next_op, depth);
+      leftval_true_ish =
+        (PL_op->op_type == OP_AND || PL_op->op_type == OP_ANDASSIGN)
+          ? no_short_circuit : !no_short_circuit;
+    }
     NDEB(D(L, "leftval_true_ish: %d, void_context: %d at %p\n",
            leftval_true_ish, void_context, PL_op));
     NDEB(op_dump(PL_op));
@@ -2116,14 +2159,7 @@ static void cover_logop(pTHX) {
       }
     }
 
-    if ((PL_op->op_type == OP_AND       &&  leftval_true_ish) ||
-        (PL_op->op_type == OP_ANDASSIGN &&  leftval_true_ish) ||
-        (PL_op->op_type == OP_OR        && !leftval_true_ish) ||
-        (PL_op->op_type == OP_ORASSIGN  && !leftval_true_ish) ||
-        (PL_op->op_type == OP_DOR       && !leftval_true_ish) ||
-        (PL_op->op_type == OP_DORASSIGN && !leftval_true_ish) ||
-        (PL_op->op_type == OP_XOR)) {
-      /* no short circuit */
+    if (no_short_circuit) {
 
       OP *right = OpSIBLING(cLOGOP->op_first);
 
@@ -2353,68 +2389,112 @@ static OP *dc_entersub(pTHX) {
 
 static OP *dc_cond_expr(pTHX) {
   dMY_CXT;
+  OP *next;
+  int collect,
+      ambiguous;
   check_if_collecting(aTHX_ PL_curcop);
   NDEB(D(L, "dc_cond_expr() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering && collecting_here(aTHX)) cover_cond(aTHX);
-  return MY_CXT.ppaddr[OP_COND_EXPR](aTHX);
+  collect   = MY_CXT.covering && collecting_here(aTHX);
+  ambiguous = cLOGOP->op_other == PL_op->op_next;
+  if (collect && ambiguous) cover_cond(aTHX_ NULL);
+  next = MY_CXT.ppaddr[OP_COND_EXPR](aTHX);
+  if (collect && !ambiguous) cover_cond(aTHX_ next);
+  return next;
 }
 
+/* Capture collect first - an overloaded bool can flip collecting_here */
 static OP *dc_and(pTHX) {
   dMY_CXT;
+  OP *next;
+  int collect;
+  SSize_t depth;
   NDEB(D(L, "dc_and() at %p (%d)\n", PL_op, collecting_here(aTHX)));
   check_if_collecting(aTHX_ PL_curcop);
   NDEB(D(L, "dc_and() at %p (%d)\n", PL_curcop, collecting_here(aTHX)));
   NDEB(D(L, "PL_curcop: %s:%ld\n",
          CopFILE(PL_curcop), (long)CopLINE(PL_curcop)));
-  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-  return MY_CXT.ppaddr[OP_AND](aTHX);
+  collect = MY_CXT.covering && collecting_here(aTHX);
+  depth   = PL_stack_sp - PL_stack_base;
+  next    = MY_CXT.ppaddr[OP_AND](aTHX);
+  if (collect) cover_logop(aTHX_ next, depth);
+  return next;
 }
 
 static OP *dc_andassign(pTHX) {
   dMY_CXT;
+  OP *next;
+  int collect;
+  SSize_t depth;
   check_if_collecting(aTHX_ PL_curcop);
   NDEB(D(L, "dc_andassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-  return MY_CXT.ppaddr[OP_ANDASSIGN](aTHX);
+  collect = MY_CXT.covering && collecting_here(aTHX);
+  depth   = PL_stack_sp - PL_stack_base;
+  next    = MY_CXT.ppaddr[OP_ANDASSIGN](aTHX);
+  if (collect) cover_logop(aTHX_ next, depth);
+  return next;
 }
 
 static OP *dc_or(pTHX) {
   dMY_CXT;
+  OP *next;
+  int collect;
+  SSize_t depth;
   check_if_collecting(aTHX_ PL_curcop);
   NDEB(D(L, "dc_or() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-  return MY_CXT.ppaddr[OP_OR](aTHX);
+  collect = MY_CXT.covering && collecting_here(aTHX);
+  depth   = PL_stack_sp - PL_stack_base;
+  next    = MY_CXT.ppaddr[OP_OR](aTHX);
+  if (collect) cover_logop(aTHX_ next, depth);
+  return next;
 }
 
 static OP *dc_orassign(pTHX) {
   dMY_CXT;
+  OP *next;
+  int collect;
+  SSize_t depth;
   check_if_collecting(aTHX_ PL_curcop);
   NDEB(D(L, "dc_orassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-  return MY_CXT.ppaddr[OP_ORASSIGN](aTHX);
+  collect = MY_CXT.covering && collecting_here(aTHX);
+  depth   = PL_stack_sp - PL_stack_base;
+  next    = MY_CXT.ppaddr[OP_ORASSIGN](aTHX);
+  if (collect) cover_logop(aTHX_ next, depth);
+  return next;
 }
 
 static OP *dc_dor(pTHX) {
   dMY_CXT;
+  OP *next;
+  int collect;
+  SSize_t depth;
   check_if_collecting(aTHX_ PL_curcop);
   NDEB(D(L, "dc_dor() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-  return MY_CXT.ppaddr[OP_DOR](aTHX);
+  collect = MY_CXT.covering && collecting_here(aTHX);
+  depth   = PL_stack_sp - PL_stack_base;
+  next    = MY_CXT.ppaddr[OP_DOR](aTHX);
+  if (collect) cover_logop(aTHX_ next, depth);
+  return next;
 }
 
 static OP *dc_dorassign(pTHX) {
   dMY_CXT;
+  OP *next;
+  int collect;
+  SSize_t depth;
   check_if_collecting(aTHX_ PL_curcop);
   NDEB(D(L, "dc_dorassign() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
-  return MY_CXT.ppaddr[OP_DORASSIGN](aTHX);
+  collect = MY_CXT.covering && collecting_here(aTHX);
+  depth   = PL_stack_sp - PL_stack_base;
+  next    = MY_CXT.ppaddr[OP_DORASSIGN](aTHX);
+  if (collect) cover_logop(aTHX_ next, depth);
+  return next;
 }
 
 OP *dc_xor(pTHX) {
   dMY_CXT;
   check_if_collecting(aTHX_ PL_curcop);
   NDEB(D(L, "dc_xor() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX);
+  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX_ NULL, 0);
   return MY_CXT.ppaddr[OP_XOR](aTHX);
 }
 
@@ -2670,7 +2750,9 @@ static void initialise(pTHX) {
 
 static int runops_cover(pTHX) {
   dMY_CXT;
-  I32 deferred_base = av_len(MY_CXT.deferred_conditionals) + 1;
+  I32     deferred_base = av_len(MY_CXT.deferred_conditionals) + 1;
+  OP     *pending_op    = NULL;
+  SSize_t pending_depth = 0;
 
   NDEB(D(L, "entering runops_cover\n"));
 
@@ -2737,7 +2819,10 @@ static int runops_cover(pTHX) {
       }
 
       case OP_COND_EXPR: {
-        cover_cond(aTHX);
+        if (cLOGOP->op_other == PL_op->op_next)
+          cover_cond(aTHX_ NULL);
+        else
+          pending_op = PL_op;
         break;
       }
 
@@ -2746,9 +2831,15 @@ static int runops_cover(pTHX) {
       case OP_OR:
       case OP_ORASSIGN:
       case OP_DOR:
-      case OP_DORASSIGN:
+      case OP_DORASSIGN: {
+        /* Record coverage after the op runs, from the path it took */
+        pending_op    = PL_op;
+        pending_depth = PL_stack_sp - PL_stack_base;
+        break;
+      }
+
       case OP_XOR: {
-        cover_logop(aTHX);
+        cover_logop(aTHX_ NULL, 0);
         break;
       }
 
@@ -2767,10 +2858,21 @@ static int runops_cover(pTHX) {
     }
 
     call_fptr:
-    if (!(PL_op = PL_op->op_ppaddr(aTHX))) {
-      resolve_deferred_conditionals(aTHX_
-        MY_CXT.deferred_conditionals, deferred_base);
-      break;
+    {
+      OP *next = PL_op->op_ppaddr(aTHX);
+      if (pending_op) {
+        PL_op = pending_op;
+        if (PL_op->op_type == OP_COND_EXPR)
+          cover_cond(aTHX_ next);
+        else
+          cover_logop(aTHX_ next, pending_depth);
+        pending_op = NULL;
+      }
+      if (!(PL_op = next)) {
+        resolve_deferred_conditionals(aTHX_
+          MY_CXT.deferred_conditionals, deferred_base);
+        break;
+      }
     }
 
     PERL_ASYNC_CHECK();
