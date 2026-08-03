@@ -1,0 +1,38 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# Test for overloaded objects as logop right operands
+# See GH-152 and GH-175
+
+use strict;
+use warnings;
+
+my $bool_calls;
+
+package NoBool;
+use overload '""' => sub { "nobool" }, fallback => 0;
+sub new { bless {}, shift }
+
+package CountBool;
+use overload
+  bool => sub { $bool_calls++; 1 },
+  '""' => sub { "countbool" };
+sub new { bless {}, shift }
+
+package main;
+
+my $nb = NoBool->new;
+my $cb = CountBool->new;
+my $t  = 1;
+
+my $x = undef || $nb;
+my $y = $t && $nb;
+my $z = undef || $cb;
+
+print "bool overload invoked\n" if $bool_calls;

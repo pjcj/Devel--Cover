@@ -1,0 +1,142 @@
+cover: Reading database from ...
+------------------- ------ ------ ------ ------ ------ ------ ------
+File                  stmt   bran   cond   mcdc    sub  total   scar
+------------------- ------ ------ ------ ------ ------ ------ ------
+tests/cond_overload   84.6   50.0   33.3    0.0   66.6   61.5    1.1
+Total                 84.6   50.0   33.3    0.0   66.6   61.5    1.1
+------------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/cond_overload
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 1 70.3  1.1  1.1
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SCAR  Location              
+---------- -- ----  ----------------------
+__ANON__    1  6.9  tests/cond_overload:24
+BEGIN       1  0.2  tests/cond_overload:19
+__ANON__    1  0.2  tests/cond_overload:19
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # Test for overloaded objects as logop right operands
+11                                             # See GH-152 and GH-175
+12                                             
+13             1                           1   use strict;
+               1                               
+               1                               
+14             1                           1   use warnings;
+               1                               
+               1                               
+15                                             
+16             1                               my $bool_calls;
+17                                             
+18                                             package NoBool;
+19             1                           1   use overload '""' => sub { "nobool" }, fallback => 0;
+      ***      1                          *0   
+               1                               
+      ***     *0                               
+20             1                           1   sub new { bless {}, shift }
+21                                             
+22                                             package CountBool;
+23                                             use overload
+24    ***     *0                          *0     bool => sub { $bool_calls++; 1 },
+      ***     *0                               
+25             1                           1     '""' => sub { "countbool" };
+      ***      1                          *0   
+               1                               
+      ***     *0                               
+26             1                           1   sub new { bless {}, shift }
+27                                             
+28                                             package main;
+29                                             
+30             1                               my $nb = NoBool->new;
+31             1                               my $cb = CountBool->new;
+32             1                               my $t  = 1;
+33                                             
+34    ***      1          * 33   *  0          my $x = undef || $nb;
+35    ***      1          * 33   *  0          my $y = $t && $nb;
+36    ***      1          * 33   *  0          my $z = undef || $cb;
+37                                             
+38    ***      1   * 50                        print "bool overload invoked\n" if $bool_calls;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+38    ***     50      0      1   if $bool_calls
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+35    ***     33      0      0      1   $t && $nb
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+34    ***     33      0      1      0   undef || $nb
+36    ***     33      0      1      0   undef || $cb
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+34    ***      0    0    2   undef, $nb             undef || $nb
+35    ***      0    0    2   $t, $nb                $t && $nb
+36    ***      0    0    2   undef, $cb             undef || $cb
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location              
+---------- ----- --- ----- ----------------------
+BEGIN          1   1   0.0 tests/cond_overload:13
+BEGIN          1   1   0.0 tests/cond_overload:14
+BEGIN          1   1   0.2 tests/cond_overload:19
+BEGIN          1   1   0.2 tests/cond_overload:25
+new            1   1   0.0 tests/cond_overload:20
+new            1   1   0.0 tests/cond_overload:26
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count  CC  SCAR Location              
+---------- ----- --- ----- ----------------------
+__ANON__       0   1   0.2 tests/cond_overload:19
+__ANON__       0   1   6.9 tests/cond_overload:24
+__ANON__       0   1   0.2 tests/cond_overload:25
+
+
