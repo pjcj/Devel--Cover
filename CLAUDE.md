@@ -36,6 +36,7 @@ make test
 make out TEST=empty_else
 
 # Run all tests on all Perl versions
+# You are not allowed to run this without approval since it takes too long.
 make all_test
 
 # Generate HTML report for a single test
@@ -56,6 +57,9 @@ make gold TEST=empty_else
 
 # Generate golden results for a single test, ALL Perl versions
 make all_gold TEST=empty_else
+
+# You are not allowed to run a plain `make all_gold` without approval since it
+# takes too long.
 ```
 
 ### Coverage Analysis
