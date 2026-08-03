@@ -141,7 +141,7 @@ line  err      %   true  false   branch
 62    ***     50      0      1   if ($q) { }
 66    ***     50      1      0   if ($true) { }
 69    ***     50      0      1   if ($false) { }
-74    ***     50      1      0   if ($true) { }
+74    ***     50      1      0   $true ? :
 78    ***     50      0      1   if $bool_calls != $expected
 
 

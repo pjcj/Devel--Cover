@@ -1267,8 +1267,10 @@ static void finalise_conditions(pTHX) {
  * op_other when the condition is true, so we read the condition's truth
  * from control flow rather than boolifying the value again.  When both
  * branches are empty rpeep leaves op_other equal to op_next and the path
- * cannot decide, so the caller runs this BEFORE the op with next_op NULL
- * and we test the value as pp_cond_expr itself will.
+ * cannot decide, so the caller runs this BEFORE the op with next_op
+ * NULL, and we boolify the condition exactly once, as pp_cond_expr
+ * would, then replace it with the plain boolean so pp_cond_expr does
+ * not call an overloaded bool a second time.
  */
 static void cover_cond(pTHX_ OP *next_op)
 {
@@ -1279,7 +1281,8 @@ static void cover_cond(pTHX_ OP *next_op)
       val = next_op == cLOGOP->op_other;
     } else {
       dSP;
-      val = SvTRUE(TOPs);
+      val  = SvTRUE(TOPs);
+      TOPs = boolSV(val);
     }
     add_branch(aTHX_ PL_op, !val);
   }

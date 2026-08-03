@@ -62,5 +62,17 @@ my $q = 0;
 if   ($q) { }
 else      { }
 
+# both branches empty with an overloaded condition - tested exactly once
+if   ($true) { }
+else         { }
+$expected++;
+if   ($false) { }
+else          { }
+$expected++;
+
+# void ternary with constant legs - the same ambiguous form
+$true ? 1 : 0;
+$expected++;
+
 # Extra bool calls under coverage make this branch take its true leg
 print "extra bool calls\n" if $bool_calls != $expected;

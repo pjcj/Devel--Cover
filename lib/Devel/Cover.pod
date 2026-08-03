@@ -654,10 +654,10 @@ false, the report shows the true row for that operand.
 
 Devel::Cover reads the truth of the left operand of C<||> or C<&&>, and
 of an C<if> or ternary condition, from the path perl took rather than
-from the value, and it evaluates the operands of C<xor> in perl's stead,
-so it makes no extra call there.  It still tests a value's truth itself
-in one place - the condition of an C<if>/C<else> or ternary whose
-branches are both empty - so a C<bool> overload there may run twice.
+from the value.  Where the path holds no answer - the operands of
+C<xor>, and the condition of an C<if>/C<else> or ternary whose branches
+are both empty - it evaluates the truth in perl's stead.  A C<bool>
+overload therefore runs exactly as often under coverage as without it.
 
 =head1 BUGS
 

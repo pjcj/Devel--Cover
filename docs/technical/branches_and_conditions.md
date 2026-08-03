@@ -250,7 +250,9 @@ returned - `op_other` means true, `op_next` means false. `add_branch` records
 the outcome directly. An if/else with both branches empty, or a void
 `$c ? 1 : 0`, leaves `op_other` equal to `op_next` after rpeep, so the returned
 op cannot decide. For exactly those forms `cover_cond` runs before the op
-instead and tests the value at the stack top, as `pp_cond_expr` itself will.
+instead, boolifies the condition exactly once as `pp_cond_expr` would, and
+replaces it on the stack with the plain boolean so the pp function does not
+invoke an overloaded `bool` a second time - the same technique `cover_xor` uses.
 
 ## How the Perl Layer Interprets Raw Data
 
