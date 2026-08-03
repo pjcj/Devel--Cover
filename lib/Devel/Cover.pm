@@ -1066,7 +1066,7 @@ sub _parse_pod_options {
 
 sub _add_pod_cover ($cv) {
   my $gv = $cv->GV;
-  return if !$gv || $gv->isa("B::SPECIAL");
+  return if !$gv || $gv->isa("B::SPECIAL") || $gv->STASH->isa("B::SPECIAL");
 
   my $pkg  = $gv->STASH->NAME;
   my %opts = _parse_pod_options();
