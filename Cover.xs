@@ -1203,6 +1203,17 @@ static OP *find_skipped_conditional(pTHX_ OP *o) {
   return next;
 }
 
+/*
+ * Truth of an SV without invoking overload.  The program may never boolify
+ * this value itself, so calling a bool overload here would run user code the
+ * program didn't, or die when fallback => 0 forbids autogenerating bool.
+ * An overloaded ref counts as true.
+ */
+static int sv_true_no_overload(pTHX_ SV *sv) {
+  if (SvROK(sv) && SvAMAGIC(sv)) return 1;
+  return SvTRUE(sv) ? 1 : 0;
+}
+
 /* NOTE: caller must protect get_condition* calls by locking DC_mutex */
 static OP *get_condition(pTHX) {
   SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
@@ -1214,7 +1225,7 @@ static OP *get_condition(pTHX) {
     /* dump_conditions(aTHX); */
     NDEB(svdump(Pending_conditionals));
     true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
-      ? SvOK(TOPs) : SvTRUE(TOPs);
+      ? SvOK(TOPs) : sv_true_no_overload(aTHX_ TOPs);
     NDEB(D(L, "   get_condition true_ish=%d\n", true_ish));
     add_condition(aTHX_ *pc, true_ish ? 2 : 1);
   } else {
@@ -1297,7 +1308,7 @@ static void resolve_deferred_conditionals(pTHX_ AV *dc, I32 base) {
   dMY_CXT;
   if (av_len(dc) >= base) {
     dSP;
-    int true_ish = SvTRUE(TOPs);
+    int true_ish = sv_true_no_overload(aTHX_ TOPs);
 
     if (collecting(Mcdc)) {
       I32 i;
