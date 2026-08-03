@@ -2021,6 +2021,15 @@ static void finalise_decisions(pTHX) {
     dc_stack_pop(aTHX);
 }
 
+/* Both path rules below depend on per-version pp behaviour - warn once */
+static void logop_invariant_warn(pTHX) {
+  static int warned;
+  if (warned++) return;
+  warn("Devel::Cover: logop path detection disagrees at %s line %ld - "
+       "coverage data may be wrong, please report this\n",
+       CopFILE(PL_curcop), (long)CopLINE(PL_curcop));
+}
+
 /*
  * Whether the logop at PL_op continued into its right operand, given the
  * op it returned and the stack depth before it ran.  and, or and dor pop
@@ -2031,8 +2040,14 @@ static void finalise_decisions(pTHX) {
  */
 static int logop_no_short_circuit(pTHX_ OP *next_op, SSize_t depth) {
   if (PL_op->op_type == OP_AND || PL_op->op_type == OP_OR ||
-      PL_op->op_type == OP_DOR)
-    return PL_stack_sp - PL_stack_base < depth;
+      PL_op->op_type == OP_DOR) {
+    int continued = PL_stack_sp - PL_stack_base < depth;
+    if (cLOGOP->op_other != PL_op->op_next &&
+        continued != (next_op == cLOGOP->op_other))
+      logop_invariant_warn(aTHX);
+    return continued;
+  }
+  if (cLOGOP->op_other == PL_op->op_next) logop_invariant_warn(aTHX);
   return next_op == cLOGOP->op_other;
 }
 
