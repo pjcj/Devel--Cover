@@ -66,5 +66,15 @@ $expected++;
 # dor tests definedness, not truth, so never calls bool
 my $g = $true // "right";
 
+# xor boolifies both operands exactly once each
+my $h = ($true xor $false);
+$expected += 2;
+
+# chained logops add no extra calls
+my $i = $false || $false || "right";
+$expected += 2;
+my $j = $true && $true && "right";
+$expected += 2;
+
 # Extra bool calls under coverage make this branch take its true leg
 print "extra bool calls\n" if $bool_calls != $expected;

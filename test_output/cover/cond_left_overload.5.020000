@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------------ ------ ------ ------ ------ ------ ------ ------
 File                       stmt   bran   cond   mcdc    sub  total   scar
 ------------------------ ------ ------ ------ ------ ------ ------ ------
-tests/cond_left_overload   97.7   50.0   50.0    0.0   85.7   74.1    0.0
-Total                      97.7   50.0   50.0    0.0   85.7   74.1    0.0
+tests/cond_left_overload   98.0   50.0   42.8    0.0   85.7   66.6    0.0
+Total                      98.0   50.0   42.8    0.0   85.7   66.6    0.0
 ------------------------ ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 80.3  1.0  0.0
+ 1 74.7  1.0  0.0
 
 Worst Subroutines
 -----------------
@@ -54,9 +54,9 @@ line  err   stmt   bran   cond   mcdc    sub   code
 17                                             
 18                                             package CountBool;
 19                                             use overload
-20            11                          11     bool => sub { $bool_calls++; ${ $_[0] } },
-              11                               
-              11                               
+20            17                          17     bool => sub { $bool_calls++; ${ $_[0] } },
+              17                               
+              17                               
 21             1                           1     '""' => sub { "countbool" };
       ***      1                          *0   
                1                               
@@ -109,8 +109,20 @@ line  err   stmt   bran   cond   mcdc    sub   code
 66                                             # dor tests definedness, not truth, so never calls bool
 67    ***      1          * 50   *  0          my $g = $true // "right";
 68                                             
-69                                             # Extra bool calls under coverage make this branch take its true leg
-70    ***      1   * 50                        print "extra bool calls\n" if $bool_calls != $expected;
+69                                             # xor boolifies both operands exactly once each
+70    ***      1          * 25   *  0          my $h = ($true xor $false);
+71             1                               $expected += 2;
+72                                             
+73                                             # chained logops add no extra calls
+74    ***      1          * 50   *  0          my $i = $false || $false || "right";
+      ***                 * 33                 
+75             1                               $expected += 2;
+76    ***      1          * 50   *  0          my $j = $true && $true && "right";
+      ***                 * 33                 
+77             1                               $expected += 2;
+78                                             
+79                                             # Extra bool calls under coverage make this branch take its true leg
+80    ***      1   * 50                        print "extra bool calls\n" if $bool_calls != $expected;
 
 
 Branches
@@ -123,7 +135,7 @@ line  err      %   true  false   branch
 57    ***     50      1      0   if $true
 61    ***     50      1      0   if $true
 63    ***     50      0      1   if $false
-70    ***     50      0      1   if $bool_calls != $expected
+80    ***     50      0      1   if $bool_calls != $expected
 
 
 Conditions
@@ -136,6 +148,13 @@ line  err      %     !l      l   expr
 39    ***     50      0      1   $true && 'right'
 41    ***     50      1      0   $false && 'right'
 49    ***     50      0      1   $f &&= "right"
+76    ***     50      0      1   $true && $true && 'right'
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+76    ***     33      0      0      1   $true and $true
 
 or 2 conditions
 
@@ -145,6 +164,19 @@ line  err      %      l     !l   expr
 35    ***     50      0      1   $false || 'right'
 46    ***     50      0      1   $e ||= "right"
 67    ***     50      1      0   $true // "right"
+74    ***     50      0      1   $false || $false || 'right'
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+74    ***     33      0      1      0   $false or $false
+
+xor 4 conditions
+
+line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------ ------   ----
+70    ***     25      0      1      0      0   $true xor $false
 
 
 MC/DC
@@ -159,6 +191,9 @@ line  err      %  cov  tot   missing                expr
 46    ***      0    0    1   $e                     $e ||= "right"
 49    ***      0    0    1   $f                     $f &&= "right"
 67    ***      0    0    1   $true                  $true // "right"
+70    ***      0    0    2   $true, $false          $true xor $false
+74    ***      0    0    2   $false, $false         $false || $false || 'right'
+76    ***      0    0    2   $true, $true           $true && $true && 'right'
 
 
 Covered Subroutines
@@ -169,7 +204,7 @@ Subroutine Count  CC  SCAR Location
 BEGIN          1   1   0.0 tests/cond_left_overload:13
 BEGIN          1   1   0.0 tests/cond_left_overload:14
 BEGIN          1   1   0.2 tests/cond_left_overload:21
-__ANON__      11   1   0.0 tests/cond_left_overload:20
+__ANON__      17   1   0.0 tests/cond_left_overload:20
 new            4   1   0.0 tests/cond_left_overload:22
 noop           1   1   0.0 tests/cond_left_overload:26
 

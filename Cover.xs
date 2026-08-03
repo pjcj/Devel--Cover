@@ -940,16 +940,16 @@ static void set_conditional(pTHX_ OP *op, int cond, int value) {
   /*
    * The conditional array is composed of six elements:
    *
-   * 0 - 1 iff we are in an xor and the right operand was true
+   * 0 - unused
    * 1 - not short circuited - second operand is false
    * 2 - not short circuited - second operand is true
-   * 3 - short circuited, or for xor right operand true, result false
-   * 4 - for xor right operand true, result true
+   * 3 - short circuited
+   * 4 - unused for and, or and dor
    * 5 - 1 iff we are in void context
    *
-   * xor does not short circuit, so the value observed at the next op is
-   * the decision result rather than the right operand; slots 1 and 2
-   * carry a false right operand with a false or true result.
+   * xor cannot short circuit, so cover_xor records its slots directly
+   * as the four operand combinations: 1 = !l&&!r, 2 = l&&!r, 3 = l&&r,
+   * 4 = !l&&r.
    */
 
   SV **count = av_fetch(get_conditional_array(aTHX_ op), cond, 1);
@@ -1028,27 +1028,16 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
   NDEB(D(L, "Looking through %zd conditionals at %p\n",
          av_len(conds) - 1, PL_op));
   for (; i <= av_len(conds); i++) {
-    OP  *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
-    SV **count = av_fetch(get_conditional_array(aTHX_ op), 0, 1);
-    int true_ish = (op->op_type == OP_DOR || op->op_type == OP_DORASSIGN)
-      ? SvOK(*count) : SvTRUE(*count);
-    int type  = true_ish ? SvIV(*count) : 0;
-    sv_setiv(*count, 0);
+    OP *op = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
 
-    /* Check if we have come from an xor with a true right operand */
-    if (final)     value  = 1;
-    if (type == 1) value += 2;
+    if (final) value = 1;
 
-    NDEB(D(L, "Found %p (trueish=%d): %d, %d\n", op, true_ish, type, value));
+    NDEB(D(L, "Found %p: %d\n", op, value));
     add_conditional(aTHX_ op, value);
 
     /*
-     * MC/DC: write this logop's leaf column(s).  For and/or the observed
-     * value is the right operand: 1 = false, 2 = true.  For xor it is the
-     * decision result and the +2 flag records a true right operand, so
-     * both operands are recovered: right = value >= 3, left = right xor
-     * result.  The left column is written here because at the xor op the
-     * stack top was the right operand, not the left.
+     * MC/DC: write this logop's right-operand leaf column.  The observed
+     * value is the right operand: 1 = false, 2 = true.
      */
     if (!final && collecting(Mcdc)) {
       HV *m;
@@ -1059,20 +1048,8 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
           INT2PTR(OP *, dc_meta_iv(aTHX_ m, "root_addr", 9));
         int      leaf_right = dc_meta_iv(aTHX_ m, "leaf_col_right", 14);
         dc_dctx *d          = dc_stack_find_root(aTHX_ root_addr);
-        int      right_val  = (value == 2 || value == 4)
-                                ? DC_VECTOR_TRUE
-                                : DC_VECTOR_FALSE;
-
-        if (op->op_type == OP_XOR) {
-          int leaf_left = dc_meta_iv(aTHX_ m, "leaf_col_left", 13);
-          int right     = value >= 3;
-          int result    = value == 2 || value == 4;
-
-          right_val = right ? DC_VECTOR_TRUE : DC_VECTOR_FALSE;
-          if (d && leaf_left >= 0 && leaf_left < d->width)
-            d->vector[leaf_left] = right != result ? DC_VECTOR_TRUE
-                                                   : DC_VECTOR_FALSE;
-        }
+        int      right_val  = value == 2 ? DC_VECTOR_TRUE
+                                         : DC_VECTOR_FALSE;
 
         if (d && leaf_right >= 0 && leaf_right < d->width)
           d->vector[leaf_right] = right_val;
@@ -1996,6 +1973,40 @@ static void dc_snapshot_on_short_circuit(pTHX) {
 }
 
 /*
+ * Find or push the MC/DC frame for the decision this op belongs to.
+ * Returns NULL when the decision records nothing (too wide, or no
+ * frame to attach to).
+ */
+static dc_dctx *dc_mcdc_frame(pTHX_ HV *meta) {
+  OP      *root_addr = INT2PTR(OP *, dc_meta_iv(aTHX_ meta, "root_addr", 9));
+  int      width     = dc_meta_iv(aTHX_ meta, "width",    5);
+  int      is_entry  = dc_meta_iv(aTHX_ meta, "is_entry", 8) == 1;
+  dc_dctx *d;
+
+  /* A too-wide decision records nothing - never push a frame */
+  if (width > DC_MAX_DECISION_WIDTH) width = 0;
+
+  dc_stack_discard_stale(aTHX);
+  d = dc_stack_find_root(aTHX_ root_addr);
+
+  if (is_entry && width > 0) {
+    /*
+     * A fresh evaluation of this decision starts here.  A leftover
+     * frame at the same or deeper context depth was abandoned by a
+     * non-local exit - discard it.  A shallower frame belongs to an
+     * outer invocation still in flight (recursion) and is kept; the
+     * fresh frame shadows it until resolution.
+     */
+    if (d && d->cx_ix >= cxstack_ix) dc_stack_remove(aTHX_ d);
+    d = dc_stack_push(aTHX_ root_addr, width);
+  } else if (!d && width > 0) {
+    d = dc_stack_push(aTHX_ root_addr, width);
+  }
+
+  return d;
+}
+
+/*
  * Discard any DCs left over at program end.  A frame still on the stack
  * here belongs to an evaluation that never completed (die / exit / goto
  * out of a decision); recording its partial vector would fabricate an
@@ -2030,18 +2041,11 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
    * For OP_OR, if the first operand is true, we have short circuited the
    * second, otherwise the value of the op is the value of the second operand.
    *
-   * For and, or and dor and their assign forms this runs AFTER the op's pp
-   * function, with PL_op still the logop, next_op the op it returned and
-   * depth the stack depth before it ran.  The path the pp function took
-   * encodes the first operand's truth, so we read it from control flow.
-   * Boolifying the value here instead would invoke an overloaded bool a
-   * second time.
-   *
-   * For OP_XOR this runs BEFORE the pp function, with next_op NULL.  xor
-   * does not short circuit or branch, and after execution both operands
-   * are gone, so we test the second operand here at the stack top, as
-   * pp_xor itself will, and flag a true second operand so the next op can
-   * recover both operands from the result.
+   * This runs AFTER the op's pp function, with PL_op still the logop,
+   * next_op the op it returned and depth the stack depth before it ran.
+   * The path the pp function took encodes the first operand's truth, so
+   * we read it from control flow.  Boolifying the value here instead
+   * would invoke an overloaded bool a second time.
    *
    * To check the second operand we note the location of the next op after
    * this logop.  When we get there, we look at the stack and store the
@@ -2091,16 +2095,10 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
                        PL_op->op_type != OP_ANDASSIGN &&
                        PL_op->op_type != OP_ORASSIGN;
 
-    if (PL_op->op_type == OP_XOR) {
-      dSP;
-      no_short_circuit = 1;
-      leftval_true_ish = SvTRUE(TOPs);
-    } else {
-      no_short_circuit = logop_no_short_circuit(aTHX_ next_op, depth);
-      leftval_true_ish =
-        (PL_op->op_type == OP_AND || PL_op->op_type == OP_ANDASSIGN)
-          ? no_short_circuit : !no_short_circuit;
-    }
+    no_short_circuit = logop_no_short_circuit(aTHX_ next_op, depth);
+    leftval_true_ish =
+      (PL_op->op_type == OP_AND || PL_op->op_type == OP_ANDASSIGN)
+        ? no_short_circuit : !no_short_circuit;
     NDEB(D(L, "leftval_true_ish: %d, void_context: %d at %p\n",
            leftval_true_ish, void_context, PL_op));
     NDEB(op_dump(PL_op));
@@ -2121,39 +2119,10 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
       HV *meta = dc_lookup_or_build_decision_meta(aTHX_ PL_op,
                                                   find_runcv(NULL));
       if (meta) {
-        OP      *root_addr =
-          INT2PTR(OP *, dc_meta_iv(aTHX_ meta, "root_addr", 9));
-        int      width     = dc_meta_iv(aTHX_ meta, "width",         5);
         int      leaf_left = dc_meta_iv(aTHX_ meta, "leaf_col_left", 13);
-        int      is_entry  = dc_meta_iv(aTHX_ meta, "is_entry",      8) == 1;
-        dc_dctx *d;
+        dc_dctx *d         = dc_mcdc_frame(aTHX_ meta);
 
-        /* A too-wide decision records nothing - never push a frame */
-        if (width > DC_MAX_DECISION_WIDTH) width = 0;
-
-        dc_stack_discard_stale(aTHX);
-        d = dc_stack_find_root(aTHX_ root_addr);
-
-        if (is_entry && width > 0) {
-          /*
-           * A fresh evaluation of this decision starts here.  A leftover
-           * frame at the same or deeper context depth was abandoned by a
-           * non-local exit - discard it.  A shallower frame belongs to an
-           * outer invocation still in flight (recursion) and is kept; the
-           * fresh frame shadows it until resolution.
-           */
-          if (d && d->cx_ix >= cxstack_ix) dc_stack_remove(aTHX_ d);
-          d = dc_stack_push(aTHX_ root_addr, width);
-        } else if (!d && width > 0) {
-          d = dc_stack_push(aTHX_ root_addr, width);
-        }
-
-        /*
-         * For xor the stack top here is the right operand, not the left;
-         * the left column is written when the result is observed.
-         */
-        if (d && leaf_left >= 0 && leaf_left < d->width &&
-            PL_op->op_type != OP_XOR)
+        if (d && leaf_left >= 0 && leaf_left < d->width)
           d->vector[leaf_left] = leftval_true_ish ? DC_VECTOR_TRUE
                                                   : DC_VECTOR_FALSE;
       }
@@ -2194,21 +2163,8 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
              *cond;
         OP   *next;
 
-        if (PL_op->op_type == OP_XOR && leftval_true_ish) {
-          /*
-           * This is an xor.  It does not short circuit, so both operands
-           * have been evaluated and the top of the stack is the right
-           * operand.  At next the stack holds the xor result, so we flag
-           * a true right operand here to recover both operands there.
-           */
-
-          set_conditional(aTHX_ PL_op, 0, 1);
-        }
-
         NDEB(D(L, "Getting next\n"));
-        next = (PL_op->op_type == OP_XOR)
-          ? PL_op->op_next
-          : right->op_next;
+        next = right->op_next;
         while (next &&
                (next->op_type == OP_NULL || next->op_type == OP_LINESEQ))
           next = next->op_next;
@@ -2272,6 +2228,52 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
       dc_snapshot_on_short_circuit(aTHX);
     }
   }
+}
+
+/*
+ * Record an xor.  This runs BEFORE pp_xor, with both operands still on
+ * the stack.  xor does not branch, so operand truth cannot be read from
+ * control flow.  Instead we boolify each operand exactly once, exactly
+ * as pp_xor would, record the outcome, and replace the operands with
+ * the plain booleans so pp_xor does not call an overloaded bool a
+ * second time.
+ */
+static void cover_xor(pTHX) {
+  dMY_CXT;
+  dSP;
+  int lt, rt;
+
+  if (!collecting(Condition)) return;
+  /* A future xor-assign writes to its left operand - leave it alone */
+  if (PL_op->op_flags & OPf_STACKED) return;
+
+  lt     = SvTRUE(TOPm1s);
+  rt     = SvTRUE(TOPs);
+  TOPm1s = boolSV(lt);
+  TOPs   = boolSV(rt);
+
+  set_conditional(aTHX_ PL_op, 5, GIMME_V == G_VOID);
+
+  if (collecting(Mcdc)) {
+    HV *meta = dc_lookup_or_build_decision_meta(aTHX_ PL_op,
+                                                find_runcv(NULL));
+    if (meta) {
+      int      leaf_left  = dc_meta_iv(aTHX_ meta, "leaf_col_left",  13);
+      int      leaf_right = dc_meta_iv(aTHX_ meta, "leaf_col_right", 14);
+      dc_dctx *d          = dc_mcdc_frame(aTHX_ meta);
+
+      if (d && leaf_left >= 0 && leaf_left < d->width)
+        d->vector[leaf_left]  = lt ? DC_VECTOR_TRUE : DC_VECTOR_FALSE;
+      if (d && leaf_right >= 0 && leaf_right < d->width)
+        d->vector[leaf_right] = rt ? DC_VECTOR_TRUE : DC_VECTOR_FALSE;
+      if (d && dc_meta_iv(aTHX_ meta, "is_root", 7) == 1) {
+        dc_snapshot(aTHX_ d);
+        if (dc_stack_top(aTHX) == d) dc_stack_pop(aTHX);
+      }
+    }
+  }
+
+  add_conditional(aTHX_ PL_op, lt ? (rt ? 3 : 2) : (rt ? 4 : 1));
 }
 
 /*
@@ -2494,7 +2496,7 @@ OP *dc_xor(pTHX) {
   dMY_CXT;
   check_if_collecting(aTHX_ PL_curcop);
   NDEB(D(L, "dc_xor() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering && collecting_here(aTHX)) cover_logop(aTHX_ NULL, 0);
+  if (MY_CXT.covering && collecting_here(aTHX)) cover_xor(aTHX);
   return MY_CXT.ppaddr[OP_XOR](aTHX);
 }
 
@@ -2839,7 +2841,7 @@ static int runops_cover(pTHX) {
       }
 
       case OP_XOR: {
-        cover_logop(aTHX_ NULL, 0);
+        cover_xor(aTHX);
         break;
       }
 

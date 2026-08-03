@@ -229,9 +229,9 @@ populated.
 MC/DC reuses the data and structural machinery Devel::Cover already collects for
 condition coverage:
 
-1. **Per-logop truth value collection** in `Cover.xs`'s `cover_logop`. See
-   `docs/technical/branches_and_conditions.md` for the layout of the condition
-   array.
+1. **Per-logop truth value collection** in `Cover.xs`'s `cover_logop` and
+   `cover_xor`. See `docs/technical/branches_and_conditions.md` for the layout
+   of the condition array.
 
 2. **Composite truth tables** built by `lib/Devel/Cover/Condition_table.pm`
    (added in GH-446). Given a tree of nested logops, this module synthesises a
@@ -308,25 +308,25 @@ analyser reports the buggy implementation as MC/DC-satisfied.
 
 Audit-grade MC/DC therefore needs per-execution combined-input data. `Cover.xs`
 records each decision's input vector at runtime: a small stack
-(`MY_CXT.dc_stack`) tracks the decisions in flight; `cover_logop` and
-`add_condition` write each leaf's observed truth value into the current vector,
-and snapshot it into `MY_CXT.decision_inputs` on short-circuit-at-root, on the
-same-type chain reaching the root, or - for decisions ending a sort comparator -
-per invocation from `resolve_deferred_conditionals`. The chain walk follows each
-right operand's `op_next`, stepping through nulled ops (the tree roots of
-element accesses, which are not executed but whose `op_next` still leads on) to
-reach the enclosing logop. Each evaluation of a decision gets its own frame: the
-decision's entry logop (the first to fire on every evaluation) always pushes a
-fresh one, so recursive invocations record separately. Frames record
-`cxstack_ix` at push; a frame abandoned by a non-local exit (`die`, `goto`,
-`last`) is detected by its now-too-deep context depth and discarded without
-recording - an abandoned evaluation must record nothing, since a partial vector
-would fabricate an observation no execution produced. Column metadata (which
-logop is a decision root, which leaf maps to which column index) is computed
-lazily on first encounter of each CV by walking the optree from `CvROOT`. The
-walk uses `op_first` / `OpSIBLING` chains rather than `op_sibparent` to preserve
-the 5.20 minimum (`op_sibparent` requires `PERL_OP_PARENT`, added in 5.22 and
-made default in 5.26).
+(`MY_CXT.dc_stack`) tracks the decisions in flight; `cover_logop`, `cover_xor`
+and `add_condition` write each leaf's observed truth value into the current
+vector, and snapshot it into `MY_CXT.decision_inputs` on short-circuit-at-root,
+on the same-type chain reaching the root, or - for decisions ending a sort
+comparator - per invocation from `resolve_deferred_conditionals`. The chain walk
+follows each right operand's `op_next`, stepping through nulled ops (the tree
+roots of element accesses, which are not executed but whose `op_next` still
+leads on) to reach the enclosing logop. Each evaluation of a decision gets its
+own frame: the decision's entry logop (the first to fire on every evaluation)
+always pushes a fresh one, so recursive invocations record separately. Frames
+record `cxstack_ix` at push; a frame abandoned by a non-local exit (`die`,
+`goto`, `last`) is detected by its now-too-deep context depth and discarded
+without recording - an abandoned evaluation must record nothing, since a partial
+vector would fabricate an observation no execution produced. Column metadata
+(which logop is a decision root, which leaf maps to which column index) is
+computed lazily on first encounter of each CV by walking the optree from
+`CvROOT`. The walk uses `op_first` / `OpSIBLING` chains rather than
+`op_sibparent` to preserve the 5.20 minimum (`op_sibparent` requires
+`PERL_OP_PARENT`, added in 5.22 and made default in 5.26).
 
 Root identification must agree with condition coverage on what "the decision"
 is. The joining logop of an `if`, `unless` or `while` statement or statement

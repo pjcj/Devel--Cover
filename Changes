@@ -4,6 +4,8 @@ Devel::Cover history
 - Read a logop left operand's truth, and an if/else or ternary
   condition's truth, from the path perl took instead of testing the value
   again, so a bool overload no longer runs twice under coverage (GH-700)
+- Evaluate xor operands in perl's stead when collecting condition
+  coverage, so a bool overload there no longer runs twice either (GH-700)
 - Don't invoke overload when recording condition coverage (Olivier Mengué, Diab
   Jerius) (GH-152, GH-175)
 - Fix pod coverage dying after Symbol::delete_package - subs in the deleted

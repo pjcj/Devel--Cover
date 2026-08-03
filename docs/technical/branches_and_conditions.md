@@ -170,7 +170,7 @@ assign the result), so condition coverage is appropriate.
 walker dispatches both to `_walk_xor`, which calls `add_condition_cover`. The
 label is rendered as `^^` when the op is used at high precedence (`$cx > 2`) and
 `xor` otherwise. The raw 4-outcome counts come from the runtime (`dc_xor` /
-`cover_logop`).
+`cover_xor`).
 
 ## Runtime Data Collection (Cover.xs)
 
@@ -185,13 +185,16 @@ by op address. The indices track different outcomes:
 ```text
 Index   Meaning
 -----   -------
-  0     Flag: first operand of xor was true (internal bookkeeping)
-  1     Count: left false, right not evaluated (short-circuited)
-  2     Count: left true, right false (not short-circuited)
-  3     Count: left true, right true (not short-circuited)
-  4     Count: left true, right true (xor-specific)
-  5     Flag: void context (the RHS is a control flow op)
+  0     Unused
+  1     Count: not short-circuited, right operand false
+  2     Count: not short-circuited, right operand true
+  3     Count: short-circuited (left determined the result)
+  4     Unused for and/or/dor
+  5     Flag: void context
 ```
+
+`xor` cannot short-circuit, so `cover_xor` records its slots directly as the
+four operand combinations: 1 = `!l&&!r`, 2 = `l&&!r`, 3 = `l&&r`, 4 = `!l&&r`.
 
 ### How the XS code collects data
 
@@ -206,8 +209,10 @@ Index   Meaning
    right side is a nulled constant, so the returned op alone cannot). The assign
    forms never pop, but their right side always holds an assignment, so
    comparing the returned op with `op_other` decides for them. `OP_XOR` neither
-   branches nor short-circuits, so for it `cover_logop` still runs before the pp
-   function and tests the operand at the stack top, as `pp_xor` itself will.
+   branches nor short-circuits, so `cover_xor` handles it instead - it runs
+   before the pp function, boolifies each operand exactly once as `pp_xor`
+   would, replaces the operands on the stack with the plain booleans, and
+   records the outcome immediately with no hook.
 
 2. If the op short-circuits (left is false for `and`, true for `or`),
    `add_conditional` immediately records the outcome at index 3 (left determined
