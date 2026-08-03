@@ -195,9 +195,19 @@ Index   Meaning
 
 ### How the XS code collects data
 
-1. **`cover_logop`** runs when a logical op (`OP_AND`, `OP_OR`, `OP_XOR`,
-   `OP_DOR`, and their assign variants) is about to execute. It checks the truth
-   value of the left operand on the stack.
+1. **`cover_logop`** runs after the pp function of a logical op (`OP_AND`,
+   `OP_OR`, `OP_DOR`, or one of their assign variants) has executed. It receives
+   the op the pp function returned and the stack depth from before the op ran,
+   and derives the left operand's truth from the path perl took rather than
+   testing the value itself, which would call an overloaded `bool` a second
+   time. `logop_no_short_circuit` decides the path. The plain forms pop the
+   tested value only when they continue into the right operand, so stack depth
+   decides for them (rpeep can leave `op_other` equal to `op_next` when the
+   right side is a nulled constant, so the returned op alone cannot). The assign
+   forms never pop, but their right side always holds an assignment, so
+   comparing the returned op with `op_other` decides for them. `OP_XOR` neither
+   branches nor short-circuits, so for it `cover_logop` still runs before the pp
+   function and tests the operand at the stack top, as `pp_xor` itself will.
 
 2. If the op short-circuits (left is false for `and`, true for `or`),
    `add_conditional` immediately records the outcome at index 3 (left determined
@@ -230,8 +240,12 @@ Index   Meaning
 ### `cover_cond` - branch data from `cond_expr`
 
 The `cond_expr` op (`?:` / `if-else`) uses a simpler mechanism. `cover_cond`
-runs at the `cond_expr` op and records which branch (true or false) was taken,
-using `add_branch` directly.
+runs after `pp_cond_expr` and reads the condition's truth from the op it
+returned - `op_other` means true, `op_next` means false. `add_branch` records
+the outcome directly. An if/else with both branches empty, or a void
+`$c ? 1 : 0`, leaves `op_other` equal to `op_next` after rpeep, so the returned
+op cannot decide. For exactly those forms `cover_cond` runs before the op
+instead and tests the value at the stack top, as `pp_cond_expr` itself will.
 
 ## How the Perl Layer Interprets Raw Data
 
