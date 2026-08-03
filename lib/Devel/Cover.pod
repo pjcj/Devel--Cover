@@ -641,6 +641,21 @@ runs cannot be reported on - its code is freed before any coverage could
 attach to it - so its statements are absent from the report rather than
 shown as uncovered.
 
+=head2 Overloaded objects in conditions
+
+When the result of C<||> or C<&&> is used as a value, perl returns the
+right operand without testing its truth.  Condition coverage needs that
+truth, but asking an overloaded object for it would run code the
+program never ran, and would die outright for an object with
+C<< fallback => 0 >> and no C<bool> overload.  Devel::Cover therefore
+counts any overloaded object as true there without invoking its
+overloads.  For an object whose C<bool> overload would have returned
+false, the report shows the true row for that operand.
+
+Where the program does test an operand's truth, as with the left
+operand of C<||> or C<&&>, Devel::Cover tests it again to record the
+result, so a C<bool> overload may be called twice there.
+
 =head1 BUGS
 
 Almost certainly.

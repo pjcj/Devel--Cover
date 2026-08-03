@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Don't invoke overload when recording condition coverage (Olivier Mengué, Diab
+  Jerius) (GH-152, GH-175)
 - Fix pod coverage dying after Symbol::delete_package - subs in the deleted
   package have no stash left to name (jkahrman) (GH-313)
 - Cover files first seen at runtime under -replace_ops 0, such as AutoLoader
