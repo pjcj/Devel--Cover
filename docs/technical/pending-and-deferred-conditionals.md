@@ -26,12 +26,14 @@ Each logical op has a 6-element condition array (see
 [3]  short-circuited (left operand determined the result)
 ```
 
-The short-circuit path (slot [3]) is straightforward: `cover_logop()` records it
-immediately via `add_conditional(op, 3)` because the left operand's value is
-known at the time the logical op is despatched. No deferred work is needed.
+The short-circuit path (slot [3]) is simple. `cover_logop()` runs after the
+logical op's pp function and derives the left operand's truth from the path perl
+took (see `branches_and_conditions.md`), so it records the outcome immediately
+via `add_conditional(op, 3)`. No deferred work is needed.
 
-The non-short-circuit path (slots [1] and [2]) is harder: the right operand
-hasn't been evaluated yet. Devel::Cover must wait until the right operand
+The non-short-circuit path (slots [1] and [2]) is harder. The pp function has
+continued into the right operand, but that operand has not yet run when
+`cover_logop()` records the path. Devel::Cover must wait until the right operand
 finishes, then read its value to decide between slot [1] (false) and slot [2]
 (true).
 
@@ -66,6 +68,18 @@ When `cover_logop()` handles the non-short-circuit path:
    pending logical op, restores the original `op_ppaddr`, and returns `PL_op` so
    the hijacked op runs normally.
 
+When the hijacked op is itself going to test that value's truth and branch on it
+\- a non-ambiguous `cond_expr`, an `and` or an `or` - `get_condition()` instead
+restores the `op_ppaddr`, stashes the pending entry in `MY_CXT.chained_cond`,
+and lets the op run. The after-exec sites (the `dc_cond_expr` and `dc_logop`
+wrappers, and the pending block in `runops_cover`) then call
+`resolve_chained_condition()`, which derives the value's truth from the path the
+consuming op took and resolves the pending entry with it. The stack read counts
+an overloaded object as true regardless of its `bool` overload, so the
+path-derived truth is exact where the stack read is not. A consumer that never
+records - a die inside the op, or collection turned off - leaves the members in
+`Pending_conditionals` for `finalise_conditions()` as usual.
+
 Multiple logical ops can share the same target. For example, in
 `$a || $b || $c`, when `$a` is false and `$b` is also false, both `||` ops are
 waiting on the same `next` op (the one after `$c`). They are all stored in the
@@ -88,11 +102,10 @@ NULL, which happens in two known cases:
 
 ### Where to find it in Cover.xs
 
-- Declaration: line ~148 (`static HV *Pending_conditionals`)
-- Setup in `cover_logop()`: lines ~1248-1278 (hv_fetch, av_push, ppaddr
-  replacement)
-- Resolution in `get_condition()`: lines ~1048-1069
-- End-of-run cleanup in `finalise_conditions()`: lines ~1092-1115
+- Declaration: `static HV *Pending_conditionals`
+- Setup in `cover_logop()`: hv_fetch, av_push, ppaddr replacement
+- Resolution in `get_condition()`
+- End-of-run cleanup in `finalise_conditions()`
 
 ## deferred_conditionals: the runops-exit mechanism
 
@@ -132,9 +145,9 @@ reads the result directly from `*PL_stack_sp`. There is nowhere for the ops to
    av_push(MY_CXT.deferred_conditionals, newSViv(PTR2IV(PL_op)));
    ```
 
-2. The original `pp_or` then executes, falls through to the right operand, and
-   the right operand runs. When the right operand's final op returns NULL, the
-   runops loop exits.
+2. `pp_or` has already fallen through to the right operand by the time
+   `cover_logop()` runs, so the right operand runs next. When the right
+   operand's final op returns NULL, the runops loop exits.
 
 3. At the runops loop exit (in both `runops_cover` and `runops_orig`),
    `resolve_deferred_conditionals()` is called. It checks for entries pushed
@@ -233,14 +246,13 @@ so that it works regardless of mode. In replace_ops mode, `PL_runops` is set to
 
 ### Where to find it in Cover.xs
 
-- Field declaration: `my_cxt_t.deferred_conditionals` (line ~140)
+- Field declaration: `my_cxt_t.deferred_conditionals`
 - Initialisation in `initialise()`: `MY_CXT.deferred_conditionals = newAV()`
-  (line ~1537)
-- Push in `cover_logop()`: the `if (!next)` block (lines ~1253-1260)
-- Helper: `resolve_deferred_conditionals()` (line ~1134)
-- Call from `runops_cover()`: loop exit (line ~1657)
-- Call from `runops_orig()`: after the while loop (line ~1687)
-- Boot: `PL_runops = runops_orig` in replace_ops branch (line ~1967)
+- Push in `cover_logop()`: the `if (!next)` block
+- Helper: `resolve_deferred_conditionals()`
+- Call from `runops_cover()`: loop exit
+- Call from `runops_orig()`: after the while loop
+- Boot: `PL_runops = runops_orig` in replace_ops branch
 
 ## Comparison
 

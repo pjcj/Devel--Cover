@@ -170,7 +170,7 @@ assign the result), so condition coverage is appropriate.
 walker dispatches both to `_walk_xor`, which calls `add_condition_cover`. The
 label is rendered as `^^` when the op is used at high precedence (`$cx > 2`) and
 `xor` otherwise. The raw 4-outcome counts come from the runtime (`dc_xor` /
-`cover_logop`).
+`cover_xor`).
 
 ## Runtime Data Collection (Cover.xs)
 
@@ -185,19 +185,34 @@ by op address. The indices track different outcomes:
 ```text
 Index   Meaning
 -----   -------
-  0     Flag: first operand of xor was true (internal bookkeeping)
-  1     Count: left false, right not evaluated (short-circuited)
-  2     Count: left true, right false (not short-circuited)
-  3     Count: left true, right true (not short-circuited)
-  4     Count: left true, right true (xor-specific)
-  5     Flag: void context (the RHS is a control flow op)
+  0     Unused
+  1     Count: not short-circuited, right operand false
+  2     Count: not short-circuited, right operand true
+  3     Count: short-circuited (left determined the result)
+  4     Unused for and/or/dor
+  5     Flag: void context
 ```
+
+`xor` cannot short-circuit, so `cover_xor` records its slots directly as the
+four operand combinations: 1 = `!l&&!r`, 2 = `l&&!r`, 3 = `l&&r`, 4 = `!l&&r`.
 
 ### How the XS code collects data
 
-1. **`cover_logop`** runs when a logical op (`OP_AND`, `OP_OR`, `OP_XOR`,
-   `OP_DOR`, and their assign variants) is about to execute. It checks the truth
-   value of the left operand on the stack.
+1. **`cover_logop`** runs after the pp function of a logical op (`OP_AND`,
+   `OP_OR`, `OP_DOR`, or one of their assign variants) has executed. It receives
+   the op the pp function returned and the stack depth from before the op ran,
+   and derives the left operand's truth from the path perl took rather than
+   testing the value itself, which would call an overloaded `bool` a second
+   time. `logop_no_short_circuit` decides the path. The plain forms pop the
+   tested value only when they continue into the right operand, so stack depth
+   decides for them (rpeep can leave `op_other` equal to `op_next` when the
+   right side is a nulled constant, so the returned op alone cannot). The assign
+   forms never pop, but their right side always holds an assignment, so
+   comparing the returned op with `op_other` decides for them. `OP_XOR` neither
+   branches nor short-circuits, so `cover_xor` handles it instead - it runs
+   before the pp function, boolifies each operand exactly once as `pp_xor`
+   would, replaces the operands on the stack with the plain booleans, and
+   records the outcome immediately with no hook.
 
 2. If the op short-circuits (left is false for `and`, true for `or`),
    `add_conditional` immediately records the outcome at index 3 (left determined
@@ -207,7 +222,11 @@ Index   Meaning
    operand's value too. It installs a temporary hook (`get_condition`) at the op
    that follows the right operand. When execution reaches that op,
    `get_condition` examines the stack and records the outcome at index 1 (right
-   was false) or 2 (right was true).
+   was false) or 2 (right was true). When that op is itself about to test the
+   value's truth - a non-ambiguous `cond_expr`, an `and` or an `or` - resolution
+   is deferred past its pp function instead and the truth is read from the path
+   it takes, which is exact for an overloaded value; see
+   `pending-and-deferred-conditionals.md`.
 
 4. **Void context shortcut**: if the op is in void context, or the right operand
    is a control flow op (`next`, `last`, `redo`, `goto`, `return`, `die`), the
@@ -230,8 +249,14 @@ Index   Meaning
 ### `cover_cond` - branch data from `cond_expr`
 
 The `cond_expr` op (`?:` / `if-else`) uses a simpler mechanism. `cover_cond`
-runs at the `cond_expr` op and records which branch (true or false) was taken,
-using `add_branch` directly.
+runs after `pp_cond_expr` and reads the condition's truth from the op it
+returned - `op_other` means true, `op_next` means false. `add_branch` records
+the outcome directly. An if/else with both branches empty, or a void
+`$c ? 1 : 0`, leaves `op_other` equal to `op_next` after rpeep, so the returned
+op cannot decide. For exactly those forms `cover_cond` runs before the op
+instead, boolifies the condition exactly once as `pp_cond_expr` would, and
+replaces it on the stack with the plain boolean so the pp function does not
+invoke an overloaded `bool` a second time - the same technique `cover_xor` uses.
 
 ## How the Perl Layer Interprets Raw Data
 

@@ -1,0 +1,218 @@
+cover: Reading database from ...
+------------------------ ------ ------ ------ ------ ------ ------ ------
+File                       stmt   bran   cond   mcdc    sub  total   scar
+------------------------ ------ ------ ------ ------ ------ ------ ------
+tests/cond_left_overload   98.0   50.0   42.8    0.0   85.7   66.6    0.0
+Total                      98.0   50.0   42.8    0.0   85.7   66.6    0.0
+------------------------ ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/cond_left_overload
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 1 74.7  1.0  0.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SCAR  Location                   
+---------- -- ----  ---------------------------
+BEGIN       1  0.2  tests/cond_left_overload:21
+__ANON__    1  0.2  tests/cond_left_overload:21
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # Test for overloaded objects as logop left operands
+11                                             # See GH-700 and GH-175
+12                                             
+13             1                           1   use strict;
+               1                               
+               1                               
+14             1                           1   use warnings;
+               1                               
+               1                               
+15                                             
+16             1                               my $bool_calls;
+17                                             
+18                                             package CountBool;
+19                                             use overload
+20            17                          17     bool => sub { $bool_calls++; ${ $_[0] } },
+              17                               
+              17                               
+21             1                           1     '""' => sub { "countbool" };
+      ***      1                          *0   
+               1                               
+      ***     *0                               
+22             4                           4   sub new { my ($class, $val) = @_; bless \$val, $class }
+               4                               
+23                                             
+24                                             package main;
+25                                             
+26                                         1   sub noop { }
+27                                             
+28             1                               my $true     = CountBool->new(1);
+29             1                               my $false    = CountBool->new(0);
+30             1                               my $expected = 0;
+31                                             
+32                                             # or - short circuit and fall through
+33    ***      1          * 50   *  0          my $a = $true || "right";
+34             1                               $expected++;
+35    ***      1          * 50   *  0          my $b = $false || "right";
+36             1                               $expected++;
+37                                             
+38                                             # and - fall through and short circuit
+39    ***      1          * 50   *  0          my $c = $true && "right";
+40             1                               $expected++;
+41    ***      1          * 50   *  0          my $d = $false && "right";
+42             1                               $expected++;
+43                                             
+44                                             # assign forms
+45             1                               my $e = CountBool->new(0);
+46    ***      1          * 50   *  0          $e ||= "right";
+47             1                               $expected++;
+48             1                               my $f = CountBool->new(1);
+49    ***      1          * 50   *  0          $f &&= "right";
+50             1                               $expected++;
+51                                             
+52                                             # void context
+53    ***      1   * 50                        $true || noop();
+54             1                               $expected++;
+55    ***      1   * 50                        $false && noop();
+56             1                               $expected++;
+57    ***      1   * 50                        noop() if $true;
+58             1                               $expected++;
+59                                             
+60                                             # void context with a nulled constant right side - op_other equals op_next
+61    ***      1   * 50                        1 if $true;
+62             1                               $expected++;
+63    ***      1   * 50                        1 if $false;
+64             1                               $expected++;
+65                                             
+66                                             # dor tests definedness, not truth, so never calls bool
+67    ***      1          * 50   *  0          my $g = $true // "right";
+68                                             
+69                                             # xor boolifies both operands exactly once each
+70    ***      1          * 25   *  0          my $h = ($true xor $false);
+71             1                               $expected += 2;
+72                                             
+73                                             # chained logops add no extra calls
+74    ***      1          * 50   *  0          my $i = $false || $false || "right";
+      ***                 * 33                 
+75             1                               $expected += 2;
+76    ***      1          * 50   *  0          my $j = $true && $true && "right";
+      ***                 * 33                 
+77             1                               $expected += 2;
+78                                             
+79                                             # Extra bool calls under coverage make this branch take its true leg
+80    ***      1   * 50                        print "extra bool calls\n" if $bool_calls != $expected;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+53    ***     50      0      1   unless $true
+55    ***     50      0      1   if $false
+57    ***     50      1      0   if $true
+61    ***     50      1      0   if $true
+63    ***     50      0      1   if $false
+80    ***     50      0      1   if $bool_calls != $expected
+
+
+Conditions
+----------
+
+and 2 conditions
+
+line  err      %     !l      l   expr
+----- --- ------ ------ ------   ----
+39    ***     50      0      1   $true && 'right'
+41    ***     50      1      0   $false && 'right'
+49    ***     50      0      1   $f &&= "right"
+76    ***     50      0      1   $true && $true && 'right'
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+76    ***     33      0      0      1   $true and $true
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+33    ***     50      1      0   $true || 'right'
+35    ***     50      0      1   $false || 'right'
+46    ***     50      0      1   $e ||= "right"
+67    ***     50      1      0   $true // "right"
+74    ***     50      0      1   $false || $false || 'right'
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+74    ***     33      0      0      1   $false or $false
+
+xor 4 conditions
+
+line  err      %   l&&r  l&&!r  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------ ------   ----
+70    ***     25      0      1      0      0   $true ^^ $false
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+33    ***      0    0    1   $true                  $true || 'right'
+35    ***      0    0    1   $false                 $false || 'right'
+39    ***      0    0    1   $true                  $true && 'right'
+41    ***      0    0    1   $false                 $false && 'right'
+46    ***      0    0    1   $e                     $e ||= "right"
+49    ***      0    0    1   $f                     $f &&= "right"
+67    ***      0    0    1   $true                  $true // "right"
+70    ***      0    0    2   $true, $false          $true ^^ $false
+74    ***      0    0    2   $false, $false         $false || $false || 'right'
+76    ***      0    0    2   $true, $true           $true && $true && 'right'
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location                   
+---------- ----- --- ----- ---------------------------
+BEGIN          1   1   0.0 tests/cond_left_overload:13
+BEGIN          1   1   0.0 tests/cond_left_overload:14
+BEGIN          1   1   0.2 tests/cond_left_overload:21
+__ANON__      17   1   0.0 tests/cond_left_overload:20
+new            4   1   0.0 tests/cond_left_overload:22
+noop           1   1   0.0 tests/cond_left_overload:26
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count  CC  SCAR Location                   
+---------- ----- --- ----- ---------------------------
+__ANON__       0   1   0.2 tests/cond_left_overload:21
+
+

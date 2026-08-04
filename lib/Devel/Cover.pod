@@ -644,17 +644,24 @@ shown as uncovered.
 =head2 Overloaded objects in conditions
 
 When the result of C<||> or C<&&> is used as a value, perl returns the
-right operand without testing its truth.  Condition coverage needs that
-truth, but asking an overloaded object for it would run code the
-program never ran, and would die outright for an object with
+right operand without testing its truth.  When the program tests that
+value straight away - as an C<if> or ternary condition, or as an
+operand of another C<&&> or C<||> - Devel::Cover reads the operand's
+truth from the path that test takes, which is exact for an overloaded
+object.  When the program never tests the value, condition coverage
+still needs a truth, but asking an overloaded object for it would run
+code the program never ran, and would die outright for an object with
 C<< fallback => 0 >> and no C<bool> overload.  Devel::Cover therefore
 counts any overloaded object as true there without invoking its
 overloads.  For an object whose C<bool> overload would have returned
 false, the report shows the true row for that operand.
 
-Where the program does test an operand's truth, as with the left
-operand of C<||> or C<&&>, Devel::Cover tests it again to record the
-result, so a C<bool> overload may be called twice there.
+Devel::Cover reads the truth of the left operand of C<||> or C<&&>, and
+of an C<if> or ternary condition, from the path perl took rather than
+from the value.  Where the path holds no answer - the operands of
+C<xor>, and the condition of an C<if>/C<else> or ternary whose branches
+are both empty - it evaluates the truth in perl's stead.  A C<bool>
+overload therefore runs exactly as often under coverage as without it.
 
 =head1 BUGS
 

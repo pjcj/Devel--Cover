@@ -1,0 +1,167 @@
+cover: Reading database from ...
+------------------------ ------ ------ ------ ------ ------ ------ ------
+File                       stmt   bran   cond   mcdc    sub  total   scar
+------------------------ ------ ------ ------ ------ ------ ------ ------
+tests/cond_expr_overload   88.2   50.0    n/a    n/a   85.7   76.1    0.0
+Total                      88.2   50.0    n/a    n/a   85.7   76.1    0.0
+------------------------ ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/cond_expr_overload
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 1 75.3  1.0  0.0
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SCAR  Location                   
+---------- -- ----  ---------------------------
+BEGIN       1  0.2  tests/cond_expr_overload:21
+__ANON__    1  0.2  tests/cond_expr_overload:21
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # Test for overloaded objects as ternary and if/else conditions
+11                                             # See GH-700
+12                                             
+13             1                           1   use strict;
+               1                               
+               1                               
+14             1                           1   use warnings;
+               1                               
+               1                               
+15                                             
+16             1                               my $bool_calls;
+17                                             
+18                                             package CountBool;
+19                                             use overload
+20            10                          10     bool => sub { $bool_calls++; ${ $_[0] } },
+              10                               
+              10                               
+21             1                           1     '""' => sub { "countbool" };
+      ***      1                          *0   
+               1                               
+      ***     *0                               
+22             2                           2   sub new { my ($class, $val) = @_; bless \$val, $class }
+               2                               
+23                                             
+24                                             package main;
+25                                             
+26                                         4   sub noop { }
+27                                             
+28             1                               my $true     = CountBool->new(1);
+29             1                               my $false    = CountBool->new(0);
+30             1                               my $expected = 0;
+31                                             
+32                                             # ternary in value context, both directions
+33    ***      1   * 50                        my $a = $true ? "t" : "f";
+34             1                               $expected++;
+35    ***      1   * 50                        my $b = $false ? "t" : "f";
+36             1                               $expected++;
+37                                             
+38                                             # if/else, both directions
+39    ***      1   * 50                        if   ($true) { noop() }
+               1                               
+40    ***     *0                               else         { noop() }
+41             1                               $expected++;
+42    ***      1   * 50                        if   ($false) { noop() }
+      ***     *0                               
+43             1                               else          { noop() }
+44             1                               $expected++;
+45                                             
+46                                             # elsif tests its condition only when the first is false
+47    ***      1   * 50                        if    ($false) { noop() }
+      ***     *0   * 50                        
+48             1                               elsif ($true)  { noop() }
+49    ***     *0                               else           { noop() }
+50             1                               $expected += 2;
+51                                             
+52                                             # unless/else
+53    ***      1   * 50                        unless ($false) { noop() }
+               1                               
+54    ***     *0                               else            { noop() }
+55             1                               $expected++;
+56                                             
+57                                             # both branches empty - op_other equals op_next, no overload involved
+58             1                               my $p = 1;
+59    ***      1   * 50                        if   ($p) { }
+60                                             else      { }
+61             1                               my $q = 0;
+62    ***      1   * 50                        if   ($q) { }
+63                                             else      { }
+64                                             
+65                                             # both branches empty with an overloaded condition - tested exactly once
+66    ***      1   * 50                        if   ($true) { }
+67                                             else         { }
+68             1                               $expected++;
+69    ***      1   * 50                        if   ($false) { }
+70                                             else          { }
+71             1                               $expected++;
+72                                             
+73                                             # void ternary with constant legs - the same ambiguous form
+74    ***      1   * 50                        $true ? 1 : 0;
+75             1                               $expected++;
+76                                             
+77                                             # Extra bool calls under coverage make this branch take its true leg
+78    ***      1   * 50                        print "extra bool calls\n" if $bool_calls != $expected;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+33    ***     50      1      0   $true ? :
+35    ***     50      0      1   $false ? :
+39    ***     50      1      0   if ($true) { }
+42    ***     50      0      1   if ($false) { }
+47    ***     50      0      1   if ($false) { }
+      ***     50      1      0   elsif ($true) { }
+53    ***     50      1      0   if (not $false) { }
+59    ***     50      1      0   if ($p) { }
+62    ***     50      0      1   if ($q) { }
+66    ***     50      1      0   if ($true) { }
+69    ***     50      0      1   if ($false) { }
+74    ***     50      1      0   if ($true) { }
+78    ***     50      0      1   if $bool_calls != $expected
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location                   
+---------- ----- --- ----- ---------------------------
+BEGIN          1   1   0.0 tests/cond_expr_overload:13
+BEGIN          1   1   0.0 tests/cond_expr_overload:14
+BEGIN          1   1   0.2 tests/cond_expr_overload:21
+__ANON__      10   1   0.0 tests/cond_expr_overload:20
+new            2   1   0.0 tests/cond_expr_overload:22
+noop           4   1   0.0 tests/cond_expr_overload:26
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count  CC  SCAR Location                   
+---------- ----- --- ----- ---------------------------
+__ANON__       0   1   0.2 tests/cond_expr_overload:21
+
+
