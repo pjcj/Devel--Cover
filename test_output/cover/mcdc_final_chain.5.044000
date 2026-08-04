@@ -149,10 +149,10 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-19           100      2      1   $p or $q
+19           100      1      2   $p or $q
 24           100      2      2   $p and $q and $r
-29           100      4      2   $p // $q or $r
-34           100      5      3   ($p // $q) // $s or $r
+29           100      2      4   $p // $q or $r
+34           100      3      5   ($p // $q) // $s or $r
 
 
 Conditions

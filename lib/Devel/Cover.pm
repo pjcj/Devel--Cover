@@ -928,6 +928,8 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
     || ($type eq "elsif" && !exists $Coverage->{branch}{$key})
   ) {
     $c = [$c->[1] + $c->[2], $c->[3]];
+  } elsif ($type eq "or_expr") {
+    $c = [$c->[3], $c->[1] + $c->[2]];
   } else {
     $c = $Coverage->{branch}{$key} || [0, 0];
   }
@@ -1419,9 +1421,10 @@ sub _walk_logop ($cv, $op) {
     _record_logop_condition($cv, $op, $highop, $left, $right, $highprec, 0);
   } elsif ($is_branch) {
     # From 5.43.8 OPpSTATEMENT routes statement-level expression joins here
-    my $l = _deparse_binop_left($cv, $op, $left, $lowprec);
-    my $r = _deparse_expr($cv, $right, $lowprec);
-    add_branch_cover($op, $lowop, "$l $lowop $r", $file, $line)
+    my $l    = _deparse_binop_left($cv, $op, $left, $lowprec);
+    my $r    = _deparse_expr($cv, $right, $lowprec);
+    my $type = $lowop eq "or" ? "or_expr" : $lowop;
+    add_branch_cover($op, $type, "$l $lowop $r", $file, $line)
       unless $Seen{branch}{$$op}++;
     _record_compound_join(
       $cv,   $op,    $highop   // $lowop,

@@ -404,6 +404,25 @@ A condition inside any of these, such as C<unless ($a && $b)> or C<while
 ($a && $b)>, is instrumented on its own terms, with the same truth-table
 rows as anywhere else.
 
+=head4 Statement-level and/or
+
+C<B unless A> and C<A or B> compile to the same logop, as do C<B if A>
+and C<A and B>.  In every case the "true" and "false" elements follow
+the text the report displays.  From perl 5.43.8 a statement written
+C<A or B>, including the common C<my $x = A or die>, displays as
+written, and its "true" element means C<A> was true so C<B> did not
+run.  A C<die> or other escape which can never fire is therefore the
+"false" element:
+
+  # uncoverable branch false
+  my $x = get_thing() or die "no thing\n";
+
+Earlier perls do not record the source spelling, so the report
+renormalises the statement to the modifier text - here C<unless my $x =
+get_thing()> - and, as described above, its "true" element means the
+right side ran.  A comment on such a line therefore names opposite
+outcomes on either side of 5.43.8.
+
 =head3 Conditions
 
 Because Perl short-circuits boolean operations, a condition has several
