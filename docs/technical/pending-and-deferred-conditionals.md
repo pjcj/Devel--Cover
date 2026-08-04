@@ -68,6 +68,18 @@ When `cover_logop()` handles the non-short-circuit path:
    pending logical op, restores the original `op_ppaddr`, and returns `PL_op` so
    the hijacked op runs normally.
 
+When the hijacked op is itself going to test that value's truth and branch on it
+\- a non-ambiguous `cond_expr`, an `and` or an `or` - `get_condition()` instead
+restores the `op_ppaddr`, stashes the pending entry in `MY_CXT.chained_cond`,
+and lets the op run. The after-exec sites (the `dc_cond_expr` and `dc_logop`
+wrappers, and the pending block in `runops_cover`) then call
+`resolve_chained_condition()`, which derives the value's truth from the path the
+consuming op took and resolves the pending entry with it. The stack read counts
+an overloaded object as true regardless of its `bool` overload, so the
+path-derived truth is exact where the stack read is not. A consumer that never
+records - a die inside the op, or collection turned off - leaves the members in
+`Pending_conditionals` for `finalise_conditions()` as usual.
+
 Multiple logical ops can share the same target. For example, in
 `$a || $b || $c`, when `$a` is false and `$b` is also false, both `||` ops are
 waiting on the same `next` op (the one after `$c`). They are all stored in the

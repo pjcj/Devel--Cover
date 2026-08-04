@@ -170,7 +170,7 @@ or 3 conditions
 
 line  err      %      l  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------   ----
-74    ***     33      0      1      0   $false or $false
+74    ***     33      0      0      1   $false or $false
 
 xor 4 conditions
 

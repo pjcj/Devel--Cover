@@ -202,6 +202,9 @@ typedef struct {
   dc_stack_t    dc_stack;              /* active decisions awaiting
                                         * resolution; top entry is the
                                         * decision currently being filled */
+  SV           *chained_cond;          /* pending conditions whose truth
+                                        * the consuming op's path gives */
+  OP           *chained_target;        /* the consuming op */
   Perl_ppaddr_t ppaddr[MAXO];
 } my_cxt_t;
 
@@ -1201,6 +1204,27 @@ static OP *get_condition(pTHX) {
           PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
     /* dump_conditions(aTHX); */
     NDEB(svdump(Pending_conditionals));
+
+    /*
+     * When this op will itself test the pending value's truth and
+     * branch on it, defer resolution and read the truth from the path
+     * it takes.  That truth is exact for an overloaded value, where
+     * the stack read below counts the object as true regardless of
+     * its bool overload.  An ambiguous cond_expr (op_other equal to
+     * op_next) gives no path, so it resolves from the stack as before.
+     */
+    if (PL_op->op_type == OP_AND || PL_op->op_type == OP_OR ||
+        (PL_op->op_type == OP_COND_EXPR &&
+         cLOGOP->op_other != PL_op->op_next)) {
+      dMY_CXT;
+      AV *conds = (AV *)SvRV(*pc);
+      PL_op->op_ppaddr =
+        INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1, 0)));
+      MY_CXT.chained_cond   = *pc;
+      MY_CXT.chained_target = PL_op;
+      return PL_op;
+    }
+
     true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
       ? SvOK(TOPs) : sv_true_no_overload(aTHX_ TOPs);
     NDEB(D(L, "   get_condition true_ish=%d\n", true_ish));
@@ -2051,6 +2075,26 @@ static int logop_no_short_circuit(pTHX_ OP *next_op, SSize_t depth) {
   return next_op == cLOGOP->op_other;
 }
 
+/*
+ * Resolve pending conditions chained to the op at PL_op, which tested
+ * the pending value's truth itself and took a path that encodes it.
+ * The tested value is true when a cond_expr took op_other, when an and
+ * continued into its right operand, or when an or short-circuited.
+ */
+static void resolve_chained_condition(pTHX_ OP *next_op, SSize_t depth) {
+  dMY_CXT;
+  SV *cond = MY_CXT.chained_cond;
+  int truth;
+  if (!cond) return;
+  MY_CXT.chained_cond = NULL;
+  if (MY_CXT.chained_target != PL_op) return;
+  truth = PL_op->op_type == OP_COND_EXPR
+    ? next_op == cLOGOP->op_other
+    : logop_no_short_circuit(aTHX_ next_op, depth)
+        == (PL_op->op_type == OP_AND);
+  add_condition(aTHX_ cond, truth ? 2 : 1);
+}
+
 static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
   /*
    * For OP_AND, if the first operand is false, we have short circuited the
@@ -2418,6 +2462,7 @@ static OP *dc_cond_expr(pTHX) {
   ambiguous = cLOGOP->op_other == PL_op->op_next;
   if (collect && ambiguous) cover_cond(aTHX_ NULL);
   next = MY_CXT.ppaddr[OP_COND_EXPR](aTHX);
+  if (MY_CXT.chained_cond) resolve_chained_condition(aTHX_ next, 0);
   if (collect && !ambiguous) cover_cond(aTHX_ next);
   return next;
 }
@@ -2438,6 +2483,7 @@ static OP *dc_logop(pTHX) {
   collect = MY_CXT.covering && collecting_here(aTHX);
   depth   = PL_stack_sp - PL_stack_base;
   next    = MY_CXT.ppaddr[PL_op->op_type](aTHX);
+  if (MY_CXT.chained_cond) resolve_chained_condition(aTHX_ next, depth);
   if (collect) cover_logop(aTHX_ next, depth);
   return next;
 }
@@ -2682,6 +2728,8 @@ static void initialise(pTHX) {
     Zero(&MY_CXT.av_cache, 1, dc_av_cache);
     Zero(&MY_CXT.dc_stack,  1, dc_stack_t);
     MY_CXT.deferred_conditionals      = newAV();
+    MY_CXT.chained_cond               = NULL;
+    MY_CXT.chained_target             = NULL;
     MY_CXT.decision_meta              = newHV();
     MY_CXT.decision_walked_cvs        = newHV();
     HvSHAREKEYS_off(MY_CXT.decision_meta);
@@ -2814,6 +2862,8 @@ static int runops_cover(pTHX) {
       OP *next = PL_op->op_ppaddr(aTHX);
       if (pending_op) {
         PL_op = pending_op;
+        if (MY_CXT.chained_cond)
+          resolve_chained_condition(aTHX_ next, pending_depth);
         if (PL_op->op_type == OP_COND_EXPR)
           cover_cond(aTHX_ next);
         else

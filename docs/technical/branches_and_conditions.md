@@ -222,7 +222,11 @@ four operand combinations: 1 = `!l&&!r`, 2 = `l&&!r`, 3 = `l&&r`, 4 = `!l&&r`.
    operand's value too. It installs a temporary hook (`get_condition`) at the op
    that follows the right operand. When execution reaches that op,
    `get_condition` examines the stack and records the outcome at index 1 (right
-   was false) or 2 (right was true).
+   was false) or 2 (right was true). When that op is itself about to test the
+   value's truth - a non-ambiguous `cond_expr`, an `and` or an `or` - resolution
+   is deferred past its pp function instead and the truth is read from the path
+   it takes, which is exact for an overloaded value; see
+   `pending-and-deferred-conditionals.md`.
 
 4. **Void context shortcut**: if the op is in void context, or the right operand
    is a control flow op (`next`, `last`, `redo`, `goto`, `return`, `die`), the
