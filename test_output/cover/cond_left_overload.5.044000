@@ -130,7 +130,7 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-53    ***     50      0      1   $true or noop()
+53    ***     50      1      0   $true or noop()
 55    ***     50      0      1   $false and noop()
 57    ***     50      1      0   if $true
 61    ***     50      1      0   if $true

@@ -279,6 +279,64 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
     # uncoverable statement
     die "emergency stop";
   }
+
+  =head2 require_value
+
+  Return the value, dying if it is false.
+
+  =cut
+
+  sub require_value {
+    my ($v) = @_;
+    # uncoverable branch false
+    my $ok = $v or die "no value";
+    return $ok;
+  }
+
+  =head2 require_value_unless
+
+  The same guard written with the unless modifier.
+
+  =cut
+
+  sub require_value_unless {
+    my ($v) = @_;
+    # uncoverable branch true
+    die "no value" unless $v;
+    return $v;
+  }
+
+  =head2 require_value_if
+
+  The same guard written with a negated block if.
+
+  =cut
+
+  sub require_value_if {
+    my ($v) = @_;
+    # uncoverable branch true
+    if (!$v) {
+      # uncoverable statement
+      die "no value";
+    }
+    return $v;
+  }
+
+  =head2 require_value_unless_block
+
+  The same guard written with a block unless.
+
+  =cut
+
+  sub require_value_unless_block {
+    my ($v) = @_;
+    # uncoverable branch true
+    unless ($v) {
+      # uncoverable statement
+      die "no value";
+    }
+    return $v;
+  }
 BODY
 
 my $Trivial_body = <<'BODY' =~ s/^  //gmr;
@@ -398,6 +456,10 @@ sub create_cover_db ($tmpdir, $libdir) {
   Covered::Markers::fetch(\\%c, q(k), 2);
   Covered::Markers::audit(1);
   Covered::Markers::audit(0);
+  Covered::Markers::require_value(5);
+  Covered::Markers::require_value_unless(5);
+  Covered::Markers::require_value_if(5);
+  Covered::Markers::require_value_unless_block(5);
   Covered::Utils::greet(q(world));
   Covered::Utils::upper(q(hi));
   Covered::Full::double(5);

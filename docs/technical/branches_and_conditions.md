@@ -270,10 +270,29 @@ data), the function reads from `$Coverage->{condition}{$key}` and collapses the
 6-element array into 2 values:
 
 ```perl
-# True path = left true and right evaluated (indices 1 + 2)
-# False path = short-circuited (index 3)
 $c = [ $c->[1] + $c->[2], $c->[3] ];
 ```
+
+The index meanings differ by operator. For `and`, index 1 is `l && !r`, index 2
+is `l && r` and index 3 is `!l`, so the collapse gives `[l, !l]` - "true" means
+the left operand was true. For `or`, index 1 is `!l && !r`, index 2 is `!l && r`
+and index 3 is `l`, so the same collapse gives `[!l, l]` - "true" means the left
+operand was false. That reading matches the `if`/`unless` text these types
+display, where "true" means the guarded code ran.
+
+The `or_expr` type is passed by `_walk_logop` for a statement-level `or` whose
+text displays as written (`A or B`), which perl distinguishes from the modifier
+spelling via `OPpSTATEMENT` from 5.43.8. Its collapse is mirrored so "true"
+follows the displayed text, meaning the left operand was true:
+
+```perl
+$c = [ $c->[3], $c->[1] + $c->[2] ];
+```
+
+The `and` type needs no mirror because its standard collapse already reads
+correctly for both the `if` and `A and B` texts. On perls before 5.43.8 the
+statement-level path is never taken for `and`/`or`, so `or_expr` does not arise
+there.
 
 For `if`/`elsif` type branches, the function reads from
 `$Coverage->{branch}{$key}`, which is populated directly by `cover_cond` in the

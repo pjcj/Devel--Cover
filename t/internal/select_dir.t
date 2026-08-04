@@ -160,7 +160,7 @@ sub test_text_report () {
       "Uncovered/Calc.pm  0.0  0.0  0.0  0.0  0.0  18.4",
       "Uncovered/Full.pm  0.0  0.0  0.0  0.0  0.0  17.2",
       "Uncovered/Logic.pm  0.0  0.0  0.0  0.0  0.0  16.1",
-      "Uncovered/Markers.pm  0.0  0.0  0.0  0.0  0.0  12.0",
+      "Uncovered/Markers.pm  0.0  0.0  0.0  0.0  0.0  15.0",
       "Uncovered/Trivial.pm  0.0  n/a  n/a  0.0  0.0  6.9",
       "Uncovered/Utils.pm  0.0  0.0  n/a  0.0  0.0  12.8",
     ]

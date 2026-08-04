@@ -1,6 +1,11 @@
 Devel::Cover history
 
 {{$NEXT}}
+- BREAKING: Swap branch true and false for an "or" statement displayed
+  as written, e.g. my $x = get() or die, so "true" now means the left
+  side was true. Uncoverable branch comments on such lines must swap
+  too. Only perl 5.43.8 and later displays this form (Kevin Brannen)
+  (GH-173)
 - Read a logop left operand's truth, and an if/else or ternary
   condition's truth, from the path perl took instead of testing the value
   again, so a bool overload no longer runs twice under coverage (GH-700)

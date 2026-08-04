@@ -384,7 +384,7 @@ line  err      %   true  false   branch
 29    ***     50      0      4   if $y
 31           100      2      2   $z and ++$x[6]
 32           100      2      2   if $z
-34    ***     50      4      0   $y or ++$x[7]
+34    ***     50      0      4   $y or ++$x[7]
 35    ***     50      4      0   unless $y
 37           100      2      2   $z or ++$x[8]
 38           100      2      2   unless $z
@@ -399,11 +399,11 @@ line  err      %   true  false   branch
 64           100      1      1   $y or next
 69           100      1      1   $y and next
 74           100      1      1   $y and next
-92    ***     50      1      0   $y or last
+92    ***     50      0      1   $y or last
 97           100      1      1   $y or last
 102          100      1      1   $y and last
 107   ***     50      1      0   $y and last
-125   ***     50      1      0   $y or goto G1
+125   ***     50      0      1   $y or goto G1
 131          100      1      1   $y or goto G2
 137          100      1      1   $y and goto G3
 143   ***     50      1      0   $y and goto G4

@@ -1,0 +1,123 @@
+cover: Reading database from ...
+------------------------ ------ ------ ------ ------ ------
+File                       stmt   bran   cond  total   scar
+------------------------ ------ ------ ------ ------ ------
+tests/or_branch_polarity  100.0   91.6  100.0   97.7    6.3
+Total                     100.0   91.6  100.0   97.7    6.3
+------------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/or_branch_polarity
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 8 97.7  1.9  6.3
+
+Worst Subroutines
+-----------------
+
+Subroutine      CC SCAR  Location                   
+--------------- -- ----  ---------------------------
+or_die           2  7.1  tests/or_branch_polarity:18
+or_void          2  6.9  tests/or_branch_polarity:24
+unless_modifier  2  6.9  tests/or_branch_polarity:29
+
+line  err   stmt   bran   cond   code
+1                                #!/usr/bin/env perl
+2                                
+3                                # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                
+5                                # This software is free.  It is licensed under the same terms as Perl itself.
+6                                
+7                                # The latest version of this software should be available from my homepage:
+8                                # https://pjcj.net
+9                                
+10                               # __COVER__ criteria statement branch condition
+11                               
+12             1                 use strict;
+               1                 
+               1                 
+13             1                 use warnings;
+               1                 
+               1                 
+14                               
+15             1                 my $side_effect;
+16                               
+17                               sub or_die {
+18             3                   my $x = shift;
+19    ***      3   * 50            my $v = $x or die "no value\n";
+20             3                   $v
+21                               }
+22                               
+23                               sub or_void {
+24             3                   my $x = shift;
+25             3    100            $x or $side_effect = "or";
+26                               }
+27                               
+28                               sub unless_modifier {
+29             3                   my $x = shift;
+30             3    100            $side_effect = "unless" unless $x;
+31                               }
+32                               
+33                               sub unless_block {
+34             3                   my $x = shift;
+35             3    100            unless ($x) { $side_effect = "block" }
+               2                 
+36                               }
+37                               
+38                               sub if_modifier {
+39             3                   my $x = shift;
+40             3    100            $side_effect = "if" if $x;
+41                               }
+42                               
+43                               sub and_void {
+44             3                   my $x = shift;
+45             3    100            $x and $side_effect = "and";
+46                               }
+47                               
+48                               sub dor_void {
+49             3                   my $x = shift;
+50             3           100     $x // ($side_effect = "dor");
+51                               }
+52                               
+53             1                 or_die($_)          for 1,     2, 3;
+54             1                 or_void($_)         for 0,     1, 2;
+55             1                 unless_modifier($_) for 0,     1, 1;
+56             1                 unless_block($_)    for 0,     0, 1;
+57             1                 if_modifier($_)     for 0,     1, 1;
+58             1                 and_void($_)        for 0,     1, 1;
+59             1                 dor_void($_)        for undef, 1, 2;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+19    ***     50      0      3   unless my $v = $x
+25           100      1      2   unless $x
+30           100      1      2   unless $x
+35           100      2      1   unless ($x)
+40           100      2      1   if $x
+45           100      2      1   if $x
+
+
+Conditions
+----------
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+50           100      2      1   $x // ($side_effect = "dor")
+
+
