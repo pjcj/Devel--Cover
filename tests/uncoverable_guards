@@ -1,0 +1,52 @@
+#!/usr/bin/env perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# __COVER__ criteria statement branch
+
+use strict;
+use warnings;
+
+sub require_value {
+  my ($v) = @_;
+  # uncoverable branch false
+  my $ok = $v or die "no value";
+  return $ok;
+}
+
+sub require_value_unless {
+  my ($v) = @_;
+  # uncoverable branch true
+  die "no value" unless $v;
+  return $v;
+}
+
+sub require_value_if {
+  my ($v) = @_;
+  # uncoverable branch true
+  if (!$v) {
+    # uncoverable statement
+    die "no value";
+  }
+  return $v;
+}
+
+sub require_value_unless_block {
+  my ($v) = @_;
+  # uncoverable branch true
+  unless ($v) {
+    # uncoverable statement
+    die "no value";
+  }
+  return $v;
+}
+
+require_value(5);
+require_value_unless(5);
+require_value_if(5);
+require_value_unless_block(5);
