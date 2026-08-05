@@ -1,0 +1,114 @@
+cover: Reading database from ...
+------------------ ------ ------ ------ ------ ------ ------ ------
+File                 stmt   bran   cond   mcdc    sub  total   scar
+------------------ ------ ------ ------ ------ ------ ------ ------
+tests/ref_do_block   89.4   50.0   33.3    0.0   50.0   68.7    4.1
+Total                89.4   50.0   33.3    0.0   50.0   68.7    4.1
+------------------ ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/ref_do_block
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 1 76.9  1.5  4.1
+
+Worst Subroutines
+-----------------
+
+Subroutine     CC SCAR  Location             
+-------------- -- ----  ---------------------
+not_referenced  1  6.9  tests/ref_do_block:16
+not_copied      1  6.9  tests/ref_do_block:17
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # A ref to a single-statement do-block must point at the real variable, and
+11                                             # a ref to a multi-statement do-block must still point at a copy.
+12                                             
+13             1                           1   use strict;
+               1                               
+               1                               
+14             1                           1   use warnings;
+               1                               
+               1                               
+15                                             
+16    ***     *0                          *0   sub not_referenced { print "assignment did not reach the variable\n" }
+17    ***     *0                          *0   sub not_copied     { print "multi-statement do-block was not copied\n" }
+18                                             
+19             1                               my $var;
+20             1                               my $foo_sr = \do { $var = undef };
+               1                               
+21             1                               $$foo_sr = "3:4:5";
+22    ***      1   * 50   * 33   *  0          not_referenced() if !defined $var || $var ne $$foo_sr;
+23                                             
+24             1                               my $multi;
+25                                             my $keep;
+26             1                               my $multi_sr = \do { $keep = 1; $multi = undef };
+               1                               
+               1                               
+27             1                               $$multi_sr = "changed";
+28    ***      1   * 50                        not_copied() if defined $multi;
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+22    ***     50      0      1   if not defined $var or $var ne $$foo_sr
+28    ***     50      0      1   if defined $multi
+
+
+Conditions
+----------
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+22    ***     33      0      0      1   not defined $var or $var ne $$foo_sr
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                              expr
+----- --- ------ ---- ----   ----------------------------------   ----
+22    ***      0    0    2   not defined $var, $var ne $$foo_sr   not defined $var or $var ne $$foo_sr
+
+
+Covered Subroutines
+-------------------
+
+Subroutine     Count  CC  SCAR Location             
+-------------- ----- --- ----- ---------------------
+BEGIN              1   1   0.0 tests/ref_do_block:13
+BEGIN              1   1   0.0 tests/ref_do_block:14
+
+Uncovered Subroutines
+---------------------
+
+Subroutine     Count  CC  SCAR Location             
+-------------- ----- --- ----- ---------------------
+not_copied         0   1   6.9 tests/ref_do_block:17
+not_referenced     0   1   6.9 tests/ref_do_block:16
+
+

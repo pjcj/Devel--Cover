@@ -29,3 +29,5 @@ tags
 .perl-version
 \.db
 ^\.build\b
+CLAUDE\.md$
+\.autoenv\.zsh$

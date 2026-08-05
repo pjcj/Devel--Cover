@@ -2628,6 +2628,23 @@ static OP *dc_leaveeval(pTHX) {
   return MY_CXT.ppaddr[OP_LEAVEEVAL](aTHX);
 }
 
+/*
+ * PERLDBf_NOOPT keeps a real enter/leave pair for every block, and pp_leave
+ * copies the block's value unless OPpLVALUE is set, so \do { $var } refs a
+ * copy.  Restore plain perl semantics by setting the flag under op_scope's
+ * own condition - OPf_PARENS marks the blocks plain perl copies too.
+ */
+static void leave_set_lvalue(pTHX) {
+  if (!(PL_op->op_flags & OPf_PARENS) && !TAINTING_get)
+    PL_op->op_private |= OPpLVALUE;
+}
+
+static OP *dc_leave(pTHX) {
+  dMY_CXT;
+  leave_set_lvalue(aTHX);
+  return MY_CXT.ppaddr[OP_LEAVE](aTHX);
+}
+
 static OP *dc_exec(pTHX) {
   dMY_CXT;
   NDEB(D(L, "dc_exec() at %p (%d)\n", PL_op, collecting_here(aTHX)));
@@ -2657,6 +2674,7 @@ static void replace_ops (pTHX) {
   PL_ppaddr[OP_REQUIRE]   = dc_require;
   PL_ppaddr[OP_LEAVEEVAL] = dc_leaveeval;
   PL_ppaddr[OP_RETURN]    = dc_return;
+  PL_ppaddr[OP_LEAVE]     = dc_leave;
   PL_ppaddr[OP_EXEC]      = dc_exec;
 }
 
@@ -2765,6 +2783,19 @@ static int runops_cover(pTHX) {
   for (;;) {
     NDEB(D(L, "running func %p from %p (%s)\n",
            PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
+
+    /* Semantics, not collection, so it must not honour the vetoes below.
+       But leave a hijacked op alone - the pending-conditional key hashes
+       op_private, so changing it here would break the key lookup. */
+    if (PL_op->op_type == OP_LEAVE) {
+      int hijacked;
+      MUTEX_LOCK(&DC_mutex);
+      hijacked = PL_op->op_ppaddr == get_condition
+              || PL_op->op_ppaddr == get_condition_dor;
+      MUTEX_UNLOCK(&DC_mutex);
+      if (!hijacked)
+        leave_set_lvalue(aTHX);
+    }
 
     if (!MY_CXT.covering)
       goto call_fptr;
