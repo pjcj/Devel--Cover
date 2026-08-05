@@ -77,11 +77,23 @@ direct: same
 multi: unset
 TEXT
 
-sub run_program ($label, $taint, $cover_options, $expected) {
+# A logop inside a do-block whose value is consumed by the block's leave
+# makes Devel::Cover hijack the leave op for condition coverage.  Setting
+# OPpLVALUE on a hijacked leave changes the pending-conditional key, which
+# hashes op_private, so resolution fails and the run aborts.
+my $Cond_program = <<'PERL';
+my $q = 0;
+my $r = do { $q || "default" };
+print "r=$r\n";
+PERL
+
+my $Cond_expected = "r=default\n";
+
+sub run_program ($label, $taint, $cover_options, $program, $expected) {
   my $tmpdir = realpath(tempdir(CLEANUP => 1));
   my $prog   = File::Spec->catfile($tmpdir, "prog.pl");
   open my $fh, ">", $prog or die "Cannot write $prog: $!";
-  print $fh $Program;
+  print $fh $program;
   close $fh or die "Cannot close $prog: $!";
 
   local $ENV{DEVEL_COVER_SELF};
@@ -97,15 +109,20 @@ sub run_program ($label, $taint, $cover_options, $expected) {
   is $out, $expected, "$label: refs to do-blocks match plain perl";
 }
 
-run_program "no coverage",       "",    undef,            $Expected;
-run_program "default",           "",    "",               $Expected;
-run_program "replace_ops 0",     "",    "-replace_ops,0", $Expected;
-run_program "taint no coverage", " -T", undef,            $Expected_taint;
-run_program "taint default",     " -T", "",               $Expected_taint;
+run_program "no coverage",       "",    undef,            $Program, $Expected;
+run_program "default",           "",    "",               $Program, $Expected;
+run_program "replace_ops 0",     "",    "-replace_ops,0", $Program, $Expected;
+run_program "taint no coverage", " -T", undef, $Program, $Expected_taint;
+run_program "taint default",     " -T", "",    $Program, $Expected_taint;
 
 # On Windows Cwd chdirs inside abs_path, which taint forbids, killing the
 # child at CHECK time under -replace_ops 0
-run_program "taint replace_ops 0", " -T", "-replace_ops,0", $Expected_taint
+run_program "taint replace_ops 0", " -T", "-replace_ops,0", $Program,
+  $Expected_taint
   unless $^O eq "MSWin32";
+
+run_program "cond default", "", "+select,prog", $Cond_program, $Cond_expected;
+run_program "cond replace_ops 0", "", "-replace_ops,0,+select,prog",
+  $Cond_program, $Cond_expected;
 
 done_testing;

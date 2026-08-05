@@ -2784,9 +2784,18 @@ static int runops_cover(pTHX) {
     NDEB(D(L, "running func %p from %p (%s)\n",
            PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
 
-    /* Semantics, not collection, so it must not honour the vetoes below */
-    if (PL_op->op_type == OP_LEAVE)
-      leave_set_lvalue(aTHX);
+    /* Semantics, not collection, so it must not honour the vetoes below.
+       But leave a hijacked op alone - the pending-conditional key hashes
+       op_private, so changing it here would break the key lookup. */
+    if (PL_op->op_type == OP_LEAVE) {
+      int hijacked;
+      MUTEX_LOCK(&DC_mutex);
+      hijacked = PL_op->op_ppaddr == get_condition
+              || PL_op->op_ppaddr == get_condition_dor;
+      MUTEX_UNLOCK(&DC_mutex);
+      if (!hijacked)
+        leave_set_lvalue(aTHX);
+    }
 
     if (!MY_CXT.covering)
       goto call_fptr;
