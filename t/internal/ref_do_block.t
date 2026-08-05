@@ -97,11 +97,15 @@ sub run_program ($label, $taint, $cover_options, $expected) {
   is $out, $expected, "$label: refs to do-blocks match plain perl";
 }
 
-run_program "no coverage",         "",    undef,            $Expected;
-run_program "default",             "",    "",               $Expected;
-run_program "replace_ops 0",       "",    "-replace_ops,0", $Expected;
-run_program "taint no coverage",   " -T", undef,            $Expected_taint;
-run_program "taint default",       " -T", "",               $Expected_taint;
-run_program "taint replace_ops 0", " -T", "-replace_ops,0", $Expected_taint;
+run_program "no coverage",       "",    undef,            $Expected;
+run_program "default",           "",    "",               $Expected;
+run_program "replace_ops 0",     "",    "-replace_ops,0", $Expected;
+run_program "taint no coverage", " -T", undef,            $Expected_taint;
+run_program "taint default",     " -T", "",               $Expected_taint;
+
+# On Windows Cwd chdirs inside abs_path, which taint forbids, killing the
+# child at CHECK time under -replace_ops 0
+run_program "taint replace_ops 0", " -T", "-replace_ops,0", $Expected_taint
+  unless $^O eq "MSWin32";
 
 done_testing;
