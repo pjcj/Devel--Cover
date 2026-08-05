@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Fix taking a ref to a do-block, \do { $var = undef } - under coverage
+  the ref pointed at a mortal copy of the block's value, so assignment
+  through it never reached the variable (Felipe Gasper) (GH-276)
 - BREAKING: Swap branch true and false for an "or" statement displayed
   as written, e.g. my $x = get() or die, so "true" now means the left
   side was true. Uncoverable branch comments on such lines must swap
