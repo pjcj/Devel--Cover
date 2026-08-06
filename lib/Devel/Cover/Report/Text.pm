@@ -385,6 +385,11 @@ sub _update_maxw ($maxw, %vals) {
   }
 }
 
+sub _flagged_count ($o) {
+  my $v = ($o->uncoverable ? "-" : "") . $o->covered;
+  $o->uncoverable && $o->error ? "*$v" : $v
+}
+
 sub _gather_subs ($dfile, $pods, $display_name, $scar_lookup) {
   my $subs = $dfile->subroutine or return;
   my %maxw = (h => 8, c => 5, p => 3, s => 10, cc => 3, cr => 5);
@@ -396,9 +401,9 @@ sub _gather_subs ($dfile, $pods, $display_name, $scar_lookup) {
     my $d = $pods && $pods->location($location);
     for my $sub (@$l) {
       my $h = "$display_name:$location";
-      my $c = ($sub->uncoverable ? "-" : "") . $sub->covered;
+      my $c = _flagged_count($sub);
       my $e = $pods && shift @$d;
-      my $p = $e ? ($e->uncoverable ? "-" : "") . $e->covered : "";
+      my $p = $e ? _flagged_count($e) : "";
       my $s = $sub->name;
 
       my $info = $scar_lookup->{"$location\0$s"};
@@ -408,7 +413,10 @@ sub _gather_subs ($dfile, $pods, $display_name, $scar_lookup) {
       _update_maxw(\%maxw, h => $h, c => $c, s => $s, cc => $cc, cr => $cr);
       $maxw{p} = length $p if $p && length $p > $maxw{p};
 
-      my $type = $sub->covered ? "covered" : "uncovered";
+      my $type
+        = $sub->covered     ? "covered"
+        : $sub->uncoverable ? "uncoverable"
+        :                     "uncovered";
       push $by_type{$type}{$s}->@*,
         [$c, $pods ? $p : (), $has_scar ? ($cc, $cr) : (), $h];
     }
@@ -537,8 +545,9 @@ decision's source text.
 
 =head2 print_subroutines ($db, $file, $options, $short)
 
-Print covered and uncovered subroutine tables for C<$file>, including call
-counts, pod coverage, and source location.
+Print subroutine tables for C<$file>, including call counts, pod coverage,
+and source location. Subroutines are bucketed by state: covered, uncoverable
+(uncovered but marked uncoverable), and uncovered.
 
 =head1 PRIVATE SUBROUTINES
 
@@ -573,12 +582,18 @@ output lines are produced when a single source line has several coverage points
 Update column-width hash C<$maxw> in place: for each key in C<%vals>, set
 C<< $maxw->{$k} >> to the value's length if it exceeds the current maximum.
 
+=head2 _flagged_count ($o)
+
+Format a subroutine or pod count, prefixing C<-> for uncoverable entries and
+C<*> when the uncoverable marker is stale - the construct is marked
+uncoverable yet covered.
+
 =head2 _gather_subs ($dfile, $pods, $display_name, $scar_lookup)
 
 Walk the subroutine and pod coverage data for a file, returning a hashref of
-covered/uncovered sub entries and a hashref of column widths for formatting.
-When C<$scar_lookup> is non-empty, CC and SCAR values are included in each
-entry.
+covered/uncoverable/uncovered sub entries and a hashref of column widths for
+formatting. When C<$scar_lookup> is non-empty, CC and SCAR values are included
+in each entry.
 
 =head1 SEE ALSO
 
