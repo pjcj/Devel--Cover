@@ -337,6 +337,34 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
     }
     return $v;
   }
+
+  =head2 retired_hook
+
+  A hook that is still called - its uncoverable markers are stale.
+
+  =cut
+
+  sub retired_hook {
+    # uncoverable subroutine
+    # uncoverable statement
+    return "still called";
+  }
+
+  sub internal_probe {
+    # uncoverable pod
+    return "internal";
+  }
+
+  =head2 documented_probe
+
+  A documented helper whose pod marker is stale.
+
+  =cut
+
+  sub documented_probe {
+    # uncoverable pod
+    return "documented";
+  }
 BODY
 
 my $Trivial_body = <<'BODY' =~ s/^  //gmr;
@@ -460,6 +488,9 @@ sub create_cover_db ($tmpdir, $libdir) {
   Covered::Markers::require_value_unless(5);
   Covered::Markers::require_value_if(5);
   Covered::Markers::require_value_unless_block(5);
+  Covered::Markers::retired_hook();
+  Covered::Markers::internal_probe();
+  Covered::Markers::documented_probe();
   Covered::Utils::greet(q(world));
   Covered::Utils::upper(q(hi));
   Covered::Full::double(5);
@@ -592,7 +623,8 @@ C<xor>, a 17-condition decision too wide to analyse, and a loop with postfix
 C<unless> and C<last>
 
 =item B<Markers> - uncoverable markers for statement, branch, condition,
-subroutine and mcdc (bare and C<pair:N>), so excused entries show in every
+subroutine, pod and mcdc (bare and C<pair:N>), including stale markers on
+covered code, so excused and covered-but-marked entries show in every
 reporter
 
 =item B<Trivial> - single sub, no branches or conditions
