@@ -14,15 +14,15 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-# TODO - uncoverable code?
-
 sub print_statement ($db, $file, $) {
   my $statements = $db->cover->file($file)->statement or return;
 
   for my $location (sort { $a <=> $b } $statements->items) {
     for my $statement ($statements->location($location)->@*) {
-      next if $statement->covered;
-      print "Uncovered statement at $file line $location\n";
+      next unless $statement->error;
+      print $statement->covered
+        ? "Statement marked uncoverable but covered at $file line $location\n"
+        : "Uncovered statement at $file line $location\n";
     }
   }
 }
@@ -34,19 +34,21 @@ sub print_branches ($db, $file, $) {
     for my $b ($branches->location($location)->@*) {
       next unless $b->error;
 
-      # One or both paths from this branch weren't reached. $b->covered(0) and
-      # (1) say whether the first and second paths were reached.  If the branch
-      # condition text begins with "unless" then the meanings of 0 and 1 are
-      # swapped. The output is easier to understand if we strip off "unless" and
-      # say whether the remaining condition was true or false.
-
+      # Path 0 is the true path for "if", swapped for "unless". Strip the
+      # keyword and report on the truth of the remaining condition.
       my $text = $b->text;
-      my ($t, $f) = map $b->covered($_),
-        $text =~ s/^(if|unless) // && $1 eq "unless" ? (1, 0) : (0, 1);
-      # TODO - uncoverable code?
-      print "Branch never ",
-        $t ? ($f ? "???" : "false") : ($f ? "true" : "reached"),
-        " at $file line $location: $text\n";
+      my @path = $text =~ s/^(if|unless) // && $1 eq "unless" ? (1, 0) : (0, 1);
+      my ($t, $f) = map $b->error($_) && !$b->covered($_), @path;
+      print "Branch never ", $t ? ($f ? "reached" : "true") : "false",
+        " at $file line $location: $text\n"
+        if $t || $f;
+      my ($ts, $fs) = map $b->error($_) && $b->covered($_), @path;
+      print "Branch true marked uncoverable but covered",
+        " at $file line $location: $text\n"
+        if $ts;
+      print "Branch false marked uncoverable but covered",
+        " at $file line $location: $text\n"
+        if $fs;
     }
   }
 }
@@ -67,9 +69,17 @@ sub print_conditions ($db, $file, $) {
       my ($c, $location) = @$_;
       next unless $c->error;
       my @headers = $c->headers->@*;
-      print "Uncovered condition (",
-        join(", ", map !$c->covered($_) ? $headers[$_] : (),
-          0 .. $c->total - 1), ") at $file line $location: ", $c->text, "\n";
+      my @missed  = grep !$c->covered($_) && !$c->uncoverable($_),
+        0 .. $c->total - 1;
+      my @stale = grep $c->covered($_) && $c->uncoverable($_),
+        0 .. $c->total - 1;
+      print "Uncovered condition (", join(", ", @headers[@missed]),
+        ") at $file line $location: ", $c->text, "\n"
+        if @missed;
+      print "Condition (", join(", ", @headers[@stale]),
+        ") marked uncoverable but covered at $file line $location: ", $c->text,
+        "\n"
+        if @stale;
     }
   }
 }
@@ -85,8 +95,17 @@ sub print_mcdc ($db, $file, $) {
           "at $file line $location: ", $m->text, "\n";
         next;
       }
-      print "Uncovered MC/DC pair (", join(", ", $m->missing->@*),
-        ") at $file line $location: ", $m->text, "\n";
+      my $missing = $m->missing;
+      print "Uncovered MC/DC pair (", join(", ", @$missing),
+        ") at $file line $location: ", $m->text, "\n"
+        if @$missing;
+      my $labels = $m->labels;
+      my @stale  = map $labels->[$_],
+        grep $m->covered($_) && $m->uncoverable($_), 0 .. $m->total - 1;
+      print "MC/DC pair (", join(", ", @stale),
+        ") marked uncoverable but covered at $file line $location: ", $m->text,
+        "\n"
+        if @stale;
     }
   }
 }
@@ -96,8 +115,13 @@ sub print_subroutines ($db, $file, $) {
 
   for my $location (sort { $a <=> $b } $subroutines->items) {
     for my $sub ($subroutines->location($location)->@*) {
-      next if $sub->covered;
-      print "Uncovered subroutine ", $sub->name, " at $file line $location\n";
+      next unless $sub->error;
+      print $sub->covered
+        ? (
+          "Subroutine ", $sub->name,
+          " marked uncoverable but covered at $file line $location\n",
+        )
+        : ("Uncovered subroutine ", $sub->name, " at $file line $location\n");
     }
   }
 }
@@ -107,8 +131,10 @@ sub print_pod ($db, $file, $) {
 
   for my $location (sort { $a <=> $b } $pod->items) {
     for my $p ($pod->location($location)->@*) {
-      next if $p->covered;
-      print "Uncovered pod at $file line $location\n";
+      next unless $p->error;
+      print $p->covered
+        ? "Pod marked uncoverable but covered at $file line $location\n"
+        : "Uncovered pod at $file line $location\n";
     }
   }
 }
@@ -160,31 +186,43 @@ The compilation report generates output in the following formats:
 
 =item * Statements
 
-  Uncovered statement at filename.pm line 42:
+  Uncovered statement at filename.pm line 42
+  Statement marked uncoverable but covered at filename.pm line 42
 
 =item * Branches
 
   Branch never true at filename.pm line 15: condition
   Branch never false at filename.pm line 20: unless condition
   Branch never reached at filename.pm line 25: condition
+  Branch true marked uncoverable but covered at filename.pm line 15: condition
 
 =item * Conditions
 
   Uncovered condition (left, right) at filename.pm line 30: expr && expr
+  Condition (left) marked uncoverable but covered at filename.pm line 30: expr
 
 =item * MC/DC
 
   Uncovered MC/DC pair ($q) at filename.pm line 22: $p || $q
+  MC/DC pair ($q) marked uncoverable but covered at filename.pm line 22: $p
 
 =item * Subroutines
 
   Uncovered subroutine function_name at filename.pm line 50
+  Subroutine function_name marked uncoverable but covered at filename.pm line 50
 
 =item * POD Documentation
 
   Uncovered pod at filename.pm line 60
+  Pod marked uncoverable but covered at filename.pm line 60
 
 =back
+
+Only errors are reported. A construct marked uncoverable and not covered is
+excused, so it produces no output. A construct marked uncoverable but covered
+carries a stale marker, so it is reported with a "marked uncoverable but
+covered" message. Branch directions and condition outcomes which are excused
+are omitted from "never" messages and header lists.
 
 =head1 USAGE WITH DEVELOPMENT TOOLS
 
@@ -234,39 +272,42 @@ Use the standard C<cover> command options to select which types to report:
 
 =head2 print_statement ($db, $file, $options)
 
-Prints uncovered statement coverage information for the specified file. Outputs
-one line per uncovered statement in the format:
-
-  "Uncovered statement at $file line $line_number:"
+Prints statement coverage errors for the specified file. Outputs one line per
+uncovered statement and one line per statement with a stale uncoverable
+marker.
 
 =head2 print_branches ($db, $file, $options)
 
-Prints uncovered branch coverage information for the specified file. Reports
-branches where one or both execution paths were not taken. Outputs detailed
-information about which branch condition was never true, false, or reached.
+Prints branch coverage errors for the specified file. Reports branches where
+an execution path was neither taken nor excused, saying whether the branch
+condition was never true, false, or reached, and reports paths with stale
+uncoverable markers.
 
 =head2 print_conditions ($db, $file, $options)
 
-Prints uncovered condition coverage information for the specified file. Reports
-logical conditions that were not fully exercised, showing which parts of complex
-boolean expressions were not tested.
+Prints condition coverage errors for the specified file. Reports logical
+conditions that were not fully exercised, naming the outcomes that were
+neither tested nor excused, and reports outcomes with stale uncoverable
+markers.
 
 =head2 print_mcdc ($db, $file, $options)
 
-Prints uncovered MC/DC pair information for the specified file.  Reports each
-decision whose independence pairs were not all observed, listing the atomic
-conditions whose pair is missing.
+Prints MC/DC coverage errors for the specified file. Reports each decision
+whose independence pairs were not all observed, listing the atomic conditions
+whose pair is missing and not excused, and reports atomic conditions with
+stale uncoverable markers.
 
 =head2 print_subroutines ($db, $file, $options)
 
-Prints uncovered subroutine coverage information for the specified file. Reports
-subroutines that were never called during testing.
+Prints subroutine coverage errors for the specified file. Reports subroutines
+that were never called during testing and subroutines with stale uncoverable
+markers.
 
 =head2 print_pod ($db, $file, $options)
 
-Prints uncovered POD (Plain Old Documentation) coverage information for the
-specified file. Reports sections of POD documentation that do not have
-corresponding tested code.
+Prints POD (Plain Old Documentation) coverage errors for the specified file.
+Reports subroutines without documentation and documented subroutines with
+stale uncoverable markers.
 
 =head2 report ($pkg, $db, $options)
 
