@@ -338,6 +338,47 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
     return $v;
   }
 
+  =head2 legacy_guard
+
+  A guard whose branch marker is out of date - the false arm now runs.
+
+  =cut
+
+  sub legacy_guard {
+    my ($v) = @_;
+    # uncoverable branch false
+    return 1 if $v;
+    return 0;
+  }
+
+  =head2 legacy_filter
+
+  A filter whose condition marker is out of date - the marked outcome
+  is now seen.
+
+  =cut
+
+  sub legacy_filter {
+    my ($a, $b) = @_;
+    # uncoverable condition when:11
+    my $ok = $a > 0 && $b > 0;
+    return $ok;
+  }
+
+  =head2 legacy_pair
+
+  A check whose MC/DC marker is out of date - the marked pair is now
+  proven.
+
+  =cut
+
+  sub legacy_pair {
+    my ($a, $b) = @_;
+    # uncoverable mcdc pair:1
+    my $ok = $a && $b;
+    return $ok;
+  }
+
   =head2 retired_hook
 
   A hook that is still called - its uncoverable markers are stale.
@@ -488,6 +529,14 @@ sub create_cover_db ($tmpdir, $libdir) {
   Covered::Markers::require_value_unless(5);
   Covered::Markers::require_value_if(5);
   Covered::Markers::require_value_unless_block(5);
+  Covered::Markers::legacy_guard(1);
+  Covered::Markers::legacy_guard(0);
+  Covered::Markers::legacy_filter(1, 1);
+  Covered::Markers::legacy_filter(0, 1);
+  Covered::Markers::legacy_filter(1, 0);
+  Covered::Markers::legacy_pair(1, 1);
+  Covered::Markers::legacy_pair(0, 1);
+  Covered::Markers::legacy_pair(1, 0);
   Covered::Markers::retired_hook();
   Covered::Markers::internal_probe();
   Covered::Markers::documented_probe();
