@@ -73,6 +73,21 @@ sub stale_branch {
 1;
 PERL
 
+my $Mixed_fixture = <<'PERL';
+package Mixed;
+use strict;
+use warnings;
+
+sub mixed {
+  my ($x, $y) = @_;
+  # uncoverable mcdc all
+  my $r = $x || $y;
+  return $r;
+}
+
+1;
+PERL
+
 my $Pod_fixture = <<'PERL';
 package PodFix;
 use strict;
@@ -222,6 +237,8 @@ sub test_main ($tmpdir) {
     "legend shows the excused swatch";
   like $html, qr|<span class="legend-swatch c0 mk"></span> marked|,
     "legend shows the marked-but-ran swatch";
+  like $html, qr|<span class="legend-swatch c1 mk"></span> partial|,
+    "legend shows the partial-with-marker swatch";
 
   # Assets know the excused state
   like slurp("$outdir/assets/style.css"), qr|--cov-excused-bg|,
@@ -234,6 +251,34 @@ sub test_main ($tmpdir) {
     "stylesheet defines the marker hatch";
   like slurp("$outdir/assets/app.js"), qr|--cov-excused-border|,
     "minimap paints excused lines";
+}
+
+sub test_mixed ($tmpdir) {
+  my $cover_db = _collect(
+    $tmpdir,                    "cover_db_mixed",
+    "statement,condition,mcdc", "use Mixed; Mixed::mixed(1, 0)",
+  );
+  my ($outdir, $page) = _report($tmpdir, $cover_db, "html_crisp_mixed");
+  my $html = slurp($page);
+
+  # A partial line carrying an excused marker is hatched amber
+  my $mixed_cell = '<td role="cell" class="count exec-partial mk" '
+    . 'aria-label="executed 1 times">1</td>';
+  like $html, qr|\Q$mixed_cell\E|,
+    "partial line with an excused mcdc is amber and hatched";
+
+  like $html, qr|<span class="mcdc-pill cx"|,
+    "whole-decision mcdc marker excuses the pills";
+  unlike $html, qr|<span class="mcdc-pill c0"|, "no red mcdc pills";
+  unlike $html, qr|data-errors="[^"]*mcdc|, "excused mcdc not in error filter";
+
+  my $css = slurp("$outdir/assets/style.css");
+  like $css, qr|\.count\.exec-partial\.mk|,
+    "stylesheet hatches partial cells in their own colour";
+  like $css, qr|\.legend-swatch\.c1\.mk|,
+    "stylesheet hatches the partial legend swatch in amber";
+  like $css, qr|--cov-excused-bg: #c0f1be|,
+    "excused colour is the covered green";
 }
 
 sub test_pod ($tmpdir) {
@@ -267,9 +312,11 @@ sub main () {
   my $libdir = File::Spec->catdir($tmpdir, "lib");
   make_path($libdir);
   _write_module($libdir, "Fixture.pm", $Fixture);
+  _write_module($libdir, "Mixed.pm",   $Mixed_fixture);
   _write_module($libdir, "PodFix.pm",  $Pod_fixture);
 
   test_main($tmpdir);
+  test_mixed($tmpdir);
   test_pod($tmpdir) if eval "require Pod::Coverage; 1";
   done_testing;
 }

@@ -26,14 +26,14 @@ our $Cov = {
     low     => { bg => "#f9dfa0", border => "#c08820", fg => "#7a5810" },
     good    => { bg => "#b3ddff", border => "#2f7db1", fg => "#164666" },
     full    => { bg => "#c0f1be", border => "#008800", fg => "#005500" },
-    excused => { bg => "#b3ddff", border => "#2f7db1", fg => "#164666" },
+    excused => { bg => "#c0f1be", border => "#008800", fg => "#005500" },
   },
   dark => {
     none    => { bg => "#7e0b12", border => "#ff4444", fg => "#ffcccc" },
     low     => { bg => "#5f4a08", border => "#e0a830", fg => "#f0d888" },
     good    => { bg => "#0d527c", border => "#64b7ef", fg => "#a0d6fa" },
     full    => { bg => "#0c5e0e", border => "#44dd44", fg => "#bbffbb" },
-    excused => { bg => "#0d527c", border => "#64b7ef", fg => "#a0d6fa" },
+    excused => { bg => "#0c5e0e", border => "#44dd44", fg => "#bbffbb" },
   },
 };
 

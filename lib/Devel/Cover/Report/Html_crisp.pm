@@ -639,7 +639,6 @@ sub count_cell ($line, $cov_defined) {
   my $cls  = "count";
   if ($exec eq "exec-0" || $line->{stale}) {
     $cls .= " exec-0";
-    $cls .= " mk" if $line->{stale};
   } elsif ($line->{partial}) {
     $cls .= " exec-partial"
   } elsif ($line->{pod_uncovered}) {
@@ -649,6 +648,10 @@ sub count_cell ($line, $cov_defined) {
   } elsif ($exec) {
     $cls .= " $exec"
   }
+
+  # exec-excused hatches via its own CSS rule
+  $cls .= " mk" if ($line->{stale} || $line->{excused}) && $cls !~ /excused/;
+
   my $aria
     = !$cov_defined         ? "no coverage data"
     : $line->{stmt_excused} ? "marked uncoverable"
@@ -793,6 +796,8 @@ condition, or subroutine detail.</dd>
 on the line is uncovered<br>
 <span class="legend-swatch c0"></span> uncovered<br>
 <span class="legend-swatch cx"></span> excused - marked uncoverable<br>
+<span class="legend-swatch c1 mk"></span> partial, with an uncoverable
+marker on the line<br>
 <span class="legend-swatch c0 mk"></span> marked uncoverable but ran
 </dd>
 <dt>Minimap</dt>
@@ -2114,6 +2119,11 @@ td.chevron {
 .mcdc-pill.mk, .legend-swatch.mk {
   background-image: repeating-linear-gradient(45deg, transparent 0 5px,
     color-mix(in srgb, var(--cov-none-border) 30%, transparent) 5px 7px);
+}
+.count.exec-partial.mk,
+.legend-swatch.c1.mk {
+  background-image: repeating-linear-gradient(45deg, transparent 0 5px,
+    color-mix(in srgb, var(--cov-low-border) 30%, transparent) 5px 7px);
 }
 
 .detail.cond-cells { border-left: 3px solid var(--panel-cond); }
