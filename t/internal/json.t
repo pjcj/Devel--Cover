@@ -31,27 +31,37 @@ eval "require JSON::MaybeXS; 1" or do {
   exit;
 };
 
+sub markers_line ($libdir, $pattern) {
+  my @lines = split /\n/, slurp("$libdir/Covered/Markers.pm");
+  for my $i (0 .. $#lines) {
+    return $i + 1 if $lines[$i] =~ $pattern;
+  }
+  die "No line matching $pattern in Covered/Markers.pm";
+}
+
+sub markers_entry ($json) {
+  my $path = first { /Covered\W+Markers\.pm$/ } keys $json->{files}->%*;
+  ($path, $path ? $json->{files}{$path} : undef)
+}
+
+sub json_report ($tmpdir, $libdir, $cover_db, $subdir, @extra) {
+  my $outdir = File::Spec->catdir($tmpdir, $subdir);
+  my ($out, $exit) = run_cover(
+    "--select_dir", $libdir, "--report", "json",
+    "--outputdir",  $outdir, "--silent", @extra,
+    $cover_db,
+  );
+  is $exit, 0, "cover --report json exits 0 ($subdir)" or diag $out;
+  my $path = File::Spec->catfile($outdir, "cover.json");
+  ok -e $path, "cover.json was generated ($subdir)";
+  JSON::MaybeXS->new(utf8 => 1)->decode(slurp($path))
+}
+
 # The new `json` report emits full per-line detail (statements, branches,
 # conditions, condition_truth_tables, mcdc, subroutines, pod) plus per-file
 # meta and a top-level devel_cover_version.  It is the supersedes-everything
 # feed requested in GH-418.
-sub test_json_detailed_report () {
-  my ($tmpdir, $libdir) = setup_lib_dir;
-  my $cover_db = create_cover_db($tmpdir, $libdir);
-  my $outdir   = File::Spec->catdir($tmpdir, "json");
-
-  my ($out, $exit) = run_cover(
-    "--select_dir", $libdir, "--report", "json",
-    "--outputdir",  $outdir, "--silent", $cover_db,
-  );
-
-  is $exit, 0, "cover --report json exits 0" or diag $out;
-
-  my $path = File::Spec->catfile($outdir, "cover.json");
-  ok -e $path, "cover.json was generated";
-
-  my $json = JSON::MaybeXS->new(utf8 => 1)->decode(slurp($path));
-
+sub test_json_detailed_report ($json) {
   # Top-level structure.
   like $json->{devel_cover_version}, qr/^\d+\.\d+/,
     "devel_cover_version looks like a version number";
@@ -132,12 +142,63 @@ sub test_json_detailed_report () {
   ok defined $m->{error}, "mcdc has error";
 }
 
+# Excused and stale markers must be distinguishable in the output
+sub test_uncoverable_states ($json, $libdir) {
+  my ($path, $f) = markers_entry($json);
+  ok $path, "found Covered/Markers.pm in files" or return;
+
+  my $excused = markers_line($libdir, qr/die "emergency stop"/);
+  my $stale   = markers_line($libdir, qr/return "still called"/);
+
+  my $e = $f->{statements}{$excused}[0];
+  is $e->{covered},     0, "excused statement is not covered";
+  is $e->{uncoverable}, 1, "excused statement is marked uncoverable";
+  is $e->{error},       0, "excused statement is not an error";
+
+  my $s = $f->{statements}{$stale}[0];
+  ok $s->{covered} > 0, "stale-marked statement ran";
+  is $s->{uncoverable}, 1, "stale-marked statement keeps its marker";
+  is $s->{error},       1, "stale-marked statement is an error";
+}
+
+# Truth table rows carry the uncoverable flag and an error-based percentage
+sub test_truth_table_uncoverable ($json, $libdir) {
+  my ($path, $f) = markers_entry($json);
+  ok $path, "found Covered/Markers.pm in files" or return;
+
+  my $audit = markers_line($libdir, qr/my \$ok = \$active && \$value/);
+  my $tt    = ($f->{condition_truth_tables}{$audit} // [])->[0];
+  ok $tt, "audit line has a truth table" or return;
+
+  ok defined $_->{uncoverable}, "row has uncoverable flag" for $tt->{rows}->@*;
+  my $excused_row
+    = first { $_->{uncoverable} && !$_->{covered} } $tt->{rows}->@*;
+  ok $excused_row, "the excused outcome's row is flagged uncoverable";
+  is $tt->{percentage}, 100, "excused row does not drag the percentage down";
+}
+
+# The error rule must be recorded so consumers can interpret `error`
+sub test_error_rule_recorded ($json, $json_ignore, $libdir) {
+  is $json->{ignore_covered_err}, 0, "error rule recorded (default off)";
+  is $json_ignore->{ignore_covered_err}, 1,
+    "error rule recorded (-ignore_covered_err)";
+
+  my (undef, $f) = markers_entry($json_ignore);
+  my $stale = markers_line($libdir, qr/return "still called"/);
+  my $s     = $f->{statements}{$stale}[0];
+  is $s->{error}, 0, "stale marker is forgiven under -ignore_covered_err";
+}
+
+# Phase 0 made pod aggregate uncoverable like every other criterion
+sub test_summary_pod_uncoverable ($json) {
+  ok exists $json->{summary}{Total}{pod}{uncoverable},
+    "summary Total pod has an uncoverable count";
+}
+
 # json_summary should NOT have a files key - this protects against accidental
 # divergence in future where one reporter's output drifts into the other.
-sub test_summary_and_detailed_distinct () {
-  my ($tmpdir, $libdir) = setup_lib_dir;
-  my $cover_db = create_cover_db($tmpdir, $libdir);
-  my $outdir   = File::Spec->catdir($tmpdir, "json2");
+sub test_summary_and_detailed_distinct ($tmpdir, $libdir, $cover_db) {
+  my $outdir = File::Spec->catdir($tmpdir, "json_summary");
 
   my ($out, $exit) = run_cover(
     "--select_dir", $libdir, "--report", "json_summary",
@@ -154,8 +215,20 @@ sub test_summary_and_detailed_distinct () {
 }
 
 sub main () {
-  test_json_detailed_report;
-  test_summary_and_detailed_distinct;
+  my ($tmpdir, $libdir) = setup_lib_dir;
+  my $cover_db = create_cover_db($tmpdir, $libdir);
+
+  my $json        = json_report($tmpdir, $libdir, $cover_db, "json");
+  my $json_ignore = json_report(
+    $tmpdir, $libdir, $cover_db, "json_ignore", "-ignore_covered_err",
+  );
+
+  test_json_detailed_report($json);
+  test_uncoverable_states($json, $libdir);
+  test_truth_table_uncoverable($json, $libdir);
+  test_error_rule_recorded($json, $json_ignore, $libdir);
+  test_summary_pod_uncoverable($json);
+  test_summary_and_detailed_distinct($tmpdir, $libdir, $cover_db);
   done_testing;
 }
 
