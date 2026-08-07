@@ -503,8 +503,8 @@ comments when a particular outcome cannot occur, for example an error state
 that cannot be simulated.  If a pair could still be formed from rows not
 marked uncoverable, the atomic condition is reported missing - a test gap, not
 an excuse.  For a decision that can never execute at all, such as code inside
-a branch that can never be taken, mark the whole decision with the bare
-C<uncoverable mcdc> comment.
+a branch that can never be taken, mark the whole decision with
+C<uncoverable mcdc all>.
 
 As for conditions, the "count" value selects between several decisions on one
 line.
@@ -541,6 +541,56 @@ The parameter for -add_uncoverable_point is a string composed of up to seven
 space separated elements: "$file $criterion $line $count $type $class $note".
 
 The contents of the uncoverable file is the same, with one point per line.
+
+=head2 Presentation in reports
+
+Combining coverage with the uncoverable flag leaves each construct in one of
+four states:
+
+  covered  uncoverable  error  state
+        1            0      0  covered
+        0            0      1  uncovered
+        0            1      0  excused
+        1            1      1  marked uncoverable but covered
+
+An excused construct is not an error - that is the point of the marker.  A
+construct which runs despite its marker is an error, because the marker no
+longer tells the truth and should be removed.  The global
+L<-ignore_covered_err> flag, or the per-point L<ignore_covered_err> class,
+forgives that state, which is then treated as covered.
+
+Percentages measure freedom from errors, computed as 100 - errors * 100 /
+total.  An excused outcome therefore counts towards 100% just as a covered
+one does, and a construct whose outcomes are all covered or excused reports
+100%.  Raw hit counts remain available in the detail tables of each report.
+
+Each report renders the states in its own vocabulary:
+
+=over 4
+
+=item * B<text> prefixes a value with "-" when an uncoverable marker is
+involved and with "*" when the construct is in error, and flags erroring
+lines with "***" in the err column.  Excused subroutines appear under the
+"Uncoverable Subroutines" heading.
+
+=item * B<compilation> reports errors only.  Excused constructs produce no
+output, and a stale marker produces a "marked uncoverable but covered"
+message.
+
+=item * B<html> (html_crisp) keeps colour for the coverage outcome and adds
+a diagonal stripe where a marker is present.  Excused code is striped green,
+code which ran despite its marker is striped red, and a partially covered
+line carrying a marker is striped amber.  Tooltips give the uncoverable
+counts and the help panel shows a legend.
+
+=item * B<vim> and B<nvim> add a third sign state per criterion, grey by
+default, for lines whose constructs are excused.
+
+=item * B<json> emits explicit C<covered>, C<uncoverable> and C<error>
+fields per construct and records the error rule in the top-level
+C<ignore_covered_err> key.
+
+=back
 
 =head1 ENVIRONMENT
 

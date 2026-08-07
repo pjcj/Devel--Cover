@@ -2888,6 +2888,12 @@ with inline branch, condition, and subroutine detail.
 Features include dark mode support, keyboard navigation, sortable columns,
 inline condition truth tables, and deep-linkable filters.
 
+Colour shows the coverage outcome and a diagonal stripe shows that an
+uncoverable marker is present.  Excused code is striped green, code which ran
+despite its marker is striped red, and a partially covered line carrying a
+marker is striped amber.  Tooltips give the uncoverable counts and the help
+panel shows a legend of the colours.
+
 It is designed to be called from the C<cover> program.  It will add syntax
 highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
 

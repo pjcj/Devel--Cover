@@ -506,6 +506,14 @@ subroutine metrics with inline source listing.  When files share a long common
 directory prefix, the prefix is stripped and only the distinguishing suffixes
 are shown.
 
+A value is prefixed with "-" when an uncoverable marker is involved and with
+"*" when the construct is in error, and a line holding an error is flagged
+with "***" in the err column.  Percentages are error-based, computed as 100 -
+errors * 100 / total, so excused constructs do not reduce them.  Excused
+subroutines are listed under the "Uncoverable Subroutines" heading, and a
+covered subroutine whose marker is stale stays under "Covered Subroutines"
+with a "*" prefix on its counts.
+
 It is designed to be called from the C<cover> program.
 
 =head1 SUBROUTINES
