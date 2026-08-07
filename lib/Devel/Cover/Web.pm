@@ -22,16 +22,18 @@ our @EXPORT_OK = qw( write_file $Cov $Crisp_base_css $Crisp_theme_js );
 
 our $Cov = {
   light => {
-    none => { bg => "#fdd5d1", border => "#dd0000", fg => "#990000" },
-    low  => { bg => "#f9dfa0", border => "#c08820", fg => "#7a5810" },
-    good => { bg => "#b3ddff", border => "#2f7db1", fg => "#164666" },
-    full => { bg => "#c0f1be", border => "#008800", fg => "#005500" },
+    none    => { bg => "#fdd5d1", border => "#dd0000", fg => "#990000" },
+    low     => { bg => "#f9dfa0", border => "#c08820", fg => "#7a5810" },
+    good    => { bg => "#b3ddff", border => "#2f7db1", fg => "#164666" },
+    full    => { bg => "#c0f1be", border => "#008800", fg => "#005500" },
+    excused => { bg => "#b3ddff", border => "#2f7db1", fg => "#164666" },
   },
   dark => {
-    none => { bg => "#7e0b12", border => "#ff4444", fg => "#ffcccc" },
-    low  => { bg => "#5f4a08", border => "#e0a830", fg => "#f0d888" },
-    good => { bg => "#0d527c", border => "#64b7ef", fg => "#a0d6fa" },
-    full => { bg => "#0c5e0e", border => "#44dd44", fg => "#bbffbb" },
+    none    => { bg => "#7e0b12", border => "#ff4444", fg => "#ffcccc" },
+    low     => { bg => "#5f4a08", border => "#e0a830", fg => "#f0d888" },
+    good    => { bg => "#0d527c", border => "#64b7ef", fg => "#a0d6fa" },
+    full    => { bg => "#0c5e0e", border => "#44dd44", fg => "#bbffbb" },
+    excused => { bg => "#0d527c", border => "#64b7ef", fg => "#a0d6fa" },
   },
 };
 
@@ -40,7 +42,7 @@ sub _cov_vars ($theme, $indent) {
   join "", map {
     my $n = $_;
     map "$indent--cov-$n-$_: $c->{$n}{$_};\n", qw( bg border fg )
-  } qw( none low good full )
+  } qw( none low good full excused )
 }
 
 my %Files;
@@ -534,6 +536,11 @@ a:visited { color: var(--link-visited); }
   background: var(--cov-full-bg);
   border-color: var(--cov-full-border);
   color: var(--cov-full-fg);
+}
+.cx {
+  background: var(--cov-excused-bg);
+  border-color: var(--cov-excused-border);
+  color: var(--cov-excused-fg);
 }
 .na {
   background: var(--bg);
