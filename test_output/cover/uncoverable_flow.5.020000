@@ -49,41 +49,41 @@ line  err   stmt   bran   cond   code
 20             1                 my $r;
 21                               
 22                               # uncoverable branch true
-23             1   - 50          unless ($t) {
+23             1   -100          unless ($t) {
 24            -0                   $r = "u1";  # uncoverable statement
 25                               }
 26                               
 27                               # uncoverable branch false
-28             1   - 50          unless ($f) {
+28             1   -100          unless ($f) {
 29             1                   $r = "u2";
 30                               }
 31                               
 32                               # uncoverable branch true
 33                               # uncoverable condition when:01,00
-34             1   - 50   - 33   unless ($t || $f) {
+34             1   -100   -100   unless ($t || $f) {
 35            -0                   $r = "u3";  # uncoverable statement
 36                               }
 37                               
 38                               # uncoverable branch true
-39             1   - 50          while ($f) {
+39             1   -100          while ($f) {
 40            -0                   $r = "w1";  # uncoverable statement
 41                               }
 42                               
 43                               # uncoverable branch true
-44             1   - 50          until ($t) {
+44             1   -100          until ($t) {
 45            -0                   $r = "t1";  # uncoverable statement
 46                               }
 47                               
 48                               # uncoverable branch true
-49             1   - 50          for (my $i = 5; $i < 3; $i++) {
+49             1   -100          for (my $i = 5; $i < 3; $i++) {
 50            -0                   $r = "f1";  # uncoverable statement
 51                               }
 52                               
 53                               # uncoverable branch true
-54             1   - 50          $r = "m1" unless $t;
+54             1   -100          $r = "m1" unless $t;
 55                               
 56                               # uncoverable branch false
-57             1   - 50          $r = "m2" if $t;
+57             1   -100          $r = "m2" if $t;
 
 
 Branches
@@ -91,14 +91,14 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-23          - 50     -0      1   unless ($t)
-28          - 50      1     -0   unless ($f)
-34          - 50     -0      1   unless ($t or $f)
-39          - 50     -0      1   if ($f)
-44          - 50     -0      1   unless ($t)
-49          - 50     -0      1   if ($i < 3)
-54          - 50     -0      1   unless $t
-57          - 50      1     -0   if $t
+23          -100     -0      1   unless ($t)
+28          -100      1     -0   unless ($f)
+34          -100     -0      1   unless ($t or $f)
+39          -100     -0      1   if ($f)
+44          -100     -0      1   unless ($t)
+49          -100     -0      1   if ($i < 3)
+54          -100     -0      1   unless $t
+57          -100      1     -0   if $t
 
 
 Conditions
@@ -108,6 +108,6 @@ or 3 conditions
 
 line  err      %      l  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------   ----
-34          - 33      1     -0     -0   $t or $f
+34          -100      1     -0     -0   $t or $f
 
 
