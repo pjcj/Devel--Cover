@@ -45,10 +45,11 @@ sub left_always_true {
 1;
 PERL
 
-# An excused atomic must not render as a plain uncovered pill. Crisp gives it
-# the excused class and a title, the other variants a "-" prefix (matching the
-# text reporters) and the satisfied colour class, so the pills agree with the
-# decision row's excused-as-covered state.
+# An excused atomic must not render as a plain uncovered pill. Crisp and basic
+# give it the excused class and a title (basic also keeps the "-" prefix,
+# matching the text reporters), minimal and subtle the "-" prefix and the
+# satisfied colour class, so the pills agree with the decision row's
+# excused-as-covered state.
 sub _setup () {
   my $tmpdir = realpath(tempdir(CLEANUP => 1));
   my $libdir = File::Spec->catdir($tmpdir, "lib");
@@ -96,8 +97,8 @@ sub test_html_minimal ($tmpdir, $cover_db) {
 sub test_html_basic ($tmpdir, $cover_db) {
   my (undef, $page) = _report($tmpdir, $cover_db, "html_basic");
   my $html = slurp($page);
-  like $html, qr|class="c3">\s*-\$always\s*</span>|,
-    "html_basic: excused pill has - prefix and covered class";
+  like $html, qr|class="cx" title="marked uncoverable">\s*-\$always\s*</span>|,
+    "html_basic: excused pill has - prefix and excused class";
   like $html, qr|class="c3">\s*\$b\s*</span>|,
     "html_basic: covered pill unchanged";
   like $html, qr|<a name="9-1">|,

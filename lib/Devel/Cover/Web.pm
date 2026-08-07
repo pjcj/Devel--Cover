@@ -138,6 +138,8 @@ pre,.s {
  *   c1  : coverage >= 75%
  *   c2  : coverage >= 90%
  *   c3  : path covered or coverage = 100%
+ *   cx  : uncoverable code, not covered (excused)
+ *   mk  : uncoverable marker on covered code
  */
 .c0 {
   background-color :           #ff9999;
@@ -154,6 +156,18 @@ pre,.s {
 .c3 {
   background-color :           #99ff99;
   border           : solid 1px #009900;
+}
+.cx {
+  background-color :           #99ff99;
+  border           : solid 1px #009900;
+  background-image : repeating-linear-gradient(45deg,
+    transparent 0px, transparent 5px,
+    rgba(0, 153, 0, 0.3) 5px, rgba(0, 153, 0, 0.3) 7px);
+}
+.mk {
+  background-image : repeating-linear-gradient(45deg,
+    transparent 0px, transparent 5px,
+    rgba(204, 0, 0, 0.3) 5px, rgba(204, 0, 0, 0.3) 7px);
 }
 EOF
 

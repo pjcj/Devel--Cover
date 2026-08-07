@@ -10,6 +10,8 @@ Devel::Cover history
   reporting excused statements, subroutines and pod as failures (GH-703)
 - Show uncoverable markers in the crisp HTML report as a diagonal stripe
   over the outcome colour (GH-703)
+- Show uncoverable markers in the basic HTML report the same way, and
+  fix its branch and condition cells' banding (GH-703)
 - Add a third, grey, sign state to the Vim and Nvim reports for excused
   lines (GH-703)
 - BREAKING: Rebuild the JSON report's condition truth tables from observed

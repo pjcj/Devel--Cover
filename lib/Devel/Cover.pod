@@ -583,6 +583,13 @@ code which ran despite its marker is striped red, and a partially covered
 line carrying a marker is striped amber.  Tooltips give the uncoverable
 counts and the help panel shows a legend.
 
+=item * B<html_basic> follows the same design with a C<cx> class for excused
+cells, striped green, and an C<mk> class adding a red stripe to cells whose
+marker no longer tells the truth.  Cell tooltips carry "marked uncoverable"
+or "marked uncoverable but covered" notes, summary tooltips give the
+uncoverable counts, and MC/DC atomics keep the "-" prefix of the text
+reports.
+
 =item * B<vim> and B<nvim> add a third sign state per criterion, grey by
 default, for lines whose constructs are excused.
 
