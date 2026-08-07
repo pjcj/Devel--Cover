@@ -250,7 +250,7 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   sub fetch {
     my ($cache, $key, $default) = @_;
-    # uncoverable mcdc
+    # uncoverable mcdc all
     return $cache->{$key} //= $default;
   }
 
