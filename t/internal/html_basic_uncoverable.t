@@ -148,7 +148,8 @@ sub _report ($tmpdir, $cover_db, $subdir) {
     "--silent", $cover_db,
   );
   is $exit, 0, "cover --report html_basic exits 0 ($subdir)" or diag $out;
-  my ($page) = grep !m|/coverage\.html$| && !/--/, glob "$outdir/*.html";
+  my ($page) = grep !m|/coverage\.html$| && !m|--\w+\.html$|,
+    glob "$outdir/*.html";
   ($outdir, $page)
 }
 
