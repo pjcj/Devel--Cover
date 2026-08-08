@@ -14,12 +14,13 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Devel::Cover::Criterion    ();
-use Devel::Cover::DB::IO::JSON ();
-use Devel::Cover::Inc          ();
-use Devel::Cover::Log          qw( dcinfo );
-use Devel::Cover::Truth_Table  ();
-use Getopt::Long               qw( GetOptions );
+use Devel::Cover::Condition_table ();
+use Devel::Cover::Criterion       ();
+use Devel::Cover::DB              ();
+use Devel::Cover::DB::IO::JSON    ();
+use Devel::Cover::Inc             ();
+use Devel::Cover::Log             qw( dcinfo );
+use Getopt::Long                  qw( GetOptions );
 
 sub _runs ($db) {
   my @runs;
@@ -97,29 +98,36 @@ sub _conditions ($f) {
   \%out
 }
 
+sub _truth_table ($table) {
+  # An unproven synthesis may not present its rows as covered
+  my $proven = $table->proven;
+  my @rows   = map +{
+    inputs      => $_->inputs,
+    result      => $_->result + 0,
+    covered     => $proven && $_->covered ? 1 : 0,
+    uncoverable => $_->uncoverable        ? 1 : 0,
+    },
+    $table->rows;
+  my $errors = grep {
+    Devel::Cover::Criterion->err_chk($_->{covered}, $_->{uncoverable})
+  } @rows;
+  +{
+    expr       => $table->expr,
+    percentage => @rows ? 100 - $errors * 100 / @rows : 100,
+    rows       => \@rows,
+  }
+}
+
 sub _condition_truth_tables ($f) {
   my $criterion = $f->condition or return undef;
   my %out;
   for my $line (sort { $a <=> $b } $criterion->items) {
-    my @tables = $criterion->truth_table($line);
-    next unless @tables;
-    $out{$line} = [
-      map {
-        my ($tt, $expr) = $_->@*;
-        +{
-          expr       => $expr,
-          percentage => $tt->percentage + 0,
-          rows       => [
-            map +{
-              inputs  => [$_->inputs],
-              result  => $_->result + 0,
-              covered => $_->covered ? 1 : 0,
-            },
-            @$tt,
-          ],
-        };
-      } @tables
-    ];
+    my $loc = $criterion->location($line);
+    next unless $loc && @$loc;
+    my @observed = map Devel::Cover::DB::observed_vectors($_), @$loc;
+    my @tables   = map _truth_table($_), grep !$_->too_wide,
+      Devel::Cover::Condition_table->for_line($loc, \@observed);
+    $out{$line} = \@tables if @tables;
   }
   \%out
 }
@@ -221,8 +229,10 @@ sub report ($pkg, $db, $options) {
     $files{$file} = $entry;
   }
 
+  no warnings "once";
   my $data = {
     devel_cover_version => $Devel::Cover::Inc::VERSION,
+    ignore_covered_err  => $Devel::Cover::Ignore_covered_err ? 1 : 0,
     runs                => _runs($db),
     summary             => $db->{summary},
     files               => \%files,
@@ -289,6 +299,12 @@ C<cover_db/>). The top-level keys are:
 
 The version of Devel::Cover that produced the file.
 
+=item ignore_covered_err
+
+Whether the C<-ignore_covered_err> option was in force, as 1 or 0.  It
+records the rule behind every C<error> field, so consumers can interpret
+them (see below).
+
 =item runs
 
 Array of run metadata objects, identical to the C<json_summary> report output.
@@ -310,6 +326,31 @@ C<condition_truth_tables>, C<mcdc>, C<subroutines>, C<pod>, C<time>.  Within
 each criterion, keys are source line numbers and values are arrays of coverage
 objects for that line.
 
+Each coverage object carries C<covered>, C<uncoverable> and C<error> fields.
+For statements, subroutines and pod these are single values.  For branches,
+conditions and mcdc, C<covered> and C<uncoverable> are arrays with one entry
+per direction, outcome or atomic condition, and C<error> is 1 when any entry
+errors.  A construct is in one of four states:
+
+  covered  uncoverable  error  state
+  -------  -----------  -----  ------------------------------------
+        1            0      0  covered
+        0            0      1  uncovered
+        0            1      0  excused (marked uncoverable)
+        1            1      1  marked uncoverable but ran
+
+Under C<-ignore_covered_err> the last combination is forgiven and its
+C<error> is 0 - the top-level C<ignore_covered_err> key says which rule was
+used.
+
+A C<condition_truth_tables> row carries C<inputs> (C<0>, C<1>, or C<"X"> for
+an operand never evaluated because an earlier operand short-circuited),
+the decision C<result>, C<covered>, and C<uncoverable> for a row excused by
+an uncoverable marker.  Rows synthesised for a compound decision whose input
+combinations were never observed together read as uncovered.  The table
+C<percentage> is error-based, so an excused row does not count against it.
+A decision too wide to analyse has no truth table.
+
 An C<mcdc> entry for a decision too wide to analyse (more conditions than the
 per-decision limit) carries C<"unanalysed": 1>; its C<covered> array is all
 zeroes.  The key is absent for analysed decisions, distinguishing "too wide
@@ -321,6 +362,7 @@ Example structure:
 
   {
     "devel_cover_version": "1.53",
+    "ignore_covered_err": 0,
     "runs": [ { "run": "...", "perl": "5.38.0", ... } ],
     "summary": {
       "Total":          { "statement": { "covered": 95, "total": 100,
@@ -341,8 +383,9 @@ Example structure:
                                     "error": 1 } ] },
         "condition_truth_tables": {
           "30": [ { "expr": "$x && $y", "percentage": 50,
-                    "rows": [ { "inputs": [0,0], "result": 0,
-                                "covered": 1 } ] } ] },
+                    "rows": [ { "inputs": [0,"X"], "result": 0,
+                                "covered": 1,
+                                "uncoverable": 0 } ] } ] },
         "mcdc":        { "30": [ { "text": "$x && $y",
                                     "labels": ["$x","$y"],
                                     "covered": [1,0], "uncoverable": [0,0],

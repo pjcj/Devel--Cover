@@ -1076,12 +1076,11 @@ sub test_line_partial_ignores_tt_rows () {
     "partial: unobserved tt rows alone do not mark partial";
 
   my %with_cell = (count => 5);
-  my @cells
-    = ({ parts => [{ class => "c3" }, { class => "c0" }, { class => "c3" }] });
+  my @cells = ({ parts => [{ error => 0 }, { error => 1 }, { error => 0 }] });
   Devel::Cover::Report::Html_crisp::line_partial(
     \%with_cell, [], \@cells, [], [], [],
   );
-  ok $with_cell{partial}, "partial: c0 condition cell flags line partial";
+  ok $with_cell{partial}, "partial: condition cell error flags line partial";
 }
 
 sub test_class_accepts_criterion_percentage () {

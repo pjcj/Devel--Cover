@@ -73,6 +73,13 @@ highlight cov_condition_error  ctermfg=Red   cterm=bold gui=bold guifg=Red
 highlight cov_mcdc             ctermfg=Green cterm=bold gui=bold guifg=Green
 highlight cov_mcdc_error       ctermfg=Red   cterm=bold gui=bold guifg=Red
 
+highlight cov_pod_uncoverable        ctermfg=Grey cterm=bold gui=bold guifg=Grey
+highlight cov_subroutine_uncoverable ctermfg=Grey cterm=bold gui=bold guifg=Grey
+highlight cov_statement_uncoverable  ctermfg=Grey cterm=bold gui=bold guifg=Grey
+highlight cov_branch_uncoverable     ctermfg=Grey cterm=bold gui=bold guifg=Grey
+highlight cov_condition_uncoverable  ctermfg=Grey cterm=bold gui=bold guifg=Grey
+highlight cov_mcdc_uncoverable       ctermfg=Grey cterm=bold gui=bold guifg=Grey
+
 sign define pod              linehl=cov texthl=cov_pod              text=P
 sign define pod_error        linehl=err texthl=cov_pod_error        text=P
 sign define subroutine       linehl=cov texthl=cov_subroutine       text=R
@@ -85,6 +92,19 @@ sign define condition        linehl=cov texthl=cov_condition        text=C
 sign define condition_error  linehl=err texthl=cov_condition_error  text=C
 sign define mcdc             linehl=cov texthl=cov_mcdc             text=M
 sign define mcdc_error       linehl=err texthl=cov_mcdc_error       text=M
+
+sign define pod_uncoverable
+    \ linehl=unc texthl=cov_pod_uncoverable text=P
+sign define subroutine_uncoverable
+    \ linehl=unc texthl=cov_subroutine_uncoverable text=R
+sign define statement_uncoverable
+    \ linehl=unc texthl=cov_statement_uncoverable text=S
+sign define branch_uncoverable
+    \ linehl=unc texthl=cov_branch_uncoverable text=B
+sign define condition_uncoverable
+    \ linehl=unc texthl=cov_condition_uncoverable text=C
+sign define mcdc_uncoverable
+    \ linehl=unc texthl=cov_mcdc_uncoverable text=M
 
 function! CoverageOld(filename)
 endfunction
@@ -101,6 +121,7 @@ endfunction
 "----------------------------------------------------------------------------
 "
 "  let s:fg_cover = "#859900"
+"  let s:fg_uncov = "#586e75"
 "  let s:fg_error = "#dc322f"
 "  let s:bg_valid = "#073642"
 "  let s:bg_old   = "#342a2a"
@@ -111,6 +132,8 @@ endfunction
 "  for s:type in s:types
 "    exe "highlight cov_" . s:type
 "      \ . " ctermbg=0 cterm=bold gui=NONE guifg=" . s:fg_cover
+"    exe "highlight cov_" . s:type . "_uncoverable"
+"      \ . " ctermbg=0 cterm=bold gui=NONE guifg=" . s:fg_uncov
 "    exe "highlight cov_" . s:type . "_error"
 "      \ . " ctermbg=0 cterm=bold gui=NONE guifg=" . s:fg_error
 "  endfor
@@ -122,6 +145,7 @@ endfunction
 "  function! s:set_bg(bg)
 "    for s:type in s:types
 "      exe "highlight cov_" . s:type .       " guibg=" . a:bg
+"      exe "highlight cov_" . s:type . "_uncoverable guibg=" . a:bg
 "      exe "highlight cov_" . s:type . "_error guibg=" . a:bg
 "    endfor
 "    exe "highlight SignColumn ctermbg=0 guibg=" . a:bg
@@ -145,16 +169,23 @@ endif
 
 let s:types = [
 [%- FOREACH type = types -%] "[%- type -%]",[%- END -%]
+[%- FOREACH type = types -%] "[%- type -%]_uncoverable",[%- END -%]
 [%- FOREACH type = types -%] "[%- type -%]_error",[%- END -%]
 ]
 
-[%- MACRO criterion(file, crit, error) BLOCK %]
-\    '[% crit %][% error ? "_error" : "" %]': [
+[%- MACRO criterion(file, crit, state) BLOCK -%]
+[%- suffix = state == "error"       ? "_error"
+           : state == "uncoverable" ? "_uncoverable"
+           :                          "" %]
+\    '[% crit %][% suffix %]': [
   [%- criteria = cover.file("$file").$crit -%]
   [%- FOREACH loc = criteria.items.nsort -%]
     [%- cov = 0 -%]
     [%- FOREACH l = criteria.location("$loc") -%]
-      [%- IF error ? l.error : l.covered -%]
+      [%- hit = state == "error"       ? l.error
+              : state == "uncoverable" ? l.uncoverable && !l.error
+              :                          l.covered -%]
+      [%- IF hit -%]
         [% loc -%],[%- cov = 1; LAST -%]
       [%- END -%]
     [%- LAST IF cov; END -%]
@@ -168,8 +199,9 @@ let s:coverage =
 \  '[% file %]':
 \  {
 [%- FOREACH type = types -%]
-[%- criterion(file, type, 0) -%]
-[%- criterion(file, type, 1) -%]
+[%- criterion(file, type, "covered") -%]
+[%- criterion(file, type, "uncoverable") -%]
+[%- criterion(file, type, "error") -%]
 [%- END %]
 \  },
 \[% END %]
@@ -306,8 +338,10 @@ The signs are as follows:
 
 The last of the criteria, in the order given above, is the one which is
 displayed.  Correctly covered criteria are shown in green.  Incorrectly
-covered criteria are shown in red.  Any incorrectly covered criterion will
-override a correctly covered criterion.
+covered criteria are shown in red.  Criteria marked uncoverable which did
+not run are shown in grey.  A red criterion overrides a grey one, and a
+grey one overrides a green one.  Code which runs despite an uncoverable
+marker is an error and is shown in red.
 
 If the coverage for the file being displayed is out of date the function
 called CoverageOld() is called and passed the name of the file.  Similarly,
@@ -320,6 +354,7 @@ For example, I use the solarized theme and keep the following commands in my
 local configuration file ~/.vim/local/devel-cover.vim:
 
  let s:fg_cover = "#859900"
+ let s:fg_uncov = "#586e75"
  let s:fg_error = "#dc322f"
  let s:bg_valid = "#073642"
  let s:bg_old   = "#342a2a"
@@ -330,6 +365,8 @@ local configuration file ~/.vim/local/devel-cover.vim:
  for s:type in s:types
    exe "highlight cov_" . s:type
        \ . " ctermbg=1 cterm=bold gui=NONE guifg=" . s:fg_cover
+   exe "highlight cov_" . s:type . "_uncoverable"
+       \ . " ctermbg=1 cterm=bold gui=NONE guifg=" . s:fg_uncov
    exe "highlight cov_" . s:type . "_error"
        \ . " ctermbg=1 cterm=bold gui=NONE guifg=" . s:fg_error
  endfor
@@ -341,6 +378,7 @@ local configuration file ~/.vim/local/devel-cover.vim:
  function! s:set_bg(bg)
    for s:type in s:types
      exe "highlight cov_" . s:type .       " guibg=" . a:bg
+     exe "highlight cov_" . s:type . "_uncoverable guibg=" . a:bg
      exe "highlight cov_" . s:type . "_error guibg=" . a:bg
    endfor
    exe "highlight SignColumn ctermbg=0 guibg=" . a:bg

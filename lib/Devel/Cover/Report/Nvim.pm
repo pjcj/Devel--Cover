@@ -60,8 +60,10 @@ local M = {}
 local config = {
   -- Colours
   cover_fg = vim.g.devel_cover_fg or "Green",
+  uncoverable_fg = vim.g.devel_cover_uncoverable_fg or "Grey",
   error_fg = vim.g.devel_cover_error_fg or "Red",
   cover_bg = vim.g.devel_cover_bg or nil,
+  uncoverable_bg = vim.g.devel_cover_uncoverable_bg or nil,
   error_bg = vim.g.devel_cover_error_bg or nil,
   valid_bg = vim.g.devel_cover_valid_bg or nil,
   old_bg = vim.g.devel_cover_old_bg or nil,
@@ -78,6 +80,7 @@ local config = {
 
   -- Line highlight groups
   linehl_cover = vim.g.devel_cover_linehl or "cov",
+  linehl_uncoverable = vim.g.devel_cover_linehl_uncoverable or "unc",
   linehl_error = vim.g.devel_cover_linehl_error or "err",
 
   -- Additional highlight options
@@ -105,6 +108,16 @@ local function create_highlight_groups()
     end
     vim.api.nvim_set_hl(0, "cov_" .. type_name, hl_opts)
 
+    -- Uncoverable (excused) highlight
+    local unc_hl_opts = {
+      fg = config.uncoverable_fg,
+      bold = config.cterm == "bold" or config.gui == "bold",
+    }
+    if config.uncoverable_bg then
+      unc_hl_opts.bg = config.uncoverable_bg
+    end
+    vim.api.nvim_set_hl(0, "cov_" .. type_name .. "_uncoverable", unc_hl_opts)
+
     -- Error coverage highlight
     local err_hl_opts = {
       fg = config.error_fg,
@@ -120,9 +133,14 @@ end
 -- Create highlight groups
 create_highlight_groups()
 
--- Create line highlight groups for covered/error lines
+-- Create line highlight groups for covered/uncoverable/error lines
 if config.cover_bg then
   vim.api.nvim_set_hl(0, config.linehl_cover, { bg = config.cover_bg })
+end
+if config.uncoverable_bg then
+  vim.api.nvim_set_hl(
+    0, config.linehl_uncoverable, { bg = config.uncoverable_bg }
+  )
 end
 if config.error_bg then
   vim.api.nvim_set_hl(0, config.linehl_error, { bg = config.error_bg })
@@ -139,6 +157,13 @@ local function create_sign_definitions()
       text = config.signs[type_name],
       linehl = config.linehl_cover,
       texthl = "cov_" .. type_name
+    })
+
+    -- Uncoverable (excused) sign
+    vim.fn.sign_define(type_name .. "_uncoverable", {
+      text = config.signs[type_name],
+      linehl = config.linehl_uncoverable,
+      texthl = "cov_" .. type_name .. "_uncoverable"
     })
 
     -- Error coverage sign
@@ -186,6 +211,18 @@ function M.set_background(bg)
     }
     vim.api.nvim_set_hl(0, "cov_" .. type_name, new_hl)
 
+    -- Get existing highlight and create new options table for uncoverable
+    local unc_hl =
+      vim.api.nvim_get_hl(0, { name = "cov_" .. type_name .. "_uncoverable" })
+    local new_unc_hl = {
+      fg = unc_hl.fg,
+      bg = bg,
+      bold = unc_hl.bold,
+      italic = unc_hl.italic,
+      underline = unc_hl.underline,
+    }
+    vim.api.nvim_set_hl(0, "cov_" .. type_name .. "_uncoverable", new_unc_hl)
+
     -- Get existing highlight and create new options table for error coverage
     local err_hl =
       vim.api.nvim_get_hl(0, { name = "cov_" .. type_name .. "_error" })
@@ -206,6 +243,13 @@ function M.set_background(bg)
       text = config.signs[type_name],
       linehl = config.linehl_cover,
       texthl = "cov_" .. type_name
+    })
+
+    -- Uncoverable (excused) sign
+    vim.fn.sign_define(type_name .. "_uncoverable", {
+      text = config.signs[type_name],
+      linehl = config.linehl_uncoverable,
+      texthl = "cov_" .. type_name .. "_uncoverable"
     })
 
     -- Error coverage sign
@@ -230,16 +274,23 @@ end
 
 local types = {
 [%- FOREACH type = types -%] "[%- type -%]",[%- END -%]
+[%- FOREACH type = types -%] "[%- type -%]_uncoverable",[%- END -%]
 [%- FOREACH type = types -%] "[%- type -%]_error",[%- END -%]
 }
 
-[%- MACRO criterion(file, crit, error) BLOCK %]
-      [% crit %][% error ? "_error" : "" %] = {
+[%- MACRO criterion(file, crit, state) BLOCK -%]
+[%- suffix = state == "error"       ? "_error"
+           : state == "uncoverable" ? "_uncoverable"
+           :                          "" %]
+      [% crit %][% suffix %] = {
     [%- criteria = cover.file("$file").$crit -%]
     [%- FOREACH loc = criteria.items.nsort -%]
         [%- cov = 0 -%]
         [%- FOREACH l = criteria.location("$loc") -%]
-            [%- IF error ? l.error : l.covered -%]
+            [%- hit = state == "error"       ? l.error
+                    : state == "uncoverable" ? l.uncoverable && !l.error
+                    :                          l.covered -%]
+            [%- IF hit -%]
                 [% loc -%],[%- cov = 1; LAST -%]
             [%- END -%]
         [%- LAST IF cov; END -%]
@@ -251,8 +302,9 @@ local coverage = {
 [% FOREACH file = files %]
   ["[% file %]"] = {
 [%- FOREACH type = types -%]
-[%- criterion(file, type, 0) -%]
-[%- criterion(file, type, 1) -%]
+[%- criterion(file, type, "covered") -%]
+[%- criterion(file, type, "uncoverable") -%]
+[%- criterion(file, type, "error") -%]
 [%- END %]
   },
 [% END %]
@@ -456,8 +508,10 @@ The signs are as follows:
 
 The last of the criteria, in the order given above, is the one which is
 displayed.  Correctly covered criteria are shown in green.  Incorrectly
-covered criteria are shown in red.  Any incorrectly covered criterion will
-override a correctly covered criterion.
+covered criteria are shown in red.  Criteria marked uncoverable which did
+not run are shown in grey.  A red criterion overrides a grey one, and a
+grey one overrides a green one.  Code which runs despite an uncoverable
+marker is an error and is shown in red.
 
 If the coverage for the file being displayed is out of date the function
 called coverage_old() is called and passed the name of the file.  Similarly,
@@ -468,19 +522,22 @@ your init.lua or init.vim file before loading the coverage script.
 
 Available configuration variables:
 
- vim.g.devel_cover_fg            -- Covered foreground (default: "Green")
- vim.g.devel_cover_error_fg      -- Uncovered foreground (default: "Red")
- vim.g.devel_cover_bg            -- Covered background (default: nil)
- vim.g.devel_cover_error_bg      -- Uncovered background (default: nil)
- vim.g.devel_cover_valid_bg      -- Current-coverage background (default: nil)
- vim.g.devel_cover_old_bg        -- Old-coverage background (default: nil)
- vim.g.devel_cover_cterm         -- Terminal styling (default: "bold")
- vim.g.devel_cover_gui           -- GUI styling (default: "bold")
- vim.g.devel_cover_linehl        -- Covered line highlight (default: "cov")
- vim.g.devel_cover_linehl_error  -- Error line highlight (default: "err")
- vim.g.devel_cover_signs         -- Custom sign text table
- vim.g.devel_cover_sign_group    -- Sign group name (default: "DevelCover")
- vim.g.devel_cover_sign_priority -- Sign priority (default: 1)
+ vim.g.devel_cover_fg             -- Covered foreground (default: "Green")
+ vim.g.devel_cover_uncoverable_fg -- Excused foreground (default: "Grey")
+ vim.g.devel_cover_error_fg       -- Uncovered foreground (default: "Red")
+ vim.g.devel_cover_bg             -- Covered background (default: nil)
+ vim.g.devel_cover_uncoverable_bg -- Excused background (default: nil)
+ vim.g.devel_cover_error_bg       -- Uncovered background (default: nil)
+ vim.g.devel_cover_valid_bg       -- Current-coverage background (default: nil)
+ vim.g.devel_cover_old_bg         -- Old-coverage background (default: nil)
+ vim.g.devel_cover_cterm          -- Terminal styling (default: "bold")
+ vim.g.devel_cover_gui            -- GUI styling (default: "bold")
+ vim.g.devel_cover_linehl         -- Covered line highlight (default: "cov")
+ vim.g.devel_cover_linehl_uncoverable -- Excused lines (default: "unc")
+ vim.g.devel_cover_linehl_error   -- Error line highlight (default: "err")
+ vim.g.devel_cover_signs          -- Custom sign text table
+ vim.g.devel_cover_sign_group     -- Sign group name (default: "DevelCover")
+ vim.g.devel_cover_sign_priority  -- Sign priority (default: 1)
 
 Example configuration for solarized theme in init.lua:
 

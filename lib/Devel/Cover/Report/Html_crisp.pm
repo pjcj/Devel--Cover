@@ -94,6 +94,12 @@ sub untested_badge () {
 sub glass_tip ($text) { qq(<span class="glass-tip">$text</span>) }
 sub is_na     ($v)    { !defined $v || $v eq "n/a" || $v eq "-" }
 
+sub tip_text ($s) {
+  my $t = "$s->{covered} / $s->{total}";
+  $t .= " ($s->{uncoverable} uncoverable)" if $s->{uncoverable};
+  $t
+}
+
 sub scar_tip ($f) {
   return "" if is_na($f->{file_scar});
   my $cov_cls = class($f->{file_cov}, $f->{file_cov} < 100, "total");
@@ -137,10 +143,10 @@ sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef) {
   my $dv      = $data_value // (is_na($s->{pc}) ? -1 : $s->{pc});
   my $no_data = $uncompiled && !$R{have_ppi};
   my $no_tip  = $no_data || ($s->{total} // 0) == 0;
-  my $cls   = $no_tip ? $s->{class} : "$s->{class} tip-hover";
-  my $tip   = $no_tip ? ""          : glass_tip("$s->{covered} / $s->{total}");
-  my $bar   = cov_bar($s->{pc}, $uncompiled);
-  my $inner = "$s->{pc} $bar";
+  my $cls     = $no_tip ? $s->{class} : "$s->{class} tip-hover";
+  my $tip     = $no_tip ? ""          : glass_tip(tip_text($s));
+  my $bar     = cov_bar($s->{pc}, $uncompiled);
+  my $inner   = "$s->{pc} $bar";
 
   $inner = qq(<a class="cell-link" href="$link">$inner</a>) if $link;
   qq(<td class="$cls" data-value="$dv">$inner $tip</td>)
@@ -267,7 +273,7 @@ sub stat_badge ($c, $s) {
   my $suf    = is_na($pct) ? "" : "%";
   my $no_tip = ($s->{total} // 0) == 0;
   my $cls    = $no_tip ? $s->{class} : "$s->{class} tip-hover";
-  my $tip    = $no_tip ? ""          : glass_tip("$s->{covered} / $s->{total}");
+  my $tip    = $no_tip ? ""          : glass_tip(tip_text($s));
 
   <<HTML
 <span class="stat-badge $cls">
@@ -450,9 +456,14 @@ HTML
   )
 }
 
-sub _summary_text ($covered, $total, $error = undef, $criterion = "condition") {
+sub _summary_text (
+  $covered, $total,
+  $error     = undef,
+  $criterion = "condition",
+  $pc        = undef,
+) {
   return "" unless $total;
-  my $pc  = int(100 * $covered / $total);
+  $pc //= int(100 * $covered / $total);
   my $cls = class($pc, $error // $covered != $total, $criterion);
   qq(<span class="summary-text $cls">$pc%)
     . qq(<span class="count">$covered/$total</span></span>)
@@ -460,17 +471,19 @@ sub _summary_text ($covered, $total, $error = undef, $criterion = "condition") {
 
 sub _render_cond_cells ($line) {
   my $cells = $line->{condition_cells} or return "";
-  my ($cov, $tot) = (0, 0);
+  my ($cov, $err, $tot) = (0, 0, 0);
   for my $cell (@$cells) {
     for my $part ($cell->{parts}->@*) {
       $tot++;
-      $cov++ if ($part->{class} // "") ne "c0";
+      $cov++ if $part->{covered};
+      $err++ if $part->{error};
     }
   }
+  my $pc = $tot ? int(($tot - $err) / $tot * 100) : 0;
   my $o
     = qq(<div class="detail cond-cells">\n)
     . '<div class="head"><span>Condition</span>'
-    . _summary_text($cov, $tot)
+    . _summary_text($cov, $tot, $err ? 1 : 0, "condition", $pc)
     . qq(</div>\n<div class="body">\n);
   for my $cell (@$cells) {
     $o .= qq(<div class="item">\n);
@@ -493,10 +506,12 @@ sub _render_truth_tables ($line) {
   for my $tt (@$tts) {
     my $tot = $tt->{rows}->@*;
     my $cov = grep $_->{covered}, $tt->{rows}->@*;
+    my $err = grep $_->{error},   $tt->{rows}->@*;
+    my $pc  = $tot ? int(($tot - $err) / $tot * 100) : 0;
     $o
       .= qq(<div class="detail decision-vectors">\n)
       . '<div class="head"><span>Truth table</span>'
-      . _summary_text($cov, $tot)
+      . _summary_text($cov, $tot, $err ? 1 : 0, "condition", $pc)
       . qq(</div>\n<div class="body">\n)
       . qq(<div class="expr">$tt->{short_expr}</div>\n);
     if ($tt->{legend} && $tt->{legend}->@*) {
@@ -522,7 +537,12 @@ sub render_line_detail ($line) {
 
   if ($line->{subroutines}) {
     for my $s ($line->{subroutines}->@*) {
-      my $status  = $s->{covered} ? "called" : "not called";
+      my $status
+        = $s->{excused}
+        ? "not called (uncoverable)"
+        : $s->{covered}
+        ? ($s->{error} ? "called (marked uncoverable but covered)" : "called")
+        : "not called";
       my $cc_info = "";
       if (defined $s->{cc}) {
         my $cls  = scar_class($s->{scar});
@@ -540,7 +560,13 @@ HTML
 
   if ($line->{pod}) {
     for my $p ($line->{pod}->@*) {
-      my $status = $p->{covered} ? "documented" : "undocumented";
+      my $status
+        = $p->{excused}
+        ? "undocumented (uncoverable)"
+        : $p->{covered} ? ($p->{error}
+          ? "documented (marked uncoverable but covered)"
+          : "documented")
+        : "undocumented";
       $o .= <<HTML;
 <div class="detail">
 <span class="detail-heading">Pod</span>
@@ -584,7 +610,9 @@ sub render_mcdc_detail ($mcdc) {
     $o
       .= qq(<div class="detail mcdc-detail">\n)
       . '<div class="head"><span>MC/DC</span>'
-      . _summary_text($m->{covered}, $m->{total}, $m->{error}, "mcdc")
+      . _summary_text(
+        $m->{covered}, $m->{total}, $m->{error}, "mcdc", $m->{percentage},
+      )
       . qq(</div>\n<div class="body">\n)
       . qq(<div class="expr">$m->{text}</div>\n);
     if ($m->{unanalysed}) {
@@ -592,7 +620,12 @@ sub render_mcdc_detail ($mcdc) {
     } else {
       $o .= qq(<div class="mcdc-atomics">\n);
       for my $a ($m->{atomics}->@*) {
-        $o .= qq(<span class="mcdc-pill $a->{class}">$a->{label}</span>\n);
+        my $title
+          = $a->{excused} ? ' title="marked uncoverable"'
+          : $a->{stale}   ? ' title="marked uncoverable but covered"'
+          :                 "";
+        $o
+          .= qq(<span class="mcdc-pill $a->{class}"$title>$a->{label}</span>\n);
       }
       $o .= "</div>\n";
     }
@@ -602,27 +635,47 @@ sub render_mcdc_detail ($mcdc) {
 }
 
 sub count_cell ($line, $cov_defined) {
-  my $cls = "count";
-  if ($line->{partial}) {
-    $cls .= " exec-partial";
-  } else {
-    $cls .= " $line->{exec_class}" if $line->{exec_class};
-    $cls .= " c0"                  if $line->{pod_uncovered};
+  my $exec = $line->{exec_class} // "";
+  my $cls  = "count";
+  if ($exec eq "exec-0" || $line->{stale}) {
+    $cls .= " exec-0";
+  } elsif ($line->{partial}) {
+    $cls .= " exec-partial"
+  } elsif ($line->{pod_uncovered}) {
+    $cls .= " c0"
+  } elsif ($line->{excused}) {
+    $cls .= " exec-excused"
+  } elsif ($exec) {
+    $cls .= " $exec"
   }
+
+  # exec-excused hatches via its own CSS rule
+  $cls .= " mk" if ($line->{stale} || $line->{excused}) && $cls !~ /excused/;
+
   my $aria
-    = $cov_defined ? "executed $line->{count} times" : "no coverage data";
+    = !$cov_defined         ? "no coverage data"
+    : $line->{stmt_excused} ? "marked uncoverable"
+    : $line->{stmt_stale}
+    ? "executed $line->{count} times, marked uncoverable but covered"
+    : "executed $line->{count} times";
   my $count = $cov_defined ? $line->{count} : "";
   <<HTML
 <td role="cell" class="$cls" aria-label="$aria">$count</td>
 HTML
 }
 
+sub line_data_cov ($line, $is_uncov) {
+      $is_uncov           ? "0"
+    : $line->{partial}    ? "2"
+    : $line->{excused}    ? "3"
+    : $line->{count} == 0 ? "0"
+    : "1"
+}
+
 sub render_source_line ($line) {
   my $cov_defined = defined $line->{count};
   my $is_uncov
-    = $cov_defined
-    && $line->{count} == 0
-    && ($line->{count_class} // "") eq "c0";
+    = $cov_defined && (($line->{count_class} // "") eq "c0" || $line->{stale});
   my $has_detail
     = $line->{branches}
     || $line->{condition_cells}
@@ -638,7 +691,7 @@ sub render_source_line ($line) {
 
   my $o = '<tr role="row"';
   if ($cov_defined) {
-    my $dcov = $line->{count} == 0 ? "0" : $line->{partial} ? "2" : "1";
+    my $dcov = line_data_cov($line, $is_uncov);
     $o .= qq(\n    data-cov="$dcov");
   }
   $o .= qq(\n    class="$tr_cls")          if $tr_cls;
@@ -653,7 +706,7 @@ sub render_source_line ($line) {
   my $chevron = $has_detail ? "&#x25b6;" : "";
   my $src_cls = "src";
   $src_cls .= " src-c0"      if $is_uncov;
-  $src_cls .= " src-partial" if $line->{partial};
+  $src_cls .= " src-partial" if $line->{partial} && !$is_uncov;
   $src_cls .= " src-c1"      if ($line->{count_class} // "") eq "c1";
   my $text  = $line->{text} // "";
   $o .= qq(<td role="cell" class="chevron">$chevron</td>)
@@ -682,7 +735,7 @@ HTML
     my $suf  = is_na($s->{pc})   ? ""              : "%";
     my $no_tip = ($s->{total} // 0) == 0;
     my $cls    = $no_tip ? $base : "$base tip-hover";
-    my $tip    = $no_tip ? ""    : glass_tip("$s->{covered} / $s->{total}");
+    my $tip    = $no_tip ? ""    : glass_tip(tip_text($s));
 
     $o .= <<HTML;
 <span class="stat-badge $cls" data-criterion="$c">
@@ -699,7 +752,7 @@ HTML
 <span class="stat-badge $tt_cls tip-hover" data-criterion="total">
 <span class="badge-label">@{[ crit_name("total") ]} $tt->{pc}%</span>
 @{[ cov_bar($tt->{pc}, $fd->{uncompiled}) ]}
-@{[ glass_tip("$tt->{covered} / $tt->{total}") ]}</span>
+@{[ glass_tip(tip_text($tt)) ]}</span>
 HTML
   }
   my $cc = $fd->{file_cc};
@@ -736,9 +789,25 @@ line that has any error. Click again to close.</dd>
 <dt>Line details</dt>
 <dd>Click any line with a &#x25b6; chevron to expand branch,
 condition, or subroutine detail.</dd>
+<dt>Colours</dt>
+<dd>
+<span class="legend-swatch c3"></span> covered<br>
+<span class="legend-swatch c1"></span> partial - ran, but a construct
+on the line is uncovered<br>
+<span class="legend-swatch c0"></span> uncovered<br>
+<span class="legend-swatch cx"></span> excused - marked uncoverable<br>
+<span class="legend-swatch c1 mk"></span> partial, with an uncoverable
+marker on the line<br>
+<span class="legend-swatch c0 mk"></span> marked uncoverable but ran
+</dd>
 <dt>Minimap</dt>
 <dd>The strip on the right shows coverage at a glance. Click to
 jump to that line.</dd>
+<dt>Uncoverable</dt>
+<dd>Constructs marked uncoverable are excused - not counted as
+errors, and skipped by <kbd>j</kbd> / <kbd>k</kbd>. Diagonal stripes
+mean an uncoverable marker is present. A striped red cell means
+marked code actually ran, so the marker needs removing.</dd>
 <dt>Tooltips</dt>
 <dd>Hover badges for covered/total counts. Hover SCAR for a
 breakdown.</dd>
@@ -810,15 +879,23 @@ sub fmt_pc ($pc) {
 }
 
 sub _format_criterion ($part, $criterion) {
-  return { pc => "n/a", class => "na", covered => 0, total => 0, error => 0 }
+  return {
+    pc          => "n/a",
+    class       => "na",
+    covered     => 0,
+    total       => 0,
+    uncoverable => 0,
+    error       => 0,
+    }
     unless $part && exists $part->{$criterion};
   my $c = $part->{$criterion};
   {
-    pc      => fmt_pc($c->{percentage}),
-    class   => class($c->{percentage}, $c->{error}, $criterion),
-    covered => $c->{covered} || 0,
-    total   => $c->{total}   || 0,
-    error   => $c->{error}   || 0,
+    pc          => fmt_pc($c->{percentage}),
+    class       => class($c->{percentage}, $c->{error}, $criterion),
+    covered     => $c->{covered}     || 0,
+    total       => $c->{total}       || 0,
+    uncoverable => $c->{uncoverable} || 0,
+    error       => $c->{error}       || 0,
   }
 }
 
@@ -877,7 +954,13 @@ sub build_one_file ($file) {
 
   my $no_data = $uncompiled && !$R{have_ppi};
   my $na      = sub { {
-    pc => "-", class => "na", covered => 0, total => 0, error => 0 } };
+    pc          => "-",
+    class       => "na",
+    covered     => 0,
+    total       => 0,
+    uncoverable => 0,
+    error       => 0,
+  } };
 
   for my $c ($R{showing}->@*) {
     $f{criteria}{$c} = $no_data ? $na->() : get_summary($file, $c);
@@ -934,21 +1017,36 @@ sub line_subroutines ($f, $n) {
   my $loc  = $subs->location($n);
   return unless $loc && @$loc;
   my $cl = $R{scar_subs} || {};
-  map { {
-    name    => escape_html($_->name),
-    covered => $_->covered,
-    class   => oclass($_, "subroutine"),
-    cc      => ($cl->{ "$n\0" . $_->name } // {})->{cc},
-    crap    => ($cl->{ "$n\0" . $_->name } // {})->{crap},
-    scar    => ($cl->{ "$n\0" . $_->name } // {})->{scar},
-  } } @$loc
+  map {
+    my $excused = $_->uncoverable && !$_->covered;
+    {
+      name    => escape_html($_->name),
+      covered => $_->covered,
+      error   => $_->error ? 1    : 0,
+      excused => $excused  ? 1    : 0,
+      class   => $excused  ? "cx" : $_->covered
+        && $_->error ? "c0 mk" : oclass($_, "subroutine"),
+      cc   => ($cl->{ "$n\0" . $_->name } // {})->{cc},
+      crap => ($cl->{ "$n\0" . $_->name } // {})->{crap},
+      scar => ($cl->{ "$n\0" . $_->name } // {})->{scar},
+    }
+  } @$loc
 }
 
 sub line_pod ($f, $n) {
   my $pod = $f->pod or return;
   my $loc = $pod->location($n);
   return unless $loc && @$loc;
-  map { { covered => $_->covered, class => oclass($_, "pod") } } @$loc
+  map {
+    my $excused = $_->uncoverable && !$_->covered;
+    {
+      covered => $_->covered,
+      error   => $_->error ? 1    : 0,
+      excused => $excused  ? 1    : 0,
+      class   => $excused  ? "cx" : $_->covered
+        && $_->error ? "c0 mk" : oclass($_, "pod"),
+    }
+  } @$loc
 }
 
 sub line_branches ($f, $n) {
@@ -956,14 +1054,25 @@ sub line_branches ($f, $n) {
   my $loc      = $branches->location($n);
   return unless $loc && @$loc;
   map {
-    my $t = $_->value(0);
-    my $f = $_->value(1);
+    my $t         = $_->value(0);
+    my $f         = $_->value(1);
+    my $arm_class = sub ($i, $v) {
+      $_->uncoverable($i)
+        && !$v                ? "cx"
+        : $v && $_->error($i) ? "c0 mk"
+        : class($v, $_->error($i), "branch")
+    };
+    my $true_class  = $arm_class->(0, $t);
+    my $false_class = $arm_class->(1, $f);
     {
       true_count  => $t,
       false_count => $f,
       total_count => $t + $f,
-      true_class  => class($t, $_->error(0), "branch"),
-      false_class => class($f, $_->error(1), "branch"),
+      has_error   => $_->error ? 1 : 0,
+      has_excused => $true_class eq "cx"  || $false_class eq "cx" ? 1 : 0,
+      has_stale   => ($_->error(0) && $t) || ($_->error(1) && $f) ? 1 : 0,
+      true_class  => $true_class,
+      false_class => $false_class,
       text        => escape_html($_->text // ""),
     }
   } @$loc
@@ -1001,10 +1110,19 @@ sub line_condition_cells ($f, $n) {
       text    => _cond_expr($c),
       headers => [map escape_html($_), ($c->headers // [])->@*],
       parts   => [
-        map { {
-          count => $c->value($_),
-          class => class($c->value($_), $c->error($_), "condition"),
-        } } 0 .. $c->total - 1
+        map {
+          my $excused = $c->uncoverable($_) && !$c->value($_);
+          {
+            count   => $c->value($_),
+            covered => $c->value($_) ? 1 : 0,
+            error   => $c->error($_) ? 1 : 0,
+            excused => $excused      ? 1 : 0,
+            class   => $excused      ? "cx"
+            : $c->value($_)
+              && $c->error($_) ? "c0 mk"
+            : class($c->value($_), $c->error($_), "condition"),
+          }
+        } 0 .. $c->total - 1
       ],
     }
   } @$loc
@@ -1019,11 +1137,17 @@ sub line_truth_tables ($f, $n) {
     my $proven = $_->proven;
     my @rows   = map {
       my $covered = $proven && $_->covered;
+      my $error
+        = Devel::Cover::Criterion->err_chk($covered, $_->uncoverable) ? 1 : 0;
       {
         inputs  => $_->inputs,
         result  => $_->result,
         covered => $covered,
-        class   => $covered ? "c3" : "c0",
+        error   => $error,
+        excused => !$error && !$covered ? 1 : 0,
+        class   => $error               ? ($covered ? "c0 mk" : "c0")
+        : $covered ? "c3"
+        :            "cx",
       }
     } $_->rows;
     my @labels  = $_->labels;
@@ -1059,11 +1183,17 @@ sub line_mcdc ($f, $n) {
       class      => class($m->percentage, $m->error, "mcdc"),
       atomics    => $m->unanalysed ? [] : [
         map {
-          my $unc = $m->uncoverable($_);
+          my $stale = $m->error($_) && $vals[$_];
+          my $cls
+            = $m->error($_) ? ($stale ? "c0 mk" : "c0")
+            : $vals[$_]     ? "c3"
+            :                 "cx";
           {
-            label   => escape_html(($unc ? "-" : "") . ($labels[$_] // "")),
-            covered => $vals[$_]         ? 1    : 0,
-            class   => $vals[$_] || $unc ? "c3" : "c0",
+            label   => escape_html($labels[$_] // ""),
+            covered => $vals[$_]    ? 1 : 0,
+            excused => $cls eq "cx" ? 1 : 0,
+            stale   => $stale       ? 1 : 0,
+            class   => $cls,
           }
         } 0 .. $#vals
       ],
@@ -1071,8 +1201,10 @@ sub line_mcdc ($f, $n) {
   } @$loc
 }
 
-sub exec_class ($count) {
-  defined $count && $count > 0 ? "exec-covered" : "exec-0"
+sub exec_class ($s) {
+      $s->uncoverable && !$s->covered ? "exec-excused"
+    : $s->error                       ? "exec-0"
+    : "exec-covered"
 }
 
 sub line_statement ($f, $n, $line) {
@@ -1080,20 +1212,52 @@ sub line_statement ($f, $n, $line) {
   my $loc  = $stmt->location($n);
   return unless $loc && @$loc;
   my $s = $loc->[0];
-  $line->{count}       = $s->covered;
-  $line->{count_class} = oclass($s, "statement");
-  $line->{exec_class}  = exec_class($s->covered);
+  $line->{count}        = $s->covered;
+  $line->{count_class}  = oclass($s, "statement");
+  $line->{exec_class}   = exec_class($s);
+  $line->{stmt_excused} = 1 if $s->uncoverable && !$s->covered;
+  $line->{stmt_stale}   = 1 if $s->uncoverable && $s->covered && $s->error;
 }
 
 sub line_partial ($line, $bd, $cd, $tts, $sd, $md) {
   return unless defined $line->{count} && $line->{count} > 0;
   my $p;
-  $p ||= any { $_->{true_count} == 0 || $_->{false_count} == 0 } @$bd;
-  $p ||= any { any { ($_->{class} // "") eq "c0" } $_->{parts}->@* } @$cd;
-  $p ||= any { !$_->{covered} } @$sd;
+  $p ||= any { $_->{has_error} } @$bd;
+  $p ||= any { any { $_->{error} } $_->{parts}->@* } @$cd;
+  $p ||= any { $_->{error} } @$sd;
   $p ||= any { $_->{error} } @$md;
   $p ||= $line->{pod_uncovered};
   $line->{partial} = 1 if $p;
+}
+
+sub line_excused ($line, $bd, $cd, $tts, $sd, $md) {
+  my $e;
+  $e ||= $line->{stmt_excused} || $line->{pod_excused};
+  $e ||= any { $_->{has_excused} } @$bd;
+  $e ||= any { any { $_->{excused} } $_->{parts}->@* } @$cd;
+  $e ||= any { any { $_->{excused} } $_->{rows}->@* } @$tts;
+  $e ||= any { any { $_->{excused} } ($_->{atomics} // [])->@* } @$md;
+  $e ||= any { $_->{excused} } @$sd;
+  $line->{excused} = 1 if $e;
+}
+
+sub line_pod_flags ($line, $pd) {
+  return unless @$pd;
+  $line->{pod}           = $pd;
+  $line->{pod_uncovered} = 1 if any { $_->{error} } @$pd;
+  $line->{pod_excused}   = 1 if any { $_->{excused} } @$pd;
+  $line->{pod_stale}     = 1 if any { $_->{covered} && $_->{error} } @$pd;
+}
+
+sub line_stale ($line, $bd, $cd, $tts, $sd, $md) {
+  my $s;
+  $s ||= $line->{stmt_stale} || $line->{pod_stale};
+  $s ||= any { $_->{has_stale} } @$bd;
+  $s ||= any { any { $_->{covered} && $_->{error} } $_->{parts}->@* } @$cd;
+  $s ||= any { any { $_->{covered} && $_->{error} } $_->{rows}->@* } @$tts;
+  $s ||= any { any { $_->{stale} } ($_->{atomics} // [])->@* } @$md;
+  $s ||= any { $_->{covered} && $_->{error} } @$sd;
+  $line->{stale} = 1 if $s;
 }
 
 sub read_source ($file) {
@@ -1137,22 +1301,20 @@ sub build_source_lines ($file) {
     $line{subroutines} = \@sd if @sd;
 
     my @pd = line_pod($f, $n);
-    if (@pd) {
-      $line{pod}           = \@pd;
-      $line{pod_uncovered} = 1 if any { !$_->{covered} } @pd;
-    }
+    line_pod_flags(\%line, \@pd);
 
     line_partial(\%line, \@bd, \@cd, \@tts, \@sd, \@md);
+    line_excused(\%line, \@bd, \@cd, \@tts, \@sd, \@md);
+    line_stale(\%line, \@bd, \@cd, \@tts, \@sd, \@md);
 
     my @errors;
-    push @errors, "branch"
-      if any { $_->{true_count} == 0 || $_->{false_count} == 0 } @bd;
+    push @errors, "branch" if any { $_->{has_error} } @bd;
     push @errors, "condition" if any {
-      any { !$_->{covered} }
+      any { $_->{error} }
         $_->{rows}->@*
     } @tts;
     push @errors, "mcdc"       if any { $_->{error} } @md;
-    push @errors, "subroutine" if any { !$_->{covered} } @sd;
+    push @errors, "subroutine" if any { $_->{error} } @sd;
     push @errors, "pod"        if $line{pod_uncovered};
     $line{errors} = join ",", @errors if @errors;
 
@@ -1535,6 +1697,16 @@ $Assets{css} = $Crisp_base_css . <<'CSS';
 
 .help-panel .help-close:hover { color: var(--fg); }
 
+.help-panel .legend-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid;
+  border-radius: 3px;
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+
 /* Common prefix */
 
 .common-prefix {
@@ -1856,6 +2028,7 @@ tr.dir-file td:first-child a {
 .exec-0 { background: var(--cov-none-bg); }
 .exec-partial { background: var(--cov-low-bg); }
 .exec-covered { background: var(--cov-full-bg); }
+.exec-excused { background: var(--cov-excused-bg); }
 
 .src {
   white-space: pre;
@@ -1932,6 +2105,26 @@ td.chevron {
 .detail th { background: var(--header-bg); }
 .detail .c0 { background: var(--cov-none-bg); }
 .detail .c3 { background: var(--cov-full-bg); }
+.detail .cx { background: var(--cov-excused-bg); }
+
+/* Hatch marks a construct carrying an uncoverable marker */
+.exec-excused,
+.detail td.cx, .detail span.cx, .detail tr.cx > td,
+.mcdc-pill.cx, .legend-swatch.cx {
+  background-image: repeating-linear-gradient(45deg, transparent 0 5px,
+    color-mix(in srgb, var(--cov-excused-border) 30%, transparent) 5px 7px);
+}
+.count.mk,
+.detail td.mk, .detail span.mk, .detail tr.mk > td,
+.mcdc-pill.mk, .legend-swatch.mk {
+  background-image: repeating-linear-gradient(45deg, transparent 0 5px,
+    color-mix(in srgb, var(--cov-none-border) 30%, transparent) 5px 7px);
+}
+.count.exec-partial.mk,
+.legend-swatch.c1.mk {
+  background-image: repeating-linear-gradient(45deg, transparent 0 5px,
+    color-mix(in srgb, var(--cov-low-border) 30%, transparent) 5px 7px);
+}
 
 .detail.cond-cells { border-left: 3px solid var(--panel-cond); }
 .detail.mcdc-detail { border-left: 3px solid var(--panel-mcdc); }
@@ -2636,6 +2829,8 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
             ctx.fillStyle = gp("--cov-good-border");
           else if (cov === "1")
             ctx.fillStyle = gp("--cov-full-border");
+          else if (cov === "3")
+            ctx.fillStyle = gp("--cov-excused-border");
           else continue;
           var y = Math.floor(i * scale);
           ctx.fillRect(0, y, 12, Math.max(1, Math.ceil(scale)));
@@ -2692,6 +2887,12 @@ with inline branch, condition, and subroutine detail.
 
 Features include dark mode support, keyboard navigation, sortable columns,
 inline condition truth tables, and deep-linkable filters.
+
+Colour shows the coverage outcome and a diagonal stripe shows that an
+uncoverable marker is present.  Excused code is striped green, code which ran
+despite its marker is striped red, and a partially covered line carrying a
+marker is striped amber.  Tooltips give the uncoverable counts and the help
+panel shows a legend of the colours.
 
 It is designed to be called from the C<cover> program.  It will add syntax
 highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.

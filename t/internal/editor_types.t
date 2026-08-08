@@ -40,7 +40,7 @@ sub types_from_vim_report ($cover_db, $libdir, $seed) {
   my $vim = slurp("$cover_db/coverage.vim");
   my ($list) = $vim =~ /^let s:types = \[(.*?)\]/ms;
   ok defined $list, "types list found in coverage.vim (seed $seed)";
-  [grep !/_error$/, ($list // "") =~ /"(\w+)"/g]
+  [grep !/_uncoverable$|_error$/, ($list // "") =~ /"(\w+)"/g]
 }
 
 # Criteria must come out in canonical order, identical under any hash seed

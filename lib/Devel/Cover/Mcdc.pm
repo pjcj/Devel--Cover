@@ -46,7 +46,7 @@ sub missing ($self) {
 
 sub percentage ($self) {
   my $t = $self->total;
-  $t ? int($self->covered / $t * 100) : 0
+  $t ? int(($t - $self->error) / $t * 100) : 0
 }
 
 sub error ($self, $c = undef) {

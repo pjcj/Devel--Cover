@@ -1,0 +1,141 @@
+cover: Reading database from ...
+
+Common prefix: tests/
+
+------------------ ------ ------ ------ ------ ------
+File                 stmt    sub    pod  total   scar
+------------------ ------ ------ ------ ------ ------
+Uncoverable_pod.pm  100.0  100.0   75.0   92.3    0.0
+uncoverable_pod     100.0  100.0    n/a  100.0    0.0
+Total               100.0  100.0   75.0   96.8    0.0
+------------------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+Module Summary
+--------------
+
+Files CC   Cov CRAP SCAR
+----- -- ----- ---- ----
+    2  1 100.0  1.0  0.0
+
+
+Uncoverable_pod.pm
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
+
+line  err   stmt    sub    pod   code
+1                                # Copyright 2026, Paul Johnson (paul@pjcj.net)
+2                                
+3                                # This software is free.  It is licensed under the same terms as Perl itself.
+4                                
+5                                # The latest version of this software should be available from my homepage:
+6                                # https://pjcj.net
+7                                
+8                                package Uncoverable_pod;
+9                                
+10             1      1      1   sub documented { "documented" }
+11                               
+12                               sub excused_pod {
+13                                 # uncoverable pod
+14             1      1     -0     "excused";
+15                               }
+16                               
+17                               sub stale_pod {
+18                                 # uncoverable pod
+19    ***      1      1    *-1     "stale";
+20                               }
+21                               
+22                               sub never_called {
+23                                 # uncoverable subroutine
+24                                 # uncoverable statement
+25                                 # uncoverable pod
+26            -0     -0     -0     die "never called";
+27                               }
+28                               
+29             1                 1
+30                               
+31                               __END__
+
+
+Covered Subroutines
+-------------------
+
+Subroutine   Count Pod  CC  SCAR Location             
+------------ ----- --- --- ----- ---------------------
+documented       1   1   1   0.0 Uncoverable_pod.pm:10
+excused_pod      1  -0   1   0.0 Uncoverable_pod.pm:14
+stale_pod        1 *-1   1   0.0 Uncoverable_pod.pm:19
+
+Uncoverable Subroutines
+-----------------------
+
+Subroutine   Count Pod  CC  SCAR Location             
+------------ ----- --- --- ----- ---------------------
+never_called    -0  -0   1   0.0 Uncoverable_pod.pm:26
+
+
+uncoverable_pod
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
+
+line  err   stmt    sub    pod   code
+1                                #!/usr/bin/perl
+2                                
+3                                # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                
+5                                # This software is free.  It is licensed under the same terms as Perl itself.
+6                                
+7                                # The latest version of this software should be available from my homepage:
+8                                # https://pjcj.net
+9                                
+10                               # __COVER__ criteria statement subroutine pod
+11                               # __COVER__ skip_test eval "use Pod::Coverage"; $@
+12                               # __COVER__ skip_reason Pod::Coverage unavailable
+13                               
+14             1      1          use strict;
+               1                 
+               1                 
+15             1      1          use warnings;
+               1                 
+               1                 
+16                               
+17             1      1          use lib "tests";
+               1                 
+               1                 
+18                               
+19             1      1          use Uncoverable_pod;
+               1                 
+               1                 
+20                               
+21             1                 Uncoverable_pod::documented();
+22             1                 Uncoverable_pod::excused_pod();
+23             1                 Uncoverable_pod::stale_pod();
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location          
+---------- ----- --- ----- ------------------
+BEGIN          1   1   0.0 uncoverable_pod:14
+BEGIN          1   1   0.0 uncoverable_pod:15
+BEGIN          1   1   0.0 uncoverable_pod:17
+BEGIN          1   1   0.0 uncoverable_pod:19
+
+

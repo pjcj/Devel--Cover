@@ -21,7 +21,7 @@ BEGIN { eval "use Pod::Coverage 0.06" }  # We'll use this if it is available.
 sub uncoverable ($self) { $self->[2] }
 sub covered     ($self) { $self->[0] ? 1 : 0 }
 sub total       ($self) { 1 }
-sub percentage  ($self) { $self->[0] ? 100 : 0 }
+sub percentage  ($self) { $self->error ? 0 : 100 }
 sub error       ($self) { $self->simple_error }
 sub criterion   ($self) { "pod" }
 
@@ -31,12 +31,7 @@ sub sign_letter      ($class) { "P" }
 
 sub calculate_summary ($self, $db, $file) {
   return unless $INC{"Pod/Coverage.pm"};
-
-  my $s = $db->{summary};
-
-  $self->aggregate($s, $file, "total",   $self->total);
-  $self->aggregate($s, $file, "covered", 1) if $self->covered;
-  $self->aggregate($s, $file, "error",   $self->error);
+  $self->SUPER::calculate_summary($db, $file)
 }
 
 1

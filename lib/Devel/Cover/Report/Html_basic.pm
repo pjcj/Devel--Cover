@@ -36,15 +36,39 @@ my $Template;
 my %R;
 
 sub oclass ($o, $criterion) {
-  $o ? class($o->percentage, $o->error, $criterion) : ""
+  $o ? class($o->percentage, $o->error, $criterion, $o->uncoverable) : ""
 }
 
 my $Threshold = default_thresholds;
 
-sub class ($pc, $err, $criterion) {
+sub class ($pc, $err, $criterion, $unc = 0) {
   return "" if $criterion eq "time";
-  !$err ? "c3" : coverage_class($pc // 0, $Threshold)
+  return $unc ? "cx" : "c3" unless $err;
+  coverage_class($pc // 0, $Threshold) . ($unc ? " mk" : "")
 }
+
+sub marker_title ($unc, $err) {
+  $unc ? $err ? "marked uncoverable but covered" : "marked uncoverable" : ""
+}
+
+sub _stale ($o, $criterion) {
+  return $o->uncoverable && $o->covered
+    if $criterion =~ /^(?:statement|subroutine|pod)$/;
+  grep $o->uncoverable($_) && $o->covered($_), 0 .. $o->total - 1
+}
+
+sub otitle ($o, $criterion) {
+  return "" unless $o && $criterion ne "time" && $o->uncoverable;
+  _stale($o, $criterion)
+    ? "marked uncoverable but covered"
+    : "marked uncoverable"
+}
+
+sub part_entry ($text, $unc, $err, $criterion) { {
+  text  => $text,
+  class => class(0, $err, $criterion, $unc),
+  title => marker_title($unc, $err),
+} }
 
 sub get_summary ($file, $criterion) {
   my $vals = { pc => "n/a", class => "" };
@@ -56,9 +80,10 @@ sub get_summary ($file, $criterion) {
 
   return $vals unless defined $c->{percentage};
   $vals->{pc} = do { my $x = sprintf "%5.2f", $c->{percentage}; chop $x; $x };
-  $vals->{covered} = $c->{covered} || 0;
-  $vals->{total}   = $c->{total};
-  $vals->{details} = "$vals->{covered} / $vals->{total}";
+  $vals->{covered}  = $c->{covered} || 0;
+  $vals->{total}    = $c->{total};
+  $vals->{details}  = "$vals->{covered} / $vals->{total}";
+  $vals->{details} .= " ($c->{uncoverable} uncoverable)" if $c->{uncoverable};
 
   my $cr
     = $criterion eq "total"
@@ -90,11 +115,12 @@ sub _build_coverage_criteria ($criteria, $n, $count) {
     my $o   = shift $criteria->{$c}->@*;
     $more ||= $criteria->{$c}->@*;
 
-    my $meta      = Devel::Cover::Criterion->criterion_class($c);
-    my $cr        = $meta->detail_criterion;
-    my $pc        = $meta->display_mode eq "percentage";
-    my $text      = $o ? $pc ? $o->percentage : $o->covered : "&nbsp;";
-    my $criterion = { text => $text, class => oclass($o, $c) };
+    my $meta = Devel::Cover::Criterion->criterion_class($c);
+    my $cr   = $meta->detail_criterion;
+    my $pc   = $meta->display_mode eq "percentage";
+    my $text = $o ? $pc ? $o->percentage : $o->covered : "&nbsp;";
+    my $criterion
+      = { text => $text, class => oclass($o, $c), title => otitle($o, $c) };
 
     $criterion->{link} = "$R{filenames}{$R{file}}--$cr.html#$n-$count"
       if $o && defined $cr;
@@ -105,7 +131,7 @@ sub _build_coverage_criteria ($criteria, $n, $count) {
 
 sub _add_uncovered_links ($lines) {
   my @unc = grep {
-    $_->{criteria}[0]{class} eq "c0" && $_->{criteria}[0]{text} eq "0"
+    $_->{criteria}[0]{class} =~ /^c0\b/ && $_->{criteria}[0]{text} =~ /^\d+$/
   } @$lines;
   while (@unc) {
     my $u    = pop @unc;
@@ -193,16 +219,16 @@ sub print_branches () {
       my $text = _highlight_text($br->text);
 
       push @branches, {
-        number => $count == 1 ? $location : "",
-        parts  => [
-          map {
-            text    => $br->value($_),
-              class => class($br->value($_), $br->error($_), "branch")
-          },
-          0 .. $br->total - 1,
-        ],
-        text => $text,
-      };
+          number => $count == 1 ? $location : "",
+          parts  => [
+            map part_entry(
+              $br->value($_), $br->uncoverable($_),
+              $br->error($_), "branch",
+            ),
+            0 .. $br->total - 1,
+          ],
+          text => $text,
+        };
     }
   }
 
@@ -226,17 +252,16 @@ sub print_conditions () {
       my $text = _highlight_text($c->text);
 
       push $r->{ $c->type }->@*, {
-        number    => $count->{ $c->type } == 1 ? $location : "",
-        condition => $c,
-        parts     => [
-          map {
-            text    => $c->value($_),
-              class => class($c->value($_), $c->error($_), "condition")
-          },
-          0 .. $c->total - 1,
-        ],
-        text => $text,
-      };
+          number    => $count->{ $c->type } == 1 ? $location : "",
+          condition => $c,
+          parts     => [
+            map part_entry(
+              $c->value($_), $c->uncoverable($_), $c->error($_), "condition"
+            ),
+            0 .. $c->total - 1,
+          ],
+          text => $text,
+        };
     }
   }
 
@@ -274,15 +299,16 @@ sub print_mcdc () {
         number     => $count == 1 ? $location : "",
         ref        => "$location-$count",
         percentage => $m->percentage,
-        class      => class($m->percentage, $m->error, "mcdc"),
+        class      => class($m->percentage, $m->error, "mcdc", $m->uncoverable),
+        title      => otitle($m, "mcdc"),
         note       => $m->unanalysed ? "too many conditions" : "",
         atomics    => $m->unanalysed ? []                    : [
           map {
-            my $unc = $m->uncoverable($_);
-            +{
-              label => escape_html(($unc ? "-" : "") . ($labels[$_] // "")),
-              class => $vals[$_] || $unc ? "c3" : "c0",
-            }
+            my $unc  = $m->uncoverable($_);
+            my $part = part_entry("", $unc, $m->error($_), "mcdc");
+            $part->{label}
+              = escape_html(($unc ? "-" : "") . ($labels[$_] // ""));
+            $part
           } 0 .. $#vals,
         ],
         text => $text,
@@ -319,8 +345,10 @@ sub print_subroutines () {
           name   => decode_guess($o->name),
           count  => $s ? $o->covered              : "",
           class  => $s ? oclass($o, "subroutine") : "",
+          title  => $s ? otitle($o, "subroutine") : "",
           pod    => $p ? $p->covered ? "Yes" : "No" : "n/a",
           pclass => $p ? oclass($p, "pod") : "",
+          ptitle => $p ? otitle($p, "pod") : "",
         };
     }
   }
@@ -660,7 +688,8 @@ $Templates{file} = <<'HTML';
         [% END %]>[% line.number %]</a>
       </td>
       [% FOREACH cr = line.criteria %]
-        <td [% IF cr.class %] class="[% cr.class %]" [% END %]>
+        <td[% IF cr.class %] class="[% cr.class %]"[% END -%]
+        [% IF cr.title %] title="[% cr.title %]"[% END %]>
           [% IF cr.link.defined %] <a href="[% cr.link %]"> [% END %]
           [% cr.text %]
           [% IF cr.link.defined %] </a> [% END %]
@@ -697,7 +726,9 @@ $Templates{branches} = <<'HTML';
           [% branch.number %]</a>
       </td>
       [% FOREACH part = branch.parts %]
-        <td class="[% part.class %]"> [% part.text %] </td>
+        <td class="[% part.class %]"
+        [%- IF part.title %] title="[% part.title %]"[% END %]>
+          [% part.text %] </td>
       [% END %]
       <td class="s"> [% branch.text %] </td>
     </tr>
@@ -734,7 +765,9 @@ $Templates{conditions} = <<'HTML';
             [% condition.number %]</a>
         </td>
         [% FOREACH part = condition.parts %]
-          <td class="[% part.class %]"> [% part.text %] </td>
+          <td class="[% part.class %]"
+          [%- IF part.title %] title="[% part.title %]"[% END %]>
+            [% part.text %] </td>
         [% END %]
         <td class="s"> [% condition.text %] </td>
       </tr>
@@ -767,13 +800,17 @@ $Templates{mcdc} = <<'HTML';
         <a href="[% R.file_link %]#[% decision.number %]">
           [% decision.number %]</a>
       </td>
-      <td class="[% decision.class %]"> [% decision.percentage %] </td>
+      <td class="[% decision.class %]"
+      [%- IF decision.title %] title="[% decision.title %]"[% END %]>
+        [% decision.percentage %] </td>
       <td>
         [% IF decision.note %]
           <em> [% decision.note %] </em>
         [% ELSE %]
           [% FOREACH atom = decision.atomics %]
-            <span class="[% atom.class %]"> [% atom.label %] </span>
+            <span class="[% atom.class %]"
+            [%- IF atom.title %] title="[% atom.title %]"[% END %]>
+              [% atom.label %] </span>
           [% END %]
         [% END %]
       </td>
@@ -814,10 +851,14 @@ $Templates{subroutines} = <<'HTML';
         <a href="[% R.file_link %]#[% sub.line %]">[% sub.line %]</a>
       </td>
       [% IF R.options.show.subroutine %]
-        <td class="[% sub.class %]"> [% sub.count %] </td>
+        <td class="[% sub.class %]"
+        [%- IF sub.title %] title="[% sub.title %]"[% END %]>
+          [% sub.count %] </td>
       [% END %]
       [% IF R.options.show.pod %]
-        <td class="[% sub.pclass %]"> [% sub.pod %] </td>
+        <td class="[% sub.pclass %]"
+        [%- IF sub.ptitle %] title="[% sub.ptitle %]"[% END %]>
+          [% sub.pod %] </td>
       [% END %]
       <td> [% sub.name | html %] </td>
     </tr>
@@ -849,6 +890,13 @@ Devel::Cover::Report::Html_basic - HTML backend for Devel::Cover
 This module provides a HTML reporting mechanism for coverage data.  It
 is designed to be called from the C<cover> program. It will add syntax
 highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
+
+Colour shows the coverage outcome and a diagonal stripe shows that an
+uncoverable marker is present.  Excused code is striped green with a
+"marked uncoverable" tooltip, and code which ran despite its marker is
+striped red with a "marked uncoverable but covered" tooltip.  Summary
+tooltips give the uncoverable counts and MC/DC atomics keep the "-"
+prefix of the text reports.
 
 =head1 OPTIONS
 

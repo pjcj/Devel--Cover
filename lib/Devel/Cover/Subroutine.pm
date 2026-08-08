@@ -19,7 +19,7 @@ use base "Devel::Cover::Criterion";
 sub uncoverable ($self) { $self->[2] }
 sub covered     ($self) { $self->[0] }
 sub total       ($self) { 1 }
-sub percentage  ($self) { $self->[0] ? 100 : 0 }
+sub percentage  ($self) { $self->error ? 0 : 100 }
 sub error       ($self) { $self->simple_error }
 sub name        ($self) { $self->[1] }
 sub criterion   ($self) { "subroutine" }
