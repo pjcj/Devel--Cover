@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # Copyright 2002-2026, Paul Johnson (paul@pjcj.net)
 
@@ -236,7 +236,12 @@ The following command line options are supported:
 
 Collect coverage for results and create html, csv and json output.
 
-The modules L<Template> and L<Parallel::Iterator> are required.
+This command sets up a coverage service such as L<http://cpancover.com>.  It is
+shipped with Devel::Cover but not installed, so run it from a checkout of the
+repository, where C<utils/dc> drives it.
+
+Perl 5.42.0 or above is required, along with L<Template> and
+L<Parallel::Iterator>.
 
 =head1 EXIT STATUS
 

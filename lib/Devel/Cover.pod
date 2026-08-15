@@ -144,7 +144,9 @@ Needed if the tests fail and you would like nice output telling you why.
 
 =item * L<Template> and L<Parallel::Iterator>
 
-Needed if you want to run cpancover.
+Needed if you want to run cpancover.  That command is not installed - it sets
+up a coverage service such as L<http://cpancover.com> and is run from a
+checkout of the Devel::Cover repository.
 
 =item * L<JSON::MaybeXS>
 
