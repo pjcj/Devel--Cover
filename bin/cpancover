@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # Copyright 2002-2026, Paul Johnson (paul@pjcj.net)
 
@@ -207,7 +207,7 @@ The following command line options are supported:
   -i --info               - show documentation
   -v --version            - show version
 
-  --bin_dir               - location of the cover binaries     ($0 dir)
+  --bin_dir               - location of the cover binaries      ($0 dir)
   --build                 - collect coverage from modules       (on)
   --compress_old_versions - compress data older than n versions (0)
   --docker                - docker command to use               (docker)
@@ -222,13 +222,13 @@ The following command line options are supported:
   --module_file           - read module list from a file        (none)
   --modules               - modules to use                (all in results_dir)
   --output_file           - top level index                     (index.html)
-  --rebuild               - rebuild already-covered modules      (off)
-  --rebuild_batch         - how many distdirs per rebuild pass   (100)
-  --report                - report to use                        (html)
+  --rebuild               - rebuild already-covered modules     (off)
+  --rebuild_batch         - how many distdirs per rebuild pass  (100)
+  --report                - report to use                       (html)
   --results_dir           - where to store output               ($cwd)
-  --timeout               - per-distribution timeout in seconds  (3600)
-  --verbose               - verbose output                       (off)
-  --workers               - number of parallel workers           (0)
+  --timeout               - per-distribution timeout in seconds (3600)
+  --verbose               - verbose output                      (off)
+  --workers               - number of parallel workers          (0)
 
 =head1 DETAILS
 
@@ -236,7 +236,12 @@ The following command line options are supported:
 
 Collect coverage for results and create html, csv and json output.
 
-The modules L<Template> and L<Parallel::Iterator> are required.
+This command sets up a coverage service such as L<http://cpancover.com>.  It is
+shipped with Devel::Cover but not installed, so run it from a checkout of the
+repository, where C<utils/dc> drives it.
+
+Perl 5.42.0 or above is required, along with L<Template> and
+L<Parallel::Iterator>.
 
 =head1 EXIT STATUS
 

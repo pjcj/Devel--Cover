@@ -1,6 +1,7 @@
 Devel::Cover history
 
 {{$NEXT}}
+- BREAKING: Stop installing the cpancover command (Gabor Szabó) (GH-273)
 - BREAKING: Base each construct's displayed percentage on errors, matching
   the summary definition, so excused constructs read -100 instead of
   dragging the number down (GH-703)
