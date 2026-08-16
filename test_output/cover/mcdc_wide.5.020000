@@ -1,6 +1,6 @@
 cover: Reading database from ...
-cover: MC/DC decision at tests/mcdc_wide:23 has 18 conditions, exceeding the analysis limit of 16
-cover: MC/DC decision at tests/mcdc_wide:41 has 17 conditions, exceeding the analysis limit of 16
+cover: Warning: MC/DC decision at tests/mcdc_wide:23 has 18 conditions, exceeding the analysis limit of 16
+cover: Warning: MC/DC decision at tests/mcdc_wide:41 has 17 conditions, exceeding the analysis limit of 16
 --------------- ------ ------ ------ ------ ------ ------ ------
 File              stmt   bran   cond   mcdc    sub  total   scar
 --------------- ------ ------ ------ ------ ------ ------ ------

@@ -1,5 +1,5 @@
 cover: Reading database from ...
-cover: 2 unmatched uncoverable comments not found at end of tests/uncoverable
+cover: Warning: 2 unmatched uncoverable comments not found at end of tests/uncoverable
 ----------------- ------ ------ ------ ------ ------ ------ ------
 File                stmt   bran   cond   mcdc    sub  total   scar
 ----------------- ------ ------ ------ ------ ------ ------ ------

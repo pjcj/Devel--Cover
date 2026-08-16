@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Label warning and error output with Warning or Error so it stands out
+  from routine messages (GH-353)
 - Report input problems with dcwarn rather than dcinfo, dropping the
   Warning prefix from their text (GH-353)
 - Read MYMETA.json without CPAN::Meta->load_file, which leaks the
