@@ -84,7 +84,7 @@ sub test_digest_missing () {
     my $d = $st->digest($bogus);
     ok !defined $d, "digest missing: returns undef"
   };
-  like $stderr, qr/can't open/, "digest missing: warns on STDERR";
+  like $stderr, qr/Can't open/, "digest missing: warns on STDERR";
 }
 
 sub test_digest_missing_silent () {
