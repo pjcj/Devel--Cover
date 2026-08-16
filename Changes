@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Read MYMETA.json without CPAN::Meta->load_file, which leaks the
+  filehandle it opens (GH-353)
 - Release the lock on a coverage database file when the read or write
   finishes - a program which had closed STDIN previously held it until exit
   (GH-353)
