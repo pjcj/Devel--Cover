@@ -172,6 +172,7 @@ sub digest ($self, $file) {
   if (open my $fh, "<", $file) {
     binmode $fh;
     $digest = Digest::MD5->new->addfile($fh)->hexdigest;
+    close $fh or dcwarn "Can't close $file after MD5 digest: $!";
   } else {
     dcinfo "Warning: can't open $file for MD5 digest: $!"
       unless lc $file eq "-e" or $file =~ $Devel::Cover::DB::Ignore_filenames;

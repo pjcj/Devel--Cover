@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Close each source file after taking its MD5 digest, so a program that closes
+  and reopens STDIN can still read from it with <> (Josh Soref) (GH-353)
 - BREAKING: Stop installing the cpancover command (Gabor Szabó) (GH-273)
 - BREAKING: Base each construct's displayed percentage on errors, matching
   the summary definition, so excused constructs read -100 instead of
