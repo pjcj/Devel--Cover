@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Release the lock on a coverage database file when the read or write
+  finishes - a program which had closed STDIN previously held it until exit
+  (GH-353)
 - Close each source file after taking its MD5 digest, so a program that closes
   and reopens STDIN can still read from it with <> (Josh Soref) (GH-353)
 - BREAKING: Stop installing the cpancover command (Gábor Szabó) (GH-273)
