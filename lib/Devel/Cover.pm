@@ -354,7 +354,11 @@ sub populate_run {
   if (-e $mymeta) {
     eval {
       require CPAN::Meta;
-      my $json = CPAN::Meta->load_file($mymeta)->as_struct;
+      open my $fh, "<:encoding(UTF-8)", $mymeta
+        or die "Can't open $mymeta: $!\n";
+      my $meta = do { local $/; <$fh> };
+      close $fh or die "Can't close $mymeta: $!\n";
+      my $json = CPAN::Meta->load_json_string($meta)->as_struct;
       $Run{$_} = $json->{$_} for qw( name version abstract );
     }
   } elsif ($Dir =~ m|.*/([^/]+)$|) {

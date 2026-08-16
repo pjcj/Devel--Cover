@@ -29,7 +29,9 @@ sub _lock ($self, $file, $type) {
 
 sub _read ($self, $file, $reader) {
   my $lock_fh = $self->_lock($file, LOCK_SH);
-  $reader->()
+  my $data    = $reader->();
+  close $lock_fh or die "Can't close $file.lock: $!\n";
+  $data
 }
 
 sub _write ($self, $file, $writer) {
@@ -40,6 +42,7 @@ sub _write ($self, $file, $writer) {
     unlink $tmp;
     die "Can't rename $tmp to $file: $!\n";
   };
+  close $lock_fh or die "Can't close $file.lock: $!\n";
   $self
 }
 

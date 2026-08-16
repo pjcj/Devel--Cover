@@ -28,12 +28,12 @@ sub dcinfo ($msg) {
 }
 
 sub dcerror ($msg) {
-  print STDERR "$Prefix: $msg\n";
+  print STDERR "$Prefix: Error: $msg\n";
 }
 
 sub dcwarn ($msg) {
   return if $Devel::Cover::Silent;
-  print STDERR "$Prefix: $msg\n";
+  print STDERR "$Prefix: Warning: $msg\n";
 }
 
 sub dcprogress ($msg) {
@@ -67,9 +67,10 @@ Devel::Cover::Log - Centralised diagnostic output for Devel::Cover
 =head1 DESCRIPTION
 
 All diagnostic output goes to STDERR with a consistent C<"$Prefix: "> prefix
-(default C<cover>).  STDOUT is reserved for requested output such as the
-summary table, the C<--dump_db> dump, and report content for text-based
-reporters.
+(default C<cover>).  Warnings and errors carry a further C<Warning> or
+C<Error> label so they stand out from routine output.  STDOUT is reserved
+for requested output such as the summary table, the C<--dump_db> dump, and
+report content for text-based reporters.
 
 Functions are exported on request; import only those you need.
 
@@ -84,12 +85,14 @@ C<$Devel::Cover::Silent> is true.
 
 =item dcerror($msg)
 
-Error message.  Never silenced: errors are always reported.
+Error message, labelled C<Error>.  Never silenced, so errors are always
+reported.
 
 =item dcwarn($msg)
 
-Warning about a problem in the input or configuration; the requested output
-is still produced.  Silenced when C<$Devel::Cover::Silent> is true.
+Warning about a problem in the input or configuration, labelled C<Warning>.
+The requested output is still produced.  Silenced when
+C<$Devel::Cover::Silent> is true.
 
 =item dcprogress($msg)
 

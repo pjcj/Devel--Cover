@@ -1325,7 +1325,7 @@ sub _cover_file (
     my $fc  = $f->{$criterion};
     my $get = "get_$criterion";
     my $sc  = $st->$get($digest) or do {
-      dcinfo "Warning: can't locate structure for $criterion in $file"
+      dcwarn "Can't locate structure for $criterion in $file"
         unless $warned->{$file}{$criterion}++;
       next;
     };

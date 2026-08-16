@@ -1,7 +1,18 @@
 Devel::Cover history
 
 {{$NEXT}}
-- BREAKING: Stop installing the cpancover command (Gabor Szabó) (GH-273)
+- Label warning and error output with Warning or Error so it stands out
+  from routine messages (GH-353)
+- Report input problems with dcwarn rather than dcinfo, dropping the
+  Warning prefix from their text (GH-353)
+- Read MYMETA.json without CPAN::Meta->load_file, which leaks the
+  filehandle it opens (GH-353)
+- Release the lock on a coverage database file when the read or write
+  finishes - a program which had closed STDIN previously held it until exit
+  (GH-353)
+- Close each source file after taking its MD5 digest, so a program that closes
+  and reopens STDIN can still read from it with <> (Josh Soref) (GH-353)
+- BREAKING: Stop installing the cpancover command (Gábor Szabó) (GH-273)
 - BREAKING: Base each construct's displayed percentage on errors, matching
   the summary definition, so excused constructs read -100 instead of
   dragging the number down (GH-703)
@@ -338,7 +349,7 @@ Devel::Cover history
  - Fix spelling mistakes (Gregor Herrmann) (GH-171)
  - Fix condition coverage for complex conditions (Heinz Knutzen) (GH-165)
  - Use JSON::MaybeXS for sppen and flexibility (Olivier Mengué) (GH-139)
- - Add CONTRIBUTING file (Gabor Szabó) (GH-100)
+ - Add CONTRIBUTING file (Gábor Szabó) (GH-100)
 
 1.24 - 18 April 2017
  - Work with 5.25.x (op_sibling) (Dan Collins, Matthew Horsfall) (GH-162)
@@ -1012,10 +1023,10 @@ Devel::Cover history
  - Clean up time routines in XS code
 
 0.28 - 1st December 2003
- - Remove leading whitespace from HTML templates (Gabor Szabó)
+ - Remove leading whitespace from HTML templates (Gábor Szabó)
  - Remove obsolete indent option
  - Add MD5 checksums (Michael Carman)
- - Add Html_minimal.pm (Michael Carman) (Obsoleting Gabor's patch before it was
+ - Add Html_minimal.pm (Michael Carman) (Obsoleting Gábor's patch before it was
    released)
  - Pass unknown cover options to the formatter and remove -option
  - Specify the output directory for HTML

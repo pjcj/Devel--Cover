@@ -58,22 +58,22 @@ sub test_dcinfo_silenced () {
 sub test_dcerror_writes_to_stderr () {
   local $Devel::Cover::Silent = 0;
   my ($out, $err) = capture { dcerror "oops" };
-  is $out, "",              "dcerror: nothing on STDOUT";
-  is $err, "cover: oops\n", "dcerror: prefixed message on STDERR";
+  is $out, "",                     "dcerror: nothing on STDOUT";
+  is $err, "cover: Error: oops\n", "dcerror: labelled message on STDERR";
 }
 
 sub test_dcerror_not_silenced () {
   local $Devel::Cover::Silent = 1;
   my ($out, $err) = capture { dcerror "oops" };
-  is $out, "",              "dcerror silent: nothing on STDOUT";
-  is $err, "cover: oops\n", "dcerror silent: still emitted - not guarded";
+  is $out, "",                     "dcerror silent: nothing on STDOUT";
+  is $err, "cover: Error: oops\n", "dcerror silent: still emitted";
 }
 
 sub test_dcwarn_writes_to_stderr () {
   local $Devel::Cover::Silent = 0;
   my ($out, $err) = capture { dcwarn "beware" };
-  is $out, "",                "dcwarn: nothing on STDOUT";
-  is $err, "cover: beware\n", "dcwarn: prefixed message on STDERR";
+  is $out, "",                         "dcwarn: nothing on STDOUT";
+  is $err, "cover: Warning: beware\n", "dcwarn: labelled message on STDERR";
 }
 
 sub test_dcwarn_silenced () {
@@ -109,7 +109,8 @@ sub test_prefix_override_error () {
   local $Devel::Cover::Silent      = 0;
   local $Devel::Cover::Log::Prefix = "gcov2perl";
   my ($out, $err) = capture { dcerror "bad" };
-  is $err, "gcov2perl: bad\n", "prefix override: dcerror uses custom prefix";
+  is $err, "gcov2perl: Error: bad\n",
+    "prefix override: dcerror uses custom prefix";
 }
 
 sub test_multiline_message () {

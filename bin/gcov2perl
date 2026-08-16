@@ -16,7 +16,7 @@ no warnings qw( experimental::signatures experimental::postderef );
 # VERSION
 
 use Devel::Cover::DB  ();
-use Devel::Cover::Log qw( dcerror dcinfo );
+use Devel::Cover::Log qw( dcerror dcinfo dcwarn );
 
 use Config       qw( %Config );
 use File::Path   qw( mkpath );
@@ -138,7 +138,7 @@ sub add_cover ($file) {
         $structure->add_branch($f, [$line, { text => $text }]);
         push $run{count}{$f}{branch}->@*, \@branches;
       } else {
-        dcinfo "Warning: ignoring branch with "
+        dcwarn "Ignoring branch with "
           . scalar @branches
           . " targets at $f:$line $text";
       }
