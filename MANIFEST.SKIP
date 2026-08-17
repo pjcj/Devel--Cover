@@ -22,6 +22,11 @@ lib/Devel/Cover/Inc.pm$
 \.debug$
 ^tmp/
 ^bugs/
+^llm/
+^dc_cover[^/]*/
+^local/
+^\.claude/
+^\.test_info\.
 \.git/
 \.tar.bz2$
 MYMETA\.
