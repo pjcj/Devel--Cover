@@ -30,8 +30,8 @@ lib/Devel/Cover/Inc.pm$
 \.git/
 \.tar.bz2$
 MYMETA\.
-tags
-.perl-version
+^tags
+^\.perl-version$
 \.db
 ^\.build\b
 CLAUDE\.md$

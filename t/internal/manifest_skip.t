@@ -34,8 +34,20 @@ sub test_working_paths_are_skipped () {
     local/lib/perl5/Foo.pm
     .claude/settings.local.json
     .test_info.123.json
+    tags
+    tags.tmp
+    .perl-version
   );
   ok $Skip->($_), "$_ is skipped" for @paths;
+}
+
+sub test_shipped_paths_are_kept () {
+  my @paths = qw(
+    docs/perl-version-update.md
+    docs/montags.md
+    utils/tags
+  );
+  ok !$Skip->($_), "$_ is kept" for @paths;
 }
 
 sub test_only_expected_entries_survive () {
@@ -63,6 +75,7 @@ sub test_only_expected_entries_survive () {
 
 sub main () {
   test_working_paths_are_skipped;
+  test_shipped_paths_are_kept;
   test_only_expected_entries_survive;
   done_testing;
 }
