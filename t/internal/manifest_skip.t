@@ -34,6 +34,7 @@ sub test_working_paths_are_skipped () {
     local/lib/perl5/Foo.pm
     .claude/settings.local.json
     .test_info.123.json
+    Cover.def
     tags
     tags.tmp
     .perl-version
