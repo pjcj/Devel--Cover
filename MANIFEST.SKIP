@@ -12,6 +12,7 @@ pm_to_blib$
 \.c$
 \.o$
 \.bs$
+\.def$
 cover_db/
 core$
 \.out$
@@ -22,11 +23,16 @@ lib/Devel/Cover/Inc.pm$
 \.debug$
 ^tmp/
 ^bugs/
+^llm/
+^dc_cover[^/]*/
+^local/
+^\.claude/
+^\.test_info\.
 \.git/
 \.tar.bz2$
 MYMETA\.
-tags
-.perl-version
+^tags
+^\.perl-version$
 \.db
 ^\.build\b
 CLAUDE\.md$
