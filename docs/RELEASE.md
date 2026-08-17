@@ -43,6 +43,11 @@
 
     - `dc install_dzil`
 
-11. Make the release
+11. Check what the distribution will contain
+
+    - `prove -l t/internal/manifest_skip.t`
+    - `dzil build && find Devel-Cover-* -type f | sort | less`
+
+12. Make the release
 
     - `dzil release`
