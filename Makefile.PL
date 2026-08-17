@@ -180,13 +180,6 @@ closedir $dir or die "Cannot closedir tests: $!";
 s/^/tests\// for @Tests;
 push @Tests, grep !/e2e/, glob "t/*/*.t";
 
-if ($ENV{DEVEL_COVER_NO_TESTS}) {
-  # don't run tests under p5cover
-  print "removing all tests with DEVEL_COVER_NO_TESTS\n";
-  system "rm -rf t/*";  # TODO portability
-  @Tests = ();
-}
-
 print "done\n\n";
 
 my %Checked;
@@ -346,16 +339,16 @@ my $Opts = {
     "Storable"       => 0,
     "Digest::MD5"    => 0,
     "HTML::Entities" => 3.69,
-    $ENV{DEVEL_COVER_NO_TESTS} ? () : ("Test::More" => 0),
+    "Test::More"     => 0,
   },
   TYPEMAPS => ["utils/typemap"],
   clean    => {
     FILES => "t/e2e/* cover_db* t/e2e/*cover_db README *.gcov *.out"
       . " tests/change tests/md5",
   },
-  dist => { COMPRESS => "gzip --best --force" },
-  test => { TESTS    => $ENV{DEVEL_COVER_NO_TESTS} ? "" : "t/*.t t/*/*.t" },
-  realclean => { FILES => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
+  dist      => { COMPRESS => "gzip --best --force" },
+  test      => { TESTS    => "t/*.t t/*/*.t" },
+  realclean => { FILES    => "lib/Devel/Cover/Inc.pm cover_db t/e2e" },
 };
 # use Data::Dumper; print Dumper $Opts;
 WriteMakefile(%$Opts);
