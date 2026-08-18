@@ -316,7 +316,6 @@ sub do_test ($dbname) {
     $Options->{select}->@*;
 
   $Options->{$_} = [] for qw( ignore ignore_re select select_re );
-  $Options->{report} = ["html"] unless $Options->{report}->@*;
 
   my $opts = join " ", grep $_, $ENV{DEVEL_COVER_TEST_OPTS}, "-MDevel::Cover";
   local $ENV{DEVEL_COVER_OPTIONS} = join ",", $extra, grep defined && length,
@@ -335,8 +334,13 @@ sub do_test ($dbname) {
   }
   # print STDERR "$_: $ENV{$_}\n" for qw(PERL5OPT HARNESS_PERL_SWITCHES);
   dcinfo "running $test";
-  my $test_result = system $test;
-  $test_result >>= 8;
+  my $status = system $test;
+  if ($status == -1) {
+    dcerror "Can't run $test: $!";
+    return 255;
+  }
+  my $signal = $status & 127;
+  $signal ? 128 + $signal : $status >> 8
 }
 
 sub run_gcov ($name, $dir, $gc, $seen) {
