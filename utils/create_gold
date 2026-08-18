@@ -7,6 +7,13 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
+# Usage: create_gold [--test-output] [test ...]
+#
+# Creates golden results in test_output/cover/ for the given tests, or for
+# every test in tests/ when none are named. With --test-output, writes each
+# test's normalised cover output to <test>.out in the current directory
+# instead, which make diff compares against the golden results.
+
 use 5.20.0;
 use warnings;
 
@@ -32,10 +39,12 @@ sub get_tests_from_dir {
   @tests
 }
 
-sub run_test_in_child ($test) {
+sub run_test_in_child ($test, $test_output) {
   my $e    = "t/e2e";
   my $file = (grep -e, "$e/$test", "$e/$test.t", "$e/a$test.t")[0] // $test;
-  say "creating golden results for $test: ";
+  say $test_output
+    ? "writing $test.out: "
+    : "creating golden results for $test: ";
   my $pid = fork // die "Can't fork";
   if ($pid) {
     waitpid $pid, 0;
@@ -43,23 +52,27 @@ sub run_test_in_child ($test) {
     no warnings "redefine";
     local *Devel::Cover::Test::run_test = sub { };
     my $t = require "./$file" or die "Can't require $file: $!";
-    $t->create_gold and say "";
+    ($test_output ? $t->create_out("$test.out") : $t->create_gold) and say "";
     exit;
   }
 }
 
 sub main {
-  if ($Config{useithreads}) {
+  my $test_output = grep $_ eq "--test-output", @ARGV;
+  my @tests       = grep $_ ne "--test-output", @ARGV;
+
+  if (!$test_output && $Config{useithreads}) {
     say "useithreads true, exiting";
     return;
   }
 
-  mkdir "test_output"       unless -d "test_output";
-  mkdir "test_output/cover" unless -d "test_output/cover";
+  unless ($test_output) {
+    mkdir "test_output"       unless -d "test_output";
+    mkdir "test_output/cover" unless -d "test_output/cover";
+  }
 
-  my @tests = @ARGV;
   @tests = get_tests_from_dir unless @tests;
-  run_test_in_child($_) for @tests;
+  run_test_in_child($_, $test_output) for @tests;
 }
 
 main

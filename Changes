@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Make the make diff developer target compare cleanly against golden
+  files, so a matching test produces an empty diff and a zero exit
+  (GH-718)
 - BREAKING: Remove the .uncoverable file interface and the four cover
   options managing it - the file was never read when producing a report,
   so the options had no effect (GH-716)
