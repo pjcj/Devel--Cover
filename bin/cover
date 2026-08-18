@@ -335,8 +335,13 @@ sub do_test ($dbname) {
   }
   # print STDERR "$_: $ENV{$_}\n" for qw(PERL5OPT HARNESS_PERL_SWITCHES);
   dcinfo "running $test";
-  my $test_result = system $test;
-  $test_result >>= 8;
+  my $status = system $test;
+  if ($status == -1) {
+    dcerror "Can't run $test: $!";
+    return 255;
+  }
+  my $signal = $status & 127;
+  $signal ? 128 + $signal : $status >> 8
 }
 
 sub run_gcov ($name, $dir, $gc, $seen) {
