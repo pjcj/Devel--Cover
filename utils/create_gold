@@ -34,7 +34,7 @@ sub get_tests_from_dir {
 
 sub run_test_in_child ($test) {
   my $e    = "t/e2e";
-  my $file = (grep -e, "$e/$test", "$e/a$test.t")[0] // $test;
+  my $file = (grep -e, "$e/$test", "$e/$test.t", "$e/a$test.t")[0] // $test;
   say "creating golden results for $test: ";
   my $pid = fork // die "Can't fork";
   if ($pid) {
