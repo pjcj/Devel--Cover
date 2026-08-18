@@ -316,7 +316,6 @@ sub do_test ($dbname) {
     $Options->{select}->@*;
 
   $Options->{$_} = [] for qw( ignore ignore_re select select_re );
-  $Options->{report} = ["html"] unless $Options->{report}->@*;
 
   my $opts = join " ", grep $_, $ENV{DEVEL_COVER_TEST_OPTS}, "-MDevel::Cover";
   local $ENV{DEVEL_COVER_OPTIONS} = join ",", $extra, grep defined && length,
