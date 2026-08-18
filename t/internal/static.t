@@ -60,6 +60,7 @@ EOPERL
   is $counts->{condition},  0, "minimal: 0 condition outcomes";
   is $counts->{subroutine}, 3, "minimal: 3 subs (1 user + 2 BEGIN)";
   is $counts->{pod},        1, "minimal: 1 pod-coverable sub";
+  is $counts->{mcdc},       0, "minimal: 0 mcdc atomics";
 }
 
 # Branches: if/elsif/else, unless, ternary.
@@ -253,6 +254,43 @@ EOPERL
   # xor_op: xor -> 4
   # total: 9 + 10 + 6 + 4 = 29
   is $counts->{condition}, 29, "conditions: 29 condition outcomes";
+
+  # mcdc atomics per statement: ops + 1, minus one per short-circuit op
+  # with a constant RHS (its table has no atomic for that operand).
+  # normal_and/or/dor: 2 each = 6
+  # flow_control: 5 statements, each 1 const op -> 1 each = 5
+  # const_rhs: 3 statements, each 1 const op -> 1 each = 3
+  # xor_op: xor keeps both atomics -> 2
+  # total: 6 + 5 + 3 + 2 = 16
+  is $counts->{mcdc}, 16, "conditions: 16 mcdc atomics";
+}
+
+# MC/DC estimate: each statement holding logical operators is one decision
+# whose atomics are ops + 1, less one per const-RHS short-circuit op.
+sub test_mcdc_estimate () {
+  my $file = write_file("Logical.pm", <<'EOPERL');
+package Logical;
+
+sub pick {
+  my ($a, $b, $c) = @_;
+  my $r = $a && $b;
+  my $s = $a || $b || $c;
+  return $r || $s;
+}
+
+sub guard {
+  my ($x, $y) = @_;
+  $x && $y or die "no";
+  return $x;
+}
+
+1
+EOPERL
+
+  my $counts = Devel::Cover::Static::count_criteria($file);
+
+  # pick: 2 + 3 + 2 = 7; guard: 2 ops, one const RHS -> 2
+  is $counts->{mcdc}, 9, "mcdc: atomics are ops plus decisions";
 }
 
 # Nonexistent file returns undef.
@@ -418,6 +456,7 @@ sub main () {
   test_branches;
   test_loops;
   test_conditions;
+  test_mcdc_estimate;
   test_pod;
   test_missing_file;
   test_per_sub_complexity;

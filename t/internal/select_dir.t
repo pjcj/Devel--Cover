@@ -78,7 +78,7 @@ sub test_scan () {
   if (have_ppi) {
     my %collected = map { $_ => 1 } $db->collected;
     ok $collected{$_}, "$_ collected via estimates on a runless db"
-      for qw( statement branch condition subroutine pod );
+      for qw( statement branch condition mcdc subroutine pod );
   }
 }
 

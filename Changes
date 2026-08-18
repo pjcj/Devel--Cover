@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Estimate mcdc for untested files found via --select_dir, so the mcdc
+  Total no longer covers tested files only (GH-722)
 - Make the make diff developer target compare cleanly against golden
   files, so a matching test produces an empty diff and a zero exit
   (GH-718)
