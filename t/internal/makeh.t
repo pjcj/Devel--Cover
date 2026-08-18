@@ -29,12 +29,6 @@ sub write_test ($content) {
   $path
 }
 
-sub read_file ($file) {
-  open my $fh, "<", $file or die "Cannot open $file: $!";
-  local $/;
-  <$fh>
-}
-
 sub makeh (@args) {
   qx($^X utils/makeh @args 2>&1)
 }
@@ -69,26 +63,6 @@ is makeh(test_options => $Both), "-subs_only,1,-coverage,statement,branch",
   "combined directives, test_options";
 is makeh(cover_parameters => $Both), "-ignore_covered_err",
   "combined directives, cover_parameters";
-
-my $Out
-  = "before\n"
-  . "line  err   stmt   time   code\n"
-  . "1           4    0.01  print 1;\n"
-  . "--------\n"
-  . "after\n";
-my $Report = write_test($Out);
-is makeh(strip_criterion => "time", $Report), "", "strip_criterion is silent";
-is read_file($Report),
-    "before\n"
-  . "line  err   stmt   code\n"
-  . "1           4   print 1;\n"
-  . "--------\n"
-  . "after\n", "time column stripped between header and separator only";
-is read_file("$Report.bak"), $Out, "original kept in .bak";
-
-my $Absent = write_test($Out);
-is makeh(strip_criterion => "pod", $Absent), "", "absent criterion is silent";
-is read_file($Absent), $Out, "absent criterion leaves file unchanged";
 
 like makeh(test_options => "$Dir/missing"), qr/^Cannot open /,
   "unreadable file is reported";

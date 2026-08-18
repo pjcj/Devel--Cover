@@ -30,18 +30,6 @@ my $Command = {
     my $p = $l =~ /__COVER__\s+cover_parameters\s+(.*)/ ? $1 : "";
     print $p;
   },
-  strip_criterion => sub ($command, $criterion, $file) {
-    my $t;
-    local ($^I, @ARGV) = (".bak", $file);
-    while (my $line = <>) {
-      $t = index($line, "$criterion   code") - 3 if !defined $t || $t < 0;
-      substr $line, $t, 7, ""
-        if $line =~ /^line  err   stmt/ .. $line =~ /^--------/
-        and $t > -1
-        and length($line) > $t;
-      print $line;
-    }
-  },
 };
 
 sub main () {

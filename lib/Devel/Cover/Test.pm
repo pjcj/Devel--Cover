@@ -329,6 +329,23 @@ sub _prune_redundant_gold ($self, $td, $test, $new_gold, $ng) {
   }
 }
 
+sub create_out ($self, $file) {
+  if ($self->{skip}) {
+    print STDERR "Skipping: $self->{skip}\n";
+    return;
+  }
+
+  $self->{run_test}
+    ? $self->{run_test}->($self)
+    : $self->run_command($self->test_command);
+
+  $self->_capture_cover_output($self->cover_command, $file);
+
+  $self->{end}->() if $self->{end};
+
+  1
+}
+
 sub create_gold ($self) {
   # Pod::Coverage not available on all versions, but it must be
   # there on 5.20.0
@@ -492,6 +509,11 @@ Runs the cover command and compares output against golden results.
 
 Runs the full test cycle: executes the test file under coverage, then runs cover
 and compares against golden results.
+
+=head2 create_out ($self, $file)
+
+Runs the test and writes the cover output to C<$file>, normalised the same
+way golden results are, so it can be compared against them byte for byte.
 
 =head2 create_gold ($self)
 
