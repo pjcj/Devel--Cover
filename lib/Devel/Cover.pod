@@ -608,7 +608,11 @@ C<ignore_covered_err> key.
 The -silent option is turned on when Devel::Cover is invoked via
 $HARNESS_PERL_SWITCHES or $PERL5OPT.  Devel::Cover tries to do the right thing
 when $MOD_PERL is set.  $DEVEL_COVER_OPTIONS is appended to any options passed
-into Devel::Cover.
+into Devel::Cover.  Devel::Cover splits the value on commas.  Escape a comma
+inside an option value, such as a database path or a regular expression, as
+C<\,>.  No such escape exists for the C<-MDevel::Cover=...> switch itself,
+since perl performs that split, so values containing commas must go in
+$DEVEL_COVER_OPTIONS.
 
 Note that when Devel::Cover is invoked via an environment variable, any modules
 specified on the command line, such as via the -Mmodule option, will not be
