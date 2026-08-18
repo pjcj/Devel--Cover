@@ -722,9 +722,11 @@ globs; C<-select_re> and C<-ignore_re> are interpreted as regular expressions.
 The C<-select_dir> option scans the given directory for C<.pm> and C<.pl>
 files and ensures they appear in the coverage report even if no tests
 exercised them.  This is useful for identifying completely untested code.
-Files under C<blib> directories below the scan root are excluded, but a
-C<blib> directory may itself be given as the scan root.  The option may be
-specified multiple times.
+Per-criterion totals for these files are estimated by static analysis
+(requiring L<PPI>), so they are close to, but may not exactly match, the
+counts a test run would produce.  Files under C<blib> directories below the
+scan root are excluded, but a C<blib> directory may itself be given as the
+scan root.  The option may be specified multiple times.
 
 Specify C<-coverage> options to report on specific criteria.  By default all
 available information on all criteria in all files will be reported. Available

@@ -12,6 +12,8 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
+use Scalar::Util qw( refaddr );
+
 my $Have_ppi;
 
 BEGIN { $Have_ppi = eval { require PPI; 1 } }
@@ -129,15 +131,17 @@ sub _has_const_rhs ($op) {
   0
 }
 
+sub _logical_ops ($doc) {
+  $doc->find(sub {
+    $_[1]->isa("PPI::Token::Operator")
+      && $_[1]->content =~ m!^(?:&&|\|\||//|&&=|\|\|=|//=|and|or|xor)$!
+  }) || []
+}
+
 sub _count_conditions ($doc) {
   my $total = 0;
 
-  my $ops = $doc->find(sub {
-    $_[1]->isa("PPI::Token::Operator")
-      && $_[1]->content =~ m!^(?:&&|\|\||//|&&=|\|\|=|//=|and|or|xor)$!
-  }) || [];
-
-  for my $op (@$ops) {
+  for my $op (_logical_ops($doc)->@*) {
     my $name = $op->content;
     if ($name eq "xor") {
       $total += 4;
@@ -148,6 +152,20 @@ sub _count_conditions ($doc) {
     }
   }
 
+  $total
+}
+
+sub _count_mcdc ($doc) {
+  my %decisions;
+  for my $op (_logical_ops($doc)->@*) {
+    my $s = $op->statement or next;
+    my $d = $decisions{ refaddr $s } //= { ops => 0, const => 0 };
+    $d->{ops}++;
+    $d->{const}++ if $op->content ne "xor" && _has_const_rhs($op);
+  }
+
+  my $total = 0;
+  $total += $_->{ops} + 1 - $_->{const} for values %decisions;
   $total
 }
 
@@ -177,6 +195,7 @@ sub count_criteria ($file) {
     statement  => _count_statements($doc, $includes, $compounds),
     branch     => _count_branches($doc),
     condition  => _count_conditions($doc),
+    mcdc       => _count_mcdc($doc),
     subroutine => _count_subroutines($doc, $includes),
     pod        => _count_pod($doc),
   }
@@ -226,13 +245,14 @@ Devel::Cover::Static - PPI-based static analysis for uncovered files
   use Devel::Cover::Static;
 
   my $counts = Devel::Cover::Static::count_criteria("lib/Foo.pm");
-  # { statement => 12, branch => 4, condition => 2, subroutine => 3, pod => 3 }
+  # { statement => 12, branch => 4, condition => 2, mcdc => 2,
+  #   subroutine => 3, pod => 3 }
 
 =head1 DESCRIPTION
 
 This module provides static analysis of Perl source files using PPI. It
 estimates the number of coverable constructs (statements, branches, conditions,
-subroutines, and pod) without executing the code.
+mcdc atomics, subroutines, and pod) without executing the code.
 
 It is used by L<Devel::Cover::DB> to populate coverage data for files discovered
 via C<--select_dir> that were never exercised by any test. The counts allow
@@ -252,6 +272,7 @@ Parses C<$file> with PPI and returns a hashref of estimated coverable counts:
     statement  => $n,
     branch     => $n,
     condition  => $n,
+    mcdc       => $n,
     subroutine => $n,
     pod        => $n,
   }
@@ -269,6 +290,14 @@ currently omitted to avoid overcounting.
 B<Conditions> count outcomes per logical operator: 4 for C<xor>, 2 when the
 right-hand side is a constant or flow-control keyword (matching Devel::Cover's
 C<$Const_right> heuristic), and 3 otherwise.
+
+B<Mcdc> counts atomic conditions per decision, treating each statement that
+holds logical operators as one decision: operators plus one, less one for each
+short-circuit operator whose right-hand side is a constant or flow-control
+keyword (its truth table carries no atomic for that operand). The estimate is
+rough in both directions - a decision evaluated in boolean context builds a
+narrower table than the source suggests, and a statement holding two separate
+decisions is counted as one.
 
 B<Subroutines> count named subs plus one BEGIN per C<use>/C<require>.
 
@@ -324,15 +353,25 @@ Used by both C<_count_branches> and C<per_sub_complexity>.
 Counts branch outcomes by delegating to C<_count_decisions> and doubling. Each
 decision contributes two outcomes.
 
+=item _logical_ops($doc)
+
+Finds every logical operator token (C<&&>, C<||>, C<//>, C<and>, C<or>, C<xor>
+and their assignment forms). Used by C<_count_conditions> and C<_count_mcdc>.
+
 =item _count_conditions($doc)
 
-Counts condition outcomes from logical operators (C<&&>, C<||>, C<//>, C<and>,
-C<or>, C<xor> and their assignment forms).
+Counts condition outcomes from logical operators.
 
 =item _has_const_rhs($op)
 
 Returns true if the right-hand side of a logical operator is a constant or
 flow-control keyword, reducing the condition from 3 outcomes to 2.
+
+=item _count_mcdc($doc)
+
+Counts mcdc atomic conditions by grouping logical operators into their
+enclosing statements, each group contributing its operator count plus one,
+less one per const-RHS short-circuit operator.
 
 =item _count_subroutines($doc, $includes)
 
