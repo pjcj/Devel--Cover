@@ -21,7 +21,6 @@ use Devel::Cover::Log       qw( dcinfo dcwarn );
 
 use Carp         qw( carp croak );
 use Cwd          ();
-use Digest::MD5  ();
 use Fcntl        qw( LOCK_EX LOCK_NB );
 use File::Find   qw( find );
 use File::Path   qw( rmtree );
@@ -61,12 +60,11 @@ $Devel::Cover::DB::Ignore_filenames = qr/   # Used by Devel::Cover
 
 sub new ($class, %o) {
   my $self = {
-    criteria         => \@Devel::Cover::DB::Criteria,
-    criteria_short   => \@Devel::Cover::DB::Criteria_short,
-    runs             => {},
-    files            => [],
-    collected        => {},
-    uncoverable_file => [],
+    criteria       => \@Devel::Cover::DB::Criteria,
+    criteria_short => \@Devel::Cover::DB::Criteria_short,
+    runs           => {},
+    files          => [],
+    collected      => {},
     %o,
   };
 
@@ -864,97 +862,6 @@ sub add_condition ($self, $cc, $sc, $fc, $uc, $di = undef) {
   }
 }
 
-sub uncoverable_files ($self) {
-  my $f = ".uncoverable";
-  ($self->{uncoverable_file}->@*, $f, glob "~/$f")
-}
-
-sub uncoverable ($self) {
-  my $u = {};  # holds all the uncoverable information
-
-  # First populate $u with the uncoverable information directly from the
-  # .uncoverable files.  Then loop through the information converting it to the
-  # format we will use later to manage the uncoverable code.  The primary
-  # changes are converting MD5 digests of lines to line numbers, and converting
-  # filenames to MD5 digests of the files.
-
-  for my $file ($self->uncoverable_files) {
-    open my $f, "<", $file or next;
-    dcinfo "Reading uncoverable information from $file";
-    while (my $l = <$f>) {
-      chomp $l;
-      my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $l, 7;
-      push $u->{$file}{$crit}{$line}[$count]->@*, [$type, $class, $note];
-    }
-  }
-
-  # Now change the format of the uncoverable information
-  for my $file (sort keys %$u) {
-    open my $fh, "<", $file or do {
-      warn "Devel::Cover: Can't open $file: $!\n";
-      next;
-    };
-    my $df = Digest::MD5->new;  # MD5 digest of the file
-    my %dl;                     # maps MD5 digests of lines to line numbers
-    my $ln = 0;                 # line number
-    while (my $l = <$fh>) {
-      $dl{ Digest::MD5->new->add($l)->hexdigest } = ++$ln;
-      $df->add($l);
-    }
-    close $fh or warn "Devel::Cover: Can't close $file: $!\n";
-    my $f = $u->{$file};
-    for my $crit (keys %$f) {
-      my $c = $f->{$crit};
-      for my $line (keys %$c) {
-        if (exists $dl{$line}) {
-          # Change key from the MD5 digest to the actual line number
-          $c->{ $dl{$line} } = delete $c->{$line};
-        } else {
-          warn "Devel::Cover: Can't find line for uncovered data: "
-            . "$file $crit $line\n";
-          delete $c->{$line};
-        }
-      }
-    }
-    # Change the key from the filename to the MD5 digest of the file
-    $u->{ $df->hexdigest } = delete $u->{$file};
-  }
-
-  $u
-}
-
-sub add_uncoverable ($self, $adds) {
-  for my $add (@$adds) {
-    my ($file, $crit, $line, $count, $type, $class, $note) = split " ", $add, 7;
-    my ($uncoverable_file) = $self->uncoverable_files;
-
-    open my $f, "<", $file or do {
-      warn "Devel::Cover: Can't open $file: $!";
-      next;
-    };
-    my $found;
-    while (my $l = <$f>) {
-      if ($. == $line) { $found = $l; last }
-    }
-    if (defined $found) {
-      open my $u, ">>", $uncoverable_file
-        or die "Devel::Cover: Can't open $uncoverable_file: $!\n";
-      my $dl = Digest::MD5->new->add($found)->hexdigest;
-      print $u "$file $crit $dl $count $type $class $note\n";
-    } else {
-      warn "Devel::Cover: Can't find line $line in $file.  ",
-        "Last line is $.\n";
-    }
-    close $f or die "Devel::Cover: Can't close $file: $!\n";
-  }
-}
-
-sub delete_uncoverable ($self, $deletes) {
-}
-
-sub clean_uncoverable ($self) {
-}
-
 # mcdc atomic condition N (1-based)
 sub _uncoverable_pair ($criterion, $pair, $has_type, $context) {
   if ($criterion ne "mcdc") {
@@ -1085,9 +992,6 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
   dcwarn scalar @waiting
     . " unmatched uncoverable comments not found at end of $file"
     if @waiting;
-
-  # TODO - read in and merge $self->uncoverable;
-  # print Dumper $uncoverable;
 }
 
 sub objectify_cover ($self) {
@@ -1813,39 +1717,6 @@ classified as a branch and the same recording is applied in the branch arm.
 =head2 add_pod
 
 Alias for L</add_subroutine>.
-
-=head2 uncoverable_files
-
-  my @files = $db->uncoverable_files;
-
-Return the list of C<.uncoverable> files to consult, including any specified via
-the C<uncoverable_file> option, the local C<.uncoverable>, and
-C<~/.uncoverable>.
-
-=head2 uncoverable
-
-  my $uc = $db->uncoverable;
-
-Read all C<.uncoverable> files and return a hashref of uncoverable data keyed by
-file digest, criterion, line number, and count.
-
-=head2 add_uncoverable
-
-  $db->add_uncoverable(\@adds);
-
-Append entries to the first uncoverable file.
-
-=head2 delete_uncoverable
-
-  $db->delete_uncoverable(\@deletes);
-
-Remove entries from the uncoverable file. Currently unimplemented.
-
-=head2 clean_uncoverable
-
-  $db->clean_uncoverable;
-
-Clean up the uncoverable file. Currently unimplemented.
 
 =head2 uncoverable_comments
 

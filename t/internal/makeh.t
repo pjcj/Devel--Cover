@@ -41,7 +41,7 @@ sub makeh (@args) {
 
 my $Plain = write_test("print 1;\n");
 is makeh(test_options     => $Plain), "-coverage,all", "no directives";
-is makeh(cover_parameters => $Plain), " ",             "no directives";
+is makeh(cover_parameters => $Plain), "",              "no directives";
 
 my $Criteria
   = write_test("# __COVER__ criteria statement branch condition subroutine\n");
@@ -57,23 +57,17 @@ my $Params = write_test("# __COVER__ test_parameters -subs_only,1\n");
 is makeh(test_options => $Params), "-subs_only,1,-coverage,all",
   "test_parameters precede coverage";
 
-my $Uncoverable = write_test("# __COVER__ uncoverable_file tests/.unc\n");
-is makeh(cover_parameters => $Uncoverable), "-uncoverable_file tests/.unc ",
-  "uncoverable_file";
-
 my $Ignore = write_test("# __COVER__ cover_parameters -ignore_covered_err\n");
-is makeh(cover_parameters => $Ignore), " -ignore_covered_err",
+is makeh(cover_parameters => $Ignore), "-ignore_covered_err",
   "cover_parameters";
 
 my $Both
-  = write_test("# __COVER__ uncoverable_file tests/.unc\n"
-    . "# __COVER__ cover_parameters -ignore_covered_err\n"
+  = write_test("# __COVER__ cover_parameters -ignore_covered_err\n"
     . "# __COVER__ test_parameters -subs_only,1\n"
     . "# __COVER__ criteria statement branch\n");
 is makeh(test_options => $Both), "-subs_only,1,-coverage,statement,branch",
   "combined directives, test_options";
-is makeh(cover_parameters => $Both),
-  "-uncoverable_file tests/.unc -ignore_covered_err",
+is makeh(cover_parameters => $Both), "-ignore_covered_err",
   "combined directives, cover_parameters";
 
 my $Out

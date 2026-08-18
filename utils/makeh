@@ -27,12 +27,8 @@ my $Command = {
   },
   cover_parameters => sub ($command, $file) {
     my $l = cover_lines($file);
-    my $u
-      = $l =~ /__COVER__\s+uncoverable_file\s+(.*)/
-      ? "-uncoverable_file $1"
-      : "";
     my $p = $l =~ /__COVER__\s+cover_parameters\s+(.*)/ ? $1 : "";
-    print "$u $p";
+    print $p;
   },
   strip_criterion => sub ($command, $criterion, $file) {
     my $t;

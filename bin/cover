@@ -36,29 +36,25 @@ use Storable     qw( dclone );
 use Data::Dumper ();  # no import of Dumper (use Devel::Cover::Dumper if needed)
 
 my $Options = {
-  add_uncoverable_point    => [],
-  annotation               => [],
-  gcov_chdir               => 0,
-  coverage                 => [],
-  delete                   => undef,
-  delete_uncoverable_point => [],
-  gcov                     => $Config{gccversion},
-  ignore                   => [],
-  ignore_re                => [],
-  launch                   => 0,
-  make                     => $Config{make},
-  prefer_lib               => 0,
-  relative_only            => 1,
-  report                   => [],
-  report_c0                => 75,
-  report_c1                => 90,
-  report_c2                => 100,
-  select                   => [],
-  select_dir               => [],
-  select_re                => [],
-  summary                  => 1,
-  uncoverable_file         => [],
-  # .uncoverable and ~/.uncoverable are always checked
+  annotation    => [],
+  gcov_chdir    => 0,
+  coverage      => [],
+  delete        => undef,
+  gcov          => $Config{gccversion},
+  ignore        => [],
+  ignore_re     => [],
+  launch        => 0,
+  make          => $Config{make},
+  prefer_lib    => 0,
+  relative_only => 1,
+  report        => [],
+  report_c0     => 75,
+  report_c1     => 90,
+  report_c2     => 100,
+  select        => [],
+  select_dir    => [],
+  select_re     => [],
+  summary       => 1,
 };
 
 sub check_self_coverage () {
@@ -89,12 +85,9 @@ sub get_options () {
       },
       #<<<
       qw(
-        add_uncoverable_point=s
         annotation=s
-        clean_uncoverable_points!
         coverage=s
         delete!
-        delete_uncoverable_point=s
         dump_db!
         gcov!
         gcov_chdir!
@@ -119,7 +112,6 @@ sub get_options () {
         silent!
         summary!
         test!
-        uncoverable_file=s
         version|v!
       )
       #>>>
@@ -453,21 +445,10 @@ sub scan_select_dirs ($db) {
 sub manage_dbs ($dbname, $test_result) {
 
   dcinfo "Reading database from $dbname";
-  my $db = Devel::Cover::DB->new(
-    db               => $dbname,
-    prefer_lib       => $Options->{prefer_lib},
-    uncoverable_file => $Options->{uncoverable_file},
-  );
+  my $db = Devel::Cover::DB->new(db => $dbname,
+    prefer_lib => $Options->{prefer_lib});
   $db = $db->merge_runs;
   scan_select_dirs($db);
-
-  $db->add_uncoverable($Options->{add_uncoverable_point});
-  $db->delete_uncoverable($Options->{delete_uncoverable_point});
-  $db->clean_uncoverable if $Options->{clean_uncoverable_points};
-  exit $test_result
-    if $Options->{add_uncoverable_point}->@*
-    || $Options->{delete_uncoverable_point}->@*
-    || $Options->{clean_uncoverable_points};
 
   my $structure;
   my $read_structure = sub () {
@@ -658,11 +639,6 @@ The following command line options are supported:
  -jobs N (-j N)        - run the test harness with N parallel workers
  -prefer_lib           - prefer files in lib                (default off)
  -ignore_covered_err   - allow covering uncoverable code    (default off)
-
- -add_uncoverable_point    string
- -delete_uncoverable_point string
- -clean_uncoverable_points
- -uncoverable_file         file
 
  other options specific to the report format
 
