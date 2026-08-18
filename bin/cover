@@ -313,10 +313,7 @@ sub harness_options () {
 sub do_test ($dbname) {
   return 0                  unless $Options->{test};
   delete_db($dbname, @ARGV) unless defined $Options->{delete};
-  my $env_db_name = $dbname;
-  $env_db_name =~ s/\\/\\\\/g if $^O eq "MSWin32";
-  $env_db_name =~ s/ /\\ /g;
-  my $extra = "";
+  my $extra = "-db,$dbname";
   $extra .= ",-coverage,$_" for $Options->{coverage}->@*;
   $extra .= ",-ignore,$_"
     for $Options->{ignore_re}->@*, map quotemeta, map glob,
@@ -328,8 +325,9 @@ sub do_test ($dbname) {
   $Options->{$_} = [] for qw( ignore ignore_re select select_re );
   $Options->{report} = ["html"] unless $Options->{report}->@*;
 
-  my $opts = join " ", grep $_, $ENV{DEVEL_COVER_TEST_OPTS},
-    "-MDevel::Cover=-db,$env_db_name$extra";
+  my $opts = join " ", grep $_, $ENV{DEVEL_COVER_TEST_OPTS}, "-MDevel::Cover";
+  local $ENV{DEVEL_COVER_OPTIONS} = join ",", $extra, grep defined && length,
+    $ENV{DEVEL_COVER_OPTIONS};
   local $ENV{HARNESS_PERL_SWITCHES} = $opts;
   local $ENV{PERL5OPT}              = $opts;
   local $ENV{HARNESS_OPTIONS}       = harness_options();
