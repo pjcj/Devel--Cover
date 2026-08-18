@@ -7,8 +7,6 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-# __COVER__ uncoverable_file tests/.uncoverable
-
 my $x = 1;
 my $y = 1;
 

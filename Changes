@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- BREAKING: Remove the .uncoverable file interface and the four cover
+  options managing it - the file was never read when producing a report,
+  so the options had no effect (GH-716)
 - Label warning and error output with Warning or Error so it stands out
   from routine messages (GH-353)
 - Report input problems with dcwarn rather than dcinfo, dropping the

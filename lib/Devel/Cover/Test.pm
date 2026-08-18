@@ -59,9 +59,6 @@ sub get_params ($self) {
     = join(" ", map "-coverage $_", split " ", $self->{criteria})
     . " @$p -report text "
     . shell_quote $self->{cover_db};
-  $self->{cover_parameters}
-    .= " -uncoverable_file " . "@{$self->{uncoverable_file}}"
-    if $self->{uncoverable_file}->@*;
   if (exists $self->{skip_test}) {
     for my $s ($self->{skip_test}->@*) {
       my $r = shift $self->{skip_reason}->@*;
@@ -84,17 +81,16 @@ sub new ($class, $test, %params) {
   my $differences = $INC{"Test/Differences.pm"};
 
   my $self = bless {
-    test             => $test,
-    criteria         => [$criteria],
-    skip             => "",
-    uncoverable_file => [],
-    select           => "",
-    ignore           => [],
-    changes          => [],
-    test_parameters  => [],
-    debug            => $ENV{DEVEL_COVER_DEBUG} || 0,
-    differences      => $differences,
-    no_coverage      => $ENV{DEVEL_COVER_NO_COVERAGE} || 0,
+    test            => $test,
+    criteria        => [$criteria],
+    skip            => "",
+    select          => "",
+    ignore          => [],
+    changes         => [],
+    test_parameters => [],
+    debug           => $ENV{DEVEL_COVER_DEBUG} || 0,
+    differences     => $differences,
+    no_coverage     => $ENV{DEVEL_COVER_NO_COVERAGE} || 0,
     %params,
   }, $class;
 
