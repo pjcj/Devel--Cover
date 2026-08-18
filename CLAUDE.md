@@ -114,6 +114,9 @@ make dist
 ### Testing Requirements
 
 - Tests must use Test::More system (not Test2 as it is not core)
+  - Exception: author tests in `xt/` may use Test2, and are encouraged to - they
+    ship in the distribution but never run during install, and already run under
+    `yath`, which is Test2-Harness
 - All new code requires tests in the `t/` directory
 - Tests should be run with `yath` test runner
 - Coverage verification using Devel::Cover with JSON reports
