@@ -311,7 +311,7 @@ sub import ($class, @o) {
 
   # Untaint - users of this module can do worse things than mess with tainting
   my $options = ($ENV{DEVEL_COVER_OPTIONS} || "") =~ /(.*)/ ? $1 : "";
-  @o = (@o, split /,/, $options);
+  @o = (@o, map s|\\,|,|gr, split /(?<!\\),/, $options);
   defined or $_ = "" for @o;
 
   my $blib = -d "blib";

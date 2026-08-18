@@ -170,6 +170,36 @@ sub get_options () {
   }
 }
 
+sub valid_report ($report) {
+  if ($report !~ /^\w+$/) {
+    dcerror "$report is not a recognised output format\n";
+    return;
+  }
+  my $format = "Devel::Cover::Report::\u$report";
+  eval "use $format";
+  if ($@) {
+    dcerror "$report is not a recognised output format\n$@";
+    return;
+  }
+  1
+}
+
+sub get_annotation ($ann) {
+  if ($ann !~ /^\w+$/) {
+    dcerror "$ann is not a recognised annotation\n";
+    exit 1;
+  }
+  my $annotation = "Devel::Cover::Annotation::\u$ann";
+  eval "use $annotation";
+  if ($@) {
+    dcerror "$ann is not a recognised annotation\n$@";
+    exit 1;
+  }
+  my $ann_obj = $annotation->new;
+  $ann_obj->get_options($Options) if $ann_obj->can("get_options");
+  $ann_obj
+}
+
 sub check_options () {
   get_options;
   my @argv = @ARGV;  # store args after local processing for report processing
@@ -177,46 +207,15 @@ sub check_options () {
   $Devel::Cover::Silent             = 1 if $Options->{silent};
   $Devel::Cover::Ignore_covered_err = 1 if $Options->{ignore_covered_err};
 
-  $Options->{report} = [
-    grep {
-      my $report = $_;
-      if ($report !~ /^\w+$/) {
-        dcerror "$report is not a recognised output format\n";
-        ()
-      } else {
-        my $format = "Devel::Cover::Report::\u$report";
-        eval "use $format";
-        if ($@) {
-          dcerror "$report is not a recognised output format\n$@";
-          ()
-        } else {
-          $report
-        }
-      }
-    } $Options->{report}->@*
-  ];
+  $Options->{report} = [grep valid_report($_), $Options->{report}->@*];
 
   exit 1
     if !$Options->{report}->@*
     && !$Options->{delete}
     && !exists $Options->{write};
 
-  $Options->{annotations} = [];
-  for my $ann ($Options->{annotation}->@*) {
-    if ($ann !~ /^\w+$/) {
-      dcerror "$ann is not a recognised annotation\n";
-      exit 1;
-    }
-    my $annotation = "Devel::Cover::Annotation::\u$ann";
-    eval "use $annotation";
-    if ($@) {
-      dcerror "$ann is not a recognised annotation\n$@";
-      exit 1;
-    }
-    my $ann_obj = $annotation->new;
-    $ann_obj->get_options($Options) if $ann_obj->can("get_options");
-    push $Options->{annotations}->@*, $ann_obj;
-  }
+  $Options->{annotations}
+    = [map get_annotation($_), $Options->{annotation}->@*];
 
   say "$0 version $VERSION$Devel::Cover::Inc::Dev" and exit 0
     if $Options->{version};
@@ -314,23 +313,22 @@ sub harness_options () {
 sub do_test ($dbname) {
   return 0                  unless $Options->{test};
   delete_db($dbname, @ARGV) unless defined $Options->{delete};
-  my $env_db_name = $dbname;
-  $env_db_name =~ s/\\/\\\\/g if $^O eq "MSWin32";
-  $env_db_name =~ s/ /\\ /g;
-  my $extra = "";
-  $extra .= ",-coverage,$_" for $Options->{coverage}->@*;
+  my $esc   = sub ($v) { $v =~ s/,/\\,/gr };
+  my $extra = "-db," . $esc->($dbname);
+  $extra .= ",-coverage,$_" for map $esc->($_), $Options->{coverage}->@*;
   $extra .= ",-ignore,$_"
-    for $Options->{ignore_re}->@*, map quotemeta, map glob,
+    for map $esc->($_), $Options->{ignore_re}->@*, map quotemeta, map glob,
     $Options->{ignore}->@*;
   $extra .= ",-select,$_"
-    for $Options->{select_re}->@*, map quotemeta, map glob,
+    for map $esc->($_), $Options->{select_re}->@*, map quotemeta, map glob,
     $Options->{select}->@*;
 
   $Options->{$_} = [] for qw( ignore ignore_re select select_re );
   $Options->{report} = ["html"] unless $Options->{report}->@*;
 
-  my $opts = join " ", grep $_, $ENV{DEVEL_COVER_TEST_OPTS},
-    "-MDevel::Cover=-db,$env_db_name$extra";
+  my $opts = join " ", grep $_, $ENV{DEVEL_COVER_TEST_OPTS}, "-MDevel::Cover";
+  local $ENV{DEVEL_COVER_OPTIONS} = join ",", $extra, grep defined && length,
+    $ENV{DEVEL_COVER_OPTIONS};
   local $ENV{HARNESS_PERL_SWITCHES} = $opts;
   local $ENV{PERL5OPT}              = $opts;
   local $ENV{HARNESS_OPTIONS}       = harness_options();
