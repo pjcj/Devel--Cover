@@ -113,6 +113,62 @@ sub test_html_crisp ($tmpdir, $cover_db) {
     "html_crisp: file page contains escaped source";
 }
 
+# Annotation text, headers and classes come from a plugin, so they may
+# contain markup and must be escaped like every other value on the page.
+my $Ann_text   = "Smith & Sons<script>alert(1)</script>";
+my $Ann_header = "H<script>hdr</script>";
+my $Ann_class  = 'x"><script>cls</script>';
+
+sub _write_annotation ($tmpdir) {
+  my $dir = File::Spec->catdir($tmpdir, "annlib", qw( Devel Cover Annotation ));
+  make_path($dir);
+  my $path = File::Spec->catfile($dir, "Evil.pm");
+  open my $fh, ">", $path or die "Cannot write $path: $!";
+  print $fh <<"PERL";
+package Devel::Cover::Annotation::Evil;
+use strict;
+use warnings;
+sub new    { bless {}, shift }
+sub count  { 1 }
+sub header { '$Ann_header' }
+sub width  { 40 }
+sub text   { '$Ann_text' }
+sub error  { 0 }
+sub class  { '$Ann_class' }
+1;
+PERL
+  close $fh or die "Cannot close $path: $!";
+  File::Spec->catdir($tmpdir, "annlib")
+}
+
+sub test_annotation_escaped ($tmpdir, $cover_db) {
+  my $annlib = _write_annotation($tmpdir);
+  local $ENV{PERL5LIB} = $annlib;
+  my $outdir = _report(
+    $tmpdir,        $cover_db, "html_basic", @No_highlight,
+    "--annotation", "evil",
+  );
+
+  my ($file_page) = grep !m|/coverage\.html$| && !/--\w+\.html$/,
+    glob "$outdir/*.html";
+  my $html = slurp($file_page);
+
+  unlike $html, qr|<script>alert\(1\)</script>|,
+    "html_basic: annotation text is not written as raw markup";
+  like $html, qr|&lt;script&gt;alert\(1\)&lt;/script&gt;|,
+    "html_basic: annotation text is escaped";
+  like $html, qr|Smith &amp; Sons|,
+    "html_basic: an ampersand in annotation text is escaped";
+  unlike $html, qr|<th> H<script>hdr</script> </th>|,
+    "html_basic: annotation header is not written as raw markup";
+  like $html, qr|H&lt;script&gt;hdr&lt;/script&gt;|,
+    "html_basic: annotation header is escaped";
+  unlike $html, qr|class="x"><script>cls</script>"|,
+    "html_basic: annotation class is not written as raw markup";
+  like $html, qr|x&quot;&gt;&lt;script&gt;cls&lt;/script&gt;|,
+    "html_basic: annotation class is escaped";
+}
+
 # The covered file name reaches the report title, headings and links, and may
 # contain markup characters, so it must be escaped there too and not only in
 # the source body.  Windows file names cannot contain < > " so this is
@@ -318,6 +374,7 @@ sub main () {
   my ($tmpdir, $cover_db) = _setup;
   test_html_basic($tmpdir, $cover_db) if $Have_template;
   test_html_crisp($tmpdir, $cover_db);
+  test_annotation_escaped($tmpdir, $cover_db) if $Have_template;
 
   if ($Have_template && $Have_cpan_meta) {
     my ($t, $db) = _setup_meta;

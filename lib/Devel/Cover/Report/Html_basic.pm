@@ -101,8 +101,11 @@ sub _build_annotations ($n) {
   for my $ann ($R{options}{annotations}->@*) {
     for my $i (0 .. $ann->count - 1) {
       my $text = $ann->text($R{file}, $n, $i);
-      $text = "&nbsp;" unless $text && length $text;
-      push @entries, { text => $text, class => $ann->class($R{file}, $n, $i) };
+      $text = $text && length $text ? escape_html($text) : "&nbsp;";
+      push @entries, {
+          text  => $text,
+          class => escape_html($ann->class($R{file}, $n, $i) // ""),
+        };
     }
   }
   \@entries
@@ -424,8 +427,10 @@ sub report ($pkg, $db, $options) {
         (0 .. $db->criteria - 1)
     ],
     annotations => [
-      map { my $ann = $_; map $ann->header($_), 0 .. $ann->count - 1 }
-        $options->{annotations}->@*
+      map {
+        my $ann = $_;
+        map escape_html($ann->header($_) // ""), 0 .. $ann->count - 1
+      } $options->{annotations}->@*
     ],
     filenames  => unique_filenames($options->{file}->@*),
     exists     => { map { $_ => -e } $options->{file}->@* },
