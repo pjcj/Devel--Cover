@@ -109,7 +109,7 @@ sub print_dir_block ($db, $files, $prefix) {
 
   my @rows;
   for my $dir (@dirs) {
-    my $scar = $db->dir_summary($dir, "scar") or return;
+    my $scar = $db->dir_summary($dir, "scar") or next;
     my $display
       = $prefix && $dir =~ /^\Q$prefix\E(.*)/ ? ($1 || ".") : ($dir || ".");
     push @rows, {
@@ -121,6 +121,7 @@ sub print_dir_block ($db, $files, $prefix) {
         sort_key => $scar->{file_scar},
       };
   }
+  return unless @rows > 1;
 
   @rows = sort { $b->{sort_key} <=> $a->{sort_key} } @rows;
 

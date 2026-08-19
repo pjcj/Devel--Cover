@@ -25,10 +25,10 @@ sub print_sort ($db, $options) {
     say "Run:          ", $r->run;
     say "Perl version: ", $r->perl;
     say "OS:           ", $r->OS;
-    say "Start:        ", scalar gmtime $r->start / 1e6;
-    say "Finish:       ", scalar gmtime $r->finish / 1e6;
+    say "Start:        ", scalar gmtime $r->start;
+    say "Finish:       ", scalar gmtime $r->finish;
 
-    $runs{ $r->run }->@{ "vec", "size" } = ("", 0);
+    $runs{ $r->run }->@{ "vec", "size", "count" } = ("", 0, 0);
     my $run = $runs{ $r->run };
     my $vec = $r->vec;
     for my $file (
@@ -38,7 +38,7 @@ sub print_sort ($db, $options) {
       for my $criterion (@collected) {
         my ($v, $sz) = $vec->{$file}{$criterion}->@{ "vec", "size" };
         $sz |= 0;
-        printf "$file:%10s %5d: ", $criterion, $sz;
+        printf "%s:%10s %5d: ", $file, $criterion, $sz;
         unless ($sz) {
           say "";
           next;
