@@ -75,7 +75,8 @@ sub _print_line ($fmt, $db, $options, $file, $n, $l, %criteria) {
 
     for my $ann ($options->{annotations}->@*) {
       for my $i (0 .. $ann->count - 1) {
-        push @out, substr $ann->text($file, $n, $i), 0, $ann->width($i);
+        my $text = $ann->text($file, $n, $i) // "";
+        push @out, substr $text, 0, $ann->width($i);
         $error ||= $ann->error($file, $n, $i);
       }
     }
