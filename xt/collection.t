@@ -97,24 +97,18 @@ sub rw_accessors () {
   is $c->file, "/tmp/test.html", "rw accessor file writable";
 }
 
-sub rwp_accessors () {
-  my $c = Devel::Cover::Collection->new;
-  is $c->build_dirs, [], "rwp accessor build_dirs readable";
-  ok $c->can("_set_build_dirs"), "rwp accessor build_dirs has _set_build_dirs";
-  $c->_set_build_dirs(["/dir1", "/dir2"]);
-  is $c->build_dirs, ["/dir1", "/dir2"],
-    "rwp accessor build_dirs settable via _set_build_dirs";
-  is $c->modules, [], "rwp accessor modules readable";
-  ok $c->can("_set_modules"), "rwp accessor modules has _set_modules";
-  $c->_set_modules(["Foo::Bar"]);
-  is $c->modules, ["Foo::Bar"],
-    "rwp accessor modules settable via _set_modules";
-  is $c->module_file, undef, "rwp accessor module_file readable";
-  ok $c->can("_set_module_file"),
-    "rwp accessor module_file has _set_module_file";
-  $c->_set_module_file("/tmp/modules.txt");
-  is $c->module_file, "/tmp/modules.txt",
-    "rwp accessor module_file settable via _set_module_file";
+sub internal_accessors () {
+  my $c = Devel::Cover::Collection->new(
+    build_dirs  => ["/dir1", "/dir2"],
+    modules     => ["Foo::Bar"],
+    module_file => "/tmp/modules.txt",
+  );
+  is $c->build_dirs,  ["/dir1", "/dir2"], "build_dirs set via constructor";
+  is $c->modules,     ["Foo::Bar"],       "modules set via constructor";
+  is $c->module_file, "/tmp/modules.txt", "module_file set via constructor";
+  ok !$c->can("_set_build_dirs"),  "build_dirs has no private setter";
+  ok !$c->can("_set_modules"),     "modules has no private setter";
+  ok !$c->can("_set_module_file"), "module_file has no private setter";
 }
 
 sub add_modules () {
@@ -324,27 +318,6 @@ sub fsys_failed_command () {
   like $warning, qr/Error running false/, "fsys warns on failed command";
 }
 
-sub fbsys_successful_command () {
-  skip_all "alarm not available on Windows" if $Is_win32;
-  my $c      = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $output = $c->fbsys("echo", "fatal buffered");
-  like $output, qr/fatal buffered/, "fbsys captures output";
-}
-
-sub fbsys_failed_command () {
-  skip_all "alarm not available on Windows" if $Is_win32;
-  my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 10);
-  my $warning = "";
-  local $SIG{__WARN__} = sub { $warning .= shift };
-  my $died = 0;
-  eval {
-    $c->fbsys("false");
-    1;
-  } or $died = 1;
-  ok $died, "fbsys dies on failed command";
-  like $warning, qr/Error running false/, "fbsys warns on failed command";
-}
-
 sub sys_timeout () {
   skip_all "alarm not available on Windows" if $Is_win32;
   my $c       = Devel::Cover::Collection->new(verbose => 0, timeout => 1);
@@ -496,16 +469,18 @@ sub compress_old_versions () {
 }
 
 sub filter_build_dirs_to_targets () {
-  my $c = Devel::Cover::Collection->new(modules => [
-    "P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz",
-    "A/AU/AUTHOR/My-Module-1.23.tar.gz",
-  ]);
-  $c->_set_build_dirs([
-    "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
-    "/home/x/.cpan/build/My-Module-1.23-3",
-    "/home/x/.cpan/build/PPI-1.280-0",
-    "/home/x/.cpan/build/Test-Deep-1.204-1",
-  ]);
+  my $c = Devel::Cover::Collection->new(
+    modules => [
+      "P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz",
+      "A/AU/AUTHOR/My-Module-1.23.tar.gz",
+    ],
+    build_dirs => [
+      "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
+      "/home/x/.cpan/build/My-Module-1.23-3",
+      "/home/x/.cpan/build/PPI-1.280-0",
+      "/home/x/.cpan/build/Test-Deep-1.204-1",
+    ],
+  );
   $c->filter_build_dirs_to_targets;
   is $c->build_dirs, [
       "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
@@ -513,12 +488,13 @@ sub filter_build_dirs_to_targets () {
     ],
     "filter keeps only build dirs that match a target distdir";
 
-  my $c2
-    = Devel::Cover::Collection->new(modules => ["T/TA/TAR/Target-1.0.tar.gz"]);
-  $c2->_set_build_dirs([
-    "/cpan/build/Target-1.0-0", "/cpan/build/Target-1.0-1",
-    "/cpan/build/Target-1.0-2",
-  ]);
+  my $c2 = Devel::Cover::Collection->new(
+    modules    => ["T/TA/TAR/Target-1.0.tar.gz"],
+    build_dirs => [
+      "/cpan/build/Target-1.0-0", "/cpan/build/Target-1.0-1",
+      "/cpan/build/Target-1.0-2",
+    ],
+  );
   $c2->filter_build_dirs_to_targets;
   is $c2->build_dirs, [
       "/cpan/build/Target-1.0-0", "/cpan/build/Target-1.0-1",
@@ -526,14 +502,15 @@ sub filter_build_dirs_to_targets () {
     ],
     "filter keeps all reinstall attempts of the same target";
 
-  my $c3 = Devel::Cover::Collection->new;
-  $c3->_set_build_dirs(["/cpan/build/Random-1.0-0"]);
+  my $c3
+    = Devel::Cover::Collection->new(build_dirs => ["/cpan/build/Random-1.0-0"]);
   $c3->filter_build_dirs_to_targets;
   is $c3->build_dirs, [], "filter empties build_dirs when modules is empty";
 
-  my $c4
-    = Devel::Cover::Collection->new(modules => ["A/AU/AUTHOR/Foo-1.0.tar.gz"]);
-  $c4->_set_build_dirs([]);
+  my $c4 = Devel::Cover::Collection->new(
+    modules    => ["A/AU/AUTHOR/Foo-1.0.tar.gz"],
+    build_dirs => [],
+  );
   $c4->filter_build_dirs_to_targets;
   is $c4->build_dirs, [], "filter is a no-op on empty build_dirs";
 }
@@ -1007,7 +984,7 @@ sub main () {
     constructor_with_args
     ro_accessors
     rw_accessors
-    rwp_accessors
+    internal_accessors
     add_modules
     set_modules
     set_module_file
@@ -1021,8 +998,6 @@ sub main () {
     bsys_failed_command
     fsys_successful_command
     fsys_failed_command
-    fbsys_successful_command
-    fbsys_failed_command
     sys_timeout
     sys_verbose_output
     bsys_multiline_output

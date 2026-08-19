@@ -32,22 +32,21 @@ my $Dist_ext_re = qr/\.(?:zip|tgz|tar\.(?:gz|bz2|xz))/;
 
 class Devel::Cover::Collection {
   # ro attributes
-  field $bin_dir       :param :reader = undef;
-  field $cpancover_dir :param :reader = undef;
-  field $cpan_dir      :param :reader = undef;
-  field $results_dir   :param :reader = undef;
-  field $dryrun        :param :reader = undef;
-  field $env           :param :reader = undef;
-  field $force         :param :reader = undef;
-  field $output_file   :param :reader = undef;
-  field $report        :param :reader = undef;
-  field $timeout       :param :reader = undef;
-  field $verbose       :param :reader = undef;
-  field $workers       :param :reader = undef;
-  field $docker        :param :reader = undef;
-  field $local         :param :reader = undef;
+  field $bin_dir     :param :reader = undef;
+  field $cpan_dir    :param :reader = undef;
+  field $results_dir :param :reader = undef;
+  field $dryrun      :param :reader = undef;
+  field $env         :param :reader = undef;
+  field $force       :param :reader = undef;
+  field $output_file :param :reader = undef;
+  field $report      :param :reader = undef;
+  field $timeout     :param :reader = undef;
+  field $verbose     :param :reader = undef;
+  field $workers     :param :reader = undef;
+  field $docker      :param :reader = undef;
+  field $local       :param :reader = undef;
 
-  # rwp attributes (reader + private setter)
+  # attributes set internally after construction
   field $build_dirs  :param :reader = undef;
   field $modules     :param :reader = undef;
   field $module_file :param :reader = undef;
@@ -56,7 +55,7 @@ class Devel::Cover::Collection {
   field $rebuild_batch :param :reader = undef;
   field $mark_rebuilt  :param :reader = undef;
 
-  # rw attributes (custom accessors for Moo compatibility)
+  # rw attributes
   field $dir  :param = undef;
   field $file :param = undef;
 
@@ -84,12 +83,7 @@ class Devel::Cover::Collection {
     $ENV{CPANCOVER_TIMEOUT} = $timeout;
   }
 
-  # rwp private setters
-  method _set_build_dirs  ($val) { $build_dirs  = $val }
-  method _set_modules     ($val) { $modules     = $val }
-  method _set_module_file ($val) { $module_file = $val }
-
-  # rw accessors (Moo-compatible: reader acts as writer when called with arg)
+  # rw accessors (the reader acts as a writer when called with an arg)
   method dir  ($new = undef) { $dir  = $new if defined $new; $dir }
   method file ($new = undef) { $file = $new if defined $new; $file }
 
@@ -162,10 +156,9 @@ class Devel::Cover::Collection {
     $ok ? $output : undef
   }
 
-  method sys   (@a) { $self->_sys(4e4, @a) // "" }
-  method bsys  (@a) { $self->_sys(0,   @a) // "" }
-  method fsys  (@a) { $self->_sys(4e4, @a) // die "Can't run @a" }
-  method fbsys (@a) { $self->_sys(0,   @a) // die "Can't run @a" }
+  method sys  (@a) { $self->_sys(4e4, @a) // "" }
+  method bsys (@a) { $self->_sys(0,   @a) // "" }
+  method fsys (@a) { $self->_sys(4e4, @a) // die "Can't run @a" }
 
   # Only the parallel paths need Parallel::Iterator, so load it on demand
   # and leave report generation working without it
@@ -175,8 +168,8 @@ class Devel::Cover::Collection {
   }
 
   method add_modules     (@o) { push @$modules, @o }
-  method set_modules     (@o) { @$modules = @o }
-  method set_module_file ($f) { $self->_set_module_file($f) }
+  method set_modules     (@o) { @$modules    = @o }
+  method set_module_file ($f) { $module_file = $f }
 
   method process_module_file {
     my $f = $module_file;
@@ -1212,10 +1205,6 @@ These attributes can only be set via the constructor.
 
 Directory containing the C<cover> binary. Used when running coverage commands.
 
-=head3 cpancover_dir
-
-Directory for CPANCover-specific files and configuration.
-
 =head3 cpan_dir
 
 An arrayref of CPAN directories to search for build directories. Defaults to
@@ -1287,10 +1276,10 @@ each module it builds, without the rebuild-mode selection or distdir
 replacement that C<rebuild> implies. Used by the rebuild loop's latest
 pass so fresh builds are not rebuilt again by the batch pass. Default: 0.
 
-=head2 Read-Write-Private Attributes
+=head2 Internally Managed Attributes
 
-These attributes have public readers but private setters. Use the provided
-methods to modify them.
+These attributes have public readers. Use the provided methods to modify
+them.
 
 =head3 build_dirs
 
@@ -1692,12 +1681,6 @@ Like C<sys>, but buffers all output (no immediate display).
   my $output = $collection->fsys(@command);
 
 Like C<sys>, but dies on failure.
-
-=head3 fbsys
-
-  my $output = $collection->fbsys(@command);
-
-Like C<bsys>, but dies on failure.
 
 =head1 EMBEDDED CLASSES
 
