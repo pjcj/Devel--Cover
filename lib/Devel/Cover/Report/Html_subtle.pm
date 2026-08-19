@@ -27,7 +27,7 @@ use Template 2.00 ();
 my $Template;
 my %Filenames;
 my %File_exists;
-my $Perlver    = join ".", map { ord } split //, $^V;
+my $Perlver    = "$^V";
 my $Threshold  = default_thresholds;
 my %Class_name = (
   na => "uncovered",
