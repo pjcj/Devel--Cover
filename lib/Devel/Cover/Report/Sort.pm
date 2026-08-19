@@ -38,7 +38,7 @@ sub print_sort ($db, $options) {
       for my $criterion (@collected) {
         my ($v, $sz) = $vec->{$file}{$criterion}->@{ "vec", "size" };
         $sz |= 0;
-        printf "$file:%10s %5d: ", $criterion, $sz;
+        printf "%s:%10s %5d: ", $file, $criterion, $sz;
         unless ($sz) {
           say "";
           next;

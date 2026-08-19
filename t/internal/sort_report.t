@@ -19,17 +19,17 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use File::Spec ();
 use File::Temp qw( tempdir );
 
-use Test::More import => [qw( done_testing like ok )];
+use Test::More import => [qw( done_testing is like ok )];
 
 use Devel::Cover::DB           ();
 use Devel::Cover::Report::Sort ();
 
 my $Tmpdir = File::Spec->rel2abs(tempdir(CLEANUP => 1));
 
-sub covered_db ($label) {
+sub covered_db ($label, $name = "run.pl") {
   my $dir = File::Spec->catdir($Tmpdir, $label);
   mkdir $dir or die "Cannot create $dir: $!";
-  my $script = File::Spec->catfile($dir, "run.pl");
+  my $script = File::Spec->catfile($dir, $name);
   open my $fh, ">", $script or die "Cannot write $script: $!";
   print $fh "my \$x = 0;\n\$x++ for 1 .. 3;\n";
   close $fh or die "Cannot close $script: $!";
@@ -74,8 +74,27 @@ sub test_run_times_are_epoch_seconds () {
   }
 }
 
+# The covered file name is data, not a printf format.
+sub test_filename_with_percent () {
+  my $db_path = covered_db("percent", "pc%dt.pl");
+
+  my @warnings;
+  my ($output, $db);
+  {
+    local $SIG{__WARN__} = sub { push @warnings, @_ };
+    ($output, $db) = sort_output($db_path);
+  }
+
+  my ($file) = grep /pc%dt\.pl$/, $db->cover->items;
+  ok $file, "the covered file is recorded under its own name";
+  like $output, qr/^\Q$file\E:\s+statement\s+\d+: [01]+$/m,
+    "the file name and the criterion both reach the report intact";
+  is "@warnings", "", "no printf warnings while writing the report";
+}
+
 sub main () {
   test_run_times_are_epoch_seconds;
+  test_filename_with_percent;
   done_testing;
 }
 
