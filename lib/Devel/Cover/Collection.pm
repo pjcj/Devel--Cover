@@ -276,6 +276,7 @@ class Devel::Cover::Collection {
         # TODO - option to merge DB with existing one
         # TODO - portability
         $output .= $self->fsys("rm", "-rf", $rdir);
+        # structure lock files are all named <digest>.lock, so glob sees them
         $output .= $self->fsys("rm", "-f",  glob "$db/structure/*.lock");
         $output .= $self->fsys("mv", $db,   $rdir);
         $output .= $self->fsys("rm", "-rf", $db);
