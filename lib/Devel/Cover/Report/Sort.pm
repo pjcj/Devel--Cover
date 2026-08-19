@@ -28,7 +28,7 @@ sub print_sort ($db, $options) {
     say "Start:        ", scalar gmtime $r->start;
     say "Finish:       ", scalar gmtime $r->finish;
 
-    $runs{ $r->run }->@{ "vec", "size" } = ("", 0);
+    $runs{ $r->run }->@{ "vec", "size", "count" } = ("", 0, 0);
     my $run = $runs{ $r->run };
     my $vec = $r->vec;
     for my $file (

@@ -19,7 +19,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use File::Spec ();
 use File::Temp qw( tempdir );
 
-use Test::More import => [qw( done_testing is like ok )];
+use Test::More import => [qw( diag done_testing is like ok )];
 
 use Devel::Cover::DB           ();
 use Devel::Cover::Report::Sort ();
@@ -45,10 +45,11 @@ sub covered_db ($label, $name = "run.pl") {
   $db
 }
 
-sub sort_output ($db_path) {
-  my $db      = Devel::Cover::DB->new(db => $db_path)->merge_runs;
-  my @files   = $db->cover->items;
-  my $options = { coverage => ["statement"], file => \@files };
+sub sort_output ($db_path, %opts) {
+  my $db    = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  my @files = $db->cover->items;
+  my $options
+    = { coverage => $opts{coverage} // ["statement"], file => \@files };
 
   my $output;
   {
@@ -92,9 +93,19 @@ sub test_filename_with_percent () {
   is "@warnings", "", "no printf warnings while writing the report";
 }
 
+sub test_count_line_with_nothing_collected () {
+  my @warnings;
+  local $SIG{__WARN__} = sub { push @warnings, $_[0] };
+  my ($output) = sort_output(covered_db("empty"), coverage => ["time"]);
+  is @warnings, 0, "no warnings when nothing is collected"
+    or diag join "", @warnings;
+  like $output, qr|^Count:\s+0 / 0$|m, "count printed as zero";
+}
+
 sub main () {
   test_run_times_are_epoch_seconds;
   test_filename_with_percent;
+  test_count_line_with_nothing_collected;
   done_testing;
 }
 
