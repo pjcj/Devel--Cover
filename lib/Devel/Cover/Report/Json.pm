@@ -205,11 +205,11 @@ sub get_options ($self, $opt) {
 }
 
 sub report ($pkg, $db, $options) {
-  my %sum_options = map { $_ => 1 } "force", grep {
+  my %sum_options = map { $_ => 1 } grep {
     $_ eq "total"
       || Devel::Cover::Criterion->criterion_class($_)->measures_coverage
   } $db->all_criteria;
-  $db->calculate_summary(%sum_options);
+  my $summary = $db->file_summary($options->{file}, %sum_options);
 
   my %files;
   for my $file ($options->{file}->@*) {
@@ -234,7 +234,7 @@ sub report ($pkg, $db, $options) {
     devel_cover_version => $Devel::Cover::Inc::VERSION,
     ignore_covered_err  => $Devel::Cover::Ignore_covered_err ? 1 : 0,
     runs                => _runs($db),
-    summary             => $db->{summary},
+    summary             => $summary,
     files               => \%files,
   };
 

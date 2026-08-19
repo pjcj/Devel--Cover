@@ -604,6 +604,16 @@ sub calculate_summary ($self, %options) {
   $self->summarise_complexity($s, \@files);
 }
 
+sub file_summary ($self, $files, %options) {
+  my $existed = exists $self->{summary};
+  my $saved   = $self->{summary};
+  $self->calculate_summary(%options, files => $files, force => 1);
+  my $summary = $self->{summary};
+  if ($existed) { $self->{summary} = $saved }
+  else          { delete $self->{summary} }
+  $summary
+}
+
 sub trimmed_file ($f, $len) {
   substr $f, 0, 3 - $len, "..." if length $f > $len;
   $f
@@ -1623,6 +1633,14 @@ combined coverage.
 Calculate coverage summaries for all files, filtered by the criteria given as
 true-valued keys. Populates C<< $db->{summary} >> and triggers
 L</summarise_complexity>.
+
+=head2 file_summary
+
+  my $summary = $db->file_summary(\@files, statement => 1, branch => 1);
+
+Calculate and return a coverage summary restricted to C<@files>, leaving any
+cached C<< $db->{summary} >> as it was found. The file list is required.
+C<< $db->{dir_summary} >> is still recalculated over the restricted files.
 
 =head2 trimmed_file
 

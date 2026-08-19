@@ -29,16 +29,17 @@ sub add_runs ($db) {
 }
 
 sub report ($pkg, $db, $options) {
-  my %options = map { $_ => 1 } "force", grep {
+  my %options = map { $_ => 1 } grep {
     $_ eq "total"
       || Devel::Cover::Criterion->criterion_class($_)->measures_coverage
   } $db->all_criteria;
-  $db->calculate_summary(%options);
+  my $summary = $db->file_summary($options->{file}, %options);
 
-  my $json = { runs => add_runs($db), summary => $db->{summary} };
+  my $json = { runs => add_runs($db), summary => $summary };
 
   my $path = "$options->{outputdir}/cover.json";
   my $io   = Devel::Cover::DB::IO::JSON->new(options => "pretty");
+
   $io->write($json, $path);
 
   dcinfo "JSON output written to $path";
