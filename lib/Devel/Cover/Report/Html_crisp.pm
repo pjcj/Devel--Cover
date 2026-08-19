@@ -395,10 +395,11 @@ filter active. Click a SCAR cell to open the file at the top.</dd>
 HTML
 
   if ($R{common_prefix}) {
+    my $prefix = escape_html($R{common_prefix});
     $o .= <<HTML;
 <div class="common-prefix">
 <span class="common-prefix-label">Prefix:</span>
-<span class="common-prefix-path">$R{common_prefix}</span>
+<span class="common-prefix-path">$prefix</span>
 </div>
 HTML
   }

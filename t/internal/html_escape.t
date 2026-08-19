@@ -211,6 +211,43 @@ sub test_filename_escaped ($report, $tmpdir, $cover_db) {
   like $html, qr|&lt;MARK&gt;|, "$report: file name metacharacters are escaped";
 }
 
+# The common prefix of the covered file paths is printed on the crisp index
+# page, so a directory name holding markup characters must be escaped there.
+# It takes two covered files to produce a non-empty prefix.
+sub _setup_marked_dir () {
+  my $tmpdir = realpath(tempdir(CLEANUP => 1));
+  my $libdir = File::Spec->catdir($tmpdir, "a&b<c");
+  make_path($libdir);
+
+  for my $mod (qw( AAA BBB )) {
+    my $path = File::Spec->catfile($libdir, "$mod.pm");
+    open my $fh, ">", $path or die "Cannot write $path: $!";
+    print $fh "package $mod;\nsub go { 1 }\n1;\n";
+    close $fh or die "Cannot close $path: $!";
+  }
+
+  my $cover_db = File::Spec->catdir($tmpdir, "cover_db");
+  local $ENV{DEVEL_COVER_SELF};
+  delete $ENV{DEVEL_COVER_SELF};
+  my @cmd = (
+    $^X, "-Iblib/lib", "-Iblib/arch", "-I$libdir",
+    "-MDevel::Cover=-db,$cover_db,-silent,1,-merge,0",
+    "-e", "use AAA; use BBB; AAA::go; BBB::go",
+  );
+  system(@cmd) == 0 or die "Failed to create cover_db (status $?)";
+
+  ($tmpdir, $cover_db)
+}
+
+sub test_common_prefix_escaped ($tmpdir, $cover_db) {
+  my $outdir = _report($tmpdir, $cover_db, "html_crisp");
+  my $html   = slurp(File::Spec->catfile($outdir, "coverage.html"));
+  like $html, qr|common-prefix-path">[^<]*a&amp;b&lt;c|,
+    "html_crisp: common prefix is escaped on the index page";
+  unlike $html, qr|common-prefix-path">[^<]*a&b|,
+    "html_crisp: raw prefix does not reach the page";
+}
+
 # The module name and version reach the coverage summary page from the covered
 # distribution's MYMETA.json (or its directory name), so they may contain
 # markup characters and must be escaped on the summary page too.
@@ -414,6 +451,9 @@ sub main () {
     test_filename_escaped("html_minimal", $t, $db);
     test_filename_escaped("html_basic",   $t, $db) if $Have_template;
     test_filename_escaped("html_subtle",  $t, $db) if $Have_template;
+
+    my ($td, $cdb) = _setup_marked_dir;
+    test_common_prefix_escaped($td, $cdb);
   }
 
   done_testing;
