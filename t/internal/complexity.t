@@ -687,6 +687,39 @@ sub test_text_dir_block_suppressed () {
     "dir: suppressed when only one directory in report";
 }
 
+{
+
+  package Mock::Dir_db;
+  sub new         ($class, %scar)           { bless { scar => \%scar }, $class }
+  sub dir_summary ($self, $dir, $criterion) { $self->{scar}{$dir} }
+}
+
+# A directory whose files hold no named subs has no scar entry. That must
+# skip the directory, not abandon the whole table.
+sub test_text_dir_block_partial_scar () {
+  my $db = Mock::Dir_db->new(
+    a => { file_cc => 3, file_cov => 100, file_crap => 3, file_scar => 0 },
+    c => { file_cc => 5, file_cov => 50,  file_crap => 9, file_scar => 4 },
+  );
+
+  my $output;
+  {
+    open my $fh, ">", \$output or die $!;
+    local *STDOUT = $fh;
+    Devel::Cover::Report::Text::print_dir_block(
+      $db, ["a/A.pm", "b/B.pm", "c/C.pm"], ""
+    );
+    close $fh or die $!;
+  }
+  $output //= "";
+
+  like $output, qr/^Directory Summary\b/m,
+    "dir: a directory without complexity data does not suppress the table";
+  like $output,   qr/^a\s/m, "dir: first directory with data listed";
+  like $output,   qr/^c\s/m, "dir: second directory with data listed";
+  unlike $output, qr/^b\s/m, "dir: directory without data omitted";
+}
+
 # print_summary SCAR column tests.
 # Verifies that DB::print_summary emits a scar column after the criteria
 # columns, with the same file_scar aggregate for files and Total.
@@ -745,6 +778,7 @@ sub main () {
   test_text_module_block;
   test_text_dir_block;
   test_text_dir_block_suppressed;
+  test_text_dir_block_partial_scar;
 }
 
 main;
