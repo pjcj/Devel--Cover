@@ -158,7 +158,8 @@ sub print_file () {
 
   my $linen = 1;
   line: while (defined(my $l = shift @all_lines)) {
-    my $n = $linen++;
+    my $number = $linen++;
+    my $n      = $number;
     chomp $l;
 
     my $criteria = {};
@@ -181,7 +182,7 @@ sub print_file () {
 
       my $ann_entries = _build_annotations($n);
       my ($cov_entries, $cov_more)
-        = _build_coverage_criteria($criteria, $n, $count);
+        = _build_coverage_criteria($criteria, $number, $count);
 
       $line->{criteria} = [@$ann_entries, @$cov_entries];
       $more = $cov_more;
@@ -220,6 +221,7 @@ sub print_branches () {
 
       push @branches, {
           number => $count == 1 ? $location : "",
+          ref    => "$location-$count",
           parts  => [
             map part_entry(
               $br->value($_), $br->uncoverable($_),
@@ -247,12 +249,15 @@ sub print_conditions () {
   my $r = {};
   for my $location (sort { $a <=> $b } $conditions->items) {
     my $count = {};
+    my $n     = 0;
     for my $c ($conditions->location($location)->@*) {
       $count->{ $c->type }++;
+      $n++;
       my $text = _highlight_text($c->text);
 
       push $r->{ $c->type }->@*, {
           number    => $count->{ $c->type } == 1 ? $location : "",
+          ref       => "$location-$n",
           condition => $c,
           parts     => [
             map part_entry(
@@ -338,10 +343,13 @@ sub print_subroutines () {
       my $l = $pods->location($line);
       @p = @$l if $l;
     }
+    my $count = 0;
     for my $o ($subroutines->location($line)->@*) {
       my $p = shift @p;
+      $count++;
       push @$subs, {
           line   => $line,
+          ref    => "$line-$count",
           name   => decode_guess($o->name),
           count  => $s ? $o->covered              : "",
           class  => $s ? oclass($o, "subroutine") : "",
@@ -846,6 +854,7 @@ $Templates{subroutines} = <<'HTML';
     <th> subroutine </th>
   </tr>
   [% FOREACH sub = subs %]
+    <a name="[% sub.ref %]"> </a>
     <tr>
       <td class="h">
         <a href="[% R.file_link %]#[% sub.line %]">[% sub.line %]</a>
