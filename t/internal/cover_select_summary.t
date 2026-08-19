@@ -24,12 +24,12 @@ use Devel::Cover::Test::Showcase qw(
   setup_lib_dir
 );
 
-sub text_report ($libdir, $cover_db, @extra) {
+sub text_report ($cover_db, @extra) {
   my ($out, $exit) = run_cover(
-    "--select", "$libdir/Covered/Trivial.pm",
-    "--select", "$libdir/Covered/Utils.pm",
-    "--report", "text",
-    "--silent", @extra,
+    "--select_re", '/Covered.Trivial.pm$',
+    "--select_re", '/Covered.Utils.pm$',
+    "--report",    "text",
+    "--silent",    @extra,
     $cover_db,
   );
   is $exit, 0, "cover --report text exits 0 (@extra)" or diag $out;
@@ -57,8 +57,8 @@ sub test_select_summary () {
   my ($tmpdir, $libdir) = setup_lib_dir;
   my $cover_db = create_cover_db($tmpdir, $libdir);
 
-  my $plain     = text_report($libdir, $cover_db);
-  my $nosummary = text_report($libdir, $cover_db, "--nosummary");
+  my $plain     = text_report($cover_db);
+  my $nosummary = text_report($cover_db, "--nosummary");
 
   my $table = module_summary($plain);
 

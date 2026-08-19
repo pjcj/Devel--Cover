@@ -63,12 +63,12 @@ sub test_json_summary_report ($tmpdir, $libdir, $cover_db) {
 sub test_summary_restricted ($tmpdir, $libdir, $cover_db) {
   my $outdir = File::Spec->catdir($tmpdir, "json_select");
   my ($out, $exit) = run_cover(
-    "--select",    "$libdir/Covered/Trivial.pm",
+    "--select_re", '/Covered.Trivial.pm$',
     "--report",    "json_summary",
     "--outputdir", $outdir,
     "--silent",    $cover_db,
   );
-  is $exit, 0, "cover --select --report json_summary exits 0" or diag $out;
+  is $exit, 0, "cover --select_re --report json_summary exits 0" or diag $out;
   my $json = JSON::MaybeXS->new(utf8 => 1)
     ->decode(slurp(File::Spec->catfile($outdir, "cover.json")));
   my @keys = sort keys $json->{summary}->%*;

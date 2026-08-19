@@ -219,14 +219,15 @@ sub test_summary_and_detailed_distinct ($tmpdir, $libdir, $cover_db) {
 sub test_summary_restricted ($tmpdir, $libdir, $cover_db) {
   my $outdir = File::Spec->catdir($tmpdir, "json_select");
   my ($out, $exit) = run_cover(
-    "--select",    "$libdir/Covered/Trivial.pm",
+    "--select_re", '/Covered.Trivial.pm$',
     "--report",    "json",
     "--outputdir", $outdir,
     "--silent",    $cover_db,
   );
-  is $exit, 0, "cover --select --report json exits 0" or diag $out;
+  is $exit, 0, "cover --select_re --report json exits 0" or diag $out;
   my $json = JSON::MaybeXS->new(utf8 => 1)
     ->decode(slurp(File::Spec->catfile($outdir, "cover.json")));
+  is keys $json->{files}->%*, 1, "one file selected";
   is_deeply [sort keys $json->{summary}->%*],
     [sort "Total", keys $json->{files}->%*],
     "summary keys are the files keys plus Total";
@@ -235,8 +236,8 @@ sub test_summary_restricted ($tmpdir, $libdir, $cover_db) {
 # A report after json in the same run must keep the restricted summary
 sub test_summary_isolated ($tmpdir, $libdir, $cover_db) {
   my @select = (
-    "--select", "$libdir/Covered/Trivial.pm",
-    "--select", "$libdir/Covered/Utils.pm",
+    "--select_re", '/Covered.Trivial.pm$',
+    "--select_re", '/Covered.Utils.pm$',
   );
   my $outdir = File::Spec->catdir($tmpdir, "json_text");
   my ($text_only)
@@ -248,6 +249,7 @@ sub test_summary_isolated ($tmpdir, $libdir, $cover_db) {
   );
   my $banner = sub ($out) { ($out =~ /(Module Summary\n-+\n\n.*?\n\n)/s)[0] };
 
+  ok defined $banner->($text_only), "text-only run prints a Module Summary";
   is $banner->($combined), $banner->($text_only),
     "text Module Summary unchanged after a json report";
 }
