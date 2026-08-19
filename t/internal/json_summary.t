@@ -17,7 +17,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Spec ();
-use Test::More import => [qw( diag done_testing is isa_ok ok plan )];
+use Test::More import => [qw( diag done_testing is isa_ok like ok plan )];
 use Devel::Cover::Test::Showcase qw(
   create_cover_db
   run_cover
@@ -32,10 +32,8 @@ eval "require JSON::MaybeXS; 1" or do {
 
 # json_summary is the per-file/total summary feed used by cpancover (and by
 # anyone wanting badge-style numbers).  It must NOT include per-line detail.
-sub test_json_summary_report () {
-  my ($tmpdir, $libdir) = setup_lib_dir;
-  my $cover_db = create_cover_db($tmpdir, $libdir);
-  my $outdir   = File::Spec->catdir($tmpdir, "json");
+sub test_json_summary_report ($tmpdir, $libdir, $cover_db) {
+  my $outdir = File::Spec->catdir($tmpdir, "json");
 
   my ($out, $exit) = run_cover(
     "--select_dir", $libdir, "--report", "json_summary",
@@ -61,8 +59,30 @@ sub test_json_summary_report () {
     "summary->Total->statement->percentage is defined";
 }
 
+# The summary must cover only the selected files, not the whole database
+sub test_summary_restricted ($tmpdir, $libdir, $cover_db) {
+  my $outdir = File::Spec->catdir($tmpdir, "json_select");
+  my ($out, $exit) = run_cover(
+    "--select_re", '/Covered.Trivial.pm$',
+    "--report",    "json_summary",
+    "--outputdir", $outdir,
+    "--silent",    $cover_db,
+  );
+  is $exit, 0, "cover --select_re --report json_summary exits 0" or diag $out;
+  my $json = JSON::MaybeXS->new(utf8 => 1)
+    ->decode(slurp(File::Spec->catfile($outdir, "cover.json")));
+  my @keys = sort keys $json->{summary}->%*;
+  is @keys, 2, "summary holds the selected file plus Total";
+  like $keys[0], qr/Covered\W+Trivial\.pm$/, "the selected file is summarised";
+  is $keys[1], "Total", "the Total is summarised";
+}
+
 sub main () {
-  test_json_summary_report;
+  my ($tmpdir, $libdir) = setup_lib_dir;
+  my $cover_db = create_cover_db($tmpdir, $libdir);
+
+  test_json_summary_report($tmpdir, $libdir, $cover_db);
+  test_summary_restricted($tmpdir, $libdir, $cover_db);
   done_testing;
 }
 
