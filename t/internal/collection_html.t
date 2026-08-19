@@ -291,4 +291,16 @@ for my $f (qw( index.html dist/F.html about.html )) {
 my @Tmp = map glob, "$Dir/*.tmp.*", "$Dir/dist/*.tmp.*";
 is @Tmp, 0, "no tmp files remain";
 
+my $Parallel
+  = Devel::Cover::Collection->new(results_dir => "$Dir", workers => 2);
+{
+  local $SIG{__WARN__} = sub { push @Warnings, @_ };
+  $Parallel->generate_html;
+}
+chdir $Cwd or die "Can't chdir $Cwd: $!";
+is slurp("$Dir/index.html"), $Page{index},
+  "a parallel run writes the same index page";
+is slurp("$Dir/dist/F.html"), $Page{dist},
+  "a parallel run writes the same dist page";
+
 done_testing;

@@ -29,6 +29,7 @@ use feature "class";
 no warnings "experimental::class";
 
 my $Dist_ext_re = qr/\.(?:zip|tgz|tar\.(?:gz|bz2|xz))/;
+my $Log_re      = qr/^\w-\w\w-(\w+)-(.+?)${Dist_ext_re}--/;
 
 class Devel::Cover::Collection {
   # ro attributes
@@ -432,8 +433,9 @@ class Devel::Cover::Collection {
       for my $mod (@$mods) {
         my $m   = $mod->{module};
         my $log = $vars->{vals}{$m}{log};
-        if (defined $log && $log =~ /^\w-\w\w-(\w+)-\Q$m\E${Dist_ext_re}--/) {
-          $mod->{metacpan} = "https://metacpan.org/release/$1/$m";
+        my ($author, $name) = defined $log ? $log =~ $Log_re : ();
+        if (defined $name && $name eq $m) {
+          $mod->{metacpan} = "https://metacpan.org/release/$author/$m";
         } elsif (defined $mod->{name}) {
           $mod->{metacpan} = "https://metacpan.org/dist/$mod->{name}";
         }
@@ -466,6 +468,58 @@ class Devel::Cover::Collection {
         };
     }
     $vars->{overview} = { count => $count, segments => $segments };
+  }
+
+  # returns $mod and $m in one structure so workers keep their shared ref
+  method _module_data ($d, $module, $criteria) {
+    my $cover = "$d/$module/cover.json";
+    return undef unless -e $cover;
+    say "Adding $module" if $verbose;
+
+    my $json = Devel::Cover::DB::IO::JSON->new->read($cover);
+
+    my $mod = {
+      module => $module,
+      map { $_ => $json->{runs}[0]{$_} } qw( name version dir ),
+    };
+    unless (defined $mod->{name} && defined $mod->{version}) {
+      my ($name, $version) = ($mod->{module} // $module) =~ /(.+)-(\d+\.\d+)$/;
+      $mod->{name}    //= $name;
+      $mod->{version} //= $version;
+    }
+
+    my $m = { module => $mod };
+    $m->{link} = "$module/index.html"
+      if $json->{summary}{Total}{total}{total} && -e "$d/$module/index.html";
+
+    for my $criterion (@$criteria) {
+      my $summary = $json->{summary}{Total}{$criterion};
+      # print "summary:", Dumper $summary;
+      my $pc = $summary->{percentage};
+      $pc                     = defined $pc ? sprintf "%.2f", $pc : "n/a";
+      $m->{$criterion}{pc}    = $pc;
+      $m->{$criterion}{class} = $self->coverage_class($pc);
+      $m->{$criterion}{details}
+        = ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
+    }
+
+    my $s      = $json->{summary}{Total}{scar};
+    my @fields = qw( file_scar file_cc file_cov file_crap );
+    if ($s && @fields == grep defined, @$s{@fields}) {
+      $m->{cc}   = { val => $s->{file_cc}, class => "cc-val" };
+      $m->{scar} = {
+        val   => sprintf("%.1f", $s->{file_scar}),
+        class => "scar-val scar-" . scar_class($s->{file_scar}),
+        tip   => sprintf(
+          "CC %d &middot; cov %.0f%% &middot; CRAP %.1f",
+          $s->{file_cc}, $s->{file_cov}, $s->{file_crap},
+        ),
+      };
+    } else {
+      $m->{$_} = { val => "n/a", class => "na" } for qw( cc scar );
+    }
+
+    { module => $module, mod => $mod, m => $m }
   }
 
   method generate_html {
@@ -502,60 +556,22 @@ class Devel::Cover::Collection {
     my @mods = sort grep !/^\./, readdir $dh;
     closedir $dh or die "Can't closedir $d: $!";
 
+    my @data = eval { require Parallel::Iterator; 1 }
+      ? _iterate(
+        { workers => $workers },
+        sub {
+          my (undef, $module) = @_;
+          $self->_module_data($d, $module, $vars->{criteria})
+        },
+        \@mods,
+      )
+      : map $self->_module_data($d, $_, $vars->{criteria}), @mods;
+
     my $n = 0;
-    for my $module (@mods) {
-      my $cover = "$d/$module/cover.json";
-      next unless -e $cover;
-      say "Adding $module" if $verbose;
-
-      my $io   = Devel::Cover::DB::IO::JSON->new;
-      my $json = $io->read($cover);
-
-      my $mod = {
-        module => $module,
-        map { $_ => $json->{runs}[0]{$_} } qw( name version dir ),
-      };
-      unless (defined $mod->{name} && defined $mod->{version}) {
-        my ($name, $version)
-          = ($mod->{module} // $module) =~ /(.+)-(\d+\.\d+)$/;
-        $mod->{name}    //= $name;
-        $mod->{version} //= $version;
-      }
-      my $start = uc substr $module, 0, 1;
-      push $vars->{modules}{$start}->@*, $mod;
-
-      my $m = $vars->{vals}{$module} = {};
-      $m->{module} = $mod;
-      $m->{link}   = "$module/index.html"
-        if $json->{summary}{Total}{total}{total} && -e "$d/$module/index.html";
-
-      for my $criterion ($vars->{criteria}->@*) {
-        my $summary = $json->{summary}{Total}{$criterion};
-        # print "summary:", Dumper $summary;
-        my $pc = $summary->{percentage};
-        $pc                     = defined $pc ? sprintf "%.2f", $pc : "n/a";
-        $m->{$criterion}{pc}    = $pc;
-        $m->{$criterion}{class} = $self->coverage_class($pc);
-        $m->{$criterion}{details}
-          = ($summary->{covered} || 0) . " / " . ($summary->{total} || 0);
-      }
-
-      my $s      = $json->{summary}{Total}{scar};
-      my @fields = qw( file_scar file_cc file_cov file_crap );
-      if ($s && @fields == grep defined, @$s{@fields}) {
-        $m->{cc}   = { val => $s->{file_cc}, class => "cc-val" };
-        $m->{scar} = {
-          val   => sprintf("%.1f", $s->{file_scar}),
-          class => "scar-val scar-" . scar_class($s->{file_scar}),
-          tip   => sprintf(
-            "CC %d &middot; cov %.0f%% &middot; CRAP %.1f",
-            $s->{file_cc}, $s->{file_cov}, $s->{file_crap},
-          ),
-        };
-      } else {
-        $m->{$_} = { val => "n/a", class => "na" } for qw( cc scar );
-      }
-
+    for my $data (grep defined, @data) {
+      my $start = uc substr $data->{module}, 0, 1;
+      push $vars->{modules}{$start}->@*, $data->{mod};
+      $vars->{vals}{ $data->{module} } = $data->{m};
       print "." if !($n++ % 1000) && !$verbose;
     }
 
