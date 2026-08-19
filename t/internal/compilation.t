@@ -75,7 +75,11 @@ sub test_compilation_report () {
 
   package Mock::Criterion;
   sub new ($class, @locations) { bless { locations => \@locations }, $class }
-  sub items ($self) { map $_->[0], $self->{locations}->@* }
+
+  sub items ($self) {
+    my %seen;
+    grep !$seen{$_}++, map $_->[0], $self->{locations}->@*
+  }
 
   sub location ($self, $loc) {
     [map $_->[1], grep { $_->[0] == $loc } $self->{locations}->@*]
@@ -268,6 +272,22 @@ sub test_condition_states () {
     "condition names only genuinely missed outcomes and reports stale ones";
 }
 
+# Two conditions of the same type on one line each need the line number,
+# since every message here is meant to be machine-navigable.
+sub test_condition_repeated_location () {
+  my $crit = Mock::Criterion->new(
+    [2, cond_obj('$p', "1", [1, 0])],
+    [2, cond_obj('$p', "2", [1, 0])],
+  );
+  is capture_output(\&Devel::Cover::Report::Compilation::print_conditions,
+    $crit),
+    lines(
+      'Uncovered condition (l) at Mock.pm line 2: $p && 1',
+      'Uncovered condition (l) at Mock.pm line 2: $p && 2',
+    ),
+    "every condition on a line carries the line number";
+}
+
 sub test_mcdc_states () {
   my $crit = Mock::Criterion->new(
     [1, mcdc_obj('$a || $b', [1, 1])],
@@ -296,6 +316,7 @@ sub main () {
   test_pod_states;
   test_branch_states;
   test_condition_states;
+  test_condition_repeated_location;
   test_mcdc_states;
   done_testing;
 }

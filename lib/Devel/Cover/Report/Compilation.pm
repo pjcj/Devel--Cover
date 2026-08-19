@@ -58,9 +58,8 @@ sub print_conditions ($db, $file, $) {
 
   my %r;
   for my $location (sort { $a <=> $b } $conditions->items) {
-    my %seen;
     for my $c ($conditions->location($location)->@*) {
-      push $r{ $c->type }->@*, [$c, $seen{ $c->type }++ ? "" : $location];
+      push $r{ $c->type }->@*, [$c, $location];
     }
   }
 
