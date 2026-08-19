@@ -328,9 +328,15 @@ class Devel::Cover::Collection {
     say "Wrote json output to $f";
   }
 
+  method _parse_version ($v) {
+    no warnings "misc";  # some malformed versions warn rather than die
+    my $p = eval { version->parse($v) };
+    $p
+  }
+
   method _newer ($va, $vb) {
-    my ($pa, $pb) = map { eval { version->parse($_) } } $va, $vb;
-    return $pa > $pb if $pa && $pb;
+    my ($pa, $pb) = map $self->_parse_version($_), $va, $vb;
+    return $pa > $pb if defined $pa && defined $pb;
     ($va // "") gt($vb // "")
   }
 
