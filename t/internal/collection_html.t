@@ -127,168 +127,230 @@ sub setup_results_dir {
   $dir
 }
 
-my $Cwd = getcwd;
-my $Dir = setup_results_dir;
+my ($Cwd, $Dir, $Collection, @Warnings, %Page, $Css);
 
-my $Collection = Devel::Cover::Collection->new(results_dir => "$Dir");
-my @Warnings;
-{
-  local $SIG{__WARN__} = sub { push @Warnings, @_ };
-  $Collection->generate_html;
-}
-chdir $Cwd or die "Can't chdir $Cwd: $!";
+sub generate () {
+  $Cwd        = getcwd;
+  $Dir        = setup_results_dir;
+  $Collection = Devel::Cover::Collection->new(results_dir => "$Dir");
+  {
+    local $SIG{__WARN__} = sub { push @Warnings, @_ };
+    $Collection->generate_html;
+  }
+  chdir $Cwd or die "Can't chdir $Cwd: $!";
 
-is grep(/uninitialized/, @Warnings), 0,
-  "generate_html emits no uninitialized warnings";
-
-my %Page = (
-  index  => slurp("$Dir/index.html"),
-  dist   => slurp("$Dir/dist/F.html"),
-  dist_b => slurp("$Dir/dist/B.html"),
-  dist_d => slurp("$Dir/dist/D.html"),
-  dist_n => slurp("$Dir/dist/N.html"),
-  about  => slurp("$Dir/about.html"),
-);
-
-for my $name (sort keys %Page) {
-  unlike $Page{$name}, qr{/latest/},        "$name page has no /latest/ links";
-  unlike $Page{$name}, qr{(?:href|src)="/}, "$name page has no absolute links";
+  %Page = (
+    index  => slurp("$Dir/index.html"),
+    dist   => slurp("$Dir/dist/F.html"),
+    dist_b => slurp("$Dir/dist/B.html"),
+    dist_d => slurp("$Dir/dist/D.html"),
+    dist_n => slurp("$Dir/dist/N.html"),
+    about  => slurp("$Dir/about.html"),
+  );
+  $Css = slurp("$Dir/collection.css");
 }
 
-for my $name (qw( index about )) {
-  like $Page{$name}, qr{href="collection\.css"},
-    "$name page links stylesheet relatively";
-  like $Page{$name}, qr{src="collection\.js"},
-    "$name page links script relatively";
-  like $Page{$name}, qr{href="about\.html"},
-    "$name page links about page relatively";
-  like $Page{$name}, qr{<h1><a href="index\.html">CPANCover</a></h1>},
-    "$name page header links home";
+sub test_no_warnings () {
+  is grep(/uninitialized/, @Warnings), 0,
+    "generate_html emits no uninitialized warnings";
 }
 
-like $Page{index}, qr{href="dist/F\.html"}, "index links dist page";
+sub test_page_links () {
+  for my $name (sort keys %Page) {
+    unlike $Page{$name}, qr{/latest/}, "$name page has no /latest/ links";
+    unlike $Page{$name}, qr{(?:href|src)="/},
+      "$name page has no absolute links";
+  }
 
-like $Page{dist}, qr{href="\.\./collection\.css"}, "dist page links stylesheet";
-like $Page{dist}, qr{src="\.\./collection\.js"},   "dist page links script";
-like $Page{dist}, qr{href="\.\./about\.html"},     "dist page links about page";
-like $Page{dist}, qr{<h1><a href="\.\./index\.html">CPANCover</a></h1>},
-  "dist page header links home";
-like $Page{dist}, qr{href="\.\./\Q$Dist\E/index\.html"},
-  "dist page links module report";
-like $Page{dist_n}, qr{No-Page}, "dist without a report page is listed";
-unlike $Page{dist_n}, qr{href="\.\./\Q$Dist5\E/index\.html"},
-  "dist without a report page is not linked";
-like $Page{dist}, qr{href="\.\./\Q$Log_new\E"},
-  "dist page links the log named in .log_ref";
-unlike $Page{dist}, qr{href="\.\./\Q$Log\E"},
-  "dist page does not link the older log";
-like $Page{dist_b}, qr{href="\.\./\Q$Log2\E"},
-  "dist page links uncompressed build log";
-like $Page{dist_d}, qr{href="\.\./\Q$Log3\E"},
-  "dangling .log_ref falls back to the name-matched log";
-unlike $Page{dist_d}, qr{href="\.\./\Q$Ref3\E"},
-  "dangling .log_ref target is not linked";
-like $Page{dist_d}, qr{href="\.\./\Q$Log_new\E"},
-  "dependency dist links its target's log via .log_ref";
+  for my $name (qw( index about )) {
+    like $Page{$name}, qr{href="collection\.css"},
+      "$name page links stylesheet relatively";
+    like $Page{$name}, qr{src="collection\.js"},
+      "$name page links script relatively";
+    like $Page{$name}, qr{href="about\.html"},
+      "$name page links about page relatively";
+    like $Page{$name}, qr{<h1><a href="index\.html">CPANCover</a></h1>},
+      "$name page header links home";
+  }
 
-like $Page{dist}, qr{href="https://metacpan\.org/release/PJCJ/\Q$Dist\E"},
-  "version links the metacpan release parsed from the log";
-like $Page{dist_b}, qr{href="https://metacpan\.org/release/PJCJ/\Q$Dist2\E"},
-  "version links the metacpan release for an uncompressed log";
-like $Page{dist_d}, qr{href="https://metacpan\.org/release/PJCJ/\Q$Dist3\E"},
-  "version links the metacpan release via the name-matched log";
-like $Page{dist_d}, qr{href="https://metacpan\.org/dist/Dep-Only"},
-  "dependency dist falls back to the metacpan dist link";
-unlike $Page{dist_d}, qr{href="https://metacpan\.org/release/\w+/\Q$Dist4\E"},
-  "dependency dist gets no release link from its target's log";
+  like $Page{index}, qr{href="dist/F\.html"}, "index links dist page";
 
-like $Page{dist}, qr{<th>CC</th>},                "dist page has a CC header";
-like $Page{dist}, qr{<th>SCAR</th>},              "dist page has a SCAR header";
-like $Page{dist}, qr{<td class="cc-val">12</td>}, "dist page shows CC";
-my $Tip = quotemeta
-  '<span class="glass-tip">CC 12 &middot; cov 90% &middot; CRAP 14.3</span>';
-like $Page{dist},
-  qr{<td class="scar-val scar-c2 tip-hover">26\.6\s*$Tip\s*</td>},
-  "dist page shows SCAR with class and tip";
-my @Na_cells = $Page{dist_b} =~ m{(<td class="na">n/a</td>)}g;
-is @Na_cells, 2, "dist with incomplete scar data shows n/a for CC and SCAR";
-my @Na_cells_n = $Page{dist_n} =~ m{(<td class="na">n/a</td>)}g;
-is @Na_cells_n, 2, "dist without scar data shows n/a for CC and SCAR";
+  like $Page{dist}, qr{href="\.\./collection\.css"},
+    "dist page links stylesheet";
+  like $Page{dist}, qr{src="\.\./collection\.js"}, "dist page links script";
+  like $Page{dist}, qr{href="\.\./about\.html"},   "dist page links about page";
+  like $Page{dist}, qr{<h1><a href="\.\./index\.html">CPANCover</a></h1>},
+    "dist page header links home";
+  like $Page{dist}, qr{href="\.\./\Q$Dist\E/index\.html"},
+    "dist page links module report";
+  like $Page{dist_n}, qr{No-Page}, "dist without a report page is listed";
+  unlike $Page{dist_n}, qr{href="\.\./\Q$Dist5\E/index\.html"},
+    "dist without a report page is not linked";
+}
 
-my $Css = slurp("$Dir/collection.css");
-like $Css, qr{td\.na[^{}]*\{[^{}]*text-align:\s*center}s,
-  "n/a cells are centred";
-like $Css, qr{th[^{}]*\{[^{}]*position:\s*sticky}s, "table headers are sticky";
-like $Css, qr{th[^{}]*\{[^{}]*top:\s*calc\(var\(--header-height}s,
-  "table headers stick below the page header";
-like slurp("$Dir/collection.js"), qr{--header-height},
-  "collection.js measures the page header height";
+sub test_log_links () {
+  like $Page{dist}, qr{href="\.\./\Q$Log_new\E"},
+    "dist page links the log named in .log_ref";
+  unlike $Page{dist}, qr{href="\.\./\Q$Log\E"},
+    "dist page does not link the older log";
+  like $Page{dist_b}, qr{href="\.\./\Q$Log2\E"},
+    "dist page links uncompressed build log";
+  like $Page{dist_d}, qr{href="\.\./\Q$Log3\E"},
+    "dangling .log_ref falls back to the name-matched log";
+  unlike $Page{dist_d}, qr{href="\.\./\Q$Ref3\E"},
+    "dangling .log_ref target is not linked";
+  like $Page{dist_d}, qr{href="\.\./\Q$Log_new\E"},
+    "dependency dist links its target's log via .log_ref";
+}
 
-like $Page{index}, qr{<p class="dist-count">6 distributions</p>},
-  "index page counts distributions once per name";
-like $Page{index},
-  qr{<div class="dist-bar-seg c1" style="width: 83\.33%">\s*5\s*</div>},
-  "index page bar has a c1 segment counting latest versions only";
-like $Page{index},
-  qr{<div class="dist-bar-seg na" style="width: 16\.67%">\s*1\s*</div>},
-  "index page bar has an n/a segment";
-like $Page{index}, qr{dist-bar-seg c1.*dist-bar-seg na}s,
-  "bar segments run from best to worst";
-unlike $Page{index}, qr{dist-bar-seg c[023]}, "empty bands are omitted";
-like $Page{index},   qr{dist-bar.*az-nav}s,   "bar appears above the A-Z nav";
-like $Css, qr{\.dist-bar\b[^{}]*\{[^{}]*display:\s*flex}s,
-  "bar segments lay out in a row";
-like $Css,
-  qr{\.dist-bar-seg\.c1[^{}]*\{[^{}]*background:\s*var\(--cov-low-bg\)}s,
-  "bar segments use the shared coverage colours";
+sub test_metacpan_links () {
+  like $Page{dist}, qr{href="https://metacpan\.org/release/PJCJ/\Q$Dist\E"},
+    "version links the metacpan release parsed from the log";
+  like $Page{dist_b}, qr{href="https://metacpan\.org/release/PJCJ/\Q$Dist2\E"},
+    "version links the metacpan release for an uncompressed log";
+  like $Page{dist_d}, qr{href="https://metacpan\.org/release/PJCJ/\Q$Dist3\E"},
+    "version links the metacpan release via the name-matched log";
+  like $Page{dist_d}, qr{href="https://metacpan\.org/dist/Dep-Only"},
+    "dependency dist falls back to the metacpan dist link";
+  unlike $Page{dist_d}, qr{href="https://metacpan\.org/release/\w+/\Q$Dist4\E"},
+    "dependency dist gets no release link from its target's log";
+}
 
-my $Overview_vars = {
-  vals => {
-    (
-      map { ("Dist$_-1.00" => {
-        module => { name => "Dist$_", version => "1.00" },
-        total  => { pc   => "100.00" },
-      }) } 1 .. 30
-    ),
-    "Low-1.00" => {
-      module => { name => "Low", version => "1.00" },
-      total  => { pc   => "50.00" },
+sub test_cc_scar () {
+  like $Page{dist}, qr{<th>CC</th>},   "dist page has a CC header";
+  like $Page{dist}, qr{<th>SCAR</th>}, "dist page has a SCAR header";
+  like $Page{dist}, qr{<td class="cc-val">12</td>}, "dist page shows CC";
+  my $tip = quotemeta
+    '<span class="glass-tip">CC 12 &middot; cov 90% &middot; CRAP 14.3</span>';
+  like $Page{dist},
+    qr{<td class="scar-val scar-c2 tip-hover">26\.6\s*$tip\s*</td>},
+    "dist page shows SCAR with class and tip";
+  my @na_cells = $Page{dist_b} =~ m{(<td class="na">n/a</td>)}g;
+  is @na_cells, 2, "dist with incomplete scar data shows n/a for CC and SCAR";
+  my @na_cells_n = $Page{dist_n} =~ m{(<td class="na">n/a</td>)}g;
+  is @na_cells_n, 2, "dist without scar data shows n/a for CC and SCAR";
+}
+
+sub test_css () {
+  like $Css, qr{td\.na[^{}]*\{[^{}]*text-align:\s*center}s,
+    "n/a cells are centred";
+  like $Css, qr{th[^{}]*\{[^{}]*position:\s*sticky}s,
+    "table headers are sticky";
+  like $Css, qr{th[^{}]*\{[^{}]*top:\s*calc\(var\(--header-height}s,
+    "table headers stick below the page header";
+  like slurp("$Dir/collection.js"), qr{--header-height},
+    "collection.js measures the page header height";
+}
+
+sub test_overview_bar () {
+  like $Page{index}, qr{<p class="dist-count">6 distributions</p>},
+    "index page counts distributions once per name";
+  like $Page{index},
+    qr{<div class="dist-bar-seg c1" style="width: 83\.33%">\s*5\s*</div>},
+    "index page bar has a c1 segment counting latest versions only";
+  like $Page{index},
+    qr{<div class="dist-bar-seg na" style="width: 16\.67%">\s*1\s*</div>},
+    "index page bar has an n/a segment";
+  like $Page{index}, qr{dist-bar-seg c1.*dist-bar-seg na}s,
+    "bar segments run from best to worst";
+  unlike $Page{index}, qr{dist-bar-seg c[023]}, "empty bands are omitted";
+  like $Page{index},   qr{dist-bar.*az-nav}s,   "bar appears above the A-Z nav";
+  like $Css, qr{\.dist-bar\b[^{}]*\{[^{}]*display:\s*flex}s,
+    "bar segments lay out in a row";
+  like $Css,
+    qr{\.dist-bar-seg\.c1[^{}]*\{[^{}]*background:\s*var\(--cov-low-bg\)}s,
+    "bar segments use the shared coverage colours";
+}
+
+sub test_overview_segments () {
+  my $vars = {
+    vals => {
+      (
+        map { ("Dist$_-1.00" => {
+          module => { name => "Dist$_", version => "1.00" },
+          total  => { pc   => "100.00" },
+        }) } 1 .. 30
+      ),
+      "Low-1.00" => {
+        module => { name => "Low", version => "1.00" },
+        total  => { pc   => "50.00" },
+      },
     },
-  },
-};
-$Collection->add_overview($Overview_vars);
-my $Segments = $Overview_vars->{overview}{segments};
-is $Segments->[-1]{label}, "",
-  "segments too narrow for their count drop the label";
-
-my $Search = JSON::PP->new->decode(slurp("$Dir/search.json"));
-is join(",", @$Search),
-  "Baz-Qux-2.00,Dangle-Ref-3.00,Dep-Only-4.00,Foo-Bar-1.00,Foo-Bar-0.50",
-  "search.json lists newest versions first, report pages only";
-like $Page{index}, qr{<input[^>]*id="module-search"[^>]*data-root=""},
-  "index page has the search input";
-like $Page{index}, qr{<input[^>]*placeholder="Search distributions"},
-  "search placeholder says distributions";
-like $Page{dist}, qr{<input[^>]*id="module-search"[^>]*data-root="\.\./"},
-  "dist page search input carries the root prefix";
-like slurp("$Dir/collection.js"), qr{module-search},
-  "collection.js wires up the search";
-
-my $Cpancover = JSON::PP->new->decode(slurp("$Dir/cpancover.json"));
-my $Coverage  = $Cpancover->{"Foo-Bar"}{"1.00"}{coverage}{total};
-is join(",", sort keys %$Coverage), "statement,total",
-  "cpancover.json has no cc or scar keys";
-
-my $Version = $Devel::Cover::Inc::VERSION . $Devel::Cover::Inc::Dev;
-for my $name (sort keys %Page) {
-  like $Page{$name}, qr{Devel::Cover</a>\s+\Q$Version\E\s+by},
-    "$name page footer shows the Devel::Cover version";
+  };
+  $Collection->add_overview($vars);
+  my $segments = $vars->{overview}{segments};
+  is $segments->[-1]{label}, "",
+    "segments too narrow for their count drop the label";
 }
 
-for my $f (qw( index.html dist/F.html about.html )) {
-  is slurp("$Dir/$f.seeded"), "old", "$f is written atomically";
+sub test_search () {
+  my $search = JSON::PP->new->decode(slurp("$Dir/search.json"));
+  is join(",", @$search),
+    "Baz-Qux-2.00,Dangle-Ref-3.00,Dep-Only-4.00,Foo-Bar-1.00,Foo-Bar-0.50",
+    "search.json lists newest versions first, report pages only";
+  like $Page{index}, qr{<input[^>]*id="module-search"[^>]*data-root=""},
+    "index page has the search input";
+  like $Page{index}, qr{<input[^>]*placeholder="Search distributions"},
+    "search placeholder says distributions";
+  like $Page{dist}, qr{<input[^>]*id="module-search"[^>]*data-root="\.\./"},
+    "dist page search input carries the root prefix";
+  like slurp("$Dir/collection.js"), qr{module-search},
+    "collection.js wires up the search";
 }
-my @Tmp = map glob, "$Dir/*.tmp.*", "$Dir/dist/*.tmp.*";
-is @Tmp, 0, "no tmp files remain";
 
+sub test_cpancover_json () {
+  my $cpancover = JSON::PP->new->decode(slurp("$Dir/cpancover.json"));
+  my $coverage  = $cpancover->{"Foo-Bar"}{"1.00"}{coverage}{total};
+  is join(",", sort keys %$coverage), "statement,total",
+    "cpancover.json has no cc or scar keys";
+}
+
+sub test_version_footer () {
+  my $version = $Devel::Cover::Inc::VERSION . $Devel::Cover::Inc::Dev;
+  for my $name (sort keys %Page) {
+    like $Page{$name}, qr{Devel::Cover</a>\s+\Q$version\E\s+by},
+      "$name page footer shows the Devel::Cover version";
+  }
+}
+
+sub test_atomic_writes () {
+  for my $f (qw( index.html dist/F.html about.html )) {
+    is slurp("$Dir/$f.seeded"), "old", "$f is written atomically";
+  }
+  my @tmp = map glob, "$Dir/*.tmp.*", "$Dir/dist/*.tmp.*";
+  is @tmp, 0, "no tmp files remain";
+}
+
+sub test_parallel_run () {
+  my $parallel
+    = Devel::Cover::Collection->new(results_dir => "$Dir", workers => 2);
+  {
+    local $SIG{__WARN__} = sub { push @Warnings, @_ };
+    $parallel->generate_html;
+  }
+  chdir $Cwd or die "Can't chdir $Cwd: $!";
+  is slurp("$Dir/index.html"), $Page{index},
+    "a parallel run writes the same index page";
+  is slurp("$Dir/dist/F.html"), $Page{dist},
+    "a parallel run writes the same dist page";
+}
+
+sub main () {
+  generate;
+  test_no_warnings;
+  test_page_links;
+  test_log_links;
+  test_metacpan_links;
+  test_cc_scar;
+  test_css;
+  test_overview_bar;
+  test_overview_segments;
+  test_search;
+  test_cpancover_json;
+  test_version_footer;
+  test_atomic_writes;
+  test_parallel_run;
+}
+
+main;
 done_testing;

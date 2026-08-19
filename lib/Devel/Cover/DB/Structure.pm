@@ -193,8 +193,6 @@ sub set_file ($self, $file) {
 
 sub delete_file ($self, $file) { delete $self->{f}{$file} }
 
-# TODO - concurrent runs updating structure?
-
 sub write ($self, $dir) {
   $dir .= "/structure";
   unless (mkdir $dir) {
@@ -211,21 +209,8 @@ sub write ($self, $dir) {
         || ($Devel::Cover::Self_cover && $file =~ "/Devel/Cover[./]");
       next;
     }
-    my $df_final = "$dir/$digest";
-    my $df_temp  = "$dir/.$digest.$$";
     # TODO - determine if Structure has changed to save writing it
-    my $io = Devel::Cover::DB::IO->new;
-    $io->write($self->{f}{$file}, $df_temp);               # unless -e $df;
-    unless (rename $df_temp, $df_final) {
-      if (-e $df_final) {
-        dcinfo "Can't rename $df_temp to $df_final (which exists): $!";
-      } else {
-        dcinfo "Can't rename $df_temp to $df_final: $!";
-      }
-      unless (unlink $df_temp) {
-        dcinfo "Can't remove $df_temp after failed rename: $!";
-      }
-    }
+    Devel::Cover::DB::IO->new->write($self->{f}{$file}, "$dir/$digest");
   }
 }
 

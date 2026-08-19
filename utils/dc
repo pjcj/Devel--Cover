@@ -1496,6 +1496,7 @@ cpan_collection_module() {
 
   # Move results to collection results_dir
   if [[ -d cover_db ]]; then
+    # structure lock files are all named <digest>.lock, so the glob sees them
     rm -f cover_db/structure/*.lock
     mkdir -p "$results_dir"
     rm -rf "${results_dir:?}/$distdir"

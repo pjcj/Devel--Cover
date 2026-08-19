@@ -396,29 +396,16 @@ sub test_write_rename_failure () {
   mkdir "$base/structure/$digest"
     or die "Cannot mkdir $base/structure/$digest: $!";
 
-  my $stderr = capture_stderr { $st->write($base) };
+  my $ok = eval { $st->write($base); 1 };
   rmdir "$base/structure/$digest";
 
-  like $stderr, qr/Can't rename/, "write rename fail: warns on STDERR";
-}
+  ok !$ok, "write rename fail: dies";
+  like $@, qr/Can't rename/, "write rename fail: error names the rename";
 
-sub test_write_rename_failure_silent () {
-  local $Devel::Cover::Silent = 1;
-  my $base   = fresh_base("rename_fail_s");
-  my $file   = write_source("renamefails.pm", "package RenameFailS;\n1\n");
-  my $digest = md5_file($file);
-
-  my $st = Devel::Cover::DB::Structure->new(base => $base);
-
-  $st->set_file($file);
-
-  mkdir "$base/structure/$digest"
-    or die "Cannot mkdir $base/structure/$digest: $!";
-
-  my $stderr = capture_stderr { $st->write($base) };
-  rmdir "$base/structure/$digest";
-
-  is $stderr, "", "write rename fail silent: no warning";
+  opendir my $dh, "$base/structure" or die "Cannot opendir: $!";
+  my @stray = grep /tmp/, readdir $dh;
+  closedir $dh;
+  is @stray, 0, "write rename fail: no temporary file left behind";
 }
 
 sub test_autoload_get_time () {
@@ -843,7 +830,6 @@ sub main () {
   test_write_no_digest_silent;
   test_write_creates_structure_dir;
   test_write_rename_failure;
-  test_write_rename_failure_silent;
   test_autoload_get_time;
   test_set_file_missing;
   test_add_count_no_file;
