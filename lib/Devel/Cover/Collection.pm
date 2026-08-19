@@ -19,7 +19,7 @@ use Devel::Cover::Inc          ();
 use Devel::Cover::Web          qw( write_file );
 
 use JSON::MaybeXS ();
-use POSIX         qw( setsid );
+use POSIX         qw( _exit setsid );
 use Template      ();
 use Time::HiRes   qw( alarm time );
 use version       ();
@@ -137,9 +137,14 @@ class Devel::Cover::Collection {
             . ($signal ? ", signal $signal" : "") . ")\n";
         }
       } else {
-        setsid() != -1 or die "Can't start a new session: $!";
-        open STDERR, ">&", STDOUT or die "Can't dup stdout: $!";
-        exec @command or die "Can't exec @command: $!";
+        # a failure here must never return to the caller's code
+        eval {
+          setsid() != -1 or die "Can't start a new session: $!\n";
+          open STDERR, ">&", STDOUT or die "Can't dup stdout: $!\n";
+          exec @command or die "Can't exec @command: $!\n";
+        };
+        syswrite STDOUT, $@ if $@;
+        _exit 127;
       }
     };
     if ($@) {
