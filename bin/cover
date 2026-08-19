@@ -536,8 +536,16 @@ sub set_files ($db) {
   $Options->{file}->@* = sort grep $keep->($_), keys %f;
 }
 
+sub restrict_summary ($db) {
+  $db->calculate_summary(
+    (map { $_ => 1 } $Options->{coverage}->@*),
+    files => $Options->{file},
+    force => 1,
+  );
+}
+
 sub print_summary ($db) {
-  $db->print_summary($Options->{file}, $Options->{coverage}, { force => 1 })
+  $db->print_summary($Options->{file}, $Options->{coverage})
     if $Options->{summary};
 }
 
@@ -570,6 +578,7 @@ sub main () {
   do_gcov($dbname);
   my $db = manage_dbs($dbname, $test_result);
   set_files($db);
+  restrict_summary($db);
   print_summary($db);
   run_reports($db, $argv);
 
