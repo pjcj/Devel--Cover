@@ -593,6 +593,44 @@ sub test_index_filter_links () {
     "index: SCAR cell links to file without #filter";
 }
 
+sub test_file_row_total_marker () {
+  no warnings "once";
+  local %Devel::Cover::Report::Html_crisp::R
+    = (criteria => ["statement"], have_ppi => 1);
+
+  my $f = {
+    basename   => "Calc.pm",
+    short      => "Covered/Calc.pm",
+    link       => "lib-Covered-Calc-pm.html",
+    exists     => 1,
+    uncompiled => 0,
+    criteria   => {
+      statement => { pc => "50.0", class => "c1", covered => 1, total => 2 },
+    },
+    total      => { pc => "75.0", class => "c2", covered => 3, total => 4 },
+    total_sort => "75.0",
+    file_cc    => 5,
+    file_scar  => "33.4",
+    file_crap  => "12.5",
+    file_cov   => 80,
+    worst_subs => [],
+  };
+
+  my $row    = Devel::Cover::Report::Html_crisp::file_row($f, "Covered");
+  my @marked = $row =~ /(<td[^>]*data-col="total"[^>]*>)/g;
+  is @marked, 1, "file row marks exactly one cell as the total";
+  like $marked[0] // "", qr/data-value="75\.0"/,
+    "marked cell carries the total percentage";
+}
+
+sub test_index_filter_total_cell () {
+  my $app_js = slurp(File::Spec->catfile($Outdir, "assets", "app.js"));
+  like $app_js, qr/td\[data-col="total"\]/,
+    "index filter selects the total cell by attribute";
+  unlike $app_js, qr/cells\.length - 2/,
+    "index filter no longer counts columns from the end";
+}
+
 sub test_dir_header_no_links () {
   my $got = $Golden{"coverage.html"};
   my ($dir_block) = $got =~ m{(<tr class="dir-header".*?</tr>)}s;
@@ -1146,6 +1184,8 @@ sub main () {
   test_render_worst_files_untested_colour;
   test_stat_badge_no_tip_when_empty;
   test_index_filter_links;
+  test_file_row_total_marker;
+  test_index_filter_total_cell;
   test_dir_header_no_links;
   test_build_dir_groups;
   test_app_js_hash_filter;

@@ -139,7 +139,7 @@ sub cov_bar ($pc, $uncompiled) {
   qq(<span class="$bar">\n$fill</span>\n)
 }
 
-sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef) {
+sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef, $attr = "") {
   my $dv      = $data_value // (is_na($s->{pc}) ? -1 : $s->{pc});
   my $no_data = $uncompiled && !$R{have_ppi};
   my $no_tip  = $no_data || ($s->{total} // 0) == 0;
@@ -148,8 +148,9 @@ sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef) {
   my $bar     = cov_bar($s->{pc}, $uncompiled);
   my $inner   = "$s->{pc} $bar";
 
+  $attr  = " $attr"                                         if $attr;
   $inner = qq(<a class="cell-link" href="$link">$inner</a>) if $link;
-  qq(<td class="$cls" data-value="$dv">$inner $tip</td>)
+  qq(<td class="$cls"$attr data-value="$dv">$inner $tip</td>)
 }
 
 sub file_row ($f, $dir) {
@@ -171,7 +172,10 @@ HTML
     $o .= cov_cell($f->{criteria}{$c}, $f->{uncompiled}, undef, $link);
   }
   my $total_link = $linkable ? "$f->{link}#filter=total" : undef;
-  $o .= cov_cell($f->{total}, $f->{uncompiled}, $f->{total_sort}, $total_link);
+  $o .= cov_cell(
+    $f->{total}, $f->{uncompiled}, $f->{total_sort},
+    $total_link, 'data-col="total"',
+  );
   $o .= cc_cell($f);
   $o .= scar_cell($f, $linkable ? $f->{link} : undef);
   $o .= "</tr>\n";
@@ -2516,8 +2520,9 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
         function(row) {
           var name = row.children[0]
             .getAttribute("data-value") || "";
-          var cells = row.children;
-          var tv = cells[cells.length - 2];
+          var tv = row.querySelector(
+            'td[data-col="total"]');
+          if (!tv) return;
           var total = parseFloat(
             tv.getAttribute("data-value"));
           var show = (!re || re.test(name))
