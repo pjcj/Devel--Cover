@@ -51,6 +51,7 @@ sub render_layout (%args) {
   my $asset_prefix = $args{asset_prefix} // "";
   my $title        = escape_html($args{title} || "Coverage Report");
   my $content      = $args{content} // "";
+  my $report_id    = escape_html($R{report_id});
   <<HTML
 <!DOCTYPE html>
 <html lang="en">
@@ -71,7 +72,7 @@ https://pjcj.net
 </svg>">
 <title>$title - Devel::Cover</title>
 </head>
-<body data-report-id="$R{report_id}" data-file-count="$R{file_count}">
+<body data-report-id="$report_id" data-file-count="$R{file_count}">
 $content
 <div class="footer">
 Coverage information from
@@ -395,10 +396,11 @@ filter active. Click a SCAR cell to open the file at the top.</dd>
 HTML
 
   if ($R{common_prefix}) {
+    my $prefix = escape_html($R{common_prefix});
     $o .= <<HTML;
 <div class="common-prefix">
 <span class="common-prefix-label">Prefix:</span>
-<span class="common-prefix-path">$R{common_prefix}</span>
+<span class="common-prefix-path">$prefix</span>
 </div>
 HTML
   }

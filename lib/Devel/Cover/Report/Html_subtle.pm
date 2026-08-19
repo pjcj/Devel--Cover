@@ -27,7 +27,7 @@ use Template 2.00 ();
 my $Template;
 my %Filenames;
 my %File_exists;
-my $Perlver    = join ".", map { ord } split //, $^V;
+my $Perlver    = "$^V";
 my $Threshold  = default_thresholds;
 my %Class_name = (
   na => "uncovered",
@@ -499,7 +499,7 @@ $Templates{summary} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">Database:</td>
-    <td>[% dbname %]</td>
+    <td>[% dbname | html %]</td>
   </tr>
 </table>
 <div><br></br></div>
