@@ -25,8 +25,8 @@ sub print_sort ($db, $options) {
     say "Run:          ", $r->run;
     say "Perl version: ", $r->perl;
     say "OS:           ", $r->OS;
-    say "Start:        ", scalar gmtime $r->start / 1e6;
-    say "Finish:       ", scalar gmtime $r->finish / 1e6;
+    say "Start:        ", scalar gmtime $r->start;
+    say "Finish:       ", scalar gmtime $r->finish;
 
     $runs{ $r->run }->@{ "vec", "size" } = ("", 0);
     my $run = $runs{ $r->run };
