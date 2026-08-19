@@ -632,15 +632,17 @@ sub print_summary_report ($db, $options) {
   };
   my $perl_v = $^V;
   my $os     = $^O;
+  my $title  = escape_html($options->{option}{summarytitle});
+  my $dbname = escape_html($db->{db});
 
   print_html_header($fh, $options->{option}{summarytitle});
   # TODO - >= 100% doesn't look nice.  See also Html_basic.
   print $fh <<"END_HTML";
 <body>
-<h1>$options->{option}{summarytitle}</h1>
+<h1>$title</h1>
 <table>
   <tr><td class="h" align="right">Database:</td>
-  <td align="left" colspan="4">$db->{db}</td></tr>
+  <td align="left" colspan="4">$dbname</td></tr>
   <tr><td class="h" align="right">Report Date:</td>
   <td align="left" colspan="4">$date</td></tr>
   <tr><td class="h" align="right">Perl Version:</td>

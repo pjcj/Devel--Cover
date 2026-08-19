@@ -558,7 +558,7 @@ $Templates{summary} = <<'HTML';
   </tr>
   <tr>
     <td class="sh" align="right">Database:</td>
-    <td class="sv" align="left" colspan="4">[% R.db.db %]</td>
+    <td class="sv" align="left" colspan="4">[% R.db.db | html %]</td>
   </tr>
   <tr>
     <td class="sh" align="right">Report date:</td>

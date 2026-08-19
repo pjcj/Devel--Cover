@@ -499,7 +499,7 @@ $Templates{summary} = <<'HTML';
 <table>
   <tr>
     <td class="header" align="right">Database:</td>
-    <td>[% dbname %]</td>
+    <td>[% dbname | html %]</td>
   </tr>
 </table>
 <div><br></br></div>

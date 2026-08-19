@@ -248,6 +248,74 @@ sub test_common_prefix_escaped ($tmpdir, $cover_db) {
     "html_crisp: raw prefix does not reach the page";
 }
 
+# The database path, the summary title and the crisp report id are printed on
+# the summary page of each HTML report, so markup characters in them must be
+# escaped there too.  run_cover joins its arguments through the shell, so the
+# marked paths are quoted on the way in.
+sub _sq ($s) { "'" . ($s =~ s/'/'\\''/gr) . "'" }
+
+sub _setup_marked_db () {
+  my $tmpdir = realpath(tempdir(CLEANUP => 1));
+  my $dbdir  = File::Spec->catdir($tmpdir, "a<MARK>&d");
+  make_path($dbdir);
+
+  my $script = File::Spec->catfile($tmpdir, "run.pl");
+  open my $fh, ">", $script or die "Cannot write $script: $!";
+  print $fh "my \$x = 0;\n\$x++ for 1 .. 3;\n";
+  close $fh or die "Cannot close $script: $!";
+
+  my $cover_db = File::Spec->catdir($dbdir, "cover_db");
+  local $ENV{DEVEL_COVER_SELF};
+  delete $ENV{DEVEL_COVER_SELF};
+  my @cmd = (
+    $^X, "-Iblib/lib", "-Iblib/arch",
+    "-MDevel::Cover=-db,$cover_db,-silent,1,-merge,0", $script,
+  );
+  system(@cmd) == 0 or die "Failed to create cover_db (status $?)";
+
+  ($tmpdir, $cover_db)
+}
+
+sub test_summary_db_path_escaped ($report, $tmpdir, $cover_db) {
+  my $outdir = File::Spec->catdir($tmpdir, $report);
+  my ($out, $exit) = run_cover(
+    "--report", $report, "--outputdir", $outdir,
+    "--silent", _sq($cover_db),
+  );
+  is $exit, 0, "cover --report $report exits 0" or diag $out;
+  my $html = slurp(File::Spec->catfile($outdir, "coverage.html"));
+  unlike $html, qr|<MARK>|, "$report: raw db path is not on the summary page";
+  like $html,   qr|&lt;MARK&gt;|, "$report: db path is escaped";
+}
+
+sub test_summary_title_escaped ($tmpdir, $cover_db) {
+  my $outdir = File::Spec->catdir($tmpdir, "title");
+  my ($out, $exit) = run_cover(
+    "--report",       "html_minimal",   "--outputdir", $outdir,
+    "--summarytitle", _sq("T<MARK>&t"), "--silent",    _sq($cover_db),
+  );
+  is $exit, 0, "cover --summarytitle exits 0" or diag $out;
+  my $html = slurp(File::Spec->catfile($outdir, "coverage.html"));
+  unlike $html, qr|<h1>T<MARK>&t</h1>|,
+    "html_minimal: raw summary title is not in the heading";
+  like $html, qr|<h1>T&lt;MARK&gt;&amp;t</h1>|,
+    "html_minimal: summary title is escaped in the heading";
+}
+
+sub test_crisp_report_id_escaped ($tmpdir, $cover_db) {
+  my $outdir = File::Spec->catdir($tmpdir, "out<MARK>&d");
+  my ($out, $exit) = run_cover(
+    "--report", "html_crisp", "--outputdir", _sq($outdir),
+    "--silent", _sq($cover_db),
+  );
+  is $exit, 0, "cover --report html_crisp exits 0" or diag $out;
+  my $html = slurp(File::Spec->catfile($outdir, "coverage.html"));
+  unlike $html, qr/data-report-id="[^"]*<MARK>/,
+    "html_crisp: raw output directory is not in the attribute";
+  like $html, qr/data-report-id="[^"]*&lt;MARK&gt;/,
+    "html_crisp: output directory is escaped in the attribute";
+}
+
 # The module name and version reach the coverage summary page from the covered
 # distribution's MYMETA.json (or its directory name), so they may contain
 # markup characters and must be escaped on the summary page too.
@@ -454,6 +522,15 @@ sub main () {
 
     my ($td, $cdb) = _setup_marked_dir;
     test_common_prefix_escaped($td, $cdb);
+
+    my ($mt, $mdb) = _setup_marked_db;
+    test_summary_db_path_escaped("html_minimal", $mt, $mdb);
+    if ($Have_template) {
+      test_summary_db_path_escaped("html_basic",  $mt, $mdb);
+      test_summary_db_path_escaped("html_subtle", $mt, $mdb);
+    }
+    test_summary_title_escaped($mt, $mdb);
+    test_crisp_report_id_escaped($mt, $mdb);
   }
 
   done_testing;
