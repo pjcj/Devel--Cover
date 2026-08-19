@@ -88,9 +88,22 @@ sub test_void_compound_renders_uncovered () {
     "unproven compound rows render uncovered without observed vectors";
 }
 
+# Tab stops must be measured on the source text, not on the escaped markup,
+# or the entities lengthen the line and shift the expansion.
+sub test_tab_stops_measure_source_columns () {
+  my $e = \&Devel::Cover::Report::Html_minimal::escape_HTML;
+  is $e->("abcd\tX"), "abcd&nbsp;&nbsp;&nbsp;&nbsp;X",
+    "tab after plain text reaches column 8";
+  is $e->("a<b\tX"), "a&lt;b&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;X",
+    "tab after an escaped character reaches column 8";
+  is $e->("a<b\tX\nc&d"), "a&lt;b&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;X\nc&amp;d",
+    "per-line escaping matches whole-text escaping";
+}
+
 sub main () {
   test_truth_table_honours_observed_vectors;
   test_void_compound_renders_uncovered;
+  test_tab_stops_measure_source_columns;
   done_testing;
 }
 

@@ -293,16 +293,15 @@ sub get_link ($file, $type = undef, $line = undef) {
 sub escape_HTML ($text) {  ## no critic (NamingConventions::Capitalization)
   chomp $text;
 
-  $text = escape_html($text);
-
   # Do not allow FF in text
   $text =~ tr/\x0c//d;
 
   # IE doesn't honour "white-space: pre" CSS
   my @text = split m/\n/ => $text;
   for (@text) {
-    # Expand all tabs to spaces
+    # Expand all tabs to spaces, measuring the source, not the markup
     1 while s/\t+/' ' x (length($&) * 8 - length($`) % 8)/e;
+    $_ = escape_html($_);
     # make multiple spaces be multiple spaces
     s/(  +)/'&nbsp;' x length $1/ge;
   }
