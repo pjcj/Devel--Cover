@@ -15,7 +15,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 use FindBin    ();
 use File::Temp qw( tempdir );
 
-use Test::More import => [qw( done_testing like ok plan unlike )];
+use Test::More import => [qw( done_testing like ok unlike )];
 
 # cover builds a report or annotation class name from the -report and
 # -annotation arguments and loads it through a string eval.  A name that is
@@ -46,8 +46,7 @@ sub run_cover (@args) {
 
 sub main () {
   my $report = run_cover("-report", 'html; open my $f, ">", "CREATED"; 1');
-  ok !-e "$report->{dir}/CREATED",
-    "-report does not evaluate its argument";
+  ok !-e "$report->{dir}/CREATED", "-report does not evaluate its argument";
   like $report->{out}, qr/not a recognised output format/,
     "-report rejects an invalid format name";
 
@@ -56,11 +55,9 @@ sub main () {
     "-report still accepts a valid format name";
 
   my $ann = run_cover(
-    "-report",     "Text",
-    "-annotation", 'git; open my $f, ">", "CREATED"; 1',
+    "-report", "Text", "-annotation", 'git; open my $f, ">", "CREATED"; 1',
   );
-  ok !-e "$ann->{dir}/CREATED",
-    "-annotation does not evaluate its argument";
+  ok !-e "$ann->{dir}/CREATED", "-annotation does not evaluate its argument";
 
   done_testing;
 }

@@ -16,7 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [qw( done_testing is like plan unlike )];
+use Test::More import => [qw( done_testing like plan unlike )];
 
 eval "require HTML::Entities; 1" or do {
   plan skip_all => "HTML::Entities not available";
@@ -55,14 +55,9 @@ sub render_index () {
     criteria     => [],
     col_headers  => [{ full => "Total", short => "total" }],
     modules      => {
-      E => [{
-        module  => "Test-1.0",
-        name    => $Meta,
-        version => "1.0$Meta",
-      }],
+      E => [{ module => "Test-1.0", name => $Meta, version => "1.0$Meta" }],
     },
-    vals =>
-      { "Test-1.0" => { link => $Link_meta, log => $Log_meta } },
+    vals => { "Test-1.0" => { link => $Link_meta, log => $Log_meta } },
   };
 
   my $out = "";
@@ -74,7 +69,7 @@ sub main () {
   my $html = render_index;
   unlike $html, qr|<MARK>|,
     "collection index does not emit raw module metadata";
-  like $html, qr|&lt;MARK&gt;|, "collection index escapes module metadata";
+  like $html,   qr|&lt;MARK&gt;|, "collection index escapes module metadata";
   unlike $html, qr|"><MARK>|, "collection index link stays in the attribute";
   like $html,   qr|&quot;|, "collection index escapes the quote in href links";
 
