@@ -379,6 +379,38 @@ sub coverage_class_method () {
   is $c->coverage_class(100),   "c3", "coverage_class(100) -> 'c3'";
 }
 
+sub module_name_version () {
+  my $c = Devel::Cover::Collection->new;
+
+  my %parsed = (
+    "Foo-1.2"            => ["Foo",       "1.2"],
+    "Foo-1.2.3"          => ["Foo",       "1.2.3"],
+    "Foo-v1.2.3"         => ["Foo",       "v1.2.3"],
+    "Foo-Bar-0.10.6"     => ["Foo-Bar",   "0.10.6"],
+    "Foo-1.2_01"         => ["Foo",       "1.2_01"],
+    "Perl-Tidy-20240903" => ["Perl-Tidy", "20240903"],
+  );
+  for my $module (sort keys %parsed) {
+    is [$c->_module_name_version({}, $module)], $parsed{$module},
+      "$module parses to name and version";
+  }
+
+  is [$c->_module_name_version({}, "Foo")], ["Foo", undef],
+    "a distdir with no version yields an undef version";
+  is [
+    $c->_module_name_version(
+      { name => "Real-Name", version => "9.9" }, "Foo-1.2",
+    ),
+    ],
+    ["Real-Name", "9.9"], "recorded metadata wins";
+  is [
+    $c->_module_name_version(
+      { name => "/build/Foo-1.2.3", version => "unknown" }, "Foo-1.2.3",
+    ),
+    ],
+    ["Foo", "1.2.3"], "a run directory path as name is discarded";
+}
+
 sub write_json () {
   skip_all "alarm not available on Windows" if $Is_win32;
   my $dir = tempdir(CLEANUP => 1);
@@ -396,6 +428,10 @@ sub write_json () {
         total      => { pc => "82.50" },
         link       => "/Foo-Bar/index.html",
         log        => "build.log",
+      },
+      "Foo-Baz-v1.2.3" => {
+        module => { module => "Foo-Baz-v1.2.3" },
+        total  => { pc     => "50.00" },
       },
     },
   };
@@ -416,6 +452,9 @@ sub write_json () {
   unlike $content, qr/"condition"/, "JSON excludes n/a criteria";
   unlike $content, qr/"link"/,      "JSON excludes link field";
   unlike $content, qr/"log"/,       "JSON excludes log field";
+  like $content,   qr/"Foo-Baz"/, "JSON contains name parsed from the distdir";
+  like $content, qr/"v1\.2\.3"/,
+    "JSON contains a three-part version parsed from the distdir";
 }
 
 sub compress_old_versions () {
@@ -1004,6 +1043,7 @@ sub main () {
     bsys_stderr_capture
     dc_file
     coverage_class_method
+    module_name_version
     write_json
     compress_old_versions
     filter_build_dirs_to_targets

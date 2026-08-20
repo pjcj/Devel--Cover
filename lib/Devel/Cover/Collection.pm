@@ -294,15 +294,31 @@ class Devel::Cover::Collection {
     );
   }
 
+  method _module_name_version ($mod, $module) {
+    my ($name, $version) = ($mod->{name}, $mod->{version});
+    # a name containing a slash is a run directory path, not a dist name
+    ($name, $version) = (undef, undef) if ($name // "") =~ m|/|;
+    unless (defined $name && defined $version) {
+      # the suffix turns a distdir into the archive name DistnameInfo parses
+      my ($n, $v) = eval {
+        require CPAN::DistnameInfo;
+        my $d
+          = CPAN::DistnameInfo->new(($mod->{module} // $module) . ".tar.gz");
+        ($d->dist, $d->version)
+      };
+      $name    //= $n;
+      $version //= $v;
+    }
+    ($name, $version)
+  }
+
   method write_json ($vars) {
     # print Dumper $vars;
     my $results = {};
     for my $module (keys $vars->{vals}->%*) {
       my $m   = $vars->{vals}{$module};
       my $mod = $m->{module};
-      my ($name, $version) = ($mod->{module} // $module) =~ /(.+)-(\d+\.\d+)$/;
-      $name    = $mod->{name}    if defined $mod->{name};
-      $version = $mod->{version} if defined $mod->{version};
+      my ($name, $version) = $self->_module_name_version($mod, $module);
       if (defined $name && defined $version) {
         $results->{$name}{$version}{coverage}{total} = {
           map { $_ => $m->{$_}{pc} } grep $m->{$_}{pc} ne "n/a",
@@ -482,11 +498,7 @@ class Devel::Cover::Collection {
       module => $module,
       map { $_ => $json->{runs}[0]{$_} } qw( name version dir ),
     };
-    unless (defined $mod->{name} && defined $mod->{version}) {
-      my ($name, $version) = ($mod->{module} // $module) =~ /(.+)-(\d+\.\d+)$/;
-      $mod->{name}    //= $name;
-      $mod->{version} //= $version;
-    }
+    $mod->@{qw( name version )} = $self->_module_name_version($mod, $module);
 
     my $m = { module => $mod };
     $m->{link} = "$module/index.html"
