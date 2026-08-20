@@ -17,6 +17,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 use Devel::Cover::Criterion    ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Log          qw( dcinfo );
+use Getopt::Long               qw( GetOptions );
 
 sub add_runs ($db) {
   my @runs;
@@ -28,6 +29,12 @@ sub add_runs ($db) {
   \@runs
 }
 
+sub get_options ($self, $opt) {
+  $opt->{option}{outputfile} = "cover.json";
+  die "Invalid command line options"
+    unless GetOptions($opt->{option}, qw( outputfile=s ));
+}
+
 sub report ($pkg, $db, $options) {
   my %options = map { $_ => 1 } grep {
     $_ eq "total"
@@ -37,8 +44,9 @@ sub report ($pkg, $db, $options) {
 
   my $json = { runs => add_runs($db), summary => $summary };
 
-  my $path = "$options->{outputdir}/cover.json";
-  my $io   = Devel::Cover::DB::IO::JSON->new(options => "pretty");
+  my $path = $options->{option}{outputfile} // "cover.json";
+  $path = "$options->{outputdir}/$path" unless $path =~ m{^/};
+  my $io = Devel::Cover::DB::IO::JSON->new(options => "pretty");
 
   $io->write($json, $path);
 

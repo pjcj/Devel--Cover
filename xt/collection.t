@@ -379,6 +379,38 @@ sub coverage_class_method () {
   is $c->coverage_class(100),   "c3", "coverage_class(100) -> 'c3'";
 }
 
+sub module_name_version () {
+  my $c = Devel::Cover::Collection->new;
+
+  my %parsed = (
+    "Foo-1.2"            => ["Foo",       "1.2"],
+    "Foo-1.2.3"          => ["Foo",       "1.2.3"],
+    "Foo-v1.2.3"         => ["Foo",       "v1.2.3"],
+    "Foo-Bar-0.10.6"     => ["Foo-Bar",   "0.10.6"],
+    "Foo-1.2_01"         => ["Foo",       "1.2_01"],
+    "Perl-Tidy-20240903" => ["Perl-Tidy", "20240903"],
+  );
+  for my $module (sort keys %parsed) {
+    is [$c->_module_name_version({}, $module)], $parsed{$module},
+      "$module parses to name and version";
+  }
+
+  is [$c->_module_name_version({}, "Foo")], ["Foo", undef],
+    "a distdir with no version yields an undef version";
+  is [
+    $c->_module_name_version(
+      { name => "Real-Name", version => "9.9" }, "Foo-1.2",
+    ),
+    ],
+    ["Real-Name", "9.9"], "recorded metadata wins";
+  is [
+    $c->_module_name_version(
+      { name => "/build/Foo-1.2.3", version => "unknown" }, "Foo-1.2.3",
+    ),
+    ],
+    ["Foo", "1.2.3"], "a run directory path as name is discarded";
+}
+
 sub write_json () {
   skip_all "alarm not available on Windows" if $Is_win32;
   my $dir = tempdir(CLEANUP => 1);
@@ -396,6 +428,10 @@ sub write_json () {
         total      => { pc => "82.50" },
         link       => "/Foo-Bar/index.html",
         log        => "build.log",
+      },
+      "Foo-Baz-v1.2.3" => {
+        module => { module => "Foo-Baz-v1.2.3" },
+        total  => { pc     => "50.00" },
       },
     },
   };
@@ -416,6 +452,9 @@ sub write_json () {
   unlike $content, qr/"condition"/, "JSON excludes n/a criteria";
   unlike $content, qr/"link"/,      "JSON excludes link field";
   unlike $content, qr/"log"/,       "JSON excludes log field";
+  like $content,   qr/"Foo-Baz"/, "JSON contains name parsed from the distdir";
+  like $content, qr/"v1\.2\.3"/,
+    "JSON contains a three-part version parsed from the distdir";
 }
 
 sub compress_old_versions () {
@@ -444,6 +483,14 @@ sub compress_old_versions () {
     close $fh or die "Can't close: $!";
   }
 
+  # entries the scan must skip: invalid JSON and a missing cover.json
+  my $broken = "$dir/Net-RDAP-0.6";
+  mkdir $broken or die "Can't mkdir $broken: $!";
+  open my $bfh, ">", "$broken/cover.json" or die "Can't write: $!";
+  print $bfh "not json";
+  close $bfh                or die "Can't close: $!";
+  mkdir "$dir/Net-RDAP-0.3" or die "Can't mkdir: $!";
+
   my $c = Devel::Cover::Collection->new(results_dir => $dir, dryrun => 1);
 
   my $outfile = "$dir/compress_output.txt";
@@ -466,6 +513,10 @@ sub compress_old_versions () {
     "recent version 0.9 is kept";
   unlike $output, qr/^compressing Net-RDAP-0\.8$/m,
     "recent version 0.8 is kept";
+  unlike $output, qr/^compressing Net-RDAP-0\.6$/m,
+    "a distdir with invalid JSON is skipped";
+  unlike $output, qr/^compressing Net-RDAP-0\.3$/m,
+    "a distdir without cover.json is skipped";
 }
 
 sub filter_build_dirs_to_targets () {
@@ -1004,6 +1055,7 @@ sub main () {
     bsys_stderr_capture
     dc_file
     coverage_class_method
+    module_name_version
     write_json
     compress_old_versions
     filter_build_dirs_to_targets
