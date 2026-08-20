@@ -483,6 +483,14 @@ sub compress_old_versions () {
     close $fh or die "Can't close: $!";
   }
 
+  # entries the scan must skip: invalid JSON and a missing cover.json
+  my $broken = "$dir/Net-RDAP-0.6";
+  mkdir $broken or die "Can't mkdir $broken: $!";
+  open my $bfh, ">", "$broken/cover.json" or die "Can't write: $!";
+  print $bfh "not json";
+  close $bfh                or die "Can't close: $!";
+  mkdir "$dir/Net-RDAP-0.3" or die "Can't mkdir: $!";
+
   my $c = Devel::Cover::Collection->new(results_dir => $dir, dryrun => 1);
 
   my $outfile = "$dir/compress_output.txt";
@@ -505,6 +513,10 @@ sub compress_old_versions () {
     "recent version 0.9 is kept";
   unlike $output, qr/^compressing Net-RDAP-0\.8$/m,
     "recent version 0.8 is kept";
+  unlike $output, qr/^compressing Net-RDAP-0\.6$/m,
+    "a distdir with invalid JSON is skipped";
+  unlike $output, qr/^compressing Net-RDAP-0\.3$/m,
+    "a distdir without cover.json is skipped";
 }
 
 sub filter_build_dirs_to_targets () {

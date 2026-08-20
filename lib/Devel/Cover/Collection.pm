@@ -606,12 +606,9 @@ class Devel::Cover::Collection {
       my $f    = "$entry/cover.json";
       my $json = JSON::MaybeXS->new(utf8 => 1, allow_blessed => 1);
       open my $fh, "<", $f or next;
-      # say "file: $f";
-      my $data
-        = do { local $/; eval { $json->decode(<$fh>) } }
-        or next;
-      next if $@;
-      close $fh or next;
+      my $data = do { local $/; eval { $json->decode(<$fh>) } };
+      close $fh or warn "Can't close $f: $!";
+      next unless $data;
       my ($name) = $entry =~ /.+\/(.+)/;
       $name =~ s/-[^-]+$//;
       my @runs = grep { ($_->{name} // "") eq $name } $data->{runs}->@*;
