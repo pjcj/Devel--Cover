@@ -366,8 +366,11 @@ sub populate_run {
     eval {
       require CPAN::DistnameInfo;
       my $dinfo = CPAN::DistnameInfo->new($filename);
-      $Run{name}    = $dinfo->dist;
-      $Run{version} = $dinfo->version;
+      my $dist  = $dinfo->dist;
+      if (defined $dist) {
+        $Run{name}    = $dist;
+        $Run{version} = $dinfo->version // "unknown";
+      }
     }
   }
 
