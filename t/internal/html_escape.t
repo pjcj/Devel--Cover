@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# HARNESS-DURATION-LONG
 
 # Copyright 2026, Paul Johnson (paul@pjcj.net)
 
