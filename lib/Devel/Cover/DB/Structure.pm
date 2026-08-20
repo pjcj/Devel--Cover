@@ -210,13 +210,14 @@ sub write ($self, $dir) {
       next;
     }
     # TODO - determine if Structure has changed to save writing it
-    Devel::Cover::DB::IO->new->write($self->{f}{$file}, "$dir/$digest");
+    Devel::Cover::DB::IO->new(loose_perms => $self->{loose_perms})
+      ->write($self->{f}{$file}, "$dir/$digest");
   }
 }
 
 sub read ($self, $digest) {
   my $file = "$self->{base}/structure/$digest";
-  my $io   = Devel::Cover::DB::IO->new;
+  my $io   = Devel::Cover::DB::IO->new(loose_perms => $self->{loose_perms});
   my $s    = eval { $io->read($file) };
 
   if ($@ || !$s) {

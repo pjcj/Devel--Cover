@@ -18,7 +18,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use File::Spec ();
 use JSON::PP   ();
-use Test::More import => [qw( diag done_testing is like ok unlike )];
+use Test::More import => [qw( diag done_testing is like ok skip unlike )];
 use Devel::Cover::Test::Showcase qw(
   create_cover_db
   run_cover
@@ -27,7 +27,8 @@ use Devel::Cover::Test::Showcase qw(
 );
 
 my ($Tmpdir, $Libdir) = setup_lib_dir;
-my $Cover_db = create_cover_db($Tmpdir, $Libdir);
+my $Cover_db  = create_cover_db($Tmpdir, $Libdir);
+my $Have_json = eval "require JSON::MaybeXS; 1";
 
 sub outdir ($name) { File::Spec->catdir($Tmpdir, $name) }
 
@@ -55,24 +56,33 @@ sub test_compilation_report () {
 }
 
 sub test_json_summary_report () {
-  my ($out, $dir, $content)
-    = report_to_file("json_summary", "json_summary", "out.json");
-  my $json = eval { JSON::PP::decode_json($content) } // {};
-  ok $json->{summary}, "json_summary file parses as JSON" or diag $@;
-  ok !-e File::Spec->catfile($dir, "cover.json"),
-    "json_summary writes no cover.json beside the named file";
+  SKIP: {
+    skip "JSON::MaybeXS required for the json_summary report", 4
+      unless $Have_json;
+
+    my ($out, $dir, $content)
+      = report_to_file("json_summary", "json_summary", "out.json");
+    my $json = eval { JSON::PP::decode_json($content) } // {};
+    ok $json->{summary}, "json_summary file parses as JSON" or diag $@;
+    ok !-e File::Spec->catfile($dir, "cover.json"),
+      "json_summary writes no cover.json beside the named file";
+  }
 }
 
 sub test_mixed_reports () {
-  my $dir = outdir("mixed");
-  my ($out, $exit) = run_cover(
-    "--report",     "json",     "--report",    "text",
-    "--outputfile", "out.mix",  "--outputdir", $dir,
-    "--nosummary",  "--silent", $Cover_db,
-  );
-  is $exit, 0, "cover with mixed reports exits 0" or diag $out;
-  like slurp(File::Spec->catfile($dir, "out.mix")), qr/Module Summary/,
-    "the last report given owns the named file";
+  SKIP: {
+    skip "JSON::MaybeXS required for the json report", 2 unless $Have_json;
+
+    my $dir = outdir("mixed");
+    my ($out, $exit) = run_cover(
+      "--report",     "json",     "--report",    "text",
+      "--outputfile", "out.mix",  "--outputdir", $dir,
+      "--nosummary",  "--silent", $Cover_db,
+    );
+    is $exit, 0, "cover with mixed reports exits 0" or diag $out;
+    like slurp(File::Spec->catfile($dir, "out.mix")), qr/Module Summary/,
+      "the last report given owns the named file";
+  }
 }
 
 sub test_unknown_option () {

@@ -183,9 +183,9 @@ In this example, Devel::Cover will be operating in silent mode.
   +ignore RE          - Append to regular expressions of files to ignore
   -inc path           - Set prefixes of files to include (default @INC)
   +inc path           - Append to prefixes of files to include
-  -loose_perms val    - Use loose permissions on all files and directories in
-                        the coverage db so that code changing EUID can still
-                        write coverage information (default off)
+  -loose_perms val    - Use loose permissions on the directories and lock
+                        files in the coverage db so that code changing EUID
+                        can still write coverage information (default off)
   -merge val          - Merge databases, for multiple test benches (default on)
   -select RE          - Set regular expressions of files to select (default
                         none)

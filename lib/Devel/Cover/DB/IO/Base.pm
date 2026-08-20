@@ -23,6 +23,8 @@ sub new ($class, @args) {
 sub _lock ($self, $file, $type) {
   my $lock = "$file.lock";
   open my $fh, "+>>", $lock or die "Can't open $lock: $!\n";
+  # another user may own the lock and have set the mode already
+  chmod 0666, $lock if $self->{loose_perms};
   flock $fh, $type or die "Can't lock $lock: $!\n";
   $fh
 }

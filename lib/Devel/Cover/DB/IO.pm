@@ -104,6 +104,10 @@ C<DEVEL_COVER_DB_FORMAT> environment variable if set, then from the C<format>
 argument, then from whichever backend is available (Sereal, JSON, Storable,
 in that order).
 
+Pass a true C<loose_perms> argument to make the lock files world writable, so
+that code changing EUID can still take the lock.  The data files themselves
+are written by rename, so they need only a writable directory.
+
 =head2 read
 
  my $data = $io->read($file);
