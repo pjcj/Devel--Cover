@@ -222,6 +222,9 @@ sub check_options () {
     $format->get_options(dclone($Options)) if $format->can("get_options");
   }
 
+  # reports without get_options accept -outputfile too, see run_reports
+  GetOptions(\my %ignored, "outputfile=s");
+
   # Anything left starting with "-" is unknown to every consumer.
   if (my @unknown = grep /^-/, @ARGV) {
     dcerror "Unknown option: $_" for @unknown;
@@ -549,13 +552,37 @@ sub print_summary ($db) {
     if $Options->{summary};
 }
 
+# run a report which prints to stdout, redirecting to -outputfile if given
+sub run_report ($format, $db, $options, $outputfile) {
+  return $format->report($db, $options) unless defined $outputfile;
+  my $out
+    = File::Spec->file_name_is_absolute($outputfile)
+    ? $outputfile
+    : File::Spec->catfile($options->{outputdir}, $outputfile);
+  open my $fh, ">", $out or die "Can't open $out: $!\n";
+  my $err;
+  {
+    local *STDOUT = $fh;
+    eval { $format->report($db, $options) };
+    $err = $@;
+  }
+  $err ||= "Can't close $out: $!\n" unless close $fh;
+  die $err if $err;
+  dcinfo "Report written to $out";
+}
+
 sub run_reports ($db, $argv) {
   for my $report ($Options->{report}->@*) {
     local @ARGV = @$argv;  # restore locally processed args for each report
     my $options = dclone($Options);
     my $format  = "Devel::Cover::Report::\u$report";
-    $format->get_options($options) if $format->can("get_options");
-    $format->report($db, $options);
+    if ($format->can("get_options")) {
+      $format->get_options($options);
+      $format->report($db, $options);
+    } else {
+      GetOptions(\my %opt, "outputfile=s");
+      run_report($format, $db, $options, $opt{outputfile});
+    }
 
     if ($options->{launch}) {
       if ($format->can("launch")) {
@@ -631,6 +658,7 @@ The following command line options are supported:
  -summary              - give summary report                (default on)
  -report report_format - report format                      (default html)
  -outputdir dir        - directory for output               (default given db)
+ -outputfile file      - file for output         (default report dependent)
  -launch               - launch report in viewer (if avail) (default off)
 
  -select filename      - only report on the file            (default all)
@@ -659,6 +687,9 @@ The following command line options are supported:
 
 The C<-report>, C<-select>, C<-select_dir>, C<-ignore>, C<-select_re>,
 C<-ignore_re>, and C<-coverage> options may be specified multiple times.
+
+The C<-outputfile> option applies to every report.  Reports which normally
+print to standard output write to the named file instead.
 
 =head1 REPORT FORMATS
 
