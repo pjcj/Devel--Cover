@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Report the remaining coverage database problems with dcwarn, so they
+  honour -silent and carry the Warning label (GH-746)
 - Estimate mcdc for untested files found via --select_dir, so the mcdc
   Total no longer covers tested files only (GH-722)
 - Make the make diff developer target compare cleanly against golden
