@@ -89,7 +89,7 @@ sub all_criteria_short ($self) { $self->{all_criteria_short}->@* }
 sub files              ($self) { $self->{files}->@* }
 
 sub read ($self, $file) {
-  my $io = Devel::Cover::DB::IO->new;
+  my $io = Devel::Cover::DB::IO->new(loose_perms => $self->{loose_perms});
   my $db = eval { $io->read($file) };
   if ($@ || !$db) {
     warn $@;
@@ -111,7 +111,7 @@ sub write ($self, $db = undef) {
   $self->validate_db;
 
   my $data = { runs => $self->{runs}, files => $self->{files} };
-  my $io   = Devel::Cover::DB::IO->new;
+  my $io   = Devel::Cover::DB::IO->new(loose_perms => $self->{loose_perms});
   $io->write($data, "$self->{db}/$DB");
   $self->{structure}->write($self->{base}) if $self->{structure};
   $self
@@ -155,6 +155,8 @@ sub clean ($self) {
 sub _lock_db ($self) {
   my $lock = "$self->{db}/merge.lock";
   open my $fh, "+>>", $lock or die "Can't open $lock: $!\n";
+  # another user may own the lock and have set the mode already
+  chmod 0666, $lock if $self->{loose_perms};
   flock $fh, LOCK_EX or die "Can't lock $lock: $!\n";
   $fh
 }

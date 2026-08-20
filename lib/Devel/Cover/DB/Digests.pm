@@ -31,7 +31,7 @@ sub new ($class, @args) {
 }
 
 sub read ($self) {
-  my $io = Devel::Cover::DB::IO->new;
+  my $io = Devel::Cover::DB::IO->new(loose_perms => $self->{loose_perms});
   if (-e $self->{file}) {
     # The file is only a cache, so never die because of it
     my $digests = eval { $io->read($self->{file}) };
@@ -46,7 +46,7 @@ sub read ($self) {
 }
 
 sub write ($self) {
-  my $io = Devel::Cover::DB::IO->new;
+  my $io = Devel::Cover::DB::IO->new(loose_perms => $self->{loose_perms});
   $io->write($self->{digests}, $self->{file});
   $self
 }

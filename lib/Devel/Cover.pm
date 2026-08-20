@@ -463,8 +463,9 @@ sub autosplit_parent ($file) {
     $file =~ s|\\|/|g       if $^O eq "MSWin32";
     $file =~ s|^\Q$Dir\E/|| if defined $Dir;
 
-    $Digests ||= Devel::Cover::DB::Digests->new(db => $DB);
-    $file      = $Digests->canonical_file($file);
+    $Digests ||= Devel::Cover::DB::Digests->new(db => $DB,
+      loose_perms => $Loose_perms);
+    $file = $Digests->canonical_file($file);
 
     $Normalising = 0;
     $File_cache{$f} = $file
