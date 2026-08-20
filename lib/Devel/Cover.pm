@@ -363,7 +363,7 @@ sub populate_run {
         $Run{$field} = $json->{$field} if defined $json->{$field};
       }
     }
-  } elsif ($Dir =~ m|.*/([^/]+)$|) {
+  } elsif ($Dir =~ m|.*[/\\]([^/\\]+)$|) {
     my $filename = $1;
     eval {
       require CPAN::DistnameInfo;
