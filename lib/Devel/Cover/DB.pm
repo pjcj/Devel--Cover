@@ -92,7 +92,8 @@ sub read ($self, $file) {
   my $io = Devel::Cover::DB::IO->new(loose_perms => $self->{loose_perms});
   my $db = eval { $io->read($file) };
   if ($@ || !$db) {
-    warn $@;
+    chomp(my $err = $@);
+    dcwarn $err || "no data in $file";
   } else {
     $self->{runs}  = $db->{runs};
     $self->{files} = $db->{files} // [];
@@ -252,7 +253,7 @@ sub is_valid ($self) {
     next
       if $file =~ /^(?:$ignore)$|\.lock$|^(?:$ignore|cover\.\d+)\.tmp\.\d+$/
       && -e "$self->{db}/$file";
-    warn "found $file in $self->{db}";
+    dcwarn "found $file in $self->{db}";
     return 0;
   }
   closedir $dir
@@ -339,7 +340,7 @@ sub _merge_array ($into, $from, $noadd = 0) {
         if (!$noadd && $f =~ /^\d+$/ && $i =~ /^\d+$/) {
           $i += $f;
         } elsif ($i ne $f) {
-          warn "<$i> does not match <$f> - using latter value";
+          dcwarn "<$i> does not match <$f> - using latter value";
           $i = $f;
         }
       }
@@ -712,7 +713,7 @@ sub add_statement ($self, $cc, $sc, $fc, $uc) {
   my %line;
   for my $i (0 .. $#$fc) {
     my $l = $sc->[$i] // do {
-      warn "Devel::Cover: ignoring extra statement\n";
+      dcwarn "ignoring extra statement";
       return;
     };
     my $n = $line{$l}++;
@@ -726,7 +727,7 @@ sub add_time ($self, $cc, $sc, $fc, $) {
   my %line;
   for my $i (0 .. $#$fc) {
     my $l = $sc->[$i] // do {
-      warn "Devel::Cover: ignoring extra statement\n";
+      dcwarn "ignoring extra time";
       return;
     };
     my $n = $line{$l}++;
@@ -762,7 +763,7 @@ sub add_branch ($self, $cc, $sc, $fc, $uc) {
   my %line;
   for my $i (0 .. $#$fc) {
     my $l = $sc->[$i][0] // do {
-      warn "Devel::Cover: ignoring extra branch\n";
+      dcwarn "ignoring extra branch";
       return;
     };
     my $n = $line{$l}++;
@@ -789,7 +790,7 @@ sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
   my %line;
   for my $i (0 .. $#$fc) {
     my $l = $sc->[$i][0] // do {
-      warn "Devel::Cover: ignoring extra subroutine\n";
+      dcwarn "ignoring extra subroutine";
       return;
     };
 
@@ -848,7 +849,7 @@ sub add_condition ($self, $cc, $sc, $fc, $uc, $di = undef) {
   my %line;
   for my $i (0 .. $#$fc) {
     my $l = $sc->[$i][0] // do {
-      warn "Devel::Cover: ignoring extra condition\n";
+      dcwarn "ignoring extra condition";
       return;
     };
     my $n = $line{$l}++;
@@ -999,7 +1000,7 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
         [$type, $class, $note];
     }
   }
-  close $fh or warn "Devel::Cover: Can't close $file: $!\n";
+  close $fh or dcwarn "Can't close $file: $!";
 
   dcwarn scalar @waiting
     . " unmatched uncoverable comments not found at end of $file"

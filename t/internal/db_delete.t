@@ -54,11 +54,16 @@ sub entries ($path) {
   @entries
 }
 
+# dcwarn prints to STDERR rather than raising a warning, so capture the handle
 sub warnings_from ($code) {
-  my @warnings;
-  local $SIG{__WARN__} = sub { push @warnings, @_ };
+  my $err = "";
+  open my $save_err, ">&", \*STDERR or die "Cannot dup STDERR: $!";
+  close STDERR or die "Cannot close STDERR: $!";
+  open STDERR, ">", \$err or die "Cannot redirect STDERR: $!";
   $code->();
-  join "", @warnings
+  close STDERR or die "Cannot close STDERR: $!";
+  open STDERR, ">&", $save_err or die "Cannot restore STDERR: $!";
+  $err
 }
 
 sub test_class_method_refuses_foreign_directory () {
