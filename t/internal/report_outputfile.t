@@ -18,7 +18,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use File::Spec ();
 use JSON::PP   ();
-use Test::More import => [qw( diag done_testing is like ok unlike )];
+use Test::More import => [qw( diag done_testing is like ok skip unlike )];
 use Devel::Cover::Test::Showcase qw(
   create_cover_db
   run_cover
@@ -55,12 +55,17 @@ sub test_compilation_report () {
 }
 
 sub test_json_summary_report () {
-  my ($out, $dir, $content)
-    = report_to_file("json_summary", "json_summary", "out.json");
-  my $json = eval { JSON::PP::decode_json($content) } // {};
-  ok $json->{summary}, "json_summary file parses as JSON" or diag $@;
-  ok !-e File::Spec->catfile($dir, "cover.json"),
-    "json_summary writes no cover.json beside the named file";
+  SKIP: {
+    skip "JSON::MaybeXS required for the json_summary report", 4
+      unless eval "require JSON::MaybeXS; 1";
+
+    my ($out, $dir, $content)
+      = report_to_file("json_summary", "json_summary", "out.json");
+    my $json = eval { JSON::PP::decode_json($content) } // {};
+    ok $json->{summary}, "json_summary file parses as JSON" or diag $@;
+    ok !-e File::Spec->catfile($dir, "cover.json"),
+      "json_summary writes no cover.json beside the named file";
+  }
 }
 
 sub test_mixed_reports () {
