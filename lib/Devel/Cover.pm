@@ -359,7 +359,9 @@ sub populate_run {
       my $meta = do { local $/; <$fh> };
       close $fh or die "Can't close $mymeta: $!\n";
       my $json = CPAN::Meta->load_json_string($meta)->as_struct;
-      $Run{$_} = $json->{$_} for qw( name version abstract );
+      for my $field (qw( name version abstract )) {
+        $Run{$field} = $json->{$field} if defined $json->{$field};
+      }
     }
   } elsif ($Dir =~ m|.*/([^/]+)$|) {
     my $filename = $1;

@@ -37,7 +37,7 @@ sub write_file ($path, $contents) {
   close $fh or die "Cannot close $path: $!";
 }
 
-sub run_in ($name, $meta = undef) {
+sub run_in ($name, $meta = undef, $inc = undef) {
   my $dir = File::Spec->catdir($Tmpdir, $name);
   make_path($dir);
   write_file(File::Spec->catfile($dir, "MYMETA.json"), $meta) if $meta;
@@ -50,7 +50,8 @@ sub run_in ($name, $meta = undef) {
   local $ENV{DEVEL_COVER_DB_FORMAT} = "JSON";
   delete @ENV{qw( DEVEL_COVER_SELF DEVEL_COVER_OPTIONS )};
   system(
-    $^X, "-Iblib/lib", "-Iblib/arch",
+    $^X, ($inc ? "-I$inc" : ()),
+    "-Iblib/lib",                                          "-Iblib/arch",
     "-MDevel::Cover=-db,$db,-dir,$dir,-silent,1,-merge,0", $script,
   ) == 0 or die "Failed to run under Devel::Cover: $?";
 
@@ -87,9 +88,46 @@ JSON
   is $run->{version}, "0.01",      "run version comes from MYMETA.json";
 }
 
+sub test_meta_with_undef_version () {
+  my $stub_lib = File::Spec->catdir($Tmpdir, "stublib");
+  make_path(File::Spec->catdir($stub_lib, "CPAN"));
+  write_file(File::Spec->catfile($stub_lib, "CPAN", "Meta.pm"), <<'PERL');
+package CPAN::Meta;
+
+sub load_json_string { bless {}, shift }
+sub as_struct { +{ name => "Stub-Dist", version => undef } }
+
+1;
+PERL
+  my ($run) = run_in("stubapp", "{}", $stub_lib);
+  is $run->{name}, "Stub-Dist", "run name comes from the parsed metadata";
+  is $run->{version}, "unknown",
+    "an undef version in the metadata keeps the default";
+}
+
+sub test_mymeta_missing_version () {
+  my ($run, $dir) = run_in("sparsemeta", <<'JSON');
+{
+   "abstract" : "test distribution",
+   "author" : [ "nobody" ],
+   "dynamic_config" : 0,
+   "generated_by" : "Devel::Cover tests",
+   "license" : [ "perl_5" ],
+   "meta-spec" : { "version" : 2 },
+   "name" : "Test-Dist",
+   "release_status" : "stable"
+}
+JSON
+  is $run->{name}, $dir, "a rejected MYMETA.json keeps the name default";
+  is $run->{version}, "unknown",
+    "a rejected MYMETA.json keeps the version default";
+}
+
 sub main () {
   test_directory_without_mymeta;
   test_directory_with_mymeta;
+  test_meta_with_undef_version;
+  test_mymeta_missing_version;
   done_testing;
 }
 
