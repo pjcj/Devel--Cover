@@ -20,7 +20,7 @@ use File::Path qw( make_path );
 use File::Spec ();
 use File::Temp qw( tempdir );
 
-use Test::More import => [qw( done_testing is plan )];
+use Test::More import => [qw( done_testing is plan skip )];
 
 BEGIN {
   plan skip_all => "JSON::MaybeXS required for this test"
@@ -68,6 +68,29 @@ sub test_directory_without_mymeta () {
   my ($run, $dir) = run_in("myapp");
   is $run->{name},    $dir,      "run name defaults to the run directory";
   is $run->{version}, "unknown", "run version defaults to unknown";
+}
+
+sub test_release_named_directory () {
+  SKIP: {
+    skip "CPAN::DistnameInfo required for this test", 2
+      unless eval "require CPAN::DistnameInfo; 1";
+    my ($run) = run_in("Test-Dist-1.42");
+    is $run->{name},    "Test-Dist", "run name comes from the directory";
+    is $run->{version}, "1.42",      "run version comes from the directory";
+  }
+}
+
+sub test_release_named_directory_without_module () {
+  my $stub_lib = File::Spec->catdir($Tmpdir, "distnamestub");
+  make_path(File::Spec->catdir($stub_lib, "CPAN"));
+  write_file(
+    File::Spec->catfile($stub_lib, "CPAN", "DistnameInfo.pm"), <<'PERL');
+die "CPAN::DistnameInfo is not installed\n";
+PERL
+  my ($run, $dir) = run_in("Stub-Dist-1.42", undef, $stub_lib);
+  is $run->{name}, $dir, "a missing CPAN::DistnameInfo keeps the name default";
+  is $run->{version}, "unknown",
+    "a missing CPAN::DistnameInfo keeps the version default";
 }
 
 sub test_directory_with_mymeta () {
@@ -125,6 +148,8 @@ JSON
 
 sub main () {
   test_directory_without_mymeta;
+  test_release_named_directory;
+  test_release_named_directory_without_module;
   test_directory_with_mymeta;
   test_meta_with_undef_version;
   test_mymeta_missing_version;

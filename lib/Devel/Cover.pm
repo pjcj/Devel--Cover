@@ -363,15 +363,16 @@ sub populate_run {
         $Run{$field} = $json->{$field} if defined $json->{$field};
       }
     }
-  } elsif ($Dir =~ m|.*/([^/]+)$|) {
+  } elsif ($Dir =~ m|.*[/\\]([^/\\]+)$|) {
     my $filename = $1;
     eval {
       require CPAN::DistnameInfo;
-      my $dinfo = CPAN::DistnameInfo->new($filename);
-      my $dist  = $dinfo->dist;
-      if (defined $dist) {
+      my $dinfo   = CPAN::DistnameInfo->new("$filename.tar.gz");
+      my $dist    = $dinfo->dist;
+      my $version = $dinfo->version;
+      if (defined $dist && defined $version) {
         $Run{name}    = $dist;
-        $Run{version} = $dinfo->version // "unknown";
+        $Run{version} = $version;
       }
     }
   }
