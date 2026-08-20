@@ -27,7 +27,8 @@ use Devel::Cover::Test::Showcase qw(
 );
 
 my ($Tmpdir, $Libdir) = setup_lib_dir;
-my $Cover_db = create_cover_db($Tmpdir, $Libdir);
+my $Cover_db  = create_cover_db($Tmpdir, $Libdir);
+my $Have_json = eval "require JSON::MaybeXS; 1";
 
 sub outdir ($name) { File::Spec->catdir($Tmpdir, $name) }
 
@@ -57,7 +58,7 @@ sub test_compilation_report () {
 sub test_json_summary_report () {
   SKIP: {
     skip "JSON::MaybeXS required for the json_summary report", 4
-      unless eval "require JSON::MaybeXS; 1";
+      unless $Have_json;
 
     my ($out, $dir, $content)
       = report_to_file("json_summary", "json_summary", "out.json");
@@ -69,15 +70,19 @@ sub test_json_summary_report () {
 }
 
 sub test_mixed_reports () {
-  my $dir = outdir("mixed");
-  my ($out, $exit) = run_cover(
-    "--report",     "json",     "--report",    "text",
-    "--outputfile", "out.mix",  "--outputdir", $dir,
-    "--nosummary",  "--silent", $Cover_db,
-  );
-  is $exit, 0, "cover with mixed reports exits 0" or diag $out;
-  like slurp(File::Spec->catfile($dir, "out.mix")), qr/Module Summary/,
-    "the last report given owns the named file";
+  SKIP: {
+    skip "JSON::MaybeXS required for the json report", 2 unless $Have_json;
+
+    my $dir = outdir("mixed");
+    my ($out, $exit) = run_cover(
+      "--report",     "json",     "--report",    "text",
+      "--outputfile", "out.mix",  "--outputdir", $dir,
+      "--nosummary",  "--silent", $Cover_db,
+    );
+    is $exit, 0, "cover with mixed reports exits 0" or diag $out;
+    like slurp(File::Spec->catfile($dir, "out.mix")), qr/Module Summary/,
+      "the last report given owns the named file";
+  }
 }
 
 sub test_unknown_option () {

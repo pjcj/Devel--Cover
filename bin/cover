@@ -199,10 +199,12 @@ sub check_options () {
   $Devel::Cover::Silent             = 1 if $Options->{silent};
   $Devel::Cover::Ignore_covered_err = 1 if $Options->{ignore_covered_err};
 
+  my $requested = $Options->{report}->@*;
   $Options->{report} = [grep valid_report($_), $Options->{report}->@*];
+  my $lost_report = $Options->{report}->@* < $requested;
 
   exit 1
-    if !$Options->{report}->@*
+    if ($lost_report || !$Options->{report}->@*)
     && !$Options->{delete}
     && !exists $Options->{write};
 
