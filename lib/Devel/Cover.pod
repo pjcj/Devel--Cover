@@ -32,6 +32,20 @@ If the module does not use the t/*.t framework:
 
   PERL5OPT=-MDevel::Cover make test
 
+To get coverage for a tree of tests run with L<prove>, whatever its layout:
+
+  PERL5OPT=-MDevel::Cover prove -r t
+  cover
+
+If that tree installs its dependencies locally, for example with L<Carton>,
+keep them out of the report:
+
+  PERL5OPT=-MDevel::Cover=+inc,local/lib/perl5 prove -r t
+  cover
+
+$PERL5OPT reaches prove itself, so prove appears in the report.  Add
+C<+ignore,/prove$> to leave it out.
+
 If you want to get coverage for a program:
 
   perl -MDevel::Cover yourprog args
@@ -170,6 +184,29 @@ example, Devel::Cover will be operating in silent mode.
 
   PerlSwitches -MDevel::Cover=-silent,1
 
+Devel::Cover reads $DEVEL_COVER_OPTIONS as it is loaded, and that happens at
+compile time.  Set it with Apache's C<PerlSetEnv>, or from a BEGIN block.
+
+  BEGIN { $ENV{DEVEL_COVER_OPTIONS} = "-db,/var/tmp/cover_db" }
+  use Devel::Cover;
+
+If you start the server as root and it drops privileges for its children, the
+parent creates the coverage database owned by root and the children cannot write
+their runs into it.  You then see coverage for the startup script alone. The
+C<-loose_perms> option keeps the database directories and lock files writable
+across the change of user.
+
+  PerlSwitches -MDevel::Cover=-silent,1,-loose_perms,1
+
+Coverage is written when a process ends, which for a web server can be a long
+wait, and a server which crashes on shutdown never writes anything.  You can
+write the database from a request handler instead.
+
+  Devel::Cover::report();
+
+Collection stops once that has run, so the database holds everything up to the
+moment you called it and nothing after.
+
 =head1 OPTIONS
 
   -blib               - "use blib" and ignore files in t/ and inc/ (default
@@ -183,8 +220,10 @@ example, Devel::Cover will be operating in silent mode.
   -ignore RE          - Set regular expressions for files to ignore (default
                         "/Devel/Cover\b")
   +ignore RE          - Append to regular expressions of files to ignore
-  -inc path           - Set prefixes of files to include (default @INC)
-  +inc path           - Append to prefixes of files to include
+  -inc path           - Set prefixes of directories which are not covered
+                        (default @INC)
+  +inc path           - Append to prefixes of directories which are not
+                        covered
   -loose_perms val    - Use loose permissions on the directories and lock
                         files in the coverage db so that code changing EUID
                         can still write coverage information (default off)
@@ -237,8 +276,12 @@ included
 You may add to the REs to select by using +select, or you may reset the
 selections using -select.  The same principle applies to the REs to ignore.
 
-The inc directories are initially populated with the contents of perl's @INC
-array.  You may reset these directories using -inc, or add to them using +inc.
+The inc directories hold the modules which do not belong to your project and for
+which you do not need coverage.  They are initially populated with the contents
+of perl's @INC array, and files below them are not covered.  You may reset these
+directories using -inc, or add to them using +inc.  Adding a directory of
+dependencies installed alongside your code, such as the C<local/lib/perl5> of a
+L<Carton> tree, keeps those dependencies out of the report.
 
 Although these options take regular expressions, you should not enclose the RE
 within // or any other quoting characters.
@@ -248,13 +291,36 @@ multiple times, but they can also take multiple comma separated arguments.  In
 any case you should not add a space after the comma, unless you want the
 argument to start with that literal space.
 
+=head2 Narrowing down to a few files
+
+A select RE adds files rather than restricting to them.  A file which matches
+nothing at all is covered anyway, so selecting one file changes nothing about
+the rest.  To report on a few files alone, ignore everything first and select
+back what you want.
+
+  perl -MDevel::Cover=+ignore,.,+select,^lib/MyApp/Core yourprog args
+
+=head2 When these options take effect
+
+These options decide which files coverage data is collected for whilst your code
+runs.  What they exclude never reaches the database, and no later option can
+bring it back.
+
+To restrict a database you already have, use the -select, -select_re, -ignore
+and -ignore_re options of the F<cover> program, which filter as the report is
+generated.  One collection run can then feed as many different reports as you
+like.  Take care over the names.  The F<cover> options -select and -ignore take
+shell globs, and it is -select_re and -ignore_re there which take regular
+expressions, whereas the Devel::Cover options above always take regular
+expressions.  (Sorry.)
+
 =head1 UNCOVERABLE CRITERIA
 
 Sometimes you have code which is uncoverable for some reason.  Perhaps it is an
 else clause that cannot be reached, or a check for an error condition that
 should never happen.  You can tell Devel::Cover that certain criteria are
 uncoverable and then they are not counted as errors when they are not
-exercised. In fact, they are counted as errors if they are exercised.
+exercised.  In fact, they are counted as errors if they are exercised.
 
 This feature should only be used as something of a last resort.  Ideally you
 would find some way of exercising all your code.  But if you have analysed your
@@ -288,10 +354,10 @@ L<ignore_covered_err> attribute is specified then such errors will not be
 flagged.  This is a more precise method to flag such exceptions than the global
 L<-ignore_covered_err> flag to the L<cover> program.
 
-There is also a L<note> attribute which can also be included in L<details>. This
-should be the final attribute and will consume all the remaining text. Currently
-this attribute is not used, but it is intended as a form of documentation for
-the uncoverable data.
+There is also a L<note> attribute which can also be included in L<details>.
+This should be the final attribute and will consume all the remaining text.
+Currently this attribute is not used, but it is intended as a form of
+documentation for the uncoverable data.
 
 Example:
 
