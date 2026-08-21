@@ -19,7 +19,7 @@ use Test::More import => [qw( is pass plan )];
 
 use Devel::Cover::Inc ();
 
-my $Latest_released_perl = 42;
+my $Latest_released_perl = 44;
 
 sub shell_quote ($item) {
   $^O eq "MSWin32" ? (/ / and $_ = qq("$_")) : s/ /\\ /g for $item;

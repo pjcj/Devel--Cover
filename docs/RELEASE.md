@@ -18,9 +18,9 @@
 
 05. Update `$Latest_t` in `Makefile.PL`
 
-    - Update test for obsolete development version skipping via
-      `$Latest_released_perl` variable in `t/lib/Devel/Cover/Test.pm`
     - Update version number in `Makefile.PL`
+    - See `docs/perl-version-update.md` if a new perl has appeared since the
+      last release
 
 06. Check it in
 

@@ -22,9 +22,14 @@ Replace `<version>` throughout with the new version number (e.g. `5.42.1`).
     - `make all_build_perl`
     - Builds non-threaded and threaded variants for all configured versions
 
-04. Update `$Latest_t` in `Makefile.PL`
+04. Update the latest version constants
 
-    - Change the version string to the new version in the format "v5.42.1"
+    - Change `$Latest_t` in `Makefile.PL` to the new version in the format
+      "v5.42.1"
+    - If the new version is a stable release, set `$Latest_released_perl` in
+      `t/lib/Devel/Cover/Test.pm` to its minor number, which decides which
+      development versions are skipped as obsolete
+    - `t/internal/latest_released_perl.t` checks the second of these
 
 05. Update the default Perl version in `docker/BUILD`
 
