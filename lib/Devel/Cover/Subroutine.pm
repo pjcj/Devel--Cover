@@ -37,7 +37,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Subroutine - Code coverage metrics for Perl subroutines
+Devel::Cover::Subroutine - Subroutine coverage criterion
 
 =head1 SYNOPSIS
 

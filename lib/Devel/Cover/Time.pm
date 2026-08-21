@@ -44,7 +44,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Time - Code coverage metrics for Perl
+Devel::Cover::Time - Execution time criterion
 
 =head1 SYNOPSIS
 

@@ -40,7 +40,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Condition - Code coverage metrics for Perl
+Devel::Cover::Condition - Condition coverage criterion
 
 =head1 SYNOPSIS
 

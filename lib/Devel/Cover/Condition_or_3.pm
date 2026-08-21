@@ -25,7 +25,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Condition_or_3 - Code coverage metrics for Perl
+Devel::Cover::Condition_or_3 - Three-outcome or condition criterion
 
 =head1 SYNOPSIS
 
@@ -33,8 +33,8 @@ Devel::Cover::Condition_or_3 - Code coverage metrics for Perl
 
 =head1 DESCRIPTION
 
-Module for storing condition coverage information for or conditions
-where the right value is a constant.
+Module for storing condition coverage information for or conditions with all
+three outcomes.
 
 =head1 SEE ALSO
 

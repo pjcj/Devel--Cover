@@ -71,7 +71,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Branch - Code coverage metrics for Perl
+Devel::Cover::Branch - Branch coverage criterion
 
 =head1 SYNOPSIS
 
