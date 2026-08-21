@@ -135,20 +135,65 @@ the appropriate tools are installed.
 
 Both are in the core in Perl 5.8.0 and above.
 
+=item * L<HTML::Entities> (3.69 or above)
+
+Every HTML report uses this.  Such reports are expected of a coverage tool, so
+it is a prerequisite rather than an option.
+
 =back
 
 =head2 OPTIONAL MODULES
 
 =over
 
-=item * L<Template>, and either L<PPI::HTML> or L<Perl::Tidy>
+=item * L<PPI::HTML> (1.07 or above) or L<Perl::Tidy> (20060719 or above)
 
-Needed if you want syntax highlighted HTML reports.
+One is needed to syntax highlight the source in the HTML reports.
+L<PPI::HTML> is preferred.
+
+=item * L<Template> (2.00 or above)
+
+The html_basic and html_subtle reports will not run without this.  The default
+html report does not use it.
+
+=item * L<PPI>
+
+Needed to estimate the coverage counts of the untested files which the F<cover>
+option C<-select_dir> adds.  Without it those files show n/a in place of counts.
 
 =item * L<Pod::Coverage> (0.06 or above) or L<Pod::Coverage::CountParents>
 
 One is needed if you want Pod coverage.  If L<Pod::Coverage::CountParents> is
 installed, it is preferred.
+
+=item * L<Sereal>
+
+The fastest of the three coverage database formats, and the one used when it is
+installed.  See L</ENVIRONMENT> for how to override that choice.
+
+=item * L<JSON::MaybeXS>
+
+Stores the coverage database when Sereal is absent, in preference to Storable.
+JSON::MaybeXS will select the best JSON backend installed.
+
+=item * L<CPAN::Meta>
+
+Reads the F<MYMETA.json> of the distribution being covered, to record its name,
+version and abstract with the run.  Without it the version records as unknown.
+
+=item * L<CPAN::DistnameInfo>
+
+Works the name and version out from the directory name instead, for a
+distribution with no F<MYMETA.json>.
+
+=item * L<Browser::Open>
+
+Needed by the F<cover> option C<-launch>, which opens the report in a browser.
+
+=item * L<Term::Size>
+
+Fits the text report to the width of your terminal.  Without it the report is
+80 columns wide.
 
 =item * L<Test::More>
 
@@ -158,16 +203,11 @@ Required if you want to run Devel::Cover's own tests.
 
 Needed if the tests fail and you would like nice output telling you why.
 
-=item * L<Template> and L<Parallel::Iterator>
+=item * L<Parallel::Iterator>
 
-Needed if you want to run cpancover.  That command is not installed - it sets up
-a coverage service such as L<http://cpancover.com> and is run from a checkout of
-the Devel::Cover repository.
-
-=item * L<JSON::MaybeXS>
-
-JSON is used to store the coverage database if it is available. JSON::MaybeXS
-will select the best JSON backend installed.
+Needed, along with L<Template>, if you want to run cpancover.  That command is
+not installed - it sets up a coverage service such as L<http://cpancover.com>
+and is run from a checkout of the Devel::Cover repository.
 
 =back
 
