@@ -171,42 +171,6 @@ will select the best JSON backend installed.
 
 =back
 
-=head2 Use with mod_perl
-
-By adding C<use Devel::Cover;> to your mod_perl startup script, you should be
-able to collect coverage information when running under mod_perl.  You can also
-add any options you need at this point.  I would suggest adding this as early as
-possible in your startup script in order to collect as much coverage information
-as possible.
-
-Alternatively, add -MDevel::Cover to the parameters for mod_perl. In this
-example, Devel::Cover will be operating in silent mode.
-
-  PerlSwitches -MDevel::Cover=-silent,1
-
-Devel::Cover reads $DEVEL_COVER_OPTIONS as it is loaded, and that happens at
-compile time.  Set it with Apache's C<PerlSetEnv>, or from a BEGIN block.
-
-  BEGIN { $ENV{DEVEL_COVER_OPTIONS} = "-db,/var/tmp/cover_db" }
-  use Devel::Cover;
-
-If you start the server as root and it drops privileges for its children, the
-parent creates the coverage database owned by root and the children cannot write
-their runs into it.  You then see coverage for the startup script alone. The
-C<-loose_perms> option keeps the database directories and lock files writable
-across the change of user.
-
-  PerlSwitches -MDevel::Cover=-silent,1,-loose_perms,1
-
-Coverage is written when a process ends, which for a web server can be a long
-wait, and a server which crashes on shutdown never writes anything.  You can
-write the database from a request handler instead.
-
-  Devel::Cover::report();
-
-Collection stops once that has run, so the database holds everything up to the
-moment you called it and nothing after.
-
 =head1 OPTIONS
 
   -blib               - "use blib" and ignore files in t/ and inc/ (default
@@ -667,6 +631,42 @@ control over the DB format.  For example, setting it to "pretty" when the format
 is JSON will store the DB in a readable JSON format.  $DEVEL_COVER_CPUS
 overrides the automated detection of the number of CPUs to use in parallel
 testing.
+
+=head1 USE WITH MOD_PERL
+
+By adding C<use Devel::Cover;> to your mod_perl startup script, you should be
+able to collect coverage information when running under mod_perl.  You can also
+add any options you need at this point.  I would suggest adding this as early as
+possible in your startup script in order to collect as much coverage information
+as possible.
+
+Alternatively, add -MDevel::Cover to the parameters for mod_perl. In this
+example, Devel::Cover will be operating in silent mode.
+
+  PerlSwitches -MDevel::Cover=-silent,1
+
+Devel::Cover reads $DEVEL_COVER_OPTIONS as it is loaded, and that happens at
+compile time.  Set it with Apache's C<PerlSetEnv>, or from a BEGIN block.
+
+  BEGIN { $ENV{DEVEL_COVER_OPTIONS} = "-db,/var/tmp/cover_db" }
+  use Devel::Cover;
+
+If you start the server as root and it drops privileges for its children, the
+parent creates the coverage database owned by root and the children cannot write
+their runs into it.  You then see coverage for the startup script alone. The
+C<-loose_perms> option keeps the database directories and lock files writable
+across the change of user.
+
+  PerlSwitches -MDevel::Cover=-silent,1,-loose_perms,1
+
+Coverage is written when a process ends, which for a web server can be a long
+wait, and a server which crashes on shutdown never writes anything.  You can
+write the database from a request handler instead.
+
+  Devel::Cover::report();
+
+Collection stops once that has run, so the database holds everything up to the
+moment you called it and nothing after.
 
 =head1 ACKNOWLEDGEMENTS
 
