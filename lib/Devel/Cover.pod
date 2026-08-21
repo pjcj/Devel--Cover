@@ -56,6 +56,9 @@ always what one might initially expect.  Pod coverage comes from
 L<Pod::Coverage>. If L<Pod::Coverage::CountParents> is available it will be used
 instead.
 
+For an overview of the coverage criteria and what they measure, please see
+L<Devel::Cover::Tutorial>.
+
 The F<cover> program can be used to generate coverage reports.  Devel::Cover
 ships with a number of reports including various types of HTML output, textual
 reports, a report to display missing coverage in the same format as compilation
