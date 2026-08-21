@@ -199,6 +199,12 @@ cpancover - report coverage statistics on CPAN modules
 
 =head1 DESCRIPTION
 
+Collect coverage for results and create html, csv and json output.
+
+This command sets up a coverage service such as L<http://cpancover.com>.  It is
+shipped with Devel::Cover but not installed, so run it from a checkout of the
+repository, where C<utils/dc> drives it.
+
 =head1 OPTIONS
 
 The following command line options are supported:
@@ -230,15 +236,7 @@ The following command line options are supported:
   --verbose               - verbose output                      (off)
   --workers               - number of parallel workers          (0)
 
-=head1 DETAILS
-
 =head1 REQUIREMENTS
-
-Collect coverage for results and create html, csv and json output.
-
-This command sets up a coverage service such as L<http://cpancover.com>.  It is
-shipped with Devel::Cover but not installed, so run it from a checkout of the
-repository, where C<utils/dc> drives it.
 
 Perl 5.42.0 or above is required, along with L<Template> and
 L<Parallel::Iterator>.

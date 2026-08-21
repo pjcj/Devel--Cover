@@ -32,6 +32,20 @@ If the module does not use the t/*.t framework:
 
   PERL5OPT=-MDevel::Cover make test
 
+To get coverage for a tree of tests run with F<prove>, whatever its layout:
+
+  PERL5OPT=-MDevel::Cover prove -r t
+  cover
+
+If that tree installs its dependencies locally, for example with L<Carton>,
+keep them out of the report:
+
+  PERL5OPT=-MDevel::Cover=+inc,local/lib/perl5 prove -r t
+  cover
+
+C<PERL5OPT> reaches F<prove> itself, so F<prove> appears in the report.  Add
+C<+ignore,/prove$> to leave it out.
+
 If you want to get coverage for a program:
 
   perl -MDevel::Cover yourprog args
@@ -45,33 +59,35 @@ To alter default values:
 
 This module provides code coverage metrics for Perl.  Code coverage metrics
 describe how thoroughly tests exercise code.  By using Devel::Cover you can
-discover areas of code not exercised by your tests and determine which tests
-to create to increase coverage.  Code coverage can be considered an indirect
+discover areas of code not exercised by your tests and determine which tests to
+create to increase coverage.  Code coverage can be considered an indirect
 measure of quality.
 
-Devel::Cover is now quite stable and provides many of the features to be
-expected in a useful coverage tool.
+Statement, branch, condition, MC/DC, subroutine, and pod coverage information is
+reported.  Statement and subroutine coverage data should be accurate. Branch,
+condition and MC/DC coverage data should be generally accurate too, although not
+always what one might initially expect.  Pod coverage comes from
+L<Pod::Coverage>. If L<Pod::Coverage::CountParents> is available it will be used
+instead.
 
-Statement, branch, condition, MC/DC, subroutine, and pod coverage information
-is reported.  Statement and subroutine coverage data should be accurate.  Branch
-and condition coverage data should be mostly accurate too, although not always
-what one might initially expect.  Pod coverage comes from L<Pod::Coverage>. If
-L<Pod::Coverage::CountParents> is available it will be used instead.
+For an overview of the coverage criteria and what they measure, please see
+L<Devel::Cover::Tutorial>.
 
 The F<cover> program can be used to generate coverage reports.  Devel::Cover
 ships with a number of reports including various types of HTML output, textual
 reports, a report to display missing coverage in the same format as compilation
-errors and a report to display coverage information within the Vim editor.
+errors and a report to display coverage information within the Vim and Neovim
+editors.
 
 It is possible to add annotations to reports, for example you can add a column
 to an HTML report showing who last changed a line, as determined by git blame.
-Some annotation modules are shipped with Devel::Cover and you can easily
-create your own.
+Some annotation modules are shipped with Devel::Cover and you can easily create
+your own.
 
 The F<gcov2perl> program can be used to convert gcov files to C<Devel::Cover>
-databases.  This allows you to display your C or XS code coverage together
-with your Perl coverage, or to use any of the Devel::Cover reports to display
-your C coverage data.
+databases.  This allows you to display your C or XS code coverage together with
+your Perl coverage, or to use any of the Devel::Cover reports to display your C
+coverage data.
 
 Code coverage data are collected by replacing perl ops with functions which
 count how many times the ops are executed.  These data are then mapped back to
@@ -104,20 +120,25 @@ The latest version of Devel::Cover on which Perl 5.12 to 5.18 was supported was
 Perl versions 5.6.0 and earlier were never supported.  Using Devel::Cover with
 Perl 5.8.7 was always problematic and frequently led to crashes.
 
-Different versions of perl may give slightly different results due to changes
-in the op tree.
+Different versions of perl may give slightly different results due to changes in
+the op tree.
 
 =item * The ability to compile XS extensions.
 
 This means a working C compiler and make program at least.  If you built perl
-from source you will have these already and they will be used automatically.
-If your perl was built in some other way, for example you may have installed
-it using your Operating System's packaging mechanism, you will need to ensure
-that the appropriate tools are installed.
+from source you will have these already and they will be used automatically. If
+your perl was built in some other way, for example you may have installed it
+using your Operating System's packaging mechanism, you will need to ensure that
+the appropriate tools are installed.
 
 =item * L<Storable> and L<Digest::MD5>
 
 Both are in the core in Perl 5.8.0 and above.
+
+=item * L<HTML::Entities> (3.69 or above)
+
+Every HTML report uses this.  Such reports are expected of a coverage tool, so
+it is a prerequisite rather than an option.
 
 =back
 
@@ -125,14 +146,54 @@ Both are in the core in Perl 5.8.0 and above.
 
 =over
 
-=item * L<Template>, and either L<PPI::HTML> or L<Perl::Tidy>
+=item * L<PPI::HTML> (1.07 or above) or L<Perl::Tidy> (20060719 or above)
 
-Needed if you want syntax highlighted HTML reports.
+One is needed to syntax highlight the source in the HTML reports.
+L<PPI::HTML> is preferred.
+
+=item * L<Template> (2.00 or above)
+
+The html_basic and html_subtle reports will not run without this.  The default
+html report does not use it.
+
+=item * L<PPI>
+
+Needed to estimate the coverage counts of the untested files which the F<cover>
+option C<-select_dir> adds.  Without it those files show n/a in place of counts.
 
 =item * L<Pod::Coverage> (0.06 or above) or L<Pod::Coverage::CountParents>
 
 One is needed if you want Pod coverage.  If L<Pod::Coverage::CountParents> is
 installed, it is preferred.
+
+=item * L<Sereal>
+
+The fastest of the three coverage database formats, and the one used when it is
+installed.  See L</ENVIRONMENT> for how to override that choice.
+
+=item * L<JSON::MaybeXS>
+
+Stores the coverage database when Sereal is absent, in preference to Storable.
+JSON::MaybeXS will select the best JSON backend installed.
+
+=item * L<CPAN::Meta>
+
+Reads the F<MYMETA.json> of the distribution being covered, to record its name,
+version and abstract with the run.  Without it the version records as unknown.
+
+=item * L<CPAN::DistnameInfo>
+
+Works the name and version out from the directory name instead, for a
+distribution with no F<MYMETA.json>.
+
+=item * L<Browser::Open>
+
+Needed by the F<cover> option C<-launch>, which opens the report in a browser.
+
+=item * L<Term::Size>
+
+Fits the text report to the width of your terminal.  Without it the report is
+80 columns wide.
 
 =item * L<Test::More>
 
@@ -142,31 +203,13 @@ Required if you want to run Devel::Cover's own tests.
 
 Needed if the tests fail and you would like nice output telling you why.
 
-=item * L<Template> and L<Parallel::Iterator>
+=item * L<Parallel::Iterator>
 
-Needed if you want to run cpancover.  That command is not installed - it sets
-up a coverage service such as L<http://cpancover.com> and is run from a
-checkout of the Devel::Cover repository.
-
-=item * L<JSON::MaybeXS>
-
-JSON is used to store the coverage database if it is available. JSON::MaybeXS
-will select the best JSON backend installed.
+Needed, along with L<Template>, if you want to run cpancover.  That command is
+not installed - it sets up a coverage service such as L<http://cpancover.com>
+and is run from a checkout of the Devel::Cover repository.
 
 =back
-
-=head2 Use with mod_perl
-
-By adding C<use Devel::Cover;> to your mod_perl startup script, you should be
-able to collect coverage information when running under mod_perl.  You can
-also add any options you need at this point.  I would suggest adding this as
-early as possible in your startup script in order to collect as much coverage
-information as possible.
-
-Alternatively, add -MDevel::Cover to the parameters for mod_perl.
-In this example, Devel::Cover will be operating in silent mode.
-
-  PerlSwitches -MDevel::Cover=-silent,1
 
 =head1 OPTIONS
 
@@ -181,8 +224,10 @@ In this example, Devel::Cover will be operating in silent mode.
   -ignore RE          - Set regular expressions for files to ignore (default
                         "/Devel/Cover\b")
   +ignore RE          - Append to regular expressions of files to ignore
-  -inc path           - Set prefixes of files to include (default @INC)
-  +inc path           - Append to prefixes of files to include
+  -inc path           - Set prefixes of directories which are not covered
+                        (default @INC)
+  +inc path           - Append to prefixes of directories which are not
+                        covered
   -loose_perms val    - Use loose permissions on the directories and lock
                         files in the coverage db so that code changing EUID
                         can still write coverage information (default off)
@@ -198,9 +243,9 @@ In this example, Devel::Cover will be operating in silent mode.
 =head2 More on Coverage Options
 
 You can specify options to some coverage criteria.  At the moment only pod
-coverage takes any options.  These are the parameters which are passed into
-the L<Pod::Coverage> constructor.  The extra options are separated by dashes,
-and you may specify as many as you wish.  For example, to specify that all
+coverage takes any options.  These are the parameters which are passed into the
+L<Pod::Coverage> constructor.  The extra options are separated by dashes, and
+you may specify as many as you wish.  For example, to specify that all
 subroutines containing xx are private, call Devel::Cover with the option
 -coverage,pod-also_private-xx.
 
@@ -221,74 +266,100 @@ decide whether a file will be included in coverage reports:
 
 =over
 
-=item * If the file matches a RE given as a select option, it will be
-included
+=item * If the file matches a RE given as a select option, it will be included
 
 =item * Otherwise, if it matches a RE given as an ignore option, it won't be
 included
 
-=item * Otherwise, if it is in one of the inc directories, it won't be
-included
+=item * Otherwise, if it is in one of the inc directories, it won't be included
 
 =item * Otherwise, it will be included
 
 =back
 
-You may add to the REs to select by using +select, or you may reset the
-selections using -select.  The same principle applies to the REs to ignore.
+You may add to the REs to select by using C<+select>, or you may reset the
+selections using C<-select>.  The same principle applies to the REs to ignore.
 
-The inc directories are initially populated with the contents of perl's @INC
-array.  You may reset these directories using -inc, or add to them using +inc.
+The inc directories hold the modules which do not belong to your project and for
+which you do not need coverage.  They are initially populated with the contents
+of perl's C<@INC> array, and files below them are not covered.  You may reset
+these directories using C<-inc>, or add to them using C<+inc>.  Adding a
+directory of dependencies installed alongside your code, such as the
+C<local/lib/perl5> of a L<Carton> tree, keeps those dependencies out of the
+report.
 
 Although these options take regular expressions, you should not enclose the RE
 within // or any other quoting characters.
 
-The options -coverage, [+-]select, [+-]ignore and [+-]inc can be specified
-multiple times, but they can also take multiple comma separated arguments.  In
-any case you should not add a space after the comma, unless you want the
-argument to start with that literal space.
+The options C<-coverage>, C<[+-]select>, C<[+-]ignore> and C<[+-]inc> can be
+specified multiple times, but they can also take multiple comma separated
+arguments.  In any case you should not add a space after the comma, unless you
+want the argument to start with that literal space.
+
+=head2 Narrowing down to a few files
+
+A select RE adds files rather than restricting to them.  A file which matches
+nothing at all is covered anyway, so selecting one file changes nothing about
+the rest.  To report on a few files alone, ignore everything first and select
+back what you want.
+
+  perl -MDevel::Cover=+ignore,.,+select,^lib/MyApp/Core yourprog args
+
+=head2 When these options take effect
+
+These options decide which files coverage data is collected for whilst your code
+runs.  What they exclude never reaches the database, and no later option can
+bring it back.
+
+To restrict a database you already have, use the C<-select>, C<-select_re>,
+C<-ignore> and C<-ignore_re> options of the F<cover> program, which filter as
+the report is generated.  One collection run can then feed as many different
+reports as you like.  Take care over the names.  The F<cover> options
+C<-select> and C<-ignore> take shell globs, and it is C<-select_re> and
+C<-ignore_re> there which take regular expressions, whereas the Devel::Cover
+options above always take regular expressions.  (Sorry.)
 
 =head1 UNCOVERABLE CRITERIA
 
-Sometimes you have code which is uncoverable for some reason.  Perhaps it is
-an else clause that cannot be reached, or a check for an error condition that
+Sometimes you have code which is uncoverable for some reason.  Perhaps it is an
+else clause that cannot be reached, or a check for an error condition that
 should never happen.  You can tell Devel::Cover that certain criteria are
 uncoverable and then they are not counted as errors when they are not
 exercised.  In fact, they are counted as errors if they are exercised.
 
 This feature should only be used as something of a last resort.  Ideally you
-would find some way of exercising all your code.  But if you have analysed
-your code and determined that you are not going to be able to exercise it, it
-may be better to record that fact in some formal fashion and stop Devel::Cover
+would find some way of exercising all your code.  But if you have analysed your
+code and determined that you are not going to be able to exercise it, it may be
+better to record that fact in some formal fashion and stop Devel::Cover
 complaining about it, so that real problems are not lost in the noise.
 
 =head2 Uncoverable comments
 
-You use special comments in your code to specify uncoverable criteria.
-Comments are of the form:
+You use special comments in your code to specify uncoverable criteria. Comments
+are of the form:
 
   # uncoverable <criterion> [details]
 
 The keyword "uncoverable" must be the first text in the comment.  It should be
-followed by the name of the coverage criterion which is uncoverable.  There
-may then be further information depending on the nature of the uncoverable
+followed by the name of the coverage criterion which is uncoverable.  There may
+then be further information depending on the nature of the uncoverable
 construct.
 
-Statements, subroutines and pod have a single outcome, so their comments need
-no further detail.  Branches, conditions and MC/DC decisions have several, so
-their comments must say which outcome is uncoverable: a type word such as
-"true" or "false", the "all" type which marks every outcome, a "when"
-pattern for conditions, or a "pair" position for MC/DC.  A comment which
-omits this, or which contains anything unrecognised, warns and is ignored.
+Statements, subroutines and pod have a single outcome, so their comments need no
+further detail.  Branches, conditions and MC/DC decisions have several, so their
+comments must say which outcome is uncoverable: a type word such as "true" or
+"false", the "all" type which marks every outcome, a "when" pattern for
+conditions, or a "pair" position for MC/DC.  A comment which omits this, or
+which contains anything unrecognised, warns and is ignored.
 
-In all cases a L<class> attribute may be included in L<details>.  At present a
-single class attribute is recognised: L<ignore_covered_err>.  Normally, an
-error is flagged if code marked as L<uncoverable> is covered.  When the
-L<ignore_covered_err> attribute is specified then such errors will not be
+In all cases a C<class> attribute may be included in C<details>.  At present a
+single class attribute is recognised: C<ignore_covered_err>.  Normally, an error
+is flagged if code marked as C<uncoverable> is covered.  When the
+C<ignore_covered_err> attribute is specified then such errors will not be
 flagged.  This is a more precise method to flag such exceptions than the global
-L<-ignore_covered_err> flag to the L<cover> program.
+C<-ignore_covered_err> flag to the F<cover> program.
 
-There is also a L<note> attribute which can also be included in L<details>.
+There is also a C<note> attribute which can also be included in C<details>.
 This should be the final attribute and will consume all the remaining text.
 Currently this attribute is not used, but it is intended as a form of
 documentation for the uncoverable data.
@@ -313,9 +384,8 @@ statement, or on the line before it:
   it_has_all_gone_horribly_wrong();
 
 If there are multiple statements (or any other criterion) on a line you can
-specify which statement is uncoverable by using the "count" attribute,
-count:n, which indicates that the uncoverable statement is the nth statement
-on the line.
+specify which statement is uncoverable by using the "count" attribute, count:n,
+which indicates that the uncoverable statement is the nth statement on the line.
 
   # uncoverable statement count:1
   # uncoverable statement count:2
@@ -323,8 +393,8 @@ on the line.
 
 =head3 Branches
 
-The "uncoverable" comment should specify whether the "true" or "false" branch
-is uncoverable.
+The "uncoverable" comment should specify whether the "true" or "false" branch is
+uncoverable.
 
   # uncoverable branch true
   if (pi == 3)
@@ -339,16 +409,15 @@ Both branches may be uncoverable:
     handle_it_another_way();  # uncoverable statement
   }
 
-If there is an elsif in the branch then it can be addressed as the second
-branch on the line by using the "count" attribute.  Further elsifs are the
-third and fourth "count" value, and so on.  Every branch in the chain is
-anchored to the line of the opening if, so the comments for the whole chain
-go above that line.
+If there is an elsif in the branch then it can be addressed as the second branch
+on the line by using the "count" attribute.  Further elsifs are the third and
+fourth "count" value, and so on.  Every branch in the chain is anchored to the
+line of the opening if, so the comments for the whole chain go above that line.
 
 The "all" type marks both elements of a branch with one comment.  It is the
-natural form for a branch that can never run at all, such as an elsif in a
-chain that is never reached.  Here $thing is always one, leaving five
-uncoverable branch outcomes:
+natural form for a branch that can never run at all, such as an elsif in a chain
+that is never reached.  Here $thing is always one, leaving five uncoverable
+branch outcomes:
 
   # uncoverable branch false count:1
   # uncoverable branch all count:2
@@ -373,60 +442,57 @@ Marking each element separately:
 
 =head4 unless, until and loop conditions
 
-A block C<unless> with no C<else>, the C<if> and C<unless> statement
-modifiers, and the conditions of C<while>, C<until> and C-style C<for> loops
-all compile to plain logops and are reported as two-element branches.  The
-report renormalises the text: C<while> conditions display as C<if (...)> and
-C<until> conditions as C<unless (...)>.  In every case the "true" element
-means the guarded code ran - the C<unless> body, or an iteration of the loop
-body - and the "false" element means it did not.  For C<unless> and C<until>
-this inverts the condition as written: the body of C<unless ($x)> runs on
-its "true" branch, when C<$x> is false.
+A block C<unless> with no C<else>, the C<if> and C<unless> statement modifiers,
+and the conditions of C<while>, C<until> and C-style C<for> loops all compile to
+plain logops and are reported as two-element branches.  The report renormalises
+the text: C<while> conditions display as C<if (...)> and C<until> conditions as
+C<unless (...)>.  In every case the "true" element means the guarded code ran -
+the C<unless> body, or an iteration of the loop body - and the "false" element
+means it did not.  For C<unless> and C<until> this inverts the condition as
+written: the body of C<unless ($x)> runs on its "true" branch, when C<$x> is
+false.
 
   # uncoverable branch true
   unless ($x) { something_impossible() }
 
-An C<unless>/C<else> is different, and how it is reported depends on the
-perl version.  Up to 5.22 perl negates the condition, so the report
-displays C<if (not $x)> and the "true" element is the C<unless> body
-running.  From 5.24 perl swaps the blocks instead, so the report displays
-C<if ($x)> and the "true" element is the condition being true - the
-C<else> block of the C<unless> running.  The comment addresses the C<if>
-the report shows, so the same comment marks opposite outcomes either side
-of that boundary.  This confusion is one more reason to avoid
-C<unless>/C<else> altogether.
+An C<unless>/C<else> is different, and how it is reported depends on the perl
+version.  Up to 5.22 perl negates the condition, so the report displays C<if
+(not $x)> and the "true" element is the C<unless> body running.  From 5.24 perl
+swaps the blocks instead, so the report displays C<if ($x)> and the "true"
+element is the condition being true - the C<else> block of the C<unless>
+running.  The comment addresses the C<if> the report shows, so the same comment
+marks opposite outcomes either side of that boundary.  This confusion is one
+more reason to avoid C<unless>/C<else> altogether.
 
-A constant condition, as in C<unless (0)>, is folded away at compile time
-and leaves no branch to mark, so a comment there warns as unmatched.
+A constant condition, as in C<unless (0)>, is folded away at compile time and
+leaves no branch to mark, so a comment there warns as unmatched.
 
-A condition inside any of these, such as C<unless ($a && $b)> or C<while
-($a && $b)>, is instrumented on its own terms, with the same truth-table
-rows as anywhere else.
+A condition inside any of these, such as C<unless ($a && $b)> or C<while ($a &&
+$b)>, is instrumented on its own terms, with the same truth-table rows as
+anywhere else.
 
 =head4 Statement-level and/or
 
-C<B unless A> and C<A or B> compile to the same logop, as do C<B if A>
-and C<A and B>.  In every case the "true" and "false" elements follow
-the text the report displays.  From perl 5.43.8 a statement written
-C<A or B>, including the common C<my $x = A or die>, displays as
-written, and its "true" element means C<A> was true so C<B> did not
-run.  A C<die> or other escape which can never fire is therefore the
-"false" element:
+C<B unless A> and C<A or B> compile to the same logop, as do C<B if A> and C<A
+and B>.  In every case the "true" and "false" elements follow the text the
+report displays.  From perl 5.43.8 a statement written C<A or B>, including the
+common C<my $x = A or die>, displays as written, and its "true" element means
+C<A> was true so C<B> did not run.  A C<die> or other escape which can never
+fire is therefore the "false" element:
 
   # uncoverable branch false
   my $x = get_thing() or die "no thing\n";
 
-Earlier perls do not record the source spelling, so the report
-renormalises the statement to the modifier text - here C<unless my $x =
-get_thing()> - and, as described above, its "true" element means the
-right side ran.  A comment on such a line therefore names opposite
-outcomes on either side of 5.43.8.
+Earlier perls do not record the source spelling, so the report renormalises the
+statement to the modifier text - here C<unless my $x = get_thing()> - and, as
+described above, its "true" element means the right side ran.  A comment on such
+a line therefore names opposite outcomes on either side of 5.43.8.
 
 =head3 Conditions
 
-Because Perl short-circuits boolean operations, a condition has several
-distinct outcomes - one for each row of its truth table in the report.  A row
-is identified by the values of its operands: 0, 1 or X for an operand never
+Because Perl short-circuits boolean operations, a condition has several distinct
+outcomes - one for each row of its truth table in the report.  A row is
+identified by the values of its operands: 0, 1 or X for an operand never
 evaluated.  The "when" attribute marks the row whose operand values match:
 
   # uncoverable branch true
@@ -436,10 +502,10 @@ evaluated.  The "when" attribute marks the row whose operand values match:
     $x++;  # uncoverable statement
   }
 
-Here $x is always true, so the row where the left operand is false and the
-right never evaluated (0X) cannot occur, and !$y is always false, so the row
-where both operands are true (11) cannot occur either.  Several rows can be
-marked in one comment with a comma separated list:
+Here $x is always true, so the row where the left operand is false and the right
+never evaluated (0X) cannot occur, and !$y is always false, so the row where
+both operands are true (11) cannot occur either.  Several rows can be marked in
+one comment with a comma separated list:
 
   # uncoverable condition when:0X,11
 
@@ -449,27 +515,26 @@ The rows for each kind of op, in report order, are:
   $a || $b   1X 01 00
   $a xor $b  11 10 01 00
 
-An op whose right operand is a constant collapses to two rows holding the
-value of the left operand alone, 0 and 1 for C<&&>, or 1 and 0 for C<||> and
-C<//>.  A pattern which matches no row of the op warns when the report is
-generated.
+An op whose right operand is a constant collapses to two rows holding the value
+of the left operand alone, 0 and 1 for C<&&>, or 1 and 0 for C<||> and C<//>.  A
+pattern which matches no row of the op warns when the report is generated.
 
 The "all" type marks every outcome of the condition with one comment, which
 suits a condition that can never be evaluated at all.
 
-The type words "left", "right" and "false" are deprecated.  They were named
-for the C<||> layout, where "left" is the row satisfied by the left operand,
-"right" the row satisfied by the right, and "false" the false outcome.  But
-they select rows by position - the first, second and third - which misleads
-elsewhere: on C<&&> "false" selects the 11 row, where the expression is
-true.  Using one warns, naming the "when" replacement for the op.
+The type words "left", "right" and "false" are deprecated.  They were named for
+the C<||> layout, where "left" is the row satisfied by the left operand, "right"
+the row satisfied by the right, and "false" the false outcome.  But they select
+rows by position - the first, second and third - which misleads elsewhere: on
+C<&&> "false" selects the 11 row, where the expression is true.  Using one
+warns, naming the "when" replacement for the op.
 
 As for branches, the "count" value may be used for either conditions in elsif
 conditionals, or for complex conditions.  Unlike branches, a condition in an
 elsif is addressed at the elsif's own line.  When one line holds several
 condition ops, count:n selects them outermost first, so for C<$a && $b && $c>
-count:1 is the outer op and count:2 the inner C<$a && $b>.  To see the
-grouping perl uses, run the expression through B::Deparse:
+count:1 is the outer op and count:2 the inner C<$a && $b>.  To see the grouping
+perl uses, run the expression through B::Deparse:
 
   perl -MO=Deparse,-p -e '$a && $b && $c'
   (($a and $b) and $c);
@@ -491,19 +556,18 @@ in the order the report lists them), leaving the rest counted as normal:
   # uncoverable mcdc pair:2
   $x = $a || $b || $c;
 
-An invalid position warns and the comment is ignored: C<pair:0> when the
-comment is parsed, and a position greater than the number of atomic conditions
-in the decision when the report is generated.
+An invalid position warns and the comment is ignored: C<pair:0> when the comment
+is parsed, and a position greater than the number of atomic conditions in the
+decision when the report is generated.
 
-Condition comments also feed MC/DC: an atomic condition is excused
-automatically when every route to demonstrating its independence needs a truth
-table row built from an outcome marked C<uncoverable condition>.  Use those
-comments when a particular outcome cannot occur, for example an error state
-that cannot be simulated.  If a pair could still be formed from rows not
-marked uncoverable, the atomic condition is reported missing - a test gap, not
-an excuse.  For a decision that can never execute at all, such as code inside
-a branch that can never be taken, mark the whole decision with
-C<uncoverable mcdc all>.
+Condition comments also feed MC/DC: an atomic condition is excused automatically
+when every route to demonstrating its independence needs a truth table row built
+from an outcome marked C<uncoverable condition>.  Use those comments when a
+particular outcome cannot occur, for example an error state that cannot be
+simulated.  If a pair could still be formed from rows not marked uncoverable,
+the atomic condition is reported missing - a test gap, not an excuse.  For a
+decision that can never execute at all, such as code inside a branch that can
+never be taken, mark the whole decision with C<uncoverable mcdc all>.
 
 As for conditions, the "count" value selects between several decisions on one
 line.
@@ -512,8 +576,8 @@ line.
 
 A subroutine should be marked as uncoverable at the point where the first
 statement is marked as uncoverable.  Ideally all other criteria in the
-subroutine would be marked as uncoverable automatically, but that isn't the
-case at the moment.
+subroutine would be marked as uncoverable automatically, but that isn't the case
+at the moment.
 
   sub z {
     # uncoverable subroutine
@@ -533,47 +597,45 @@ four states:
 
 An excused construct is not an error - that is the point of the marker.  A
 construct which runs despite its marker is an error, because the marker no
-longer tells the truth and should be removed.  The global
-L<-ignore_covered_err> flag, or the per-point L<ignore_covered_err> class,
-forgives that state, which is then treated as covered.
+longer tells the truth and should be removed.  The global C<-ignore_covered_err>
+flag, or the per-point C<ignore_covered_err> class, forgives that state, which
+is then treated as covered.
 
 Percentages measure freedom from errors, computed as 100 - errors * 100 /
-total.  An excused outcome therefore counts towards 100% just as a covered
-one does, and a construct whose outcomes are all covered or excused reports
-100%.  Raw hit counts remain available in the detail tables of each report.
+total. An excused outcome therefore counts towards 100% just as a covered one
+does, and a construct whose outcomes are all covered or excused reports 100%.
+Raw hit counts remain available in the detail tables of each report.
 
 Each report renders the states in its own vocabulary:
 
 =over 4
 
-=item * B<text> prefixes a value with "-" when an uncoverable marker is
-involved and with "*" when the construct is in error, and flags erroring
-lines with "***" in the err column.  Excused subroutines appear under the
-"Uncoverable Subroutines" heading.
+=item * B<text> prefixes a value with "-" when an uncoverable marker is involved
+and with "*" when the construct is in error, and flags erroring lines with "***"
+in the err column.  Excused subroutines appear under the "Uncoverable
+Subroutines" heading.
 
 =item * B<compilation> reports errors only.  Excused constructs produce no
-output, and a stale marker produces a "marked uncoverable but covered"
-message.
+output, and a stale marker produces a "marked uncoverable but covered" message.
 
-=item * B<html> (html_crisp) keeps colour for the coverage outcome and adds
-a diagonal stripe where a marker is present.  Excused code is striped green,
-code which ran despite its marker is striped red, and a partially covered
-line carrying a marker is striped amber.  Tooltips give the uncoverable
-counts and the help panel shows a legend.
+=item * B<html> (html_crisp) keeps colour for the coverage outcome and adds a
+diagonal stripe where a marker is present.  Excused code is striped green, code
+which ran despite its marker is striped red, and a partially covered line
+carrying a marker is striped amber.  Tooltips give the uncoverable counts and
+the help panel shows a legend.
 
 =item * B<html_basic> follows the same design with a C<cx> class for excused
 cells, striped green, and an C<mk> class adding a red stripe to cells whose
-marker no longer tells the truth.  Cell tooltips carry "marked uncoverable"
-or "marked uncoverable but covered" notes, summary tooltips give the
-uncoverable counts, and MC/DC atomics keep the "-" prefix of the text
-reports.
+marker no longer tells the truth.  Cell tooltips carry "marked uncoverable" or
+"marked uncoverable but covered" notes, summary tooltips give the uncoverable
+counts, and MC/DC atomics keep the "-" prefix of the text reports.
 
 =item * B<vim> and B<nvim> add a third sign state per criterion, grey by
 default, for lines whose constructs are excused.
 
-=item * B<json> emits explicit C<covered>, C<uncoverable> and C<error>
-fields per construct and records the error rule in the top-level
-C<ignore_covered_err> key.
+=item * B<json> emits explicit C<covered>, C<uncoverable> and C<error> fields
+per construct and records the error rule in the top-level C<ignore_covered_err>
+key.
 
 =back
 
@@ -581,17 +643,17 @@ C<ignore_covered_err> key.
 
 =head2 User variables
 
-The -silent option is turned on when Devel::Cover is invoked via
-$HARNESS_PERL_SWITCHES or $PERL5OPT.  Devel::Cover tries to do the right thing
-when $MOD_PERL is set.  $DEVEL_COVER_OPTIONS is appended to any options passed
-into Devel::Cover.  Devel::Cover splits the value on commas.  Escape a comma
-inside an option value, such as a database path or a regular expression, as
-C<\,>.  No such escape exists for the C<-MDevel::Cover=...> switch itself,
-since perl performs that split, so values containing commas must go in
-$DEVEL_COVER_OPTIONS.
+The C<-silent> option is turned on when Devel::Cover is invoked via
+C<HARNESS_PERL_SWITCHES> or C<PERL5OPT>.  Devel::Cover tries to do the right
+thing when C<MOD_PERL> is set.  C<DEVEL_COVER_OPTIONS> is appended to any
+options passed into Devel::Cover.  Devel::Cover splits the value on commas.
+Escape a comma inside an option value, such as a database path or a regular
+expression, as C<\,>.  No such escape exists for the C<-MDevel::Cover=...>
+switch itself, since perl performs that split, so values containing commas must
+go in C<DEVEL_COVER_OPTIONS>.
 
 Note that when Devel::Cover is invoked via an environment variable, any modules
-specified on the command line, such as via the -Mmodule option, will not be
+specified on the command line, such as via the C<-Mmodule> option, will not be
 covered.  This is because the environment variables are processed after the
 command line and any code to be covered must appear after Devel::Cover has been
 loaded.  To work around this, Devel::Cover can also be specified on the command
@@ -599,17 +661,53 @@ line.
 
 =head2 Developer variables
 
-When running Devel::Cover's own test suite, $DEVEL_COVER_DEBUG turns on
-debugging information, $DEVEL_COVER_GOLDEN_VERSION overrides Devel::Cover's
+When running Devel::Cover's own test suite, C<DEVEL_COVER_DEBUG> turns on
+debugging information, C<DEVEL_COVER_GOLDEN_VERSION> overrides Devel::Cover's
 own idea of which golden results it should test against, and
-$DEVEL_COVER_NO_COVERAGE runs the tests without collecting coverage.
-$DEVEL_COVER_DB_FORMAT may be set to "Sereal", "JSON" or "Storable" to
+C<DEVEL_COVER_NO_COVERAGE> runs the tests without collecting coverage.
+C<DEVEL_COVER_DB_FORMAT> may be set to "Sereal", "JSON" or "Storable" to
 override the default choice of DB format (Sereal, then JSON if either are
-available, otherwise Storable).  $DEVEL_COVER_IO_OPTIONS provides fine-grained
-control over the DB format.  For example, setting it to "pretty" when the
-format is JSON will store the DB in a readable JSON format.  $DEVEL_COVER_CPUS
-overrides the automated detection of the number of CPUs to use in parallel
-testing.
+available, otherwise Storable).  C<DEVEL_COVER_IO_OPTIONS> provides
+fine-grained control over the DB format.  For example, setting it to "pretty"
+when the format is JSON will store the DB in a readable JSON format.
+C<DEVEL_COVER_CPUS> overrides the automated detection of the number of CPUs to
+use in parallel testing.
+
+=head1 USE WITH MOD_PERL
+
+By adding C<use Devel::Cover;> to your mod_perl startup script, you should be
+able to collect coverage information when running under mod_perl.  You can also
+add any options you need at this point.  I would suggest adding this as early as
+possible in your startup script in order to collect as much coverage information
+as possible.
+
+Alternatively, add -MDevel::Cover to the parameters for mod_perl. In this
+example, Devel::Cover will be operating in silent mode.
+
+  PerlSwitches -MDevel::Cover=-silent,1
+
+Devel::Cover reads C<DEVEL_COVER_OPTIONS> as it is loaded, and that happens at
+compile time.  Set it with Apache's C<PerlSetEnv>, or from a BEGIN block.
+
+  BEGIN { $ENV{DEVEL_COVER_OPTIONS} = "-db,/var/tmp/cover_db" }
+  use Devel::Cover;
+
+If you start the server as root and it drops privileges for its children, the
+parent creates the coverage database owned by root and the children cannot write
+their runs into it.  You then see coverage for the startup script alone. The
+C<-loose_perms> option keeps the database directories and lock files writable
+across the change of user.
+
+  PerlSwitches -MDevel::Cover=-silent,1,-loose_perms,1
+
+Coverage is written when a process ends, which for a web server can be a long
+wait, and a server which crashes on shutdown never writes anything.  You can
+write the database from a request handler instead.
+
+  Devel::Cover::report();
+
+Collection stops once that has run, so the database holds everything up to the
+moment you called it and nothing after.
 
 =head1 ACKNOWLEDGEMENTS
 
@@ -643,11 +741,10 @@ There are things that Devel::Cover can't cover.
 
 =head2 Absence of shared dependencies
 
-Perl keeps track of which modules have been loaded (to avoid reloading
-them).  Because of this, it isn't possible to get coverage for a path
-where a runtime import fails if the module being imported is one that
-Devel::Cover uses internally.  For example, suppose your program has
-this function:
+Perl keeps track of which modules have been loaded (to avoid reloading them).
+Because of this, it isn't possible to get coverage for a path where a runtime
+import fails if the module being imported is one that Devel::Cover uses
+internally.  For example, suppose your program has this function:
 
   sub foo {
     eval { require Storable };
@@ -664,8 +761,8 @@ You might write a test for the failure mode as
   foo();
   # check for error message
 
-Because Devel::Cover uses Storable internally, the import will succeed
-(and the test will fail) under a coverage run.
+Because Devel::Cover uses Storable internally, the import will succeed (and the
+test will fail) under a coverage run.
 
 Modules used by Devel::Cover while gathering coverage:
 
@@ -691,35 +788,33 @@ Modules used by Devel::Cover while gathering coverage:
 
 =head2 Redefined subroutines
 
-If you redefine a subroutine, the original is still reported on provided it
-was called at least once before being redefined.  Devel::Cover remembers
-each named subroutine as it is entered, so redefining or wrapping it later
-does not lose its coverage.  An original that is redefined before it ever
-runs cannot be reported on - its code is freed before any coverage could
-attach to it - so its statements are absent from the report rather than
-shown as uncovered.
+If you redefine a subroutine, the original is still reported on provided it was
+called at least once before being redefined.  Devel::Cover remembers each named
+subroutine as it is entered, so redefining or wrapping it later does not lose
+its coverage.  An original that is redefined before it ever runs cannot be
+reported on - its code is freed before any coverage could attach to it - so its
+statements are absent from the report rather than shown as uncovered.
 
 =head2 Overloaded objects in conditions
 
-When the result of C<||> or C<&&> is used as a value, perl returns the
-right operand without testing its truth.  When the program tests that
-value straight away - as an C<if> or ternary condition, or as an
-operand of another C<&&> or C<||> - Devel::Cover reads the operand's
-truth from the path that test takes, which is exact for an overloaded
-object.  When the program never tests the value, condition coverage
-still needs a truth, but asking an overloaded object for it would run
-code the program never ran, and would die outright for an object with
-C<< fallback => 0 >> and no C<bool> overload.  Devel::Cover therefore
-counts any overloaded object as true there without invoking its
-overloads.  For an object whose C<bool> overload would have returned
-false, the report shows the true row for that operand.
+When the result of C<||> or C<&&> is used as a value, perl returns the right
+operand without testing its truth.  When the program tests that value straight
+away - as an C<if> or ternary condition, or as an operand of another C<&&> or
+C<||> - Devel::Cover reads the operand's truth from the path that test takes,
+which is exact for an overloaded object.  When the program never tests the
+value, condition coverage still needs a truth, but asking an overloaded object
+for it would run code the program never ran, and would die outright for an
+object with C<< fallback => 0 >> and no C<bool> overload.  Devel::Cover
+therefore counts any overloaded object as true there without invoking its
+overloads.  For an object whose C<bool> overload would have returned false, the
+report shows the true row for that operand.
 
-Devel::Cover reads the truth of the left operand of C<||> or C<&&>, and
-of an C<if> or ternary condition, from the path perl took rather than
-from the value.  Where the path holds no answer - the operands of
-C<xor>, and the condition of an C<if>/C<else> or ternary whose branches
-are both empty - it evaluates the truth in perl's stead.  A C<bool>
-overload therefore runs exactly as often under coverage as without it.
+Devel::Cover reads the truth of the left operand of C<||> or C<&&>, and of an
+C<if> or ternary condition, from the path perl took rather than from the value.
+Where the path holds no answer - the operands of C<xor>, and the condition of an
+C<if>/C<else> or ternary whose branches are both empty - it evaluates the truth
+in perl's stead.  A C<bool> overload therefore runs exactly as often under
+coverage as without it.
 
 =head1 BUGS
 

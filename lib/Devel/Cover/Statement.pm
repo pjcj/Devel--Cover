@@ -36,7 +36,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Statement - Code coverage metrics for Perl
+Devel::Cover::Statement - Statement coverage criterion
 
 =head1 SYNOPSIS
 

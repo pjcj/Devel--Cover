@@ -765,6 +765,14 @@ Specify the C<-select>, C<-select_re>, C<-ignore>, and C<-ignore_re> options to
 report on specific files.  C<-select> and C<-ignore> are interpreted as shell
 globs; C<-select_re> and C<-ignore_re> are interpreted as regular expressions.
 
+These four options filter a database you already have as the report is
+generated, so one collection run can feed several different reports.  They are
+not the same as the C<-select> and C<-ignore> options of L<Devel::Cover>, which
+choose the files for which to collect data while your code runs, and which
+always take regular expressions.  Anything those options excluded never reached
+the database and cannot be recovered here.  With C<-test> the options above are
+passed through to the collection run instead of filtering the report.
+
 The C<-select_dir> option scans the given directory for C<.pm> and C<.pl>
 files and ensures they appear in the coverage report even if no tests
 exercised them.  This is useful for identifying completely untested code.

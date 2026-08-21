@@ -1456,7 +1456,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::DB - Code coverage metrics for Perl
+Devel::Cover::DB - Code coverage database
 
 =head1 SYNOPSIS
 

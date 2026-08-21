@@ -161,6 +161,8 @@ for my $t (readdir $dir) {
 use strict;
 use warnings;
 
+use FindBin ();
+use lib "\$FindBin::Bin/../lib";
 use lib "./lib";
 use lib "./blib/lib";
 use lib "./blib/arch";
@@ -327,22 +329,20 @@ print "\n" x 3;
 $ExtUtils::MakeMaker::Verbose = 0;
 
 my $Opts = {
-  NAME             => "Devel::Cover",
-  VERSION          => $Version,
-  AUTHOR           => 'Paul Johnson <paul@pjcj.net>',
-  MIN_PERL_VERSION => "5.020",
-  ABSTRACT_FROM    => "lib/Devel/Cover.pod",
-  DIR              => [],
-  EXE_FILES        => [map "bin/$_", qw( cover gcov2perl )],
-  PERL_MALLOC_OK   => 1,
-  PREREQ_PM        => {
-    "Storable"       => 0,
-    "Digest::MD5"    => 0,
-    "HTML::Entities" => 3.69,
-    "Test::More"     => 0,
-  },
-  TYPEMAPS => ["utils/typemap"],
-  clean    => {
+  NAME               => "Devel::Cover",
+  VERSION            => $Version,
+  AUTHOR             => 'Paul Johnson <paul@pjcj.net>',
+  MIN_PERL_VERSION   => "5.020",
+  ABSTRACT_FROM      => "lib/Devel/Cover.pod",
+  DIR                => [],
+  EXE_FILES          => [map "bin/$_", qw( cover gcov2perl )],
+  PERL_MALLOC_OK     => 1,
+  CONFIGURE_REQUIRES => { "ExtUtils::MakeMaker" => 6.64 },
+  PREREQ_PM          =>
+    { "Storable" => 0, "Digest::MD5" => 0, "HTML::Entities" => 3.69 },
+  TEST_REQUIRES => { "Test::More" => 0 },
+  TYPEMAPS      => ["utils/typemap"],
+  clean         => {
     FILES => "t/e2e/* cover_db* t/e2e/*cover_db README *.gcov *.out"
       . " tests/change tests/md5",
   },
@@ -484,7 +484,7 @@ DB = cover_db
 dump :
 \t \$(PERL) -Mblib bin/cover -dump_db \$(DB)
 
-GOLD_FILE = \$(PERL) -Mblib -MDevel::Cover::Test \\
+GOLD_FILE = \$(PERL) -Mblib -It/lib -MDevel::Cover::Test \\
 \t -e '\$\$t = Devel::Cover::Test->new(qq(\$(TEST))); \\
 \t print join qq(.), \$\$t->cover_gold'
 

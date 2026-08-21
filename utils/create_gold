@@ -23,6 +23,8 @@ use feature "signatures";
 no warnings "experimental::signatures";
 
 use blib;
+use FindBin ();
+use lib "$FindBin::Bin/../t/lib";
 use Config             qw( %Config );
 use Devel::Cover::Test ();
 

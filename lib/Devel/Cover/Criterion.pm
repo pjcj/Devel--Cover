@@ -117,7 +117,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Criterion - Code coverage metrics for Perl
+Devel::Cover::Criterion - Base class for coverage criteria
 
 =head1 SYNOPSIS
 

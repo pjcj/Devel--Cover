@@ -42,7 +42,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Pod - Code coverage metrics for Perl
+Devel::Cover::Pod - Pod coverage criterion
 
 =head1 SYNOPSIS
 

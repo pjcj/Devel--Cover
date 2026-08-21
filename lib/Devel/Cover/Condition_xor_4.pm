@@ -25,7 +25,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Condition_xor_4 - Code coverage metrics for Perl
+Devel::Cover::Condition_xor_4 - Four-outcome xor condition criterion
 
 =head1 SYNOPSIS
 
