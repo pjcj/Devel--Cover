@@ -32,7 +32,7 @@ If the module does not use the t/*.t framework:
 
   PERL5OPT=-MDevel::Cover make test
 
-To get coverage for a tree of tests run with L<prove>, whatever its layout:
+To get coverage for a tree of tests run with F<prove>, whatever its layout:
 
   PERL5OPT=-MDevel::Cover prove -r t
   cover
@@ -43,7 +43,7 @@ keep them out of the report:
   PERL5OPT=-MDevel::Cover=+inc,local/lib/perl5 prove -r t
   cover
 
-$PERL5OPT reaches prove itself, so prove appears in the report.  Add
+C<PERL5OPT> reaches F<prove> itself, so F<prove> appears in the report.  Add
 C<+ignore,/prove$> to leave it out.
 
 If you want to get coverage for a program:
@@ -237,23 +237,24 @@ included
 
 =back
 
-You may add to the REs to select by using +select, or you may reset the
-selections using -select.  The same principle applies to the REs to ignore.
+You may add to the REs to select by using C<+select>, or you may reset the
+selections using C<-select>.  The same principle applies to the REs to ignore.
 
 The inc directories hold the modules which do not belong to your project and for
 which you do not need coverage.  They are initially populated with the contents
-of perl's @INC array, and files below them are not covered.  You may reset these
-directories using -inc, or add to them using +inc.  Adding a directory of
-dependencies installed alongside your code, such as the C<local/lib/perl5> of a
-L<Carton> tree, keeps those dependencies out of the report.
+of perl's C<@INC> array, and files below them are not covered.  You may reset
+these directories using C<-inc>, or add to them using C<+inc>.  Adding a
+directory of dependencies installed alongside your code, such as the
+C<local/lib/perl5> of a L<Carton> tree, keeps those dependencies out of the
+report.
 
 Although these options take regular expressions, you should not enclose the RE
 within // or any other quoting characters.
 
-The options -coverage, [+-]select, [+-]ignore and [+-]inc can be specified
-multiple times, but they can also take multiple comma separated arguments.  In
-any case you should not add a space after the comma, unless you want the
-argument to start with that literal space.
+The options C<-coverage>, C<[+-]select>, C<[+-]ignore> and C<[+-]inc> can be
+specified multiple times, but they can also take multiple comma separated
+arguments.  In any case you should not add a space after the comma, unless you
+want the argument to start with that literal space.
 
 =head2 Narrowing down to a few files
 
@@ -270,13 +271,13 @@ These options decide which files coverage data is collected for whilst your code
 runs.  What they exclude never reaches the database, and no later option can
 bring it back.
 
-To restrict a database you already have, use the -select, -select_re, -ignore
-and -ignore_re options of the F<cover> program, which filter as the report is
-generated.  One collection run can then feed as many different reports as you
-like.  Take care over the names.  The F<cover> options -select and -ignore take
-shell globs, and it is -select_re and -ignore_re there which take regular
-expressions, whereas the Devel::Cover options above always take regular
-expressions.  (Sorry.)
+To restrict a database you already have, use the C<-select>, C<-select_re>,
+C<-ignore> and C<-ignore_re> options of the F<cover> program, which filter as
+the report is generated.  One collection run can then feed as many different
+reports as you like.  Take care over the names.  The F<cover> options
+C<-select> and C<-ignore> take shell globs, and it is C<-select_re> and
+C<-ignore_re> there which take regular expressions, whereas the Devel::Cover
+options above always take regular expressions.  (Sorry.)
 
 =head1 UNCOVERABLE CRITERIA
 
@@ -311,14 +312,14 @@ comments must say which outcome is uncoverable: a type word such as "true" or
 conditions, or a "pair" position for MC/DC.  A comment which omits this, or
 which contains anything unrecognised, warns and is ignored.
 
-In all cases a L<class> attribute may be included in L<details>.  At present a
-single class attribute is recognised: L<ignore_covered_err>.  Normally, an error
-is flagged if code marked as L<uncoverable> is covered.  When the
-L<ignore_covered_err> attribute is specified then such errors will not be
+In all cases a C<class> attribute may be included in C<details>.  At present a
+single class attribute is recognised: C<ignore_covered_err>.  Normally, an error
+is flagged if code marked as C<uncoverable> is covered.  When the
+C<ignore_covered_err> attribute is specified then such errors will not be
 flagged.  This is a more precise method to flag such exceptions than the global
-L<-ignore_covered_err> flag to the L<cover> program.
+C<-ignore_covered_err> flag to the F<cover> program.
 
-There is also a L<note> attribute which can also be included in L<details>.
+There is also a C<note> attribute which can also be included in C<details>.
 This should be the final attribute and will consume all the remaining text.
 Currently this attribute is not used, but it is intended as a form of
 documentation for the uncoverable data.
@@ -556,8 +557,8 @@ four states:
 
 An excused construct is not an error - that is the point of the marker.  A
 construct which runs despite its marker is an error, because the marker no
-longer tells the truth and should be removed.  The global L<-ignore_covered_err>
-flag, or the per-point L<ignore_covered_err> class, forgives that state, which
+longer tells the truth and should be removed.  The global C<-ignore_covered_err>
+flag, or the per-point C<ignore_covered_err> class, forgives that state, which
 is then treated as covered.
 
 Percentages measure freedom from errors, computed as 100 - errors * 100 /
@@ -602,17 +603,17 @@ key.
 
 =head2 User variables
 
-The -silent option is turned on when Devel::Cover is invoked via
-$HARNESS_PERL_SWITCHES or $PERL5OPT.  Devel::Cover tries to do the right thing
-when $MOD_PERL is set.  $DEVEL_COVER_OPTIONS is appended to any options passed
-into Devel::Cover.  Devel::Cover splits the value on commas.  Escape a comma
-inside an option value, such as a database path or a regular expression, as
-C<\,>.  No such escape exists for the C<-MDevel::Cover=...> switch itself, since
-perl performs that split, so values containing commas must go in
-$DEVEL_COVER_OPTIONS.
+The C<-silent> option is turned on when Devel::Cover is invoked via
+C<HARNESS_PERL_SWITCHES> or C<PERL5OPT>.  Devel::Cover tries to do the right
+thing when C<MOD_PERL> is set.  C<DEVEL_COVER_OPTIONS> is appended to any
+options passed into Devel::Cover.  Devel::Cover splits the value on commas.
+Escape a comma inside an option value, such as a database path or a regular
+expression, as C<\,>.  No such escape exists for the C<-MDevel::Cover=...>
+switch itself, since perl performs that split, so values containing commas must
+go in C<DEVEL_COVER_OPTIONS>.
 
 Note that when Devel::Cover is invoked via an environment variable, any modules
-specified on the command line, such as via the -Mmodule option, will not be
+specified on the command line, such as via the C<-Mmodule> option, will not be
 covered.  This is because the environment variables are processed after the
 command line and any code to be covered must appear after Devel::Cover has been
 loaded.  To work around this, Devel::Cover can also be specified on the command
@@ -620,17 +621,17 @@ line.
 
 =head2 Developer variables
 
-When running Devel::Cover's own test suite, $DEVEL_COVER_DEBUG turns on
-debugging information, $DEVEL_COVER_GOLDEN_VERSION overrides Devel::Cover's own
-idea of which golden results it should test against, and
-$DEVEL_COVER_NO_COVERAGE runs the tests without collecting
-coverage. $DEVEL_COVER_DB_FORMAT may be set to "Sereal", "JSON" or "Storable" to
+When running Devel::Cover's own test suite, C<DEVEL_COVER_DEBUG> turns on
+debugging information, C<DEVEL_COVER_GOLDEN_VERSION> overrides Devel::Cover's
+own idea of which golden results it should test against, and
+C<DEVEL_COVER_NO_COVERAGE> runs the tests without collecting coverage.
+C<DEVEL_COVER_DB_FORMAT> may be set to "Sereal", "JSON" or "Storable" to
 override the default choice of DB format (Sereal, then JSON if either are
-available, otherwise Storable).  $DEVEL_COVER_IO_OPTIONS provides fine-grained
-control over the DB format.  For example, setting it to "pretty" when the format
-is JSON will store the DB in a readable JSON format.  $DEVEL_COVER_CPUS
-overrides the automated detection of the number of CPUs to use in parallel
-testing.
+available, otherwise Storable).  C<DEVEL_COVER_IO_OPTIONS> provides
+fine-grained control over the DB format.  For example, setting it to "pretty"
+when the format is JSON will store the DB in a readable JSON format.
+C<DEVEL_COVER_CPUS> overrides the automated detection of the number of CPUs to
+use in parallel testing.
 
 =head1 USE WITH MOD_PERL
 
@@ -645,7 +646,7 @@ example, Devel::Cover will be operating in silent mode.
 
   PerlSwitches -MDevel::Cover=-silent,1
 
-Devel::Cover reads $DEVEL_COVER_OPTIONS as it is loaded, and that happens at
+Devel::Cover reads C<DEVEL_COVER_OPTIONS> as it is loaded, and that happens at
 compile time.  Set it with Apache's C<PerlSetEnv>, or from a BEGIN block.
 
   BEGIN { $ENV{DEVEL_COVER_OPTIONS} = "-db,/var/tmp/cover_db" }
