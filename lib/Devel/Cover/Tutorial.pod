@@ -20,13 +20,13 @@ It is wise to remember the following quote from Dijkstra, who said:
 In particular, code coverage is just one weapon in the software engineer's
 testing arsenal.
 
+=head2 2.0 Metrics
+
 Any discussion of code coverage metrics is hampered by the fact that many
 authors use different terms to describe the same kind of coverage. Here, I shall
 provide only a brief introduction to some of the most common metrics.
 
-=head2 2.0 Metrics
-
-=head2 2.1 Statement coverage
+=head3 2.1 Statement coverage
 
 This is the most basic form of code coverage.  A statement is covered if it is
 executed.  Note that statement != line of code.  Multiple statements on a single
@@ -57,7 +57,7 @@ Statement coverage, or something very similar, can be called statement
 execution, line, block, basic block or segment coverage.  I tend to favour block
 coverage which does not attempt to extend its results to each statement.
 
-=head2 2.2 Branch coverage
+=head3 2.2 Branch coverage
 
 The goal of branch coverage is to ensure that whenever a program can jump, it
 jumps to all possible destinations.  The most simple example is a complete if
@@ -83,7 +83,7 @@ another.
 
 Branch coverage is also called decision or all edges coverage.
 
-=head2 2.3 Path coverage
+=head3 2.3 Path coverage
 
 There are classes of errors that branch coverage cannot detect, such as:
 
@@ -124,7 +124,7 @@ for now.
 Path coverage and some of its close cousins, are also known as predicate, basis
 path and LCSAJ (Linear Code Sequence and Jump) coverage.
 
-=head2 2.4 Expression coverage
+=head3 2.4 Expression coverage
 
 When a boolean expression is evaluated it can be useful to ensure that all the
 terms in the expression are exercised.  For example:
@@ -147,7 +147,7 @@ be covered:
 Expression coverage is also known as condition, condition-decision and multiple
 condition coverage.
 
-=head2 2.5 Modified condition/decision coverage
+=head3 2.5 Modified condition/decision coverage
 
 Modified Condition/Decision Coverage (MC/DC) strengthens expression coverage.
 Expression coverage is satisfied once each atomic condition has been observed
@@ -196,7 +196,7 @@ $b)>, can contain truth table rows which are impossible to hit, whilst MC/DC can
 still be fully satisfied.  The C<may_edit> example is worked through in full,
 table by table, in F<docs/technical/mcdc.md> in the distribution.
 
-=head2 2.6 Subroutine coverage
+=head3 2.6 Subroutine coverage
 
 Subroutine coverage is simpler still than statement coverage.  A subroutine is
 covered if it has been called.  This is a weak metric, but it makes a good first
@@ -207,7 +207,7 @@ metrics within it.
 100% statement coverage implies 100% subroutine coverage, provided every
 subroutine contains at least one statement.
 
-=head2 2.7 Pod coverage
+=head3 2.7 Pod coverage
 
 Pod coverage is not an execution metric at all.  A subroutine is covered if it
 is documented, which for Perl means POD.  Nothing needs to be run to collect
@@ -215,7 +215,7 @@ it. It is collected with the other metrics because the same tooling can
 conveniently report on it, and an undocumented subroutine is a similar problem
 to an untested one.
 
-=head2 2.8 These metrics in Devel::Cover
+=head3 2.8 These metrics in Devel::Cover
 
 Devel::Cover implements statement, branch, subroutine and pod coverage as
 described above.  What this tutorial calls expression coverage is the
