@@ -8,8 +8,8 @@ Devel::Cover::Tutorial - An introduction to code coverage
 
 =head1 TUTORIAL
 
-Much of this text began as a message I sent to perl-qa about code
-coverage metrics, and it has been extended since.
+Much of this text began as a message I sent to perl-qa about code coverage
+metrics, and it has been extended since.
 
 =head2 1.0 Introduction
 
@@ -20,52 +20,48 @@ It is wise to remember the following quote from Dijkstra, who said:
 In particular, code coverage is just one weapon in the software engineer's
 testing arsenal.
 
-Any discussion of code coverage metrics is hampered by the fact that
-many authors use different terms to describe the same kind of coverage.
-Here, I shall provide only a brief introduction to some of the most
-common metrics.
+Any discussion of code coverage metrics is hampered by the fact that many
+authors use different terms to describe the same kind of coverage. Here, I shall
+provide only a brief introduction to some of the most common metrics.
 
 =head2 2.0 Metrics
 
 =head2 2.1 Statement coverage
 
-This is the most basic form of code coverage.  A statement is covered if
-it is executed.  Note that statement != line of code.  Multiple
-statements on a single line can confuse issues - the reporting if
-nothing else.
+This is the most basic form of code coverage.  A statement is covered if it is
+executed.  Note that statement != line of code.  Multiple statements on a single
+line can confuse issues - the reporting if nothing else.
 
-Where there are sequences of statements without branches it is not
-necessary to count the execution of every statement, just one will
-suffice, but people often like the count of every line to be reported,
-especially in summary statistics.  However it is not clear to me that
-this is actually useful.
+Where there are sequences of statements without branches it is not necessary to
+count the execution of every statement, just one will suffice, but people often
+like the count of every line to be reported, especially in summary
+statistics. However it is not clear to me that this is actually useful.
 
-This type of coverage is fairly weak in that even with 100% statement
-coverage there may still be serious problems in a program which could be
-discovered through other types of metric.
+This type of coverage is fairly weak in that even with 100% statement coverage
+there may still be serious problems in a program which could be discovered
+through other types of metric.
 
-It can be quite difficult to achieve 100% statement coverage.  There may
-be sections of code designed to deal with error conditions, or rarely
-occurring events such as a signal received during a certain section of
-code.  There may also be code that should never be executed:
+It can be quite difficult to achieve 100% statement coverage.  There may be
+sections of code designed to deal with error conditions, or rarely occurring
+events such as a signal received during a certain section of code.  There may
+also be code that should never be executed:
 
   if ($param > 20) {
     die "This should never happen!";
   }
 
-It can be useful to mark such code in some way and flag an error if it
-is executed.
+It can be useful to mark such code in some way and flag an error if it is
+executed.
 
 Statement coverage, or something very similar, can be called statement
-execution, line, block, basic block or segment coverage.  I tend to
-favour block coverage which does not attempt to extend its results to
-each statement.
+execution, line, block, basic block or segment coverage.  I tend to favour block
+coverage which does not attempt to extend its results to each statement.
 
 =head2 2.2 Branch coverage
 
-The goal of branch coverage is to ensure that whenever a program can
-jump, it jumps to all possible destinations.  The most simple example is
-a complete if statement:
+The goal of branch coverage is to ensure that whenever a program can jump, it
+jumps to all possible destinations.  The most simple example is a complete if
+statement:
 
   if ($x) {
     print "a";
@@ -73,15 +69,15 @@ a complete if statement:
     print "b";
   }
 
-In such a simple example statement coverage is as powerful, but branch
-coverage should also allow for the case where the else part is missing:
+In such a simple example statement coverage is as powerful, but branch coverage
+should also allow for the case where the else part is missing:
 
   if ($x) {
     print "a";
   }
 
-Full coverage is only achieved here if $x is true on one occasion and
-false on another.
+Full coverage is only achieved here if $x is true on one occasion and false on
+another.
 
 100% branch coverage implies 100% statement coverage.
 
@@ -99,18 +95,18 @@ There are classes of errors that branch coverage cannot detect, such as:
     print $obj->name;
   }
 
-100% branch coverage can be achieved by setting ($x, $y) to (1, 1) and then
-to (0, 0).  But if we have (0, 1) then things go bang.
+100% branch coverage can be achieved by setting ($x, $y) to (1, 1) and then to
+(0, 0).  But if we have (0, 1) then things go bang.
 
-The purpose of path coverage is to ensure that all paths through the
-program are taken.  In any reasonably sized program there will be an
-enormous number of paths through the program and so in practice the
-paths can be limited to a single subroutine, if the subroutine is not
-too big, or simply to two consecutive branches.
+The purpose of path coverage is to ensure that all paths through the program are
+taken.  In any reasonably sized program there will be an enormous number of
+paths through the program and so in practice the paths can be limited to a
+single subroutine, if the subroutine is not too big, or simply to two
+consecutive branches.
 
-In the above example there are four paths which correspond to the truth
-table for $x and $y.  To achieve 100% path coverage they must all be
-taken.  Note that missing elses count as paths.
+In the above example there are four paths which correspond to the truth table
+for $x and $y.  To achieve 100% path coverage they must all be taken.  Note that
+missing elses count as paths.
 
 In some cases it may be impossible to achieve 100% path coverage:
 
@@ -120,60 +116,56 @@ In some cases it may be impossible to achieve 100% path coverage:
 
 50% path coverage is the best you can get here.
 
-Loops also contribute to paths, and pose their own problems which I'll
-ignore for now.
+Loops also contribute to paths, and pose their own problems which I'll ignore
+for now.
 
 100% path coverage implies 100% branch coverage.
 
-Path coverage and some of its close cousins, are also known as
-predicate, basis path and LCSAJ (Linear Code Sequence and Jump)
-coverage.
+Path coverage and some of its close cousins, are also known as predicate, basis
+path and LCSAJ (Linear Code Sequence and Jump) coverage.
 
 =head2 2.4 Expression coverage
 
-When a boolean expression is evaluated it can be useful to ensure that
-all the terms in the expression are exercised.  For example:
+When a boolean expression is evaluated it can be useful to ensure that all the
+terms in the expression are exercised.  For example:
 
   a if $x || $y
 
-The expression should be exercised with ($x, $y) set to (0, 0) (required
-for branch coverage), (0, 1) and (1, 0) (to ensure that $x and $y are
-independent) and possibly with (1, 1).
+The expression should be exercised with ($x, $y) set to (0, 0) (required for
+branch coverage), (0, 1) and (1, 0) (to ensure that $x and $y are independent)
+and possibly with (1, 1).
 
 Expression coverage gets complicated, and difficult to achieve, as the
 expression gets complicated.
 
-Expressions which are not directly a part of a branching construct
-should also be covered:
+Expressions which are not directly a part of a branching construct should also
+be covered:
 
   $z = $x || $y;
   a if $z;
 
-Expression coverage is also known as condition, condition-decision and
-multiple condition coverage.
+Expression coverage is also known as condition, condition-decision and multiple
+condition coverage.
 
 =head2 2.5 Modified condition/decision coverage
 
-Modified Condition/Decision Coverage (MC/DC) strengthens expression
-coverage.  Expression coverage is satisfied once each atomic condition
-has been observed both true and false; that turns out to be weaker than
-it sounds.  A test set can hit every row of the truth table while leaving
-plenty of single-fault bugs - misplaced negations, swapped operands,
-dropped clauses - free to slip through.
+Modified Condition/Decision Coverage (MC/DC) strengthens expression coverage.
+Expression coverage is satisfied once each atomic condition has been observed
+both true and false, but that turns out to be weaker than it sounds.  A test set
+can hit every row of the truth table whilst leaving plenty of single-fault bugs
+- misplaced negations, swapped operands, dropped clauses - free to slip through.
 
-MC/DC asks for more.  For each atomic condition C in a decision, the
-test suite must contain a pair of executions where C's truth value
-differs between the two, every other condition is held compatibly (same
-value, or masked by short-circuit), and the decision's overall outcome
-differs as a result.  This demonstrates that each input independently
-affects the decision's result.
+MC/DC requires more.  For each atomic condition C in a decision, the test suite
+must contain a pair of executions where C's truth value differs between the two,
+every other condition is held compatibly (same value, or masked by
+short-circuit), and the decision's overall outcome differs as a result.  This
+demonstrates that each input independently affects the decision's result.
 
-MC/DC is mandated by DO-178B/C Level A (avionics) and recommended by
-ISO 26262 ASIL C/D (automotive) and IEC 61508 SIL 3/4 (industrial
-functional safety).
+MC/DC is mandated by DO-178B/C Level A (avionics) and recommended by ISO 26262
+ASIL C/D (automotive) and IEC 61508 SIL 3/4 (industrial functional safety).
 
-A worked example.  Consider a permission check that allows editing when
-the user owns an unlocked article, or when they are an administrator:
+A worked example.  Consider a permission check that allows editing when the user
+owns an unlocked article, or when they are an administrator:
 
   sub may_edit ($is_owner, $unlocked, $is_admin) {
     return ($is_owner && $unlocked) || $is_admin;
@@ -186,69 +178,66 @@ A misplaced C<!> turns it into:
   }
 
 Owners can now only edit locked articles.  The four tests C<(T,T,T)>,
-C<(T,F,T)>, C<(F,F,T)>, C<(F,F,F)> together give 100% statement, branch
-and expression coverage, and they pass against both implementations - so
-the bug is invisible to those metrics.
+C<(T,F,T)>, C<(F,F,T)>, C<(F,F,F)> together give 100% statement, branch and
+expression coverage, and they pass against both implementations - so the bug is
+invisible to those metrics.
 
-MC/DC additionally requires a pair of tests that flips C<$unlocked>
-while holding C<$is_owner> and C<$is_admin> compatibly.  The first
-test, C<(T,T,T)>, already provides the true side: the left operand is
-true, so C<$is_admin> is never evaluated and is masked.  The false side
-needs C<$is_owner> true with a false outcome, forcing C<(T,F,F)>.  That
-test is not in the four-test set above; adding it exposes the bug,
-because the correct implementation returns false (the article is
-locked, no admin override) while the buggy one returns true.
+MC/DC additionally requires a pair of tests that flips C<$unlocked> while
+holding C<$is_owner> and C<$is_admin> compatibly.  The first test, C<(T,T,T)>,
+already provides the true side: the left operand is true, so C<$is_admin> is
+never evaluated and is masked.  The false side needs C<$is_owner> true with a
+false outcome, forcing C<(T,F,F)>.  That test is not in the four-test set above;
+adding it exposes the bug, because the correct implementation returns false (the
+article is locked, no admin override) while the buggy one returns true.
 
-100% MC/DC usually implies 100% expression coverage, but not always.
-A decision in which the same condition appears more than once, such as
-C<$a || (!$a && $b)>, can contain truth table rows which are impossible
-to hit, while MC/DC can still be fully satisfied.  The C<may_edit>
-example is worked through in full, table by table, in
-F<docs/technical/mcdc.md> in the distribution.
+100% MC/DC usually implies 100% expression coverage, but not always.  A decision
+in which the same condition appears more than once, such as C<$a || (!$a &&
+$b)>, can contain truth table rows which are impossible to hit, whilst MC/DC can
+still be fully satisfied.  The C<may_edit> example is worked through in full,
+table by table, in F<docs/technical/mcdc.md> in the distribution.
 
 =head2 2.6 Subroutine coverage
 
-Subroutine coverage is simpler still than statement coverage.  A
-subroutine is covered if it has been called.  This is a weak metric,
-but it makes a good first pass - a subroutine which is never called by
-the test suite is a clear gap, and until it is exercised at all there
-is little point worrying about the finer metrics within it.
+Subroutine coverage is simpler still than statement coverage.  A subroutine is
+covered if it has been called.  This is a weak metric, but it makes a good first
+pass - a subroutine which is never called by the test suite is a clear gap, and
+until it is exercised at all there is little point worrying about the finer
+metrics within it.
 
-100% statement coverage implies 100% subroutine coverage, provided
-every subroutine contains at least one statement.
+100% statement coverage implies 100% subroutine coverage, provided every
+subroutine contains at least one statement.
 
 =head2 2.7 Pod coverage
 
-Pod coverage is not an execution metric at all.  A subroutine is
-covered if it is documented, which for Perl means POD.  Nothing needs
-to be run to collect it.  It is collected with the other metrics because
-the same tooling can conveniently report on it, and an undocumented
-subroutine is a similar problem to an untested one.
+Pod coverage is not an execution metric at all.  A subroutine is covered if it
+is documented, which for Perl means POD.  Nothing needs to be run to collect
+it. It is collected with the other metrics because the same tooling can
+conveniently report on it, and an undocumented subroutine is a similar problem
+to an untested one.
 
 =head2 2.8 These metrics in Devel::Cover
 
-Devel::Cover implements statement, branch, subroutine and pod coverage
-as described above.  What this tutorial calls expression coverage is
-the C<condition> criterion, and MC/DC is the C<mcdc> criterion.  Path
-coverage is not implemented.  A C<time> criterion records the time
-spent on each statement, though that is profiling rather than
-coverage and isn't terribly accurate in the current implementation.
-Use a proper profiler for accurate timing information.
+Devel::Cover implements statement, branch, subroutine and pod coverage as
+described above.  What this tutorial calls expression coverage is the
+C<condition> criterion, and MC/DC is the C<mcdc> criterion.  Path coverage is
+not implemented.  A C<time> criterion records the time spent on each statement,
+though that is profiling rather than coverage and isn't terribly accurate in the
+current implementation. Use a proper profiler for accurate timing information.
 
-Code which should never run, such as the C<die> in section 2.1, can be
-marked as uncoverable so that it does not count against your coverage.
-See L<Devel::Cover> for details.
+Code which should never run, such as the C<die> in section 2.1, can be marked as
+uncoverable so that it does not count against your coverage. See L<Devel::Cover>
+for details.
 
 =head2 3.0 Other considerations
 
-In order to get people to actually use code coverage it needs to be
-simple to use.  It should also be simple to understand the results and
-to rectify any problems thrown up.  Finally, if the overhead is too
-great it won't get used either.
+In order to get people to actually use code coverage it needs to be simple to
+use.  It should also be simple to understand the results and to rectify any
+problems thrown up.  Finally, if the overhead is too great it won't get used
+either.
 
-So there's a basic tutorial on code coverage, or at least my version of
-it.  Typing a few of these terms into google will probably provide a
-basis for future research.
+So there's a basic tutorial on code coverage, or at least my version of it.
+Typing a few of these terms into google will probably provide a basis for future
+research.
 
 =head1 LICENCE
 
