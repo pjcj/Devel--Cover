@@ -16,7 +16,8 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
-use lib qw( ./lib ./blib/lib ./blib/arch ./t );
+use FindBin ();
+use lib "$FindBin::Bin/../lib", qw( ./lib ./blib/lib ./blib/arch ./t );
 
 use File::Temp qw( tempdir );
 use Test::More import => [qw( done_testing is ok )];

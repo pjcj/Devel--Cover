@@ -10,6 +10,9 @@
 use strict;
 use warnings;
 
+use FindBin ();
+use lib "$FindBin::Bin/../lib";
+
 use File::Copy;
 
 use Devel::Cover::Test;

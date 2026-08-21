@@ -75,7 +75,7 @@ instrumentation is active:
 - `Devel::Cover::DB::IO::JSON`, `DB::IO::Storable`, `DB::IO::Sereal`,
   `DB::IO::Base`
 - `Devel::Cover::Collection` (cpancover only)
-- `Devel::Cover::Test` (test harness)
+- `Devel::Cover::Test` (test harness, in `t/lib`)
 
 ## Running Self-Coverage
 
