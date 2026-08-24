@@ -248,6 +248,28 @@ sub test_pod ($tmpdir) {
     "stale pod cell is red and hatched";
 }
 
+# The stale check behind the cell titles must work for every criterion,
+# including mcdc, whose per-atomic accessors take an index.
+sub test_stale_titles () {
+  require Devel::Cover::Report::Html_basic;
+  require Devel::Cover::Mcdc;
+  require Devel::Cover::Statement;
+  my $otitle = \&Devel::Cover::Report::Html_basic::otitle;
+  my $meta   = { text => '$a || $b', labels => ["a", "b"] };
+
+  my $stale = bless [[1, 0], $meta, [1, 0]], "Devel::Cover::Mcdc";
+
+  is $otitle->($stale, "mcdc"), "marked uncoverable but covered",
+    "run mcdc atomic with a marker is stale";
+  my $excused = bless [[0, 1], $meta, [1, 0]], "Devel::Cover::Mcdc";
+  is $otitle->($excused, "mcdc"), "marked uncoverable",
+    "excused mcdc atomic is not stale";
+
+  my $stmt = bless [1, 1], "Devel::Cover::Statement";
+  is $otitle->($stmt, "statement"), "marked uncoverable but covered",
+    "run statement with a marker is stale";
+}
+
 sub main () {
   my $tmpdir = realpath(tempdir(CLEANUP => 1));
   my $libdir = File::Spec->catdir($tmpdir, "lib");
@@ -259,6 +281,7 @@ sub main () {
   test_main($tmpdir);
   test_mixed($tmpdir);
   test_pod($tmpdir) if eval "require Pod::Coverage; 1";
+  test_stale_titles;
   done_testing;
 }
 

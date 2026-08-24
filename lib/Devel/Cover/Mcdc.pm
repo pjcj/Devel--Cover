@@ -25,6 +25,7 @@ sub criterion ($self) { "mcdc" }
 sub display_name     ($class) { "MC/DC" }
 sub detail_criterion ($class) { "mcdc" }
 sub sign_letter      ($class) { "M" }
+sub indexed          ($class) { 1 }
 
 # True for a decision too wide to analyse; see LIMITATIONS below
 sub unanalysed ($self) { $self->[1]{unanalysed} ? 1 : 0 }

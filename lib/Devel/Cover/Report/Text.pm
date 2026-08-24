@@ -389,8 +389,16 @@ sub _update_maxw ($maxw, %vals) {
 
 sub _flagged_count ($o) {
   my $v = ($o->uncoverable ? "-" : "") . $o->covered;
-  $o->uncoverable && $o->error ? "*$v" : $v
+  $o->coverage_state eq "stale" ? "*$v" : $v
 }
+
+# Stale subs are deliberately listed under the covered heading
+my %Sub_section = (
+  covered   => "covered",
+  stale     => "covered",
+  excused   => "uncoverable",
+  uncovered => "uncovered",
+);
 
 sub _gather_subs ($dfile, $pods, $display_name, $scar_lookup) {
   my $subs = $dfile->subroutine or return;
@@ -415,10 +423,7 @@ sub _gather_subs ($dfile, $pods, $display_name, $scar_lookup) {
       _update_maxw(\%maxw, h => $h, c => $c, s => $s, cc => $cc, cr => $cr);
       $maxw{p} = length $p if $p && length $p > $maxw{p};
 
-      my $type
-        = $sub->covered     ? "covered"
-        : $sub->uncoverable ? "uncoverable"
-        :                     "uncovered";
+      my $type = $Sub_section{ $sub->coverage_state };
       push $by_type{$type}{$s}->@*,
         [$c, $pods ? $p : (), $has_scar ? ($cc, $cr) : (), $h];
     }
