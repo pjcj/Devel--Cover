@@ -109,8 +109,8 @@ sub _truth_table ($table) {
     },
     $table->rows;
   my $errors = grep {
-    Devel::Cover::Criterion->err_chk($_->{covered}, $_->{uncoverable})
-  } @rows;
+    Devel::Cover::Criterion->err_chk($proven && $_->covered, $_->uncoverable)
+  } $table->rows;
   +{
     expr       => $table->expr,
     percentage => @rows ? 100 - $errors * 100 / @rows : 100,
