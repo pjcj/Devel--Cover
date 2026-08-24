@@ -1024,14 +1024,15 @@ sub line_subroutines ($f, $n) {
   return unless $loc && @$loc;
   my $cl = $R{scar_subs} || {};
   map {
-    my $excused = $_->uncoverable && !$_->covered;
+    my $state = $_->coverage_state;
     {
       name    => escape_html($_->name),
       covered => $_->covered,
-      error   => $_->error ? 1    : 0,
-      excused => $excused  ? 1    : 0,
-      class   => $excused  ? "cx" : $_->covered
-        && $_->error ? "c0 mk" : oclass($_, "subroutine"),
+      error   => $_->error           ? 1 : 0,
+      excused => $state eq "excused" ? 1 : 0,
+      class   => $state eq "excused" ? "cx"
+      : $state eq "stale" ? "c0 mk"
+      : oclass($_, "subroutine"),
       cc   => ($cl->{ "$n\0" . $_->name } // {})->{cc},
       crap => ($cl->{ "$n\0" . $_->name } // {})->{crap},
       scar => ($cl->{ "$n\0" . $_->name } // {})->{scar},
@@ -1044,13 +1045,14 @@ sub line_pod ($f, $n) {
   my $loc = $pod->location($n);
   return unless $loc && @$loc;
   map {
-    my $excused = $_->uncoverable && !$_->covered;
+    my $state = $_->coverage_state;
     {
       covered => $_->covered,
-      error   => $_->error ? 1    : 0,
-      excused => $excused  ? 1    : 0,
-      class   => $excused  ? "cx" : $_->covered
-        && $_->error ? "c0 mk" : oclass($_, "pod"),
+      error   => $_->error           ? 1 : 0,
+      excused => $state eq "excused" ? 1 : 0,
+      class   => $state eq "excused" ? "cx"
+      : $state eq "stale" ? "c0 mk"
+      :                     oclass($_, "pod"),
     }
   } @$loc
 }
@@ -1063,10 +1065,10 @@ sub line_branches ($f, $n) {
     my $t         = $_->value(0);
     my $f         = $_->value(1);
     my $arm_class = sub ($i, $v) {
-      $_->uncoverable($i)
-        && !$v                ? "cx"
-        : $v && $_->error($i) ? "c0 mk"
-        : class($v, $_->error($i), "branch")
+      my $state = $_->coverage_state($i);
+          $state eq "excused" ? "cx"
+        : $state eq "stale"   ? "c0 mk"
+        :                       class($v, $_->error($i), "branch")
     };
     my $true_class  = $arm_class->(0, $t);
     my $false_class = $arm_class->(1, $f);
@@ -1075,8 +1077,8 @@ sub line_branches ($f, $n) {
       false_count => $f,
       total_count => $t + $f,
       has_error   => $_->error ? 1 : 0,
-      has_excused => $true_class eq "cx"  || $false_class eq "cx" ? 1 : 0,
-      has_stale   => ($_->error(0) && $t) || ($_->error(1) && $f) ? 1 : 0,
+      has_excused => $true_class eq "cx"    || $false_class eq "cx"    ? 1 : 0,
+      has_stale   => $true_class eq "c0 mk" || $false_class eq "c0 mk" ? 1 : 0,
       true_class  => $true_class,
       false_class => $false_class,
       text        => escape_html($_->text // ""),
@@ -1117,16 +1119,15 @@ sub line_condition_cells ($f, $n) {
       headers => [map escape_html($_), ($c->headers // [])->@*],
       parts   => [
         map {
-          my $excused = $c->uncoverable($_) && !$c->value($_);
+          my $state = $c->coverage_state($_);
           {
             count   => $c->value($_),
-            covered => $c->value($_) ? 1 : 0,
-            error   => $c->error($_) ? 1 : 0,
-            excused => $excused      ? 1 : 0,
-            class   => $excused      ? "cx"
-            : $c->value($_)
-              && $c->error($_) ? "c0 mk"
-            : class($c->value($_), $c->error($_), "condition"),
+            covered => $c->value($_)       ? 1 : 0,
+            error   => $c->error($_)       ? 1 : 0,
+            excused => $state eq "excused" ? 1 : 0,
+            class   => $state eq "excused" ? "cx"
+            : $state eq "stale" ? "c0 mk"
+            :   class($c->value($_), $c->error($_), "condition"),
           }
         } 0 .. $c->total - 1
       ],
@@ -1189,16 +1190,17 @@ sub line_mcdc ($f, $n) {
       class      => class($m->percentage, $m->error, "mcdc"),
       atomics    => $m->unanalysed ? [] : [
         map {
-          my $stale = $m->error($_) && $vals[$_];
+          my $state = $m->coverage_state($_);
           my $cls
-            = $m->error($_) ? ($stale ? "c0 mk" : "c0")
-            : $vals[$_]     ? "c3"
-            :                 "cx";
+            = $state eq "stale"     ? "c0 mk"
+            : $state eq "uncovered" ? "c0"
+            : $state eq "covered"   ? "c3"
+            :                         "cx";
           {
             label   => escape_html($labels[$_] // ""),
-            covered => $vals[$_]    ? 1 : 0,
-            excused => $cls eq "cx" ? 1 : 0,
-            stale   => $stale       ? 1 : 0,
+            covered => $vals[$_]         ? 1 : 0,
+            excused => $cls eq "cx"      ? 1 : 0,
+            stale   => $state eq "stale" ? 1 : 0,
             class   => $cls,
           }
         } 0 .. $#vals
@@ -1207,22 +1209,23 @@ sub line_mcdc ($f, $n) {
   } @$loc
 }
 
-sub exec_class ($s) {
-      $s->uncoverable && !$s->covered ? "exec-excused"
-    : $s->error                       ? "exec-0"
-    : "exec-covered"
+sub exec_class ($state) {
+      $state eq "excused" ? "exec-excused"
+    : $state eq "covered" ? "exec-covered"
+    : "exec-0"
 }
 
 sub line_statement ($f, $n, $line) {
   my $stmt = $f->statement or return;
   my $loc  = $stmt->location($n);
   return unless $loc && @$loc;
-  my $s = $loc->[0];
+  my $s     = $loc->[0];
+  my $state = $s->coverage_state;
   $line->{count}        = $s->covered;
   $line->{count_class}  = oclass($s, "statement");
-  $line->{exec_class}   = exec_class($s);
-  $line->{stmt_excused} = 1 if $s->uncoverable && !$s->covered;
-  $line->{stmt_stale}   = 1 if $s->uncoverable && $s->covered && $s->error;
+  $line->{exec_class}   = exec_class($state);
+  $line->{stmt_excused} = 1 if $state eq "excused";
+  $line->{stmt_stale}   = 1 if $state eq "stale";
 }
 
 sub line_partial ($line, $bd, $cd, $tts, $sd, $md) {
