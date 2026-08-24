@@ -103,6 +103,38 @@ PERL
   ok !exists $unc->{digest}, "pair: nothing is recorded";
 }
 
+sub test_zero_count_warns () {
+  my ($unc, $warnings, $path) = parse_comments(<<'PERL');
+my $n = 1;
+# uncoverable statement count:0
+# uncoverable statement count:0..2
+$n++;
+PERL
+  is @$warnings, 2, "zero count: one warning per comment";
+  my $at = qr/parsing uncoverable statement at \Q$path\E/;
+  like $warnings->[0], qr/Invalid count:0 \(counts are numbered from 1\) $at:2/,
+    "zero count: a bare zero warns";
+  like $warnings->[1],
+    qr/Invalid count:0\.\.2 \(counts are numbered from 1\) $at:3/,
+    "zero count: a range starting at zero warns";
+  ok !exists $unc->{digest}, "zero count: nothing is recorded";
+}
+
+sub test_zero_count_after_higher () {
+  my ($unc, $warnings, $path) = parse_comments(<<'PERL');
+my $n = 1;
+# uncoverable statement count:2
+# uncoverable statement count:0
+$n++; $n++;
+PERL
+  is @$warnings, 1, "zero count after higher: the zero warns";
+  my $at = qr/parsing uncoverable statement at \Q$path\E/;
+  like $warnings->[0], qr/Invalid count:0 \(counts are numbered from 1\) $at:3/,
+    "zero count after higher: warning names the count";
+  is scalar $unc->{digest}{statement}{4}[1]->@*, 1,
+    "zero count after higher: slot 1 keeps a single marker";
+}
+
 sub test_double_spaced_attributes_parse () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
@@ -154,6 +186,8 @@ sub main () {
   test_unknown_type_drops;
   test_invalid_attributes_warn;
   test_pair_restrictions;
+  test_zero_count_warns;
+  test_zero_count_after_higher;
   test_double_spaced_attributes_parse;
   test_count_lists_expand;
   test_note_consumes_the_rest;

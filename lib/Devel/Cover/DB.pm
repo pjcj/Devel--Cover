@@ -905,6 +905,15 @@ sub _uncoverable_when ($criterion, $patterns, $has_type, $context) {
   [map "when:" . uc, split /,/, $patterns]
 }
 
+sub _uncoverable_counts ($count, $context) {
+  my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/, $count;
+  if (any { $_ < 1 } @counts) {
+    dcwarn "Invalid count:$count (counts are numbered from 1) $context";
+    return;
+  }
+  \@counts
+}
+
 sub _uncoverable_details ($criterion, $info, $file, $line) {
   my $context = "parsing uncoverable $criterion at $file:$line";
 
@@ -960,8 +969,8 @@ sub _uncoverable_details ($criterion, $info, $file, $line) {
   }
   @types = undef unless @types;
 
-  my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/, $count;
-  (\@counts, \@types, $class, $note)
+  my $counts = _uncoverable_counts($count, $context) or return;
+  ($counts, \@types, $class, $note)
 }
 
 sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
