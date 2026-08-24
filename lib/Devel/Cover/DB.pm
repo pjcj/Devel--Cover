@@ -905,6 +905,13 @@ sub _uncoverable_when ($criterion, $patterns, $has_type, $context) {
   [map "when:" . uc, split /,/, $patterns]
 }
 
+sub _uncoverable_class ($class, $context) {
+  return $class
+    if any { $class eq $_ } Devel::Cover::Criterion->uncoverable_classes;
+  dcwarn "Unknown class $class $context";
+  return;
+}
+
 sub _uncoverable_counts ($count, $context) {
   my @counts = map { m/^(\d+)\.\.(\d+)$/ ? ($1 .. $2) : $_ } split m/,/, $count;
   if (any { $_ < 1 } @counts) {
@@ -944,7 +951,10 @@ sub _uncoverable_details ($criterion, $info, $file, $line) {
   my $c = qr/\d+(?:\.\.\d+)?/;
   for my $word (@words) {
     if ($word =~ /^count:($c(?:,$c)*)$/) { $count = $1; next }
-    if ($word =~ /^class:(\w+)$/)        { $class = $1; next }
+    if ($word =~ /^class:(\w+)$/) {
+      $class = _uncoverable_class($1, $context) or return;
+      next;
+    }
     if ($word =~ /^pair:(\d+)$/) {
       my $pair = _uncoverable_pair($criterion, $1, $has_type, $context)
         or return;

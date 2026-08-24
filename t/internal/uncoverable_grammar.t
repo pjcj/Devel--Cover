@@ -135,6 +135,36 @@ PERL
     "zero count after higher: slot 1 keeps a single marker";
 }
 
+sub test_unknown_class_warns () {
+  my ($unc, $warnings, $path) = parse_comments(<<'PERL');
+my $n = 1;
+# uncoverable statement class:typo
+# uncoverable branch true class:ignore_covered_er
+$n++;
+PERL
+  is @$warnings, 2, "unknown class: one warning per comment";
+  like $warnings->[0],
+    qr/Unknown class typo parsing uncoverable statement at \Q$path\E:2/,
+    "unknown class: warning names the class";
+  like $warnings->[1],
+    qr/Unknown class ignore_covered_er parsing uncoverable branch/,
+    "unknown class: a near miss warns";
+  ok !exists $unc->{digest}, "unknown class: nothing is recorded";
+}
+
+sub test_known_classes_parse () {
+  my ($unc, $warnings) = parse_comments(<<'PERL');
+my $n = 1;
+# uncoverable statement class:default
+# uncoverable statement count:2 class:ignore_covered_err
+$n++; $n++;
+PERL
+  is @$warnings, 0, "known class: no warnings";
+  is_deeply $unc->{digest}{statement}{4},
+    [[[undef, "default", ""]], [[undef, "ignore_covered_err", ""]]],
+    "known class: both classes are recorded";
+}
+
 sub test_double_spaced_attributes_parse () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
@@ -162,22 +192,24 @@ PERL
 sub test_note_consumes_the_rest () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable branch false class:x note:looks like cont:2 typo
+# uncoverable branch false class:default note:looks like cont:2 typo
 $n++;
 PERL
   is @$warnings, 0, "note: no warnings";
-  is_deeply $unc->{digest}{branch}{3}, [[[1, "x", "looks like cont:2 typo"]]],
+  is_deeply $unc->{digest}{branch}{3},
+    [[[1, "default", "looks like cont:2 typo"]]],
     "note: takes everything after note:";
 }
 
 sub test_attribute_order_is_free () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable statement class:c count:2
+# uncoverable statement class:ignore_covered_err count:2
 $n++;
 PERL
   is @$warnings, 0, "order: no warnings";
-  is_deeply $unc->{digest}{statement}{3}, [undef, [[undef, "c", ""]]],
+  is_deeply $unc->{digest}{statement}{3},
+    [undef, [[undef, "ignore_covered_err", ""]]],
     "order: class before count parses";
 }
 
@@ -188,6 +220,8 @@ sub main () {
   test_pair_restrictions;
   test_zero_count_warns;
   test_zero_count_after_higher;
+  test_unknown_class_warns;
+  test_known_classes_parse;
   test_double_spaced_attributes_parse;
   test_count_lists_expand;
   test_note_consumes_the_rest;

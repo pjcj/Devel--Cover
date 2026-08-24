@@ -75,6 +75,8 @@ sub criterion ($self) {
   Carp::confess("criterion() must be overridden")
 }
 
+sub uncoverable_classes ($class) { qw( default ignore_covered_err ) }
+
 sub err_chk ($self, $covered, $uncoverable) {
   no warnings qw( once uninitialized );
   $Devel::Cover::Ignore_covered_err || $uncoverable eq "ignore_covered_err"
@@ -160,6 +162,11 @@ except time.
 Return the criterion names shown by the editor reports, in canonical
 order. The Vim and Nvim templates place signs last-in-list-wins, so this
 order is the sign display priority.
+
+=head2 uncoverable_classes
+
+Return the class words an uncoverable comment may carry - C<default>
+and C<ignore_covered_err>. The comment parser rejects anything else.
 
 =head1 CRITERION METADATA
 
