@@ -276,8 +276,10 @@ sub print_mcdc ($db, $file, $options) {
 
       my $atomics = $m->unanalysed ? "<em>too many conditions</em>" : join " ",
         map {
-          my $unc = $m->uncoverable($_);
-          qq(<span class="@{[ $vals[$_] || $unc ? "covered" : "uncovered" ]}">)
+          my $unc   = $m->uncoverable($_);
+          my $state = $m->coverage_state($_);
+          my $ok    = $state eq "covered" || $state eq "excused";
+          qq(<span class="@{[ $ok ? "covered" : "uncovered" ]}">)
           . escape_html(($unc ? "-" : "") . ($labels[$_] // ""))
           . "</span>"
         } 0 .. $#vals;

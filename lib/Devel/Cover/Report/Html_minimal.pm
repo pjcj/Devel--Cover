@@ -151,6 +151,12 @@ sub pclass ($p, $e) {
   coverage_class($p // 0, $Threshold)
 }
 
+# Determine the CSS class from an atomic's coverage state
+sub sclass ($m, $i) {
+  my $state = $m->coverage_state($i);
+  bclass($state eq "covered" || $state eq "excused")
+}
+
 # Dispatch to the appropriate coverage report renderer
 sub get_coverage_report ($type, $data) {
   return _branch_report($data)    if $type eq "branch";
@@ -528,7 +534,7 @@ sub print_mcdc_report ($db, $file, $opt) {
       my @vals   = $m->values;
       my @labels = $m->labels->@*;
       my @unc    = map $m->uncoverable($_), 0 .. $#vals;
-      my @cls    = map bclass($vals[$_] || $unc[$_]), 0 .. $#vals;
+      my @cls    = map sclass($m, $_), 0 .. $#vals;
       my $pct    = $m->percentage;
       my $pills  = $m->unanalysed ? "<em>too many conditions</em>" : join " ",
           map qq(<span class="$cls[$_]">)

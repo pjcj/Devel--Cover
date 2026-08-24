@@ -17,6 +17,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use Test::More import => [qw( done_testing is ok )];
+use Devel::Cover::Mcdc                 ();  ## no perlimports
 use Devel::Cover::Report::Html_minimal ();
 
 sub _mock_cond ($class, $hits, $info, $observed = undef) {
@@ -100,10 +101,28 @@ sub test_tab_stops_measure_source_columns () {
     "per-line escaping matches whole-text escaping";
 }
 
+sub _mock_mcdc ($hits, $unc = undef) {
+  bless [$hits, { text => '$a || $b', labels => ["a", "b"] }, $unc],
+    "Devel::Cover::Mcdc"
+}
+
+# A stale atomic - run despite its marker - is an error, so it must not
+# take the covered class. An excused atomic is not an error and keeps it.
+sub test_mcdc_atomic_classes () {
+  my $sclass = \&Devel::Cover::Report::Html_minimal::sclass;
+  my $marked = _mock_mcdc([1, 0], [1, 1]);
+  is $sclass->($marked, 0), "c0", "stale atomic takes the uncovered class";
+  is $sclass->($marked, 1), "c3", "excused atomic keeps the covered class";
+  my $plain = _mock_mcdc([1, 0]);
+  is $sclass->($plain, 0), "c3", "covered atomic keeps the covered class";
+  is $sclass->($plain, 1), "c0", "uncovered atomic takes the uncovered class";
+}
+
 sub main () {
   test_truth_table_honours_observed_vectors;
   test_void_compound_renders_uncovered;
   test_tab_stops_measure_source_columns;
+  test_mcdc_atomic_classes;
   done_testing;
 }
 
