@@ -22,10 +22,11 @@ use Devel::Cover::Report::Text ();
 {
 
   package Mock::Sub;
-  sub new         ($class, $name) { bless { name => $name }, $class }
-  sub name        ($self)         { $self->{name} }
-  sub covered     ($self)         { 1 }
-  sub uncoverable ($self)         { 0 }
+  sub new            ($class, $name) { bless { name => $name }, $class }
+  sub name           ($self)         { $self->{name} }
+  sub covered        ($self)         { 1 }
+  sub uncoverable    ($self)         { 0 }
+  sub coverage_state ($self)         { "covered" }
 }
 
 {

@@ -20,7 +20,7 @@ sub print_statement ($db, $file, $) {
   for my $location (sort { $a <=> $b } $statements->items) {
     for my $statement ($statements->location($location)->@*) {
       next unless $statement->error;
-      print $statement->covered
+      print $statement->coverage_state eq "stale"
         ? "Statement marked uncoverable but covered at $file line $location\n"
         : "Uncovered statement at $file line $location\n";
     }
@@ -38,11 +38,11 @@ sub print_branches ($db, $file, $) {
       # keyword and report on the truth of the remaining condition.
       my $text = $b->text;
       my @path = $text =~ s/^(if|unless) // && $1 eq "unless" ? (1, 0) : (0, 1);
-      my ($t, $f) = map $b->error($_) && !$b->covered($_), @path;
+      my ($t, $f) = map $b->coverage_state($_) eq "uncovered", @path;
       print "Branch never ", $t ? ($f ? "reached" : "true") : "false",
         " at $file line $location: $text\n"
         if $t || $f;
-      my ($ts, $fs) = map $b->error($_) && $b->covered($_), @path;
+      my ($ts, $fs) = map $b->coverage_state($_) eq "stale", @path;
       print "Branch true marked uncoverable but covered",
         " at $file line $location: $text\n"
         if $ts;
@@ -68,10 +68,9 @@ sub print_conditions ($db, $file, $) {
       my ($c, $location) = @$_;
       next unless $c->error;
       my @headers = $c->headers->@*;
-      my @missed  = grep !$c->covered($_) && !$c->uncoverable($_),
+      my @missed  = grep $c->coverage_state($_) eq "uncovered",
         0 .. $c->total - 1;
-      my @stale = grep $c->covered($_) && $c->uncoverable($_),
-        0 .. $c->total - 1;
+      my @stale = grep $c->coverage_state($_) eq "stale", 0 .. $c->total - 1;
       print "Uncovered condition (", join(", ", @headers[@missed]),
         ") at $file line $location: ", $c->text, "\n"
         if @missed;
@@ -99,8 +98,8 @@ sub print_mcdc ($db, $file, $) {
         ") at $file line $location: ", $m->text, "\n"
         if @$missing;
       my $labels = $m->labels;
-      my @stale  = map $labels->[$_],
-        grep $m->covered($_) && $m->uncoverable($_), 0 .. $m->total - 1;
+      my @stale  = map $labels->[$_], grep $m->coverage_state($_) eq "stale",
+        0 .. $m->total - 1;
       print "MC/DC pair (", join(", ", @stale),
         ") marked uncoverable but covered at $file line $location: ", $m->text,
         "\n"
@@ -115,7 +114,7 @@ sub print_subroutines ($db, $file, $) {
   for my $location (sort { $a <=> $b } $subroutines->items) {
     for my $sub ($subroutines->location($location)->@*) {
       next unless $sub->error;
-      print $sub->covered
+      print $sub->coverage_state eq "stale"
         ? (
           "Subroutine ", $sub->name,
           " marked uncoverable but covered at $file line $location\n",
@@ -131,7 +130,7 @@ sub print_pod ($db, $file, $) {
   for my $location (sort { $a <=> $b } $pod->items) {
     for my $p ($pod->location($location)->@*) {
       next unless $p->error;
-      print $p->covered
+      print $p->coverage_state eq "stale"
         ? "Pod marked uncoverable but covered at $file line $location\n"
         : "Uncovered pod at $file line $location\n";
     }

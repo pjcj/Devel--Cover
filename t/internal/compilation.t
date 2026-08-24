@@ -64,11 +64,12 @@ sub test_compilation_report () {
 {
 
   package Mock::Item;
-  sub new         ($class) { bless {}, $class }
-  sub covered     ($self)  { 0 }
-  sub uncoverable ($self)  { 0 }
-  sub error       ($self)  { 1 }
-  sub name        ($self)  { "mock_sub" }
+  sub new            ($class) { bless {}, $class }
+  sub covered        ($self)  { 0 }
+  sub uncoverable    ($self)  { 0 }
+  sub error          ($self)  { 1 }
+  sub coverage_state ($self)  { "uncovered" }
+  sub name           ($self)  { "mock_sub" }
 }
 
 {
@@ -308,6 +309,25 @@ sub test_mcdc_states () {
     "mcdc skips excused atomics and reports stale ones";
 }
 
+# A stale marker forgiven by -ignore_covered_err is not an error, so it
+# must not be reported alongside a genuine miss on the same construct.
+sub test_ignore_covered_err () {
+  no warnings "once";
+  local $Devel::Cover::Ignore_covered_err = 1;
+
+  my $conds = Mock::Criterion->new([2, cond_obj('$c', '$d', [0, 1], [0, 1])]);
+  is capture_output(
+    \&Devel::Cover::Report::Compilation::print_conditions, $conds
+    ),
+    lines('Uncovered condition (!l) at Mock.pm line 2: $c && $d'),
+    "forgiven stale condition outcome not reported";
+
+  my $mcdc = Mock::Criterion->new([3, mcdc_obj('$e || $f', [0, 1], [0, 1])]);
+  is capture_output(\&Devel::Cover::Report::Compilation::print_mcdc, $mcdc),
+    lines('Uncovered MC/DC pair (a) at Mock.pm line 3: $e || $f'),
+    "forgiven stale mcdc atomic not reported";
+}
+
 sub main () {
   test_compilation_report;
   test_lines_sorted;
@@ -318,6 +338,7 @@ sub main () {
   test_condition_states;
   test_condition_repeated_location;
   test_mcdc_states;
+  test_ignore_covered_err;
   done_testing;
 }
 
