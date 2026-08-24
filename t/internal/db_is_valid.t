@@ -49,7 +49,7 @@ sub db_with (@entries) {
 sub is_valid ($path) {
   my $db = Devel::Cover::DB->new;
   $db->{db} = $path;
-  local $SIG{__WARN__} = sub { };
+  local $Devel::Cover::Silent = 1;
   $db->is_valid
 }
 
