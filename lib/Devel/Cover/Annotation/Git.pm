@@ -48,6 +48,8 @@ sub get_annotations ($self, $file) {
   # print "Running [$command]\n";
   open my $c, "-|", $command or warn("cover: Can't run $command: $!\n"), return;
   my @annotation;
+  my %commits;
+  my $sha   = "";
   my $start = 1;
   while (my $line = <$c>) {
     # print "[$_]\n";
@@ -58,11 +60,19 @@ sub get_annotations ($self, $file) {
     }
 
     if ($start == 1) {
-      $annotation[0] = substr $1, 0, 8 if $line =~ /^(\w+)/;
+      if ($line =~ /^(\w+)/) {
+        $sha = $1;
+        $annotation[0] = substr $sha, 0, 8;
+        # Headers only follow a commit's first group, so cache them by sha
+        my $cached = $commits{$sha} ||= [];
+        @annotation[1, 2] = @$cached;
+      }
       $start = 0;
     } else {
-      $annotation[1] = $1 if $line =~ /^author (.*)/;
-      if ($line =~ /^author-time (.*)/) { $annotation[2] = localtime $1 }
+      $annotation[1] = $commits{$sha}[0] = $1 if $line =~ /^author (.*)/;
+      if ($line =~ /^author-time (.*)/) {
+        $annotation[2] = $commits{$sha}[1] = localtime $1;
+      }
     }
   }
   close $c or warn "cover: Failed running $command: $!\n"
