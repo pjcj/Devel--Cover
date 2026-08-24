@@ -92,7 +92,6 @@ sub test_ignore_covered_err () {
 }
 
 sub test_pod_summary_aggregates_uncoverable () {
-  local $INC{"Pod/Coverage.pm"} = $INC{"Pod/Coverage.pm"} // "mocked";
   my $db = { summary => {} };
   pod(0, 1)->calculate_summary($db, "file.pl");
   my $counts = { total => 1, uncoverable => 1 };
@@ -104,7 +103,6 @@ sub test_pod_summary_aggregates_uncoverable () {
 }
 
 sub test_pod_summary_covered_but_marked () {
-  local $INC{"Pod/Coverage.pm"} = $INC{"Pod/Coverage.pm"} // "mocked";
   my $db = { summary => {} };
   pod(1, 1)->calculate_summary($db, "file.pl");
   my $counts = { total => 1, uncoverable => 1, covered => 1, error => 1 };
@@ -115,12 +113,26 @@ sub test_pod_summary_covered_but_marked () {
     "pod summary flags a covered but marked subroutine as an error";
 }
 
+sub test_pod_summary_without_pod_coverage () {
+  local %INC = %INC;
+  delete $INC{"Pod/Coverage.pm"};
+  my $db = { summary => {} };
+  pod(1, 0)->calculate_summary($db, "file.pl");
+  my $counts = { total => 1, covered => 1 };
+  is_deeply $db->{summary}, {
+      "file.pl" => { pod => $counts, total => $counts },
+      Total     => { pod => $counts, total => $counts },
+    },
+    "pod summary aggregates without Pod::Coverage loaded";
+}
+
 sub main () {
   test_single_construct_states;
   test_vector_states;
   test_ignore_covered_err;
   test_pod_summary_aggregates_uncoverable;
   test_pod_summary_covered_but_marked;
+  test_pod_summary_without_pod_coverage;
   done_testing;
 }
 
