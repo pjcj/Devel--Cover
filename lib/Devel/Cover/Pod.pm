@@ -29,11 +29,6 @@ sub display_mode     ($class) { "count" }
 sub detail_criterion ($class) { "subroutine" }
 sub sign_letter      ($class) { "P" }
 
-sub calculate_summary ($self, $db, $file) {
-  return unless $INC{"Pod/Coverage.pm"};
-  $self->SUPER::calculate_summary($db, $file)
-}
-
 1
 
 __END__
