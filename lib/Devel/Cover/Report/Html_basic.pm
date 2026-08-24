@@ -52,9 +52,9 @@ sub marker_title ($unc, $err) {
 }
 
 sub _stale ($o, $criterion) {
-  return $o->uncoverable && $o->covered
-    if $criterion =~ /^(?:statement|subroutine|pod)$/;
-  grep $o->uncoverable($_) && $o->covered($_), 0 .. $o->total - 1
+  return $o->coverage_state eq "stale"
+    unless Devel::Cover::Criterion->criterion_class($criterion)->indexed;
+  grep $o->coverage_state($_) eq "stale", 0 .. $o->total - 1
 }
 
 sub otitle ($o, $criterion) {
