@@ -94,9 +94,9 @@ sub _make_rows ($spec, $hits, $unc) {
   } @$spec
 }
 
-# Uncoverable flags align positionally with the outcome (spec-row) order
+# Uncoverable classes align positionally with the outcome (spec-row) order
 sub _uncov ($condition) {
-  map $_ ? 1 : 0, ($condition->[2] // [])->@*
+  map $_ // 0, ($condition->[2] // [])->@*
 }
 
 sub _expr ($condition) {
@@ -363,7 +363,8 @@ True if this input combination was exercised.
 
 =item uncoverable
 
-True if this row is excused by an C<# uncoverable condition> marker.
+The class name of the C<# uncoverable condition> marker excusing this row,
+or 0 when there is none.
 
 =back
 
