@@ -58,6 +58,7 @@ sub has_detail_page ($class) {
 
 sub measures_coverage ($class) { 1 }
 sub sign_letter       ($class) { undef }
+sub indexed           ($class) { 0 }
 
 sub coverage    ($self) { $self->[0] }
 sub information ($self) { $self->[1] }
@@ -86,6 +87,15 @@ sub err_chk ($self, $covered, $uncoverable) {
 
 sub simple_error ($self) {
   $self->err_chk($self->covered, $self->uncoverable)
+}
+
+sub coverage_state ($self, $i = undef) {
+  my $covered     = defined $i ? $self->covered($i)     : $self->covered;
+  my $uncoverable = defined $i ? $self->uncoverable($i) : $self->uncoverable;
+  return "uncovered" unless $covered || $uncoverable;
+  return "covered"   unless $uncoverable;
+  return "excused"   unless $covered;
+  $self->err_chk($covered, $uncoverable) ? "stale" : "covered"
 }
 
 sub calculate_percentage ($class, $db, $s) {
@@ -206,7 +216,34 @@ criterion.
 The editor sign character, such as C<S> or C<B>. Undef for time, which
 has no sign.
 
+=head2 indexed
+
+True for criteria holding a value per path or outcome - branch,
+condition and mcdc - whose C<covered>, C<uncoverable>, C<error> and
+C<coverage_state> take an index. False for the single-value criteria.
+
 =head1 METHODS
+
+=head2 coverage_state ($i)
+
+  my $state = $o->coverage_state;
+  my $state = $o->coverage_state($i);
+
+Return the name of the state the construct is in, combining coverage
+with the uncoverable flag:
+
+  covered  uncoverable  state
+        1            0  covered
+        0            0  uncovered
+        0            1  excused
+        1            1  stale
+
+A stale marker - a construct which runs despite being marked
+uncoverable - is normally an error, because the marker no longer tells
+the truth. It is forgiven, and reported as covered, under
+C<-ignore_covered_err> or when the marker carries the
+C<ignore_covered_err> class. Criteria holding several values, such as
+branch, take the index of the value to ask about.
 
 =head2 new
 

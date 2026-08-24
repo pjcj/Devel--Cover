@@ -37,6 +37,7 @@ sub criterion ($self)     { "branch" }
 sub shortname        ($class) { "bran" }
 sub detail_criterion ($class) { "branch" }
 sub sign_letter      ($class) { "B" }
+sub indexed          ($class) { 1 }
 
 sub percentage ($self) {
   my $t = $self->total;

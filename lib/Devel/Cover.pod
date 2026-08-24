@@ -599,7 +599,9 @@ An excused construct is not an error - that is the point of the marker.  A
 construct which runs despite its marker is an error, because the marker no
 longer tells the truth and should be removed.  The global C<-ignore_covered_err>
 flag, or the per-point C<ignore_covered_err> class, forgives that state, which
-is then treated as covered.
+is then treated as covered.  The C<coverage_state> method in
+L<Devel::Cover::Criterion> names these states in code, and the reports read
+them from it.
 
 Percentages measure freedom from errors, computed as 100 - errors * 100 /
 total. An excused outcome therefore counts towards 100% just as a covered one
