@@ -19,7 +19,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use File::Spec ();
 use List::Util qw( first );
 use Test::More import =>
-  [qw( diag done_testing is is_deeply isa_ok like ok plan )];
+  [qw( diag done_testing is is_deeply isa_ok like ok plan skip )];
 use Devel::Cover::Test::Showcase qw(
   create_cover_db
   run_cover
@@ -192,8 +192,12 @@ sub test_error_rule_recorded ($json, $json_ignore, $libdir) {
 
 # Phase 0 made pod aggregate uncoverable like every other criterion
 sub test_summary_pod_uncoverable ($json) {
-  ok exists $json->{summary}{Total}{pod}{uncoverable},
-    "summary Total pod has an uncoverable count";
+  SKIP: {
+    skip "Pod::Coverage not available", 1
+      unless eval { require Pod::Coverage; 1 };
+    ok exists $json->{summary}{Total}{pod}{uncoverable},
+      "summary Total pod has an uncoverable count";
+  }
 }
 
 # json_summary should NOT have a files key - this protects against accidental

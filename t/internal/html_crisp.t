@@ -42,8 +42,13 @@ sub test_dir_header_rows ($content) {
 
   my ($covered) = grep m{data-dir="Covered"}, @rows;
   ok $covered, "Covered dir-header row present";
-  unlike $covered, qr/class="na"/,
-    "Covered dir row has aggregates for all criteria";
+  if (eval { require Pod::Coverage; 1 }) {
+    unlike $covered, qr/class="na"/,
+      "Covered dir row has aggregates for all criteria";
+  } else {
+    my @na = $covered =~ /class="na"/g;
+    is @na, 1, "Covered dir row has n/a only for pod";
+  }
   like $covered, qr{<dt>CC</dt><dd>[1-9]},
     "Covered dir row SCAR tooltip has non-zero CC";
   unlike $covered, qr/data-value="0" class="scar-val/,
