@@ -82,7 +82,8 @@ sub write_fake_gcov ($dir) {
 #!/usr/bin/env bash
 
 set -eEuo pipefail
-shopt -s inherit_errexit
+# inherit_errexit needs bash 4.4, newer than the macOS system bash
+shopt -s inherit_errexit 2>/dev/null || true
 
 echo "$@" >>gcov.args
 obj_dir=.
