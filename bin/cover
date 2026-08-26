@@ -348,20 +348,27 @@ sub do_test ($dbname) {
   $signal ? 128 + $signal : $status >> 8
 }
 
-# a .gcov whose source is unreadable from $cwd is a stub without line data
-sub gcov_source_found ($path, $cwd) {
+# a usable .gcov names a findable source and holds line records
+sub gcov_usable ($path, $root) {
   open my $fh, "<", $path or return 0;
+  my $source_found;
   while (my $line = <$fh>) {
-    next unless $line =~ /^\s*-:\s*0:Source:(.*)$/;
-    my $src = $1;
-    $src = File::Spec->catfile($cwd, $src)
-      unless File::Spec->file_name_is_absolute($src);
-    return -f $src;
+    if ($line =~ /^\s*-:\s*0:Source:(.*)$/) {
+      my $src = $1;
+      # relative sources may be recorded against gcov's cwd or the build root
+      $source_found
+        = -f $src
+        || (!File::Spec->file_name_is_absolute($src)
+          && -f File::Spec->catfile($root, $src));
+      return 0 unless $source_found;
+    } elsif ($line =~ /^[^:]+:\s*(\d+):/ && $1 > 0) {
+      return 1 if $source_found;
+    }
   }
   0
 }
 
-sub run_gcov ($name, $dir, $gc, $seen) {
+sub run_gcov ($name, $dir, $root, $gc, $seen) {
   # -p keeps the path in .gcov names so same-named sources don't collide
   my $gcov_flags = "-abcp";
   $gcov_flags .= "r" if $Options->{relative_only};
@@ -376,10 +383,12 @@ sub run_gcov ($name, $dir, $gc, $seen) {
   while (my $line = <$fh>) {
     print $line;
     next unless $line =~ /^Creating '([^']+)'\s*$/;
-    my $path = ($cwd eq "." ? $1 : "$cwd/$1") =~ s|^\./||r;
-    unless (gcov_source_found($path, $cwd)) {
-      dcinfo "discarding $path - source not found from $cwd";
-      unlink $path;
+    # $local names the file from gcov's cwd, $path from the build root
+    my $local = $1;
+    my $path  = ($cwd eq "." ? $local : "$cwd/$local") =~ s|^\./||r;
+    unless (gcov_usable($local, $root)) {
+      dcinfo "discarding $path - source not found or no line records";
+      unlink $local;
       next;
     }
     push $gc->@*, $path unless $seen->{$path}++;
@@ -394,6 +403,8 @@ sub is_build_root ($dir) {
 
 sub do_gcov ($dbname) {
   return unless $Options->{gcov};
+  require Cwd;
+  my $root = Cwd::getcwd;
   my @gc;
   my %seen;
   my $gc = sub () {
@@ -417,7 +428,7 @@ sub do_gcov ($dbname) {
     # produced; walking the tree afterwards picks up stale artefacts from
     # unrelated builds (e.g. tmp/runs/<dist>/) that we don't own.
     my $dir = $File::Find::dir =~ s|^\./||r;
-    run_gcov($name, $dir, \@gc, \%seen);
+    run_gcov($name, $dir, $root, \@gc, \%seen);
   };
   File::Find::find({ wanted => $gc, no_chdir => !$Options->{gcov_chdir} }, ".");
 
@@ -430,8 +441,6 @@ sub do_gcov ($dbname) {
 
   if (@gc) {
     # Find the right gcov2perl based on this current script
-    require Cwd;
-
     my $path = Cwd::abs_path($0);
     my ($vol, $dir, $cover) = File::Spec->splitpath($path);
     my $gcov2perl = File::Spec->catpath($vol, $dir, "gcov2perl");
