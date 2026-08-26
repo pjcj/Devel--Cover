@@ -1365,6 +1365,13 @@ sub _warn_unmatched_uncoverable ($self, $cover, $uncoverable, $digests) {
   }
 }
 
+sub _sorted_run_keys ($self) {
+  my $runs = $self->{runs};
+  my %start
+    = map { $_ => ref $runs->{$_} ? $runs->{$_}{start} : undef } keys %$runs;
+  sort { ($start{$b} || 0) <=> ($start{$a} || 0) || $b cmp $a } keys %start
+}
+
 sub cover ($self) {
   return $self->{cover} if $self->{cover_valid};
 
@@ -1377,13 +1384,7 @@ sub cover ($self) {
     Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
   };
 
-  # Sometimes the start value is undefined.  It's not yet clear why, but it
-  # probably has something to do with the code under test forking.  We'll
-  # just try to cope with that here.
-  my @runs = sort {
-    ($self->{runs}{$b}{start} || 0) <=> ($self->{runs}{$a}{start} || 0)
-      || $b cmp $a
-  } keys $self->{runs}->%*;
+  my @runs = $self->_sorted_run_keys;
 
   $self->_choose_canonical_files(\@runs, \%digests, $uncoverable);
 
