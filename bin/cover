@@ -348,8 +348,22 @@ sub do_test ($dbname) {
   $signal ? 128 + $signal : $status >> 8
 }
 
+# a .gcov whose source is unreadable from $cwd is a stub without line data
+sub gcov_source_found ($path, $cwd) {
+  open my $fh, "<", $path or return 0;
+  while (my $line = <$fh>) {
+    next unless $line =~ /^\s*-:\s*0:Source:(.*)$/;
+    my $src = $1;
+    $src = File::Spec->catfile($cwd, $src)
+      unless File::Spec->file_name_is_absolute($src);
+    return -f $src;
+  }
+  0
+}
+
 sub run_gcov ($name, $dir, $gc, $seen) {
-  my $gcov_flags = "-abc";
+  # -p keeps the path in .gcov names so same-named sources don't collide
+  my $gcov_flags = "-abcp";
   $gcov_flags .= "r" if $Options->{relative_only};
   my @args = $Options->{gcov_chdir} ? () : ("-o", $dir);
   my @c    = ("gcov", $gcov_flags, @args, $name);
@@ -362,11 +376,20 @@ sub run_gcov ($name, $dir, $gc, $seen) {
   while (my $line = <$fh>) {
     print $line;
     next unless $line =~ /^Creating '([^']+)'\s*$/;
-    my $path = $cwd eq "." ? $1 : "$cwd/$1";
-    $path =~ s{^\./}{};
+    my $path = ($cwd eq "." ? $1 : "$cwd/$1") =~ s|^\./||r;
+    unless (gcov_source_found($path, $cwd)) {
+      dcinfo "discarding $path - source not found from $cwd";
+      unlink $path;
+      next;
+    }
     push $gc->@*, $path unless $seen->{$path}++;
   }
   close $fh or dcinfo "gcov exited non-zero (exit $?)";
+}
+
+sub is_build_root ($dir) {
+  grep -e File::Spec->catfile($dir, $_),
+    qw( Makefile.PL Build.PL Makefile Build )
 }
 
 sub do_gcov ($dbname) {
@@ -374,26 +397,27 @@ sub do_gcov ($dbname) {
   my @gc;
   my %seen;
   my $gc = sub () {
+    # skip separate builds - their sources are recorded relative to them
+    if (!$Options->{gcov_chdir} && -d && $_ ne "." && is_build_root($_)) {
+      $File::Find::prune = 1;
+      return;
+    }
     return unless /\.(xs|cc?|hh?)$/;
-    # Without gcov_chdir, gcov runs from our cwd and can only read sources
-    # there.  Skip anything in a subdirectory: trying to gcov it produces a
-    # noisy error and a useless stub .gcov that contaminates this run.
-    return if !$Options->{gcov_chdir} && $File::Find::dir ne ".";
     for my $re ($Options->{ignore_re}->@*) {
       return if /$re/;
     }
-    my ($name) = /([^\/]+$)/;
+    my $name = s|^\./||r;
 
     # Don't bother running gcov if there's no index files.
     # Otherwise it's noisy.
-    my $graph_file = $_;
-    $graph_file =~ s{\.\w+$}{.gcno};
+    my $graph_file = s/\.\w+$/.gcno/r;
     return unless -e $graph_file;
 
     # Capture gcov stdout to learn exactly which .gcov files this run
     # produced; walking the tree afterwards picks up stale artefacts from
     # unrelated builds (e.g. tmp/runs/<dist>/) that we don't own.
-    run_gcov($name, $File::Find::dir, \@gc, \%seen);
+    my $dir = $File::Find::dir =~ s|^\./||r;
+    run_gcov($name, $dir, \@gc, \%seen);
   };
   File::Find::find({ wanted => $gc, no_chdir => !$Options->{gcov_chdir} }, ".");
 
@@ -824,9 +848,12 @@ it.
 
 The C<-gcov> option will try to run gcov on any XS code.  This requires that
 you are using gcc of course.  If you are using the C<-test> option will be
-turned on by default. If you have XS code in subdirectories, you will
-probably need to add the C<-gcov_chdir> option since gcov seems to work
-better with that.
+turned on by default.  XS code in subdirectories is covered too.  gcov's
+C<-p> flag keeps the path in the output names so same-named sources in
+different directories do not collide.  A subdirectory holding its own
+F<Makefile.PL>, F<Build.PL>, F<Makefile> or F<Build> is a separate build
+whose object files record sources relative to that directory, so it is
+skipped.  Run C<cover> in that directory instead, or use C<-gcov_chdir>.
 
 By default the C<-relative_only> option is enabled, which passes C<-r> to gcov
 so that source files reached via absolute paths (typically Perl's own CORE
