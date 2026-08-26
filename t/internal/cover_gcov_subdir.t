@@ -110,13 +110,17 @@ headers() {
   printf '        -:    0:Data:%s\n' "${gcno%.gcno}.gcda"
   printf '        -:    0:Runs:1\n'
 }
+# FAKE_GCOV_STUBS gives Apple-style header-only stubs for unreadable sources
 if [[ -r $recorded ]]; then
-  {
-    headers
-    printf '        1:    1:%s\n' "$(cat "$recorded")"
-  } >"$out"
+  text=$(cat "$recorded")
+elif [[ ${FAKE_GCOV_STUBS:-} ]]; then
+  text=
 else
-  headers >"$out"
+  text='/*EOF*/'
+fi
+headers >"$out"
+if [[ $text ]]; then
+  printf '        1:    1:%s\n' "$text" >>"$out"
 fi
 echo "Creating '$out'"
 BASH
@@ -124,9 +128,10 @@ BASH
   $fakebin
 }
 
-sub run_cover ($dir, $fakebin) {
-  my $cmd = qq(cd '$dir' && PATH='$fakebin':"\$PATH" )
-    . "'$^X' '$Cover' -test -gcov -report text 2>&1";
+sub run_cover ($dir, $fakebin, @extra) {
+  my $opts = join " ", "-test", "-gcov", @extra, "-report", "text";
+  my $cmd
+    = qq(cd '$dir' && PATH='$fakebin':"\$PATH" ) . "'$^X' '$Cover' $opts 2>&1";
   my $out = `$cmd`;
   note $out;
   ($? >> 8, $out)
@@ -142,10 +147,7 @@ sub gcov_args ($dir) {
   $args
 }
 
-sub main () {
-  local $ENV{PERL5LIB} = join $Config{path_sep}, $Blib_lib, $Blib_arch,
-    ($ENV{PERL5LIB} // ());
-
+sub test_default_mode () {
   my $dir = tempdir(CLEANUP => 1);
   setup_dist($dir);
   my $fakebin = write_fake_gcov($dir);
@@ -166,6 +168,50 @@ sub main () {
     "stub .gcov from a foreign build is removed";
   unlike $out,  qr/Alien\.xs\s+\d/, "foreign build does not reach the report";
   unlike $args, qr/Inner/,          "no gcov run inside a bundled build";
+}
+
+# under -gcov_chdir the recorded source stays relative to the build root
+sub test_gcov_chdir () {
+  my $dir = tempdir(CLEANUP => 1);
+  setup_dist($dir);
+  my $fakebin = write_fake_gcov($dir);
+  my ($rc, $out) = run_cover($dir, $fakebin, "-gcov_chdir");
+
+  is $rc, 0, "cover -test -gcov -gcov_chdir exits successfully";
+
+  like gcov_args(File::Spec->catdir($dir, "lib", "Deep")),
+    qr/^-\S*p\S* Thing\.xs$/m, "gcov runs inside the subdirectory without -o";
+
+  like $out, qr|lib/Deep/Thing\.xs\s+100\.0|,
+    "subdirectory XS has statement coverage in the report";
+  like $out, qr/Top\.xs\s+100\.0/, "top-level XS has statement coverage";
+  like $out, qr|foreign/Alien\.xs\s+100\.0|,
+    "separate build is covered under -gcov_chdir";
+}
+
+# a root-compiled subdirectory XS gives a header-only stub under -gcov_chdir
+sub test_gcov_chdir_stub () {
+  my $dir = tempdir(CLEANUP => 1);
+  setup_dist($dir);
+  my $fakebin = write_fake_gcov($dir);
+  local $ENV{FAKE_GCOV_STUBS} = 1;
+  my ($rc, $out) = run_cover($dir, $fakebin, "-gcov_chdir");
+
+  is $rc, 0, "cover exits successfully when stubs are discarded";
+  unlike $out, qr|lib/Deep/Thing\.xs\s+\d|,
+    "header-only stub does not reach the report";
+  like $out, qr/discarding/, "stub discard is reported";
+  ok !-e File::Spec->catfile($dir, "lib", "Deep", "lib#Deep#Thing.xs.gcov"),
+    "stub .gcov is removed";
+}
+
+sub main () {
+  local $ENV{PERL5LIB} = join $Config{path_sep}, $Blib_lib, $Blib_arch,
+    ($ENV{PERL5LIB} // ());
+
+  test_default_mode;
+  test_gcov_chdir;
+  test_gcov_chdir_stub;
 
   done_testing;
 }
