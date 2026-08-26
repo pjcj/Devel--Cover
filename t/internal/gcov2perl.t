@@ -10,6 +10,7 @@ use Test::More import => [qw( diag done_testing is like ok unlike )];
 use Config         qw( %Config );
 use File::Basename qw( dirname );
 use File::Copy     qw( copy );
+use File::Path     qw( mkpath );
 use File::Spec     ();
 use File::Temp     qw( tempdir );
 
@@ -19,6 +20,8 @@ my $Test_dir = dirname(__FILE__);
 my $Root     = File::Spec->catdir($Test_dir, "..", "..");
 my $Bin      = File::Spec->catfile($Root, "bin", "gcov2perl");
 my $Fixtures = File::Spec->catdir($Root, "t", "fixtures", "gcov2perl");
+my $Abs_bin  = File::Spec->rel2abs($Bin);
+my $Abs_blib = File::Spec->rel2abs(File::Spec->catdir("blib", "lib"));
 
 sub setup ($stem) {
   my $tmpdir = tempdir(CLEANUP => 1);
@@ -139,11 +142,67 @@ sub test_branch_collected ($tmpdir) {
     "branch is advertised in collected criteria";
 }
 
+sub write_file ($path, $contents) {
+  open my $fh, ">", $path or die "Cannot create $path: $!";
+  print $fh $contents;
+  close $fh or die "Cannot close $path: $!";
+}
+
+sub subdir_gcov ($tmpdir, $source) {
+  my $deep = File::Spec->catdir($tmpdir, "lib", "Deep");
+  mkpath $deep;
+  write_file(File::Spec->catfile($deep, "Thing.xs"),      "int thing;\n");
+  write_file(File::Spec->catfile($deep, "Thing.xs.gcov"), <<GCOV);
+        -:    0:Source:$source
+        -:    0:Graph:Thing.gcno
+        -:    0:Data:Thing.gcda
+        -:    0:Runs:1
+        1:    1:int thing;
+GCOV
+}
+
+sub run_gcov2perl_in ($dir, $db_dir, $gcov_path) {
+  my $cmd = "cd '$dir' && $^X '-I$Abs_blib' '$Abs_bin' "
+    . "-db '$db_dir' '$gcov_path' 2>&1";
+  my $output    = `$cmd`;
+  my $exit_code = $? >> 8;
+  ($exit_code, $output);
+}
+
+# the Source: path may be relative to the build root, not the .gcov dir
+sub test_source_relative_to_root () {
+  my $tmpdir = tempdir(CLEANUP => 1);
+  subdir_gcov($tmpdir, "lib/Deep/Thing.xs");
+  my $db_dir = File::Spec->catdir($tmpdir, "cover_db");
+  my ($exit_code, $output)
+    = run_gcov2perl_in($tmpdir, $db_dir, "lib/Deep/Thing.xs.gcov");
+
+  is $exit_code, 0, "gcov2perl exits successfully on root-relative source";
+  unlike $output, qr/no source/,
+    "no doubled-path error for root-relative source";
+  like $output, qr/Writing coverage database/,
+    "gcov2perl writes database for root-relative source";
+}
+
+sub test_source_relative_to_gcov_dir () {
+  my $tmpdir = tempdir(CLEANUP => 1);
+  subdir_gcov($tmpdir, "Thing.xs");
+  my $db_dir = File::Spec->catdir($tmpdir, "cover_db");
+  my ($exit_code, $output)
+    = run_gcov2perl_in($tmpdir, $db_dir, "lib/Deep/Thing.xs.gcov");
+
+  is $exit_code, 0, "gcov2perl exits successfully on gcov-dir source";
+  like $output, qr/Writing coverage database/,
+    "gcov2perl writes database for gcov-dir-relative source";
+}
+
 sub main () {
   my $tmpdir = setup("simple");
   test_gcov2perl($tmpdir);
   test_skip_core($tmpdir);
   test_branch_collected(setup("branch"));
+  test_source_relative_to_root;
+  test_source_relative_to_gcov_dir;
   done_testing;
 }
 

@@ -60,10 +60,11 @@ sub is_core_path ($path) {
 }
 
 sub resolve_source ($source, $dir) {
-  my $f = $source;
-  $f = File::Spec->abs2rel(File::Spec->catfile($dir, $f))
-    unless File::Spec->file_name_is_absolute($f);
-  $f;
+  return $source if File::Spec->file_name_is_absolute($source);
+  my $f = File::Spec->abs2rel(File::Spec->catfile($dir, $source));
+  # the source may be recorded against the compilation directory, the cwd
+  return $source if !-f $f && -f $source;
+  $f
 }
 
 sub add_cover ($file) {
