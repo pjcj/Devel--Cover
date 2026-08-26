@@ -18,7 +18,7 @@ use File::Path qw( mkpath );
 use File::Spec ();
 use File::Temp qw( tempdir );
 
-use Test::More import => [qw( done_testing is note plan )];
+use Test::More import => [qw( done_testing is note ok plan )];
 
 if ($^O eq "MSWin32") {
   plan skip_all => "test drives a stub Build script";
@@ -86,12 +86,15 @@ sub test_mb_flags () {
   my @args = build_args($dir);
   is $args[0], "test", "Build runs the test action";
 
+  my ($config) = grep $args[$_] eq "--config", 0 .. $#args;
+  ok defined $config, "--config is passed to Build";
+  is $args[($config // -2) + 1], "optimize=-O0",
+    "optimisation is set through --config so it replaces the default";
+
   my ($c) = grep /^--extra_compiler_flags=/, @args;
   my ($l) = grep /^--extra_linker_flags=/,   @args;
-  is $c,
-    "--extra_compiler_flags="
-    . "-O0 -DCOMPILER_ONLY -fprofile-arcs -ftest-coverage",
-    "compiler flags hold the distribution and gcov flags";
+  is $c, "--extra_compiler_flags=-DCOMPILER_ONLY -fprofile-arcs "
+    . "-ftest-coverage", "compiler flags hold the distribution and gcov flags";
   is $l, "--extra_linker_flags=-Wl,-rpath,/opt/lib -fprofile-arcs "
     . "-ftest-coverage", "linker flags hold only linker and gcov flags";
 }
