@@ -37,7 +37,7 @@ sub report ($pkg, $db, $options) {
           start  => scalar gmtime $_->start,
           finish => scalar gmtime $_->finish,
       },
-      sort { $a->start <=> $b->start } $db->runs,
+      reverse($db->runs),
     ],
     cov_time => do {
       my $time = 0;

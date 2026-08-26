@@ -21,7 +21,7 @@ sub print_sort ($db, $options) {
   my @collected
     = grep Devel::Cover::Criterion->criterion_class($_)->measures_coverage,
     $options->{coverage}->@*;
-  for my $r (sort { $a->{start} <=> $b->{start} } $db->runs) {
+  for my $r (reverse $db->runs) {
     say "Run:          ", $r->run;
     say "Perl version: ", $r->perl;
     say "OS:           ", $r->OS;

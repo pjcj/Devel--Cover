@@ -1435,8 +1435,7 @@ sub cover ($self) {
 
 sub run_keys ($self) {
   $self->cover unless $self->{cover_valid};
-  sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
-    keys $self->{runs}->%*
+  $self->_sorted_run_keys
 }
 
 sub runs ($self) {
@@ -1822,13 +1821,16 @@ C<< $file->x >>.
 
   my @keys = $db->run_keys;
 
-Return run identifiers sorted by start time (most recent first).
+Return run identifiers sorted by start time (most recent first).  A run can
+lack its start time, probably when the code under test forks.  Such runs sort
+last, and runs sharing a start time are ordered by their identifiers, so the
+order is stable across invocations.
 
 =head2 runs
 
   my @runs = $db->runs;
 
-Return L<Devel::Cover::DB::Run> objects sorted by start time (most recent
+Return L<Devel::Cover::DB::Run> objects in L</run_keys> order (most recent
 first).
 
 =head2 set_structure

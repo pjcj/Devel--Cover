@@ -242,7 +242,7 @@ sub print_file_banner ($db, $file, $short) {
 }
 
 sub print_runs ($db, $) {
-  for my $r (sort { $a->{start} <=> $b->{start} } $db->runs) {
+  for my $r (reverse $db->runs) {
     say "Run:          ", $r->run;
     say "Perl version: ", $r->perl;
     say "OS:           ", $r->OS;
