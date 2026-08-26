@@ -8,6 +8,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 use Test::More import => [qw( diag done_testing is like ok unlike )];
 
 use Config         qw( %Config );
+use Cwd            qw( getcwd );
 use File::Basename qw( dirname );
 use File::Copy     qw( copy );
 use File::Path     qw( mkpath );
@@ -162,10 +163,12 @@ GCOV
 }
 
 sub run_gcov2perl_in ($dir, $db_dir, $gcov_path) {
-  my $cmd = "cd '$dir' && $^X '-I$Abs_blib' '$Abs_bin' "
-    . "-db '$db_dir' '$gcov_path' 2>&1";
+  my $cwd = getcwd;
+  chdir $dir or die "Cannot chdir $dir: $!";
+  my $cmd = qq("$^X" "-I$Abs_blib" "$Abs_bin" -db "$db_dir" "$gcov_path" 2>&1);
   my $output    = `$cmd`;
   my $exit_code = $? >> 8;
+  chdir $cwd or die "Cannot chdir $cwd: $!";
   ($exit_code, $output);
 }
 
