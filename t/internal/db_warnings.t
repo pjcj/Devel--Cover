@@ -42,13 +42,14 @@ use Devel::Cover::DB ();
 }
 
 # Every warning in DB.pm must go through dcwarn, so a new bare warn cannot
-# creep back in.  Comments are allowed to mention warn.
+# creep back in.  Comments and documentation are allowed to mention warn.
 sub test_no_bare_warn () {
   my $file = $INC{"Devel/Cover/DB.pm"};
   ok $file, "guard: found DB.pm in %INC";
   open my $fh, "<", $file or die "Cannot open $file: $!";
   my @bare;
   while (my $l = <$fh>) {
+    last if $l =~ /^__END__$/;
     next if $l =~ /^\s*#/;
     push @bare, "line $.: $l" if $l =~ /\bwarn[ (\$]/;
   }
