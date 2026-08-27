@@ -818,9 +818,6 @@ sub add_subroutine ($self, $cc, $sc, $fc, $uc) {
 #       observed_vectors() below.
 sub observed_vectors ($entry) { $entry->[3] }
 
-# A "when:<inputs>" mark resolves to the row whose operand values match, a
-# deprecated word to its fixed row; marks naming no row are dropped here
-# and warned about at report time
 sub _resolve_condition_uncoverable ($marks, $type) {
   return $marks unless $marks && any { defined $_->[0] } @$marks;
   require Devel::Cover::Condition_table;
@@ -1169,8 +1166,6 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
   }
 }
 
-# Per-column uncoverable vector for one mcdc decision, or undef if unmarked. A
-# marker with a column marks that condition; one without marks every column.
 sub _mcdc_uncoverable ($unc, $file, $line, $n, $total) {
   my $marks = $unc && $unc->{$line}[$n] or return undef;
   my @uncov;
@@ -1207,11 +1202,6 @@ sub _lib_preferred ($self, $file) {
   -e $ff ? $ff : $file
 }
 
-# The same content can be recorded under more than one name - a copy or a
-# symlink run from a directory deleted before the report is built.  When
-# names compete for a digest, prefer a path that still exists, outside the
-# temp directory and relative to the project tree, so a vanished alias
-# cannot become the reported name and hide the real file.
 sub _choose_canonical_files ($self, $runs, $digests, $uncoverable) {
   my %candidates;
   for my $run (@$runs) {
@@ -1365,6 +1355,13 @@ sub _warn_unmatched_uncoverable ($self, $cover, $uncoverable, $digests) {
   }
 }
 
+sub _sorted_run_keys ($self) {
+  my $runs = $self->{runs};
+  my %start
+    = map { $_ => ref $runs->{$_} ? $runs->{$_}{start} : undef } keys %$runs;
+  sort { ($start{$b} || 0) <=> ($start{$a} || 0) || $b cmp $a } keys %start
+}
+
 sub cover ($self) {
   return $self->{cover} if $self->{cover_valid};
 
@@ -1377,13 +1374,7 @@ sub cover ($self) {
     Devel::Cover::DB::Structure->new(base => $self->{base})->read_all;
   };
 
-  # Sometimes the start value is undefined.  It's not yet clear why, but it
-  # probably has something to do with the code under test forking.  We'll
-  # just try to cope with that here.
-  my @runs = sort {
-    ($self->{runs}{$b}{start} || 0) <=> ($self->{runs}{$a}{start} || 0)
-      || $b cmp $a
-  } keys $self->{runs}->%*;
+  my @runs = $self->_sorted_run_keys;
 
   $self->_choose_canonical_files(\@runs, \%digests, $uncoverable);
 
@@ -1434,8 +1425,7 @@ sub cover ($self) {
 
 sub run_keys ($self) {
   $self->cover unless $self->{cover_valid};
-  sort { $self->{runs}{$b}{start} <=> $self->{runs}{$a}{start} }
-    keys $self->{runs}->%*
+  $self->_sorted_run_keys
 }
 
 sub runs ($self) {
@@ -1821,13 +1811,16 @@ C<< $file->x >>.
 
   my @keys = $db->run_keys;
 
-Return run identifiers sorted by start time (most recent first).
+Return run identifiers sorted by start time (most recent first).  A run can
+lack its start time, probably when the code under test forks.  Such runs sort
+last, and runs sharing a start time are ordered by their identifiers, so the
+order is stable across invocations.
 
 =head2 runs
 
   my @runs = $db->runs;
 
-Return L<Devel::Cover::DB::Run> objects sorted by start time (most recent
+Return L<Devel::Cover::DB::Run> objects in L</run_keys> order (most recent
 first).
 
 =head2 set_structure
@@ -1836,6 +1829,195 @@ first).
 
 Attach a L<Devel::Cover::DB::Structure> object for use by
 L</summarise_complexity>.
+
+=head1 PRIVATE SUBROUTINES
+
+=head2 _lock_db ($self)
+
+Take an exclusive lock on the database's F<merge.lock> file, creating it if
+necessary, and return the open handle. The lock is released when the handle
+goes out of scope.
+
+=head2 _merge_hash ($into, $from, $noadd = 0)
+
+Recursively merge the hash C<$from> into C<$into>. Arrays already present in
+C<$into> merge through C<_merge_array>, nested hashes recurse, and anything
+else is copied across.
+
+=head2 _merge_array ($into, $from, $noadd = 0)
+
+Merge the array C<$from> into C<$into> element by element, recursing into
+nested structures and summing numeric counts. With C<$noadd> set, or for
+values that are not plain numbers, differing values warn and the value from
+C<$from> wins. Extra elements in C<$from> are appended.
+
+=head2 _sub_coverage ($file_obj, $start, $end)
+
+Return the percentage of statement, branch and condition points covered
+between lines C<$start> and C<$end> of C<$file_obj>, or 100 if there are
+none.
+
+=head2 _crap ($cc, $cov_pct)
+
+Return the CRAP score for a subroutine with cyclomatic complexity C<$cc> and
+coverage percentage C<$cov_pct>.
+
+=head2 _scar ($crap)
+
+Return the SCAR value for a CRAP score - ten times its natural logarithm, or
+zero for scores of one or less.
+
+=head2 _file_coverage ($s_file)
+
+Return the combined statement, branch and condition coverage percentage from
+the summary entry C<$s_file>, or 100 if nothing was counted.
+
+=head2 _file_dir ($file)
+
+Return the directory part of C<$file>, or the empty string for a file at the
+top level.
+
+=head2 _file_cc_data ($file_obj, $cc_hash, $end_hash)
+
+Build per-subroutine complexity data for a compiled file from the structure's
+complexity and end-line hashes. Return the maximum, sum and count of the
+cyclomatic complexities along with a CRAP and SCAR entry for each subroutine,
+or nothing when the file has no subroutines.
+
+=head2 _summarise_dir_complexity ($self, $s, $dir_files, $dir_stats)
+
+Build the per-directory summary. Each directory aggregates the criterion
+totals of its files, and for directories with complexity data it also
+records a SCAR entry computed from the complexity-weighted mean of their
+subroutines' CRAP scores.
+
+=head2 _uncompiled_cc_data ($sub_data)
+
+Build the same per-subroutine complexity data as C<_file_cc_data> for an
+uncompiled file, using the statically estimated subroutine data and treating
+every subroutine as uncovered.
+
+=head2 _compiled_cc_data ($self, $st, $file_obj)
+
+Fetch the complexity and end-line hashes for C<$file_obj> from the structure
+C<$st> and pass them to C<_file_cc_data>. Return nothing when the file has no
+digest or no complexity data.
+
+=head2 _record_file_complexity ($s, $file, $d, $dir_stats, $totals)
+
+Store the complexity and SCAR summary entries for C<$file> from the data in
+C<$d>, and accumulate the figures into the per-directory statistics and the
+running totals.
+
+=head2 _record_total_complexity ($s, $totals)
+
+Store the Total complexity and SCAR summary entries from the accumulated
+totals.
+
+=head2 _format_summary_pct ($options, $part, $criterion)
+
+Format one percentage cell for the summary table, or C<n/a> when the
+criterion was not collected for that row.
+
+=head2 _format_summary_scar ($self, $file, $part, $have_ppi)
+
+Format the scar cell for a summary row. Files with no SCAR data show C<n/a>,
+except uncompiled files without PPI, which show C<->.
+
+=head2 _flag_uncoverable ($entry, $uncoverable, $counts)
+
+Apply parsed uncoverable marks to a coverage entry. A mark with an element
+index flags that element and a mark without one, from an C<all> comment,
+flags them all.
+
+=head2 _resolve_condition_uncoverable ($marks, $type)
+
+Resolve condition uncoverable marks to truth-table row indexes for the
+condition type C<$type>. A C<< when:<inputs> >> mark resolves to the row
+whose operand values match and a deprecated type word to its fixed row.
+Marks naming no row are dropped here and warned about at report time.
+
+=head2 _uncoverable_pair ($criterion, $pair, $has_type, $context)
+
+Validate a C<pair:> attribute, which applies only to mcdc, and return an
+arrayref holding the zero-based index of the condition it names.
+
+=head2 _uncoverable_when ($criterion, $patterns, $has_type, $context)
+
+Validate a C<when:> attribute, which applies only to conditions, and return
+its comma-separated patterns as C<when:> marks for later resolution.
+
+=head2 _uncoverable_class ($class, $context)
+
+Return C<$class> if it is a known uncoverable class, otherwise warn and
+return nothing.
+
+=head2 _uncoverable_counts ($count, $context)
+
+Parse a C<count:> attribute, expanding ranges, and return the counts as an
+arrayref. Counts below one warn and invalidate the comment.
+
+=head2 _uncoverable_details ($criterion, $info, $file, $line)
+
+Parse the attributes of one uncoverable comment and return its counts,
+types, class and note. Invalid attributes warn, giving the file and line,
+and invalidate the comment.
+
+=head2 _derive_mcdc ($self, $cover, $uncoverable = {})
+
+Derive mcdc coverage for every file from its condition truth tables. The
+condition pairs for each decision come from the analyser, decisions too wide
+to analyse are flagged and warned about, and explicit uncoverable mcdc
+markers are merged with conditions the analyser excused.
+
+=head2 _mcdc_uncoverable ($unc, $file, $line, $n, $total)
+
+Return the per-column uncoverable vector for one mcdc decision, or undef
+when it carries no markers. A marker with a column marks that condition and
+one without marks every column.
+
+=head2 _file_digest ($r, $file)
+
+Return the digest recorded for C<$file> in run C<$r>, or undef, logging the
+miss unless the file is one expected to have no digest.
+
+=head2 _lib_preferred ($self, $file)
+
+Under C<prefer_lib>, return the F<lib> path for a F<blib> file when it
+exists, otherwise return C<$file> unchanged.
+
+=head2 _choose_canonical_files ($self, $runs, $digests, $uncoverable)
+
+Pick a canonical name for content recorded under more than one name - a copy
+or a symlink run from a directory deleted before the report is built. When
+names compete for a digest, prefer a path that still exists, outside the
+temp directory and relative to the project tree, so a vanished alias cannot
+become the reported name and hide the real file.
+
+=head2 _cover_file
+
+Merge one file's coverage data from one run into the cover structure, keyed
+by the canonical name for the file's digest. Parse the file's uncoverable
+comments the first time its digest is seen and dispatch each criterion to
+its C<add_*> method.
+
+=head2 _uncoverable_mark_warnings ($criterion, $slot, $entry, $file, $line, $n)
+
+Return warnings for uncoverable marks that name no row of their entry, such
+as C<condition false> on C<//> or an unmatched C<when:>, including
+deprecation warnings for condition type words.
+
+=head2 _warn_unmatched_uncoverable ($self, $cover, $uncoverable, $digests)
+
+Warn, in a stable order, about uncoverable comments that matched no coverage
+and about marks that do not apply to the construct they annotate.
+
+=head2 _sorted_run_keys ($self)
+
+Return the run keys sorted as L</run_keys> describes. The start times are
+pulled out without dereferencing the runs, since a run can be undef (as
+self-coverage runs produce) and autovivifying it would stop
+L</objectify_cover> deleting it.
 
 =head1 SEE ALSO
 

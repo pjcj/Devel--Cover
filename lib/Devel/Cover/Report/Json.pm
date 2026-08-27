@@ -24,7 +24,7 @@ use Getopt::Long                  qw( GetOptions );
 
 sub _runs ($db) {
   my @runs;
-  for my $r (sort { $a->{start} <=> $b->{start} } $db->runs) {
+  for my $r (reverse $db->runs) {
     push @runs,
       { map { $_ => $r->$_ }
         qw( run perl OS dir name version abstract start finish ) };
