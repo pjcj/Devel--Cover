@@ -618,7 +618,7 @@ sub file_summary ($self, $files, %options) {
 }
 
 sub trimmed_file ($f, $len) {
-  substr $f, 0, 3 - $len, "..." if length $f > $len;
+  substr $f, 0, 3 - $len, "..." if $len > 3 && length $f > $len;
   $f
 }
 
@@ -638,6 +638,21 @@ sub _format_summary_scar ($self, $file, $part, $have_ppi) {
   return "n/a" if $file eq "Total";
   my $uncompiled = $self->cover->file($file)->{meta}{uncompiled};
   $uncompiled && !$have_ppi ? "-" : "n/a"
+}
+
+my $Min_file_width = 12;
+
+sub _term_width () {
+  !$ENV{DEVEL_COVER_TEST_SUITE} && $Has_term_size && -t STDOUT
+    ? (Term::Size::chars(\*STDOUT))[0]
+    : 80
+}
+
+sub _file_width ($width, $nc, $max) {
+  my $fw = $width - $nc * 7 - 3;
+  $fw = $Min_file_width if $fw < $Min_file_width;
+  $fw = $max            if $max < $fw;
+  $fw
 }
 
 sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
@@ -660,14 +675,8 @@ sub print_summary ($self, $files = undef, $criteria = undef, $opts = {}) {
 
   for (@files) { $max = length $short->{$_} if length $short->{$_} > $max }
 
-  my $width
-    = !$ENV{DEVEL_COVER_TEST_SUITE}
-    && $Has_term_size
-    && -t STDOUT ? (Term::Size::chars(\*STDOUT))[0] : 80;
-  my $nc = $n + 1;               # criterion columns plus scar
-  my $fw = $width - $nc * 7 - 3;
-
-  $fw = $max if $max < $fw;
+  my $nc = $n + 1;                              # criterion columns plus scar
+  my $fw = _file_width(_term_width, $nc, $max);
 
   no warnings "uninitialized";
   my $fmt = "%-${fw}s" . " %6s" x $nc . "\n";
@@ -1659,7 +1668,8 @@ C<< $db->{dir_summary} >> is still recalculated over the restricted files.
   my $short = Devel::Cover::DB::trimmed_file($filename, $max_len);
 
 Truncate C<$filename> to C<$max_len> characters, replacing the leading portion
-with C<...> if necessary. This is a plain function, not a method.
+with C<...> if necessary. A length below 4 leaves the filename unchanged, since
+the C<...> marker alone would fill it. This is a plain function, not a method.
 
 =head2 print_summary
 
@@ -1923,6 +1933,20 @@ criterion was not collected for that row.
 
 Format the scar cell for a summary row. Files with no SCAR data show C<n/a>,
 except uncompiled files without PPI, which show C<->.
+
+=head2 _term_width ()
+
+Return the terminal width for the summary table. Uses L<Term::Size> when it is
+available and STDOUT is a terminal. Otherwise, and under
+C<DEVEL_COVER_TEST_SUITE>, the width is 80.
+
+=head2 _file_width ($width, $nc, $max)
+
+Return the width of the filename column - the terminal width left over after
+C<$nc> data columns, raised to a minimum which keeps a basename readable. The
+column is never wider than C<$max>, the longest short filename. In a terminal
+too narrow for the table the rows overflow and wrap rather than losing their
+filenames.
 
 =head2 _flag_uncoverable ($entry, $uncoverable, $counts)
 
