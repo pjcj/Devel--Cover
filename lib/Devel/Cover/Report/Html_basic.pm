@@ -396,6 +396,8 @@ sub get_options ($self, $opt) {
     );
 }
 
+sub uses_annotations ($pkg) { 1 }
+
 sub report ($pkg, $db, $options) {
   $Template = Template->new({
     LOAD_TEMPLATES =>

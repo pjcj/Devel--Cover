@@ -539,7 +539,8 @@ sub _render_truth_tables ($line) {
 }
 
 sub render_line_detail ($line) {
-  my $o = qq(<tr class="line-detail"><td colspan="4">\n);
+  my $span = 4 + ($R{ann_cols} // [])->@*;
+  my $o    = qq(<tr class="line-detail"><td colspan="$span">\n);
 
   if ($line->{subroutines}) {
     for my $s ($line->{subroutines}->@*) {
@@ -707,6 +708,9 @@ sub render_source_line ($line) {
   my $n = $line->{number};
   $o .= qq(<td role="cell" class="ln"><a id="L$n" href="#L$n">$n</a></td>\n);
 
+  $o .= qq(<td role="cell" class="ann$_->{class}">$_->{text}</td>)
+    for ($line->{annotations} // [])->@*;
+
   $o .= count_cell($line, $cov_defined);
 
   my $chevron = $has_detail ? "&#x25b6;" : "";
@@ -838,6 +842,14 @@ HTML
 <div class="minimap"></div>
 <table class="source-table" role="table" aria-label="Coverage for $short">
 HTML
+
+  if (my @cols = ($R{ann_cols} // [])->@*) {
+    my $heads = join "",
+        map '<th class="ann-h">'
+      . escape_html($_->[0]->header($_->[1]))
+      . "</th>", @cols;
+    $o .= qq(<tr><th></th>$heads<th></th><th></th><th></th></tr>\n);
+  }
 
   $o .= render_source_line($_) for @$lines;
   $o .= "</table>\n";
@@ -1279,6 +1291,17 @@ sub read_source ($file) {
   @hl ? @hl : map escape_html($_), @all_lines
 }
 
+sub line_annotations ($file, $n) { [
+  map {
+    my ($ann, $i) = @$_;
+    my $cls = $ann->class($file, $n, $i);
+    {
+      text  => escape_html($ann->text($file, $n, $i) // ""),
+      class => $cls ? " " . escape_html($cls) : "",
+    }
+  } $R{ann_cols}->@*
+] }
+
 sub build_source_lines ($file) {
   my $f = $R{db}->cover->file($file);
 
@@ -1291,6 +1314,7 @@ sub build_source_lines ($file) {
     chomp $l;
 
     my %line = (number => $n, text => length $l ? $l : "&nbsp;");
+    $line{annotations} = line_annotations($file, $n) if $R{ann_cols}->@*;
 
     line_statement($f, $n, \%line);
 
@@ -1343,6 +1367,7 @@ sub build_untested_source_lines ($file) {
     $n++;
     chomp $l;
     my %line = (number => $n, text => length $l ? $l : "&nbsp;");
+    $line{annotations} = line_annotations($file, $n) if $R{ann_cols}->@*;
     push @lines, \%line;
     last if $l =~ /^__(END|DATA)__/;
   }
@@ -1355,6 +1380,8 @@ sub write_file ($path, $content) {
   print $fh $content;
   close $fh or die "Can't close $path: $!\n";
 }
+
+sub uses_annotations ($pkg) { 1 }
 
 sub get_options ($self, $opt) {
   $opt->{option}{outputfile} = "coverage.html";
@@ -1478,6 +1505,12 @@ sub report ($pkg, $db, $options) {
       ),
       total => "total",
     },
+    ann_cols => [
+      map {
+        my $ann = $_;
+        map [$ann, $_], 0 .. $ann->count - 1
+      } ($options->{annotations} // [])->@*
+    ],
     filenames      => unique_filenames($options->{file}->@*),
     have_ppi       => eval { require PPI; 1 } ? 1 : 0,
     favicon_colour => favicon("c3"),
@@ -2026,6 +2059,18 @@ tr.dir-file td:first-child a {
 
 .ln a { color: var(--fg-muted); }
 .ln a:hover { color: var(--link); }
+
+.ann, .ann-h {
+  width: 1px;
+  white-space: nowrap;
+  text-align: left;
+  color: var(--fg-muted);
+  font-size: var(--font-size-small);
+  padding: 0 8px !important;
+  border-right: 1px solid var(--border);
+}
+
+.ann-h { font-weight: 600; }
 
 .count {
   width: 1px;

@@ -465,6 +465,8 @@ sub print_subroutines ($db, $file, $options, $short) {
   say "";
 }
 
+sub uses_annotations ($pkg) { 1 }
+
 sub report ($, $db, $options) {
   my @files = $options->{file}->@*;
   my ($prefix, $short) = common_prefix(@files);

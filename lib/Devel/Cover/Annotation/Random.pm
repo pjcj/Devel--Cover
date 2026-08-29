@@ -62,7 +62,8 @@ Devel::Cover::Annotation::Random - Example annotation for formatters
 
 =head1 SYNOPSIS
 
- cover -report text -annotation random -count 3  # Or any other report type
+ cover -report text -annotation random -count 3  # Or any report supporting
+                                                 # annotations
 
 =head1 DESCRIPTION
 
