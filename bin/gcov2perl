@@ -95,14 +95,14 @@ sub add_cover ($file) {
       if ($Options->{skip_core} && is_core_path($f)) {
         dcinfo "skipping Perl CORE source $f from $file";
         close $fh or die "Can't close $file: $!\n";
-        return;
+        return 1;
       }
     }
     unless (defined $run{digests}{$f}) {
       unless (-f $f) {
         dcerror "no source $f found for $file";
         close $fh or die "Can't close $file: $!\n";
-        return;
+        return 0;
       }
       $run{digests}{$f} = $structure->set_file($f);
     }
@@ -164,14 +164,17 @@ sub add_cover ($file) {
 
   dcinfo "Writing coverage database to $db";
   $cover->write;
+
+  1
 }
 
 sub main () {
   get_options;
-  add_cover $_ for @ARGV;
+  my $failed = grep !add_cover($_), @ARGV;
+  $failed > 255 ? 255 : $failed
 }
 
-main
+exit main;
 
 __END__
 
