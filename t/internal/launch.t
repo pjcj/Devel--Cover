@@ -15,30 +15,24 @@ no warnings qw( experimental::postderef experimental::signatures );
 use List::Util qw( any );
 use Test::More import => [qw( diag done_testing note ok plan )];
 
-opendir my $d, "lib/Devel/Cover/Report";
-my @Reporters = map { s/\.pm$//r } grep /\.pm$/, readdir $d;
-closedir $d;
-
-{
-  local $SIG{__WARN__} = sub { };
-  eval "use HTML::Entities; 1";
-  if ($@) {
-    plan skip_all => "No HTML::Entities";
-    exit;
-  }
-}
-
 my @Reporters_with_launch = qw(
   Html Html_basic Html_crisp Html_minimal Html_subtle
 );
 
-for my $launcher (@Reporters_with_launch) {
-  ok grep($_ eq $launcher, @Reporters), "$launcher is a reporter";
+sub read_reporters () {
+  opendir my $d, "lib/Devel/Cover/Report";
+  my @reporters = map s/\.pm$//r, grep /\.pm$/, readdir $d;
+  closedir $d;
+  @reporters
 }
 
-# Check that the expected reporters support the launch feature
-for my $reporter (@Reporters) {
-  my $class  = "Devel::Cover::Report::" . $reporter;
+sub test_launch_list ($reporters) {
+  for my $launcher (@Reporters_with_launch) {
+    ok grep($_ eq $launcher, @$reporters), "$launcher is a reporter";
+  }
+}
+
+sub load_reporter ($class) {
   my $loaded = eval "require $class; 1";
   my $err    = $@;
 
@@ -49,16 +43,23 @@ for my $reporter (@Reporters) {
     $err    = $@;
   }
 
+  ($loaded, $err)
+}
+
+sub test_reporter_launch ($reporter) {
+  my $class = "Devel::Cover::Report::" . $reporter;
+  my ($loaded, $err) = load_reporter($class);
+
   if (!$loaded && $err =~ m|^Can't locate (\S+\.pm) in \@INC|) {
     my $missing = $1;
     if ($missing !~ m|^Devel/Cover/|) {
       note "skipping $reporter: missing optional prerequisite $missing";
-      next;
+      return;
     }
   }
 
   ok $loaded, "$reporter loads" or diag $err;
-  next unless $loaded;
+  return unless $loaded;
 
   if (any { $_ eq $reporter } @Reporters_with_launch) {
     ok $class->can("launch"), "$reporter supports launch";
@@ -67,4 +68,20 @@ for my $reporter (@Reporters) {
   }
 }
 
-done_testing;
+sub main () {
+  {
+    local $SIG{__WARN__} = sub { };
+    eval "use HTML::Entities; 1";
+    if ($@) {
+      plan skip_all => "No HTML::Entities";
+      exit;
+    }
+  }
+
+  my @reporters = read_reporters;
+  test_launch_list(\@reporters);
+  test_reporter_launch($_) for @reporters;
+  done_testing;
+}
+
+main;
