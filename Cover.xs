@@ -625,6 +625,21 @@ static void dc_stmt_grow(dc_stmt_cache *c) {
  * counts.  The cache structure stays intact so that subsequent executions still
  * get cache hits.
  */
+static void dc_stmt_slot_flush(pTHX_ dc_stmt_slot *s, HV *statements) {
+  SV **sv;
+  IV   existing;
+
+  /* Reconstruct the struct unique key from cached fields */
+  struct unique uniq;
+  uniq.addr         = s->addr;
+  uniq.op_identity  = s->op_identity;
+  uniq.fileinfohash = s->fileinfohash;
+
+  sv = hv_fetch(statements, (char *)&uniq, KEY_SZ, 1);
+  existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
+  sv_setiv(*sv, existing + s->stmt_count);
+}
+
 static void dc_stmt_cache_flush(pTHX_ dc_stmt_cache *c, HV *statements) {
   size_t i;
 
@@ -633,18 +648,7 @@ static void dc_stmt_cache_flush(pTHX_ dc_stmt_cache *c, HV *statements) {
   for (i = 0; i < c->capacity; i++) {
     dc_stmt_slot *s = &c->slots[i];
     if (s->addr && s->stmt_count) {
-      SV **sv;
-      IV   existing;
-
-      /* Reconstruct the struct unique key from cached fields */
-      struct unique uniq;
-      uniq.addr         = s->addr;
-      uniq.op_identity  = s->op_identity;
-      uniq.fileinfohash = s->fileinfohash;
-
-      sv = hv_fetch(statements, (char *)&uniq, KEY_SZ, 1);
-      existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
-      sv_setiv(*sv, existing + s->stmt_count);
+      dc_stmt_slot_flush(aTHX_ s, statements);
       s->stmt_count = 0;
     }
   }
@@ -889,18 +893,8 @@ static void cover_current_statement(pTHX) {
         return;
       }
       /* Slab reuse: flush stale count, update slot in place */
-      if (slot->stmt_count) {
-        struct unique uniq;
-        SV **sv;
-        IV   existing;
-        uniq.addr         = slot->addr;
-        uniq.op_identity  = slot->op_identity;
-        uniq.fileinfohash = slot->fileinfohash;
-        sv = hv_fetch(MY_CXT.statements,
-                      (char *)&uniq, KEY_SZ, 1);
-        existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
-        sv_setiv(*sv, existing + slot->stmt_count);
-      }
+      if (slot->stmt_count)
+        dc_stmt_slot_flush(aTHX_ slot, MY_CXT.statements);
       slot->op_next      = PL_op->op_next;
       slot->cop_file     = CopFILE((COP *)PL_op);
       slot->op_identity  = hash_op_identity(PL_op);
@@ -2224,10 +2218,7 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
         OP   *next;
 
         NDEB(D(L, "Getting next\n"));
-        next = right->op_next;
-        while (next &&
-               (next->op_type == OP_NULL || next->op_type == OP_LINESEQ))
-          next = next->op_next;
+        next = skip_nulled_ops(right->op_next);
         if (!next) {
           /*
            * Sort block (or fold_constants): right->op_next is NULL so we can't
