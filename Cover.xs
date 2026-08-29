@@ -3340,6 +3340,7 @@ collect_inits()
     if (PL_initav)
       for (i = 0; i <= av_len(PL_initav); i++) {
         SV **cv = av_fetch(PL_initav, i, 0);
+        if (!cv || !*cv) continue;
         SvREFCNT_inc(*cv);
         av_push(MY_CXT.ends, *cv);
       }
@@ -3350,13 +3351,14 @@ set_last_end()
     dMY_CXT;
   PPCODE:
     int i;
-    SV *end = (SV *)get_cv("last_end", 0);
-    av_push(PL_endav, SvREFCNT_inc(end));
+    SV *end = (SV *)get_cv("Devel::Cover::last_end", 0);
+    if (end && PL_endav) av_push(PL_endav, SvREFCNT_inc(end));
     NDEB(svdump(end));
     if (!MY_CXT.ends) MY_CXT.ends = newAV();
     if (PL_endav)
       for (i = 0; i <= av_len(PL_endav); i++) {
         SV **cv = av_fetch(PL_endav, i, 0);
+        if (!cv || !*cv) continue;
         SvREFCNT_inc(*cv);
         av_push(MY_CXT.ends, *cv);
       }
