@@ -93,6 +93,11 @@ typedef struct {
  * cache, no flush is needed: the cached AV pointer IS the authoritative object
  * living in the conditions or branches HV.
  *
+ * The pointer is held without a reference count, and the RV in the backing HV
+ * is the AV's only owner, so nothing may remove entries from the branches or
+ * conditions HVs while ops run - a cleared entry would leave the cache
+ * dangling.
+ *
  * The same cache serves both condition and branch ops because the two sets are
  * disjoint (logops vs OP_COND_EXPR).
  */
@@ -523,12 +528,14 @@ static int check_if_collecting(pTHX_ COP *cop) {
       if (!SvROK(*dir)) {
         SV *cwd = newSV(0);
         AV *d   = newAV();
-        *dir = newRV_inc((SV*) d);
+        SvREFCNT_dec(*dir);
+        *dir = newRV_noinc((SV*) d);
         av_push(d, newSVsv(MY_CXT.module));
         if (getcwd_sv(cwd)) {
           av_push(d, newSVsv(cwd));
           NDEB(D(L, "require %s as %s from %s\n", m, file, SvPV_nolen(cwd)));
         }
+        SvREFCNT_dec(cwd);
       }
     }
     sv_setpv(MY_CXT.module, "");
@@ -738,7 +745,8 @@ static AV *dc_av_cached_fetch(pTHX_ dc_av_cache *cache, HV *backing_hv,
     if (SvROK(*svp)) {
       av = (AV *) SvRV(*svp);
     } else {
-      *svp = newRV_inc((SV*) (av = newAV()));
+      SvREFCNT_dec(*svp);
+      *svp = newRV_noinc((SV*) (av = newAV()));
       if (init_slots)
         av_unshift(av, init_slots);
     }
@@ -985,10 +993,12 @@ static AV *get_conds(pTHX_ AV *conds) {
   cref = hv_fetch(threads, t, strlen(t), 1);
   SvREFCNT_dec(tid);
 
-  if (SvROK(*cref))
+  if (SvROK(*cref)) {
     thrconds = (AV *)SvRV(*cref);
-  else
-    *cref = newRV_inc((SV*) (thrconds = newAV()));
+  } else {
+    SvREFCNT_dec(*cref);
+    *cref = newRV_noinc((SV*) (thrconds = newAV()));
+  }
 
   return thrconds;
 }
@@ -2235,10 +2245,12 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
         MUTEX_LOCK(&DC_mutex);
         cref = hv_fetch(Pending_conditionals, ch, KEY_SZ, 1);
 
-        if (SvROK(*cref))
+        if (SvROK(*cref)) {
           conds = (AV *)SvRV(*cref);
-        else
-          *cref = newRV_inc((SV*) (conds = newAV()));
+        } else {
+          SvREFCNT_dec(*cref);
+          *cref = newRV_noinc((SV*) (conds = newAV()));
+        }
 
         if (av_len(conds) < 0) {
           av_push(conds, newSViv(PTR2IV(next)));
@@ -2687,7 +2699,8 @@ static void initialise(pTHX) {
   MY_CXT.classifying_file  = 0;
 
   if (!MY_CXT.covering) {
-    /* TODO - this probably leaks all over the place */
+    /* MY_CXT keeps its own pointer to each criterion HV for the life of
+     * the interpreter, so the extra count from newRV_inc is deliberate */
 
     SV **tmp;
 
