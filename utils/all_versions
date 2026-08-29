@@ -301,24 +301,24 @@ sub _build_version ($v) {
     my $j  = njobs;
     sys "plenv install $n --as dc-$v -j $j $opts --noman" or do {
       warn "plenv $v failed";
-      return;
+      return 0;
     };
     unless (-d $dir) {
       warn "perl for $v does not exist";
-      return;
+      return 0;
     }
   }
 
   $ENV{PATH} = "$dir:$ENV{PATH}";
   sys "curl -L https://cpanmin.us | perl - App::cpanminus" or do {
     warn "cpanm installation for $v failed";
-    return;
+    return 0;
   };
 
   my @mods = _mods($v, $n);
   sys "cpanm --notest @mods" or do {
     warn "module installation for $v failed";
-    return;
+    return 0;
   };
 
   my $ln = "/usr/local/bin/dc-$v";
@@ -326,12 +326,15 @@ sub _build_version ($v) {
 
   my $perl = "$dir/perl";
   say "$perl => $ln";
-  sys "sudo ln -s $perl $ln" or warn "Can't ln $perl => $ln: $!";
+  sys "sudo ln -s $perl $ln" or do {
+    warn "Can't ln $perl => $ln: $!";
+    return 0;
+  };
+  1
 }
 
 sub _build_versions ($v) {
-  _build_version $v;
-  _build_version "$v-thr";
+  [[$v, _build_version($v)], ["$v-thr", _build_version("$v-thr")]]
 }
 
 sub build_default {
@@ -349,6 +352,12 @@ sub build {
     },
     [grep !/-thr/, $Options->{version}->@*],
   );
+  my @failed = map $_->[0], grep !$_->[1], map @$_, @res;
+  if (@failed) {
+    say colour("Failed builds: @failed", "red");
+    exit(@failed > 255 ? 255 : scalar @failed);
+  }
+  say colour("All builds succeeded.", "green");
   exit;
 }
 

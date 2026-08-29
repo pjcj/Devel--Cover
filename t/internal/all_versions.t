@@ -17,7 +17,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Temp qw( tempdir );
-use Test::More import => [qw( done_testing is isnt like plan )];
+use Test::More import => [qw( done_testing is isnt like plan skip )];
 
 if ($^O eq "MSWin32") {
   plan skip_all => "utils/all_versions is not used on Windows";
@@ -60,10 +60,32 @@ sub test_build_with_nothing_to_do_exits_zero () {
   like $out, qr/already built/, "the no-op build is reported";
 }
 
+sub test_build_failure_exits_nonzero () {
+  my ($out, $exit) = run_all_versions(qw( -version 5.99.0 --build --dry_run ));
+  isnt $exit, 0, "a failed build exits non-zero";
+  like $out, qr/Failed builds:.*\b5\.99\.0\b/, "the failed version is named";
+  like $out, qr/5\.99\.0-thr/, "the failed thread variant is named";
+}
+
+sub test_build_success_exits_zero () {
+  my ($dir)
+    = grep { -d "$_/bin" && -d "$_-thr/bin" }
+    glob "$ENV{HOME}/.plenv/versions/dc-5.*";
+  my ($v) = ($dir // "") =~ m|/dc-(5\.\d+\.\d+)$|;
+  SKIP: {
+    skip "no dc-* plenv build with a thread variant", 1 unless $v;
+    my ($out, $exit)
+      = run_all_versions("-version", $v, qw( --build --force --dry_run ));
+    is $exit, 0, "a successful dry-run build exits 0";
+  }
+}
+
 sub main () {
   test_missing_version_fails;
   test_list_still_exits_zero;
   test_build_with_nothing_to_do_exits_zero;
+  test_build_failure_exits_nonzero;
+  test_build_success_exits_zero;
   done_testing;
 }
 
