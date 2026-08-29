@@ -171,6 +171,7 @@ sub get_options {
     #>>>
   );
 
+  my $named = !$Options->{key} && $Options->{version}->@*;
   $Options->{version} = [
     map { ($_, "$_-thr") }
       #<<<
@@ -197,17 +198,34 @@ sub get_options {
       5.20.0 5.28.3 5.38.5 5.40.5 5.42.3 5.42.3-thr 5.44.0 5.44.0-thr 5.45.1
     )];
   }
+  my @wanted = $Options->{version}->@*;
   $Options->{version} = [
     grep {
       my $cmd    = "dc-$_ -v$Silent";
       my $exists = eval { !system $cmd };
       $Options->{force} || ($exists ^ $Options->{build})
-    } $Options->{version}->@*
+    } @wanted
   ];
+  my %kept = map { $_ => 1 } $Options->{version}->@*;
+  if (my @skipped = grep !$kept{$_}, @wanted) {
+    my $reason = $Options->{build} ? "already built" : "no dc-* wrapper";
+    if ($named) {
+      say "Skipping ($reason): @skipped";
+    } else {
+      printf "Skipping %d of %d versions (%s)\n", scalar @skipped,
+        scalar @wanted, $reason;
+    }
+  }
   say "Versions: @{$Options->{version}}";
-  if ($Options->{list}) {
+  exit   if $Options->{list};
+  return if $Options->{version}->@*;
+  if ($Options->{build}) {
+    say "Nothing to build: every requested version is already built.";
     exit;
   }
+  die "No Perl versions available.  Wanted: @wanted\n"
+    . "Run `plenv versions` to see what is installed, "
+    . "or `make all_build_perl`.\n";
 }
 
 sub sys ($command, $user = 0, $logfile = undef) {
@@ -418,7 +436,7 @@ sub main {
     }
     return 1;
   } else {
-    say colour("Passed: $total/$total", "green");
+    say colour("Passed: $total", "green");
     say colour("All versions passed.", "green", "bold");
   }
   0
