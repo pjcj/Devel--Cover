@@ -233,6 +233,11 @@ sub _compare_cover_output ($self, $cover_fh) {
     }
   }
   if ($self->{differences}) {
+    # compare any golden lines left after the live output ran out
+    while ($self->{cover}->@*) {
+      push @at, "";
+      push @ac, $self->_normalise_line(sub { shift $self->{cover}->@* });
+    }
     ## no critic (Variables::ProtectPrivateVars)
     no warnings "redefine";
     local *Test::_quote = sub { "@_" };
@@ -241,6 +246,11 @@ sub _compare_cover_output ($self, $cover_fh) {
       : eq_or_diff(\@at, \@ac, "output", { context => 0 });
   } elsif ($self->{no_coverage}) {
     pass("no coverage") for $self->{cover}->@*;
+  } else {
+    while ($self->{cover}->@*) {
+      my $c = $self->_normalise_line(sub { shift $self->{cover}->@* });
+      is "", $c, "coverage output";
+    }
   }
 }
 
