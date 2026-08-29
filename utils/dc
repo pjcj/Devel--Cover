@@ -374,6 +374,17 @@ recipe_install-dc-dev-perl() {
 }
 
 recipe_all-gold() {
+  local installed wanted v missing=()
+  installed=$(./utils/all_versions --list | sed -n 's/^Versions: //p')
+  wanted=$(./utils/all_versions --list --force | sed -n 's/^Versions: //p')
+  for v in $wanted; do
+    [[ " $installed " == *" $v "* ]] || missing+=("$v")
+  done
+  if ((${#missing[@]})) && ! ((force)); then
+    pe "Golden results for these versions cannot be regenerated here:"
+    pe "${missing[*]}"
+    pf "Install them, or rerun with --force to delete their files anyway"
+  fi
   if [[ -n $* ]]; then
     for fn in "$@"; do
       rm -f "test_output/cover/${fn}."*
@@ -382,6 +393,7 @@ recipe_all-gold() {
     rm -f test_output/cover/*
   fi
   ./utils/all_versions make gold "TEST=$*"
+  git status --porcelain test_output/cover 2>/dev/null || true
 }
 
 recipe_all-versions() {

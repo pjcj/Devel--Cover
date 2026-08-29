@@ -50,6 +50,14 @@ sub run_test_in_child ($test, $test_output) {
   my $pid = fork // die "Can't fork";
   if ($pid) {
     waitpid $pid, 0;
+    my $status = $?;
+    return 1 unless $status;
+    my $reason
+      = $status & 127
+      ? "killed by signal " . ($status & 127)
+      : "exited " . ($status >> 8);
+    warn "$test failed: $reason\n";
+    0
   } else {
     no warnings "redefine";
     local *Devel::Cover::Test::run_test = sub { };
@@ -64,8 +72,8 @@ sub main {
   my @tests       = grep $_ ne "--test-output", @ARGV;
 
   if (!$test_output && $Config{useithreads}) {
-    say "useithreads true, exiting";
-    return;
+    say "useithreads true, no golden results written";
+    return 0;
   }
 
   unless ($test_output) {
@@ -74,7 +82,12 @@ sub main {
   }
 
   @tests = get_tests_from_dir unless @tests;
-  run_test_in_child($_, $test_output) for @tests;
+  my @failed = grep !run_test_in_child($_, $test_output), @tests;
+  if (@failed) {
+    warn "Failed: @failed\n";
+    return @failed > 255 ? 255 : scalar @failed;
+  }
+  0
 }
 
-main
+exit main

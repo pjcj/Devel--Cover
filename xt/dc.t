@@ -497,6 +497,58 @@ sub seed_recipe () {
   ok $rc != 0, "seeding over an existing destination fails";
 }
 
+my $Dc_abs = realpath $Dc;
+
+sub make_gold_tree ($installed, $full) {
+  my $dir = tempdir(CLEANUP => 1);
+  mkdir "$dir/$_"
+    or die "Can't mkdir $dir/$_: $!"
+    for "utils", "test_output", "test_output/cover";
+  write_file("$dir/test_output/cover/foo.5.020000", "gold\n");
+  write_file("$dir/utils/all_versions",             <<~SH);
+    #!/bin/sh
+    case "\$*" in
+    "--list --force") echo "Versions: $full" ;;
+    "--list") echo "Versions: $installed" ;;
+    *) echo "\$@" >>args.log ;;
+    esac
+    SH
+  chmod 0755, "$dir/utils/all_versions"
+    or die "Can't chmod $dir/utils/all_versions: $!";
+  $dir
+}
+
+sub dc_in ($dir, @args) {
+  my $cmd = join " ", $Dc_abs, @args;
+  my $out = `cd $dir && $cmd 2>&1`;
+  ($out, $? >> 8)
+}
+
+sub all_gold_partial_machine () {
+  my $dir = make_gold_tree("5.20.0", "5.20.0 5.44.0");
+  my ($out, $exit) = dc_in($dir, "all-gold", "foo");
+  isnt $exit, 0, "a partial machine refuses to run";
+  ok -e "$dir/test_output/cover/foo.5.020000", "the golden file survives";
+  like $out, qr/5\.44\.0/, "the missing version is named";
+}
+
+sub all_gold_full_machine () {
+  my $dir = make_gold_tree("5.20.0 5.44.0", "5.20.0 5.44.0");
+  my ($out, $exit) = dc_in($dir, "all-gold", "foo");
+  is $exit, 0, "a full machine proceeds" or diag $out;
+  ok !-e "$dir/test_output/cover/foo.5.020000", "the golden file is removed";
+  like slurp("$dir/args.log"), qr/^make gold TEST=foo$/m,
+    "gold regeneration runs";
+}
+
+sub all_gold_forced () {
+  my $dir = make_gold_tree("5.20.0", "5.20.0 5.44.0");
+  my ($out, $exit) = dc_in($dir, "-f", "all-gold", "foo");
+  is $exit, 0, "--force overrides the guard" or diag $out;
+  like slurp("$dir/args.log"), qr/^make gold TEST=foo$/m,
+    "gold regeneration runs under force";
+}
+
 sub main () {
   my @tests = qw(
     compress_recipe
@@ -513,6 +565,9 @@ sub main () {
     seed_recipe
     check_caddy_recipe
     check_caddy_root_fallback
+    all_gold_partial_machine
+    all_gold_full_machine
+    all_gold_forced
   );
   for my $test (@tests) {
     no strict qw( refs );
