@@ -64,6 +64,32 @@ sub test_report_annotation_combination () {
     "no option-parsing error emitted";
 }
 
+sub write_blame_helper () {
+  my $helper = File::Spec->catfile($Tmpdir, "blame.pl");
+  open my $fh, ">", $helper or die "open $helper: $!";
+  print $fh <<'PERL';
+print "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef 1 1 1\n";
+print "author A U Thor\n";
+print "author-time 1234567890\n";
+print "\tmy code line\n";
+PERL
+  close $fh or die "close $helper: $!";
+  $helper
+}
+
+sub test_git_annotation_noauthor () {
+  my $helper = write_blame_helper;
+  my ($rc, $out) = run_cover(
+    "-report",     "text",
+    "-annotation", "git",
+    "-noauthor",   "-command",
+    qq("$^X $helper [[file]]"),
+  );
+  is $rc, 0, "-noauthor is accepted";
+  like $out,   qr/version/, "version column still present";
+  unlike $out, qr/author/,  "no author column in the report";
+}
+
 sub test_unknown_option_rejected () {
   my ($rc, $out)
     = run_cover("-silent", "-report", "text", "-definitely_not_an_option");
@@ -82,6 +108,7 @@ sub main () {
     test_report_annotation_combination;
   }
   test_unknown_option_rejected;
+  test_git_annotation_noauthor;
   done_testing;
 }
 

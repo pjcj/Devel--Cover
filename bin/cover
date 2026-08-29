@@ -696,6 +696,7 @@ The following command line options are supported:
  -outputdir dir        - directory for output               (default given db)
  -outputfile file      - file for output         (default report dependent)
  -launch               - launch report in viewer (if avail) (default off)
+ -annotation module    - add annotation columns to a report (default none)
 
  -select filename      - only report on the file            (default all)
  -select_dir dir       - include all Perl files in dir      (default none)
@@ -722,7 +723,17 @@ The following command line options are supported:
  coverage_database [coverage_database ...]
 
 The C<-report>, C<-select>, C<-select_dir>, C<-ignore>, C<-select_re>,
-C<-ignore_re>, and C<-coverage> options may be specified multiple times.
+C<-ignore_re>, C<-coverage>, and C<-annotation> options may be specified
+multiple times.
+
+The C<-annotation> option adds columns from an annotation module to the
+reports that support them.  The C<git> and C<random> annotation modules ship
+with Devel::Cover.  Any options an annotation module declares may follow it
+on the command line.  The git module accepts
+C<-author>, C<-date> and C<-sha>, each of which may be negated to remove its
+column, along with C<-command> to replace the C<git blame> command.
+C<cover> itself consumes C<-version> and C<-noversion>, so use C<-sha> and
+C<-nosha> for the sha column.
 
 The C<-outputfile> option applies to every report.  Reports which normally
 print to standard output write to the named file instead.

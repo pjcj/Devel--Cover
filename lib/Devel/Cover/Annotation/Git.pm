@@ -20,6 +20,7 @@ sub new ($class, @args) {
   my $annotate_arg = $ENV{DEVEL_COVER_GIT_ANNOTATE} || "";
   my $self         = {
     annotations => [qw( version author date )],
+    _columns    => [0 .. 2],
     command     => "git blame --porcelain $annotate_arg [[file]]",
     @args,
   };
@@ -82,30 +83,31 @@ sub get_options ($self, $opt) {
   $self->{$_} = 1 for $self->{annotations}->@*;
   die "Bad option" unless GetOptions(
     $self, qw(
-      author
+      author!
       command=s
-      date
-      version
+      date!
+      version|sha!
     ),
   );
+  $self->{_columns} = [grep $self->{ $self->{annotations}[$_] }, 0 .. 2];
 }
 
 sub count ($self) {
-  $self->{author} + $self->{date} + $self->{version}
+  scalar $self->{_columns}->@*
 }
 
 sub header ($self, $annotation) {
-  $self->{annotations}[$annotation]
+  $self->{annotations}[$self->{_columns}[$annotation]]
 }
 
 sub width ($self, $annotation) {
-  (8, 16, 24)[$annotation]
+  (8, 16, 24)[$self->{_columns}[$annotation]]
 }
 
 sub text ($self, $file, $line, $annotation) {
   return "" unless $line;
   $self->get_annotations($file);
-  $self->{_annotations}{$file}[$line - 1][$annotation]
+  $self->{_annotations}{$file}[$line - 1][$self->{_columns}[$annotation]]
 }
 
 sub error ($self, $file, $line, $annotation) { 0 }
