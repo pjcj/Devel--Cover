@@ -460,7 +460,7 @@ sub do_gcov ($dbname) {
     my @c = ($^X, @opts, $gcov2perl, "-db", $dbname, @gc);
     push @c, "-silent" if $Options->{silent};
     dcinfo "running @c";
-    system @c;
+    system(@c) == 0 or dcerror "gcov2perl exited non-zero (exit $?)";
   }
 }
 

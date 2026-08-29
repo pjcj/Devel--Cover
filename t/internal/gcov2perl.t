@@ -5,7 +5,7 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
-use Test::More import => [qw( diag done_testing is like ok unlike )];
+use Test::More import => [qw( diag done_testing is isnt like ok unlike )];
 
 use Config         qw( %Config );
 use Cwd            qw( getcwd );
@@ -199,6 +199,42 @@ sub test_source_relative_to_gcov_dir () {
     "gcov2perl writes database for gcov-dir-relative source";
 }
 
+sub missing_source_gcov ($tmpdir) {
+  my $gcov_path = File::Spec->catfile($tmpdir, "missing.c.gcov");
+  my $missing   = File::Spec->catfile($tmpdir, "no_such_file.c");
+  write_file(
+    $gcov_path, "        -:    0:Source:$missing\n" . "        1:    1:int x;\n"
+  );
+  $gcov_path
+}
+
+sub test_missing_source () {
+  my $tmpdir    = tempdir(CLEANUP => 1);
+  my $gcov_path = missing_source_gcov($tmpdir);
+  my $db_dir    = File::Spec->catdir($tmpdir, "cover_db");
+  my ($exit_code, $output) = run_gcov2perl($db_dir, $gcov_path);
+
+  isnt $exit_code, 0, "gcov2perl exits non-zero for a missing source";
+  like $output, qr/no source/, "gcov2perl reports the missing source";
+  ok !-d $db_dir, "no database directory for a missing source";
+}
+
+sub test_mixed_sources () {
+  my $tmpdir = setup("simple");
+  my $good   = File::Spec->catfile($tmpdir, "simple.c.gcov");
+  my $bad    = missing_source_gcov($tmpdir);
+  my $db_dir = File::Spec->catdir($tmpdir, "cover_db");
+  my $cmd    = join " ", $^X, "-Iblib/lib", $Bin, "-db", $db_dir, $bad, $good,
+    "2>&1";
+  my $output    = `$cmd`;
+  my $exit_code = $? >> 8;
+
+  isnt $exit_code, 0, "gcov2perl exits non-zero when one file fails";
+  like $output, qr/no source/, "gcov2perl reports the missing source";
+  ok -d File::Spec->catdir($db_dir, "runs"),
+    "the good file still writes its run";
+}
+
 sub main () {
   my $tmpdir = setup("simple");
   test_gcov2perl($tmpdir);
@@ -206,6 +242,8 @@ sub main () {
   test_branch_collected(setup("branch"));
   test_source_relative_to_root;
   test_source_relative_to_gcov_dir;
+  test_missing_source;
+  test_mixed_sources;
   done_testing;
 }
 

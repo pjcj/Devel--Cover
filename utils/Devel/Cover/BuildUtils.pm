@@ -14,9 +14,10 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
+use Cwd      qw( abs_path );
 use Exporter qw( import );
 
-our @EXPORT_OK = qw( find_prove cpus nice_cpus njobs prove_command );
+our @EXPORT_OK = qw( find_prove cpus nice_cpus njobs prove_command run_prove );
 
 sub find_prove () {
   my $perl = $^X;
@@ -25,11 +26,12 @@ sub find_prove () {
     $perl = "$dir/$perl";
   }
 
-  eval { $perl = readlink($perl) || $perl };
-  my ($dir)   = $perl =~ m|(.*)/[^/]+|;
+  eval { $perl = abs_path($perl) || $perl };
+  my ($dir) = $perl =~ m|(.*)/[^/]+|;
+  return unless defined $dir;
   my ($prove) = grep -x, <$dir/prove*>;
 
-  say "prove is in $dir";
+  say "prove is in $dir" if $prove;
 
   $prove
 }
@@ -58,6 +60,12 @@ sub prove_command () {
   "$prove -brj$cpus t"
 }
 
+sub run_prove () {
+  my $c = prove_command or die "No prove found alongside $^X\n";
+  say $c;
+  system($c) == 0
+}
+
 __END__
 
 =encoding utf8
@@ -69,7 +77,7 @@ Devel::Cover::BuildUtils - Build utility functions for Devel::Cover
 =head1 SYNOPSIS
 
  use Devel::Cover::BuildUtils qw(
-   find_prove cpus nice_cpus njobs prove_command
+   find_prove cpus nice_cpus njobs prove_command run_prove
  );
 
  my $prove = find_prove;     # path to prove executable
@@ -77,6 +85,7 @@ Devel::Cover::BuildUtils - Build utility functions for Devel::Cover
  my $j     = nice_cpus;      # adjusted for comfort
  my $jobs  = njobs;          # alias for nice_cpus
  my $cmd   = prove_command;  # e.g. "/usr/bin/prove -brj3 t"
+ my $pass  = run_prove;      # run the test suite
 
 =head1 DESCRIPTION
 
@@ -133,6 +142,13 @@ parallel. Equivalent to:
  "<prove> -brj<nice_cpus> t"
 
 Returns C<undef> if L</find_prove> fails.
+
+=head2 run_prove
+
+ my $pass = run_prove;
+
+Print and run L</prove_command>.  Calls C<die> when no C<prove> can be found
+and returns true when the test run passes.
 
 =head1 ENVIRONMENT
 
