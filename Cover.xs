@@ -2940,16 +2940,17 @@ static int runops_orig(pTHX) {
   return 0;
 }
 
-static char *svclassnames[] = {
+/* Only the AV row is currently used, via get_ends */
+static const char *const svclassnames[] = {
   "B::NULL",
   "B::IV",
   "B::NV",
-  "B::RV",
   "B::PV",
+  "B::INVLIST",
   "B::PVIV",
   "B::PVNV",
   "B::PVMG",
-  "B::BM",
+  "B::REGEXP",
   "B::GV",
   "B::PVLV",
   "B::AV",
@@ -2957,15 +2958,14 @@ static char *svclassnames[] = {
   "B::CV",
   "B::FM",
   "B::IO",
+  "B::OBJ",
 };
 
 static SV *make_sv_object(pTHX_ SV *arg, SV *sv) {
-  IV    iv;
-  char *type;
-
-  iv = PTR2IV(sv);
-  type = svclassnames[SvTYPE(sv)];
-  sv_setiv(newSVrv(arg, type), iv);
+  svtype t = SvTYPE(sv);
+  if (t >= sizeof(svclassnames) / sizeof(svclassnames[0]))
+    croak("make_sv_object: unhandled SV type %d", (int)t);
+  sv_setiv(newSVrv(arg, svclassnames[t]), PTR2IV(sv));
   return arg;
 }
 
