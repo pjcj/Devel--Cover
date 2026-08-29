@@ -21,8 +21,6 @@ extern "C" {
 }
 #endif
 
-#define CALLOP *PL_op
-
 #define MY_CXT_KEY "Devel::Cover::_guts" XS_VERSION
 
 #define PDEB(a) a
@@ -2942,27 +2940,6 @@ static int runops_orig(pTHX) {
   return 0;
 }
 
-#if defined DO_RUNOPS_TRACE
-static int runops_trace(pTHX) {
-  PDEB(D(L, "entering runops_trace\n"));
-
-  for (;;) {
-    PDEB(D(L, "running func %p from %p (%s)\n",
-           PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
-
-    if (!(PL_op = PL_op->op_ppaddr(aTHX)))
-      break;
-
-    PERL_ASYNC_CHECK();
-  }
-
-  PDEB(D(L, "exiting runops_trace\n"));
-
-  TAINT_NOT;
-  return 0;
-}
-#endif
-
 static char *svclassnames[] = {
   "B::NULL",
   "B::IV",
@@ -3517,9 +3494,6 @@ BOOT:
       elapsed();
 #elif defined HAS_TIMES
       cpu();
-#endif
-#if defined DO_RUNOPS_TRACE
-      PL_runops = runops_trace;
 #endif
     } else {
       PL_runops = runops_cover;
