@@ -90,6 +90,27 @@ sub test_git_annotation_noauthor () {
   unlike $out, qr/author/,  "no author column in the report";
 }
 
+sub test_report_ignoring_annotation_warns () {
+  my ($rc, $out)
+    = run_cover("-report", "compilation", "-annotation", "random", "-count", 1);
+  is $rc, 0, "a report without annotation support still runs";
+  like $out, qr/Warning: the compilation report ignores -annotation/,
+    "the ignored annotation is warned about";
+}
+
+sub test_supporting_report_does_not_warn () {
+  my ($rc, $out)
+    = run_cover("-report", "text", "-annotation", "random", "-count", 1);
+  is $rc, 0, "text report runs with annotations";
+  unlike $out, qr/ignores -annotation/, "no warning for a supporting report";
+}
+
+sub test_no_annotation_does_not_warn () {
+  my ($rc, $out) = run_cover("-report", "compilation");
+  is $rc, 0, "compilation report runs";
+  unlike $out, qr/ignores -annotation/, "no warning without -annotation";
+}
+
 sub test_unknown_option_rejected () {
   my ($rc, $out)
     = run_cover("-silent", "-report", "text", "-definitely_not_an_option");
@@ -107,6 +128,9 @@ sub main () {
       unless eval { require JSON::MaybeXS; 1 };
     test_report_annotation_combination;
   }
+  test_report_ignoring_annotation_warns;
+  test_supporting_report_does_not_warn;
+  test_no_annotation_does_not_warn;
   test_unknown_option_rejected;
   test_git_annotation_noauthor;
   done_testing;

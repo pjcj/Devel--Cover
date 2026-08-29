@@ -21,7 +21,7 @@ BEGIN {
 use Devel::Cover::Criterion ();
 use Devel::Cover::DB        ();
 use Devel::Cover::Inc       ();
-use Devel::Cover::Log       qw( dcerror dcinfo );
+use Devel::Cover::Log       qw( dcerror dcinfo dcwarn );
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
@@ -210,6 +210,14 @@ sub check_options () {
 
   $Options->{annotations}
     = [map get_annotation($_), $Options->{annotation}->@*];
+
+  if ($Options->{annotations}->@*) {
+    for my $report ($Options->{report}->@*) {
+      my $format = "Devel::Cover::Report::\u$report";
+      dcwarn "the $report report ignores -annotation"
+        unless $format->can("uses_annotations") && $format->uses_annotations;
+    }
+  }
 
   say "$0 version $VERSION$Devel::Cover::Inc::Dev" and exit 0
     if $Options->{version};
@@ -727,9 +735,10 @@ C<-ignore_re>, C<-coverage>, and C<-annotation> options may be specified
 multiple times.
 
 The C<-annotation> option adds columns from an annotation module to the
-reports that support them.  The C<git> and C<random> annotation modules ship
-with Devel::Cover.  Any options an annotation module declares may follow it
-on the command line.  The git module accepts
+reports that support them - C<html>, C<html_basic> and C<text>.  Other
+reports warn that they ignore the annotations.  The C<git> and C<random>
+annotation modules ship with Devel::Cover.  Any options an annotation module
+declares may follow it on the command line.  The git module accepts
 C<-author>, C<-date> and C<-sha>, each of which may be negated to remove its
 column, along with C<-command> to replace the C<git blame> command.
 C<cover> itself consumes C<-version> and C<-noversion>, so use C<-sha> and

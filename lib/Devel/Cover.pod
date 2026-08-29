@@ -82,7 +82,7 @@ editors.
 It is possible to add annotations to reports, for example you can add a column
 to an HTML report showing who last changed a line, as determined by git blame.
 Some annotation modules are shipped with Devel::Cover and you can easily create
-your own.
+your own.  The C<html>, C<html_basic> and C<text> reports support annotations.
 
 The F<gcov2perl> program can be used to convert gcov files to C<Devel::Cover>
 databases.  This allows you to display your C or XS code coverage together with
