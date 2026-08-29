@@ -457,8 +457,8 @@ wrun : pure_all
 \t   -MDevel::Cover=-ignore,blib,-merge,0 tests/\$(TEST)
 
 prove : pure_all
-\t \$(PERL) -Iutils -MDevel::Cover::BuildUtils=prove_command \\
-\t   -le '\$\$c = prove_command and print \$\$c and system \$\$c'
+\t \$(PERL) -Iutils -MDevel::Cover::BuildUtils=run_prove \\
+\t   -e 'exit(run_prove ? 0 : 1)'
 
 NICE_CPUS = \$(PERL) -Iutils -MDevel::Cover::BuildUtils=nice_cpus \\
 \t -e 'print nice_cpus'
