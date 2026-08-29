@@ -16,6 +16,8 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 use Getopt::Long qw( GetOptions );
 
+use Devel::Cover::Log qw( dcinfo );
+
 sub new ($class, @args) {
   my $annotate_arg = $ENV{DEVEL_COVER_GIT_ANNOTATE} || "";
   my $self         = {
@@ -41,7 +43,7 @@ sub get_annotations ($self, $file) {
   return if exists $self->{_annotations}{$file};
   my $annotations = $self->{_annotations}{$file} = [];
 
-  print "cover: Getting git annotation information for $file\n";
+  dcinfo "Getting git annotation information for $file";
 
   my $quoted  = _shell_quote($file);
   my $command = $self->{command};

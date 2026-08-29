@@ -17,7 +17,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Temp qw( tempdir );
-use Test::More import => [qw( done_testing is ok )];
+use Test::More import => [qw( done_testing is like ok )];
 
 use Devel::Cover::Annotation::Git;
 
@@ -119,9 +119,40 @@ sub test_repeated_commit () {
     "repeated commit keeps its own date";
 }
 
-test_version_column;
-test_path_with_spaces;
-test_path_with_metacharacters;
-test_repeated_commit;
+sub capture_annotation ($file) {
+  my $git = annotator_for(write_helper);
+  my ($stdout, $stderr) = ("", "");
+  {
+    local *STDOUT;
+    local *STDERR;
+    open STDOUT, ">", \$stdout or die "Can't redirect STDOUT: $!";
+    open STDERR, ">", \$stderr or die "Can't redirect STDERR: $!";
+    $git->get_annotations($file);
+  }
+  ($stdout, $stderr)
+}
 
+sub test_status_line_routing () {
+  my ($stdout, $stderr) = capture_annotation("lib/Foo.pm");
+  is $stdout, "", "the status line stays off STDOUT";
+  like $stderr, qr|^cover: Getting git annotation information for lib/Foo|m,
+    "the status line goes to STDERR";
+}
+
+sub test_status_line_honours_silent () {
+  local $Devel::Cover::Silent = 1;
+  my ($stdout, $stderr) = capture_annotation("lib/Bar.pm");
+  is $stdout . $stderr, "", "-silent suppresses the status line";
+}
+
+sub main () {
+  test_version_column;
+  test_path_with_spaces;
+  test_path_with_metacharacters;
+  test_repeated_commit;
+  test_status_line_routing;
+  test_status_line_honours_silent;
+}
+
+main;
 done_testing;
