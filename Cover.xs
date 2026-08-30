@@ -3093,10 +3093,11 @@ static void dc_walk_callback(pTHX_ OP *op, SV *callback,
 }
 
 /* Store a child→parent mapping in the parent map */
-static void dc_store_parent(pTHX_ HV *parent_map, OP *child, OP *parent) {
+/* hv_store takes ownership, so the caller keeps its own reference */
+static void dc_store_parent(pTHX_ HV *parent_map, OP *child, SV *parent_sv) {
   char key[24];
   STRLEN keylen = (STRLEN)snprintf(key, sizeof(key), "%" IVdf, PTR2IV(child));
-  hv_store(parent_map, key, keylen, dc_make_op_sv(aTHX_ parent), 0);
+  hv_store(parent_map, key, keylen, SvREFCNT_inc(parent_sv), 0);
 }
 
 /*
@@ -3168,30 +3169,29 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv, HV *parent_map) {
 
   /* Recurse into children, storing parent mappings */
   if (op->op_flags & OPf_KIDS) {
+    SV *parent_sv = dc_make_op_sv(aTHX_ op);
     for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
-      dc_store_parent(aTHX_ parent_map, kid, op);
+      dc_store_parent(aTHX_ parent_map, kid, parent_sv);
       dc_walk_ops_r(aTHX_ kid, callback, cv, parent_map);
     }
+    SvREFCNT_dec(parent_sv);
   }
 
   /* Handle PMOP special children (regex replacement trees) */
   if (op->op_type == OP_SUBST) {
-    PMOP *pm = cPMOPx(op);
+    PMOP *pm   = cPMOPx(op);
+    OP   *repl =
 #ifdef USE_ITHREADS
-    if (pm->op_pmstashstartu.op_pmreplstart) {
-      dc_store_parent(aTHX_ parent_map,
-                      pm->op_pmstashstartu.op_pmreplstart, op);
-      dc_walk_ops_r(aTHX_ pm->op_pmstashstartu.op_pmreplstart,
-                    callback, cv, parent_map);
-    }
+      pm->op_pmstashstartu.op_pmreplstart;
 #else
-    if (pm->op_pmreplrootu.op_pmreplroot) {
-      dc_store_parent(aTHX_ parent_map,
-                      pm->op_pmreplrootu.op_pmreplroot, op);
-      dc_walk_ops_r(aTHX_ pm->op_pmreplrootu.op_pmreplroot,
-                    callback, cv, parent_map);
-    }
+      pm->op_pmreplrootu.op_pmreplroot;
 #endif
+    if (repl) {
+      SV *parent_sv = dc_make_op_sv(aTHX_ op);
+      dc_store_parent(aTHX_ parent_map, repl, parent_sv);
+      SvREFCNT_dec(parent_sv);
+      dc_walk_ops_r(aTHX_ repl, callback, cv, parent_map);
+    }
   }
 }
 
