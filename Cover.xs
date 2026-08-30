@@ -189,6 +189,8 @@ typedef struct {
 
   dc_stmt_cache stmt_cache;
   dc_av_cache   av_cache;
+  dc_av_cache   return_cache;  /* return ops already in Return_ops (av
+                                * unused) */
   AV           *deferred_conditionals; /* sort-block conditions
                                         * awaiting resolution */
   HV           *decision_meta;         /* op pointer bytes -> meta HV ref;
@@ -828,8 +830,20 @@ static void store_return(pTHX) {
    */
 
   if (MY_CXT.collecting_here && PL_op->op_next) {
-    (void)hv_fetch(Return_ops, get_key(PL_op->op_next), KEY_SZ, 1);
-    NDEB(D(L, "adding return op %p\n", PL_op->op_next));
+    OP         *ret      = PL_op->op_next;
+    size_t      identity = hash_op_identity(ret);
+    dc_av_slot *slot     = dc_av_lookup(&MY_CXT.return_cache, ret);
+    if (slot && slot->op_next == ret->op_next
+        && slot->op_identity == identity)
+      return;
+    (void)hv_fetch(Return_ops, get_key(ret), KEY_SZ, 1);
+    NDEB(D(L, "adding return op %p\n", ret));
+    if (slot) {
+      slot->op_next     = ret->op_next;
+      slot->op_identity = identity;
+    } else {
+      dc_av_insert(&MY_CXT.return_cache, ret, ret->op_next, identity, NULL);
+    }
   }
 }
 
@@ -2750,6 +2764,7 @@ static void initialise(pTHX) {
     MY_CXT.profiling_key_valid = 0;
     Zero(&MY_CXT.stmt_cache, 1, dc_stmt_cache);
     Zero(&MY_CXT.av_cache, 1, dc_av_cache);
+    Zero(&MY_CXT.return_cache, 1, dc_av_cache);
     Zero(&MY_CXT.dc_stack,  1, dc_stack_t);
     MY_CXT.deferred_conditionals      = newAV();
     MY_CXT.chained_cond               = NULL;
