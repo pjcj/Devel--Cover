@@ -2370,11 +2370,15 @@ static void cover_padrange(pTHX) {
   }
 }
 
+static void dc_maybe_cover_padrange(pTHX) {
+  if (collecting_here(aTHX)) cover_padrange(aTHX);
+}
+
 static OP *dc_padrange(pTHX) {
   dMY_CXT;
-  check_if_collecting(aTHX_ PL_curcop);
   NDEB(D(L, "dc_padrange() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering) cover_padrange(aTHX);
+  if (MY_CXT.covering) check_if_collecting(aTHX_ PL_curcop);
+  dc_maybe_cover_padrange(aTHX);
   return MY_CXT.ppaddr[OP_PADRANGE](aTHX);
 }
 
@@ -2847,7 +2851,7 @@ static int runops_cover(pTHX) {
       }
 
       case OP_PADRANGE: {
-        cover_padrange(aTHX);
+        dc_maybe_cover_padrange(aTHX);
         break;
       }
 
