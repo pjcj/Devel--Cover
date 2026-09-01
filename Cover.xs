@@ -21,8 +21,6 @@ extern "C" {
 }
 #endif
 
-#define CALLOP *PL_op
-
 #define MY_CXT_KEY "Devel::Cover::_guts" XS_VERSION
 
 #define PDEB(a) a
@@ -94,6 +92,11 @@ typedef struct {
  * the get_key + hv_fetch path on repeat executions.  Unlike the statement
  * cache, no flush is needed: the cached AV pointer IS the authoritative object
  * living in the conditions or branches HV.
+ *
+ * The pointer is held without a reference count, and the RV in the backing HV
+ * is the AV's only owner, so nothing may remove entries from the branches or
+ * conditions HVs while ops run - a cleared entry would leave the cache
+ * dangling.
  *
  * The same cache serves both condition and branch ops because the two sets are
  * disjoint (logops vs OP_COND_EXPR).
@@ -186,6 +189,8 @@ typedef struct {
 
   dc_stmt_cache stmt_cache;
   dc_av_cache   av_cache;
+  dc_av_cache   return_cache;  /* return ops already in Return_ops (av
+                                * unused) */
   AV           *deferred_conditionals; /* sort-block conditions
                                         * awaiting resolution */
   HV           *decision_meta;         /* op pointer bytes -> meta HV ref;
@@ -525,12 +530,14 @@ static int check_if_collecting(pTHX_ COP *cop) {
       if (!SvROK(*dir)) {
         SV *cwd = newSV(0);
         AV *d   = newAV();
-        *dir = newRV_inc((SV*) d);
+        SvREFCNT_dec(*dir);
+        *dir = newRV_noinc((SV*) d);
         av_push(d, newSVsv(MY_CXT.module));
         if (getcwd_sv(cwd)) {
           av_push(d, newSVsv(cwd));
           NDEB(D(L, "require %s as %s from %s\n", m, file, SvPV_nolen(cwd)));
         }
+        SvREFCNT_dec(cwd);
       }
     }
     sv_setpv(MY_CXT.module, "");
@@ -627,6 +634,21 @@ static void dc_stmt_grow(dc_stmt_cache *c) {
  * counts.  The cache structure stays intact so that subsequent executions still
  * get cache hits.
  */
+static void dc_stmt_slot_flush(pTHX_ dc_stmt_slot *s, HV *statements) {
+  SV **sv;
+  IV   existing;
+
+  /* Reconstruct the struct unique key from cached fields */
+  struct unique uniq;
+  uniq.addr         = s->addr;
+  uniq.op_identity  = s->op_identity;
+  uniq.fileinfohash = s->fileinfohash;
+
+  sv = hv_fetch(statements, (char *)&uniq, KEY_SZ, 1);
+  existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
+  sv_setiv(*sv, existing + s->stmt_count);
+}
+
 static void dc_stmt_cache_flush(pTHX_ dc_stmt_cache *c, HV *statements) {
   size_t i;
 
@@ -635,18 +657,7 @@ static void dc_stmt_cache_flush(pTHX_ dc_stmt_cache *c, HV *statements) {
   for (i = 0; i < c->capacity; i++) {
     dc_stmt_slot *s = &c->slots[i];
     if (s->addr && s->stmt_count) {
-      SV **sv;
-      IV   existing;
-
-      /* Reconstruct the struct unique key from cached fields */
-      struct unique uniq;
-      uniq.addr         = s->addr;
-      uniq.op_identity  = s->op_identity;
-      uniq.fileinfohash = s->fileinfohash;
-
-      sv = hv_fetch(statements, (char *)&uniq, KEY_SZ, 1);
-      existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
-      sv_setiv(*sv, existing + s->stmt_count);
+      dc_stmt_slot_flush(aTHX_ s, statements);
       s->stmt_count = 0;
     }
   }
@@ -736,7 +747,8 @@ static AV *dc_av_cached_fetch(pTHX_ dc_av_cache *cache, HV *backing_hv,
     if (SvROK(*svp)) {
       av = (AV *) SvRV(*svp);
     } else {
-      *svp = newRV_inc((SV*) (av = newAV()));
+      SvREFCNT_dec(*svp);
+      *svp = newRV_noinc((SV*) (av = newAV()));
       if (init_slots)
         av_unshift(av, init_slots);
     }
@@ -818,8 +830,20 @@ static void store_return(pTHX) {
    */
 
   if (MY_CXT.collecting_here && PL_op->op_next) {
-    (void)hv_fetch(Return_ops, get_key(PL_op->op_next), KEY_SZ, 1);
-    NDEB(D(L, "adding return op %p\n", PL_op->op_next));
+    OP         *ret      = PL_op->op_next;
+    size_t      identity = hash_op_identity(ret);
+    dc_av_slot *slot     = dc_av_lookup(&MY_CXT.return_cache, ret);
+    if (slot && slot->op_next == ret->op_next
+        && slot->op_identity == identity)
+      return;
+    (void)hv_fetch(Return_ops, get_key(ret), KEY_SZ, 1);
+    NDEB(D(L, "adding return op %p\n", ret));
+    if (slot) {
+      slot->op_next     = ret->op_next;
+      slot->op_identity = identity;
+    } else {
+      dc_av_insert(&MY_CXT.return_cache, ret, ret->op_next, identity, NULL);
+    }
   }
 }
 
@@ -891,18 +915,8 @@ static void cover_current_statement(pTHX) {
         return;
       }
       /* Slab reuse: flush stale count, update slot in place */
-      if (slot->stmt_count) {
-        struct unique uniq;
-        SV **sv;
-        IV   existing;
-        uniq.addr         = slot->addr;
-        uniq.op_identity  = slot->op_identity;
-        uniq.fileinfohash = slot->fileinfohash;
-        sv = hv_fetch(MY_CXT.statements,
-                      (char *)&uniq, KEY_SZ, 1);
-        existing = SvTRUE(*sv) ? SvIV(*sv) : 0;
-        sv_setiv(*sv, existing + slot->stmt_count);
-      }
+      if (slot->stmt_count)
+        dc_stmt_slot_flush(aTHX_ slot, MY_CXT.statements);
       slot->op_next      = PL_op->op_next;
       slot->cop_file     = CopFILE((COP *)PL_op);
       slot->op_identity  = hash_op_identity(PL_op);
@@ -993,10 +1007,12 @@ static AV *get_conds(pTHX_ AV *conds) {
   cref = hv_fetch(threads, t, strlen(t), 1);
   SvREFCNT_dec(tid);
 
-  if (SvROK(*cref))
+  if (SvROK(*cref)) {
     thrconds = (AV *)SvRV(*cref);
-  else
-    *cref = newRV_inc((SV*) (thrconds = newAV()));
+  } else {
+    SvREFCNT_dec(*cref);
+    *cref = newRV_noinc((SV*) (thrconds = newAV()));
+  }
 
   return thrconds;
 }
@@ -2226,10 +2242,7 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
         OP   *next;
 
         NDEB(D(L, "Getting next\n"));
-        next = right->op_next;
-        while (next &&
-               (next->op_type == OP_NULL || next->op_type == OP_LINESEQ))
-          next = next->op_next;
+        next = skip_nulled_ops(right->op_next);
         if (!next) {
           /*
            * Sort block (or fold_constants): right->op_next is NULL so we can't
@@ -2246,10 +2259,12 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
         MUTEX_LOCK(&DC_mutex);
         cref = hv_fetch(Pending_conditionals, ch, KEY_SZ, 1);
 
-        if (SvROK(*cref))
+        if (SvROK(*cref)) {
           conds = (AV *)SvRV(*cref);
-        else
-          *cref = newRV_inc((SV*) (conds = newAV()));
+        } else {
+          SvREFCNT_dec(*cref);
+          *cref = newRV_noinc((SV*) (conds = newAV()));
+        }
 
         if (av_len(conds) < 0) {
           av_push(conds, newSViv(PTR2IV(next)));
@@ -2369,11 +2384,15 @@ static void cover_padrange(pTHX) {
   }
 }
 
+static void dc_maybe_cover_padrange(pTHX) {
+  if (collecting_here(aTHX)) cover_padrange(aTHX);
+}
+
 static OP *dc_padrange(pTHX) {
   dMY_CXT;
-  check_if_collecting(aTHX_ PL_curcop);
   NDEB(D(L, "dc_padrange() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering) cover_padrange(aTHX);
+  if (MY_CXT.covering) check_if_collecting(aTHX_ PL_curcop);
+  dc_maybe_cover_padrange(aTHX);
   return MY_CXT.ppaddr[OP_PADRANGE](aTHX);
 }
 
@@ -2698,7 +2717,8 @@ static void initialise(pTHX) {
   MY_CXT.classifying_file  = 0;
 
   if (!MY_CXT.covering) {
-    /* TODO - this probably leaks all over the place */
+    /* MY_CXT keeps its own pointer to each criterion HV for the life of
+     * the interpreter, so the extra count from newRV_inc is deliberate */
 
     SV **tmp;
 
@@ -2744,6 +2764,7 @@ static void initialise(pTHX) {
     MY_CXT.profiling_key_valid = 0;
     Zero(&MY_CXT.stmt_cache, 1, dc_stmt_cache);
     Zero(&MY_CXT.av_cache, 1, dc_av_cache);
+    Zero(&MY_CXT.return_cache, 1, dc_av_cache);
     Zero(&MY_CXT.dc_stack,  1, dc_stack_t);
     MY_CXT.deferred_conditionals      = newAV();
     MY_CXT.chained_cond               = NULL;
@@ -2845,7 +2866,7 @@ static int runops_cover(pTHX) {
       }
 
       case OP_PADRANGE: {
-        cover_padrange(aTHX);
+        dc_maybe_cover_padrange(aTHX);
         break;
       }
 
@@ -2942,37 +2963,17 @@ static int runops_orig(pTHX) {
   return 0;
 }
 
-#if defined DO_RUNOPS_TRACE
-static int runops_trace(pTHX) {
-  PDEB(D(L, "entering runops_trace\n"));
-
-  for (;;) {
-    PDEB(D(L, "running func %p from %p (%s)\n",
-           PL_op->op_ppaddr, PL_op, OP_NAME(PL_op)));
-
-    if (!(PL_op = PL_op->op_ppaddr(aTHX)))
-      break;
-
-    PERL_ASYNC_CHECK();
-  }
-
-  PDEB(D(L, "exiting runops_trace\n"));
-
-  TAINT_NOT;
-  return 0;
-}
-#endif
-
-static char *svclassnames[] = {
+/* Only the AV row is currently used, via get_ends */
+static const char *const svclassnames[] = {
   "B::NULL",
   "B::IV",
   "B::NV",
-  "B::RV",
   "B::PV",
+  "B::INVLIST",
   "B::PVIV",
   "B::PVNV",
   "B::PVMG",
-  "B::BM",
+  "B::REGEXP",
   "B::GV",
   "B::PVLV",
   "B::AV",
@@ -2980,15 +2981,14 @@ static char *svclassnames[] = {
   "B::CV",
   "B::FM",
   "B::IO",
+  "B::OBJ",
 };
 
 static SV *make_sv_object(pTHX_ SV *arg, SV *sv) {
-  IV    iv;
-  char *type;
-
-  iv = PTR2IV(sv);
-  type = svclassnames[SvTYPE(sv)];
-  sv_setiv(newSVrv(arg, type), iv);
+  svtype t = SvTYPE(sv);
+  if (t >= sizeof(svclassnames) / sizeof(svclassnames[0]))
+    croak("make_sv_object: unhandled SV type %d", (int)t);
+  sv_setiv(newSVrv(arg, svclassnames[t]), PTR2IV(sv));
   return arg;
 }
 
@@ -3093,10 +3093,11 @@ static void dc_walk_callback(pTHX_ OP *op, SV *callback,
 }
 
 /* Store a child→parent mapping in the parent map */
-static void dc_store_parent(pTHX_ HV *parent_map, OP *child, OP *parent) {
+/* hv_store takes ownership, so the caller keeps its own reference */
+static void dc_store_parent(pTHX_ HV *parent_map, OP *child, SV *parent_sv) {
   char key[24];
   STRLEN keylen = (STRLEN)snprintf(key, sizeof(key), "%" IVdf, PTR2IV(child));
-  hv_store(parent_map, key, keylen, dc_make_op_sv(aTHX_ parent), 0);
+  hv_store(parent_map, key, keylen, SvREFCNT_inc(parent_sv), 0);
 }
 
 /*
@@ -3168,30 +3169,29 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv, HV *parent_map) {
 
   /* Recurse into children, storing parent mappings */
   if (op->op_flags & OPf_KIDS) {
+    SV *parent_sv = dc_make_op_sv(aTHX_ op);
     for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
-      dc_store_parent(aTHX_ parent_map, kid, op);
+      dc_store_parent(aTHX_ parent_map, kid, parent_sv);
       dc_walk_ops_r(aTHX_ kid, callback, cv, parent_map);
     }
+    SvREFCNT_dec(parent_sv);
   }
 
   /* Handle PMOP special children (regex replacement trees) */
   if (op->op_type == OP_SUBST) {
-    PMOP *pm = cPMOPx(op);
+    PMOP *pm   = cPMOPx(op);
+    OP   *repl =
 #ifdef USE_ITHREADS
-    if (pm->op_pmstashstartu.op_pmreplstart) {
-      dc_store_parent(aTHX_ parent_map,
-                      pm->op_pmstashstartu.op_pmreplstart, op);
-      dc_walk_ops_r(aTHX_ pm->op_pmstashstartu.op_pmreplstart,
-                    callback, cv, parent_map);
-    }
+      pm->op_pmstashstartu.op_pmreplstart;
 #else
-    if (pm->op_pmreplrootu.op_pmreplroot) {
-      dc_store_parent(aTHX_ parent_map,
-                      pm->op_pmreplrootu.op_pmreplroot, op);
-      dc_walk_ops_r(aTHX_ pm->op_pmreplrootu.op_pmreplroot,
-                    callback, cv, parent_map);
-    }
+      pm->op_pmreplrootu.op_pmreplroot;
 #endif
+    if (repl) {
+      SV *parent_sv = dc_make_op_sv(aTHX_ op);
+      dc_store_parent(aTHX_ parent_map, repl, parent_sv);
+      SvREFCNT_dec(parent_sv);
+      dc_walk_ops_r(aTHX_ repl, callback, cv, parent_map);
+    }
   }
 }
 
@@ -3363,6 +3363,7 @@ collect_inits()
     if (PL_initav)
       for (i = 0; i <= av_len(PL_initav); i++) {
         SV **cv = av_fetch(PL_initav, i, 0);
+        if (!cv || !*cv) continue;
         SvREFCNT_inc(*cv);
         av_push(MY_CXT.ends, *cv);
       }
@@ -3373,13 +3374,14 @@ set_last_end()
     dMY_CXT;
   PPCODE:
     int i;
-    SV *end = (SV *)get_cv("last_end", 0);
-    av_push(PL_endav, SvREFCNT_inc(end));
+    SV *end = (SV *)get_cv("Devel::Cover::last_end", 0);
+    if (end && PL_endav) av_push(PL_endav, SvREFCNT_inc(end));
     NDEB(svdump(end));
     if (!MY_CXT.ends) MY_CXT.ends = newAV();
     if (PL_endav)
       for (i = 0; i <= av_len(PL_endav); i++) {
         SV **cv = av_fetch(PL_endav, i, 0);
+        if (!cv || !*cv) continue;
         SvREFCNT_inc(*cv);
         av_push(MY_CXT.ends, *cv);
       }
@@ -3517,9 +3519,6 @@ BOOT:
       elapsed();
 #elif defined HAS_TIMES
       cpu();
-#endif
-#if defined DO_RUNOPS_TRACE
-      PL_runops = runops_trace;
 #endif
     } else {
       PL_runops = runops_cover;
