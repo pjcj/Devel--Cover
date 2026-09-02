@@ -23,6 +23,8 @@ use Devel::Cover::Annotation::Git;
 
 my $Dir = tempdir(CLEANUP => 1);
 
+$Devel::Cover::Silent = 1;
+
 sub write_helper () {
   # A plain heredoc, not <<~, because indented heredocs need 5.26
   my $helper = "$Dir/blame.pl";
@@ -42,13 +44,30 @@ sub annotator_for ($helper) {
   Devel::Cover::Annotation::Git->new(command => qq("$^X" "$helper" [[file]]))
 }
 
+sub capture ($git, $file) {
+  my ($stdout, $stderr) = ("", "");
+  {
+    local *STDOUT;
+    local *STDERR;
+    open STDOUT, ">", \$stdout or die "Can't redirect STDOUT: $!";
+    open STDERR, ">", \$stderr or die "Can't redirect STDERR: $!";
+    $git->get_annotations($file);
+  }
+  ($stdout, $stderr)
+}
+
+sub quiet_annotations ($git, $file) {
+  my ($stdout, $stderr) = capture($git, $file);
+  is $stdout . $stderr, "", "annotating $file prints nothing";
+}
+
 sub test_version_column () {
   my $git  = annotator_for(write_helper);
   my $file = "lib/Foo.pm";
 
   my @warnings;
   local $SIG{__WARN__} = sub { push @warnings, @_ };
-  $git->get_annotations($file);
+  quiet_annotations($git, $file);
 
   is $git->text($file, 1, 0), "deadbeef", "version column holds short SHA";
   is $git->text($file, 1, 1), "A U Thor", "author column";
@@ -72,7 +91,7 @@ PERL
 sub test_path_with_spaces () {
   my $git  = annotator_for(write_args_helper);
   my $file = "dir with space/file.pm";
-  $git->get_annotations($file);
+  quiet_annotations($git, $file);
   is $git->text($file, 1, 1), $file, "path with spaces arrives as one argument";
 }
 
@@ -80,7 +99,7 @@ sub test_path_with_metacharacters () {
   my $git   = annotator_for(write_args_helper);
   my $probe = "$Dir/pwned";
   my $file  = "x.pm; touch $probe";
-  $git->get_annotations($file);
+  quiet_annotations($git, $file);
   is $git->text($file, 1, 1), $file,
     "metacharacters arrive literally in one argument";
   ok !-e $probe, "no shell command injected via the file name";
@@ -110,7 +129,7 @@ PERL
 sub test_repeated_commit () {
   my $git  = annotator_for(write_repeat_helper);
   my $file = "lib/Foo.pm";
-  $git->get_annotations($file);
+  quiet_annotations($git, $file);
 
   is $git->text($file, 3, 0), "aaaaaaaa", "repeated commit keeps its sha";
   is $git->text($file, 3, 1), "Ann Author",
@@ -120,19 +139,11 @@ sub test_repeated_commit () {
 }
 
 sub capture_annotation ($file) {
-  my $git = annotator_for(write_helper);
-  my ($stdout, $stderr) = ("", "");
-  {
-    local *STDOUT;
-    local *STDERR;
-    open STDOUT, ">", \$stdout or die "Can't redirect STDOUT: $!";
-    open STDERR, ">", \$stderr or die "Can't redirect STDERR: $!";
-    $git->get_annotations($file);
-  }
-  ($stdout, $stderr)
+  capture(annotator_for(write_helper), $file)
 }
 
 sub test_status_line_routing () {
+  local $Devel::Cover::Silent = 0;
   my ($stdout, $stderr) = capture_annotation("lib/Foo.pm");
   is $stdout, "", "the status line stays off STDOUT";
   like $stderr, qr|^cover: Getting git annotation information for lib/Foo|m,

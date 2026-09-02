@@ -23,6 +23,8 @@ use Devel::Cover::Annotation::Git;
 
 my $Dir = tempdir(CLEANUP => 1);
 
+$Devel::Cover::Silent = 1;
+
 sub write_helper () {
   # A plain heredoc, not <<~, because indented heredocs need 5.26
   my $helper = "$Dir/blame.pl";
@@ -69,8 +71,14 @@ sub test_only_version () {
   is $git->count,     1,         "one column left";
   is $git->header(0), "version", "the column is version";
   is $git->width(0),  8,         "version column keeps its width";
-  my $file = "lib/Foo.pm";
-  is $git->text($file, 1, 0), "deadbeef", "text returns the short sha";
+  my $file   = "lib/Foo.pm";
+  my $stderr = "";
+  {
+    local *STDERR;
+    open STDERR, ">", \$stderr or die "Can't redirect STDERR: $!";
+    is $git->text($file, 1, 0), "deadbeef", "text returns the short sha";
+  }
+  is $stderr, "", "fetching the annotation prints nothing";
 }
 
 sub test_all_off () {
