@@ -167,7 +167,7 @@ sub merge_runs ($self) {
   return $self unless length $db;
   return $self unless -d "$db/runs";
 
-  # released when the handle goes out of scope, swept later by clean
+  # the lock file itself is swept later by clean
   my $lock_fh = $self->_lock_db;
 
   # another process may have merged and written since we were constructed
@@ -225,6 +225,8 @@ sub merge_runs ($self) {
   }
 
   $self->clean;
+
+  close $lock_fh or dcinfo "Can't close $db/merge.lock: $!";
 
   $self
 }
@@ -1845,8 +1847,7 @@ L</summarise_complexity>.
 =head2 _lock_db ($self)
 
 Take an exclusive lock on the database's F<merge.lock> file, creating it if
-necessary, and return the open handle. The lock is released when the handle
-goes out of scope.
+necessary, and return the open handle, which C<merge_runs> closes.
 
 =head2 _merge_hash ($into, $from, $noadd = 0)
 
