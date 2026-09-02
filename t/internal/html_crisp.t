@@ -42,12 +42,16 @@ sub test_dir_header_rows ($content) {
 
   my ($covered) = grep m{data-dir="Covered"}, @rows;
   ok $covered, "Covered dir-header row present";
-  if (eval { require Pod::Coverage; 1 }) {
-    unlike $covered, qr/class="na"/,
-      "Covered dir row has aggregates for all criteria";
-  } else {
-    my @na = $covered =~ /class="na"/g;
+  # The pod column is n/a only when PPI estimated it and Pod::Coverage did not
+  my $have_pod = eval { require Pod::Coverage; 1 };
+  my $have_ppi = eval { require PPI;           1 };
+  my @na       = $covered =~ /class="na"/g;
+  if ($have_pod) {
+    is @na, 0, "Covered dir row has aggregates for all criteria";
+  } elsif ($have_ppi) {
     is @na, 1, "Covered dir row has n/a only for pod";
+  } else {
+    is @na, 0, "Covered dir row has no pod column without PPI";
   }
   like $covered, qr{<dt>CC</dt><dd>[1-9]},
     "Covered dir row SCAR tooltip has non-zero CC";
