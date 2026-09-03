@@ -859,7 +859,7 @@ static void store_module(pTHX) {
 static void call_report(pTHX) {
   dSP;
   PUSHMARK(SP);
-  call_pv("Devel::Cover::report", G_VOID|G_DISCARD|G_EVAL);
+  call_pv("Devel::Cover::report_exec", G_VOID|G_DISCARD|G_EVAL);
   SPAGAIN;
 }
 

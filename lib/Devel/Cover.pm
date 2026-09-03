@@ -767,6 +767,17 @@ EOM
   release_require_trees();
 }
 
+sub report_exec {
+  my @collected = get_coverage();
+  report();
+  return unless @collected;
+  %Seen      = ();
+  $Sub_count = {};
+  delete $Run{$_} for qw( count vec digests decision_inputs );
+  ($File, $Line) = ("", 0);
+  set_coverage(@collected);
+}
+
 sub _report {
   local @SIG{qw( __DIE__ __WARN__ )};
 
@@ -1863,6 +1874,20 @@ The driver run from L</last_end>.  Wraps L</_report> in an eval so a
 failure while writing coverage does not change how the program exits, runs
 it a second time under self-coverage to write Devel::Cover's own data, and
 releases the required-file op trees held by the XS side.
+
+=head2 report_exec
+
+The entry point the XS C<exec> hooks call.  The hooks call it when the
+main process execs, whatever file the C<exec> op sits in, and when a
+forked child execs from a collected file, so library code exec'ing in a
+child does not duplicate the parent's data.  It runs L</report>, then puts
+the process back into a collectable state, since a failed C<exec> returns
+and the program continues.  The per-report state - C<%Seen>, the sub
+counts, the counts, vectors, digests and decision inputs in C<%Run>, and
+the current location - is cleared so the C<END>-time report records
+everything afresh, and the criteria L</_report> switched off are
+restored.  Statements before the C<exec> appear in both runs, so their
+merged counts double while every covered status stays right.
 
 =head2 _report
 

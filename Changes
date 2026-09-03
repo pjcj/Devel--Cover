@@ -4,6 +4,8 @@ Devel::Cover history
 - Write the coverage database when the main program execs from a
   subroutine in an ignored file, such as a wrapper module, rather than
   discarding the run (GH-790)
+- Keep collecting coverage after a failed exec, so the END-time run
+  records the fallback code and everything after it (GH-790)
 - Ignore the build system's own scripts by default when blib exists, so
   Build, Build.PL, Makefile.PL and the _build/ copies no longer appear in
   cover -test reports (GH-788)
