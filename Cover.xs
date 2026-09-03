@@ -184,6 +184,7 @@ typedef struct {
                *lastfile;
   char         *lastfile_ptr;  /* cached CopFILE pointer */
   int           tid;
+  Pid_t         pid;           /* process that initialised coverage */
   int           replace_ops;
   /* - fix up whatever is broken with module_relative on Windows here */
 
@@ -860,6 +861,12 @@ static void call_report(pTHX) {
   PUSHMARK(SP);
   call_pv("Devel::Cover::report", G_VOID|G_DISCARD|G_EVAL);
   SPAGAIN;
+}
+
+/* END never runs after a successful exec, so the main process reports */
+static int exec_reports(pTHX) {
+  dMY_CXT;
+  return collecting_here(aTHX) || PerlProc_getpid() == MY_CXT.pid;
 }
 
 static void cover_statement(pTHX_ OP *op, const char *ch) {
@@ -2667,7 +2674,7 @@ static OP *dc_leave(pTHX) {
 static OP *dc_exec(pTHX) {
   dMY_CXT;
   NDEB(D(L, "dc_exec() at %p (%d)\n", PL_op, collecting_here(aTHX)));
-  if (MY_CXT.covering && collecting_here(aTHX)) call_report(aTHX);
+  if (MY_CXT.covering && exec_reports(aTHX)) call_report(aTHX);
   return MY_CXT.ppaddr[OP_EXEC](aTHX);
 }
 
@@ -2781,6 +2788,7 @@ static void initialise(pTHX) {
     MY_CXT.lastfile_ptr        = NULL;
     MY_CXT.covering            = All;
     MY_CXT.tid                 = tid++;
+    MY_CXT.pid                 = PerlProc_getpid();
 
     MY_CXT.replace_ops = SvTRUE(get_sv("Devel::Cover::Replace_ops", FALSE));
     NDEB(D(L, "running with Replace_ops as %d\n", MY_CXT.replace_ops));
@@ -2849,6 +2857,8 @@ static int runops_cover(pTHX) {
       capture_require_tree(aTHX);
     else if (PL_op->op_type == OP_RETURN)
       capture_require_return(aTHX);
+    else if (PL_op->op_type == OP_EXEC && exec_reports(aTHX))
+      call_report(aTHX);
 
     if (!collecting_here(aTHX))
       goto call_fptr;
@@ -2897,11 +2907,6 @@ static int runops_cover(pTHX) {
 
       case OP_REQUIRE: {
         store_module(aTHX);
-        break;
-      }
-
-      case OP_EXEC: {
-        call_report(aTHX);
         break;
       }
 
