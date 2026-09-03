@@ -71,7 +71,7 @@ sub analyse ($class, $table) {
   my @labels     = $table->labels;
   my @rows       = grep $_->covered,      $table->rows;
   my @achievable = grep !$_->uncoverable, $table->rows;
-  my @avail      = grep { $_->covered || $_->uncoverable } $table->rows;
+  my @all        = $table->rows;
 
   my %label_count;
 
@@ -88,11 +88,11 @@ sub analyse ($class, $table) {
     }
 
     # No pair among covered rows.  A pair among achievable rows is a test gap.
-    # Only a column whose sole pairs need uncoverable rows is excused (see
-    # DESCRIPTION).
+    # Only a column whose sole pairs need uncoverable rows, found by searching
+    # every row, is excused (see DESCRIPTION).
     if (_pair($col, \@achievable, \@labels, \%label_count)) {
       push @missing, $labels[$col];
-    } elsif (_pair($col, \@avail, \@labels, \%label_count)) {
+    } elsif (_pair($col, \@all, \@labels, \%label_count)) {
       $uncoverable{$col} = 1;
     } else {
       push @missing, $labels[$col];

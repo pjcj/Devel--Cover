@@ -553,10 +553,49 @@ sub test_coupled_achievable_pair_stays_missing () {
   is_deeply $r->{uncoverable}, {}, "coupled achievable: nothing excused";
 }
 
-# A pair formed from an uncoverable row and an achievable-but-untested row
-# excuses nothing: the achievable row is still a test to write.  Once it is
-# covered the column becomes excused (test_uncoverable_row_excuses_column).
-sub test_uncoverable_pair_needs_covered_row () {
+# A column whose only pair joins an uncoverable row with an uncovered but
+# achievable row is still excused.  $a's only pair is (0X, 11): 0X is
+# uncoverable and 11 is achievable but not yet covered.  $b's pair (10, 11)
+# uses only achievable rows, so it stays a test gap.
+sub test_excusal_survives_uncovered_achievable_row () {
+  my $table = build_synthetic_table(
+    '$a && $b',
+    ['$a', '$b'],
+    [
+      { inputs => [0, "X"], result => 0, covered => 0, uncoverable => 1 },
+      { inputs => [1, 0],   result => 0, covered => 1 },
+      { inputs => [1, 1],   result => 1, covered => 0 },
+    ],
+  );
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  ok $r->{uncoverable}{0}, "uncovered achievable: a excused by its pair";
+  is_deeply $r->{missing}, ['$b'], "uncovered achievable: b stays a test gap";
+}
+
+# Covering row 11 satisfies $b and says nothing new about $a, so $a's excuse
+# is unchanged.  The excuse depends only on $a's own pairs, not on whether an
+# unrelated test exists.
+sub test_excusal_unchanged_once_other_row_covered () {
+  my $table = build_synthetic_table(
+    '$a && $b',
+    ['$a', '$b'],
+    [
+      { inputs => [0, "X"], result => 0, covered => 0, uncoverable => 1 },
+      { inputs => [1, 0],   result => 0, covered => 1 },
+      { inputs => [1, 1],   result => 1, covered => 1 },
+    ],
+  );
+  my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
+  is $r->{satisfied}, 1, "other row covered: b satisfied";
+  ok $r->{uncoverable}{0}, "other row covered: a still excused";
+  is_deeply $r->{missing}, [], "other row covered: nothing missing";
+}
+
+# The same holds when the uncoverable row is the one that pairs with the
+# uncovered row.  $b's only pair is (10, 11), with 10 uncoverable, so $b is
+# excused even with 11 uncovered, while $a's achievable pair (0X, 11) is a
+# test gap.
+sub test_excusal_when_uncoverable_row_pairs_uncovered_row () {
   my $table = build_synthetic_table(
     '$a && $b',
     ['$a', '$b'],
@@ -567,9 +606,8 @@ sub test_uncoverable_pair_needs_covered_row () {
     ],
   );
   my $r = Devel::Cover::Mcdc::Analyser->analyse($table);
-  is_deeply $r->{missing}, ['$a', '$b'],
-    "mixed pair: both columns still missing";
-  is_deeply $r->{uncoverable}, {}, "mixed pair: nothing excused";
+  is_deeply $r->{missing}, ['$a'], "mixed pair: a is a test gap";
+  ok $r->{uncoverable}{1}, "mixed pair: b excused by its uncoverable row";
 }
 
 # A decision that never executed and carries no uncoverable markers is all
@@ -608,7 +646,9 @@ sub main () {
   test_no_pair_even_with_uncoverable_stays_missing;
   test_achievable_pair_stays_missing;
   test_coupled_achievable_pair_stays_missing;
-  test_uncoverable_pair_needs_covered_row;
+  test_excusal_survives_uncovered_achievable_row;
+  test_excusal_unchanged_once_other_row_covered;
+  test_excusal_when_uncoverable_row_pairs_uncovered_row;
   test_never_run_unmarked_all_missing;
   test_all_uncoverable_never_run_stays_excused;
   test_const_right_collapsed_observed_vectors;
