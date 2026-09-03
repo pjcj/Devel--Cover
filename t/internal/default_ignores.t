@@ -9,7 +9,8 @@
 
 # When blib exists the run is a distribution test, so the conventional
 # directories holding code that is not under test are ignored by default:
-# t/, test.pl and bundled build helpers in inc/.
+# t/, test.pl, bundled build helpers in inc/ and the build system's own
+# scripts.
 
 use 5.20.0;
 use warnings;
@@ -55,6 +56,13 @@ sub test_blib_ignores_inc () {
   ok grep($_ eq "^inc/", @$ignore), "a blib run ignores bundled inc/ files";
 }
 
+sub test_blib_ignores_build_scripts () {
+  my $ignore = ignores(run_covered($Root));
+  for my $pattern ('^Build$', '^Build\\.PL$', '^Makefile\\.PL$', "^_build/") {
+    ok grep($_ eq $pattern, @$ignore), "a blib run ignores $pattern";
+  }
+}
+
 sub test_no_blib_keeps_inc () {
   my $dir = File::Spec->catdir($Tmpdir, "nolib");
   mkdir $dir or die "Can't mkdir $dir: $!";
@@ -65,6 +73,7 @@ sub test_no_blib_keeps_inc () {
 
 sub main () {
   test_blib_ignores_inc;
+  test_blib_ignores_build_scripts;
   test_no_blib_keeps_inc;
   done_testing;
 }
