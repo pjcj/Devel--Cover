@@ -166,6 +166,7 @@ typedef struct {
                *statements,
                *branches,
                *conditions,
+               *subroutines,        /* sub root op key -> entry count */
 #if CAN_PROFILE
                *times,
 #endif
@@ -2429,25 +2430,13 @@ static OP *dc_dbstate(pTHX) {
  * early release must not be delayed.  See
  * docs/technical/wrapped-sub-coverage.md.
  */
-static void record_entered_sub(pTHX) {
+static void record_entered_sub(pTHX_ CV *cv) {
   dMY_CXT;
-  SV         *sv = *PL_stack_sp;
-  CV         *cv;
   GV         *gv;
   const char *name;
   STRLEN      len;
 
-  if (!sv) return;
-  if (SvTYPE(sv) == SVt_PVCV)
-    cv = (CV *)sv;
-  else if (SvROK(sv) && SvTYPE(SvRV(sv)) == SVt_PVCV)
-    cv = (CV *)SvRV(sv);
-  else if (isGV_with_GP(sv) && GvCV((GV *)sv))
-    cv = GvCV((GV *)sv);
-  else
-    return;
-
-  if (CvISXSUB(cv) || CvANON(cv) || CvCLONED(cv) || !CvROOT(cv)) return;
+  if (CvANON(cv) || CvCLONED(cv)) return;
   if (hv_exists(MY_CXT.entered_subs, (char *)&cv, sizeof(CV *))) return;
 
   gv = CvGV(cv);
@@ -2467,12 +2456,48 @@ static void record_entered_sub(pTHX) {
                  newRV_inc((SV *)cv), 0);
 }
 
+/* The Perl sub with an optree that an entersub is about to call, if any */
+static CV *entersub_cv(pTHX) {
+  SV *sv = *PL_stack_sp;
+  CV *cv;
+
+  if (!sv) return NULL;
+  if (SvTYPE(sv) == SVt_PVCV)
+    cv = (CV *)sv;
+  else if (SvROK(sv) && SvTYPE(SvRV(sv)) == SVt_PVCV)
+    cv = (CV *)SvRV(sv);
+  else if (isGV_with_GP(sv) && GvCV((GV *)sv))
+    cv = GvCV((GV *)sv);
+  else
+    return NULL;
+
+  if (CvISXSUB(cv) || !CvROOT(cv)) return NULL;
+  return cv;
+}
+
+/* Keyed by the root op, which a closure clone shares with its prototype */
+static void count_sub_entry(pTHX_ CV *cv) {
+  dMY_CXT;
+  SV **count;
+
+  if (!collecting(Subroutine) && !collecting(Pod)) return;
+  count = hv_fetch(MY_CXT.subroutines, get_key(CvROOT(cv)), KEY_SZ, 1);
+  sv_setiv(*count, SvTRUE(*count) ? SvIV(*count) + 1 : 1);
+}
+
+static void note_entered_sub(pTHX) {
+  CV *cv = entersub_cv(aTHX);
+  if (!cv) return;
+  count_sub_entry(aTHX_ cv);
+  record_entered_sub(aTHX_ cv);
+}
+
 static OP *dc_entersub(pTHX) {
   dMY_CXT;
   NDEB(D(L, "dc_entersub() at %p (%d)\n", PL_op, collecting_here(aTHX)));
   if (MY_CXT.covering) {
     store_return(aTHX);
-    record_entered_sub(aTHX);
+    note_entered_sub(aTHX);
   }
   return MY_CXT.ppaddr[OP_ENTERSUB](aTHX);
 }
@@ -2743,6 +2768,10 @@ static void initialise(pTHX) {
     MY_CXT.conditions = newHV();
     *tmp              = newRV_inc((SV*) MY_CXT.conditions);
 
+    tmp                = hv_fetch(MY_CXT.cover, "subroutine", 10, 1);
+    MY_CXT.subroutines = newHV();
+    *tmp               = newRV_inc((SV*) MY_CXT.subroutines);
+
     tmp                    = hv_fetch(MY_CXT.cover, "decision_inputs", 15, 1);
     MY_CXT.decision_inputs = newHV();
     *tmp                   = newRV_inc((SV*) MY_CXT.decision_inputs);
@@ -2762,6 +2791,7 @@ static void initialise(pTHX) {
     HvSHAREKEYS_off(MY_CXT.statements);
     HvSHAREKEYS_off(MY_CXT.branches);
     HvSHAREKEYS_off(MY_CXT.conditions);
+    HvSHAREKEYS_off(MY_CXT.subroutines);
     HvSHAREKEYS_off(MY_CXT.decision_inputs);
 #if CAN_PROFILE
     HvSHAREKEYS_off(MY_CXT.times);
@@ -2846,7 +2876,7 @@ static int runops_cover(pTHX) {
       check_if_collecting(aTHX_ cCOP);
     else if (PL_op->op_type == OP_ENTERSUB) {
       store_return(aTHX);
-      record_entered_sub(aTHX);
+      note_entered_sub(aTHX);
     }
 
     /* Capture require optrees before the collecting veto, as dc_leaveeval

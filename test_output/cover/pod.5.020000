@@ -44,6 +44,13 @@ _aa         1  6.9  Module1.pm:14
 xx          1  6.9  Module1.pm:20
 yy          1  6.9  Module1.pm:25
 
+Covered Subroutines
+-------------------
+
+Subroutine Count Pod  CC  SCAR Location     
+---------- ----- --- --- ----- -------------
+zz            11   0   1   6.9 Module1.pm:29
+
 Uncovered Subroutines
 ---------------------
 
@@ -52,7 +59,6 @@ Subroutine Count Pod  CC  SCAR Location
 _aa            0       1   6.9 Module1.pm:14
 xx             0       1   6.9 Module1.pm:20
 yy             0   1   1   6.9 Module1.pm:25
-zz             0   0   1   6.9 Module1.pm:29
 
 
 PodMod.pm
@@ -115,12 +121,6 @@ BEGIN          1   1   0.0 pod:14
 BEGIN          1   1   0.0 pod:15  
 BEGIN          1   1   0.0 pod:17  
 BEGIN          1   1   0.0 pod:19  
-
-Uncovered Subroutines
----------------------
-
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-xx             0   1   6.9 pod:24  
+xx            11   1   6.9 pod:24  
 
 

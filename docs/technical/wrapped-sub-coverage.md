@@ -106,6 +106,17 @@ clones are covered through the pad walk when they survive, a clone shares its
 start op with its prototype so recording it would add a duplicate, and the phase
 blocks' early release must not be delayed.
 
+The same hook counts entries. `count_sub_entry` increments a count keyed by the
+sub's root op, which a closure clone shares with its prototype, whenever
+subroutine or pod coverage is on. Subroutine coverage is otherwise derived from
+the execution count of a sub's first statement. Without statement coverage,
+every sub used to be reported as uncovered. `add_subroutine_cover` reads the
+entry count when statement coverage is off. With statement coverage on, it keeps
+the statement-derived count, so such runs report exactly what they did before.
+The entry count misses calls that bypass `entersub`: `goto &sub`, `sort subname`
+and, under `-replace_ops 0`, subs called from C such as `DESTROY` and overload
+methods.
+
 The reference held to each recorded CV is strong, not weak. A weak reference
 would be nulled the moment a sub is freed, which is exactly the case that needs
 covering: a sub redefined at runtime (`*foo = sub { ... }`) frees the original

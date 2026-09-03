@@ -900,12 +900,14 @@ sub _write_coverage_db {
   }
 }
 
-sub add_subroutine_cover ($op) {
+sub add_subroutine_cover ($cv, $op) {
   get_location($op);
   return unless $File;
 
-  my $key = get_key($op);
-  my $val = $Coverage->{statement}{$key} || 0;
+  my $val
+    = $Coverage{statement}
+    ? $Coverage->{statement}{ get_key($op) } || 0
+    : $Coverage->{subroutine}{ get_key($cv->ROOT) } || 0;
   my ($n, $new) = $Structure->add_count("subroutine");
   $Structure->add_subroutine($File, [$Line, $Sub_name]) if $new;
   $Run{count}{$File}{subroutine}[$n] += $val;
@@ -1149,7 +1151,7 @@ sub _add_subroutine_structure ($cv, $start) {
   } else {
     my $count = $Sub_count->{$File}{$Line}{$Sub_name}++;
     $sub_id = $Structure->set_subroutine($Sub_name, $File, $Line, $count);
-    add_subroutine_cover($start)
+    add_subroutine_cover($cv, $start)
       if $Coverage{subroutine} || $Coverage{pod};  # pod requires subs
   }
   _add_pod_cover($cv) if $Pod && $Coverage{pod};
@@ -1923,9 +1925,15 @@ each outcome ran.  Structure and counts are stored separately so separate
 runs can merge.  The counts are keyed by C<get_key>, which identifies the
 op in the raw XS data.
 
-=head2 add_subroutine_cover ($op)
+=head2 add_subroutine_cover ($cv, $op)
 
-Record a subroutine as covered when its first statement ran.
+Record a subroutine's call count.  With statement coverage on, the count is
+the execution count of the sub's first statement, C<$op>.  Without it, the
+count comes from the XS C<entersub> hook, which counts entries against the
+sub's root op, so a closure clone shares its prototype's count.  Calls that
+bypass C<entersub>, such as C<goto &sub> and C<sort subname>, are not
+counted, and in C<-replace_ops 0> mode neither are subs called from C, such
+as C<DESTROY> and overload methods.
 
 =head2 add_statement_cover ($op)
 
