@@ -320,7 +320,8 @@ sub import ($class, @o) {
   if ($blib) {
     eval "use blib";
     for (@INC) { ($_) = /(.*)/ if ref $_ ne "CODE" }  # Die tainting
-    push @Ignore, "^t/", "^inc/", '\\.t$', '^test\\.pl$';
+    push @Ignore, "^t/", "^inc/", '\\.t$', '^test\\.pl$', '^Build$',
+      '^Build\\.PL$', '^Makefile\\.PL$', "^_build/";
   }
 
   my $ci = $^O eq "MSWin32";
