@@ -173,6 +173,9 @@ typedef struct {
                *modules,
                *files;
   AV           *ends;
+  AV           *finished_blocks;     /* special block CVs that have run,
+                                      * whose captured outer lexicals are
+                                      * released at the next statement */
   AV           *require_trees;       /* [CV ref, root op addr] pairs for
                                       * require optrees kept alive past
                                       * their SAVEFREEOP */
@@ -2404,8 +2407,74 @@ static OP *dc_padrange(pTHX) {
   return MY_CXT.ppaddr[OP_PADRANGE](aTHX);
 }
 
+/* Release the outer lexicals a finished special block captured */
+static void release_captured_pad(pTHX_ CV *cv) {
+  PADLIST  *padlist = CvPADLIST(cv);
+  PADNAME **names;
+  SSize_t   depth, ix, max_named;
+
+  if (!padlist || PadlistMAX(padlist) < 1) return;
+  names     = PadlistNAMESARRAY(padlist);
+  max_named = PadlistNAMESMAX(padlist);
+  for (depth = 1; depth <= PadlistMAX(padlist); depth++) {
+    PAD *pad = PadlistARRAY(padlist)[depth];
+    if (!pad) continue;
+    for (ix = 1; ix <= PadMAX(pad) && ix <= max_named; ix++) {
+      PADNAME    *name = names[ix];
+      SV        **slot = &PadARRAY(pad)[ix];
+      const char *pv;
+      if (!name || !PadnameLEN(name) || !PadnameOUTER(name)) continue;
+      if (PadnameIsOUR(name)) continue;
+      pv = PadnamePV(name);
+      if (!pv || *pv == '&') continue;
+      if (!*slot || *slot == &PL_sv_undef) continue;
+      SvREFCNT_dec(*slot);
+      *slot = &PL_sv_undef;
+    }
+  }
+}
+
+/* Queue the special block being left for release at the next statement */
+static void note_finished_block(pTHX) {
+  dMY_CXT;
+  I32 i;
+  for (i = cxstack_ix; i >= 0; i--) {
+    PERL_CONTEXT *cx = &cxstack[i];
+    switch (CxTYPE(cx)) {
+      case CXt_SUB: {
+        CV *cv = cx->blk_sub.cv;
+        if (cx->cx_type & CXp_SUB_RE_FAKE) continue;
+        if (cv && CvSPECIAL(cv) && !CvISXSUB(cv))
+          av_push(MY_CXT.finished_blocks, SvREFCNT_inc_simple_NN((SV *)cv));
+        return;
+      }
+      case CXt_EVAL:
+      case CXt_FORMAT:
+        return;
+      default:
+        continue;
+    }
+  }
+}
+
+/* Pop, since a DESTROY run here may execute statements and re-enter */
+static void release_finished_blocks(pTHX) {
+  dMY_CXT;
+  SV *sv;
+  while ((sv = av_pop(MY_CXT.finished_blocks)) != &PL_sv_undef) {
+    release_captured_pad(aTHX_ (CV *)sv);
+    SvREFCNT_dec(sv);
+  }
+}
+
+/* The queue is almost always empty, so test it inline at each statement */
+#define RELEASE_FINISHED_BLOCKS() STMT_START { \
+  if (AvFILLp(MY_CXT.finished_blocks) >= 0) release_finished_blocks(aTHX); \
+} STMT_END
+
 static OP *dc_nextstate(pTHX) {
   dMY_CXT;
+  RELEASE_FINISHED_BLOCKS();
   NDEB(D(L, "dc_nextstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
   if (MY_CXT.covering) check_if_collecting(aTHX_ cCOP);
   if (collecting_here(aTHX)) cover_current_statement(aTHX);
@@ -2414,6 +2483,7 @@ static OP *dc_nextstate(pTHX) {
 
 static OP *dc_dbstate(pTHX) {
   dMY_CXT;
+  RELEASE_FINISHED_BLOCKS();
   NDEB(D(L, "dc_dbstate() at %p (%d)\n", PL_op, collecting_here(aTHX)));
   if (MY_CXT.covering) check_if_collecting(aTHX_ cCOP);
   if (collecting_here(aTHX)) cover_current_statement(aTHX);
@@ -2665,8 +2735,15 @@ static void capture_require_return(pTHX) {
 static OP *dc_return(pTHX) {
   dMY_CXT;
   NDEB(D(L, "dc_return() at %p (%d)\n", PL_op, collecting_here(aTHX)));
+  note_finished_block(aTHX);
   if (MY_CXT.covering) capture_require_return(aTHX);
   return MY_CXT.ppaddr[OP_RETURN](aTHX);
+}
+
+static OP *dc_leavesub(pTHX) {
+  dMY_CXT;
+  note_finished_block(aTHX);
+  return MY_CXT.ppaddr[OP_LEAVESUB](aTHX);
 }
 
 static OP *dc_leaveeval(pTHX) {
@@ -2725,6 +2802,7 @@ static void replace_ops (pTHX) {
   PL_ppaddr[OP_REQUIRE]   = dc_require;
   PL_ppaddr[OP_LEAVEEVAL] = dc_leaveeval;
   PL_ppaddr[OP_RETURN]    = dc_return;
+  PL_ppaddr[OP_LEAVESUB]  = dc_leavesub;
   PL_ppaddr[OP_LEAVE]     = dc_leave;
   PL_ppaddr[OP_EXEC]      = dc_exec;
 }
@@ -2811,6 +2889,7 @@ static void initialise(pTHX) {
     HvSHAREKEYS_off(MY_CXT.decision_meta);
     HvSHAREKEYS_off(MY_CXT.decision_walked_cvs);
     MY_CXT.require_trees       = newAV();
+    MY_CXT.finished_blocks     = newAV();
     MY_CXT.entered_subs        = newHV();
     HvSHAREKEYS_off(MY_CXT.entered_subs);
     MY_CXT.module              = newSVpv("", 0);
@@ -2873,7 +2952,10 @@ static int runops_cover(pTHX) {
     /* Check to see whether we are interested in this file */
 
     if (PL_op->op_type == OP_NEXTSTATE || PL_op->op_type == OP_DBSTATE)
+    {
+      RELEASE_FINISHED_BLOCKS();
       check_if_collecting(aTHX_ cCOP);
+    }
     else if (PL_op->op_type == OP_ENTERSUB) {
       store_return(aTHX);
       note_entered_sub(aTHX);
@@ -2885,8 +2967,12 @@ static int runops_cover(pTHX) {
        collecting itself. */
     else if (PL_op->op_type == OP_LEAVEEVAL)
       capture_require_tree(aTHX);
-    else if (PL_op->op_type == OP_RETURN)
+    else if (PL_op->op_type == OP_RETURN) {
+      note_finished_block(aTHX);
       capture_require_return(aTHX);
+    }
+    else if (PL_op->op_type == OP_LEAVESUB)
+      note_finished_block(aTHX);
     else if (PL_op->op_type == OP_EXEC && exec_reports(aTHX))
       call_report(aTHX);
 

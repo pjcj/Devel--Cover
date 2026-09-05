@@ -2232,7 +2232,10 @@ outside the symbol table.
 In the other direction the XS code calls back into L</use_file> while the
 program runs, installs L</first_init>, L</first_end> and L</last_end> as
 C<INIT> and C<END> blocks, and calls L</report> directly before an C<exec>
-replaces the process.
+replaces the process.  Its C<leavesub> and C<return> hooks queue each
+finished special block so that the outer lexicals it captured are released
+at the next statement, as F<docs/technical/special-block-lexicals.md>
+describes.
 
 =head1 SEE ALSO
 

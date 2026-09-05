@@ -59,7 +59,9 @@ mechanism. `Cover.xs` sets `PL_savebegin = TRUE` at boot, which makes
 `Perl_call_list` push executed `BEGIN`/`CHECK`/`UNITCHECK` CVs onto
 `PL_beginav_save`/`PL_checkav_save`/`PL_unitcheckav_save` instead of freeing
 them, and `B::begin_av` exposes the saved array. That mechanism was added for
-the compiler backends and is precisely the precedent for a fix.
+the compiler backends and is precisely the precedent for a fix. The saved CVs
+also keep alive the outer lexicals they captured, which
+`special-block-lexicals.md` describes.
 
 No existing `$^P` flag helps. `PERLDBf_SAVESRC` and friends retain source text,
 not ops. `DB::postponed` receives the file GV only. String eval is affected in

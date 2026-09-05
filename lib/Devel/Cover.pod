@@ -819,6 +819,20 @@ C<if>/C<else> or ternary whose branches are both empty - it evaluates the truth
 in perl's stead.  A C<bool> overload therefore runs exactly as often under
 coverage as without it.
 
+=head2 Lexicals captured by special blocks
+
+A C<BEGIN>, C<UNITCHECK>, C<CHECK> or C<INIT> block that uses a lexical from
+an enclosing scope holds a reference to it.  Devel::Cover keeps every such
+block alive so it can be reported on, and releases the captured lexicals
+once the block has run, so a variable captured by a C<BEGIN> block is
+freed when its scope ends, as without coverage.  Plain perl frees the
+other three kinds of block at the end of the run, so a variable they
+capture lives a little longer there than under coverage.
+
+A C<BEGIN> block inside a string C<eval> that captures a lexical from
+outside the C<eval> keeps that lexical alive until global destruction under
+coverage.  The block holds the C<eval>, and the C<eval> holds the lexical.
+
 =head1 BUGS
 
 Almost certainly.
