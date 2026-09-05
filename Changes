@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Release the outer lexicals a BEGIN, UNITCHECK, CHECK or INIT block
+  captured once the block has run, so a scope guard created in a BEGIN
+  block is destroyed when its scope ends rather than at global
+  destruction (GH-118)
 - Write the coverage database when the main program execs from a
   subroutine in an ignored file, such as a wrapper module, rather than
   discarding the run (GH-790)
