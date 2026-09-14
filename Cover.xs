@@ -1646,16 +1646,22 @@ static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
  * the joining logop of an if/unless/while statement or statement modifier.
  * Condition coverage treats it as a branch, so it is not a decision root
  * and must not de-root the condition chain on its left, which is the real
- * decision.  Statement level means compile-time void context, or unknown
- * context (a block-final expression) outside expression position - the
- * Perl-side walk classifies those as branches too.
+ * decision.  Statement level means the OPpSTATEMENT flag where perl has it,
+ * compile-time void context, or unknown context (a sub body final
+ * expression) outside expression position - the Perl-side walk classifies
+ * those as branches too.
  */
 static int dc_is_branch_logop(pTHX_ OP *op, int expr_ctx) {
   OP *right;
   int want;
+  int statement = 0;
   if (op->op_type != OP_AND && op->op_type != OP_OR) return 0;
+#ifdef OPpSTATEMENT
+  statement = op->op_private & OPpSTATEMENT;
+#endif
   want = op->op_flags & OPf_WANT;
-  if (want != OPf_WANT_VOID && (want != 0 || expr_ctx)) return 0;
+  if (!statement && want != OPf_WANT_VOID && (want != 0 || expr_ctx))
+    return 0;
   right = dc_skipped_operand(aTHX_ op, 1);
   return !(right && dc_is_logop_type(right->op_type));
 }

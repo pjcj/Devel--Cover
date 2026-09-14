@@ -192,11 +192,13 @@ itself nested inside another logop of compatible type:
 - `($a && $b) ? $x : $y` - the `cond_expr` is the decision; `$a && $b` is its
   sole condition (composed of two atomic conditions).
 
-Statement level has a wrinkle. A logop whose value is discarded - a sub's last
+Statement level has a wrinkle. A logop whose context is unknown - a sub's last
 statement, an implicit return - is recorded as a decision only when its right
 operand is itself a decision, as in `(A && B) || (C && D)`. When the right
 operand is not a decision, such as `(A && B) || $c`, the outer operator stays a
-branch (see Limitations).
+branch (see Limitations). A chain that ends a `grep`, `map`, `sort` or value
+`do` block is not at statement level. The block gives it scalar or list context,
+so the whole chain is one decision, as it is under `return`.
 
 ### Atomic conditions
 
@@ -346,13 +348,22 @@ de-root the condition chain on its left, which is the real decision and records
 vectors under its own root. Without this exclusion the vectors would be keyed by
 an op that is never finalised as a condition and would be lost, leaving
 statement-context compound decisions permanently unproven. Statement level means
-compile-time void context, or unknown context outside expression position.
-Unknown context arises where the context depends on the caller - a sub's bare
-final expression and the operands of a `return` compile identically - so the
-collection walk tracks expression position down the tree (`dc_kid_expr_ctx`).
-Under `return`, `cond_expr` or another logop the Perl-side walk classifies the
-join as an expression, and everywhere else a context-unknown join is a branch
-(GH-549).
+the `OPpSTATEMENT` flag on Perls that have it (5.43.8 and later), compile-time
+void context, or unknown context outside expression position. Unknown context
+arises where the context depends on the caller - a sub's bare final expression
+and the operands of a `return` compile identically - so the collection walk
+tracks expression position down the tree (`dc_kid_expr_ctx`). Under `return`,
+`cond_expr` or another logop the Perl-side walk classifies the join as an
+expression. Everywhere else it follows the op's `OPf_WANT`. So the last
+expression of a `grep`, `map`, `sort` or value `do` block, which has scalar or
+list want, is an expression and roots the whole chain, and a context-unknown
+join is a branch (GH-549, GH-797).
+
+A statement modifier that ends such a block, `$c unless A && B && C`, compiles
+to the same tree as `A && B && C || $c`. Before 5.43.8 nothing tells the two
+apart, so both walks treat the join as the root of a four-atom decision. From
+5.43.8 the `OPpSTATEMENT` flag marks the modifier, both walks treat the join as
+a branch, and the chain on its left is the decision.
 
 `Condition_table::for_line` accepts an optional parallel array of
 observed-vector hashes; when present, each synthesised row is marked `covered=1`
@@ -466,14 +477,25 @@ USAGE POD in `Devel::Cover::Mcdc`, and a `Changes` entry.
   no extra test cases, preserves short-circuiting, and lets every condition be
   analysed. `tests/mcdc_wide` covers the behaviour end to end.
 
-- A statement-level logop whose value is discarded records its outer operator as
-  a decision only when its right operand is itself a decision. So
-  `(A && B) || (C && D)` is recorded as one unified table, but `(A && B) || $c`
-  is not - the outer `||` stays a branch, and an `||` versus `&&` fault in it is
-  invisible to condition and MC/DC coverage. The outer is left as a branch
-  because a left-only-compound join is optree-identical to a statement modifier
-  (`$c unless A && B`) and cannot be told apart. In value context the outer is
-  always recorded, so this affects statement-level forms only.
+- A statement-level logop whose context is unknown - a sub's bare final
+  expression - records its outer operator as a decision only when its right
+  operand is itself a decision. So `(A && B) || (C && D)` is recorded as one
+  unified table, but `(A && B) || $c` is not - the outer `||` stays a branch,
+  and an `||` versus `&&` fault in it is invisible to condition and MC/DC
+  coverage. The outer is left as a branch because a left-only-compound join is
+  optree-identical to a statement modifier (`$c unless A && B`) and cannot be
+  told apart. In value context, which includes the last expression of a `grep`,
+  `map`, `sort` or value `do` block, the outer is always recorded, so this
+  affects a sub's bare final expression only.
+
+- Before Perl 5.43.8 a statement modifier that ends a `grep`, `map`, `sort` or
+  value `do` block, such as `$c unless A && B && C`, is optree-identical to
+  `A && B && C || $c` and is reported as that decision, with the modified
+  statement as its last atom. Its MC/DC needs a row where that statement is
+  false, which a `push` or an assignment can never give, so such a line cannot
+  reach full coverage on those Perls. From 5.43.8 the `OPpSTATEMENT` flag tells
+  the forms apart, so the modifier keeps its branch and the chain on its left is
+  the decision.
 
 - Coupled conditions (the same atomic condition appearing more than once in a
   decision, such as `($a && $b) || ($a && $c)`) are placed in a single table.

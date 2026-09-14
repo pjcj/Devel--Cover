@@ -1326,7 +1326,7 @@ sub _skip_null_parents ($parent, $highprec, $lowprec) {
   while ($$parent && $parent->name eq "null") {
     if (my $targ = $parent->targ) {
       my $tname = ppname($targ);
-      return ($parent, 0) if $tname =~ /^pp_(?:scope|leave)/;
+      last if $tname =~ /^pp_(?:scope|leave)/;
       return ($parent, $highprec || $lowprec) if $tname eq "pp_return";
     }
     $parent = _op_parent($parent);
@@ -1350,14 +1350,13 @@ sub _logop_parent_cx ($op, $highprec, $lowprec) {
   return $early if defined $early;
   if ($parent && $$parent) {
     my $pname = $parent->name;
-    return $highprec || $lowprec       if $pname eq "return";
-    return 1                           if $pname eq "cond_expr";
-    return _lineseq_parent_cx($parent) if $pname eq "lineseq";
-    return 0 if $pname =~ /^(?:scope|leave(?:sub|try|loop)?|sort)$/;
+    return $highprec || $lowprec if $pname eq "return";
+    return 1                     if $pname eq "cond_expr";
+    return 1 if $pname eq "lineseq" && _lineseq_parent_cx($parent);
     # B::Deparse recurses into logop children at cx=1
     return 1 if $pname =~ /^(?:and|or|dor)$/;
   }
-  # Fall back to OPf_WANT for unrecognised parents
+  # A block-final logop takes the want of its block
   my $want = $op->flags & OPf_WANT;
   return 0 unless $want >= B::OPf_WANT_SCALAR;
   $highprec || $lowprec
@@ -1370,8 +1369,7 @@ sub _is_loop_condition ($op) {
   $p && $$p && $p->name eq "leaveloop"
 }
 
-sub _resolve_blockname ($blockname, $cx) {
-  return undef if $cx >= 1;
+sub _resolve_blockname ($blockname) {
   if ($blockname) {
     $Shared_deparse ||= B::Deparse->new;
     return $Shared_deparse->keyword($blockname);
@@ -1425,7 +1423,7 @@ sub _walk_logop ($cv, $op) {
 
   my $cx = _logop_parent_cx($op, $highprec, $lowprec);
 
-  $blockname = _resolve_blockname($blockname, $cx);
+  $blockname = _resolve_blockname($blockname);
 
   $Shared_deparse ||= B::Deparse->new;
   my ($is_statement, $is_branch)
@@ -2085,7 +2083,8 @@ records a ternary branch.
 =head2 _skip_null_parents ($parent, $highprec, $lowprec)
 
 Step upwards through C<null> ops when determining context, stopping at
-block boundaries and C<return>.
+block boundaries and C<return>.  A block boundary leaves the context to
+the op's own C<OPf_WANT>.
 
 =head2 _lineseq_parent_cx ($parent)
 
@@ -2097,21 +2096,25 @@ C<cond_expr>, so those wrappers are tracked in C<%Seen> and count too.
 =head2 _logop_parent_cx ($op, $highprec, $lowprec)
 
 Determine the precedence context for a logop by walking up the parent
-chain, mirroring how B::Deparse's own recursion would arrive at the op.
-C<OPf_WANT> alone cannot answer this, since it diverges from the deparse
-context for C<return> (want C<NONE>, deparse cx 6) and for C<sort>,
-C<map> and C<grep> blocks (want C<SCALAR>, deparse cx 0).  Parents the
-walk does not recognise, such as nested logops where the optimiser
-removed the C<cond_expr>, fall back to C<OPf_WANT>.
+chain.  C<return>, C<cond_expr> and an enclosing logop give expression
+context whatever the op's C<OPf_WANT> says, since a C<return> operand
+has want C<NONE>.  Everything else, including the last expression of a
+block, takes its context from C<OPf_WANT>.  A block-final chain in a
+C<grep>, C<map>, C<sort> or value C<do> block has scalar or list want,
+so it is an expression, and the whole chain is one decision.  A sub
+body's bare final expression has no want, so it is statement level.
+This matches the XS decision walk, which roots decisions by the same
+rule, so both sides agree on which op holds a decision.  B::Deparse
+itself would deparse the block-final chain at statement level, so the
+text differs from its output there.
 
 =head2 _is_loop_condition ($op)
 
 True when a logop is the condition of a loop, which is always a branch.
 
-=head2 _resolve_blockname ($blockname, $cx)
+=head2 _resolve_blockname ($blockname)
 
-Return the keyword form of a statement-level logop's block name - C<if>
-or C<unless> - or undef in expression context.
+Return the keyword form of a logop's block name - C<if> or C<unless>.
 
 =head2 _operand_is_decision ($op)
 
