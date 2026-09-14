@@ -310,12 +310,17 @@ Audit-grade MC/DC therefore needs per-execution combined-input data. `Cover.xs`
 records each decision's input vector at runtime: a small stack
 (`MY_CXT.dc_stack`) tracks the decisions in flight; `cover_logop`, `cover_xor`
 and `add_condition` write each leaf's observed truth value into the current
-vector, and snapshot it into `MY_CXT.decision_inputs` on short-circuit-at-root,
-on the same-type chain reaching the root, or - for decisions ending a sort
-comparator - per invocation from `resolve_deferred_conditionals`. The chain walk
-follows each right operand's `op_next`, stepping through nulled ops (the tree
-roots of element accesses, which are not executed but whose `op_next` still
-leads on) to reach the enclosing logop. Each evaluation of a decision gets its
+vector, and snapshot it into `MY_CXT.decision_inputs` on a short circuit that
+completes the decision, or - for decisions ending a sort comparator - per
+invocation from `resolve_deferred_conditionals`. A short circuit completes the
+decision at the root, or when its exit leaves the root's subtree. The peephole
+optimiser sends a short circuit past same-type outer logops and past a
+void-context consumer such as a statement modifier's `and`, so no outer
+`cover_logop` or value hook runs for it. The pass that builds the column
+metadata reads each inner logop's exit from its `op_next` after the optimiser
+has run. It steps through nulled ops (the tree roots of element accesses, which
+are not executed but whose `op_next` still leads on) and marks the logop when
+the exit lies outside the root's subtree. Each evaluation of a decision gets its
 own frame: the decision's entry logop (the first to fire on every evaluation)
 always pushes a fresh one, so recursive invocations record separately. Frames
 record `cxstack_ix` at push; a frame abandoned by a non-local exit (`die`,

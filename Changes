@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Record the MC/DC row a decision in boolean context lost when its nested
+  right operand short-circuited, as in `return 1 if $x && ($y || $z)`
+  with `$x` and `$y` true, where perl jumps past the op the outer
+  operator watches (GH-798)
 - Record MC/DC rows for decisions at file scope, in the main program and
   in the top-level code of a required file, which recorded nothing for
   any decision of three or more atoms (GH-799)

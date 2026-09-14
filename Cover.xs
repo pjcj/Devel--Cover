@@ -1037,6 +1037,7 @@ static dc_dctx *dc_stack_top(pTHX);
 static void     dc_stack_pop(pTHX);
 static void     dc_stack_discard_stale(pTHX);
 static void     dc_snapshot(pTHX_ dc_dctx *d);
+static OP      *skip_nulled_ops(OP *o);
 
 static void add_condition(pTHX_ SV *cond_ref, int value) {
   dMY_CXT;
@@ -1682,6 +1683,19 @@ static OP *dc_cv_root(pTHX_ CV *cv) {
 }
 
 /*
+ * Whether target is tree itself or lies under it.
+ */
+static int dc_subtree_contains(OP *tree, OP *target) {
+  OP *kid;
+  if (!tree) return 0;
+  if (tree == target) return 1;
+  if (tree->op_flags & OPf_KIDS)
+    for (kid = cUNOPx(tree)->op_first; kid; kid = OpSIBLING(kid))
+      if (dc_subtree_contains(kid, target)) return 1;
+  return 0;
+}
+
+/*
  * Walk a CV's optree once and populate decision_meta for every logop in it.
  * Cached by CV pointer in MY_CXT.decision_walked_cvs to avoid re-walking.
  *
@@ -1775,12 +1789,18 @@ static void dc_walk_cv_decisions(pTHX_ CV *cv) {
     }
   }
 
-  /* Propagate width from each root to its descendants. */
+  /*
+   * Propagate width from each root to its descendants, and mark each
+   * descendant whose short-circuit exit leaves the root's subtree: that
+   * short circuit decides the whole decision, and the peephole optimiser
+   * has sent it past every outer logop and the value hook's target.
+   */
   for (i = 0; i < n; i++) {
     OP   *lop       = INT2PTR(OP *, SvIV(*av_fetch(logops, i, 0)));
     HV   *meta      = dc_meta_entry(aTHX_ cache, lop);
     SV  **root_slot = hv_fetch(meta, "root_addr", 9, 0);
-    OP   *root;
+    OP   *root,
+         *exit;
     HV   *root_meta;
     SV  **width_slot;
 
@@ -1791,6 +1811,9 @@ static void dc_walk_cv_decisions(pTHX_ CV *cv) {
     width_slot = hv_fetch(root_meta, "width", 5, 0);
     if (width_slot)
       (void)hv_stores(meta, "width", newSViv(SvIV(*width_slot)));
+    exit = skip_nulled_ops(lop->op_next);
+    (void)hv_stores(meta, "sc_exits",
+                    newSViv(!dc_subtree_contains(root, exit)));
   }
 }
 
@@ -2009,17 +2032,16 @@ static void credit_short_circuit(pTHX) {
 
 /*
  * Snapshot+pop the active DC if PL_op's short-circuit completes the
- * decision.  SC at PL_op completes the decision when PL_op is the
- * decision root, OR when SC propagates up a same-type chain of logops
- * that reaches the root - Perl's runtime takes chained same-type
- * short-circuits in one jump, so the outer logops' cover_logop never
- * fires.
+ * decision.  It does when PL_op is the decision root, or when its exit
+ * leaves the root's subtree (the sc_exits flag): the peephole optimiser
+ * sends a short circuit past same-type logops and past a void-context
+ * consumer, so no outer cover_logop or value hook will run for it.
  */
 static void dc_snapshot_on_short_circuit(pTHX) {
   dMY_CXT;
-  HV *meta;
-  OP *root_addr;
-  OP *cur;
+  HV      *meta;
+  OP      *root_addr;
+  dc_dctx *top;
 
   if (!collecting(Mcdc)) return;
 
@@ -2027,27 +2049,14 @@ static void dc_snapshot_on_short_circuit(pTHX) {
   if (!meta) return;
 
   root_addr = INT2PTR(OP *, dc_meta_iv(aTHX_ meta, "root_addr", 9));
-  cur       = PL_op;
+  if (PL_op != root_addr && dc_meta_iv(aTHX_ meta, "sc_exits", 8) != 1)
+    return;
 
   dc_stack_discard_stale(aTHX);
-
-  while (cur) {
-    if (cur == root_addr) {
-      dc_dctx *top = dc_stack_top(aTHX);
-      if (top && top->root_addr == cur) {
-        dc_snapshot(aTHX_ top);
-        dc_stack_pop(aTHX);
-      }
-      return;
-    }
-    {
-      OP *sib = OpSIBLING(cLOGOPx(cur)->op_first);
-      OP *up;
-      if (!sib) return;
-      up = skip_nulled_ops(sib->op_next);
-      if (!up || up->op_type != PL_op->op_type) return;
-      cur = up;
-    }
+  top = dc_stack_top(aTHX);
+  if (top && top->root_addr == root_addr) {
+    dc_snapshot(aTHX_ top);
+    dc_stack_pop(aTHX);
   }
 }
 

@@ -1,0 +1,116 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# MC/DC for a decision in boolean context whose right operand is a nested
+# operator.  When the nested operator short-circuits and that decides the
+# whole decision, perl jumps straight to the consumer's branch, past the
+# op the outer operator watches, so the row must be recorded at the
+# short-circuit.  The four-atom chain and the value-context form are the
+# controls: their rows are recorded through the outer operator.
+
+use strict;
+use warnings;
+
+sub and_or_if {
+  my ($x, $y, $z) = @_;
+  return 1 if $x && ($y || $z);
+  0
+}
+
+sub or_and_if {
+  my ($x, $y, $z) = @_;
+  return 1 if $x || ($y && $z);
+  0
+}
+
+sub and_or_block {
+  my ($x, $y, $z) = @_;
+  if ($x && ($y || $z)) {
+    return 1;
+  }
+  0
+}
+
+sub and_or_unless {
+  my ($x, $y, $z) = @_;
+  return 1 unless $x && ($y || $z);
+  0
+}
+
+sub and_or_and {
+  my ($x, $y, $z, $w) = @_;
+  return 1 if $x && ($y || ($z && $w));
+  0
+}
+
+sub and_or_chain {
+  my ($x, $y, $z, $w) = @_;
+  return 1 if $x && ($y || $z) && $w;
+  0
+}
+
+sub and_or_value {
+  my ($x, $y, $z) = @_;
+  return $x && ($y || $z);
+}
+
+sub main {
+  # Calls are pushed into @r so each decision is exercised in non-void
+  # context.
+  my @r;
+
+  # $x && ($y || $z) as a statement modifier, every short-circuit row.
+  # The (1, 1, X) row ends at the inner ||.
+  push @r, and_or_if(1, 1, 0);
+  push @r, and_or_if(1, 0, 1);
+  push @r, and_or_if(1, 0, 0);
+  push @r, and_or_if(0, 0, 0);
+
+  # The mirror, $x || ($y && $z).  The (0, 0, X) row ends at the inner &&.
+  push @r, or_and_if(1, 0, 0);
+  push @r, or_and_if(0, 1, 1);
+  push @r, or_and_if(0, 1, 0);
+  push @r, or_and_if(0, 0, 0);
+
+  # The if block form.
+  push @r, and_or_block(1, 1, 0);
+  push @r, and_or_block(1, 0, 1);
+  push @r, and_or_block(1, 0, 0);
+  push @r, and_or_block(0, 0, 0);
+
+  # The unless form.
+  push @r, and_or_unless(1, 1, 0);
+  push @r, and_or_unless(1, 0, 1);
+  push @r, and_or_unless(1, 0, 0);
+  push @r, and_or_unless(0, 0, 0);
+
+  # Two nested levels.  The (1, 1, X, X) row ends at the ||, the
+  # (1, 0, 0, X) row at the innermost &&.
+  push @r, and_or_and(1, 1, 0, 0);
+  push @r, and_or_and(1, 0, 1, 1);
+  push @r, and_or_and(1, 0, 1, 0);
+  push @r, and_or_and(1, 0, 0, 0);
+  push @r, and_or_and(0, 0, 0, 0);
+
+  # A four-atom chain around the nested operator.  The inner || exits to
+  # the outer &&, so every row goes through it.
+  push @r, and_or_chain(1, 1, 0, 1);
+  push @r, and_or_chain(1, 0, 1, 1);
+  push @r, and_or_chain(1, 0, 0, 1);
+  push @r, and_or_chain(0, 0, 0, 1);
+  push @r, and_or_chain(1, 1, 0, 0);
+
+  # The same decision in value context.
+  push @r, and_or_value(1, 1, 0);
+  push @r, and_or_value(1, 0, 1);
+  push @r, and_or_value(1, 0, 0);
+  push @r, and_or_value(0, 0, 0);
+}
+
+main();
