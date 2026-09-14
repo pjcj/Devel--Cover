@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Record MC/DC rows for decisions at file scope, in the main program and
+  in the top-level code of a required file, which recorded nothing for
+  any decision of three or more atoms (GH-799)
 - Release the outer lexicals a BEGIN, UNITCHECK, CHECK or INIT block
   captured once the block has run, so a scope guard created in a BEGIN
   block is destroyed when its scope ends rather than at global

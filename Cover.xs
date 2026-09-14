@@ -1660,6 +1660,28 @@ static int dc_is_branch_logop(pTHX_ OP *op, int expr_ctx) {
 }
 
 /*
+ * The optree a CV runs.  The main program's tree hangs off PL_main_root, and
+ * a required file's top-level code runs in an eval CV that owns no tree: its
+ * root is PL_eval_root while its frame is the innermost eval, otherwise the
+ * old_eval_root saved by the eval frame pushed inside it.
+ */
+static OP *dc_cv_root(pTHX_ CV *cv) {
+  PERL_CONTEXT *inner = NULL;
+  I32           i;
+
+  if (CvROOT(cv)) return CvROOT(cv);
+  if (cv == PL_main_cv) return PL_main_root;
+  for (i = cxstack_ix; i >= 0; i--) {
+    PERL_CONTEXT *cx = &cxstack[i];
+    if (CxTYPE(cx) != CXt_EVAL) continue;
+    if (cx->blk_eval.cv == cv)
+      return inner ? inner->blk_eval.old_eval_root : PL_eval_root;
+    inner = cx;
+  }
+  return NULL;
+}
+
+/*
  * Walk a CV's optree once and populate decision_meta for every logop in it.
  * Cached by CV pointer in MY_CXT.decision_walked_cvs to avoid re-walking.
  *
@@ -1680,14 +1702,17 @@ static void dc_walk_cv_decisions(pTHX_ CV *cv) {
   AV     *logops;
   SSize_t i, n;
   SV    **walked_slot;
+  OP     *root;
   IV      cv_root_iv;
 
-  if (!cv || !cache || !walked || !CvROOT(cv)) return;
-  cv_root_iv  = PTR2IV(CvROOT(cv));
+  if (!cv || !cache || !walked) return;
+  root = dc_cv_root(aTHX_ cv);
+  if (!root) return;
+  cv_root_iv  = PTR2IV(root);
   walked_slot = hv_fetch(walked, (const char *)&cv, sizeof(CV *), 0);
   /*
    * CV pointer bytes are recycled when CVs are freed (eval-string CVs,
-   * anonymous closures).  Compare the cached CvROOT to the current one
+   * anonymous closures).  Compare the cached root to the current one
    * to detect recycling; on mismatch fall through and re-walk so the
    * fresh optree's logops repopulate decision_meta.
    */
@@ -1696,7 +1721,7 @@ static void dc_walk_cv_decisions(pTHX_ CV *cv) {
   hv_store(walked, (const char *)&cv, sizeof(CV *), newSViv(cv_root_iv), 0);
 
   logops = (AV *)sv_2mortal((SV *)newAV());
-  dc_collect_logops_r(aTHX_ CvROOT(cv), logops, 0);
+  dc_collect_logops_r(aTHX_ root, logops, 0);
 
   n = av_len(logops) + 1;
   for (i = 0; i < n; i++) {

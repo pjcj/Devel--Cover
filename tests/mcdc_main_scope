@@ -1,0 +1,61 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# MC/DC for decisions at file scope.  The main program's optree hangs off
+# PL_main_root rather than its CV, and a required file's top-level code runs
+# in an eval CV that owns no optree either, so MC/DC has to find the root
+# of each.  Decisions of two atoms and decisions inside a sub are the
+# controls.
+
+use strict;
+use warnings;
+
+use lib "tests";
+
+use Mcdc_required;
+
+sub chained_or {
+  my ($p, $q, $r) = @_;
+  return $p || $q || $r;
+}
+
+my @r;
+
+# Three-atom || at file scope, every short-circuit row.
+for my $t ([1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 0]) {
+  my ($x, $y, $z) = @$t;
+  push @r, $x || $y || $z;
+}
+
+# Three-atom && at file scope, every short-circuit row.
+for my $t ([1, 1, 1], [1, 1, 0], [1, 0, 0], [0, 0, 0]) {
+  my ($x, $y, $z) = @$t;
+  push @r, $x && $y && $z;
+}
+
+# Two-atom || at file scope.
+for my $t ([1, 0], [0, 1], [0, 0]) {
+  my ($x, $y) = @$t;
+  push @r, $x || $y;
+}
+
+# Three-atom || under an eval block at file scope.
+for my $t ([1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 0]) {
+  my ($x, $y, $z) = @$t;
+  eval { push @r, $x || $y || $z };
+}
+
+# The same three-atom || inside a sub.
+push @r, chained_or(1, 0, 0);
+push @r, chained_or(0, 1, 0);
+push @r, chained_or(0, 0, 1);
+push @r, chained_or(0, 0, 0);
+
+print "main: ",     scalar @r,              "\n";
+print "required: ", Mcdc_required::count(), "\n";
