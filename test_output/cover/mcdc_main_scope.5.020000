@@ -1,0 +1,243 @@
+cover: Reading database from ...
+
+Common prefix: tests/
+
+---------------- ------ ------ ------ ------ ------ ------ ------
+File               stmt   bran   cond   mcdc    sub  total   scar
+---------------- ------ ------ ------ ------ ------ ------ ------
+Mcdc_required.pm  100.0    n/a  100.0  100.0  100.0  100.0    0.0
+mcdc_main_scope   100.0    n/a  100.0  100.0  100.0  100.0    6.2
+Total             100.0    n/a  100.0  100.0  100.0  100.0    5.6
+---------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+Module Summary
+--------------
+
+Files CC   Cov CRAP SCAR
+----- -- ----- ---- ----
+    2  3 100.0  1.8  5.6
+
+
+Mcdc_required.pm
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+2                                              
+3                                              # This software is free.  It is licensed under the same terms as Perl itself.
+4                                              
+5                                              # The latest version of this software should be available from my homepage:
+6                                              # https://pjcj.net
+7                                              
+8                                              package Mcdc_required;
+9                                              
+10                                             # Top-level code of a required file, run in an eval CV that owns no optree.
+11                                             
+12             1                               my @r;
+13                                             
+14                                             # Three-atom || at the file's top level, every short-circuit row.
+15             1                               for my $t ([1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 0]) {
+16             4                                 my ($x, $y, $z) = @$t;
+17             4           100    100            push @r, $x || $y || $z;
+                           100                 
+18                                             }
+19                                             
+20                                             # Three-atom && under an eval block at the file's top level.
+21             1                               for my $t ([1, 1, 1], [1, 1, 0], [1, 0, 0], [0, 0, 0]) {
+22             4                                 my ($x, $y, $z) = @$t;
+23             4           100    100            eval { push @r, $x && $y && $z };
+               4           100                 
+24                                             }
+25                                             
+26             1                           1   sub count { scalar @r }
+27                                             
+28             1                               1
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+23           100      2      1      1   $x && $y && $z
+             100      1      1      2   $x and $y
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+17           100      2      1      1   $x || $y || $z
+             100      1      1      2   $x or $y
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+17           100    3    3                          $x || $y || $z
+23           100    3    3                          $x && $y && $z
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location           
+---------- ----- --- ----- -------------------
+count          1   1   0.0 Mcdc_required.pm:26
+
+
+mcdc_main_scope
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+ 3 100.0  1.9  6.2
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SCAR  Location          
+---------- -- ----  ------------------
+chained_or  3 11.0  mcdc_main_scope:24
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # MC/DC for decisions at file scope.  The main program's optree hangs off
+11                                             # PL_main_root rather than its CV, and a required file's top-level code runs
+12                                             # in an eval CV that owns no optree either, so MC/DC has to find the root
+13                                             # of each.  Decisions of two atoms and decisions inside a sub are the
+14                                             # controls.
+15                                             
+16             1                           1   use strict;
+               1                               
+               1                               
+17             1                           1   use warnings;
+               1                               
+               1                               
+18                                             
+19             1                           1   use lib "tests";
+               1                               
+               1                               
+20                                             
+21             1                           1   use Mcdc_required;
+               1                               
+               1                               
+22                                             
+23                                             sub chained_or {
+24             4                           4     my ($p, $q, $r) = @_;
+25             4           100    100            return $p || $q || $r;
+                           100                 
+26                                             }
+27                                             
+28             1                               my @r;
+29                                             
+30                                             # Three-atom || at file scope, every short-circuit row.
+31             1                               for my $t ([1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 0]) {
+32             4                                 my ($x, $y, $z) = @$t;
+33             4           100    100            push @r, $x || $y || $z;
+                           100                 
+34                                             }
+35                                             
+36                                             # Three-atom && at file scope, every short-circuit row.
+37             1                               for my $t ([1, 1, 1], [1, 1, 0], [1, 0, 0], [0, 0, 0]) {
+38             4                                 my ($x, $y, $z) = @$t;
+39             4           100    100            push @r, $x && $y && $z;
+                           100                 
+40                                             }
+41                                             
+42                                             # Two-atom || at file scope.
+43             1                               for my $t ([1, 0], [0, 1], [0, 0]) {
+44             3                                 my ($x, $y) = @$t;
+45             3           100    100            push @r, $x || $y;
+46                                             }
+47                                             
+48                                             # Three-atom || under an eval block at file scope.
+49             1                               for my $t ([1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 0]) {
+50             4                                 my ($x, $y, $z) = @$t;
+51             4           100    100            eval { push @r, $x || $y || $z };
+               4           100                 
+52                                             }
+53                                             
+54                                             # The same three-atom || inside a sub.
+55             1                               push @r, chained_or(1, 0, 0);
+56             1                               push @r, chained_or(0, 1, 0);
+57             1                               push @r, chained_or(0, 0, 1);
+58             1                               push @r, chained_or(0, 0, 0);
+59                                             
+60             1                               print "main: ",     scalar @r,              "\n";
+61             1                               print "required: ", Mcdc_required::count(), "\n";
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+39           100      2      1      1   $x && $y && $z
+             100      1      1      2   $x and $y
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+25           100      2      1      1   $p || $q || $r
+             100      1      1      2   $p or $q
+33           100      2      1      1   $x || $y || $z
+             100      1      1      2   $x or $y
+45           100      1      1      1   $x || $y
+51           100      2      1      1   $x || $y || $z
+             100      1      1      2   $x or $y
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+25           100    3    3                          $p || $q || $r
+33           100    3    3                          $x || $y || $z
+39           100    3    3                          $x && $y && $z
+45           100    2    2                          $x || $y
+51           100    3    3                          $x || $y || $z
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location          
+---------- ----- --- ----- ------------------
+BEGIN          1   1   0.0 mcdc_main_scope:16
+BEGIN          1   1   0.0 mcdc_main_scope:17
+BEGIN          1   1   0.0 mcdc_main_scope:19
+BEGIN          1   1   0.0 mcdc_main_scope:21
+chained_or     4   3  11.0 mcdc_main_scope:24
+
+
