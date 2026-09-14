@@ -1039,7 +1039,8 @@ static void     dc_stack_discard_stale(pTHX);
 static void     dc_snapshot(pTHX_ dc_dctx *d);
 static OP      *skip_nulled_ops(OP *o);
 
-static void add_condition(pTHX_ SV *cond_ref, int value) {
+/* at is the hooked op resolving the entry, or NULL for the final sweep */
+static void add_condition(pTHX_ SV *cond_ref, int value, OP *at) {
   dMY_CXT;
   int   final       = !value;
   AV   *conds       = (AV *)                 SvRV(cond_ref);
@@ -1047,8 +1048,8 @@ static void add_condition(pTHX_ SV *cond_ref, int value) {
   OP *(*addr)(pTHX) = INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1, 0)));
   I32   i;
 
-  if (!final && next != PL_op)
-    croak("next (%p) does not match PL_op (%p)", next, PL_op);
+  if (!final && next != at)
+    croak("next (%p) does not match at (%p)", next, at);
 
 #ifdef USE_ITHREADS
   i = 0;
@@ -1175,7 +1176,7 @@ static OP *find_skipped_conditional(pTHX_ OP *o) {
     return NULL;
 
   /* Get to the end of the "a || b || c" block */
-  right = OpSIBLING(cLOGOP->op_first);
+  right = OpSIBLING(cLOGOPx(o)->op_first);
   while (right && OpSIBLING(cLOGOPx(right)))
     right = OpSIBLING(cLOGOPx(right));
 
@@ -1256,7 +1257,7 @@ static OP *get_condition(pTHX) {
     true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
       ? SvOK(TOPs) : sv_true_no_overload(aTHX_ TOPs);
     NDEB(D(L, "   get_condition true_ish=%d\n", true_ish));
-    add_condition(aTHX_ *pc, true_ish ? 2 : 1);
+    add_condition(aTHX_ *pc, true_ish ? 2 : 1, PL_op);
   } else {
     PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
            PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
@@ -1277,7 +1278,7 @@ static OP *get_condition_dor(pTHX) {
     NDEB(svdump(Pending_conditionals));
     true_ish = SvOK(TOPs);
     NDEB(D(L, "   get_condition_dor true_ish=%d\n", true_ish));
-    add_condition(aTHX_ *pc, true_ish ? 2 : 1);
+    add_condition(aTHX_ *pc, true_ish ? 2 : 1, PL_op);
   } else {
     PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
            PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
@@ -1309,7 +1310,7 @@ static void finalise_conditions(pTHX) {
   hv_iterinit(Pending_conditionals);
 
   while ((e = hv_iternext(Pending_conditionals)))
-    add_condition(aTHX_ hv_iterval(Pending_conditionals, e), 0);
+    add_condition(aTHX_ hv_iterval(Pending_conditionals, e), 0, NULL);
   MUTEX_UNLOCK(&DC_mutex);
 }
 
@@ -2014,12 +2015,37 @@ static OP *skip_nulled_ops(OP *o) {
 }
 
 /*
+ * Resolve any conditions pending on op, which the short circuit at PL_op
+ * has jumped past, so the hook on it cannot run for this evaluation.
+ * The jump only passes same-type logops and the void logop consuming the
+ * decision, so each pending right operand holds the short-circuit value:
+ * false for an and, true for an or, defined for a dor.
+ */
+static void resolve_skipped_conditions(pTHX_ OP *op) {
+  dMY_CXT;
+  SV **pc;
+
+  if (!collecting(Condition)) return;
+  if (PL_op->op_type != OP_AND && PL_op->op_type != OP_OR &&
+      PL_op->op_type != OP_DOR)
+    return;
+
+  MUTEX_LOCK(&DC_mutex);
+  pc = hv_fetch(Pending_conditionals, get_key(op), KEY_SZ, 0);
+  if (pc && SvROK(*pc))
+    add_condition(aTHX_ *pc, PL_op->op_type == OP_AND ? 1 : 2, op);
+  MUTEX_UNLOCK(&DC_mutex);
+}
+
+/*
  * Credit this short circuit to PL_op, to outer same-type logops taken in
  * the same jump, and to any skipped statement logop whose own cover_logop
- * never fires.
+ * never runs.  The jump ends past the last same-type logop, so the
+ * search for the skipped statement logop starts there.
  */
 static void credit_short_circuit(pTHX) {
-  OP *up = skip_nulled_ops(OpSIBLING(cLOGOP->op_first)->op_next);
+  OP *up   = skip_nulled_ops(OpSIBLING(cLOGOP->op_first)->op_next);
+  OP *last = PL_op;
   OP *skipped;
 
   while (up && up->op_type == PL_op->op_type) {
@@ -2027,13 +2053,17 @@ static void credit_short_circuit(pTHX) {
            up, PL_op_name[up->op_type], up->op_next,
            PL_op, PL_op_name[PL_op->op_type], PL_op->op_next));
     add_conditional(aTHX_ up, 3);
-    up = skip_nulled_ops(OpSIBLING(cLOGOPx(up)->op_first)->op_next);
+    resolve_skipped_conditions(aTHX_ up);
+    last = up;
+    up   = skip_nulled_ops(OpSIBLING(cLOGOPx(up)->op_first)->op_next);
   }
   add_conditional(aTHX_ PL_op, 3);
 
-  skipped = PL_op;
-  while ((skipped = find_skipped_conditional(aTHX_ skipped)) != NULL)
+  skipped = last;
+  while ((skipped = find_skipped_conditional(aTHX_ skipped)) != NULL) {
     add_conditional(aTHX_ skipped, 2); /* Should this ever be 1? */
+    resolve_skipped_conditions(aTHX_ skipped);
+  }
 }
 
 /*
@@ -2159,7 +2189,7 @@ static void resolve_chained_condition(pTHX_ OP *next_op, SSize_t depth) {
     ? next_op == cLOGOP->op_other
     : logop_no_short_circuit(aTHX_ next_op, depth)
         == (PL_op->op_type == OP_AND);
-  add_condition(aTHX_ cond, truth ? 2 : 1);
+  add_condition(aTHX_ cond, truth ? 2 : 1, PL_op);
 }
 
 static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
@@ -2344,16 +2374,17 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
         MUTEX_UNLOCK(&DC_mutex);
       }
     } else {
-      /* short circuit */
-      credit_short_circuit(aTHX);
-
       /*
        * For MC/DC: short-circuit means columns under this op's right
        * subtree stay X (their initial state).  Snapshot+pop if this op
        * (or a same-type chained outer reachable from it) is the
-       * decision root.
+       * decision root.  This runs first so that resolving a condition
+       * pending on a jumped op cannot snapshot the row a second time.
        */
       dc_snapshot_on_short_circuit(aTHX);
+
+      /* short circuit */
+      credit_short_circuit(aTHX);
     }
   }
 }

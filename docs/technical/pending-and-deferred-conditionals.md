@@ -100,11 +100,34 @@ NULL, which happens in two known cases:
   pointers because `pp_sort` reads the result directly from the stack. There is
   no continuation op.
 
+### Hijacked ops the peephole optimiser jumps past
+
+The hijacked op is not always reached. When the right operand is itself a logop,
+as in `return 1 if $x && ($y || $z)`, the outer `&&` hijacks the void `and` that
+implements the `if`. The peephole optimiser rewrites the inner `||` so that a
+true short circuit jumps straight to that void op's `op_other`, the body of the
+`if`. It also sends a short circuit straight past any same-type logop, so in
+`$x && ($y || $z || $w)` a true `$y` passes the outer `||` as well. In each case
+the hijacked op does not run for that evaluation.
+
+Left alone, the entry would stay in `Pending_conditionals` until either
+`finalise_conditions()` resolved it as "right false" or a later evaluation
+reached the op and resolved it with that evaluation's value, doubling one
+column. Instead `credit_short_circuit()` resolves it at the short circuit. It
+already enumerates every op the jump passes - the same-type chain it credits at
+index 3 and the void consumer `find_skipped_conditional()` finds from the last
+op of that chain - and for each one `resolve_skipped_conditions()` resolves any
+entry keyed on it. The value is exact because the optimiser only jumps past ops
+whose value equals the short-circuit value: false for an `and`, true for an
+`or`, defined for a `dor`.
+
 ### Where to find it in Cover.xs
 
 - Declaration: `static HV *Pending_conditionals`
 - Setup in `cover_logop()`: hv_fetch, av_push, ppaddr replacement
 - Resolution in `get_condition()`
+- Resolution at a short circuit that jumps past the hijacked op in
+  `resolve_skipped_conditions()`, called from `credit_short_circuit()`
 - End-of-run cleanup in `finalise_conditions()`
 
 ## deferred_conditionals: the runops-exit mechanism
@@ -277,3 +300,13 @@ The `tests/sort_or` test script exercises the deferred mechanism with six cases:
 - Case 6: sort after exception (tests `deferred_base` skips stale entries)
 
 Golden output: `test_output/cover/sort_or.<version>`
+
+The `tests/cond_nested_right` test script exercises the short-circuit resolution
+of a hijacked op the optimiser jumps past. Each call order runs the short
+circuit first and then reaches the hijacked op with the opposite value, so an
+entry left pending would credit the wrong column. It covers the `if`, block,
+`unless` and `while` forms, the mirror `$x || ($y && $z)`, same-type nesting, a
+chain inside the parentheses and a value-context chain, with a left-nested form
+and a `//` form as controls.
+
+Golden output: `test_output/cover/cond_nested_right.<version>`
