@@ -1,0 +1,239 @@
+cover: Reading database from ...
+----------------------- ------ ------ ------ ------ ------ ------ ------
+File                      stmt   bran   cond   mcdc    sub  total   scar
+----------------------- ------ ------ ------ ------ ------ ------ ------
+tests/mcdc_nested_right  100.0  100.0  100.0  100.0  100.0  100.0   13.7
+Total                    100.0  100.0  100.0  100.0  100.0  100.0   13.7
+----------------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/mcdc_nested_right
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+23 100.0  3.9 13.7
+
+Worst Subroutines
+-----------------
+
+Subroutine   CC SCAR  Location                  
+------------ -- ----  --------------------------
+and_or_and    5 16.1  tests/mcdc_nested_right:47
+and_or_chain  5 16.1  tests/mcdc_nested_right:53
+and_or_if     4 13.9  tests/mcdc_nested_right:21
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10                                             # MC/DC for a decision in boolean context whose right operand is a nested
+11                                             # operator.  When the nested operator short-circuits and that decides the
+12                                             # whole decision, perl jumps straight to the consumer's branch, past the
+13                                             # op the outer operator watches, so the row must be recorded at the
+14                                             # short-circuit.  The four-atom chain and the value-context form are the
+15                                             # controls: their rows are recorded through the outer operator.
+16                                             
+17             1                           1   use strict;
+               1                               
+               1                               
+18             1                           1   use warnings;
+               1                               
+               1                               
+19                                             
+20                                             sub and_or_if {
+21             4                           4     my ($x, $y, $z) = @_;
+22             4    100    100    100            return 1 if $x && ($y || $z);
+                           100                 
+23             2                                 0
+24                                             }
+25                                             
+26                                             sub or_and_if {
+27             4                           4     my ($x, $y, $z) = @_;
+28             4    100    100    100            return 1 if $x || ($y && $z);
+                           100                 
+29             2                                 0
+30                                             }
+31                                             
+32                                             sub and_or_block {
+33             4                           4     my ($x, $y, $z) = @_;
+34             4    100    100    100            if ($x && ($y || $z)) {
+                           100                 
+35             2                                   return 1;
+36                                               }
+37                                               0
+38             2                               }
+39                                             
+40                                             sub and_or_unless {
+41             4                           4     my ($x, $y, $z) = @_;
+42             4    100    100    100            return 1 unless $x && ($y || $z);
+                           100                 
+43             2                                 0
+44                                             }
+45                                             
+46                                             sub and_or_and {
+47             5                           5     my ($x, $y, $z, $w) = @_;
+48             5    100    100    100            return 1 if $x && ($y || ($z && $w));
+                           100                 
+                           100                 
+49             3                                 0
+50                                             }
+51                                             
+52                                             sub and_or_chain {
+53             5                           5     my ($x, $y, $z, $w) = @_;
+54             5    100    100    100            return 1 if $x && ($y || $z) && $w;
+                           100                 
+                           100                 
+55             3                                 0
+56                                             }
+57                                             
+58                                             sub and_or_value {
+59             4                           4     my ($x, $y, $z) = @_;
+60             4           100    100            return $x && ($y || $z);
+                           100                 
+61                                             }
+62                                             
+63                                             sub main {
+64                                               # Calls are pushed into @r so each decision is exercised in non-void
+65                                               # context.
+66             1                           1     my @r;
+67                                             
+68                                               # $x && ($y || $z) as a statement modifier, every short-circuit row.
+69                                               # The (1, 1, X) row ends at the inner ||.
+70             1                                 push @r, and_or_if(1, 1, 0);
+71             1                                 push @r, and_or_if(1, 0, 1);
+72             1                                 push @r, and_or_if(1, 0, 0);
+73             1                                 push @r, and_or_if(0, 0, 0);
+74                                             
+75                                               # The mirror, $x || ($y && $z).  The (0, 0, X) row ends at the inner &&.
+76             1                                 push @r, or_and_if(1, 0, 0);
+77             1                                 push @r, or_and_if(0, 1, 1);
+78             1                                 push @r, or_and_if(0, 1, 0);
+79             1                                 push @r, or_and_if(0, 0, 0);
+80                                             
+81                                               # The if block form.
+82             1                                 push @r, and_or_block(1, 1, 0);
+83             1                                 push @r, and_or_block(1, 0, 1);
+84             1                                 push @r, and_or_block(1, 0, 0);
+85             1                                 push @r, and_or_block(0, 0, 0);
+86                                             
+87                                               # The unless form.
+88             1                                 push @r, and_or_unless(1, 1, 0);
+89             1                                 push @r, and_or_unless(1, 0, 1);
+90             1                                 push @r, and_or_unless(1, 0, 0);
+91             1                                 push @r, and_or_unless(0, 0, 0);
+92                                             
+93                                               # Two nested levels.  The (1, 1, X, X) row ends at the ||, the
+94                                               # (1, 0, 0, X) row at the innermost &&.
+95             1                                 push @r, and_or_and(1, 1, 0, 0);
+96             1                                 push @r, and_or_and(1, 0, 1, 1);
+97             1                                 push @r, and_or_and(1, 0, 1, 0);
+98             1                                 push @r, and_or_and(1, 0, 0, 0);
+99             1                                 push @r, and_or_and(0, 0, 0, 0);
+100                                            
+101                                              # A four-atom chain around the nested operator.  The inner || exits to
+102                                              # the outer &&, so every row goes through it.
+103            1                                 push @r, and_or_chain(1, 1, 0, 1);
+104            1                                 push @r, and_or_chain(1, 0, 1, 1);
+105            1                                 push @r, and_or_chain(1, 0, 0, 1);
+106            1                                 push @r, and_or_chain(0, 0, 0, 1);
+107            1                                 push @r, and_or_chain(1, 1, 0, 0);
+108                                            
+109                                              # The same decision in value context.
+110            1                                 push @r, and_or_value(1, 1, 0);
+111            1                                 push @r, and_or_value(1, 0, 1);
+112            1                                 push @r, and_or_value(1, 0, 0);
+113            1                                 push @r, and_or_value(0, 0, 0);
+114                                            }
+115                                            
+116            1                               main();
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+22           100      2      2   if $x and $y || $z
+28           100      2      2   if $x or $y and $z
+34           100      2      2   if ($x and $y || $z)
+42           100      2      2   unless $x and $y || $z
+48           100      2      3   if $x and $y || $z && $w
+54           100      2      3   if $x and $y || $z and $w
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+22           100      1      1      2   $x and $y || $z
+28           100      1      1      1   $y and $z
+34           100      1      1      2   $x and $y || $z
+42           100      1      1      2   $x and $y || $z
+48           100      1      2      2   $x and $y || $z && $w
+             100      1      1      1   $z and $w
+54           100      2      1      2   $x and $y || $z and $w
+             100      1      1      3   $x and $y || $z
+60           100      1      1      2   $x && ($y || $z)
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+22           100      1      1      1   $y or $z
+28           100      1      1      2   $x or $y and $z
+34           100      1      1      1   $y or $z
+42           100      1      1      1   $y or $z
+48           100      1      1      2   $y or $z and $w
+54           100      2      1      1   $y or $z
+60           100      1      1      1   $y or $z
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+22           100    3    3                          $x and $y || $z
+28           100    3    3                          $x or $y and $z
+34           100    3    3                          $x and $y || $z
+42           100    3    3                          $x and $y || $z
+48           100    4    4                          $x and $y || $z && $w
+54           100    4    4                          $x and $y || $z and $w
+60           100    3    3                          $x && ($y || $z)
+
+
+Covered Subroutines
+-------------------
+
+Subroutine    Count  CC  SCAR Location                  
+------------- ----- --- ----- --------------------------
+BEGIN             1   1   0.0 tests/mcdc_nested_right:17
+BEGIN             1   1   0.0 tests/mcdc_nested_right:18
+and_or_and        5   5  16.1 tests/mcdc_nested_right:47
+and_or_block      4   4  13.9 tests/mcdc_nested_right:33
+and_or_chain      5   5  16.1 tests/mcdc_nested_right:53
+and_or_if         4   4  13.9 tests/mcdc_nested_right:21
+and_or_unless     4   4  13.9 tests/mcdc_nested_right:41
+and_or_value      4   3  11.0 tests/mcdc_nested_right:59
+main              1   1   0.0 tests/mcdc_nested_right:66
+or_and_if         4   4  13.9 tests/mcdc_nested_right:27
+
+
