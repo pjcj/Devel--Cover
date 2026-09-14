@@ -228,7 +228,10 @@ four operand combinations: 1 = `!l&&!r`, 2 = `l&&!r`, 3 = `l&&r`, 4 = `!l&&r`.
    value's truth - a non-ambiguous `cond_expr`, an `and` or an `or` - resolution
    is deferred past its pp function instead and the truth is read from the path
    it takes, which is exact for an overloaded value; see
-   `pending-and-deferred-conditionals.md`.
+   `pending-and-deferred-conditionals.md`. When the right operand is itself a
+   logop whose short circuit jumps past the hooked op, as rpeep arranges for
+   `if ($x && ($y || $z))`, `credit_short_circuit` resolves the entry at the
+   short circuit with the short-circuit value.
 
 4. **Void context shortcut**: if the op is in void context, or the right operand
    is a control flow op (`next`, `last`, `redo`, `goto`, `return`, `die`), the
@@ -246,7 +249,9 @@ four operand combinations: 1 = `!l&&!r`, 2 = `l&&!r`, 3 = `l&&r`, 4 = `!l&&r`.
    coverage, so the non-short-circuit case records index 2 immediately and never
    installs the `get_condition` hook. A short circuit goes through
    `credit_short_circuit`, which also credits outer same-type logops taken in
-   the same jump and any enclosing statement logop the jump skipped.
+   the same jump and any enclosing statement logop the jump skipped. The search
+   for that statement logop starts from the last same-type logop, since the jump
+   ends past it.
 
 ### `cover_cond` - branch data from `cond_expr`
 

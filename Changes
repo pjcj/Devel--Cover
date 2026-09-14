@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Credit the right column of a condition whose nested right operand
+  short-circuits past the op it watches, as in `return 1 if $x && ($y ||
+  $z)` with `$x` and `$y` true (GH-801)
 - Record the MC/DC row a decision in boolean context lost when its nested
   right operand short-circuited, as in `return 1 if $x && ($y || $z)`
   with `$x` and `$y` true, where perl jumps past the op the outer
