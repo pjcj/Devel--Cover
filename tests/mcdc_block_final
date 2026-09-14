@@ -1,0 +1,107 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# MC/DC for a chain that ends a grep, map, sort or value do block.  The
+# block gives the chain a value context, so the outer operator is part of
+# the decision, as it is under return.  The void chain before the end of
+# a block is the control: it stays a branch.
+
+use strict;
+use warnings;
+
+sub grep_and3 {
+  grep { $_->[0] && $_->[1] && $_->[2] } @_;
+}
+
+sub grep_or2 {
+  grep { $_->[0] || $_->[1] } @_;
+}
+
+sub map_and_or {
+  map { $_->[0] && $_->[1] || $_->[2] } @_;
+}
+
+sub sort_and3 {
+  my $t = shift;
+  sort { $a->[0] && $b->[1] && $a->[2] } ($t, $t);
+}
+
+sub do_and3 {
+  my $v = do { $_[0] && $_[1] && $_[2] };
+  $v
+}
+
+sub do_or2 {
+  my $v = do {
+    my ($p, $q) = @_;
+    $p || $q
+  };
+  $v
+}
+
+sub grep_unless {
+  grep { $_->[3] unless $_->[0] && $_->[1] && $_->[2] } @_;
+}
+
+my $Seen = 0;
+
+sub grep_void {
+  grep { $_->[0] && $Seen++; $_->[2] } @_;
+}
+
+sub main {
+  # Calls are pushed into @r so each decision is exercised in non-void
+  # context.
+  my @r;
+
+  # A three-atom && chain ending a grep block.
+  push @r, grep_and3([1, 1, 1], [1, 1, 0], [1, 0, 0], [0, 0, 0]);
+
+  # A two-atom || ending a grep block.
+  push @r, grep_or2([1, 0], [0, 1], [0, 0]);
+
+  # A mixed chain with a leaf right operand ending a map block.
+  push @r, map_and_or([1, 1, 0], [1, 0, 1], [1, 0, 0], [0, 0, 1], [0, 0, 0]);
+
+  # A chain ending a sort comparator.  Both elements are the same, so
+  # the row does not depend on which is $a.
+  push @r, sort_and3([1, 1, 1]);
+  push @r, sort_and3([1, 1, 0]);
+  push @r, sort_and3([1, 0, 0]);
+  push @r, sort_and3([0, 0, 0]);
+
+  # A chain ending a single-statement do block.
+  push @r, do_and3(1, 1, 1);
+  push @r, do_and3(1, 1, 0);
+  push @r, do_and3(1, 0, 0);
+  push @r, do_and3(0, 0, 0);
+
+  # A two-atom || ending a multi-statement do block.
+  push @r, do_or2(1, 0);
+  push @r, do_or2(0, 1);
+  push @r, do_or2(0, 0);
+
+  # A statement modifier ending a grep block.  Before 5.43.8 the modifier
+  # cannot be told from A && B && C || D, so the fourth column takes both
+  # values when the chain is false.
+  push @r,
+    grep_unless(
+      [1, 1, 1, 0],
+      [1, 1, 0, 1],
+      [1, 1, 0, 0],
+      [1, 0, 0, 1],
+      [1, 0, 0, 0],
+      [0, 0, 0, 0],
+    );
+
+  # A void chain before the end of a grep block stays a branch.
+  push @r, grep_void([1, 1, 1], [1, 0, 1], [0, 0, 1]);
+}
+
+main();

@@ -136,12 +136,14 @@ On 5.43.8+, this separation means expression-form logops at statement level
 always equal (both use the same heuristic), so arm 1 handles all statement-level
 logops with statement-modifier labels (`if $y`).
 
-The `$cx < 1` test means we are at statement level (the return value is
-discarded). `$blockname` being set means the op has a statement-form keyword
-(`if`/`unless`). Together they identify logops that are semantically branches.
-Both branch arms also record a compound-join condition when the right operand is
-itself a decision (`_record_compound_join`); see the `Compound decision roots`
-section of `Devel::Cover::DB`.
+The `$cx < 1` test means we are at statement level, where the op has void want
+or no want at all, as a sub's bare final expression has. The last expression of
+a `grep`, `map`, `sort` or value `do` block has scalar or list want, so it gets
+`$cx >= 1` and is a condition. `$blockname` being set means the op has a
+statement-form keyword (`if`/`unless`). Together they identify logops that are
+semantically branches. Both branch arms also record a compound-join condition
+when the right operand is itself a decision (`_record_compound_join`). See the
+`Compound decision roots` section of `Devel::Cover::DB`.
 
 Loop conditions (`while`/`until`/C-style `for`) are forced to branch coverage
 regardless of `OPpSTATEMENT`, detected by `_is_loop_condition` walking up to a

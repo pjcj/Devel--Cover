@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------- ------ ------ ------ ------ ------ ------ ------
 File            stmt   bran   cond   mcdc    sub  total   scar
 ------------- ------ ------ ------ ------ ------ ------ ------
-tests/sort_or  100.0   66.6    n/a    n/a  100.0   88.2    0.0
-Total          100.0   66.6    n/a    n/a  100.0   88.2    0.0
+tests/sort_or  100.0  100.0   41.6    0.0  100.0   60.0    0.0
+Total          100.0  100.0   41.6    0.0  100.0   60.0    0.0
 ------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 87.5  1.0  0.0
+ 1 75.0  1.0  0.0
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -45,7 +45,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 16                                               { val => "alpha", cnt => 2 },
 17                                               { val => "ALPHA", cnt => 2 },
 18                                             );
-19    ***      1   * 50                        my @r1 = sort { $b->{cnt} <=> $a->{cnt} || $a->{val} cmp $b->{val} } @equal;
+19    ***      1          * 33   *  0          my @r1 = sort { $b->{cnt} <=> $a->{cnt} || $a->{val} cmp $b->{val} } @equal;
                2                               
 20                                             
 21                                             # Case 2: mixed counts - <=> returns both 0 and non-zero
@@ -54,7 +54,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 24                                               { val => "alpha", cnt => 2 },
 25                                               { val => "ALPHA", cnt => 1 },
 26                                             );
-27             1    100                        my @r2 = sort { $b->{cnt} <=> $a->{cnt} || $a->{val} cmp $b->{val} } @mixed;
+27    ***      1          * 66   *  0          my @r2 = sort { $b->{cnt} <=> $a->{cnt} || $a->{val} cmp $b->{val} } @mixed;
                3                               
 28                                             
 29                                             # Case 3: same logic but with ternary instead of ||
@@ -71,12 +71,12 @@ line  err   stmt   bran   cond   mcdc    sub   code
 39                                             );
 40                                             my @r4 = sort {
 41             1                                 $a->{key} <=> $b->{key}
-42    ***      1   * 50                            || (sort { $a->{a} <=> $b->{a} || $a->{b} cmp $b->{b} } @{$a->{inner}})[0]{b}
+42    ***      1          * 33   *  0              || (sort { $a->{a} <=> $b->{a} || $a->{b} cmp $b->{b} } @{$a->{inner}})[0]{b}
                1                               
 43                                                    cmp
-44    ***      1   * 50                               (sort { $a->{a} <=> $b->{a} || $a->{b} cmp $b->{b} } @{$b->{inner}})[0]{b}
+44    ***      1          * 33   *  0                 (sort { $a->{a} <=> $b->{a} || $a->{b} cmp $b->{b} } @{$b->{inner}})[0]{b}
                1                               
-45    ***      1   * 50                        } @outer;
+45    ***      1          * 33   *  0          } @outer;
 46                                             
 47                                             # Case 5: exception in sort comparator via function call - the deferred
 48                                             # entry from the || is pushed but the die bypasses runops loop exit.
@@ -84,17 +84,17 @@ line  err   stmt   bran   cond   mcdc    sub   code
 50             1                           1   sub boom { die "bail" }
 51             1                               eval {
 52                                               my @r5 = sort {
-53    ***      1   *  0                            $b->{cnt} <=> $a->{cnt} || boom()
+53    ***      1          *  0   *  0              $b->{cnt} <=> $a->{cnt} || boom()
                1                               
 54                                               } @equal;
 55                                             };
 56                                             
 57                                             # Case 6: sort after exception - verify deferred state is clean
-58             1    100                        my @r6 = sort { $b->{cnt} <=> $a->{cnt} || $a->{val} cmp $b->{val} } @mixed;
+58    ***      1          * 66   *  0          my @r6 = sort { $b->{cnt} <=> $a->{cnt} || $a->{val} cmp $b->{val} } @mixed;
                3                               
 59                                             
 60                                             # Case 7: low-precedence 'or' - same OP_OR opcode as ||
-61             1    100                        my @r7 = sort { $b->{cnt} <=> $a->{cnt} or $a->{val} cmp $b->{val} } @mixed;
+61    ***      1          * 66   *  0          my @r7 = sort { $b->{cnt} <=> $a->{cnt} or $a->{val} cmp $b->{val} } @mixed;
                3                               
 
 
@@ -103,15 +103,39 @@ Branches
 
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
-19    ***     50      0      2   $main::b->{"cnt"} <=> $main::a->{"cnt"} or $main::a->{"val"} cmp $main::b->{"val"}
-27           100      2      1   $main::b->{"cnt"} <=> $main::a->{"cnt"} or $main::a->{"val"} cmp $main::b->{"val"}
 33           100      2      1   $r ? :
-42    ***     50      0      1   $main::a->{"a"} <=> $main::b->{"a"} or $main::a->{"b"} cmp $main::b->{"b"}
-44    ***     50      0      1   $main::a->{"a"} <=> $main::b->{"a"} or $main::a->{"b"} cmp $main::b->{"b"}
-45    ***     50      0      1   $main::a->{"key"} <=> $main::b->{"key"} or +(sort {$main::a->{"a"} <=> $main::b->{"a"} or $main::a->{"b"} cmp $main::b->{"b"};} @{$$a{"inner"};})[0]->{"b"} cmp +(sort {$main::a->{"a"} <=> $main::b->{"a"} or $main::a->{"b"} cmp $main::b->{"b"};} @{$$b{"inner"};})[0]->{"b"}
-53    ***      0      0      0   $main::b->{"cnt"} <=> $main::a->{"cnt"} or boom()
-58           100      2      1   $main::b->{"cnt"} <=> $main::a->{"cnt"} or $main::a->{"val"} cmp $main::b->{"val"}
-61           100      2      1   $main::b->{"cnt"} <=> $main::a->{"cnt"} or $main::a->{"val"} cmp $main::b->{"val"}
+
+
+Conditions
+----------
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+19    ***     33      0      2      0   $main::b->{'cnt'} <=> $main::a->{'cnt'} || $main::a->{'val'} cmp $main::b->{'val'}
+27    ***     66      2      1      0   $main::b->{'cnt'} <=> $main::a->{'cnt'} || $main::a->{'val'} cmp $main::b->{'val'}
+42    ***     33      0      1      0   $main::a->{'a'} <=> $main::b->{'a'} || $main::a->{'b'} cmp $main::b->{'b'}
+44    ***     33      0      1      0   $main::a->{'a'} <=> $main::b->{'a'} || $main::a->{'b'} cmp $main::b->{'b'}
+45    ***     33      0      1      0   $main::a->{'key'} <=> $main::b->{'key'} || +(sort {$main::a->{'a'} <=> $main::b->{'a'} or $main::a->{'b'} cmp $main::b->{'b'};} @{$$a{'inner'};})[0]->{'b'} cmp +(sort {$main::a->{'a'} <=> $main::b->{'a'} or $main::a->{'b'} cmp $main::b->{'b'};} @{$$b{'inner'};})[0]->{'b'}
+53    ***      0      0      0      0   $main::b->{'cnt'} <=> $main::a->{'cnt'} || boom()
+58    ***     66      2      1      0   $main::b->{'cnt'} <=> $main::a->{'cnt'} || $main::a->{'val'} cmp $main::b->{'val'}
+61    ***     66      2      1      0   $main::b->{'cnt'} <=> $main::a->{'cnt'} || $main::a->{'val'} cmp $main::b->{'val'}
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                                                                                                                                                                                                                                                                          expr
+----- --- ------ ---- ----   ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------   ----
+19    ***      0    0    2   $main::b->{'cnt'} <=> $main::a->{'cnt'}, $main::a->{'val'} cmp $main::b->{'val'}                                                                                                                                                                                                 $main::b->{'cnt'} <=> $main::a->{'cnt'} || $main::a->{'val'} cmp $main::b->{'val'}
+27    ***      0    0    2   $main::b->{'cnt'} <=> $main::a->{'cnt'}, $main::a->{'val'} cmp $main::b->{'val'}                                                                                                                                                                                                 $main::b->{'cnt'} <=> $main::a->{'cnt'} || $main::a->{'val'} cmp $main::b->{'val'}
+42    ***      0    0    2   $main::a->{'a'} <=> $main::b->{'a'}, $main::a->{'b'} cmp $main::b->{'b'}                                                                                                                                                                                                         $main::a->{'a'} <=> $main::b->{'a'} || $main::a->{'b'} cmp $main::b->{'b'}
+44    ***      0    0    2   $main::a->{'a'} <=> $main::b->{'a'}, $main::a->{'b'} cmp $main::b->{'b'}                                                                                                                                                                                                         $main::a->{'a'} <=> $main::b->{'a'} || $main::a->{'b'} cmp $main::b->{'b'}
+45    ***      0    0    2   $main::a->{'key'} <=> $main::b->{'key'}, +(sort {$main::a->{'a'} <=> $main::b->{'a'} or $main::a->{'b'} cmp $main::b->{'b'};} @{$$a{'inner'};})[0]->{'b'} cmp +(sort {$main::a->{'a'} <=> $main::b->{'a'} or $main::a->{'b'} cmp $main::b->{'b'};} @{$$b{'inner'};})[0]->{'b'}   $main::a->{'key'} <=> $main::b->{'key'} || +(sort {$main::a->{'a'} <=> $main::b->{'a'} or $main::a->{'b'} cmp $main::b->{'b'};} @{$$a{'inner'};})[0]->{'b'} cmp +(sort {$main::a->{'a'} <=> $main::b->{'a'} or $main::a->{'b'} cmp $main::b->{'b'};} @{$$b{'inner'};})[0]->{'b'}
+53    ***      0    0    2   $main::b->{'cnt'} <=> $main::a->{'cnt'}, boom()                                                                                                                                                                                                                                  $main::b->{'cnt'} <=> $main::a->{'cnt'} || boom()
+58    ***      0    0    2   $main::b->{'cnt'} <=> $main::a->{'cnt'}, $main::a->{'val'} cmp $main::b->{'val'}                                                                                                                                                                                                 $main::b->{'cnt'} <=> $main::a->{'cnt'} || $main::a->{'val'} cmp $main::b->{'val'}
+61    ***      0    0    2   $main::b->{'cnt'} <=> $main::a->{'cnt'}, $main::a->{'val'} cmp $main::b->{'val'}                                                                                                                                                                                                 $main::b->{'cnt'} <=> $main::a->{'cnt'} || $main::a->{'val'} cmp $main::b->{'val'}
 
 
 Covered Subroutines
