@@ -11,6 +11,9 @@
 # directories holding code that is not under test are ignored by default:
 # t/, test.pl, bundled build helpers in inc/ and the build system's own
 # scripts.
+# The build system's scripts are also ignored when a Build.PL or Makefile.PL
+# exists without blib, since a build script runs under coverage before it
+# has created blib.
 
 use 5.20.0;
 use warnings;
@@ -71,10 +74,26 @@ sub test_no_blib_keeps_inc () {
     "without blib, inc/ files are not ignored";
 }
 
+sub test_build_script_ignored_without_blib () {
+  my $dir = File::Spec->catdir($Tmpdir, "unbuilt");
+  mkdir $dir or die "Can't mkdir $dir: $!";
+  my $build_pl = File::Spec->catfile($dir, "Build.PL");
+  open my $fh, ">", $build_pl or die "Can't open $build_pl: $!";
+  close $fh or die "Can't close $build_pl: $!";
+  my $ignore = ignores(run_covered($dir));
+  for my $pattern ('^Build$', '^Build\\.PL$', '^Makefile\\.PL$', "^_build/") {
+    ok grep($_ eq $pattern, @$ignore),
+      "a Build.PL directory without blib ignores $pattern";
+  }
+  is grep($_ eq "^inc/", @$ignore), 0,
+    "a Build.PL directory without blib does not ignore inc/";
+}
+
 sub main () {
   test_blib_ignores_inc;
   test_blib_ignores_build_scripts;
   test_no_blib_keeps_inc;
+  test_build_script_ignored_without_blib;
   done_testing;
 }
 

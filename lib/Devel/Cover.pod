@@ -213,9 +213,10 @@ and is run from a checkout of the Devel::Cover repository.
 
 =head1 OPTIONS
 
-  -blib               - "use blib" and ignore t/, inc/, _build/, test.pl,
-                        Build, Build.PL and Makefile.PL (default true if
-                        blib directory exists, false otherwise)
+  -blib               - "use blib" and ignore t/, inc/ and test.pl (default
+                        true if blib directory exists, false otherwise).
+                        Build, Build.PL, Makefile.PL and _build/ are ignored
+                        when -blib is on or a Build.PL or Makefile.PL exists
   -coverage criterion - Turn on coverage for the specified criterion.  Criteria
                         include statement, branch, condition, mcdc, subroutine,
                         pod, time, all and none (default all except time)

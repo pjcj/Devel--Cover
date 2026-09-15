@@ -320,9 +320,11 @@ sub import ($class, @o) {
   if ($blib) {
     eval "use blib";
     for (@INC) { ($_) = /(.*)/ if ref $_ ne "CODE" }  # Die tainting
-    push @Ignore, "^t/", "^inc/", '\\.t$', '^test\\.pl$', '^Build$',
-      '^Build\\.PL$', '^Makefile\\.PL$', "^_build/";
+    push @Ignore, "^t/", "^inc/", '\\.t$', '^test\\.pl$';
   }
+  # A build script runs under coverage before it has created blib
+  push @Ignore, '^Build$', '^Build\\.PL$', '^Makefile\\.PL$', "^_build/"
+    if $blib || -f "Build.PL" || -f "Makefile.PL";
 
   my $ci = $^O eq "MSWin32";
   @Select_re = map qr/$_/, @Select;
