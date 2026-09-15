@@ -1417,10 +1417,10 @@ cpan_module() {
   # Don't pre-build: a stale .o would suppress XS coverage in cover -test.
   pi "Configuring $module"
   export PERL5LIB="$locallib/lib/perl5${PERL5LIB:+:$PERL5LIB}"
-  if [[ -f Makefile.PL ]]; then
-    perl Makefile.PL
-  elif [[ -f Build.PL ]]; then
+  if [[ -f Build.PL ]]; then
     perl Build.PL
+  elif [[ -f Makefile.PL ]]; then
+    perl Makefile.PL
   else
     pf "No Makefile.PL or Build.PL found"
   fi
@@ -1489,10 +1489,10 @@ cpan_collection_module() {
   local saved_cover_options="${DEVEL_COVER_OPTIONS:-}"
   export PERL5LIB="$locallib/lib/perl5${saved_perl5lib:+:$saved_perl5lib}"
   pi "Configuring $module"
-  if [[ -f Makefile.PL ]]; then
-    perl Makefile.PL
-  elif [[ -f Build.PL ]]; then
+  if [[ -f Build.PL ]]; then
     perl Build.PL
+  elif [[ -f Makefile.PL ]]; then
+    perl Makefile.PL
   else
     pf "No Makefile.PL or Build.PL found"
   fi
