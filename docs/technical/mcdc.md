@@ -325,19 +325,23 @@ are not executed but whose `op_next` still leads on) and marks the logop when
 the exit lies outside the root's subtree. Each evaluation of a decision gets its
 own frame: the decision's entry logop (the first to fire on every evaluation)
 always pushes a fresh one, so recursive invocations record separately. Frames
-record `cxstack_ix` at push; a frame abandoned by a non-local exit (`die`,
-`goto`, `last`) is detected by its now-too-deep context depth and discarded
-without recording - an abandoned evaluation must record nothing, since a partial
-vector would fabricate an observation no execution produced. Column metadata
-(which logop is a decision root, which leaf maps to which column index) is
-computed lazily on first encounter of each CV by walking the optree from
-`CvROOT`. Two CVs own no tree of their own. The main program runs
-`PL_main_root`, and a required file's top-level code runs in an eval CV whose
-tree is the eval root of its context frame. `dc_cv_root` finds that frame by
-scanning `cxstack` for the one holding the CV. The walk uses `op_first` /
-`OpSIBLING` chains rather than `op_sibparent` to preserve the 5.20 minimum
-(`op_sibparent` requires `PERL_OP_PARENT`, added in 5.22 and made default in
-5.26).
+record their position at push, the number of stack infos below the current one
+and then `cxstack_ix` within it. A callback run from C, such as a `sort`
+comparator or a List::Util block, runs on a fresh stack info whose `cxstack_ix`
+restarts at zero. The stack info depth therefore orders first, so the caller's
+frame stays shallower than any decision the callback resolves. A frame abandoned
+by a non-local exit (`die`, `goto`, `last`) is detected by its now-too-deep
+position and discarded without recording - an abandoned evaluation must record
+nothing, since a partial vector would fabricate an observation no execution
+produced. Column metadata (which logop is a decision root, which leaf maps to
+which column index) is computed lazily on first encounter of each CV by a pass
+over the optree from `CvROOT`. Two CVs own no tree of their own. The main
+program runs `PL_main_root`, and a required file's top-level code runs in an
+eval CV whose tree is the eval root of its context frame. `dc_cv_root` finds
+that frame by scanning `cxstack` for the one holding the CV. The walk uses
+`op_first` / `OpSIBLING` chains rather than `op_sibparent` to preserve the 5.20
+minimum (`op_sibparent` requires `PERL_OP_PARENT`, added in 5.22 and made
+default in 5.26).
 
 Root identification must agree with condition coverage on what "the decision"
 is. The joining logop of an `if`, `unless` or `while` statement or statement

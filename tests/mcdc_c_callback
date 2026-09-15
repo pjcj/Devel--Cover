@@ -1,0 +1,53 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# MC/DC for a decision whose right operand runs a callback from C, a
+# List::Util block or a sort comparator, when that callback holds a
+# decision of its own.  Perl runs the callback on a fresh context stack,
+# so the outer decision's frame must survive the callback's decision
+# resolving at a shallower context index.
+
+use strict;
+use warnings;
+
+use List::Util qw( any );
+
+sub any_block {
+  my ($e, $f) = @_;
+  return "" unless $e || any { ($_ // "") ne "x" } @$f;
+  1
+}
+
+sub sort_block {
+  my ($e, $f) = @_;
+  return "" unless $e || join "", sort { $a <=> $b || $a cmp $b } @$f;
+  1
+}
+
+sub main {
+  # Calls are pushed into @r so each decision is exercised in non-void
+  # context.
+  my @r;
+
+  # $e || any { ... }, every row of the outer decision and of the //.
+  push @r, any_block(1, []);
+  push @r, any_block(0, ["y"]);
+  push @r, any_block(0, ["x"]);
+  push @r, any_block(0, [undef]);
+
+  # $e || join "", sort { ... }, every row of the outer decision and of
+  # the || in the comparator.
+  push @r, sort_block(1, []);
+  push @r, sort_block(0, ["1", "2"]);
+  push @r, sort_block(0, ["1", "1.0"]);
+  push @r, sort_block(0, ["1", "1"]);
+  push @r, sort_block(0, []);
+}
+
+main();

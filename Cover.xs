@@ -126,18 +126,23 @@ typedef struct {
  * are filled in as leaves resolve; columns under a short-circuited subtree
  * stay X.
  *
- * cx_ix is cxstack_ix at push time.  A non-local exit (die, goto, last)
- * out of a decision leaves its frame on the stack; such a frame is
- * detected as stale because its cx_ix is deeper than the current context,
- * and is discarded rather than recorded - an abandoned evaluation must
- * record nothing.  cx_ix also separates recursive invocations of the same
- * decision: an outer invocation's frame has a shallower cx_ix and so is
+ * si_depth and cx_ix record the position at push time, the number of
+ * stack infos below the current one and cxstack_ix within it.  A callback
+ * run from C (a sort comparator, a List::Util block) runs on a fresh
+ * stack info whose cxstack_ix restarts at zero, so cx_ix alone cannot
+ * order frames.  A non-local exit (die, goto, last) out of a decision
+ * leaves its frame on the stack.  Such a frame is detected as stale
+ * because its position is deeper than the current one, and is discarded
+ * rather than recorded - an abandoned evaluation must record nothing.
+ * The position also separates recursive invocations of the same
+ * decision, since an outer invocation's frame is shallower and so is
  * kept when the inner invocation pushes its own frame.
  */
 typedef struct {
   OP   *root_addr;
   int   width;
   int  *vector;
+  int   si_depth;
   I32   cx_ix;
 } dc_dctx;
 
@@ -1877,14 +1882,36 @@ static HV *dc_lookup_or_build_decision_meta(pTHX_ OP *op, CV *cv) {
  *
  * Non-local exits break that discipline: a frame whose evaluation was
  * abandoned stays on the stack.  Every entry point into the stack first
- * discards stale frames (cx_ix deeper than the current context), and a
- * decision's entry logop - the first logop to fire on every evaluation -
- * always pushes a fresh frame, removing any leftover frame for the same
- * root at the same or deeper context depth.
+ * discards stale frames (pushed at a position deeper than the current
+ * one), and a decision's entry logop - the first logop to run on every
+ * evaluation - always pushes a fresh frame, removing any leftover frame
+ * for the same root at the same or deeper position.
  */
 static IV dc_meta_iv(pTHX_ HV *meta, const char *key, I32 keylen) {
   SV **slot = hv_fetch(meta, key, keylen, 0);
   return slot ? SvIV(*slot) : -1;
+}
+
+/* Number of stack infos below the current one. */
+static int dc_si_depth(pTHX) {
+  int      depth = 0;
+  PERL_SI *si;
+  for (si = PL_curstackinfo->si_prev; si; si = si->si_prev) depth++;
+  return depth;
+}
+
+/*
+ * Compare the position a frame was pushed at with the current position:
+ * negative when the frame is shallower, zero at the same position and
+ * positive when it is deeper.  The stack info depth orders first, so a
+ * frame pushed by the caller of a C-run callback stays shallower than
+ * anything the callback pushes, whatever their cxstack_ix values.
+ */
+static int dc_frame_cmp(pTHX_ dc_dctx *d) {
+  int depth = dc_si_depth(aTHX);
+  if (d->si_depth != depth) return d->si_depth < depth ? -1 : 1;
+  if (d->cx_ix != cxstack_ix) return d->cx_ix < cxstack_ix ? -1 : 1;
+  return 0;
 }
 
 static dc_dctx *dc_stack_top(pTHX) {
@@ -1917,6 +1944,7 @@ static dc_dctx *dc_stack_push(pTHX_ OP *root_addr, int width) {
   d = &MY_CXT.dc_stack.items[MY_CXT.dc_stack.count++];
   d->root_addr = root_addr;
   d->width     = width;
+  d->si_depth  = dc_si_depth(aTHX);
   d->cx_ix     = cxstack_ix;
   Newx(d->vector, width > 0 ? width : 1, int);
   for (i = 0; i < width; i++) d->vector[i] = DC_VECTOR_X;
@@ -1944,16 +1972,16 @@ static void dc_stack_remove(pTHX_ dc_dctx *d) {
 }
 
 /*
- * Discard frames abandoned by a non-local exit: any frame pushed in a
- * context deeper than the current one belongs to an evaluation that no
+ * Discard frames abandoned by a non-local exit: any frame pushed at a
+ * position deeper than the current one belongs to an evaluation that no
  * longer exists.  Such frames always form the top of the stack at the
  * moment they become detectable, so popping from the top suffices.
  */
 static void dc_stack_discard_stale(pTHX) {
   dMY_CXT;
   while (MY_CXT.dc_stack.count
-         && MY_CXT.dc_stack.items[MY_CXT.dc_stack.count - 1].cx_ix
-            > cxstack_ix)
+         && dc_frame_cmp(aTHX_
+              &MY_CXT.dc_stack.items[MY_CXT.dc_stack.count - 1]) > 0)
     dc_stack_pop(aTHX);
 }
 
@@ -2116,12 +2144,12 @@ static dc_dctx *dc_mcdc_frame(pTHX_ HV *meta) {
   if (is_entry && width > 0) {
     /*
      * A fresh evaluation of this decision starts here.  A leftover
-     * frame at the same or deeper context depth was abandoned by a
+     * frame at the same or deeper position was abandoned by a
      * non-local exit - discard it.  A shallower frame belongs to an
      * outer invocation still in flight (recursion) and is kept; the
      * fresh frame shadows it until resolution.
      */
-    if (d && d->cx_ix >= cxstack_ix) dc_stack_remove(aTHX_ d);
+    if (d && dc_frame_cmp(aTHX_ d) >= 0) dc_stack_remove(aTHX_ d);
     d = dc_stack_push(aTHX_ root_addr, width);
   } else if (!d && width > 0) {
     d = dc_stack_push(aTHX_ root_addr, width);
