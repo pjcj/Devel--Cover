@@ -519,6 +519,75 @@ sub compress_old_versions () {
     "a distdir without cover.json is skipped";
 }
 
+my $Has_yaml = eval { require YAML; 1 };
+
+sub write_state_file ($build_dir, $id) {
+  my $dist = { build_dir => $build_dir };
+  $dist->{ID} = $id if defined $id;
+  YAML::DumpFile(
+    "$build_dir.yml", {
+      distribution => bless($dist, "CPAN::Distribution"),
+      perl         => { '$^X' => $^X },
+      time         => time,
+    },
+  );
+}
+
+sub build_dir_id () {
+  skip_all "YAML required" unless $Has_yaml;
+  my $c   = Devel::Cover::Collection->new;
+  my $dir = tempdir(CLEANUP => 1);
+  my $id  = "D/DT/DTUCKWELL/Acme-DTUCKWELL-Utils-0.04.tar.gz";
+
+  my $bd = "$dir/Acme-DTUCKWELL-Utils-0.03-0";
+  mkdir $bd or die "Can't mkdir $bd: $!";
+  write_state_file($bd, $id);
+  is $c->build_dir_id($bd), $id,
+    "build_dir_id reads the ID from the state file";
+
+  my $no_id = "$dir/No-Id-1.0-0";
+  mkdir $no_id or die "Can't mkdir $no_id: $!";
+  write_state_file($no_id, undef);
+  is $c->build_dir_id($no_id), undef,
+    "build_dir_id is undef when the state file has no ID";
+
+  my $no_file = "$dir/No-File-1.0-0";
+  mkdir $no_file or die "Can't mkdir $no_file: $!";
+  is $c->build_dir_id($no_file), undef,
+    "build_dir_id is undef when there is no state file";
+
+  my $bad = "$dir/Bad-1.0-0";
+  mkdir $bad or die "Can't mkdir $bad: $!";
+  open my $fh, ">", "$bad.yml" or die "Can't open $bad.yml: $!";
+  print $fh "- [unterminated\n";
+  close $fh or die "Can't close $bad.yml: $!";
+  is $c->build_dir_id($bad), undef,
+    "build_dir_id is undef when the state file does not parse";
+}
+
+sub build_dir_id_from_cpan () {
+  skip_all "YAML required" unless $Has_yaml;
+  require CPAN;
+  skip_all "CPAN::Distribution->store_persistent_state required"
+    unless CPAN::Distribution->can("store_persistent_state");
+
+  my $dir = tempdir(CLEANUP => 1);
+  my $bd  = "$dir/Acme-DTUCKWELL-Utils-0.03-0";
+  mkdir $bd or die "Can't mkdir $bd: $!";
+  my $id = "D/DT/DTUCKWELL/Acme-DTUCKWELL-Utils-0.04.tar.gz";
+
+  local $CPAN::Config->{build_dir} = $dir;
+  local $CPAN::Frontend = "CPAN::Shell";
+  $CPAN::META //= CPAN->new;
+  my $dist = bless { ID => $id, build_dir => $bd }, "CPAN::Distribution";
+  $dist->store_persistent_state;
+  ok -e "$bd.yml", "CPAN.pm writes the state file beside the build dir";
+
+  my $c = Devel::Cover::Collection->new;
+  is $c->build_dir_id($bd), $id,
+    "build_dir_id reads the ID from a state file CPAN.pm wrote";
+}
+
 sub filter_build_dirs_to_targets () {
   my $c = Devel::Cover::Collection->new(
     modules => [
@@ -1058,6 +1127,8 @@ sub main () {
     module_name_version
     write_json
     compress_old_versions
+    build_dir_id
+    build_dir_id_from_cpan
     filter_build_dirs_to_targets
     rebuilt_markers
     unflag_all_rebuilt_method

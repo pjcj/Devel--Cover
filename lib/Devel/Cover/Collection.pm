@@ -203,6 +203,15 @@ class Devel::Cover::Collection {
       @$cpan_dir;
   }
 
+  method build_dir_id ($build_dir) {
+    my $file = "$build_dir.yml";
+    return unless -e $file;
+    # YAML loads the tagged distribution as a plain hash
+    require YAML;
+    my $state = eval { YAML::LoadFile($file) } or return;
+    $state->{distribution}{ID}
+  }
+
   method filter_build_dirs_to_targets {
     my %target = map { (s|.*/||r =~ s/${Dist_ext_re}$//r) => 1 } @$modules;
     $build_dirs = [
@@ -1395,6 +1404,15 @@ true, uses the C<-f> flag.
 
 Scans the CPAN directories for build directories and adds them to
 C<build_dirs>.
+
+=head3 build_dir_id ($build_dir)
+
+  my $id = $collection->build_dir_id($build_dir);
+
+Returns the CPAN path of the distribution unpacked into C<$build_dir>, read
+from the C<< <build_dir>.yml >> state file CPAN.pm writes beside every build
+directory when a YAML module is installed. Returns undef when the file is
+missing, does not parse or has no ID. Requires L<YAML>.
 
 =head3 filter_build_dirs_to_targets
 
