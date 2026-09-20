@@ -49,6 +49,7 @@ class Devel::Cover::Collection {
 
   # attributes set internally after construction
   field $build_dirs  :param :reader = undef;
+  field $distdir_for :param :reader = undef;
   field $modules     :param :reader = undef;
   field $module_file :param :reader = undef;
 
@@ -66,6 +67,7 @@ class Devel::Cover::Collection {
   ADJUST {
     # Apply defaults (equivalent to BUILDARGS)
     $build_dirs    //= [];
+    $distdir_for   //= {};
     $cpan_dir      //= [grep -d, glob "~/.cpan ~/.local/share/.cpan"];
     $docker        //= "docker";
     $dryrun        //= 0;
@@ -213,13 +215,24 @@ class Devel::Cover::Collection {
   }
 
   method filter_build_dirs_to_targets {
-    my %target = map { (s|.*/||r =~ s/${Dist_ext_re}$//r) => 1 } @$modules;
-    $build_dirs = [
-      grep {
-        my $name = (s|.*/||r) =~ s/-\d+$//r;
-        $target{$name};
-      } @$build_dirs
-    ];
+    my %target = map { $_ => s|.*/||r =~ s/${Dist_ext_re}$//r } @$modules;
+    my (@keep, %found);
+    for my $dir (@$build_dirs) {
+      my $id = $self->build_dir_id($dir);
+      unless (defined $id) {
+        warn "No CPAN.pm state file for $dir, skipping\n";
+        next;
+      }
+      next unless exists $target{$id};
+      push @keep, $dir;
+      $distdir_for->{$dir} = $target{$id};
+      $found{$id}++;
+    }
+    if (my @missing = grep !$found{$_}, sort keys %target) {
+      die "No build directory for @missing\n"
+        . "Build directories seen: @$build_dirs\n";
+    }
+    $build_dirs = \@keep;
   }
 
   method made_res_dir ($sub_dir = undef) {
@@ -232,8 +245,9 @@ class Devel::Cover::Collection {
   }
 
   method run ($build_dir) {
+    my $module = $distdir_for->{$build_dir}
+      // die "No distdir recorded for $build_dir\n";
     chdir $build_dir or die "Can't chdir $build_dir: $!\n";
-    my ($module) = $build_dir =~ m|.*/([^/]+?)(?:-\d+)$| or return;
     say "Checking coverage of $module";
 
     my $db   = "$build_dir/cover_db";
@@ -1332,6 +1346,12 @@ them.
 
 Arrayref of build directories to process. Modify via C<add_build_dirs>.
 
+=head3 distdir_for
+
+Hashref mapping each build directory in C<build_dirs> to the distdir name
+of the target it was unpacked from, such as C<Acme-DTUCKWELL-Utils-0.04>.
+Filled in by C<filter_build_dirs_to_targets> and read by C<run>.
+
 =head3 modules
 
 Arrayref of module names to process. Modify via C<add_modules> or
@@ -1418,11 +1438,15 @@ missing, does not parse or has no ID. Requires L<YAML>.
 
   $collection->filter_build_dirs_to_targets;
 
-Reduces C<build_dirs> to those entries whose basename (with the trailing
-C<< -<n> >> CPAN counter stripped) matches a distdir name derived from
-C<modules>. Used after C<add_build_dirs> so that dependency build
-directories pulled in by C<cpan -Ti> are not covered alongside the target
-distribution.
+Reduces C<build_dirs> to those entries whose CPAN.pm state file names a
+target in C<modules> (see C<build_dir_id>) and records the target's distdir
+name against each in C<distdir_for>. CPAN.pm names a build directory after
+the directory inside the archive, which need not match the archive name,
+so the state file is the only reliable link. A build directory without a
+state file is dropped with a warning. Dies, naming the target and the build
+directories seen, when a target has no matching build directory, so a
+failed fetch is visible in the build log rather than silently producing no
+report.
 
 =head3 local_build
 
@@ -1439,7 +1463,9 @@ distributions, and runs coverage on all.
   $collection->run($build_dir);
 
 Runs coverage analysis on a single build directory. Creates coverage reports
-in the results directory. The C<cover> invocation is passed C<--select_dir>
+in the results directory under the distdir name recorded in C<distdir_for>,
+and dies when the build directory has no entry there. The C<cover>
+invocation is passed C<--select_dir>
 pointing at C<blib> (falling back to C<lib>, then the build directory) so
 files no test exercised appear in the report as untested, and a distribution
 without any tests still produces a report rather than failing. The report

@@ -87,6 +87,7 @@ sub run_scenario (%opt) {
   my $collection = Devel::Cover::Collection->new(
     bin_dir     => $Bin,
     results_dir => "$Tmp/results$n",
+    distdir_for => $opt{unmapped} ? {} : { $build_dir => "My-Module-1.02" },
   );
 
   my @warnings;
@@ -144,9 +145,17 @@ sub test_missing_report_fails () {
   like $r->{stdout}, qr/Testing My-Module/, "collected output is still printed";
 }
 
+sub test_unmapped_build_dir_dies () {
+  my $r = run_scenario(dirs => ["lib"], unmapped => 1);
+  like $r->{err}, qr/No distdir recorded for .*My-Module-1\.02-1234/,
+    "run dies for a build dir the filter did not map";
+  is $r->{args}, "", "nothing is run for an unmapped build dir";
+}
+
 test_failing_tests_still_publish;
 test_select_dir_fallbacks;
 test_log_survives_report_failure;
 test_missing_report_fails;
+test_unmapped_build_dir_dies;
 
 done_testing;

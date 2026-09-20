@@ -76,6 +76,7 @@ chdir $Cwd or die "Can't chdir $Cwd: $!";
 my $Collection = Devel::Cover::Collection->new(
   bin_dir     => "$Root/bin",
   results_dir => "$Tmp/results",
+  distdir_for => { $Build_dir => "Foo-Bar-0.01" },
   local       => 1,
 );
 
