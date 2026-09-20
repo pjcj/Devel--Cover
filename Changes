@@ -1,6 +1,13 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Match each cpancover build directory to its release through the state
+  file CPAN.pm writes, so a release whose archive unpacks to a directory
+  with another name or version gets a report instead of nothing (GH-815)
+- Key every cpancover report by its release name and version rather than
+  the metadata inside the archive, which may describe an older release,
+  so a TRIAL keeps its suffix and never ranks above a stable release
+  (GH-815)
 - Take the defaults for build prompts in cpancover builds, which otherwise
   looped until the timeout (GH-811)
 - List the build environment on the cpancover.com about page (Toby
