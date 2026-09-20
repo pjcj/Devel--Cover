@@ -33,7 +33,8 @@ All state lives under `$results_dir`:
   as covered.
 - `__failed__/<distdir>` - timestamp file marking a distribution that failed to
   build. Left in place across rebuild cycles so the site still shows "last
-  known" results.
+  known" results. A report with a marker is stale, so the next build that
+  produces a report replaces it, in any mode.
 - `__rebuilt__/<distdir>` - timestamp file marking a distribution that has been
   processed this rebuild cycle. Cleared wholesale at the end of a cycle. This
   directory does not exist outside rebuild mode.
@@ -108,12 +109,13 @@ At the end of the rebuild cycle the recipe:
 ## Failure handling
 
 A distribution that fails during a rebuild pass is flagged rebuilt anyway so the
-cycle does not retry it on the next iteration. The existing results dir is left
-in place so the site does not develop a hole. `.log_ref` is rewritten to point
-at the fresh failure log, and the `__failed__/<distdir>` marker is written so
-subsequent ordinary runs know not to waste time on it. The next time a user
-triggers `cpancover-run-loop-rebuild`, the failed entry will be retried from
-scratch.
+cycle does not retry it on the next iteration. A rebuild has failed when it
+leaves no `cover.json` written since the build began, whether the container
+produced nothing or timed out. The existing results dir is left in place so the
+site does not develop a hole. `.log_ref` is rewritten to point at the fresh
+failure log, and the `__failed__/<distdir>` marker is written so subsequent
+ordinary runs know not to waste time on it. The next time a user triggers
+`cpancover-run-loop-rebuild`, the failed entry will be retried from scratch.
 
 ## Re-triggering
 

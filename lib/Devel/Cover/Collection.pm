@@ -678,6 +678,11 @@ class Devel::Cover::Collection {
   }
   method set_covered ($d) { unlink $self->failed_file($d) }
 
+  method fresh_report ($d, $since) {
+    my $mtime = (stat $self->covered_dir($d) . "/cover.json")[9];
+    defined $mtime && $mtime >= $since
+  }
+
   method _write_timestamp_marker ($path) {
     my $tmp = "$path.tmp.$$";
     open my $fh, ">", $tmp or return warn "Can't open $tmp: $!";
@@ -853,17 +858,16 @@ class Devel::Cover::Collection {
         # say "mod ", Dumper \@_;
         my (undef, $module) = @_;
         my $d = $module =~ s|.*/||r =~ s/${Dist_ext_re}$//r;
-        if ($self->is_covered($d)) {
-          # replacing an existing distdir is the rebuild machinery's job
-          $self->set_covered($d);
-          say "$module already covered" if $verbose;
-          return;
-        } elsif ($self->is_failed($d)) {
+        if ($self->is_failed($d)) {
           say "$module already failed" if $verbose;
           return unless $force;
+        } elsif ($self->is_covered($d)) {
+          say "$module already covered" if $verbose;
+          return;
         }
 
-        my $to = $timeout;
+        my $start = int time;
+        my $to    = $timeout;
         # say "Setting alarm for $to seconds";
         my $name = sprintf("%s-%18.6f", $module, time) =~ tr/a-zA-Z0-9_./-/cr;
         say "$d -> $name";
@@ -881,9 +885,7 @@ class Devel::Cover::Collection {
           say "Killed docker container $name";
         }
 
-        # Don't use is_covered here: in rebuild mode it also requires
-        # the __rebuilt__ marker, which we're about to write below.
-        if (-d $self->covered_dir($d)) {
+        if ($self->fresh_report($d, $start)) {
           $self->set_covered($d);
           say "$d done";
         } else {
@@ -1482,8 +1484,12 @@ workers if configured.
 Covers all modules using Docker containers. Processes the module file,
 then runs coverage for each module in parallel. Modules whose distdir or
 failure marker already exists are skipped (in rebuild mode only when
-they also carry a C<__rebuilt__> marker). Returns the number of builds
-actually attempted.
+they also have a C<__rebuilt__> marker). A failure marker outranks a
+distdir, so a failed module with an old report is retried when C<force>
+is set. A build counts as done only when it leaves a C<cover.json>
+written since the build began, so a rebuild that produces nothing marks
+the module failed and keeps the old report on disk. Returns the number
+of builds actually attempted.
 
 =head2 Report Generation
 
@@ -1573,6 +1579,13 @@ the same reason as C<is_covered>.
   $collection->set_covered($module_dir);
 
 Marks a module as successfully covered (removes any failure marker).
+
+=head3 fresh_report ($module_dir, $since)
+
+  if ($collection->fresh_report($module_dir, $since)) { ... }
+
+Returns true if the module's distdir holds a C<cover.json> modified at or
+after the epoch time C<$since>.
 
 =head3 set_failed
 
