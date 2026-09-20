@@ -344,10 +344,22 @@ sub test_parallel_run () {
     "a parallel run writes the same dist page";
 }
 
+sub test_about_environment () {
+  like $Page{about}, qr{<h3>Build environment</h3>},
+    "about page has a build environment section";
+  my @vars = qw(
+    AUTOMATED_TESTING NONINTERACTIVE_TESTING EXTENDED_TESTING
+    PERL_MM_USE_DEFAULT
+  );
+  like $Page{about}, qr{<code>\Q$_\E=1</code>}, "about page documents $_"
+    for @vars;
+}
+
 sub main () {
   generate;
   test_no_warnings;
   test_page_links;
+  test_about_environment;
   test_log_links;
   test_metacpan_links;
   test_cc_scar;

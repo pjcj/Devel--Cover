@@ -1050,6 +1050,19 @@ Results are published as HTML pages and JSON data.</p>
 </tbody>
 </table>
 
+<h3>Build environment</h3>
+
+<p>Each distribution is configured, built and tested in a fresh container
+with these environment variables set, from <code>perl Makefile.PL</code> or
+<code>perl Build.PL</code> onwards:</p>
+
+<ul>
+<li><code>AUTOMATED_TESTING=1</code></li>
+<li><code>NONINTERACTIVE_TESTING=1</code></li>
+<li><code>EXTENDED_TESTING=1</code></li>
+<li><code>PERL_MM_USE_DEFAULT=1</code></li>
+</ul>
+
 <h3>Links</h3>
 
 <div class="az-nav">
