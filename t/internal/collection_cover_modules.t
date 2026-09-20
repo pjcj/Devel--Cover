@@ -67,6 +67,7 @@ my \$module = \$ARGV[-2];
 open my \$fh, ">>", \$ENV{STUB_LOG} or die "Can't open \$ENV{STUB_LOG}: \$!";
 print \$fh "\$module rebuild=", \$ENV{CPANCOVER_REBUILD} // "", "\\n";
 close \$fh or die "Can't close \$ENV{STUB_LOG}: \$!";
+exit 0 if \$ENV{STUB_NO_DIST};
 mkdir "\$results_dir/\$dist"
   or -d "\$results_dir/\$dist"
   or die "Can't mkdir \$results_dir/\$dist: \$!";
@@ -89,6 +90,11 @@ sub new_results_dir {
   make_path("$dir/Foo-Bar-1.00");
   write_file("$dir/Foo-Bar-1.00/cover.json", "{}");
   $dir
+}
+
+sub backdate ($path) {
+  my $old = time - 3600;
+  utime $old, $old, $path or die "Can't utime $path: $!";
 }
 
 sub newcp ($results_dir, %opts) {
@@ -153,6 +159,28 @@ subtest "rebuild mode rebuilds covered dists with CPANCOVER_REBUILD" => sub {
     "covered dist is rebuilt with CPANCOVER_REBUILD set";
   ok -e "$dir/__rebuilt__/Foo-Bar-1.00", "rebuilt dist is marked";
   is $built, 1, "cover_modules reports one build";
+};
+
+subtest "rebuild that produces nothing marks the dist failed" => sub {
+  my $dir = new_results_dir;
+  my $log = "$dir/calls.log";
+  local $ENV{STUB_LOG} = $log;
+  write_file($log, "");
+  backdate("$dir/Foo-Bar-1.00/cover.json");
+
+  my $cp = newcp($dir, rebuild => 1);
+  $cp->set_modules($Covered);
+  my $built = do { local $ENV{STUB_NO_DIST} = 1; $cp->cover_modules };
+
+  is $built, 1, "cover_modules reports one build";
+  ok -e "$dir/__failed__/Foo-Bar-1.00",  "dist is marked failed";
+  ok -e "$dir/__rebuilt__/Foo-Bar-1.00", "dist is still marked rebuilt";
+  ok -e "$dir/Foo-Bar-1.00/cover.json",  "old report is kept";
+
+  unlink "$dir/__rebuilt__/Foo-Bar-1.00" or die "Can't unlink: $!";
+  $cp->cover_modules;
+  ok !-e "$dir/__failed__/Foo-Bar-1.00",
+    "a rebuild that produces a report clears the failed marker";
 };
 
 done_testing;
