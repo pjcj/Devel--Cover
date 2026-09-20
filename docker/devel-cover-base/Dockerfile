@@ -43,7 +43,8 @@ RUN mkdir -p /root/.cpan/CPAN                                               && \
       Pod::Coverage::CountParents                                              \
       PPI                                                                      \
       Sereal                                                                   \
-      Template                                                              && \
+      Template                                                                 \
+      YAML                                                                  && \
     rm -rf ~/.cpan/build ~/.cpan/sources/authors ~/.cpanm                      \
       ~/.local/share/.cpan/build ~/.local/share/.cpan/sources/authors
 
