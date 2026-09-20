@@ -71,6 +71,7 @@ jobs:
             Pod::Coverage::CountParents
             Parallel::Iterator
             JSON::MaybeXS
+            CPAN::DistnameInfo
             Test::Differences
             Browser::Open
             Capture::Tiny

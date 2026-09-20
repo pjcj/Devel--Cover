@@ -18,11 +18,12 @@ use Devel::Cover::Html_Common  qw( scar_class );  ## no perlimports
 use Devel::Cover::Inc          ();
 use Devel::Cover::Web          qw( write_file );
 
-use JSON::MaybeXS ();
-use POSIX         qw( _exit setsid );
-use Template      ();
-use Time::HiRes   qw( alarm time );
-use version       ();
+use CPAN::DistnameInfo ();
+use JSON::MaybeXS      ();
+use POSIX              qw( _exit setsid );
+use Template           ();
+use Time::HiRes        qw( alarm time );
+use version            ();
 
 use feature "class";
 
@@ -49,6 +50,7 @@ class Devel::Cover::Collection {
 
   # attributes set internally after construction
   field $build_dirs  :param :reader = undef;
+  field $distdir_for :param :reader = undef;
   field $modules     :param :reader = undef;
   field $module_file :param :reader = undef;
 
@@ -66,6 +68,7 @@ class Devel::Cover::Collection {
   ADJUST {
     # Apply defaults (equivalent to BUILDARGS)
     $build_dirs    //= [];
+    $distdir_for   //= {};
     $cpan_dir      //= [grep -d, glob "~/.cpan ~/.local/share/.cpan"];
     $docker        //= "docker";
     $dryrun        //= 0;
@@ -194,23 +197,37 @@ class Devel::Cover::Collection {
   }
 
   method add_build_dirs {
-    my $exists = sub {
-      my $d     = "/remote_staging/" . (s|.*/||r =~ s/-\d+$/*/r);
-      my @files = glob $d;
-      @files
-    };
-    push @$build_dirs, grep { !$exists->() } grep -d, map glob("$_/build/*"),
-      @$cpan_dir;
+    push @$build_dirs, grep -d, map glob("$_/build/*"), @$cpan_dir;
+  }
+
+  method build_dir_id ($build_dir) {
+    my $file = "$build_dir.yml";
+    return unless -e $file;
+    # YAML loads the tagged distribution as a plain hash
+    require YAML;
+    my $state = eval { YAML::LoadFile($file) } or return;
+    $state->{distribution}{ID}
   }
 
   method filter_build_dirs_to_targets {
-    my %target = map { (s|.*/||r =~ s/${Dist_ext_re}$//r) => 1 } @$modules;
-    $build_dirs = [
-      grep {
-        my $name = (s|.*/||r) =~ s/-\d+$//r;
-        $target{$name};
-      } @$build_dirs
-    ];
+    my %target = map { $_ => s|.*/||r =~ s/${Dist_ext_re}$//r } @$modules;
+    my (@keep, %found);
+    for my $dir (@$build_dirs) {
+      my $id = $self->build_dir_id($dir);
+      unless (defined $id) {
+        warn "No CPAN.pm state file for $dir, skipping\n";
+        next;
+      }
+      next unless exists $target{$id};
+      push @keep, $dir;
+      $distdir_for->{$dir} = $target{$id};
+      $found{$id}++;
+    }
+    if (my @missing = grep !$found{$_}, sort keys %target) {
+      die "No build directory for @missing\n"
+        . "Build directories seen: @$build_dirs\n";
+    }
+    $build_dirs = \@keep;
   }
 
   method made_res_dir ($sub_dir = undef) {
@@ -223,8 +240,9 @@ class Devel::Cover::Collection {
   }
 
   method run ($build_dir) {
+    my $module = $distdir_for->{$build_dir}
+      // die "No distdir recorded for $build_dir\n";
     chdir $build_dir or die "Can't chdir $build_dir: $!\n";
-    my ($module) = $build_dir =~ m|.*/([^/]+?)(?:-\d+)$| or return;
     say "Checking coverage of $module";
 
     my $db   = "$build_dir/cover_db";
@@ -295,21 +313,15 @@ class Devel::Cover::Collection {
   }
 
   method _module_name_version ($mod, $module) {
-    my ($name, $version) = ($mod->{name}, $mod->{version});
+    # the suffix turns a distdir into the archive name DistnameInfo parses
+    my $d = CPAN::DistnameInfo->new(($mod->{module} // $module) . ".tar.gz");
+    my ($name, $version) = ($d->dist, $d->version);
+    # the release names the report, its metadata may describe an older one
+    return ($name, $version) if defined $name && defined $version;
+    my ($n, $v) = ($mod->{name}, $mod->{version});
     # a name containing a slash is a run directory path, not a dist name
-    ($name, $version) = (undef, undef) if ($name // "") =~ m|/|;
-    unless (defined $name && defined $version) {
-      # the suffix turns a distdir into the archive name DistnameInfo parses
-      my ($n, $v) = eval {
-        require CPAN::DistnameInfo;
-        my $d
-          = CPAN::DistnameInfo->new(($mod->{module} // $module) . ".tar.gz");
-        ($d->dist, $d->version)
-      };
-      $name    //= $n;
-      $version //= $v;
-    }
-    ($name, $version)
+    ($n, $v) = (undef, undef) if ($n // "") =~ m|/|;
+    ($n // $name, $v // $version)
   }
 
   method write_json ($vars) {
@@ -345,7 +357,11 @@ class Devel::Cover::Collection {
   }
 
   method _newer ($va, $vb) {
-    my ($pa, $pb) = map $self->_parse_version($_), $va, $vb;
+    # a stable release outranks any TRIAL, as on MetaCPAN
+    my ($ta, $tb) = map { ($_ // "") =~ /-TRIAL$/ ? 1 : 0 } $va, $vb;
+    return $tb > $ta if $ta != $tb;
+    my ($pa, $pb) = map $self->_parse_version(defined $_ ? s/-TRIAL$//r : $_),
+      $va, $vb;
     return $pa > $pb if defined $pa && defined $pb;
     ($va // "") gt($vb // "")
   }
@@ -610,7 +626,7 @@ class Devel::Cover::Collection {
       close $fh or warn "Can't close $f: $!";
       next unless $data;
       my ($name) = $entry =~ /.+\/(.+)/;
-      $name =~ s/-[^-]+$//;
+      $name =~ s/-[^-]+(?:-TRIAL)?$//;
       my @runs = grep { ($_->{name} // "") eq $name } $data->{runs}->@*;
       # say "$name " . @runs;
       my $run = $runs[0] // next;
@@ -1323,6 +1339,12 @@ them.
 
 Arrayref of build directories to process. Modify via C<add_build_dirs>.
 
+=head3 distdir_for
+
+Hashref mapping each build directory in C<build_dirs> to the distdir name
+of the target it was unpacked from, such as C<Acme-DTUCKWELL-Utils-0.04>.
+Filled in by C<filter_build_dirs_to_targets> and read by C<run>.
+
 =head3 modules
 
 Arrayref of module names to process. Modify via C<add_modules> or
@@ -1393,18 +1415,32 @@ true, uses the C<-f> flag.
 
   $collection->add_build_dirs;
 
-Scans the CPAN directories for build directories and adds them to
-C<build_dirs>.
+Adds every directory under the C<build> directory of each CPAN directory
+to C<build_dirs>. Dependencies are included at this point and removed by
+C<filter_build_dirs_to_targets>.
+
+=head3 build_dir_id ($build_dir)
+
+  my $id = $collection->build_dir_id($build_dir);
+
+Returns the CPAN path of the distribution unpacked into C<$build_dir>, read
+from the C<< <build_dir>.yml >> state file CPAN.pm writes beside every build
+directory when a YAML module is installed. Returns undef when the file is
+missing, does not parse or has no ID. Requires L<YAML>.
 
 =head3 filter_build_dirs_to_targets
 
   $collection->filter_build_dirs_to_targets;
 
-Reduces C<build_dirs> to those entries whose basename (with the trailing
-C<< -<n> >> CPAN counter stripped) matches a distdir name derived from
-C<modules>. Used after C<add_build_dirs> so that dependency build
-directories pulled in by C<cpan -Ti> are not covered alongside the target
-distribution.
+Reduces C<build_dirs> to those entries whose CPAN.pm state file names a
+target in C<modules> (see C<build_dir_id>) and records the target's distdir
+name against each in C<distdir_for>. CPAN.pm names a build directory after
+the directory inside the archive, which need not match the archive name,
+so the state file is the only reliable link. A build directory without a
+state file is dropped with a warning. Dies, naming the target and the build
+directories seen, when a target has no matching build directory, so a
+failed fetch is visible in the build log rather than silently producing no
+report.
 
 =head3 local_build
 
@@ -1421,7 +1457,9 @@ distributions, and runs coverage on all.
   $collection->run($build_dir);
 
 Runs coverage analysis on a single build directory. Creates coverage reports
-in the results directory. The C<cover> invocation is passed C<--select_dir>
+in the results directory under the distdir name recorded in C<distdir_for>,
+and dies when the build directory has no entry there. The C<cover>
+invocation is passed C<--select_dir>
 pointing at C<blib> (falling back to C<lib>, then the build directory) so
 files no test exercised appear in the report as untested, and a distribution
 without any tests still produces a report rather than failing. The report
@@ -1457,6 +1495,11 @@ Generates HTML coverage reports for all modules in the results directory.
 Creates an index page, per-module pages, and an about page. A module is
 only linked when its report page exists on disk.
 
+Each module takes its distribution name and version from its distdir,
+which is the release name. The name and version recorded in the report
+describe the directory inside the archive, which may be an older release,
+so they are used only when the distdir has no version to parse.
+
 =head3 coverage_class
 
   my $css_class = $collection->coverage_class($percentage);
@@ -1481,7 +1524,8 @@ C<generate_html>.
   $collection->write_json($vars);
 
 Writes a JSON file (C<cpancover.json>) containing coverage data for all
-modules.
+modules, keyed by the distribution name and version of each release as
+parsed from its distdir.
 
 =head3 write_search_index ($vars)
 
@@ -1489,8 +1533,9 @@ modules.
 
 Writes C<search.json>, a list of the module directories that have report
 pages, sorted by distribution name with the newest version of each
-distribution first. The header search on the collection pages fetches it
-to offer direct links to module reports.
+distribution first and TRIAL releases after every stable release. The
+header search on the collection pages fetches it to offer direct links to
+module reports.
 
 =head3 add_overview ($vars)
 
@@ -1499,7 +1544,8 @@ to offer direct links to module reports.
 Builds the front-page overview from the collected module data: the
 distribution count and a list of coverage-band segments for the
 distribution bar. Only the latest version of each distribution counts,
-so the bar reflects the current state of CPAN. Bands with no
+so the bar reflects the current state of CPAN. A TRIAL release is never
+the latest while a stable release exists, as on MetaCPAN. Bands with no
 distributions are omitted, and a segment too narrow to fit its count
 drops its label.
 

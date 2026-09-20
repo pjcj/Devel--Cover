@@ -27,7 +27,9 @@ BEGIN {
   plan skip_all => "Devel::Cover::Collection requires Perl 5.42" if $] < 5.042;
   plan skip_all => "Devel::Cover::Collection is not portable to Windows"
     if $^O eq "MSWin32";
-  for my $module (qw( Template Parallel::Iterator JSON::MaybeXS )) {
+  for my $module (
+    qw( Template Parallel::Iterator JSON::MaybeXS CPAN::DistnameInfo )
+  ) {
     plan skip_all => "$module required for this test"
       unless eval "require $module; 1";
   }
@@ -76,6 +78,7 @@ chdir $Cwd or die "Can't chdir $Cwd: $!";
 my $Collection = Devel::Cover::Collection->new(
   bin_dir     => "$Root/bin",
   results_dir => "$Tmp/results",
+  distdir_for => { $Build_dir => "Foo-Bar-0.01" },
   local       => 1,
 );
 

@@ -10,7 +10,9 @@
 
 use 5.42.0;
 
-use Test2::V0     qw( done_testing is like ok skip_all subtest unlike );
+use Test2::V0 qw(
+  dies done_testing is like ok skip_all subtest unlike warnings
+);
 use File::Temp    qw( tempdir );
 use JSON::MaybeXS ();
 
@@ -42,6 +44,8 @@ sub constructor_defaults () {
   is $c->module_file,   undef,        "module_file is undef by default";
   is $c->dir,           undef,        "dir is undef by default";
   is $c->file,          undef,        "file is undef by default";
+
+  is $c->distdir_for, {}, "distdir_for defaults to empty hashref";
 }
 
 sub constructor_with_args () {
@@ -100,10 +104,13 @@ sub rw_accessors () {
 sub internal_accessors () {
   my $c = Devel::Cover::Collection->new(
     build_dirs  => ["/dir1", "/dir2"],
+    distdir_for => { "/dir1" => "Foo-1.0" },
     modules     => ["Foo::Bar"],
     module_file => "/tmp/modules.txt",
   );
-  is $c->build_dirs,  ["/dir1", "/dir2"], "build_dirs set via constructor";
+  is $c->build_dirs, ["/dir1", "/dir2"], "build_dirs set via constructor";
+  is $c->distdir_for, { "/dir1" => "Foo-1.0" },
+    "distdir_for set via constructor";
   is $c->modules,     ["Foo::Bar"],       "modules set via constructor";
   is $c->module_file, "/tmp/modules.txt", "module_file set via constructor";
   ok !$c->can("_set_build_dirs"),  "build_dirs has no private setter";
@@ -389,6 +396,7 @@ sub module_name_version () {
     "Foo-Bar-0.10.6"     => ["Foo-Bar",   "0.10.6"],
     "Foo-1.2_01"         => ["Foo",       "1.2_01"],
     "Perl-Tidy-20240903" => ["Perl-Tidy", "20240903"],
+    "Foo-1.2-TRIAL"      => ["Foo",       "1.2-TRIAL"],
   );
   for my $module (sort keys %parsed) {
     is [$c->_module_name_version({}, $module)], $parsed{$module},
@@ -402,7 +410,21 @@ sub module_name_version () {
       { name => "Real-Name", version => "9.9" }, "Foo-1.2",
     ),
     ],
-    ["Real-Name", "9.9"], "recorded metadata wins";
+    ["Foo", "1.2"], "the release name and version win over the metadata";
+  is [
+    $c->_module_name_version(
+      { name => "Real-Name", version => "9.9" }, "Foo",
+    ),
+    ],
+    ["Real-Name", "9.9"],
+    "a distdir without a version falls back to the metadata";
+  is [
+    $c->_module_name_version(
+      { name => "Foo", version => "1.2" },
+      "Foo-1.2-TRIAL",
+    ),
+    ],
+    ["Foo", "1.2-TRIAL"], "a TRIAL keeps its suffix over the recorded version";
   is [
     $c->_module_name_version(
       { name => "/build/Foo-1.2.3", version => "unknown" }, "Foo-1.2.3",
@@ -466,15 +488,16 @@ sub compress_old_versions () {
   # 0.41 numifies to 0.410, less than 0.700/0.800/0.900, so the latest
   # release was compressed and removed under the old version-based sort.
   my @versions = (
-    { ver => "0.7",  start => 1000 },
-    { ver => "0.8",  start => 2000 },
-    { ver => "0.9",  start => 3000 },
-    { ver => "0.41", start => 4000 },
+    { dir => "0.5-TRIAL", ver   => "0.5", start => 500 },
+    { ver => "0.7",       start => 1000 },
+    { ver => "0.8",       start => 2000 },
+    { ver => "0.9",       start => 3000 },
+    { ver => "0.41",      start => 4000 },
   );
 
   my $json = JSON::MaybeXS->new(utf8 => 1);
   for my $v (@versions) {
-    my $mod_dir = "$dir/Net-RDAP-$v->{ver}";
+    my $mod_dir = "$dir/Net-RDAP-" . ($v->{dir} // $v->{ver});
     mkdir $mod_dir or die "Can't mkdir $mod_dir: $!";
     my $cover = { runs =>
       [{ name => "Net-RDAP", version => $v->{ver}, start => $v->{start} }] };
@@ -504,9 +527,11 @@ sub compress_old_versions () {
   my $output = do { local $/; <$ofh> };
   close $ofh or die "Can't close $outfile: $!";
 
-  # 4 versions, keep 3: the oldest by start time should be compressed
+  # 5 versions, keep 3: the oldest two by start time should be compressed
   like $output, qr/^compressing Net-RDAP-0\.7$/m,
     "oldest version by start time is compressed";
+  like $output, qr/^compressing Net-RDAP-0\.5-TRIAL$/m,
+    "an old TRIAL is compressed like any other version";
   unlike $output, qr/^compressing Net-RDAP-0\.41$/m,
     "latest release is kept (was removed by numeric version sort)";
   unlike $output, qr/^compressing Net-RDAP-0\.9$/m,
@@ -519,51 +544,133 @@ sub compress_old_versions () {
     "a distdir without cover.json is skipped";
 }
 
+my $Has_yaml = eval { require YAML; 1 };
+
+sub write_state_file ($build_dir, $id) {
+  my $dist = { build_dir => $build_dir };
+  $dist->{ID} = $id if defined $id;
+  YAML::DumpFile(
+    "$build_dir.yml", {
+      distribution => bless($dist, "CPAN::Distribution"),
+      perl         => { '$^X' => $^X },
+      time         => time,
+    },
+  );
+}
+
+sub build_dir_id () {
+  skip_all "YAML required" unless $Has_yaml;
+  my $c   = Devel::Cover::Collection->new;
+  my $dir = tempdir(CLEANUP => 1);
+  my $id  = "D/DT/DTUCKWELL/Acme-DTUCKWELL-Utils-0.04.tar.gz";
+
+  my $bd = "$dir/Acme-DTUCKWELL-Utils-0.03-0";
+  mkdir $bd or die "Can't mkdir $bd: $!";
+  write_state_file($bd, $id);
+  is $c->build_dir_id($bd), $id,
+    "build_dir_id reads the ID from the state file";
+
+  my $no_id = "$dir/No-Id-1.0-0";
+  mkdir $no_id or die "Can't mkdir $no_id: $!";
+  write_state_file($no_id, undef);
+  is $c->build_dir_id($no_id), undef,
+    "build_dir_id is undef when the state file has no ID";
+
+  my $no_file = "$dir/No-File-1.0-0";
+  mkdir $no_file or die "Can't mkdir $no_file: $!";
+  is $c->build_dir_id($no_file), undef,
+    "build_dir_id is undef when there is no state file";
+
+  my $bad = "$dir/Bad-1.0-0";
+  mkdir $bad or die "Can't mkdir $bad: $!";
+  open my $fh, ">", "$bad.yml" or die "Can't open $bad.yml: $!";
+  print $fh "- [unterminated\n";
+  close $fh or die "Can't close $bad.yml: $!";
+  is $c->build_dir_id($bad), undef,
+    "build_dir_id is undef when the state file does not parse";
+}
+
+sub build_dir_id_from_cpan () {
+  skip_all "YAML required" unless $Has_yaml;
+  require CPAN;
+  skip_all "CPAN::Distribution->store_persistent_state required"
+    unless CPAN::Distribution->can("store_persistent_state");
+
+  my $dir = tempdir(CLEANUP => 1);
+  my $bd  = "$dir/Acme-DTUCKWELL-Utils-0.03-0";
+  mkdir $bd or die "Can't mkdir $bd: $!";
+  my $id = "D/DT/DTUCKWELL/Acme-DTUCKWELL-Utils-0.04.tar.gz";
+
+  local $CPAN::Config->{build_dir} = $dir;
+  local $CPAN::Frontend = "CPAN::Shell";
+  $CPAN::META //= CPAN->new;
+  my $dist = bless { ID => $id, build_dir => $bd }, "CPAN::Distribution";
+  $dist->store_persistent_state;
+  ok -e "$bd.yml", "CPAN.pm writes the state file beside the build dir";
+
+  my $c = Devel::Cover::Collection->new;
+  is $c->build_dir_id($bd), $id,
+    "build_dir_id reads the ID from a state file CPAN.pm wrote";
+}
+
+sub make_build_dir ($dir, $name, $id = undef) {
+  my $bd = "$dir/$name";
+  mkdir $bd or die "Can't mkdir $bd: $!";
+  write_state_file($bd, $id) if defined $id;
+  $bd
+}
+
 sub filter_build_dirs_to_targets () {
+  skip_all "YAML required" unless $Has_yaml;
+  my $dir     = tempdir(CLEANUP => 1);
+  my $utils   = "D/DT/DTUCKWELL/Acme-DTUCKWELL-Utils-0.04.tar.gz";
+  my $owa     = "A/AU/AUTHOR/Apache-OWA-0.7.tar.gz";
+  my $behind  = make_build_dir($dir, "Acme-DTUCKWELL-Utils-0.03-0", $utils);
+  my $renamed = make_build_dir($dir, "OWA-0",                       $owa);
+  my $dep
+    = make_build_dir($dir, "PPI-1.280-0", "M/MI/MITHALDU/PPI-1.280.tar.gz");
+  my $stale = make_build_dir($dir, "Stale-1.0-0");
+
   my $c = Devel::Cover::Collection->new(
-    modules => [
-      "P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz",
-      "A/AU/AUTHOR/My-Module-1.23.tar.gz",
-    ],
-    build_dirs => [
-      "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
-      "/home/x/.cpan/build/My-Module-1.23-3",
-      "/home/x/.cpan/build/PPI-1.280-0",
-      "/home/x/.cpan/build/Test-Deep-1.204-1",
-    ],
+    modules    => [$utils,  $owa],
+    build_dirs => [$behind, $renamed, $dep, $stale],
   );
-  $c->filter_build_dirs_to_targets;
-  is $c->build_dirs, [
-      "/home/x/.cpan/build/Perl-Critic-PJCJ-v0.2.4-0",
-      "/home/x/.cpan/build/My-Module-1.23-3",
-    ],
-    "filter keeps only build dirs that match a target distdir";
+  my $w = warnings { $c->filter_build_dirs_to_targets };
 
-  my $c2 = Devel::Cover::Collection->new(
-    modules    => ["T/TA/TAR/Target-1.0.tar.gz"],
-    build_dirs => [
-      "/cpan/build/Target-1.0-0", "/cpan/build/Target-1.0-1",
-      "/cpan/build/Target-1.0-2",
-    ],
-  );
+  is $c->build_dirs, [$behind, $renamed],
+    "filter keeps the build dirs whose state file ID names a target";
+  is $c->distdir_for,
+    { $behind => "Acme-DTUCKWELL-Utils-0.04", $renamed => "Apache-OWA-0.7" },
+    "filter records the target distdir name for each kept build dir";
+  is @$w, 1, "one warning for the build dir without a state file";
+  like $w->[0], qr/\Q$stale\E/, "the warning names the build dir";
+
+  my $id  = "T/TA/TAR/Target-1.0.tar.gz";
+  my @all = map make_build_dir($dir, "Target-1.0-$_", $id), 0 .. 2;
+  my $c2
+    = Devel::Cover::Collection->new(modules => [$id], build_dirs => [@all]);
   $c2->filter_build_dirs_to_targets;
-  is $c2->build_dirs, [
-      "/cpan/build/Target-1.0-0", "/cpan/build/Target-1.0-1",
-      "/cpan/build/Target-1.0-2",
-    ],
-    "filter keeps all reinstall attempts of the same target";
+  is $c2->build_dirs, [@all], "filter keeps all reinstall attempts of a target";
 
-  my $c3
-    = Devel::Cover::Collection->new(build_dirs => ["/cpan/build/Random-1.0-0"]);
+  my $c3 = Devel::Cover::Collection->new(build_dirs => [$dep]);
   $c3->filter_build_dirs_to_targets;
   is $c3->build_dirs, [], "filter empties build_dirs when modules is empty";
 
   my $c4 = Devel::Cover::Collection->new(
     modules    => ["A/AU/AUTHOR/Foo-1.0.tar.gz"],
+    build_dirs => [$dep],
+  );
+  my $err = dies { $c4->filter_build_dirs_to_targets };
+  like $err, qr{A/AU/AUTHOR/Foo-1\.0\.tar\.gz},
+    "filter dies naming a target with no build dir";
+  like $err, qr/\Q$dep\E/, "the error lists the build dirs seen";
+
+  my $c5 = Devel::Cover::Collection->new(
+    modules    => ["A/AU/AUTHOR/Foo-1.0.tar.gz"],
     build_dirs => [],
   );
-  $c4->filter_build_dirs_to_targets;
-  is $c4->build_dirs, [], "filter is a no-op on empty build_dirs";
+  like dies { $c5->filter_build_dirs_to_targets }, qr/Foo-1\.0/,
+    "filter dies when there are no build dirs for a target";
 }
 
 sub rebuilt_markers () {
@@ -1058,6 +1165,8 @@ sub main () {
     module_name_version
     write_json
     compress_old_versions
+    build_dir_id
+    build_dir_id_from_cpan
     filter_build_dirs_to_targets
     rebuilt_markers
     unflag_all_rebuilt_method
