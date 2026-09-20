@@ -58,8 +58,19 @@ sub test_undef_versions () {
   is "@warnings", "", "undef versions compare without warning";
 }
 
+sub test_trial_versions () {
+  ok !$C->_newer("1.23-TRIAL", "1.22"), "a TRIAL is not newer than a stable";
+  ok $C->_newer("1.22", "1.23-TRIAL"),  "a stable is newer than any TRIAL";
+  ok !$C->_newer("1.23-TRIAL", "1.23"), "a TRIAL of a version is older";
+  ok $C->_newer("1.24-TRIAL",  "1.23-TRIAL"),
+    "TRIALs compare numerically with each other";
+  ok !$C->_newer("1.23-TRIAL", "1.24-TRIAL"),
+    "TRIALs compare numerically reversed";
+}
+
 sub main () {
   test_zero_versions;
+  test_trial_versions;
   test_parse_version;
   test_numeric_compare;
   test_undef_versions;

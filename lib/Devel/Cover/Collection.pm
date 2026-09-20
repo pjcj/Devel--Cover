@@ -312,21 +312,19 @@ class Devel::Cover::Collection {
   }
 
   method _module_name_version ($mod, $module) {
-    my ($name, $version) = ($mod->{name}, $mod->{version});
+    # the suffix turns a distdir into the archive name DistnameInfo parses
+    my ($name, $version) = eval {
+      require CPAN::DistnameInfo;
+      my $d
+        = CPAN::DistnameInfo->new(($mod->{module} // $module) . ".tar.gz");
+      ($d->dist, $d->version)
+    };
+    # the release names the report, its metadata may describe an older one
+    return ($name, $version) if defined $name && defined $version;
+    my ($n, $v) = ($mod->{name}, $mod->{version});
     # a name containing a slash is a run directory path, not a dist name
-    ($name, $version) = (undef, undef) if ($name // "") =~ m|/|;
-    unless (defined $name && defined $version) {
-      # the suffix turns a distdir into the archive name DistnameInfo parses
-      my ($n, $v) = eval {
-        require CPAN::DistnameInfo;
-        my $d
-          = CPAN::DistnameInfo->new(($mod->{module} // $module) . ".tar.gz");
-        ($d->dist, $d->version)
-      };
-      $name    //= $n;
-      $version //= $v;
-    }
-    ($name, $version)
+    ($n, $v) = (undef, undef) if ($n // "") =~ m|/|;
+    ($n // $name, $v // $version)
   }
 
   method write_json ($vars) {
@@ -362,7 +360,11 @@ class Devel::Cover::Collection {
   }
 
   method _newer ($va, $vb) {
-    my ($pa, $pb) = map $self->_parse_version($_), $va, $vb;
+    # a stable release outranks any TRIAL, as on MetaCPAN
+    my ($ta, $tb) = map { ($_ // "") =~ /-TRIAL$/ ? 1 : 0 } $va, $vb;
+    return $tb > $ta if $ta != $tb;
+    my ($pa, $pb) = map $self->_parse_version(defined $_ ? s/-TRIAL$//r : $_),
+      $va, $vb;
     return $pa > $pb if defined $pa && defined $pb;
     ($va // "") gt($vb // "")
   }
@@ -627,7 +629,7 @@ class Devel::Cover::Collection {
       close $fh or warn "Can't close $f: $!";
       next unless $data;
       my ($name) = $entry =~ /.+\/(.+)/;
-      $name =~ s/-[^-]+$//;
+      $name =~ s/-[^-]+(?:-TRIAL)?$//;
       my @runs = grep { ($_->{name} // "") eq $name } $data->{runs}->@*;
       # say "$name " . @runs;
       my $run = $runs[0] // next;
@@ -1496,6 +1498,11 @@ Generates HTML coverage reports for all modules in the results directory.
 Creates an index page, per-module pages, and an about page. A module is
 only linked when its report page exists on disk.
 
+Each module takes its distribution name and version from its distdir,
+which is the release name. The name and version recorded in the report
+describe the directory inside the archive, which may be an older release,
+so they are used only when the distdir has no version to parse.
+
 =head3 coverage_class
 
   my $css_class = $collection->coverage_class($percentage);
@@ -1520,7 +1527,8 @@ C<generate_html>.
   $collection->write_json($vars);
 
 Writes a JSON file (C<cpancover.json>) containing coverage data for all
-modules.
+modules, keyed by the distribution name and version of each release as
+parsed from its distdir.
 
 =head3 write_search_index ($vars)
 
@@ -1528,8 +1536,9 @@ modules.
 
 Writes C<search.json>, a list of the module directories that have report
 pages, sorted by distribution name with the newest version of each
-distribution first. The header search on the collection pages fetches it
-to offer direct links to module reports.
+distribution first and TRIAL releases after every stable release. The
+header search on the collection pages fetches it to offer direct links to
+module reports.
 
 =head3 add_overview ($vars)
 
@@ -1538,7 +1547,8 @@ to offer direct links to module reports.
 Builds the front-page overview from the collected module data: the
 distribution count and a list of coverage-band segments for the
 distribution bar. Only the latest version of each distribution counts,
-so the bar reflects the current state of CPAN. Bands with no
+so the bar reflects the current state of CPAN. A TRIAL release is never
+the latest while a stable release exists, as on MetaCPAN. Bands with no
 distributions are omitted, and a segment too narrow to fit its count
 drops its label.
 

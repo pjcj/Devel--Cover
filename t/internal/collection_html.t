@@ -20,7 +20,7 @@ use Cwd        qw( getcwd );
 use File::Path qw( make_path );
 use File::Temp ();
 use JSON::PP   ();
-use Test::More import => [qw( done_testing is like plan unlike )];
+use Test::More import => [qw( done_testing is like ok plan unlike )];
 
 BEGIN {
   plan skip_all => "Devel::Cover::Collection requires Perl 5.42" if $] < 5.042;
@@ -89,7 +89,10 @@ my $Scar
 
 sub setup_results_dir {
   my $dir = File::Temp->newdir;
-  write_dist($dir, $Dist, "Foo-Bar", "1.00", $Log, 1, $Scar);
+  # $Dist's metadata names the directory inside the archive, which is
+  # behind the release, so the pages must take the name and version from
+  # the distdir
+  write_dist($dir, $Dist, "Foo-Bar-Inner", "0.99", $Log, 1, $Scar);
 
   # $Dist2's report predates the file_cc/file_cov/file_crap summary fields
   write_dist($dir, $Dist2, "Baz-Qux", "2.00", $Log2, 1, { file_scar => 26.6 });
@@ -112,6 +115,11 @@ sub setup_results_dir {
 
   # An older version of $Dist, which the overview must not count
   write_dist($dir, "Foo-Bar-0.50", "Foo-Bar", "0.50");
+
+  # A TRIAL of $Dist, whose metadata has no TRIAL marker, and a dist
+  # with only a TRIAL
+  write_dist($dir, "Foo-Bar-1.50-TRIAL",    "Foo-Bar",    "1.50");
+  write_dist($dir, "Only-Trial-0.01-TRIAL", "Only-Trial", "0.01");
 
   # A dist with no coverage percentages, for the overview's n/a band
   make_path("$dir/Zero-Data-6.00");
@@ -145,6 +153,7 @@ sub generate () {
     dist_b => slurp("$Dir/dist/B.html"),
     dist_d => slurp("$Dir/dist/D.html"),
     dist_n => slurp("$Dir/dist/N.html"),
+    dist_o => slurp("$Dir/dist/O.html"),
     about  => slurp("$Dir/about.html"),
   );
   $Css = slurp("$Dir/collection.css");
@@ -243,13 +252,13 @@ sub test_css () {
 }
 
 sub test_overview_bar () {
-  like $Page{index}, qr{<p class="dist-count">6 distributions</p>},
+  like $Page{index}, qr{<p class="dist-count">7 distributions</p>},
     "index page counts distributions once per name";
   like $Page{index},
-    qr{<div class="dist-bar-seg c1" style="width: 83\.33%">\s*5\s*</div>},
+    qr{<div class="dist-bar-seg c1" style="width: 85\.71%">\s*6\s*</div>},
     "index page bar has a c1 segment counting latest versions only";
   like $Page{index},
-    qr{<div class="dist-bar-seg na" style="width: 16\.67%">\s*1\s*</div>},
+    qr{<div class="dist-bar-seg na" style="width: 14\.29%">\s*1\s*</div>},
     "index page bar has an n/a segment";
   like $Page{index}, qr{dist-bar-seg c1.*dist-bar-seg na}s,
     "bar segments run from best to worst";
@@ -283,11 +292,37 @@ sub test_overview_segments () {
     "segments too narrow for their count drop the label";
 }
 
+sub test_overview_trial () {
+  my $vars = {
+    vals => {
+      "Foo-1.00" => {
+        module => { name => "Foo", version => "1.00" },
+        total  => { pc   => "100.00" },
+      },
+      "Foo-1.50-TRIAL" => {
+        module => { name => "Foo", version => "1.50-TRIAL" },
+        total  => { pc   => "50.00" },
+      },
+      "Bar-0.01-TRIAL" => {
+        module => { name => "Bar", version => "0.01-TRIAL" },
+        total  => { pc   => "50.00" },
+      },
+    },
+  };
+  $Collection->add_overview($vars);
+  is $vars->{overview}{count}, 2, "overview counts each dist once";
+  is join(",", map $_->{class}, $vars->{overview}{segments}->@*), "c3,c0",
+    "a stable release outranks a newer TRIAL, a lone TRIAL still counts";
+}
+
 sub test_search () {
   my $search = JSON::PP->new->decode(slurp("$Dir/search.json"));
-  is join(",", @$search),
-    "Baz-Qux-2.00,Dangle-Ref-3.00,Dep-Only-4.00,Foo-Bar-1.00,Foo-Bar-0.50",
-    "search.json lists newest versions first, report pages only";
+  is join(",", @$search), join(
+    ",",
+    qw( Baz-Qux-2.00 Dangle-Ref-3.00 Dep-Only-4.00 Foo-Bar-1.00 Foo-Bar-0.50
+      Foo-Bar-1.50-TRIAL Only-Trial-0.01-TRIAL ),
+    ),
+    "search.json lists newest versions first, TRIALs last, report pages only";
   like $Page{index}, qr{<input[^>]*id="module-search"[^>]*data-root=""},
     "index page has the search input";
   like $Page{index}, qr{<input[^>]*placeholder="Search distributions"},
@@ -303,6 +338,17 @@ sub test_cpancover_json () {
   my $coverage  = $cpancover->{"Foo-Bar"}{"1.00"}{coverage}{total};
   is join(",", sort keys %$coverage), "statement,total",
     "cpancover.json has no cc or scar keys";
+  ok exists($cpancover->{"Foo-Bar"}{"1.50-TRIAL"}),
+    "cpancover.json keys a TRIAL by its suffixed version";
+  ok !exists($cpancover->{"Foo-Bar"}{"1.50"}),
+    "cpancover.json does not key a TRIAL by its bare version";
+  like $Page{dist}, qr{1\.50-TRIAL}, "dist page shows the TRIAL version";
+  ok !exists($cpancover->{"Foo-Bar-Inner"}),
+    "cpancover.json does not key a release by the name in its metadata";
+  ok !exists($cpancover->{"Foo-Bar"}{"0.99"}),
+    "cpancover.json does not key a release by the version in its metadata";
+  unlike $Page{dist}, qr{Foo-Bar-Inner|0\.99},
+    "dist page shows the release name and version, not the metadata";
 }
 
 sub test_version_footer () {
@@ -366,6 +412,7 @@ sub main () {
   test_css;
   test_overview_bar;
   test_overview_segments;
+  test_overview_trial;
   test_search;
   test_cpancover_json;
   test_version_footer;

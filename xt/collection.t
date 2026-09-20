@@ -396,6 +396,7 @@ sub module_name_version () {
     "Foo-Bar-0.10.6"     => ["Foo-Bar",   "0.10.6"],
     "Foo-1.2_01"         => ["Foo",       "1.2_01"],
     "Perl-Tidy-20240903" => ["Perl-Tidy", "20240903"],
+    "Foo-1.2-TRIAL"      => ["Foo",       "1.2-TRIAL"],
   );
   for my $module (sort keys %parsed) {
     is [$c->_module_name_version({}, $module)], $parsed{$module},
@@ -409,7 +410,21 @@ sub module_name_version () {
       { name => "Real-Name", version => "9.9" }, "Foo-1.2",
     ),
     ],
-    ["Real-Name", "9.9"], "recorded metadata wins";
+    ["Foo", "1.2"], "the release name and version win over the metadata";
+  is [
+    $c->_module_name_version(
+      { name => "Real-Name", version => "9.9" }, "Foo",
+    ),
+    ],
+    ["Real-Name", "9.9"],
+    "a distdir without a version falls back to the metadata";
+  is [
+    $c->_module_name_version(
+      { name => "Foo", version => "1.2" },
+      "Foo-1.2-TRIAL",
+    ),
+    ],
+    ["Foo", "1.2-TRIAL"], "a TRIAL keeps its suffix over the recorded version";
   is [
     $c->_module_name_version(
       { name => "/build/Foo-1.2.3", version => "unknown" }, "Foo-1.2.3",
@@ -473,15 +488,16 @@ sub compress_old_versions () {
   # 0.41 numifies to 0.410, less than 0.700/0.800/0.900, so the latest
   # release was compressed and removed under the old version-based sort.
   my @versions = (
-    { ver => "0.7",  start => 1000 },
-    { ver => "0.8",  start => 2000 },
-    { ver => "0.9",  start => 3000 },
-    { ver => "0.41", start => 4000 },
+    { dir => "0.5-TRIAL", ver   => "0.5", start => 500 },
+    { ver => "0.7",       start => 1000 },
+    { ver => "0.8",       start => 2000 },
+    { ver => "0.9",       start => 3000 },
+    { ver => "0.41",      start => 4000 },
   );
 
   my $json = JSON::MaybeXS->new(utf8 => 1);
   for my $v (@versions) {
-    my $mod_dir = "$dir/Net-RDAP-$v->{ver}";
+    my $mod_dir = "$dir/Net-RDAP-" . ($v->{dir} // $v->{ver});
     mkdir $mod_dir or die "Can't mkdir $mod_dir: $!";
     my $cover = { runs =>
       [{ name => "Net-RDAP", version => $v->{ver}, start => $v->{start} }] };
@@ -511,9 +527,11 @@ sub compress_old_versions () {
   my $output = do { local $/; <$ofh> };
   close $ofh or die "Can't close $outfile: $!";
 
-  # 4 versions, keep 3: the oldest by start time should be compressed
+  # 5 versions, keep 3: the oldest two by start time should be compressed
   like $output, qr/^compressing Net-RDAP-0\.7$/m,
     "oldest version by start time is compressed";
+  like $output, qr/^compressing Net-RDAP-0\.5-TRIAL$/m,
+    "an old TRIAL is compressed like any other version";
   unlike $output, qr/^compressing Net-RDAP-0\.41$/m,
     "latest release is kept (was removed by numeric version sort)";
   unlike $output, qr/^compressing Net-RDAP-0\.9$/m,
