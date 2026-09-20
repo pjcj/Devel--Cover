@@ -33,7 +33,8 @@ All state lives under `$results_dir`:
   as covered.
 - `__failed__/<distdir>` - timestamp file marking a distribution that failed to
   build. Left in place across rebuild cycles so the site still shows "last
-  known" results.
+  known" results. A report with a marker is stale, so the next build that
+  produces a report replaces it, in any mode.
 - `__rebuilt__/<distdir>` - timestamp file marking a distribution that has been
   processed this rebuild cycle. Cleared wholesale at the end of a cycle. This
   directory does not exist outside rebuild mode.

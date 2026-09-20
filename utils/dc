@@ -756,7 +756,7 @@ recipe_cpancover-docker-module() {
       [[ -d $f ]] || continue
       ((++seen))
       base=$(basename "$f")
-      if [[ -n ${CPANCOVER_REBUILD:-} ]]; then
+      if [[ -n ${CPANCOVER_REBUILD:-} || -e "$staging/__failed__/$base" ]]; then
         rm -rf "${staging:?}/$base"
       elif [[ -d "$staging/$base" ]]; then
         continue

@@ -188,6 +188,33 @@ sub docker_module_timeout_log_ref () {
   is @tmp, 0, "no tmp files remain";
 }
 
+sub docker_module_replaces_failed () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+  delete local $ENV{CPANCOVER_REBUILD};
+  my $log = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
+
+  my $kept = tempdir(CLEANUP => 1);
+  mkdir "$kept/Foo-Bar-1.00" or die "Can't mkdir $kept/Foo-Bar-1.00: $!";
+  write_file("$kept/Foo-Bar-1.00/index.html", "old\n");
+  dc("-r", $kept, "cpancover-docker-module", "Foo::Bar", $log, $kept);
+  is slurp("$kept/Foo-Bar-1.00/index.html"), "old\n",
+    "an existing report without a failed marker is kept";
+
+  my $failed = tempdir(CLEANUP => 1);
+  mkdir "$failed/$_"
+    or die "Can't mkdir $failed/$_: $!"
+    for "Foo-Bar-1.00", "__failed__";
+  write_file("$failed/Foo-Bar-1.00/index.html", "old\n");
+  write_file("$failed/__failed__/Foo-Bar-1.00", "1234567890\n");
+  dc("-r", $failed, "cpancover-docker-module", "Foo::Bar", $log, $failed);
+  is slurp("$failed/Foo-Bar-1.00/index.html"), "html\n",
+    "an existing report with a failed marker is replaced";
+}
+
 sub docker_module_run_limits () {
   skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
   my $bin = tempdir(CLEANUP => 1);
@@ -585,6 +612,7 @@ sub main () {
     uncompress_recipe
     docker_module_log_ref
     docker_module_timeout_log_ref
+    docker_module_replaces_failed
     docker_module_run_limits
     build_environment
     force_retries_failed_only
