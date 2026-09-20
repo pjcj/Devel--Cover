@@ -310,7 +310,8 @@ install_dependencies() {
   pi "Installing dependencies with $cpm"
   $cpm install --workers="$(nice_cpus)" --global \
     Sereal Digest::MD5 Template Pod::Coverage::CountParents \
-    Capture::Tiny Parallel::Iterator Template Class::XSAccessor
+    Capture::Tiny Parallel::Iterator Template Class::XSAccessor \
+    JSON::MaybeXS CPAN::DistnameInfo
 }
 
 install_development_dependencies() {

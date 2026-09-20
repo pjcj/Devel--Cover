@@ -24,7 +24,9 @@ BEGIN {
   plan skip_all => "Devel::Cover::Collection requires Perl 5.42" if $] < 5.042;
   plan skip_all => "Devel::Cover::Collection is not portable to Windows"
     if $^O eq "MSWin32";
-  for my $module (qw( Template Parallel::Iterator JSON::MaybeXS )) {
+  for my $module (
+    qw( Template Parallel::Iterator JSON::MaybeXS CPAN::DistnameInfo )
+  ) {
     plan skip_all => "$module required for this test"
       unless eval "require $module; 1";
   }

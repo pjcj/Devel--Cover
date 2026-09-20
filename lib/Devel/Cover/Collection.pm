@@ -18,11 +18,12 @@ use Devel::Cover::Html_Common  qw( scar_class );  ## no perlimports
 use Devel::Cover::Inc          ();
 use Devel::Cover::Web          qw( write_file );
 
-use JSON::MaybeXS ();
-use POSIX         qw( _exit setsid );
-use Template      ();
-use Time::HiRes   qw( alarm time );
-use version       ();
+use CPAN::DistnameInfo ();
+use JSON::MaybeXS      ();
+use POSIX              qw( _exit setsid );
+use Template           ();
+use Time::HiRes        qw( alarm time );
+use version            ();
 
 use feature "class";
 
@@ -313,12 +314,8 @@ class Devel::Cover::Collection {
 
   method _module_name_version ($mod, $module) {
     # the suffix turns a distdir into the archive name DistnameInfo parses
-    my ($name, $version) = eval {
-      require CPAN::DistnameInfo;
-      my $d
-        = CPAN::DistnameInfo->new(($mod->{module} // $module) . ".tar.gz");
-      ($d->dist, $d->version)
-    };
+    my $d = CPAN::DistnameInfo->new(($mod->{module} // $module) . ".tar.gz");
+    my ($name, $version) = ($d->dist, $d->version);
     # the release names the report, its metadata may describe an older one
     return ($name, $version) if defined $name && defined $version;
     my ($n, $v) = ($mod->{name}, $mod->{version});
