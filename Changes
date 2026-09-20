@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Mark a cpancover rebuild that produces no report as failed, rather
+  than keeping the old report with nothing to show for the failure
+  (GH-817)
 - Match each cpancover build directory to its release through the state
   file CPAN.pm writes, so a release whose archive unpacks to a directory
   with another name or version gets a report instead of nothing (GH-815)
