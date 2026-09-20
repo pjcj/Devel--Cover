@@ -98,6 +98,11 @@ sub make_docker_stub ($bin) {
     cmd="$1"
     shift
     echo "$cmd $*" >>"${STUB_CALLS:-/dev/null}"
+    echo "env PERL_MM_USE_DEFAULT=${PERL_MM_USE_DEFAULT-unset}" \
+      "AUTOMATED_TESTING=${AUTOMATED_TESTING-unset}" \
+      "NONINTERACTIVE_TESTING=${NONINTERACTIVE_TESTING-unset}" \
+      "EXTENDED_TESTING=${EXTENDED_TESTING-unset}" \
+      >>"${STUB_CALLS:-/dev/null}"
     case "$cmd" in
       run) echo fake-container ;;
       logs) echo "fake build log" ;;
@@ -213,6 +218,31 @@ sub docker_module_run_limits () {
   my ($cp) = grep /^cp /, split /\n/, slurp("$work/calls");
   like $cp, qr|^cp \S+:/home/cpancover/cover/staging |,
     "results are copied from the build user's home";
+}
+
+sub build_environment () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+  my @vars = qw(
+    AUTOMATED_TESTING NONINTERACTIVE_TESTING EXTENDED_TESTING
+    PERL_MM_USE_DEFAULT
+  );
+  delete local $ENV{$_} for @vars;
+
+  my $log     = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
+  my $staging = tempdir(CLEANUP => 1);
+  my $work    = tempdir(CLEANUP => 1);
+
+  {
+    local $ENV{STUB_CALLS} = "$work/calls";
+    dc("-r", $staging, "cpancover-docker-module", "Foo::Bar", $log, $staging);
+  }
+
+  my ($env) = grep /^env /, split /\n/, slurp("$work/calls");
+  like $env, qr/ \Q$_\E=1\b/, "build runs with $_=1" for @vars;
 }
 
 sub force_retries_failed_only () {
@@ -556,6 +586,7 @@ sub main () {
     docker_module_log_ref
     docker_module_timeout_log_ref
     docker_module_run_limits
+    build_environment
     force_retries_failed_only
     cpancover_leaves_build_alone
     rebuild_batch_cleanup

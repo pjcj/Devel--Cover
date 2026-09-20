@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Take the defaults for build prompts in cpancover builds, which otherwise
+  looped until the timeout (GH-811)
+- List the build environment on the cpancover.com about page (Toby
+  Inkster) (GH-283)
 - Credit the right column of a condition whose nested right operand
   short-circuits past the op it watches, as in `return 1 if $x && ($y ||
   $z)` with `$x` and `$y` true (GH-801)
