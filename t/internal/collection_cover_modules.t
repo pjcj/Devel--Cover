@@ -183,4 +183,25 @@ subtest "rebuild that produces nothing marks the dist failed" => sub {
     "a rebuild that produces a report clears the failed marker";
 };
 
+subtest "failed marker outranks an old report" => sub {
+  my $dir = new_results_dir;
+  my $log = "$dir/calls.log";
+  local $ENV{STUB_LOG} = $log;
+  write_file($log, "");
+  backdate("$dir/Foo-Bar-1.00/cover.json");
+
+  my $cp = newcp($dir);
+  $cp->set_modules($Covered);
+  $cp->set_failed("Foo-Bar-1.00");
+  is $cp->cover_modules, 0,  "failed dist with an old report is not retried";
+  is slurp($log),        "", "no build runs for it";
+  ok -e "$dir/__failed__/Foo-Bar-1.00", "failed marker stays";
+
+  my $fp = newcp($dir, force => 1);
+  $fp->set_modules($Covered);
+  is $fp->cover_modules, 1, "force retries it";
+  like slurp($log), qr/Foo-Bar/, "a build runs for it";
+  ok !-e "$dir/__failed__/Foo-Bar-1.00", "fresh report clears the marker";
+};
+
 done_testing;

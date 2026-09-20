@@ -858,14 +858,12 @@ class Devel::Cover::Collection {
         # say "mod ", Dumper \@_;
         my (undef, $module) = @_;
         my $d = $module =~ s|.*/||r =~ s/${Dist_ext_re}$//r;
-        if ($self->is_covered($d)) {
-          # replacing an existing distdir is the rebuild machinery's job
-          $self->set_covered($d);
-          say "$module already covered" if $verbose;
-          return;
-        } elsif ($self->is_failed($d)) {
+        if ($self->is_failed($d)) {
           say "$module already failed" if $verbose;
           return unless $force;
+        } elsif ($self->is_covered($d)) {
+          say "$module already covered" if $verbose;
+          return;
         }
 
         my $start = int time;
@@ -1486,10 +1484,12 @@ workers if configured.
 Covers all modules using Docker containers. Processes the module file,
 then runs coverage for each module in parallel. Modules whose distdir or
 failure marker already exists are skipped (in rebuild mode only when
-they also have a C<__rebuilt__> marker). A build counts as done only
-when it leaves a C<cover.json> written since the build began, so a
-rebuild that produces nothing marks the module failed and keeps the old
-report on disk. Returns the number of builds actually attempted.
+they also have a C<__rebuilt__> marker). A failure marker outranks a
+distdir, so a failed module with an old report is retried when C<force>
+is set. A build counts as done only when it leaves a C<cover.json>
+written since the build began, so a rebuild that produces nothing marks
+the module failed and keeps the old report on disk. Returns the number
+of builds actually attempted.
 
 =head2 Report Generation
 
