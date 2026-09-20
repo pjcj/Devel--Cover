@@ -196,13 +196,7 @@ class Devel::Cover::Collection {
   }
 
   method add_build_dirs {
-    my $exists = sub {
-      my $d     = "/remote_staging/" . (s|.*/||r =~ s/-\d+$/*/r);
-      my @files = glob $d;
-      @files
-    };
-    push @$build_dirs, grep { !$exists->() } grep -d, map glob("$_/build/*"),
-      @$cpan_dir;
+    push @$build_dirs, grep -d, map glob("$_/build/*"), @$cpan_dir;
   }
 
   method build_dir_id ($build_dir) {
@@ -1422,8 +1416,9 @@ true, uses the C<-f> flag.
 
   $collection->add_build_dirs;
 
-Scans the CPAN directories for build directories and adds them to
-C<build_dirs>.
+Adds every directory under the C<build> directory of each CPAN directory
+to C<build_dirs>. Dependencies are included at this point and removed by
+C<filter_build_dirs_to_targets>.
 
 =head3 build_dir_id ($build_dir)
 
