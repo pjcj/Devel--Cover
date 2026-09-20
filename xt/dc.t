@@ -109,6 +109,8 @@ sub make_docker_stub ($bin) {
       wait) sleep "${STUB_WAIT_SLEEP:-0}" ;;
       cp)
         dest="$2"
+        mkdir -p "$dest/staging"
+        [ -n "${STUB_NO_DIST:-}" ] && exit 0
         dist="$STUB_DISTDIR"
         mkdir -p "$dest/staging/$dist/runs" "$dest/staging/$dist/structure"
         echo db >"$dest/staging/$dist/cover.14"
@@ -301,6 +303,40 @@ sub force_retries_failed_only () {
   like slurp("$work/failed.calls"), qr/\brun\b/,
     "forced build retries a failed dist";
   ok -e "$failed/Foo-Bar-1.00/cover.json", "retried dist is ingested";
+}
+
+sub stale_report_outcomes () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+  my $module = "P/PJ/PJCJ/Foo-Bar-1.00.tar.gz";
+
+  my $stale = tempdir(CLEANUP => 1);
+  mkdir "$stale/Foo-Bar-1.00" or die "Can't mkdir $stale/Foo-Bar-1.00: $!";
+  write_file("$stale/Foo-Bar-1.00/cover.json", "{}\n");
+  write_file("$stale/Foo-Bar-1.00/index.html", "old\n");
+  my $old = time - 3600;
+  utime $old, $old, "$stale/Foo-Bar-1.00/cover.json" or die "Can't utime: $!";
+  {
+    local $ENV{STUB_NO_DIST} = 1;
+    dc(
+      "-r",        $stale,            "cpancover", "--build",
+      "--rebuild", "--rebuild_batch", 0,           $module,
+    );
+  }
+  ok -e "$stale/__failed__/Foo-Bar-1.00",
+    "a rebuild that produces nothing marks the dist failed";
+  ok -e "$stale/__rebuilt__/Foo-Bar-1.00", "and marks it rebuilt";
+  is slurp("$stale/Foo-Bar-1.00/index.html"), "old\n",
+    "the old report survives";
+
+  dc("-f", "-r", $stale, "cpancover", "--build", $module);
+  ok !-e "$stale/__failed__/Foo-Bar-1.00",
+    "a forced retry that produces a report clears the failed marker";
+  is slurp("$stale/Foo-Bar-1.00/index.html"), "html\n",
+    "and replaces the old report";
 }
 
 sub cpancover_leaves_build_alone () {
@@ -616,6 +652,7 @@ sub main () {
     docker_module_run_limits
     build_environment
     force_retries_failed_only
+    stale_report_outcomes
     cpancover_leaves_build_alone
     rebuild_batch_cleanup
     rebuild_module_recipe
