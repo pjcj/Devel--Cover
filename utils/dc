@@ -1021,7 +1021,7 @@ recipe_cpancover-compress-old-versions() {
 cpancover_generate_html() {
   pi "Generating HTML at $(date)"
   cpancover_compress_old_versions
-  run_cpancover --generate_html
+  run_cpancover --generate_html --on_cpan
   if cpancover_compression_enabled; then
     cpancover_compress_new
     local json=$results_dir/cpancover.json

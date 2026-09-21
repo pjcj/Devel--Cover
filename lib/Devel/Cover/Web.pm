@@ -821,6 +821,13 @@ ul {
   text-decoration: none;
 }
 
+tr.off-cpan td:first-child,
+tr.off-cpan td:first-child a,
+tr.off-cpan td:nth-child(2),
+tr.off-cpan td:nth-child(2) a {
+  color: var(--fg-muted);
+}
+
 /* About page */
 
 .about-key {

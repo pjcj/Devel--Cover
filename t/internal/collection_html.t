@@ -47,6 +47,7 @@ my $Log3    = "P-PJ-PJCJ-Dangle-Ref-3.00.tar.gz--1234567892.123456.out";
 my $Ref3    = "P-PJ-PJCJ-Dangle-Ref-3.00.tar.gz--9999999999.123456.out";
 my $Dist4   = "Dep-Only-4.00";
 my $Dist5   = "No-Page-5.00";
+my $Dist6   = "Gone-Away-7.00";
 
 sub write_file ($path, $content) {
   open my $fh, ">", $path or die "Can't open $path: $!";
@@ -403,6 +404,82 @@ sub test_about_environment () {
     for @vars;
 }
 
+sub regenerate ($index, %params) {
+  my $collection
+    = Devel::Cover::Collection->new(results_dir => "$Dir", %params);
+  no warnings "redefine";
+  local *Devel::Cover::Collection::latest_paths = $index;
+  my @warnings;
+  {
+    local $SIG{__WARN__} = sub { push @warnings, @_ };
+    $collection->generate_html;
+  }
+  chdir $Cwd or die "Can't chdir $Cwd: $!";
+  @warnings
+}
+
+sub test_off_cpan () {
+  write_dist($Dir, $Dist6, "Gone-Away", "7.00");
+  my $indexed  = 0;
+  my @warnings = regenerate(
+    sub {
+      $indexed++;
+      map "P/PJ/PJCJ/$_.tar.gz", $Dist, $Dist2, $Dist3, $Dist4, $Dist5,
+        "Zero-Data-6.00", "Only-Trial-0.01-TRIAL"
+    },
+    on_cpan => 1,
+  );
+  is $indexed,  1, "on_cpan reads the release index once";
+  is @warnings, 0, "on_cpan generates without warnings";
+  my $index = slurp("$Dir/index.html");
+  like $index,
+    qr{<p class="dist-count">7 distributions on CPAN, 1 no longer on CPAN</p>},
+    "index page counts the distributions on CPAN and those no longer there";
+  like $index,
+    qr{<div class="dist-bar-seg c1" style="width: 85\.71%">\s*6\s*</div>},
+    "bar leaves out the distribution no longer on CPAN";
+  my $dist_g = slurp("$Dir/dist/G.html");
+  like $dist_g,
+    qr{<tr class="off-cpan">\s*<td class="tip-hover">\s*<a[^>]*>\s*Gone-Away}s,
+    "row of a distribution no longer on CPAN is marked";
+  like $dist_g,
+    qr{Gone-Away\s*</a>\s*<span class="glass-tip">No longer on CPAN</span>}s,
+    "name cell shows a tip saying the distribution is no longer on CPAN";
+  like $dist_g, qr{7\.00</a>\s*</td>}, "version cell holds only the version";
+  like slurp("$Dir/collection.css"),
+    qr{tr\.off-cpan[^{}]*\{[^{}]*color:\s*var\(--fg-muted\)}s,
+    "rows no longer on CPAN are muted";
+  unlike slurp("$Dir/dist/F.html"), qr{off-cpan},
+    "a distribution on CPAN is not marked";
+  my $cpancover = JSON::PP->new->decode(slurp("$Dir/cpancover.json"));
+  ok exists($cpancover->{"Gone-Away"}{"7.00"}),
+    "cpancover.json keeps a distribution no longer on CPAN";
+  my $search = JSON::PP->new->decode(slurp("$Dir/search.json"));
+  is grep($_ eq $Dist6, @$search), 1,
+    "search.json keeps a distribution no longer on CPAN";
+}
+
+sub test_off_cpan_default () {
+  my @warnings = regenerate(sub { die "index read\n" });
+  is @warnings, 0, "without on_cpan the release index is not read";
+  like slurp("$Dir/index.html"), qr{<p class="dist-count">8 distributions</p>},
+    "without on_cpan every distribution counts";
+  unlike slurp("$Dir/dist/G.html"), qr{off-cpan},
+    "without on_cpan no row is marked";
+}
+
+sub test_off_cpan_unreadable () {
+  my @warnings = regenerate(sub { die "no index\n" }, on_cpan => 1);
+  is @warnings, 1, "an unreadable release index warns once";
+  is $warnings[0],
+    "Can't read the CPAN release index, counting every distribution: "
+    . "no index\n", "warning names the failure";
+  like slurp("$Dir/index.html"), qr{<p class="dist-count">8 distributions</p>},
+    "an unreadable release index counts every distribution";
+  unlike slurp("$Dir/dist/G.html"), qr{off-cpan},
+    "an unreadable release index marks no row";
+}
+
 sub main () {
   generate;
   test_no_warnings;
@@ -421,6 +498,9 @@ sub main () {
   test_version_comment;
   test_atomic_writes;
   test_parallel_run;
+  test_off_cpan;
+  test_off_cpan_default;
+  test_off_cpan_unreadable;
 }
 
 main;

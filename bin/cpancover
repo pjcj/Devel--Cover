@@ -33,6 +33,7 @@ my $Options = {
   local                 => 0,
   local_build           => 0,
   mark_rebuilt          => 0,
+  on_cpan               => 0,
   modules               => [],
   output_file           => "index.html",
   rebuild               => 0,
@@ -62,6 +63,7 @@ sub get_options {
       local!
       local_build!
       mark_rebuilt!
+      on_cpan!
       module_file=s
       modules=s
       output_file=s
@@ -93,6 +95,7 @@ sub newcp {
       force
       local
       mark_rebuilt
+      on_cpan
       modules
       output_file
       rebuild
@@ -187,7 +190,7 @@ cpancover - report coverage statistics on CPAN modules
 
   cpancover --help --info --version
             --build --generate_html --rebuild --rebuild_batch n
-            --mark_rebuilt
+            --mark_rebuilt --on_cpan
             --latest --local --local_build
             --modules module_name --module_file file
             --results_dir /path/to/dir --output_file filename.html
@@ -227,6 +230,7 @@ The following command line options are supported:
   --mark_rebuilt          - mark built modules as rebuilt       (off)
   --module_file           - read module list from a file        (none)
   --modules               - modules to use                (all in results_dir)
+  --on_cpan               - count only distributions on CPAN    (off)
   --output_file           - top level index                     (index.html)
   --rebuild               - rebuild already-covered modules     (off)
   --rebuild_batch         - how many distdirs per rebuild pass  (100)
