@@ -57,6 +57,7 @@ class Devel::Cover::Collection {
   field $rebuild       :param :reader = undef;
   field $rebuild_batch :param :reader = undef;
   field $mark_rebuilt  :param :reader = undef;
+  field $on_cpan       :param :reader = undef;
 
   # rw attributes
   field $dir  :param = undef;
@@ -474,6 +475,21 @@ class Devel::Cover::Collection {
     }
   }
 
+  method mark_off_cpan ($vars) {
+    my @paths = eval { $self->latest_paths };
+    if ($@) {
+      warn "Can't read the CPAN release index, "
+        . "counting every distribution: $@";
+      return;
+    }
+    my %on_cpan = map { $_ => 1 } grep defined,
+      map CPAN::DistnameInfo->new($_)->dist, @paths;
+    for my $m (values $vars->{vals}->%*) {
+      my $name = $m->{module}{name} // next;
+      $m->{module}{off_cpan} = 1 unless $on_cpan{$name};
+    }
+  }
+
   method add_overview ($vars) {
     my %latest;
     for my $m (values $vars->{vals}->%*) {
@@ -484,10 +500,11 @@ class Devel::Cover::Collection {
         || $self->_newer($m->{module}{version}, $cur->{module}{version});
     }
 
+    my @counted = grep !$_->{module}{off_cpan}, values %latest;
     my %bands;
-    $bands{ $self->coverage_class($_->{total}{pc}) }++ for values %latest;
+    $bands{ $self->coverage_class($_->{total}{pc}) }++ for @counted;
 
-    my $count    = keys %latest;
+    my $count    = @counted;
     my $segments = [];
     for my $class (qw( c3 c2 c1 c0 na )) {
       my $n   = $bands{$class} or next;
@@ -498,7 +515,11 @@ class Devel::Cover::Collection {
           label => $pct >= 4 ? $n : "",
         };
     }
-    $vars->{overview} = { count => $count, segments => $segments };
+    $vars->{overview} = {
+      count    => $count,
+      off_cpan => keys(%latest) - $count,
+      segments => $segments,
+    };
   }
 
   # returns $mod and $m in one structure so workers keep their shared ref
@@ -604,6 +625,7 @@ class Devel::Cover::Collection {
 
     $self->resolve_log_links($d, \@mods, $vars);
     $self->add_metacpan_links($vars);
+    $self->mark_off_cpan($vars) if $on_cpan;
     $self->add_overview($vars);
 
     # print "vars ", Dumper $vars;
@@ -943,7 +965,10 @@ $Templates{summary} = <<'EOT';
 
 <h2>Distributions</h2>
 
-<p class="dist-count">[% overview.count %] distributions</p>
+<p class="dist-count">[% overview.count %] distributions
+[%- IF overview.off_cpan %] on CPAN,
+[%= overview.off_cpan %] no longer on CPAN
+[%- END %]</p>
 <div class="dist-bar">
 [% FOREACH seg = overview.segments %]
   <div class="dist-bar-seg [% seg.class %]" style="width: [% seg.pct %]%">
@@ -1080,14 +1105,17 @@ $Templates{module_by_start} = <<'EOT';
 
   [% FOREACH module = modules.$module_start %]
     [% m = module.module %]
-    <tr>
-      <td>
+    <tr[% IF module.off_cpan %] class="off-cpan"[% END %]>
+      <td[% IF module.off_cpan %] class="tip-hover"[% END %]>
         [% IF vals.$m.link %]
           <a href="[% root %][%- vals.$m.link | html -%]">
             [% (module.name || module.module) | html %]
           </a>
         [% ELSE %]
           [% (module.name || module.module) | html %]
+        [% END %]
+        [% IF module.off_cpan %]
+          <span class="glass-tip">No longer on CPAN</span>
         [% END %]
       </td>
       <td>
@@ -1284,6 +1312,13 @@ each module it builds, without the rebuild-mode selection or distdir
 replacement that C<rebuild> implies. Used by the rebuild loop's latest
 pass so fresh builds are not rebuilt again by the batch pass. Default: 0.
 
+=head3 on_cpan
+
+Boolean. If true, C<generate_html> reads the CPAN release index and marks
+every distribution the index no longer lists, so the overview counts only
+distributions still on CPAN. Default: 0, so a local collection of
+modules that are not on CPAN counts everything.
+
 =head2 Internally Managed Attributes
 
 These attributes have public readers. Use the provided methods to modify
@@ -1458,6 +1493,8 @@ which is the release name. The name and version recorded in the report
 describe the directory inside the archive, which may be an older release,
 so they are used only when the distdir has no version to parse.
 
+With C<on_cpan> set, C<mark_off_cpan> runs before the overview is built.
+
 =head3 coverage_class
 
   my $css_class = $collection->coverage_class($percentage);
@@ -1495,6 +1532,19 @@ distribution first and TRIAL releases after every stable release. The
 header search on the collection pages fetches it to offer direct links to
 module reports.
 
+=head3 mark_off_cpan ($vars)
+
+  $collection->mark_off_cpan($vars);
+
+Reads the cached CPAN release index through C<latest_paths> and flags each
+distribution the index does not list. The flag drops the distribution
+from the overview and marks its row on the distribution pages, while its
+report, its entry in C<cpancover.json> and the search index stay. The
+index is refreshed by the C<--latest> pass of the loop, so the flags
+follow CPAN with no hand maintenance. If the index cannot be read, a
+warning is issued and nothing is flagged, so every distribution counts
+for that run.
+
 =head3 add_overview ($vars)
 
   $collection->add_overview($vars);
@@ -1502,10 +1552,11 @@ module reports.
 Builds the front-page overview from the collected module data: the
 distribution count and a list of coverage-band segments for the
 distribution bar. Only the latest version of each distribution counts,
-so the bar reflects the current state of CPAN. A TRIAL release is never
-the latest while a stable release exists, as on MetaCPAN. Bands with no
-distributions are omitted, and a segment too narrow to fit its count
-drops its label.
+and a distribution flagged by C<mark_off_cpan> is left out and reported
+in C<off_cpan>, so the bar reflects the current state of CPAN. A TRIAL
+release is never the latest while a stable release exists, as on
+MetaCPAN. Bands with no distributions are omitted, and a segment too
+narrow to fit its count drops its label.
 
 =head2 Status Tracking
 

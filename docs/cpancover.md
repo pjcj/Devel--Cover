@@ -60,6 +60,11 @@ The top level HTML and JSON is generated with:
 dc cpancover-generate-html
 ```
 
+The loop passes `--on_cpan` to `cpancover --generate_html`, so the count and the
+coverage bar on the index page leave out distributions that CPAN no longer
+lists. Their reports and pages stay, greyed in the distribution lists with a
+hover tip saying so.
+
 ## Results
 
 The results of the runs will be stored in the `~/cover/staging` directory. If
