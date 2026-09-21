@@ -18,6 +18,30 @@ use JSON::MaybeXS ();
 
 use Devel::Cover::Collection ();
 
+# Stand-in for CPAN::Releases::Latest, whose real index needs the network
+our @Latest_paths;
+our %Latest_args;
+{
+
+  package CPAN::Releases::Latest;
+  sub new ($class, %args) { %Latest_args = %args; bless {}, $class }
+
+  sub release_iterator ($self) {
+    bless { paths => [@Latest_paths] }, "CPAN::Releases::Latest::Iterator"
+  }
+
+  package CPAN::Releases::Latest::Iterator;
+
+  sub next_release ($self) {
+    my $path = shift $self->{paths}->@* // return undef;
+    bless { path => $path }, "CPAN::Releases::Latest::Release"
+  }
+
+  package CPAN::Releases::Latest::Release;
+  sub path ($self) { $self->{path} }
+}
+local $INC{"CPAN/Releases/Latest.pm"} = __FILE__;
+
 # _sys() uses Time::HiRes::alarm() which is not available on Windows
 my $Is_win32 = $^O eq "MSWin32";
 
@@ -764,13 +788,6 @@ sub all_rebuilt_method () {
   ok $c->all_rebuilt, "all_rebuilt true when every entry flagged";
 }
 
-sub make_cpanm_stub ($bin) {
-  open my $fh, ">", "$bin/cpanm" or die "Can't write cpanm stub: $!";
-  print $fh qq(#!/bin/sh\necho "AUTHOR/\$2-1.0.tar.gz"\n);
-  close $fh or die "Can't close cpanm stub: $!";
-  chmod 0755, "$bin/cpanm" or die "Can't chmod cpanm stub: $!";
-}
-
 sub touch_empty_file ($path) {
   open my $fh, ">", $path or die "Can't touch $path: $!";
   close $fh or die "Can't close $path: $!";
@@ -786,9 +803,6 @@ sub write_log_ref ($distdir_path, $contents) {
 sub next_rebuild_batch_method () {
   skip_all "uses fsys which requires alarm" if $Is_win32;
   my $dir = tempdir(CLEANUP => 1);
-  my $bin = tempdir(CLEANUP => 1);
-  make_cpanm_stub($bin);
-  local $ENV{PATH} = "$bin:$ENV{PATH}";
 
   my $c
     = Devel::Cover::Collection->new(results_dir => $dir, rebuild_batch => 2);
@@ -865,128 +879,44 @@ sub status_tracking_rebuild_mode () {
     "is_failed ignores rebuilt flag when not in rebuild mode";
 }
 
-sub cpan_path_for_method () {
-  skip_all "uses fsys which requires alarm" if $Is_win32;
+sub make_covered ($dir, $d) {
+  mkdir "$dir/$d" or die "Can't mkdir $dir/$d: $!";
+  open my $fh, ">", "$dir/$d/cover.json" or die "Can't write cover.json: $!";
+  print $fh "{}";
+  close $fh or die "Can't close cover.json: $!";
+}
 
-  # Mimic real cpanm: it only accepts module names (Foo::Bar), not
-  # distribution names (Foo-Bar). Reject distribution form so we catch
-  # regressions where the caller forgets to translate dashes to colons.
-  my $bin = tempdir(CLEANUP => 1);
-  open my $fh, ">", "$bin/cpanm" or die "Can't write stub: $!";
-  print $fh <<~'BASH';
-    #!/bin/sh
-    case "$2" in
-      *::*)
-        mod=$2
-        dist=${mod//::/-}
-        echo "AUTHOR/${dist}-9.99.tar.gz"
-        ;;
-      *) exit 1 ;;
-    esac
-    BASH
-  close $fh or die;
-  chmod 0755, "$bin/cpanm" or die;
-  local $ENV{PATH} = "$bin:$ENV{PATH}";
-
-  # Prefer .log_ref when present.
-  my $dir = tempdir(CLEANUP => 1);
-  mkdir "$dir/Foo-Bar-1.23" or die;
-  open my $lref, ">", "$dir/Foo-Bar-1.23/.log_ref" or die;
-  print $lref "A-AU-AUTHOR-Foo-Bar-1.23.tar.gz--1234567890.123.out.gz\n";
-  close $lref or die;
-  my $c = Devel::Cover::Collection->new(results_dir => $dir);
-  is $c->cpan_path_for("Foo-Bar-1.23"), "A/AU/AUTHOR/Foo-Bar-1.23.tar.gz",
-    "cpan_path_for prefers .log_ref when available";
-
-  # Fall back to top-level log filename for failed entries (no distdir).
-  open my $log, ">", "$dir/Q-QU-QUX-Only-Log-2.00.tar.gz--111.222.out.gz"
-    or die;
-  close $log or die;
-  is $c->cpan_path_for("Only-Log-2.00"), "Q/QU/QUX/Only-Log-2.00.tar.gz",
-    "cpan_path_for parses top-level log filename when no .log_ref";
-
-  # Multiple top-level logs for the same distdir: pick the newest by
-  # mtime so repeated runs settle on the most recent coverage. Use a
-  # fresh results_dir so the log index cache starts empty and sees both
-  # files.
-  my $mdir = tempdir(CLEANUP => 1);
-  my $old  = "$mdir/A-AU-OLDAUTH-Multi-1.0.tar.gz--111.out.gz";
-  my $new  = "$mdir/A-AU-NEWAUTH-Multi-1.0.tar.gz--222.out.gz";
-  touch_empty_file($old);
-  touch_empty_file($new);
-  my $now = time;
-  utime $now - 100, $now - 100, $old or die "utime $old: $!";
-  utime $now,       $now,       $new or die "utime $new: $!";
-  my $cm = Devel::Cover::Collection->new(results_dir => $mdir);
-  is $cm->cpan_path_for("Multi-1.0"), "A/AU/NEWAUTH/Multi-1.0.tar.gz",
-    "cpan_path_for picks newest log when multiple match distdir";
-
-  # Logs are only compressed when CPANCOVER_COMPRESS is set, so plain
-  # .out names must be indexed and parsed just like .out.gz ones.
-  my $udir = tempdir(CLEANUP => 1);
-  my $uc   = Devel::Cover::Collection->new(results_dir => $udir);
-  touch_empty_file("$udir/U-UN-UNZIP-Plain-Log-3.00.tar.gz--444.555.out");
-  is $uc->cpan_path_for("Plain-Log-3.00"), "U/UN/UNZIP/Plain-Log-3.00.tar.gz",
-    "cpan_path_for parses uncompressed top-level log filename";
-  write_log_ref(
-    "$udir/Plain-Ref-4.00", "P-PL-PLAIN-Plain-Ref-4.00.tar.gz--666.777.out\n"
+sub latest_paths_method () {
+  local @Latest_paths = qw(
+    A/AU/AUTHOR/Alpha-1.0.tar.gz
+    B/BR/BRAVO/Bravo-2.0-TRIAL.tar.gz
   );
-  is $uc->cpan_path_for("Plain-Ref-4.00"), "P/PL/PLAIN/Plain-Ref-4.00.tar.gz",
-    "cpan_path_for parses uncompressed log name from .log_ref";
+  local %Latest_args;
+  my $c = Devel::Cover::Collection->new;
+  is [$c->latest_paths], \@Latest_paths,
+    "latest_paths returns every release path in the index";
+  is \%Latest_args, {}, "latest_paths reads the cached index by default";
+  $c->latest_paths(max_age => 0);
+  is \%Latest_args, { max_age => 0 },
+    "latest_paths passes its options to the index";
+}
 
-  # Legacy bug: a dep distdir may carry the target's .log_ref. Don't
-  # trust a .log_ref whose dist name does not match the distdir -
-  # otherwise we would reinstall the wrong distribution. Fall through
-  # to cpanm instead (which here resolves Leaked::Dep, matching the
-  # distdir) rather than returning "Unrelated-Target" from the leak.
-  mkdir "$dir/Leaked-Dep-9.99" or die;
-  open my $leak, ">", "$dir/Leaked-Dep-9.99/.log_ref" or die;
-  print $leak "X-XY-XYZZY-Unrelated-Target-1.00.tar.gz--1.2.out.gz\n";
-  close $leak or die;
-  is $c->cpan_path_for("Leaked-Dep-9.99"), "AUTHOR/Leaked-Dep-9.99.tar.gz",
-    "cpan_path_for ignores mismatched .log_ref and falls back to cpanm";
-
-  # Fall back to cpanm --info with the dash->colon module name when no
-  # log file is available (first-time coverage of a new distdir).
-  my $c2 = Devel::Cover::Collection->new(results_dir => tempdir(CLEANUP => 1));
-  is $c2->cpan_path_for("Fresh-Dist-1.00"), "AUTHOR/Fresh-Dist-9.99.tar.gz",
-    "cpan_path_for falls back to cpanm --info with module name";
-
-  # Strip both "-1.23" and "-v0.2.4" style version suffixes.
-  is $c2->cpan_path_for("V-Prefixed-v0.2.4"), "AUTHOR/V-Prefixed-9.99.tar.gz",
-    "cpan_path_for strips v-prefixed version suffix";
-
-  # Non-tar.gz CPAN distributions must be parsed from the log filename
-  # just like .tar.gz ones; otherwise they fall through to cpanm and
-  # incur an extra network call per rebuild candidate.
-  my $edir = tempdir(CLEANUP => 1);
-  my $ec   = Devel::Cover::Collection->new(results_dir => $edir);
-  write_log_ref(
-    "$edir/Tgz-Dist-1.00", "T-TG-TGZER-Tgz-Dist-1.00.tgz--111.222.out.gz\n"
+sub get_latest_method () {
+  local @Latest_paths = qw(
+    A/AU/AUTHOR/Alpha-1.0.tar.gz
+    B/BR/BRAVO/Bravo-2.0.tar.gz
   );
-  is $ec->cpan_path_for("Tgz-Dist-1.00"), "T/TG/TGZER/Tgz-Dist-1.00.tgz",
-    "cpan_path_for parses .tgz from .log_ref";
-
-  touch_empty_file("$edir/Z-ZI-ZIPPER-Zip-Dist-2.00.zip--333.out.gz");
-  is $ec->cpan_path_for("Zip-Dist-2.00"), "Z/ZI/ZIPPER/Zip-Dist-2.00.zip",
-    "cpan_path_for parses .zip from top-level log filename";
-
-  local $SIG{__WARN__} = sub { };
-  is $c2->cpan_path_for("Ghost-0.0"), undef,
-    "cpan_path_for returns undef when no log and cpanm fails";
-
-  # Verbose mode must not leak the "dc -> ..." trace into the return.
-  my $v = Devel::Cover::Collection->new(
-    results_dir => tempdir(CLEANUP => 1),
-    verbose     => 1,
-  );
-  open my $saved, ">&", \*STDERR or die "dup STDERR: $!";
-  close STDERR or die "close STDERR: $!";
-  open STDERR, ">", \my $err or die "redirect STDERR: $!";
-  my $path = $v->cpan_path_for("Clean-Path-1.00");
-  open STDERR, ">&", $saved or die "restore STDERR: $!";
-  is $path, "AUTHOR/Clean-Path-9.99.tar.gz",
-    "cpan_path_for in verbose mode returns clean path (no trace prefix)";
+  local %Latest_args;
+  my $c   = Devel::Cover::Collection->new;
+  my $out = "";
+  {
+    local *STDOUT;
+    open STDOUT, ">", \$out or die "Can't redirect STDOUT: $!";
+    $c->get_latest;
+  }
+  is $out, "A/AU/AUTHOR/Alpha-1.0.tar.gz\nB/BR/BRAVO/Bravo-2.0.tar.gz\n",
+    "get_latest prints one release path per line";
+  is \%Latest_args, { max_age => 0 }, "get_latest refreshes the index";
 }
 
 sub write_status_method () {
@@ -1021,102 +951,102 @@ sub write_status_method () {
 }
 
 sub rebuild_pass_method () {
-  skip_all "uses fsys which requires alarm" if $Is_win32;
   my $dir = tempdir(CLEANUP => 1);
   my $c   = Devel::Cover::Collection->new(
     results_dir   => $dir,
     rebuild       => 1,
     rebuild_batch => 10,
   );
-  is $c->rebuild_pass, 0, "rebuild_pass returns 0 when queue is empty";
 
-  # Queue a distdir, but make cpanm --info fail so cpan_path_for returns
-  # undef and rebuild_pass short-circuits without invoking cover_modules.
-  # (cover_modules spawns docker-in-docker, which is out of scope for a
-  # unit test.)
-  my $bin = tempdir(CLEANUP => 1);
-  open my $fh, ">", "$bin/cpanm" or die "Can't write stub: $!";
-  print $fh "#!/bin/sh\nexit 1\n";
-  close $fh or die;
-  chmod 0755, "$bin/cpanm" or die;
-  local $ENV{PATH}     = "$bin:$ENV{PATH}";
-  local $SIG{__WARN__} = sub { };
-
-  mkdir "$dir/Foo-1.0" or die;
-  open my $f, ">", "$dir/Foo-1.0/cover.json" or die;
-  print $f "{}";
-  close $f or die;
-  $c->set_failed("Foo-1.0");
-
-  is $c->rebuild_pass, 0,
-    "rebuild_pass returns 0 when every cpan_path_for lookup fails";
-  ok !-d "$dir/Foo-1.0", "defunct distdir purged by rebuild_pass";
-  ok !-e $c->failed_file("Foo-1.0"),
-    "defunct distdir's __failed__ marker purged";
-
-  # Happy path: cpan_path_for succeeds for every candidate, so
-  # rebuild_pass should feed the resolved paths to cover_modules and
-  # return the count. Stub cover_modules so we don't spawn docker.
-  my $hdir = tempdir(CLEANUP => 1);
-  my $hbin = tempdir(CLEANUP => 1);
-  make_cpanm_stub($hbin);
-  local $ENV{PATH} = "$hbin:$ENV{PATH}";
-
-  my $hc = Devel::Cover::Collection->new(
-    results_dir   => $hdir,
-    rebuild       => 1,
-    rebuild_batch => 10,
-  );
-
-  for my $d (qw( Alpha-1.0 Bravo-2.0 )) {
-    mkdir "$hdir/$d" or die;
-    open my $cfh, ">", "$hdir/$d/cover.json" or die;
-    print $cfh "{}";
-    close $cfh or die;
-  }
-
-  my $called = 0;
   no warnings "redefine";
+  my $indexed = 0;
+  local *Devel::Cover::Collection::latest_paths = sub {
+    $indexed++;
+    qw(
+      A/AU/AUTHOR/Alpha-1.0.tar.gz
+      B/BR/BRAVO/Bravo-2.0.tar.gz
+      E/EC/ECHO/Echo-1.0.tar.gz
+      E/EC/ECHO/Echo-1.1-TRIAL.tar.gz
+    )
+  };
+  my $called = 0;
   local *Devel::Cover::Collection::cover_modules = sub { $called++; 7 };
 
-  is $hc->rebuild_pass, 7, "rebuild_pass returns the cover_modules count";
-  is $called,           1, "cover_modules called once per pass";
-  is $hc->modules, ["AUTHOR/Alpha-1.0.tar.gz", "AUTHOR/Bravo-1.0.tar.gz"],
-    "rebuild_pass sets modules to resolved paths";
-  ok -e $hc->rebuilt_file("Bravo-2.0"),
-    "candidate resolving to a different distdir is marked rebuilt";
-  ok !-e $hc->rebuilt_file("Alpha-1.0"),
-    "candidate resolving to itself is left for cover_modules to mark";
+  is $c->rebuild_pass, 0, "rebuild_pass returns 0 when queue is empty";
+  is $indexed,         0, "rebuild_pass reads no index for an empty queue";
+
+  # Alpha is current, Bravo and Echo are superseded, Charlie is gone
+  make_covered($dir, $_) for qw( Alpha-1.0 Bravo-1.0 Charlie-1.0 Echo-0.9 );
+  $c->set_failed("Bravo-1.0");
+
+  is $c->rebuild_pass, 7, "rebuild_pass returns the cover_modules count";
+  is $called,          1, "cover_modules called once per pass";
+  is $indexed,         1, "rebuild_pass reads the index once per pass";
+  is [sort $c->modules->@*], [qw(
+    A/AU/AUTHOR/Alpha-1.0.tar.gz
+    B/BR/BRAVO/Bravo-2.0.tar.gz
+    E/EC/ECHO/Echo-1.0.tar.gz
+    E/EC/ECHO/Echo-1.1-TRIAL.tar.gz
+  )],
+    "rebuild_pass builds the current releases of each candidate";
+  ok !-e $c->rebuilt_file("Alpha-1.0"),
+    "current release is left for cover_modules to mark";
+  ok -e $c->rebuilt_file("Bravo-1.0"), "superseded release is marked rebuilt";
+  ok -e $c->failed_file("Bravo-1.0"),
+    "superseded release keeps its failed marker";
+  ok -d "$dir/Bravo-1.0", "superseded release keeps its report";
+  ok -e $c->rebuilt_file("Echo-0.9"),
+    "release superseded by a TRIAL is marked rebuilt";
+  ok -e $c->rebuilt_file("Charlie-1.0"),
+    "release no longer on CPAN is marked rebuilt";
+  ok -d "$dir/Charlie-1.0", "release no longer on CPAN keeps its report";
 }
 
-sub rebuild_pass_mismatched_candidate () {
-  skip_all "uses fsys which requires alarm" if $Is_win32;
-
-  # An old release with no usable log resolves via cpanm to the current
-  # release, which is already covered and rebuilt, so cover_modules
-  # skips it silently. The old candidate must still gain a __rebuilt__
-  # marker or the same batch recurs forever and the loop never ends.
+sub rebuild_pass_nothing_to_build () {
+  # Every candidate is gone from CPAN, so there is nothing to feed to
+  # cover_modules, but each must still be marked or the batch recurs
   my $dir = tempdir(CLEANUP => 1);
-  my $bin = tempdir(CLEANUP => 1);
-  make_cpanm_stub($bin);
-  local $ENV{PATH} = "$bin:$ENV{PATH}";
-
-  my $c = Devel::Cover::Collection->new(
+  my $c   = Devel::Cover::Collection->new(
     results_dir   => $dir,
     rebuild       => 1,
     rebuild_batch => 10,
   );
 
-  for my $d (qw( Single-1.0 Single-2.0 )) {
-    mkdir "$dir/$d" or die;
-    open my $fh, ">", "$dir/$d/cover.json" or die;
-    print $fh "{}";
-    close $fh or die;
-  }
-  $c->set_rebuilt("Single-1.0");
+  no warnings "redefine";
+  local *Devel::Cover::Collection::latest_paths = sub { () };
+  my $called = 0;
+  local *Devel::Cover::Collection::cover_modules = sub { $called++; 7 };
+
+  make_covered($dir, "Gone-1.0");
+  is $c->rebuild_pass, 0, "rebuild_pass returns 0 with nothing to build";
+  is $called,          0, "cover_modules not called with nothing to build";
+  ok $c->all_rebuilt, "all_rebuilt true once every candidate is marked";
+  is [$c->next_rebuild_batch], [], "batch empty so the rebuild can finish";
+}
+
+sub rebuild_pass_mismatched_candidate () {
+  skip_all "uses fsys which requires alarm" if $Is_win32;
+
+  # An old release resolves to the current release, which is already
+  # covered and rebuilt, so cover_modules skips it silently. The old
+  # candidate must still gain a __rebuilt__ marker or the same batch
+  # recurs forever and the loop never ends.
+  my $dir = tempdir(CLEANUP => 1);
+  my $c   = Devel::Cover::Collection->new(
+    results_dir   => $dir,
+    rebuild       => 1,
+    rebuild_batch => 10,
+  );
+
+  no warnings "redefine";
+  local *Devel::Cover::Collection::latest_paths
+    = sub { "S/SI/SINGLE/Single-2.0.tar.gz" };
+
+  make_covered($dir, $_) for qw( Single-1.0 Single-2.0 );
+  $c->set_rebuilt("Single-2.0");
 
   is $c->rebuild_pass, 0, "rebuild_pass runs no builds for skipped candidate";
-  ok -e $c->rebuilt_file("Single-2.0"),
+  ok -e $c->rebuilt_file("Single-1.0"),
     "candidate resolving to a rebuilt distdir is marked rebuilt";
   ok $c->all_rebuilt, "all_rebuilt true once mismatched candidate is marked";
   is [$c->next_rebuild_batch], [], "batch empty so the rebuild can finish";
@@ -1174,9 +1104,11 @@ sub main () {
     all_rebuilt_method
     next_rebuild_batch_method
     status_tracking_rebuild_mode
-    cpan_path_for_method
     write_status_method
+    latest_paths_method
+    get_latest_method
     rebuild_pass_method
+    rebuild_pass_nothing_to_build
     rebuild_pass_mismatched_candidate
     template_provider_fetch
   );

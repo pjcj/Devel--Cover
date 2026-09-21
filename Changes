@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Rebuild the current release of a superseded cpancover distribution
+  rather than one CPAN no longer serves (GH-819)
 - Mark a cpancover rebuild that produces no report as failed, rather
   than keeping the old report with nothing to show for the failure
   (GH-817)
