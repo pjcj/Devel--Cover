@@ -62,7 +62,6 @@ class Devel::Cover::Collection {
   field $dir  :param = undef;
   field $file :param = undef;
 
-  field $_log_index_cache;
   field $_made_dirs = {};
 
   ADJUST {
@@ -747,78 +746,34 @@ class Devel::Cover::Collection {
     @sorted > $rebuild_batch ? @sorted[0 .. $rebuild_batch - 1] : @sorted
   }
 
-  method cpan_path_for ($distdir) {
-    # The log filename format records the CPAN path directly:
-    # "A-AU-AUTHOR-Dist-Name-1.23.tar.gz--<timestamp>.out[.gz]". Parse it
-    # instead of asking cpanm, which wants module names (Foo::Bar) not
-    # distribution names (Foo-Bar) and so fails for most real distdirs.
-    #
-    # Legacy caveat: older cpancover runs covered a dist's deps too and
-    # wrote the *target's* .log_ref into every dep distdir. Validate the
-    # distribution name in the log matches this distdir before trusting
-    # it; otherwise fall through to cpanm.
-    my $log = $self->_log_name_for($distdir);
-    if (
-      defined $log
-      && $log =~ m{^(.)-(..)-([^-]+)-(\Q$distdir\E${Dist_ext_re})--}
-    ) {
-      return "$1/$2/$3/$4";
-    }
-
-    # Fall back to cpanm with the module name, stripping any trailing
-    # version (including "-v1.2.3" forms).
-    my $bare   = $distdir =~ s/-v?\d[\d.]*$//r;
-    my $module = $bare    =~ s/-/::/gr;
-    my $out    = $self->bsys("cpanm", "--info", $module);
-    chomp $out;
-    length $out ? $out : undef
-  }
-
-  method _log_index {
-    # Index log filenames by distdir so per-distdir lookups are O(1).
-    # Filename format: A-AU-AUTHOR-Distdir-Name-1.23.tar.gz--<ts>.out[.gz]
-    $_log_index_cache //= do {
-      opendir my $dh, $results_dir or die "Can't opendir $results_dir: $!";
-      my %by_distdir;
-      for my $name (readdir $dh) {
-        next
-          unless $name =~ /^\w-\w\w-\w+-(.+?)${Dist_ext_re}--.*\.out(?:\.gz)?$/;
-        push $by_distdir{$1}->@*, $name;
-      }
-      closedir $dh or warn "Can't closedir $results_dir: $!";
-      \%by_distdir
-    };
-  }
-
-  method _log_name_for ($distdir) {
-    return undef unless defined $results_dir && -d $results_dir;
-    if (defined(my $log = $self->_read_log_ref($results_dir, $distdir))) {
-      return $log;
-    }
-    my $matches = $self->_log_index->{$distdir} // return undef;
-    return $matches->[0] if @$matches == 1;
-    (sort { (stat "$results_dir/$b")[9] <=> (stat "$results_dir/$a")[9] }
-        @$matches)[0]
-  }
-
   method rebuild_pass {
     my @candidates = $self->next_rebuild_batch;
     return 0 unless @candidates;
+
+    # the index holds the current release of every distribution on CPAN
+    my (%current, %releases);
+    for my $path ($self->latest_paths) {
+      my $distdir = $path =~ s|.*/||r =~ s/${Dist_ext_re}$//r;
+      $current{$distdir} = $path;
+      my $dist = CPAN::DistnameInfo->new($path)->dist // next;
+      push $releases{$dist}->@*, $path;
+    }
+
     my @paths;
     for my $d (@candidates) {
-      if (defined(my $path = $self->cpan_path_for($d))) {
-        my $resolved = $path =~ s|.*/||r =~ s/${Dist_ext_re}$//r;
-        if ($resolved ne $d) {
-          say "Marking $d rebuilt, resolves to $resolved";
-          $self->set_rebuilt($d);
-        }
+      if (defined(my $path = $current{$d})) {
         push @paths, $path;
-      } else {
-        say "Purging defunct $d";
-        $self->sys("rm", "-rf", $self->covered_dir($d));
-        unlink $self->failed_file($d);
-        unlink $self->rebuilt_file($d);
+        next;
       }
+      # the suffix turns a distdir into the archive name DistnameInfo parses
+      my $dist = CPAN::DistnameInfo->new("$d.tar.gz")->dist;
+      if (defined $dist && (my $paths = $releases{$dist})) {
+        say "Marking $d rebuilt, superseded by @$paths";
+        push @paths, @$paths;
+      } else {
+        say "Marking $d rebuilt, no longer on CPAN";
+      }
+      $self->set_rebuilt($d);
     }
     return 0 unless @paths;
     $self->set_modules(@paths);
@@ -900,21 +855,18 @@ class Devel::Cover::Collection {
     scalar grep $_, @res
   }
 
-  method get_latest {
+  method latest_paths (%options) {
     require CPAN::Releases::Latest;
-
-    my $latest   = CPAN::Releases::Latest->new(max_age => 0);  # no caching
-    my $iterator = $latest->release_iterator;
-
+    my $iterator = CPAN::Releases::Latest->new(%options)->release_iterator;
+    my @paths;
     while (my $release = $iterator->next_release) {
-      say $release->path;
-      # Debugging code:
-      # printf "%s path=%s  time=%d  size=%d\n",
-      # $release->distname,
-      # $release->path,
-      # $release->timestamp,
-      # $release->size;
+      push @paths, $release->path;
     }
+    @paths
+  }
+
+  method get_latest {
+    say for $self->latest_paths(max_age => 0);  # no caching
   }
 }
 
@@ -1659,40 +1611,32 @@ oldest first by the mtime of their C<cover.json> (or their C<__failed__/>
 marker when no cover.json exists). Returns an empty list when
 C<rebuild_batch> is not positive.
 
-=head3 cpan_path_for ($distdir)
-
-  my $path = $collection->cpan_path_for("Foo-Bar-1.23");
-
-Maps a distdir back to a CPAN release path (e.g. C<< AUTHOR/Foo-Bar-
-1.23.tar.gz >>) by running C<cpanm --info> on the bare distribution
-name. Returns undef when the lookup fails. Used by C<rebuild_pass> to
-feed distdirs from C<next_rebuild_batch> into C<cover_modules>, which
-expects CPAN paths rather than distdirs.
-
 =head3 rebuild_pass
 
   my $n = $collection->rebuild_pass;
 
 Runs one batch of the rebuild queue: pulls distdirs from
-C<next_rebuild_batch>, resolves each to a CPAN path via
-C<cpan_path_for>, sets C<modules> to the resulting list, and invokes
-C<cover_modules>. A distdir whose lookup fails is treated as no longer
-on CPAN and purged: the distdir itself, its C<__failed__/> marker, and
-its C<__rebuilt__/> marker are all removed.
+C<next_rebuild_batch>, resolves each to the current release of its
+distribution through C<latest_paths>, sets C<modules> to the resulting
+list, and invokes C<cover_modules>.
 
-A candidate may resolve to a path naming a different distdir - an old
-release with no usable log resolves through C<cpanm --info> to the
-current release. Such a candidate is marked rebuilt here, because
-C<cover_modules> keys its markers on the resolved name and would
-otherwise leave the candidate pending, so the same batch would recur
-on every pass and the rebuild would never finish. The resolved path is
-still passed on so a release that has never been covered gets built.
+A candidate that names a current release is passed on as it is, and
+C<cover_modules> marks it rebuilt. A candidate whose distribution has a
+newer release is marked rebuilt here, and the current release, or
+releases when a developer release follows the stable one, is passed on
+in its place. So a release that has never been covered gets built, and
+the superseded one is not fetched from a path CPAN no longer serves.
+C<cover_modules> keys its markers on the release it builds, so without
+the marker the candidate would stay pending and the same batch would
+recur on every pass. A candidate whose distribution the index no longer
+lists is marked rebuilt and otherwise left alone, report and markers
+included.
 
 Returns the number of builds C<cover_modules> ran (zero if the queue
-is empty, every lookup failed, or every resolved release was already
-covered and rebuilt). The rebuild loop recipe in C<utils/dc> uses this
-count to decide whether the HTML needs regenerating. Intended to be
-called from that recipe.
+is empty, no candidate has a current release, or every current release
+was already covered and rebuilt). The rebuild loop recipe in C<utils/dc>
+uses this count to decide whether the HTML needs regenerating. Intended
+to be called from that recipe.
 
 =head3 write_status (%counts)
 
@@ -1750,12 +1694,23 @@ Returns the path to the C<dc> utility script.
 Compresses old coverage results, keeping only the specified number of most
 recent versions for each module.
 
+=head3 latest_paths (%options)
+
+  my @paths = $collection->latest_paths;
+  my @paths = $collection->latest_paths(max_age => 0);
+
+Returns the CPAN path of the latest release of every distribution on
+CPAN, and of its latest developer release as well when that is newer,
+from the L<CPAN::Releases::Latest> index. The options go to that
+module's constructor, so C<max_age> decides whether its cached index is
+refreshed first. A distribution deleted from CPAN has no entry.
+
 =head3 get_latest
 
   $collection->get_latest;
 
-Fetches and prints the latest CPAN release information using
-L<CPAN::Releases::Latest>.
+Refreshes the index and prints the paths from C<latest_paths>, one per
+line.
 
 =head2 System Commands
 

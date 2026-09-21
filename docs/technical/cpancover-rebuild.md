@@ -48,9 +48,12 @@ are taken oldest-first by the mtime of `cover.json` (or `__failed__/<distdir>`
 for failures that never produced coverage data), so heavily stale results are
 regenerated first.
 
-Defunct distributions (those that `cpanm --info` can no longer resolve) are
-purged from the queue rather than fed to a doomed rebuild: the distdir, its
-`__failed__/` marker, and any `__rebuilt__/` marker are all removed.
+Each candidate is resolved to the current release of its distribution through
+the `CPAN::Releases::Latest` index before it is built. A candidate that is still
+current is rebuilt as it is. A superseded candidate is marked rebuilt and its
+current release is built in its place, so no container starts for a release path
+CPAN no longer serves. A distribution CPAN no longer lists is marked rebuilt and
+otherwise left alone, report and markers included.
 
 ## Lifecycle
 
@@ -73,9 +76,9 @@ Each iteration runs two passes and reads the status file between them:
    skips the dedicated rebuild pass. If `new_count > 0` after this pass,
    regenerate HTML.
 2. **Rebuild pass** - `cpancover --nobuild --rebuild --rebuild_batch $batch`.
-   Pull the next batch of oldest unrebuilt distdirs, resolve each back to a CPAN
-   release path via `cpanm --info`, and feed them to `cover_modules`. If
-   `rebuilt_count > 0`, regenerate HTML.
+   Pull the next batch of oldest unrebuilt distdirs, resolve each to the current
+   release of its distribution through the release index, and feed those to
+   `cover_modules`. If `rebuilt_count > 0`, regenerate HTML.
 
 The loop exits as soon as the status file reports `all_rebuilt=1`, which happens
 the first time `Collection::all_rebuilt` finds every entry in `known_distdirs`
