@@ -1121,6 +1121,77 @@ sub test_line_partial_ignores_tt_rows () {
   ok $with_cell{partial}, "partial: condition cell error flags line partial";
 }
 
+sub _statementless_sub_page () {
+  my $libdir = File::Spec->catdir($Tmpdir, "empty_lib");
+  mkdir $libdir or die "Cannot create $libdir: $!";
+  my $module = File::Spec->catfile($libdir, "Empty.pm");
+  open my $fh, ">", $module or die "Cannot write $module: $!";
+  print $fh <<PERL;
+package Empty;
+use strict;
+use warnings;
+
+=head2 idle
+
+Never called.
+
+=cut
+
+sub idle { }
+
+sub busy { }
+
+1
+PERL
+  close $fh or die "Cannot close $module: $!";
+
+  my $db = File::Spec->catdir($Tmpdir, "empty_db");
+  local $ENV{DEVEL_COVER_SELF};
+  delete $ENV{DEVEL_COVER_SELF};
+  my $cmd
+    = "$^X -Iblib/lib -Iblib/arch -I$libdir"
+    . " -MDevel::Cover=-db,$db,-silent,1,-merge,0,-select,Empty"
+    . ' -e "use Empty; Empty::busy()" 2>&1';
+  my $out = `$cmd`;
+  die "Failed to create empty_db:\n$out\n" if $?;
+
+  my $outdir = File::Spec->catdir($Tmpdir, "html_empty");
+  (my $report, my $exit) = run_cover(
+    "--select_dir", $libdir, "--report", "html_crisp",
+    "--outputdir",  $outdir, "--silent", $db,
+  );
+  die "Report generation failed (exit $exit):\n$report\n" if $exit;
+
+  my ($page) = glob "$outdir/*Empty*.html";
+  slurp($page)
+}
+
+sub _source_row ($html, $n) {
+  my $ln = qq(<td role="cell" class="ln"><a id="L$n");
+  my ($row) = $html =~ m{(<tr role="row"[^>]*>\s*\Q$ln\E.*?</tr>)}s;
+  $row // ""
+}
+
+sub test_statementless_sub_lines () {
+  my $html = _statementless_sub_page;
+
+  my $idle = _source_row($html, 11);
+  like $idle, qr/data-cov="0"/,              "uncalled empty sub: data-cov 0";
+  like $idle, qr/class="src-c0 has-detail"/, "uncalled empty sub: row class";
+  like $idle, qr/data-errors="subroutine"/,  "uncalled empty sub: errors";
+  like $idle, qr/class="count exec-0"[^>]*>0</,
+    "uncalled empty sub: uncovered count cell";
+  like $idle, qr/class="src src-c0"/, "uncalled empty sub: source class";
+
+  my $busy = _source_row($html, 13);
+  like $busy, qr/data-cov="2"/,      "undocumented empty sub: data-cov 2";
+  like $busy, qr/data-errors="pod"/, "undocumented empty sub: errors";
+  like $busy, qr/class="count exec-partial"[^>]*>1</,
+    "undocumented empty sub: partial count cell";
+  like $busy, qr/class="src src-partial"/,
+    "undocumented empty sub: source class";
+}
+
 sub test_class_accepts_criterion_percentage () {
   my $br = bless [[0, 1], { text => "" }], "Devel::Cover::Branch";
   my $m  = bless [[0, 1], { text => "", labels => ["a", "b"] }],
@@ -1204,6 +1275,7 @@ sub main () {
   test_decision_vectors_panel_heading;
   test_panels_render_in_order;
   test_line_partial_ignores_tt_rows;
+  test_statementless_sub_lines;
   test_class_accepts_criterion_percentage;
   test_untested_badge_tooltip;
   done_testing;
