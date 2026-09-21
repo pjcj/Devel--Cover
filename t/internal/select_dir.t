@@ -162,7 +162,7 @@ sub test_text_report () {
       "Uncovered/Logic.pm  0.0  0.0  0.0  0.0  0.0  16.1",
       "Uncovered/Markers.pm  0.0  0.0  0.0  0.0  0.0  13.9",
       "Uncovered/Trivial.pm  0.0  n/a  n/a  0.0  0.0  6.9",
-      "Uncovered/Utils.pm  0.0  0.0  n/a  0.0  0.0  12.8",
+      "Uncovered/Utils.pm  0.0  0.0  n/a  0.0  0.0  11.5",
     ]
     : [
       "Uncovered/Calc.pm  -  -  -  -  -  -",

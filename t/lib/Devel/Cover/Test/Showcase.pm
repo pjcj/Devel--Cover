@@ -438,6 +438,16 @@ my $Utils_body = <<'BODY' =~ s/^  //gmr;
     return uc($str) if defined $str;
     return "";
   }
+
+  =head2 placeholder
+
+  Do nothing.
+
+  =cut
+
+  sub placeholder { }
+
+  sub stub { }
 BODY
 
 sub setup_lib_dir () {
@@ -542,6 +552,7 @@ sub create_cover_db ($tmpdir, $libdir) {
   Covered::Markers::documented_probe();
   Covered::Utils::greet(q(world));
   Covered::Utils::upper(q(hi));
+  Covered::Utils::stub();
   Covered::Full::double(5);
   Covered::Full::double(-1);
   Covered::Full::clamp(0, 1, 10);
@@ -678,7 +689,8 @@ reporter
 
 =item B<Trivial> - single sub, no branches or conditions
 
-=item B<Utils> - string functions, postfix C<if> branch, partial pod
+=item B<Utils> - string functions, postfix C<if> branch, partial pod, an
+empty sub that is never called and an empty sub with no pod
 
 =back
 

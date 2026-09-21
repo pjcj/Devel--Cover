@@ -1240,6 +1240,17 @@ sub line_statement ($f, $n, $line) {
   $line->{stmt_stale}   = 1 if $state eq "stale";
 }
 
+sub line_statementless_sub ($f, $n, $line) {
+  return if defined $line->{count};
+  my $subs = $f->subroutine or return;
+  my $loc  = $subs->location($n);
+  return unless $loc && @$loc;
+  my $s = $loc->[0];
+  $line->{count}       = $s->covered;
+  $line->{count_class} = oclass($s, "subroutine");
+  $line->{exec_class}  = exec_class($s->coverage_state);
+}
+
 sub line_partial ($line, $bd, $cd, $tts, $sd, $md) {
   return unless defined $line->{count} && $line->{count} > 0;
   my $p;
@@ -1317,6 +1328,7 @@ sub build_source_lines ($file) {
     $line{annotations} = line_annotations($file, $n) if $R{ann_cols}->@*;
 
     line_statement($f, $n, \%line);
+    line_statementless_sub($f, $n, \%line);
 
     my @bd = line_branches($f, $n);
     $line{branches} = \@bd if @bd;
@@ -2080,6 +2092,7 @@ tr.dir-file td:first-child a {
 }
 
 .exec-0 { background: var(--cov-none-bg); }
+.count.c0 { background: var(--cov-none-bg); }
 .exec-partial { background: var(--cov-low-bg); }
 .exec-covered { background: var(--cov-full-bg); }
 .exec-excused { background: var(--cov-excused-bg); }

@@ -1121,6 +1121,40 @@ sub test_line_partial_ignores_tt_rows () {
   ok $with_cell{partial}, "partial: condition cell error flags line partial";
 }
 
+sub _source_row ($html, $n) {
+  my $ln = qq(<td role="cell" class="ln"><a id="L$n");
+  my ($row) = $html =~ m{(<tr role="row"[^>]*>\s*\Q$ln\E.*?</tr>)}s;
+  $row // ""
+}
+
+sub _sub_line ($file, $name) {
+  my @lines = split /\n/, slurp($file);
+  my ($n)   = grep $lines[$_ - 1] =~ /^sub \Q$name\E\b/, 1 .. @lines;
+  $n
+}
+
+sub test_statementless_sub_lines () {
+  my ($page) = grep /Covered-Utils/, keys %Golden;
+  my $html   = $Golden{$page};
+  my $file   = File::Spec->catfile($Libdir, "Covered", "Utils.pm");
+
+  my $idle = _source_row($html, _sub_line($file, "placeholder"));
+  like $idle, qr/data-cov="0"/,              "uncalled empty sub: data-cov 0";
+  like $idle, qr/class="src-c0 has-detail"/, "uncalled empty sub: row class";
+  like $idle, qr/data-errors="subroutine"/,  "uncalled empty sub: errors";
+  like $idle, qr/class="count exec-0"[^>]*>0</,
+    "uncalled empty sub: uncovered count cell";
+  like $idle, qr/class="src src-c0"/, "uncalled empty sub: source class";
+
+  my $busy = _source_row($html, _sub_line($file, "stub"));
+  like $busy, qr/data-cov="2"/,      "undocumented empty sub: data-cov 2";
+  like $busy, qr/data-errors="pod"/, "undocumented empty sub: errors";
+  like $busy, qr/class="count exec-partial"[^>]*>1</,
+    "undocumented empty sub: partial count cell";
+  like $busy, qr/class="src src-partial"/,
+    "undocumented empty sub: source class";
+}
+
 sub test_class_accepts_criterion_percentage () {
   my $br = bless [[0, 1], { text => "" }], "Devel::Cover::Branch";
   my $m  = bless [[0, 1], { text => "", labels => ["a", "b"] }],
@@ -1204,6 +1238,7 @@ sub main () {
   test_decision_vectors_panel_heading;
   test_panels_render_in_order;
   test_line_partial_ignores_tt_rows;
+  test_statementless_sub_lines;
   test_class_accepts_criterion_percentage;
   test_untested_badge_tooltip;
   done_testing;
