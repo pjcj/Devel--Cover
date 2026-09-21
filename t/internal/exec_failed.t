@@ -44,7 +44,7 @@ sub statement_count ($file, $line) {
 sub test_failed_exec_keeps_collecting () {
   my $script = write_script("exec_failed.pl", <<'PERL');
 my $x = 1;
-exec "/no/such/command" or warn "exec failed\n";
+exec "/no/such/command" or $x = 0;
 $x++;
 my $y = $x * 2;
 PERL
