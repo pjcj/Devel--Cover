@@ -1121,61 +1121,24 @@ sub test_line_partial_ignores_tt_rows () {
   ok $with_cell{partial}, "partial: condition cell error flags line partial";
 }
 
-sub _statementless_sub_page () {
-  my $libdir = File::Spec->catdir($Tmpdir, "empty_lib");
-  mkdir $libdir or die "Cannot create $libdir: $!";
-  my $module = File::Spec->catfile($libdir, "Empty.pm");
-  open my $fh, ">", $module or die "Cannot write $module: $!";
-  print $fh <<PERL;
-package Empty;
-use strict;
-use warnings;
-
-=head2 idle
-
-Never called.
-
-=cut
-
-sub idle { }
-
-sub busy { }
-
-1
-PERL
-  close $fh or die "Cannot close $module: $!";
-
-  my $db = File::Spec->catdir($Tmpdir, "empty_db");
-  local $ENV{DEVEL_COVER_SELF};
-  delete $ENV{DEVEL_COVER_SELF};
-  my $cmd
-    = "$^X -Iblib/lib -Iblib/arch -I$libdir"
-    . " -MDevel::Cover=-db,$db,-silent,1,-merge,0,-select,Empty"
-    . ' -e "use Empty; Empty::busy()" 2>&1';
-  my $out = `$cmd`;
-  die "Failed to create empty_db:\n$out\n" if $?;
-
-  my $outdir = File::Spec->catdir($Tmpdir, "html_empty");
-  (my $report, my $exit) = run_cover(
-    "--select_dir", $libdir, "--report", "html_crisp",
-    "--outputdir",  $outdir, "--silent", $db,
-  );
-  die "Report generation failed (exit $exit):\n$report\n" if $exit;
-
-  my ($page) = glob "$outdir/*Empty*.html";
-  slurp($page)
-}
-
 sub _source_row ($html, $n) {
   my $ln = qq(<td role="cell" class="ln"><a id="L$n");
   my ($row) = $html =~ m{(<tr role="row"[^>]*>\s*\Q$ln\E.*?</tr>)}s;
   $row // ""
 }
 
-sub test_statementless_sub_lines () {
-  my $html = _statementless_sub_page;
+sub _sub_line ($file, $name) {
+  my @lines = split /\n/, slurp($file);
+  my ($n)   = grep $lines[$_ - 1] =~ /^sub \Q$name\E\b/, 1 .. @lines;
+  $n
+}
 
-  my $idle = _source_row($html, 11);
+sub test_statementless_sub_lines () {
+  my ($page) = grep /Covered-Utils/, keys %Golden;
+  my $html   = $Golden{$page};
+  my $file   = File::Spec->catfile($Libdir, "Covered", "Utils.pm");
+
+  my $idle = _source_row($html, _sub_line($file, "placeholder"));
   like $idle, qr/data-cov="0"/,              "uncalled empty sub: data-cov 0";
   like $idle, qr/class="src-c0 has-detail"/, "uncalled empty sub: row class";
   like $idle, qr/data-errors="subroutine"/,  "uncalled empty sub: errors";
@@ -1183,7 +1146,7 @@ sub test_statementless_sub_lines () {
     "uncalled empty sub: uncovered count cell";
   like $idle, qr/class="src src-c0"/, "uncalled empty sub: source class";
 
-  my $busy = _source_row($html, 13);
+  my $busy = _source_row($html, _sub_line($file, "stub"));
   like $busy, qr/data-cov="2"/,      "undocumented empty sub: data-cov 2";
   like $busy, qr/data-errors="pod"/, "undocumented empty sub: errors";
   like $busy, qr/class="count exec-partial"[^>]*>1</,
