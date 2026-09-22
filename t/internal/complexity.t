@@ -198,14 +198,14 @@ sub test_summary_aggregation () {
 
 # Sub end line tests
 # Uses a multi-line sub to verify end_line > start_line.
-# Subs are keyed by first statement line (not the sub declaration).
+# Subs are keyed by the line their body opens on, the sub line here.
 # Line layout:
 # 1: use strict;
 # 2: use warnings;
 # 3: (blank)
-# 4: sub oneliner { 42 }         - first stmt on line 4
-# 5: sub multiline {
-# 6:   my $x = 1;                - first stmt on line 6
+# 4: sub oneliner { 42 }         - sub line 4
+# 5: sub multiline {             - sub line 5
+# 6:   my $x = 1;
 # 7:   my $y = 2;
 # 8:   $x + $y;                  - last stmt on line 8
 # 9: }
@@ -235,7 +235,7 @@ PERL
   ok defined $ends, "end_lines data present in structure";
 
   is $ends->{4}{oneliner}[0], 4, "single-line sub: end_line = start_line";
-  is $ends->{6}{multiline}[0], 8,
+  is $ends->{5}{multiline}[0], 8,
     "multi-line sub: end_line = last statement line";
 }
 

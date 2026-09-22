@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- BREAKING: Record subroutine and pod coverage on the sub line rather
+  than on the first statement of the body. Uncoverable subroutine and
+  pod comments must move on or above that line (GH-827)
 - Rebuild the current release of a superseded cpancover distribution
   rather than one CPAN no longer serves (GH-819)
 - Mark a cpancover rebuild that produces no report as failed, rather

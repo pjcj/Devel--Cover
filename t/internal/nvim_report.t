@@ -91,9 +91,10 @@ sub test_types_priority_order ($lua) {
 
 # Excused constructs go in the uncoverable lists, stale markers stay errors
 sub test_excused_and_stale_lines ($lua, $libdir) {
-  # subroutine coverage is recorded on the first statement's line
-  my $excused = markers_line($libdir, qr/die "emergency stop"/);
-  my $stale   = markers_line($libdir, qr/return "still called"/);
+  my $excused     = markers_line($libdir, qr/die "emergency stop"/);
+  my $stale       = markers_line($libdir, qr/return "still called"/);
+  my $excused_sub = markers_line($libdir, qr/sub emergency_stop/);
+  my $stale_sub   = markers_line($libdir, qr/sub retired_hook/);
 
   my $st_unc = markers_list($lua, "statement_uncoverable");
   my $st_err = markers_list($lua, "statement_error");
@@ -107,8 +108,10 @@ sub test_excused_and_stale_lines ($lua, $libdir) {
 
   my $sub_unc = markers_list($lua, "subroutine_uncoverable");
   my $sub_err = markers_list($lua, "subroutine_error");
-  ok grep($_ == $excused, @$sub_unc), "excused subroutine listed uncoverable";
-  ok grep($_ == $stale,   @$sub_err), "stale subroutine marker stays an error";
+  ok grep($_ == $excused_sub, @$sub_unc),
+    "excused subroutine listed uncoverable";
+  ok grep($_ == $stale_sub, @$sub_err),
+    "stale subroutine marker stays an error";
 }
 
 sub main () {

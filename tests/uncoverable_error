@@ -7,8 +7,8 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
+# uncoverable subroutine class:ignore_covered_err
 sub usub {
-    # uncoverable subroutine class:ignore_covered_err
     # uncoverable statement  class:ignore_covered_err
     my $x = 1;
 }

@@ -274,8 +274,8 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
     return $ok;
   }
 
+  # uncoverable subroutine
   sub emergency_stop {
-    # uncoverable subroutine
     # uncoverable statement
     die "emergency stop";
   }
@@ -385,14 +385,14 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   =cut
 
+  # uncoverable subroutine
   sub retired_hook {
-    # uncoverable subroutine
     # uncoverable statement
     return "still called";
   }
 
+  # uncoverable pod
   sub internal_probe {
-    # uncoverable pod
     return "internal";
   }
 
@@ -402,8 +402,8 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   =cut
 
+  # uncoverable pod
   sub documented_probe {
-    # uncoverable pod
     return "documented";
   }
 BODY

@@ -265,7 +265,7 @@ print TopGlob::named_two(), "\n";
 PROG
 
   my $subs = $f->subroutine;
-  my $anon = $subs->location(6);
+  my $anon = $subs->location(5);
   ok $anon, "glob-installed anon sub is collected";
   is scalar @$anon, 1, "and is recorded exactly once, not duplicated";
   is $anon && $anon->[0]->name, "__ANON__", "the record is the anon sub";
@@ -371,10 +371,10 @@ use TopEnclosing;
 print TopEnclosing::with_mysub(20), "\n";
 PROG
 
-  # A sub is anchored at its first executable statement, which for the
-  # enclosing sub is the inner(shift) call on line 7, not the declaration
+  # A sub is anchored at the line its body opens on, line 5 here, whatever
+  # the prologue holds
   my $subs = $f->subroutine;
-  my $sub  = $subs->location(7);
+  my $sub  = $subs->location(5);
   ok $sub, "enclosing sub with_mysub is collected";
   is $sub && $sub->[0]->name,    "with_mysub", "and is the enclosing sub";
   is $sub && $sub->[0]->covered, 1,            "and is reported as covered";
@@ -474,7 +474,7 @@ print $w->tick, "\n";
 PROG
 
   my $subs = $f->subroutine;
-  my $anon = $subs->location(13);
+  my $anon = $subs->location(12);
   ok $anon, "around-modifier anon sub is collected";
   is $anon && $anon->[0]->name,    "__ANON__", "and is the anon modifier";
   is $anon && $anon->[0]->covered, 2,          "and ran on both calls";

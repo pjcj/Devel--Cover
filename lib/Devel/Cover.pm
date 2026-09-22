@@ -497,6 +497,14 @@ sub get_location ($op) {
   }
 }
 
+sub sub_location ($cv, $op) {
+  return unless $op->can("file");
+  get_location($op);
+  return if $op->file =~ /^\(eval \d+\)\[/;
+  my $line = sub_line($cv->ROOT);
+  $Line = $line if $line;
+}
+
 sub use_file ($file) {
   return 0 if ${^GLOBAL_PHASE} eq "DESTRUCT";
 
@@ -681,7 +689,7 @@ sub check_files {
     my ($name, $start) = sub_info($cv);
     if ($start) {
       local ($Line, $File);
-      get_location($start);
+      sub_location($cv, $start);
       $line = $Line;
     }
     $line = 0  unless defined $line;
@@ -903,7 +911,7 @@ sub _write_coverage_db {
 }
 
 sub add_subroutine_cover ($cv, $op) {
-  get_location($op);
+  sub_location($cv, $op);
   return unless $File;
 
   my $val
@@ -1163,7 +1171,7 @@ sub _add_subroutine_structure ($cv, $start) {
 sub get_cover ($cv, $root = undef) {
   ($Sub_name, my $start) = sub_info($cv);
 
-  get_location($start) if $start;
+  sub_location($cv, $start) if $start;
   return unless _want_cover_for();
 
   my $sub_id = _add_subroutine_structure($cv, $start);
@@ -1767,6 +1775,14 @@ causes a module to load, as has happened with the Storable backend.
 Set C<$File> and C<$Line> from a COP.  Eval file names of the form
 C<< (eval n)[file:line] >> resolve to the real file, and the per-file
 coverage vectors are primed the first time a file is seen.
+
+=head2 sub_location ($cv, $op)
+
+Set C<$File> and C<$Line> for a sub from the COP of its first statement,
+then move C<$Line> to the line the body opened on, which the XS check hook
+recorded against the root op at compile time.  A sub compiled before the
+hook was installed, or inside a string eval, keeps the first statement's
+line.
 
 =head2 use_file ($file)
 

@@ -43,8 +43,8 @@ if (!$x && $y) {
     b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b();
 }
 
+# uncoverable subroutine
 sub z {
-    # uncoverable subroutine
     $y++; # uncoverable statement
 }
 
