@@ -17,7 +17,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Spec ();
-use Test::More import => [qw( diag done_testing is like ok plan unlike )];
+use Test::More import => [qw( diag done_testing is like ok plan skip unlike )];
 use Devel::Cover::Mcdc               ();                    ## no perlimports
 use Devel::Cover::Report::Html_crisp ();
 use Devel::Cover::Web                qw( $Crisp_base_css );
@@ -1146,13 +1146,17 @@ sub test_statementless_sub_lines () {
     "uncalled empty sub: uncovered count cell";
   like $idle, qr/class="src src-c0"/, "uncalled empty sub: source class";
 
-  my $busy = _source_row($html, _sub_line($file, "stub"));
-  like $busy, qr/data-cov="2"/,      "undocumented empty sub: data-cov 2";
-  like $busy, qr/data-errors="pod"/, "undocumented empty sub: errors";
-  like $busy, qr/class="count exec-partial"[^>]*>1</,
-    "undocumented empty sub: partial count cell";
-  like $busy, qr/class="src src-partial"/,
-    "undocumented empty sub: source class";
+  SKIP: {
+    skip "Pod::Coverage not available", 4
+      unless eval { require Pod::Coverage; 1 };
+    my $busy = _source_row($html, _sub_line($file, "stub"));
+    like $busy, qr/data-cov="2"/,      "undocumented empty sub: data-cov 2";
+    like $busy, qr/data-errors="pod"/, "undocumented empty sub: errors";
+    like $busy, qr/class="count exec-partial"[^>]*>1</,
+      "undocumented empty sub: partial count cell";
+    like $busy, qr/class="src src-partial"/,
+      "undocumented empty sub: source class";
+  }
 }
 
 sub test_class_accepts_criterion_percentage () {

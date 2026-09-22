@@ -19,7 +19,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use Cwd        qw( realpath );
 use File::Spec ();
 use File::Temp qw( tempdir );
-use Test::More import => [qw( diag done_testing is ok )];
+use Test::More import => [qw( diag done_testing is ok skip )];
 
 use Devel::Cover::DB ();
 
@@ -113,12 +113,16 @@ PROG
   is $f->subroutine->location(8), undef,
     "nothing is recorded on the first statement of body_below";
 
-  my $pod = $f->pod->location(7);
-  ok $pod, "pod coverage for body_below is on the sub line" or return;
-  is $pod->[0]->covered, 1, "and body_below is documented";
-  $pod = $f->pod->location(13);
-  ok $pod, "pod coverage for brace_below is on the brace line" or return;
-  is $pod->[0]->covered, 0, "and brace_below is not documented";
+  SKIP: {
+    skip "Pod::Coverage not available", 4
+      unless eval { require Pod::Coverage; 1 };
+    my $pod = $f->pod->location(7);
+    ok $pod, "pod coverage for body_below is on the sub line" or return;
+    is $pod->[0]->covered, 1, "and body_below is documented";
+    $pod = $f->pod->location(13);
+    ok $pod, "pod coverage for brace_below is on the brace line" or return;
+    is $pod->[0]->covered, 0, "and brace_below is not documented";
+  }
 }
 
 sub main () {
