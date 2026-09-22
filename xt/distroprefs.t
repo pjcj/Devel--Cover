@@ -52,10 +52,27 @@ sub refusals ($id) { scalar grep $_->matches({ distribution => $id }), @Prefs }
 my @Refused = qw(
   GOZER/mod_perl-1.31.tar.gz
   GOZER/mod_perl-1.29.tar.gz
+  KWILLIAMS/Apache-Filter-1.024.tar.gz
+  KWILLIAMS/Apache-SSI-2.19.tar.gz
+  KWILLIAMS/Apache-Compress-1.005.tar.gz
+  MAUNDER/Apache-AppCluster-0.02.tar.gz
+  AMURREN/CGI-WML-0.09.tar.gz
+  DONSHANK/bbobj-1.0.tar.gz
+  DROLSKY/Alzabo-GUI-Mason-0.10.tar.gz
+  GRICHTER/HTML-Embperl-1.3.6.tar.gz
+  HESCO/LedgerSMB-API-0.04.tar.gz
+  JHIVER/TripleStore-0.02.tar.gz
+  RKILGORE/Speech-Recognizer-ViaVoice-0.01.tar.gz
+  THEDEVIL/Debarnacle-0.02.tar.gz
+  ULPFR/WAIT-1.800.tar.gz
+  EGOR/Alien-ghostty-0.02.tar.gz
 );
 my @Allowed = qw(
   ETHER/mod_perl-2.0.13.tar.gz
   PJCJ/Devel-Cover-1.50.tar.gz
+  OTHER/Apache-Filter-1.024.tar.gz
+  DROLSKY/Alzabo-0.92.tar.gz
+  PLICEASE/Alien-Base-2.80.tar.gz
 );
 
 is refusals($_), 1, "$_ is refused by one prefs file" for @Refused;

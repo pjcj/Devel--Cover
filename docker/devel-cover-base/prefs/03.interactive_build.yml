@@ -1,0 +1,16 @@
+---
+match:
+  distribution: >-
+    (?x) ^(?:
+      AMURREN/CGI-WML
+      | DONSHANK/bbobj
+      | DROLSKY/Alzabo-GUI-Mason
+      | GRICHTER/HTML-Embperl
+      | HESCO/LedgerSMB-API
+      | JHIVER/TripleStore
+      | RKILGORE/Speech-Recognizer-ViaVoice
+      | THEDEVIL/Debarnacle
+      | ULPFR/WAIT
+    )-
+disabled: 1
+comment: build scripts read STDIN or loop on the default answer with no tty

@@ -1,0 +1,5 @@
+---
+match:
+  distribution: '^EGOR/Alien-ghostty-'
+disabled: 1
+comment: builds ghostty with zig, which takes over an hour
