@@ -18,7 +18,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use File::Temp ();
 
-use Test::More import => [qw( done_testing is like plan )];
+use Test::More import => [qw( done_testing is like ok plan )];
 
 BEGIN {
   plan skip_all => "Devel::Cover::Collection requires Perl 5.42" if $] < 5.042;
@@ -78,6 +78,31 @@ sub test_timeout () {
   like $warned, qr/killed [1-9]\d* process/, "timeout kills the hung command";
 }
 
+sub test_deadline () {
+  my $start = time;
+  my ($output, $warned) = bsys_warnings(
+    Devel::Cover::Collection->new(timeout => 30, deadline => time + 1),
+    $^X, "-e", '$| = 1; print uc("before deadline"), "\n"; sleep 30',
+  );
+  is $output, "", "deadline returns empty string";
+  like $warned, qr/Timed out/, "deadline is warned";
+  like $warned, qr/BEFORE DEADLINE/,
+    "deadline warning includes the command's output";
+  ok time - $start < 10, "the deadline stops the command before the timeout";
+}
+
+sub test_local_build_sets_deadline () {
+  my $dir = File::Temp->newdir;
+  my $c = Devel::Cover::Collection->new(timeout => 3600, cpan_dir => ["$dir"]);
+  is $c->deadline, undef, "no deadline before the local build";
+  my $before = time;
+  $c->local_build;
+  my $deadline = $c->deadline;
+  ok defined $deadline, "the local build sets a deadline";
+  ok $deadline >= $before + 3600 - 60 - 1 && $deadline <= time + 3600 - 60 + 1,
+    "the deadline is the timeout less the margin";
+}
+
 sub test_escaped_child () {
   my $tmp    = File::Temp->newdir;
   my $marks  = "$tmp/marks";
@@ -114,6 +139,8 @@ sub main () {
   test_success;
   test_failure;
   test_timeout;
+  test_deadline;
+  test_local_build_sets_deadline;
   test_escaped_child;
   test_fsys_dies;
 }
