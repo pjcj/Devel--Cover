@@ -27,8 +27,8 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location         
 ---------- -- ----  -----------------
-testdbm     2  6.9  tests/dbm_cond:26
-testh       2  6.9  tests/dbm_cond:36
+testdbm     2  6.9  tests/dbm_cond:25
+testh       2  6.9  tests/dbm_cond:35
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -63,8 +63,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 22                                             
 23             1                               my $h = { 1 => 1 };
 24                                             
-25                                             sub testdbm {
-26             2                           2       my ( $p ) = @_;
+25                                         2   sub testdbm {
+26             2                                   my ( $p ) = @_;
 27                                             
 28             2    100                            if( exists $db->{$p} ) {
 29             1                                       return "dbm: exists";
@@ -73,8 +73,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 32                                                 }
 33                                             }
 34                                             
-35                                             sub testh {
-36             2                           2       my ( $p ) = @_;
+35                                         2   sub testh {
+36             2                                   my ( $p ) = @_;
 37                                             
 38             2    100                            if( exists $h->{$p} ) {
 39             1                                       return "h: exists";
@@ -112,7 +112,7 @@ BEGIN          1   1   0.0 tests/dbm_cond:13
 BEGIN          1   1   0.0 tests/dbm_cond:14
 BEGIN          1   1   0.0 tests/dbm_cond:16
 BEGIN          1   1   0.0 tests/dbm_cond:18
-testdbm        2   2   6.9 tests/dbm_cond:26
-testh          2   2   6.9 tests/dbm_cond:36
+testdbm        2   2   6.9 tests/dbm_cond:25
+testh          2   2   6.9 tests/dbm_cond:35
 
 

@@ -27,9 +27,9 @@ Worst Subroutines
 
 Subroutine  CC SCAR  Location                    
 ----------- -- ----  ----------------------------
-modifiers    4 13.9  tests/branch_no_condition:40
-chain        3 11.0  tests/branch_no_condition:18
-disjunction  3 11.0  tests/branch_no_condition:47
+modifiers    4 13.9  tests/branch_no_condition:39
+chain        3 11.0  tests/branch_no_condition:17
+disjunction  3 11.0  tests/branch_no_condition:46
 
 line  err   stmt   bran   code
 1                         #!/usr/bin/env perl

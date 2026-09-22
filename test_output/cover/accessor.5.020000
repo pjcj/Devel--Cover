@@ -37,13 +37,13 @@ CC   Cov CRAP SCAR
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              package Accessor_maker;
 2                                              
-3                                              sub import {
+3                                          1   sub import {
 4              1                           1     no strict 'refs';
                1                               
                1                               
-5              4                           4     *{ caller() . '::' . 'foo' } = sub { $_[0]->{'foo'} };
-               1                           1   
+5              1                           4     *{ caller() . '::' . 'foo' } = sub { $_[0]->{'foo'} };
                1                               
+               4                               
 6                                              }
 7              1                               1;
 
@@ -55,7 +55,7 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- -------------------
 BEGIN          1   1   0.0 Accessor_maker.pm:4
 __ANON__       4   1   0.0 Accessor_maker.pm:5
-import         1   1   0.0 Accessor_maker.pm:5
+import         1   1   0.0 Accessor_maker.pm:3
 
 
 accessor
@@ -72,7 +72,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location   
 ---------- -- ----  -----------
-test        3 11.0  accessor:13
+test        3 11.0  accessor:12
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              package cm3;
@@ -90,8 +90,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 9                                              
 10                                             package main;
 11                                             
-12                                             sub test {
-13             2                           2     my $self = shift;
+12                                         2   sub test {
+13             2                                 my $self = shift;
 14                                             
 15             2    100                          print 'un' unless defined $self->foo;
 16             2                                 print "defined\n";
@@ -122,6 +122,6 @@ Subroutine Count  CC  SCAR Location
 BEGIN          1   1   0.0 accessor:4 
 BEGIN          1   1   0.0 accessor:7 
 new            2   1   0.0 accessor:2 
-test           2   3  11.0 accessor:13
+test           2   3  11.0 accessor:12
 
 

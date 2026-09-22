@@ -27,13 +27,13 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location            
 ---------- -- ----  --------------------
-s1          2  6.9  tests/redefine_sub:4
+s1          2  6.9  tests/redefine_sub:3
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
 2                                              
-3                                              sub s1 {
-4              2                           2       my $t = shift;
+3                                          2   sub s1 {
+4              2                                   my $t = shift;
 5              2    100                            if ($t > 5) {
 6              1                                       print 5;
 7                                                  } else {
@@ -43,8 +43,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 11                                             
 12             1                               my $c = *main::s1{CODE};
 13                                             
-14                                             *main::s1 = sub {
-15             2                           2       print "extra";
+14                                         2   *main::s1 = sub {
+15             2                                   print "extra";
 16             2                                   &$c(@_);
 17             1                               };
 18                                             
@@ -65,7 +65,7 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location             
 ---------- ----- --- ----- ---------------------
-__ANON__       2   1   0.0 tests/redefine_sub:15
-s1             2   2   6.9 tests/redefine_sub:4 
+__ANON__       2   1   0.0 tests/redefine_sub:14
+s1             2   2   6.9 tests/redefine_sub:3 
 
 

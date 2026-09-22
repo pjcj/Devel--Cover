@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location              
 ---------- -- ----  ----------------------
-p           4 13.9  tests/default_param:14
+p           4 13.9  tests/default_param:13
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -46,8 +46,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 12                                             
-13                                             sub p {
-14             2           100    100      2       my $x = shift || 11;
+13                                         2   sub p {
+14             2           100    100              my $x = shift || 11;
 15             2           100    100              my $y = shift || [];
 16             2           100    100              my $z = shift || {};
 17                                             }
@@ -84,6 +84,6 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- ----------------------
 BEGIN          1   1   0.0 tests/default_param:10
 BEGIN          1   1   0.0 tests/default_param:11
-p              2   4  13.9 tests/default_param:14
+p              2   4  13.9 tests/default_param:13
 
 

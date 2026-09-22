@@ -265,7 +265,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location     
 ---------- -- ----  -------------
-cond_dor   21 34.2  cond_or.pl:14
+cond_dor   21 34.2  cond_or.pl:13
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -284,8 +284,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 12                                             
-13                                             sub cond_dor {
-14            11                          11       my ($x) = @_;
+13                                        11   sub cond_dor {
+14            11                                   my ($x) = @_;
 15                                             
 16    ***     11          * 50   *  0              $x->[18] //= undef;
 17    ***     11          * 50   *  0              $x->[18] //= 0;
@@ -378,6 +378,6 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- -------------
 BEGIN          1   1   0.0 cond_or.pl:10
 BEGIN          1   1   0.0 cond_or.pl:11
-cond_dor      11  21  34.2 cond_or.pl:14
+cond_dor      11  21  34.2 cond_or.pl:13
 
 

@@ -40,8 +40,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 8                                              # https://pjcj.net
 9                                              
 10             1                               my $x = 1;
-11                                             sub new_sub {
-12             1                           1       my $y = 1;
+11                                         1   sub new_sub {
+12             1                                   my $y = 1;
 13                                             }
 14                                             
 15             1                               new_sub;
@@ -52,6 +52,6 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location       
 ---------- ----- --- ----- ---------------
-new_sub        1   1   0.0 tests/change:12
+new_sub        1   1   0.0 tests/change:11
 
 

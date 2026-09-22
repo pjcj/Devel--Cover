@@ -29,9 +29,9 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location          
 ---------- -- ----  ------------------
-wide       18 33.4  tests/mcdc_wide:22
-mixed      18 32.6  tests/mcdc_wide:40
-narrow      2  6.9  tests/mcdc_wide:31
+wide       18 33.4  tests/mcdc_wide:21
+mixed      18 32.6  tests/mcdc_wide:39
+narrow      2  6.9  tests/mcdc_wide:30
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -58,8 +58,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 18                                             
 19                                             # An 18-condition chain: unanalysed, 0/18.  A statement has one COP, so the
 20                                             # wrapped decision's conditions are all keyed to its first line.
-21                                             sub wide {
-22             2                           2     my @v = @_;
+21                                         2   sub wide {
+22             2                                 my @v = @_;
 23    ***      2          * 66   *  0            my $r = $v[0] || $v[1] || $v[2] || $v[3] || $v[4] || $v[5] || $v[6]
       ***                 * 66                 
       ***                 * 66                 
@@ -83,8 +83,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 27                                             }
 28                                             
 29                                             # A fully exercised 2-condition decision: MC/DC satisfied.
-30                                             sub narrow {
-31             3                           3     my ($p, $q) = @_;
+30                                         3   sub narrow {
+31             3                                 my ($p, $q) = @_;
 32             3           100    100            my $r = $p && $q;
 33             3                                 $r
 34                                             }
@@ -92,8 +92,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 36                                             # A 17-condition decision and a 2-condition decision on the same line: the
 37                                             # limit is per decision, not per line, so only the wide one is unanalysed.
 38                                             # Both statements start on one line so their conditions share a line key.
-39                                             sub mixed {
-40             3                           3     my ($p, $q, @v) = @_;
+39                                         3   sub mixed {
+40             3                                 my ($p, $q, @v) = @_;
 41             3           100    100            my $s = $p && $q; my $r = $v[0] || $v[1] || $v[2] || $v[3] || $v[4]
       ***      3          * 66   *  0          
       ***                 * 66                 
@@ -116,8 +116,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 44             3                                 ($r, $s)
 45                                             }
 46                                             
-47                                             sub main {
-48             1                           1     my @r;
+47                                         1   sub main {
+48             1                                 my @r;
 49                                             
 50             1                                 push @r, narrow(1, 1);
 51             1                                 push @r, narrow(1, 0);
@@ -201,9 +201,9 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- ------------------
 BEGIN          1   1   0.0 tests/mcdc_wide:10
 BEGIN          1   1   0.0 tests/mcdc_wide:11
-main           1   1   0.0 tests/mcdc_wide:48
-mixed          3  18  32.6 tests/mcdc_wide:40
-narrow         3   2   6.9 tests/mcdc_wide:31
-wide           2  18  33.4 tests/mcdc_wide:22
+main           1   1   0.0 tests/mcdc_wide:47
+mixed          3  18  32.6 tests/mcdc_wide:39
+narrow         3   2   6.9 tests/mcdc_wide:30
+wide           2  18  33.4 tests/mcdc_wide:21
 
 

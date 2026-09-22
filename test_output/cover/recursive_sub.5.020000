@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine     CC SCAR  Location              
 -------------- -- ----  ----------------------
-recursive_func  2  6.9  tests/recursive_sub:14
+recursive_func  2  6.9  tests/recursive_sub:13
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -44,8 +44,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
 11                                             
 12                                             sub recursive_func
-13                                             {
-14             4                           4       my ($ref) = @_;
+13                                         4   {
+14             4                                   my ($ref) = @_;
 15             4    100                            return $ref unless ref $ref eq "ARRAY";
 16             3                                   return __SUB__->($ref->[0]);
 17                                             }
@@ -67,6 +67,6 @@ Covered Subroutines
 Subroutine     Count  CC  SCAR Location              
 -------------- ----- --- ----- ----------------------
 BEGIN              1   1   0.0 tests/recursive_sub:10
-recursive_func     4   2   6.9 tests/recursive_sub:14
+recursive_func     4   2   6.9 tests/recursive_sub:13
 
 

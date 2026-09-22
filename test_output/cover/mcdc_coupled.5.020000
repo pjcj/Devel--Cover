@@ -27,8 +27,8 @@ Worst Subroutines
 
 Subroutine      CC SCAR  Location             
 --------------- -- ----  ---------------------
-coupled_partial  4 14.0  tests/mcdc_coupled:27
-coupled          4 13.9  tests/mcdc_coupled:19
+coupled_partial  4 14.0  tests/mcdc_coupled:26
+coupled          4 13.9  tests/mcdc_coupled:18
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -52,8 +52,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 15                                             # demonstrate, so crediting them exercises hybrid's masking fallback.
 16                                             
 17                                             # Fully exercised: the masking fallback finds pairs for both $a columns.
-18                                             sub coupled {
-19             4                           4     my ($a, $b, $c) = @_;
+18                                         4   sub coupled {
+19             4                                 my ($a, $b, $c) = @_;
 20             4           100    100            my $r = ($a && $b) || ($a && $c);
                            100                 
                            100                 
@@ -62,16 +62,16 @@ line  err   stmt   bran   cond   mcdc    sub   code
 23                                             
 24                                             # Never called with a false $a: both coupled columns stay missing while
 25                                             # $b and $c are satisfied.
-26                                             sub coupled_partial {
-27             3                           3     my ($a, $b, $c) = @_;
+26                                         3   sub coupled_partial {
+27             3                                 my ($a, $b, $c) = @_;
 28    ***      3           100   * 50            my $r = ($a && $b) || ($a && $c);
       ***                 * 66                 
       ***                 * 66                 
 29             3                                 $r
 30                                             }
 31                                             
-32                                             sub main {
-33             1                           1     my @r;
+32                                         1   sub main {
+33             1                                 my @r;
 34                                             
 35             1                                 push @r, coupled(1, 1, 0);
 36             1                                 push @r, coupled(1, 0, 1);
@@ -122,8 +122,8 @@ Subroutine      Count  CC  SCAR Location
 --------------- ----- --- ----- ---------------------
 BEGIN               1   1   0.0 tests/mcdc_coupled:10
 BEGIN               1   1   0.0 tests/mcdc_coupled:11
-coupled             4   4  13.9 tests/mcdc_coupled:19
-coupled_partial     3   4  14.0 tests/mcdc_coupled:27
-main                1   1   0.0 tests/mcdc_coupled:33
+coupled             4   4  13.9 tests/mcdc_coupled:18
+coupled_partial     3   4  14.0 tests/mcdc_coupled:26
+main                1   1   0.0 tests/mcdc_coupled:32
 
 

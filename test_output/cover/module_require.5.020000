@@ -8,7 +8,7 @@ File                       stmt   bran   cond   mcdc    sub  total   scar
 Module_enclosing_sub.pm   100.0    n/a    n/a    n/a  100.0  100.0    0.0
 Module_lexical_sub.pm     100.0    n/a    n/a    n/a  100.0  100.0    0.0
 Module_line_directive.pm  100.0   50.0    n/a    n/a  100.0   87.5    0.0
-Module_top_level.pm        86.1   50.0    n/a    n/a   84.6   84.3    1.5
+Module_top_level.pm        86.1   50.0    n/a    n/a   84.6   84.3    1.4
 module_require            100.0    n/a    n/a    n/a  100.0  100.0    0.0
 Total                      95.3   50.0    n/a    n/a   94.2   93.8    0.6
 ------------------------ ------ ------ ------ ------ ------ ------ ------
@@ -64,22 +64,22 @@ line  err   stmt   bran   cond   mcdc    sub   code
 16                                             # prologue, which check_file and sub_info must step past or the enclosing
 17                                             # sub is dropped from coverage entirely along with its body
 18                                             
-19                                             sub named_enc {
+19                                         1   sub named_enc {
 20                                               my sub inner { my $x = shift; $x + 5 }
-21             1                           1     inner(shift)
+21             1                                 inner(shift)
 22                                             }
 23                                             
-24                                             my $anon_enc = sub {
+24                                         1   my $anon_enc = sub {
 25                                               my sub inner { my $x = shift; $x + 7 }
-26             1                           1     inner(shift)
+26             1                                 inner(shift)
 27             1                               };
 28                                             
-29                                             sub nested_enc {
+29                                         1   sub nested_enc {
 30                                               my sub mid {
 31                                                 my sub deep { my $x = shift; $x + 9 }
 32                                                 deep(shift)
 33                                               }
-34             1                           1     mid(shift)
+34             1                                 mid(shift)
 35                                             }
 36                                             
 37             1                           1   sub plain { my $x = shift; $x + 1 }
@@ -99,9 +99,9 @@ BEGIN          1   1   0.0 Module_enclosing_sub.pm:10
 BEGIN          1   1   0.0 Module_enclosing_sub.pm:11
 BEGIN          1   1   0.0 Module_enclosing_sub.pm:12
 BEGIN          1   1   0.0 Module_enclosing_sub.pm:13
-__ANON__       1   1   0.0 Module_enclosing_sub.pm:26
-named_enc      1   1   0.0 Module_enclosing_sub.pm:21
-nested_enc     1   1   0.0 Module_enclosing_sub.pm:34
+__ANON__       1   1   0.0 Module_enclosing_sub.pm:24
+named_enc      1   1   0.0 Module_enclosing_sub.pm:19
+nested_enc     1   1   0.0 Module_enclosing_sub.pm:29
 plain          1   1   0.0 Module_enclosing_sub.pm:37
 run_anon       1   1   0.0 Module_enclosing_sub.pm:39
 
@@ -224,16 +224,16 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 84.2  1.2  1.5
+ 1 84.2  1.2  1.4
 
 Worst Subroutines
 -----------------
 
 Subroutine CC SCAR  Location              
 ---------- -- ----  ----------------------
-__ANON__    1  6.9  Module_top_level.pm:36
-__ANON__    1  6.9  Module_top_level.pm:54
-__ANON__    1  0.6  Module_top_level.pm:52
+__ANON__    1  6.9  Module_top_level.pm:35
+__ANON__    1  6.9  Module_top_level.pm:53
+__ANON__    1  0.0  Module_top_level.pm:40
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
@@ -247,11 +247,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 9                                              
 10                                             # An anon in a BEGIN block's pad is reachable only through that pad
 11             1                               my $begin_anon;
-12                                             BEGIN {
-13                                               $begin_anon = sub {
-14             1                           1       my ($x) = @_;
+12                                         1   BEGIN {
+13                                         1     $begin_anon = sub {
+14             1                                   my ($x) = @_;
 15             1                                   $x + 100
-16             1                           1     };
+16             1                                 };
 17                                             }
 18                                             
 19             1                               my $count = 0;
@@ -265,31 +265,31 @@ line  err   stmt   bran   cond   mcdc    sub   code
 27    ***     *0                                 $count = 0;
 28                                             }
 29                                             
-30                                             my $add = sub {
-31             1                           1     my ($x, $y) = @_;
+30                                         1   my $add = sub {
+31             1                                 my ($x, $y) = @_;
 32             1                                 $x + $y
 33             1                               };
 34                                             
-35                                             my $unused = sub {
-36    ***     *0                          *0     my ($x) = @_;
+35    ***                                 *0   my $unused = sub {
+36    ***     *0                                 my ($x) = @_;
 37    ***     *0                                 $x * 2
 38             1                               };
 39                                             
-40                                             my $outer = sub {
-41                                               my $inner = sub {
-42             1                           1       my ($x) = @_;
-43                                                 my $inner_inner = sub {
-44             1                           1         my ($y) = @_;
-45                                                   my $inner_inner_inner = sub {
-46             1                           1           my ($z) = @_;
+40                                         1   my $outer = sub {
+41                                         1     my $inner = sub {
+42             1                                   my ($x) = @_;
+43                                         1       my $inner_inner = sub {
+44             1                                     my ($y) = @_;
+45                                         1         my $inner_inner_inner = sub {
+46             1                                       my ($z) = @_;
 47             1                                       $z * 2
 48             1                                     };
 49             1                                     $inner_inner_inner->($y) + 1
 50             1                                   };
 51             1                                   $inner_inner->($x) + 1
-52             1                           1     };
-53                                               my $inner_unused = sub {
-54    ***     *0                          *0       my ($x) = @_;
+52             1                                 };
+53    ***                                 *0     my $inner_unused = sub {
+54    ***     *0                                   my ($x) = @_;
 55    ***     *0                                   $x - 1
 56             1                                 };
 57             1                                 $inner->(2)
@@ -319,13 +319,13 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location              
 ---------- ----- --- ----- ----------------------
-BEGIN          1   1   0.0 Module_top_level.pm:16
-__ANON__       1   1   0.0 Module_top_level.pm:14
-__ANON__       1   1   0.0 Module_top_level.pm:31
-__ANON__       1   1   0.0 Module_top_level.pm:42
-__ANON__       1   1   0.0 Module_top_level.pm:44
-__ANON__       1   1   0.0 Module_top_level.pm:46
-__ANON__       1   1   0.6 Module_top_level.pm:52
+BEGIN          1   1   0.0 Module_top_level.pm:12
+__ANON__       1   1   0.0 Module_top_level.pm:13
+__ANON__       1   1   0.0 Module_top_level.pm:30
+__ANON__       1   1   0.0 Module_top_level.pm:40
+__ANON__       1   1   0.0 Module_top_level.pm:41
+__ANON__       1   1   0.0 Module_top_level.pm:43
+__ANON__       1   1   0.0 Module_top_level.pm:45
 add            1   1   0.0 Module_top_level.pm:61
 get_count      1   1   0.0 Module_top_level.pm:60
 run_begin      1   1   0.0 Module_top_level.pm:63
@@ -336,8 +336,8 @@ Uncovered Subroutines
 
 Subroutine Count  CC  SCAR Location              
 ---------- ----- --- ----- ----------------------
-__ANON__       0   1   6.9 Module_top_level.pm:36
-__ANON__       0   1   6.9 Module_top_level.pm:54
+__ANON__       0   1   6.9 Module_top_level.pm:35
+__ANON__       0   1   6.9 Module_top_level.pm:53
 
 
 module_require

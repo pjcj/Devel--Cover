@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location                  
 ---------- -- ----  --------------------------
-main        8 21.7  tests/uncoverable_error:17
+main        8 21.7  tests/uncoverable_error:16
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -39,14 +39,14 @@ line  err   stmt   bran   cond   mcdc    sub   code
 7                                              # The latest version of this software should be available from my homepage:
 8                                              # https://pjcj.net
 9                                              
-10                                             sub usub {
-11                                                 # uncoverable subroutine class:ignore_covered_err
+10                                             # uncoverable subroutine class:ignore_covered_err
+11                                        -1   sub usub {
 12                                                 # uncoverable statement  class:ignore_covered_err
-13            -1                          -1       my $x = 1;
+13            -1                                   my $x = 1;
 14                                             }
 15                                             
-16                                             sub main {
-17             1                           1       my $x = 1;
+16                                         1   sub main {
+17             1                                   my $x = 1;
 18                                                 # uncoverable branch false class:ignore_covered_err
 19                                                 # uncoverable branch true
 20             1   -100                            if ($x > 1) {
@@ -124,7 +124,7 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location                  
 ---------- ----- --- ----- --------------------------
-main           1   8  21.7 tests/uncoverable_error:17
-usub          -1   1   0.0 tests/uncoverable_error:13
+main           1   8  21.7 tests/uncoverable_error:16
+usub          -1   1   0.0 tests/uncoverable_error:11
 
 

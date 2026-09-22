@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location           
 ---------- -- ----  -------------------
-test_sub    2  7.2  tests/empty_else:23
+test_sub    2  7.2  tests/empty_else:22
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -55,8 +55,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 19                                             }
 20                                             
 21                                             # Subroutine - exercises: B::class($false) eq "NULL"
-22                                             sub test_sub {
-23             1                           1     my $x = shift;
+22                                         1   sub test_sub {
+23             1                                 my $x = shift;
 24    ***      1   * 50                          if ($x) {
 25                                               } else {
 26                                               }
@@ -81,6 +81,6 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- -------------------
 BEGIN          1   1   0.0 tests/empty_else:13
 BEGIN          1   1   0.0 tests/empty_else:14
-test_sub       1   2   7.2 tests/empty_else:23
+test_sub       1   2   7.2 tests/empty_else:22
 
 

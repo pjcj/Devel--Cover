@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location           
 ---------- -- ----  -------------------
-wagh        3 11.1  tests/moose_cond:30
+wagh        3 11.1  tests/moose_cond:29
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -64,8 +64,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 26             1                               $self->meep( { marp => 1 } );
 27             1                               print "meep contains " . $self->wagh . "\n";
 28                                             
-29                                             sub wagh {
-30             2                           2       my ( $self ) = @_;
+29                                         2   sub wagh {
+30             2                                   my ( $self ) = @_;
 31    ***      2          * 50   *  0              my $x = $self || 0;
 32             2           100    100              return $self->meep->{marp} || 0;
 33                                                 # return $self || 0;
@@ -100,6 +100,6 @@ Subroutine Count  CC  SCAR Location
 BEGIN          1   1   0.0 tests/moose_cond:13
 BEGIN          1   1   0.0 tests/moose_cond:14
 BEGIN          1   1   0.0 tests/moose_cond:18
-wagh           2   3  11.1 tests/moose_cond:30
+wagh           2   3  11.1 tests/moose_cond:29
 
 

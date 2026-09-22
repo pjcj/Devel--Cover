@@ -27,8 +27,8 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location                
 ---------- -- ----  ------------------------
-sort_block  4 13.9  tests/mcdc_c_callback:28
-any_block   3 11.0  tests/mcdc_c_callback:22
+sort_block  4 13.9  tests/mcdc_c_callback:27
+any_block   3 11.0  tests/mcdc_c_callback:21
 __ANON__    2  6.9  tests/mcdc_c_callback:23
 
 line  err   stmt   bran   cond   mcdc    sub   code
@@ -58,24 +58,24 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 20                                             
-21                                             sub any_block {
-22             4                           4     my ($e, $f) = @_;
+21                                         4   sub any_block {
+22             4                                 my ($e, $f) = @_;
 23             4    100    100    100      3     return "" unless $e || any { ($_ // "") ne "x" } @$f;
                3           100    100          
 24             3                                 1
 25                                             }
 26                                             
-27                                             sub sort_block {
-28             5                           5     my ($e, $f) = @_;
+27                                         5   sub sort_block {
+28             5                                 my ($e, $f) = @_;
 29             5    100    100    100            return "" unless $e || join "", sort { $a <=> $b || $a cmp $b } @$f;
                3           100    100          
 30             4                                 1
 31                                             }
 32                                             
-33                                             sub main {
+33                                         1   sub main {
 34                                               # Calls are pushed into @r so each decision is exercised in non-void
 35                                               # context.
-36             1                           1     my @r;
+36             1                                 my @r;
 37                                             
 38                                               # $e || any { ... }, every row of the outer decision and of the //.
 39             1                                 push @r, any_block(1, []);
@@ -163,8 +163,8 @@ BEGIN          1   1   0.0 tests/mcdc_c_callback:16
 BEGIN          1   1   0.0 tests/mcdc_c_callback:17
 BEGIN          1   1   0.0 tests/mcdc_c_callback:19
 __ANON__       3   2   6.9 tests/mcdc_c_callback:23
-any_block      4   3  11.0 tests/mcdc_c_callback:22
-main           1   1   0.0 tests/mcdc_c_callback:36
-sort_block     5   4  13.9 tests/mcdc_c_callback:28
+any_block      4   3  11.0 tests/mcdc_c_callback:21
+main           1   1   0.0 tests/mcdc_c_callback:33
+sort_block     5   4  13.9 tests/mcdc_c_callback:27
 
 

@@ -27,9 +27,9 @@ Worst Subroutines
 
 Subroutine  CC SCAR  Location           
 ----------- -- ----  -------------------
-chained_and  3 11.0  tests/mcdc_basic:24
-chained_or   3 11.0  tests/mcdc_basic:29
-nested       3 11.0  tests/mcdc_basic:39
+chained_and  3 11.0  tests/mcdc_basic:23
+chained_or   3 11.0  tests/mcdc_basic:28
+nested       3 11.0  tests/mcdc_basic:38
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -48,45 +48,45 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 12                                             
-13                                             sub and_decision {
-14             3                           3     my ($p, $q) = @_;
+13                                         3   sub and_decision {
+14             3                                 my ($p, $q) = @_;
 15             3           100    100            return $p && $q;
 16                                             }
 17                                             
-18                                             sub or_decision {
-19             2                           2     my ($p, $q) = @_;
+18                                         2   sub or_decision {
+19             2                                 my ($p, $q) = @_;
 20    ***      2          * 66   * 50            return $p || $q;
 21                                             }
 22                                             
-23                                             sub chained_and {
-24             4                           4     my ($p, $q, $r) = @_;
+23                                         4   sub chained_and {
+24             4                                 my ($p, $q, $r) = @_;
 25             4           100    100            return $p && $q && $r;
                            100                 
 26                                             }
 27                                             
-28                                             sub chained_or {
-29             4                           4     my ($p, $q, $r) = @_;
+28                                         4   sub chained_or {
+29             4                                 my ($p, $q, $r) = @_;
 30             4           100    100            return $p || $q || $r;
                            100                 
 31                                             }
 32                                             
-33                                             sub negated_and {
-34             3                           3     my ($p, $q) = @_;
+33                                         3   sub negated_and {
+34             3                                 my ($p, $q) = @_;
 35             3           100    100            return !$p && $q;
 36                                             }
 37                                             
-38                                             sub nested {
-39             5                           5     my ($a, $b, $c) = @_;
+38                                         5   sub nested {
+39             5                                 my ($a, $b, $c) = @_;
 40             5           100    100            return ($a && $b) || $c;
                            100                 
 41                                             }
 42                                             
-43                                             sub main {
+43                                         1   sub main {
 44                                               # Calls are pushed into @r so each decision is exercised in non-void
 45                                               # context.  In void context the runtime collapses the right operand's
 46                                               # truth value into the short-circuit count, leaving MC/DC nothing to
 47                                               # analyse for the right atomic.
-48             1                           1     my @r;
+48             1                                 my @r;
 49                                             
 50                                               # 2-input && hits all three short-circuit rows; MC/DC satisfied.
 51             1                                 push @r, and_decision(1, 1);
@@ -173,12 +173,12 @@ Subroutine   Count  CC  SCAR Location
 ------------ ----- --- ----- -------------------
 BEGIN            1   1   0.0 tests/mcdc_basic:10
 BEGIN            1   1   0.0 tests/mcdc_basic:11
-and_decision     3   2   6.9 tests/mcdc_basic:14
-chained_and      4   3  11.0 tests/mcdc_basic:24
-chained_or       4   3  11.0 tests/mcdc_basic:29
-main             1   1   0.0 tests/mcdc_basic:48
-negated_and      3   2   6.9 tests/mcdc_basic:34
-nested           5   3  11.0 tests/mcdc_basic:39
-or_decision      2   2   7.1 tests/mcdc_basic:19
+and_decision     3   2   6.9 tests/mcdc_basic:13
+chained_and      4   3  11.0 tests/mcdc_basic:23
+chained_or       4   3  11.0 tests/mcdc_basic:28
+main             1   1   0.0 tests/mcdc_basic:43
+negated_and      3   2   6.9 tests/mcdc_basic:33
+nested           5   3  11.0 tests/mcdc_basic:38
+or_decision      2   2   7.1 tests/mcdc_basic:18
 
 

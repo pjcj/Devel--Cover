@@ -27,8 +27,8 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location                   
 ---------- -- ----  ---------------------------
-BEGIN       1  0.2  tests/cond_expr_overload:21
 __ANON__    1  0.2  tests/cond_expr_overload:21
+BEGIN       1  0.0  tests/cond_expr_overload:20
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -54,11 +54,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 17                                             
 18                                             package CountBool;
 19                                             use overload
-20            10                          10     bool => sub { $bool_calls++; ${ $_[0] } },
+20            10                           1     bool => sub { $bool_calls++; ${ $_[0] } },
+              10                          10   
               10                               
-              10                               
-21             1                           1     '""' => sub { "countbool" };
-      ***      1                          *0   
+21    ***      1                          *0     '""' => sub { "countbool" };
+               1                               
                1                               
       ***     *0                               
 22             2                           2   sub new { my ($class, $val) = @_; bless \$val, $class }
@@ -152,7 +152,7 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- ---------------------------
 BEGIN          1   1   0.0 tests/cond_expr_overload:13
 BEGIN          1   1   0.0 tests/cond_expr_overload:14
-BEGIN          1   1   0.2 tests/cond_expr_overload:21
+BEGIN          1   1   0.0 tests/cond_expr_overload:20
 __ANON__      10   1   0.0 tests/cond_expr_overload:20
 new            2   1   0.0 tests/cond_expr_overload:22
 noop           4   1   0.0 tests/cond_expr_overload:26

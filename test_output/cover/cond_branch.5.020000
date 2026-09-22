@@ -2,8 +2,8 @@ cover: Reading database from ...
 ----------------- ------ ------ ------ ------ ------ ------ ------
 File                stmt   bran   cond   mcdc    sub  total   scar
 ----------------- ------ ------ ------ ------ ------ ------ ------
-tests/cond_branch   90.2   79.3   32.9   19.5  100.0   70.1    8.1
-Total               90.2   79.3   32.9   19.5  100.0   70.1    8.1
+tests/cond_branch   90.2   79.3   32.9   19.5  100.0   70.1    7.7
+Total               90.2   79.3   32.9   19.5  100.0   70.1    7.7
 ----------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,16 +20,16 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-16 74.8  2.2  8.1
+16 74.8  2.1  7.7
 
 Worst Subroutines
 -----------------
 
 Subroutine CC SCAR  Location             
 ---------- -- ----  ---------------------
-__ANON__    2 14.6  tests/cond_branch:230
-__ANON__    3 11.0  tests/cond_branch:245
-__ANON__    3 11.0  tests/cond_branch:253
+__ANON__    3 11.0  tests/cond_branch:244
+__ANON__    3 11.0  tests/cond_branch:252
+__ANON__    3 11.0  tests/cond_branch:260
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -272,60 +272,60 @@ line  err   stmt   bran   cond   mcdc    sub   code
 215                                            
 216                                            
 217                                            my @s = (
-218                                                sub {
-219            4    100                    4           shift || return;
+218                                        4       sub {
+219            4    100                                shift || return;
 220            2                                       $x[42]++;
 221                                                },
 222                                            
-223                                                sub {
-224            4    100                    4           shift && return;
+223                                        4       sub {
+224            4    100                                shift && return;
 225            2                                       $x[43]++;
 226                                                },
 227                                            
-228                                                sub {
+228                                        4       sub {
 229            1                           1           no warnings "void";
                1                               
                1                               
-230   ***      4          *  0   *  0      4           shift xor return;
+230   ***      4          *  0   *  0                  shift xor return;
 231   ***     *0                                       $x[44]++;
 232                                                },
 233                                            
-234                                                sub {
-235            4           100    100      4           my $x = shift || return;
+234                                        4       sub {
+235            4           100    100                  my $x = shift || return;
 236            2                                       $x[45]++;
 237                                                },
 238                                            
-239                                                sub {
-240            4           100    100      4           my $x = shift && return;
+239                                        4       sub {
+240            4           100    100                  my $x = shift && return;
 241            2                                       $x[46]++;
 242                                                },
 243                                            
-244                                                sub {
-245            4                           4           my $x = shift;
+244                                        4       sub {
+245            4                                       my $x = shift;
 246            4                                       for my $y (1 .. 2) {
 247            6           100    100                      my $z = $x || last;
 248            4                                           $x[47]++;
 249                                                    }
 250                                                },
 251                                            
-252                                                sub {
-253            4                           4           my $x = shift;
+252                                        4       sub {
+253            4                                       my $x = shift;
 254            4                                       for my $y (1 .. 2) {
 255            8           100    100                      my $z = $x || next;
 256            4                                           $x[48]++;
 257                                                    }
 258                                                },
 259                                            
-260                                                sub {
-261            4                           4           my $x = shift;
+260                                        4       sub {
+261            4                                       my $x = shift;
 262            4                                       for my $y (1 .. 2) {
 263           10           100    100                      my $z = $x++ || redo;
 264            8                                           $x[49]++;
 265                                                    }
 266                                                },
 267                                            
-268                                                sub {
-269            4                           4           my $x = shift;
+268                                        4       sub {
+269            4                                       my $x = shift;
 270            4                                       for my $y (1 .. 2) {
 271            6           100    100                      my $z = $x || goto GR;
 272            4                                           $x[50]++;
@@ -333,8 +333,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 274                                            GR:
 275                                                },
 276                                            
-277                                                sub {
-278            4                           4           my $x = shift;
+277                                        4       sub {
+278            4                                       my $x = shift;
 279            4                                       for my $y (1 .. 2) {
 280            8           100    100                      eval { my $z = $x || die };
                8                               
@@ -532,15 +532,15 @@ BEGIN          1   1   0.0 tests/cond_branch:156
 BEGIN          1   1   0.0 tests/cond_branch:202
 BEGIN          1   1   0.0 tests/cond_branch:211
 BEGIN          1   1   0.0 tests/cond_branch:229
-__ANON__       4   2   6.9 tests/cond_branch:219
-__ANON__       4   2   6.9 tests/cond_branch:224
-__ANON__       4   2  14.6 tests/cond_branch:230
-__ANON__       4   2   6.9 tests/cond_branch:235
-__ANON__       4   2   6.9 tests/cond_branch:240
-__ANON__       4   3  11.0 tests/cond_branch:245
-__ANON__       4   3  11.0 tests/cond_branch:253
-__ANON__       4   3  11.0 tests/cond_branch:261
-__ANON__       4   3  11.0 tests/cond_branch:269
-__ANON__       4   3  11.0 tests/cond_branch:278
+__ANON__       4   2   6.9 tests/cond_branch:218
+__ANON__       4   2   6.9 tests/cond_branch:223
+__ANON__       4   2   9.9 tests/cond_branch:228
+__ANON__       4   2   6.9 tests/cond_branch:234
+__ANON__       4   2   6.9 tests/cond_branch:239
+__ANON__       4   3  11.0 tests/cond_branch:244
+__ANON__       4   3  11.0 tests/cond_branch:252
+__ANON__       4   3  11.0 tests/cond_branch:260
+__ANON__       4   3  11.0 tests/cond_branch:268
+__ANON__       4   3  11.0 tests/cond_branch:277
 
 

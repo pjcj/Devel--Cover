@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location         
 ---------- -- ----  -----------------
-trigger     3 11.0  tests/moo_cond:27
+trigger     3 11.0  tests/moo_cond:26
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -61,8 +61,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 23             1                               __PACKAGE__->new( config => {}, config2 => {} )->trigger;
 24             1                               __PACKAGE__->new( config => {debug => 1}, config2 => {debug => 1} )->trigger;
 25                                             
-26                                             sub trigger {
-27             2    100                    2       1 if $_[0]->config->{debug};
+26                                         2   sub trigger {
+27             2    100                            1 if $_[0]->config->{debug};
 28             2    100                            1 if $_[0]->config2->{debug};
 29                                             }
 
@@ -84,6 +84,6 @@ Subroutine Count  CC  SCAR Location
 BEGIN          1   1   0.0 tests/moo_cond:13
 BEGIN          1   1   0.0 tests/moo_cond:14
 BEGIN          1   1   0.0 tests/moo_cond:18
-trigger        2   3  11.0 tests/moo_cond:27
+trigger        2   3  11.0 tests/moo_cond:26
 
 

@@ -27,9 +27,9 @@ Worst Subroutines
 
 Subroutine           CC SCAR  Location                   
 -------------------- -- ----  ---------------------------
-require_value         2  6.9  tests/uncoverable_guards:16
-require_value_unless  2  6.9  tests/uncoverable_guards:23
-require_value_if      2  6.9  tests/uncoverable_guards:30
+require_value         2  6.9  tests/uncoverable_guards:15
+require_value_unless  2  6.9  tests/uncoverable_guards:22
+require_value_if      2  6.9  tests/uncoverable_guards:29
 
 line  err   stmt   bran   code
 1                         #!/usr/bin/env perl
