@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location            
 ---------- -- ----  --------------------
-f           2 17.9  tests/circular_ref:8
+f           2 17.9  tests/circular_ref:7
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -38,8 +38,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 6                                              
-7                                              sub f {
-8     ***     *0   *  0                   *0       return MyType if @_;
+7     ***                                 *0   sub f {
+8     ***     *0   *  0                            return MyType if @_;
 9                                              }
 
 
@@ -64,6 +64,6 @@ Uncovered Subroutines
 
 Subroutine Count  CC  SCAR Location            
 ---------- ----- --- ----- --------------------
-f              0   2  17.9 tests/circular_ref:8
+f              0   2  17.9 tests/circular_ref:7
 
 

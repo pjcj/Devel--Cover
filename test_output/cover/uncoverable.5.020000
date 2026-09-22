@@ -85,9 +85,9 @@ line  err   stmt   bran   cond   mcdc    sub   code
               -0                               
 44                                             }
 45                                             
-46                                             sub z {
-47                                                 # uncoverable subroutine
-48            -0                          -0       $y++; # uncoverable statement
+46                                             # uncoverable subroutine
+47                                        -0   sub z {
+48            -0                                   $y++; # uncoverable statement
 49                                             }
 50                                             
 51                                             # uncoverable branch false count:1
@@ -151,6 +151,6 @@ Uncoverable Subroutines
 
 Subroutine Count  CC  SCAR Location            
 ---------- ----- --- ----- --------------------
-z             -0   1   0.0 tests/uncoverable:48
+z             -0   1   0.0 tests/uncoverable:47
 
 

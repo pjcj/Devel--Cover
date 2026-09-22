@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location          
 ---------- -- ----  ------------------
-may_edit    3 11.0  tests/mcdc_demo:29
+may_edit    3 11.0  tests/mcdc_demo:28
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -61,14 +61,14 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 27                                             
-28                                             sub may_edit {
-29             4                           4     my ($is_owner, $unlocked, $is_admin) = @_;
+28                                         4   sub may_edit {
+29             4                                 my ($is_owner, $unlocked, $is_admin) = @_;
 30    ***      4           100   * 66            return ($is_owner && $unlocked) || $is_admin;
                            100                 
 31                                             }
 32                                             
-33                                             sub main {
-34             1                           1     my @r;
+33                                         1   sub main {
+34             1                                 my @r;
 35                                             
 36                                               # The four-test set from docs/technical/mcdc.md "Tests achieving 100%
 37                                               # statement, branch, and condition coverage".  Hits every row of both
@@ -114,7 +114,7 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- ------------------
 BEGIN          1   1   0.0 tests/mcdc_demo:25
 BEGIN          1   1   0.0 tests/mcdc_demo:26
-main           1   1   0.0 tests/mcdc_demo:34
-may_edit       4   3  11.0 tests/mcdc_demo:29
+main           1   1   0.0 tests/mcdc_demo:33
+may_edit       4   3  11.0 tests/mcdc_demo:28
 
 

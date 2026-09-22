@@ -41,8 +41,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 12                                             
 13             1                               my @x;
 14                                             
-15                                             sub xx {
-16            11                          11       $x[shift]++;
+15                                        11   sub xx {
+16            11                                   $x[shift]++;
 17                                             }
 18                                             
 19             1                               for (0 .. 10) {
@@ -81,6 +81,6 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- -----------
 BEGIN          1   1   0.0 tests/t2:10
 BEGIN          1   1   0.0 tests/t2:11
-xx            11   1   0.0 tests/t2:16
+xx            11   1   0.0 tests/t2:15
 
 

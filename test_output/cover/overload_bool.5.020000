@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------- ------ ------ ------ ------ ------ ------ ------
 File                  stmt   bran   cond   mcdc    sub  total   scar
 ------------------- ------ ------ ------ ------ ------ ------ ------
-tests/overload_bool   69.2   50.0   50.0    0.0   25.0   52.0    4.3
-Total                 69.2   50.0   50.0    0.0   25.0   52.0    4.3
+tests/overload_bool   69.2   50.0   50.0    0.0   25.0   52.0    4.4
+Total                 69.2   50.0   50.0    0.0   25.0   52.0    4.4
 ------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 63.2  1.5  4.3
+ 1 63.2  1.5  4.4
 
 Worst Subroutines
 -----------------
@@ -28,8 +28,8 @@ Worst Subroutines
 Subroutine CC SCAR  Location              
 ---------- -- ----  ----------------------
 __ANON__    1  6.9  tests/overload_bool:12
-render      1  6.9  tests/overload_bool:16
-BEGIN       1  0.6  tests/overload_bool:13
+render      1  6.9  tests/overload_bool:15
+BEGIN       1  1.2  tests/overload_bool:12
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -43,15 +43,16 @@ line  err   stmt   bran   cond   mcdc    sub   code
 9                                              
 10                                             package Foo;
 11                                             use overload
-12    ***     *0                          *0      '""' => sub { shift->render},
-13             1                           1      bool => sub { die "I was used as a bool and shouldn't be\n"; 1 };
-      ***      1                          *0   
+12    ***     *0                           1      '""' => sub { shift->render},
+      ***                                 *0   
+13    ***      1                          *0      bool => sub { die "I was used as a bool and shouldn't be\n"; 1 };
+               1                               
                1                               
       ***     *0                               
       ***     *0                               
 14                                             
-15                                             sub render {
-16    ***     *0                          *0      "foo";
+15    ***                                 *0   sub render {
+16    ***     *0                                  "foo";
 17                                             }
 18                                             
 19             1                               my $foo = 1;
@@ -98,7 +99,7 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location              
 ---------- ----- --- ----- ----------------------
-BEGIN          1   1   0.6 tests/overload_bool:13
+BEGIN          1   1   1.2 tests/overload_bool:12
 
 Uncovered Subroutines
 ---------------------
@@ -107,6 +108,6 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- ----------------------
 __ANON__       0   1   6.9 tests/overload_bool:12
 __ANON__       0   1   0.6 tests/overload_bool:13
-render         0   1   6.9 tests/overload_bool:16
+render         0   1   6.9 tests/overload_bool:15
 
 

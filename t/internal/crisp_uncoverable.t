@@ -55,8 +55,8 @@ sub cond {
 # uncoverable statement
 sub never_called { 1 }
 
+# uncoverable subroutine
 sub stale {
-  # uncoverable subroutine
   # uncoverable statement
   return 42;
 }

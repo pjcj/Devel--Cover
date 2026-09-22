@@ -46,21 +46,21 @@ line  err   stmt    sub    pod   code
 9                                
 10             1      1      1   sub documented { "documented" }
 11                               
-12                               sub excused_pod {
-13                                 # uncoverable pod
-14             1      1     -0     "excused";
+12                               # uncoverable pod
+13                    1     -0   sub excused_pod {
+14             1                   "excused";
 15                               }
 16                               
-17                               sub stale_pod {
-18                                 # uncoverable pod
-19    ***      1      1    *-1     "stale";
+17                               # uncoverable pod
+18    ***             1    *-1   sub stale_pod {
+19             1                   "stale";
 20                               }
 21                               
-22                               sub never_called {
-23                                 # uncoverable subroutine
-24                                 # uncoverable statement
-25                                 # uncoverable pod
-26            -0     -0     -0     die "never called";
+22                               # uncoverable subroutine
+23                               # uncoverable pod
+24                   -0     -0   sub never_called {
+25                                 # uncoverable statement
+26            -0                   die "never called";
 27                               }
 28                               
 29             1                 1
@@ -74,15 +74,15 @@ Covered Subroutines
 Subroutine   Count Pod  CC  SCAR Location             
 ------------ ----- --- --- ----- ---------------------
 documented       1   1   1   0.0 Uncoverable_pod.pm:10
-excused_pod      1  -0   1   0.0 Uncoverable_pod.pm:14
-stale_pod        1 *-1   1   0.0 Uncoverable_pod.pm:19
+excused_pod      1  -0   1   0.0 Uncoverable_pod.pm:13
+stale_pod        1 *-1   1   0.0 Uncoverable_pod.pm:18
 
 Uncoverable Subroutines
 -----------------------
 
 Subroutine   Count Pod  CC  SCAR Location             
 ------------ ----- --- --- ----- ---------------------
-never_called    -0  -0   1   0.0 Uncoverable_pod.pm:26
+never_called    -0  -0   1   0.0 Uncoverable_pod.pm:24
 
 
 uncoverable_pod

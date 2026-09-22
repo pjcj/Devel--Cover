@@ -27,9 +27,9 @@ Worst Subroutines
 
 Subroutine   CC SCAR  Location                  
 ------------ -- ----  --------------------------
-and_or_chain  5 16.1  tests/cond_nested_right:66
-and_or_if     4 13.9  tests/cond_nested_right:23
-or_and_if     4 13.9  tests/cond_nested_right:29
+and_or_chain  5 16.1  tests/cond_nested_right:65
+and_or_if     4 13.9  tests/cond_nested_right:22
+or_and_if     4 13.9  tests/cond_nested_right:28
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/perl
@@ -57,22 +57,22 @@ line  err   stmt   bran   cond    sub   code
                1                        
                1                        
 21                                      
-22                                      sub and_or_if {
-23             4                    4     my ($x, $y, $z) = @_;
+22                                  4   sub and_or_if {
+23             4                          my ($x, $y, $z) = @_;
 24             4    100    100            return 1 if $x && ($y || $z);
                            100          
 25             2                          0
 26                                      }
 27                                      
-28                                      sub or_and_if {
-29             4                    4     my ($x, $y, $z) = @_;
+28                                  4   sub or_and_if {
+29             4                          my ($x, $y, $z) = @_;
 30             4    100    100            return 1 if $x || ($y && $z);
                            100          
 31             2                          0
 32                                      }
 33                                      
-34                                      sub and_or_block {
-35             4                    4     my ($x, $y, $z) = @_;
+34                                  4   sub and_or_block {
+35             4                          my ($x, $y, $z) = @_;
 36             4    100    100            if ($x && ($y || $z)) {
                            100          
 37             2                            return 1;
@@ -80,15 +80,15 @@ line  err   stmt   bran   cond    sub   code
 39                                        0
 40             2                        }
 41                                      
-42                                      sub and_or_unless {
-43             4                    4     my ($x, $y, $z) = @_;
+42                                  4   sub and_or_unless {
+43             4                          my ($x, $y, $z) = @_;
 44             4    100    100            return 1 unless $x && ($y || $z);
                            100          
 45             2                          0
 46                                      }
 47                                      
-48                                      sub and_or_while {
-49             3                    3     my ($x, $y, $z) = @_;
+48                                  3   sub and_or_while {
+49             3                          my ($x, $y, $z) = @_;
 50             3                          my $n = 0;
 51             3    100    100            while ($x && ($y || $z)) {
                            100          
@@ -99,47 +99,47 @@ line  err   stmt   bran   cond    sub   code
 56                                        $n
 57             3                        }
 58                                      
-59                                      sub and_and_if {
-60             4                    4     my ($x, $y, $z) = @_;
+59                                  4   sub and_and_if {
+60             4                          my ($x, $y, $z) = @_;
 61             4    100    100            return 1 if $x && ($y && $z);
                            100          
 62             3                          0
 63                                      }
 64                                      
-65                                      sub and_or_chain {
-66             5                    5     my ($x, $y, $z, $w) = @_;
+65                                  5   sub and_or_chain {
+66             5                          my ($x, $y, $z, $w) = @_;
 67             5    100    100            return 1 if $x && ($y || $z || $w);
                            100          
                            100          
 68             2                          0
 69                                      }
 70                                      
-71                                      sub and_and_value {
-72             5                    5     my ($x, $y, $z, $w) = @_;
+71                                  5   sub and_and_value {
+72             5                          my ($x, $y, $z, $w) = @_;
 73             5           100            my $r = $x && ($y && $z) && $w;
                            100          
                            100          
 74             5                          $r
 75                                      }
 76                                      
-77                                      sub or_and_left {
-78             3                    3     my ($x, $y, $z) = @_;
+77                                  3   sub or_and_left {
+78             3                          my ($x, $y, $z) = @_;
 79             3    100    100            return 1 if ($x || $y) && $z;
                            100          
 80             2                          0
 81                                      }
 82                                      
-83                                      sub and_dor_if {
-84             5                    5     my ($x, $y, $z) = @_;
+83                                  5   sub and_dor_if {
+84             5                          my ($x, $y, $z) = @_;
 85             5    100    100            return 1 if $x && ($y // $z);
                            100          
 86             3                          0
 87                                      }
 88                                      
-89                                      sub main {
+89                                  1   sub main {
 90                                        # Calls are pushed into @r so each decision is exercised in non-void
 91                                        # context.
-92             1                    1     my @r;
+92             1                          my @r;
 93                                      
 94                                        # $x && ($y || $z) as a statement modifier.  The (1, 1, X) row ends at
 95                                        # the inner ||, then (1, 0, 0) reaches the watched op with false.
@@ -269,16 +269,16 @@ Subroutine    Count  CC  SCAR Location
 ------------- ----- --- ----- --------------------------
 BEGIN             1   1   0.0 tests/cond_nested_right:19
 BEGIN             1   1   0.0 tests/cond_nested_right:20
-and_and_if        4   4  13.9 tests/cond_nested_right:60
-and_and_value     5   4  13.9 tests/cond_nested_right:72
-and_dor_if        5   4  13.9 tests/cond_nested_right:84
-and_or_block      4   4  13.9 tests/cond_nested_right:35
-and_or_chain      5   5  16.1 tests/cond_nested_right:66
-and_or_if         4   4  13.9 tests/cond_nested_right:23
-and_or_unless     4   4  13.9 tests/cond_nested_right:43
-and_or_while      3   4  13.9 tests/cond_nested_right:49
-main              1   1   0.0 tests/cond_nested_right:92
-or_and_if         4   4  13.9 tests/cond_nested_right:29
-or_and_left       3   4  13.9 tests/cond_nested_right:78
+and_and_if        4   4  13.9 tests/cond_nested_right:59
+and_and_value     5   4  13.9 tests/cond_nested_right:71
+and_dor_if        5   4  13.9 tests/cond_nested_right:83
+and_or_block      4   4  13.9 tests/cond_nested_right:34
+and_or_chain      5   5  16.1 tests/cond_nested_right:65
+and_or_if         4   4  13.9 tests/cond_nested_right:22
+and_or_unless     4   4  13.9 tests/cond_nested_right:42
+and_or_while      3   4  13.9 tests/cond_nested_right:48
+main              1   1   0.0 tests/cond_nested_right:89
+or_and_if         4   4  13.9 tests/cond_nested_right:28
+or_and_left       3   4  13.9 tests/cond_nested_right:77
 
 

@@ -576,15 +576,18 @@ line.
 
 =head3 Subroutines
 
-A subroutine should be marked as uncoverable at the point where the first
-statement is marked as uncoverable.  Ideally all other criteria in the
+Subroutine and pod coverage are recorded on the line where the body of the
+subroutine opens, which is the C<sub> line in the usual style.  Mark them on
+that line or on a comment line above it.  Ideally all other criteria in the
 subroutine would be marked as uncoverable automatically, but that isn't the case
 at the moment.
 
+  # uncoverable subroutine
   sub z {
-    # uncoverable subroutine
     $y++; # uncoverable statement
   }
+
+The same applies to C<uncoverable pod>.
 
 =head2 Presentation in reports
 

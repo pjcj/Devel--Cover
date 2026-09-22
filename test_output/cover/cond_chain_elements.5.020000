@@ -27,9 +27,9 @@ Worst Subroutines
 
 Subroutine    CC SCAR  Location                    
 ------------- -- ----  ----------------------------
-array_chain    4 15.2  tests/cond_chain_elements:26
-lexical_chain  4 14.5  tests/cond_chain_elements:32
-hash_chain     3 11.0  tests/cond_chain_elements:20
+array_chain    4 15.2  tests/cond_chain_elements:25
+lexical_chain  4 14.5  tests/cond_chain_elements:31
+hash_chain     3 11.0  tests/cond_chain_elements:19
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -54,31 +54,31 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 18                                             
-19                                             sub hash_chain {
-20             4                           4     my %h = @_;
+19                                         4   sub hash_chain {
+20             4                                 my %h = @_;
 21             4           100    100            my $r = $h{a} || $h{b} || $h{c};
                            100                 
 22             4                                 $r
 23                                             }
 24                                             
-25                                             sub array_chain {
-26             2                           2     my @v = @_;
+25                                         2   sub array_chain {
+26             2                                 my @v = @_;
 27    ***      2          * 33   *  0            my $r = $v[0] || $v[1] || $v[2] || $v[3];
       ***                 * 66                 
       ***                 * 66                 
 28             2                                 $r
 29                                             }
 30                                             
-31                                             sub lexical_chain {
-32             2                           2     my ($a, $b, $c, $d) = @_;
+31                                         2   sub lexical_chain {
+32             2                                 my ($a, $b, $c, $d) = @_;
 33    ***      2          * 66   *  0            my $r = $a || $b || $c || $d;
       ***                 * 66                 
       ***                 * 66                 
 34             2                                 $r
 35                                             }
 36                                             
-37                                             sub main {
-38             1                           1     my @r;
+37                                         1   sub main {
+38             1                                 my @r;
 39                                             
 40             1                                 push @r, hash_chain(a => 1, b => 0, c => 0);
 41             1                                 push @r, hash_chain(a => 0, b => 1, c => 0);
@@ -129,9 +129,9 @@ Subroutine    Count  CC  SCAR Location
 ------------- ----- --- ----- ----------------------------
 BEGIN             1   1   0.0 tests/cond_chain_elements:16
 BEGIN             1   1   0.0 tests/cond_chain_elements:17
-array_chain       2   4  15.2 tests/cond_chain_elements:26
-hash_chain        4   3  11.0 tests/cond_chain_elements:20
-lexical_chain     2   4  14.5 tests/cond_chain_elements:32
-main              1   1   0.0 tests/cond_chain_elements:38
+array_chain       2   4  15.2 tests/cond_chain_elements:25
+hash_chain        4   3  11.0 tests/cond_chain_elements:19
+lexical_chain     2   4  14.5 tests/cond_chain_elements:31
+main              1   1   0.0 tests/cond_chain_elements:37
 
 

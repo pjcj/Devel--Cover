@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location        
 ---------- -- ----  ----------------
-main       13 28.7  tests/class42:49
+main       13 28.7  tests/class42:48
 is_loud     2  7.6  tests/class42:33
 unused      1  6.9  tests/class42:27
 
@@ -85,8 +85,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 45    ***     *0                          *0     method unused_dog { "never called in Dog" }
 46                                             }
 47                                             
-48                                             sub main {
-49             1                           1     my $a = Animal->new(name => "cat", sound => "meow");
+48                                         1   sub main {
+49             1                                 my $a = Animal->new(name => "cat", sound => "meow");
 50    ***      1   * 50                          die unless $a->name eq "Cat";
 51    ***      1   * 50                          die unless $a->speak eq "Cat says meow";
 52    ***      1   * 50                          die unless $a->greet eq "Hello, I am Cat";
@@ -144,7 +144,7 @@ call_private     1   1   0.0 tests/class42:38
 get_anon         1   1   0.0 tests/class42:40
 greet            2   2   6.9 tests/class42:29
 is_loud          1   2   7.6 tests/class42:33
-main             1  13  28.7 tests/class42:49
+main             1  13  28.7 tests/class42:48
 name             2   1   0.0 tests/class42:25
 speak            2   1   0.0 tests/class42:26
 speak            1   1   0.0 tests/class42:44

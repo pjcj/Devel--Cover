@@ -9,8 +9,8 @@
 
 # __COVER__ cover_parameters -ignore_covered_err
 
+# uncoverable subroutine
 sub usub {
-    # uncoverable subroutine
     # uncoverable statement
     my $x = 1;
 }

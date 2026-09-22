@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location                  
 ---------- -- ----  --------------------------
-my_sqrt     3 11.0  tests/branch_return_sub:14
+my_sqrt     3 11.0  tests/branch_return_sub:13
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -46,8 +46,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 12                                             
-13                                             sub my_sqrt {
-14             3                           3       my $n = shift;
+13                                         3   sub my_sqrt {
+14             3                                   my $n = shift;
 15                                             
 16             3    100    100    100              if ( !defined($n) || ($n < 0) ) {
 17             2                                       return undef;
@@ -94,6 +94,6 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- --------------------------
 BEGIN          1   1   0.0 tests/branch_return_sub:10
 BEGIN          1   1   0.0 tests/branch_return_sub:11
-my_sqrt        3   3  11.0 tests/branch_return_sub:14
+my_sqrt        3   3  11.0 tests/branch_return_sub:13
 
 

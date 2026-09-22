@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location      
 ---------- -- ----  --------------
-is_3digits  2  6.9  tests/alias:13
+is_3digits  2  6.9  tests/alias:12
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -41,8 +41,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 9                                              
 10                                             package Foo;
 11                                             
-12                                             sub is_3digits {
-13             2                           2       my $val = shift;
+12                                         2   sub is_3digits {
+13             2                                   my $val = shift;
 14             2                                   my $retval = undef;
 15             2    100                            $retval=1 if $val =~ /^\d{3}$/;
 16             2                                   return $retval;
@@ -70,6 +70,6 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location      
 ---------- ----- --- ----- --------------
-is_3digits     2   2   6.9 tests/alias:13
+is_3digits     2   2   6.9 tests/alias:12
 
 

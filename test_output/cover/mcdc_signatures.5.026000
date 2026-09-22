@@ -92,8 +92,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
                4                               
                4                               
 29                                             
-30                                             sub main {
-31             1                           1     my @r;
+30                                         1   sub main {
+31             1                                 my @r;
 32                                             
 33                                               # 2-input && hits all three short-circuit rows.
 34             1                                 push @r, and_decision(1, 1);
@@ -184,7 +184,7 @@ BEGIN            1   1   0.0 tests/mcdc_signatures:21
 and_decision     3   2   6.9 tests/mcdc_signatures:23
 default_and      4   3  11.0 tests/mcdc_signatures:28
 default_or       4   3  11.0 tests/mcdc_signatures:27
-main             1   1   0.0 tests/mcdc_signatures:31
+main             1   1   0.0 tests/mcdc_signatures:30
 nested           4   4  13.9 tests/mcdc_signatures:25
 or_decision      3   2   6.9 tests/mcdc_signatures:24
 

@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location        
 ---------- -- ----  ----------------
-main        3 11.3  tests/any_all:20
+main        3 11.3  tests/any_all:19
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -58,8 +58,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 18                                             
-19                                             sub main {
-20             1                           1     my $haystack = [ 1 .. 8 ];
+19                                         1   sub main {
+20             1                                 my $haystack = [ 1 .. 8 ];
 21    ***      1   * 50                          print "any\n" if any { $_ % 2 } @$haystack;
                1                               
 22    ***      1   * 50                          print "all\n" if all { $_ < 9 } @$haystack;
@@ -88,6 +88,6 @@ BEGIN          1   1   0.0 tests/any_all:14
 BEGIN          1   1   0.0 tests/any_all:15
 BEGIN          1   1   0.0 tests/any_all:16
 BEGIN          1   1   0.0 tests/any_all:17
-main           1   3  11.3 tests/any_all:20
+main           1   3  11.3 tests/any_all:19
 
 

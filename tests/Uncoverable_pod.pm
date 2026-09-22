@@ -9,20 +9,20 @@ package Uncoverable_pod;
 
 sub documented { "documented" }
 
+# uncoverable pod
 sub excused_pod {
-  # uncoverable pod
   "excused";
 }
 
+# uncoverable pod
 sub stale_pod {
-  # uncoverable pod
   "stale";
 }
 
+# uncoverable subroutine
+# uncoverable pod
 sub never_called {
-  # uncoverable subroutine
   # uncoverable statement
-  # uncoverable pod
   die "never called";
 }
 

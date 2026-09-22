@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location         
 ---------- -- ----  -----------------
-pas         2  7.6  tests/cond_and:50
+pas         2  7.6  tests/cond_and:49
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -82,8 +82,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 46            11                                 pas();
 47                                             }
 48                                             
-49                                             sub pas {
-50    ***     11   * 50                   11       $y && $z
+49                                        11   sub pas {
+50    ***     11   * 50                            $y && $z
 51                                             }
 52                                             
 53                                             # print join(", ", @x), "\n";
@@ -133,6 +133,6 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- -----------------
 BEGIN          1   1   0.0 tests/cond_and:10
 BEGIN          1   1   0.0 tests/cond_and:11
-pas           11   2   7.6 tests/cond_and:50
+pas           11   2   7.6 tests/cond_and:49
 
 

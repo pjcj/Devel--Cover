@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine   CC SCAR  Location         
 ------------ -- ----  -----------------
-xor_decision  2  6.9  tests/mcdc_xor:14
+xor_decision  2  6.9  tests/mcdc_xor:13
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -46,15 +46,15 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 12                                             
-13                                             sub xor_decision {
-14             4                           4     my ($p, $q) = @_;
+13                                         4   sub xor_decision {
+14             4                                 my ($p, $q) = @_;
 15             4           100    100            return ($p xor $q);
 16                                             }
 17                                             
-18                                             sub main {
+18                                         1   sub main {
 19                                               # Calls are pushed into @r so each decision is exercised in non-void
 20                                               # context; MC/DC for a void-context boolean has no result to analyse.
-21             1                           1     my @r;
+21             1                                 my @r;
 22                                             
 23                                               # xor does not short-circuit, so the truth table has all four rows.
 24                                               # MC/DC is satisfied with any three rows; observing all four also gives
@@ -93,7 +93,7 @@ Subroutine   Count  CC  SCAR Location
 ------------ ----- --- ----- -----------------
 BEGIN            1   1   0.0 tests/mcdc_xor:10
 BEGIN            1   1   0.0 tests/mcdc_xor:11
-main             1   1   0.0 tests/mcdc_xor:21
-xor_decision     4   2   6.9 tests/mcdc_xor:14
+main             1   1   0.0 tests/mcdc_xor:18
+xor_decision     4   2   6.9 tests/mcdc_xor:13
 
 

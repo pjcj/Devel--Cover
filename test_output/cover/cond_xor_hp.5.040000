@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location            
 ---------- -- ----  --------------------
-main        6 18.4  tests/cond_xor_hp:17
+main        6 18.4  tests/cond_xor_hp:16
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -49,8 +49,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 15                                             
-16                                             sub main {
-17             1                           1     my $i = 1;
+16                                         1   sub main {
+17             1                                 my $i = 1;
 18             1                                 my $j = 0;
 19                                             
 20             1                                 for my $y (0, 1, 1, 1) {
@@ -96,6 +96,6 @@ Subroutine Count  CC  SCAR Location
 ---------- ----- --- ----- --------------------
 BEGIN          1   1   0.0 tests/cond_xor_hp:13
 BEGIN          1   1   0.0 tests/cond_xor_hp:14
-main           1   6  18.4 tests/cond_xor_hp:17
+main           1   6  18.4 tests/cond_xor_hp:16
 
 

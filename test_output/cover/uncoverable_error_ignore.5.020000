@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location                         
 ---------- -- ----  ---------------------------------
-main        8 21.7  tests/uncoverable_error_ignore:19
+main        8 21.7  tests/uncoverable_error_ignore:18
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -41,14 +41,14 @@ line  err   stmt   bran   cond   mcdc    sub   code
 9                                              
 10                                             # __COVER__ cover_parameters -ignore_covered_err
 11                                             
-12                                             sub usub {
-13                                                 # uncoverable subroutine
+12                                             # uncoverable subroutine
+13                                        -1   sub usub {
 14                                                 # uncoverable statement
-15            -1                          -1       my $x = 1;
+15            -1                                   my $x = 1;
 16                                             }
 17                                             
-18                                             sub main {
-19             1                           1       my $x = 1;
+18                                         1   sub main {
+19             1                                   my $x = 1;
 20                                                 # uncoverable branch false
 21                                                 # uncoverable branch true
 22             1   -100                            if ($x > 1) {
@@ -124,7 +124,7 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location                         
 ---------- ----- --- ----- ---------------------------------
-main           1   8  21.7 tests/uncoverable_error_ignore:19
-usub          -1   1   0.0 tests/uncoverable_error_ignore:15
+main           1   8  21.7 tests/uncoverable_error_ignore:18
+usub          -1   1   0.0 tests/uncoverable_error_ignore:13
 
 

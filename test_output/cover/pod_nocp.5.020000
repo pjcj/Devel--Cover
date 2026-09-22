@@ -40,25 +40,25 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location     
 ---------- -- ----  -------------
-_aa         1  6.9  Module1.pm:14
-xx          1  6.9  Module1.pm:20
-yy          1  6.9  Module1.pm:25
+_aa         1  6.9  Module1.pm:13
+xx          1  6.9  Module1.pm:19
+yy          1  6.9  Module1.pm:24
 
 Covered Subroutines
 -------------------
 
 Subroutine Count Pod  CC  SCAR Location     
 ---------- ----- --- --- ----- -------------
-zz            11   0   1   6.9 Module1.pm:29
+zz            11   0   1   6.9 Module1.pm:28
 
 Uncovered Subroutines
 ---------------------
 
 Subroutine Count Pod  CC  SCAR Location     
 ---------- ----- --- --- ----- -------------
-_aa            0       1   6.9 Module1.pm:14
-xx             0       1   6.9 Module1.pm:20
-yy             0   1   1   6.9 Module1.pm:25
+_aa            0       1   6.9 Module1.pm:13
+xx             0       1   6.9 Module1.pm:19
+yy             0   1   1   6.9 Module1.pm:24
 
 
 PodMod.pm
@@ -110,7 +110,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location   
 ---------- -- ----  -----------
-xx          1  6.9  pod_nocp:24
+xx          1  6.9  pod_nocp:23
 
 Covered Subroutines
 -------------------
@@ -121,6 +121,6 @@ BEGIN          1   1   0.0 pod_nocp:14
 BEGIN          1   1   0.0 pod_nocp:15
 BEGIN          1   1   0.0 pod_nocp:17
 BEGIN          1   1   0.0 pod_nocp:19
-xx            11   1   6.9 pod_nocp:24
+xx            11   1   6.9 pod_nocp:23
 
 

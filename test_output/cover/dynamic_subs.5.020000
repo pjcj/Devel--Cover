@@ -27,9 +27,9 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location             
 ---------- -- ----  ---------------------
-__ANON__    2  7.2  tests/dynamic_subs:16
+__ANON__    2  7.2  tests/dynamic_subs:15
 unused      1  6.9  tests/dynamic_subs:10
-AUTOLOAD    2  6.9  tests/dynamic_subs:41
+AUTOLOAD    2  6.9  tests/dynamic_subs:40
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -44,10 +44,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 10    ***     *0                          *0   sub unused { 0 }
 11    ***                                 *0   sub empty  {   }
 12                                             
-13                                             sub gen {
-14             4                           4       my $x = shift;
-15                                                 sub {
-16             5                           5           my $y = shift;
+13                                         4   sub gen {
+14             4                                   my $x = shift;
+15                                         5       sub {
+16             5                                       my $y = shift;
 17    ***      5   * 50                                return $x + $y if $y;
 18                                                 }
 19             4                               };
@@ -65,27 +65,27 @@ line  err   stmt   bran   cond   mcdc    sub   code
 31             1                           1       no strict "refs";
                1                               
                1                               
-32                                                 *$func = sub {
-33             2                           2           print "$func\n";
+32                                         2       *$func = sub {
+33             2                                       print "$func\n";
 34                                                 }
 35             3                               }
 36                                             
 37             1                               f1();
 38             1                               f2();
 39                                             
-40                                             sub AUTOLOAD {
-41             3                           3       my $func = $AUTOLOAD;
+40                                         3   sub AUTOLOAD {
+41             3                                   my $func = $AUTOLOAD;
 42             3                                   $func =~ s/^.*:://;
 43             1                           1       no strict "refs";
                1                               
                1                               
 44             3    100                            if ($func eq "add") {
-45                                                     *$func = sub {
-46             3                           3               print "Add!\n";
+45                                         3           *$func = sub {
+46             3                                           print "Add!\n";
 47             1                                       };
 48                                                 } else {
-49                                                     *$func = sub {
-50             2                           2               print "$func\n";
+49                                         2           *$func = sub {
+50             2                                           print "$func\n";
 51             2                                       };
 52                                                 }
 53             3                                   goto &$func
@@ -112,14 +112,14 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location             
 ---------- ----- --- ----- ---------------------
-AUTOLOAD       3   2   6.9 tests/dynamic_subs:41
+AUTOLOAD       3   2   6.9 tests/dynamic_subs:40
 BEGIN          1   1   0.0 tests/dynamic_subs:31
 BEGIN          1   1   0.0 tests/dynamic_subs:43
-__ANON__       5   2   7.2 tests/dynamic_subs:16
-__ANON__       2   1   0.0 tests/dynamic_subs:33
-__ANON__       3   1   0.0 tests/dynamic_subs:46
-__ANON__       2   1   0.0 tests/dynamic_subs:50
-gen            4   1   0.0 tests/dynamic_subs:14
+__ANON__       5   2   7.2 tests/dynamic_subs:15
+__ANON__       2   1   0.0 tests/dynamic_subs:32
+__ANON__       3   1   0.0 tests/dynamic_subs:45
+__ANON__       2   1   0.0 tests/dynamic_subs:49
+gen            4   1   0.0 tests/dynamic_subs:13
 
 Uncovered Subroutines
 ---------------------

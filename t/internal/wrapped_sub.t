@@ -96,7 +96,7 @@ PROG
   }
 
   my $subs = $f->subroutine;
-  my $sub  = $subs->location(4);
+  my $sub  = $subs->location(3);
   ok $sub, "the wrapped original sub is collected";
   is $sub && $sub->[0]->name,    "original", "and keeps its name";
   is $sub && $sub->[0]->covered, 1,          "and is reported as covered";
@@ -130,7 +130,7 @@ PROG
     ok $l, "hash-held wrapped sub body statement on line $line is collected";
     is $l && $l->[0]->covered, 1, "and has a count";
   }
-  my $sub = $f->subroutine->location(4);
+  my $sub = $f->subroutine->location(3);
   ok $sub, "the hash-held wrapped sub is collected";
   is $sub && $sub->[0]->covered, 1, "and is reported as covered";
 }
@@ -161,7 +161,7 @@ PROG
     ok $l, "array-held wrapped sub body statement on line $line is collected";
     is $l && $l->[0]->covered, 1, "and has a count";
   }
-  my $sub = $f->subroutine->location(4);
+  my $sub = $f->subroutine->location(3);
   ok $sub, "the array-held wrapped sub is collected";
   is $sub && $sub->[0]->covered, 1, "and is reported as covered";
 }
@@ -202,7 +202,7 @@ PROG
     ok $l, "statement beside a tied array on line $line is collected";
     is $l && $l->[0]->covered, 1, "and has a count";
   }
-  my $sub = $f->subroutine->location(4);
+  my $sub = $f->subroutine->location(3);
   ok $sub, "the wrapped sub beside a tied array is collected";
   is $sub && $sub->[0]->covered, 1, "and is reported as covered";
 }
@@ -239,7 +239,7 @@ print $a->speak, "\n";
 PROG
   return unless $f;
 
-  my $sub = $f->subroutine->location(5);
+  my $sub = $f->subroutine->location(4);
   ok $sub, "the original around-wrapped method is collected";
   is $sub && $sub->[0]->name,    "speak", "and keeps its name";
   is $sub && $sub->[0]->covered, 1,       "and is reported as covered";
@@ -274,7 +274,7 @@ use WrappedDeep;
 print WrappedDeep::original(10), "\n";
 PROG
 
-  my $sub = $f->subroutine->location(4);
+  my $sub = $f->subroutine->location(3);
   ok $sub, "deeply-held wrapped sub is collected";
   is $sub && $sub->[0]->covered, 1, "and is reported as covered";
 }
@@ -299,7 +299,7 @@ use WrappedBlessed;
 print WrappedBlessed::original(10), "\n";
 PROG
 
-  my $sub = $f->subroutine->location(4);
+  my $sub = $f->subroutine->location(3);
   ok $sub, "blessed-held wrapped sub is collected";
   is $sub && $sub->[0]->covered, 1, "and is reported as covered";
 }
@@ -324,7 +324,7 @@ use WrappedReg;
 print WrappedReg::original(10), "\n";
 PROG
 
-  my $sub = $f->subroutine->location(4);
+  my $sub = $f->subroutine->location(3);
   ok $sub, "registry-held wrapped sub is collected";
   is $sub && $sub->[0]->covered, 1, "and is reported as covered";
 }

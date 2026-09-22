@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location     
 ---------- -- ----  -------------
-forwards    1  6.9  tests/sort:15
+forwards    1  6.9  tests/sort:14
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl -w
@@ -41,16 +41,16 @@ line  err   stmt   bran   cond   mcdc    sub   code
 7                                                  F => \&forwards
 8                                              );
 9                                              
-10                                             sub backwards {
-11             6                           6       return $b cmp $a;
+10                                         6   sub backwards {
+11             6                                   return $b cmp $a;
 12                                             }
 13                                             
-14                                             sub forwards {
-15    ***     *0                          *0       return $a cmp $b;
+14    ***                                 *0   sub forwards {
+15    ***     *0                                   return $a cmp $b;
 16                                             }
 17                                             
-18                                             sub GetAlgorithm {
-19             1                           1       my ($alg) = @_;
+18                                         1   sub GetAlgorithm {
+19             1                                   my ($alg) = @_;
 20             1                                   return $sort{$alg};
 21                                             }
 22                                             
@@ -71,14 +71,14 @@ line  err   stmt   bran   cond   mcdc    sub   code
 33                                             
 34                                             package Failure;
 35                                             
-36                                             sub fail {
-37             1                           1       my @x = 1 .. 5;
+36                                         1   sub fail {
+37             1                                   my @x = 1 .. 5;
 38             1                                   my @y = sort { Failure->xyz( $a, $b ) } @x;
                8                               
 39                                             }
 40                                             
-41                                             sub xyz {
-42             8                           8       my $self = shift;
+41                                         8   sub xyz {
+42             8                                   my $self = shift;
 43             8                                   my ($a, $b) = @_;
 44             8                                   $a <=> $b;
 45                                             }
@@ -96,16 +96,16 @@ Subroutine   Count  CC  SCAR Location
 ------------ ----- --- ----- -------------
 BEGIN            1   1   0.0 tests/sort:3 
 BEGIN            1   1   0.0 tests/sort:30
-GetAlgorithm     1   1   0.0 tests/sort:19
-backwards        6   1   0.0 tests/sort:11
-fail             1   1   0.0 tests/sort:37
-xyz              8   1   0.0 tests/sort:42
+GetAlgorithm     1   1   0.0 tests/sort:18
+backwards        6   1   0.0 tests/sort:10
+fail             1   1   0.0 tests/sort:36
+xyz              8   1   0.0 tests/sort:41
 
 Uncovered Subroutines
 ---------------------
 
 Subroutine   Count  CC  SCAR Location     
 ------------ ----- --- ----- -------------
-forwards         0   1   6.9 tests/sort:15
+forwards         0   1   6.9 tests/sort:14
 
 

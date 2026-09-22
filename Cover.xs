@@ -187,6 +187,8 @@ typedef struct {
   HV           *entered_subs;        /* CV pointer bytes -> RV keeping each
                                       * entered named sub alive for the
                                       * report-time walk */
+  HV           *sub_lines;           /* sub root op pointer bytes -> line
+                                      * its body opened on */
   char          profiling_key[KEY_SZ];
   bool          profiling_key_valid;
   SV           *module,
@@ -2845,6 +2847,24 @@ static OP *dc_leavesub(pTHX) {
   return MY_CXT.ppaddr[OP_LEAVESUB](aTHX);
 }
 
+/*
+ * Perl builds a sub's root op while PL_subline still holds the line its
+ * body opened on.  The bare address is the key, since perl changes the
+ * flags the op key hashes after the check.
+ */
+static Perl_check_t dc_next_ck_leavesub,
+                    dc_next_ck_leavesublv;
+
+static OP *dc_ck_sub_root(pTHX_ OP *o) {
+  dMY_CXT;
+  o = (o->op_type == OP_LEAVESUBLV ? dc_next_ck_leavesublv
+                                   : dc_next_ck_leavesub)(aTHX_ o);
+  if (MY_CXT.sub_lines)
+    (void)hv_store(MY_CXT.sub_lines, (char *)&o, sizeof(OP *),
+                   newSViv((IV)PL_subline), 0);
+  return o;
+}
+
 static OP *dc_leaveeval(pTHX) {
   dMY_CXT;
   NDEB(D(L, "dc_leaveeval() at %p (%d)\n", PL_op, collecting_here(aTHX)));
@@ -2991,6 +3011,8 @@ static void initialise(pTHX) {
     MY_CXT.finished_blocks     = newAV();
     MY_CXT.entered_subs        = newHV();
     HvSHAREKEYS_off(MY_CXT.entered_subs);
+    MY_CXT.sub_lines           = newHV();
+    HvSHAREKEYS_off(MY_CXT.sub_lines);
     MY_CXT.module              = newSVpv("", 0);
     MY_CXT.lastfile            = newSVpvn("", 1);
     MY_CXT.lastfile_ptr        = NULL;
@@ -3567,6 +3589,20 @@ get_key(o)
   OUTPUT:
     RETVAL
 
+SV *
+sub_line(o)
+    B::OP o
+  PREINIT:
+    dMY_CXT;
+    SV **line;
+  CODE:
+    line = MY_CXT.sub_lines
+      ? hv_fetch(MY_CXT.sub_lines, (char *)&o, sizeof(OP *), 0)
+      : NULL;
+    RETVAL = line ? newSVsv(*line) : &PL_sv_undef;
+  OUTPUT:
+    RETVAL
+
 void
 set_first_init_and_end()
   PPCODE:
@@ -3731,6 +3767,8 @@ BOOT:
     MUTEX_INIT(&DC_mutex);
 #endif
     initialise(aTHX);
+    wrap_op_checker(OP_LEAVESUB,   dc_ck_sub_root, &dc_next_ck_leavesub);
+    wrap_op_checker(OP_LEAVESUBLV, dc_ck_sub_root, &dc_next_ck_leavesublv);
     /* Deliberately replaces any prior runops loop - loops cannot chain */
     if (MY_CXT.replace_ops) {
       replace_ops(aTHX);

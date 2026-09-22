@@ -27,8 +27,8 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location                     
 ---------- -- ----  -----------------------------
-with_else   4 13.9  tests/elsif_statement_only:16
-no_else     4 13.9  tests/elsif_statement_only:29
+with_else   4 13.9  tests/elsif_statement_only:15
+no_else     4 13.9  tests/elsif_statement_only:28
 
 line  err   stmt   code
 1                  #!/usr/bin/env perl

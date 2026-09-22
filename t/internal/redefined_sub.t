@@ -94,7 +94,7 @@ PROG
     is $l && $l->[0]->covered, 1, "and has a count";
   }
 
-  my $sub = $f->subroutine->location(4);
+  my $sub = $f->subroutine->location(3);
   ok $sub, "the redefined original sub is collected";
   is $sub && $sub->[0]->name,    "original", "and keeps its name";
   is $sub && $sub->[0]->covered, 1,          "and is reported as covered";
@@ -120,7 +120,7 @@ use Unrun;
 print Unrun::original(10), "\n";
 PROG
 
-  my $sub = $f->subroutine->location(4);
+  my $sub = $f->subroutine->location(3);
   is $sub, undef, "a never-run redefined sub stays absent from the report";
 }
 

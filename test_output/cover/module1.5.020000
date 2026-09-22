@@ -39,9 +39,9 @@ Worst Subroutines
 
 Subroutine CC SCAR  Location     
 ---------- -- ----  -------------
-_aa         1  6.9  Module1.pm:14
-xx          1  6.9  Module1.pm:20
-yy          1  6.9  Module1.pm:25
+_aa         1  6.9  Module1.pm:13
+xx          1  6.9  Module1.pm:19
+yy          1  6.9  Module1.pm:24
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              # Copyright 2002-2026, Paul Johnson (paul@pjcj.net)
@@ -56,23 +56,23 @@ line  err   stmt   bran   cond   mcdc    sub   code
 10             1                               my $y = 7;
 11             1                               $y++;
 12                                             
-13                                             sub _aa {
-14    ***     *0                          *0     $y++;
+13    ***                                 *0   sub _aa {
+14    ***     *0                                 $y++;
 15    ***     *0                                 die;
 16    ***     *0                                 die;
 17                                             }
 18                                             
-19                                             sub xx {
-20    ***     *0                          *0     $y++;
+19    ***                                 *0   sub xx {
+20    ***     *0                                 $y++;
 21    ***     *0                                 die;
 22                                             }
 23                                             
-24                                             sub yy {
-25    ***     *0                          *0     $y++;
+24    ***                                 *0   sub yy {
+25    ***     *0                                 $y++;
 26                                             }
 27                                             
-28                                             sub zz {
-29            11                          11     my $x = shift;
+28                                        11   sub zz {
+29            11                                 my $x = shift;
 30            11                                 $x++;
 31                                             }
 32                                             
@@ -86,16 +86,16 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location     
 ---------- ----- --- ----- -------------
-zz            11   1   0.0 Module1.pm:29
+zz            11   1   0.0 Module1.pm:28
 
 Uncovered Subroutines
 ---------------------
 
 Subroutine Count  CC  SCAR Location     
 ---------- ----- --- ----- -------------
-_aa            0   1   6.9 Module1.pm:14
-xx             0   1   6.9 Module1.pm:20
-yy             0   1   6.9 Module1.pm:25
+_aa            0   1   6.9 Module1.pm:13
+xx             0   1   6.9 Module1.pm:19
+yy             0   1   6.9 Module1.pm:24
 
 
 module1
@@ -136,8 +136,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
 18                                             
 19             1                               my @x;
 20                                             
-21                                             sub xx {
-22            11                          11       $x[shift]++;
+21                                        11   sub xx {
+22            11                                   $x[shift]++;
 23            11                                   Module1::zz(0);
 24                                             }
 25                                             
@@ -167,6 +167,6 @@ BEGIN          1   1   0.0 module1:12
 BEGIN          1   1   0.0 module1:13
 BEGIN          1   1   0.0 module1:15
 BEGIN          1   1   0.0 module1:17
-xx            11   1   0.0 module1:22
+xx            11   1   0.0 module1:21
 
 

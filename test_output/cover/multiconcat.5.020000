@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine       CC SCAR  Location            
 ---------------- -- ----  --------------------
-test_multiconcat  2  7.0  tests/multiconcat:14
+test_multiconcat  2  7.0  tests/multiconcat:13
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/env perl
@@ -46,8 +46,8 @@ line  err   stmt   bran   cond   mcdc    sub   code
                1                               
                1                               
 12                                             
-13                                             sub test_multiconcat {
-14             1                           1     my ($x, $y) = ("x", 10);
+13                                         1   sub test_multiconcat {
+14             1                                 my ($x, $y) = ("x", 10);
 15    ***      1   * 50                          print "prefix" . $x . (defined $y ? $y : "test") . ": ";
 16             1                                 while () { return 10 }
                1                               
@@ -72,6 +72,6 @@ Subroutine       Count  CC  SCAR Location
 ---------------- ----- --- ----- --------------------
 BEGIN                1   1   0.0 tests/multiconcat:10
 BEGIN                1   1   0.0 tests/multiconcat:11
-test_multiconcat     1   2   7.0 tests/multiconcat:14
+test_multiconcat     1   2   7.0 tests/multiconcat:13
 
 

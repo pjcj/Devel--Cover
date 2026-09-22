@@ -27,9 +27,9 @@ Worst Subroutines
 
 Subroutine      CC SCAR  Location                   
 --------------- -- ----  ---------------------------
-or_die           2  7.1  tests/or_branch_polarity:18
-or_void          2  6.9  tests/or_branch_polarity:24
-unless_modifier  2  6.9  tests/or_branch_polarity:29
+or_die           2  7.1  tests/or_branch_polarity:17
+or_void          2  6.9  tests/or_branch_polarity:23
+unless_modifier  2  6.9  tests/or_branch_polarity:28
 
 line  err   stmt   bran   cond   code
 1                                #!/usr/bin/env perl
