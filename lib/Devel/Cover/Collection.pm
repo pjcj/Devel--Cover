@@ -29,8 +29,9 @@ use feature "class";
 
 no warnings "experimental::class";
 
-my $Dist_ext_re = qr/\.(?:zip|tgz|tar\.(?:gz|bz2|xz))/;
-my $Log_re      = qr/^\w-\w\w-(\w+)-(.+?)${Dist_ext_re}--/;
+my $Dist_ext_re     = qr/\.(?:zip|tgz|tar\.(?:gz|bz2|xz))/;
+my $Log_re          = qr/^\w-\w\w-(\w+)-(.+?)${Dist_ext_re}--/;
+my $Deadline_margin = 60;
 
 class Devel::Cover::Collection {
   # ro attributes
@@ -43,6 +44,7 @@ class Devel::Cover::Collection {
   field $output_file :param :reader = undef;
   field $report      :param :reader = undef;
   field $timeout     :param :reader = undef;
+  field $deadline    :param :reader = undef;
   field $verbose     :param :reader = undef;
   field $workers     :param :reader = undef;
   field $docker      :param :reader = undef;
@@ -91,6 +93,12 @@ class Devel::Cover::Collection {
   method dir  ($new = undef) { $dir  = $new if defined $new; $dir }
   method file ($new = undef) { $file = $new if defined $new; $file }
 
+  method _alarm_seconds {
+    return $timeout unless defined $deadline;
+    my $left = $deadline - time;
+    $left > 1 ? $left : 1
+  }
+
   # display $non_buffered characters, then buffer
   method _sys ($non_buffered, @command) {
     # system @command; return ".";
@@ -98,6 +106,7 @@ class Devel::Cover::Collection {
     my ($output1, $output2) = ("", "");
     my $max = 4e4;
     # say "Setting alarm for $timeout seconds";
+    my $to = $self->_alarm_seconds;
     my $ok = 0;
     my $pid;
     # declared here so a timeout die doesn't close it and wait for the child
@@ -108,7 +117,7 @@ class Devel::Cover::Collection {
       if ($pid) {
         my $printed = 0;
         local $SIG{ALRM} = sub { die "alarm\n" };
-        alarm $timeout;
+        alarm $to;
         while (my $l = <$fh>) {
           # print "got: $l";
           # say "printed $printed of $non_buffered";
@@ -148,7 +157,7 @@ class Devel::Cover::Collection {
     if ($@) {
       $ok = 0;
       die "$@" unless $@ eq "alarm\n";  # propagate unexpected errs
-      warn "Timed out after $timeout seconds!\n";
+      warn sprintf "Timed out after %d seconds!\n", $to;
       my $pgrp = getpgrp $pid;
       my $n    = kill "-KILL", $pgrp;
       warn "killed $n processes";
@@ -604,7 +613,7 @@ class Devel::Cover::Collection {
     my @mods = sort grep !/^\./, readdir $dh;
     closedir $dh or die "Can't closedir $d: $!";
 
-    my @data = eval { require Parallel::Iterator; 1 }
+    my @data = eval { 1 }
       ? _iterate(
         { workers => $workers },
         sub {
@@ -679,6 +688,7 @@ class Devel::Cover::Collection {
   }
 
   method local_build {
+    $deadline //= time + $timeout - $Deadline_margin;
     $self->process_module_file;
     $self->build_modules;
     $self->add_build_dirs;
@@ -1276,6 +1286,15 @@ Report format to generate. Default: 'html'.
 =head3 timeout
 
 Timeout in seconds for coverage runs. Default: 3600 (60 minutes).
+
+=head3 deadline
+
+Epoch time by which a local build must finish. Each command a local build runs
+gets an alarm for the time left before the deadline rather than the full
+timeout. C<local_build> sets it to the timeout less a margin of 60 seconds when
+it is not given. The build then stops on its own alarm and the output it has
+buffered reaches the log before the controller's timeout kills the container.
+Default: none.
 
 =head3 verbose
 
