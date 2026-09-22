@@ -1,0 +1,9 @@
+---
+match:
+  distribution: >-
+    (?x) ^(?:
+      KWILLIAMS/Apache-(?:Filter|SSI|Compress)
+      | MAUNDER/Apache-AppCluster
+    )-
+disabled: 1
+comment: Apache::test asks for httpd on STDIN and loops with no tty
