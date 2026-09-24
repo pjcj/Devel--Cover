@@ -991,7 +991,7 @@ sub _uncoverable_details ($criterion, $info, $file, $line) {
   ($counts, \@types, $class, $note)
 }
 
-my %Annotation = map { $_ => 1 } qw( uncoverable );
+my %Annotation = map { $_ => 1 } qw( uncoverable noreturn );
 
 sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
   my $cr = join "|", $self->{all_criteria}->@*;

@@ -358,6 +358,20 @@ the MC/DC column walker, so the observed vectors have the same width as the
 table. `tests/dor_defined` exercises every family and a control group that must
 keep three outcomes.
 
+An `entersub` whose sub never returns collapses in the same way. `croak` and
+`confess` are built in, and a `# dc noreturn` comment adds names for the file it
+appears in. `use_file` reads the comments when it admits a file and stores the
+names in `%Noreturn`, keyed by file, which the XS side reads through
+`MY_CXT.noreturn`. `_is_noreturn_call` matches the bare name of the GV under the
+`entersub`, its qualified name, and the qualified name of the CV it holds, so an
+imported `croak` matches `Carp::croak`. On perls built with ithreads the `gv` op
+holds a pad index, so both sides read the GV from pad 1 of the CV that owns the
+op rather than the current pad. `dc_is_noreturn_call` in `Cover.xs` is consulted
+at two points. The column walker gives the call no MC/DC column. The logop hook
+records the outcome at once, as it does for a literal `die`, rather than waiting
+for a value that is never produced. `tests/noreturn` covers the built-in names,
+a listed name and a control sub.
+
 **`xor` with 4 outcomes**:
 
 ```perl

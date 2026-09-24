@@ -90,6 +90,16 @@ PERL
   ok !exists $unc->{digest}, "legacy unknown word: nothing is recorded";
 }
 
+sub test_noreturn_is_a_known_verb () {
+  my ($unc, $warnings) = parse_comments(<<'PERL');
+my $n = 1;
+# dc noreturn usage_die
+$n++;
+PERL
+  is @$warnings, 0, "noreturn: no warning";
+  ok !exists $unc->{digest}, "noreturn: records no uncoverable data";
+}
+
 sub test_dc_must_open_the_comment () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
@@ -107,6 +117,7 @@ sub main () {
   test_unknown_verb_warns;
   test_dc_unsupported_criterion_warns;
   test_legacy_unknown_word_is_ignored;
+  test_noreturn_is_a_known_verb;
   test_dc_must_open_the_comment;
 }
 

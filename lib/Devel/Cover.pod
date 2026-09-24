@@ -330,8 +330,31 @@ arguments of that verb:
   # dc uncoverable branch true
 
 The C<uncoverable> verb marks criteria which cannot be exercised, as described
-in the next section.  A comment which opens with C<dc> and an unknown verb warns
-and is ignored, so a misspelt verb does not pass in silence.
+in the next section.  The C<noreturn> verb names subs which never return.  A
+comment which opens with C<dc> and an unknown verb warns and is ignored, so a
+misspelt verb does not pass in silence.
+
+=head2 Subs which never return
+
+When the right operand of C<||>, C<&&>, C<//> or their assignment forms is
+C<die>, C<return>, C<exit> or another op which never yields a value, the
+condition has only two outcomes, since the right operand can never be true or
+false.  A call to C<croak> or C<confess> is treated the same way, so the common
+idiom
+
+  my $x = shift // croak("no x");
+
+reports two outcomes, and MC/DC sees a single atomic condition.
+
+A project with subs of its own which never return, such as a C<usage_die>,
+can list them in a comment anywhere in the file which calls them:
+
+  # dc noreturn usage_die pod2usage
+
+The comment applies to the whole file it appears in.  A name matches the sub
+called by its bare name, by its qualified name such as C<My::App::usage_die>,
+or by the qualified name of the sub it resolves to, so C<Carp::croak> matches
+an imported C<croak>.  C<croak> and C<confess> are always in the list.
 
 =head1 UNCOVERABLE CRITERIA
 

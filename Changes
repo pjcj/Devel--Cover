@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Collapse a condition whose right operand calls `croak`, `confess` or
+  a sub listed in a `# dc noreturn` comment to two outcomes (GH-834)
+- Add the `dc` prefix for source annotations, so `# uncoverable` becomes
+  `# dc uncoverable`, with the old spelling kept as an alias (GH-834)
 - Collapse a `//` condition whose right operand is always defined, such
   as `$x // time`, to two outcomes, and `||` or `&&` with `time` or
   `qr//` likewise (GH-833)

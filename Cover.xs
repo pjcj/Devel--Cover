@@ -176,7 +176,8 @@ typedef struct {
                *times,
 #endif
                *modules,
-               *files;
+               *files,
+               *noreturn;          /* file -> { sub name -> 1 } */
   AV           *ends;
   AV           *finished_blocks;     /* special block CVs that have run,
                                       * whose captured outer lexicals are
@@ -1507,6 +1508,65 @@ static int dc_is_defined_leaf(pTHX_ OP *op) {
   return 0;
 }
 
+/* The GV an entersub calls, read from the pad of cv under ithreads */
+static GV *dc_call_gv(pTHX_ CV *cv, OP *op) {
+  OP *kid = cUNOPx(op)->op_first;
+  SV *sv;
+  if (!kid) return NULL;
+  if (kid->op_type == OP_NULL && kid->op_targ == OP_LIST)
+    kid = cUNOPx(kid)->op_first;
+  while (kid && OpSIBLING(kid)) kid = OpSIBLING(kid);
+  if (!kid || (kid->op_type != OP_NULL && kid->op_type != OP_RV2CV))
+    return NULL;
+  if (!(kid->op_flags & OPf_KIDS)) return NULL;
+  kid = cUNOPx(kid)->op_first;
+  if (!kid || kid->op_type != OP_GV) return NULL;
+#ifdef USE_ITHREADS
+  {
+    PADLIST *padlist = CvPADLIST(cv);
+    if (!padlist || PadlistMAX(padlist) < 1) return NULL;
+    sv = PadARRAY(PadlistARRAY(padlist)[1])[cPADOPx(kid)->op_padix];
+  }
+#else
+  sv = cSVOPx(kid)->op_sv;
+#endif
+  return sv && SvTYPE(sv) == SVt_PVGV ? (GV *)sv : NULL;
+}
+
+/* Mirror of Cover.pm's _is_noreturn_call */
+static int dc_is_noreturn_call(pTHX_ CV *cv, OP *op) {
+  dMY_CXT;
+  GV         *gv;
+  CV         *sub;
+  HV         *names;
+  SV        **slot;
+  const char *file;
+  if (!op || !cv || !MY_CXT.noreturn) return 0;
+  if (op->op_type == OP_SASSIGN) op = cUNOPx(op)->op_first;
+  if (!op || op->op_type != OP_ENTERSUB) return 0;
+  file = CopFILE(PL_curcop);
+  if (!file) return 0;
+  slot = hv_fetch(MY_CXT.noreturn, file, strlen(file), 0);
+  if (!slot || !SvROK(*slot) || SvTYPE(SvRV(*slot)) != SVt_PVHV) return 0;
+  names = (HV *)SvRV(*slot);
+  gv    = dc_call_gv(aTHX_ cv, op);
+  if (!gv) return 0;
+  if (hv_exists(names, GvNAME(gv), GvNAMELEN(gv))) return 1;
+  if (GvSTASH(gv) && HvNAME(GvSTASH(gv))) {
+    SV *q = sv_2mortal(newSVpvf("%s::%.*s", HvNAME(GvSTASH(gv)),
+                                (int)GvNAMELEN(gv), GvNAME(gv)));
+    if (hv_exists_ent(names, q, 0)) return 1;
+  }
+  sub = GvCV(gv);
+  if (sub && CvGV(sub) && GvSTASH(CvGV(sub)) && HvNAME(GvSTASH(CvGV(sub)))) {
+    GV *def = CvGV(sub);
+    SV *q   = sv_2mortal(newSVpvf("%s::%.*s", HvNAME(GvSTASH(def)),
+                                  (int)GvNAMELEN(def), GvNAME(def)));
+    if (hv_exists_ent(names, q, 0)) return 1;
+  }
+  return 0;
+}
+
 /*
  * Mirror of Cover.pm's _is_const_right multiconcat arm: an OP_MULTICONCAT
  * right operand whose literal text is truthy makes the whole concatenation
@@ -1653,7 +1713,7 @@ static HV *dc_meta_entry(pTHX_ HV *cache, OP *op) {
  * is_root, and root_addr for every logop encountered.  Returns the next
  * column index after this subtree's leaves.
  */
-static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
+static int dc_enumerate_columns(pTHX_ HV *cache, CV *cv, OP *op, OP *root,
                                 int next_col) {
   HV *meta      = dc_meta_entry(aTHX_ cache, op);
   OP *first     = cLOGOPx(op)->op_first;
@@ -1666,7 +1726,7 @@ static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
   /* A constant left operand keeps its column: _build_labels always gives the
    * left operand one, and the widths must agree */
   if (left_op && dc_is_logop_type(left_op->op_type)) {
-    next_col = dc_enumerate_columns(aTHX_ cache, left_op, root, next_col);
+    next_col = dc_enumerate_columns(aTHX_ cache, cv, left_op, root, next_col);
     left_col = -1;
   } else {
     left_col = next_col++;
@@ -1675,9 +1735,11 @@ static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
   if (dc_is_multiconcat_truthy(aTHX_ raw_right)) {
     right_col = -1;
   } else if (right_op && dc_is_logop_type(right_op->op_type)) {
-    next_col = dc_enumerate_columns(aTHX_ cache, right_op, root, next_col);
+    next_col = dc_enumerate_columns(aTHX_ cache, cv, right_op, root, next_col);
     right_col = -1;
   } else if (raw_right && dc_is_const_leaf(aTHX_ raw_right)) {
+    right_col = -1;
+  } else if (raw_right && dc_is_noreturn_call(aTHX_ cv, raw_right)) {
     right_col = -1;
   } else if (dor && raw_right && dc_is_defined_leaf(aTHX_ raw_right)) {
     right_col = -1;
@@ -1813,7 +1875,7 @@ static void dc_walk_cv_decisions(pTHX_ CV *cv) {
     }
 
     if (is_root) {
-      int width = dc_enumerate_columns(aTHX_ cache, lop, lop, 0);
+      int width = dc_enumerate_columns(aTHX_ cache, cv, lop, lop, 0);
       HV *meta  = dc_meta_entry(aTHX_ cache, lop);
       OP *entry = lop,
          *left;
@@ -2373,7 +2435,8 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
           right->op_type == OP_REDO   ||
           right->op_type == OP_GOTO   ||
           right->op_type == OP_RETURN ||
-          right->op_type == OP_DIE) {
+          right->op_type == OP_DIE    ||
+          dc_is_noreturn_call(aTHX_ find_runcv(NULL), right)) {
         /*
          * If we are in void context, or the right side of the op is a branch,
          * we don't care what its value is - it won't be returning one.  We're
@@ -3028,6 +3091,7 @@ static void initialise(pTHX) {
     *tmp              = newRV_inc((SV*) MY_CXT.modules);
 
     MY_CXT.files      = get_hv("Devel::Cover::Files", FALSE);
+    MY_CXT.noreturn   = get_hv("Devel::Cover::Noreturn", GV_ADD);
 
     HvSHAREKEYS_off(MY_CXT.statements);
     HvSHAREKEYS_off(MY_CXT.branches);
