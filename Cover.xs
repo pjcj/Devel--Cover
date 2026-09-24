@@ -1463,7 +1463,48 @@ static int dc_is_const_leaf(pTHX_ OP *op) {
          strEQ(n, "last")      || strEQ(n, "next")      ||
          strEQ(n, "redo")      || strEQ(n, "goto")      ||
          strEQ(n, "exec")      || strEQ(n, "exit")      ||
-         strEQ(n, "warn");
+         strEQ(n, "warn")      || strEQ(n, "time")      ||
+         strEQ(n, "qr");
+}
+
+/*
+ * Mirror of Cover.pm's $Defined_right and $Defined_scalar_right: a dor
+ * right operand whose scalar result is always defined cannot vary the
+ * outcome, so it gets no MC/DC column either.  keys and values count only
+ * in scalar context, where they return a count.
+ */
+static const char *const dc_defined_ops[] = {
+  "add",       "subtract", "multiply",  "divide",     "modulo",    "pow",
+  "negate",    "preinc",   "predec",    "postinc",    "postdec",
+  "abs",       "int",      "hex",       "oct",        "ord",       "sqrt",
+  "exp",       "log",      "sin",       "cos",        "atan2",     "rand",
+  "concat",    "multiconcat", "stringify", "repeat",  "lc",        "uc",
+  "lcfirst",   "ucfirst",  "quotemeta", "chr",        "join",      "sprintf",
+  "index",     "rindex",   "pack",      "vec",
+  "not",       "defined",  "exists",    "lt",         "gt",        "le",
+  "ge",        "eq",       "ne",        "slt",        "sgt",       "sle",
+  "sge",       "seq",      "sne",       "scmp",
+  "bit_and",   "bit_or",   "bit_xor",   "nbit_and",   "nbit_or",   "nbit_xor",
+  "sbit_and",  "sbit_or",  "sbit_xor",  "complement", "ncomplement",
+  "scomplement", "left_shift", "right_shift",
+  "tms",       "ref",      "push",      "unshift",
+  NULL
+};
+
+static int dc_is_defined_leaf(pTHX_ OP *op) {
+  const char *n;
+  const char *const *p;
+  if (!op) return 0;
+  if (op->op_type == OP_SASSIGN) op = cUNOPx(op)->op_first;
+  /* A nulled wrapper (ex-stringify, ex-exists, ex-keys) keeps its old type */
+  n = PL_op_name[op->op_type == OP_NULL && op->op_targ ? op->op_targ
+                                                        : op->op_type];
+  if (strnEQ(n, "i_", 2)) n += 2;
+  for (p = dc_defined_ops; *p; p++)
+    if (strEQ(n, *p)) return 1;
+  if (strEQ(n, "keys") || strEQ(n, "values") || strEQ(n, "akeys"))
+    return (op->op_flags & OPf_WANT) == OPf_WANT_SCALAR;
+  return 0;
 }
 
 /*
@@ -1620,6 +1661,7 @@ static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
   OP *left_op   = dc_skipped_operand(aTHX_ op, 0);
   OP *right_op  = dc_skipped_operand(aTHX_ op, 1);
   int left_col, right_col;
+  int dor = op->op_type == OP_DOR || op->op_type == OP_DORASSIGN;
 
   /* A constant left operand keeps its column: _build_labels always gives the
    * left operand one, and the widths must agree */
@@ -1636,6 +1678,8 @@ static int dc_enumerate_columns(pTHX_ HV *cache, OP *op, OP *root,
     next_col = dc_enumerate_columns(aTHX_ cache, right_op, root, next_col);
     right_col = -1;
   } else if (raw_right && dc_is_const_leaf(aTHX_ raw_right)) {
+    right_col = -1;
+  } else if (dor && raw_right && dc_is_defined_leaf(aTHX_ raw_right)) {
     right_col = -1;
   } else {
     right_col = next_col++;

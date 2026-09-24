@@ -2,8 +2,8 @@ cover: Reading database from ...
 -------------------- ------ ------ ------ ------ ------ ------ ------
 File                   stmt   bran   cond   mcdc    sub  total   scar
 -------------------- ------ ------ ------ ------ ------ ------ ------
-tests/cond_or_interp  100.0  100.0   95.3   92.0  100.0   96.2    0.0
-Total                 100.0  100.0   95.3   92.0  100.0   96.2    0.0
+tests/cond_or_interp  100.0  100.0   95.0   90.9  100.0   96.0    0.0
+Total                 100.0  100.0   95.0   90.9  100.0   96.0    0.0
 -------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 97.5  1.0  0.0
+ 1 97.4  1.0  0.0
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -44,9 +44,9 @@ line  err   stmt   bran   cond   mcdc    sub   code
 19                                             #   "$x$y"           -> concat       (can be falsy)
 20                                             #   "$x"             -> stringify    (can be falsy)
 21                                             #
-22                                             # For || and //: multiconcat with literal text should be 2-outcome (like const)
-23                                             # because the literal text guarantees a truthy result. Condition tracking uses
-24                                             # truthiness for both || and //, so the dor/or distinction does not matter here.
+22                                             # For ||: multiconcat with literal text should be 2-outcome (like const)
+23                                             # because the literal text guarantees a truthy result. For //: every
+24                                             # interpolated string is defined, so all three forms are 2-outcome.
 25                                             
 26             1                           1   use strict;
                1                               
@@ -95,13 +95,13 @@ line  err   stmt   bran   cond   mcdc    sub   code
 66             3           100    100            $r = $dor_lhs // "value $v end";
 67             3           100    100            $r = $dor_lhs // "value $v";
 68                                             
-69                                               # // with multiconcat RHS, no literal text (correctly 3-outcome)
+69                                               # // with multiconcat RHS, no literal text (2-outcome, always defined)
 70             3           100    100            $r = $dor_lhs // "$v$v$v";
 71                                             
-72                                               # // with concat RHS (correctly 3-outcome)
+72                                               # // with concat RHS (2-outcome, always defined)
 73             3           100    100            $r = $dor_lhs // "$v$v";
 74                                             
-75                                               # // with stringify RHS (correctly 3-outcome)
+75                                               # // with stringify RHS (2-outcome, always defined)
 76             3           100    100            $r = $dor_lhs // "$v";
 77                                             
 78                                               # ||= with multiconcat RHS, literal text (should be 2-outcome)
@@ -144,6 +144,9 @@ line  err      %      l     !l   expr
 63           100      1      2   $dor_lhs // "literal"
 66           100      1      2   $dor_lhs // "value $v end"
 67           100      1      2   $dor_lhs // "value $v"
+70           100      1      2   $dor_lhs // "$v$v$v"
+73           100      1      2   $dor_lhs // "$v$v"
+76           100      1      2   $dor_lhs // "$v"
 79           100      2      1   $Arr[0] ||= "value $v end"
 82           100      2      1   $Arr[1] //= "value $v end"
 85           100      1      2   $or_lhs || warn("expected\n")
@@ -158,9 +161,6 @@ line  err      %      l  !l&&r !l&&!r   expr
 54           100      1      1      1   $or_lhs || "$v$v$v"
 57           100      1      1      1   $or_lhs || "$v$v"
 60           100      1      1      1   $or_lhs || "$v"
-70           100      1      1      1   $dor_lhs // "$v$v$v"
-73           100      1      1      1   $dor_lhs // "$v$v"
-76           100      1      1      1   $dor_lhs // "$v"
 
 
 MC/DC
@@ -178,9 +178,9 @@ line  err      %  cov  tot   missing                expr
 63           100    1    1                          $dor_lhs // "literal"
 66           100    1    1                          $dor_lhs // "value $v end"
 67           100    1    1                          $dor_lhs // "value $v"
-70           100    2    2                          $dor_lhs // "$v$v$v"
-73           100    2    2                          $dor_lhs // "$v$v"
-76           100    2    2                          $dor_lhs // "$v"
+70           100    1    1                          $dor_lhs // "$v$v$v"
+73           100    1    1                          $dor_lhs // "$v$v"
+76           100    1    1                          $dor_lhs // "$v"
 79           100    1    1                          $Arr[0] ||= "value $v end"
 82           100    1    1                          $Arr[1] //= "value $v end"
 85           100    1    1                          $or_lhs || warn("expected\n")

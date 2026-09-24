@@ -104,13 +104,35 @@ my %Run;               # Data collected from the run
 
 my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
                        emptyavhv|scalar|return|last|next|redo|goto|
-                       exec|exit|warn)$/x;
+                       exec|exit|warn|time|qr)$/x;
+
+# Ops whose scalar result is always defined, so a // right operand is fixed
+my $Defined_right = qr/^(?:i_)?(?:
+  add|subtract|multiply|divide|modulo|pow|negate|
+  preinc|predec|postinc|postdec|
+  abs|int|hex|oct|ord|sqrt|exp|log|sin|cos|atan2|rand|
+  concat|multiconcat|stringify|repeat|lc|uc|lcfirst|ucfirst|quotemeta|chr|
+  join|sprintf|index|rindex|pack|vec|
+  not|defined|exists|lt|gt|le|ge|eq|ne|slt|sgt|sle|sge|seq|sne|scmp|
+  [ns]?bit_(?:and|or|xor)|[ns]?complement|left_shift|right_shift|
+  tms|ref|push|unshift
+)$/x;
+
+# Ops that return a defined count only in scalar context
+my $Defined_scalar_right = qr/^(?:keys|values|akeys)$/;
 
 # The multiconcat string is aux_list element [1] and does not depend on the CV
-sub _is_const_right ($op) {
+sub _is_const_right ($op, $dor = 0) {
   my $rhs  = $op->name eq "sassign" ? $op->first : $op;
   my $name = $rhs->name;
   return 1 if $name =~ $Const_right;
+  if ($dor) {
+    # A nulled wrapper (ex-stringify, ex-exists, ex-keys) keeps its old type
+    $name = substr B::ppname($rhs->targ), 3 if $name eq "null" && $rhs->targ;
+    return 1 if $name =~ $Defined_right;
+    return ($rhs->flags & OPf_WANT) == B::OPf_WANT_SCALAR ? 1 : 0
+      if $name =~ $Defined_scalar_right;
+  }
   return 0 unless ref($rhs) eq "B::UNOP_AUX" && $name eq "multiconcat";
   my @aux = $rhs->aux_list(main_cv);
   $aux[1]
@@ -985,7 +1007,8 @@ sub _condition_counts ($c, $type, $op) {
   no warnings "uninitialized";
 
   if ($type eq "or" || $type eq "and") {
-    my $const = _is_const_right($op->first->sibling);
+    my $const
+      = _is_const_right($op->first->sibling, $op->name =~ /^dor/ ? 1 : 0);
     return ([$c->[3], $c->[1] + $c->[2]], 2, $c->[5] && !$const ? 1 : 0)
       if $c->[5] || $const;
     return ([$c->@[$type eq "or" ? (3, 2, 1) : (3, 1, 2)]], 3, 0);
@@ -1964,7 +1987,7 @@ whenever the op did not short-circuit.  An C<and> may also be a plain
 C<if> with no C<else>, an C<or> an C<unless>, and the C<elsif> form
 applies when no further C<elsif> or C<else> follows.
 
-=head2 _is_const_right ($op)
+=head2 _is_const_right ($op, $dor)
 
 True when the right operand of a logical op is a constant-like expression
 with a fixed truth value, unwrapping an enclosing C<sassign> first.  A
@@ -1972,6 +1995,15 @@ C<multiconcat> op (Perl 5.28+) counts when its literal text is truthy -
 truthy rather than merely non-empty because C<"0"> is the one non-empty
 string that is false.  Such an op collapses to a two-row condition
 counting only the left operand.
+
+For C<//> and C<//=>, where C<$dor> is true, the property that matters is
+definedness, so any op whose scalar result is always defined counts as
+well: arithmetic, the numeric and string functions, comparisons, C<time>,
+C<ref>, C<push> and their kind, and C<keys> or C<values> in scalar
+context.  A nulled wrapper such as C<ex-stringify> or C<ex-exists> is
+judged by its former type.  Ops that can return undef, such as C<length>,
+C<substr>, C<gmtime> and C<< <=> >>, stay out.  The XS column walker in
+C<dc_is_defined_leaf> keeps the same list.
 
 =head2 _condition_counts ($c, $type, $op)
 

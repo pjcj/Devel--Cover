@@ -19,9 +19,9 @@
 #   "$x$y"           -> concat       (can be falsy)
 #   "$x"             -> stringify    (can be falsy)
 #
-# For || and //: multiconcat with literal text should be 2-outcome (like const)
-# because the literal text guarantees a truthy result. Condition tracking uses
-# truthiness for both || and //, so the dor/or distinction does not matter here.
+# For ||: multiconcat with literal text should be 2-outcome (like const)
+# because the literal text guarantees a truthy result. For //: every
+# interpolated string is defined, so all three forms are 2-outcome.
 
 use strict;
 use warnings;
@@ -66,13 +66,13 @@ for my $iter (0 .. 2) {
   $r = $dor_lhs // "value $v end";
   $r = $dor_lhs // "value $v";
 
-  # // with multiconcat RHS, no literal text (correctly 3-outcome)
+  # // with multiconcat RHS, no literal text (2-outcome, always defined)
   $r = $dor_lhs // "$v$v$v";
 
-  # // with concat RHS (correctly 3-outcome)
+  # // with concat RHS (2-outcome, always defined)
   $r = $dor_lhs // "$v$v";
 
-  # // with stringify RHS (correctly 3-outcome)
+  # // with stringify RHS (2-outcome, always defined)
   $r = $dor_lhs // "$v";
 
   # ||= with multiconcat RHS, literal text (should be 2-outcome)

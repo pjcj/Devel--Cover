@@ -1,0 +1,444 @@
+cover: Reading database from ...
+----------------- ------ ------ ------ ------ ------ ------ ------
+File                stmt   bran   cond   mcdc    sub  total   scar
+----------------- ------ ------ ------ ------ ------ ------ ------
+tests/dor_defined  100.0    n/a   95.6   85.4  100.0   94.9   26.0
+Total              100.0    n/a   95.6   85.4  100.0   94.9   26.0
+----------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/dor_defined
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+89 97.5 13.4 26.0
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location            
+----------------- -- ----  --------------------
+booleans          23 31.4  tests/dor_defined:84
+strings           17 28.3  tests/dor_defined:62
+numeric_functions 13 25.6  tests/dor_defined:44
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13             1                               our %h = (a => 1);
+14             1                               our @a = (1);
+15                                             
+16                                         2   sub arithmetic {
+17             2                                 my ($x, $y) = @_;
+18             2                                 my @r;
+19             2           100    100            push @r, $x // $y + 1;
+20             2           100    100            push @r, $x // $y - 1;
+21             2           100    100            push @r, $x // $y * 2;
+22             2           100    100            push @r, $x // $y / 2;
+23             2           100    100            push @r, $x // $y % 2;
+24             2           100    100            push @r, $x // $y**2;
+25             2           100    100            push @r, $x // -$y;
+26             2           100    100            push @r, $x // ++$y;
+27             2           100    100            push @r, $x // --$y;
+28             2           100    100            push @r, $x // $y++;
+29             2           100    100            push @r, $x // $y--;
+30                                               @r
+31             2                               }
+32                                             
+33                                         2   sub integer_arithmetic {
+34             1                           1     use integer;
+               1                               
+               1                               
+35             2                                 my ($x, $y) = @_;
+36             2                                 my @r;
+37             2           100    100            push @r, $x // $y + 1;
+38             2           100    100            push @r, $x // -$y;
+39             2           100    100            push @r, $x // ++$y;
+40             2           100    100            push @r, $x // $y < 3;
+41                                               @r
+42             2                               }
+43                                             
+44                                         2   sub numeric_functions {
+45             2                                 my ($x, $y) = @_;
+46             2                                 my @r;
+47             2           100    100            push @r, $x // abs $y;
+48             2           100    100            push @r, $x // int $y;
+49             2           100    100            push @r, $x // hex $y;
+50             2           100    100            push @r, $x // oct $y;
+51             2           100    100            push @r, $x // ord $y;
+52             2           100    100            push @r, $x // sqrt $y;
+53             2           100    100            push @r, $x // exp $y;
+54             2           100    100            push @r, $x // log $y;
+55             2           100    100            push @r, $x // sin $y;
+56             2           100    100            push @r, $x // cos $y;
+57             2           100    100            push @r, $x // atan2 $y, 1;
+58             2           100    100            push @r, $x // rand;
+59                                               @r
+60             2                               }
+61                                             
+62                                         2   sub strings {
+63             2                                 my ($x, $y, $z) = @_;
+64             2                                 my @r;
+65             2           100    100            push @r, $x // $y . $z;
+66             2           100    100            push @r, $x // "$y$z";
+67             2           100    100            push @r, $x // "$y";
+68             2           100    100            push @r, $x // $y x 2;
+69             2           100    100            push @r, $x // lc $y;
+70             2           100    100            push @r, $x // uc $y;
+71             2           100    100            push @r, $x // lcfirst $y;
+72             2           100    100            push @r, $x // ucfirst $y;
+73             2           100    100            push @r, $x // quotemeta $y;
+74             2           100    100            push @r, $x // chr $y;
+75             2           100    100            push @r, $x // join ",",     @a;
+76             2           100    100            push @r, $x // sprintf "%s", $y;
+77             2           100    100            push @r, $x // index $y,     "a";
+78             2           100    100            push @r, $x // rindex $y,    "a";
+79             2           100    100            push @r, $x // pack "A",     $y;
+80             2           100    100            push @r, $x // vec $y,       0, 8;
+81                                               @r
+82             2                               }
+83                                             
+84                                         2   sub booleans {
+85             2                                 my ($x, $y) = @_;
+86             2                                 my @r;
+87             2           100    100            push @r, $x // !$y;
+88             2           100    100            push @r, $x // defined $y;
+89             2           100    100            push @r, $x // exists $h{a};
+90             2           100    100            push @r, $x // $y < 3;
+91             2           100    100            push @r, $x // $y > 3;
+92             2           100    100            push @r, $x // $y <= 3;
+93             2           100    100            push @r, $x // $y >= 3;
+94             2           100    100            push @r, $x // $y == 3;
+95             2           100    100            push @r, $x // $y != 3;
+96             2           100    100            push @r, $x // $y lt "b";
+97             2           100    100            push @r, $x // $y gt "b";
+98             2           100    100            push @r, $x // $y le "b";
+99             2           100    100            push @r, $x // $y ge "b";
+100            2           100    100            push @r, $x // $y eq "b";
+101            2           100    100            push @r, $x // $y ne "b";
+102            2           100    100            push @r, $x // $y cmp "b";
+103            2           100    100            push @r, $x // $y & 1;
+104            2           100    100            push @r, $x // $y | 1;
+105            2           100    100            push @r, $x // $y ^ 1;
+106            2           100    100            push @r, $x // ~$y;
+107            2           100    100            push @r, $x // $y << 1;
+108            2           100    100            push @r, $x // $y >> 1;
+109                                              @r
+110            2                               }
+111                                            
+112                                        2   sub others {
+113            2                                 my ($x, $y) = @_;
+114            2                                 my @r;
+115            2           100    100            push @r, $x // time;
+116            2           100    100            push @r, $x // times;
+117            2           100    100            push @r, $x // ref $y;
+118            2           100    100            push @r, $x // push @a,    1;
+119            2           100    100            push @r, $x // unshift @a, 1;
+120            2           100    100            push @r, $x // qr/a/;
+121            2           100    100            my $n = $x // keys %h;
+122            2           100    100            my $v = $x // values %h;
+123            2           100    100            my $k = $x // keys @a;
+124            2                                 push @r, $n, $v, $k;
+125                                              @r
+126            2                               }
+127                                            
+128                                        2   sub list_context {
+129            2                                 my ($x) = @_;
+130   ***      2          * 66   *  0            my @k   = ($x // keys %h);
+131   ***      2          * 66   *  0            my @v   = ($x // values %h);
+132            2                                 (@k, @v)
+133                                            }
+134                                            
+135                                        2   sub assign {
+136            2                                 my ($x, $y) = @_;
+137            2           100    100            $x //= time;
+138            2           100    100            $y //= $y + 1;
+139            2                                 ($x, $y)
+140                                            }
+141                                            
+142                                        2   sub or_and {
+143            2                                 my ($x, $y) = @_;
+144            2                                 my @r;
+145            2           100    100            push @r, $x || time;
+146            2           100    100            push @r, $x || qr/a/;
+147            2           100    100            push @r, $x && time;
+148            2           100    100            push @r, $x && qr/a/;
+149                                              @r
+150            2                               }
+151                                            
+152                                        2   sub still_three {
+153            2                                 my ($x, $y) = @_;
+154            2                                 my @r;
+155   ***      2          * 66   *  0            push @r, $x // length $y;
+156   ***      2          * 66   *  0            push @r, $x // substr $y, 0, 1;
+157   ***      2          * 66   * 50            push @r, $x // gmtime $y;
+158   ***      2          * 66   *  0            push @r, $x // $y <=> 3;
+159   ***      2          * 66   *  0            push @r, $x || $y + 1;
+160   ***      2          * 66   * 50            push @r, $x && $y + 1;
+161                                              @r
+162            2                               }
+163                                            
+164            1                               for my $x (1, undef) {
+165            2                                 arithmetic($x, 4);
+166            2                                 integer_arithmetic($x, 4);
+167            2                                 numeric_functions($x, 4);
+168            2                                 strings($x, "ab", "cd");
+169            2                                 booleans($x, 2);
+170            2                                 others($x, 2);
+171            2                                 list_context($x);
+172            2                                 assign($x, $x);
+173            2                                 or_and($x, 2);
+174            2                                 still_three($x, 4);
+175                                            }
+
+
+Conditions
+----------
+
+and 2 conditions
+
+line  err      %     !l      l   expr
+----- --- ------ ------ ------   ----
+147          100      1      1   $x && time
+148          100      1      1   $x && qr/a/
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+160   ***     66      1      0      1   $x && $y + 1
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+19           100      1      1   $x // $y + 1
+20           100      1      1   $x // $y - 1
+21           100      1      1   $x // $y * 2
+22           100      1      1   $x // $y / 2
+23           100      1      1   $x // $y % 2
+24           100      1      1   $x // $y ** 2
+25           100      1      1   $x // -$y
+26           100      1      1   $x // ++$y
+27           100      1      1   $x // --$y
+28           100      1      1   $x // $y++
+29           100      1      1   $x // $y--
+37           100      1      1   $x // $y + 1
+38           100      1      1   $x // -$y
+39           100      1      1   $x // ++$y
+40           100      1      1   $x // $y < 3
+47           100      1      1   $x // abs $y
+48           100      1      1   $x // int $y
+49           100      1      1   $x // hex $y
+50           100      1      1   $x // oct $y
+51           100      1      1   $x // ord $y
+52           100      1      1   $x // sqrt $y
+53           100      1      1   $x // exp $y
+54           100      1      1   $x // log $y
+55           100      1      1   $x // sin $y
+56           100      1      1   $x // cos $y
+57           100      1      1   $x // atan2($y, 1)
+58           100      1      1   $x // rand
+65           100      1      1   $x // $y . $z
+66           100      1      1   $x // "$y$z"
+67           100      1      1   $x // "$y"
+68           100      1      1   $x // $y x 2
+69           100      1      1   $x // lc $y
+70           100      1      1   $x // uc $y
+71           100      1      1   $x // lcfirst $y
+72           100      1      1   $x // ucfirst $y
+73           100      1      1   $x // quotemeta $y
+74           100      1      1   $x // chr $y
+75           100      1      1   $x // join(",", @a)
+76           100      1      1   $x // sprintf("%s", $y)
+77           100      1      1   $x // index($y, "a")
+78           100      1      1   $x // rindex($y, "a")
+79           100      1      1   $x // pack("A", $y)
+80           100      1      1   $x // vec($y, 0, 8)
+87           100      1      1   $x // !$y
+88           100      1      1   $x // defined $y
+89           100      1      1   $x // exists $h{"a"}
+90           100      1      1   $x // $y < 3
+91           100      1      1   $x // $y > 3
+92           100      1      1   $x // $y <= 3
+93           100      1      1   $x // $y >= 3
+94           100      1      1   $x // $y == 3
+95           100      1      1   $x // $y != 3
+96           100      1      1   $x // $y lt "b"
+97           100      1      1   $x // $y gt "b"
+98           100      1      1   $x // $y le "b"
+99           100      1      1   $x // $y ge "b"
+100          100      1      1   $x // $y eq "b"
+101          100      1      1   $x // $y ne "b"
+102          100      1      1   $x // $y cmp "b"
+103          100      1      1   $x // $y & 1
+104          100      1      1   $x // $y | 1
+105          100      1      1   $x // $y ^ 1
+106          100      1      1   $x // ~$y
+107          100      1      1   $x // $y << 1
+108          100      1      1   $x // $y >> 1
+115          100      1      1   $x // time
+116          100      1      1   $x // times
+117          100      1      1   $x // ref $y
+118          100      1      1   $x // push(@a, 1)
+119          100      1      1   $x // unshift(@a, 1)
+120          100      1      1   $x // qr/a/
+121          100      1      1   $x // keys %h
+122          100      1      1   $x // values %h
+123          100      1      1   $x // keys @a
+137          100      1      1   $x //= time
+138          100      1      1   $y //= $y + 1
+145          100      1      1   $x || time
+146          100      1      1   $x || qr/a/
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+130   ***     66      1      1      0   $x // keys %h
+131   ***     66      1      1      0   $x // values %h
+155   ***     66      1      1      0   $x // length $y
+156   ***     66      1      1      0   $x // substr($y, 0, 1)
+157   ***     66      1      0      1   $x // gmtime $y
+158   ***     66      1      1      0   $x // $y <=> 3
+159   ***     66      1      1      0   $x || $y + 1
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+19           100    1    1                          $x // $y + 1
+20           100    1    1                          $x // $y - 1
+21           100    1    1                          $x // $y * 2
+22           100    1    1                          $x // $y / 2
+23           100    1    1                          $x // $y % 2
+24           100    1    1                          $x // $y ** 2
+25           100    1    1                          $x // -$y
+26           100    1    1                          $x // ++$y
+27           100    1    1                          $x // --$y
+28           100    1    1                          $x // $y++
+29           100    1    1                          $x // $y--
+37           100    1    1                          $x // $y + 1
+38           100    1    1                          $x // -$y
+39           100    1    1                          $x // ++$y
+40           100    1    1                          $x // $y < 3
+47           100    1    1                          $x // abs $y
+48           100    1    1                          $x // int $y
+49           100    1    1                          $x // hex $y
+50           100    1    1                          $x // oct $y
+51           100    1    1                          $x // ord $y
+52           100    1    1                          $x // sqrt $y
+53           100    1    1                          $x // exp $y
+54           100    1    1                          $x // log $y
+55           100    1    1                          $x // sin $y
+56           100    1    1                          $x // cos $y
+57           100    1    1                          $x // atan2($y, 1)
+58           100    1    1                          $x // rand
+65           100    1    1                          $x // $y . $z
+66           100    1    1                          $x // "$y$z"
+67           100    1    1                          $x // "$y"
+68           100    1    1                          $x // $y x 2
+69           100    1    1                          $x // lc $y
+70           100    1    1                          $x // uc $y
+71           100    1    1                          $x // lcfirst $y
+72           100    1    1                          $x // ucfirst $y
+73           100    1    1                          $x // quotemeta $y
+74           100    1    1                          $x // chr $y
+75           100    1    1                          $x // join(",", @a)
+76           100    1    1                          $x // sprintf("%s", $y)
+77           100    1    1                          $x // index($y, "a")
+78           100    1    1                          $x // rindex($y, "a")
+79           100    1    1                          $x // pack("A", $y)
+80           100    1    1                          $x // vec($y, 0, 8)
+87           100    1    1                          $x // !$y
+88           100    1    1                          $x // defined $y
+89           100    1    1                          $x // exists $h{"a"}
+90           100    1    1                          $x // $y < 3
+91           100    1    1                          $x // $y > 3
+92           100    1    1                          $x // $y <= 3
+93           100    1    1                          $x // $y >= 3
+94           100    1    1                          $x // $y == 3
+95           100    1    1                          $x // $y != 3
+96           100    1    1                          $x // $y lt "b"
+97           100    1    1                          $x // $y gt "b"
+98           100    1    1                          $x // $y le "b"
+99           100    1    1                          $x // $y ge "b"
+100          100    1    1                          $x // $y eq "b"
+101          100    1    1                          $x // $y ne "b"
+102          100    1    1                          $x // $y cmp "b"
+103          100    1    1                          $x // $y & 1
+104          100    1    1                          $x // $y | 1
+105          100    1    1                          $x // $y ^ 1
+106          100    1    1                          $x // ~$y
+107          100    1    1                          $x // $y << 1
+108          100    1    1                          $x // $y >> 1
+115          100    1    1                          $x // time
+116          100    1    1                          $x // times
+117          100    1    1                          $x // ref $y
+118          100    1    1                          $x // push(@a, 1)
+119          100    1    1                          $x // unshift(@a, 1)
+120          100    1    1                          $x // qr/a/
+121          100    1    1                          $x // keys %h
+122          100    1    1                          $x // values %h
+123          100    1    1                          $x // keys @a
+130   ***      0    0    2   $x, keys %h            $x // keys %h
+131   ***      0    0    2   $x, values %h          $x // values %h
+137          100    1    1                          $x //= time
+138          100    1    1                          $y //= $y + 1
+145          100    1    1                          $x || time
+146          100    1    1                          $x || qr/a/
+147          100    1    1                          $x && time
+148          100    1    1                          $x && qr/a/
+155   ***      0    0    2   $x, length $y          $x // length $y
+156   ***      0    0    2   $x, substr($y, 0, 1)   $x // substr($y, 0, 1)
+157   ***     50    1    2   gmtime $y              $x // gmtime $y
+158   ***      0    0    2   $x, $y <=> 3           $x // $y <=> 3
+159   ***      0    0    2   $x, $y + 1             $x || $y + 1
+160   ***     50    1    2   $y + 1                 $x && $y + 1
+
+
+Covered Subroutines
+-------------------
+
+Subroutine         Count  CC  SCAR Location             
+------------------ ----- --- ----- ---------------------
+BEGIN                  1   1   0.0 tests/dor_defined:10 
+BEGIN                  1   1   0.0 tests/dor_defined:11 
+BEGIN                  1   1   0.0 tests/dor_defined:34 
+arithmetic             2  12  24.8 tests/dor_defined:16 
+assign                 2   3  11.0 tests/dor_defined:135
+booleans               2  23  31.4 tests/dor_defined:84 
+integer_arithmetic     2   5  16.1 tests/dor_defined:33 
+list_context           2   3  11.2 tests/dor_defined:128
+numeric_functions      2  13  25.6 tests/dor_defined:44 
+or_and                 2   5  16.1 tests/dor_defined:142
+others                 2  10  23.0 tests/dor_defined:112
+still_three            2   7  20.2 tests/dor_defined:152
+strings                2  17  28.3 tests/dor_defined:62 
+
+

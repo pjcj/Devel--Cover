@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Collapse a `//` condition whose right operand is always defined, such
+  as `$x // time`, to two outcomes, and `||` or `&&` with `time` or
+  `qr//` likewise (GH-833)
 - BREAKING: Record subroutine and pod coverage on the sub line rather
   than on the first statement of the body. Uncoverable subroutine and
   pod comments must move on or above that line (GH-827)

@@ -1,0 +1,175 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+our %h = (a => 1);
+our @a = (1);
+
+sub arithmetic {
+  my ($x, $y) = @_;
+  my @r;
+  push @r, $x // $y + 1;
+  push @r, $x // $y - 1;
+  push @r, $x // $y * 2;
+  push @r, $x // $y / 2;
+  push @r, $x // $y % 2;
+  push @r, $x // $y**2;
+  push @r, $x // -$y;
+  push @r, $x // ++$y;
+  push @r, $x // --$y;
+  push @r, $x // $y++;
+  push @r, $x // $y--;
+  @r
+}
+
+sub integer_arithmetic {
+  use integer;
+  my ($x, $y) = @_;
+  my @r;
+  push @r, $x // $y + 1;
+  push @r, $x // -$y;
+  push @r, $x // ++$y;
+  push @r, $x // $y < 3;
+  @r
+}
+
+sub numeric_functions {
+  my ($x, $y) = @_;
+  my @r;
+  push @r, $x // abs $y;
+  push @r, $x // int $y;
+  push @r, $x // hex $y;
+  push @r, $x // oct $y;
+  push @r, $x // ord $y;
+  push @r, $x // sqrt $y;
+  push @r, $x // exp $y;
+  push @r, $x // log $y;
+  push @r, $x // sin $y;
+  push @r, $x // cos $y;
+  push @r, $x // atan2 $y, 1;
+  push @r, $x // rand;
+  @r
+}
+
+sub strings {
+  my ($x, $y, $z) = @_;
+  my @r;
+  push @r, $x // $y . $z;
+  push @r, $x // "$y$z";
+  push @r, $x // "$y";
+  push @r, $x // $y x 2;
+  push @r, $x // lc $y;
+  push @r, $x // uc $y;
+  push @r, $x // lcfirst $y;
+  push @r, $x // ucfirst $y;
+  push @r, $x // quotemeta $y;
+  push @r, $x // chr $y;
+  push @r, $x // join ",",     @a;
+  push @r, $x // sprintf "%s", $y;
+  push @r, $x // index $y,     "a";
+  push @r, $x // rindex $y,    "a";
+  push @r, $x // pack "A",     $y;
+  push @r, $x // vec $y,       0, 8;
+  @r
+}
+
+sub booleans {
+  my ($x, $y) = @_;
+  my @r;
+  push @r, $x // !$y;
+  push @r, $x // defined $y;
+  push @r, $x // exists $h{a};
+  push @r, $x // $y < 3;
+  push @r, $x // $y > 3;
+  push @r, $x // $y <= 3;
+  push @r, $x // $y >= 3;
+  push @r, $x // $y == 3;
+  push @r, $x // $y != 3;
+  push @r, $x // $y lt "b";
+  push @r, $x // $y gt "b";
+  push @r, $x // $y le "b";
+  push @r, $x // $y ge "b";
+  push @r, $x // $y eq "b";
+  push @r, $x // $y ne "b";
+  push @r, $x // $y cmp "b";
+  push @r, $x // $y & 1;
+  push @r, $x // $y | 1;
+  push @r, $x // $y ^ 1;
+  push @r, $x // ~$y;
+  push @r, $x // $y << 1;
+  push @r, $x // $y >> 1;
+  @r
+}
+
+sub others {
+  my ($x, $y) = @_;
+  my @r;
+  push @r, $x // time;
+  push @r, $x // times;
+  push @r, $x // ref $y;
+  push @r, $x // push @a,    1;
+  push @r, $x // unshift @a, 1;
+  push @r, $x // qr/a/;
+  my $n = $x // keys %h;
+  my $v = $x // values %h;
+  my $k = $x // keys @a;
+  push @r, $n, $v, $k;
+  @r
+}
+
+sub list_context {
+  my ($x) = @_;
+  my @k   = ($x // keys %h);
+  my @v   = ($x // values %h);
+  (@k, @v)
+}
+
+sub assign {
+  my ($x, $y) = @_;
+  $x //= time;
+  $y //= $y + 1;
+  ($x, $y)
+}
+
+sub or_and {
+  my ($x, $y) = @_;
+  my @r;
+  push @r, $x || time;
+  push @r, $x || qr/a/;
+  push @r, $x && time;
+  push @r, $x && qr/a/;
+  @r
+}
+
+sub still_three {
+  my ($x, $y) = @_;
+  my @r;
+  push @r, $x // length $y;
+  push @r, $x // substr $y, 0, 1;
+  push @r, $x // gmtime $y;
+  push @r, $x // $y <=> 3;
+  push @r, $x || $y + 1;
+  push @r, $x && $y + 1;
+  @r
+}
+
+for my $x (1, undef) {
+  arithmetic($x, 4);
+  integer_arithmetic($x, 4);
+  numeric_functions($x, 4);
+  strings($x, "ab", "cd");
+  booleans($x, 2);
+  others($x, 2);
+  list_context($x);
+  assign($x, $x);
+  or_and($x, 2);
+  still_three($x, 4);
+}
