@@ -57,27 +57,33 @@ When `cover_logop()` handles the non-short-circuit path:
    - `[1]` the original `op_ppaddr` of `next`
    - `[2+]` the logical ops waiting for resolution at this target
 
-3. It replaces `next->op_ppaddr` with `get_condition` (or `get_condition_dor`
-   for `//` operators).
+3. It replaces `next->op_ppaddr` with `get_condition`.
 
 4. When the normal Perl execution loop reaches `next`, it calls the hijacked
    `op_ppaddr`, which is now `get_condition`.
 
-5. `get_condition()` reads `TOPs` (the stack top, which holds the right
-   operand's value), calls `add_condition()` to record slot [1] or [2] for each
-   pending logical op, restores the original `op_ppaddr`, and returns `PL_op` so
-   the hijacked op runs normally.
+5. `get_condition()` reads the truth and the definedness of `TOPs` (the stack
+   top, which holds the right operand's value), calls `add_condition()` to
+   record slot [1] or [2] for each pending logical op, restores the original
+   `op_ppaddr`, and returns `PL_op` so the hijacked op runs normally.
+   `add_condition()` picks the slot for each pending op by that op's own type. A
+   `//` asks whether the value is defined, so `0` or `""` fills slot [2] for it,
+   and every other logop asks whether the value is true. The pending ops need
+   not share a type. In `$x || ($y // $z)` the `||` and the `//` both wait on
+   the op after `$z`, and each reads the value its own way.
 
 When the hijacked op is itself going to test that value's truth and branch on it
 \- a non-ambiguous `cond_expr`, an `and` or an `or` - `get_condition()` instead
-restores the `op_ppaddr`, stashes the pending entry in `MY_CXT.chained_cond`,
-and lets the op run. The after-exec sites (the `dc_cond_expr` and `dc_logop`
-wrappers, and the pending block in `runops_cover`) then call
-`resolve_chained_condition()`, which derives the value's truth from the path the
-consuming op took and resolves the pending entry with it. The stack read counts
+restores the `op_ppaddr`, stashes the pending entry in `MY_CXT.chained_cond`
+with the value's definedness in `MY_CXT.chained_defined`, and lets the op run.
+The after-exec sites (the `dc_cond_expr` and `dc_logop` wrappers, and the
+pending block in `runops_cover`) then call `resolve_chained_condition()`, which
+derives the value's truth from the path the consuming op took and resolves the
+pending entry with that truth and the stored definedness. The stack read counts
 an overloaded object as true regardless of its `bool` overload, so the
-path-derived truth is exact where the stack read is not. A consumer that never
-records - a die inside the op, or collection turned off - leaves the members in
+path-derived truth is exact where the stack read is not. Definedness has no
+overload, so the stack read of it is exact. A consumer that never records - a
+die inside the op, or collection turned off - leaves the members in
 `Pending_conditionals` for `finalise_conditions()` as usual.
 
 Multiple logical ops can share the same target. For example, in
@@ -117,9 +123,11 @@ column. Instead `credit_short_circuit()` resolves it at the short circuit. It
 already enumerates every op the jump passes - the same-type chain it credits at
 index 3 and the void consumer `find_skipped_conditional()` finds from the last
 op of that chain - and for each one `resolve_skipped_conditions()` resolves any
-entry keyed on it. The value is exact because the optimiser only jumps past ops
-whose value equals the short-circuit value: false for an `and`, true for an
-`or`, defined for a `dor`.
+entry keyed on it. The truth is exact because the optimiser only jumps past ops
+whose value equals the short-circuit value, false for an `and` and true for an
+`or`. The definedness is read from the stack, where the logop that short
+circuited left the value, so a `//` pending on a jumped op still records `0` as
+defined.
 
 ### Where to find it in Cover.xs
 
@@ -176,9 +184,9 @@ reads the result directly from `*PL_stack_sp`. There is nowhere for the ops to
    `resolve_deferred_conditionals()` is called. It checks for entries pushed
    during this invocation (from `deferred_base` upwards). The stack top at this
    point holds the sort comparator's final value - the right operand of the
-   outermost `||`. The function reads `SvTRUE(TOPs)` to decide between slot [1]
-   (right false) and slot [2] (right true), then pops and resolves each deferred
-   entry via `add_conditional`.
+   outermost `||`. The function reads the truth and the definedness of `TOPs`,
+   then pops and resolves each deferred entry via `add_conditional` with the
+   slot that entry's own type asks for, as `add_condition` does.
 
 4. The result is identical to what `get_condition` would record for the normal
    hijack path.

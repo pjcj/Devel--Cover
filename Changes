@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Record the right operand of `//` by definedness on every path, so a
+  defined false value such as `0` counts as `!l&&r` rather than
+  `!l&&!r` (GH-838)
 - Collapse a condition whose right operand calls `croak`, `confess` or
   a sub listed in a `# dc noreturn` comment to two outcomes (GH-834)
 - Add the `dc` prefix for source annotations, so `# uncoverable` becomes

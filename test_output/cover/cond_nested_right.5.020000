@@ -203,7 +203,7 @@ line  err   stmt   bran   cond    sub   code
 153            1                          push @r, and_dor_if(1, 1,     0);
 154            1                          push @r, and_dor_if(1, 0,     0);
 155            1                          push @r, and_dor_if(1, undef, 1);
-156            1                          push @r, and_dor_if(1, undef, 0);
+156            1                          push @r, and_dor_if(1, undef, undef);
 157            1                          push @r, and_dor_if(0, 0,     0);
 158                                     }
 159                                     

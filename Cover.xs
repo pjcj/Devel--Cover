@@ -223,6 +223,7 @@ typedef struct {
   SV           *chained_cond;          /* pending conditions whose truth
                                         * the consuming op's path gives */
   OP           *chained_target;        /* the consuming op */
+  int           chained_defined;       /* definedness of the chained value */
   Perl_ppaddr_t ppaddr[MAXO];
 } my_cxt_t;
 
@@ -1048,9 +1049,17 @@ static void     dc_snapshot(pTHX_ dc_dctx *d);
 static OP      *skip_nulled_ops(OP *o);
 
 /* at is the hooked op resolving the entry, or NULL for the final sweep */
-static void add_condition(pTHX_ SV *cond_ref, int value, OP *at) {
+/* A dor asks whether its right operand is defined, the rest whether true */
+static int right_operand_slot(OP *op, int truth, int defined) {
+  int dor = op->op_type == OP_DOR || op->op_type == OP_DORASSIGN;
+  return (dor ? defined : truth) ? 2 : 1;
+}
+
+/* Resolve the conditions pending on at, or with NULL count each as false */
+static void add_condition(pTHX_ SV *cond_ref, int truth, int defined,
+                          OP *at) {
   dMY_CXT;
-  int   final       = !value;
+  int   final       = !at;
   AV   *conds       = (AV *)                 SvRV(cond_ref);
   OP   *next        = INT2PTR(OP *,          SvIV(*av_fetch(conds, 0, 0)));
   OP *(*addr)(pTHX) = INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1, 0)));
@@ -1068,9 +1077,8 @@ static void add_condition(pTHX_ SV *cond_ref, int value, OP *at) {
   NDEB(D(L, "Looking through %zd conditionals at %p\n",
          av_len(conds) - 1, PL_op));
   for (; i <= av_len(conds); i++) {
-    OP *op = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
-
-    if (final) value = 1;
+    OP *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
+    int value = final ? 1 : right_operand_slot(op, truth, defined);
 
     NDEB(D(L, "Found %p: %d\n", op, value));
     add_conditional(aTHX_ op, value);
@@ -1236,7 +1244,7 @@ static OP *get_condition(pTHX) {
   SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
   if (pc && SvROK(*pc)) {
     dSP;
-    int true_ish;
+    int defined = SvOK(TOPs);
     NDEB(D(L, "get_condition from %p, %p: %p (%s)\n",
           PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
     /* dump_conditions(aTHX); */
@@ -1247,8 +1255,9 @@ static OP *get_condition(pTHX) {
      * branch on it, defer resolution and read the truth from the path
      * it takes.  That truth is exact for an overloaded value, where
      * the stack read below counts the object as true regardless of
-     * its bool overload.  An ambiguous cond_expr (op_other equal to
-     * op_next) gives no path, so it resolves from the stack as before.
+     * its bool overload.  Definedness has no overload, so it is read
+     * here.  An ambiguous cond_expr (op_other equal to op_next) gives
+     * no path, so it resolves from the stack as before.
      */
     if (PL_op->op_type == OP_AND || PL_op->op_type == OP_OR ||
         (PL_op->op_type == OP_COND_EXPR &&
@@ -1257,36 +1266,15 @@ static OP *get_condition(pTHX) {
       AV *conds = (AV *)SvRV(*pc);
       PL_op->op_ppaddr =
         INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1, 0)));
-      MY_CXT.chained_cond   = *pc;
-      MY_CXT.chained_target = PL_op;
+      MY_CXT.chained_cond    = *pc;
+      MY_CXT.chained_target  = PL_op;
+      MY_CXT.chained_defined = defined;
       return PL_op;
     }
 
-    true_ish = (PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN)
-      ? SvOK(TOPs) : sv_true_no_overload(aTHX_ TOPs);
-    NDEB(D(L, "   get_condition true_ish=%d\n", true_ish));
-    add_condition(aTHX_ *pc, true_ish ? 2 : 1, PL_op);
-  } else {
-    PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
-           PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
-    dump_conditions(aTHX);
-    NDEB(svdump(Pending_conditionals));
-    exit(1);
-  }
-  return PL_op;
-}
-static OP *get_condition_dor(pTHX) {
-  SV **pc = hv_fetch(Pending_conditionals, get_key(PL_op), KEY_SZ, 0);
-  if (pc && SvROK(*pc)) {
-    dSP;
-    int true_ish;
-    NDEB(D(L, "get_condition_dor from %p, %p: %p (%s)\n",
-           PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
-    /* dump_conditions(aTHX); */
-    NDEB(svdump(Pending_conditionals));
-    true_ish = SvOK(TOPs);
-    NDEB(D(L, "   get_condition_dor true_ish=%d\n", true_ish));
-    add_condition(aTHX_ *pc, true_ish ? 2 : 1, PL_op);
+    NDEB(D(L, "   get_condition defined=%d\n", defined));
+    add_condition(aTHX_ *pc, sv_true_no_overload(aTHX_ TOPs), defined,
+                  PL_op);
   } else {
     PDEB(D(L, "All is lost, I know not where to go from %p, %p: %p (%s)\n",
            PL_op, (void *)PL_op->op_targ, pc, hex_key(get_key(PL_op))));
@@ -1318,7 +1306,7 @@ static void finalise_conditions(pTHX) {
   hv_iterinit(Pending_conditionals);
 
   while ((e = hv_iternext(Pending_conditionals)))
-    add_condition(aTHX_ hv_iterval(Pending_conditionals, e), 0, NULL);
+    add_condition(aTHX_ hv_iterval(Pending_conditionals, e), 0, 0, NULL);
   MUTEX_UNLOCK(&DC_mutex);
 }
 
@@ -1363,7 +1351,8 @@ static void resolve_deferred_conditionals(pTHX_ AV *dc, I32 base) {
   dMY_CXT;
   if (av_len(dc) >= base) {
     dSP;
-    int true_ish = sv_true_no_overload(aTHX_ TOPs);
+    int truth   = sv_true_no_overload(aTHX_ TOPs);
+    int defined = SvOK(TOPs);
 
     if (collecting(Mcdc)) {
       I32 i;
@@ -1379,8 +1368,9 @@ static void resolve_deferred_conditionals(pTHX_ AV *dc, I32 base) {
           dc_dctx *d          = dc_stack_find_root(aTHX_ root_addr);
 
           if (d && leaf_right >= 0 && leaf_right < d->width)
-            d->vector[leaf_right] = true_ish ? DC_VECTOR_TRUE
-                                             : DC_VECTOR_FALSE;
+            d->vector[leaf_right] =
+              right_operand_slot(op, truth, defined) == 2 ? DC_VECTOR_TRUE
+                                                          : DC_VECTOR_FALSE;
         }
       }
 
@@ -1402,7 +1392,8 @@ static void resolve_deferred_conditionals(pTHX_ AV *dc, I32 base) {
     while (av_len(dc) >= base) {
       SV *sv = av_pop(dc);
       OP *cond_op = INT2PTR(OP *, SvIV(sv));
-      add_conditional(aTHX_ cond_op, true_ish ? 2 : 1);
+      add_conditional(aTHX_ cond_op,
+                      right_operand_slot(cond_op, truth, defined));
       SvREFCNT_dec(sv);
     }
   }
@@ -2154,11 +2145,12 @@ static OP *skip_nulled_ops(OP *o) {
  * Resolve any conditions pending on op, which the short circuit at PL_op
  * has jumped past, so the hook on it cannot run for this evaluation.
  * The jump only passes same-type logops and the void logop consuming the
- * decision, so each pending right operand holds the short-circuit value:
- * false for an and, true for an or, defined for a dor.
+ * decision, so each pending right operand holds the short-circuit value,
+ * which the logop left on the stack: false for an and, true for an or.
  */
 static void resolve_skipped_conditions(pTHX_ OP *op) {
   dMY_CXT;
+  dSP;
   SV **pc;
 
   if (!collecting(Condition)) return;
@@ -2169,7 +2161,7 @@ static void resolve_skipped_conditions(pTHX_ OP *op) {
   MUTEX_LOCK(&DC_mutex);
   pc = hv_fetch(Pending_conditionals, get_key(op), KEY_SZ, 0);
   if (pc && SvROK(*pc))
-    add_condition(aTHX_ *pc, PL_op->op_type == OP_AND ? 1 : 2, op);
+    add_condition(aTHX_ *pc, PL_op->op_type != OP_AND, SvOK(TOPs), op);
   MUTEX_UNLOCK(&DC_mutex);
 }
 
@@ -2325,7 +2317,7 @@ static void resolve_chained_condition(pTHX_ OP *next_op, SSize_t depth) {
     ? next_op == cLOGOP->op_other
     : logop_no_short_circuit(aTHX_ next_op, depth)
         == (PL_op->op_type == OP_AND);
-  add_condition(aTHX_ cond, truth ? 2 : 1, PL_op);
+  add_condition(aTHX_ cond, truth, MY_CXT.chained_defined, PL_op);
 }
 
 static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
@@ -2505,9 +2497,7 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
         NDEB(op_dump(PL_op));
         NDEB(op_dump(next));
 
-        next->op_ppaddr = (next->op_type == OP_NEXTSTATE && (
-          PL_op->op_type == OP_DOR || PL_op->op_type == OP_DORASSIGN))
-          ? get_condition_dor : get_condition;
+        next->op_ppaddr = get_condition;
         MUTEX_UNLOCK(&DC_mutex);
       }
     } else {
@@ -3157,8 +3147,7 @@ static int runops_cover(pTHX) {
     if (PL_op->op_type == OP_LEAVE) {
       int hijacked;
       MUTEX_LOCK(&DC_mutex);
-      hijacked = PL_op->op_ppaddr == get_condition
-              || PL_op->op_ppaddr == get_condition_dor;
+      hijacked = PL_op->op_ppaddr == get_condition;
       MUTEX_UNLOCK(&DC_mutex);
       if (!hijacked)
         leave_set_lvalue(aTHX);
@@ -3171,8 +3160,7 @@ static int runops_cover(pTHX) {
     {
       int hijacked;
       MUTEX_LOCK(&DC_mutex);
-      hijacked = PL_op->op_ppaddr == get_condition
-              || PL_op->op_ppaddr == get_condition_dor;
+      hijacked = PL_op->op_ppaddr == get_condition;
       MUTEX_UNLOCK(&DC_mutex);
       if (hijacked)
         goto call_fptr;
