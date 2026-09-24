@@ -48,41 +48,41 @@ line  err   stmt   bran   cond   code
 19             1                 my ($t, $f) = (1, 0);
 20             1                 my $r;
 21                               
-22                               # uncoverable branch true
+22                               # dc uncoverable branch true
 23             1   -100          unless ($t) {
-24            -0                   $r = "u1";  # uncoverable statement
+24            -0                   $r = "u1";  # dc uncoverable statement
 25                               }
 26                               
-27                               # uncoverable branch false
+27                               # dc uncoverable branch false
 28             1   -100          unless ($f) {
 29             1                   $r = "u2";
 30                               }
 31                               
-32                               # uncoverable branch true
-33                               # uncoverable condition when:01,00
+32                               # dc uncoverable branch true
+33                               # dc uncoverable condition when:01,00
 34             1   -100   -100   unless ($t || $f) {
-35            -0                   $r = "u3";  # uncoverable statement
+35            -0                   $r = "u3";  # dc uncoverable statement
 36                               }
 37                               
-38                               # uncoverable branch true
+38                               # dc uncoverable branch true
 39             1   -100          while ($f) {
-40            -0                   $r = "w1";  # uncoverable statement
+40            -0                   $r = "w1";  # dc uncoverable statement
 41                               }
 42                               
-43                               # uncoverable branch true
+43                               # dc uncoverable branch true
 44             1   -100          until ($t) {
-45            -0                   $r = "t1";  # uncoverable statement
+45            -0                   $r = "t1";  # dc uncoverable statement
 46                               }
 47                               
-48                               # uncoverable branch true
+48                               # dc uncoverable branch true
 49             1   -100          for (my $i = 5; $i < 3; $i++) {
-50            -0                   $r = "f1";  # uncoverable statement
+50            -0                   $r = "f1";  # dc uncoverable statement
 51                               }
 52                               
-53                               # uncoverable branch true
+53                               # dc uncoverable branch true
 54             1   -100          $r = "m1" unless $t;
 55                               
-56                               # uncoverable branch false
+56                               # dc uncoverable branch false
 57             1   -100          $r = "m2" if $t;
 
 

@@ -536,7 +536,7 @@ sub test_achievable_pair_stays_missing () {
 
 # The achievable probe uses the same masking fallback as the covered probe: a
 # coupled column pairable among achievable rows stays missing even though an
-# uncoverable row could also pair it.
+# dc uncoverable row could also pair it.
 sub test_coupled_achievable_pair_stays_missing () {
   my $table = build_synthetic_table(
     '($a && $b) || ($a && $c)',
@@ -555,7 +555,7 @@ sub test_coupled_achievable_pair_stays_missing () {
 
 # A column whose only pair joins an uncoverable row with an uncovered but
 # achievable row is still excused.  $a's only pair is (0X, 11): 0X is
-# uncoverable and 11 is achievable but not yet covered.  $b's pair (10, 11)
+# dc uncoverable and 11 is achievable but not yet covered.  $b's pair (10, 11)
 # uses only achievable rows, so it stays a test gap.
 sub test_excusal_survives_uncovered_achievable_row () {
   my $table = build_synthetic_table(

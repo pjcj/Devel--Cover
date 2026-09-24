@@ -1,4 +1,5 @@
 cover: Reading database from ...
+cover: Warning: Unsupported criterion parsing uncoverable for at tests/uncoverable_mcdc:15
 ---------------------- ------ ------ ------ ------ ------ ------ ------
 File                     stmt   bran   cond   mcdc    sub  total   scar
 ---------------------- ------ ------ ------ ------ ------ ------ ------
@@ -50,10 +51,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 12                                             
 13                                             # A // whose right operand is an always-defined variable: neither atomic
 14                                             # condition's independence pair can be formed, so the whole decision is
-15                                             # uncoverable for MC/DC.  The all type covers every column.
+15                                             # dc uncoverable for MC/DC.  The all type covers every column.
 16                                         2   sub dor_default {
 17             2                                 my ($h, $k, $val) = @_;
-18                                               # uncoverable mcdc all
+18                                               # dc uncoverable mcdc all
 19    ***      2          * 66   -100            return $h->{$k} //= $val;
 20                                             }
 21                                             
@@ -62,7 +63,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 24                                         2   sub left_always_true {
 25             2                                 my ($b) = @_;
 26             2                                 my $always = 1;
-27                                               # uncoverable mcdc pair:1
+27                                               # dc uncoverable mcdc pair:1
 28    ***      2          * 66   -100            return $always && $b;
 29                                             }
 30                                             
@@ -70,11 +71,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 32                                             # true, so the inner $a && !$b outcome - the row $b's MC/DC independence pair
 33                                             # needs - can never occur.  The plain condition marker on that inner outcome
 34                                             # (count:2 selects the inner $a && $b) now also excuses $b for MC/DC, derived
-35                                             # from the compound truth table with no separate "# uncoverable mcdc" needed.
+35                                             # from the compound truth table with no separate "# dc uncoverable mcdc" needed.
 36                                         3   sub compound_inner {
 37             3                                 my ($a, $c) = @_;
 38             3                                 my $b = 1;
-39                                               # uncoverable condition when:10 count:2
+39                                               # dc uncoverable condition when:10 count:2
 40             3           100   -100            return $a && $b && $c;
                           -100                 
 41                                             }

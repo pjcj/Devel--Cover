@@ -7,7 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-# "# uncoverable branch all" marks every element of the branch, and the same
+# "# dc uncoverable branch all" marks every element of the branch, and the same
 # for condition and mcdc.  This is the natural comment for an elsif that can
 # never run, where naming each outcome describes something that never
 # happens (GH-481).
@@ -36,9 +36,9 @@ sub covered_all ($label, $source, %opts) {
 sub test_parse_all_types () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable branch all
-# uncoverable condition all count:2
-# uncoverable mcdc all
+# dc uncoverable branch all
+# dc uncoverable condition all count:2
+# dc uncoverable mcdc all
 $n++;
 PERL
   is @$warnings, 0, "parse: no warnings";
@@ -53,9 +53,9 @@ PERL
 sub test_bare_multi_element_comments_warn () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable branch
-# uncoverable condition
-# uncoverable mcdc
+# dc uncoverable branch
+# dc uncoverable condition
+# dc uncoverable mcdc
 $n++;
 PERL
   is @$warnings, 3, "bare: one warning per comment";
@@ -69,7 +69,7 @@ PERL
 sub test_mcdc_pair_needs_no_type () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable mcdc pair:1
+# dc uncoverable mcdc pair:1
 $n++;
 PERL
   is @$warnings, 0, "pair: no warnings";
@@ -80,7 +80,7 @@ PERL
 sub test_unknown_type_still_warns () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable branch frobnicate
+# dc uncoverable branch frobnicate
 $n++;
 PERL
   is @$warnings, 1, "unknown type: one warning";
@@ -93,12 +93,12 @@ sub test_branch_all_excuses_an_elsif () {
     = covered_all("branch_all", <<'PERL', criteria => ["statement", "branch"]);
 my $n = 0;
 my $r;
-# uncoverable branch false count:1
-# uncoverable branch all count:2
+# dc uncoverable branch false count:1
+# dc uncoverable branch all count:2
 if ($n == 0) {
   $r = "a";
 } elsif ($n == 1) {
-  $r = "b";  # uncoverable statement
+  $r = "b";  # dc uncoverable statement
 }
 PERL
   is @$warnings, 0, "branch all: no warnings";
@@ -116,9 +116,9 @@ my ($a, $b) = (1, 0);
 my $r;
 if ($a) {
   $r = 1;
-  # uncoverable condition all
+  # dc uncoverable condition all
 } elsif ($a && $b) {
-  $r = 2;  # uncoverable statement
+  $r = 2;  # dc uncoverable statement
 }
 PERL
   is @$warnings, 0, "condition all: no warnings";

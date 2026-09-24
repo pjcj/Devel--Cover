@@ -10,59 +10,59 @@
 my $x = 1;
 my $y = 1;
 
-# uncoverable branch true
-# uncoverable condition when:0X
-# uncoverable condition when:11
+# dc uncoverable branch true
+# dc uncoverable condition when:0X
+# dc uncoverable condition when:11
 
 if ($x && !$y) {
-    $x++;  # uncoverable statement
-    # uncoverable statement
+  $x++;  # dc uncoverable statement
+         # dc uncoverable statement
     z();
 }
 
-# uncoverable branch true
-# uncoverable condition when:10
-# uncoverable condition when:11
+# dc uncoverable branch true
+# dc uncoverable condition when:10
+# dc uncoverable condition when:11
 
 
 # an ordinary comment between the markers
   # and the code
 
 if (!$x && $y) {
-    # uncoverable statement count:1
-    # uncoverable statement count:2
+    # dc uncoverable statement count:1
+    # dc uncoverable statement count:2
     b(); b();
 
-    # uncoverable statement count:1,2
+    # dc uncoverable statement count:1,2
     b(); b();
 
-    # uncoverable statement count:1..4
+    # dc uncoverable statement count:1..4
     b(); b(); b(); b();
 
-    # uncoverable statement count:1,2,3..4,5..7,8,9,10..11,12
+    # dc uncoverable statement count:1,2,3..4,5..7,8,9,10..11,12
     b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b(); b();
 }
 
-# uncoverable subroutine
+# dc uncoverable subroutine
 sub z {
-    $y++; # uncoverable statement
+  $y++;  # dc uncoverable statement
 }
 
-# uncoverable branch false count:1
-# uncoverable branch true  count:2
-# uncoverable branch false count:2
-# uncoverable condition when:0X
-# uncoverable condition when:10
+# dc uncoverable branch false count:1
+# dc uncoverable branch true  count:2
+# dc uncoverable branch false count:2
+# dc uncoverable condition when:0X
+# dc uncoverable condition when:10
 if ($x > 0 && $y > 0) {
     $y++;
-  # uncoverable condition when:0X
-  # uncoverable condition when:10
-  # uncoverable condition when:11
+  # dc uncoverable condition when:0X
+  # dc uncoverable condition when:10
+  # dc uncoverable condition when:11
 } elsif ($x < 2 && $y < 0) {
-    $y++; # uncoverable statement
+  $y++;  # dc uncoverable statement
 } else {
-    $y++; # uncoverable statement
+  $y++;  # dc uncoverable statement
 }
 
-# uncoverable statement
-# uncoverable subroutine
+# dc uncoverable statement
+# dc uncoverable subroutine

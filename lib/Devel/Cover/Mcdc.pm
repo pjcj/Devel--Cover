@@ -128,8 +128,8 @@ A decision with more than 16 conditions exceeds the analysis limit.  Such a
 decision counts as 0 of its width in the percentages and appears in reports
 with an error flag and a "too many conditions" note in place of the
 missing-conditions list.  Generating a report warns, naming the file and
-line; C<-silent> suppresses the warning.  Any C<# uncoverable mcdc> markers
-on such a decision are ignored.
+line.  C<-silent> suppresses the warning.  Any C<# dc uncoverable mcdc>
+markers on such a decision are ignored.
 
 The remedy is to split the decision with an intermediate variable:
 

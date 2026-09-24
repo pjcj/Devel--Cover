@@ -7,19 +7,19 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-# uncoverable subroutine class:ignore_covered_err
+# dc uncoverable subroutine class:ignore_covered_err
 sub usub {
-    # uncoverable statement  class:ignore_covered_err
+  # dc uncoverable statement  class:ignore_covered_err
     my $x = 1;
 }
 
 sub main {
     my $x = 1;
-    # uncoverable branch false class:ignore_covered_err
-    # uncoverable branch true
+    # dc uncoverable branch false class:ignore_covered_err
+    # dc uncoverable branch true
     if ($x > 1) {
         $x = 0;
-        # uncoverable statement class:ignore_covered_err
+        # dc uncoverable statement class:ignore_covered_err
         $x = 2;
         if ($x > 3) {
             $x = 4;
@@ -27,19 +27,19 @@ sub main {
     }
 
     my $y = 0;
-    # uncoverable branch true
-    # uncoverable condition when:0X
-    # uncoverable condition when:10 class:ignore_covered_err
-    # uncoverable condition when:11
+    # dc uncoverable branch true
+    # dc uncoverable condition when:0X
+    # dc uncoverable condition when:10 class:ignore_covered_err
+    # dc uncoverable condition when:11
     if ($x > 0 && $y > 0) {
-        # uncoverable statement
+        # dc uncoverable statement
         $y = 1;
     }
 
     while ($y < 4) {
-        # uncoverable branch false
-        # uncoverable condition when:0X
-        # uncoverable condition when:10
+        # dc uncoverable branch false
+        # dc uncoverable condition when:0X
+        # dc uncoverable condition when:10
         if ($x > 0 && $y > 0) {
             $y = 4;
         } else {
@@ -47,7 +47,7 @@ sub main {
         }
     }
 
-    # uncoverable statement class:ignore_covered_err
+    # dc uncoverable statement class:ignore_covered_err
     $x = 3;
     usub;
 }

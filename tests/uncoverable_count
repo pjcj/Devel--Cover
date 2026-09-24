@@ -9,6 +9,9 @@
 
 # __COVER__ criteria statement branch condition
 
+# This test keeps the legacy "# uncoverable" spelling on purpose, so the
+# alias stays covered by a golden test.  Everything else uses "# dc".
+
 use strict;
 use warnings;
 
@@ -58,8 +61,8 @@ if ($From < $Start && $Until < $End) {
   $R = "c";
 }
 
-# Each of several if statements on one line adds its own branch, with count:N
-# walking them in textual order.
+# Each of several if statements on one line adds its own branch, and count:N
+# selects them in textual order.
 
 my ($A, $B) = (1, 0);
 my ($X, $Y) = (0, 0);

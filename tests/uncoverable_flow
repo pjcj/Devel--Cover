@@ -19,39 +19,39 @@ use warnings;
 my ($t, $f) = (1, 0);
 my $r;
 
-# uncoverable branch true
+# dc uncoverable branch true
 unless ($t) {
-  $r = "u1";  # uncoverable statement
+  $r = "u1";  # dc uncoverable statement
 }
 
-# uncoverable branch false
+# dc uncoverable branch false
 unless ($f) {
   $r = "u2";
 }
 
-# uncoverable branch true
-# uncoverable condition when:01,00
+# dc uncoverable branch true
+# dc uncoverable condition when:01,00
 unless ($t || $f) {
-  $r = "u3";  # uncoverable statement
+  $r = "u3";  # dc uncoverable statement
 }
 
-# uncoverable branch true
+# dc uncoverable branch true
 while ($f) {
-  $r = "w1";  # uncoverable statement
+  $r = "w1";  # dc uncoverable statement
 }
 
-# uncoverable branch true
+# dc uncoverable branch true
 until ($t) {
-  $r = "t1";  # uncoverable statement
+  $r = "t1";  # dc uncoverable statement
 }
 
-# uncoverable branch true
+# dc uncoverable branch true
 for (my $i = 5; $i < 3; $i++) {
-  $r = "f1";  # uncoverable statement
+  $r = "f1";  # dc uncoverable statement
 }
 
-# uncoverable branch true
+# dc uncoverable branch true
 $r = "m1" unless $t;
 
-# uncoverable branch false
+# dc uncoverable branch false
 $r = "m2" if $t;

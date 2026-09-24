@@ -7,7 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-# "# uncoverable mcdc pair:N" is 1-based.  pair:0 and columns past the
+# "# dc uncoverable mcdc pair:N" is 1-based.  pair:0 and columns past the
 # decision's width must warn and be ignored, never abort the report (GH-496).
 # The warnings go through dcwarn, so -silent suppresses them.
 
@@ -27,7 +27,7 @@ use Devel::Cover::Test::Internal qw( parse_comments warnings_from );
 sub test_pair_zero_is_rejected () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my ($a, $b) = (1, 1);
-# uncoverable mcdc pair:0
+# dc uncoverable mcdc pair:0
 my $r = $a && $b;
 PERL
   is @$warnings, 1, "pair:0: one warning";
@@ -39,7 +39,7 @@ PERL
 sub test_pair_one_is_recorded () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $always = 1;
-# uncoverable mcdc pair:1
+# dc uncoverable mcdc pair:1
 my $r = $always && $b;
 PERL
   is @$warnings, 0, "pair:1: no warnings";
@@ -83,7 +83,7 @@ sub test_pair_zero_warning_respects_silent () {
   local $Devel::Cover::Silent = 1;
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my ($a, $b) = (1, 1);
-# uncoverable mcdc pair:0
+# dc uncoverable mcdc pair:0
 my $r = $a && $b;
 PERL
   is @$warnings, 0, "pair:0 silent: no warning";

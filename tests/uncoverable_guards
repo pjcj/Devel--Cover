@@ -14,23 +14,23 @@ use warnings;
 
 sub require_value {
   my ($v) = @_;
-  # uncoverable branch false
+  # dc uncoverable branch false
   my $ok = $v or die "no value";
   return $ok;
 }
 
 sub require_value_unless {
   my ($v) = @_;
-  # uncoverable branch true
+  # dc uncoverable branch true
   die "no value" unless $v;
   return $v;
 }
 
 sub require_value_if {
   my ($v) = @_;
-  # uncoverable branch true
+  # dc uncoverable branch true
   if (!$v) {
-    # uncoverable statement
+    # dc uncoverable statement
     die "no value";
   }
   return $v;
@@ -38,9 +38,9 @@ sub require_value_if {
 
 sub require_value_unless_block {
   my ($v) = @_;
-  # uncoverable branch true
+  # dc uncoverable branch true
   unless ($v) {
-    # uncoverable statement
+    # dc uncoverable statement
     die "no value";
   }
   return $v;

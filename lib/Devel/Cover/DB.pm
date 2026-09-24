@@ -1022,7 +1022,7 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
       next unless $code =~ /\S/;
     }
 
-    # uncoverable comments wait for the next line of code
+    # dc uncoverable comments wait for the next line of code
     next if $l =~ /^\s*(?:#|$)/;
 
     while (my $w = shift @waiting) {
@@ -1164,7 +1164,7 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
         my $decision
           = [\@coverage, { text => $table->expr, labels => [$table->labels] }];
 
-        # Merge explicit "# uncoverable mcdc" markers with conditions the
+        # Merge explicit "# dc uncoverable mcdc" markers with conditions the
         # analyser excused because their only pair needs an uncoverable row.
         # The analyser's set is derived from the table's rows, so trust it only
         # for a proven table; for an unproven one the rows are the evidence we

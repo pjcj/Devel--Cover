@@ -27,7 +27,7 @@ use Devel::Cover::Test::Internal qw( parse_comments );
 sub test_attaches_to_next_line () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable branch true
+# dc uncoverable branch true
 if ($n == 0) { }
 PERL
   is @$warnings, 0, "adjacent: no warnings";
@@ -38,7 +38,7 @@ PERL
 sub test_skips_blank_line () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable branch true
+# dc uncoverable branch true
 
 if ($n == 0) { }
 PERL
@@ -52,7 +52,7 @@ PERL
 sub test_skips_ordinary_comment () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable branch true
+# dc uncoverable branch true
 # just an ordinary comment
 if ($n == 0) { }
 PERL
@@ -66,7 +66,7 @@ PERL
 sub test_comment_after_code_is_recognised () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-$n++;  # uncoverable statement
+$n++;  # dc uncoverable statement
 PERL
   is @$warnings, 0, "after code: no warnings";
   is_deeply $unc->{digest}{statement}{2}, [[[undef, "default", ""]]],
@@ -76,7 +76,7 @@ PERL
 sub test_quoted_syntax_in_prose_is_ignored () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# see the docs for "# uncoverable branch true" comments
+# see the docs for "# dc uncoverable branch true" comments
 if ($n == 0) { }
 PERL
   is @$warnings, 0, "prose: no warnings";
@@ -86,7 +86,7 @@ PERL
 sub test_trailing_annotation_warns () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable branch true
+# dc uncoverable branch true
 
 PERL
   is @$warnings, 1, "trailing: one warning";
