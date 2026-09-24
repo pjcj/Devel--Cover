@@ -321,6 +321,41 @@ C<-select> and C<-ignore> take shell globs, and it is C<-select_re> and
 C<-ignore_re> there which take regular expressions, whereas the Devel::Cover
 options above always take regular expressions.  (Sorry.)
 
+=head1 SOURCE ANNOTATIONS
+
+Devel::Cover reads instructions from comments in the code it covers.  An
+annotation is a comment whose first text is C<dc>, followed by a verb and the
+arguments of that verb:
+
+  # dc uncoverable branch true
+
+The C<uncoverable> verb marks criteria which cannot be exercised, as described
+in the next section.  The C<noreturn> verb names subs which never return.  A
+comment which opens with C<dc> and an unknown verb warns and is ignored, so a
+misspelt verb does not pass in silence.
+
+=head2 Subs which never return
+
+When the right operand of C<||>, C<&&>, C<//> or their assignment forms is
+C<die>, C<return>, C<exit> or another op which never yields a value, the
+condition has only two outcomes, since the right operand can never be true or
+false.  A call to C<croak> or C<confess> is treated the same way, so the common
+idiom
+
+  my $x = shift // croak("no x");
+
+reports two outcomes, and MC/DC sees a single atomic condition.
+
+A project with subs of its own which never return, such as a C<usage_die>,
+can list them in a comment anywhere in the file which calls them:
+
+  # dc noreturn usage_die pod2usage
+
+The comment applies to the whole file it appears in.  A name matches the sub
+called by its bare name, by its qualified name such as C<My::App::usage_die>,
+or by the qualified name of the sub it resolves to, so C<Carp::croak> matches
+an imported C<croak>.  C<croak> and C<confess> are always in the list.
+
 =head1 UNCOVERABLE CRITERIA
 
 Sometimes you have code which is uncoverable for some reason.  Perhaps it is an
@@ -340,12 +375,16 @@ complaining about it, so that real problems are not lost in the noise.
 You use special comments in your code to specify uncoverable criteria. Comments
 are of the form:
 
-  # uncoverable <criterion> [details]
+  # dc uncoverable <criterion> [details]
 
-The keyword "uncoverable" must be the first text in the comment.  It should be
-followed by the name of the coverage criterion which is uncoverable.  There may
-then be further information depending on the nature of the uncoverable
-construct.
+The prefix C<dc> must be the first text in the comment.  The C<uncoverable>
+verb is followed by the name of the coverage criterion which is uncoverable.
+There may then be further information depending on the nature of the
+uncoverable construct.
+
+The older spelling without the prefix,
+C<< # uncoverable <criterion> [details] >>, is still accepted and behaves as it
+always has.
 
 Statements, subroutines and pod have a single outcome, so their comments need no
 further detail.  Branches, conditions and MC/DC decisions have several, so their
@@ -368,7 +407,7 @@ documentation for the uncoverable data.
 
 Example:
 
-  # uncoverable branch true count:1..3 class:ignore_covered_err note:error chk
+  # dc uncoverable branch true count:1..3 class:ignore_covered_err note:err chk
 
 An uncoverable comment on a line of its own applies to the next line of code,
 skipping any blank lines and other comments in between.  A comment which never
@@ -381,16 +420,16 @@ triggers a warning when the report is generated.
 The "uncoverable" comment should appear on either the same line as the
 statement, or on the line before it:
 
-  $impossible++;  # uncoverable statement
-  # uncoverable statement
+  $impossible++;  # dc uncoverable statement
+  # dc uncoverable statement
   it_has_all_gone_horribly_wrong();
 
 If there are multiple statements (or any other criterion) on a line you can
 specify which statement is uncoverable by using the "count" attribute, count:n,
 which indicates that the uncoverable statement is the nth statement on the line.
 
-  # uncoverable statement count:1
-  # uncoverable statement count:2
+  # dc uncoverable statement count:1
+  # dc uncoverable statement count:2
   cannot_run_this(); or_this();
 
 =head3 Branches
@@ -398,17 +437,17 @@ which indicates that the uncoverable statement is the nth statement on the line.
 The "uncoverable" comment should specify whether the "true" or "false" branch is
 uncoverable.
 
-  # uncoverable branch true
+  # dc uncoverable branch true
   if (pi == 3)
 
 Both branches may be uncoverable:
 
-  # uncoverable branch true
-  # uncoverable branch false
+  # dc uncoverable branch true
+  # dc uncoverable branch false
   if (impossible_thing_happened_one_way()) {
-    handle_it_one_way();      # uncoverable statement
+    handle_it_one_way();      # dc uncoverable statement
   } else {
-    handle_it_another_way();  # uncoverable statement
+    handle_it_another_way();  # dc uncoverable statement
   }
 
 If there is an elsif in the branch then it can be addressed as the second branch
@@ -421,25 +460,25 @@ natural form for a branch that can never run at all, such as an elsif in a chain
 that is never reached.  Here $thing is always one, leaving five uncoverable
 branch outcomes:
 
-  # uncoverable branch false count:1
-  # uncoverable branch all count:2
-  # uncoverable branch all count:3
+  # dc uncoverable branch false count:1
+  # dc uncoverable branch all count:2
+  # dc uncoverable branch all count:3
 
 Marking each element separately:
 
-  # uncoverable branch false count:1
-  # uncoverable branch true count:2
-  # uncoverable branch false count:2
-  # uncoverable branch true count:3
-  # uncoverable branch false count:3
+  # dc uncoverable branch false count:1
+  # dc uncoverable branch true count:2
+  # dc uncoverable branch false count:2
+  # dc uncoverable branch true count:3
+  # dc uncoverable branch false count:3
   if ($thing == 1) {
     handle_thing_being_one();
   } elsif ($thing == 2) {
-    handle_thing_being_two();    # uncoverable statement
+    handle_thing_being_two();    # dc uncoverable statement
   } elsif ($thing == 3) {
-    handle_thing_being_three();  # uncoverable statement
+    handle_thing_being_three();  # dc uncoverable statement
   } else {
-    die "thing is $thing";       # uncoverable statement
+    die "thing is $thing";       # dc uncoverable statement
   }
 
 =head4 unless, until and loop conditions
@@ -454,7 +493,7 @@ means it did not.  For C<unless> and C<until> this inverts the condition as
 written: the body of C<unless ($x)> runs on its "true" branch, when C<$x> is
 false.
 
-  # uncoverable branch true
+  # dc uncoverable branch true
   unless ($x) { something_impossible() }
 
 An C<unless>/C<else> is different, and how it is reported depends on the perl
@@ -482,7 +521,7 @@ common C<my $x = A or die>, displays as written, and its "true" element means
 C<A> was true so C<B> did not run.  A C<die> or other escape which can never
 fire is therefore the "false" element:
 
-  # uncoverable branch false
+  # dc uncoverable branch false
   my $x = get_thing() or die "no thing\n";
 
 Earlier perls do not record the source spelling, so the report renormalises the
@@ -497,11 +536,11 @@ outcomes - one for each row of its truth table in the report.  A row is
 identified by the values of its operands: 0, 1 or X for an operand never
 evaluated.  The "when" attribute marks the row whose operand values match:
 
-  # uncoverable branch true
-  # uncoverable condition when:0X
-  # uncoverable condition when:11
+  # dc uncoverable branch true
+  # dc uncoverable condition when:0X
+  # dc uncoverable condition when:11
   if ($x && !$y) {
-    $x++;  # uncoverable statement
+    $x++;  # dc uncoverable statement
   }
 
 Here $x is always true, so the row where the left operand is false and the right
@@ -509,7 +548,7 @@ never evaluated (0X) cannot occur, and !$y is always false, so the row where
 both operands are true (11) cannot occur either.  Several rows can be marked in
 one comment with a comma separated list:
 
-  # uncoverable condition when:0X,11
+  # dc uncoverable condition when:0X,11
 
 The rows for each kind of op, in report order, are:
 
@@ -549,13 +588,13 @@ $default >> when C<$default> is always defined.
 
 The "all" type marks every atomic condition of the decision uncoverable:
 
-  # uncoverable mcdc all
+  # dc uncoverable mcdc all
   $x //= $default;
 
 The "pair" attribute marks a single atomic condition by its position (1-based,
 in the order the report lists them), leaving the rest counted as normal:
 
-  # uncoverable mcdc pair:2
+  # dc uncoverable mcdc pair:2
   $x = $a || $b || $c;
 
 An invalid position warns and the comment is ignored: C<pair:0> when the comment
@@ -569,7 +608,7 @@ particular outcome cannot occur, for example an error state that cannot be
 simulated.  If a pair could still be formed from rows not marked uncoverable,
 the atomic condition is reported missing - a test gap, not an excuse.  For a
 decision that can never execute at all, such as code inside a branch that can
-never be taken, mark the whole decision with C<uncoverable mcdc all>.
+never be taken, mark the whole decision with C<dc uncoverable mcdc all>.
 
 As for conditions, the "count" value selects between several decisions on one
 line.
@@ -582,9 +621,9 @@ that line or on a comment line above it.  Ideally all other criteria in the
 subroutine would be marked as uncoverable automatically, but that isn't the case
 at the moment.
 
-  # uncoverable subroutine
+  # dc uncoverable subroutine
   sub z {
-    $y++; # uncoverable statement
+    $y++; # dc uncoverable statement
   }
 
 The same applies to C<uncoverable pod>.

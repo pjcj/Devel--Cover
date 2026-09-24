@@ -100,49 +100,16 @@ my %Criteria;          # Names of coverage criteria
 my %Coverage;          # Coverage criteria to collect
 my %Coverage_options;  # Options for overage criteria
 
-my %Run;               # Data collected from the run
+my @Noreturn_default = qw( croak confess );  # Subs that never return
 
-my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
-                       emptyavhv|scalar|return|last|next|redo|goto|
-                       exec|exit|warn|time|qr)$/x;
-
-# Ops whose scalar result is always defined, so a // right operand is fixed
-my $Defined_right = qr/^(?:i_)?(?:
-  add|subtract|multiply|divide|modulo|pow|negate|
-  preinc|predec|postinc|postdec|
-  abs|int|hex|oct|ord|sqrt|exp|log|sin|cos|atan2|rand|
-  concat|multiconcat|stringify|repeat|lc|uc|lcfirst|ucfirst|quotemeta|chr|
-  join|sprintf|index|rindex|pack|vec|
-  not|defined|exists|lt|gt|le|ge|eq|ne|slt|sgt|sle|sge|seq|sne|scmp|
-  [ns]?bit_(?:and|or|xor)|[ns]?complement|left_shift|right_shift|
-  tms|ref|push|unshift
-)$/x;
-
-# Ops that return a defined count only in scalar context
-my $Defined_scalar_right = qr/^(?:keys|values|akeys)$/;
-
-# The multiconcat string is aux_list element [1] and does not depend on the CV
-sub _is_const_right ($op, $dor = 0) {
-  my $rhs  = $op->name eq "sassign" ? $op->first : $op;
-  my $name = $rhs->name;
-  return 1 if $name =~ $Const_right;
-  if ($dor) {
-    # A nulled wrapper (ex-stringify, ex-exists, ex-keys) keeps its old type
-    $name = substr B::ppname($rhs->targ), 3 if $name eq "null" && $rhs->targ;
-    return 1 if $name =~ $Defined_right;
-    return ($rhs->flags & OPf_WANT) == B::OPf_WANT_SCALAR ? 1 : 0
-      if $name =~ $Defined_scalar_right;
-  }
-  return 0 unless ref($rhs) eq "B::UNOP_AUX" && $name eq "multiconcat";
-  my @aux = $rhs->aux_list(main_cv);
-  $aux[1]
-}
+my %Run;                                     # Data collected from the run
 
 our $File;                # Last filename we saw.  (localised)
 our $Line;                # Last line number we saw.  (localised)
 our $Walk_seen;           # CVs walked this check_files run.  (localised)
 our $Collect;             # Whether we are collecting coverage data (localised)
 our %Files;               # Cached use_file decisions, read by the XS side
+our %Noreturn;            # Subs that never return, per file, read by the XS
 our $Replace_ops;         # Whether we are replacing ops
 our $Silent;              # Output nothing. Can be used anywhere
 our $Ignore_covered_err;  # Don't flag an error when uncoverable code runs
@@ -527,6 +494,22 @@ sub sub_location ($cv, $op) {
   $Line = $line if $line;
 }
 
+sub _noreturn_names ($file) {
+  my %names = map { $_ => 1 } @Noreturn_default;
+  open my $fh, "<", $file or return \%names;
+  while (my $l = <$fh>) {
+    next unless $l =~ /^[^#]*# dc noreturn (.*)/;
+    $names{$_} = 1 for split " ", $1;
+  }
+  close $fh or die "Can't close $file: $!";
+  \%names
+}
+
+sub _admit_file ($file) {
+  $Noreturn{$file} = _noreturn_names($file);
+  $Files{$file}    = 1
+}
+
 sub use_file ($file) {
   return 0 if ${^GLOBAL_PHASE} eq "DESTRUCT";
 
@@ -555,12 +538,13 @@ sub use_file ($file) {
 
   my $f = normalised_file($file);
 
-  for (grep defined, @Select_re) { return $Files{$file} = 1 if $f =~ $_ }
+  for (grep defined, @Select_re) { return _admit_file($file) if $f =~ $_ }
   for (grep defined, @Ignore_re, @Inc_re) {
     return $Files{$file} = 0 if $f =~ $_;
   }
 
-  $Files{$file} = -e $file ? 1 : 0;
+  _admit_file($file) if -e $file;
+  $Files{$file} //= 0;
   print STDERR __PACKAGE__ . qq(: Can't find file "$file": ignored.\n)
     unless $Files{$file}
     || $Silent
@@ -1003,12 +987,80 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
   }
 }
 
-sub _condition_counts ($c, $type, $op) {
+my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
+                       emptyavhv|scalar|return|last|next|redo|goto|
+                       exec|exit|warn|time|qr)$/x;
+
+# Ops whose scalar result is always defined, so a // right operand is fixed
+my $Defined_right = qr/^(?:i_)?(?:
+  add|subtract|multiply|divide|modulo|pow|negate|
+  preinc|predec|postinc|postdec|
+  abs|int|hex|oct|ord|sqrt|exp|log|sin|cos|atan2|rand|
+  concat|multiconcat|stringify|repeat|lc|uc|lcfirst|ucfirst|quotemeta|chr|
+  join|sprintf|index|rindex|pack|vec|
+  not|defined|exists|lt|gt|le|ge|eq|ne|slt|sgt|sle|sge|seq|sne|scmp|
+  [ns]?bit_(?:and|or|xor)|[ns]?complement|left_shift|right_shift|
+  tms|ref|push|unshift
+)$/x;
+
+# Ops that return a defined count only in scalar context
+my $Defined_scalar_right = qr/^(?:keys|values|akeys)$/;
+
+# The gv an entersub calls, read from the pad of $cv under ithreads
+sub _call_gv ($op, $cv) {
+  my $kid = $op->first;
+  $kid = $kid->first if $kid->name eq "null" && ppname($kid->targ) eq "pp_list";
+  $kid = $kid->sibling while ${ $kid->sibling };
+  return unless $kid->name eq "null" || $kid->name eq "rv2cv";
+  return unless $kid->can("first");
+  my $gvop = $kid->first;
+  return unless $$gvop && $gvop->name eq "gv";
+  my $gv
+    = ref $gvop eq "B::PADOP"
+    ? $cv->PADLIST->ARRAYelt(1)->ARRAYelt($gvop->padix)
+    : $gvop->gv;
+  ref $gv eq "B::GV" ? $gv : undef
+}
+
+# Nothing when the stash is missing, as for an XS sub
+sub _qualified_name ($gv) {
+  my $stash = $gv->STASH;
+  ref $stash eq "B::HV" ? $stash->NAME . "::" . $gv->NAME : ()
+}
+
+sub _is_noreturn_call ($op, $cv) {
+  my $names = $Noreturn{$File}          or return 0;
+  my $gv    = $cv && _call_gv($op, $cv) or return 0;
+  my @names = ($gv->NAME, _qualified_name($gv));
+  my $sub   = $gv->CV;
+  push @names, _qualified_name($sub->GV) if $$sub && ref $sub->GV eq "B::GV";
+  (grep $names->{$_}, @names) ? 1 : 0
+}
+
+# The multiconcat string is aux_list element [1] and does not depend on the CV
+sub _is_const_right ($op, $dor = 0, $cv = undef) {
+  my $rhs  = $op->name eq "sassign" ? $op->first : $op;
+  my $name = $rhs->name;
+  return 1                            if $name =~ $Const_right;
+  return _is_noreturn_call($rhs, $cv) if $name eq "entersub";
+  if ($dor) {
+    # A nulled wrapper (ex-stringify, ex-exists, ex-keys) keeps its old type
+    $name = substr B::ppname($rhs->targ), 3 if $name eq "null" && $rhs->targ;
+    return 1 if $name =~ $Defined_right;
+    return ($rhs->flags & OPf_WANT) == B::OPf_WANT_SCALAR ? 1 : 0
+      if $name =~ $Defined_scalar_right;
+  }
+  return 0 unless ref($rhs) eq "B::UNOP_AUX" && $name eq "multiconcat";
+  my @aux = $rhs->aux_list(main_cv);
+  $aux[1]
+}
+
+sub _condition_counts ($c, $type, $op, $cv = undef) {
   no warnings "uninitialized";
 
   if ($type eq "or" || $type eq "and") {
     my $const
-      = _is_const_right($op->first->sibling, $op->name =~ /^dor/ ? 1 : 0);
+      = _is_const_right($op->first->sibling, $op->name =~ /^dor/ ? 1 : 0, $cv);
     return ([$c->[3], $c->[1] + $c->[2]], 2, $c->[5] && !$const ? 1 : 0)
       if $c->[5] || $const;
     return ([$c->@[$type eq "or" ? (3, 2, 1) : (3, 1, 2)]], 3, 0);
@@ -1020,14 +1072,16 @@ sub _condition_counts ($c, $type, $op) {
   die qq(Unknown type "$type" for conditional);
 }
 
-sub _condition_structure ($op, $strop, $left, $right, $left_op, $right_op) {
+sub _condition_structure (
+  $op, $strop, $left, $right, $left_op, $right_op, $cv,
+) {
   my $key  = get_key($op);
   my $type = $op->name;
   $type =~ s/assign$//;
   $type = "or" if $type eq "dor";
 
   my ($c, $count, $void_collapsed)
-    = _condition_counts($Coverage->{condition}{$key}, $type, $op);
+    = _condition_counts($Coverage->{condition}{$key}, $type, $op, $cv);
 
   my ($la, $ln) = _resolve_child_op($left_op);
   my ($ra, $rn) = _resolve_child_op($right_op);
@@ -1050,13 +1104,13 @@ sub _condition_structure ($op, $strop, $left, $right, $left_op, $right_op) {
 
 sub add_condition_cover (
   $op, $strop, $left, $right,
-  $left_op = undef,
-  $right_op = undef,
+  $left_op = undef, $right_op = undef, $cv = undef,
 ) {
   return unless $Collect && $Coverage{condition};
 
   my ($key, $structure, $c)
-    = _condition_structure($op, $strop, $left, $right, $left_op, $right_op);
+    = _condition_structure($op, $strop, $left, $right, $left_op, $right_op,
+      $cv);
 
   my ($n, $new) = $Structure->add_count("condition");
 
@@ -1423,7 +1477,7 @@ sub _record_logop_condition (
 ) {
   my $l = _deparse_binop_left($cv, $op, $left, $prec, $use_dumper);
   my $r = _deparse_expr($cv, $right, $prec, $use_dumper);
-  add_condition_cover($op, $strop, $l, $r, $left, $right)
+  add_condition_cover($op, $strop, $l, $r, $left, $right, $cv)
     unless $Seen{condition}{$$op}++;
 }
 
@@ -1502,7 +1556,7 @@ sub _walk_logassignop ($cv, $op) {
   my $l      = _deparse_expr($cv, $left,  7);
   my $r      = _deparse_expr($cv, $right, 7);
 
-  add_condition_cover($op, $opname, $l, $r, $left, $right);
+  add_condition_cover($op, $opname, $l, $r, $left, $right, $cv);
 }
 
 sub _walk_xor ($cv, $op) {
@@ -1515,7 +1569,7 @@ sub _walk_xor ($cv, $op) {
   my $l      = _deparse_expr($cv, $left,  $cx);
   my $r      = _deparse_expr($cv, $right, $cx);
 
-  add_condition_cover($op, $opname, $l, $r, $left, $right);
+  add_condition_cover($op, $opname, $l, $r, $left, $right, $cv);
 }
 
 sub _get_cover_walk ($cv, $root) {
@@ -1807,6 +1861,17 @@ recorded against the root op at compile time.  A sub compiled before the
 hook was installed, or inside a string eval, keeps the first statement's
 line.
 
+=head2 _noreturn_names ($file)
+
+Return the set of subs a file treats as never returning: C<croak> and
+C<confess> by default, plus every name listed in a C<# dc noreturn>
+comment in the file.
+
+=head2 _admit_file ($file)
+
+Mark a file as covered in C<%Files> and record its never-returning subs in
+C<%Noreturn>, which the XS side reads for the MC/DC column count.
+
 =head2 use_file ($file)
 
 Decide whether coverage should be collected for a file, caching the answer
@@ -1987,7 +2052,20 @@ whenever the op did not short-circuit.  An C<and> may also be a plain
 C<if> with no C<else>, an C<or> an C<unless>, and the C<elsif> form
 applies when no further C<elsif> or C<else> follows.
 
-=head2 _is_const_right ($op, $dor)
+=head2 _call_gv ($op, $cv)
+
+The GV named by an C<entersub>, or nothing for a method or code ref call.
+On perls built with ithreads the C<gv> op holds a pad index, resolved
+through the pad of C<$cv> rather than the current pad.
+
+=head2 _is_noreturn_call ($op, $cv)
+
+True when an C<entersub> calls a sub the current file lists as never
+returning, matched by bare name, by the qualified name of the GV called,
+or by the qualified name of the sub the GV holds, so an imported C<croak>
+matches C<Carp::croak>.
+
+=head2 _is_const_right ($op, $dor, $cv)
 
 True when the right operand of a logical op is a constant-like expression
 with a fixed truth value, unwrapping an enclosing C<sassign> first.  A
@@ -1995,6 +2073,9 @@ C<multiconcat> op (Perl 5.28+) counts when its literal text is truthy -
 truthy rather than merely non-empty because C<"0"> is the one non-empty
 string that is false.  Such an op collapses to a two-row condition
 counting only the left operand.
+
+A call to a sub that never returns, such as C<croak>, counts too, since
+the right operand then never yields a value.  See L</_is_noreturn_call>.
 
 For C<//> and C<//=>, where C<$dor> is true, the property that matters is
 definedness, so any op whose scalar result is always defined counts as
@@ -2005,7 +2086,7 @@ judged by its former type.  Ops that can return undef, such as C<length>,
 C<substr>, C<gmtime> and C<< <=> >>, stay out.  The XS column walker in
 C<dc_is_defined_leaf> keeps the same list.
 
-=head2 _condition_counts ($c, $type, $op)
+=head2 _condition_counts ($c, $type, $op, $cv)
 
 Reorder the raw XS condition counts into truth-table row order and return
 the counts, the row count and a flag marking a genuine right operand
@@ -2028,7 +2109,8 @@ Build the structure entry for a condition - its type and row count, the
 deparsed operand texts, and the operand addresses and negation flags MC/DC
 needs to join nested decisions into one.
 
-=head2 add_condition_cover ($op, $strop, $left, $right, $left_op, $right_op)
+=head2 add_condition_cover ($op, $strop, $left, $right, $left_op, $right_op,
+$cv)
 
 Record a condition's truth-table counts and, when mcdc is active, its
 evaluation vectors.

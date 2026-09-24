@@ -991,10 +991,13 @@ sub _uncoverable_details ($criterion, $info, $file, $line) {
   ($counts, \@types, $class, $note)
 }
 
+my %Annotation = map { $_ => 1 } qw( uncoverable noreturn );
+
 sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
   my $cr = join "|", $self->{all_criteria}->@*;
-  # "uncoverable" must be the first text in the comment
-  my $uc = qr/^([^#]*)# uncoverable ($cr)(.*)/;
+  # "dc" or the legacy "uncoverable" must be the first text in the comment
+  my $uc = qr/^([^#]*)# (?:dc uncoverable (\w+)|uncoverable ($cr))(.*)/;
+  my $dc = qr/^[^#]*# dc (\w+)/;
 
   # Look for uncoverable comments
   open my $fh, "<", $file or do {
@@ -1005,9 +1008,10 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
   my @waiting;
   while (my $l = <$fh>) {
     chomp $l;
+    dcwarn "Unknown annotation $1 at $file:$." if $l =~ $dc && !$Annotation{$1};
     next unless $l =~ /$uc/ || @waiting;
-    if ($2) {
-      my ($code, $criterion, $info) = ($1, $2, $3);
+    if ($2 // $3) {
+      my ($code, $criterion, $info) = ($1, $2 // $3, $4);
       my ($counts, $types, $class, $note)
         = _uncoverable_details($criterion, $info, $file, $.);
 
@@ -1018,7 +1022,7 @@ sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
       next unless $code =~ /\S/;
     }
 
-    # uncoverable comments wait for the next line of code
+    # dc uncoverable comments wait for the next line of code
     next if $l =~ /^\s*(?:#|$)/;
 
     while (my $w = shift @waiting) {
@@ -1160,7 +1164,7 @@ sub _derive_mcdc ($self, $cover, $uncoverable = {}) {
         my $decision
           = [\@coverage, { text => $table->expr, labels => [$table->labels] }];
 
-        # Merge explicit "# uncoverable mcdc" markers with conditions the
+        # Merge explicit "# dc uncoverable mcdc" markers with conditions the
         # analyser excused because their only pair needs an uncoverable row.
         # The analyser's set is derived from the table's rows, so trust it only
         # for a proven table; for an unproven one the rows are the evidence we
@@ -1764,7 +1768,7 @@ Alias for L</add_subroutine>.
 
   $db->uncoverable_comments($uncoverable, $file, $digest);
 
-Scan C<$file> for C<# uncoverable> comments and merge them into the
+Scan C<$file> for C<# dc uncoverable> comments and merge them into the
 C<$uncoverable> hash under C<$digest>.
 
 =head2 objectify_cover

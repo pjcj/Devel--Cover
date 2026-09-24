@@ -41,19 +41,19 @@ line  err   stmt   bran   cond   mcdc    sub   code
 9                                              
 10                                             # __COVER__ cover_parameters -ignore_covered_err
 11                                             
-12                                             # uncoverable subroutine
+12                                             # dc uncoverable subroutine
 13                                        -1   sub usub {
-14                                                 # uncoverable statement
+14                                               # dc uncoverable statement
 15            -1                                   my $x = 1;
 16                                             }
 17                                             
 18                                         1   sub main {
 19             1                                   my $x = 1;
-20                                                 # uncoverable branch false
-21                                                 # uncoverable branch true
+20                                                 # dc uncoverable branch false
+21                                                 # dc uncoverable branch true
 22             1   -100                            if ($x > 1) {
 23    ***     *0                                       $x = 0;
-24                                                     # uncoverable statement
+24                                                     # dc uncoverable statement
 25            -0                                       $x = 2;
 26    ***     *0   *  0                                if ($x > 3) {
 27    ***     *0                                           $x = 4;
@@ -61,17 +61,17 @@ line  err   stmt   bran   cond   mcdc    sub   code
 29                                                 }
 30                                             
 31             1                                   my $y = 0;
-32                                                 # uncoverable branch true
-33                                                 # uncoverable condition when:10
+32                                                 # dc uncoverable branch true
+33                                                 # dc uncoverable condition when:10
 34    ***      1   -100  *- 33  *- 50              if ($x > 0 && $y > 0) {
-35                                                     # uncoverable statement
+35                                                     # dc uncoverable statement
 36            -0                                       $y = 1;
 37                                                 }
 38                                             
 39             1    100                            while ($y < 4) {
-40                                                     # uncoverable branch false
-41                                                     # uncoverable condition when:0X
-42                                                     # uncoverable condition when:10
+40                                                     # dc uncoverable branch false
+41                                                     # dc uncoverable condition when:0X
+42                                                     # dc uncoverable condition when:10
 43             2   -100   -100   -100                  if ($x > 0 && $y > 0) {
 44             1                                           $y = 4;
 45                                                     } else {
@@ -79,7 +79,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 47                                                     }
 48                                                 }
 49                                             
-50                                                 # uncoverable statement
+50                                                 # dc uncoverable statement
 51            -1                                   $x = 3;
 52             1                                   usub;
 53                                             }

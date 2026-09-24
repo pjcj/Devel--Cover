@@ -77,7 +77,7 @@ and attribute names.
 
 ```pod
 A C<class> attribute may be included in C<details>.
-Mark the whole decision with C<uncoverable mcdc all>.
+Mark the whole decision with C<dc uncoverable mcdc all>.
 ```
 
 `L<>` is a link and nothing else. `L<ignore_covered_err>` renders as a broken

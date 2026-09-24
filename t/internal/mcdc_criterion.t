@@ -94,7 +94,7 @@ sub test_uncoverable_absent () {
 
 sub test_error_excuses_marked_missing () {
   # Column 0 missing and unmarked -> error; column 1 missing but marked
-  # uncoverable -> excused.
+  # dc uncoverable -> excused.
   my $m = mcdc([0, 0], '$a // $b', [0, 1]);
   is $m->error, 1, "only the unmarked missing column counts as an error";
 }

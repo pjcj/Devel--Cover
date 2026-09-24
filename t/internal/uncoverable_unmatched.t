@@ -55,7 +55,7 @@ my $n = 0;
 my $r;
 if ($n == 0) {
   $r = "a";
-# uncoverable branch true
+# dc uncoverable branch true
 } elsif ($n == 1) {
   $r = "b";
 }
@@ -70,7 +70,7 @@ sub test_count_overshoot_warns () {
     = cover_warnings("overshoot",
       <<'PERL', criteria => ["statement", "branch"]);
 my $n = 0;
-# uncoverable branch true count:2
+# dc uncoverable branch true count:2
 if ($n == 0) { $n++ }
 PERL
   is @$warnings, 1, "overshoot: one warning";
@@ -83,7 +83,7 @@ sub test_wrong_criterion_warns () {
   my ($warnings, $path) = cover_warnings(
     "criterion", <<'PERL', criteria => ["statement", "branch", "condition"]);
 my $n = 1;
-# uncoverable condition left
+# dc uncoverable condition left
 my $r = $n + 1;
 PERL
   is @$warnings, 1, "criterion: one warning";
@@ -96,7 +96,7 @@ sub test_matched_comment_is_quiet () {
   my ($warnings)
     = cover_warnings("matched", <<'PERL', criteria => ["statement", "branch"]);
 my $n = 1;
-# uncoverable branch false
+# dc uncoverable branch false
 if ($n) { $n++ }
 PERL
   is @$warnings, 0, "matched: no warnings";
@@ -107,7 +107,7 @@ sub test_uncollected_criterion_is_quiet () {
     = cover_warnings("uncollected",
       <<'PERL', criteria => ["statement", "branch"]);
 my $n = 1;
-# uncoverable condition left
+# dc uncoverable condition left
 my $r = $n + 1;
 PERL
   is @$warnings, 0, "uncollected: no warning for uncollected criterion";
@@ -117,8 +117,8 @@ sub test_warnings_are_sorted () {
   my ($warnings) = cover_warnings(
     "sorted", <<'PERL', criteria => ["statement", "branch", "condition"]);
 my $n = 0;
-# uncoverable condition left
-# uncoverable branch true
+# dc uncoverable condition left
+# dc uncoverable branch true
 my $r = $n + 1;
 PERL
   is @$warnings, 2, "sorted: two warnings";
@@ -132,7 +132,7 @@ sub test_type_out_of_range_warns () {
   my ($warnings, $path) = cover_warnings(
     "type_range", <<'PERL', criteria => ["statement", "condition"]);
 my $n = 0;
-# uncoverable condition false
+# dc uncoverable condition false
 my $r = $n // 1;
 PERL
   is @$warnings, 1, "type range: one warning";
@@ -146,7 +146,7 @@ sub test_type_in_range_is_quiet () {
     "type_in_range", <<'PERL', criteria => ["statement", "condition"]);
 my $n = 0;
 my $m = 1;
-# uncoverable condition when:00
+# dc uncoverable condition when:00
 my $r = $n || $m;
 PERL
   is @$warnings, 0, "type in range: no warnings";
@@ -155,7 +155,7 @@ PERL
 sub test_silent_suppresses () {
   my $script = write_script("silent.pl", <<'PERL');
 my $n = 1;
-# uncoverable condition left
+# dc uncoverable condition left
 my $r = $n + 1;
 PERL
   my ($db) = run_under_cover(

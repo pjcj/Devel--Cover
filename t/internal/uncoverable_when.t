@@ -7,7 +7,7 @@
 # The latest version of this software should be available from my homepage:
 # https://pjcj.net
 
-# "# uncoverable condition when:<inputs>" marks the truth-table row whose
+# "# dc uncoverable condition when:<inputs>" marks the truth-table row whose
 # operand values match the pattern, as shown in the report - 0, 1 or X for
 # an operand never evaluated.  It reaches every row of every op, including
 # xor's fourth row, which no type word addresses (GH-481).
@@ -37,8 +37,8 @@ sub covered_when ($label, $source) {
 sub test_when_patterns_parse () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable condition when:00
-# uncoverable condition when:1x,00 count:2
+# dc uncoverable condition when:00
+# dc uncoverable condition when:1x,00 count:2
 $n++;
 PERL
   is @$warnings, 0, "parse: no warnings";
@@ -52,9 +52,9 @@ PERL
 sub test_when_restrictions () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable branch when:00
-# uncoverable condition left when:00
-# uncoverable condition when:2
+# dc uncoverable branch when:00
+# dc uncoverable condition left when:00
+# dc uncoverable condition when:2
 $n++;
 PERL
   is @$warnings, 3, "restrictions: one warning per comment";
@@ -73,7 +73,7 @@ PERL
 sub test_when_reaches_the_fourth_xor_row () {
   my ($cover, $warnings, $path) = covered_when("xor_row", <<'PERL');
 my ($t, $f) = (1, 0);
-# uncoverable condition when:00
+# dc uncoverable condition when:00
 my $r = ($t xor $f);
 PERL
   is @$warnings, 0, "xor: no warnings";
@@ -85,7 +85,7 @@ PERL
 sub test_when_matches_the_op_rows () {
   my ($cover, $warnings, $path) = covered_when("and_rows", <<'PERL');
 my ($t, $f) = (1, 0);
-# uncoverable condition when:0X,11
+# dc uncoverable condition when:0X,11
 my $r = $t && $f;
 PERL
   is @$warnings, 0, "and: no warnings";
@@ -98,7 +98,7 @@ PERL
 sub test_when_without_matching_row_warns () {
   my ($cover, $warnings, $path) = covered_when("no_row", <<'PERL');
 my ($t, $f) = (1, 0);
-# uncoverable condition when:01
+# dc uncoverable condition when:01
 my $r = $t && $f;
 PERL
   is @$warnings, 1, "no row: one warning";
@@ -112,7 +112,7 @@ PERL
 sub test_deprecated_words_suggest_when () {
   my ($cover, $warnings, $path) = covered_when("deprecated", <<'PERL');
 my ($t, $f) = (1, 0);
-# uncoverable condition false
+# dc uncoverable condition false
 my $r = $t && $f;
 PERL
   is @$warnings, 1, "deprecated: one warning";
@@ -126,7 +126,7 @@ PERL
 sub test_deprecated_word_without_row_warns () {
   my ($cover, $warnings, $path) = covered_when("deprecated_no_row", <<'PERL');
 my $n = 0;
-# uncoverable condition false
+# dc uncoverable condition false
 my $r = $n // 1;
 PERL
   is @$warnings, 1, "deprecated no row: one warning";

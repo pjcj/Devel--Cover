@@ -38,7 +38,7 @@ use warnings;
 sub left_always_true {
   my ($b) = @_;
   my $always = 1;
-  # uncoverable mcdc pair:1
+  # dc uncoverable mcdc pair:1
   return $always && $b;
 }
 

@@ -35,35 +35,35 @@ use warnings;
 
 sub hit {
   my ($x) = @_;
-  # uncoverable branch false
+  # dc uncoverable branch false
   if ($x) {
     return 1;
   }
-  # uncoverable statement
+  # dc uncoverable statement
   return 0;
 }
 
 sub cond {
   my ($x, $y) = @_;
-  # uncoverable condition when:0X
-  # uncoverable condition when:11
+  # dc uncoverable condition when:0X
+  # dc uncoverable condition when:11
   my $r = $x && !$y;
   return $r;
 }
 
-# uncoverable subroutine
-# uncoverable statement
+# dc uncoverable subroutine
+# dc uncoverable statement
 sub never_called { 1 }
 
-# uncoverable subroutine
+# dc uncoverable subroutine
 sub stale {
-  # uncoverable statement
+  # dc uncoverable statement
   return 42;
 }
 
 sub stale_branch {
   my ($x) = @_;
-  # uncoverable branch true
+  # dc uncoverable branch true
   if ($x) {
     return 1;
   }
@@ -80,7 +80,7 @@ use warnings;
 
 sub mixed {
   my ($x, $y) = @_;
-  # uncoverable mcdc all
+  # dc uncoverable mcdc all
   my $r = $x || $y;
   return $r;
 }
@@ -99,7 +99,7 @@ PodFix - pod fixture
 
 =cut
 
-# uncoverable pod
+# dc uncoverable pod
 sub undocumented { 1 }
 
 =head2 documented
@@ -108,7 +108,7 @@ Documented sub.
 
 =cut
 
-# uncoverable pod
+# dc uncoverable pod
 sub documented { 1 }
 
 1;

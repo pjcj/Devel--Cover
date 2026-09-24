@@ -363,7 +363,7 @@ True if this input combination was exercised.
 
 =item uncoverable
 
-The class name of the C<# uncoverable condition> marker excusing this row,
+The class name of the C<# dc uncoverable condition> marker excusing this row,
 or 0 when there is none.
 
 =back

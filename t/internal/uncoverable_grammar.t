@@ -27,8 +27,8 @@ use Devel::Cover::Test::Internal qw( parse_comments );
 sub test_unsupported_criteria_warn () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable time
-# uncoverable total
+# dc uncoverable time
+# dc uncoverable total
 $n++;
 PERL
   is @$warnings, 2, "unsupported: one warning per comment";
@@ -44,7 +44,7 @@ PERL
 sub test_unknown_type_drops () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable branch frobnicate
+# dc uncoverable branch frobnicate
 $n++;
 PERL
   is @$warnings, 1, "unknown type: one warning";
@@ -57,11 +57,11 @@ PERL
 sub test_invalid_attributes_warn () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable statement cont:2
-# uncoverable branch true clazz:x
-# uncoverable statement stray
-# uncoverable branch true extra
-# uncoverable statement count:1..
+# dc uncoverable statement cont:2
+# dc uncoverable branch true clazz:x
+# dc uncoverable statement stray
+# dc uncoverable branch true extra
+# dc uncoverable statement count:1..
 $n++;
 PERL
   is @$warnings, 5, "invalid attribute: one warning per comment";
@@ -86,9 +86,9 @@ PERL
 sub test_pair_restrictions () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable condition left pair:1
-# uncoverable mcdc all pair:2
-# uncoverable mcdc pair:0
+# dc uncoverable condition left pair:1
+# dc uncoverable mcdc all pair:2
+# dc uncoverable mcdc pair:0
 $n++;
 PERL
   is @$warnings, 3, "pair: one warning per comment";
@@ -106,8 +106,8 @@ PERL
 sub test_zero_count_warns () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable statement count:0
-# uncoverable statement count:0..2
+# dc uncoverable statement count:0
+# dc uncoverable statement count:0..2
 $n++;
 PERL
   is @$warnings, 2, "zero count: one warning per comment";
@@ -123,8 +123,8 @@ PERL
 sub test_zero_count_after_higher () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable statement count:2
-# uncoverable statement count:0
+# dc uncoverable statement count:2
+# dc uncoverable statement count:0
 $n++; $n++;
 PERL
   is @$warnings, 1, "zero count after higher: the zero warns";
@@ -138,8 +138,8 @@ PERL
 sub test_unknown_class_warns () {
   my ($unc, $warnings, $path) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable statement class:typo
-# uncoverable branch true class:ignore_covered_er
+# dc uncoverable statement class:typo
+# dc uncoverable branch true class:ignore_covered_er
 $n++;
 PERL
   is @$warnings, 2, "unknown class: one warning per comment";
@@ -155,8 +155,8 @@ PERL
 sub test_known_classes_parse () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable statement class:default
-# uncoverable statement count:2 class:ignore_covered_err
+# dc uncoverable statement class:default
+# dc uncoverable statement count:2 class:ignore_covered_err
 $n++; $n++;
 PERL
   is @$warnings, 0, "known class: no warnings";
@@ -168,7 +168,7 @@ PERL
 sub test_double_spaced_attributes_parse () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable statement  class:ignore_covered_err
+# dc uncoverable statement  class:ignore_covered_err
 $n++;
 PERL
   is @$warnings, 0, "double space: no warnings";
@@ -179,7 +179,7 @@ PERL
 sub test_count_lists_expand () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable statement count:2,4..6
+# dc uncoverable statement count:2,4..6
 $n++;
 PERL
   is @$warnings, 0, "count list: no warnings";
@@ -192,7 +192,7 @@ PERL
 sub test_note_consumes_the_rest () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable branch false class:default note:looks like cont:2 typo
+# dc uncoverable branch false class:default note:looks like cont:2 typo
 $n++;
 PERL
   is @$warnings, 0, "note: no warnings";
@@ -204,7 +204,7 @@ PERL
 sub test_attribute_order_is_free () {
   my ($unc, $warnings) = parse_comments(<<'PERL');
 my $n = 1;
-# uncoverable statement class:ignore_covered_err count:2
+# dc uncoverable statement class:ignore_covered_err count:2
 $n++;
 PERL
   is @$warnings, 0, "order: no warnings";

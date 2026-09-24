@@ -261,12 +261,12 @@ PERL
 # The analyser derives its uncoverable set from the synthesised rows.  For an
 # unproven table those rows are the evidence we distrust, so a column the
 # analyser excused must not be silently excused in the derived MC/DC result;
-# only explicit "# uncoverable mcdc" markers may excuse one there.
+# only explicit "# dc uncoverable mcdc" markers may excuse one there.
 sub test_unproven_ignores_derived_uncoverable () {
   my $db = bless {}, "Devel::Cover::DB";
 
   # Worked example $a || ($b && $c): a compound decision, so unproven without
-  # observed vectors.  The inner "# uncoverable condition" marker lets the
+  # observed vectors.  The inner "# dc uncoverable condition" marker lets the
   # analyser excuse $c through the synthesised rows.
   my @conditions = (
     mock_condition(

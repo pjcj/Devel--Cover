@@ -1,0 +1,170 @@
+cover: Reading database from ...
+-------------- ------ ------ ------ ------ ------ ------ ------
+File             stmt   bran   cond   mcdc    sub  total   scar
+-------------- ------ ------ ------ ------ ------ ------ ------
+tests/noreturn  100.0    n/a   95.2   81.8  100.0   96.7    5.9
+Total           100.0    n/a   95.2   81.8  100.0   96.7    5.9
+-------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/noreturn
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+11 98.5  1.8  5.9
+
+Worst Subroutines
+-----------------
+
+Subroutine  CC SCAR  Location         
+----------- -- ----  -----------------
+dor_helper   2  7.0  tests/noreturn:25
+dor_croak    2  6.9  tests/noreturn:20
+dor_confess  2  6.9  tests/noreturn:21
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13             1                           1   use Carp;
+               1                               
+               1                               
+14                                             
+15                                             # dc noreturn usage_die
+16                                             
+17             1                           1   sub usage_die { die "usage\n" }
+18             1                           1   sub helper    { 1 }
+19                                             
+20             2           100    100      2   sub dor_croak     { my $x = shift; my $r = $x // croak("no");       $r }
+               2                               
+               1                               
+21             2           100    100      2   sub dor_confess   { my $x = shift; my $r = $x // confess("no");     $r }
+               2                               
+               1                               
+22             2           100    100      2   sub dor_qualified { my $x = shift; my $r = $x // Carp::croak("no"); $r }
+               2                               
+               1                               
+23             2           100    100      2   sub dor_ampersand { my $x = shift; my $r = $x // &croak("no");      $r }
+               2                               
+               1                               
+24             2           100    100      2   sub dor_usage_die { my $x = shift; my $r = $x // usage_die();       $r }
+               2                               
+               1                               
+25    ***      2          * 66   *  0      2   sub dor_helper    { my $x = shift; my $r = $x // helper();          $r }
+               2                               
+               2                               
+26             2           100    100      2   sub or_croak      { my $x = shift; my $r = $x || croak("no"); $r }
+               2                               
+               1                               
+27             2           100    100      2   sub and_croak     { my $x = shift; my $r = $x && croak("no"); $r }
+               2                               
+               1                               
+28             2           100    100      2   sub dorassign     { my $x = shift; $x //= croak("no"); $x }
+               2                               
+               1                               
+29             2           100    100      2   sub orassign      { my $x = shift; $x ||= croak("no"); $x }
+               2                               
+               1                               
+30                                             
+31             1                               for my $sub (
+32                                               \&dor_croak,     \&dor_confess, \&dor_qualified, \&dor_ampersand,
+33                                               \&dor_usage_die, \&dor_helper,  \&or_croak,      \&and_croak,
+34                                               \&dorassign,     \&orassign,
+35                                             ) {
+36            10                                 eval { $sub->(1) };
+              10                               
+37            10                                 eval { $sub->(undef) };
+              10                               
+38                                             }
+
+
+Conditions
+----------
+
+and 2 conditions
+
+line  err      %     !l      l   expr
+----- --- ------ ------ ------   ----
+27           100      1      1   $x && croak('no')
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+20           100      1      1   $x // croak("no")
+21           100      1      1   $x // confess("no")
+22           100      1      1   $x // Carp::croak("no")
+23           100      1      1   $x // &croak("no")
+24           100      1      1   $x // usage_die()
+26           100      1      1   $x || croak('no')
+28           100      1      1   $x //= croak("no")
+29           100      1      1   $x ||= croak("no")
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+25    ***     66      1      1      0   $x // helper()
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+20           100    1    1                          $x // croak("no")
+21           100    1    1                          $x // confess("no")
+22           100    1    1                          $x // Carp::croak("no")
+23           100    1    1                          $x // &croak("no")
+24           100    1    1                          $x // usage_die()
+25    ***      0    0    2   $x, helper()           $x // helper()
+26           100    1    1                          $x || croak('no')
+27           100    1    1                          $x && croak('no')
+28           100    1    1                          $x //= croak("no")
+29           100    1    1                          $x ||= croak("no")
+
+
+Covered Subroutines
+-------------------
+
+Subroutine    Count  CC  SCAR Location         
+------------- ----- --- ----- -----------------
+BEGIN             1   1   0.0 tests/noreturn:10
+BEGIN             1   1   0.0 tests/noreturn:11
+BEGIN             1   1   0.0 tests/noreturn:13
+and_croak         2   2   6.9 tests/noreturn:27
+dor_ampersand     2   2   6.9 tests/noreturn:23
+dor_confess       2   2   6.9 tests/noreturn:21
+dor_croak         2   2   6.9 tests/noreturn:20
+dor_helper        2   2   7.0 tests/noreturn:25
+dor_qualified     2   2   6.9 tests/noreturn:22
+dor_usage_die     2   2   6.9 tests/noreturn:24
+dorassign         2   2   6.9 tests/noreturn:28
+helper            1   1   0.0 tests/noreturn:18
+or_croak          2   2   6.9 tests/noreturn:26
+orassign          2   2   6.9 tests/noreturn:29
+usage_die         1   1   0.0 tests/noreturn:17
+
+

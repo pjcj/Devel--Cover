@@ -250,7 +250,7 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   sub fetch {
     my ($cache, $key, $default) = @_;
-    # uncoverable mcdc all
+    # dc uncoverable mcdc all
     return $cache->{$key} //= $default;
   }
 
@@ -263,20 +263,20 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
   sub audit {
     my ($value) = @_;
     my $active = 1;
-    # uncoverable condition left
-    # uncoverable mcdc pair:1
+    # dc uncoverable condition left
+    # dc uncoverable mcdc pair:1
     my $ok = $active && $value;
-    # uncoverable branch true
+    # dc uncoverable branch true
     if (!$active) {
-      # uncoverable statement
+      # dc uncoverable statement
       die "audit while inactive";
     }
     return $ok;
   }
 
-  # uncoverable subroutine
+  # dc uncoverable subroutine
   sub emergency_stop {
-    # uncoverable statement
+    # dc uncoverable statement
     die "emergency stop";
   }
 
@@ -288,7 +288,7 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   sub require_value {
     my ($v) = @_;
-    # uncoverable branch false
+    # dc uncoverable branch false
     my $ok = $v or die "no value";
     return $ok;
   }
@@ -301,7 +301,7 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   sub require_value_unless {
     my ($v) = @_;
-    # uncoverable branch true
+    # dc uncoverable branch true
     die "no value" unless $v;
     return $v;
   }
@@ -314,9 +314,9 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   sub require_value_if {
     my ($v) = @_;
-    # uncoverable branch true
+    # dc uncoverable branch true
     if (!$v) {
-      # uncoverable statement
+      # dc uncoverable statement
       die "no value";
     }
     return $v;
@@ -330,9 +330,9 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   sub require_value_unless_block {
     my ($v) = @_;
-    # uncoverable branch true
+    # dc uncoverable branch true
     unless ($v) {
-      # uncoverable statement
+      # dc uncoverable statement
       die "no value";
     }
     return $v;
@@ -346,7 +346,7 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   sub legacy_guard {
     my ($v) = @_;
-    # uncoverable branch false
+    # dc uncoverable branch false
     return 1 if $v;
     return 0;
   }
@@ -360,7 +360,7 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   sub legacy_filter {
     my ($a, $b) = @_;
-    # uncoverable condition when:11
+    # dc uncoverable condition when:11
     my $ok = $a > 0 && $b > 0;
     return $ok;
   }
@@ -374,7 +374,7 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   sub legacy_pair {
     my ($a, $b) = @_;
-    # uncoverable mcdc pair:1
+    # dc uncoverable mcdc pair:1
     my $ok = $a && $b;
     return $ok;
   }
@@ -385,13 +385,13 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   =cut
 
-  # uncoverable subroutine
+  # dc uncoverable subroutine
   sub retired_hook {
-    # uncoverable statement
+    # dc uncoverable statement
     return "still called";
   }
 
-  # uncoverable pod
+  # dc uncoverable pod
   sub internal_probe {
     return "internal";
   }
@@ -402,7 +402,7 @@ my $Markers_body = <<'BODY' =~ s/^  //gmr;
 
   =cut
 
-  # uncoverable pod
+  # dc uncoverable pod
   sub documented_probe {
     return "documented";
   }
