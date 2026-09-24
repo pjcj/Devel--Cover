@@ -473,8 +473,8 @@ USAGE POD in `Devel::Cover::Mcdc`, and a `Changes` entry.
   the XS recorder (`DC_MAX_DECISION_WIDTH`) records no input vectors for such
   decisions. `DB::_derive_mcdc` reports the decision as 0 of its width with an
   `unanalysed` flag, warns at report time naming the file and line (silenced by
-  `-silent`), and ignores any `# uncoverable mcdc` markers on it, with a warning
-  of its own. Reporters show "too many conditions" in place of the
+  `-silent`), and ignores any `# dc uncoverable mcdc` markers on it, with a
+  warning of its own. Reporters show "too many conditions" in place of the
   missing-conditions list, and the JSON report carries `"unanalysed": 1`. The
   bound exists because the truth table size grows as 2^N and becomes unwieldy.
   The remedy is to split the decision with an intermediate variable, which needs
