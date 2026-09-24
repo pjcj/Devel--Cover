@@ -336,10 +336,27 @@ The right operand's truth value does not matter in this case, so only two
 outcomes are tracked. The `$Const_right` pattern determines this:
 
 ```perl
-my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|
-    bless|anon(?:list|hash)|emptyavhv|scalar|
-    return|last|next|redo|goto)$/x;
+my $Const_right = qr/^(?:const|s?refgen|gelem|die|undef|bless|anon(?:list|hash)|
+                       emptyavhv|scalar|return|last|next|redo|goto|
+                       exec|exit|warn|time|qr)$/x;
 ```
+
+For `//` and `//=` the property is definedness rather than truth, so
+`_is_const_right` also accepts any op whose scalar result is always defined.
+`$Defined_right` lists them: arithmetic and negation, the increment forms, the
+numeric functions, string ops including `concat`, `multiconcat` and `stringify`,
+the comparison and bitwise ops, `time`, `times`, `ref`, `push` and `unshift`.
+`keys`, `values` and `akeys` count only when the op's want flag is scalar, since
+in list context they return a list. A nulled wrapper such as `ex-stringify`,
+`ex-exists` or `ex-keys` is judged by its former type from `op_targ`. Ops that
+can return undef, such as `length`, `substr`, `gmtime`, `localtime` and `<=>`,
+stay out. Overloading can make any listed op return undef, so a wrong entry
+hides a gap rather than failing loudly.
+
+`dc_is_const_leaf` and `dc_is_defined_leaf` in `Cover.xs` mirror both lists for
+the MC/DC column walker, so the observed vectors have the same width as the
+table. `tests/dor_defined` exercises every family and a control group that must
+keep three outcomes.
 
 **`xor` with 4 outcomes**:
 
