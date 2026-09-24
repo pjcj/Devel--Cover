@@ -1,0 +1,127 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+package Falsy;
+
+use overload bool => sub { 0 }, fallback => 1;
+
+sub new { bless {}, shift }
+
+package main;
+
+our %h = (k => undef);
+
+sub id { $_[0] }
+
+sub assign {
+  my ($x, $v) = @_;
+  my $r = $x // $v;
+  $r
+}
+
+sub hash {
+  my ($x, $v) = @_;
+  $h{k} = $v;
+  my $r = $x // $h{k};
+  $r
+}
+
+sub list {
+  my ($x, $v) = @_;
+  my @r;
+  push @r, $x // $v;
+  @r
+}
+
+sub arg {
+  my ($x, $v) = @_;
+  id($x // $v)
+}
+
+sub void {
+  no warnings "void";
+  my ($x, $v) = @_;
+  $x // $v;
+  1
+}
+
+sub assign_form {
+  my ($x, $v) = @_;
+  $x //= $v;
+  $x
+}
+
+sub assign_form_value {
+  my ($x, $v) = @_;
+  my $r = ($x //= $v);
+  $r
+}
+
+sub cond {
+  my ($x, $v) = @_;
+  if ($x // $v) { return 1 }
+  0
+}
+
+sub ternary {
+  my ($x, $v) = @_;
+  my $r = $x // $v ? 1 : 2;
+  $r
+}
+
+sub or_dor {
+  my ($x, $y, $v) = @_;
+  my $r = $x || ($y // $v);
+  $r
+}
+
+sub dor_or {
+  my ($x, $y, $v) = @_;
+  my $r = $x // ($y || $v);
+  $r
+}
+
+sub skipped {
+  my ($x, $y, $v) = @_;
+  if ($x // ($y && $v)) { return 1 }
+  0
+}
+
+sub sorted {
+  my ($x, $v) = @_;
+  my @s = sort { $x // $v } 1, 2;
+  @s
+}
+
+for my $v (undef, 0, "", 1) {
+  for my $x (1, undef) {
+    assign($x, $v);
+    hash($x, $v);
+    list($x, $v);
+    arg($x, $v);
+    void($x, $v);
+    assign_form($x, $v);
+    assign_form_value($x, $v);
+    cond($x, $v);
+    ternary($x, $v);
+    or_dor(0, $x, $v);
+    dor_or($x, 0, $v);
+    skipped($x, 1, $v);
+    sorted($x, $v);
+  }
+  or_dor(1, 1, $v);
+  dor_or(undef, 1, $v);
+  skipped(undef, 0, $v);
+}
+
+assign(undef, Falsy->new);
+cond(undef, Falsy->new);
