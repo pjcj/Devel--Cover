@@ -41,9 +41,13 @@ sub get_tests_from_dir {
   @tests
 }
 
+sub e2e_file ($test) {
+  my $e = "t/e2e";
+  (grep -e, "$e/$test", "$e/a$test.t", "$e/$test.t")[0] // $test
+}
+
 sub run_test_in_child ($test, $test_output) {
-  my $e    = "t/e2e";
-  my $file = (grep -e, "$e/$test", "$e/$test.t", "$e/a$test.t")[0] // $test;
+  my $file = e2e_file($test);
   say $test_output
     ? "writing $test.out: "
     : "creating golden results for $test: ";
@@ -90,4 +94,6 @@ sub main {
   0
 }
 
-exit main
+exit main unless caller;
+
+1
