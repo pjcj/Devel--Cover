@@ -56,6 +56,52 @@ Module for storing condition coverage information.
 
 =head1 METHODS
 
+This is the base class for the C<Devel::Cover::Condition_*> classes. The
+entry is C<[counts, information, uncoverable]> as for
+L<Devel::Cover::Branch>, with one count per outcome. The information hash
+holds the C<left>, C<op> and C<right> source text and the C<type>, such
+as C<or_3>, which names the subclass L<Devel::Cover::DB> blesses the
+entry into.
+
+=head2 pad
+
+Set every missing count to zero, up to C<count>.
+
+=head2 text
+
+Return the source text of the condition, built from the left operand, the
+operator and the right operand.
+
+=head2 type
+
+Return the condition type, such as C<or_3> or C<and_2>.
+
+=head2 criterion
+
+Return C<condition>.
+
+=head2 shortname
+
+Return C<cond>.
+
+=head2 detail_criterion
+
+Return C<condition>.
+
+=head2 sign_letter
+
+Return C<C>.
+
+=head2 count
+
+Return the number of outcomes. Each subclass must override this, since the
+base dies.
+
+=head2 headers
+
+Return the outcome labels as an array reference, in count order. Each
+subclass must override this, since the base dies.
+
 =head1 LICENCE
 
 Copyright 2001-2026, Paul Johnson (paul@pjcj.net)

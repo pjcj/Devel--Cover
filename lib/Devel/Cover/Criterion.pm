@@ -224,6 +224,71 @@ C<coverage_state> take an index. False for the single-value criteria.
 
 =head1 METHODS
 
+There is no constructor. L<Devel::Cover::DB> blesses each entry it reads
+from the database into the class for its criterion, and into the
+C<Devel::Cover::Condition_*> subclass named by the type of the entry where
+there is one. An entry is an array. Element 0 holds the coverage, element
+1 the structure information and element 2 the uncoverable flag or flags.
+
+=head2 coverage
+
+Return the raw coverage in element 0. This is a count for the
+single-value criteria and an array of counts for the indexed ones.
+
+=head2 information
+
+Return the structure information in element 1, such as the text of a
+branch or the name of a subroutine.
+
+=head2 uncoverable
+
+Return the uncoverable flag. The base returns C<n/a>.
+
+=head2 covered
+
+Return the number of values covered. The base returns C<n/a>.
+
+=head2 total
+
+Return the number of values. The base returns C<n/a>.
+
+=head2 percentage
+
+Return the share of values not in error, as an integer. The base
+returns C<n/a>.
+
+=head2 error
+
+Return the number of values in error. The base returns C<n/a>.
+
+=head2 text
+
+Return the source text of the construct, for the criteria which keep
+it. The base returns C<n/a>.
+
+=head2 values
+
+Return the covered value as a one-element array reference. The indexed
+criteria override this to return all their counts.
+
+=head2 criterion
+
+Return the criterion name, such as C<statement>. Each subclass must
+override this, since the base dies.
+
+=head2 err_chk ($covered, $uncoverable)
+
+Return true when a value is in error. A value is right when it is
+covered or marked uncoverable but not both. Under C<-ignore_covered_err>,
+or when the marker has the C<ignore_covered_err> class, a covered value
+with a marker counts as right, and only an uncovered value with no marker
+is in error.
+
+=head2 simple_error
+
+Return the result of C<err_chk> on the single covered and uncoverable
+values. The single-value criteria use this as their C<error>.
+
 =head2 coverage_state ($i)
 
   my $state = $o->coverage_state;
@@ -245,7 +310,22 @@ C<-ignore_covered_err> or when the marker carries the
 C<ignore_covered_err> class. Criteria holding several values, such as
 branch, take the index of the value to ask about.
 
-=head2 new
+=head2 calculate_percentage ($db, $summary)
+
+Set the C<percentage> key of the summary from its C<total> and C<error>
+counts. A summary with no total is 100. L<Devel::Cover::Time> overrides
+this, since its total is not a count of constructs.
+
+=head2 aggregate ($summary, $file, $keyword, $count)
+
+Add the count to the summary under the keyword, for this criterion and
+for all criteria together, under both the file and the C<Total> key.
+
+=head2 calculate_summary ($db, $file)
+
+Add this value to the summary of the database. The base adds the total
+and one each for covered, uncoverable and error where they apply. The
+indexed criteria override this to add their counts.
 
 =head1 LICENCE
 

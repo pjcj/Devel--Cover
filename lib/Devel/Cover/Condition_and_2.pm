@@ -42,6 +42,14 @@ operand is a constant or control flow, leaving only two outcomes.
 
 =head1 METHODS
 
+=head2 count
+
+Return 2.
+
+=head2 headers
+
+Return C<!l> and C<l>.
+
 =head1 LICENCE
 
 Copyright 2001-2026, Paul Johnson (paul@pjcj.net)

@@ -53,7 +53,7 @@ PERL
   is statement_count($file, 4), 1, "and so did the one after that";
   my $branch = $file->branch->location(2);
   ok $branch, "the exec's or branch is collected" or return;
-  is grep($_, $branch->[0]->values), 1, "one leg of the or branch ran";
+  is grep($_, $branch->[0]->values->@*), 1, "one leg of the or branch ran";
   is run_count($db), 2, "the exec-time and END-time runs are both written";
 }
 

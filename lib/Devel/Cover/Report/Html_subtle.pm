@@ -193,7 +193,7 @@ sub print_branches ($db, $file, $options) {
   for my $location (sort { $a <=> $b } $branches->items) {
     my $count = 0;
     for my $b ($branches->location($location)->@*) {
-      my @tf = $b->values;
+      my @tf = $b->values->@*;
       push @branches, {
           ref        => "line$location",
           number     => $count++ ? undef : $location,
@@ -271,7 +271,7 @@ sub print_mcdc ($db, $file, $options) {
   my @data;
   for my $location (sort { $a <=> $b } $mcdc->items) {
     for my $m ($mcdc->location($location)->@*) {
-      my @vals   = $m->values;
+      my @vals   = $m->values->@*;
       my @labels = $m->labels->@*;
 
       my $atomics = $m->unanalysed ? "<em>too many conditions</em>" : join " ",

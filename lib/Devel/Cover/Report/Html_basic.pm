@@ -300,7 +300,7 @@ sub print_mcdc () {
     for my $m ($mcdc->location($location)->@*) {
       $count++;
       my $text   = _highlight_text($m->text);
-      my @vals   = $m->values;
+      my @vals   = $m->values->@*;
       my @labels = $m->labels->@*;
 
       push @decisions, {

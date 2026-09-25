@@ -53,6 +53,45 @@ Module for storing pod coverage information.
 
 =head1 METHODS
 
+The entry is C<[covered, name, uncoverable]>. The coverage comes from
+L<Pod::Coverage>, which the module loads when it is installed.
+
+=head2 uncoverable
+
+Return the uncoverable flag.
+
+=head2 covered
+
+Return 1 when the subroutine has documentation, otherwise 0.
+
+=head2 total
+
+Return 1.
+
+=head2 percentage
+
+Return 100 when the subroutine is not in error, otherwise 0.
+
+=head2 error
+
+Return the result of C<simple_error> in L<Devel::Cover::Criterion>.
+
+=head2 criterion
+
+Return C<pod>.
+
+=head2 display_mode
+
+Return C<count>.
+
+=head2 detail_criterion
+
+Return C<subroutine>, since pod values link to the subroutine detail page.
+
+=head2 sign_letter
+
+Return C<P>.
+
 =head1 LICENCE
 
 Copyright 2001-2026, Paul Johnson (paul@pjcj.net)

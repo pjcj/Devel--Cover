@@ -41,6 +41,14 @@ Module for storing condition coverage information for xor conditions.
 
 =head1 METHODS
 
+=head2 count
+
+Return 4.
+
+=head2 headers
+
+Return C<l&&r>, C<l&&!r>, C<!l&&r> and C<!l&&!r>.
+
 =head1 LICENCE
 
 Copyright 2001-2026, Paul Johnson (paul@pjcj.net)

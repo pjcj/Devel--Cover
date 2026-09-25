@@ -60,11 +60,50 @@ Module for storing time coverage information.
 
 =head1 METHODS
 
-=head2 new
+The entry is a reference to a scalar holding the time spent on the
+statement, in microseconds.
 
- my $db = Devel::Cover::DB->new(db => "my_coverage_db");
+=head2 uncoverable
 
-Constructs the DB from the specified database.
+Return 0, since time is not a coverage criterion.
+
+=head2 covered
+
+Return the time spent.
+
+=head2 total
+
+Return 1.
+
+=head2 percentage
+
+Return 100 when any time was spent, otherwise 0.
+
+=head2 error
+
+Return 0.
+
+=head2 criterion
+
+Return C<time>.
+
+=head2 display_mode
+
+Return C<count>.
+
+=head2 measures_coverage
+
+Return false.
+
+=head2 calculate_summary ($db, $file)
+
+Add the time spent to the totals for the file and for the whole database.
+
+=head2 calculate_percentage ($db, $summary)
+
+Set the C<percentage> key of the summary to the share of the total time
+of the database that this summary covers. A database with no time
+recorded gives 100.
 
 =head1 LICENCE
 

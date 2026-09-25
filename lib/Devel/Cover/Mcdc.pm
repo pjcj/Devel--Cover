@@ -17,7 +17,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 use base "Devel::Cover::Criterion";
 
 sub total     ($self) { scalar $self->[0]->@* }
-sub values    ($self) { $self->[0]->@* }
+sub values    ($self) { $self->[0] }
 sub text      ($self) { $self->[1]{text} }
 sub labels    ($self) { $self->[1]{labels} // [] }
 sub criterion ($self) { "mcdc" }
@@ -97,7 +97,7 @@ condition truth tables already collected by the existing runtime
 instrumentation, supplemented by a per-execution input-vector recorder in the
 XS runtime; no condition collection is duplicated.
 
-See L<Devel::Cover::Tutorial/2.5 Modified condition/decision coverage> for an
+See L<Devel::Cover::Tutorial/"2.5 Modified condition/decision coverage"> for an
 introduction to the metric and a worked example, and
 L<Devel::Cover::Mcdc::Analyser> for the per-decision analyser this class wraps.
 
@@ -160,6 +160,83 @@ value context the outer operator is always recorded.
  cover
 
 =head1 METHODS
+
+The entry is C<[covered, information, uncoverable]>. The covered flags
+are an array with one entry per condition in the decision. The
+information is a hash holding the source C<text> of the decision, the
+condition C<labels> and the C<unanalysed> flag. The uncoverable flags are
+an array with one entry per condition.
+
+=head2 total
+
+Return the number of conditions.
+
+=head2 values
+
+Return the covered flags as an array reference.
+
+=head2 text
+
+Return the source text of the decision.
+
+=head2 labels
+
+Return the condition labels as an array reference, empty when there are
+none.
+
+=head2 criterion
+
+Return C<mcdc>.
+
+=head2 display_name
+
+Return C<MC/DC>.
+
+=head2 detail_criterion
+
+Return C<mcdc>.
+
+=head2 sign_letter
+
+Return C<M>.
+
+=head2 indexed
+
+Return true.
+
+=head2 unanalysed
+
+Return true for a decision too wide to analyse. See LIMITATIONS above.
+
+=head2 covered ($i)
+
+Return the covered flag for condition C<$i>, or without an index the
+number of conditions covered.
+
+=head2 uncoverable ($i)
+
+Return the uncoverable flag for condition C<$i>, or without an index the
+number of conditions marked uncoverable.
+
+=head2 missing
+
+Return the labels of the conditions neither covered nor marked
+uncoverable, as an array reference.
+
+=head2 percentage
+
+Return the share of conditions not in error, as an integer. A decision
+with no conditions gives 0.
+
+=head2 error ($i)
+
+Return whether condition C<$i> is in error, or without an index the
+number of conditions in error.
+
+=head2 calculate_summary ($db, $file)
+
+Add the total, uncoverable, covered and error counts to the summary of
+the database.
 
 =head1 LICENCE
 

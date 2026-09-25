@@ -456,7 +456,7 @@ sub print_branch_report ($db, $file, $opt) {
   for my $line (sort { $a <=> $b } $data->items) {
     my $n = 0;
     for my $x ($data->location($line)->@*) {
-      my @tf = $x->values;
+      my @tf = $x->values->@*;
       printf $out $fmt, $n++ > 0 ? "" : qq(<a id="L$line">$line</a>),
         pclass($x->percentage, $x->error), $x->percentage, bclass($tf[0]),
         bclass($tf[1]), escape_HTML($x->text);
@@ -531,7 +531,7 @@ sub print_mcdc_report ($db, $file, $opt) {
     my $loc = $data->location($line);
     my $n   = 0;
     for my $m (@$loc) {
-      my @vals   = $m->values;
+      my @vals   = $m->values->@*;
       my @labels = $m->labels->@*;
       my @unc    = map $m->uncoverable($_), 0 .. $#vals;
       my @cls    = map sclass($m, $_), 0 .. $#vals;
