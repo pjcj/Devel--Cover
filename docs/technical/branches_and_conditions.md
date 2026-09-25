@@ -345,18 +345,32 @@ For `//` and `//=` the property is definedness rather than truth, so
 `_is_const_right` also accepts any op whose scalar result is always defined.
 `$Defined_right` lists them: arithmetic and negation, the increment forms, the
 numeric functions, string ops including `concat`, `multiconcat` and `stringify`,
-the comparison and bitwise ops, `time`, `times`, `ref`, `push` and `unshift`.
-`keys`, `values` and `akeys` count only when the op's want flag is scalar, since
-in list context they return a list. A nulled wrapper such as `ex-stringify`,
-`ex-exists` or `ex-keys` is judged by its former type from `op_targ`. Ops that
-can return undef, such as `length`, `substr`, `gmtime`, `localtime` and `<=>`,
-stay out. Overloading can make any listed op return undef, so a wrong entry
-hides a gap rather than failing loudly.
+the comparison and bitwise ops, `time`, `times`, `ref`, `push`, `unshift` and
+`$#array` (`av2arylen`). `keys`, `values` and `akeys` count only when the op's
+want flag is scalar, since in list context they return a list. A nulled wrapper
+such as `ex-stringify`, `ex-exists` or `ex-keys` is judged by its former type
+from `op_targ`. Ops that can return undef, such as `length`, `substr`, `gmtime`,
+`localtime` and `<=>`, stay out. Overloading can make any listed op return
+undef, so a wrong entry hides a gap rather than failing loudly.
 
 `dc_is_const_leaf` and `dc_is_defined_leaf` in `Cover.xs` mirror both lists for
 the MC/DC column walker, so the observed vectors have the same width as the
 table. `tests/dor_defined` exercises every family and a control group that must
 keep three outcomes.
+
+A `?:` whose branches are both fixed, an `||` or `//` whose right operand is
+fixed, and an `&&` whose operands both are, collapse as well, through
+`_is_dor_fixed_tree`. Fixed means constant, never returning, always defined or
+fixed by the same rule, so a nested `?:`, an arithmetic branch or a `die` branch
+all qualify. The plain `null` over the `cond_expr` or nested logop is stepped
+through. `dc_is_dor_fixed_tree` mirrors the rule and the column walker consults
+it before recursing into a nested logop, so a nested logop judged fixed gets no
+columns, which matches `Condition_table` dropping the right child of a collapsed
+`or_2`. The inner logop keeps its own condition row. At runtime these operands
+stay on the pending path, since a `?:` can still return a value, so a `?:` which
+dies on every undefined call gives the `!l` count but no MC/DC vector.
+`tests/dor_fixed` covers `$#array`, the `?:` forms, the nested ops and the
+method calls below, with controls that keep three outcomes.
 
 An `entersub` whose sub never returns collapses in the same way. `croak` and
 `confess` are built in, and a `# dc noreturn` comment adds names for the file it
@@ -364,13 +378,18 @@ appears in. `use_file` reads the comments when it admits a file and stores the
 names in `%Noreturn`, keyed by file, which the XS side reads through
 `MY_CXT.noreturn`. `_is_noreturn_call` matches the bare name of the GV under the
 `entersub`, its qualified name, and the qualified name of the CV it holds, so an
-imported `croak` matches `Carp::croak`. On perls built with ithreads the `gv` op
-holds a pad index, so both sides read the GV from pad 1 of the CV that owns the
-op rather than the current pad. `dc_is_noreturn_call` in `Cover.xs` is consulted
+imported `croak` matches `Carp::croak`. A method called by a constant name has
+no GV, so it matches by bare name alone, read from the `method_named` op or its
+`method_super` kin. On perls built with ithreads the `gv` op holds a pad index,
+so both sides read the GV from pad 1 of the CV that owns the op rather than the
+current pad. On 5.20 the method op is an svop whose name is in that pad under
+ithreads too, and a `SUPER::` or redirected call is a `method` op over a `const`
+spelling the name in full, so both sides drop any package qualifier. From 5.22
+it is a methop with `meth_sv`. `dc_is_noreturn_call` in `Cover.xs` is consulted
 at two points. The column walker gives the call no MC/DC column. The logop hook
 records the outcome at once, as it does for a literal `die`, rather than waiting
 for a value that is never produced. `tests/noreturn` covers the built-in names,
-a listed name and a control sub.
+a listed name and a control sub, and `tests/dor_fixed` the method calls.
 
 **`xor` with 4 outcomes**:
 

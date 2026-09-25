@@ -5,12 +5,14 @@ Devel::Cover history
   defined false value such as `0` counts as `!l&&r` rather than
   `!l&&!r` (GH-838)
 - Collapse a condition whose right operand calls `croak`, `confess` or
-  a sub listed in a `# dc noreturn` comment to two outcomes (GH-834)
+  a sub or method listed in a `# dc noreturn` comment to two outcomes
+  (GH-834, GH-844)
 - Add the `dc` prefix for source annotations, so `# uncoverable` becomes
   `# dc uncoverable`, with the old spelling kept as an alias (GH-834)
 - Collapse a `//` condition whose right operand is always defined, such
-  as `$x // time`, to two outcomes, and `||` or `&&` with `time` or
-  `qr//` likewise (GH-833)
+  as `$x // time`, `$#array` or a `?:` with fixed branches, to two
+  outcomes, and `||` or `&&` with `time` or `qr//` likewise (GH-833,
+  GH-844)
 - BREAKING: Record subroutine and pod coverage on the sub line rather
   than on the first statement of the body. Uncoverable subroutine and
   pod comments must move on or above that line (GH-827)

@@ -1479,7 +1479,7 @@ static const char *const dc_defined_ops[] = {
   "bit_and",   "bit_or",   "bit_xor",   "nbit_and",   "nbit_or",   "nbit_xor",
   "sbit_and",  "sbit_or",  "sbit_xor",  "complement", "ncomplement",
   "scomplement", "left_shift", "right_shift",
-  "tms",       "ref",      "push",      "unshift",
+  "tms",       "ref",      "push",      "unshift",    "av2arylen",
   NULL
 };
 
@@ -1499,14 +1499,19 @@ static int dc_is_defined_leaf(pTHX_ OP *op) {
   return 0;
 }
 
-/* The GV an entersub calls, read from the pad of cv under ithreads */
-static GV *dc_call_gv(pTHX_ CV *cv, OP *op) {
+/* The last child of an entersub, a gv, rv2cv or method op */
+static OP *dc_call_target(OP *op) {
   OP *kid = cUNOPx(op)->op_first;
-  SV *sv;
   if (!kid) return NULL;
   if (kid->op_type == OP_NULL && kid->op_targ == OP_LIST)
     kid = cUNOPx(kid)->op_first;
   while (kid && OpSIBLING(kid)) kid = OpSIBLING(kid);
+  return kid;
+}
+
+/* The GV an entersub calls, read from the pad of cv under ithreads */
+static GV *dc_call_gv(pTHX_ CV *cv, OP *kid) {
+  SV *sv;
   if (!kid || (kid->op_type != OP_NULL && kid->op_type != OP_RV2CV))
     return NULL;
   if (!(kid->op_flags & OPf_KIDS)) return NULL;
@@ -1524,9 +1529,36 @@ static GV *dc_call_gv(pTHX_ CV *cv, OP *op) {
   return sv && SvTYPE(sv) == SVt_PVGV ? (GV *)sv : NULL;
 }
 
+/* The SV of an svop, read from the pad of cv under ithreads */
+static SV *dc_svop_sv(pTHX_ CV *cv, OP *op) {
+  PADLIST *padlist;
+  if (cSVOPx(op)->op_sv) return cSVOPx(op)->op_sv;
+  padlist = CvPADLIST(cv);
+  if (!padlist || PadlistMAX(padlist) < 1) return NULL;
+  return PadARRAY(PadlistARRAY(padlist)[1])[op->op_targ];
+}
+
+/* The name of a method called by a constant name, whatever the invocant */
+static SV *dc_method_name(pTHX_ CV *cv, OP *kid) {
+  if (!kid) return NULL;
+#ifdef cMETHOPx
+  if (kid->op_type == OP_METHOD_NAMED || kid->op_type == OP_METHOD_SUPER ||
+      kid->op_type == OP_METHOD_REDIR || kid->op_type == OP_METHOD_REDIR_SUPER)
+    return cMETHOPx_meth(kid);
+#else
+  if (kid->op_type == OP_METHOD_NAMED) return dc_svop_sv(aTHX_ cv, kid);
+#endif
+  /* 5.20 compiles a SUPER:: or redirected call as method over a const */
+  if (kid->op_type != OP_METHOD || !(kid->op_flags & OPf_KIDS)) return NULL;
+  kid = cUNOPx(kid)->op_first;
+  if (!kid || kid->op_type != OP_CONST) return NULL;
+  return dc_svop_sv(aTHX_ cv, kid);
+}
+
 /* Mirror of Cover.pm's _is_noreturn_call */
 static int dc_is_noreturn_call(pTHX_ CV *cv, OP *op) {
   dMY_CXT;
+  OP         *kid;
   GV         *gv;
   CV         *sub;
   HV         *names;
@@ -1540,8 +1572,20 @@ static int dc_is_noreturn_call(pTHX_ CV *cv, OP *op) {
   slot = hv_fetch(MY_CXT.noreturn, file, strlen(file), 0);
   if (!slot || !SvROK(*slot) || SvTYPE(SvRV(*slot)) != SVt_PVHV) return 0;
   names = (HV *)SvRV(*slot);
-  gv    = dc_call_gv(aTHX_ cv, op);
-  if (!gv) return 0;
+  kid   = dc_call_target(op);
+  gv    = dc_call_gv(aTHX_ cv, kid);
+  if (!gv) {
+    SV *name = dc_method_name(aTHX_ cv, kid);
+    STRLEN len;
+    const char *p, *q;
+    const char *const colons = "::";
+    if (!name) return 0;
+    /* 5.20 spells a SUPER:: or redirected call out in full */
+    p = SvPV(name, len);
+    q = rninstr(p, p + len, colons, colons + 2);
+    if (q) { len -= (q + 2) - p; p = q + 2; }
+    return hv_exists(names, p, len) ? 1 : 0;
+  }
   if (hv_exists(names, GvNAME(gv), GvNAMELEN(gv))) return 1;
   if (GvSTASH(gv) && HvNAME(GvSTASH(gv))) {
     SV *q = sv_2mortal(newSVpvf("%s::%.*s", HvNAME(GvSTASH(gv)),
@@ -1556,6 +1600,45 @@ static int dc_is_noreturn_call(pTHX_ CV *cv, OP *op) {
     if (hv_exists_ent(names, q, 0)) return 1;
   }
   return 0;
+}
+
+static int dc_is_dor_fixed_tree(pTHX_ CV *cv, OP *op);
+
+/* Mirror of Cover.pm's _is_const_right with dor set */
+static int dc_is_dor_fixed_operand(pTHX_ CV *cv, OP *op) {
+  return dc_is_const_leaf(aTHX_ op)        ||
+         dc_is_noreturn_call(aTHX_ cv, op) ||
+         dc_is_defined_leaf(aTHX_ op)      ||
+         dc_is_dor_fixed_tree(aTHX_ cv, op);
+}
+
+/* Mirror of Cover.pm's _is_dor_fixed_tree */
+static int dc_is_dor_fixed_tree(pTHX_ CV *cv, OP *op) {
+  OP *first, *right;
+  if (!op) return 0;
+  if (op->op_type == OP_SASSIGN) op = cUNOPx(op)->op_first;
+  if (op->op_type == OP_NULL && !op->op_targ && (op->op_flags & OPf_KIDS))
+    op = cUNOPx(op)->op_first;
+  if (!op || !(op->op_flags & OPf_KIDS)) return 0;
+  first = cUNOPx(op)->op_first;
+  right = first ? OpSIBLING(first) : NULL;
+  switch (op->op_type) {
+  case OP_COND_EXPR:
+    return right && OpSIBLING(right)                        &&
+           dc_is_dor_fixed_operand(aTHX_ cv, right)         &&
+           dc_is_dor_fixed_operand(aTHX_ cv, OpSIBLING(right));
+  case OP_OR:
+  case OP_DOR:
+  case OP_ORASSIGN:
+  case OP_DORASSIGN:
+    return dc_is_dor_fixed_operand(aTHX_ cv, right);
+  case OP_AND:
+  case OP_ANDASSIGN:
+    return dc_is_dor_fixed_operand(aTHX_ cv, first) &&
+           dc_is_dor_fixed_operand(aTHX_ cv, right);
+  default:
+    return 0;
+  }
 }
 
 /*
@@ -1724,6 +1807,8 @@ static int dc_enumerate_columns(pTHX_ HV *cache, CV *cv, OP *op, OP *root,
   }
 
   if (dc_is_multiconcat_truthy(aTHX_ raw_right)) {
+    right_col = -1;
+  } else if (dor && dc_is_dor_fixed_tree(aTHX_ cv, raw_right)) {
     right_col = -1;
   } else if (right_op && dc_is_logop_type(right_op->op_type)) {
     next_col = dc_enumerate_columns(aTHX_ cache, cv, right_op, root, next_col);
