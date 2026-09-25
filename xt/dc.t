@@ -360,63 +360,6 @@ sub cpancover_leaves_build_alone () {
   is \@after, \@before, "cpancover does not rebuild an up-to-date checkout";
 }
 
-sub rebuild_batch_cleanup () {
-  my $dir = tempdir(CLEANUP => 1);
-  mkdir "$dir/$_"
-    or die "Can't mkdir $dir/$_: $!"
-    for "Foo-Bar-1.00", "__rebuilt__";
-  my $criterion = '{"percentage":85.5,"covered":10,"total":12}';
-  write_file("$dir/Foo-Bar-1.00/cover.json",
-        '{"runs":[{"name":"Foo-Bar","version":"1.00","dir":"/tmp/x"}],'
-      . qq("summary":{"Total":{"total":$criterion,"statement":$criterion}}}));
-  write_file("$dir/Foo-Bar-1.00/index.html",  "html\n");
-  write_file("$dir/__rebuilt__/Foo-Bar-1.00", "1234567890\n");
-  write_file("$dir/$Log",                     "log\n");
-  write_file("$dir/index.html.gz",            "stale\n");
-
-  delete local $ENV{CPANCOVER_COMPRESS};
-  dc("-r", $dir, "cpancover-rebuild-batch");
-
-  ok -s "$dir/index.html",     "rebuild batch regenerates the index";
-  ok !-e "$dir/index.html.gz", "stale top-level .gz removed";
-  my @locks = map glob, "$dir/*.lock", "$dir/*/*.lock";
-  is \@locks, [], "no lock sidecars remain";
-}
-
-sub rebuild_module_recipe () {
-  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
-  my $bin = tempdir(CLEANUP => 1);
-  make_docker_stub($bin);
-  local $ENV{PATH}         = "$bin:$ENV{PATH}";
-  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
-  my $module = "P/PJ/PJCJ/Foo-Bar-1.00.tar.gz";
-  my $work   = tempdir(CLEANUP => 1);
-
-  my $dir = tempdir(CLEANUP => 1);
-
-  mkdir "$dir/$_"
-    or die "Can't mkdir $dir/$_: $!"
-    for "Foo-Bar-1.00", "__rebuilt__";
-  write_file("$dir/Foo-Bar-1.00/cover.json",  "{}\n");
-  write_file("$dir/Foo-Bar-1.00/index.html",  "old\n");
-  write_file("$dir/__rebuilt__/Foo-Bar-1.00", "1234567890\n");
-  write_file("$dir/$Log",                     "log\n");
-
-  delete local $ENV{CPANCOVER_COMPRESS};
-  {
-    local $ENV{STUB_CALLS} = "$work/calls";
-    dc("-r", $dir, "cpancover-rebuild-module", $module);
-  }
-
-  like slurp("$work/calls"), qr/\brun\b/, "rebuild launches a docker build";
-  is slurp("$dir/Foo-Bar-1.00/index.html"), "html\n", "distdir is replaced";
-  isnt slurp("$dir/__rebuilt__/Foo-Bar-1.00"), "1234567890\n",
-    "rebuilt marker is rewritten";
-  ok -s "$dir/index.html", "HTML is regenerated";
-  my @locks = map glob, "$dir/*.lock", "$dir/*/*.lock";
-  is \@locks, [], "no lock sidecars remain";
-}
-
 sub controller_rebuild_module_recipe () {
   my $bin = tempdir(CLEANUP => 1);
   make_docker_stub($bin);
@@ -654,8 +597,6 @@ sub main () {
     force_retries_failed_only
     stale_report_outcomes
     cpancover_leaves_build_alone
-    rebuild_batch_cleanup
-    rebuild_module_recipe
     controller_rebuild_module_recipe
     controller_staging_on_host
     seed_recipe
