@@ -161,6 +161,83 @@ value context the outer operator is always recorded.
 
 =head1 METHODS
 
+The entry is C<[covered, information, uncoverable]>. The covered flags
+are an array with one entry per condition in the decision. The
+information is a hash holding the source C<text> of the decision, the
+condition C<labels> and the C<unanalysed> flag. The uncoverable flags are
+an array with one entry per condition.
+
+=head2 total
+
+Return the number of conditions.
+
+=head2 values
+
+Return the list of covered flags.
+
+=head2 text
+
+Return the source text of the decision.
+
+=head2 labels
+
+Return the condition labels as an array reference, empty when there are
+none.
+
+=head2 criterion
+
+Return C<mcdc>.
+
+=head2 display_name
+
+Return C<MC/DC>.
+
+=head2 detail_criterion
+
+Return C<mcdc>.
+
+=head2 sign_letter
+
+Return C<M>.
+
+=head2 indexed
+
+Return true.
+
+=head2 unanalysed
+
+Return true for a decision too wide to analyse. See LIMITATIONS above.
+
+=head2 covered ($i)
+
+Return the covered flag for condition C<$i>, or without an index the
+number of conditions covered.
+
+=head2 uncoverable ($i)
+
+Return the uncoverable flag for condition C<$i>, or without an index the
+number of conditions marked uncoverable.
+
+=head2 missing
+
+Return the labels of the conditions neither covered nor marked
+uncoverable, as an array reference.
+
+=head2 percentage
+
+Return the share of conditions not in error, as an integer. A decision
+with no conditions gives 0.
+
+=head2 error ($i)
+
+Return whether condition C<$i> is in error, or without an index the
+number of conditions in error.
+
+=head2 calculate_summary ($db, $file)
+
+Add the total, uncoverable, covered and error counts to the summary of
+the database.
+
 =head1 LICENCE
 
 Copyright 2026, Paul Johnson (paul@pjcj.net)

@@ -592,6 +592,9 @@ Format a truth table in HTML.
 
 =head2 error()
 
+Return true when the row at the given index, or without an index any
+row, is in error.
+
 =head2 percentage()
 
 Determines the proportion of possible conditions that have coverage.

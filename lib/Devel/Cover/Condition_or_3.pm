@@ -42,6 +42,14 @@ three outcomes.
 
 =head1 METHODS
 
+=head2 count
+
+Return 3.
+
+=head2 headers
+
+Return C<l>, C<!l&&r> and C<!l&&!r>.
+
 =head1 LICENCE
 
 Copyright 2001-2026, Paul Johnson (paul@pjcj.net)

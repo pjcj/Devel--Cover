@@ -52,6 +52,48 @@ Module for storing statement coverage information.
 
 =head1 METHODS
 
+The entry is C<[count, uncoverable]>.
+
+=head2 val
+
+Return the execution count.
+
+=head2 uncoverable
+
+Return the uncoverable flag.
+
+=head2 covered
+
+Return the execution count, which is true when the statement ran.
+
+=head2 total
+
+Return 1.
+
+=head2 percentage
+
+Return 100 when the statement is not in error, otherwise 0.
+
+=head2 error
+
+Return the result of C<simple_error> in L<Devel::Cover::Criterion>.
+
+=head2 criterion
+
+Return C<statement>.
+
+=head2 shortname
+
+Return C<stmt>.
+
+=head2 display_mode
+
+Return C<count>.
+
+=head2 sign_letter
+
+Return C<S>.
+
 =head1 LICENCE
 
 Copyright 2001-2026, Paul Johnson (paul@pjcj.net)

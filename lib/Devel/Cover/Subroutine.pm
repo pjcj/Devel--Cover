@@ -53,6 +53,52 @@ Module for storing subroutine coverage information.
 
 =head1 METHODS
 
+The entry is C<[count, name, uncoverable]>.
+
+=head2 uncoverable
+
+Return the uncoverable flag.
+
+=head2 covered
+
+Return the number of calls, which is true when the subroutine ran.
+
+=head2 total
+
+Return 1.
+
+=head2 percentage
+
+Return 100 when the subroutine is not in error, otherwise 0.
+
+=head2 error
+
+Return the result of C<simple_error> in L<Devel::Cover::Criterion>.
+
+=head2 name
+
+Return the name of the subroutine.
+
+=head2 criterion
+
+Return C<subroutine>.
+
+=head2 shortname
+
+Return C<sub>.
+
+=head2 display_mode
+
+Return C<count>.
+
+=head2 detail_criterion
+
+Return C<subroutine>.
+
+=head2 sign_letter
+
+Return C<R>.
+
 =head1 LICENCE
 
 Copyright 2004-2026, Paul Johnson (paul@pjcj.net)

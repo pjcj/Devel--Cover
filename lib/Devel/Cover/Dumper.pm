@@ -62,6 +62,16 @@ Wrapper around Data::Dumper::Dumper.
 
 =head1 METHODS
 
+=head2 import
+
+Export C<Dumper> to the caller, and die when the caller already has a
+different C<Dumper>, such as the one from L<Data::Dumper>.
+
+=head2 Dumper (@args)
+
+Call C<Data::Dumper::Dumper> on the arguments with C<Indent> set to 1
+and C<Sortkeys> on, loading L<Data::Dumper> on first use.
+
 =head1 LICENCE
 
 Copyright 2012, Olivier Mengué
