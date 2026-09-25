@@ -34,7 +34,7 @@ sub values_for ($cover, $file, $line) {
   my $cond = $cover->file($file)->criterion("condition") or return [];
   my @recs
     = sort { length $b->{text} <=> length $a->{text} }
-    map +{ text => $_->text, values => [$_->values] },
+    map +{ text => $_->text, values => $_->values },
     ($cond->location($line) // [])->@*;
   [map $_->{values}, @recs]
 }

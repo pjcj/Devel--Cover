@@ -141,7 +141,7 @@ sub _mcdc ($f) {
       push @entries, {
           text        => $m->text,
           labels      => $m->labels,
-          covered     => [map $_ + 0, $m->values],
+          covered     => [map $_ + 0, $m->values->@*],
           uncoverable =>
           [map { $m->uncoverable($_) ? 1 : 0 } 0 .. $m->total - 1],
           error => $m->error ? 1 : 0,

@@ -30,7 +30,7 @@ sub covered ($self, $i = undef) {
 
 sub total     ($self)     { scalar $self->[0]->@* }
 sub value     ($self, $i) { $self->[0][$i] }
-sub values    ($self)     { $self->[0]->@* }
+sub values    ($self)     { $self->[0] }
 sub text      ($self)     { $self->[1]{text} }
 sub criterion ($self)     { "branch" }
 
@@ -117,7 +117,7 @@ Return the count for path C<$i>.
 
 =head2 values
 
-Return the list of counts.
+Return the counts as an array reference.
 
 =head2 text
 

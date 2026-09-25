@@ -17,7 +17,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 use base "Devel::Cover::Criterion";
 
 sub total     ($self) { scalar $self->[0]->@* }
-sub values    ($self) { $self->[0]->@* }
+sub values    ($self) { $self->[0] }
 sub text      ($self) { $self->[1]{text} }
 sub labels    ($self) { $self->[1]{labels} // [] }
 sub criterion ($self) { "mcdc" }
@@ -173,7 +173,7 @@ Return the number of conditions.
 
 =head2 values
 
-Return the list of covered flags.
+Return the covered flags as an array reference.
 
 =head2 text
 

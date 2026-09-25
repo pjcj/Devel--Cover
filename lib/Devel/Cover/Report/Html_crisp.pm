@@ -1190,7 +1190,7 @@ sub line_mcdc ($f, $n) {
   return unless $loc && @$loc;
   map {
     my $m      = $_;
-    my @vals   = $m->values;
+    my @vals   = $m->values->@*;
     my @labels = $m->labels->@*;
     {
       text       => escape_html($m->text),

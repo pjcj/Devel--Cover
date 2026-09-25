@@ -16,7 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Test::More import => [qw( done_testing is )];
+use Test::More import => [qw( done_testing is is_deeply )];
 
 use Devel::Cover::Branch     ();  ## no perlimports
 use Devel::Cover::Mcdc       ();  ## no perlimports
@@ -83,7 +83,15 @@ sub test_ignore_covered_err_class () {
     "stale branch path forgiven by its own class";
 }
 
+sub test_values () {
+  is_deeply statement(3)->values,    [3],       "statement values";
+  is_deeply subroutine(2)->values,   [2],       "subroutine values";
+  is_deeply branch([1, 0])->values,  [1, 0],    "branch values";
+  is_deeply mcdc([1, 0, 1])->values, [1, 0, 1], "mcdc values";
+}
+
 sub main () {
+  test_values;
   test_scalar_states;
   test_indexed_states;
   test_ignore_covered_err;

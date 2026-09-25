@@ -269,7 +269,7 @@ it. The base returns C<n/a>.
 =head2 values
 
 Return the covered value as a one-element array reference. The indexed
-criteria override this to return their counts as a list.
+criteria override this to return all their counts.
 
 =head2 criterion
 

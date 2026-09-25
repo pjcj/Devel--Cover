@@ -77,7 +77,7 @@ sub test_text () {
 
 sub test_values () {
   my $m = mcdc([1, 0, 1]);
-  is_deeply [$m->values], [1, 0, 1], "values returns the per-column list";
+  is_deeply $m->values, [1, 0, 1], "values returns the per-column arrayref";
 }
 
 sub test_uncoverable_per_column () {
