@@ -97,7 +97,7 @@ condition truth tables already collected by the existing runtime
 instrumentation, supplemented by a per-execution input-vector recorder in the
 XS runtime; no condition collection is duplicated.
 
-See L<Devel::Cover::Tutorial/2.5 Modified condition/decision coverage> for an
+See L<Devel::Cover::Tutorial/"2.5 Modified condition/decision coverage"> for an
 introduction to the metric and a worked example, and
 L<Devel::Cover::Mcdc::Analyser> for the per-decision analyser this class wraps.
 
