@@ -16,7 +16,6 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 use base "Devel::Cover::Criterion";
 
-sub val         ($self) { $self->[0] }
 sub uncoverable ($self) { $self->[1] }
 sub covered     ($self) { $self->[0] }
 sub total       ($self) { 1 }
@@ -53,10 +52,6 @@ Module for storing statement coverage information.
 =head1 METHODS
 
 The entry is C<[count, uncoverable]>.
-
-=head2 val
-
-Return the execution count.
 
 =head2 uncoverable
 
