@@ -23,6 +23,9 @@ requires the existing results to be regenerated.
   higher for faster completion on a quiet server.
 - `CPANCOVER_TIMEOUT` - per-module docker timeout. Inherited from the normal
   loop; no rebuild-specific override.
+- `CPANCOVER_LATEST_INDEX` - a file in the `CPAN::Releases::Latest` cache format
+  to read as the release index in place of the cache that module keeps. Lets a
+  test run the recipes offline. Unset in normal use.
 
 ## State on disk
 

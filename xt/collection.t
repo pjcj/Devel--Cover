@@ -58,6 +58,7 @@ sub constructor_defaults () {
   is $c->rebuild,       0,            "rebuild defaults to 0";
   is $c->rebuild_batch, 100,          "rebuild_batch defaults to 100";
   is $c->mark_rebuilt,  0,            "mark_rebuilt defaults to 0";
+  is $c->latest_index,  undef,        "latest_index defaults to undef";
   is $c->report,        "html",       "report defaults to 'html'";
   is $c->timeout,       60 * 60,      "timeout defaults to 3600 (60 minutes)";
   is $c->verbose,       0,            "verbose defaults to 0";
@@ -899,6 +900,15 @@ sub latest_paths_method () {
   $c->latest_paths(max_age => 0);
   is \%Latest_args, { max_age => 0 },
     "latest_paths passes its options to the index";
+  Devel::Cover::Collection->new(latest_index => "index.txt")->latest_paths;
+  is \%Latest_args, { path => "index.txt" },
+    "latest_index is passed as the index file";
+  {
+    local $ENV{CPANCOVER_LATEST_INDEX} = "env.txt";
+    Devel::Cover::Collection->new->latest_paths;
+  }
+  is \%Latest_args, { path => "env.txt" },
+    "CPANCOVER_LATEST_INDEX sets the default index file";
 }
 
 sub get_latest_method () {
