@@ -60,6 +60,7 @@ class Devel::Cover::Collection {
   field $rebuild_batch :param :reader = undef;
   field $mark_rebuilt  :param :reader = undef;
   field $on_cpan       :param :reader = undef;
+  field $latest_index  :param :reader = undef;
 
   # rw attributes
   field $dir  :param = undef;
@@ -84,6 +85,7 @@ class Devel::Cover::Collection {
     $mark_rebuilt  //= 0;
     $report        //= "html";
     $timeout       //= $ENV{CPANCOVER_TIMEOUT} // 60 * 60;             # an hour
+    $latest_index  //= $ENV{CPANCOVER_LATEST_INDEX};
     $verbose       //= 0;
     $workers       //= 0;
     $ENV{CPANCOVER_TIMEOUT} = $timeout;
@@ -889,6 +891,7 @@ class Devel::Cover::Collection {
 
   method latest_paths (%options) {
     require CPAN::Releases::Latest;
+    $options{path} = $latest_index if defined $latest_index;
     my $iterator = CPAN::Releases::Latest->new(%options)->release_iterator;
     my @paths;
     while (my $release = $iterator->next_release) {
@@ -1338,6 +1341,13 @@ every distribution the index no longer lists, so the overview counts only
 distributions still on CPAN. Default: 0, so a local collection of
 modules that are not on CPAN counts everything.
 
+=head3 latest_index
+
+Path of a file in the L<CPAN::Releases::Latest> cache format to read as
+the release index instead of the cache that module keeps and refreshes.
+Default: the C<CPANCOVER_LATEST_INDEX> environment variable, so a test can
+hand every C<cpancover> run a fixed index and stay off the network.
+
 =head2 Internally Managed Attributes
 
 These attributes have public readers. Use the provided methods to modify
@@ -1773,7 +1783,9 @@ Returns the CPAN path of the latest release of every distribution on
 CPAN, and of its latest developer release as well when that is newer,
 from the L<CPAN::Releases::Latest> index. The options go to that
 module's constructor, so C<max_age> decides whether its cached index is
-refreshed first. A distribution deleted from CPAN has no entry.
+refreshed first. With C<latest_index> set the file it names is read
+instead and nothing is fetched. A distribution deleted from CPAN has no
+entry.
 
 =head3 get_latest
 

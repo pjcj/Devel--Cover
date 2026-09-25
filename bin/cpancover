@@ -30,6 +30,7 @@ my $Options = {
   force                 => 0,
   generate_html         => 0,
   latest                => 0,
+  latest_index          => undef,
   local                 => 0,
   local_build           => 0,
   mark_rebuilt          => 0,
@@ -60,6 +61,7 @@ sub get_options {
       help|h!
       info|i!
       latest!
+      latest_index=s
       local!
       local_build!
       mark_rebuilt!
@@ -93,6 +95,7 @@ sub newcp {
       dryrun
       env
       force
+      latest_index
       local
       mark_rebuilt
       on_cpan
@@ -191,7 +194,7 @@ cpancover - report coverage statistics on CPAN modules
   cpancover --help --info --version
             --build --generate_html --rebuild --rebuild_batch n
             --mark_rebuilt --on_cpan
-            --latest --local --local_build
+            --latest --latest_index file --local --local_build
             --modules module_name --module_file file
             --results_dir /path/to/dir --output_file filename.html
             --report report_name
@@ -225,6 +228,7 @@ The following command line options are supported:
   --force                 - recollect coverage                  (off)
   --generate_html         - generate html                       (off)
   --latest                - process latest CPAN releases        (off)
+  --latest_index          - CPAN release index file to read    (cache)
   --local                 - use local (uninstalled) code        (off)
   --local_build           - build coverage for all the modules  (off)
   --mark_rebuilt          - mark built modules as rebuilt       (off)
