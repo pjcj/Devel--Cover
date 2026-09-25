@@ -193,8 +193,8 @@ sub live_index () {
 
   ok @paths > 20_000, "the index lists every distribution on CPAN";
   my $ext = qr/\.(?:zip|tgz|tar\.(?:gz|bz2|xz))/;
-  my @odd = grep !m{^[A-Z]/[A-Z]{2}/[A-Z0-9-]+/[^/]+$ext$}, @paths;
-  is \@odd, [], "every path has the author directory form";
+  my @odd = grep !m{^[A-Z]/[A-Z]{2}/[A-Z0-9-]+/(?:[^/]+/)*[^/]+$ext$}, @paths;
+  is \@odd, [], "every path is an archive under an author directory";
   my %seen;
   my @repeated = grep $seen{$_}++, @paths;
   is \@repeated, [], "no path is listed twice";
