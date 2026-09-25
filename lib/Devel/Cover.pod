@@ -356,6 +356,11 @@ called by its bare name, by its qualified name such as C<My::App::usage_die>,
 or by the qualified name of the sub it resolves to, so C<Carp::croak> matches
 an imported C<croak>.  C<croak> and C<confess> are always in the list.
 
+A method called by a constant name, such as C<< $self->usage_die >> or
+C<< My::App->usage_die >>, matches by its bare name alone, since the class
+which defines it is not known until the call runs.  A method called through
+a variable, as in C<< $self->$method >>, never matches.
+
 =head1 UNCOVERABLE CRITERIA
 
 Sometimes you have code which is uncoverable for some reason.  Perhaps it is an

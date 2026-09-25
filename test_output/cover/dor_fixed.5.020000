@@ -1,0 +1,304 @@
+cover: Reading database from ...
+--------------- ------ ------ ------ ------ ------ ------ ------
+File              stmt   bran   cond   mcdc    sub  total   scar
+--------------- ------ ------ ------ ------ ------ ------ ------
+tests/dor_fixed  100.0   92.8   86.2   60.8  100.0   91.4    9.6
+Total            100.0   92.8   86.2   60.8  100.0   91.4    9.6
+--------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/dor_fixed
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+29 94.8  2.6  9.6
+
+Worst Subroutines
+-----------------
+
+Subroutine     CC SCAR  Location          
+-------------- -- ----  ------------------
+ternary_nested  4 13.9  tests/dor_fixed:71
+nested_or_var   3 11.3  tests/dor_fixed:95
+ternary_var     3 11.0  tests/dor_fixed:65
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13                                             package Thing;
+14                                             
+15             2                           2   sub new       { bless {}, shift }
+16             4                           4   sub usage_die { die "usage\n" }
+17             1                           1   sub helper    { 1 }
+18                                             
+19                                             package Kid;
+20                                             
+21             1                               our @ISA = ("Thing");
+22                                             
+23                                         2   sub dor_super {
+24             2                                 my ($self, $x) = @_;
+25             2           100    100            my $r = $x // $self->SUPER::usage_die("no");
+26             1                                 $r
+27                                             }
+28                                             
+29                                             package main;
+30                                             
+31                                             # dc noreturn usage_die
+32                                             
+33             2           100    100      2   sub method     { my ($x, $o) = @_; my $r = $x // $o->usage_die("no"); $r }
+               2                               
+               1                               
+34             2           100    100      2   sub class      { my ($x) = @_; my $r = $x // Thing->usage_die("no"); $r }
+               2                               
+               1                               
+35    ***      2          * 66   *  0      2   sub method_ret { my ($x, $o) = @_; my $r = $x // $o->helper; $r }
+               2                               
+               2                               
+36                                             
+37                                         2   sub dynamic {
+38             2                                 my ($x, $o) = @_;
+39             2                                 my $m = "usage_die";
+40    ***      2          * 66   *  0            my $r = $x // $o->$m("no");
+41             1                                 $r
+42                                             }
+43                                             
+44             2           100    100      2   sub last_index     { my ($x, @l) = @_; my $r = $x // $#l;  $r }
+               2                               
+               2                               
+45             2           100    100      2   sub last_index_ref { my ($x, $l) = @_; my $r = $x // $#$l; $r }
+               2                               
+               2                               
+46                                             
+47                                         4   sub ternary {
+48             4                                 my ($x, $y) = @_;
+49             4    100    100    100            my $r = $x // ($y ? "a" : "b");
+50             4                                 $r
+51                                             }
+52                                             
+53                                         4   sub ternary_arith {
+54             4                                 my ($x, $y) = @_;
+55             4    100    100    100            my $r = $x // ($y ? $y + 1 : $y * 2);
+56             4                                 $r
+57                                             }
+58                                             
+59                                         4   sub ternary_die {
+60             4                                 my ($x, $y) = @_;
+61             4    100    100    100            my $r = $x // ($y ? "a" : die "no\n");
+62             3                                 $r
+63                                             }
+64                                             
+65                                         4   sub ternary_var {
+66             4                                 my ($x, $y) = @_;
+67    ***      4    100   * 66   *  0            my $r = $x // ($y ? $y : "b");
+68             4                                 $r
+69                                             }
+70                                             
+71                                         4   sub ternary_nested {
+72             4                                 my ($x, $y) = @_;
+73             4    100    100    100            my $r = $x // ($y ? ($y > 1 ? "a" : "b") : "c");
+      ***          * 50                        
+74             4                                 $r
+75                                             }
+76                                             
+77                                         4   sub nested_or {
+78             4                                 my ($x, $y) = @_;
+79             4           100    100            my $r = $x // ($y || "b");
+                           100                 
+80             4                                 $r
+81                                             }
+82                                             
+83                                         4   sub nested_dor {
+84             4                                 my ($x, $y, $z) = @_;
+85             4           100    100            my $r = $x // ($y // $z + 1);
+                           100                 
+86             4                                 $r
+87                                             }
+88                                             
+89                                         4   sub nested_and {
+90             4                                 my ($x, $y, $z) = @_;
+91             4           100    100            my $r = $x // ($y * 2 && $z + 1);
+      ***                 * 66                 
+92             4                                 $r
+93                                             }
+94                                             
+95                                         4   sub nested_or_var {
+96             4                                 my ($x, $y, $z) = @_;
+97    ***      4          * 66   *  0            my $r = $x // ($y || $z);
+      ***                 * 66                 
+98             4                                 $r
+99                                             }
+100                                            
+101                                        4   sub nested_and_var {
+102            4                                 my ($x, $y) = @_;
+103   ***      4          * 66    100            my $r = $x // ($y && "b");
+                           100                 
+104            4                                 $r
+105                                            }
+106                                            
+107            1                               my $o = Thing->new;
+108            1                               my $k = Kid->new;
+109            1                               for my $x (1, undef) {
+110            2                                 eval { method($x, $o) };
+               2                               
+111            2                                 eval { class($x) };
+               2                               
+112            2                                 eval { method_ret($x, $o) };
+               2                               
+113            2                                 eval { dynamic($x, $o) };
+               2                               
+114            2                                 eval { $k->dor_super($x) };
+               2                               
+115            2                                 last_index($x, 1, 2);
+116            2                                 last_index_ref($x, [1, 2]);
+117            2                                 for my $y (0, 2) {
+118            4                                   ternary($x, $y);
+119            4                                   ternary_arith($x, $y);
+120            4                                   eval { ternary_die($x, $y) };
+               4                               
+121            4                                   ternary_var($x, $y);
+122            4                                   ternary_nested($x, $y);
+123            4                                   nested_or($x, $y);
+124            4    100                            nested_dor($x, $y ? $y : undef, 1);
+125            4                                   nested_and($x, $y, 1);
+126            4                                   nested_or_var($x, $y, 3);
+127            4                                   nested_and_var($x, $y);
+128                                              }
+129                                            }
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+49           100      1      1   $y ? :
+55           100      1      1   $y ? :
+61           100      1      1   $y ? :
+67           100      1      1   $y ? :
+73           100      1      1   $y ? :
+      ***     50      1      0   $y > 1 ? :
+124          100      2      2   $y ? :
+
+
+Conditions
+----------
+
+and 2 conditions
+
+line  err      %     !l      l   expr
+----- --- ------ ------ ------   ----
+103          100      1      1   $y and "b"
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+91    ***     66      1      0      1   $y * 2 and $z + 1
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+25           100      1      1   $x // $self->SUPER::usage_die("no")
+33           100      1      1   $x // $o->usage_die("no")
+34           100      1      1   $x // "Thing"->usage_die("no")
+44           100      1      1   $x // $#l
+45           100      1      1   $x // $#$l
+49           100      2      2   $x // ($y ? "a" : "b")
+55           100      2      2   $x // ($y ? $y + 1 : $y * 2)
+61           100      2      2   $x // ($y ? "a" : die("no\n"))
+73           100      2      2   $x // ($y ? $y > 1 ? "a" : "b" : "c")
+79           100      2      2   $x // ($y || "b")
+             100      1      1   $y or "b"
+85           100      2      2   $x // ($y // $z + 1)
+             100      1      1   $y // $z + 1
+91           100      2      2   $x // $y * 2 && $z + 1
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+35    ***     66      1      1      0   $x // $o->helper
+40    ***     66      1      0      1   $x // $o->$m("no")
+67    ***     66      2      2      0   $x // ($y ? $y : "b")
+97    ***     66      2      2      0   $x // ($y || $z)
+      ***     66      1      1      0   $y or $z
+103   ***     66      2      2      0   $x // $y && "b"
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+25           100    1    1                          $x // $self->SUPER::usage_die("no")
+33           100    1    1                          $x // $o->usage_die("no")
+34           100    1    1                          $x // "Thing"->usage_die("no")
+35    ***      0    0    2   $x, $o->helper         $x // $o->helper
+40    ***      0    0    2   $x, $o->$m("no")       $x // $o->$m("no")
+44           100    1    1                          $x // $#l
+45           100    1    1                          $x // $#$l
+49           100    1    1                          $x // ($y ? "a" : "b")
+55           100    1    1                          $x // ($y ? $y + 1 : $y * 2)
+61           100    1    1                          $x // ($y ? "a" : die("no\n"))
+67    ***      0    0    2   $x, ($y ? $y : "b")    $x // ($y ? $y : "b")
+73           100    1    1                          $x // ($y ? $y > 1 ? "a" : "b" : "c")
+79           100    1    1                          $x // ($y || "b")
+85           100    1    1                          $x // ($y // $z + 1)
+91           100    1    1                          $x // $y * 2 && $z + 1
+97    ***      0    0    3   $x, $y, $z             $x // ($y || $z)
+103          100    2    2                          $x // $y && "b"
+
+
+Covered Subroutines
+-------------------
+
+Subroutine     Count  CC  SCAR Location           
+-------------- ----- --- ----- -------------------
+BEGIN              1   1   0.0 tests/dor_fixed:10 
+BEGIN              1   1   0.0 tests/dor_fixed:11 
+class              2   2   6.9 tests/dor_fixed:34 
+dor_super          2   2   6.9 tests/dor_fixed:23 
+dynamic            2   2   7.0 tests/dor_fixed:37 
+helper             1   1   0.0 tests/dor_fixed:17 
+last_index         2   2   6.9 tests/dor_fixed:44 
+last_index_ref     2   2   6.9 tests/dor_fixed:45 
+method             2   2   6.9 tests/dor_fixed:33 
+method_ret         2   2   7.0 tests/dor_fixed:35 
+nested_and         4   3  11.0 tests/dor_fixed:89 
+nested_and_var     4   3  11.0 tests/dor_fixed:101
+nested_dor         4   3  11.0 tests/dor_fixed:83 
+nested_or          4   3  11.0 tests/dor_fixed:77 
+nested_or_var      4   3  11.3 tests/dor_fixed:95 
+new                2   1   0.0 tests/dor_fixed:15 
+ternary            4   3  11.0 tests/dor_fixed:47 
+ternary_arith      4   3  11.0 tests/dor_fixed:53 
+ternary_die        4   3  11.0 tests/dor_fixed:59 
+ternary_nested     4   4  13.9 tests/dor_fixed:71 
+ternary_var        4   3  11.0 tests/dor_fixed:65 
+usage_die          4   1   0.0 tests/dor_fixed:16 
+
+

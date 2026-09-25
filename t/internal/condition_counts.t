@@ -52,12 +52,27 @@ my $or_op = find_op(svref_2object(sub { $_[0] || $_[1] })->ROOT, "or")
 my $and_op = find_op(svref_2object(sub { $_[0] && $_[1] })->ROOT, "and")
   or die "no and op found";
 
+my %Dor;
+for my $case (
+  [ var     => sub { $_[0] // $_[1] } ],
+  [ arylen  => sub { $_[0] // $#{ $_[1] } } ],
+  [ ternary => sub { $_[0] // ($_[1] ? "a" : "b") } ],
+  [ or      => sub { $_[0] // ($_[1] || "b") } ],
+  [ and     => sub { $_[0] // ($_[1] + 1 && $_[2] + 1) } ],
+  [ and_var => sub { $_[0] // ($_[1] && "b") } ],
+) {
+  my ($name, $sub) = @$case;
+  $Dor{$name} = find_op(svref_2object($sub)->ROOT, "dor")
+    or die "no dor op found for $name";
+}
+
 open my $out, ">", "$0.out" or die "Cannot write $0.out: $!";
 for my $case (
   [ "xor",   [ 10, 20, 30, 40, 50 ],      "xor", undef   ],
   [ "or",    [ 1, 2, 3, 4 ],              "or",  $or_op  ],
   [ "and",   [ 1, 2, 3, 4 ],              "and", $and_op ],
   [ "or_c5", [ 1, 2, 3, 4, undef, 1 ],    "or",  $or_op  ],
+  (map { [ "dor_$_", [ 1, 2, 3, 4 ], "or", $Dor{$_} ] } sort keys %Dor),
 ) {
   my ($name, $c, $type, $op) = @$case;
   my ($counts, $count, $collapsed)
@@ -109,12 +124,21 @@ sub test_void_collapsed_flag () {
   is $Case{or_c5}{collapsed}, 1, "short-circuit or is collapsed";
 }
 
+sub test_dor_fixed_right () {
+  is $Case{dor_var}{count}, 3, "dor with a variable right keeps three rows";
+  is $Case{"dor_$_"}{count}, 2, "dor with $_ right collapses to two rows"
+    for qw( arylen ternary or and );
+  is $Case{dor_and_var}{count}, 3,
+    "dor over && with a variable left keeps three rows";
+}
+
 sub main () {
   _setup;
   test_original_arrays_untouched;
   test_rows_reordered;
   test_row_counts;
   test_void_collapsed_flag;
+  test_dor_fixed_right;
   done_testing;
 }
 

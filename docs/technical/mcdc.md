@@ -452,9 +452,10 @@ percentage.
 
 `tests/mcdc_basic` covers the standard short-circuit forms (`&&`, `||`, chained,
 leading negation, and the mixed-precedence worked example). `tests/mcdc_xor`,
-`tests/mcdc_constant_right`, `tests/dor_defined`, `tests/mcdc_demo`,
-`tests/mcdc_signatures`, and `tests/mcdc_wide` exercise the distinct code paths.
-Internal tests live under `t/internal/mcdc_*` and `t/internal/decision_*`.
+`tests/mcdc_constant_right`, `tests/dor_defined`, `tests/dor_fixed`,
+`tests/mcdc_demo`, `tests/mcdc_signatures`, and `tests/mcdc_wide` exercise the
+distinct code paths. Internal tests live under `t/internal/mcdc_*` and
+`t/internal/decision_*`.
 
 ### Documentation
 

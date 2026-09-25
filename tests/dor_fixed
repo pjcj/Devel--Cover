@@ -1,0 +1,129 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+package Thing;
+
+sub new       { bless {}, shift }
+sub usage_die { die "usage\n" }
+sub helper    { 1 }
+
+package Kid;
+
+our @ISA = ("Thing");
+
+sub dor_super {
+  my ($self, $x) = @_;
+  my $r = $x // $self->SUPER::usage_die("no");
+  $r
+}
+
+package main;
+
+# dc noreturn usage_die
+
+sub method     { my ($x, $o) = @_; my $r = $x // $o->usage_die("no"); $r }
+sub class      { my ($x) = @_; my $r = $x // Thing->usage_die("no"); $r }
+sub method_ret { my ($x, $o) = @_; my $r = $x // $o->helper; $r }
+
+sub dynamic {
+  my ($x, $o) = @_;
+  my $m = "usage_die";
+  my $r = $x // $o->$m("no");
+  $r
+}
+
+sub last_index     { my ($x, @l) = @_; my $r = $x // $#l;  $r }
+sub last_index_ref { my ($x, $l) = @_; my $r = $x // $#$l; $r }
+
+sub ternary {
+  my ($x, $y) = @_;
+  my $r = $x // ($y ? "a" : "b");
+  $r
+}
+
+sub ternary_arith {
+  my ($x, $y) = @_;
+  my $r = $x // ($y ? $y + 1 : $y * 2);
+  $r
+}
+
+sub ternary_die {
+  my ($x, $y) = @_;
+  my $r = $x // ($y ? "a" : die "no\n");
+  $r
+}
+
+sub ternary_var {
+  my ($x, $y) = @_;
+  my $r = $x // ($y ? $y : "b");
+  $r
+}
+
+sub ternary_nested {
+  my ($x, $y) = @_;
+  my $r = $x // ($y ? ($y > 1 ? "a" : "b") : "c");
+  $r
+}
+
+sub nested_or {
+  my ($x, $y) = @_;
+  my $r = $x // ($y || "b");
+  $r
+}
+
+sub nested_dor {
+  my ($x, $y, $z) = @_;
+  my $r = $x // ($y // $z + 1);
+  $r
+}
+
+sub nested_and {
+  my ($x, $y, $z) = @_;
+  my $r = $x // ($y * 2 && $z + 1);
+  $r
+}
+
+sub nested_or_var {
+  my ($x, $y, $z) = @_;
+  my $r = $x // ($y || $z);
+  $r
+}
+
+sub nested_and_var {
+  my ($x, $y) = @_;
+  my $r = $x // ($y && "b");
+  $r
+}
+
+my $o = Thing->new;
+my $k = Kid->new;
+for my $x (1, undef) {
+  eval { method($x, $o) };
+  eval { class($x) };
+  eval { method_ret($x, $o) };
+  eval { dynamic($x, $o) };
+  eval { $k->dor_super($x) };
+  last_index($x, 1, 2);
+  last_index_ref($x, [1, 2]);
+  for my $y (0, 2) {
+    ternary($x, $y);
+    ternary_arith($x, $y);
+    eval { ternary_die($x, $y) };
+    ternary_var($x, $y);
+    ternary_nested($x, $y);
+    nested_or($x, $y);
+    nested_dor($x, $y ? $y : undef, 1);
+    nested_and($x, $y, 1);
+    nested_or_var($x, $y, 3);
+    nested_and_var($x, $y);
+  }
+}

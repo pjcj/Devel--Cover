@@ -1000,17 +1000,22 @@ my $Defined_right = qr/^(?:i_)?(?:
   join|sprintf|index|rindex|pack|vec|
   not|defined|exists|lt|gt|le|ge|eq|ne|slt|sgt|sle|sge|seq|sne|scmp|
   [ns]?bit_(?:and|or|xor)|[ns]?complement|left_shift|right_shift|
-  tms|ref|push|unshift
+  tms|ref|push|unshift|av2arylen
 )$/x;
 
 # Ops that return a defined count only in scalar context
 my $Defined_scalar_right = qr/^(?:keys|values|akeys)$/;
 
-# The gv an entersub calls, read from the pad of $cv under ithreads
-sub _call_gv ($op, $cv) {
+# The last child of an entersub, a gv, rv2cv or method op
+sub _call_target ($op) {
   my $kid = $op->first;
   $kid = $kid->first if $kid->name eq "null" && ppname($kid->targ) eq "pp_list";
   $kid = $kid->sibling while ${ $kid->sibling };
+  $kid
+}
+
+# The gv an entersub calls, read from the pad of $cv under ithreads
+sub _call_gv ($kid, $cv) {
   return unless $kid->name eq "null" || $kid->name eq "rv2cv";
   return unless $kid->can("first");
   my $gvop = $kid->first;
@@ -1028,13 +1033,56 @@ sub _qualified_name ($gv) {
   ref $stash eq "B::HV" ? $stash->NAME . "::" . $gv->NAME : ()
 }
 
-sub _is_noreturn_call ($op, $cv) {
-  my $names = $Noreturn{$File}          or return 0;
-  my $gv    = $cv && _call_gv($op, $cv) or return 0;
+sub _gv_names ($gv) {
   my @names = ($gv->NAME, _qualified_name($gv));
   my $sub   = $gv->CV;
   push @names, _qualified_name($sub->GV) if $$sub && ref $sub->GV eq "B::GV";
+  @names
+}
+
+my $Method_named = qr/^method_(?:named|super|redir|redir_super)$/;
+
+# A SUPER:: call on 5.20 is a method op over a const
+sub _method_name ($kid, $cv) {
+  if ($kid->name eq "method") {
+    $kid = $kid->first;
+    return unless $kid->name eq "const";
+  } else {
+    return unless $kid->name =~ $Method_named;
+  }
+  my $sv = $kid->can("meth_sv") ? $kid->meth_sv : $kid->sv;
+  $sv = $cv->PADLIST->ARRAYelt(1)->ARRAYelt($kid->targ)
+    if ref $sv eq "B::SPECIAL";
+  my $name = $sv->PV;
+  $name =~ s/.*:://;
+  $name
+}
+
+sub _is_noreturn_call ($op, $cv) {
+  my $names = $Noreturn{$File} or return 0;
+  return 0 unless $cv;
+  my $kid   = _call_target($op);
+  my $gv    = _call_gv($kid, $cv);
+  my @names = $gv ? _gv_names($gv) : _method_name($kid, $cv);
   (grep $names->{$_}, @names) ? 1 : 0
+}
+
+# A ?: needs both branches fixed, || and // the right operand, && both
+sub _is_dor_fixed_tree ($op, $cv) {
+  $op = $op->first if $op->name eq "null" && !$op->targ && $op->can("first");
+  my $name = $op->name;
+  my @kids;
+  if ($name eq "cond_expr") {
+    my $true = $op->first->sibling;
+    @kids = ($true, $true->sibling);
+  } elsif ($name =~ /^d?or(?:assign)?$/) {
+    @kids = ($op->first->sibling);
+  } elsif ($name =~ /^and(?:assign)?$/) {
+    @kids = ($op->first, $op->first->sibling);
+  } else {
+    return 0;
+  }
+  (grep !_is_const_right($_, 1, $cv), @kids) ? 0 : 1
 }
 
 # The multiconcat string is aux_list element [1] and does not depend on the CV
@@ -1049,6 +1097,7 @@ sub _is_const_right ($op, $dor = 0, $cv = undef) {
     return 1 if $name =~ $Defined_right;
     return ($rhs->flags & OPf_WANT) == B::OPf_WANT_SCALAR ? 1 : 0
       if $name =~ $Defined_scalar_right;
+    return 1 if _is_dor_fixed_tree($rhs, $cv);
   }
   return 0 unless ref($rhs) eq "B::UNOP_AUX" && $name eq "multiconcat";
   my @aux = $rhs->aux_list(main_cv);
@@ -2052,18 +2101,47 @@ whenever the op did not short-circuit.  An C<and> may also be a plain
 C<if> with no C<else>, an C<or> an C<unless>, and the C<elsif> form
 applies when no further C<elsif> or C<else> follows.
 
-=head2 _call_gv ($op, $cv)
+=head2 _call_target ($op)
 
-The GV named by an C<entersub>, or nothing for a method or code ref call.
+The last child of an C<entersub>, which names what it calls: a nulled
+C<rv2cv> over a C<gv> for a sub, or a method op for a method.
+
+=head2 _call_gv ($kid, $cv)
+
+The GV under a call target, or nothing for a method or code ref call.
 On perls built with ithreads the C<gv> op holds a pad index, resolved
 through the pad of C<$cv> rather than the current pad.
+
+=head2 _gv_names ($gv)
+
+The names a GV answers to: its bare name, its qualified name, and the
+qualified name of the sub it holds.
+
+=head2 _method_name ($kid, $cv)
+
+The name of a method called by a constant name, from C<method_named> or
+its C<SUPER::> and redirect forms, or nothing for a call through a
+variable.  On 5.20 the op is a C<B::SVOP> whose name is in the pad of
+C<$cv> under ithreads, and a C<SUPER::> or redirected call is a C<method>
+op over a C<const> spelling the name in full, so any package qualifier
+is dropped.  From 5.22 the op is a C<B::METHOP>.
 
 =head2 _is_noreturn_call ($op, $cv)
 
 True when an C<entersub> calls a sub the current file lists as never
 returning, matched by bare name, by the qualified name of the GV called,
 or by the qualified name of the sub the GV holds, so an imported C<croak>
-matches C<Carp::croak>.
+matches C<Carp::croak>.  A method call matches by bare name alone.
+
+=head2 _is_dor_fixed_tree ($op, $cv)
+
+True when a C<?:> has two fixed branches, an C<||> or C<//> a fixed right
+operand, or an C<&&> two fixed operands, judged by L</_is_const_right>
+with C<$dor> set, so the result can never be undefined.  A plain C<null>
+wrapper is stepped through.  The XS column walker consults
+C<dc_is_dor_fixed_tree> before it recurses into a nested logop, so a
+nested logop judged fixed gets no MC/DC columns, which is what
+Condition_table does with the right child of a collapsed C<or_2>.
 
 =head2 _is_const_right ($op, $dor, $cv)
 
@@ -2084,7 +2162,8 @@ C<ref>, C<push> and their kind, and C<keys> or C<values> in scalar
 context.  A nulled wrapper such as C<ex-stringify> or C<ex-exists> is
 judged by its former type.  Ops that can return undef, such as C<length>,
 C<substr>, C<gmtime> and C<< <=> >>, stay out.  The XS column walker in
-C<dc_is_defined_leaf> keeps the same list.
+C<dc_is_defined_leaf> keeps the same list.  A C<?:> or a nested logical
+op counts when L</_is_dor_fixed_tree> says its result is fixed.
 
 =head2 _condition_counts ($c, $type, $op, $cv)
 
