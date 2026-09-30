@@ -146,6 +146,15 @@ PROG
   ok $branch && $branch->location(4), "top-level branch is collected";
 }
 
+# Detect the line number reporting behaviour of this version of perl
+our $use_block_end;
+BEGIN {
+    sub X { my (undef, undef, $line) = caller;
+                $use_block_end++ if ($line != shift); }
+    X __LINE__, # $use_block_end = 0
+    sub { }     # $use_block_end = 1
+};
+
 # Anonymous subs defined at file scope.  Their prototype CVs live in the
 # pad of the file's eval CV, which the leaveeval hook keeps alive, so
 # the require-tree walk covers them from there.
@@ -187,9 +196,14 @@ PROG
 
   my $stmt = $f->statement;
   ok $stmt->location(25), "named sub calling the anon sub is covered";
-  # The assignment statement is attributed to the closing line of the
-  # anon sub because its body resets the parser's statement-start line
-  ok $stmt->location(6), "anon sub assignment statement is collected";
+  # Prior to perl v5.45.4, the assignment statement was attributed to
+  # the closing line of the anon sub because its body reset the parser's
+  # statement-start line. Since then, it is attributed to the opening line.
+  if ($use_block_end) {
+    ok $stmt->location(6), "anon sub assignment statement is collected";
+  } else {
+    ok $stmt->location(3), "anon sub assignment statement is collected";
+  }
 
   my $l = $stmt->location(4);
   ok $l, "file-scope anon sub body is collected";
