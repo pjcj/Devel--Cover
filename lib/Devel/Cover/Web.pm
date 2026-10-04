@@ -1849,6 +1849,6 @@ This software is free.  It is licensed under the same terms as Perl itself,
 except where otherwise noted.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

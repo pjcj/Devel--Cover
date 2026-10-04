@@ -329,6 +329,6 @@ assigned to Paul Johnson.
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

@@ -78,7 +78,7 @@ Copyright 2012, Olivier Mengué
 
 This software is free.  It is licensed under the same terms as Perl itself.
 
-The latest version of this software should be available from my homepage:
-https://pjcj.net
+The latest version of this software should be available from the Devel::Cover
+homepage: L<https://pjcj.net>
 
 =cut
