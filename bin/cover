@@ -857,10 +857,10 @@ conflict.  For example, the different HTML reports will overwrite each other's
 results.
 
 The C<-test> option will delete the databases and run your tests to generate
-new coverage data before reporting on it.  L<Devel::Cover> knows how to work
-with standard Perl Makefiles as well as L<Module::Build> based distributions.
-For detailed instructions see L<ExtUtils::MakeMaker> or L<Module::Build>,
-both of which come as standard in recent Perl distributions.
+new coverage data before reporting on it.  L<Devel::Cover> works with
+standard Perl Makefiles as well as L<Module::Build> based distributions.  For
+detailed instructions see L<ExtUtils::MakeMaker> or L<Module::Build>, both of
+which come as standard in recent Perl distributions.
 
 C<cover -test> replaces any C<PERL5OPT> and C<HARNESS_PERL_SWITCHES> in the
 environment with its own switches for the spawned test run.  To pass extra

@@ -1799,9 +1799,9 @@ be accessed.
     }
   }
 
-Data for different criteria will be in different formats, so that will need
-special handling. This is not yet documented so your best bet for now is to look
-at some of the simpler reports and/or the source.
+Data for different criteria are in different formats, so each needs its own
+handling. This is not yet documented, so for now look at some of the simpler
+reports or the source.
 
 The methods in the above example are actually aliases for methods in
 C<Devel::Cover::DB::Base> (the base class for all C<Devel::Cover::DB::*>
