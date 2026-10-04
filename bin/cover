@@ -877,13 +877,13 @@ already set in the environment is preserved; the C<jN> fragment is appended to
 it.
 
 The C<-gcov> option will try to run gcov on any XS code.  This requires that
-you are using gcc of course.  If you are using the C<-test> option will be
-turned on by default.  XS code in subdirectories is covered too.  gcov's
-C<-p> flag keeps the path in the output names so same-named sources in
-different directories do not collide.  A subdirectory holding its own
-F<Makefile.PL>, F<Build.PL>, F<Makefile> or F<Build> is a separate build
-whose object files record sources relative to that directory, so it is
-skipped.  Run C<cover> in that directory instead, or use C<-gcov_chdir>.
+you are using gcc of course.  If you are, this option is on by default.  XS
+code in subdirectories is covered too.  gcov's C<-p> flag keeps the path in
+the output names so same-named sources in different directories do not
+collide.  A subdirectory holding its own F<Makefile.PL>, F<Build.PL>,
+F<Makefile> or F<Build> is a separate build whose object files record sources
+relative to that directory, so it is skipped.  Run C<cover> in that directory
+instead, or use C<-gcov_chdir>.
 
 By default the C<-relative_only> option is enabled, which passes C<-r> to gcov
 so that source files reached via absolute paths (typically Perl's own CORE

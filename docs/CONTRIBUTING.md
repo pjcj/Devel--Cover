@@ -100,4 +100,4 @@ website is found at [cpancover.com](http://cpancover.com/).
 Devel::Cover::Collection is used by bin/cpancover and has some templates in it.
 
 In order to run cpancover a few extra modules are needed. They can be installed
-by Running `scripts/dc install_dependencies`.
+by Running `utils/dc install_dependencies`.

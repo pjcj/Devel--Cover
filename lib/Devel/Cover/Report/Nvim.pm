@@ -590,11 +590,11 @@ Example configuration for solarized theme in init.lua:
  -- You can also configure the sign column appearance
  vim.o.signcolumn = "yes:2"  -- 2 sign columns (1 diagnostics, 1 coverage)
 
-Alternative: You can still override via devel-cover.lua in your config directory
-for more complex customizations
-
 This configuration sets the background colour of the signs to a dark red when
 the coverage data is out of date.
+
+For more complex customisation you can still override these settings in
+F<devel-cover.lua> in your config directory.
 
 coverage.lua adds two user commands: :Cov and :Uncov which can be used to
 toggle the state of coverage signs.

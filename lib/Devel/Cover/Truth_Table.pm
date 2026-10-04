@@ -511,7 +511,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Truth_Table - Truth tables for coverage objects.
+Devel::Cover::Truth_Table - Truth tables for coverage objects
 
 =head1 SYNOPSIS
 
@@ -550,9 +550,8 @@ expressions.
 
 =head2 new_primitive($op, @coverage)
 
-Create a new truth table based on one of the built-in primitives, which
-are the subclasses of Devel::Cover::DB::Condition. C<$op> is one of the
-following:
+Create a new truth table based on one of the built-in primitives. C<$op> is
+one of the following:
 
 =over 4
 

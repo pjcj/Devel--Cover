@@ -306,7 +306,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Condition_table - Condition truth tables for coverage reporting.
+Devel::Cover::Condition_table - Condition truth tables for coverage reporting
 
 =head1 SYNOPSIS
 

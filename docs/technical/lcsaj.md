@@ -4,8 +4,8 @@ This document describes Linear Code Sequence and Jump (LCSAJ) coverage and what
 would be required to add it to Devel::Cover.
 
 LCSAJ is **not implemented** and not planned. The `path` placeholder reserved
-for it is being removed alongside the MC/DC work (GH-478). This document records
-why LCSAJ was investigated and ruled out in favour of MC/DC.
+for it was removed with the MC/DC work (GH-478). This document records why LCSAJ
+was investigated and ruled out in favour of MC/DC.
 
 ## Overview
 
@@ -67,9 +67,9 @@ metric and notes it is "also known as predicate, basis path and LCSAJ"; that
 description is left in place as educational content alongside sections on the
 other criteria.
 
-GH-478 renames the `path` slot in-place to `mcdc`, reusing the bit (Path 0x10
-becomes Mcdc 0x10) and the `@Criteria` position. The obsolete `docs/TODO` line
-is dropped.
+GH-478 renamed the `path` slot in place to `mcdc`, reusing the bit (Path 0x10
+became Mcdc 0x10) and the `@Criteria` position. The obsolete `docs/TODO` line
+was dropped.
 
 ## Mapping LCSAJ onto Perl
 
@@ -182,10 +182,10 @@ LCSAJ has fallen out of fashion. Modern safety-critical work prefers MC/DC
 LCSAJ in Perl is also expensive to implement honestly because Perl's control
 flow is much richer than the procedural FORTRAN the original definition assumed.
 
-The `path` placeholder is removed as part of GH-478, with the reserved
+The `path` placeholder was removed as part of GH-478, with the reserved
 `Path 0x10` flag bit repurposed for MC/DC. The tutorial's path-coverage section
-is left in place as a general description of the metric. See
-`docs/technical/mcdc.md` for the metric being added.
+remains as a general description of the metric. See `docs/technical/mcdc.md` for
+the metric that replaced it.
 
 ## References
 

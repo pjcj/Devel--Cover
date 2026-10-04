@@ -1694,10 +1694,10 @@ counts, and C<$uc> uncoverable data.
 
 =head2 add_time
 
-  $db->add_time($cc, $sc, $fc, $);
+  $db->add_time($cc, $sc, $fc, $uc);
 
-Merge time coverage data. Same interface as L</add_statement> but accumulates
-into scalar references.
+Merge time coverage data. Same interface as L</add_statement>, but accumulates
+into scalar references and ignores C<$uc>.
 
 =head2 add_branch
 
