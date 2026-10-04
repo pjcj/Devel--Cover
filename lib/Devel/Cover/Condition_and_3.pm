@@ -25,7 +25,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Condition_and_3 - Three-outcome and condition criterion
+Devel::Cover::Condition_and_3 - Three-outcome C<and> condition criterion
 
 =head1 SYNOPSIS
 
@@ -33,8 +33,8 @@ Devel::Cover::Condition_and_3 - Three-outcome and condition criterion
 
 =head1 DESCRIPTION
 
-Module for storing condition coverage information for and conditions with all
-three outcomes.
+Module for storing condition coverage information for C<and> conditions with
+all three outcomes.
 
 =head1 SEE ALSO
 

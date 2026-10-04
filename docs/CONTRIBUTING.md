@@ -1,4 +1,4 @@
-# How to Contribute to Devel::Cover
+# Contributing to Devel::Cover
 
 ## Source Code
 
@@ -13,7 +13,7 @@ suggestions, documentation, discussion or anything else. In general, and as with
 most open source projects, it is wise to discuss any large changes before
 starting on implementation.
 
-## How to run Devel::Cover from Git
+## Running Devel::Cover from Git
 
 ```sh
 cd my_code/
@@ -100,4 +100,4 @@ website is found at [cpancover.com](http://cpancover.com/).
 Devel::Cover::Collection is used by bin/cpancover and has some templates in it.
 
 In order to run cpancover a few extra modules are needed. They can be installed
-by Running `utils/dc install_dependencies`.
+by running `utils/dc install_dependencies`.

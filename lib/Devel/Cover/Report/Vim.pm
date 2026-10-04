@@ -344,14 +344,14 @@ grey one overrides a green one.  Code which runs despite an uncoverable
 marker is an error and is shown in red.
 
 If the coverage for the file being displayed is out of date the function
-called CoverageOld() is called and passed the name of the file.  Similarly,
-for current coverage data file CoverageValid is called.
+called C<CoverageOld()> is called and passed the name of the file.  Similarly,
+for current coverage data file C<CoverageValid()> is called.
 
-Signs may be overridden in a file named devel-cover.vim located somewhere
-underneath the ~/.vim directory.
+Signs may be overridden in a file named F<devel-cover.vim> located somewhere
+underneath the F<~/.vim> directory.
 
 For example, I use the solarized theme and keep the following commands in my
-local configuration file ~/.vim/local/devel-cover.vim:
+local configuration file F<~/.vim/local/devel-cover.vim>:
 
  let s:fg_cover = "#859900"
  let s:fg_uncov = "#586e75"
@@ -395,10 +395,10 @@ local configuration file ~/.vim/local/devel-cover.vim:
 This configuration sets the background colour of the signs to a dark red when
 the coverage data is out of date.
 
-coverage.vim adds two user commands: :Cov and :Uncov which can be used to
-toggle the state of coverage signs.
+F<coverage.vim> adds two user commands: C<:Cov> and C<:Uncov> which can be used
+to toggle the state of coverage signs.
 
-The idea and the vim template is shamelessly stolen from Simplecov-Vim.  See
+The idea and the Vim template are shamelessly stolen from Simplecov-Vim.  See
 https://github.com/nyarly/Simplecov-Vim
 
 =head1 SEE ALSO

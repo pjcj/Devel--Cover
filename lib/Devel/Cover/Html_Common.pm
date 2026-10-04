@@ -179,7 +179,7 @@ This module provides common functionality for HTML reporters.
 =item launch
 
 Launch a browser to view the report. HTML reporters just need to
-import this function to enable the -launch flag for that report
+import this function to enable the C<-launch> flag for that report
 type.
 
 =item highlight ($option, @lines)

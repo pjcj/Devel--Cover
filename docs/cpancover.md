@@ -1,4 +1,4 @@
-# How to set up cpancover
+# Setting up cpancover
 
 ## Overview
 
@@ -18,7 +18,7 @@ You may need to add yourself to the docker group.
 ## Plenv
 
 Install plenv by following the instructions on
-[github](https://github.com/tokuhirom/plenv). If you are running brew
+[GitHub](https://github.com/tokuhirom/plenv). If you are running Homebrew:
 
 ```sh
 brew install plenv
@@ -53,7 +53,7 @@ run as follows:
 dc cpancover-latest | head -2000 | dc cpancover
 ```
 
-The top level HTML and JSON is generated with:
+The top level HTML and JSON are generated with:
 
 ```sh
 dc cpancover-generate-html
@@ -92,8 +92,8 @@ possible.
 ## cpancover.com
 
 The server which is currently running cpancover.com has been graciously provided
-by [Bytemark](https://www.bytemark.co.uk). It has plenty of memory and cpu
-power, but not a large amount of disk space. That's fine though, it has
+by [Bytemark](https://www.bytemark.co.uk). It has plenty of memory and CPU
+power, but not a large amount of disk space. That's fine though, as it has
 sufficient for cpancover's needs.
 
 The server is on the account of pjcj at bytemark. Logins are owned by pjcj and

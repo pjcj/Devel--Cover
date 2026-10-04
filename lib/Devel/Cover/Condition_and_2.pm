@@ -25,7 +25,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Condition_and_2 - Two-outcome and condition criterion
+Devel::Cover::Condition_and_2 - Two-outcome C<and> condition criterion
 
 =head1 SYNOPSIS
 
@@ -33,8 +33,8 @@ Devel::Cover::Condition_and_2 - Two-outcome and condition criterion
 
 =head1 DESCRIPTION
 
-Module for storing condition coverage information for and conditions whose right
-operand is a constant or control flow, leaving only two outcomes.
+Module for storing condition coverage information for C<and> conditions whose
+right operand is a constant or control flow, leaving only two outcomes.
 
 =head1 SEE ALSO
 

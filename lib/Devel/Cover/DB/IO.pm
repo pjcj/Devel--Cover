@@ -111,7 +111,7 @@ are written by rename, so they need only a writable directory.
 
  my $data = $io->read($file);
 
-Returns a perl data structure representing the data read from $file.  The
+Returns a Perl data structure representing the data read from C<$file>.  The
 format of the file on disk is detected from its content, so a database
 written under a different configuration can still be read.
 
@@ -119,7 +119,7 @@ written under a different configuration can still be read.
 
  $io->write($data, $file);
 
-Writes $data to $file in the format specified when creating $io.
+Writes C<$data> to C<$file> in the format specified when creating C<$io>.
 
 =head1 LICENCE
 

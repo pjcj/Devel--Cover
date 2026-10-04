@@ -744,7 +744,7 @@ Devel::Cover::Report::Html_minimal - HTML backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a HTML reporting mechanism for coverage data. It is
+This module provides an HTML reporting mechanism for coverage data. It is
 designed to be called from the F<cover> program.
 
 Based on an original by Paul Johnson, the output was greatly improved by Michael
@@ -752,7 +752,7 @@ Carman (mjcarman@mchsi.com).
 
 =head1 OPTIONS
 
-Options are specified by adding the appropriate flags to the C<cover> program.
+Options are specified by adding the appropriate flags to the F<cover> program.
 This report format supports the following:
 
 =over 4
@@ -766,20 +766,21 @@ directory.
 =item pod
 
 Includes POD (and blank lines) in the file report.  This is on by default.  It
-may be turned off with -nopod.
+may be turned off with C<-nopod>.
 
 =item data
 
 Includes text after the C<__DATA__> or C<__END__> tokens in the file report.  By
 default, this text is trimmed.
 
-Note: If your POD is after an C<__END__>, you have to specify 'data' to include
-it, not 'pod'.  The 'pod' option only applies to POD before the C<__END__>.
+Note: If your POD is after an C<__END__>, you have to specify C<data> to
+include it, not C<pod>.  The C<pod> option only applies to POD before the
+C<__END__>.
 
 =item unified
 
 Generates a "unified" report for each file.  The detailed data that normally
-appears in the auxiliary reports (branch, condition, etc.) are placed in the
+appear in the auxiliary reports (branch, condition, etc.) are placed in the
 file report, and the auxiliary reports are not generated.
 
 =item summarytitle

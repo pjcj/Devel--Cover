@@ -834,7 +834,7 @@ Devel::Cover::Report::Html_subtle - HTML backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a HTML reporting mechanism for coverage data.  It
+This module provides an HTML reporting mechanism for coverage data.  It
 is designed to be called from the F<cover> program.
 
 Based on an original by Paul Johnson, the output was greatly improved by

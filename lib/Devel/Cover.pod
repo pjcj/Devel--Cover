@@ -249,7 +249,7 @@ coverage takes any options.  These are the parameters which are passed into the
 L<Pod::Coverage> constructor.  The extra options are separated by dashes, and
 you may specify as many as you wish.  For example, to specify that all
 subroutines containing xx are private, call Devel::Cover with the option
--coverage,pod-also_private-xx.
+C<-coverage,pod-also_private-xx>.
 
 Or, to ignore all files in C<t/lib> as well as files ending in C<Foo.pm>:
 
@@ -263,8 +263,8 @@ ignore regexes which have already been set, use C<+ignore>:
 =head1 SELECTING FILES TO COVER
 
 You may select the files for which you want to collect coverage data using the
-select, ignore and inc options.  The system uses the following procedure to
-decide whether a file will be included in coverage reports:
+C<select>, C<ignore> and C<inc> options.  The system uses the following
+procedure to decide whether a file will be included in coverage reports:
 
 =over
 
@@ -575,7 +575,7 @@ rows by position - the first, second and third - which misleads elsewhere: on
 C<&&> "false" selects the 11 row, where the expression is true.  Using one
 warns, naming the "when" replacement for the op.
 
-As for branches, the "count" value may be used for either conditions in elsif
+As for branches, the "count" value may be used either for conditions in elsif
 conditionals, or for complex conditions.  Unlike branches, a condition in an
 elsif is addressed at the elsif's own line.  When one line holds several
 condition ops, count:n selects them outermost first, so for C<$a && $b && $c>
@@ -886,7 +886,7 @@ Almost certainly.
 
 See the BUGS file, the TODO file and the bug trackers at
 L<https://github.com/pjcj/Devel--Cover/issues?state=open> and
-L<https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover>
+L<https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover>.
 
 Please report new bugs on GitHub.
 

@@ -1,4 +1,4 @@
-- Doesn't play nicely with all of Perl's testsuite.
+- Doesn't play nicely with all of Perl's test suite.
 
 - elsif and else coverage is reported on the same line as the if
   statement.  This is because perl doesn't store the line number for the

@@ -25,7 +25,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Condition_xor_4 - Four-outcome xor condition criterion
+Devel::Cover::Condition_xor_4 - Four-outcome C<xor> condition criterion
 
 =head1 SYNOPSIS
 
@@ -33,7 +33,7 @@ Devel::Cover::Condition_xor_4 - Four-outcome xor condition criterion
 
 =head1 DESCRIPTION
 
-Module for storing condition coverage information for xor conditions.
+Module for storing condition coverage information for C<xor> conditions.
 
 =head1 SEE ALSO
 

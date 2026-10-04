@@ -33,7 +33,7 @@ executed.  Note that statement != line of code.  Multiple statements on a single
 line can confuse issues - the reporting if nothing else.
 
 Where there are sequences of statements without branches it is not necessary to
-count the execution of every statement, just one will suffice, but people often
+count the execution of every statement.  One will suffice, but people often
 like the count of every line to be reported, especially in summary
 statistics. However it is not clear to me that this is actually useful.
 
@@ -60,7 +60,7 @@ coverage which does not attempt to extend its results to each statement.
 =head3 2.2 Branch coverage
 
 The goal of branch coverage is to ensure that whenever a program can jump, it
-jumps to all possible destinations.  The most simple example is a complete if
+jumps to all possible destinations.  The simplest example is a complete if
 statement:
 
   if ($x) {
@@ -76,8 +76,8 @@ should also allow for the case where the else part is missing:
     print "a";
   }
 
-Full coverage is only achieved here if $x is true on one occasion and false on
-another.
+Full coverage is only achieved here if C<$x> is true on one occasion and false
+on another.
 
 100% branch coverage implies 100% statement coverage.
 
@@ -95,8 +95,8 @@ There are classes of errors that branch coverage cannot detect, such as:
     print $obj->name;
   }
 
-100% branch coverage can be achieved by setting ($x, $y) to (1, 1) and then to
-(0, 0).  But if we have (0, 1) then things go bang.
+100% branch coverage can be achieved by setting C<($x, $y)> to (1, 1) and then
+to (0, 0).  But if we have (0, 1) then things go bang.
 
 The purpose of path coverage is to ensure that all paths through the program are
 taken.  In any reasonably sized program there will be an enormous number of
@@ -105,8 +105,8 @@ single subroutine, if the subroutine is not too big, or simply to two
 consecutive branches.
 
 In the above example there are four paths which correspond to the truth table
-for $x and $y.  To achieve 100% path coverage they must all be taken.  Note that
-missing elses count as paths.
+for C<$x> and C<$y>.  To achieve 100% path coverage they must all be taken.
+Note that missing elses count as paths.
 
 In some cases it may be impossible to achieve 100% path coverage:
 
@@ -121,7 +121,7 @@ for now.
 
 100% path coverage implies 100% branch coverage.
 
-Path coverage and some of its close cousins, are also known as predicate, basis
+Path coverage and some of its close cousins are also known as predicate, basis
 path and LCSAJ (Linear Code Sequence and Jump) coverage.
 
 =head3 2.4 Expression coverage
@@ -131,9 +131,9 @@ terms in the expression are exercised.  For example:
 
   a if $x || $y
 
-The expression should be exercised with ($x, $y) set to (0, 0) (required for
-branch coverage), (0, 1) and (1, 0) (to ensure that $x and $y are independent)
-and possibly with (1, 1).
+The expression should be exercised with C<($x, $y)> set to (0, 0) (required
+for branch coverage), (0, 1) and (1, 0) (to ensure that C<$x> and C<$y> are
+independent) and possibly with (1, 1).
 
 Expression coverage gets complicated, and difficult to achieve, as the
 expression gets complicated.
@@ -237,8 +237,8 @@ problems thrown up.  Finally, if the overhead is too great it won't get used
 either.
 
 So there's a basic tutorial on code coverage, or at least my version of it.
-Typing a few of these terms into google will probably provide a basis for future
-research.
+Typing a few of these terms into a good search engine will probably provide a
+basis for future research.
 
 =head1 LICENCE
 
