@@ -487,7 +487,7 @@ Devel::Cover::Report::Nvim - Backend for displaying coverage data in Neovim
 =head1 DESCRIPTION
 
 This module provides a reporting mechanism for displaying coverage data in
-Neovim using Lua.  It is designed to be called from the C<cover> program.
+Neovim using Lua.  It is designed to be called from the F<cover> program.
 
 By default, the output of this report is a file named C<coverage.lua> in the
 directory of the coverage database.  To use it, run
@@ -513,12 +513,12 @@ not run are shown in grey.  A red criterion overrides a grey one, and a
 grey one overrides a green one.  Code which runs despite an uncoverable
 marker is an error and is shown in red.
 
-If the coverage for the file being displayed is out of date the function
-called coverage_old() is called and passed the name of the file.  Similarly,
-for current coverage data file coverage_valid() is called.
+If the coverage for the displayed file is out of date, the script calls
+C<coverage_old()> with the name of the file.  For current coverage data it
+calls C<coverage_valid()>.
 
 Colours and signs can be customised using global vim variables. Set these in
-your init.lua or init.vim file before loading the coverage script.
+your F<init.lua> or F<init.vim> file before loading the coverage script.
 
 Available configuration variables:
 
@@ -539,7 +539,7 @@ Available configuration variables:
  vim.g.devel_cover_sign_group     -- Sign group name (default: "DevelCover")
  vim.g.devel_cover_sign_priority  -- Sign priority (default: 1)
 
-Example configuration for solarized theme in init.lua:
+Example configuration for solarized theme in F<init.lua>:
 
  -- Set colours before loading coverage
  vim.g.devel_cover_fg = "#859900"        -- solarized green
@@ -596,8 +596,8 @@ the coverage data is out of date.
 For more complex customisation you can still override these settings in
 F<devel-cover.lua> in your config directory.
 
-coverage.lua adds two user commands: :Cov and :Uncov which can be used to
-toggle the state of coverage signs.
+F<coverage.lua> adds two user commands, C<:Cov> and C<:Uncov>, which toggle the
+coverage signs.
 
 The idea and the lua template is adapted from the Vim version which was
 shamelessly stolen from Simplecov-Vim.  See

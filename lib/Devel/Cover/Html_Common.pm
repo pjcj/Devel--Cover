@@ -184,14 +184,14 @@ type.
 
 =item highlight ($option, @lines)
 
-Syntax-highlight Perl source lines using PPI::HTML or Perl::Tidy,
+Syntax-highlight Perl source lines using L<PPI::HTML> or L<Perl::Tidy>,
 whichever is available. Returns highlighted lines, or an empty list
 if neither highlighter is installed. Pass the C<< $opt->{option} >>
 hash so that C<noppihtml> and C<noperltidy> flags are respected.
 
 =item $Have_highlighter
 
-True if PPI::HTML or Perl::Tidy is available.
+True if L<PPI::HTML> or L<Perl::Tidy> is available.
 
 =item coverage_class ($percentage, $thresholds)
 

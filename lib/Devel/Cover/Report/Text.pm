@@ -523,14 +523,14 @@ subroutines are listed under the "Uncoverable Subroutines" heading, and a
 covered subroutine whose marker is stale stays under "Covered Subroutines"
 with a "*" prefix on its counts.
 
-It is designed to be called from the C<cover> program.
+It is designed to be called from the F<cover> program.
 
 =head1 SUBROUTINES
 
 =head2 report ($pkg, $db, $options)
 
-Entry point called by the C<cover> tool.  Computes the common directory prefix
-across all files, then iterates each file printing whichever sections are
+Entry point called by the F<cover> tool.  Computes the common directory prefix
+across all files, then iterates over each file printing whichever sections are
 enabled in C<$options>.
 
 =head2 print_runs ($db, $options)

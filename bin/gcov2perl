@@ -204,7 +204,7 @@ The following command line options are supported:
   -i -info        - show documentation
   -v -version     - show version
 
-By default, C<gcov2perl> skips any C<.gcov> file whose source resolves into
+By default, F<gcov2perl> skips any C<.gcov> file whose source resolves into
 the Perl CORE directory (e.g. F<sv_inline.h>, F<inline.h>, F<perlstatic.h>).
 These files are inlined into XS code and produce coverage data that is rarely
 of interest to the XS author.  Pass C<-no-skip-core> to override and include

@@ -1823,7 +1823,7 @@ and it prints an apology and exits.
 =head2 import ($class, @o)
 
 The entry point for C<use Devel::Cover>.  Appends any options from
-C<$DEVEL_COVER_OPTIONS>, parses them, arranges C<blib> handling, compiles
+C<DEVEL_COVER_OPTIONS>, parses them, arranges C<blib> handling, compiles
 the select, ignore and inc patterns, bootstraps the XS code and
 initialises the database and criteria.  A second call returns at once.
 Under mod_perl the C<CHECK>-time work runs here instead, since mod_perl

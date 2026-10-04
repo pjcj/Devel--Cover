@@ -169,7 +169,7 @@ Devel::Cover::Report::Compilation - backend for Devel::Cover
 =head1 DESCRIPTION
 
 This module provides a textual reporting mechanism for coverage data. It is
-designed to be called from the C<cover> program.
+designed to be called from the F<cover> program.
 
 It produces one report per line, in a format like Perl's own compilation error
 messages. This makes it easy to use with development tools that understand
@@ -240,7 +240,7 @@ To use with vim quickfix:
   :cgetexpr system('cover -report compilation')
   :copen
 
-Then use :cn and :cp to navigate between uncovered locations.
+Then use C<:cn> and C<:cp> to move between uncovered locations.
 
 =head1 COVERAGE TYPES
 
@@ -262,7 +262,7 @@ The compilation report supports all standard Devel::Cover coverage types:
 
 =back
 
-Use the standard C<cover> command options to select which types to report:
+Use the standard F<cover> command options to select which types to report:
 
   cover -report compilation +statement +branch +condition +mcdc +subroutine +pod
 

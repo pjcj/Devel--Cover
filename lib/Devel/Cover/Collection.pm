@@ -1252,7 +1252,7 @@ These attributes can only be set via the constructor.
 
 =head3 bin_dir
 
-Directory containing the C<cover> binary. Used when running coverage commands.
+Directory containing the F<cover> program. Used when running coverage commands.
 
 =head3 cpan_dir
 
@@ -1346,7 +1346,7 @@ modules that are not on CPAN counts everything.
 Path of a file in the L<CPAN::Releases::Latest> cache format to read as
 the release index instead of the cache that module keeps and refreshes.
 Default: the C<CPANCOVER_LATEST_INDEX> environment variable, so a test can
-hand every C<cpancover> run a fixed index and stay off the network.
+give every F<cpancover> run a fixed index without using the network.
 
 =head2 Internally Managed Attributes
 
@@ -1476,15 +1476,14 @@ distributions, and runs coverage on all.
 
 Runs coverage analysis on a single build directory. Creates coverage reports
 in the results directory under the distdir name recorded in C<distdir_for>,
-and dies when the build directory has no entry there. The C<cover>
-invocation is passed C<--select_dir>
-pointing at C<blib> (falling back to C<lib>, then the build directory) so
-files no test exercised appear in the report as untested, and a distribution
-without any tests still produces a report rather than failing. The report
-file is the success test. If the test run dies part-way and leaves no
-report, nothing is published and the failure propagates, even though a
-failing test suite alone does not. If a step after the test run dies, the
-collected output is printed before the error propagates.
+and dies when the build directory has no entry there. The F<cover> run is
+given C<--select_dir> pointing at C<blib> (falling back to C<lib>, then the
+build directory) so files no test exercised appear in the report as untested,
+and a distribution without any tests still produces a report rather than
+failing. The report file is the success test. If the test run dies part-way
+and leaves no report, nothing is published and the failure propagates, even
+though a failing test suite alone does not. If a step after the test run
+dies, the collected output is printed before the error propagates.
 
 =head3 run_all
 

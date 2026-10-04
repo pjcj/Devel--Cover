@@ -132,7 +132,7 @@ Devel::Cover::Annotation::Git - Annotate with git information
 =head1 DESCRIPTION
 
 Annotate coverage reports with git annotation information.
-This module is designed to be called from the C<cover> program.
+This module is designed to be called from the F<cover> program.
 
 =head1 SEE ALSO
 

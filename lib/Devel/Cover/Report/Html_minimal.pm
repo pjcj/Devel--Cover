@@ -745,7 +745,7 @@ Devel::Cover::Report::Html_minimal - HTML backend for Devel::Cover
 =head1 DESCRIPTION
 
 This module provides a HTML reporting mechanism for coverage data. It is
-designed to be called from the C<cover> program.
+designed to be called from the F<cover> program.
 
 Based on an original by Paul Johnson, the output was greatly improved by Michael
 Carman (mjcarman@mchsi.com).

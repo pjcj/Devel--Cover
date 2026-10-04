@@ -79,7 +79,7 @@ Devel::Cover::Report::Sort - backend for Devel::Cover
 =head1 DESCRIPTION
 
 This module reports coverage runs in an optimal order.
-It is designed to be called from the C<cover> program.
+It is designed to be called from the F<cover> program.
 
 =head1 SEE ALSO
 

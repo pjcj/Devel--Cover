@@ -2962,8 +2962,8 @@ despite its marker is striped red, and a partially covered line carrying a
 marker is striped amber.  Tooltips give the uncoverable counts and the help
 panel shows a legend of the colours.
 
-It is designed to be called from the C<cover> program.  It will add syntax
-highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
+It is designed to be called from the F<cover> program.  It will add syntax
+highlighting if L<PPI::HTML> or L<Perl::Tidy> is installed.
 
 =head1 OPTIONS
 

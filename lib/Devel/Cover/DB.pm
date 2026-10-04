@@ -1572,7 +1572,7 @@ the merged result, and delete the run files. Handles changed-file detection: if
 a file's digest differs between runs the old coverage is discarded. Returns
 C<$self>.
 
-The whole sequence is serialised via an exclusive flock on C<merge.lock> in
+The whole sequence is serialised via an exclusive flock on F<merge.lock> in
 the database directory, so concurrent merges cannot double-count runs. The
 lock file persists after release and is swept by C<clean> once free. Before
 being written, merged runs are renamed to hidden C<.merged.*> siblings, so a
@@ -1741,13 +1741,13 @@ When such a logop joins two decisions (its right operand is itself a logop) it
 is also recorded as a condition, exactly as in value context, so the joining
 operator is observed by condition and MC/DC coverage and a C<||> versus C<&&>
 fault is visible. Without this only the inner logops get tables and the outer
-operator has no representation. The trigger tests the B<right> operand
-alone: a statement modifier C<< ACTION if COND >> compiles to the same op as a
-genuine C<< COND && ACTION >> join, so a left-only-compound join cannot be told
-apart from control flow and is left as a branch, where its operator is still
-visible in the C<if>/C<unless> text. Void context is honoured through the
-runtime collapse flag, so a logop evaluated only in void context never observes
-its right operand and stays honestly unproven.
+operator has no representation. The trigger tests the right operand alone. A
+statement modifier C<< ACTION if COND >> compiles to the same op as a genuine
+C<< COND && ACTION >> join, so a left-only-compound join cannot be told apart
+from control flow. It is left as a branch, where its operator is still visible
+in the C<if>/C<unless> text. Void context is honoured through the runtime
+collapse flag, so a logop evaluated only in void context never observes its
+right operand and stays honestly unproven.
 
 Control-flow logops - C<if>/C<while> bodies, C<or die>, C<and $x++> - have a
 block, statement, or side-effect right operand rather than a nested decision, so

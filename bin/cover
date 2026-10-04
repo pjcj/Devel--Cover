@@ -741,7 +741,7 @@ annotation modules ship with Devel::Cover.  Any options an annotation module
 declares may follow it on the command line.  The git module accepts
 C<-author>, C<-date> and C<-sha>, each of which may be negated to remove its
 column, along with C<-command> to replace the C<git blame> command.
-C<cover> itself consumes C<-version> and C<-noversion>, so use C<-sha> and
+F<cover> itself consumes C<-version> and C<-noversion>, so use C<-sha> and
 C<-nosha> for the sha column.
 
 The C<-outputfile> option applies to every report.  Reports which normally
@@ -876,13 +876,13 @@ or shared resources may still need to remain sequential.  Any C<HARNESS_OPTIONS>
 already set in the environment is preserved; the C<jN> fragment is appended to
 it.
 
-The C<-gcov> option will try to run gcov on any XS code.  This requires that
-you are using gcc of course.  If you are, this option is on by default.  XS
-code in subdirectories is covered too.  gcov's C<-p> flag keeps the path in
-the output names so same-named sources in different directories do not
-collide.  A subdirectory holding its own F<Makefile.PL>, F<Build.PL>,
+The C<-gcov> option will try to run F<gcov> on any XS code.  This requires
+that you are using gcc of course.  If you are, this option is on by default.
+XS code in subdirectories is covered too.  The C<-p> flag of F<gcov> keeps the
+path in the output names so same-named sources in different directories do
+not collide.  A subdirectory holding its own F<Makefile.PL>, F<Build.PL>,
 F<Makefile> or F<Build> is a separate build whose object files record sources
-relative to that directory, so it is skipped.  Run C<cover> in that directory
+relative to that directory, so it is skipped.  Run F<cover> in that directory
 instead, or use C<-gcov_chdir>.
 
 By default the C<-relative_only> option is enabled, which passes C<-r> to gcov
@@ -890,9 +890,9 @@ so that source files reached via absolute paths (typically Perl's own CORE
 headers such as F<sv_inline.h>, F<inline.h>, and F<perlstatic.h>) are omitted
 from the coverage report.  These files are inlined into XS code and their
 coverage figures are rarely meaningful to the XS author.  As a second line of
-defence, C<gcov2perl> also skips any C<.gcov> whose source resolves into the
-Perl CORE directory.  Pass C<-no-relative_only> to C<cover>, or C<-no-skip-core>
-to C<gcov2perl>, to include this data.
+defence, F<gcov2perl> also skips any C<.gcov> whose source resolves into the
+Perl CORE directory.  Pass C<-no-relative_only> to F<cover>, or C<-no-skip-core>
+to F<gcov2perl>, to include this data.
 
 The C<-prefer_lib> option tells Devel::Cover to report on files in the lib
 directory even if they were used from the blib directory.

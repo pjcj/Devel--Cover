@@ -273,7 +273,7 @@ only per-file summary statistics, this report includes full per-line,
 per-criterion coverage detail for every covered file, plus condition truth
 tables and timing data.
 
-It is designed to be called from the C<cover> program.
+It is designed to be called from the F<cover> program.
 
 =head1 OPTIONS
 

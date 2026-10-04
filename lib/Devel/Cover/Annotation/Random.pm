@@ -68,7 +68,7 @@ Devel::Cover::Annotation::Random - Example annotation for formatters
 =head1 DESCRIPTION
 
 This module provides an example annotation.
-It is designed to be called from the C<cover> program.
+It is designed to be called from the F<cover> program.
 
 =head1 SEE ALSO
 

@@ -153,8 +153,8 @@ L<PPI::HTML> is preferred.
 
 =item * L<Template> (2.00 or above)
 
-The html_basic and html_subtle reports will not run without this.  The default
-html report does not use it.
+The C<html_basic> and C<html_subtle> reports will not run without this.  The
+default C<html> report does not use it.
 
 =item * L<PPI>
 
@@ -462,7 +462,7 @@ line of the opening if, so the comments for the whole chain go above that line.
 
 The "all" type marks both elements of a branch with one comment.  It is the
 natural form for a branch that can never run at all, such as an elsif in a chain
-that is never reached.  Here $thing is always one, leaving five uncoverable
+that is never reached.  Here C<$thing> is always one, leaving five uncoverable
 branch outcomes:
 
   # dc uncoverable branch false count:1
@@ -548,10 +548,10 @@ evaluated.  The "when" attribute marks the row whose operand values match:
     $x++;  # dc uncoverable statement
   }
 
-Here $x is always true, so the row where the left operand is false and the right
-never evaluated (0X) cannot occur, and !$y is always false, so the row where
-both operands are true (11) cannot occur either.  Several rows can be marked in
-one comment with a comma separated list:
+Here C<$x> is always true, so the row where the left operand is false and the
+right never evaluated (0X) cannot occur, and C<!$y> is always false, so the row
+where both operands are true (11) cannot occur either.  Several rows can be
+marked in one comment with a comma separated list:
 
   # dc uncoverable condition when:0X,11
 
@@ -732,8 +732,8 @@ add any options you need at this point.  I would suggest adding this as early as
 possible in your startup script in order to collect as much coverage information
 as possible.
 
-Alternatively, add -MDevel::Cover to the parameters for mod_perl. In this
-example, Devel::Cover will be operating in silent mode.
+Alternatively, add C<-MDevel::Cover> to the parameters for mod_perl. In this
+example, Devel::Cover runs in silent mode.
 
   PerlSwitches -MDevel::Cover=-silent,1
 
