@@ -74,7 +74,7 @@ of a larger expression:
 `xor` (and `^^` from 5.42+) is always condition coverage with 4 outcomes:
 `l&&r`, `l&&!r`, `!l&&r`, `!l&&!r`.
 
-## How Classification Works in Code
+## Classification in Code
 
 The XS op walker (`walk_ops` in `Cover.xs`, driven from `_get_cover_walk`)
 visits every op in a sub and dispatches each logical op to a handler in
@@ -198,7 +198,7 @@ Index   Meaning
 `xor` cannot short-circuit, so `cover_xor` records its slots directly as the
 four operand combinations: 1 = `!l&&!r`, 2 = `l&&!r`, 3 = `l&&r`, 4 = `!l&&r`.
 
-### How the XS code collects data
+### Data collection in the XS code
 
 1. **`cover_logop`** runs after the pp function of a logical op (`OP_AND`,
    `OP_OR`, `OP_DOR`, or one of their assign variants) has executed. It receives
@@ -265,7 +265,7 @@ instead, boolifies the condition exactly once as `pp_cond_expr` would, and
 replaces it on the stack with the plain boolean so the pp function does not
 invoke an overloaded `bool` a second time - the same technique `cover_xor` uses.
 
-## How the Perl Layer Interprets Raw Data
+## Interpretation of Raw Data in the Perl Layer
 
 The raw condition array from the XS layer is reinterpreted by `add_branch_cover`
 and `add_condition_cover` in `lib/Devel/Cover.pm`.
@@ -436,7 +436,7 @@ guards all OPpSTATEMENT checks. It must be called with explicit parentheses
 (`Has_op_statement()`) because on Perl 5.20 the bare form `Has_op_statement ?`
 is parsed as the deprecated match-once `?PATTERN?` operator.
 
-### Where OPpSTATEMENT is used
+### Uses of OPpSTATEMENT
 
 1. **`_classify_op`** (used by `_walk_logop`): selects the label format
    (statement modifier vs expression). A separate `$is_branch` variable combines
@@ -446,7 +446,7 @@ is parsed as the deprecated match-once `?PATTERN?` operator.
 2. **`_walk_cond_expr`**: determines whether to label as `"if ($cond) { }"`
    (with elsif walking) or `"$cond ? :"`. Both forms are always branch coverage.
 
-### Why statement-level expression logops are branches
+### Statement-level expression logops as branches
 
 Consider `$y && $x++` at statement level. Perl 5.43.8 does not set OPpSTATEMENT
 on this op because the programmer wrote it in expression form. But the return

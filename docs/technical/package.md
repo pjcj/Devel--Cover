@@ -98,7 +98,7 @@ as `use overload` or a `sub` declaration) has its `nextstate` nullified by the
 optimiser, the same `ex-nextstate` pattern as above. The structural walk and the
 `$nnnext` guard keep a false `*0` from appearing on the `package Pkg;` line.
 
-## What Is Tracked
+## Tracked Constructs
 
 Subroutines declared inside either form of `package` block are discovered and
 tracked through the normal `walksymtable` path. Coverage for their bodies (stmt,

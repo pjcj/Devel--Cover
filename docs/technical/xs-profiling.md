@@ -225,7 +225,7 @@ Each replacement op follows the same pattern:
 2. If yes, call the appropriate `cover_*` function
 3. Call the original op via the saved function pointer
 
-### What to look for
+### The main cost centres
 
 The main cost centres in the XS runtime are:
 

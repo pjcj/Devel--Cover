@@ -307,7 +307,7 @@ back what you want.
 
   perl -MDevel::Cover=+ignore,.,+select,^lib/MyApp/Core yourprog args
 
-=head2 When these options take effect
+=head2 Collection-time filtering
 
 These options decide which files coverage data is collected for whilst your code
 runs.  What they exclude never reaches the database, and no later option can

@@ -16,7 +16,7 @@ and still runs (the wrapper calls it), but it is no longer reachable from any
 glob in the symbol table. It survives only as a reference the wrapper closes
 over.
 
-## Why the coverage was lost
+## The cause of the lost coverage
 
 Devel::Cover builds its subroutine and statement structure at report time by
 walking for CVs from two roots (`check_files` in `Devel/Cover.pm`): the symbol
@@ -34,7 +34,7 @@ described in `require-toplevel-coverage.md`.
 This is issue GH-308 (its title notes it "affects method modifiers and
 friends").
 
-## What is recovered
+## Recovered subs
 
 `pad_cvs` follows a pad slot that holds a reference, not only a slot that holds
 a CV directly (`ref_cvs`):

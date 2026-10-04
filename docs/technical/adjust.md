@@ -4,7 +4,7 @@ ADJUST blocks are a construct introduced by Perl's `class` feature (5.38+). This
 document describes how Devel::Cover discovers and collects coverage for them,
 and how their storage differs from named method CVs.
 
-## What ADJUST Blocks Are
+## ADJUST Blocks
 
 An `ADJUST` block runs during object construction, after field initialisers have
 executed. It is syntactically similar to `BEGIN` or `END`, but unlike those
@@ -25,7 +25,7 @@ Every `ADJUST` block compiles into its own anonymous CV, invoked with full
 `ENTERSUB` overhead each time an object of that class (or any subclass) is
 constructed.
 
-## How ADJUST CVs Are Stored
+## Storage of ADJUST CVs
 
 Named `method` CVs are found by walking the symbol table: each method is a GV
 (glob value) in the class stash, and `B::walksymtable` visits every GV. ADJUST

@@ -123,7 +123,7 @@ several `(F,F,?)` variants for the inner-`!l` row. The picks shown are perfectly
 natural; nothing in the condition-coverage metric pushed the author towards a
 different combination.
 
-### What MC/DC additionally requires
+### The additional requirement of MC/DC
 
 Hybrid MC/DC requires, for each atomic condition, a pair of executions where
 flipping that condition flips the outcome with the others held compatibly.
@@ -162,7 +162,7 @@ Test 5 is "the user owns a locked article, no admin override" - the correct
 implementation denies the edit; the buggy implementation grants it because
 `!$unlocked` is true. The assertion fails and the bug is caught.
 
-### Why this matters
+### The difference MC/DC makes
 
 Condition coverage tells you "every leaf operator was exercised both ways."
 MC/DC tells you "the test set proves each input genuinely affects the output."
@@ -178,7 +178,7 @@ operands, and operator-precedence errors - the single-fault classes that
 statement, branch, and condition coverage all leave a plausible test author free
 to miss.
 
-## How MC/DC maps onto Perl
+## Mapping MC/DC onto Perl
 
 ### Decision identification
 

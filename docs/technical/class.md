@@ -70,7 +70,7 @@ leavesub
 After skipping `methstart` with `->sibling`, the existing signature path in
 `sub_info` handles the `null` node without further changes.
 
-## What Is Tracked
+## Tracked Constructs
 
 | Construct                           | Coverage                    |
 | ----------------------------------- | --------------------------- |
@@ -81,7 +81,7 @@ After skipping `methstart` with `->sibling`, the existing signature path in
 | Overriding `method` in subclass     | stmt, bran, cond, sub       |
 | `ADJUST` block                      | stmt, sub (see `adjust.md`) |
 
-## What Is Not Tracked
+## Untracked Constructs
 
 ### Auto-generated accessors (`:reader` and `:writer`)
 

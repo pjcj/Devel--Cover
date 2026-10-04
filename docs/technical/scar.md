@@ -168,7 +168,7 @@ a CPAN distribution and is a significant new feature beyond a formula change.
 
 \* lcov uses missed count for sorting but does not call it "risk".
 
-## Why CRAP, and Why SCAR
+## The Case for CRAP and for SCAR
 
 CRAP was the clear winner: it is the only published, peer-reviewed, widely
 adopted coverage-based risk formula. It required cyclomatic complexity, which

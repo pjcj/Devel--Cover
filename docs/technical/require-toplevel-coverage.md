@@ -12,7 +12,7 @@ against this. Before the fix the golden results showed `Module_top_level.pm` at
 100% with every top-level line blank, the same deficiency that sat in the golden
 results of `module1` and friends for years (lines 10 and 11 of `Module1.pm`).
 
-## Why the data is lost
+## The cause of the loss
 
 Devel::Cover collects coverage in two phases.
 
@@ -67,7 +67,7 @@ No existing `$^P` flag helps. `PERLDBf_SAVESRC` and friends retain source text,
 not ops. `DB::postponed` receives the file GV only. String eval is affected in
 exactly the same way as require.
 
-## How it could be solved
+## Possible solutions
 
 ### Option A: a core mechanism to save require optrees
 

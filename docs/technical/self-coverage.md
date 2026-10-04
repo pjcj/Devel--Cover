@@ -9,7 +9,7 @@ However, many DC modules - report generators, annotation handlers, HTML support,
 path utilities - are loaded on demand, well after bootstrap. These can be
 instrumented normally using `-select` to override the default ignore pattern.
 
-## How It Works
+## Mechanism
 
 Devel::Cover normally blocks its own modules via two mechanisms:
 
@@ -97,14 +97,14 @@ dc dc-cover
 Equivalent Makefile targets: `make dc_cover_lib`, `make dc_cover_reports`,
 `make dc_cover`.
 
-### How dc-cover-lib Works
+### dc-cover-lib
 
 Runs the relevant `t/internal/*.t` tests (currently `structure.t`, `path.t`,
 `static.t`, `condition_table.t`, `mcdc_analyser.t`) under `-MDevel::Cover` with
 `-select` matching only the modules under test. Only the selected library
 modules appear in the coverage report.
 
-### How dc-cover-reports Works
+### dc-cover-reports
 
 1. Generates a rich input `cover_db` by running several e2e tests under normal
    Devel::Cover (no self-coverage). This DB contains varied coverage patterns -

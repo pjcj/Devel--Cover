@@ -26,7 +26,7 @@ triple), but it is weaker than full path coverage (which would require
 enumerating every distinct end-to-end path through the control-flow graph, an
 exponentially-sized set).
 
-## Why LCSAJ is stronger than branch coverage
+## LCSAJ compared with branch coverage
 
 Branch coverage requires each conditional to go both ways but does not require
 those branches to be exercised in *combination*. The classic example from
@@ -117,7 +117,7 @@ Any op that may transfer control non-sequentially is a jump end:
   5.43.8 changes around `OPpSTATEMENT`). Any CFG built by Devel::Cover must keep
   up.
 
-## What would need to be added
+## Work required
 
 ### CFG construction
 
