@@ -1804,7 +1804,8 @@ special handling. This is not yet documented so your best bet for now is to look
 at some of the simpler reports and/or the source.
 
 The methods in the above example are actually aliases for methods in
-Devel::Cover::DB::Base (the base class for all C<Devel::Cover::DB::*> classes):
+C<Devel::Cover::DB::Base> (the base class for all C<Devel::Cover::DB::*>
+classes):
 
 =over
 
@@ -2050,12 +2051,7 @@ L</objectify_cover> deleting it.
 
 =head1 SEE ALSO
 
- Devel::Cover
- Devel::Cover::DB::Base
- Devel::Cover::DB::Cover
- Devel::Cover::DB::File
- Devel::Cover::DB::Criterion
- Devel::Cover::DB::Location
+L<Devel::Cover>, L<Devel::Cover::DB::File>
 
 =head1 LICENCE
 
