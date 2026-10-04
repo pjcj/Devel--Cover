@@ -95,7 +95,7 @@ report.
 ## cpancover
 
 The cpancover project aims to present coverage information for CPAN modules. The
-website is found at [cpancover.com](http://cpancover.com/).
+website is at [cpancover.com](http://cpancover.com/).
 
 Devel::Cover::Collection is used by bin/cpancover and has some templates in it.
 

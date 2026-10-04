@@ -145,8 +145,8 @@ Devel::Cover::Report::Text2 - Text backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a textual reporting mechanism for coverage data. It is
-designed to be called from the F<cover> program.
+This module writes coverage reports as text. It is designed to be called from
+the F<cover> program.
 
 Unlike L<Devel::Cover::Report::Text>, which produces a per-file summary followed
 by separate detail tables for each criterion, this reporter prints the source

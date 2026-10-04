@@ -168,8 +168,8 @@ Devel::Cover::Report::Compilation - backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a textual reporting mechanism for coverage data. It is
-designed to be called from the F<cover> program.
+This module reports coverage data as text. It is designed to be called from
+the F<cover> program.
 
 It produces one report per line, in a format like Perl's own compilation error
 messages. This makes it easy to use with development tools that understand

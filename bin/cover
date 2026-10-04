@@ -844,7 +844,7 @@ and default (which equates to all available options).  The C<mcdc> criterion
 reports Modified Condition/Decision Coverage and is derived from the condition
 truth tables, so collecting C<condition> is a prerequisite.  However, if you
 know you only want coverage information for certain criteria it is better to
-only collect data for those criteria in the first place by specifying them at
+collect data for only those criteria in the first place by specifying them at
 that point.  This will make the data collection and reporting processes faster
 and less memory intensive.  See the documentation for L<Devel::Cover> for more
 information.

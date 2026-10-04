@@ -903,9 +903,9 @@ Devel::Cover::Report::Html_basic - HTML backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides an HTML reporting mechanism for coverage data.  It
-is designed to be called from the F<cover> program. It will add syntax
-highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
+This module writes coverage reports as HTML.  It is designed to be called
+from the F<cover> program. It will add syntax highlighting if C<PPI::HTML> or
+C<Perl::Tidy> is installed.
 
 Colour shows the coverage outcome and a diagonal stripe shows that an
 uncoverable marker is present.  Excused code is striped green with a

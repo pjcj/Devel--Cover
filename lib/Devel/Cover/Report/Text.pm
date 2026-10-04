@@ -509,11 +509,10 @@ Devel::Cover::Report::Text - Text backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a textual reporting mechanism for coverage data. It
-produces a plain-text report covering statement, branch, condition, and
-subroutine metrics with inline source listing.  When files share a long common
-directory prefix, the prefix is stripped and only the distinguishing suffixes
-are shown.
+This module reports coverage data as text. It produces a plain-text report
+covering statement, branch, condition, and subroutine metrics with inline
+source listing.  When files share a long common directory prefix, the prefix
+is stripped and only the distinguishing suffixes are shown.
 
 A value is prefixed with "-" when an uncoverable marker is involved and with
 "*" when the construct is in error, and a line holding an error is flagged

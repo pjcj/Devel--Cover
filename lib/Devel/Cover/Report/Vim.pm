@@ -316,16 +316,16 @@ Devel::Cover::Report::Vim - Backend for displaying coverage data in Vim
 
 =head1 DESCRIPTION
 
-This module provides a reporting mechanism for displaying coverage data in
-Vim.  It is designed to be called from the F<cover> program.
+This module displays coverage data in Vim.  It is designed to be called from
+the F<cover> program.
 
 By default, the output of this report is a file named C<coverage.vim> in the
 directory of the coverage database.  To use it, run
 
  :so cover_db/coverage.vim
 
-and you should see signs in the left column indicating the coverage status of
-that line.
+and you should see signs in the left column showing the coverage status of
+each line.
 
 The signs are as follows:
 

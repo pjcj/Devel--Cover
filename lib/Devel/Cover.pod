@@ -127,9 +127,8 @@ the op tree.
 
 This means a working C compiler and make program at least.  If you built perl
 from source you will have these already and they will be used automatically. If
-your perl was built in some other way, for example you may have installed it
-using your Operating System's packaging mechanism, you will need to ensure that
-the appropriate tools are installed.
+your perl was built in some other way, for example from the packages of your
+operating system, you will need to install the appropriate tools yourself.
 
 =item * L<Storable> and L<Digest::MD5>
 

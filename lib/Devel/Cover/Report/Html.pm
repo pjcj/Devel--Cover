@@ -37,9 +37,9 @@ Devel::Cover::Report::Html - HTML backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides an HTML reporting mechanism for coverage data.  It is
-designed to be called from the F<cover> program.  This is an empty class derived
-from the default HTML output module, L<Devel::Cover::Report::Html_crisp>.
+This module writes coverage reports as HTML.  It is designed to be called from
+the F<cover> program.  This is an empty class derived from the default HTML
+output module, L<Devel::Cover::Report::Html_crisp>.
 
 =head1 SEE ALSO
 
