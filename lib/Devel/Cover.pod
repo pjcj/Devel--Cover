@@ -63,8 +63,8 @@ discover areas of code not exercised by your tests and determine which tests to
 create to increase coverage.  Code coverage can be considered an indirect
 measure of quality.
 
-Statement, branch, condition, MC/DC, subroutine, and pod coverage information is
-reported.  Statement and subroutine coverage data should be accurate. Branch,
+Devel::Cover reports statement, branch, condition, MC/DC, subroutine and pod
+coverage.  Statement and subroutine coverage data should be accurate. Branch,
 condition and MC/DC coverage data should be generally accurate too, although not
 always what one might initially expect.  Pod coverage comes from
 L<Pod::Coverage>. If L<Pod::Coverage::CountParents> is available it will be used
@@ -405,8 +405,8 @@ C<ignore_covered_err> attribute is specified then such errors will not be
 flagged.  This is a more precise method to flag such exceptions than the global
 C<-ignore_covered_err> flag to the F<cover> program.
 
-There is also a C<note> attribute which can also be included in C<details>.
-This should be the final attribute and will consume all the remaining text.
+A C<note> attribute may also be included in C<details>.  This should be the
+final attribute and will consume all the remaining text.
 Currently this attribute is not used, but it is intended as a form of
 documentation for the uncoverable data.
 
@@ -587,9 +587,9 @@ perl uses, run the expression through B::Deparse:
 
 =head3 MC/DC
 
-An MC/DC decision can be uncoverable when an atomic condition's independence
-pair can never be formed, for example the right operand of C<//> in C<< $x //=
-$default >> when C<$default> is always defined.
+An MC/DC decision can be uncoverable when the independence pair of an atomic
+condition can never be formed, for example the right operand of C<//> in
+C<< $x //= $default >> when C<$default> is always defined.
 
 The "all" type marks every atomic condition of the decision uncoverable:
 
@@ -672,12 +672,12 @@ output, and a stale marker produces a "marked uncoverable but covered" message.
 =item * B<html> (html_crisp) keeps colour for the coverage outcome and adds a
 diagonal stripe where a marker is present.  Excused code is striped green, code
 which ran despite its marker is striped red, and a partially covered line
-carrying a marker is striped amber.  Tooltips give the uncoverable counts and
+with a marker is striped amber.  Tooltips give the uncoverable counts and
 the help panel shows a legend.
 
 =item * B<html_basic> follows the same design with a C<cx> class for excused
 cells, striped green, and an C<mk> class adding a red stripe to cells whose
-marker no longer tells the truth.  Cell tooltips carry "marked uncoverable" or
+marker no longer tells the truth.  Cell tooltips show "marked uncoverable" or
 "marked uncoverable but covered" notes, summary tooltips give the uncoverable
 counts, and MC/DC atomics keep the "-" prefix of the text reports.
 
@@ -728,9 +728,8 @@ use in parallel testing.
 
 By adding C<use Devel::Cover;> to your mod_perl startup script, you should be
 able to collect coverage information when running under mod_perl.  You can also
-add any options you need at this point.  I would suggest adding this as early as
-possible in your startup script in order to collect as much coverage information
-as possible.
+add any options you need at this point.  Add this as early as possible in your
+startup script to collect as much coverage as possible.
 
 Alternatively, add C<-MDevel::Cover> to the parameters for mod_perl. In this
 example, Devel::Cover runs in silent mode.
@@ -875,7 +874,7 @@ block alive so it can be reported on, and releases the captured lexicals
 once the block has run, so a variable captured by a C<BEGIN> block is
 freed when its scope ends, as without coverage.  Plain perl frees the
 other three kinds of block at the end of the run, so a variable they
-capture lives a little longer there than under coverage.
+capture is freed a little later there than under coverage.
 
 A C<BEGIN> block inside a string C<eval> that captures a lexical from
 outside the C<eval> keeps that lexical alive until global destruction under

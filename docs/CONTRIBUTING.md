@@ -85,10 +85,10 @@ correctly, if not as nicely as in minimal. It also allows for coloured code.
 This report requires [Template Toolkit](https://metacpan.org/pod/Template) and
 is the format used for cpancover.
 
-**Crisp** is a modern, self-contained HTML reporter. All CSS, JavaScript and
-templates are embedded in a single module. It features dark mode,
-sortable/filterable file tables, directory grouping, inline branch and condition
-truth tables, a scroll minimap, and keyboard navigation. Requires
+**Crisp** is a self-contained HTML reporter. All CSS, JavaScript and templates
+are embedded in a single module. It features dark mode, sortable/filterable file
+tables, directory grouping, inline branch and condition truth tables, a scroll
+minimap, and keyboard navigation. It requires
 [Template Toolkit](https://metacpan.org/pod/Template). This is the default HTML
 report.
 

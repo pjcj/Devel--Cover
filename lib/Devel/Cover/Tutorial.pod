@@ -153,19 +153,20 @@ Modified Condition/Decision Coverage (MC/DC) strengthens expression coverage.
 Expression coverage is satisfied once each atomic condition has been observed
 both true and false, but that turns out to be weaker than it sounds.  A test set
 can hit every row of the truth table whilst leaving plenty of single-fault bugs
-- misplaced negations, swapped operands, dropped clauses - free to slip through.
+- misplaced negations, swapped operands, dropped clauses - undetected.
 
 MC/DC requires more.  For each atomic condition C in a decision, the test suite
-must contain a pair of executions where C's truth value differs between the two,
-every other condition is held compatibly (same value, or masked by
-short-circuit), and the decision's overall outcome differs as a result.  This
-demonstrates that each input independently affects the decision's result.
+must contain a pair of executions where the truth value of C differs between the
+two, every other condition is held compatibly (same value, or masked by
+short-circuit), and the overall outcome of the decision differs as a result.
+This demonstrates that each input independently affects the result of the
+decision.
 
 MC/DC is mandated by DO-178B/C Level A (avionics) and recommended by ISO 26262
 ASIL C/D (automotive) and IEC 61508 SIL 3/4 (industrial functional safety).
 
-A worked example.  Consider a permission check that allows editing when the user
-owns an unlocked article, or when they are an administrator:
+As a worked example, consider a permission check that allows editing when the
+user owns an unlocked article, or when they are an administrator:
 
   sub may_edit ($is_owner, $unlocked, $is_admin) {
     return ($is_owner && $unlocked) || $is_admin;

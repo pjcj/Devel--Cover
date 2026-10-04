@@ -1,6 +1,6 @@
 # Updating the Default Perl Version
 
-Steps to update the default Perl version used by Devel::Cover development and
+These steps update the default Perl version used by Devel::Cover development and
 the cpancover infrastructure.
 
 Replace `<version>` throughout with the new version number (e.g. `5.42.1`).

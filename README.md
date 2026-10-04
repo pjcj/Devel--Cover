@@ -11,8 +11,8 @@ of quality.
 Devel::Cover is now quite stable and provides many of the features to be
 expected in a useful coverage tool.
 
-Statement, branch, condition, MC/DC, subroutine, and pod coverage information is
-reported. Statement and subroutine coverage data should be accurate. Branch,
+Devel::Cover reports statement, branch, condition, MC/DC, subroutine and pod
+coverage. Statement and subroutine coverage data should be accurate. Branch,
 condition and MC/DC coverage data should be generally accurate too, although not
 always what one might initially expect. Pod coverage comes from Pod::Coverage.
 If Pod::Coverage::CountParents is available it will be used instead.

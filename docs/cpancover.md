@@ -2,8 +2,7 @@
 
 ## Overview
 
-Cpancover requires a bourne shell, plenv, and docker, as well as a recent perl.
-The code requires Perl 5.42.0.
+Cpancover requires a Bourne shell, plenv, docker and Perl 5.42.0 or later.
 
 ## Docker
 
@@ -46,9 +45,9 @@ Run cpancover:
 dc cpancover-controller-run
 ```
 
-The `cpancover-controller-run` command will just sit there picking up on newly
-uploaded distributions and running the coverage for them. Or, for slightly more
-control, jobs can be run as follows:
+The `cpancover-controller-run` command runs until stopped, collecting coverage
+for each newly uploaded distribution. Or, for slightly more control, jobs can be
+run as follows:
 
 ```sh
 dc cpancover-latest | head -2000 | dc cpancover
