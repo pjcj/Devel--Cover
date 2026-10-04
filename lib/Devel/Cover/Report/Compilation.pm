@@ -218,7 +218,7 @@ The compilation report generates output in the following formats:
 
 Only errors are reported. A construct marked uncoverable and not covered is
 excused, so it produces no output. A construct marked uncoverable but covered
-carries a stale marker, so it is reported with a "marked uncoverable but
+has a stale marker, so it is reported with a "marked uncoverable but
 covered" message. Branch directions and condition outcomes which are excused
 are omitted from "never" messages and header lists.
 

@@ -155,9 +155,9 @@ are configurable per criterion via the C<%Format> hash inside this module.
 
 Use C<text2> when you want to read the source while seeing coverage data inline
 against each line - useful for auditing a specific file or stepping through it
-by hand.  Use C<text> when you want aggregated tables: scan which files are
-weakest, then drill into the per-criterion detail blocks (Branch, Condition,
-MC/DC, Subroutines) for the missing pieces.
+by hand.  Use C<text> when you want summary tables: scan which files are
+weakest, then read the per-criterion detail blocks (Branch, Condition, MC/DC,
+Subroutines) to find what is missing.
 
 =head1 SEE ALSO
 

@@ -287,7 +287,7 @@ Name of the output file (default C<cover.json>).
 
 =head1 OUTPUT FORMAT
 
-The output format may evolve as Devel::Cover changes, but we aim to keep it
+The output format may change as Devel::Cover changes, but we aim to keep it
 stable.
 
 The output file is C<cover.json> in the output directory (default
@@ -326,7 +326,7 @@ C<condition_truth_tables>, C<mcdc>, C<subroutines>, C<pod>, C<time>.  Within
 each criterion, keys are source line numbers and values are arrays of coverage
 objects for that line.
 
-Each coverage object carries C<covered>, C<uncoverable> and C<error> fields.
+Each coverage object has C<covered>, C<uncoverable> and C<error> fields.
 For statements, subroutines and pod these are single values.  For branches,
 conditions and mcdc, C<covered> and C<uncoverable> are arrays with one entry
 per direction, outcome or atomic condition, and C<error> is 1 when any entry
@@ -339,11 +339,11 @@ errors.  A construct is in one of four states:
         0            1      0  excused (marked uncoverable)
         1            1      1  marked uncoverable but ran
 
-Under C<-ignore_covered_err> the last combination is forgiven and its
-C<error> is 0 - the top-level C<ignore_covered_err> key says which rule was
-used.
+Under C<-ignore_covered_err> the last combination does not count as an error
+and its C<error> is 0 - the top-level C<ignore_covered_err> key says which
+rule was used.
 
-A C<condition_truth_tables> row carries C<inputs> (C<0>, C<1>, or C<"X"> for
+A C<condition_truth_tables> row has C<inputs> (C<0>, C<1>, or C<"X"> for
 an operand never evaluated because an earlier operand short-circuited),
 the decision C<result>, C<covered>, and C<uncoverable> for a row excused by
 an uncoverable marker.  Rows synthesised for a compound decision whose input
@@ -352,7 +352,7 @@ C<percentage> is error-based, so an excused row does not count against it.
 A decision too wide to analyse has no truth table.
 
 An C<mcdc> entry for a decision too wide to analyse (more conditions than the
-per-decision limit) carries C<"unanalysed": 1>; its C<covered> array is all
+per-decision limit) has C<"unanalysed": 1>.  Its C<covered> array is all
 zeroes.  The key is absent for analysed decisions, distinguishing "too wide
 to analyse" from "untested".
 

@@ -353,12 +353,12 @@ structure entry.
 =head2 set_subroutine ($sub_name, $file, $line, $scount)
 
 Record the start of subroutine C<$sub_name> at C<$file>:C<$line>. C<$scount>
-disambiguates multiple subroutines with the same name on the same line
-(typically C<BEGIN> blocks).
+tells apart subroutines with the same name on the same line (typically
+C<BEGIN> blocks).
 
-Handles three cases: reusing existing structure, adding a new subroutine to a
-reused structure (e.g. a conditional C<< eval "use M" >>), and recording a
-subroutine in a new structure.
+There are three cases: reusing an existing structure, adding a new subroutine
+to a reused structure (e.g. a conditional C<< eval "use M" >>), and recording
+a subroutine in a new structure.
 
 Returns a sub_id arrayref C<[$file, $line, $sub_name, $scount]> suitable for
 passing to L</set_complexity>.
@@ -402,16 +402,16 @@ Remove all structure information for C<$file>.
 
 =head2 write ($dir)
 
-Serialise each file's structure to C<< $dir/structure/<digest> >>. Uses atomic
-rename to avoid partial writes.
+Serialise the structure of each file to C<< $dir/structure/<digest> >>. Uses
+atomic rename to avoid partial writes.
 
 =head2 read ($digest)
 
  $struct->read($digest);
 
 Load structure for C<$digest> from disk.  If the source file has changed since
-the structure was written, the stale entry is deleted. An unreadable structure
-file is skipped with a warning, costing only that file's detail. Returns
+the structure was written, delete the stale entry. Skip an unreadable structure
+file with a warning, so only the detail for that file is lost. Returns
 C<$self>.
 
 =head2 read_all

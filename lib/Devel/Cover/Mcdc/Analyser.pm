@@ -141,7 +141,8 @@ masking fallback for coupled conditions (the same atomic condition appearing
 more than once in a decision).  In typical Perl code, where coupling is rare,
 hybrid behaves like unique-cause.
 
-Each atomic condition is classified against the table's rows in tiers:
+The analyser classifies each atomic condition against the rows of the table in
+tiers:
 
 =over 4
 
@@ -157,13 +158,14 @@ missing - a test gap the user can close.
 =item 3
 
 Otherwise, a pair once uncoverable rows are admitted: excused - every route to
-demonstrating the condition's independence needs a row the user has asserted
-cannot occur.  This covers a decision that never executed with every outcome
-marked uncoverable, such as code inside a branch that can never be taken.
+demonstrating the independence of the condition needs a row the user has
+asserted cannot occur.  This covers a decision that never executed with every
+outcome marked uncoverable, such as code inside a branch that can never be
+taken.
 
 =item 4
 
-Otherwise: missing - the condition can never flip the decision's result.
+Otherwise: missing - the condition can never flip the result of the decision.
 
 =back
 

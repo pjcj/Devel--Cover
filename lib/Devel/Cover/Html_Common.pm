@@ -197,14 +197,14 @@ True if L<PPI::HTML> or L<Perl::Tidy> is available.
 
 Map a coverage percentage to a CSS band name (C<c0>, C<c1>, C<c2> or
 C<c3>). An undefined percentage or the string C<n/a> maps to C<na>. The
-optional C<$thresholds> hashref carries C<c0>, C<c1> and C<c2> cut-off
+optional C<$thresholds> hashref holds the C<c0>, C<c1> and C<c2> cut-off
 points. It defaults to the values from C<default_thresholds> when omitted.
 
 =item default_thresholds
 
 Return a fresh hashref of the default band cut-off points (C<c0> 75,
-C<c1> 90, C<c2> 100). A new copy is returned each call so callers may
-mutate their own thresholds without affecting the defaults.
+C<c1> 90, C<c2> 100). It returns a new copy each call, so callers may
+change their own thresholds without affecting the defaults.
 
 =item scar_class ($scar)
 
@@ -224,7 +224,7 @@ characters of the MD5 of its path. Non-colliding paths are unchanged.
 
 =item decode_guess ($text)
 
-Return C<$text> as a character string. Covered source files carry no
+Return C<$text> as a character string. Covered source files have no
 encoding declaration the reports could trust, so this guesses. The bytes
 are decoded as strict UTF-8 when they form a valid sequence and as
 Latin-1 when they do not, a guess that cannot fail. A string that

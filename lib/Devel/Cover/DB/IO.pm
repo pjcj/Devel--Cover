@@ -99,10 +99,9 @@ This module provides IO routines for Devel::Cover::DB.
 
  my $io = Devel::Cover::DB::IO->new(format => "JSON");
 
-Constructs the IO object.  The write format is taken from the
-C<DEVEL_COVER_DB_FORMAT> environment variable if set, then from the C<format>
-argument, then from whichever backend is available (Sereal, JSON, Storable,
-in that order).
+Constructs the IO object.  The write format comes from C<DEVEL_COVER_DB_FORMAT>
+if set, then from the C<format> argument, then from whichever backend is
+available (Sereal, JSON, Storable, in that order).
 
 Pass a true C<loose_perms> argument to make the lock files world writable, so
 that code changing EUID can still take the lock.  The data files themselves

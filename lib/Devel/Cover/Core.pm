@@ -50,8 +50,8 @@ Devel::Cover::Core - Core utility subroutines for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides core utility subroutines that are loaded during
-Devel::Cover's bootstrap phase.  All functions are importable on request via
+This module provides core utility subroutines that are loaded during the
+bootstrap phase of Devel::Cover.  All functions are importable on request via
 L<Exporter>.
 
 =head1 SUBROUTINES

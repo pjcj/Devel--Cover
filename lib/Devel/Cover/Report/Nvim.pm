@@ -486,16 +486,16 @@ Devel::Cover::Report::Nvim - Backend for displaying coverage data in Neovim
 
 =head1 DESCRIPTION
 
-This module provides a reporting mechanism for displaying coverage data in
-Neovim using Lua.  It is designed to be called from the F<cover> program.
+This module displays coverage data in Neovim using Lua.  It is designed to
+be called from the F<cover> program.
 
 By default, the output of this report is a file named C<coverage.lua> in the
 directory of the coverage database.  To use it, run
 
  :luafile cover_db/coverage.lua
 
-and you should see signs in the left column indicating the coverage status of
-that line.
+and you should see signs in the left column showing the coverage status of
+each line.
 
 The signs are as follows:
 
@@ -599,7 +599,7 @@ F<devel-cover.lua> in your config directory.
 F<coverage.lua> adds two user commands, C<:Cov> and C<:Uncov>, which toggle the
 coverage signs.
 
-The idea and the lua template is adapted from the Vim version which was
+The idea and the Lua template are adapted from the Vim version, which was
 shamelessly stolen from Simplecov-Vim.  See
 https://github.com/nyarly/Simplecov-Vim
 

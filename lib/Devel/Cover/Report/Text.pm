@@ -557,13 +557,13 @@ or, xor).
 =head2 print_mcdc ($db, $file, $options)
 
 Print the MC/DC table for C<$file>: per-decision satisfaction percentage,
-covered/total atomic counts, the labels of any unsatisfied atomics, and the
-decision's source text.
+covered/total atomic condition counts, the labels of any unsatisfied atomic
+conditions, and the source text of the decision.
 
 =head2 print_subroutines ($db, $file, $options, $short)
 
 Print subroutine tables for C<$file>, including call counts, pod coverage,
-and source location. Subroutines are bucketed by state: covered, uncoverable
+and source location. Subroutines are grouped by state: covered, uncoverable
 (uncovered but marked uncoverable), and uncovered.
 
 =head1 PRIVATE SUBROUTINES
@@ -597,7 +597,8 @@ output lines are produced when a single source line has several coverage points
 =head2 _update_maxw ($maxw, %vals)
 
 Update column-width hash C<$maxw> in place: for each key in C<%vals>, set
-C<< $maxw->{$k} >> to the value's length if it exceeds the current maximum.
+C<< $maxw->{$k} >> to the length of the value if it exceeds the current
+maximum.
 
 =head2 _flagged_count ($o)
 
