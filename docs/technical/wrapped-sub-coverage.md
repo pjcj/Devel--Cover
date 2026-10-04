@@ -13,8 +13,7 @@ my $orig = \&original;
 
 After the swap `*original{CODE}` is the wrapper. The original sub still exists
 and still runs (the wrapper calls it), but it is no longer reachable from any
-glob in the symbol table. It survives only as a reference the wrapper closes
-over.
+glob in the symbol table. It exists only as a reference the wrapper closes over.
 
 ## The cause of the lost coverage
 
@@ -43,22 +42,22 @@ a CV directly (`ref_cvs`):
 - a reference one level deep into a plain array or hash the sub closes over.
 
 The second case is how Class::MOP, and so Moose, keeps the original. The wrapper
-closes over a plain hash whose `orig` entry is the original method. `orig` sits
+closes over a plain hash whose `orig` entry is the original method. `orig` is
 one container deep whatever the number or mix of modifiers, because Class::MOP
-coalesces `before`, `after` and `around` into a single wrapper.
+combines `before`, `after` and `around` into a single wrapper.
 
 Two rules keep this precise and cheap. A CV reached through a reference is kept
 only if it is a genuinely named sub (`recoverable_sub`) - not an anon, and not
 an internal clone with a generated name such as Moose's `:around` modifier CV or
 a pragma's `BEGIN` block. Those share a body with a sub already found the normal
 way, so recording them again would duplicate it, and because the duplicate
-shares a start op with the original the report-time dedup would pick between
-them non-deterministically. Descent also stops after one container and does not
-enter blessed containers, so a sub closing over an object does not drag the
-object's whole graph into the walk. Magical containers are not entered either. A
-tied container's contents come from its `FETCH`, and the report-time walk must
-never run user code - and `B::AV::ARRAY` on a tied array reads the empty real
-array with the size the tie magic reports, which crashes the process.
+shares a start op with the original the report-time duplicate removal would pick
+between them non-deterministically. Descent also stops after one container and
+does not enter blessed containers, so the walk does not enter the whole graph of
+an object a sub closes over. Magical containers are not entered either. A tied
+container's contents come from its `FETCH`, and the report-time walk must never
+run user code - and `B::AV::ARRAY` on a tied array reads the empty real array
+with the size the tie magic reports, which crashes the process.
 
 The cost is paid only when building the report, and only for subs that close
 over references. A program with no method modifiers pays effectively nothing. A
@@ -85,26 +84,26 @@ Entry recording, below, covers all three (GH-606).
 
 The heuristic re-discovers subs by walking the symbol table and pads, so it is
 bound by where a sub can be reached from. Entry recording removes that bound by
-remembering each sub as it runs.
+recording each sub as it runs.
 
 Devel::Cover intercepts every call through `dc_entersub` (it replaces
 `PL_ppaddr[OP_ENTERSUB]`; the `runops_cover` loop mirrors it under
 `-replace_ops 0`). `record_entered_sub` there records the CV about to be
-entered, so every sub that actually executes is remembered regardless of what
+entered, so every sub that actually executes is recorded regardless of what
 later happens to its glob. A displaced original still runs - the wrapper calls
 it - so it is recorded even where the pad walk cannot reach it. A sub that never
 runs needs no run coverage and is still reported as uncovered from the
-symbol-table walk, so entry capture closes the gap for executed subs. At report
-time `get_entered_subs` hands the recorded CVs to `_seed_entered_subs`, which
-merges them into `%Cvs` - filtered through `recoverable_sub` and `check_file`
-like the pad-walk recoveries - before `check_files` snapshots `@Cvs`, and the
-existing subroutine, statement and branch machinery covers them.
+symbol-table walk, so entry capture adds the executed subs the walk misses. At
+report time `get_entered_subs` passes the recorded CVs to `_seed_entered_subs`,
+which merges them into `%Cvs` - filtered through `recoverable_sub` and
+`check_file` like the pad-walk recoveries - before `check_files` snapshots
+`@Cvs`, and the existing subroutine, statement and branch machinery covers them.
 
 Only named subs are recorded: XS subs, anonymous subs, closure clones and the
 compile-phase blocks (`BEGIN` and friends) are skipped. Anonymous subs and
-clones are covered through the pad walk when they survive, a clone shares its
-start op with its prototype so recording it would add a duplicate, and the phase
-blocks' early release must not be delayed.
+clones are covered through the pad walk when they still exist, a clone shares
+its start op with its prototype so recording it would add a duplicate, and the
+phase blocks' early release must not be delayed.
 
 The same hook counts entries. `count_sub_entry` increments a count keyed by the
 sub's root op, which a closure clone shares with its prototype, whenever
@@ -120,19 +119,19 @@ methods.
 The reference held to each recorded CV is strong, not weak. A weak reference
 would be nulled the moment a sub is freed, which is exactly the case that needs
 covering: a sub redefined at runtime (`*foo = sub { ... }`) frees the original
-CV on the spot, since the glob held the only reference. With a strong reference
-the original's optree survives to report time, so its structure can be built and
+CV at once, since the glob held the only reference. With a strong reference the
+original's optree still exists at report time, so its structure can be built and
 its counts - keyed by op address - can never be confused with a later op reusing
 the same address. This closes the "Redefined subroutines" limitation documented
 in the user docs since GH-88, for any original that ran at least once. An
 original redefined before it ever runs is still lost: it was never entered, and
 its optree is freed before any coverage could attach.
 
-Recording named subs only keeps the observable cost contained. A named CV lives
+Recording named subs only keeps the observable cost contained. A named CV exists
 to the end of the run anyway except when redefined or its package is deleted, so
-holding it does not change what stays alive, and closure DESTROY timing - the
+holding it does not change what stays alive. Closure DESTROY timing - the
 sensitive case, see GH-118 - is untouched because closures are never recorded. A
-redefined sub's pad now survives to report time instead of being freed at
+redefined sub's pad is now kept until report time instead of being freed at
 redefinition, which is the price of reporting on it.
 
 The hot-path cost is a few flag tests per call plus one hash lookup, keyed on

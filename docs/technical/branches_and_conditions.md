@@ -7,7 +7,7 @@ runtime data flows from the XS layer through to the Perl-level reporting.
 
 ## Overview
 
-Branch and condition coverage both deal with logical operators (`&&`, `||`,
+Branch and condition coverage both apply to logical operators (`&&`, `||`,
 `and`, `or`, `?:`, `xor`, `^^`, `//`), but they answer different questions:
 
 - **Branch coverage** asks: "Was each path through this decision taken?" A
@@ -66,8 +66,8 @@ of a larger expression:
 
 ### Compound assignment operators
 
-`&&=`, `||=`, and `//=` are always condition coverage. They are handled by
-`_walk_logassignop`, which unconditionally calls `add_condition_cover`.
+`&&=`, `||=`, and `//=` are always condition coverage. `_walk_logassignop`
+handles them and always calls `add_condition_cover`.
 
 ### The `xor` operator
 
@@ -145,9 +145,9 @@ semantically branches. Both branch arms also record a compound-join condition
 when the right operand is itself a decision (`_record_compound_join`). See the
 `Compound decision roots` section of `Devel::Cover::DB`.
 
-Loop conditions (`while`/`until`/C-style `for`) are forced to branch coverage
-regardless of `OPpSTATEMENT`, detected by `_is_loop_condition` walking up to a
-`leaveloop` parent.
+`_is_loop_condition` detects loop conditions (`while`/`until`/C-style `for`) by
+walking up to a `leaveloop` parent, and they always get branch coverage
+regardless of `OPpSTATEMENT`.
 
 ### `_walk_cond_expr` - the `?:` / `if-else` handler
 
@@ -163,8 +163,8 @@ examines the structure of the true and false blocks.
 
 ### `_walk_logassignop` - the `&&=`/`||=`/`//=` handler
 
-Always calls `add_condition_cover`. These are value-producing operations (they
-assign the result), so condition coverage is appropriate.
+It always calls `add_condition_cover`. These are value-producing operations
+(they assign the result), so condition coverage is appropriate.
 
 ### `_walk_xor` - the `xor`/`^^` handler (5.42+)
 
@@ -225,9 +225,9 @@ four operand combinations: 1 = `!l&&!r`, 2 = `l&&!r`, 3 = `l&&r`, 4 = `!l&&r`.
    that follows the right operand. When execution reaches that op,
    `get_condition` examines the stack and records the outcome at index 1 (right
    was false) or 2 (right was true). When that op is itself about to test the
-   value's truth - a non-ambiguous `cond_expr`, an `and` or an `or` - resolution
-   is deferred past its pp function instead and the truth is read from the path
-   it takes, which is exact for an overloaded value; see
+   value's truth - a non-ambiguous `cond_expr`, an `and` or an `or` -
+   `get_condition` instead defers resolution past its pp function and reads the
+   truth from the path it takes, which is exact for an overloaded value. See
    `pending-and-deferred-conditionals.md`. When the right operand is itself a
    logop whose short circuit jumps past the hooked op, as rpeep arranges for
    `if ($x && ($y || $z))`, `credit_short_circuit` resolves the entry at the
@@ -238,7 +238,7 @@ four operand combinations: 1 = `!l&&!r`, 2 = `l&&!r`, 3 = `l&&r`, 4 = `!l&&r`.
    right operand's truth value is irrelevant. The XS code records a 2-outcome
    result immediately instead of waiting for `get_condition`.
 
-5. **`finalise_conditions`** runs after the programme finishes. Any pending
+5. **`finalise_conditions`** runs after the program finishes. Any pending
    conditions that were never resolved (e.g., because of an early `return`
    before the right operand's follow-on op was reached) are collected here.
 
@@ -267,8 +267,8 @@ invoke an overloaded `bool` a second time - the same technique `cover_xor` uses.
 
 ## Interpretation of Raw Data in the Perl Layer
 
-The raw condition array from the XS layer is reinterpreted by `add_branch_cover`
-and `add_condition_cover` in `lib/Devel/Cover.pm`.
+`add_branch_cover` and `add_condition_cover` in `lib/Devel/Cover.pm` reinterpret
+the raw condition array from the XS layer.
 
 ### `add_branch_cover`
 
@@ -287,8 +287,8 @@ and index 3 is `l`, so the same collapse gives `[!l, l]` - "true" means the left
 operand was false. That reading matches the `if`/`unless` text these types
 display, where "true" means the guarded code ran.
 
-The `or_expr` type is passed by `_walk_logop` for a statement-level `or` whose
-text displays as written (`A or B`), which perl distinguishes from the modifier
+`_walk_logop` passes the `or_expr` type for a statement-level `or` whose text
+displays as written (`A or B`), which perl distinguishes from the modifier
 spelling via `OPpSTATEMENT` from 5.43.8. Its collapse is mirrored so "true"
 follows the displayed text, meaning the left operand was true:
 
@@ -307,8 +307,8 @@ XS layer with a simple `[true_count, false_count]`.
 
 ### `add_condition_cover`
 
-Reorders the raw array into human-readable columns depending on the operator and
-the number of outcomes:
+This function reorders the raw array into human-readable columns depending on
+the operator and the number of outcomes:
 
 **`and` with 3 outcomes** (both operands can be independently true or false):
 
@@ -385,11 +385,12 @@ so both sides read the GV from pad 1 of the CV that owns the op rather than the
 current pad. On 5.20 the method op is an svop whose name is in that pad under
 ithreads too, and a `SUPER::` or redirected call is a `method` op over a `const`
 spelling the name in full, so both sides drop any package qualifier. From 5.22
-it is a methop with `meth_sv`. `dc_is_noreturn_call` in `Cover.xs` is consulted
-at two points. The column walker gives the call no MC/DC column. The logop hook
-records the outcome at once, as it does for a literal `die`, rather than waiting
-for a value that is never produced. `tests/noreturn` covers the built-in names,
-a listed name and a control sub, and `tests/dor_fixed` the method calls.
+it is a methop with `meth_sv`. Two points in `Cover.xs` consult
+`dc_is_noreturn_call`. The column walker gives the call no MC/DC column. The
+logop hook records the outcome at once, as it does for a literal `die`, rather
+than waiting for a value that is never produced. `tests/noreturn` covers the
+built-in names, a listed name and a control sub, and `tests/dor_fixed` the
+method calls.
 
 **`xor` with 4 outcomes**:
 
@@ -440,8 +441,8 @@ is parsed as the deprecated match-once `?PATTERN?` operator.
 
 1. **`_classify_op`** (used by `_walk_logop`): selects the label format
    (statement modifier vs expression). A separate `$is_branch` variable combines
-   `$is_statement` with `$cx < 1 && $blockname` to also classify statement-level
-   expression-form logops as branches.
+   `$is_statement` with `$cx < 1 && $blockname` so that statement-level
+   expression-form logops are also classified as branches.
 
 2. **`_walk_cond_expr`**: determines whether to label as `"if ($cond) { }"`
    (with elsif walking) or `"$cond ? :"`. Both forms are always branch coverage.
@@ -467,17 +468,17 @@ classified as branch coverage despite not being in statement form.
 On older Perls, both forms are indistinguishable in the optree, so both get the
 statement-modifier label (`if $y`).
 
-The XS layer's void-context detection already handles this at the data level
-(recording only 2 outcomes when in void context), so the Perl layer's
-classification aligns with what the runtime actually measured.
+Void-context detection in the XS layer already handles this at the data level
+(recording only 2 outcomes when in void context), so the classification in the
+Perl layer matches what the runtime measured.
 
 ### Statement-level compound joins
 
 A statement-level logop stays a branch, but when its right operand is itself a
-decision, the outer operator is additionally recorded as a condition, so the
-join is visible to condition and MC/DC coverage. An example is a sub's last
-statement `($a && $b) || ($c && $d)`. See the `Compound decision roots` section
-of `Devel::Cover::DB` and `docs/technical/mcdc.md` for the details and the
+decision, the outer operator is also recorded as a condition, so the join is
+visible to condition and MC/DC coverage. An example is a sub's last statement
+`($a && $b) || ($c && $d)`. See the `Compound decision roots` section of
+`Devel::Cover::DB` and `docs/technical/mcdc.md` for the details and the
 left-only-compound exception.
 
 ## Examples

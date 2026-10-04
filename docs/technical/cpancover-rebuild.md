@@ -12,9 +12,9 @@ previous report-format migrations.
 dc cpancover-run-loop-rebuild
 ```
 
-The recipe runs indefinitely. It is intended to be started manually (e.g. inside
-the controller container) when a new Devel::Cover release or new default report
-requires the existing results to be regenerated.
+The recipe runs indefinitely. Start it manually (e.g. inside the controller
+container) when a new Devel::Cover release or new default report requires the
+existing results to be regenerated.
 
 ### Tunables
 
@@ -29,7 +29,7 @@ requires the existing results to be regenerated.
 
 ## State on disk
 
-All state lives under `$results_dir`:
+All state is under `$results_dir`:
 
 - `<distdir>/` - coverage results for a distribution. Presence of `cover.json`
   (the summary feed produced by the `json_summary` reporter) marks the distdir
@@ -91,8 +91,8 @@ flagged.
 
 At the end of the rebuild cycle the recipe:
 
-- `rm -rf` the `__rebuilt__/` directory, clearing every marker so the next
-  rebuild cycle starts from a clean slate.
+- Removes the `__rebuilt__/` directory with `rm -rf`, clearing every marker so
+  the next rebuild cycle starts with none.
 - Calls `cpancover_run_loop`, the ordinary perpetual-build loop. The site
   continues operating normally until the next rebuild is triggered.
 
@@ -100,14 +100,14 @@ At the end of the rebuild cycle the recipe:
 
 - **compress_old_versions** runs inside `cpancover_generate_html`, as in the
   normal loop. Rebuilt distdirs replace the previous contents at the same path,
-  so version compression still kicks in when the new version supersedes enough
-  old versions.
+  so version compression still runs when the new version supersedes enough old
+  versions.
 - **Log retention**: every rebuild run produces a fresh `<log_name>.out` in
   `$results_dir`, compressed to `.out.gz` only when `CPANCOVER_COMPRESS` is set.
   Failed rebuilds refresh the existing `<distdir>/.log_ref` to point at the new
   log, so users clicking "log" on a failing distribution see the most recent
   failure rather than a stale one from months ago. Old log files accumulate
-  until the normal log-retention policy reaps them.
+  until the normal log-retention policy deletes them.
 - **`is_covered` / `is_failed` semantics change in rebuild mode**: a distdir
   counts as "done" only if it has both been processed and flagged rebuilt this
   cycle. Outside rebuild mode the methods behave as before.
@@ -118,24 +118,24 @@ A distribution that fails during a rebuild pass is flagged rebuilt anyway so the
 cycle does not retry it on the next iteration. A rebuild has failed when it
 leaves no `cover.json` written since the build began, whether the container
 produced nothing or timed out. The existing results dir is left in place so the
-site does not develop a hole. `.log_ref` is rewritten to point at the fresh
-failure log, and the `__failed__/<distdir>` marker is written so subsequent
-ordinary runs know not to waste time on it. The next time a user triggers
-`cpancover-run-loop-rebuild`, the failed entry will be retried from scratch.
+site still has a report for it. `.log_ref` is rewritten to point at the fresh
+failure log, and the `__failed__/<distdir>` marker is written so later ordinary
+runs skip it. The next time a user triggers `cpancover-run-loop-rebuild`, the
+failed entry will be retried from scratch.
 
 ## Re-triggering
 
-Because the recipe clears `__rebuilt__/` at the end of a cycle, a subsequent
-invocation of `dc cpancover-run-loop-rebuild` starts a fresh cycle over the
-entire site. There is no auto-detection of stale Devel::Cover versions; rebuild
-cycles are explicit operator actions.
+Because the recipe clears `__rebuilt__/` at the end of a cycle, the next
+`dc cpancover-run-loop-rebuild` starts a fresh cycle over the entire site.
+Nothing detects stale Devel::Cover versions. An operator starts each rebuild
+cycle.
 
 ## Running on cpancover.com
 
-The production deploy sequence, assuming `/cover/dc` is a checkout of the branch
-you want to deploy and you have shell access on the cpancover.com host.
-Everything runs on cpancover.com itself; the image is built locally and pushed
-to Docker Hub from the same host.
+This is the production deploy sequence. It assumes `/cover/dc` is a checkout of
+the branch you want to deploy and that you have shell access on the
+cpancover.com host. Everything runs on cpancover.com itself. The image is built
+locally and pushed to Docker Hub from the same host.
 
 ### 1. Build and push the new Docker image
 
@@ -144,8 +144,8 @@ cd /cover/dc
 dc docker-build -e prod
 ```
 
-Builds `pjcj/cpancover:<timestamp>-<sha>` and `pjcj/cpancover:latest`, tags both
-locally, and pushes to Docker Hub.
+This builds `pjcj/cpancover:<timestamp>-<sha>` and `pjcj/cpancover:latest`, tags
+both locally, and pushes both to Docker Hub.
 
 ### 2. Stop the running controller
 
@@ -160,8 +160,8 @@ dc cpancover-docker-rm
 CPANCOVER_REBUILD_BATCH=5 dc cpancover-controller-rebuild-batch
 ```
 
-Runs exactly one rebuild pass and the post-batch HTML regeneration, then exits.
-Inspect the site and `/cover/staging/.cpancover_status`:
+This runs exactly one rebuild pass and the post-batch HTML regeneration, then
+exits. Inspect the site and `/cover/staging/.cpancover_status`:
 
 ```sh
 cat /cover/staging/.cpancover_status
@@ -178,9 +178,9 @@ Repeat with the same batch size until you're confident nothing is going wrong.
 dc cpancover-controller-run-rebuild
 ```
 
-Long-running. Reads `CPANCOVER_REBUILD_BATCH` once at startup (default 100),
-then runs batches until `all_rebuilt=1`, at which point it clears `__rebuilt__/`
-and falls through to the perpetual `cpancover-run-loop`.
+This runs for a long time. It reads `CPANCOVER_REBUILD_BATCH` once at startup
+(default 100), then runs batches until `all_rebuilt=1`, at which point it clears
+`__rebuilt__/` and falls through to the perpetual `cpancover-run-loop`.
 
 ### 5. If something goes wrong mid-rebuild
 
@@ -189,6 +189,6 @@ dc cpancover-docker-kill # stop the controller and any module containers
 dc cpancover-docker-rm   # clean up
 ```
 
-`__rebuilt__/` markers are preserved, so a subsequent
-`dc cpancover-controller-run-rebuild` resumes from where the previous run left
-off. No distdir is rebuilt twice in the same cycle.
+`__rebuilt__/` markers are preserved, so the next
+`dc cpancover-controller-run-rebuild` resumes where the previous run stopped. No
+distdir is rebuilt twice in the same cycle.

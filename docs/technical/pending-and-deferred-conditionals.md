@@ -94,9 +94,9 @@ same `Pending_conditionals` entry and resolved together.
 ### Limitations
 
 The mechanism relies on `right->op_next` being non-NULL. There must be an op to
-hijack. This works in the vast majority of cases because most code has a
-continuation op after any expression. However, it fails when `right->op_next` is
-NULL, which happens in two known cases:
+hijack. This works almost always because most code has a continuation op after
+any expression. However, it fails when `right->op_next` is NULL, which happens
+in two known cases:
 
 - **Compile-time constant folding**: the op tree was simplified away. This was
   the original reason for the bail-out, noted in the comment
@@ -180,13 +180,13 @@ reads the result directly from `*PL_stack_sp`. There is nowhere for the ops to
    `cover_logop()` runs, so the right operand runs next. When the right
    operand's final op returns NULL, the runops loop exits.
 
-3. At the runops loop exit (in both `runops_cover` and `runops_orig`),
-   `resolve_deferred_conditionals()` is called. It checks for entries pushed
-   during this invocation (from `deferred_base` upwards). The stack top at this
-   point holds the sort comparator's final value - the right operand of the
-   outermost `||`. The function reads the truth and the definedness of `TOPs`,
-   then pops and resolves each deferred entry via `add_conditional` with the
-   slot that entry's own type asks for, as `add_condition` does.
+3. At the runops loop exit (in both `runops_cover` and `runops_orig`), the loop
+   calls `resolve_deferred_conditionals()`. It checks for entries pushed during
+   this invocation (from `deferred_base` upwards). The stack top at this point
+   holds the sort comparator's final value - the right operand of the outermost
+   `||`. The function reads the truth and the definedness of `TOPs`, then pops
+   and resolves each deferred entry via `add_conditional` with the slot that
+   entry's own type asks for, as `add_condition` does.
 
 4. The result is identical to what `get_condition` would record for the normal
    hijack path.
@@ -213,7 +213,7 @@ I32 deferred_base = av_len(MY_CXT.deferred_conditionals) + 1;
 ```
 
 On exit, it only processes entries from `deferred_base` upwards - entries pushed
-during this invocation. This guard handles two scenarios:
+during this invocation. This guard matters in two cases:
 
 **Nested sorts.** `pp_sort` calls `CALLRUNOPS` for each comparison. If a sort
 comparator itself contains another sort, the call stack becomes:

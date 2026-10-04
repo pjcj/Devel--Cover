@@ -48,7 +48,7 @@ leave
 The `ex-nextstate` is a `B::COP` with `name="null"` and `type=0` - the optimiser
 has nullified it because it is unreachable. Its `op_next` pointer still points
 to the `leaveloop` (from the original execution chain before optimisation), but
-`stub`'s own `op_next` bypasses it, going directly to `leaveloop`. The null op
+the `op_next` of `stub` bypasses it, going directly to `leaveloop`. The null op
 is therefore never visited at runtime.
 
 ## The Phantom Statement
@@ -56,8 +56,8 @@ is therefore never visited at runtime.
 The XS op walker (`dc_walk_ops_r` in `Cover.xs`) visits the optree structurally,
 so it reaches optimised-away `ex-nextstate` ops as children of their `lineseq`.
 An `ex-nextstate` is an `OP_NULL` whose `op_targ` records the original
-`OP_NEXTSTATE`/`OP_DBSTATE`. The most common one sits on the line of a closing
-`}` whose `nextstate` the optimiser nullified.
+`OP_NEXTSTATE`/`OP_DBSTATE`. The most common one is on the line of a closing `}`
+whose `nextstate` the optimiser nullified.
 
 If such an op were registered as a statement, `add_statement_cover` would record
 a statement at the `}` line that the runtime `dc_nextstate` hook can never
