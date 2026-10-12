@@ -2949,21 +2949,21 @@ Devel::Cover::Report::Html_crisp - Modern HTML backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a modern HTML reporting mechanism for coverage data. It
-generates a single-page dashboard with file listing and per-file source views
-with inline branch, condition, and subroutine detail.
+This module writes HTML coverage reports. It generates a single-page dashboard
+with file listing and per-file source views with inline branch, condition, and
+subroutine detail.
 
 Features include dark mode support, keyboard navigation, sortable columns,
 inline condition truth tables, and deep-linkable filters.
 
 Colour shows the coverage outcome and a diagonal stripe shows that an
 uncoverable marker is present.  Excused code is striped green, code which ran
-despite its marker is striped red, and a partially covered line carrying a
+despite its marker is striped red, and a partially covered line with a
 marker is striped amber.  Tooltips give the uncoverable counts and the help
 panel shows a legend of the colours.
 
-It is designed to be called from the C<cover> program.  It will add syntax
-highlighting if C<PPI::HTML> or C<Perl::Tidy> is installed.
+It is designed to be called from the F<cover> program.  It will add syntax
+highlighting if L<PPI::HTML> or L<Perl::Tidy> is installed.
 
 =head1 OPTIONS
 
@@ -2984,6 +2984,6 @@ Copyright 2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

@@ -4,7 +4,7 @@ ADJUST blocks are a construct introduced by Perl's `class` feature (5.38+). This
 document describes how Devel::Cover discovers and collects coverage for them,
 and how their storage differs from named method CVs.
 
-## What ADJUST Blocks Are
+## ADJUST Blocks
 
 An `ADJUST` block runs during object construction, after field initialisers have
 executed. It is syntactically similar to `BEGIN` or `END`, but unlike those
@@ -25,17 +25,17 @@ Every `ADJUST` block compiles into its own anonymous CV, invoked with full
 `ENTERSUB` overhead each time an object of that class (or any subclass) is
 constructed.
 
-## How ADJUST CVs Are Stored
+## Storage of ADJUST CVs
 
 Named `method` CVs are found by walking the symbol table: each method is a GV
 (glob value) in the class stash, and `B::walksymtable` visits every GV. ADJUST
 CVs are anonymous and are not stored as GVs anywhere.
 
 Instead they are held in a dedicated array attached to the stash's auxiliary
-structure. Every package stash (`HV*`) may carry an `xpvhv_aux` extension
-accessed via `HvAUX(stash)`. For class stashes, Perl sets the `HvAUXf_IS_CLASS`
-flag and populates the `xhv_class_adjust_blocks` field, an `AV*` of `CV*`
-pointers - one per `ADJUST` block in declaration order.
+structure. Every package stash (`HV*`) may have an `xpvhv_aux` extension
+accessed through `HvAUX(stash)`. For class stashes, Perl sets the
+`HvAUXf_IS_CLASS` flag and populates the `xhv_class_adjust_blocks` field, an
+`AV*` of `CV*` pointers - one per `ADJUST` block in declaration order.
 
 `B::HV` does not expose `xhv_class_adjust_blocks`. This field is part of the
 internal `xpvhv_aux` struct added for the `class` feature and has no

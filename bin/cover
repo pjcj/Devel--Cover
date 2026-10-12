@@ -676,8 +676,8 @@ cover - report coverage statistics
 
 Report coverage statistics in a variety of formats.
 
-The summary option produces a short textual summary.  Other reports are
-available by using the report option.
+The C<-summary> option produces a short textual summary.  Other reports are
+available by using the C<-report> option.
 
 The following is a partial list of reports currently available:
 
@@ -741,7 +741,7 @@ annotation modules ship with Devel::Cover.  Any options an annotation module
 declares may follow it on the command line.  The git module accepts
 C<-author>, C<-date> and C<-sha>, each of which may be negated to remove its
 column, along with C<-command> to replace the C<git blame> command.
-C<cover> itself consumes C<-version> and C<-noversion>, so use C<-sha> and
+F<cover> itself consumes C<-version> and C<-noversion>, so use C<-sha> and
 C<-nosha> for the sha column.
 
 The C<-outputfile> option applies to every report.  Reports which normally
@@ -757,7 +757,8 @@ reports may be available if they've been installed from external packages.
 =item html|html_crisp (default)
 
 HTML reporting. Percentage thresholds are colour-coded and configurable
-via -report_c0 <integer>, -report_c1 <integer> and -report_c2 <integer>.:
+via C<< -report_c0 <integer> >>, C<< -report_c1 <integer> >> and
+C<< -report_c2 <integer> >>:
 
     0%      75%      90%      100%
     |   ..   |   ..   |   ..   |
@@ -772,7 +773,7 @@ configurable.
 =item html_basic
 
 HTML reporting with syntax highlighting if L<PPI::HTML> or L<Perl::Tidy>
-module is detected. Like the other HTML reports, percentage thresholds
+is detected. Like the other HTML reports, percentage thresholds
 are colour-coded and configurable.
 
 =item text
@@ -843,12 +844,12 @@ and default (which equates to all available options).  The C<mcdc> criterion
 reports Modified Condition/Decision Coverage and is derived from the condition
 truth tables, so collecting C<condition> is a prerequisite.  However, if you
 know you only want coverage information for certain criteria it is better to
-only collect data for those criteria in the first place by specifying them at
+collect data for only those criteria in the first place by specifying them at
 that point.  This will make the data collection and reporting processes faster
 and less memory intensive.  See the documentation for L<Devel::Cover> for more
 information.
 
-If you want all *except* some criteria, then you can say something like
+If you want all I<except> some criteria, then you can say something like
 C<-coverage default,-pod>.
 
 If you specify multiple C<-report> options, make sure that they do not
@@ -856,12 +857,10 @@ conflict.  For example, the different HTML reports will overwrite each other's
 results.
 
 The C<-test> option will delete the databases and run your tests to generate
-new coverage data before reporting on it.  L<Devel::Cover> knows how to work
-with standard Perl Makefiles as well as L<Module::Build> based distributions.
-For detailed instructions see the documentation for ExtUtils::MakeMaker at
-L<https://metacpan.org/module/ExtUtils::MakeMaker> or for Module::Build at
-L<https://metacpan.org/module/Module::Build> both of which come as standard
-in recent Perl distributions.
+new coverage data before reporting on it.  L<Devel::Cover> works with
+standard Perl Makefiles as well as L<Module::Build> based distributions.  For
+detailed instructions see L<ExtUtils::MakeMaker> or L<Module::Build>, both of
+which come as standard in recent Perl distributions.
 
 C<cover -test> replaces any C<PERL5OPT> and C<HARNESS_PERL_SWITCHES> in the
 environment with its own switches for the spawned test run.  To pass extra
@@ -876,23 +875,23 @@ or shared resources may still need to remain sequential.  Any C<HARNESS_OPTIONS>
 already set in the environment is preserved; the C<jN> fragment is appended to
 it.
 
-The C<-gcov> option will try to run gcov on any XS code.  This requires that
-you are using gcc of course.  If you are using the C<-test> option will be
-turned on by default.  XS code in subdirectories is covered too.  gcov's
-C<-p> flag keeps the path in the output names so same-named sources in
-different directories do not collide.  A subdirectory holding its own
-F<Makefile.PL>, F<Build.PL>, F<Makefile> or F<Build> is a separate build
-whose object files record sources relative to that directory, so it is
-skipped.  Run C<cover> in that directory instead, or use C<-gcov_chdir>.
+The C<-gcov> option will try to run F<gcov> on any XS code.  This requires
+that you are using gcc of course.  If you are, this option is on by default.
+XS code in subdirectories is covered too.  The C<-p> flag of F<gcov> keeps the
+path in the output names so same-named sources in different directories do
+not collide.  A subdirectory holding its own F<Makefile.PL>, F<Build.PL>,
+F<Makefile> or F<Build> is a separate build whose object files record sources
+relative to that directory, so it is skipped.  Run F<cover> in that directory
+instead, or use C<-gcov_chdir>.
 
-By default the C<-relative_only> option is enabled, which passes C<-r> to gcov
-so that source files reached via absolute paths (typically Perl's own CORE
-headers such as F<sv_inline.h>, F<inline.h>, and F<perlstatic.h>) are omitted
-from the coverage report.  These files are inlined into XS code and their
-coverage figures are rarely meaningful to the XS author.  As a second line of
-defence, C<gcov2perl> also skips any C<.gcov> whose source resolves into the
-Perl CORE directory.  Pass C<-no-relative_only> to C<cover>, or C<-no-skip-core>
-to C<gcov2perl>, to include this data.
+By default the C<-relative_only> option is enabled, which passes C<-r> to
+F<gcov> so that source files reached via absolute paths (typically Perl's own
+CORE headers such as F<sv_inline.h>, F<inline.h>, and F<perlstatic.h>) are
+omitted from the coverage report.  These files are inlined into XS code and
+their coverage figures are rarely meaningful to the XS author.  F<gcov2perl>
+also skips any C<.gcov> whose source resolves into the Perl CORE directory.
+Pass C<-no-relative_only> to F<cover>, or C<-no-skip-core> to F<gcov2perl>, to
+include this data.
 
 The C<-prefer_lib> option tells Devel::Cover to report on files in the lib
 directory even if they were used from the blib directory.
@@ -908,7 +907,8 @@ The following exit values are returned:
 
 >0  An error occurred.
 
-With the -test option the exit status of the underlying test run is returned.
+With the C<-test> option the exit status of the underlying test run is
+returned.
 
 =head1 SEE ALSO
 
@@ -921,6 +921,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

@@ -1,10 +1,10 @@
 # Documentation Standards
 
-How to write and mark up documentation in this distribution. The rules below
-describe what the documentation already does where it is consistent, and settle
-the cases where it is not.
+This file sets out how to write and mark up documentation in this distribution.
+The rules below describe what the documentation already does where it is
+consistent, and settle the cases where it is not.
 
-## Where documentation lives
+## Documentation locations
 
 - **POD in `lib/` and `bin/`** - user-facing. This is what people read on
   metacpan and through `perldoc`. `Devel::Cover.pod`, `Devel::Cover::Tutorial`,

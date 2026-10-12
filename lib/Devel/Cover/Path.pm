@@ -81,7 +81,7 @@ functions are importable on request via L<Exporter>.
 
  my ($prefix, $short) = common_prefix(@files);
 
-Compute the longest common directory prefix shared by all C<@files>.  Returns a
+Compute the longest directory prefix common to all C<@files>.  Returns a
 two-element list: the prefix string (with trailing C</>) and a hashref mapping
 each original path to its shortened suffix.
 
@@ -98,6 +98,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

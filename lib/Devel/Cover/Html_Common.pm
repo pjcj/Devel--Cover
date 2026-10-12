@@ -179,32 +179,32 @@ This module provides common functionality for HTML reporters.
 =item launch
 
 Launch a browser to view the report. HTML reporters just need to
-import this function to enable the -launch flag for that report
+import this function to enable the C<-launch> flag for that report
 type.
 
 =item highlight ($option, @lines)
 
-Syntax-highlight Perl source lines using PPI::HTML or Perl::Tidy,
+Syntax-highlight Perl source lines using L<PPI::HTML> or L<Perl::Tidy>,
 whichever is available. Returns highlighted lines, or an empty list
 if neither highlighter is installed. Pass the C<< $opt->{option} >>
 hash so that C<noppihtml> and C<noperltidy> flags are respected.
 
 =item $Have_highlighter
 
-True if PPI::HTML or Perl::Tidy is available.
+True if L<PPI::HTML> or L<Perl::Tidy> is available.
 
 =item coverage_class ($percentage, $thresholds)
 
 Map a coverage percentage to a CSS band name (C<c0>, C<c1>, C<c2> or
 C<c3>). An undefined percentage or the string C<n/a> maps to C<na>. The
-optional C<$thresholds> hashref carries C<c0>, C<c1> and C<c2> cut-off
+optional C<$thresholds> hashref holds the C<c0>, C<c1> and C<c2> cut-off
 points. It defaults to the values from C<default_thresholds> when omitted.
 
 =item default_thresholds
 
 Return a fresh hashref of the default band cut-off points (C<c0> 75,
-C<c1> 90, C<c2> 100). A new copy is returned each call so callers may
-mutate their own thresholds without affecting the defaults.
+C<c1> 90, C<c2> 100). It returns a new copy each call, so callers may
+change their own thresholds without affecting the defaults.
 
 =item scar_class ($scar)
 
@@ -224,7 +224,7 @@ characters of the MD5 of its path. Non-colliding paths are unchanged.
 
 =item decode_guess ($text)
 
-Return C<$text> as a character string. Covered source files carry no
+Return C<$text> as a character string. Covered source files have no
 encoding declaration the reports could trust, so this guesses. The bytes
 are decoded as strict UTF-8 when they form a valid sequence and as
 Latin-1 when they do not, a guess that cannot fail. A string that
@@ -249,5 +249,14 @@ string so the caller's own open reports the error.
 =head1 SEE ALSO
 
 Devel::Cover
+
+=head1 LICENCE
+
+Copyright 2012-2026, Paul Johnson (paul@pjcj.net)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+L<https://pjcj.net>
 
 =cut

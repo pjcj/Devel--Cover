@@ -3,7 +3,7 @@
 A `BEGIN`, `UNITCHECK`, `CHECK` or `INIT` block that uses a lexical from an
 enclosing scope captures it in the block's own pad, as any closure does. The pad
 entry holds a reference, so the variable cannot be freed while the block's CV
-lives.
+exists.
 
 Perl frees a `BEGIN` CV as soon as it has run. Devel::Cover cannot allow that,
 because the report reads every special block at `END` time to map the counts
@@ -13,13 +13,13 @@ which makes `Perl_call_list` push each `BEGIN`, `CHECK` and `UNITCHECK` CV onto
 saved nor freed under that flag, so they leak.
 
 The side effect, reported as GH-118, is that a variable captured by a special
-block lives until global destruction. A scope guard created in a `BEGIN` block
-and stored in a lexical of the enclosing block ran its `DESTROY` after the `END`
-blocks rather than at the end of the enclosing block. A `my` declared inside the
-block is not affected, since scope exit clears it. Only captured outer lexicals
-are.
+block is not freed until global destruction. A scope guard created in a `BEGIN`
+block and stored in a lexical of the enclosing block ran its `DESTROY` after the
+`END` blocks rather than at the end of the enclosing block. A `my` declared
+inside the block is not affected, since scope exit clears it. Only captured
+outer lexicals are.
 
-## The report's needs
+## Needs of the report
 
 The `END` time report reads the block's op tree and its pad names. B::Deparse
 reads pad values only from unnamed slots and from lexical sub slots, whose names
@@ -29,7 +29,7 @@ lexicals are never read. Once the block has run, nothing needs them.
 
 ## The fix
 
-When a special block is left, `note_finished_block` in `Cover.xs` queues its CV.
+When a special block exits, `note_finished_block` in `Cover.xs` queues its CV.
 At the next statement `release_finished_blocks` drains the queue. For each CV
 `release_captured_pad` drops every pad slot whose name is an outer capture
 (`PadnameOUTER`), is not an `our` declaration and does not start with `&`, and
@@ -53,12 +53,12 @@ marks its `entersub` with `OPpENTERSUB_DB`, so every special block is called
 through `DB::sub`, which runs a statement between perl pushing the CV onto the
 saved array and entering it. The block's captured variables were released before
 it ran, and Errno.pm's `BEGIN` then wrote into a read-only undef. Neither the
-arrays nor the depth can tell a finished block from one about to start. The
-block's own `leavesub` or `return` can, and Devel::Cover sees both in either op
-mode. In replace mode `dc_leavesub` and `dc_return` do the queueing. In the
-runops loop the two op types join the existing op type checks.
+arrays nor the depth distinguish a finished block from one about to start. The
+block's own `leavesub` or `return` does, and Devel::Cover intercepts both in
+either op mode. In replace mode `dc_leavesub` and `dc_return` do the queueing.
+In the runops loop the two op types join the existing op type checks.
 
-## Known deviations from plain perl
+## Known differences from plain perl
 
 Plain perl frees `UNITCHECK`, `CHECK` and `INIT` CVs at the unwind of the scope
 that ran them. For the main program that is the end of the run, just before the

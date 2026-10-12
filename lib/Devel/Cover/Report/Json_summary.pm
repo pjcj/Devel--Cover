@@ -72,12 +72,12 @@ Devel::Cover::Report::Json_summary - Summary JSON backend for Devel::Cover
 This module provides summary-only JSON output for coverage data, suitable for
 generating coverage badges and aggregate metrics.  The output contains per-file
 and total coverage percentages by criterion, but no per-line detail.  It is the
-format consumed by L<cpancover>.
+format consumed by F<cpancover>.
 
 For full per-line, per-criterion coverage detail see
 L<Devel::Cover::Report::Json>.
 
-It is designed to be called from the C<cover> program.
+It is designed to be called from the F<cover> program.
 
 =head1 SEE ALSO
 
@@ -90,6 +90,6 @@ Copyright 2014-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

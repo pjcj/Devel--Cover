@@ -27,9 +27,8 @@ adding the symbol tables needed for profiling.
 ## Choose a benchmark
 
 The Gedcom genealogy library provides a good workload - it exercises many ops
-across a realistic codebase. The benchmark lives in `tmp/runs/Gedcom-1.22/` and
-uses the `royal.ged` data file. This can be created with
-`dc cpan-module Gedcom`.
+across a realistic codebase. The benchmark is in `tmp/runs/Gedcom-1.22/` and
+uses the `royal.ged` data file. Create it with `dc cpan-module Gedcom`.
 
 ```bash
 cd tmp/runs/Gedcom-1.22
@@ -119,7 +118,7 @@ went into the cold path at offset +48.
 
 ### Aggregation script
 
-To get a flat breakdown of all Cover.bundle functions, extracting leaf-only
+This script gives a flat breakdown of all Cover.bundle functions from leaf-only
 samples (self-time, excluding time spent in callees):
 
 ```bash
@@ -172,9 +171,9 @@ grep -E '^\s+\+\s+!\s+\d+\s+dc_' /tmp/dc_sample.txt
 grep -c 'cover_' /tmp/dc_sample.txt
 ```
 
-The hierarchical view is essential for understanding *where within a function*
-the time is spent - the `+ offset` value on each line corresponds to an
-instruction offset, and the child entries show which callees dominate.
+The hierarchical view shows *where within a function* the CPU spends its time.
+The `+ offset` value on each line is an instruction offset, and the child
+entries show which callees dominate.
 
 ## Perl-level profiling with NYTProf
 
@@ -194,7 +193,7 @@ perl $DC -MDevel::Cover=-silent,1,-db,/tmp/dc_bench_db \
 nytprofhtml
 ```
 
-NYTProf cannot see inside XS/C functions, so it is only useful for Perl-side
+NYTProf does not profile XS/C functions, so it is only useful for Perl-side
 costs. For the XS runtime, use `sample` as described above.
 
 ## Interpreting results
@@ -225,7 +224,7 @@ Each replacement op follows the same pattern:
 2. If yes, call the appropriate `cover_*` function
 3. Call the original op via the saved function pointer
 
-### What to look for
+### The main cost centres
 
 The main cost centres in the XS runtime are:
 
@@ -245,8 +244,8 @@ The main cost centres in the XS runtime are:
   with KEY_SZ-byte keys (on cache miss or flush)
 
 When optimising, focus on the functions with the highest *self-time* (leaf
-samples). Inclusive counts tell you where time flows, but self-time tells you
-where the CPU is actually stalled.
+samples). Inclusive counts show which call chains cost most, but self-time shows
+which functions the CPU spends its time in.
 
 ## Other platforms
 
@@ -291,8 +290,7 @@ statement, but *before* the caching and struct-shrink work, the profile showed:
 Total overhead at this point: ~0.40s on the Gedcom benchmark (down from 0.80s
 before the first hotspot fix).
 
-Subsequent optimisations on the same branch (struct unique shrink, CopFILE
-pointer cache, dc_stmt_cache, dc_av_cache) reduced the overhead further.
-Re-profile with the current code to get up-to-date numbers - the distribution
-will have shifted as the caches now absorb most of the get_key and hv_fetch
-cost.
+Later optimisations on the same branch (struct unique shrink, CopFILE pointer
+cache, dc_stmt_cache, dc_av_cache) reduced the overhead further. Re-profile with
+the current code to get up-to-date numbers - the distribution will have shifted
+as the caches now remove most of the get_key and hv_fetch cost.

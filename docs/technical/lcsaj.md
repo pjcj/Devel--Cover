@@ -4,8 +4,8 @@ This document describes Linear Code Sequence and Jump (LCSAJ) coverage and what
 would be required to add it to Devel::Cover.
 
 LCSAJ is **not implemented** and not planned. The `path` placeholder reserved
-for it is being removed alongside the MC/DC work (GH-478). This document records
-why LCSAJ was investigated and ruled out in favour of MC/DC.
+for it was removed with the MC/DC work (GH-478). This document records why LCSAJ
+was investigated and ruled out in favour of MC/DC.
 
 ## Overview
 
@@ -16,9 +16,9 @@ A LCSAJ is a triple `(start, end, target)` where:
 - `end` is the last sequential statement before a jump (any control-flow op).
 - `target` is the destination the jump goes to.
 
-100% LCSAJ coverage requires that every triple be exercised. The metric was
-defined by Woodward, Hennell, and Hedley (1980) as a path-coverage approximation
-that was tractable to compute for large programs of the era.
+100% LCSAJ coverage requires that every triple be exercised. Woodward, Hennell
+and Hedley defined the metric in 1980 as a path-coverage approximation that was
+practical to compute for large programs of the era.
 
 LCSAJ subsumes branch coverage (every branch's two outcomes correspond to two
 distinct triples) and statement coverage (every statement appears in some
@@ -26,7 +26,7 @@ triple), but it is weaker than full path coverage (which would require
 enumerating every distinct end-to-end path through the control-flow graph, an
 exponentially-sized set).
 
-## Why LCSAJ is stronger than branch coverage
+## LCSAJ compared with branch coverage
 
 Branch coverage requires each conditional to go both ways but does not require
 those branches to be exercised in *combination*. The classic example from
@@ -42,11 +42,10 @@ if ($y) {
 }
 ```
 
-100% branch coverage is achieved with `($x, $y)` set to `(1, 1)` and `(0, 0)`.
-Both `if`s go true and false. But `(0, 1)` triggers a runtime error: `$h` is
-still undef when its dereference is attempted. LCSAJ forces the second `if` to
-be reached after both true and false outcomes of the first, so the bug is
-exposed.
+`($x, $y)` set to `(1, 1)` and `(0, 0)` gives 100% branch coverage. Both `if`s
+go true and false. But `(0, 1)` triggers a runtime error: `$h` is still undef
+when the code dereferences it. LCSAJ forces the second `if` to be reached after
+both true and false outcomes of the first, which exposes the bug.
 
 ## Status: the placeholder
 
@@ -67,9 +66,9 @@ metric and notes it is "also known as predicate, basis path and LCSAJ"; that
 description is left in place as educational content alongside sections on the
 other criteria.
 
-GH-478 renames the `path` slot in-place to `mcdc`, reusing the bit (Path 0x10
-becomes Mcdc 0x10) and the `@Criteria` position. The obsolete `docs/TODO` line
-is dropped.
+GH-478 renamed the `path` slot in place to `mcdc`, reusing the bit (Path 0x10
+became Mcdc 0x10) and the `@Criteria` position. The obsolete `docs/TODO` line
+was dropped.
 
 ## Mapping LCSAJ onto Perl
 
@@ -117,12 +116,12 @@ Any op that may transfer control non-sequentially is a jump end:
   5.43.8 changes around `OPpSTATEMENT`). Any CFG built by Devel::Cover must keep
   up.
 
-## What would need to be added
+## Work required
 
 ### CFG construction
 
-The hardest part. For each CV, derive a successor map from the optree. The
-decision table:
+This is the hardest part. For each CV, derive a successor map from the optree.
+The decision table:
 
 | Op type                        | Successor logic                             |
 | ------------------------------ | ------------------------------------------- |
@@ -138,15 +137,15 @@ decision table:
 | `OP_ENTEREVAL`/`OP_LEAVEEVAL`  | normal flow plus die-target                 |
 | Sort/grep/map blocks           | detached optree, separate sub-CFG           |
 
-Estimated 600-1000 lines of new Perl/XS plus Perl-version conditional code that
-requires ongoing maintenance.
+The estimate is 600-1000 lines of new Perl/XS plus Perl-version conditional code
+that needs ongoing maintenance.
 
 ### Leader and triple enumeration
 
 Once the successor map is built, leaders are op[0] of the CV plus every op with
 in-degree > 1, plus every successor of a multi-target op. Walk forward from each
 leader along single-successor edges until a branch op is reached, then emit
-`(leader, branch_op, target)` for each target. Estimated 150-300 lines.
+`(leader, branch_op, target)` for each target. The estimate is 150-300 lines.
 
 ### Runtime collection
 
@@ -161,14 +160,14 @@ Two designs are plausible:
   taken at runtime. At report time, walk the static CFG and determine which
   `(leader → end → target)` chains are reachable from the observed edges.
 
-The first is closer to the existing branch model. Estimated 300-500 lines of XS
-plus the storage layer.
+The first is closer to the existing branch model. The estimate is 300-500 lines
+of XS plus the storage layer.
 
 ### Criterion class, reports, tests
 
-A new `lib/Devel/Cover/Lcsaj.pm` modelled on `Branch.pm`. Reporter support
-analogous to the existing `Branches` and `Conditions` sections. Test files
-exercising different control-flow patterns. Golden file regeneration for the new
+This needs a new `lib/Devel/Cover/Lcsaj.pm` modelled on `Branch.pm`, reporter
+support like the existing `Branches` and `Conditions` sections, test files for
+different control-flow patterns, and golden file regeneration for the new
 summary column across all tracked Perl versions.
 
 ## Cost / value summary
@@ -177,15 +176,15 @@ summary column across all tracked Perl versions.
 - Calendar: 4-8 weeks for someone deep in the codebase.
 - Maintenance: per-Perl-version updates as the optree changes.
 
-LCSAJ has fallen out of fashion. Modern safety-critical work prefers MC/DC
-(DO-178C, ISO 26262), which is the lighter and more precisely useful metric.
-LCSAJ in Perl is also expensive to implement honestly because Perl's control
-flow is much richer than the procedural FORTRAN the original definition assumed.
+LCSAJ is little used now. Modern safety-critical work prefers MC/DC (DO-178C,
+ISO 26262), which is the lighter and more precisely useful metric. LCSAJ in Perl
+is also expensive to implement honestly because Perl's control flow is much
+richer than the procedural FORTRAN the original definition assumed.
 
-The `path` placeholder is removed as part of GH-478, with the reserved
+The `path` placeholder was removed as part of GH-478, with the reserved
 `Path 0x10` flag bit repurposed for MC/DC. The tutorial's path-coverage section
-is left in place as a general description of the metric. See
-`docs/technical/mcdc.md` for the metric being added.
+remains as a general description of the metric. See `docs/technical/mcdc.md` for
+the metric that replaced it.
 
 ## References
 

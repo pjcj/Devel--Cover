@@ -50,8 +50,8 @@ Devel::Cover::Core - Core utility subroutines for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides core utility subroutines that are loaded during
-Devel::Cover's bootstrap phase.  All functions are importable on request via
+This module provides core utility subroutines that are loaded during the
+bootstrap phase of Devel::Cover.  All functions are importable on request via
 L<Exporter>.
 
 =head1 SUBROUTINES
@@ -68,7 +68,7 @@ check prevents false positives when a directory name is a prefix of a sibling
 
 Case sensitivity is determined per-drive via L<File::Spec/case_tolerant>.  On
 Windows this is evaluated for the drive letter of C<$container>; on Unix and
-macOS systems C<File::Spec> uses a compile-time heuristic which may not reflect
+macOS systems L<File::Spec> uses a compile-time heuristic which may not reflect
 the actual filesystem (e.g. case-insensitive APFS), but is the best available
 without probing the mount point.
 
@@ -79,6 +79,6 @@ Copyright 2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

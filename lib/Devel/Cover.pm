@@ -1705,7 +1705,7 @@ Devel::Cover - Internals of the coverage collector
 This document describes the internals of the main Devel::Cover module for
 people working on Devel::Cover itself.  The user documentation is in
 F<Cover.pod>, which is what C<perldoc Devel::Cover> and MetaCPAN display.
-Deeper design notes live in F<docs/technical/> in the distribution.
+Deeper design notes are in F<docs/technical/> in the distribution.
 
 Coverage collection runs in three phases.
 
@@ -1720,9 +1720,9 @@ run.
 
 =item * Run time
 
-The XS code counts op executions.  When it meets a new file it calls back
-into L</use_file> to ask whether the file is of interest.  The Perl side is
-otherwise idle while the program runs.
+The XS code counts op executions.  When it first runs code from a new file it
+calls back into L</use_file> to ask whether the file is of interest.  The Perl
+side is otherwise idle while the program runs.
 
 =item * End of run
 
@@ -1823,7 +1823,7 @@ and it prints an apology and exits.
 =head2 import ($class, @o)
 
 The entry point for C<use Devel::Cover>.  Appends any options from
-C<$DEVEL_COVER_OPTIONS>, parses them, arranges C<blib> handling, compiles
+C<DEVEL_COVER_OPTIONS>, parses them, arranges C<blib> handling, compiles
 the select, ignore and inc patterns, bootstraps the XS code and
 initialises the database and criteria.  A second call returns at once.
 Under mod_perl the C<CHECK>-time work runs here instead, since mod_perl
@@ -1888,11 +1888,11 @@ subs is recorded against the parent module.
 
 =head2 normalised_file ($file)
 
-Return the canonical name for a file.  Eval prefixes are stripped,
-module-relative paths are resolved against the directory the module was
-compiled in, the absolute path is taken where that is safe, Windows
-separators become C</>, the C<$Dir> prefix is removed and the digest store
-is consulted so identical content is always reported under one name.
+Return the canonical name for a file.  It strips eval prefixes, resolves
+module-relative paths against the directory the module was compiled in, takes
+the absolute path where that is safe and turns Windows separators into C</>.
+It then removes the C<$Dir> prefix and consults the digest store so identical
+content is always reported under one name.
 Results are cached, and a flag stops recursion when normalising itself
 causes a module to load, as has happened with the Storable backend.
 
@@ -1934,14 +1934,14 @@ been manipulated since the last look.
 =head2 check_file ($cv)
 
 True when the file holding a CV's first statement is wanted.  A sub body
-may open with prologue ops that carry no file information - a
+may open with prologue ops that hold no file information - a
 C<methstart> for a class method, an C<introcv>/C<clonecv> pair for each
 C<my sub> it encloses - so those are stepped past.
 
 =head1 FINDING SUBROUTINES
 
 A sub can only be covered if its CV is found.  Most CVs are reached by
-walking the symbol table, but anonymous subs live only in pads, and a
+walking the symbol table, but anonymous subs exist only in pads, and a
 wrapper such as a Moose method modifier may remove a named sub from its
 glob entirely.  The pad walk recovers those.
 F<docs/technical/wrapped-sub-coverage.md> discusses the approach and its
@@ -2010,8 +2010,8 @@ the pad walk.
 
 =head2 _seed_pad_cvs (@require_trees)
 
-Feed pad-only anonymous subs from required files' top-level code and from
-special blocks into C<%Cvs> before L</check_files> snapshots C<@Cvs>.
+Feed pad-only anonymous subs from the top-level code of required files and
+from special blocks into C<%Cvs> before L</check_files> snapshots C<@Cvs>.
 
 =head2 _seed_entered_subs
 
@@ -2033,7 +2033,7 @@ releases the required-file op trees held by the XS side.
 =head2 report_exec
 
 The entry point the XS C<exec> hooks call.  The hooks call it when the
-main process execs, whatever file the C<exec> op sits in, and when a
+main process execs, whatever file holds the C<exec> op, and when a
 forked child execs from a collected file, so library code exec'ing in a
 child does not duplicate the parent's data.  It runs L</report>, then puts
 the process back into a collectable state, since a failed C<exec> returns
@@ -2054,10 +2054,9 @@ tree per compilation, each with distinct op addresses that C<%Seen>
 cannot collapse, so only the newest tree per file is walked.  Top-level
 require code has no C<set_subroutine> call, so the file context is
 established explicitly before each tree or the per-file counters would
-run against the wrong file.  Finally the
-collected files are filtered and the database is written.  Runs with the
-current directory set to C<$Dir> so relative names resolve as they did at
-compile time.
+run against the wrong file.  Finally it filters the collected files and
+writes the database.  Runs with the current directory set to C<$Dir> so
+relative names resolve as they did at compile time.
 
 =head2 _filter_cover_files
 
@@ -2114,7 +2113,7 @@ through the pad of C<$cv> rather than the current pad.
 
 =head2 _gv_names ($gv)
 
-The names a GV answers to: its bare name, its qualified name, and the
+The names that identify a GV: its bare name, its qualified name, and the
 qualified name of the sub it holds.
 
 =head2 _method_name ($kid, $cv)
@@ -2214,9 +2213,9 @@ current sub is documented and record the answer against the sub's line.
 L</get_cover> drives the XS walker C<walk_ops> over one CV.  The walker
 visits the interesting ops and dispatches to the C<_walk_*> callbacks
 below, which classify each op and record it through the functions above.
-Labels for the reports are produced with C<B::Deparse>, taking care to
-match the precedence context (C<cx>) B::Deparse itself would use at that
-point in a full deparse, so the text reads as it was written.
+The labels for the reports come from C<B::Deparse>, called with the
+precedence context (C<cx>) B::Deparse itself would use at that point in a
+full deparse, so the text reads as it was written.
 
 =head2 _want_cover_for
 
@@ -2438,8 +2437,8 @@ F<docs/technical/wrapped-sub-coverage.md>.
 
 =item C<adjust_blocks ($stash)>
 
-References to a class's C<ADJUST> block CVs (Perl 5.38+), which live
-outside the symbol table.
+References to a class's C<ADJUST> block CVs (Perl 5.38+), which are not in
+the symbol table.
 
 =back
 
@@ -2471,6 +2470,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

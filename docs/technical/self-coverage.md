@@ -9,7 +9,7 @@ However, many DC modules - report generators, annotation handlers, HTML support,
 path utilities - are loaded on demand, well after bootstrap. These can be
 instrumented normally using `-select` to override the default ignore pattern.
 
-## How It Works
+## Mechanism
 
 Devel::Cover normally blocks its own modules via two mechanisms:
 
@@ -19,9 +19,9 @@ Devel::Cover normally blocks its own modules via two mechanisms:
    `Devel/Cover` when `$Self_cover_run` is false.
 
 The `-select` option already overrides mechanism 1 (select takes priority over
-ignore in `use_file()`). The partial self-coverage change relaxes mechanism 2:
-if `-select` patterns are active and a DC module matches one of them,
-`_want_cover_for()` lets it through.
+ignore in `use_file()`). Mechanism 2 has one exception: if `-select` patterns
+are active and a DC module matches one of them, `_want_cover_for()` lets it
+through.
 
 The `bin/cover` guard (which normally hard-exits if Devel::Cover is loaded) is
 also relaxed when `-select` is active, allowing report generation under
@@ -31,8 +31,8 @@ instrumentation.
 
 ### Bootstrap Modules (Not Coverable)
 
-Loaded via compile-time `use` chains from `Devel::Cover.pm`. Their ops are
-compiled before instrumentation activates:
+These are loaded through compile-time `use` chains from `Devel::Cover.pm`, so
+their ops are compiled before instrumentation activates:
 
 - `Devel::Cover` (main + XS)
 - `Devel::Cover::Core`
@@ -49,8 +49,8 @@ Only `DEVEL_COVER_SELF` (full two-pass XS tracing) can cover these.
 
 ### Late-Loaded Modules (Coverable)
 
-Loaded at runtime via `require` or `eval "use"`. These are compiled after
-instrumentation is active:
+These are loaded at runtime through `require` or `eval "use"`, so they are
+compiled after instrumentation is active:
 
 **Library modules** (tested by `t/internal/`):
 
@@ -97,14 +97,14 @@ dc dc-cover
 Equivalent Makefile targets: `make dc_cover_lib`, `make dc_cover_reports`,
 `make dc_cover`.
 
-### How dc-cover-lib Works
+### dc-cover-lib
 
-Runs the relevant `t/internal/*.t` tests (currently `structure.t`, `path.t`,
-`static.t`, `condition_table.t`, `mcdc_analyser.t`) under `-MDevel::Cover` with
-`-select` matching only the modules under test. Only the selected library
-modules appear in the coverage report.
+This recipe runs the relevant `t/internal/*.t` tests (currently `structure.t`,
+`path.t`, `static.t`, `condition_table.t`, `mcdc_analyser.t`) under
+`-MDevel::Cover` with `-select` matching only the modules under test. Only the
+selected library modules appear in the coverage report.
 
-### How dc-cover-reports Works
+### dc-cover-reports
 
 1. Generates a rich input `cover_db` by running several e2e tests under normal
    Devel::Cover (no self-coverage). This DB contains varied coverage patterns -

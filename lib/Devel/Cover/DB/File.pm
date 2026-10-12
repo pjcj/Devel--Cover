@@ -91,15 +91,15 @@ A C<Devel::Cover::DB::File> object holds the coverage for one source file in a
 L<Devel::Cover::DB>.  It is a hash keyed by criterion name, so
 C<< $file->statement >> gives back a C<Devel::Cover::DB::Criterion>.  Those
 accessors come from C<Devel::Cover::DB::Base>, and L<Devel::Cover::DB> describes
-them.  A C<meta> key sits beside the criteria, holding what is known about the
-file itself rather than any coverage of it.
+them.  A C<meta> key beside the criteria holds what is known about the file
+itself rather than any coverage of it.
 
 Nothing constructs one of these directly.  L<Devel::Cover::DB> blesses each
 entry of the cover hash as the database is read, so you reach a file with
 C<< $db->cover->file($name) >>.
 
 A file added by the F<cover> option C<-select_dir> which no test ever loaded has
-no criteria at all.  It carries only a C<meta> entry marking it uncompiled,
+no criteria at all.  It has only a C<meta> entry marking it uncompiled,
 together with the counts L<Devel::Cover::Static> estimates from the source when
 L<PPI> is installed.  Both methods below take a separate path for such a file
 and report every construct in it as uncovered.
@@ -110,7 +110,7 @@ and report every construct in it as uncovered.
 
   $file->calculate_summary($db, $name, \%options);
 
-Add this file's counts to C<< $db->{summary}{$name} >> and to the running
+Add the counts of this file to C<< $db->{summary}{$name} >> and to the running
 C<Total>.  Criteria without a true value in C<%options> are skipped.  For a
 compiled file each coverage object does its own share of the work.
 
@@ -132,6 +132,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

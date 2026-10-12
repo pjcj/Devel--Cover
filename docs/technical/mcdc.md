@@ -14,9 +14,9 @@ contains a pair of executions where:
 - The decision's overall outcome differs as a result
 
 The metric proves that each input "independently affects" the decision's output.
-It was introduced by Chilenski and Miller in 1994 to give the strongest
-practical structural coverage available without requiring the exponential effort
-of full multiple-condition coverage.
+Chilenski and Miller introduced it in 1994 to give the strongest practical
+structural coverage available without the exponential effort of full
+multiple-condition coverage.
 
 MC/DC is mandated by:
 
@@ -49,7 +49,7 @@ like `$a && (!$a || $b)` are tautologies that almost never survive review. So
 for typical Perl code hybrid behaves like unique-cause, while remaining
 well-defined for the unusual cases.
 
-Coupling does reach the analyser. A coupled decision such as
+The analyser does receive coupled decisions. A coupled decision such as
 `($a && $b) || ($a && $c)` is recorded as a single table with a repeated `$a`
 column, and unique-cause can never demonstrate a repeated column, so the masking
 fallback is a live, necessary path for such decisions (see Limitations).
@@ -57,9 +57,9 @@ fallback is a live, necessary path for such decisions (see Limitations).
 Pure masking is over-permissive in a short-circuit language: any execution where
 the left operand short-circuits masks every condition on the right, so under
 loose masking rules a `(F,F,F)` test against `(A && B) || C` could be paired
-with `(T,T,F)` to "demonstrate" `A`'s independence even though `A`'s value
-didn't actually drive the outcome flip on its own. Hybrid closes that loophole
-by preferring unique-cause where possible.
+with `(T,T,F)` to "demonstrate" `A`'s independence even though the value of `A`
+did not on its own cause the outcome to flip. Hybrid closes that loophole by
+preferring unique-cause where possible.
 
 ## A worked example
 
@@ -120,15 +120,15 @@ four tests. The bug is invisible to statement, branch, and condition coverage.
 The test set is not contrived. The author had a free choice between `(T,T,T)`
 and `(T,T,F)` for the position covering "outer-l + inner-l && r", and between
 several `(F,F,?)` variants for the inner-`!l` row. The picks shown are perfectly
-natural; nothing in the condition-coverage metric pushed the author towards a
-different combination.
+natural. Nothing in the condition-coverage metric required a different
+combination.
 
-### What MC/DC additionally requires
+### The additional requirement of MC/DC
 
 Hybrid MC/DC requires, for each atomic condition, a pair of executions where
 flipping that condition flips the outcome with the others held compatibly.
 Perl's short-circuit operators leave the unevaluated side unobserved, so each
-test's observed input vector carries `X` in any column the operator skipped.
+test's observed input vector has `X` in any column the operator skipped.
 Short-circuit-aware unique-cause treats `X` as compatible with any concrete
 value in the same column (see "Short-circuit and masking" below).
 
@@ -162,7 +162,7 @@ Test 5 is "the user owns a locked article, no admin override" - the correct
 implementation denies the edit; the buggy implementation grants it because
 `!$unlocked` is true. The assertion fails and the bug is caught.
 
-### Why this matters
+### The difference MC/DC makes
 
 Condition coverage tells you "every leaf operator was exercised both ways."
 MC/DC tells you "the test set proves each input genuinely affects the output."
@@ -178,7 +178,7 @@ operands, and operator-precedence errors - the single-fault classes that
 statement, branch, and condition coverage all leave a plausible test author free
 to miss.
 
-## How MC/DC maps onto Perl
+## Mapping MC/DC onto Perl
 
 ### Decision identification
 
@@ -192,9 +192,9 @@ itself nested inside another logop of compatible type:
 - `($a && $b) ? $x : $y` - the `cond_expr` is the decision; `$a && $b` is its
   sole condition (composed of two atomic conditions).
 
-Statement level has a wrinkle. A logop whose context is unknown - a sub's last
-statement, an implicit return - is recorded as a decision only when its right
-operand is itself a decision, as in `(A && B) || (C && D)`. When the right
+Statement level is a special case. A logop whose context is unknown - a sub's
+last statement, an implicit return - is recorded as a decision only when its
+right operand is itself a decision, as in `(A && B) || (C && D)`. When the right
 operand is not a decision, such as `(A && B) || $c`, the outer operator stays a
 branch (see Limitations). A chain that ends a `grep`, `map`, `sort` or value
 `do` block is not at statement level. The block gives it scalar or list context,
@@ -203,8 +203,8 @@ so the whole chain is one decision, as it is under `return`.
 ### Atomic conditions
 
 Atomic conditions are the boolean leaves: variables, comparisons, function
-calls, defined-or operands. Anything that is not itself a boolean operator
-combining further atomic conditions.
+calls, defined-or operands. An atomic condition is anything that is not itself a
+boolean operator combining further atomic conditions.
 
 `$a + 1 > $b` contains one atomic condition (the `>`), not three. `foo()` is one
 atomic condition.
@@ -219,9 +219,9 @@ unique-cause pass uses short-circuit-aware matching: X is compatible with any
 concrete value in the same column, matching the behaviour of LDRA and
 VectorCAST. Without this relaxation, ordinary `$a && $b` with all paths
 exercised would never satisfy the left-operand pair, since `[0, X]` could never
-match `[1, 1]`. The masking fallback for coupled conditions retains the same
-X-as-anything rule but additionally permits other occurrences of the coupled
-atomic condition to disagree.
+match `[1, 1]`. The masking fallback for coupled conditions keeps the same
+X-as-anything rule but also permits other occurrences of the coupled atomic
+condition to disagree.
 
 `xor` and `^^` do not short-circuit; their truth tables have all four rows fully
 populated.
@@ -297,20 +297,21 @@ The reasoning:
 Per-logop hit counts are not sufficient to reproduce textbook MC/DC semantics on
 composite decisions. The composite truth table for
 `($is_owner && $unlocked) || $is_admin` is the cross-product of the inner `&&`'s
-rows and the outer `||`'s rows: every cross-product row is marked covered iff
-each sub-decision's row was hit at least once. But the cross-product mixes rows
-from different test executions. The misplaced-negation bug in the worked example
-survives synthesis-only analysis. In the buggy implementation the inner `&&` is
-`($is_owner && !$unlocked)`: Test 1 hits its `(1,0)` row (`$is_owner` true,
-`!$unlocked` false) and Test 4 hits the outer `||`'s `(0,X,0)` row, and the
-cross-product joins them into a phantom `(T,T,F)` row (in input terms, with
-result F) that no test actually executed. Pairing that phantom with Test 2's
-observed `(T,F,X)` (result T) demonstrates `$unlocked`'s independence, so the
-analyser reports the buggy implementation as MC/DC-satisfied.
+rows and the outer `||`'s rows: every cross-product row is marked covered if and
+only if each sub-decision's row was hit at least once. But the cross-product
+mixes rows from different test executions. Synthesis-only analysis does not
+detect the misplaced-negation bug in the worked example. In the buggy
+implementation the inner `&&` is `($is_owner && !$unlocked)`. Test 1 hits its
+`(1,0)` row (`$is_owner` true, `!$unlocked` false) and Test 4 hits the outer
+`||`'s `(0,X,0)` row. The cross-product joins them into a phantom `(T,T,F)` row
+(in input terms, with result F) that no test actually executed. Pairing that
+phantom with Test 2's observed `(T,F,X)` (result T) demonstrates `$unlocked`'s
+independence, so the analyser reports the buggy implementation as
+MC/DC-satisfied.
 
 Audit-grade MC/DC therefore needs per-execution combined-input data. `Cover.xs`
 records each decision's input vector at runtime: a small stack
-(`MY_CXT.dc_stack`) tracks the decisions in flight; `cover_logop`, `cover_xor`
+(`MY_CXT.dc_stack`) tracks the decisions in progress. `cover_logop`, `cover_xor`
 and `add_condition` write each leaf's observed truth value into the current
 vector, and snapshot it into `MY_CXT.decision_inputs` on a short circuit that
 completes the decision, or - for decisions ending a sort comparator - per
@@ -371,9 +372,10 @@ a branch, and the chain on its left is the decision.
 
 `Condition_table::for_line` accepts an optional parallel array of
 observed-vector hashes; when present, each synthesised row is marked `covered=1`
-iff its input vector matches an observed key. Synthesised rows the runtime never
-executed keep `covered=0` so the truth-table renderer still draws them - users
-see the unobserved combinations as "rendered but not hit" rather than vanishing.
+if and only if its input vector matches an observed key. Synthesised rows the
+runtime never executed keep `covered=0` so the truth-table renderer still draws
+them - users see the unobserved combinations as "rendered but not hit" rather
+than vanishing.
 
 A compound table whose rows remain an unverified synthesis - no observed vectors
 were applied - is marked unproven, and `DB::_derive_mcdc` zeroes its MC/DC
@@ -384,9 +386,9 @@ rule is specified in the `Devel::Cover::Condition_table` POD.
 The runtime recorder requires `Devel::Cover::Mcdc` to be loaded as a criterion
 subclass during Devel::Cover's bootstrap (via `Criterion.pm`'s runtime require
 loop), placing it in the path that runs before instrumentation activates.
-Coverage of `Mcdc.pm` itself is therefore obtained via `make self_cover`.
-`Mcdc::Analyser` is loaded lazily from `DB.pm:_derive_mcdc` and is covered by
-`make dc_cover_lib`. See `docs/technical/self-coverage.md`.
+`make self_cover` therefore covers `Mcdc.pm` itself. `Mcdc::Analyser` is loaded
+lazily from `DB.pm:_derive_mcdc` and is covered by `make dc_cover_lib`. See
+`docs/technical/self-coverage.md`.
 
 ## Implementation
 
@@ -434,7 +436,7 @@ counters: total atomic conditions, satisfied conditions, and the missing labels.
 
 - `mcdc` is a member of `@Devel::Cover::DB::Criteria` and `@Criteria_short` in
   `lib/Devel/Cover/DB.pm`.
-- A `Mcdc` flag bit and a `coverage_mcdc()` XS function live in `Cover.xs`.
+- A `Mcdc` flag bit and a `coverage_mcdc()` XS function are in `Cover.xs`.
 - `DB.pm::_derive_mcdc` runs the analyser against condition truth tables during
   `cover()` before `objectify_cover`.
 - `bin/cover` accepts `-coverage mcdc` and documents it in POD.
@@ -443,10 +445,9 @@ counters: total atomic conditions, satisfied conditions, and the missing labels.
 
 Each reporter renders an MC/DC summary column and, in detail views, lists which
 atomic conditions lack independence pairs. The HTML reporters share the
-per-atomic-condition pill rendering; `Html_crisp` additionally splits the per-
-line detail block into three internally-consistent panels (per-logop cells,
-MC/DC pills, composite truth table) so each panel matches one headline
-percentage.
+per-atomic-condition pill rendering. `Html_crisp` also splits the per-line
+detail block into three internally-consistent panels (per-logop cells, MC/DC
+pills, composite truth table) so each panel matches one headline percentage.
 
 ### Tests
 
@@ -454,7 +455,7 @@ percentage.
 leading negation, and the mixed-precedence worked example). `tests/mcdc_xor`,
 `tests/mcdc_constant_right`, `tests/dor_defined`, `tests/dor_fixed`,
 `tests/mcdc_demo`, `tests/mcdc_signatures`, and `tests/mcdc_wide` exercise the
-distinct code paths. Internal tests live under `t/internal/mcdc_*` and
+distinct code paths. Internal tests are under `t/internal/mcdc_*` and
 `t/internal/decision_*`.
 
 ### Documentation
@@ -476,7 +477,7 @@ USAGE POD in `Devel::Cover::Mcdc`, and a `Changes` entry.
   `unanalysed` flag, warns at report time naming the file and line (silenced by
   `-silent`), and ignores any `# dc uncoverable mcdc` markers on it, with a
   warning of its own. Reporters show "too many conditions" in place of the
-  missing-conditions list, and the JSON report carries `"unanalysed": 1`. The
+  missing-conditions list, and the JSON report includes `"unanalysed": 1`. The
   bound exists because the truth table size grows as 2^N and becomes unwieldy.
   The remedy is to split the decision with an intermediate variable, which needs
   no extra test cases, preserves short-circuiting, and lets every condition be
@@ -504,10 +505,10 @@ USAGE POD in `Devel::Cover::Mcdc`, and a `Changes` entry.
 
 - Coupled conditions (the same atomic condition appearing more than once in a
   decision, such as `($a && $b) || ($a && $c)`) are placed in a single table.
-  Unique-cause is impossible under coupling, so such a decision reaches hybrid's
-  masking fallback in `Mcdc::Analyser`, which reduces to demonstrating
-  short-circuit-induced masking rather than direct causal independence; this
-  corner is the most actively debated part of the metric in the literature.
+  Unique-cause is impossible under coupling, so such a decision uses the masking
+  fallback of hybrid MC/DC in `Mcdc::Analyser`, which demonstrates
+  short-circuit-induced masking rather than direct causal independence. This
+  case is the most debated part of the metric in the literature.
 
 ## References
 

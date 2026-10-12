@@ -63,8 +63,8 @@ discover areas of code not exercised by your tests and determine which tests to
 create to increase coverage.  Code coverage can be considered an indirect
 measure of quality.
 
-Statement, branch, condition, MC/DC, subroutine, and pod coverage information is
-reported.  Statement and subroutine coverage data should be accurate. Branch,
+Devel::Cover reports statement, branch, condition, MC/DC, subroutine and pod
+coverage.  Statement and subroutine coverage data should be accurate. Branch,
 condition and MC/DC coverage data should be generally accurate too, although not
 always what one might initially expect.  Pod coverage comes from
 L<Pod::Coverage>. If L<Pod::Coverage::CountParents> is available it will be used
@@ -127,9 +127,8 @@ the op tree.
 
 This means a working C compiler and make program at least.  If you built perl
 from source you will have these already and they will be used automatically. If
-your perl was built in some other way, for example you may have installed it
-using your Operating System's packaging mechanism, you will need to ensure that
-the appropriate tools are installed.
+your perl was built in some other way, for example from the packages of your
+operating system, you will need to install the appropriate tools yourself.
 
 =item * L<Storable> and L<Digest::MD5>
 
@@ -153,8 +152,8 @@ L<PPI::HTML> is preferred.
 
 =item * L<Template> (2.00 or above)
 
-The html_basic and html_subtle reports will not run without this.  The default
-html report does not use it.
+The C<html_basic> and C<html_subtle> reports will not run without this.  The
+default C<html> report does not use it.
 
 =item * L<PPI>
 
@@ -249,7 +248,7 @@ coverage takes any options.  These are the parameters which are passed into the
 L<Pod::Coverage> constructor.  The extra options are separated by dashes, and
 you may specify as many as you wish.  For example, to specify that all
 subroutines containing xx are private, call Devel::Cover with the option
--coverage,pod-also_private-xx.
+C<-coverage,pod-also_private-xx>.
 
 Or, to ignore all files in C<t/lib> as well as files ending in C<Foo.pm>:
 
@@ -263,8 +262,8 @@ ignore regexes which have already been set, use C<+ignore>:
 =head1 SELECTING FILES TO COVER
 
 You may select the files for which you want to collect coverage data using the
-select, ignore and inc options.  The system uses the following procedure to
-decide whether a file will be included in coverage reports:
+C<select>, C<ignore> and C<inc> options.  The system uses the following
+procedure to decide whether a file will be included in coverage reports:
 
 =over
 
@@ -307,7 +306,7 @@ back what you want.
 
   perl -MDevel::Cover=+ignore,.,+select,^lib/MyApp/Core yourprog args
 
-=head2 When these options take effect
+=head2 Collection-time filtering
 
 These options decide which files coverage data is collected for whilst your code
 runs.  What they exclude never reaches the database, and no later option can
@@ -405,8 +404,8 @@ C<ignore_covered_err> attribute is specified then such errors will not be
 flagged.  This is a more precise method to flag such exceptions than the global
 C<-ignore_covered_err> flag to the F<cover> program.
 
-There is also a C<note> attribute which can also be included in C<details>.
-This should be the final attribute and will consume all the remaining text.
+A C<note> attribute may also be included in C<details>.  This should be the
+final attribute and will consume all the remaining text.
 Currently this attribute is not used, but it is intended as a form of
 documentation for the uncoverable data.
 
@@ -462,7 +461,7 @@ line of the opening if, so the comments for the whole chain go above that line.
 
 The "all" type marks both elements of a branch with one comment.  It is the
 natural form for a branch that can never run at all, such as an elsif in a chain
-that is never reached.  Here $thing is always one, leaving five uncoverable
+that is never reached.  Here C<$thing> is always one, leaving five uncoverable
 branch outcomes:
 
   # dc uncoverable branch false count:1
@@ -548,10 +547,10 @@ evaluated.  The "when" attribute marks the row whose operand values match:
     $x++;  # dc uncoverable statement
   }
 
-Here $x is always true, so the row where the left operand is false and the right
-never evaluated (0X) cannot occur, and !$y is always false, so the row where
-both operands are true (11) cannot occur either.  Several rows can be marked in
-one comment with a comma separated list:
+Here C<$x> is always true, so the row where the left operand is false and the
+right never evaluated (0X) cannot occur, and C<!$y> is always false, so the row
+where both operands are true (11) cannot occur either.  Several rows can be
+marked in one comment with a comma separated list:
 
   # dc uncoverable condition when:0X,11
 
@@ -575,7 +574,7 @@ rows by position - the first, second and third - which misleads elsewhere: on
 C<&&> "false" selects the 11 row, where the expression is true.  Using one
 warns, naming the "when" replacement for the op.
 
-As for branches, the "count" value may be used for either conditions in elsif
+As for branches, the "count" value may be used either for conditions in elsif
 conditionals, or for complex conditions.  Unlike branches, a condition in an
 elsif is addressed at the elsif's own line.  When one line holds several
 condition ops, count:n selects them outermost first, so for C<$a && $b && $c>
@@ -587,9 +586,9 @@ perl uses, run the expression through B::Deparse:
 
 =head3 MC/DC
 
-An MC/DC decision can be uncoverable when an atomic condition's independence
-pair can never be formed, for example the right operand of C<//> in C<< $x //=
-$default >> when C<$default> is always defined.
+An MC/DC decision can be uncoverable when the independence pair of an atomic
+condition can never be formed, for example the right operand of C<//> in
+C<< $x //= $default >> when C<$default> is always defined.
 
 The "all" type marks every atomic condition of the decision uncoverable:
 
@@ -672,12 +671,12 @@ output, and a stale marker produces a "marked uncoverable but covered" message.
 =item * B<html> (html_crisp) keeps colour for the coverage outcome and adds a
 diagonal stripe where a marker is present.  Excused code is striped green, code
 which ran despite its marker is striped red, and a partially covered line
-carrying a marker is striped amber.  Tooltips give the uncoverable counts and
+with a marker is striped amber.  Tooltips give the uncoverable counts and
 the help panel shows a legend.
 
 =item * B<html_basic> follows the same design with a C<cx> class for excused
 cells, striped green, and an C<mk> class adding a red stripe to cells whose
-marker no longer tells the truth.  Cell tooltips carry "marked uncoverable" or
+marker no longer tells the truth.  Cell tooltips show "marked uncoverable" or
 "marked uncoverable but covered" notes, summary tooltips give the uncoverable
 counts, and MC/DC atomics keep the "-" prefix of the text reports.
 
@@ -728,12 +727,11 @@ use in parallel testing.
 
 By adding C<use Devel::Cover;> to your mod_perl startup script, you should be
 able to collect coverage information when running under mod_perl.  You can also
-add any options you need at this point.  I would suggest adding this as early as
-possible in your startup script in order to collect as much coverage information
-as possible.
+add any options you need at this point.  Add this as early as possible in your
+startup script to collect as much coverage as possible.
 
-Alternatively, add -MDevel::Cover to the parameters for mod_perl. In this
-example, Devel::Cover will be operating in silent mode.
+Alternatively, add C<-MDevel::Cover> to the parameters for mod_perl. In this
+example, Devel::Cover runs in silent mode.
 
   PerlSwitches -MDevel::Cover=-silent,1
 
@@ -875,7 +873,7 @@ block alive so it can be reported on, and releases the captured lexicals
 once the block has run, so a variable captured by a C<BEGIN> block is
 freed when its scope ends, as without coverage.  Plain perl frees the
 other three kinds of block at the end of the run, so a variable they
-capture lives a little longer there than under coverage.
+capture is freed a little later there than under coverage.
 
 A C<BEGIN> block inside a string C<eval> that captures a lexical from
 outside the C<eval> keeps that lexical alive until global destruction under
@@ -887,7 +885,7 @@ Almost certainly.
 
 See the BUGS file, the TODO file and the bug trackers at
 L<https://github.com/pjcj/Devel--Cover/issues?state=open> and
-L<https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover>
+L<https://rt.cpan.org/Public/Dist/Display.html?Name=Devel-Cover>.
 
 Please report new bugs on GitHub.
 
@@ -898,6 +896,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available on CPAN and from my
-homepage: https://pjcj.net/.
+homepage: L<https://pjcj.net/>.
 
 =cut

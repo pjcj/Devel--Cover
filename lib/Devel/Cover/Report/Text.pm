@@ -509,11 +509,10 @@ Devel::Cover::Report::Text - Text backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a textual reporting mechanism for coverage data. It
-produces a plain-text report covering statement, branch, condition, and
-subroutine metrics with inline source listing.  When files share a long common
-directory prefix, the prefix is stripped and only the distinguishing suffixes
-are shown.
+This module reports coverage data as text. It produces a plain-text report
+covering statement, branch, condition, and subroutine metrics with inline
+source listing.  When files share a long common directory prefix, the prefix
+is stripped and only the distinguishing suffixes are shown.
 
 A value is prefixed with "-" when an uncoverable marker is involved and with
 "*" when the construct is in error, and a line holding an error is flagged
@@ -523,14 +522,14 @@ subroutines are listed under the "Uncoverable Subroutines" heading, and a
 covered subroutine whose marker is stale stays under "Covered Subroutines"
 with a "*" prefix on its counts.
 
-It is designed to be called from the C<cover> program.
+It is designed to be called from the F<cover> program.
 
 =head1 SUBROUTINES
 
 =head2 report ($pkg, $db, $options)
 
-Entry point called by the C<cover> tool.  Computes the common directory prefix
-across all files, then iterates each file printing whichever sections are
+Entry point called by the F<cover> tool.  Computes the common directory prefix
+across all files, then iterates over each file printing whichever sections are
 enabled in C<$options>.
 
 =head2 print_runs ($db, $options)
@@ -557,13 +556,13 @@ or, xor).
 =head2 print_mcdc ($db, $file, $options)
 
 Print the MC/DC table for C<$file>: per-decision satisfaction percentage,
-covered/total atomic counts, the labels of any unsatisfied atomics, and the
-decision's source text.
+covered/total atomic condition counts, the labels of any unsatisfied atomic
+conditions, and the source text of the decision.
 
 =head2 print_subroutines ($db, $file, $options, $short)
 
 Print subroutine tables for C<$file>, including call counts, pod coverage,
-and source location. Subroutines are bucketed by state: covered, uncoverable
+and source location. Subroutines are grouped by state: covered, uncoverable
 (uncovered but marked uncoverable), and uncovered.
 
 =head1 PRIVATE SUBROUTINES
@@ -597,7 +596,8 @@ output lines are produced when a single source line has several coverage points
 =head2 _update_maxw ($maxw, %vals)
 
 Update column-width hash C<$maxw> in place: for each key in C<%vals>, set
-C<< $maxw->{$k} >> to the value's length if it exceeds the current maximum.
+C<< $maxw->{$k} >> to the length of the value if it exceeds the current
+maximum.
 
 =head2 _flagged_count ($o)
 
@@ -623,6 +623,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

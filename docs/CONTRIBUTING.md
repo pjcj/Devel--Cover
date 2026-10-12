@@ -1,4 +1,4 @@
-# How to Contribute to Devel::Cover
+# Contributing to Devel::Cover
 
 ## Source Code
 
@@ -13,7 +13,7 @@ suggestions, documentation, discussion or anything else. In general, and as with
 most open source projects, it is wise to discuss any large changes before
 starting on implementation.
 
-## How to run Devel::Cover from Git
+## Running Devel::Cover from Git
 
 ```sh
 cd my_code/
@@ -85,19 +85,18 @@ correctly, if not as nicely as in minimal. It also allows for coloured code.
 This report requires [Template Toolkit](https://metacpan.org/pod/Template) and
 is the format used for cpancover.
 
-**Crisp** is a modern, self-contained HTML reporter. All CSS, JavaScript and
-templates are embedded in a single module. It features dark mode,
-sortable/filterable file tables, directory grouping, inline branch and condition
-truth tables, a scroll minimap, and keyboard navigation. Requires
-[Template Toolkit](https://metacpan.org/pod/Template). This is the default HTML
-report.
+**Crisp** is a self-contained HTML reporter. It builds its HTML in the module
+itself and takes its CSS and JavaScript from Devel::Cover::Web, so it does not
+need Template Toolkit. It features dark mode, sortable/filterable file tables,
+directory grouping, inline branch and condition truth tables, a scroll minimap,
+and keyboard navigation. This is the default HTML report.
 
 ## cpancover
 
 The cpancover project aims to present coverage information for CPAN modules. The
-website is found at [cpancover.com](http://cpancover.com/).
+website is at [cpancover.com](http://cpancover.com/).
 
 Devel::Cover::Collection is used by bin/cpancover and has some templates in it.
 
 In order to run cpancover a few extra modules are needed. They can be installed
-by Running `scripts/dc install_dependencies`.
+by running `utils/dc install_dependencies`.

@@ -79,7 +79,7 @@ Devel::Cover::Report::Sort - backend for Devel::Cover
 =head1 DESCRIPTION
 
 This module reports coverage runs in an optimal order.
-It is designed to be called from the C<cover> program.
+It is designed to be called from the F<cover> program.
 
 =head1 SEE ALSO
 
@@ -92,6 +92,6 @@ Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

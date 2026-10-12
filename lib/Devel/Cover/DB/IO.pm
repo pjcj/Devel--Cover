@@ -99,10 +99,9 @@ This module provides IO routines for Devel::Cover::DB.
 
  my $io = Devel::Cover::DB::IO->new(format => "JSON");
 
-Constructs the IO object.  The write format is taken from the
-C<DEVEL_COVER_DB_FORMAT> environment variable if set, then from the C<format>
-argument, then from whichever backend is available (Sereal, JSON, Storable,
-in that order).
+Constructs the IO object.  The write format comes from C<DEVEL_COVER_DB_FORMAT>
+if set, then from the C<format> argument, then from whichever backend is
+available (Sereal, JSON, Storable, in that order).
 
 Pass a true C<loose_perms> argument to make the lock files world writable, so
 that code changing EUID can still take the lock.  The data files themselves
@@ -112,7 +111,7 @@ are written by rename, so they need only a writable directory.
 
  my $data = $io->read($file);
 
-Returns a perl data structure representing the data read from $file.  The
+Returns a Perl data structure representing the data read from C<$file>.  The
 format of the file on disk is detected from its content, so a database
 written under a different configuration can still be read.
 
@@ -120,7 +119,7 @@ written under a different configuration can still be read.
 
  $io->write($data, $file);
 
-Writes $data to $file in the format specified when creating $io.
+Writes C<$data> to C<$file> in the format specified when creating C<$io>.
 
 =head1 LICENCE
 
@@ -129,6 +128,6 @@ Copyright 2011-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

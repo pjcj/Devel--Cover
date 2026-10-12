@@ -306,7 +306,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Condition_table - Condition truth tables for coverage reporting.
+Devel::Cover::Condition_table - Condition truth tables for coverage reporting
 
 =head1 SYNOPSIS
 
@@ -327,18 +327,18 @@ array of Condition_* objects for a source line and returns one Table per
 decision, each containing rows with input combinations, expected results, and
 coverage status.
 
-Rows are synthesised from each operator's recorded hit counts.  A compound
-decision (two or more logops) is synthesised as a cross-product of its operands'
-rows, so a combined row can appear covered although its inputs never occurred
-together in one execution. Two mechanisms keep that honest: observed input
-vectors, recorded at runtime for MC/DC, override synthesis when supplied (see
-L</apply_observed_vectors ($rows, $obs, $expr)>), and a table whose rows remain
-an unverified synthesis is marked unproven (see L</proven>).
+The module synthesises rows from the recorded hit counts of each operator.  It
+synthesises a compound decision (two or more logops) as a cross-product of the
+rows of its operands, so a combined row can appear covered although its inputs
+never occurred together in one execution. Two mechanisms correct for that:
+observed input vectors, recorded at runtime for MC/DC, override synthesis when
+supplied (see L</apply_observed_vectors ($rows, $obs, $expr)>), and a table
+whose rows remain an unverified synthesis is marked unproven (see L</proven>).
 
 A logop executed in void context is recorded collapsed to its boolean 2-count
 form, but the recorded structure keeps both operands.  Such a node is promoted
 back to its 3-count form so MC/DC rebuilds the full decision; the rebuilt table
-has no observed vectors and so is reported unproven - an honest 0%, never a
+has no observed vectors and so is reported unproven - a true 0%, never a
 false pass.  A constant-right collapse is a real boolean and is left alone.
 
 =head1 ROW OBJECTS
@@ -355,7 +355,7 @@ because an earlier operand short-circuited.
 
 =item result
 
-The decision's outcome for these inputs.
+The outcome of the decision for these inputs.
 
 =item covered
 
@@ -378,7 +378,7 @@ with read-only accessors:
 
 =item expr
 
-The decision's source text.
+The source text of the decision.
 
 =item short_expr
 
@@ -396,14 +396,14 @@ The Row objects.
 =item proven
 
 True unless the rows are an unverified synthesis: a compound decision (three or
-more atomics, so two or more logops) with no observed vectors.  Its row coverage
-is a cross-product whose co-occurrence was never demonstrated, so neither MC/DC
-nor the truth-table display may treat those rows as covered.  A single logop is
-exact from its hit counts, and observed vectors are real.
+more atomic conditions, so two or more logops) with no observed vectors.  Its
+row coverage is a cross-product whose co-occurrence was never demonstrated, so
+neither MC/DC nor the truth-table display may treat those rows as covered.  A
+single logop is exact from its hit counts, and observed vectors are real.
 
 =item too_wide
 
-True for the stub table of a decision wider than the analysis limit: it carries
+True for the stub table of a decision wider than the analysis limit: it holds
 the expression and labels but no rows.
 
 =back
@@ -424,22 +424,23 @@ C<["0X", "10", "11"]> for C<and_3>.  Returns undef for an unknown type.
 =head2 apply_observed_vectors ($rows, $obs, $expr)
 
 Overrides synthesised coverage with observed data: each row in C<$rows> is
-covered iff its input vector matches a key of C<$obs>. Synthesised rows not in
-the observed set stay rendered with C<covered=0> so the truth table still draws.
+covered if and only if its input vector matches a key of C<$obs>. Synthesised
+rows not in the observed set stay rendered with C<covered=0> so the truth table
+can still be drawn.
 
 A constant right operand (e.g. C<$x // {}>) collapses the table to fewer inputs
 than the runtime recorded for the uncollapsed expression, so an observed vector
-can carry more columns than a row.  The collapse always drops the trailing right
+can have more columns than a row.  The collapse always drops the trailing right
 operand, leaving the left subtree, so each observed vector is projected onto the
-surviving leading columns before matching; when the dimensions already agree the
-projection is a no-op.  A vector narrower than the rows means the recorder and
-the table disagreed about columns; such a key is skipped with a warning (named
-with C<$expr> when given, suppressed by C<-silent>) rather than matching wrong
-columns.
+remaining leading columns before matching.  When the dimensions already agree
+the projection is a no-op.  A vector narrower than the rows means the recorder
+and the table do not agree about columns.  Such a key is skipped with a warning
+(named with C<$expr> when given, suppressed by C<-silent>) rather than matching
+wrong columns.
 
 Operates on the rows' C<inputs> arrayrefs and C<covered> slots directly, so it
-serves both this module's rows and the Truth_Table reporters' rows, which share
-that layout.
+serves both the rows of this module and the rows of the Truth_Table reporters,
+which share that layout.
 
 =head2 for_line ($conditions, $observed)
 
@@ -448,7 +449,7 @@ arrayref of observed input-vector hashes indexed parallel to the
 conditions. Returns a list of Table objects, one per decision on the line.
 
 A decision with more than 16 atomic conditions is not analysed: its Table is a
-stub with C<too_wide> true, carrying the expression and labels but no rows.
+stub with C<too_wide> true, holding the expression and labels but no rows.
 
 =head1 SEE ALSO
 
@@ -458,7 +459,9 @@ L<Devel::Cover>
 
 Copyright 2026, Paul Johnson (paul@pjcj.net)
 
-This software is free.  It is licensed under the same terms as Perl itself. The
-latest version should be available from: https://pjcj.net
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+L<https://pjcj.net>
 
 =cut

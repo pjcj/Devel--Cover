@@ -67,7 +67,7 @@ Devel::Cover::Log - Centralised diagnostic output for Devel::Cover
 =head1 DESCRIPTION
 
 All diagnostic output goes to STDERR with a consistent C<"$Prefix: "> prefix
-(default C<cover>).  Warnings and errors carry a further C<Warning> or
+(default C<cover>).  Warnings and errors have a further C<Warning> or
 C<Error> label so they stand out from routine output.  STDOUT is reserved
 for requested output such as the summary table, the C<--dump_db> dump, and
 report content for text-based reporters.
@@ -96,8 +96,7 @@ C<$Devel::Cover::Silent> is true.
 
 =item dcprogress($msg)
 
-Reserved for progress reporting.  Currently behaves like C<dcinfo>; future
-versions may add tty-aware line-overwrite behaviour.  Silenced when
+Reserved for progress reporting.  Behaves like C<dcinfo>.  Silenced when
 C<$Devel::Cover::Silent> is true.
 
 =back
@@ -113,6 +112,6 @@ Copyright 2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

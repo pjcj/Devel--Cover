@@ -8,13 +8,13 @@ introduces and what limitations remain.
 
 The `class` feature (formerly known as Corinna) adds four new keywords:
 
-- `class` - declares a class (analogous to `package`, but with extra semantics
-  and an auto-generated `new` constructor)
+- `class` - declares a class (like `package`, but with extra semantics and an
+  auto-generated `new` constructor)
 - `field` - declares a per-instance lexical variable
 - `method` - declares a named method on the class
 - `ADJUST` - a block that runs once per object during construction
 
-Classes inherit from one parent via the `:isa` class attribute. Fields carry
+Classes inherit from one parent via the `:isa` class attribute. Fields take
 optional attributes: `:param` to accept constructor arguments, `:reader` to
 auto-generate a reader accessor, and `:writer` to auto-generate a writer.
 
@@ -22,9 +22,9 @@ auto-generate a reader accessor, and `:writer` to auto-generate a writer.
 
 Every CV (Perl's internal representation of a subroutine) compiled from a
 `method` declaration begins with a `methstart` op. The `methstart` op is a
-`B::UNOP_AUX` whose purpose is to initialise `$self` and make per-instance field
-storage available inside the method body. Only after it executes does the normal
-`nextstate` op appear, which carries the source file and line number.
+`B::UNOP_AUX` that initialises `$self` and makes per-instance field storage
+available inside the method body. Only after it executes does the normal
+`nextstate` op appear, which holds the source file and line number.
 
 Devel::Cover's CV discovery path is:
 
@@ -32,7 +32,7 @@ Devel::Cover's CV discovery path is:
 2. `B::GV::find_cv` extracts the CV from each GV and calls `check_file`.
 3. `check_file` calls `$cv->START` and, if the result is a `B::UNOP_AUX` named
    `methstart`, advances one hop (`$op->next`) to reach the `nextstate` that
-   carries file information. A `ref` check guards the `->name` call so that
+   holds file information. A `ref` check guards the `->name` call so that
    `B::NULL` ops are handled safely.
 
 `sub_info` similarly skips a leading `methstart` via `$start->sibling` to locate
@@ -70,7 +70,7 @@ leavesub
 After skipping `methstart` with `->sibling`, the existing signature path in
 `sub_info` handles the `null` node without further changes.
 
-## What Is Tracked
+## Tracked Constructs
 
 | Construct                           | Coverage                    |
 | ----------------------------------- | --------------------------- |
@@ -81,7 +81,7 @@ After skipping `methstart` with `->sibling`, the existing signature path in
 | Overriding `method` in subclass     | stmt, bran, cond, sub       |
 | `ADJUST` block                      | stmt, sub (see `adjust.md`) |
 
-## What Is Not Tracked
+## Untracked Constructs
 
 ### Auto-generated accessors (`:reader` and `:writer`)
 

@@ -1212,10 +1212,9 @@ Devel::Cover::Collection - Code coverage for a collection of modules
 
 =head1 DESCRIPTION
 
-Devel::Cover::Collection provides infrastructure for running code coverage
-analysis across a collection of CPAN modules. It is primarily used by the
-CPANCover service (L<http://cpancover.com>) to generate coverage reports for
-CPAN distributions.
+Devel::Cover::Collection runs code coverage analysis across a collection of
+CPAN modules. The CPANCover service (L<http://cpancover.com>) uses it to
+generate coverage reports for CPAN distributions.
 
 The module supports:
 
@@ -1241,8 +1240,7 @@ This module requires Perl 5.42.0 or later and uses the builtin C<class> feature.
 
   my $collection = Devel::Cover::Collection->new(%options);
 
-Creates a new Collection object. All options are optional and have sensible
-defaults.
+Creates a new Collection object. Every option has a default.
 
 =head1 ATTRIBUTES
 
@@ -1252,7 +1250,7 @@ These attributes can only be set via the constructor.
 
 =head3 bin_dir
 
-Directory containing the C<cover> binary. Used when running coverage commands.
+Directory containing the F<cover> program. Used when running coverage commands.
 
 =head3 cpan_dir
 
@@ -1295,8 +1293,8 @@ Timeout in seconds for coverage runs. Default: 3600 (60 minutes).
 Epoch time by which a local build must finish. Each command a local build runs
 gets an alarm for the time left before the deadline rather than the full
 timeout. C<local_build> sets it to the timeout less a margin of 60 seconds when
-it is not given. The build then stops on its own alarm and the output it has
-buffered reaches the log before the controller's timeout kills the container.
+it is not given. The build then stops on its own alarm and its buffered output
+is written to the log before the controller's timeout kills the container.
 Default: none.
 
 =head3 verbose
@@ -1331,8 +1329,8 @@ empty list). Default: 100.
 
 Boolean. If true, C<cover_modules> writes a C<__rebuilt__> marker for
 each module it builds, without the rebuild-mode selection or distdir
-replacement that C<rebuild> implies. Used by the rebuild loop's latest
-pass so fresh builds are not rebuilt again by the batch pass. Default: 0.
+replacement that C<rebuild> implies. Used by the latest pass of the rebuild
+loop so the batch pass does not rebuild fresh builds again. Default: 0.
 
 =head3 on_cpan
 
@@ -1346,7 +1344,7 @@ modules that are not on CPAN counts everything.
 Path of a file in the L<CPAN::Releases::Latest> cache format to read as
 the release index instead of the cache that module keeps and refreshes.
 Default: the C<CPANCOVER_LATEST_INDEX> environment variable, so a test can
-hand every C<cpancover> run a fixed index and stay off the network.
+give every F<cpancover> run a fixed index without using the network.
 
 =head2 Internally Managed Attributes
 
@@ -1464,9 +1462,9 @@ report.
 
   $collection->local_build;
 
-Orchestrates a complete local build workflow: processes the module file,
-builds modules, adds build directories, filters them to the target
-distributions, and runs coverage on all.
+Runs a full local build: processes the module file, builds modules, adds
+build directories, filters them to the target distributions, and runs
+coverage on all.
 
 =head2 Coverage Operations
 
@@ -1476,15 +1474,14 @@ distributions, and runs coverage on all.
 
 Runs coverage analysis on a single build directory. Creates coverage reports
 in the results directory under the distdir name recorded in C<distdir_for>,
-and dies when the build directory has no entry there. The C<cover>
-invocation is passed C<--select_dir>
-pointing at C<blib> (falling back to C<lib>, then the build directory) so
-files no test exercised appear in the report as untested, and a distribution
-without any tests still produces a report rather than failing. The report
-file is the success test. If the test run dies part-way and leaves no
-report, nothing is published and the failure propagates, even though a
-failing test suite alone does not. If a step after the test run dies, the
-collected output is printed before the error propagates.
+and dies when the build directory has no entry there. The F<cover> run is
+given C<--select_dir> pointing at C<blib> (falling back to C<lib>, then the
+build directory) so files no test exercised appear in the report as untested,
+and a distribution without any tests still produces a report rather than
+failing. The report file is the success test. If the test run dies part-way
+and leaves no report, nothing is published and the failure propagates, even
+though a failing test suite alone does not. If a step after the test run
+dies, the collected output is printed before the error propagates.
 
 =head3 run_all
 
@@ -1569,10 +1566,9 @@ Reads the cached CPAN release index through C<latest_paths> and flags each
 distribution the index does not list. The flag drops the distribution
 from the overview and marks its row on the distribution pages, while its
 report, its entry in C<cpancover.json> and the search index stay. The
-index is refreshed by the C<--latest> pass of the loop, so the flags
-follow CPAN with no hand maintenance. If the index cannot be read, a
-warning is issued and nothing is flagged, so every distribution counts
-for that run.
+C<--latest> pass of the loop refreshes the index, so the flags follow CPAN
+with no hand maintenance. If the index cannot be read, the method warns and
+flags nothing, so every distribution counts for that run.
 
 =head3 add_overview ($vars)
 
@@ -1594,9 +1590,9 @@ narrow to fit its count drops its label.
   if ($collection->is_covered($module_dir)) { ... }
 
 Returns true if coverage results exist for the given module directory.
-In rebuild mode (C<$rebuild> is true), also requires that the distdir
-has been flagged as rebuilt this cycle; already-covered but not-yet-
-rebuilt distdirs return false so C<cover_modules> will re-process them.
+In rebuild mode (C<$rebuild> is true), also requires that the distdir has
+been flagged as rebuilt this cycle. Already-covered but not-yet-rebuilt
+distdirs return false so C<cover_modules> will re-process them.
 
 =head3 is_failed
 
@@ -1628,10 +1624,10 @@ directory.
 
 =head2 Rebuild State
 
-Rebuild state mirrors the failure-tracking family above, but is used to
-drive gradual regeneration of already-covered distributions when the
-Devel::Cover version or default report has changed. State is persisted on
-disk under C<< $results_dir/__rebuilt__/ >>, parallel to C<__failed__>.
+Rebuild state works like the failure tracking above, but drives gradual
+regeneration of already-covered distributions when the Devel::Cover version
+or default report has changed. It is stored on disk under
+C<< $results_dir/__rebuilt__/ >>, beside C<__failed__>.
 
 =head3 rebuilt_dir
 

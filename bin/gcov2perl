@@ -204,7 +204,7 @@ The following command line options are supported:
   -i -info        - show documentation
   -v -version     - show version
 
-By default, C<gcov2perl> skips any C<.gcov> file whose source resolves into
+By default, F<gcov2perl> skips any C<.gcov> file whose source resolves into
 the Perl CORE directory (e.g. F<sv_inline.h>, F<inline.h>, F<perlstatic.h>).
 These files are inlined into XS code and produce coverage data that is rarely
 of interest to the XS author.  Pass C<-no-skip-core> to override and include
@@ -214,25 +214,25 @@ them.
 
 To obtain coverage of XS files they must first be compiled with the appropriate
 options.  In a standard Makefile environment, such as that created by
-ExtUtils::MakeMaker, this can be accomplished with the command:
+L<ExtUtils::MakeMaker>, this can be accomplished with the command:
 
   HARNESS_PERL_SWITCHES=-MDevel::Cover make test \
     CCFLAGS=-O0\ -fprofile-arcs\ -ftest-coverage \
     OTHERLDFLAGS=-fprofile-arcs\ -ftest-coverage
 
-If you have already built your object files it may be necessary to run make
-clean first, or to find some other way to ensure that they get rebuilt with the
-options gcov requires.
+If you have already built your object files it may be necessary to run
+C<make clean> first, or to find some other way to ensure that they get rebuilt
+with the options F<gcov> requires.
 
-Now the code coverage data has been collected C<gcov> needs to be run:
+Now the code coverage data has been collected, F<gcov> needs to be run:
 
   gcov Mylib.xs
 
-This will create one or more gcov files on which you can run C<gcov2perl>:
+This will create one or more gcov files on which you can run F<gcov2perl>:
 
   gcov2perl Mylib.xs.gcov
 
-Finally, C<cover> should be run as usual with any options required:
+Finally, F<cover> should be run as usual with any options required:
 
   cover
 
@@ -250,7 +250,7 @@ The following exit values are returned:
 
 =head1 SEE ALSO
 
-  Devel::Cover
+L<Devel::Cover>
 
 =head1 LICENCE
 
@@ -259,6 +259,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

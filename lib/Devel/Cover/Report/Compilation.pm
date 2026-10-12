@@ -168,8 +168,8 @@ Devel::Cover::Report::Compilation - backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a textual reporting mechanism for coverage data. It is
-designed to be called from the C<cover> program.
+This module reports coverage data as text. It is designed to be called from
+the F<cover> program.
 
 It produces one report per line, in a format like Perl's own compilation error
 messages. This makes it easy to use with development tools that understand
@@ -218,7 +218,7 @@ The compilation report generates output in the following formats:
 
 Only errors are reported. A construct marked uncoverable and not covered is
 excused, so it produces no output. A construct marked uncoverable but covered
-carries a stale marker, so it is reported with a "marked uncoverable but
+has a stale marker, so it is reported with a "marked uncoverable but
 covered" message. Branch directions and condition outcomes which are excused
 are omitted from "never" messages and header lists.
 
@@ -240,7 +240,7 @@ To use with vim quickfix:
   :cgetexpr system('cover -report compilation')
   :copen
 
-Then use :cn and :cp to navigate between uncovered locations.
+Then use C<:cn> and C<:cp> to move between uncovered locations.
 
 =head1 COVERAGE TYPES
 
@@ -262,7 +262,7 @@ The compilation report supports all standard Devel::Cover coverage types:
 
 =back
 
-Use the standard C<cover> command options to select which types to report:
+Use the standard F<cover> command options to select which types to report:
 
   cover -report compilation +statement +branch +condition +mcdc +subroutine +pod
 
@@ -329,6 +329,6 @@ assigned to Paul Johnson.
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

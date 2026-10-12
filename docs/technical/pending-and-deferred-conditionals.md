@@ -43,7 +43,7 @@ finishes, then read its value to decide between slot [1] (false) and slot [2]
 threaded builds). It stores condition data that is waiting for a specific op to
 be reached.
 
-### How it works
+### The hijack sequence
 
 When `cover_logop()` handles the non-short-circuit path:
 
@@ -94,9 +94,9 @@ same `Pending_conditionals` entry and resolved together.
 ### Limitations
 
 The mechanism relies on `right->op_next` being non-NULL. There must be an op to
-hijack. This works in the vast majority of cases because most code has a
-continuation op after any expression. However, it fails when `right->op_next` is
-NULL, which happens in two known cases:
+hijack. This works almost always because most code has a continuation op after
+any expression. However, it fails when `right->op_next` is NULL, which happens
+in two known cases:
 
 - **Compile-time constant folding**: the op tree was simplified away. This was
   the original reason for the bail-out, noted in the comment
@@ -129,7 +129,7 @@ whose value equals the short-circuit value, false for an `and` and true for an
 circuited left the value, so a `//` pending on a jumped op still records `0` as
 defined.
 
-### Where to find it in Cover.xs
+### Location in Cover.xs
 
 - Declaration: `static HV *Pending_conditionals`
 - Setup in `cover_logop()`: hv_fetch, av_push, ppaddr replacement
@@ -144,7 +144,7 @@ defined.
 pointers for conditions that could not be hijacked because `right->op_next` was
 NULL.
 
-### Why sort blocks have NULL op_next
+### Sort blocks and NULL op_next
 
 Sort blocks are special in Perl's internals. The op tree for a sort comparator
 like:
@@ -166,7 +166,7 @@ via `CALLRUNOPS`, which runs the ops until PL_op becomes NULL. `pp_sort` then
 reads the result directly from `*PL_stack_sp`. There is nowhere for the ops to
 "go next" because `pp_sort` handles the transition.
 
-### How it works
+### The deferral sequence
 
 1. In `cover_logop()`, when `right->op_next` is NULL (after skipping OP_NULLs),
    instead of bailing out, we push the current op onto
@@ -180,18 +180,18 @@ reads the result directly from `*PL_stack_sp`. There is nowhere for the ops to
    `cover_logop()` runs, so the right operand runs next. When the right
    operand's final op returns NULL, the runops loop exits.
 
-3. At the runops loop exit (in both `runops_cover` and `runops_orig`),
-   `resolve_deferred_conditionals()` is called. It checks for entries pushed
-   during this invocation (from `deferred_base` upwards). The stack top at this
-   point holds the sort comparator's final value - the right operand of the
-   outermost `||`. The function reads the truth and the definedness of `TOPs`,
-   then pops and resolves each deferred entry via `add_conditional` with the
-   slot that entry's own type asks for, as `add_condition` does.
+3. At the runops loop exit (in both `runops_cover` and `runops_orig`), the loop
+   calls `resolve_deferred_conditionals()`. It checks for entries pushed during
+   this invocation (from `deferred_base` upwards). The stack top at this point
+   holds the sort comparator's final value - the right operand of the outermost
+   `||`. The function reads the truth and the definedness of `TOPs`, then pops
+   and resolves each deferred entry via `add_conditional` with the slot that
+   entry's own type asks for, as `add_condition` does.
 
 4. The result is identical to what `get_condition` would record for the normal
    hijack path.
 
-### Why only the outermost || is affected
+### Only the outermost || is affected
 
 For chained comparators like `A || B || C`, Perl compiles this as
 `(A || B) || C`. The inner `||`'s right operand (`B`) has `op_next` pointing to
@@ -213,7 +213,7 @@ I32 deferred_base = av_len(MY_CXT.deferred_conditionals) + 1;
 ```
 
 On exit, it only processes entries from `deferred_base` upwards - entries pushed
-during this invocation. This guard handles two scenarios:
+during this invocation. This guard matters in two cases:
 
 **Nested sorts.** `pp_sort` calls `CALLRUNOPS` for each comparison. If a sort
 comparator itself contains another sort, the call stack becomes:
@@ -275,7 +275,7 @@ The deferred resolution code is present in both `runops_cover` and `runops_orig`
 so that it works regardless of mode. In replace_ops mode, `PL_runops` is set to
 `runops_orig` to ensure the resolution code is reached.
 
-### Where to find it in Cover.xs
+### Location in Cover.xs
 
 - Field declaration: `my_cxt_t.deferred_conditionals`
 - Initialisation in `initialise()`: `MY_CXT.deferred_conditionals = newAV()`

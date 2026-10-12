@@ -252,7 +252,7 @@ Devel::Cover::Static - PPI-based static analysis for uncovered files
 
 This module provides static analysis of Perl source files using PPI. It
 estimates the number of coverable constructs (statements, branches, conditions,
-mcdc atomics, subroutines, and pod) without executing the code.
+mcdc atomic conditions, subroutines and pod) without executing the code.
 
 It is used by L<Devel::Cover::DB> to populate coverage data for files discovered
 via C<--select_dir> that were never exercised by any test. The counts allow
@@ -294,10 +294,10 @@ C<$Const_right> heuristic), and 3 otherwise.
 B<Mcdc> counts atomic conditions per decision, treating each statement that
 holds logical operators as one decision: operators plus one, less one for each
 short-circuit operator whose right-hand side is a constant or flow-control
-keyword (its truth table carries no atomic for that operand). The estimate is
-rough in both directions - a decision evaluated in boolean context builds a
-narrower table than the source suggests, and a statement holding two separate
-decisions is counted as one.
+keyword (its truth table has no atomic condition for that operand). The
+estimate is rough in both directions - a decision evaluated in boolean context
+builds a narrower table than the source suggests, and a statement holding two
+separate decisions is counted as one.
 
 B<Subroutines> count named subs plus one BEGIN per C<use>/C<require>.
 
@@ -314,9 +314,9 @@ complexity data:
     ...
   ]
 
-Named subroutines have their CC computed as the number of decision points within
-the sub's block plus one. Each C<use>/C<require> is included as a BEGIN entry
-with CC=1. Forward declarations (no block) are skipped.
+The CC of a named subroutine is the number of decision points in its block plus
+one. Each C<use>/C<require> is included as a BEGIN entry with CC=1. Forward
+declarations (no block) are skipped.
 
 Returns C<undef> if PPI is unavailable or the file fails to parse.
 
@@ -328,12 +328,12 @@ Returns C<undef> if PPI is unavailable or the file fails to parse.
 
 =item _is_module_true($doc, $s)
 
-Detects the trailing C<1> return value at end of a module. These are not counted
-as executable statements by Devel::Cover.
+Detects the trailing C<1> return value at the end of a module. Devel::Cover does
+not count it as an executable statement.
 
 =item _inside_for_parens($s)
 
-Returns true if a statement sits inside for-loop parentheses (e.g. the range
+Returns true if a statement is inside for-loop parentheses (e.g. the range
 expression in C<for my $i (1..$n)>). Devel::Cover counts the for header as one
 statement, not the inner expression separately.
 
@@ -387,5 +387,14 @@ documentation.
 =head1 SEE ALSO
 
 L<Devel::Cover>, L<Devel::Cover::DB>, L<PPI>
+
+=head1 LICENCE
+
+Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+L<https://pjcj.net>
 
 =cut

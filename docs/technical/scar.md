@@ -17,9 +17,8 @@ and coverage answers: "which files most need attention?"
 
 ### McCabe's Cyclomatic Complexity (1976)
 
-Thomas McCabe's seminal paper ["A Complexity Measure"][mccabe] (IEEE TSE,
-SE-2(4), pp. 308-320) defines cyclomatic complexity as a property of the control
-flow graph:
+Thomas McCabe's paper ["A Complexity Measure"][mccabe] (IEEE TSE, SE-2(4), pp.
+308-320) defines cyclomatic complexity as a property of the control flow graph:
 
 ```text
 v(G) = e - n + 2p
@@ -30,8 +29,8 @@ where e = edges, n = nodes, p = connected components. For a single subroutine (p
 
 ### [NIST SP 500-235][nist]: Structured Testing (Watson & McCabe, 1996)
 
-The authoritative practical guide. Provides the counting rule that most tools
-implement:
+This is the authoritative practical guide. It provides the counting rule that
+most tools implement:
 
 > "If all decisions are binary and there are p binary decision predicates, v(G)
 > = p + 1."
@@ -72,9 +71,9 @@ need at least 42% coverage to stay below it. At CC=25, you need 80%.
 - **Elbaum et al. (2002)** - ["Test Case Prioritization"][elbaum] (IEEE TSE).
   APFD metric for coverage-based prioritisation.
 - **Nagappan & Ball (2005)** - ["Relative Code Churn"][nagappan] (ICSE). Churn
-  predicts defects at 89% accuracy. This informed the decision to not pursue
-  VCS-integration approaches (option 7 below) - powerful but unavailable when
-  running coverage on a CPAN distribution, which has no VCS history.
+  predicts defects at 89% accuracy. This informed the decision not to pursue
+  VCS-integration approaches (option 7 below). They predict well but need VCS
+  history, which a CPAN distribution does not have.
 - **Felderer & Schieferdecker (2014)** -
   ["Taxonomy of Risk-Based Testing"][felderer]. Classification of risk-based
   approaches in testing.
@@ -107,52 +106,54 @@ Seven approaches were evaluated before settling on CRAP + SCAR:
 
 ### Option 1: Missed count
 
-`risk = missed_statements + missed_branches + missed_conditions`. What lcov's
-`--sort=miss` does. Simple, size-weighted, and directly answers "where would
-adding tests have the most impact?" - but has no published backing as a risk
-metric, and does not capture the interaction between complexity and coverage.
+`risk = missed_statements + missed_branches + missed_conditions`. This is what
+lcov's `--sort=miss` does. It is simple and size-weighted, and it directly
+answers "where would adding tests have the most impact?", but it has no
+published backing as a risk metric and does not capture the interaction between
+complexity and coverage.
 
 ### Option 2: Weighted missed count
 
-Like option 1 but with configurable weights per criterion (e.g.
-`W_s=1, W_b=2, W_c=2, W_u=1`). Acknowledges that branch gaps are more
-consequential than statement misses, but the default weights are an opinion with
-no empirical basis, and adding user-configurable knobs is undesirable.
+This is option 1 with configurable weights per criterion (e.g.
+`W_s=1, W_b=2, W_c=2, W_u=1`). It acknowledges that branch gaps matter more than
+statement misses, but the default weights are an opinion with no empirical
+basis, and adding user-configurable knobs is undesirable.
 
 ### Option 3: CRAP (chosen)
 
-The standard formula from Savoia & Evans. Well-studied, widely adopted, captures
-the key insight that complex + untested = risky. Non-linear: punishes the
-combination more than either factor alone. Cyclomatic complexity, which CRAP
-requires, is computed during the optree walk.
+This is the standard formula from Savoia & Evans. It is well-studied and widely
+adopted, and it captures the key insight that complex + untested = risky. It is
+non-linear, so it weights the combination more heavily than either factor alone.
+Cyclomatic complexity, which CRAP requires, is computed during the optree walk.
 
 ### Option 4: CRAP-lite
 
-Approximates CC as `total_branch_points + 1`, avoiding the need for real CC
-computation. Rejected because genuine CC turned out to be straightforward to
-compute during the existing walk, and the approximation misses `foreach` loops
+This approximates CC as `total_branch_points + 1`, which avoids real CC
+computation. It was rejected because genuine CC turned out to be easy to compute
+during the existing walk, and because the approximation misses `foreach` loops
 and `while`/`until`/`for` loops (whose branch points are suppressed by
 Devel::Cover's leaveloop guard).
 
 ### Option 5: Normalised coverage gap
 
-A weighted average of uncovered fractions per criterion, ranging from 0 to
-sum(weights). Size-blind: a 5-line file at 0% scores the same as a 5000-line
-file at 0%. If the goal is "where to spend effort", size matters.
+This is a weighted average of uncovered fractions per criterion, ranging from 0
+to sum(weights). It is size-blind: a 5-line file at 0% scores the same as a
+5000-line file at 0%. If the goal is "where to spend effort", size matters.
 
 ### Option 6: Geometric mean of uncovered fractions
 
-`risk = (u_stmt * u_branch * u_cond * u_sub) ^ (1/4)`. Naturally penalises
-weakness on any single criterion, but if any criterion is 100% covered the
-entire product becomes 0 regardless of the others. Size-blind, no published
-backing.
+`risk = (u_stmt * u_branch * u_cond * u_sub) ^ (1/4)`. This naturally penalises
+weakness on any single criterion, but if any criterion is 100% covered the whole
+product becomes 0 regardless of the others. It is size-blind and has no
+published backing.
 
 ### Option 7: Change-frequency weighted
 
-`risk = commits_in_last_N_months * (1 - coverage / 100)`. Based on Nagappan &
-Ball (ICSE 2005) - empirically the strongest predictor of actual defects.
-However, it requires VCS history, which is unavailable when running coverage on
-a CPAN distribution and is a significant new feature beyond a formula change.
+`risk = commits_in_last_N_months * (1 - coverage / 100)`. This is based on
+Nagappan & Ball (ICSE 2005), and churn is empirically the strongest predictor of
+actual defects. However, it requires VCS history, which is unavailable when
+running coverage on a CPAN distribution and is a significant new feature beyond
+a formula change.
 
 ### Comparison
 
@@ -168,7 +169,7 @@ a CPAN distribution and is a significant new feature beyond a formula change.
 
 \* lcov uses missed count for sorting but does not call it "risk".
 
-## Why CRAP, and Why SCAR
+## The Case for CRAP and for SCAR
 
 CRAP was the clear winner: it is the only published, peer-reviewed, widely
 adopted coverage-based risk formula. It required cyclomatic complexity, which
@@ -202,19 +203,19 @@ The name "Scaled Complexity And Risk" was chosen to:
 ### Display strategy
 
 SCAR is the primary displayed value in all reports. Raw CRAP remains accessible
-in Html_crisp tooltips for users who want the standard metric. This gives the
-best of both worlds: a scannable, bounded number in the table, with the
-published metric one hover away.
+in Html_crisp tooltips for users who want the standard metric. This gives a
+scannable, bounded number in the table, with the published metric one hover
+away.
 
 ## Architectural Placement
 
 Risk scoring is computed in `DB::calculate_summary` (via `summarise_complexity`)
 rather than in individual reporters. This means all reporters and CLI tools get
-SCAR data for free without duplicating the formula. The DB layer gains an
-opinion about what "risk" means, but the alternative - each reporter computing
-its own risk - leads to duplication and divergence. A shared utility module was
-considered but adds indirection for no practical benefit when there is exactly
-one formula.
+SCAR data for free without duplicating the formula. This puts an opinion about
+what "risk" means into the DB layer, but the alternative - each reporter
+computing its own risk - leads to duplication and divergence. A shared utility
+module was considered but adds indirection for no practical benefit when there
+is exactly one formula.
 
 ## Computing Cyclomatic Complexity
 
@@ -376,8 +377,9 @@ Where:
 - cov(m) is the combined statement+branch+condition coverage percentage
 
 At 100% coverage, CRAP equals CC (complexity alone). At 0% coverage, CRAP equals
-CC^2 + CC. The cubic exponent on the coverage gap makes the penalty steep: going
-from 90% to 80% coverage hurts much more than going from 50% to 40%.
+CC^2 + CC. The cubic exponent on the coverage gap makes the penalty steep: a
+drop from 90% to 80% coverage raises the score far more than a drop from 50% to
+40%.
 
 ### SCAR
 
@@ -426,16 +428,16 @@ log-transforms of established CRAP boundaries:
 | >= 41      | c0        | >= 60           | Very high risk |
 
 The CRAP threshold of 30 (the accepted "unacceptable" boundary) maps to SCAR
-~34, sitting at the c2/c1 boundary.
+~34, which is the c2/c1 boundary.
 
 ## Aggregation Levels
 
 CRAP is defined per-subroutine, but developers need risk scores at multiple
-levels. The aggregation strategy:
+levels. The levels aggregate as follows.
 
 ### Per-subroutine
 
-The CRAP formula applied directly. This is the canonical level.
+The CRAP formula is applied directly. This is the canonical level.
 
 ### Per-file, per-directory, and Total
 
@@ -459,16 +461,16 @@ file CRAP is the expected CRAP of the subroutine containing a randomly chosen
 decision point in the file. Directories and the Total aggregate the same way
 over all their subroutines.
 
-Weighting by CC rather than averaging plainly stops a crowd of trivial subs from
+Weighting by CC rather than averaging plainly stops many trivial subs from
 hiding a dangerous one. A risky sub is counted twice over - linearly through its
 weight and quadratically through its own CRAP score - so one large untested sub
-still pulls a big file into the red.
+still gives a big file a high SCAR.
 
 This construction gives four guarantees:
 
 - The score lies on the per-sub scale, so the colour thresholds are the same at
   every level.
-- An aggregate always sits between its best and worst child. A file is never
+- An aggregate always lies between its best and worst child. A file is never
   more red than its worst sub, and the Total is never more red than the worst
   file.
 - The score is size-independent. Two codebases with the same mix of clean and

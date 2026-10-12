@@ -92,8 +92,8 @@ Devel::Cover::Op - B::Concise with coverage data
 This module works as if calling B::Concise but also outputs coverage
 information.  Its primary purpose is to aid in the development of Devel::Cover.
 
-See comments in Cover.xs (especially set_conditional()) to aid in interpreting
-the output.
+See comments in F<Cover.xs> (especially C<set_conditional()>) to aid in
+interpreting the output.
 
 =head1 SEE ALSO
 
@@ -106,6 +106,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

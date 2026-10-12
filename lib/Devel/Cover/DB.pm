@@ -1568,13 +1568,13 @@ currently held by live processes are left in place.
   $db->merge_runs;
 
 Merge individual run files from C<< $db/runs/ >> into the main database, write
-the merged result, and delete the run files. Handles changed-file detection: if
-a file's digest differs between runs the old coverage is discarded. Returns
+the merged result, and delete the run files. Detects changed files: if a file's
+digest differs between runs the old coverage is discarded. Returns
 C<$self>.
 
-The whole sequence is serialised via an exclusive flock on C<merge.lock> in
+The whole sequence is serialised via an exclusive flock on F<merge.lock> in
 the database directory, so concurrent merges cannot double-count runs. The
-lock file persists after release and is swept by C<clean> once free. Before
+lock file persists after release and C<clean> removes it once free. Before
 being written, merged runs are renamed to hidden C<.merged.*> siblings, so a
 merge interrupted between the write and the removal of its runs cannot merge
 them again. Such leftovers are removed on the next call.
@@ -1694,17 +1694,17 @@ counts, and C<$uc> uncoverable data.
 
 =head2 add_time
 
-  $db->add_time($cc, $sc, $fc, $);
+  $db->add_time($cc, $sc, $fc, $uc);
 
-Merge time coverage data. Same interface as L</add_statement> but accumulates
-into scalar references.
+Merge time coverage data. Same interface as L</add_statement>, but accumulates
+into scalar references and ignores C<$uc>.
 
 =head2 add_branch
 
   $db->add_branch($cc, $sc, $fc, $uc);
 
-Merge branch coverage counts. Handles multi-valued branch data (true/false/else
-counts).
+Merge branch coverage counts, including multi-valued branch data (true, false
+and else counts).
 
 =head2 add_subroutine
 
@@ -1741,13 +1741,13 @@ When such a logop joins two decisions (its right operand is itself a logop) it
 is also recorded as a condition, exactly as in value context, so the joining
 operator is observed by condition and MC/DC coverage and a C<||> versus C<&&>
 fault is visible. Without this only the inner logops get tables and the outer
-operator has no representation. The trigger tests the B<right> operand
-alone: a statement modifier C<< ACTION if COND >> compiles to the same op as a
-genuine C<< COND && ACTION >> join, so a left-only-compound join cannot be told
-apart from control flow and is left as a branch, where its operator is still
-visible in the C<if>/C<unless> text. Void context is honoured through the
-runtime collapse flag, so a logop evaluated only in void context never observes
-its right operand and stays honestly unproven.
+operator has no representation. The trigger tests the right operand alone. A
+statement modifier C<< ACTION if COND >> compiles to the same op as a genuine
+C<< COND && ACTION >> join, so a left-only-compound join cannot be told apart
+from control flow. It is left as a branch, where its operator is still visible
+in the C<if>/C<unless> text. Void context is honoured through the runtime
+collapse flag, so a logop evaluated only in void context never observes its
+right operand and remains unproven.
 
 Control-flow logops - C<if>/C<while> bodies, C<or die>, C<and $x++> - have a
 block, statement, or side-effect right operand rather than a nested decision, so
@@ -1799,12 +1799,13 @@ be accessed.
     }
   }
 
-Data for different criteria will be in different formats, so that will need
-special handling. This is not yet documented so your best bet for now is to look
-at some of the simpler reports and/or the source.
+Data for different criteria are in different formats, so each needs its own
+handling. This is not yet documented, so for now look at some of the simpler
+reports or the source.
 
 The methods in the above example are actually aliases for methods in
-Devel::Cover::DB::Base (the base class for all C<Devel::Cover::DB::*> classes):
+C<Devel::Cover::DB::Base> (the base class for all C<Devel::Cover::DB::*>
+classes):
 
 =over
 
@@ -2002,7 +2003,7 @@ markers are merged with conditions the analyser excused.
 =head2 _mcdc_uncoverable ($unc, $file, $line, $n, $total)
 
 Return the per-column uncoverable vector for one mcdc decision, or undef
-when it carries no markers. A marker with a column marks that condition and
+when it has no markers. A marker with a column marks that condition and
 one without marks every column.
 
 =head2 _file_digest ($r, $file)
@@ -2044,18 +2045,13 @@ and about marks that do not apply to the construct they annotate.
 =head2 _sorted_run_keys ($self)
 
 Return the run keys sorted as L</run_keys> describes. The start times are
-pulled out without dereferencing the runs, since a run can be undef (as
+read without dereferencing the runs, since a run can be undef (as
 self-coverage runs produce) and autovivifying it would stop
 L</objectify_cover> deleting it.
 
 =head1 SEE ALSO
 
- Devel::Cover
- Devel::Cover::DB::Base
- Devel::Cover::DB::Cover
- Devel::Cover::DB::File
- Devel::Cover::DB::Criterion
- Devel::Cover::DB::Location
+L<Devel::Cover>, L<Devel::Cover::DB::File>
 
 =head1 LICENCE
 
@@ -2064,6 +2060,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

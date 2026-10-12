@@ -25,7 +25,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Condition_or_2 - Two-outcome or condition criterion
+Devel::Cover::Condition_or_2 - Two-outcome C<or> condition criterion
 
 =head1 SYNOPSIS
 
@@ -33,8 +33,8 @@ Devel::Cover::Condition_or_2 - Two-outcome or condition criterion
 
 =head1 DESCRIPTION
 
-Module for storing condition coverage information for or conditions whose right
-operand is a constant or control flow, leaving only two outcomes.
+Module for storing condition coverage information for C<or> conditions whose
+right operand is a constant or control flow, leaving only two outcomes.
 
 =head1 SEE ALSO
 
@@ -57,6 +57,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

@@ -511,7 +511,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::Truth_Table - Truth tables for coverage objects.
+Devel::Cover::Truth_Table - Truth tables for coverage objects
 
 =head1 SYNOPSIS
 
@@ -550,9 +550,8 @@ expressions.
 
 =head2 new_primitive($op, @coverage)
 
-Create a new truth table based on one of the built-in primitives, which
-are the subclasses of Devel::Cover::DB::Condition. C<$op> is one of the
-following:
+Create a new truth table based on one of the built-in primitives. C<$op> is
+one of the following:
 
 =over 4
 
@@ -611,11 +610,13 @@ Merge entries from C<$sub_table> into left column of table.
 
 Devel::Cover
 
-=head1 LICENSE
+=head1 LICENCE
 
 Copyright 2002 Michael Carman <mjcarman@mchsi.com>
 
-This software is free.  It is licensed under the same terms as Perl
-itself. The latest version should be available from: https://pjcj.net
+This software is free.  It is licensed under the same terms as Perl itself.
+
+The latest version of this software should be available from my homepage:
+L<https://pjcj.net>
 
 =cut

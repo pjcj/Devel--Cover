@@ -137,7 +137,7 @@ Devel::Cover::Criterion - Base class for coverage criteria
 
 =head1 DESCRIPTION
 
-Abstract base class for all the coverage criteria. It also carries the
+Abstract base class for all the coverage criteria. It also holds the
 canonical criterion list and per-criterion metadata as class methods, so
 reporters can ask about a criterion instead of hardcoding names, regexes
 and lists.
@@ -175,7 +175,7 @@ order is the sign display priority.
 
 =head2 uncoverable_classes
 
-Return the class words an uncoverable comment may carry - C<default>
+Return the class words an uncoverable comment may take - C<default>
 and C<ignore_covered_err>. The comment parser rejects anything else.
 
 =head1 CRITERION METADATA
@@ -198,7 +198,7 @@ reporters display for a single value.
 
 =head2 detail_criterion
 
-The criterion name whose per-file detail page this criterion's values
+The criterion name whose per-file detail page the values of this criterion
 link to, or undef when there is none. Pod links to the subroutine page.
 
 =head2 has_detail_page
@@ -304,11 +304,11 @@ with the uncoverable flag:
         1            1  stale
 
 A stale marker - a construct which runs despite being marked
-uncoverable - is normally an error, because the marker no longer tells
-the truth. It is forgiven, and reported as covered, under
-C<-ignore_covered_err> or when the marker carries the
-C<ignore_covered_err> class. Criteria holding several values, such as
-branch, take the index of the value to ask about.
+uncoverable - is normally an error, because the marker is no longer
+true. It is not counted as an error, and is reported as covered, under
+C<-ignore_covered_err> or when the marker has the C<ignore_covered_err>
+class. Criteria holding several values, such as branch, take the index
+of the value to ask about.
 
 =head2 calculate_percentage ($db, $summary)
 
@@ -334,6 +334,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

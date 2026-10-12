@@ -9,10 +9,10 @@ reports 100% statement coverage even if half its top-level code never ran.
 
 The tests `t/internal/module_top_level.t` and `tests/module_require` guard
 against this. Before the fix the golden results showed `Module_top_level.pm` at
-100% with every top-level line blank, the same deficiency that sat in the golden
-results of `module1` and friends for years (lines 10 and 11 of `Module1.pm`).
+100% with every top-level line blank, the same deficiency the golden results of
+`module1` and friends had for years (lines 10 and 11 of `Module1.pm`).
 
-## Why the data is lost
+## The cause of the loss
 
 Devel::Cover collects coverage in two phases.
 
@@ -46,7 +46,7 @@ In detail, for a successful require:
 - When the file's top-level code finishes, `pp_leaveeval` unwinds that scope and
   the `SAVEFREEOP` fires `op_free(PL_eval_root)`. The whole top-level tree,
   including every `nextstate` COP, is freed at that moment, long before `END`.
-- The eval CV itself usually survives to program end as an empty husk. Every
+- The eval CV itself usually remains until program end as an empty husk. Every
   named sub compiled in the file holds a strong `CvOUTSIDE` reference to it (the
   weakening in `newATTRSUB` is skipped when the outside CV is an eval CV). But
   since `CvROOT` is NULL the husk gives `B` no route to the ops.
@@ -59,15 +59,15 @@ mechanism. `Cover.xs` sets `PL_savebegin = TRUE` at boot, which makes
 `Perl_call_list` push executed `BEGIN`/`CHECK`/`UNITCHECK` CVs onto
 `PL_beginav_save`/`PL_checkav_save`/`PL_unitcheckav_save` instead of freeing
 them, and `B::begin_av` exposes the saved array. That mechanism was added for
-the compiler backends and is precisely the precedent for a fix. The saved CVs
-also keep alive the outer lexicals they captured, which
-`special-block-lexicals.md` describes.
+the compiler backends and is the precedent for a fix. The saved CVs also keep
+alive the outer lexicals they captured, which `special-block-lexicals.md`
+describes.
 
 No existing `$^P` flag helps. `PERLDBf_SAVESRC` and friends retain source text,
 not ops. `DB::postponed` receives the file GV only. String eval is affected in
 exactly the same way as require.
 
-## How it could be solved
+## Possible solutions
 
 ### Option A: a core mechanism to save require optrees
 
@@ -77,7 +77,7 @@ Follow the `PL_savebegin` precedent. Add to core perl:
   in the same way `B::save_BEGINs` sets `PL_savebegin` (or a new `$^P` bit, say
   `PERLDBf_SAVEEVALTREE`, for non-XS users),
 - in `S_doeval_compile`, when the flag is on and compilation succeeded, attach
-  the tree to the CV instead of scheduling its death. That is, set
+  the tree to the CV instead of scheduling it to be freed. That is, set
   `CvROOT(evalcv) = PL_eval_root` and `CvSTART(evalcv) = PL_eval_start`, skip
   the `SAVEFREEOP(PL_eval_root)`, and push a refcounted reference to the CV onto
   a new save array, say `PL_evalav_save`,
@@ -89,13 +89,13 @@ Follow the `PL_savebegin` precedent. Add to core perl:
 Attaching the root to the CV means the normal CV destruction path
 (`cv_undef_flags`) frees the tree, so no separate bookkeeping is needed, and
 `B::CV::ROOT`/`START` work on the saved CVs without further changes. The eval
-root already carries `OPpREFCOUNTED` with a refcount of 1, matching what
+root already has `OPpREFCOUNTED` set with a refcount of 1, matching what
 `cv_undef_flags` expects of a `CvROOT`.
 
 Devel::Cover would then enable the flag at boot next to `PL_savebegin` and walk
 `B::eval_av` in `_report` next to the `begin_av` walk. The eval CV's pad
-(holding the file's lexicals) survives with it, so deparsing branch and
-condition text works as for any other CV.
+(holding the file's lexicals) remains with it, so deparsing branch and condition
+text works as for any other CV.
 
 Points to settle in the core design:
 
@@ -123,9 +123,9 @@ Devel::Cover now does:
   `CxOLD_OP_TYPE` being `OP_REQUIRE` or `OP_DOFILE` and `check_if_collecting`
   accepts the file. It takes `OpREFCNT_inc` on `PL_op` (which at that moment is
   `PL_eval_root`, the root of the file's top-level tree), takes a reference to
-  the husk CV from `cx->blk_eval.cv` for deparse context, and stashes CV, root
+  the husk CV from `cx->blk_eval.cv` for deparse context, and stores CV, root
   address and `CopFILE(PL_curcop)` in `MY_CXT.require_trees`. Under
-  `-replace_ops 0` the capture consults `use_file` for the file itself, because
+  `-replace_ops 0` the capture calls `use_file` for the file itself, because
   `check_if_collecting` only calls `use_file` when ops are replaced and
   otherwise leaves its cached flag at whatever the last file set, which would
   retain every required file's tree until report only to be dropped by
@@ -159,7 +159,7 @@ anyway, so nothing can be done about them without core support.
 A file loaded with `do FILE` is captured the same way. `do FILE` compiles and
 runs the file in an eval context just as `require` does, but leaves
 `CxOLD_OP_TYPE` as `OP_DOFILE`, so the capture guard accepts that op type too.
-Unlike `require`, `do` re-runs the file on every call rather than consulting
+Unlike `require`, `do` re-runs the file on every call rather than checking
 `%INC`, so a file loaded repeatedly captures one tree per run. `_report` keeps
 only the most recent tree per file, exactly as it does for a reloaded require,
 so each top-level statement is recorded once.
@@ -182,14 +182,14 @@ top-level statement, branch and condition walk stays skipped as it is for any
 other code.
 
 A lexical sub (`my sub`) is different. Once its scope has exited, its pad value
-slot no longer holds a usable CV, so the value walk cannot see it. Its live
-prototype lives in the padname's `PROTOCV` instead, which `pad_cvs` reads from
+slot no longer holds a usable CV, so the value walk cannot find it. Its live
+prototype is in the `PROTOCV` of the padname instead, which `pad_cvs` reads from
 the padname list. `PROTOCV` exists from 5.22, so on 5.20 a `my sub` at a
 required file's top level runs but stays invisible and the file can wrongly
 claim full subroutine coverage there.
 
 A capture-free lexical sub shares one optree between its prototype and its
-clones, so both carry the same start op. When a clone is reachable through a
+clones, so both have the same start op. When a clone is reachable through a
 value slot too (a `my method` called from an ordinary method, say), the sub
 would otherwise be recorded twice, once from the value slot and once from
 `PROTOCV`. `check_files` keeps only the first CV seen for each start op, so it
@@ -198,8 +198,8 @@ is recorded once.
 A sub that itself encloses a lexical sub compiles with an `introcv`/`clonecv`
 prologue before its first statement, one `clonecv` per enclosed `my sub` and a
 `methstart` before them for a class method. In execution order that prologue
-displaces the nextstate op `check_file` looks for, and in tree order it sits in
-a nested lineseq wrapping the real first statement rather than that statement's
+displaces the nextstate op `check_file` looks for, and in tree order it is in a
+nested lineseq wrapping the real first statement rather than that statement's
 nextstate, which is what `sub_info` expects. So `check_file` steps past the
 prologue ops to the first `COP`, and `sub_info` steps past a leading `methstart`
 and then a nested prologue lineseq (identified by its own leading
@@ -210,8 +210,8 @@ subroutine coverage. This gap is not specific to required files. The enclosing
 sub is covered from 5.20, while each enclosed `my sub` still needs `PROTOCV` and
 so stays invisible before 5.22.
 
-An anonymous sub defined inside a `BEGIN`/`CHECK`/`INIT`/`END` block lives only
-in that block's own pad, not in the enclosing file's pad, so `special_block_cvs`
+An anonymous sub defined inside a `BEGIN`/`CHECK`/`INIT`/`END` block is only in
+that block's own pad, not in the enclosing file's pad, so `special_block_cvs`
 gathers those block CVs and their pads are walked too. Without this such an anon
 runs but appears in no report and the file can wrongly claim full subroutine
 coverage.
@@ -223,9 +223,9 @@ require optrees itself, the leaveeval hook can be dropped for those perls.
 
 Keeping the optree solves the mapping problem but note one further detail.
 Statement counts are recorded at run time keyed by op address, so once the tree
-survives to `END`, counts and structure line up and partially executed top-level
-code (for example a module with `return if $loaded` style guards or conditional
-definitions) reports true covered and uncovered lines, which is exactly the
-missing data. Op-address reuse, which today can match a stale count from a freed
-module tree against a later op at the same address, also becomes less likely
-because the trees are no longer freed mid-run.
+still exists at `END`, counts and structure line up and partially executed
+top-level code (for example a module with `return if $loaded` style guards or
+conditional definitions) reports true covered and uncovered lines, which is
+exactly the missing data. Op-address reuse, which today can match a stale count
+from a freed module tree against a later op at the same address, also becomes
+less likely because the trees are no longer freed mid-run.

@@ -56,7 +56,7 @@ __END__
 
 =head1 NAME
 
-Devel::Cover::DB::IO::Storable - Storable based IO routines for Devel::Cover::DB
+Devel::Cover::DB::IO::Storable - Storable-based IO routines for Devel::Cover::DB
 
 =head1 SYNOPSIS
 
@@ -68,7 +68,7 @@ Devel::Cover::DB::IO::Storable - Storable based IO routines for Devel::Cover::DB
 
 =head1 DESCRIPTION
 
-This module provides Storable based IO routines for Devel::Cover::DB.
+This module provides Storable-based IO routines for Devel::Cover::DB.
 
 =head1 SEE ALSO
 
@@ -86,13 +86,13 @@ Constructs the IO object.
 
  my $data = $io->read($file);
 
-Returns a perl data structure representing the data read from $file.
+Returns a Perl data structure representing the data read from C<$file>.
 
 =head2 write
 
  $io->write($data, $file);
 
-Writes $data to $file in the format specified when creating $io.
+Writes C<$data> to C<$file> in the format specified when creating C<$io>.
 
 =head1 LICENCE
 
@@ -101,6 +101,6 @@ Copyright 2011-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

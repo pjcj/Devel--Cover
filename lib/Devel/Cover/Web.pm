@@ -1750,9 +1750,10 @@ Devel::Cover::Web - Static web assets (CSS and JavaScript) for coverage reports
 
 =head1 DESCRIPTION
 
-This module stores and writes the static CSS and JavaScript assets used by
-Devel::Cover's HTML reports.  Assets are embedded directly in the module so that
-reports remain self-contained without requiring a separate installation step.
+This module stores and writes the static CSS and JavaScript assets used by the
+HTML reports of Devel::Cover.  Assets are embedded directly in the module so
+that reports remain self-contained without requiring a separate installation
+step.
 
 The following named files are available:
 
@@ -1830,7 +1831,7 @@ into generated pages.
 
 =head2 $Crisp_theme_js
 
-A small self-contained script that wires up the light/dark theme-toggle
+A small self-contained script that connects the light/dark theme-toggle
 button. Reads and writes C<localStorage> so the user's preference persists
 across page loads.  Used by C<Html_crisp> and C<Collection>.
 
@@ -1849,6 +1850,6 @@ This software is free.  It is licensed under the same terms as Perl itself,
 except where otherwise noted.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

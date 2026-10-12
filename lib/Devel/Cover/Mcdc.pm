@@ -144,8 +144,8 @@ lets every condition be analysed.
 A decision evaluated in void context records only its boolean outcome, so its
 truth table cannot be verified against observed input vectors and it is
 reported as 0% MC/DC even when the tests exercise every combination.  This
-includes a decision returned as a sub's last expression when every call to
-the sub discards the result.
+includes a decision returned as the last expression of a sub when every call
+to the sub discards the result.
 
 A statement-level logop whose value is discarded is recorded as a decision
 only when its right operand is itself a decision: C<($a && $b) || ($c && $d)>
@@ -245,6 +245,6 @@ Copyright 2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut

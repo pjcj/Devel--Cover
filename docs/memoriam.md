@@ -1,4 +1,4 @@
-# In Memorium
+# In Memoriam
 
 ## 1.45
 

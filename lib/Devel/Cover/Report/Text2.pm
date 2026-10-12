@@ -145,8 +145,8 @@ Devel::Cover::Report::Text2 - Text backend for Devel::Cover
 
 =head1 DESCRIPTION
 
-This module provides a textual reporting mechanism for coverage data. It is
-designed to be called from the C<cover> program.
+This module writes coverage reports as text. It is designed to be called from
+the F<cover> program.
 
 Unlike L<Devel::Cover::Report::Text>, which produces a per-file summary followed
 by separate detail tables for each criterion, this reporter prints the source
@@ -155,9 +155,9 @@ are configurable per criterion via the C<%Format> hash inside this module.
 
 Use C<text2> when you want to read the source while seeing coverage data inline
 against each line - useful for auditing a specific file or stepping through it
-by hand.  Use C<text> when you want aggregated tables: scan which files are
-weakest, then drill into the per-criterion detail blocks (Branch, Condition,
-MC/DC, Subroutines) for the missing pieces.
+by hand.  Use C<text> when you want summary tables: scan which files are
+weakest, then read the per-criterion detail blocks (Branch, Condition, MC/DC,
+Subroutines) to find what is missing.
 
 =head1 SEE ALSO
 
@@ -171,6 +171,6 @@ Copyright 2001-2026, Paul Johnson (paul@pjcj.net)
 This software is free.  It is licensed under the same terms as Perl itself.
 
 The latest version of this software should be available from my homepage:
-https://pjcj.net
+L<https://pjcj.net>
 
 =cut
