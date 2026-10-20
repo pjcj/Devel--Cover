@@ -1276,21 +1276,10 @@ sub _want_cover_for {
 sub _add_subroutine_structure ($cv, $start) {
   return unless $start;
   no warnings "uninitialized";
-  my $sub_id;
-  if (
-       $File eq $Structure->get_file
-    && $Line == $Structure->get_line
-    && $Sub_name eq "__ANON__"
-    && $Structure->get_sub_name eq "__ANON__"
-  ) {
-    # Merge instances of anonymous subs into one
-    # TODO - multiple anonymous subs on the same line
-  } else {
-    my $count = $Sub_count->{$File}{$Line}{$Sub_name}++;
-    $sub_id = $Structure->set_subroutine($Sub_name, $File, $Line, $count);
-    add_subroutine_cover($cv, $start)
-      if $Coverage{subroutine} || $Coverage{pod};  # pod requires subs
-  }
+  my $count  = $Sub_count->{$File}{$Line}{$Sub_name}++;
+  my $sub_id = $Structure->set_subroutine($Sub_name, $File, $Line, $count);
+  add_subroutine_cover($cv, $start)
+    if $Coverage{subroutine} || $Coverage{pod};  # pod requires subs
   _add_pod_cover($cv) if $Pod && $Coverage{pod};
   $sub_id
 }
@@ -2229,7 +2218,6 @@ C<-select>.
 
 Register the sub with the structure, distinguishing several subs on one
 line by a per-line count, and record subroutine and pod coverage.
-Instances of anonymous subs on the same line are merged.
 
 =head2 get_cover ($cv, $root = undef)
 

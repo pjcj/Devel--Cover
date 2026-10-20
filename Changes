@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Record every anonymous sub on a line as its own subroutine and take
+  them in source order, so the counts of one are no longer credited to
+  another at random across processes (GH-854)
 - Record the right operand of `//` by definedness on every path, so a
   defined false value such as `0` counts as `!l&&r` rather than
   `!l&&!r` (GH-838)
