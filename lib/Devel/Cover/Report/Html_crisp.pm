@@ -39,6 +39,7 @@ use List::Util   qw( any max );
 use POSIX        qw( strftime );
 our %R;
 my %Assets;
+my %Rank = (uncovered => 0, stale => 1, excused => 2, covered => 3);
 
 my $Threshold = default_thresholds;
 
@@ -1231,8 +1232,12 @@ sub line_statement ($f, $n, $line) {
   my $stmt = $f->statement or return;
   my $loc  = $stmt->location($n);
   return unless $loc && @$loc;
-  my $s     = $loc->[0];
-  my $state = $s->coverage_state;
+  my ($s, $state);
+  for my $c (@$loc) {
+    my $cs = $c->coverage_state;
+    $line->{executed} = 1 if $c->covered;
+    ($s, $state) = ($c, $cs) if !$s || $Rank{$cs} < $Rank{$state};
+  }
   $line->{count}        = $s->covered;
   $line->{count_class}  = oclass($s, "statement");
   $line->{exec_class}   = exec_class($state);
@@ -1252,7 +1257,7 @@ sub line_statementless_sub ($f, $n, $line) {
 }
 
 sub line_partial ($line, $bd, $cd, $tts, $sd, $md) {
-  return unless defined $line->{count} && $line->{count} > 0;
+  return unless $line->{executed} || ($line->{count} // 0) > 0;
   my $p;
   $p ||= any { $_->{has_error} } @$bd;
   $p ||= any { any { $_->{error} } $_->{parts}->@* } @$cd;
