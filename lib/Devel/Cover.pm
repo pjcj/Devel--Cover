@@ -700,14 +700,15 @@ sub check_files {
     }
     $line = 0  unless defined $line;
     $name = "" unless defined $name;
-    ($line, $name, $start ? $$start : 0)
+    ($line, $name, $start ? $$start : 0, $cv->OUTSIDE_SEQ)
   };
 
   my %seen_start;
-  @Cvs = map $_->[0],
-    sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] }
-    grep { !$_->[3] || !$seen_start{ $_->[3] }++ } map [$_, $l->($_)],
+  my @cvs = grep { !$_->[3] || !$seen_start{ $_->[3] }++ } map [$_, $l->($_)],
     grep !$seen_cv{$$_}++, values %Cvs;
+  @Cvs = map $_->[0],
+    sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] || $a->[4] <=> $b->[4] }
+    @cvs;
 
   # Hack to bump up the refcount of the subs.  If we don't do this then the
   # subs in some modules don't seem to be around when we get to looking at
