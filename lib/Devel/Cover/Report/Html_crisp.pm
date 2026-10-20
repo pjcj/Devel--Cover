@@ -1235,6 +1235,7 @@ sub line_statement ($f, $n, $line) {
   my ($s, $state);
   for my $c (@$loc) {
     my $cs = $c->coverage_state;
+    $line->{executed} = 1 if $c->covered;
     ($s, $state) = ($c, $cs) if !$s || $Rank{$cs} < $Rank{$state};
   }
   $line->{count}        = $s->covered;
@@ -1256,7 +1257,7 @@ sub line_statementless_sub ($f, $n, $line) {
 }
 
 sub line_partial ($line, $bd, $cd, $tts, $sd, $md) {
-  return unless defined $line->{count} && $line->{count} > 0;
+  return unless $line->{executed} || ($line->{count} // 0) > 0;
   my $p;
   $p ||= any { $_->{has_error} } @$bd;
   $p ||= any { any { $_->{error} } $_->{parts}->@* } @$cd;
