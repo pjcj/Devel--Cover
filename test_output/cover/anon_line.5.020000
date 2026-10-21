@@ -1,0 +1,86 @@
+cover: Reading database from ...
+--------------- ------ ------ ------ ------ ------ ------ ------
+File              stmt   bran   cond   mcdc    sub  total   scar
+--------------- ------ ------ ------ ------ ------ ------ ------
+tests/anon_line  100.0   75.0    n/a    n/a   80.0   90.4    4.6
+Total            100.0   75.0    n/a    n/a   80.0   90.4    4.6
+--------------- ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/anon_line
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 3 93.8  1.6  4.6
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SCAR  Location          
+---------- -- ----  ------------------
+__ANON__    2  7.0  tests/anon_line:13
+__ANON__    2  7.0  tests/anon_line:13
+__ANON__    1  0.0  tests/anon_line:13
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13    ***      1    100                   *0   my %h = (e => sub { }, a => sub { $_[0] ? 1 : 0 }, b => sub { $_[0] ? 2 : 0 });
+      ***      2   * 50                    2   
+               1                           1   
+14                                             
+15             1                               $h{a}->(1);
+16             1                               $h{a}->(0);
+17             1                               $h{b}->(1);
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+13           100      1      1   $_[0] ? :
+      ***     50      1      0   $_[0] ? :
+
+
+Covered Subroutines
+-------------------
+
+Subroutine Count  CC  SCAR Location          
+---------- ----- --- ----- ------------------
+BEGIN          1   1   0.0 tests/anon_line:10
+BEGIN          1   1   0.0 tests/anon_line:11
+__ANON__       2   2   7.0 tests/anon_line:13
+__ANON__       1   2   7.0 tests/anon_line:13
+
+Uncovered Subroutines
+---------------------
+
+Subroutine Count  CC  SCAR Location          
+---------- ----- --- ----- ------------------
+__ANON__       0   1   0.0 tests/anon_line:13
+
+
