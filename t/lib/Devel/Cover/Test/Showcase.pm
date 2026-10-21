@@ -79,6 +79,8 @@ my $Calc_body = <<'BODY' =~ s/^  //gmr;
     my $x = shift;
     return -$x;
   }
+
+  our %op = (twice => sub { 2 * shift }, half => sub { $_[0] ? $_[0] / 2 : 0 });
 BODY
 
 my $Full_body = <<'BODY' =~ s/^  //gmr;
@@ -518,6 +520,7 @@ sub create_cover_db ($tmpdir, $libdir) {
   use Covered::Trivial;
   use Covered::Utils;
   Covered::Calc::add(1, 2);
+  \\\$Covered::Calc::op{half}->(4);
   Covered::Logic::grant(1, 1, 0);
   Covered::Logic::grant(0, 0, 1);
   Covered::Logic::grant(0, 0, 0);
@@ -672,7 +675,8 @@ namespaces, with identical source:
 
 =over
 
-=item B<Calc> - if/elsif/else branches, C<&&>/C<||> conditions, pod
+=item B<Calc> - if/elsif/else branches, C<&&>/C<||> conditions, two anonymous
+subs on one line, pod
 
 =item B<Full> - branches, ternaries, conditions, nine subs (including a private
 C<_helper>), full pod coverage
