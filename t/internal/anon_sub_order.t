@@ -19,9 +19,12 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use Cwd        qw( realpath );
 use File::Spec ();
 use File::Temp qw( tempdir );
-use Test::More import => [qw( diag done_testing is ok )];
+use Test::More import => [qw( diag done_testing is is_deeply ok )];
 
-use Devel::Cover::DB ();
+use Devel::Cover::DB                 ();
+use Devel::Cover::DB::Structure      ();
+use Devel::Cover::Report::Html_crisp ();
+use Devel::Cover::Report::Text       ();
 
 # Two anonymous subs on one line must be recorded in source order whatever
 # the hash seed, and each must have its own subroutine entry.
@@ -38,6 +41,16 @@ use Anon;
 print $Anon::h{$ARGV[0]}->(1), "\n";
 PROG
 
+# The first sub has a complexity of 2 and the second of 1.
+my $Scar = join "", map "$_\n", "package Scar;",
+  'our %h = (a => sub { my $x = shift; $x ? "a1" : "a0" },'
+  . ' b => sub { "b1" });', "1;";
+
+my $Scar_prog = <<'PROG';
+use Scar;
+print $Scar::h{$ARGV[0]}->(1), "\n";
+PROG
+
 sub write_files ($dir, $name, $module, $program) {
   my %write = (
     File::Spec->catfile($dir, "$name.pm") => $module,
@@ -51,8 +64,8 @@ sub write_files ($dir, $name, $module, $program) {
 }
 
 # Run the program under coverage with the given hash seed, adding to the
-# database at $cover_db, and return the cover object for the file of the module.
-sub covered_file ($name, $module, $program, $arg, $seed, $cover_db) {
+# database at $cover_db, and return the database and the file of the module.
+sub covered_db ($name, $module, $program, $arg, $seed, $cover_db) {
   my $tmpdir = realpath(tempdir(CLEANUP => 1));
   write_files($tmpdir, $name, $module, $program);
 
@@ -73,6 +86,12 @@ sub covered_file ($name, $module, $program, $arg, $seed, $cover_db) {
   my $db     = Devel::Cover::DB->new(db => $cover_db)->merge_runs;
   my ($file) = grep m|\Q$name\E\.pm$|, $db->cover->items;
   ok $file, "$name.pm is in the coverage database" or return;
+  ($db, $file)
+}
+
+sub covered_file ($name, $module, $program, $arg, $seed, $cover_db) {
+  my ($db, $file) = covered_db($name, $module, $program, $arg, $seed, $cover_db)
+    or return;
   $db->cover->file($file)
 }
 
@@ -160,6 +179,43 @@ PROG
   }
 }
 
+sub text_report ($db, $file) {
+  my $output;
+  open my $fh, ">", \$output or die "Cannot open scalar ref: $!";
+  local *STDOUT = $fh;
+  Devel::Cover::Report::Text->report(
+    $db, { show => { subroutine => 1 }, file => [$file], annotations => [] }
+  );
+  close $fh or die "Cannot close scalar ref: $!";
+  $output
+}
+
+# Each anonymous sub on a line must show its own complexity and SCAR figures.
+sub test_scar () {
+  my $cover_db = new_db;
+  my ($db, $file)
+    = covered_db("Scar", $Scar, $Scar_prog, "a", $Seed_a, $cover_db)
+    or return;
+  my $st = Devel::Cover::DB::Structure->new(base => $cover_db);
+  $st->read_all;
+  $db->set_structure($st);
+  $db->calculate_summary(statement => 1, branch => 1, subroutine => 1);
+
+  my $cl = $db->scar_sub_lookup($file);
+  is_deeply [map $_->{cc}, $cl->{"2\0__ANON__"}->@*], [2, 1],
+    "scar lookup lists both subs";
+
+  my @rows = text_report($db, $file) =~ /^__ANON__\s+\d+\s+(\d+)\s+\S+ .*:2$/mg;
+  is_deeply \@rows, [2, 1], "text report shows each sub its own CC";
+
+  local %Devel::Cover::Report::Html_crisp::R = (scar_subs => $cl);
+  my @subs = Devel::Cover::Report::Html_crisp::line_subroutines(
+    $db->cover->file($file), 2
+  );
+  is_deeply [map $_->{cc}, @subs], [2, 1],
+    "crisp report shows each sub its own CC";
+}
+
 sub main () {
   test_order;
   test_merged;
@@ -167,6 +223,7 @@ sub main () {
   test_both;
   test_single;
   test_empty;
+  test_scar;
   done_testing;
 }
 

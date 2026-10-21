@@ -409,6 +409,7 @@ sub _gather_subs ($dfile, $pods, $display_name, $scar_lookup) {
   for my $location (sort { $a <=> $b } $subs->items) {
     my $l = $subs->location($location);
     my $d = $pods && $pods->location($location);
+    my %i;
     for my $sub (@$l) {
       my $h = "$display_name:$location";
       my $c = _flagged_count($sub);
@@ -416,7 +417,7 @@ sub _gather_subs ($dfile, $pods, $display_name, $scar_lookup) {
       my $p = $e ? _flagged_count($e) : "";
       my $s = $sub->name;
 
-      my $info = $scar_lookup->{"$location\0$s"};
+      my $info = ($scar_lookup->{"$location\0$s"} // [])->[$i{$s}++];
       my $cc   = defined $info ? $info->{cc}                    : "";
       my $cr   = defined $info ? sprintf("%.1f", $info->{scar}) : "";
 
