@@ -13,6 +13,7 @@ use 5.42.0;
 use Test2::V0  qw( diag done_testing is isnt like ok skip_all subtest unlike );
 use Config     qw( %Config );
 use Cwd        qw( realpath );
+use File::Find qw( find );
 use File::Temp qw( tempdir );
 
 skip_all "dc recipes are not portable to Windows" if $^O eq "MSWin32";
@@ -109,6 +110,10 @@ sub make_docker_stub ($bin) {
       wait) sleep "${STUB_WAIT_SLEEP:-0}" ;;
       cp)
         dest="$2"
+        if [ -n "${STUB_STAGING_LINK:-}" ]; then
+          ln -s "$STUB_LINK_TARGET" "$dest/staging"
+          exit 0
+        fi
         mkdir -p "$dest/staging"
         [ -n "${STUB_NO_DIST:-}" ] && exit 0
         dist="$STUB_DISTDIR"
@@ -122,6 +127,15 @@ sub make_docker_stub ($bin) {
           '{"total":{"percentage":85.5,"covered":10,"total":12}}}}' \
           >"$dest/staging/$dist/cover.json"
         echo html >"$dest/staging/$dist/index.html"
+        if [ -n "${STUB_SYMLINKS:-}" ]; then
+          ln -s / "$dest/staging/$dist/root"
+          ln -s "$STUB_LINK_TARGET" "$dest/staging/Link-1.0"
+        fi
+        if [ -n "${STUB_HIDDEN_LINK:-}" ]; then
+          mkdir "$dest/staging/$dist/hide"
+          ln -s / "$dest/staging/$dist/hide/root"
+          chmod 0300 "$dest/staging/$dist/hide"
+        fi
         ;;
     esac
     exit 0
@@ -215,6 +229,92 @@ sub docker_module_replaces_failed () {
   dc("-r", $failed, "cpancover-docker-module", "Foo::Bar", $log, $failed);
   is slurp("$failed/Foo-Bar-1.00/index.html"), "html\n",
     "an existing report with a failed marker is replaced";
+}
+
+sub links_under ($dir) {
+  my @links;
+  find(
+    { wanted => sub { push @links, $File::Find::name if -l }, no_chdir => 1 },
+    $dir,
+  );
+  \@links
+}
+
+sub docker_module_drops_symlinks () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  my $victim = tempdir(CLEANUP => 1);
+  write_file("$victim/secret.txt", "secret\n");
+  local $ENV{PATH}             = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR}     = "Foo-Bar-1.00";
+  local $ENV{STUB_SYMLINKS}    = 1;
+  local $ENV{STUB_LINK_TARGET} = $victim;
+  delete local $ENV{CPANCOVER_COMPRESS};
+  my $log = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
+
+  my $results = tempdir(CLEANUP => 1);
+  dc("-r", $results, "cpancover-docker-module", "Foo::Bar", $log, $results);
+
+  is links_under($results), [], "no link survives ingest";
+  ok !-e "$results/Link-1.0",          "a top-level link is not a distdir";
+  ok !-e "$results/Foo-Bar-1.00/root", "a link inside a distdir is dropped";
+  ok !-e "$victim/.log_ref",  "no .log_ref is written through the link";
+  ok -e "$victim/secret.txt", "the link target is left alone";
+  ok -e "$results/Foo-Bar-1.00/index.html", "report survives ingest";
+  my $out = slurp("$results/$log.out");
+  like $out, qr/\broot\b/,  "build log names the link inside the distdir";
+  like $out, qr/Link-1\.0/, "build log names the top-level link";
+}
+
+sub docker_module_drops_hidden_link () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  skip_all "root can list an unreadable directory" if $> == 0;
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}             = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR}     = "Foo-Bar-1.00";
+  local $ENV{STUB_HIDDEN_LINK} = 1;
+  delete local $ENV{CPANCOVER_COMPRESS};
+  my $log = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
+
+  my $results = tempdir(CLEANUP => 1);
+  dc("-r", $results, "cpancover-docker-module", "Foo::Bar", $log, $results);
+  chmod 0755, glob "$results/*/hide $results/*/staging/*/hide";
+
+  ok -d "$results/Foo-Bar-1.00/hide", "the unreadable directory is ingested";
+  ok !-e "$results/Foo-Bar-1.00/hide/root", "the link inside it is dropped";
+  is links_under($results), [], "no link survives ingest";
+  like slurp("$results/$log.out"), qr{/hide/root$}m,
+    "build log names the hidden link";
+}
+
+sub docker_module_drops_staging_link () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  my $victim = tempdir(CLEANUP => 1);
+  mkdir "$victim/Evil-1.0" or die "Can't mkdir $victim/Evil-1.0: $!";
+  write_file("$victim/Evil-1.0/index.html", "html\n");
+  write_file("$victim/secret.txt",          "secret\n");
+  local $ENV{PATH}              = "$bin:$ENV{PATH}";
+  local $ENV{STUB_STAGING_LINK} = 1;
+  local $ENV{STUB_LINK_TARGET}  = $victim;
+  delete local $ENV{CPANCOVER_COMPRESS};
+  my $log = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
+
+  my $results = tempdir(CLEANUP => 1);
+  dc("-r", $results, "cpancover-docker-module", "Foo::Bar", $log, $results);
+
+  is [grep -d, glob "$results/*"], [], "no distdir is ingested";
+  ok -e "$victim/Evil-1.0/index.html", "the link target keeps its distdir";
+  ok -e "$victim/secret.txt",          "the link target is left alone";
+  ok !-e "$victim/.log_ref", "no .log_ref is written through the link";
+  ok !-e "$victim/Evil-1.0/.log_ref",
+    "no .log_ref is written into the target distdir";
+  is links_under($results), [], "no link survives ingest";
+  like slurp("$results/$log.out"), qr{^\Q$results\E/[^/]+/staging$}m,
+    "build log names the staging link";
 }
 
 sub docker_module_run_limits () {
@@ -592,6 +692,9 @@ sub main () {
     docker_module_log_ref
     docker_module_timeout_log_ref
     docker_module_replaces_failed
+    docker_module_drops_symlinks
+    docker_module_drops_hidden_link
+    docker_module_drops_staging_link
     docker_module_run_limits
     build_environment
     force_retries_failed_only

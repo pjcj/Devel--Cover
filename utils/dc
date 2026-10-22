@@ -745,6 +745,13 @@ recipe_cpancover-docker-module() {
 
     chmod -R 755 "$local_staging" ||
       pw "chmod dirs failed for $local_staging; continuing"
+    if ! find "$copy_src" -type l -print -delete >>"$log_file"; then
+      pe "dropping links failed for $copy_src; see $log_file"
+      echo "[dc] dropping links failed for $copy_src" >>"$log_file"
+      rm -rf "$local_staging"
+      $docker rm "$name" >/dev/null 2>&1 || true
+      return 1
+    fi
     find "$local_staging" -type f -exec chmod 644 {} \; ||
       pw "chmod files failed for $local_staging; continuing"
     chown -R "$(id -un):$(id -gn)" "$local_staging" ||
@@ -753,7 +760,7 @@ recipe_cpancover-docker-module() {
     local seen=0
     local f base
     for f in "$copy_src"/*; do
-      [[ -d $f ]] || continue
+      [[ -d $f && ! -L $f ]] || continue
       ((++seen))
       base=$(basename "$f")
       if [[ -n ${CPANCOVER_REBUILD:-} || -e "$staging/__failed__/$base" ]]; then
