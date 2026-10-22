@@ -162,19 +162,19 @@ sub _lock_db ($self) {
   $fh
 }
 
-# remove set-aside runs the db already holds and merge the rest in place
-sub _recover_aside_runs ($self, $db, $entries) {
-  my (@stale, %aside);
-  for my $entry (grep /^\.merged\./, @$entries) {
+# remove runs the db already holds and merge the rest from where they are
+sub _runs_to_merge ($self, $db, $entries) {
+  my (@stale, %runs);
+  for my $entry (grep { !/^\./ || /^\.merged\./ } @$entries) {
     (my $name = $entry) =~ s|^\.merged\.\d+\.||;
     if (exists $self->{runs}{$name}) {
       push @stale, "$db/runs/$entry";
     } else {
-      $aside{$name} = "$db/runs/$entry";
+      $runs{$name} = "$db/runs/$entry";
     }
   }
   rmtree(\@stale) if @stale;
-  %aside
+  %runs
 }
 
 sub merge_runs ($self) {
@@ -193,8 +193,7 @@ sub merge_runs ($self) {
   my @entries = grep { $_ ne "." && $_ ne ".." } readdir $dir;
   closedir $dir or die "Can't closedir $db/runs: $!";
 
-  my %aside = $self->_recover_aside_runs($db, \@entries);
-  my %runs  = (%aside, map { $_ => "$db/runs/$_" } grep !/^\./, @entries);
+  my %runs = $self->_runs_to_merge($db, \@entries);
 
   # a run still being written has its directory but no $DB yet
   my @runs = grep -e "$runs{$_}/$DB", sort keys %runs;
@@ -215,7 +214,7 @@ sub merge_runs ($self) {
     for my $name (@runs) {
       my $run = $runs{$name};
       # a run set aside by an earlier merge keeps its name
-      my $to = $aside{$name} // "$db/runs/.merged.$$.$name";
+      my $to = $run eq "$db/runs/$name" ? "$db/runs/.merged.$$.$name" : $run;
       if ($run eq $to || rename $run, $to) {
         push @aside, $to;
       } else {
@@ -1599,8 +1598,10 @@ merge interrupted between the write and the removal of its runs cannot merge
 them again. The next call removes such leftovers if the database already
 holds them and otherwise merges them in place, sorted with the plain runs by
 run name, so a merge interrupted before its write loses nothing and keeps the
-run order. A run directory without a database file belongs to a process that
-has not finished writing it, so it is left for a later merge.
+run order. When a rename aside and the removal both fail, the plain run stays
+behind, and the next call removes it rather than merging it again, since the
+database already holds it. A run directory without a database file belongs to
+a process that has not finished writing it, so it is left for a later merge.
 
 =head2 validate_db
 
@@ -1878,12 +1879,11 @@ L</summarise_complexity>.
 Take an exclusive lock on the database's F<merge.lock> file, creating it if
 necessary, and return the open handle, which C<merge_runs> closes.
 
-=head2 _recover_aside_runs ($self, $db, $entries)
+=head2 _runs_to_merge ($self, $db, $entries)
 
-Sort the C<.merged.*> entries of F<runs/> by whether the database already
-holds the run. Remove those it holds and return the rest as a hash of run
-name to the set-aside path, so that C<merge_runs> merges each from where it
-is.
+Sort the plain and C<.merged.*> entries of F<runs/> by whether the database
+already holds the run. Remove those it holds and return the rest as a hash of
+run name to path, so that C<merge_runs> merges each from where it is.
 
 =head2 _merge_hash ($into, $from, $noadd = 0)
 

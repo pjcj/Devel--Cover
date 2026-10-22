@@ -180,6 +180,26 @@ sub test_incomplete_run () {
   is runs_entries($db_path), 0, "incomplete: runs directory is empty";
 }
 
+sub test_run_already_merged () {
+  my $db_path = run_cover("twice");
+  my ($run)   = runs_entries($db_path);
+  my $saved   = File::Spec->catfile($Tmpdir, "twice.cover.15");
+  copy("$db_path/runs/$run/cover.15", $saved) or die "Cannot copy cover.15: $!";
+
+  Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  is runs_entries($db_path), 0, "twice: runs directory is empty";
+
+  mkdir "$db_path/runs/$run" or die "Cannot mkdir $db_path/runs/$run: $!";
+  copy($saved, "$db_path/runs/$run/cover.15")
+    or die "Cannot copy cover.15 back: $!";
+
+  my $db2    = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  my @counts = statement_counts($db2, "twice");
+  is @counts,                3, "twice: three statements";
+  is $_,                     1, "twice: statement executed once" for @counts;
+  is runs_entries($db_path), 0, "twice: runs directory is empty again";
+}
+
 sub test_normal_merge () {
   my $db_path = run_cover("normal");
 
@@ -196,5 +216,6 @@ test_interrupted_merge;
 test_interrupted_before_write;
 test_aside_with_earlier_merge;
 test_incomplete_run;
+test_run_already_merged;
 test_normal_merge;
 done_testing;
