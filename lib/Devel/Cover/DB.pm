@@ -182,7 +182,8 @@ sub merge_runs ($self) {
   my @stale = map "$db/runs/$_", grep /^\.merged\./, @entries;
   rmtree(\@stale) if @stale;
 
-  my @runs = map "$db/runs/$_", grep !/^\./, @entries;
+  # a run still being written has its directory but no $DB yet
+  my @runs = grep -e "$_/$DB", map "$db/runs/$_", grep !/^\./, @entries;
 
   $self->{changed_files} = {};
 
@@ -1579,7 +1580,9 @@ the database directory, so concurrent merges cannot double-count runs. The
 lock file persists after release and C<clean> removes it once free. Before
 being written, merged runs are renamed to hidden C<.merged.*> siblings, so a
 merge interrupted between the write and the removal of its runs cannot merge
-them again. Such leftovers are removed on the next call.
+them again. Such leftovers are removed on the next call. A run directory
+without a database file belongs to a process that has not finished writing
+it, so it is left for a later merge.
 
 =head2 validate_db
 

@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Leave a run that is still being written alone when merging runs, so
+  its coverage is no longer discarded (GH-859)
 - Record every anonymous sub on a line as its own subroutine and take
   them in source order, so the counts of one are no longer credited to
   another at random across processes (GH-854)
