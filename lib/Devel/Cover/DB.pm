@@ -162,6 +162,21 @@ sub _lock_db ($self) {
   $fh
 }
 
+# remove set-aside runs the db already holds and merge the rest in place
+sub _recover_aside_runs ($self, $db, $entries) {
+  my (@stale, %aside);
+  for my $entry (grep /^\.merged\./, @$entries) {
+    (my $name = $entry) =~ s|^\.merged\.\d+\.||;
+    if (exists $self->{runs}{$name}) {
+      push @stale, "$db/runs/$entry";
+    } else {
+      $aside{$name} = "$db/runs/$entry";
+    }
+  }
+  rmtree(\@stale) if @stale;
+  %aside
+}
+
 sub merge_runs ($self) {
   my $db = $self->{db};
   return $self unless length $db;
@@ -178,12 +193,11 @@ sub merge_runs ($self) {
   my @entries = grep { $_ ne "." && $_ ne ".." } readdir $dir;
   closedir $dir or die "Can't closedir $db/runs: $!";
 
-  # leftovers from an interrupted merge are already in the db - just remove
-  my @stale = map "$db/runs/$_", grep /^\.merged\./, @entries;
-  rmtree(\@stale) if @stale;
+  my %aside = $self->_recover_aside_runs($db, \@entries);
+  my %runs  = (%aside, map { $_ => "$db/runs/$_" } grep !/^\./, @entries);
 
   # a run still being written has its directory but no $DB yet
-  my @runs = grep -e "$_/$DB", map "$db/runs/$_", grep !/^\./, @entries;
+  my @runs = grep -e "$runs{$_}/$DB", sort keys %runs;
 
   $self->{changed_files} = {};
 
@@ -191,16 +205,18 @@ sub merge_runs ($self) {
   # they were created.  Run names use microsecond timestamps so lexicographic
   # sorting matches chronological order.
 
-  for my $run (sort @runs) {
-    my $r = Devel::Cover::DB->new(base => $self->{base}, db => $run);
+  for my $name (@runs) {
+    my $r = Devel::Cover::DB->new(base => $self->{base}, db => $runs{$name});
     $self->merge($r);
   }
 
   if (@runs) {
     my @aside;
-    for my $run (@runs) {
-      (my $to = $run) =~ s|([^/]+)$|.merged.$$.$1|;
-      if (rename $run, $to) {
+    for my $name (@runs) {
+      my $run = $runs{$name};
+      # a run set aside by an earlier merge keeps its name
+      my $to = $aside{$name} // "$db/runs/.merged.$$.$name";
+      if ($run eq $to || rename $run, $to) {
         push @aside, $to;
       } else {
         dcwarn "Can't rename $run to $to: $!";
@@ -1580,9 +1596,11 @@ the database directory, so concurrent merges cannot double-count runs. The
 lock file persists after release and C<clean> removes it once free. Before
 being written, merged runs are renamed to hidden C<.merged.*> siblings, so a
 merge interrupted between the write and the removal of its runs cannot merge
-them again. Such leftovers are removed on the next call. A run directory
-without a database file belongs to a process that has not finished writing
-it, so it is left for a later merge.
+them again. The next call removes such leftovers if the database already
+holds them and otherwise merges them in place, sorted with the plain runs by
+run name, so a merge interrupted before its write loses nothing and keeps the
+run order. A run directory without a database file belongs to a process that
+has not finished writing it, so it is left for a later merge.
 
 =head2 validate_db
 
@@ -1859,6 +1877,13 @@ L</summarise_complexity>.
 
 Take an exclusive lock on the database's F<merge.lock> file, creating it if
 necessary, and return the open handle, which C<merge_runs> closes.
+
+=head2 _recover_aside_runs ($self, $db, $entries)
+
+Sort the C<.merged.*> entries of F<runs/> by whether the database already
+holds the run. Remove those it holds and return the rest as a hash of run
+name to the set-aside path, so that C<merge_runs> merges each from where it
+is.
 
 =head2 _merge_hash ($into, $from, $noadd = 0)
 

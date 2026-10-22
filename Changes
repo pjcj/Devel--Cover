@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Merge the runs an interrupted merge set aside on the next merge, so
+  a `cover` killed while writing the database no longer loses them
+  (GH-859)
 - Leave a run that is still being written alone when merging runs, so
   its coverage is no longer discarded (GH-859)
 - Record every anonymous sub on a line as its own subroutine and take

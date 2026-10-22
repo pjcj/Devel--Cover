@@ -91,6 +91,53 @@ sub test_interrupted_merge () {
   is runs_entries($db_path), 0, "crash: runs directory is empty";
 }
 
+sub test_interrupted_before_write () {
+  my $db_path = run_cover("aside");
+
+  my $db = Devel::Cover::DB->new(db => $db_path);
+  {
+    no warnings "redefine";
+    local *Devel::Cover::DB::write = sub { die "simulated crash\n" };
+    eval { $db->merge_runs };
+  }
+  like $@, qr/simulated crash/, "merge interrupted before write";
+  my @entries = runs_entries($db_path);
+  is @entries, 1, "aside: one entry left in runs";
+  like $entries[0], qr/^\.merged\./, "aside: the run was set aside";
+  ok !-e "$db_path/cover.15", "aside: no database written";
+
+  my $db2    = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  my @counts = statement_counts($db2, "aside");
+  is @counts, 3, "aside: three statements";
+  is $_,      1, "aside: statement executed once" for @counts;
+
+  is runs_entries($db_path), 0, "aside: runs directory is empty";
+}
+
+sub test_aside_with_earlier_merge () {
+  my $db_path = run_cover("earlier");
+  Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  run_cover("earlier");
+
+  my $db = Devel::Cover::DB->new(db => $db_path);
+  {
+    no warnings "redefine";
+    local *Devel::Cover::DB::write = sub { die "simulated crash\n" };
+    eval { $db->merge_runs };
+  }
+  like $@, qr/simulated crash/, "earlier: merge interrupted before write";
+  my @entries = runs_entries($db_path);
+  is @entries, 1, "earlier: one entry left in runs";
+  like $entries[0], qr/^\.merged\./, "earlier: the run is still set aside";
+
+  my $db2    = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  my @counts = statement_counts($db2, "earlier");
+  is @counts, 3, "earlier: three statements";
+  is $_,      2, "earlier: statement executed twice" for @counts;
+
+  is runs_entries($db_path), 0, "earlier: runs directory is empty";
+}
+
 sub merge_quietly ($db) {
   my $stderr = "";
   open my $save, ">&", \*STDERR or die "Cannot dup STDERR: $!";
@@ -146,6 +193,8 @@ sub test_normal_merge () {
 }
 
 test_interrupted_merge;
+test_interrupted_before_write;
+test_aside_with_earlier_merge;
 test_incomplete_run;
 test_normal_merge;
 done_testing;
