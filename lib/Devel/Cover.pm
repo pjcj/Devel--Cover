@@ -700,14 +700,15 @@ sub check_files {
     }
     $line = 0  unless defined $line;
     $name = "" unless defined $name;
-    ($line, $name, $start ? $$start : 0)
+    ($line, $name, $start ? $$start : 0, $cv->OUTSIDE_SEQ)
   };
 
   my %seen_start;
-  @Cvs = map $_->[0],
-    sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] }
-    grep { !$_->[3] || !$seen_start{ $_->[3] }++ } map [$_, $l->($_)],
+  my @cvs = grep { !$_->[3] || !$seen_start{ $_->[3] }++ } map [$_, $l->($_)],
     grep !$seen_cv{$$_}++, values %Cvs;
+  @Cvs = map $_->[0],
+    sort { $a->[1] <=> $b->[1] || $a->[2] cmp $b->[2] || $a->[4] <=> $b->[4] }
+    @cvs;
 
   # Hack to bump up the refcount of the subs.  If we don't do this then the
   # subs in some modules don't seem to be around when we get to looking at
@@ -1275,21 +1276,10 @@ sub _want_cover_for {
 sub _add_subroutine_structure ($cv, $start) {
   return unless $start;
   no warnings "uninitialized";
-  my $sub_id;
-  if (
-       $File eq $Structure->get_file
-    && $Line == $Structure->get_line
-    && $Sub_name eq "__ANON__"
-    && $Structure->get_sub_name eq "__ANON__"
-  ) {
-    # Merge instances of anonymous subs into one
-    # TODO - multiple anonymous subs on the same line
-  } else {
-    my $count = $Sub_count->{$File}{$Line}{$Sub_name}++;
-    $sub_id = $Structure->set_subroutine($Sub_name, $File, $Line, $count);
-    add_subroutine_cover($cv, $start)
-      if $Coverage{subroutine} || $Coverage{pod};  # pod requires subs
-  }
+  my $count  = $Sub_count->{$File}{$Line}{$Sub_name}++;
+  my $sub_id = $Structure->set_subroutine($Sub_name, $File, $Line, $count);
+  add_subroutine_cover($cv, $start)
+    if $Coverage{subroutine} || $Coverage{pod};  # pod requires subs
   _add_pod_cover($cv) if $Pod && $Coverage{pod};
   $sub_id
 }
@@ -2228,7 +2218,6 @@ C<-select>.
 
 Register the sub with the structure, distinguishing several subs on one
 line by a per-line count, and record subroutine and pod coverage.
-Instances of anonymous subs on the same line are merged.
 
 =head2 get_cover ($cv, $root = undef)
 

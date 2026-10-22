@@ -1036,8 +1036,10 @@ sub line_subroutines ($f, $n) {
   my $loc  = $subs->location($n);
   return unless $loc && @$loc;
   my $cl = $R{scar_subs} || {};
+  my %i;
   map {
     my $state = $_->coverage_state;
+    my $info  = ($cl->{ "$n\0" . $_->name } // [])->[$i{ $_->name }++] // {};
     {
       name    => escape_html($_->name),
       covered => $_->covered,
@@ -1046,9 +1048,9 @@ sub line_subroutines ($f, $n) {
       class   => $state eq "excused" ? "cx"
       : $state eq "stale" ? "c0 mk"
       : oclass($_, "subroutine"),
-      cc   => ($cl->{ "$n\0" . $_->name } // {})->{cc},
-      crap => ($cl->{ "$n\0" . $_->name } // {})->{crap},
-      scar => ($cl->{ "$n\0" . $_->name } // {})->{scar},
+      cc   => $info->{cc},
+      crap => $info->{crap},
+      scar => $info->{scar},
     }
   } @$loc
 }

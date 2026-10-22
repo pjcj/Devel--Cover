@@ -367,7 +367,9 @@ sub dir_summary ($self, $dir, $criterion = undef) {
 sub scar_sub_lookup ($self, $file) {
   my $scar = $self->summary($file, "scar") or return {};
   my $subs = $scar->{subs}                 or return {};
-  +{ map { ("$_->{line}\0$_->{name}" => $_) } @$subs }
+  my %lookup;
+  push $lookup{"$_->{line}\0$_->{name}"}->@*, $_ for @$subs;
+  \%lookup
 }
 
 sub _sub_coverage ($file_obj, $start, $end) {
@@ -1634,9 +1636,10 @@ L</summarise_complexity> during L</calculate_summary>.
 
   my $lookup = $db->scar_sub_lookup($file);
 
-Return a hashref mapping C<"$line\0$name"> to per-subroutine SCAR detail from
-the summary data for C<$file>. Returns an empty hashref when no SCAR data
-exists.
+Return a hashref mapping C<"$line\0$name"> to an arrayref of per-subroutine
+SCAR detail from the summary data for C<$file>. Subs sharing a line and a name,
+such as two anonymous subs, are listed in the order of their subroutine
+entries. Returns an empty hashref when no SCAR data exists.
 
 =head2 summarise_complexity
 

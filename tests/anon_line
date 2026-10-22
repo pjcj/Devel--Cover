@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+my %h = (e => sub { }, a => sub { $_[0] ? 1 : 0 }, b => sub { $_[0] ? 2 : 0 });
+
+$h{a}->(1);
+$h{a}->(0);
+$h{b}->(1);

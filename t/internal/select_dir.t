@@ -154,6 +154,12 @@ sub test_text_report () {
   is $exit, 0, "cover --report text exits 0";
   like $out, qr/Covered\/Calc\.pm/, "Covered/Calc.pm in report";
 
+  my @anon
+    = $out =~ m|^__ANON__\s+(\d+)\s+(\d+)\s+\S+\s+Covered/Calc\.pm:(\d+)|mg;
+  is_deeply [@anon[0, 1, 3, 4]], [1, 2, 0, 1],
+    "each anonymous sub on the dispatch line has its own count and CC";
+  is $anon[2], $anon[5], "both anonymous subs are on the same line";
+
   my $got      = _uncovered_summary($out);
   my $expected = have_ppi()
     ? [
@@ -172,6 +178,7 @@ sub test_text_report () {
       "Uncovered/Trivial.pm  -  -  -  -  -  -",
       "Uncovered/Utils.pm  -  -  -  -  -  -",
     ];
+
   if ($Has_test_diff) {
     eq_or_diff($got, $expected, "uncovered file summary");
   } else {
