@@ -688,6 +688,7 @@ recipe_cpancover-docker-module() {
   local module_timeout="${CPANCOVER_TIMEOUT:-3600}" # an hour
   local log_ext=out
   cpancover_compression_enabled && log_ext=out.gz
+  local bare
 
   local log_name="$name"
   name=$(docker_name "$name")
@@ -697,6 +698,7 @@ recipe_cpancover-docker-module() {
   ((verbose)) && v=--verbose
   local env_flags=()
   cpancover_env_flags env_flags
+  bare=$(cpan_distdir "${module##*/}")
   container=$($docker run -d \
     ${env_flags[@]:+"${env_flags[@]}"} \
     --label "cpancover.env=$env" \
@@ -762,7 +764,12 @@ recipe_cpancover-docker-module() {
     for f in "$copy_src"/*; do
       [[ -d $f && ! -L $f ]] || continue
       ((++seen))
-      base=$(basename "$f")
+      base=${f##*/}
+      if [[ $base != "$bare" ]]; then
+        pw "ignoring unexpected directory $base for $module"
+        echo "[dc] ignored unexpected directory $base" >>"$log_file"
+        continue
+      fi
       if [[ -n ${CPANCOVER_REBUILD:-} || -e "$staging/__failed__/$base" ]]; then
         rm -rf "${staging:?}/$base"
       elif [[ -d "$staging/$base" ]]; then
@@ -784,8 +791,6 @@ recipe_cpancover-docker-module() {
     $docker logs "$name" >"$log_file" 2>&1 || true
     $docker kill "$name" >/dev/null 2>&1 || true
     if [[ -n ${CPANCOVER_REBUILD:-} ]]; then
-      local bare
-      bare=$(cpan_distdir "${module##*/}")
       if [[ -d "$staging/$bare" ]]; then
         echo "$log_name.$log_ext" >"$staging/$bare/.log_ref.tmp.$$"
         mv "$staging/$bare/.log_ref.tmp.$$" "$staging/$bare/.log_ref"

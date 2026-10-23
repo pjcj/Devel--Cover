@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Ingest only the report of the distribution a cpancover build was asked
+  to build, so a build can no longer publish or replace the report of
+  another distribution (GH-861)
 - Merge the runs an interrupted merge set aside on the next merge, so
   a `cover` killed while writing the database no longer loses them
   (GH-859)
