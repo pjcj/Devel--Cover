@@ -23,6 +23,7 @@ skip_all "pigz required" if system "pigz --version >/dev/null 2>&1";
 my $Dc     = "utils/dc";
 my $Log    = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--1234567890.123456.out";
 my $Log_gz = "P-PJ-PJCJ-Baz-Qux-2.00.tar.gz--1234567891.123456.out";
+my $Dist   = "P/PJ/PJCJ/Foo-Bar-1.00.tar.gz";
 
 sub dc (@args) {
   my $cmd = join " ", $Dc, @args;
@@ -136,6 +137,20 @@ sub make_docker_stub ($bin) {
           ln -s / "$dest/staging/$dist/hide/root"
           chmod 0300 "$dest/staging/$dist/hide"
         fi
+        if [ -n "${STUB_EXTRA_DIRS:-}" ]; then
+          mkdir -p "$dest/staging/__failed__" "$dest/staging/__rebuilt__" \
+            "$dest/staging/Other-9.99" "$dest/staging/dist"
+          echo x >"$dest/staging/__failed__/Victim-1.0"
+          echo x >"$dest/staging/__rebuilt__/Victim-1.0"
+          echo evil >"$dest/staging/Other-9.99/index.html"
+          echo x >"$dest/staging/dist/x"
+        fi
+        if [ -n "${STUB_NEWLINE_DIR:-}" ]; then
+          odd="$dest/staging/$dist
+    "
+          mkdir -p "$odd"
+          echo evil >"$odd/index.html"
+        fi
         ;;
     esac
     exit 0
@@ -155,7 +170,7 @@ sub docker_module_log_ref () {
   my $off = tempdir(CLEANUP => 1);
   {
     delete local $ENV{CPANCOVER_COMPRESS};
-    dc("-r", $off, "cpancover-docker-module", "Foo::Bar", $log, $off);
+    dc("-r", $off, "cpancover-docker-module", $Dist, $log, $off);
   }
   is slurp("$off/Foo-Bar-1.00/.log_ref"), "$log.out\n",
     ".log_ref records .out when compression is off";
@@ -168,7 +183,7 @@ sub docker_module_log_ref () {
   my $on = tempdir(CLEANUP => 1);
   {
     local $ENV{CPANCOVER_COMPRESS} = 1;
-    dc("-r", $on, "cpancover-docker-module", "Foo::Bar", $log, $on);
+    dc("-r", $on, "cpancover-docker-module", $Dist, $log, $on);
   }
   is slurp("$on/Foo-Bar-1.00/.log_ref"), "$log.out.gz\n",
     ".log_ref records .out.gz when compression is on";
@@ -216,7 +231,7 @@ sub docker_module_replaces_failed () {
   my $kept = tempdir(CLEANUP => 1);
   mkdir "$kept/Foo-Bar-1.00" or die "Can't mkdir $kept/Foo-Bar-1.00: $!";
   write_file("$kept/Foo-Bar-1.00/index.html", "old\n");
-  dc("-r", $kept, "cpancover-docker-module", "Foo::Bar", $log, $kept);
+  dc("-r", $kept, "cpancover-docker-module", $Dist, $log, $kept);
   is slurp("$kept/Foo-Bar-1.00/index.html"), "old\n",
     "an existing report without a failed marker is kept";
 
@@ -226,9 +241,75 @@ sub docker_module_replaces_failed () {
     for "Foo-Bar-1.00", "__failed__";
   write_file("$failed/Foo-Bar-1.00/index.html", "old\n");
   write_file("$failed/__failed__/Foo-Bar-1.00", "1234567890\n");
-  dc("-r", $failed, "cpancover-docker-module", "Foo::Bar", $log, $failed);
+  dc("-r", $failed, "cpancover-docker-module", $Dist, $log, $failed);
   is slurp("$failed/Foo-Bar-1.00/index.html"), "html\n",
     "an existing report with a failed marker is replaced";
+}
+
+sub docker_module_ingests_only_distdir () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}            = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR}    = "Foo-Bar-1.00";
+  local $ENV{STUB_EXTRA_DIRS} = 1;
+  delete local $ENV{CPANCOVER_COMPRESS};
+  my $log = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
+
+  my $rebuild = tempdir(CLEANUP => 1);
+  mkdir "$rebuild/$_"
+    or die "Can't mkdir $rebuild/$_: $!"
+    for "__failed__", "__rebuilt__", "Other-9.99";
+  write_file("$rebuild/__failed__/Victim-1.0",  "1234567890\n");
+  write_file("$rebuild/__rebuilt__/Victim-1.0", "1234567890\n");
+  write_file("$rebuild/Other-9.99/index.html",  "old\n");
+  {
+    local $ENV{CPANCOVER_REBUILD} = 1;
+    dc("-r", $rebuild, "cpancover-docker-module", $Dist, $log, $rebuild);
+  }
+  ok -e "$rebuild/Foo-Bar-1.00/index.html", "the expected distdir is ingested";
+  is slurp("$rebuild/__failed__/Victim-1.0"), "1234567890\n",
+    "the failed marker survives";
+  is slurp("$rebuild/__rebuilt__/Victim-1.0"), "1234567890\n",
+    "the rebuilt marker survives";
+  is slurp("$rebuild/Other-9.99/index.html"), "old\n",
+    "the report of another dist is kept in a rebuild";
+  ok !-e "$rebuild/dist", "no dist directory is ingested";
+  my $out = slurp("$rebuild/$log.out");
+  like $out, qr/\b\Q$_\E\b/, "build log names $_"
+    for qw( __failed__ __rebuilt__ Other-9.99 dist );
+
+  my $failed = tempdir(CLEANUP => 1);
+  delete local $ENV{CPANCOVER_REBUILD};
+  mkdir "$failed/$_"
+    or die "Can't mkdir $failed/$_: $!"
+    for "__failed__", "Other-9.99";
+  write_file("$failed/__failed__/Other-9.99", "1234567890\n");
+  write_file("$failed/Other-9.99/index.html", "old\n");
+  dc("-r", $failed, "cpancover-docker-module", $Dist, $log, $failed);
+  is slurp("$failed/Other-9.99/index.html"), "old\n",
+    "the failed report of another dist is kept";
+  ok !-e "$failed/dist", "no dist directory is ingested";
+
+  my $newline = tempdir(CLEANUP => 1);
+  delete local $ENV{STUB_EXTRA_DIRS};
+  local $ENV{STUB_NEWLINE_DIR} = 1;
+  mkdir "$newline/Foo-Bar-1.00" or die "Can't mkdir $newline/Foo-Bar-1.00: $!";
+  write_file("$newline/Foo-Bar-1.00/index.html", "old\n");
+  {
+    local $ENV{CPANCOVER_REBUILD} = 1;
+    dc("-r", $newline, "cpancover-docker-module", $Dist, $log, $newline);
+  }
+  my $index = "$newline/Foo-Bar-1.00/index.html";
+  is -e $index ? slurp($index) : undef, "html\n",
+    "the expected distdir replaces the old report";
+  opendir my $dh, $newline or die "Can't opendir $newline: $!";
+  my @odd = grep /\n/, readdir $dh;
+  closedir $dh;
+  is \@odd, [], "no results entry has a newline in its name";
+  like slurp("$newline/$log.out"),
+    qr/ignored unexpected directory Foo-Bar-1\.00/,
+    "build log names the dropped directory";
 }
 
 sub links_under ($dir) {
@@ -254,7 +335,7 @@ sub docker_module_drops_symlinks () {
   my $log = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
 
   my $results = tempdir(CLEANUP => 1);
-  dc("-r", $results, "cpancover-docker-module", "Foo::Bar", $log, $results);
+  dc("-r", $results, "cpancover-docker-module", $Dist, $log, $results);
 
   is links_under($results), [], "no link survives ingest";
   ok !-e "$results/Link-1.0",          "a top-level link is not a distdir";
@@ -279,7 +360,7 @@ sub docker_module_drops_hidden_link () {
   my $log = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
 
   my $results = tempdir(CLEANUP => 1);
-  dc("-r", $results, "cpancover-docker-module", "Foo::Bar", $log, $results);
+  dc("-r", $results, "cpancover-docker-module", $Dist, $log, $results);
   chmod 0755, glob "$results/*/hide $results/*/staging/*/hide";
 
   ok -d "$results/Foo-Bar-1.00/hide", "the unreadable directory is ingested";
@@ -304,7 +385,7 @@ sub docker_module_drops_staging_link () {
   my $log = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
 
   my $results = tempdir(CLEANUP => 1);
-  dc("-r", $results, "cpancover-docker-module", "Foo::Bar", $log, $results);
+  dc("-r", $results, "cpancover-docker-module", $Dist, $log, $results);
 
   is [grep -d, glob "$results/*"], [], "no distdir is ingested";
   ok -e "$victim/Evil-1.0/index.html", "the link target keeps its distdir";
@@ -330,7 +411,7 @@ sub docker_module_run_limits () {
 
   {
     local $ENV{STUB_CALLS} = "$work/calls";
-    dc("-r", $staging, "cpancover-docker-module", "Foo::Bar", $log, $staging);
+    dc("-r", $staging, "cpancover-docker-module", $Dist, $log, $staging);
   }
 
   my ($run) = grep /^run /, split /\n/, slurp("$work/calls");
@@ -367,7 +448,7 @@ sub build_environment () {
 
   {
     local $ENV{STUB_CALLS} = "$work/calls";
-    dc("-r", $staging, "cpancover-docker-module", "Foo::Bar", $log, $staging);
+    dc("-r", $staging, "cpancover-docker-module", $Dist, $log, $staging);
   }
 
   my ($env) = grep /^env /, split /\n/, slurp("$work/calls");
@@ -692,6 +773,7 @@ sub main () {
     docker_module_log_ref
     docker_module_timeout_log_ref
     docker_module_replaces_failed
+    docker_module_ingests_only_distdir
     docker_module_drops_symlinks
     docker_module_drops_hidden_link
     docker_module_drops_staging_link
