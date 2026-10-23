@@ -43,6 +43,11 @@ my $Meta = "x<MARK>&";
 my $Link_meta = '/x"><MARK>/index.html';
 my $Log_meta  = 'a-bc-x"><MARK>-1--1234567890.123456.out.gz';
 
+# The covered and total counts of each criterion and the cyclomatic complexity
+# also come from the module's own cover.json.  The counts go into the hover tip
+# of the coverage cell and the complexity into its own column, so both must be
+# escaped as well.
+
 sub render_index () {
   my $template = Template->new({
     LOAD_TEMPLATES => [Devel::Cover::Collection::Template::Provider->new({})],
@@ -52,12 +57,19 @@ sub render_index () {
     title        => "Coverage report",
     root         => "",
     module_start => "E",
-    criteria     => [],
+    criteria     => ["total"],
     col_headers  => [{ full => "Total", short => "total" }],
     modules      => {
       E => [{ module => "Test-1.0", name => $Meta, version => "1.0$Meta" }],
     },
-    vals => { "Test-1.0" => { link => $Link_meta, log => $Log_meta } },
+    vals => {
+      "Test-1.0" => {
+        link  => $Link_meta,
+        log   => $Log_meta,
+        total => { pc  => "50.00",  class => "c1", details => "1 / $Meta" },
+        cc    => { val => "3$Meta", class => "cc-val" },
+      },
+    },
   };
 
   my $out = "";
@@ -72,6 +84,9 @@ sub main () {
   like $html,   qr|&lt;MARK&gt;|, "collection index escapes module metadata";
   unlike $html, qr|"><MARK>|, "collection index link stays in the attribute";
   like $html,   qr|&quot;|, "collection index escapes the quote in href links";
+  like $html, qr|1 / x&lt;MARK&gt;&amp;|, "collection index escapes the counts";
+  like $html, qr|3x&lt;MARK&gt;&amp;|,
+    "collection index escapes the complexity";
 
   done_testing;
 }
