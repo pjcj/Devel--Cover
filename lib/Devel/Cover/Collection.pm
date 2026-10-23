@@ -1153,10 +1153,11 @@ $Templates{module_by_start} = <<'EOT';
             style="width:[% pc %]%"></span>
           </span>
           [% END %]
-          <span class="glass-tip">[%- vals.$m.$criterion.details -%]</span>
+          <span class="glass-tip">
+            [%- vals.$m.$criterion.details | html -%]</span>
         </td>
       [% END %]
-      <td class="[%- vals.$m.cc.class -%]">[%- vals.$m.cc.val -%]</td>
+      <td class="[%- vals.$m.cc.class -%]">[%- vals.$m.cc.val | html -%]</td>
       [% IF vals.$m.scar.tip %]
         <td class="[%- vals.$m.scar.class %] tip-hover">
           [%- vals.$m.scar.val -%]
