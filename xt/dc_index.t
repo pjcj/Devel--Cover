@@ -67,24 +67,35 @@ sub make_docker_stub ($bin) {
     cmd="$1"
     shift
     echo "$cmd $*" >>"${STUB_CALLS:-/dev/null}"
+    dist="$STUB_DISTDIR"
+    export_staging() {
+      db="$1/staging/$dist/cover_db"
+      mkdir -p "$db/runs" "$db/structure"
+      echo db >"$db/cover.14"
+      echo x >"$db/digests"
+      echo x >"$db/x.lock"
+    }
+    render_output() {
+      mkdir -p "$1/output"
+      name="${dist%-*}"
+      version="${dist##*-}"
+      printf '%s%s%s%s\n' \
+        '{"runs":[{"name":"'"$name"'","version":"'"$version"'",' \
+        '"dir":"/tmp/x"}],"summary":{"Total":' \
+        '{"total":{"percentage":85.5,"covered":10,"total":12}}}}' \
+        >"$1/output/cover.json"
+      echo html >"$1/output/index.html"
+    }
     case "$cmd" in
+      create) echo fake-render ;;
       run) echo fake-container ;;
       logs) echo "fake build log" ;;
       cp)
-        dest="$2"
-        dist="$STUB_DISTDIR"
-        mkdir -p "$dest/staging/$dist/runs" "$dest/staging/$dist/structure"
-        echo db >"$dest/staging/$dist/cover.14"
-        echo x >"$dest/staging/$dist/digests"
-        echo x >"$dest/staging/$dist/x.lock"
-        name="${dist%-*}"
-        version="${dist##*-}"
-        printf '%s%s%s%s\n' \
-          '{"runs":[{"name":"'"$name"'","version":"'"$version"'",' \
-          '"dir":"/tmp/x"}],"summary":{"Total":' \
-          '{"total":{"percentage":85.5,"covered":10,"total":12}}}}' \
-          >"$dest/staging/$dist/cover.json"
-        echo html >"$dest/staging/$dist/index.html"
+        case "$2" in *:/home/cpancover/input*) exit 0 ;; esac
+        case "$1" in
+          *:/home/cpancover/output*) render_output "$2" ;;
+          *:/home/cpancover/cover/staging*) export_staging "$2" ;;
+        esac
         ;;
     esac
     exit 0
