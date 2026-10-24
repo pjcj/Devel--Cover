@@ -504,6 +504,20 @@ sub write_json () {
     "JSON contains a three-part version parsed from the distdir";
 }
 
+sub compress_output ($c, $versions) {
+  my $outfile = $c->results_dir . "/compress_output.txt";
+  {
+    open my $saved, ">&", STDOUT   or die "Can't dup STDOUT: $!";
+    open STDOUT,    ">",  $outfile or die "Can't redirect STDOUT: $!";
+    $c->compress_old_versions($versions);
+    open STDOUT, ">&", $saved or die "Can't restore STDOUT: $!";
+  }
+  open my $fh, "<", $outfile or die "Can't read $outfile: $!";
+  my $output = do { local $/; <$fh> };
+  close $fh or die "Can't close $outfile: $!";
+  $output
+}
+
 sub compress_old_versions () {
   skip_all "uses fsys which requires alarm (not available on Windows)"
     if $Is_win32;
@@ -539,18 +553,8 @@ sub compress_old_versions () {
   close $bfh                or die "Can't close: $!";
   mkdir "$dir/Net-RDAP-0.3" or die "Can't mkdir: $!";
 
-  my $c = Devel::Cover::Collection->new(results_dir => $dir, dryrun => 1);
-
-  my $outfile = "$dir/compress_output.txt";
-  {
-    open my $saved, ">&", STDOUT   or die "Can't dup STDOUT: $!";
-    open STDOUT,    ">",  $outfile or die "Can't redirect STDOUT: $!";
-    $c->compress_old_versions(3);
-    open STDOUT, ">&", $saved or die "Can't restore STDOUT: $!";
-  }
-  open my $ofh, "<", $outfile or die "Can't read $outfile: $!";
-  my $output = do { local $/; <$ofh> };
-  close $ofh or die "Can't close $outfile: $!";
+  my $c      = Devel::Cover::Collection->new(results_dir => $dir, dryrun => 1);
+  my $output = compress_output($c, 3);
 
   # 5 versions, keep 3: the oldest two by start time should be compressed
   like $output, qr/^compressing Net-RDAP-0\.7$/m,
@@ -567,6 +571,64 @@ sub compress_old_versions () {
     "a distdir with invalid JSON is skipped";
   unlike $output, qr/^compressing Net-RDAP-0\.3$/m,
     "a distdir without cover.json is skipped";
+}
+
+sub make_distdir ($dir, $distdir, $name, $start) {
+  my $path = "$dir/$distdir";
+  mkdir $path or die "Can't mkdir $path: $!";
+  my $cover = { runs => [{ name => $name, start => $start }] };
+  open my $fh, ">", "$path/cover.json" or die "Can't write: $!";
+  print $fh JSON::MaybeXS->new(utf8 => 1)->encode($cover);
+  close $fh or die "Can't close: $!";
+}
+
+sub make_foo_distdirs ($dir) {
+  my $starts = {
+    "Foo-1.9"        => 500,
+    "Foo-2.0"        => 1000,
+    "Foo-2.01-TRIAL" => 2000,
+    "Foo-2.02-TRIAL" => 3000,
+    "Foo-2.03-TRIAL" => 4000,
+  };
+  make_distdir($dir, $_, "Foo", $starts->{$_}) for sort keys %$starts;
+}
+
+sub compress_old_versions_keeps_latest () {
+  skip_all "uses fsys which requires alarm (not available on Windows)"
+    if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  make_foo_distdirs($dir);
+  local @Latest_paths = qw(
+    A/AU/AUTHOR/Foo-2.0.tar.gz
+    A/AU/AUTHOR/Foo-2.03-TRIAL.tar.gz
+  );
+  my $c      = Devel::Cover::Collection->new(results_dir => $dir, dryrun => 1);
+  my $output = compress_output($c, 3);
+
+  like $output, qr/^compressing Foo-1\.9$/m,
+    "an old release outside the index is compressed";
+  unlike $output, qr/^compressing Foo-2\.0$/m,
+    "a release in the index is kept behind three newer TRIALs";
+  unlike $output, qr/^compressing Foo-2\.0[1-3]-TRIAL$/m,
+    "the three newest TRIALs are kept";
+}
+
+sub compress_old_versions_unreadable_index () {
+  skip_all "uses fsys which requires alarm (not available on Windows)"
+    if $Is_win32;
+  my $dir = tempdir(CLEANUP => 1);
+  make_foo_distdirs($dir);
+  my $c = Devel::Cover::Collection->new(results_dir => $dir, dryrun => 1);
+
+  no warnings "redefine";
+  local *Devel::Cover::Collection::latest_paths = sub { die "no index\n" };
+  my $output;
+  my $warnings = warnings { $output = compress_output($c, 3) };
+  unlike $output, qr/^compressing /m, "nothing is compressed without the index";
+  is @$warnings, 1, "one warning when the index can't be read";
+  is $warnings->[0],
+    "Can't read the CPAN release index, compressing nothing: no index\n",
+    "the warning gives the index error";
 }
 
 my $Has_yaml = eval { require YAML; 1 };
@@ -1105,6 +1167,8 @@ sub main () {
     module_name_version
     write_json
     compress_old_versions
+    compress_old_versions_keeps_latest
+    compress_old_versions_unreadable_index
     build_dir_id
     build_dir_id_from_cpan
     filter_build_dirs_to_targets
