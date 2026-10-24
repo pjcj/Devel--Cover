@@ -1725,14 +1725,8 @@ static void dc_collect_logops_r(pTHX_ OP *op, AV *logops, int expr_ctx) {
 
   if (op->op_type == OP_SUBST) {
     PMOP *pm = cPMOPx(op);
-#ifdef USE_ITHREADS
-    if (pm->op_pmstashstartu.op_pmreplstart)
-      dc_collect_logops_r(aTHX_ pm->op_pmstashstartu.op_pmreplstart, logops,
-                          0);
-#else
     if (pm->op_pmreplrootu.op_pmreplroot)
       dc_collect_logops_r(aTHX_ pm->op_pmreplrootu.op_pmreplroot, logops, 0);
-#endif
   }
 }
 
@@ -3603,12 +3597,7 @@ static void dc_walk_ops_r(pTHX_ OP *op, SV *callback, CV *cv, HV *parent_map) {
   /* Handle PMOP special children (regex replacement trees) */
   if (op->op_type == OP_SUBST) {
     PMOP *pm   = cPMOPx(op);
-    OP   *repl =
-#ifdef USE_ITHREADS
-      pm->op_pmstashstartu.op_pmreplstart;
-#else
-      pm->op_pmreplrootu.op_pmreplroot;
-#endif
+    OP   *repl = pm->op_pmreplrootu.op_pmreplroot;
     if (repl) {
       SV *parent_sv = dc_make_op_sv(aTHX_ op);
       dc_store_parent(aTHX_ parent_map, repl, parent_sv);
