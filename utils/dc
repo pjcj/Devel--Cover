@@ -107,6 +107,8 @@ cpancover:
   cpancover-rebuild-module <module>    Rebuild one module (CPAN path, e.g.
                                        P/PJ/PJCJ/Foo-1.00.tar.gz) and
                                        regenerate HTML.
+  cpancover-render-module              Render the report of an export (called
+                                       by cpancover-docker-module).
   cpancover-run-loop-rebuild           Regenerate every already-covered
                                        distribution in batches (CPANCOVER_
                                        REBUILD_BATCH, default 100), then
@@ -143,6 +145,10 @@ cpancover (Docker):
   cpancover-docker-kill                Kill running cpancover containers.
   cpancover-docker-module <mod> <name> Build coverage for a module in Docker
                                        (called by Collection.pm).
+                                       CPANCOVER_RENDER_TIMEOUT (default
+                                       1800) limits the render time.
+                                       CPANCOVER_EXPORT_MAX_MB (default
+                                       2048) limits the export size.
   cpancover-docker-prune               Prune unused Docker data (manual
                                        maintenance).
   cpancover-docker-ps                  List running cpancover containers.
@@ -615,7 +621,15 @@ recipe_cpancover-build-module() {
   local module="${1:?No module specified}"
   local v=
   ((verbose)) && v=--verbose
-  run_cpancover "$v" --local_build --docker "$docker" --workers 1 "$module"
+  run_cpancover "$v" --local_build --docker "$docker" --workers 1 --export \
+    "$module"
+}
+
+recipe_cpancover-render-module() {
+  local home="$HOME"
+  cp -a "$home/input" "$home/work"
+  mkdir -p "$home/output"
+  run_cpancover --render "$home/work" "$home/output"
 }
 
 docker_name() {
@@ -681,11 +695,41 @@ cpancover_clean_dir() {
     "$dir"/cover.[0-9]*.gz "$dir"/*.lock "$dir"/*.lock.gz
 }
 
+cpancover_render_export() {
+  local export="$1" rname="$2" render="$3" log_file="$4" render_timeout="$5"
+  local env_flags=()
+  cpancover_env_flags env_flags
+  $docker create --network none \
+    --memory=2g --cpus=2 --pids-limit=256 --ulimit nofile=4096 \
+    --cap-drop=ALL --security-opt=no-new-privileges \
+    --user cpancover \
+    --label "cpancover.env=$env" \
+    ${env_flags[@]:+"${env_flags[@]}"} \
+    --name "$rname" \
+    "$docker_image" \
+    dc cpancover-render-module >/dev/null
+  if ! $docker cp "$export" "$rname:/home/cpancover/input" 2>>"$log_file"; then
+    echo "[dc] docker cp into $rname failed" >>"$log_file"
+  elif ! $docker start "$rname" >/dev/null 2>>"$log_file"; then
+    echo "[dc] docker start failed for $rname" >>"$log_file"
+  elif ! timeout "$render_timeout" "$docker" wait "$rname" >/dev/null 2>&1; then
+    $docker kill "$rname" >/dev/null 2>&1 || true
+    echo "[dc] render timed out after ${render_timeout}s" >>"$log_file"
+  fi
+  $docker logs "$rname" >>"$log_file" 2>&1 || true
+  mkdir -p "$render"
+  $docker cp "$rname:/home/cpancover/output" "$render" 2>>"$log_file" || true
+  $docker rm "$rname" >/dev/null 2>&1 || true
+  [[ -f $render/output/index.html && -f $render/output/cover.json ]]
+}
+
 recipe_cpancover-docker-module() {
   local module="${1:?No module specified}"
   local name="${2:?No name specified}"
   local staging="${3:-$results_dir}"
   local module_timeout="${CPANCOVER_TIMEOUT:-3600}" # an hour
+  local render_timeout="${CPANCOVER_RENDER_TIMEOUT:-1800}"
+  local max_mb="${CPANCOVER_EXPORT_MAX_MB:-2048}"
   local log_ext=out
   cpancover_compression_enabled && log_ext=out.gz
   local bare
@@ -760,7 +804,8 @@ recipe_cpancover-docker-module() {
       pw "chown failed for $local_staging; continuing"
 
     local seen=0
-    local f base
+    local f base size rname
+    local report="$local_staging/render/output"
     for f in "$copy_src"/*; do
       [[ -d $f && ! -L $f ]] || continue
       ((++seen))
@@ -770,14 +815,24 @@ recipe_cpancover-docker-module() {
         echo "[dc] ignored unexpected directory $base" >>"$log_file"
         continue
       fi
+      size=$(du -sm "$f" 2>>"$log_file" | cut -f1) || true
+      if ((${size:-0} > max_mb)); then
+        echo "[dc] export of $size MB exceeds $max_mb MB" >>"$log_file"
+        continue
+      fi
+      rname=$(docker_name "$name-render")
+      if ! cpancover_render_export "$f" "$rname" "$local_staging/render" \
+        "$log_file" "$render_timeout"; then
+        echo "[dc] render produced no report" >>"$log_file"
+        continue
+      fi
       if [[ -n ${CPANCOVER_REBUILD:-} || -e "$staging/__failed__/$base" ]]; then
         rm -rf "${staging:?}/$base"
       elif [[ -d "$staging/$base" ]]; then
         continue
       fi
-      cpancover_clean_dir "$f"
-      echo "$log_name.$log_ext" >"$f/.log_ref"
-      mv "$f" "$staging"
+      echo "$log_name.$log_ext" >"$report/.log_ref"
+      mv "$report" "$staging/$bare"
     done
 
     if ((seen == 0)); then

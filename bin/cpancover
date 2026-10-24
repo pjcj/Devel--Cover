@@ -27,6 +27,7 @@ my $Options = {
   compress_old_versions => 0,
   docker                => "docker",
   dryrun                => 0,
+  export                => 0,
   force                 => 0,
   generate_html         => 0,
   latest                => 0,
@@ -39,6 +40,8 @@ my $Options = {
   output_file           => "index.html",
   rebuild               => 0,
   rebuild_batch         => 100,
+  render                => 0,
+  render_timeout        => undef,
   report                => "html",
   results_dir           => cwd(),
   timeout               => undef,
@@ -56,6 +59,7 @@ sub get_options {
       docker=s
       dryrun!
       env=s
+      export!
       force!
       generate_html!
       help|h!
@@ -71,6 +75,8 @@ sub get_options {
       output_file=s
       rebuild!
       rebuild_batch=i
+      render!
+      render_timeout=i
       report=s
       results_dir=s
       timeout=i
@@ -94,6 +100,7 @@ sub newcp {
       docker
       dryrun
       env
+      export
       force
       latest_index
       local
@@ -103,6 +110,7 @@ sub newcp {
       output_file
       rebuild
       rebuild_batch
+      render_timeout
       report
       results_dir
       timeout
@@ -121,6 +129,12 @@ sub main {
   if ($Options->{latest}) {
     my $cp = newcp;
     $cp->get_latest;
+    return;
+  }
+
+  if ($Options->{render}) {
+    $Options->{timeout} //= $ENV{CPANCOVER_RENDER_TIMEOUT} // 30 * 60;
+    newcp->render_export(@ARGV);
     return;
   }
 
@@ -194,7 +208,8 @@ cpancover - report coverage statistics on CPAN modules
   cpancover --help --info --version
             --build --generate_html --rebuild --rebuild_batch n
             --mark_rebuilt --on_cpan
-            --latest --latest_index file --local --local_build
+            --latest --latest_index file --local --local_build --export
+            --render in out --render_timeout seconds
             --modules module_name --module_file file
             --results_dir /path/to/dir --output_file filename.html
             --report report_name
@@ -225,6 +240,7 @@ The following command line options are supported:
   --docker                - docker command to use               (docker)
   --dryrun                - don't execute (for some commands)   (off)
   --env                   - collection environment              (prod)
+  --export                - export data for a separate render   (off)
   --force                 - recollect coverage                  (off)
   --generate_html         - generate html                       (off)
   --latest                - process latest CPAN releases        (off)
@@ -238,6 +254,8 @@ The following command line options are supported:
   --output_file           - top level index                     (index.html)
   --rebuild               - rebuild already-covered modules     (off)
   --rebuild_batch         - how many distdirs per rebuild pass  (100)
+  --render                - render an exported report           (off)
+  --render_timeout        - render timeout in seconds           (1800)
   --report                - report to use                       (html)
   --results_dir           - where to store output               ($cwd)
   --timeout               - per-distribution timeout in seconds (3600)

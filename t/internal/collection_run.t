@@ -20,7 +20,7 @@ use Cwd        qw( getcwd );
 use File::Path qw( make_path );
 use File::Temp qw( tempdir );
 
-use Test::More import => [qw( done_testing is like ok plan )];
+use Test::More import => [qw( done_testing is like ok plan unlike )];
 
 BEGIN {
   plan skip_all => "Devel::Cover::Collection requires Perl 5.42" if $] < 5.042;
@@ -40,10 +40,11 @@ my $Tmp = tempdir CLEANUP => 1;
 my $Bin = "$Tmp/bin";
 make_path $Bin;
 
-# A fake cover: records its arguments, --test leaves a valid cover_db and
-# a report file (unless FAKE_COVER_NO_REPORT is set) but reports failing
-# tests, any report run succeeds and records that it happened, or fails
-# when FAKE_COVER_FAIL_REPORT is set
+# A fake cover: records its arguments, --test leaves a valid cover_db with a
+# cover.json (unless FAKE_COVER_NO_JSON is set) and a report file (unless
+# FAKE_COVER_NO_REPORT is set) but reports failing tests, any report run
+# succeeds and records that it happened, or fails when FAKE_COVER_FAIL_REPORT
+# is set
 open my $Fh, ">", "$Bin/cover" or die "Can't open $Bin/cover: $!";
 print $Fh <<'EOS';
 use strict;
@@ -56,6 +57,14 @@ if (grep $_ eq "--test", @ARGV) {
   open my $mfh, ">", "cover_db/marker" or die "Can't open marker: $!";
   print $mfh "coverage\n";
   close $mfh or die "Can't close marker: $!";
+  open my $ffh, ">", "cover_db/db_format" or die "Can't open db_format: $!";
+  print $ffh $ENV{DEVEL_COVER_DB_FORMAT} // "";
+  close $ffh or die "Can't close db_format: $!";
+  unless ($ENV{FAKE_COVER_NO_JSON}) {
+    open my $jfh, ">", "cover_db/cover.json" or die "Can't open json: $!";
+    print $jfh "{}";
+    close $jfh or die "Can't close json: $!";
+  }
   unless ($ENV{FAKE_COVER_NO_REPORT}) {
     open my $ofh, ">", "cover_db/index.html" or die "Can't open report: $!";
     print $ofh "report\n";
@@ -85,33 +94,50 @@ sub run_scenario (%opt) {
   my $build_dir = "$Tmp/build$n/My-Module-1.02-1234";
   make_path $build_dir;
   make_path "$build_dir/$_" for ($opt{dirs} // [])->@*;
+  my $files = $opt{files} // {};
+  for my $name (sort keys %$files) {
+    open my $fh, ">", "$build_dir/$name" or die "Can't open $name: $!";
+    print $fh $files->{$name};
+    close $fh or die "Can't close $name: $!";
+  }
 
-  my $collection = Devel::Cover::Collection->new(
+  my %params = (
     bin_dir     => $Bin,
     results_dir => "$Tmp/results$n",
     distdir_for => $opt{unmapped} ? {} : { $build_dir => "My-Module-1.02" },
+    $opt{export} ? (export => 1) : (),
   );
 
   my @warnings;
   local $SIG{__WARN__}               = sub { push @warnings, @_ };
   local $ENV{FAKE_COVER_FAIL_REPORT} = $opt{fail_report} // "";
   local $ENV{FAKE_COVER_NO_REPORT}   = $opt{no_report}   // "";
+  local $ENV{FAKE_COVER_NO_JSON}     = $opt{no_json}     // "";
+
+  delete local $ENV{DEVEL_COVER_DB_FORMAT};
 
   my $cwd = getcwd;
 
   open my $saved_stdout, ">&", \*STDOUT or die "Can't save STDOUT: $!";
   open STDOUT, ">", "$Tmp/run$n.out"    or die "Can't redirect STDOUT: $!";
-  my $err = do { local $@; eval { $collection->run($build_dir) }; $@ };
+  my $err = do {
+    local $@;
+    eval { Devel::Cover::Collection->new(%params)->run($build_dir) };
+    $@
+  };
   open STDOUT, ">&", $saved_stdout or die "Can't restore STDOUT: $!";
   chdir $cwd or die "Can't chdir $cwd: $!";
 
-  my $args = "$build_dir/cover_args";
+  my $args   = "$build_dir/cover_args";
+  my $rdir   = "$Tmp/results$n/My-Module-1.02";
+  my $select = "$rdir/.select_dir";
   {
-    err      => $err,
-    stdout   => slurp("$Tmp/run$n.out"),
-    args     => -e $args ? slurp($args) : "",
-    warnings => join("", @warnings),
-    rdir     => "$Tmp/results$n/My-Module-1.02",
+    err        => $err,
+    stdout     => slurp("$Tmp/run$n.out"),
+    args       => -e $args ? slurp($args) : "",
+    warnings   => join("", @warnings),
+    rdir       => $rdir,
+    select_dir => -e $select ? slurp($select) : "",
   }
 }
 
@@ -123,6 +149,7 @@ sub test_failing_tests_still_publish () {
   ok -e "$r->{rdir}/report_generated", "report generation still runs";
   like $r->{warnings}, qr/exit 3/,              "test failure is still warned";
   like $r->{args},     qr/--select_dir blib\b/, "blib preferred as select_dir";
+  is slurp("$r->{rdir}/db_format"), "", "database format is left alone";
 }
 
 sub test_select_dir_fallbacks () {
@@ -154,10 +181,49 @@ sub test_unmapped_build_dir_dies () {
   is $r->{args}, "", "nothing is run for an unmapped build dir";
 }
 
+sub test_export_publishes_data_only () {
+  my $r = run_scenario(
+    dirs   => ["blib", "lib"],
+    export => 1,
+    files  => { "script.pl" => "1;\n" },
+  );
+  is $r->{err}, "", "export run succeeds";
+  like $r->{args}, qr/--test --report json_summary --nosummary/,
+    "export runs the tests with a json summary";
+  like $r->{args},   qr/--select_dir blib\b/, "export selects blib";
+  unlike $r->{args}, qr/html/,                "export writes no html report";
+  is $r->{args} =~ tr/\n//, 1, "export runs no second report";
+  ok -e "$r->{rdir}/cover_db/marker",     "export holds the coverage database";
+  ok -e "$r->{rdir}/cover_db/cover.json", "export holds the cover.json";
+  ok -d "$r->{rdir}/blib",                "export holds the select dir";
+  ok -d "$r->{rdir}/lib",                 "export holds the other dirs";
+  ok -e "$r->{rdir}/script.pl",           "export holds the other files";
+  is $r->{select_dir}, "blib\n", "export records the select dir";
+  ok !-e "$r->{rdir}/index.html", "export holds no report";
+  is slurp("$r->{rdir}/cover_db/db_format"), "JSON",
+    "export writes the database as JSON";
+}
+
+sub test_export_dot_copies_build_dir () {
+  my $r = run_scenario(export => 1, files => { README => "x\n" });
+  ok -e "$r->{rdir}/README", "export of . copies the build dir";
+  is $r->{select_dir}, ".\n", "export records . as select dir";
+  ok -e "$r->{rdir}/cover_db/marker", "export of . holds the coverage database";
+}
+
+sub test_export_without_json_fails () {
+  my $r = run_scenario(dirs => ["lib"], export => 1, no_json => 1);
+  like $r->{err}, qr/No cover\.json generated/, "missing cover.json fails";
+  ok !-e $r->{rdir}, "nothing is exported without a cover.json";
+}
+
 test_failing_tests_still_publish;
 test_select_dir_fallbacks;
 test_log_survives_report_failure;
 test_missing_report_fails;
 test_unmapped_build_dir_dies;
+test_export_publishes_data_only;
+test_export_dot_copies_build_dir;
+test_export_without_json_fails;
 
 done_testing;

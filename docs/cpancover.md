@@ -8,7 +8,15 @@ Cpancover requires a Bourne shell, plenv, docker and Perl 5.42.0 or later.
 
 Each module is built in an individual docker container. This should allow its
 resources to be constrained. In addition the docker container is killed after a
-certain time.
+certain time, set in seconds by `CPANCOVER_TIMEOUT`.
+
+The build container exports the coverage database and every other entry of the
+build directory, so that the report has every source the database lists. The
+host then renders the report in a second container from the same image, with no
+network, where no code of the distribution has run. It publishes only the output
+of the second container, so the site serves nothing the build wrote.
+`CPANCOVER_RENDER_TIMEOUT` sets the time limit of the render in seconds and
+`CPANCOVER_EXPORT_MAX_MB` sets the size limit of the export in megabytes.
 
 The Docker infrastructure is in the `docker/` directory of this repository. See
 `docker/README.md` for full details on building and managing Docker images.
@@ -73,9 +81,8 @@ location. If you would prefer not to do that, or you want to run multiple
 separate cpancover instances (probably only for development purposes), then you
 can pass `--results_dir` to the `utils/dc` script.
 
-The results consist of the Devel::Cover `cover_db` directory for each package
-tested, including the generated HTML output for that DB and the JSON summary
-file. Above those directories is a summary HTML page with links to the
+Each distdir holds the rendered HTML report and the JSON summary of one
+distribution. Above those directories is a summary HTML page with links to the
 individual coverage reports.
 
 ## Web server

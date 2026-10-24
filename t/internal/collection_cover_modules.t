@@ -68,6 +68,7 @@ open my \$fh, ">>", \$ENV{STUB_LOG} or die "Can't open \$ENV{STUB_LOG}: \$!";
 print \$fh "\$module rebuild=", \$ENV{CPANCOVER_REBUILD} // "", "\\n";
 close \$fh or die "Can't close \$ENV{STUB_LOG}: \$!";
 exit 0 if \$ENV{STUB_NO_DIST};
+sleep \$ENV{STUB_SLEEP} if \$ENV{STUB_SLEEP};
 mkdir "\$results_dir/\$dist"
   or -d "\$results_dir/\$dist"
   or die "Can't mkdir \$results_dir/\$dist: \$!";
@@ -202,6 +203,29 @@ subtest "failed marker outranks an old report" => sub {
   is $fp->cover_modules, 1, "force retries it";
   like slurp($log), qr/Foo-Bar/, "a build runs for it";
   ok !-e "$dir/__failed__/Foo-Bar-1.00", "fresh report clears the marker";
+};
+
+subtest "alarm allows for the build and the render" => sub {
+  my $dir = new_results_dir;
+  my $log = "$dir/calls.log";
+  local $ENV{STUB_LOG}   = $log;
+  local $ENV{STUB_SLEEP} = 2;
+  local $ENV{CPANCOVER_TIMEOUT};
+  local $ENV{CPANCOVER_RENDER_TIMEOUT};
+  write_file($log, "");
+
+  my $cp = newcp($dir, timeout => 1, render_timeout => 2, docker => "true");
+  $cp->set_modules($New);
+  is $cp->cover_modules, 1, "cover_modules reports one build";
+  ok -e "$dir/Baz-Qux-2.00/cover.json",  "build past timeout writes a report";
+  ok !-e "$dir/__failed__/Baz-Qux-2.00", "build past timeout is not failed";
+};
+
+subtest "render timeout is exported to the environment" => sub {
+  local $ENV{CPANCOVER_RENDER_TIMEOUT};
+  newcp(new_results_dir, render_timeout => 5);
+  is $ENV{CPANCOVER_RENDER_TIMEOUT}, 5,
+    "render timeout is in the environment";
 };
 
 done_testing;

@@ -105,52 +105,75 @@ sub make_docker_stub ($bin) {
       "NONINTERACTIVE_TESTING=${NONINTERACTIVE_TESTING-unset}" \
       "EXTENDED_TESTING=${EXTENDED_TESTING-unset}" \
       >>"${STUB_CALLS:-/dev/null}"
+    cover_json() {
+      printf '%s%s%s\n' \
+        '{"runs":[{"name":"Foo-Bar","version":"1.00","dir":"/tmp/x"}],' \
+        '"summary":{"Total":' \
+        '{"total":{"percentage":85.5,"covered":10,"total":12}}}}'
+    }
+    render_output() {
+      [ -n "${STUB_NO_RENDER:-}" ] && exit 1
+      mkdir -p "$1/output/assets"
+      echo html >"$1/output/index.html"
+      cover_json >"$1/output/cover.json"
+      echo x >"$1/output/assets/app.js"
+    }
+    export_staging() {
+      dest="$1"
+      if [ -n "${STUB_STAGING_LINK:-}" ]; then
+        ln -s "$STUB_LINK_TARGET" "$dest/staging"
+        exit 0
+      fi
+      mkdir -p "$dest/staging"
+      [ -n "${STUB_NO_DIST:-}" ] && exit 0
+      dist="$STUB_DISTDIR"
+      db="$dest/staging/$dist/cover_db"
+      mkdir -p "$db/runs" "$db/structure" "$dest/staging/$dist/blib/lib"
+      cover_json >"$db/cover.json"
+      echo x >"$db/digests"
+      echo x >"$dest/staging/$dist/blib/lib/Foo.pm"
+      echo blib >"$dest/staging/$dist/.select_dir"
+      echo evil >"$dest/staging/$dist/evil.html"
+      if [ -n "${STUB_SYMLINKS:-}" ]; then
+        ln -s / "$dest/staging/$dist/root"
+        ln -s "$STUB_LINK_TARGET" "$dest/staging/Link-1.0"
+      fi
+      if [ -n "${STUB_HIDDEN_LINK:-}" ]; then
+        mkdir "$dest/staging/$dist/hide"
+        ln -s / "$dest/staging/$dist/hide/root"
+        chmod 0300 "$dest/staging/$dist/hide"
+      fi
+      if [ -n "${STUB_EXTRA_DIRS:-}" ]; then
+        mkdir -p "$dest/staging/__failed__" "$dest/staging/__rebuilt__" \
+          "$dest/staging/Other-9.99" "$dest/staging/dist"
+        echo x >"$dest/staging/__failed__/Victim-1.0"
+        echo x >"$dest/staging/__rebuilt__/Victim-1.0"
+        echo evil >"$dest/staging/Other-9.99/index.html"
+        echo x >"$dest/staging/dist/x"
+      fi
+      if [ -n "${STUB_NEWLINE_DIR:-}" ]; then
+        odd="$dest/staging/$dist
+    "
+        mkdir -p "$odd"
+        echo evil >"$odd/index.html"
+      fi
+    }
     case "$cmd" in
+      create) echo fake-render ;;
       run) echo fake-container ;;
       logs) echo "fake build log" ;;
-      wait) sleep "${STUB_WAIT_SLEEP:-0}" ;;
+      wait)
+        case "$1" in
+          *-render-*) sleep "${STUB_RENDER_WAIT_SLEEP:-0}" ;;
+          *) sleep "${STUB_WAIT_SLEEP:-0}" ;;
+        esac
+        ;;
       cp)
-        dest="$2"
-        if [ -n "${STUB_STAGING_LINK:-}" ]; then
-          ln -s "$STUB_LINK_TARGET" "$dest/staging"
-          exit 0
-        fi
-        mkdir -p "$dest/staging"
-        [ -n "${STUB_NO_DIST:-}" ] && exit 0
-        dist="$STUB_DISTDIR"
-        mkdir -p "$dest/staging/$dist/runs" "$dest/staging/$dist/structure"
-        echo db >"$dest/staging/$dist/cover.14"
-        echo x >"$dest/staging/$dist/digests"
-        echo x >"$dest/staging/$dist/x.lock"
-        printf '%s%s%s\n' \
-          '{"runs":[{"name":"Foo-Bar","version":"1.00","dir":"/tmp/x"}],' \
-          '"summary":{"Total":' \
-          '{"total":{"percentage":85.5,"covered":10,"total":12}}}}' \
-          >"$dest/staging/$dist/cover.json"
-        echo html >"$dest/staging/$dist/index.html"
-        if [ -n "${STUB_SYMLINKS:-}" ]; then
-          ln -s / "$dest/staging/$dist/root"
-          ln -s "$STUB_LINK_TARGET" "$dest/staging/Link-1.0"
-        fi
-        if [ -n "${STUB_HIDDEN_LINK:-}" ]; then
-          mkdir "$dest/staging/$dist/hide"
-          ln -s / "$dest/staging/$dist/hide/root"
-          chmod 0300 "$dest/staging/$dist/hide"
-        fi
-        if [ -n "${STUB_EXTRA_DIRS:-}" ]; then
-          mkdir -p "$dest/staging/__failed__" "$dest/staging/__rebuilt__" \
-            "$dest/staging/Other-9.99" "$dest/staging/dist"
-          echo x >"$dest/staging/__failed__/Victim-1.0"
-          echo x >"$dest/staging/__rebuilt__/Victim-1.0"
-          echo evil >"$dest/staging/Other-9.99/index.html"
-          echo x >"$dest/staging/dist/x"
-        fi
-        if [ -n "${STUB_NEWLINE_DIR:-}" ]; then
-          odd="$dest/staging/$dist
-    "
-          mkdir -p "$odd"
-          echo evil >"$odd/index.html"
-        fi
+        case "$2" in *:/home/cpancover/input*) exit 0 ;; esac
+        case "$1" in
+          *:/home/cpancover/output*) render_output "$2" ;;
+          *:/home/cpancover/cover/staging*) export_staging "$2" ;;
+        esac
         ;;
     esac
     exit 0
@@ -363,8 +386,7 @@ sub docker_module_drops_hidden_link () {
   dc("-r", $results, "cpancover-docker-module", $Dist, $log, $results);
   chmod 0755, glob "$results/*/hide $results/*/staging/*/hide";
 
-  ok -d "$results/Foo-Bar-1.00/hide", "the unreadable directory is ingested";
-  ok !-e "$results/Foo-Bar-1.00/hide/root", "the link inside it is dropped";
+  ok -e "$results/Foo-Bar-1.00/index.html", "the report is published";
   is links_under($results), [], "no link survives ingest";
   like slurp("$results/$log.out"), qr{/hide/root$}m,
     "build log names the hidden link";
@@ -428,6 +450,113 @@ sub docker_module_run_limits () {
   my ($cp) = grep /^cp /, split /\n/, slurp("$work/calls");
   like $cp, qr|^cp \S+:/home/cpancover/cover/staging |,
     "results are copied from the build user's home";
+}
+
+sub module_calls ($staging, %env) {
+  my $work = tempdir(CLEANUP => 1);
+  local $ENV{STUB_CALLS} = "$work/calls";
+  local @ENV{ keys %env } = values %env;
+  my $log = "P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456";
+  system "$Dc -r $staging cpancover-docker-module $Dist $log $staging"
+    . " >/dev/null 2>&1";
+  [split /\n/, slurp("$work/calls")]
+}
+
+sub docker_module_renders_in_second_container () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+  delete local $ENV{CPANCOVER_COMPRESS};
+
+  my $staging = tempdir(CLEANUP => 1);
+  my $calls   = module_calls($staging);
+
+  my $create = join "\n", grep /^create /, @$calls;
+  for my $flag (
+    "--network none",   "--memory=2g",
+    "--cpus=2",         "--pids-limit=256",
+    "--cap-drop=ALL",   "--security-opt=no-new-privileges",
+    "--user cpancover", "dc cpancover-render-module",
+  ) {
+    like $create, qr/ \Q$flag\E(?: |$)/m, "render container has $flag";
+  }
+  unlike $create, qr/--mount/, "render container mounts nothing";
+
+  is grep(m{^cp \S+ \S+:/home/cpancover/input}, @$calls), 1,
+    "the export is copied into the render container";
+  is grep(m{^cp \S+:/home/cpancover/output }, @$calls), 1,
+    "the report is copied out of the render container";
+
+  my ($name) = $create =~ /--name[= ](\S+)/;
+  my $render = join "|", map quotemeta, grep defined, "fake-render", $name;
+  ok grep(/^start (?:.* )?(?:$render)$/, @$calls),
+    "the render container is started";
+  ok grep(/^wait (?:.* )?(?:$render)$/, @$calls),
+    "the render container is waited for";
+
+  my $dir = "$staging/Foo-Bar-1.00";
+  ok -e "$dir/$_", "the published report holds $_"
+    for qw( index.html cover.json assets/app.js .log_ref );
+  ok !-e "$dir/$_", "the published report holds no $_"
+    for qw( evil.html cover_db blib );
+}
+
+sub docker_module_render_failure_publishes_nothing () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+
+  my $staging = tempdir(CLEANUP => 1);
+  module_calls($staging, STUB_NO_RENDER => 1);
+
+  ok !-e "$staging/Foo-Bar-1.00", "no report is published";
+  my $log = "$staging/P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456.out";
+  like slurp($log), qr/^\Q[dc] render produced no report\E/m,
+    "build log notes the missing report";
+}
+
+sub docker_module_render_timeout () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+
+  my $staging = tempdir(CLEANUP => 1);
+  my $calls   = module_calls(
+    $staging,
+    CPANCOVER_RENDER_TIMEOUT => 1,
+    STUB_RENDER_WAIT_SLEEP   => 5,
+  );
+
+  my ($name) = map /--name[= ](\S+)/, grep /^create /, @$calls;
+
+  ok defined $name, "the render container is named";
+  ok grep(/^kill (?:.* )?\Q$name\E$/, @$calls),
+    "the render container is killed";
+  my $log = "$staging/P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456.out";
+  like slurp($log), qr/^\Q[dc] render timed out after 1s\E$/m,
+    "build log notes the render timeout";
+}
+
+sub docker_module_rejects_large_export () {
+  skip_all "timeout required" if system "command -v timeout >/dev/null 2>&1";
+  my $bin = tempdir(CLEANUP => 1);
+  make_docker_stub($bin);
+  local $ENV{PATH}         = "$bin:$ENV{PATH}";
+  local $ENV{STUB_DISTDIR} = "Foo-Bar-1.00";
+
+  my $staging = tempdir(CLEANUP => 1);
+  my $calls   = module_calls($staging, CPANCOVER_EXPORT_MAX_MB => 0);
+
+  is grep(/^create /, @$calls), 0, "no render container is created";
+  ok !-e "$staging/Foo-Bar-1.00", "no report is published";
+  my $log = "$staging/P-PJ-PJCJ-Foo-Bar-1.00.tar.gz--123.456.out";
+  like slurp($log), qr/^\Q[dc] export of\E/m, "build log notes the export size";
 }
 
 sub build_environment () {
@@ -766,6 +895,47 @@ sub all_gold_forced () {
     "gold regeneration runs under force";
 }
 
+sub make_build_stubs ($bin) {
+  write_file("$bin/$_", <<~'SH') for qw( make perl );
+    #!/bin/sh
+    echo "$*" >>"$STUB_CALLS"
+    echo 1
+    SH
+  chmod 0755, "$bin/make", "$bin/perl" or die "Can't chmod build stubs: $!";
+}
+
+sub cpancover_call ($recipe, %env) {
+  my $bin  = tempdir(CLEANUP => 1);
+  my $work = tempdir(CLEANUP => 1);
+  make_build_stubs($bin);
+  local $ENV{PATH}        = "$bin:$ENV{PATH}";
+  local $ENV{STUB_CALLS}  = "$work/calls";
+  local @ENV{ keys %env } = values %env;
+  my ($out, $exit) = dc_in($work, "-r", "$work/results", @$recipe);
+  is $exit, 0, "@$recipe succeeds" or diag $out;
+  my $calls  = -e "$work/calls" ? slurp("$work/calls") : "";
+  my ($call) = grep m|bin/cpancover --local |, split /\n/, $calls;
+  $call // ""
+}
+
+sub build_module_exports () {
+  my $call = cpancover_call(["cpancover-build-module", $Dist]);
+  like $call,   qr/ --local_build /,      "the module is built";
+  like $call,   qr/ --export \Q$Dist\E$/, "the build is exported";
+  unlike $call, qr/ --render /,           "the build is not rendered";
+}
+
+sub render_module_copies_input () {
+  my $home = tempdir(CLEANUP => 1);
+  mkdir "$home/input" or die "Can't mkdir $home/input: $!";
+  write_file("$home/input/cover.json", "{}\n");
+  my $call = cpancover_call(["cpancover-render-module"], HOME => $home);
+  like $call, qr| --render \Q$home\E/work \Q$home\E/output$|,
+    "the render reads a copy of the input";
+  is slurp("$home/work/cover.json"), "{}\n", "the copy holds the input";
+  ok -d "$home/output", "the output dir is created";
+}
+
 sub main () {
   my @tests = qw(
     compress_recipe
@@ -778,6 +948,10 @@ sub main () {
     docker_module_drops_hidden_link
     docker_module_drops_staging_link
     docker_module_run_limits
+    docker_module_renders_in_second_container
+    docker_module_render_failure_publishes_nothing
+    docker_module_render_timeout
+    docker_module_rejects_large_export
     build_environment
     force_retries_failed_only
     stale_report_outcomes
@@ -790,6 +964,8 @@ sub main () {
     all_gold_partial_machine
     all_gold_full_machine
     all_gold_forced
+    build_module_exports
+    render_module_copies_input
   );
   for my $test (@tests) {
     no strict qw( refs );

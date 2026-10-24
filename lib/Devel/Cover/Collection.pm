@@ -19,6 +19,8 @@ use Devel::Cover::Inc          ();
 use Devel::Cover::Web          qw( write_file );
 
 use CPAN::DistnameInfo ();
+use File::Find         qw( find );
+use File::Spec         ();
 use JSON::MaybeXS      ();
 use POSIX              qw( _exit setsid );
 use Template           ();
@@ -35,20 +37,22 @@ my $Deadline_margin = 60;
 
 class Devel::Cover::Collection {
   # ro attributes
-  field $bin_dir     :param :reader = undef;
-  field $cpan_dir    :param :reader = undef;
-  field $results_dir :param :reader = undef;
-  field $dryrun      :param :reader = undef;
-  field $env         :param :reader = undef;
-  field $force       :param :reader = undef;
-  field $output_file :param :reader = undef;
-  field $report      :param :reader = undef;
-  field $timeout     :param :reader = undef;
-  field $deadline    :param :reader = undef;
-  field $verbose     :param :reader = undef;
-  field $workers     :param :reader = undef;
-  field $docker      :param :reader = undef;
-  field $local       :param :reader = undef;
+  field $bin_dir        :param :reader = undef;
+  field $cpan_dir       :param :reader = undef;
+  field $results_dir    :param :reader = undef;
+  field $dryrun         :param :reader = undef;
+  field $env            :param :reader = undef;
+  field $force          :param :reader = undef;
+  field $output_file    :param :reader = undef;
+  field $report         :param :reader = undef;
+  field $timeout        :param :reader = undef;
+  field $render_timeout :param :reader = undef;
+  field $deadline       :param :reader = undef;
+  field $verbose        :param :reader = undef;
+  field $workers        :param :reader = undef;
+  field $docker         :param :reader = undef;
+  field $local          :param :reader = undef;
+  field $export         :param :reader = undef;
 
   # attributes set internally after construction
   field $build_dirs  :param :reader = undef;
@@ -70,25 +74,29 @@ class Devel::Cover::Collection {
 
   ADJUST {
     # Apply defaults (equivalent to BUILDARGS)
-    $build_dirs    //= [];
-    $distdir_for   //= {};
-    $cpan_dir      //= [grep -d, glob "~/.cpan ~/.local/share/.cpan"];
-    $docker        //= "docker";
-    $dryrun        //= 0;
-    $env           //= "prod";
-    $force         //= 0;
-    $local         //= 0;
-    $modules       //= [];
-    $output_file   //= "index.html";
-    $rebuild       //= 0;
-    $rebuild_batch //= 100;
-    $mark_rebuilt  //= 0;
-    $report        //= "html";
-    $timeout       //= $ENV{CPANCOVER_TIMEOUT} // 60 * 60;             # an hour
-    $latest_index  //= $ENV{CPANCOVER_LATEST_INDEX};
-    $verbose       //= 0;
-    $workers       //= 0;
-    $ENV{CPANCOVER_TIMEOUT} = $timeout;
+    $build_dirs     //= [];
+    $distdir_for    //= {};
+    $cpan_dir       //= [grep -d, glob "~/.cpan ~/.local/share/.cpan"];
+    $docker         //= "docker";
+    $dryrun         //= 0;
+    $env            //= "prod";
+    $export         //= 0;
+    $force          //= 0;
+    $local          //= 0;
+    $modules        //= [];
+    $output_file    //= "index.html";
+    $rebuild        //= 0;
+    $rebuild_batch  //= 100;
+    $mark_rebuilt   //= 0;
+    $report         //= "html";
+    $timeout        //= $ENV{CPANCOVER_TIMEOUT}        // 60 * 60;  # an hour
+    $render_timeout //= $ENV{CPANCOVER_RENDER_TIMEOUT} // 30 * 60;
+    $latest_index   //= $ENV{CPANCOVER_LATEST_INDEX};
+    $verbose        //= 0;
+    $workers        //= 0;
+
+    $ENV{CPANCOVER_TIMEOUT}        = $timeout;
+    $ENV{CPANCOVER_RENDER_TIMEOUT} = $render_timeout;
   }
 
   # rw accessors (the reader acts as a writer when called with an arg)
@@ -250,6 +258,23 @@ class Devel::Cover::Collection {
     $d, $output
   }
 
+  sub _export_cmds ($build_dir, $rdir) {
+    my $db = "$build_dir/cover_db";
+    opendir my $dh, $build_dir or die "Can't opendir $build_dir: $!";
+    my @sources = sort grep !/^(?:\.\.?|cover_db)$/, readdir $dh;
+    closedir $dh or die "Can't closedir $build_dir: $!";
+    # structure lock files are all named <digest>.lock, so glob sees them
+    my @locks = glob "$db/structure/*.lock";
+    (
+      ["rm",    "-rf", $rdir],
+      ["mkdir", "-p",  $rdir],
+      ["rm",    "-f",  @locks],
+      ["mv",    $db,   "$rdir/cover_db"],
+      map ["cp", "-a", "$build_dir/$_", "$rdir/"],
+      @sources,
+    )
+  }
+
   method run ($build_dir) {
     my $module = $distdir_for->{$build_dir}
       // die "No distdir recorded for $build_dir\n";
@@ -281,15 +306,29 @@ class Devel::Cover::Collection {
       @cmd = ($^X, $bin_dir . "/cover");
     }
     my $select_dir = -d "blib" ? "blib" : -d "lib" ? "lib" : ".";
-    my @test_cmd   = (
-      @cmd,           "--test",     "--report",     $report,
-      "--outputfile", $output_file, "--select_dir", $select_dir,
-    );
+    my @report_opts
+      = $export
+      ? qw( --report json_summary --nosummary )
+      : ("--report", $report, "--outputfile", $output_file);
+    my @test_cmd = (@cmd, "--test", @report_opts, "--select_dir", $select_dir);
+    # render_export reads only JSON, so keep an exported db out of Sereal
+    my %format = $export ? (DEVEL_COVER_DB_FORMAT => "JSON") : ();
+    local @ENV{ keys %format } = values %format;
     # failing tests must not stop the report - the db is still valid
     $output .= "dc -> @test_cmd\n" . $self->bsys(@test_cmd);
     my $err  = do {
       local $@;
       eval {
+        if ($export) {
+          die "No cover.json generated for $module\n"
+            unless -e "$db/cover.json";
+          $output .= $self->fsys(@$_) for _export_cmds($build_dir, $rdir);
+          my $sel  = "$rdir/.select_dir";
+          open my $fh, ">", $sel or die "Can't open $sel: $!";
+          print $fh "$select_dir\n";
+          close $fh or die "Can't close $sel: $!";
+          return;
+        }
         die "No $output_file report generated for $module\n"
           unless -e "$db/$output_file";
         my @json_cmd = (@cmd, "-report", "json_summary", "-nosummary");
@@ -309,6 +348,47 @@ class Devel::Cover::Collection {
 
     say "\n$line\n$output$line\n";
     die $err if $err;
+  }
+
+  sub _check_json_db ($db) {
+    find(
+      sub {
+        return unless -f;
+        my $path = $File::Find::name;
+        open my $fh, "<", $_ or die "Can't open $path: $!\n";
+        my $n = read $fh, my $head, 4;
+        defined $n or die "Can't read $path: $!\n";
+        close $fh  or die "Can't close $path: $!\n";
+        die "Database file is not JSON: $path\n" if $n && $head !~ /^\s*[{[]/;
+      },
+      $db,
+    );
+  }
+
+  method render_export ($in, $out) {
+    $out = File::Spec->rel2abs($out);
+    my $sel = "$in/.select_dir";
+    open my $fh, "<", $sel or die "Can't open $sel: $!\n";
+    my $sd = <$fh> // "";
+    close $fh or die "Can't close $sel: $!\n";
+    chomp $sd;
+    die "Bad select_dir in $in: $sd\n" unless $sd =~ /^(?:blib|lib|\.)\z/;
+    _check_json_db("$in/cover_db");
+    chdir $in or die "Can't chdir $in: $!\n";
+
+    my @cmd    = ($^X, ($local ? "-Mblib=$bin_dir/.." : ()), "$bin_dir/cover");
+    my $output = $self->fsys(
+      @cmd,          "-nogcov",    "-report",    "html",
+      "-outputfile", "index.html", "-outputdir", $out,
+      "-select_dir", $sd,          "cover_db",
+    );
+    $output .= $self->fsys(
+      @cmd,         "-nogcov",    "-report", "json_summary",
+      "-nosummary", "-outputdir", $out,      "cover_db",
+    );
+    print $output;
+    die "No report rendered in $out\n"
+      unless -e "$out/index.html" && -e "$out/cover.json";
   }
 
   method run_all {
@@ -864,7 +944,7 @@ class Devel::Cover::Collection {
         }
 
         my $start = int time;
-        my $to    = $timeout;
+        my $to    = $timeout + $render_timeout;
         # say "Setting alarm for $to seconds";
         my $name = sprintf("%s-%18.6f", $module, time) =~ tr/a-zA-Z0-9_./-/cr;
         say "$d -> $name";
@@ -1297,6 +1377,14 @@ Report format to generate. Default: 'html'.
 
 Timeout in seconds for coverage runs. Default: 3600 (60 minutes).
 
+=head3 render_timeout
+
+Timeout in seconds for rendering an exported report. C<cover_modules> allows
+each distribution the sum of C<timeout> and C<render_timeout>, so that its
+alarm covers the build and the render. Default: C<CPANCOVER_RENDER_TIMEOUT>
+from the environment, or 1800 (30 minutes). The value is written back to
+C<CPANCOVER_RENDER_TIMEOUT>.
+
 =head3 deadline
 
 Epoch time by which a local build must finish. Each command a local build runs
@@ -1321,6 +1409,12 @@ Docker command to use. Default: 'docker'.
 =head3 local
 
 Boolean. If true, run in local mode without Docker. Default: 0.
+
+=head3 export
+
+Boolean. If true, C<run> exports the coverage database and the sources a
+report needs instead of writing the report, so that a separate run can write
+the report where no code of the distribution has run. Default: 0.
 
 =head3 rebuild
 
@@ -1492,6 +1586,26 @@ and leaves no report, nothing is published and the failure propagates, even
 though a failing test suite alone does not. If a step after the test run
 dies, the collected output is printed before the error propagates.
 
+When C<export> is set the test run writes the database as JSON and only the
+C<json_summary> report, F<cover.json> is the success test, and no second
+report run follows. The distdir in the results directory then holds:
+
+  cover_db/    the coverage database
+  ...          a copy of every other entry of the build directory, so
+               that the report has every source file the database lists
+  .select_dir  the name of the select directory, then a newline
+
+=head3 render_export ($in, $out)
+
+  $collection->render_export($in, $out);
+
+Writes the C<html> report and the C<json_summary> report of an export made by
+C<run> into C<$out>. Dies before it runs F<cover> if F<.select_dir> names
+anything but C<blib>, C<lib> or C<.>, or if any file under F<cover_db> is
+neither empty nor JSON. Both F<cover> runs turn gcov off, since F<cover> would
+otherwise run F<gcov> and F<gcov2perl> over files it finds. Dies unless both
+F<index.html> and F<cover.json> exist in C<$out> afterwards.
+
 =head3 run_all
 
   $collection->run_all;
@@ -1504,7 +1618,9 @@ workers if configured.
   my $built = $collection->cover_modules;
 
 Covers all modules using Docker containers. Processes the module file,
-then runs coverage for each module in parallel. Modules whose distdir or
+then runs coverage for each module in parallel. Each build exports its
+coverage database, and a second container, which runs no code of the
+distribution, writes the report from that export. Modules whose distdir or
 failure marker already exists are skipped (in rebuild mode only when
 they also have a C<__rebuilt__> marker). A failure marker outranks a
 distdir, so a failed module with an old report is retried when C<force>
