@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+my @r;
+for my $i (0 .. 1) {
+  my ($x, $y) = ($i, 1 - $i);
+  my $s = "axb";
+  $s =~ s/x/ my $t = $x || $y; $t /e;
+  push @r, $s;
+  $s = "axb";
+  $s =~ s/x/ $x && $y ? "t" : "f" /e;
+  push @r, $s;
+  $s = "axb";
+  $s =~ s/x/ my $v = "n"; $v = "p" if $x; $v /e;
+  push @r, $s;
+}
+print "@r\n";
