@@ -644,6 +644,13 @@ class Devel::Cover::Collection {
   }
 
   method compress_old_versions ($versions) {
+    my @paths = eval { $self->latest_paths };
+    if ($@) {
+      warn "Can't read the CPAN release index, compressing nothing: $@";
+      return;
+    }
+    my %current = map { (s|.*/||r =~ s/${Dist_ext_re}$//r) => 1 } @paths;
+
     my ($d) = $self->made_res_dir;
     opendir my $fh, $d or die "Can't opendir $d: $!";
     my @dirs = sort grep -d, map "$d/$_", readdir $fh;
@@ -672,6 +679,7 @@ class Devel::Cover::Collection {
       for my $v (@o) {
 
         my ($parent, $s) = $v->{dir} =~ /(.+)\/(.+)/;
+        next if $current{$s};
         my $archive = "$v->{dir}.tar.xz";
         my @cmd1
           = ($self->dc_file, "-r", $parent, "cpancover-uncompress-dir", $s);
@@ -1768,8 +1776,9 @@ Returns the path to the C<dc> utility script.
 
   $collection->compress_old_versions($num_versions_to_keep);
 
-Compresses old coverage results, keeping only the specified number of most
-recent versions for each module.
+Compresses old coverage results. For each distribution it keeps the given number
+of most recently built versions and every release that C<latest_paths> lists. If
+it cannot read the index, the method warns and compresses nothing.
 
 =head3 latest_paths (%options)
 
