@@ -311,6 +311,9 @@ class Devel::Cover::Collection {
       ? qw( --report json_summary --nosummary )
       : ("--report", $report, "--outputfile", $output_file);
     my @test_cmd = (@cmd, "--test", @report_opts, "--select_dir", $select_dir);
+    # render_export reads only JSON, so keep an exported db out of Sereal
+    my %format = $export ? (DEVEL_COVER_DB_FORMAT => "JSON") : ();
+    local @ENV{ keys %format } = values %format;
     # failing tests must not stop the report - the db is still valid
     $output .= "dc -> @test_cmd\n" . $self->bsys(@test_cmd);
     my $err  = do {
@@ -1583,9 +1586,9 @@ and leaves no report, nothing is published and the failure propagates, even
 though a failing test suite alone does not. If a step after the test run
 dies, the collected output is printed before the error propagates.
 
-When C<export> is set the test run writes only the C<json_summary> report,
-F<cover.json> is the success test, and no second report run follows. The
-distdir in the results directory then holds:
+When C<export> is set the test run writes the database as JSON and only the
+C<json_summary> report, F<cover.json> is the success test, and no second
+report run follows. The distdir in the results directory then holds:
 
   cover_db/    the coverage database
   ...          a copy of every other entry of the build directory, so

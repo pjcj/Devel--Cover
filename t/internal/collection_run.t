@@ -57,6 +57,9 @@ if (grep $_ eq "--test", @ARGV) {
   open my $mfh, ">", "cover_db/marker" or die "Can't open marker: $!";
   print $mfh "coverage\n";
   close $mfh or die "Can't close marker: $!";
+  open my $ffh, ">", "cover_db/db_format" or die "Can't open db_format: $!";
+  print $ffh $ENV{DEVEL_COVER_DB_FORMAT} // "";
+  close $ffh or die "Can't close db_format: $!";
   unless ($ENV{FAKE_COVER_NO_JSON}) {
     open my $jfh, ">", "cover_db/cover.json" or die "Can't open json: $!";
     print $jfh "{}";
@@ -111,6 +114,8 @@ sub run_scenario (%opt) {
   local $ENV{FAKE_COVER_NO_REPORT}   = $opt{no_report}   // "";
   local $ENV{FAKE_COVER_NO_JSON}     = $opt{no_json}     // "";
 
+  delete local $ENV{DEVEL_COVER_DB_FORMAT};
+
   my $cwd = getcwd;
 
   open my $saved_stdout, ">&", \*STDOUT or die "Can't save STDOUT: $!";
@@ -144,6 +149,7 @@ sub test_failing_tests_still_publish () {
   ok -e "$r->{rdir}/report_generated", "report generation still runs";
   like $r->{warnings}, qr/exit 3/,              "test failure is still warned";
   like $r->{args},     qr/--select_dir blib\b/, "blib preferred as select_dir";
+  is slurp("$r->{rdir}/db_format"), "", "database format is left alone";
 }
 
 sub test_select_dir_fallbacks () {
@@ -194,6 +200,8 @@ sub test_export_publishes_data_only () {
   ok -e "$r->{rdir}/script.pl",           "export holds the other files";
   is $r->{select_dir}, "blib\n", "export records the select dir";
   ok !-e "$r->{rdir}/index.html", "export holds no report";
+  is slurp("$r->{rdir}/cover_db/db_format"), "JSON",
+    "export writes the database as JSON";
 }
 
 sub test_export_dot_copies_build_dir () {
