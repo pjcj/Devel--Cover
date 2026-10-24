@@ -27,6 +27,7 @@ my $Options = {
   compress_old_versions => 0,
   docker                => "docker",
   dryrun                => 0,
+  export                => 0,
   force                 => 0,
   generate_html         => 0,
   latest                => 0,
@@ -56,6 +57,7 @@ sub get_options {
       docker=s
       dryrun!
       env=s
+      export!
       force!
       generate_html!
       help|h!
@@ -94,6 +96,7 @@ sub newcp {
       docker
       dryrun
       env
+      export
       force
       latest_index
       local
@@ -194,7 +197,7 @@ cpancover - report coverage statistics on CPAN modules
   cpancover --help --info --version
             --build --generate_html --rebuild --rebuild_batch n
             --mark_rebuilt --on_cpan
-            --latest --latest_index file --local --local_build
+            --latest --latest_index file --local --local_build --export
             --modules module_name --module_file file
             --results_dir /path/to/dir --output_file filename.html
             --report report_name
@@ -225,6 +228,7 @@ The following command line options are supported:
   --docker                - docker command to use               (docker)
   --dryrun                - don't execute (for some commands)   (off)
   --env                   - collection environment              (prod)
+  --export                - export data for a separate render   (off)
   --force                 - recollect coverage                  (off)
   --generate_html         - generate html                       (off)
   --latest                - process latest CPAN releases        (off)

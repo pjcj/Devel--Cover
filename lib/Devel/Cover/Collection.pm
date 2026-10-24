@@ -49,6 +49,7 @@ class Devel::Cover::Collection {
   field $workers     :param :reader = undef;
   field $docker      :param :reader = undef;
   field $local       :param :reader = undef;
+  field $export      :param :reader = undef;
 
   # attributes set internally after construction
   field $build_dirs  :param :reader = undef;
@@ -76,6 +77,7 @@ class Devel::Cover::Collection {
     $docker        //= "docker";
     $dryrun        //= 0;
     $env           //= "prod";
+    $export        //= 0;
     $force         //= 0;
     $local         //= 0;
     $modules       //= [];
@@ -250,6 +252,23 @@ class Devel::Cover::Collection {
     $d, $output
   }
 
+  sub _export_cmds ($build_dir, $rdir) {
+    my $db = "$build_dir/cover_db";
+    opendir my $dh, $build_dir or die "Can't opendir $build_dir: $!";
+    my @sources = sort grep !/^(?:\.\.?|cover_db)$/, readdir $dh;
+    closedir $dh or die "Can't closedir $build_dir: $!";
+    # structure lock files are all named <digest>.lock, so glob sees them
+    my @locks = glob "$db/structure/*.lock";
+    (
+      ["rm",    "-rf", $rdir],
+      ["mkdir", "-p",  $rdir],
+      ["rm",    "-f",  @locks],
+      ["mv",    $db,   "$rdir/cover_db"],
+      map ["cp", "-a", "$build_dir/$_", "$rdir/"],
+      @sources,
+    )
+  }
+
   method run ($build_dir) {
     my $module = $distdir_for->{$build_dir}
       // die "No distdir recorded for $build_dir\n";
@@ -281,15 +300,26 @@ class Devel::Cover::Collection {
       @cmd = ($^X, $bin_dir . "/cover");
     }
     my $select_dir = -d "blib" ? "blib" : -d "lib" ? "lib" : ".";
-    my @test_cmd   = (
-      @cmd,           "--test",     "--report",     $report,
-      "--outputfile", $output_file, "--select_dir", $select_dir,
-    );
+    my @report_opts
+      = $export
+      ? qw( --report json_summary --nosummary )
+      : ("--report", $report, "--outputfile", $output_file);
+    my @test_cmd = (@cmd, "--test", @report_opts, "--select_dir", $select_dir);
     # failing tests must not stop the report - the db is still valid
     $output .= "dc -> @test_cmd\n" . $self->bsys(@test_cmd);
     my $err  = do {
       local $@;
       eval {
+        if ($export) {
+          die "No cover.json generated for $module\n"
+            unless -e "$db/cover.json";
+          $output .= $self->fsys(@$_) for _export_cmds($build_dir, $rdir);
+          my $sel  = "$rdir/.select_dir";
+          open my $fh, ">", $sel or die "Can't open $sel: $!";
+          print $fh "$select_dir\n";
+          close $fh or die "Can't close $sel: $!";
+          return;
+        }
         die "No $output_file report generated for $module\n"
           unless -e "$db/$output_file";
         my @json_cmd = (@cmd, "-report", "json_summary", "-nosummary");
@@ -1322,6 +1352,12 @@ Docker command to use. Default: 'docker'.
 
 Boolean. If true, run in local mode without Docker. Default: 0.
 
+=head3 export
+
+Boolean. If true, C<run> exports the coverage database and the sources a
+report needs instead of writing the report, so that a separate run can write
+the report where no code of the distribution has run. Default: 0.
+
 =head3 rebuild
 
 Boolean. If true, cpancover is running in rebuild mode: already-covered
@@ -1491,6 +1527,15 @@ failing. The report file is the success test. If the test run dies part-way
 and leaves no report, nothing is published and the failure propagates, even
 though a failing test suite alone does not. If a step after the test run
 dies, the collected output is printed before the error propagates.
+
+When C<export> is set the test run writes only the C<json_summary> report,
+F<cover.json> is the success test, and no second report run follows. The
+distdir in the results directory then holds:
+
+  cover_db/    the coverage database
+  ...          a copy of every other entry of the build directory, so
+               that the report has every source file the database lists
+  .select_dir  the name of the select directory, then a newline
 
 =head3 run_all
 
