@@ -1,6 +1,8 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Render each cpancover report in a second container that runs no code
+  of the distribution, so the site serves nothing a build wrote (GH-869)
 - Keep the cpancover report of every current CPAN release when archiving
   old versions, so the report of a stable release stays when three newer
   developer releases follow it (GH-867)

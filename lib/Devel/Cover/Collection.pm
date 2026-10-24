@@ -1615,7 +1615,9 @@ workers if configured.
   my $built = $collection->cover_modules;
 
 Covers all modules using Docker containers. Processes the module file,
-then runs coverage for each module in parallel. Modules whose distdir or
+then runs coverage for each module in parallel. Each build exports its
+coverage database, and a second container, which runs no code of the
+distribution, writes the report from that export. Modules whose distdir or
 failure marker already exists are skipped (in rebuild mode only when
 they also have a C<__rebuilt__> marker). A failure marker outranks a
 distdir, so a failed module with an old report is retried when C<force>
