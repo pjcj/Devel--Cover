@@ -65,6 +65,7 @@ class Devel::Cover::Collection {
   field $mark_rebuilt  :param :reader = undef;
   field $on_cpan       :param :reader = undef;
   field $latest_index  :param :reader = undef;
+  field $retry_delay   :param :reader = 1;
 
   # rw attributes
   field $dir  :param = undef;
@@ -988,6 +989,47 @@ class Devel::Cover::Collection {
     @paths
   }
 
+  method next_with_retry ($rs) {
+    for my $attempt (1 .. 10) {
+      my $release;
+      eval { $release = $rs->next; 1 } and return $release;
+      die $@ if $attempt == 10;
+      chomp(my $error = $@);
+      warn "Retrying the CPAN release list after: $error\n";
+      sleep $attempt * $retry_delay;
+    }
+  }
+
+  method fetch_latest_releases {
+    require MetaCPAN::Client;
+    my $query = {
+      either => [
+        { all => [{ status => "latest" }, { maturity => "released" }] },
+        { all => [{ status => "cpan" },   { maturity => "developer" }] },
+      ],
+    };
+    my @fields = qw( name version date status maturity stat download_url );
+    my $rs = MetaCPAN::Client->new->release($query, { _source => \@fields });
+    my $releases = { released => {}, developer => {} };
+    my $count    = 0;
+    while (my $release = $self->next_with_retry($rs)) {
+      $count++;
+      my $path = $release->download_url // next;
+      $path =~ s|^.*/authors/id/||;
+      # dc uncoverable condition when:00
+      my $name  = CPAN::DistnameInfo->new($path)->dist // $release->name;
+      my $stat  = $release->stat;
+      my $slice = $releases->{ $release->maturity };
+      next if $slice->{$name} && $stat->{mtime} <= $slice->{$name}{time};
+      $slice->{$name}
+        = { path => $path, time => $stat->{mtime}, size => $stat->{size} };
+    }
+    my $total = $rs->total;
+    die "CPAN release list ended early: got $count of $total\n"
+      if $count < $total;
+    $releases
+  }
+
   method get_latest {
     say for $self->latest_paths(max_age => 0);  # no caching
   }
@@ -1449,6 +1491,11 @@ the release index instead of the cache that module keeps and refreshes.
 Default: the C<CPANCOVER_LATEST_INDEX> environment variable, so a test can
 give every F<cpancover> run a fixed index without using the network.
 
+=head3 retry_delay
+
+After a failed request to MetaCPAN, C<next_with_retry> waits this many seconds
+times the number of the attempt that failed. The default is 1.
+
 =head2 Internally Managed Attributes
 
 These attributes have public readers. Use the provided methods to modify
@@ -1908,6 +1955,34 @@ module's constructor, so C<max_age> decides whether its cached index is
 refreshed first. With C<latest_index> set the file it names is read
 instead and nothing is fetched. A distribution deleted from CPAN has no
 entry.
+
+=head3 next_with_retry ($rs)
+
+  my $release = $collection->next_with_retry($rs);
+
+Returns the next release from the L<MetaCPAN::Client::ResultSet> C<$rs>, or
+undef at the end of the list. The method sends a failed request again, up to
+ten attempts in all. Before each new attempt it warns with the error and sleeps
+for the attempt number times C<retry_delay> seconds. After the tenth failure it
+dies with the last error. A failed scroll request does not move the scroll, so
+sending it again loses no releases.
+
+=head3 fetch_latest_releases
+
+  my $releases = $collection->fetch_latest_releases;
+
+Fetches from MetaCPAN the latest stable release and every developer release
+of each distribution on CPAN, reading each release through
+C<next_with_retry>. Returns
+C<< { released => { $dist => $info }, developer => { $dist => $info } } >>,
+which holds for each distribution and maturity the release with the newest
+upload time. Each C<$info> is a hash of C<path> (the path below
+F<authors/id/>), C<time> (the upload time) and C<size>. The distribution name
+comes from L<CPAN::DistnameInfo>, or from the release name when the path does
+not give one. The method skips a release without a download URL, and selects
+releases as L<CPAN::Releases::Latest> does. It dies when it reads fewer
+releases than the total MetaCPAN reported, so that no caller uses a list cut
+short.
 
 =head3 get_latest
 

@@ -42,6 +42,37 @@ our %Latest_args;
 }
 local $INC{"CPAN/Releases/Latest.pm"} = __FILE__;
 
+# Stand-in for MetaCPAN::Client, whose real scroll needs the network
+our @Metacpan_releases;
+our %Metacpan_args;
+our $Metacpan_total;
+{
+
+  package MetaCPAN::Client;
+  sub new ($class) { bless {}, $class }
+
+  sub release ($self, $query, $params) {
+    %Metacpan_args = (query => $query, params => $params);
+    bless { releases => [@Metacpan_releases] }, "MetaCPAN::Client::ResultSet"
+  }
+
+  package MetaCPAN::Client::ResultSet;
+  sub total ($self) { $Metacpan_total }
+
+  sub next ($self) {
+    my $release = shift $self->{releases}->@* // return undef;
+    die "failed to fetch next scrolled batch\n" if $release eq "die";
+    bless {%$release}, "MetaCPAN::Client::Release"
+  }
+
+  package MetaCPAN::Client::Release;
+  sub name         ($self) { $self->{name} }
+  sub maturity     ($self) { $self->{maturity} }
+  sub download_url ($self) { $self->{download_url} }
+  sub stat         ($self) { $self->{stat} }
+}
+local $INC{"MetaCPAN/Client.pm"} = __FILE__;
+
 # _sys() uses Time::HiRes::alarm() which is not available on Windows
 my $Is_win32 = $^O eq "MSWin32";
 
@@ -59,6 +90,7 @@ sub constructor_defaults () {
   is $c->rebuild_batch, 100,          "rebuild_batch defaults to 100";
   is $c->mark_rebuilt,  0,            "mark_rebuilt defaults to 0";
   is $c->latest_index,  undef,        "latest_index defaults to undef";
+  is $c->retry_delay,   1,            "retry_delay defaults to 1";
   is $c->report,        "html",       "report defaults to 'html'";
   is $c->timeout,       60 * 60,      "timeout defaults to 3600 (60 minutes)";
   is $c->verbose,       0,            "verbose defaults to 0";
@@ -973,6 +1005,77 @@ sub latest_paths_method () {
     "CPANCOVER_LATEST_INDEX sets the default index file";
 }
 
+sub cpan_release ($path, $mtime, %extra) {
+  +{
+    name         => "Unnamed",
+    maturity     => "released",
+    download_url => "https://cpan.metacpan.org/authors/id/$path",
+    stat         => { mtime => $mtime, size => 10 * $mtime },
+    %extra,
+  }
+}
+
+sub fetch_latest_releases_method () {
+  my $trial    = "A/AU/AUTHOR/Alpha-2.1-TRIAL.tar.gz";
+  my $scroll   = "failed to fetch next scrolled batch\n";
+  my @releases = (
+    cpan_release("A/AU/AUTHOR/Alpha-1.0.tar.gz", 100),
+    cpan_release("A/AU/AUTHOR/Alpha-2.0.tar.gz", 300),
+    cpan_release("A/AU/AUTHOR/Alpha-1.5.tar.gz", 200),
+    cpan_release($trial,                         400, maturity => "developer"),
+    cpan_release("B/BR/BRAVO/Bravo-1.0.tar.gz", 150, download_url => undef),
+    cpan_release("C/CH/CHARLIE/charlie.pm.gz",  250, name         => "Charlie"),
+  );
+  my $expected = {
+    released => {
+      Alpha =>
+        { path => "A/AU/AUTHOR/Alpha-2.0.tar.gz", time => 300, size => 3000 },
+      Charlie =>
+        { path => "C/CH/CHARLIE/charlie.pm.gz", time => 250, size => 2500 },
+    },
+    developer => { Alpha => { path => $trial, time => 400, size => 4000 } },
+  };
+  local @Metacpan_releases = @releases;
+  local $Metacpan_total    = @releases;
+  local %Metacpan_args;
+  my $c = Devel::Cover::Collection->new(retry_delay => 0);
+
+  is $c->fetch_latest_releases, $expected,
+    "fetch_latest_releases keeps the newest release of each maturity";
+  is \%Metacpan_args, {
+      query => {
+        either => [
+          { all => [{ status => "latest" }, { maturity => "released" }] },
+          { all => [{ status => "cpan" },   { maturity => "developer" }] },
+        ],
+      },
+      params => {
+        _source => [qw( name version date status maturity stat download_url )],
+      },
+    },
+    "fetch_latest_releases asks for latest and developer releases";
+
+  local @Metacpan_releases = ($releases[0], "die", @releases[1 .. $#releases]);
+  my $w = warnings {
+    is $c->fetch_latest_releases, $expected, "a failed request is sent again"
+  };
+  is $w, ["Retrying the CPAN release list after: $scroll"],
+    "a failed request gives one warning";
+
+  local @Metacpan_releases = (("die") x 10, @releases);
+  $w = warnings {
+    is dies { $c->fetch_latest_releases }, $scroll,
+      "ten failed requests in a row die with the scroll error"
+  };
+  is @$w, 9, "every failure before the last gives a warning";
+
+  local @Metacpan_releases = @releases;
+  local $Metacpan_total    = @releases + 1;
+  like dies { $c->fetch_latest_releases },
+    qr/^CPAN release list ended early: got 6 of 7$/,
+    "a list shorter than the total dies";
+}
+
 sub get_latest_method () {
   local @Latest_paths = qw(
     A/AU/AUTHOR/Alpha-1.0.tar.gz
@@ -1180,6 +1283,7 @@ sub main () {
     status_tracking_rebuild_mode
     write_status_method
     latest_paths_method
+    fetch_latest_releases_method
     get_latest_method
     rebuild_pass_method
     rebuild_pass_nothing_to_build
