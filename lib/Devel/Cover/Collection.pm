@@ -978,6 +978,33 @@ class Devel::Cover::Collection {
     scalar grep $_, @res
   }
 
+  method latest_index_path {
+    return $latest_index if defined $latest_index;
+    require File::HomeDir;
+    my $dir
+      = File::HomeDir->my_dist_data("CPAN-Releases-Latest", { create => 1 });
+    File::Spec->catfile($dir, "latest-releases.txt")
+  }
+
+  method write_latest_index ($releases) {
+    my $path = $self->latest_index_path;
+    my $tmp  = "$path.tmp.$$";
+    my ($stable, $dev) = $releases->@{qw( released developer )};
+    my %names = map { $_ => 1 } keys %$stable, keys %$dev;
+    open my $fh, ">", $tmp or die "Can't open $tmp: $!\n";
+    print $fh "#FORMAT: 1\n";
+    for my $name (sort { lc $a cmp lc $b } keys %names) {
+      my $s = $stable->{$name};
+      my $d = $dev->{$name};
+      undef $d if $s && $d && $d->{time} <= $s->{time};
+      printf $fh "%s %s %d %d\n", $name, $_->@{qw( path time size )}
+        for grep defined, $s, $d;
+    }
+    # dc uncoverable branch true
+    die "Can't close $tmp: $!\n" unless close $fh;
+    rename $tmp, $path or die "Can't rename $tmp to $path: $!\n";
+  }
+
   method latest_paths (%options) {
     require CPAN::Releases::Latest;
     $options{path} = $latest_index if defined $latest_index;
@@ -1942,6 +1969,27 @@ Returns the path to the C<dc> utility script.
 Compresses old coverage results. For each distribution it keeps the given number
 of most recently built versions and every release that C<latest_paths> lists. If
 it cannot read the index, the method warns and compresses nothing.
+
+=head3 latest_index_path
+
+  my $path = $collection->latest_index_path;
+
+Returns the path of the CPAN release index. This is C<latest_index> when set,
+and otherwise F<latest-releases.txt> in the L<File::HomeDir> data directory of
+L<CPAN::Releases::Latest>, which is the cache file that module reads and
+writes.
+
+=head3 write_latest_index ($releases)
+
+  $collection->write_latest_index($collection->fetch_latest_releases);
+
+Writes the releases from C<fetch_latest_releases> to C<latest_index_path> in
+the format of the L<CPAN::Releases::Latest> cache file, so that module can read
+the index. For each distribution, sorted by name without regard to case, it
+writes the stable release when there is one, and then the developer release
+when there is no stable release or the developer release is newer. It writes a
+temporary file beside the index and renames it onto the index, so that a reader
+never sees a part-written index. It dies if it cannot write or rename the file.
 
 =head3 latest_paths (%options)
 

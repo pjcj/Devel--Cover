@@ -73,6 +73,20 @@ our $Metacpan_total;
 }
 local $INC{"MetaCPAN/Client.pm"} = __FILE__;
 
+# Stand-in for File::HomeDir, whose real data directory is under $HOME
+our @Homedir_args;
+our $Homedir_dir;
+{
+
+  package File::HomeDir;
+
+  sub my_dist_data ($class, @args) {
+    @Homedir_args = @args;
+    $Homedir_dir  = File::Temp::tempdir(CLEANUP => 1)
+  }
+}
+local $INC{"File/HomeDir.pm"} = __FILE__;
+
 # _sys() uses Time::HiRes::alarm() which is not available on Windows
 my $Is_win32 = $^O eq "MSWin32";
 
@@ -1003,6 +1017,14 @@ sub latest_paths_method () {
   }
   is \%Latest_args, { path => "env.txt" },
     "CPANCOVER_LATEST_INDEX sets the default index file";
+
+  is $c->latest_index_path, "$Homedir_dir/latest-releases.txt",
+    "latest_index_path defaults to the CPAN::Releases::Latest cache file";
+  is \@Homedir_args, ["CPAN-Releases-Latest", { create => 1 }],
+    "latest_index_path asks File::HomeDir for the module data directory";
+  my $set = Devel::Cover::Collection->new(latest_index => "index.txt");
+  is $set->latest_index_path, "index.txt",
+    "latest_index_path returns latest_index when set";
 }
 
 sub cpan_release ($path, $mtime, %extra) {
@@ -1074,6 +1096,66 @@ sub fetch_latest_releases_method () {
   like dies { $c->fetch_latest_releases },
     qr/^CPAN release list ended early: got 6 of 7$/,
     "a list shorter than the total dies";
+}
+
+sub index_entry ($path, $time) { +{ path => $path, time => $time, size => 7 } }
+
+sub write_latest_index_method () {
+  my $dir      = tempdir(CLEANUP => 1);
+  my $index    = "$dir/latest-releases.txt";
+  my $releases = {
+    released => {
+      Stable => index_entry("S/ST/STABLE/Stable-1.0.tar.gz", 100),
+      Newer  => index_entry("N/NE/NEWER/Newer-1.0.tar.gz",   100),
+      Older  => index_entry("O/OL/OLDER/Older-2.0.tar.gz",   300),
+      apple  => index_entry("A/AP/APPLE/apple-1.0.tar.gz",   100),
+      Banana => index_entry("B/BA/BANANA/Banana-1.0.tar.gz", 100),
+    },
+    developer => {
+      Dev   => index_entry("D/DE/DEV/Dev-0.1-TRIAL.tar.gz",     200),
+      Newer => index_entry("N/NE/NEWER/Newer-1.1-TRIAL.tar.gz", 200),
+      Older => index_entry("O/OL/OLDER/Older-1.9-TRIAL.tar.gz", 200),
+    },
+  };
+  my $c = Devel::Cover::Collection->new(latest_index => $index);
+  $c->write_latest_index($releases);
+
+  open my $fh, "<", $index or die "Can't read $index: $!";
+  my $text = do { local $/; <$fh> };
+  close $fh or die;
+  is $text,
+    join("",
+      "#FORMAT: 1\n",
+      "apple A/AP/APPLE/apple-1.0.tar.gz 100 7\n",
+      "Banana B/BA/BANANA/Banana-1.0.tar.gz 100 7\n",
+      "Dev D/DE/DEV/Dev-0.1-TRIAL.tar.gz 200 7\n",
+      "Newer N/NE/NEWER/Newer-1.0.tar.gz 100 7\n",
+      "Newer N/NE/NEWER/Newer-1.1-TRIAL.tar.gz 200 7\n",
+      "Older O/OL/OLDER/Older-2.0.tar.gz 300 7\n",
+      "Stable S/ST/STABLE/Stable-1.0.tar.gz 100 7\n",
+    ),
+    "write_latest_index writes the CPAN::Releases::Latest format";
+
+  opendir my $dh, $dir or die "Can't opendir $dir: $!";
+  my @leftovers = grep /\.tmp\./, readdir $dh;
+  closedir $dh or die;
+  is \@leftovers, [], "write_latest_index leaves no temporary file";
+
+  my $missing = "$dir/missing/latest-releases.txt";
+  like dies {
+    Devel::Cover::Collection->new(latest_index => $missing)
+      ->write_latest_index($releases)
+  }, qr|^Can't open \Q$missing\E\.tmp\.$$: |,
+    "write_latest_index dies when it cannot open the file";
+
+  my $blocker = "$dir/blocker";
+  mkdir $blocker          or die "Can't mkdir $blocker: $!";
+  mkdir "$blocker/subdir" or die "Can't mkdir $blocker/subdir: $!";
+  like dies {
+    Devel::Cover::Collection->new(latest_index => $blocker)
+      ->write_latest_index($releases)
+  }, qr|^Can't rename \Q$blocker\E\.tmp\.$$ to \Q$blocker\E: |,
+    "write_latest_index dies when it cannot replace the index";
 }
 
 sub get_latest_method () {
@@ -1284,6 +1366,7 @@ sub main () {
     write_status_method
     latest_paths_method
     fetch_latest_releases_method
+    write_latest_index_method
     get_latest_method
     rebuild_pass_method
     rebuild_pass_nothing_to_build
