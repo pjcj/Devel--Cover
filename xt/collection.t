@@ -1378,6 +1378,7 @@ sub get_latest_recent () {
       Alpha => index_entry("A/AU/AUTHOR/Alpha-1.0.tar.gz", 100),
       Bravo => index_entry("B/BR/BRAVO/Bravo-1.0.tar.gz",  100),
       Delta => index_entry("D/DE/DELTA/Delta-1.0.tar.gz",  300),
+      Echo  => index_entry("E/EC/ECHO/Echo-1.0.tar.gz",    100),
     },
     developer => {},
   });
@@ -1393,6 +1394,12 @@ sub get_latest_recent () {
       status   => "cpan",
       maturity => "developer",
     ),
+    cpan_release(
+      "E/EC/ECHO/Echo-1.1-TRIAL.tar.gz", 400,
+      date     => $now,
+      status   => "cpan",
+      maturity => "developer",
+    ),
   );
   local $Metacpan_total = @Metacpan_releases;
   local @Latest_paths   = qw(
@@ -1400,10 +1407,12 @@ sub get_latest_recent () {
     B/BR/BRAVO/Bravo-2.0.tar.gz
     C/CH/CHARLIE/Charlie-1.0.tar.gz
     D/DE/DELTA/Delta-1.0.tar.gz
+    E/EC/ECHO/Echo-1.0.tar.gz
+    E/EC/ECHO/Echo-1.1-TRIAL.tar.gz
   );
   local %Metacpan_args;
 
-  is get_latest_output($c), join("", map "$_\n", @Latest_paths[1 .. 3]),
+  is get_latest_output($c), join("", map "$_\n", @Latest_paths[1 .. 3, 5]),
     "get_latest prints only the recent current paths";
   my $since = strftime("%Y-%m-%dT%H:%M:%S", gmtime($mtime - 24 * 60 * 60));
   is $Metacpan_args{params}{es_filter},
@@ -1416,6 +1425,8 @@ sub get_latest_recent () {
       "Bravo B/BR/BRAVO/Bravo-2.0.tar.gz 200 2000\n",
       "Charlie C/CH/CHARLIE/Charlie-1.0.tar.gz 250 2500\n",
       "Delta D/DE/DELTA/Delta-1.0.tar.gz 300 7\n",
+      "Echo E/EC/ECHO/Echo-1.0.tar.gz 100 7\n",
+      "Echo E/EC/ECHO/Echo-1.1-TRIAL.tar.gz 400 4000\n",
     ),
     "get_latest merges the recent releases into the cache file";
   is +(stat $c->full_index_path)[9], $mtime,
