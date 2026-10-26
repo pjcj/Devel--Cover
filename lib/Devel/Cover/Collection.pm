@@ -986,6 +986,23 @@ class Devel::Cover::Collection {
     File::Spec->catfile($dir, "latest-releases.txt")
   }
 
+  method full_index_path { $self->latest_index_path . ".full" }
+
+  method mark_full_index {
+    my $marker = $self->full_index_path;
+    open my $fh, ">>", $marker or die "Can't open $marker: $!\n";
+    # dc uncoverable branch true
+    die "Can't close $marker: $!\n" unless close $fh;
+    # dc uncoverable branch true
+    die "Can't touch $marker: $!\n" unless utime undef, undef, $marker;
+  }
+
+  method full_index_age {
+    my $marker = $self->full_index_path;
+    return unless -e $self->latest_index_path && -e $marker;
+    time - (stat $marker)[9]
+  }
+
   method write_latest_index ($releases) {
     my $path = $self->latest_index_path;
     my $tmp  = "$path.tmp.$$";
@@ -1116,7 +1133,31 @@ class Devel::Cover::Collection {
   }
 
   method get_latest {
-    say for $self->latest_paths(max_age => 0);
+    my $day = 24 * 60 * 60;
+    if (defined $latest_index) {
+      say for $self->latest_paths;
+      return;
+    }
+    my $age = $self->full_index_age;
+    if (!defined $age || $age >= $day) {
+      say for $self->latest_paths(max_age => 0);
+      $self->mark_full_index;
+      return;
+    }
+    my $since    = (stat $self->full_index_path)[9] - $day;
+    my $recent   = $self->fetch_latest_releases(since => $since);
+    my $releases = $self->read_latest_index;
+    for my $maturity (keys %$recent) {
+      my $slice = $releases->{$maturity};
+      for my $name (keys $recent->{$maturity}->%*) {
+        my $new = $recent->{$maturity}{$name};
+        $slice->{$name} = $new
+          if !$slice->{$name} || $new->{time} > $slice->{$name}{time};
+      }
+    }
+    $self->write_latest_index($releases);
+    my %fetched = map { $_->{path} => 1 } map values %$_, values %$recent;
+    say for grep $fetched{$_}, $self->latest_paths;
   }
 }
 
@@ -1575,9 +1616,10 @@ Path of the release index file, in the L<CPAN::Releases::Latest> cache format.
 When it is set, C<latest_paths> and C<get_latest> only read the file and never
 fetch, so a test can run the F<cpancover> recipes without using the network.
 When it is unset, C<latest_index_path> gives the cache file of
-L<CPAN::Releases::Latest>, which C<get_latest> fetches every time and
-C<latest_paths> fetches when it is missing or more than a day old. The default
-is the C<CPANCOVER_LATEST_INDEX> environment variable.
+L<CPAN::Releases::Latest>. C<get_latest> fetches the full release list into it
+once a day and the recent releases in between, and C<latest_paths> fetches the
+full list when the mtime of the file is more than a day old. The default is the
+C<CPANCOVER_LATEST_INDEX> environment variable.
 
 =head3 retry_delay
 
@@ -2040,6 +2082,31 @@ and otherwise F<latest-releases.txt> in the L<File::HomeDir> data directory of
 L<CPAN::Releases::Latest>, which is the cache file that module reads and
 writes.
 
+=head3 full_index_path
+
+  my $marker = $collection->full_index_path;
+
+Returns the path of the marker file whose mtime records the last time
+C<get_latest> printed the full release list. This is C<latest_index_path>
+followed by F<.full>. Other callers of C<latest_paths> may fetch the full list
+too, but they print nothing, so they leave the marker alone.
+
+=head3 mark_full_index
+
+  $collection->mark_full_index;
+
+Creates the marker at C<full_index_path> if it is missing and sets its mtime
+to the current time. Only C<get_latest> calls it, after it prints the full
+list. It dies if it cannot open, close or touch the marker.
+
+=head3 full_index_age
+
+  my $age = $collection->full_index_age;
+
+Returns the age in seconds of the marker at C<full_index_path>, which is the
+time since C<get_latest> last printed the full list, or undef when the marker
+or the index file is missing.
+
 =head3 write_latest_index ($releases)
 
   $collection->write_latest_index($collection->fetch_latest_releases);
@@ -2122,19 +2189,36 @@ Returns the CPAN path of the latest release of every distribution on
 CPAN, and of its latest developer release as well when that is newer,
 from the index file at C<latest_index_path>, which L<CPAN::Releases::Latest>
 parses. A distribution deleted from CPAN has no entry. When C<latest_index> is
-unset and the cache file is missing or at least C<max_age> seconds old, the
-method first writes a new cache file with C<fetch_latest_releases> and
-C<write_latest_index>, and dies if the fetch fails. C<max_age> defaults to one
-day. It only reads a file that C<latest_index> names.
+unset and the index file is missing or its mtime is at least C<max_age> seconds
+old, the method first fetches the full list with C<fetch_latest_releases> and
+writes it with C<write_latest_index>. It leaves the marker alone. It dies if
+the fetch fails. C<max_age> defaults to one day. It only reads a file that
+C<latest_index> names.
 
 =head3 get_latest
 
   $collection->get_latest;
 
-Prints the paths from C<latest_paths> with C<max_age> 0, one per line. So it
-fetches the release list and writes the cache file every time, unless
-C<latest_index> names a file, which it only reads. It dies, leaving the cache
-file as it was, when the fetch fails.
+Prints release paths, one per line. When C<latest_index> names a file, it
+prints every path from C<latest_paths> and fetches nothing.
+
+Otherwise, when C<full_index_age> is undef or at least a day, it prints every
+path from C<latest_paths> with C<max_age> 0, which fetches the full release
+list and writes the cache file. Then it touches the marker with
+C<mark_full_index>. It does so even when another caller of C<latest_paths>
+fetched the full list less than a day ago, since that fetch printed nothing.
+
+Otherwise it fetches the releases uploaded since a day before it last printed
+the full list, so that it still finds a release that MetaCPAN indexed late. It
+merges them into the releases from C<read_latest_index>, keeping for each
+distribution and maturity the release with the newer upload time, and writes the
+result with C<write_latest_index>. It leaves the marker alone and prints only
+those paths from C<latest_paths> that came from the recent fetch. So it does not
+print a recent developer release older than the stable release, which
+C<write_latest_index> leaves out. As it writes the cache file first,
+C<latest_paths> fetches nothing.
+
+It dies, leaving the cache file as it was, when a fetch fails.
 
 =head2 System Commands
 

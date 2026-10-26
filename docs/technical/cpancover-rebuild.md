@@ -25,10 +25,14 @@ existing results to be regenerated.
   loop; no rebuild-specific override.
 - `CPANCOVER_LATEST_INDEX` - the release index file, in the
   `CPAN::Releases::Latest` cache format, that the recipes read instead of the
-  `CPAN::Releases::Latest` cache file. `cpancover --latest` fetches the cache
-  file every time, and the other recipes fetch it when it is missing or more
-  than a day old. They only read a file this variable names, so a test can run
-  the recipes offline. Unset in normal use.
+  `CPAN::Releases::Latest` cache file. `cpancover --latest` fetches the full
+  release list into the cache file once a day, and between those fetches it
+  merges in the releases uploaded since a day before it last printed the full
+  list. The mtime of a marker file, the cache file name followed by `.full`,
+  records the last time `cpancover --latest` printed the full list. The other
+  recipes fetch the full list when the mtime of the cache file is more than a
+  day old, and leave the marker alone. The recipes only read a file this
+  variable names, so a test can run them offline. Unset in normal use.
 
 ## State on disk
 

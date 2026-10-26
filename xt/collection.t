@@ -15,6 +15,7 @@ use Test2::V0 qw(
 );
 use File::Temp    qw( tempdir );
 use JSON::MaybeXS ();
+use POSIX         qw( strftime );
 
 use Devel::Cover::Collection ();
 
@@ -554,16 +555,23 @@ sub write_json () {
     "JSON contains a three-part version parsed from the distdir";
 }
 
-# Make a cache directory, holding a cache file $age seconds old unless undef
+sub set_age ($file, $age) {
+  my $time = time - $age;
+  utime $time, $time, $file or die "Can't utime $file: $!";
+  $time
+}
+
+# Make a cache directory, with cache file and marker $age seconds old if defined
 sub cache_dir ($age) {
   my $dir = tempdir(CLEANUP => 1);
   return $dir unless defined $age;
   my $file = "$dir/latest-releases.txt";
-  open my $fh, ">", $file or die "Can't write $file: $!";
-  print $fh "#FORMAT: 1\n";
-  close $fh or die "Can't close $file: $!";
-  my $time = time - $age;
-  utime $time, $time, $file or die "Can't utime $file: $!";
+  for my $path ($file, "$file.full") {
+    open my $fh, ">", $path or die "Can't write $path: $!";
+    print $fh "#FORMAT: 1\n" if $path eq $file;
+    close $fh or die "Can't close $path: $!";
+    set_age($path, $age);
+  }
   $dir
 }
 
@@ -1066,18 +1074,32 @@ sub latest_paths_method () {
 
   {
     local $Homedir_dir = cache_dir(undef);
-    is fetches($c), 1, "a missing cache file is fetched";
+    is $c->full_index_age, undef, "a missing cache file has no full fetch age";
+    is fetches($c),        1,     "a missing cache file is fetched";
     is slurp("$Homedir_dir/latest-releases.txt"),
       "#FORMAT: 1\nCharlie $fetched 5 50\n",
       "the fetched releases are written to the cache file";
+    ok !-e "$Homedir_dir/latest-releases.txt.full",
+      "a full fetch leaves a missing marker missing";
   }
   {
     local $Homedir_dir = cache_dir(0);
     is fetches($c), 0, "a fresh cache file is read without a fetch";
   }
   {
-    local $Homedir_dir = cache_dir(2 * 24 * 60 * 60);
+    local $Homedir_dir = cache_dir(0);
+    set_age($c->latest_index_path, 2 * 24 * 60 * 60);
+    my $mtime = set_age($c->full_index_path, 2 * 24 * 60 * 60);
     is fetches($c), 1, "a cache file two days old is fetched again";
+    is +(stat $c->full_index_path)[9], $mtime,
+      "a full fetch leaves the marker mtime alone";
+  }
+  {
+    local $Homedir_dir = cache_dir(0);
+    unlink $c->full_index_path or die "Can't unlink the marker: $!";
+    is $c->full_index_age, undef, "a missing marker has no full fetch age";
+    is fetches($c), 0,
+      "a fresh cache file without a marker is read without a fetch";
   }
   {
     local $Homedir_dir = cache_dir(0);
@@ -1092,6 +1114,14 @@ sub latest_paths_method () {
     "latest_index_path asks File::HomeDir for the module data directory";
   is $set->latest_index_path, "index.txt",
     "latest_index_path returns latest_index when set";
+  is $c->full_index_path, "$Homedir_dir/latest-releases.txt.full",
+    "full_index_path names the marker beside the cache file";
+
+  my $missing = tempdir(CLEANUP => 1) . "/missing/latest-releases.txt";
+  like dies {
+    Devel::Cover::Collection->new(latest_index => $missing)->mark_full_index
+  }, qr|^Can't open \Q$missing\E\.full: |,
+    "mark_full_index dies when it cannot open the marker";
 }
 
 sub fetch_latest_releases_method () {
@@ -1340,6 +1370,58 @@ sub get_latest_output ($c) {
   $out
 }
 
+sub get_latest_recent () {
+  local $Homedir_dir = cache_dir(0);
+  my $c = Devel::Cover::Collection->new;
+  $c->write_latest_index({
+    released => {
+      Alpha => index_entry("A/AU/AUTHOR/Alpha-1.0.tar.gz", 100),
+      Bravo => index_entry("B/BR/BRAVO/Bravo-1.0.tar.gz",  100),
+      Delta => index_entry("D/DE/DELTA/Delta-1.0.tar.gz",  300),
+    },
+    developer => {},
+  });
+  my $mtime = set_age($c->full_index_path, 2 * 60 * 60);
+  my $now   = strftime("%Y-%m-%dT%H:%M:%S", gmtime);
+  local @Metacpan_releases = (
+    cpan_release("B/BR/BRAVO/Bravo-2.0.tar.gz",     200, date => $now),
+    cpan_release("C/CH/CHARLIE/Charlie-1.0.tar.gz", 250, date => $now),
+    cpan_release("D/DE/DELTA/Delta-1.0.tar.gz",     300, date => $now),
+    cpan_release(
+      "A/AU/AUTHOR/Alpha-1.1-TRIAL.tar.gz", 90,
+      date     => $now,
+      status   => "cpan",
+      maturity => "developer",
+    ),
+  );
+  local $Metacpan_total = @Metacpan_releases;
+  local @Latest_paths   = qw(
+    A/AU/AUTHOR/Alpha-1.0.tar.gz
+    B/BR/BRAVO/Bravo-2.0.tar.gz
+    C/CH/CHARLIE/Charlie-1.0.tar.gz
+    D/DE/DELTA/Delta-1.0.tar.gz
+  );
+  local %Metacpan_args;
+
+  is get_latest_output($c), join("", map "$_\n", @Latest_paths[1 .. 3]),
+    "get_latest prints only the recent current paths";
+  my $since = strftime("%Y-%m-%dT%H:%M:%S", gmtime($mtime - 24 * 60 * 60));
+  is $Metacpan_args{params}{es_filter},
+    { range => { date => { gte => $since } } },
+    "get_latest fetches releases since a day before the full fetch";
+  is slurp($c->latest_index_path),
+    join("",
+      "#FORMAT: 1\n",
+      "Alpha A/AU/AUTHOR/Alpha-1.0.tar.gz 100 7\n",
+      "Bravo B/BR/BRAVO/Bravo-2.0.tar.gz 200 2000\n",
+      "Charlie C/CH/CHARLIE/Charlie-1.0.tar.gz 250 2500\n",
+      "Delta D/DE/DELTA/Delta-1.0.tar.gz 300 7\n",
+    ),
+    "get_latest merges the recent releases into the cache file";
+  is +(stat $c->full_index_path)[9], $mtime,
+    "get_latest leaves the marker alone after a recent fetch";
+}
+
 sub get_latest_method () {
   local @Latest_paths = qw(
     A/AU/AUTHOR/Alpha-1.0.tar.gz
@@ -1352,16 +1434,32 @@ sub get_latest_method () {
   local $Metacpan_total    = 1;
 
   {
-    local $Homedir_dir = cache_dir(0);
+    local $Homedir_dir = cache_dir(undef);
     my $cache = "$Homedir_dir/latest-releases.txt";
     local %Metacpan_args;
     is get_latest_output(Devel::Cover::Collection->new), $printed,
       "get_latest prints one release path per line";
-    ok %Metacpan_args, "get_latest fetches a fresh cache file again";
+    ok %Metacpan_args, "get_latest fetches a missing cache file";
+    ok !exists $Metacpan_args{params}{es_filter},
+      "get_latest fetches the full list without a cache file";
     is slurp($cache), "#FORMAT: 1\nCharlie $fetched 5 50\n",
       "get_latest writes the fetched releases to the cache file";
+    ok -e "$cache.full", "get_latest writes the full fetch marker";
     is \%Latest_args, { path => $cache }, "get_latest reads the file it wrote";
   }
+  {
+    local $Homedir_dir = cache_dir(0);
+    my $c = Devel::Cover::Collection->new;
+    set_age($c->full_index_path, 2 * 24 * 60 * 60);
+    local %Metacpan_args;
+    is get_latest_output($c), $printed,
+      "get_latest prints every path for an old marker";
+    ok %Metacpan_args && !exists $Metacpan_args{params}{es_filter},
+      "get_latest fetches the full list for an old marker";
+    ok $c->full_index_age < 60,
+      "get_latest touches an old marker beside a fresh cache file";
+  }
+  get_latest_recent();
 
   my $index = cache_dir(0) . "/latest-releases.txt";
   my $c     = Devel::Cover::Collection->new(latest_index => $index);
