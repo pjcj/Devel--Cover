@@ -1473,6 +1473,52 @@ sub get_latest_method () {
     "get_latest reads the latest_index file";
 }
 
+sub failed_fetch_method () {
+  my $scroll = "failed to fetch next scrolled batch\n";
+  my $day    = 24 * 60 * 60;
+  local @Metacpan_releases = ("die") x 10;
+  local $Metacpan_total    = 1;
+  my $c                = Devel::Cover::Collection->new(retry_delay => 0);
+  my $index_with_alpha = sub {
+    $c->write_latest_index({
+      released =>
+        { Alpha => index_entry("A/AU/AUTHOR/Alpha-1.0.tar.gz", 100) },
+      developer => {},
+    });
+    slurp($c->latest_index_path)
+  };
+
+  for my $marker (
+    ["two days old" => 2 * $day], ["two hours old" => 2 * 60 * 60]
+  ) {
+    my ($name, $age) = @$marker;
+    local $Homedir_dir = cache_dir(0);
+    my $text  = $index_with_alpha->();
+    my $mtime = set_age($c->full_index_path, $age);
+    my $w     = warnings {
+      is dies { $c->get_latest }, $scroll,
+        "get_latest dies with the scroll error for a marker $name"
+    };
+
+    is @$w, 9, "get_latest retries the fetch for a marker $name";
+    is slurp($c->latest_index_path), $text,
+      "get_latest leaves the cache file alone for a marker $name";
+    is +(stat $c->full_index_path)[9], $mtime,
+      "get_latest leaves a marker $name alone after a failed fetch";
+  }
+
+  local $Homedir_dir = cache_dir(0);
+  my $text = $index_with_alpha->();
+  set_age($c->latest_index_path, 2 * $day);
+  my $w = warnings {
+    is dies { $c->latest_paths }, $scroll,
+      "latest_paths dies with the scroll error for an old cache file"
+  };
+  is @$w, 9, "latest_paths retries the fetch for an old cache file";
+  is slurp($c->latest_index_path), $text,
+    "latest_paths leaves an old cache file alone after a failed fetch";
+}
+
 sub write_status_method () {
   skip_all "uses fsys which requires alarm" if $Is_win32;
   my $dir = tempdir(CLEANUP => 1);
@@ -1667,6 +1713,7 @@ sub main () {
     write_latest_index_method
     read_latest_index_method
     get_latest_method
+    failed_fetch_method
     rebuild_pass_method
     rebuild_pass_nothing_to_build
     rebuild_pass_mismatched_candidate
