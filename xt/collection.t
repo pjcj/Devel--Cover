@@ -69,6 +69,7 @@ our $Metacpan_total;
 
   package MetaCPAN::Client::Release;
   sub name         ($self) { $self->{name} }
+  sub date         ($self) { $self->{date} }
   sub status       ($self) { $self->{status} }
   sub maturity     ($self) { $self->{maturity} }
   sub download_url ($self) { $self->{download_url} }
@@ -1016,6 +1017,7 @@ sub make_covered ($dir, $d) {
 sub cpan_release ($path, $mtime, %extra) {
   +{
     name         => "Unnamed",
+    date         => "2026-10-21T00:00:00",
     status       => "latest",
     maturity     => "released",
     download_url => "https://cpan.metacpan.org/authors/id/$path",
@@ -1186,10 +1188,33 @@ sub fetch_latest_releases_method () {
   local $Metacpan_total   = 0;
   is $c->fetch_latest_releases, { released => {}, developer => {} },
     "an empty release list gives no releases";
+
+  my $since  = 1_792_454_400;
+  my $recent = cpan_release("E/EC/ECHO/Echo-1.0.tar.gz", 500);
+  my $stale  = cpan_release(
+    "G/GO/GOLF/Golf-1.0.tar.gz", 600, date => "2026-10-19T23:59:59",
+  );
+  my $echo = { path => "E/EC/ECHO/Echo-1.0.tar.gz", time => 500, size => 5000 };
+  local @Metacpan_answers = ([$recent]);
+  local $Metacpan_total   = 1;
+
+  is $c->fetch_latest_releases(since => $since),
+    { released => { Echo => $echo }, developer => {} },
+    "fetch_latest_releases with since returns the newer releases";
+  is $Metacpan_args{params}, {
+      _source   => [qw( name version date status maturity stat download_url )],
+      es_filter => { range => { date => { gte => "2026-10-20T00:00:00" } } },
+    },
+    "since asks for releases uploaded from that time";
+
+  local @Metacpan_answers = ([$recent, $stale]);
+  local $Metacpan_total   = 2;
+  is dies { $c->fetch_latest_releases(since => $since) },
+    "$ignore: latest released Unnamed\n", "a release from before since dies";
 }
 
-sub metacpan_release ($status, $maturity) {
-  bless { status => $status, maturity => $maturity },
+sub metacpan_release ($status, $maturity, $date = "2026-10-21T00:00:00") {
+  bless { status => $status, maturity => $maturity, date => $date },
     "MetaCPAN::Client::Release"
 }
 
@@ -1205,6 +1230,12 @@ sub release_matches_method () {
     "release_matches rejects a stable release that is not the latest";
   ok !$c->release_matches(metacpan_release(qw( backpan released ))),
     "release_matches rejects a release on BackPAN";
+  my $since = "2026-10-21T00:00:00";
+  my $old   = metacpan_release(qw( latest released 2026-10-20T23:59:59 ));
+  ok $c->release_matches(metacpan_release(qw( latest released )), $since),
+    "release_matches accepts a release uploaded at the since time";
+  ok !$c->release_matches($old, $since),
+    "release_matches rejects a release uploaded before the since time";
 }
 
 sub index_entry ($path, $time) { +{ path => $path, time => $time, size => 7 } }
@@ -1265,6 +1296,40 @@ sub write_latest_index_method () {
       ->write_latest_index($releases)
   }, qr|^Can't rename \Q$blocker\E\.tmp\.$$ to \Q$blocker\E: |,
     "write_latest_index dies when it cannot replace the index";
+}
+
+sub read_latest_index_method () {
+  my $dir      = tempdir(CLEANUP => 1);
+  my $index    = "$dir/latest-releases.txt";
+  my $releases = {
+    released => {
+      Stable => index_entry("S/ST/STABLE/Stable-1.0.tar.gz", 100),
+      Both   => index_entry("B/BO/BOTH/Both-1.0.tar.gz",     100),
+    },
+    developer => {
+      Dev   => index_entry("D/DE/DEV/Dev-0.1-TRIAL.tar.gz",   200),
+      Both  => index_entry("B/BO/BOTH/Both-1.1-TRIAL.tar.gz", 200),
+      Hotel => index_entry("H/HO/HOTEL/Hotel-1.00_01.tar.gz", 300),
+    },
+  };
+  my $c = Devel::Cover::Collection->new(latest_index => $index);
+  $c->write_latest_index($releases);
+  is $c->read_latest_index, $releases,
+    "read_latest_index reads what write_latest_index writes";
+
+  my $missing = "$dir/missing.txt";
+  like dies {
+    Devel::Cover::Collection->new(latest_index => $missing)->read_latest_index
+  }, qr|^Can't open \Q$missing\E: |,
+    "read_latest_index dies when it cannot open the file";
+
+  for my $text ("", "#FORMAT: 2\n") {
+    open my $fh, ">", $index or die "Can't write $index: $!";
+    print $fh $text;
+    close $fh or die "Can't close $index: $!";
+    is dies { $c->read_latest_index }, "Unknown format in $index\n",
+      "read_latest_index dies on an unknown format";
+  }
 }
 
 sub get_latest_output ($c) {
@@ -1502,6 +1567,7 @@ sub main () {
     fetch_latest_releases_method
     release_matches_method
     write_latest_index_method
+    read_latest_index_method
     get_latest_method
     rebuild_pass_method
     rebuild_pass_nothing_to_build

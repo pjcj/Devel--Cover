@@ -1005,6 +1005,29 @@ class Devel::Cover::Collection {
     rename $tmp, $path or die "Can't rename $tmp to $path: $!\n";
   }
 
+  method read_latest_index {
+    my $file = $self->latest_index_path;
+    open my $fh, "<", $file or die "Can't open $file: $!\n";
+    my $format = <$fh> // "";
+    die "Unknown format in $file\n" unless $format eq "#FORMAT: 1\n";
+    my %lines;
+    while (my $line = <$fh>) {
+      my ($name, $path, $time, $size) = split " ", $line;
+      push $lines{$name}->@*, { path => $path, time => $time, size => $size };
+    }
+    # dc uncoverable branch true
+    die "Can't close $file: $!\n" unless close $fh;
+    my $releases = { released => {}, developer => {} };
+    for my $name (keys %lines) {
+      my ($first, $dev) = $lines{$name}->@*;
+      my $maturity
+        = $dev ? "released" : CPAN::DistnameInfo->new($first->{path})->maturity;
+      $releases->{$maturity}{$name} = $first;
+      $releases->{developer}{$name} = $dev if $dev;
+    }
+    $releases
+  }
+
   method next_with_retry ($rs) {
     for my $attempt (1 .. 10) {
       my $release;
@@ -1016,7 +1039,8 @@ class Devel::Cover::Collection {
     }
   }
 
-  method release_matches ($release) {
+  method release_matches ($release, $since = undef) {
+    return 0 if defined $since && $release->date lt $since;
     my $pair = join " ", $release->status, $release->maturity;
     $pair eq "latest released" || $pair eq "cpan developer"
   }
@@ -1026,9 +1050,13 @@ class Devel::Cover::Collection {
     "CPAN release list ignores the query: @fields"
   }
 
-  method fetch_latest_releases {
+  method fetch_latest_releases (%options) {
     require MetaCPAN::Client;
     my @fields = qw( name version date status maturity stat download_url );
+    my $since
+      = defined $options{since}
+      ? POSIX::strftime("%Y-%m-%dT%H:%M:%S", gmtime $options{since})
+      : undef;
     my ($rs, $release);
     for my $attempt (1 .. 10) {
       my $query = {
@@ -1037,9 +1065,12 @@ class Devel::Cover::Collection {
           { all => [{ status => "cpan" },   { maturity => "developer" }] },
         ],
       };
-      $rs = MetaCPAN::Client->new->release($query, { _source => [@fields] });
+      my $params = { _source => [@fields] };
+      $params->{es_filter} = { range => { date => { gte => $since } } }
+        if defined $since;
+      $rs      = MetaCPAN::Client->new->release($query, $params);
       $release = $self->next_with_retry($rs);
-      last if !$release || $self->release_matches($release);
+      last if !$release || $self->release_matches($release, $since);
       my $error = _ignored_query($release);
       die "$error\n" if $attempt == 10;
       warn "Retrying the CPAN release list after: $error\n";
@@ -1050,7 +1081,7 @@ class Devel::Cover::Collection {
     while ($release) {
       $count++;
       die _ignored_query($release), "\n"
-        unless $self->release_matches($release);
+        unless $self->release_matches($release, $since);
       my $path = $release->download_url // next;
       $path =~ s|^.*/authors/id/||;
       # dc uncoverable condition when:00
@@ -2021,6 +2052,17 @@ when there is no stable release or the developer release is newer. It writes a
 temporary file beside the index and renames it onto the index, so that a reader
 never sees a part-written index. It dies if it cannot write or rename the file.
 
+=head3 read_latest_index
+
+  my $releases = $collection->read_latest_index;
+
+Reads the index at C<latest_index_path> and returns the releases in the form
+that C<fetch_latest_releases> returns. When a distribution has two lines, the
+first is its stable release and the second its developer release, as
+C<write_latest_index> writes them. When it has one line, L<CPAN::DistnameInfo>
+gives the maturity from the path. The method dies if it cannot open the file or
+if the first line is not C<#FORMAT: 1>.
+
 =head3 next_with_retry ($rs)
 
   my $release = $collection->next_with_retry($rs);
@@ -2032,17 +2074,20 @@ for the attempt number times C<retry_delay> seconds. After the tenth failure it
 dies with the last error. A failed scroll request does not move the scroll, so
 sending it again loses no releases.
 
-=head3 release_matches ($release)
+=head3 release_matches ($release, $since)
 
-  my $ok = $collection->release_matches($release);
+  my $ok = $collection->release_matches($release, $since);
 
 Returns true when the status and maturity of the L<MetaCPAN::Client::Release>
 C<$release> are C<latest> and C<released>, or C<cpan> and C<developer>. These
 are the two pairs that C<fetch_latest_releases> asks for.
 
-=head3 fetch_latest_releases
+With the optional C<$since>, a time such as C<2026-10-20T00:00:00>, it also
+returns false for a release whose C<date> is before that time.
 
-  my $releases = $collection->fetch_latest_releases;
+=head3 fetch_latest_releases (%options)
+
+  my $releases = $collection->fetch_latest_releases(since => $time);
 
 Fetches from MetaCPAN the latest stable release and every developer release
 of each distribution on CPAN, reading each release through
@@ -2062,6 +2107,12 @@ its status and maturity. So when the first release fails C<release_matches> the
 method sends the search again, up to ten attempts in all, warning and sleeping
 as C<next_with_retry> does. After the tenth such answer it dies. It also dies
 when a later release fails C<release_matches>.
+
+When the C<since> option gives an epoch time, the method asks only for releases
+uploaded at or after that time, and passes the time to C<release_matches>,
+because an answer that ignores the query ignores the date as well. MetaCPAN
+returns a list of under 1,000 releases in the first response, so the method
+sends no scroll request then.
 
 =head3 latest_paths (%options)
 
