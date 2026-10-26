@@ -81,8 +81,8 @@ our $Homedir_dir;
   package File::HomeDir;
 
   sub my_dist_data ($class, @args) {
-    @Homedir_args = @args;
-    $Homedir_dir  = File::Temp::tempdir(CLEANUP => 1)
+    @Homedir_args   = @args;
+    $Homedir_dir  //= File::Temp::tempdir(CLEANUP => 1)
   }
 }
 local $INC{"File/HomeDir.pm"} = __FILE__;
@@ -550,6 +550,19 @@ sub write_json () {
     "JSON contains a three-part version parsed from the distdir";
 }
 
+# Make a cache directory, holding a cache file $age seconds old unless undef
+sub cache_dir ($age) {
+  my $dir = tempdir(CLEANUP => 1);
+  return $dir unless defined $age;
+  my $file = "$dir/latest-releases.txt";
+  open my $fh, ">", $file or die "Can't write $file: $!";
+  print $fh "#FORMAT: 1\n";
+  close $fh or die "Can't close $file: $!";
+  my $time = time - $age;
+  utime $time, $time, $file or die "Can't utime $file: $!";
+  $dir
+}
+
 sub compress_output ($c, $versions) {
   my $outfile = $c->results_dir . "/compress_output.txt";
   {
@@ -599,6 +612,7 @@ sub compress_old_versions () {
   close $bfh                or die "Can't close: $!";
   mkdir "$dir/Net-RDAP-0.3" or die "Can't mkdir: $!";
 
+  local $Homedir_dir = cache_dir(0);
   my $c      = Devel::Cover::Collection->new(results_dir => $dir, dryrun => 1);
   my $output = compress_output($c, 3);
 
@@ -648,6 +662,7 @@ sub compress_old_versions_keeps_latest () {
     A/AU/AUTHOR/Foo-2.0.tar.gz
     A/AU/AUTHOR/Foo-2.03-TRIAL.tar.gz
   );
+  local $Homedir_dir = cache_dir(0);
   my $c      = Devel::Cover::Collection->new(results_dir => $dir, dryrun => 1);
   my $output = compress_output($c, 3);
 
@@ -995,19 +1010,44 @@ sub make_covered ($dir, $d) {
   close $fh or die "Can't close cover.json: $!";
 }
 
+sub cpan_release ($path, $mtime, %extra) {
+  +{
+    name         => "Unnamed",
+    maturity     => "released",
+    download_url => "https://cpan.metacpan.org/authors/id/$path",
+    stat         => { mtime => $mtime, size => 10 * $mtime },
+    %extra,
+  }
+}
+
+sub slurp ($file) {
+  open my $fh, "<", $file or die "Can't read $file: $!";
+  local $/;
+  <$fh>
+}
+
+sub fetches ($c, %options) {
+  local %Metacpan_args;
+  $c->latest_paths(%options);
+  %Metacpan_args ? 1 : 0
+}
+
 sub latest_paths_method () {
   local @Latest_paths = qw(
     A/AU/AUTHOR/Alpha-1.0.tar.gz
     B/BR/BRAVO/Bravo-2.0-TRIAL.tar.gz
   );
+  my $fetched = "C/CH/CHARLIE/Charlie-1.0.tar.gz";
+  local @Metacpan_releases = cpan_release($fetched, 5);
+  local $Metacpan_total    = 1;
   local %Latest_args;
+  local $Homedir_dir = cache_dir(0);
   my $c = Devel::Cover::Collection->new;
+
   is [$c->latest_paths], \@Latest_paths,
     "latest_paths returns every release path in the index";
-  is \%Latest_args, {}, "latest_paths reads the cached index by default";
-  $c->latest_paths(max_age => 0);
-  is \%Latest_args, { max_age => 0 },
-    "latest_paths passes its options to the index";
+  is \%Latest_args, { path => "$Homedir_dir/latest-releases.txt" },
+    "latest_paths reads the CPAN::Releases::Latest cache file by default";
   Devel::Cover::Collection->new(latest_index => "index.txt")->latest_paths;
   is \%Latest_args, { path => "index.txt" },
     "latest_index is passed as the index file";
@@ -1018,23 +1058,34 @@ sub latest_paths_method () {
   is \%Latest_args, { path => "env.txt" },
     "CPANCOVER_LATEST_INDEX sets the default index file";
 
+  {
+    local $Homedir_dir = cache_dir(undef);
+    is fetches($c), 1, "a missing cache file is fetched";
+    is slurp("$Homedir_dir/latest-releases.txt"),
+      "#FORMAT: 1\nCharlie $fetched 5 50\n",
+      "the fetched releases are written to the cache file";
+  }
+  {
+    local $Homedir_dir = cache_dir(0);
+    is fetches($c), 0, "a fresh cache file is read without a fetch";
+  }
+  {
+    local $Homedir_dir = cache_dir(2 * 24 * 60 * 60);
+    is fetches($c), 1, "a cache file two days old is fetched again";
+  }
+  {
+    local $Homedir_dir = cache_dir(0);
+    is fetches($c, max_age => 0), 1, "max_age 0 fetches a fresh cache file";
+  }
+  my $set = Devel::Cover::Collection->new(latest_index => "index.txt");
+  is fetches($set, max_age => 0), 0, "a latest_index file is never fetched";
+
   is $c->latest_index_path, "$Homedir_dir/latest-releases.txt",
     "latest_index_path defaults to the CPAN::Releases::Latest cache file";
   is \@Homedir_args, ["CPAN-Releases-Latest", { create => 1 }],
     "latest_index_path asks File::HomeDir for the module data directory";
-  my $set = Devel::Cover::Collection->new(latest_index => "index.txt");
   is $set->latest_index_path, "index.txt",
     "latest_index_path returns latest_index when set";
-}
-
-sub cpan_release ($path, $mtime, %extra) {
-  +{
-    name         => "Unnamed",
-    maturity     => "released",
-    download_url => "https://cpan.metacpan.org/authors/id/$path",
-    stat         => { mtime => $mtime, size => 10 * $mtime },
-    %extra,
-  }
 }
 
 sub fetch_latest_releases_method () {
@@ -1158,22 +1209,47 @@ sub write_latest_index_method () {
     "write_latest_index dies when it cannot replace the index";
 }
 
+sub get_latest_output ($c) {
+  my $out = "";
+  local *STDOUT;
+  open STDOUT, ">", \$out or die "Can't redirect STDOUT: $!";
+  $c->get_latest;
+  $out
+}
+
 sub get_latest_method () {
   local @Latest_paths = qw(
     A/AU/AUTHOR/Alpha-1.0.tar.gz
     B/BR/BRAVO/Bravo-2.0.tar.gz
   );
+  my $printed = "A/AU/AUTHOR/Alpha-1.0.tar.gz\nB/BR/BRAVO/Bravo-2.0.tar.gz\n";
   local %Latest_args;
-  my $c   = Devel::Cover::Collection->new;
-  my $out = "";
+  my $fetched = "C/CH/CHARLIE/Charlie-1.0.tar.gz";
+  local @Metacpan_releases = cpan_release($fetched, 5);
+  local $Metacpan_total    = 1;
+
   {
-    local *STDOUT;
-    open STDOUT, ">", \$out or die "Can't redirect STDOUT: $!";
-    $c->get_latest;
+    local $Homedir_dir = cache_dir(0);
+    my $cache = "$Homedir_dir/latest-releases.txt";
+    local %Metacpan_args;
+    is get_latest_output(Devel::Cover::Collection->new), $printed,
+      "get_latest prints one release path per line";
+    ok %Metacpan_args, "get_latest fetches a fresh cache file again";
+    is slurp($cache), "#FORMAT: 1\nCharlie $fetched 5 50\n",
+      "get_latest writes the fetched releases to the cache file";
+    is \%Latest_args, { path => $cache }, "get_latest reads the file it wrote";
   }
-  is $out, "A/AU/AUTHOR/Alpha-1.0.tar.gz\nB/BR/BRAVO/Bravo-2.0.tar.gz\n",
-    "get_latest prints one release path per line";
-  is \%Latest_args, { max_age => 0 }, "get_latest refreshes the index";
+
+  my $index = cache_dir(0) . "/latest-releases.txt";
+  my $c     = Devel::Cover::Collection->new(latest_index => $index);
+  local %Metacpan_args;
+  is get_latest_output($c), $printed,
+    "get_latest prints the latest_index paths";
+  is \%Metacpan_args, {}, "get_latest fetches nothing for a latest_index file";
+  is slurp($index), "#FORMAT: 1\n",
+    "get_latest leaves a latest_index file alone";
+  is \%Latest_args, { path => $index },
+    "get_latest reads the latest_index file";
 }
 
 sub write_status_method () {

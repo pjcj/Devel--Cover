@@ -1005,17 +1005,6 @@ class Devel::Cover::Collection {
     rename $tmp, $path or die "Can't rename $tmp to $path: $!\n";
   }
 
-  method latest_paths (%options) {
-    require CPAN::Releases::Latest;
-    $options{path} = $latest_index if defined $latest_index;
-    my $iterator = CPAN::Releases::Latest->new(%options)->release_iterator;
-    my @paths;
-    while (my $release = $iterator->next_release) {
-      push @paths, $release->path;
-    }
-    @paths
-  }
-
   method next_with_retry ($rs) {
     for my $attempt (1 .. 10) {
       my $release;
@@ -1057,8 +1046,23 @@ class Devel::Cover::Collection {
     $releases
   }
 
+  method latest_paths (%options) {
+    my $max_age = $options{max_age} // 24 * 60 * 60;
+    my $path    = $self->latest_index_path;
+    $self->write_latest_index($self->fetch_latest_releases)
+      if !defined $latest_index
+      && (!-e $path || time - (stat $path)[9] >= $max_age);
+    require CPAN::Releases::Latest;
+    my $iterator = CPAN::Releases::Latest->new(path => $path)->release_iterator;
+    my @paths;
+    while (my $release = $iterator->next_release) {
+      push @paths, $release->path;
+    }
+    @paths
+  }
+
   method get_latest {
-    say for $self->latest_paths(max_age => 0);  # no caching
+    say for $self->latest_paths(max_age => 0);
   }
 }
 
@@ -1513,10 +1517,13 @@ modules that are not on CPAN counts everything.
 
 =head3 latest_index
 
-Path of a file in the L<CPAN::Releases::Latest> cache format to read as
-the release index instead of the cache that module keeps and refreshes.
-Default: the C<CPANCOVER_LATEST_INDEX> environment variable, so a test can
-give every F<cpancover> run a fixed index without using the network.
+Path of the release index file, in the L<CPAN::Releases::Latest> cache format.
+When it is set, C<latest_paths> and C<get_latest> only read the file and never
+fetch, so a test can run the F<cpancover> recipes without using the network.
+When it is unset, C<latest_index_path> gives the cache file of
+L<CPAN::Releases::Latest>, which C<get_latest> fetches every time and
+C<latest_paths> fetches when it is missing or more than a day old. The default
+is the C<CPANCOVER_LATEST_INDEX> environment variable.
 
 =head3 retry_delay
 
@@ -1991,19 +1998,6 @@ when there is no stable release or the developer release is newer. It writes a
 temporary file beside the index and renames it onto the index, so that a reader
 never sees a part-written index. It dies if it cannot write or rename the file.
 
-=head3 latest_paths (%options)
-
-  my @paths = $collection->latest_paths;
-  my @paths = $collection->latest_paths(max_age => 0);
-
-Returns the CPAN path of the latest release of every distribution on
-CPAN, and of its latest developer release as well when that is newer,
-from the L<CPAN::Releases::Latest> index. The options go to that
-module's constructor, so C<max_age> decides whether its cached index is
-refreshed first. With C<latest_index> set the file it names is read
-instead and nothing is fetched. A distribution deleted from CPAN has no
-entry.
-
 =head3 next_with_retry ($rs)
 
   my $release = $collection->next_with_retry($rs);
@@ -2032,12 +2026,27 @@ releases as L<CPAN::Releases::Latest> does. It dies when it reads fewer
 releases than the total MetaCPAN reported, so that no caller uses a list cut
 short.
 
+=head3 latest_paths (%options)
+
+  my @paths = $collection->latest_paths(max_age => 0);
+
+Returns the CPAN path of the latest release of every distribution on
+CPAN, and of its latest developer release as well when that is newer,
+from the index file at C<latest_index_path>, which L<CPAN::Releases::Latest>
+parses. A distribution deleted from CPAN has no entry. When C<latest_index> is
+unset and the cache file is missing or at least C<max_age> seconds old, the
+method first writes a new cache file with C<fetch_latest_releases> and
+C<write_latest_index>, and dies if the fetch fails. C<max_age> defaults to one
+day. It only reads a file that C<latest_index> names.
+
 =head3 get_latest
 
   $collection->get_latest;
 
-Refreshes the index and prints the paths from C<latest_paths>, one per
-line.
+Prints the paths from C<latest_paths> with C<max_age> 0, one per line. So it
+fetches the release list and writes the cache file every time, unless
+C<latest_index> names a file, which it only reads. It dies, leaving the cache
+file as it was, when the fetch fails.
 
 =head2 System Commands
 

@@ -9,9 +9,8 @@
 # https://pjcj.net
 
 # The dc recipes that read the CPAN release index. They live apart from
-# xt/dc.t so that the daily index download holds up nothing else, and in one
-# file because two CPAN::Releases::Latest runs at once may both write the
-# cache file.
+# xt/dc.t so that live_index, which fetches the real release list into a
+# temporary file, holds up nothing else.
 
 use 5.42.0;
 
@@ -196,11 +195,14 @@ sub rebuild_module_recipe () {
 }
 
 # The real index, so that a change upstream in what the rebuild pass relies
-# on still shows up. Skipped where the index cannot be fetched or cached.
+# on still shows up. The test skips where it cannot fetch the index.
 sub live_index () {
-  delete local $ENV{CPANCOVER_LATEST_INDEX};
-  my @paths = eval { Devel::Cover::Collection->new->latest_paths };
-  skip_all "Can't read the CPAN release index: $@" if $@;
+  my $index = tempdir(CLEANUP => 1) . "/latest-releases.txt";
+  my $c
+    = Devel::Cover::Collection->new(latest_index => $index, retry_delay => 1);
+  eval { $c->write_latest_index($c->fetch_latest_releases) };
+  skip_all "Can't fetch the CPAN release index: $@" if $@;
+  my @paths = $c->latest_paths;
 
   ok @paths > 20_000, "the index lists every distribution on CPAN";
   my $ext = qr/\.(?:zip|tgz|tar\.(?:gz|bz2|xz))/;
