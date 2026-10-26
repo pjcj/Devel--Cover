@@ -1016,20 +1016,41 @@ class Devel::Cover::Collection {
     }
   }
 
+  method release_matches ($release) {
+    my $pair = join " ", $release->status, $release->maturity;
+    $pair eq "latest released" || $pair eq "cpan developer"
+  }
+
+  sub _ignored_query ($release) {
+    my @fields = map $release->$_, qw( status maturity name );
+    "CPAN release list ignores the query: @fields"
+  }
+
   method fetch_latest_releases {
     require MetaCPAN::Client;
-    my $query = {
-      either => [
-        { all => [{ status => "latest" }, { maturity => "released" }] },
-        { all => [{ status => "cpan" },   { maturity => "developer" }] },
-      ],
-    };
     my @fields = qw( name version date status maturity stat download_url );
-    my $rs = MetaCPAN::Client->new->release($query, { _source => \@fields });
+    my ($rs, $release);
+    for my $attempt (1 .. 10) {
+      my $query = {
+        either => [
+          { all => [{ status => "latest" }, { maturity => "released" }] },
+          { all => [{ status => "cpan" },   { maturity => "developer" }] },
+        ],
+      };
+      $rs = MetaCPAN::Client->new->release($query, { _source => [@fields] });
+      $release = $self->next_with_retry($rs);
+      last if !$release || $self->release_matches($release);
+      my $error = _ignored_query($release);
+      die "$error\n" if $attempt == 10;
+      warn "Retrying the CPAN release list after: $error\n";
+      sleep $attempt * $retry_delay;
+    }
     my $releases = { released => {}, developer => {} };
     my $count    = 0;
-    while (my $release = $self->next_with_retry($rs)) {
+    while ($release) {
       $count++;
+      die _ignored_query($release), "\n"
+        unless $self->release_matches($release);
       my $path = $release->download_url // next;
       $path =~ s|^.*/authors/id/||;
       # dc uncoverable condition when:00
@@ -1039,6 +1060,8 @@ class Devel::Cover::Collection {
       next if $slice->{$name} && $stat->{mtime} <= $slice->{$name}{time};
       $slice->{$name}
         = { path => $path, time => $stat->{mtime}, size => $stat->{size} };
+    } continue {
+      $release = $self->next_with_retry($rs);
     }
     my $total = $rs->total;
     die "CPAN release list ended early: got $count of $total\n"
@@ -2009,6 +2032,14 @@ for the attempt number times C<retry_delay> seconds. After the tenth failure it
 dies with the last error. A failed scroll request does not move the scroll, so
 sending it again loses no releases.
 
+=head3 release_matches ($release)
+
+  my $ok = $collection->release_matches($release);
+
+Returns true when the status and maturity of the L<MetaCPAN::Client::Release>
+C<$release> are C<latest> and C<released>, or C<cpan> and C<developer>. These
+are the two pairs that C<fetch_latest_releases> asks for.
+
 =head3 fetch_latest_releases
 
   my $releases = $collection->fetch_latest_releases;
@@ -2025,6 +2056,12 @@ not give one. The method skips a release without a download URL, and selects
 releases as L<CPAN::Releases::Latest> does. It dies when it reads fewer
 releases than the total MetaCPAN reported, so that no caller uses a list cut
 short.
+
+MetaCPAN sometimes ignores the query and answers with every release, whatever
+its status and maturity. So when the first release fails C<release_matches> the
+method sends the search again, up to ten attempts in all, warning and sleeping
+as C<next_with_retry> does. After the tenth such answer it dies. It also dies
+when a later release fails C<release_matches>.
 
 =head3 latest_paths (%options)
 

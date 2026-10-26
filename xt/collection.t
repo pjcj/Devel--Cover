@@ -44,6 +44,7 @@ local $INC{"CPAN/Releases/Latest.pm"} = __FILE__;
 
 # Stand-in for MetaCPAN::Client, whose real scroll needs the network
 our @Metacpan_releases;
+our @Metacpan_answers;
 our %Metacpan_args;
 our $Metacpan_total;
 {
@@ -53,7 +54,8 @@ our $Metacpan_total;
 
   sub release ($self, $query, $params) {
     %Metacpan_args = (query => $query, params => $params);
-    bless { releases => [@Metacpan_releases] }, "MetaCPAN::Client::ResultSet"
+    my $releases = shift @Metacpan_answers // [@Metacpan_releases];
+    bless { releases => [@$releases] }, "MetaCPAN::Client::ResultSet"
   }
 
   package MetaCPAN::Client::ResultSet;
@@ -67,6 +69,7 @@ our $Metacpan_total;
 
   package MetaCPAN::Client::Release;
   sub name         ($self) { $self->{name} }
+  sub status       ($self) { $self->{status} }
   sub maturity     ($self) { $self->{maturity} }
   sub download_url ($self) { $self->{download_url} }
   sub stat         ($self) { $self->{stat} }
@@ -1013,6 +1016,7 @@ sub make_covered ($dir, $d) {
 sub cpan_release ($path, $mtime, %extra) {
   +{
     name         => "Unnamed",
+    status       => "latest",
     maturity     => "released",
     download_url => "https://cpan.metacpan.org/authors/id/$path",
     stat         => { mtime => $mtime, size => 10 * $mtime },
@@ -1095,7 +1099,7 @@ sub fetch_latest_releases_method () {
     cpan_release("A/AU/AUTHOR/Alpha-1.0.tar.gz", 100),
     cpan_release("A/AU/AUTHOR/Alpha-2.0.tar.gz", 300),
     cpan_release("A/AU/AUTHOR/Alpha-1.5.tar.gz", 200),
-    cpan_release($trial,                         400, maturity => "developer"),
+    cpan_release($trial, 400, status => "cpan", maturity => "developer"),
     cpan_release("B/BR/BRAVO/Bravo-1.0.tar.gz", 150, download_url => undef),
     cpan_release("C/CH/CHARLIE/charlie.pm.gz",  250, name         => "Charlie"),
   );
@@ -1147,6 +1151,60 @@ sub fetch_latest_releases_method () {
   like dies { $c->fetch_latest_releases },
     qr/^CPAN release list ended early: got 6 of 7$/,
     "a list shorter than the total dies";
+
+  my $old    = cpan_release("O/OL/OLD/Old-1.0.tar.gz", 50, status => "backpan");
+  my $ignore = "CPAN release list ignores the query";
+  my $bad    = "$ignore: backpan released Unnamed\n";
+  local $Metacpan_total   = @releases;
+  local @Metacpan_answers = ([$old, @releases]);
+
+  $w = warnings {
+    is $c->fetch_latest_releases, $expected,
+      "an answer that ignores the query is fetched again"
+  };
+  is $w, ["Retrying the CPAN release list after: $bad"],
+    "an answer that ignores the query gives one warning";
+
+  local @Metacpan_answers = ([$old]) x 10;
+  $w = warnings {
+    is dies { $c->fetch_latest_releases }, $bad,
+      "ten answers that ignore the query die"
+  };
+  is @$w, 9, "every ignored query before the last gives a warning";
+
+  my $late = cpan_release("D/DE/DELTA/Delta-1.0.tar.gz", 60, status => "cpan");
+  local @Metacpan_answers = ([@releases, $late], \@releases);
+  $w = warnings {
+    is dies { $c->fetch_latest_releases }, "$ignore: cpan released Unnamed\n",
+      "a later release that ignores the query dies"
+  };
+  is $w, [], "a later release that ignores the query is not retried";
+  is \@Metacpan_answers, [\@releases],
+    "a later release that ignores the query sends one search";
+
+  local @Metacpan_answers = ([]);
+  local $Metacpan_total   = 0;
+  is $c->fetch_latest_releases, { released => {}, developer => {} },
+    "an empty release list gives no releases";
+}
+
+sub metacpan_release ($status, $maturity) {
+  bless { status => $status, maturity => $maturity },
+    "MetaCPAN::Client::Release"
+}
+
+sub release_matches_method () {
+  my $c = Devel::Cover::Collection->new;
+  ok $c->release_matches(metacpan_release(qw( latest released ))),
+    "release_matches accepts a latest stable release";
+  ok $c->release_matches(metacpan_release(qw( cpan developer ))),
+    "release_matches accepts a developer release on CPAN";
+  ok !$c->release_matches(metacpan_release(qw( latest developer ))),
+    "release_matches rejects a latest developer release";
+  ok !$c->release_matches(metacpan_release(qw( cpan released ))),
+    "release_matches rejects a stable release that is not the latest";
+  ok !$c->release_matches(metacpan_release(qw( backpan released ))),
+    "release_matches rejects a release on BackPAN";
 }
 
 sub index_entry ($path, $time) { +{ path => $path, time => $time, size => 7 } }
@@ -1442,6 +1500,7 @@ sub main () {
     write_status_method
     latest_paths_method
     fetch_latest_releases_method
+    release_matches_method
     write_latest_index_method
     get_latest_method
     rebuild_pass_method
