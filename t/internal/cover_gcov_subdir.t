@@ -71,6 +71,21 @@ sub setup_dist ($dir) {
   write_file(File::Spec->catfile($bundled, "Makefile"),   "test:\n");
   write_file(File::Spec->catfile($bundled, "Inner.xs"),   "int inner_line;\n");
   write_file(File::Spec->catfile($bundled, "Inner.gcno"), "Inner.xs\n");
+
+  # a coverage database, as another cover run leaves it
+  my $db  = File::Spec->catdir($dir, "cover_db_other");
+  my $run = File::Spec->catdir($db,  "runs", "1");
+  mkpath [File::Spec->catdir($db, "structure"), $run];
+  write_file(File::Spec->catfile($run, "cover.15"),  "");
+  write_file(File::Spec->catfile($db,  "Leak.xs"),   "int leak_line;\n");
+  write_file(File::Spec->catfile($db,  "Leak.gcno"), "Leak.xs\n");
+
+  # a coverage database after its runs are merged
+  my $merged = File::Spec->catdir($dir, "cover_db_merged");
+  mkpath $merged;
+  write_file(File::Spec->catfile($merged, "cover.15"),    "");
+  write_file(File::Spec->catfile($merged, "Merged.xs"),   "int merged_line;\n");
+  write_file(File::Spec->catfile($merged, "Merged.gcno"), "Merged.xs\n");
 }
 
 # each .gcno fixture holds the compiler-recorded source name gcov works from
@@ -168,6 +183,10 @@ sub test_default_mode () {
     "stub .gcov from a foreign build is removed";
   unlike $out,  qr/Alien\.xs\s+\d/, "foreign build does not reach the report";
   unlike $args, qr/Inner/,          "no gcov run inside a bundled build";
+  unlike $args, qr/Leak/,           "no gcov run inside a coverage database";
+  unlike $out,  qr/Leak/,   "coverage database does not reach the report";
+  unlike $args, qr/Merged/, "no gcov run inside a merged coverage database";
+  unlike $out, qr/Merged/, "merged coverage database does not reach the report";
 }
 
 # under -gcov_chdir the recorded source stays relative to the build root
@@ -187,6 +206,13 @@ sub test_gcov_chdir () {
   like $out, qr/Top\.xs\s+100\.0/, "top-level XS has statement coverage";
   like $out, qr|foreign/Alien\.xs\s+100\.0|,
     "separate build is covered under -gcov_chdir";
+
+  ok !-e File::Spec->catfile($dir, "cover_db_other", "gcov.args"),
+    "no gcov run inside a coverage database";
+  unlike $out, qr/Leak/, "coverage database does not reach the report";
+  ok !-e File::Spec->catfile($dir, "cover_db_merged", "gcov.args"),
+    "no gcov run inside a merged coverage database";
+  unlike $out, qr/Merged/, "merged coverage database does not reach the report";
 }
 
 # a root-compiled subdirectory XS gives a header-only stub under -gcov_chdir

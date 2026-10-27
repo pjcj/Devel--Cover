@@ -57,7 +57,7 @@ sub get_params ($self) {
   my $p = $self->{cover_parameters} || [];
   $self->{cover_parameters}
     = join(" ", map "-coverage $_", split " ", $self->{criteria})
-    . " @$p -report text "
+    . " @$p -nogcov -report text "
     . shell_quote $self->{cover_db};
   if (exists $self->{skip_test}) {
     for my $s ($self->{skip_test}->@*) {

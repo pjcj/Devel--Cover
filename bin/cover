@@ -410,6 +410,13 @@ sub is_build_root ($dir) {
     qw( Makefile.PL Build.PL Makefile Build )
 }
 
+# a coverage database holds no sources
+sub is_cover_db ($dir) {
+  -e File::Spec->catfile($dir, "cover.15")
+    || ( -d File::Spec->catdir($dir, "runs")
+      && -d File::Spec->catdir($dir, "structure"))
+}
+
 sub do_gcov ($dbname) {
   return unless $Options->{gcov};
   require Cwd;
@@ -417,6 +424,10 @@ sub do_gcov ($dbname) {
   my @gc;
   my %seen;
   my $gc = sub () {
+    if (-d && $_ ne "." && is_cover_db($_)) {
+      $File::Find::prune = 1;
+      return;
+    }
     # skip separate builds - their sources are recorded relative to them
     if (!$Options->{gcov_chdir} && -d && $_ ne "." && is_build_root($_)) {
       $File::Find::prune = 1;
@@ -882,7 +893,7 @@ path in the output names so same-named sources in different directories do
 not collide.  A subdirectory holding its own F<Makefile.PL>, F<Build.PL>,
 F<Makefile> or F<Build> is a separate build whose object files record sources
 relative to that directory, so it is skipped.  Run F<cover> in that directory
-instead, or use C<-gcov_chdir>.
+instead, or use C<-gcov_chdir>.  F<cover> also skips coverage databases.
 
 By default the C<-relative_only> option is enabled, which passes C<-r> to
 F<gcov> so that source files reached via absolute paths (typically Perl's own
