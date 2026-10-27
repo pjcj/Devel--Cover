@@ -492,8 +492,11 @@ sub module_name_version () {
       { name => "Real-Name", version => "9.9" }, "Foo",
     ),
     ],
-    ["Real-Name", "9.9"],
-    "a distdir without a version falls back to the metadata";
+    ["Foo", undef],
+    "a distdir without a version never takes a name from the metadata";
+  is [$c->_module_name_version({ name => "Foo", version => "9.9" }, "Foo")],
+    ["Foo", "9.9"],
+    "a distdir without a version takes the version of a run with its own name";
   is [
     $c->_module_name_version(
       { name => "Foo", version => "1.2" },
@@ -531,6 +534,14 @@ sub write_json () {
         module => { module => "Foo-Baz-v1.2.3" },
         total  => { pc     => "50.00" },
       },
+      Das => {
+        module => { module => "Das", name => "Das", version => "0.5" },
+        total  => { pc     => "60.00" },
+      },
+      Evil => {
+        module => { module => "Evil", name => "Moose", version => "2.2207" },
+        total  => { pc     => "10.00" },
+      },
     },
   };
 
@@ -553,6 +564,10 @@ sub write_json () {
   like $content,   qr/"Foo-Baz"/, "JSON contains name parsed from the distdir";
   like $content, qr/"v1\.2\.3"/,
     "JSON contains a three-part version parsed from the distdir";
+  like $content,   qr/"Das"/,   "JSON contains a versionless release";
+  like $content,   qr/"0\.5"/,  "JSON contains the version of its own run";
+  unlike $content, qr/"Moose"/, "JSON never takes a name from the metadata";
+  unlike $content, qr/"Evil"/,  "JSON omits a release left with no version";
 }
 
 sub set_age ($file, $age) {
