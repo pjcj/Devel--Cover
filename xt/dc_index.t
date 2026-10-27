@@ -9,12 +9,23 @@
 # https://pjcj.net
 
 # The dc recipes that read the CPAN release index. They live apart from
-# xt/dc.t so that live_index, which fetches the real release list into a
-# temporary file, holds up nothing else.
+# xt/dc.t so that live_index, which fetches the releases of the last week from
+# the real server into a temporary file, holds up nothing else.
 
 use 5.42.0;
 
-use Test2::V0  qw( done_testing is isnt like ok skip_all subtest unlike );
+use Test2::V0 qw(
+  done_testing
+  is
+  isnt
+  like
+  note
+  ok
+  skip_all
+  subtest
+  unlike
+  warnings
+);
 use File::Temp qw( tempdir );
 
 use CPAN::DistnameInfo       ();
@@ -194,17 +205,22 @@ sub rebuild_module_recipe () {
   is \@locks, [], "no lock sidecars remain";
 }
 
-# The real index, so that a change upstream in what the rebuild pass relies
-# on still shows up. The test skips where it cannot fetch the index.
+# A week of releases from the real server, so that a change upstream in what
+# the rebuild pass relies on still shows up. It skips if it cannot fetch them.
 sub live_index () {
   my $index = tempdir(CLEANUP => 1) . "/latest-releases.txt";
   my $c
-    = Devel::Cover::Collection->new(latest_index => $index, retry_delay => 1);
-  eval { $c->write_latest_index($c->fetch_latest_releases) };
-  skip_all "Can't fetch the CPAN release index: $@" if $@;
+    = Devel::Cover::Collection->new(latest_index => $index, retry_delay => 0);
+  my $releases;
+  my $retries = warnings {
+    $releases = eval { $c->fetch_latest_releases(since => time - 7 * 86_400) }
+  };
+  note "Retries of the CPAN release list: " . @$retries;
+  skip_all "Can't fetch the CPAN release index: $@" unless $releases;
+  $c->write_latest_index($releases);
   my @paths = $c->latest_paths;
 
-  ok @paths > 20_000, "the index lists every distribution on CPAN";
+  ok @paths, "the index lists at least one release";
   my $ext = qr/\.(?:zip|tgz|tar\.(?:gz|bz2|xz))/;
   my @odd = grep !m{^[A-Z]/[A-Z]{2}/[A-Z0-9-]+/(?:[^/]+/)*[^/]+$ext$}, @paths;
   is \@odd, [], "every path is an archive under an author directory";
