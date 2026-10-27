@@ -206,16 +206,23 @@ sub rebuild_module_recipe () {
 }
 
 # A week of releases from the real server, so that a change upstream in what
-# the rebuild pass relies on still shows up. It skips if it cannot fetch them.
+# the rebuild pass relies on still shows up. It skips if it cannot fetch them
+# or if the fetch takes over 30 seconds.
 sub live_index () {
   my $index = tempdir(CLEANUP => 1) . "/latest-releases.txt";
   my $c
     = Devel::Cover::Collection->new(latest_index => $index, retry_delay => 0);
   my $releases;
+  my $timed_out = 0;
+  local $SIG{ALRM} = sub { $timed_out = 1; alarm 1; die "timed out\n" };
+
+  alarm 30;
   my $retries = warnings {
     $releases = eval { $c->fetch_latest_releases(since => time - 7 * 86_400) }
   };
+  alarm 0;
   note "Retries of the CPAN release list: " . @$retries;
+  skip_all "The CPAN release index took over 30 seconds" if $timed_out;
   skip_all "Can't fetch the CPAN release index: $@" unless $releases;
   $c->write_latest_index($releases);
   my @paths = $c->latest_paths;
