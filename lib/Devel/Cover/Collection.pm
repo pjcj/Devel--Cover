@@ -410,10 +410,10 @@ class Devel::Cover::Collection {
     my ($name, $version) = ($d->dist, $d->version);
     # the release names the report, its metadata may describe an older one
     return ($name, $version) if defined $name && defined $version;
-    my ($n, $v) = ($mod->{name}, $mod->{version});
-    # a name containing a slash is a run directory path, not a dist name
-    ($n, $v) = (undef, undef) if ($n // "") =~ m|/|;
-    ($n // $name, $v // $version)
+    # the run metadata may supply only the version of its own distribution
+    my $own = defined $mod->{name} && $mod->{name} eq $name;
+    my $v   = $own ? $mod->{version} : undef;
+    ($name, $v // $version)
   }
 
   method write_json ($vars) {
@@ -1816,10 +1816,12 @@ Generates HTML coverage reports for all modules in the results directory.
 Creates an index page, per-module pages, and an about page. A module is
 only linked when its report page exists on disk.
 
-Each module takes its distribution name and version from its distdir,
-which is the release name. The name and version recorded in the report
-describe the directory inside the archive, which may be an older release,
-so they are used only when the distdir has no version to parse.
+Each module takes its distribution name and version from its distdir, which is
+the release name. The name and version recorded in the report describe the
+directory inside the archive, which may be an older release or another
+distribution. A module never takes the recorded name. It takes the recorded
+version only when the distdir has no version to parse and the recorded name is
+that of the distdir.
 
 With C<on_cpan> set, C<mark_off_cpan> runs before the overview is built.
 

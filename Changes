@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Publish the cpancover report of a release with no version in its
+  archive name under that name, so a release can no longer write the
+  `cpancover.json` entry of another distribution (GH-873)
 - Render each cpancover report in a second container that runs no code
   of the distribution, so the site serves nothing a build wrote (GH-869)
 - Keep the cpancover report of every current CPAN release when archiving
