@@ -480,6 +480,29 @@ sub test_off_cpan_unreadable () {
     "an unreadable release index marks no row";
 }
 
+sub test_versionless_release () {
+  my $json   = JSON::PP->new;
+  my $before = $json->decode(slurp("$Dir/cpancover.json"));
+  write_dist($Dir, "Evil", "Foo-Bar", "1.00");
+  my @warnings = regenerate(sub { die "index read\n" });
+  is @warnings, 0, "a release with no version generates without warnings";
+  ok -e "$Dir/dist/E.html", "a release with no version has its own dist page";
+  my $dist_e = slurp("$Dir/dist/E.html");
+  like $dist_e, qr{href="https://metacpan\.org/dist/Evil"},
+    "a release with no version links its own metacpan dist";
+  unlike $dist_e, qr{metacpan\.org/dist/Foo-Bar},
+    "a release with no version does not link the dist its run names";
+  my $cpancover = $json->decode(slurp("$Dir/cpancover.json"));
+  ok !exists($cpancover->{Evil}),
+    "cpancover.json has no entry for a release with no version";
+  is join(",", sort keys $cpancover->{"Foo-Bar"}->%*),
+    join(",", sort keys $before->{"Foo-Bar"}->%*),
+    "a release with no version adds no entry to the dist its run names";
+  my $search = $json->decode(slurp("$Dir/search.json"));
+  is grep($_ eq "Evil", @$search), 1,
+    "search.json lists a release with no version";
+}
+
 sub main () {
   generate;
   test_no_warnings;
@@ -501,6 +524,7 @@ sub main () {
   test_off_cpan;
   test_off_cpan_default;
   test_off_cpan_unreadable;
+  test_versionless_release;
 }
 
 main;
