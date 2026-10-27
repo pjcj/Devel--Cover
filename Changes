@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Skip coverage databases when `cover` looks for XS sources to run gcov
+  on, so a parallel `cover` run no longer warns about a run being merged
+  (GH-875)
 - Publish the cpancover report of a release with no version in its
   archive name under that name, so a release can no longer write the
   `cpancover.json` entry of another distribution (GH-873)
