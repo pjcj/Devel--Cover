@@ -51,8 +51,10 @@ my $Sample = decode_json <<~JSON;
 
 our %Script;
 our @Requests;
+our $Timeout;
 
 sub fake_request ($self, $method, $url, $args = {}) {
+  $Timeout = $self->timeout;
   my $key  = "$method $url";
   my $body = $args->{content};
   $body = decode_json $body if $method eq "POST";
@@ -116,6 +118,24 @@ sub full_list () {
   is [map $_->{body}, @Requests[1, 2]],
     [{ scroll_id => "s1" }, { scroll_id => "s1" }],
     "each scroll request sends the scroll id";
+}
+
+sub timeout_used ($collection) {
+  local %Script = (
+    $Search => [search_page("s1", 5, hit(1), hit(2))],
+    $Scroll => [scroll_page(hit(3), hit(4)), scroll_page(hit(5))],
+  );
+  local @Requests;
+  local $Timeout;
+  $collection->fetch_latest_releases;
+  $Timeout
+}
+
+sub fetch_timeout () {
+  is timeout_used(collection), 30, "a fetch waits 30 seconds by default";
+  my $short
+    = Devel::Cover::Collection->new(retry_delay => 0, fetch_timeout => 5);
+  is timeout_used($short), 5, "a fetch waits for the fetch_timeout given";
 }
 
 sub failed_scroll () {
@@ -202,6 +222,7 @@ sub main () {
   local *HTTP::Tiny::request = \&fake_request;
   my @tests = qw(
     full_list
+    fetch_timeout
     failed_scroll
     ten_failed_scrolls
     ignored_query

@@ -66,6 +66,7 @@ class Devel::Cover::Collection {
   field $on_cpan       :param :reader = undef;
   field $latest_index  :param :reader = undef;
   field $retry_delay   :param :reader = 1;
+  field $fetch_timeout :param :reader = 30;
 
   # rw attributes
   field $dir  :param = undef;
@@ -1085,7 +1086,13 @@ class Devel::Cover::Collection {
       my $params = { _source => [@fields] };
       $params->{es_filter} = { range => { date => { gte => $since } } }
         if defined $since;
-      $rs      = MetaCPAN::Client->new->release($query, $params);
+      my $ua_args = [
+        agent      => "MetaCPAN::Client/$MetaCPAN::Client::VERSION",
+        verify_SSL => 1,
+        timeout    => $fetch_timeout,
+      ];
+      my $client = MetaCPAN::Client->new(ua_args => $ua_args);
+      $rs      = $client->release($query, $params);
       $release = $self->next_with_retry($rs);
       last if !$release || $self->release_matches($release, $since);
       my $error = _ignored_query($release);
@@ -1625,6 +1632,12 @@ C<CPANCOVER_LATEST_INDEX> environment variable.
 
 After a failed request to MetaCPAN, C<next_with_retry> waits this many seconds
 times the number of the attempt that failed. The default is 1.
+
+=head3 fetch_timeout
+
+A request to MetaCPAN that gets no answer for this many seconds fails.
+C<next_with_retry> sends a failed scroll request again, but when the first
+search request fails C<fetch_latest_releases> dies. The default is 30.
 
 =head2 Internally Managed Attributes
 
