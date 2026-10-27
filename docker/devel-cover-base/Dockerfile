@@ -39,6 +39,7 @@ RUN mkdir -p /root/.cpan/CPAN                                               && \
       CPAN::Releases::Latest                                                   \
       Digest::MD5                                                              \
       JSON::MaybeXS                                                            \
+      MetaCPAN::Client                                                         \
       Parallel::Iterator                                                       \
       Pod::Coverage::CountParents                                              \
       PPI                                                                      \

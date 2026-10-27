@@ -65,6 +65,7 @@ class Devel::Cover::Collection {
   field $mark_rebuilt  :param :reader = undef;
   field $on_cpan       :param :reader = undef;
   field $latest_index  :param :reader = undef;
+  field $retry_delay   :param :reader = 1;
 
   # rw attributes
   field $dir  :param = undef;
@@ -977,10 +978,153 @@ class Devel::Cover::Collection {
     scalar grep $_, @res
   }
 
+  method latest_index_path {
+    return $latest_index if defined $latest_index;
+    require File::HomeDir;
+    my $dir
+      = File::HomeDir->my_dist_data("CPAN-Releases-Latest", { create => 1 });
+    File::Spec->catfile($dir, "latest-releases.txt")
+  }
+
+  method full_index_path { $self->latest_index_path . ".full" }
+
+  method mark_full_index {
+    my $marker = $self->full_index_path;
+    open my $fh, ">>", $marker or die "Can't open $marker: $!\n";
+    # dc uncoverable branch true
+    die "Can't close $marker: $!\n" unless close $fh;
+    # dc uncoverable branch true
+    die "Can't touch $marker: $!\n" unless utime undef, undef, $marker;
+  }
+
+  method full_index_age {
+    my $marker = $self->full_index_path;
+    return unless -e $self->latest_index_path && -e $marker;
+    time - (stat $marker)[9]
+  }
+
+  method write_latest_index ($releases) {
+    my $path = $self->latest_index_path;
+    my $tmp  = "$path.tmp.$$";
+    my ($stable, $dev) = $releases->@{qw( released developer )};
+    my %names = map { $_ => 1 } keys %$stable, keys %$dev;
+    open my $fh, ">", $tmp or die "Can't open $tmp: $!\n";
+    print $fh "#FORMAT: 1\n";
+    for my $name (sort { lc $a cmp lc $b } keys %names) {
+      my $s = $stable->{$name};
+      my $d = $dev->{$name};
+      undef $d if $s && $d && $d->{time} <= $s->{time};
+      printf $fh "%s %s %d %d\n", $name, $_->@{qw( path time size )}
+        for grep defined, $s, $d;
+    }
+    # dc uncoverable branch true
+    die "Can't close $tmp: $!\n" unless close $fh;
+    rename $tmp, $path or die "Can't rename $tmp to $path: $!\n";
+  }
+
+  method read_latest_index {
+    my $file = $self->latest_index_path;
+    open my $fh, "<", $file or die "Can't open $file: $!\n";
+    my $format = <$fh> // "";
+    die "Unknown format in $file\n" unless $format eq "#FORMAT: 1\n";
+    my %lines;
+    while (my $line = <$fh>) {
+      my ($name, $path, $time, $size) = split " ", $line;
+      push $lines{$name}->@*, { path => $path, time => $time, size => $size };
+    }
+    # dc uncoverable branch true
+    die "Can't close $file: $!\n" unless close $fh;
+    my $releases = { released => {}, developer => {} };
+    for my $name (keys %lines) {
+      my ($first, $dev) = $lines{$name}->@*;
+      my $maturity
+        = $dev ? "released" : CPAN::DistnameInfo->new($first->{path})->maturity;
+      $releases->{$maturity}{$name} = $first;
+      $releases->{developer}{$name} = $dev if $dev;
+    }
+    $releases
+  }
+
+  method next_with_retry ($rs) {
+    for my $attempt (1 .. 10) {
+      my $release;
+      eval { $release = $rs->next; 1 } and return $release;
+      die $@ if $attempt == 10;
+      chomp(my $error = $@);
+      warn "Retrying the CPAN release list after: $error\n";
+      sleep $attempt * $retry_delay;
+    }
+  }
+
+  method release_matches ($release, $since = undef) {
+    return 0 if defined $since && $release->date lt $since;
+    my $pair = join " ", $release->status, $release->maturity;
+    $pair eq "latest released" || $pair eq "cpan developer"
+  }
+
+  sub _ignored_query ($release) {
+    my @fields = map $release->$_, qw( status maturity name );
+    "CPAN release list ignores the query: @fields"
+  }
+
+  method fetch_latest_releases (%options) {
+    require MetaCPAN::Client;
+    my @fields = qw( name version date status maturity stat download_url );
+    my $since
+      = defined $options{since}
+      ? POSIX::strftime("%Y-%m-%dT%H:%M:%S", gmtime $options{since})
+      : undef;
+    my ($rs, $release);
+    for my $attempt (1 .. 10) {
+      my $query = {
+        either => [
+          { all => [{ status => "latest" }, { maturity => "released" }] },
+          { all => [{ status => "cpan" },   { maturity => "developer" }] },
+        ],
+      };
+      my $params = { _source => [@fields] };
+      $params->{es_filter} = { range => { date => { gte => $since } } }
+        if defined $since;
+      $rs      = MetaCPAN::Client->new->release($query, $params);
+      $release = $self->next_with_retry($rs);
+      last if !$release || $self->release_matches($release, $since);
+      my $error = _ignored_query($release);
+      die "$error\n" if $attempt == 10;
+      warn "Retrying the CPAN release list after: $error\n";
+      sleep $attempt * $retry_delay;
+    }
+    my $releases = { released => {}, developer => {} };
+    my $count    = 0;
+    while ($release) {
+      $count++;
+      die _ignored_query($release), "\n"
+        unless $self->release_matches($release, $since);
+      my $path = $release->download_url // next;
+      $path =~ s|^.*/authors/id/||;
+      # dc uncoverable condition when:00
+      my $name  = CPAN::DistnameInfo->new($path)->dist // $release->name;
+      my $stat  = $release->stat;
+      my $slice = $releases->{ $release->maturity };
+      next if $slice->{$name} && $stat->{mtime} <= $slice->{$name}{time};
+      $slice->{$name}
+        = { path => $path, time => $stat->{mtime}, size => $stat->{size} };
+    } continue {
+      $release = $self->next_with_retry($rs);
+    }
+    my $total = $rs->total;
+    die "CPAN release list ended early: got $count of $total\n"
+      if $count < $total;
+    $releases
+  }
+
   method latest_paths (%options) {
+    my $max_age = $options{max_age} // 24 * 60 * 60;
+    my $path    = $self->latest_index_path;
+    $self->write_latest_index($self->fetch_latest_releases)
+      if !defined $latest_index
+      && (!-e $path || time - (stat $path)[9] >= $max_age);
     require CPAN::Releases::Latest;
-    $options{path} = $latest_index if defined $latest_index;
-    my $iterator = CPAN::Releases::Latest->new(%options)->release_iterator;
+    my $iterator = CPAN::Releases::Latest->new(path => $path)->release_iterator;
     my @paths;
     while (my $release = $iterator->next_release) {
       push @paths, $release->path;
@@ -989,7 +1133,31 @@ class Devel::Cover::Collection {
   }
 
   method get_latest {
-    say for $self->latest_paths(max_age => 0);  # no caching
+    my $day = 24 * 60 * 60;
+    if (defined $latest_index) {
+      say for $self->latest_paths;
+      return;
+    }
+    my $age = $self->full_index_age;
+    if (!defined $age || $age >= $day) {
+      say for $self->latest_paths(max_age => 0);
+      $self->mark_full_index;
+      return;
+    }
+    my $since    = (stat $self->full_index_path)[9] - $day;
+    my $recent   = $self->fetch_latest_releases(since => $since);
+    my $releases = $self->read_latest_index;
+    for my $maturity (keys %$recent) {
+      my $slice = $releases->{$maturity};
+      for my $name (keys $recent->{$maturity}->%*) {
+        my $new = $recent->{$maturity}{$name};
+        $slice->{$name} = $new
+          if !$slice->{$name} || $new->{time} > $slice->{$name}{time};
+      }
+    }
+    $self->write_latest_index($releases);
+    my %fetched = map { $_->{path} => 1 } map values %$_, values %$recent;
+    say for grep $fetched{$_}, $self->latest_paths;
   }
 }
 
@@ -1444,10 +1612,19 @@ modules that are not on CPAN counts everything.
 
 =head3 latest_index
 
-Path of a file in the L<CPAN::Releases::Latest> cache format to read as
-the release index instead of the cache that module keeps and refreshes.
-Default: the C<CPANCOVER_LATEST_INDEX> environment variable, so a test can
-give every F<cpancover> run a fixed index without using the network.
+Path of the release index file, in the L<CPAN::Releases::Latest> cache format.
+When it is set, C<latest_paths> and C<get_latest> only read the file and never
+fetch, so a test can run the F<cpancover> recipes without using the network.
+When it is unset, C<latest_index_path> gives the cache file of
+L<CPAN::Releases::Latest>. C<get_latest> fetches the full release list into it
+once a day and the recent releases in between, and C<latest_paths> fetches the
+full list when the mtime of the file is more than a day old. The default is the
+C<CPANCOVER_LATEST_INDEX> environment variable.
+
+=head3 retry_delay
+
+After a failed request to MetaCPAN, C<next_with_retry> waits this many seconds
+times the number of the attempt that failed. The default is 1.
 
 =head2 Internally Managed Attributes
 
@@ -1896,25 +2073,152 @@ Compresses old coverage results. For each distribution it keeps the given number
 of most recently built versions and every release that C<latest_paths> lists. If
 it cannot read the index, the method warns and compresses nothing.
 
+=head3 latest_index_path
+
+  my $path = $collection->latest_index_path;
+
+Returns the path of the CPAN release index. This is C<latest_index> when set,
+and otherwise F<latest-releases.txt> in the L<File::HomeDir> data directory of
+L<CPAN::Releases::Latest>, which is the cache file that module reads and
+writes.
+
+=head3 full_index_path
+
+  my $marker = $collection->full_index_path;
+
+Returns the path of the marker file whose mtime records the last time
+C<get_latest> printed the full release list. This is C<latest_index_path>
+followed by F<.full>. Other callers of C<latest_paths> may fetch the full list
+too, but they print nothing, so they leave the marker alone.
+
+=head3 mark_full_index
+
+  $collection->mark_full_index;
+
+Creates the marker at C<full_index_path> if it is missing and sets its mtime
+to the current time. Only C<get_latest> calls it, after it prints the full
+list. It dies if it cannot open, close or touch the marker.
+
+=head3 full_index_age
+
+  my $age = $collection->full_index_age;
+
+Returns the age in seconds of the marker at C<full_index_path>, which is the
+time since C<get_latest> last printed the full list, or undef when the marker
+or the index file is missing.
+
+=head3 write_latest_index ($releases)
+
+  $collection->write_latest_index($collection->fetch_latest_releases);
+
+Writes the releases from C<fetch_latest_releases> to C<latest_index_path> in
+the format of the L<CPAN::Releases::Latest> cache file, so that module can read
+the index. For each distribution, sorted by name without regard to case, it
+writes the stable release when there is one, and then the developer release
+when there is no stable release or the developer release is newer. It writes a
+temporary file beside the index and renames it onto the index, so that a reader
+never sees a part-written index. It dies if it cannot write or rename the file.
+
+=head3 read_latest_index
+
+  my $releases = $collection->read_latest_index;
+
+Reads the index at C<latest_index_path> and returns the releases in the form
+that C<fetch_latest_releases> returns. When a distribution has two lines, the
+first is its stable release and the second its developer release, as
+C<write_latest_index> writes them. When it has one line, L<CPAN::DistnameInfo>
+gives the maturity from the path. The method dies if it cannot open the file or
+if the first line is not C<#FORMAT: 1>.
+
+=head3 next_with_retry ($rs)
+
+  my $release = $collection->next_with_retry($rs);
+
+Returns the next release from the L<MetaCPAN::Client::ResultSet> C<$rs>, or
+undef at the end of the list. The method sends a failed request again, up to
+ten attempts in all. Before each new attempt it warns with the error and sleeps
+for the attempt number times C<retry_delay> seconds. After the tenth failure it
+dies with the last error. A failed scroll request does not move the scroll, so
+sending it again loses no releases.
+
+=head3 release_matches ($release, $since)
+
+  my $ok = $collection->release_matches($release, $since);
+
+Returns true when the status and maturity of the L<MetaCPAN::Client::Release>
+C<$release> are C<latest> and C<released>, or C<cpan> and C<developer>. These
+are the two pairs that C<fetch_latest_releases> asks for.
+
+With the optional C<$since>, a time such as C<2026-10-20T00:00:00>, it also
+returns false for a release whose C<date> is before that time.
+
+=head3 fetch_latest_releases (%options)
+
+  my $releases = $collection->fetch_latest_releases(since => $time);
+
+Fetches from MetaCPAN the latest stable release and every developer release
+of each distribution on CPAN, reading each release through
+C<next_with_retry>. Returns
+C<< { released => { $dist => $info }, developer => { $dist => $info } } >>,
+which holds for each distribution and maturity the release with the newest
+upload time. Each C<$info> is a hash of C<path> (the path below
+F<authors/id/>), C<time> (the upload time) and C<size>. The distribution name
+comes from L<CPAN::DistnameInfo>, or from the release name when the path does
+not give one. The method skips a release without a download URL, and selects
+releases as L<CPAN::Releases::Latest> does. It dies when it reads fewer
+releases than the total MetaCPAN reported, so that no caller uses a list cut
+short.
+
+MetaCPAN sometimes ignores the query and answers with every release, whatever
+its status and maturity. So when the first release fails C<release_matches> the
+method sends the search again, up to ten attempts in all, warning and sleeping
+as C<next_with_retry> does. After the tenth such answer it dies. It also dies
+when a later release fails C<release_matches>.
+
+When the C<since> option gives an epoch time, the method asks only for releases
+uploaded at or after that time, and passes the time to C<release_matches>,
+because an answer that ignores the query ignores the date as well. MetaCPAN
+returns a list of under 1,000 releases in the first response, so the method
+sends no scroll request then.
+
 =head3 latest_paths (%options)
 
-  my @paths = $collection->latest_paths;
   my @paths = $collection->latest_paths(max_age => 0);
 
 Returns the CPAN path of the latest release of every distribution on
 CPAN, and of its latest developer release as well when that is newer,
-from the L<CPAN::Releases::Latest> index. The options go to that
-module's constructor, so C<max_age> decides whether its cached index is
-refreshed first. With C<latest_index> set the file it names is read
-instead and nothing is fetched. A distribution deleted from CPAN has no
-entry.
+from the index file at C<latest_index_path>, which L<CPAN::Releases::Latest>
+parses. A distribution deleted from CPAN has no entry. When C<latest_index> is
+unset and the index file is missing or its mtime is at least C<max_age> seconds
+old, the method first fetches the full list with C<fetch_latest_releases> and
+writes it with C<write_latest_index>. It leaves the marker alone. It dies if
+the fetch fails. C<max_age> defaults to one day. It only reads a file that
+C<latest_index> names.
 
 =head3 get_latest
 
   $collection->get_latest;
 
-Refreshes the index and prints the paths from C<latest_paths>, one per
-line.
+Prints release paths, one per line. When C<latest_index> names a file, it
+prints every path from C<latest_paths> and fetches nothing.
+
+Otherwise, when C<full_index_age> is undef or at least a day, it prints every
+path from C<latest_paths> with C<max_age> 0, which fetches the full release
+list and writes the cache file. Then it touches the marker with
+C<mark_full_index>. It does so even when another caller of C<latest_paths>
+fetched the full list less than a day ago, since that fetch printed nothing.
+
+Otherwise it fetches the releases uploaded since a day before it last printed
+the full list, so that it still finds a release that MetaCPAN indexed late. It
+merges them into the releases from C<read_latest_index>, keeping for each
+distribution and maturity the release with the newer upload time, and writes the
+result with C<write_latest_index>. It leaves the marker alone and prints only
+those paths from C<latest_paths> that came from the recent fetch. So it does not
+print a recent developer release older than the stable release, which
+C<write_latest_index> leaves out. As it writes the cache file first,
+C<latest_paths> fetches nothing.
+
+It dies, leaving the cache file as it was, when a fetch fails.
 
 =head2 System Commands
 

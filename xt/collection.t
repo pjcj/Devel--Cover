@@ -15,6 +15,7 @@ use Test2::V0 qw(
 );
 use File::Temp    qw( tempdir );
 use JSON::MaybeXS ();
+use POSIX         qw( strftime );
 
 use Devel::Cover::Collection ();
 
@@ -42,6 +43,55 @@ our %Latest_args;
 }
 local $INC{"CPAN/Releases/Latest.pm"} = __FILE__;
 
+# Stand-in for MetaCPAN::Client, whose real scroll needs the network
+our @Metacpan_releases;
+our @Metacpan_answers;
+our %Metacpan_args;
+our $Metacpan_total;
+{
+
+  package MetaCPAN::Client;
+  sub new ($class) { bless {}, $class }
+
+  sub release ($self, $query, $params) {
+    %Metacpan_args = (query => $query, params => $params);
+    my $releases = shift @Metacpan_answers // [@Metacpan_releases];
+    bless { releases => [@$releases] }, "MetaCPAN::Client::ResultSet"
+  }
+
+  package MetaCPAN::Client::ResultSet;
+  sub total ($self) { $Metacpan_total }
+
+  sub next ($self) {
+    my $release = shift $self->{releases}->@* // return undef;
+    die "failed to fetch next scrolled batch\n" if $release eq "die";
+    bless {%$release}, "MetaCPAN::Client::Release"
+  }
+
+  package MetaCPAN::Client::Release;
+  sub name         ($self) { $self->{name} }
+  sub date         ($self) { $self->{date} }
+  sub status       ($self) { $self->{status} }
+  sub maturity     ($self) { $self->{maturity} }
+  sub download_url ($self) { $self->{download_url} }
+  sub stat         ($self) { $self->{stat} }
+}
+local $INC{"MetaCPAN/Client.pm"} = __FILE__;
+
+# Stand-in for File::HomeDir, whose real data directory is under $HOME
+our @Homedir_args;
+our $Homedir_dir;
+{
+
+  package File::HomeDir;
+
+  sub my_dist_data ($class, @args) {
+    @Homedir_args   = @args;
+    $Homedir_dir  //= File::Temp::tempdir(CLEANUP => 1)
+  }
+}
+local $INC{"File/HomeDir.pm"} = __FILE__;
+
 # _sys() uses Time::HiRes::alarm() which is not available on Windows
 my $Is_win32 = $^O eq "MSWin32";
 
@@ -59,6 +109,7 @@ sub constructor_defaults () {
   is $c->rebuild_batch, 100,          "rebuild_batch defaults to 100";
   is $c->mark_rebuilt,  0,            "mark_rebuilt defaults to 0";
   is $c->latest_index,  undef,        "latest_index defaults to undef";
+  is $c->retry_delay,   1,            "retry_delay defaults to 1";
   is $c->report,        "html",       "report defaults to 'html'";
   is $c->timeout,       60 * 60,      "timeout defaults to 3600 (60 minutes)";
   is $c->verbose,       0,            "verbose defaults to 0";
@@ -504,6 +555,26 @@ sub write_json () {
     "JSON contains a three-part version parsed from the distdir";
 }
 
+sub set_age ($file, $age) {
+  my $time = time - $age;
+  utime $time, $time, $file or die "Can't utime $file: $!";
+  $time
+}
+
+# Make a cache directory, with cache file and marker $age seconds old if defined
+sub cache_dir ($age) {
+  my $dir = tempdir(CLEANUP => 1);
+  return $dir unless defined $age;
+  my $file = "$dir/latest-releases.txt";
+  for my $path ($file, "$file.full") {
+    open my $fh, ">", $path or die "Can't write $path: $!";
+    print $fh "#FORMAT: 1\n" if $path eq $file;
+    close $fh or die "Can't close $path: $!";
+    set_age($path, $age);
+  }
+  $dir
+}
+
 sub compress_output ($c, $versions) {
   my $outfile = $c->results_dir . "/compress_output.txt";
   {
@@ -553,6 +624,7 @@ sub compress_old_versions () {
   close $bfh                or die "Can't close: $!";
   mkdir "$dir/Net-RDAP-0.3" or die "Can't mkdir: $!";
 
+  local $Homedir_dir = cache_dir(0);
   my $c      = Devel::Cover::Collection->new(results_dir => $dir, dryrun => 1);
   my $output = compress_output($c, 3);
 
@@ -602,6 +674,7 @@ sub compress_old_versions_keeps_latest () {
     A/AU/AUTHOR/Foo-2.0.tar.gz
     A/AU/AUTHOR/Foo-2.03-TRIAL.tar.gz
   );
+  local $Homedir_dir = cache_dir(0);
   my $c      = Devel::Cover::Collection->new(results_dir => $dir, dryrun => 1);
   my $output = compress_output($c, 3);
 
@@ -949,19 +1022,46 @@ sub make_covered ($dir, $d) {
   close $fh or die "Can't close cover.json: $!";
 }
 
+sub cpan_release ($path, $mtime, %extra) {
+  +{
+    name         => "Unnamed",
+    date         => "2026-10-21T00:00:00",
+    status       => "latest",
+    maturity     => "released",
+    download_url => "https://cpan.metacpan.org/authors/id/$path",
+    stat         => { mtime => $mtime, size => 10 * $mtime },
+    %extra,
+  }
+}
+
+sub slurp ($file) {
+  open my $fh, "<", $file or die "Can't read $file: $!";
+  local $/;
+  <$fh>
+}
+
+sub fetches ($c, %options) {
+  local %Metacpan_args;
+  $c->latest_paths(%options);
+  %Metacpan_args ? 1 : 0
+}
+
 sub latest_paths_method () {
   local @Latest_paths = qw(
     A/AU/AUTHOR/Alpha-1.0.tar.gz
     B/BR/BRAVO/Bravo-2.0-TRIAL.tar.gz
   );
+  my $fetched = "C/CH/CHARLIE/Charlie-1.0.tar.gz";
+  local @Metacpan_releases = cpan_release($fetched, 5);
+  local $Metacpan_total    = 1;
   local %Latest_args;
+  local $Homedir_dir = cache_dir(0);
   my $c = Devel::Cover::Collection->new;
+
   is [$c->latest_paths], \@Latest_paths,
     "latest_paths returns every release path in the index";
-  is \%Latest_args, {}, "latest_paths reads the cached index by default";
-  $c->latest_paths(max_age => 0);
-  is \%Latest_args, { max_age => 0 },
-    "latest_paths passes its options to the index";
+  is \%Latest_args, { path => "$Homedir_dir/latest-releases.txt" },
+    "latest_paths reads the CPAN::Releases::Latest cache file by default";
   Devel::Cover::Collection->new(latest_index => "index.txt")->latest_paths;
   is \%Latest_args, { path => "index.txt" },
     "latest_index is passed as the index file";
@@ -971,6 +1071,366 @@ sub latest_paths_method () {
   }
   is \%Latest_args, { path => "env.txt" },
     "CPANCOVER_LATEST_INDEX sets the default index file";
+
+  {
+    local $Homedir_dir = cache_dir(undef);
+    is $c->full_index_age, undef, "a missing cache file has no full fetch age";
+    is fetches($c),        1,     "a missing cache file is fetched";
+    is slurp("$Homedir_dir/latest-releases.txt"),
+      "#FORMAT: 1\nCharlie $fetched 5 50\n",
+      "the fetched releases are written to the cache file";
+    ok !-e "$Homedir_dir/latest-releases.txt.full",
+      "a full fetch leaves a missing marker missing";
+  }
+  {
+    local $Homedir_dir = cache_dir(0);
+    is fetches($c), 0, "a fresh cache file is read without a fetch";
+  }
+  {
+    local $Homedir_dir = cache_dir(0);
+    set_age($c->latest_index_path, 2 * 24 * 60 * 60);
+    my $mtime = set_age($c->full_index_path, 2 * 24 * 60 * 60);
+    is fetches($c), 1, "a cache file two days old is fetched again";
+    is +(stat $c->full_index_path)[9], $mtime,
+      "a full fetch leaves the marker mtime alone";
+  }
+  {
+    local $Homedir_dir = cache_dir(0);
+    unlink $c->full_index_path or die "Can't unlink the marker: $!";
+    is $c->full_index_age, undef, "a missing marker has no full fetch age";
+    is fetches($c), 0,
+      "a fresh cache file without a marker is read without a fetch";
+  }
+  {
+    local $Homedir_dir = cache_dir(0);
+    is fetches($c, max_age => 0), 1, "max_age 0 fetches a fresh cache file";
+  }
+  my $set = Devel::Cover::Collection->new(latest_index => "index.txt");
+  is fetches($set, max_age => 0), 0, "a latest_index file is never fetched";
+
+  is $c->latest_index_path, "$Homedir_dir/latest-releases.txt",
+    "latest_index_path defaults to the CPAN::Releases::Latest cache file";
+  is \@Homedir_args, ["CPAN-Releases-Latest", { create => 1 }],
+    "latest_index_path asks File::HomeDir for the module data directory";
+  is $set->latest_index_path, "index.txt",
+    "latest_index_path returns latest_index when set";
+  is $c->full_index_path, "$Homedir_dir/latest-releases.txt.full",
+    "full_index_path names the marker beside the cache file";
+
+  my $missing = tempdir(CLEANUP => 1) . "/missing/latest-releases.txt";
+  like dies {
+    Devel::Cover::Collection->new(latest_index => $missing)->mark_full_index
+  }, qr|^Can't open \Q$missing\E\.full: |,
+    "mark_full_index dies when it cannot open the marker";
+}
+
+sub fetch_latest_releases_method () {
+  my $trial    = "A/AU/AUTHOR/Alpha-2.1-TRIAL.tar.gz";
+  my $scroll   = "failed to fetch next scrolled batch\n";
+  my @releases = (
+    cpan_release("A/AU/AUTHOR/Alpha-1.0.tar.gz", 100),
+    cpan_release("A/AU/AUTHOR/Alpha-2.0.tar.gz", 300),
+    cpan_release("A/AU/AUTHOR/Alpha-1.5.tar.gz", 200),
+    cpan_release($trial, 400, status => "cpan", maturity => "developer"),
+    cpan_release("B/BR/BRAVO/Bravo-1.0.tar.gz", 150, download_url => undef),
+    cpan_release("C/CH/CHARLIE/charlie.pm.gz",  250, name         => "Charlie"),
+  );
+  my $expected = {
+    released => {
+      Alpha =>
+        { path => "A/AU/AUTHOR/Alpha-2.0.tar.gz", time => 300, size => 3000 },
+      Charlie =>
+        { path => "C/CH/CHARLIE/charlie.pm.gz", time => 250, size => 2500 },
+    },
+    developer => { Alpha => { path => $trial, time => 400, size => 4000 } },
+  };
+  local @Metacpan_releases = @releases;
+  local $Metacpan_total    = @releases;
+  local %Metacpan_args;
+  my $c = Devel::Cover::Collection->new(retry_delay => 0);
+
+  is $c->fetch_latest_releases, $expected,
+    "fetch_latest_releases keeps the newest release of each maturity";
+  is \%Metacpan_args, {
+      query => {
+        either => [
+          { all => [{ status => "latest" }, { maturity => "released" }] },
+          { all => [{ status => "cpan" },   { maturity => "developer" }] },
+        ],
+      },
+      params => {
+        _source => [qw( name version date status maturity stat download_url )],
+      },
+    },
+    "fetch_latest_releases asks for latest and developer releases";
+
+  local @Metacpan_releases = ($releases[0], "die", @releases[1 .. $#releases]);
+  my $w = warnings {
+    is $c->fetch_latest_releases, $expected, "a failed request is sent again"
+  };
+  is $w, ["Retrying the CPAN release list after: $scroll"],
+    "a failed request gives one warning";
+
+  local @Metacpan_releases = (("die") x 10, @releases);
+  $w = warnings {
+    is dies { $c->fetch_latest_releases }, $scroll,
+      "ten failed requests in a row die with the scroll error"
+  };
+  is @$w, 9, "every failure before the last gives a warning";
+
+  local @Metacpan_releases = @releases;
+  local $Metacpan_total    = @releases + 1;
+  like dies { $c->fetch_latest_releases },
+    qr/^CPAN release list ended early: got 6 of 7$/,
+    "a list shorter than the total dies";
+
+  my $old    = cpan_release("O/OL/OLD/Old-1.0.tar.gz", 50, status => "backpan");
+  my $ignore = "CPAN release list ignores the query";
+  my $bad    = "$ignore: backpan released Unnamed\n";
+  local $Metacpan_total   = @releases;
+  local @Metacpan_answers = ([$old, @releases]);
+
+  $w = warnings {
+    is $c->fetch_latest_releases, $expected,
+      "an answer that ignores the query is fetched again"
+  };
+  is $w, ["Retrying the CPAN release list after: $bad"],
+    "an answer that ignores the query gives one warning";
+
+  local @Metacpan_answers = ([$old]) x 10;
+  $w = warnings {
+    is dies { $c->fetch_latest_releases }, $bad,
+      "ten answers that ignore the query die"
+  };
+  is @$w, 9, "every ignored query before the last gives a warning";
+
+  my $late = cpan_release("D/DE/DELTA/Delta-1.0.tar.gz", 60, status => "cpan");
+  local @Metacpan_answers = ([@releases, $late], \@releases);
+  $w = warnings {
+    is dies { $c->fetch_latest_releases }, "$ignore: cpan released Unnamed\n",
+      "a later release that ignores the query dies"
+  };
+  is $w, [], "a later release that ignores the query is not retried";
+  is \@Metacpan_answers, [\@releases],
+    "a later release that ignores the query sends one search";
+
+  local @Metacpan_answers = ([]);
+  local $Metacpan_total   = 0;
+  is $c->fetch_latest_releases, { released => {}, developer => {} },
+    "an empty release list gives no releases";
+
+  my $since  = 1_792_454_400;
+  my $recent = cpan_release("E/EC/ECHO/Echo-1.0.tar.gz", 500);
+  my $stale  = cpan_release(
+    "G/GO/GOLF/Golf-1.0.tar.gz", 600, date => "2026-10-19T23:59:59",
+  );
+  my $echo = { path => "E/EC/ECHO/Echo-1.0.tar.gz", time => 500, size => 5000 };
+  local @Metacpan_answers = ([$recent]);
+  local $Metacpan_total   = 1;
+
+  is $c->fetch_latest_releases(since => $since),
+    { released => { Echo => $echo }, developer => {} },
+    "fetch_latest_releases with since returns the newer releases";
+  is $Metacpan_args{params}, {
+      _source   => [qw( name version date status maturity stat download_url )],
+      es_filter => { range => { date => { gte => "2026-10-20T00:00:00" } } },
+    },
+    "since asks for releases uploaded from that time";
+
+  local @Metacpan_answers = ([$recent, $stale]);
+  local $Metacpan_total   = 2;
+  is dies { $c->fetch_latest_releases(since => $since) },
+    "$ignore: latest released Unnamed\n", "a release from before since dies";
+}
+
+sub metacpan_release ($status, $maturity, $date = "2026-10-21T00:00:00") {
+  bless { status => $status, maturity => $maturity, date => $date },
+    "MetaCPAN::Client::Release"
+}
+
+sub release_matches_method () {
+  my $c = Devel::Cover::Collection->new;
+  ok $c->release_matches(metacpan_release(qw( latest released ))),
+    "release_matches accepts a latest stable release";
+  ok $c->release_matches(metacpan_release(qw( cpan developer ))),
+    "release_matches accepts a developer release on CPAN";
+  ok !$c->release_matches(metacpan_release(qw( latest developer ))),
+    "release_matches rejects a latest developer release";
+  ok !$c->release_matches(metacpan_release(qw( cpan released ))),
+    "release_matches rejects a stable release that is not the latest";
+  ok !$c->release_matches(metacpan_release(qw( backpan released ))),
+    "release_matches rejects a release on BackPAN";
+  my $since = "2026-10-21T00:00:00";
+  my $old   = metacpan_release(qw( latest released 2026-10-20T23:59:59 ));
+  ok $c->release_matches(metacpan_release(qw( latest released )), $since),
+    "release_matches accepts a release uploaded at the since time";
+  ok !$c->release_matches($old, $since),
+    "release_matches rejects a release uploaded before the since time";
+}
+
+sub index_entry ($path, $time) { +{ path => $path, time => $time, size => 7 } }
+
+sub write_latest_index_method () {
+  my $dir      = tempdir(CLEANUP => 1);
+  my $index    = "$dir/latest-releases.txt";
+  my $releases = {
+    released => {
+      Stable => index_entry("S/ST/STABLE/Stable-1.0.tar.gz", 100),
+      Newer  => index_entry("N/NE/NEWER/Newer-1.0.tar.gz",   100),
+      Older  => index_entry("O/OL/OLDER/Older-2.0.tar.gz",   300),
+      apple  => index_entry("A/AP/APPLE/apple-1.0.tar.gz",   100),
+      Banana => index_entry("B/BA/BANANA/Banana-1.0.tar.gz", 100),
+    },
+    developer => {
+      Dev   => index_entry("D/DE/DEV/Dev-0.1-TRIAL.tar.gz",     200),
+      Newer => index_entry("N/NE/NEWER/Newer-1.1-TRIAL.tar.gz", 200),
+      Older => index_entry("O/OL/OLDER/Older-1.9-TRIAL.tar.gz", 200),
+    },
+  };
+  my $c = Devel::Cover::Collection->new(latest_index => $index);
+  $c->write_latest_index($releases);
+
+  open my $fh, "<", $index or die "Can't read $index: $!";
+  my $text = do { local $/; <$fh> };
+  close $fh or die;
+  is $text,
+    join("",
+      "#FORMAT: 1\n",
+      "apple A/AP/APPLE/apple-1.0.tar.gz 100 7\n",
+      "Banana B/BA/BANANA/Banana-1.0.tar.gz 100 7\n",
+      "Dev D/DE/DEV/Dev-0.1-TRIAL.tar.gz 200 7\n",
+      "Newer N/NE/NEWER/Newer-1.0.tar.gz 100 7\n",
+      "Newer N/NE/NEWER/Newer-1.1-TRIAL.tar.gz 200 7\n",
+      "Older O/OL/OLDER/Older-2.0.tar.gz 300 7\n",
+      "Stable S/ST/STABLE/Stable-1.0.tar.gz 100 7\n",
+    ),
+    "write_latest_index writes the CPAN::Releases::Latest format";
+
+  opendir my $dh, $dir or die "Can't opendir $dir: $!";
+  my @leftovers = grep /\.tmp\./, readdir $dh;
+  closedir $dh or die;
+  is \@leftovers, [], "write_latest_index leaves no temporary file";
+
+  my $missing = "$dir/missing/latest-releases.txt";
+  like dies {
+    Devel::Cover::Collection->new(latest_index => $missing)
+      ->write_latest_index($releases)
+  }, qr|^Can't open \Q$missing\E\.tmp\.$$: |,
+    "write_latest_index dies when it cannot open the file";
+
+  my $blocker = "$dir/blocker";
+  mkdir $blocker          or die "Can't mkdir $blocker: $!";
+  mkdir "$blocker/subdir" or die "Can't mkdir $blocker/subdir: $!";
+  like dies {
+    Devel::Cover::Collection->new(latest_index => $blocker)
+      ->write_latest_index($releases)
+  }, qr|^Can't rename \Q$blocker\E\.tmp\.$$ to \Q$blocker\E: |,
+    "write_latest_index dies when it cannot replace the index";
+}
+
+sub read_latest_index_method () {
+  my $dir      = tempdir(CLEANUP => 1);
+  my $index    = "$dir/latest-releases.txt";
+  my $releases = {
+    released => {
+      Stable => index_entry("S/ST/STABLE/Stable-1.0.tar.gz", 100),
+      Both   => index_entry("B/BO/BOTH/Both-1.0.tar.gz",     100),
+    },
+    developer => {
+      Dev   => index_entry("D/DE/DEV/Dev-0.1-TRIAL.tar.gz",   200),
+      Both  => index_entry("B/BO/BOTH/Both-1.1-TRIAL.tar.gz", 200),
+      Hotel => index_entry("H/HO/HOTEL/Hotel-1.00_01.tar.gz", 300),
+    },
+  };
+  my $c = Devel::Cover::Collection->new(latest_index => $index);
+  $c->write_latest_index($releases);
+  is $c->read_latest_index, $releases,
+    "read_latest_index reads what write_latest_index writes";
+
+  my $missing = "$dir/missing.txt";
+  like dies {
+    Devel::Cover::Collection->new(latest_index => $missing)->read_latest_index
+  }, qr|^Can't open \Q$missing\E: |,
+    "read_latest_index dies when it cannot open the file";
+
+  for my $text ("", "#FORMAT: 2\n") {
+    open my $fh, ">", $index or die "Can't write $index: $!";
+    print $fh $text;
+    close $fh or die "Can't close $index: $!";
+    is dies { $c->read_latest_index }, "Unknown format in $index\n",
+      "read_latest_index dies on an unknown format";
+  }
+}
+
+sub get_latest_output ($c) {
+  my $out = "";
+  local *STDOUT;
+  open STDOUT, ">", \$out or die "Can't redirect STDOUT: $!";
+  $c->get_latest;
+  $out
+}
+
+sub get_latest_recent () {
+  local $Homedir_dir = cache_dir(0);
+  my $c = Devel::Cover::Collection->new;
+  $c->write_latest_index({
+    released => {
+      Alpha => index_entry("A/AU/AUTHOR/Alpha-1.0.tar.gz", 100),
+      Bravo => index_entry("B/BR/BRAVO/Bravo-1.0.tar.gz",  100),
+      Delta => index_entry("D/DE/DELTA/Delta-1.0.tar.gz",  300),
+      Echo  => index_entry("E/EC/ECHO/Echo-1.0.tar.gz",    100),
+    },
+    developer => {},
+  });
+  my $mtime = set_age($c->full_index_path, 2 * 60 * 60);
+  my $now   = strftime("%Y-%m-%dT%H:%M:%S", gmtime);
+  local @Metacpan_releases = (
+    cpan_release("B/BR/BRAVO/Bravo-2.0.tar.gz",     200, date => $now),
+    cpan_release("C/CH/CHARLIE/Charlie-1.0.tar.gz", 250, date => $now),
+    cpan_release("D/DE/DELTA/Delta-1.0.tar.gz",     300, date => $now),
+    cpan_release(
+      "A/AU/AUTHOR/Alpha-1.1-TRIAL.tar.gz", 90,
+      date     => $now,
+      status   => "cpan",
+      maturity => "developer",
+    ),
+    cpan_release(
+      "E/EC/ECHO/Echo-1.1-TRIAL.tar.gz", 400,
+      date     => $now,
+      status   => "cpan",
+      maturity => "developer",
+    ),
+  );
+  local $Metacpan_total = @Metacpan_releases;
+  local @Latest_paths   = qw(
+    A/AU/AUTHOR/Alpha-1.0.tar.gz
+    B/BR/BRAVO/Bravo-2.0.tar.gz
+    C/CH/CHARLIE/Charlie-1.0.tar.gz
+    D/DE/DELTA/Delta-1.0.tar.gz
+    E/EC/ECHO/Echo-1.0.tar.gz
+    E/EC/ECHO/Echo-1.1-TRIAL.tar.gz
+  );
+  local %Metacpan_args;
+
+  is get_latest_output($c), join("", map "$_\n", @Latest_paths[1 .. 3, 5]),
+    "get_latest prints only the recent current paths";
+  my $since = strftime("%Y-%m-%dT%H:%M:%S", gmtime($mtime - 24 * 60 * 60));
+  is $Metacpan_args{params}{es_filter},
+    { range => { date => { gte => $since } } },
+    "get_latest fetches releases since a day before the full fetch";
+  is slurp($c->latest_index_path),
+    join("",
+      "#FORMAT: 1\n",
+      "Alpha A/AU/AUTHOR/Alpha-1.0.tar.gz 100 7\n",
+      "Bravo B/BR/BRAVO/Bravo-2.0.tar.gz 200 2000\n",
+      "Charlie C/CH/CHARLIE/Charlie-1.0.tar.gz 250 2500\n",
+      "Delta D/DE/DELTA/Delta-1.0.tar.gz 300 7\n",
+      "Echo E/EC/ECHO/Echo-1.0.tar.gz 100 7\n",
+      "Echo E/EC/ECHO/Echo-1.1-TRIAL.tar.gz 400 4000\n",
+    ),
+    "get_latest merges the recent releases into the cache file";
+  is +(stat $c->full_index_path)[9], $mtime,
+    "get_latest leaves the marker alone after a recent fetch";
 }
 
 sub get_latest_method () {
@@ -978,17 +1438,96 @@ sub get_latest_method () {
     A/AU/AUTHOR/Alpha-1.0.tar.gz
     B/BR/BRAVO/Bravo-2.0.tar.gz
   );
+  my $printed = "A/AU/AUTHOR/Alpha-1.0.tar.gz\nB/BR/BRAVO/Bravo-2.0.tar.gz\n";
   local %Latest_args;
-  my $c   = Devel::Cover::Collection->new;
-  my $out = "";
+  my $fetched = "C/CH/CHARLIE/Charlie-1.0.tar.gz";
+  local @Metacpan_releases = cpan_release($fetched, 5);
+  local $Metacpan_total    = 1;
+
   {
-    local *STDOUT;
-    open STDOUT, ">", \$out or die "Can't redirect STDOUT: $!";
-    $c->get_latest;
+    local $Homedir_dir = cache_dir(undef);
+    my $cache = "$Homedir_dir/latest-releases.txt";
+    local %Metacpan_args;
+    is get_latest_output(Devel::Cover::Collection->new), $printed,
+      "get_latest prints one release path per line";
+    ok %Metacpan_args, "get_latest fetches a missing cache file";
+    ok !exists $Metacpan_args{params}{es_filter},
+      "get_latest fetches the full list without a cache file";
+    is slurp($cache), "#FORMAT: 1\nCharlie $fetched 5 50\n",
+      "get_latest writes the fetched releases to the cache file";
+    ok -e "$cache.full", "get_latest writes the full fetch marker";
+    is \%Latest_args, { path => $cache }, "get_latest reads the file it wrote";
   }
-  is $out, "A/AU/AUTHOR/Alpha-1.0.tar.gz\nB/BR/BRAVO/Bravo-2.0.tar.gz\n",
-    "get_latest prints one release path per line";
-  is \%Latest_args, { max_age => 0 }, "get_latest refreshes the index";
+  {
+    local $Homedir_dir = cache_dir(0);
+    my $c = Devel::Cover::Collection->new;
+    set_age($c->full_index_path, 2 * 24 * 60 * 60);
+    local %Metacpan_args;
+    is get_latest_output($c), $printed,
+      "get_latest prints every path for an old marker";
+    ok %Metacpan_args && !exists $Metacpan_args{params}{es_filter},
+      "get_latest fetches the full list for an old marker";
+    ok $c->full_index_age < 60,
+      "get_latest touches an old marker beside a fresh cache file";
+  }
+  get_latest_recent();
+
+  my $index = cache_dir(0) . "/latest-releases.txt";
+  my $c     = Devel::Cover::Collection->new(latest_index => $index);
+  local %Metacpan_args;
+  is get_latest_output($c), $printed,
+    "get_latest prints the latest_index paths";
+  is \%Metacpan_args, {}, "get_latest fetches nothing for a latest_index file";
+  is slurp($index), "#FORMAT: 1\n",
+    "get_latest leaves a latest_index file alone";
+  is \%Latest_args, { path => $index },
+    "get_latest reads the latest_index file";
+}
+
+sub failed_fetch_method () {
+  my $scroll = "failed to fetch next scrolled batch\n";
+  my $day    = 24 * 60 * 60;
+  local @Metacpan_releases = ("die") x 10;
+  local $Metacpan_total    = 1;
+  my $c                = Devel::Cover::Collection->new(retry_delay => 0);
+  my $index_with_alpha = sub {
+    $c->write_latest_index({
+      released =>
+        { Alpha => index_entry("A/AU/AUTHOR/Alpha-1.0.tar.gz", 100) },
+      developer => {},
+    });
+    slurp($c->latest_index_path)
+  };
+
+  for my $marker (
+    ["two days old" => 2 * $day], ["two hours old" => 2 * 60 * 60]
+  ) {
+    my ($name, $age) = @$marker;
+    local $Homedir_dir = cache_dir(0);
+    my $text  = $index_with_alpha->();
+    my $mtime = set_age($c->full_index_path, $age);
+    my $w     = warnings {
+      is dies { $c->get_latest }, $scroll,
+        "get_latest dies with the scroll error for a marker $name"
+    };
+
+    is @$w, 9, "get_latest retries the fetch for a marker $name";
+    is slurp($c->latest_index_path), $text,
+      "get_latest leaves the cache file alone for a marker $name";
+    is +(stat $c->full_index_path)[9], $mtime,
+      "get_latest leaves a marker $name alone after a failed fetch";
+  }
+
+  local $Homedir_dir = cache_dir(0);
+  my $text = $index_with_alpha->();
+  set_age($c->latest_index_path, 2 * $day);
+  my $w = warnings {
+    is dies { $c->latest_paths }, $scroll,
+      "latest_paths dies with the scroll error for an old cache file"
+  };
+  is @$w, 9, "latest_paths retries the fetch for an old cache file";
+  is slurp($c->latest_index_path), $text,
+    "latest_paths leaves an old cache file alone after a failed fetch";
 }
 
 sub write_status_method () {
@@ -1180,7 +1719,12 @@ sub main () {
     status_tracking_rebuild_mode
     write_status_method
     latest_paths_method
+    fetch_latest_releases_method
+    release_matches_method
+    write_latest_index_method
+    read_latest_index_method
     get_latest_method
+    failed_fetch_method
     rebuild_pass_method
     rebuild_pass_nothing_to_build
     rebuild_pass_mismatched_candidate
