@@ -51,7 +51,8 @@ our $Metacpan_total;
 {
 
   package MetaCPAN::Client;
-  sub new ($class) { bless {}, $class }
+  our $VERSION = "1.0";
+  sub new ($class, %args) { bless {%args}, $class }
 
   sub release ($self, $query, $params) {
     %Metacpan_args = (query => $query, params => $params);
