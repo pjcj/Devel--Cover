@@ -639,6 +639,31 @@ sub test_dir_header_no_links () {
   unlike $dir_block, qr/<a /,       "dir-header: no anchors at all";
 }
 
+sub test_long_name_cell () {
+  my $row = qr{<tr class="dir-file[^"]*"[^>]*>\s*<td[^>]*>};
+  like $Golden{"coverage.html"}, qr{$row<a class="file-name"[^>]* href=},
+    "index: file link has the file-name class";
+  my $cell = qr{<tr class="dir-file[^"]*"[^>]*>\s*<td data-value="([^"]*)">};
+  my ($value, $title)
+    = $Golden{"coverage.html"} =~ m{$cell<a class="file-name" title="([^"]*)"};
+  is $title, $value, "index: file link shows the full name on hover";
+  like $value, qr|/|, "index: full name includes its directory";
+
+  my $css = slurp("$Outdir/assets/style.css");
+  my ($block) = $css =~ /\.file-name \{([^}]*)\}/;
+  ok defined $block, "css: file-name block present";
+  like $block, qr/min-width: 0/, "css: file-name can shrink";
+  like $block, qr/text-overflow: ellipsis/,
+    "css: file-name ends in an ellipsis";
+  like $block, qr/overflow: hidden/, "css: file-name hides its overflow";
+  my ($cell_block) = $css =~ /^tr\.dir-file td:first-child \{([^}]*)\}/m;
+  ok defined $cell_block, "css: file cell block present";
+  like $cell_block, qr/display: flex/, "css: file cell lays out with flex";
+
+  like slurp("$Outdir/assets/app.js"), qr/querySelector\("\.file-name"\)/,
+    "app.js: group toggle sets the file-name text";
+}
+
 sub test_build_dir_groups () {
   no warnings "once";
 
@@ -1225,6 +1250,7 @@ sub main () {
   test_file_row_total_marker;
   test_index_filter_total_cell;
   test_dir_header_no_links;
+  test_long_name_cell;
   test_build_dir_groups;
   test_app_js_hash_filter;
   test_mcdc_full_name;

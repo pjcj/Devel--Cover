@@ -17,7 +17,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Spec ();
-use Test::More import => [qw( diag done_testing is ok plan unlike )];
+use Test::More import => [qw( diag done_testing is like ok plan unlike )];
 use Devel::Cover::Test::Showcase qw(
   create_cover_db
   run_cover
@@ -50,6 +50,9 @@ sub main () {
   ok @pages, "pages were generated";
   is 0 + (grep /-Covered-Utils-pm\.html$/, @pages), 0,
     "no page is written for the missing file";
+  like slurp("$outdir/coverage.html"),
+    qr|<span class="file-name" title="Covered/Utils\.pm">Utils\.pm</span>|,
+    "the missing file name has the file-name class";
 
   # The leading hyphen (mangled path separator) and capital C keep this from
   # matching the Uncovered/Utils.pm twin, which exists and must keep its page.
