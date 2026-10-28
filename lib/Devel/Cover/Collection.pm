@@ -67,6 +67,7 @@ class Devel::Cover::Collection {
   field $latest_index  :param :reader = undef;
   field $retry_delay   :param :reader = 1;
   field $fetch_timeout :param :reader = 30;
+  field $retries = 0;
 
   # rw attributes
   field $dir  :param = undef;
@@ -1046,13 +1047,19 @@ class Devel::Cover::Collection {
     $releases
   }
 
+  method _note_retry ($error) {
+    $error =~ s/.*\K at .+ line \d+\.$//s;
+    $retries++;
+    warn "Retrying the CPAN release list after: $error\n" if $verbose;
+  }
+
   method next_with_retry ($rs) {
     for my $attempt (1 .. 10) {
       my $release;
       eval { $release = $rs->next; 1 } and return $release;
       die $@ if $attempt == 10;
       chomp(my $error = $@);
-      warn "Retrying the CPAN release list after: $error\n";
+      $self->_note_retry($error);
       sleep $attempt * $retry_delay;
     }
   }
@@ -1070,6 +1077,7 @@ class Devel::Cover::Collection {
 
   method fetch_latest_releases (%options) {
     require MetaCPAN::Client;
+    $retries = 0;
     my @fields = qw( name version date status maturity stat download_url );
     my $since
       = defined $options{since}
@@ -1097,7 +1105,7 @@ class Devel::Cover::Collection {
       last if !$release || $self->release_matches($release, $since);
       my $error = _ignored_query($release);
       die "$error\n" if $attempt == 10;
-      warn "Retrying the CPAN release list after: $error\n";
+      $self->_note_retry($error);
       sleep $attempt * $retry_delay;
     }
     my $releases = { released => {}, developer => {} };
@@ -1121,6 +1129,10 @@ class Devel::Cover::Collection {
     my $total = $rs->total;
     die "CPAN release list ended early: got $count of $total\n"
       if $count < $total;
+    if ($retries) {
+      my $word = $retries == 1 ? "retry" : "retries";
+      warn "Fetched the CPAN release list after $retries $word\n";
+    }
     $releases
   }
 
@@ -1571,7 +1583,10 @@ Default: none.
 
 =head3 verbose
 
-Boolean. If true, print additional progress information. Default: 0.
+Boolean. If true, print additional progress information, and warn before each
+new attempt at a failed MetaCPAN request. A fetch of the CPAN release list that
+needed new attempts ends with one warning that gives their count, whatever this
+is set to. Default: 0.
 
 =head3 workers
 
@@ -2151,10 +2166,12 @@ if the first line is not C<#FORMAT: 1>.
 
 Returns the next release from the L<MetaCPAN::Client::ResultSet> C<$rs>, or
 undef at the end of the list. The method sends a failed request again, up to
-ten attempts in all. Before each new attempt it warns with the error and sleeps
-for the attempt number times C<retry_delay> seconds. After the tenth failure it
-dies with the last error. A failed scroll request does not move the scroll, so
-sending it again loses no releases.
+ten attempts in all. Before each new attempt it sleeps for the attempt number
+times C<retry_delay> seconds and, when C<verbose> is set, warns with the error
+without the file and line at its end. After the tenth failure it dies with the
+full last error. A failed scroll request does not move the scroll, so sending
+it again loses no releases. C<fetch_latest_releases> counts these attempts and
+gives the count in one warning at its end.
 
 =head3 release_matches ($release, $since)
 
@@ -2189,6 +2206,9 @@ its status and maturity. So when the first release fails C<release_matches> the
 method sends the search again, up to ten attempts in all, warning and sleeping
 as C<next_with_retry> does. After the tenth such answer it dies. It also dies
 when a later release fails C<release_matches>.
+
+A fetch that needed any new attempts ends with one warning that gives their
+count, whether or not C<verbose> is set.
 
 When the C<since> option gives an epoch time, the method asks only for releases
 uploaded at or after that time, and passes the time to C<release_matches>,

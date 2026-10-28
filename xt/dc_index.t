@@ -221,7 +221,7 @@ sub live_index () {
     $releases = eval { $c->fetch_latest_releases(since => time - 7 * 86_400) }
   };
   alarm 0;
-  note "Retries of the CPAN release list: " . @$retries;
+  note $_ for @$retries;
   skip_all "The CPAN release index took over 30 seconds" if $timed_out;
   skip_all "Can't fetch the CPAN release index: $@" unless $releases;
   $c->write_latest_index($releases);

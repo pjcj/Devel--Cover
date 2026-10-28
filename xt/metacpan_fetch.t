@@ -13,7 +13,7 @@
 
 use 5.42.0;
 
-use Test2::V0     qw( dies done_testing is like skip_all subtest warnings );
+use Test2::V0 qw( dies done_testing is like skip_all subtest unlike warnings );
 use JSON::MaybeXS qw( decode_json encode_json );
 
 use Devel::Cover::Collection ();
@@ -29,6 +29,8 @@ my $Retry  = "Retrying the CPAN release list after: ";
 
 my $Fetch_error  = qr/failed to fetch next scrolled batch at .+ line \d+\.$/;
 my $Create_error = qr/^failed to create a scrolled search at .+ line \d+\.$/;
+
+my $Summary = "Fetched the CPAN release list after 1 retry\n";
 
 # This hit comes from a real release search
 my $Sample = decode_json <<~JSON;
@@ -102,6 +104,10 @@ sub requests () { [map "$_->{method} $_->{url}", @Requests] }
 
 sub collection () { Devel::Cover::Collection->new(retry_delay => 0) }
 
+sub verbose_collection () {
+  Devel::Cover::Collection->new(retry_delay => 0, verbose => 1)
+}
+
 sub full_list () {
   local %Script = (
     $Search => [search_page("s1", 5, hit(1), hit(2))],
@@ -138,22 +144,42 @@ sub fetch_timeout () {
   is timeout_used($short), 5, "a fetch waits for the fetch_timeout given";
 }
 
+sub failed_scroll_script () {
+  my $scroll = [broken, scroll_page(hit(3), hit(4)), scroll_page(hit(5))];
+  ($Search => [search_page("s1", 5, hit(1), hit(2))], $Scroll => $scroll)
+}
+
 sub failed_scroll () {
-  local %Script = (
-    $Search => [search_page("s1", 5, hit(1), hit(2))],
-    $Scroll => [broken, scroll_page(hit(3), hit(4)), scroll_page(hit(5))],
-  );
+  local %Script = failed_scroll_script;
   local @Requests;
   my $w = warnings {
     is collection->fetch_latest_releases, releases(1 .. 5),
       "a failed scroll request still returns every release"
   };
-  is @$w, 1, "a failed scroll request gives one warning";
-  like $w->[0], qr/^\Q$Retry\E$Fetch_error/, "the warning names the failure";
+  is $w, [$Summary], "a failed scroll request gives one summary warning";
   is requests, [$Search, ($Scroll) x 3, $Delete],
     "a failed scroll request is sent again";
   is $Requests[1]{body}, $Requests[2]{body},
     "the retry sends the same scroll id";
+
+  %Script = failed_scroll_script;
+  $w      = warnings { verbose_collection->fetch_latest_releases };
+  is $w, ["${Retry}failed to fetch next scrolled batch\n", $Summary],
+    "under verbose the retry warns without the source line";
+}
+
+sub two_failed_scrolls () {
+  my $scroll
+    = [broken, broken, scroll_page(hit(3), hit(4)), scroll_page(hit(5))];
+  local %Script
+    = ($Search => [search_page("s1", 5, hit(1), hit(2))], $Scroll => $scroll);
+  local @Requests;
+  my $w = warnings {
+    is collection->fetch_latest_releases, releases(1 .. 5),
+      "two failed scroll requests still return every release"
+  };
+  is $w, ["Fetched the CPAN release list after 2 retries\n"],
+    "two failed scroll requests give one summary warning with the plural";
 }
 
 sub ten_failed_scrolls () {
@@ -166,25 +192,60 @@ sub ten_failed_scrolls () {
     like dies { collection->fetch_latest_releases }, qr/^$Fetch_error/,
       "ten failed scroll requests in a row die"
   };
-  is @$w, 9, "every failure before the last gives a warning";
+  is $w, [], "ten failed scroll requests give no warning";
+
+  %Script = (
+    $Search => [search_page("s1", 5, hit(1), hit(2))],
+    $Scroll => [(broken) x 10],
+  );
+  $w = warnings {
+    eval { verbose_collection->fetch_latest_releases }
+  };
+  is @$w, 9, "under verbose every failure before the last gives a warning";
+}
+
+sub malformed_scroll () {
+  my $bad    = { status => 200, content => "not json" };
+  my $scroll = [$bad, scroll_page(hit(3), hit(4)), scroll_page(hit(5))];
+  local %Script
+    = ($Search => [search_page("s1", 5, hit(1), hit(2))], $Scroll => $scroll);
+  local @Requests;
+  my $w = warnings {
+    is verbose_collection->fetch_latest_releases, releases(1 .. 5),
+      "a malformed scroll answer still returns every release"
+  };
+
+  like $w->[0], qr/^\Q$Retry\E/, "a malformed scroll answer warns";
+  like $w->[0], qr/character offset/,
+    "the warning keeps the text of the JSON error";
+  unlike $w->[0], qr/ line \d+\.$/, "the warning drops the source line";
+}
+
+sub ignored_query_script () {
+  my $old = hit(9, status => "backpan");
+  ($Search => [
+    search_page("s1", 5, $old, hit(1)), search_page("s2", 2, hit(2), hit(3)),
+  ])
 }
 
 sub ignored_query () {
-  my $old = hit(9, status => "backpan");
   my $bad = "CPAN release list ignores the query: backpan released Dist9-1.0";
-  local %Script = ($Search => [
-    search_page("s1", 5, $old, hit(1)), search_page("s2", 2, hit(2), hit(3)),
-  ]);
+  local %Script = ignored_query_script;
   local @Requests;
   my $w = warnings {
     is collection->fetch_latest_releases, releases(2, 3),
       "an answer that ignores the query returns the second answer"
   };
-  is $w, ["$Retry$bad\n"], "an answer that ignores the query gives one warning";
+  is $w, [$Summary], "an answer that ignores the query gives one warning";
   is requests, [$Search, $Search, $Delete, $Delete],
     "an answer that ignores the query sends the search again";
   is [map $_->{body}, @Requests[2, 3]], [qw( s1 s2 )],
     "each result set deletes its own scroll";
+
+  %Script = ignored_query_script;
+  $w      = warnings { verbose_collection->fetch_latest_releases };
+  is $w, ["$Retry$bad\n", $Summary],
+    "under verbose an answer that ignores the query warns with the release";
 }
 
 sub empty_page () {
@@ -224,7 +285,9 @@ sub main () {
     full_list
     fetch_timeout
     failed_scroll
+    two_failed_scrolls
     ten_failed_scrolls
+    malformed_scroll
     ignored_query
     empty_page
     failed_search
