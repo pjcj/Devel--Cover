@@ -955,14 +955,15 @@ sub build_module_exports () {
   unlike $call, qr/ --render /,           "the build is not rendered";
 }
 
-sub render_module_copies_input () {
+sub render_module_reads_input () {
   my $home = tempdir(CLEANUP => 1);
   mkdir "$home/input" or die "Can't mkdir $home/input: $!";
   write_file("$home/input/cover.json", "{}\n");
   my $call = cpancover_call(["cpancover-render-module"], HOME => $home);
-  like $call, qr| --render \Q$home\E/work \Q$home\E/output$|,
-    "the render reads a copy of the input";
-  is slurp("$home/work/cover.json"), "{}\n", "the copy holds the input";
+  like $call, qr| --render \Q$home\E/input \Q$home\E/output$|,
+    "the render reads the input";
+  is slurp("$home/input/cover.json"), "{}\n", "the input is unchanged";
+  ok !-e "$home/work",  "no copy of the input is made";
   ok -d "$home/output", "the output dir is created";
 }
 
@@ -996,7 +997,7 @@ sub main () {
     all_gold_full_machine
     all_gold_forced
     build_module_exports
-    render_module_copies_input
+    render_module_reads_input
   );
   for my $test (@tests) {
     no strict qw( refs );
