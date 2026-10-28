@@ -1164,6 +1164,37 @@ sub current_release_method () {
     "a path without a distribution name never matches";
 }
 
+sub cover_modules_names () {
+  no warnings "redefine";
+  my $indexed = 0;
+  local *Devel::Cover::Collection::latest_paths = sub {
+    $indexed++;
+    qw( A/AU/AUTHOR/Alpha-2.0.tar.gz B/BR/BRAVO/Bravo-1.0.tar.gz )
+  };
+  my @seen;
+  local *Devel::Cover::Collection::is_failed  = sub { 0 };
+  local *Devel::Cover::Collection::is_covered = sub ($, $d) { push @seen, $d };
+  my $c = Devel::Cover::Collection->new;
+
+  $c->set_modules(qw( Alpha C/CH/CHARLIE/Charlie-1.0.tar.gz ));
+  is $c->cover_modules, 0, "no build runs for covered modules";
+  is $c->modules,
+    [qw( A/AU/AUTHOR/Alpha-2.0.tar.gz C/CH/CHARLIE/Charlie-1.0.tar.gz )],
+    "a name becomes its current release beside an unchanged full path";
+  is \@seen, [qw( Alpha-2.0 Charlie-1.0 )],
+    "the current release of a name is the one built";
+
+  $c->set_modules("Charlie");
+  is dies { $c->cover_modules }, "No current release of Charlie on CPAN\n",
+    "a name with no current release dies";
+
+  $indexed = 0;
+  $c->set_modules(
+    qw( A/AU/AUTHOR/Alpha-1.0.tar.gz B/BR/BRAVO/Bravo-1.0.tar.gz ));
+  $c->cover_modules;
+  is $indexed, 0, "a list of full paths reads no index";
+}
+
 sub fetch_latest_releases_method () {
   my $trial    = "A/AU/AUTHOR/Alpha-2.1-TRIAL.tar.gz";
   my $scroll   = "failed to fetch next scrolled batch\n";
@@ -1760,6 +1791,7 @@ sub main () {
     write_status_method
     latest_paths_method
     current_release_method
+    cover_modules_names
     fetch_latest_releases_method
     release_matches_method
     write_latest_index_method

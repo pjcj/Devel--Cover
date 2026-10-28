@@ -948,6 +948,11 @@ class Devel::Cover::Collection {
 
   method cover_modules {
     $self->process_module_file;
+    for my $m (@$modules) {
+      next if $m =~ m|/|;
+      $m = $self->current_release($m)
+        // die "No current release of $m on CPAN\n";
+    }
     # say "modules: ", Dumper $modules;
 
     local $ENV{CPANCOVER_REBUILD} = 1 if $rebuild;
@@ -1869,6 +1874,13 @@ is set. A build counts as done only when it leaves a C<cover.json>
 written since the build began, so a rebuild that produces nothing marks
 the module failed and keeps the old report on disk. Returns the number
 of builds actually attempted.
+
+A module with no C</> names a distribution, such as C<Perl-Critic-PJCJ>, and
+C<cover_modules> builds the current release of that distribution in the CPAN
+release index (see L</current_release>). It dies when CPAN holds no release of
+that name. It builds a full path, such as
+C<P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz>, as given, without reading the
+index.
 
 =head2 Report Generation
 
