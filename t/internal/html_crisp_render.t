@@ -640,9 +640,14 @@ sub test_dir_header_no_links () {
 }
 
 sub test_long_name_cell () {
-  like $Golden{"coverage.html"},
-    qr{<tr class="dir-file[^"]*"[^>]*>\s*<td[^>]*><a class="file-name" href=},
+  my $row = qr{<tr class="dir-file[^"]*"[^>]*>\s*<td[^>]*>};
+  like $Golden{"coverage.html"}, qr{$row<a class="file-name"[^>]* href=},
     "index: file link has the file-name class";
+  my $cell = qr{<tr class="dir-file[^"]*"[^>]*>\s*<td data-value="([^"]*)">};
+  my ($value, $title)
+    = $Golden{"coverage.html"} =~ m{$cell<a class="file-name" title="([^"]*)"};
+  is $title, $value, "index: file link shows the full name on hover";
+  like $value, qr|/|, "index: full name includes its directory";
 
   my $css = slurp("$Outdir/assets/style.css");
   my ($block) = $css =~ /\.file-name \{([^}]*)\}/;

@@ -156,18 +156,18 @@ sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef, $attr = "") {
 }
 
 sub file_row ($f, $dir) {
-  my $cls  = "dir-file" . ($f->{uncompiled} ? " untested" : "");
-  my $base = escape_html($f->{basename});
+  my $cls    = "dir-file" . ($f->{uncompiled} ? " untested" : "");
+  my $base   = escape_html($f->{basename});
+  my $eshort = escape_html($f->{short});
   my $name
     = $f->{exists}
-    ? qq(<a class="file-name" href="$f->{link}">$base</a>)
-    : qq(<span class="file-name">$base</span>);
+    ? qq(<a class="file-name" title="$eshort" href="$f->{link}">$base</a>)
+    : qq(<span class="file-name" title="$eshort">$base</span>);
   my $badge    = $f->{uncompiled} ? untested_badge() . "\n" : "";
   my $linkable = $f->{exists} && !$f->{uncompiled};
 
-  my $edir   = escape_html($dir);
-  my $eshort = escape_html($f->{short});
-  my $o      = <<HTML;
+  my $edir = escape_html($dir);
+  my $o    = <<HTML;
 <tr class="$cls" data-dir="$edir">
 <td data-value="$eshort">$name $badge</td>
 HTML

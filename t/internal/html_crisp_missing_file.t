@@ -51,7 +51,7 @@ sub main () {
   is 0 + (grep /-Covered-Utils-pm\.html$/, @pages), 0,
     "no page is written for the missing file";
   like slurp("$outdir/coverage.html"),
-    qr|<span class="file-name">Utils\.pm</span>|,
+    qr|<span class="file-name" title="Covered/Utils\.pm">Utils\.pm</span>|,
     "the missing file name has the file-name class";
 
   # The leading hyphen (mangled path separator) and capital C keep this from
