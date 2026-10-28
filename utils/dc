@@ -106,7 +106,8 @@ cpancover:
                                        (smoke test before run-loop-rebuild).
   cpancover-rebuild-module <module>    Rebuild one module (CPAN path, e.g.
                                        P/PJ/PJCJ/Foo-1.00.tar.gz) and
-                                       regenerate HTML.
+                                       regenerate HTML. A distribution name
+                                       builds its current release.
   cpancover-render-module              Render the report of an export (called
                                        by cpancover-docker-module).
   cpancover-run-loop-rebuild           Regenerate every already-covered
@@ -121,7 +122,8 @@ cpancover:
   cpancover-serve [port]               Serve results locally via Caddy (default
                                        port 8080).
   cpancover-test                       Run a test module through the full build
-                                       pipeline.
+                                       pipeline. A distribution name builds
+                                       its current release.
   cpancover-uncompress-dir <subdir>    Decompress a results subdirectory.
 
 cpancover (Docker):
@@ -130,7 +132,9 @@ cpancover (Docker):
                                        default 100) and regenerate HTML.
   cpancover-controller-rebuild-module <module>
                                        Rebuild one module via a controller
-                                       container and regenerate HTML.
+                                       container and regenerate HTML. A
+                                       distribution name builds its current
+                                       release.
   cpancover-controller-run             Start a controller container running the
                                        build loop.
   cpancover-controller-run-once        Start a controller container for one
@@ -141,7 +145,8 @@ cpancover (Docker):
                                        normal run loop.
   cpancover-controller-shell           Open a shell in a controller container.
   cpancover-controller-test            Run a test module via the controller
-                                       pipeline.
+                                       pipeline. A distribution name builds
+                                       its current release.
   cpancover-docker-kill                Kill running cpancover containers.
   cpancover-docker-module <mod> <name> Build coverage for a module in Docker
                                        (called by Collection.pm).
@@ -424,9 +429,9 @@ run_cpancover() {
     PATH="./utils:./bin:$PATH"
     # A fresh Makefile.PL run forces a relink, racing concurrent tests
     if [[ ! -f Makefile || Makefile.PL -nt Makefile ]]; then
-      perl Makefile.PL
+      perl Makefile.PL >&2
     fi
-    make
+    make >&2
     cpancover="perl -Mblib=$root ${root}bin/cpancover --local"
   fi
   ((verbose)) && cpancover="$cpancover --verbose"
@@ -1222,6 +1227,12 @@ recipe_cpancover-rebuild-module() {
   local module="${1:?No module specified}"
   local v=
   ((verbose)) && v=--verbose
+  if [[ $module != */* ]]; then
+    local name="$module"
+    module=$(run_cpancover --latest "$name")
+    [[ $module == */* && $module != *$'\n'* ]] ||
+      pf "Can't find the current release of $name"
+  fi
   local bare
   bare=$(cpan_distdir "${module##*/}")
   rm -f "$results_dir/__rebuilt__/$bare"
@@ -1261,8 +1272,8 @@ recipe_cpancover-controller-rebuild-module() {
     dc "${o[@]}" cpancover-rebuild-module "$module"
 }
 
-# Default test module - small, stable, predictable
-cpancover_default_test_module="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz"
+# Default test module - a distribution name resolves to its current release
+cpancover_default_test_module="Perl-Critic-PJCJ"
 
 recipe_cpancover-test() {
   : "${CPANCOVER_TEST_MODULES:=$cpancover_default_test_module}"

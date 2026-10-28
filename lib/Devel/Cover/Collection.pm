@@ -948,6 +948,11 @@ class Devel::Cover::Collection {
 
   method cover_modules {
     $self->process_module_file;
+    for my $m (@$modules) {
+      next if $m =~ m|/|;
+      $m = $self->current_release($m)
+        // die "No current release of $m on CPAN\n";
+    }
     # say "modules: ", Dumper $modules;
 
     local $ENV{CPANCOVER_REBUILD} = 1 if $rebuild;
@@ -1172,7 +1177,24 @@ class Devel::Cover::Collection {
     @paths
   }
 
-  method get_latest {
+  method current_release ($name) {
+    my %path;
+    for my $path ($self->latest_paths) {
+      my $d    = CPAN::DistnameInfo->new($path);
+      my $dist = $d->dist // next;
+      $path{ $d->maturity } //= $path if $dist eq $name;
+    }
+    $path{released} // $path{developer}
+  }
+
+  method get_latest (@names) {
+    if (@names) {
+      for my $name (@names) {
+        say $self->current_release($name)
+          // die "No current release of $name on CPAN\n";
+      }
+      return;
+    }
     my $day = 24 * 60 * 60;
     if (defined $latest_index) {
       say for $self->latest_paths;
@@ -1860,6 +1882,13 @@ written since the build began, so a rebuild that produces nothing marks
 the module failed and keeps the old report on disk. Returns the number
 of builds actually attempted.
 
+A module with no C</> names a distribution, such as C<Perl-Critic-PJCJ>, and
+C<cover_modules> builds the current release of that distribution in the CPAN
+release index (see L</current_release>). It dies when CPAN holds no release of
+that name. It builds a full path, such as
+C<P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz>, as given, without reading the
+index.
+
 =head2 Report Generation
 
 =head3 generate_html
@@ -2256,12 +2285,30 @@ writes it with C<write_latest_index>. It leaves the marker alone. It dies if
 the fetch fails. C<max_age> defaults to one day. It only reads a file that
 C<latest_index> names.
 
-=head3 get_latest
+=head3 current_release ($name)
+
+  my $path = $collection->current_release("Perl-Critic-PJCJ");
+
+Returns the CPAN path from C<latest_paths> of the release of the distribution
+C<$name> that L<CPAN::DistnameInfo> marks as C<released>. When the distribution
+has no such release, it returns the developer release, so a distribution with
+only TRIAL releases still gives a path. It returns undef when no path names the
+distribution. A name matches only the whole distribution name, so C<Alpha> does
+not match C<Alpha-Extra>.
+
+=head3 get_latest (@names)
 
   $collection->get_latest;
+  $collection->get_latest(qw( Perl-Critic-PJCJ SPVM ));
 
-Prints release paths, one per line. When C<latest_index> names a file, it
-prints every path from C<latest_paths> and fetches nothing.
+Prints release paths, one per line.
+
+With distribution names, it prints the C<current_release> of each name in the
+order given and does nothing else. It dies with the message
+C<No current release of NAME on CPAN> for a name with no current release.
+
+Without names, it prints the latest releases. When C<latest_index> names a file,
+it prints every path from C<latest_paths> and fetches nothing.
 
 Otherwise, when C<full_index_age> is undef or at least a day, it prints every
 path from C<latest_paths> with C<max_age> 0, which fetches the full release

@@ -955,6 +955,66 @@ sub build_module_exports () {
   unlike $call, qr/ --render /,           "the build is not rendered";
 }
 
+sub make_latest_stub ($bin, @latest) {
+  my $print = join "", map "echo $_; ", @latest;
+  write_file("$bin/perl", <<~SH);
+    #!/bin/sh
+    case " \$* " in
+      *" --latest "*) ${print}exit ;;
+    esac
+    echo "\$*" >>"\$STUB_CALLS"
+    case "\$*" in
+      *bin/cpancover*) sed 's/^/< /' >>"\$STUB_CALLS" ;;
+    esac
+    echo 1
+    SH
+  chmod 0755, "$bin/perl" or die "Can't chmod perl stub: $!";
+}
+
+sub rebuild_module_resolves_name () {
+  my $latest = "P/PJ/PJCJ/Perl-Critic-PJCJ-v9.9.9.tar.gz";
+  my $bin    = tempdir(CLEANUP => 1);
+  my $work   = tempdir(CLEANUP => 1);
+  make_build_stubs($bin);
+  make_latest_stub($bin, $latest);
+  my $marker = "$work/results/__rebuilt__/Perl-Critic-PJCJ-v9.9.9";
+  for my $d ("$work/results", "$work/results/__rebuilt__") {
+    mkdir $d or die "Can't mkdir $d: $!";
+  }
+  write_file($marker, "1\n");
+  local $ENV{PATH}       = "$bin:$ENV{PATH}";
+  local $ENV{STUB_CALLS} = "$work/calls";
+
+  my $rebuild = "cpancover-rebuild-module Perl-Critic-PJCJ </dev/null";
+  my ($out, $exit) = dc_in($work, "-r", "$work/results", $rebuild);
+  is $exit, 0, "rebuild of a distribution name succeeds" or diag $out;
+  ok !-e $marker, "the marker of the current release is removed";
+  my ($stdin) = slurp("$work/calls") =~ /--build [^\n]*\n((?:< [^\n]*\n)*)/;
+  is $stdin, "< $latest\n", "the build reads only the current release";
+}
+
+sub rebuild_module_needs_one_release () {
+  my @paths = map "P/PJ/PJCJ/Perl-Critic-PJCJ-v$_.tar.gz", qw( 9.9.8 9.9.9 );
+  for my $latest ([], \@paths) {
+    my $bin  = tempdir(CLEANUP => 1);
+    my $work = tempdir(CLEANUP => 1);
+    make_build_stubs($bin);
+    make_latest_stub($bin, @$latest);
+    local $ENV{PATH}       = "$bin:$ENV{PATH}";
+    local $ENV{STUB_CALLS} = "$work/calls";
+
+    my $n       = @$latest;
+    my $rebuild = "cpancover-rebuild-module Perl-Critic-PJCJ </dev/null";
+    my ($out, $exit) = dc_in($work, "-r", "$work/results", $rebuild);
+
+    isnt $exit, 0, "rebuild fails with $n releases";
+    like $out, qr/Can't find the current release of Perl-Critic-PJCJ/,
+      "the failure names the distribution";
+    my $calls = -e "$work/calls" ? slurp("$work/calls") : "";
+    unlike $calls, qr/--build/, "no build runs";
+  }
+}
+
 sub render_module_reads_input () {
   my $home = tempdir(CLEANUP => 1);
   mkdir "$home/input" or die "Can't mkdir $home/input: $!";
@@ -998,6 +1058,8 @@ sub main () {
     all_gold_forced
     build_module_exports
     render_module_reads_input
+    rebuild_module_resolves_name
+    rebuild_module_needs_one_release
   );
   for my $test (@tests) {
     no strict qw( refs );

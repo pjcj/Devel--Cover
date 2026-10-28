@@ -1137,6 +1137,64 @@ sub latest_paths_method () {
     "mark_full_index dies when it cannot open the marker";
 }
 
+sub current_release_method () {
+  local @Latest_paths = qw(
+    A/AU/AUTHOR/Alpha-2.1-TRIAL.tar.gz
+    A/AU/AUTHOR/Alpha-2.0.tar.gz
+    A/AU/AUTHOR/Alpha-Extra-3.0.tar.gz
+    B/BR/BRAVO/Bravo-0.1-TRIAL.tar.gz
+    D/DE/DELTA/README
+  );
+  local $Homedir_dir = cache_dir(0);
+  my $c = Devel::Cover::Collection->new;
+
+  is $c->current_release("Alpha"), "A/AU/AUTHOR/Alpha-2.0.tar.gz",
+    "a released path wins over a newer TRIAL path";
+  is $c->current_release("Bravo"), "B/BR/BRAVO/Bravo-0.1-TRIAL.tar.gz",
+    "a TRIAL path is returned when there is no released path";
+  is $c->current_release("Alpha-Extra"), "A/AU/AUTHOR/Alpha-Extra-3.0.tar.gz",
+    "a longer name matches its own distribution";
+  {
+    local @Latest_paths = qw( A/AU/AUTHOR/Alpha-Extra-3.0.tar.gz );
+    is $c->current_release("Alpha"), undef,
+      "a name never matches a distribution it is a prefix of";
+  }
+  is $c->current_release("Charlie"), undef, "an unknown name gives undef";
+  is $c->current_release(""), undef,
+    "a path without a distribution name never matches";
+}
+
+sub cover_modules_names () {
+  no warnings "redefine";
+  my $indexed = 0;
+  local *Devel::Cover::Collection::latest_paths = sub {
+    $indexed++;
+    qw( A/AU/AUTHOR/Alpha-2.0.tar.gz B/BR/BRAVO/Bravo-1.0.tar.gz )
+  };
+  my @seen;
+  local *Devel::Cover::Collection::is_failed  = sub { 0 };
+  local *Devel::Cover::Collection::is_covered = sub ($, $d) { push @seen, $d };
+  my $c = Devel::Cover::Collection->new;
+
+  $c->set_modules(qw( Alpha C/CH/CHARLIE/Charlie-1.0.tar.gz ));
+  is $c->cover_modules, 0, "no build runs for covered modules";
+  is $c->modules,
+    [qw( A/AU/AUTHOR/Alpha-2.0.tar.gz C/CH/CHARLIE/Charlie-1.0.tar.gz )],
+    "a name becomes its current release beside an unchanged full path";
+  is \@seen, [qw( Alpha-2.0 Charlie-1.0 )],
+    "the current release of a name is the one built";
+
+  $c->set_modules("Charlie");
+  is dies { $c->cover_modules }, "No current release of Charlie on CPAN\n",
+    "a name with no current release dies";
+
+  $indexed = 0;
+  $c->set_modules(
+    qw( A/AU/AUTHOR/Alpha-1.0.tar.gz B/BR/BRAVO/Bravo-1.0.tar.gz ));
+  $c->cover_modules;
+  is $indexed, 0, "a list of full paths reads no index";
+}
+
 sub fetch_latest_releases_method () {
   my $trial    = "A/AU/AUTHOR/Alpha-2.1-TRIAL.tar.gz";
   my $scroll   = "failed to fetch next scrolled batch\n";
@@ -1375,11 +1433,11 @@ sub read_latest_index_method () {
   }
 }
 
-sub get_latest_output ($c) {
+sub get_latest_output ($c, @names) {
   my $out = "";
   local *STDOUT;
   open STDOUT, ">", \$out or die "Can't redirect STDOUT: $!";
-  $c->get_latest;
+  $c->get_latest(@names);
   $out
 }
 
@@ -1495,6 +1553,37 @@ sub get_latest_method () {
     "get_latest leaves a latest_index file alone";
   is \%Latest_args, { path => $index },
     "get_latest reads the latest_index file";
+}
+
+sub get_latest_names () {
+  no warnings "redefine";
+  local *Devel::Cover::Collection::latest_paths
+    = sub { qw( A/AU/AUTHOR/Alpha-2.0.tar.gz B/BR/BRAVO/Bravo-1.0.tar.gz ) };
+  local $Homedir_dir = cache_dir(undef);
+  my $c = Devel::Cover::Collection->new;
+
+  is get_latest_output($c, qw( Bravo Alpha )),
+    "B/BR/BRAVO/Bravo-1.0.tar.gz\nA/AU/AUTHOR/Alpha-2.0.tar.gz\n",
+    "get_latest prints the current release of each name in order";
+  ok !-e $c->full_index_path, "get_latest writes no marker for names";
+  is dies { get_latest_output($c, "Charlie") },
+    "No current release of Charlie on CPAN\n",
+    "get_latest dies for a name with no current release";
+}
+
+sub cpancover_latest_names () {
+  my $index = tempdir(CLEANUP => 1) . "/latest-releases.txt";
+  Devel::Cover::Collection->new(latest_index => $index)->write_latest_index({
+    released => {
+      Alpha => index_entry("A/AU/AUTHOR/Alpha-2.0.tar.gz", 100),
+      Bravo => index_entry("B/BR/BRAVO/Bravo-1.0.tar.gz",  100),
+    },
+    developer => {},
+  });
+  my $out = qx($^X -Ilib bin/cpancover --latest_index $index --latest Bravo);
+  is $?, 0, "cpancover --latest succeeds for a name";
+  is $out, "B/BR/BRAVO/Bravo-1.0.tar.gz\n",
+    "cpancover --latest prints the current release of the named distribution";
 }
 
 sub failed_fetch_method () {
@@ -1732,11 +1821,15 @@ sub main () {
     status_tracking_rebuild_mode
     write_status_method
     latest_paths_method
+    current_release_method
+    cover_modules_names
     fetch_latest_releases_method
     release_matches_method
     write_latest_index_method
     read_latest_index_method
     get_latest_method
+    get_latest_names
+    cpancover_latest_names
     failed_fetch_method
     rebuild_pass_method
     rebuild_pass_nothing_to_build
