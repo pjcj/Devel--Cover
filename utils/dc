@@ -626,9 +626,8 @@ recipe_cpancover-build-module() {
 
 recipe_cpancover-render-module() {
   local home="$HOME"
-  cp -a "$home/input" "$home/work"
   mkdir -p "$home/output"
-  run_cpancover --render "$home/work" "$home/output"
+  run_cpancover --render "$home/input" "$home/output"
 }
 
 docker_name() {

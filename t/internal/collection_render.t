@@ -16,9 +16,10 @@ use FindBin ();  ## no perlimports
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use Cwd        qw( getcwd );
-use File::Path qw( make_path );
-use File::Temp qw( tempdir );
+use Cwd            qw( getcwd );
+use File::Basename qw( dirname );
+use File::Path     qw( make_path );
+use File::Temp     qw( tempdir );
 
 use Test::More import => [qw( done_testing is isnt like ok plan )];
 
@@ -78,13 +79,14 @@ sub spew ($path, $content) {
   close $fh or die "Can't close $path: $!";
 }
 
-sub make_export ($dir, %opt) {
+sub make_export ($dir, $build, %opt) {
   make_path "$dir/$_" for qw( cover_db/structure cover_db/runs/1 blib/lib );
   spew "$dir/cover_db/structure/abc",    "{}";
   spew "$dir/cover_db/runs/1/cover.15",  "{}";
   spew "$dir/cover_db/structure/x.lock", "";
   spew "$dir/blib/lib/Foo.pm",           "1;";
   spew "$dir/.select_dir",               "blib\n";
+  spew "$dir/.build_dir",                "$build\n";
   return unless $opt{storable};
   make_path "$dir/cover_db/runs/2";
   spew "$dir/cover_db/runs/2/cover.15", "pst0";
@@ -94,15 +96,16 @@ my $N = 0;
 
 sub dirs () {
   my $n = ++$N;
-  ("$Tmp/in$n", "$Tmp/out$n")
+  ("$Tmp/in$n", "$Tmp/out$n", "$Tmp/cpan/build/My-Module-1.02-0-$n")
 }
 
-sub render ($in, $out) {
-  my $c   = Devel::Cover::Collection->new(bin_dir => $Bin);
+sub render ($in, $out, $build, $roots = ["$Tmp/cpan"]) {
+  my $c   = Devel::Cover::Collection->new(bin_dir => $Bin, cpan_dir => $roots);
   my $cwd = getcwd;
+  chdir $Tmp or die "Can't chdir $Tmp: $!";
 
-  open my $saved_stdout, ">&", \*STDOUT      or die "Can't save STDOUT: $!";
-  open STDOUT,           ">",  "$out.stdout" or die "Can't redirect STDOUT: $!";
+  open my $saved_stdout, ">&", \*STDOUT     or die "Can't save STDOUT: $!";
+  open STDOUT,           ">",  "$in.stdout" or die "Can't redirect STDOUT: $!";
   my $err = do {
     local $@;
     eval { $c->render_export($in, $out) };
@@ -111,18 +114,18 @@ sub render ($in, $out) {
   open STDOUT, ">&", $saved_stdout or die "Can't restore STDOUT: $!";
   chdir $cwd or die "Can't chdir $cwd: $!";
 
-  my $args = "$in/cover_args";
+  my $args = "$build/cover_args";
   {
     err    => $err,
     args   => -e $args ? slurp($args) : "",
-    stdout => slurp("$out.stdout"),
+    stdout => slurp("$in.stdout"),
   }
 }
 
 sub test_render_writes_report () {
-  my ($in, $out) = dirs;
-  make_export $in;
-  my $r = render($in, $out);
+  my ($in, $out, $build) = dirs;
+  make_export $in, $build;
+  my $r = render($in, $out, $build);
   is $r->{err}, "", "render succeeds";
   ok -e "$out/index.html", "render writes the html report";
   ok -e "$out/cover.json", "render writes the json summary";
@@ -139,30 +142,103 @@ sub test_render_writes_report () {
     like $run, qr/(?:^| )cover_db(?: |$)/,            "run reads cover_db";
   }
   like $html // "", qr/(?:^| )-select_dir blib(?: |$)/, "html selects blib";
-  ok -e "$in/cover_args", "cover runs in the export dir";
+  ok -d $in,                  "render leaves the export in place";
+  ok -d "$build/cover_db",    "render copies cover_db to the build dir";
+  ok -e "$build/.select_dir", "render copies the markers to the build dir";
+  ok -e "$build/cover_args",  "cover runs in the build dir";
+  ok !-e "$in/cover_args",    "cover does not run in the export dir";
 }
 
 sub test_render_refuses_storable () {
-  my ($in, $out) = dirs;
-  make_export $in, storable => 1;
-  my $r = render($in, $out);
+  my ($in, $out, $build) = dirs;
+  make_export $in, $build, storable => 1;
+  my $r = render($in, $out, $build);
   like $r->{err}, qr/not JSON/,         "render refuses Storable";
   like $r->{err}, qr|runs/2/cover\.15|, "render names the Storable file";
-  ok !-e "$in/cover_args", "cover never runs on a Storable database";
+  ok !-e "$in/cover_args",    "cover never runs on a Storable database";
+  ok !-e "$build/cover_args", "cover never runs in the build dir";
 }
 
 sub test_render_refuses_bad_select_dir () {
-  my ($in, $out) = dirs;
-  make_export $in;
+  my ($in, $out, $build) = dirs;
+  make_export $in, $build;
   spew "$in/.select_dir", "../etc\n";
-  my $r = render($in, $out);
+  my $r = render($in, $out, $build);
   like $r->{err}, qr/select_dir/, "render refuses a bad select_dir";
-  ok !-e "$in/cover_args", "cover never runs with a bad select_dir";
+  ok !-e "$in/cover_args",    "cover never runs with a bad select_dir";
+  ok !-e "$build/cover_args", "cover never runs in the build dir";
+}
+
+sub test_render_refuses_bad_build_dir () {
+  my @cases = (
+    ["a relative path" => sub ($in, $out, $build) { ("build/My", $out) }],
+    [
+      "a .. component" => sub ($in, $out, $build) {
+        ("$build/../My-Module-1.03-0", $out)
+      },
+    ], [
+      "an existing path" => sub ($in, $out, $build) {
+        make_path $build;
+        ($build, $out)
+      },
+    ],
+    ["the output dir" => sub ($in, $out, $build) { ($build, $build) }],
+    [
+      "a dir under output" =>
+        sub ($in, $out, $build) { ($build, dirname $build) },
+    ], [
+      "a parent of output" =>
+        sub ($in, $out, $build) { ($build, "$build/r") },
+    ], [
+      "a path outside the roots" => sub ($in, $out, $build) {
+        ("$Tmp/elsewhere/build/My-Module-1.02-0", $out)
+      },
+    ], [
+      "a path two levels down" =>
+        sub ($in, $out, $build) { ("$build/My", $out) },
+    ], [
+      "the build directory" => sub ($in, $out, $build) {
+        ("$in.cpan/build", $out, ["$in.cpan"])
+      },
+    ], [
+      "the root" => sub ($in, $out, $build) {
+        ("$in.cpan", $out, ["$in.cpan"])
+      },
+    ],
+    ["/" => sub ($in, $out, $build) { ("/", $out) }],
+    [
+      "an empty component" => sub ($in, $out, $build) {
+        ("$Tmp/cpan/build//My", $out)
+      },
+    ], [
+      "a . component" => sub ($in, $out, $build) {
+        ("$in.cpan/build/.", $out, ["$in.cpan"])
+      },
+    ], [
+      "a .. name" => sub ($in, $out, $build) {
+        ("$in.cpan/build/..", $out, ["$in.cpan"])
+      },
+    ],
+    ["a trailing slash" => sub ($in, $out, $build) { ("$build/", $out) }],
+    ["no roots" => sub ($in, $out, $build) { ($build, $out, []) }],
+  );
+  for my $case (@cases) {
+    my ($name, $make) = @$case;
+    my ($in, $out, $build) = dirs;
+    make_export $in, $build;
+    my ($bad, $to, @roots) = $make->($in, $out, $build);
+    spew "$in/.build_dir", "$bad\n";
+    my $r = render($in, $to, $build, @roots);
+    like $r->{err}, qr/build_dir/, "render refuses $name as build_dir";
+    ok -d $in, "render leaves the export with $name as build_dir";
+    ok !-e "$_/cover_args", "cover never runs in $_ with $name as build_dir"
+      for $in, $build, $to;
+  }
 }
 
 sub test_render_option_reaches_render_export () {
-  my ($in, $out) = dirs;
-  make_export $in;
+  my ($in, $out, $build) = dirs;
+  make_export $in, $build;
   spew "$in/.select_dir", "../etc\n";
   my $root = "$FindBin::Bin/../..";
   my $cmd  = join " ", $^X, "-I$root/lib", "$root/bin/cpancover",
@@ -174,10 +250,10 @@ sub test_render_option_reaches_render_export () {
 }
 
 sub test_render_requires_output () {
-  my ($in, $out) = dirs;
-  make_export $in;
+  my ($in, $out, $build) = dirs;
+  make_export $in, $build;
   local $ENV{FAKE_COVER_FAIL} = 1;
-  my $r = render($in, $out);
+  my $r = render($in, $out, $build);
   like $r->{err}, qr/Can't run/, "render fails when cover fails";
   ok !-e "$out/index.html", "no report is written when cover fails";
 }
@@ -186,6 +262,7 @@ sub main () {
   test_render_writes_report;
   test_render_refuses_storable;
   test_render_refuses_bad_select_dir;
+  test_render_refuses_bad_build_dir;
   test_render_option_reaches_render_export;
   test_render_requires_output;
 }
