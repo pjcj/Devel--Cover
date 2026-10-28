@@ -19,6 +19,7 @@ use Devel::Cover::Inc          ();
 use Devel::Cover::Web          qw( write_file );
 
 use CPAN::DistnameInfo ();
+use File::Basename     qw( dirname );
 use File::Find         qw( find );
 use File::Spec         ();
 use JSON::MaybeXS      ();
@@ -355,6 +356,25 @@ class Devel::Cover::Collection {
     die $err if $err;
   }
 
+  sub _read_marker ($file) {
+    open my $fh, "<", $file or die "Can't open $file: $!\n";
+    my $value = <$fh> // "";
+    close $fh or die "Can't close $file: $!\n";
+    chomp $value;
+    $value
+  }
+
+  sub _under_build_root ($bd, $roots) {
+    grep { $bd =~ m!^\Q$_\E/build/([^/]+)\z! && $1 !~ /^\.\.?\z/ } @$roots
+  }
+
+  sub _good_build_dir ($bd, $out, $roots) {
+    _under_build_root($bd, $roots)
+      && !-e $bd
+      && "$bd/"  !~ m!^\Q$out/!
+      && "$out/" !~ m!^\Q$bd/!
+  }
+
   sub _check_json_db ($db) {
     find(
       sub {
@@ -372,17 +392,18 @@ class Devel::Cover::Collection {
 
   method render_export ($in, $out) {
     $out = File::Spec->rel2abs($out);
-    my $sel = "$in/.select_dir";
-    open my $fh, "<", $sel or die "Can't open $sel: $!\n";
-    my $sd = <$fh> // "";
-    close $fh or die "Can't close $sel: $!\n";
-    chomp $sd;
+    my $sd = _read_marker("$in/.select_dir");
     die "Bad select_dir in $in: $sd\n" unless $sd =~ /^(?:blib|lib|\.)\z/;
+    my $bd = _read_marker("$in/.build_dir");
+    die "Bad build_dir in $in: $bd\n"
+      unless _good_build_dir($bd, $out, $cpan_dir);
     _check_json_db("$in/cover_db");
-    chdir $in or die "Can't chdir $in: $!\n";
+    my $output = $self->fsys("mkdir", "-p", dirname $bd);
+    $output .= $self->fsys("cp", "-a", $in, $bd);
+    chdir $bd or die "Can't chdir $bd: $!\n";
 
-    my @cmd    = ($^X, ($local ? "-Mblib=$bin_dir/.." : ()), "$bin_dir/cover");
-    my $output = $self->fsys(
+    my @cmd  = ($^X, ($local ? "-Mblib=$bin_dir/.." : ()), "$bin_dir/cover");
+    $output .= $self->fsys(
       @cmd,          "-nogcov",    "-report",    "html",
       "-outputfile", "index.html", "-outputdir", $out,
       "-select_dir", $sd,          "cover_db",
@@ -1802,11 +1823,19 @@ report run follows. The distdir in the results directory then holds:
   $collection->render_export($in, $out);
 
 Writes the C<html> report and the C<json_summary> report of an export made by
-C<run> into C<$out>. Dies before it runs F<cover> if F<.select_dir> names
-anything but C<blib>, C<lib> or C<.>, or if any file under F<cover_db> is
-neither empty nor JSON. Both F<cover> runs turn gcov off, since F<cover> would
-otherwise run F<gcov> and F<gcov2perl> over files it finds. Dies unless both
-F<index.html> and F<cover.json> exist in C<$out> afterwards.
+C<run> into C<$out>. Dies before it runs any command if F<.select_dir> names
+anything but C<blib>, C<lib> or C<.>, if F<.build_dir> does not hold a path
+one directory under the F<build> directory of a C<cpan_dir> root, other than
+F<.> or F<..>, if that path exists, if it is C<$out>, lies under C<$out> or
+holds C<$out>, or if any file under F<cover_db> is neither empty nor JSON.
+
+It then copies the export to the build directory and runs F<cover> there, so
+that a file the database records by its absolute path under the build
+directory exists, and F<cover> names it as it would in the build container. It
+copies rather than moves the export, since the export may belong to another
+user. Both F<cover> runs turn gcov off, since F<cover> would otherwise run
+F<gcov> and F<gcov2perl> over files it finds. Dies unless both F<index.html>
+and F<cover.json> exist in C<$out> afterwards.
 
 =head3 run_all
 
