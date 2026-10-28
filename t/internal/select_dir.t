@@ -219,6 +219,29 @@ sub test_blib_twin_skipped () {
   ok $mod && $mod->{meta}{uncompiled}, "blib file with no twin is uncompiled";
 }
 
+# Skip an unchanged copy of a covered file outside blib.
+sub test_content_twin_skipped () {
+  my ($tmpdir, $libdir) = setup_lib_dir;
+  my $cover_db  = create_cover_db($tmpdir, $libdir);
+  my $calc      = File::Spec->catfile($libdir, "Covered",   "Calc.pm");
+  my $uncovered = File::Spec->catfile($libdir, "Uncovered", "Calc.pm");
+  my $otherdir  = File::Spec->catdir($tmpdir, "other");
+  my $copy      = File::Spec->catfile($otherdir, "Calc.pm");
+
+  make_path($otherdir);
+  write_file($copy, slurp($calc));
+
+  my $db = Devel::Cover::DB->new(db => $cover_db)->merge_runs;
+  $db->{files} = [$copy, $uncovered];
+  my $cover = $db->cover;
+
+  ok !defined $cover->file($copy), "copy of a covered file adds no row";
+  my $file = $cover->file($uncovered);
+  ok defined $file, "file with other content is in cover()";
+  ok $file && $file->{meta}{uncompiled},
+    "file with other content is uncompiled";
+}
+
 # Move the counts and digest of each run file ending in $suffix to $to.
 sub _rename_run_file ($db, $suffix, $to) {
   for my $r (values $db->{runs}->%*) {
@@ -284,6 +307,7 @@ sub main () {
   test_uncompiled_in_cover;
   test_text_report;
   test_blib_twin_skipped;
+  test_content_twin_skipped;
   test_relative_blib_twin_skipped;
   test_blib_parent_twin_skipped;
   done_testing;
