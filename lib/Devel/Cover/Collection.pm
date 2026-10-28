@@ -50,7 +50,6 @@ class Devel::Cover::Collection {
   field $deadline       :param :reader = undef;
   field $verbose        :param :reader = undef;
   field $workers        :param :reader = undef;
-  field $docker         :param :reader = undef;
   field $local          :param :reader = undef;
   field $export         :param :reader = undef;
 
@@ -80,7 +79,6 @@ class Devel::Cover::Collection {
     $build_dirs     //= [];
     $distdir_for    //= {};
     $cpan_dir       //= [grep -d, glob "~/.cpan ~/.local/share/.cpan"];
-    $docker         //= "docker";
     $dryrun         //= 0;
     $env            //= "prod";
     $export         //= 0;
@@ -961,8 +959,6 @@ class Devel::Cover::Collection {
         if ($@) {
           die "$@" unless $@ eq "alarm\n";  # unexpected errors
           say "Timed out after $to seconds!";
-          $self->sys($docker, "kill", $name);
-          say "Killed docker container $name";
         }
 
         if ($self->fresh_report($d, $start)) {
@@ -1578,7 +1574,7 @@ Epoch time by which a local build must finish. Each command a local build runs
 gets an alarm for the time left before the deadline rather than the full
 timeout. C<local_build> sets it to the timeout less a margin of 60 seconds when
 it is not given. The build then stops on its own alarm and its buffered output
-is written to the log before the controller's timeout kills the container.
+is written to the log before the timeout in F<utils/dc> kills the container.
 Default: none.
 
 =head3 verbose
@@ -1591,10 +1587,6 @@ is set to. Default: 0.
 =head3 workers
 
 Number of parallel workers for coverage runs. Default: 0 (no parallelism).
-
-=head3 docker
-
-Docker command to use. Default: 'docker'.
 
 =head3 local
 

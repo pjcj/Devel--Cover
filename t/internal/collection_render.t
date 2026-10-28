@@ -166,7 +166,7 @@ sub test_render_option_reaches_render_export () {
   spew "$in/.select_dir", "../etc\n";
   my $root = "$FindBin::Bin/../..";
   my $cmd  = join " ", $^X, "-I$root/lib", "$root/bin/cpancover",
-    "--docker false --results_dir $Tmp/results --render", $in, $out;
+    "--results_dir $Tmp/results --render", $in, $out;
   my $err = qx($cmd 2>&1);
   isnt $?, 0, "cpancover --render fails on a bad select_dir";
   like $err, qr|^Bad select_dir in \Q$in\E: \.\./etc$|m,

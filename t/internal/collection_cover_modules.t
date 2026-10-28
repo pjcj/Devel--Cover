@@ -67,8 +67,8 @@ my \$module = \$ARGV[-2];
 open my \$fh, ">>", \$ENV{STUB_LOG} or die "Can't open \$ENV{STUB_LOG}: \$!";
 print \$fh "\$module rebuild=", \$ENV{CPANCOVER_REBUILD} // "", "\\n";
 close \$fh or die "Can't close \$ENV{STUB_LOG}: \$!";
-exit 0 if \$ENV{STUB_NO_DIST};
 sleep \$ENV{STUB_SLEEP} if \$ENV{STUB_SLEEP};
+exit 0 if \$ENV{STUB_NO_DIST};
 mkdir "\$results_dir/\$dist"
   or -d "\$results_dir/\$dist"
   or die "Can't mkdir \$results_dir/\$dist: \$!";
@@ -214,11 +214,34 @@ subtest "alarm allows for the build and the render" => sub {
   local $ENV{CPANCOVER_RENDER_TIMEOUT};
   write_file($log, "");
 
-  my $cp = newcp($dir, timeout => 1, render_timeout => 2, docker => "true");
+  my $cp = newcp($dir, timeout => 1, render_timeout => 2);
   $cp->set_modules($New);
   is $cp->cover_modules, 1, "cover_modules reports one build";
   ok -e "$dir/Baz-Qux-2.00/cover.json",  "build past timeout writes a report";
   ok !-e "$dir/__failed__/Baz-Qux-2.00", "build past timeout is not failed";
+};
+
+subtest "a build past the alarm is reported without a kill" => sub {
+  my $dir = new_results_dir;
+  my $log = "$dir/calls.log";
+  local $ENV{STUB_LOG}     = $log;
+  local $ENV{STUB_SLEEP}   = 3;
+  local $ENV{STUB_NO_DIST} = 1;
+  local $ENV{CPANCOVER_TIMEOUT};
+  local $ENV{CPANCOVER_RENDER_TIMEOUT};
+  write_file($log, "");
+
+  my $cp = newcp($dir, timeout => 1, render_timeout => 1);
+  $cp->set_modules($New);
+  open my $stdout, ">&", \*STDOUT      or die "Can't dup STDOUT: $!";
+  open STDOUT,     ">",  "$dir/stdout" or die "Can't open $dir/stdout: $!";
+  $cp->cover_modules;
+  open STDOUT, ">&", $stdout or die "Can't restore STDOUT: $!";
+
+  my $out = slurp("$dir/stdout");
+  like $out,   qr/Timed out after 2 seconds!/, "the timeout is reported";
+  unlike $out, qr/Killed docker container/,    "no kill is reported";
+  ok -e "$dir/__failed__/Baz-Qux-2.00", "dist is marked failed";
 };
 
 subtest "render timeout is exported to the environment" => sub {

@@ -100,7 +100,6 @@ sub constructor_defaults () {
   my $c = Devel::Cover::Collection->new;
   is $c->build_dirs,    [],           "build_dirs defaults to empty arrayref";
   is $c->modules,       [],           "modules defaults to empty arrayref";
-  is $c->docker,        "docker",     "docker defaults to 'docker'";
   is $c->dryrun,        0,            "dryrun defaults to 0";
   is $c->env,           "prod",       "env defaults to 'prod'";
   is $c->force,         0,            "force defaults to 0";
@@ -129,7 +128,6 @@ sub constructor_with_args () {
   my $c = Devel::Cover::Collection->new(
     bin_dir       => "/usr/bin",
     results_dir   => "/tmp/results",
-    docker        => "podman",
     dryrun        => 1,
     env           => "dev",
     force         => 1,
@@ -145,7 +143,6 @@ sub constructor_with_args () {
   );
   is $c->bin_dir,     "/usr/bin",     "bin_dir set via constructor";
   is $c->results_dir, "/tmp/results", "results_dir set via constructor";
-  is $c->docker,      "podman",       "docker overridden via constructor";
   is $c->dryrun,      1,              "dryrun overridden via constructor";
   is $c->env,         "dev",          "env overridden via constructor";
   is $c->force,       1,              "force overridden via constructor";
