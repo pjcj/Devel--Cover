@@ -328,6 +328,10 @@ class Devel::Cover::Collection {
           open my $fh, ">", $sel or die "Can't open $sel: $!";
           print $fh "$select_dir\n";
           close $fh or die "Can't close $sel: $!";
+          my $bd = "$rdir/.build_dir";
+          open $fh, ">", $bd or die "Can't open $bd: $!";
+          print $fh "$build_dir\n";
+          close $fh or die "Can't close $bd: $!";
           return;
         }
         die "No $output_file report generated for $module\n"
@@ -1791,6 +1795,7 @@ report run follows. The distdir in the results directory then holds:
   ...          a copy of every other entry of the build directory, so
                that the report has every source file the database lists
   .select_dir  the name of the select directory, then a newline
+  .build_dir   the absolute path of the build directory, then a newline
 
 =head3 render_export ($in, $out)
 

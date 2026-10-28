@@ -131,6 +131,7 @@ sub run_scenario (%opt) {
   my $args   = "$build_dir/cover_args";
   my $rdir   = "$Tmp/results$n/My-Module-1.02";
   my $select = "$rdir/.select_dir";
+  my $build  = "$rdir/.build_dir";
   {
     err        => $err,
     stdout     => slurp("$Tmp/run$n.out"),
@@ -138,6 +139,7 @@ sub run_scenario (%opt) {
     warnings   => join("", @warnings),
     rdir       => $rdir,
     select_dir => -e $select ? slurp($select) : "",
+    build_dir  => -e $build  ? slurp($build)  : "",
   }
 }
 
@@ -150,6 +152,7 @@ sub test_failing_tests_still_publish () {
   like $r->{warnings}, qr/exit 3/,              "test failure is still warned";
   like $r->{args},     qr/--select_dir blib\b/, "blib preferred as select_dir";
   is slurp("$r->{rdir}/db_format"), "", "database format is left alone";
+  ok !-e "$r->{rdir}/.build_dir", "only an export records the build dir";
 }
 
 sub test_select_dir_fallbacks () {
@@ -199,6 +202,8 @@ sub test_export_publishes_data_only () {
   ok -d "$r->{rdir}/lib",                 "export holds the other dirs";
   ok -e "$r->{rdir}/script.pl",           "export holds the other files";
   is $r->{select_dir}, "blib\n", "export records the select dir";
+  is $r->{build_dir}, "$Tmp/build$N/My-Module-1.02-1234\n",
+    "export records the build dir";
   ok !-e "$r->{rdir}/index.html", "export holds no report";
   is slurp("$r->{rdir}/cover_db/db_format"), "JSON",
     "export writes the database as JSON";
