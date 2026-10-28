@@ -425,7 +425,8 @@ dc -e dev cpancover-test            # Direct execution
 dc -e dev cpancover-controller-test # Via controller container
 ```
 
-To test with custom modules, set `CPANCOVER_TEST_MODULES`:
+To test with custom modules, set `CPANCOVER_TEST_MODULES`. A bare distribution
+name resolves to its current release.
 
 ```bash
 # Single module
@@ -441,7 +442,7 @@ The environment variable also works with other recipes:
 
 ```bash
 # Limit cpancover-run-once to specific modules
-CPANCOVER_TEST_MODULES="P/PJ/PJCJ/Perl-Critic-PJCJ-v0.2.4.tar.gz" \
+CPANCOVER_TEST_MODULES="Perl-Critic-PJCJ" \
   dc -e dev cpancover-controller-run-once
 ```
 
