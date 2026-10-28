@@ -156,10 +156,13 @@ sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef, $attr = "") {
 }
 
 sub file_row ($f, $dir) {
-  my $cls      = "dir-file" . ($f->{uncompiled} ? " untested" : "");
-  my $base     = escape_html($f->{basename});
-  my $name     = $f->{exists}     ? qq(<a href="$f->{link}">$base</a>) : $base;
-  my $badge    = $f->{uncompiled} ? untested_badge() . "\n"            : "";
+  my $cls  = "dir-file" . ($f->{uncompiled} ? " untested" : "");
+  my $base = escape_html($f->{basename});
+  my $name
+    = $f->{exists}
+    ? qq(<a class="file-name" href="$f->{link}">$base</a>)
+    : qq(<span class="file-name">$base</span>);
+  my $badge    = $f->{uncompiled} ? untested_badge() . "\n" : "";
   my $linkable = $f->{exists} && !$f->{uncompiled};
 
   my $edir   = escape_html($dir);
@@ -2014,15 +2017,15 @@ tr.untested td .untested-badge.tip-hover:hover > .glass-tip {
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
 }
 
-tr.untested td:first-child,
 tr.dir-file td:first-child {
   display: flex;
   align-items: center;
 }
-tr.untested td:first-child a,
-tr.untested td:first-child span:first-child,
-tr.dir-file td:first-child a {
+tr.dir-file td:first-child .file-name {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .untested-badge {
   display: inline-block;
@@ -2513,11 +2516,10 @@ $Assets{js} = $Crisp_theme_js . <<'JS';
       tbody.querySelectorAll(".dir-file").forEach(
         function(row) {
           var cell = row.children[0];
-          var a = cell.querySelector("a");
+          var el = cell.querySelector(".file-name");
           var name = cell.getAttribute("data-value");
           var base = name.replace(/.*\//, "");
-          if (a) a.textContent = grouped ? base : name;
-          else cell.textContent = grouped ? base : name;
+          el.textContent = grouped ? base : name;
           row.classList.toggle("dir-file-grouped", grouped);
           row.hidden = false;
           row.style.display = "";
