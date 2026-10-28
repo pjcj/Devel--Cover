@@ -1137,6 +1137,33 @@ sub latest_paths_method () {
     "mark_full_index dies when it cannot open the marker";
 }
 
+sub current_release_method () {
+  local @Latest_paths = qw(
+    A/AU/AUTHOR/Alpha-2.1-TRIAL.tar.gz
+    A/AU/AUTHOR/Alpha-2.0.tar.gz
+    A/AU/AUTHOR/Alpha-Extra-3.0.tar.gz
+    B/BR/BRAVO/Bravo-0.1-TRIAL.tar.gz
+    D/DE/DELTA/README
+  );
+  local $Homedir_dir = cache_dir(0);
+  my $c = Devel::Cover::Collection->new;
+
+  is $c->current_release("Alpha"), "A/AU/AUTHOR/Alpha-2.0.tar.gz",
+    "a released path wins over a newer TRIAL path";
+  is $c->current_release("Bravo"), "B/BR/BRAVO/Bravo-0.1-TRIAL.tar.gz",
+    "a TRIAL path is returned when there is no released path";
+  is $c->current_release("Alpha-Extra"), "A/AU/AUTHOR/Alpha-Extra-3.0.tar.gz",
+    "a longer name matches its own distribution";
+  {
+    local @Latest_paths = qw( A/AU/AUTHOR/Alpha-Extra-3.0.tar.gz );
+    is $c->current_release("Alpha"), undef,
+      "a name never matches a distribution it is a prefix of";
+  }
+  is $c->current_release("Charlie"), undef, "an unknown name gives undef";
+  is $c->current_release(""), undef,
+    "a path without a distribution name never matches";
+}
+
 sub fetch_latest_releases_method () {
   my $trial    = "A/AU/AUTHOR/Alpha-2.1-TRIAL.tar.gz";
   my $scroll   = "failed to fetch next scrolled batch\n";
@@ -1732,6 +1759,7 @@ sub main () {
     status_tracking_rebuild_mode
     write_status_method
     latest_paths_method
+    current_release_method
     fetch_latest_releases_method
     release_matches_method
     write_latest_index_method

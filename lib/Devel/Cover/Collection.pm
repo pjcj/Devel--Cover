@@ -1172,6 +1172,16 @@ class Devel::Cover::Collection {
     @paths
   }
 
+  method current_release ($name) {
+    my %path;
+    for my $path ($self->latest_paths) {
+      my $d    = CPAN::DistnameInfo->new($path);
+      my $dist = $d->dist // next;
+      $path{ $d->maturity } //= $path if $dist eq $name;
+    }
+    $path{released} // $path{developer}
+  }
+
   method get_latest {
     my $day = 24 * 60 * 60;
     if (defined $latest_index) {
@@ -2255,6 +2265,17 @@ old, the method first fetches the full list with C<fetch_latest_releases> and
 writes it with C<write_latest_index>. It leaves the marker alone. It dies if
 the fetch fails. C<max_age> defaults to one day. It only reads a file that
 C<latest_index> names.
+
+=head3 current_release ($name)
+
+  my $path = $collection->current_release("Perl-Critic-PJCJ");
+
+Returns the CPAN path from C<latest_paths> of the release of the distribution
+C<$name> that L<CPAN::DistnameInfo> marks as C<released>. When the distribution
+has no such release, it returns the developer release, so a distribution with
+only TRIAL releases still gives a path. It returns undef when no path names the
+distribution. A name matches only the whole distribution name, so C<Alpha> does
+not match C<Alpha-Extra>.
 
 =head3 get_latest
 
