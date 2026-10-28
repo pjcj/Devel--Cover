@@ -714,6 +714,36 @@ sub controller_staging_on_host () {
     "host run mounts the staging dir, even with containers running";
 }
 
+sub docker_rm_recipe () {
+  my $bin = tempdir(CLEANUP => 1);
+  write_file("$bin/docker", <<~'SH');
+    #!/bin/sh
+    cmd="$1"
+    shift
+    case "$cmd" in
+      ps)
+        echo "CONTAINER ID IMAGE COMMAND CREATED STATUS NAMES"
+        echo "abc123 img cmd 1 hour ago Up old-controller"
+        ;;
+      rm)
+        echo "rm $*" >>"$STUB_CALLS"
+        for id; do :; done
+        echo "$id"
+        ;;
+    esac
+    exit 0
+    SH
+  chmod 0755, "$bin/docker" or die "Can't chmod docker stub: $!";
+  my $work = tempdir(CLEANUP => 1);
+  local $ENV{PATH}       = "$bin:$ENV{PATH}";
+  local $ENV{STUB_CALLS} = "$work/calls";
+
+  my $out = `$Dc -e dev cpancover-docker-rm`;
+  is $out, "", "the recipe prints no container ids";
+  like slurp("$work/calls"), qr/^rm -f abc123$/m,
+    "the recipe removes the listed container";
+}
+
 sub make_seed_source ($src) {
   mkdir "$src/$_"
     or die "Can't mkdir $src/$_: $!"
@@ -958,6 +988,7 @@ sub main () {
     cpancover_leaves_build_alone
     controller_rebuild_module_recipe
     controller_staging_on_host
+    docker_rm_recipe
     seed_recipe
     check_caddy_recipe
     check_caddy_root_fallback

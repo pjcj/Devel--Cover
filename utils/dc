@@ -461,7 +461,7 @@ recipe_cpancover-docker-kill() {
 }
 
 cpancover_docker_rm() {
-  cpancover_docker_ps_ids | xargs -r "$docker" rm -f
+  cpancover_docker_ps_ids | xargs -r "$docker" rm -f >/dev/null
 }
 
 recipe_cpancover-docker-rm() {
@@ -621,8 +621,7 @@ recipe_cpancover-build-module() {
   local module="${1:?No module specified}"
   local v=
   ((verbose)) && v=--verbose
-  run_cpancover "$v" --local_build --docker "$docker" --workers 1 --export \
-    "$module"
+  run_cpancover "$v" --local_build --workers 1 --export "$module"
 }
 
 recipe_cpancover-render-module() {

@@ -100,7 +100,6 @@ sub constructor_defaults () {
   my $c = Devel::Cover::Collection->new;
   is $c->build_dirs,    [],           "build_dirs defaults to empty arrayref";
   is $c->modules,       [],           "modules defaults to empty arrayref";
-  is $c->docker,        "docker",     "docker defaults to 'docker'";
   is $c->dryrun,        0,            "dryrun defaults to 0";
   is $c->env,           "prod",       "env defaults to 'prod'";
   is $c->force,         0,            "force defaults to 0";
@@ -129,7 +128,6 @@ sub constructor_with_args () {
   my $c = Devel::Cover::Collection->new(
     bin_dir       => "/usr/bin",
     results_dir   => "/tmp/results",
-    docker        => "podman",
     dryrun        => 1,
     env           => "dev",
     force         => 1,
@@ -145,7 +143,6 @@ sub constructor_with_args () {
   );
   is $c->bin_dir,     "/usr/bin",     "bin_dir set via constructor";
   is $c->results_dir, "/tmp/results", "results_dir set via constructor";
-  is $c->docker,      "podman",       "docker overridden via constructor";
   is $c->dryrun,      1,              "dryrun overridden via constructor";
   is $c->env,         "dev",          "env overridden via constructor";
   is $c->force,       1,              "force overridden via constructor";
@@ -1163,7 +1160,9 @@ sub fetch_latest_releases_method () {
   local @Metacpan_releases = @releases;
   local $Metacpan_total    = @releases;
   local %Metacpan_args;
-  my $c = Devel::Cover::Collection->new(retry_delay => 0);
+  my $c       = Devel::Cover::Collection->new(retry_delay => 0);
+  my $v       = Devel::Cover::Collection->new(retry_delay => 0, verbose => 1);
+  my $fetched = "Fetched the CPAN release list after 1 retry\n";
 
   is $c->fetch_latest_releases, $expected,
     "fetch_latest_releases keeps the newest release of each maturity";
@@ -1184,15 +1183,14 @@ sub fetch_latest_releases_method () {
   my $w = warnings {
     is $c->fetch_latest_releases, $expected, "a failed request is sent again"
   };
-  is $w, ["Retrying the CPAN release list after: $scroll"],
-    "a failed request gives one warning";
+  is $w, [$fetched], "a failed request gives one summary warning";
 
   local @Metacpan_releases = (("die") x 10, @releases);
   $w = warnings {
-    is dies { $c->fetch_latest_releases }, $scroll,
+    is dies { $v->fetch_latest_releases }, $scroll,
       "ten failed requests in a row die with the scroll error"
   };
-  is @$w, 9, "every failure before the last gives a warning";
+  is @$w, 9, "under verbose every failure before the last gives a warning";
 
   local @Metacpan_releases = @releases;
   local $Metacpan_total    = @releases + 1;
@@ -1210,15 +1208,14 @@ sub fetch_latest_releases_method () {
     is $c->fetch_latest_releases, $expected,
       "an answer that ignores the query is fetched again"
   };
-  is $w, ["Retrying the CPAN release list after: $bad"],
-    "an answer that ignores the query gives one warning";
+  is $w, [$fetched], "an answer that ignores the query gives one warning";
 
   local @Metacpan_answers = ([$old]) x 10;
   $w = warnings {
-    is dies { $c->fetch_latest_releases }, $bad,
+    is dies { $v->fetch_latest_releases }, $bad,
       "ten answers that ignore the query die"
   };
-  is @$w, 9, "every ignored query before the last gives a warning";
+  is @$w, 9, "under verbose every ignored query before the last warns";
 
   my $late = cpan_release("D/DE/DELTA/Delta-1.0.tar.gz", 60, status => "cpan");
   local @Metacpan_answers = ([@releases, $late], \@releases);
@@ -1505,7 +1502,7 @@ sub failed_fetch_method () {
   my $day    = 24 * 60 * 60;
   local @Metacpan_releases = ("die") x 10;
   local $Metacpan_total    = 1;
-  my $c                = Devel::Cover::Collection->new(retry_delay => 0);
+  my $c = Devel::Cover::Collection->new(retry_delay => 0, verbose => 1);
   my $index_with_alpha = sub {
     $c->write_latest_index({
       released =>
