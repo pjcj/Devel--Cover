@@ -6,7 +6,7 @@ WORKDIR /usr/local/src
 # hadolint ignore=DL3008
 RUN apt-get update                                                          && \
     apt-get -y --no-install-recommends install                                 \
-      bzip2 ca-certificates curl git libssl-dev libz-dev pigz unzip            \
+      bzip2 ca-certificates curl g++ git libssl-dev libz-dev pigz unzip        \
       xz-utils                                                              && \
     update-ca-certificates                                                  && \
     install -m 0755 -d /etc/apt/keyrings                                    && \
