@@ -1435,8 +1435,12 @@ sub cover ($self) {
   $self->objectify_cover;
   if ($self->{files}->@*) {
     require Devel::Cover::Static;
+    my %covered = map { $_->{meta}{digest} => 1 } grep $_->{meta}{digest},
+      values $self->{cover}->%*;
     for my $file ($self->{files}->@*) {
       next if exists $self->{cover}{$file};
+      next if exists $self->{cover}{ $file =~ s|^((?:.*/)?)blib/|$1|r };
+      next if %covered && $covered{ $st->digest($file) // "" };
       my $counts = Devel::Cover::Static::count_criteria($file);
       my $subs   = Devel::Cover::Static::per_sub_complexity($file);
       if ($counts) {
@@ -1848,6 +1852,10 @@ Devel::Cover::DB::Criterion->location, and Devel::Cover::DB::Location->datum
 
 Instead of calling C<< $file->criterion("x") >> you can also call
 C<< $file->x >>.
+
+A file from a C<-select_dir> scan that no run covered appears as an uncompiled
+entry. A scanned file adds no entry when its name without the last C<blib/>
+segment, or its content, matches a file the runs covered.
 
 =head2 run_keys
 
