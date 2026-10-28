@@ -1187,7 +1187,14 @@ class Devel::Cover::Collection {
     $path{released} // $path{developer}
   }
 
-  method get_latest {
+  method get_latest (@names) {
+    if (@names) {
+      for my $name (@names) {
+        say $self->current_release($name)
+          // die "No current release of $name on CPAN\n";
+      }
+      return;
+    }
     my $day = 24 * 60 * 60;
     if (defined $latest_index) {
       say for $self->latest_paths;
@@ -2289,12 +2296,19 @@ only TRIAL releases still gives a path. It returns undef when no path names the
 distribution. A name matches only the whole distribution name, so C<Alpha> does
 not match C<Alpha-Extra>.
 
-=head3 get_latest
+=head3 get_latest (@names)
 
   $collection->get_latest;
+  $collection->get_latest(qw( Perl-Critic-PJCJ SPVM ));
 
-Prints release paths, one per line. When C<latest_index> names a file, it
-prints every path from C<latest_paths> and fetches nothing.
+Prints release paths, one per line.
+
+With distribution names, it prints the C<current_release> of each name in the
+order given and does nothing else. It dies with the message
+C<No current release of NAME on CPAN> for a name with no current release.
+
+Without names, it prints the latest releases. When C<latest_index> names a file,
+it prints every path from C<latest_paths> and fetches nothing.
 
 Otherwise, when C<full_index_age> is undef or at least a day, it prints every
 path from C<latest_paths> with C<max_age> 0, which fetches the full release

@@ -1433,11 +1433,11 @@ sub read_latest_index_method () {
   }
 }
 
-sub get_latest_output ($c) {
+sub get_latest_output ($c, @names) {
   my $out = "";
   local *STDOUT;
   open STDOUT, ">", \$out or die "Can't redirect STDOUT: $!";
-  $c->get_latest;
+  $c->get_latest(@names);
   $out
 }
 
@@ -1553,6 +1553,37 @@ sub get_latest_method () {
     "get_latest leaves a latest_index file alone";
   is \%Latest_args, { path => $index },
     "get_latest reads the latest_index file";
+}
+
+sub get_latest_names () {
+  no warnings "redefine";
+  local *Devel::Cover::Collection::latest_paths
+    = sub { qw( A/AU/AUTHOR/Alpha-2.0.tar.gz B/BR/BRAVO/Bravo-1.0.tar.gz ) };
+  local $Homedir_dir = cache_dir(undef);
+  my $c = Devel::Cover::Collection->new;
+
+  is get_latest_output($c, qw( Bravo Alpha )),
+    "B/BR/BRAVO/Bravo-1.0.tar.gz\nA/AU/AUTHOR/Alpha-2.0.tar.gz\n",
+    "get_latest prints the current release of each name in order";
+  ok !-e $c->full_index_path, "get_latest writes no marker for names";
+  is dies { get_latest_output($c, "Charlie") },
+    "No current release of Charlie on CPAN\n",
+    "get_latest dies for a name with no current release";
+}
+
+sub cpancover_latest_names () {
+  my $index = tempdir(CLEANUP => 1) . "/latest-releases.txt";
+  Devel::Cover::Collection->new(latest_index => $index)->write_latest_index({
+    released => {
+      Alpha => index_entry("A/AU/AUTHOR/Alpha-2.0.tar.gz", 100),
+      Bravo => index_entry("B/BR/BRAVO/Bravo-1.0.tar.gz",  100),
+    },
+    developer => {},
+  });
+  my $out = qx($^X -Ilib bin/cpancover --latest_index $index --latest Bravo);
+  is $?, 0, "cpancover --latest succeeds for a name";
+  is $out, "B/BR/BRAVO/Bravo-1.0.tar.gz\n",
+    "cpancover --latest prints the current release of the named distribution";
 }
 
 sub failed_fetch_method () {
@@ -1797,6 +1828,8 @@ sub main () {
     write_latest_index_method
     read_latest_index_method
     get_latest_method
+    get_latest_names
+    cpancover_latest_names
     failed_fetch_method
     rebuild_pass_method
     rebuild_pass_nothing_to_build

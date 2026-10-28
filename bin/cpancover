@@ -125,7 +125,7 @@ sub main {
 
   if ($Options->{latest}) {
     my $cp = newcp;
-    $cp->get_latest;
+    $cp->get_latest(@ARGV);
     return;
   }
 
@@ -205,7 +205,8 @@ cpancover - report coverage statistics on CPAN modules
   cpancover --help --info --version
             --build --generate_html --rebuild --rebuild_batch n
             --mark_rebuilt --on_cpan
-            --latest --latest_index file --local --local_build --export
+            --latest [distribution_name ...] --latest_index file
+            --local --local_build --export
             --render in out --render_timeout seconds
             --modules module_name --module_file file
             --results_dir /path/to/dir --output_file filename.html
@@ -239,7 +240,7 @@ The following command line options are supported:
   --export                - export data for a separate render   (off)
   --force                 - recollect coverage                  (off)
   --generate_html         - generate html                       (off)
-  --latest                - process latest CPAN releases        (off)
+  --latest                - print new or named CPAN releases    (off)
   --latest_index          - CPAN release index file to read    (cache)
   --local                 - use local (uninstalled) code        (off)
   --local_build           - build coverage for all the modules  (off)
