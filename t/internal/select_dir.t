@@ -198,10 +198,12 @@ sub write_file ($path, $content) {
 sub test_blib_twin_skipped () {
   my ($tmpdir, $libdir) = setup_lib_dir;
   my $cover_db = create_cover_db($tmpdir, $libdir);
-  my $calc     = File::Spec->catfile($libdir, "Covered", "Calc.pm");
-  my $blibdir  = File::Spec->catdir($tmpdir, "blib", "lib", "Covered");
-  my $copy     = File::Spec->catfile($blibdir, "Calc.pm");
-  my $blibmod  = File::Spec->catfile($libdir, "blib", "lib", "BlibMod.pm");
+  # name files as Devel::Cover records them, with forward slashes
+  my $root    = $tmpdir =~ s|\\|/|gr;
+  my $calc    = "$root/lib/Covered/Calc.pm";
+  my $blibdir = "$root/blib/lib/Covered";
+  my $copy    = "$blibdir/Calc.pm";
+  my $blibmod = "$root/lib/blib/lib/BlibMod.pm";
 
   make_path($blibdir);
   write_file($copy, slurp($calc) . "# a blib copy\n");
