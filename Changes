@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Leave out a `blib` copy of a file whose coverage the tests recorded
+  under `lib`, so `cover -select_dir` no longer lists the copy as an
+  untested file (GH-883)
 - Skip coverage databases when `cover` looks for XS sources to run gcov
   on, so a parallel `cover` run no longer warns about a run being merged
   (GH-875)

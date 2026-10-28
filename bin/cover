@@ -846,7 +846,9 @@ Per-criterion totals for these files are estimated by static analysis
 (requiring L<PPI>), so they are close to, but may not exactly match, the
 counts a test run would produce.  Files under C<blib> directories below the
 scan root are excluded, but a C<blib> directory may itself be given as the
-scan root.  The option may be specified multiple times.
+scan root.  The scan leaves out a file when its path without the C<blib/>
+segment, or its content, matches a file the tests covered.  The option may be
+specified multiple times.
 
 Specify C<-coverage> options to report on specific criteria.  By default all
 available information on all criteria in all files will be reported. Available
