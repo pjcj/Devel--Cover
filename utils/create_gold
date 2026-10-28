@@ -63,10 +63,15 @@ sub run_test_in_child ($test, $test_output) {
     warn "$test failed: $reason\n";
     0
   } else {
-    no warnings "redefine";
-    local *Devel::Cover::Test::run_test = sub { };
-    my $t = require "./$file" or die "Can't require $file: $!";
-    ($test_output ? $t->create_out("$test.out") : $t->create_gold) and say "";
+    # a bare die would exit with $!, which a forked child can leave set
+    eval {
+      no warnings "redefine";
+      local *Devel::Cover::Test::run_test = sub { };
+      my $t = require "./$file" or die "Can't require $file: $!";
+      ($test_output ? $t->create_out("$test.out") : $t->create_gold)
+        and say "";
+      1
+    } or do { print STDERR $@; exit 255 };
     exit;
   }
 }
