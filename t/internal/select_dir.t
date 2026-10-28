@@ -12,6 +12,7 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
+use Cwd     ();
 use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
@@ -29,6 +30,7 @@ use Devel::Cover::Test::Showcase qw(
   create_cover_db
   run_cover
   setup_lib_dir
+  slurp
 );
 
 sub have_ppi () { eval { require PPI; 1 } }
@@ -186,11 +188,104 @@ sub test_text_report () {
   }
 }
 
+sub write_file ($path, $content) {
+  open my $fh, ">", $path or die "Can't open $path: $!";
+  print $fh $content;
+  close $fh or die "Can't close $path: $!";
+}
+
+# Skip a blib copy of a covered file but keep a blib file with no lib twin.
+sub test_blib_twin_skipped () {
+  my ($tmpdir, $libdir) = setup_lib_dir;
+  my $cover_db = create_cover_db($tmpdir, $libdir);
+  my $calc     = File::Spec->catfile($libdir, "Covered", "Calc.pm");
+  my $blibdir  = File::Spec->catdir($tmpdir, "blib", "lib", "Covered");
+  my $copy     = File::Spec->catfile($blibdir, "Calc.pm");
+  my $blibmod  = File::Spec->catfile($libdir, "blib", "lib", "BlibMod.pm");
+
+  make_path($blibdir);
+  write_file($copy, slurp($calc) . "# a blib copy\n");
+
+  my $db = Devel::Cover::DB->new(db => $cover_db)->merge_runs;
+  $db->{files} = [$copy, $blibmod];
+  my $cover = $db->cover;
+
+  ok !defined $cover->file($copy), "blib copy of a covered file adds no row";
+  my $lib = $cover->file($calc);
+  ok defined $lib,                      "lib file is in cover()";
+  ok $lib && !$lib->{meta}{uncompiled}, "lib file is not uncompiled";
+  my $mod = $cover->file($blibmod);
+  ok defined $mod, "blib file with no lib twin is in cover()";
+  ok $mod && $mod->{meta}{uncompiled}, "blib file with no twin is uncompiled";
+}
+
+# Move the counts and digest of each run file ending in $suffix to $to.
+sub _rename_run_file ($db, $suffix, $to) {
+  for my $r (values $db->{runs}->%*) {
+    for my $file (grep /\Q$suffix\E$/, keys $r->{count}->%*) {
+      $r->{count}{$to}   = delete $r->{count}{$file};
+      $r->{digests}{$to} = delete $r->{digests}{$file};
+    }
+  }
+}
+
+# Skip a relative blib copy of a covered file recorded under a relative name.
+sub test_relative_blib_twin_skipped () {
+  my ($tmpdir, $libdir) = setup_lib_dir;
+  my $cover_db = create_cover_db($tmpdir, $libdir);
+  my $lib      = "lib/Covered/Calc.pm";
+  my $copy     = "blib/lib/Covered/Calc.pm";
+
+  my $db = Devel::Cover::DB->new(db => $cover_db)->merge_runs;
+
+  _rename_run_file($db, "Covered/Calc.pm", $lib);
+
+  my $cwd = Cwd::getcwd;
+  chdir $tmpdir or die "Can't chdir $tmpdir: $!";
+  make_path("blib/lib/Covered");
+  write_file($copy, slurp($lib) . "# a blib copy\n");
+  $db->{files} = [$copy];
+  my $cover = $db->cover;
+  chdir $cwd or die "Can't chdir $cwd: $!";
+
+  ok !defined $cover->file($copy), "relative blib copy adds no row";
+  my $file = $cover->file($lib);
+  ok defined $file,                       "relative lib file is in cover()";
+  ok $file && !$file->{meta}{uncompiled}, "relative lib file is not uncompiled";
+}
+
+# Skip a blib copy of a covered file in a project below a blib directory.
+sub test_blib_parent_twin_skipped () {
+  my ($tmpdir, $libdir) = setup_lib_dir;
+  my $cover_db = create_cover_db($tmpdir, $libdir);
+  my $lib      = "$tmpdir/blib/proj/lib/Covered/Calc.pm";
+  my $blibdir  = "$tmpdir/blib/proj/blib/lib/Covered";
+  my $copy     = "$blibdir/Calc.pm";
+
+  my $db = Devel::Cover::DB->new(db => $cover_db)->merge_runs;
+
+  _rename_run_file($db, "Covered/Calc.pm", $lib);
+
+  make_path($blibdir);
+  write_file($copy, slurp("$libdir/Covered/Calc.pm") . "# a blib copy\n");
+  $db->{files} = [$copy];
+  my $cover = $db->cover;
+
+  ok !defined $cover->file($copy), "blib copy below a blib parent adds no row";
+  my $file = $cover->file($lib);
+  ok defined $file, "lib file below a blib parent is in cover()";
+  ok $file && !$file->{meta}{uncompiled},
+    "lib file below a blib parent is not uncompiled";
+}
+
 sub main () {
   test_scan;
   test_blib_root;
   test_uncompiled_in_cover;
   test_text_report;
+  test_blib_twin_skipped;
+  test_relative_blib_twin_skipped;
+  test_blib_parent_twin_skipped;
   done_testing;
 }
 

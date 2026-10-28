@@ -1437,6 +1437,7 @@ sub cover ($self) {
     require Devel::Cover::Static;
     for my $file ($self->{files}->@*) {
       next if exists $self->{cover}{$file};
+      next if exists $self->{cover}{ $file =~ s|^((?:.*/)?)blib/|$1|r };
       my $counts = Devel::Cover::Static::count_criteria($file);
       my $subs   = Devel::Cover::Static::per_sub_complexity($file);
       if ($counts) {
