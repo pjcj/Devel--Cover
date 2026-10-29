@@ -30,7 +30,7 @@ BEGIN {
     unless eval "require CPAN::Meta; 1";
 }
 
-# The run records the resolved directory
+# The run records the resolved directory with forward slashes
 my $Tmpdir = Cwd::abs_path(tempdir(CLEANUP => 1));
 
 sub write_file ($path, $contents) {
@@ -40,7 +40,7 @@ sub write_file ($path, $contents) {
 }
 
 sub run_in ($name, $meta = undef, $inc = undef) {
-  my $dir = File::Spec->catdir($Tmpdir, $name);
+  my $dir = "$Tmpdir/$name";
   make_path($dir);
   write_file(File::Spec->catfile($dir, "MYMETA.json"), $meta) if $meta;
   my $script = File::Spec->catfile($dir, "run.pl");

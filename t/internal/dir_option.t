@@ -85,6 +85,7 @@ sub test_relative_dir () {
 
 sub test_symlinked_dir () {
   SKIP: {
+    skip "abs_path keeps symlinks on Windows", 4 if $^O eq "MSWin32";
     my $dir  = make_dist;
     my $link = File::Spec->catdir(tempdir(CLEANUP => 1), "link");
     skip "symlink not available", 4 unless eval { symlink $dir, $link };
