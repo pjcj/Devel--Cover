@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+use Devel::Peek;
+
+# Drop the method so the custom op reaches B::Deparse::AUTOLOAD.
+BEGIN { delete $B::Deparse::{pp_Devel_Peek_Dump} }
+
+my $x = 0;
+my $y = 1;
+
+# Custom op as an operand of an if condition.
+if ($x && Dump($x)) { $x = 2 }
+
+# Custom op as an operand of || in an unless condition.
+unless ($y || Dump($y)) { $y = 2 }
+
+# Custom op as an operand of a bare && expression.
+my $r = $x && Dump($x);
