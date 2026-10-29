@@ -111,6 +111,24 @@ class Devel::Cover::Collection {
     $left > 1 ? $left : 1
   }
 
+  method _group_commands ($pgrp) {
+    opendir my $dh, "/proc" or return;
+    local $/;
+    my @lines;
+    for my $pid (sort { $a <=> $b } grep /^\d+\z/, readdir $dh) {
+      open my $sfh, "<", "/proc/$pid/stat" or next;
+      my $stat  = <$sfh> // next;
+      my $group = (split " ", substr $stat, rindex($stat, ")") + 1)[2];
+      next unless defined $group && $group == $pgrp;
+      open my $cfh, "<", "/proc/$pid/cmdline" or next;
+      my $cmd = <$cfh> // next;
+      $cmd =~ tr/\0/ /;
+      $cmd =~ s/ \z//;
+      push @lines, "$pid $cmd";
+    }
+    @lines
+  }
+
   # display $non_buffered characters, then buffer
   method _sys ($non_buffered, @command) {
     # system @command; return ".";
@@ -170,7 +188,8 @@ class Devel::Cover::Collection {
       die "$@" unless $@ eq "alarm\n";  # propagate unexpected errs
       warn sprintf "Timed out after %d seconds!\n", $to;
       my $pgrp = getpgrp $pid;
-      my $n    = kill "-KILL", $pgrp;
+      warn "running: $_\n" for $self->_group_commands($pgrp);
+      my $n = kill "-KILL", $pgrp;
       warn "killed $n processes";
       my $tail = length $output2 ? \$output2 : \$output1;
       $$tail .= "\n" if length $$tail && $$tail !~ /\n\z/;
@@ -2338,7 +2357,8 @@ It dies, leaving the cache file as it was, when a fetch fails.
 Runs a system command, displaying the first portion of output immediately
 and buffering the rest. Returns the output on success, empty string on
 failure. It reads the output in chunks, so a timeout does not lose a line the
-command had not finished.
+command had not finished. On a timeout it warns with the pid and command of each
+process still running in the group, when F</proc> exists.
 
 =head3 bsys
 

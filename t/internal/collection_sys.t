@@ -18,7 +18,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use File::Temp ();
 
-use Test::More import => [qw( done_testing is like ok plan )];
+use Test::More import => [qw( done_testing is like ok plan skip )];
 
 BEGIN {
   plan skip_all => "Devel::Cover::Collection requires Perl 5.42" if $] < 5.042;
@@ -115,6 +115,18 @@ sub test_long_output_tail () {
     "a long hung output keeps the unfinished line";
 }
 
+sub test_timeout_names_processes () {
+  SKIP: {
+    skip "no /proc", 1 unless -r "/proc/$$/stat";
+    my ($output, $warned) = bsys_warnings(
+      Devel::Cover::Collection->new(timeout => 1),
+      $^X, "-e", "sleep 30",
+    );
+    like $warned, qr/^running: \d+ .*sleep 30/m,
+      "timeout names the processes still running";
+  }
+}
+
 sub test_deadline () {
   my $start = time;
   my ($output, $warned) = bsys_warnings(
@@ -179,6 +191,7 @@ sub main () {
   test_timeout;
   test_timeout_partial_line;
   test_long_output_tail;
+  test_timeout_names_processes;
   test_deadline;
   test_local_build_sets_deadline;
   test_escaped_child;
