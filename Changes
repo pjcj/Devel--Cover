@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Deparse a custom op with a registered name to a placeholder that names it,
+  so Devel::Cover no longer warns `unexpected OP_CUSTOM` for each one and the
+  report labels no longer show `XXX` (GH-891)
 - Leave out a `blib` copy of a file whose coverage the tests recorded
   under `lib`, so `cover -select_dir` no longer lists the copy as an
   untested file (GH-883)

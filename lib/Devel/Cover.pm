@@ -1199,12 +1199,23 @@ sub _record_decision_inputs ($key, $n) {
     *B::Deparse::pp_padrange = sub { "" }
       unless defined &B::Deparse::pp_padrange;
 
-    # B::Deparse has no pp_custom - custom infix ops registered by XS modules
-    # (e.g. Syntax::Operator::In) all dispatch through here. AUTOLOAD's default
-    # behaviour warns and returns "XXX"; emit a quieter placeholder so
-    # branch/condition labels stay readable.
-    *B::Deparse::pp_custom = sub { "<custom op>" }
-      unless defined &B::Deparse::pp_custom;
+    # A custom op with no B::Deparse method reaches AUTOLOAD, which warns
+    my $autoload  = \&B::Deparse::AUTOLOAD;
+    my $op_custom = B::opnumber("custom");
+    no warnings "redefine";
+    *B::Deparse::AUTOLOAD = sub {
+      our $AUTOLOAD;
+      my ($name) = $AUTOLOAD =~ /::pp_(\w+)\z/;
+      if (defined $name && $_[1]->type == $op_custom) {
+        my $text = $name eq "custom" ? "<custom op>" : "<custom op $name>";
+        my $pp   = sub { $text };
+        no strict "refs";
+        *{"B::Deparse::pp_$name"} = $pp;
+        goto &$pp;
+      }
+      $B::Deparse::AUTOLOAD = $AUTOLOAD;
+      goto &$autoload;
+    };
   }
 }
 
@@ -2230,7 +2241,10 @@ against the sub.
 
 Run a deparsing callback against a shared C<B::Deparse> object prepared
 for the CV, with pragmata from the current COP applied where supported,
-and strip the unindent markers from the result.
+and strip the unindent markers from the result.  A custom op with no
+C<B::Deparse> method deparses to C<< <custom op NAME> >>, or
+C<< <custom op> >> when it has no registered name, instead of the C<XXX> and the
+warning that C<B::Deparse::AUTOLOAD> gives.
 
 =head2 _deparse_expr ($cv, $op, $cx, $use_dumper = 1)
 
