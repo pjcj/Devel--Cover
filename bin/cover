@@ -26,6 +26,7 @@ use Devel::Cover::Log       qw( dcerror dcinfo dcwarn );
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
 use Config       qw( %Config );
+use Cwd          qw( abs_path getcwd );
 use File::Spec   ();
 use File::Find   ();
 use File::Path   qw( mkpath rmtree );
@@ -320,7 +321,9 @@ sub do_test ($dbname) {
   return 0                  unless $Options->{test};
   delete_db($dbname, @ARGV) unless defined $Options->{delete};
   my $esc   = sub ($v) { $v =~ s/,/\\,/gr };
+  my ($dir) = abs_path(getcwd) =~ /(.*)/;
   my $extra = "-db," . $esc->($dbname);
+  $extra .= ",-dir," . $esc->($dir);
   $extra .= ",-coverage,$_" for map $esc->($_), $Options->{coverage}->@*;
   $extra .= ",-ignore,$_"
     for map $esc->($_), $Options->{ignore_re}->@*, map quotemeta, map glob,
@@ -419,7 +422,6 @@ sub is_cover_db ($dir) {
 
 sub do_gcov ($dbname) {
   return unless $Options->{gcov};
-  require Cwd;
   my $root = Cwd::getcwd;
   my @gc;
   my %seen;
@@ -877,7 +879,9 @@ which come as standard in recent Perl distributions.
 
 C<cover -test> replaces any C<PERL5OPT> and C<HARNESS_PERL_SWITCHES> in the
 environment with its own switches for the spawned test run.  To pass extra
-perl switches to the test run, set C<DEVEL_COVER_TEST_OPTS>.
+perl switches to the test run, set C<DEVEL_COVER_TEST_OPTS>.  The spawned run
+gets C<-db> for the database and C<-dir> for the current directory, so a process
+the tests start from another directory records files relative to it.
 
 The C<-jobs> option (also spelt C<-j>) asks the test harness to run that many
 test processes in parallel by setting C<HARNESS_OPTIONS=jN> for the spawned

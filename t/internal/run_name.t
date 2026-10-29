@@ -16,6 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
+use Cwd        ();
 use File::Path qw( make_path );
 use File::Spec ();
 use File::Temp qw( tempdir );
@@ -29,7 +30,8 @@ BEGIN {
     unless eval "require CPAN::Meta; 1";
 }
 
-my $Tmpdir = File::Spec->rel2abs(tempdir(CLEANUP => 1));
+# The run records the resolved directory with forward slashes
+my $Tmpdir = Cwd::abs_path(tempdir(CLEANUP => 1));
 
 sub write_file ($path, $contents) {
   open my $fh, ">", $path or die "Cannot write $path: $!";
@@ -38,7 +40,7 @@ sub write_file ($path, $contents) {
 }
 
 sub run_in ($name, $meta = undef, $inc = undef) {
-  my $dir = File::Spec->catdir($Tmpdir, $name);
+  my $dir = "$Tmpdir/$name";
   make_path($dir);
   write_file(File::Spec->catfile($dir, "MYMETA.json"), $meta) if $meta;
   my $script = File::Spec->catfile($dir, "run.pl");

@@ -66,6 +66,7 @@ BEGIN {
 my $Initialised;  # import() has been called
 
 my $Dir;                          # Directory in which coverage is collected
+my $Dir_given;                    # Directory as given, before abs_path
 my $DB             = "cover_db";  # DB name
 my $Merge          = 1;           # Merge databases
 my $Summary        = 1;           # Output coverage summary
@@ -257,10 +258,16 @@ sub _parse_options ($o, $blib) {
 
 sub _init_db {
   if (defined $Dir) {
-    $Dir = $1 if $Dir =~ /(.*)/;  # Die tainting
+    $Dir = $1 if $Dir =~ /(.*)/;      # Die tainting
+    $Dir = File::Spec->rel2abs($Dir);
   } else {
     $Dir = $1 if Cwd::getcwd() =~ /(.*)/;
   }
+  $Dir_given = $Dir;
+  $Dir_given =~ s|\\|/|g if $^O eq "MSWin32";
+  my $real = abs_path($Dir);
+  ($Dir) = $real =~ /(.*)/ if defined $real;
+  $Dir =~ s|\\|/|g if $^O eq "MSWin32";
 
   $DB = File::Spec->rel2abs($DB, $Dir);
   unless (mkdir $DB) {
@@ -452,8 +459,10 @@ sub autosplit_parent ($file) {
       }
     }
 
-    $file =~ s|\\|/|g       if $^O eq "MSWin32";
-    $file =~ s|^\Q$Dir\E/|| if defined $Dir;
+    $file =~ s|\\|/|g if $^O eq "MSWin32";
+    for my $dir (grep defined, $Dir, $Dir_given) {
+      last if $file =~ s|^\Q$dir\E/||;
+    }
 
     $Digests ||= Devel::Cover::DB::Digests->new(db => $DB,
       loose_perms => $Loose_perms);
@@ -1838,8 +1847,9 @@ adding and C<+> appends.  Unknown options warn and are skipped.
 
 =head2 _init_db
 
-Create the coverage database directory, untainting the paths, and delete
-any existing database unless merging.
+Resolve the collection directory to its real absolute path, create the
+coverage database directory, untainting the paths, and delete any
+existing database unless merging.
 
 =head2 _init_coverage
 
@@ -1892,7 +1902,8 @@ subs is recorded against the parent module.
 Return the canonical name for a file.  It strips eval prefixes, resolves
 module-relative paths against the directory the module was compiled in, takes
 the absolute path where that is safe and turns Windows separators into C</>.
-It then removes the C<$Dir> prefix and consults the digest store so identical
+It then removes the C<$Dir> prefix, or failing that the directory as given
+with its symbolic links unresolved, and consults the digest store so identical
 content is always reported under one name.
 Results are cached, and a flag stops recursion when normalising itself
 causes a module to load, as has happened with the Storable backend.
