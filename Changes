@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Pass the current directory as `-dir` to every process that `cover -test`
+  starts, so Devel::Cover names a file run from another directory relative to
+  the distribution, not by its absolute path (GH-893)
 - Deparse a custom op with a registered name to a placeholder that names it,
   so Devel::Cover no longer warns `unexpected OP_CUSTOM` for each one and the
   report labels no longer show `XXX` (GH-891)
