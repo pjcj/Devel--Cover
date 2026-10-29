@@ -51,6 +51,14 @@ sub test_success () {
   is $warned, "", "success warns nothing";
 }
 
+sub test_keeps_callers_underscore () {
+  my $c     = Devel::Cover::Collection->new;
+  my @names = qw( first second );
+  my @got   = map { $c->bsys($^X, "-e", 'print "line\n"'); $_ } @names;
+  is "@got",   "first second", q(bsys leaves the caller's $_ alone);
+  is "@names", "first second", 'bsys leaves the list under $_ alone';
+}
+
 sub test_failure () {
   # uc keeps the expected text out of the command echoed by the warning
   my ($output, $warned) = bsys_warnings(
@@ -76,6 +84,35 @@ sub test_timeout () {
   like $warned, qr/BEFORE HANG/,
     "timeout warning includes the command's output";
   like $warned, qr/killed [1-9]\d* process/, "timeout kills the hung command";
+}
+
+sub test_timeout_partial_line () {
+  my ($output, $warned) = bsys_warnings(
+    Devel::Cover::Collection->new(timeout => 1),
+    $^X,
+    "-e",
+    '$| = 1; print "first line\n"; print uc("hung test"), " ... "; sleep 30',
+  );
+  like $warned, qr/HUNG TEST \.\.\. \n/,
+    "timeout warning keeps the unfinished line";
+}
+
+sub test_long_output_tail () {
+  my ($output, $warned) = bsys_warnings(
+    Devel::Cover::Collection->new,
+    $^X, "-e",
+    '$| = 1; print "x" x 38_000, "\n", uc("tail marker"), "\n"; exit 1',
+  );
+  like $warned, qr/TAIL MARKER/, "a long failing output keeps its tail";
+
+  my $code = '$| = 1; print "x" x 38_000, "\n"; '
+    . 'print uc("hung test"), " ... "; sleep 30';
+  ($output, $warned) = bsys_warnings(
+    Devel::Cover::Collection->new(timeout => 1),
+    $^X, "-e", $code,
+  );
+  like $warned, qr/HUNG TEST \.\.\. \n/,
+    "a long hung output keeps the unfinished line";
 }
 
 sub test_deadline () {
@@ -137,8 +174,11 @@ sub test_fsys_dies () {
 
 sub main () {
   test_success;
+  test_keeps_callers_underscore;
   test_failure;
   test_timeout;
+  test_timeout_partial_line;
+  test_long_output_tail;
   test_deadline;
   test_local_build_sets_deadline;
   test_escaped_child;
