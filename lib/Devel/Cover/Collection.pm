@@ -111,10 +111,27 @@ class Devel::Cover::Collection {
     $left > 1 ? $left : 1
   }
 
+  method _group_commands ($pgrp) {
+    opendir my $dh, "/proc" or return;
+    local $/;
+    my @lines;
+    for my $pid (sort { $a <=> $b } grep /^\d+\z/, readdir $dh) {
+      open my $sfh, "<", "/proc/$pid/stat" or next;
+      my $stat  = <$sfh> // next;
+      my $group = (split " ", substr $stat, rindex($stat, ")") + 1)[2];
+      next unless defined $group && $group == $pgrp;
+      open my $cfh, "<", "/proc/$pid/cmdline" or next;
+      my $cmd = <$cfh> // next;
+      $cmd =~ tr/\0/ /;
+      $cmd =~ s/ \z//;
+      push @lines, "$pid $cmd";
+    }
+    @lines
+  }
+
   # display $non_buffered characters, then buffer
   method _sys ($non_buffered, @command) {
     # system @command; return ".";
-    local $_;  # while (<$fh>) below would clobber caller's $_
     my ($output1, $output2) = ("", "");
     my $max = 4e4;
     # say "Setting alarm for $timeout seconds";
@@ -130,7 +147,7 @@ class Devel::Cover::Collection {
         my $printed = 0;
         local $SIG{ALRM} = sub { die "alarm\n" };
         alarm $to;
-        while (my $l = <$fh>) {
+        while (sysread $fh, my $l, 65_536) {
           # print "got: $l";
           # say "printed $printed of $non_buffered";
           if ($printed < $non_buffered) {
@@ -142,8 +159,8 @@ class Devel::Cover::Collection {
           } else {
             $output1 .= $l;
             if (length $output1 > $max * .9) {
-              $output1 = substr $output1, 0, $max * .9;
-              $output2 = "\n";
+              my $rest = substr $output1, $max * .9, length $output1, "";
+              $output2 = substr "\n$rest", $max * -.1, $max * .1;
             }
           }
         }
@@ -171,8 +188,11 @@ class Devel::Cover::Collection {
       die "$@" unless $@ eq "alarm\n";  # propagate unexpected errs
       warn sprintf "Timed out after %d seconds!\n", $to;
       my $pgrp = getpgrp $pid;
-      my $n    = kill "-KILL", $pgrp;
+      warn "running: $_\n" for $self->_group_commands($pgrp);
+      my $n = kill "-KILL", $pgrp;
       warn "killed $n processes";
+      my $tail = length $output2 ? \$output2 : \$output1;
+      $$tail .= "\n" if length $$tail && $$tail !~ /\n\z/;
       # reap the killed child - close reports its death, which is expected
       close $fh if $fh;                 ## no critic (RequireCheckedClose)
     }
@@ -2336,7 +2356,9 @@ It dies, leaving the cache file as it was, when a fetch fails.
 
 Runs a system command, displaying the first portion of output immediately
 and buffering the rest. Returns the output on success, empty string on
-failure.
+failure. It reads the output in chunks, so a timeout does not lose a line the
+command had not finished. On a timeout it warns with the pid and command of each
+process still running in the group, when F</proc> exists.
 
 =head3 bsys
 
