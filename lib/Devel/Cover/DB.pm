@@ -21,7 +21,7 @@ use Devel::Cover::Log       qw( dcinfo dcwarn );
 
 use Carp         qw( carp croak );
 use Cwd          ();
-use Fcntl        qw( LOCK_EX LOCK_NB );
+use Fcntl        qw( LOCK_EX LOCK_NB LOCK_UN );
 use File::Find   qw( find );
 use File::Path   qw( rmtree );
 use File::Spec   ();
@@ -242,6 +242,7 @@ sub merge_runs ($self) {
 
   $self->clean;
 
+  flock $lock_fh, LOCK_UN or dcinfo "Can't unlock $db/merge.lock: $!";
   close $lock_fh or dcinfo "Can't close $db/merge.lock: $!";
 
   $self
@@ -1596,16 +1597,18 @@ C<$self>.
 
 The whole sequence is serialised via an exclusive flock on F<merge.lock> in
 the database directory, so concurrent merges cannot double-count runs. The
-lock file persists after release and C<clean> removes it once free. Before
-being written, merged runs are renamed to hidden C<.merged.*> siblings, so a
-merge interrupted between the write and the removal of its runs cannot merge
-them again. The next call removes such leftovers if the database already
-holds them and otherwise merges them in place, sorted with the plain runs by
-run name, so a merge interrupted before its write loses nothing and keeps the
-run order. When a rename aside and the removal both fail, the plain run stays
-behind, and the next call removes it rather than merging it again, since the
-database already holds it. A run directory without a database file belongs to
-a process that has not finished writing it, so it is left for a later merge.
+lock file persists after release and C<clean> removes it once free. The merge
+releases the lock before it closes the handle, so a close that the PerlIO
+descriptor count skips cannot keep it. Before being written, merged runs are
+renamed to hidden C<.merged.*> siblings, so a merge interrupted between the
+write and the removal of its runs cannot merge them again. The next call
+removes such leftovers if the database already holds them and otherwise merges
+them in place, sorted with the plain runs by run name, so a merge interrupted
+before its write loses nothing and keeps the run order. When a rename aside and
+the removal both fail, the plain run stays behind, and the next call removes it
+rather than merging it again, since the database already holds it. A run
+directory without a database file belongs to a process that has not finished
+writing it, so it is left for a later merge.
 
 =head2 validate_db
 

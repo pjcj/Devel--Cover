@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Release every database lock before closing its handle, so a program that
+  closes its descriptors with `POSIX::close` behind open Perl handles, as
+  daemonising modules do, no longer hangs at exit (GH-895)
 - Pass the current directory as `-dir` to every process that `cover -test`
   starts, so Devel::Cover names a file run from another directory relative to
   the distribution, not by its absolute path (GH-893)
