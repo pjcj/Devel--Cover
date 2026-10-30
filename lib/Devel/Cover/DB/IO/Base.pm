@@ -12,7 +12,7 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
-use Fcntl qw( LOCK_EX LOCK_SH );
+use Fcntl qw( LOCK_EX LOCK_SH LOCK_UN );
 
 # VERSION
 
@@ -37,14 +37,27 @@ sub _close_after ($fh, $what, $code) {
   $data
 }
 
+sub _unlock_after ($fh, $what, $code) {
+  _close_after(
+    $fh, $what,
+    sub {
+      my $data = eval { $code->() };
+      my $err  = $@;
+      $err ||= "Can't unlock $what: $!\n" unless flock $fh, LOCK_UN;
+      die $err if $err;
+      $data
+    },
+  )
+}
+
 sub _read ($self, $file, $reader) {
-  _close_after($self->_lock($file, LOCK_SH), "$file.lock", $reader)
+  _unlock_after($self->_lock($file, LOCK_SH), "$file.lock", $reader)
 }
 
 sub _write ($self, $file, $writer) {
   my $lock_fh = $self->_lock($file, LOCK_EX);
   my $tmp     = "$file.tmp.$$";
-  _close_after(
+  _unlock_after(
     $lock_fh,
     "$file.lock",
     sub {
@@ -129,6 +142,15 @@ Call C<$code> in scalar context, close C<$fh> whether C<$code> returned or
 died, and return the result. An error from C<$code> is rethrown after the close
 and takes precedence over a close failure, whose message names C<$what>. Every
 reader and writer returns a single value, so the scalar context loses nothing.
+
+=head2 _unlock_after ($fh, $what, $code)
+
+Call C<$code> as C<_close_after> does, but release the C<flock> on C<$fh>
+before closing it. Perl skips the close of a descriptor whose PerlIO count is
+raised, as after a C<POSIX::close> behind an open handle. Without the explicit
+unlock the lock would then stay held and block the next lock on the file in
+the same process. An error from C<$code> takes precedence over an unlock
+failure, whose message names C<$what>.
 
 =head2 _read ($self, $file, $reader)
 
