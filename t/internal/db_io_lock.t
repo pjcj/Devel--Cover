@@ -71,6 +71,9 @@ if ($mode eq "read") {
 } elsif ($mode eq "stale_read") {
   $io->read_fh($file, sub { my $in = shift; local $/; <$in> });
   $io->write_fh($file, sub { my $out = shift; print $out "more" });
+} elsif ($mode eq "stale_read_dies") {
+  eval { $io->read_fh($file, sub { die "boom\n" }) };
+  $io->write_fh($file, sub { my $out = shift; print $out "more" });
 } elsif ($mode eq "stale_merge") {
   my $db = "$file.db";
   mkdir $db         or die "mkdir $db: $!";
@@ -132,7 +135,8 @@ sub test_stale_fd ($mode) {
 sub main () {
   test_lock_released($_) for qw( read write read_dies write_dies merge_lock );
   test_inner_handles_released;
-  test_stale_fd($_) for qw( stale_write stale_read stale_merge );
+  test_stale_fd($_)
+    for qw( stale_write stale_read stale_read_dies stale_merge );
   done_testing;
 }
 
