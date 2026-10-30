@@ -18,7 +18,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use File::Spec ();
 use File::Temp qw( tempdir );
-use Test::More import => [qw( cmp_ok diag done_testing like plan )];
+use Test::More import => [qw( cmp_ok diag done_testing like plan unlike )];
 
 BEGIN {
   plan skip_all => "flock is emulated on Windows" if $^O eq "MSWin32";
@@ -29,6 +29,7 @@ sub setup ($tmpdir) {
   open my $fh, ">", $script or die "write $script: $!";
   print $fh <<'PERL';
 use Fcntl qw( LOCK_EX LOCK_NB );
+use POSIX ();
 use Devel::Cover::DB ();
 use Devel::Cover::DB::IO::Base ();
 
@@ -37,8 +38,17 @@ open my $fh, ">", $file or die "write $file: $!";
 print $fh "data";
 close $fh or die "close $file: $!";
 
-close STDIN;
+close STDIN unless $mode =~ /^stale/;
 close STDOUT if $mode eq "inner_dies";
+
+# POSIX::close behind an open handle keeps the next lock on a reused fd held
+my $kept;
+if ($mode =~ /^stale/) {
+  open $kept, "<", $file or die "read $file: $!";
+  POSIX::close(fileno $kept);
+  $SIG{ALRM} = sub { print STDERR "$mode deadlock\n"; POSIX::_exit(1) };
+  alarm 10;
+}
 
 my $io   = Devel::Cover::DB::IO::Base->new;
 my $lock = "$file.lock";
@@ -55,6 +65,18 @@ if ($mode eq "read") {
   mkdir $db         or die "mkdir $db: $!";
   mkdir "$db/runs"  or die "mkdir $db/runs: $!";
   Devel::Cover::DB->new(db => $db)->merge_runs;
+  $lock = "$db/merge.lock";
+} elsif ($mode eq "stale_write") {
+  $io->write_fh($file, sub { my $out = shift; print $out "more" }) for 1, 2;
+} elsif ($mode eq "stale_read") {
+  $io->read_fh($file, sub { my $in = shift; local $/; <$in> });
+  $io->write_fh($file, sub { my $out = shift; print $out "more" });
+} elsif ($mode eq "stale_merge") {
+  my $db = "$file.db";
+  mkdir $db         or die "mkdir $db: $!";
+  mkdir "$db/runs"  or die "mkdir $db/runs: $!";
+  my $cover = Devel::Cover::DB->new(db => $db);
+  $cover->merge_runs for 1, 2;
   $lock = "$db/merge.lock";
 }
 
@@ -99,9 +121,18 @@ sub test_inner_handles_released () {
     or diag $output;
 }
 
+sub test_stale_fd ($mode) {
+  my $output = run_child($mode);
+  like $output, qr/\Q$mode lock released\E/,
+    "$mode releases the lock after a descriptor is closed behind Perl"
+    or diag $output;
+  unlike $output, qr/deadlock/, "$mode does not deadlock" or diag $output;
+}
+
 sub main () {
   test_lock_released($_) for qw( read write read_dies write_dies merge_lock );
   test_inner_handles_released;
+  test_stale_fd($_) for qw( stale_write stale_read stale_merge );
   done_testing;
 }
 
