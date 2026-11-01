@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------------ ------ ------ ------ ------
 File                       stmt   bran  total   scar
 ------------------------ ------ ------ ------ ------
-tests/uncoverable_guards  100.0  100.0  100.0    5.9
-Total                     100.0  100.0  100.0    5.9
+tests/uncoverable_guards  100.0  100.0  100.0    6.4
+Total                     100.0  100.0  100.0    6.4
 ------------------------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
- 5 100.0  1.8  5.9
+ 5 100.0  1.9  6.4
 
 Worst Subroutines
 -----------------

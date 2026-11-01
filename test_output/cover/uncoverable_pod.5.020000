@@ -133,9 +133,9 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location          
 ---------- ----- --- ----- ------------------
-BEGIN          1   1   0.0 uncoverable_pod:14
-BEGIN          1   1   0.0 uncoverable_pod:15
-BEGIN          1   1   0.0 uncoverable_pod:17
-BEGIN          1   1   0.0 uncoverable_pod:19
+BEGIN          1           uncoverable_pod:14
+BEGIN          1           uncoverable_pod:15
+BEGIN          1           uncoverable_pod:17
+BEGIN          1           uncoverable_pod:19
 
 

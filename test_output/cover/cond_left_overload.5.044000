@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------------ ------ ------ ------ ------ ------ ------ ------
 File                       stmt   bran   cond   mcdc    sub  total   scar
 ------------------------ ------ ------ ------ ------ ------ ------ ------
-tests/cond_left_overload   98.0   50.0   42.8    0.0   85.7   66.6    0.0
-Total                      98.0   50.0   42.8    0.0   85.7   66.6    0.0
+tests/cond_left_overload   98.0   50.0   42.8    0.0   85.7   66.6   30.3
+Total                      98.0   50.0   42.8    0.0   85.7   66.6   30.3
 ------------------------ ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,15 +20,15 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 74.7  1.0  0.0
+19 74.7 20.7 30.3
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SCAR  Location                   
----------- -- ----  ---------------------------
-__ANON__    1  0.2  tests/cond_left_overload:21
-BEGIN       1  0.0  tests/cond_left_overload:20
+Subroutine        CC SCAR  Location                   
+----------------- -- ----  ---------------------------
+{file-level code} 19 32.1  tests/cond_left_overload:13
+__ANON__           1  0.2  tests/cond_left_overload:21
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -201,9 +201,9 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location                   
 ---------- ----- --- ----- ---------------------------
-BEGIN          1   1   0.0 tests/cond_left_overload:13
-BEGIN          1   1   0.0 tests/cond_left_overload:14
-BEGIN          1   1   0.0 tests/cond_left_overload:20
+BEGIN          1           tests/cond_left_overload:13
+BEGIN          1           tests/cond_left_overload:14
+BEGIN          1           tests/cond_left_overload:20
 __ANON__      17   1   0.0 tests/cond_left_overload:20
 new            4   1   0.0 tests/cond_left_overload:22
 noop           1   1   0.0 tests/cond_left_overload:26

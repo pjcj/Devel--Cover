@@ -163,6 +163,145 @@ sub test_cc_counting () {
   is $cc->{9}{with_foreach}[0], 2, "foreach: CC = 2";
 }
 
+# File-level code tests.
+# Line layout:
+# 1: my $x = 1;                          - first file-level statement
+# 2: if ($x) { $x++ }                    - one cond_expr (if)
+# 3: BEGIN { our $y = ... ? 1 : 0 }      - one cond_expr (?:)
+# 4: sub named { $_[0] ? 1 : 0 }         - CC = 2, its own entry
+# 5: named($x);                          - last line
+sub test_file_level_code () {
+  my ($db_path, $script) = run_cover("cc_file_level", <<'PERL');
+my $x = 1;
+if ($x) { $x++ }
+BEGIN { our $y = $ENV{CC_FILE_LEVEL} ? 1 : 0 }
+sub named { $_[0] ? 1 : 0 }
+named($x);
+PERL
+
+  my $st = Devel::Cover::DB::Structure->new(base => $db_path);
+  $st->read_all;
+  my $digest = md5_file($script);
+  my $cc     = $st->get_complexity($digest);
+
+  is $cc->{1}{"{file-level code}"}[0], 3,
+    "file-level: CC = 3 from the if and the BEGIN ternary";
+  ok !grep(exists $_->{BEGIN}, values %$cc), "file-level: no BEGIN entry";
+  is $cc->{4}{named}[0], 2, "file-level: named sub keeps its own CC";
+
+  my $ends = $st->get_end_lines($digest);
+  is $ends->{1}{"{file-level code}"}[0], 5,
+    "file-level: end line is the last line of the file";
+}
+
+# File-level code split by #line directives.
+# Line layout:
+# 1: my $x = 1;                          - own file, line 1
+# 2: #line 50 "other.pl"
+# 3: my $y = $x ? 1 : 0;                 - other.pl, line 50, one cond_expr
+# 4: #line 5 "cc_line_split.pl"
+# 5: if ($y) { $y++ }                    - own file, line 5, one cond_expr
+sub test_file_level_line_directive () {
+  my $other = File::Spec->catfile($Tmpdir, "other.pl");
+  open my $fh, ">", $other or die "Cannot write $other: $!";
+  print $fh "# other.pl\n";
+  close $fh or die "Cannot close $other: $!";
+
+  my $own = File::Spec->catfile($Tmpdir, "cc_line_split.pl");
+  my ($db_path, $script) = run_cover("cc_line_split", <<PERL);
+my \$x = 1;
+#line 50 "$other"
+my \$y = \$x ? 1 : 0;
+#line 5 "$own"
+if (\$y) { \$y++ }
+PERL
+
+  my $st = Devel::Cover::DB::Structure->new(base => $db_path);
+  $st->read_all;
+  my $fl = "{file-level code}";
+
+  my $own_digest = md5_file($script);
+  my $cc         = $st->get_complexity($own_digest);
+  my $ends       = $st->get_end_lines($own_digest);
+  is $cc->{1}{$fl}[0],   2, "#line: own file CC = 2 from its if only";
+  is $ends->{1}{$fl}[0], 5, "#line: own file end line is its last line";
+  ok !exists $cc->{50}, "#line: own file has no entry at the other line";
+
+  my $other_digest = md5_file($other);
+  my $occ          = $st->get_complexity($other_digest);
+  my $oends        = $st->get_end_lines($other_digest);
+  is $occ->{50}{$fl}[0],   2,  "#line: other file CC = 2 from its ternary";
+  is $oends->{50}{$fl}[0], 50, "#line: other file end line is its own line";
+}
+
+# File-level code with a decision in an END block.
+# Line layout:
+# 1: my $x = 1;                          - first file-level statement
+# 2: END { $x++ if $x }                  - one logop (and)
+sub test_file_level_end_block () {
+  my $cc = cover_complexity("cc_end_block", <<'PERL');
+my $x = 1;
+END { $x++ if $x }
+PERL
+
+  is $cc->{1}{"{file-level code}"}[0], 2,
+    "file-level: CC = 2 from the END block decision";
+}
+
+# Run [ name, source, CC_DIE ] triples under Devel::Cover into one database.
+sub run_cover_shared_db ($db, @runs) {
+  my @inc = map { "-I$_" } "$Root/blib/arch", "$Root/blib/lib", "$Root/lib";
+  for my $run (@runs) {
+    my ($name, $content, $die) = @$run;
+    my $script = File::Spec->catfile($Tmpdir, "$name.pl");
+    open my $fh, ">", $script or die "Cannot write $script: $!";
+    print $fh $content;
+    close $fh or die "Cannot close $script: $!";
+    local $ENV{CC_DIE} = $die;
+    system($^X, @inc, "-MDevel::Cover=-db,$db,-silent,1", $script) == 0
+      or die "Failed to run $name under Devel::Cover: $?";
+  }
+}
+
+# A reused structure keeps one file-level entry per file.
+# Module line layout:
+# 1: package CcReuse;
+# 2: our $X = ... ? 1 : 0;               - lowest line when the code runs
+# 3: use strict;                         - lowest line when only BEGIN runs
+# 4: use warnings;
+# 5: die "stop\n" if $ENV{CC_DIE};       - dies in the second run
+sub test_file_level_reused_structure () {
+  my $dir    = File::Spec->catdir($Tmpdir, "cc_reuse");
+  my $module = File::Spec->catfile($dir, "CcReuse.pm");
+  mkdir $dir or die "Cannot mkdir $dir: $!";
+  open my $fh, ">", $module or die "Cannot write $module: $!";
+  print $fh <<'PERL';
+package CcReuse;
+our $X = $ENV{CC_REUSE} ? 1 : 0;
+use strict;
+use warnings;
+die "stop\n" if $ENV{CC_DIE};
+1;
+PERL
+  close $fh or die "Cannot close $module: $!";
+
+  my $db = File::Spec->catdir($dir, "db");
+  run_cover_shared_db(
+    $db,
+    ["cc_reuse_run", "use lib '$dir';\nuse CcReuse;\n",              0],
+    ["cc_reuse_die", "use lib '$dir';\neval { require CcReuse };\n", 1],
+  );
+
+  my $st = Devel::Cover::DB::Structure->new(base => $db);
+  $st->read_all;
+  my $digest  = md5_file($module);
+  my $fl      = "{file-level code}";
+  my @entries = grep exists $_->{$fl}, values $st->get_complexity($digest)->%*;
+  my @ends    = grep exists $_->{$fl}, values $st->get_end_lines($digest)->%*;
+  is @entries, 1, "reused structure: one file-level complexity entry";
+  is @ends,    1, "reused structure: one file-level end line entry";
+}
+
 # Summary aggregation tests
 # Reuse the same test script layout (6 subs: CC = 1, 2, 3, 2, 2, 2).
 sub test_summary_aggregation () {
@@ -182,18 +321,18 @@ sub test_summary_aggregation () {
   my $cs = $db->{summary}{$file}{complexity};
   ok defined $cs, "file summary has complexity entry";
 
-  # 8 subs: 6 named + 2 BEGIN blocks from use strict/warnings.
-  # CC values: 1,1 (BEGINs), 1,2,3,2,2,2 (named) = sum 14, mean 1.75
-  is $cs->{max},   3,    "file complexity max = 3 (elsif_two)";
-  is $cs->{mean},  1.75, "file complexity mean = 1.75";
-  is $cs->{count}, 8,    "file complexity count = 8 subs";
+  # 7 entries: 6 named subs and the file-level code.
+  # CC values: 1 (file-level), 1,2,3,2,2,2 (named) = sum 13, mean 13 / 7
+  is $cs->{max}, 3, "file complexity max = 3 (elsif_two)";
+  ok abs($cs->{mean} - 13 / 7) < 1e-9, "file complexity mean = 13 / 7";
+  is $cs->{count}, 7, "file complexity count = 7 entries";
 
   my $ts = $db->{summary}{Total}{complexity};
   ok defined $ts, "Total summary has complexity entry";
 
-  is $ts->{max},   3,    "Total complexity max = 3";
-  is $ts->{mean},  1.75, "Total complexity mean = 1.75";
-  is $ts->{count}, 8,    "Total complexity count = 8";
+  is $ts->{max}, 3, "Total complexity max = 3";
+  ok abs($ts->{mean} - 13 / 7) < 1e-9, "Total complexity mean = 13 / 7";
+  is $ts->{count}, 7, "Total complexity count = 7";
 }
 
 # Sub end line tests
@@ -765,6 +904,10 @@ sub test_print_summary_scar () {
 
 sub main () {
   test_cc_counting;
+  test_file_level_code;
+  test_file_level_line_directive;
+  test_file_level_end_block;
+  test_file_level_reused_structure;
   test_summary_aggregation;
   test_end_lines;
   test_signature_cc;

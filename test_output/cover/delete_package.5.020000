@@ -2,8 +2,8 @@ cover: Reading database from ...
 -------------------- ------ ------ ------ ------ ------ ------ ------
 File                   stmt   bran   cond    sub    pod  total   scar
 -------------------- ------ ------ ------ ------ ------ ------ ------
-tests/delete_package   92.3    n/a    n/a   80.0    n/a   88.8    1.8
-Total                  92.3    n/a    n/a   80.0    n/a   88.8    1.8
+tests/delete_package   92.3    n/a    n/a   80.0    n/a   88.8    2.9
+Total                  92.3    n/a    n/a   80.0    n/a   88.8    2.9
 -------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 92.3  1.2  1.8
+ 1 92.3  1.3  2.9
 
 Worst Subroutines
 -----------------
@@ -73,9 +73,9 @@ Covered Subroutines
 
 Subroutine Count  CC  SCAR Location               
 ---------- ----- --- ----- -----------------------
-BEGIN          1   1   0.0 tests/delete_package:17
-BEGIN          1   1   0.0 tests/delete_package:18
-BEGIN          1   1   0.0 tests/delete_package:20
+BEGIN          1           tests/delete_package:17
+BEGIN          1           tests/delete_package:18
+BEGIN          1           tests/delete_package:20
 bar            1   1   0.0 tests/delete_package:24
 
 Uncovered Subroutines

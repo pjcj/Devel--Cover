@@ -1,0 +1,156 @@
+cover: Reading database from ...
+----------------------- ------ ------ ------ ------ ------
+File                      stmt   bran   cond  total   scar
+----------------------- ------ ------ ------ ------ ------
+tests/uncoverable_count  100.0  100.0  100.0  100.0   27.1
+Total                    100.0  100.0  100.0  100.0   27.1
+----------------------- ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/uncoverable_count
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+15 100.0 15.0 27.1
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location                  
+----------------- -- ----  --------------------------
+{file-level code} 15 27.1  tests/uncoverable_count:15
+
+line  err   stmt   bran   cond   code
+1                                #!/usr/bin/perl
+2                                
+3                                # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                
+5                                # This software is free.  It is licensed under the same terms as Perl itself.
+6                                
+7                                # The latest version of this software should be available from my homepage:
+8                                # https://pjcj.net
+9                                
+10                               # __COVER__ criteria statement branch condition
+11                               
+12                               # This test keeps the legacy "# uncoverable" spelling on purpose, so the
+13                               # alias stays covered by a golden test.  Everything else uses "# dc".
+14                               
+15             1                 use strict;
+               1                 
+               1                 
+16             1                 use warnings;
+               1                 
+               1                 
+17                               
+18             1                 my $R;
+19                               
+20                               # GH-481 - branch count:N addresses the Nth branch on the chain line, so
+21                               # count:3 reaches the second elsif.
+22                               
+23             1                 my $N = 0;
+24                               
+25                               # uncoverable branch false count:1
+26                               # uncoverable branch true count:2
+27                               # uncoverable branch false count:2
+28                               # uncoverable branch true count:3
+29                               # uncoverable branch false count:3
+30             1   -100          if ($N == 0) {
+                   -100          
+                   -100          
+31             1                   $R = "zero";
+32                               } elsif ($N == 1) {
+33            -0                   $R = "one";  # uncoverable statement
+34                               } elsif ($N == 2) {
+35            -0                   $R = "two";  # uncoverable statement
+36                               } else {
+37            -0                   $R = "three";  # uncoverable statement
+38                               }
+39                               
+40                               # GH-242 - condition annotations anchor on the elsif's own line, and count:N
+41                               # addresses stacked condition ops on one line, outer op first.
+42                               
+43             1                 my ($From, $Until, $Start, $End) = (5, 20, 10, 15);
+44                               
+45                               # uncoverable branch true count:1
+46                               # uncoverable branch true count:2
+47                               # uncoverable branch false count:3
+48                               # uncoverable condition when:0X
+49                               # uncoverable condition when:11
+50             1   -100   -100   if ($From < $Start && $Until < $End) {
+                   -100          
+                   -100          
+51            -0                   $R = "a";  # uncoverable statement
+52                                            # uncoverable condition when:10 count:1
+53                                            # uncoverable condition when:11 count:1
+54                                            # uncoverable condition when:10 count:2
+55                                            # uncoverable condition when:11 count:2
+56                        -100   } elsif ($From >= $Start && $From < $End && $Until >= $End) {
+                          -100   
+57            -0                   $R = "b";  # uncoverable statement
+58                                            # uncoverable condition when:0X
+59                                            # uncoverable condition when:10
+60                        -100   } elsif ($From < $Start && $Until >= $End) {
+61             1                   $R = "c";
+62                               }
+63                               
+64                               # Each of several if statements on one line adds its own branch, and count:N
+65                               # selects them in textual order.
+66                               
+67             1                 my ($A, $B) = (1, 0);
+68             1                 my ($X, $Y) = (0, 0);
+69                               
+70                               #<<<
+71                               # uncoverable branch false count:1
+72                               # uncoverable branch true count:2
+73                               # uncoverable statement count:4
+74             1   -100          if ($A) { $X = 1 } if ($B) { $Y = 1 }
+               1   -100          
+               1                 
+              -0                 
+75                               
+76                               # uncoverable branch false count:1
+77                               # uncoverable branch true count:2
+78             1   -100          $X++ if $A; $Y++ if $B;
+               1   -100          
+79                               #>>>
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+30          -100      1     -0   if ($N == 0) { }
+            -100     -0     -0   elsif ($N == 1) { }
+            -100     -0     -0   elsif ($N == 2) { }
+50          -100     -0      1   if ($From < $Start and $Until < $End) { }
+            -100     -0      1   elsif ($From >= $Start and $From < $End and $Until >= $End) { }
+            -100      1     -0   elsif ($From < $Start and $Until >= $End) { }
+74          -100      1     -0   if ($A)
+            -100     -0      1   if ($B)
+78          -100      1     -0   if $A
+            -100     -0      1   if $B
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+50          -100     -0      1     -0   $From < $Start and $Until < $End
+56          -100      1     -0     -0   $From >= $Start and $From < $End and $Until >= $End
+            -100      1     -0     -0   $From >= $Start and $From < $End
+60          -100     -0     -0      1   $From < $Start and $Until >= $End
+
+
