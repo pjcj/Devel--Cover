@@ -2,8 +2,8 @@ cover: Reading database from ...
 --------------- ------ ------ ------ ------ ------ ------ ------
 File              stmt   bran   cond   mcdc    sub  total   scar
 --------------- ------ ------ ------ ------ ------ ------ ------
-tests/dor_fixed  100.0   92.8   86.2   60.8  100.0   91.4    9.6
-Total            100.0   92.8   86.2   60.8  100.0   91.4    9.6
+tests/dor_fixed  100.0   92.8   86.2   60.8  100.0   91.4   10.2
+Total            100.0   92.8   86.2   60.8  100.0   91.4   10.2
 --------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,16 +20,16 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-29 94.8  2.6  9.6
+32 94.8  2.8 10.2
 
 Worst Subroutines
 -----------------
 
-Subroutine     CC SCAR  Location          
--------------- -- ----  ------------------
-ternary_nested  4 13.9  tests/dor_fixed:71
-nested_or_var   3 11.3  tests/dor_fixed:95
-ternary_var     3 11.0  tests/dor_fixed:65
+Subroutine        CC SCAR  Location          
+----------------- -- ----  ------------------
+ternary_nested     4 13.9  tests/dor_fixed:71
+{file-level code}  4 13.9  tests/dor_fixed:10
+nested_or_var      3 11.3  tests/dor_fixed:95
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -276,29 +276,30 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine     Count  CC  SCAR Location           
--------------- ----- --- ----- -------------------
-BEGIN              1   1   0.0 tests/dor_fixed:10 
-BEGIN              1   1   0.0 tests/dor_fixed:11 
-class              2   2   6.9 tests/dor_fixed:34 
-dor_super          2   2   6.9 tests/dor_fixed:23 
-dynamic            2   2   7.0 tests/dor_fixed:37 
-helper             1   1   0.0 tests/dor_fixed:17 
-last_index         2   2   6.9 tests/dor_fixed:44 
-last_index_ref     2   2   6.9 tests/dor_fixed:45 
-method             2   2   6.9 tests/dor_fixed:33 
-method_ret         2   2   7.0 tests/dor_fixed:35 
-nested_and         4   3  11.0 tests/dor_fixed:89 
-nested_and_var     4   3  11.0 tests/dor_fixed:101
-nested_dor         4   3  11.0 tests/dor_fixed:83 
-nested_or          4   3  11.0 tests/dor_fixed:77 
-nested_or_var      4   3  11.3 tests/dor_fixed:95 
-new                2   1   0.0 tests/dor_fixed:15 
-ternary            4   3  11.0 tests/dor_fixed:47 
-ternary_arith      4   3  11.0 tests/dor_fixed:53 
-ternary_die        4   3  11.0 tests/dor_fixed:59 
-ternary_nested     4   4  13.9 tests/dor_fixed:71 
-ternary_var        4   3  11.0 tests/dor_fixed:65 
-usage_die          4   1   0.0 tests/dor_fixed:16 
+Subroutine        Count  CC  SCAR Location           
+----------------- ----- --- ----- -------------------
+BEGIN                 1           tests/dor_fixed:10 
+BEGIN                 1           tests/dor_fixed:11 
+class                 2   2   6.9 tests/dor_fixed:34 
+dor_super             2   2   6.9 tests/dor_fixed:23 
+dynamic               2   2   7.0 tests/dor_fixed:37 
+helper                1   1   0.0 tests/dor_fixed:17 
+last_index            2   2   6.9 tests/dor_fixed:44 
+last_index_ref        2   2   6.9 tests/dor_fixed:45 
+method                2   2   6.9 tests/dor_fixed:33 
+method_ret            2   2   7.0 tests/dor_fixed:35 
+nested_and            4   3  11.0 tests/dor_fixed:89 
+nested_and_var        4   3  11.0 tests/dor_fixed:101
+nested_dor            4   3  11.0 tests/dor_fixed:83 
+nested_or             4   3  11.0 tests/dor_fixed:77 
+nested_or_var         4   3  11.3 tests/dor_fixed:95 
+new                   2   1   0.0 tests/dor_fixed:15 
+ternary               4   3  11.0 tests/dor_fixed:47 
+ternary_arith         4   3  11.0 tests/dor_fixed:53 
+ternary_die           4   3  11.0 tests/dor_fixed:59 
+ternary_nested        4   4  13.9 tests/dor_fixed:71 
+ternary_var           4   3  11.0 tests/dor_fixed:65 
+usage_die             4   1   0.0 tests/dor_fixed:16 
+{file-level code}         4  13.9 tests/dor_fixed:10 
 
 

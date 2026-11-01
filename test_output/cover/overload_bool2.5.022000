@@ -59,11 +59,12 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location               
----------- ----- --- ----- -----------------------
-BEGIN          1   1   0.0 tests/overload_bool2:10
-BEGIN          1   1   0.0 tests/overload_bool2:11
-BEGIN          1   1   0.0 tests/overload_bool2:16
-meh            2   1   0.0 tests/overload_bool2:18
+Subroutine        Count  CC  SCAR Location               
+----------------- ----- --- ----- -----------------------
+BEGIN                 1           tests/overload_bool2:10
+BEGIN                 1           tests/overload_bool2:11
+BEGIN                 1           tests/overload_bool2:16
+meh                   2   1   0.0 tests/overload_bool2:18
+{file-level code}         1   0.0 tests/overload_bool2:10
 
 

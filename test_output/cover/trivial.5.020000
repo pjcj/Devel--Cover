@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------- ------ ------ ------ ------ ------ ------ ------
 File            stmt   bran   cond   mcdc    sub  total   scar
 ------------- ------ ------ ------ ------ ------ ------ ------
-tests/trivial  100.0    n/a    n/a    n/a    n/a  100.0    n/a
-Total          100.0    n/a    n/a    n/a    n/a  100.0    n/a
+tests/trivial  100.0    n/a    n/a    n/a    n/a  100.0    0.0
+Total          100.0    n/a    n/a    n/a    n/a  100.0    0.0
 ------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -14,6 +14,13 @@ Start: ...
 Finish: ...
 
 tests/trivial
+
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -26,5 +33,13 @@ line  err   stmt   bran   cond   mcdc    sub   code
 8                                              # https://pjcj.net
 9                                              
 10             1                               my $x = 1;
+
+
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+{file-level code}         1   0.0 tests/trivial:10
 
 

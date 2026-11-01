@@ -51,9 +51,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location        
----------- ----- --- ----- ----------------
-DESTROY        1   1   0.0 tests/destroy:16
-new            1   1   0.0 tests/destroy:12
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+DESTROY               1   1   0.0 tests/destroy:16
+new                   1   1   0.0 tests/destroy:12
+{file-level code}         1   0.0 tests/destroy:14
 
 

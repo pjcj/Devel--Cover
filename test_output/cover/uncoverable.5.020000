@@ -3,8 +3,8 @@ cover: Warning: 2 unmatched uncoverable comments not found at end of tests/uncov
 ----------------- ------ ------ ------ ------ ------ ------ ------
 File                stmt   bran   cond   mcdc    sub  total   scar
 ----------------- ------ ------ ------ ------ ------ ------ ------
-tests/uncoverable  100.0  100.0  100.0  100.0  100.0  100.0    0.0
-Total              100.0  100.0  100.0  100.0  100.0  100.0    0.0
+tests/uncoverable  100.0  100.0  100.0  100.0  100.0  100.0   21.0
+Total              100.0  100.0  100.0  100.0  100.0  100.0   21.0
 ----------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -21,7 +21,14 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
- 1 100.0  1.0  0.0
+ 9 100.0  8.2 21.0
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location            
+----------------- -- ----  --------------------
+{file-level code}  9 22.0  tests/uncoverable:10
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -146,11 +153,18 @@ line  err      %  cov  tot   missing                expr
 61          -100    0    2                          $x < 2 and $y < 0
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+{file-level code}         9  22.0 tests/uncoverable:10
+
 Uncoverable Subroutines
 -----------------------
 
-Subroutine Count  CC  SCAR Location            
----------- ----- --- ----- --------------------
-z             -0   1   0.0 tests/uncoverable:47
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+z                    -0   1   0.0 tests/uncoverable:47
 
 

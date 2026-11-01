@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------------ ------ ------ ------ ------ ------ ------ ------
 File                       stmt   bran   cond   mcdc    sub  total   scar
 ------------------------ ------ ------ ------ ------ ------ ------ ------
-tests/cond_left_overload   98.0   50.0   42.8    0.0   85.7   66.6    0.0
-Total                      98.0   50.0   42.8    0.0   85.7   66.6    0.0
+tests/cond_left_overload   98.0   50.0   42.8    0.0   85.7   66.6   30.7
+Total                      98.0   50.0   42.8    0.0   85.7   66.6   30.7
 ------------------------ ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,15 +20,15 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 74.7  1.0  0.0
+19 74.7 21.6 30.7
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SCAR  Location                   
----------- -- ----  ---------------------------
-__ANON__    1  0.2  tests/cond_left_overload:21
-BEGIN       1  0.0  tests/cond_left_overload:20
+Subroutine        CC SCAR  Location                   
+----------------- -- ----  ---------------------------
+{file-level code} 19 32.6  tests/cond_left_overload:13
+__ANON__           1  0.2  tests/cond_left_overload:21
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -199,20 +199,21 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location                   
----------- ----- --- ----- ---------------------------
-BEGIN          1   1   0.0 tests/cond_left_overload:13
-BEGIN          1   1   0.0 tests/cond_left_overload:14
-BEGIN          1   1   0.0 tests/cond_left_overload:20
-__ANON__      17   1   0.0 tests/cond_left_overload:20
-new            4   1   0.0 tests/cond_left_overload:22
-noop           1   1   0.0 tests/cond_left_overload:26
+Subroutine        Count  CC  SCAR Location                   
+----------------- ----- --- ----- ---------------------------
+BEGIN                 1           tests/cond_left_overload:13
+BEGIN                 1           tests/cond_left_overload:14
+BEGIN                 1           tests/cond_left_overload:20
+__ANON__             17   1   0.0 tests/cond_left_overload:20
+new                   4   1   0.0 tests/cond_left_overload:22
+noop                  1   1   0.0 tests/cond_left_overload:26
+{file-level code}        19  32.6 tests/cond_left_overload:13
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location                   
----------- ----- --- ----- ---------------------------
-__ANON__       0   1   0.2 tests/cond_left_overload:21
+Subroutine        Count  CC  SCAR Location                   
+----------------- ----- --- ----- ---------------------------
+__ANON__              0   1   0.2 tests/cond_left_overload:21
 
 

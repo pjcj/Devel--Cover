@@ -2,8 +2,8 @@ cover: Reading database from ...
 ----------------------- ------ ------ ------ ------ ------ ------ ------
 File                      stmt   bran   cond   mcdc    sub  total   scar
 ----------------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_nested_right  100.0  100.0  100.0  100.0  100.0  100.0   13.7
-Total                    100.0  100.0  100.0  100.0  100.0  100.0   13.7
+tests/mcdc_nested_right  100.0  100.0  100.0  100.0  100.0  100.0   13.9
+Total                    100.0  100.0  100.0  100.0  100.0  100.0   13.9
 ----------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
-23 100.0  3.9 13.7
+23 100.0  4.0 13.9
 
 Worst Subroutines
 -----------------
@@ -223,17 +223,18 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine    Count  CC  SCAR Location                  
-------------- ----- --- ----- --------------------------
-BEGIN             1   1   0.0 tests/mcdc_nested_right:17
-BEGIN             1   1   0.0 tests/mcdc_nested_right:18
-and_or_and        5   5  16.1 tests/mcdc_nested_right:46
-and_or_block      4   4  13.9 tests/mcdc_nested_right:32
-and_or_chain      5   5  16.1 tests/mcdc_nested_right:52
-and_or_if         4   4  13.9 tests/mcdc_nested_right:20
-and_or_unless     4   4  13.9 tests/mcdc_nested_right:40
-and_or_value      4   3  11.0 tests/mcdc_nested_right:58
-main              1   1   0.0 tests/mcdc_nested_right:63
-or_and_if         4   4  13.9 tests/mcdc_nested_right:26
+Subroutine        Count  CC  SCAR Location                  
+----------------- ----- --- ----- --------------------------
+BEGIN                 1           tests/mcdc_nested_right:17
+BEGIN                 1           tests/mcdc_nested_right:18
+and_or_and            5   5  16.1 tests/mcdc_nested_right:46
+and_or_block          4   4  13.9 tests/mcdc_nested_right:32
+and_or_chain          5   5  16.1 tests/mcdc_nested_right:52
+and_or_if             4   4  13.9 tests/mcdc_nested_right:20
+and_or_unless         4   4  13.9 tests/mcdc_nested_right:40
+and_or_value          4   3  11.0 tests/mcdc_nested_right:58
+main                  1   1   0.0 tests/mcdc_nested_right:63
+or_and_if             4   4  13.9 tests/mcdc_nested_right:26
+{file-level code}         1   0.0 tests/mcdc_nested_right:17
 
 

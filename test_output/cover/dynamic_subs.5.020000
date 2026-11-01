@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------ ------ ------ ------ ------ ------ ------ ------
 File                 stmt   bran   cond   mcdc    sub  total   scar
 ------------------ ------ ------ ------ ------ ------ ------ ------
-tests/dynamic_subs   97.2   75.0    n/a    n/a   80.0   92.0    3.6
-Total                97.2   75.0    n/a    n/a   80.0   92.0    3.6
+tests/dynamic_subs   97.2   75.0    n/a    n/a   80.0   92.0    4.7
+Total                97.2   75.0    n/a    n/a   80.0   92.0    4.7
 ------------------ ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,16 +20,16 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 3 95.0  1.4  3.6
+ 4 95.0  1.6  4.7
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SCAR  Location             
----------- -- ----  ---------------------
-__ANON__    2  7.2  tests/dynamic_subs:15
-unused      1  6.9  tests/dynamic_subs:10
-AUTOLOAD    2  6.9  tests/dynamic_subs:40
+Subroutine        CC SCAR  Location             
+----------------- -- ----  ---------------------
+__ANON__           2  7.2  tests/dynamic_subs:15
+unused             1  6.9  tests/dynamic_subs:10
+{file-level code}  2  6.9  tests/dynamic_subs:21
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -110,23 +110,24 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location             
----------- ----- --- ----- ---------------------
-AUTOLOAD       3   2   6.9 tests/dynamic_subs:40
-BEGIN          1   1   0.0 tests/dynamic_subs:31
-BEGIN          1   1   0.0 tests/dynamic_subs:43
-__ANON__       5   2   7.2 tests/dynamic_subs:15
-__ANON__       2   1   0.0 tests/dynamic_subs:32
-__ANON__       3   1   0.0 tests/dynamic_subs:45
-__ANON__       2   1   0.0 tests/dynamic_subs:49
-gen            4   1   0.0 tests/dynamic_subs:13
+Subroutine        Count  CC  SCAR Location             
+----------------- ----- --- ----- ---------------------
+AUTOLOAD              3   2   6.9 tests/dynamic_subs:40
+BEGIN                 1           tests/dynamic_subs:31
+BEGIN                 1           tests/dynamic_subs:43
+__ANON__              5   2   7.2 tests/dynamic_subs:15
+__ANON__              2   1   0.0 tests/dynamic_subs:32
+__ANON__              3   1   0.0 tests/dynamic_subs:45
+__ANON__              2   1   0.0 tests/dynamic_subs:49
+gen                   4   1   0.0 tests/dynamic_subs:13
+{file-level code}         2   6.9 tests/dynamic_subs:21
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location             
----------- ----- --- ----- ---------------------
-empty          0   1   0.0 tests/dynamic_subs:11
-unused         0   1   6.9 tests/dynamic_subs:10
+Subroutine        Count  CC  SCAR Location             
+----------------- ----- --- ----- ---------------------
+empty                 0   1   0.0 tests/dynamic_subs:11
+unused                0   1   6.9 tests/dynamic_subs:10
 
 

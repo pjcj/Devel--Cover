@@ -7,8 +7,8 @@ File         stmt   bran   cond   mcdc    sub  total   scar
 ---------- ------ ------ ------ ------ ------ ------ ------
 E2.pm       100.0    n/a    n/a    n/a  100.0  100.0    0.0
 E3.pm       100.0    n/a    n/a    n/a  100.0  100.0    0.0
-eval_merge   80.9   50.0   50.0    0.0  100.0   75.8    0.0
-Total        85.1   50.0   50.0    0.0  100.0   81.0    0.0
+eval_merge   80.9   50.0   50.0    0.0  100.0   75.8   11.4
+Total        85.1   50.0   50.0    0.0  100.0   81.0    6.5
 ---------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -23,7 +23,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    3  1 80.6  1.0  0.0
+    3  3 80.6  1.9  6.5
 
 
 E2.pm
@@ -55,9 +55,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-E2             1   1   0.0 E2.pm:12
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+E2                    1   1   0.0 E2.pm:12
+{file-level code}         1   0.0 E2.pm:10
 
 
 E3.pm
@@ -89,9 +90,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-E3             1   1   0.0 E3.pm:12
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+E3                    1   1   0.0 E3.pm:12
+{file-level code}         1   0.0 E3.pm:10
 
 
 eval_merge
@@ -101,7 +103,14 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 76.0  1.0  0.0
+ 3 76.0  3.1 11.4
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location     
+----------------- -- ----  -------------
+{file-level code}  3 11.4  eval_merge:10
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -168,10 +177,11 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location     
----------- ----- --- ----- -------------
-BEGIN          1   1   0.0 eval_merge:10
-BEGIN          1   1   0.0 eval_merge:15
-BEGIN          1   1   0.0 eval_merge:15
+Subroutine        Count  CC  SCAR Location     
+----------------- ----- --- ----- -------------
+BEGIN                 1           eval_merge:10
+BEGIN                 1           eval_merge:15
+BEGIN                 1           eval_merge:15
+{file-level code}         3  11.4 eval_merge:10
 
 

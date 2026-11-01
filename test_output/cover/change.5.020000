@@ -50,8 +50,9 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location       
----------- ----- --- ----- ---------------
-new_sub        1   1   0.0 tests/change:11
+Subroutine        Count  CC  SCAR Location       
+----------------- ----- --- ----- ---------------
+new_sub               1   1   0.0 tests/change:11
+{file-level code}         1   0.0 tests/change:10
 
 

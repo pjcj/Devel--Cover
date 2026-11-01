@@ -2,8 +2,8 @@ cover: Reading database from ...
 -------------- ------ ------ ------ ------ ------ ------ ------
 File             stmt   bran   cond   mcdc    sub  total   scar
 -------------- ------ ------ ------ ------ ------ ------ ------
-tests/exec_die   50.0   50.0    n/a    n/a    0.0   45.4    6.9
-Total            50.0   50.0    n/a    n/a    0.0   45.4    6.9
+tests/exec_die   50.0   50.0    n/a    n/a    0.0   45.4   11.3
+Total            50.0   50.0    n/a    n/a    0.0   45.4   11.3
 -------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,14 +20,15 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 50.0  2.0  6.9
+ 3 50.0  3.1 11.3
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SCAR  Location         
----------- -- ----  -----------------
-__ANON__    1  6.9  tests/exec_die:18
+Subroutine        CC SCAR  Location         
+----------------- -- ----  -----------------
+{file-level code}  3 12.5  tests/exec_die:13
+__ANON__           1  6.9  tests/exec_die:18
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -62,11 +63,18 @@ line  err      %   true  false   branch
 15    ***     50      1      0   if ($pid) { }
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location         
+----------------- ----- --- ----- -----------------
+{file-level code}         3  12.5 tests/exec_die:13
+
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location         
----------- ----- --- ----- -----------------
-__ANON__       0   1   6.9 tests/exec_die:18
+Subroutine        Count  CC  SCAR Location         
+----------------- ----- --- ----- -----------------
+__ANON__              0   1   6.9 tests/exec_die:18
 
 

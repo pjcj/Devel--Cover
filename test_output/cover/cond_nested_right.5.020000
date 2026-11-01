@@ -2,8 +2,8 @@ cover: Reading database from ...
 ----------------------- ------ ------ ------ ------ ------ ------
 File                      stmt   bran   cond    sub  total   scar
 ----------------------- ------ ------ ------ ------ ------ ------
-tests/cond_nested_right  100.0  100.0  100.0  100.0  100.0   13.6
-Total                    100.0  100.0  100.0  100.0  100.0   13.6
+tests/cond_nested_right  100.0  100.0  100.0  100.0  100.0   13.8
+Total                    100.0  100.0  100.0  100.0  100.0   13.8
 ----------------------- ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
-32 100.0  3.9 13.6
+32 100.0  4.0 13.8
 
 Worst Subroutines
 -----------------
@@ -265,20 +265,21 @@ line  err      %      l  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine    Count  CC  SCAR Location                  
-------------- ----- --- ----- --------------------------
-BEGIN             1   1   0.0 tests/cond_nested_right:19
-BEGIN             1   1   0.0 tests/cond_nested_right:20
-and_and_if        4   4  13.9 tests/cond_nested_right:59
-and_and_value     5   4  13.9 tests/cond_nested_right:71
-and_dor_if        5   4  13.9 tests/cond_nested_right:83
-and_or_block      4   4  13.9 tests/cond_nested_right:34
-and_or_chain      5   5  16.1 tests/cond_nested_right:65
-and_or_if         4   4  13.9 tests/cond_nested_right:22
-and_or_unless     4   4  13.9 tests/cond_nested_right:42
-and_or_while      3   4  13.9 tests/cond_nested_right:48
-main              1   1   0.0 tests/cond_nested_right:89
-or_and_if         4   4  13.9 tests/cond_nested_right:28
-or_and_left       3   4  13.9 tests/cond_nested_right:77
+Subroutine        Count  CC  SCAR Location                  
+----------------- ----- --- ----- --------------------------
+BEGIN                 1           tests/cond_nested_right:19
+BEGIN                 1           tests/cond_nested_right:20
+and_and_if            4   4  13.9 tests/cond_nested_right:59
+and_and_value         5   4  13.9 tests/cond_nested_right:71
+and_dor_if            5   4  13.9 tests/cond_nested_right:83
+and_or_block          4   4  13.9 tests/cond_nested_right:34
+and_or_chain          5   5  16.1 tests/cond_nested_right:65
+and_or_if             4   4  13.9 tests/cond_nested_right:22
+and_or_unless         4   4  13.9 tests/cond_nested_right:42
+and_or_while          3   4  13.9 tests/cond_nested_right:48
+main                  1   1   0.0 tests/cond_nested_right:89
+or_and_if             4   4  13.9 tests/cond_nested_right:28
+or_and_left           3   4  13.9 tests/cond_nested_right:77
+{file-level code}         1   0.0 tests/cond_nested_right:19
 
 

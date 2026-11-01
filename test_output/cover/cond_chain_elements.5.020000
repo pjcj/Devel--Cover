@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------------- ------ ------ ------ ------ ------ ------ ------
 File                        stmt   bran   cond   mcdc    sub  total   scar
 ------------------------- ------ ------ ------ ------ ------ ------ ------
-tests/cond_chain_elements  100.0    n/a   70.8   27.2  100.0   77.2   12.2
-Total                      100.0    n/a   70.8   27.2  100.0   77.2   12.2
+tests/cond_chain_elements  100.0    n/a   70.8   27.2  100.0   77.2   12.7
+Total                      100.0    n/a   70.8   27.2  100.0   77.2   12.7
 ------------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 9 85.7  3.4 12.2
+ 9 85.7  3.6 12.7
 
 Worst Subroutines
 -----------------
@@ -125,13 +125,14 @@ line  err      %  cov  tot   missing                      expr
 Covered Subroutines
 -------------------
 
-Subroutine    Count  CC  SCAR Location                    
-------------- ----- --- ----- ----------------------------
-BEGIN             1   1   0.0 tests/cond_chain_elements:16
-BEGIN             1   1   0.0 tests/cond_chain_elements:17
-array_chain       2   4  15.2 tests/cond_chain_elements:25
-hash_chain        4   3  11.0 tests/cond_chain_elements:19
-lexical_chain     2   4  14.5 tests/cond_chain_elements:31
-main              1   1   0.0 tests/cond_chain_elements:37
+Subroutine        Count  CC  SCAR Location                    
+----------------- ----- --- ----- ----------------------------
+BEGIN                 1           tests/cond_chain_elements:16
+BEGIN                 1           tests/cond_chain_elements:17
+array_chain           2   4  15.2 tests/cond_chain_elements:25
+hash_chain            4   3  11.0 tests/cond_chain_elements:19
+lexical_chain         2   4  14.5 tests/cond_chain_elements:31
+main                  1   1   0.0 tests/cond_chain_elements:37
+{file-level code}         1   0.0 tests/cond_chain_elements:16
 
 

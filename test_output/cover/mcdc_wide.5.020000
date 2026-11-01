@@ -4,8 +4,8 @@ cover: Warning: MC/DC decision at tests/mcdc_wide:41 has 17 conditions, exceedin
 --------------- ------ ------ ------ ------ ------ ------ ------
 File              stmt   bran   cond   mcdc    sub  total   scar
 --------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_wide  100.0    n/a   68.5   10.2  100.0   61.3   31.7
-Total            100.0    n/a   68.5   10.2  100.0   61.3   31.7
+tests/mcdc_wide  100.0    n/a   68.5   10.2  100.0   61.3   32.0
+Total            100.0    n/a   68.5   10.2  100.0   61.3   32.0
 --------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -22,7 +22,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-36 74.8 23.9 31.7
+36 74.8 24.5 32.0
 
 Worst Subroutines
 -----------------
@@ -197,13 +197,14 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location          
----------- ----- --- ----- ------------------
-BEGIN          1   1   0.0 tests/mcdc_wide:10
-BEGIN          1   1   0.0 tests/mcdc_wide:11
-main           1   1   0.0 tests/mcdc_wide:47
-mixed          3  18  32.6 tests/mcdc_wide:39
-narrow         3   2   6.9 tests/mcdc_wide:30
-wide           2  18  33.4 tests/mcdc_wide:21
+Subroutine        Count  CC  SCAR Location          
+----------------- ----- --- ----- ------------------
+BEGIN                 1           tests/mcdc_wide:10
+BEGIN                 1           tests/mcdc_wide:11
+main                  1   1   0.0 tests/mcdc_wide:47
+mixed                 3  18  32.6 tests/mcdc_wide:39
+narrow                3   2   6.9 tests/mcdc_wide:30
+wide                  2  18  33.4 tests/mcdc_wide:21
+{file-level code}         1   0.0 tests/mcdc_wide:10
 
 

@@ -64,9 +64,10 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine     Count  CC  SCAR Location              
--------------- ----- --- ----- ----------------------
-BEGIN              1   1   0.0 tests/recursive_sub:10
-recursive_func     4   2   6.9 tests/recursive_sub:13
+Subroutine        Count  CC  SCAR Location              
+----------------- ----- --- ----- ----------------------
+BEGIN                 1           tests/recursive_sub:10
+recursive_func        4   2   6.9 tests/recursive_sub:13
+{file-level code}         1   0.0 tests/recursive_sub:10
 
 

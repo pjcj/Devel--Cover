@@ -2,8 +2,8 @@ cover: Reading database from ...
 ----------------- ------ ------ ------ ------ ------ ------ ------
 File                stmt   bran   cond   mcdc    sub  total   scar
 ----------------- ------ ------ ------ ------ ------ ------ ------
-tests/dor_operand  100.0  100.0  100.0   93.1  100.0   98.9    8.5
-Total              100.0  100.0  100.0   93.1  100.0   98.9    8.5
+tests/dor_operand  100.0  100.0  100.0   93.1  100.0   98.9    9.3
+Total              100.0  100.0  100.0   93.1  100.0   98.9    9.3
 ----------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,16 +20,16 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
-20 100.0  2.3  8.5
+22 100.0  2.5  9.3
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SCAR  Location            
----------- -- ----  --------------------
-skipped     4 13.9  tests/dor_operand:93
-cond        3 11.0  tests/dor_operand:69
-ternary     3 11.0  tests/dor_operand:75
+Subroutine        CC SCAR  Location            
+----------------- -- ----  --------------------
+skipped            4 13.9  tests/dor_operand:93
+{file-level code}  3 11.0  tests/dor_operand:10
+cond               3 11.0  tests/dor_operand:69
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -245,10 +245,10 @@ Covered Subroutines
 
 Subroutine        Count  CC  SCAR Location            
 ----------------- ----- --- ----- --------------------
-BEGIN                 1   1   0.0 tests/dor_operand:10
-BEGIN                 1   1   0.0 tests/dor_operand:11
-BEGIN                 1   1   0.0 tests/dor_operand:15
-BEGIN                 1   1   0.0 tests/dor_operand:51
+BEGIN                 1           tests/dor_operand:10
+BEGIN                 1           tests/dor_operand:11
+BEGIN                 1           tests/dor_operand:15
+BEGIN                 1           tests/dor_operand:51
 __ANON__              1   1   0.0 tests/dor_operand:15
 arg                   8   2   6.9 tests/dor_operand:45
 assign                9   2   6.9 tests/dor_operand:25
@@ -265,5 +265,6 @@ skipped              12   4  13.9 tests/dor_operand:93
 sorted                8   2   6.9 tests/dor_operand:99
 ternary               8   3  11.0 tests/dor_operand:75
 void                  8   2   6.9 tests/dor_operand:50
+{file-level code}         3  11.0 tests/dor_operand:10
 
 

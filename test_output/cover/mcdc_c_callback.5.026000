@@ -2,8 +2,8 @@ cover: Reading database from ...
 --------------------- ------ ------ ------ ------ ------ ------ ------
 File                    stmt   bran   cond   mcdc    sub  total   scar
 --------------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_c_callback  100.0  100.0  100.0  100.0  100.0  100.0    9.3
-Total                  100.0  100.0  100.0  100.0  100.0  100.0    9.3
+tests/mcdc_c_callback  100.0  100.0  100.0  100.0  100.0  100.0   10.4
+Total                  100.0  100.0  100.0  100.0  100.0  100.0   10.4
 --------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
- 7 100.0  2.5  9.3
+ 7 100.0  2.8 10.4
 
 Worst Subroutines
 -----------------
@@ -145,14 +145,15 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location                
----------- ----- --- ----- ------------------------
-BEGIN          1   1   0.0 tests/mcdc_c_callback:16
-BEGIN          1   1   0.0 tests/mcdc_c_callback:17
-BEGIN          1   1   0.0 tests/mcdc_c_callback:19
-__ANON__       3   2   6.9 tests/mcdc_c_callback:23
-any_block      4   3  11.0 tests/mcdc_c_callback:21
-main           1   1   0.0 tests/mcdc_c_callback:33
-sort_block     5   4  13.9 tests/mcdc_c_callback:27
+Subroutine        Count  CC  SCAR Location                
+----------------- ----- --- ----- ------------------------
+BEGIN                 1           tests/mcdc_c_callback:16
+BEGIN                 1           tests/mcdc_c_callback:17
+BEGIN                 1           tests/mcdc_c_callback:19
+__ANON__              3   2   6.9 tests/mcdc_c_callback:23
+any_block             4   3  11.0 tests/mcdc_c_callback:21
+main                  1   1   0.0 tests/mcdc_c_callback:33
+sort_block            5   4  13.9 tests/mcdc_c_callback:27
+{file-level code}         1   0.0 tests/mcdc_c_callback:16
 
 

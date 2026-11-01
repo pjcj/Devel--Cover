@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------ ------ ------ ------ ------ ------ ------ ------
 File                 stmt   bran   cond   mcdc    sub  total   scar
 ------------------ ------ ------ ------ ------ ------ ------ ------
-tests/circular_ref   83.3    0.0    n/a    n/a   66.6   63.6   12.5
-Total                83.3    0.0    n/a    n/a   66.6   63.6   12.5
+tests/circular_ref   83.3    0.0    n/a    n/a   66.6   63.6   14.7
+Total                83.3    0.0    n/a    n/a   66.6   63.6   14.7
 ------------------ ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 2 62.5  3.5 12.5
+ 2 62.5  4.3 14.7
 
 Worst Subroutines
 -----------------
@@ -54,16 +54,17 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location            
----------- ----- --- ----- --------------------
-BEGIN          1   1   0.0 tests/circular_ref:4
-BEGIN          1   1   0.0 tests/circular_ref:5
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+BEGIN                 1           tests/circular_ref:4
+BEGIN                 1           tests/circular_ref:5
+{file-level code}         1   0.0 tests/circular_ref:3
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location            
----------- ----- --- ----- --------------------
-f              0   2  17.9 tests/circular_ref:7
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+f                     0   2  17.9 tests/circular_ref:7
 
 

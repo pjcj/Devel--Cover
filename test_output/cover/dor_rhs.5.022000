@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------- ------ ------ ------ ------ ------ ------
 File            stmt   bran   cond    sub  total   scar
 ------------- ------ ------ ------ ------ ------ ------
-tests/dor_rhs  100.0   50.0   33.3  100.0   70.3    8.5
-Total          100.0   50.0   33.3  100.0   70.3    8.5
+tests/dor_rhs  100.0   50.0   33.3  100.0   70.3   18.4
+Total          100.0   50.0   33.3  100.0   70.3   18.4
 ------------- ------ ------ ------ ------ ------ ------
 
 
@@ -20,16 +20,16 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-12 67.0  2.3  8.5
+22 67.0  6.3 18.4
 
 Worst Subroutines
 -----------------
 
-Subroutine     CC SCAR  Location        
--------------- -- ----  ----------------
-chained_rhs     3 13.3  tests/dor_rhs:81
-glob_hash_rhs   2  8.1  tests/dor_rhs:34
-glob_array_rhs  2  8.1  tests/dor_rhs:41
+Subroutine        CC SCAR  Location        
+----------------- -- ----  ----------------
+{file-level code} 11 26.3  tests/dor_rhs:4 
+chained_rhs        3 13.3  tests/dor_rhs:81
+glob_hash_rhs      2  8.1  tests/dor_rhs:34
 
 line  err   stmt   bran   cond    sub   code
 1                                       #!/usr/bin/env perl
@@ -175,18 +175,19 @@ line  err      %      l  !l&&r !l&&!r   expr
 Covered Subroutines
 -------------------
 
-Subroutine     Count  CC  SCAR Location        
--------------- ----- --- ----- ----------------
-BEGIN              1   1   0.0 tests/dor_rhs:4 
-aref_rhs           1   2   7.6 tests/dor_rhs:56
-array_rhs          1   2   7.6 tests/dor_rhs:26
-chained_rhs        1   3  13.3 tests/dor_rhs:81
-glob_array_rhs     1   2   8.1 tests/dor_rhs:41
-glob_hash_rhs      1   2   8.1 tests/dor_rhs:34
-hash_rhs           1   2   7.6 tests/dor_rhs:18
-href_rhs           1   2   7.6 tests/dor_rhs:48
-nested_rhs         1   2   7.6 tests/dor_rhs:64
-scalar_rhs         1   2   7.6 tests/dor_rhs:10
-var_key_rhs        1   2   7.4 tests/dor_rhs:72
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+BEGIN                 1           tests/dor_rhs:4 
+aref_rhs              1   2   7.6 tests/dor_rhs:56
+array_rhs             1   2   7.6 tests/dor_rhs:26
+chained_rhs           1   3  13.3 tests/dor_rhs:81
+glob_array_rhs        1   2   8.1 tests/dor_rhs:41
+glob_hash_rhs         1   2   8.1 tests/dor_rhs:34
+hash_rhs              1   2   7.6 tests/dor_rhs:18
+href_rhs              1   2   7.6 tests/dor_rhs:48
+nested_rhs            1   2   7.6 tests/dor_rhs:64
+scalar_rhs            1   2   7.6 tests/dor_rhs:10
+var_key_rhs           1   2   7.4 tests/dor_rhs:72
+{file-level code}        11  26.3 tests/dor_rhs:4 
 
 

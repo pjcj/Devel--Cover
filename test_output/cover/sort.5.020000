@@ -2,8 +2,8 @@ cover: Reading database from ...
 ---------- ------ ------ ------ ------ ------ ------ ------
 File         stmt   bran   cond   mcdc    sub  total   scar
 ---------- ------ ------ ------ ------ ------ ------ ------
-tests/sort   96.0    n/a    n/a    n/a   85.7   93.7    1.3
-Total        96.0    n/a    n/a    n/a   85.7   93.7    1.3
+tests/sort   96.0    n/a    n/a    n/a   85.7   93.7    1.5
+Total        96.0    n/a    n/a    n/a   85.7   93.7    1.5
 ---------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 96.0  1.1  1.3
+ 1 96.0  1.2  1.5
 
 Worst Subroutines
 -----------------
@@ -92,20 +92,21 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine   Count  CC  SCAR Location     
------------- ----- --- ----- -------------
-BEGIN            1   1   0.0 tests/sort:3 
-BEGIN            1   1   0.0 tests/sort:30
-GetAlgorithm     1   1   0.0 tests/sort:18
-backwards        6   1   0.0 tests/sort:10
-fail             1   1   0.0 tests/sort:36
-xyz              8   1   0.0 tests/sort:41
+Subroutine        Count  CC  SCAR Location     
+----------------- ----- --- ----- -------------
+BEGIN                 1           tests/sort:3 
+BEGIN                 1           tests/sort:30
+GetAlgorithm          1   1   0.0 tests/sort:18
+backwards             6   1   0.0 tests/sort:10
+fail                  1   1   0.0 tests/sort:36
+xyz                   8   1   0.0 tests/sort:41
+{file-level code}         1   0.0 tests/sort:3 
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine   Count  CC  SCAR Location     
------------- ----- --- ----- -------------
-forwards         0   1   6.9 tests/sort:14
+Subroutine        Count  CC  SCAR Location     
+----------------- ----- --- ----- -------------
+forwards              0   1   6.9 tests/sort:14
 
 

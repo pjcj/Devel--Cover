@@ -6,8 +6,8 @@ Common prefix: tests/
 File                stmt   bran   cond   mcdc    sub  total   scar
 ----------------- ------ ------ ------ ------ ------ ------ ------
 Accessor_maker.pm  100.0    n/a    n/a    n/a  100.0  100.0    0.0
-accessor           100.0  100.0    n/a    n/a  100.0  100.0    6.9
-Total              100.0  100.0    n/a    n/a  100.0  100.0    5.1
+accessor           100.0  100.0    n/a    n/a  100.0  100.0    7.9
+Total              100.0  100.0    n/a    n/a  100.0  100.0    5.6
 ----------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -22,7 +22,7 @@ Module Summary
 
 Files CC   Cov CRAP SCAR
 ----- -- ----- ---- ----
-    2  3 100.0  1.7  5.1
+    2  3 100.0  1.8  5.6
 
 
 Accessor_maker.pm
@@ -51,11 +51,12 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location           
----------- ----- --- ----- -------------------
-BEGIN          1   1   0.0 Accessor_maker.pm:4
-__ANON__       4   1   0.0 Accessor_maker.pm:5
-import         1   1   0.0 Accessor_maker.pm:3
+Subroutine        Count  CC  SCAR Location           
+----------------- ----- --- ----- -------------------
+BEGIN                 1           Accessor_maker.pm:4
+__ANON__              4   1   0.0 Accessor_maker.pm:5
+import                1   1   0.0 Accessor_maker.pm:3
+{file-level code}         1   0.0 Accessor_maker.pm:4
 
 
 accessor
@@ -65,7 +66,7 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
- 3 100.0  2.0  6.9
+ 3 100.0  2.2  7.9
 
 Worst Subroutines
 -----------------
@@ -117,11 +118,12 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location   
----------- ----- --- ----- -----------
-BEGIN          1   1   0.0 accessor:4 
-BEGIN          1   1   0.0 accessor:7 
-new            2   1   0.0 accessor:2 
-test           2   3  11.0 accessor:12
+Subroutine        Count  CC  SCAR Location   
+----------------- ----- --- ----- -----------
+BEGIN                 1           accessor:4 
+BEGIN                 1           accessor:7 
+new                   2   1   0.0 accessor:2 
+test                  2   3  11.0 accessor:12
+{file-level code}         1   0.0 accessor:4 
 
 

@@ -2,8 +2,8 @@ cover: Reading database from ...
 ---------------------- ------ ------ ------ ------ ------
 File                     stmt   bran   cond  total   scar
 ---------------------- ------ ------ ------ ------ ------
-tests/uncoverable_flow  100.0  100.0  100.0  100.0    0.0
-Total                   100.0  100.0  100.0  100.0    0.0
+tests/uncoverable_flow  100.0  100.0  100.0  100.0   23.0
+Total                   100.0  100.0  100.0  100.0   23.0
 ---------------------- ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,14 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
- 1 100.0  1.0  0.0
+10 100.0 10.0 23.0
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location                 
+----------------- -- ----  -------------------------
+{file-level code} 10 23.0  tests/uncoverable_flow:16
 
 line  err   stmt   bran   cond   code
 1                                #!/usr/bin/perl
