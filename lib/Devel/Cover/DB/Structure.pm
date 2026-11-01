@@ -73,12 +73,15 @@ sub get_count ($self, $file, $criterion) {
 }
 
 sub add_count ($self, $criterion) {
-  return unless defined $self->{file};  # can happen during self_cover
-  $self->{additional_count}{$criterion}{ $self->{file} }++
-    if $self->{additional};
+  my $file = $self->{file};
+  return unless defined $file;  # can happen during self_cover
+  $self->{additional_count}{$criterion}{$file}++ if $self->{additional};
   (
-    $self->{count}{$criterion}{ $self->{file} }++,
-    !$self->reuse($self->{file}) || $self->{additional},
+    $self->{count}{$criterion}{$file}++,
+    !$self->reuse($file)
+      || $self->{additional}
+      # a stored structure lacks the criteria its runs did not collect
+      || !exists $self->{f}{$file}{start}{-1}{__COVER__}[0]{$criterion},
   )
 }
 
@@ -97,9 +100,13 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
     # reusing a structure
     if (exists $self->{f}{$file}{start}{$line}{$sub_name}[$scount]) {
       # sub already exists - normal case
-      $self->{count}{$_}{$file}
-        = $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
-        for $self->criteria;
+      my $start = $self->{f}{$file}{start}{$line}{$sub_name}[$scount];
+      for ($self->criteria) {
+        # number a criterion new to the structure from the running count
+        $start->{$_} = $self->{count}{$_}{$file} //= 0
+          unless exists $start->{$_};
+        $self->{count}{$_}{$file} = $start->{$_};
+      }
     } else {
       # sub doesn't exist, for example a conditional C<eval "use M">
       $self->{additional} = 1;
@@ -349,6 +356,10 @@ Return the current counter value for C<$criterion> in C<$file>.
 Increment and return the counter for C<$criterion> in the current file. The
 second return value is true when the count represents a new (not reused)
 structure entry.
+
+A stored structure holds only the criteria of the runs that built it. A run
+that collects a criterion the structure lacks adds that criterion to it, so the
+second return value is also true for such a criterion.
 
 =head2 set_subroutine ($sub_name, $file, $line, $scount)
 
