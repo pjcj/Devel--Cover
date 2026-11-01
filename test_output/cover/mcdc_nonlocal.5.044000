@@ -149,5 +149,6 @@ dies_mid_decision     2   4  14.6 tests/mcdc_nonlocal:22
 main                  1   1   0.0 tests/mcdc_nonlocal:47
 recurse               2   2   7.0 tests/mcdc_nonlocal:30
 sorted                3   3  11.3 tests/mcdc_nonlocal:41
+{file-level code}         1   0.0 tests/mcdc_nonlocal:14
 
 

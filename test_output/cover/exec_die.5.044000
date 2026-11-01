@@ -63,11 +63,18 @@ line  err      %   true  false   branch
 15    ***     50      1      0   if ($pid) { }
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location         
+----------------- ----- --- ----- -----------------
+{file-level code}         3  12.5 tests/exec_die:13
+
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location         
----------- ----- --- ----- -----------------
-__ANON__       0   1   6.9 tests/exec_die:18
+Subroutine        Count  CC  SCAR Location         
+----------------- ----- --- ----- -----------------
+__ANON__              0   1   6.9 tests/exec_die:18
 
 

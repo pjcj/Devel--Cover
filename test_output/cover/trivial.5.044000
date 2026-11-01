@@ -35,3 +35,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 10             1                               my $x = 1;
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+{file-level code}         1   0.0 tests/trivial:10
+
+

@@ -84,18 +84,19 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location     
----------- ----- --- ----- -------------
-zz            11   1   0.0 Module2.pm:28
+Subroutine        Count  CC  SCAR Location     
+----------------- ----- --- ----- -------------
+zz                   11   1   0.0 Module2.pm:28
+{file-level code}         1   0.0 Module2.pm:10
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location     
----------- ----- --- ----- -------------
-_aa            0   1   6.9 Module2.pm:13
-_xx            0   1   6.9 Module2.pm:19
-yy             0   1   6.9 Module2.pm:24
+Subroutine        Count  CC  SCAR Location     
+----------------- ----- --- ----- -------------
+_aa                   0   1   6.9 Module2.pm:13
+_xx                   0   1   6.9 Module2.pm:19
+yy                    0   1   6.9 Module2.pm:24
 
 
 module2
@@ -168,12 +169,13 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location  
----------- ----- --- ----- ----------
-BEGIN          1           module2:12
-BEGIN          1           module2:13
-BEGIN          1           module2:15
-BEGIN          1           module2:17
-xx            11   1   0.0 module2:21
+Subroutine        Count  CC  SCAR Location  
+----------------- ----- --- ----- ----------
+BEGIN                 1           module2:12
+BEGIN                 1           module2:13
+BEGIN                 1           module2:15
+BEGIN                 1           module2:17
+xx                   11   1   0.0 module2:21
+{file-level code}         3  11.0 module2:12
 
 

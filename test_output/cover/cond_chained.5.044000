@@ -96,10 +96,11 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location             
----------- ----- --- ----- ---------------------
-t1             1   4  13.9 tests/cond_chained:3 
-t2             1   4  13.9 tests/cond_chained:9 
-t3             1   6  18.1 tests/cond_chained:15
+Subroutine        Count  CC  SCAR Location             
+----------------- ----- --- ----- ---------------------
+t1                    1   4  13.9 tests/cond_chained:3 
+t2                    1   4  13.9 tests/cond_chained:9 
+t3                    1   6  18.1 tests/cond_chained:15
+{file-level code}         1   0.0 tests/cond_chained:21
 
 

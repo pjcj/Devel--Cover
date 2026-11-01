@@ -102,5 +102,6 @@ BEGIN                      1           tests/readonly:14
 BEGIN                      1           tests/readonly:16
 test_posix_regexp          1   3  11.0 tests/readonly:32
 test_readonly_coverage     1   3  11.0 tests/readonly:21
+{file-level code}              1   0.0 tests/readonly:13
 
 

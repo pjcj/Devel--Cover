@@ -99,17 +99,18 @@ line  err      %  cov  tot   missing                              expr
 Covered Subroutines
 -------------------
 
-Subroutine     Count  CC  SCAR Location             
--------------- ----- --- ----- ---------------------
-BEGIN              1           tests/ref_do_block:13
-BEGIN              1           tests/ref_do_block:14
+Subroutine        Count  CC  SCAR Location             
+----------------- ----- --- ----- ---------------------
+BEGIN                 1           tests/ref_do_block:13
+BEGIN                 1           tests/ref_do_block:14
+{file-level code}         4  14.0 tests/ref_do_block:13
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine     Count  CC  SCAR Location             
--------------- ----- --- ----- ---------------------
-not_copied         0   1   6.9 tests/ref_do_block:17
-not_referenced     0   1   6.9 tests/ref_do_block:16
+Subroutine        Count  CC  SCAR Location             
+----------------- ----- --- ----- ---------------------
+not_copied            0   1   6.9 tests/ref_do_block:17
+not_referenced        0   1   6.9 tests/ref_do_block:16
 
 

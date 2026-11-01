@@ -51,10 +51,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location   
----------- ----- --- ----- -----------
-BEGIN          1           tests/t1:10
-BEGIN          1           tests/t1:11
-xx             1   1   0.0 tests/t1:15
+Subroutine        Count  CC  SCAR Location   
+----------------- ----- --- ----- -----------
+BEGIN                 1           tests/t1:10
+BEGIN                 1           tests/t1:11
+xx                    1   1   0.0 tests/t1:15
+{file-level code}         1   0.0 tests/t1:10
 
 

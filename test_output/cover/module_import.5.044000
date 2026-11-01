@@ -54,9 +54,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location           
----------- ----- --- ----- -------------------
-import         1   1   0.0 Module_import.pm:10
+Subroutine        Count  CC  SCAR Location           
+----------------- ----- --- ----- -------------------
+import                1   1   0.0 Module_import.pm:10
+{file-level code}         1   0.0 Module_import.pm:14
 
 
 module_import
@@ -88,9 +89,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location        
----------- ----- --- ----- ----------------
-BEGIN          1           module_import:10
-BEGIN          1           module_import:12
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+BEGIN                 1           module_import:10
+BEGIN                 1           module_import:12
+{file-level code}         1   0.0 module_import:10
 
 

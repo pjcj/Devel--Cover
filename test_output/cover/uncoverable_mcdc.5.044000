@@ -127,13 +127,14 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine       Count  CC  SCAR Location                 
----------------- ----- --- ----- -------------------------
-BEGIN                1           tests/uncoverable_mcdc:10
-BEGIN                1           tests/uncoverable_mcdc:11
-compound_inner       3   3  11.0 tests/uncoverable_mcdc:36
-dor_default          2   2   7.1 tests/uncoverable_mcdc:16
-left_always_true     2   2   7.0 tests/uncoverable_mcdc:24
-main                 1   1   0.0 tests/uncoverable_mcdc:43
+Subroutine        Count  CC  SCAR Location                 
+----------------- ----- --- ----- -------------------------
+BEGIN                 1           tests/uncoverable_mcdc:10
+BEGIN                 1           tests/uncoverable_mcdc:11
+compound_inner        3   3  11.0 tests/uncoverable_mcdc:36
+dor_default           2   2   7.1 tests/uncoverable_mcdc:16
+left_always_true      2   2   7.0 tests/uncoverable_mcdc:24
+main                  1   1   0.0 tests/uncoverable_mcdc:43
+{file-level code}         1   0.0 tests/uncoverable_mcdc:10
 
 

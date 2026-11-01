@@ -18,6 +18,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 
 use Test::More import => [qw( done_testing is like unlike )];
 
+use Devel::Cover::DB           ();  ## no perlimports
 use Devel::Cover::Pod          ();  ## no perlimports
 use Devel::Cover::Report::Text ();  ## no perlimports
 use Devel::Cover::Subroutine   ();  ## no perlimports
@@ -54,9 +55,12 @@ use Devel::Cover::Subroutine   ();  ## no perlimports
 {
 
   package Mock::DB;
-  sub new             ($class, $cover) { bless { cover => $cover }, $class }
-  sub cover           ($self)          { $self->{cover} }
-  sub scar_sub_lookup ($self, $)       { {} }
+
+  sub new ($class, $cover, $lookup = {}) {
+    bless { cover => $cover, lookup => $lookup }, $class
+  }
+  sub cover           ($self)    { $self->{cover} }
+  sub scar_sub_lookup ($self, $) { $self->{lookup} }
 }
 
 sub sub_obj ($covered, $name, $uncoverable = 0) {
@@ -67,9 +71,9 @@ sub pod_obj ($covered, $uncoverable = 0) {
   bless [$covered, undef, $uncoverable], "Devel::Cover::Pod"
 }
 
-sub run_report ($subs, $pods = undef, $show = {}) {
+sub run_report ($subs, $pods = undef, $show = {}, $lookup = {}) {
   my $file = Mock::File->new($subs, $pods);
-  my $db   = Mock::DB->new(Mock::Cover->new($file));
+  my $db   = Mock::DB->new(Mock::Cover->new($file), $lookup);
 
   my $output;
   {
@@ -139,10 +143,26 @@ sub test_pod_states () {
     "covered but marked pod shows the error and uncoverable prefixes";
 }
 
+sub test_file_level_row () {
+  my $subs   = Mock::Criterion->new([1, sub_obj(1, "BEGIN")]);
+  my $pods   = Mock::Criterion->new([1, pod_obj(1)]);
+  my $fl     = "1\0$Devel::Cover::DB::File_level_name";
+  my $lookup = { $fl => [{ cc => 3, scar => 12.34, file_level => 1 }] };
+  my $output = run_report($subs, $pods, { pod => 1 }, $lookup);
+
+  my $covered = section($output, "Covered Subroutines");
+
+  like $covered, qr/^\{file-level code\}\s+3\s+12\.3\s+Mock\.pm:1$/m,
+    "file-level row has blank count and pod cells";
+  like $covered, qr/^BEGIN\s+1\s+1\s+Mock\.pm:1$/m,
+    "BEGIN row has blank CC and SCAR cells";
+}
+
 sub main () {
   test_bucketing_by_state;
   test_section_order;
   test_pod_states;
+  test_file_level_row;
   done_testing;
 }
 

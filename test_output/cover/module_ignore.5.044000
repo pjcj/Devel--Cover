@@ -78,11 +78,12 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location              
----------- ----- --- ----- ----------------------
-BEGIN          1           tests/module_ignore:12
-BEGIN          1           tests/module_ignore:13
-BEGIN          1           tests/module_ignore:15
-BEGIN          1           tests/module_ignore:17
+Subroutine        Count  CC  SCAR Location              
+----------------- ----- --- ----- ----------------------
+BEGIN                 1           tests/module_ignore:12
+BEGIN                 1           tests/module_ignore:13
+BEGIN                 1           tests/module_ignore:15
+BEGIN                 1           tests/module_ignore:17
+{file-level code}         3  11.0 tests/module_ignore:12
 
 

@@ -92,10 +92,11 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location            
----------- ----- --- ----- --------------------
-BEGIN          1           tests/cond_xor_hp:13
-BEGIN          1           tests/cond_xor_hp:14
-main           1   6  18.4 tests/cond_xor_hp:16
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+BEGIN                 1           tests/cond_xor_hp:13
+BEGIN                 1           tests/cond_xor_hp:14
+main                  1   6  18.4 tests/cond_xor_hp:16
+{file-level code}         1   0.0 tests/cond_xor_hp:13
 
 

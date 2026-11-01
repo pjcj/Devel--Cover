@@ -122,9 +122,10 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location                         
----------- ----- --- ----- ---------------------------------
-main           1   8  21.7 tests/uncoverable_error_ignore:18
-usub          -1   1   0.0 tests/uncoverable_error_ignore:13
+Subroutine        Count  CC  SCAR Location                         
+----------------- ----- --- ----- ---------------------------------
+main                  1   8  21.7 tests/uncoverable_error_ignore:18
+usub                 -1   1   0.0 tests/uncoverable_error_ignore:13
+{file-level code}         1   0.0 tests/uncoverable_error_ignore:55
 
 

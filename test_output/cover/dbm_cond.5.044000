@@ -106,13 +106,14 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location         
----------- ----- --- ----- -----------------
-BEGIN          1           tests/dbm_cond:13
-BEGIN          1           tests/dbm_cond:14
-BEGIN          1           tests/dbm_cond:16
-BEGIN          1           tests/dbm_cond:18
-testdbm        2   2   6.9 tests/dbm_cond:25
-testh          2   2   6.9 tests/dbm_cond:35
+Subroutine        Count  CC  SCAR Location         
+----------------- ----- --- ----- -----------------
+BEGIN                 1           tests/dbm_cond:13
+BEGIN                 1           tests/dbm_cond:14
+BEGIN                 1           tests/dbm_cond:16
+BEGIN                 1           tests/dbm_cond:18
+testdbm               2   2   6.9 tests/dbm_cond:25
+testh                 2   2   6.9 tests/dbm_cond:35
+{file-level code}         1   0.0 tests/dbm_cond:13
 
 

@@ -71,13 +71,14 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location              
----------- ----- --- ----- ----------------------
-BEGIN          1           Autoloader_stale.pm:12
-BEGIN          1           Autoloader_stale.pm:13
-BEGIN          1           Autoloader_stale.pm:15
-loaded         1   1   0.0 Autoloader_stale.pm:17
-stale          1   1   0.0 Autoloader_stale.pm:23
+Subroutine        Count  CC  SCAR Location              
+----------------- ----- --- ----- ----------------------
+BEGIN                 1           Autoloader_stale.pm:12
+BEGIN                 1           Autoloader_stale.pm:13
+BEGIN                 1           Autoloader_stale.pm:15
+loaded                1   1   0.0 Autoloader_stale.pm:17
+stale                 1   1   0.0 Autoloader_stale.pm:23
+{file-level code}         1   0.0 Autoloader_stale.pm:12
 
 
 autoloader_stale
@@ -122,11 +123,12 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location           
----------- ----- --- ----- -------------------
-BEGIN          1           autoloader_stale:10
-BEGIN          1           autoloader_stale:11
-BEGIN          1           autoloader_stale:13
-BEGIN          1           autoloader_stale:15
+Subroutine        Count  CC  SCAR Location           
+----------------- ----- --- ----- -------------------
+BEGIN                 1           autoloader_stale:10
+BEGIN                 1           autoloader_stale:11
+BEGIN                 1           autoloader_stale:13
+BEGIN                 1           autoloader_stale:15
+{file-level code}         1   0.0 autoloader_stale:10
 
 

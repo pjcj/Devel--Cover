@@ -38,18 +38,19 @@ CC   Cov CRAP SCAR
 Covered Subroutines
 -------------------
 
-Subroutine Count Pod  CC  SCAR Location     
----------- ----- --- --- ----- -------------
-zz            11   0   1   0.0 Module1.pm:28
+Subroutine        Count Pod  CC  SCAR Location     
+----------------- ----- --- --- ----- -------------
+zz                   11   0   1   0.0 Module1.pm:28
+{file-level code}             1   0.0 Module1.pm:10
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Pod  CC  SCAR Location     
----------- ----- --- --- ----- -------------
-_aa            0       1   0.0 Module1.pm:13
-xx             0       1   0.0 Module1.pm:19
-yy             0   1   1   0.0 Module1.pm:24
+Subroutine        Count Pod  CC  SCAR Location     
+----------------- ----- --- --- ----- -------------
+_aa                   0       1   0.0 Module1.pm:13
+xx                    0       1   0.0 Module1.pm:19
+yy                    0   1   1   0.0 Module1.pm:24
 
 
 PodMod.pm
@@ -64,18 +65,19 @@ CC   Cov CRAP SCAR
 Covered Subroutines
 -------------------
 
-Subroutine Count Pod  CC  SCAR Location    
----------- ----- --- --- ----- ------------
-BEGIN          1               PodMod.pm:10
+Subroutine        Count Pod  CC  SCAR Location    
+----------------- ----- --- --- ----- ------------
+BEGIN                 1               PodMod.pm:10
+{file-level code}             1   0.0 PodMod.pm:10
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count Pod  CC  SCAR Location    
----------- ----- --- --- ----- ------------
-vv             0   1   1   0.0 PodMod.pm:12
-ww             0   0   1   0.0 PodMod.pm:13
-yy             0   0   1   0.0 PodMod.pm:14
+Subroutine        Count Pod  CC  SCAR Location    
+----------------- ----- --- --- ----- ------------
+vv                    0   1   1   0.0 PodMod.pm:12
+ww                    0   0   1   0.0 PodMod.pm:13
+yy                    0   0   1   0.0 PodMod.pm:14
 
 
 pod_nocp
@@ -97,12 +99,13 @@ Subroutine        CC SCAR  Location
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location   
----------- ----- --- ----- -----------
-BEGIN          1           pod_nocp:14
-BEGIN          1           pod_nocp:15
-BEGIN          1           pod_nocp:17
-BEGIN          1           pod_nocp:19
-xx            11   1   0.0 pod_nocp:23
+Subroutine        Count  CC  SCAR Location   
+----------------- ----- --- ----- -----------
+BEGIN                 1           pod_nocp:14
+BEGIN                 1           pod_nocp:15
+BEGIN                 1           pod_nocp:17
+BEGIN                 1           pod_nocp:19
+xx                   11   1   0.0 pod_nocp:23
+{file-level code}         3  11.0 pod_nocp:14
 
 

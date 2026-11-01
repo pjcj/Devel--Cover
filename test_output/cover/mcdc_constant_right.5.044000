@@ -117,13 +117,14 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine     Count  CC  SCAR Location                    
--------------- ----- --- ----- ----------------------------
-BEGIN              1           tests/mcdc_constant_right:10
-BEGIN              1           tests/mcdc_constant_right:11
-and_const_true     2   2   6.9 tests/mcdc_constant_right:13
-dor_const_href     2   2   6.9 tests/mcdc_constant_right:23
-main               1   1   0.0 tests/mcdc_constant_right:28
-or_const_false     2   2   6.9 tests/mcdc_constant_right:18
+Subroutine        Count  CC  SCAR Location                    
+----------------- ----- --- ----- ----------------------------
+BEGIN                 1           tests/mcdc_constant_right:10
+BEGIN                 1           tests/mcdc_constant_right:11
+and_const_true        2   2   6.9 tests/mcdc_constant_right:13
+dor_const_href        2   2   6.9 tests/mcdc_constant_right:23
+main                  1   1   0.0 tests/mcdc_constant_right:28
+or_const_false        2   2   6.9 tests/mcdc_constant_right:18
+{file-level code}         1   0.0 tests/mcdc_constant_right:10
 
 

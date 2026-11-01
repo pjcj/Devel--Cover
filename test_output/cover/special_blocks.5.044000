@@ -63,13 +63,14 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location               
----------- ----- --- ----- -----------------------
-BEGIN          1           tests/special_blocks:10
-BEGIN          1           tests/special_blocks:11
-BEGIN          1           tests/special_blocks:15
-CHECK          1           tests/special_blocks:19
-END            1           tests/special_blocks:27
-INIT           1           tests/special_blocks:23
+Subroutine        Count  CC  SCAR Location               
+----------------- ----- --- ----- -----------------------
+BEGIN                 1           tests/special_blocks:10
+BEGIN                 1           tests/special_blocks:11
+BEGIN                 1           tests/special_blocks:15
+CHECK                 1           tests/special_blocks:19
+END                   1           tests/special_blocks:27
+INIT                  1           tests/special_blocks:23
+{file-level code}         1   0.0 tests/special_blocks:10
 
 

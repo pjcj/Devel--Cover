@@ -72,6 +72,14 @@ line  err   stmt   bran   cond   mcdc    sub   code
 35                                             __END__
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location     
+----------------- ----- --- ----- -------------
+{file-level code}         1   0.0 Module1.pm:10
+
+
 module_statements
 
 File Summary
@@ -173,22 +181,23 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location            
----------- ----- --- ----- --------------------
-BEGIN          1           module_statements:12
-BEGIN          1           module_statements:13
-BEGIN          1           module_statements:15
-BEGIN          1           module_statements:17
-xx            11   1   0.0 module_statements:21
-zz            11   1   0.0 module_statements:54
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+BEGIN                 1           module_statements:12
+BEGIN                 1           module_statements:13
+BEGIN                 1           module_statements:15
+BEGIN                 1           module_statements:17
+xx                   11   1   0.0 module_statements:21
+zz                   11   1   0.0 module_statements:54
+{file-level code}         3  11.0 module_statements:12
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location            
----------- ----- --- ----- --------------------
-_aa            0   1   6.9 module_statements:39
-xx             0   1   6.9 module_statements:45
-yy             0   1   6.9 module_statements:50
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+_aa                   0   1   6.9 module_statements:39
+xx                    0   1   6.9 module_statements:45
+yy                    0   1   6.9 module_statements:50
 
 

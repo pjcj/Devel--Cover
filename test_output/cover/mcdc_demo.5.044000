@@ -110,11 +110,12 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location          
----------- ----- --- ----- ------------------
-BEGIN          1           tests/mcdc_demo:25
-BEGIN          1           tests/mcdc_demo:26
-main           1   1   0.0 tests/mcdc_demo:33
-may_edit       4   3  11.0 tests/mcdc_demo:28
+Subroutine        Count  CC  SCAR Location          
+----------------- ----- --- ----- ------------------
+BEGIN                 1           tests/mcdc_demo:25
+BEGIN                 1           tests/mcdc_demo:26
+main                  1   1   0.0 tests/mcdc_demo:33
+may_edit              4   3  11.0 tests/mcdc_demo:28
+{file-level code}         1   0.0 tests/mcdc_demo:25
 
 

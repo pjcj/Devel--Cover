@@ -68,8 +68,9 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location      
----------- ----- --- ----- --------------
-is_3digits     2   2   6.9 tests/alias:12
+Subroutine        Count  CC  SCAR Location      
+----------------- ----- --- ----- --------------
+is_3digits            2   2   6.9 tests/alias:12
+{file-level code}         1   0.0 tests/alias:21
 
 

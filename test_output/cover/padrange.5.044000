@@ -46,3 +46,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 14             1                               for (@s) {}
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location         
+----------------- ----- --- ----- -----------------
+{file-level code}         2   6.9 tests/padrange:10
+
+

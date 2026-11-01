@@ -76,10 +76,11 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location            
----------- ----- --- ----- --------------------
-BEGIN          1           tests/eval_nested:10
-BEGIN          1           tests/eval_nested:11
-config         2   1   0.0 tests/eval_nested:13
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+BEGIN                 1           tests/eval_nested:10
+BEGIN                 1           tests/eval_nested:11
+config                2   1   0.0 tests/eval_nested:13
+{file-level code}         3  11.1 tests/eval_nested:10
 
 

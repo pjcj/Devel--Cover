@@ -54,16 +54,17 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location            
----------- ----- --- ----- --------------------
-BEGIN          1           tests/circular_ref:4
-BEGIN          1           tests/circular_ref:5
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+BEGIN                 1           tests/circular_ref:4
+BEGIN                 1           tests/circular_ref:5
+{file-level code}         1   0.0 tests/circular_ref:3
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location            
----------- ----- --- ----- --------------------
-f              0   2  17.9 tests/circular_ref:7
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+f                     0   2  17.9 tests/circular_ref:7
 
 

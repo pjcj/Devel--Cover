@@ -58,12 +58,19 @@ line  err   stmt   bran   cond   mcdc    sub   code
 14             1                               1
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+{file-level code}         1   0.0 E2.pm:10
+
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-E2             0   1   6.9 E2.pm:12
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+E2                    0   1   6.9 E2.pm:12
 
 
 require
@@ -112,9 +119,10 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location  
----------- ----- --- ----- ----------
-BEGIN          1           require:10
-BEGIN          1           require:11
+Subroutine        Count  CC  SCAR Location  
+----------------- ----- --- ----- ----------
+BEGIN                 1           require:10
+BEGIN                 1           require:11
+{file-level code}         2   7.0 require:10
 
 

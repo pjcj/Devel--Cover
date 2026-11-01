@@ -46,3 +46,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 14    ***     *0                               die "Unreachable";
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location     
+----------------- ----- --- ----- -------------
+{file-level code}         1   0.4 tests/exec:10
+
+

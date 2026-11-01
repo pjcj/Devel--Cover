@@ -265,5 +265,6 @@ skipped              12   4  13.9 tests/dor_operand:93
 sorted                8   2   6.9 tests/dor_operand:99
 ternary               8   3  11.0 tests/dor_operand:75
 void                  8   2   6.9 tests/dor_operand:50
+{file-level code}         3  11.0 tests/dor_operand:10
 
 

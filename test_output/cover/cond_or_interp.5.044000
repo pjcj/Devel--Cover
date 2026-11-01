@@ -198,9 +198,10 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location               
----------- ----- --- ----- -----------------------
-BEGIN          1           tests/cond_or_interp:26
-BEGIN          1           tests/cond_or_interp:27
+Subroutine        Count  CC  SCAR Location               
+----------------- ----- --- ----- -----------------------
+BEGIN                 1           tests/cond_or_interp:26
+BEGIN                 1           tests/cond_or_interp:27
+{file-level code}        23  31.4 tests/cond_or_interp:26
 
 

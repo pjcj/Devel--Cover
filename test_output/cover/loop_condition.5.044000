@@ -141,9 +141,10 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location               
----------- ----- --- ----- -----------------------
-BEGIN          1           tests/loop_condition:13
-BEGIN          1           tests/loop_condition:14
+Subroutine        Count  CC  SCAR Location               
+----------------- ----- --- ----- -----------------------
+BEGIN                 1           tests/loop_condition:13
+BEGIN                 1           tests/loop_condition:14
+{file-level code}        17  29.5 tests/loop_condition:13
 
 

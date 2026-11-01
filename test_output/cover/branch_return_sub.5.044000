@@ -90,10 +90,11 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location                  
----------- ----- --- ----- --------------------------
-BEGIN          1           tests/branch_return_sub:10
-BEGIN          1           tests/branch_return_sub:11
-my_sqrt        3   3  11.0 tests/branch_return_sub:13
+Subroutine        Count  CC  SCAR Location                  
+----------------- ----- --- ----- --------------------------
+BEGIN                 1           tests/branch_return_sub:10
+BEGIN                 1           tests/branch_return_sub:11
+my_sqrt               3   3  11.0 tests/branch_return_sub:13
+{file-level code}         1   0.0 tests/branch_return_sub:10
 
 

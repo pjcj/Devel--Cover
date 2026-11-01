@@ -104,9 +104,10 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location   
----------- ----- --- ----- -----------
-BEGIN          1           tests/if:10
-BEGIN          1           tests/if:11
+Subroutine        Count  CC  SCAR Location   
+----------------- ----- --- ----- -----------
+BEGIN                 1           tests/if:10
+BEGIN                 1           tests/if:11
+{file-level code}         8  22.8 tests/if:10
 
 

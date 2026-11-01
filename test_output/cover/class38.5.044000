@@ -118,27 +118,28 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location        
----------- ----- --- ----- ----------------
-BEGIN          1           tests/class38:13
-BEGIN          1           tests/class38:14
-BEGIN          1           tests/class38:15
-__ANON__       2   1   0.0 tests/class38:23
-__ANON__       1   1   0.0 tests/class38:35
-get_anon       1   1   0.0 tests/class38:35
-greet          2   2   6.9 tests/class38:29
-is_loud        1   2   7.6 tests/class38:33
-main           1   9  24.1 tests/class38:43
-name           2   1   0.0 tests/class38:25
-speak          2   1   0.0 tests/class38:26
-speak          1   1   0.0 tests/class38:39
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+BEGIN                 1           tests/class38:13
+BEGIN                 1           tests/class38:14
+BEGIN                 1           tests/class38:15
+__ANON__              2   1   0.0 tests/class38:23
+__ANON__              1   1   0.0 tests/class38:35
+get_anon              1   1   0.0 tests/class38:35
+greet                 2   2   6.9 tests/class38:29
+is_loud               1   2   7.6 tests/class38:33
+main                  1   9  24.1 tests/class38:43
+name                  2   1   0.0 tests/class38:25
+speak                 2   1   0.0 tests/class38:26
+speak                 1   1   0.0 tests/class38:39
+{file-level code}         1   0.0 tests/class38:13
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location        
----------- ----- --- ----- ----------------
-unused         0   1   6.9 tests/class38:27
-unused_dog     0   1   6.9 tests/class38:40
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+unused                0   1   6.9 tests/class38:27
+unused_dog            0   1   6.9 tests/class38:40
 
 

@@ -97,17 +97,18 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location              
----------- ----- --- ----- ----------------------
-BEGIN          1           tests/overload_bool:12
+Subroutine        Count  CC  SCAR Location              
+----------------- ----- --- ----- ----------------------
+BEGIN                 1           tests/overload_bool:12
+{file-level code}         4  14.5 tests/overload_bool:13
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location              
----------- ----- --- ----- ----------------------
-__ANON__       0   1   6.9 tests/overload_bool:12
-__ANON__       0   1   0.6 tests/overload_bool:13
-render         0   1   6.9 tests/overload_bool:15
+Subroutine        Count  CC  SCAR Location              
+----------------- ----- --- ----- ----------------------
+__ANON__              0   1   6.9 tests/overload_bool:12
+__ANON__              0   1   0.6 tests/overload_bool:13
+render                0   1   6.9 tests/overload_bool:15
 
 

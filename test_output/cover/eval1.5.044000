@@ -103,20 +103,21 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location      
----------- ----- --- ----- --------------
-BEGIN          1           tests/eval1:10
-BEGIN          1           tests/eval1:11
-BEGIN          1           tests/eval1:13
-e              3   1   0.0 tests/eval1:17
-f              2   1   0.1 tests/eval1:24
-h              3   1   0.1 tests/eval1:24
+Subroutine        Count  CC  SCAR Location      
+----------------- ----- --- ----- --------------
+BEGIN                 1           tests/eval1:10
+BEGIN                 1           tests/eval1:11
+BEGIN                 1           tests/eval1:13
+e                     3   1   0.0 tests/eval1:17
+f                     2   1   0.1 tests/eval1:24
+h                     3   1   0.1 tests/eval1:24
+{file-level code}         2   6.9 tests/eval1:10
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location      
----------- ----- --- ----- --------------
-g              0   1   0.1 tests/eval1:24
+Subroutine        Count  CC  SCAR Location      
+----------------- ----- --- ----- --------------
+g                     0   1   0.1 tests/eval1:24
 
 

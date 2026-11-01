@@ -59,12 +59,19 @@ line  err   stmt   bran   cond   mcdc    sub   code
 14             1                               1
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+{file-level code}         1   0.0 E3.pm:10
+
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-E3             0   1   6.9 E3.pm:12
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+E3                    0   1   6.9 E3.pm:12
 
 
 E4.pm
@@ -100,12 +107,19 @@ line  err   stmt   bran   cond   mcdc    sub   code
 14             1                               1
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+{file-level code}         1   0.0 E4.pm:10
+
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-E4             0   1   6.9 E4.pm:12
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+E4                    0   1   6.9 E4.pm:12
 
 
 eval2
@@ -188,10 +202,11 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-BEGIN          1           eval2:10
-BEGIN          1           eval2:16
-BEGIN          1           eval2:18
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+BEGIN                 1           eval2:10
+BEGIN                 1           eval2:16
+BEGIN                 1           eval2:18
+{file-level code}         5  16.4 eval2:10
 
 

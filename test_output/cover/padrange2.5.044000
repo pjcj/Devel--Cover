@@ -61,9 +61,10 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location         
----------- ----- --- ----- -----------------
-BEGIN          1           tests/padrange2:3
-BEGIN          1           tests/padrange2:4
+Subroutine        Count  CC  SCAR Location         
+----------------- ----- --- ----- -----------------
+BEGIN                 1           tests/padrange2:3
+BEGIN                 1           tests/padrange2:4
+{file-level code}         3  11.0 tests/padrange2:3
 
 

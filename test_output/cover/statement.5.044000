@@ -38,3 +38,11 @@ line  err   stmt   bran   cond   mcdc    sub   code
 12             1                               my $a  = $pi * $r * $r;
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location          
+----------------- ----- --- ----- ------------------
+{file-level code}         1   0.0 tests/statement:10
+
+

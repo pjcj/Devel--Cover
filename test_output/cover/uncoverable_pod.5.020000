@@ -71,18 +71,19 @@ line  err   stmt    sub    pod   code
 Covered Subroutines
 -------------------
 
-Subroutine   Count Pod  CC  SCAR Location             
------------- ----- --- --- ----- ---------------------
-documented       1   1   1   0.0 Uncoverable_pod.pm:10
-excused_pod      1  -0   1   0.0 Uncoverable_pod.pm:13
-stale_pod        1 *-1   1   0.0 Uncoverable_pod.pm:18
+Subroutine        Count Pod  CC  SCAR Location             
+----------------- ----- --- --- ----- ---------------------
+documented            1   1   1   0.0 Uncoverable_pod.pm:10
+excused_pod           1  -0   1   0.0 Uncoverable_pod.pm:13
+stale_pod             1 *-1   1   0.0 Uncoverable_pod.pm:18
+{file-level code}             1   0.0 Uncoverable_pod.pm:29
 
 Uncoverable Subroutines
 -----------------------
 
-Subroutine   Count Pod  CC  SCAR Location             
------------- ----- --- --- ----- ---------------------
-never_called    -0  -0   1   0.0 Uncoverable_pod.pm:24
+Subroutine        Count Pod  CC  SCAR Location             
+----------------- ----- --- --- ----- ---------------------
+never_called         -0  -0   1   0.0 Uncoverable_pod.pm:24
 
 
 uncoverable_pod
@@ -131,11 +132,12 @@ line  err   stmt    sub    pod   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location          
----------- ----- --- ----- ------------------
-BEGIN          1           uncoverable_pod:14
-BEGIN          1           uncoverable_pod:15
-BEGIN          1           uncoverable_pod:17
-BEGIN          1           uncoverable_pod:19
+Subroutine        Count  CC  SCAR Location          
+----------------- ----- --- ----- ------------------
+BEGIN                 1           uncoverable_pod:14
+BEGIN                 1           uncoverable_pod:15
+BEGIN                 1           uncoverable_pod:17
+BEGIN                 1           uncoverable_pod:19
+{file-level code}         1   0.0 uncoverable_pod:14
 
 

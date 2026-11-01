@@ -51,11 +51,12 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location           
----------- ----- --- ----- -------------------
-BEGIN          1           Accessor_maker.pm:4
-__ANON__       4   1   0.0 Accessor_maker.pm:5
-import         1   1   0.0 Accessor_maker.pm:3
+Subroutine        Count  CC  SCAR Location           
+----------------- ----- --- ----- -------------------
+BEGIN                 1           Accessor_maker.pm:4
+__ANON__              4   1   0.0 Accessor_maker.pm:5
+import                1   1   0.0 Accessor_maker.pm:3
+{file-level code}         1   0.0 Accessor_maker.pm:4
 
 
 accessor
@@ -117,11 +118,12 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location   
----------- ----- --- ----- -----------
-BEGIN          1           accessor:4 
-BEGIN          1           accessor:7 
-new            2   1   0.0 accessor:2 
-test           2   3  11.0 accessor:12
+Subroutine        Count  CC  SCAR Location   
+----------------- ----- --- ----- -----------
+BEGIN                 1           accessor:4 
+BEGIN                 1           accessor:7 
+new                   2   1   0.0 accessor:2 
+test                  2   3  11.0 accessor:12
+{file-level code}         1   0.0 accessor:4 
 
 

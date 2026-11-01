@@ -71,18 +71,19 @@ line  err   stmt   bran   cond    sub    pod   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location               
----------- ----- --- ----- -----------------------
-BEGIN          1           tests/delete_package:17
-BEGIN          1           tests/delete_package:18
-BEGIN          1           tests/delete_package:20
-bar            1   1   0.0 tests/delete_package:24
+Subroutine        Count  CC  SCAR Location               
+----------------- ----- --- ----- -----------------------
+BEGIN                 1           tests/delete_package:17
+BEGIN                 1           tests/delete_package:18
+BEGIN                 1           tests/delete_package:20
+bar                   1   1   0.0 tests/delete_package:24
+{file-level code}         1   0.0 tests/delete_package:17
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location               
----------- ----- --- ----- -----------------------
-__ANON__       0   1   6.9 tests/delete_package:30
+Subroutine        Count  CC  SCAR Location               
+----------------- ----- --- ----- -----------------------
+__ANON__              0   1   6.9 tests/delete_package:30
 
 

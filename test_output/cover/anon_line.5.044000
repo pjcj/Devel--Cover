@@ -69,18 +69,19 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location          
----------- ----- --- ----- ------------------
-BEGIN          1           tests/anon_line:10
-BEGIN          1           tests/anon_line:11
-__ANON__       2   2   7.0 tests/anon_line:13
-__ANON__       1   2   7.0 tests/anon_line:13
+Subroutine        Count  CC  SCAR Location          
+----------------- ----- --- ----- ------------------
+BEGIN                 1           tests/anon_line:10
+BEGIN                 1           tests/anon_line:11
+__ANON__              2   2   7.0 tests/anon_line:13
+__ANON__              1   2   7.0 tests/anon_line:13
+{file-level code}         1   0.0 tests/anon_line:10
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location          
----------- ----- --- ----- ------------------
-__ANON__       0   1   0.0 tests/anon_line:13
+Subroutine        Count  CC  SCAR Location          
+----------------- ----- --- ----- ------------------
+__ANON__              0   1   0.0 tests/anon_line:13
 
 

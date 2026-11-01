@@ -153,11 +153,18 @@ line  err      %  cov  tot   missing                expr
 61          -100    0    2                          $x < 2 and $y < 0
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+{file-level code}         9  22.0 tests/uncoverable:10
+
 Uncoverable Subroutines
 -----------------------
 
-Subroutine Count  CC  SCAR Location            
----------- ----- --- ----- --------------------
-z             -0   1   0.0 tests/uncoverable:47
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+z                    -0   1   0.0 tests/uncoverable:47
 
 

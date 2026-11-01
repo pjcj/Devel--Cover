@@ -60,17 +60,18 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location        
----------- ----- --- ----- ----------------
-BEGIN          1           tests/deparse:10
-BEGIN          1           tests/deparse:11
-BEGIN          1           tests/deparse:13
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+BEGIN                 1           tests/deparse:10
+BEGIN                 1           tests/deparse:11
+BEGIN                 1           tests/deparse:13
+{file-level code}         1   0.0 tests/deparse:10
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location        
----------- ----- --- ----- ----------------
-__ANON__       0   1   6.9 tests/deparse:15
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+__ANON__              0   1   6.9 tests/deparse:15
 
 

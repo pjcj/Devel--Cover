@@ -97,10 +97,11 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location            
----------- ----- --- ----- --------------------
-BEGIN          1           tests/eval_string:2 
-BEGIN          1           tests/eval_string:3 
-ev             1   2   7.4 tests/eval_string:29
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+BEGIN                 1           tests/eval_string:2 
+BEGIN                 1           tests/eval_string:3 
+ev                    1   2   7.4 tests/eval_string:29
+{file-level code}         3  11.2 tests/eval_string:2 
 
 

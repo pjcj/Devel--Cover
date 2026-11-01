@@ -64,6 +64,14 @@ line  err      %   true  false   branch
 10    ***     50      1      0   unless defined &X
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location   
+----------------- ----- --- ----- -----------
+{file-level code}         2   7.2 Taint.pm:10
+
+
 taint
 
 File Summary
@@ -103,11 +111,12 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-BEGIN          1           taint:10
-BEGIN          1           taint:11
-BEGIN          1           taint:12
-BEGIN          1           taint:14
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+BEGIN                 1           taint:10
+BEGIN                 1           taint:11
+BEGIN                 1           taint:12
+BEGIN                 1           taint:14
+{file-level code}         1   0.0 taint:10
 
 

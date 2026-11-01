@@ -59,9 +59,10 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location                 
----------- ----- --- ----- -------------------------
-BEGIN          1           tests/moose_constraint:13
-BEGIN          1           tests/moose_constraint:17
+Subroutine        Count  CC  SCAR Location                 
+----------------- ----- --- ----- -------------------------
+BEGIN                 1           tests/moose_constraint:13
+BEGIN                 1           tests/moose_constraint:17
+{file-level code}         1   0.0 tests/moose_constraint:13
 
 

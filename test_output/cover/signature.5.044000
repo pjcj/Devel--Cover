@@ -71,11 +71,12 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location          
----------- ----- --- ----- ------------------
-BEGIN          1           tests/signature:13
-BEGIN          1           tests/signature:14
-BEGIN          1           tests/signature:15
-xx             1   2   6.9 tests/signature:17
+Subroutine        Count  CC  SCAR Location          
+----------------- ----- --- ----- ------------------
+BEGIN                 1           tests/signature:13
+BEGIN                 1           tests/signature:14
+BEGIN                 1           tests/signature:15
+xx                    1   2   6.9 tests/signature:17
+{file-level code}         2   6.9 tests/signature:13
 
 

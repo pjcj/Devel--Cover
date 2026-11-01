@@ -81,10 +81,11 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location              
----------- ----- --- ----- ----------------------
-BEGIN          1           tests/default_param:10
-BEGIN          1           tests/default_param:11
-p              2   4  13.9 tests/default_param:13
+Subroutine        Count  CC  SCAR Location              
+----------------- ----- --- ----- ----------------------
+BEGIN                 1           tests/default_param:10
+BEGIN                 1           tests/default_param:11
+p                     2   4  13.9 tests/default_param:13
+{file-level code}         2   6.9 tests/default_param:10
 
 

@@ -92,20 +92,21 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine   Count  CC  SCAR Location     
------------- ----- --- ----- -------------
-BEGIN            1           tests/sort:3 
-BEGIN            1           tests/sort:30
-GetAlgorithm     1   1   0.0 tests/sort:18
-backwards        6   1   0.0 tests/sort:10
-fail             1   1   0.0 tests/sort:36
-xyz              8   1   0.0 tests/sort:41
+Subroutine        Count  CC  SCAR Location     
+----------------- ----- --- ----- -------------
+BEGIN                 1           tests/sort:3 
+BEGIN                 1           tests/sort:30
+GetAlgorithm          1   1   0.0 tests/sort:18
+backwards             6   1   0.0 tests/sort:10
+fail                  1   1   0.0 tests/sort:36
+xyz                   8   1   0.0 tests/sort:41
+{file-level code}         1   0.0 tests/sort:3 
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine   Count  CC  SCAR Location     
------------- ----- --- ----- -------------
-forwards         0   1   6.9 tests/sort:14
+Subroutine        Count  CC  SCAR Location     
+----------------- ----- --- ----- -------------
+forwards              0   1   6.9 tests/sort:14
 
 

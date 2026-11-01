@@ -148,10 +148,11 @@ line  err      %  cov  tot   missing                                            
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location        
----------- ----- --- ----- ----------------
-BEGIN          1           tests/sort_or:10
-BEGIN          1           tests/sort_or:11
-boom           1   1   0.0 tests/sort_or:50
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+BEGIN                 1           tests/sort_or:10
+BEGIN                 1           tests/sort_or:11
+boom                  1   1   0.0 tests/sort_or:50
+{file-level code}        10  24.6 tests/sort_or:10
 
 
