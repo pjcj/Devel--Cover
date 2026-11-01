@@ -1192,7 +1192,7 @@ sub test_file_level_detail () {
   my ($row, $info) = $html =~ m{($src)\s*($detail.*?</tr>)}s;
 
   ok defined $row, "file-level: detail follows a source row";
-  like $info, qr{File-level code</span>\s*<span[^>]*>CC=\d+ SCAR=[\d.]+<},
+  like $info, qr{File-level code</span>\s*<span[^>]*>CC=3 SCAR=[\d.]+<},
     "file-level: detail shows CC and SCAR";
   like $info,  qr{Subroutine},         "file-level: BEGIN entry kept";
   unlike $row, qr{src-c0|src-partial}, "file-level: line not marked";
