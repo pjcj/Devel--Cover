@@ -25,10 +25,9 @@ CC  Cov CRAP SCAR
 Worst Subroutines
 -----------------
 
-Subroutine        CC SCAR  Location            
------------------ -- ----  --------------------
-main               6 18.4  tests/cond_xor_hp:16
-{file-level code}  1  0.0  tests/cond_xor_hp:13
+Subroutine CC SCAR  Location            
+---------- -- ----  --------------------
+main        6 18.4  tests/cond_xor_hp:16
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl

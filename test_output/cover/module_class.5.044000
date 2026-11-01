@@ -37,10 +37,9 @@ CC  Cov CRAP SCAR
 Worst Subroutines
 -----------------
 
-Subroutine        CC SCAR  Location          
------------------ -- ----  ------------------
-unused             1  6.9  Class_animal.pm:21
-{file-level code}  1  0.0  Class_animal.pm:9 
+Subroutine CC SCAR  Location          
+---------- -- ----  ------------------
+unused      1  6.9  Class_animal.pm:21
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)

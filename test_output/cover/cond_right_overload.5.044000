@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------------- ------ ------ ------ ------ ------ ------ ------
 File                        stmt   bran   cond   mcdc    sub  total   scar
 ------------------------- ------ ------ ------ ------ ------ ------ ------
-tests/cond_right_overload   88.3   50.0   34.7    0.0   85.7   58.5   29.2
-Total                       88.3   50.0   34.7    0.0   85.7   58.5   29.2
+tests/cond_right_overload   88.3   50.0   34.7    0.0   85.7   58.5   30.2
+Total                       88.3   50.0   34.7    0.0   85.7   58.5   30.2
 ------------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,14 +20,14 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-15 66.7 18.6 29.2
+15 66.7 20.5 30.2
 
 Worst Subroutines
 -----------------
 
 Subroutine        CC SCAR  Location                    
 ----------------- -- ----  ----------------------------
-{file-level code} 15 31.5  tests/cond_right_overload:13
+{file-level code} 15 32.5  tests/cond_right_overload:13
 __ANON__           1  0.2  tests/cond_right_overload:21
 
 line  err   stmt   bran   cond   mcdc    sub   code

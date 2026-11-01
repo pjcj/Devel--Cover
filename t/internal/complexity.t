@@ -302,6 +302,35 @@ PERL
   is @ends,    1, "reused structure: one file-level end line entry";
 }
 
+# File-level coverage tests.
+# Line layout:
+# 1: my $x = 1;                          - file-level, covered
+# 2: sub named { $_[0] ? 1 : 0 }         - false branch never taken
+# 3: named($x);                          - file-level, covered
+sub test_file_level_coverage () {
+  my ($db_path) = run_cover("cc_file_level_cov", <<'PERL');
+my $x = 1;
+sub named { $_[0] ? 1 : 0 }
+named($x);
+PERL
+
+  my $st = Devel::Cover::DB::Structure->new(base => $db_path);
+  $st->read_all;
+
+  my $db = Devel::Cover::DB->new(db => $db_path)->merge_runs;
+  $db->set_structure($st);
+  $db->calculate_summary(statement => 1, branch => 1, condition => 1);
+
+  my ($file)  = grep /cc_file_level_cov\.pl$/, keys $db->{summary}->%*;
+  my %by_name = map { $_->{name} => $_ } $db->{summary}{$file}{scar}{subs}->@*;
+  my $fl      = $by_name{$Devel::Cover::DB::File_level_name};
+  ok defined $fl, "file-level cov: entry present";
+  is $fl->{cov},        100, "file-level cov: other subs left out";
+  is $fl->{file_level}, 1,   "file-level cov: entry marked";
+  ok $by_name{named}{cov} < 100,   "file-level cov: named sub partly covered";
+  ok !$by_name{named}{file_level}, "file-level cov: named sub not marked";
+}
+
 # Summary aggregation tests
 # Reuse the same test script layout (6 subs: CC = 1, 2, 3, 2, 2, 2).
 sub test_summary_aggregation () {
@@ -908,6 +937,7 @@ sub main () {
   test_file_level_line_directive;
   test_file_level_end_block;
   test_file_level_reused_structure;
+  test_file_level_coverage;
   test_summary_aggregation;
   test_end_lines;
   test_signature_cc;

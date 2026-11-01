@@ -27,7 +27,7 @@ Worst Subroutines
 
 Subroutine        CC SCAR  Location            
 ----------------- -- ----  --------------------
-{file-level code}  3 11.3  tests/eval_string:2 
+{file-level code}  3 11.2  tests/eval_string:2 
 ev                 2  7.4  tests/eval_string:29
 
 line  err   stmt   bran   cond   mcdc    sub   code

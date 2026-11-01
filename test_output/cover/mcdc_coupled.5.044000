@@ -25,11 +25,10 @@ CC  Cov CRAP SCAR
 Worst Subroutines
 -----------------
 
-Subroutine        CC SCAR  Location             
------------------ -- ----  ---------------------
-coupled_partial    4 14.0  tests/mcdc_coupled:26
-coupled            4 13.9  tests/mcdc_coupled:18
-{file-level code}  1  0.0  tests/mcdc_coupled:10
+Subroutine      CC SCAR  Location             
+--------------- -- ----  ---------------------
+coupled_partial  4 14.0  tests/mcdc_coupled:26
+coupled          4 13.9  tests/mcdc_coupled:18
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl

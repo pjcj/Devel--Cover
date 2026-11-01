@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------ ------ ------ ------ ------ ------ ------ ------
 File                 stmt   bran   cond   mcdc    sub  total   scar
 ------------------ ------ ------ ------ ------ ------ ------ ------
-tests/ref_do_block   89.4   50.0   33.3    0.0   50.0   68.7   12.4
-Total                89.4   50.0   33.3    0.0   50.0   68.7   12.4
+tests/ref_do_block   89.4   50.0   33.3    0.0   50.0   68.7   12.2
+Total                89.4   50.0   33.3    0.0   50.0   68.7   12.2
 ------------------ ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,14 +20,14 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 4 76.9  3.5 12.4
+ 4 76.9  3.4 12.2
 
 Worst Subroutines
 -----------------
 
 Subroutine        CC SCAR  Location             
 ----------------- -- ----  ---------------------
-{file-level code}  4 14.3  tests/ref_do_block:13
+{file-level code}  4 14.0  tests/ref_do_block:13
 not_referenced     1  6.9  tests/ref_do_block:16
 not_copied         1  6.9  tests/ref_do_block:17
 

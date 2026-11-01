@@ -10,7 +10,7 @@ Module_lexical_sub.pm     100.0    n/a    n/a    n/a  100.0  100.0    0.0
 Module_line_directive.pm  100.0   50.0    n/a    n/a  100.0   87.5    5.2
 Module_top_level.pm        86.1   50.0    n/a    n/a   84.6   84.3    4.3
 module_require            100.0    n/a    n/a    n/a  100.0  100.0    0.0
-Total                      95.7   50.0    n/a    n/a   95.0   94.4    2.8
+Total                      95.7   50.0    n/a    n/a   95.0   94.4    2.7
 ------------------------ ------ ------ ------ ------ ------ ------ ------
 
 
@@ -25,7 +25,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    5  4 94.2  1.3  2.8
+    5  4 94.2  1.3  2.7
 
 
 Module_enclosing_sub.pm

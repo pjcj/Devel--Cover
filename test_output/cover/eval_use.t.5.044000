@@ -5,9 +5,9 @@ Common prefix: tests/
 ----- ------ ------ ------ ------ ------ ------ ------
 File    stmt   bran   cond   mcdc    sub  total   scar
 ----- ------ ------ ------ ------ ------ ------ ------
-E2.pm   66.6    n/a    n/a    n/a    0.0   50.0    4.2
-E3.pm   66.6    n/a    n/a    n/a    0.0   50.0    4.2
-E4.pm   66.6    n/a    n/a    n/a    0.0   50.0    4.2
+E2.pm   66.6    n/a    n/a    n/a    0.0   50.0    4.1
+E3.pm   66.6    n/a    n/a    n/a    0.0   50.0    4.1
+E4.pm   66.6    n/a    n/a    n/a    0.0   50.0    4.1
 eval2  100.0  100.0  100.0  100.0  100.0  100.0   16.1
 Total   90.6  100.0  100.0  100.0   57.1   87.5   11.3
 ----- ------ ------ ------ ------ ------ ------ ------
@@ -52,15 +52,14 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 66.7  1.5  4.2
+ 1 66.7  1.5  4.1
 
 Worst Subroutines
 -----------------
 
-Subroutine        CC SCAR  Location
------------------ -- ----  --------
-E2                 1  6.9  E2.pm:12
-{file-level code}  1  0.4  E2.pm:10
+Subroutine CC SCAR  Location
+---------- -- ----  --------
+E2          1  6.9  E2.pm:12
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
@@ -94,15 +93,14 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 66.7  1.5  4.2
+ 1 66.7  1.5  4.1
 
 Worst Subroutines
 -----------------
 
-Subroutine        CC SCAR  Location
------------------ -- ----  --------
-E3                 1  6.9  E3.pm:12
-{file-level code}  1  0.4  E3.pm:10
+Subroutine CC SCAR  Location
+---------- -- ----  --------
+E3          1  6.9  E3.pm:12
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)
@@ -136,15 +134,14 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 66.7  1.5  4.2
+ 1 66.7  1.5  4.1
 
 Worst Subroutines
 -----------------
 
-Subroutine        CC SCAR  Location
------------------ -- ----  --------
-E4                 1  6.9  E4.pm:12
-{file-level code}  1  0.4  E4.pm:10
+Subroutine CC SCAR  Location
+---------- -- ----  --------
+E4          1  6.9  E4.pm:12
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              # Copyright 2004-2026, Paul Johnson (paul@pjcj.net)

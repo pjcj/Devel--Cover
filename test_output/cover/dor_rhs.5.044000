@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------- ------ ------ ------ ------ ------ ------
 File            stmt   bran   cond    sub  total   scar
 ------------- ------ ------ ------ ------ ------ ------
-tests/dor_rhs  100.0   50.0   33.3  100.0   70.3   19.2
-Total          100.0   50.0   33.3  100.0   70.3   19.2
+tests/dor_rhs  100.0   50.0   33.3  100.0   70.3   18.4
+Total          100.0   50.0   33.3  100.0   70.3   18.4
 ------------- ------ ------ ------ ------ ------ ------
 
 
@@ -20,14 +20,14 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-22 67.0  6.8 19.2
+22 67.0  6.3 18.4
 
 Worst Subroutines
 -----------------
 
 Subroutine        CC SCAR  Location        
 ----------------- -- ----  ----------------
-{file-level code} 11 27.3  tests/dor_rhs:4 
+{file-level code} 11 26.3  tests/dor_rhs:4 
 chained_rhs        3 13.3  tests/dor_rhs:81
 glob_hash_rhs      2  8.1  tests/dor_rhs:34
 

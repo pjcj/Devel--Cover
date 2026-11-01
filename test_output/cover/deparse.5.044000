@@ -25,10 +25,9 @@ CC  Cov CRAP SCAR
 Worst Subroutines
 -----------------
 
-Subroutine        CC SCAR  Location        
------------------ -- ----  ----------------
-__ANON__           1  6.9  tests/deparse:15
-{file-level code}  1  0.0  tests/deparse:10
+Subroutine CC SCAR  Location        
+---------- -- ----  ----------------
+__ANON__    1  6.9  tests/deparse:15
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl -l

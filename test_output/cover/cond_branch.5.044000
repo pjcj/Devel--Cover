@@ -2,8 +2,8 @@ cover: Reading database from ...
 ----------------- ------ ------ ------ ------ ------ ------ ------
 File                stmt   bran   cond   mcdc    sub  total   scar
 ----------------- ------ ------ ------ ------ ------ ------ ------
-tests/cond_branch   90.2   79.3   32.9   19.5  100.0   70.1   52.1
-Total               90.2   79.3   32.9   19.5  100.0   70.1   52.1
+tests/cond_branch   90.2   79.3   32.9   19.5  100.0   70.1   54.2
+Total               90.2   79.3   32.9   19.5  100.0   70.1   54.2
 ----------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,14 +20,14 @@ File Summary
 
  CC  Cov  CRAP SCAR
 --- ---- ----- ----
-108 74.8 183.0 52.1
+108 74.8 225.3 54.2
 
 Worst Subroutines
 -----------------
 
 Subroutine        CC SCAR  Location             
 ----------------- -- ----  ---------------------
-{file-level code} 93 54.4  tests/cond_branch:10 
+{file-level code} 93 56.5  tests/cond_branch:10 
 __ANON__           3 11.0  tests/cond_branch:244
 __ANON__           3 11.0  tests/cond_branch:252
 
