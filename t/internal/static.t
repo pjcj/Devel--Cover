@@ -333,6 +333,10 @@ sub with_postfix {
   return $x;
 }
 
+BEGIN { our $Loaded = 1 unless $ENV{PERSUB_SKIP} }
+
+our $Debug = $ENV{PERSUB_DEBUG} ? 1 : 0;
+
 1
 EOPERL
 
@@ -340,12 +344,15 @@ EOPERL
   ok defined $subs, "per_sub: returns data";
   is ref $subs, "ARRAY", "per_sub: returns arrayref";
 
-  my %by_name = map { $_->{name} => $_ } grep $_->{name} ne "BEGIN", @$subs;
+  my %by_name = map { $_->{name} => $_ } @$subs;
+  ok !exists $by_name{BEGIN}, "per_sub: no BEGIN entries";
 
-  # 2 BEGINs (use strict, use warnings) with CC=1 each
-  my @begins = grep { $_->{name} eq "BEGIN" } @$subs;
-  is scalar @begins, 2, "per_sub: 2 BEGIN entries";
-  is $_->{cc},       1, "per_sub: BEGIN CC=1" for @begins;
+  my $file_level = $by_name{"{file-level code}"};
+  is $file_level->{line}, 2, "per_sub: file-level code at first use";
+  is $file_level->{cc},   3, "per_sub: file-level CC counts BEGIN and ternary";
+
+  my $counts = Devel::Cover::Static::count_criteria($file);
+  is $counts->{subroutine}, 7, "per_sub: 7 subs (4 user + 2 use + BEGIN)";
 
   is $by_name{linear}{cc},       1, "per_sub: linear CC=1";
   is $by_name{branchy}{cc},      3, "per_sub: branchy CC=3";
@@ -374,6 +381,53 @@ EOPERL
   my %by_name = map { $_->{name} => $_ } @$subs;
   ok !exists $by_name{declared}, "per_sub: forward decl skipped";
   is $by_name{implemented}{cc}, 1, "per_sub: implemented CC=1";
+}
+
+# With no file-level statement the file-level entry falls back to line 1.
+sub test_per_sub_only_subs () {
+  my $file = write_file("OnlySubs.pm", <<'EOPERL');
+package OnlySubs;
+
+sub only { 42 }
+EOPERL
+
+  my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+  my %by_name = map { $_->{name} => $_ } @$subs;
+  is $by_name{"{file-level code}"}{line}, 1, "per_sub: file-level at line 1";
+}
+
+# Subs inside blocks have their own entries, so the file-level CC skips them.
+sub test_per_sub_in_blocks () {
+  my $file = write_file("InBlocks.pm", <<'PERL');
+package InBlocks {
+  sub f ($x) {
+    if ($x) { return 1 }
+    0
+  }
+}
+
+{
+  my $c;
+  sub inc ($x) {
+    if ($x) { $c++ }
+    $c
+  }
+}
+
+BEGIN {
+  sub g ($x) { $x ? 1 : 0 }
+}
+
+1
+PERL
+
+  my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+  my %by_name = map { $_->{name} => $_ } @$subs;
+  is $by_name{f}{cc},   2, "per_sub: sub in package block CC=2";
+  is $by_name{inc}{cc}, 2, "per_sub: sub in bare block CC=2";
+  is $by_name{g}{cc},   2, "per_sub: sub in BEGIN block CC=2";
+  is $by_name{"{file-level code}"}{cc}, 1,
+    "per_sub: file-level CC skips subs in blocks";
 }
 
 # Nonexistent file returns undef.
@@ -412,7 +466,7 @@ EOPERL
   is $counts->{branch}, 6, "nested elsif: 6 outcomes (3 decisions x 2)";
 
   my $subs    = Devel::Cover::Static::per_sub_complexity($file);
-  my %by_name = map { $_->{name} => $_ } grep $_->{name} ne "BEGIN", @$subs;
+  my %by_name = map { $_->{name} => $_ } @$subs;
   is $by_name{outer}{cc}, 4, "nested elsif: outer CC = 4 (3 decisions + 1)";
 }
 
@@ -447,7 +501,7 @@ EOPERL
   is $counts->{branch}, 8, "triple nested: 8 outcomes (4 decisions x 2)";
 
   my $subs    = Devel::Cover::Static::per_sub_complexity($file);
-  my %by_name = map { $_->{name} => $_ } grep $_->{name} ne "BEGIN", @$subs;
+  my %by_name = map { $_->{name} => $_ } @$subs;
   is $by_name{deep}{cc}, 5, "triple nested: deep CC = 5 (4 decisions + 1)";
 }
 
@@ -461,6 +515,8 @@ sub main () {
   test_missing_file;
   test_per_sub_complexity;
   test_per_sub_forward;
+  test_per_sub_only_subs;
+  test_per_sub_in_blocks;
   test_per_sub_missing;
   test_nested_elsif;
   test_triple_nested_elsif;

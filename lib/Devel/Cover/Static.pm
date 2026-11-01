@@ -201,28 +201,49 @@ sub count_criteria ($file) {
   }
 }
 
+sub _inside_named_sub ($node) {
+  while ($node = $node->parent) {
+    return 1
+      if $node->isa("PPI::Statement::Sub")
+      && !$node->isa("PPI::Statement::Scheduled");
+  }
+  0
+}
+
+sub _file_level_line ($doc) {
+  my ($first) = grep {
+         $_->isa("PPI::Statement")
+      && !$_->isa("PPI::Statement::Package")
+      && !$_->isa("PPI::Statement::Sub")
+  } $doc->schildren;
+  $first ? $first->line_number : 1
+}
+
 sub per_sub_complexity ($file) {
   return unless $Have_ppi;
   my $doc = PPI::Document->new($file) or return;
 
   my $named_subs = $doc->find(sub {
-    $_[1]->isa("PPI::Statement::Sub") && $_[1]->name
+    $_[1]->isa("PPI::Statement::Sub")
+      && !$_[1]->isa("PPI::Statement::Scheduled")
+      && $_[1]->name
   }) || [];
 
   my @subs;
+  my $file_level = _count_decisions($doc) + 1;
   for my $sub (@$named_subs) {
-    my $block = $sub->block or next;
-    push @subs, {
-        name => $sub->name,
-        line => $sub->line_number,
-        cc   => _count_decisions($block) + 1,
-      };
+    my $block     = $sub->block or next;
+    my $decisions = _count_decisions($block);
+    $file_level -= $decisions unless _inside_named_sub($sub);
+    push @subs,
+      { name => $sub->name, line => $sub->line_number, cc => $decisions + 1 };
   }
 
-  my $includes = $doc->find("PPI::Statement::Include") || [];
-  for my $inc (@$includes) {
-    push @subs, { name => "BEGIN", line => $inc->line_number, cc => 1 };
-  }
+  push @subs, {
+      name => "{file-level code}",
+      line => _file_level_line($doc),
+      cc   => $file_level,
+    };
 
   \@subs
 }
@@ -299,7 +320,8 @@ estimate is rough in both directions - a decision evaluated in boolean context
 builds a narrower table than the source suggests, and a statement holding two
 separate decisions is counted as one.
 
-B<Subroutines> count named subs plus one BEGIN per C<use>/C<require>.
+B<Subroutines> count named subs, special blocks such as C<BEGIN> and one
+C<BEGIN> per C<use>/C<require>.
 
 B<Pod> counts named subroutines (the number of subs that should have
 documentation).
@@ -315,8 +337,15 @@ complexity data:
   ]
 
 The CC of a named subroutine is the number of decision points in its block plus
-one. Each C<use>/C<require> is included as a BEGIN entry with CC=1. Forward
-declarations (no block) are skipped.
+one. Forward declarations (no block) are skipped.
+
+One more entry, named C<{file-level code}>, stands for the code outside the
+named subs. Its CC is one plus the decision points of the file less those in
+the blocks of the named subs that are not inside another named sub, so it
+counts the decisions of the C<BEGIN>, C<CHECK>, C<INIT> and C<END> blocks, and
+of any file-level anonymous sub, which at run time has an entry of its own. Its
+line is that of the first top-level statement that is neither a C<package> nor
+a sub.
 
 Returns C<undef> if PPI is unavailable or the file fails to parse.
 
@@ -375,12 +404,23 @@ less one per const-RHS short-circuit operator.
 
 =item _count_subroutines($doc, $includes)
 
-Counts named subroutines plus one BEGIN per C<use>/C<require>.
+Counts named subroutines and special blocks plus one BEGIN per
+C<use>/C<require>.
 
 =item _count_pod($doc)
 
 Counts named subroutines as the number of subs expected to have POD
 documentation.
+
+=item _inside_named_sub($node)
+
+Returns true if C<$node> is inside a named sub other than a C<BEGIN>,
+C<CHECK>, C<INIT> or C<END> block.
+
+=item _file_level_line($doc)
+
+Returns the line of the first top-level statement that is neither a
+C<package> nor a sub, or 1 if there is none.
 
 =back
 
