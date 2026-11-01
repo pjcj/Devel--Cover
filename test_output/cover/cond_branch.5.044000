@@ -2,8 +2,8 @@ cover: Reading database from ...
 ----------------- ------ ------ ------ ------ ------ ------ ------
 File                stmt   bran   cond   mcdc    sub  total   scar
 ----------------- ------ ------ ------ ------ ------ ------ ------
-tests/cond_branch   90.2   79.3   32.9   19.5  100.0   70.1    7.7
-Total               90.2   79.3   32.9   19.5  100.0   70.1    7.7
+tests/cond_branch   90.2   79.3   32.9   19.5  100.0   70.1   54.2
+Total               90.2   79.3   32.9   19.5  100.0   70.1   54.2
 ----------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -18,18 +18,18 @@ tests/cond_branch
 File Summary
 ------------
 
-CC  Cov CRAP SCAR
--- ---- ---- ----
-16 74.8  2.1  7.7
+ CC  Cov  CRAP SCAR
+--- ---- ----- ----
+108 74.8 225.3 54.2
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SCAR  Location             
----------- -- ----  ---------------------
-__ANON__    3 11.0  tests/cond_branch:244
-__ANON__    3 11.0  tests/cond_branch:252
-__ANON__    3 11.0  tests/cond_branch:260
+Subroutine        CC SCAR  Location             
+----------------- -- ----  ---------------------
+{file-level code} 93 56.5  tests/cond_branch:10 
+__ANON__           3 11.0  tests/cond_branch:244
+__ANON__           3 11.0  tests/cond_branch:252
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -519,28 +519,29 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location             
----------- ----- --- ----- ---------------------
-BEGIN          1   1   0.0 tests/cond_branch:10 
-BEGIN          1   1   0.0 tests/cond_branch:11 
-BEGIN          1   1   0.0 tests/cond_branch:79 
-BEGIN          1   1   0.0 tests/cond_branch:85 
-BEGIN          1   1   0.0 tests/cond_branch:112
-BEGIN          1   1   0.0 tests/cond_branch:118
-BEGIN          1   1   0.0 tests/cond_branch:149
-BEGIN          1   1   0.0 tests/cond_branch:156
-BEGIN          1   1   0.0 tests/cond_branch:202
-BEGIN          1   1   0.0 tests/cond_branch:211
-BEGIN          1   1   0.0 tests/cond_branch:229
-__ANON__       4   2   6.9 tests/cond_branch:218
-__ANON__       4   2   6.9 tests/cond_branch:223
-__ANON__       4   2   9.9 tests/cond_branch:228
-__ANON__       4   2   6.9 tests/cond_branch:234
-__ANON__       4   2   6.9 tests/cond_branch:239
-__ANON__       4   3  11.0 tests/cond_branch:244
-__ANON__       4   3  11.0 tests/cond_branch:252
-__ANON__       4   3  11.0 tests/cond_branch:260
-__ANON__       4   3  11.0 tests/cond_branch:268
-__ANON__       4   3  11.0 tests/cond_branch:277
+Subroutine        Count  CC  SCAR Location             
+----------------- ----- --- ----- ---------------------
+BEGIN                 1           tests/cond_branch:10 
+BEGIN                 1           tests/cond_branch:11 
+BEGIN                 1           tests/cond_branch:79 
+BEGIN                 1           tests/cond_branch:85 
+BEGIN                 1           tests/cond_branch:112
+BEGIN                 1           tests/cond_branch:118
+BEGIN                 1           tests/cond_branch:149
+BEGIN                 1           tests/cond_branch:156
+BEGIN                 1           tests/cond_branch:202
+BEGIN                 1           tests/cond_branch:211
+BEGIN                 1           tests/cond_branch:229
+__ANON__              4   2   6.9 tests/cond_branch:218
+__ANON__              4   2   6.9 tests/cond_branch:223
+__ANON__              4   2   9.9 tests/cond_branch:228
+__ANON__              4   2   6.9 tests/cond_branch:234
+__ANON__              4   2   6.9 tests/cond_branch:239
+__ANON__              4   3  11.0 tests/cond_branch:244
+__ANON__              4   3  11.0 tests/cond_branch:252
+__ANON__              4   3  11.0 tests/cond_branch:260
+__ANON__              4   3  11.0 tests/cond_branch:268
+__ANON__              4   3  11.0 tests/cond_branch:277
+{file-level code}        93  56.5 tests/cond_branch:10 
 
 

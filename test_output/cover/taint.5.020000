@@ -5,9 +5,9 @@ Common prefix: tests/
 -------- ------ ------ ------ ------ ------ ------ ------
 File       stmt   bran   cond   mcdc    sub  total   scar
 -------- ------ ------ ------ ------ ------ ------ ------
-Taint.pm  100.0   50.0    n/a    n/a    n/a   75.0    n/a
+Taint.pm  100.0   50.0    n/a    n/a    n/a   75.0    7.2
 taint     100.0    n/a    n/a    n/a  100.0  100.0    0.0
-Total     100.0   50.0    n/a    n/a  100.0   95.2    0.0
+Total     100.0   50.0    n/a    n/a  100.0   95.2    5.4
 -------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -22,10 +22,24 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    2  1 94.1  1.0  0.0
+    2  2 94.1  1.7  5.4
 
 
 Taint.pm
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 2 75.0  2.1  7.2
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location   
+----------------- -- ----  -----------
+{file-level code}  2  7.2  Taint.pm:10
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              # Copyright 2013-2026, Paul Johnson (paul@pjcj.net)
@@ -48,6 +62,14 @@ Branches
 line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 10    ***     50      1      0   unless defined &Taint::X
+
+
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location   
+----------------- ----- --- ----- -----------
+{file-level code}         2   7.2 Taint.pm:10
 
 
 taint
@@ -89,11 +111,12 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-BEGIN          1   1   0.0 taint:10
-BEGIN          1   1   0.0 taint:11
-BEGIN          1   1   0.0 taint:12
-BEGIN          1   1   0.0 taint:14
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+BEGIN                 1           taint:10
+BEGIN                 1           taint:11
+BEGIN                 1           taint:12
+BEGIN                 1           taint:14
+{file-level code}         1   0.0 taint:10
 
 

@@ -168,6 +168,16 @@ sub get_end_lines ($self, $digest) {
   $fval->{end_line}
 }
 
+sub delete_file_level ($self, $file) {
+  my $fval = $self->{f}{$file} or return;
+  for my $by_line (grep defined, @$fval{qw( complexity end_line )}) {
+    for my $line (keys %$by_line) {
+      delete $by_line->{$line}{"{file-level code}"};
+      delete $by_line->{$line} unless $by_line->{$line}->%*;
+    }
+  }
+}
+
 sub store_counts ($self, $file) {
   $self->{count}{$_}{$file} = $self->{f}{$file}{start}{-1}{__COVER__}[0]{$_}
     = $self->get_count($file, $_)
@@ -389,6 +399,15 @@ C<< $self-E<gt>{f}{$file}{complexity}{$line}{$sub_name}[$scount] >>.
 Return the complexity hash for the file matching C<$digest>, or C<undef> if no
 file matches.  The returned hash is keyed by line number, then subroutine name,
 with an arrayref of CC values indexed by C<$scount>.
+
+=head2 delete_file_level ($file)
+
+ $struct->delete_file_level($file);
+
+Remove every C<{file-level code}> entry of C<$file> from its complexity and end
+line hashes, and any line left with no entries.  A run writes one such entry
+per file at the lowest line it walked, which can differ between runs, so the
+entry of the latest run replaces the older one.
 
 =head2 store_counts ($file)
 

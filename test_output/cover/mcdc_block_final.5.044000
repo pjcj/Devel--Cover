@@ -2,8 +2,8 @@ cover: Reading database from ...
 ---------------------- ------ ------ ------ ------ ------ ------ ------
 File                     stmt   bran   cond   mcdc    sub  total   scar
 ---------------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_block_final  100.0  100.0  100.0  100.0  100.0  100.0    9.9
-Total                   100.0  100.0  100.0  100.0  100.0  100.0    9.9
+tests/mcdc_block_final  100.0  100.0  100.0  100.0  100.0  100.0   10.1
+Total                   100.0  100.0  100.0  100.0  100.0  100.0   10.1
 ---------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
-15 100.0  2.7  9.9
+15 100.0  2.8 10.1
 
 Worst Subroutines
 -----------------
@@ -205,18 +205,19 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine  Count  CC  SCAR Location                 
------------ ----- --- ----- -------------------------
-BEGIN           1   1   0.0 tests/mcdc_block_final:15
-BEGIN           1   1   0.0 tests/mcdc_block_final:16
-do_and3         4   3  11.0 tests/mcdc_block_final:35
-do_or2          3   2   6.9 tests/mcdc_block_final:40
-grep_and3       1   3  11.0 tests/mcdc_block_final:18
-grep_or2        1   2   6.9 tests/mcdc_block_final:22
-grep_unless     1   4  13.9 tests/mcdc_block_final:48
-grep_void       1   2   6.9 tests/mcdc_block_final:54
-main            1   1   0.0 tests/mcdc_block_final:58
-map_and_or      1   3  11.0 tests/mcdc_block_final:26
-sort_and3       4   3  11.0 tests/mcdc_block_final:30
+Subroutine        Count  CC  SCAR Location                 
+----------------- ----- --- ----- -------------------------
+BEGIN                 1           tests/mcdc_block_final:15
+BEGIN                 1           tests/mcdc_block_final:16
+do_and3               4   3  11.0 tests/mcdc_block_final:35
+do_or2                3   2   6.9 tests/mcdc_block_final:40
+grep_and3             1   3  11.0 tests/mcdc_block_final:18
+grep_or2              1   2   6.9 tests/mcdc_block_final:22
+grep_unless           1   4  13.9 tests/mcdc_block_final:48
+grep_void             1   2   6.9 tests/mcdc_block_final:54
+main                  1   1   0.0 tests/mcdc_block_final:58
+map_and_or            1   3  11.0 tests/mcdc_block_final:26
+sort_and3             4   3  11.0 tests/mcdc_block_final:30
+{file-level code}         1   0.0 tests/mcdc_block_final:15
 
 

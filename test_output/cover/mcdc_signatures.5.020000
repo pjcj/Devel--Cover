@@ -2,8 +2,8 @@ cover: Reading database from ...
 --------------------- ------ ------ ------ ------ ------ ------ ------
 File                    stmt   bran   cond   mcdc    sub  total   scar
 --------------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_signatures  100.0   66.6  100.0   62.5  100.0   89.8   14.5
-Total                  100.0   66.6  100.0   62.5  100.0   89.8   14.5
+tests/mcdc_signatures  100.0   66.6  100.0   62.5  100.0   89.8   15.4
+Total                  100.0   66.6  100.0   62.5  100.0   89.8   15.4
 --------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-20 90.9  4.3 14.5
+20 90.9  4.7 15.4
 
 Worst Subroutines
 -----------------
@@ -192,17 +192,18 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine   Count  CC  SCAR Location                
------------- ----- --- ----- ------------------------
-BEGIN            1   1   0.0 tests/mcdc_signatures:18
-BEGIN            1   1   0.0 tests/mcdc_signatures:19
-BEGIN            1   1   0.0 tests/mcdc_signatures:20
-BEGIN            1   1   0.0 tests/mcdc_signatures:21
-and_decision     3   4  14.0 tests/mcdc_signatures:23
-default_and      4   5  16.2 tests/mcdc_signatures:28
-default_or       4   5  16.2 tests/mcdc_signatures:27
-main             1   1   0.0 tests/mcdc_signatures:30
-nested           4   6  18.0 tests/mcdc_signatures:25
-or_decision      3   4  14.0 tests/mcdc_signatures:24
+Subroutine        Count  CC  SCAR Location                
+----------------- ----- --- ----- ------------------------
+BEGIN                 1           tests/mcdc_signatures:18
+BEGIN                 1           tests/mcdc_signatures:19
+BEGIN                 1           tests/mcdc_signatures:20
+BEGIN                 1           tests/mcdc_signatures:21
+and_decision          3   4  14.0 tests/mcdc_signatures:23
+default_and           4   5  16.2 tests/mcdc_signatures:28
+default_or            4   5  16.2 tests/mcdc_signatures:27
+main                  1   1   0.0 tests/mcdc_signatures:30
+nested                4   6  18.0 tests/mcdc_signatures:25
+or_decision           3   4  14.0 tests/mcdc_signatures:24
+{file-level code}         1   0.0 tests/mcdc_signatures:18
 
 

@@ -382,7 +382,8 @@ Toggle "Hide 100% covered" to focus on incomplete files.</dd>
 <dd>Toggle "Group by directory" to organise files into
 collapsible groups. Click a directory row to collapse it.</dd>
 <dt>CC</dt>
-<dd>Cyclomatic complexity summed over the file's subroutines.</dd>
+<dd>Cyclomatic complexity summed over the subroutines and the
+file-level code of the file.</dd>
 <dt>SCAR</dt>
 <dd>Scaled Complexity And Risk - a log-scaled CRAP score
 compressed to a 0-100 range. Hover for a breakdown: file CC,
@@ -542,12 +543,27 @@ sub _render_truth_tables ($line) {
   $o
 }
 
+sub render_file_level_detail ($s) {
+  my $cls  = scar_class($s->{scar});
+  my $scar = sprintf "%.1f", $s->{scar} // 0;
+  <<HTML
+<div class="detail">
+<span class="detail-heading">File-level code</span>
+<span class="$cls">CC=$s->{cc} SCAR=$scar</span>
+</div>
+HTML
+}
+
 sub render_line_detail ($line) {
   my $span = 4 + ($R{ann_cols} // [])->@*;
   my $o    = qq(<tr class="line-detail"><td colspan="$span">\n);
 
   if ($line->{subroutines}) {
     for my $s ($line->{subroutines}->@*) {
+      if ($s->{file_level}) {
+        $o .= render_file_level_detail($s);
+        next;
+      }
       my $status
         = $s->{excused}
         ? "not called (uncoverable)"
@@ -1034,7 +1050,19 @@ sub build_dir_groups ($file_data) {
   } sort keys %dirs
 }
 
-sub line_subroutines ($f, $n) {
+sub line_file_level ($n) {
+  my $key  = "$n\0$Devel::Cover::DB::File_level_name";
+  my $info = (($R{scar_subs} || {})->{$key} // [])->[0] or return;
+  {
+    name       => escape_html($Devel::Cover::DB::File_level_name),
+    cc         => $info->{cc},
+    crap       => $info->{crap},
+    scar       => $info->{scar},
+    file_level => 1,
+  }
+}
+
+sub line_record_subroutines ($f, $n) {
   my $subs = $f->subroutine or return;
   my $loc  = $subs->location($n);
   return unless $loc && @$loc;
@@ -1056,6 +1084,10 @@ sub line_subroutines ($f, $n) {
       scar => $info->{scar},
     }
   } @$loc
+}
+
+sub line_subroutines ($f, $n) {
+  (line_record_subroutines($f, $n), line_file_level($n))
 }
 
 sub line_pod ($f, $n) {

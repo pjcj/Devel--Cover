@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------ ------ ------ ------ ------ ------ ------ ------
 File                 stmt   bran   cond   mcdc    sub  total   scar
 ------------------ ------ ------ ------ ------ ------ ------ ------
-tests/ref_do_block   89.4   50.0   33.3    0.0   50.0   68.7    4.1
-Total                89.4   50.0   33.3    0.0   50.0   68.7    4.1
+tests/ref_do_block   89.4   50.0   33.3    0.0   50.0   68.7   12.2
+Total                89.4   50.0   33.3    0.0   50.0   68.7   12.2
 ------------------ ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,15 +20,16 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 76.9  1.5  4.1
+ 4 76.9  3.4 12.2
 
 Worst Subroutines
 -----------------
 
-Subroutine     CC SCAR  Location             
--------------- -- ----  ---------------------
-not_referenced  1  6.9  tests/ref_do_block:16
-not_copied      1  6.9  tests/ref_do_block:17
+Subroutine        CC SCAR  Location             
+----------------- -- ----  ---------------------
+{file-level code}  4 14.0  tests/ref_do_block:13
+not_referenced     1  6.9  tests/ref_do_block:16
+not_copied         1  6.9  tests/ref_do_block:17
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -98,17 +99,18 @@ line  err      %  cov  tot   missing                              expr
 Covered Subroutines
 -------------------
 
-Subroutine     Count  CC  SCAR Location             
--------------- ----- --- ----- ---------------------
-BEGIN              1   1   0.0 tests/ref_do_block:13
-BEGIN              1   1   0.0 tests/ref_do_block:14
+Subroutine        Count  CC  SCAR Location             
+----------------- ----- --- ----- ---------------------
+BEGIN                 1           tests/ref_do_block:13
+BEGIN                 1           tests/ref_do_block:14
+{file-level code}         4  14.0 tests/ref_do_block:13
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine     Count  CC  SCAR Location             
--------------- ----- --- ----- ---------------------
-not_copied         0   1   6.9 tests/ref_do_block:17
-not_referenced     0   1   6.9 tests/ref_do_block:16
+Subroutine        Count  CC  SCAR Location             
+----------------- ----- --- ----- ---------------------
+not_copied            0   1   6.9 tests/ref_do_block:17
+not_referenced        0   1   6.9 tests/ref_do_block:16
 
 

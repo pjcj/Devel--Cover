@@ -2,8 +2,8 @@ cover: Reading database from ...
 ----------------- ------ ------ ------ ------ ------ ------ ------
 File                stmt   bran   cond   mcdc    sub  total   scar
 ----------------- ------ ------ ------ ------ ------ ------ ------
-tests/dor_defined  100.0    n/a   95.6   84.3  100.0   94.6   26.0
-Total              100.0    n/a   95.6   84.3  100.0   94.6   26.0
+tests/dor_defined  100.0    n/a   95.6   84.3  100.0   94.6   26.1
+Total              100.0    n/a   95.6   84.3  100.0   94.6   26.1
 ----------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-89 97.5 13.4 26.0
+90 97.5 13.6 26.1
 
 Worst Subroutines
 -----------------
@@ -427,9 +427,9 @@ Covered Subroutines
 
 Subroutine         Count  CC  SCAR Location             
 ------------------ ----- --- ----- ---------------------
-BEGIN                  1   1   0.0 tests/dor_defined:10 
-BEGIN                  1   1   0.0 tests/dor_defined:11 
-BEGIN                  1   1   0.0 tests/dor_defined:34 
+BEGIN                  1           tests/dor_defined:10 
+BEGIN                  1           tests/dor_defined:11 
+BEGIN                  1           tests/dor_defined:34 
 arithmetic             2  12  24.8 tests/dor_defined:16 
 assign                 2   3  11.0 tests/dor_defined:135
 booleans               2  23  31.4 tests/dor_defined:84 
@@ -440,5 +440,6 @@ or_and                 2   5  16.1 tests/dor_defined:142
 others                 2  10  23.0 tests/dor_defined:112
 still_three            2   7  20.2 tests/dor_defined:152
 strings                2  17  28.3 tests/dor_defined:62 
+{file-level code}          2   6.9 tests/dor_defined:10 
 
 

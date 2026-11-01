@@ -2,8 +2,8 @@ cover: Reading database from ...
 ---------- ------ ------ ------ ------ ------ ------ ------
 File         stmt   bran   cond   mcdc    sub  total   scar
 ---------- ------ ------ ------ ------ ------ ------ ------
-tests/fork  100.0   75.0    n/a    n/a    n/a   90.9    n/a
-Total       100.0   75.0    n/a    n/a    n/a   90.9    n/a
+tests/fork  100.0   75.0    n/a    n/a    n/a   90.9   11.0
+Total       100.0   75.0    n/a    n/a    n/a   90.9   11.0
 ---------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,6 +20,20 @@ Start: ...
 Finish: ...
 
 tests/fork
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+ 3 90.9  3.0 11.0
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location     
+----------------- -- ----  -------------
+{file-level code}  3 11.0  tests/fork:13
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -55,5 +69,13 @@ line  err      %   true  false   branch
 ----- --- ------ ------ ------   ------
 15    ***     50      0      2   unless defined($pid = fork)
 17           100      1      1   if ($pid) { }
+
+
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location     
+----------------- ----- --- ----- -------------
+{file-level code}         3  11.0 tests/fork:13
 
 

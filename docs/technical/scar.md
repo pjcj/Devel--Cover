@@ -414,6 +414,10 @@ This is stronger than line coverage alone (the most common substitute) but
 weaker than full basis path coverage. A subroutine with no coverable points
 (e.g. a constant) gets 100%.
 
+The `{file-level code}` entry takes its coverage from the lines between its
+start and end lines with the line ranges of the other subs of the file taken
+out, so its CRAP counts only the code outside them.
+
 ## Colour Thresholds
 
 The `scar_class` function maps SCAR values to the existing c0-c3 CSS classes
@@ -438,6 +442,16 @@ levels. The levels aggregate as follows.
 ### Per-subroutine
 
 The CRAP formula is applied directly. This is the canonical level.
+
+The code of a file outside its subs counts as one more entry, named
+`{file-level code}`. Its CC is one plus the decisions of the main program or of
+the top-level code of a required file, together with those of the `BEGIN`,
+`UNITCHECK`, `CHECK`, `INIT` and `END` blocks of the file. These blocks add
+their decisions to the entry instead of having complexity entries of their own,
+so each `use` does not appear as a sub with a CC of 1. The entry runs from the
+lowest to the highest line of the statements in that code. For a file that no
+test loaded, Devel::Cover estimates the CC of the entry from the decisions
+outside the named subs.
 
 ### Per-file, per-directory, and Total
 

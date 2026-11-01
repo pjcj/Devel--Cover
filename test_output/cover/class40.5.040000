@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------- ------ ------ ------ ------ ------ ------ ------
 File            stmt   bran   cond   mcdc    sub  total   scar
 ------------- ------ ------ ------ ------ ------ ------ ------
-tests/class40   94.8   50.0    n/a    n/a   85.7   80.0   19.3
-Total           94.8   50.0    n/a    n/a   85.7   80.0   19.3
+tests/class40   94.8   50.0    n/a    n/a   85.7   80.0   20.0
+Total           94.8   50.0    n/a    n/a   85.7   80.0   20.0
 ------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-13 78.7  6.9 19.3
+13 78.7  7.4 20.0
 
 Worst Subroutines
 -----------------
@@ -122,27 +122,28 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location        
----------- ----- --- ----- ----------------
-BEGIN          1   1   0.0 tests/class40:13
-BEGIN          1   1   0.0 tests/class40:14
-BEGIN          1   1   0.0 tests/class40:15
-__ANON__       2   1   0.0 tests/class40:23
-__ANON__       1   1   0.0 tests/class40:35
-get_anon       1   1   0.0 tests/class40:35
-greet          2   2   6.9 tests/class40:29
-is_loud        1   2   7.6 tests/class40:33
-main           1  11  26.6 tests/class40:43
-name           2   1   0.0 tests/class40:25
-speak          2   1   0.0 tests/class40:26
-speak          1   1   0.0 tests/class40:39
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+BEGIN                 1           tests/class40:13
+BEGIN                 1           tests/class40:14
+BEGIN                 1           tests/class40:15
+__ANON__              2   1   0.0 tests/class40:23
+__ANON__              1   1   0.0 tests/class40:35
+get_anon              1   1   0.0 tests/class40:35
+greet                 2   2   6.9 tests/class40:29
+is_loud               1   2   7.6 tests/class40:33
+main                  1  11  26.6 tests/class40:43
+name                  2   1   0.0 tests/class40:25
+speak                 2   1   0.0 tests/class40:26
+speak                 1   1   0.0 tests/class40:39
+{file-level code}         1   0.0 tests/class40:13
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location        
----------- ----- --- ----- ----------------
-unused         0   1   6.9 tests/class40:27
-unused_dog     0   1   6.9 tests/class40:40
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+unused                0   1   6.9 tests/class40:27
+unused_dog            0   1   6.9 tests/class40:40
 
 

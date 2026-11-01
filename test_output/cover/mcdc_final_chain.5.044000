@@ -2,8 +2,8 @@ cover: Reading database from ...
 ---------------------- ------ ------ ------ ------ ------ ------ ------
 File                     stmt   bran   cond   mcdc    sub  total   scar
 ---------------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_final_chain  100.0  100.0  100.0  100.0  100.0  100.0   11.0
-Total                   100.0  100.0  100.0  100.0  100.0  100.0   11.0
+tests/mcdc_final_chain  100.0  100.0  100.0  100.0  100.0  100.0   11.3
+Total                   100.0  100.0  100.0  100.0  100.0  100.0   11.3
 ---------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
-14 100.0  3.0 11.0
+14 100.0  3.1 11.3
 
 Worst Subroutines
 -----------------
@@ -193,16 +193,17 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location                 
----------- ----- --- ----- -------------------------
-BEGIN          1   1   0.0 tests/mcdc_final_chain:10
-BEGIN          1   1   0.0 tests/mcdc_final_chain:11
-bare_and       4   3  11.0 tests/mcdc_final_chain:22
-bare_dor2      6   3  11.0 tests/mcdc_final_chain:27
-bare_dor3      8   4  13.9 tests/mcdc_final_chain:32
-bare_or        3   2   6.9 tests/mcdc_final_chain:17
-main           1   1   0.0 tests/mcdc_final_chain:47
-ret_dor2       6   3  11.0 tests/mcdc_final_chain:37
-ret_dor3       8   4  13.9 tests/mcdc_final_chain:42
+Subroutine        Count  CC  SCAR Location                 
+----------------- ----- --- ----- -------------------------
+BEGIN                 1           tests/mcdc_final_chain:10
+BEGIN                 1           tests/mcdc_final_chain:11
+bare_and              4   3  11.0 tests/mcdc_final_chain:22
+bare_dor2             6   3  11.0 tests/mcdc_final_chain:27
+bare_dor3             8   4  13.9 tests/mcdc_final_chain:32
+bare_or               3   2   6.9 tests/mcdc_final_chain:17
+main                  1   1   0.0 tests/mcdc_final_chain:47
+ret_dor2              6   3  11.0 tests/mcdc_final_chain:37
+ret_dor3              8   4  13.9 tests/mcdc_final_chain:42
+{file-level code}         1   0.0 tests/mcdc_final_chain:10
 
 

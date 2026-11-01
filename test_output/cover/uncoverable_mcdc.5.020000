@@ -3,8 +3,8 @@ cover: Warning: Unsupported criterion parsing uncoverable for at tests/uncoverab
 ---------------------- ------ ------ ------ ------ ------ ------ ------
 File                     stmt   bran   cond   mcdc    sub  total   scar
 ---------------------- ------ ------ ------ ------ ------ ------ ------
-tests/uncoverable_mcdc  100.0    n/a   83.3  100.0  100.0   95.8    7.0
-Total                   100.0    n/a   83.3  100.0  100.0   95.8    7.0
+tests/uncoverable_mcdc  100.0    n/a   83.3  100.0  100.0   95.8    7.5
+Total                   100.0    n/a   83.3  100.0  100.0   95.8    7.5
 ---------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -21,7 +21,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 5 94.3  2.0  7.0
+ 5 94.3  2.1  7.5
 
 Worst Subroutines
 -----------------
@@ -127,13 +127,14 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine       Count  CC  SCAR Location                 
----------------- ----- --- ----- -------------------------
-BEGIN                1   1   0.0 tests/uncoverable_mcdc:10
-BEGIN                1   1   0.0 tests/uncoverable_mcdc:11
-compound_inner       3   3  11.0 tests/uncoverable_mcdc:36
-dor_default          2   2   7.1 tests/uncoverable_mcdc:16
-left_always_true     2   2   7.0 tests/uncoverable_mcdc:24
-main                 1   1   0.0 tests/uncoverable_mcdc:43
+Subroutine        Count  CC  SCAR Location                 
+----------------- ----- --- ----- -------------------------
+BEGIN                 1           tests/uncoverable_mcdc:10
+BEGIN                 1           tests/uncoverable_mcdc:11
+compound_inner        3   3  11.0 tests/uncoverable_mcdc:36
+dor_default           2   2   7.1 tests/uncoverable_mcdc:16
+left_always_true      2   2   7.0 tests/uncoverable_mcdc:24
+main                  1   1   0.0 tests/uncoverable_mcdc:43
+{file-level code}         1   0.0 tests/uncoverable_mcdc:10
 
 

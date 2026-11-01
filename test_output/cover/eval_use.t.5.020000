@@ -5,11 +5,11 @@ Common prefix: tests/
 ----- ------ ------ ------ ------ ------ ------ ------
 File    stmt   bran   cond   mcdc    sub  total   scar
 ----- ------ ------ ------ ------ ------ ------ ------
-E2.pm   66.6    n/a    n/a    n/a    0.0   50.0    6.9
-E3.pm   66.6    n/a    n/a    n/a    0.0   50.0    6.9
-E4.pm   66.6    n/a    n/a    n/a    0.0   50.0    6.9
-eval2  100.0  100.0  100.0  100.0  100.0  100.0    0.0
-Total   90.6  100.0  100.0  100.0   57.1   87.5    3.6
+E2.pm   66.6    n/a    n/a    n/a    0.0   50.0    4.1
+E3.pm   66.6    n/a    n/a    n/a    0.0   50.0    4.1
+E4.pm   66.6    n/a    n/a    n/a    0.0   50.0    4.1
+eval2  100.0  100.0  100.0  100.0  100.0  100.0   16.1
+Total   90.6  100.0  100.0  100.0   57.1   87.5   11.3
 ----- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -42,7 +42,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    4  1 92.5  1.4  3.6
+    4  5 92.5  3.1 11.3
 
 
 E2.pm
@@ -52,7 +52,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 66.7  2.0  6.9
+ 1 66.7  1.5  4.1
 
 Worst Subroutines
 -----------------
@@ -78,12 +78,19 @@ line  err   stmt   bran   cond   mcdc    sub   code
 14             2                               1
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+{file-level code}         1   0.0 E2.pm:10
+
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-E2             0   1   6.9 E2.pm:12
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+E2                    0   1   6.9 E2.pm:12
 
 
 E3.pm
@@ -93,7 +100,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 66.7  2.0  6.9
+ 1 66.7  1.5  4.1
 
 Worst Subroutines
 -----------------
@@ -119,12 +126,19 @@ line  err   stmt   bran   cond   mcdc    sub   code
 14             2                               1
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+{file-level code}         1   0.0 E3.pm:10
+
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-E3             0   1   6.9 E3.pm:12
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+E3                    0   1   6.9 E3.pm:12
 
 
 E4.pm
@@ -134,7 +148,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 66.7  2.0  6.9
+ 1 66.7  1.5  4.1
 
 Worst Subroutines
 -----------------
@@ -160,12 +174,19 @@ line  err   stmt   bran   cond   mcdc    sub   code
 14             3                               1
 
 
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+{file-level code}         1   0.0 E4.pm:10
+
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-E4             0   1   6.9 E4.pm:12
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+E4                    0   1   6.9 E4.pm:12
 
 
 eval2
@@ -175,7 +196,14 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
- 1 100.0  1.0  0.0
+ 5 100.0  5.0 16.1
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location
+----------------- -- ----  --------
+{file-level code}  5 16.1  eval2:10
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -244,11 +272,12 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location
----------- ----- --- ----- --------
-BEGIN          4   1   0.0 eval2:10
-BEGIN          2   1   0.0 eval2:14
-BEGIN          2   1   0.0 eval2:16
-BEGIN          3   1   0.0 eval2:18
+Subroutine        Count  CC  SCAR Location
+----------------- ----- --- ----- --------
+BEGIN                 4           eval2:10
+BEGIN                 2           eval2:14
+BEGIN                 2           eval2:16
+BEGIN                 3           eval2:18
+{file-level code}         5  16.1 eval2:10
 
 

@@ -2,8 +2,8 @@ cover: Reading database from ...
 ----------------- ------ ------ ------ ------ ------ ------ ------
 File                stmt   bran   cond   mcdc    sub  total   scar
 ----------------- ------ ------ ------ ------ ------ ------ ------
-tests/multiconcat  100.0   50.0    n/a    n/a  100.0   94.1    4.1
-Total              100.0   50.0    n/a    n/a  100.0   94.1    4.1
+tests/multiconcat  100.0   50.0    n/a    n/a  100.0   94.1    5.2
+Total              100.0   50.0    n/a    n/a  100.0   94.1    5.2
 ----------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 2 92.9  1.5  4.1
+ 2 92.9  1.7  5.2
 
 Worst Subroutines
 -----------------
@@ -68,10 +68,11 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine       Count  CC  SCAR Location            
----------------- ----- --- ----- --------------------
-BEGIN                1   1   0.0 tests/multiconcat:10
-BEGIN                1   1   0.0 tests/multiconcat:11
-test_multiconcat     1   2   7.0 tests/multiconcat:13
+Subroutine        Count  CC  SCAR Location            
+----------------- ----- --- ----- --------------------
+BEGIN                 1           tests/multiconcat:10
+BEGIN                 1           tests/multiconcat:11
+test_multiconcat      1   2   7.0 tests/multiconcat:13
+{file-level code}         1   0.0 tests/multiconcat:10
 
 

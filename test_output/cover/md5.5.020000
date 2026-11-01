@@ -3,8 +3,8 @@ cover: Deleting old coverage for changed file tests/md5
 --------- ------ ------ ------ ------ ------ ------ ------
 File        stmt   bran   cond   mcdc    sub  total   scar
 --------- ------ ------ ------ ------ ------ ------ ------
-tests/md5  100.0    n/a    n/a    n/a    n/a  100.0    n/a
-Total      100.0    n/a    n/a    n/a    n/a  100.0    n/a
+tests/md5  100.0    n/a    n/a    n/a    n/a  100.0    0.0
+Total      100.0    n/a    n/a    n/a    n/a  100.0    0.0
 --------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -22,6 +22,13 @@ Finish: ...
 
 tests/md5
 
+File Summary
+------------
+
+CC   Cov CRAP SCAR
+-- ----- ---- ----
+ 1 100.0  1.0  0.0
+
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
 2                                              
@@ -33,5 +40,13 @@ line  err   stmt   bran   cond   mcdc    sub   code
 8                                              # https://pjcj.net
 9                                              
 10             1                               my $x = 1;
+
+
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location    
+----------------- ----- --- ----- ------------
+{file-level code}         1   0.0 tests/md5:10
 
 

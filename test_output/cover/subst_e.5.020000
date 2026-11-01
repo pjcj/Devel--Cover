@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------- ------ ------ ------ ------ ------ ------ ------
 File            stmt   bran   cond   mcdc    sub  total   scar
 ------------- ------ ------ ------ ------ ------ ------ ------
-tests/subst_e  100.0   75.0   66.6    0.0  100.0   82.9    0.0
-Total          100.0   75.0   66.6    0.0  100.0   82.9    0.0
+tests/subst_e  100.0   75.0   66.6    0.0  100.0   82.9   18.0
+Total          100.0   75.0   66.6    0.0  100.0   82.9   18.0
 ------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,14 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 91.4  1.0  0.0
+ 6 91.4  6.0 18.0
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location        
+----------------- -- ----  ----------------
+{file-level code}  6 18.0  tests/subst_e:10
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              #!/usr/bin/perl
@@ -98,9 +105,10 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location        
----------- ----- --- ----- ----------------
-BEGIN          1   1   0.0 tests/subst_e:10
-BEGIN          1   1   0.0 tests/subst_e:11
+Subroutine        Count  CC  SCAR Location        
+----------------- ----- --- ----- ----------------
+BEGIN                 1           tests/subst_e:10
+BEGIN                 1           tests/subst_e:11
+{file-level code}         6  18.0 tests/subst_e:10
 
 

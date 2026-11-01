@@ -493,6 +493,7 @@ sub get_location ($op) {
     $vec{subroutine}++ if exists $vec{pod};
     $Run{vec}{$File}{$_}->@{ "vec", "size" } = ("", 0) for keys %vec;
   }
+  1
 }
 
 sub sub_location ($cv, $op) {
@@ -728,6 +729,7 @@ sub check_files {
 
 my %Seen;
 my %Parent_map;
+my %File_level;
 
 sub _op_parent ($op) { $Parent_map{$$op} }
 
@@ -804,8 +806,20 @@ sub report_exec {
   set_coverage(@collected);
 }
 
+sub _write_file_level () {
+  for my $file (sort keys %File_level) {
+    $Structure->delete_file_level($file);
+    my $f      = $File_level{$file};
+    my $sub_id = [$file, $f->{line}, "{file-level code}", 0];
+    $Structure->set_complexity($sub_id, $f->{decisions} + 1);
+    $Structure->set_end_line($sub_id, $f->{end_line});
+  }
+  %File_level = ();
+}
+
 sub _report {
   local @SIG{qw( __DIE__ __WARN__ )};
+  %File_level = ();
 
   $Run{finish} = get_elapsed() / 1e6;
 
@@ -871,6 +885,7 @@ sub _report {
     ) if @require_trees;
   }
 
+  _write_file_level();
   _filter_cover_files();
   _write_coverage_db();
 
@@ -943,12 +958,12 @@ sub add_subroutine_cover ($cv, $op) {
 }
 
 sub add_statement_cover ($op) {
-  get_location($op);
+  my $located = get_location($op);
   return unless $File;
 
   $Run{digests}{$File} ||= $Structure->set_file($File);
   $Run{count}{$File}   ||= {};
-  return unless $Coverage{statement} || $Coverage{time};
+  return $located unless $Coverage{statement} || $Coverage{time};
   my $key = get_key($op);
   my $val = $Coverage->{statement}{$key} || 0;
   my ($n, $new) = $Structure->add_count("statement");
@@ -962,6 +977,7 @@ sub add_statement_cover ($op) {
     if $Coverage{time}
     && exists $Coverage->{time}
     && exists $Coverage->{time}{$key};
+  $located
 }
 
 sub add_branch_cover ($op, $type, $text, $file, $line) {
@@ -1306,6 +1322,14 @@ sub _add_subroutine_structure ($cv, $start) {
   $sub_id
 }
 
+sub _add_file_level ($file, $decisions, $line, $end_line) {
+  my $f = $File_level{$file} //= { decisions => 0 };
+  $f->{decisions} += $decisions;
+  $f->{line}       = $line if !defined $f->{line} || $line < $f->{line};
+  $f->{end_line}   = $end_line
+    if !defined $f->{end_line} || $end_line > $f->{end_line};
+}
+
 sub get_cover ($cv, $root = undef) {
   ($Sub_name, my $start) = sub_info($cv);
 
@@ -1314,9 +1338,16 @@ sub get_cover ($cv, $root = undef) {
 
   my $sub_id = _add_subroutine_structure($cv, $start);
 
-  my ($cc, $end_line) = _get_cover_walk($cv, $root);
+  my ($cc, $end_line, $files) = _get_cover_walk($cv, $root);
+  return unless defined $cc;
 
-  if ($sub_id && defined $cc) {
+  if (
+    defined $root
+    || ($Sub_name // "") =~ /^(?:BEGIN|UNITCHECK|CHECK|INIT|END)$/
+  ) {
+    _add_file_level($_, $files->{$_}->@{qw( decisions line end_line )})
+      for sort keys %$files;
+  } elsif ($sub_id) {
     $Structure->set_complexity($sub_id, $cc);
     $Structure->set_end_line($sub_id, $end_line) if defined $end_line;
   }
@@ -1403,13 +1434,13 @@ sub _walk_statement ($op, $type) {
       return;
     }
     bless $op, "B::COP";
-    add_statement_cover($op) unless $Seen{statement}{$$op}++;
+    my $located = !$Seen{statement}{$$op}++ && add_statement_cover($op);
     bless $op, "B::$class";
-  } else {
-    return if _in_signature_argcheck($op);
-    $Current_cop = $op;
-    add_statement_cover($op) unless $Seen{statement}{$$op}++;
+    return $located;
   }
+  return if _in_signature_argcheck($op);
+  $Current_cop = $op;
+  !$Seen{statement}{$$op}++ && add_statement_cover($op)
 }
 
 sub _walk_elsif_chain ($cv, $false) {
@@ -1636,36 +1667,41 @@ sub _walk_xor ($cv, $op) {
 sub _get_cover_walk ($cv, $root) {
   my $op = $root || $cv->ROOT;
   return unless $$op;
-  my $decisions = 0;
-  my $max_line  = $Line // 0;
+  my ($decisions, %files) = (0);
+  my $decide = sub { $decisions++; $files{$File}{decisions}++ };
   walk_ops(
     $op,
     sub ($op, $type, $cv_ref) {
       if ($type eq "statement" || $type eq "null_statement") {
-        _walk_statement($op, $type);
-        $max_line = $Line if defined $Line && $Line > $max_line;
+        _walk_statement($op, $type) or return;
+        my $f = $files{$File} //= { decisions => 0 };
+        $f->{line}     = $Line if !defined $f->{line} || $Line < $f->{line};
+        $f->{end_line} = $Line
+          if !defined $f->{end_line} || $Line > $f->{end_line};
       } elsif ($type eq "cond_expr") {
-        $decisions++;
+        $decide->();
         _walk_cond_expr($cv_ref, $op);
       } elsif ($type eq "logop") {
-        $decisions++;
+        $decide->();
         _walk_logop($cv_ref, $op);
       } elsif ($type eq "logassignop") {
-        $decisions++;
+        $decide->();
         _walk_logassignop($cv_ref, $op);
       } elsif ($type eq "xor") {
-        $decisions++;
+        $decide->();
         _walk_xor($cv_ref, $op);
       } elsif ($type eq "iter") {
-        $decisions++;
+        $decide->();
       } elsif ($type eq "argdefelem") {
-        $decisions++;
+        $decide->();
       }
     },
     $cv,
     \%Parent_map,
   );
-  ($decisions + 1, $max_line)
+  delete @files{ grep !defined $files{$_}{line}, keys %files };
+  my ($max_line) = sort { $b <=> $a } map $_->{end_line}, values %files;
+  ($decisions + 1, $max_line, \%files)
 }
 
 sub _report_progress ($msg, $code, @items) {
@@ -1914,7 +1950,8 @@ causes a module to load, as has happened with the Storable backend.
 
 Set C<$File> and C<$Line> from a COP.  Eval file names of the form
 C<< (eval n)[file:line] >> resolve to the real file, and the per-file
-coverage vectors are primed the first time a file is seen.
+coverage vectors are primed the first time a file is seen.  Returns true
+when it set the location, and false when it returned before doing so.
 
 =head2 sub_location ($cv, $op)
 
@@ -2068,9 +2105,10 @@ tree per compilation, each with distinct op addresses that C<%Seen>
 cannot collapse, so only the newest tree per file is walked.  Top-level
 require code has no C<set_subroutine> call, so the file context is
 established explicitly before each tree or the per-file counters would
-run against the wrong file.  Finally it filters the collected files and
-writes the database.  Runs with the current directory set to C<$Dir> so
-relative names resolve as they did at compile time.
+run against the wrong file.  Finally it writes the C<{file-level code}>
+complexity entry of each file in place of any an earlier run wrote, filters the
+collected files and writes the database.  Runs with the current directory set
+to C<$Dir> so relative names resolve as they did at compile time.
 
 =head2 _filter_cover_files
 
@@ -2106,7 +2144,8 @@ as C<DESTROY> and overload methods.
 Record a statement and its execution count, plus profiling time when the
 C<time> criterion is active.  When the run collects neither statement nor time
 coverage it only registers the file, since the reports ignore statement records
-the run did not ask for and SCAR would otherwise read them.
+the run did not ask for and SCAR would otherwise read them.  Returns true when
+L</get_location> set C<$File> and C<$Line> from C<$op>.
 
 =head2 add_branch_cover ($op, $type, $text, $file, $line)
 
@@ -2252,6 +2291,13 @@ required files have no C<ROOT> in their CVs, so the root op is passed
 alongside.  Cyclomatic complexity and the last line seen are recorded
 against the sub.
 
+The main program, the top-level code of required files and the C<BEGIN>,
+C<UNITCHECK>, C<CHECK>, C<INIT> and C<END> blocks instead add their decisions
+and their lowest and highest lines to one C<{file-level code}> entry per file.
+L</_report> writes these entries once every tree has been walked.  A walk that
+visits no new statement adds nothing.  The special blocks keep their subroutine
+records, so their call counts stay.
+
 =head2 _with_deparse ($cv, $use_dumper, $code)
 
 Run a deparsing callback against a shared C<B::Deparse> object prepared
@@ -2292,7 +2338,8 @@ C<null> from 5.43.4.
 
 Record a statement, skipping ops with no real successors, dead COPs in
 condition scopes and signature bookkeeping.  Also keeps C<$Current_cop> up
-to date so deparsing sees the right pragmata and location.
+to date so deparsing sees the right pragmata and location.  Returns true
+when it recorded the statement and L</get_location> set its location.
 
 =head2 _walk_elsif_chain ($cv, $false)
 
@@ -2386,8 +2433,13 @@ Record C<xor> - and on 5.40+ C<^^> - as a four-row condition.
 =head2 _get_cover_walk ($cv, $root)
 
 Run the XS walker over a CV's op tree, dispatching each visited op to the
-walk callbacks.  Returns the cyclomatic complexity, counted as decisions
-plus one, and the highest line seen, used as the sub's end line.
+walk callbacks.  Returns three values: the cyclomatic complexity, counted as
+decisions plus one, the highest line seen and a hash keyed by file.  The
+highest line is the end line of the sub.  Each file maps to the decisions
+counted while C<$File> named it and the lowest and highest lines seen in it,
+so a C<#line> directive splits the walk between files.  The lines come only
+from statements whose location the walk set, so the hash is empty and the
+highest line undefined when it visited no new statement.
 
 =head1 PROGRESS OUTPUT
 

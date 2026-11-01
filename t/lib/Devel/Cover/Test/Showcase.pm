@@ -81,6 +81,12 @@ my $Calc_body = <<'BODY' =~ s/^  //gmr;
   }
 
   our %op = (twice => sub { 2 * shift }, half => sub { $_[0] ? $_[0] / 2 : 0 });
+
+  our $mode;
+  BEGIN { $mode = $ENV{SHOWCASE_CALC_STRICT} ? "strict" : "lax" }
+
+  our $debug = 0;
+  if ($ENV{SHOWCASE_CALC_DEBUG}) { $debug = 1 }
 BODY
 
 my $Full_body = <<'BODY' =~ s/^  //gmr;
@@ -676,7 +682,8 @@ namespaces, with identical source:
 =over
 
 =item B<Calc> - if/elsif/else branches, C<&&>/C<||> conditions, two anonymous
-subs on one line, pod
+subs on one line, pod, and file-level code with an C<if> and a C<BEGIN> block
+holding a ternary, each on an environment variable the tests never set
 
 =item B<Full> - branches, ternaries, conditions, nine subs (including a private
 C<_helper>), full pod coverage

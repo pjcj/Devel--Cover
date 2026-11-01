@@ -15,6 +15,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 # VERSION
 
 use Devel::Cover::Criterion ();
+use Devel::Cover::DB        ();
 use Devel::Cover::Path      qw( common_prefix );
 
 sub _display_mode ($c) {
@@ -400,13 +401,28 @@ my %Sub_section = (
   uncovered => "uncovered",
 );
 
+sub _add_file_level ($by_type, $maxw, $pods, $display_name, $scar_lookup) {
+  my $suffix = "\0$Devel::Cover::DB::File_level_name";
+  for my $key (grep /\Q$suffix\E\z/, keys %$scar_lookup) {
+    my ($location, $s) = split /\0/, $key;
+    my $h = "$display_name:$location";
+    for my $info ($scar_lookup->{$key}->@*) {
+      my $cr = sprintf "%.1f", $info->{scar};
+      _update_maxw($maxw, h => $h, s => $s, cc => $info->{cc}, cr => $cr);
+      push $by_type->{covered}{$s}->@*,
+        ["", $pods ? "" : (), $info->{cc}, $cr, $h];
+    }
+  }
+}
+
 sub _gather_subs ($dfile, $pods, $display_name, $scar_lookup) {
-  my $subs = $dfile->subroutine or return;
+  my $subs = $dfile->subroutine;
   my %maxw = (h => 8, c => 5, p => 3, s => 10, cc => 3, cr => 5);
   my %by_type;
-  my $has_scar = %$scar_lookup;
+  my $has_scar  = %$scar_lookup;
+  my @locations = $subs ? sort { $a <=> $b } $subs->items : ();
 
-  for my $location (sort { $a <=> $b } $subs->items) {
+  for my $location (@locations) {
     my $l = $subs->location($location);
     my $d = $pods && $pods->location($location);
     my %i;
@@ -429,6 +445,7 @@ sub _gather_subs ($dfile, $pods, $display_name, $scar_lookup) {
         [$c, $pods ? $p : (), $has_scar ? ($cc, $cr) : (), $h];
     }
   }
+  _add_file_level(\%by_type, \%maxw, $pods, $display_name, $scar_lookup);
 
   (\%by_type, \%maxw)
 }
@@ -439,10 +456,10 @@ sub print_subroutines ($db, $file, $options, $short) {
   my $cl    = $db->scar_sub_lookup($file);
 
   my ($by_type, $maxw) = _gather_subs($dfile, $pods, $short->{$file}, $cl);
-  return unless $by_type;
 
   my $has_scar = %$cl;
   my $tpl      = "%-$maxw->{s}s %$maxw->{c}s ";
+
   $tpl .= "%$maxw->{p}s "  if $pods;
   $tpl .= "%$maxw->{cc}s " if $has_scar;
   $tpl .= "%$maxw->{cr}s " if $has_scar;
@@ -606,12 +623,18 @@ Format a subroutine or pod count, prefixing C<-> for uncoverable entries and
 C<*> when the uncoverable marker is stale - the construct is marked
 uncoverable yet covered.
 
+=head2 _add_file_level ($by_type, $maxw, $pods, $display_name, $scar_lookup)
+
+Add a covered row for each file-level code entry in C<$scar_lookup>, with
+blank count and pod cells, and widen the columns in C<$maxw> to fit it.
+
 =head2 _gather_subs ($dfile, $pods, $display_name, $scar_lookup)
 
 Walk the subroutine and pod coverage data for a file, returning a hashref of
 covered/uncoverable/uncovered sub entries and a hashref of column widths for
 formatting. When C<$scar_lookup> is non-empty, CC and SCAR values are included
-in each entry.
+in each entry, and the file-level code appears as a covered entry even when
+the file has no subroutine records.
 
 =head1 SEE ALSO
 

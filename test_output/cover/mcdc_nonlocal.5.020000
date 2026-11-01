@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------- ------ ------ ------ ------ ------ ------ ------
 File                  stmt   bran   cond   mcdc    sub  total   scar
 ------------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_nonlocal  100.0   50.0   66.6   14.2  100.0   78.9    9.8
-Total                100.0   50.0   66.6   14.2  100.0   78.9    9.8
+tests/mcdc_nonlocal  100.0   50.0   66.6   14.2  100.0   78.9   10.3
+Total                100.0   50.0   66.6   14.2  100.0   78.9   10.3
 ------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 7 86.0  2.7  9.8
+ 7 86.0  2.8 10.3
 
 Worst Subroutines
 -----------------
@@ -142,12 +142,13 @@ Covered Subroutines
 
 Subroutine        Count  CC  SCAR Location              
 ----------------- ----- --- ----- ----------------------
-BEGIN                 1   1   0.0 tests/mcdc_nonlocal:14
-BEGIN                 1   1   0.0 tests/mcdc_nonlocal:15
+BEGIN                 1           tests/mcdc_nonlocal:14
+BEGIN                 1           tests/mcdc_nonlocal:15
 boom                  1   1   0.0 tests/mcdc_nonlocal:17
 dies_mid_decision     2   4  14.6 tests/mcdc_nonlocal:22
 main                  1   1   0.0 tests/mcdc_nonlocal:47
 recurse               2   2   7.0 tests/mcdc_nonlocal:30
 sorted                3   3  11.3 tests/mcdc_nonlocal:41
+{file-level code}         1   0.0 tests/mcdc_nonlocal:14
 
 

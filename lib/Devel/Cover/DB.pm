@@ -32,6 +32,8 @@ my $Has_term_size = eval { require Term::Size };
 
 my $DB = "cover.15";  # Version of the database
 
+our $File_level_name = "{file-level code}";
+
 @Devel::Cover::DB::Criteria = Devel::Cover::Criterion->criterion_names;
 @Devel::Cover::DB::Criteria_short
   = map Devel::Cover::Criterion->criterion_class($_)->shortname,
@@ -389,11 +391,13 @@ sub scar_sub_lookup ($self, $file) {
   \%lookup
 }
 
-sub _sub_coverage ($file_obj, $start, $end) {
+sub _sub_coverage ($file_obj, $start, $end, $skip = []) {
+  my %skip  = map { $_ => 1 } map $_->[0] .. $_->[1], @$skip;
+  my @lines = grep !$skip{$_}, $start .. $end;
   my ($covered, $total) = (0, 0);
   for my $name (qw( statement branch condition )) {
     my $crit = $file_obj->{$name} or next;
-    for my $line ($start .. $end) {
+    for my $line (@lines) {
       my $loc = $crit->{$line} or next;
       for my $obj (@$loc) {
         my $t = $obj->total;
@@ -428,10 +432,8 @@ sub _file_dir ($file) {
   $dir eq $file ? "" : $dir
 }
 
-sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
-  my ($max, $sum, $count) = (0, 0, 0);
-  my @subs;
-
+sub _cc_entries ($cc_hash, $end_hash) {
+  my @entries;
   for my $line (sort { $a <=> $b } keys %$cc_hash) {
     for my $sub_name (sort keys $cc_hash->{$line}->%*) {
       my $cc_arr  = $cc_hash->{$line}{$sub_name};
@@ -439,22 +441,44 @@ sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
       for my $scount (0 .. $#$cc_arr) {
         my $cc = $cc_arr->[$scount];
         next unless defined $cc;
-        $max  = $cc if $cc > $max;
-        $sum += $cc;
-        $count++;
-        my $end  = $end_arr->[$scount] // $line;
-        my $cov  = _sub_coverage($file_obj, $line, $end);
-        my $crap = _crap($cc, $cov);
-        push @subs, {
+        push @entries, {
             name => $sub_name,
-            line => $line + 0,
+            line => $line,
+            end  => $end_arr->[$scount] // $line,
             cc   => $cc,
-            cov  => $cov,
-            crap => $crap,
-            scar => _scar($crap),
           };
       }
     }
+  }
+  @entries
+}
+
+sub _file_cc_data ($file_obj, $cc_hash, $end_hash) {
+  my ($max, $sum, $count) = (0, 0, 0);
+  my @subs;
+
+  my @entries = _cc_entries($cc_hash, $end_hash);
+  my @ranges  = map [$_->{line}, $_->{end}],
+    grep $_->{name} ne $File_level_name, @entries;
+  for my $e (@entries) {
+    my $cc         = $e->{cc};
+    my $file_level = $e->{name} eq $File_level_name;
+    $max  = $cc if $cc > $max;
+    $sum += $cc;
+    $count++;
+    my $cov = _sub_coverage(
+      $file_obj, $e->{line}, $e->{end}, $file_level ? \@ranges : []
+    );
+    my $crap = _crap($cc, $cov);
+    push @subs, {
+        name => $e->{name},
+        line => $e->{line} + 0,
+        cc   => $cc,
+        cov  => $cov,
+        crap => $crap,
+        scar => _scar($crap),
+        ($file_level ? (file_level => 1) : ()),
+      };
   }
 
   return unless $count;
@@ -1909,11 +1933,11 @@ nested structures and summing numeric counts. With C<$noadd> set, or for
 values that are not plain numbers, differing values warn and the value from
 C<$from> wins. Extra elements in C<$from> are appended.
 
-=head2 _sub_coverage ($file_obj, $start, $end)
+=head2 _sub_coverage ($file_obj, $start, $end, $skip = [])
 
 Return the percentage of statement, branch and condition points covered
 between lines C<$start> and C<$end> of C<$file_obj>, or 100 if there are
-none.
+none. C<$skip> is a list of C<[$first, $last]> line ranges to leave out.
 
 =head2 _crap ($cc, $cov_pct)
 
@@ -1935,12 +1959,22 @@ the summary entry C<$s_file>, or 100 if nothing was counted.
 Return the directory part of C<$file>, or the empty string for a file at the
 top level.
 
+=head2 _cc_entries ($cc_hash, $end_hash)
+
+Return one entry per subroutine in the complexity hash C<$cc_hash>, sorted by
+line and name, each holding its name, first line, end line and cyclomatic
+complexity.
+
 =head2 _file_cc_data ($file_obj, $cc_hash, $end_hash)
 
 Build per-subroutine complexity data for a compiled file from the structure's
 complexity and end-line hashes. Return the maximum, sum and count of the
 cyclomatic complexities along with a CRAP and SCAR entry for each subroutine,
 or nothing when the file has no subroutines.
+
+The coverage of the C<$File_level_name> entry leaves out the lines of every
+other subroutine, so that it measures only the code outside them. Its entry
+holds C<< file_level => 1 >>.
 
 =head2 _summarise_dir_complexity ($self, $s, $dir_files, $dir_stats)
 

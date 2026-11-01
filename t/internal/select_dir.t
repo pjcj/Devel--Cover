@@ -162,15 +162,20 @@ sub test_text_report () {
     "each anonymous sub on the dispatch line has its own count and CC";
   is $anon[2], $anon[5], "both anonymous subs are on the same line";
 
+  my ($level_cc, $level_scar)
+    = $out =~ m|^\{file-level code\}\s+(\d+)\s+([\d.]+)\s+Covered/Calc\.pm:|m;
+  is $level_cc, 3, "file-level CC counts its own and BEGIN decisions";
+  ok $level_scar > 0, "file-level code is partly covered";
+
   my $got      = _uncovered_summary($out);
   my $expected = have_ppi()
     ? [
-      "Uncovered/Calc.pm  0.0  0.0  0.0  0.0  0.0  18.4",
-      "Uncovered/Full.pm  0.0  0.0  0.0  0.0  0.0  17.2",
-      "Uncovered/Logic.pm  0.0  0.0  0.0  0.0  0.0  16.1",
-      "Uncovered/Markers.pm  0.0  0.0  0.0  0.0  0.0  13.9",
+      "Uncovered/Calc.pm  0.0  0.0  0.0  0.0  0.0  25.9",
+      "Uncovered/Full.pm  0.0  0.0  0.0  0.0  0.0  17.7",
+      "Uncovered/Logic.pm  0.0  0.0  0.0  0.0  0.0  16.7",
+      "Uncovered/Markers.pm  0.0  0.0  0.0  0.0  0.0  14.1",
       "Uncovered/Trivial.pm  0.0  n/a  n/a  0.0  0.0  6.9",
-      "Uncovered/Utils.pm  0.0  0.0  n/a  0.0  0.0  11.5",
+      "Uncovered/Utils.pm  0.0  0.0  n/a  0.0  0.0  12.0",
     ]
     : [
       "Uncovered/Calc.pm  -  -  -  -  -  -",

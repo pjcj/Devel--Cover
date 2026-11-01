@@ -2,8 +2,8 @@ cover: Reading database from ...
 ---------------- ------ ------ ------ ------ ------ ------ ------
 File               stmt   bran   cond   mcdc    sub  total   scar
 ---------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_basic  100.0    n/a   96.3   93.3  100.0   97.8    8.5
-Total             100.0    n/a   96.3   93.3  100.0   97.8    8.5
+tests/mcdc_basic  100.0    n/a   96.3   93.3  100.0   97.8    8.8
+Total             100.0    n/a   96.3   93.3  100.0   97.8    8.8
 ---------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-10 98.5  2.3  8.5
+10 98.5  2.4  8.8
 
 Worst Subroutines
 -----------------
@@ -169,16 +169,17 @@ line  err      %  cov  tot   missing                expr
 Covered Subroutines
 -------------------
 
-Subroutine   Count  CC  SCAR Location           
------------- ----- --- ----- -------------------
-BEGIN            1   1   0.0 tests/mcdc_basic:10
-BEGIN            1   1   0.0 tests/mcdc_basic:11
-and_decision     3   2   6.9 tests/mcdc_basic:13
-chained_and      4   3  11.0 tests/mcdc_basic:23
-chained_or       4   3  11.0 tests/mcdc_basic:28
-main             1   1   0.0 tests/mcdc_basic:43
-negated_and      3   2   6.9 tests/mcdc_basic:33
-nested           5   3  11.0 tests/mcdc_basic:38
-or_decision      2   2   7.1 tests/mcdc_basic:18
+Subroutine        Count  CC  SCAR Location           
+----------------- ----- --- ----- -------------------
+BEGIN                 1           tests/mcdc_basic:10
+BEGIN                 1           tests/mcdc_basic:11
+and_decision          3   2   6.9 tests/mcdc_basic:13
+chained_and           4   3  11.0 tests/mcdc_basic:23
+chained_or            4   3  11.0 tests/mcdc_basic:28
+main                  1   1   0.0 tests/mcdc_basic:43
+negated_and           3   2   6.9 tests/mcdc_basic:33
+nested                5   3  11.0 tests/mcdc_basic:38
+or_decision           2   2   7.1 tests/mcdc_basic:18
+{file-level code}         1   0.0 tests/mcdc_basic:10
 
 

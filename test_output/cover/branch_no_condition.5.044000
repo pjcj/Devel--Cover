@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------------- ------ ------ ------ ------
 File                        stmt   bran  total   scar
 ------------------------- ------ ------ ------ ------
-tests/branch_no_condition  100.0  100.0  100.0   10.3
-Total                      100.0  100.0  100.0   10.3
+tests/branch_no_condition  100.0  100.0  100.0   12.4
+Total                      100.0  100.0  100.0   12.4
 ------------------------- ------ ------ ------ ------
 
 
@@ -20,16 +20,16 @@ File Summary
 
 CC   Cov CRAP SCAR
 -- ----- ---- ----
-12 100.0  2.8 10.3
+16 100.0  3.5 12.4
 
 Worst Subroutines
 -----------------
 
-Subroutine  CC SCAR  Location                    
------------ -- ----  ----------------------------
-modifiers    4 13.9  tests/branch_no_condition:39
-chain        3 11.0  tests/branch_no_condition:17
-disjunction  3 11.0  tests/branch_no_condition:46
+Subroutine        CC SCAR  Location                    
+----------------- -- ----  ----------------------------
+{file-level code}  5 16.1  tests/branch_no_condition:12
+modifiers          4 13.9  tests/branch_no_condition:39
+chain              3 11.0  tests/branch_no_condition:17
 
 line  err   stmt   bran   code
 1                         #!/usr/bin/env perl

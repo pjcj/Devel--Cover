@@ -7,10 +7,10 @@ File                       stmt   bran   cond   mcdc    sub  total   scar
 ------------------------ ------ ------ ------ ------ ------ ------ ------
 Module_enclosing_sub.pm   100.0    n/a    n/a    n/a  100.0  100.0    0.0
 Module_lexical_sub.pm     100.0    n/a    n/a    n/a  100.0  100.0    0.0
-Module_line_directive.pm  100.0   50.0    n/a    n/a  100.0   87.5    0.0
-Module_top_level.pm        86.1   50.0    n/a    n/a   84.6   84.3    1.4
+Module_line_directive.pm  100.0   50.0    n/a    n/a  100.0   87.5    5.2
+Module_top_level.pm        86.1   50.0    n/a    n/a   84.6   84.3    4.3
 module_require            100.0    n/a    n/a    n/a  100.0  100.0    0.0
-Total                      95.3   50.0    n/a    n/a   94.2   93.8    0.6
+Total                      95.3   50.0    n/a    n/a   94.2   93.8    3.2
 ------------------------ ------ ------ ------ ------ ------ ------ ------
 
 
@@ -25,7 +25,7 @@ Module Summary
 
 Files CC  Cov CRAP SCAR
 ----- -- ---- ---- ----
-    5  1 93.7  1.1  0.6
+    5  4 93.7  1.4  3.2
 
 
 Module_enclosing_sub.pm
@@ -93,17 +93,18 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location                  
----------- ----- --- ----- --------------------------
-BEGIN          1   1   0.0 Module_enclosing_sub.pm:10
-BEGIN          1   1   0.0 Module_enclosing_sub.pm:11
-BEGIN          1   1   0.0 Module_enclosing_sub.pm:12
-BEGIN          1   1   0.0 Module_enclosing_sub.pm:13
-__ANON__       1   1   0.0 Module_enclosing_sub.pm:24
-named_enc      1   1   0.0 Module_enclosing_sub.pm:19
-nested_enc     1   1   0.0 Module_enclosing_sub.pm:29
-plain          1   1   0.0 Module_enclosing_sub.pm:37
-run_anon       1   1   0.0 Module_enclosing_sub.pm:39
+Subroutine        Count  CC  SCAR Location                  
+----------------- ----- --- ----- --------------------------
+BEGIN                 1           Module_enclosing_sub.pm:10
+BEGIN                 1           Module_enclosing_sub.pm:11
+BEGIN                 1           Module_enclosing_sub.pm:12
+BEGIN                 1           Module_enclosing_sub.pm:13
+__ANON__              1   1   0.0 Module_enclosing_sub.pm:24
+named_enc             1   1   0.0 Module_enclosing_sub.pm:19
+nested_enc            1   1   0.0 Module_enclosing_sub.pm:29
+plain                 1   1   0.0 Module_enclosing_sub.pm:37
+run_anon              1   1   0.0 Module_enclosing_sub.pm:39
+{file-level code}         1   0.0 Module_enclosing_sub.pm:10
 
 
 Module_lexical_sub.pm
@@ -155,13 +156,14 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location                
----------- ----- --- ----- ------------------------
-BEGIN          1   1   0.0 Module_lexical_sub.pm:10
-BEGIN          1   1   0.0 Module_lexical_sub.pm:11
-BEGIN          1   1   0.0 Module_lexical_sub.pm:12
-BEGIN          1   1   0.0 Module_lexical_sub.pm:13
-get            1   1   0.0 Module_lexical_sub.pm:24
+Subroutine        Count  CC  SCAR Location                
+----------------- ----- --- ----- ------------------------
+BEGIN                 1           Module_lexical_sub.pm:10
+BEGIN                 1           Module_lexical_sub.pm:11
+BEGIN                 1           Module_lexical_sub.pm:12
+BEGIN                 1           Module_lexical_sub.pm:13
+get                   1   1   0.0 Module_lexical_sub.pm:24
+{file-level code}         1   0.0 Module_lexical_sub.pm:10
 
 
 Module_line_directive.pm
@@ -171,7 +173,14 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 85.7  1.0  0.0
+ 2 85.7  1.7  5.2
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location                   
+----------------- -- ----  ---------------------------
+{file-level code}  2  7.0  Module_line_directive.pm:10
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
@@ -212,9 +221,10 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location                   
----------- ----- --- ----- ---------------------------
-get_count      1   1   0.0 Module_line_directive.pm:16
+Subroutine        Count  CC  SCAR Location                   
+----------------- ----- --- ----- ---------------------------
+get_count             1   1   0.0 Module_line_directive.pm:16
+{file-level code}         2   7.0 Module_line_directive.pm:10
 
 
 Module_top_level.pm
@@ -224,16 +234,16 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 1 84.2  1.2  1.4
+ 3 84.2  1.5  4.3
 
 Worst Subroutines
 -----------------
 
-Subroutine CC SCAR  Location              
----------- -- ----  ----------------------
-__ANON__    1  6.9  Module_top_level.pm:35
-__ANON__    1  6.9  Module_top_level.pm:53
-__ANON__    1  0.0  Module_top_level.pm:40
+Subroutine        CC SCAR  Location              
+----------------- -- ----  ----------------------
+{file-level code}  3 11.1  Module_top_level.pm:11
+__ANON__           1  6.9  Module_top_level.pm:35
+__ANON__           1  6.9  Module_top_level.pm:53
 
 line  err   stmt   bran   cond   mcdc    sub   code
 1                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
@@ -317,27 +327,28 @@ line  err      %   true  false   branch
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location              
----------- ----- --- ----- ----------------------
-BEGIN          1   1   0.0 Module_top_level.pm:12
-__ANON__       1   1   0.0 Module_top_level.pm:13
-__ANON__       1   1   0.0 Module_top_level.pm:30
-__ANON__       1   1   0.0 Module_top_level.pm:40
-__ANON__       1   1   0.0 Module_top_level.pm:41
-__ANON__       1   1   0.0 Module_top_level.pm:43
-__ANON__       1   1   0.0 Module_top_level.pm:45
-add            1   1   0.0 Module_top_level.pm:61
-get_count      1   1   0.0 Module_top_level.pm:60
-run_begin      1   1   0.0 Module_top_level.pm:63
-run_outer      1   1   0.0 Module_top_level.pm:62
+Subroutine        Count  CC  SCAR Location              
+----------------- ----- --- ----- ----------------------
+BEGIN                 1           Module_top_level.pm:12
+__ANON__              1   1   0.0 Module_top_level.pm:13
+__ANON__              1   1   0.0 Module_top_level.pm:30
+__ANON__              1   1   0.0 Module_top_level.pm:40
+__ANON__              1   1   0.0 Module_top_level.pm:41
+__ANON__              1   1   0.0 Module_top_level.pm:43
+__ANON__              1   1   0.0 Module_top_level.pm:45
+add                   1   1   0.0 Module_top_level.pm:61
+get_count             1   1   0.0 Module_top_level.pm:60
+run_begin             1   1   0.0 Module_top_level.pm:63
+run_outer             1   1   0.0 Module_top_level.pm:62
+{file-level code}         3  11.1 Module_top_level.pm:11
 
 Uncovered Subroutines
 ---------------------
 
-Subroutine Count  CC  SCAR Location              
----------- ----- --- ----- ----------------------
-__ANON__       0   1   6.9 Module_top_level.pm:35
-__ANON__       0   1   6.9 Module_top_level.pm:53
+Subroutine        Count  CC  SCAR Location              
+----------------- ----- --- ----- ----------------------
+__ANON__              0   1   6.9 Module_top_level.pm:35
+__ANON__              0   1   6.9 Module_top_level.pm:53
 
 
 module_require
@@ -412,14 +423,15 @@ line  err   stmt   bran   cond   mcdc    sub   code
 Covered Subroutines
 -------------------
 
-Subroutine Count  CC  SCAR Location         
----------- ----- --- ----- -----------------
-BEGIN          1   1   0.0 module_require:21
-BEGIN          1   1   0.0 module_require:22
-BEGIN          1   1   0.0 module_require:24
-BEGIN          1   1   0.0 module_require:26
-BEGIN          1   1   0.0 module_require:27
-BEGIN          1   1   0.0 module_require:28
-BEGIN          1   1   0.0 module_require:29
+Subroutine        Count  CC  SCAR Location         
+----------------- ----- --- ----- -----------------
+BEGIN                 1           module_require:21
+BEGIN                 1           module_require:22
+BEGIN                 1           module_require:24
+BEGIN                 1           module_require:26
+BEGIN                 1           module_require:27
+BEGIN                 1           module_require:28
+BEGIN                 1           module_require:29
+{file-level code}         1   0.0 module_require:21
 
 

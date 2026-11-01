@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Count the decisions of file-level code and of its `BEGIN`, `CHECK`, `INIT`
+  and `END` blocks as one `{file-level code}` entry per file in the complexity
+  and SCAR figures, so a decision outside every sub counts and each `use` no
+  longer appears as a `BEGIN` sub with a CC of 1 (GH-901)
 - Release every database lock before closing its handle, so a program that
   closes its descriptors with `POSIX::close` behind open Perl handles, as
   daemonising modules do, no longer hangs at exit (GH-895)
