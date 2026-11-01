@@ -947,6 +947,8 @@ sub add_statement_cover ($op) {
   return unless $File;
 
   $Run{digests}{$File} ||= $Structure->set_file($File);
+  $Run{count}{$File}   ||= {};
+  return unless $Coverage{statement} || $Coverage{time};
   my $key = get_key($op);
   my $val = $Coverage->{statement}{$key} || 0;
   my ($n, $new) = $Structure->add_count("statement");
@@ -2102,7 +2104,9 @@ as C<DESTROY> and overload methods.
 =head2 add_statement_cover ($op)
 
 Record a statement and its execution count, plus profiling time when the
-C<time> criterion is active.
+C<time> criterion is active.  When the run collects neither statement nor time
+coverage it only registers the file, since the reports ignore statement records
+the run did not ask for and SCAR would otherwise read them.
 
 =head2 add_branch_cover ($op, $type, $text, $file, $line)
 
