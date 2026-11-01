@@ -1184,6 +1184,21 @@ sub test_statementless_sub_lines () {
   }
 }
 
+sub test_file_level_detail () {
+  my ($page) = grep /Covered-Calc/, keys %Golden;
+  my $html   = $Golden{$page};
+  my $detail = qr{<tr class="line-detail">(?:(?!</tr>).)*?File-level code}s;
+  my $src    = qr{<tr role="row"[^>]*>(?:(?!</tr>).)*</tr>}s;
+  my ($row, $info) = $html =~ m{($src)\s*($detail.*?</tr>)}s;
+
+  ok defined $row, "file-level: detail follows a source row";
+  like $info, qr{File-level code</span>\s*<span[^>]*>CC=\d+ SCAR=[\d.]+<},
+    "file-level: detail shows CC and SCAR";
+  like $info,  qr{Subroutine},         "file-level: BEGIN entry kept";
+  unlike $row, qr{src-c0|src-partial}, "file-level: line not marked";
+  unlike $row, qr{data-errors},        "file-level: line has no errors";
+}
+
 sub test_class_accepts_criterion_percentage () {
   my $br = bless [[0, 1], { text => "" }], "Devel::Cover::Branch";
   my $m  = bless [[0, 1], { text => "", labels => ["a", "b"] }],
@@ -1269,6 +1284,7 @@ sub main () {
   test_panels_render_in_order;
   test_line_partial_ignores_tt_rows;
   test_statementless_sub_lines;
+  test_file_level_detail;
   test_class_accepts_criterion_percentage;
   test_untested_badge_tooltip;
   done_testing;

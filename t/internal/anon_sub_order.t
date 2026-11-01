@@ -212,7 +212,7 @@ sub test_scar () {
   my @subs = Devel::Cover::Report::Html_crisp::line_subroutines(
     $db->cover->file($file), 2
   );
-  is_deeply [map $_->{cc}, @subs], [2, 1],
+  is_deeply [map $_->{cc}, grep !$_->{file_level}, @subs], [2, 1],
     "crisp report shows each sub its own CC";
 }
 
