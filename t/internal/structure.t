@@ -322,6 +322,7 @@ sub test_store_counts () {
 }
 
 sub test_reuse () {
+  local $Devel::Cover::Silent = 1;
   my $st = Devel::Cover::DB::Structure->new;
 
   ok !$st->reuse("/new.pm"), "reuse: false for unknown file";
@@ -803,6 +804,67 @@ sub test_set_subroutine_returns_sub_id () {
     "set_subroutine + set_complexity: end-to-end via sub_id";
 }
 
+sub write_structure ($base, @files) {
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->add_criteria("statement");
+  for my $file (@files) {
+    $st->set_file($file);
+    $st->store_counts($file);
+  }
+  $st->write($base);
+}
+
+sub test_load_on_demand () {
+  my $base   = fresh_base("load_demand");
+  my $file_a = write_source("load_a.pm", "package LoadA;\n1\n");
+  my $file_b = write_source("load_b.pm", "package LoadB;\n1\n");
+  write_structure($base, $file_a, $file_b);
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->set_file($file_a);
+  ok exists $st->{f}{$file_a}{start}{-1}{__COVER__},
+    "load on demand: set_file loads its entry";
+  ok !exists $st->{f}{$file_b}, "load on demand: other entries not loaded";
+  ok $st->reuse($file_a),       "load on demand: loaded entry is reused";
+  ok $st->reuse($file_b),       "load on demand: reuse loads its entry";
+  ok exists $st->{f}{$file_b},  "load on demand: reuse stores the entry";
+}
+
+sub test_load_no_base () {
+  my $file   = write_source("load_nobase.pm", "package LoadNoBase;\n1\n");
+  my $st     = Devel::Cover::DB::Structure->new;
+  my $digest = $st->set_file($file);
+  is $digest, md5_file($file), "load no base: set_file returns the digest";
+  is_deeply $st->{f}{$file}, { digest => $digest },
+    "load no base: entry holds only the digest";
+}
+
+sub test_load_changed_source () {
+  my $base = fresh_base("load_changed");
+  my $file = write_source("load_chg.pm", "package LoadChg;\n1\n");
+  my $old  = md5_file($file);
+  write_structure($base, $file);
+  write_source("load_chg.pm", "package LoadChg;\nsub x { 1 }\n1\n");
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  ok !$st->reuse($file), "load changed source: entry not reused";
+  is $st->set_file($file), md5_file($file),
+    "load changed source: set_file returns the new digest";
+  ok -e "$base/structure/$old", "load changed source: old file kept";
+}
+
+sub test_load_once () {
+  my $base = fresh_base("load_once");
+  my $file = write_source("load_once.pm", "package LoadOnce;\n1\n");
+  write_structure($base, $file);
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->set_file($file);
+  delete $st->{f}{$file};
+  ok !$st->reuse($file),              "load once: entry not read again";
+  ok !exists $st->{f}{$file}{digest}, "load once: no digest after reuse";
+}
+
 sub main () {
   test_new;
   test_digest;
@@ -858,6 +920,10 @@ sub main () {
   test_get_end_lines;
   test_end_line_write_read;
   test_set_subroutine_returns_sub_id;
+  test_load_on_demand;
+  test_load_no_base;
+  test_load_changed_source;
+  test_load_once;
 }
 
 main;

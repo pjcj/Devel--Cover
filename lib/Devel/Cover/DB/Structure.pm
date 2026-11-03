@@ -63,7 +63,20 @@ sub add_criteria ($self, @names) {
 
 sub criteria ($self) { keys $self->{criteria}->%* }
 
+sub _load ($self, $file) {
+  return $self->{digest_of}{$file} if $self->{loaded}{$file};
+  $self->{loaded}{$file} = 1;
+  my $digest = $self->{digest_of}{$file} = $self->digest($file);
+  $self->read($digest)
+    if $digest
+    && defined $self->{base}
+    && !exists $self->{f}{$file}
+    && -e "$self->{base}/structure/$digest";
+  $digest
+}
+
 sub reuse ($self, $file) {
+  $self->_load($file);
   exists $self->{f}{$file}{start}{-1}{__COVER__}
   # TODO - exists $self->{f}{$file}{start}{-1}
 }
@@ -198,8 +211,8 @@ sub digest ($self, $file) {
 }
 
 sub set_file ($self, $file) {
+  my $digest = $self->_load($file);
   $self->{file} = $file;
-  my $digest = $self->digest($file);
   if ($digest) {
     $self->{f}{$file}{digest} = $digest;
     push $self->{digests}{$digest}->@*, $file
@@ -448,7 +461,15 @@ C<$self>.
 
  $struct->read_all;
 
-Load all structure files from the database directory.  Returns C<$self>.
+Load all structure files from the database directory.  Returns C<$self>. A
+covered process does not call this method.
+
+The private method C<_load> reads the entry for one file on demand. The first
+call of L</reuse> or L</set_file> for a file computes its digest and reads the
+structure file of that name, if it exists and the object holds no entry for
+the file. Later calls return the stored digest. A structure file whose source
+has changed has the old digest as its name, so this lookup never finds it and
+never deletes it.
 
 =head2 merge ($from)
 
