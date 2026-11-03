@@ -353,15 +353,15 @@ de-root the condition chain on its left, which is the real decision and records
 vectors under its own root. Without this exclusion the vectors would be keyed by
 an op that is never finalised as a condition and would be lost, leaving
 statement-context compound decisions permanently unproven. Statement level means
-the `OPpSTATEMENT` flag on Perls that have it (5.43.8 and later), compile-time
-void context, or unknown context outside expression position. Unknown context
-arises where the context depends on the caller - a sub's bare final expression
-and the operands of a `return` compile identically - so the collection walk
-tracks expression position down the tree (`dc_kid_expr_ctx`). Under `return`,
-`cond_expr` or another logop the Perl-side walk classifies the join as an
-expression. Everywhere else it follows the op's `OPf_WANT`. So the last
-expression of a `grep`, `map`, `sort` or value `do` block, which has scalar or
-list want, is an expression and roots the whole chain, and a context-unknown
+the `OPpSTATEMENT` flag on Perls that have it (5.43.8 and later), or
+compile-time void or unknown context outside expression position. Unknown
+context arises where the context depends on the caller - a sub's bare final
+expression and the operands of a `return` compile identically - so the
+collection walk tracks expression position down the tree (`dc_kid_expr_ctx`).
+Under `return`, `cond_expr` or another logop the Perl-side walk classifies the
+join as an expression. Everywhere else it follows the op's `OPf_WANT`. So the
+last expression of a `grep`, `map`, `sort` or value `do` block, which has scalar
+or list want, is an expression and roots the whole chain, and a context-unknown
 join is a branch (GH-549, GH-797).
 
 A statement modifier that ends such a block, `$c unless A && B && C`, compiles

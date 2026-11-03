@@ -301,6 +301,32 @@ PERL
     "recorded vectors are as wide as the table";
 }
 
+# A void logop under another logop is an expression, as the Perl-side walk
+# classifies it, so the chain beneath it records into the table of its root.
+sub test_void_dor_die_chain () {
+  my $script = write_script("void_dor_die_chain.pl", <<'PERL');
+sub f { my ($x, $y, $w, $v) = @_; $x // ($y || $w || $v || die "no\n"); 1 }
+f(1, 0, 0, 0);
+f(undef, 1, 0, 0);
+f(undef, 0, 1, 0);
+f(undef, 0, 0, 1);
+eval { f(undef, 0, 0, 0) };
+PERL
+
+  my ($db, $path) = run_under_cover($script, "void_dor_die_chain");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for void_dor_die_chain";
+
+  my ($chain) = grep { defined && (keys %$_)[0] =~ /\|.*\|/ } @$di;
+  is_deeply $chain, { "1|X|X" => 1, "0|1|X" => 1, "0|0|1" => 1, "0|0|0" => 1 },
+    "the chain under the void or records into the table of its root";
+
+  my $mcdc       = $db->cover->file($path)->{mcdc};
+  my ($decision) = grep $_->total == 3, map @$_, values %$mcdc;
+  ok $decision, "found the die decision";
+  is $decision->covered, 3, "die decision fully covered";
+}
+
 sub test_repeated_observation () {
   my $script = write_script("repeated.pl", <<'PERL');
 my @r;
@@ -671,6 +697,7 @@ sub main () {
   subtest "left constant width parity"  => \&test_left_constant_width_parity;
   subtest "dor fixed nested vectors"    => \&test_dor_fixed_nested_vectors;
   subtest "fixed right wrapped vectors" => \&test_fixed_right_wrapped_vectors;
+  subtest "void dor die chain"          => \&test_void_dor_die_chain;
   subtest "nested root in sub argument" => \&test_nested_root_in_sub_argument;
   subtest "repeated observation"        => \&test_repeated_observation;
   subtest "no inputs without mcdc"      => \&test_no_inputs_without_mcdc;

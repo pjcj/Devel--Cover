@@ -1841,9 +1841,10 @@ static int dc_enumerate_columns(pTHX_ HV *cache, CV *cv, OP *op, OP *root,
  * Condition coverage treats it as a branch, so it is not a decision root
  * and must not de-root the condition chain on its left, which is the real
  * decision.  Statement level means the OPpSTATEMENT flag where perl has it,
- * compile-time void context, or unknown context (a sub body final
- * expression) outside expression position - the Perl-side walk classifies
- * those as branches too.
+ * or compile-time void or unknown context (a sub body final expression)
+ * outside expression position - the Perl-side walk classifies those as
+ * branches too, and a logop under return, cond_expr or another logop as an
+ * expression whatever its context.
  */
 static int dc_is_branch_logop(pTHX_ OP *op, int expr_ctx) {
   OP *right;
@@ -1854,7 +1855,8 @@ static int dc_is_branch_logop(pTHX_ OP *op, int expr_ctx) {
   statement = op->op_private & OPpSTATEMENT;
 #endif
   want = op->op_flags & OPf_WANT;
-  if (!statement && want != OPf_WANT_VOID && (want != 0 || expr_ctx))
+  if (!statement
+      && (expr_ctx || want == OPf_WANT_SCALAR || want == OPf_WANT_LIST))
     return 0;
   right = dc_skipped_operand(aTHX_ op, 1);
   return !(right && dc_is_logop_type(right->op_type));
