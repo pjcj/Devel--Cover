@@ -189,6 +189,27 @@ EOPERL
   is $counts->{pod}, 2, "pod: 2 pod-coverable subs (foo, bar)";
 }
 
+# Special blocks count as subroutines but need no pod.
+sub test_pod_scheduled () {
+  my $file = write_file("Scheduled.pm", <<'PERL');
+package Scheduled;
+
+BEGIN { our $x = 1 }
+CHECK { our $y = 2 }
+INIT  { our $z = 3 }
+END   { our $w = 4 }
+
+sub foo { 1 }
+sub bar { 2 }
+
+1
+PERL
+
+  my $counts = Devel::Cover::Static::count_criteria($file);
+  is $counts->{pod},        2, "pod scheduled: 2 pod-coverable subs";
+  is $counts->{subroutine}, 6, "pod scheduled: 6 subs (2 named + 4 blocks)";
+}
+
 # Condition coverage: && || // and or xor with RHS filtering.
 # Constant/flow-control RHS gives 2 outcomes, normal gives 3,
 # xor always gives 4.
@@ -622,6 +643,7 @@ sub main () {
   test_conditions;
   test_mcdc_estimate;
   test_pod;
+  test_pod_scheduled;
   test_missing_file;
   test_per_sub_complexity;
   test_per_sub_forward;

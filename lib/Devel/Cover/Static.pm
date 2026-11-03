@@ -179,7 +179,9 @@ sub _count_subroutines ($doc, $includes) {
 
 sub _count_pod ($doc) {
   my $subs = $doc->find(sub {
-    $_[1]->isa("PPI::Statement::Sub") && $_[1]->name
+    $_[1]->isa("PPI::Statement::Sub")
+      && !$_[1]->isa("PPI::Statement::Scheduled")
+      && $_[1]->name
   }) || [];
   0 + @$subs
 }
@@ -355,7 +357,8 @@ B<Subroutines> count named subs, special blocks such as C<BEGIN> and one
 C<BEGIN> per C<use>/C<require>.
 
 B<Pod> counts named subroutines (the number of subs that should have
-documentation).
+documentation). It leaves out special blocks such as C<BEGIN>, which
+C<Pod::Coverage> never sees.
 
 =item per_sub_complexity($file)
 
@@ -440,8 +443,8 @@ C<use>/C<require>.
 
 =item _count_pod($doc)
 
-Counts named subroutines as the number of subs expected to have POD
-documentation.
+Counts named subroutines, other than special blocks such as C<BEGIN>, as the
+number of subs expected to have POD documentation.
 
 =item _count_loops($node)
 
