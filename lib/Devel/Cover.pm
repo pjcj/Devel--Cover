@@ -808,11 +808,9 @@ sub report_exec {
 
 sub _write_file_level () {
   for my $file (sort keys %File_level) {
-    $Structure->delete_file_level($file);
-    my $f      = $File_level{$file};
-    my $sub_id = [$file, $f->{line}, "{file-level code}", 0];
-    $Structure->set_complexity($sub_id, $f->{decisions} + 1);
-    $Structure->set_end_line($sub_id, $f->{end_line});
+    my $f  = $File_level{$file};
+    my $cc = $f->{decisions} + 1;
+    $Structure->set_file_level($file, $f->{line}, $cc, $f->{end_line});
   }
   %File_level = ();
 }

@@ -83,6 +83,9 @@ sub test_untouched_structure () {
   ok -e $m2, "M2 has a structure file";
   my $mtime = (stat $m2)[9];
   is $mtime, $old, "one.pl leaves the M2 structure file alone";
+  my $m1 = "$db/structure/" . md5("$Lib/M1.pm");
+  is +(stat $m1)[9], $old,
+    "one.pl leaves the unchanged M1 structure file alone";
   my $one = "$db/structure/" . md5("$Tmpdir/one.pl");
   ok -e $one, "one.pl has a structure file";
 

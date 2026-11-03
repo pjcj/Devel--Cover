@@ -204,6 +204,20 @@ sub delete_file_level ($self, $file) {
   }
 }
 
+sub set_file_level ($self, $file, $line, $cc, $end_line) {
+  my $name = "{file-level code}";
+  my $fval = $self->{f}{$file} //= {};
+  for my $by_line (grep defined, $fval->@{qw( complexity end_line )}) {
+    for my $l (grep $_ ne $line, keys %$by_line) {
+      $self->{dirty}{$file} = 1 if delete $by_line->{$l}{$name};
+      delete $by_line->{$l} unless $by_line->{$l}->%*;
+    }
+  }
+  my $sub_id = [$file, $line, $name, 0];
+  $self->set_complexity($sub_id, $cc);
+  $self->set_end_line($sub_id, $end_line);
+}
+
 sub store_counts ($self, $file) {
   for ($self->criteria) {
     my $count  = $self->{count}{$_}{$file} = $self->get_count($file, $_);
@@ -442,6 +456,15 @@ Remove every C<{file-level code}> entry of C<$file> from its complexity and end
 line hashes, and any line left with no entries.  A run writes one such entry
 per file at the lowest line it walked, which can differ between runs, so the
 entry of the latest run replaces the older one.
+
+=head2 set_file_level ($file, $line, $cc, $end_line)
+
+ $struct->set_file_level($file, 1, 3, 20);
+
+Store complexity C<$cc> and end line C<$end_line> for the C<{file-level code}>
+entry of C<$file> at C<$line>, and remove any such entry at another line.  It
+marks the entry as changed only when the line or a value differs, so a rerun of
+an unchanged file does not rewrite its structure.
 
 =head2 store_counts ($file)
 

@@ -926,6 +926,35 @@ sub test_write_no_base_all () {
   ok -e structure_path($base, $file), "write no base: entry written";
 }
 
+sub test_set_file_level () {
+  my $file = write_source("file_level.pm", "package FileLevel;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->set_file_level($file, 2, 3, 9);
+  is $st->{f}{$file}{complexity}{2}{"{file-level code}"}[0], 3,
+    "set_file_level: stores complexity";
+  is $st->{f}{$file}{end_line}{2}{"{file-level code}"}[0], 9,
+    "set_file_level: stores end line";
+
+  delete $st->{dirty}{$file};
+  $st->set_file_level($file, 2, 3, 9);
+  ok !$st->{dirty}{$file}, "set_file_level: same values leave entry clean";
+}
+
+sub test_set_file_level_moves () {
+  my $file = write_source("file_level_mv.pm", "package FileLevelMv;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->set_complexity([$file, 4, "f", 0], 2);
+  $st->set_file_level($file, 2, 3, 9);
+  $st->set_file_level($file, 1, 3, 9);
+  is_deeply $st->{f}{$file}{complexity},
+    { 1 => { "{file-level code}" => [3] }, 4 => { f => [2] } },
+    "set_file_level moves: old complexity slot removed";
+  is_deeply $st->{f}{$file}{end_line}, { 1 => { "{file-level code}" => [9] } },
+    "set_file_level moves: old end line slot removed";
+}
+
 sub main () {
   test_new;
   test_digest;
@@ -989,6 +1018,8 @@ sub main () {
   test_write_unchanged_skipped;
   test_write_other_dir_all;
   test_write_no_base_all;
+  test_set_file_level;
+  test_set_file_level_moves;
 }
 
 main;
