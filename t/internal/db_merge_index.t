@@ -64,6 +64,8 @@ sub test_changed_file () {
     for qw( r1 r2 r3 );
   is $db->{runs}{r4}{digests}{"f.pl"}, "b", "merged run is in place";
   is $db->{changed_files}{"f.pl"},     3,   "f.pl changed in three runs";
+  is_deeply $db->{stale_digests}, { a => { "f.pl" => 1 } },
+    "stale digest a is recorded with its file";
   my @lines = $stderr =~ /Deleting old coverage for changed file f\.pl/g;
   is @lines, 3, "one deletion line per run";
 }

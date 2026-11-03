@@ -17,9 +17,10 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
-use File::Copy qw( copy );
-use File::Spec ();
-use File::Temp qw( tempdir );
+use Digest::MD5 ();
+use File::Copy  qw( copy );
+use File::Spec  ();
+use File::Temp  qw( tempdir );
 use Test::More import => [qw( done_testing is like ok )];
 
 my $Root = Cwd::cwd();
@@ -34,14 +35,19 @@ my $y = 2;
 my $z = $x + $y;
 PERL
 
-# Run a script under Devel::Cover and return the db path.
-sub run_cover ($label, $db_label = $label) {
+sub write_script ($label, $content) {
   my $script = File::Spec->catfile($Tmpdir, "$label.pl");
-  my $db     = File::Spec->catdir($Tmpdir, "${db_label}_db");
-
   open my $fh, ">", $script or die "Cannot write $script: $!";
-  print $fh $Script;
+  binmode $fh;
+  print $fh $content;
   close $fh or die "Cannot close $script: $!";
+  $script
+}
+
+# Run a script with the given content under Devel::Cover and return the db path.
+sub run_content ($label, $content, $db_label = $label) {
+  my $script = write_script($label, $content);
+  my $db     = File::Spec->catdir($Tmpdir, "${db_label}_db");
 
   my @inc = map { "-I$_" } "$Root/blib/arch", "$Root/blib/lib", "$Root/lib";
 
@@ -49,6 +55,10 @@ sub run_cover ($label, $db_label = $label) {
     or die "Failed to run $label under Devel::Cover: $?";
 
   $db
+}
+
+sub run_cover ($label, $db_label = $label) {
+  run_content($label, $Script, $db_label)
 }
 
 sub statement_counts ($db, $label) {
@@ -216,6 +226,12 @@ sub test_two_stale_digests () {
   mkdir "$db_path/runs" or die "Cannot mkdir $db_path/runs: $!";
   Devel::Cover::DB->new(runs => { "3.z" => digest_run("z") })
     ->write("$db_path/runs/3.z");
+  mkdir "$db_path/structure" or die "Cannot mkdir $db_path/structure: $!";
+  for my $digest (qw( x y z )) {
+    my $file = "$db_path/structure/$digest";
+    open my $fh, ">", $file or die "Cannot write $file: $!";
+    close $fh or die "Cannot close $file: $!";
+  }
 
   my $db = Devel::Cover::DB->new(db => $db_path);
   merge_quietly($db);
@@ -226,6 +242,39 @@ sub test_two_stale_digests () {
       "stale: run $name loses its f.pl counts";
   }
   is $db->{runs}{"3.z"}{digests}{"f.pl"}, "z", "stale: new run is merged";
+  ok !-e "$db_path/structure/$_", "stale: structure $_ is deleted"
+    for qw( x y );
+  ok -e "$db_path/structure/z", "stale: structure z is kept";
+}
+
+sub structure_file ($db_path, $content) {
+  "$db_path/structure/" . Digest::MD5::md5_hex($content)
+}
+
+sub test_digest_current_again () {
+  my ($text_a, $text_b) = ("my \$v = 1;\n", "my \$v = 2;\n");
+  my $db_path = run_content("again", $text_a);
+  run_content("again", $text_b);
+  run_content("again", $text_a);
+
+  merge_quietly(Devel::Cover::DB->new(db => $db_path));
+  ok -e structure_file($db_path, $text_a),
+    "again: structure of the current content is kept";
+  ok !-e structure_file($db_path, $text_b),
+    "again: structure of the old content is deleted";
+}
+
+sub test_stale_digest_source_current () {
+  my ($text_a, $text_b) = ("my \$w = 1;\n", "my \$w = 2;\n");
+  my $db_path = run_content("source", $text_a);
+  run_content("source", $text_b);
+  write_script("source", $text_a);
+
+  merge_quietly(Devel::Cover::DB->new(db => $db_path));
+  ok -e structure_file($db_path, $text_a),
+    "source: structure of the source on disk is kept";
+  ok -e structure_file($db_path, $text_b),
+    "source: structure of the newest run is kept";
 }
 
 sub test_normal_merge () {
@@ -247,4 +296,6 @@ test_incomplete_run;
 test_run_already_merged;
 test_normal_merge;
 test_two_stale_digests;
+test_digest_current_again;
+test_stale_digest_source_current;
 done_testing;

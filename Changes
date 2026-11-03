@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Read and write only the structure of the files a covered process ran, so the
+  time each test process spends at exit no longer grows with the size of the
+  database (GH-908)
 - Unset the output record separator `$\` while writing a database file, so
   a program that sets it no longer writes a run or structure file that
   the JSON backend cannot read (GH-252)

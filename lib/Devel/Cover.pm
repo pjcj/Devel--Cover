@@ -838,7 +838,6 @@ sub _report {
   require Devel::Cover::DB::Structure;
   $Structure = Devel::Cover::DB::Structure->new(base => $DB,
     loose_perms => $Loose_perms);
-  $Structure->read_all;
   $Structure->add_criteria(@collected);
 
   $Coverage = coverage(1) || die "No coverage data available.\n";
