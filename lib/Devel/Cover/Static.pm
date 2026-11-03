@@ -179,7 +179,9 @@ sub _count_subroutines ($doc, $includes) {
 
 sub _count_pod ($doc) {
   my $subs = $doc->find(sub {
-    $_[1]->isa("PPI::Statement::Sub") && $_[1]->name
+    $_[1]->isa("PPI::Statement::Sub")
+      && !$_[1]->isa("PPI::Statement::Scheduled")
+      && $_[1]->name
   }) || [];
   0 + @$subs
 }
@@ -199,6 +201,75 @@ sub count_criteria ($file) {
     subroutine => _count_subroutines($doc, $includes),
     pod        => _count_pod($doc),
   }
+}
+
+sub _count_loops ($node) {
+  my $loops = $node->find(sub {
+    my $n = $_[1];
+    return ($n->type // "") =~ /^(?:while|for|foreach)$/
+      if $n->isa("PPI::Statement::Compound");
+    return 0 unless $n->isa("PPI::Token::Word");
+    return 0 unless $n->content =~ /^(?:for|foreach|while|until)$/;
+    my $p = $n->parent or return 0;
+    return 0 if $p->isa("PPI::Statement::Compound");
+    return 0 if $p->isa("PPI::Statement::Expression");
+    my $prev = $n->sprevious_sibling;
+    !($prev && $prev->isa("PPI::Token::Operator") && $prev->content eq "->")
+  }) || [];
+  0 + @$loops
+}
+
+sub _is_scalar_param ($token) {
+  ($token->isa("PPI::Token::Symbol") && $token->content =~ /^\$/)
+    || ($token->isa("PPI::Token::Cast") && $token->content eq '$')
+}
+
+sub _structure_defaults ($node) {
+  my $sigs     = $node->find("PPI::Structure::Signature") || [];
+  my $defaults = 0;
+  for my $expr (map $_->schildren, @$sigs) {
+    $defaults += grep {
+      my $prev = $_->sprevious_sibling;
+           $_->isa("PPI::Token::Operator")
+        && $_->content eq "="
+        && $prev
+        && _is_scalar_param($prev)
+    } $expr->schildren;
+  }
+  $defaults
+}
+
+sub _prototype_defaults ($node) {
+  my $protos   = $node->find("PPI::Token::Prototype") || [];
+  my $defaults = 0;
+  for my $proto (@$protos) {
+    (my $params = $proto->content) =~ s/#.*//g;
+    $defaults += grep m{^\s*\(?\s*\$\w*\s*(?://|\|\|)?=(?![=>])}, split /,/,
+      $params;
+  }
+  $defaults
+}
+
+sub _count_signature_defaults ($node) {
+  _structure_defaults($node) + _prototype_defaults($node)
+}
+
+sub _count_hathat ($node) {
+  my $hathats = $node->find(sub {
+    my $t = $_[1];
+    return 0 unless $t->isa("PPI::Token::Operator") && $t->content eq "^";
+    my $next = $t->next_sibling;
+    $next && $next->isa("PPI::Token::Operator") && $next->content =~ /^\^=?$/
+  }) || [];
+  0 + @$hathats
+}
+
+sub _count_cc ($node) {
+      _count_decisions($node)
+    + _count_loops($node)
+    + _logical_ops($node)->@*
+    + _count_signature_defaults($node)
+    + _count_hathat($node)
 }
 
 sub _inside_named_sub ($node) {
@@ -230,10 +301,10 @@ sub per_sub_complexity ($file) {
   }) || [];
 
   my @subs;
-  my $file_level = _count_decisions($doc) + 1;
+  my $file_level = _count_cc($doc) + 1;
   for my $sub (@$named_subs) {
-    my $block     = $sub->block or next;
-    my $decisions = _count_decisions($block);
+    $sub->block or next;
+    my $decisions = _count_cc($sub);
     $file_level -= $decisions unless _inside_named_sub($sub);
     push @subs,
       { name => $sub->name, line => $sub->line_number, cc => $decisions + 1 };
@@ -324,7 +395,8 @@ B<Subroutines> count named subs, special blocks such as C<BEGIN> and one
 C<BEGIN> per C<use>/C<require>.
 
 B<Pod> counts named subroutines (the number of subs that should have
-documentation).
+documentation). It leaves out special blocks such as C<BEGIN>, which
+C<Pod::Coverage> never sees.
 
 =item per_sub_complexity($file)
 
@@ -336,16 +408,16 @@ complexity data:
     ...
   ]
 
-The CC of a named subroutine is the number of decision points in its block plus
-one. Forward declarations (no block) are skipped.
+The CC of a named subroutine is one plus the number of decision points, loops,
+logical operators and signature defaults in the whole sub statement, so that
+the signature counts too. Forward declarations (no block) are skipped.
 
 One more entry, named C<{file-level code}>, stands for the code outside the
-named subs. Its CC is one plus the decision points of the file less those in
-the blocks of the named subs that are not inside another named sub, so it
-counts the decisions of the C<BEGIN>, C<CHECK>, C<INIT> and C<END> blocks, and
-of any file-level anonymous sub, which at run time has an entry of its own. Its
-line is that of the first top-level statement that is neither a C<package> nor
-a sub.
+named subs. Its CC is one plus the same counts for the file less those of the
+named subs that are not inside another named sub, so it counts the C<BEGIN>,
+C<CHECK>, C<INIT> and C<END> blocks, and any file-level anonymous sub, which at
+run time has an entry of its own. Its line is that of the first top-level
+statement that is neither a C<package> nor a sub.
 
 Returns C<undef> if PPI is unavailable or the file fails to parse.
 
@@ -375,7 +447,7 @@ estimated three markers per C<use>/C<require>.
 
 Counts decision points within a PPI node (document or block): if/unless compound
 statements, elsif clauses, ternary operators, and postfix if/unless modifiers.
-Used by both C<_count_branches> and C<per_sub_complexity>.
+Used by C<_count_branches> and C<_count_cc>.
 
 =item _count_branches($doc)
 
@@ -409,8 +481,57 @@ C<use>/C<require>.
 
 =item _count_pod($doc)
 
-Counts named subroutines as the number of subs expected to have POD
-documentation.
+Counts named subroutines, other than special blocks such as C<BEGIN>, as the
+number of subs expected to have POD documentation.
+
+=item _count_loops($node)
+
+Counts loops within a PPI node: C<while>, C<until>, C<for> and C<foreach>
+compound statements, the C<while> or C<until> of a C<do> block, and postfix
+C<for>, C<foreach>, C<while> and C<until> modifiers. It skips a loop keyword
+used as a hash key or a method name. A loop with no condition, such as
+C<for (;;)> or C<while (1)>, compiles to no decision at run time but still
+counts here.
+
+=item _is_scalar_param($token)
+
+Returns true if a PPI token is a scalar signature parameter, either a named one
+such as C<$x> or an unnamed C<$>.
+
+=item _structure_defaults($node)
+
+Counts the defaults in each C<PPI::Structure::Signature> within a PPI node. PPI
+parses a signature this way when it sees that signatures are on. Each plain
+C<=> that follows a scalar parameter counts. A C<//=> or C<||=> default does
+not count here, since C<_logical_ops> already counts it.
+
+=item _prototype_defaults($node)
+
+Counts the signature parameters in each C<PPI::Token::Prototype> within a PPI
+node that have a default given by C<=>, C<//=> or C<||=>. PPI keeps a
+signature as one such token when it does not see that signatures are on, and
+older versions of PPI always do. The sub strips each C<#> comment, splits the
+text on commas and checks whether each part opens with a scalar followed by
+one of those operators. A C<< => >> or C<==> inside a default does not count,
+nor does an old-style prototype such as C<($$;@)>.
+
+=item _count_signature_defaults($node)
+
+Counts the signature defaults within a PPI node, whichever way PPI parsed the
+signature.
+
+=item _count_hathat($node)
+
+Counts the logical xor operators C<^^> and C<^^=> within a PPI node. PPI splits
+C<^^> into two C<^> tokens and C<^^=> into C<^> and C<^=>, so the sub counts
+each C<^> token directly followed by a C<^> or C<^=> token with no whitespace
+between.
+
+=item _count_cc($node)
+
+Returns the decision points, loops, logical operators, including C<^^>, and
+signature defaults within a PPI node, the CC of the node less one. Used by
+C<per_sub_complexity>.
 
 =item _inside_named_sub($node)
 

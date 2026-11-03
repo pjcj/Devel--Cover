@@ -17,7 +17,7 @@ use lib $FindBin::Bin, qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Spec ();
 use File::Temp qw( tempdir );
-use Test::More import => [qw( done_testing is ok plan )];
+use Test::More import => [qw( done_testing is ok plan skip )];
 
 eval { require PPI; 1 } or do {
   plan skip_all => "PPI not available";
@@ -187,6 +187,27 @@ EOPERL
   my $counts = Devel::Cover::Static::count_criteria($file);
   ok defined $counts, "pod: returns counts";
   is $counts->{pod}, 2, "pod: 2 pod-coverable subs (foo, bar)";
+}
+
+# Special blocks count as subroutines but need no pod.
+sub test_pod_scheduled () {
+  my $file = write_file("Scheduled.pm", <<'PERL');
+package Scheduled;
+
+BEGIN { our $x = 1 }
+CHECK { our $y = 2 }
+INIT  { our $z = 3 }
+END   { our $w = 4 }
+
+sub foo { 1 }
+sub bar { 2 }
+
+1
+PERL
+
+  my $counts = Devel::Cover::Static::count_criteria($file);
+  is $counts->{pod},        2, "pod scheduled: 2 pod-coverable subs";
+  is $counts->{subroutine}, 6, "pod scheduled: 6 subs (2 named + 4 blocks)";
 }
 
 # Condition coverage: && || // and or xor with RHS filtering.
@@ -430,6 +451,191 @@ PERL
     "per_sub: file-level CC skips subs in blocks";
 }
 
+# Loops add a decision each, but hash keys and method calls named after a
+# loop keyword do not.
+sub test_per_sub_loops () {
+  my $file = write_file("Loops.pm", <<'PERL');
+package Loops;
+
+sub block_while ($x) {
+  while ($x) { $x-- }
+}
+
+sub block_until ($x) {
+  until ($x > 9) { $x++ }
+}
+
+sub c_style ($x) {
+  for (my $i = 0; $i < 2; $i++) { $x++ }
+}
+
+sub for_my (@x) {
+  for my $i (@x) { print $i }
+}
+
+sub for_each (@x) {
+  foreach my $j (@x) { print $j }
+}
+
+sub do_while ($x) {
+  do { $x-- } while ($x > 0);
+}
+
+sub postfix_for (@x) {
+  print for @x;
+}
+
+sub postfix_while ($x) {
+  $x-- while $x > 0;
+}
+
+sub postfix_until ($x) {
+  $x++ until $x > 9;
+}
+
+sub no_loop ($obj, %h) {
+  $h{for} + $h{while} + $obj->until
+}
+
+1
+PERL
+
+  my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+  my %by_name = map { $_->{name} => $_ } @$subs;
+  is $by_name{$_}{cc}, 2, "per_sub loops: $_ CC=2" for qw(
+    block_while block_until c_style for_my for_each do_while
+    postfix_for postfix_while postfix_until
+  );
+  is $by_name{no_loop}{cc}, 1, "per_sub loops: keyword names CC=1";
+}
+
+# Logical operators and signature defaults add a decision each, but a fat
+# comma inside a default does not.
+sub test_per_sub_logical () {
+  my $file = write_file("Logical.pm", <<'PERL');
+package Logical;
+
+our $D = $ENV{X} || 0;
+
+sub logops ($x, $y, $z) {
+  return $x && $y || $z;
+}
+
+sub open_or_die () {
+  open my $fh, "<", $0 or die "no";
+}
+
+sub dor_assign ($x) {
+  $x //= 1;
+}
+
+sub xor_op ($a, $b) {
+  my $c = $a xor $b;
+}
+
+sub defaults ($x, $y = 2, $z //= 3, @r) {
+  $x + $y + $z + @r
+}
+
+sub hash_default ($x, $h = { a => 1, b => 2 }) {
+  $x + keys %$h
+}
+
+sub proto :prototype($$) {
+  $_[0] + $_[1]
+}
+
+sub commented (
+  $x,
+  # comment
+  $y = 2,
+) {
+  $x + $y
+}
+
+1
+PERL
+
+  my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+  my %by_name = map { $_->{name} => $_ } @$subs;
+  is $by_name{logops}{cc},       3, "per_sub logical: logops CC=3";
+  is $by_name{open_or_die}{cc},  2, "per_sub logical: open_or_die CC=2";
+  is $by_name{dor_assign}{cc},   2, "per_sub logical: dor_assign CC=2";
+  is $by_name{xor_op}{cc},       2, "per_sub logical: xor_op CC=2";
+  is $by_name{defaults}{cc},     3, "per_sub logical: defaults CC=3";
+  is $by_name{hash_default}{cc}, 2, "per_sub logical: hash_default CC=2";
+  is $by_name{proto}{cc},        1, "per_sub logical: proto CC=1";
+  is $by_name{commented}{cc},    2, "per_sub logical: commented CC=2";
+  is $by_name{"{file-level code}"}{cc}, 2,
+    "per_sub logical: file-level CC counts the || outside any sub";
+}
+
+# With signatures on, PPI parses a signature as a structure rather than a
+# prototype, and each default still adds a decision.
+sub test_per_sub_signatures () {
+  SKIP: {
+    skip "PPI does not parse signatures as structures", 5
+      unless eval { require PPI::Structure::Signature; 1 };
+
+    my $file = write_file("Signatures.pm", <<'PERL');
+use feature qw( signatures );
+
+package Signatures;
+
+sub defaults ($x, $y = 2, $z //= 3, @r) { }
+sub hash_default ($x, $h = { a => 1, b => 2 }) { }
+sub logical_default ($x, $o = $x || 1) { }
+sub unnamed_default ($x, $ = 1) { }
+
+1
+PERL
+
+    my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+    my %by_name = map { $_->{name} => $_ } @$subs;
+    is $by_name{defaults}{cc},     3, "per_sub signatures: defaults CC=3";
+    is $by_name{hash_default}{cc}, 2, "per_sub signatures: hash_default CC=2";
+    is $by_name{logical_default}{cc}, 3,
+      "per_sub signatures: logical_default CC=3";
+    is $by_name{unnamed_default}{cc}, 2,
+      "per_sub signatures: unnamed_default CC=2";
+
+    $file = write_file("Version.pm", <<'PERL');
+use 5.40.0;
+
+package Version;
+
+sub d ($x, $y = 2) { 1 }
+
+1
+PERL
+
+    my ($d) = grep $_->{name} eq "d",
+      Devel::Cover::Static::per_sub_complexity($file)->@*;
+    is $d->{cc}, 2, "per_sub signatures: use 5.40.0 d CC=2";
+  }
+}
+
+# The logical xor operator "^^" adds a decision, but a bitwise "^" does not.
+sub test_per_sub_hathat () {
+  my $file = write_file("HatHat.pm", <<'PERL');
+use 5.40.0;
+
+package HatHat;
+
+sub hathat ($x, $y) { my $c = $x ^^ $y; $c }
+sub hat ($x, $y) { my $c = $x ^ $y; $c }
+sub hathat_assign ($x, $y) { my $c = $x; $c ^^= $y; $c }
+
+1
+PERL
+
+  my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+  my %by_name = map { $_->{name} => $_ } @$subs;
+  is $by_name{hathat}{cc},        2, "per_sub hathat: hathat CC=2";
+  is $by_name{hat}{cc},           1, "per_sub hathat: hat CC=1";
+  is $by_name{hathat_assign}{cc}, 2, "per_sub hathat: hathat_assign CC=2";
+}
+
 # Nonexistent file returns undef.
 sub test_per_sub_missing () {
   my $subs = Devel::Cover::Static::per_sub_complexity("/nonexistent/file.pm");
@@ -512,11 +718,16 @@ sub main () {
   test_conditions;
   test_mcdc_estimate;
   test_pod;
+  test_pod_scheduled;
   test_missing_file;
   test_per_sub_complexity;
   test_per_sub_forward;
   test_per_sub_only_subs;
   test_per_sub_in_blocks;
+  test_per_sub_loops;
+  test_per_sub_logical;
+  test_per_sub_signatures;
+  test_per_sub_hathat;
   test_per_sub_missing;
   test_nested_elsif;
   test_triple_nested_elsif;
