@@ -142,7 +142,7 @@ sub cov_bar ($pc, $uncompiled) {
 }
 
 sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef, $attr = "") {
-  my $dv      = $data_value // (is_na($s->{pc}) ? -1 : $s->{pc});
+  my $dv      = $data_value // $s->{percentage} // -1;
   my $no_data = $uncompiled && !$R{have_ppi};
   my $no_tip  = $no_data || ($s->{total} // 0) == 0;
   my $cls     = $no_tip ? $s->{class} : "$s->{class} tip-hover";
@@ -929,6 +929,7 @@ sub _format_criterion ($part, $criterion) {
     total       => 0,
     uncoverable => 0,
     error       => 0,
+    percentage  => undef,
     }
     unless $part && exists $part->{$criterion};
   my $c = $part->{$criterion};
@@ -939,6 +940,7 @@ sub _format_criterion ($part, $criterion) {
     total       => $c->{total}       || 0,
     uncoverable => $c->{uncoverable} || 0,
     error       => $c->{error}       || 0,
+    percentage  => $c->{percentage},
   }
 }
 
@@ -1003,6 +1005,7 @@ sub build_one_file ($file) {
     total       => 0,
     uncoverable => 0,
     error       => 0,
+    percentage  => undef,
   } };
 
   for my $c ($R{showing}->@*) {
@@ -1012,7 +1015,7 @@ sub build_one_file ($file) {
   $f{total} = $total;
   my $pc = $total->{pc} // "-";
   $f{total_pc}   = $pc;
-  $f{total_sort} = is_na($pc) ? -1 : $pc;
+  $f{total_sort} = $total->{percentage} // -1;
   _apply_scar(\%f, $R{db}->summary($file, "scar"));
   \%f
 }
