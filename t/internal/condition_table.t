@@ -1192,6 +1192,77 @@ sub test_observed_vectors_indexed_at_root () {
   is $cov2{"0|1|1"}, 0, "root slot applied: (0,1,1) not observed";
 }
 
+sub test_boolean_right_subexpr_is_root () {
+  my @conditions = (
+    mock_condition(
+      "Condition_or_2",
+      [1, 0],
+      { type => "or_2", left => '$y', op => "||", right => '"b"', addr => 2 },
+    ),
+    mock_condition(
+      "Condition_or_2",
+      [1, 1], {
+        type       => "or_2",
+        left       => '$x',
+        op         => "//",
+        right      => '($y || "b")',
+        addr       => 1,
+        right_addr => 2,
+      },
+    ),
+  );
+
+  my @tables = Devel::Cover::Condition_table->for_line(\@conditions);
+  is @tables, 2, "boolean right subexpr: two tables";
+  my ($child, $parent) = @tables;
+  is_deeply [$parent->labels], ['$x'], "boolean right subexpr: parent labels";
+  is $parent->short_expr, "A", "boolean right subexpr: parent short_expr";
+  is_deeply [$child->labels], ['$y'], "boolean right subexpr: child labels";
+
+  my @rows = $child->rows;
+  is @rows, 2, "boolean right subexpr: child has two rows";
+  my %row = map { $_->inputs->[0] => $_ } @rows;
+  is $row{1}->result, 1, "boolean right subexpr: child row 1 result";
+  ok $row{1}->covered, "boolean right subexpr: child row 1 covered";
+  is $row{0}->result, 0, "boolean right subexpr: child row 0 result";
+  ok !$row{0}->covered, "boolean right subexpr: child row 0 not covered";
+
+  my @observed = ({ "0" => 1 }, { "1" => 1 });
+  ($child, $parent)
+    = Devel::Cover::Condition_table->for_line(\@conditions, \@observed);
+  my %child_cov = map { $_->inputs->[0] => $_->covered ? 1 : 0 } $child->rows;
+  is $child_cov{0}, 1, "observed at child index: child row 0 covered";
+  is $child_cov{1}, 0, "observed at child index: child row 1 not covered";
+  my %parent_cov = map { $_->inputs->[0] => $_->covered ? 1 : 0 } $parent->rows;
+  is $parent_cov{1}, 1, "observed at parent index: parent row 1 covered";
+  is $parent_cov{0}, 0, "observed at parent index: parent row 0 not covered";
+
+  my @collapsed = (
+    mock_condition(
+      "Condition_and_3",
+      [1, 1, 1],
+      { type => "and_3", left => '$y', op => "&&", right => '$z', addr => 2 },
+    ),
+    mock_condition(
+      "Condition_or_2",
+      [1, 1], {
+        type           => "or_2",
+        left           => '$x',
+        op             => "//",
+        right          => '($y && $z)',
+        addr           => 1,
+        right_addr     => 2,
+        void_collapsed => 1,
+      },
+    ),
+  );
+
+  @tables = Devel::Cover::Condition_table->for_line(\@collapsed);
+  is @tables, 1, "void collapse keeps right child: one table";
+  is_deeply [$tables[0]->labels], ['$x', '$y', '$z'],
+    "void collapse keeps right child: labels";
+}
+
 sub test_negated_subexpr () {
   my @conditions = (
     mock_condition(
@@ -1342,6 +1413,7 @@ sub main () {
   test_observed_vectors_deep_chain;
   test_observed_vectors_mixed_chain;
   test_observed_vectors_indexed_at_root;
+  test_boolean_right_subexpr_is_root;
   test_negated_subexpr;
   test_input_patterns;
   done_testing;

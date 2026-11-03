@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Treat a logical op nested in the fixed right operand of `//` or `//=` as an
+  MC/DC decision of its own, so a line such as `$x // ($y || "b")` no longer
+  shows full MC/DC while `$y` was never false (GH-914)
 - Read and write only the structure of the files a covered process ran, so the
   time each test process spends at exit no longer grows with the size of the
   database (GH-908)
