@@ -1439,7 +1439,9 @@ static OP *dc_skip_to_condop(pTHX_ OP *op) {
  * etc.).  These do not contribute an MC/DC column - they cannot vary - so
  * Condition_table omits them from atomic-condition labels.  The XS-side
  * column count must match for observed-vector keys to align with the
- * Condition_table's row inputs.
+ * Condition_table's row inputs.  A logop reached through a fixed right
+ * operand, such as the chain in $x // !($y || $w), is a decision root of
+ * its own rather than a column of the outer decision.
  */
 static int dc_is_const_leaf(pTHX_ OP *op) {
   const char *n;
@@ -1777,19 +1779,34 @@ static HV *dc_meta_entry(pTHX_ HV *cache, OP *op) {
 }
 
 /*
+ * Whether the right operand of a logop is fixed, so that operand gets no
+ * column and a logop within it is a decision root of its own.  Mirrors
+ * the order of Cover.pm's _is_const_right, which judges the operand
+ * before it looks for a logop inside it.
+ */
+static int dc_right_is_fixed(pTHX_ CV *cv, OP *op) {
+  OP *first = cLOGOPx(op)->op_first;
+  OP *right = first ? OpSIBLING(first) : NULL;
+  if (!right) return 0;
+  if (dc_is_multiconcat_truthy(aTHX_ right)) return 1;
+  if (dc_is_const_leaf(aTHX_ right))        return 1;
+  if (dc_is_noreturn_call(aTHX_ cv, right)) return 1;
+  if (op->op_type != OP_DOR)                return 0;
+  return dc_is_defined_leaf(aTHX_ right) ||
+         dc_is_dor_fixed_tree(aTHX_ cv, right);
+}
+
+/*
  * Walk the decision tree rooted at op, populating leaf_col_left/right,
  * is_root, and root_addr for every logop encountered.  Returns the next
  * column index after this subtree's leaves.
  */
 static int dc_enumerate_columns(pTHX_ HV *cache, CV *cv, OP *op, OP *root,
                                 int next_col) {
-  HV *meta      = dc_meta_entry(aTHX_ cache, op);
-  OP *first     = cLOGOPx(op)->op_first;
-  OP *raw_right = first ? OpSIBLING(first) : NULL;
-  OP *left_op   = dc_skipped_operand(aTHX_ op, 0);
-  OP *right_op  = dc_skipped_operand(aTHX_ op, 1);
+  HV *meta     = dc_meta_entry(aTHX_ cache, op);
+  OP *left_op  = dc_skipped_operand(aTHX_ op, 0);
+  OP *right_op = dc_skipped_operand(aTHX_ op, 1);
   int left_col, right_col;
-  int dor = op->op_type == OP_DOR || op->op_type == OP_DORASSIGN;
 
   /* A constant left operand keeps its column: _build_labels always gives the
    * left operand one, and the widths must agree */
@@ -1800,18 +1817,10 @@ static int dc_enumerate_columns(pTHX_ HV *cache, CV *cv, OP *op, OP *root,
     left_col = next_col++;
   }
 
-  if (dc_is_multiconcat_truthy(aTHX_ raw_right)) {
-    right_col = -1;
-  } else if (dor && dc_is_dor_fixed_tree(aTHX_ cv, raw_right)) {
+  if (dc_right_is_fixed(aTHX_ cv, op)) {
     right_col = -1;
   } else if (right_op && dc_is_logop_type(right_op->op_type)) {
     next_col = dc_enumerate_columns(aTHX_ cache, cv, right_op, root, next_col);
-    right_col = -1;
-  } else if (raw_right && dc_is_const_leaf(aTHX_ raw_right)) {
-    right_col = -1;
-  } else if (raw_right && dc_is_noreturn_call(aTHX_ cv, raw_right)) {
-    right_col = -1;
-  } else if (dor && raw_right && dc_is_defined_leaf(aTHX_ raw_right)) {
     right_col = -1;
   } else {
     right_col = next_col++;
@@ -1890,7 +1899,9 @@ static int dc_subtree_contains(OP *tree, OP *target) {
  * Cached by CV pointer in MY_CXT.decision_walked_cvs to avoid re-walking.
  *
  * Roots are identified by an O(N^2) pairwise check: a logop L is non-root
- * iff some other logop Q has L as one of its skipped operands.  N is the
+ * iff some other logop Q has L as one of its skipped operands.  A fixed
+ * right operand of Q does not count, since it gets no column in Q, so a
+ * logop within it is a root with its own columns and vectors.  N is the
  * number of logops in a single CV, so the quadratic factor is small.
  *
  * The pairwise check avoids needing op_sibparent / OP_PARENT, which is only
@@ -1938,7 +1949,8 @@ static void dc_walk_cv_decisions(pTHX_ CV *cv) {
       if (j == i) continue;
       Q = INT2PTR(OP *, SvIV(*av_fetch(logops, j, 0)));
       if (dc_skipped_operand(aTHX_ Q, 0) == lop
-          || dc_skipped_operand(aTHX_ Q, 1) == lop) {
+          || (dc_skipped_operand(aTHX_ Q, 1) == lop
+              && !dc_right_is_fixed(aTHX_ cv, Q))) {
         is_root = 0;
         break;
       }

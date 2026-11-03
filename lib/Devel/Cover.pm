@@ -2190,9 +2190,11 @@ True when a C<?:> has two fixed branches, an C<||> or C<//> a fixed right
 operand, or an C<&&> two fixed operands, judged by L</_is_const_right>
 with C<$dor> set, so the result can never be undefined.  A plain C<null>
 wrapper is stepped through.  The XS column walker consults
-C<dc_is_dor_fixed_tree> before it recurses into a nested logop, so a
-nested logop judged fixed gets no MC/DC columns, which is what
-Condition_table does with the right child of a collapsed C<or_2>.
+C<dc_is_dor_fixed_tree>, through C<dc_right_is_fixed>, before it
+recurses into a nested logop, so a nested logop judged fixed gets no
+column in its parent and is instead a decision root with its own columns
+and vectors, which is what Condition_table does with the right child of
+a collapsed C<or_2>.
 
 =head2 _is_const_right ($op, $dor, $cv)
 
@@ -2215,6 +2217,12 @@ judged by its former type.  Ops that can return undef, such as C<length>,
 C<substr>, C<gmtime> and C<< <=> >>, stay out.  The XS column walker in
 C<dc_is_defined_leaf> keeps the same list.  A C<?:> or a nested logical
 op counts when L</_is_dor_fixed_tree> says its result is fixed.
+
+Every test here runs before the search for a logop in the operand, so a
+logop reached through any fixed right operand, such as the chain in
+C<< $x // !($y || $w) >> or C<< $x || scalar($y || $w) >>, is a decision
+root of its own rather than a set of columns in the outer decision.  The
+XS column walker keeps the same order in C<dc_right_is_fixed>.
 
 =head2 _condition_counts ($c, $type, $op, $cv)
 
