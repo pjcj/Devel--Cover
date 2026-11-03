@@ -200,6 +200,34 @@ sub test_run_already_merged () {
   is runs_entries($db_path), 0, "twice: runs directory is empty again";
 }
 
+sub digest_run ($digest) {
+  +{
+    digests => { "f.pl" => $digest },
+    count   => { "f.pl" => { statement => [1] } },
+    vec     => { "f.pl" => { statement => { vec => "", size => 1 } } },
+  }
+}
+
+sub test_two_stale_digests () {
+  my $db_path = File::Spec->catdir($Tmpdir, "stale_db");
+  Devel::Cover::DB->new(
+    runs => { "1.x" => digest_run("x"), "2.y" => digest_run("y") })
+    ->write($db_path);
+  mkdir "$db_path/runs" or die "Cannot mkdir $db_path/runs: $!";
+  Devel::Cover::DB->new(runs => { "3.z" => digest_run("z") })
+    ->write("$db_path/runs/3.z");
+
+  my $db = Devel::Cover::DB->new(db => $db_path);
+  merge_quietly($db);
+  for my $name (qw( 1.x 2.y )) {
+    ok !exists $db->{runs}{$name}{digests}{"f.pl"},
+      "stale: run $name loses its f.pl digest";
+    ok !exists $db->{runs}{$name}{count}{"f.pl"},
+      "stale: run $name loses its f.pl counts";
+  }
+  is $db->{runs}{"3.z"}{digests}{"f.pl"}, "z", "stale: new run is merged";
+}
+
 sub test_normal_merge () {
   my $db_path = run_cover("normal");
 
@@ -218,4 +246,5 @@ test_aside_with_earlier_merge;
 test_incomplete_run;
 test_run_already_merged;
 test_normal_merge;
+test_two_stale_digests;
 done_testing;

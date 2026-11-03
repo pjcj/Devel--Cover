@@ -97,6 +97,7 @@ sub read ($self, $file) {
     chomp(my $err = $@);
     dcwarn $err || "no data in $file";
   } else {
+    delete $self->{_digest_index};
     $self->{runs}  = $db->{runs};
     $self->{files} = $db->{files} // [];
   }
@@ -285,29 +286,45 @@ sub collected ($self) {
   sort keys $self->{collected}->%*
 }
 
+sub _index_digests ($index, $runs) {
+  for my $name (keys %$runs) {
+    my $run     = $runs->{$name}  or next;
+    my $digests = $run->{digests} or next;
+    for my $file (keys %$digests) {
+      my $digest = $digests->{$file} or next;
+      $index->{$file}{$digest}{$name} = 1;
+    }
+  }
+  $index
+}
+
+sub _digest_index ($self) {
+  $self->{_digest_index} //= _index_digests({}, $self->{runs})
+}
+
+sub _delete_changed_file ($self, $file, $digest) {
+  my $stored = $self->_digest_index->{$file} or return;
+  for my $old (grep $_ ne $digest, keys %$stored) {
+    for my $name (keys $stored->{$old}->%*) {
+      my $run = $self->{runs}{$name} or next;
+      dcinfo "Deleting old coverage for changed file $file";
+      delete $run->{$_}{$file} for qw( digests count vec );
+      $self->{changed_files}{$file}++;
+    }
+    delete $stored->{$old};
+  }
+}
+
 sub merge ($self, $from) {
   for my $fname (sort keys $from->{runs}->%*) {
-    my $frun = $from->{runs}{$fname};
-    for my $file (sort keys $frun->{digests}->%*) {
-      my $digest = $frun->{digests}{$file};
-      for my $name (sort keys $self->{runs}->%*) {
-        my $run = $self->{runs}{$name};
-        if (
-             $run->{digests}{$file}
-          && $digest
-          && $run->{digests}{$file} ne $digest
-        ) {
-          # File has changed.  Delete old coverage instead of merging.
-          dcinfo "Deleting old coverage for changed file $file";
-          delete $run->{digests}{$file};
-          delete $run->{count}{$file};
-          delete $run->{vec}{$file};
-          $self->{changed_files}{$file}++;
-        }
-      }
+    my $digests = $from->{runs}{$fname}{digests} or next;
+    for my $file (sort keys %$digests) {
+      my $digest = $digests->{$file} or next;
+      $self->_delete_changed_file($file, $digest);
     }
   }
 
+  _index_digests($self->_digest_index, $from->{runs});
   _merge_hash($self->{runs},      $from->{runs});
   _merge_hash($self->{collected}, $from->{collected});
 
@@ -1108,6 +1125,7 @@ sub objectify_cover ($self) {
         bless $self->{runs}{$r}, "Devel::Cover::DB::Run";
       } else {
         delete $self->{runs}{$r};  # DEVEL_COVER_SELF
+        delete $self->{_digest_index};
       }
     }
   }
@@ -1919,6 +1937,11 @@ necessary, and return the open handle, which C<merge_runs> closes.
 Sort the plain and C<.merged.*> entries of F<runs/> by whether the database
 already holds the run. Remove those it holds and return the rest as a hash of
 run name to path, so that C<merge_runs> merges each from where it is.
+
+=head2 _delete_changed_file ($self, $file, $digest)
+
+Delete the coverage of C<$file> from every run that holds it under a digest
+other than C<$digest>.
 
 =head2 _merge_hash ($into, $from, $noadd = 0)
 
