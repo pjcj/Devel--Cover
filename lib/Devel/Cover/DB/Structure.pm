@@ -50,6 +50,7 @@ sub AUTOLOAD {  ## no critic (RequireArgUnpacking) - goto needs @_ intact
     }
   } else {
     *$func = sub ($self, $file, @vals) {
+      $self->{dirty}{$file} = 1;
       push $self->{f}{$file}{$criterion}->@*, @vals;
     };
   }
@@ -63,7 +64,20 @@ sub add_criteria ($self, @names) {
 
 sub criteria ($self) { keys $self->{criteria}->%* }
 
+sub _load ($self, $file) {
+  return $self->{digest_of}{$file} if $self->{loaded}{$file};
+  $self->{loaded}{$file} = 1;
+  my $digest = $self->{digest_of}{$file} = $self->digest($file);
+  $self->read($digest)
+    if $digest
+    && defined $self->{base}
+    && !exists $self->{f}{$file}
+    && -e "$self->{base}/structure/$digest";
+  $digest
+}
+
 sub reuse ($self, $file) {
+  $self->_load($file);
   exists $self->{f}{$file}{start}{-1}{__COVER__}
   # TODO - exists $self->{f}{$file}{start}{-1}
 }
@@ -103,13 +117,16 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
       my $start = $self->{f}{$file}{start}{$line}{$sub_name}[$scount];
       for ($self->criteria) {
         # number a criterion new to the structure from the running count
-        $start->{$_} = $self->{count}{$_}{$file} //= 0
-          unless exists $start->{$_};
+        unless (exists $start->{$_}) {
+          $start->{$_} = $self->{count}{$_}{$file} //= 0;
+          $self->{dirty}{$file} = 1;
+        }
         $self->{count}{$_}{$file} = $start->{$_};
       }
     } else {
       # sub doesn't exist, for example a conditional C<eval "use M">
       $self->{additional} = 1;
+      $self->{dirty}{$file} = 1;
       if (exists $self->{additional_count}{ ($self->criteria)[0] }{$file}) {
         # already had such a sub in module
         $self->{count}{$_}{$file}
@@ -126,6 +143,7 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
     }
   } else {
     # first time sub seen in new structure
+    $self->{dirty}{$file} = 1;
     $self->{count}{$_}{$file}
       = $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
       = $self->get_count($file, $_)
@@ -135,9 +153,17 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
   [$file, $line, $sub_name, $scount]
 }
 
-sub set_complexity ($self, $sub_id, $cc) {
+sub _same ($old, $new) { ($old // "") eq ($new // "") }
+
+sub _set_sub_value ($self, $key, $sub_id, $value) {
   my ($file, $line, $sub_name, $scount) = @$sub_id;
-  $self->{f}{$file}{complexity}{$line}{$sub_name}[$scount] = $cc;
+  my $slot = \$self->{f}{$file}{$key}{$line}{$sub_name}[$scount];
+  $self->{dirty}{$file} = 1 unless defined $$slot && _same($$slot, $value);
+  $$slot = $value
+}
+
+sub set_complexity ($self, $sub_id, $cc) {
+  $self->_set_sub_value(complexity => $sub_id, $cc)
 }
 
 sub _file_by_digest ($self, $digest) {
@@ -159,8 +185,7 @@ sub get_complexity ($self, $digest) {
 }
 
 sub set_end_line ($self, $sub_id, $end_line) {
-  my ($file, $line, $sub_name, $scount) = @$sub_id;
-  $self->{f}{$file}{end_line}{$line}{$sub_name}[$scount] = $end_line;
+  $self->_set_sub_value(end_line => $sub_id, $end_line)
 }
 
 sub get_end_lines ($self, $digest) {
@@ -172,16 +197,35 @@ sub delete_file_level ($self, $file) {
   my $fval = $self->{f}{$file} or return;
   for my $by_line (grep defined, @$fval{qw( complexity end_line )}) {
     for my $line (keys %$by_line) {
-      delete $by_line->{$line}{"{file-level code}"};
+      $self->{dirty}{$file} = 1
+        if delete $by_line->{$line}{"{file-level code}"};
       delete $by_line->{$line} unless $by_line->{$line}->%*;
     }
   }
 }
 
+sub set_file_level ($self, $file, $line, $cc, $end_line) {
+  my $name = "{file-level code}";
+  my $fval = $self->{f}{$file} //= {};
+  for my $by_line (grep defined, $fval->@{qw( complexity end_line )}) {
+    for my $l (grep $_ ne $line, keys %$by_line) {
+      $self->{dirty}{$file} = 1 if delete $by_line->{$l}{$name};
+      delete $by_line->{$l} unless $by_line->{$l}->%*;
+    }
+  }
+  my $sub_id = [$file, $line, $name, 0];
+  $self->set_complexity($sub_id, $cc);
+  $self->set_end_line($sub_id, $end_line);
+}
+
 sub store_counts ($self, $file) {
-  $self->{count}{$_}{$file} = $self->{f}{$file}{start}{-1}{__COVER__}[0]{$_}
-    = $self->get_count($file, $_)
-    for $self->criteria;
+  for ($self->criteria) {
+    my $count  = $self->{count}{$_}{$file} = $self->get_count($file, $_);
+    my $stored = $self->{f}{$file}{start}{-1}{__COVER__}[0] //= {};
+    $self->{dirty}{$file} = 1
+      unless exists $stored->{$_} && _same($stored->{$_}, $count);
+    $stored->{$_} = $count;
+  }
 }
 
 sub digest ($self, $file) {
@@ -198,8 +242,9 @@ sub digest ($self, $file) {
 }
 
 sub set_file ($self, $file) {
+  my $digest = $self->_load($file);
+  $self->{dirty}{$file} = 1 unless exists $self->{f}{$file};
   $self->{file} = $file;
-  my $digest = $self->digest($file);
   if ($digest) {
     $self->{f}{$file}{digest} = $digest;
     push $self->{digests}{$digest}->@*, $file
@@ -211,6 +256,7 @@ sub set_file ($self, $file) {
 sub delete_file ($self, $file) { delete $self->{f}{$file} }
 
 sub write ($self, $dir) {
+  my $all = !defined $self->{base} || $dir ne $self->{base};
   $dir .= "/structure";
   unless (mkdir $dir) {
     confess "Can't mkdir $dir: $!" unless -d $dir;
@@ -226,7 +272,7 @@ sub write ($self, $dir) {
         || ($Devel::Cover::Self_cover && $file =~ "/Devel/Cover[./]");
       next;
     }
-    # TODO - determine if Structure has changed to save writing it
+    next unless $all || $self->{dirty}{$file};
     Devel::Cover::DB::IO->new(loose_perms => $self->{loose_perms})
       ->write($self->{f}{$file}, "$dir/$digest");
   }
@@ -277,6 +323,8 @@ sub read_all ($self) {
 }
 
 sub merge ($self, $from) {
+  my $files = $from->{f} // {};
+  $self->{dirty}{$_} = 1 for keys %$files;
   # TODO - make _merge_hash a public API in Devel::Cover::DB
   Devel::Cover::DB::_merge_hash(  ## no critic (ProtectPrivateSubs)
     $self->{f}, $from->{f}, "noadd",
@@ -409,6 +457,15 @@ line hashes, and any line left with no entries.  A run writes one such entry
 per file at the lowest line it walked, which can differ between runs, so the
 entry of the latest run replaces the older one.
 
+=head2 set_file_level ($file, $line, $cc, $end_line)
+
+ $struct->set_file_level($file, 1, 3, 20);
+
+Store complexity C<$cc> and end line C<$end_line> for the C<{file-level code}>
+entry of C<$file> at C<$line>, and remove any such entry at another line.  It
+marks the entry as changed only when the line or a value differs, so a rerun of
+an unchanged file does not rewrite its structure.
+
 =head2 store_counts ($file)
 
 Initialise counter storage for C<$file> across all registered criteria.
@@ -435,6 +492,10 @@ Remove all structure information for C<$file>.
 Serialise the structure of each file to C<< $dir/structure/<digest> >>. Uses
 atomic rename to avoid partial writes.
 
+A write to the base of the structure skips each entry that the process has not
+changed since it was read. A write to another directory, or by a structure with
+no base, writes every entry.
+
 =head2 read ($digest)
 
  $struct->read($digest);
@@ -448,7 +509,15 @@ C<$self>.
 
  $struct->read_all;
 
-Load all structure files from the database directory.  Returns C<$self>.
+Load all structure files from the database directory.  Returns C<$self>. A
+covered process does not call this method.
+
+The private method C<_load> reads the entry for one file on demand. The first
+call of L</reuse> or L</set_file> for a file computes its digest and reads the
+structure file of that name, if it exists and the object holds no entry for
+the file. Later calls return the stored digest. A structure file whose source
+has changed has the old digest as its name, so this lookup never finds it and
+never deletes it.
 
 =head2 merge ($from)
 

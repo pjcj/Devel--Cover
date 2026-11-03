@@ -322,6 +322,7 @@ sub test_store_counts () {
 }
 
 sub test_reuse () {
+  local $Devel::Cover::Silent = 1;
   my $st = Devel::Cover::DB::Structure->new;
 
   ok !$st->reuse("/new.pm"), "reuse: false for unknown file";
@@ -803,6 +804,157 @@ sub test_set_subroutine_returns_sub_id () {
     "set_subroutine + set_complexity: end-to-end via sub_id";
 }
 
+sub write_structure ($base, @files) {
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->add_criteria("statement");
+  for my $file (@files) {
+    $st->set_file($file);
+    $st->store_counts($file);
+  }
+  $st->write($base);
+}
+
+sub test_load_on_demand () {
+  my $base   = fresh_base("load_demand");
+  my $file_a = write_source("load_a.pm", "package LoadA;\n1\n");
+  my $file_b = write_source("load_b.pm", "package LoadB;\n1\n");
+  write_structure($base, $file_a, $file_b);
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->set_file($file_a);
+  ok exists $st->{f}{$file_a}{start}{-1}{__COVER__},
+    "load on demand: set_file loads its entry";
+  ok !exists $st->{f}{$file_b}, "load on demand: other entries not loaded";
+  ok $st->reuse($file_a),       "load on demand: loaded entry is reused";
+  ok $st->reuse($file_b),       "load on demand: reuse loads its entry";
+  ok exists $st->{f}{$file_b},  "load on demand: reuse stores the entry";
+}
+
+sub test_load_no_base () {
+  my $file   = write_source("load_nobase.pm", "package LoadNoBase;\n1\n");
+  my $st     = Devel::Cover::DB::Structure->new;
+  my $digest = $st->set_file($file);
+  is $digest, md5_file($file), "load no base: set_file returns the digest";
+  is_deeply $st->{f}{$file}, { digest => $digest },
+    "load no base: entry holds only the digest";
+}
+
+sub test_load_changed_source () {
+  my $base = fresh_base("load_changed");
+  my $file = write_source("load_chg.pm", "package LoadChg;\n1\n");
+  my $old  = md5_file($file);
+  write_structure($base, $file);
+  write_source("load_chg.pm", "package LoadChg;\nsub x { 1 }\n1\n");
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  ok !$st->reuse($file), "load changed source: entry not reused";
+  is $st->set_file($file), md5_file($file),
+    "load changed source: set_file returns the new digest";
+  ok -e "$base/structure/$old", "load changed source: old file kept";
+}
+
+sub test_load_once () {
+  my $base = fresh_base("load_once");
+  my $file = write_source("load_once.pm", "package LoadOnce;\n1\n");
+  write_structure($base, $file);
+
+  my $st = Devel::Cover::DB::Structure->new(base => $base);
+  $st->set_file($file);
+  delete $st->{f}{$file};
+  ok !$st->reuse($file),              "load once: entry not read again";
+  ok !exists $st->{f}{$file}{digest}, "load once: no digest after reuse";
+}
+
+sub structure_path ($base, $file) { "$base/structure/" . md5_file($file) }
+
+sub age_structure ($base, @files) {
+  my $old = time - 3600;
+  utime $old, $old, map structure_path($base, $_), @files;
+  $old
+}
+
+sub mtime ($base, $file) { (stat structure_path($base, $file))[9] }
+
+sub dirty_setup ($label) {
+  my $base   = fresh_base($label);
+  my $file_a = write_source("${label}_a.pm", "# ${label}_a\n1\n");
+  my $file_b = write_source("${label}_b.pm", "# ${label}_b\n1\n");
+  write_structure($base, $file_a, $file_b);
+  my $old = age_structure($base, $file_a, $file_b);
+  my $st  = Devel::Cover::DB::Structure->new(base => $base);
+  $st->add_criteria("statement");
+  ($base, $file_a, $file_b, $old, $st)
+}
+
+sub test_write_dirty_only () {
+  my ($base, $file_a, $file_b, $old, $st) = dirty_setup("dirty_only");
+  $st->set_file($file_a);
+  $st->add_statement($file_a, [$file_a, 1]);
+  $st->reuse($file_b);
+  $st->write($base);
+  ok mtime($base, $file_a) > $old, "write dirty only: changed entry written";
+  is mtime($base, $file_b), $old, "write dirty only: unchanged entry skipped";
+}
+
+sub test_write_unchanged_skipped () {
+  my ($base, $file_a, $file_b, $old, $st) = dirty_setup("unch_skip");
+  $st->set_file($file_a);
+  $st->reuse($file_a);
+  $st->store_counts($file_a);
+  $st->write($base);
+  is mtime($base, $file_a), $old, "write unchanged: entry not written";
+}
+
+sub test_write_other_dir_all () {
+  my ($base, $file_a, $file_b, $old, $st) = dirty_setup("other_dir");
+  my $other = fresh_base("other_dir_to");
+  $st->set_file($file_a);
+  $st->reuse($file_b);
+  $st->write($other);
+  ok -e structure_path($other, $file_a),
+    "write other dir: changed entry written";
+  ok -e structure_path($other, $file_b),
+    "write other dir: unchanged entry written";
+}
+
+sub test_write_no_base_all () {
+  my $base = fresh_base("no_base_all");
+  my $file = write_source("no_base_all.pm", "package NoBaseAll;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->write($base);
+  ok -e structure_path($base, $file), "write no base: entry written";
+}
+
+sub test_set_file_level () {
+  my $file = write_source("file_level.pm", "package FileLevel;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->set_file_level($file, 2, 3, 9);
+  is $st->{f}{$file}{complexity}{2}{"{file-level code}"}[0], 3,
+    "set_file_level: stores complexity";
+  is $st->{f}{$file}{end_line}{2}{"{file-level code}"}[0], 9,
+    "set_file_level: stores end line";
+
+  delete $st->{dirty}{$file};
+  $st->set_file_level($file, 2, 3, 9);
+  ok !$st->{dirty}{$file}, "set_file_level: same values leave entry clean";
+}
+
+sub test_set_file_level_moves () {
+  my $file = write_source("file_level_mv.pm", "package FileLevelMv;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->set_complexity([$file, 4, "f", 0], 2);
+  $st->set_file_level($file, 2, 3, 9);
+  $st->set_file_level($file, 1, 3, 9);
+  is_deeply $st->{f}{$file}{complexity},
+    { 1 => { "{file-level code}" => [3] }, 4 => { f => [2] } },
+    "set_file_level moves: old complexity slot removed";
+  is_deeply $st->{f}{$file}{end_line}, { 1 => { "{file-level code}" => [9] } },
+    "set_file_level moves: old end line slot removed";
+}
+
 sub main () {
   test_new;
   test_digest;
@@ -858,6 +1010,16 @@ sub main () {
   test_get_end_lines;
   test_end_line_write_read;
   test_set_subroutine_returns_sub_id;
+  test_load_on_demand;
+  test_load_no_base;
+  test_load_changed_source;
+  test_load_once;
+  test_write_dirty_only;
+  test_write_unchanged_skipped;
+  test_write_other_dir_all;
+  test_write_no_base_all;
+  test_set_file_level;
+  test_set_file_level_moves;
 }
 
 main;

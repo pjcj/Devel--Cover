@@ -97,6 +97,7 @@ sub read ($self, $file) {
     chomp(my $err = $@);
     dcwarn $err || "no data in $file";
   } else {
+    delete $self->{_digest_index};
     $self->{runs}  = $db->{runs};
     $self->{files} = $db->{files} // [];
   }
@@ -179,6 +180,29 @@ sub _runs_to_merge ($self, $db, $entries) {
   %runs
 }
 
+sub _source_has_digest ($file, $digest) {
+  return 0 unless -f $file;
+  # loaded late so that a covered process does not load it at startup
+  require Digest::MD5;
+  open my $fh, "<", $file or return 0;
+  binmode $fh;
+  my $md5 = Digest::MD5->new->addfile($fh)->hexdigest;
+  close $fh or dcinfo "Can't close $file after MD5 digest: $!";
+  $md5 eq $digest
+}
+
+sub _delete_stale_structure ($self) {
+  my $stale = delete $self->{stale_digests} or return;
+  my %held  = map { $_ => 1 } map keys %$_, values $self->_digest_index->%*;
+  for my $digest (sort keys %$stale) {
+    next if $held{$digest};
+    next if any { _source_has_digest($_, $digest) } keys $stale->{$digest}->%*;
+    my $file = "$self->{base}/structure/$digest";
+    next unless -e $file;
+    unlink $file or dcinfo "can't delete $file: $!";
+  }
+}
+
 sub merge_runs ($self) {
   my $db = $self->{db};
   return $self unless length $db;
@@ -232,15 +256,7 @@ sub merge_runs ($self) {
       if $err && @$err;
   }
 
-  if (keys $self->{changed_files}->%*) {
-    require Devel::Cover::DB::Structure;
-    my $st = Devel::Cover::DB::Structure->new(base => $self->{base});
-    $st->read_all;
-    for my $file (sort keys $self->{changed_files}->%*) {
-      $st->delete_file($file);
-    }
-    $st->write($self->{base});
-  }
+  $self->_delete_stale_structure;
 
   $self->clean;
 
@@ -285,29 +301,46 @@ sub collected ($self) {
   sort keys $self->{collected}->%*
 }
 
+sub _index_digests ($index, $runs) {
+  for my $name (keys %$runs) {
+    my $run     = $runs->{$name}  or next;
+    my $digests = $run->{digests} or next;
+    for my $file (keys %$digests) {
+      my $digest = $digests->{$file} or next;
+      $index->{$file}{$digest}{$name} = 1;
+    }
+  }
+  $index
+}
+
+sub _digest_index ($self) {
+  $self->{_digest_index} //= _index_digests({}, $self->{runs})
+}
+
+sub _delete_changed_file ($self, $file, $digest) {
+  my $stored = $self->_digest_index->{$file} or return;
+  for my $old (grep $_ ne $digest, keys %$stored) {
+    for my $name (keys $stored->{$old}->%*) {
+      my $run = $self->{runs}{$name} or next;
+      dcinfo "Deleting old coverage for changed file $file";
+      $self->{stale_digests}{$old}{$file} = 1;
+      delete $run->{$_}{$file} for qw( digests count vec );
+      $self->{changed_files}{$file}++;
+    }
+    delete $stored->{$old};
+  }
+}
+
 sub merge ($self, $from) {
   for my $fname (sort keys $from->{runs}->%*) {
-    my $frun = $from->{runs}{$fname};
-    for my $file (sort keys $frun->{digests}->%*) {
-      my $digest = $frun->{digests}{$file};
-      for my $name (sort keys $self->{runs}->%*) {
-        my $run = $self->{runs}{$name};
-        if (
-             $run->{digests}{$file}
-          && $digest
-          && $run->{digests}{$file} ne $digest
-        ) {
-          # File has changed.  Delete old coverage instead of merging.
-          dcinfo "Deleting old coverage for changed file $file";
-          delete $run->{digests}{$file};
-          delete $run->{count}{$file};
-          delete $run->{vec}{$file};
-          $self->{changed_files}{$file}++;
-        }
-      }
+    my $digests = $from->{runs}{$fname}{digests} or next;
+    for my $file (sort keys %$digests) {
+      my $digest = $digests->{$file} or next;
+      $self->_delete_changed_file($file, $digest);
     }
   }
 
+  _index_digests($self->_digest_index, $from->{runs});
   _merge_hash($self->{runs},      $from->{runs});
   _merge_hash($self->{collected}, $from->{collected});
 
@@ -1108,6 +1141,7 @@ sub objectify_cover ($self) {
         bless $self->{runs}{$r}, "Devel::Cover::DB::Run";
       } else {
         delete $self->{runs}{$r};  # DEVEL_COVER_SELF
+        delete $self->{_digest_index};
       }
     }
   }
@@ -1616,8 +1650,9 @@ currently held by live processes are left in place.
 
 Merge individual run files from C<< $db/runs/ >> into the main database, write
 the merged result, and delete the run files. Detects changed files: if a file's
-digest differs between runs the old coverage is discarded. Returns
-C<$self>.
+digest differs between runs the old coverage is discarded, and so is the
+structure file of the old version unless a run or the source on disk still has
+that digest. Returns C<$self>.
 
 The whole sequence is serialised via an exclusive flock on F<merge.lock> in
 the database directory, so concurrent merges cannot double-count runs. The
@@ -1665,7 +1700,8 @@ runs.
   $db->merge($other_db);
 
 Merge run and collection data from C<$other_db> into C<$self>. Detects changed
-files by comparing digests across runs.
+files by comparing digests across runs, and records the old digest of each so
+that L</merge_runs> can delete its structure file.
 
 =head2 summary
 
@@ -1919,6 +1955,27 @@ necessary, and return the open handle, which C<merge_runs> closes.
 Sort the plain and C<.merged.*> entries of F<runs/> by whether the database
 already holds the run. Remove those it holds and return the rest as a hash of
 run name to path, so that C<merge_runs> merges each from where it is.
+
+=head2 _source_has_digest ($file, $digest)
+
+Return true if C<$file> is a plain file that can be read and its MD5 digest is
+C<$digest>. Print nothing when the file cannot be opened.
+
+=head2 _delete_stale_structure ($self)
+
+Delete the structure file of each old digest that L</merge> recorded for a
+changed file, and clear the record. Keep the structure file of a digest that
+any run still holds for any file, since that run needs it, and of a digest
+that matches the current source of a file recorded with it, since a covered
+process still running may have loaded that structure and will not write it
+again. A relative file name is read from the current directory.
+
+=head2 _delete_changed_file ($self, $file, $digest)
+
+Delete the coverage of C<$file> from every run that holds it under a digest
+other than C<$digest>. Record each such old digest with C<$file> in
+C<< $self->{stale_digests} >> so that C<_delete_stale_structure> can consider
+its structure file.
 
 =head2 _merge_hash ($into, $from, $noadd = 0)
 
