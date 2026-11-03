@@ -85,6 +85,7 @@ sub write_fh ($self, $file, $writer) {
   $self->_write(
     $file,
     sub ($tmp) {
+      local $\;
       open my $fh, ">", $tmp or die "Can't open $tmp: $!\n";
       _close_after($fh, $tmp, sub { $writer->($fh) })
     },
@@ -126,7 +127,8 @@ lock, and return its result.
 =head2 write_fh ($file, $writer)
 
 Call C<$writer> with a filehandle to write the data for C<$file>, holding an
-exclusive lock.
+exclusive lock. The output record separator C<$\> is unset while it runs,
+since the covered program may have set it.
 
 =head1 PRIVATE SUBROUTINES
 
