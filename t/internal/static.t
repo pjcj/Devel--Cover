@@ -488,6 +488,58 @@ PERL
   is $by_name{no_loop}{cc}, 1, "per_sub loops: keyword names CC=1";
 }
 
+# Logical operators and signature defaults add a decision each, but a fat
+# comma inside a default does not.
+sub test_per_sub_logical () {
+  my $file = write_file("Logical.pm", <<'PERL');
+package Logical;
+
+our $D = $ENV{X} || 0;
+
+sub logops ($x, $y, $z) {
+  return $x && $y || $z;
+}
+
+sub open_or_die () {
+  open my $fh, "<", $0 or die "no";
+}
+
+sub dor_assign ($x) {
+  $x //= 1;
+}
+
+sub xor_op ($a, $b) {
+  my $c = $a xor $b;
+}
+
+sub defaults ($x, $y = 2, $z //= 3, @r) {
+  $x + $y + $z + @r
+}
+
+sub hash_default ($x, $h = { a => 1, b => 2 }) {
+  $x + keys %$h
+}
+
+sub proto :prototype($$) {
+  $_[0] + $_[1]
+}
+
+1
+PERL
+
+  my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+  my %by_name = map { $_->{name} => $_ } @$subs;
+  is $by_name{logops}{cc},       3, "per_sub logical: logops CC=3";
+  is $by_name{open_or_die}{cc},  2, "per_sub logical: open_or_die CC=2";
+  is $by_name{dor_assign}{cc},   2, "per_sub logical: dor_assign CC=2";
+  is $by_name{xor_op}{cc},       2, "per_sub logical: xor_op CC=2";
+  is $by_name{defaults}{cc},     3, "per_sub logical: defaults CC=3";
+  is $by_name{hash_default}{cc}, 2, "per_sub logical: hash_default CC=2";
+  is $by_name{proto}{cc},        1, "per_sub logical: proto CC=1";
+  is $by_name{"{file-level code}"}{cc}, 2,
+    "per_sub logical: file-level CC counts the || outside any sub";
+}
+
 # Nonexistent file returns undef.
 sub test_per_sub_missing () {
   my $subs = Devel::Cover::Static::per_sub_complexity("/nonexistent/file.pm");
@@ -576,6 +628,7 @@ sub main () {
   test_per_sub_only_subs;
   test_per_sub_in_blocks;
   test_per_sub_loops;
+  test_per_sub_logical;
   test_per_sub_missing;
   test_nested_elsif;
   test_triple_nested_elsif;

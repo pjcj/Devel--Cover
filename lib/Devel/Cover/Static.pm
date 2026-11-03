@@ -217,8 +217,19 @@ sub _count_loops ($node) {
   0 + @$loops
 }
 
+sub _count_signature_defaults ($node) {
+  my $protos   = $node->find("PPI::Token::Prototype") || [];
+  my $defaults = 0;
+  for my $proto (@$protos) {
+    $defaults += grep m{^\s*\(?\s*\$\w*\s*(?://|\|\|)?=(?![=>])}, split /,/,
+      $proto->content;
+  }
+  $defaults
+}
+
 sub _count_cc ($node) {
-  _count_decisions($node) + _count_loops($node)
+  _count_decisions($node) + _count_loops($node) + _logical_ops($node)->@*
+    + _count_signature_defaults($node)
 }
 
 sub _inside_named_sub ($node) {
@@ -252,8 +263,8 @@ sub per_sub_complexity ($file) {
   my @subs;
   my $file_level = _count_cc($doc) + 1;
   for my $sub (@$named_subs) {
-    my $block     = $sub->block or next;
-    my $decisions = _count_cc($block);
+    $sub->block or next;
+    my $decisions = _count_cc($sub);
     $file_level -= $decisions unless _inside_named_sub($sub);
     push @subs,
       { name => $sub->name, line => $sub->line_number, cc => $decisions + 1 };
@@ -356,16 +367,16 @@ complexity data:
     ...
   ]
 
-The CC of a named subroutine is the number of decision points and loops in its
-block plus one. Forward declarations (no block) are skipped.
+The CC of a named subroutine is one plus the number of decision points, loops,
+logical operators and signature defaults in the whole sub statement, so that
+the signature counts too. Forward declarations (no block) are skipped.
 
 One more entry, named C<{file-level code}>, stands for the code outside the
-named subs. Its CC is one plus the decision points and loops of the file less
-those in the blocks of the named subs that are not inside another named sub, so
-it counts the decisions and loops of the C<BEGIN>, C<CHECK>, C<INIT> and C<END>
-blocks, and of any file-level anonymous sub, which at run time has an entry of
-its own. Its line is that of the first top-level statement that is neither a
-C<package> nor a sub.
+named subs. Its CC is one plus the same counts for the file less those of the
+named subs that are not inside another named sub, so it counts the C<BEGIN>,
+C<CHECK>, C<INIT> and C<END> blocks, and any file-level anonymous sub, which at
+run time has an entry of its own. Its line is that of the first top-level
+statement that is neither a C<package> nor a sub.
 
 Returns C<undef> if PPI is unavailable or the file fails to parse.
 
@@ -441,10 +452,18 @@ used as a hash key or a method name. A loop with no condition, such as
 C<for (;;)> or C<while (1)>, compiles to no decision at run time but still
 counts here.
 
+=item _count_signature_defaults($node)
+
+Counts the signature parameters within a PPI node that have a default given by
+C<=>, C<//=> or C<||=>. A signature is a single C<PPI::Token::Prototype>
+token, so it splits the text on commas and checks whether each part opens with
+a scalar followed by one of those operators. A C<< => >> or C<==> inside a
+default does not count, nor does an old-style prototype such as C<($$;@)>.
+
 =item _count_cc($node)
 
-Returns the decision points and loops within a PPI node, the CC of the node
-less one. Used by C<per_sub_complexity>.
+Returns the decision points, loops, logical operators and signature defaults
+within a PPI node, the CC of the node less one. Used by C<per_sub_complexity>.
 
 =item _inside_named_sub($node)
 
