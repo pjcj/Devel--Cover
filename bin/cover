@@ -552,10 +552,10 @@ sub manage_dbs ($dbname, $test_result) {
   }
 
   if (exists $Options->{write}) {
+    $read_structure->();
     $dbname = $Options->{write} if length $Options->{write};
     dcinfo "Writing database to $dbname";
     $db->write($dbname);
-    $read_structure->();
     $structure->write($dbname);
   }
 
@@ -584,7 +584,7 @@ sub set_files ($db) {
   delete @f{ map glob, $Options->{ignore}->@* };
 
   my $keep = sub ($f) {
-    return 0 unless exists $db->{summary}{$_};
+    return 0 unless exists $db->{summary}{$f};
     for ($Options->{ignore_re}->@*) {
       return 0 if $f =~ /$_/
     }
