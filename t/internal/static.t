@@ -17,7 +17,7 @@ use lib $FindBin::Bin, qw( ./lib ./blib/lib ./blib/arch );
 
 use File::Spec ();
 use File::Temp qw( tempdir );
-use Test::More import => [qw( done_testing is ok plan )];
+use Test::More import => [qw( done_testing is ok plan skip )];
 
 eval { require PPI; 1 } or do {
   plan skip_all => "PPI not available";
@@ -545,6 +545,14 @@ sub proto :prototype($$) {
   $_[0] + $_[1]
 }
 
+sub commented (
+  $x,
+  # comment
+  $y = 2,
+) {
+  $x + $y
+}
+
 1
 PERL
 
@@ -557,8 +565,54 @@ PERL
   is $by_name{defaults}{cc},     3, "per_sub logical: defaults CC=3";
   is $by_name{hash_default}{cc}, 2, "per_sub logical: hash_default CC=2";
   is $by_name{proto}{cc},        1, "per_sub logical: proto CC=1";
+  is $by_name{commented}{cc},    2, "per_sub logical: commented CC=2";
   is $by_name{"{file-level code}"}{cc}, 2,
     "per_sub logical: file-level CC counts the || outside any sub";
+}
+
+# With signatures on, PPI parses a signature as a structure rather than a
+# prototype, and each default still adds a decision.
+sub test_per_sub_signatures () {
+  SKIP: {
+    skip "PPI does not parse signatures as structures", 5
+      unless eval { require PPI::Structure::Signature; 1 };
+
+    my $file = write_file("Signatures.pm", <<'PERL');
+use feature qw( signatures );
+
+package Signatures;
+
+sub defaults ($x, $y = 2, $z //= 3, @r) { }
+sub hash_default ($x, $h = { a => 1, b => 2 }) { }
+sub logical_default ($x, $o = $x || 1) { }
+sub unnamed_default ($x, $ = 1) { }
+
+1
+PERL
+
+    my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+    my %by_name = map { $_->{name} => $_ } @$subs;
+    is $by_name{defaults}{cc},     3, "per_sub signatures: defaults CC=3";
+    is $by_name{hash_default}{cc}, 2, "per_sub signatures: hash_default CC=2";
+    is $by_name{logical_default}{cc}, 3,
+      "per_sub signatures: logical_default CC=3";
+    is $by_name{unnamed_default}{cc}, 2,
+      "per_sub signatures: unnamed_default CC=2";
+
+    $file = write_file("Version.pm", <<'PERL');
+use 5.40.0;
+
+package Version;
+
+sub d ($x, $y = 2) { 1 }
+
+1
+PERL
+
+    my ($d) = grep $_->{name} eq "d",
+      Devel::Cover::Static::per_sub_complexity($file)->@*;
+    is $d->{cc}, 2, "per_sub signatures: use 5.40.0 d CC=2";
+  }
 }
 
 # Nonexistent file returns undef.
@@ -651,6 +705,7 @@ sub main () {
   test_per_sub_in_blocks;
   test_per_sub_loops;
   test_per_sub_logical;
+  test_per_sub_signatures;
   test_per_sub_missing;
   test_nested_elsif;
   test_triple_nested_elsif;

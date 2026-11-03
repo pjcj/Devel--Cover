@@ -219,14 +219,39 @@ sub _count_loops ($node) {
   0 + @$loops
 }
 
-sub _count_signature_defaults ($node) {
+sub _is_scalar_param ($token) {
+  ($token->isa("PPI::Token::Symbol") && $token->content =~ /^\$/)
+    || ($token->isa("PPI::Token::Cast") && $token->content eq '$')
+}
+
+sub _structure_defaults ($node) {
+  my $sigs     = $node->find("PPI::Structure::Signature") || [];
+  my $defaults = 0;
+  for my $expr (map $_->schildren, @$sigs) {
+    $defaults += grep {
+      my $prev = $_->sprevious_sibling;
+           $_->isa("PPI::Token::Operator")
+        && $_->content eq "="
+        && $prev
+        && _is_scalar_param($prev)
+    } $expr->schildren;
+  }
+  $defaults
+}
+
+sub _prototype_defaults ($node) {
   my $protos   = $node->find("PPI::Token::Prototype") || [];
   my $defaults = 0;
   for my $proto (@$protos) {
+    (my $params = $proto->content) =~ s/#.*//g;
     $defaults += grep m{^\s*\(?\s*\$\w*\s*(?://|\|\|)?=(?![=>])}, split /,/,
-      $proto->content;
+      $params;
   }
   $defaults
+}
+
+sub _count_signature_defaults ($node) {
+  _structure_defaults($node) + _prototype_defaults($node)
 }
 
 sub _count_cc ($node) {
@@ -455,13 +480,32 @@ used as a hash key or a method name. A loop with no condition, such as
 C<for (;;)> or C<while (1)>, compiles to no decision at run time but still
 counts here.
 
+=item _is_scalar_param($token)
+
+Returns true if a PPI token is a scalar signature parameter, either a named one
+such as C<$x> or an unnamed C<$>.
+
+=item _structure_defaults($node)
+
+Counts the defaults in each C<PPI::Structure::Signature> within a PPI node. PPI
+parses a signature this way when it sees that signatures are on. Each plain
+C<=> that follows a scalar parameter counts. A C<//=> or C<||=> default does
+not count here, since C<_logical_ops> already counts it.
+
+=item _prototype_defaults($node)
+
+Counts the signature parameters in each C<PPI::Token::Prototype> within a PPI
+node that have a default given by C<=>, C<//=> or C<||=>. PPI keeps a
+signature as one such token when it does not see that signatures are on, and
+older versions of PPI always do. The sub strips each C<#> comment, splits the
+text on commas and checks whether each part opens with a scalar followed by
+one of those operators. A C<< => >> or C<==> inside a default does not count,
+nor does an old-style prototype such as C<($$;@)>.
+
 =item _count_signature_defaults($node)
 
-Counts the signature parameters within a PPI node that have a default given by
-C<=>, C<//=> or C<||=>. A signature is a single C<PPI::Token::Prototype>
-token, so it splits the text on commas and checks whether each part opens with
-a scalar followed by one of those operators. A C<< => >> or C<==> inside a
-default does not count, nor does an old-style prototype such as C<($$;@)>.
+Counts the signature defaults within a PPI node, whichever way PPI parsed the
+signature.
 
 =item _count_cc($node)
 
