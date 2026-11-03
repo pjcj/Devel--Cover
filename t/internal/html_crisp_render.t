@@ -1232,6 +1232,52 @@ sub test_untested_badge_tooltip () {
   }
 }
 
+sub test_fmt_pc_thresholds () {
+  is Devel::Cover::Report::Html_crisp::fmt_pc(99.995, 1), "99.9",
+    "fmt_pc does not round up to 100";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(74.999, 1), "74.9",
+    "fmt_pc does not round up to 75";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(89.996, 1), "89.9",
+    "fmt_pc does not round up to 90";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(66.666, 1), "66.6",
+    "fmt_pc keeps rounding within a band";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(100, 0), "100",
+    "fmt_pc shows full coverage as 100";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(0, 5), "0.0",
+    "fmt_pc shows no coverage as 0.0";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(undef), "n/a",
+    "fmt_pc shows undef as n/a";
+
+  no warnings "once";
+  my $total = {
+    percentage => 100 - 100 / 20_003,
+    error      => 1,
+    total      => 20_003,
+    covered    => 20_002,
+  };
+  local %Devel::Cover::Report::Html_crisp::R = (
+    db => bless { summary => { f => { total => $total } } },
+    "Devel::Cover::DB",
+  );
+  my $got = Devel::Cover::Report::Html_crisp::get_summary("f", "total");
+  is $got->{pc},    "99.9", "summary pc stays below 100";
+  is $got->{class}, "c2",   "summary class matches pc";
+}
+
+sub test_fmt_pc_custom_c2 () {
+  local @ARGV = ();
+  Devel::Cover::Report::Html_crisp->get_options(
+    { report_c0 => 75, report_c1 => 90, report_c2 => 95 });
+  is Devel::Cover::Report::Html_crisp::fmt_pc(100 - 100 / 20_003, 1), "99.9",
+    "fmt_pc does not round up to 100 with c2 below 100";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(99.999, 1), "99.9",
+    "fmt_pc does not round 99.999 up to 100 with errors";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(100, 0), "100",
+    "fmt_pc shows full coverage as 100 with c2 below 100";
+  Devel::Cover::Report::Html_crisp->get_options(
+    { report_c0 => 75, report_c1 => 90, report_c2 => 100 });
+}
+
 sub main () {
   _setup;
   test_crit_name;
@@ -1287,6 +1333,8 @@ sub main () {
   test_file_level_detail;
   test_class_accepts_criterion_percentage;
   test_untested_badge_tooltip;
+  test_fmt_pc_thresholds;
+  test_fmt_pc_custom_c2;
   done_testing;
 }
 

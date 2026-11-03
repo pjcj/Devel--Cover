@@ -910,10 +910,15 @@ sub oclass ($o, $criterion) {
   $o ? class($o->percentage, $o->error, $criterion) : ""
 }
 
-sub fmt_pc ($pc) {
-  defined $pc
-    ? (sprintf "%5.2f", $pc) =~ s/.\z//r =~ s/^\s+//r =~ s/^100\.0$/100/r
-    : "n/a"
+sub fmt_pc ($pc, $err = 0) {
+  return "n/a" unless defined $pc;
+  my $rounded
+    = (sprintf "%5.2f", $pc) =~ s/.\z//r =~ s/^\s+//r =~ s/^100\.0$/100/r;
+  return $rounded
+    if !$err
+    || $rounded ne "100"
+    && coverage_class($rounded, $Threshold) eq coverage_class($pc, $Threshold);
+  sprintf "%.1f", int($pc * 10) / 10
 }
 
 sub _format_criterion ($part, $criterion) {
@@ -928,7 +933,7 @@ sub _format_criterion ($part, $criterion) {
     unless $part && exists $part->{$criterion};
   my $c = $part->{$criterion};
   {
-    pc          => fmt_pc($c->{percentage}),
+    pc          => fmt_pc($c->{percentage}, $c->{error}),
     class       => class($c->{percentage}, $c->{error}, $criterion),
     covered     => $c->{covered}     || 0,
     total       => $c->{total}       || 0,
