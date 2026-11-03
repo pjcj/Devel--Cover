@@ -201,6 +201,26 @@ sub count_criteria ($file) {
   }
 }
 
+sub _count_loops ($node) {
+  my $loops = $node->find(sub {
+    my $n = $_[1];
+    return ($n->type // "") =~ /^(?:while|for|foreach)$/
+      if $n->isa("PPI::Statement::Compound");
+    return 0 unless $n->isa("PPI::Token::Word");
+    return 0 unless $n->content =~ /^(?:for|foreach|while|until)$/;
+    my $p = $n->parent or return 0;
+    return 0 if $p->isa("PPI::Statement::Compound");
+    return 0 if $p->isa("PPI::Statement::Expression");
+    my $prev = $n->sprevious_sibling;
+    !($prev && $prev->isa("PPI::Token::Operator") && $prev->content eq "->")
+  }) || [];
+  0 + @$loops
+}
+
+sub _count_cc ($node) {
+  _count_decisions($node) + _count_loops($node)
+}
+
 sub _inside_named_sub ($node) {
   while ($node = $node->parent) {
     return 1
@@ -230,10 +250,10 @@ sub per_sub_complexity ($file) {
   }) || [];
 
   my @subs;
-  my $file_level = _count_decisions($doc) + 1;
+  my $file_level = _count_cc($doc) + 1;
   for my $sub (@$named_subs) {
     my $block     = $sub->block or next;
-    my $decisions = _count_decisions($block);
+    my $decisions = _count_cc($block);
     $file_level -= $decisions unless _inside_named_sub($sub);
     push @subs,
       { name => $sub->name, line => $sub->line_number, cc => $decisions + 1 };
@@ -336,16 +356,16 @@ complexity data:
     ...
   ]
 
-The CC of a named subroutine is the number of decision points in its block plus
-one. Forward declarations (no block) are skipped.
+The CC of a named subroutine is the number of decision points and loops in its
+block plus one. Forward declarations (no block) are skipped.
 
 One more entry, named C<{file-level code}>, stands for the code outside the
-named subs. Its CC is one plus the decision points of the file less those in
-the blocks of the named subs that are not inside another named sub, so it
-counts the decisions of the C<BEGIN>, C<CHECK>, C<INIT> and C<END> blocks, and
-of any file-level anonymous sub, which at run time has an entry of its own. Its
-line is that of the first top-level statement that is neither a C<package> nor
-a sub.
+named subs. Its CC is one plus the decision points and loops of the file less
+those in the blocks of the named subs that are not inside another named sub, so
+it counts the decisions and loops of the C<BEGIN>, C<CHECK>, C<INIT> and C<END>
+blocks, and of any file-level anonymous sub, which at run time has an entry of
+its own. Its line is that of the first top-level statement that is neither a
+C<package> nor a sub.
 
 Returns C<undef> if PPI is unavailable or the file fails to parse.
 
@@ -375,7 +395,7 @@ estimated three markers per C<use>/C<require>.
 
 Counts decision points within a PPI node (document or block): if/unless compound
 statements, elsif clauses, ternary operators, and postfix if/unless modifiers.
-Used by both C<_count_branches> and C<per_sub_complexity>.
+Used by C<_count_branches> and C<_count_cc>.
 
 =item _count_branches($doc)
 
@@ -411,6 +431,20 @@ C<use>/C<require>.
 
 Counts named subroutines as the number of subs expected to have POD
 documentation.
+
+=item _count_loops($node)
+
+Counts loops within a PPI node: C<while>, C<until>, C<for> and C<foreach>
+compound statements, the C<while> or C<until> of a C<do> block, and postfix
+C<for>, C<foreach>, C<while> and C<until> modifiers. It skips a loop keyword
+used as a hash key or a method name. A loop with no condition, such as
+C<for (;;)> or C<while (1)>, compiles to no decision at run time but still
+counts here.
+
+=item _count_cc($node)
+
+Returns the decision points and loops within a PPI node, the CC of the node
+less one. Used by C<per_sub_complexity>.
 
 =item _inside_named_sub($node)
 

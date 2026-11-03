@@ -430,6 +430,64 @@ PERL
     "per_sub: file-level CC skips subs in blocks";
 }
 
+# Loops add a decision each, but hash keys and method calls named after a
+# loop keyword do not.
+sub test_per_sub_loops () {
+  my $file = write_file("Loops.pm", <<'PERL');
+package Loops;
+
+sub block_while ($x) {
+  while ($x) { $x-- }
+}
+
+sub block_until ($x) {
+  until ($x > 9) { $x++ }
+}
+
+sub c_style ($x) {
+  for (my $i = 0; $i < 2; $i++) { $x++ }
+}
+
+sub for_my (@x) {
+  for my $i (@x) { print $i }
+}
+
+sub for_each (@x) {
+  foreach my $j (@x) { print $j }
+}
+
+sub do_while ($x) {
+  do { $x-- } while ($x > 0);
+}
+
+sub postfix_for (@x) {
+  print for @x;
+}
+
+sub postfix_while ($x) {
+  $x-- while $x > 0;
+}
+
+sub postfix_until ($x) {
+  $x++ until $x > 9;
+}
+
+sub no_loop ($obj, %h) {
+  $h{for} + $h{while} + $obj->until
+}
+
+1
+PERL
+
+  my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+  my %by_name = map { $_->{name} => $_ } @$subs;
+  is $by_name{$_}{cc}, 2, "per_sub loops: $_ CC=2" for qw(
+    block_while block_until c_style for_my for_each do_while
+    postfix_for postfix_while postfix_until
+  );
+  is $by_name{no_loop}{cc}, 1, "per_sub loops: keyword names CC=1";
+}
+
 # Nonexistent file returns undef.
 sub test_per_sub_missing () {
   my $subs = Devel::Cover::Static::per_sub_complexity("/nonexistent/file.pm");
@@ -517,6 +575,7 @@ sub main () {
   test_per_sub_forward;
   test_per_sub_only_subs;
   test_per_sub_in_blocks;
+  test_per_sub_loops;
   test_per_sub_missing;
   test_nested_elsif;
   test_triple_nested_elsif;
