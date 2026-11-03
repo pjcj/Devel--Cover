@@ -254,9 +254,22 @@ sub _count_signature_defaults ($node) {
   _structure_defaults($node) + _prototype_defaults($node)
 }
 
+sub _count_hathat ($node) {
+  my $hathats = $node->find(sub {
+    my $t = $_[1];
+    return 0 unless $t->isa("PPI::Token::Operator") && $t->content eq "^";
+    my $next = $t->next_sibling;
+    $next && $next->isa("PPI::Token::Operator") && $next->content =~ /^\^=?$/
+  }) || [];
+  0 + @$hathats
+}
+
 sub _count_cc ($node) {
-  _count_decisions($node) + _count_loops($node) + _logical_ops($node)->@*
+      _count_decisions($node)
+    + _count_loops($node)
+    + _logical_ops($node)->@*
     + _count_signature_defaults($node)
+    + _count_hathat($node)
 }
 
 sub _inside_named_sub ($node) {
@@ -507,10 +520,18 @@ nor does an old-style prototype such as C<($$;@)>.
 Counts the signature defaults within a PPI node, whichever way PPI parsed the
 signature.
 
+=item _count_hathat($node)
+
+Counts the logical xor operators C<^^> and C<^^=> within a PPI node. PPI splits
+C<^^> into two C<^> tokens and C<^^=> into C<^> and C<^=>, so the sub counts
+each C<^> token directly followed by a C<^> or C<^=> token with no whitespace
+between.
+
 =item _count_cc($node)
 
-Returns the decision points, loops, logical operators and signature defaults
-within a PPI node, the CC of the node less one. Used by C<per_sub_complexity>.
+Returns the decision points, loops, logical operators, including C<^^>, and
+signature defaults within a PPI node, the CC of the node less one. Used by
+C<per_sub_complexity>.
 
 =item _inside_named_sub($node)
 

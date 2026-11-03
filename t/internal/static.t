@@ -615,6 +615,27 @@ PERL
   }
 }
 
+# The logical xor operator "^^" adds a decision, but a bitwise "^" does not.
+sub test_per_sub_hathat () {
+  my $file = write_file("HatHat.pm", <<'PERL');
+use 5.40.0;
+
+package HatHat;
+
+sub hathat ($x, $y) { my $c = $x ^^ $y; $c }
+sub hat ($x, $y) { my $c = $x ^ $y; $c }
+sub hathat_assign ($x, $y) { my $c = $x; $c ^^= $y; $c }
+
+1
+PERL
+
+  my $subs    = Devel::Cover::Static::per_sub_complexity($file);
+  my %by_name = map { $_->{name} => $_ } @$subs;
+  is $by_name{hathat}{cc},        2, "per_sub hathat: hathat CC=2";
+  is $by_name{hat}{cc},           1, "per_sub hathat: hat CC=1";
+  is $by_name{hathat_assign}{cc}, 2, "per_sub hathat: hathat_assign CC=2";
+}
+
 # Nonexistent file returns undef.
 sub test_per_sub_missing () {
   my $subs = Devel::Cover::Static::per_sub_complexity("/nonexistent/file.pm");
@@ -706,6 +727,7 @@ sub main () {
   test_per_sub_loops;
   test_per_sub_logical;
   test_per_sub_signatures;
+  test_per_sub_hathat;
   test_per_sub_missing;
   test_nested_elsif;
   test_triple_nested_elsif;
