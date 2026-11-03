@@ -1457,11 +1457,8 @@ sub favicon ($level) {
 }
 
 sub set_favicon_colour () {
-  my $t  = get_summary("Total", "total");
-  my $pc = $t->{pc};
-  $pc = 0 if is_na($pc);
-  my $cl = class($pc, $pc < 100 ? 1 : 0, "total");
-  $R{favicon_colour} = favicon($cl);
+  my $cl = get_summary("Total", "total")->{class};
+  $R{favicon_colour} = favicon($cl eq "na" ? "c0" : $cl);
 }
 
 sub totals_for ($file) {

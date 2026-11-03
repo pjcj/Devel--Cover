@@ -1278,6 +1278,38 @@ sub test_fmt_pc_custom_c2 () {
     { report_c0 => 75, report_c1 => 90, report_c2 => 100 });
 }
 
+sub test_favicon_colour_total_errors () {
+  no warnings "once";
+  my $total = {
+    percentage => 100 - 100 / 20_003,
+    error      => 1,
+    total      => 20_003,
+    covered    => 20_002,
+  };
+  local %Devel::Cover::Report::Html_crisp::R
+    = (db => bless { summary => { total => $total } }, "Fake_db");
+  Devel::Cover::Report::Html_crisp::set_favicon_colour;
+  is $Devel::Cover::Report::Html_crisp::R{favicon_colour},
+    Devel::Cover::Report::Html_crisp::favicon("c2"),
+    "favicon shows incomplete coverage when the total has errors";
+
+  @$total{qw( percentage error covered )} = (100, 0, 20_003);
+  Devel::Cover::Report::Html_crisp::set_favicon_colour;
+  is $Devel::Cover::Report::Html_crisp::R{favicon_colour},
+    Devel::Cover::Report::Html_crisp::favicon("c3"),
+    "favicon shows full coverage when the total has no errors";
+}
+
+sub test_favicon_colour_total_no_data () {
+  no warnings "once";
+  local %Devel::Cover::Report::Html_crisp::R
+    = (db => bless { summary => {} }, "Fake_db");
+  Devel::Cover::Report::Html_crisp::set_favicon_colour;
+  is $Devel::Cover::Report::Html_crisp::R{favicon_colour},
+    Devel::Cover::Report::Html_crisp::favicon("c0"),
+    "favicon shows no coverage when the total has no data";
+}
+
 sub main () {
   _setup;
   test_crit_name;
@@ -1335,7 +1367,13 @@ sub main () {
   test_untested_badge_tooltip;
   test_fmt_pc_thresholds;
   test_fmt_pc_custom_c2;
+  test_favicon_colour_total_errors;
+  test_favicon_colour_total_no_data;
   done_testing;
+}
+
+package Fake_db {
+  sub summary ($self, @) { $self->{summary} }
 }
 
 main;
