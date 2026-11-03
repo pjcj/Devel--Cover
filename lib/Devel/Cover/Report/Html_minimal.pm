@@ -39,7 +39,7 @@ sub get_summary_for_file ($db, $file, $show) {
   my $data    = $db->{summary}{$file};
 
   for my $c (@$show) {
-    if (exists $data->{$c}) {
+    if (exists $data->{$c} && exists $data->{$c}{percentage}) {
       $summary->{$c} = {
         percent => do {
           my $x = sprintf "%5.2f", $data->{$c}{percentage};
@@ -53,7 +53,7 @@ sub get_summary_for_file ($db, $file, $show) {
         error => $data->{$c}{error},
       };
     } else {
-      $summary->{$c} = { percent => "n/a", ratio => undef, error => undef };
+      $summary->{$c} = { percent => "n/a", ratio => undef, error => exists $data->{$c} && $data->{$c}{error} || undef };
     }
   }
   $summary
