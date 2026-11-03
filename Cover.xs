@@ -1044,6 +1044,7 @@ static IV       dc_meta_iv(pTHX_ HV *meta, const char *key, I32 keylen);
 static dc_dctx *dc_stack_find_root(pTHX_ OP *root_addr);
 static dc_dctx *dc_stack_top(pTHX);
 static void     dc_stack_pop(pTHX);
+static void     dc_stack_remove(pTHX_ dc_dctx *d);
 static void     dc_stack_discard_stale(pTHX);
 static void     dc_snapshot(pTHX_ dc_dctx *d);
 static OP      *skip_nulled_ops(OP *o);
@@ -1121,7 +1122,7 @@ static void add_condition(pTHX_ SV *cond_ref, int truth, int defined,
         dc_dctx *d = dc_stack_find_root(aTHX_ root_addr);
         if (d) {
           dc_snapshot(aTHX_ d);
-          if (dc_stack_top(aTHX) == d) dc_stack_pop(aTHX);
+          dc_stack_remove(aTHX_ d);
         }
       }
     }
@@ -1383,7 +1384,7 @@ static void resolve_deferred_conditionals(pTHX_ AV *dc, I32 base) {
           dc_dctx *d = dc_stack_find_root(aTHX_ root_addr);
           if (d) {
             dc_snapshot(aTHX_ d);
-            if (dc_stack_top(aTHX) == d) dc_stack_pop(aTHX);
+            dc_stack_remove(aTHX_ d);
           }
         }
       }

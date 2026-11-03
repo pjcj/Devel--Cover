@@ -231,6 +231,38 @@ PERL
     "recorded vectors are as wide as the table";
 }
 
+# A fixed dor whose nested root resolves in the same call must leave no frame
+# on the stack, or an enclosing decision that then short-circuits records
+# nothing.
+sub test_nested_root_in_sub_argument () {
+  my $script = write_script("nested_root_arg.pl", <<'PERL');
+sub id { $_[0] }
+sub g {
+  my ($p, $x, $y, $q) = @_;
+  my $r = ($p && id($x // ($y || 1))) || $q;
+  $r
+}
+g(1, undef, 0, 0);
+g(0, 1, 0, 0);
+g(1, 0, 0, 0);
+g(0, 1, 0, 1);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "nested_root_arg");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for nested_root_arg";
+  is grep(defined, @$di), 3, "three decisions recorded";
+
+  my ($outer) = grep { defined && (keys %$_)[0] =~ /\|.*\|/ } @$di;
+  is_deeply $outer, { "1|1|X" => 1, "1|0|0" => 1, "0|X|0" => 1, "0|X|1" => 1 },
+    "outer decision records every call";
+
+  my $mcdc       = $db->cover->file($path)->{mcdc};
+  my ($decision) = grep $_->total == 3, map @$_, values %$mcdc;
+  ok $decision, "found the outer decision";
+  is $decision->covered, 3, "outer decision fully covered";
+}
+
 # A logop reached through any fixed right operand, not only a bare one, is a
 # decision of its own with its own vectors.
 sub test_fixed_right_wrapped_vectors () {
@@ -639,6 +671,7 @@ sub main () {
   subtest "left constant width parity"  => \&test_left_constant_width_parity;
   subtest "dor fixed nested vectors"    => \&test_dor_fixed_nested_vectors;
   subtest "fixed right wrapped vectors" => \&test_fixed_right_wrapped_vectors;
+  subtest "nested root in sub argument" => \&test_nested_root_in_sub_argument;
   subtest "repeated observation"        => \&test_repeated_observation;
   subtest "no inputs without mcdc"      => \&test_no_inputs_without_mcdc;
   subtest "void compound no false coverage" =>
