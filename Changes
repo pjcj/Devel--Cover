@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Write the structure when `cover -write` copies a database to a new name, so
+  reports on the copy place their counts on lines and no longer warn that they
+  cannot locate the structure (GH-903)
 - Count the decisions of file-level code and of its `BEGIN`, `CHECK`, `INIT`
   and `END` blocks as one `{file-level code}` entry per file in the complexity
   and SCAR figures, so a decision outside every sub counts and each `use` no

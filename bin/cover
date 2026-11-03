@@ -552,10 +552,10 @@ sub manage_dbs ($dbname, $test_result) {
   }
 
   if (exists $Options->{write}) {
+    $read_structure->();
     $dbname = $Options->{write} if length $Options->{write};
     dcinfo "Writing database to $dbname";
     $db->write($dbname);
-    $read_structure->();
     $structure->write($dbname);
   }
 
