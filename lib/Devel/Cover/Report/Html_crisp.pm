@@ -142,7 +142,7 @@ sub cov_bar ($pc, $uncompiled) {
 }
 
 sub cov_cell ($s, $uncompiled, $data_value = undef, $link = undef, $attr = "") {
-  my $dv      = $data_value // (is_na($s->{pc}) ? -1 : $s->{pc});
+  my $dv      = $data_value // $s->{percentage} // -1;
   my $no_data = $uncompiled && !$R{have_ppi};
   my $no_tip  = $no_data || ($s->{total} // 0) == 0;
   my $cls     = $no_tip ? $s->{class} : "$s->{class} tip-hover";
@@ -910,10 +910,15 @@ sub oclass ($o, $criterion) {
   $o ? class($o->percentage, $o->error, $criterion) : ""
 }
 
-sub fmt_pc ($pc) {
-  defined $pc
-    ? (sprintf "%5.2f", $pc) =~ s/.\z//r =~ s/^\s+//r =~ s/^100\.0$/100/r
-    : "n/a"
+sub fmt_pc ($pc, $err = 0) {
+  return "n/a" unless defined $pc;
+  my $rounded
+    = (sprintf "%5.2f", $pc) =~ s/.\z//r =~ s/^\s+//r =~ s/^100\.0$/100/r;
+  return $rounded
+    if !$err
+    || $rounded ne "100"
+    && coverage_class($rounded, $Threshold) eq coverage_class($pc, $Threshold);
+  sprintf "%.1f", int($pc * 10) / 10
 }
 
 sub _format_criterion ($part, $criterion) {
@@ -924,16 +929,18 @@ sub _format_criterion ($part, $criterion) {
     total       => 0,
     uncoverable => 0,
     error       => 0,
+    percentage  => undef,
     }
     unless $part && exists $part->{$criterion};
   my $c = $part->{$criterion};
   {
-    pc          => fmt_pc($c->{percentage}),
+    pc          => fmt_pc($c->{percentage}, $c->{error}),
     class       => class($c->{percentage}, $c->{error}, $criterion),
     covered     => $c->{covered}     || 0,
     total       => $c->{total}       || 0,
     uncoverable => $c->{uncoverable} || 0,
     error       => $c->{error}       || 0,
+    percentage  => $c->{percentage},
   }
 }
 
@@ -998,6 +1005,7 @@ sub build_one_file ($file) {
     total       => 0,
     uncoverable => 0,
     error       => 0,
+    percentage  => undef,
   } };
 
   for my $c ($R{showing}->@*) {
@@ -1007,7 +1015,7 @@ sub build_one_file ($file) {
   $f{total} = $total;
   my $pc = $total->{pc} // "-";
   $f{total_pc}   = $pc;
-  $f{total_sort} = is_na($pc) ? -1 : $pc;
+  $f{total_sort} = $total->{percentage} // -1;
   _apply_scar(\%f, $R{db}->summary($file, "scar"));
   \%f
 }
@@ -1452,11 +1460,8 @@ sub favicon ($level) {
 }
 
 sub set_favicon_colour () {
-  my $t  = get_summary("Total", "total");
-  my $pc = $t->{pc};
-  $pc = 0 if is_na($pc);
-  my $cl = class($pc, $pc < 100 ? 1 : 0, "total");
-  $R{favicon_colour} = favicon($cl);
+  my $cl = get_summary("Total", "total")->{class};
+  $R{favicon_colour} = favicon($cl eq "na" ? "c0" : $cl);
 }
 
 sub totals_for ($file) {

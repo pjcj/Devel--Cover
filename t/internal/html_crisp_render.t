@@ -500,6 +500,21 @@ sub test_cov_cell_link () {
     "with link: anchor wraps the percent value";
 }
 
+sub test_cov_cell_raw_data_value () {
+  my $cell = _cov_cell(
+    {
+      pc         => "99.9",
+      class      => "c2",
+      percentage => 99.995,
+      covered    => 20_002,
+      total      => 20_003,
+      error      => 1,
+    },
+    0, 1,
+  );
+  like $cell, qr/data-value="99\.995"/, "cell sorts by the raw percentage";
+}
+
 sub test_scar_cell_link () {
   no warnings "once";
   local %Devel::Cover::Report::Html_crisp::R = ();
@@ -607,8 +622,14 @@ sub test_file_row_total_marker () {
     criteria   => {
       statement => { pc => "50.0", class => "c1", covered => 1, total => 2 },
     },
-    total      => { pc => "75.0", class => "c2", covered => 3, total => 4 },
-    total_sort => "75.0",
+    total => {
+      pc         => "75.0",
+      class      => "c2",
+      covered    => 3,
+      total      => 4,
+      percentage => 74.999,
+    },
+    total_sort => 74.999,
     file_cc    => 5,
     file_scar  => "33.4",
     file_crap  => "12.5",
@@ -619,7 +640,7 @@ sub test_file_row_total_marker () {
   my $row    = Devel::Cover::Report::Html_crisp::file_row($f, "Covered");
   my @marked = $row =~ /(<td[^>]*data-col="total"[^>]*>)/g;
   is @marked, 1, "file row marks exactly one cell as the total";
-  like $marked[0] // "", qr/data-value="75\.0"/,
+  like $marked[0] // "", qr/data-value="74\.999"/,
     "marked cell carries the total percentage";
 }
 
@@ -1232,6 +1253,140 @@ sub test_untested_badge_tooltip () {
   }
 }
 
+sub test_fmt_pc_thresholds () {
+  is Devel::Cover::Report::Html_crisp::fmt_pc(99.995, 1), "99.9",
+    "fmt_pc does not round up to 100";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(74.999, 1), "74.9",
+    "fmt_pc does not round up to 75";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(89.996, 1), "89.9",
+    "fmt_pc does not round up to 90";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(66.666, 1), "66.6",
+    "fmt_pc keeps rounding within a band";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(100, 0), "100",
+    "fmt_pc shows full coverage as 100";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(0, 5), "0.0",
+    "fmt_pc shows no coverage as 0.0";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(undef), "n/a",
+    "fmt_pc shows undef as n/a";
+
+  no warnings "once";
+  my $total = {
+    percentage => 100 - 100 / 20_003,
+    error      => 1,
+    total      => 20_003,
+    covered    => 20_002,
+  };
+  local %Devel::Cover::Report::Html_crisp::R = (
+    db => bless { summary => { f => { total => $total } } },
+    "Devel::Cover::DB",
+  );
+  my $got = Devel::Cover::Report::Html_crisp::get_summary("f", "total");
+  is $got->{pc},         "99.9",             "summary pc stays below 100";
+  is $got->{class},      "c2",               "summary class matches pc";
+  is $got->{percentage}, 100 - 100 / 20_003, "summary keeps the raw percentage";
+}
+
+sub test_fmt_pc_custom_c2 () {
+  local @ARGV = ();
+  Devel::Cover::Report::Html_crisp->get_options(
+    { report_c0 => 75, report_c1 => 90, report_c2 => 95 });
+  is Devel::Cover::Report::Html_crisp::fmt_pc(100 - 100 / 20_003, 1), "99.9",
+    "fmt_pc does not round up to 100 with c2 below 100";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(99.999, 1), "99.9",
+    "fmt_pc does not round 99.999 up to 100 with errors";
+  is Devel::Cover::Report::Html_crisp::fmt_pc(100, 0), "100",
+    "fmt_pc shows full coverage as 100 with c2 below 100";
+  Devel::Cover::Report::Html_crisp->get_options(
+    { report_c0 => 75, report_c1 => 90, report_c2 => 100 });
+}
+
+sub test_favicon_colour_total_errors () {
+  no warnings "once";
+  my $total = {
+    percentage => 100 - 100 / 20_003,
+    error      => 1,
+    total      => 20_003,
+    covered    => 20_002,
+  };
+  local %Devel::Cover::Report::Html_crisp::R
+    = (db => bless { summary => { total => $total } }, "Fake_db");
+  Devel::Cover::Report::Html_crisp::set_favicon_colour;
+  is $Devel::Cover::Report::Html_crisp::R{favicon_colour},
+    Devel::Cover::Report::Html_crisp::favicon("c2"),
+    "favicon shows incomplete coverage when the total has errors";
+
+  @$total{qw( percentage error covered )} = (100, 0, 20_003);
+  Devel::Cover::Report::Html_crisp::set_favicon_colour;
+  is $Devel::Cover::Report::Html_crisp::R{favicon_colour},
+    Devel::Cover::Report::Html_crisp::favicon("c3"),
+    "favicon shows full coverage when the total has no errors";
+}
+
+sub test_favicon_colour_total_no_data () {
+  no warnings "once";
+  local %Devel::Cover::Report::Html_crisp::R
+    = (db => bless { summary => {} }, "Fake_db");
+  Devel::Cover::Report::Html_crisp::set_favicon_colour;
+  is $Devel::Cover::Report::Html_crisp::R{favicon_colour},
+    Devel::Cover::Report::Html_crisp::favicon("c0"),
+    "favicon shows no coverage when the total has no data";
+}
+
+sub test_build_one_file_total_sort () {
+  no warnings "once";
+  my $near = sub ($pc) { {
+    summary => {
+      total =>
+        { percentage => $pc, error => 1, total => 10_000, covered => 9_995 },
+    },
+  } };
+  my $files = {
+    "big.pm" => {
+      summary => {
+        total => {
+          percentage => 99.995,
+          error      => 1,
+          total      => 20_003,
+          covered    => 20_002,
+        },
+      },
+    },
+    "no_total.pm" => {
+      summary => {
+        statement =>
+          { percentage => 50, error => 1, total => 2, covered => 1 },
+      },
+    },
+    "untested.pm" => {
+      summary =>
+        { total => { percentage => 0, error => 5, total => 5, covered => 0 } },
+      meta => { uncompiled => 1 },
+    },
+    "a.pm" => $near->(99.96),
+    "b.pm" => $near->(99.95),
+  };
+  my $names = { map { $_ => $_ } keys %$files };
+  local %Devel::Cover::Report::Html_crisp::R = (
+    db        => bless({ files => $files }, "Fake_db"),
+    filenames => $names,
+    showing   => ["statement"],
+    have_ppi  => 0,
+    options   => { file => [qw( a.pm b.pm )] },
+  );
+  my $sort = sub ($file) {
+    Devel::Cover::Report::Html_crisp::build_one_file($file)->{total_sort}
+  };
+  is $sort->("big.pm"),      99.995, "total_sort keeps the raw percentage";
+  is $sort->("no_total.pm"), -1,     "total_sort is -1 without a total";
+  is $sort->("untested.pm"), -1,     "total_sort is -1 for an untested file";
+
+  my @data = Devel::Cover::Report::Html_crisp::build_file_data;
+  is join(" ", map $_->{total_pc}, @data), "99.9 99.9",
+    "both files show the same rounded total";
+  is join(" ", map $_->{name}, @data), "b.pm a.pm",
+    "files sort by raw percentage below the rounding";
+}
+
 sub main () {
   _setup;
   test_crit_name;
@@ -1257,6 +1412,7 @@ sub main () {
   test_render_untested_page;
   test_cov_cell_tooltips;
   test_cov_cell_link;
+  test_cov_cell_raw_data_value;
   test_scar_cell_link;
   test_render_worst_files_colour;
   test_render_worst_files_untested_colour;
@@ -1287,7 +1443,23 @@ sub main () {
   test_file_level_detail;
   test_class_accepts_criterion_percentage;
   test_untested_badge_tooltip;
+  test_fmt_pc_thresholds;
+  test_fmt_pc_custom_c2;
+  test_favicon_colour_total_errors;
+  test_favicon_colour_total_no_data;
+  test_build_one_file_total_sort;
   done_testing;
+}
+
+package Fake_db {
+
+  sub summary ($self, $file = undef, $criterion = undef) {
+    return $self->{summary} unless $self->{files};
+    my $f = $self->{files}{$file} or return;
+    defined $criterion ? $f->{summary}{$criterion} : $f->{summary}
+  }
+  sub cover ($self)        { $self }
+  sub file  ($self, $file) { { meta => $self->{files}{$file}{meta} } }
 }
 
 main;
