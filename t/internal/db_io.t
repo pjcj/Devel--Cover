@@ -19,7 +19,8 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use File::Spec ();
 use File::Temp qw( tempdir );
 use List::Util qw( any );
-use Test::More import => [qw( diag done_testing is is_deeply like ok skip )];
+use Test::More import =>
+  [qw( diag done_testing is is_deeply like ok skip unlike )];
 
 use Devel::Cover::DB::IO ();
 
@@ -42,6 +43,15 @@ my $Data = {
 
 sub path ($name) { File::Spec->catfile($Tmpdir, $name) }
 
+sub slurp ($file) {
+  open my $fh, "<", $file or die "Cannot open $file: $!";
+  binmode $fh;
+  local $/;
+  my $content = <$fh>;
+  close $fh or die "Cannot close $file: $!";
+  $content
+}
+
 sub magic_matches ($file, $format) {
   open my $fh, "<", $file or die "Cannot open $file: $!";
   binmode $fh;
@@ -59,6 +69,23 @@ sub test_round_trip () {
     my $io   = Devel::Cover::DB::IO->new;
     $io->write($Data, $file);
     is_deeply $io->read($file), $Data, "round trip with $format";
+  }
+}
+
+sub test_output_separators () {
+  for my $format (@Formats) {
+    local $ENV{DEVEL_COVER_DB_FORMAT} = $format;
+    my $file = path("sep_$format");
+    my $io   = Devel::Cover::DB::IO->new;
+    {
+      local $\ = "XX";
+      $io->write($Data, $file);
+    }
+    my $got = eval { $io->read($file) };
+    is_deeply $got, $Data,
+      "round trip with $format with the output record separator set"
+      or diag $@;
+    unlike slurp($file), qr/XX\z/, "$format file does not end in the separator";
   }
 }
 
@@ -120,6 +147,7 @@ sub test_unrecognised_format_dies () {
 
 sub main () {
   test_round_trip;
+  test_output_separators;
   test_cross_format_read;
   test_format_argument;
   test_env_overrides_argument;

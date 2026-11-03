@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Unset the output record separator `$\` while writing a database file, so
+  a program that sets it no longer writes a run or structure file that
+  the JSON backend cannot read (GH-252)
 - Write the structure when `cover -write` copies a database to a new name, so
   reports on the copy place their counts on lines and no longer warn that they
   cannot locate the structure (GH-903)
