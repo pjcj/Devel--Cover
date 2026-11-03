@@ -104,6 +104,12 @@ sub nested_and_var {
   $r
 }
 
+sub nested_or_partial {
+  my ($x, $y) = @_;
+  my $r = $x // ($y || "b");
+  $r
+}
+
 my $o = Thing->new;
 my $k = Kid->new;
 for my $x (1, undef) {
@@ -125,5 +131,6 @@ for my $x (1, undef) {
     nested_and($x, $y, 1);
     nested_or_var($x, $y, 3);
     nested_and_var($x, $y);
+    nested_or_partial($x, 1);
   }
 }

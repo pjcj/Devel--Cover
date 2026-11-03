@@ -2,8 +2,8 @@ cover: Reading database from ...
 --------------- ------ ------ ------ ------ ------ ------ ------
 File              stmt   bran   cond   mcdc    sub  total   scar
 --------------- ------ ------ ------ ------ ------ ------ ------
-tests/dor_fixed  100.0   92.8   86.2   60.8  100.0   91.4   10.2
-Total            100.0   92.8   86.2   60.8  100.0   91.4   10.2
+tests/dor_fixed  100.0   92.8   85.4   62.0  100.0   90.6   10.3
+Total            100.0   92.8   85.4   62.0  100.0   90.6   10.3
 --------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-32 94.8  2.8 10.2
+34 94.4  2.8 10.3
 
 Worst Subroutines
 -----------------
@@ -126,21 +126,21 @@ line  err   stmt   bran   cond   mcdc    sub   code
 77                                         4   sub nested_or {
 78             4                                 my ($x, $y) = @_;
 79             4           100    100            my $r = $x // ($y || "b");
-                           100                 
+                           100    100          
 80             4                                 $r
 81                                             }
 82                                             
 83                                         4   sub nested_dor {
 84             4                                 my ($x, $y, $z) = @_;
 85             4           100    100            my $r = $x // ($y // $z + 1);
-                           100                 
+                           100    100          
 86             4                                 $r
 87                                             }
 88                                             
 89                                         4   sub nested_and {
 90             4                                 my ($x, $y, $z) = @_;
 91             4           100    100            my $r = $x // ($y * 2 && $z + 1);
-      ***                 * 66                 
+      ***                 * 66   * 50          
 92             4                                 $r
 93                                             }
 94                                             
@@ -158,35 +158,43 @@ line  err   stmt   bran   cond   mcdc    sub   code
 104            4                                 $r
 105                                            }
 106                                            
-107            1                               my $o = Thing->new;
-108            1                               my $k = Kid->new;
-109            1                               for my $x (1, undef) {
-110            2                                 eval { method($x, $o) };
+107                                        4   sub nested_or_partial {
+108            4                                 my ($x, $y) = @_;
+109            4           100    100            my $r = $x // ($y || "b");
+      ***                 * 50   *  0          
+110            4                                 $r
+111                                            }
+112                                            
+113            1                               my $o = Thing->new;
+114            1                               my $k = Kid->new;
+115            1                               for my $x (1, undef) {
+116            2                                 eval { method($x, $o) };
                2                               
-111            2                                 eval { class($x) };
+117            2                                 eval { class($x) };
                2                               
-112            2                                 eval { method_ret($x, $o) };
+118            2                                 eval { method_ret($x, $o) };
                2                               
-113            2                                 eval { dynamic($x, $o) };
+119            2                                 eval { dynamic($x, $o) };
                2                               
-114            2                                 eval { $k->dor_super($x) };
+120            2                                 eval { $k->dor_super($x) };
                2                               
-115            2                                 last_index($x, 1, 2);
-116            2                                 last_index_ref($x, [1, 2]);
-117            2                                 for my $y (0, 2) {
-118            4                                   ternary($x, $y);
-119            4                                   ternary_arith($x, $y);
-120            4                                   eval { ternary_die($x, $y) };
+121            2                                 last_index($x, 1, 2);
+122            2                                 last_index_ref($x, [1, 2]);
+123            2                                 for my $y (0, 2) {
+124            4                                   ternary($x, $y);
+125            4                                   ternary_arith($x, $y);
+126            4                                   eval { ternary_die($x, $y) };
                4                               
-121            4                                   ternary_var($x, $y);
-122            4                                   ternary_nested($x, $y);
-123            4                                   nested_or($x, $y);
-124            4    100                            nested_dor($x, $y ? $y : undef, 1);
-125            4                                   nested_and($x, $y, 1);
-126            4                                   nested_or_var($x, $y, 3);
-127            4                                   nested_and_var($x, $y);
-128                                              }
-129                                            }
+127            4                                   ternary_var($x, $y);
+128            4                                   ternary_nested($x, $y);
+129            4                                   nested_or($x, $y);
+130            4    100                            nested_dor($x, $y ? $y : undef, 1);
+131            4                                   nested_and($x, $y, 1);
+132            4                                   nested_or_var($x, $y, 3);
+133            4                                   nested_and_var($x, $y);
+134            4                                   nested_or_partial($x, 1);
+135                                              }
+136                                            }
 
 
 Branches
@@ -200,7 +208,7 @@ line  err      %   true  false   branch
 67           100      1      1   $y ? :
 73           100      1      1   $y ? :
       ***     50      1      0   $y > 1 ? :
-124          100      2      2   $y ? :
+130          100      2      2   $y ? :
 
 
 Conditions
@@ -236,6 +244,8 @@ line  err      %      l     !l   expr
 85           100      2      2   $x // ($y // $z + 1)
              100      1      1   $y // $z + 1
 91           100      2      2   $x // $y * 2 && $z + 1
+109          100      2      2   $x // ($y || "b")
+      ***     50      2      0   $y or "b"
 
 or 3 conditions
 
@@ -267,10 +277,15 @@ line  err      %  cov  tot   missing                expr
 67    ***      0    0    2   $x, ($y ? $y : "b")    $x // ($y ? $y : "b")
 73           100    1    1                          $x // ($y ? $y > 1 ? "a" : "b" : "c")
 79           100    1    1                          $x // ($y || "b")
+             100    1    1                          $y or "b"
 85           100    1    1                          $x // ($y // $z + 1)
+             100    1    1                          $y // $z + 1
 91           100    1    1                          $x // $y * 2 && $z + 1
+      ***     50    1    2   $z + 1                 $y * 2 and $z + 1
 97    ***      0    0    3   $x, $y, $z             $x // ($y || $z)
 103          100    2    2                          $x // $y && "b"
+109          100    1    1                          $x // ($y || "b")
+      ***      0    0    1   $y                     $y or "b"
 
 
 Covered Subroutines
@@ -292,6 +307,7 @@ nested_and            4   3  11.0 tests/dor_fixed:89
 nested_and_var        4   3  11.0 tests/dor_fixed:101
 nested_dor            4   3  11.0 tests/dor_fixed:83 
 nested_or             4   3  11.0 tests/dor_fixed:77 
+nested_or_partial     4   3  11.1 tests/dor_fixed:107
 nested_or_var         4   3  11.3 tests/dor_fixed:95 
 new                   2   1   0.0 tests/dor_fixed:15 
 ternary               4   3  11.0 tests/dor_fixed:47 
