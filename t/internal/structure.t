@@ -865,6 +865,67 @@ sub test_load_once () {
   ok !exists $st->{f}{$file}{digest}, "load once: no digest after reuse";
 }
 
+sub structure_path ($base, $file) { "$base/structure/" . md5_file($file) }
+
+sub age_structure ($base, @files) {
+  my $old = time - 3600;
+  utime $old, $old, map structure_path($base, $_), @files;
+  $old
+}
+
+sub mtime ($base, $file) { (stat structure_path($base, $file))[9] }
+
+sub dirty_setup ($label) {
+  my $base   = fresh_base($label);
+  my $file_a = write_source("${label}_a.pm", "# ${label}_a\n1\n");
+  my $file_b = write_source("${label}_b.pm", "# ${label}_b\n1\n");
+  write_structure($base, $file_a, $file_b);
+  my $old = age_structure($base, $file_a, $file_b);
+  my $st  = Devel::Cover::DB::Structure->new(base => $base);
+  $st->add_criteria("statement");
+  ($base, $file_a, $file_b, $old, $st)
+}
+
+sub test_write_dirty_only () {
+  my ($base, $file_a, $file_b, $old, $st) = dirty_setup("dirty_only");
+  $st->set_file($file_a);
+  $st->add_statement($file_a, [$file_a, 1]);
+  $st->reuse($file_b);
+  $st->write($base);
+  ok mtime($base, $file_a) > $old, "write dirty only: changed entry written";
+  is mtime($base, $file_b), $old, "write dirty only: unchanged entry skipped";
+}
+
+sub test_write_unchanged_skipped () {
+  my ($base, $file_a, $file_b, $old, $st) = dirty_setup("unch_skip");
+  $st->set_file($file_a);
+  $st->reuse($file_a);
+  $st->store_counts($file_a);
+  $st->write($base);
+  is mtime($base, $file_a), $old, "write unchanged: entry not written";
+}
+
+sub test_write_other_dir_all () {
+  my ($base, $file_a, $file_b, $old, $st) = dirty_setup("other_dir");
+  my $other = fresh_base("other_dir_to");
+  $st->set_file($file_a);
+  $st->reuse($file_b);
+  $st->write($other);
+  ok -e structure_path($other, $file_a),
+    "write other dir: changed entry written";
+  ok -e structure_path($other, $file_b),
+    "write other dir: unchanged entry written";
+}
+
+sub test_write_no_base_all () {
+  my $base = fresh_base("no_base_all");
+  my $file = write_source("no_base_all.pm", "package NoBaseAll;\n1\n");
+  my $st   = Devel::Cover::DB::Structure->new;
+  $st->set_file($file);
+  $st->write($base);
+  ok -e structure_path($base, $file), "write no base: entry written";
+}
+
 sub main () {
   test_new;
   test_digest;
@@ -924,6 +985,10 @@ sub main () {
   test_load_no_base;
   test_load_changed_source;
   test_load_once;
+  test_write_dirty_only;
+  test_write_unchanged_skipped;
+  test_write_other_dir_all;
+  test_write_no_base_all;
 }
 
 main;
