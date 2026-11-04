@@ -1,0 +1,191 @@
+cover: Reading database from ...
+--------------------- ------ ------ ------ ------ ------ ------
+File                    stmt   bran   cond    sub  total   scar
+--------------------- ------ ------ ------ ------ ------ ------
+tests/cond_right_dies   96.3   66.6   26.0  100.0   77.8   11.1
+Total                   96.3   66.6   26.0  100.0   77.8   11.1
+--------------------- ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/cond_right_dies
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+12 74.7  3.0 11.1
+
+Worst Subroutines
+-----------------
+
+Subroutine CC SCAR  Location                
+---------- -- ----  ------------------------
+if_dies     3 19.8  tests/cond_right_dies:46
+other_path  3 12.5  tests/cond_right_dies:54
+chain       3 12.5  tests/cond_right_dies:60
+
+line  err   stmt   bran   cond    sub   code
+1                                       #!/usr/bin/perl
+2                                       # __COVER__ criteria statement branch condition subroutine
+3                                       
+4                                       # Copyright 2026, Paul Johnson (paul@pjcj.net)
+5                                       
+6                                       # This software is free.  It is licensed under the same terms as Perl itself.
+7                                       
+8                                       # The latest version of this software should be available from my homepage:
+9                                       # https://pjcj.net
+10                                      
+11                                      # A right operand that dies records nothing in the condition criterion.
+12                                      
+13             1                    1   use strict;
+               1                        
+               1                        
+14             1                    1   use warnings;
+               1                        
+               1                        
+15                                      
+16             6                    6   sub dies { die "no\n" }
+17                                      
+18             1                        my $Calls = 0;
+19                                      
+20             2    100             2   sub maybe { $Calls++ ? 1 : die "no\n" }
+21                                      
+22                                  2   sub or_dies {
+23             2                          my ($x) = @_;
+24    ***      2          * 33            my $r = $x || dies();
+25             1                          $r
+26                                      }
+27                                      
+28                                  2   sub and_dies {
+29             2                          my ($x) = @_;
+30    ***      2          * 33            my $r = $x && dies();
+31             1                          $r
+32                                      }
+33                                      
+34                                  2   sub dor_dies {
+35             2                          my ($x) = @_;
+36    ***      2          * 33            my $r = $x // dies();
+37             1                          $r
+38                                      }
+39                                      
+40                                  2   sub or_maybe {
+41             2                          my ($x) = @_;
+42    ***      2          * 33            my $r = $x || maybe();
+43             1                          $r
+44                                      }
+45                                      
+46                                  1   sub if_dies {
+47             1                          my ($x) = @_;
+48    ***      1   *  0   *  0            if ($x || dies()) {
+49    ***     *0                            return 1;
+50                                        }
+51                                        0
+52    ***     *0                        }
+53                                      
+54                                  2   sub other_path {
+55             2                          my ($x, $y) = @_;
+56    ***      2    100   *  0            my $r = $x ? ($y || dies()) : $y;
+57             1                          $r
+58                                      }
+59                                      
+60                                  2   sub chain {
+61             2                          my ($x) = @_;
+62    ***      2          * 50            my $r = $x || dies() || 5;
+      ***                 * 33          
+63             1                          $r
+64                                      }
+65                                      
+66                                  1   sub main {
+67             1                          eval { or_dies(0) };
+               1                        
+68             1                          eval { and_dies(1) };
+               1                        
+69             1                          eval { dor_dies(undef) };
+               1                        
+70             1                          eval { or_maybe(0) };
+               1                        
+71             1                          eval { or_maybe(0) };
+               1                        
+72             1                          eval { if_dies(0) };
+               1                        
+73             1                          eval { other_path(1, 0) };
+               1                        
+74             1                          eval { other_path(0, 7) };
+               1                        
+75             1                          eval { chain(0) };
+               1                        
+76             1                          chain(1);
+77                                      
+78                                        # Each control below short circuits.
+79             1                          or_dies(1);
+80             1                          and_dies(0);
+81             1                          dor_dies(0);
+82                                      }
+83                                      
+84             1                        main();
+
+
+Branches
+--------
+
+line  err      %   true  false   branch
+----- --- ------ ------ ------   ------
+20           100      1      1   $Calls++ ? :
+48    ***      0      0      0   if ($x or dies())
+56           100      1      1   $x ? :
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+30    ***     33      1      0      0   $x && dies()
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+62    ***     50      1      0   $x || dies() || 5
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+24    ***     33      1      0      0   $x || dies()
+36    ***     33      1      0      0   $x // dies()
+42    ***     33      0      1      0   $x || maybe()
+48    ***      0      0      0      0   $x or dies()
+56    ***      0      0      0      0   $y or dies()
+62    ***     33      1      0      0   $x or dies()
+
+
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location                
+----------------- ----- --- ----- ------------------------
+BEGIN                 1           tests/cond_right_dies:13
+BEGIN                 1           tests/cond_right_dies:14
+and_dies              2   2   7.6 tests/cond_right_dies:28
+chain                 2   3  12.5 tests/cond_right_dies:60
+dies                  6   1   0.0 tests/cond_right_dies:16
+dor_dies              2   2   7.6 tests/cond_right_dies:34
+if_dies               1   3  19.8 tests/cond_right_dies:46
+main                  1   1   0.0 tests/cond_right_dies:66
+maybe                 2   2   6.9 tests/cond_right_dies:20
+or_dies               2   2   7.6 tests/cond_right_dies:22
+or_maybe              2   2   7.6 tests/cond_right_dies:40
+other_path            2   3  12.5 tests/cond_right_dies:54
+{file-level code}         1   0.0 tests/cond_right_dies:13
+
+

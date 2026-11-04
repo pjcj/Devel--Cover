@@ -152,6 +152,20 @@ typedef struct {
   int      capacity;
 } dc_stack_t;
 
+/* An entry holds a logop pending in conds and the position it ran at */
+typedef struct {
+  AV   *conds;
+  OP   *op;
+  int   si_depth;
+  I32   cx_ix;
+} dc_pending;
+
+typedef struct {
+  dc_pending *items;
+  int         count;
+  int         capacity;
+} dc_pending_stack_t;
+
 #define DC_VECTOR_FALSE 0
 #define DC_VECTOR_TRUE  1
 #define DC_VECTOR_X     2
@@ -220,6 +234,7 @@ typedef struct {
   dc_stack_t    dc_stack;              /* active decisions awaiting
                                         * resolution; top entry is the
                                         * decision currently being filled */
+  dc_pending_stack_t pending_stack;    /* live Pending_conditionals entries */
   SV           *chained_cond;          /* pending conditions whose truth
                                         * the consuming op's path gives */
   OP           *chained_target;        /* the consuming op */
@@ -975,7 +990,7 @@ static AV *get_conditional_array(pTHX_ OP *op) {
 
 static void set_conditional(pTHX_ OP *op, int cond, int value) {
   /*
-   * The conditional array is composed of six elements:
+   * The conditional array is composed of seven elements:
    *
    * 0 - unused
    * 1 - not short circuited - second operand is false
@@ -983,6 +998,7 @@ static void set_conditional(pTHX_ OP *op, int cond, int value) {
    * 3 - short circuited
    * 4 - unused for and, or and dor
    * 5 - 1 iff we are in void context
+   * 6 - not short circuited - second operand ran but returned no value
    *
    * xor cannot short circuit, so cover_xor records its slots directly
    * as the four operand combinations: 1 = !l&&!r, 2 = l&&!r, 3 = l&&r,
@@ -1048,25 +1064,123 @@ static void     dc_stack_remove(pTHX_ dc_dctx *d);
 static void     dc_stack_discard_stale(pTHX);
 static void     dc_snapshot(pTHX_ dc_dctx *d);
 static OP      *skip_nulled_ops(OP *o);
+static int      dc_si_depth(pTHX);
+static int      dc_position_cmp(pTHX_ int si_depth, I32 cx_ix);
+static int      dc_frame_cmp(pTHX_ dc_dctx *d);
 
-/* at is the hooked op resolving the entry, or NULL for the final sweep */
+#ifdef USE_ITHREADS
+#define PENDING_FIRST 0
+#else
+#define PENDING_FIRST 2
+#endif
+
+/* Remove the stack entry at idx, leaving its conds alone */
+static void pending_cut(pTHX_ int idx) {
+  dMY_CXT;
+  Move(&MY_CXT.pending_stack.items[idx + 1],
+       &MY_CXT.pending_stack.items[idx],
+       MY_CXT.pending_stack.count - idx - 1, dc_pending);
+  MY_CXT.pending_stack.count--;
+}
+
+/* Remove the stack entry at idx and its logop from its conds, counting it */
+static void pending_remove(pTHX_ int idx) {
+  dMY_CXT;
+  AV  *conds = MY_CXT.pending_stack.items[idx].conds;
+  OP  *op    = MY_CXT.pending_stack.items[idx].op;
+  SV **ary   = AvARRAY(conds);
+  SV  *gone;
+  I32  i;
+
+  pending_cut(aTHX_ idx);
+  for (i = AvFILLp(conds); i >= PENDING_FIRST; i--)
+    if (INT2PTR(OP *, SvIV(ary[i])) == op) break;
+  if (i < PENDING_FIRST) return;
+
+  add_conditional(aTHX_ op, 6);
+  gone = ary[i];
+  Move(&ary[i + 1], &ary[i], AvFILLp(conds) - i, SV *);
+  ary[AvFILLp(conds)] = NULL;
+  AvFILLp(conds)--;
+  SvREFCNT_dec(gone);
+}
+
+/* Drop the entries of evaluations that a non-local exit left unfinished */
+static void pending_discard_stale(pTHX) {
+  dMY_CXT;
+  int i;
+  for (i = MY_CXT.pending_stack.count - 1; i >= 0; i--) {
+    dc_pending *p = &MY_CXT.pending_stack.items[i];
+    if (dc_position_cmp(aTHX_ p->si_depth, p->cx_ix) > 0)
+      pending_remove(aTHX_ i);
+  }
+}
+
+/* Count every entry still pending at the end of the run */
+static void pending_finalise(pTHX) {
+  dMY_CXT;
+  while (MY_CXT.pending_stack.count)
+    pending_remove(aTHX_ MY_CXT.pending_stack.count - 1);
+}
+
+/* Record op, just pushed onto conds, as waiting at the current position */
+static void pending_push(pTHX_ AV *conds, OP *op) {
+  dMY_CXT;
+  dc_pending *p;
+  int         i;
+
+  pending_discard_stale(aTHX);
+  for (i = MY_CXT.pending_stack.count - 1; i >= 0; i--) {
+    p = &MY_CXT.pending_stack.items[i];
+    if (p->op == op && !dc_position_cmp(aTHX_ p->si_depth, p->cx_ix)) {
+      pending_remove(aTHX_ i);
+      break;
+    }
+  }
+
+  if (MY_CXT.pending_stack.count >= MY_CXT.pending_stack.capacity) {
+    int cap = MY_CXT.pending_stack.capacity
+      ? MY_CXT.pending_stack.capacity * 2 : 8;
+    Renew(MY_CXT.pending_stack.items, cap, dc_pending);
+    MY_CXT.pending_stack.capacity = cap;
+  }
+
+  p = &MY_CXT.pending_stack.items[MY_CXT.pending_stack.count++];
+  p->conds    = conds;
+  p->op       = op;
+  p->si_depth = dc_si_depth(aTHX);
+  p->cx_ix    = cxstack_ix;
+}
+
+/* Remove the stack entry for op in conds, which add_condition counts */
+static void pending_resolved(pTHX_ AV *conds, OP *op) {
+  dMY_CXT;
+  int i;
+  for (i = MY_CXT.pending_stack.count - 1; i >= 0; i--) {
+    dc_pending *p = &MY_CXT.pending_stack.items[i];
+    if (p->op == op && p->conds == conds) {
+      pending_cut(aTHX_ i);
+      return;
+    }
+  }
+}
+
 /* A dor asks whether its right operand is defined, the rest whether true */
 static int right_operand_slot(OP *op, int truth, int defined) {
   int dor = op->op_type == OP_DOR || op->op_type == OP_DORASSIGN;
   return (dor ? defined : truth) ? 2 : 1;
 }
 
-/* Resolve the conditions pending on at, or with NULL count each as false */
+/* Resolve the conditions pending on at */
 static void add_condition(pTHX_ SV *cond_ref, int truth, int defined,
                           OP *at) {
   dMY_CXT;
-  int   final       = !at;
   AV   *conds       = (AV *)                 SvRV(cond_ref);
   OP   *next        = INT2PTR(OP *,          SvIV(*av_fetch(conds, 0, 0)));
   OP *(*addr)(pTHX) = INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1, 0)));
   I32   i;
 
-  if (!final && next != at)
+  if (next != at)
     croak("next (%p) does not match at (%p)", next, at);
 
 #ifdef USE_ITHREADS
@@ -1075,20 +1189,22 @@ static void add_condition(pTHX_ SV *cond_ref, int truth, int defined,
 #else
   i = 2;
 #endif
+  pending_discard_stale(aTHX);
   NDEB(D(L, "Looking through %zd conditionals at %p\n",
          av_len(conds) - 1, PL_op));
   for (; i <= av_len(conds); i++) {
     OP *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
-    int value = final ? 1 : right_operand_slot(op, truth, defined);
+    int value = right_operand_slot(op, truth, defined);
 
     NDEB(D(L, "Found %p: %d\n", op, value));
     add_conditional(aTHX_ op, value);
+    pending_resolved(aTHX_ conds, op);
 
     /*
      * MC/DC: write this logop's right-operand leaf column.  The observed
      * value is the right operand: 1 = false, 2 = true.
      */
-    if (!final && collecting(Mcdc)) {
+    if (collecting(Mcdc)) {
       HV *m;
       dc_stack_discard_stale(aTHX);
       m = dc_lookup_or_build_decision_meta(aTHX_ op, find_runcv(NULL));
@@ -1107,7 +1223,7 @@ static void add_condition(pTHX_ SV *cond_ref, int truth, int defined,
   }
 
   /* Snapshot roots after every leaf is written, so order does not matter. */
-  if (!final && collecting(Mcdc)) {
+  if (collecting(Mcdc)) {
 #ifdef USE_ITHREADS
     i = 0;
 #else
@@ -1136,9 +1252,9 @@ static void add_condition(pTHX_ SV *cond_ref, int truth, int defined,
   while (av_len(conds) > i) SvREFCNT_dec(av_pop(conds));
 
   NDEB(svdump(conds));
-  NDEB(D(L, "addr is %p, next is %p, PL_op is %p, length is %zd final is %d\n",
-         addr, next, PL_op, av_len(conds), final));
-  if (!final) next->op_ppaddr = addr;
+  NDEB(D(L, "addr is %p, next is %p, PL_op is %p, length is %zd\n",
+         addr, next, PL_op, av_len(conds)));
+  next->op_ppaddr = addr;
 }
 
 static void dump_conditions(pTHX) {
@@ -1284,31 +1400,6 @@ static OP *get_condition(pTHX) {
     exit(1);
   }
   return PL_op;
-}
-
-static void finalise_conditions(pTHX) {
-  /*
-   * Our algorithm for conditions relies on ending up at a particular op which
-   * we use to call get_condition().  It's possible that we never get to that
-   * op; for example we might return out of a sub. This causes us to lose
-   * coverage information.
-   *
-   * This function is called after the program has been run in order to collect
-   * that lost information.
-   */
-
-  HE *e;
-
-  NDEB(D(L, "finalise_conditions\n"));
-  /* dump_conditions(aTHX); */
-  NDEB(svdump(Pending_conditionals));
-
-  MUTEX_LOCK(&DC_mutex);
-  hv_iterinit(Pending_conditionals);
-
-  while ((e = hv_iternext(Pending_conditionals)))
-    add_condition(aTHX_ hv_iterval(Pending_conditionals, e), 0, 0, NULL);
-  MUTEX_UNLOCK(&DC_mutex);
 }
 
 /*
@@ -2113,18 +2204,17 @@ static int dc_si_depth(pTHX) {
   return depth;
 }
 
-/*
- * Compare the position a frame was pushed at with the current position:
- * negative when the frame is shallower, zero at the same position and
- * positive when it is deeper.  The stack info depth orders first, so a
- * frame pushed by the caller of a C-run callback stays shallower than
- * anything the callback pushes, whatever their cxstack_ix values.
- */
-static int dc_frame_cmp(pTHX_ dc_dctx *d) {
+/* Return -1, 0 or 1 as a position is shallower, the same or deeper */
+static int dc_position_cmp(pTHX_ int si_depth, I32 cx_ix) {
   int depth = dc_si_depth(aTHX);
-  if (d->si_depth != depth) return d->si_depth < depth ? -1 : 1;
-  if (d->cx_ix != cxstack_ix) return d->cx_ix < cxstack_ix ? -1 : 1;
+  if (si_depth != depth) return si_depth < depth ? -1 : 1;
+  if (cx_ix != cxstack_ix) return cx_ix < cxstack_ix ? -1 : 1;
   return 0;
+}
+
+/* Compare the position a frame was pushed at with the current position */
+static int dc_frame_cmp(pTHX_ dc_dctx *d) {
+  return dc_position_cmp(aTHX_ d->si_depth, d->cx_ix);
 }
 
 static dc_dctx *dc_stack_top(pTHX) {
@@ -2542,6 +2632,8 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
           right->op_type == OP_GOTO   ||
           right->op_type == OP_RETURN ||
           right->op_type == OP_DIE    ||
+          right->op_type == OP_EXIT   ||
+          right->op_type == OP_EXEC   ||
           dc_is_noreturn_call(aTHX_ find_runcv(NULL), right)) {
         /*
          * If we are in void context, or the right side of the op is a branch,
@@ -2601,6 +2693,7 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
 
         cond = newSViv(PTR2IV(PL_op));
         av_push(conds, cond);
+        pending_push(aTHX_ conds, PL_op);
 
         NDEB(D(L, "Adding conditional %p (%s) "
                "making %zd at %p (%s), ppaddr: %p\n",
@@ -3212,6 +3305,7 @@ static void initialise(pTHX) {
     Zero(&MY_CXT.av_cache, 1, dc_av_cache);
     Zero(&MY_CXT.return_cache, 1, dc_av_cache);
     Zero(&MY_CXT.dc_stack,  1, dc_stack_t);
+    Zero(&MY_CXT.pending_stack, 1, dc_pending_stack_t);
     MY_CXT.deferred_conditionals      = newAV();
     MY_CXT.chained_cond               = NULL;
     MY_CXT.chained_target             = NULL;
@@ -3250,6 +3344,12 @@ static int runops_cover(pTHX) {
 #elif defined HAS_TIMES
   cpu();
 #endif
+
+  if (MY_CXT.pending_stack.count) {
+    MUTEX_LOCK(&DC_mutex);
+    pending_discard_stale(aTHX);
+    MUTEX_UNLOCK(&DC_mutex);
+  }
 
   for (;;) {
     NDEB(D(L, "running func %p from %p (%s)\n",
@@ -3401,6 +3501,12 @@ static int runops_orig(pTHX) {
   I32 deferred_base = av_len(MY_CXT.deferred_conditionals) + 1;
 
   NDEB(D(L, "entering runops_orig\n"));
+
+  if (MY_CXT.pending_stack.count) {
+    MUTEX_LOCK(&DC_mutex);
+    pending_discard_stale(aTHX);
+    MUTEX_UNLOCK(&DC_mutex);
+  }
 
   while ((PL_op = PL_op->op_ppaddr(aTHX))) {
     PERL_ASYNC_CHECK();
@@ -3775,7 +3881,9 @@ coverage(final)
     if (MY_CXT.statements)
       dc_stmt_cache_flush(aTHX_ &MY_CXT.stmt_cache, MY_CXT.statements);
     if (final) {
-      finalise_conditions(aTHX);
+      MUTEX_LOCK(&DC_mutex);
+      pending_finalise(aTHX);
+      MUTEX_UNLOCK(&DC_mutex);
       finalise_decisions(aTHX);
     }
     if (MY_CXT.cover)

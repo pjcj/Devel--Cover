@@ -993,9 +993,9 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
     || $type eq "or"
     || ($type eq "elsif" && !exists $Coverage->{branch}{$key})
   ) {
-    $c = [$c->[1] + $c->[2], $c->[3]];
+    $c = [$c->[1] + $c->[2] + $c->[6], $c->[3]];
   } elsif ($type eq "or_expr") {
-    $c = [$c->[3], $c->[1] + $c->[2]];
+    $c = [$c->[3], $c->[1] + $c->[2] + $c->[6]];
   } else {
     $c = $Coverage->{branch}{$key} || [0, 0];
   }
@@ -1141,8 +1141,10 @@ sub _condition_counts ($c, $type, $op, $cv = undef) {
   if ($type eq "or" || $type eq "and") {
     my $const
       = _is_const_right($op->first->sibling, $op->name =~ /^dor/ ? 1 : 0, $cv);
-    return ([$c->[3], $c->[1] + $c->[2]], 2, $c->[5] && !$const ? 1 : 0)
-      if $c->[5] || $const;
+    return (
+      [$c->[3], $c->[1] + $c->[2] + $c->[6]],
+      2, $c->[5] && !$const ? 1 : 0,
+    ) if $c->[5] || $const;
     return ([$c->@[$type eq "or" ? (3, 2, 1) : (3, 1, 2)]], 3, 0);
   }
   if ($type eq "xor") {
@@ -2242,6 +2244,8 @@ XS column walker keeps the same order in C<dc_right_is_fixed>.
 Reorder the raw XS condition counts into truth-table row order and return
 the counts, the row count and a flag marking a genuine right operand
 collapsed by void context, which MC/DC uses to rebuild the full decision.
+Slot 6 counts a right operand that ran but returned no value, so it counts
+towards C<!l> of a two-outcome table only.
 
 =head2 _skip_to_condop ($op)
 
