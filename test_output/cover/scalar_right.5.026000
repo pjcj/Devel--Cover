@@ -1,0 +1,229 @@
+cover: Reading database from ...
+------------------ ------ ------ ------ ------ ------ ------ ------
+File                 stmt   bran   cond   mcdc    sub  total   scar
+------------------ ------ ------ ------ ------ ------ ------ ------
+tests/scalar_right  100.0    n/a   96.7   88.2  100.0   97.6   10.0
+Total               100.0    n/a   96.7   88.2  100.0   97.6   10.0
+------------------ ------ ------ ------ ------ ------ ------ ------
+
+
+Run: ...
+Perl version: ...
+OS: ...
+Start: ...
+Finish: ...
+
+tests/scalar_right
+
+File Summary
+------------
+
+CC  Cov CRAP SCAR
+-- ---- ---- ----
+18 98.9  2.7 10.0
+
+Worst Subroutines
+-----------------
+
+Subroutine        CC SCAR  Location             
+----------------- -- ----  ---------------------
+{file-level code}  5 16.1  tests/scalar_right:10
+nested_or          3 11.0  tests/scalar_right:73
+nested_dor_fixed   3 11.0  tests/scalar_right:79
+
+line  err   stmt   bran   cond   mcdc    sub   code
+1                                              #!/usr/bin/perl
+2                                              
+3                                              # Copyright 2026, Paul Johnson (paul@pjcj.net)
+4                                              
+5                                              # This software is free.  It is licensed under the same terms as Perl itself.
+6                                              
+7                                              # The latest version of this software should be available from my homepage:
+8                                              # https://pjcj.net
+9                                              
+10             1                           1   use strict;
+               1                               
+               1                               
+11             1                           1   use warnings;
+               1                               
+               1                               
+12                                             
+13             1                           1   use Carp;
+               1                               
+               1                               
+14                                             
+15                                         2   sub array_or {
+16             2                                 my ($c, @items) = @_;
+17    ***      2          * 66   *  0            my $n = $c || scalar @items;
+18             2                                 $n
+19                                             }
+20                                             
+21                                         4   sub array_and {
+22             4                                 my ($c, @items) = @_;
+23             4           100    100            my $n = $c && scalar @items;
+24             4                                 $n
+25                                             }
+26                                             
+27                                         4   sub grep_or {
+28             4                                 my ($c, @items) = @_;
+29             4           100    100            my $n = $c || scalar grep { $_ } @items;
+               2                               
+30             4                                 $n
+31                                             }
+32                                             
+33                                         2   sub heredoc_or {
+34             2                                 my ($c) = @_;
+35             2           100    100            my $n = $c || <<EOT;
+36                                             default
+37                                             EOT
+38             2                                 $n
+39                                             }
+40                                             
+41                                         2   sub heredoc_var_or {
+42             2                                 my ($c, $y) = @_;
+43             2           100    100            my $n = $c || <<"EOT";
+44                                             hello $y
+45                                             EOT
+46             2                                 $n
+47                                             }
+48                                             
+49                                         2   sub croak_or {
+50             2                                 my ($c) = @_;
+51             2           100    100            my $n = $c || scalar croak("no");
+52             1                                 $n
+53                                             }
+54                                             
+55                                         4   sub array_dor {
+56             4                                 my ($c, @items) = @_;
+57             4           100    100            my $n = $c // scalar @items;
+58             4                                 $n
+59                                             }
+60                                             
+61                                         4   sub bare_array_dor {
+62             4                                 my ($c, @items) = @_;
+63             4           100    100            my $n = $c // @items;
+64             4                                 $n
+65                                             }
+66                                             
+67                                         4   sub hash_dor {
+68             4                                 my ($c, %h) = @_;
+69             4           100    100            my $n = $c // %h;
+70             4                                 $n
+71                                             }
+72                                             
+73                                         4   sub nested_or {
+74             4                                 my ($c, $y, $w) = @_;
+75             4           100    100            my $n = $c || scalar($y || $w);
+                           100                 
+76             4                                 $n
+77                                             }
+78                                             
+79                                         3   sub nested_dor_fixed {
+80             3                                 my ($c, $y) = @_;
+81             3           100    100            my $n = $c // scalar($y || "b");
+                           100    100          
+82             3                                 $n
+83                                             }
+84                                             
+85             1                               array_or(0, 1, 2);
+86             1                               array_or(5);
+87                                             
+88             1                               for my $c (0, 1) {
+89             2                                 array_and($c);
+90             2                                 array_and($c, 1, 2);
+91             2                                 grep_or($c);
+92             2                                 grep_or($c, 0, 1);
+93             2                                 heredoc_or($c);
+94             2                                 heredoc_var_or($c, "a");
+95                                             }
+96                                             
+97             1                               croak_or(1);
+98             1                               eval { croak_or(0) };
+               1                               
+99                                             
+100            1                               for my $c (undef, 1) {
+101            2                                 array_dor($c);
+102            2                                 array_dor($c, 1, 2);
+103            2                                 bare_array_dor($c);
+104            2                                 bare_array_dor($c, 1, 2);
+105            2                                 hash_dor($c);
+106            2                                 hash_dor($c, a => 1);
+107                                            }
+108                                            
+109            1                               nested_or(@$_) for [0, 1, 0], [0, 0, 1], [0, 0, 0], [1, 0, 0];
+110            1                               nested_dor_fixed(@$_) for [undef, 1], [undef, 0], [1, 0];
+
+
+Conditions
+----------
+
+and 3 conditions
+
+line  err      %     !l  l&&!r   l&&r   expr
+----- --- ------ ------ ------ ------   ----
+23           100      2      1      1   $c && scalar @items
+
+or 2 conditions
+
+line  err      %      l     !l   expr
+----- --- ------ ------ ------   ----
+35           100      1      1   $c || "default\n"
+43           100      1      1   $c || "hello $y\n"
+51           100      1      1   $c || scalar croak('no')
+57           100      2      2   $c // scalar @items
+63           100      2      2   $c // @items
+69           100      2      2   $c // %h
+81           100      1      2   $c // scalar($y || "b")
+             100      1      1   $y || 'b'
+
+or 3 conditions
+
+line  err      %      l  !l&&r !l&&!r   expr
+----- --- ------ ------ ------ ------   ----
+17    ***     66      1      1      0   $c || scalar @items
+29           100      2      1      1   $c || scalar grep({$_;} @items)
+75           100      1      2      1   $c || scalar($y || $w)
+             100      1      1      1   $y || $w
+
+
+MC/DC
+-----
+
+line  err      %  cov  tot   missing                expr
+----- --- ------ ---- ----   --------------------   ----
+17    ***      0    0    2   $c, scalar @items      $c || scalar @items
+23           100    2    2                          $c && scalar @items
+29           100    2    2                          $c || scalar grep({$_;} @items)
+35           100    1    1                          $c || "default\n"
+43           100    1    1                          $c || "hello $y\n"
+51           100    1    1                          $c || scalar croak('no')
+57           100    1    1                          $c // scalar @items
+63           100    1    1                          $c // @items
+69           100    1    1                          $c // %h
+75           100    3    3                          $c || scalar($y || $w)
+81           100    1    1                          $c // scalar($y || "b")
+             100    1    1                          $y || 'b'
+
+
+Covered Subroutines
+-------------------
+
+Subroutine        Count  CC  SCAR Location             
+----------------- ----- --- ----- ---------------------
+BEGIN                 1           tests/scalar_right:10
+BEGIN                 1           tests/scalar_right:11
+BEGIN                 1           tests/scalar_right:13
+array_and             4   2   6.9 tests/scalar_right:21
+array_dor             4   2   6.9 tests/scalar_right:55
+array_or              2   2   7.0 tests/scalar_right:15
+bare_array_dor        4   2   6.9 tests/scalar_right:61
+croak_or              2   2   6.9 tests/scalar_right:49
+grep_or               4   2   6.9 tests/scalar_right:27
+hash_dor              4   2   6.9 tests/scalar_right:67
+heredoc_or            2   2   6.9 tests/scalar_right:33
+heredoc_var_or        2   2   6.9 tests/scalar_right:41
+nested_dor_fixed      3   3  11.0 tests/scalar_right:79
+nested_or             4   3  11.0 tests/scalar_right:73
+{file-level code}         5  16.1 tests/scalar_right:10
+
+
