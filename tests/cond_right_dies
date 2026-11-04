@@ -1,0 +1,84 @@
+#!/usr/bin/perl
+# __COVER__ criteria statement branch condition subroutine
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+# A right operand that dies records nothing in the condition criterion.
+
+use strict;
+use warnings;
+
+sub dies { die "no\n" }
+
+my $Calls = 0;
+
+sub maybe { $Calls++ ? 1 : die "no\n" }
+
+sub or_dies {
+  my ($x) = @_;
+  my $r = $x || dies();
+  $r
+}
+
+sub and_dies {
+  my ($x) = @_;
+  my $r = $x && dies();
+  $r
+}
+
+sub dor_dies {
+  my ($x) = @_;
+  my $r = $x // dies();
+  $r
+}
+
+sub or_maybe {
+  my ($x) = @_;
+  my $r = $x || maybe();
+  $r
+}
+
+sub if_dies {
+  my ($x) = @_;
+  if ($x || dies()) {
+    return 1;
+  }
+  0
+}
+
+sub other_path {
+  my ($x, $y) = @_;
+  my $r = $x ? ($y || dies()) : $y;
+  $r
+}
+
+sub chain {
+  my ($x) = @_;
+  my $r = $x || dies() || 5;
+  $r
+}
+
+sub main {
+  eval { or_dies(0) };
+  eval { and_dies(1) };
+  eval { dor_dies(undef) };
+  eval { or_maybe(0) };
+  eval { or_maybe(0) };
+  eval { if_dies(0) };
+  eval { other_path(1, 0) };
+  eval { other_path(0, 7) };
+  eval { chain(0) };
+  chain(1);
+
+  # Each control below short circuits.
+  or_dies(1);
+  and_dies(0);
+  dor_dies(0);
+}
+
+main();
