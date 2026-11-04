@@ -1,6 +1,12 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Judge a `scalar(...)` right operand of `||` or `&&` by its operand, so a line
+  such as `$c || scalar(@items)` no longer shows full condition and MC/DC
+  coverage while `@items` was never empty when `$c` was false (GH-916)
+- Count an array, a hash or `grep` in scalar context as always defined when it
+  is the right operand of `//`, so a line such as `$c // @items` no longer asks
+  for an undefined right operand that no run can produce (GH-916)
 - Treat a logical op nested in the fixed right operand of `//` or `//=` as an
   MC/DC decision of its own, so a line such as `$x // ($y || "b")` no longer
   shows full MC/DC while `$y` was never false (GH-914)

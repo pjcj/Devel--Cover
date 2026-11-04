@@ -1029,7 +1029,8 @@ my $Defined_right = qr/^(?:i_)?(?:
 )$/x;
 
 # Ops that return a defined count only in scalar context
-my $Defined_scalar_right = qr/^(?:keys|values|akeys)$/;
+my $Defined_scalar_right
+  = qr/^(?:keys|values|akeys|padav|rv2av|padhv|rv2hv|grepwhile)$/;
 
 # The last child of an entersub, a gv, rv2cv or method op
 sub _call_target ($op) {
@@ -1112,7 +1113,12 @@ sub _is_dor_fixed_tree ($op, $cv) {
 
 # The multiconcat string is aux_list element [1] and does not depend on the CV
 sub _is_const_right ($op, $dor = 0, $cv = undef) {
-  my $rhs  = $op->name eq "sassign" ? $op->first : $op;
+  my $rhs = $op->name eq "sassign" ? $op->first : $op;
+  while ($rhs->name eq "scalar") {
+    my $kid = $rhs->first;
+    last if $kid->name eq "null" && B::ppname($kid->targ) eq "pp_pushmark";
+    $rhs = $kid;
+  }
   my $name = $rhs->name;
   return 1                            if $name =~ $Const_right;
   return _is_noreturn_call($rhs, $cv) if $name eq "entersub";
@@ -2205,22 +2211,29 @@ truthy rather than merely non-empty because C<"0"> is the one non-empty
 string that is false.  Such an op collapses to a two-row condition
 counting only the left operand.
 
+A C<scalar> op only sets context, so the tests below judge its operand
+instead.  So C<scalar(@items)> is fixed for C<//> but not for C<||> or
+C<&&>.  The exception is the C<scalar> of a heredoc, whose first child is
+an C<ex-pushmark>.  It is fixed, because the text of a heredoc ends in a
+newline or is empty.
+
 A call to a sub that never returns, such as C<croak>, counts too, since
 the right operand then never yields a value.  See L</_is_noreturn_call>.
 
 For C<//> and C<//=>, where C<$dor> is true, the property that matters is
 definedness, so any op whose scalar result is always defined counts as
 well: arithmetic, the numeric and string functions, comparisons, C<time>,
-C<ref>, C<push> and their kind, and C<keys> or C<values> in scalar
-context.  A nulled wrapper such as C<ex-stringify> or C<ex-exists> is
-judged by its former type.  Ops that can return undef, such as C<length>,
-C<substr>, C<gmtime> and C<< <=> >>, stay out.  The XS column walker in
+C<ref>, C<push> and their kind, and C<keys>, C<values>, arrays, hashes
+and C<grep> in scalar context, where each returns a count.  A nulled
+wrapper such as C<ex-stringify> or C<ex-exists> is judged by its former
+type.  Ops that can return undef, such as C<length>, C<substr>,
+C<gmtime> and C<< <=> >>, stay out.  The XS column walker in
 C<dc_is_defined_leaf> keeps the same list.  A C<?:> or a nested logical
 op counts when L</_is_dor_fixed_tree> says its result is fixed.
 
 Every test here runs before the search for a logop in the operand, so a
 logop reached through any fixed right operand, such as the chain in
-C<< $x // !($y || $w) >> or C<< $x || scalar($y || $w) >>, is a decision
+C<< $x // !($y || $w) >> or C<< $x // ($y || $w) + 1 >>, is a decision
 root of its own rather than a set of columns in the outer decision.  The
 XS column walker keeps the same order in C<dc_right_is_fixed>.
 

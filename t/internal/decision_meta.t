@@ -188,9 +188,6 @@ subtest "fixed right operand: wrapped logop is its own root" => sub {
       "not", "dor",
       sub ($x, $y, $w, $v) { my $r = $x // !($y || $w || $v); $r },
     ], [
-      "scalar", "or",
-      sub ($x, $y, $w, $v) { my $r = $x || scalar($y || $w || $v); $r },
-    ], [
       "add", "dor",
       sub ($x, $y, $w, $v) { my $r = $x // ($y || $w || $v) + 1; $r },
     ],
@@ -207,9 +204,8 @@ subtest "fixed right operand: wrapped logop is its own root" => sub {
     # The chain's or ops are the last two in depth-first order, outer first
     my $ors   = find_all_ops($cv->ROOT, "or");
     my $chain = $ors->[-2] or die "no chain or op";
-    my $outer
-      = $outer_name eq "or" ? $ors->[-3] : find_user_op($cv->ROOT, $outer_name);
-    $outer or die "no $outer_name op";
+    my $outer = find_user_op($cv->ROOT, $outer_name)
+      or die "no $outer_name op";
 
     my $outer_meta = Devel::Cover::decision_meta($$outer, $cv);
     my $chain_meta = Devel::Cover::decision_meta($$chain, $cv);
@@ -221,6 +217,44 @@ subtest "fixed right operand: wrapped logop is its own root" => sub {
       "$wrapper: chain root_addr is itself";
     is $chain_meta->{width}, 3, "$wrapper: chain width is 3";
   }
+};
+
+subtest "scalar right operand: judged by its operand" => sub {
+  my $chain_sub
+    = sub ($x, $y, $w, $v) { my $r = $x || scalar($y || $w || $v); $r };
+  my $cv  = B::svref_2object($chain_sub);
+  my $ors = find_all_ops($cv->ROOT, "or");
+  my ($outer, $chain) = @$ors[-3, -2];
+  my $outer_meta = Devel::Cover::decision_meta($$outer, $cv);
+  my $chain_meta = Devel::Cover::decision_meta($$chain, $cv);
+  is $outer_meta->{width},           4, "chain: outer width is 4";
+  is $outer_meta->{leaf_col_right}, -1, "chain: outer right is a chain";
+  is $chain_meta->{is_root},         0, "chain: chain || is not a root";
+  is $chain_meta->{root_addr}, $$outer, "chain: chain root is the outer ||";
+
+  my $or_sub  = sub ($x, @items) { my $r = $x || scalar @items; $r };
+  my $or_meta = meta_for_sub($or_sub, "or");
+  is $or_meta->{width},          2, "array ||: width is 2";
+  is $or_meta->{leaf_col_right}, 1, "array ||: right has a column";
+
+  my $dor_sub  = sub ($x, @items) { my $r = $x // scalar @items; $r };
+  my $dor_meta = meta_for_sub($dor_sub, "dor");
+  is $dor_meta->{width},           1, "array //: width is 1";
+  is $dor_meta->{leaf_col_right}, -1, "array //: right is fixed";
+
+  my $heredoc = sub ($x) { my $r = $x || <<EOT; $r };
+fixed
+EOT
+  my $heredoc_meta = meta_for_sub($heredoc, "or");
+  is $heredoc_meta->{width},           1, "heredoc: width is 1";
+  is $heredoc_meta->{leaf_col_right}, -1, "heredoc: right is fixed";
+
+  my $heredoc_var = sub ($x, $y) { my $r = $x || <<"EOT"; $r };
+hi $y
+EOT
+  my $var_meta = meta_for_sub($heredoc_var, "or");
+  is $var_meta->{width},           1, "interpolated heredoc: width is 1";
+  is $var_meta->{leaf_col_right}, -1, "interpolated heredoc: right is fixed";
 };
 
 done_testing;

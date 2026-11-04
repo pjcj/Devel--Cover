@@ -346,8 +346,14 @@ For `//` and `//=` the property is definedness rather than truth, so
 `$Defined_right` lists them: arithmetic and negation, the increment forms, the
 numeric functions, string ops including `concat`, `multiconcat` and `stringify`,
 the comparison and bitwise ops, `time`, `times`, `ref`, `push`, `unshift` and
-`$#array` (`av2arylen`). `keys`, `values` and `akeys` count only when the op's
-want flag is scalar, since in list context they return a list. A nulled wrapper
+`$#array` (`av2arylen`). `keys`, `values`, `akeys`, arrays (`padav`, `rv2av`),
+hashes (`padhv`, `rv2hv`) and `grep` (`grepwhile`) count only when the op's want
+flag is scalar, since in list context they return a list. A `scalar` op only
+sets context, so `_is_const_right` judges its operand instead, for every
+operator. So `$x // scalar(@items)` collapses and `$x || scalar(@items)` keeps
+three outcomes. The exception is the `scalar` of a heredoc, whose first child is
+an `ex-pushmark`. The walk stops there and `$Const_right` matches the `scalar`,
+because the text of a heredoc ends in a newline or is empty. A nulled wrapper
 such as `ex-stringify`, `ex-exists` or `ex-keys` is judged by its former type
 from `op_targ`. Ops that can return undef, such as `length`, `substr`, `gmtime`,
 `localtime` and `<=>`, stay out. Overloading can make any listed op return
@@ -369,7 +375,7 @@ nested logop judged fixed gets no column in its parent and is instead a decision
 root with its own columns and vectors, which matches what `Condition_table` does
 with the right child of a collapsed `or_2`. The same holds for a logop reached
 through any other fixed right operand, such as the chain in `$x // !($y || $w)`,
-`$x || scalar($y || $w)` or `$x && ($y || $w) . "foo"`, since every fixed test
+`$x // ($y || $w) + 1` or `$x && ($y || $w) . "foo"`, since every fixed test
 comes before the search for a logop on both sides. The inner logop keeps its own
 condition row. At runtime these operands stay on the pending path, since a `?:`
 can still return a value, so a `?:` which dies on every undefined call gives the

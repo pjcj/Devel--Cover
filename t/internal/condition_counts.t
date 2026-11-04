@@ -54,16 +54,39 @@ my $and_op = find_op(svref_2object(sub { $_[0] && $_[1] })->ROOT, "and")
 
 my %Dor;
 for my $case (
-  [ var     => sub { $_[0] // $_[1] } ],
-  [ arylen  => sub { $_[0] // $#{ $_[1] } } ],
-  [ ternary => sub { $_[0] // ($_[1] ? "a" : "b") } ],
-  [ or      => sub { $_[0] // ($_[1] || "b") } ],
-  [ and     => sub { $_[0] // ($_[1] + 1 && $_[2] + 1) } ],
-  [ and_var => sub { $_[0] // ($_[1] && "b") } ],
+  [ var             => sub { $_[0] // $_[1] } ],
+  [ arylen          => sub { $_[0] // $#{ $_[1] } } ],
+  [ ternary         => sub { $_[0] // ($_[1] ? "a" : "b") } ],
+  [ or              => sub { $_[0] // ($_[1] || "b") } ],
+  [ and             => sub { $_[0] // ($_[1] + 1 && $_[2] + 1) } ],
+  [ and_var         => sub { $_[0] // ($_[1] && "b") } ],
+  [ scalar_array    => sub { $_[0] // scalar(@{ $_[1] }) } ],
+  [ array           => sub { my $r = $_[0] // @{ $_[1] }; $r } ],
+  [ hash            => sub { my $r = $_[0] // %{ $_[1] }; $r } ],
+  [ scalar_grep     => sub { $_[0] // scalar(grep { $_ } @{ $_[1] }) } ],
+  [ scalar_readline => sub { $_[0] // scalar(<STDIN>) } ],
+  [ scalar_or       => sub { $_[0] // scalar($_[1] || "b") } ],
 ) {
   my ($name, $sub) = @$case;
   $Dor{$name} = find_op(svref_2object($sub)->ROOT, "dor")
     or die "no dor op found for $name";
+}
+
+my %Or;
+for my $case (
+  [ scalar_array => sub { $_[0] || scalar(@{ $_[1] }) } ],
+  [ scalar_grep  => sub { $_[0] || scalar(grep { $_ } @{ $_[1] }) } ],
+  [ scalar_or    => sub { $_[0] || scalar($_[1] || $_[2]) } ],
+  [ heredoc      => sub { $_[0] || <<EOT } ],
+hi
+EOT
+  [ heredoc_var  => sub { $_[0] || <<"EOT" } ],
+hi $_[1]
+EOT
+) {
+  my ($name, $sub) = @$case;
+  $Or{$name} = find_op(svref_2object($sub)->ROOT, "or")
+    or die "no or op found for $name";
 }
 
 open my $out, ">", "$0.out" or die "Cannot write $0.out: $!";
@@ -73,6 +96,7 @@ for my $case (
   [ "and",   [ 1, 2, 3, 4 ],              "and", $and_op ],
   [ "or_c5", [ 1, 2, 3, 4, undef, 1 ],    "or",  $or_op  ],
   (map { [ "dor_$_", [ 1, 2, 3, 4 ], "or", $Dor{$_} ] } sort keys %Dor),
+  (map { [ "or_$_", [ 1, 2, 3, 4 ], "or", $Or{$_} ] } sort keys %Or),
 ) {
   my ($name, $c, $type, $op) = @$case;
   my ($counts, $count, $collapsed)
@@ -132,6 +156,18 @@ sub test_dor_fixed_right () {
     "dor over && with a variable left keeps three rows";
 }
 
+sub test_scalar_right () {
+  is $Case{"or_$_"}{count}, 3, "or with $_ right keeps three rows"
+    for qw( scalar_array scalar_grep scalar_or );
+  is $Case{or_heredoc}{count}, 2, "or with a heredoc right has two rows";
+  is $Case{or_heredoc_var}{count}, 2,
+    "or with an interpolated heredoc right has two rows";
+  is $Case{"dor_$_"}{count}, 2, "dor with $_ right collapses to two rows"
+    for qw( scalar_array array hash scalar_grep scalar_or );
+  is $Case{dor_scalar_readline}{count}, 3,
+    "dor with a scalar readline right keeps three rows";
+}
+
 sub main () {
   _setup;
   test_original_arrays_untouched;
@@ -139,6 +175,7 @@ sub main () {
   test_row_counts;
   test_void_collapsed_flag;
   test_dor_fixed_right;
+  test_scalar_right;
   done_testing;
 }
 

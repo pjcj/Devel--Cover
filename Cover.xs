@@ -1434,20 +1434,35 @@ static OP *dc_skip_to_condop(pTHX_ OP *op) {
   return op;
 }
 
+/* The operand under sassign and scalar, stopping at the scalar of a heredoc */
+static OP *dc_unwrap_operand(OP *op) {
+  if (op->op_type == OP_SASSIGN) op = cUNOPx(op)->op_first;
+  while (op && op->op_type == OP_SCALAR) {
+    OP *kid = cUNOPx(op)->op_first;
+    if (kid && kid->op_type == OP_NULL && kid->op_targ == OP_PUSHMARK) break;
+    op = kid;
+  }
+  return op;
+}
+
 /*
  * Mirror of Cover.pm's _is_const_right: a logop's operand whose truth value
  * is fixed at compile time, or which terminates evaluation (return / die /
- * etc.).  These do not contribute an MC/DC column - they cannot vary - so
- * Condition_table omits them from atomic-condition labels.  The XS-side
- * column count must match for observed-vector keys to align with the
- * Condition_table's row inputs.  A logop reached through a fixed right
- * operand, such as the chain in $x // !($y || $w), is a decision root of
- * its own rather than a column of the outer decision.
+ * etc.).  A scalar wrapper only sets context, so the test looks through it
+ * to its operand, except the scalar of a heredoc, which is fixed because its
+ * text ends in a newline or is empty.  These do not contribute an MC/DC
+ * column - they cannot vary - so Condition_table omits them from
+ * atomic-condition labels.  The XS-side column count must match for
+ * observed-vector keys to align with the Condition_table's row inputs.  A
+ * logop reached through a fixed right operand, such as the chain in
+ * $x // !($y || $w), is a decision root of its own rather than a column of
+ * the outer decision.
  */
 static int dc_is_const_leaf(pTHX_ OP *op) {
   const char *n;
   if (!op) return 0;
-  if (op->op_type == OP_SASSIGN) op = cUNOPx(op)->op_first;
+  op = dc_unwrap_operand(op);
+  if (!op) return 0;
   n = PL_op_name[op->op_type];
   return strEQ(n, "const")     || strEQ(n, "refgen")    ||
          strEQ(n, "srefgen")   || strEQ(n, "gelem")     ||
@@ -1465,8 +1480,9 @@ static int dc_is_const_leaf(pTHX_ OP *op) {
 /*
  * Mirror of Cover.pm's $Defined_right and $Defined_scalar_right: a dor
  * right operand whose scalar result is always defined cannot vary the
- * outcome, so it gets no MC/DC column either.  keys and values count only
- * in scalar context, where they return a count.
+ * outcome, so it gets no MC/DC column either.  The test looks through a
+ * scalar wrapper.  keys, values, arrays, hashes and grep count only in
+ * scalar context, where they return a count.
  */
 static const char *const dc_defined_ops[] = {
   "add",       "subtract", "multiply",  "divide",     "modulo",    "pow",
@@ -1490,14 +1506,17 @@ static int dc_is_defined_leaf(pTHX_ OP *op) {
   const char *n;
   const char *const *p;
   if (!op) return 0;
-  if (op->op_type == OP_SASSIGN) op = cUNOPx(op)->op_first;
+  op = dc_unwrap_operand(op);
+  if (!op) return 0;
   /* A nulled wrapper (ex-stringify, ex-exists, ex-keys) keeps its old type */
   n = PL_op_name[op->op_type == OP_NULL && op->op_targ ? op->op_targ
                                                         : op->op_type];
   if (strnEQ(n, "i_", 2)) n += 2;
   for (p = dc_defined_ops; *p; p++)
     if (strEQ(n, *p)) return 1;
-  if (strEQ(n, "keys") || strEQ(n, "values") || strEQ(n, "akeys"))
+  if (strEQ(n, "keys")  || strEQ(n, "values") || strEQ(n, "akeys") ||
+      strEQ(n, "padav") || strEQ(n, "rv2av")  || strEQ(n, "padhv") ||
+      strEQ(n, "rv2hv") || strEQ(n, "grepwhile"))
     return (op->op_flags & OPf_WANT) == OPf_WANT_SCALAR;
   return 0;
 }
@@ -1568,7 +1587,7 @@ static int dc_is_noreturn_call(pTHX_ CV *cv, OP *op) {
   SV        **slot;
   const char *file;
   if (!op || !cv || !MY_CXT.noreturn) return 0;
-  if (op->op_type == OP_SASSIGN) op = cUNOPx(op)->op_first;
+  op = dc_unwrap_operand(op);
   if (!op || op->op_type != OP_ENTERSUB) return 0;
   file = CopFILE(PL_curcop);
   if (!file) return 0;
@@ -1619,7 +1638,8 @@ static int dc_is_dor_fixed_operand(pTHX_ CV *cv, OP *op) {
 static int dc_is_dor_fixed_tree(pTHX_ CV *cv, OP *op) {
   OP *first, *right;
   if (!op) return 0;
-  if (op->op_type == OP_SASSIGN) op = cUNOPx(op)->op_first;
+  op = dc_unwrap_operand(op);
+  if (!op) return 0;
   if (op->op_type == OP_NULL && !op->op_targ && (op->op_flags & OPf_KIDS))
     op = cUNOPx(op)->op_first;
   if (!op || !(op->op_flags & OPf_KIDS)) return 0;
@@ -1660,7 +1680,7 @@ static int dc_is_multiconcat_truthy(pTHX_ OP *op) {
   SSize_t        len;
 
   if (!op) return 0;
-  if (op->op_type == OP_SASSIGN) op = cUNOPx(op)->op_first;
+  op = dc_unwrap_operand(op);
   if (!op || op->op_type != OP_MULTICONCAT) return 0;
 
   aux = cUNOP_AUXx(op)->op_aux;
