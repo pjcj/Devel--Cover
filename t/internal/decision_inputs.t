@@ -301,6 +301,65 @@ PERL
     "recorded vectors are as wide as the table";
 }
 
+# A scalar right operand over an array that can be empty has its own column
+sub test_scalar_right_vectors () {
+  my $script = write_script("scalar_right.pl", <<'PERL');
+sub f { my ($c, @items) = @_; my $n = $c || scalar(@items); $n }
+f(0, 1, 2);
+f(5);
+f(0);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "scalar_right");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for scalar_right";
+  is @$di, 1, "one decision recorded";
+  is_deeply $di->[0], { "1|X" => 1, "0|1" => 1, "0|0" => 1 },
+    "the scalar right operand records its own value";
+
+  my $err = "";
+  {
+    open my $save, ">&", \*STDERR or die "Cannot dup STDERR: $!";
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">", \$err or die "Cannot redirect STDERR: $!";
+    $db->cover;
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">&", $save or die "Cannot restore STDERR: $!";
+  }
+
+  unlike $err, qr|Ignoring short MC/DC vector|,
+    "recorded vectors are as wide as the table";
+}
+
+# A scalar right operand around a call that never returns has no column
+sub test_scalar_noreturn_vectors () {
+  my $script = write_script("scalar_noreturn.pl", <<'PERL');
+use Carp;
+sub f { my ($c) = @_; my $n = $c || scalar(croak("no")); $n }
+f(1);
+eval { f(0) };
+PERL
+
+  my ($db, $path) = run_under_cover($script, "scalar_noreturn");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for scalar_noreturn";
+  is @$di,                          1, "one decision recorded";
+  is grep(/\|/, keys $di->[0]->%*), 0, "the decision is one column wide";
+
+  my $err = "";
+  {
+    open my $save, ">&", \*STDERR or die "Cannot dup STDERR: $!";
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">", \$err or die "Cannot redirect STDERR: $!";
+    $db->cover;
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">&", $save or die "Cannot restore STDERR: $!";
+  }
+
+  unlike $err, qr|Ignoring short MC/DC vector|,
+    "recorded vectors are as wide as the table";
+}
+
 # A void logop under another logop is an expression, as the Perl-side walk
 # classifies it, so the chain beneath it records into the table of its root.
 sub test_void_dor_die_chain () {
@@ -698,6 +757,8 @@ sub main () {
   subtest "dor fixed nested vectors"    => \&test_dor_fixed_nested_vectors;
   subtest "fixed right wrapped vectors" => \&test_fixed_right_wrapped_vectors;
   subtest "void dor die chain"          => \&test_void_dor_die_chain;
+  subtest "scalar right vectors"        => \&test_scalar_right_vectors;
+  subtest "scalar noreturn vectors"     => \&test_scalar_noreturn_vectors;
   subtest "nested root in sub argument" => \&test_nested_root_in_sub_argument;
   subtest "repeated observation"        => \&test_repeated_observation;
   subtest "no inputs without mcdc"      => \&test_no_inputs_without_mcdc;

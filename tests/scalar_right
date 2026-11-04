@@ -1,0 +1,110 @@
+#!/usr/bin/perl
+
+# Copyright 2026, Paul Johnson (paul@pjcj.net)
+
+# This software is free.  It is licensed under the same terms as Perl itself.
+
+# The latest version of this software should be available from my homepage:
+# https://pjcj.net
+
+use strict;
+use warnings;
+
+use Carp;
+
+sub array_or {
+  my ($c, @items) = @_;
+  my $n = $c || scalar @items;
+  $n
+}
+
+sub array_and {
+  my ($c, @items) = @_;
+  my $n = $c && scalar @items;
+  $n
+}
+
+sub grep_or {
+  my ($c, @items) = @_;
+  my $n = $c || scalar grep { $_ } @items;
+  $n
+}
+
+sub heredoc_or {
+  my ($c) = @_;
+  my $n = $c || <<EOT;
+default
+EOT
+  $n
+}
+
+sub heredoc_var_or {
+  my ($c, $y) = @_;
+  my $n = $c || <<"EOT";
+hello $y
+EOT
+  $n
+}
+
+sub croak_or {
+  my ($c) = @_;
+  my $n = $c || scalar croak("no");
+  $n
+}
+
+sub array_dor {
+  my ($c, @items) = @_;
+  my $n = $c // scalar @items;
+  $n
+}
+
+sub bare_array_dor {
+  my ($c, @items) = @_;
+  my $n = $c // @items;
+  $n
+}
+
+sub hash_dor {
+  my ($c, %h) = @_;
+  my $n = $c // %h;
+  $n
+}
+
+sub nested_or {
+  my ($c, $y, $w) = @_;
+  my $n = $c || scalar($y || $w);
+  $n
+}
+
+sub nested_dor_fixed {
+  my ($c, $y) = @_;
+  my $n = $c // scalar($y || "b");
+  $n
+}
+
+array_or(0, 1, 2);
+array_or(5);
+
+for my $c (0, 1) {
+  array_and($c);
+  array_and($c, 1, 2);
+  grep_or($c);
+  grep_or($c, 0, 1);
+  heredoc_or($c);
+  heredoc_var_or($c, "a");
+}
+
+croak_or(1);
+eval { croak_or(0) };
+
+for my $c (undef, 1) {
+  array_dor($c);
+  array_dor($c, 1, 2);
+  bare_array_dor($c);
+  bare_array_dor($c, 1, 2);
+  hash_dor($c);
+  hash_dor($c, a => 1);
+}
+
+nested_or(@$_) for [0, 1, 0], [0, 0, 1], [0, 0, 0], [1, 0, 0];
+nested_dor_fixed(@$_) for [undef, 1], [undef, 0], [1, 0];
