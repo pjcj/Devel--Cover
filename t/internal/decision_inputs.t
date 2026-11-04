@@ -198,6 +198,135 @@ PERL
     "recorded vectors are as wide as the table";
 }
 
+# A logop nested in the fixed right operand of // is a decision of its own, so
+# it records its own vectors rather than vanishing from the MC/DC tables.
+sub test_dor_fixed_nested_vectors () {
+  my $script = write_script("dor_fixed_nested.pl", <<'PERL');
+sub f { my ($x, $y) = @_; my $r = $x // ($y || "b"); $r }
+f(1, 0);
+f(undef, 1);
+f(undef, 0);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "dor_fixed_nested");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for dor_fixed_nested";
+  is @$di, 2, "two decisions recorded";
+
+  my @vectors = sort { $a->{0} <=> $b->{0} } grep defined, @$di;
+  is_deeply \@vectors, [{ "1" => 1, "0" => 1 }, { "1" => 1, "0" => 2 }],
+    "outer // and inner || each record their own vectors";
+
+  my $err = "";
+  {
+    open my $save, ">&", \*STDERR or die "Cannot dup STDERR: $!";
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">", \$err or die "Cannot redirect STDERR: $!";
+    $db->cover;
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">&", $save or die "Cannot restore STDERR: $!";
+  }
+
+  unlike $err, qr|Ignoring short MC/DC vector|,
+    "recorded vectors are as wide as the table";
+}
+
+# A fixed dor whose nested root resolves in the same call must leave no frame
+# on the stack, or an enclosing decision that then short-circuits records
+# nothing.
+sub test_nested_root_in_sub_argument () {
+  my $script = write_script("nested_root_arg.pl", <<'PERL');
+sub id { $_[0] }
+sub g {
+  my ($p, $x, $y, $q) = @_;
+  my $r = ($p && id($x // ($y || 1))) || $q;
+  $r
+}
+g(1, undef, 0, 0);
+g(0, 1, 0, 0);
+g(1, 0, 0, 0);
+g(0, 1, 0, 1);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "nested_root_arg");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for nested_root_arg";
+  is grep(defined, @$di), 3, "three decisions recorded";
+
+  my ($outer) = grep { defined && (keys %$_)[0] =~ /\|.*\|/ } @$di;
+  is_deeply $outer, { "1|1|X" => 1, "1|0|0" => 1, "0|X|0" => 1, "0|X|1" => 1 },
+    "outer decision records every call";
+
+  my $mcdc       = $db->cover->file($path)->{mcdc};
+  my ($decision) = grep $_->total == 3, map @$_, values %$mcdc;
+  ok $decision, "found the outer decision";
+  is $decision->covered, 3, "outer decision fully covered";
+}
+
+# A logop reached through any fixed right operand, not only a bare one, is a
+# decision of its own with its own vectors.
+sub test_fixed_right_wrapped_vectors () {
+  my $script = write_script("fixed_right_wrapped.pl", <<'PERL');
+sub f { my ($x, $y, $w, $v) = @_; my $r = $x // !($y || $w || $v); $r }
+f(1, 0, 0, 0);
+f(undef, 1, 0, 0);
+f(undef, 0, 1, 0);
+f(undef, 0, 0, 1);
+f(undef, 0, 0, 0);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "fixed_right_wrapped");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for fixed_right_wrapped";
+  is @$di, 2, "two decisions recorded";
+
+  my @vectors = sort { keys %$a <=> keys %$b } grep defined, @$di;
+  is_deeply \@vectors, [
+      { "1"     => 1, "0"     => 4 },
+      { "1|X|X" => 1, "0|1|X" => 1, "0|0|1" => 1, "0|0|0" => 1 },
+    ],
+    "outer // and the wrapped chain each record their own vectors";
+
+  my $err = "";
+  {
+    open my $save, ">&", \*STDERR or die "Cannot dup STDERR: $!";
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">", \$err or die "Cannot redirect STDERR: $!";
+    $db->cover;
+    close STDERR or die "Cannot close STDERR: $!";
+    open STDERR, ">&", $save or die "Cannot restore STDERR: $!";
+  }
+
+  unlike $err, qr|Ignoring short MC/DC vector|,
+    "recorded vectors are as wide as the table";
+}
+
+# A void logop under another logop is an expression, as the Perl-side walk
+# classifies it, so the chain beneath it records into the table of its root.
+sub test_void_dor_die_chain () {
+  my $script = write_script("void_dor_die_chain.pl", <<'PERL');
+sub f { my ($x, $y, $w, $v) = @_; $x // ($y || $w || $v || die "no\n"); 1 }
+f(1, 0, 0, 0);
+f(undef, 1, 0, 0);
+f(undef, 0, 1, 0);
+f(undef, 0, 0, 1);
+eval { f(undef, 0, 0, 0) };
+PERL
+
+  my ($db, $path) = run_under_cover($script, "void_dor_die_chain");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for void_dor_die_chain";
+
+  my ($chain) = grep { defined && (keys %$_)[0] =~ /\|.*\|/ } @$di;
+  is_deeply $chain, { "1|X|X" => 1, "0|1|X" => 1, "0|0|1" => 1, "0|0|0" => 1 },
+    "the chain under the void or records into the table of its root";
+
+  my $mcdc       = $db->cover->file($path)->{mcdc};
+  my ($decision) = grep $_->total == 3, map @$_, values %$mcdc;
+  ok $decision, "found the die decision";
+  is $decision->covered, 3, "die decision fully covered";
+}
+
 sub test_repeated_observation () {
   my $script = write_script("repeated.pl", <<'PERL');
 my @r;
@@ -559,15 +688,19 @@ sub test_add_condition_xor_four_slot_merge () {
 }
 
 sub main () {
-  subtest "simple two-leaf and"        => \&test_simple_and;
-  subtest "xor vectors"                => \&test_xor_vectors;
-  subtest "xor compound left"          => \&test_xor_compound_left;
-  subtest "xor compound right"         => \&test_xor_compound_right;
-  subtest "worked example"             => \&test_worked_example;
-  subtest "coupled decision"           => \&test_coupled_decision_vectors;
-  subtest "left constant width parity" => \&test_left_constant_width_parity;
-  subtest "repeated observation"       => \&test_repeated_observation;
-  subtest "no inputs without mcdc"     => \&test_no_inputs_without_mcdc;
+  subtest "simple two-leaf and"         => \&test_simple_and;
+  subtest "xor vectors"                 => \&test_xor_vectors;
+  subtest "xor compound left"           => \&test_xor_compound_left;
+  subtest "xor compound right"          => \&test_xor_compound_right;
+  subtest "worked example"              => \&test_worked_example;
+  subtest "coupled decision"            => \&test_coupled_decision_vectors;
+  subtest "left constant width parity"  => \&test_left_constant_width_parity;
+  subtest "dor fixed nested vectors"    => \&test_dor_fixed_nested_vectors;
+  subtest "fixed right wrapped vectors" => \&test_fixed_right_wrapped_vectors;
+  subtest "void dor die chain"          => \&test_void_dor_die_chain;
+  subtest "nested root in sub argument" => \&test_nested_root_in_sub_argument;
+  subtest "repeated observation"        => \&test_repeated_observation;
+  subtest "no inputs without mcdc"      => \&test_no_inputs_without_mcdc;
   subtest "void compound no false coverage" =>
     \&test_void_compound_no_false_coverage;
   subtest "unproven ignores derived uncoverable" =>

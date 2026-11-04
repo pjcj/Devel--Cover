@@ -156,4 +156,71 @@ subtest "signature-generated logops are excluded" => sub {
   }
 };
 
+subtest "dor fixed right: nested logop is its own root" => sub {
+  my $sub = sub ($x, $y) { my $r = $x // ($y || "b"); $r };
+  my $cv  = B::svref_2object($sub);
+
+  my $dor = find_user_op($cv->ROOT, "dor") or die "no dor op";
+  my $or  = find_user_op($cv->ROOT, "or")  or die "no or op";
+
+  my $dor_meta = Devel::Cover::decision_meta($$dor, $cv);
+  my $or_meta  = Devel::Cover::decision_meta($$or,  $cv);
+
+  ok $dor_meta, "dor meta returned";
+  ok $or_meta,  "or meta returned";
+
+  is $dor_meta->{is_root},         1, "outer // is root";
+  is $dor_meta->{width},           1, "outer // width is 1";
+  is $dor_meta->{leaf_col_left},   0, "outer // left col 0";
+  is $dor_meta->{leaf_col_right}, -1, "outer // right is fixed";
+
+  is $or_meta->{is_root},        1,    "inner || is root";
+  is $or_meta->{root_addr},      $$or, "inner || root_addr points to itself";
+  is $or_meta->{is_entry},        1,   "inner || is entry";
+  is $or_meta->{width},           1,   "inner || width is 1";
+  is $or_meta->{leaf_col_left},   0,   "inner || left col 0";
+  is $or_meta->{leaf_col_right}, -1,   "inner || right is const";
+};
+
+subtest "fixed right operand: wrapped logop is its own root" => sub {
+  my @cases = (
+    [
+      "not", "dor",
+      sub ($x, $y, $w, $v) { my $r = $x // !($y || $w || $v); $r },
+    ], [
+      "scalar", "or",
+      sub ($x, $y, $w, $v) { my $r = $x || scalar($y || $w || $v); $r },
+    ], [
+      "add", "dor",
+      sub ($x, $y, $w, $v) { my $r = $x // ($y || $w || $v) + 1; $r },
+    ],
+  );
+  push @cases, [
+      "concat", "and",
+      sub ($x, $y, $w, $v) { my $r = $x && ($y || $w || $v) . "foo"; $r },
+    ]
+    if $] >= 5.028;
+
+  for my $case (@cases) {
+    my ($wrapper, $outer_name, $sub) = @$case;
+    my $cv = B::svref_2object($sub);
+    # The chain's or ops are the last two in depth-first order, outer first
+    my $ors   = find_all_ops($cv->ROOT, "or");
+    my $chain = $ors->[-2] or die "no chain or op";
+    my $outer
+      = $outer_name eq "or" ? $ors->[-3] : find_user_op($cv->ROOT, $outer_name);
+    $outer or die "no $outer_name op";
+
+    my $outer_meta = Devel::Cover::decision_meta($$outer, $cv);
+    my $chain_meta = Devel::Cover::decision_meta($$chain, $cv);
+
+    is $outer_meta->{width},           1, "$wrapper: outer width is 1";
+    is $outer_meta->{leaf_col_right}, -1, "$wrapper: outer right is fixed";
+    is $chain_meta->{is_root},         1, "$wrapper: chain || is root";
+    is $chain_meta->{root_addr}, $$chain,
+      "$wrapper: chain root_addr is itself";
+    is $chain_meta->{width}, 3, "$wrapper: chain width is 3";
+  }
+};
+
 done_testing;

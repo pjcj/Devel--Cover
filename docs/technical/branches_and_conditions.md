@@ -364,13 +364,18 @@ fixed, and an `&&` whose operands both are, collapse as well, through
 fixed by the same rule, so a nested `?:`, an arithmetic branch or a `die` branch
 all qualify. The plain `null` over the `cond_expr` or nested logop is stepped
 through. `dc_is_dor_fixed_tree` mirrors the rule and the column walker consults
-it before recursing into a nested logop, so a nested logop judged fixed gets no
-columns, which matches `Condition_table` dropping the right child of a collapsed
-`or_2`. The inner logop keeps its own condition row. At runtime these operands
-stay on the pending path, since a `?:` can still return a value, so a `?:` which
-dies on every undefined call gives the `!l` count but no MC/DC vector.
-`tests/dor_fixed` covers `$#array`, the `?:` forms, the nested ops and the
-method calls below, with controls that keep three outcomes.
+it, through `dc_right_is_fixed`, before recursing into a nested logop, so a
+nested logop judged fixed gets no column in its parent and is instead a decision
+root with its own columns and vectors, which matches what `Condition_table` does
+with the right child of a collapsed `or_2`. The same holds for a logop reached
+through any other fixed right operand, such as the chain in `$x // !($y || $w)`,
+`$x || scalar($y || $w)` or `$x && ($y || $w) . "foo"`, since every fixed test
+comes before the search for a logop on both sides. The inner logop keeps its own
+condition row. At runtime these operands stay on the pending path, since a `?:`
+can still return a value, so a `?:` which dies on every undefined call gives the
+`!l` count but no MC/DC vector. `tests/dor_fixed` covers `$#array`, the `?:`
+forms, the nested ops and the method calls below, with controls that keep three
+outcomes.
 
 An `entersub` whose sub never returns collapses in the same way. `croak` and
 `confess` are built in, and a `# dc noreturn` comment adds names for the file it

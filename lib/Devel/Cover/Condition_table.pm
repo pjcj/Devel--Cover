@@ -249,8 +249,10 @@ sub for_line ($class, $conditions, $observed = undef) {
   # Find roots: conditions not referenced as another's operand
   my %is_child;
   for my $c (@$conditions) {
-    my $info = $c->[1];
+    my $info    = $c->[1];
+    my $boolean = $Is_boolean{ _effective_type($c) };
     for my $side (qw( left right )) {
+      next if $side eq "right" && $boolean;
       my $found = $find->($info->{"${side}_addr"}, $info->{$side});
       $is_child{ _expr($found) } = 1 if $found;
     }
@@ -339,7 +341,9 @@ A logop executed in void context is recorded collapsed to its boolean 2-count
 form, but the recorded structure keeps both operands.  Such a node is promoted
 back to its 3-count form so MC/DC rebuilds the full decision; the rebuilt table
 has no observed vectors and so is reported unproven - a true 0%, never a
-false pass.  A constant-right collapse is a real boolean and is left alone.
+false pass.  A constant-right collapse is a real boolean, so its right operand
+gets no column, and a logop nested in that operand is a decision of its own
+with its own table.
 
 =head1 ROW OBJECTS
 

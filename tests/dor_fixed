@@ -104,6 +104,55 @@ sub nested_and_var {
   $r
 }
 
+sub nested_or_partial {
+  my ($x, $y) = @_;
+  my $r = $x // ($y || "b");
+  $r
+}
+
+sub nested_not {
+  my ($x, $y, $w, $v) = @_;
+  my $r = $x // !($y || $w || $v);
+  $r
+}
+
+sub nested_scalar {
+  my ($x, $y, $w, $v) = @_;
+  my $r = $x || scalar($y || $w || $v);
+  $r
+}
+
+sub nested_add {
+  my ($x, $y, $w, $v) = @_;
+  my $r = $x // ($y || $w || $v) + 1;
+  $r
+}
+
+sub nested_concat {
+  my ($x, $y, $w, $v) = @_;
+  my $r = $x && ($y || $w || $v) . "foo";
+  $r
+}
+
+sub nested_cond {
+  my ($x, $y, $w) = @_;
+  my $r = $x // (($y || $w) ? "a" : "b");
+  $r
+}
+
+sub nested_dorassign {
+  my ($x, $y) = @_;
+  my $r = $x;
+  $r //= $y // "b";
+  $r
+}
+
+sub nested_void_die {
+  my ($x, $y, $w, $v) = @_;
+  $x // ($y || $w || $v || die "no\n");
+  1
+}
+
 my $o = Thing->new;
 my $k = Kid->new;
 for my $x (1, undef) {
@@ -125,5 +174,16 @@ for my $x (1, undef) {
     nested_and($x, $y, 1);
     nested_or_var($x, $y, 3);
     nested_and_var($x, $y);
+    nested_or_partial($x, 1);
+    nested_cond($x, $y, 0);
+    nested_dorassign($x, $y ? $y : undef);
+  }
+  nested_cond($x, 0, 1);
+  for my $args ([1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 0]) {
+    nested_not($x, @$args);
+    nested_scalar($x, @$args);
+    nested_add($x, @$args);
+    nested_concat($x, @$args);
+    eval { nested_void_die($x, @$args) };
   }
 }
