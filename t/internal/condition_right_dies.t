@@ -155,6 +155,47 @@ PERL
   is_deeply values_for($cover, $path, 4), [[0, 1]], "exit counts one !l";
 }
 
+# Devel::Cover counts a call to exec in the right operand when the logop runs.
+sub test_exec_right () {
+  my ($cover, $path)
+    = run_script("exec_right", <<'PERL', ["condition", "mcdc"]);
+sub f { my $r = $_[0] || exec($^X, "-e", "0"); $r }
+f(1);
+f(0);
+PERL
+
+  is_deeply values_for($cover, $path, 4), [[1, 1]], "exec counts one !l";
+  my ($decision) = $cover->file($path)->criterion("mcdc")->location(4)->@*;
+  is_deeply $decision->values, [1], "exec records the MC/DC vector";
+}
+
+# A next statement leaves the sub with the entry pending and the op runs again.
+sub test_next_same_op () {
+  my ($cover, $path) = run_script("next_same_op", <<'PERL');
+my $c = 0;
+sub g { if ($c++ == 0) { no warnings "exiting"; next } 5 }
+sub f { my $r = $_[0] || g(); $r }
+for (1 .. 2) { f(0) }
+PERL
+
+  is_deeply values_for($cover, $path, 6), [[0, 1, 0]],
+    "only the completed run is counted";
+}
+
+# A last statement leaves the sub with the entry deeper than a later run.
+sub test_last_deeper () {
+  my ($cover, $path) = run_script("last_deeper", <<'PERL');
+sub g { no warnings "exiting"; last }
+sub f { my $r = $_[0] ? ($_[1] || g()) : $_[1]; $r }
+sub w { f(@_) }
+for (1) { w(1, 0) }
+for (1) { f(0, 7) }
+PERL
+
+  is_deeply values_for($cover, $path, 5), [[0, 0, 0]],
+    "the run that left by last is not counted";
+}
+
 # A false left operand gives !l whatever value the right operand has.
 sub test_two_outcome_die () {
   my ($cover, $path) = run_script("two_outcome_die", <<'PERL');
@@ -225,6 +266,9 @@ sub main () {
   subtest "die once"               => \&test_die_once;
   subtest "die in if"              => \&test_die_in_if;
   subtest "exit right"             => \&test_exit_right;
+  subtest "exec right"             => \&test_exec_right;
+  subtest "next same op"           => \&test_next_same_op;
+  subtest "last deeper"            => \&test_last_deeper;
   subtest "two outcome die"        => \&test_two_outcome_die;
   subtest "two outcome dor"        => \&test_two_outcome_dor;
   subtest "two outcome exit"       => \&test_two_outcome_exit;
