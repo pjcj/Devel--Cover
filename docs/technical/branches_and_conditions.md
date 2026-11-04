@@ -235,17 +235,17 @@ four operand combinations: 1 = `!l&&!r`, 2 = `l&&!r`, 3 = `l&&r`, 4 = `!l&&r`.
    short circuit with the short-circuit value.
 
 4. **Void context shortcut**: if the op is in void context, or the right operand
-   is a control flow op (`next`, `last`, `redo`, `goto`, `return`, `die`), the
-   right operand's truth value is irrelevant. The XS code records a 2-outcome
-   result immediately instead of waiting for `get_condition`.
+   is a control flow op (`next`, `last`, `redo`, `goto`, `return`, `die`,
+   `exit`, `exec`), the right operand's truth value is irrelevant. The XS code
+   records a 2-outcome result immediately instead of waiting for
+   `get_condition`.
 
-5. **`finalise_conditions`** runs after the program finishes. Any pending
-   conditions that were never resolved (e.g., because of an early `return`
-   before the right operand's follow-on op was reached) are collected here. An
-   entry whose right operand died inside an `eval` never sees the value of its
-   right operand, so it counts at index 6 instead. A two-outcome table and the
-   branch counts read index 6 with indices 1 and 2, since they need only the
-   left operand. A three-outcome table ignores it.
+5. **Unresolved conditions** count at index 6. An entry that never sees the
+   value of its right operand, such as one whose right operand died inside an
+   `eval` or one still pending at the end of the run, counts there instead of at
+   index 1 or 2. A two-outcome table and the branch counts read index 6 with
+   indices 1 and 2, since they need only the left operand. A three-outcome table
+   ignores it, which matches what `finalise_decisions` does for MC/DC.
 
 6. **Branch without condition**: when branch coverage is collected without
    condition coverage, `cover_logop` still records outcomes for `OP_AND` and

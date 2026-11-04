@@ -90,7 +90,7 @@ an overloaded object as true regardless of its `bool` overload, so the
 path-derived truth is exact where the stack read is not. Definedness has no
 overload, so the stack read of it is exact. A consumer that never records - a
 die inside the op, or collection turned off - leaves the members in
-`Pending_conditionals` for `finalise_conditions()` as usual.
+`Pending_conditionals` as usual.
 
 Multiple logical ops can share the same target. For example, in
 `$a || $b || $c`, when `$a` is false and `$b` is also false, both `||` ops are
@@ -122,16 +122,15 @@ true short circuit jumps straight to that void op's `op_other`, the body of the
 `$x && ($y || $z || $w)` a true `$y` passes the outer `||` as well. In each case
 the hijacked op does not run for that evaluation.
 
-Left alone, the entry would stay in `Pending_conditionals` until either
-`finalise_conditions()` resolved it as "right false" or a later evaluation
-reached the op and resolved it with that evaluation's value, doubling one
-column. Instead `credit_short_circuit()` resolves it at the short circuit. It
-already enumerates every op the jump passes - the same-type chain it credits at
-index 3 and the void consumer `find_skipped_conditional()` finds from the last
-op of that chain - and for each one `resolve_skipped_conditions()` resolves any
-entry keyed on it. The truth is exact because the optimiser only jumps past ops
-whose value equals the short-circuit value, false for an `and` and true for an
-`or`. The definedness is read from the stack, where the logop that short
+Left alone, the entry would stay in `Pending_conditionals` until a later
+evaluation reached the op and resolved it with that evaluation's value, doubling
+one column. Instead `credit_short_circuit()` resolves it at the short circuit.
+It already enumerates every op the jump passes - the same-type chain it credits
+at index 3 and the void consumer `find_skipped_conditional()` finds from the
+last op of that chain - and for each one `resolve_skipped_conditions()` resolves
+any entry keyed on it. The truth is exact because the optimiser only jumps past
+ops whose value equals the short-circuit value, false for an `and` and true for
+an `or`. The definedness is read from the stack, where the logop that short
 circuited left the value, so a `//` pending on a jumped op still records `0` as
 defined.
 
@@ -163,8 +162,14 @@ does a later evaluation of the same logical op at the same position. A later
 evaluation at the same position that reaches the hijacked op by another path, as
 in `$x ? ($y || g()) : $y`, still counts it.
 
-A two-outcome table and the branch counts read slot [6] as `!l`, because they
-need only the left operand. A three-outcome table ignores slot [6].
+At the end of the run `pending_finalise()` removes every entry still pending and
+counts it in slot [6] too. Every removal goes through `pending_remove()`, which
+does the counting. A two-outcome table and the branch counts read slot [6] as
+`!l`, because they need only the left operand. A three-outcome table ignores
+slot [6], so an entry that no evaluation completes records no row there.
+`finalise_decisions()` records nothing for MC/DC in the same way. A right
+operand of `exit` or `exec` never returns, so `cover_logop()` records it at
+once, as it does for `die`.
 
 ### Location in Cover.xs
 
@@ -174,7 +179,7 @@ need only the left operand. A three-outcome table ignores slot [6].
 - Resolution at a short circuit that jumps past the hijacked op in
   `resolve_skipped_conditions()`, called from `credit_short_circuit()`
 - Removal of stale entries in `pending_discard_stale()`
-- End-of-run cleanup in `finalise_conditions()`
+- End-of-run cleanup in `pending_finalise()`
 
 ## deferred_conditionals: the runops-exit mechanism
 

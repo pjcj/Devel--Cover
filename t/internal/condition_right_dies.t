@@ -123,6 +123,38 @@ PERL
     "dor counts only the completed run";
 }
 
+# The only run dies in the right operand and nothing runs the op again.
+sub test_die_once () {
+  my ($cover, $path) = run_script("die_once", <<'PERL');
+sub f { my $r = $_[0] || dies(); $r }
+eval { f(0) };
+PERL
+
+  is_deeply values_for($cover, $path, 4), [[0, 0, 0]],
+    "the run that died is not counted";
+}
+
+# The right operand of an if condition dies.
+sub test_die_in_if () {
+  my ($cover, $path) = run_script("die_in_if", <<'PERL');
+sub f { if ($_[0] || dies()) { return 1 } 0 }
+eval { f(0) };
+PERL
+
+  is_deeply values_for($cover, $path, 4), [[0, 0, 0]],
+    "the run that died is not counted";
+}
+
+# Devel::Cover counts an exit in the right operand when the logop runs.
+sub test_exit_right () {
+  my ($cover, $path) = run_script("exit_right", <<'PERL');
+sub f { my $r = $_[0] || exit 0; $r }
+f(0);
+PERL
+
+  is_deeply values_for($cover, $path, 4), [[0, 1]], "exit counts one !l";
+}
+
 # A false left operand gives !l whatever value the right operand has.
 sub test_two_outcome_die () {
   my ($cover, $path) = run_script("two_outcome_die", <<'PERL');
@@ -146,6 +178,19 @@ PERL
     "the run that died counts as !l";
 }
 
+# An exit inside a called sub leaves the entry pending at the end of the run.
+sub test_two_outcome_exit () {
+  my ($cover, $path) = run_script("two_outcome_exit", <<'PERL');
+sub t { my $r = $_[0] || [ quit() ]; $r }
+sub quit { exit 0 }
+t(1);
+t(0);
+PERL
+
+  is_deeply values_for($cover, $path, 4), [[1, 1]],
+    "the run that exited counts as !l";
+}
+
 my $Branch_criteria = ["statement", "branch", "condition"];
 
 sub test_branch_die () {
@@ -159,15 +204,32 @@ PERL
     "the run that died counts on the branch it took";
 }
 
+sub test_branch_exit () {
+  my ($cover, $path) = run_script("branch_exit", <<'PERL', $Branch_criteria);
+sub g { $_[0] or quit() }
+sub quit { exit 0 }
+my $w = g(1);
+my $v = g(0);
+PERL
+
+  is_deeply values_for($cover, $path, 4, "branch"), [[1, 1]],
+    "the run that exited counts on the branch it took";
+}
+
 sub main () {
   subtest "rerun after die"        => \&test_rerun_after_die;
   subtest "other path"             => \&test_other_path;
   subtest "short circuit resolves" => \&test_short_circuit_resolves;
   subtest "deeper run resolves"    => \&test_deeper_run_resolves;
   subtest "and and dor"            => \&test_and_and_dor;
+  subtest "die once"               => \&test_die_once;
+  subtest "die in if"              => \&test_die_in_if;
+  subtest "exit right"             => \&test_exit_right;
   subtest "two outcome die"        => \&test_two_outcome_die;
   subtest "two outcome dor"        => \&test_two_outcome_dor;
+  subtest "two outcome exit"       => \&test_two_outcome_exit;
   subtest "branch die"             => \&test_branch_die;
+  subtest "branch exit"            => \&test_branch_exit;
 
   done_testing;
 }

@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Record no value when the right operand of a logical op dies before it returns
+  one, so a line such as `$x || dies()` inside an `eval` no longer counts the
+  right operand as false, or counts a later run twice (GH-918)
 - Judge a `scalar(...)` right operand of `||` or `&&` by its operand, so a line
   such as `$c || scalar(@items)` no longer shows full condition and MC/DC
   coverage while `@items` was never empty when `$c` was false (GH-916)

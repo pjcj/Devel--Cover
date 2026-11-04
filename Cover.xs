@@ -1116,6 +1116,13 @@ static void pending_discard_stale(pTHX) {
   }
 }
 
+/* Count every entry still pending at the end of the run */
+static void pending_finalise(pTHX) {
+  dMY_CXT;
+  while (MY_CXT.pending_stack.count)
+    pending_remove(aTHX_ MY_CXT.pending_stack.count - 1);
+}
+
 /* Record op, just pushed onto conds, as waiting at the current position */
 static void pending_push(pTHX_ AV *conds, OP *op) {
   dMY_CXT;
@@ -1158,24 +1165,22 @@ static void pending_resolved(pTHX_ AV *conds, OP *op) {
   }
 }
 
-/* at is the hooked op resolving the entry, or NULL for the final sweep */
 /* A dor asks whether its right operand is defined, the rest whether true */
 static int right_operand_slot(OP *op, int truth, int defined) {
   int dor = op->op_type == OP_DOR || op->op_type == OP_DORASSIGN;
   return (dor ? defined : truth) ? 2 : 1;
 }
 
-/* Resolve the conditions pending on at, or with NULL count each as false */
+/* Resolve the conditions pending on at */
 static void add_condition(pTHX_ SV *cond_ref, int truth, int defined,
                           OP *at) {
   dMY_CXT;
-  int   final       = !at;
   AV   *conds       = (AV *)                 SvRV(cond_ref);
   OP   *next        = INT2PTR(OP *,          SvIV(*av_fetch(conds, 0, 0)));
   OP *(*addr)(pTHX) = INT2PTR(OP *(*)(pTHX), SvIV(*av_fetch(conds, 1, 0)));
   I32   i;
 
-  if (!final && next != at)
+  if (next != at)
     croak("next (%p) does not match at (%p)", next, at);
 
 #ifdef USE_ITHREADS
@@ -1184,22 +1189,22 @@ static void add_condition(pTHX_ SV *cond_ref, int truth, int defined,
 #else
   i = 2;
 #endif
-  if (!final) pending_discard_stale(aTHX);
+  pending_discard_stale(aTHX);
   NDEB(D(L, "Looking through %zd conditionals at %p\n",
          av_len(conds) - 1, PL_op));
   for (; i <= av_len(conds); i++) {
     OP *op    = INT2PTR(OP *, SvIV(*av_fetch(conds, i, 0)));
-    int value = final ? 1 : right_operand_slot(op, truth, defined);
+    int value = right_operand_slot(op, truth, defined);
 
     NDEB(D(L, "Found %p: %d\n", op, value));
     add_conditional(aTHX_ op, value);
-    if (!final) pending_resolved(aTHX_ conds, op);
+    pending_resolved(aTHX_ conds, op);
 
     /*
      * MC/DC: write this logop's right-operand leaf column.  The observed
      * value is the right operand: 1 = false, 2 = true.
      */
-    if (!final && collecting(Mcdc)) {
+    if (collecting(Mcdc)) {
       HV *m;
       dc_stack_discard_stale(aTHX);
       m = dc_lookup_or_build_decision_meta(aTHX_ op, find_runcv(NULL));
@@ -1218,7 +1223,7 @@ static void add_condition(pTHX_ SV *cond_ref, int truth, int defined,
   }
 
   /* Snapshot roots after every leaf is written, so order does not matter. */
-  if (!final && collecting(Mcdc)) {
+  if (collecting(Mcdc)) {
 #ifdef USE_ITHREADS
     i = 0;
 #else
@@ -1247,9 +1252,9 @@ static void add_condition(pTHX_ SV *cond_ref, int truth, int defined,
   while (av_len(conds) > i) SvREFCNT_dec(av_pop(conds));
 
   NDEB(svdump(conds));
-  NDEB(D(L, "addr is %p, next is %p, PL_op is %p, length is %zd final is %d\n",
-         addr, next, PL_op, av_len(conds), final));
-  if (!final) next->op_ppaddr = addr;
+  NDEB(D(L, "addr is %p, next is %p, PL_op is %p, length is %zd\n",
+         addr, next, PL_op, av_len(conds)));
+  next->op_ppaddr = addr;
 }
 
 static void dump_conditions(pTHX) {
@@ -1395,31 +1400,6 @@ static OP *get_condition(pTHX) {
     exit(1);
   }
   return PL_op;
-}
-
-static void finalise_conditions(pTHX) {
-  /*
-   * Our algorithm for conditions relies on ending up at a particular op which
-   * we use to call get_condition().  It's possible that we never get to that
-   * op; for example we might return out of a sub. This causes us to lose
-   * coverage information.
-   *
-   * This function is called after the program has been run in order to collect
-   * that lost information.
-   */
-
-  HE *e;
-
-  NDEB(D(L, "finalise_conditions\n"));
-  /* dump_conditions(aTHX); */
-  NDEB(svdump(Pending_conditionals));
-
-  MUTEX_LOCK(&DC_mutex);
-  hv_iterinit(Pending_conditionals);
-
-  while ((e = hv_iternext(Pending_conditionals)))
-    add_condition(aTHX_ hv_iterval(Pending_conditionals, e), 0, 0, NULL);
-  MUTEX_UNLOCK(&DC_mutex);
 }
 
 /*
@@ -2652,6 +2632,8 @@ static void cover_logop(pTHX_ OP *next_op, SSize_t depth) {
           right->op_type == OP_GOTO   ||
           right->op_type == OP_RETURN ||
           right->op_type == OP_DIE    ||
+          right->op_type == OP_EXIT   ||
+          right->op_type == OP_EXEC   ||
           dc_is_noreturn_call(aTHX_ find_runcv(NULL), right)) {
         /*
          * If we are in void context, or the right side of the op is a branch,
@@ -3899,7 +3881,9 @@ coverage(final)
     if (MY_CXT.statements)
       dc_stmt_cache_flush(aTHX_ &MY_CXT.stmt_cache, MY_CXT.statements);
     if (final) {
-      finalise_conditions(aTHX);
+      MUTEX_LOCK(&DC_mutex);
+      pending_finalise(aTHX);
+      MUTEX_UNLOCK(&DC_mutex);
       finalise_decisions(aTHX);
     }
     if (MY_CXT.cover)
