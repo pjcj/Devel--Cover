@@ -17,13 +17,14 @@ produce the same branch and condition coverage data.
 
 ## Background: the condition array
 
-Each logical op has a 6-element condition array (see
+Each logical op has a 7-element condition array (see
 `branches_and_conditions.md` for the full layout). The slots relevant here are:
 
 ```text
 [1]  not short-circuited, right operand was false
 [2]  not short-circuited, right operand was true
 [3]  short-circuited (left operand determined the result)
+[6]  not short-circuited, right operand gave no value
 ```
 
 The short-circuit path (slot [3]) is simple. `cover_logop()` runs after the
@@ -57,12 +58,17 @@ When `cover_logop()` handles the non-short-circuit path:
    - `[1]` the original `op_ppaddr` of `next`
    - `[2+]` the logical ops waiting for resolution at this target
 
-3. It replaces `next->op_ppaddr` with `get_condition`.
+3. It records the logical op on `MY_CXT.pending_stack`, the stack of live
+   pending entries, with the AV it joined and the position it ran at, the stack
+   info depth and `cxstack_ix`. `add_condition()` removes the record when it
+   counts the logical op.
 
-4. When the normal Perl execution loop reaches `next`, it calls the hijacked
+4. It replaces `next->op_ppaddr` with `get_condition`.
+
+5. When the normal Perl execution loop reaches `next`, it calls the hijacked
    `op_ppaddr`, which is now `get_condition`.
 
-5. `get_condition()` reads the truth and the definedness of `TOPs` (the stack
+6. `get_condition()` reads the truth and the definedness of `TOPs` (the stack
    top, which holds the right operand's value), calls `add_condition()` to
    record slot [1] or [2] for each pending logical op, restores the original
    `op_ppaddr`, and returns `PL_op` so the hijacked op runs normally.
@@ -129,6 +135,37 @@ whose value equals the short-circuit value, false for an `and` and true for an
 circuited left the value, so a `//` pending on a jumped op still records `0` as
 defined.
 
+### Entries a die leaves behind
+
+When the right operand dies and an `eval` catches the die, the hijacked op does
+not run for that evaluation. Left alone, the entry would wait until a later
+evaluation reached the op and would then count with the value of that
+evaluation. If the later evaluation reached the op by another path, it would
+count with a value no right operand produced.
+
+The die unwinds the contexts of the evaluation, so from then on the position in
+its record on the live stack is deeper than the current position.
+`pending_discard_stale()` removes every record deeper than the current position,
+removes its logical op from the AV and counts that op in slot [6]. It runs at
+three points:
+
+- The runops loop restarts after the catch, and `runops_cover()` and
+  `runops_orig()` each drop the stale records before their loop starts.
+- The logical op runs again. `pending_push()` drops the stale records, and also
+  drops a record for the same op at the same position, since that evaluation
+  ended without reaching the hijacked op.
+- An evaluation at a shallower position reaches the hijacked op, or jumps past
+  it, and `add_condition()` drops the stale records before it counts the rest.
+
+A `last` or `goto` out of a sub does not restart the runops loop, so the entry
+it leaves stays pending. A later evaluation at a shallower position drops it, as
+does a later evaluation of the same logical op at the same position. A later
+evaluation at the same position that reaches the hijacked op by another path, as
+in `$x ? ($y || g()) : $y`, still counts it.
+
+A two-outcome table and the branch counts read slot [6] as `!l`, because they
+need only the left operand. A three-outcome table ignores slot [6].
+
 ### Location in Cover.xs
 
 - Declaration: `static HV *Pending_conditionals`
@@ -136,6 +173,7 @@ defined.
 - Resolution in `get_condition()`
 - Resolution at a short circuit that jumps past the hijacked op in
   `resolve_skipped_conditions()`, called from `credit_short_circuit()`
+- Removal of stale entries in `pending_discard_stale()`
 - End-of-run cleanup in `finalise_conditions()`
 
 ## deferred_conditionals: the runops-exit mechanism

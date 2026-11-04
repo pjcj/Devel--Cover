@@ -2,8 +2,8 @@ cover: Reading database from ...
 ------------------- ------ ------ ------ ------ ------ ------ ------
 File                  stmt   bran   cond   mcdc    sub  total   scar
 ------------------- ------ ------ ------ ------ ------ ------ ------
-tests/mcdc_nonlocal  100.0   50.0   66.6   14.2  100.0   78.9   10.3
-Total                100.0   50.0   66.6   14.2  100.0   78.9   10.3
+tests/mcdc_nonlocal  100.0   50.0   58.3   14.2  100.0   77.1   10.8
+Total                100.0   50.0   58.3   14.2  100.0   77.1   10.8
 ------------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,14 +20,14 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
- 7 86.0  2.8 10.3
+ 7 83.7  3.0 10.8
 
 Worst Subroutines
 -----------------
 
 Subroutine        CC SCAR  Location              
 ----------------- -- ----  ----------------------
-dies_mid_decision  4 14.6  tests/mcdc_nonlocal:22
+dies_mid_decision  4 15.6  tests/mcdc_nonlocal:22
 sorted             3 11.3  tests/mcdc_nonlocal:41
 recurse            2  7.0  tests/mcdc_nonlocal:30
 
@@ -59,7 +59,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 21                                             # contaminated by the aborted evaluation's column values.
 22                                         2   sub dies_mid_decision {
 23             2                                 my ($p, $q) = @_;
-24    ***      2   * 50   * 66   *  0            my $r = ($p && $q && boom()) ? 1 : 0;
+24    ***      2   * 50   * 33   *  0            my $r = ($p && $q && boom()) ? 1 : 0;
       ***                 * 66                 
 25             1                                 $r
 26                                             }
@@ -116,7 +116,7 @@ and 3 conditions
 
 line  err      %     !l  l&&!r   l&&r   expr
 ----- --- ------ ------ ------ ------   ----
-24    ***     66      1      1      0   $p and $q and boom()
+24    ***     33      1      0      0   $p and $q and boom()
       ***     66      1      0      1   $p and $q
 
 or 3 conditions
@@ -145,7 +145,7 @@ Subroutine        Count  CC  SCAR Location
 BEGIN                 1           tests/mcdc_nonlocal:14
 BEGIN                 1           tests/mcdc_nonlocal:15
 boom                  1   1   0.0 tests/mcdc_nonlocal:17
-dies_mid_decision     2   4  14.6 tests/mcdc_nonlocal:22
+dies_mid_decision     2   4  15.6 tests/mcdc_nonlocal:22
 main                  1   1   0.0 tests/mcdc_nonlocal:47
 recurse               2   2   7.0 tests/mcdc_nonlocal:30
 sorted                3   3  11.3 tests/mcdc_nonlocal:41

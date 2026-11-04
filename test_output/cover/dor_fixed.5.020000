@@ -2,8 +2,8 @@ cover: Reading database from ...
 --------------- ------ ------ ------ ------ ------ ------ ------
 File              stmt   bran   cond   mcdc    sub  total   scar
 --------------- ------ ------ ------ ------ ------ ------ ------
-tests/dor_fixed  100.0   94.4   91.6   79.6  100.0   93.7   12.2
-Total            100.0   94.4   91.6   79.6  100.0   93.7   12.2
+tests/dor_fixed  100.0   94.4   90.7   79.6  100.0   93.4   12.2
+Total            100.0   94.4   90.7   79.6  100.0   93.4   12.2
 --------------- ------ ------ ------ ------ ------ ------ ------
 
 
@@ -20,7 +20,7 @@ File Summary
 
 CC  Cov CRAP SCAR
 -- ---- ---- ----
-57 96.0  3.4 12.2
+57 95.6  3.4 12.2
 
 Worst Subroutines
 -----------------
@@ -81,7 +81,7 @@ line  err   stmt   bran   cond   mcdc    sub   code
 37                                         2   sub dynamic {
 38             2                                 my ($x, $o) = @_;
 39             2                                 my $m = "usage_die";
-40    ***      2          * 66   *  0            my $r = $x // $o->$m("no");
+40    ***      2          * 33   *  0            my $r = $x // $o->$m("no");
 41             1                                 $r
 42                                             }
 43                                             
@@ -329,7 +329,7 @@ or 3 conditions
 line  err      %      l  !l&&r !l&&!r   expr
 ----- --- ------ ------ ------ ------   ----
 35    ***     66      1      1      0   $x // $o->helper
-40    ***     66      1      0      1   $x // $o->$m("no")
+40    ***     33      1      0      0   $x // $o->$m("no")
 67    ***     66      2      2      0   $x // ($y ? $y : "b")
 97    ***     66      2      2      0   $x // ($y || $z)
       ***     66      1      1      0   $y or $z
@@ -398,7 +398,7 @@ BEGIN                 1           tests/dor_fixed:10
 BEGIN                 1           tests/dor_fixed:11 
 class                 2   2   6.9 tests/dor_fixed:34 
 dor_super             2   2   6.9 tests/dor_fixed:23 
-dynamic               2   2   7.0 tests/dor_fixed:37 
+dynamic               2   2   7.4 tests/dor_fixed:37 
 helper                1   1   0.0 tests/dor_fixed:17 
 last_index            2   2   6.9 tests/dor_fixed:44 
 last_index_ref        2   2   6.9 tests/dor_fixed:45 

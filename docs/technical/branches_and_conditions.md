@@ -181,7 +181,7 @@ feeds both branch and condition coverage at the Perl level.
 
 ### The condition array
 
-Each logical op has a 6-element array stored in `$Coverage->{condition}` keyed
+Each logical op has a 7-element array stored in `$Coverage->{condition}` keyed
 by op address. The indices track different outcomes:
 
 ```text
@@ -193,6 +193,7 @@ Index   Meaning
   3     Count: short-circuited (left determined the result)
   4     Unused for and/or/dor
   5     Flag: void context
+  6     Count: not short-circuited, right operand gave no value
 ```
 
 `xor` cannot short-circuit, so `cover_xor` records its slots directly as the
@@ -240,7 +241,11 @@ four operand combinations: 1 = `!l&&!r`, 2 = `l&&!r`, 3 = `l&&r`, 4 = `!l&&r`.
 
 5. **`finalise_conditions`** runs after the program finishes. Any pending
    conditions that were never resolved (e.g., because of an early `return`
-   before the right operand's follow-on op was reached) are collected here.
+   before the right operand's follow-on op was reached) are collected here. An
+   entry whose right operand died inside an `eval` never sees the value of its
+   right operand, so it counts at index 6 instead. A two-outcome table and the
+   branch counts read index 6 with indices 1 and 2, since they need only the
+   left operand. A three-outcome table ignores it.
 
 6. **Branch without condition**: when branch coverage is collected without
    condition coverage, `cover_logop` still records outcomes for `OP_AND` and
@@ -274,10 +279,10 @@ the raw condition array from the XS layer.
 
 For `and`/`or` type branches (where branch coverage is derived from condition
 data), the function reads from `$Coverage->{condition}{$key}` and collapses the
-6-element array into 2 values:
+7-element array into 2 values:
 
 ```perl
-$c = [ $c->[1] + $c->[2], $c->[3] ];
+$c = [ $c->[1] + $c->[2] + $c->[6], $c->[3] ];
 ```
 
 The index meanings differ by operator. For `and`, index 1 is `l && !r`, index 2
@@ -293,7 +298,7 @@ spelling via `OPpSTATEMENT` from 5.43.8. Its collapse is mirrored so "true"
 follows the displayed text, meaning the left operand was true:
 
 ```perl
-$c = [ $c->[3], $c->[1] + $c->[2] ];
+$c = [ $c->[3], $c->[1] + $c->[2] + $c->[6] ];
 ```
 
 The `and` type needs no mirror because its standard collapse already reads
@@ -329,7 +334,7 @@ flow op like `next`, `die`, `return`):
 
 ```perl
 # Columns: short-circuit count first: !l, l for and; l, !l for or
-$c = [ $c->[3], $c->[1] + $c->[2] ];
+$c = [ $c->[3], $c->[1] + $c->[2] + $c->[6] ];
 ```
 
 The right operand's truth value does not matter in this case, so only two
