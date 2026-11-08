@@ -14,8 +14,10 @@ no warnings qw( experimental::postderef experimental::signatures );
 
 # VERSION
 
-use Devel::Cover::DB::IO;
-use Devel::Cover::Log qw( dcinfo dcwarn );
+use File::Spec ();
+
+use Devel::Cover::DB::IO ();
+use Devel::Cover::Log    qw( dcinfo dcwarn );
 
 my $File = "digests";
 
@@ -59,6 +61,13 @@ sub set ($self, $file, $digest) {
   $self->{digests}{$digest} = $file;
 }
 
+sub _holds ($self, $file, $digest) {
+  my $path = File::Spec->rel2abs($file, $self->{dir});
+  return unless -e $path;
+  my $found = Devel::Cover::DB::Structure->digest($path);
+  $found && $found eq $digest
+}
+
 sub canonical_file ($self, $file) {
   my $cfile = $file;
   require Devel::Cover::DB::Structure;
@@ -66,7 +75,7 @@ sub canonical_file ($self, $file) {
 
   if ($digest) {
     my $dfile = $self->get($digest);
-    if ($dfile && $dfile ne $file) {
+    if ($dfile && $dfile ne $file && $self->_holds($dfile, $digest)) {
       dcinfo "Adding coverage for $file to $dfile";
       $cfile = $dfile;
     } else {
@@ -109,9 +118,10 @@ This module stores digests for Devel::Cover::DB.
 
 =head2 new
 
- my $digests = Devel::Cover::DB::Digests->new(db => $DB);
+ my $digests = Devel::Cover::DB::Digests->new(db => $DB, dir => $Dir);
 
-Constructs the digests object.
+Constructs the digests object.  C<dir> is the directory that relative file
+names are relative to.  It defaults to the current directory.
 
 =head2 read
 
@@ -124,6 +134,15 @@ Read the digests from the DB.
  $digests->write;
 
 Write the digests to the DB.
+
+=head2 canonical_file ($file)
+
+ my $name = $digests->canonical_file($file);
+
+Return the name under which to record coverage for C<$file>.  If the digests
+map the content of C<$file> to another name, and that name still holds the
+same content, return that name.  Otherwise store C<$file> against its digest
+and return C<$file>.
 
 =head1 LICENCE
 
