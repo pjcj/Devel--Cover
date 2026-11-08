@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Number a sub that a later run adds to a stored structure, such as a `BEGIN`
+  block from a conditional `eval "use M"`, after every entry the structure
+  holds, so that its counts no longer go to other code in the file (GH-922)
 - Record the coverage of a file that was renamed or moved since an earlier run
   into the same database, instead of sending it to its old name and dropping it
   when that name no longer exists (GH-920)

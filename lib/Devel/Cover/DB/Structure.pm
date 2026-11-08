@@ -89,7 +89,6 @@ sub get_count ($self, $file, $criterion) {
 sub add_count ($self, $criterion) {
   my $file = $self->{file};
   return unless defined $file;  # can happen during self_cover
-  $self->{additional_count}{$criterion}{$file}++ if $self->{additional};
   (
     $self->{count}{$criterion}{$file}++,
     !$self->reuse($file)
@@ -127,19 +126,11 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
       # sub doesn't exist, for example a conditional C<eval "use M">
       $self->{additional} = 1;
       $self->{dirty}{$file} = 1;
-      if (exists $self->{additional_count}{ ($self->criteria)[0] }{$file}) {
-        # already had such a sub in module
-        $self->{count}{$_}{$file}
-          = $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
-          = ($self->add_count($_))[0]
-          for $self->criteria;
-      } else {
-        # first such a sub in module
-        $self->{count}{$_}{$file} = $self->{additional_count}{$_}{$file}
-          = $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
-          = $self->{f}{$file}{start}{-1}{__COVER__}[$scount]{$_}
-          for $self->criteria;
-      }
+      # callers push each new entry, so the list length is the next free index
+      $self->{count}{$_}{$file}
+        = $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
+        = ($self->{f}{$file}{$_} // [])->@*
+        for $self->criteria;
     }
   } else {
     # first time sub seen in new structure
@@ -428,6 +419,9 @@ C<BEGIN> blocks).
 There are three cases: reusing an existing structure, adding a new subroutine
 to a reused structure (e.g. a conditional C<< eval "use M" >>), and recording
 a subroutine in a new structure.
+
+Number a subroutine added to a reused structure after every entry the structure
+holds, so that its counts do not go to other code.
 
 Returns a sub_id arrayref C<[$file, $line, $sub_name, $scount]> suitable for
 passing to L</set_complexity>.
