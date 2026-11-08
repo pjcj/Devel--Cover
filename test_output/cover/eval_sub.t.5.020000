@@ -68,14 +68,15 @@ line  err   stmt   bran   cond   mcdc    sub   code
                3                               
                3                               
 15             4                               print "3 - $x\n";
-16             4    100                        if ($x < 4) { eval 'sub s2 { print "s2\n" }'; s2() }
+16             4    100                    1   if ($x < 4) { eval 'sub s2 { print "s2\n" }'; s2() }
+               1                               
                1                               
                1                               
 17             4                               print "4 - $x\n";
-18             4    100                    4   if ($x < 6) { eval 'sub s3 { print "s3\n" }'; s3() }
+18             4    100                    3   if ($x < 6) { eval 'sub s3 { print "s3\n" }'; s3() }
                3                               
                3                               
-               4                               
+               3                               
 19             4                               print "5 - $x\n";
 
 
@@ -114,7 +115,8 @@ Subroutine        Count  CC  SCAR Location
 ----------------- ----- --- ----- --------------
 BEGIN                 4           tests/eval3:10
 s1                    3   1   0.0 tests/eval3:14
-s3                    4   1   0.0 tests/eval3:18
+s2                    1   1   0.0 tests/eval3:16
+s3                    3   1   0.0 tests/eval3:18
 {file-level code}         5  16.1 tests/eval3:10
 
 

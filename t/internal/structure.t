@@ -486,14 +486,15 @@ sub test_set_subroutine_reuse_additional_first () {
   $st->add_criteria("statement");
 
   # Set up reusable structure but without the sub we'll request
-  $st->{f}{$file}{start}{-1}{__COVER__} = [{ statement => 10 }];
+  $st->{f}{$file}{start}{-1}{__COVER__} = [{ statement => 4 }];
+  $st->{f}{$file}{statement} = [1 .. 10];
 
   $st->set_subroutine("newsub", $file, 20, 0);
 
   ok $st->{additional},
     "set_sub reuse additional first: additional flag is true";
   is $st->{count}{statement}{$file}, 10,
-    "set_sub reuse additional first: count from __COVER__";
+    "set_sub reuse additional first: count from the number of stored entries";
 }
 
 sub test_set_subroutine_reuse_additional_repeat () {
@@ -502,18 +503,28 @@ sub test_set_subroutine_reuse_additional_repeat () {
   $st->set_file($file);
   $st->add_criteria("statement");
 
-  # Set up reusable structure without the sub
-  $st->{f}{$file}{start}{-1}{__COVER__} = [{ statement => 10 }];
-  # Simulate that we've already seen an additional sub in this file
-  $st->{additional_count}{statement}{$file} = 1;
+  $st->{f}{$file}{start}{-1}{__COVER__} = [{ statement => 4 }];
+  $st->{f}{$file}{statement}            = [1 .. 10];
+  $st->{f}{$file}{start}{10}{oldsub}    = [{ statement => 2 }];
+
+  $st->set_subroutine("newsub", $file, 20, 0);
+  is $st->{count}{statement}{$file}, 10,
+    "set_sub reuse additional repeat: new sub follows the stored entries";
+
+  for (1 .. 3) {
+    $st->add_count("statement");
+    $st->add_statement($file, 20);
+  }
+
+  $st->set_subroutine("oldsub", $file, 10, 0);
+  is $st->{count}{statement}{$file}, 2,
+    "set_sub reuse additional repeat: stored sub restores its count";
 
   $st->set_subroutine("another", $file, 30, 0);
-
   ok $st->{additional},
     "set_sub reuse additional repeat: additional flag is true";
-  # Count should come from add_count, not from __COVER__
-  ok defined $st->{f}{$file}{start}{30}{another}[0]{statement},
-    "set_sub reuse additional repeat: start entry created";
+  is $st->{f}{$file}{start}{30}{another}[0]{statement}, 13,
+    "set_sub reuse additional repeat: next new sub follows every entry";
 }
 
 sub test_add_count_with_additional () {
@@ -525,8 +536,7 @@ sub test_add_count_with_additional () {
 
   my ($n, $new) = $st->add_count("statement");
   is $n, 0, "add_count additional: returns count";
-  is $st->{additional_count}{statement}{$file}, 1,
-    "add_count additional: increments additional_count";
+  ok $new, "add_count additional: entry is new";
 }
 
 sub test_add_count_reuse_not_additional () {
