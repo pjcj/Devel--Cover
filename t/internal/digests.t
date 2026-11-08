@@ -20,14 +20,17 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
+use Cwd        qw( getcwd );
 use File::Path qw( make_path );
 use File::Spec ();
 use File::Temp qw( tempdir );
 use Test::More import => [qw( done_testing is is_deeply like ok )];
 
-use Devel::Cover::DB::Digests ();
+use Devel::Cover::DB::Digests   ();
+use Devel::Cover::DB::Structure ();
 
 my $Tmpdir = tempdir(CLEANUP => 1);
+my $Start  = getcwd;
 
 {
   no feature "signatures";
@@ -133,12 +136,80 @@ sub test_corrupt_self_heals () {
     "self heal: rewritten file reads back cleanly";
 }
 
+sub write_file ($path, $contents) {
+  open my $fh, ">", $path or die "Cannot write $path: $!";
+  print $fh $contents;
+  close $fh or die "Cannot close $path: $!";
+  $path
+}
+
+sub digest_of ($path) { Devel::Cover::DB::Structure->digest($path) }
+
+sub canonical_in ($dir, $digests, $file) {
+  local $Devel::Cover::Silent = 1;
+  chdir $dir or die "Cannot chdir to $dir: $!";
+  my $cfile = $digests->canonical_file($file);
+  chdir $Start or die "Cannot chdir to $Start: $!";
+  $cfile
+}
+
+sub test_stored_name_missing () {
+  my $dir     = fresh_db("missing");
+  my $digest  = digest_of(write_file("$dir/new.pl", "print 1;\n"));
+  my $digests = Devel::Cover::DB::Digests->new(db => $dir, dir => $dir);
+  $digests->set("old.pl", $digest);
+
+  is canonical_in($dir, $digests, "new.pl"), "new.pl",
+    "missing: keeps the name of a file whose stored name is gone";
+  is $digests->get($digest), "new.pl", "missing: stores the new name";
+}
+
+sub test_stored_name_same () {
+  my $dir = fresh_db("same");
+  write_file("$dir/$_", "print 1;\n") for qw( orig.pl copy.pl );
+  my $digests = Devel::Cover::DB::Digests->new(db => $dir, dir => $dir);
+
+  is canonical_in($dir, $digests, "orig.pl"), "orig.pl",
+    "same: keeps the first name";
+  is canonical_in($dir, $digests, "copy.pl"), "orig.pl",
+    "same: redirects to a stored name with the same content";
+}
+
+sub test_stored_name_changed () {
+  my $dir = fresh_db("changed");
+  write_file("$dir/orig.pl", "print 2;\n");
+  my $digest  = digest_of(write_file("$dir/copy.pl", "print 1;\n"));
+  my $digests = Devel::Cover::DB::Digests->new(db => $dir, dir => $dir);
+  $digests->set("orig.pl", $digest);
+
+  is canonical_in($dir, $digests, "copy.pl"), "copy.pl",
+    "changed: keeps the name of a file whose stored name has other content";
+  is $digests->get($digest), "copy.pl", "changed: stores the new name";
+}
+
+sub test_relative_to_dir () {
+  my $dir = fresh_db("relative");
+  write_file("$dir/orig.pl", "print 1;\n");
+  my $copy    = write_file("$dir/copy.pl", "print 1;\n");
+  my $digest  = digest_of($copy);
+  my $digests = Devel::Cover::DB::Digests->new(db => $dir, dir => $dir);
+  $digests->set("orig.pl", $digest);
+
+  local $Devel::Cover::Silent = 1;
+  is $digests->canonical_file($copy), "orig.pl",
+    "relative: resolves a stored name against dir";
+}
+
 sub main () {
   test_new_no_db;
   test_round_trip;
   test_corrupt_read;
   test_corrupt_read_silent;
   test_corrupt_self_heals;
+  test_stored_name_missing;
+  test_stored_name_same;
+  test_stored_name_changed;
+  test_relative_to_dir;
 }
 
 main;

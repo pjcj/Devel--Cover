@@ -464,8 +464,11 @@ sub autosplit_parent ($file) {
       last if $file =~ s|^\Q$dir\E/||;
     }
 
-    $Digests ||= Devel::Cover::DB::Digests->new(db => $DB,
-      loose_perms => $Loose_perms);
+    $Digests ||= Devel::Cover::DB::Digests->new(
+      db          => $DB,
+      dir         => $Dir,
+      loose_perms => $Loose_perms,
+    );
     $file = $Digests->canonical_file($file);
 
     $Normalising = 0;
