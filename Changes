@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Find an `uncoverable` or `noreturn` comment after code that holds a `#`, such
+  as `$#a` or a `"#"` string, so the comment is no longer ignored without a
+  warning (GH-928)
 - Read a database file in Storable format with blessing and tying turned off,
   refuse to read one that an old Storable cannot read that way unless Storable
   is the configured format, and refuse to read an object with the Sereal

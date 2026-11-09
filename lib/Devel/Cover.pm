@@ -511,7 +511,7 @@ sub _noreturn_names ($file) {
   my %names = map { $_ => 1 } @Noreturn_default;
   open my $fh, "<", $file or return \%names;
   while (my $l = <$fh>) {
-    next unless $l =~ /^[^#]*# dc noreturn (.*)/;
+    next unless $l =~ /^(?:[^#]|(?<=\S)#)*?# dc noreturn (.*)/;
     $names{$_} = 1 for split " ", $1;
   }
   close $fh or die "Can't close $file: $!";
