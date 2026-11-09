@@ -360,6 +360,58 @@ PERL
     "recorded vectors are as wide as the table";
 }
 
+# A noreturn annotation after a "#" in the code names its sub
+sub test_noreturn_after_hash () {
+  my $script = write_script("noreturn_hash.pl", <<'PERL');
+my @a = (1);
+my $last = $a[$#a];  # dc noreturn usage_die
+sub usage_die { die "usage\n" }
+sub f { my ($c) = @_; my $n = $c || usage_die(); $n }
+f(1);
+eval { f(0) };
+PERL
+
+  my ($db, $path) = run_under_cover($script, "noreturn_hash");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for noreturn_hash";
+  is @$di,                          1, "one decision recorded";
+  is grep(/\|/, keys $di->[0]->%*), 0, "the decision is one column wide";
+}
+
+# A noreturn annotation right after code, with no space, names its sub
+sub test_noreturn_no_space_before_hash () {
+  my $script = write_script("noreturn_nospace.pl", <<'PERL');
+my $n = 1;# dc noreturn usage_die
+sub usage_die { die "usage\n" }
+sub f { my ($c) = @_; my $r = $c || usage_die(); $r }
+f(1);
+eval { f(0) };
+PERL
+
+  my ($db, $path) = run_under_cover($script, "noreturn_nospace");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for noreturn_nospace";
+  is @$di,                          1, "one decision recorded";
+  is grep(/\|/, keys $di->[0]->%*), 0, "the decision is one column wide";
+}
+
+# A noreturn annotation inside another comment names no sub
+sub test_noreturn_hash_in_comment () {
+  my $script = write_script("noreturn_comment.pl", <<'PERL');
+# see # dc noreturn helper
+sub helper { 0 }
+sub g { my ($c) = @_; my $r = $c || helper(); $r }
+g(1);
+g(0);
+PERL
+
+  my ($db, $path) = run_under_cover($script, "noreturn_comment");
+  my $di = decision_inputs_for($db, $path);
+  ok $di, "decision_inputs present for noreturn_comment";
+  is @$di, 1, "one decision recorded";
+  ok grep(/\|/, keys $di->[0]->%*), "the decision is two columns wide";
+}
+
 # A void logop under another logop is an expression, as the Perl-side walk
 # classifies it, so the chain beneath it records into the table of its root.
 sub test_void_dor_die_chain () {
@@ -759,6 +811,10 @@ sub main () {
   subtest "void dor die chain"          => \&test_void_dor_die_chain;
   subtest "scalar right vectors"        => \&test_scalar_right_vectors;
   subtest "scalar noreturn vectors"     => \&test_scalar_noreturn_vectors;
+  subtest "noreturn after hash"         => \&test_noreturn_after_hash;
+  subtest "noreturn no space before hash" =>
+    \&test_noreturn_no_space_before_hash;
+  subtest "noreturn hash in comment"    => \&test_noreturn_hash_in_comment;
   subtest "nested root in sub argument" => \&test_nested_root_in_sub_argument;
   subtest "repeated observation"        => \&test_repeated_observation;
   subtest "no inputs without mcdc"      => \&test_no_inputs_without_mcdc;
