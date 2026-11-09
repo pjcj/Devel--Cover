@@ -16,6 +16,7 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
+use File::Path qw( make_path );
 use File::Spec ();
 use JSON::PP   ();
 use Test::More import => [qw( diag done_testing is like ok skip unlike )];
@@ -85,6 +86,31 @@ sub test_mixed_reports () {
   }
 }
 
+sub absolute_outputfile ($report) {
+  my $dir    = outdir("abs_$report");
+  my $target = outdir("abs_target");
+  make_path $target;
+  my $file = File::Spec->catfile($target, "$report.out");
+  my ($out, $exit) = run_cover(
+    "--report",    $report, "--outputfile", $file,
+    "--outputdir", $dir,    "--nosummary",  "--silent",
+    $Cover_db,
+  );
+  is $exit, 0, "cover --report $report with an absolute --outputfile exits 0"
+    or diag $out;
+  ok -s $file, "$report report written to the absolute path";
+  ok !-e File::Spec->catfile($dir, $file),
+    "$report report writes nothing under the output directory";
+}
+
+sub test_absolute_outputfile () {
+  absolute_outputfile("text");
+  SKIP: {
+    skip "JSON::MaybeXS required for the json reports", 6 unless $Have_json;
+    absolute_outputfile($_) for qw( json json_summary );
+  }
+}
+
 sub test_unknown_option () {
   my ($out, $exit) = run_cover(
     "--report", "text", "--outputfyle", "x.txt", "--silent", $Cover_db,
@@ -98,6 +124,7 @@ sub main () {
   test_compilation_report;
   test_json_summary_report;
   test_mixed_reports;
+  test_absolute_outputfile;
   test_unknown_option;
   done_testing;
 }

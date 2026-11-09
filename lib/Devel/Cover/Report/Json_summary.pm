@@ -17,6 +17,7 @@ no warnings qw( experimental::postderef experimental::signatures );
 use Devel::Cover::Criterion    ();
 use Devel::Cover::DB::IO::JSON ();
 use Devel::Cover::Log          qw( dcinfo );
+use Devel::Cover::Path         qw( output_path );
 use Getopt::Long               qw( GetOptions );
 
 sub add_runs ($db) {
@@ -44,9 +45,8 @@ sub report ($pkg, $db, $options) {
 
   my $json = { runs => add_runs($db), summary => $summary };
 
-  my $path = $options->{option}{outputfile} // "cover.json";
-  $path = "$options->{outputdir}/$path" unless $path =~ m{^/};
-  my $io = Devel::Cover::DB::IO::JSON->new(options => "pretty");
+  my $path = output_path($options->{outputdir}, $options->{option}{outputfile});
+  my $io   = Devel::Cover::DB::IO::JSON->new(options => "pretty");
 
   $io->write($json, $path);
 
