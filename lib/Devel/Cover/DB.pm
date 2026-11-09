@@ -91,7 +91,10 @@ sub all_criteria_short ($self) { $self->{all_criteria_short}->@* }
 sub files              ($self) { $self->{files}->@* }
 
 sub read ($self, $file) {
-  my $io = Devel::Cover::DB::IO->new(loose_perms => $self->{loose_perms});
+  my $io      = Devel::Cover::DB::IO->new(loose_perms => $self->{loose_perms});
+  my $refusal = $io->refusal($file);
+  # a refused file is valid, so writing over it would lose data
+  die $refusal if defined $refusal;
   my $db = eval { $io->read($file) };
   if ($@ || !$db) {
     chomp(my $err = $@);
@@ -1621,7 +1624,8 @@ files added via the C<files> option).
   $db->read($file);
 
 Read a serialised database from C<$file>. Populates C<runs> and
-C<files>. Returns C<$self>.
+C<files>. Returns C<$self>. Dies when the IO layer refuses to read C<$file>,
+and warns for any other failure.
 
 =head2 write
 

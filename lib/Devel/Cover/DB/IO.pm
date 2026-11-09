@@ -58,7 +58,21 @@ sub _sniff_format ($file) {
   undef
 }
 
+sub refusal ($self, $file) {
+  my $format = _sniff_format($file) // $self->{format};
+  # read a sniffed Storable file only where Storable can ignore its objects
+  return undef
+    if $format ne "Storable"
+    || $self->{format} eq "Storable"
+    || _backend($format)->ignores_objects;
+  "Devel::Cover: $file is a Storable file, and Storable "
+    . "$Storable::VERSION cannot read it without restoring its objects. "
+    . "Set DEVEL_COVER_DB_FORMAT=Storable to read it anyway.\n"
+}
+
 sub read ($self, $file) {
+  my $refusal = $self->refusal($file);
+  die $refusal if defined $refusal;
   my $format = _sniff_format($file) // $self->{format};
   _backend($format)->new($self->{args}->%*)->read($file)
 }
@@ -107,13 +121,26 @@ Pass a true C<loose_perms> argument to make the lock files world writable, so
 that code changing EUID can still take the lock.  The data files themselves
 are written by rename, so they need only a writable directory.
 
+=head2 refusal
+
+ my $refusal = $io->refusal($file);
+
+Returns the message that C<read> dies with when it refuses to read C<$file>, or
+C<undef> when it may read the file.  C<read> refuses to read a Storable file
+when the configured format is not Storable and the installed Storable cannot
+turn off blessing and tying.
+
 =head2 read
 
  my $data = $io->read($file);
 
 Returns a Perl data structure representing the data read from C<$file>.  The
 format of the file on disk is detected from its content, so a database
-written under a different configuration can still be read.
+written under a different configuration can still be read.  It reads a file in
+Storable format with blessing and tying turned off.  When the configured format
+is not Storable and the installed Storable is older than 3.05, which cannot
+turn them off, the read dies rather than restore the objects in the file.
+Setting C<DEVEL_COVER_DB_FORMAT=Storable> reads such a file anyway.
 
 =head2 write
 

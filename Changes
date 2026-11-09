@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Read a database file in Storable format with blessing and tying turned off,
+  refuse to read one that an old Storable cannot read that way unless Storable
+  is the configured format, and refuse to read an object with the Sereal
+  backend, since no database that Devel::Cover writes holds an object (GH-926)
 - Store the start of the top-level code of a required file, so a later run that
   adds a sub to the file no longer records that code twice (GH-924)
 - Count a statement, branch or condition under a `#line` directive against the

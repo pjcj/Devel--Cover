@@ -24,6 +24,20 @@ use Test::More import =>
 
 use Devel::Cover::DB::IO ();
 
+package Devel::Cover::DB::IO::Test::Hook {
+  our $Thawed = 0;
+  sub new ($class, $p) { bless { p => $p }, $class }
+
+  ## no critic (Capitalization)
+  sub STORABLE_freeze ($self, $cloning) { $self->{p} }
+
+  sub STORABLE_thaw ($self, $cloning, $serialised) {
+    $Thawed++;
+    $self->{p} = $serialised
+  }
+  ## use critic
+}
+
 my $Tmpdir = tempdir(CLEANUP => 1);
 
 my @Formats = grep {
@@ -101,7 +115,13 @@ sub test_cross_format_read () {
         }
         local $ENV{DEVEL_COVER_DB_FORMAT} = $read;
         my $got = eval { Devel::Cover::DB::IO->new->read($file) };
-        is_deeply $got, $Data, "write $write, read $read" or diag $@;
+        if ($write eq "Storable" && !defined $Storable::flags) {
+          ok !defined $got, "write $write, read $read returns nothing";
+          like $@, qr/DEVEL_COVER_DB_FORMAT=Storable/,
+            "write $write, read $read refused by old Storable";
+        } else {
+          is_deeply $got, $Data, "write $write, read $read" or diag $@;
+        }
       }
     }
   }
@@ -148,6 +168,49 @@ sub test_sereal_refuses_objects () {
   }
 }
 
+sub test_storable_objects_not_thawed () {
+  SKIP: {
+    skip "needs Storable",        1 unless any { $_ eq "Storable" } @Formats;
+    skip "needs a second format", 1 if @Formats < 2;
+    my $file = path("storable_object");
+    Storable::nstore(
+      {
+        runs  => {},
+        files => [],
+        x     => Devel::Cover::DB::IO::Test::Hook->new("payload"),
+      },
+      $file,
+    );
+    $Devel::Cover::DB::IO::Test::Hook::Thawed = 0;
+    my $plain = { runs => {}, files => [], x => {} };
+
+    for my $format (grep $_ ne "Storable", @Formats) {
+      local $ENV{DEVEL_COVER_DB_FORMAT} = $format;
+      my $got = eval { Devel::Cover::DB::IO->new->read($file) };
+      if (defined $Storable::flags) {
+        is_deeply $got, $plain, "$format read of a Storable object is plain"
+          or diag $@;
+      } else {
+        ok !defined $got, "$format read of a Storable object returns nothing";
+        like $@, qr/DEVEL_COVER_DB_FORMAT=Storable/,
+          "$format read refuses a Storable file on old Storable";
+      }
+    }
+
+    local $ENV{DEVEL_COVER_DB_FORMAT} = "Storable";
+    my $got = eval { Devel::Cover::DB::IO->new->read($file) };
+    if (defined $Storable::flags) {
+      is_deeply $got, $plain, "Storable read of a Storable object is plain"
+        or diag $@;
+    } else {
+      is_deeply $got->{runs}, {}, "Storable read on old Storable returns data"
+        or diag $@;
+    }
+    is $Devel::Cover::DB::IO::Test::Hook::Thawed, 0, "no thaw hook ran"
+      if defined $Storable::flags;
+  }
+}
+
 sub test_garbage_still_dies () {
   my $file = path("garbage");
   open my $fh, ">", $file or die "Cannot write $file: $!";
@@ -172,6 +235,7 @@ sub main () {
   test_format_argument;
   test_env_overrides_argument;
   test_sereal_refuses_objects;
+  test_storable_objects_not_thawed;
   test_garbage_still_dies;
   test_unrecognised_format_dies;
   done_testing;
