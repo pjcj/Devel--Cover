@@ -28,10 +28,13 @@ sub read ($self, $file) {
     $file,
     sub ($fh) {
       binmode $fh;
-      Storable::fd_retrieve($fh)
+      # flags 0 reads a blessed value as plain data and dies on a tied one
+      Storable::fd_retrieve($fh, 0)
     },
   )
 }
+
+sub ignores_objects ($class) { defined $Storable::flags }
 
 sub write ($self, $data, $file) {
   $self->write_fh(
@@ -87,6 +90,14 @@ Constructs the IO object.
  my $data = $io->read($file);
 
 Returns a Perl data structure representing the data read from C<$file>.
+
+=head2 ignores_objects
+
+ my $safe = Devel::Cover::DB::IO::Storable->ignores_objects;
+
+Returns true when this Storable reads a blessed value as plain data and dies on
+a tied one, which Storable 3.05 and later do.  Returns false for an older
+Storable, which blesses, ties and runs hooks whatever flags it gets.
 
 =head2 write
 

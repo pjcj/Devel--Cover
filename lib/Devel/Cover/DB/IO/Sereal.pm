@@ -31,8 +31,9 @@ sub read ($self, $file) {
     $file,
     sub ($fh) {
       local $/;
-      my $data
-        = eval { ($Decoder ||= Sereal::Decoder->new({}))->decode(<$fh>) };
+      # no database holds an object, so refuse to read one
+      $Decoder ||= Sereal::Decoder->new({ refuse_objects => 1 });
+      my $data   = eval { $Decoder->decode(<$fh>) };
       die "Can't read $file with Sereal: $@" if $@;
       $data
     },
