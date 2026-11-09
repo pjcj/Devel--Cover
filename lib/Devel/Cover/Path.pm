@@ -15,9 +15,10 @@ no warnings qw( experimental::postderef experimental::signatures );
 # VERSION
 
 use Exporter   qw( import );
+use File::Spec ();            ## no perlimports
 use List::Util qw( any min );
 
-our @EXPORT_OK = qw( common_prefix );
+our @EXPORT_OK = qw( common_prefix output_path );
 
 sub common_prefix (@files) {
   my @paths = grep $_ ne "Total", @files;
@@ -46,6 +47,12 @@ sub common_prefix (@files) {
   ($prefix, \%short)
 }
 
+sub output_path ($outputdir, $file, $spec = "File::Spec") {
+  $spec->file_name_is_absolute($file)
+    ? $file
+    : $spec->catfile($outputdir, $file)
+}
+
 "
 Master!
 Apprentice!
@@ -65,10 +72,13 @@ Devel::Cover::Path - Path manipulation subroutines for Devel::Cover
 
 =head1 SYNOPSIS
 
- use Devel::Cover::Path qw( common_prefix );
+ use Devel::Cover::Path qw( common_prefix output_path );
 
  # Strip the shared directory prefix from a list of files
  my ($prefix, $short) = common_prefix(@files);
+
+ # Place a report file under the output directory unless it is absolute
+ my $path = output_path($outputdir, $file);
 
 =head1 DESCRIPTION
 
@@ -90,6 +100,16 @@ empty), an empty prefix is returned and every path maps to itself.
 
 Entries equal to C<"Total"> are passed through unchanged and excluded from the
 prefix calculation.
+
+=head2 output_path ($outputdir, $file, $spec)
+
+ my $path = output_path($outputdir, $file);
+
+Return C<$file> when it is an absolute path, and C<$file> joined under
+C<$outputdir> otherwise.
+
+C<$spec> is the L<File::Spec> class to ask, so that tests can check the rules
+of another platform.  It defaults to C<File::Spec>.
 
 =head1 LICENCE
 

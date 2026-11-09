@@ -12,13 +12,14 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
-use FindBin ();
+use File::Spec ();
+use FindBin    ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
 use Test::More import => [qw( done_testing is is_deeply )];
 
-use Devel::Cover::Path qw( common_prefix );
+use Devel::Cover::Path qw( common_prefix output_path );
 
 sub test_empty_list () {
   my ($prefix, $short) = common_prefix();
@@ -117,6 +118,29 @@ sub test_no_shared_components () {
     "no shared components: short map";
 }
 
+sub test_output_path_relative () {
+  is output_path("cover_db", "cover.json"),
+    File::Spec->catfile("cover_db", "cover.json"), "output path: relative";
+}
+
+sub test_output_path_absolute () {
+  is output_path("cover_db", "/tmp/x.html"), "/tmp/x.html",
+    "output path: absolute";
+}
+
+sub test_output_path_win32 () {
+  require File::Spec::Win32;
+  my $spec = "File::Spec::Win32";
+  is output_path("out", "C:\\x.json", $spec), "C:\\x.json",
+    "output path: win32 drive and backslash";
+  is output_path("out", "C:/x.json", $spec), "C:/x.json",
+    "output path: win32 drive and slash";
+  is output_path("out", "\\\\host\\share\\x.json", $spec),
+    "\\\\host\\share\\x.json", "output path: win32 UNC";
+  is output_path("out", "x.json", $spec), "out\\x.json",
+    "output path: win32 relative";
+}
+
 sub main () {
   test_empty_list;
   test_single_file;
@@ -130,6 +154,9 @@ sub main () {
   test_three_levels_shared;
   test_mixed_depths;
   test_no_shared_components;
+  test_output_path_relative;
+  test_output_path_absolute;
+  test_output_path_win32;
   done_testing;
 }
 
