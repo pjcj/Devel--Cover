@@ -476,7 +476,8 @@ sub test_set_subroutine_reuse_existing () {
 
   is $st->{count}{statement}{$file}, 5,
     "set_sub reuse existing: restores count from start";
-  ok !$st->{additional}, "set_sub reuse existing: additional flag is false";
+  ok !$st->{additional}{$file},
+    "set_sub reuse existing: additional flag is false";
 }
 
 sub test_set_subroutine_reuse_additional_first () {
@@ -491,7 +492,7 @@ sub test_set_subroutine_reuse_additional_first () {
 
   $st->set_subroutine("newsub", $file, 20, 0);
 
-  ok $st->{additional},
+  ok $st->{additional}{$file},
     "set_sub reuse additional first: additional flag is true";
   is $st->{count}{statement}{$file}, 10,
     "set_sub reuse additional first: count from the number of stored entries";
@@ -521,7 +522,7 @@ sub test_set_subroutine_reuse_additional_repeat () {
     "set_sub reuse additional repeat: stored sub restores its count";
 
   $st->set_subroutine("another", $file, 30, 0);
-  ok $st->{additional},
+  ok $st->{additional}{$file},
     "set_sub reuse additional repeat: additional flag is true";
   is $st->{f}{$file}{start}{30}{another}[0]{statement}, 13,
     "set_sub reuse additional repeat: next new sub follows every entry";
@@ -532,7 +533,7 @@ sub test_add_count_with_additional () {
   my $st   = Devel::Cover::DB::Structure->new;
   $st->set_file($file);
   $st->add_criteria("statement");
-  $st->{additional} = 1;
+  $st->{additional}{$file} = 1;
 
   my ($n, $new) = $st->add_count("statement");
   is $n, 0, "add_count additional: returns count";
@@ -547,10 +548,24 @@ sub test_add_count_reuse_not_additional () {
 
   # Set up reuse so the || branch in add_count is tested
   $st->{f}{$file}{start}{-1}{__COVER__} = [{ statement => 0 }];
-  $st->{additional} = 0;
+  $st->{additional}{$file} = 0;
 
   my ($n, $new) = $st->add_count("statement");
   ok !$new, "add_count reuse not additional: new is false";
+}
+
+sub test_additional_per_file () {
+  my $one = write_source("add_file1.pm", "package AddFile1;\n1\n");
+  my $two = write_source("add_file2.pm", "package AddFile2;\n1\n");
+  my $st  = Devel::Cover::DB::Structure->new;
+  $st->add_criteria("statement");
+  $st->{f}{$_}{start}{-1}{__COVER__} = [{ statement => 2 }] for $one, $two;
+  $st->{f}{$two}{start}{10}{oldsub}  = [{ statement => 0 }];
+
+  $st->set_subroutine("newsub", $one, 20, 0);
+  $st->set_file($two);
+  my (undef, $new) = $st->add_count("statement");
+  ok !$new, "additional per file: a new sub of one file leaves the other alone";
 }
 
 sub write_corrupt_structure ($base, $digest) {
@@ -1001,6 +1016,7 @@ sub main () {
   test_set_subroutine_reuse_additional_repeat;
   test_add_count_with_additional;
   test_add_count_reuse_not_additional;
+  test_additional_per_file;
   test_read_corrupt;
   test_read_corrupt_keeps_valid;
   test_read_corrupt_silent;

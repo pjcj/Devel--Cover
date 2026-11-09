@@ -879,6 +879,8 @@ sub _report {
         return unless use_file($File);
         my $digest = $Structure->set_file($File);
         $Run{digests}{$File} ||= $digest;
+        # store the start of the top-level code
+        $Structure->set_subroutine("{file-level code}", $File, 0, 0);
         get_cover($cv, $root);
       },
       @require_trees,
@@ -957,12 +959,20 @@ sub add_subroutine_cover ($cv, $op) {
   $vec->{size} = $n + 1;
 }
 
+sub _set_structure_file ($file) {
+  my $current = $Structure->get_file;
+  return
+    if defined $current && $current eq $file && exists $Run{digests}{$file};
+  my $digest = $Structure->set_file($file);
+  $Run{digests}{$file} ||= $digest;
+}
+
 sub add_statement_cover ($op) {
   my $located = get_location($op);
   return unless $File;
 
-  $Run{digests}{$File} ||= $Structure->set_file($File);
-  $Run{count}{$File}   ||= {};
+  _set_structure_file($File);
+  $Run{count}{$File} ||= {};
   return $located unless $Coverage{statement} || $Coverage{time};
   my $key = get_key($op);
   my $val = $Coverage->{statement}{$key} || 0;
@@ -1003,6 +1013,7 @@ sub add_branch_cover ($op, $type, $text, $file, $line) {
     $c = $Coverage->{branch}{$key} || [0, 0];
   }
 
+  _set_structure_file($file);
   my ($n, $new) = $Structure->add_count("branch");
   $Structure->add_branch($file, [$line, { text => $text }]) if $new;
   my $ccount = $Run{count}{$file};
@@ -1197,6 +1208,7 @@ sub add_condition_cover (
     = _condition_structure($op, $strop, $left, $right, $left_op, $right_op,
       $cv);
 
+  _set_structure_file($File);
   my ($n, $new) = $Structure->add_count("condition");
 
   $Structure->add_condition($File, [$Line, $structure]) if $new;
@@ -1280,7 +1292,7 @@ sub _add_pod_cover ($cv) {
 
   my $pkg  = $gv->STASH->NAME;
   my %opts = _parse_pod_options();
-  $Run{digests}{$File} ||= $Structure->set_file($File);
+  _set_structure_file($File);
   $Pod{$pkg} ||= $Pod->new(package => $pkg, %opts);
   return unless $Pod{$pkg};
 
@@ -2110,13 +2122,14 @@ seeds the pad CVs, then walks the main program, the special blocks, every
 collected CV and the top-level code of each required file.  A file
 required more than once (after C<delete $INC{...}>, say) captures one op
 tree per compilation, each with distinct op addresses that C<%Seen>
-cannot collapse, so only the newest tree per file is walked.  Top-level
-require code has no C<set_subroutine> call, so the file context is
-established explicitly before each tree or the per-file counters would
-run against the wrong file.  Finally it writes the C<{file-level code}>
-complexity entry of each file in place of any an earlier run wrote, filters the
-collected files and writes the database.  Runs with the current directory set
-to C<$Dir> so relative names resolve as they did at compile time.
+cannot collapse, so only the newest tree per file is walked.  Before each
+tree it sets the file context with C<set_file> and gives the top-level code a
+stored start with C<set_subroutine> under the name C<{file-level code}> at line
+0, so that a sub new to a reused structure, walked before it, does not move its
+counters.  Finally it writes the C<{file-level code}> complexity entry of each
+file in place of any an earlier run wrote, filters the collected files and
+writes the database.  Runs with the current directory set to C<$Dir> so
+relative names resolve as they did at compile time.
 
 =head2 _filter_cover_files
 
@@ -2146,6 +2159,13 @@ sub's root op, so a closure clone shares its prototype's count.  Calls that
 bypass C<entersub>, such as C<goto &sub> and C<sort subname>, are not
 counted, and in C<-replace_ops 0> mode neither are subs called from C, such
 as C<DESTROY> and overload methods.
+
+=head2 _set_structure_file ($file)
+
+Make C<$file> the current file of the structure and record its digest.  A
+C<#line> directive can change the file inside a sub, so the statement, branch,
+condition and pod adders call it before they count.  It returns at once when
+the file is already current and the run has looked up its digest.
 
 =head2 add_statement_cover ($op)
 
