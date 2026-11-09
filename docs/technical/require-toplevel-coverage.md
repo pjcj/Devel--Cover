@@ -138,10 +138,11 @@ Devel::Cover now does:
 - the scheduled `SAVEFREEOP` then only decrements the refcount,
 - at report time `_report` fetches the triples via `get_require_trees` and walks
   each with `get_cover($cv, $root)`, exactly as `main_cv`/`main_root` is walked.
-  Since there is no `set_subroutine` call for top-level code, the walk first
-  establishes the structure's file context with `set_file`, or the per-file
-  statement counters would run against whichever file the CV walk touched last
-  (`set_file` is idempotent for the digest list to allow this),
+  The walk first calls `set_file`, which records the digest of the file in the
+  run. It then calls `set_subroutine` under the name `{file-level code}` at line
+  0, which marks the file current and gives the top-level code a stored start,
+  so that a sub new to a reused structure, walked before it, does not move its
+  counters,
 - `release_require_trees` frees the trees after the report, nulling `PL_comppad`
   around `op_free` as `cv_undef` does, because pad ops free their pad slots
   against the current pad, which by then belongs to something else. It is

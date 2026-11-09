@@ -423,6 +423,10 @@ a subroutine in a new structure.
 Number a subroutine added to a reused structure after every entry the structure
 holds, so that its counts do not go to other code.
 
+L<Devel::Cover> also calls this for the top-level code of each required file,
+under the name C<{file-level code}> at line 0, so that a subroutine new to a
+reused structure, walked before that code, does not move its counters.
+
 Returns a sub_id arrayref C<[$file, $line, $sub_name, $scount]> suitable for
 passing to L</set_complexity>.
 

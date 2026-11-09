@@ -879,6 +879,8 @@ sub _report {
         return unless use_file($File);
         my $digest = $Structure->set_file($File);
         $Run{digests}{$File} ||= $digest;
+        # store the start of the top-level code
+        $Structure->set_subroutine("{file-level code}", $File, 0, 0);
         get_cover($cv, $root);
       },
       @require_trees,
@@ -2110,13 +2112,14 @@ seeds the pad CVs, then walks the main program, the special blocks, every
 collected CV and the top-level code of each required file.  A file
 required more than once (after C<delete $INC{...}>, say) captures one op
 tree per compilation, each with distinct op addresses that C<%Seen>
-cannot collapse, so only the newest tree per file is walked.  Top-level
-require code has no C<set_subroutine> call, so the file context is
-established explicitly before each tree or the per-file counters would
-run against the wrong file.  Finally it writes the C<{file-level code}>
-complexity entry of each file in place of any an earlier run wrote, filters the
-collected files and writes the database.  Runs with the current directory set
-to C<$Dir> so relative names resolve as they did at compile time.
+cannot collapse, so only the newest tree per file is walked.  Before each
+tree it sets the file context with C<set_file> and gives the top-level code a
+stored start with C<set_subroutine> under the name C<{file-level code}> at line
+0, so that a sub new to a reused structure, walked before it, does not move its
+counters.  Finally it writes the C<{file-level code}> complexity entry of each
+file in place of any an earlier run wrote, filters the collected files and
+writes the database.  Runs with the current directory set to C<$Dir> so
+relative names resolve as they did at compile time.
 
 =head2 _filter_cover_files
 
