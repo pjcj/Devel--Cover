@@ -151,6 +151,26 @@ sub test_absolute_outputfile_html () {
   }
 }
 
+sub test_absolute_outputfile_html_after_other () {
+  SKIP: {
+    skip "Template required for the html reports", 4 unless $Have_template;
+    my $target = outdir("abs_target");
+    make_path $target;
+    my $file = File::Spec->catfile($target, "order.out");
+    my $dir  = outdir("abs_order");
+    my ($out, $exit) = run_cover(
+      "--report",     "vim", "--report",    "html",
+      "--outputfile", $file, "--outputdir", $dir,
+      "--silent",     $Cover_db,
+    );
+    isnt $exit, 0, "html refuses an absolute --outputfile after vim";
+    like $out, qr/-outputfile must be relative to -outputdir/,
+      "html names the problem after vim";
+    ok !-e $file, "vim writes nothing before html refuses";
+    ok !-d $dir,  "html writes no pages after vim";
+  }
+}
+
 sub test_unknown_option () {
   my ($out, $exit) = run_cover(
     "--report", "text", "--outputfyle", "x.txt", "--silent", $Cover_db,
@@ -167,6 +187,7 @@ sub main () {
   test_absolute_outputfile;
   test_absolute_outputfile_editor;
   test_absolute_outputfile_html;
+  test_absolute_outputfile_html_after_other;
   test_unknown_option;
   done_testing;
 }

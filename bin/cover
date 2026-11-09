@@ -194,6 +194,16 @@ sub get_annotation ($ann) {
   $ann_obj
 }
 
+sub check_report_options () {
+  my @args = @ARGV;
+  for my $report ($Options->{report}->@*) {
+    my $format = "Devel::Cover::Report::\u$report";
+    next unless $format->can("get_options");
+    local @ARGV = @args;
+    $format->get_options(dclone($Options));
+  }
+}
+
 sub check_options () {
   get_options;
   my @argv = @ARGV;  # store args after local processing for report processing
@@ -225,6 +235,9 @@ sub check_options () {
     if $Options->{version};
   pod2usage(-exitval => 0, -verbose => 1) if $Options->{help};
   pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
+
+  # check each report before another report strips its options from @ARGV
+  check_report_options;
 
   # Strip every report's options from @ARGV, as the annotation loop above
   # did, so only the database names remain.  Everything runs under
