@@ -128,6 +128,26 @@ sub test_env_overrides_argument () {
   }
 }
 
+sub test_sereal_refuses_objects () {
+  SKIP: {
+    skip "needs Sereal", 1 unless any { $_ eq "Sereal" } @Formats;
+    my $file = path("sereal_object");
+    my $obj  = bless {}, "Devel::Cover::DB::IO::Test::Object";
+    open my $fh, ">", $file or die "Cannot write $file: $!";
+    binmode $fh;
+    print $fh Sereal::Encoder->new({})
+      ->encode({ runs => {}, files => [], x => $obj });
+    close $fh or die "Cannot close $file: $!";
+
+    for my $format (@Formats) {
+      local $ENV{DEVEL_COVER_DB_FORMAT} = $format;
+      my $got = eval { Devel::Cover::DB::IO->new->read($file) };
+      ok !defined $got, "$format read of a Sereal object returns nothing";
+      like $@, qr/refuse_objects/, "$format read refuses a Sereal object";
+    }
+  }
+}
+
 sub test_garbage_still_dies () {
   my $file = path("garbage");
   open my $fh, ">", $file or die "Cannot write $file: $!";
@@ -151,6 +171,7 @@ sub main () {
   test_cross_format_read;
   test_format_argument;
   test_env_overrides_argument;
+  test_sereal_refuses_objects;
   test_garbage_still_dies;
   test_unrecognised_format_dies;
   done_testing;
