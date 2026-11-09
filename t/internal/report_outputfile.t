@@ -179,6 +179,27 @@ sub test_unknown_option () {
   like $out, qr/Unknown option/, "a genuine typo is still reported";
 }
 
+sub relative_parent ($report, $name) {
+  my $parent = outdir("rel_parent");
+  my $dir    = File::Spec->catdir($parent, "out");
+  my ($out, $exit) = run_cover(
+    "--report", $report, "--outputfile",
+    File::Spec->catfile(File::Spec->updir, $name),
+    "--outputdir", $dir, "--nosummary", "--silent", $Cover_db,
+  );
+  is $exit, 0, "$report accepts a relative --outputfile with .." or diag $out;
+  ok -s File::Spec->catfile($parent, $name),
+    "$report report written beside the output directory";
+}
+
+sub test_relative_parent () {
+  relative_parent("text", "rel.txt");
+  SKIP: {
+    skip "Template required for the html report", 2 unless $Have_template;
+    relative_parent("html", "rel.html");
+  }
+}
+
 sub main () {
   test_text_report;
   test_compilation_report;
@@ -189,6 +210,7 @@ sub main () {
   test_absolute_outputfile_html;
   test_absolute_outputfile_html_after_other;
   test_unknown_option;
+  test_relative_parent;
   done_testing;
 }
 
