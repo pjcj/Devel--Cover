@@ -28,8 +28,9 @@ use Devel::Cover::Test::Showcase qw(
 );
 
 my ($Tmpdir, $Libdir) = setup_lib_dir;
-my $Cover_db  = create_cover_db($Tmpdir, $Libdir);
-my $Have_json = eval "require JSON::MaybeXS; 1";
+my $Cover_db      = create_cover_db($Tmpdir, $Libdir);
+my $Have_json     = eval "require JSON::MaybeXS; 1";
+my $Have_template = eval "require Template; 1";
 
 sub outdir ($name) { File::Spec->catdir($Tmpdir, $name) }
 
@@ -111,6 +112,13 @@ sub test_absolute_outputfile () {
   }
 }
 
+sub test_absolute_outputfile_editor () {
+  SKIP: {
+    skip "Template required for the editor reports", 6 unless $Have_template;
+    absolute_outputfile($_) for qw( vim nvim );
+  }
+}
+
 sub test_unknown_option () {
   my ($out, $exit) = run_cover(
     "--report", "text", "--outputfyle", "x.txt", "--silent", $Cover_db,
@@ -125,6 +133,7 @@ sub main () {
   test_json_summary_report;
   test_mixed_reports;
   test_absolute_outputfile;
+  test_absolute_outputfile_editor;
   test_unknown_option;
   done_testing;
 }

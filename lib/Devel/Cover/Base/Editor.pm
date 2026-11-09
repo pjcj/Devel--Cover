@@ -18,6 +18,7 @@ use Devel::Cover::Criterion ();
 use Devel::Cover::DB        ();
 use Devel::Cover::Inc       ();
 use Devel::Cover::Log       qw( dcinfo );
+use Devel::Cover::Path      qw( output_path );
 use Template 2.00           ();
 
 sub report ($pkg, $db, $options) {
@@ -54,7 +55,7 @@ sub report ($pkg, $db, $options) {
       [grep $options->{show}{$_}, Devel::Cover::Criterion->editor_criteria],
   };
 
-  my $out = "$options->{outputdir}/$options->{outputfile}";
+  my $out = output_path($options->{outputdir}, $options->{outputfile});
   $template->process($pkg->template_name, $vars, $out) or die $template->error;
 
   dcinfo $pkg->output_message($out);
