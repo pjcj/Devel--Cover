@@ -111,6 +111,62 @@ PERL
   ok !exists $unc->{digest}, "not first text: nothing is recorded";
 }
 
+sub test_dc_after_hash_in_code () {
+  my ($unc, $warnings) = parse_comments(<<'PERL');
+my @a = (1);
+my $l = $a[$#a]; # dc uncoverable statement
+my $s = "#"; # uncoverable statement
+my $r = qr/#/; # dc uncoverable statement
+# see "# dc uncoverable statement" after $#a
+PERL
+  is @$warnings, 0, "hash in code: no warnings";
+  is_deeply $unc->{digest}{statement}{$_}, [[[undef, "default", ""]]],
+    "hash in code: line $_ is uncoverable"
+    for 2 .. 4;
+  ok !exists $unc->{digest}{statement}{$_},
+    "hash in code: quoted annotation records nothing on line $_"
+    for 5, 6;
+}
+
+sub test_unknown_verb_after_hash_warns () {
+  my ($unc, $warnings, $path) = parse_comments(<<'PERL');
+my @a = (1);
+my $l = $a[$#a]; # dc frobnicate statement
+PERL
+  is @$warnings, 1, "unknown verb after hash: one warning";
+  like $warnings->[0], qr/Unknown annotation frobnicate at \Q$path\E:2/,
+    "unknown verb after hash: warning names the verb";
+  ok !exists $unc->{digest}, "unknown verb after hash: nothing is recorded";
+}
+
+sub test_hash_in_comment_hides_annotation () {
+  my ($unc, $warnings) = parse_comments(<<'PERL');
+my $n = 1;
+# note # dc uncoverable statement
+$n++;
+$n++; # see # dc uncoverable statement
+# # dc frobnicate statement
+$n++;
+PERL
+  is @$warnings, 0, "hash in comment: no warnings";
+  ok !exists $unc->{digest}, "hash in comment: nothing is recorded";
+}
+
+sub test_annotation_without_space_before_hash () {
+  my ($unc, $warnings, $path) = parse_comments(<<'PERL');
+my @a = (1);
+my $x = 1;# dc uncoverable statement
+my $n = $#a;# dc uncoverable statement
+$x++;# dc frobnicate statement
+PERL
+  is @$warnings, 1, "no space before hash: one warning";
+  like $warnings->[0], qr/Unknown annotation frobnicate at \Q$path\E:4/,
+    "no space before hash: warning names the verb";
+  is_deeply $unc->{digest}{statement}{$_}, [[[undef, "default", ""]]],
+    "no space before hash: line $_ is uncoverable"
+    for 2, 3;
+}
+
 sub main () {
   test_dc_uncoverable_matches_legacy;
   test_dc_uncoverable_inline;
@@ -119,6 +175,10 @@ sub main () {
   test_legacy_unknown_word_is_ignored;
   test_noreturn_is_a_known_verb;
   test_dc_must_open_the_comment;
+  test_dc_after_hash_in_code;
+  test_unknown_verb_after_hash_warns;
+  test_hash_in_comment_hides_annotation;
+  test_annotation_without_space_before_hash;
 }
 
 main;

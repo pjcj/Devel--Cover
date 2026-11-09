@@ -1074,9 +1074,11 @@ my %Annotation = map { $_ => 1 } qw( uncoverable noreturn );
 
 sub uncoverable_comments ($self, $uncoverable, $file, $digest) {
   my $cr = join "|", $self->{all_criteria}->@*;
-  # "dc" or the legacy "uncoverable" must be the first text in the comment
-  my $uc = qr/^([^#]*)# (?:dc uncoverable (\w+)|uncoverable ($cr))(.*)/;
-  my $dc = qr/^[^#]*# dc (\w+)/;
+  # A "#" after a non-space, as in $#a, is code. Annotations open another "#"
+  my $code_re = qr/(?:[^#]|(?<=\S)#)*?/;
+
+  my $uc = qr/^($code_re)# (?:dc uncoverable (\w+)|uncoverable ($cr))(.*)/;
+  my $dc = qr/^$code_re# dc (\w+)/;
 
   # Look for uncoverable comments
   open my $fh, "<", $file or do {
