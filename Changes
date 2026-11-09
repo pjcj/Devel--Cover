@@ -3,6 +3,10 @@ Devel::Cover history
 {{$NEXT}}
 - Store the start of the top-level code of a required file, so a later run that
   adds a sub to the file no longer records that code twice (GH-924)
+- Count a statement, branch or condition under a `#line` directive against the
+  file the directive names, so a sub that switches file no longer sends its
+  counts to the entries of another sub or warns
+  `ignoring extra statement` (GH-924)
 - Number a sub that a later run adds to a stored structure, such as a `BEGIN`
   block from a conditional `eval "use M"`, after every entry the structure
   holds, so that its counts no longer go to other code in the file (GH-922)

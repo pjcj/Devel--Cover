@@ -92,7 +92,7 @@ sub add_count ($self, $criterion) {
   (
     $self->{count}{$criterion}{$file}++,
     !$self->reuse($file)
-      || $self->{additional}
+      || $self->{additional}{$file}
       # a stored structure lacks the criteria its runs did not collect
       || !exists $self->{f}{$file}{start}{-1}{__COVER__}[0]{$criterion},
   )
@@ -108,7 +108,7 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
   # are multiple subroutines of the same name on the same line (such subroutines
   # generally being called BEGIN).
 
-  $self->{additional} = 0;
+  $self->{additional}{$file} = 0;
   if ($self->reuse($file)) {
     # reusing a structure
     if (exists $self->{f}{$file}{start}{$line}{$sub_name}[$scount]) {
@@ -124,8 +124,8 @@ sub set_subroutine ($self, $sub_name, $file, $line, $scount) {
       }
     } else {
       # sub doesn't exist, for example a conditional C<eval "use M">
-      $self->{additional} = 1;
-      $self->{dirty}{$file} = 1;
+      $self->{additional}{$file} = 1;
+      $self->{dirty}{$file}      = 1;
       # callers push each new entry, so the list length is the next free index
       $self->{count}{$_}{$file}
         = $self->{f}{$file}{start}{$line}{$sub_name}[$scount]{$_}
