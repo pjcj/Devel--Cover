@@ -211,6 +211,25 @@ sub test_storable_objects_not_thawed () {
   }
 }
 
+sub test_storable_tied_dies () {
+  SKIP: {
+    skip "needs Storable 3.05", 1
+      unless defined $Storable::flags && any { $_ eq "Storable" } @Formats;
+    require Tie::Hash;
+    my $file = path("storable_tied");
+    tie my %h, "Tie::StdHash";  ## no critic (ProhibitTies)
+    $h{a} = 1;
+    Storable::nstore({ runs => {}, files => [], x => \%h }, $file);
+
+    for my $format (@Formats) {
+      local $ENV{DEVEL_COVER_DB_FORMAT} = $format;
+      my $got = eval { Devel::Cover::DB::IO->new->read($file) };
+      ok !defined $got, "$format read of a Storable tie returns nothing";
+      like $@, qr/Tying is disabled/, "$format read dies on a Storable tie";
+    }
+  }
+}
+
 sub test_garbage_still_dies () {
   my $file = path("garbage");
   open my $fh, ">", $file or die "Cannot write $file: $!";
@@ -236,6 +255,7 @@ sub main () {
   test_env_overrides_argument;
   test_sereal_refuses_objects;
   test_storable_objects_not_thawed;
+  test_storable_tied_dies;
   test_garbage_still_dies;
   test_unrecognised_format_dies;
   done_testing;
