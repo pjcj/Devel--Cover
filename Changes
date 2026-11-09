@@ -1,6 +1,9 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Write the `json`, `json_summary`, `vim` and `nvim` reports to an absolute
+  `-outputfile` as given, and refuse to write an HTML report to one, since its
+  pages must stay beside the summary (GH-930)
 - Find an `uncoverable` or `noreturn` comment after code that holds a `#`, such
   as `$#a` or a `"#"` string, so the comment is no longer ignored without a
   warning (GH-928)

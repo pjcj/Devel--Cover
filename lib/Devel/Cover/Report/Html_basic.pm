@@ -29,6 +29,7 @@ use Devel::Cover::Web       qw( write_file );
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
+use File::Spec    ();
 use Getopt::Long  qw( GetOptions );
 use Template 2.00 ();
 
@@ -394,6 +395,8 @@ sub get_options ($self, $opt) {
     unless GetOptions(
       $opt->{option}, qw( noppihtml noperltidy outputfile=s restrict! )
     );
+  die "-outputfile must be relative to -outputdir for the html_basic report\n"
+    if File::Spec->file_name_is_absolute($opt->{option}{outputfile});
 }
 
 sub uses_annotations ($pkg) { 1 }
@@ -919,6 +922,7 @@ prefix of the text reports.
 The following command line options are supported:
 
  -outputfile  - name of output file              (default coverage.html)
+                relative to -outputdir
  -restrict    - add restrict to regex form       (default on)
  -noppihtml   - disables PPI::HTML highlighting  (default off)
  -noperltidy  - disables Perl::Tidy highlighting (default off)

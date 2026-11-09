@@ -21,6 +21,7 @@ use Devel::Cover::Html_Common  ## no perlimports
 use Devel::Cover::Log qw( dcinfo );
 use Devel::Cover::Truth_Table;  ## no perlimports
 
+use File::Spec    ();
 use Getopt::Long  qw( GetOptions );
 use Template 2.00 ();
 
@@ -43,6 +44,8 @@ sub get_options ($self, $opt) {
     for grep { defined $opt->{"report_$_"} } qw( c0 c1 c2 );
   die "Invalid command line options"
     unless GetOptions($opt->{option}, qw( outputfile=s ));
+  die "-outputfile must be relative to -outputdir for the html_subtle report\n"
+    if File::Spec->file_name_is_absolute($opt->{option}{outputfile});
 }
 
 # Determine the CSS class for an element based on percent covered

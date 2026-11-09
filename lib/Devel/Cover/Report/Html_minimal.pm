@@ -5,6 +5,7 @@ use warnings;
 use feature qw( postderef signatures );
 no warnings qw( experimental::postderef experimental::signatures );
 
+use File::Spec              ();
 use Getopt::Long            qw( GetOptions );
 use Devel::Cover::Criterion ();
 use Devel::Cover::Html_Common  ## no perlimports
@@ -705,6 +706,8 @@ sub get_options ($self, $opt) {
       unified! report_c0=s  report_c1=s report_c2=s
     ),
   );
+  die "-outputfile must be relative to -outputdir for the html_minimal report\n"
+    if File::Spec->file_name_is_absolute($opt->{option}{outputfile});
 }
 
 # Entry point for printing HTML reports
@@ -759,9 +762,9 @@ This report format supports the following:
 
 =item outputfile
 
-Specifies the filename of the main output file.  The default is
-F<coverage.html>.  Specify F<index.html> if you just want to publish the whole
-directory.
+Specifies the filename of the main output file, relative to C<-outputdir>.
+The default is F<coverage.html>.  Specify F<index.html> if you just want to
+publish the whole directory.
 
 =item pod
 

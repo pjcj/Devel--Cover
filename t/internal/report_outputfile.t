@@ -19,7 +19,7 @@ use lib "$FindBin::Bin/../lib", $FindBin::Bin,
 use File::Path qw( make_path );
 use File::Spec ();
 use JSON::PP   ();
-use Test::More import => [qw( diag done_testing is like ok skip unlike )];
+use Test::More import => [qw( diag done_testing is isnt like ok skip unlike )];
 use Devel::Cover::Test::Showcase qw(
   create_cover_db
   run_cover
@@ -119,6 +119,38 @@ sub test_absolute_outputfile_editor () {
   }
 }
 
+sub refuse_absolute_outputfile ($report) {
+  my $dir  = outdir("abs_$report");
+  my $file = File::Spec->catfile(outdir("abs_target"), "$report.html");
+  my ($out, $exit) = run_cover(
+    "--report",    $report, "--outputfile", $file,
+    "--outputdir", $dir,    "--silent",     $Cover_db,
+  );
+  isnt $exit, 0, "cover --report $report refuses an absolute --outputfile";
+  like $out, qr/-outputfile must be relative to -outputdir/,
+    "$report report names the problem with an absolute --outputfile";
+  ok !-d $dir, "$report report writes no pages for an absolute --outputfile";
+}
+
+sub test_absolute_outputfile_html () {
+  SKIP: {
+    skip "Template required for the html reports", 14 unless $Have_template;
+    refuse_absolute_outputfile($_)
+      for qw( html html_basic html_minimal html_subtle );
+
+    my $dir = outdir("rel_html");
+    make_path(File::Spec->catdir($dir, "sub"));
+    my ($out, $exit) = run_cover(
+      "--report",    "html", "--outputfile", "sub/x.html",
+      "--outputdir", $dir,   "--silent",     $Cover_db,
+    );
+    is $exit, 0, "html accepts a relative --outputfile with a directory"
+      or diag $out;
+    ok -s File::Spec->catfile($dir, "sub", "x.html"),
+      "html report written to the relative path";
+  }
+}
+
 sub test_unknown_option () {
   my ($out, $exit) = run_cover(
     "--report", "text", "--outputfyle", "x.txt", "--silent", $Cover_db,
@@ -134,6 +166,7 @@ sub main () {
   test_mixed_reports;
   test_absolute_outputfile;
   test_absolute_outputfile_editor;
+  test_absolute_outputfile_html;
   test_unknown_option;
   done_testing;
 }

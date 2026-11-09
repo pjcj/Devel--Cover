@@ -756,7 +756,10 @@ F<cover> itself consumes C<-version> and C<-noversion>, so use C<-sha> and
 C<-nosha> for the sha column.
 
 The C<-outputfile> option applies to every report.  Reports which normally
-print to standard output write to the named file instead.
+print to standard output write to the named file instead.  A report which
+writes one file writes an absolute path as given, and puts a relative path
+under C<-outputdir>.  The HTML reports write their pages beside the summary,
+so they accept only a relative path.
 
 =head1 REPORT FORMATS
 
