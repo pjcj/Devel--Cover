@@ -16,9 +16,10 @@ use FindBin ();
 use lib "$FindBin::Bin/../lib", $FindBin::Bin,
   qw( ./lib ./blib/lib ./blib/arch );
 
+use File::Path qw( make_path );
 use File::Spec ();
 use JSON::PP   ();
-use Test::More import => [qw( diag done_testing is like ok skip unlike )];
+use Test::More import => [qw( diag done_testing is isnt like ok skip unlike )];
 use Devel::Cover::Test::Showcase qw(
   create_cover_db
   run_cover
@@ -27,8 +28,9 @@ use Devel::Cover::Test::Showcase qw(
 );
 
 my ($Tmpdir, $Libdir) = setup_lib_dir;
-my $Cover_db  = create_cover_db($Tmpdir, $Libdir);
-my $Have_json = eval "require JSON::MaybeXS; 1";
+my $Cover_db      = create_cover_db($Tmpdir, $Libdir);
+my $Have_json     = eval "require JSON::MaybeXS; 1";
+my $Have_template = eval "require Template; 1";
 
 sub outdir ($name) { File::Spec->catdir($Tmpdir, $name) }
 
@@ -85,6 +87,90 @@ sub test_mixed_reports () {
   }
 }
 
+sub absolute_outputfile ($report) {
+  my $dir    = outdir("abs_$report");
+  my $target = outdir("abs_target");
+  make_path $target;
+  my $file = File::Spec->catfile($target, "$report.out");
+  my ($out, $exit) = run_cover(
+    "--report",    $report, "--outputfile", $file,
+    "--outputdir", $dir,    "--nosummary",  "--silent",
+    $Cover_db,
+  );
+  is $exit, 0, "cover --report $report with an absolute --outputfile exits 0"
+    or diag $out;
+  ok -s $file, "$report report written to the absolute path";
+  ok !-e File::Spec->catfile($dir, $file),
+    "$report report writes nothing under the output directory";
+}
+
+sub test_absolute_outputfile () {
+  absolute_outputfile("text");
+  SKIP: {
+    skip "JSON::MaybeXS required for the json reports", 6 unless $Have_json;
+    absolute_outputfile($_) for qw( json json_summary );
+  }
+}
+
+sub test_absolute_outputfile_editor () {
+  SKIP: {
+    skip "Template required for the editor reports", 6 unless $Have_template;
+    absolute_outputfile($_) for qw( vim nvim );
+  }
+}
+
+sub refuse_absolute_outputfile ($report) {
+  my $dir  = outdir("abs_$report");
+  my $file = File::Spec->catfile(outdir("abs_target"), "$report.html");
+  my ($out, $exit) = run_cover(
+    "--report",    $report, "--outputfile", $file,
+    "--outputdir", $dir,    "--silent",     $Cover_db,
+  );
+  isnt $exit, 0, "cover --report $report refuses an absolute --outputfile";
+  like $out, qr/-outputfile must be relative to -outputdir/,
+    "$report report names the problem with an absolute --outputfile";
+  ok !-d $dir, "$report report writes no pages for an absolute --outputfile";
+}
+
+sub test_absolute_outputfile_html () {
+  SKIP: {
+    skip "Template required for the html reports", 14 unless $Have_template;
+    refuse_absolute_outputfile($_)
+      for qw( html html_basic html_minimal html_subtle );
+
+    my $dir = outdir("rel_html");
+    make_path(File::Spec->catdir($dir, "sub"));
+    my ($out, $exit) = run_cover(
+      "--report",    "html", "--outputfile", "sub/x.html",
+      "--outputdir", $dir,   "--silent",     $Cover_db,
+    );
+    is $exit, 0, "html accepts a relative --outputfile with a directory"
+      or diag $out;
+    ok -s File::Spec->catfile($dir, "sub", "x.html"),
+      "html report written to the relative path";
+  }
+}
+
+sub test_absolute_outputfile_html_after_other () {
+  SKIP: {
+    skip "Template required for the html reports", 4 unless $Have_template;
+    my $target = outdir("abs_target");
+    make_path $target;
+    my $file = File::Spec->catfile($target, "order.out");
+    my $dir  = outdir("abs_order");
+    my ($out, $exit) = run_cover(
+      "--report",     "vim", "--report",    "html",
+      "--outputfile", $file, "--outputdir", $dir,
+      "--silent",     $Cover_db,
+    );
+    isnt $exit, 0, "html refuses an absolute --outputfile after vim";
+    like $out, qr/-outputfile must be relative to -outputdir/,
+      "html names the problem after vim";
+    ok !-e $file, "vim writes nothing before html refuses";
+    ok !-d $dir,  "html writes no pages after vim";
+  }
+}
+
 sub test_unknown_option () {
   my ($out, $exit) = run_cover(
     "--report", "text", "--outputfyle", "x.txt", "--silent", $Cover_db,
@@ -93,12 +179,38 @@ sub test_unknown_option () {
   like $out, qr/Unknown option/, "a genuine typo is still reported";
 }
 
+sub relative_parent ($report, $name) {
+  my $parent = outdir("rel_parent");
+  my $dir    = File::Spec->catdir($parent, "out");
+  my ($out, $exit) = run_cover(
+    "--report", $report, "--outputfile",
+    File::Spec->catfile(File::Spec->updir, $name),
+    "--outputdir", $dir, "--nosummary", "--silent", $Cover_db,
+  );
+  is $exit, 0, "$report accepts a relative --outputfile with .." or diag $out;
+  ok -s File::Spec->catfile($parent, $name),
+    "$report report written beside the output directory";
+}
+
+sub test_relative_parent () {
+  relative_parent("text", "rel.txt");
+  SKIP: {
+    skip "Template required for the html report", 2 unless $Have_template;
+    relative_parent("html", "rel.html");
+  }
+}
+
 sub main () {
   test_text_report;
   test_compilation_report;
   test_json_summary_report;
   test_mixed_reports;
+  test_absolute_outputfile;
+  test_absolute_outputfile_editor;
+  test_absolute_outputfile_html;
+  test_absolute_outputfile_html_after_other;
   test_unknown_option;
+  test_relative_parent;
   done_testing;
 }
 

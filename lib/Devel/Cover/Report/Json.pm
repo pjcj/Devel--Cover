@@ -20,6 +20,7 @@ use Devel::Cover::DB              ();
 use Devel::Cover::DB::IO::JSON    ();
 use Devel::Cover::Inc             ();
 use Devel::Cover::Log             qw( dcinfo );
+use Devel::Cover::Path            qw( output_path );
 use Getopt::Long                  qw( GetOptions );
 
 sub _runs ($db) {
@@ -238,8 +239,8 @@ sub report ($pkg, $db, $options) {
     files               => \%files,
   };
 
-  my $outfile = $options->{option}{outputfile} // "cover.json";
-  $outfile = "$options->{outputdir}/$outfile" unless $outfile =~ m{^/};
+  my $outfile
+    = output_path($options->{outputdir}, $options->{option}{outputfile});
   my $io = Devel::Cover::DB::IO::JSON->new(options => "pretty");
   $io->write($data, $outfile);
 
@@ -281,7 +282,8 @@ It is designed to be called from the F<cover> program.
 
 =item --outputfile=FILE
 
-Name of the output file (default C<cover.json>).
+Name of the output file (default C<cover.json>).  An absolute path is written
+as given.  A relative one goes under C<-outputdir>.
 
 =back
 

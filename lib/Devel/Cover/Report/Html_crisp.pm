@@ -34,6 +34,7 @@ use Devel::Cover::Log             qw( dcinfo );
 use Devel::Cover::Path            qw( common_prefix );
 
 use File::Path   qw( mkpath );
+use File::Spec   ();
 use Getopt::Long qw( GetOptions );
 use List::Util   qw( any max );
 use POSIX        qw( strftime );
@@ -1452,6 +1453,8 @@ sub get_options ($self, $opt) {
     for grep defined $opt->{"report_$_"}, qw( c0 c1 c2 );
   die "Invalid command line options"
     unless GetOptions($opt->{option}, qw( noppihtml noperltidy outputfile=s ));
+  die "-outputfile must be relative to -outputdir for the html report\n"
+    if File::Spec->file_name_is_absolute($opt->{option}{outputfile});
 }
 
 sub favicon ($level) {
@@ -3016,6 +3019,7 @@ highlighting if L<PPI::HTML> or L<Perl::Tidy> is installed.
 The following command line options are supported:
 
  -outputfile  - name of output file              (default coverage.html)
+                relative to -outputdir
  -noppihtml   - disables PPI::HTML highlighting  (default off)
  -noperltidy  - disables Perl::Tidy highlighting (default off)
 

@@ -22,6 +22,7 @@ use Devel::Cover::Criterion ();
 use Devel::Cover::DB        ();
 use Devel::Cover::Inc       ();
 use Devel::Cover::Log       qw( dcerror dcinfo dcwarn );
+use Devel::Cover::Path      qw( output_path );
 
 BEGIN { $VERSION //= $Devel::Cover::Inc::VERSION }
 
@@ -193,6 +194,16 @@ sub get_annotation ($ann) {
   $ann_obj
 }
 
+sub check_report_options () {
+  my @args = @ARGV;
+  for my $report ($Options->{report}->@*) {
+    my $format = "Devel::Cover::Report::\u$report";
+    next unless $format->can("get_options");
+    local @ARGV = @args;
+    $format->get_options(dclone($Options));
+  }
+}
+
 sub check_options () {
   get_options;
   my @argv = @ARGV;  # store args after local processing for report processing
@@ -224,6 +235,9 @@ sub check_options () {
     if $Options->{version};
   pod2usage(-exitval => 0, -verbose => 1) if $Options->{help};
   pod2usage(-exitval => 0, -verbose => 2) if $Options->{info};
+
+  # check each report before another report strips its options from @ARGV
+  check_report_options;
 
   # Strip every report's options from @ARGV, as the annotation loop above
   # did, so only the database names remain.  Everything runs under
@@ -612,10 +626,7 @@ sub print_summary ($db) {
 # run a report which prints to stdout, redirecting to -outputfile if given
 sub run_report ($format, $db, $options, $outputfile) {
   return $format->report($db, $options) unless defined $outputfile;
-  my $out
-    = File::Spec->file_name_is_absolute($outputfile)
-    ? $outputfile
-    : File::Spec->catfile($options->{outputdir}, $outputfile);
+  my $out = output_path($options->{outputdir}, $outputfile);
   open my $fh, ">", $out or die "Can't open $out: $!\n";
   my $err;
   {
@@ -758,7 +769,10 @@ F<cover> itself consumes C<-version> and C<-noversion>, so use C<-sha> and
 C<-nosha> for the sha column.
 
 The C<-outputfile> option applies to every report.  Reports which normally
-print to standard output write to the named file instead.
+print to standard output write to the named file instead.  A report which
+writes one file writes an absolute path as given, and puts a relative path
+under C<-outputdir>.  The HTML reports write their pages beside the summary,
+so they accept only a relative path.
 
 =head1 REPORT FORMATS
 
