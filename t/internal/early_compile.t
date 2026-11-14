@@ -46,18 +46,24 @@ sub never_one { my $x = 1;
 
 sub by_early { 5 }
 
+sub lv :lvalue {
+  $Early::X;
+}
+
 1;
 PERL
 
 my $Late = <<'PERL';
 use Early;
 print join(" ", Early::sorted(2, 1), Early::sorted_one(4, 3)), "\n";
+Early::lv() = 2;
 PERL
 
 my $Early = <<'PERL';
 Early::sorted(2, 1);
 Early::sorted_one(4, 3);
 Early::by_early();
+Early::lv() = 3;
 PERL
 
 my $Output = { late => "1 2 3 4\n", early => "", early_runops => "" };
@@ -125,6 +131,7 @@ my $Late_subs = [
   [13, "sorted_one", 1],
   [17, "never_one",  0],
   [21, "by_early",   0],
+  [23, "lv",         1],
 ];
 
 sub test_merged (@order) {
@@ -133,7 +140,7 @@ sub test_merged (@order) {
   is_deeply subs($f), $Late_subs,
     "@order: each sub is recorded once, with the count of the late run";
   is_deeply statements($f, $_), [1], "@order: the statement on line $_ ran once"
-    for 5, 14;
+    for 5, 14, 24;
   is_deeply statements($f, $_), [0],
     "@order: the statement on line $_ never ran"
     for 9, 10, 17, 18;
@@ -166,6 +173,7 @@ sub test_early_runops () {
       [13, "sorted_one", 1],
       [17, "never_one",  0],
       [21, "by_early",   1],
+      [24, "lv",         1],
     ],
     "early_runops: without op replacement the module is counted";
 }
