@@ -507,6 +507,11 @@ sub sub_location ($cv, $op) {
   $Line = $line if $line;
 }
 
+sub _compiled_early ($cv) {
+  my $root = $cv->ROOT;
+  $Replace_ops && $root->name =~ /^leavesub/ && !defined sub_line($root)
+}
+
 sub _noreturn_names ($file) {
   my %names = map { $_ => 1 } @Noreturn_default;
   open my $fh, "<", $file or return \%names;
@@ -706,7 +711,7 @@ sub check_files {
   my $l = sub ($cv) {
     my $line = 0;
     my ($name, $start) = sub_info($cv);
-    if ($start) {
+    if ($start && !_compiled_early($cv)) {
       local ($Line, $File);
       sub_location($cv, $start);
       $line = $Line;
@@ -1352,6 +1357,7 @@ sub _add_file_level ($file, $decisions, $line, $end_line) {
 
 sub get_cover ($cv, $root = undef) {
   ($Sub_name, my $start) = sub_info($cv);
+  return if $start && _compiled_early($cv);
 
   sub_location($cv, $start) if $start;
   return unless _want_cover_for();
@@ -1979,7 +1985,20 @@ Set C<$File> and C<$Line> for a sub from the COP of its first statement,
 then move C<$Line> to the line the body opened on, which the XS check hook
 recorded against the root op at compile time.  A sub compiled before the
 hook was installed, or inside a string eval, keeps the first statement's
-line.
+line.  Devel::Cover locates a sub that perl compiled before the hook only
+when it does not replace ops.
+
+=head2 _compiled_early ($cv)
+
+Return true for a sub that perl compiled before Devel::Cover loaded, while
+Devel::Cover replaces ops.  The XS check hook records the line of every sub
+that perl compiles once C<BOOT> has installed the hook, so if a sub has a
+C<leavesub> or C<leavesublv> root and no recorded line, perl compiled it
+earlier.  The ops of such a sub run the functions of perl, not those of
+Devel::Cover, so nothing counts its statements.  Perl also optimised them,
+so its statements can differ from those of the same sub compiled later.
+Return false with C<-replace_ops,0>, since the run loop then counts such a
+sub.
 
 =head2 _noreturn_names ($file)
 
@@ -2069,10 +2088,11 @@ Record the CVs found in the main program's pads.
 
 Build C<@Cvs> afresh.  Walks the symbol table with C<B::walksymtable>,
 covering class C<ADJUST> blocks via the XS function C<adjust_blocks>, adds
-pad CVs, then sorts by line and name.  A capture-free lexical sub appears
-as both clone and prototype with the same start op, so doubles are
-dropped.  Finally C<@Subs> takes a reference to each sub so none of them
-is freed before report time.
+pad CVs, then sorts by line and name.  The sort does not locate a sub that
+L</_compiled_early> names, so that its file gets no coverage vectors.  A
+capture-free lexical sub appears as both clone and prototype with the same
+start op, so doubles are dropped.  Finally C<@Subs> takes a reference to
+each sub so none of them is freed before report time.
 
 =head2 special_block_cvs
 
@@ -2334,7 +2354,9 @@ line by a per-line count, and record subroutine and pod coverage.
 Collect coverage for one CV.  The main program and the top-level code of
 required files have no C<ROOT> in their CVs, so the root op is passed
 alongside.  Cyclomatic complexity and the last line seen are recorded
-against the sub.
+against the sub.  Skip a sub that L</_compiled_early> names, so that a
+process records nothing for code that perl compiled before Devel::Cover
+loaded.
 
 The main program, the top-level code of required files and the C<BEGIN>,
 C<UNITCHECK>, C<CHECK>, C<INIT> and C<END> blocks instead add their decisions

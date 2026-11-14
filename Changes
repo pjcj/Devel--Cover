@@ -1,6 +1,12 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Record nothing for a sub that perl compiled before Devel::Cover loaded, since
+  Devel::Cover cannot count its code and its record made a merged report show a
+  count on a statement that never ran. Perl compiles a module that early when
+  `-M` names it under `PERL5OPT=-MDevel::Cover`, and when Devel::Cover uses the
+  module itself, as it does Carp. Leave a module that perl only ever compiles
+  that way, and its pod coverage, out of the report (GH-932)
 - Write the `json`, `json_summary`, `vim` and `nvim` reports to an absolute
   `-outputfile` as given, and refuse to write an HTML report to one, since its
   pages must stay beside the summary (GH-930)
