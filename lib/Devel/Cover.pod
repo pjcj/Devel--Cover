@@ -879,6 +879,25 @@ A C<BEGIN> block inside a string C<eval> that captures a lexical from
 outside the C<eval> keeps that lexical alive until global destruction under
 coverage.  The block holds the C<eval>, and the C<eval> holds the lexical.
 
+=head2 Code compiled before Devel::Cover loads
+
+Devel::Cover counts only the code that perl compiles after Devel::Cover has
+loaded, and its reports leave out a subroutine compiled earlier, with its
+pod coverage.  So load Devel::Cover before the code you want to cover.  Perl
+loads the modules named by C<-M> on the command line before it reads
+C<PERL5OPT>, so under C<PERL5OPT=-MDevel::Cover> a module named by C<-M> on
+the command line is compiled too early, and so is each module that it loads.
+
+Devel::Cover loads some modules for its own use before it starts to count,
+such as L<Carp>, L<Cwd>, L<File::Spec> and L<B::Deparse>, with the modules
+that they load.  It cannot cover those modules either.
+
+With C<-replace_ops,0> Devel::Cover does count such code.  Perl compiled it
+with optimisations that Devel::Cover otherwise turns off, so its statements
+can differ from those of the same code compiled after Devel::Cover loaded.
+A database that holds both kinds of results for one module can list a
+subroutine twice or show a count on the wrong statement.
+
 =head1 BUGS
 
 Almost certainly.
