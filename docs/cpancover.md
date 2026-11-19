@@ -181,19 +181,12 @@ the metacpan group.
 
 The server is currently running Ubuntu 24.04 LTS.
 
-The Devel::Cover directory from which cpancover is run is in `/cover/dc`. It is
-a git checkout of the Devel::Cover repository but, ideally, that should be
-treated as a read-only directory. The staging directory is symlinked to
-`/cover/staging`.
+The Devel::Cover directory from which cpancover is run is
+`~/g/perl/Devel--Cover`. It is a git checkout of the Devel::Cover repository
+but, ideally, that should be treated as a read-only directory. `~/cover` is a
+link to `/cover`, which is a link to `/data/cover`. That directory holds the
+results tree `staging` and the web root `www`.
+[cpancover site layout](technical/cpancover-site-layout.md) describes both.
 
-In addition to hosting and running cpancover.com, I also use this server for
-some development work, and in particular for testing Devel::Cover against all
-supported versions of perl, plus recent development versions. For each version
-there is a standard and a threaded plenv installation.
-
-The development directory for these purposes is `/cover/Devel--Cover`. New
-versions of perl can be installed by adding them to `utils/all_versions` and
-running `dc all-versions --build`.
-
-To install a version of perl with development tools run
-`dc install-dc-dev-perl 5.38.2`.
+The server runs cpancover only through controller containers, so it has no
+cpancover perl.
