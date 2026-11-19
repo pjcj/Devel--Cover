@@ -54,12 +54,18 @@ Replace `<version>` throughout with the new version number (e.g. `5.42.1`).
 
     - `make all_test`
 
-10. **On `cpancover.com`**: install the new Perl for the cpancover
-    infrastructure
+10. Install the new Perl on any host that runs `cpancover` outside a controller
+    container
 
     - `dc install-cpancover-perl <version>`
-    - This is a separate plenv installation named `cpancover`, used by the
-      cpancover orchestration code on the production server
+    - This replaces the `cpancover` plenv installation in place
+    - `dc cpancover` and `dc cpancover-generate-html` need the `cpancover` plenv
+      Perl to run `bin/cpancover` on the host
+    - The "Running" section of `docs/cpancover.md` says how to select the
+      `cpancover` plenv Perl and install the modules that cpancover also needs
+    - `cpancover.com` needs no `cpancover` plenv Perl, because its orchestration
+      code runs in the controller container with the Perl of the Docker image
+      that you rebuild in the next step
 
 11. **On `cpancover.com`**: rebuild and push the cpancover Docker images
 
