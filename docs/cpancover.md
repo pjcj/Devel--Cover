@@ -91,9 +91,38 @@ If you want anyone to be able to look at the results, you'll need a web server
 somewhere. The results are all static HTML so there is not much configuration
 required.
 
-If you use nginx, copy `utils/cpancover.nginx` into `/etc/nginx/sites-available`
-and symlink it into `sites-enabled`. The static files are all gzipped and served
-as such where possible.
+cpancover.com uses [Caddy](https://caddyserver.com). Its web root is a `www`
+directory beside the results directory, and each entry of `www` is a link to a
+results directory. Make the web root first:
+
+```sh
+mkdir ~/cover/www
+ln -s ../staging ~/cover/www/latest
+```
+
+If `~/cover/staging` is a link, make `www` beside the directory that the link
+names, since `cpancover_caddyfile` in `utils/dc` resolves `$results_dir/../www`
+with `readlink -f` and names the resolved path as the root, not `~/cover/www`.
+
+Then check the configuration that `dc` generates and install it:
+
+```sh
+dc cpancover-check-caddy
+dc cpancover-configure-caddy
+```
+
+The first command validates the generated configuration and shows how it differs
+from the installed one. The second writes `/etc/caddy/Caddyfile` and reloads
+Caddy, so it needs `sudo`. The generated file names cpancover.com and its
+certificate contact, so change `cpancover_caddyfile` in `utils/dc` for another
+site.
+
+To look at the results on your own machine, run `dc cpancover-serve`, which
+serves them at `http://localhost:8080/latest/`.
+
+[cpancover site layout](technical/cpancover-site-layout.md) explains how the
+directories, the links and the Caddy configuration decide which results a URL
+shows.
 
 ## cpancover.com
 
