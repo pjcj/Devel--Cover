@@ -44,21 +44,26 @@ sub slurp ($path) {
   $content
 }
 
-sub make_results_tree () {
-  my $dir = tempdir(CLEANUP => 1);
-  for my $d ("Foo-Bar-1.00", "Foo-Bar-1.00/runs", "dist") {
-    mkdir "$dir/$d" or die "Can't mkdir $dir/$d: $!";
-  }
-  write_file("$dir/Foo-Bar-1.00/cover.json", "{}");
-  write_file("$dir/Foo-Bar-1.00/index.html", "html\n");
-  write_file("$dir/Foo-Bar-1.00/cover.14",   "db\n");
-  write_file("$dir/$Log",                    "log\n");
-  write_file("$dir/$_",                      "x\n")
+sub write_top_level_files ($dir) {
+  mkdir "$dir/dist" or die "Can't mkdir $dir/dist: $!";
+  write_file("$dir/$Log", "log\n");
+  write_file("$dir/$_",   "x\n")
     for qw( index.html about.html collection.css collection.js );
   write_file("$dir/cpancover.json", "{}");
   write_file("$dir/dist/F.html",    "html\n");
   write_file("$dir/index.html.gz",  "stale\n");
   write_file("$dir/dist/F.html.gz", "stale\n");
+}
+
+sub make_results_tree () {
+  my $dir = tempdir(CLEANUP => 1);
+  for my $d ("Foo-Bar-1.00", "Foo-Bar-1.00/runs") {
+    mkdir "$dir/$d" or die "Can't mkdir $dir/$d: $!";
+  }
+  write_file("$dir/Foo-Bar-1.00/cover.json", "{}");
+  write_file("$dir/Foo-Bar-1.00/index.html", "html\n");
+  write_file("$dir/Foo-Bar-1.00/cover.14",   "db\n");
+  write_top_level_files($dir);
   $dir
 }
 
@@ -92,6 +97,97 @@ sub uncompress_recipe () {
   dc("-r", $dir, "cpancover-uncompress-dir", "Foo-Bar-1.00");
   is slurp("$dir/Foo-Bar-1.00/index.html"), "html\n",
     "uncompress is a no-op on an uncompressed dir";
+}
+
+my @Report_files = qw( index.html lib-One-pm.html cover.json .log_ref
+  assets/app.js );
+
+sub make_compressed_tree (@names) {
+  my $dir = tempdir(CLEANUP => 1);
+  for my $name (@names) {
+    mkdir "$dir/$_" or die "Can't mkdir $dir/$_: $!" for $name, "$name/assets";
+    write_file("$dir/$name/$_", "$name/$_\n") for @Report_files;
+  }
+  write_top_level_files($dir);
+  dc("-r", $dir, "cpancover-compress");
+  $dir
+}
+
+sub write_gz ($path, $content) {
+  write_file($path, $content);
+  system("gzip", $path) == 0 or die "Can't gzip $path";
+}
+
+sub top_level_leftovers ($dir) {
+  opendir my $dh, $dir or die "Can't opendir $dir: $!";
+  my @left = grep /\.gz$|\.uncompress-tmp$|^virtual_unzipped$/, readdir $dh;
+  closedir $dh;
+  \@left
+}
+
+sub uncompress_tree_recipe () {
+  my @old = qw( Old-One-1.00 Old-Two-2.00 );
+  my $dir = make_compressed_tree(@old);
+  my $one = "$dir/Old-One-1.00";
+  my $two = "$dir/Old-Two-2.00";
+  my $new = "$dir/New-Three-3.00";
+
+  mkdir $new or die "Can't mkdir $new: $!";
+  write_file("$new/index.html", "new\n");
+  write_file("$new/cover.json", "{}");
+  my $new_inode = inode("$new/index.html");
+
+  unlink("$two/index.html", "$two/virtual_unzipped") == 2
+    or die "Can't unlink in $two: $!";
+  write_file("$one/index.html.uncompress-tmp", "stale\n");
+  my $gz    = "$one/lib-One-pm.html.gz";
+  my $mtime = time - 86_400;
+  utime $mtime, $mtime, $gz or die "Can't utime $gz: $!";
+  chmod 0640, $gz or die "Can't chmod $gz: $!";
+
+  my $outside = tempdir(CLEANUP => 1);
+  write_gz("$outside/page.html", "outside\n");
+  write_file("$outside/virtual_unzipped", "");
+  link "$outside/virtual_unzipped", "$outside/page.html"
+    or die "Can't link $outside/page.html: $!";
+  symlink $outside, "$dir/Link-1.00" or die "Can't symlink $dir/Link-1.00: $!";
+  mkdir "$dir/__failed__" or die "Can't mkdir $dir/__failed__: $!";
+  my @kept = ($outside, "$dir/dist", "$dir/__failed__", "$one/assets");
+  write_gz("$_/page.html", "kept\n") for @kept[1 .. 3];
+
+  my $out = qx($Dc -r "$dir" cpancover-uncompress 2>&1);
+  is $?, 0, "uncompress succeeds" or diag $out;
+  for my $name (@old) {
+    is slurp("$dir/$name/$_"), "$name/$_\n", "$name/$_ holds its text"
+      for @Report_files;
+    is top_level_leftovers("$dir/$name"), [], "$name holds no gzip files";
+  }
+  my @stat = stat "$one/lib-One-pm.html";
+  is $stat[9], $mtime, "the page keeps the mtime of its gzip file";
+  is sprintf("%04o", $stat[2] & 07777), "0640",
+    "the page keeps the mode of its gzip file";
+  ok -e "$dir/$Log.gz", "the top-level log stays compressed";
+  ok !-e "$dir/$Log",   "no plain top-level log appears";
+  is inode("$new/index.html"), $new_inode, "a plain report keeps its inode";
+  is slurp("$new/index.html"), "new\n",    "a plain report keeps its text";
+  ok -e "$_/page.html.gz",           "$_/page.html.gz is left alone" for @kept;
+  ok -z "$outside/page.html",        "the page outside the tree stays empty";
+  ok -e "$outside/virtual_unzipped", "the marker outside the tree is kept";
+  like $out, qr/converted 4 files in 2 directories/, "the counts are reported";
+  unlike $out, qr/^find:/m,                          "find reports no errors";
+
+  $out = qx($Dc -r "$dir" cpancover-uncompress 2>&1);
+  is $?, 0, "a second uncompress succeeds" or diag $out;
+  like $out, qr/converted 0 files in 0 directories/,
+    "a second uncompress converts nothing";
+  for my $name (@old) {
+    is slurp("$dir/$name/$_"), "$name/$_\n", "$name/$_ keeps its text"
+      for @Report_files;
+  }
+
+  $out = qx($Dc -r "$dir/cpancover.json" cpancover-uncompress 2>&1);
+  isnt $?, 0, "uncompress fails when the results dir is not a directory"
+    or diag $out;
 }
 
 sub make_docker_stub ($bin) {
@@ -1031,6 +1127,7 @@ sub main () {
   my @tests = qw(
     compress_recipe
     uncompress_recipe
+    uncompress_tree_recipe
     docker_module_log_ref
     docker_module_timeout_log_ref
     docker_module_replaces_failed

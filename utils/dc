@@ -124,6 +124,7 @@ cpancover:
   cpancover-test                       Run a test module through the full build
                                        pipeline. A distribution name builds
                                        its current release.
+  cpancover-uncompress                 Convert all gzip reports to plain files.
   cpancover-uncompress-dir <subdir>    Decompress a results subdirectory.
 
 cpancover (Docker):
@@ -1053,6 +1054,59 @@ cpancover_check_caddy() {
 
 recipe_cpancover-check-caddy() {
   cpancover_check_caddy
+}
+
+cpancover_has_gz_page() {
+  find "$1" -maxdepth 1 -type f -name '*.gz' -print -quit | read -r
+}
+
+cpancover_is_empty_page() {
+  local page="$1"
+  [[ -L $page ]] && return 1
+  [[ ! -e $page ]] || [[ -f $page && ! -s $page ]]
+}
+
+cpancover_uncompress_page() {
+  local page="$1"
+  local tmp="$page.uncompress-tmp"
+  rm -f "$tmp"
+  if cp -p "$page.gz" "$tmp" &&
+    gzip -dc "$page.gz" >"$tmp" &&
+    touch -r "$page.gz" "$tmp" &&
+    mv -f "$tmp" "$page"; then
+    rm -f "$page.gz"
+  else
+    rm -f "$tmp"
+    pf "Can't convert $page.gz"
+  fi
+}
+
+cpancover_uncompress_report() {
+  local dir="$1" gz page
+  local -n converted="$2"
+  converted=0
+  while IFS= read -r -d '' gz; do
+    page="${gz%.gz}"
+    cpancover_is_empty_page "$page" || continue
+    cpancover_uncompress_page "$page"
+    converted=$((converted + 1))
+  done < <(find "$dir" -maxdepth 1 -type f -name '*.gz' -print0)
+  cpancover_has_gz_page "$dir" || rm -f "$dir/virtual_unzipped"
+}
+
+recipe_cpancover-uncompress() {
+  [[ -d $results_dir ]] || pf "No such directory: $results_dir"
+  local dir name pages files=0 dirs=0
+  for dir in "$results_dir"/*/; do
+    dir="${dir%/}"
+    name="${dir##*/}"
+    [[ ! -d $dir || -L $dir || $name == dist || $name == __* ]] && continue
+    [[ -e $dir/virtual_unzipped ]] || cpancover_has_gz_page "$dir" || continue
+    cpancover_uncompress_report "$dir" pages
+    files=$((files + pages))
+    if ((pages)); then dirs=$((dirs + 1)); fi
+  done
+  pi "converted $files files in $dirs directories"
 }
 
 recipe_cpancover-uncompress-dir() {
