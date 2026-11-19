@@ -139,15 +139,20 @@ cycle.
 
 ## Running on cpancover.com
 
-This is the production deploy sequence. It assumes `/cover/dc` is a checkout of
-the branch you want to deploy and that you have shell access on the
-cpancover.com host. Everything runs on cpancover.com itself. The image is built
-locally and pushed to Docker Hub from the same host.
+This is the production deploy sequence. It assumes that you have shell access on
+the cpancover.com host, where the checkout is `~/g/perl/Devel--Cover`. The
+production image takes the Devel::Cover source from the `main` branch on GitHub,
+so merge what you want to deploy into `main` and push it to GitHub first. Then
+bring the checkout up to date with the same `main` before you build, because the
+build makes the other layers of the image from the checkout and takes the sha in
+the image tag from it. Everything runs on cpancover.com itself. The image is
+built locally and pushed to Docker Hub from the same host.
 
 ### 1. Build and push the new Docker image
 
 ```sh
-cd /cover/dc
+cd ~/g/perl/Devel--Cover
+. ./utils/setup
 dc docker-build -e prod
 ```
 
@@ -168,10 +173,10 @@ CPANCOVER_REBUILD_BATCH=5 dc cpancover-controller-rebuild-batch
 ```
 
 This runs exactly one rebuild pass and the post-batch HTML regeneration, then
-exits. Inspect the site and `/cover/staging/.cpancover_status`:
+exits. Inspect the site and `~/cover/staging/.cpancover_status`:
 
 ```sh
-cat /cover/staging/.cpancover_status
+cat ~/cover/staging/.cpancover_status
 # new_count=0
 # rebuilt_count=5
 # all_rebuilt=0
