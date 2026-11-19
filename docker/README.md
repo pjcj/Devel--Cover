@@ -26,7 +26,7 @@ The cpancover system uses a multi-layer Docker architecture:
 │  │      └──────────┘  └──────────┘  └──────────┘  └──────────┘       │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
-│  Results: ~/cover/staging → /cover/staging (mounted as /remote_staging) │
+│  Results: ~/cover/staging (mounted as /remote_staging)                  │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -253,15 +253,27 @@ Coverage results are organised as:
 ```text
 ~/cover/staging/
 ├── Module-Name-1.00/
+│   ├── .log_ref          # Name of the build log
+│   ├── assets/           # Stylesheet and script of the report
 │   ├── cover.json        # Per-module summary feed (json_summary report)
 │   ├── index.html        # Module coverage report
-│   ├── structure/        # Coverage structure data
 │   └── ...               # Per-file coverage reports
+├── Module-Name-0.99.tar.xz  # Archived report of a replaced release
+├── <log_name>.out        # Log of one build
 ├── __failed__/           # Failed module markers
 │   └── Module-Name-1.00  # Timestamp of failure
+├── dist/
+│   └── <letter>.html     # Distributions by first letter
+├── about.html            # About page
+├── collection.css        # Stylesheet of the collection pages
+├── collection.js         # Script of the collection pages
 ├── cpancover.json        # Overall summary
-└── index.html            # Main index page
+├── index.html            # Main index page
+└── search.json           # Report directories for the search box
 ```
+
+[cpancover site layout](../docs/technical/cpancover-site-layout.md) lists every
+entry of a results tree and describes how a web server shows the results.
 
 The system includes:
 
@@ -461,8 +473,7 @@ The system supports two environments configured via `--env`:
 #### Production Environment (`--env prod`)
 
 - Clones from GitHub repository
-- Staging directory: `~/cover/staging` (symlinked to `/cover/staging` in
-  production)
+- Staging directory: `~/cover/staging`
 - Docker image: `pjcj/cpancover`
 - Can push to Docker Hub
 - Builds using `docker/devel-cover-git`
@@ -539,12 +550,13 @@ docker logs -f <container-name>
 
 ```bash
 # On production server (cpancover.com)
-cd /cover/dc
+cd ~/g/perl/Devel--Cover
 . ./utils/setup
-
-# Install cpancover-specific Perl
-dc install-cpancover-perl 5.42.0
 ```
+
+Only the recipes which run `cpancover` on the host need the perl that
+`dc install-cpancover-perl` installs, as
+[Setting up cpancover](../docs/cpancover.md) describes.
 
 #### Running Production
 
