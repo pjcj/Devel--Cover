@@ -2,7 +2,8 @@
 
 ## Overview
 
-Cpancover requires a Bourne shell, plenv, docker and Perl 5.42.0 or later.
+Cpancover requires bash 5 or later and docker. Running `cpancover` on the host
+also requires plenv and Perl 5.42.0 or later.
 
 ## Docker
 
@@ -25,6 +26,8 @@ You may need to add yourself to the docker group.
 
 ## Plenv
 
+You need plenv only to run `cpancover` on the host.
+
 Install plenv by following the instructions on
 [GitHub](https://github.com/tokuhirom/plenv). If you are running Homebrew:
 
@@ -37,25 +40,72 @@ brew install plenv
 To run the system as a whole:
 
 ```sh
-cd /cover/dc
+cd /path/to/Devel--Cover
 . ./utils/setup
 ```
 
-Install or upgrade a cpancover perl:
+`utils/setup` puts `utils` on your `PATH`, so that you can run `dc` without a
+path. The system perl is enough for `utils/setup` and for `dc docker-build`.
+
+There are two ways to run cpancover, and both need the docker image. Pull the
+image from Docker Hub:
 
 ```sh
-dc install-cpancover-perl 5.42.0
+dc cpancover-docker-pull
 ```
 
-Run cpancover:
+`dc docker-build` builds `pjcj/cpancover` from the `main` branch on GitHub and
+pushes it to Docker Hub. `dc -e dev docker-build` builds `pjcj/cpancover_dev`
+from the files of your checkout and does not push it. After a dev build, pass
+`-e dev` to the other commands too, so that they use `pjcj/cpancover_dev` and
+`~/cover/staging_dev`.
+
+The first way runs everything in containers. Run cpancover:
 
 ```sh
 dc cpancover-controller-run
 ```
 
 The `cpancover-controller-run` command runs until stopped, collecting coverage
-for each newly uploaded distribution. Or, for slightly more control, jobs can be
-run as follows:
+for each newly uploaded distribution. `dc cpancover-controller-run-once` runs a
+single pass. Both commands start a controller container, which runs `dc` from
+the checkout inside the image, so the host needs no cpancover perl. After each
+pass that adds a report, the controller writes the top level HTML and JSON
+itself. cpancover.com runs this way.
+
+The loop passes `--on_cpan` to `cpancover --generate_html`, so the count and the
+coverage bar on the index page leave out distributions that CPAN no longer
+lists. Their reports and pages stay, greyed in the distribution lists with a
+hover tip saying so.
+
+`dc cpancover-docker-ps` lists the cpancover containers. Stop and remove them
+with:
+
+```sh
+dc cpancover-docker-kill
+dc cpancover-docker-rm
+```
+
+Or, for slightly more control, jobs can be run as follows. In this second way
+`bin/cpancover` runs on the host and still starts a docker container for each
+build. Install or upgrade a cpancover perl:
+
+```sh
+dc install-cpancover-perl 5.42.0
+```
+
+This installs a plenv perl named `cpancover` with most of the modules that
+cpancover needs. Nothing selects that perl. If an older perl runs
+`bin/cpancover`, the `use 5.42.0` line stops it and `dc` ignores the failure.
+Select the perl and install the modules that `dc install-cpancover-perl` leaves
+out:
+
+```sh
+export PLENV_VERSION=cpancover
+cpanm File::HomeDir MetaCPAN::Client CPAN::Releases::Latest HTML::Entities
+```
+
+Then run cpancover:
 
 ```sh
 dc cpancover-latest | head -2000 | dc cpancover
@@ -66,11 +116,6 @@ The top level HTML and JSON are generated with:
 ```sh
 dc cpancover-generate-html
 ```
-
-The loop passes `--on_cpan` to `cpancover --generate_html`, so the count and the
-coverage bar on the index page leave out distributions that CPAN no longer
-lists. Their reports and pages stay, greyed in the distribution lists with a
-hover tip saying so.
 
 ## Results
 
