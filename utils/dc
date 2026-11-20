@@ -1219,11 +1219,16 @@ cpancover_note_lone_index_gz() {
 recipe_cpancover-uncompress() {
   [[ -d $results_dir ]] || pf "No such directory: $results_dir"
   local dir name pages kept plain line
-  local files=0 dirs=0 left=0 bytes=0 gz_only=() unindexed=()
+  local files=0 dirs=0 left=0 bytes=0 unread=0 gz_only=() unindexed=()
   for dir in "$results_dir"/*/; do
     dir="${dir%/}"
     name="${dir##*/}"
     [[ ! -d $dir || -L $dir || $name == dist || $name == __* ]] && continue
+    if [[ ! -r $dir || ! -x $dir ]]; then
+      pw "Can't read $dir"
+      unread=$((unread + 1))
+      continue
+    fi
     if [[ -e $dir/virtual_unzipped ]] || cpancover_has_gz_page "$dir"; then
       cpancover_note_lone_index_gz "$dir" gz_only
       cpancover_uncompress_report "$dir" pages kept plain unindexed
@@ -1247,8 +1252,9 @@ recipe_cpancover-uncompress() {
   fi
   if ((left)); then
     pw "left $left gzip files in place"
-    exit 1
   fi
+  if ((unread)); then pw "could not read $unread directories"; fi
+  if ((left || unread)); then exit 1; fi
 }
 
 recipe_cpancover-uncompress-dir() {

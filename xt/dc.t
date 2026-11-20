@@ -595,6 +595,53 @@ sub uncompress_tree_converts_odd_names () {
     "a second uncompress converts nothing";
 }
 
+sub uncompress_tree_reports_unreadable_dirs () {
+  skip_all "root can read any directory" unless $>;
+  my @old    = qw( No-Access-1.00 No-Read-1.00 Readable-1.00 );
+  my $dir    = make_compressed_tree(@old);
+  my $mode   = { "No-Access-1.00" => 0000, "No-Read-1.00" => 0333 };
+  my @closed = sort keys %$mode;
+  my $before = { map { $_ => tree_state("$dir/$_") } @closed };
+
+  chmod $mode->{$_}, "$dir/$_" or die "Can't chmod $dir/$_: $!" for @closed;
+  my $runs = {};
+  $runs->{"dry run"} = [run_uncompress($dir, "-d")];
+  $runs->{run}       = [run_uncompress($dir)];
+  chmod 0755, "$dir/$_" or die "Can't chmod $dir/$_: $!" for @closed;
+
+  my $summary = {
+    "dry run" => qr/would convert 2 files in 1 directories,/,
+    run       => qr/\bconverted 2 files in 1 directories/,
+  };
+  for my $run (sort keys %$runs) {
+    my ($out, $status) = $runs->{$run}->@*;
+    isnt $status, 0, "the $run fails with unreadable directories" or diag $out;
+    ok warns($out, "$dir/$_"), "the $run names $_" for @closed;
+    like $out, qr/\[WARNING\].*could not read 2 directories/,
+      "the $run counts the unreadable directories";
+    like $out, $summary->{$run}, "the $run prints the summary";
+    like $out, qr/\b0 directories had .* and 0 have no index page/,
+      "the $run leaves the unreadable directories out of the index counts";
+    for my $name (@closed) {
+      is [grep /\Q$name/, index_lines($out)->@*], [],
+        "the $run lists no index page of $name";
+    }
+  }
+  for my $name (@closed) {
+    my $report = "$dir/$name";
+    is tree_state($report), $before->{$name},
+      "the runs change nothing in $name";
+    for my $page (qw( index.html lib-One-pm.html )) {
+      ok -e "$report/$page.gz", "$name/$page.gz remains";
+      ok -z "$report/$page",    "$name/$page stays empty";
+    }
+    ok -e "$report/virtual_unzipped", "$name keeps the marker";
+  }
+  is slurp("$dir/Readable-1.00/$_"), "Readable-1.00/$_\n",
+    "Readable-1.00/$_ holds its text"
+    for @Report_files;
+}
+
 sub make_docker_stub ($bin) {
   write_file("$bin/docker", <<~'BASH');
     #!/bin/sh
@@ -1545,6 +1592,7 @@ sub main () {
     uncompress_tree_leaves_gz_links
     uncompress_tree_keeps_odd_markers
     uncompress_tree_converts_odd_names
+    uncompress_tree_reports_unreadable_dirs
     docker_module_log_ref
     docker_module_timeout_log_ref
     docker_module_replaces_failed
