@@ -10,11 +10,13 @@
 
 use 5.42.0;
 
-use Test2::V0  qw( diag done_testing is isnt like ok skip_all subtest unlike );
-use Config     qw( %Config );
-use Cwd        qw( realpath );
-use File::Find qw( find );
-use File::Temp qw( tempdir );
+use Test2::V0   qw( diag done_testing is isnt like ok skip_all subtest unlike );
+use Config      qw( %Config );
+use Cwd         qw( realpath );
+use File::Find  qw( find );
+use File::Temp  qw( tempdir );
+use List::Util  qw( sum );
+use Time::HiRes qw( lstat );
 
 skip_all "dc recipes are not portable to Windows" if $^O eq "MSWin32";
 skip_all "utils/dc not found" unless -x "utils/dc";
@@ -195,8 +197,8 @@ sub replace_page ($page, $content) {
   write_file($page, $content);
 }
 
-sub run_uncompress ($dir) {
-  my $out = qx($Dc -r "$dir" cpancover-uncompress 2>&1);
+sub run_uncompress ($dir, @opts) {
+  my $out = qx($Dc @opts -r "$dir" cpancover-uncompress 2>&1);
   ($out, $?)
 }
 
@@ -345,6 +347,62 @@ sub uncompress_tree_index_pages () {
   is [@lines[-@$want .. -1]], $want,
     "the output lists the index pages after the pass"
     or diag $out;
+}
+
+sub tree_state ($dir) {
+  my $state = {};
+  find(
+    {
+      wanted   => sub { $state->{$_} = join " ", (lstat)[1, 7, 9] },
+      no_chdir => 1,
+    },
+    $dir,
+  );
+  $state
+}
+
+sub index_lines ($out) { [grep /index\.html/, messages($out)] }
+
+sub uncompress_tree_dry_run () {
+  my $dir   = make_compressed_tree(qw( Dry-One-1.00 Dry-Two-2.00 ));
+  my $equal = "Dry-Two-2.00/index.html";
+  replace_page("$dir/$equal", "$equal\n");
+  my @plain = qw( Dry-One-1.00/index.html Dry-One-1.00/lib-One-pm.html
+    Dry-Two-2.00/lib-One-pm.html );
+  my $bytes = sum map length "$_\n", @plain;
+
+  my $before = tree_state($dir);
+  my ($out, $status) = run_uncompress($dir, "-d");
+  is $status, 0, "a dry run succeeds" or diag $out;
+  like $out,
+    qr/would convert 4 files in 2 directories, $bytes bytes as plain files/,
+    "the dry run counts the pages, the directories and the bytes";
+  is tree_state($dir), $before, "a dry run changes nothing in the tree";
+
+  my $corrupt = "Dry-One-1.00/lib-One-pm.html.gz";
+  write_file("$dir/$corrupt", "not gzip");
+  $before = tree_state($dir);
+  ($out, $status) = run_uncompress($dir, "-d");
+  isnt $status, 0, "a dry run fails with a corrupt file" or diag $out;
+  ok warns($out, $corrupt), "the dry run names the corrupt file";
+  is tree_state($dir), $before, "a dry run leaves the corrupt file alone";
+
+  $dir = make_compressed_tree(qw( Empty-Index-1.00 Gz-Only-1.00 ));
+  for my $page ("Empty-Index-1.00/index.html.gz", "Gz-Only-1.00/index.html") {
+    unlink "$dir/$page" or die "Can't unlink $dir/$page: $!";
+  }
+  mkdir "$dir/Plain-1.00" or die "Can't mkdir $dir/Plain-1.00: $!";
+  my ($dry, $dry_status) = run_uncompress($dir, "-d");
+  ($out, $status) = run_uncompress($dir);
+  is $status, $dry_status, "the dry run exits as the run does" or diag $dry;
+  my ($would) = $dry =~ /would convert (\d+ files in \d+ directories),/;
+  my ($done)  = $out =~ /\bconverted (\d+ files in \d+ directories)/;
+  is $would, "3 files in 2 directories", "the dry run counts a fresh tree";
+  is $done,  $would, "the run converts what the dry run counts";
+  my $lines = index_lines($out);
+  ok grep(/and 2 have no index page$/, @$lines), "the run lists index pages";
+  is index_lines($dry), $lines, "the dry run lists the index pages of the run"
+    or diag $dry;
 }
 
 sub make_docker_stub ($bin) {
@@ -1290,6 +1348,7 @@ sub main () {
     uncompress_tree_leaves_read_only_dir
     uncompress_tree_empty_and_equal_pages
     uncompress_tree_index_pages
+    uncompress_tree_dry_run
     docker_module_log_ref
     docker_module_timeout_log_ref
     docker_module_replaces_failed
