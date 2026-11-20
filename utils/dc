@@ -1142,19 +1142,51 @@ cpancover_uncompress_report() {
   cpancover_finish_report "$dir"
 }
 
+cpancover_note_lone_index_gz() {
+  local dir="$1"
+  local -n lone="$2"
+  local page="$dir/index.html"
+  if [[ -f $page.gz && ! -e $page && ! -L $page ]]; then
+    lone+=("${dir##*/}: index.html.gz had no index.html")
+  fi
+}
+
+cpancover_note_missing_index() {
+  local dir="$1"
+  local -n no_index="$2"
+  local page="$dir/index.html" problem
+  if [[ -L $page || ! -f $page ]]; then
+    problem="no index.html"
+  elif [[ ! -s $page ]]; then
+    problem="index.html is empty"
+  else
+    return 0
+  fi
+  if [[ -e $page.gz ]]; then problem+=", index.html.gz left"; fi
+  no_index+=("${dir##*/}: $problem")
+}
+
 recipe_cpancover-uncompress() {
   [[ -d $results_dir ]] || pf "No such directory: $results_dir"
-  local dir name pages kept files=0 dirs=0 left=0
+  local dir name pages kept files=0 dirs=0 left=0 line
+  local gz_only=() unindexed=()
   for dir in "$results_dir"/*/; do
     dir="${dir%/}"
     name="${dir##*/}"
     [[ ! -d $dir || -L $dir || $name == dist || $name == __* ]] && continue
-    [[ -e $dir/virtual_unzipped ]] || cpancover_has_gz_page "$dir" || continue
-    cpancover_uncompress_report "$dir" pages kept
-    files=$((files + pages))
-    left=$((left + kept))
-    if ((pages)); then dirs=$((dirs + 1)); fi
+    if [[ -e $dir/virtual_unzipped ]] || cpancover_has_gz_page "$dir"; then
+      cpancover_note_lone_index_gz "$dir" gz_only
+      cpancover_uncompress_report "$dir" pages kept
+      files=$((files + pages))
+      left=$((left + kept))
+      if ((pages)); then dirs=$((dirs + 1)); fi
+    fi
+    cpancover_note_missing_index "$dir" unindexed
   done
+  for line in "${gz_only[@]}"; do pi "$line"; done
+  for line in "${unindexed[@]}"; do pw "$line"; done
+  pi "${#gz_only[@]} directories had index.html.gz with no index.html" \
+    "and ${#unindexed[@]} have no index page"
   pi "converted $files files in $dirs directories"
   if ((left)); then
     pw "left $left gzip files in place"

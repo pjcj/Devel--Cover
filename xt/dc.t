@@ -310,6 +310,43 @@ sub uncompress_tree_empty_and_equal_pages () {
     "an equal page counts as converted";
 }
 
+sub messages ($out) {
+  map /\[(\w+)\]\s+\S+: (.*)/ ? "$1 $2" : (), split /\n/, $out
+}
+
+sub uncompress_tree_index_pages () {
+  my @old = qw( Corrupt-Index-1.00 Empty-Index-1.00 Gz-Only-1.00 );
+  my $dir = make_compressed_tree(@old);
+  my ($corrupt, $empty, $gz_only) = map "$dir/$_", @old;
+  unlink "$gz_only/index.html"  or die "Can't unlink $gz_only/index.html: $!";
+  unlink "$empty/index.html.gz" or die "Can't unlink $empty/index.html.gz: $!";
+  write_file("$corrupt/index.html.gz", "not gzip");
+  for my $name (qw( Plain-1.00 Plain-Index-1.00 )) {
+    mkdir "$dir/$name" or die "Can't mkdir $dir/$name: $!";
+    write_file("$dir/$name/cover.json", "{}");
+  }
+  write_file("$dir/Plain-Index-1.00/index.html", "plain\n");
+
+  my ($out, $status) = run_uncompress($dir);
+  isnt $status, 0, "uncompress fails with a corrupt index page" or diag $out;
+  is slurp("$gz_only/index.html"), "Gz-Only-1.00/index.html\n",
+    "a lone index.html.gz becomes the index page";
+  my $want = [
+    "INFO Gz-Only-1.00: index.html.gz had no index.html",
+    "WARNING Corrupt-Index-1.00: index.html is empty, index.html.gz left",
+    "WARNING Empty-Index-1.00: index.html is empty",
+    "WARNING Plain-1.00: no index.html",
+    "INFO 1 directories had index.html.gz with no index.html"
+      . " and 3 have no index page",
+    "INFO converted 4 files in 3 directories",
+    "WARNING left 1 gzip files in place",
+  ];
+  my @lines = messages($out);
+  is [@lines[-@$want .. -1]], $want,
+    "the output lists the index pages after the pass"
+    or diag $out;
+}
+
 sub make_docker_stub ($bin) {
   write_file("$bin/docker", <<~'BASH');
     #!/bin/sh
@@ -1252,6 +1289,7 @@ sub main () {
     uncompress_tree_leaves_linked_pages
     uncompress_tree_leaves_read_only_dir
     uncompress_tree_empty_and_equal_pages
+    uncompress_tree_index_pages
     docker_module_log_ref
     docker_module_timeout_log_ref
     docker_module_replaces_failed
