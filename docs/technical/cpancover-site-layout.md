@@ -168,6 +168,25 @@ cpancover.com, www.cpancover.com {
   directive Caddy would send the empty file.
 - `log` names the access log, which needs `sudo` to read.
 
+`dc cpancover-uncompress` turns every report that the build loop wrote with
+`CPANCOVER_COMPRESS` set back into plain files. It deletes each `X.gz` that it
+converts. In each report directory that holds `virtual_unzipped` or a `*.gz`
+file, it warns about each `*.gz` file or link that it does not convert, such as
+a symbolic link or a file named `*.gz.gz`, and leaves it as it was. It does the
+same with each report directory that it cannot read. It deletes
+`virtual_unzipped`, the file that each empty `X` is a hard link to, only while
+it is an empty regular file, no file in the directory is still a hard link to it
+and no `*.gz` file or link remains there. It leaves the build logs at the top of
+the tree compressed, and lists the report directories that have no index page.
+Stop the controller before a run, since the build loop archives old reports and
+could archive one while the recipe converts it.
+
+`dc --dryrun cpancover-uncompress` only reads the tree, so it changes nothing.
+It prints the warnings and lists that it can foresee, then how many files it
+would convert, in how many directories, and the size in bytes of the files that
+it would write. It cannot foresee a write or a delete that fails in a real run,
+such as one in a read-only directory.
+
 `dc cpancover-check-caddy` validates the generated file and shows how it differs
 from the installed one. `dc cpancover-configure-caddy` installs the generated
 file and reloads Caddy, which needs `sudo`.

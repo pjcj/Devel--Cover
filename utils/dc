@@ -124,6 +124,7 @@ cpancover:
   cpancover-test                       Run a test module through the full build
                                        pipeline. A distribution name builds
                                        its current release.
+  cpancover-uncompress                 Convert all gzip reports to plain files.
   cpancover-uncompress-dir <subdir>    Decompress a results subdirectory.
 
 cpancover (Docker):
@@ -1053,6 +1054,207 @@ cpancover_check_caddy() {
 
 recipe_cpancover-check-caddy() {
   cpancover_check_caddy
+}
+
+cpancover_has_gz_page() {
+  find "$1" -maxdepth 1 -type f -name '*.gz' -print -quit | read -r
+}
+
+cpancover_gz_entries() {
+  find "$1" -maxdepth 1 -name '*.gz' \( -type f -o -type l \) "${@:2}"
+}
+
+cpancover_is_empty_page() {
+  local page="$1"
+  [[ -L $page ]] && return 1
+  [[ ! -e $page ]] || [[ -f $page && ! -s $page ]]
+}
+
+cpancover_remove_gz() {
+  if ((dryrun)); then return 0; fi
+  rm -f "$1" && return 0
+  pw "Can't delete $1"
+  return 1
+}
+
+cpancover_write_plain() {
+  local gz="$1" file="$2"
+  if [[ -w $file ]]; then
+    gzip -dc "$gz" >"$file"
+    return
+  fi
+  chmod u+w "$file" && gzip -dc "$gz" >"$file" && chmod u-w "$file"
+}
+
+cpancover_uncompress_page() {
+  local page="$1"
+  local -n plain_size="$2"
+  local tmp=""
+  if ((dryrun)); then
+    if plain_size=$(gzip -dc "$page.gz" | wc -c); then
+      plain_size=$((plain_size))
+      return
+    fi
+  elif tmp=$(mktemp "${page%/*}/.uncompress-XXXXXX") &&
+    cp -p "$page.gz" "$tmp" &&
+    cpancover_write_plain "$page.gz" "$tmp" &&
+    touch -r "$page.gz" "$tmp" &&
+    mv -f "$tmp" "$page"; then
+    cpancover_remove_gz "$page.gz"
+    return
+  elif [[ -n $tmp ]]; then
+    rm -f "$tmp" || pw "Can't delete $tmp"
+  fi
+  pw "Can't convert $page.gz since writing $page failed"
+  return 1
+}
+
+cpancover_keep_gz() {
+  local gz="$1"
+  local page="${gz%.gz}"
+  if [[ -L $gz ]]; then
+    pw "Can't convert $gz since it is a symbolic link"
+  elif [[ ${gz##*/} == virtual_unzipped.gz ]]; then
+    pw "Can't convert $gz since $page is the marker file"
+  elif [[ $page == *.gz ]]; then
+    pw "Can't convert $gz since $page ends in .gz"
+  elif [[ ! -s $gz ]]; then
+    pw "Can't convert $gz since it is empty"
+  elif [[ -L $page ]]; then
+    pw "Can't convert $gz since $page is a symbolic link"
+  else
+    return 1
+  fi
+}
+
+cpancover_uncompress_gz() {
+  local gz="$1"
+  local page="${gz%.gz}"
+  if cpancover_keep_gz "$gz"; then return 1; fi
+  if cpancover_is_empty_page "$page"; then
+    cpancover_uncompress_page "$page" "$2"
+    return
+  fi
+  if [[ ! -f $page ]]; then
+    pw "Can't convert $gz since $page is not a regular file"
+    return 1
+  fi
+  if gzip -dc "$gz" | cmp -s - "$page"; then
+    cpancover_remove_gz "$gz"
+    return
+  fi
+  pw "Can't convert $gz since it does not match $page"
+  return 1
+}
+
+cpancover_finish_report() {
+  local dir="$1" page linked=false
+  local marker="$dir/virtual_unzipped"
+  [[ -e $marker ]] || return 0
+  while IFS= read -r -d '' page; do
+    linked=true
+    if [[ ! -s $page && ! -f $page.gz && ! -L $page.gz ]]; then
+      pw "$page has no text and no gzip file"
+    fi
+  done < <(find "$dir" -maxdepth 1 -type f -samefile "$marker" \
+    -not -name virtual_unzipped -print0)
+  if ((dryrun)); then return 0; fi
+  [[ $linked == false && -f $marker && ! -L $marker && ! -s $marker ]] ||
+    return 0
+  if ! cpancover_gz_entries "$dir" -print -quit | read -r; then
+    rm -f "$marker" || pw "Can't delete $marker"
+  fi
+}
+
+cpancover_note_missing_index() {
+  local dir="$1" size="${3:-}"
+  local -n no_index="$2"
+  local page="$dir/index.html" problem
+  if [[ -n $size ]]; then
+    if ((size)); then return 0; fi
+    problem="index.html is empty"
+  elif [[ -L $page || ! -f $page ]]; then
+    problem="no index.html"
+  elif [[ ! -s $page ]]; then
+    problem="index.html is empty"
+  else
+    return 0
+  fi
+  if [[ -z $size && -e "$page.gz" ]]; then
+    problem+=", index.html.gz left"
+  fi
+  no_index+=("${dir##*/}: $problem")
+}
+
+cpancover_uncompress_report() {
+  local dir="$1" gz size index_size="" gzs
+  local -n converted="$2" unconverted="$3" dir_bytes="$4"
+  converted=0
+  unconverted=0
+  dir_bytes=0
+  mapfile -d '' gzs < <(cpancover_gz_entries "$dir" -print0)
+  for gz in "${gzs[@]}"; do
+    size=""
+    if cpancover_uncompress_gz "$gz" size; then
+      converted=$((converted + 1))
+      dir_bytes=$((dir_bytes + size))
+      if [[ $gz == "$dir/index.html.gz" ]]; then index_size="$size"; fi
+    else
+      unconverted=$((unconverted + 1))
+    fi
+  done
+  cpancover_finish_report "$dir"
+  cpancover_note_missing_index "$dir" "$5" "$index_size"
+}
+
+cpancover_note_lone_index_gz() {
+  local dir="$1"
+  local -n lone="$2"
+  local page="$dir/index.html"
+  if [[ -f $page.gz && ! -e $page && ! -L $page ]]; then
+    lone+=("${dir##*/}: index.html.gz had no index.html")
+  fi
+}
+
+recipe_cpancover-uncompress() {
+  [[ -d $results_dir ]] || pf "No such directory: $results_dir"
+  local dir name pages kept plain line
+  local files=0 dirs=0 left=0 bytes=0 unread=0 gz_only=() unindexed=()
+  for dir in "$results_dir"/*/; do
+    dir="${dir%/}"
+    name="${dir##*/}"
+    [[ ! -d $dir || -L $dir || $name == dist || $name == __* ]] && continue
+    if [[ ! -r $dir || ! -x $dir ]]; then
+      pw "Can't read $dir"
+      unread=$((unread + 1))
+      continue
+    fi
+    if [[ -e $dir/virtual_unzipped ]] || cpancover_has_gz_page "$dir"; then
+      cpancover_note_lone_index_gz "$dir" gz_only
+      cpancover_uncompress_report "$dir" pages kept plain unindexed
+      files=$((files + pages))
+      left=$((left + kept))
+      bytes=$((bytes + plain))
+      if ((pages)); then dirs=$((dirs + 1)); fi
+    else
+      cpancover_note_missing_index "$dir" unindexed
+    fi
+  done
+  for line in "${gz_only[@]}"; do pi "$line"; done
+  for line in "${unindexed[@]}"; do pw "$line"; done
+  pi "${#gz_only[@]} directories had index.html.gz with no index.html" \
+    "and ${#unindexed[@]} have no index page"
+  if ((dryrun)); then
+    pi "would convert $files files in $dirs directories," \
+      "$bytes bytes as plain files"
+  else
+    pi "converted $files files in $dirs directories"
+  fi
+  if ((left)); then
+    pw "left $left gzip files in place"
+  fi
+  if ((unread)); then pw "could not read $unread directories"; fi
+  if ((left || unread)); then exit 1; fi
 }
 
 recipe_cpancover-uncompress-dir() {
