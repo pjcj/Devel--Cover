@@ -1066,47 +1066,100 @@ cpancover_is_empty_page() {
   [[ ! -e $page ]] || [[ -f $page && ! -s $page ]]
 }
 
+cpancover_remove_gz() {
+  rm -f "$1" && return 0
+  pw "Can't delete $1"
+  return 1
+}
+
 cpancover_uncompress_page() {
   local page="$1"
   local tmp="$page.uncompress-tmp"
-  rm -f "$tmp"
-  if cp -p "$page.gz" "$tmp" &&
+  if rm -f "$tmp" &&
+    cp -p "$page.gz" "$tmp" &&
     gzip -dc "$page.gz" >"$tmp" &&
     touch -r "$page.gz" "$tmp" &&
     mv -f "$tmp" "$page"; then
-    rm -f "$page.gz"
-  else
-    rm -f "$tmp"
-    pf "Can't convert $page.gz"
+    cpancover_remove_gz "$page.gz"
+    return
+  fi
+  rm -f "$tmp" || pw "Can't delete $tmp"
+  pw "Can't convert $page.gz since writing $page failed"
+  return 1
+}
+
+cpancover_uncompress_gz() {
+  local gz="$1"
+  local page="${gz%.gz}"
+  if [[ -L $page ]]; then
+    pw "Can't convert $gz since $page is a symbolic link"
+    return 1
+  fi
+  if cpancover_is_empty_page "$page"; then
+    cpancover_uncompress_page "$page"
+    return
+  fi
+  if [[ ! -f $page ]]; then
+    pw "Can't convert $gz since $page is not a regular file"
+    return 1
+  fi
+  if gzip -dc "$gz" | cmp -s - "$page"; then
+    cpancover_remove_gz "$gz"
+    return
+  fi
+  pw "Can't convert $gz since it does not match $page"
+  return 1
+}
+
+cpancover_finish_report() {
+  local dir="$1" page linked=false
+  local marker="$dir/virtual_unzipped"
+  [[ -e $marker ]] || return 0
+  while IFS= read -r -d '' page; do
+    linked=true
+    if [[ ! -s $page && ! -f $page.gz ]]; then
+      pw "$page has no text and no gzip file"
+    fi
+  done < <(find "$dir" -maxdepth 1 -type f -samefile "$marker" \
+    -not -name virtual_unzipped -print0)
+  if [[ $linked == false ]] && ! cpancover_has_gz_page "$dir"; then
+    rm -f "$marker" || pw "Can't delete $marker"
   fi
 }
 
 cpancover_uncompress_report() {
-  local dir="$1" gz page
-  local -n converted="$2"
+  local dir="$1" gz
+  local -n converted="$2" unconverted="$3"
   converted=0
+  unconverted=0
   while IFS= read -r -d '' gz; do
-    page="${gz%.gz}"
-    cpancover_is_empty_page "$page" || continue
-    cpancover_uncompress_page "$page"
-    converted=$((converted + 1))
+    if cpancover_uncompress_gz "$gz"; then
+      converted=$((converted + 1))
+    else
+      unconverted=$((unconverted + 1))
+    fi
   done < <(find "$dir" -maxdepth 1 -type f -name '*.gz' -print0)
-  cpancover_has_gz_page "$dir" || rm -f "$dir/virtual_unzipped"
+  cpancover_finish_report "$dir"
 }
 
 recipe_cpancover-uncompress() {
   [[ -d $results_dir ]] || pf "No such directory: $results_dir"
-  local dir name pages files=0 dirs=0
+  local dir name pages kept files=0 dirs=0 left=0
   for dir in "$results_dir"/*/; do
     dir="${dir%/}"
     name="${dir##*/}"
     [[ ! -d $dir || -L $dir || $name == dist || $name == __* ]] && continue
     [[ -e $dir/virtual_unzipped ]] || cpancover_has_gz_page "$dir" || continue
-    cpancover_uncompress_report "$dir" pages
+    cpancover_uncompress_report "$dir" pages kept
     files=$((files + pages))
+    left=$((left + kept))
     if ((pages)); then dirs=$((dirs + 1)); fi
   done
   pi "converted $files files in $dirs directories"
+  if ((left)); then
+    pw "left $left gzip files in place"
+    exit 1
+  fi
 }
 
 recipe_cpancover-uncompress-dir() {

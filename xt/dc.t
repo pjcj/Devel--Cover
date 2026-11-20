@@ -190,6 +190,126 @@ sub uncompress_tree_recipe () {
     or diag $out;
 }
 
+sub replace_page ($page, $content) {
+  unlink $page or die "Can't unlink $page: $!";
+  write_file($page, $content);
+}
+
+sub run_uncompress ($dir) {
+  my $out = qx($Dc -r "$dir" cpancover-uncompress 2>&1);
+  ($out, $?)
+}
+
+sub warns ($out, $path) { $out =~ /\[WARNING\].*\Q$path\E(?![\w.-])/ }
+
+sub uncompress_tree_leaves_bad_pages () {
+  my $dir     = make_compressed_tree(qw( Corrupt-1.00 Differ-1.00 Zz-1.00 ));
+  my $corrupt = "$dir/Corrupt-1.00";
+  my $differ  = "$dir/Differ-1.00";
+  write_file("$corrupt/index.html.gz", "not gzip");
+  replace_page("$differ/index.html", "other\n");
+
+  my ($out, $status) = run_uncompress($dir);
+  isnt $status, 0, "uncompress fails with bad pages" or diag $out;
+  is slurp("$corrupt/index.html.gz"), "not gzip",
+    "the corrupt file keeps its bytes";
+  ok -z "$corrupt/index.html",       "the page of the corrupt file stays empty";
+  ok -e "$corrupt/virtual_unzipped", "its report keeps the marker";
+  is [grep /uncompress-tmp$/, top_level_leftovers($corrupt)->@*], [],
+    "no temporary file remains";
+  ok warns($out, "Corrupt-1.00/index.html.gz"),
+    "the output names the corrupt file";
+  is slurp("$corrupt/lib-One-pm.html"), "Corrupt-1.00/lib-One-pm.html\n",
+    "the other page of its report holds its text";
+  is slurp("$dir/Zz-1.00/$_"), "Zz-1.00/$_\n", "a later report holds $_"
+    for @Report_files;
+  is slurp("$differ/index.html"), "other\n", "a different page keeps its text";
+  ok -e "$differ/index.html.gz", "a different page keeps its gzip file";
+  ok warns($out, "Differ-1.00/index.html.gz"),
+    "the output names the different page";
+  like $out, qr/converted 4 files in 3 directories/,
+    "the output reports the counts";
+  like $out, qr/\[WARNING\].*left 2 gzip files in place/,
+    "the output counts the files left";
+}
+
+sub uncompress_tree_leaves_linked_pages () {
+  my $outside = tempdir(CLEANUP => 1);
+  mkdir "$outside/empty" or die "Can't mkdir $outside/empty: $!";
+  write_file("$outside/empty.html", "");
+  my $links = {
+    "Link-Dir-1.00"     => "$outside/empty",
+    "Link-File-1.00"    => "$outside/empty.html",
+    "Link-Missing-1.00" => "$outside/missing.html",
+  };
+  my @names = sort keys %$links;
+  my $dir   = make_compressed_tree(@names);
+  for my $name (@names) {
+    my $page = "$dir/$name/index.html";
+    unlink $page or die "Can't unlink $page: $!";
+    symlink $links->{$name}, $page or die "Can't symlink $page: $!";
+  }
+
+  my ($out, $status) = run_uncompress($dir);
+  isnt $status, 0, "uncompress fails with linked pages" or diag $out;
+  for my $name (@names) {
+    my $page = "$dir/$name/index.html";
+    is readlink $page, $links->{$name}, "the page of $name stays a link";
+    ok -e "$page.gz", "$name keeps its gzip file";
+    ok warns($out, "$name/index.html.gz"),
+      "the output names the linked page of $name";
+  }
+  opendir my $dh, "$outside/empty" or die "Can't opendir $outside/empty: $!";
+  is [grep !/^\.\.?$/, readdir $dh], [], "the directory outside stays empty";
+  ok -z "$outside/empty.html",    "the file outside stays empty";
+  ok !-e "$outside/missing.html", "the missing file stays missing";
+  like $out, qr/\[WARNING\].*left 3 gzip files in place/,
+    "the output counts the files left";
+}
+
+sub uncompress_tree_leaves_read_only_dir () {
+  skip_all "root can write into a read-only directory" unless $>;
+  my $dir  = make_compressed_tree("Read-Only-1.00");
+  my $read = "$dir/Read-Only-1.00";
+  chmod 0555, $read or die "Can't chmod $read: $!";
+  my ($out, $status) = run_uncompress($dir);
+  chmod 0755, $read or die "Can't chmod $read: $!";
+
+  isnt $status, 0, "uncompress fails with a read-only directory" or diag $out;
+  for my $page (qw( index.html lib-One-pm.html )) {
+    ok -e "$read/$page.gz", "$page.gz remains";
+    ok -z "$read/$page",    "$page stays empty";
+  }
+  like $out, qr|\[WARNING\].*Read-Only-1\.00/\S+\.gz|,
+    "the output names a file of the directory";
+  like $out, qr/converted 0 files in 0 directories/,
+    "the output reports the counts";
+}
+
+sub uncompress_tree_empty_and_equal_pages () {
+  my $dir   = make_compressed_tree(qw( Empty-1.00 Equal-1.00 ));
+  my $empty = "$dir/Empty-1.00";
+  my $equal = "$dir/Equal-1.00";
+  unlink "$empty/index.html.gz" or die "Can't unlink $empty/index.html.gz: $!";
+  replace_page("$equal/index.html", "Equal-1.00/index.html\n");
+
+  my ($out, $status) = run_uncompress($dir);
+  is $status, 0, "uncompress succeeds with empty and equal pages" or diag $out;
+  ok -z "$empty/index.html", "a page with no gzip file stays empty";
+  ok warns($out, "Empty-1.00/index.html"),
+    "the output names the page with no text";
+  ok -e "$empty/virtual_unzipped", "its report keeps the marker";
+  is slurp("$equal/index.html"), "Equal-1.00/index.html\n",
+    "an equal page keeps its text";
+  ok !-e "$equal/index.html.gz",
+    "uncompress deletes the gzip file of an equal page";
+  unlike $out, qr/\[WARNING\].*Equal-1\.00/, "an equal page gets no warning";
+  ok !-e "$equal/virtual_unzipped",
+    "uncompress deletes the marker of a finished report";
+  like $out, qr/converted 3 files in 2 directories/,
+    "an equal page counts as converted";
+}
+
 sub make_docker_stub ($bin) {
   write_file("$bin/docker", <<~'BASH');
     #!/bin/sh
@@ -1128,6 +1248,10 @@ sub main () {
     compress_recipe
     uncompress_recipe
     uncompress_tree_recipe
+    uncompress_tree_leaves_bad_pages
+    uncompress_tree_leaves_linked_pages
+    uncompress_tree_leaves_read_only_dir
+    uncompress_tree_empty_and_equal_pages
     docker_module_log_ref
     docker_module_timeout_log_ref
     docker_module_replaces_failed
