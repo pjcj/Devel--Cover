@@ -1073,23 +1073,32 @@ cpancover_remove_gz() {
   return 1
 }
 
+cpancover_write_plain() {
+  local gz="$1" file="$2"
+  if [[ -w $file ]]; then
+    gzip -dc "$gz" >"$file"
+    return
+  fi
+  chmod u+w "$file" && gzip -dc "$gz" >"$file" && chmod u-w "$file"
+}
+
 cpancover_uncompress_page() {
   local page="$1"
   local -n plain_size="$2"
-  local tmp="$page.uncompress-tmp"
+  local tmp=""
   if ((dryrun)); then
     if plain_size=$(gzip -dc "$page.gz" | wc -c); then
       plain_size=$((plain_size))
       return
     fi
-  elif rm -f "$tmp" &&
+  elif tmp=$(mktemp "${page%/*}/.uncompress-XXXXXX") &&
     cp -p "$page.gz" "$tmp" &&
-    gzip -dc "$page.gz" >"$tmp" &&
+    cpancover_write_plain "$page.gz" "$tmp" &&
     touch -r "$page.gz" "$tmp" &&
     mv -f "$tmp" "$page"; then
     cpancover_remove_gz "$page.gz"
     return
-  else
+  elif [[ -n $tmp ]]; then
     rm -f "$tmp" || pw "Can't delete $tmp"
   fi
   pw "Can't convert $page.gz since writing $page failed"

@@ -122,7 +122,7 @@ sub write_gz ($path, $content) {
 
 sub top_level_leftovers ($dir) {
   opendir my $dh, $dir or die "Can't opendir $dir: $!";
-  my @left = grep /\.gz$|\.uncompress-tmp$|^virtual_unzipped$/, readdir $dh;
+  my @left = grep /\.gz$|^\.uncompress-|^virtual_unzipped$/, readdir $dh;
   closedir $dh;
   \@left
 }
@@ -141,7 +141,8 @@ sub uncompress_tree_recipe () {
 
   unlink("$two/index.html", "$two/virtual_unzipped") == 2
     or die "Can't unlink in $two: $!";
-  write_file("$one/index.html.uncompress-tmp", "stale\n");
+  my $tmp_page = "$one/index.html.uncompress-tmp";
+  write_file($tmp_page, "tmp page\n");
   my $gz    = "$one/lib-One-pm.html.gz";
   my $mtime = time - 86_400;
   utime $mtime, $mtime, $gz or die "Can't utime $gz: $!";
@@ -164,6 +165,8 @@ sub uncompress_tree_recipe () {
       for @Report_files;
     is top_level_leftovers("$dir/$name"), [], "$name holds no gzip files";
   }
+  is slurp($tmp_page), "tmp page\n",
+    "a page named like a temporary file keeps its text";
   my @stat = stat "$one/lib-One-pm.html";
   is $stat[9], $mtime, "the page keeps the mtime of its gzip file";
   is sprintf("%04o", $stat[2] & 07777), "0640",
@@ -217,7 +220,7 @@ sub uncompress_tree_leaves_bad_pages () {
     "the corrupt file keeps its bytes";
   ok -z "$corrupt/index.html",       "the page of the corrupt file stays empty";
   ok -e "$corrupt/virtual_unzipped", "its report keeps the marker";
-  is [grep /uncompress-tmp$/, top_level_leftovers($corrupt)->@*], [],
+  is [grep /^\.uncompress-/, top_level_leftovers($corrupt)->@*], [],
     "no temporary file remains";
   ok warns($out, "Corrupt-1.00/index.html.gz"),
     "the output names the corrupt file";
@@ -361,6 +364,23 @@ sub tree_state ($dir) {
   $state
 }
 
+sub dry_run_then_run ($dir) {
+  my $before = tree_state($dir);
+  my ($dry, $dry_status) = run_uncompress($dir, "-d");
+  my $after = tree_state($dir);
+  is $after, $before, "the dry run changes nothing in the tree";
+  is [grep m|/\.uncompress-[^/]*$|, keys %$after], [],
+    "the dry run makes no temporary file";
+  my ($out, $status) = run_uncompress($dir);
+  is $status, $dry_status, "the dry run exits as the run does" or diag $dry;
+  my ($would) = $dry =~ /would convert (\d+ files in \d+ directories),/;
+  my ($done)  = $out =~ /\bconverted (\d+ files in \d+ directories)/;
+  is $done, $would, "the run converts what the dry run counts";
+  is [grep /^WARNING/, messages($dry)], [grep /^WARNING/, messages($out)],
+    "the dry run gives the warnings of the run";
+  ($dry, $out, $status)
+}
+
 sub index_lines ($out) { [grep /index\.html/, messages($out)] }
 
 sub uncompress_tree_dry_run () {
@@ -392,17 +412,45 @@ sub uncompress_tree_dry_run () {
     unlink "$dir/$page" or die "Can't unlink $dir/$page: $!";
   }
   mkdir "$dir/Plain-1.00" or die "Can't mkdir $dir/Plain-1.00: $!";
-  my ($dry, $dry_status) = run_uncompress($dir, "-d");
-  ($out, $status) = run_uncompress($dir);
-  is $status, $dry_status, "the dry run exits as the run does" or diag $dry;
-  my ($would) = $dry =~ /would convert (\d+ files in \d+ directories),/;
-  my ($done)  = $out =~ /\bconverted (\d+ files in \d+ directories)/;
-  is $would, "3 files in 2 directories", "the dry run counts a fresh tree";
-  is $done,  $would, "the run converts what the dry run counts";
-  my $lines = index_lines($out);
+  my ($dry, $run) = dry_run_then_run($dir);
+  like $dry, qr/would convert 3 files in 2 directories,/,
+    "the dry run counts a fresh tree";
+  my $lines = index_lines($run);
   ok grep(/and 2 have no index page$/, @$lines), "the run lists index pages";
   is index_lines($dry), $lines, "the dry run lists the index pages of the run"
     or diag $dry;
+}
+
+sub uncompress_tree_odd_pages () {
+  my @old = qw( Long-1.00 Read-Only-Gz-1.00 Tmp-Name-1.00 );
+  my $dir = make_compressed_tree(@old);
+  my ($long, $read, $tmp) = map "$dir/$_", @old;
+  my $long_page = "$long/" . "p" x 245 . ".html";
+  write_gz($long_page, "long\n");
+  my $gz    = "$read/lib-One-pm.html.gz";
+  my $mtime = time - 86_400;
+  utime $mtime, $mtime, $gz or die "Can't utime $gz: $!";
+  chmod 0444, $gz or die "Can't chmod $gz: $!";
+  my $tmp_page = "$tmp/lib-One-pm.html.uncompress-tmp";
+  write_gz($tmp_page, "tmp page\n");
+
+  my (undef, $out, $status) = dry_run_then_run($dir);
+  is $status, 0, "uncompress succeeds with odd pages" or diag $out;
+  like $out, qr/converted 8 files in 3 directories/, "the run counts the pages";
+  unlike $out, qr/\[WARNING\]/, "the output has no warning";
+  is slurp($long_page), "long\n", "a page with a long name holds its text";
+  my $page = "$read/lib-One-pm.html";
+  is slurp($page), "Read-Only-Gz-1.00/lib-One-pm.html\n",
+    "the page of a read-only gzip file holds its text";
+  my @stat = stat $page;
+  is $stat[9], $mtime, "the page keeps the mtime of its read-only gzip file";
+  is sprintf("%04o", $stat[2] & 07777), "0444", "the page stays read-only";
+  is slurp($tmp_page), "tmp page\n",
+    "a page named like a temporary file holds its text";
+  is slurp("$tmp/lib-One-pm.html"), "Tmp-Name-1.00/lib-One-pm.html\n",
+    "the page with the shorter name holds its own text";
+  is top_level_leftovers("$dir/$_"), [], "$_ holds no gzip or temporary files"
+    for @old;
 }
 
 sub make_docker_stub ($bin) {
@@ -1349,6 +1397,7 @@ sub main () {
     uncompress_tree_empty_and_equal_pages
     uncompress_tree_index_pages
     uncompress_tree_dry_run
+    uncompress_tree_odd_pages
     docker_module_log_ref
     docker_module_timeout_log_ref
     docker_module_replaces_failed
