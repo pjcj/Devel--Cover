@@ -1060,6 +1060,10 @@ cpancover_has_gz_page() {
   find "$1" -maxdepth 1 -type f -name '*.gz' -print -quit | read -r
 }
 
+cpancover_gz_entries() {
+  find "$1" -maxdepth 1 -name '*.gz' \( -type f -o -type l \) "${@:2}"
+}
+
 cpancover_is_empty_page() {
   local page="$1"
   [[ -L $page ]] && return 1
@@ -1105,13 +1109,28 @@ cpancover_uncompress_page() {
   return 1
 }
 
+cpancover_keep_gz() {
+  local gz="$1"
+  local page="${gz%.gz}"
+  if [[ -L $gz ]]; then
+    pw "Can't convert $gz since it is a symbolic link"
+  elif [[ ${gz##*/} == virtual_unzipped.gz ]]; then
+    pw "Can't convert $gz since $page is the marker file"
+  elif [[ $page == *.gz ]]; then
+    pw "Can't convert $gz since $page ends in .gz"
+  elif [[ ! -s $gz ]]; then
+    pw "Can't convert $gz since it is empty"
+  elif [[ -L $page ]]; then
+    pw "Can't convert $gz since $page is a symbolic link"
+  else
+    return 1
+  fi
+}
+
 cpancover_uncompress_gz() {
   local gz="$1"
   local page="${gz%.gz}"
-  if [[ -L $page ]]; then
-    pw "Can't convert $gz since $page is a symbolic link"
-    return 1
-  fi
+  if cpancover_keep_gz "$gz"; then return 1; fi
   if cpancover_is_empty_page "$page"; then
     cpancover_uncompress_page "$page" "$2"
     return
@@ -1134,13 +1153,15 @@ cpancover_finish_report() {
   [[ -e $marker ]] || return 0
   while IFS= read -r -d '' page; do
     linked=true
-    if [[ ! -s $page && ! -f $page.gz ]]; then
+    if [[ ! -s $page && ! -f $page.gz && ! -L $page.gz ]]; then
       pw "$page has no text and no gzip file"
     fi
   done < <(find "$dir" -maxdepth 1 -type f -samefile "$marker" \
     -not -name virtual_unzipped -print0)
   if ((dryrun)); then return 0; fi
-  if [[ $linked == false ]] && ! cpancover_has_gz_page "$dir"; then
+  [[ $linked == false && -f $marker && ! -L $marker && ! -s $marker ]] ||
+    return 0
+  if ! cpancover_gz_entries "$dir" -print -quit | read -r; then
     rm -f "$marker" || pw "Can't delete $marker"
   fi
 }
@@ -1166,12 +1187,13 @@ cpancover_note_missing_index() {
 }
 
 cpancover_uncompress_report() {
-  local dir="$1" gz size index_size=""
+  local dir="$1" gz size index_size="" gzs
   local -n converted="$2" unconverted="$3" dir_bytes="$4"
   converted=0
   unconverted=0
   dir_bytes=0
-  while IFS= read -r -d '' gz; do
+  mapfile -d '' gzs < <(cpancover_gz_entries "$dir" -print0)
+  for gz in "${gzs[@]}"; do
     size=""
     if cpancover_uncompress_gz "$gz" size; then
       converted=$((converted + 1))
@@ -1180,7 +1202,7 @@ cpancover_uncompress_report() {
     else
       unconverted=$((unconverted + 1))
     fi
-  done < <(find "$dir" -maxdepth 1 -type f -name '*.gz' -print0)
+  done
   cpancover_finish_report "$dir"
   cpancover_note_missing_index "$dir" "$5" "$index_size"
 }

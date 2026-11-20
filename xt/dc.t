@@ -453,6 +453,148 @@ sub uncompress_tree_odd_pages () {
     for @old;
 }
 
+sub gzip_bytes ($content) {
+  my $dir = tempdir(CLEANUP => 1);
+  write_gz("$dir/page", $content);
+  slurp("$dir/page.gz")
+}
+
+sub uncompress_odd_report ($name, $left, $setup) {
+  my $dir    = make_compressed_tree($name);
+  my $report = "$dir/$name";
+  $setup->($report);
+  my (undef, $out, $status) = dry_run_then_run($dir);
+  isnt $status, 0, "uncompress fails in $name" or diag $out;
+  is slurp("$report/$_"), "$name/$_\n", "$name/$_ holds its text"
+    for @Report_files;
+  like $out, qr/\[WARNING\].*left $left gzip files in place/,
+    "the output counts the entries left in $name";
+  ($report, $out)
+}
+
+sub uncompress_tree_leaves_marker_page () {
+  my $gz = gzip_bytes("secret page");
+  my ($report, $out) = uncompress_odd_report(
+    "Marker-1.00", 1,
+    sub ($report) { write_file("$report/virtual_unzipped.gz", $gz) },
+  );
+  is slurp("$report/virtual_unzipped.gz"), $gz,
+    "the gzip file of the marker keeps its bytes";
+  ok -z "$report/virtual_unzipped", "the marker remains and stays empty";
+  ok warns($out, "Marker-1.00/virtual_unzipped.gz"),
+    "the output names the gzip file of the marker";
+}
+
+sub link_marker ($report, @pages) {
+  link "$report/virtual_unzipped", "$report/$_"
+    or die "Can't link $report/$_: $!"
+    for @pages;
+}
+
+sub uncompress_tree_leaves_double_suffixes () {
+  my $bytes
+    = { a => gzip_bytes(gzip_bytes("inner text")), b => gzip_bytes("single") };
+  my @pages = sort keys %$bytes;
+  my ($report, $out) = uncompress_odd_report(
+    "Double-1.00",
+    4,
+    sub ($report) {
+      write_file("$report/$_.gz.gz", $bytes->{$_}) for @pages;
+      link_marker($report, map "$_.gz", @pages);
+    },
+  );
+  for my $page (@pages) {
+    is slurp("$report/$page.gz.gz"), $bytes->{$page},
+      "$page.gz.gz keeps its bytes";
+    ok -z "$report/$page.gz",                  "$page.gz stays empty";
+    ok !-e "$report/$page",                    "no page $page appears";
+    ok warns($out, "Double-1.00/$page.gz.gz"), "the output names $page.gz.gz";
+  }
+}
+
+sub uncompress_tree_leaves_gz_links () {
+  my $outside = tempdir(CLEANUP => 1);
+  my $target  = "$outside/evil.html.gz";
+  my $gz      = gzip_bytes("evil\n");
+  write_file($target, $gz);
+  my $links
+    = { "evil.html.gz" => $target, "gone.html.gz" => "$outside/gone.html.gz" };
+  my @links = sort keys %$links;
+  my ($report, $out) = uncompress_odd_report(
+    "Links-1.00",
+    2,
+    sub ($report) {
+      for my $link (@links) {
+        symlink $links->{$link}, "$report/$link"
+          or die "Can't symlink $report/$link: $!";
+      }
+      link_marker($report, qw( evil.html gone.html ));
+    },
+  );
+  for my $link (@links) {
+    is readlink "$report/$link", $links->{$link}, "$link stays a link";
+    ok warns($out, "Links-1.00/$link"), "the output names $link";
+  }
+  is slurp($target), $gz, "the gzip file outside keeps its bytes";
+  ok -z "$report/evil.html",        "the page beside the link stays empty";
+  ok -e "$report/virtual_unzipped", "the marker remains";
+  ok !warns($out, "Links-1.00/gone.html"),
+    "the page beside a broken link gets no second warning";
+}
+
+sub uncompress_tree_keeps_odd_markers () {
+  my @old = qw( Gone-Link-1.00 Link-Marker-1.00 Text-Marker-1.00 );
+  my $dir = make_compressed_tree(@old);
+  my ($gone, $link, $text) = map "$dir/$_/virtual_unzipped", @old;
+  my $outside = tempdir(CLEANUP => 1);
+  write_file("$outside/empty", "");
+  my $gone_gz = "$dir/Gone-Link-1.00/gone.html.gz";
+  symlink "$outside/gone.html.gz", $gone_gz or die "Can't symlink $gone_gz: $!";
+  unlink $link or die "Can't unlink $link: $!";
+  symlink "$outside/empty", $link or die "Can't symlink $link: $!";
+  replace_page($text, "text\n");
+
+  my ($out) = run_uncompress($dir);
+  like $out, qr/converted 6 files in 3 directories/, "the run counts the pages";
+  is readlink $link, "$outside/empty", "a marker that is a link stays a link";
+  ok -e "$outside/empty", "the file outside remains";
+  is slurp($text), "text\n", "a marker with text keeps its text";
+  ok -z $gone, "the marker beside a broken link remains";
+
+  my $status;
+  ($out, $status) = run_uncompress($dir);
+  isnt $status, 0, "a second uncompress fails with the broken link"
+    or diag $out;
+  ok warns($out, $gone_gz), "a second uncompress names the broken link";
+}
+
+sub uncompress_tree_converts_odd_names () {
+  my $dir    = make_compressed_tree("Names-1.00");
+  my $report = "$dir/Names-1.00";
+  my @names  = (
+    "a page.html", "new\nline.html", "-dash.html", "star*.html",
+    "what?.html",  "[ab].html",
+  );
+  my $pages = { "empty.html" => "", map { $_ => "text of $_\n" } @names };
+  write_gz("$report/$_", $pages->{$_}) for sort keys %$pages;
+
+  my (undef, $out, $status) = dry_run_then_run($dir);
+  is $status, 0, "uncompress succeeds with odd names" or diag $out;
+  like $out, qr/converted 9 files in 1 directories/, "the run counts the pages";
+  unlike $out, qr/\[WARNING\]/, "the output has no warning";
+  is { map { $_ => slurp("$report/$_") } keys %$pages }, $pages,
+    "every page holds its own text";
+  my $empty = "$report/empty.html";
+  ok -f $empty && !-l $empty && -z $empty,
+    "the page of an empty gzip file is an empty regular file";
+  is top_level_leftovers($report), [], "no gzip or temporary file remains";
+
+  ($out, $status) = run_uncompress($dir);
+  is $status, 0, "a second uncompress succeeds" or diag $out;
+  like $out, qr/converted 0 files in 0 directories/,
+    "a second uncompress converts nothing";
+}
+
 sub make_docker_stub ($bin) {
   write_file("$bin/docker", <<~'BASH');
     #!/bin/sh
@@ -1398,6 +1540,11 @@ sub main () {
     uncompress_tree_index_pages
     uncompress_tree_dry_run
     uncompress_tree_odd_pages
+    uncompress_tree_leaves_marker_page
+    uncompress_tree_leaves_double_suffixes
+    uncompress_tree_leaves_gz_links
+    uncompress_tree_keeps_odd_markers
+    uncompress_tree_converts_odd_names
     docker_module_log_ref
     docker_module_timeout_log_ref
     docker_module_replaces_failed
