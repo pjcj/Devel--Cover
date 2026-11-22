@@ -98,12 +98,13 @@ sub read ($self, $file) {
   my $db = eval { $io->read($file) };
   if ($@ || !$db) {
     chomp(my $err = $@);
-    dcwarn $err || "no data in $file";
-  } else {
-    delete $self->{_digest_index};
-    $self->{runs}  = $db->{runs};
-    $self->{files} = $db->{files} // [];
+    # an unreadable file may hold data, so writing over it would lose it
+    die "Devel::Cover: cannot read database file $file: "
+      . ($err || "no data") . "\n";
   }
+  delete $self->{_digest_index};
+  $self->{runs}  = $db->{runs};
+  $self->{files} = $db->{files} // [];
   $self
 }
 
@@ -233,10 +234,10 @@ sub merge_runs ($self) {
   # they were created.  Run names use microsecond timestamps so lexicographic
   # sorting matches chronological order.
 
-  for my $name (@runs) {
-    my $r = Devel::Cover::DB->new(base => $self->{base}, db => $runs{$name});
-    $self->merge($r);
-  }
+  # read every run first, so a failed read leaves this object unchanged
+  my @from = map Devel::Cover::DB->new(base => $self->{base}, db => $runs{$_}),
+    @runs;
+  $self->merge($_) for @from;
 
   if (@runs) {
     my @aside;
@@ -1586,7 +1587,7 @@ This module provides access to a database of code coverage information.
   my $db = Devel::Cover::DB->new(db => "my_coverage_db");
 
 Construct a DB from the specified database directory. If the directory contains
-a valid database file it is read automatically.
+a valid database file it is read automatically. Dies when that read does.
 
 =head2 criteria
 
@@ -1626,8 +1627,9 @@ files added via the C<files> option).
   $db->read($file);
 
 Read a serialised database from C<$file>. Populates C<runs> and
-C<files>. Returns C<$self>. Dies when the IO layer refuses to read C<$file>,
-and warns for any other failure.
+C<files>. Returns C<$self>. Dies when it cannot read C<$file>, whether the IO
+layer refuses to read it or the read fails, so that no caller writes an empty
+database over a file that may hold data.
 
 =head2 write
 
@@ -1674,6 +1676,10 @@ the removal both fail, the plain run stays behind, and the next call removes it
 rather than merging it again, since the database already holds it. A run
 directory without a database file belongs to a process that has not finished
 writing it, so it is left for a later merge.
+
+Dies when it cannot read the database file or a run, before it writes the
+database or renames any run, so the database file and every unmerged run stay
+as they were.
 
 =head2 validate_db
 

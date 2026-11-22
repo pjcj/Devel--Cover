@@ -261,7 +261,9 @@ sub check_options () {
 
 sub delete_db (@dbs) {
   for my $del (@dbs) {
-    my $db = Devel::Cover::DB->new(db => $del);
+    # deleting needs no data, so don't read the database
+    my $db = Devel::Cover::DB->new;
+    $db->{db} = $del;
     unless ($db->is_valid) {
       dcinfo "$del is an invalid database - ignoring";
       next;
