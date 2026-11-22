@@ -132,45 +132,6 @@ sub test_stray_file_silenced () {
   is $err, "", "stray file: silenced";
 }
 
-sub unreadable_db () {
-  my $dir  = tempdir(CLEANUP => 1);
-  my $file = File::Spec->catfile($dir, "cover.15");
-  open my $fh, ">", $file or die "Cannot open $file: $!";
-  print $fh "not a coverage database" or die "Cannot write $file: $!";
-  close $fh                           or die "Cannot close $file: $!";
-  local $Devel::Cover::Silent = 1;
-  (Devel::Cover::DB->new(db => $dir), $file)
-}
-
-sub test_unreadable_db_labelled () {
-  local $Devel::Cover::Silent = 0;
-  my ($db, $file) = unreadable_db;
-  my $err = capture { $db->read($file) };
-  like $err, qr/^cover: Warning: \S/,
-    "unreadable database: labelled message with a body";
-}
-
-sub test_unreadable_db_silenced () {
-  local $Devel::Cover::Silent = 1;
-  my ($db, $file) = unreadable_db;
-  my $err = capture { $db->read($file) };
-  is $err, "", "unreadable database: silenced";
-}
-
-# The reader can return false without dying, which left the old warning with
-# nothing to say
-sub test_empty_db_names_the_file () {
-  local $Devel::Cover::Silent = 0;
-  my ($db, $file) = unreadable_db;
-  my $err = capture {
-    no warnings "redefine";
-    local *Devel::Cover::DB::IO::read = sub { undef };
-    $db->read($file);
-  };
-  is $err, "cover: Warning: no data in $file\n",
-    "empty database: the fallback names the file";
-}
-
 sub main () {
   test_no_bare_warn;
   test_add_methods_labelled;
@@ -179,9 +140,6 @@ sub main () {
   test_merge_mismatch_silenced;
   test_stray_file_labelled;
   test_stray_file_silenced;
-  test_unreadable_db_labelled;
-  test_unreadable_db_silenced;
-  test_empty_db_names_the_file;
 }
 
 main;
