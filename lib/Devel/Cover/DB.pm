@@ -234,10 +234,10 @@ sub merge_runs ($self) {
   # they were created.  Run names use microsecond timestamps so lexicographic
   # sorting matches chronological order.
 
-  for my $name (@runs) {
-    my $r = Devel::Cover::DB->new(base => $self->{base}, db => $runs{$name});
-    $self->merge($r);
-  }
+  # read every run first, so a failed read leaves this object unchanged
+  my @from = map Devel::Cover::DB->new(base => $self->{base}, db => $runs{$_}),
+    @runs;
+  $self->merge($_) for @from;
 
   if (@runs) {
     my @aside;

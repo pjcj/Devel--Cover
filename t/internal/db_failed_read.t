@@ -126,6 +126,20 @@ sub test_unreadable_run () {
     "both runs are kept under their own names";
 }
 
+sub test_second_merge_keeps_runs () {
+  my $dir = tempdir(CLEANUP => 1);
+  write_run($dir, "1000.1.00001");
+  write_run($dir, "1001.1.00001");
+  junk("$dir/runs/1001.1.00001/cover.15");
+
+  my $db = Devel::Cover::DB->new(db => $dir);
+  ok !eval { $db->merge_runs; 1 }, "merge_runs dies on the unreadable run";
+  ok !eval { $db->merge_runs; 1 }, "a second merge_runs dies too";
+  is_deeply run_entries($dir), ["1000.1.00001", "1001.1.00001"],
+    "both runs are kept after the second call";
+  ok !-e "$dir/cover.15", "no main database is written";
+}
+
 sub test_no_data () {
   my $dir  = tempdir(CLEANUP => 1);
   my $file = "$dir/cover.15";
@@ -169,6 +183,7 @@ sub main () {
   test_unreadable_main_db;
   test_unreadable_main_db_in_merge;
   test_unreadable_run;
+  test_second_merge_keeps_runs;
   test_no_data;
   test_silent_still_dies;
   test_cover_exits_with_error;
