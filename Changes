@@ -1,6 +1,11 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Stop with an error when `cover` cannot read a database file or a run, as with
+  a Sereal database where Sereal is not installed, and no longer write an empty
+  database over it and remove its runs. Delete a database without reading it, so
+  `cover -delete` and `cover -test` still remove one that cannot be read
+  (GH-938)
 - Record nothing for a sub that perl compiled before Devel::Cover loaded, since
   Devel::Cover cannot count its code and its record made a merged report show a
   count on a statement that never ran. Perl compiles a module that early when
