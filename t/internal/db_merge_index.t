@@ -20,7 +20,8 @@ use File::Spec ();
 use File::Temp qw( tempdir );
 use Test::More import => [qw( done_testing is is_deeply ok )];
 
-use Devel::Cover::DB ();
+use Devel::Cover::DB     ();
+use Devel::Cover::DB::IO ();
 
 my $Tmpdir = tempdir(CLEANUP => 1);
 
@@ -99,12 +100,24 @@ sub test_index_dropped_on_read () {
   is has_file($db->{runs}{r5}), 0, "run read from file loses its f.pl entries";
 }
 
+sub test_read_without_runs () {
+  my $file = File::Spec->catfile($Tmpdir, "no_runs.15");
+  Devel::Cover::DB::IO->new->write({ files => [] }, $file);
+
+  my $db = Devel::Cover::DB->new;
+  $db->read($file);
+  is_deeply $db->{runs}, {}, "a file with no runs reads as no runs";
+  $db->merge(db_with(r1 => "a"));
+  is $db->{runs}{r1}{digests}{"f.pl"}, "a", "merged run is kept";
+}
+
 sub main () {
   local $Devel::Cover::Silent = 1;
   test_changed_file;
   test_index_after_merge;
   test_false_digests;
   test_index_dropped_on_read;
+  test_read_without_runs;
 }
 
 main;
