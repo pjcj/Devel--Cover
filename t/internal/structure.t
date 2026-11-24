@@ -227,6 +227,18 @@ sub test_merge () {
   is $st1->{f}{"/b.pm"}{digest}, "bbb", "merge: new entry data correct";
 }
 
+sub test_merge_into_empty () {
+  my $st1 = Devel::Cover::DB::Structure->new;
+
+  my $st2 = Devel::Cover::DB::Structure->new;
+  $st2->{f}{"/b.pm"} = { digest => "bbb", statement => [["/b.pm", 2]] };
+
+  $st1->merge($st2);
+  my $files = $st1->{f} // {};
+  is_deeply [sort keys %$files], ["/b.pm"], "merge into empty: new entry added";
+  is $st1->{f}{"/b.pm"}{digest}, "bbb", "merge into empty: new entry data";
+}
+
 sub test_autoload_add_get () {
   my $file = write_source("autoload.pm", "package Autoload;\n1\n");
   my $st   = Devel::Cover::DB::Structure->new;
@@ -995,6 +1007,7 @@ sub main () {
   test_read_all_empty;
   test_read_all_no_dir;
   test_merge;
+  test_merge_into_empty;
   test_autoload_add_get;
   test_autoload_get_by_digest;
   test_autoload_get_meta;

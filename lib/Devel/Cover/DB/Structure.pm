@@ -316,6 +316,8 @@ sub read_all ($self) {
 sub merge ($self, $from) {
   my $files = $from->{f} // {};
   $self->{dirty}{$_} = 1 for keys %$files;
+  # _merge_hash cannot fill a hash that does not exist yet
+  $self->{f} //= {};
   # TODO - make _merge_hash a public API in Devel::Cover::DB
   Devel::Cover::DB::_merge_hash(  ## no critic (ProtectPrivateSubs)
     $self->{f}, $from->{f}, "noadd",

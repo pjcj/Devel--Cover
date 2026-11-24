@@ -68,6 +68,32 @@ sub test_write_merge ($tmpdir, $libdir, $cover_db) {
     "-write with a merge writes the structure";
 }
 
+sub empty_db ($tmpdir, $name, $with_structure) {
+  my $dir = File::Spec->catdir($tmpdir, $name);
+  mkdir $dir or die "Cannot mkdir $dir: $!";
+  my $structure = File::Spec->catdir($dir, "structure");
+  mkdir $structure or die "Cannot mkdir $structure: $!" if $with_structure;
+  $dir
+}
+
+sub test_merge_into_empty ($tmpdir, $cover_db, $kind, $with_structure) {
+  my $first = empty_db($tmpdir, "report_$kind", $with_structure);
+  my ($out, $exit)
+    = run_cover("-no-gcov", "-report", "text", $first, $cover_db);
+  is $exit, 0, "text report on a merge into $kind exits 0" or diag $out;
+  unlike $out, qr/Can't locate structure/,
+    "text report on a merge into $kind finds the structure";
+  like $out, qr/^Trivial\.pm\s+100\.0/m,
+    "text report on a merge into $kind has statement coverage for Trivial.pm";
+
+  my $from   = empty_db($tmpdir, "write_$kind", $with_structure);
+  my $merged = File::Spec->catdir($tmpdir, "merged_$kind");
+  ($out, $exit) = run_cover("-no-gcov", "-write", $merged, $from, $cover_db);
+  is $exit, 0, "-write with a merge into $kind exits 0" or diag $out;
+  is_deeply structure_names($merged), structure_names($cover_db),
+    "-write with a merge into $kind writes the structure";
+}
+
 sub main () {
   my ($tmpdir, $libdir) = setup_lib_dir;
   my $cover_db = create_cover_db($tmpdir, $libdir);
@@ -75,6 +101,8 @@ sub main () {
   test_report_new_name($new);
   test_write_in_place($cover_db);
   test_write_merge($tmpdir, $libdir, $cover_db);
+  test_merge_into_empty($tmpdir, $cover_db, "no_structure",    0);
+  test_merge_into_empty($tmpdir, $cover_db, "empty_structure", 1);
   done_testing;
 }
 
