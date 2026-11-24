@@ -1,6 +1,10 @@
 Devel::Cover history
 
 {{$NEXT}}
+- Keep the structure of each merged database when the first database given to
+  `cover` has none, as when it is an empty directory, so the report no longer
+  shows `n/a` for every file and `-write` no longer writes a database with no
+  structure (GH-940)
 - Stop with an error when `cover` cannot read a database file or a run, as with
   a Sereal database where Sereal is not installed, and no longer write an empty
   database over it and remove its runs. Delete a database without reading it, so

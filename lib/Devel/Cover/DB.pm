@@ -103,7 +103,7 @@ sub read ($self, $file) {
       . ($err || "no data") . "\n";
   }
   delete $self->{_digest_index};
-  $self->{runs}  = $db->{runs};
+  $self->{runs}  = $db->{runs}  // {};
   $self->{files} = $db->{files} // [];
   $self
 }
